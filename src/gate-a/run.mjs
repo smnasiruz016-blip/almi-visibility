@@ -46,7 +46,44 @@ import { computeShells, uniqueWords, residualTokens } from "./shell.mjs";
 import { countFacts, MIN_FACTS } from "./facts.mjs";
 import { maxAgainstPopulation, strategyFor, EXACT_ALL_PAIRS_MAX_GROUP } from "./overlap.mjs";
 
-/** Gate A's published thresholds. */
+/**
+ * Gate A's published thresholds.
+ *
+ * ══ 🔴 WHAT THESE TWO HAVE AND HAVE NOT PROVEN — 10 September 2026 ═══════
+ *
+ * The shared-block extraction moved best-case overlap from 0.3921/0.4003 to
+ * 0.1292/0.1468 by removing duplication and touching nothing else. Both
+ * constants survived that run without being moved, and the cause turned out to
+ * be ours rather than theirs.
+ *
+ * THE NARROW SENTENCE, BECAUSE THAT IS LESS THAN IT LOOKS LIKE:
+ *
+ *   These thresholds have proven that THEY CAN DISCRIMINATE — 0.39 against 0.13
+ *   is a real separation between a duplicated design and a de-duplicated one.
+ *   IT IS NOT PROVEN THAT THEIR POINT IS IN THE RIGHT PLACE.
+ *   DISCRIMINATING AND BEING CORRECTLY PLACED ARE TWO DIFFERENT THINGS, AND THE
+ *   SECOND IS STILL UNMEASURED.
+ *
+ * ⚠️ Both were REASONED TO, not measured from a page that ranks. Neither carries
+ * a sample, and RULE TWELVE applies to both — a threshold that justifies itself
+ * with a measurement must name that measurement, and these cannot.
+ *
+ * ══ THE DEBT, AND WHEN IT FALLS DUE ═══════════════════════════════════════
+ *
+ * 🔴 RECIPE — MANDATORY BEFORE THE FIRST COHORT IS PUBLISHED.
+ *
+ * Measure ten pages that actually rank for OET, with our own method: uniqueWords
+ * after shell, the prose/list split, how many external sources they cite and at
+ * what tier, and — if they have per-profession pages — THEIR OWN mutual overlap
+ * measured with our shingles.
+ *
+ * Deferred, not cancelled, and the reason is a real one: CALIBRATION MATTERS AT
+ * PUBLISH TIME, NOT AT DESIGN TIME. While nothing is being published, a
+ * threshold set in the wrong place only keeps us stricter than necessary — which
+ * is the safe direction to be wrong in. The day a cohort is published, it stops
+ * being safe, because then a mis-placed bar either ships thin pages or blocks
+ * good ones.
+ */
 export const MIN_UNIQUE_WORDS = 350;
 export const MAX_SIBLING_OVERLAP = 0.40;
 

@@ -29,7 +29,7 @@ import { join } from "node:path";
 import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
 import { loadRegistry, toGateAFact } from "../src/facts/registry.mjs";
 import { NURSING_PAGE, PROFESSIONS } from "../src/page/spec.mjs";
-import { SHARED_CLAIM_IDS, SHARED_PAGE, splitSpec, TEST_SHARED, ORIGIN_SHARED } from "../src/page/split.mjs";
+import { SHARED_CLAIM_IDS, SHARED_PAGE, splitSpec, TEST_SHARED, ORIGIN_SHARED, PENDING_ORIGIN_LAYER, PREMISE_CLAIM } from "../src/page/split.mjs";
 import { renderPage } from "../src/page/render.mjs";
 import { runGateA, MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../src/gate-a/run.mjs";
 import { tokensWithKind } from "../src/gate-a/text-kind.mjs";
@@ -68,7 +68,27 @@ function measure(spec, label) {
   const gate = runGateA(group);
   const me = gate.results.find((r) => r.id === "candidate");
 
-  // the rollout model, identical to bin/nursing-chain.mjs
+  // ── 🔴 THE PESSIMISTIC ROLLOUT MODEL IS RETIRED. KEPT, NOT DELETED. ──
+  //
+  // RETIRED 2026-09-10 by the owner, on evidence this script produced.
+  //
+  // It models the other eleven pages as THE SAME SENTENCES WITH THE NOUNS
+  // CHANGED. Before the shared block was extracted that was informative: it
+  // showed the shared half becoming shell. AFTER the extraction it moved 45 -> 43
+  // while the real measure moved 0.3921 -> 0.1292, because it assumes the
+  // per-profession half is copied too.
+  //
+  //   A MODEL THAT ASSUMES THE THING IT IS TESTING IS NOT A MEASUREMENT.
+  //   It was testing its own premise, and it would reject any design ever built.
+  //
+  // And OUR OWN REGISTRY DISPROVES THE PREMISE: NMBI answers the
+  // recognised-country question with FIVE countries where UKVI says EIGHTEEN --
+  // one claim, one profession, two regulators, two answers. Twelve regulators of
+  // twelve professions will not be one text with the nouns swapped.
+  //
+  // It still RUNS, and its number is still printed under a RETIRED label, because
+  // deleting it would hide that we ever relied on it. NOTHING READS IT AS A
+  // VERDICT: the decision is the best case, below.
   const sim = (profession, i) => {
     let h = html;
     h = h.split("nursing").join(profession);
@@ -170,16 +190,15 @@ const split = splitSpec();
 const after = measure(split, "SPLIT (shared block extracted, linked)");
 const sharedPage = measure(SHARED_PAGE, "THE SHARED PAGE ITSELF");
 
-// 🔴 THE READER-SAFE VARIANT — it exists because of the honest question,
-// not to improve a number.
-//
-// One of the seven is the page's OWN PREMISE: `oet.subtests-and-which-are-
-// profession-specific` is the claim that explains why a NURSING page exists at
-// all rather than one page about OET. Behind a link, /nursing starts
-// mid-argument. So this variant keeps it and extracts the other six — ACCEPTING
-// A WORSE OVERLAP NUMBER in exchange for a page that still makes sense.
-const READER_SAFE_REMOVED = SHARED_CLAIM_IDS.filter((id) => id !== "oet.subtests-and-which-are-profession-specific");
-const readerSafe = measure(splitSpec(NURSING_PAGE, READER_SAFE_REMOVED), "READER-SAFE SPLIT");
+// The reader-safe split IS the default now (see src/page/split.mjs), so the
+// useful comparison flips: what would removing the PREMISE as well have bought?
+// That is the price of the ruling and it belongs on screen, not in an argument.
+const premiseRemovedToo = measure(splitSpec(NURSING_PAGE, SHARED_CLAIM_IDS), "PREMISE REMOVED TOO (not taken)");
+
+// 🔴 The four that are NOT duplicated but MISPLACED must render NOWHERE.
+// Checked rather than asserted: a claim that is "awaiting its layer" and quietly
+// still on a page would be the worst of both.
+const renderedPending = renderPage(split, records).trace.filter((t) => PENDING_ORIGIN_LAYER.includes(t.claimId));
 
 console.log(`\nTHE SHARED BLOCK, EXTRACTED — ARITHMETIC ONLY, NO NEW FETCH`);
 line("═");
@@ -200,15 +219,18 @@ row("facts", before.onePage.facts, after.onePage.facts);
 row("overlap — ONE PAGE", f4(before.onePage.overlap), f4(after.onePage.overlap));
 row("verdict — ONE PAGE", before.onePage.verdict, after.onePage.verdict);
 console.log("");
-console.log(`  🔴 AFTER ROLLOUT — the number that decides`);
+console.log(`  RETIRED MODEL — pessimistic rollout. Printed, never acted on.`);
+console.log(`    It assumes the per-profession half is copied too, so after the extraction`);
+console.log(`    it tests its own premise. NMBI says 5 recognised countries where UKVI says 18.`);
 row("uniqueWords", before.rollout.uniqueWords, after.rollout.uniqueWords);
 row(`  (bar ${MIN_UNIQUE_WORDS})`, before.rollout.uniqueWords >= MIN_UNIQUE_WORDS ? "PASS" : "FAIL", after.rollout.uniqueWords >= MIN_UNIQUE_WORDS ? "PASS" : "FAIL");
 row("group shell after rollout", before.rollout.shellAfter, after.rollout.shellAfter);
 row("overlap (pessimistic)", f4(before.rollout.overlap), f4(after.rollout.overlap));
 row("verdict", before.rollout.verdict, after.rollout.verdict);
 console.log("");
-console.log(`  🔴 and the SAME rollout with the per-profession halves genuinely different`);
-console.log(`     (the pessimistic model above assumes they are NOT — which we know is false)`);
+console.log(`  🔴 AFTER ROLLOUT — THE NUMBER THAT DECIDES`);
+console.log(`     the per-profession halves are genuinely different, which is the only`);
+console.log(`     assumption our own registry supports`);
 row("uniqueWords, best case", before.bestCaseRolloutUnique, after.bestCaseRolloutUnique);
 row(`  (bar ${MIN_UNIQUE_WORDS})`, before.bestCaseRolloutUnique >= MIN_UNIQUE_WORDS ? "PASS" : "FAIL", after.bestCaseRolloutUnique >= MIN_UNIQUE_WORDS ? "PASS" : "FAIL");
 row("shared words on the page", before.sharedWords, after.sharedWords);
@@ -223,13 +245,28 @@ row(`  vs bar ${MAX_SIBLING_OVERLAP}`, `${before.bestCaseA <= MAX_SIBLING_OVERLA
 console.log("");
 row("two simulated siblings", f4(before.pairwiseSim), f4(after.pairwiseSim));
 
-console.log(`\n🔴 THE READER-SAFE VARIANT — the premise claim STAYS on the page`);
+console.log(`\n🔴 THE RULING, MEASURED`);
 line();
-console.log(`  claims ${readerSafe.claims} · words ${readerSafe.words} · prose ${readerSafe.prose} · list ${readerSafe.list}`);
-console.log(`  uniqueWords one page      ${String(readerSafe.onePage.uniqueWords).padStart(4)} / ${MIN_UNIQUE_WORDS}   ${readerSafe.onePage.pass ? "PASS" : "FAIL"}`);
-console.log(`  best case A / B           ${f4(readerSafe.bestCaseA)} / ${f4(readerSafe.bestCaseB)}  vs ${MAX_SIBLING_OVERLAP}   ${readerSafe.bestCaseA <= MAX_SIBLING_OVERLAP && readerSafe.bestCaseB <= MAX_SIBLING_OVERLAP ? "BOTH PASS" : "🔴 one or both FAIL"}`);
-console.log(`  best-case rollout unique  ${String(readerSafe.bestCaseRolloutUnique).padStart(4)} / ${MIN_UNIQUE_WORDS}   ${readerSafe.bestCaseRolloutUnique >= MIN_UNIQUE_WORDS ? "PASS" : "FAIL"}`);
-console.log(`  — keeping the premise costs overlap (${f4(after.bestCaseA)} → ${f4(readerSafe.bestCaseA)}) and is still well under the bar.`);
+console.log(`  the PREMISE claim stays on the profession page.`);
+console.log(`    remove it too and overlap would be ${f4(premiseRemovedToo.bestCaseA)} / ${f4(premiseRemovedToo.bestCaseB)}`);
+console.log(`    keeping it costs ${f4(premiseRemovedToo.bestCaseA)} → ${f4(after.bestCaseA)} — still about half the bar.`);
+console.log(`    ONE claim has been shown to earn its repetition. It is the only one.`);
+console.log("");
+console.log(`  🔴 THE FOUR THAT ARE NOT DUPLICATED — THEY ARE MISPLACED`);
+for (const id of PENDING_ORIGIN_LAYER) console.log(`     ${id}`);
+console.log(`     A profession page NEVER KNOWS THE READER'S ORIGIN, so these were shown to`);
+console.log(`     every reader alike. They are NOT behind a link — they are AWAITING A LAYER`);
+console.log(`     THAT KNOWS THE ORIGIN, where "here are the rules" becomes "Nigeria is`);
+console.log(`     red-listed, and here is what that means for you".`);
+console.log(`     rendered on a page today: ${renderedPending.length}   held in the registry: ${PENDING_ORIGIN_LAYER.length}`);
+console.log("");
+console.log(`     ⚠️  AND THIS DOES NOT BRING BACK 191 CORRIDOR PAGES. The red list is ONE`);
+console.log(`        CLAIM WITH 191 VALUES — a TABLE, not 191 pages. The per-origin measurement`);
+console.log(`        STANDS: outside a handful of regulators an origin is still about ONE BIT`);
+console.log(`        (31/47 median/max words over 573 pages). This CONFIRMS the narrow ruling`);
+console.log(`        rather than reopening it: a corridor page is defensible only where the`);
+console.log(`        origin GENUINELY CHANGES THE ANSWER — and a red-listed country is exactly`);
+console.log(`        where it does.`);
 console.log(`\nTHE SHARED PAGE ITSELF (/${SHARED_PAGE.slug})`);
 line();
 console.log(`  ${sharedPage.claims} claims · ${sharedPage.words} words · prose ${sharedPage.prose} · uniqueWords ${sharedPage.onePage.uniqueWords} · facts ${sharedPage.onePage.facts}`);
@@ -240,9 +277,10 @@ if (outDir) {
   if (!permission.mayWrite) console.log(`\n[dry-run] would have written ${outDir} — ${permission.reason}`);
   else {
     mkdirSync(outDir, { recursive: true });
-    writeFileSync(join(outDir, "split-report.json"), JSON.stringify({ before, after, readerSafe, sharedPage, removed: split.removedClaims, testShared: TEST_SHARED, originShared: ORIGIN_SHARED }, null, 2) + "\n", "utf8");
+    writeFileSync(join(outDir, "split-report.json"), JSON.stringify({ before, after, premiseRemovedToo, sharedPage, pendingOriginLayer: PENDING_ORIGIN_LAYER, premiseClaim: PREMISE_CLAIM, removed: split.removedClaims, testShared: TEST_SHARED, originShared: ORIGIN_SHARED }, null, 2) + "\n", "utf8");
     writeFileSync(join(outDir, "nursing-split.html"), renderPage(split, records).html, "utf8");
     writeFileSync(join(outDir, "shared-page.html"), renderPage(SHARED_PAGE, records).html, "utf8");
     console.log(`\nwrote ${outDir}/`);
   }
 }
+

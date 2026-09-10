@@ -15,7 +15,10 @@ import assert from "node:assert/strict";
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { NURSING_PAGE, PROFESSIONS, claimIdsOf } from "../src/page/spec.mjs";
 import { renderPage, renderFact, findCopiedFacts } from "../src/page/render.mjs";
-import { splitSpec, SHARED_PAGE, SHARED_CLAIM_IDS, ORIGIN_SHARED, TEST_SHARED } from "../src/page/split.mjs";
+import {
+  splitSpec, SHARED_PAGE, SHARED_CLAIM_IDS, ORIGIN_SHARED, TEST_SHARED,
+  PREMISE_CLAIM, PENDING_ORIGIN_LAYER, REMOVED_FROM_PROFESSION_PAGE, SHARED_PAGE_CLAIMS,
+} from "../src/page/split.mjs";
 import { fact } from "../src/facts/record.mjs";
 
 const NOW = new Date("2026-09-10T00:00:00Z");
@@ -155,11 +158,14 @@ describe("the page as it actually builds", () => {
 });
 
 describe("🔴 the shared block, extracted — §5A past the page boundary", () => {
-  test("splitSpec REMOVES the shared claims and drops sections that empty out", () => {
+  test("splitSpec removes the shared claims EXCEPT the premise, and drops empty sections", () => {
     const split = splitSpec();
     const left = split.sections.flatMap((s) => s.claims);
-    for (const id of SHARED_CLAIM_IDS) assert.ok(!left.includes(id), `${id} should have moved`);
-    assert.equal(split.removedClaims.length, SHARED_CLAIM_IDS.length);
+    for (const id of REMOVED_FROM_PROFESSION_PAGE) assert.ok(!left.includes(id), `${id} should have moved`);
+    // 🔴 THE RULING: the page's own premise STAYS. Without it /nursing starts
+    // mid-argument. Measured cost 0.1312 -> 0.1962, still about half the bar.
+    assert.ok(left.includes(PREMISE_CLAIM), "the premise claim must stay on the profession page");
+    assert.equal(split.removedClaims.length, REMOVED_FROM_PROFESSION_PAGE.length);
     // A heading over nothing is padding, and padding is what we are trying to
     // stop counting as content.
     for (const s of split.sections) assert.ok(s.claims.length > 0, `empty section kept: ${s.heading}`);
@@ -176,16 +182,54 @@ describe("🔴 the shared block, extracted — §5A past the page boundary", () 
     assert.ok(split.trailer && split.trailer.length > 40, "the replacement link must exist and be real text");
   });
 
-  test("🔴 every removed claim lands on the shared page — nothing is silently dropped", () => {
+  test("🔴 every removed claim has a NAMED destination — nothing is silently dropped", () => {
     const split = splitSpec();
     const onShared = new Set(SHARED_PAGE.sections.flatMap((s) => s.claims));
-    for (const id of split.removedClaims) assert.ok(onShared.has(id), `${id} was removed and landed nowhere`);
+    const pending = new Set(PENDING_ORIGIN_LAYER);
+    for (const id of split.removedClaims) {
+      assert.ok(onShared.has(id) || pending.has(id), `${id} was removed and landed nowhere`);
+    }
+    assert.equal(split.toSharedPage.length + split.toOriginLayer.length, split.removedClaims.length);
   });
 
-  test("the shared page still renders every one of them from the registry", async () => {
+  test("🔴 the four origin-scoped claims render on NO page — awaiting their layer", async () => {
+    // They are NOT "behind a link". A profession page never knows the reader's
+    // origin, so they were misplaced rather than merely duplicated. Held in the
+    // registry, rendered nowhere, and counted as owed — which is honest, and is
+    // not the same as being published somewhere worse.
+    const { records } = await loadRegistry();
+    for (const spec of [splitSpec(), SHARED_PAGE]) {
+      const rendered = renderPage(spec, records, NOW).trace.map((t) => t.claimId);
+      for (const id of PENDING_ORIGIN_LAYER) {
+        assert.ok(!rendered.includes(id), `${id} is still rendered on /${spec.slug}`);
+      }
+    }
+  });
+
+  test("the trailer promises only what EXISTS — no link to a page that is not there", () => {
+    const split = splitSpec();
+    // It may mention the shared page. It must never imply the origin claims are
+    // one click away, because they are not anywhere.
+    for (const word of ["red list", "red-list", "nationality", "recruitment"]) {
+      assert.ok(!(split.trailer ?? "").toLowerCase().includes(word), `trailer promises ${word}`);
+    }
+  });
+
+  test("the shared page renders exactly the claims assigned to it", async () => {
     const { records } = await loadRegistry();
     const { trace } = renderPage(SHARED_PAGE, records, NOW);
-    assert.equal(trace.length, SHARED_CLAIM_IDS.length);
+    assert.equal(trace.length, SHARED_PAGE_CLAIMS.length);
+  });
+
+  test("⚠️  and the shared page is TOO THIN to pass Gate A — recorded, not hidden", async () => {
+    // 2 claims, 239 uniqueWords against a 350 bar, and 2 facts against a bar of
+    // 5. A page that exists only to hold what other pages should not repeat is
+    // not automatically a page. This is an OPEN PRODUCT QUESTION, not a defect
+    // to paper over, and the test exists so nobody discovers it later by
+    // accident.
+    const { records } = await loadRegistry();
+    const { trace } = renderPage(SHARED_PAGE, records, NOW);
+    assert.ok(trace.length < 5, "if this ever reaches 5 facts, revisit the note above");
   });
 
   test("🔴 the split page still holds enough facts for Gate A on its own", async () => {

@@ -29,7 +29,10 @@ import { join } from "node:path";
 import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
 import { loadRegistry, toGateAFact } from "../src/facts/registry.mjs";
 import { NURSING_PAGE, PROFESSIONS } from "../src/page/spec.mjs";
-import { SHARED_CLAIM_IDS, SHARED_PAGE, splitSpec, TEST_SHARED, ORIGIN_SHARED, PENDING_ORIGIN_LAYER, PREMISE_CLAIM } from "../src/page/split.mjs";
+import {
+  ALL_REPEATED_CLAIMS, placeClaims, UNIVERSAL_CLAIMS,
+  PENDING_ORIGIN_LAYER, PENDING_DESTINATION_LAYER, REMOVED_FROM_PROFESSION_PAGE, AWAITING_A_LAYER,
+} from "../src/page/claim-placement.mjs";
 import { renderPage } from "../src/page/render.mjs";
 import { runGateA, MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../src/gate-a/run.mjs";
 import { tokensWithKind } from "../src/gate-a/text-kind.mjs";
@@ -108,7 +111,9 @@ function measure(spec, label) {
   // ── the two bookkeeping splits, exactly as before ─────────────────────────
   // A: off the RENDERED HTML — a per-profession fact's citation counts as
   //    per-profession, because the regulator's name changes.
-  const shared = new Set(SHARED_CLAIM_IDS);
+  // Intersected with the page by construction: a claim not on the page cannot
+  // contribute to its shared half.
+  const shared = new Set(ALL_REPEATED_CLAIMS);
   const blocks = html.split('<div class="fact" data-claim-id="').slice(1);
   let sharedA = html.split('<div class="fact"')[0];
   let uniqueA = "";
@@ -186,23 +191,17 @@ function measure(spec, label) {
 }
 
 const before = measure(NURSING_PAGE, "AS BUILT (shared block on every page)");
-const split = splitSpec();
-const after = measure(split, "SPLIT (shared block extracted, linked)");
-const sharedPage = measure(SHARED_PAGE, "THE SHARED PAGE ITSELF");
+const split = placeClaims();
+const after = measure(split, "PLACED BY SCOPE");
+// 🔴 Nothing out of scope may render anywhere. Checked, not asserted: a claim
+// "awaiting its layer" that is quietly still on a page would be the worst of both.
+const renderedPending = renderPage(split, records).trace.filter((t) => REMOVED_FROM_PROFESSION_PAGE.includes(t.claimId));
+const premiseRemovedToo = measure(placeClaims(NURSING_PAGE, ALL_REPEATED_CLAIMS), "UNIVERSALS REMOVED TOO (not taken)");
 
-// The reader-safe split IS the default now (see src/page/split.mjs), so the
-// useful comparison flips: what would removing the PREMISE as well have bought?
-// That is the price of the ruling and it belongs on screen, not in an argument.
-const premiseRemovedToo = measure(splitSpec(NURSING_PAGE, SHARED_CLAIM_IDS), "PREMISE REMOVED TOO (not taken)");
-
-// 🔴 The four that are NOT duplicated but MISPLACED must render NOWHERE.
-// Checked rather than asserted: a claim that is "awaiting its layer" and quietly
-// still on a page would be the worst of both.
-const renderedPending = renderPage(split, records).trace.filter((t) => PENDING_ORIGIN_LAYER.includes(t.claimId));
-
-console.log(`\nTHE SHARED BLOCK, EXTRACTED — ARITHMETIC ONLY, NO NEW FETCH`);
+console.log(`\nCLAIMS PLACED BY SCOPE — ARITHMETIC ONLY, NO NEW FETCH`);
 line("═");
-console.log(`  ${split.removedClaims.length} claims move to /${SHARED_PAGE.slug}; ${after.claims} stay on /nursing.`);
+console.log(`  ${split.removedClaims.length} claims LEAVE the profession page; ${after.claims} stay on /nursing.`);
+console.log(`  Nothing moves to a shared page — there is no shared page. See the ruling below.`);
 console.log(`  The eleven siblings come from the cache written by \`npm run chain\`. Nothing was fetched.`);
 
 const row = (name, a, b) => console.log(`  ${name.padEnd(34)} ${String(a).padStart(10)}   ${String(b).padStart(10)}`);
@@ -252,34 +251,58 @@ console.log(`    remove it too and overlap would be ${f4(premiseRemovedToo.bestC
 console.log(`    keeping it costs ${f4(premiseRemovedToo.bestCaseA)} → ${f4(after.bestCaseA)} — still about half the bar.`);
 console.log(`    ONE claim has been shown to earn its repetition. It is the only one.`);
 console.log("");
-console.log(`  🔴 THE FOUR THAT ARE NOT DUPLICATED — THEY ARE MISPLACED`);
-for (const id of PENDING_ORIGIN_LAYER) console.log(`     ${id}`);
-console.log(`     A profession page NEVER KNOWS THE READER'S ORIGIN, so these were shown to`);
-console.log(`     every reader alike. They are NOT behind a link — they are AWAITING A LAYER`);
-console.log(`     THAT KNOWS THE ORIGIN, where "here are the rules" becomes "Nigeria is`);
-console.log(`     red-listed, and here is what that means for you".`);
-console.log(`     rendered on a page today: ${renderedPending.length}   held in the registry: ${PENDING_ORIGIN_LAYER.length}`);
+console.log(`  🔴 AWAITING A LAYER THAT DOES NOT EXIST YET`);
+for (const a of AWAITING_A_LAYER) console.log(`     ${a.claim}` + " -> " + a.layer);
+console.log(`     A profession page knows neither the reader's ORIGIN nor their DESTINATION,`);
+console.log(`     so these were shown to every reader alike. They are NOT behind a link —`);
+console.log(`     THERE IS NO LINK, because there is nowhere to send anyone. Held in the`);
+console.log(`     registry, rendered nowhere, counted as owed.`);
+console.log(`     rendered on a page today: ${renderedPending.length}   owed: ${AWAITING_A_LAYER.length}`);
 console.log("");
 console.log(`     ⚠️  AND THIS DOES NOT BRING BACK 191 CORRIDOR PAGES. The red list is ONE`);
 console.log(`        CLAIM WITH 191 VALUES — a TABLE, not 191 pages. The per-origin measurement`);
 console.log(`        STANDS: outside a handful of regulators an origin is still about ONE BIT`);
-console.log(`        (31/47 median/max words over 573 pages). This CONFIRMS the narrow ruling`);
-console.log(`        rather than reopening it: a corridor page is defensible only where the`);
-console.log(`        origin GENUINELY CHANGES THE ANSWER — and a red-listed country is exactly`);
-console.log(`        where it does.`);
-console.log(`\nTHE SHARED PAGE ITSELF (/${SHARED_PAGE.slug})`);
+console.log(`        (31/47 median/max words over 573 pages). It CONFIRMS the narrow ruling:`);
+console.log(`        a corridor page is defensible only where the origin GENUINELY CHANGES THE`);
+console.log(`        ANSWER — and a red-listed country is exactly where it does.`);
+console.log(`\n🔴 THERE IS NO SHARED PAGE, AND THAT IS THE RULING`);
 line();
-console.log(`  ${sharedPage.claims} claims · ${sharedPage.words} words · prose ${sharedPage.prose} · uniqueWords ${sharedPage.onePage.uniqueWords} · facts ${sharedPage.onePage.facts}`);
-console.log(`  It is ONE page carrying claims that were rendered TWELVE times. That is the`);
-console.log(`  by-reference rule finally reaching past the page boundary.`);
+console.log(`  A page that exists only to hold what other pages should not repeat does not`);
+console.log(`  thereby become a page. It is a sign that the thing being repeated was in the`);
+console.log(`  WRONG PLACE — not that it needed a home of its own.`);
+console.log("");
+console.log(`  A CLAIM'S SCOPE DECIDES WHERE IT LIVES:`);
+console.log(`    origin-scoped       -> a layer that knows the ORIGIN        (${PENDING_ORIGIN_LAYER.length} owed)`);
+console.log(`    destination-scoped  -> a layer that knows the DESTINATION   (${PENDING_DESTINATION_LAYER.length} owed)`);
+console.log(`    universal           -> KEEP IT ON THE PAGE                  (${UNIVERSAL_CLAIMS.length} kept)`);
+console.log(`    and nobody needs a page called "shared".`);
+console.log("");
+console.log(`  Removing the universals too would give overlap ${f4(premiseRemovedToo.bestCaseA)} / ${f4(premiseRemovedToo.bestCaseB)}.`);
+console.log(`  Keeping them costs ${f4(premiseRemovedToo.bestCaseA)} → ${f4(after.bestCaseA)} — under two thirds of the bar,`);
+console.log(`  and it is BETTER FOR THE READER. Repetition here is measured-cheap.`);
 
 if (outDir) {
   if (!permission.mayWrite) console.log(`\n[dry-run] would have written ${outDir} — ${permission.reason}`);
   else {
     mkdirSync(outDir, { recursive: true });
-    writeFileSync(join(outDir, "split-report.json"), JSON.stringify({ before, after, premiseRemovedToo, sharedPage, pendingOriginLayer: PENDING_ORIGIN_LAYER, premiseClaim: PREMISE_CLAIM, removed: split.removedClaims, testShared: TEST_SHARED, originShared: ORIGIN_SHARED }, null, 2) + "\n", "utf8");
-    writeFileSync(join(outDir, "nursing-split.html"), renderPage(split, records).html, "utf8");
-    writeFileSync(join(outDir, "shared-page.html"), renderPage(SHARED_PAGE, records).html, "utf8");
+    writeFileSync(
+      join(outDir, "placement-report.json"),
+      JSON.stringify(
+        {
+          asBuilt: before,
+          placedByScope: after,
+          universalsRemovedToo: premiseRemovedToo,
+          universalClaims: UNIVERSAL_CLAIMS,
+          awaitingALayer: AWAITING_A_LAYER,
+          removed: split.removedClaims,
+          sharedPage: null,
+        },
+        null,
+        2,
+      ) + "\n",
+      "utf8",
+    );
+    writeFileSync(join(outDir, "nursing-placed.html"), renderPage(split, records).html, "utf8");
     console.log(`\nwrote ${outDir}/`);
   }
 }

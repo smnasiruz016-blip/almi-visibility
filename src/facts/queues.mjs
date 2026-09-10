@@ -61,9 +61,20 @@ export function queueFor({ sourceMachineReadable, sourceQuotable } = {}) {
  * a three-way answer rather than two.
  */
 export function freshnessRuleFor(record) {
-  const { sourceMachineReadable, sourceQuotable } = record ?? {};
+  const { sourceMachineReadable } = record ?? {};
   if (sourceMachineReadable !== true) return "human-re-read";
-  return sourceQuotable === true ? "machine-quote-match" : "machine-fingerprint";
+  // 🔴 CORRECTED 2026-09-10: what decides the CHECK is whether a span is
+  // ACTUALLY STORED, not whether one would be allowed.
+  //
+  // The old rule read `sourceQuotable === true`, which quietly assumed that a
+  // permitted quote is a taken quote. Immigration New Zealand broke that: its
+  // licence permits quoting and its record holds only our own words, so the
+  // rule prescribed a quote match with nothing to match and the record could
+  // never satisfy it. A check assigned to a record it cannot run on is a check
+  // that is permanently inconclusive, which is the shape this project keeps
+  // finding in other people's gates.
+  const hasSpan = typeof record?.evidence?.quotedSpan === "string" && record.evidence.quotedSpan.trim() !== "";
+  return hasSpan ? "machine-quote-match" : "machine-fingerprint";
 }
 
 /**
@@ -96,12 +107,15 @@ export function reverificationTrigger(record) {
  * against the source. Printed by the CLI beside every MANUAL record, so the
  * expensive queue always has to justify each of its members out loud.
  */
-export function queueReason({ sourceMachineReadable, sourceQuotable } = {}) {
+export function queueReason(record = {}) {
+  const { sourceMachineReadable, sourceQuotable } = record;
   if (sourceMachineReadable === false) return "🔴 the source refuses a machine — a person must open it";
   if (sourceMachineReadable === "unknown") return "no fetch has been attempted — machine-readability is not yet known";
-  if (sourceQuotable === false) return "watched by FINGERPRINT — the licence forbids storing its wording, so the hash is all a machine may hold";
+  const hasSpan = typeof record?.evidence?.quotedSpan === "string" && record.evidence.quotedSpan.trim() !== "";
+  if (hasSpan) return "watched by QUOTE MATCH — a span is stored, so the exact wording can be re-checked";
+  if (sourceQuotable === false) return "watched by FINGERPRINT — the licence does not permit storing its wording, so the hash is all a machine may hold";
   if (sourceQuotable === "unknown") return "watched by FINGERPRINT — the licence could not be read, and an unread licence is not a permissive one";
-  return "watched by QUOTE MATCH — the source permits both a fetch and a stored quote";
+  return "watched by FINGERPRINT — quoting is permitted here, but no span has been extracted";
 }
 
 /**

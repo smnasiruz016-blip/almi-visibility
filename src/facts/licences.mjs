@@ -39,6 +39,40 @@
  */
 export const DOCUMENT_CLASSES = Object.freeze(["rules", "standards", "guidance", "news", "general"]);
 
+
+/**
+ * 🔴 THE THREE STATES A SOURCE CAN BE IN — AND TWO OF THEM MUST NEVER MERGE.
+ *
+ * `sourceQuotable` is the mechanical answer (may we store a span: yes/no/unknown).
+ * THIS is the answer to the question a person actually asks, and the owner's
+ * ruling is that collapsing the middle two destroys the thing worth knowing:
+ *
+ *   PERMITTED   a licence was granted.        gov.uk OGL v3.0 · INZ CC BY 3.0 NZ · NMC 6.3 (guidance only)
+ *   RESERVED    copyright asserted, NO licence granted — THE DEFAULT.  PNMC · NMCN · NMBI
+ *   PROHIBITED  a specific act is expressly forbidden.                  OET
+ *   UNREAD      nobody has read the terms, or the page would not open.
+ *
+ * RESERVED and PROHIBITED both stop us storing a span, so a boolean cannot tell
+ * them apart — and they say completely different things:
+ *
+ *   🔴 RESERVED says "NOBODY HAS ASKED THEM."
+ *   🔴 PROHIBITED says "THE ANSWER IS WRITTEN IN THEIR POLICY."
+ *
+ * One is closed by an email to a regulator. The other is closed by nothing short
+ * of the licensor changing their mind, and asking would be a waste of a day. A
+ * single `false` would have made those look like the same piece of work forever.
+ *
+ * ⚠️ AND RESERVED IS NOT A WEAKER "NO". It is the LEGAL DEFAULT: silence
+ * reserves every right. The conservative reading is not caution, it is the law
+ * as it stands until somebody grants otherwise.
+ */
+export const QUOTABILITY_STATES = Object.freeze({
+  PERMITTED: "a licence was granted and its conditions are recorded",
+  RESERVED: "copyright asserted, no licence granted — THE DEFAULT. Nobody has asked them",
+  PROHIBITED: "a specific act is expressly forbidden. The answer is written in their policy",
+  UNREAD: "🔴 nobody has read the terms, or the licence page would not open. NEVER a permission",
+});
+
 export const LICENCES = Object.freeze({
   /**
    * OGL v3.0 — read at nationalarchives.gov.uk/doc/open-government-licence/version/3/
@@ -53,6 +87,7 @@ export const LICENCES = Object.freeze({
    * unreachable while making gov.uk's usable.
    */
   "OGL-v3.0": {
+    state: "PERMITTED",
     label: "Open Government Licence v3.0",
     quotableClasses: DOCUMENT_CLASSES,
     permitsCommercial: true,
@@ -88,6 +123,7 @@ export const LICENCES = Object.freeze({
    * scoped to three document classes.
    */
   "NMC-6.3": {
+    state: "PERMITTED",
     label: "NMC terms and conditions, clause 6.3",
     quotableClasses: ["rules", "standards", "guidance"],
     permitsCommercial: true,
@@ -100,6 +136,42 @@ export const LICENCES = Object.freeze({
     attributionMustLinkTo: "https://www.nmc.org.uk/",
     clause:
       'NMC 6.3 — "you may reproduce the content of any of our rules, standards and guidance in part or in full", conditional on the most up-to-date version, unaltered meaning, credit and a link. 6.2 excludes storage on a networked server for everything else.',
+  },
+
+  /**
+   * IMMIGRATION NEW ZEALAND — Creative Commons Attribution 3.0 New Zealand.
+   * Read first-hand by the owner at immigration.govt.nz/about-us/about-this-site/copyright/
+   * (_handoffs/SOURCE_QUOTABILITY.md).
+   *
+   * ✅ IT PERMITS: "licenses you to copy, distribute and adapt", conditional on
+   * attribution to the Crown and to the Ministry's website.
+   *
+   * 🔴 AND THIS IS THE ONE THAT PROVED THE "16 → 2" PREDICTION WRONG IN BOTH
+   * DIRECTIONS. §8.4 predicted four unread licences would all turn out permissive
+   * and move 14 records. The owner read all four: THREE grant nothing, and this
+   * ONE grants everything. The prediction was not merely too optimistic — it was
+   * a projection where a measurement was available, which is Rule Eight, and the
+   * measurement disagreed with it record by record rather than in aggregate.
+   *
+   * ⚠️ AND IT CARRIES THE SAME SHAPE OF CAVEAT AS THE OGL'S WORD "MOST":
+   * PDFs, text files, documents, extracts and DATA may NOT be Crown copyright,
+   * so EACH DOCUMENT MUST BE ASSESSED SEPARATELY. That is why
+   * `requiresPerPageThirdPartyCheck` is true here as well — a site-wide licence
+   * does not licence every artefact on the site.
+   */
+  "CC-BY-3.0-NZ": {
+    state: "PERMITTED",
+    label: "Creative Commons Attribution 3.0 New Zealand",
+    quotableClasses: DOCUMENT_CLASSES,
+    permitsCommercial: true,
+    permitsNetworkedStorage: true,
+    requiresCurrentVersion: false,
+    requiresPerPageThirdPartyCheck: true,
+    requiredAttribution: "Crown copyright",
+    attributionMustLinkTo: "https://www.immigration.govt.nz/",
+    clause:
+      'Immigration New Zealand copyright page: the material is licensed under Creative Commons Attribution 3.0 New Zealand, which "licenses you to copy, distribute and adapt" it, on condition of attribution to the Crown and to the Ministry website. ⚠️ PDFs, text files, documents, extracts and DATA may not be Crown copyright and must be assessed per document.',
+    licenceUrl: "https://www.immigration.govt.nz/about-us/about-this-site/copyright/",
   },
 
   /**
@@ -116,7 +188,12 @@ export const LICENCES = Object.freeze({
    * the licence, and it reserves everything.
    */
   "proprietary-no-reuse": {
-    label: "proprietary — no reuse terms granted",
+    // 🔴 RESERVED, not PROHIBITED. Nobody has asked these three; their pages
+    // simply say nothing. That is closed by an email to a regulator, which is a
+    // completely different piece of work from OET's flat refusal below — and a
+    // shared `false` would have made the two look identical forever.
+    state: "RESERVED",
+    label: "proprietary — copyright asserted, no reuse terms granted",
     quotableClasses: [],
     permitsCommercial: false,
     permitsNetworkedStorage: false,
@@ -143,6 +220,9 @@ export const LICENCES = Object.freeze({
    * system clause is even reached.
    */
   "OET-CBLA-IP": {
+    // 🔴 PROHIBITED, not RESERVED. The answer is written in their policy, and
+    // asking would waste a day.
+    state: "PROHIBITED",
     label: "OET / Cambridge Boxhill Language Assessment — Intellectual Property policy",
     quotableClasses: [],
     permitsCommercial: false,
@@ -170,6 +250,7 @@ export const LICENCES = Object.freeze({
    * other needs somebody to spend five minutes reading.
    */
   "unknown-licence-unreachable": {
+    state: "UNREAD",
     label: "UNKNOWN — the licence page could not be opened",
     quotableClasses: [],
     permitsCommercial: false,
@@ -181,6 +262,7 @@ export const LICENCES = Object.freeze({
     clause: "No licence could be read because the page refused or did not exist. Not a grant of anything.",
   },
   "unknown-not-read": {
+    state: "UNREAD",
     label: "UNKNOWN — nobody has read this source's terms yet",
     quotableClasses: [],
     permitsCommercial: false,
@@ -208,8 +290,27 @@ export const UNKNOWN_LICENCES = Object.freeze(["unknown-licence-unreachable", "u
 export function quotableUnder(licence, documentClass) {
   const l = LICENCES[licence];
   if (!l) return false;
-  if (UNKNOWN_LICENCES.includes(licence)) return "unknown";
-  return l.quotableClasses.includes(documentClass);
+  if (l.state === "UNREAD") return "unknown";
+  // PERMITTED still narrows by document class — NMC 6.3 grants for guidance and
+  // refuses for news on the same domain.
+  return l.state === "PERMITTED" && l.quotableClasses.includes(documentClass);
+}
+
+/**
+ * The state a reader actually needs: PERMITTED · RESERVED · PROHIBITED · UNREAD.
+ *
+ * 🔴 Kept beside `sourceQuotable` rather than replacing it, because they answer
+ * different questions and both get asked. `sourceQuotable` decides what the code
+ * may do; the STATE decides what a person should do about it — write an email,
+ * or stop.
+ */
+export function quotabilityState(licence) {
+  return LICENCES[licence]?.state ?? "UNREAD";
+}
+
+/** The exact clause behind a state, so the reasoning can be re-argued, never re-guessed. */
+export function licenceClause(licence) {
+  return LICENCES[licence]?.clause ?? null;
 }
 
 /** The exact credit this licence requires, or null where nothing may be quoted anyway. */

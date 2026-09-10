@@ -15,6 +15,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { queueFor, queueReason, manualQueueCost, automatedQueueIsUnattended, freshnessRuleFor } from "./queues.mjs";
 import { quoteUsability } from "./freshness.mjs";
+import { quotabilityState } from "./licences.mjs";
 import { validateRegistry } from "./validate.mjs";
 import { FACT_FRESHNESS_DAYS } from "./schema.mjs";
 import { countFacts } from "../gate-a/facts.mjs";
@@ -130,7 +131,13 @@ export function census(records = [], { now = new Date(), minutesPerFact = null }
   const byLicence = {};
   const byDocumentClass = {};
   const byFreshnessRule = {};
+  // 🔴 RESERVED and PROHIBITED are counted APART, though both stop a quote.
+  // One is closed by an email to a regulator; the other by nothing short of the
+  // licensor changing their mind. A single "not quotable" number would have made
+  // those look like the same piece of work forever.
+  const byQuotabilityState = { PERMITTED: 0, RESERVED: 0, PROHIBITED: 0, UNREAD: 0 };
   for (const r of records) {
+    byQuotabilityState[quotabilityState(r?.licence)] += 1;
     byLicence[r?.licence] = (byLicence[r?.licence] ?? 0) + 1;
     byDocumentClass[r?.sourceDocumentClass] = (byDocumentClass[r?.sourceDocumentClass] ?? 0) + 1;
     byFreshnessRule[freshnessRuleFor(r)] = (byFreshnessRule[freshnessRuleFor(r)] ?? 0) + 1;
@@ -141,6 +148,7 @@ export function census(records = [], { now = new Date(), minutesPerFact = null }
     total: records.length,
     validation,
     byQueue: { AUTOMATED: byQueue.AUTOMATED.length, MANUAL: byQueue.MANUAL.length },
+    byQuotabilityState,
     byLicence,
     byDocumentClass,
     byFreshnessRule,

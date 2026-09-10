@@ -112,6 +112,10 @@ export function renderPage(spec, records, now = new Date()) {
     }
     out.push(`</section>`);
   }
+  // The link that replaces an extracted shared block. Counted as page text like
+  // anything else — it is words, it is identical on all twelve, and pretending
+  // otherwise would flatter exactly the measurement it appears in.
+  if (spec.trailer) out.push(`<p class="see-also">${esc(spec.trailer)}</p>`);
   out.push(`</article>`);
 
   // 🔴 Thrown, never warned. See the header.

@@ -15,6 +15,7 @@ import assert from "node:assert/strict";
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { NURSING_PAGE, PROFESSIONS, claimIdsOf } from "../src/page/spec.mjs";
 import { renderPage, renderFact, findCopiedFacts } from "../src/page/render.mjs";
+import { splitSpec, SHARED_PAGE, SHARED_CLAIM_IDS, ORIGIN_SHARED, TEST_SHARED } from "../src/page/split.mjs";
 import { fact } from "../src/facts/record.mjs";
 
 const NOW = new Date("2026-09-10T00:00:00Z");
@@ -150,5 +151,55 @@ describe("the page as it actually builds", () => {
   test("the twelve professions are the published population, and nursing is one of them", () => {
     assert.equal(PROFESSIONS.length, 12);
     assert.ok(PROFESSIONS.includes("nursing"));
+  });
+});
+
+describe("🔴 the shared block, extracted — §5A past the page boundary", () => {
+  test("splitSpec REMOVES the shared claims and drops sections that empty out", () => {
+    const split = splitSpec();
+    const left = split.sections.flatMap((s) => s.claims);
+    for (const id of SHARED_CLAIM_IDS) assert.ok(!left.includes(id), `${id} should have moved`);
+    assert.equal(split.removedClaims.length, SHARED_CLAIM_IDS.length);
+    // A heading over nothing is padding, and padding is what we are trying to
+    // stop counting as content.
+    for (const s of split.sections) assert.ok(s.claims.length > 0, `empty section kept: ${s.heading}`);
+  });
+
+  test("it is DERIVED from the original, so the two cannot drift apart", () => {
+    const split = splitSpec();
+    const originalIds = new Set(NURSING_PAGE.sections.flatMap((s) => s.claims));
+    for (const s of split.sections) for (const c of s.claims) assert.ok(originalIds.has(c), c);
+  });
+
+  test("the link that replaces the block is COUNTED, not free", () => {
+    const split = splitSpec();
+    assert.ok(split.trailer && split.trailer.length > 40, "the replacement link must exist and be real text");
+  });
+
+  test("🔴 every removed claim lands on the shared page — nothing is silently dropped", () => {
+    const split = splitSpec();
+    const onShared = new Set(SHARED_PAGE.sections.flatMap((s) => s.claims));
+    for (const id of split.removedClaims) assert.ok(onShared.has(id), `${id} was removed and landed nowhere`);
+  });
+
+  test("the shared page still renders every one of them from the registry", async () => {
+    const { records } = await loadRegistry();
+    const { trace } = renderPage(SHARED_PAGE, records, NOW);
+    assert.equal(trace.length, SHARED_CLAIM_IDS.length);
+  });
+
+  test("🔴 the split page still holds enough facts for Gate A on its own", async () => {
+    const { records } = await loadRegistry();
+    const { trace } = renderPage(splitSpec(), records, NOW);
+    assert.ok(trace.length >= 5, `only ${trace.length} facts left — the split must not starve the page`);
+  });
+
+  test("the origin-scoped claims are marked as such — they are misplaced, not merely duplicated", () => {
+    // Four of the seven turn on WHERE THE READER IS FROM, which a profession
+    // page never knows. That is the design finding, and it is encoded rather
+    // than left in prose.
+    assert.equal(ORIGIN_SHARED.length, 4);
+    assert.equal(TEST_SHARED.length, 2);
+    for (const id of [...ORIGIN_SHARED, ...TEST_SHARED]) assert.ok(SHARED_CLAIM_IDS.includes(id), id);
   });
 });

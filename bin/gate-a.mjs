@@ -155,7 +155,14 @@ for (const g of groups) {
   console.log(`  reached stage 2 (facts): ${reachedFacts}`);
 
   // 🔴 The quadratic stage must never be silently empty.
-  console.log(`  reached stage 3 (overlap): ${out.reachedOverlap} (eliminated before it: ${out.eliminatedBefore})`);
+  // 🔴 Both numbers, always. How many pages were SCORED, and what they were
+  // scored AGAINST. Showing only the first is how the survivor-population
+  // false pass stayed invisible until the first acceptance test.
+  console.log(
+    `  reached stage 3 (overlap): ${out.reachedOverlap} scored (eliminated before it: ${out.eliminatedBefore})` +
+      ` · judged AGAINST the published population of ${out.overlapPopulation}` +
+      ` · ${out.overlapComparisons.toLocaleString("en-US")} comparisons`,
+  );
   if (sampled) {
     console.log(
       "    🔴 OVERLAP IS NOT REPORTED FOR THIS GROUP. It is a SAMPLE, and overlap is a claim about a\n" +

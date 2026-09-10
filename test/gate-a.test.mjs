@@ -16,7 +16,7 @@ import { tokensWithKind, uniqueWordsByKind } from "../src/gate-a/text-kind.mjs";
 import { tokensOf, textOf } from "../src/gate-a/tokens.mjs";
 import { computeShells, uniqueWords, residualTokens, SHELL_DOC_FREQUENCY } from "../src/gate-a/shell.mjs";
 import { judgeFact, countFacts, FACT_FRESHNESS_DAYS, urlShapeProblem } from "../src/gate-a/facts.mjs";
-import { shingles, jaccard, exactAllPairs, strategyFor, EXACT_ALL_PAIRS_MAX_GROUP } from "../src/gate-a/overlap.mjs";
+import { shingles, jaccard, exactAllPairs, maxAgainstPopulation, strategyFor, EXACT_ALL_PAIRS_MAX_GROUP } from "../src/gate-a/overlap.mjs";
 import { runGateA, MIN_UNIQUE_WORDS } from "../src/gate-a/run.mjs";
 
 const NOW = new Date("2026-09-10T00:00:00Z");
@@ -375,5 +375,132 @@ describe("🔴 prose vs tabular — the decomposition, and what it refuses to do
   test("script and style content is not text at all", () => {
     const { tokens } = tokensWithKind("<p>keep</p><script>var drop = 1;</script><style>.drop{}</style>");
     assert.deepEqual(tokens, ["keep"]);
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// 🔴 THE DENOMINATOR RULE — a gate may not build its denominator out of its
+// own output. Found by the nursing/from-india acceptance test, where overlap
+// against SURVIVORS returned a perfect 0.0000 with a survivor population of 0.
+// ───────────────────────────────────────────────────────────────────────────
+describe("🔴 overlap is scored against the PUBLISHED population, never the survivors", () => {
+  // The fixture reproduces the real shape: a long body SHARED by the corridor
+  // pages but NOT by the whole group, so it survives the shell (df >= 98%) and
+  // shows up as uniqueWords — exactly how a 469-row organisation list behaved.
+  const SHARED_BODY = Array.from({ length: 420 }, (_, i) => `clause${i}`).join(" ");
+  const OUTSIDERS = 20; // enough that the shared body is under 98% document frequency
+
+  const freshFacts = () =>
+    Array.from({ length: 5 }, (_, i) => ({
+      value: `v${i}`, sourceUrl: `https://example.gov/page-${i}`, tier: 1,
+      verifiedDate: new Date().toISOString().slice(0, 10),
+    }));
+
+  /** One page with five good facts, `siblingCount` near-identical factless siblings. */
+  function corpus(siblingCount) {
+    const group = [
+      { id: "india", html: `<p>${SHARED_BODY} india</p>`, facts: freshFacts(), whyThisUrl: "the corridor page" },
+    ];
+    for (let i = 0; i < siblingCount; i++) {
+      group.push({ id: `sib${i}`, html: `<p>${SHARED_BODY} country${i}</p>`, facts: [], whyThisUrl: "x" });
+    }
+    for (let i = 0; i < OUTSIDERS; i++) {
+      group.push({
+        id: `other${i}`,
+        html: `<p>${Array.from({ length: 30 }, (_, k) => `unrelated${i}x${k}`).join(" ")}</p>`,
+        facts: [], whyThisUrl: "x",
+      });
+    }
+    return group;
+  }
+
+  test("🔴 RED: the last one standing does NOT get a free pass", () => {
+    // 190 siblings, all rejected at facts. Only `india` survives to stage 3.
+    const out = runGateA(corpus(190));
+    const india = out.results.find((r) => r.id === "india");
+
+    // Under the OLD rule this page had nobody to compare with and scored 0.0000.
+    // Under the new rule it is compared with every PUBLISHED sibling.
+    assert.equal(out.reachedOverlap, 1, "one page reached stage 3");
+    assert.equal(out.overlapPopulation, 1 + 190 + OUTSIDERS, "judged against the whole published group");
+    assert.equal(india.comparedWith, 190 + OUTSIDERS, "every published page, not every survivor");
+    assert.ok(india.maxOverlap > 0.4, `near-identical siblings must score high, got ${india.maxOverlap}`);
+    assert.equal(india.overlapPass, false);
+    assert.equal(india.verdict, "REJECT");
+    assert.equal(india.rejectedAt, "overlap");
+  });
+
+  test("🔴 THE DIFFERENCE ITSELF — survivors-only says 0.0000, the published population does not", () => {
+    // This is the defect, kept alive as a test so it cannot come back quietly.
+    // Same page, same corpus, two denominators.
+    const survivor = { id: "india", residual: [`${SHARED_BODY} india`].join(" ").split(" ") };
+    const siblings = Array.from({ length: 190 }, (_, i) => ({
+      id: `sib${i}`, residual: `${SHARED_BODY} country${i}`.split(" "),
+    }));
+
+    // (a) the OLD rule: compare the survivors with each other. There is one.
+    const survivorsOnly = exactAllPairs([survivor]);
+    assert.equal(survivorsOnly[0].maxOverlap, 0, "the last one standing scores a perfect 0.0000");
+    assert.equal(survivorsOnly[0].against, null, "against nobody at all");
+
+    // (b) the NEW rule: compare it with every PUBLISHED sibling.
+    const [againstPopulation] = maxAgainstPopulation([survivor], [survivor, ...siblings]);
+    assert.equal(againstPopulation.comparedWith, 190);
+    assert.ok(againstPopulation.maxOverlap > 0.9, `near-identical, got ${againstPopulation.maxOverlap}`);
+
+    // 🔴 The gap between the two numbers IS the bug.
+    assert.ok(
+      againstPopulation.maxOverlap - survivorsOnly[0].maxOverlap > 0.9,
+      "the same page, the same day, judged 0.0000 or ~0.99 depending only on the denominator",
+    );
+  });
+
+  test("🔴 and the gate does not get EASIER as it rejects more", () => {
+    // The same survivor, in groups where more and more siblings were rejected.
+    const scores = [10, 50, 190].map((n) => {
+      const r = runGateA(corpus(n)).results.find((x) => x.id === "india");
+      return r.maxOverlap;
+    });
+    // Under the old rule every one of these was 0. Under the new rule the score
+    // is a property of the PAGES, so rejecting more siblings cannot improve it.
+    for (const s of scores) assert.ok(s > 0.4, `expected a high score, got ${s}`);
+    assert.ok(Math.max(...scores) - Math.min(...scores) < 0.05, "the score must not drift with rejection count");
+  });
+
+  test("a genuinely different page still passes, against the same full population", () => {
+    const group = corpus(190);
+    group[0].html = `<p>${Array.from({ length: 420 }, (_, i) => `distinct${i}`).join(" ")}</p>`;
+    const india = runGateA(group).results.find((r) => r.id === "india");
+    assert.ok(india.maxOverlap < 0.4, `a genuinely different page must score low, got ${india.maxOverlap}`);
+    assert.equal(india.verdict, "KEEP");
+  });
+
+  test("🔴 an empty comparison population is FLAGGED, never scored as zero", () => {
+    // Tested on the unit, because runGateA cannot reach it — see the next test.
+    const [only] = maxAgainstPopulation(
+      [{ id: "alone", residual: ["a", "b", "c", "d", "e", "f"] }],
+      [{ id: "alone", residual: ["a", "b", "c", "d", "e", "f"] }],
+    );
+    assert.equal(only.comparedWith, 0);
+    assert.equal(only.vacuous, true, "zero comparisons is an empty population, not a score");
+    assert.equal(only.maxOverlap, 0, "the number is 0, but `vacuous` is what the caller must read");
+  });
+
+  test("a ONE-PAGE group never reaches overlap at all — the shell eats it at stage 1", () => {
+    // Worth recording rather than discovering later: with one page, the shell IS
+    // the page, so uniqueWords is 0 and it is rejected two stages earlier.
+    const out = runGateA([
+      { id: "india", html: `<p>${SHARED_BODY} india</p>`, facts: freshFacts(), whyThisUrl: "x" },
+    ]);
+    const only = out.results[0];
+    assert.equal(only.uniqueWords, 0);
+    assert.equal(only.rejectedAt, "uniqueWords");
+    assert.equal(out.reachedOverlap, 0);
+  });
+
+  test("reachedOverlap and overlapPopulation are reported together", () => {
+    const out = runGateA(corpus(190));
+    assert.equal(out.overlapComparisons, 1 * (190 + OUTSIDERS));
+    assert.ok(out.overlapPopulation > out.reachedOverlap, "the two are different numbers and both are shown");
   });
 });

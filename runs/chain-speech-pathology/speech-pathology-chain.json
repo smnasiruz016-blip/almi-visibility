@@ -1,0 +1,25 @@
+{
+  "page": "speech-pathology",
+  "generatedOn": "2026-09-10",
+  "claims": 9,
+  "sources": [
+    "oet",
+    "uk-hcpc"
+  ],
+  "words": 972,
+  "prose": 946,
+  "list": 0,
+  "onePage": {
+    "uniqueWords": 726,
+    "facts": 9,
+    "overlap": 0,
+    "verdict": "KEEP"
+  },
+  "rollout": {
+    "uniqueWords": 34,
+    "overlapA": 0.6973684210526315,
+    "overlapB": 0.7166666666666667,
+    "verdict": "REJECT"
+  },
+  "sharedWords": 794
+}

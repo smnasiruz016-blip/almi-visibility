@@ -35,6 +35,27 @@
  *
  *     "EVERY SIBLING" MEANS EVERY SIBLING A READER CAN STILL REACH.
  *
+ * ══ 🔴 AND ITS GENERAL FORM, WHICH ARRIVED LATER ────────────────────══
+ *
+ *   THE SHARED HALF IS A PROPERTY OF THE PAGE AS IT RENDERS, NOT A PROPERTY OF
+ *   THE RULING ABOUT IT. A MEASUREMENT THAT CHANGES BECAUSE A RULING CHANGED IS
+ *   MEASURING THE RULING.
+ *
+ * The denominator rule is the special case: a gate may not build its
+ * denominator out of its own OUTPUT. This is the same error one level up — a
+ * gate may not build its denominator out of its own DECISIONS either.
+ *
+ * It has now been caught twice, both times by re-running an old baseline after
+ * changing something that was not supposed to touch it:
+ *   · repointing the shared set at a newly-ruled subset moved the AS-BUILT
+ *     baseline 0.3921 → 0.1927
+ *   · a hardcoded "repeated claims" list, assembled from one page, credited
+ *     another page's profession-independent text as distinguishing
+ *
+ * THE CHECK THAT CATCHES IT: after any change, re-run the OLD baseline and
+ * confirm it still prints the old number. A baseline that moves when you were
+ * not measuring the baseline is the alarm.
+ *
  * So stage 3 SCORES only survivors — D2-A is untouched, the work is still
  * candidates x population rather than population squared — but it scores them
  * against THE WHOLE PUBLISHED GROUP. What changed is the denominator, not the

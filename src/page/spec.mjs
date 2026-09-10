@@ -104,6 +104,55 @@ export const NURSING_PAGE = Object.freeze({
   ],
 });
 
+
+/**
+ * 🔴 THE HARDEST PROFESSION IN THE SET — chosen by measurement, not by taste.
+ *
+ * PROFESSION_STRENGTH_CENSUS.md counted the recognising organisations and the
+ * destination regulators for all twelve. Speech pathology came out weakest:
+ *
+ *   nursing            469 organisations · 6 destination regulators, 6 with a grade
+ *   speech pathology    46 organisations · 4 destination regulators, 2 with a grade,
+ *                       and NEW ZEALAND HAS NO REGULATOR AT ALL
+ *
+ * /nursing passed Gate A including rollout. Building eleven more after it would
+ * have been running the experiment that was going to pass.
+ *
+ * ⚠️ THIS PAGE IS DELIBERATELY THINNER, AND NOT BY CHOICE. Ireland, Australia
+ * and New Zealand contribute NOTHING here — see src/facts/gaps.mjs. Where the
+ * /nursing page has four destinations, this has one. That is the profession, not
+ * the method, and the page is allowed to look like it.
+ */
+export const SPEECH_PATHOLOGY_PAGE = Object.freeze({
+  slug: "speech-pathology",
+  profession: "speech-pathology",
+  title: "OET for speech and language therapists: the bar is higher than you think",
+  intro:
+    "This page states what the test involves and what the regulator that accepts it asks for. Every statement below is followed by the source it came from and the date that source was last checked. Where a source does not permit its wording to be reproduced, or its terms have not been read, the requirement is stated in our own words and the link is given so it can be read at first hand.",
+  sections: [
+    {
+      heading: "What the OET test is",
+      framing:
+        "Two of the four sub-tests are built around the profession itself, which is why a regulator can ask for a named version of the test rather than for OET in general.",
+      claims: ["oet.subtests-and-which-are-profession-specific", "oet.grade-bands-0-500"],
+    },
+    {
+      heading: "United Kingdom — the Health and Care Professions Council",
+      framing:
+        "The HCPC registers speech and language therapists, and it does not apply one English standard across the professions on its register. The difference is large and it is easy to miss.",
+      claims: [
+        "uk-hcpc.oet-minimum-score.profession=speech-pathology",
+        "uk-hcpc.oet-score-differs-by-profession",
+        "uk-hcpc.ielts-minimum.profession=speech-pathology",
+        "uk-hcpc.oet-profession-version.profession=speech-pathology",
+        "uk-hcpc.accepted-english-tests",
+        "uk-hcpc.certificate-maximum-age",
+        "uk-hcpc.test-venue-requirement",
+      ],
+    },
+  ],
+});
+
 /** Every claim id the page references, in order, deduplicated. */
 export function claimIdsOf(page = NURSING_PAGE) {
   return [...new Set(page.sections.flatMap((s) => s.claims))];

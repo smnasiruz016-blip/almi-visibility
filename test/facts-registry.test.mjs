@@ -1144,7 +1144,16 @@ describe("🔴 the recount — the '16 → 2' prediction, measured", () => {
     assert.ok(c.byQuotabilityState.PERMITTED > 0);
     assert.equal(c.byQuotabilityState.RESERVED, 14);
     assert.ok(c.byQuotabilityState.PROHIBITED > 0);
-    assert.equal(c.byQuotabilityState.UNREAD, 0, "every licence in the registry has now been read");
+    // ⚠️ UNREAD IS NO LONGER ZERO, AND THE TEST RECORDS THE DEBT RATHER THAN
+    // SILENCING IT. Adding HCPC for the speech-pathology chain brought in seven
+    // records whose terms nobody has opened. That is lawful — they are held in
+    // OUR OWN WORDS and fingerprint-watched — but it is a debt, and this
+    // assertion is where it is counted.
+    //
+    // 🔴 An unread licence is NOT a permissive one. If this number grows without
+    // anyone reading anything, that is the signal.
+    assert.ok(c.byQuotabilityState.UNREAD > 0, "if this reaches zero, every licence has been read — update this test");
+    assert.equal(c.byQuotabilityState.UNREAD, 7, "the 7 HCPC records await a first-hand licence read; Immigration NZ is PERMITTED (CC BY 3.0 NZ), not unread");
   });
 });
 

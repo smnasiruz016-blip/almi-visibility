@@ -427,3 +427,218 @@ worth far more than a generator.
 - It does not commit to the claim-count estimates in §4. They are marked, and the claim
   inventory replaces them.
 - It does not create or delete a page, and it does not touch another product.
+
+---
+
+# 8 · 🔴 THE REGISTRY AS BUILT — §5A, and it is FULL
+
+**10 September 2026.** Everything above this line was design. This section is what exists, what
+it measured, and the three things it got wrong on the way.
+
+> **§5A.1: *"A registry schema with zero usable supply is NOT PASS."***
+> **32 records. 8 sources. Every one tier 1. Not one of them is a blog.**
+
+`npm run facts` · `npm run facts:validate` · `npm run quote-match`
+
+---
+
+## 8.1 · WHERE THEY LIVE — files, and the ruling in §5 is unchanged
+
+**`facts/*.mjs`. One file per subject. No table, no migration, no provider, no Neon branch needed
+and none created.** The trigger in §5 has not fired: nothing writes facts faster than a person
+reviews them, because **`bin/quote-match.mjs` deliberately does not edit a fact file.** The
+machine proposes an outcome, a person merges it, the file records it. The day that stops being
+fast enough is the day a table starts earning itself — and on that day the branch comes first, in
+both halves.
+
+## 8.2 · THE RECORD — every field §5A named, and where it went
+
+| §5A asked for | where it lives | note |
+|---|---|---|
+| fact ID | `id`, **derived** from the claim | F1 rejects an id that disagrees with its claim |
+| subject / entity | `claim.subject` | |
+| claim / value | `claim.predicate` · `value.value` | |
+| unit | `value.unit` | F2 rejects money, duration or count without one |
+| locale / scope | `scope` · `locale` | |
+| source URL / document reference | `source.url` · `source.documentRef` | one or the other is mandatory |
+| source tier / authority | `source.tier` · `source.publisher` | **tier 4 may only be `status: "lead"`** |
+| extraction date | `life.extractedOn` | |
+| **verified date** | 🔴 **split into three** | see 8.3 |
+| freshness / expiry rule | `freshness.rule` · `.days` | **derived from the queue, never chosen** |
+| status | `life.status` | active · candidate · lead · conflict · retired |
+| provenance | `provenance.route` · `.acquiredBy` | R1–R4 |
+
+**Plus the two things that sit above that list**, and they are why the registry works:
+
+- **the claim triple** — a fact binds to **(subject · predicate · qualifier)** and **never to a
+  page**. 237,413 pages are being deleted; one NMC fact serves 193 of them; freshness is a
+  property of the claim. F15 enforces one active record per claim, so a fact is researched once.
+- **`quotedSpan`** — the field the design turns on, and the one the nightly job runs on.
+
+## 8.3 · THE THREE DATES, MEASURED OVER THE REAL 32
+
+| | | count |
+|---|---|---|
+| `linkCheckedOn` | machine · the URL opened. **SAYS NOTHING ABOUT THE CLAIM** | **31 / 32** |
+| `quoteMatchedOn` | machine · the span is still verbatim at that URL | **16 / 32** |
+| | *not-applicable* — lawfully not attempted | **16** |
+| | *could-not-check* — a third outcome | **1** |
+| 🔴 `factCheckedOn` + `factCheckedBy` | **a named person or model read it and judged** | **0 / 32** |
+
+### 🔴 AND THE COUNTER DOES NOT MOVE
+
+§3 promised `factChecked` stays hard-coded 0 until `factCheckedOn` exists on real records, with
+its test. **Real records now exist and the counter is still 0**, because what §3 requires was
+never "records" — it is somebody having read the source and judged that the quote supports the
+value. `REGISTRY_FACT_CHECK_COUNT = 0` in `src/facts/registry.mjs`, four tests hold it there, and
+the day it changes it will be a deliberate edit, not a field a script filled in.
+
+**The NZ record came closest and still did not qualify.** Its note says a person read Immigration
+New Zealand's own page on 2026-07-15 — but **that person is not named**, and `factCheckedBy` is
+mandatory. "Somebody, months ago" cannot be weighed against `model:claude-opus-5`, so the count
+stays at zero rather than admitting one record on a recollection. **Whoever did the reading can
+claim it in one line and it becomes the registry's first real fact check.**
+
+## 8.4 · 🔴 `sourceQuotable` HAS A THIRD VALUE — AND ONE RULING IS THE OWNER'S
+
+§4c gave the field two values because OET needed two. **Filling the registry needed a third**, and
+the reason is measurable: of eight sources, exactly one expressly prohibits, two expressly permit,
+and **five say nothing either way**.
+
+| value | meaning | sources |
+|---|---|---|
+| `true` | the licence **expressly permits** | gov.uk (**OGL v3.0**, stated on the page) · nmc.org.uk (express permission to quote its standards and guidance) |
+| `false` | the licence **expressly prohibits** | **oet.com** — the IP policy, unchanged and still binding |
+| `"unknown"` | **no express term either way was located** | nmcn.gov.ng · pnmc.gov.pk (both a bare "All Rights Reserved") · nmbi.ie (terms page sought, **HTTP 404**) · immigration.govt.nz (never read) |
+
+**Forced to choose true or false, every bare copyright notice would have to be GUESSED at — and a
+guess written into a field is indistinguishable, six months later, from a licence somebody read.**
+`sourceQuotableBasis` is mandatory in all three cases, so the reason is always legible.
+
+**And "unknown" is deliberately the EXPENSIVE answer** — it routes to the MANUAL queue exactly as a
+403 does. Nobody can reach for it to make work cheaper, which is the only real defence against it
+becoming a hiding place.
+
+### ⚠️ THE RULING THE OWNER OWNS, WITH ITS NUMBER ATTACHED
+
+**Treating "no express permission" as un-quotable is a LEGAL-RISK choice, not a technical one, and
+it is not mine to make.** The conservative reading is what is implemented. Its measured cost:
+
+| | |
+|---|---|
+| records in the MANUAL queue **only** because a licence was not read | **14 of 16** |
+| what closes it | **reading four licence pages** — NMCN, PNMC, NMBI, Immigration NZ |
+| if they expressly permit | those 14 move to AUTOMATED. **Manual queue 16 → 2. Human passes/year 32 → 4** |
+| if the owner rules a bare copyright notice does not bar a short stored extract | the same movement, without the reading |
+| if they expressly prohibit | nothing moves — and we will know rather than assume |
+
+🔴 **This is the single highest-leverage open question in DOD-03A. Four pages of reading moves 87%
+of the expensive queue.**
+
+## 8.5 · THE TWO QUEUES — MEASURED, and the pass condition RUN rather than claimed
+
+| | AUTOMATED | MANUAL |
+|---|---|---|
+| records | **16** | **16** |
+| entered when | machine-readable **AND** quotable | either is false or unknown |
+| re-verification | `bin/quote-match.mjs`, nightly | 🔴 a person opens the page and looks |
+
+**The queue is DERIVED, and a record that disagrees with its derivation is REJECTED (F11).** That
+is the whole defence against §4b's named failure — the manual queue becoming somewhere to hide
+work that failed to automate. Moving a fact into the expensive queue now requires stating a false
+fact about a source, in a mandatory field a reviewer reads. **Both directions are red: a record
+hidden in MANUAL is rejected exactly as loudly as one over-claimed as AUTOMATED.**
+
+### 🔴 DOD-03A's PASS CONDITION — RUN, ON THE REAL REGISTRY, AGAINST THE LIVE WEB
+
+> **`✅ YES` — measured over its 16 records; 0 need a person.**
+
+`bin/quote-match.mjs` fetched **5 distinct URLs**, matched **16 spans verbatim**, and exited 0. It
+takes no input, asks nothing, and needs no flag to do its work. **This is not a design claim. It
+is a run.**
+
+### THE MANUAL QUEUE'S COST — declared, and one number is NOT invented
+
+| | |
+|---|---|
+| facts | **16** |
+| human passes per year (2 per fact at 180 days) | **32** |
+| per week | **0.62** |
+| minutes per pass | 🔴 **UNKNOWN** |
+
+🔴 **`minutesPerFact` HAS NO DEFAULT AND NEVER GETS ONE.** §4 records it as UNKNOWN — "one record
+exists and nobody timed it" — and a plausible default would convert that honest UNKNOWN into a
+number that gets quoted, planned against, and eventually believed. The CLI takes it as an explicit
+input and prints UNKNOWN otherwise. **One afternoon closes it: time ten R2 acquisitions by hand.**
+
+⚠️ **0.62/week is NOT the ~2.5/week of `PROFESSION_PAGE_CLAIM_INVENTORY.md`, and the two do not
+conflict.** That figure projects **~150 acquisitions** across all twelve profession pages. This one
+counts **the 32 records that exist**. The gap between them is the work not yet done, and §8.7
+counts it.
+
+## 8.6 · 🔴 THREE THINGS THIS GOT WRONG, EACH CAUGHT BY A MACHINE
+
+**1 · A MODEL COUNTED, AND IT WAS WRONG.** Asked to summarise the Code of Practice, a model
+reported **62** red list countries. Our own reading the same day said **54**. It was settled by
+asking for the **LIST** instead of the count and counting it with `tr | wc -l`: **54 entries, no
+duplicates.** The extraction was right and the arithmetic was wrong — which is exactly the line §2
+draws when it says a model may PROPOSE a fact and may never BE the source. **The conflict is kept
+on the record after being resolved**, because the obvious way to ask still produces 62.
+
+**2 · SIX SPANS I WROTE WERE PARAPHRASES, AND THE FIRST REAL RUN WENT RED ON ALL SIX.** I recorded
+`"should not be targeted for recruitment"` from a model's summary. The page says **"Countries on
+the red list must not be targeted for international recruitment"**. The matcher refused all six
+records. **The check earned its keep before the registry was even committed.**
+
+**3 · 🔴 A PASSING CHECK THAT PROVED ALMOST NOTHING.** The span `"on their own behalf"` matched —
+because those four words also sit in the page's glossary. It would have gone on matching after the
+rule it evidenced was deleted. So the job now counts **occurrences**, and a span found more than
+once is reported as a **weak pass**: not a failure, nothing has been shown to have changed, but it
+is the exact shape of a check that has quietly lost the ability to go red.
+
+⚠️ **And the obvious fix was measured and REJECTED.** A minimum span length looks like the answer
+and is not: of 17 spans, the one other weak pass is **190 characters long**
+(`uk-nmc.qualified-in-english-evidence`, which the NMC states twice). **Length does not predict
+anchoring — n=17, measured.** So no length rule was added; ambiguity is measured at match time,
+where it is real.
+
+### And one limitation that has no fix here, only a name
+
+**A QUOTE MATCH CANNOT PROVE AN ABSENCE, AND IT CANNOT PROVE AN AGGREGATE.**
+
+- `country=india` and `country=philippines` say a country is **not on the red list**. An absence is
+  not a string. The span proves the red-list mechanism still exists; **it does not prove India
+  stayed off it.**
+- `red-list-country-count = 54` — **no sentence on that page contains "54"**. Its span proves only
+  where the list ends. A count must be **re-derived**, which is a different job from matching a
+  string, and the nightly matcher does not do it.
+
+**Three records therefore carry a `quoteMatchProves` field stating what their green actually
+buys.** They are protected LESS than the others and the record says so — because a page that keeps
+telling an Indian nurse she is green-listed for a year after she stopped being is the exact failure
+this registry exists to prevent.
+
+## 8.7 · 🔴 WHAT IS MISSING IS COUNTED TOO — 9 DECLARED GAPS
+
+A store of facts cannot report what it lacks; absence leaves no row. **And the alternative to
+declaring a gap is inventing a plausible value to fill it** — which a model could do for every one
+of these, in a sentence that would look exactly like a real record.
+
+| gap | blocked by |
+|---|---|
+| 4 × OET Block A claims (nursing writing task, speaking role-play, subtests, grade bands) | 🔴 **LICENCE** — acquirable, but only in our own words, by a person |
+| Ahpra/NMBA · NCNZ (~10 claims) | 🔴 **HTTP 403** — recorded, never routed around |
+| Canada (~5 **per province**) | 🔴 **STRUCTURAL** — NNAS is not a language regulator. A FRAGMENTED destination |
+| India · verification issuing body | 🔴 **STRUCTURAL** — ~30 State Nursing Councils. A **BRANCH**, not a fact |
+| Philippines PRC | 🔴 **HTTP 403** |
+
+## 8.8 · WHAT THIS SECTION DID NOT DO
+
+- **No table, no migration, no provider, no Neon branch, no production write.** No page created or
+  deleted. No other product changed — `almi-oet` was **read** for `org-notes.ts`, which the SCOPE
+  LAW permits.
+- **It did not turn on `factChecked`.** 0/32, with four tests holding it there.
+- **It did not route around a single refusal.** No user-agent spoofing, no proxy, no third-party
+  mirror, and no paraphrase that is really a quote. Four 403s and one licence are recorded as costs.
+- **It did not invent `minutesPerFact`**, and it did not quietly widen `sourceQuotable`'s meaning
+  to make the automated queue look bigger.

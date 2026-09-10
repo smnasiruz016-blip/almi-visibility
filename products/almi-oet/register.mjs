@@ -21,6 +21,20 @@ import { ALMI_OET_GAPS } from "./gaps.mjs";
 
 export const PRODUCT_ID = "almi-oet";
 
+/**
+ * 🔴 WHAT THIS PRODUCT'S PAGES VARY BY.
+ *
+ * The engine asks "does this claim's value change from one sibling page to the
+ * next?" It cannot answer that without being told what a sibling IS, and it is
+ * not entitled to guess. AlmiOET's answer is `profession`; AlmiCV's would be a
+ * country, AlmiPTE's a task type.
+ *
+ * The claim qualifiers in this product's records read `profession=nursing`, so
+ * the axis key is the prefix the engine looks for. Nothing in `src/` may know
+ * that string.
+ */
+export const AXIS_KEY = "profession";
+
 const HERE = dirname(fileURLToPath(import.meta.url));
 
 /** Where this product keeps its fact records. The engine has no idea. */

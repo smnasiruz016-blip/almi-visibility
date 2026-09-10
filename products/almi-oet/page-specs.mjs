@@ -42,7 +42,7 @@ export const PROFESSIONS = Object.freeze([
  */
 export const NURSING_PAGE = Object.freeze({
   slug: "nursing",
-  profession: "nursing",
+  variant: "nursing",
   title: "OET for nurses: what each regulator actually requires",
   // Framing only. No claim, therefore no citation, therefore nothing that can
   // go stale without anybody noticing.
@@ -125,7 +125,7 @@ export const NURSING_PAGE = Object.freeze({
  */
 export const SPEECH_PATHOLOGY_PAGE = Object.freeze({
   slug: "speech-pathology",
-  profession: "speech-pathology",
+  variant: "speech-pathology",
   title: "OET for speech and language therapists: the bar is higher than you think",
   intro:
     "This page states what the test involves and what the regulator that accepts it asks for. Every statement below is followed by the source it came from and the date that source was last checked. Where a source does not permit its wording to be reproduced, or its terms have not been read, the requirement is stated in our own words and the link is given so it can be read at first hand.",

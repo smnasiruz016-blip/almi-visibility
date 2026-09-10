@@ -5,9 +5,9 @@ import { LICENCES, registerLicences, quotabilityState, requiresCurrentVersion } 
 import { registerGaps, declaredGaps, gapRegisterProducts } from "../src/facts/gaps.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { claimIdsOf } from "../src/page/claim-ids.mjs";
-import { placeClaims } from "../src/page/claim-placement.mjs";
+import { placeClaims, isPerVariant, isSharedAcrossVariants } from "../src/page/claim-placement.mjs";
 
-import { PRODUCT_ID, FACTS_DIR } from "../products/almi-oet/register.mjs";
+import { PRODUCT_ID, FACTS_DIR, AXIS_KEY } from "../products/almi-oet/register.mjs";
 import { ALMI_OET_LICENCES } from "../products/almi-oet/licences.mjs";
 import { ALMI_OET_GAPS } from "../products/almi-oet/gaps.mjs";
 
@@ -85,6 +85,41 @@ test("🔴 claimIdsOf has no default page", () => {
 
 test("🔴 placeClaims has no default page", () => {
   assert.throws(() => placeClaims(), /a product must hand one over/);
+});
+
+/* ------------------------------------------------------------------ *
+ * 🔴 THE AXIS IS A PARAMETER, AND IT HAS TO ACTUALLY DO SOMETHING.
+ *
+ * A rename that leaves the old behaviour hardcoded underneath is a rename that
+ * bought nothing. These prove the axis argument changes the answer.
+ * ------------------------------------------------------------------ */
+
+const claim = (qualifier) => ({ id: "x.y", claim: { qualifier } });
+
+test("🔴 the engine refuses to guess what a page varies by", () => {
+  assert.throws(() => isPerVariant(claim("profession=nursing")), /a product must say/);
+  assert.throws(() => isPerVariant(claim("profession=nursing"), ""), /a product must say/);
+});
+
+test("🔴 the SAME record is per-variant on one axis and shared on another", () => {
+  const r = claim("profession=nursing");
+  assert.equal(isPerVariant(r, "profession"), true);
+  assert.equal(isPerVariant(r, "country"), false);
+  // …and the shared predicate inverts with it, which is what makes the overlap
+  // measure follow the product rather than a word baked into the engine.
+  assert.equal(isSharedAcrossVariants(r, "profession"), false);
+  assert.equal(isSharedAcrossVariants(r, "country"), true);
+});
+
+test("a claim with no qualifier is shared on every axis", () => {
+  const r = claim(null);
+  assert.equal(isPerVariant(r, "profession"), false);
+  assert.equal(isSharedAcrossVariants(r, "profession"), true);
+  assert.equal(isSharedAcrossVariants(r, "anything-at-all"), true);
+});
+
+test("the product declares its own axis, and the engine never names it", () => {
+  assert.equal(AXIS_KEY, "profession");
 });
 
 /* ------------------------------------------------------------------ *

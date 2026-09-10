@@ -29,10 +29,10 @@ import { readFileSync, existsSync, readdirSync, writeFileSync, mkdirSync } from 
 import { join } from "node:path";
 
 import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
-import { FACTS_DIR } from "../products/almi-oet/register.mjs";
+import { FACTS_DIR, AXIS_KEY } from "../products/almi-oet/register.mjs";
 import { loadRegistry, toGateAFact } from "../src/facts/registry.mjs";
 import { NURSING_PAGE, SPEECH_PATHOLOGY_PAGE, PROFESSIONS } from "../products/almi-oet/page-specs.mjs";
-import { placeClaims, ALL_REPEATED_CLAIMS, AWAITING_A_LAYER, rendersIdenticallyOnEveryProfessionPage } from "../src/page/claim-placement.mjs";
+import { placeClaims, ALL_REPEATED_CLAIMS, AWAITING_A_LAYER, isSharedAcrossVariants } from "../src/page/claim-placement.mjs";
 import { renderPage, findCopiedFacts } from "../src/page/render.mjs";
 import { runGateA, MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../src/gate-a/run.mjs";
 import { tokensWithKind } from "../src/gate-a/text-kind.mjs";
@@ -78,10 +78,10 @@ const gate = runGateA([{ id: `${which} (CANDIDATE)`, html, facts, whyThisUrl: `t
 const me = gate.results.find((r) => r.id === `${which} (CANDIDATE)`);
 
 // ── the shared half, by the rule that survived: a property of the PAGE ──────
-// 🔴 DERIVED, not a list. See rendersIdenticallyOnEveryProfessionPage:
+// 🔴 DERIVED, not a list. See isSharedAcrossVariants:
 // a hardcoded set only knows the claims somebody remembered to add, and it
 // silently credited profession-independent text as distinguishing.
-const repeated = new Set(records.filter(rendersIdenticallyOnEveryProfessionPage).map((r) => r.id));
+const repeated = new Set(records.filter((r) => isSharedAcrossVariants(r, AXIS_KEY)).map((r) => r.id));
 const blocks = html.split('<div class="fact" data-claim-id="').slice(1);
 let sharedA = html.split('<div class="fact"')[0];
 let uniqueA = "";

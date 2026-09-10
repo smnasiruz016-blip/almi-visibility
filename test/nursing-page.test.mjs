@@ -19,7 +19,7 @@ import { claimIdsOf } from "../src/page/claim-ids.mjs";
 import { renderPage, renderFact, findCopiedFacts } from "../src/page/render.mjs";
 import {
   placeClaims, UNIVERSAL_CLAIMS, ALL_REPEATED_CLAIMS, AWAITING_A_LAYER,
-  PENDING_ORIGIN_LAYER, PENDING_DESTINATION_LAYER, REMOVED_FROM_PROFESSION_PAGE,
+  PENDING_ORIGIN_LAYER, PENDING_DESTINATION_LAYER, REMOVED_FROM_VARIANT_PAGE,
 } from "../src/page/claim-placement.mjs";
 import { fact } from "../src/facts/record.mjs";
 
@@ -165,7 +165,7 @@ describe("🔴 a claim's SCOPE decides where it lives", () => {
     assert.equal(all.size, UNIVERSAL_CLAIMS.length + PENDING_ORIGIN_LAYER.length + PENDING_DESTINATION_LAYER.length);
     for (const id of [...UNIVERSAL_CLAIMS, ...PENDING_ORIGIN_LAYER, ...PENDING_DESTINATION_LAYER]) assert.ok(all.has(id), id);
     // disjoint: a claim cannot be universal AND owed a layer
-    for (const id of UNIVERSAL_CLAIMS) assert.ok(!REMOVED_FROM_PROFESSION_PAGE.includes(id), id);
+    for (const id of UNIVERSAL_CLAIMS) assert.ok(!REMOVED_FROM_VARIANT_PAGE.includes(id), id);
   });
 
   test("🔴 THERE IS NO SHARED PAGE — the module exports none", async () => {
@@ -190,13 +190,13 @@ describe("🔴 a claim's SCOPE decides where it lives", () => {
     // becomes "behind a link" in somebody's summary six weeks from now.
     assert.equal(placed.trailer, null);
     const rendered = renderPage(placed, records, NOW).trace.map((t) => t.claimId);
-    for (const id of REMOVED_FROM_PROFESSION_PAGE) assert.ok(!rendered.includes(id), `${id} still renders`);
+    for (const id of REMOVED_FROM_VARIANT_PAGE) assert.ok(!rendered.includes(id), `${id} still renders`);
   });
 
   test("every removed claim names the layer it is waiting for, and that layer does NOT exist", () => {
-    assert.equal(AWAITING_A_LAYER.length, REMOVED_FROM_PROFESSION_PAGE.length);
+    assert.equal(AWAITING_A_LAYER.length, REMOVED_FROM_VARIANT_PAGE.length);
     for (const a of AWAITING_A_LAYER) {
-      assert.ok(REMOVED_FROM_PROFESSION_PAGE.includes(a.claim), a.claim);
+      assert.ok(REMOVED_FROM_VARIANT_PAGE.includes(a.claim), a.claim);
       assert.equal(a.exists, false, "no layer exists yet, and the record must say so");
       assert.ok(a.layer.length > 10 && a.becomes.length > 20, a.claim);
     }

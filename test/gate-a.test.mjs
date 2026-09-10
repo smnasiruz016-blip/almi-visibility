@@ -11,7 +11,7 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 
-import { writePermission } from "../src/write-law.mjs";
+import { writePermission, LOCAL, PRODUCTION } from "../src/write-law.mjs";
 import { tokensOf, textOf } from "../src/gate-a/tokens.mjs";
 import { computeShells, uniqueWords, residualTokens, SHELL_DOC_FREQUENCY } from "../src/gate-a/shell.mjs";
 import { judgeFact, countFacts, FACT_FRESHNESS_DAYS, urlShapeProblem } from "../src/gate-a/facts.mjs";
@@ -22,15 +22,15 @@ const NOW = new Date("2026-09-10T00:00:00Z");
 
 // ───────────────────────── THE WRITE LAW ─────────────────────────────────────
 
-describe("🔴 the write law — BOTH, never either", () => {
-  test("RED: --confirm alone does NOT permit a write", () => {
-    const p = writePermission({ argv: ["--confirm"], env: {} });
+describe("🔴 the write law — PRODUCTION needs both, never either", () => {
+  test("RED: --confirm alone does NOT permit a PRODUCTION write", () => {
+    const p = writePermission({ target: PRODUCTION, argv: ["--confirm"], env: {} });
     assert.equal(p.mayWrite, false);
     assert.match(p.reason, /ALLOW_PROD_WRITE=1 was NOT set/);
   });
 
-  test("RED: ALLOW_PROD_WRITE=1 alone does NOT permit a write", () => {
-    const p = writePermission({ argv: [], env: { ALLOW_PROD_WRITE: "1" } });
+  test("RED: ALLOW_PROD_WRITE=1 alone does NOT permit a PRODUCTION write", () => {
+    const p = writePermission({ target: PRODUCTION, argv: [], env: { ALLOW_PROD_WRITE: "1" } });
     assert.equal(p.mayWrite, false);
     assert.match(p.reason, /--confirm was NOT given/);
   });
@@ -40,16 +40,56 @@ describe("🔴 the write law — BOTH, never either", () => {
     assert.equal(writePermission().mode, "DRY-RUN");
   });
 
-  test("GREEN: both together, and only both", () => {
-    const p = writePermission({ argv: ["--confirm"], env: { ALLOW_PROD_WRITE: "1" } });
+  test("RED: the DEFAULT target is production — a caller who forgets gets the strict rule", () => {
+    assert.equal(writePermission({ argv: ["--confirm"] }).mayWrite, false);
+  });
+
+  test("RED: an unknown target is refused, never widened", () => {
+    const p = writePermission({ target: "prod-ish", argv: ["--confirm"], env: { ALLOW_PROD_WRITE: "1" } });
+    assert.equal(p.mayWrite, false);
+    assert.match(p.reason, /unknown write target/);
+  });
+
+  test("GREEN: both together permit a production write", () => {
+    const p = writePermission({ target: PRODUCTION, argv: ["--confirm"], env: { ALLOW_PROD_WRITE: "1" } });
     assert.equal(p.mayWrite, true);
     assert.equal(p.mode, "WRITE");
   });
 
   test("ALLOW_PROD_WRITE must be exactly \"1\" — not \"true\", not \"yes\"", () => {
     for (const v of ["true", "yes", "TRUE", "0", ""]) {
-      assert.equal(writePermission({ argv: ["--confirm"], env: { ALLOW_PROD_WRITE: v } }).mayWrite, false, v);
+      assert.equal(
+        writePermission({ target: PRODUCTION, argv: ["--confirm"], env: { ALLOW_PROD_WRITE: v } }).mayWrite,
+        false,
+        v,
+      );
     }
+  });
+});
+
+describe("🔴 a LOCAL write needs --confirm and NOT the production flag", () => {
+  // The correction: --out writes a report file on this machine. Demanding
+  // ALLOW_PROD_WRITE for it would have made the very first run of this tool type
+  // the production flag — and a safety flag typed every day stops being a signal
+  // and becomes a keystroke, already sitting in the shell history on the day it
+  // was supposed to stop someone.
+  test("GREEN: --confirm alone is enough for a local write", () => {
+    const p = writePermission({ target: LOCAL, argv: ["--confirm"], env: {} });
+    assert.equal(p.mayWrite, true);
+    assert.match(p.reason, /stays on this machine/);
+  });
+
+  test("🔴 RED: --confirm is still REQUIRED — the tightening is not a loosening", () => {
+    assert.equal(writePermission({ target: LOCAL, argv: [], env: {} }).mayWrite, false);
+    assert.equal(writePermission({ target: LOCAL, argv: [], env: { ALLOW_PROD_WRITE: "1" } }).mayWrite, false);
+  });
+
+  test("🔴 RED: and the local rule must NEVER let a production write through", () => {
+    // The classification belongs to the caller and is named at the call site.
+    // This asserts the two targets cannot be confused by the same arguments.
+    const args = { argv: ["--confirm"], env: {} };
+    assert.equal(writePermission({ target: LOCAL, ...args }).mayWrite, true);
+    assert.equal(writePermission({ target: PRODUCTION, ...args }).mayWrite, false);
   });
 });
 

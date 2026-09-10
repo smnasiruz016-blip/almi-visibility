@@ -5,10 +5,11 @@
  *   node bin/gate-a.mjs --corpus <dir>            measure and report (DRY-RUN)
  *   node bin/gate-a.mjs --corpus <dir> --out <dir>   also write JSON + CSV
  *
- * ⚠️ THE WRITE LAW APPLIES TO --out. Writing files is a write path, so it obeys
- * the same rule as every other one: **dry-run by default, and a real write needs
- * BOTH `--confirm` AND `ALLOW_PROD_WRITE=1`.** Nothing here touches a database —
- * there is no database yet, deliberately.
+ * ⚠️ THE WRITE LAW APPLIES TO --out, at its LOCAL level: dry-run by default, and
+ * `--confirm` to actually write. It does NOT ask for ALLOW_PROD_WRITE, because
+ * `--out` writes a report file on this machine and nothing else — and a safety
+ * flag typed every day stops being a signal. Nothing here touches a database;
+ * there is no database yet, deliberately. See src/write-law.mjs.
  *
  * ── THE CORPUS ──────────────────────────────────────────────────────────────
  *
@@ -28,7 +29,7 @@
  */
 import { readdirSync, readFileSync, statSync, mkdirSync, writeFileSync, existsSync } from "node:fs";
 import { join, basename, extname } from "node:path";
-import { writePermission, announceWritePermission } from "../src/write-law.mjs";
+import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
 import { runGateA } from "../src/gate-a/run.mjs";
 
 const argv = process.argv.slice(2);
@@ -43,7 +44,7 @@ const shellDefinition = flag("--shell", "B");
 
 // The write law is announced BEFORE anything else happens, so a run that is
 // about to change something never looks like a run that is about to report.
-const permission = announceWritePermission(writePermission({ argv, env: process.env }));
+const permission = announceWritePermission(writePermission({ target: LOCAL, argv, env: process.env }));
 
 if (!corpusDir) {
   console.error("\nusage: node bin/gate-a.mjs --corpus <dir> [--out <dir>] [--shell A|B] [--confirm]");
@@ -119,7 +120,7 @@ for (const g of groups) {
 // ── output ──────────────────────────────────────────────────────────────────
 if (outDir) {
   if (!permission.mayWrite) {
-    console.log(`\n[dry-run] --out ${outDir} was given but nothing was written. Add --confirm AND ALLOW_PROD_WRITE=1.`);
+    console.log(`\n[dry-run] --out ${outDir} was given but nothing was written. Add --confirm.`);
   } else {
     mkdirSync(outDir, { recursive: true });
     writeFileSync(join(outDir, "gate-a.json"), JSON.stringify(report, null, 2), "utf8");

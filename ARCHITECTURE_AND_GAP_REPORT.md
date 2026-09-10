@@ -87,6 +87,7 @@ document's home, it is not one of the 23, and it contained only `README.md`.
 | AlmiOET pSEO pages against Gate A (dry run, live) | **0 of 5 sampled pages would pass** |
 | AlmiOET pSEO pages against Gate C (live) | 🔴 **no caching at all** — every request runs a function |
 | Google Search Console access | **UNKNOWN** — nothing enabled, nothing authorized |
+| ~15 sitemaps reading "Success" with 0 discovered | 🔴 **UNEXPLAINED and OPEN** — the 404 path does NOT explain them (§11a.3) |
 | `/sitemap.xml` on the 23 product hosts | 🔴 **404 on every one of them** — and our own submitter sends that path for 3 products |
 | `almioet` → `sitemap-nationality-nurse.xml` | 🔴 **404, confirmed today** — a stale submission Google has retried since 21 August |
 | Worker execution layer | **UNDECIDED** — three options costed below, owner decides |
@@ -646,18 +647,37 @@ Then I measured the **paths** instead of the files, and the cause fell out:
 **One list was corrected. The other was not.** The corrected list is the one that only watches;
 the stale list is the one that actually talks to Google.
 
-### 11a.3 · The two hosts asked for, and their answers are different
+### 11a.3 · 🔴 CORRECTION — the 404 path does NOT explain the zeros, and my own evidence says so
 
-The owner asked for two of the zero-discovery hosts, examined separately, *because the cause may
-not be the same one.* It is not:
+**An earlier version of this section claimed the 404 submitted path explained the ~15 "Success
+with 0 discovered" rows. That claim is WITHDRAWN. It is refuted by measurements in this same
+report:**
 
-| host | sitemap it serves | what I measured | most likely reason for a 0 |
-|---|---|---|---|
-| **AlmiPTE** | `/sitemap-index.xml` → **3 children → 90,484 URLs, all 200** | the file is **perfect** | the **submitted URL** is `sitemap.xml`, which is a **404**. A property with that entry can only ever read zero — and the owner also reports a *working* 90,484 figure for this host, which is exactly what you would see if **both** entries exist: one good, one dead |
-| **AlmiDutch** | `/sitemap-index.xml` → **1 child → 12 URLs, all 200** | the file is **fine but nearly empty** — twelve URLs for a whole product | nothing here is broken. **There is almost nothing to discover.** A 0 or a 12 on this property is a *content* fact, not a *plumbing* fact |
+1. **We have a proven example, on this very account, of how a 404 sitemap is reported.**
+   `sitemap-nationality-nurse.xml` is a 404, and Search Console says **"Couldn't fetch"** for it —
+   not "Success".
+2. **The ~15 rows say "Success".** A 404 does not produce a Success.
+3. **And those rows' URL is `/sitemap-index.xml`** — the path that **works**, not the 404 one.
 
-**Those are two genuinely different diagnoses**, and treating "0 discovered" as one condition
-would have produced one wrong fix for both. The same care is owed to the remaining thirteen.
+> **The script defect is real and it explains THREE products. It does not explain the zeros.**
+
+**Why this correction matters more than the mistake did:** *a defect explained wrongly is worse
+than a defect not explained at all.* An unexplained fault stays open. **A wrongly explained one
+gets closed** — the script would be fixed, the zeros would still be there, and nobody would be
+looking any more. The rule written a few lines above — *treating "0 discovered" as one condition
+would produce one wrong fix* — applies to my own conclusion, and it did.
+
+### The two hosts asked for: BOTH are UNEXPLAINED
+
+| host | what I measured | status |
+|---|---|---|
+| **AlmiPTE** | `/sitemap-index.xml` → 3 children → **90,484 URLs, all 200** | 🔴 **UNEXPLAINED.** The file is perfect. The 404 submission is a real second entry on the property, but it would show as *"Couldn't fetch"*, not as a Success reading zero |
+| **AlmiDutch** | `/sitemap-index.xml` → 1 child → **12 URLs, all 200** | 🔴 **UNEXPLAINED.** My earlier note called this "a content fact, not a plumbing fact". **That is wrong: a sitemap serving 12 URLs should be discovered as 12, not 0.** Twelve is a small number. Zero is a different thing |
+
+**RULING: the ~15 zero-discovery rows are UNEXPLAINED and stay open.** They are **not** "explained
+by the 404 path". The answer comes from Search Console access and not before it — the per-row data
+(submitted URL, last read, status, discovered) is what separates them, and it is exactly the read
+§11a.5 is blocked on.
 
 ### 11a.4 · `sitemap-nationality-nurse.xml` — CONFIRMED, and it is a stale submission
 
@@ -699,13 +719,104 @@ if I had measured them would be precisely the failure this instruction exists to
 With those, the table the owner asked for is one read-only API call per property, and it becomes
 a **standing** measurement rather than a screenshot taken once.
 
-### 11a.6 · The correction this section forces
+### 11a.6 · What is explained, and what is not
 
-**The AlmiCELPIP case is no longer a one-product anomaly.** The record treated it that way —
-*"57 /learn LIVE + GSC ✅"* while the sitemap returned 0 discovered. Today's evidence says the
-shape is **network-wide**: three products are being told the wrong URL by our own script, one
-product is retrying a dead sitemap, and roughly fifteen properties report success while
-discovering nothing.
+| finding | status |
+|---|---|
+| `almistudy`, `almipte`, `almitoefl` submitted a **404** path by our own script | ✅ **EXPLAINED and FIXED** — see 11a.8 |
+| `almioet`'s `sitemap-nationality-nurse.xml`, "Couldn't fetch" since 21 Aug | ✅ **EXPLAINED** — the URL is a 404 and is not in the live index. A stale submission |
+| **~15 properties reading "Success" with 0 discovered** | 🔴 **UNEXPLAINED. OPEN.** Not caused by the 404 path — see 11a.3 |
+| **AlmiPTE** and **AlmiDutch** specifically | 🔴 **UNEXPLAINED. OPEN.** |
+| `almipathway` — domain does not resolve, no robots, no sitemap | ✅ explained; a product-level fact for the owner |
+
+**AlmiCELPIP is still not a one-product anomaly** — *"57 /learn LIVE + GSC ✅"* while the sitemap
+returned 0 discovered is the **same shape** as the ~15 rows. **But the same shape is not the same
+cause, and this report no longer claims to know the cause.**
+
+### 11a.7 · 🔴 RULE THIRTEEN — every other copy, hunted rather than hoped about
+
+> **When one fact is written in two files, only one of them will be right.**
+> A correction is not finished when the fix is correct. It is finished when **every copy of the
+> wrong thing has been found.**
+
+The sitemap-path correction was made in `almi-monitor` and never reached `almi-seo-ops` — and the
+one that was missed is the one that talks to Google. So the codebase was **searched** for a third
+and fourth copy rather than assumed to have none.
+
+**Method:** every `.ts/.tsx/.mjs/.mts/.js/.json/.yml/.md` file under `C:\Projects` (excluding
+`node_modules`, `.next`, `.git`, build output) scanned for files enumerating **five or more**
+product hosts — those are the cross-product registries where this fact can live twice.
+
+| file | hosts | carries a sitemap path? |
+|---|---|---|
+| `almi-data/src/family.ts` | **25** | **no** — zero occurrences of "sitemap" |
+| **`almi-monitor/src/lib/registry-seed.ts`** | **24** | ✅ **YES** — `sitemapPath`, corrected in Tune-Up 1 |
+| `almisalary-v2/components/SiteNav.tsx` | 20 | no |
+| `almisalary-v2/components/SiteFooter.tsx` | 20 | no |
+| `world-almiworld/src/app/page.tsx` | 15 | no |
+| `world-almiworld/src/lib/products.ts` | 14 | no |
+| **`almi-seo-ops/submit-sitemaps.mjs`** | **11** | 🔴 **YES** — `feed`, **not corrected until today** |
+| `world-almiworld/src/app/[country]/[role]/page.tsx` | 6 | no |
+| `almi-pathway/src/lib/site.ts` | 6 | no |
+| `almi-goethe/src/components/goethe-seo/kit.tsx` | 5 | no |
+
+> **ANSWER: exactly TWO copies. There is no third or fourth FILE.** Every other cross-product
+> registry lists hosts without claiming a sitemap path, so none of them can drift on this fact.
+
+**⚠️ BUT THERE IS A THIRD PLACE, AND IT IS NOT A FILE.** `registry-seed.ts` says in its own first
+line: *"SEED DATA ONLY — the live source of truth is the Neon registry (rows). This is the initial
+list inserted once (append-safe: never overwrites edits)."*
+
+**So correcting the seed file did not necessarily correct the rows.** If a row carried
+`/sitemap.xml` before Tune-Up 1 and the seed never overwrites edits, **the database may still hold
+the old path while the file documenting it is right.** I could not check — `almi-monitor` has no
+database credential on this machine. **UNKNOWN (U16):** one `select` answers it.
+
+**And a FOURTH place that is not a file either: Search Console itself.** Whatever was submitted in
+the past is still submitted — that is exactly what `sitemap-nationality-nurse.xml` is. **Fixing
+the script changes what will be sent next; it does not withdraw what was sent before.**
+
+### 11a.8 · The fix to `submit-sitemaps.mjs` — done, and it is not in a PR
+
+**Three paths corrected**, each taken from that host's own live response rather than assumed:
+`almistudy`, `almipte`, `almitoefl` → `sitemap-index.xml`. `almiworld.com` keeps
+`sitemap_index.xml` (WordPress, measured 200 with 6 children) and `almiarchitect` keeps
+`sitemap/0.xml` (measured 200 with 156 URLs; its `/sitemap-index.xml` is a 404).
+
+**And a preflight guard, which is the part that matters:** before anything is submitted, every
+feed URL is **fetched**. It must return **200** and parse as `<sitemapindex>` or `<urlset>`.
+Redirects are refused on purpose — a 301 means the path in the list is a signpost, not the
+sitemap. Anything failing is **not submitted**, is named with its reason, and the run exits 1. The
+preflight also runs under `--dry-run`, so the list can be checked **without credentials**.
+
+> **This defect survived for months for one reason: the script never asked whether what it was
+> sending actually exists.** A submission is a promise that a URL exists; the promise is now
+> checked before it is made.
+
+**Verified after the change:** `10 reachable, 0 NOT submittable`, exit 0.
+**RED proved:** `almipte` put back to `sitemap.xml` → `✗ HTTP 404 — this URL does not exist, so it
+must not be submitted`, `9 reachable, 1 NOT submittable`, **exit 1**. Then restored.
+
+🔴 **`almi-seo-ops` IS NOT A GIT REPOSITORY.** No `.git`, no remote, no history, no review, no CI —
+so **the small PR the owner asked for has nowhere to go**, and the change was made in place with a
+backup taken first. This is itself part of the answer to *"how did a stale path survive?"*: **there
+was never a diff for anyone to read.** Putting it under version control is the owner's call and is
+not done here.
+
+**⚠️ Also measured, deliberately not acted on:** the script submits **10 hosts**; the registry knows
+**24**. AlmiOET, AlmiDET, AlmiCELPIP and every language product are absent from it — yet AlmiOET has
+240,328 URLs discovered, so **submissions are also happening by some other route**. Whether they
+belong in this script is the owner's decision.
+
+### 11a.9 · The dead submission — RECORDED, NOT ACTED ON
+
+`sitemap-nationality-nurse.xml` is still **submitted** in Search Console and has read
+**"Couldn't fetch" since 21 August**. Removing a submission is an action inside the owner's
+console, so: **it will be removed from GSC by the owner.** Nothing was done to it here.
+
+**It is Gate B's cheapest argument.** The submission *succeeded*. It has looked like success ever
+since. The only thing that would ever have said otherwise is evidence read back from the search
+engine — which is the entire point of Gate B.
 
 > **The lesson stands and gets sharper: "submitted" is not a result. Neither is "Success".**
 > **The only number that means anything is what the search engine says it kept.**
@@ -872,6 +983,7 @@ session — it protects the root layout. It does not ask what that read costs a 
 | U13 | Whether AlmiOET's **240,328 pSEO pages** are wanted at all, now that Gate A rejects the sample and Gate C shows they are uncached | it is a product decision with a real cost attached | **owner** | a ruling — this is exactly the *"a product DECISION is not a defect"* rule |
 | U14 | The **exact algorithm** Gate A will use for sibling overlap | not specified beyond "≤ 40 % against every sibling" | **owner** | a written definition, before implementation |
 | U15 | What `C:\Projectslmi-swiss` is — a real repository with no product in the registry | not in `registry-seed.ts`, no `almiswiss` host | **owner** | a one-line ruling: product, experiment, or dead |
+| U16 | Does the **almi-monitor Neon registry** still hold `/sitemap.xml` for any product? The seed FILE was corrected in Tune-Up 1, but the seed is append-safe and never overwrites existing rows — so the live rows may still carry the old path (§11a.7) | no database credential for almi-monitor on this machine | **owner** | one `select id, sitemapPath` against that registry |
 
 ---
 

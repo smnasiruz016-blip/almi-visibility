@@ -8,6 +8,8 @@
     "gate-a": "node bin/gate-a.mjs",
     "facts": "node bin/facts.mjs census",
     "facts:validate": "node bin/facts.mjs validate",
-    "quote-match": "node bin/quote-match.mjs"
+    "quote-match": "node bin/quote-match.mjs",
+    "page": "node bin/build-page.mjs",
+    "chain": "node bin/nursing-chain.mjs"
   }
 }

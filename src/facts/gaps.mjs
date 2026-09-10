@@ -19,30 +19,15 @@
  * not loaded by `loadRegistry`, and nothing may render them.
  */
 export const DECLARED_GAPS = Object.freeze([
-  {
-    claim: "oet · writing-task-type · profession=nursing",
-    neededBy: "the /nursing profession page, Block A1",
-    blockedBy: "🔴 LICENCE — oet.com is quotable:false. Acquirable, but only in our own words and only by a person",
-    cost: "manual acquisition, then a human re-read every 180 days",
-  },
-  {
-    claim: "oet · speaking-roleplay-setting · profession=nursing",
-    neededBy: "the /nursing profession page, Block A2",
-    blockedBy: "🔴 LICENCE — as above",
-    cost: "manual acquisition, then a human re-read every 180 days",
-  },
-  {
-    claim: "oet · subtests-and-which-are-profession-specific",
-    neededBy: "every profession page, Block A3 (shared)",
-    blockedBy: "🔴 LICENCE — as above",
-    cost: "one manual acquisition, shared by all twelve profession pages",
-  },
-  {
-    claim: "oet · grade-bands-0-500",
-    neededBy: "every profession page, Block A4 (shared)",
-    blockedBy: "🔴 LICENCE — as above. ⚠️ NMBI states the bands behind B and C+ independently, so a tier-1 alternative may exist",
-    cost: "one manual acquisition",
-  },
+  // ✅ CLOSED 2026-09-10 — the four OET Block A claims that stood here were
+  // ACQUIRED for the /nursing page: writing-task-type, speaking-roleplay-setting,
+  // subtests-and-which-are-profession-specific and grade-bands-0-500. They are
+  // records now (facts/oet.mjs), stated in our own words because the licence
+  // PROHIBITS holding OET wording, and watched by fingerprint.
+  //
+  // 🔴 A GAP IS DELETED FROM THIS LIST ONLY WHEN A RECORD EXISTS. Deleting one
+  // because it now feels handled is how a registry comes to believe it is full.
+
   {
     claim: "au-ahpra-nmba · * (about 5 claims)",
     neededBy: "the /nursing destination-regulator block",

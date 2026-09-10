@@ -260,6 +260,63 @@ third-party proxy. A regulator that declines automated access has declined it. *
 answer is to record the cost, not to route around the refusal** — and a tier-4 aggregator
 that *is* fetchable is still a lead, never a citation.
 
+## 4b · 🔴 TWO QUEUES — THE OWNER'S RULING, AND THE CONTRACT IS NOT TOUCHED
+
+**A1 measured 2 of 8 origin regulators as machine-readable and I proposed a scope change.
+THE OWNER REFUSED IT, AND THE REFUSAL IS CORRECT:**
+
+> `§5A.1` says *"without requiring manual hand-writing of **EVERY** record."*
+> **A hybrid satisfies that text.** Some records are acquired automatically, therefore **not
+> every record is hand-written.** The frozen contract needs no amendment — **and must not get
+> one. Being frozen is the entire point of it.**
+
+I had read `§5A.1` as *"no record is hand-written"*. It does not say that. **Recorded so the
+mistake is not repeated: do not amend a frozen contract to fit a measurement until the
+contract's own words have been read against that measurement.**
+
+### The build, unchanged from what the measurement suggested
+
+| | AUTOMATED queue | MANUAL queue |
+|---|---|---|
+| entered when | `sourceMachineReadable: true` | `false` |
+| acquisition | fetch + model proposal + machine quote-match | a person reads the source |
+| re-verification at 180 days | nightly `quoteMatchedOn` string match | a person opens the page and looks |
+| cost | a cron job | **human minutes, twice a year, per fact** |
+
+**`sourceMachineReadable` is a FIELD, set from the last fetch attempt, never guessed.** And
+"could not check" remains a **third outcome** — never a failed match, never a successful check.
+
+### 🔴 DOD-03A's PASS CONDITION IS UNCHANGED AND STAYS HARD
+
+> **The AUTOMATED queue must genuinely run unattended.**
+
+Not "mostly". Not "with a nudge". If the automated queue needs a person, it is not automated
+and DOD-03A does not pass. **Nothing here becomes unfalsifiable, and the manual queue is not a
+place to hide work that failed to automate.**
+
+### AND THE MANUAL QUEUE'S COST IS DECLARED — this is an ANNOUNCEMENT, not a pass condition
+
+Counted in `TARGET_SHAPE_FACT_COUNT.md` against the real target shape — **12 profession pages
+plus tables**, not 2,292 corridor pages:
+
+| | |
+|---|---|
+| distinct fact **records** | ~1,300 |
+| distinct **acquisitions** | **~58** |
+| manual acquisitions | **~25** 🟡 |
+| **human passes per year** (2 per fact at 180 days) | **~50** |
+| **per week** | **≈ 1** |
+
+**A1's 75%-manual does NOT carry over.** A1 measured *origin regulators*; the target shape
+barely uses them — the origin table is **eight list facts filling 191 rows**, and the
+organisation table is **1,243 records from ONE automated import**. The manual share here is
+**~43%**, and about one verification a week.
+
+⚠️ **This is a DECLARATION so the owner can accept or reject it — it is not a new gate.** And
+its 🟡 marks are real: the profession-page block is a floor I chose rather than counted, and
+NMBI, NNAS and OET's own profession materials have never been fetched. **One profession-page
+claim inventory replaces every 🟡 in that document.**
+
 ## 5 · 🔴 NO DATABASE TABLE — AND WHERE FACTS LIVE INSTEAD
 
 **No table is designed here and none will be created without stopping first.**

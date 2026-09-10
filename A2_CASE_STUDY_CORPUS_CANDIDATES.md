@@ -199,14 +199,67 @@ missing from the rendered HTML, **having compared the two** — not having read 
 
 ---
 
+## 🔴 THE OWNER'S RULINGS — 10 September 2026
+
+| RED | ruling |
+|---|---|
+| **1** | **`8877c6e` TAKEN.** The reason accepted: the old `scale.ts` flip-flop is a *disputed external fact*; this is exactly RED 1's own class. |
+| **4** | **PENDING — and the question was put back to me first.** See below. |
+| **6** | **The whitespace instance is ACCEPTED, and it is BETTER.** *RED 6 means the disagreement between source and rendered HTML — a defect visible in the source is not RED 6 at all.* A built artefact plus a pinned toolchain is accepted. |
+| **all** | **The corpus freezes BOTH: the commit (provenance) AND the built/captured artefact (the exhibit), each with a hash**, under the same `.gitattributes` arrangement as the existing pin. |
+
+---
+
+## 🔴 RED 4 — THE ANSWER TO THE OWNER'S QUESTION
+
+> *"Does ANY commit of AlmiOET carry an instance of RED 4? Yes → take that one. No → almi-italian
+> is admissible BUT it is a departure from the frozen test and needs the owner's approval."*
+
+### **NO. I searched AlmiOET and found none.** Here is what was checked.
+
+| checked | result |
+|---|---|
+| **`src/app/sitemap.ts` at the fork (`ff29652`)** — the earliest sitemap | lists `/`, `/pricing`, `/login`, `/signup`. **All four routes exist at that commit; none is `noindex`.** The only `robots: {index:false}` is `/admin`, which is not in the sitemap |
+| **`src/lib/oet-seo/sitemap-urls.ts`** — the pSEO builder | Its URLs are **derived from the same data the routes use** — `PROFESSION_LIST`, `OET_ORIGIN_SLUGS`, `ORGANISATIONS`, `ROLE_ORG_PAIRS`. There is no hand-maintained list to drift, which is precisely how the almi-italian defect happened |
+| **the chunk math** | `matrixCount() = ROLE_ORG_PAIRS.length × L` and `urlsForChunk` indexes with `j/L` and `j%L`, all **computed**, never hard-coded. Nothing to go stale |
+| **`origins.ts` history** | touched in **exactly one commit** (`010f1ec`). It has never diverged from the sitemap that reads it |
+| **the leaf route's validation** | `[profession]/[fromOrigin]/[organization]/page.tsx` checks only `fromOrigin.startsWith("from-")`. **It cannot 404 on a URL the sitemap emits** — it is over-permissive, which is the opposite fault |
+| **live sampling** | the case study's own measurement: **48 of 48 sampled sitemap URLs returned HTTP 200** |
+| **the whole git log** | no commit fixes a sitemap that emitted broken URLs |
+
+### Two near-misses, and why neither is RED 4
+
+**`/register` returns 404 live** — there is no `src/app/register/page.tsx`, only
+`layout.tsx` and `[organization]/`. **But it is not in the sitemap.** `baseUrls()` emits `/`,
+`/{profession}`, `/register/{org}` and `/{profession}/from-{origin}` — never a bare
+`/register`. *(The single unclassified URL in the corpus manifest is the root `/`, confirmed
+from the live index.)* A 404 that no sitemap advertises is not this defect.
+
+**`sitemap-nationality-nurse.xml` is dead in Search Console**, "Couldn't fetch" since 21 August.
+**But that is a dead SITEMAP FILE, not a broken URL inside a sitemap** — and it lives in Google's
+console, not in any repository, so it cannot be frozen into a corpus.
+
+### So: `almi-italian d83ddd9` is the only proved instance, and it needs the owner's approval
+
+It is **a departure from the frozen test** — a second repository — and the DoD says the test may
+not be rewritten. **I am not treating my own proof as permission.** The owner takes it to the
+owner.
+
+**If it is refused,** the remaining options are: nominate **AlmiPathway** (registered, domain does
+not resolve — an *absence*, which is a different fault class), or **leave RED 4 unpinned and
+record the Case Study as 5 of 6 defects**, which is honest and which the pass mark would then
+have to be re-ruled against.
+
+---
+
 ## WHAT I NEED FROM THE OWNER
 
-| # | question |
-|---|---|
-| 1 | **RED 1** — take `8877c6e` (the A–E promise, provable in one commit), or the originally-pinned `scale.ts` overall-score flip-flop at `de75091^`? |
-| 2 | **RED 4** — accept a **second repository** (`almi-italian d83ddd9`) into the corpus, or nominate AlmiPathway? |
-| 3 | **RED 6** — is a **whitespace** instance acceptable for a class stated as an internal **link**? And do we accept that this exhibit needs a **built artefact plus a pinned toolchain**, not a commit? |
-| 4 | Does the corpus freeze **repositories at commits**, or **captured artefacts** (rendered HTML, responses)? RED 6 forces the second at least once. |
+| # | question | state |
+|---|---|---|
+| 1 | RED 1 — which pin? | ✅ **RULED: `8877c6e`** |
+| 2 | **RED 4 — a second repository (`almi-italian d83ddd9`)?** | 🔴 **OPEN — AlmiOET carries no instance (proved above). This is a departure from the frozen test and goes to the owner.** |
+| 3 | RED 6 — whitespace instance, build + pinned toolchain? | ✅ **RULED: accepted, and better** |
+| 4 | Commits or captured artefacts? | ✅ **RULED: BOTH, each hashed** |
 
 **Nothing is frozen until these are ruled.** No page created, no page deleted, no DB table, no
 production write, no other product touched.

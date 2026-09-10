@@ -12,9 +12,11 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
+import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
+import { FACTS_DIR } from "../products/almi-oet/register.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
-import { NURSING_PAGE, claimIdsOf } from "../src/page/spec.mjs";
+import { NURSING_PAGE } from "../products/almi-oet/page-specs.mjs";
+import { claimIdsOf } from "../src/page/claim-ids.mjs";
 import { renderPage, findCopiedFacts } from "../src/page/render.mjs";
 import { tokensWithKind } from "../src/gate-a/text-kind.mjs";
 
@@ -23,7 +25,7 @@ const outDir = argv.find((a) => a.startsWith("--out="))?.split("=").slice(1).joi
 const permission = writePermission({ target: LOCAL, argv, env: process.env });
 if (outDir) announceWritePermission(permission);
 
-const { records } = await loadRegistry();
+const { records } = await loadRegistry(FACTS_DIR);
 const { html, trace } = renderPage(NURSING_PAGE, records);
 
 const line = (ch = "─") => console.log(ch.repeat(78));

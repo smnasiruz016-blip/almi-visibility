@@ -20,7 +20,7 @@
  * the claim a page actually makes is the difference between researching a fact
  * once and researching it per page (§1).
  */
-import { fact } from "../src/facts/record.mjs";
+import { fact } from "../../../src/facts/record.mjs";
 
 const URL =
   "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england";

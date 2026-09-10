@@ -33,7 +33,7 @@
  * in OUR OWN WORDS with a URL and a date, and the page is watched by fingerprint.
  * Reading those terms is cheap and would move all of this to quote-matching.
  */
-import { fact } from "../src/facts/record.mjs";
+import { fact } from "../../../src/facts/record.mjs";
 
 const URL =
   "https://www.hcpc-uk.org/registration/getting-on-the-register/international-applications/documents/certificate-of-english-language-proficiency/";

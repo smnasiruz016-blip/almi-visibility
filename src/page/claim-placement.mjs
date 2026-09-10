@@ -47,7 +47,6 @@
  * universal claim across twelve pages is measured-cheap and better for the
  * reader than sending them somewhere else to find it.**
  */
-import { NURSING_PAGE } from "./spec.mjs";
 
 /**
  * 🔴 UNIVERSAL — true wherever the reader is from and wherever they are going.
@@ -161,7 +160,10 @@ export const SHARED_CLAIM_IDS = ALL_REPEATED_CLAIMS;
  * trailer that hints at one is how "awaiting its layer" quietly becomes "behind
  * a link" in somebody's summary six weeks from now.
  */
-export function placeClaims(page = NURSING_PAGE, removeIds = REMOVED_FROM_PROFESSION_PAGE) {
+export function placeClaims(page, removeIds = REMOVED_FROM_PROFESSION_PAGE) {
+  if (!Array.isArray(page?.sections)) {
+    throw new Error("placeClaims(page): the engine has no page of its own \u2014 a product must hand one over");
+  }
   const remove = new Set(removeIds);
   const sections = page.sections
     .map((s) => ({ ...s, claims: s.claims.filter((c) => !remove.has(c)) }))

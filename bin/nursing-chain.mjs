@@ -28,9 +28,11 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
-import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
+import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
+import { FACTS_DIR } from "../products/almi-oet/register.mjs";
 import { loadRegistry, toGateAFact } from "../src/facts/registry.mjs";
-import { NURSING_PAGE, PROFESSIONS, claimIdsOf } from "../src/page/spec.mjs";
+import { NURSING_PAGE, PROFESSIONS } from "../products/almi-oet/page-specs.mjs";
+import { claimIdsOf } from "../src/page/claim-ids.mjs";
 import { renderPage } from "../src/page/render.mjs";
 import { runGateA, MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../src/gate-a/run.mjs";
 import { tokensWithKind } from "../src/gate-a/text-kind.mjs";
@@ -49,7 +51,7 @@ const f4 = (n) => (n === null || n === undefined ? "—" : n.toFixed(4));
 const SITE = "https://almioet.almiworld.com";
 
 // ── STEP 1 · the candidate, by reference ───────────────────────────────────
-const { records } = await loadRegistry();
+const { records } = await loadRegistry(FACTS_DIR);
 const { html: candidateHtml, trace } = renderPage(NURSING_PAGE, records);
 const candidateFacts = claimIdsOf(NURSING_PAGE)
   .map((id) => records.find((r) => r.id === id))

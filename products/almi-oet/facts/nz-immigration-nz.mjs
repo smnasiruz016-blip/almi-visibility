@@ -41,7 +41,7 @@
  * a recollection. Whoever did the reading can claim it in one line, and it will
  * be the registry's first real fact check.
  */
-import { fact } from "../src/facts/record.mjs";
+import { fact } from "../../../src/facts/record.mjs";
 
 export default [
   fact({

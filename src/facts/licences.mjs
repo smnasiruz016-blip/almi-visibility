@@ -75,7 +75,7 @@ export const QUOTABILITY_STATES = Object.freeze({
   UNREAD: "🔴 nobody has read the terms, or the licence page would not open. NEVER a permission",
 });
 
-export const LICENCES = Object.freeze({
+const CATALOGUE = {
   /**
    * OGL v3.0 — read at nationalarchives.gov.uk/doc/open-government-licence/version/3/
    * and gov.uk/help/terms-conditions.
@@ -106,38 +106,6 @@ export const LICENCES = Object.freeze({
       "Contains public sector information licensed under the Open Government Licence v3.0.",
     attributionMustLinkTo: "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
     clause: "OGL v3.0 — copy, publish, distribute, transmit, adapt, and exploit commercially, subject to attribution.",
-  },
-
-  /**
-   * NMC clause 6.3 — read at nmc.org.uk/terms-and-conditions/.
-   *
-   * "you may reproduce the content of any of our rules, standards and guidance
-   * in part or in full", on FOUR conditions:
-   *   1. use the MOST UP-TO-DATE VERSION of the source document
-   *   2. do not alter the text so as to change the meaning
-   *   3. credit NMC as author
-   *   4. provide a link to the website wherever possible
-   *
-   * 6.2 is the surrounding default and it is why the carve-out matters: it
-   * permits local storage "(but not on any server or other storage device
-   * connected to the network)". 6.4 forbids reproduction generally "except
-   * where we have given you express permission" — and 6.3 IS that permission,
-   * scoped to three document classes.
-   */
-  "NMC-6.3": {
-    state: "PERMITTED",
-    label: "NMC terms and conditions, clause 6.3",
-    quotableClasses: ["rules", "standards", "guidance"],
-    permitsCommercial: true,
-    permitsNetworkedStorage: true,
-    // 🔴 CONDITION 1 IS THE ONE THAT CHANGES THE ENGINEERING. See §9.3 of the
-    // design and `quoteUsableNow` in freshness.mjs.
-    requiresCurrentVersion: true,
-    requiresPerPageThirdPartyCheck: false,
-    requiredAttribution: "Nursing and Midwifery Council",
-    attributionMustLinkTo: "https://www.nmc.org.uk/",
-    clause:
-      'NMC 6.3 — "you may reproduce the content of any of our rules, standards and guidance in part or in full", conditional on the most up-to-date version, unaltered meaning, credit and a link. 6.2 excludes storage on a networked server for everything else.',
   },
 
   /**
@@ -207,37 +175,6 @@ export const LICENCES = Object.freeze({
   },
 
   /**
-   * OET / Cambridge Boxhill Language Assessment — read at
-   * oet.com/Intellectual-Property-policy.
-   *
-   * 🔴 STRONGER THAN THIS PROJECT HAD IT RECORDED. PR #9 cited only the
-   * "electronic retrieval system" clause. Two others bite harder:
-   *
-   *   - "transmit or reproduce ANY PART of the Content"  — prohibited
-   *   - "distribute or commercially exploit the Content" — prohibited
-   *
-   * And every permitted use is expressly for "your own personal and
-   * NON-COMMERCIAL use only". **AlmiWorld is commercial, so the carve-outs do
-   * not reach us at all** — we are outside the permission before the retrieval-
-   * system clause is even reached.
-   */
-  "OET-CBLA-IP": {
-    // 🔴 PROHIBITED, not RESERVED. The answer is written in their policy, and
-    // asking would waste a day.
-    state: "PROHIBITED",
-    label: "OET / Cambridge Boxhill Language Assessment — Intellectual Property policy",
-    quotableClasses: [],
-    permitsCommercial: false,
-    permitsNetworkedStorage: false,
-    requiresCurrentVersion: false,
-    requiresPerPageThirdPartyCheck: false,
-    requiredAttribution: null,
-    attributionMustLinkTo: null,
-    clause:
-      'OET IP policy — prohibits "transmit or reproduce any part of the Content", "distribute or commercially exploit the Content", and storing the Content "in any other website or other form of electronic retrieval system". The permitted uses are personal and NON-COMMERCIAL only.',
-  },
-
-  /**
    * 🔴 THE ONLY TWO STATES IN WHICH `sourceQuotable` MAY BE `"unknown"`.
    *
    * A licence page that will not open cannot be read, and an unread licence is
@@ -275,7 +212,50 @@ export const LICENCES = Object.freeze({
     attributionMustLinkTo: null,
     clause: "The terms exist and have not been read. Not a grant of anything.",
   },
-});
+};
+
+/**
+ * 🔴 A CATALOGUE IS NOT ITS ENTRIES, AND THIS IS THE CATALOGUE.
+ *
+ * The four licences above are general instruments: OGL v3.0 licences most of
+ * gov.uk, CC BY 3.0 NZ licences a great deal of the New Zealand government,
+ * and the two UNKNOWN states are what every unread source starts as. None of
+ * them is about one product.
+ *
+ * The NMC's clause 6.3 and OET's IP policy are NOT general. They are the terms
+ * of two named sources that one product happens to cite, and they moved to
+ * `products/almi-oet/licences.mjs` unedited. The engine keeps the vocabulary,
+ * the states, the derivation and the counting; the product brings the terms of
+ * the documents it actually reads.
+ *
+ * ⚠️ ENTRIES MAY BE ADDED, NEVER REPLACED. A product that redefined `OGL-v3.0`
+ * would change what every other product is permitted to do, silently and from
+ * a file nobody reviewing the other product would ever open. So a duplicate key
+ * throws, and every registered entry is frozen on arrival.
+ */
+export function registerLicences(productId, entries) {
+  if (typeof productId !== "string" || productId.length === 0) {
+    throw new Error("registerLicences(productId, entries): licence terms arrive from a product, so name it");
+  }
+  for (const [key, entry] of Object.entries(entries ?? {})) {
+    if (key in CATALOGUE) {
+      throw new Error(
+        `registerLicences(${productId}): "${key}" is already defined — a licence may be added, never redefined`,
+      );
+    }
+    if (!(entry?.state in QUOTABILITY_STATES)) {
+      throw new Error(`registerLicences(${productId}): "${key}" has state ${JSON.stringify(entry?.state)}, which is not a quotability state`);
+    }
+    CATALOGUE[key] = Object.freeze({ ...entry, _productId: productId });
+  }
+}
+
+/**
+ * Every licence known right now — the engine's own plus whatever products have
+ * registered. A live view, because registration happens at import time and a
+ * frozen snapshot taken at module load would be empty.
+ */
+export const LICENCES = CATALOGUE;
 
 /** The two licences under which a record is allowed to say "unknown". */
 export const UNKNOWN_LICENCES = Object.freeze(["unknown-licence-unreachable", "unknown-not-read"]);

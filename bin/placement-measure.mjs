@@ -26,9 +26,10 @@
 import { readFileSync, existsSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
+import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
+import { FACTS_DIR } from "../products/almi-oet/register.mjs";
 import { loadRegistry, toGateAFact } from "../src/facts/registry.mjs";
-import { NURSING_PAGE, PROFESSIONS } from "../src/page/spec.mjs";
+import { NURSING_PAGE, PROFESSIONS } from "../products/almi-oet/page-specs.mjs";
 import {
   ALL_REPEATED_CLAIMS, placeClaims, UNIVERSAL_CLAIMS,
   PENDING_ORIGIN_LAYER, PENDING_DESTINATION_LAYER, REMOVED_FROM_PROFESSION_PAGE, AWAITING_A_LAYER,
@@ -49,7 +50,7 @@ const line = (ch = "─") => console.log(ch.repeat(78));
 const f4 = (n) => (n === null || n === undefined ? "—" : n.toFixed(4));
 const CACHE = "runs/_profession-cache";
 
-const { records } = await loadRegistry();
+const { records } = await loadRegistry(FACTS_DIR);
 
 if (!existsSync(CACHE) || readdirSync(CACHE).length < 11) {
   console.error(`\n🔴 ${CACHE} is missing or short. Run \`npm run chain\` first — this script does not fetch.`);
@@ -191,7 +192,7 @@ function measure(spec, label) {
 }
 
 const before = measure(NURSING_PAGE, "AS BUILT (shared block on every page)");
-const split = placeClaims();
+const split = placeClaims(NURSING_PAGE);
 const after = measure(split, "PLACED BY SCOPE");
 // 🔴 Nothing out of scope may render anywhere. Checked, not asserted: a claim
 // "awaiting its layer" that is quietly still on a page would be the worst of both.

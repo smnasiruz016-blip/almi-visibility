@@ -9,6 +9,29 @@ no page deleted, no DB table, no production write.
 
 ---
 
+## 🔴 SUPERSEDED IN PART — 10 September 2026
+
+**`PROFESSION_PAGE_CLAIM_INVENTORY.md` ran the measurement this document said would replace its
+🟡 marks, and it moved the number UP.**
+
+| | this document | after the inventory |
+|---|---|---|
+| acquisitions | ~58 | 🔴 **~150** (range 150–205) |
+| per week, manual | ≈ 1 | 🔴 **≈ 2.5** |
+
+**Why:** §2.4 below treats the destination-regulator block as **shared by all twelve profession
+pages**. It is not — **each profession has different regulators** (nursing → NMC, medicine →
+GMC, dentistry → GDC). Ahpra's common standard rescues part of it; the UK, Ireland and Canada
+do not.
+
+**The owner's original 2–3 a week was the better estimate; mine was optimistic.**
+
+**What still stands from this document:** the records-vs-acquisitions distinction, the origin
+table (now **9** facts, not 8 — NMBI verified), and the organisation table's 1,243 records from
+ONE acquisition. **Read §2.4's number as superseded**; the rest holds.
+
+---
+
 ## 0 · THE ANSWER
 
 | | |

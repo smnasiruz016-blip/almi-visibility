@@ -36,7 +36,7 @@
  * overturn it — in which case all four records lose their quotes, keep their
  * facts in our own words, and drop to fingerprint watching.
  */
-import { fact } from "../src/facts/record.mjs";
+import { fact } from "../../../src/facts/record.mjs";
 
 const MACHINE_READABLE_BASIS =
   "fetched and read 2026-09-10 (A1_FACT_SUPPLY_FEASIBILITY.md); re-fetched 2026-09-10 by bin/quote-match.mjs";

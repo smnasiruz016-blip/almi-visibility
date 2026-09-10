@@ -44,7 +44,7 @@
  * changed.** The facts below stay in our own words; the freshness stops being a
  * calendar chore. See `src/facts/fingerprint.mjs`.
  */
-import { fact } from "../src/facts/record.mjs";
+import { fact } from "../../../src/facts/record.mjs";
 
 const URL = "https://www.nmbi.ie/Registration/Qualified-outside-the-EU/Application-Process/English-Language-Requirements";
 const MR = "fetched and read 2026-09-10 (PROFESSION_PAGE_CLAIM_INVENTORY.md §1) — machine-readable, HTTP 200.";

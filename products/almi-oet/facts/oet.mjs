@@ -52,7 +52,7 @@
  * worse than an empty one. They are reported as a NAMED GAP by
  * `bin/facts.mjs census`, so their absence is counted rather than forgotten.
  */
-import { fact } from "../src/facts/record.mjs";
+import { fact } from "../../../src/facts/record.mjs";
 
 /**
  * Shared by the four Block A records. Every one of them is watched by a

@@ -19,7 +19,8 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
-import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
+import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
+import { FACTS_DIR } from "../products/almi-oet/register.mjs";
 import { loadRegistry, census, REGISTRY_FACT_CHECK_COUNT } from "../src/facts/registry.mjs";
 import { queueReason } from "../src/facts/queues.mjs";
 
@@ -165,7 +166,7 @@ function reportCensus(c) {
 }
 
 async function main() {
-  const { files, records } = await loadRegistry();
+  const { files, records } = await loadRegistry(FACTS_DIR);
   const out = flag("out");
 
   // 🔴 THE WRITE LAW, BEFORE ANYTHING CAN WRITE.

@@ -153,7 +153,3 @@ export const SPEECH_PATHOLOGY_PAGE = Object.freeze({
   ],
 });
 
-/** Every claim id the page references, in order, deduplicated. */
-export function claimIdsOf(page = NURSING_PAGE) {
-  return [...new Set(page.sections.flatMap((s) => s.claims))];
-}

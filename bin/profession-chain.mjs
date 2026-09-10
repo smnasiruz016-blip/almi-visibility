@@ -28,9 +28,10 @@
 import { readFileSync, existsSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
+import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
+import { FACTS_DIR } from "../products/almi-oet/register.mjs";
 import { loadRegistry, toGateAFact } from "../src/facts/registry.mjs";
-import { NURSING_PAGE, SPEECH_PATHOLOGY_PAGE, PROFESSIONS } from "../src/page/spec.mjs";
+import { NURSING_PAGE, SPEECH_PATHOLOGY_PAGE, PROFESSIONS } from "../products/almi-oet/page-specs.mjs";
 import { placeClaims, ALL_REPEATED_CLAIMS, AWAITING_A_LAYER, rendersIdenticallyOnEveryProfessionPage } from "../src/page/claim-placement.mjs";
 import { renderPage, findCopiedFacts } from "../src/page/render.mjs";
 import { runGateA, MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../src/gate-a/run.mjs";
@@ -58,7 +59,7 @@ const line = (ch = "─") => console.log(ch.repeat(78));
 const f4 = (n) => (n === null || n === undefined ? "—" : n.toFixed(4));
 const CACHE = "runs/_profession-cache";
 
-const { records } = await loadRegistry();
+const { records } = await loadRegistry(FACTS_DIR);
 const spec = placeClaims(base);
 const { html, trace } = renderPage(spec, records);
 const facts = trace.map((t) => toGateAFact(records.find((r) => r.id === t.claimId)));

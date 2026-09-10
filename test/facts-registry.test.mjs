@@ -14,7 +14,8 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 
-import { factId, TIER_LEAD_ONLY, INCONCLUSIVE_OUTCOMES } from "../src/facts/schema.mjs";
+import { factId, TIER_LEAD_ONLY, INCONCLUSIVE_OUTCOMES } from "../src/facts/schema.mjs";
+import { FACTS_DIR } from "../products/almi-oet/register.mjs";
 import { quotableUnder, requiredAttribution, LICENCES, quotabilityState, licenceClause } from "../src/facts/licences.mjs";
 import { quoteUsableNow, renderableQuote } from "../src/facts/freshness.mjs";
 import { pageFingerprint, matchFingerprint, MIN_SUBSTANTIVE_LENGTH } from "../src/facts/fingerprint.mjs";
@@ -487,13 +488,13 @@ describe("🔴 the manual queue's cost", () => {
 
 describe("🔴 the registry as it actually stands on disk", () => {
   test("every record on disk satisfies every law", async () => {
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     const v = validateRegistry(records);
     assert.equal(v.valid, true, JSON.stringify({ bad: v.invalidRecords, registry: v.registryErrors }, null, 2));
   });
 
   test('🔴 §5A.1 — "a registry schema with zero usable supply is NOT PASS". There is supply', async () => {
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     assert.ok(records.length >= 30, `only ${records.length} records`);
     const c = census(records, { now: NOW });
     assert.ok(c.byQueue.AUTOMATED > 0, "an automated queue with nothing in it has not been demonstrated");
@@ -507,7 +508,7 @@ describe("🔴 the registry as it actually stands on disk", () => {
   });
 
   test("the registry holds facts from BOTH origin and destination sources, not one shape repeated", async () => {
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     const c = census(records, { now: NOW });
     assert.ok(c.byScope.origin > 0);
     assert.ok(c.byScope.destination > 0);
@@ -515,12 +516,12 @@ describe("🔴 the registry as it actually stands on disk", () => {
   });
 
   test("🔴 every record is tier 1 — not one citation in this registry is a blog", async () => {
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     assert.deepEqual(Object.keys(census(records, { now: NOW }).byTier), ["1"]);
   });
 
   test("the OET case is present and is machine-readable AND un-quotable", async () => {
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     const oet = records.find((r) => r.claim.subject === "oet");
     assert.ok(oet, "the case that split the two fields must be IN the registry, not only in the design");
     assert.equal(oet.sourceMachineReadable, true);
@@ -531,7 +532,7 @@ describe("🔴 the registry as it actually stands on disk", () => {
   });
 
   test("the corridor fact exists — Nigeria→UK has its own price", async () => {
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     const uk = records.find((r) => r.id === "ng-nmcn.verification-fee.destination=uk-nmc");
     assert.ok(uk);
     assert.equal(uk.value.value, 17500);
@@ -539,7 +540,7 @@ describe("🔴 the registry as it actually stands on disk", () => {
   });
 
   test("gaps are declared and counted — the alternative to declaring one is inventing a value", async () => {
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     const c = census(records, { now: NOW });
     assert.ok(c.gaps.length >= 5);
     // ✅ CORRECTED 2026-09-10: `writing-task-type` USED to be the example of an
@@ -558,7 +559,7 @@ describe("🔴 the registry as it actually stands on disk", () => {
 
 describe("🔴 factChecked stays ZERO, and records existing does not change that", () => {
   test("the registry's own count is zero, and the constant agrees with the data", async () => {
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     const c = census(records, { now: NOW });
     assert.equal(c.checks.factChecked, 0);
     assert.equal(REGISTRY_FACT_CHECK_COUNT, 0);
@@ -566,13 +567,13 @@ describe("🔴 factChecked stays ZERO, and records existing does not change that
   });
 
   test("🔴 not one record on disk carries factCheckedOn — link-checked is not read-and-judged", async () => {
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     const claimed = records.filter((r) => r.checks.factCheckedOn !== null);
     assert.deepEqual(claimed.map((r) => r.id), [], "somebody must NAME themselves to move this number");
   });
 
   test("Gate A's counter is still hard-coded 0 when fed this registry through the GATE'S OWN code", async () => {
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     const c = census(records, { now: NOW });
     assert.equal(c.gateA.factChecked, 0);
     assert.ok(c.gateA.linkChecked > 0, "and the link column is NOT zero, so the two are visibly different things");
@@ -901,7 +902,7 @@ describe("🔴 the link check must verify WHERE it landed", () => {
 
 describe("🔴 the registry after the licence correction", () => {
   test("every OET-sourced record stores NO span and its licence names all three grounds", async () => {
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     const oet = records.find((r) => r.claim.subject === "oet");
     assert.equal(oet.licence, "OET-CBLA-IP");
     assert.equal(oet.evidence.quotedSpan, null);
@@ -912,7 +913,7 @@ describe("🔴 the registry after the licence correction", () => {
   });
 
   test("🔴 the three silent sources are FALSE, not unknown — the owner's ruling", async () => {
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     for (const subject of ["ie-nmbi", "ng-nmcn", "pk-pnmc"]) {
       const rs = records.filter((r) => r.claim.subject === subject);
       assert.ok(rs.length > 0, subject);
@@ -926,7 +927,7 @@ describe("🔴 the registry after the licence correction", () => {
   });
 
   test("every quotable record carries the credit its licence requires", async () => {
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     // ⚠️ Scoped to records that actually STORE a span. A record holding only our
     // own words reproduces nothing and has nothing to credit — Immigration New
     // Zealand is exactly that shape.
@@ -942,14 +943,14 @@ describe("🔴 the registry after the licence correction", () => {
   });
 
   test("every fingerprint-watched record actually HAS a stored fingerprint", async () => {
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     const fp = records.filter((r) => freshnessRuleFor(r) === "machine-fingerprint");
     assert.ok(fp.length > 0);
     for (const r of fp) assert.equal(r.pageFingerprint.length, 64, r.id);
   });
 
   test("🔴 not one record's source URL is the parked nmcnigeria.org domain", async () => {
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     for (const r of records) assert.ok(!r.source.url.includes("nmcnigeria.org"), r.id);
     assert.ok(records.some((r) => r.source.url.includes("nmcn.gov.ng")), "Nigeria uses the real regulator domain");
   });
@@ -1018,7 +1019,7 @@ describe("🔴 Immigration NZ — CC BY 3.0 NZ, and it broke a prediction", () =
   });
 
   test("🔴 the real record now says PERMITTED — and still stores no span", async () => {
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     const nz = records.find((r) => r.claim.subject === "nz-immigration-nz");
     assert.equal(nz.licence, "CC-BY-3.0-NZ");
     assert.equal(nz.sourceQuotable, true);
@@ -1028,7 +1029,7 @@ describe("🔴 Immigration NZ — CC BY 3.0 NZ, and it broke a prediction", () =
   });
 
   test("⚠️ and its per-page check is NOT clear — the scanner reports, a person rules", async () => {
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     const nz = records.find((r) => r.claim.subject === "nz-immigration-nz");
     assert.equal(nz.thirdPartyRightsCheck.clear, false);
     // It blocks nothing today because no span is stored, and it would have to be
@@ -1109,7 +1110,7 @@ describe("🔴 the freshness rule follows the STORED span, not the permission", 
     // The failure this correction removes: a rule that prescribed a quote match
     // for a record with no span, which could then never be anything but
     // permanently inconclusive.
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     for (const r of records) {
       if (freshnessRuleFor(r) === "machine-quote-match") {
         assert.ok(r.evidence.quotedSpan, `${r.id} is quote-matched with no span`);
@@ -1122,7 +1123,7 @@ describe("🔴 the freshness rule follows the STORED span, not the permission", 
 
 describe("🔴 the recount — the '16 → 2' prediction, measured", () => {
   test("of the four unread licences, ONE permitted and THREE reserved", async () => {
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     const bySubject = (s) => records.find((r) => r.claim.subject === s);
     assert.equal(quotabilityState(bySubject("nz-immigration-nz").licence), "PERMITTED");
     for (const s of ["ie-nmbi", "ng-nmcn", "pk-pnmc"]) {
@@ -1136,7 +1137,7 @@ describe("🔴 the recount — the '16 → 2' prediction, measured", () => {
     // between queues — the queue emptied because of FINGERPRINTING, which is a
     // different mechanism entirely. A projection where a measurement was
     // available. Rule Eight.
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     const c = census(records, { now: NOW });
     assert.equal(c.byQueue.MANUAL, 0);
     // Counts move as the registry is filled; what must NOT move is that all four
@@ -1195,7 +1196,7 @@ describe("🔴 the nightly job routes by the STORED SPAN, not the permission", (
   });
 
   test("and the whole real registry comes back with ZERO inconclusive checks", async () => {
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     for (const r of records) {
       const hasSpan = Boolean(r.evidence.quotedSpan);
       assert.equal(freshnessRuleFor(r), hasSpan ? "machine-quote-match" : "machine-fingerprint", r.id);
@@ -1317,7 +1318,7 @@ describe("🔴 F22 blocks on the REGION, and never on the whole page", () => {
   });
 
   test("every real gov.uk record carries a region verdict, and none conflicts", async () => {
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     const withSpan = records.filter((r) => r.thirdPartyRightsCheck && r.evidence.quotedSpan);
     assert.ok(withSpan.length >= 12);
     for (const r of withSpan) {
@@ -1327,7 +1328,7 @@ describe("🔴 F22 blocks on the REGION, and never on the whole page", () => {
   });
 
   test("🔴 and the NZ record KEEPS clear:false — the observation was not erased", async () => {
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     const nz = records.find((r) => r.claim.subject === "nz-immigration-nz");
     assert.equal(nz.thirdPartyRightsCheck.clear, false, "the whole-page observation must survive the ruling");
     assert.equal(nz.thirdPartyRightsCheck.spanRegionConflict, null, "no span is stored, so there is nothing to place");

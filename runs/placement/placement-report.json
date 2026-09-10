@@ -1,0 +1,154 @@
+{
+  "asBuilt": {
+    "label": "AS BUILT (shared block on every page)",
+    "claims": 19,
+    "words": 1980,
+    "prose": 1938,
+    "list": 0,
+    "heading": 42,
+    "onePage": {
+      "uniqueWords": 1643,
+      "facts": 19,
+      "overlap": 0,
+      "verdict": "KEEP",
+      "pass": true
+    },
+    "rollout": {
+      "uniqueWords": 45,
+      "shellBefore": 337,
+      "shellAfter": 1935,
+      "overlap": null,
+      "verdict": "REJECT"
+    },
+    "bestCaseRolloutUnique": 469,
+    "perProfessionWords": 917,
+    "sharedWords": 1082,
+    "bestCaseA": 0.3921411387329591,
+    "bestCaseB": 0.40027510316368636,
+    "shinglesA": {
+      "S": 978,
+      "U": 758
+    },
+    "shinglesB": {
+      "S": 873,
+      "U": 654
+    },
+    "pairwiseSim": 0.8464017185821697
+  },
+  "placedByScope": {
+    "label": "PLACED BY SCOPE",
+    "claims": 14,
+    "words": 1394,
+    "prose": 1365,
+    "list": 0,
+    "heading": 29,
+    "onePage": {
+      "uniqueWords": 1083,
+      "facts": 14,
+      "overlap": 0,
+      "verdict": "KEEP",
+      "pass": true
+    },
+    "rollout": {
+      "uniqueWords": 43,
+      "shellBefore": 311,
+      "shellAfter": 1351,
+      "overlap": null,
+      "verdict": "REJECT"
+    },
+    "bestCaseRolloutUnique": 606,
+    "perProfessionWords": 917,
+    "sharedWords": 491,
+    "bestCaseA": 0.24086129193790687,
+    "bestCaseB": 0.2585034013605442,
+    "shinglesA": {
+      "S": 481,
+      "U": 758
+    },
+    "shinglesB": {
+      "S": 456,
+      "U": 654
+    },
+    "pairwiseSim": 0.8042678440029434
+  },
+  "universalsRemovedToo": {
+    "label": "UNIVERSALS REMOVED TOO (not taken)",
+    "claims": 12,
+    "words": 1098,
+    "prose": 1069,
+    "list": 0,
+    "heading": 29,
+    "onePage": {
+      "uniqueWords": 820,
+      "facts": 12,
+      "overlap": 0,
+      "verdict": "KEEP",
+      "pass": true
+    },
+    "rollout": {
+      "uniqueWords": 43,
+      "shellBefore": 278,
+      "shellAfter": 1055,
+      "overlap": null,
+      "verdict": "REJECT"
+    },
+    "bestCaseRolloutUnique": 788,
+    "perProfessionWords": 917,
+    "sharedWords": 193,
+    "bestCaseA": 0.11085043988269795,
+    "bestCaseB": 0.12625250501002003,
+    "shinglesA": {
+      "S": 189,
+      "U": 758
+    },
+    "shinglesB": {
+      "S": 189,
+      "U": 654
+    },
+    "pairwiseSim": 0.7525581395348837
+  },
+  "universalClaims": [
+    "oet.subtests-and-which-are-profession-specific",
+    "oet.grade-bands-0-500"
+  ],
+  "awaitingALayer": [
+    {
+      "claim": "uk-ukvi.majority-english-speaking-countries",
+      "layer": "a layer that knows the reader's ORIGIN",
+      "exists": false,
+      "becomes": "not \"here are the rules\" but \"Nigeria is red-listed, and here is what that means for you\""
+    },
+    {
+      "claim": "uk-code-of-practice.red-list-rule",
+      "layer": "a layer that knows the reader's ORIGIN",
+      "exists": false,
+      "becomes": "not \"here are the rules\" but \"Nigeria is red-listed, and here is what that means for you\""
+    },
+    {
+      "claim": "uk-code-of-practice.amber-list-rule",
+      "layer": "a layer that knows the reader's ORIGIN",
+      "exists": false,
+      "becomes": "not \"here are the rules\" but \"Nigeria is red-listed, and here is what that means for you\""
+    },
+    {
+      "claim": "uk-code-of-practice.direct-application-exception",
+      "layer": "a layer that knows the reader's ORIGIN",
+      "exists": false,
+      "becomes": "not \"here are the rules\" but \"Nigeria is red-listed, and here is what that means for you\""
+    },
+    {
+      "claim": "nz-immigration-nz.oet-must-be-taken-in-person",
+      "layer": "a layer that knows the DESTINATION",
+      "exists": false,
+      "becomes": "not \"New Zealand requires this\" on a page about nursing, but on a page about going to New Zealand"
+    }
+  ],
+  "removed": [
+    "nz-immigration-nz.oet-must-be-taken-in-person",
+    "uk-ukvi.majority-english-speaking-countries",
+    "uk-code-of-practice.red-list-rule",
+    "uk-code-of-practice.amber-list-rule",
+    "uk-code-of-practice.direct-application-exception"
+  ],
+  "sharedPage": null
+}

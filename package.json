@@ -1,0 +1,10 @@
+{
+  "name": "almi-visibility",
+  "private": true,
+  "type": "module",
+  "description": "AlmiWorld Global Search & AI Visibility Engine — v0.1 audit slice.",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "gate-a": "node bin/gate-a.mjs"
+  }
+}

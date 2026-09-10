@@ -1,0 +1,31 @@
+{
+  "id": "red-5-rendered-count-vs-data",
+  "red": 5,
+  "defectClass": "A rendered count that does not match the underlying data",
+  "repository": "almi-oet",
+  "commit": "e99b199ad70cfa3134ca31c868b427c38e3d1125",
+  "commitShort": "e99b199",
+  "commitSubject": "tooling: name the rows, and point the retire gun one way (#102)",
+  "commitDate": "2026-09-08T21:42:58Z",
+  "fixCommit": "45355be2b0dc912e457bf1a1196287f159e83340",
+  "fixCommitShort": "45355be",
+  "fixCommitSubject": "content: GAP-046 — the prompt tells the truth about the item, and a gate says so (#103)",
+  "whyThisCommit": "The parent of the fix. reading_c.ts holds 42 items, of which exactly six carry a prompt promising '(A, B or C)' — three options — while every one of their eight questions offers four. The same six the fix commit names.",
+  "provenAt": "Prompt and options sit in the same file, and the file that renders the prompt to the learner (session/[sessionId]/page.tsx line 231, prompt={current.item.prompt}) is captured beside it. No database is needed.",
+  "toolchain": null,
+  "artefactComplete": true,
+  "artefactNote": null,
+  "files": [
+    {
+      "path": "scripts/seed/gen/reading_c.ts",
+      "bytes": 473388,
+      "sha256": "37d700d62784ac3bf9a77458d8e383fbc2816d7ef8c7cab6910fb23147a8570f"
+    },
+    {
+      "path": "src/app/(app)/practice/session/[sessionId]/page.tsx",
+      "bytes": 10473,
+      "sha256": "2477e11d8af32299a6c13f185269660c477c1cbbb6545ab19154f244d453f9c8"
+    }
+  ],
+  "directoryListings": []
+}

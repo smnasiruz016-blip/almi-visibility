@@ -1,0 +1,47 @@
+{
+  "id": "red-4-sitemap-url-that-404s",
+  "red": 4,
+  "defectClass": "A sitemap URL that 404s, redirects, or is non-indexable",
+  "repository": "almi-italian",
+  "commit": "d83ddd94c1da12fd069a856e4f2132cceee26104",
+  "commitShort": "d83ddd9",
+  "commitSubject": "Migrate /guides to /learn with a corpus-wide engine-token mechanism (#43)",
+  "commitDate": "2026-08-27T06:22:54Z",
+  "fixCommit": "a19188306ba083f6033eea2220ec4a91b851c048",
+  "fixCommitShort": "a191883",
+  "fixCommitSubject": "Drop the 52 /learn articles, and point the /guides redirects at pages that exist (#44)",
+  "whyThisCommit": "AlmiOET has never carried this defect — see A2_CASE_STUDY_CORPUS_CANDIDATES.md for the seven checks. At this commit next.config.ts declares nine /guides -> /learn 301s on live indexed URLs, src/lib/learn/articles.ts builds every /learn route from content/learn/*.md, and content/learn/ holds exactly two scaffold files. All nine destinations were missing: 9 of 9 redirects landed on a 404.",
+  "provenAt": "The redirect table, the route builder and the directory listing are all at this one commit. The listing is the proof and it is captured as a listing because an absence has no bytes.",
+  "toolchain": null,
+  "artefactComplete": true,
+  "artefactNote": null,
+  "files": [
+    {
+      "path": "next.config.ts",
+      "bytes": 7148,
+      "sha256": "46092dfbc9c00168312a04eb125876955536d6a1c7dc82c802fa648a2012e674"
+    },
+    {
+      "path": "src/lib/learn/articles.ts",
+      "bytes": 8257,
+      "sha256": "be13864735cf6b37ae9fe441e3f41d9ca4fb1bc4e04c908474ad87398f6963b4"
+    },
+    {
+      "path": "content/learn/scaffold-example.md",
+      "bytes": 1767,
+      "sha256": "221e7f55e1eeca47163c752e75016910e3e7d285a93afbf6a05d8704bb303918"
+    },
+    {
+      "path": "content/learn/scaffold-tokens.md",
+      "bytes": 2471,
+      "sha256": "16ed3fad4c50131a730ae92fa2aebae2dd8dbde4ef1c479add3903900e02b159"
+    }
+  ],
+  "directoryListings": [
+    {
+      "directory": "content/learn",
+      "entries": 2,
+      "sha256": "e476c70979f2c83ffeda69af877f1b428b622585e65a2dc58fca2079d41bc0b6"
+    }
+  ]
+}

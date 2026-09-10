@@ -1,0 +1,92 @@
+{
+  "note": "What each exhibit captures, and out of which commit. bin/freeze-exhibit.mjs reads this and never touches the source repositories' working trees — it only runs `git show`.",
+  "exhibits": [
+    {
+      "id": "red-1-grade-band-never-issued",
+      "red": 1,
+      "defectClass": "A public promise of a grade band the scoring engine never issued",
+      "repo": "almi-oet",
+      "repoPath": "C:/Projects/almi-oet",
+      "commit": "8877c6e",
+      "fixCommit": "4ed34bb",
+      "whyThisCommit": "The parent of the fix. At this commit GRADE_FLOORS holds exactly four grades (A, B, C+, C) and gradeForScore returns null below 200, while twelve public surfaces — including src/app/layout.tsx, the site metadata on every page — promise 'an A-E grade per sub-test'. There is no D and no E in the engine.",
+      "provenAt": "Both halves are in this one commit: the engine in src/lib/oet/scale.ts and the promises in the eight app files below. No build and no database is needed to decide it.",
+      "files": [
+        "src/lib/oet/scale.ts",
+        "src/app/layout.tsx",
+        "src/app/page.tsx",
+        "src/app/pricing/page.tsx",
+        "src/app/(auth)/signup/page.tsx",
+        "src/app/(app)/practice/mock/page.tsx",
+        "src/app/(app)/practice/[profession]/page.tsx",
+        "src/app/(app)/practice/[profession]/[task]/page.tsx",
+        "src/components/oet/OetSessionResult.tsx"
+      ]
+    },
+    {
+      "id": "red-4-sitemap-url-that-404s",
+      "red": 4,
+      "defectClass": "A sitemap URL that 404s, redirects, or is non-indexable",
+      "repo": "almi-italian",
+      "repoPath": "C:/Projects/almi-italian",
+      "commit": "d83ddd9",
+      "fixCommit": "a191883",
+      "whyThisCommit": "AlmiOET has never carried this defect — see A2_CASE_STUDY_CORPUS_CANDIDATES.md for the seven checks. At this commit next.config.ts declares nine /guides -> /learn 301s on live indexed URLs, src/lib/learn/articles.ts builds every /learn route from content/learn/*.md, and content/learn/ holds exactly two scaffold files. All nine destinations were missing: 9 of 9 redirects landed on a 404.",
+      "provenAt": "The redirect table, the route builder and the directory listing are all at this one commit. The listing is the proof and it is captured as a listing because an absence has no bytes.",
+      "files": [
+        "next.config.ts",
+        "src/lib/learn/articles.ts",
+        "content/learn/scaffold-example.md",
+        "content/learn/scaffold-tokens.md"
+      ],
+      "directories": [
+        "content/learn"
+      ]
+    },
+    {
+      "id": "red-5-rendered-count-vs-data",
+      "red": 5,
+      "defectClass": "A rendered count that does not match the underlying data",
+      "repo": "almi-oet",
+      "repoPath": "C:/Projects/almi-oet",
+      "commit": "e99b199",
+      "fixCommit": "45355be",
+      "whyThisCommit": "The parent of the fix. reading_c.ts holds 42 items, of which exactly six carry a prompt promising '(A, B or C)' — three options — while every one of their eight questions offers four. The same six the fix commit names.",
+      "provenAt": "Prompt and options sit in the same file, and the file that renders the prompt to the learner (session/[sessionId]/page.tsx line 231, prompt={current.item.prompt}) is captured beside it. No database is needed.",
+      "files": [
+        "scripts/seed/gen/reading_c.ts",
+        "src/app/(app)/practice/session/[sessionId]/page.tsx"
+      ]
+    },
+    {
+      "id": "red-6-source-vs-rendered",
+      "red": 6,
+      "defectClass": "Present in the source but absent from the rendered HTML",
+      "repo": "almi-italian",
+      "repoPath": "C:/Projects/almi-italian",
+      "commit": "14a0f7d",
+      "fixCommit": "a2a6a2a",
+      "whyThisCommit": "The parent of the fix. Turbopack — the default bundler for `next build` in Next 16 — trims the leading space of a multi-line JSX text node that follows an element, so `</strong> del nostro` ships as `</strong>del nostro`. esbuild and SWC both keep it.",
+      "provenAt": "🔴 NOT PROVABLE FROM SOURCE, AND THAT IS THE DEFECT CLASS. The source at this commit is innocent — the space is there. The rendered artefact carries the defect, and the single-line control in the same build proves the cause is the LINE BREAK, not the words.",
+      "toolchain": {
+        "next": "16.2.12",
+        "react": "19.2.4",
+        "react-dom": "19.2.4",
+        "bundler": "Turbopack (the default for `next build` in Next 16)",
+        "why": "Without this exact bundler the defect does not exist. A build with esbuild or SWC keeps the space and the exhibit disappears.",
+        "lockfile": "package-lock.json at this commit"
+      },
+      "artefactComplete": true,
+      "artefactNote": "BOTH sides are captured: the source out of the commit, and the RENDERED HTML from a build with the pinned toolchain. See rendered/HOW_IT_WAS_CAPTURED.md for exactly what was built and how it differs from a full product build.",
+      "files": [
+        "src/components/ProgressSection.tsx",
+        "src/components/GlobalFooter.tsx",
+        "src/app/privacy/page.tsx",
+        "package.json",
+        "package-lock.json"
+      ],
+      "capturedDir": "rendered",
+      "capturedHow": "next build (Turbopack) at Next 16.2.12 / React 19.2.4 — the versions this commit pins — over the three JSX text nodes copied VERBATIM out of the commit, plus a single-line CONTROL of the same words."
+    }
+  ]
+}

@@ -1,0 +1,232 @@
+{
+  "ranOn": "2026-09-10",
+  "urlsFetched": 5,
+  "results": [
+    {
+      "id": "ie-nmbi.oet-minimum-grade.profession=nursing",
+      "outcome": "not-applicable",
+      "detail": "the licence does not permit a stored quote — nothing is attempted"
+    },
+    {
+      "id": "ie-nmbi.oet-version-required.profession=nursing",
+      "outcome": "not-applicable",
+      "detail": "the licence does not permit a stored quote — nothing is attempted"
+    },
+    {
+      "id": "ie-nmbi.recognised-english-speaking-countries",
+      "outcome": "not-applicable",
+      "detail": "the licence does not permit a stored quote — nothing is attempted"
+    },
+    {
+      "id": "ng-nmcn.issuing-body",
+      "outcome": "not-applicable",
+      "detail": "the licence does not permit a stored quote — nothing is attempted"
+    },
+    {
+      "id": "ng-nmcn.verification-documents",
+      "outcome": "not-applicable",
+      "detail": "the licence does not permit a stored quote — nothing is attempted"
+    },
+    {
+      "id": "ng-nmcn.verification-fee.destination=uk-nmc",
+      "outcome": "not-applicable",
+      "detail": "the licence does not permit a stored quote — nothing is attempted"
+    },
+    {
+      "id": "ng-nmcn.verification-fee.purpose=authentication",
+      "outcome": "not-applicable",
+      "detail": "the licence does not permit a stored quote — nothing is attempted"
+    },
+    {
+      "id": "ng-nmcn.verification-fee.purpose=certificate-verification",
+      "outcome": "not-applicable",
+      "detail": "the licence does not permit a stored quote — nothing is attempted"
+    },
+    {
+      "id": "ng-nmcn.verification-fee.purpose=letter-of-good-standing",
+      "outcome": "not-applicable",
+      "detail": "the licence does not permit a stored quote — nothing is attempted"
+    },
+    {
+      "id": "nz-immigration-nz.oet-must-be-taken-in-person",
+      "outcome": "not-applicable",
+      "detail": "the licence does not permit a stored quote — nothing is attempted"
+    },
+    {
+      "id": "oet.content-licence-permits-stored-quotation",
+      "outcome": "not-applicable",
+      "detail": "the licence does not permit a stored quote — nothing is attempted"
+    },
+    {
+      "id": "pk-pnmc.issuing-body",
+      "outcome": "not-applicable",
+      "detail": "the licence does not permit a stored quote — nothing is attempted"
+    },
+    {
+      "id": "pk-pnmc.verification-documents",
+      "outcome": "not-applicable",
+      "detail": "the licence does not permit a stored quote — nothing is attempted"
+    },
+    {
+      "id": "pk-pnmc.verification-fee.destination=domestic",
+      "outcome": "not-applicable",
+      "detail": "the licence does not permit a stored quote — nothing is attempted"
+    },
+    {
+      "id": "pk-pnmc.verification-fee.destination=foreign",
+      "outcome": "not-applicable",
+      "detail": "the licence does not permit a stored quote — nothing is attempted"
+    },
+    {
+      "id": "pk-pnmc.verification-response-time",
+      "outcome": "not-applicable",
+      "detail": "the licence does not permit a stored quote — nothing is attempted"
+    },
+    {
+      "id": "uk-code-of-practice.amber-list-countries",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 91818 chars of text",
+      "url": "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england"
+    },
+    {
+      "id": "uk-code-of-practice.amber-list-rule",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 91818 chars of text",
+      "url": "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england"
+    },
+    {
+      "id": "uk-code-of-practice.direct-application-exception",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 91818 chars of text",
+      "url": "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england"
+    },
+    {
+      "id": "uk-code-of-practice.recruitment-list-membership.country=india",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 91818 chars of text",
+      "url": "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england"
+    },
+    {
+      "id": "uk-code-of-practice.recruitment-list-membership.country=kenya",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 91818 chars of text",
+      "url": "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england"
+    },
+    {
+      "id": "uk-code-of-practice.recruitment-list-membership.country=nigeria",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 91818 chars of text",
+      "url": "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england"
+    },
+    {
+      "id": "uk-code-of-practice.recruitment-list-membership.country=pakistan",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 91818 chars of text",
+      "url": "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england"
+    },
+    {
+      "id": "uk-code-of-practice.recruitment-list-membership.country=philippines",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 91818 chars of text",
+      "url": "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england"
+    },
+    {
+      "id": "uk-code-of-practice.red-list-country-count",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 91818 chars of text",
+      "url": "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england"
+    },
+    {
+      "id": "uk-code-of-practice.red-list-rule",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 91818 chars of text",
+      "url": "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england"
+    },
+    {
+      "id": "uk-nmc.english-evidence-routes.profession=nursing",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 6438 chars of text",
+      "url": "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/"
+    },
+    {
+      "id": "uk-nmc.oet-combining-sittings.profession=nursing",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 7913 chars of text",
+      "url": "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/accepted-english-language-tests/oet/"
+    },
+    {
+      "id": "uk-nmc.oet-minimum-grade.profession=nursing",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 7913 chars of text",
+      "url": "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/accepted-english-language-tests/oet/"
+    },
+    {
+      "id": "uk-nmc.qualified-in-english-evidence.profession=nursing",
+      "outcome": "pass",
+      "occurrences": 2,
+      "ambiguous": true,
+      "detail": "⚠️ span found 2 times — it is NOT anchored to one sentence, so this pass is weak evidence",
+      "url": "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/qualified-in-english/"
+    },
+    {
+      "id": "uk-ukvi.english-nationality-exemption.nationality=india",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 13728 chars of text",
+      "url": "https://www.gov.uk/guidance/immigration-rules/immigration-rules-appendix-english-language"
+    },
+    {
+      "id": "uk-ukvi.majority-english-speaking-countries",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 13728 chars of text",
+      "url": "https://www.gov.uk/guidance/immigration-rules/immigration-rules-appendix-english-language"
+    }
+  ],
+  "tally": {
+    "pass": 16,
+    "fail": 0,
+    "could-not-check": 0,
+    "not-applicable": 16
+  },
+  "flaggedForAPerson": [],
+  "inconclusive": [],
+  "ambiguous": [
+    {
+      "id": "uk-nmc.qualified-in-english-evidence.profession=nursing",
+      "outcome": "pass",
+      "occurrences": 2,
+      "ambiguous": true,
+      "detail": "⚠️ span found 2 times — it is NOT anchored to one sentence, so this pass is weak evidence",
+      "url": "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/qualified-in-english/"
+    }
+  ]
+}

@@ -5,6 +5,9 @@
   "description": "AlmiWorld Global Search & AI Visibility Engine — v0.1 audit slice.",
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "gate-a": "node bin/gate-a.mjs"
+    "gate-a": "node bin/gate-a.mjs",
+    "facts": "node bin/facts.mjs census",
+    "facts:validate": "node bin/facts.mjs validate",
+    "quote-match": "node bin/quote-match.mjs"
   }
 }

@@ -15,7 +15,7 @@ import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 
 import { factId, TIER_LEAD_ONLY, INCONCLUSIVE_OUTCOMES } from "../src/facts/schema.mjs";
-import { quotableUnder, requiredAttribution, LICENCES } from "../src/facts/licences.mjs";
+import { quotableUnder, requiredAttribution, LICENCES, quotabilityState, licenceClause } from "../src/facts/licences.mjs";
 import { quoteUsableNow, renderableQuote } from "../src/facts/freshness.mjs";
 import { pageFingerprint, matchFingerprint, MIN_SUBSTANTIVE_LENGTH } from "../src/facts/fingerprint.mjs";
 import { scanForThirdPartyRights } from "../src/facts/quote-match.mjs";
@@ -157,8 +157,18 @@ describe("🔴 F6 and F9 — a source a machine may read and may NOT quote", () 
     assert.ok(laws(unquotable({ evidence: { quotedSpan: null, quoteLocation: null, ownWords: null } })).has("F6"));
   });
 
-  test("RED: sourceQuotable true with NO span is rejected — that is the field the design turns on", () => {
-    assert.ok(laws(lawful({ evidence: { quotedSpan: null, quoteLocation: null, ownWords: "x" } })).has("F6"));
+  test("🔴 CORRECTED: quotable with no span but WITH ownWords is LAWFUL — see the F6 suite", () => {
+    // This used to assert F6 fired. It was the wrong rule: a permission is not
+    // an obligation, and Immigration New Zealand is the record that proved it.
+    // What must still fire is a record carrying NO evidence of any kind.
+    const withOwnWords = lawful({
+      evidence: { quotedSpan: null, quoteLocation: null, ownWords: "x" },
+      freshness: { rule: "machine-fingerprint", days: 180 },
+      pageFingerprint: "9".repeat(64),
+      checks: { ...lawful().checks, quoteMatchedOn: null, quoteMatchOutcome: "not-applicable", fingerprintCheckedOn: "2026-09-10", fingerprintOutcome: "pass" },
+    });
+    assert.ok(!laws(withOwnWords).has("F6"));
+    assert.ok(laws(lawful({ evidence: { quotedSpan: null, quoteLocation: null, ownWords: null } })).has("F6"));
   });
 
   test("🔴 RED: an unquotable record may NOT report could-not-check — a lawful state is not a broken source", () => {
@@ -264,10 +274,15 @@ describe("🔴 F11 — the queue is DERIVED, so it cannot be used to hide work",
     assert.equal(queueFor({ sourceMachineReadable: false, sourceQuotable: true }), "MANUAL");
     assert.equal(queueFor({ sourceMachineReadable: "unknown", sourceQuotable: true }), "MANUAL");
 
-    assert.equal(freshnessRuleFor({ sourceMachineReadable: true, sourceQuotable: true }), "machine-quote-match");
-    assert.equal(freshnessRuleFor({ sourceMachineReadable: true, sourceQuotable: false }), "machine-fingerprint");
-    assert.equal(freshnessRuleFor({ sourceMachineReadable: true, sourceQuotable: "unknown" }), "machine-fingerprint");
-    assert.equal(freshnessRuleFor({ sourceMachineReadable: false, sourceQuotable: true }), "human-re-read");
+    // 🔴 And the CHECK now turns on whether a span is actually STORED, not on
+    // whether one would be allowed. See the "follows the STORED span" suite.
+    const span = { evidence: { quotedSpan: "something" } };
+    const noSpan = { evidence: { quotedSpan: null } };
+    assert.equal(freshnessRuleFor({ sourceMachineReadable: true, sourceQuotable: true, ...span }), "machine-quote-match");
+    assert.equal(freshnessRuleFor({ sourceMachineReadable: true, sourceQuotable: true, ...noSpan }), "machine-fingerprint");
+    assert.equal(freshnessRuleFor({ sourceMachineReadable: true, sourceQuotable: false, ...noSpan }), "machine-fingerprint");
+    assert.equal(freshnessRuleFor({ sourceMachineReadable: true, sourceQuotable: "unknown", ...noSpan }), "machine-fingerprint");
+    assert.equal(freshnessRuleFor({ sourceMachineReadable: false, sourceQuotable: true, ...span }), "human-re-read");
   });
 
   test("🔴 'unknown' NEVER buys a quote — an unread licence is not a permissive licence", () => {
@@ -901,10 +916,17 @@ describe("🔴 the registry after the licence correction", () => {
 
   test("every quotable record carries the credit its licence requires", async () => {
     const { records } = await loadRegistry();
-    const quotable = records.filter((r) => r.sourceQuotable === true);
-    assert.ok(quotable.length > 0);
-    for (const r of quotable) {
+    // ⚠️ Scoped to records that actually STORE a span. A record holding only our
+    // own words reproduces nothing and has nothing to credit — Immigration New
+    // Zealand is exactly that shape.
+    const withStoredSpan = records.filter((r) => r.sourceQuotable === true && r.evidence.quotedSpan);
+    assert.ok(withStoredSpan.length > 0);
+    for (const r of withStoredSpan) {
       assert.ok(r.attributionStatement.includes(requiredAttribution(r.licence)), r.id);
+    }
+    const permittedButUnquoted = records.filter((r) => r.sourceQuotable === true && !r.evidence.quotedSpan);
+    for (const r of permittedButUnquoted) {
+      assert.equal(r.attributionStatement, null, `${r.id} credits a reproduction it never made`);
     }
   });
 
@@ -919,5 +941,242 @@ describe("🔴 the registry after the licence correction", () => {
     const { records } = await loadRegistry();
     for (const r of records) assert.ok(!r.source.url.includes("nmcnigeria.org"), r.id);
     assert.ok(records.some((r) => r.source.url.includes("nmcn.gov.ng")), "Nigeria uses the real regulator domain");
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// THREE STATES, AND TWO OF THEM MUST NEVER MERGE
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe("🔴 quotability has THREE states, and RESERVED is not PROHIBITED", () => {
+  test("each licence declares its state, and the vocabulary is closed", () => {
+    assert.equal(quotabilityState("OGL-v3.0"), "PERMITTED");
+    assert.equal(quotabilityState("NMC-6.3"), "PERMITTED");
+    assert.equal(quotabilityState("CC-BY-3.0-NZ"), "PERMITTED");
+    assert.equal(quotabilityState("proprietary-no-reuse"), "RESERVED");
+    assert.equal(quotabilityState("OET-CBLA-IP"), "PROHIBITED");
+    assert.equal(quotabilityState("unknown-not-read"), "UNREAD");
+    assert.equal(quotabilityState("unknown-licence-unreachable"), "UNREAD");
+  });
+
+  test("🔴 RESERVED and PROHIBITED both block a quote AND ARE DIFFERENT STATES", () => {
+    // Both produce sourceQuotable false. If the registry only recorded that
+    // boolean, an unasked regulator and a flat refusal would look like the same
+    // piece of work forever — one is closed by an email, the other by nothing.
+    assert.equal(quotableUnder("proprietary-no-reuse", "guidance"), false);
+    assert.equal(quotableUnder("OET-CBLA-IP", "guidance"), false);
+    assert.notEqual(quotabilityState("proprietary-no-reuse"), quotabilityState("OET-CBLA-IP"));
+  });
+
+  test("every state carries the EXACT CLAUSE behind it, so it can be re-argued", () => {
+    for (const lic of Object.keys(LICENCES)) {
+      assert.ok(licenceClause(lic) && licenceClause(lic).length > 20, lic);
+    }
+    assert.match(licenceClause("OET-CBLA-IP"), /commercially exploit/i);
+    assert.match(licenceClause("NMC-6.3"), /rules, standards and guidance/i);
+    assert.match(licenceClause("CC-BY-3.0-NZ"), /copy, distribute and adapt/i);
+  });
+
+  test("🔴 RESERVED is the LEGAL DEFAULT, not a cautious reading", () => {
+    // Silence reserves every right. The conservative answer is the law as it
+    // stands until somebody grants otherwise.
+    assert.equal(LICENCES["proprietary-no-reuse"].quotableClasses.length, 0);
+    assert.equal(LICENCES["proprietary-no-reuse"].permitsCommercial, false);
+  });
+});
+
+describe("🔴 Immigration NZ — CC BY 3.0 NZ, and it broke a prediction", () => {
+  test("it PERMITS copy, distribute and adapt, commercially", () => {
+    assert.equal(quotabilityState("CC-BY-3.0-NZ"), "PERMITTED");
+    assert.equal(LICENCES["CC-BY-3.0-NZ"].permitsCommercial, true);
+    for (const cls of ["rules", "standards", "guidance", "news", "general"]) {
+      assert.equal(quotableUnder("CC-BY-3.0-NZ", cls), true);
+    }
+  });
+
+  test("⚠️ it carries the same shape of caveat as the OGL's word MOST", () => {
+    // PDFs, text files, documents, extracts and DATA may not be Crown copyright,
+    // so a site-wide licence does not licence every artefact on the site.
+    assert.equal(LICENCES["CC-BY-3.0-NZ"].requiresPerPageThirdPartyCheck, true);
+    assert.match(LICENCES["CC-BY-3.0-NZ"].clause, /assessed per document/i);
+  });
+
+  test("its credit is Crown copyright, and it is NOT the OGL's credit", () => {
+    assert.match(requiredAttribution("CC-BY-3.0-NZ"), /Crown copyright/);
+    assert.notEqual(requiredAttribution("CC-BY-3.0-NZ"), requiredAttribution("OGL-v3.0"));
+  });
+
+  test("🔴 the real record now says PERMITTED — and still stores no span", async () => {
+    const { records } = await loadRegistry();
+    const nz = records.find((r) => r.claim.subject === "nz-immigration-nz");
+    assert.equal(nz.licence, "CC-BY-3.0-NZ");
+    assert.equal(nz.sourceQuotable, true);
+    assert.equal(nz.evidence.quotedSpan, null, "permitted is not obliged");
+    assert.ok(nz.evidence.ownWords.length > 0);
+    assert.equal(freshnessRuleFor(nz), "machine-fingerprint", "no span means nothing to quote-match");
+  });
+
+  test("⚠️ and its per-page check is NOT clear — the scanner reports, a person rules", async () => {
+    const { records } = await loadRegistry();
+    const nz = records.find((r) => r.claim.subject === "nz-immigration-nz");
+    assert.equal(nz.thirdPartyRightsCheck.clear, false);
+    // It blocks nothing today because no span is stored, and it would have to be
+    // resolved before one ever is. F22 is scoped to a stored span for exactly
+    // this reason.
+    assert.deepEqual([...laws(nz)], []);
+  });
+});
+
+describe("🔴 F6 CORRECTED — a permission is not an obligation", () => {
+  const permittedNoSpan = (extra = {}) =>
+    lawful({
+      licence: "CC-BY-3.0-NZ",
+      sourceDocumentClass: "news",
+      sourceQuotable: true,
+      attributionStatement: null,
+      evidence: { quotedSpan: null, quoteLocation: null, ownWords: "the fact, in our own words" },
+      freshness: { rule: "machine-fingerprint", days: 180 },
+      pageFingerprint: "f".repeat(64),
+      checks: {
+        linkCheckedOn: "2026-09-10", linkCheckOutcome: "pass",
+        quoteMatchedOn: null, quoteMatchOutcome: "not-applicable",
+        fingerprintCheckedOn: "2026-09-10", fingerprintOutcome: "pass",
+      },
+      ...extra,
+    });
+
+  test("GREEN: quoting is PERMITTED and no span was taken — this is lawful", () => {
+    // The old F6 rejected this shape, which is how a real, useful, lawful record
+    // (Immigration New Zealand) was refused by our own rule.
+    const v = validateRecord(permittedNoSpan());
+    assert.equal(v.valid, true, JSON.stringify(v.errors, null, 2));
+  });
+
+  test("🔴 RED: but a record with NEITHER a span nor ownWords is still rejected", () => {
+    const r = permittedNoSpan({ evidence: { quotedSpan: null, quoteLocation: null, ownWords: null } });
+    assert.ok(laws(r).has("F6"), "a permission is not evidence");
+  });
+
+  test("attribution, currency and the per-page check are owed only on a STORED span", () => {
+    // None of the three is owed by a record that reproduces nothing.
+    const r = permittedNoSpan({ licence: "NMC-6.3", sourceDocumentClass: "guidance" });
+    const broken = laws(r);
+    assert.ok(!broken.has("F20"), "nothing to credit");
+    assert.ok(!broken.has("F21"), "nothing whose currency is conditioned");
+    assert.ok(!broken.has("F22"), "no page text stored");
+  });
+
+  test("🔴 RED: and the moment a span IS stored, all three become owed again", () => {
+    const withSpan = permittedNoSpan({
+      licence: "NMC-6.3",
+      sourceDocumentClass: "guidance",
+      evidence: { quotedSpan: "At least grade B (350 or above)", quoteLocation: "x", ownWords: null },
+    });
+    const broken = laws(withSpan);
+    assert.ok(broken.has("F20"), "a stored quote with no credit is a breach that looks like compliance");
+    assert.ok(broken.has("F21"), "NMC currency is a licence condition once a span exists");
+  });
+});
+
+describe("🔴 the freshness rule follows the STORED span, not the permission", () => {
+  test("a permitted-but-unquoted record is fingerprint-watched, not quote-matched", () => {
+    const r = { sourceMachineReadable: true, sourceQuotable: true, evidence: { quotedSpan: null } };
+    assert.equal(freshnessRuleFor(r), "machine-fingerprint");
+  });
+
+  test("a stored span is quote-matched", () => {
+    const r = { sourceMachineReadable: true, sourceQuotable: true, evidence: { quotedSpan: "something" } };
+    assert.equal(freshnessRuleFor(r), "machine-quote-match");
+  });
+
+  test("🔴 an unreachable source is human-re-read whatever its licence permits", () => {
+    const r = { sourceMachineReadable: false, sourceQuotable: true, evidence: { quotedSpan: "x" } };
+    assert.equal(freshnessRuleFor(r), "human-re-read");
+  });
+
+  test("no record is ever assigned a check it cannot run", async () => {
+    // The failure this correction removes: a rule that prescribed a quote match
+    // for a record with no span, which could then never be anything but
+    // permanently inconclusive.
+    const { records } = await loadRegistry();
+    for (const r of records) {
+      if (freshnessRuleFor(r) === "machine-quote-match") {
+        assert.ok(r.evidence.quotedSpan, `${r.id} is quote-matched with no span`);
+      } else if (freshnessRuleFor(r) === "machine-fingerprint") {
+        assert.ok(r.pageFingerprint, `${r.id} is fingerprint-watched with no fingerprint`);
+      }
+    }
+  });
+});
+
+describe("🔴 the recount — the '16 → 2' prediction, measured", () => {
+  test("of the four unread licences, ONE permitted and THREE reserved", async () => {
+    const { records } = await loadRegistry();
+    const bySubject = (s) => records.find((r) => r.claim.subject === s);
+    assert.equal(quotabilityState(bySubject("nz-immigration-nz").licence), "PERMITTED");
+    for (const s of ["ie-nmbi", "ng-nmcn", "pk-pnmc"]) {
+      assert.equal(quotabilityState(bySubject(s).licence), "RESERVED", s);
+    }
+  });
+
+  test("🔴 the manual queue did NOT shrink because a licence was read", async () => {
+    // The prediction was that reading four licences would move 14 records out of
+    // the expensive queue. It moved ONE record's quotability, and ZERO records
+    // between queues — the queue emptied because of FINGERPRINTING, which is a
+    // different mechanism entirely. A projection where a measurement was
+    // available. Rule Eight.
+    const { records } = await loadRegistry();
+    const c = census(records, { now: NOW });
+    assert.equal(c.byQueue.MANUAL, 0);
+    assert.equal(c.byQuotabilityState.PERMITTED, 17);
+    assert.equal(c.byQuotabilityState.RESERVED, 14);
+    assert.equal(c.byQuotabilityState.PROHIBITED, 1);
+    assert.equal(c.byQuotabilityState.UNREAD, 0, "every licence in the registry has now been read");
+  });
+});
+
+describe("🔴 the nightly job routes by the STORED SPAN, not the permission", () => {
+  test("a permitted-but-unquoted record is FINGERPRINTED, not sent to the quote matcher", async () => {
+    // Found by running the job after the NZ correction: routing on
+    // `sourceQuotable === true` sent a record with no span to the matcher, which
+    // reported a permanent could-not-check on a record in perfect order.
+    const rec = fact({
+      id: "s.p",
+      claim: { subject: "s", predicate: "p", qualifier: null },
+      scope: "shared",
+      value: { value: "v", valueType: "rule", unit: null },
+      source: { url: "https://example.gov/doc", label: "L", publisher: "P", tier: 1, documentRef: null },
+      sourceMachineReadable: true,
+      sourceMachineReadableBasis: "fetched",
+      sourceQuotable: true,
+      sourceQuotableBasis: "permitted",
+      licence: "CC-BY-3.0-NZ",
+      sourceDocumentClass: "news",
+      attributionStatement: null,
+      evidence: { quotedSpan: null, quoteLocation: null, ownWords: "ours" },
+      queue: "AUTOMATED",
+      freshness: { rule: "machine-fingerprint", days: 180 },
+      pageFingerprint: "0".repeat(64),
+      life: { status: "active", firstSeenOn: "2026-09-10", extractedOn: "2026-09-10" },
+      provenance: { route: "R2", acquiredBy: "human:x" },
+      checks: {
+        linkCheckedOn: "2026-09-10", linkCheckOutcome: "pass",
+        quoteMatchedOn: null, quoteMatchOutcome: "not-applicable",
+        fingerprintCheckedOn: "2026-09-10", fingerprintOutcome: "pass",
+      },
+    });
+    const fetchImpl = async () => ({ ok: true, status: 200, url: "https://example.gov/doc", text: async () => "Body text here. ".repeat(60) });
+    const report = await runQuoteMatch([rec], { fetchImpl, now: NOW });
+    assert.equal(report.byCheck.fingerprint, 1);
+    assert.equal(report.byCheck.quoteMatch, 0);
+    assert.equal(report.tally["could-not-check"], 0, "a record in perfect order must not report as uncheckable");
+  });
+
+  test("and the whole real registry comes back with ZERO inconclusive checks", async () => {
+    const { records } = await loadRegistry();
+    for (const r of records) {
+      const hasSpan = Boolean(r.evidence.quotedSpan);
+      assert.equal(freshnessRuleFor(r), hasSpan ? "machine-quote-match" : "machine-fingerprint", r.id);
+    }
   });
 });

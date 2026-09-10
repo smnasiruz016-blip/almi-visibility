@@ -444,6 +444,8 @@ worth far more than a generator.
 > | `sourceQuotable` is a per-DOMAIN boolean | 🔴 per DOCUMENT CLASS — the NMC grants for guidance what it refuses for news |
 > | NMBI, NMCN, PNMC are `"unknown"`, ruling open | 🔴 **`false`. The owner ruled. Silence is not uncertainty** |
 > | queues 16 AUTOMATED / 16 MANUAL | **32 / 0** — fingerprinting watches what it may not quote |
+> | `sourceQuotable` is the whole answer | §10: **PERMITTED · RESERVED · PROHIBITED · UNREAD**, never merged |
+> | Immigration NZ is `unknown-not-read` | §10: **PERMITTED — CC BY 3.0 NZ**, read first-hand |
 > | OET prohibited on one ground | **three**, and the non-commercial limit is decisive |
 
 
@@ -556,6 +558,13 @@ it is not mine to make.** The conservative reading is what is implemented. Its m
 > bare copyright notice and no reuse terms. So those 14 records did **NOT** move to quotable, and
 > the prediction above was wrong in its optimism: **the absence of a licence is not permission,
 > and "all rights reserved" is what silence means.**
+>
+> ### 🔴 AND THIS CORRECTION WAS ITSELF INCOMPLETE — SEE §10.1
+>
+> It says "the answer was NO", which is true of three sources and **WRONG ABOUT THE FOURTH.**
+> **Immigration New Zealand DOES permit reuse — CC BY 3.0 NZ** — and had simply not been read when
+> this note was written. **One of four permits; three reserve.** Left in place, struck through,
+> because a correction that deletes what it corrects hides that the mistake was possible.
 >
 > What rescued them was not a permission but a different check — see **§9.6 and §9.7**.
 
@@ -961,3 +970,147 @@ uses `nmcn.gov.ng`.** A test asserts no record may ever cite `nmcnigeria.org`.
 **100 tests, all six new laws red-forced against synthetic records AND sabotaged against the real
 fact files. Nothing routed around: four 403s, one licence prohibition and five unread licences are
 all recorded as costs.**
+
+---
+
+# 10 · 🔴 THE FOUR LICENCES WERE READ — AND THE PREDICTION WAS WRONG
+
+**PR #9 merged (`b342ecc`), verified on `origin/main`.** The owner then read the four outstanding
+licences first-hand. **§8.4 predicted what they would say. §8.4 was wrong, and the shape of the
+error is worth more than the correction.**
+
+---
+
+## 10.1 · THE PREDICTION, AND THE MEASUREMENT — Rule Eight, again
+
+| | §8.4 predicted | 🔴 what the reading found |
+|---|---|---|
+| Immigration NZ | permissive → record moves | ✅ **PERMITTED — CC BY 3.0 NZ** |
+| NMBI | permissive → record moves | ❌ **RESERVED** — only `Copyright ©`, no licence exists at all |
+| NMCN | permissive → record moves | ❌ **RESERVED** — "All Rights Reserved." |
+| PNMC | permissive → record moves | ❌ **RESERVED** — "All rights reserved." |
+| **net effect** | **manual queue 16 → 2, passes/year 32 → 4** | **ONE of four permits. Manual queue: unchanged by this** |
+
+> **ONE GRANTS PERMISSION. THREE GRANT NOTHING.** The prediction was not merely optimistic — it was
+> **a projection offered where a measurement was cheaply available**, which is Rule Eight, and the
+> measurement disagreed with it **record by record** rather than in aggregate. Had the aggregate
+> happened to land near 14, the reasoning would still have been wrong.
+
+⚠️ **§8.4's own correction was ALSO incomplete.** It was struck through and annotated *"the answer
+was NO"* — true of NMBI, NMCN and PNMC, and **wrong about Immigration New Zealand**, which was not
+yet read at the time. Both the prediction and its first correction are left in place, struck
+through, because **a correction that deletes what it corrects hides that the mistake was possible.**
+
+## 10.2 · THE RECOUNT — and the manual queue did not move for the reason anyone expected
+
+| | §8 | §9 | **§10** |
+|---|---|---|---|
+| AUTOMATED | 16 | 32 | **32** |
+| MANUAL | 16 | 0 | **0** |
+| PERMITTED | — | — | **17** |
+| RESERVED | — | — | **14** |
+| PROHIBITED | — | — | **1** |
+| UNREAD | — | — | **0** ✅ every licence in the registry has now been read |
+
+> 🔴 **THE MANUAL QUEUE EMPTIED BECAUSE OF FINGERPRINTING, NOT BECAUSE OF A LICENCE.**
+> Reading four licences moved **one record's quotability and zero records between queues.** The
+> thing §8.4 expected to buy 14 records was bought by a completely different mechanism, and if the
+> licences had been read first the queue would have looked exactly as bad as before.
+
+**~~Manual queue 16 → 2, human passes/year 32 → 4.~~ SUPERSEDED.** The correct figures are
+**manual 0**, with the human cost living in the **fingerprint-watched population** and reported as
+**floor 0 / ceiling 32** passes a year — neither called the answer, because page-change frequency
+is still unmeasured.
+
+## 10.3 · THREE STATES, AND TWO OF THEM MUST NEVER MERGE
+
+`sourceQuotable` is a boolean-plus-unknown and it answers what the CODE may do. It cannot answer
+what a PERSON should do, and the owner's ruling is that collapsing the middle two destroys exactly
+the thing worth knowing:
+
+| state | meaning | ours |
+|---|---|---|
+| ✅ **PERMITTED** | a licence was granted | gov.uk OGL v3.0 · INZ CC BY 3.0 NZ · NMC 6.3 (**guidance only**) |
+| 🔴 **RESERVED** | copyright asserted, **no licence granted — THE DEFAULT** | PNMC · NMCN · NMBI |
+| 🔴 **PROHIBITED** | a specific act **expressly forbidden** | OET |
+| ⚠️ **UNREAD** | nobody read it, or the page would not open | none, today |
+
+> 🔴 **RESERVED says "NOBODY HAS ASKED THEM."**
+> 🔴 **PROHIBITED says "THE ANSWER IS WRITTEN IN THEIR POLICY."**
+
+Both stop a quote, so a boolean makes them identical. **One is closed by an email to a regulator.
+The other is closed by nothing short of the licensor changing their mind, and asking would waste a
+day.** A single `false` would have made those look like the same piece of work forever.
+
+⚠️ **AND RESERVED IS NOT A WEAKER "NO".** It is the **legal default** — silence reserves every
+right. The conservative reading is not caution; it is the law as it stands until somebody grants
+otherwise. **Every state stores its exact clause** (`licenceClause()`), so the reasoning can be
+re-argued against the words rather than re-guessed.
+
+## 10.4 · IMMIGRATION NZ — permitted, with the OGL's caveat in a different accent
+
+**CC BY 3.0 New Zealand: it *"licenses you to copy, distribute and adapt"*, conditional on
+attribution to the Crown and to the Ministry's website.**
+
+⚠️ **And it carries the same SHAPE of caveat as the OGL's word "MOST": PDFs, text files, documents,
+extracts and DATA may not be Crown copyright, so EACH DOCUMENT MUST BE ASSESSED SEPARATELY.**
+`requiresPerPageThirdPartyCheck` is therefore true for this licence too — **a site-wide licence
+does not licence every artefact on the site.**
+
+**Measured on the NZ page, 2026-09-10:** the footer carries `Crown copyright` **and** a separate
+`© 2026 Cookie Information` — a cookie-consent vendor's banner, almost certainly not a claim over
+the page's text. **The scanner cannot tell those apart and is not allowed to guess**, so it records
+`clear: false` with the notice attached and **a person rules.** It blocks nothing today because no
+span is stored; it would have to be settled before one ever is.
+
+## 10.5 · 🔴 AND THE NZ RECORD FOUND A DEFECT IN OUR OWN LAW
+
+**F6 demanded a `quotedSpan` wherever the licence permitted one.** Immigration New Zealand permits
+quoting — and our record holds the fact **in our own words**, because it reached us through
+`org-notes.ts` and nobody ever extracted a span.
+
+> **A PERMISSION IS NOT AN OBLIGATION. MAY QUOTE IS NOT MUST QUOTE.**
+
+That record was lawful, useful, and **rejected by our own rule.** Four corrections followed, and
+they all share one shape — *ask what the record HOLDS, never what its licence would have allowed
+it to hold*:
+
+| | keyed on | now keyed on |
+|---|---|---|
+| **F6** | permission | **evidence of some kind** — a span *or* our own words |
+| **F13** (a model proposes, never IS the source) | permission | **a stored span** — no span, no proposal to verify |
+| **F20 · F21 · F22** (credit · currency · per-page check) | permission | **a stored span** — all three are conditions on a *reproduction* |
+| `freshnessRuleFor` | permission | **a stored span** |
+
+🔴 **The last one was the dangerous one.** The old rule prescribed a **quote match for a record
+with no span**, which can never return anything but `could-not-check` — **a check assigned to a
+record it cannot run on**, permanently inconclusive, and indistinguishable in a report from a
+blocked source. That is the exact shape this project keeps finding in other people's gates, and it
+was in ours for two commits.
+
+**And the same bug was in the runner**, found by running it: `runQuoteMatch` routed by
+`sourceQuotable === true` and sent the NZ record to the matcher, which duly reported *"quotable but
+carries no quotedSpan"*. **The job now routes on the stored span**, and the registry returns
+**32/32 pass, 0 fail, 0 could-not-check**.
+
+## 10.6 · THE NIGERIA URL — CHECKED, AS INSTRUCTED
+
+**`nmcnigeria.org` is not ours and never was.** Every Nigeria record cites **`nmcn.gov.ng`**,
+re-resolved same-host, and a test forbids any record ever citing the parked domain. §9.8 has the
+full measurement — **HTTP 200, 114 bytes, a script redirect to a parking lander, zero normalised
+characters** — and the link check now verifies **where it landed** and **that it landed on a
+document.**
+
+## 10.7 · WHAT §10 CHANGED
+
+1. **Immigration NZ: `unknown-not-read` → `CC-BY-3.0-NZ`, PERMITTED.** New licence, with its
+   per-document caveat encoded as a per-page check.
+2. **Three states — PERMITTED · RESERVED · PROHIBITED · UNREAD** — counted apart and never summed,
+   each carrying its exact clause.
+3. **F6 corrected**: a permission is not an obligation. **F13, F20, F21, F22 and the freshness rule
+   re-keyed to the stored span.** The runner too.
+4. **The "16 → 2" prediction is marked SUPERSEDED, not deleted**, alongside its own first
+   correction, which was also incomplete.
+
+**176 tests. Every new guard red-forced and sabotaged against the real fact files. The nightly job
+run: 32/32 pass.** No table, no migration, no production write, no other product touched.

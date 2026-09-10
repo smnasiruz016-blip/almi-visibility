@@ -68,11 +68,25 @@ export default [
     sourceMachineReadable: true,
     sourceMachineReadableBasis:
       "fetched 2026-09-10, HTTP 200, same host, 7,823 characters of normalised text, and the normalised hash was identical across two consecutive fetches.",
-    sourceQuotable: "unknown",
+    // ✅ READ 2026-09-11 by the owner, first-hand, at
+    // immigration.govt.nz/about-us/about-this-site/copyright/ — and the
+    // CONVENTION TURNED OUT TO BE TRUE, which does not retrospectively make
+    // assuming it correct. It was "unknown-not-read" until somebody read it.
+    sourceQuotable: true,
     sourceQuotableBasis:
-      "🔴 UNKNOWN - NOT READ. New Zealand government material is commonly released under a Creative Commons licence, but that was NOT checked for this page. A CONVENTION IS NOT A LICENCE, and an unread licence is not a permissive one. This is one of only two states in which unknown is lawful (see licences.mjs), and it behaves exactly as a prohibition until somebody reads the terms.",
-    licence: "unknown-not-read",
+      "PERMITTED. Creative Commons Attribution 3.0 New Zealand, read first-hand by the owner at immigration.govt.nz/about-us/about-this-site/copyright/ (_handoffs/SOURCE_QUOTABILITY.md): it \"licenses you to copy, distribute and adapt\", conditional on attribution to the Crown and to the Ministry website. ⚠️ PER-DOCUMENT CAVEAT: PDFs, text files, documents, extracts and DATA may NOT be Crown copyright and must each be assessed separately — the same shape of limit as the OGL's word MOST. This page is HTML and its footer carries \"Crown copyright\".",
+    licence: "CC-BY-3.0-NZ",
     sourceDocumentClass: "news",
+    // 🔴 NO SPAN IS STORED, AND THE LICENCE IS NOT THE REASON.
+    //
+    // Quoting is permitted here. Nobody has ever extracted a span, because this
+    // fact reached us through org-notes.ts in a person's own words. A permission
+    // is not an obligation — and that distinction was a DEFECT IN OUR OWN LAW
+    // until this record found it: F6 demanded a quotedSpan wherever one was
+    // allowed, so this lawful, useful record was rejected.
+    //
+    // With no span there is nothing to attribute and nothing to re-match, so the
+    // credit is null and the record is fingerprint-watched.
     attributionStatement: null,
     evidence: {
       ownWords:
@@ -80,6 +94,22 @@ export default [
     },
     queue: "AUTOMATED",
     freshness: { rule: "machine-fingerprint", days: 180 },
+    // ⚠️ AND THE PER-PAGE CHECK ON THIS PAGE IS NOT CLEAR, MEASURED 2026-09-10.
+    // The footer carries "Crown copyright" AND a separate "© 2026 Cookie
+    // Information" — a cookie-consent vendor's notice, which is almost certainly
+    // not a claim over this page's text. The scanner CANNOT TELL THOSE APART and
+    // is not allowed to guess, so it reports and a person rules.
+    //
+    // It blocks nothing today, because no span is stored. It would have to be
+    // resolved before one ever is. Recorded here rather than in a report,
+    // because the limitation belongs to the record and travels with it.
+    thirdPartyRightsCheck: {
+      checkedOn: "2026-09-10",
+      clear: false,
+      detail:
+        "one non-Crown notice present: a cookie-consent vendor banner. Needs a human ruling before any span is stored from this page",
+      noticesFound: ["© 2026 Cookie Information We use cookies on this website to show you relevant inf"],
+    },
     // The page digest taken on 2026-09-10, and the ONLY thing about this page
     // the registry stores. A sha256 is one-way: the wording cannot be recovered
     // from it, it cannot substitute for the source, and it is not a copy — which

@@ -263,7 +263,15 @@ export async function runQuoteMatch(records = [], { fetchImpl = fetch, now = new
     }
 
     for (const r of group) {
-      if (r?.sourceQuotable === true) {
+      // 🔴 ROUTED BY THE STORED SPAN, NOT BY THE PERMISSION.
+      //
+      // This read `sourceQuotable === true` and sent Immigration New Zealand to
+      // the quote matcher, which then reported "quotable but carries no
+      // quotedSpan" — a permanent could-not-check on a record that is in perfect
+      // order. The job must ask what evidence the record HOLDS, not what its
+      // licence would have allowed it to hold.
+      const hasSpan = typeof r?.evidence?.quotedSpan === "string" && r.evidence.quotedSpan.trim() !== "";
+      if (hasSpan) {
         results.push({ ...matchQuote(r, fetched), check: "quote-match", url });
       } else {
         results.push({ ...matchFingerprint(r, fetched), check: "fingerprint", url });

@@ -80,6 +80,15 @@ function reportCensus(c) {
 
   console.log(`\nWHAT EACH LICENCE PERMITS — read first-hand, never inferred from a domain`);
   line();
+  const q3 = c.byQuotabilityState;
+  console.log(`  ✅ PERMITTED   ${q3.PERMITTED}   a licence was granted, and its conditions are recorded`);
+  console.log(`  🔴 RESERVED    ${q3.RESERVED}   copyright asserted, NO licence granted — THE LEGAL DEFAULT.`);
+  console.log(`                    "nobody has asked them". Closed by an email to a regulator`);
+  console.log(`  🔴 PROHIBITED  ${q3.PROHIBITED}   a specific act expressly forbidden — "the answer is in their policy".`);
+  console.log(`                    Closed by nothing short of the licensor changing their mind`);
+  console.log(`  ⚠️  UNREAD      ${q3.UNREAD}   nobody has read the terms. NEVER a permission`);
+  console.log(`  ── RESERVED and PROHIBITED both stop a quote and are NEVER added together.`);
+  console.log("");
   for (const [k, n] of Object.entries(c.byLicence).sort((a, b) => b[1] - a[1])) console.log(`  ${pad(k, 30)} ${n}`);
   console.log(`  document classes:  ${Object.entries(c.byDocumentClass).map(([k, n]) => `${k}=${n}`).join("  ")}`);
   console.log(`  🔴 quotability is DERIVED from (licence × document class). The NMC grants for`);

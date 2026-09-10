@@ -26,6 +26,7 @@ import {
   LICENCES,
   DOCUMENT_CLASSES,
   UNKNOWN_LICENCES,
+  quotabilityState,
   quotableUnder,
   requiredAttribution,
   requiresCurrentVersion,
@@ -112,8 +113,19 @@ export function validateRecord(record) {
   // SENTENCE. We hold a URL, a date, and the fact in our own words.
   const e = r.evidence ?? {};
   if (r.sourceQuotable === true) {
-    if (!isFilled(e.quotedSpan)) {
-      push("F6", "sourceQuotable is true but there is no quotedSpan — this is the field the whole design turns on");
+    // 🔴 CORRECTED 2026-09-10: MAY QUOTE IS NOT MUST QUOTE.
+    //
+    // This law used to demand a quotedSpan whenever the licence permitted one,
+    // which is a different rule from the one the design argues for. Immigration
+    // New Zealand exposed it: its licence PERMITS quoting (CC BY 3.0 NZ), and
+    // our record holds the fact in our own words because it came from
+    // org-notes.ts and nobody ever extracted a span. That record was lawful,
+    // useful, and rejected.
+    //
+    // A permission is not an obligation. What matters is that the record carries
+    // EVIDENCE of some kind — their words where we may hold them, ours otherwise.
+    if (!isFilled(e.quotedSpan) && !isFilled(e.ownWords)) {
+      push("F6", "sourceQuotable is true but the record carries neither a quotedSpan nor ownWords — a permission is not evidence");
     }
   } else {
     if (isFilled(e.quotedSpan)) {
@@ -222,7 +234,11 @@ export function validateRecord(record) {
   if (!isFilled(p.acquiredBy)) push("F13", "provenance.acquiredBy is required — who or what put this here");
   // R3 is a MODEL reading a page. A model may PROPOSE a fact; it may never BE
   // the source. Until the span is machine-matched the record is a lead.
-  if (p.route === "R3" && r.sourceQuotable === true && c.quoteMatchOutcome !== "pass" && l.status === "active") {
+  // ⚠️ Keyed on a STORED SPAN, for the same reason as F20–F22. The rule is that
+  // a MODEL'S PROPOSED QUOTE is a lead until a machine matches it. A record that
+  // stores no span makes no such proposal — it rests on our own words, and the
+  // page behind it is watched by a fingerprint instead.
+  if (p.route === "R3" && isFilled(e.quotedSpan) && c.quoteMatchOutcome !== "pass" && l.status === "active") {
     push("F13", 'route R3 is active with an unmatched quote — a model may PROPOSE a fact, never BE the source. It is a lead until the span matches');
   }
   if (p.route === "R4" && l.status !== "lead") {
@@ -260,7 +276,7 @@ export function validateRecord(record) {
   // everything. "unknown" survives only where the terms could not be READ —
   // because AN UNREAD LICENCE IS NOT A PERMISSIVE ONE, and letting silence
   // register as uncertainty would quietly re-open a closed question.
-  if (r.sourceQuotable === "unknown" && !UNKNOWN_LICENCES.includes(r.licence)) {
+  if (r.sourceQuotable === "unknown" && quotabilityState(r.licence) !== "UNREAD") {
     push(
       "F19",
       `sourceQuotable is "unknown" under licence ${JSON.stringify(r.licence)} — "unknown" is only for ${UNKNOWN_LICENCES.join(" or ")}. A copyright notice with no grant is "all rights reserved", which is false, not unknown`,
@@ -272,7 +288,10 @@ export function validateRecord(record) {
   // one. A record carrying the quote but not the credit is a licence breach
   // THAT LOOKS EXACTLY LIKE COMPLIANCE — the quote is there, the source is
   // there, the date is there, and the permission has been exceeded.
-  if (r.sourceQuotable === true) {
+  // ⚠️ Scoped to a STORED SPAN. Attribution is a condition attached to
+  // REPRODUCING their words; a record holding only our own words reproduces
+  // nothing and has nothing to credit.
+  if (r.sourceQuotable === true && isFilled(r.evidence?.quotedSpan)) {
     const needed = requiredAttribution(r.licence);
     if (needed && !isFilled(r.attributionStatement)) {
       push("F20", `${r.licence} requires attribution and attributionStatement is empty — the credit is a CONDITION of the permission, not a courtesy`);
@@ -288,7 +307,9 @@ export function validateRecord(record) {
   // must be watched by the check that can DEMONSTRATE currency, and a
   // fingerprint cannot: it proves the page did not move, not that our stored
   // sentence is the current wording.
-  if (requiresCurrentVersion(r.licence) && r.sourceQuotable === true && r.freshness?.rule !== "machine-quote-match") {
+  // ⚠️ Also scoped to a stored span: the currency condition governs a
+  // reproduction, and there is no reproduction without one.
+  if (requiresCurrentVersion(r.licence) && isFilled(r.evidence?.quotedSpan) && r.freshness?.rule !== "machine-quote-match") {
     push(
       "F21",
       `${r.licence} makes currency a CONDITION OF THE PERMISSION, so this record must be watched by machine-quote-match, not ${JSON.stringify(r.freshness?.rule)}`,
@@ -299,7 +320,9 @@ export function validateRecord(record) {
   // GOV.UK says MOST of its content is OGL, and that where it is not, it will
   // usually credit the author. So an OGL page is quotable because THIS page
   // carries no third-party credit — a per-page fact, not a domain-wide one.
-  if (requiresPerPageThirdPartyCheck(r.licence) && r.sourceQuotable === true) {
+  // ⚠️ Scoped the same way. The check exists to decide whether THIS page's
+  // text may be stored — it is not owed for a record that stores none.
+  if (requiresPerPageThirdPartyCheck(r.licence) && isFilled(r.evidence?.quotedSpan)) {
     const check = r.thirdPartyRightsCheck;
     if (!check || !isIsoDate(check.checkedOn)) {
       push("F22", `${r.licence} requires a PER-PAGE third-party rights check before storing this page's text, and none is recorded`);

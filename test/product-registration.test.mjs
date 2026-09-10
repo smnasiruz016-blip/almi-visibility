@@ -5,9 +5,10 @@ import { LICENCES, registerLicences, quotabilityState, requiresCurrentVersion } 
 import { registerGaps, declaredGaps, gapRegisterProducts } from "../src/facts/gaps.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { claimIdsOf } from "../src/page/claim-ids.mjs";
-import { placeClaims, isPerVariant, isSharedAcrossVariants } from "../src/page/claim-placement.mjs";
+import { placeClaims, isPerVariant, isSharedAcrossVariants, buildPlacement } from "../src/page/claim-placement.mjs";
+import { registerProduct, registeredProducts, coverage } from "../src/product.mjs";
 
-import { PRODUCT_ID, FACTS_DIR, AXIS_KEY } from "../products/almi-oet/register.mjs";
+import { ALMI_OET, PRODUCT_ID, FACTS_DIR, AXIS_KEY, PLACEMENT } from "../products/almi-oet/product.mjs";
 import { ALMI_OET_LICENCES } from "../products/almi-oet/licences.mjs";
 import { ALMI_OET_GAPS } from "../products/almi-oet/gaps.mjs";
 
@@ -120,6 +121,98 @@ test("a claim with no qualifier is shared on every axis", () => {
 
 test("the product declares its own axis, and the engine never names it", () => {
   assert.equal(AXIS_KEY, "profession");
+});
+
+/* ------------------------------------------------------------------ *
+ * 🔴 THE DESCRIPTOR — VALIDATED BEFORE ANYTHING IS REGISTERED.
+ *
+ * A half-accepted descriptor leaves the engine holding one product's licences
+ * under another product's name, and nothing downstream would ever notice. So
+ * every field is checked first, and each of these proves one check bites.
+ * ------------------------------------------------------------------ */
+
+const descriptor = (over = {}) => ({
+  productId: "test-product",
+  axis: { key: "country", label: "Country" },
+  variants: ["uk", "ie"],
+  factsDir: "/nowhere",
+  pageSpecs: {},
+  ...over,
+});
+
+test("🔴 a product must say what its pages vary BY", () => {
+  assert.throws(() => registerProduct(descriptor({ axis: { label: "Country" } })), /axis\.key/);
+  assert.throws(() => registerProduct(descriptor({ axis: { key: "country" } })), /axis\.label/);
+});
+
+test("🔴 a product with no variants has no siblings, and no overlap to measure", () => {
+  assert.throws(() => registerProduct(descriptor({ variants: [] })), /no sibling pages/);
+  assert.throws(() => registerProduct(descriptor({ variants: ["uk", "uk"] })), /duplicate/);
+});
+
+test("🔴 there is no default facts directory", () => {
+  assert.throws(() => registerProduct(descriptor({ factsDir: undefined })), /no default place to look/);
+});
+
+test("🔴 a page spec must be FOR a variant the product declared", () => {
+  // A page whose variant is not in the list is a page nobody counts in the
+  // rollout — it would pass every test and never be measured against siblings.
+  assert.throws(
+    () => registerProduct(descriptor({ pageSpecs: { x: { variant: "france", sections: [] } } })),
+    /not one of this product's variants/,
+  );
+});
+
+test("🔴 registering the same product twice throws", () => {
+  assert.throws(() => registerProduct(descriptor({ productId: PRODUCT_ID })), /already registered/);
+});
+
+test("a failed descriptor registers NOTHING — validation runs first", () => {
+  const before = registeredProducts().length;
+  assert.throws(() => registerProduct(descriptor({ variants: [] })));
+  assert.equal(registeredProducts().length, before);
+  assert.equal(gapRegisterProducts().includes("test-product"), false);
+});
+
+/* ------------------------------------------------------------------ *
+ * 🔴 THE PENDING LAYERS ARE OWED, NOT BUILT.
+ * ------------------------------------------------------------------ */
+
+test("🔴 a pending layer that claimed to EXIST is refused", () => {
+  assert.throws(
+    () => buildPlacement({ universal: [], pendingLayers: [{ claims: ["a"], layer: "somewhere", exists: true }] }),
+    /owed, not built/,
+  );
+});
+
+test("🔴 a claim cannot be both universal and pending — it cannot stay and leave", () => {
+  assert.throws(
+    () => buildPlacement({ universal: ["a"], pendingLayers: [{ claims: ["a"], layer: "l", exists: false }] }),
+    /stay and leave/,
+  );
+});
+
+test("allRepeated is universal PLUS pending — the distinction that moved 0.3921 to 0.1927", () => {
+  // The shared half is a property of the page AS RENDERED. The pending claims
+  // are still on the as-built page, so they still count as repeated.
+  assert.deepEqual([...PLACEMENT.universal], [...ALMI_OET.placement.universal]);
+  assert.equal(PLACEMENT.allRepeated.length, PLACEMENT.universal.length + PLACEMENT.removed.length);
+  assert.ok(PLACEMENT.removed.length > 0);
+  for (const id of PLACEMENT.removed) assert.ok(PLACEMENT.allRepeated.includes(id), id);
+});
+
+/* ------------------------------------------------------------------ *
+ * 🔴 COVERAGE — AND ITS DENOMINATOR IS THE DECLARED VARIANTS.
+ * ------------------------------------------------------------------ */
+
+test("🔴 coverage counts against what the product DECLARED, not what we built", () => {
+  const c = coverage(PRODUCT_ID);
+  assert.equal(c.declared, 12);
+  assert.equal(c.withAPage, 2);
+  assert.equal(c.missing.length, 10);
+  // A gate may not build its denominator from its own output. "2 of 2 pages
+  // built" is exactly that, and it is the number this refuses to report.
+  assert.notEqual(c.declared, c.withAPage);
 });
 
 /* ------------------------------------------------------------------ *

@@ -44,7 +44,7 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
 import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
-import { FACTS_DIR } from "../products/almi-oet/register.mjs";
+import { FACTS_DIR } from "../products/almi-oet/product.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { runQuoteMatch } from "../src/facts/quote-match.mjs";
 

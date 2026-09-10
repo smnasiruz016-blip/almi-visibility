@@ -29,10 +29,10 @@ import { readFileSync, existsSync, readdirSync, writeFileSync, mkdirSync } from 
 import { join } from "node:path";
 
 import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
-import { FACTS_DIR, AXIS_KEY } from "../products/almi-oet/register.mjs";
+import { FACTS_DIR, AXIS_KEY, PLACEMENT, VARIANTS } from "../products/almi-oet/product.mjs";
 import { loadRegistry, toGateAFact } from "../src/facts/registry.mjs";
-import { NURSING_PAGE, SPEECH_PATHOLOGY_PAGE, PROFESSIONS } from "../products/almi-oet/page-specs.mjs";
-import { placeClaims, ALL_REPEATED_CLAIMS, AWAITING_A_LAYER, isSharedAcrossVariants } from "../src/page/claim-placement.mjs";
+import { NURSING_PAGE, SPEECH_PATHOLOGY_PAGE } from "../products/almi-oet/page-specs.mjs";
+import { placeClaims, isSharedAcrossVariants } from "../src/page/claim-placement.mjs";
 import { renderPage, findCopiedFacts } from "../src/page/render.mjs";
 import { runGateA, MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../src/gate-a/run.mjs";
 import { tokensWithKind } from "../src/gate-a/text-kind.mjs";
@@ -60,7 +60,7 @@ const f4 = (n) => (n === null || n === undefined ? "—" : n.toFixed(4));
 const CACHE = "runs/_profession-cache";
 
 const { records } = await loadRegistry(FACTS_DIR);
-const spec = placeClaims(base);
+const spec = placeClaims(base, PLACEMENT.removed);
 const { html, trace } = renderPage(spec, records);
 const facts = trace.map((t) => toGateAFact(records.find((r) => r.id === t.claimId)));
 const { tokens, kinds } = tokensWithKind(html);
@@ -81,7 +81,7 @@ const me = gate.results.find((r) => r.id === `${which} (CANDIDATE)`);
 // 🔴 DERIVED, not a list. See isSharedAcrossVariants:
 // a hardcoded set only knows the claims somebody remembered to add, and it
 // silently credited profession-independent text as distinguishing.
-const repeated = new Set(records.filter((r) => isSharedAcrossVariants(r, AXIS_KEY)).map((r) => r.id));
+const repeated = new Set(records.filter((r) => isSharedAcrossVariants(r, AXIS_KEY, PLACEMENT.allRepeated)).map((r) => r.id));
 const blocks = html.split('<div class="fact" data-claim-id="').slice(1);
 let sharedA = html.split('<div class="fact"')[0];
 let uniqueA = "";
@@ -138,7 +138,7 @@ console.log(`  overlap B (cites shared)    ${f4(best(SB, UB))} / ${MAX_SIBLING_O
 const rolloutPass = bestRolloutUnique >= MIN_UNIQUE_WORDS && best(SA, UA) <= MAX_SIBLING_OVERLAP && best(SB, UB) <= MAX_SIBLING_OVERLAP;
 console.log(`\n  🔴 VERDICT AFTER ROLLOUT: ${me.verdict === "KEEP" && rolloutPass ? "KEEP" : "REJECT"}`);
 
-console.log(`\n  awaiting a layer that does not exist: ${AWAITING_A_LAYER.length}   rendered today: ${trace.filter((t) => AWAITING_A_LAYER.some((a) => a.claim === t.claimId)).length}`);
+console.log(`\n  awaiting a layer that does not exist: ${PLACEMENT.awaiting.length}   rendered today: ${trace.filter((t) => PLACEMENT.awaiting.some((a) => a.claim === t.claimId)).length}`);
 
 const report = {
   page: which, generatedOn: new Date().toISOString().slice(0, 10),

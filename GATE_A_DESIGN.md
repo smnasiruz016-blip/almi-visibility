@@ -1,6 +1,7 @@
 # Gate A — design, before any code
 
-**Written 10 September 2026. This is the design report the implementation PR must follow.**
+**Written 10 September 2026; D1–D6 ruled by the owner the same day and folded in.**
+**This is the design report the implementation PR must follow.**
 No code, no database table, no crawler. Where a decision is the owner's it says so and does not
 pre-empt it.
 
@@ -148,10 +149,26 @@ same route shape — for AlmiOET, four groups:
 | **A — exact intersection** | a token is shell at the **minimum count** it has across **every** page in the group | exactly what "shared by all" means; one pass, O(total tokens) | **brittle**: one odd page missing a word removes it from the shell everywhere, and the shell shrinks, and every page looks more unique than it is |
 | **B — document frequency ≥ 98%** *(recommended)* | a token is shell at the count it reaches in **≥98%** of the pages in the group | survives a handful of odd pages; still one pass | the 98% is a number that has to be justified, and it is a knob |
 
-**Recommendation: B, at 98%, with A computed alongside and both reported.** If the two disagree by
-more than a few words on a group, that disagreement is itself a finding about the template.
-**The owner rules; the implementation must make the choice a named constant with the reason on it,
-never an inline number.**
+### ✅ RULED 10 September 2026 — **B, at 98%**, with A computed alongside and both reported
+
+**And the reason is NOT "B is more robust". That is too weak. The reason is the DIRECTION each
+one fails in:**
+
+> **A's error shrinks the shell** — one odd page missing a word removes it for everyone — so
+> **`uniqueWords` goes UP**, and **pages PASS that should have failed.**
+> **B's error points the other way: towards REJECT.**
+>
+> This document already says *"REJECT is a valid and expected outcome"*.
+> **A GATE WHOSE FAILURE DIRECTION IS A FALSE PASS IS NOT A GATE.**
+
+**⚠️ And a thing nobody should have to discover for themselves, so it is written beside the
+constant:** on a group **smaller than ~50 pages, a 98% document-frequency threshold rounds to
+"present in every page"** — at n=12 it takes ⌈0.98 × 12⌉ = 12. **So on small groups B simply IS
+A, and the knob does nothing.** `/[profession]` has **twelve** pages. Choosing B there changes
+no outcome; it matters on `/[profession]/from-[origin]` (2,292) and above.
+
+**The implementation makes both the 98% and this small-group note named constants with the reason
+attached, never inline numbers.**
 
 ### The subtraction
 
@@ -206,15 +223,68 @@ number in the implementation**, with the parameters chosen to put it below a wri
 **"Against every sibling" then means "against every sibling, with a stated and bounded probability
 of missing a pair", and the report must say so** — not claim an exactness the method does not have.
 
-**The alternative, for the owner:** for small groups (`/[profession]` = 12, `/register` = 610),
-**exact all-pairs is cheap** — 66 and 185,745 comparisons. **Recommendation: exact all-pairs below
-a group size of ~5,000; MinHash+LSH above it.** One rule, two implementations, and the threshold is
-a named constant.
+### ✅ RULED — exact all-pairs below **5,000**, MinHash+LSH above. And the threshold carries its arithmetic AND its wall-clock
+
+**Measured 10 September 2026** — exact all-pairs Jaccard over 5-word shingles of ~120 residual
+words per page (the shape the live pages actually have), plain single-threaded JavaScript on this
+machine:
+
+| group size | pairs | measured time | throughput |
+|---|---|---|---|
+| **610** (`/register/[organization]`) | 185,745 | **0.97 s** | 0.19 M pairs/s |
+| **2,292** (`/[profession]/from-[origin]`) | 2,625,486 | **15.3 s** | 0.17 M pairs/s |
+| **5,000** (the threshold) | 12,497,500 | **71 s** | 0.18 M pairs/s |
+| 237,413 (the leaf group) | **28,180,000,000** | **≈ 43.5 hours** | — |
+
+**That last row is why the threshold exists**, and the 71 seconds is why it sits at 5,000: a check
+that takes **just over a minute** at its own boundary is not slow enough for anyone to be tempted
+to move it — and now nobody has to guess, because the number is written down.
+
+**The threshold is a named constant with this table beside it.** If someone wants to raise it, the
+arithmetic is already there: at 10,000 it is ~4.7 minutes, at 20,000 ~19 minutes — it grows with
+the square, and that is the thing to see before moving it.
 
 ### What is reported
 
 Per page: **max overlap** against any sibling, and **which** sibling. "This page is 94% the same as
 that one" is actionable; "this page failed overlap" is not.
+
+**✅ RULED — and one addition: the RESIDUAL WORD COUNT is reported beside every overlap.**
+
+> **A Jaccard computed over twenty residual words is noise wearing a number's clothes**, and the
+> person reading the report must see that at a glance rather than deduce it. `0.62` means one
+> thing at 400 residual words and nothing at all at 20.
+
+---
+
+## 2a · 🔴 THE ORDER THE CHECKS RUN IN — added 10 September 2026
+
+**This was missed by both of us, and it is not a detail.**
+
+**Overlap is Gate A's only quadratic check, and the design as written ran it over everything.**
+But:
+
+> **A page that already failed `uniqueWords ≥ 350` is already REJECTED. Its overlap never needs
+> to be computed at all.**
+
+**THE ORDER IS FIXED:**
+
+```
+1. uniqueWords  (linear, per page)      →  reject here and stop
+2. verified facts (linear, per page)    →  reject here and stop
+3. sibling overlap (quadratic, pairwise) → ONLY on what survived 1 and 2
+```
+
+**On AlmiOET this is not a micro-optimisation, it is the difference between running and not
+running.** The measured pages carry **66, 95, 102, 111 and 167 unique words** against a threshold
+of **350**. If that holds across the group, **the population reaching stage 3 is close to zero** —
+and the 28-billion-pair problem mostly stops existing.
+
+**⚠️ It must not be allowed to hide anything, so:** the report states **how many pages entered
+stage 3 and how many were eliminated before it**. A stage that silently receives an empty
+population is the "vacuous gate" failure — *count the population before the guard*. **If stage 3
+receives zero pages, the report says so in those words**, and that is a finding about the corpus,
+not a pass.
 
 ---
 
@@ -225,9 +295,49 @@ that one" is actionable; "this page failed overlap" is not.
 | field | what it means | rejected if |
 |---|---|---|
 | **value** | the claim itself, as rendered on the page | absent, empty, or `null` |
-| **source URL** | a resolvable URL that supports **this specific value** | absent; a link to a site's home page rather than the page that carries the claim |
-| **source tier** | how authoritative the source is | absent. **The tier vocabulary is the owner's to fix** — a proposal below |
-| **verified date** | ISO date on which a person or a check saw the value at that URL | absent, or older than the freshness window for its tier |
+| **source URL** | a URL that **resolves**, and that a human recorded as carrying this value — **see the correction below, these are two different claims** | absent; a link to a site's home page rather than the page that carries the claim |
+| **source tier** | how authoritative the source is | absent. Vocabulary ruled below |
+| **verified date** | ISO date on which **a person or a model read that URL and saw this value there** | absent, or older than `FACT_FRESHNESS_DAYS` |
+
+### 🔴 A CORRECTION THE GATE MUST NOT BE ALLOWED TO PAPER OVER
+
+The earlier wording — *"a resolvable URL that supports this specific value"* — is **two claims
+pretending to be one**, and only one of them is machine-checkable:
+
+| claim | can the gate enforce it? |
+|---|---|
+| the URL **resolves** — 200, not a home page, not a redirect to one | ✅ **YES** |
+| the page at that URL **supports this claim** | ❌ **NO. Not today.** |
+
+> **A fact whose URL opened has passed a LINK CHECK. It has not passed a FACT CHECK.**
+> Writing the rule as though the gate did both would make Gate A quietly weaker than it reads —
+> and **"verified date" would drift into meaning "the date somebody pasted a link".**
+
+**What would close the gap, written now so it is not forgotten:** a **person or a model reads the
+source and records that they SAW this value there** — which is what a verified date was always
+supposed to mean. Until that step exists, the report must **name the two checks separately** and
+never print "verified" for something only link-checked.
+
+### ✅ RULED — the freshness window: **180 days, ALL TIERS, one constant, PROVISIONAL**
+
+**A rule that was unenforceable until now:** §3 rejected a fact whose verified date was *"older
+than the freshness window for its tier"* — **and no window was ever written for any tier.** A rule
+that refers to a constant that does not exist cannot run.
+
+```
+FACT_FRESHNESS_DAYS = 180   // every tier, no exceptions. PROVISIONAL.
+```
+
+**And deliberately NOT per-tier** — however reasonable *"a third-party guide goes stale faster
+than a regulator's page"* sounds:
+
+> **Nobody has measured how fast any of these sources actually change.** Splitting the window by
+> tier without that measurement is a knob with no evidence behind it, and **Rule Eight applies to
+> a plausible argument exactly as it applies to an implausible one.**
+
+**What will replace it:** re-fetch a sample of tier-1 and tier-3 sources at intervals and record
+**how often the value changes**. Then the windows come from measured change frequency — and if
+they come out equal, that is a result too.
 
 **Proposed tiers, for the owner to rule on:**
 
@@ -293,13 +403,14 @@ migration, and the fix has **two halves**: (a) the branch, and (b) moving `DATAB
 
 ---
 
-## 6 · Open decisions — the owner's, not mine
+## 6 · Decisions — ALL RULED, 10 September 2026
 
-| # | decision | recommendation |
+| # | decision | ruling, 10 September 2026 |
 |---|---|---|
-| D1 | Shell definition: exact intersection (A) or document frequency ≥98% (B)? | **B**, with A computed alongside and both reported |
-| D2 | Overlap metric: Jaccard over 5-word shingles of the **residual** | as proposed — the residual part is not optional |
-| D3 | Exact all-pairs vs MinHash+LSH, and the group-size threshold | exact below ~5,000; LSH above, with a stated false-negative bound |
-| D4 | The tier vocabulary | the four rows in §3 |
-| D5 | Do shell facts count towards a page's five? | **No.** Otherwise the check measures the template |
-| D6 | ~~AlmiOET's 237,413 pages: delete, or gather the data?~~ | ✅ **RULED 10 Sep 2026: DELETE.** An organisation page competes with that organisation; effort goes where we can be the best answer, not where we can be a second-rate copy. See §0 |
+| D1 | Shell definition | ✅ **B (df ≥ 98%)**, with A computed alongside and both reported. **Reason: A's error direction is a FALSE PASS.** And on groups under ~50, 98% rounds to "every page", so B *is* A there — `/[profession]`'s twelve are unaffected |
+| D2 | Overlap metric | ✅ **Jaccard, 5-word shingles, on the RESIDUAL** — as proposed, unchanged. **Plus: the residual word count is reported beside every overlap**, because a Jaccard over 20 words is noise in a number's clothing |
+| **D2-A** | **Order of checks** | ✅ **NEW — `uniqueWords → facts → overlap`.** Overlap is the only quadratic check and runs **last, on survivors only**. A page already rejected on unique words never needs an overlap. The report must state how many pages reached stage 3 |
+| D3 | Exact all-pairs vs LSH | ✅ **exact below 5,000, LSH above**, with a **stated** false-negative bound. The threshold carries its arithmetic **and its wall-clock**: 610 → 0.97 s, 2,292 → 15.3 s, 5,000 → **71 s**, 237,413 → **≈43.5 h** |
+| D4 | Tier vocabulary | ✅ the four rows in §3. **And the missing piece is filled: `FACT_FRESHNESS_DAYS = 180`, every tier, one constant, PROVISIONAL** — no per-tier windows, because nobody has measured how fast these sources change |
+| D5 | Do shell facts count? | ✅ **No.** Otherwise every page starts at four or five and the check measures the template — the same illness as raw-text overlap |
+| D6 | AlmiOET's 237,413 pages | ✅ **DELETE.** An organisation page competes with that organisation; effort goes where we can be the best answer, not where we can be a second-rate copy. See §0 |

@@ -84,10 +84,35 @@ and pharmacy have long recognising-organisation lists (the top page reaches 3,03
 dentistry, dietetics, optometry, physiotherapy, podiatry, radiography, speech pathology,
 occupational therapy and veterinary science have short ones and top out around 220.
 
+🔴 **AND THE SPLIT HAS AN EXACT CAUSE, CONFIRMED FROM THE SOURCE DATA.**
+`organisations.json`'s own `meta.roleCounts` — how many recognising organisations OET
+lists per profession — sorts the twelve professions like this:
+
+| nursing | medicine | pharmacy | — the bar falls here — | occ. therapy | physio | dentistry | speech | radiography | optometry | veterinary | dietetics | podiatry |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| **469** | **297** | **70** | | 56 | 56 | 47 | 46 | 44 | 40 | 40 | 39 | 39 |
+
+The three that passed are exactly the three with the longest lists, and the cut lands
+**between 70 and 56 organisations**. Nothing about the page changed — only how many rows
+its list has. That is not a content difference; it is a table length.
+
 **And all 573 were then rejected at the FACT stage, with `qualifying = 0`.**
-Not a single one — because **no fact record exists anywhere in the corpus**: zero
-`*.facts.json` files were produced, because AlmiOET stores no fact with the four fields
-(value + source URL + tier + verified date). The number is not "few". It is **0 of 0**.
+Not a single one. **Zero `*.facts.json` files were produced for any of the 3,414 pages** —
+the corpus carries no fact records at all, so at the gate the number is **0 of 0**.
+
+⚠️ **A PRECISION I OWE, BECAUSE I FIRST WROTE THIS TOO BROADLY.** "None in the corpus" is
+measured and true. **"None anywhere" is not.** What AlmiOET's codebase actually holds:
+
+| where | how many | value | source URL | tier | verified date |
+|---|---|---|---|---|---|
+| `src/lib/oet-seo/org-notes.ts` | **1** (`nz-immigration-nz`) | ✅ | ✅ resolvable, official | ❌ none | ✅ `2026-07-15` |
+| `src/lib/oet-seo/organisations.json` | 610 orgs / **1,243** profession-grade rows | ✅ | ❌ one collective `meta.source` naming an Algolia index — not a per-fact URL | ❌ none | ⚠️ one collective `fetchedAt 2026-06-27`, not per fact |
+
+So the network's total stock of facts in the four-field shape is **one**, and it was
+hand-written. The 1,243 grade rows are real data from OET's own index and are the best
+raw material there is — but as records they are missing a per-fact source and a tier, and
+they share a single fetch date. **None of it is attached to a page as a fact**, which is
+why the gate saw zero and was right to.
 
 ⚠️ And by the honesty correction already in the code: `linkChecked = 0` and
 `factChecked = 0`, reported as separate columns. Nothing here read a source and confirmed
@@ -109,21 +134,40 @@ design working, not a gap: the quadratic check never ran because nothing survive
 | reached stage 2 (facts) | **0** |
 | reached stage 3 (overlap) | **not applicable — see below** |
 
-### 🔴 THE OWNER'S OWN PRE-WRITTEN RULE HAS FIRED. I AM NOT RULING ON THIS GROUP.
+### 🔴 VERDICT: **UNDECIDED ON WORDS · DECIDED ON FACTS · verdict: delete**
 
-> *"If anything comes out CLOSE to 350, the sample has done its job — count that group IN FULL."*
+**That exact sentence is the ruling, and each half of it is load-bearing.**
 
-**The sample's MAXIMUM is 303.** That is **86.6% of the threshold** — inside 20% of it.
-The rule fires. So:
+**UNDECIDED ON WORDS.** The sample's MAXIMUM is **303** — **86.6% of the 350 threshold**,
+inside 20% of it. The owner's own pre-written rule fired: *"if anything comes out CLOSE
+to 350, the sample has done its job — count that group IN FULL."* So the word question
+was NOT answered from this sample, and it is **still not answered.** Counting it would
+cost ~12.7 hours and 237,413 requests. **That count is not being run** — see the next
+paragraph — which leaves the word question **OPEN AND MOOT**.
 
-- **The 237,413 are NOT ruled on from this sample.** Not kept, not killed, not counted.
-- The distribution says the *typical* page is far below the bar (median 131, p95 195),
-  but the tail reached 303 in only 500 draws, and 237,413 pages have 474x more chances
-  to go further. A "delete them all" ruling taken from this sample would be a ruling
-  taken from a number that the sample itself flagged as unsafe.
-- **Counting that group in full costs ~12.7 hours of polite fetching and 237,413
-  requests** — i.e. a full crawl of the leaf group, on the route GAP-055 has now made
-  cacheable. That is the price of the ruling and it is the owner's call to spend it.
+⚠️ **It must never be quoted later as though it had been answered.** Nobody knows whether
+those 237,413 pages clear 350 unique words. The group is being deleted for a different
+reason, and if someone in six months needs the word answer, they will have to go and
+measure it.
+
+**DECIDED ON FACTS.** The owner rescinded his own rule, and the reason is that the rule
+assumed `uniqueWords` was the deciding check. **It is not.** FACTS is — and facts are
+zero for a **STRUCTURAL** reason that no larger word sample can move:
+
+1. every page of that group must pass stage 2 to survive;
+2. qualifying facts are **0 of 0** across the entire corpus — and the network's whole
+   stock in the four-field shape is **one** hand-written record about New Zealand
+   immigration (§2), which belongs to no corridor and to none of these 237,413;
+3. the only content project that could have produced them — per-organisation research —
+   **was already rejected**, because an organisation's page competes with that
+   organisation and loses.
+
+**THAT GROUP HAS NO ROUTE TO A FACT AT ALL.** The word count cannot rescue it, so
+measuring the word count cannot change the outcome. A 12.7-hour crawl to answer a
+question that decides nothing is the crawl GAP-055 exists to prevent.
+
+**verdict: delete** — and still not yet: Gate A's result **plus 90 days of clicks**, then
+**410 Gone**, never 404.
 
 ### And overlap is INAPPLICABLE here, not merely empty
 
@@ -146,11 +190,32 @@ reported, not stored, and not to be quoted later.
 | reached stage 3 (overlap) | **0** |
 
 **The thinnest group in the network by an order of magnitude: a median of 30 unique
-words per page.** These are the pages the owner has already classed as *not SEO pages, a
-separate class* — and the measurement agrees with that classification rather than
-contradicting it. Gate A's verdict on them is REJECT, but the right conclusion is the
-owner's: they should not be in a sitemap at all, which is a different fix from deleting
-a thin page.
+words per page.**
+
+### 🔴 GATE A SAYS REJECT. THE RIGHT ANSWER IS THE OWNER'S, AND IT IS A DIFFERENT ANSWER.
+
+> **A FUNCTIONAL PAGE THAT FAILS A CONTENT GATE IS NOT A BAD PAGE. IT IS A PAGE THAT
+> SHOULD NEVER HAVE BEEN IN THE SITEMAP.**
+
+`/register/[org]` is a *sign-up* page. It is doing its job. Gate A measured it against a
+bar built for pages whose job is to answer a search — a bar it was never meant to face,
+and could not clear even if it were perfect at what it does.
+
+**REMOVING FROM THE SITEMAP AND DELETING ARE TWO DIFFERENT FIXES:**
+
+| | what it does | what it costs |
+|---|---|---|
+| remove from sitemap | stops asking Google to index a page that was never for Google | nothing — the page keeps working for the people who use it |
+| delete (410 Gone) | destroys the page | breaks a live function |
+
+**These 610 belong to the first fix.** They are not part of the delete list, they are not
+part of the keep list, and they do not need 90 days of clicks — they need to stop being
+advertised as search results.
+
+⚠️ **And this is a lesson about the gate, not only about these pages.** Gate A cannot tell
+a thin content page from a functional page. Whoever runs it next must classify a group's
+PURPOSE before reading its verdict, or a working checkout page will one day be deleted
+for having 30 unique words.
 
 ---
 
@@ -181,23 +246,32 @@ Three checks against the gate itself:
 2. **The gate can say yes.** 573 pages passed stage 1. The gate is not stuck on REJECT;
    it rejected them at a LATER stage, for a different and checkable reason.
 3. **The zero at stage 2 has a verifiable cause outside the gate.** `qualifying = 0`
-   because `total = 0`: there are no fact records to qualify. That is a statement about
-   AlmiOET's data model, and it is falsifiable — produce one fact record with the four
-   fields and the number moves.
+   because `total = 0`: no page carries a fact record to qualify. That is a statement
+   about AlmiOET's data model, and it is falsifiable — attach one four-field record to
+   one page and the number moves. (The codebase holds exactly one such record and it is
+   attached to no page — §2.)
 
 **So the honest reading is: the gate works, and the stock genuinely does not clear the
-bar.** The "hundreds of survivors" estimate assumed facts existed to be counted. They do
-not exist yet — anywhere. **The 573 pages are the only real candidates in the network,
-and what stands between them and KEEP is not word count. It is that nobody has ever
-recorded a fact with a source, a tier and a verified date.**
+bar.** The "hundreds of survivors" estimate assumed there were facts to count. There is
+**one** in the whole network, hand-written, attached to nothing. **The 573 pages were the
+only candidates that got past the first stage, and what stands between them and KEEP is
+not word count — it is that fact-recording has never been anybody's job here.**
+
+⚠️ And the diagnostic run that followed removes even that consolation: all 573 would also
+have failed **overlap**, every pair, with no pair close to the bar. See
+`CORRIDOR_OVERLAP_DIAGNOSTIC.md`.
 
 ---
 
 ## 7 · WHAT THIS RUN DOES **NOT** SAY
 
 - It does not delete anything. (Gate A's result + 90 days of clicks first, then 410 Gone.)
-- It does not rule on the 237,413 — the sample forbade it, in advance, by the owner's rule.
+- It does not answer whether the 237,413 clear 350 unique words. That question is **open
+  and moot** — the group is ruled on facts, not words (§3).
 - It does not report any overlap number for any group. Nothing reached that stage.
+  A separate **DIAGNOSTIC** run later computed overlap on the 573 already-rejected
+  corridor pages — see `CORRIDOR_OVERLAP_DIAGNOSTIC.md`. That is not a gate result and
+  changes no page's verdict.
 - It does not claim any fact was checked. `factChecked = 0`, hard-coded, with a test.
 - It says nothing about almiprep, almipte, the 1,172,926-URL host, or world. Each runs
   its own Gate A in its own turn.

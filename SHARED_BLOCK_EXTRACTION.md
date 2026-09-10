@@ -163,3 +163,133 @@ but it is no longer on the critical path.
   pass.
 - **It did not hide the reader cost.** Two of the seven removals are a real loss; one of them is
   serious; and the reader-safe variant is measured rather than asserted.
+
+---
+
+# 2 · THE RULINGS, APPLIED — 10 September 2026
+
+PR #12 merged (`942f26b`). Five things settled; three of them changed code.
+
+---
+
+## 2.1 · 🔴 WHAT THE THRESHOLDS HAVE AND HAVE NOT PROVEN
+
+The cause was found and it was ours: **the shared thing was being copied onto every page.** §5A's
+rule stopped at the page boundary, and **a traceable copy is still a copy.** `MIN_UNIQUE_WORDS =
+350` and `MAX_SIBLING_OVERLAP = 0.40` survived without being moved, and survived *by measurement*.
+
+**And the narrow sentence, because that is less than it looks like:**
+
+> **These thresholds have proven that THEY CAN DISCRIMINATE — 0.39 against 0.13 is a real
+> separation between a duplicated design and a de-duplicated one.**
+> **IT IS NOT PROVEN THAT THEIR POINT IS IN THE RIGHT PLACE.**
+> **Discriminating and being correctly placed are two different things, and the second is still
+> unmeasured.**
+
+Recorded in `src/gate-a/run.mjs` beside the constants themselves, not only here — a threshold's
+caveat belongs where somebody reads the threshold.
+
+## 2.2 · THE PREMISE STAYS. THE ORIGIN CLAIMS AWAIT THEIR LAYER.
+
+| claim | ruling | where it is now |
+|---|---|---|
+| `oet.subtests-and-which-are-profession-specific` | ✅ **stays on the profession page** | `/nursing` |
+| `oet.grade-bands-0-500` | moves | `/how-oet-is-scored` |
+| `nz-immigration-nz.oet-must-be-taken-in-person` | moves | `/how-oet-is-scored` |
+| `uk-ukvi.majority-english-speaking-countries` | 🔴 **awaiting its layer** | **nowhere** |
+| `uk-code-of-practice.red-list-rule` | 🔴 **awaiting its layer** | **nowhere** |
+| `uk-code-of-practice.amber-list-rule` | 🔴 **awaiting its layer** | **nowhere** |
+| `uk-code-of-practice.direct-application-exception` | 🔴 **awaiting its layer** | **nowhere** |
+
+**The premise earns its repetition, measured:** keeping it costs best-case overlap **0.1312 →
+0.1962** — still about half the bar. **It is the only claim shown to earn it.**
+
+### 🔴 "Awaiting a layer" is not "behind a link", and the wording is enforced
+
+The four origin-scoped claims **render on no page at all** — a test asserts it, and a second test
+asserts the trailer never implies they are one click away. A link to nowhere is worse than silence.
+
+**A profession page never knows the reader's origin.** `/nursing` was showing red-list rules to
+every reader alike. Their layer is one that knows the origin, where the claim stops being *"here
+are the rules"* and becomes **"Nigeria is red-listed, and here is what that means for you."**
+
+### ⚠️ AND THIS DOES NOT BRING BACK 191 CORRIDOR PAGES
+
+The opposite reading is available and it is wrong:
+
+- **The red list is ONE CLAIM WITH 191 VALUES. That is a TABLE, not 191 pages.**
+- **The per-origin measurement STANDS**: outside a handful of regulators an origin still
+  contributes about **one bit** — the 31/47 median/max words measured over 573 pages.
+
+> **This CONFIRMS the narrow ruling that already survived rather than reopening it: a corridor page
+> is defensible only where the origin GENUINELY CHANGES THE ANSWER — and a red-listed country is
+> exactly where it does.**
+
+## 2.3 · THE PESSIMISTIC ROLLOUT MODEL IS RETIRED
+
+> **A MODEL THAT ASSUMES THE THING IT IS TESTING IS NOT A MEASUREMENT.**
+
+After the extraction it moved **45 → 43** while the real measure moved **0.3921 → 0.1292**, because
+it assumes the per-profession half is copied too. It would reject any design ever built.
+
+**And our own registry disproves its premise:** NMBI answers the recognised-country question with
+**five** countries where UKVI says **eighteen** — one claim, one profession, two regulators, two
+answers.
+
+**Kept and still printed under a RETIRED label, never read as a verdict.** Deleting it would hide
+that we relied on it for two runs.
+
+## 2.4 · RECIPE — DEFERRED, NOT CANCELLED
+
+> ### 🔴 **RECIPE — MANDATORY BEFORE THE FIRST COHORT IS PUBLISHED.**
+
+Ten pages that actually rank for OET, measured with our own method: uniqueWords after shell, the
+prose/list split, external sources cited and at what tier, and — if they have per-profession pages
+— **their own mutual overlap on our shingles.**
+
+**Why deferred is safe and why the deadline is real:** calibration matters **at publish time, not
+at design time**. While nothing is published, a threshold in the wrong place only keeps us
+*stricter* than necessary — the safe direction to be wrong in. The day a cohort is published that
+stops being true, because a mis-placed bar then either ships thin pages or blocks good ones.
+
+Recorded beside the constants in `src/gate-a/run.mjs`.
+
+## 2.5 · 🔴 AND A PROBLEM THE RULING CREATED — REPORTED, NOT PAPERED OVER
+
+**`/how-oet-is-scored` cannot pass Gate A.** With the premise staying on the profession page and
+the four origin claims awaiting their layer, the shared page is left holding **two claims**:
+
+| | |
+|---|---|
+| claims | **2** |
+| words | 393 (prose 371) |
+| **uniqueWords** | **239** / 350 🔴 |
+| **facts** | **2** / 5 🔴 |
+
+**A page that exists only to hold what other pages should not repeat is not automatically a page.**
+
+### And the owner's own reasoning, applied consistently, explains why
+
+The NZ rule is **destination-scoped** — it is Immigration New Zealand's rule about how the test
+must be taken. That is the *same argument* as the red list being origin-scoped. Follow it and the
+shared page is left with **one claim**, which is not a page either.
+
+**Measured, so the choice has numbers on it:**
+
+| option | claims on `/nursing` | best-case overlap |
+|---|---|---|
+| as ruled — grades + NZ on a shared page | 13 | **0.1962** |
+| NZ to a destination layer, grades stay on the profession page | 14 | **0.2558** |
+
+**Both pass comfortably.** 🔴 **This is a product decision and it is not taken here** — it is put
+up with its cost attached.
+
+---
+
+## WHAT THIS RUN DID NOT DO
+
+- **No page published. No delete. No DB table. No production write. No fetch.**
+- **No threshold moved** — and the two that survived are now carrying, in code, the sentence that
+  says exactly how little that proves.
+- **It did not hide the cost of its own ruling.** The shared page fails Gate A, and that is on the
+  page above rather than in a footnote.

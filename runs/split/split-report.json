@@ -37,49 +37,13 @@
   },
   "after": {
     "label": "SPLIT (shared block extracted, linked)",
-    "claims": 12,
-    "words": 1134,
-    "prose": 1105,
-    "list": 0,
-    "heading": 29,
-    "onePage": {
-      "uniqueWords": 850,
-      "facts": 12,
-      "overlap": 0,
-      "verdict": "KEEP",
-      "pass": true
-    },
-    "rollout": {
-      "uniqueWords": 43,
-      "shellBefore": 284,
-      "shellAfter": 1091,
-      "overlap": null,
-      "verdict": "REJECT"
-    },
-    "bestCaseRolloutUnique": 770,
-    "perProfessionWords": 917,
-    "sharedWords": 229,
-    "bestCaseA": 0.1292360712234348,
-    "bestCaseB": 0.14677103718199608,
-    "shinglesA": {
-      "S": 225,
-      "U": 758
-    },
-    "shinglesB": {
-      "S": 225,
-      "U": 654
-    },
-    "pairwiseSim": 0.7605760576057605
-  },
-  "readerSafe": {
-    "label": "READER-SAFE SPLIT",
     "claims": 13,
-    "words": 1274,
-    "prose": 1245,
+    "words": 1279,
+    "prose": 1250,
     "list": 0,
     "heading": 29,
     "onePage": {
-      "uniqueWords": 964,
+      "uniqueWords": 971,
       "facts": 13,
       "overlap": 0,
       "verdict": "KEEP",
@@ -87,64 +51,106 @@
     },
     "rollout": {
       "uniqueWords": 43,
-      "shellBefore": 310,
-      "shellAfter": 1231,
+      "shellBefore": 308,
+      "shellAfter": 1236,
       "overlap": null,
       "verdict": "REJECT"
     },
-    "bestCaseRolloutUnique": 678,
+    "bestCaseRolloutUnique": 674,
     "perProfessionWords": 917,
-    "sharedWords": 370,
-    "bestCaseA": 0.1944739638682253,
-    "bestCaseB": 0.2115732368896926,
+    "sharedWords": 375,
+    "bestCaseA": 0.19618239660657477,
+    "bestCaseB": 0.21346963319302464,
     "shinglesA": {
-      "S": 366,
+      "S": 370,
       "U": 758
     },
     "shinglesB": {
-      "S": 351,
+      "S": 355,
       "U": 654
     },
-    "pairwiseSim": 0.7863453815261044
+    "pairwiseSim": 0.7870296236989591
   },
-  "sharedPage": {
-    "label": "THE SHARED PAGE ITSELF",
-    "claims": 7,
-    "words": 921,
-    "prose": 889,
+  "premiseRemovedToo": {
+    "label": "PREMISE REMOVED TOO (not taken)",
+    "claims": 12,
+    "words": 1139,
+    "prose": 1110,
     "list": 0,
-    "heading": 32,
+    "heading": 29,
     "onePage": {
-      "uniqueWords": 670,
-      "facts": 7,
+      "uniqueWords": 857,
+      "facts": 12,
       "overlap": 0,
       "verdict": "KEEP",
       "pass": true
     },
     "rollout": {
-      "uniqueWords": 1,
-      "shellBefore": 251,
-      "shellAfter": 920,
+      "uniqueWords": 43,
+      "shellBefore": 282,
+      "shellAfter": 1096,
+      "overlap": null,
+      "verdict": "REJECT"
+    },
+    "bestCaseRolloutUnique": 764,
+    "perProfessionWords": 917,
+    "sharedWords": 234,
+    "bestCaseA": 0.13123209169054442,
+    "bestCaseB": 0.14899154196486664,
+    "shinglesA": {
+      "S": 229,
+      "U": 758
+    },
+    "shinglesB": {
+      "S": 229,
+      "U": 654
+    },
+    "pairwiseSim": 0.7614349775784753
+  },
+  "sharedPage": {
+    "label": "THE SHARED PAGE ITSELF",
+    "claims": 2,
+    "words": 393,
+    "prose": 371,
+    "list": 0,
+    "heading": 22,
+    "onePage": {
+      "uniqueWords": 239,
+      "facts": 0,
+      "overlap": null,
+      "verdict": "REJECT",
+      "pass": false
+    },
+    "rollout": {
+      "uniqueWords": 0,
+      "shellBefore": 154,
+      "shellAfter": 393,
       "overlap": null,
       "verdict": "REJECT"
     },
     "bestCaseRolloutUnique": 0,
     "perProfessionWords": 0,
-    "sharedWords": 928,
+    "sharedWords": 395,
     "bestCaseA": 1,
     "bestCaseB": 1,
     "shinglesA": {
-      "S": 824,
+      "S": 378,
       "U": 0
     },
     "shinglesB": {
-      "S": 719,
+      "S": 349,
       "U": 0
     },
-    "pairwiseSim": 0.9878345498783455
+    "pairwiseSim": 1
   },
+  "pendingOriginLayer": [
+    "uk-ukvi.majority-english-speaking-countries",
+    "uk-code-of-practice.red-list-rule",
+    "uk-code-of-practice.amber-list-rule",
+    "uk-code-of-practice.direct-application-exception"
+  ],
+  "premiseClaim": "oet.subtests-and-which-are-profession-specific",
   "removed": [
-    "oet.subtests-and-which-are-profession-specific",
     "oet.grade-bands-0-500",
     "nz-immigration-nz.oet-must-be-taken-in-person",
     "uk-ukvi.majority-english-speaking-countries",

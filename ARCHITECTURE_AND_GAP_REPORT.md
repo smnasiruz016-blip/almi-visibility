@@ -374,6 +374,21 @@ sample size** — which matters for Case Study #1 and is recorded there.
 **Nothing was authorized, connected or switched on. This section is a list of what the owner
 would have to do, not a thing that has been done.**
 
+> ### 🔴 CORRECTION — 10 September 2026, from the owner. THE PROPERTY QUESTION IS CLOSED.
+>
+> **A GSC Domain property for `almiworld.com` ALREADY EXISTS.** The evidence is that a single
+> property lists the sitemaps of several subdomains at once, **which only a Domain property can
+> do**. So the table below is still correct as ANALYSIS and is **out of date as a decision**: the
+> "Property type needed" row was answered before this report was written, and it was answered the
+> way the row recommends.
+>
+> **WHAT IS ACTUALLY OPEN IS ONE THING AND ONLY ONE: READ-ONLY API ACCESS to that property.**
+> No DNS record, no verification, no property creation, no choice between property types.
+>
+> ⚠️ Recorded under Rule Twelve: this report's own numbers were fine, and the STATE it
+> assumed was not. **An analysis can be right about everything except whether the thing has
+> already happened.**
+
 | question | answer | confidence |
 |---|---|---|
 | Property type needed | **Both are viable and they differ.** A **Domain property** (`sc-domain:almiworld.com`) covers `almiworld.com` **and every subdomain** in one property — one authorization, one API target, all 23 products. A **URL-prefix property** (`https://almioet.almiworld.com/`) covers one subdomain only and would need **23 separate properties and 23 authorizations**. | High — and `almi-seo-ops/submit-sitemaps.mjs` already implements both modes, so the code question is settled |
@@ -1004,7 +1019,7 @@ session — it protects the root layout. It does not ask what that read costs a 
 
 | item | money | note |
 |---|---|---|
-| Owner reads the Neon console (U1–U4) | **$0** | ~10 minutes of owner time |
+| ✅ ~~Owner reads the Neon console (U1–U4)~~ | **$0** | **DONE — answered by the owner 2026-09-10: FREE plan, 10 branches per project, surplus branches deleted by hand. U1–U4 are closed** |
 | Owner decides and sets up the GSC property + service account (blocker 2) | **$0** | Search Console and its API are free at this scale |
 | Verify today's prices for the three worker options (U9) and Vercel's own plan (U8) | **$0** | reading, not buying |
 | Fix preview/production isolation (blocker 1) | **$0 if a Neon branch is available on the plan; otherwise the cost of a second Neon project** | depends on U1/U3 |

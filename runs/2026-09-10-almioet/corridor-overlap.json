@@ -1,0 +1,172 @@
+{
+  "generatedAt": "2026-09-10T03:34:02.063Z",
+  "diagnostic": true,
+  "group": "profession-origin",
+  "survivors": 573,
+  "pairs": 163878,
+  "seconds": 1.963,
+  "within": {
+    "medicine": {
+      "stats": {
+        "n": 18145,
+        "min": 0.7816091954022989,
+        "p25": 0.8316831683168316,
+        "median": 0.8363095238095238,
+        "p75": 0.8531468531468531,
+        "p95": 0.9743589743589743,
+        "max": 0.9744680851063829
+      },
+      "top": [
+        {
+          "s": 0.9744680851063829,
+          "a": "medicine__from-bahamas",
+          "b": "medicine__from-gambia"
+        },
+        {
+          "s": 0.9744408945686901,
+          "a": "medicine__from-afghanistan",
+          "b": "medicine__from-albania"
+        },
+        {
+          "s": 0.9744408945686901,
+          "a": "medicine__from-afghanistan",
+          "b": "medicine__from-belarus"
+        },
+        {
+          "s": 0.9744408945686901,
+          "a": "medicine__from-afghanistan",
+          "b": "medicine__from-benin"
+        },
+        {
+          "s": 0.9744408945686901,
+          "a": "medicine__from-afghanistan",
+          "b": "medicine__from-bolivia"
+        }
+      ]
+    },
+    "nursing": {
+      "stats": {
+        "n": 18145,
+        "min": 0.8497506234413965,
+        "p25": 0.886261980830671,
+        "median": 0.8925831202046036,
+        "p75": 0.9036608863198459,
+        "p95": 0.9838817998656817,
+        "max": 0.9839249832551908
+      },
+      "top": [
+        {
+          "s": 0.9839249832551908,
+          "a": "nursing__from-bahamas",
+          "b": "nursing__from-gambia"
+        },
+        {
+          "s": 0.9839034205231388,
+          "a": "nursing__from-equatorial-guinea",
+          "b": "nursing__from-guinea"
+        },
+        {
+          "s": 0.9839034205231388,
+          "a": "nursing__from-south-sudan",
+          "b": "nursing__from-sudan"
+        },
+        {
+          "s": 0.9838817998656817,
+          "a": "nursing__from-angola",
+          "b": "nursing__from-barbados"
+        },
+        {
+          "s": 0.9838817998656817,
+          "a": "nursing__from-angola",
+          "b": "nursing__from-bhutan"
+        }
+      ]
+    },
+    "pharmacy": {
+      "stats": {
+        "n": 18145,
+        "min": 0.6203904555314533,
+        "p25": 0.7203791469194313,
+        "median": 0.7320574162679426,
+        "p75": 0.7428571428571429,
+        "p95": 0.936,
+        "max": 0.9366754617414248
+      },
+      "top": [
+        {
+          "s": 0.9366754617414248,
+          "a": "pharmacy__from-bahamas",
+          "b": "pharmacy__from-gambia"
+        },
+        {
+          "s": 0.9363395225464191,
+          "a": "pharmacy__from-equatorial-guinea",
+          "b": "pharmacy__from-guinea"
+        },
+        {
+          "s": 0.9363395225464191,
+          "a": "pharmacy__from-south-sudan",
+          "b": "pharmacy__from-sudan"
+        },
+        {
+          "s": 0.936,
+          "a": "pharmacy__from-angola",
+          "b": "pharmacy__from-barbados"
+        },
+        {
+          "s": 0.936,
+          "a": "pharmacy__from-angola",
+          "b": "pharmacy__from-bhutan"
+        }
+      ]
+    }
+  },
+  "between": {
+    "stats": {
+      "n": 109443,
+      "min": 0.02213613724405091,
+      "p25": 0.024498886414253896,
+      "median": 0.03459372485921158,
+      "p75": 0.11018902720147533,
+      "p95": 0.1224871435250117,
+      "max": 0.13029315960912052
+    },
+    "top": [
+      {
+        "s": 0.13029315960912052,
+        "a": "medicine__from-saint-vincent-and-the-grenadines",
+        "b": "nursing__from-saint-vincent-and-the-grenadines"
+      },
+      {
+        "s": 0.12919776119402984,
+        "a": "medicine__from-sao-tome-and-principe",
+        "b": "nursing__from-sao-tome-and-principe"
+      },
+      {
+        "s": 0.12889716147045138,
+        "a": "medicine__from-central-african-republic",
+        "b": "nursing__from-central-african-republic"
+      },
+      {
+        "s": 0.12867132867132866,
+        "a": "medicine__from-antigua-and-barbuda",
+        "b": "nursing__from-antigua-and-barbuda"
+      },
+      {
+        "s": 0.12832477834811012,
+        "a": "medicine__from-cook-islands",
+        "b": "nursing__from-cook-islands"
+      }
+    ]
+  },
+  "nearestNeighbourSameProfession": 573,
+  "residualWords": {
+    "n": 573,
+    "min": 470,
+    "p25": 478,
+    "median": 1346,
+    "p75": 2220,
+    "p95": 2226,
+    "max": 2236
+  }
+}

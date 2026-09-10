@@ -11,6 +11,8 @@
     "quote-match": "node bin/quote-match.mjs",
     "page": "node bin/build-page.mjs",
     "chain": "node bin/nursing-chain.mjs",
-    "placement": "node bin/placement-measure.mjs"
+    "placement": "node bin/placement-measure.mjs",
+    "census": "node bin/profession-census.mjs",
+    "profession-chain": "node bin/profession-chain.mjs"
   }
 }

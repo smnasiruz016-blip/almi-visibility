@@ -1,0 +1,26 @@
+{
+  "page": "nursing",
+  "generatedOn": "2026-09-10",
+  "claims": 14,
+  "sources": [
+    "oet",
+    "uk-nmc",
+    "ie-nmbi"
+  ],
+  "words": 1394,
+  "prose": 1365,
+  "list": 0,
+  "onePage": {
+    "uniqueWords": 1083,
+    "facts": 14,
+    "overlap": 0,
+    "verdict": "KEEP"
+  },
+  "rollout": {
+    "uniqueWords": 511,
+    "overlapA": 0.2889576883384933,
+    "overlapB": 0.3058823529411765,
+    "verdict": "KEEP"
+  },
+  "sharedWords": 579
+}

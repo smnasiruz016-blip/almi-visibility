@@ -90,4 +90,36 @@ export const DECLARED_GAPS = Object.freeze([
     blockedBy: "⚠️ not read. NNAS is fetchable but is not a language regulator, so there may be nothing here worth licensing",
     cost: "five minutes, and only worth spending if Canada stays in scope",
   },
+
+  // ── 🔴 SPEECH PATHOLOGY — the hardest profession, measured 2026-09-10 ──
+  //
+  // Its /speech-pathology page FAILED the rollout: 34 uniqueWords against a bar
+  // of 350, overlap 0.70 against 0.40. Not a near miss. The cause is that only
+  // ONE of its four regulators says anything PER-PROFESSION.
+  {
+    claim: "ie-coru · english-language-requirement · profession=speech-pathology",
+    neededBy: "/speech-pathology — Ireland",
+    blockedBy:
+      "⚠️ REACHABLE BUT EMPTY. coru.ie returns 200 at ~3,400 characters and its registration pages carry no requirement text — a shell, most likely rendered client-side. Not a refusal, and not a fact either",
+    cost: "a person with a browser, or nothing from Ireland",
+  },
+  {
+    claim: "au-speech-pathology-australia · oet-minimum-grade",
+    neededBy: "/speech-pathology — Australia",
+    blockedBy: "🔴 HTTP 404 on both candidate paths. organisations.json records grades for it (L B, R A, W A, S A) but with no per-fact source URL, so they are an import, not a citation",
+    cost: "manual acquisition",
+  },
+  {
+    claim: "nz-* · speech-language-therapy registration",
+    neededBy: "/speech-pathology — New Zealand",
+    blockedBy:
+      "🔴 STRUCTURAL — THERE IS NO REGULATOR. Speech-language therapy is not statutorily regulated in New Zealand, so no organisation appears in the recognition index. This gap cannot be closed by acquisition",
+    cost: "nothing will close it; the page is simply shorter",
+  },
+  {
+    claim: "oet · writing-task-type / speaking-roleplay-setting · profession=speech-pathology",
+    neededBy: "/speech-pathology — Block A",
+    blockedBy: "🔴 LICENCE (oet.com is PROHIBITED) plus not yet acquired. The nursing equivalents exist; these do not",
+    cost: "manual acquisition in our own words — and it is the cheapest way to add PER-PROFESSION words to this page",
+  },
 ]);

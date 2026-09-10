@@ -115,6 +115,40 @@ export const ALL_REPEATED_CLAIMS = Object.freeze([
   ...PENDING_DESTINATION_LAYER,
 ]);
 
+/**
+ * 🔴 AND THE LIST ABOVE IS NOT ENOUGH — IT IS A LIST, AND A LIST ONLY KNOWS
+ * THE CLAIMS SOMEBODY REMEMBERED TO PUT IN IT.
+ *
+ * Found while running the chain on a SECOND profession. `ALL_REPEATED_CLAIMS`
+ * was assembled from the /nursing page, so on a speech-pathology page it did not
+ * recognise HCPC's profession-independent claims (accepted tests, certificate
+ * age, test venue) — and counted them as UNIQUE. That flatters the page: text
+ * that would be identical on all twelve was being credited as distinguishing.
+ *
+ * The same bug was already present on /nursing itself:
+ * `ie-nmbi.recognised-english-speaking-countries` has no profession qualifier and
+ * is the same list for a dentist as for a nurse, yet it was counted as unique.
+ *
+ *   A CLAIM DISTINGUISHES A PROFESSION PAGE ONLY IF IT IS ABOUT THE PROFESSION.
+ *
+ * So it is DERIVED from the claim itself rather than remembered: a claim carries
+ * a `profession=` qualifier or it does not, and that is a property of the record,
+ * not of anyone's memory. A hardcoded list is a check that silently stops being
+ * complete the moment the registry grows — which is exactly what happened.
+ */
+export function isPerProfession(record) {
+  return typeof record?.claim?.qualifier === "string" && record.claim.qualifier.includes("profession=");
+}
+
+/**
+ * Would this claim render IDENTICAL text on all twelve profession pages?
+ * True for anything without a profession qualifier, plus the named sets above.
+ */
+export function rendersIdenticallyOnEveryProfessionPage(record) {
+  if (ALL_REPEATED_CLAIMS.includes(record?.id)) return true;
+  return !isPerProfession(record);
+}
+
 /** @deprecated use ALL_REPEATED_CLAIMS for overlap, UNIVERSAL_CLAIMS for placement. */
 export const SHARED_CLAIM_IDS = ALL_REPEATED_CLAIMS;
 

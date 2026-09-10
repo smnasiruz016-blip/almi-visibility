@@ -1,0 +1,76 @@
+{
+  "page": "nursing__from-india",
+  "group": "profession-origin",
+  "before": {
+    "label": "BEFORE",
+    "shellB": 803,
+    "uniqueWords": 2220,
+    "kinds": {
+      "prose": 61,
+      "list": 2118,
+      "heading": 40,
+      "other": 1
+    },
+    "residualWords": 2220,
+    "facts": {
+      "total": 0,
+      "qualifying": 0,
+      "passes": false,
+      "linkChecked": 0,
+      "factChecked": 0
+    },
+    "overlapAgainstSurvivors": {
+      "score": 0,
+      "against": null,
+      "population": 0
+    },
+    "overlapAgainstAllPublished": {
+      "score": 0.9792225201072386,
+      "against": "nursing__from-argentina",
+      "population": 190
+    }
+  },
+  "after": {
+    "label": "AFTER",
+    "shellB": 803,
+    "uniqueWords": 2732,
+    "kinds": {
+      "prose": 559,
+      "list": 2118,
+      "heading": 54,
+      "other": 1
+    },
+    "residualWords": 2732,
+    "facts": {
+      "total": 5,
+      "qualifying": 5,
+      "passes": true,
+      "linkChecked": 5,
+      "factChecked": 0
+    },
+    "overlapAgainstSurvivors": {
+      "score": 0,
+      "against": null,
+      "population": 0
+    },
+    "overlapAgainstAllPublished": {
+      "score": 0.7363911290322581,
+      "against": "nursing__from-argentina",
+      "population": 190
+    }
+  },
+  "stages": [
+    [
+      "1 · uniqueWords >= 350",
+      true
+    ],
+    [
+      "2 · qualifying facts >= 5",
+      true
+    ],
+    [
+      "3 · overlap < 0.4 vs ALL published siblings",
+      false
+    ]
+  ]
+}

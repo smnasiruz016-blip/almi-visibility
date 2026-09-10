@@ -12,6 +12,7 @@ import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 
 import { writePermission, LOCAL, PRODUCTION } from "../src/write-law.mjs";
+import { tokensWithKind, uniqueWordsByKind } from "../src/gate-a/text-kind.mjs";
 import { tokensOf, textOf } from "../src/gate-a/tokens.mjs";
 import { computeShells, uniqueWords, residualTokens, SHELL_DOC_FREQUENCY } from "../src/gate-a/shell.mjs";
 import { judgeFact, countFacts, FACT_FRESHNESS_DAYS, urlShapeProblem } from "../src/gate-a/facts.mjs";
@@ -314,5 +315,65 @@ describe("🔴 D2-A — the order is part of the gate", () => {
     const out = runGateA([thin("a")], { now: NOW });
     assert.equal(out.thresholds.MIN_UNIQUE_WORDS, MIN_UNIQUE_WORDS);
     assert.equal(out.thresholds.MAX_SIBLING_OVERLAP, 0.4);
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// 🔴 PROSE vs TABULAR — a MEASUREMENT, not a gate. No threshold is asserted
+// here because none exists: the owner ruled distribution first, bar afterwards.
+// ───────────────────────────────────────────────────────────────────────────
+describe("🔴 prose vs tabular — the decomposition, and what it refuses to do", () => {
+  test("a token's kind comes from its NEAREST enclosing element", () => {
+    const { tokens, kinds } = tokensWithKind(
+      "<h2>Grades</h2><p>Some <b>argument</b> here</p><ul><li>Row <span>one</span></li></ul><div>stray</div>",
+    );
+    const kindOf = (w) => kinds[tokens.indexOf(w)];
+    assert.equal(kindOf("grades"), "heading");
+    assert.equal(kindOf("argument"), "prose", "a <b> inside a <p> is still prose");
+    assert.equal(kindOf("one"), "list", "a <span> inside an <li> is list text");
+    assert.equal(kindOf("stray"), "other", "a bare div declares nothing — it must not be flattered into prose");
+  });
+
+  test("🔴 RED: text in a bare div is NOT counted as prose", () => {
+    const { tokens, kinds } = tokensWithKind("<div>alpha beta gamma</div>");
+    assert.equal(tokens.length, 3);
+    assert.ok(kinds.every((k) => k === "other"));
+    // The red: if `other` were folded into `prose`, this page would report three
+    // prose words it has not earned.
+    assert.notEqual(kinds[0], "prose");
+  });
+
+  test("🔴 the token stream is IDENTICAL to tokensOf — or the split is not the gate's number", () => {
+    const html = "<p>One two</p><ul><li>Three</li><li>Four five</li></ul><h3>Six</h3>";
+    assert.deepEqual(tokensWithKind(html).tokens, tokensOf(html));
+  });
+
+  test("🔴 the four kinds SUM to uniqueWords, exactly", () => {
+    const html = "<p>alpha beta</p><li>gamma delta</li><h2>epsilon</h2><div>zeta</div>";
+    const { tokens, kinds } = tokensWithKind(html);
+    const shell = new Map([["alpha", 1]]);
+    const r = uniqueWordsByKind(tokens, kinds, shell);
+    assert.equal(r.counts.prose + r.counts.list + r.counts.heading + r.counts.other, r.total);
+    assert.equal(r.total, uniqueWords(tokens, shell), "must equal what the gate already reports");
+  });
+
+  test("🔴 RED: a page can reach a big uniqueWords on LIST TEXT ALONE — the hole this measures", () => {
+    const rows = Array.from({ length: 200 }, (_, i) => `<li>organisation ${i} listening b reading b</li>`).join("");
+    const { tokens, kinds } = tokensWithKind(`<p>short intro</p><ul>${rows}</ul>`);
+    const r = uniqueWordsByKind(tokens, kinds, new Map());
+    assert.ok(r.total > 350, "the page clears Gate A's bar");
+    assert.ok(r.counts.prose < 10, "on two words of prose");
+    // That is the defect: the bar is satisfiable by a data table.
+  });
+
+  test("unbalanced markup does not corrupt every token after it", () => {
+    const { tokens, kinds } = tokensWithKind("<li>inside</li></p><p>after</p>");
+    assert.equal(kinds[tokens.indexOf("inside")], "list");
+    assert.equal(kinds[tokens.indexOf("after")], "prose");
+  });
+
+  test("script and style content is not text at all", () => {
+    const { tokens } = tokensWithKind("<p>keep</p><script>var drop = 1;</script><style>.drop{}</style>");
+    assert.deepEqual(tokens, ["keep"]);
   });
 });

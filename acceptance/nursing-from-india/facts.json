@@ -1,0 +1,59 @@
+[
+  {
+    "claim": { "subject": "uk-nmc", "predicate": "oet-minimum-grade", "qualifier": "profession=nursing" },
+    "scope": "destination",
+    "value": "Reading, listening and speaking: grade B (350 or above). Writing: grade C+ (300 or above).",
+    "sourceUrl": "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/accepted-english-language-tests/oet/",
+    "sourceLabel": "Nursing and Midwifery Council — OET",
+    "tier": 1,
+    "verifiedDate": "2026-09-10",
+    "linkChecked": true,
+    "quotedSpan": "At least grade B (350 or above) for reading, listening, and speaking",
+    "note": "Page states its own last-updated date as 08/03/2024."
+  },
+  {
+    "claim": { "subject": "uk-nmc", "predicate": "oet-combining-sittings", "qualifier": "profession=nursing" },
+    "scope": "destination",
+    "value": "Scores may be combined across two OET sittings provided one reading, one listening and one speaking score of at least grade B (350-440) and one writing score of at least grade C+ (300-340) are achieved between them.",
+    "sourceUrl": "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/accepted-english-language-tests/oet/",
+    "sourceLabel": "Nursing and Midwifery Council — OET",
+    "tier": 1,
+    "verifiedDate": "2026-09-10",
+    "linkChecked": true,
+    "quotedSpan": "You can combine scores across two OET test sittings"
+  },
+  {
+    "claim": { "subject": "uk-nmc", "predicate": "english-evidence-routes", "qualifier": "profession=nursing" },
+    "scope": "destination",
+    "value": "Three accepted routes: an approved English language test; a pre-registration qualification taught and examined in English; or one year of recent practice in a country where English is the majority-spoken language.",
+    "sourceUrl": "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/",
+    "sourceLabel": "Nursing and Midwifery Council — English language requirements",
+    "tier": 1,
+    "verifiedDate": "2026-09-10",
+    "linkChecked": true,
+    "quotedSpan": "You have one year of recent practice as a nurse, midwife, or nursing associate in a country where English is the majority-spoken language"
+  },
+  {
+    "claim": { "subject": "uk-nmc", "predicate": "qualified-in-english-evidence", "qualifier": "profession=nursing" },
+    "scope": "destination",
+    "value": "A transcript must show that at least half the applicant's time was spent interacting with patients, service users, their families and other healthcare professionals, and that at least 75% of those interactions were in English.",
+    "sourceUrl": "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/qualified-in-english/",
+    "sourceLabel": "Nursing and Midwifery Council — Qualified in English",
+    "tier": 1,
+    "verifiedDate": "2026-09-10",
+    "linkChecked": true,
+    "quotedSpan": "you spent at least half of your time interacting with patients, service users, their families and other healthcare professionals, and that at least 75% of these interactions were in English."
+  },
+  {
+    "claim": { "subject": "uk-ukvi", "predicate": "english-nationality-exemption", "qualifier": "nationality=india" },
+    "scope": "origin",
+    "value": "India is NOT one of the majority-English-speaking countries listed at EL 4.1, so Indian nationality alone does not meet the UK immigration English language requirement.",
+    "sourceUrl": "https://www.gov.uk/guidance/immigration-rules/immigration-rules-appendix-english-language",
+    "sourceLabel": "Immigration Rules Appendix English Language, EL 4.1",
+    "tier": 1,
+    "verifiedDate": "2026-09-10",
+    "linkChecked": true,
+    "quotedSpan": "An applicant will meet the English language requirement if they are a national of any of the following majority-English-speaking countries:",
+    "note": "The listed countries are Antigua and Barbuda, Australia, The Bahamas, Barbados, Belize, The British Overseas Territories, Canada, Dominica, Grenada, Guyana, Jamaica, Malta, New Zealand, St Kitts and Nevis, St Lucia, St Vincent and the Grenadines, Trinidad and Tobago, United States of America. India does not appear."
+  }
+]

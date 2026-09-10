@@ -1,0 +1,94 @@
+{
+  "id": "red-6-source-vs-rendered",
+  "red": 6,
+  "defectClass": "Present in the source but absent from the rendered HTML",
+  "repository": "almi-italian",
+  "commit": "14a0f7d99a1bac12ac7521ddb87e80c5f0589c8f",
+  "commitShort": "14a0f7d",
+  "commitSubject": "Admin can see what the AI costs, and says one thing about who you are (#62)",
+  "commitDate": "2026-08-29T06:32:47Z",
+  "fixCommit": "a2a6a2afa3ef183b6eb88394ee94fa53092f3e42",
+  "fixCommitShort": "a2a6a2a",
+  "fixCommitSubject": "Turbopack was eating a space after </strong>; make it explicit (#63)",
+  "whyThisCommit": "The parent of the fix. Turbopack — the default bundler for `next build` in Next 16 — trims the leading space of a multi-line JSX text node that follows an element, so `</strong> del nostro` ships as `</strong>del nostro`. esbuild and SWC both keep it.",
+  "provenAt": "🔴 NOT PROVABLE FROM SOURCE, AND THAT IS THE DEFECT CLASS. The source at this commit is innocent — the space is there. The rendered artefact carries the defect, and the single-line control in the same build proves the cause is the LINE BREAK, not the words.",
+  "toolchain": {
+    "next": "16.2.12",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "bundler": "Turbopack (the default for `next build` in Next 16)",
+    "why": "Without this exact bundler the defect does not exist. A build with esbuild or SWC keeps the space and the exhibit disappears.",
+    "lockfile": "package-lock.json at this commit"
+  },
+  "artefactComplete": true,
+  "artefactNote": "BOTH sides are captured: the source out of the commit, and the RENDERED HTML from a build with the pinned toolchain. See rendered/HOW_IT_WAS_CAPTURED.md for exactly what was built and how it differs from a full product build.",
+  "files": [
+    {
+      "path": "src/components/ProgressSection.tsx",
+      "bytes": 4473,
+      "sha256": "7d7a7a3d88842c8d6754ced6c846b351029752ce549903fbaa691f305d684075"
+    },
+    {
+      "path": "src/components/GlobalFooter.tsx",
+      "bytes": 1573,
+      "sha256": "6beb99841d1110178603e5bd4013d8b998f86597edb41b78799ed68390c593f6"
+    },
+    {
+      "path": "src/app/privacy/page.tsx",
+      "bytes": 8856,
+      "sha256": "05483832224dc1b1eea73968323c9c5ddc5f5e81137d25a29fb7b88f911bcf89"
+    },
+    {
+      "path": "package.json",
+      "bytes": 4793,
+      "sha256": "183e850cd0c2e08cf9169b24f0092dae13411109103af5b5649f5bd865765bac"
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 167818,
+      "sha256": "943a9a30b332e25c23059521322915ae67e1b82c68c565e5794db9c8de961bde"
+    }
+  ],
+  "directoryListings": [],
+  "capturedArtefact": {
+    "directory": "rendered",
+    "howProduced": "next build (Turbopack) at Next 16.2.12 / React 19.2.4 — the versions this commit pins — over the three JSX text nodes copied VERBATIM out of the commit, plus a single-line CONTROL of the same words.",
+    "files": [
+      {
+        "path": "rendered/HOW_IT_WAS_CAPTURED.md",
+        "bytes": 3089,
+        "sha256": "167a0806600e6ed538cfd50b50bd5c652e5e01b23dca780cb8c8a73fcdc56e8f"
+      },
+      {
+        "path": "rendered/comparison.json",
+        "bytes": 675,
+        "sha256": "8eed63da7cf5b62eaa41b973723e635fa54a3873585f4f382a49ea9f21fa492d"
+      },
+      {
+        "path": "rendered/index.html",
+        "bytes": 5704,
+        "sha256": "745212246a705289365be8024746cac413c33b709ff254079d6c79633cba0510"
+      },
+      {
+        "path": "rendered/repro-source/layout.tsx",
+        "bytes": 193,
+        "sha256": "506c61338c45e5a034e6b52ea6044ed3dc76681c9367c906f817fbb074ccbdcb"
+      },
+      {
+        "path": "rendered/repro-source/next.config.mjs",
+        "bytes": 68,
+        "sha256": "261a0794978fcd179797515cfd265ca0da150c40b823dd18457b14c2cab1a91e"
+      },
+      {
+        "path": "rendered/repro-source/package.json",
+        "bytes": 313,
+        "sha256": "41ce3ec4bc3f72a0ab5f21a97231a3fa702b008252363b9bc8364c23b8c12f49"
+      },
+      {
+        "path": "rendered/repro-source/page.tsx",
+        "bytes": 1221,
+        "sha256": "cc161ed853e93e621ef164ba6033504417c7d725c4ff74ca05a7ae815d09bbc3"
+      }
+    ]
+  }
+}

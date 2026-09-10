@@ -6,3 +6,10 @@
 # every captured HTML body and every headers file. `-text` disables all EOL
 # conversion for this directory, so what was captured is what is restored.
 case-study-01/corpus/** -text
+
+# The exhibits are evidence too, and the same rule applies for the same reason: a
+# SHA-256 taken at freeze time must still match after a checkout. This covers the
+# source files read out of other repositories AND the built artefact, which is a
+# rendered HTML file whose whitespace IS the exhibit — EOL conversion would edit
+# the very bytes the defect lives in.
+case-study-01/exhibits/** -text

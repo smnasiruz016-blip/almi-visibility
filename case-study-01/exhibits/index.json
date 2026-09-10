@@ -1,0 +1,41 @@
+{
+  "frozenAt": "2026-09-10T06:25:57.955Z",
+  "exhibits": [
+    {
+      "id": "red-1-grade-band-never-issued",
+      "red": 1,
+      "repository": "almi-oet",
+      "commit": "8877c6e",
+      "files": 9,
+      "listings": 0,
+      "artefactComplete": true
+    },
+    {
+      "id": "red-4-sitemap-url-that-404s",
+      "red": 4,
+      "repository": "almi-italian",
+      "commit": "d83ddd9",
+      "files": 4,
+      "listings": 1,
+      "artefactComplete": true
+    },
+    {
+      "id": "red-5-rendered-count-vs-data",
+      "red": 5,
+      "repository": "almi-oet",
+      "commit": "e99b199",
+      "files": 2,
+      "listings": 0,
+      "artefactComplete": true
+    },
+    {
+      "id": "red-6-source-vs-rendered",
+      "red": 6,
+      "repository": "almi-italian",
+      "commit": "14a0f7d",
+      "files": 5,
+      "listings": 0,
+      "artefactComplete": true
+    }
+  ]
+}

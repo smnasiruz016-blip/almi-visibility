@@ -1,0 +1,66 @@
+{
+  "id": "red-1-grade-band-never-issued",
+  "red": 1,
+  "defectClass": "A public promise of a grade band the scoring engine never issued",
+  "repository": "almi-oet",
+  "commit": "8877c6ebeeacbbd834c06f3163bf676c796e1957",
+  "commitShort": "8877c6e",
+  "commitSubject": "test(scale): 44 tests on the file that graded 200-240 as D for 27 days (#55)",
+  "commitDate": "2026-09-04T23:54:30Z",
+  "fixCommit": "4ed34bb7b6804a02858083a9dbd932804f35ba39",
+  "fixCommitShort": "4ed34bb",
+  "fixCommitSubject": "fix(copy): the public pages promised an A-E grade the engine has never given (#56)",
+  "whyThisCommit": "The parent of the fix. At this commit GRADE_FLOORS holds exactly four grades (A, B, C+, C) and gradeForScore returns null below 200, while twelve public surfaces — including src/app/layout.tsx, the site metadata on every page — promise 'an A-E grade per sub-test'. There is no D and no E in the engine.",
+  "provenAt": "Both halves are in this one commit: the engine in src/lib/oet/scale.ts and the promises in the eight app files below. No build and no database is needed to decide it.",
+  "toolchain": null,
+  "artefactComplete": true,
+  "artefactNote": null,
+  "files": [
+    {
+      "path": "src/lib/oet/scale.ts",
+      "bytes": 10595,
+      "sha256": "50897e98e3368973558fa9789dcca1750703faed2c9f04d5973ca842b8d62711"
+    },
+    {
+      "path": "src/app/layout.tsx",
+      "bytes": 2756,
+      "sha256": "56521879133a6633e446ce54fb100afacde830fc6b9dda8dc463049e12a7d477"
+    },
+    {
+      "path": "src/app/page.tsx",
+      "bytes": 18271,
+      "sha256": "678b03691ddff446fe2753f3b1b8eb18a8d48b1d01ede04730ac39f2cf29de90"
+    },
+    {
+      "path": "src/app/pricing/page.tsx",
+      "bytes": 4863,
+      "sha256": "547670b87dc14d04caec55bde7a32ee57268f2b3d6ab4aa1b8d44f5412279fd0"
+    },
+    {
+      "path": "src/app/(auth)/signup/page.tsx",
+      "bytes": 5383,
+      "sha256": "8c01a4c81c8ab10d26542b6bde764d204820cfde9763dd7a8887723b959bb68a"
+    },
+    {
+      "path": "src/app/(app)/practice/mock/page.tsx",
+      "bytes": 4560,
+      "sha256": "f002607d9baa1108e5792ffa6a2fb80dd0708305b759a5f0d425e21534fb4668"
+    },
+    {
+      "path": "src/app/(app)/practice/[profession]/page.tsx",
+      "bytes": 10597,
+      "sha256": "ea5fd1bee4227bda35a2109c1f41a250b337b315ea8534232d1645c56c80c808"
+    },
+    {
+      "path": "src/app/(app)/practice/[profession]/[task]/page.tsx",
+      "bytes": 7012,
+      "sha256": "a348d15935d97e61364e88cbe7ff7fb8b68dd2a60351e37e11e52d1e07878dff"
+    },
+    {
+      "path": "src/components/oet/OetSessionResult.tsx",
+      "bytes": 4558,
+      "sha256": "1f121b8ba4e585f770e6bb4002186bdbb06e167757b6f95750c8a1258f9ebe1c"
+    }
+  ],
+  "directoryListings": []
+}

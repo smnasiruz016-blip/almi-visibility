@@ -13,6 +13,58 @@
 > A change to this file requires the owner's explicit approval, recorded with a date and a
 > reason, and the reason may never be *"the engine reports it differently"*.
 
+## 🔴 AMENDMENT 1 — 10 September 2026, approved by the owner
+
+**RECORDED WITH A DATE AND A REASON, exactly as the freeze law requires.**
+
+### (a) What changed
+
+**RED 4's exhibit is taken from a SECOND REPOSITORY — `almi-italian`, commit `d83ddd9`** — and
+RED 1, 5 and 6 are pinned to specific pre-fix commits. All four are frozen in
+`case-study-01/exhibits/`, each with its provenance and a SHA-256 per file.
+
+| RED | repository | commit (defect PRESENT) | fix |
+|---|---|---|---|
+| 1 | `almi-oet` | `8877c6e` | `4ed34bb` |
+| **4** | **`almi-italian`** | **`d83ddd9`** | `a191883` |
+| 5 | `almi-oet` | `e99b199` | `45355be` |
+| 6 | `almi-italian` | `14a0f7d` | `a2a6a2a` |
+
+### (b) WHY — and it is not a preference
+
+**AlmiOET has never carried RED 4.** Seven independent checks, written out in
+`A2_CASE_STUDY_CORPUS_CANDIDATES.md`: the fork's sitemap listed four routes that all existed
+and none `noindex`; the pSEO builder derives every URL from the same data the routes use, so
+there is no hand-maintained list to drift; the chunk math is computed, never hard-coded;
+`origins.ts` has been touched in exactly one commit; the leaf route checks only the `from-`
+prefix and so cannot 404 on a URL the sitemap emits; 48 of 48 sampled live URLs returned 200;
+and no commit in the entire log fixes a broken sitemap.
+
+> **A DEFECT THAT NEVER HAPPENED CANNOT BE SAMPLED.**
+
+*(Two near-misses were rejected: `/register` 404s live but is **not in the sitemap**; and
+`sitemap-nationality-nurse.xml` is a dead sitemap **file** in Search Console, not a broken URL
+**inside** a sitemap, and it lives in Google's console rather than any repository.)*
+
+### (c) 🔴 THE PASS MARK IS **6 of 6**. IT HAS NOT BEEN LOWERED.
+
+**This amendment is not leniency.** Nothing about what the engine must find has changed: still
+six defects found unaided, still zero false positives on three controls. **Only where one
+exhibit lives has changed.**
+
+### (d) Why this does NOT breach the anti-rewrite clause
+
+The freeze law forbids changing this test **to match the engine's behaviour**.
+
+> **The engine does not exist yet.** There is no behaviour to match it to. This amendment was
+> made **before implementation**, from a repository search, and its reason is *"the defect
+> never occurred in that product"* — never *"the engine reports it differently"*.
+
+**That distinction is the whole clause**, and it must not be read later as a precedent for
+softening the test once an engine is running. **After implementation begins, this file is shut.**
+
+---
+
 ## PASS MARK — written before any result exists
 
 | | |
@@ -294,12 +346,12 @@ these pages are good.
 
 | | class | status today | found? | notes |
 |---|---|---|---|---|
-| RED 1 | grade band never issued | ⏳ needs a second pin | ☐ | |
+| RED 1 | grade band never issued | ✅ **frozen** — `almi-oet 8877c6e` | ☐ | 12 public surfaces promise A–E; the engine issues four letters |
 | RED 2 | external claim, no source evidence | ✅ **in the corpus** | ☐ | |
 | RED 3 | declared render mode ≠ served state | ✅ **in the corpus** | ☐ | |
-| RED 4 | sitemap URL 404 / redirect / non-indexable | ⏳ needs a second pin | ☐ | 48/48 are 200 today |
-| RED 5 | rendered count ≠ underlying data | ⏳ needs a second pin | ☐ | |
-| RED 6 | internal link in source, absent from render | ⏳ needs a second pin | ☐ | |
+| RED 4 | sitemap URL 404 / redirect / non-indexable | ✅ **frozen** — `almi-italian d83ddd9` | ☐ | 9 of 9 destinations missing. **AlmiOET never had this defect** — Amendment 1 |
+| RED 5 | rendered count ≠ underlying data | ✅ **frozen** — `almi-oet e99b199` | ☐ | six items promise 3 options, offer 4 |
+| RED 6 | present in source, absent from render | ✅ **frozen** — `almi-italian 14a0f7d` + a **built artefact** | ☐ | source is innocent; only the build carries it. Toolchain pinned: Next 16.2.12, Turbopack |
 | CONTROL 1 | `/nursing/from-india/uk-nmc` | live | ☐ not flagged | sourced grade |
 | CONTROL 2 | `/nursing/from-india/uk-ukvi` | live | ☐ not flagged | correctly declines |
 | CONTROL 3 | `/nursing/from-bhutan/ie-nmbi` | live | ☐ not flagged | sourced grade |
@@ -313,8 +365,8 @@ these pages are good.
 | # | question | who decides |
 |---|---|---|
 | Q1 | ~~Which commit pins the corpus?~~ **ANSWERED 10 Sep 2026:** `07852f9`, captured into `case-study-01/corpus/`. Covers RED 2 and RED 3. | done |
-| Q2 | For RED 4, do we pin a historical AlmiOET deployment, or nominate AlmiPathway (registered, unreachable, no sitemap) as the instance? | **owner** |
-| Q3 | For RED 1 and RED 5, which pre-fix commits contain the instances? | **owner**, with a repository search |
+| Q2 | ~~RED 4: historical AlmiOET, or AlmiPathway?~~ **ANSWERED 10 Sep 2026:** neither. **AlmiOET never carried this defect**, proved seven ways. `almi-italian d83ddd9`, approved by the owner — Amendment 1 | done |
+| Q3 | ~~RED 1 and RED 5: which pre-fix commits?~~ **ANSWERED 10 Sep 2026:** RED 1 `8877c6e`, RED 5 `e99b199`, both proved from the repository alone; RED 6 `14a0f7d` plus a built artefact | done |
 | Q4 | Is a *class* found if the engine reports a **different real instance** of the same class than the one pinned here? | **owner.** My recommendation: **yes** — the test asks whether the engine can find that kind of fault, not whether it can find one URL |
 
 ---

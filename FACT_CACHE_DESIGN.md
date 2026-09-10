@@ -317,6 +317,49 @@ its 🟡 marks are real: the profession-page block is a floor I chose rather tha
 NMBI, NNAS and OET's own profession materials have never been fetched. **One profession-page
 claim inventory replaces every 🟡 in that document.**
 
+## 4c · 🔴 `sourceQuotable` — A SOURCE A MACHINE MAY READ AND MAY NOT QUOTE
+
+**Found 10 September 2026 by the profession-page claim inventory, and it is a third failure
+mode for the freshness mechanism — one this design had no field for.**
+
+§4a's barriers were all technical: a 403, a scanned PDF, an HTTP 500, a broken TLS chain.
+**OET's own site is none of those. It serves 200 to an automated fetch.** The barrier is its
+licence:
+
+> *"Any redistribution or reproduction of part or all of the Content in any form is
+> prohibited"* … *"store the Content in any other website or **other form of electronic
+> retrieval system**"* — OET Intellectual Property policy
+
+**A fact cache storing `quotedSpan` IS an electronic retrieval system holding a reproduction of
+their wording.**
+
+| | OET |
+|---|---|
+| can a machine FETCH it? | ✅ **yes** |
+| may we STORE its wording as `quotedSpan`? | 🔴 **no** |
+| may the nightly quote-match run? | 🔴 **no — there is nothing lawful to match against** |
+
+### The field, and the rule that comes with it
+
+**`sourceQuotable: true | false`**, beside `sourceMachineReadable`, and **set from the source's
+licence terms — never from whether a fetch succeeded.** The two are independent, and OET is the
+proof: machine-readable **and** un-quotable.
+
+When `sourceQuotable` is false:
+
+- store **a URL, a date, and the fact stated IN OUR OWN WORDS** — never their sentence;
+- mark the record so **nothing attempts a quote-match on it**, because a permanent "could not
+  check" would look like a broken source rather than a lawful one;
+- **freshness is a human re-read**, at the same cost as a 403. It joins the MANUAL queue.
+
+⚠️ **AND THIS IS A LIMIT ON THE PRODUCT, NOT ONLY ON THE CACHE.** AlmiOET's own record already
+flags that `docs/sources/oet-…pdf` is committed to git and that `exam-shape.ts` holds short
+quoted sentences — raised on 1 September and still unresolved. **This design does not expand
+that practice**, and no OET file is committed by it.
+
+**No workaround is proposed.** The answer to a licence is the same as the answer to a 403:
+**record the cost, do not route around it.**
+
 ## 5 · 🔴 NO DATABASE TABLE — AND WHERE FACTS LIVE INSTEAD
 
 **No table is designed here and none will be created without stopping first.**

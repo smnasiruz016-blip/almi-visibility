@@ -48,71 +48,56 @@
  * reader than sending them somewhere else to find it.**
  */
 
-/**
- * 🔴 UNIVERSAL — true wherever the reader is from and wherever they are going.
- * These STAY on every profession page, and the repetition is paid for in
- * overlap at a price that has been measured rather than assumed.
- */
-export const UNIVERSAL_CLAIMS = Object.freeze([
-  // The page's own premise: why there is a NURSING page rather than one page
-  // about OET. Without it /nursing starts mid-argument.
-  "oet.subtests-and-which-are-profession-specific",
-  // The scale and the grades. True for a dentist and a nurse alike, and the
-  // thing every other claim on the page is denominated in.
-  "oet.grade-bands-0-500",
-]);
+
 
 /**
- * 🔴 ORIGIN-SCOPED — they turn on WHERE THE READER IS FROM, which a profession
- * page never knows. `/nursing` was showing these to every reader alike.
+ * 🔴 THE DERIVATION, WHICH IS THE PART THAT IS GENERAL.
  *
- * ⚠️ THE LAYER THAT SHOULD HOLD THEM DOES NOT EXIST YET. They are held in the
- * registry, rendered nowhere, and counted as owed. That is the honest state and
- * it is NOT the same as being published somewhere worse. They are NOT "behind a
- * link" — there is no link, because there is nowhere to send anyone.
+ * A product hands over two things: the claims that are UNIVERSAL to every one
+ * of its pages, and the claims that are scoped to something a variant page
+ * cannot know — each with the layer that ought to hold them and what they
+ * would become there.
+ *
+ * Everything else is arithmetic on those, and the arithmetic is identical for
+ * every product:
+ *
+ *   removed      every pending claim, whatever its layer
+ *   allRepeated  universal + removed — ⚠️ AND NOT THE SAME SET AS UNIVERSAL
+ *   awaiting     one row per pending claim, WITH THE LAYER NAMED — so the
+ *                census can COUNT the debt instead of leaving it in prose.
+ *                A debt nobody counts is a debt nobody pays
+ *
+ * ⚠️ `allRepeated` INCLUDES THE PENDING CLAIMS ON PURPOSE, and the reason is
+ * written above: the shared half is a property of the page AS RENDERED, not of
+ * where we have since ruled a claim ought to live. Pointing it at the universal
+ * set alone moved an AS-BUILT baseline from 0.3921 to 0.1927 — a measurement
+ * that changed because a ruling changed.
  */
-export const PENDING_ORIGIN_LAYER = Object.freeze([
-  "uk-ukvi.majority-english-speaking-countries",
-  "uk-code-of-practice.red-list-rule",
-  "uk-code-of-practice.amber-list-rule",
-  "uk-code-of-practice.direct-application-exception",
-]);
+export function buildPlacement({ universal = [], pendingLayers = [] } = {}) {
+  for (const layer of pendingLayers) {
+    if (!Array.isArray(layer?.claims) || typeof layer?.layer !== "string") {
+      throw new Error("buildPlacement: every pending layer needs claims and the name of the layer that should hold them");
+    }
+    if (layer.exists !== false) {
+      // 🔴 A pending layer that claimed to EXIST would let a claim be called
+      // "handled" while nothing renders it. Owed is not the same as hidden,
+      // and it is certainly not the same as done.
+      throw new Error(`buildPlacement: layer "${layer.layer}" must state exists: false — it is owed, not built`);
+    }
+  }
 
-/**
- * 🔴 DESTINATION-SCOPED — Immigration New Zealand's rule about how the test must
- * be taken. It is not a property of OET and not a property of nursing.
- *
- * ⚠️ That layer does not exist either. Same status, same honesty: owed, not
- * hidden.
- */
-export const PENDING_DESTINATION_LAYER = Object.freeze(["nz-immigration-nz.oet-must-be-taken-in-person"]);
+  const removed = Object.freeze(pendingLayers.flatMap((l) => l.claims));
+  const allRepeated = Object.freeze([...universal, ...removed]);
+  const awaiting = Object.freeze(
+    pendingLayers.flatMap((l) => l.claims.map((claim) => ({ claim, layer: l.layer, exists: false, becomes: l.becomes }))),
+  );
 
-/** Everything that leaves the profession page. Nothing else does. */
-export const REMOVED_FROM_VARIANT_PAGE = Object.freeze([...PENDING_ORIGIN_LAYER, ...PENDING_DESTINATION_LAYER]);
+  if (new Set(allRepeated).size !== allRepeated.length) {
+    throw new Error("buildPlacement: a claim is both universal and pending — it cannot stay and leave");
+  }
 
-/**
- * 🔴 EVERY CLAIM THAT WOULD RENDER IDENTICAL TEXT ON ALL TWELVE PAGES — used to
- * compute the shared half when measuring overlap, and NOT the same set as
- * `UNIVERSAL_CLAIMS`.
- *
- * ⚠️ THE DISTINCTION IS LOAD-BEARING AND IT ALREADY BIT ONCE. When this was
- * pointed at `UNIVERSAL_CLAIMS` alone, the AS-BUILT baseline silently moved from
- * 0.3921 to 0.1927 — because on the as-built page the origin and destination
- * claims ARE present and ARE identical across the twelve, whatever we have since
- * decided about where they belong.
- *
- *   THE SHARED HALF IS A PROPERTY OF THE PAGE AS RENDERED,
- *   NOT OF WHERE WE HAVE RULED THE CLAIM OUGHT TO LIVE.
- *
- * A measurement that changes because a RULING changed is measuring the ruling.
- * The measure intersects this set with what is actually on the page, so each
- * variant gets the right shared half and the baseline stays comparable.
- */
-export const ALL_REPEATED_CLAIMS = Object.freeze([
-  ...UNIVERSAL_CLAIMS,
-  ...PENDING_ORIGIN_LAYER,
-  ...PENDING_DESTINATION_LAYER,
-]);
+  return Object.freeze({ universal: Object.freeze([...universal]), removed, allRepeated, awaiting });
+}
 
 /**
  * 🔴 AND THE LIST ABOVE IS NOT ENOUGH — IT IS A LIST, AND A LIST ONLY KNOWS
@@ -145,18 +130,22 @@ export function isPerVariant(record, axisKey) {
 /**
  * Would this claim render IDENTICAL text on every sibling page?
  *
- * True for anything without a qualifier on the axis, plus the named sets
- * above. This is the half of the overlap measure that decides what counts as
- * SHARED text, so getting it wrong flatters the page — which it did, until
- * the list above was replaced by the derivation below it.
+ * True for anything without a qualifier on the axis, plus the claims the
+ * product has named as repeated on every page. This is the half of the overlap
+ * measure that decides what counts as SHARED text, so getting it wrong flatters
+ * the page — which it did, until the hardcoded list was replaced by the
+ * derivation below it.
+ *
+ * ⚠️ `allRepeated` DEFAULTS TO EMPTY, AND THAT IS THE SAFE DIRECTION. A caller
+ * that forgets it gets the derived answer alone, which UNDER-counts shared text
+ * and makes the page look worse than it is. The opposite default — assuming
+ * everything named is repeated — would flatter it, and a measure that errs
+ * towards flattering is the one nobody catches.
  */
-export function isSharedAcrossVariants(record, axisKey) {
-  if (ALL_REPEATED_CLAIMS.includes(record?.id)) return true;
+export function isSharedAcrossVariants(record, axisKey, allRepeated = []) {
+  if (allRepeated.includes(record?.id)) return true;
   return !isPerVariant(record, axisKey);
 }
-
-/** @deprecated use ALL_REPEATED_CLAIMS for overlap, UNIVERSAL_CLAIMS for placement. */
-export const SHARED_CLAIM_IDS = ALL_REPEATED_CLAIMS;
 
 /**
  * The variant page with out-of-scope claims removed. A section that loses all
@@ -167,7 +156,7 @@ export const SHARED_CLAIM_IDS = ALL_REPEATED_CLAIMS;
  * trailer that hints at one is how "awaiting its layer" quietly becomes "behind
  * a link" in somebody's summary six weeks from now.
  */
-export function placeClaims(page, removeIds = REMOVED_FROM_VARIANT_PAGE) {
+export function placeClaims(page, removeIds) {
   if (!Array.isArray(page?.sections)) {
     throw new Error("placeClaims(page): the engine has no page of its own \u2014 a product must hand one over");
   }
@@ -183,29 +172,5 @@ export function placeClaims(page, removeIds = REMOVED_FROM_VARIANT_PAGE) {
     sections,
     trailer: null,
     removedClaims: removed,
-    toOriginLayer: removed.filter((c) => PENDING_ORIGIN_LAYER.includes(c)),
-    toDestinationLayer: removed.filter((c) => PENDING_DESTINATION_LAYER.includes(c)),
   };
 }
-
-/**
- * Every claim owed a layer that does not exist, with the layer named.
- *
- * Exported so the census can COUNT the debt rather than leaving it in prose —
- * the same reason `DECLARED_GAPS` exists. A debt nobody counts is a debt nobody
- * pays.
- */
-export const AWAITING_A_LAYER = Object.freeze([
-  ...PENDING_ORIGIN_LAYER.map((claim) => ({
-    claim,
-    layer: "a layer that knows the reader's ORIGIN",
-    exists: false,
-    becomes: 'not "here are the rules" but "Nigeria is red-listed, and here is what that means for you"',
-  })),
-  ...PENDING_DESTINATION_LAYER.map((claim) => ({
-    claim,
-    layer: "a layer that knows the DESTINATION",
-    exists: false,
-    becomes: 'not "New Zealand requires this" on a page about nursing, but on a page about going to New Zealand',
-  })),
-]);

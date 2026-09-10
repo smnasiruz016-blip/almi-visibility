@@ -29,9 +29,9 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
 import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
-import { FACTS_DIR } from "../products/almi-oet/register.mjs";
+import { FACTS_DIR, VARIANTS } from "../products/almi-oet/product.mjs";
 import { loadRegistry, toGateAFact } from "../src/facts/registry.mjs";
-import { NURSING_PAGE, PROFESSIONS } from "../products/almi-oet/page-specs.mjs";
+import { NURSING_PAGE } from "../products/almi-oet/page-specs.mjs";
 import { claimIdsOf } from "../src/page/claim-ids.mjs";
 import { renderPage } from "../src/page/render.mjs";
 import { runGateA, MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../src/gate-a/run.mjs";
@@ -68,7 +68,7 @@ console.log(`  ${trace.length} facts from ${new Set(trace.map((t) => t.subject))
 // this run's own output and not filtered by anything.
 mkdirSync(cacheDir, { recursive: true });
 const siblings = [];
-for (const p of PROFESSIONS) {
+for (const p of VARIANTS) {
   if (p === "nursing") continue;
   const cached = join(cacheDir, `${p}.html`);
   if (existsSync(cached)) {
@@ -86,8 +86,8 @@ for (const p of PROFESSIONS) {
 console.log(`\nSTEP 2 · THE PUBLISHED POPULATION`);
 line("═");
 console.log(`  ${siblings.length} sibling profession pages, fetched live from ${SITE}`);
-if (siblings.length !== PROFESSIONS.length - 1) {
-  console.log(`  🔴 expected ${PROFESSIONS.length - 1}. A short population makes the overlap number weaker, not better.`);
+if (siblings.length !== VARIANTS.length - 1) {
+  console.log(`  🔴 expected ${VARIANTS.length - 1}. A short population makes the overlap number weaker, not better.`);
 }
 
 // ── STEP 3 · GATE A ────────────────────────────────────────────────────────
@@ -152,7 +152,7 @@ function simulateProfession(profession, index) {
 
 const rolloutGroup = [
   { id: "nursing (CANDIDATE)", html: candidateHtml, facts: candidateFacts, whyThisUrl: "x" },
-  ...PROFESSIONS.filter((p) => p !== "nursing").map((p, i) => ({
+  ...VARIANTS.filter((p) => p !== "nursing").map((p, i) => ({
     id: `${p} (SIMULATED)`,
     html: simulateProfession(p, i + 1),
     facts: candidateFacts,

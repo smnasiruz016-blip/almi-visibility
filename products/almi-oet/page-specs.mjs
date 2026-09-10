@@ -27,11 +27,6 @@
  * unsourced fact bank.
  */
 
-/** The twelve professions AlmiOET publishes a page for. */
-export const PROFESSIONS = Object.freeze([
-  "dentistry", "dietetics", "medicine", "nursing", "occupational-therapy", "optometry",
-  "pharmacy", "physiotherapy", "podiatry", "radiography", "speech-pathology", "veterinary-science",
-]);
 
 /**
  * The page, as a list of sections. `claims` are ids into the registry.

@@ -87,6 +87,8 @@ document's home, it is not one of the 23, and it contained only `README.md`.
 | AlmiOET pSEO pages against Gate A (dry run, live) | **0 of 5 sampled pages would pass** |
 | AlmiOET pSEO pages against Gate C (live) | 🔴 **no caching at all** — every request runs a function |
 | Google Search Console access | **UNKNOWN** — nothing enabled, nothing authorized |
+| `/sitemap.xml` on the 23 product hosts | 🔴 **404 on every one of them** — and our own submitter sends that path for 3 products |
+| `almioet` → `sitemap-nationality-nurse.xml` | 🔴 **404, confirmed today** — a stale submission Google has retried since 21 August |
 | Worker execution layer | **UNDECIDED** — three options costed below, owner decides |
 
 **The single most important measured fact in this report:** the product we just finished
@@ -106,13 +108,15 @@ by asking each server to identify itself.
 | field | answer | method |
 |---|---|---|
 | Vercel project | `almi-visibility` (exists, updated ~30 min before this measurement) | `vercel projects ls` |
-| Neon project id | `noisy-truth-88221617` | `DATABASE_NEON_PROJECT_ID` |
+| Neon resource **name** | **`neon-green-pillar`** | `vercel integration list` |
+| Neon project **id** | **`noisy-truth-88221617`** | `DATABASE_NEON_PROJECT_ID` |
+| Are those one project or two? | **ONE — verified, see 2a** | |
 | Endpoint host | `ep-calm-brook-auptcd48-pooler.c-10.us-east-1.aws.neon.tech` | `DATABASE_PGHOST` |
 | Database name | `neondb` | `select current_database()` |
 | Is it a product's existing database? | **NO** | see below |
-| Neon plan | **UNKNOWN** | not exposed to the CLI or to SQL |
-| Storage limit | **UNKNOWN** | " |
-| Branch limit | **UNKNOWN** | " |
+| Neon plan | **Free** — OWNER-REPORTED 10 Sep 2026, not read by me | owner |
+| Branch limit | **10**, and the owner manages the slots himself — OWNER-REPORTED | owner |
+| Storage limit | **UNKNOWN** | not exposed to the CLI or to SQL |
 | Compute/autosuspend settings | **UNKNOWN** | " |
 
 ### It is a new, dedicated database — three independent pieces of evidence
@@ -133,6 +137,30 @@ machine, so I could not compare their endpoints directly. Point 1 does not depen
 comparison and is decisive on its own.
 
 **No RED BLOCKER on this item.**
+
+### 2a · `neon-green-pillar` and `noisy-truth-88221617` are ONE project — checked, not assumed
+
+Two names for the same thing were sitting in this report, and *"Neon uses names and ids"* is an
+explanation, not a verification. So it was verified:
+
+```
+$ vercel integration list          (project: almi-visibility)
+
+Name                 Status         Product   Integration   Projects
+neon-green-pillar    ● Available    Neon      neon          almi-visibility
+```
+
+**Exactly one Neon resource is attached to `almi-visibility`, and it is `neon-green-pillar`.**
+That project's only `DATABASE_*` environment set carries `DATABASE_NEON_PROJECT_ID =
+noisy-truth-88221617`. One resource in, one id out — **the name and the id describe the same
+project.** `neon-green-pillar` is the label in the Neon console breadcrumb; `noisy-truth-88221617`
+is the id the platform passes to the app.
+
+**And it strengthens §2:** the resource's `Projects` column lists **`almi-visibility` and nothing
+else**, which is a *direct* statement of isolation from the platform, better than the inference
+from local env files.
+
+**No credential value, prefix, length or hash was read, printed or measured.** Names and ids only.
 
 ---
 
@@ -163,11 +191,80 @@ confirmed twice — once from the environment, once by asking each server to nam
 first preview deployment that writes a row writes it to the same store production reads. Every
 crawl snapshot, every issue record, every fact written from a branch lands in the one database.
 
-**It is not fixed here** — Phase 0 does not change infrastructure. It is recorded as a RED item
-for the owner's decision, with three shapes the fix can take, all of which are the owner's call:
-a second Neon project for preview; a Neon **branch** per preview deployment (Neon's own feature
-for exactly this, and the reason the branch limit above matters); or an explicit written rule
-that preview deployments never write, enforced by a guard in code.
+### 🔴 THE OWNER'S RULING, 10 September 2026 — NOT NOW, AND THE TRIGGER IS WRITTEN DOWN
+
+**No preview branch is created today, and that is correct.** The reasoning is the report's own
+measurement turned against a premature fix: **the database is empty** — `public` holds nothing,
+only Neon's `neon_auth` scaffolding. **There is nothing in it to protect.** The account is on Neon
+**Free**, where branches are a limited resource (**10**) the owner manages himself. Spending one
+today buys safety for data that does not exist.
+
+> ### THE TRIGGER — and remembering it is MY job, not the owner's
+>
+> **The branch is created BEFORE the migration that creates the first table whose loss or
+> corruption would actually cost something** — the fact cache, the cost ledger, the GSC pulls,
+> the page candidates, the crawl results. **Before, not after.**
+>
+> **When that migration is written, I stop and say: *"now is the time for the branch."*** Before
+> the migration is committed. Not in the same PR as an afterthought, and not once there are rows
+> in it.
+
+### 🔴 AND WHEN THAT TIME COMES, THE FIX HAS TWO HALVES. HALF IS A TRAP.
+
+| | |
+|---|---|
+| **(a)** | a **preview branch in Neon** |
+| **(b)** | in **Vercel**, move the `DATABASE_*` variables off **"All Environments"** and set a **separate Preview** set pointing at that branch |
+
+**Doing (a) without (b) changes nothing at all — and it will look solved.** A branch exists, it
+has a name, it appears in the console, and every preview deployment goes on sending its writes to
+production because **that is still what its environment variables say.** The measurement in the
+table above is exactly the shape that failure keeps: same project, same host, same database,
+across both environments.
+
+**So the proof of the fix is the same measurement repeated, not the existence of a branch:** pull
+Preview and Production, compare the **host**, and ask each server `select current_database()` and
+`current_setting('neon.project_id')`. **Different answers, or it is not fixed.** A branch nobody
+routed to is a receipt, not a repair.
+
+*(Phase 0 changes no infrastructure. This is the recorded ruling and its trigger, not an action.)*
+
+---
+
+## 2c · 🔴 THE WRITE LAW — in force from day one, not added later
+
+**Owner's ruling, 10 September 2026. This goes into the FIRST build PR. It is not a hardening
+task for later.**
+
+> **Every write path in AlmiVisibility:**
+> - **defaults to `--dry-run`**
+> - **a real write requires BOTH:** `--confirm` **AND** `ALLOW_PROD_WRITE=1`
+>
+> **Both. Not either.** One flag is a typo away from a write; two, of different kinds — an
+> argument and an environment variable — are not reached by accident.
+
+**Where it comes from:** it is AlmiOET's law, and AlmiOET has it **because environment separation
+was never achieved there** — the same defect §2b measures here. The guard was built to survive
+the absence of the isolation.
+
+**Why it goes in first, and why it stays:**
+
+| | |
+|---|---|
+| it costs **nothing** | no branch, no plan, no provider, no money |
+| it does not wait on anything | it is independent of Neon, Vercel, GSC and every UNKNOWN in §13 |
+| it is the **only** protection that exists today | §2b measured it: preview and production are the same database. Until that is split, a dry-run default is the *whole* of the safety |
+| **it stays after the branch exists** | isolation and a dry-run default protect against different mistakes. A branch stops a *preview deployment* writing to production; the write law stops *a person or a script* writing when they meant to look |
+
+**What "every write path" means, stated now so it cannot be narrowed later:** every migration
+runner, every seeding or backfill script, every crawler that persists a snapshot, every GSC
+ingestion, every fact-cache write, every issue-ledger write, every purge or retention job. **A
+script that only ever reads needs no flag; the moment it can write, it needs both.**
+
+**And the failure this prevents is already in the record:** a documented production write on this
+network once had to be run through a throwaway wrapper that was never committed, so the
+documented command did not work for anyone reading it. **A guard that lives in the script is a
+guard; a guard that lives in someone's shell history is not.**
 
 ---
 
@@ -488,6 +585,148 @@ UNKNOWN today (section 6).
 
 ---
 
+## 11a · 🔴 GATE B — EVIDENCE, NOT CONJECTURE
+
+**Added 10 September 2026, after the owner read his Search Console properties.** Gate B stopped
+being a design argument the moment real numbers existed. This section separates, strictly, three
+things that must never be blended: **what the owner saw**, **what I measured**, and **what nobody
+has checked yet.**
+
+### 11a.1 · What the owner reported — OWNER-REPORTED, NOT VERIFIED BY ME
+
+I have **no Search Console access.** Nothing was authorized, nothing was enabled, and I did not
+read the console. The figures below came to me from the owner's screenshots and are recorded as
+**his reading**, not as a measurement of mine. **Rule Eight applies to a screenshot too**, and it
+applies to me: I did not take these numbers, so I do not present them as taken.
+
+| owner-reported | figure |
+|---|---|
+| `almioet` sitemap-index | **240,328 discovered**, last read by Google **9 September** |
+| `almiprep` | 220,212 discovered |
+| `almipte` | 90,484 discovered |
+| one host (shape matches AlmiDET) | 1,172,926 discovered |
+| `world.almiworld.com` | 101,459 discovered |
+| `almioet` → `sitemap-nationality-nurse.xml` | **"Couldn't fetch" — since 21 August** |
+| across the properties | **~15 sitemaps read "Success" with discovered = 0** |
+
+**The first line is the important one for GAP-055.** If Google has discovered 240,328 AlmiOET
+URLs and read the index on 9 September, then **the crawl exposure in §11b is not hypothetical.**
+Those URLs are known to Google, and every visit to one of them runs a function.
+
+### 11a.2 · What I measured today, publicly — and it explains the pattern
+
+**Every host's sitemap serves correctly. Not one child sitemap is broken.** 24 hosts, every child
+of every index followed: **all 200, all containing `<url>` entries.** So "Success with 0
+discovered" is **not** caused by a broken sitemap file.
+
+Then I measured the **paths** instead of the files, and the cause fell out:
+
+> ### 🔴 `/sitemap.xml` RETURNS **404** ON EVERY ONE OF THE 23 PRODUCT HOSTS.
+>
+> Measured on all of them. So does `/sitemap_index.xml`. The working path is
+> **`/sitemap-index.xml`** — except AlmiArchitect, which serves `/sitemap/0.xml` and 404s on
+> `/sitemap-index.xml`, and `almiworld.com` (WordPress), which correctly serves
+> `/sitemap_index.xml` with 6 children.
+
+**And this repository submits the 404 path for three products.**
+`almi-seo-ops/submit-sitemaps.mjs` — the script that tells Search Console where to look:
+
+| line | host | `feed` it submits | what that URL actually returns |
+|---|---|---|---|
+| 24 | `almistudy.almiworld.com` | `sitemap.xml` | 🔴 **404** |
+| 27 | `almipte.almiworld.com` | `sitemap.xml` | 🔴 **404** |
+| 29 | `almitoefl.almiworld.com` | `sitemap.xml` | 🔴 **404** |
+| 22, 23, 25, 26, 30 | almicv, almiprep, almisalary, almijob, world | `sitemap-index.xml` | ✅ 200 |
+| 32 | `almiworld.com` | `sitemap_index.xml` | ✅ 200, 6 children |
+| 38 | `almiarchitect` | `sitemap/0.xml` | ✅ 200, 156 URLs |
+
+🔴 **And the network already knew.** `almi-monitor/src/lib/registry-seed.ts` carries this comment:
+*"Sitemap paths corrected in Tune-Up 1: every product serves its sitemap at `/sitemap-index.xml`
+(confirmed via each product's robots.txt + a 200 probe), **not `/sitemap.xml`**."*
+**One list was corrected. The other was not.** The corrected list is the one that only watches;
+the stale list is the one that actually talks to Google.
+
+### 11a.3 · The two hosts asked for, and their answers are different
+
+The owner asked for two of the zero-discovery hosts, examined separately, *because the cause may
+not be the same one.* It is not:
+
+| host | sitemap it serves | what I measured | most likely reason for a 0 |
+|---|---|---|---|
+| **AlmiPTE** | `/sitemap-index.xml` → **3 children → 90,484 URLs, all 200** | the file is **perfect** | the **submitted URL** is `sitemap.xml`, which is a **404**. A property with that entry can only ever read zero — and the owner also reports a *working* 90,484 figure for this host, which is exactly what you would see if **both** entries exist: one good, one dead |
+| **AlmiDutch** | `/sitemap-index.xml` → **1 child → 12 URLs, all 200** | the file is **fine but nearly empty** — twelve URLs for a whole product | nothing here is broken. **There is almost nothing to discover.** A 0 or a 12 on this property is a *content* fact, not a *plumbing* fact |
+
+**Those are two genuinely different diagnoses**, and treating "0 discovered" as one condition
+would have produced one wrong fix for both. The same care is owed to the remaining thirteen.
+
+### 11a.4 · `sitemap-nationality-nurse.xml` — CONFIRMED, and it is a stale submission
+
+**Measured today:**
+
+```
+404  https://almioet.almiworld.com/sitemap-nationality-nurse.xml
+404  https://almioet.almiworld.com/sitemap/nationality-nurse.xml
+404  https://almioet.almiworld.com/sitemap.xml
+```
+
+**Google is right.** The URL does not exist, and it is **not referenced by the live
+`sitemap-index.xml`**, which lists exactly six children: `/sitemap/0.xml` … `/sitemap/5.xml`.
+So this is a sitemap that **was submitted once, then removed from the site, and never withdrawn
+from Search Console.** Google has been retrying a dead URL since 21 August — three weeks — and
+the only place that failure is visible is the console nobody was reading.
+
+**It is a live defect, it is small, and it is the cheapest possible demonstration of why Gate B
+exists:** the sitemap was *submitted*, which felt like success, and the only thing that would
+ever have told anyone otherwise is *evidence read back from the search engine*.
+
+### 11a.5 · What is still BLOCKED, and it is (a) and (b)
+
+The owner asked for **every host's real figures — sitemap URL, submitted date, last read, status,
+discovered pages — from the console, not from a screenshot**, and then a count of how many sit at
+zero.
+
+**I cannot produce that. I have no Search Console access.** Reporting his screenshot figures as
+if I had measured them would be precisely the failure this instruction exists to prevent.
+
+**What unlocks it — and it is unchanged from §6:**
+
+1. the owner names the **property type** in use (`sc-domain:almiworld.com`, or 23 URL-prefix
+   properties — this decides whether one authorization covers everything);
+2. a **service account** with **`https://www.googleapis.com/auth/webmasters.readonly`**;
+3. that account added as a **Restricted** user on the property;
+4. the key delivered by a route that is not this chat.
+
+With those, the table the owner asked for is one read-only API call per property, and it becomes
+a **standing** measurement rather than a screenshot taken once.
+
+### 11a.6 · The correction this section forces
+
+**The AlmiCELPIP case is no longer a one-product anomaly.** The record treated it that way —
+*"57 /learn LIVE + GSC ✅"* while the sitemap returned 0 discovered. Today's evidence says the
+shape is **network-wide**: three products are being told the wrong URL by our own script, one
+product is retrying a dead sitemap, and roughly fifteen properties report success while
+discovering nothing.
+
+> **The lesson stands and gets sharper: "submitted" is not a result. Neither is "Success".**
+> **The only number that means anything is what the search engine says it kept.**
+
+### 11a.7 · Two small discrepancies, recorded rather than smoothed over
+
+| host | owner-reported discovered | I measured in the sitemap today | difference |
+|---|---|---|---|
+| AlmiPrep | 220,212 | **220,012** | **200** |
+| AlmiDET (shape match) | 1,172,926 | **1,172,928** | **2** |
+| AlmiPTE | 90,484 | 90,484 | 0 |
+| AlmiWorld Hub | 101,459 | 101,459 | 0 |
+| AlmiOET | 240,328 | 240,328 | 0 |
+
+Most likely explanation: Google read those two sitemaps on a different day and the content moved.
+**That is a guess, and it is labelled as one.** It matters only because it shows the two numbers
+are **not** the same measurement — *discovered* is Google's count on Google's date; the sitemap's
+`<url>` count is ours, today. **Gate B must always compare like with like, and record both dates.**
+
+---
+
 ## 11b · 🔴 GATE C — COST PER CRAWL. FROZEN.
 
 **Equal in rank to Gate A and Gate B. Not advice — a gate.**
@@ -597,7 +836,7 @@ session — it protects the root layout. It does not ask what that read costs a 
 
 | # | blocker | severity | why it blocks |
 |---|---|---|---|
-| 1 | **Preview and Production share one database** (section 2b) | 🔴 RED | there is no harmless place to test; the first branch that writes, writes to production |
+| 1 | **Preview and Production share one database** (§2b) | 🟠 **deferred by ruling, with a written trigger** | the database is EMPTY, so nothing is at risk today. The branch is created **before the first migration that creates a table worth losing**, and remembering that is MY job. The fix has **two halves** — a Neon branch **and** a separate Vercel Preview `DATABASE_*` set; half of it looks solved and changes nothing. Until then the WRITE LAW (§2c) is the whole of the protection |
 | 2 | **Google Search Console: no property chosen, no access, no quota known** | 🔴 RED for Gate B | Gate B *is* GSC evidence. Without it, "indexed" is unmeasurable and the pause mechanism cannot exist |
 | 3 | **Neon plan, storage limit and branch limit UNKNOWN** | 🟠 | the growth table in section 8 cannot become a cost, and the branch-per-preview fix for blocker 1 may or may not be available |
 | 4 | **Worker execution layer UNDECIDED**, and every cost in section 7 is unverified | 🟠 | a crawler cannot be scheduled before its host exists; no paid option may be activated without the owner |
@@ -606,6 +845,9 @@ session — it protects the root layout. It does not ask what that read costs a 
 | 7 | **AlmiPathway is unreachable** — no robots.txt, no sitemap | 🟡 | one of the 23 products cannot be audited at all |
 | 8 | **22 of 23 products have no funnel instrumentation** | 🟡 | visibility can be tied to traffic but not to conversion outside AlmiOET |
 | 9 | **AlmiOET's 240,328 pSEO pages declare `revalidate = false` and are served dynamically with caching switched off** (§11b) | 🔴 for cost | every crawler visit runs a function; the declared render mode is not the served one. This is a live product cost, found in Phase 0, and it is the owner's decision what to do about it |
+| 10 | **`almi-seo-ops/submit-sitemaps.mjs` submits `/sitemap.xml` for almistudy, almipte and almitoefl — a 404 on all three** (§11a.2) | 🔴 | our own script tells Google to read a URL that does not exist. `almi-monitor` was corrected for this and the submitter was not |
+| 11 | **`almioet`'s `sitemap-nationality-nurse.xml` is a stale submission, 404 since at least 21 August** (§11a.4) | 🟠 | small, live, and the cheapest demonstration of why Gate B exists |
+| 12 | **The WRITE LAW is not yet in any code**, because no code exists (§2c) | 🟠 | it must land in the FIRST build PR, not after it |
 
 ---
 
@@ -615,9 +857,9 @@ session — it protects the root layout. It does not ask what that read costs a 
 
 | # | UNKNOWN | why it is unknown | who can answer | evidence that closes it |
 |---|---|---|---|---|
-| U1 | Neon **plan** for `noisy-truth-88221617` | not exposed to the Vercel CLI or to SQL | **owner** | a screenshot or reading of the Neon console billing page |
+| U1 | ~~Neon **plan**~~ **ANSWERED (owner-reported, 10 Sep): Free.** Not read by me; recorded as his reading | — | — | closed unless the plan changes |
 | U2 | Neon **storage limit** | " | **owner** | same |
-| U3 | Neon **branch limit** | " | **owner** | same — and it decides whether branch-per-preview is available for blocker 1 |
+| U3 | ~~Neon **branch limit**~~ **ANSWERED (owner-reported, 10 Sep): 10**, managed by the owner. This is why no branch is created today — see §2b | — | — | closed |
 | U4 | Neon **compute / autosuspend** settings | " | **owner** | Neon console |
 | U5 | GSC **property type** in use today (domain vs URL-prefix) | Search Console was not opened, nothing was enabled | **owner** | the property list in Search Console |
 | U6 | GSC **URL Inspection API quota** per property per day | not measurable without access | **owner + Google's quota docs** | the documented quota, read on the day it matters |

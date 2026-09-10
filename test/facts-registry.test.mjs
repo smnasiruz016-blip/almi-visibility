@@ -15,10 +15,14 @@ import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 
 import { factId, TIER_LEAD_ONLY, INCONCLUSIVE_OUTCOMES } from "../src/facts/schema.mjs";
+import { quotableUnder, requiredAttribution, LICENCES } from "../src/facts/licences.mjs";
+import { quoteUsableNow, renderableQuote } from "../src/facts/freshness.mjs";
+import { pageFingerprint, matchFingerprint, MIN_SUBSTANTIVE_LENGTH } from "../src/facts/fingerprint.mjs";
+import { scanForThirdPartyRights } from "../src/facts/quote-match.mjs";
 import { fact } from "../src/facts/record.mjs";
 import { validateRecord, validateRegistry } from "../src/facts/validate.mjs";
 import { queueFor, freshnessRuleFor, manualQueueCost, automatedQueueIsUnattended } from "../src/facts/queues.mjs";
-import { normaliseText, matchQuote, runQuoteMatch } from "../src/facts/quote-match.mjs";
+import { normaliseText, matchQuote, runQuoteMatch, fetchForMatch } from "../src/facts/quote-match.mjs";
 import { loadRegistry, census, toGateAFact, REGISTRY_FACT_CHECK_COUNT } from "../src/facts/registry.mjs";
 
 const NOW = new Date("2026-09-10T00:00:00Z");
@@ -41,6 +45,9 @@ function lawful(overrides = {}) {
     sourceMachineReadableBasis: "fetched 2026-09-10, HTTP 200",
     sourceQuotable: true,
     sourceQuotableBasis: "express permission to quote its standards and guidance, read 2026-09-10",
+    licence: "NMC-6.3",
+    sourceDocumentClass: "guidance",
+    attributionStatement: "Nursing and Midwifery Council — https://www.nmc.org.uk/",
     evidence: { quotedSpan: "At least grade B (350 or above)", quoteLocation: "OET section" },
     checks: { linkCheckedOn: "2026-09-10", linkCheckOutcome: "pass", quoteMatchedOn: "2026-09-10", quoteMatchOutcome: "pass" },
     queue: "AUTOMATED",
@@ -120,10 +127,19 @@ describe("🔴 F6 and F9 — a source a machine may read and may NOT quote", () 
     lawful({
       sourceQuotable: false,
       sourceQuotableBasis: "express prohibition — content may not be stored in an electronic retrieval system",
-      queue: "MANUAL",
-      freshness: { rule: "human-re-read", days: 180 },
+      licence: "OET-CBLA-IP",
+      sourceDocumentClass: "general",
+      attributionStatement: null,
+      // Machine-readable and un-quotable, so it is watched by FINGERPRINT.
+      queue: "AUTOMATED",
+      freshness: { rule: "machine-fingerprint", days: 180 },
+      pageFingerprint: "a".repeat(64),
       evidence: { quotedSpan: null, quoteLocation: null, ownWords: "stated in our own words" },
-      checks: { linkCheckedOn: "2026-09-10", linkCheckOutcome: "pass", quoteMatchedOn: null, quoteMatchOutcome: "not-applicable" },
+      checks: {
+        linkCheckedOn: "2026-09-10", linkCheckOutcome: "pass",
+        quoteMatchedOn: null, quoteMatchOutcome: "not-applicable",
+        fingerprintCheckedOn: "2026-09-10", fingerprintOutcome: "pass",
+      },
       ...extra,
     });
 
@@ -163,7 +179,11 @@ describe("🔴 F6 and F9 — a source a machine may read and may NOT quote", () 
     const oet = unquotable();
     assert.equal(oet.sourceMachineReadable, true);
     assert.equal(oet.sourceQuotable, false);
-    assert.equal(queueFor(oet), "MANUAL", "readable but unquotable still costs a person");
+    // 🔴 CHANGED 2026-09-10. Quotability no longer decides the QUEUE — it
+    // decides WHICH CHECK RUNS. A source we may fetch and may not quote is
+    // watched by a fingerprint, which stores no words and still detects a change.
+    assert.equal(queueFor(oet), "AUTOMATED", "a machine can still reach the page");
+    assert.equal(freshnessRuleFor(oet), "machine-fingerprint", "but it may not hold their sentence");
   });
 });
 
@@ -236,19 +256,29 @@ describe("🔴 F11 — the queue is DERIVED, so it cannot be used to hide work",
     assert.ok(laws(lawful({ freshness: { rule: "human-re-read", days: 180 } })).has("F11"));
   });
 
-  test("the derivation needs BOTH permissions, and 'unknown' is not one of them", () => {
+  test("the QUEUE turns on reachability alone; QUOTABILITY picks the check", () => {
     assert.equal(queueFor({ sourceMachineReadable: true, sourceQuotable: true }), "AUTOMATED");
-    assert.equal(queueFor({ sourceMachineReadable: true, sourceQuotable: false }), "MANUAL");
+    assert.equal(queueFor({ sourceMachineReadable: true, sourceQuotable: false }), "AUTOMATED");
+    assert.equal(queueFor({ sourceMachineReadable: true, sourceQuotable: "unknown" }), "AUTOMATED");
+    // 🔴 Only an unreachable source is manual. "unknown" reachability is NOT true.
     assert.equal(queueFor({ sourceMachineReadable: false, sourceQuotable: true }), "MANUAL");
     assert.equal(queueFor({ sourceMachineReadable: "unknown", sourceQuotable: true }), "MANUAL");
-    assert.equal(queueFor({ sourceMachineReadable: true, sourceQuotable: "unknown" }), "MANUAL");
+
     assert.equal(freshnessRuleFor({ sourceMachineReadable: true, sourceQuotable: true }), "machine-quote-match");
+    assert.equal(freshnessRuleFor({ sourceMachineReadable: true, sourceQuotable: false }), "machine-fingerprint");
+    assert.equal(freshnessRuleFor({ sourceMachineReadable: true, sourceQuotable: "unknown" }), "machine-fingerprint");
+    assert.equal(freshnessRuleFor({ sourceMachineReadable: false, sourceQuotable: true }), "human-re-read");
   });
 
-  test("🔴 'unknown' is the EXPENSIVE answer, so nobody can reach for it to make work cheaper", () => {
-    const unknown = { sourceMachineReadable: true, sourceQuotable: "unknown" };
-    assert.equal(queueFor(unknown), "MANUAL");
-    assert.equal(manualQueueCost([unknown]).facts, 1);
+  test("🔴 'unknown' NEVER buys a quote — an unread licence is not a permissive licence", () => {
+    // It no longer costs a manual-queue slot, because a fingerprint can watch it.
+    // What it can never do is authorise storing the source's words.
+    assert.equal(freshnessRuleFor({ sourceMachineReadable: true, sourceQuotable: "unknown" }), "machine-fingerprint");
+    for (const cls of ["rules", "standards", "guidance", "news", "general"]) {
+      assert.equal(quotableUnder("unknown-not-read", cls), "unknown");
+      assert.equal(quotableUnder("unknown-licence-unreachable", cls), "unknown");
+    }
+    assert.ok(laws(lawful({ licence: "unknown-not-read", sourceQuotable: true })).has("F18"));
   });
 
   test("RED: sourceQuotable without its basis is rejected — a conclusion with its evidence destroyed", () => {
@@ -334,7 +364,14 @@ describe("🔴 the quote match — and its red is forced against a real page sha
     let fetches = 0;
     const fetchImpl = async () => {
       fetches += 1;
-      return { ok: true, status: 200, text: async () => "At least grade B (350 or above)" };
+      // Padded past MIN_SUBSTANTIVE_BODY: a 31-character page is now refused as
+      // "200 but not a document", which is the nmcnigeria.org lesson applied.
+      return {
+        ok: true,
+        status: 200,
+        url: "https://www.nmc.org.uk/x",
+        text: async () => "At least grade B (350 or above) " + "filler words here. ".repeat(60),
+      };
     };
     const two = [lawful(), lawful({ id: "uk-nmc.oet-combining-sittings", claim: { subject: "uk-nmc", predicate: "oet-combining-sittings", qualifier: null } })];
     const report = await runQuoteMatch(two, { fetchImpl, now: NOW });
@@ -366,7 +403,17 @@ describe("🔴 DOD-03A — the automated queue must GENUINELY run unattended", (
   });
 
   test("manual records are not counted against the automated queue — but they are counted", () => {
-    const manual = lawful({ sourceQuotable: false, queue: "MANUAL", freshness: { rule: "human-re-read", days: 180 } });
+    const manual = lawful({
+      sourceMachineReadable: false,
+      sourceMachineReadableBasis: "HTTP 403",
+      sourceQuotable: false,
+      licence: "proprietary-no-reuse",
+      sourceDocumentClass: "general",
+      attributionStatement: null,
+      evidence: { quotedSpan: null, quoteLocation: null, ownWords: "ours" },
+      queue: "MANUAL",
+      freshness: { rule: "human-re-read", days: 180 },
+    });
     assert.equal(automatedQueueIsUnattended([manual]).automatedCount, 0);
     assert.equal(manualQueueCost([manual]).facts, 1);
   });
@@ -375,12 +422,20 @@ describe("🔴 DOD-03A — the automated queue must GENUINELY run unattended", (
 // ───────────── THE MANUAL QUEUE'S COST — DECLARED, NEVER INVENTED ───────────
 
 describe("🔴 the manual queue's cost", () => {
+  // 🔴 MANUAL now means UNREACHABLE, not un-quotable. A 403 is the only thing
+  // that still puts a record here.
   const manual = (n) =>
     Array.from({ length: n }, (_, i) =>
       lawful({
         id: `s.p.q=${i}`,
         claim: { subject: "s", predicate: "p", qualifier: `q=${i}` },
+        sourceMachineReadable: false,
+        sourceMachineReadableBasis: "HTTP 403 on 2026-09-10",
         sourceQuotable: false,
+        licence: "proprietary-no-reuse",
+        sourceDocumentClass: "general",
+        attributionStatement: null,
+        evidence: { quotedSpan: null, quoteLocation: null, ownWords: "ours" },
         queue: "MANUAL",
         freshness: { rule: "human-re-read", days: 180 },
       }),
@@ -426,7 +481,13 @@ describe("🔴 the registry as it actually stands on disk", () => {
     assert.ok(records.length >= 30, `only ${records.length} records`);
     const c = census(records, { now: NOW });
     assert.ok(c.byQueue.AUTOMATED > 0, "an automated queue with nothing in it has not been demonstrated");
-    assert.ok(c.byQueue.MANUAL > 0);
+    // 🔴 The MANUAL queue is EMPTY, and that is a finding rather than a
+    // triumph: every source in the registry happens to be fetchable. What must
+    // NOT be empty is the weaker-evidence column — pretending all 32 were
+    // quote-matched would be the real dishonesty.
+    assert.equal(c.byQueue.MANUAL, 0);
+    assert.ok(c.byFreshnessRule["machine-quote-match"] > 0, "some records must carry STRONG evidence");
+    assert.ok(c.byFreshnessRule["machine-fingerprint"] > 0, "and the weak ones must be visible as weak");
   });
 
   test("the registry holds facts from BOTH origin and destination sources, not one shape repeated", async () => {
@@ -503,5 +564,360 @@ describe("🔴 factChecked stays ZERO, and records existing does not change that
     const g = toGateAFact(lawful({ checks: { linkCheckedOn: null, linkCheckOutcome: "could-not-check", quoteMatchedOn: null, quoteMatchOutcome: "could-not-check", factCheckedOn: null, factCheckedBy: null } }));
     assert.equal(g.verifiedDate, null);
     assert.equal(g.linkChecked, false);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// THE LICENCE FINDINGS — owner's first-hand reading, SOURCE_QUOTABILITY.md
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe("🔴 F17/F18 — quotability is decided PER DOCUMENT, not per domain", () => {
+  test("🔴 THE NMC CASE: one domain, two answers, and the document class decides", () => {
+    // Clause 6.3 permits reproducing rules, standards and guidance. Clause 6.2
+    // refuses everything else storage "on any server ... connected to the
+    // network" — which is exactly what this registry is.
+    assert.equal(quotableUnder("NMC-6.3", "guidance"), true);
+    assert.equal(quotableUnder("NMC-6.3", "rules"), true);
+    assert.equal(quotableUnder("NMC-6.3", "standards"), true);
+    assert.equal(quotableUnder("NMC-6.3", "news"), false, "an NMC news item is NOT quotable");
+    assert.equal(quotableUnder("NMC-6.3", "general"), false);
+  });
+
+  test("RED: a record claiming a quote from NMC NEWS is rejected", () => {
+    const r = lawful({ sourceDocumentClass: "news" });
+    assert.ok(laws(r).has("F18"), "the same fact is quotable from guidance and not from news");
+  });
+
+  test("RED: a missing licence or document class is rejected outright", () => {
+    assert.ok(laws(lawful({ licence: undefined })).has("F17"));
+    assert.ok(laws(lawful({ sourceDocumentClass: undefined })).has("F17"));
+    assert.ok(laws(lawful({ licence: "made-up-licence" })).has("F17"));
+  });
+
+  test("RED: quotability may not be TYPED against what the clause derives", () => {
+    const r = lawful({ licence: "proprietary-no-reuse", sourceQuotable: true });
+    assert.ok(laws(r).has("F18"), "a hand-written licence judgement is one nobody can re-check");
+  });
+
+  test("gov.uk permits every class, INCLUDING commercially — AlmiWorld is commercial", () => {
+    for (const cls of ["rules", "standards", "guidance", "news", "general"]) {
+      assert.equal(quotableUnder("OGL-v3.0", cls), true);
+    }
+    assert.equal(LICENCES["OGL-v3.0"].permitsCommercial, true);
+  });
+
+  test("🔴 OET's carve-outs are NON-COMMERCIAL, so they do not reach us at all", () => {
+    assert.equal(LICENCES["OET-CBLA-IP"].permitsCommercial, false);
+    for (const cls of ["rules", "standards", "guidance", "news", "general"]) {
+      assert.equal(quotableUnder("OET-CBLA-IP", cls), false);
+    }
+  });
+});
+
+describe("🔴 F19 — silence is `false`, and only an UNREAD licence is `unknown`", () => {
+  test("🔴 a bare copyright notice derives FALSE, not unknown", () => {
+    // The owner's ruling: the absence of a licence is not permission, and
+    // "all rights reserved" is what silence means. NMBI, PNMC and NMCN are all
+    // this, and PR #9 had all three wrong as "unknown".
+    assert.equal(quotableUnder("proprietary-no-reuse", "guidance"), false);
+  });
+
+  test("RED: claiming `unknown` under a licence we HAVE read is rejected", () => {
+    const r = lawful({
+      licence: "proprietary-no-reuse",
+      sourceQuotable: "unknown",
+      evidence: { quotedSpan: null, quoteLocation: null, ownWords: "ours" },
+      freshness: { rule: "machine-fingerprint", days: 180 },
+      pageFingerprint: "b".repeat(64),
+      attributionStatement: null,
+      checks: { ...lawful().checks, quoteMatchedOn: null, quoteMatchOutcome: "not-applicable", fingerprintCheckedOn: "2026-09-10", fingerprintOutcome: "pass" },
+    });
+    assert.ok(laws(r).has("F19"), "silence is not uncertainty — treating it as such re-opens a closed question");
+  });
+
+  test("GREEN: `unknown` is lawful under the two unread states, and both refuse a quote", () => {
+    for (const lic of ["unknown-not-read", "unknown-licence-unreachable"]) {
+      const r = lawful({
+        licence: lic,
+        sourceQuotable: "unknown",
+        attributionStatement: null,
+        evidence: { quotedSpan: null, quoteLocation: null, ownWords: "ours" },
+        freshness: { rule: "machine-fingerprint", days: 180 },
+        pageFingerprint: "c".repeat(64),
+        checks: { ...lawful().checks, quoteMatchedOn: null, quoteMatchOutcome: "not-applicable", fingerprintCheckedOn: "2026-09-10", fingerprintOutcome: "pass" },
+      });
+      assert.deepEqual([...laws(r)], [], JSON.stringify(validateRecord(r).errors));
+    }
+  });
+});
+
+describe("🔴 F20 — the credit is part of the permission, not a courtesy", () => {
+  test("RED: a quote with no attribution is a breach THAT LOOKS LIKE COMPLIANCE", () => {
+    assert.ok(laws(lawful({ attributionStatement: null })).has("F20"));
+  });
+
+  test("RED: the WRONG licence's credit does not satisfy this one", () => {
+    // Both permissive licences require a credit and each requires a DIFFERENT
+    // one. An OGL statement on an NMC record is not attribution, it is noise.
+    const r = lawful({ attributionStatement: "Contains public sector information licensed under the Open Government Licence v3.0." });
+    assert.ok(laws(r).has("F20"));
+  });
+
+  test("each licence names its own required credit", () => {
+    assert.match(requiredAttribution("OGL-v3.0"), /Open Government Licence v3\.0/);
+    assert.match(requiredAttribution("NMC-6.3"), /Nursing and Midwifery Council/);
+    assert.equal(requiredAttribution("OET-CBLA-IP"), null, "nothing may be quoted, so nothing needs crediting");
+  });
+});
+
+describe("🔴 F21 + quoteUsableNow — for the NMC, STALENESS IS A LICENCE BREACH", () => {
+  const fresh = lawful();
+  // Stale on BOTH demonstrations, or it is not stale at all — the first draft of
+  // this fixture aged only the match and the record stayed lawful on its
+  // extraction date, which is the correct behaviour and a wrong test.
+  const stale = lawful({
+    checks: { ...lawful().checks, quoteMatchedOn: "2026-01-01" },
+    life: { ...lawful().life, extractedOn: "2026-01-01" },
+  });
+
+  test("GREEN: a recently matched NMC quote is usable, and currency is DEMONSTRATED", () => {
+    const v = quoteUsableNow(fresh, NOW);
+    assert.equal(v.usable, true);
+    assert.equal(v.legal, true, "this is a licence judgement, not a quality one");
+  });
+
+  test("🔴 RED: a lapsed NMC quote is WITHDRAWN — not flagged, not stale. Withdrawn", () => {
+    const v = quoteUsableNow(stale, NOW);
+    assert.equal(v.usable, false);
+    assert.equal(v.legal, true);
+    assert.match(v.reason, /LICENCE CONDITION LAPSED/);
+    assert.equal(renderableQuote(stale, NOW), null, "nothing may render an out-of-licence reproduction");
+  });
+
+  test("the clock runs from the last DEMONSTRATION of currency, and EXTRACTION is one", () => {
+    // Corrected while writing this test: extraction IS a demonstration — the span
+    // was taken off the live page that day, which is exactly what clause 6.3
+    // asks for. So a never-matched but freshly extracted record is usable, and
+    // the reason has to say WHICH demonstration it is leaning on, because
+    // "confirmed by a machine" and "typed in by somebody" are not equal evidence.
+    const neverMatched = lawful({ checks: { ...lawful().checks, quoteMatchedOn: null, quoteMatchOutcome: "could-not-check" } });
+    const v = quoteUsableNow(neverMatched, NOW);
+    assert.equal(v.usable, true);
+    assert.match(v.reason, /the extraction/);
+
+    // 🔴 And an OLD extraction with no match does lapse.
+    const old = lawful({
+      checks: { ...lawful().checks, quoteMatchedOn: null, quoteMatchOutcome: "could-not-check" },
+      life: { ...lawful().life, extractedOn: "2026-01-01" },
+    });
+    assert.equal(quoteUsableNow(old, NOW).usable, false);
+
+    // A FAILED match must not be mistaken for a demonstration.
+    const failed = lawful({ checks: { ...lawful().checks, quoteMatchedOn: "2026-09-10", quoteMatchOutcome: "fail" }, life: { ...lawful().life, extractedOn: "2026-01-01" } });
+    assert.equal(quoteUsableNow(failed, NOW).usable, false, "a failing match cannot renew a permission");
+  });
+
+  test("a licence with NO currency condition does not withdraw on age", () => {
+    const ogl = lawful({
+      licence: "OGL-v3.0",
+      sourceDocumentClass: "rules",
+      attributionStatement: "Contains public sector information licensed under the Open Government Licence v3.0.",
+      thirdPartyRightsCheck: { checkedOn: "2026-09-10", clear: true, detail: "clear" },
+      checks: { ...lawful().checks, quoteMatchedOn: "2026-01-01" },
+    });
+    const v = quoteUsableNow(ogl, NOW);
+    assert.equal(v.usable, true);
+    assert.equal(v.legal, false, "age here is data quality, and must never be reported as a breach");
+  });
+
+  test("🔴 RED: an NMC record may NOT be watched by a fingerprint — it cannot demonstrate currency", () => {
+    const r = lawful({ freshness: { rule: "machine-fingerprint", days: 180 } });
+    assert.ok(laws(r).has("F21"));
+  });
+});
+
+describe('🔴 F22 — the per-page check the word "MOST" forces', () => {
+  const ogl = (extra = {}) =>
+    lawful({
+      licence: "OGL-v3.0",
+      sourceDocumentClass: "rules",
+      attributionStatement: "Contains public sector information licensed under the Open Government Licence v3.0.",
+      thirdPartyRightsCheck: { checkedOn: "2026-09-10", clear: true, detail: "no non-Crown notice" },
+      ...extra,
+    });
+
+  test("GREEN: an OGL page with a completed, clear check is lawful", () => {
+    assert.deepEqual([...laws(ogl())], [], JSON.stringify(validateRecord(ogl()).errors));
+  });
+
+  test("🔴 RED: storing an OGL page's text with NO per-page check is rejected", () => {
+    assert.ok(laws(ogl({ thirdPartyRightsCheck: null })).has("F22"));
+  });
+
+  test("RED: a check that came back NOT clear blocks the quote", () => {
+    const r = ogl({ thirdPartyRightsCheck: { checkedOn: "2026-09-10", clear: false, detail: "a third-party credit is present" } });
+    assert.ok(laws(r).has("F22"));
+  });
+
+  test("the scanner REPORTS what it found rather than deciding", () => {
+    const crownOnly = scanForThirdPartyRights("<p>© Crown copyright 2025. Licensed under the OGL.</p>");
+    assert.equal(crownOnly.clear, true);
+    const thirdParty = scanForThirdPartyRights("<p>© Crown copyright</p><p>© 2026 Some Publisher Ltd</p>");
+    assert.equal(thirdParty.clear, false);
+    assert.equal(thirdParty.nonCrown.length, 1);
+    assert.ok(thirdParty.notices.length >= 2, "it shows its working, so a reviewer can judge the scan itself");
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// THE FINGERPRINT — automated freshness without storing a single word
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe("🔴 the page fingerprint — and its red is forced", () => {
+  const body = (extra = "") => "<p>Real regulator content here. </p>" + "More substantive body text. ".repeat(30) + extra;
+  const page = (b) => ({ ok: true, status: 200, body: b });
+  const record = (hash) =>
+    lawful({
+      sourceQuotable: false,
+      licence: "proprietary-no-reuse",
+      sourceDocumentClass: "general",
+      attributionStatement: null,
+      evidence: { quotedSpan: null, quoteLocation: null, ownWords: "ours" },
+      freshness: { rule: "machine-fingerprint", days: 180 },
+      pageFingerprint: hash,
+    });
+
+  test("it stores a DIGEST, never the words — the text cannot be recovered from it", () => {
+    const fp = pageFingerprint(body());
+    assert.equal(fp.hash.length, 64);
+    assert.ok(!fp.hash.includes("regulator"));
+    assert.ok(!JSON.stringify(fp).includes("Real regulator content"));
+  });
+
+  test("GREEN: an unchanged page passes", () => {
+    const fp = pageFingerprint(body());
+    assert.equal(matchFingerprint(record(fp.hash), page(body())).outcome, "pass");
+  });
+
+  test("🔴 RED: a changed page FAILS, and says only that the PAGE moved", () => {
+    const fp = pageFingerprint(body());
+    const r = matchFingerprint(record(fp.hash), page(body("<p>and one new sentence.</p>")));
+    assert.equal(r.outcome, "fail");
+    assert.match(r.detail, /does NOT say the fact changed/);
+  });
+
+  test("🔴 markup churn must NOT trip it — that is the measurement that made it viable", () => {
+    // 6 of 9 real pages differed in RAW HTML between two consecutive fetches and
+    // 0 of 9 differed after normalisation. Hashing raw HTML would have produced a
+    // permanent queue of false flags and been switched off within a week.
+    const a = pageFingerprint("<div class='a'>Hello   world</div>" + "pad ".repeat(200));
+    const b = pageFingerprint("<div class='b' data-x='9'>Hello world</div>" + "pad ".repeat(200));
+    assert.equal(a.hash, b.hash);
+  });
+
+  test("🔴 RED: but a WORD change still trips it — it has not been normalised into uselessness", () => {
+    const a = pageFingerprint("<p>grade B</p>" + "pad ".repeat(200));
+    const b = pageFingerprint("<p>grade C</p>" + "pad ".repeat(200));
+    assert.notEqual(a.hash, b.hash);
+  });
+
+  test("a first run is COULD-NOT-CHECK, never a silent pass", () => {
+    assert.equal(matchFingerprint(record(null), page(body())).outcome, "could-not-check");
+  });
+
+  test("🔴 THE PARKED-DOMAIN GUARD: a 200 with no text is could-not-check, not a pass", () => {
+    // nmcnigeria.org answers HTTP 200 with a 114-byte JavaScript redirect to a
+    // parking lander — 0 characters normalised. A parked page hashes perfectly
+    // consistently, so without this floor the fingerprint would go green on a
+    // domain-for-sale page forever.
+    const r = matchFingerprint(record("d".repeat(64)), page("<html><head><script>window.location.href='/lander'</script></head></html>"));
+    assert.equal(r.outcome, "could-not-check");
+    assert.match(r.detail, /too little to be the source document/);
+    assert.ok(MIN_SUBSTANTIVE_LENGTH > 0);
+  });
+
+  test("a refusal is could-not-check here exactly as it is for the quote match", () => {
+    assert.equal(matchFingerprint(record("e".repeat(64)), { ok: false, detail: "HTTP 403" }).outcome, "could-not-check");
+  });
+});
+
+describe("🔴 the link check must verify WHERE it landed", () => {
+  test("🔴 RED: an off-host redirect is refused — a citation must not change owner", async () => {
+    const fetchImpl = async () => ({
+      ok: true,
+      status: 200,
+      url: "https://forsale.godaddy.com/lander",
+      text: async () => "buy this domain " + "x ".repeat(400),
+    });
+    const r = await fetchForMatch("https://nmcnigeria.org/verify.html", { fetchImpl });
+    assert.equal(r.ok, false);
+    assert.match(r.detail, /REDIRECTED OFF-HOST/);
+  });
+
+  test("🔴 RED: HTTP 200 with almost no text is refused — this answered, but it is not a document", async () => {
+    const fetchImpl = async () => ({
+      ok: true,
+      status: 200,
+      url: "https://nmcnigeria.org/",
+      text: async () => "<html><head><script>window.onload=function(){window.location.href=\"/lander\"}</script></head></html>",
+    });
+    const r = await fetchForMatch("https://nmcnigeria.org/", { fetchImpl });
+    assert.equal(r.ok, false);
+    assert.match(r.detail, /CHARACTERS OF TEXT/);
+  });
+
+  test("GREEN: a real same-host document passes", async () => {
+    const fetchImpl = async () => ({ ok: true, status: 200, url: "https://nmcn.gov.ng/verify.html", text: async () => "Real content. ".repeat(80) });
+    const r = await fetchForMatch("https://nmcn.gov.ng/verify.html", { fetchImpl });
+    assert.equal(r.ok, true);
+  });
+});
+
+describe("🔴 the registry after the licence correction", () => {
+  test("every OET-sourced record stores NO span and its licence names all three grounds", async () => {
+    const { records } = await loadRegistry();
+    const oet = records.find((r) => r.claim.subject === "oet");
+    assert.equal(oet.licence, "OET-CBLA-IP");
+    assert.equal(oet.evidence.quotedSpan, null);
+    assert.match(oet.sourceQuotableBasis, /transmit or reproduce any part/i);
+    assert.match(oet.sourceQuotableBasis, /commercially exploit/i);
+    assert.match(oet.sourceQuotableBasis, /electronic retrieval system/i);
+    assert.match(oet.sourceQuotableBasis, /NON-COMMERCIAL/i);
+  });
+
+  test("🔴 the three silent sources are FALSE, not unknown — the owner's ruling", async () => {
+    const { records } = await loadRegistry();
+    for (const subject of ["ie-nmbi", "ng-nmcn", "pk-pnmc"]) {
+      const rs = records.filter((r) => r.claim.subject === subject);
+      assert.ok(rs.length > 0, subject);
+      for (const r of rs) {
+        assert.equal(r.sourceQuotable, false, `${r.id} must be false, not unknown`);
+        assert.equal(r.licence, "proprietary-no-reuse");
+        assert.equal(r.evidence.quotedSpan, null);
+        assert.ok(r.evidence.ownWords.length > 0, "the fact survives in our own words");
+      }
+    }
+  });
+
+  test("every quotable record carries the credit its licence requires", async () => {
+    const { records } = await loadRegistry();
+    const quotable = records.filter((r) => r.sourceQuotable === true);
+    assert.ok(quotable.length > 0);
+    for (const r of quotable) {
+      assert.ok(r.attributionStatement.includes(requiredAttribution(r.licence)), r.id);
+    }
+  });
+
+  test("every fingerprint-watched record actually HAS a stored fingerprint", async () => {
+    const { records } = await loadRegistry();
+    const fp = records.filter((r) => freshnessRuleFor(r) === "machine-fingerprint");
+    assert.ok(fp.length > 0);
+    for (const r of fp) assert.equal(r.pageFingerprint.length, 64, r.id);
+  });
+
+  test("🔴 not one record's source URL is the parked nmcnigeria.org domain", async () => {
+    const { records } = await loadRegistry();
+    for (const r of records) assert.ok(!r.source.url.includes("nmcnigeria.org"), r.id);
+    assert.ok(records.some((r) => r.source.url.includes("nmcn.gov.ng")), "Nigeria uses the real regulator domain");
   });
 });

@@ -432,6 +432,21 @@ worth far more than a generator.
 
 # 8 · 🔴 THE REGISTRY AS BUILT — §5A, and it is FULL
 
+> ## ⚠️ §8 IS SUPERSEDED IN PART BY §9. READ BOTH, AND §9 WINS.
+>
+> The owner read six licences first-hand on 11 September 2026 and **three findings invalidated
+> the record shape below.** §8 is kept unedited because it is the reasoning that produced the
+> registry, and because deleting a superseded conclusion hides that it was ever held — but a
+> record written to §8's shape is **rejected by the validator today.**
+>
+> | §8 said | §9 says |
+> |---|---|
+> | `sourceQuotable` is a per-DOMAIN boolean | 🔴 per DOCUMENT CLASS — the NMC grants for guidance what it refuses for news |
+> | NMBI, NMCN, PNMC are `"unknown"`, ruling open | 🔴 **`false`. The owner ruled. Silence is not uncertainty** |
+> | queues 16 AUTOMATED / 16 MANUAL | **32 / 0** — fingerprinting watches what it may not quote |
+> | OET prohibited on one ground | **three**, and the non-commercial limit is decisive |
+
+
 **10 September 2026.** Everything above this line was design. This section is what exists, what
 it measured, and the three things it got wrong on the way.
 
@@ -532,8 +547,17 @@ it is not mine to make.** The conservative reading is what is implemented. Its m
 | if the owner rules a bare copyright notice does not bar a short stored extract | the same movement, without the reading |
 | if they expressly prohibit | nothing moves — and we will know rather than assume |
 
-🔴 **This is the single highest-leverage open question in DOD-03A. Four pages of reading moves 87%
-of the expensive queue.**
+🔴 ~~**This is the single highest-leverage open question in DOD-03A. Four pages of reading moves
+87% of the expensive queue.**~~
+
+> ### ✅ ANSWERED 11 SEPTEMBER 2026 — AND THE ANSWER WAS "NO"
+>
+> The owner read all four licences first-hand. **NMBI, NMCN and PNMC grant nothing at all** — a
+> bare copyright notice and no reuse terms. So those 14 records did **NOT** move to quotable, and
+> the prediction above was wrong in its optimism: **the absence of a licence is not permission,
+> and "all rights reserved" is what silence means.**
+>
+> What rescued them was not a permission but a different check — see **§9.6 and §9.7**.
 
 ## 8.5 · THE TWO QUEUES — MEASURED, and the pass condition RUN rather than claimed
 
@@ -642,3 +666,298 @@ of these, in a sentence that would look exactly like a real record.
   mirror, and no paraphrase that is really a quote. Four 403s and one licence are recorded as costs.
 - **It did not invent `minutesPerFact`**, and it did not quietly widen `sourceQuotable`'s meaning
   to make the automated queue look bigger.
+
+---
+
+# 9 · 🔴 THE LICENCE CENSUS — AND IT CHANGED THE RECORD'S SHAPE
+
+**The owner read six licences first-hand in a browser** — not through a fetch tool, per the
+project's own rule that a summarising fetch may not be a source-of-truth citation. Full
+clause-by-clause record: `_handoffs/SOURCE_QUOTABILITY.md`.
+
+**Three of the findings invalidated the shape §8 shipped.** They are not refinements; a record
+written under §8 is wrong under §9.
+
+---
+
+## 9.1 · 🔴 `sourceQuotable` COULD NOT BE A PER-DOMAIN BOOLEAN
+
+**The NMC proves it. ONE DOMAIN, TWO ANSWERS, decided by WHICH DOCUMENT you are standing on.**
+
+| NMC content | quotable? | clause |
+|---|---|---|
+| **rules, standards and guidance** | ✅ **YES — "in part or in full"** | **6.3** |
+| everything else on the same site | 🔴 **NO** — storage "on any server or other storage device connected to the network" is expressly excluded | **6.2** |
+
+**This registry is a git repository deployed to Vercel. That is precisely a networked server.**
+So the identical fact is quotable taken from NMC *guidance* and NOT quotable taken from an NMC
+*news item* — and §8's per-domain boolean could not express it.
+
+### What was added
+
+- **`sourceDocumentClass`** — `rules · standards · guidance · news · general`. Mandatory on every
+  record, even where a source answers the same for all five, because the field is what makes the
+  question askable at all.
+- **`licence`** — `OGL-v3.0 · NMC-6.3 · proprietary-no-reuse · OET-CBLA-IP ·
+  unknown-licence-unreachable · unknown-not-read`. Named, so a later reader can re-argue the
+  reasoning against the clause instead of against a boolean.
+- 🔴 **`sourceQuotable` is now DERIVED** by `quotableUnder(licence, documentClass)`, and **F18
+  rejects any record that disagrees with the derivation.** Same defence as the queue: a licence
+  judgement typed by hand cannot be re-checked, and six months later it is indistinguishable
+  from a licence somebody actually read.
+
+⚠️ **One judgement is still ours and it is recorded, not buried:** clause 6.3 names "rules,
+standards and guidance", and the NMC registration pages are classified by us **as guidance**. The
+owner can overturn that, and the four NMC records then lose their quotes, keep their facts in our
+own words, and drop to fingerprint watching.
+
+## 9.2 · `attributionStatement` — THE CREDIT IS PART OF THE PERMISSION
+
+Both permissive licences require a credit, and **each requires a DIFFERENT one**.
+
+| licence | what must be attached |
+|---|---|
+| **OGL v3.0** | *"Contains public sector information licensed under the Open Government Licence v3.0."* plus a link to the licence |
+| **NMC 6.3** | credit **NMC as author**, plus a link to the NMC website |
+
+> 🔴 **A record carrying the quote but not the credit is a licence breach THAT LOOKS EXACTLY LIKE
+> COMPLIANCE.** The quote is there, the source is there, the date is there — and the permission
+> has been exceeded.
+
+**F20** requires the statement and checks it contains what *that* licence asks for. An OGL credit
+on an NMC record is not attribution; it is noise, and it is rejected.
+
+## 9.3 · 🔴 FOR THE NMC, STALENESS IS A LICENCE BREACH — NOT A DATA-QUALITY PROBLEM
+
+Clause 6.3's **first** condition: *"ensure that you are using the most up-to-date version of any
+source document."*
+
+**That is a CONDITION OF THE PERMISSION.** An expired NMC quote is not a stale fact — **it is
+their content reproduced outside the terms that allowed it.** The whole freshness model was
+designed as hygiene, and for this source that framing is simply wrong.
+
+So expiry here cannot be advisory, and it cannot be a flag on a report somebody reads on Tuesday:
+
+- **`quoteUsableNow(record, now)`** returns `usable: false, legal: true` once the window lapses,
+  with a reason worded so it can never be reported as a freshness nag: **WITHDRAWN, not stale.**
+- **`renderableQuote()`** returns `null`, and **anything putting a quote in front of a reader must
+  come through it** — reading `evidence.quotedSpan` directly is exactly how an out-of-licence
+  reproduction reaches a page, because the field is still populated and the string says nothing.
+- **F21** forbids watching an NMC record by fingerprint: only the quote match can *demonstrate*
+  currency. A fingerprint proves the page did not move, which is a different claim.
+
+### And the mechanism was already built — it just had the wrong job
+
+The nightly quote match confirms the stored span is still verbatim on the live document. Under a
+hygiene model that is a staleness check. **Under NMC-6.3 it IS the compliance mechanism**: a span
+that still matches the live page IS the most up-to-date version, demonstrated rather than assumed.
+A passing match **renews the permission**.
+
+⚠️ **And I had one detail wrong, caught by its own test: EXTRACTION IS ALSO A DEMONSTRATION.** The
+span was taken off the live page the day it was extracted, which is what the clause asks for. So
+the clock runs from whichever demonstration is later, and `quoteUsableNow` **reports which** —
+"confirmed by a machine last week" and "typed in by somebody last week" are not equal evidence and
+must not read the same. A **failing** match is not a demonstration and renews nothing.
+
+## 9.4 · GOV.UK — QUOTABLE, COMMERCIALLY, WITH A PER-PAGE CHECK
+
+The OGL grants a worldwide, royalty-free, perpetual, non-exclusive licence to copy, publish,
+distribute, transmit, adapt **and exploit the Information COMMERCIALLY**.
+
+🔴 **The commercial permission is the load-bearing part. AlmiWorld is a commercial product** — it
+is what makes gov.uk usable to us and, in §9.5, what puts OET's carve-outs out of reach.
+
+**But GOV.UK's own word is "MOST".** Where content is not Crown copyright, *"we'll usually credit
+the author or copyright holder"* — and the OGL itself excludes personal data, departmental logos,
+crests, the Royal Arms and third-party rights.
+
+> **So a page is not quotable because it is on gov.uk. It is quotable because THIS PAGE carries no
+> third-party credit — a per-page fact that can change when a page is edited.**
+
+**F22** requires a recorded per-page check before an OGL page's text may be stored, and
+`scanForThirdPartyRights()` runs it in the nightly job. **Measured on both our gov.uk pages: the
+OGL statement present, and ZERO non-Crown copyright notices.** The scanner **reports what it found
+rather than deciding** — it cannot tell a cookie-banner "© 2026 Cookie Information" from a claim
+over the page's text, so it hands a person the notices and the judgement.
+
+**This covers our two largest list-facts** — the red/amber/green list and the UKVI eighteen.
+
+## 9.5 · OET — OUR OWN RECORD WAS UNDERSTATING IT
+
+§8 cited one clause. **There are three, and the third was the weakest of them.**
+
+| prohibited without CBLA's prior express written permission | |
+|---|---|
+| *"transmit or reproduce **any part** of the Content"* | 🔴 broader than storage |
+| *"distribute or **commercially exploit** the Content"* | 🔴 |
+| *"store the Content in any other website or other form of electronic retrieval system"* | the one §8 had |
+
+**And every permitted use is expressly for *"your own personal and NON-COMMERCIAL use only"*.
+AlmiWorld is commercial, so the carve-outs never reach us** — we are outside the permission before
+the retrieval-system clause is even argued.
+
+### 🔴 AND THE SENTENCE THE WHOLE REGISTRY STANDS ON
+
+> **A FACT IS NOT COPYRIGHTABLE. ITS EXPRESSION IS.**
+> *"OET is scored 0–500"* is a fact. **We may state it in our own words, with a citation.**
+> **The prohibition is on their WORDING, not on the TRUTH.**
+
+That is exactly what `sourceQuotable: false` already required — a URL, a date, and the fact in our
+own words — so the registry survives its most important source being un-quotable. **It also
+confirms the project's standing OET rule was right all along: never copy an OET sentence, never
+commit an OET file.**
+
+## 9.6 · 🔴 SILENCE IS `false`, AND ONLY AN UNREAD LICENCE IS `unknown`
+
+**§8 recorded NMBI, NMCN and PNMC as `"unknown"` and left the ruling open for the owner. THE
+OWNER HAS RULED, AND THE ANSWER IS `false`.** All three carry a bare copyright notice and no
+grant of reuse.
+
+> **THE ABSENCE OF A LICENCE IS NOT PERMISSION.**
+> **"ALL RIGHTS RESERVED" IS WHAT SILENCE MEANS.**
+
+**F19 now rejects `"unknown"` under any licence we have read.** `"unknown"` survives in exactly two
+states — `unknown-not-read` and `unknown-licence-unreachable` — and both behave as prohibitions.
+Four of the sources still to assess return **403**, and **a licence cannot be read from a page that
+will not open**, so they will be `unreachable` and **never "permitted"**.
+
+### The census — a CENSUS, not a sample
+
+These are not eight of the world's regulators; they are the sources this registry actually holds,
+so for our purposes it is the whole population.
+
+| | | |
+|---|---|---|
+| **GOV.UK** | ✅ quotable, commercially, with attribution | OGL v3.0 |
+| **NMC** | 🟡 **SPLIT** — guidance yes, the rest no | 6.3 / 6.2 |
+| **OET** | ❌ no, on three grounds | non-commercial carve-outs only |
+| **NMBI · PNMC · NMCN** | ❌ no | bare copyright, no grant |
+
+**One of six fully quotable. One partial. FOUR prohibited.**
+
+## 9.7 · 🔴 THE WAY OUT — STORE A FINGERPRINT, NOT THE TEXT
+
+The compounding problem, stated plainly: `quoteMatchedOn` needs a stored span, and **most of our
+sources may never have one**. Two independent filters, and they are **not the same filter**:
+
+| filter | asks | result |
+|---|---|---|
+| A1 — machine-readable? | can a machine FETCH it? | 2 of 8 |
+| §9 — quotable? | may we STORE its words? | 1 of 6 fully |
+
+> **We do not need to store their words to detect that their words CHANGED.**
+> **Fetch the page, hash it, store ONLY THE HASH.**
+
+A cryptographic hash is a one-way digest: the original cannot be recovered from it, it cannot
+substitute for the work, and **it is not a copy**. It converts a **calendar** obligation into an
+**event** one — *re-verify when the source moves, not when 180 days pass* — which is GATE C's
+"regenerate on change, not on a timer" arriving at the fact layer from the other direction.
+
+### 🔴 AND IT WAS MEASURED BEFORE IT WAS BUILT, BECAUSE IT NEARLY DID NOT WORK
+
+A fingerprint that changes on its own is worthless: a timestamp, a rotating banner or a build id
+would trip it every night, produce a permanent queue of false flags, and get switched off inside a
+week. So each of the registry's 9 distinct source URLs was fetched **twice in succession**:
+
+| | |
+|---|---|
+| **raw HTML** hash stable across two fetches | 🔴 **3 of 9** |
+| **normalised text** hash stable | ✅ **9 of 9** |
+
+**Six of nine pages differ between two consecutive fetches at the byte level.** Hashing the raw
+response would have looked correct in review and failed in production on two thirds of the
+registry. **The idea works only because of the normalisation**, and it hashes
+`normaliseText(body)` using the quote match's own normaliser so the two can never drift.
+
+⚠️ n=9, two fetches, one moment. It shows these pages are not *trivially* unstable. It does **not**
+establish stability over days, and a page that turns out to churn must be **recorded as churning**
+rather than have its threshold loosened until it goes quiet.
+
+### What this does to the queues
+
+| | §8 | §9 |
+|---|---|---|
+| AUTOMATED | 16 | **32** |
+| MANUAL | 16 | **0** |
+
+**And that is not a 16-record improvement in honesty — it is a change of question.** The queue now
+turns on ONE thing: can a machine reach the page unattended. Quotability no longer decides the
+queue; **it decides WHICH CHECK RUNS, and how much that check's green is worth:**
+
+| check | records | evidence |
+|---|---|---|
+| `machine-quote-match` | **16** | **STRONG** — the exact wording carrying the value is still there |
+| `machine-fingerprint` | **16** | **WEAK** — only that the page did not move. Stores no words |
+
+🔴 **The two are never summed.** A single "pass" column would let the registry's evidence weaken
+while its score went up, which is the failure this project keeps finding in other people's gates.
+
+### ⚠️ AND THE COST MOVED RATHER THAN DISAPPEARED
+
+Sixteen records left the manual queue. **The human work attached to them did not leave with them**
+— when a hash goes red a person must still open the page, because a hash cannot say what moved. It
+changed TRIGGER, **at an unmeasured frequency**. A regulator editing monthly costs MORE than the
+twice-a-year calendar it replaced.
+
+**So the calendar is KEPT as a backstop and the fingerprint ADDED as an early trigger** —
+re-read on change **or** at 180 days, whichever comes first. Strictly better than either alone, and
+it claims no saving nobody has measured. Both bounds are printed and **neither is called the
+answer**:
+
+| | |
+|---|---|
+| human passes/year, FLOOR (a clean fingerprint renews freshness) | **0** |
+| human passes/year, CEILING (calendar backstop retained) | **32** |
+
+🔴 **The MANUAL queue is now EMPTY, so its cost block is a VACUOUS ZERO and the CLI says so.**
+An empty population is a finding, never a pass.
+
+⚠️ **NEITHER THE OWNER NOR I IS A LAWYER**, and this is the one mechanism here that *reasons* about
+a licence rather than obeying one. The reasoning is standard; where money meets a licensor's
+rights, **the owner may want it confirmed by somebody qualified before it ships.** It is built and
+it is flagged. It is not presented as settled.
+
+## 9.8 · 🔴 THE TRAP — A CITATION CAN CHANGE OWNER WITHOUT ANYONE TOUCHING THE RECORD
+
+The owner reached **`nmcnigeria.org`** by guessing it — the domain a reasonable person guesses for
+the Nigerian regulator. **The real regulator is `nmcn.gov.ng`.**
+
+**Verified, and it is worse than a redirect:**
+
+```
+nmcnigeria.org  →  HTTP 200, 114 bytes, and the entire body is
+                   <script>window.onload=function(){window.location.href="/lander"}</script>
+                   Normalised: ZERO CHARACTERS OF TEXT.
+```
+
+**`res.ok` is TRUE. The host never changes, so a redirect check does not catch it either.** A link
+check that asks only *"did something answer"* goes green on a domain-parking lander forever — and
+a fingerprint check goes green on it too, because a parked page is beautifully stable.
+
+**So the link check now verifies three things, not one:**
+
+1. the response is 2xx;
+2. 🔴 **it landed on the host we asked for** — a citation must not silently change owner;
+3. 🔴 **the body contains a substantive document** — measured floor **500 normalised characters**,
+   set from the sample: the smallest real source here normalises to **3,535** (oet.com) and the
+   parked domain to **0**. ⚠️ PROVISIONAL, n=10 — a gap in one measured distribution, not a
+   considered threshold.
+
+**And every source URL in the registry was re-resolved: 9 of 9 same-host, none parked, and Nigeria
+uses `nmcn.gov.ng`.** A test asserts no record may ever cite `nmcnigeria.org`.
+
+## 9.9 · WHAT §9 CHANGED, IN ONE LIST
+
+1. `sourceQuotable` is **derived per document class**, not typed per domain. **F18.**
+2. `licence`, `sourceDocumentClass`, `attributionStatement`, `pageFingerprint` are new and
+   mandatory. **F17, F20.**
+3. **Silence is `false`.** NMBI, NMCN, PNMC corrected from `"unknown"`. **F19.**
+4. **NMC staleness withdraws the quote** rather than flagging it. **F21.**
+5. **OGL pages need a per-page third-party check** before their text is stored. **F22.**
+6. **OET is prohibited on three grounds**, and the non-commercial limit is decisive.
+7. **Fingerprint watching** rescues automated detection for un-quotable sources — measured first.
+8. **The link check verifies where it landed** and that it landed on a document.
+
+**100 tests, all six new laws red-forced against synthetic records AND sabotaged against the real
+fact files. Nothing routed around: four 403s, one licence prohibition and five unread licences are
+all recorded as costs.**

@@ -1,0 +1,324 @@
+{
+  "ranOn": "2026-09-10",
+  "urlsFetched": 10,
+  "results": [
+    {
+      "id": "ie-nmbi.oet-minimum-grade.profession=nursing",
+      "outcome": "pass",
+      "detail": "the page has not changed since the fingerprint was taken",
+      "hash": "50384bb0515bd611f8aca71ffb5b9714b8ac79f167e2360a3665ae74e5d1443e",
+      "check": "fingerprint",
+      "url": "https://www.nmbi.ie/Registration/Qualified-outside-the-EU/Application-Process/English-Language-Requirements"
+    },
+    {
+      "id": "ie-nmbi.oet-version-required.profession=nursing",
+      "outcome": "pass",
+      "detail": "the page has not changed since the fingerprint was taken",
+      "hash": "50384bb0515bd611f8aca71ffb5b9714b8ac79f167e2360a3665ae74e5d1443e",
+      "check": "fingerprint",
+      "url": "https://www.nmbi.ie/Registration/Qualified-outside-the-EU/Application-Process/English-Language-Requirements"
+    },
+    {
+      "id": "ie-nmbi.recognised-english-speaking-countries",
+      "outcome": "pass",
+      "detail": "the page has not changed since the fingerprint was taken",
+      "hash": "50384bb0515bd611f8aca71ffb5b9714b8ac79f167e2360a3665ae74e5d1443e",
+      "check": "fingerprint",
+      "url": "https://www.nmbi.ie/Registration/Qualified-outside-the-EU/Application-Process/English-Language-Requirements"
+    },
+    {
+      "id": "ng-nmcn.issuing-body",
+      "outcome": "pass",
+      "detail": "the page has not changed since the fingerprint was taken",
+      "hash": "d7a4dc14e31ae0964372e83a9aca4b1137ce41d0318deff687c0a0cef1dffee5",
+      "check": "fingerprint",
+      "url": "https://nmcn.gov.ng/verify.html"
+    },
+    {
+      "id": "ng-nmcn.verification-documents",
+      "outcome": "pass",
+      "detail": "the page has not changed since the fingerprint was taken",
+      "hash": "d7a4dc14e31ae0964372e83a9aca4b1137ce41d0318deff687c0a0cef1dffee5",
+      "check": "fingerprint",
+      "url": "https://nmcn.gov.ng/verify.html"
+    },
+    {
+      "id": "ng-nmcn.verification-fee.destination=uk-nmc",
+      "outcome": "pass",
+      "detail": "the page has not changed since the fingerprint was taken",
+      "hash": "d7a4dc14e31ae0964372e83a9aca4b1137ce41d0318deff687c0a0cef1dffee5",
+      "check": "fingerprint",
+      "url": "https://nmcn.gov.ng/verify.html"
+    },
+    {
+      "id": "ng-nmcn.verification-fee.purpose=authentication",
+      "outcome": "pass",
+      "detail": "the page has not changed since the fingerprint was taken",
+      "hash": "d7a4dc14e31ae0964372e83a9aca4b1137ce41d0318deff687c0a0cef1dffee5",
+      "check": "fingerprint",
+      "url": "https://nmcn.gov.ng/verify.html"
+    },
+    {
+      "id": "ng-nmcn.verification-fee.purpose=certificate-verification",
+      "outcome": "pass",
+      "detail": "the page has not changed since the fingerprint was taken",
+      "hash": "d7a4dc14e31ae0964372e83a9aca4b1137ce41d0318deff687c0a0cef1dffee5",
+      "check": "fingerprint",
+      "url": "https://nmcn.gov.ng/verify.html"
+    },
+    {
+      "id": "ng-nmcn.verification-fee.purpose=letter-of-good-standing",
+      "outcome": "pass",
+      "detail": "the page has not changed since the fingerprint was taken",
+      "hash": "d7a4dc14e31ae0964372e83a9aca4b1137ce41d0318deff687c0a0cef1dffee5",
+      "check": "fingerprint",
+      "url": "https://nmcn.gov.ng/verify.html"
+    },
+    {
+      "id": "nz-immigration-nz.oet-must-be-taken-in-person",
+      "outcome": "pass",
+      "detail": "the page has not changed since the fingerprint was taken",
+      "hash": "d8dbf42496701223f7cb65312f83c662d0965f5671085b8bf110bc52217ec4b5",
+      "check": "fingerprint",
+      "url": "https://www.immigration.govt.nz/about-us/news-centre/update-on-english-language-testing-for-immigration-applications/"
+    },
+    {
+      "id": "oet.content-licence-permits-stored-quotation",
+      "outcome": "pass",
+      "detail": "the page has not changed since the fingerprint was taken",
+      "hash": "9dfd7546793cf1acc911eae52ca393990fa419396ecb3c3532dab27118a0f4a7",
+      "check": "fingerprint",
+      "url": "https://oet.com/en-us/Intellectual-Property-policy"
+    },
+    {
+      "id": "pk-pnmc.issuing-body",
+      "outcome": "pass",
+      "detail": "the page has not changed since the fingerprint was taken",
+      "hash": "f3740f058f6df75846b99b66d49450291809aa875413a9a9c5f82a4e54324a92",
+      "check": "fingerprint",
+      "url": "https://pnmc.gov.pk/verification-registration-2/"
+    },
+    {
+      "id": "pk-pnmc.verification-documents",
+      "outcome": "pass",
+      "detail": "the page has not changed since the fingerprint was taken",
+      "hash": "f3740f058f6df75846b99b66d49450291809aa875413a9a9c5f82a4e54324a92",
+      "check": "fingerprint",
+      "url": "https://pnmc.gov.pk/verification-registration-2/"
+    },
+    {
+      "id": "pk-pnmc.verification-fee.destination=domestic",
+      "outcome": "pass",
+      "detail": "the page has not changed since the fingerprint was taken",
+      "hash": "f3740f058f6df75846b99b66d49450291809aa875413a9a9c5f82a4e54324a92",
+      "check": "fingerprint",
+      "url": "https://pnmc.gov.pk/verification-registration-2/"
+    },
+    {
+      "id": "pk-pnmc.verification-fee.destination=foreign",
+      "outcome": "pass",
+      "detail": "the page has not changed since the fingerprint was taken",
+      "hash": "f3740f058f6df75846b99b66d49450291809aa875413a9a9c5f82a4e54324a92",
+      "check": "fingerprint",
+      "url": "https://pnmc.gov.pk/verification-registration-2/"
+    },
+    {
+      "id": "pk-pnmc.verification-response-time",
+      "outcome": "pass",
+      "detail": "the page has not changed since the fingerprint was taken",
+      "hash": "f3740f058f6df75846b99b66d49450291809aa875413a9a9c5f82a4e54324a92",
+      "check": "fingerprint",
+      "url": "https://pnmc.gov.pk/verification-registration-2/"
+    },
+    {
+      "id": "uk-code-of-practice.amber-list-countries",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 91818 chars of text",
+      "check": "quote-match",
+      "url": "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england"
+    },
+    {
+      "id": "uk-code-of-practice.amber-list-rule",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 91818 chars of text",
+      "check": "quote-match",
+      "url": "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england"
+    },
+    {
+      "id": "uk-code-of-practice.direct-application-exception",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 91818 chars of text",
+      "check": "quote-match",
+      "url": "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england"
+    },
+    {
+      "id": "uk-code-of-practice.recruitment-list-membership.country=india",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 91818 chars of text",
+      "check": "quote-match",
+      "url": "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england"
+    },
+    {
+      "id": "uk-code-of-practice.recruitment-list-membership.country=kenya",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 91818 chars of text",
+      "check": "quote-match",
+      "url": "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england"
+    },
+    {
+      "id": "uk-code-of-practice.recruitment-list-membership.country=nigeria",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 91818 chars of text",
+      "check": "quote-match",
+      "url": "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england"
+    },
+    {
+      "id": "uk-code-of-practice.recruitment-list-membership.country=pakistan",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 91818 chars of text",
+      "check": "quote-match",
+      "url": "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england"
+    },
+    {
+      "id": "uk-code-of-practice.recruitment-list-membership.country=philippines",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 91818 chars of text",
+      "check": "quote-match",
+      "url": "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england"
+    },
+    {
+      "id": "uk-code-of-practice.red-list-country-count",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 91818 chars of text",
+      "check": "quote-match",
+      "url": "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england"
+    },
+    {
+      "id": "uk-code-of-practice.red-list-rule",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 91818 chars of text",
+      "check": "quote-match",
+      "url": "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england"
+    },
+    {
+      "id": "uk-nmc.english-evidence-routes.profession=nursing",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 6438 chars of text",
+      "check": "quote-match",
+      "url": "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/"
+    },
+    {
+      "id": "uk-nmc.oet-combining-sittings.profession=nursing",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 7913 chars of text",
+      "check": "quote-match",
+      "url": "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/accepted-english-language-tests/oet/"
+    },
+    {
+      "id": "uk-nmc.oet-minimum-grade.profession=nursing",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 7913 chars of text",
+      "check": "quote-match",
+      "url": "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/accepted-english-language-tests/oet/"
+    },
+    {
+      "id": "uk-nmc.qualified-in-english-evidence.profession=nursing",
+      "outcome": "pass",
+      "occurrences": 2,
+      "ambiguous": true,
+      "detail": "⚠️ span found 2 times — it is NOT anchored to one sentence, so this pass is weak evidence",
+      "check": "quote-match",
+      "url": "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/qualified-in-english/"
+    },
+    {
+      "id": "uk-ukvi.english-nationality-exemption.nationality=india",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 13728 chars of text",
+      "check": "quote-match",
+      "url": "https://www.gov.uk/guidance/immigration-rules/immigration-rules-appendix-english-language"
+    },
+    {
+      "id": "uk-ukvi.majority-english-speaking-countries",
+      "outcome": "pass",
+      "occurrences": 1,
+      "ambiguous": false,
+      "detail": "span found once, verbatim, in 13728 chars of text",
+      "check": "quote-match",
+      "url": "https://www.gov.uk/guidance/immigration-rules/immigration-rules-appendix-english-language"
+    }
+  ],
+  "tally": {
+    "pass": 32,
+    "fail": 0,
+    "could-not-check": 0,
+    "not-applicable": 0
+  },
+  "flaggedForAPerson": [],
+  "inconclusive": [],
+  "byCheck": {
+    "quoteMatch": 16,
+    "fingerprint": 16,
+    "none": 0
+  },
+  "thirdPartyRights": [
+    {
+      "url": "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england",
+      "notices": [
+        "© Crown copyright 2025 This publication is licensed under the terms of the Open G",
+        "© Crown copyright"
+      ],
+      "nonCrown": [],
+      "clear": true,
+      "detail": "no non-Crown copyright notice on the page"
+    },
+    {
+      "url": "https://www.gov.uk/guidance/immigration-rules/immigration-rules-appendix-english-language",
+      "notices": [
+        "© Crown copyright"
+      ],
+      "nonCrown": [],
+      "clear": true,
+      "detail": "no non-Crown copyright notice on the page"
+    }
+  ],
+  "thirdPartyConcerns": [],
+  "ambiguous": [
+    {
+      "id": "uk-nmc.qualified-in-english-evidence.profession=nursing",
+      "outcome": "pass",
+      "occurrences": 2,
+      "ambiguous": true,
+      "detail": "⚠️ span found 2 times — it is NOT anchored to one sentence, so this pass is weak evidence",
+      "check": "quote-match",
+      "url": "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/qualified-in-english/"
+    }
+  ]
+}

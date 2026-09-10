@@ -181,8 +181,29 @@ export const FACT_CHECKED_BY_PATTERN = /^(human:[A-Za-z. -]{2,40}|model:[A-Za-z0
  * expensive work and nobody can plan either.
  */
 export const FRESHNESS_RULES = Object.freeze({
-  "machine-quote-match": "nightly fetch + verbatim match on `quotedSpan`. Effectively free",
+  "machine-quote-match": "nightly fetch + verbatim match on `quotedSpan`. Effectively free. STRONGEST evidence: this exact sentence is still there",
+  // Added 11 September 2026. See fingerprint.mjs — it rescues automated
+  // detection for a source we may fetch and may not quote, which is most of the
+  // fetchable ones.
+  "machine-fingerprint": "nightly fetch + hash comparison, storing no words. WEAKER: says the PAGE moved, never what moved or whether the fact changed",
   "human-re-read": "🔴 A PERSON OPENS THE PAGE AND LOOKS. Human minutes, every 180 days, per fact",
+});
+
+/**
+ * 🔴 THE TWO MACHINE RULES ARE NOT EQUAL EVIDENCE, AND NOTHING MAY SUM THEM.
+ *
+ * A passing quote match says THIS SENTENCE IS STILL ON THIS PAGE. A passing
+ * fingerprint says NOTHING ON THE PAGE CHANGED — which is a different and much
+ * weaker claim, and it is weaker in the dangerous direction too: it goes red for
+ * a corrected typo and it cannot go red for a fact that moved to another page.
+ *
+ * Counting them in one column would let the registry's evidence quietly weaken
+ * while the number went up.
+ */
+export const EVIDENCE_STRENGTH = Object.freeze({
+  "machine-quote-match": "strong — the exact wording carrying the value is still present",
+  "machine-fingerprint": "weak — only that the page is byte-identical after normalisation",
+  "human-re-read": "none until a person looks, and then it is the strongest of all",
 });
 
 /**

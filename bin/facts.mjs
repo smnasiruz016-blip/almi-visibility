@@ -78,10 +78,29 @@ function reportCensus(c) {
     for (const r of c.gateA.rejected.slice(0, 8)) console.log(`     - ${r.reasons.join("; ")}`);
   }
 
+  console.log(`\nWHAT EACH LICENCE PERMITS — read first-hand, never inferred from a domain`);
+  line();
+  for (const [k, n] of Object.entries(c.byLicence).sort((a, b) => b[1] - a[1])) console.log(`  ${pad(k, 30)} ${n}`);
+  console.log(`  document classes:  ${Object.entries(c.byDocumentClass).map(([k, n]) => `${k}=${n}`).join("  ")}`);
+  console.log(`  🔴 quotability is DERIVED from (licence × document class). The NMC grants for`);
+  console.log(`     guidance what clause 6.2 refuses for everything else ON THE SAME DOMAIN.`);
+
+  const q = c.quoteUsability;
+  console.log(`\n🔴 MAY THESE QUOTES BE USED TODAY? — a LICENCE question, not a freshness one`);
+  line();
+  console.log(`  usable now                 ${q.usable.length}`);
+  console.log(`  🔴 WITHDRAWN                ${q.withdrawn.length}   the permission lapsed — an out-of-licence reproduction, not a stale fact`);
+  console.log(`  never quotable             ${q.neverQuotable.length}   the licence never permitted a stored quote. Facts held in our own words`);
+  for (const w of q.withdrawn) console.log(`     🔴 ${w.id}\n        ${w.reason}`);
+
   console.log(`\nTHE TWO QUEUES — §4b`);
   line();
-  console.log(`  AUTOMATED  ${c.byQueue.AUTOMATED}   fetch + machine quote-match. A cron job`);
+  console.log(`  AUTOMATED  ${c.byQueue.AUTOMATED}   a machine can reach the page unattended`);
   console.log(`  MANUAL     ${c.byQueue.MANUAL}   🔴 a person opens the page and looks`);
+  console.log(`\n  WHICH CHECK WATCHES EACH — and the two are NOT equal evidence:`);
+  console.log(`    machine-quote-match  ${c.byFreshnessRule["machine-quote-match"] ?? 0}   STRONG — the exact wording carrying the value is still there`);
+  console.log(`    machine-fingerprint  ${c.byFreshnessRule["machine-fingerprint"] ?? 0}   WEAK — only that the page did not move. Stores no words`);
+  console.log(`    human-re-read        ${c.byFreshnessRule["human-re-read"] ?? 0}`);
   const a = c.automatedQueue;
   console.log(
     `\n  DOD-03A PASS CONDITION — does the automated queue run UNATTENDED?  ${a.unattended ? "✅ YES" : "🔴 NO"}`,
@@ -92,10 +111,26 @@ function reportCensus(c) {
   console.log(`\nTHE MANUAL QUEUE'S COST — a declaration for the owner, not a gate`);
   line();
   const cost = c.manualQueue.cost;
+  if (cost.facts === 0) {
+    // 🔴 AN EMPTY POPULATION IS A FINDING, NOT A PASS. Every number below is
+    // zero because there is nothing to count, and a zero that means "nothing was
+    // measured" must never be read as "nothing to worry about". The human work
+    // did not disappear — it moved into the fingerprint population, whose bounds
+    // are printed underneath.
+    console.log(`  🔴 THE MANUAL QUEUE IS EMPTY, so every figure in this block is a`);
+    console.log(`     VACUOUS ZERO. Every source in the registry is machine-fetchable.`);
+    console.log(`     Read the FLOOR/CEILING below instead — that is where the human cost went.`);
+  }
   console.log(`  facts in the manual queue      ${cost.facts}`);
   console.log(`  freshness window               ${cost.freshnessDays} days (⚠️ PROVISIONAL — nobody has measured how fast these sources change)`);
   console.log(`  human passes per year          ${cost.passesPerYear}`);
   console.log(`  per week                       ${cost.passesPerWeek}`);
+  // 🔴 The cost that MOVED rather than vanished when the fingerprint arrived.
+  console.log(`\n  ⚠️ AND THE COST THAT MOVED RATHER THAN DISAPPEARED:`);
+  console.log(`     ${cost.fingerprintWatched} records left the manual queue when fingerprinting arrived. The human work`);
+  console.log(`     attached to them did NOT leave with them — it changed TRIGGER.`);
+  console.log(`     human passes/year   FLOOR ${cost.humanPassesPerYearFloor}   CEILING ${cost.humanPassesPerYearCeiling}`);
+  console.log(`     ${cost.boundsNote}`);
   console.log(`  minutes per pass               ${cost.minutesPerFact ?? "UNKNOWN"}`);
   console.log(`    ${cost.minutesStatus}`);
   if (cost.hoursPerYear !== null) console.log(`  hours per year                 ${cost.hoursPerYear}`);

@@ -75,4 +75,34 @@ export const DECLARED_GAPS = Object.freeze([
     blockedBy: "🔴 HTTP 403 — prc.gov.ph refuses a machine. The body exists centrally, unlike India's",
     cost: "manual acquisition",
   },
+
+  // ── 🔴 A SECOND KIND OF GAP: A LICENCE NOBODY HAS READ ────────────────────
+  //
+  // Added 2026-09-10 after the owner's first-hand licence census. These are not
+  // missing FACTS — they are missing PERMISSIONS, and they are listed here for
+  // the same reason: the alternative to declaring them is assuming them.
+  //
+  //   AN UNREAD LICENCE IS NOT A PERMISSIVE LICENCE.
+  //
+  // Four of these sources return 403 to a machine. A licence cannot be read from
+  // a page that will not open, so they will be recorded as
+  // `unknown-licence-unreachable` — NEVER as permitted.
+  {
+    claim: "LICENCE · immigration.govt.nz",
+    neededBy: "nz-immigration-nz.oet-must-be-taken-in-person, the registry's only human-acquired fact",
+    blockedBy: "⚠️ NOT READ. NZ government material is commonly Creative Commons, but A CONVENTION IS NOT A LICENCE and this page's terms were never opened",
+    cost: "five minutes of reading; until then the record is fingerprint-watched and un-quotable",
+  },
+  {
+    claim: "LICENCE · ahpra.gov.au · nursingmidwiferyboard.gov.au · nursingcouncil.org.nz · prc.gov.ph",
+    neededBy: "any future record from these four regulators",
+    blockedBy: "🔴 HTTP 403 — the licence page itself cannot be opened by a machine. Recorded as `unknown-licence-unreachable`, never as permitted",
+    cost: "a person with a browser, or nothing is ever quotable from them",
+  },
+  {
+    claim: "LICENCE · nnas.ca",
+    neededBy: "any Canadian record, if Canada is kept in the target shape at all",
+    blockedBy: "⚠️ not read. NNAS is fetchable but is not a language regulator, so there may be nothing here worth licensing",
+    cost: "five minutes, and only worth spending if Canada stays in scope",
+  },
 ]);

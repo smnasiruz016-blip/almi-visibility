@@ -20,7 +20,7 @@ import { fact } from "../src/facts/record.mjs";
 
 const URL = "https://www.gov.uk/guidance/immigration-rules/immigration-rules-appendix-english-language";
 const OGL =
-  'EXPRESS PERMISSION. Open Government Licence v3.0, stated on the page: "This publication is licensed under the terms of the Open Government Licence v3.0 except where otherwise stated." Read 2026-09-10.';
+  'EXPRESS PERMISSION. Open Government Licence v3.0 — read first-hand by the owner (_handoffs/SOURCE_QUOTABILITY.md, dated 11 September 2026) at nationalarchives.gov.uk and gov.uk/help/terms-conditions. Grants a worldwide, royalty-free, perpetual licence to copy, publish, distribute, transmit, adapt AND EXPLOIT COMMERCIALLY. The commercial permission is the load-bearing part: AlmiWorld is a commercial product. Conditional on attribution, and subject to the per-page third-party check below.';
 const MR = "fetched and read 2026-09-10 (acceptance/nursing-from-india); re-fetched 2026-09-10 by bin/quote-match.mjs, HTTP 200";
 
 const LIST_SPAN =
@@ -31,6 +31,21 @@ const common = {
   sourceMachineReadableBasis: MR,
   sourceQuotable: true,
   sourceQuotableBasis: OGL,
+  licence: "OGL-v3.0",
+  sourceDocumentClass: "rules",
+  attributionStatement:
+    "Contains public sector information licensed under the Open Government Licence v3.0. https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  // 🔴 GOV.UK says MOST of its content is Crown copyright under the OGL, and
+  // that where it is not, "we'll usually credit the author or copyright
+  // holder". So this page had to be READ for a third-party credit before its
+  // text could be stored. Measured 2026-09-10: one notice, "© Crown copyright",
+  // and no non-Crown notice anywhere on the page.
+  thirdPartyRightsCheck: {
+    checkedOn: "2026-09-10",
+    clear: true,
+    detail: "no non-Crown copyright notice on the page; the OGL statement is present",
+    noticesFound: ["© Crown copyright"],
+  },
   queue: "AUTOMATED",
   freshness: { rule: "machine-quote-match", days: 180 },
   life: { status: "active", firstSeenOn: "2026-09-10", extractedOn: "2026-09-10" },

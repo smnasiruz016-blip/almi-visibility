@@ -7,27 +7,41 @@
  * one `verifiedDate` is split into the three dates of `FACT_CACHE_DESIGN.md` §3,
  * and none of the three is `factCheckedOn`.
  *
- * ── WHY THIS WHOLE FILE IS IN THE AUTOMATED QUEUE ───────────────────────────
+ * ── 🔴 THE SOURCE THAT PROVED QUOTABILITY IS NOT A PROPERTY OF A DOMAIN ─────
  *
- * The NMC is the rare source that permits both halves. It serves 200 to a
- * machine, and — unlike a bare "all rights reserved" — its terms EXPRESSLY
- * permit reproducing extracts of its standards and guidance. So the nightly
- * quote match is both possible and lawful here, and these facts cost a cron job
- * rather than a person.
+ * ONE DOMAIN, TWO ANSWERS. Clause 6.3 permits reproducing "rules, standards and
+ * guidance" in part or in full. Clause 6.2 — the surrounding default for
+ * everything else — permits local storage "(but not on any server or other
+ * storage device connected to the network)". **This registry is a git
+ * repository deployed to Vercel, which is precisely a networked server.**
  *
- * ⚠️ ONE JUDGEMENT IS RECORDED RATHER THAN HIDDEN. The NMC's express permission
- * names "rules, standards and guidance". These are registration-requirement
- * pages, which I have classified AS guidance. That classification is mine, it
- * is the only thing standing between this file and the manual queue, and the
- * owner can overturn it — in which case all four records move, and the manual
- * queue grows by four.
+ * So the identical fact is quotable taken from NMC guidance and NOT quotable
+ * taken from an NMC news item, and `sourceDocumentClass` is what decides it.
+ * A per-domain boolean could not express this, and the version of this registry
+ * that shipped in PR #9 could not either.
+ *
+ * ── 🔴 AND HERE FRESHNESS IS A LICENCE CONDITION, NOT HYGIENE ───────────────
+ *
+ * Clause 6.3's FIRST condition is "ensure that you are using the most
+ * up-to-date version of any source document". A lapsed record here is not a
+ * stale fact — IT IS THEIR CONTENT REPRODUCED OUTSIDE THE TERMS THAT ALLOWED
+ * IT. So these four may only be watched by the quote match, which can
+ * DEMONSTRATE currency; a fingerprint cannot, and F21 rejects the attempt.
+ * When the window lapses the quote is WITHDRAWN by `quoteUsableNow`, not
+ * flagged as old.
+ *
+ * ⚠️ ONE JUDGEMENT IS RECORDED RATHER THAN HIDDEN. Clause 6.3 names "rules,
+ * standards and guidance". These are registration-requirement pages, which I
+ * have classified AS guidance. That classification is mine and the owner can
+ * overturn it — in which case all four records lose their quotes, keep their
+ * facts in our own words, and drop to fingerprint watching.
  */
 import { fact } from "../src/facts/record.mjs";
 
 const MACHINE_READABLE_BASIS =
   "fetched and read 2026-09-10 (A1_FACT_SUPPLY_FEASIBILITY.md); re-fetched 2026-09-10 by bin/quote-match.mjs";
 const QUOTABLE_BASIS =
-  'EXPRESS PERMISSION. nmc.org.uk terms, read 2026-09-10: users may reproduce the content of its rules, standards and guidance "in part or in full" given current versions, unaltered meaning and credit — and "You do not need our permission to quote from our rules, standards or guidance". ⚠️ These are registration-guidance pages; that classification is ours.';
+  'EXPRESS PERMISSION, SCOPED. NMC terms clause 6.3, read first-hand by the owner (_handoffs/SOURCE_QUOTABILITY.md, dated 11 September 2026): "you may reproduce the content of any of our rules, standards and guidance in part or in full", on four conditions — most up-to-date version, unaltered meaning, credit to NMC, and a link. 🔴 Clause 6.2 is the surrounding default and it EXCLUDES storage "on any server or other storage device connected to the network", which is exactly what this registry is. So quotability here is decided by sourceDocumentClass, NOT by the domain. ⚠️ These are registration-GUIDANCE pages; that classification is ours and the owner can overturn it, in which case all four records lose their quotes.';
 
 const OET_URL =
   "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/accepted-english-language-tests/oet/";
@@ -41,6 +55,12 @@ const common = {
   sourceMachineReadableBasis: MACHINE_READABLE_BASIS,
   sourceQuotable: true,
   sourceQuotableBasis: QUOTABLE_BASIS,
+  licence: "NMC-6.3",
+  sourceDocumentClass: "guidance",
+  // Condition 3 and 4 of clause 6.3. The credit is part of the permission, not
+  // a courtesy — a record carrying the quote without it is a breach that looks
+  // exactly like compliance.
+  attributionStatement: "Nursing and Midwifery Council — https://www.nmc.org.uk/",
   queue: "AUTOMATED",
   freshness: { rule: "machine-quote-match", days: 180 },
   life: { status: "active", firstSeenOn: "2026-09-10", extractedOn: "2026-09-10" },

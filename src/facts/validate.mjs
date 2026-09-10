@@ -22,6 +22,15 @@ import {
   ROUTES,
 } from "./schema.mjs";
 import { queueFor, freshnessRuleFor } from "./queues.mjs";
+import {
+  LICENCES,
+  DOCUMENT_CLASSES,
+  UNKNOWN_LICENCES,
+  quotableUnder,
+  requiredAttribution,
+  requiresCurrentVersion,
+  requiresPerPageThirdPartyCheck,
+} from "./licences.mjs";
 import { urlShapeProblem } from "../gate-a/facts.mjs";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -123,6 +132,7 @@ export function validateRecord(record) {
   for (const [field, outcomeField] of [
     ["linkCheckedOn", "linkCheckOutcome"],
     ["quoteMatchedOn", "quoteMatchOutcome"],
+    ["fingerprintCheckedOn", "fingerprintOutcome"],
   ]) {
     if (c[field] !== null && !isIsoDate(c[field])) push("F7", `checks.${field} must be an ISO date or null, got ${JSON.stringify(c[field])}`);
     if (!Object.prototype.hasOwnProperty.call(CHECK_OUTCOMES, String(c[outcomeField]))) {
@@ -137,6 +147,7 @@ export function validateRecord(record) {
   for (const [dateField, outcomeField] of [
     ["linkCheckedOn", "linkCheckOutcome"],
     ["quoteMatchedOn", "quoteMatchOutcome"],
+    ["fingerprintCheckedOn", "fingerprintOutcome"],
   ]) {
     const outcome = c[outcomeField];
     if ((outcome === "could-not-check" || outcome === "not-applicable") && c[dateField] !== null) {
@@ -216,6 +227,85 @@ export function validateRecord(record) {
   }
   if (p.route === "R4" && l.status !== "lead") {
     push("F13", `route R4 with status ${JSON.stringify(l.status)} — a third party is a lead to verify, never the citation itself`);
+  }
+
+  // ── F17 · THE LICENCE AND THE DOCUMENT CLASS ARE BOTH NAMED ──────────────
+  // Owner's licence census, 11 September 2026. A domain is not a licence and a
+  // licence is not a document class: the NMC grants for guidance what it
+  // refuses for news, on the same site.
+  if (!Object.prototype.hasOwnProperty.call(LICENCES, String(r.licence))) {
+    push("F17", `licence is ${JSON.stringify(r.licence)}, not one of ${Object.keys(LICENCES).join(", ")}`);
+  }
+  if (!DOCUMENT_CLASSES.includes(r.sourceDocumentClass)) {
+    push("F17", `sourceDocumentClass is ${JSON.stringify(r.sourceDocumentClass)}, not one of ${DOCUMENT_CLASSES.join(", ")} — the NMC split is meaningless without it`);
+  }
+
+  // ── F18 · 🔴 QUOTABILITY IS DERIVED FROM THE LICENCE, NEVER TYPED ─────────
+  // Same defence as the queue. A licence judgement written by hand cannot be
+  // re-checked, and six months later it is indistinguishable from a licence
+  // somebody actually read.
+  if (Object.prototype.hasOwnProperty.call(LICENCES, String(r.licence)) && DOCUMENT_CLASSES.includes(r.sourceDocumentClass)) {
+    const derivedQuotable = quotableUnder(r.licence, r.sourceDocumentClass);
+    if (r.sourceQuotable !== derivedQuotable) {
+      push(
+        "F18",
+        `sourceQuotable says ${JSON.stringify(r.sourceQuotable)} but ${r.licence} over a "${r.sourceDocumentClass}" document derives ${JSON.stringify(derivedQuotable)} — quotability follows the clause, not a judgement`,
+      );
+    }
+  }
+
+  // ── F19 · 🔴 SILENCE IS `false`, NOT `"unknown"` ─────────────────────────
+  // The owner's ruling, 11 September 2026: a bare copyright notice is not an
+  // open question about the licence. IT IS THE LICENCE, and it reserves
+  // everything. "unknown" survives only where the terms could not be READ —
+  // because AN UNREAD LICENCE IS NOT A PERMISSIVE ONE, and letting silence
+  // register as uncertainty would quietly re-open a closed question.
+  if (r.sourceQuotable === "unknown" && !UNKNOWN_LICENCES.includes(r.licence)) {
+    push(
+      "F19",
+      `sourceQuotable is "unknown" under licence ${JSON.stringify(r.licence)} — "unknown" is only for ${UNKNOWN_LICENCES.join(" or ")}. A copyright notice with no grant is "all rights reserved", which is false, not unknown`,
+    );
+  }
+
+  // ── F20 · THE CREDIT IS PART OF THE PERMISSION, NOT A COURTESY ───────────
+  // Both permissive licences require attribution, and each requires a DIFFERENT
+  // one. A record carrying the quote but not the credit is a licence breach
+  // THAT LOOKS EXACTLY LIKE COMPLIANCE — the quote is there, the source is
+  // there, the date is there, and the permission has been exceeded.
+  if (r.sourceQuotable === true) {
+    const needed = requiredAttribution(r.licence);
+    if (needed && !isFilled(r.attributionStatement)) {
+      push("F20", `${r.licence} requires attribution and attributionStatement is empty — the credit is a CONDITION of the permission, not a courtesy`);
+    } else if (needed && !String(r.attributionStatement).includes(needed)) {
+      push("F20", `attributionStatement does not contain what ${r.licence} requires (${JSON.stringify(needed)})`);
+    }
+  }
+
+  // ── F21 · 🔴 WHERE CURRENCY IS A LICENCE CONDITION, EXPIRY IS NOT ADVISORY ─
+  // NMC 6.3's first condition is "ensure that you are using the most up-to-date
+  // version of any source document". A lapsed record is not a stale fact — it
+  // is content reproduced outside the terms that allowed it. So such a record
+  // must be watched by the check that can DEMONSTRATE currency, and a
+  // fingerprint cannot: it proves the page did not move, not that our stored
+  // sentence is the current wording.
+  if (requiresCurrentVersion(r.licence) && r.sourceQuotable === true && r.freshness?.rule !== "machine-quote-match") {
+    push(
+      "F21",
+      `${r.licence} makes currency a CONDITION OF THE PERMISSION, so this record must be watched by machine-quote-match, not ${JSON.stringify(r.freshness?.rule)}`,
+    );
+  }
+
+  // ── F22 · THE PER-PAGE THIRD-PARTY CHECK THE WORD "MOST" FORCES ──────────
+  // GOV.UK says MOST of its content is OGL, and that where it is not, it will
+  // usually credit the author. So an OGL page is quotable because THIS page
+  // carries no third-party credit — a per-page fact, not a domain-wide one.
+  if (requiresPerPageThirdPartyCheck(r.licence) && r.sourceQuotable === true) {
+    const check = r.thirdPartyRightsCheck;
+    if (!check || !isIsoDate(check.checkedOn)) {
+      push("F22", `${r.licence} requires a PER-PAGE third-party rights check before storing this page's text, and none is recorded`);
+    } else if (check.clear !== true) {
+      push("F22", `the third-party rights check on this page is not clear (${JSON.stringify(check.detail)}) — a person must judge it before a quote is stored`);
+    }
   }
 
   // ── F14 · A CONFLICT IS FROZEN, NOT RESOLVED BY WHOEVER WROTE LAST ────────

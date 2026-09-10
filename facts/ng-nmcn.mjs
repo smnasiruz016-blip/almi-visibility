@@ -33,17 +33,28 @@ import { fact } from "../src/facts/record.mjs";
 const URL = "https://nmcn.gov.ng/verify.html";
 const MR = "fetched and read 2026-09-10 (ORIGIN_CLAIM_SHAPE.md §1.2); re-fetched 2026-09-10, HTTP 200. It is not a 403.";
 const QUOTABLE_BASIS =
-  'NO EXPRESS TERM EITHER WAY. The page carries only "Copyright © 2022 Nursing & Midwifery Council of Nigeria. All Rights Reserved." — no grant, and no prohibition naming storage or retrieval. Read 2026-09-10. Conservatively "unknown"; see FACT_CACHE_DESIGN.md §8.4.';
+  'PROHIBITED. Read first-hand by the owner (_handoffs/SOURCE_QUOTABILITY.md, dated 11 September 2026): "Copyright © 2026 Nursing & Midwifery Council of Nigeria. ALL RIGHTS RESERVED." and no grant of reuse anywhere. 🔴 "All rights reserved" is not silence to be interpreted — it is a reservation of every right. PR #9 recorded this as "unknown" and left a ruling open; the owner has closed it as false.';
 
 const common = {
   scope: "origin",
   locale: { origin: "nigeria", profession: "nursing" },
   sourceMachineReadable: true,
   sourceMachineReadableBasis: MR,
-  sourceQuotable: "unknown",
+  sourceQuotable: false,
   sourceQuotableBasis: QUOTABLE_BASIS,
-  queue: "MANUAL",
-  freshness: { rule: "human-re-read", days: 180 },
+  licence: "proprietary-no-reuse",
+  sourceDocumentClass: "general",
+  attributionStatement: null,
+  queue: "AUTOMATED",
+  freshness: { rule: "machine-fingerprint", days: 180 },
+  // The page digest taken on 2026-09-10, and the ONLY thing about this page
+  // the registry stores. A sha256 is one-way: the wording cannot be recovered
+  // from it, it cannot substitute for the source, and it is not a copy — which
+  // is why it is lawful to hold where the wording is not. It is normalised text,
+  // not raw HTML: raw HTML differed between two consecutive fetches on 6 of 9
+  // pages, and normalised text on 0 of 9.
+  pageFingerprint: "d7a4dc14e31ae0964372e83a9aca4b1137ce41d0318deff687c0a0cef1dffee5",
+  pageFingerprintNormalisedLength: 6202,
   life: { status: "active", firstSeenOn: "2026-09-10", extractedOn: "2026-09-10" },
   source: {
     url: URL,
@@ -56,7 +67,7 @@ const common = {
   // 🔴 The link check RAN and passed. The quote match was never attempted,
   // lawfully, so it is "not-applicable" and carries NO DATE. It is not a
   // failure and it is not a could-not-check: this source is not broken.
-  checks: { linkCheckedOn: "2026-09-10", linkCheckOutcome: "pass", quoteMatchedOn: null, quoteMatchOutcome: "not-applicable" },
+  checks: { linkCheckedOn: "2026-09-10", linkCheckOutcome: "pass", quoteMatchedOn: null, quoteMatchOutcome: "not-applicable", fingerprintCheckedOn: "2026-09-10", fingerprintOutcome: "pass" },
 };
 
 const fee = (id, qualifier, amount, ownWords) =>

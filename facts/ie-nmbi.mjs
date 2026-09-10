@@ -21,30 +21,56 @@
  * decision forced by two facts disagreeing, which is exactly what a registry is
  * for.
  *
- * ── WHY THE VERBATIM WORDING IS NOT HERE ────────────────────────────────────
+ * ── 🔴 WHY THE VERBATIM WORDING IS NOT HERE — AND THIS HARDENED ─────────────
  *
  * The inventory read this page and recorded its wording verbatim. Those quotes
  * stay in that measurement document — our own working notes — and are NOT
- * reproduced into this registry, because no licence permitting it has been
- * located. The terms page was looked for on 2026-09-10 and returned 404.
- * `sourceQuotable: "unknown"`, and the cost is a human re-read.
+ * reproduced into this registry.
+ *
+ * PR #9 recorded this as `sourceQuotable: "unknown"` because a terms page could
+ * not be found. **The owner then read the site first-hand (SOURCE_QUOTABILITY.md, 11 September 2026)
+ * and there are NO REUSE TERMS AT ALL — only a bare copyright line.** That is
+ * not an unread licence, it is a read one, and the answer is `false`:
+ *
+ *   THE ABSENCE OF A LICENCE IS NOT PERMISSION.
+ *   "ALL RIGHTS RESERVED" IS WHAT SILENCE MEANS.
+ *
+ * ── AND YET THIS FILE IS STILL AUTOMATED ────────────────────────────────────
+ *
+ * Not because anything about the licence improved, but because the check
+ * changed. NMBI serves 200 to a machine, so its page can be FINGERPRINTED —
+ * hashed, with only the digest stored — and a machine can still tell us the day
+ * the page moves. **We do not need their words to detect that their words
+ * changed.** The facts below stay in our own words; the freshness stops being a
+ * calendar chore. See `src/facts/fingerprint.mjs`.
  */
 import { fact } from "../src/facts/record.mjs";
 
 const URL = "https://www.nmbi.ie/Registration/Qualified-outside-the-EU/Application-Process/English-Language-Requirements";
 const MR = "fetched and read 2026-09-10 (PROFESSION_PAGE_CLAIM_INVENTORY.md §1) — machine-readable, HTTP 200.";
 const QUOTABLE_BASIS =
-  "NO LICENCE LOCATED. A terms-and-conditions page was sought on 2026-09-10 and the candidate URL returned HTTP 404; no express grant or prohibition was found. Not a refusal — an unread licence. See FACT_CACHE_DESIGN.md §8.4.";
+  "PROHIBITED BY DEFAULT. Read first-hand by the owner (_handoffs/SOURCE_QUOTABILITY.md, dated 11 September 2026): the site carries a bare \"Copyright © Nursing & Midwifery Board of Ireland\" and NO REUSE TERMS EXIST AT ALL. 🔴 That is not an open question — the absence of a licence is not permission, and all rights reserved is what silence means. This was recorded as \"unknown\" in PR #9 and the owner has ruled it false.";
 
 const common = {
   scope: "destination",
   locale: { destination: "ireland", profession: "nursing" },
   sourceMachineReadable: true,
   sourceMachineReadableBasis: MR,
-  sourceQuotable: "unknown",
+  sourceQuotable: false,
   sourceQuotableBasis: QUOTABLE_BASIS,
-  queue: "MANUAL",
-  freshness: { rule: "human-re-read", days: 180 },
+  licence: "proprietary-no-reuse",
+  sourceDocumentClass: "guidance",
+  attributionStatement: null,
+  queue: "AUTOMATED",
+  freshness: { rule: "machine-fingerprint", days: 180 },
+  // The page digest taken on 2026-09-10, and the ONLY thing about this page
+  // the registry stores. A sha256 is one-way: the wording cannot be recovered
+  // from it, it cannot substitute for the source, and it is not a copy — which
+  // is why it is lawful to hold where the wording is not. It is normalised text,
+  // not raw HTML: raw HTML differed between two consecutive fetches on 6 of 9
+  // pages, and normalised text on 0 of 9.
+  pageFingerprint: "50384bb0515bd611f8aca71ffb5b9714b8ac79f167e2360a3665ae74e5d1443e",
+  pageFingerprintNormalisedLength: 10308,
   life: { status: "active", firstSeenOn: "2026-09-10", extractedOn: "2026-09-10" },
   source: {
     url: URL,
@@ -54,7 +80,7 @@ const common = {
     documentRef: null,
   },
   provenance: { route: "R3", acquiredBy: "model:claude-opus-5", note: "Read from the fetched page. No span stored — see sourceQuotableBasis." },
-  checks: { linkCheckedOn: "2026-09-10", linkCheckOutcome: "pass", quoteMatchedOn: null, quoteMatchOutcome: "not-applicable" },
+  checks: { linkCheckedOn: "2026-09-10", linkCheckOutcome: "pass", quoteMatchedOn: null, quoteMatchOutcome: "not-applicable", fingerprintCheckedOn: "2026-09-10", fingerprintOutcome: "pass" },
 };
 
 export default [

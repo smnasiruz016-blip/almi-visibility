@@ -71,15 +71,26 @@ export default [
     sourceMachineReadableBasis:
       "HTTP 200 on 2026-09-10 for oet.com/, /en-us/about, /en-us/Intellectual-Property-policy and /robots.txt. It is NOT a 403 — an earlier record of ours saying otherwise was wrong and is corrected.",
     sourceQuotable: false,
+    licence: "OET-CBLA-IP",
+    sourceDocumentClass: "general",
+    attributionStatement: null,
     sourceQuotableBasis:
-      "EXPRESS PROHIBITION. The OET Intellectual Property policy forbids redistribution or reproduction of the Content in any form, and forbids storing the Content in any other form of electronic retrieval system. A fact cache holding a quotedSpan is such a system. Read 2026-09-10.",
+      'EXPRESS PROHIBITION, ON THREE INDEPENDENT GROUNDS. Read first-hand by the owner at oet.com/Intellectual-Property-policy (_handoffs/SOURCE_QUOTABILITY.md, dated 11 September 2026). Without CBLA prior express written permission it is prohibited to (1) "transmit or reproduce any part of the Content", (2) "distribute or commercially exploit the Content", and (3) store the Content "in any other website or other form of electronic retrieval system". 🔴 AND THE CARVE-OUTS DO NOT REACH US AT ALL: every permitted use is expressly for "your own personal and NON-COMMERCIAL use only", and AlmiWorld is a commercial product. PR #9 cited only ground (3); grounds (1) and (2) bite harder, and the non-commercial limit puts us outside the permission before ground (3) is even reached.',
     evidence: {
       ownWords:
         "OET's own intellectual property terms do not permit its wording to be reproduced or stored in a retrieval system. Facts sourced from OET are therefore recorded in our own words with a URL and a date, no verbatim extract is kept, and their freshness is a person re-reading the page rather than an automated match.",
     },
-    queue: "MANUAL",
-    freshness: { rule: "human-re-read", days: 180 },
-    checks: { linkCheckedOn: "2026-09-10", linkCheckOutcome: "pass", quoteMatchedOn: null, quoteMatchOutcome: "not-applicable" },
+    queue: "AUTOMATED",
+    freshness: { rule: "machine-fingerprint", days: 180 },
+    // The page digest taken on 2026-09-10, and the ONLY thing about this page
+    // the registry stores. A sha256 is one-way: the wording cannot be recovered
+    // from it, it cannot substitute for the source, and it is not a copy — which
+    // is why it is lawful to hold where the wording is not. It is normalised text,
+    // not raw HTML: raw HTML differed between two consecutive fetches on 6 of 9
+    // pages, and normalised text on 0 of 9.
+    pageFingerprint: "9dfd7546793cf1acc911eae52ca393990fa419396ecb3c3532dab27118a0f4a7",
+    pageFingerprintNormalisedLength: 3535,
+    checks: { linkCheckedOn: "2026-09-10", linkCheckOutcome: "pass", quoteMatchedOn: null, quoteMatchOutcome: "not-applicable", fingerprintCheckedOn: "2026-09-10", fingerprintOutcome: "pass" },
     life: { status: "active", firstSeenOn: "2026-09-10", extractedOn: "2026-09-10" },
     provenance: {
       route: "R3",

@@ -33,6 +33,9 @@
  * is the entire product.
  */
 
+import { matchFingerprint } from "./fingerprint.mjs";
+import { requiresPerPageThirdPartyCheck } from "./licences.mjs";
+
 const ENTITIES = Object.freeze({
   "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&apos;": "'",
   "&nbsp;": " ", "&ndash;": "-", "&mdash;": "-", "&hellip;": "...",
@@ -132,7 +135,40 @@ export async function fetchForMatch(url, { timeoutMs = 20_000, fetchImpl = fetch
   try {
     const res = await fetchImpl(url, { redirect: "follow", signal: controller.signal });
     if (!res.ok) return { ok: false, status: res.status, detail: `HTTP ${res.status} — the source refused or moved` };
-    return { ok: true, status: res.status, body: await res.text() };
+    const body = await res.text();
+
+    // ── 🔴 A LINK CHECK MUST VERIFY WHERE IT LANDED ─────────────────────────
+    //
+    // `nmcnigeria.org` — the domain a reasonable person GUESSES for the Nigerian
+    // regulator — answers **HTTP 200** with a 114-byte body containing nothing
+    // but a JavaScript redirect to a parking lander. `res.ok` is true. The host
+    // never changes, so a redirect check does not catch it either. Normalised,
+    // it is ZERO CHARACTERS OF TEXT.
+    //
+    // A citation can stop pointing at a regulator and start pointing at a
+    // domain-for-sale page WITHOUT ANYBODY TOUCHING THE RECORD, and a check that
+    // asks only "did something answer" will go green on that forever. This is
+    // `linkCheckedOn` earning its existence.
+    const landedHost = safeHost(res.url ?? url);
+    const expectedHost = safeHost(url);
+    if (landedHost && expectedHost && landedHost !== expectedHost) {
+      return {
+        ok: false,
+        status: res.status,
+        landedUrl: res.url,
+        detail: `🔴 REDIRECTED OFF-HOST — asked for ${expectedHost}, landed on ${landedHost}. A citation must not silently change owner`,
+      };
+    }
+    const text = normaliseText(body);
+    if (text.length < MIN_SUBSTANTIVE_BODY) {
+      return {
+        ok: false,
+        status: res.status,
+        landedUrl: res.url,
+        detail: `🔴 HTTP 200 WITH ${text.length} CHARACTERS OF TEXT — this answered, but it is not a document. A parked or JS-only page looks exactly like this`,
+      };
+    }
+    return { ok: true, status: res.status, landedUrl: res.url, body, normalisedLength: text.length };
   } catch (err) {
     // A timeout, a DNS failure and a broken TLS chain are all "could not
     // check". A1 met three of these in one afternoon.
@@ -142,28 +178,100 @@ export async function fetchForMatch(url, { timeoutMs = 20_000, fetchImpl = fetch
   }
 }
 
+function safeHost(u) {
+  try {
+    return new URL(u).host;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Measured floor, n=10 on 11 September 2026: the smallest REAL source document
+ * in the registry normalises to 3,535 characters; the parked domain to 0.
+ * ⚠️ PROVISIONAL — a gap in one measured distribution, not a considered
+ * threshold. Kept identical to fingerprint.mjs's floor deliberately; a source
+ * too thin for one check is too thin for the other.
+ */
+export const MIN_SUBSTANTIVE_BODY = 500;
+
+/**
+ * 🔴 THE PER-PAGE THIRD-PARTY CHECK THE WORD "MOST" FORCES.
+ *
+ * GOV.UK says "MOST content on GOV.UK is subject to Crown copyright ... and is
+ * published under the Open Government Licence" — and that where content is NOT,
+ * "we'll usually credit the author or copyright holder". The OGL itself also
+ * carves out personal data, departmental logos, crests, the Royal Arms and
+ * third-party rights.
+ *
+ * So an OGL page is not quotable because it is on gov.uk. It is quotable
+ * because THIS page carries no third-party credit — which is a per-page fact
+ * that has to be looked at, and can change without warning when a page is
+ * edited.
+ *
+ * Deliberately returns the notices it found rather than a bare boolean, so a
+ * reviewer can see WHAT it read and judge whether the scan understood it.
+ */
+export function scanForThirdPartyRights(body) {
+  const text = normaliseText(body);
+  const notices = [...text.matchAll(/©[^.©]{0,80}/g)].map((m) => m[0].trim());
+  const nonCrown = notices.filter((n) => !/crown copyright/i.test(n));
+  return {
+    notices,
+    nonCrown,
+    // A cookie-banner "© 2026 Cookie Information" is a third-party notice and it
+    // is NOT a copyright claim over the page's text. The scan cannot tell those
+    // apart, so it reports rather than decides, and `clear` is only asserted when
+    // there is nothing at all to weigh.
+    clear: nonCrown.length === 0,
+    detail:
+      nonCrown.length === 0
+        ? "no non-Crown copyright notice on the page"
+        : `⚠️ ${nonCrown.length} non-Crown notice(s) present — a person must judge whether they claim the text we are quoting`,
+  };
+}
+
 /**
  * Run the job over a set of records. Groups by URL so one page is fetched once
  * however many claims it carries — the NMC OET page alone carries two.
  */
 export async function runQuoteMatch(records = [], { fetchImpl = fetch, now = new Date() } = {}) {
-  const attempted = records.filter((r) => r?.sourceQuotable === true);
-  const skipped = records.filter((r) => r?.sourceQuotable !== true).map((r) => matchQuote(r, null));
+  // 🔴 EVERY MACHINE-READABLE RECORD IS NOW WATCHED, not only the quotable ones.
+  // A record we may fetch and may not quote gets a FINGERPRINT check instead of
+  // a quote match — same job, same four outcomes, weaker evidence, and it stores
+  // no words. See fingerprint.mjs.
+  const watched = records.filter((r) => r?.sourceMachineReadable === true);
+  const unwatchable = records
+    .filter((r) => r?.sourceMachineReadable !== true)
+    .map((r) => ({ id: r?.id, outcome: "could-not-check", check: "none", detail: "the source is not machine-readable — only a person can check this" }));
 
   const byUrl = new Map();
-  for (const r of attempted) {
+  for (const r of watched) {
     const url = r?.source?.url;
     if (!byUrl.has(url)) byUrl.set(url, []);
     byUrl.get(url).push(r);
   }
 
   const results = [];
+  const thirdParty = [];
   for (const [url, group] of byUrl) {
     const fetched = await fetchForMatch(url, { fetchImpl });
-    for (const r of group) results.push({ ...matchQuote(r, fetched), url });
+
+    // The OGL per-page check, run once per page rather than once per record.
+    if (fetched.ok && group.some((r) => requiresPerPageThirdPartyCheck(r?.licence))) {
+      thirdParty.push({ url, ...scanForThirdPartyRights(fetched.body) });
+    }
+
+    for (const r of group) {
+      if (r?.sourceQuotable === true) {
+        results.push({ ...matchQuote(r, fetched), check: "quote-match", url });
+      } else {
+        results.push({ ...matchFingerprint(r, fetched), check: "fingerprint", url });
+      }
+    }
   }
 
-  const all = [...results, ...skipped];
+  const all = [...results, ...unwatchable];
   const tally = { pass: 0, fail: 0, "could-not-check": 0, "not-applicable": 0 };
   for (const r of all) tally[r.outcome] += 1;
   const ambiguous = all.filter((r) => r.ambiguous === true);
@@ -177,6 +285,19 @@ export async function runQuoteMatch(records = [], { fetchImpl = fetch, now = new
     // never be added to one — a blocked source would then look broken.
     flaggedForAPerson: all.filter((r) => r.outcome === "fail"),
     inconclusive: all.filter((r) => r.outcome === "could-not-check"),
+    // 🔴 Split by CHECK, never merged. A fingerprint pass and a quote-match pass
+    // are not the same evidence (EVIDENCE_STRENGTH in schema.mjs), and a single
+    // "pass" column would let the registry's proof weaken while its score rose.
+    byCheck: {
+      quoteMatch: all.filter((r) => r.check === "quote-match").length,
+      fingerprint: all.filter((r) => r.check === "fingerprint").length,
+      none: all.filter((r) => r.check === "none").length,
+    },
+    thirdPartyRights: thirdParty,
+    // A page whose third-party scan is not clear blocks the STORING of a quote,
+    // so it is surfaced separately from a failed match — it is a licence
+    // question, not a content change.
+    thirdPartyConcerns: thirdParty.filter((t) => !t.clear),
     // Reported as its own column, because a weak pass is not a failure and must
     // not be counted as one — but it must not disappear into the pass count
     // either. That is how a gate stops being able to go red without anybody

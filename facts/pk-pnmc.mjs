@@ -26,17 +26,28 @@ import { fact } from "../src/facts/record.mjs";
 const URL = "https://pnmc.gov.pk/verification-registration-2/";
 const MR = "fetched and read 2026-09-10 (A1_FACT_SUPPLY_FEASIBILITY.md §1), plain HTML; re-fetched 2026-09-10, HTTP 200.";
 const QUOTABLE_BASIS =
-  'NO EXPRESS TERM EITHER WAY. The page carries only "Copyright © 2026 Pakistan Nursing & Midwifery Council. All rights reserved." — no grant, and no prohibition naming storage or retrieval. Read 2026-09-10. Conservatively "unknown"; see FACT_CACHE_DESIGN.md §8.4.';
+  'PROHIBITED. Read first-hand by the owner (_handoffs/SOURCE_QUOTABILITY.md, dated 11 September 2026): "Copyright © 2026 Pakistan Nursing & Midwifery Council. ALL RIGHTS RESERVED." and no grant of reuse. 🔴 Recorded as "unknown" in PR #9; the owner has ruled it false. An absent licence reserves everything.';
 
 const common = {
   scope: "origin",
   locale: { origin: "pakistan", profession: "nursing" },
   sourceMachineReadable: true,
   sourceMachineReadableBasis: MR,
-  sourceQuotable: "unknown",
+  sourceQuotable: false,
   sourceQuotableBasis: QUOTABLE_BASIS,
-  queue: "MANUAL",
-  freshness: { rule: "human-re-read", days: 180 },
+  licence: "proprietary-no-reuse",
+  sourceDocumentClass: "general",
+  attributionStatement: null,
+  queue: "AUTOMATED",
+  freshness: { rule: "machine-fingerprint", days: 180 },
+  // The page digest taken on 2026-09-10, and the ONLY thing about this page
+  // the registry stores. A sha256 is one-way: the wording cannot be recovered
+  // from it, it cannot substitute for the source, and it is not a copy — which
+  // is why it is lawful to hold where the wording is not. It is normalised text,
+  // not raw HTML: raw HTML differed between two consecutive fetches on 6 of 9
+  // pages, and normalised text on 0 of 9.
+  pageFingerprint: "f3740f058f6df75846b99b66d49450291809aa875413a9a9c5f82a4e54324a92",
+  pageFingerprintNormalisedLength: 5058,
   life: { status: "active", firstSeenOn: "2026-09-10", extractedOn: "2026-09-10" },
   source: {
     url: URL,
@@ -46,7 +57,7 @@ const common = {
     documentRef: null,
   },
   provenance: { route: "R3", acquiredBy: "model:claude-opus-5", note: "Read from the fetched page. No span stored — see sourceQuotableBasis." },
-  checks: { linkCheckedOn: "2026-09-10", linkCheckOutcome: "pass", quoteMatchedOn: null, quoteMatchOutcome: "not-applicable" },
+  checks: { linkCheckedOn: "2026-09-10", linkCheckOutcome: "pass", quoteMatchedOn: null, quoteMatchOutcome: "not-applicable", fingerprintCheckedOn: "2026-09-10", fingerprintOutcome: "pass" },
 };
 
 export default [

@@ -1,0 +1,412 @@
+{
+  "generatedOn": "2026-09-10",
+  "total": 32,
+  "validation": {
+    "total": 32,
+    "valid": true,
+    "invalidRecords": [],
+    "registryErrors": []
+  },
+  "byQueue": {
+    "AUTOMATED": 32,
+    "MANUAL": 0
+  },
+  "byLicence": {
+    "proprietary-no-reuse": 14,
+    "unknown-not-read": 1,
+    "OET-CBLA-IP": 1,
+    "OGL-v3.0": 12,
+    "NMC-6.3": 4
+  },
+  "byDocumentClass": {
+    "guidance": 17,
+    "general": 12,
+    "news": 1,
+    "rules": 2
+  },
+  "byFreshnessRule": {
+    "machine-fingerprint": 16,
+    "machine-quote-match": 16
+  },
+  "quoteUsability": {
+    "usable": [
+      {
+        "id": "uk-code-of-practice.recruitment-list-membership.country=nigeria",
+        "usable": true,
+        "reason": "the licence attaches no currency condition",
+        "legal": false,
+        "ageDays": 0,
+        "basis": "a passing quote match against the live document"
+      },
+      {
+        "id": "uk-code-of-practice.recruitment-list-membership.country=pakistan",
+        "usable": true,
+        "reason": "the licence attaches no currency condition",
+        "legal": false,
+        "ageDays": 0,
+        "basis": "a passing quote match against the live document"
+      },
+      {
+        "id": "uk-code-of-practice.recruitment-list-membership.country=kenya",
+        "usable": true,
+        "reason": "the licence attaches no currency condition",
+        "legal": false,
+        "ageDays": 0,
+        "basis": "a passing quote match against the live document"
+      },
+      {
+        "id": "uk-code-of-practice.recruitment-list-membership.country=india",
+        "usable": true,
+        "reason": "the licence attaches no currency condition",
+        "legal": false,
+        "ageDays": 0,
+        "basis": "a passing quote match against the live document"
+      },
+      {
+        "id": "uk-code-of-practice.recruitment-list-membership.country=philippines",
+        "usable": true,
+        "reason": "the licence attaches no currency condition",
+        "legal": false,
+        "ageDays": 0,
+        "basis": "a passing quote match against the live document"
+      },
+      {
+        "id": "uk-code-of-practice.red-list-rule",
+        "usable": true,
+        "reason": "the licence attaches no currency condition",
+        "legal": false,
+        "ageDays": 0,
+        "basis": "a passing quote match against the live document"
+      },
+      {
+        "id": "uk-code-of-practice.amber-list-rule",
+        "usable": true,
+        "reason": "the licence attaches no currency condition",
+        "legal": false,
+        "ageDays": 0,
+        "basis": "a passing quote match against the live document"
+      },
+      {
+        "id": "uk-code-of-practice.amber-list-countries",
+        "usable": true,
+        "reason": "the licence attaches no currency condition",
+        "legal": false,
+        "ageDays": 0,
+        "basis": "a passing quote match against the live document"
+      },
+      {
+        "id": "uk-code-of-practice.direct-application-exception",
+        "usable": true,
+        "reason": "the licence attaches no currency condition",
+        "legal": false,
+        "ageDays": 0,
+        "basis": "a passing quote match against the live document"
+      },
+      {
+        "id": "uk-code-of-practice.red-list-country-count",
+        "usable": true,
+        "reason": "the licence attaches no currency condition",
+        "legal": false,
+        "ageDays": 0,
+        "basis": "a passing quote match against the live document"
+      },
+      {
+        "id": "uk-nmc.oet-minimum-grade.profession=nursing",
+        "usable": true,
+        "reason": "currency demonstrated 0 days ago by a passing quote match against the live document, within the 180-day window",
+        "legal": true,
+        "ageDays": 0
+      },
+      {
+        "id": "uk-nmc.oet-combining-sittings.profession=nursing",
+        "usable": true,
+        "reason": "currency demonstrated 0 days ago by a passing quote match against the live document, within the 180-day window",
+        "legal": true,
+        "ageDays": 0
+      },
+      {
+        "id": "uk-nmc.english-evidence-routes.profession=nursing",
+        "usable": true,
+        "reason": "currency demonstrated 0 days ago by a passing quote match against the live document, within the 180-day window",
+        "legal": true,
+        "ageDays": 0
+      },
+      {
+        "id": "uk-nmc.qualified-in-english-evidence.profession=nursing",
+        "usable": true,
+        "reason": "currency demonstrated 0 days ago by a passing quote match against the live document, within the 180-day window",
+        "legal": true,
+        "ageDays": 0
+      },
+      {
+        "id": "uk-ukvi.majority-english-speaking-countries",
+        "usable": true,
+        "reason": "the licence attaches no currency condition",
+        "legal": false,
+        "ageDays": 0,
+        "basis": "a passing quote match against the live document"
+      },
+      {
+        "id": "uk-ukvi.english-nationality-exemption.nationality=india",
+        "usable": true,
+        "reason": "the licence attaches no currency condition",
+        "legal": false,
+        "ageDays": 0,
+        "basis": "a passing quote match against the live document"
+      }
+    ],
+    "withdrawn": [],
+    "neverQuotable": [
+      {
+        "id": "ie-nmbi.oet-minimum-grade.profession=nursing",
+        "usable": false,
+        "reason": "there is no stored quote",
+        "legal": false,
+        "ageDays": null
+      },
+      {
+        "id": "ie-nmbi.oet-version-required.profession=nursing",
+        "usable": false,
+        "reason": "there is no stored quote",
+        "legal": false,
+        "ageDays": null
+      },
+      {
+        "id": "ie-nmbi.recognised-english-speaking-countries",
+        "usable": false,
+        "reason": "there is no stored quote",
+        "legal": false,
+        "ageDays": null
+      },
+      {
+        "id": "ng-nmcn.issuing-body",
+        "usable": false,
+        "reason": "there is no stored quote",
+        "legal": false,
+        "ageDays": null
+      },
+      {
+        "id": "ng-nmcn.verification-fee.purpose=certificate-verification",
+        "usable": false,
+        "reason": "there is no stored quote",
+        "legal": false,
+        "ageDays": null
+      },
+      {
+        "id": "ng-nmcn.verification-fee.purpose=authentication",
+        "usable": false,
+        "reason": "there is no stored quote",
+        "legal": false,
+        "ageDays": null
+      },
+      {
+        "id": "ng-nmcn.verification-fee.purpose=letter-of-good-standing",
+        "usable": false,
+        "reason": "there is no stored quote",
+        "legal": false,
+        "ageDays": null
+      },
+      {
+        "id": "ng-nmcn.verification-fee.destination=uk-nmc",
+        "usable": false,
+        "reason": "there is no stored quote",
+        "legal": false,
+        "ageDays": null
+      },
+      {
+        "id": "ng-nmcn.verification-documents",
+        "usable": false,
+        "reason": "there is no stored quote",
+        "legal": false,
+        "ageDays": null
+      },
+      {
+        "id": "nz-immigration-nz.oet-must-be-taken-in-person",
+        "usable": false,
+        "reason": "there is no stored quote",
+        "legal": false,
+        "ageDays": null
+      },
+      {
+        "id": "oet.content-licence-permits-stored-quotation",
+        "usable": false,
+        "reason": "there is no stored quote",
+        "legal": false,
+        "ageDays": null
+      },
+      {
+        "id": "pk-pnmc.issuing-body",
+        "usable": false,
+        "reason": "there is no stored quote",
+        "legal": false,
+        "ageDays": null
+      },
+      {
+        "id": "pk-pnmc.verification-fee.destination=foreign",
+        "usable": false,
+        "reason": "there is no stored quote",
+        "legal": false,
+        "ageDays": null
+      },
+      {
+        "id": "pk-pnmc.verification-fee.destination=domestic",
+        "usable": false,
+        "reason": "there is no stored quote",
+        "legal": false,
+        "ageDays": null
+      },
+      {
+        "id": "pk-pnmc.verification-documents",
+        "usable": false,
+        "reason": "there is no stored quote",
+        "legal": false,
+        "ageDays": null
+      },
+      {
+        "id": "pk-pnmc.verification-response-time",
+        "usable": false,
+        "reason": "there is no stored quote",
+        "legal": false,
+        "ageDays": null
+      }
+    ]
+  },
+  "byStatus": {
+    "active": 32
+  },
+  "byTier": {
+    "1": 32
+  },
+  "byScope": {
+    "destination": 9,
+    "origin": 17,
+    "shared": 6
+  },
+  "bySubject": {
+    "ie-nmbi": 3,
+    "ng-nmcn": 6,
+    "nz-immigration-nz": 1,
+    "oet": 1,
+    "pk-pnmc": 5,
+    "uk-code-of-practice": 10,
+    "uk-nmc": 4,
+    "uk-ukvi": 2
+  },
+  "checks": {
+    "linkChecked": 32,
+    "quoteMatched": 16,
+    "quoteNotApplicable": 16,
+    "couldNotCheck": 0,
+    "factChecked": 0
+  },
+  "overdue": [],
+  "manualQueue": {
+    "cost": {
+      "facts": 0,
+      "freshnessDays": 180,
+      "passesPerYear": 0,
+      "passesPerWeek": 0,
+      "fingerprintWatched": 16,
+      "humanPassesPerYearFloor": 0,
+      "humanPassesPerYearCeiling": 32,
+      "boundsNote": "🟡 FLOOR assumes an unchanged fingerprint renews freshness. CEILING keeps the 180-day human backstop for fingerprint records too. The gap is UNMEASURED page-change frequency — measure it before quoting either as the cost.",
+      "byReason": [],
+      "minutesPerFact": null,
+      "minutesPerYear": null,
+      "hoursPerYear": null,
+      "minutesStatus": "🔴 UNKNOWN — never defaulted. Closed by timing ten R2 acquisitions by hand (FACT_CACHE_DESIGN.md §4)"
+    },
+    "members": []
+  },
+  "automatedQueue": {
+    "unattended": true,
+    "automatedCount": 32,
+    "byEvidence": {
+      "strongQuoteMatch": 16,
+      "weakFingerprint": 16
+    },
+    "blockers": []
+  },
+  "gateA": {
+    "total": 32,
+    "qualifying": 32,
+    "passes": true,
+    "linkChecked": 32,
+    "factChecked": 0,
+    "rejected": []
+  },
+  "gaps": [
+    {
+      "claim": "oet · writing-task-type · profession=nursing",
+      "neededBy": "the /nursing profession page, Block A1",
+      "blockedBy": "🔴 LICENCE — oet.com is quotable:false. Acquirable, but only in our own words and only by a person",
+      "cost": "manual acquisition, then a human re-read every 180 days"
+    },
+    {
+      "claim": "oet · speaking-roleplay-setting · profession=nursing",
+      "neededBy": "the /nursing profession page, Block A2",
+      "blockedBy": "🔴 LICENCE — as above",
+      "cost": "manual acquisition, then a human re-read every 180 days"
+    },
+    {
+      "claim": "oet · subtests-and-which-are-profession-specific",
+      "neededBy": "every profession page, Block A3 (shared)",
+      "blockedBy": "🔴 LICENCE — as above",
+      "cost": "one manual acquisition, shared by all twelve profession pages"
+    },
+    {
+      "claim": "oet · grade-bands-0-500",
+      "neededBy": "every profession page, Block A4 (shared)",
+      "blockedBy": "🔴 LICENCE — as above. ⚠️ NMBI states the bands behind B and C+ independently, so a tier-1 alternative may exist",
+      "cost": "one manual acquisition"
+    },
+    {
+      "claim": "au-ahpra-nmba · * (about 5 claims)",
+      "neededBy": "the /nursing destination-regulator block",
+      "blockedBy": "🔴 HTTP 403 — ahpra.gov.au and nursingmidwiferyboard.gov.au both refuse a machine. A refusal is recorded, never routed around",
+      "cost": "manual acquisition and manual re-verification, forever"
+    },
+    {
+      "claim": "nz-ncnz · * (about 5 claims)",
+      "neededBy": "the /nursing destination-regulator block",
+      "blockedBy": "🔴 HTTP 403 — nursingcouncil.org.nz refuses a machine",
+      "cost": "manual acquisition and manual re-verification, forever"
+    },
+    {
+      "claim": "ca-* · * (about 5 claims PER PROVINCE)",
+      "neededBy": "the /nursing destination-regulator block",
+      "blockedBy": "🔴 STRUCTURAL — NNAS is a credentialing service and states no language requirement. Canada's rules are provincial (CNO, BCCNM, …). Canada is a FRAGMENTED DESTINATION, as India is a fragmented origin. 'Five facts for Canada' was wrong",
+      "cost": "~10 provincial sources, or Canada is left out of the target shape"
+    },
+    {
+      "claim": "in-* · verification-issuing-body",
+      "neededBy": "/nursing/from-india — the largest single corridor in the network",
+      "blockedBy": "🔴 STRUCTURAL — no single national answer exists. Verification for nurses going abroad is issued by ~30 State Nursing Councils, not by the Indian Nursing Council. For India this is a BRANCH, not a fact",
+      "cost": "~30 sources, or the page states the branch rather than an answer"
+    },
+    {
+      "claim": "ph-prc · verification-fee and document list",
+      "neededBy": "/nursing/from-philippines",
+      "blockedBy": "🔴 HTTP 403 — prc.gov.ph refuses a machine. The body exists centrally, unlike India's",
+      "cost": "manual acquisition"
+    },
+    {
+      "claim": "LICENCE · immigration.govt.nz",
+      "neededBy": "nz-immigration-nz.oet-must-be-taken-in-person, the registry's only human-acquired fact",
+      "blockedBy": "⚠️ NOT READ. NZ government material is commonly Creative Commons, but A CONVENTION IS NOT A LICENCE and this page's terms were never opened",
+      "cost": "five minutes of reading; until then the record is fingerprint-watched and un-quotable"
+    },
+    {
+      "claim": "LICENCE · ahpra.gov.au · nursingmidwiferyboard.gov.au · nursingcouncil.org.nz · prc.gov.ph",
+      "neededBy": "any future record from these four regulators",
+      "blockedBy": "🔴 HTTP 403 — the licence page itself cannot be opened by a machine. Recorded as `unknown-licence-unreachable`, never as permitted",
+      "cost": "a person with a browser, or nothing is ever quotable from them"
+    },
+    {
+      "claim": "LICENCE · nnas.ca",
+      "neededBy": "any Canadian record, if Canada is kept in the target shape at all",
+      "blockedBy": "⚠️ not read. NNAS is fetchable but is not a language regulator, so there may be nothing here worth licensing",
+      "cost": "five minutes, and only worth spending if Canada stays in scope"
+    }
+  ]
+}

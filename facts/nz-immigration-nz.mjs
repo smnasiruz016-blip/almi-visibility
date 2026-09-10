@@ -62,29 +62,46 @@ export default [
       tier: 1,
       documentRef: null,
     },
-    sourceMachineReadable: "unknown",
+    // Corrected 2026-09-10: it HAS now been fetched. PR #9 said "never fetched
+    // by us", which was true when written; leaving it would have been a stale
+    // claim about our own work.
+    sourceMachineReadable: true,
     sourceMachineReadableBasis:
-      "🔴 NEVER FETCHED BY US. The original record was read by a person on 2026-07-15 and no automated fetch has been attempted since. Unknown means unattempted, and it is not a guess dressed as one.",
+      "fetched 2026-09-10, HTTP 200, same host, 7,823 characters of normalised text, and the normalised hash was identical across two consecutive fetches.",
     sourceQuotable: "unknown",
     sourceQuotableBasis:
-      "NO LICENCE READ. New Zealand government material is commonly released under a Creative Commons licence, but that was NOT checked for this page and a convention is not a licence. See FACT_CACHE_DESIGN.md §8.4.",
+      "🔴 UNKNOWN - NOT READ. New Zealand government material is commonly released under a Creative Commons licence, but that was NOT checked for this page. A CONVENTION IS NOT A LICENCE, and an unread licence is not a permissive one. This is one of only two states in which unknown is lawful (see licences.mjs), and it behaves exactly as a prohibition until somebody reads the terms.",
+    licence: "unknown-not-read",
+    sourceDocumentClass: "news",
+    attributionStatement: null,
     evidence: {
       ownWords:
         "Immigration New Zealand requires every part of the OET to have been sat in person at a supervised test centre for immigration applications, with effect from midnight on 12 July 2026 New Zealand Standard Time. Results from a computer-based OET with a remotely administered speaking component are still accepted if they were completed before 13 July 2026. The two dates are not a typo — the cutoff falls at midnight on the 12th. This is Immigration New Zealand's acceptance rule and not a change to OET's test format, and it applies to OET only, not to other English language tests.",
     },
-    queue: "MANUAL",
-    freshness: { rule: "human-re-read", days: 180 },
+    queue: "AUTOMATED",
+    freshness: { rule: "machine-fingerprint", days: 180 },
+    // The page digest taken on 2026-09-10, and the ONLY thing about this page
+    // the registry stores. A sha256 is one-way: the wording cannot be recovered
+    // from it, it cannot substitute for the source, and it is not a copy — which
+    // is why it is lawful to hold where the wording is not. It is normalised text,
+    // not raw HTML: raw HTML differed between two consecutive fetches on 6 of 9
+    // pages, and normalised text on 0 of 9.
+    pageFingerprint: "d8dbf42496701223f7cb65312f83c662d0965f5671085b8bf110bc52217ec4b5",
+    pageFingerprintNormalisedLength: 7823,
     // The original was read on 2026-07-15, so at 180 days this record falls due
     // for re-reading on 2027-01-11. It is the OLDEST thing in the registry by
     // fifty-seven days and it is NOT yet overdue — `bin/facts.mjs census`
     // computes that against the real clock rather than taking anyone's word,
     // and it will surface this record on its own the day it expires.
     //
-    // 🔴 It is also the only record whose source we have never fetched, which is
-    // why its link check is could-not-check and its status is `candidate`
-    // rather than `active`. A candidate may not reach a page.
-    checks: { linkCheckedOn: null, linkCheckOutcome: "could-not-check", quoteMatchedOn: null, quoteMatchOutcome: "not-applicable" },
-    life: { status: "candidate", firstSeenOn: "2026-07-15", extractedOn: "2026-07-15" },
+    // 🔴 AND IT IS THE ONLY RECORD IN THE REGISTRY ACQUIRED BY A PERSON.
+    // Every other one was proposed by a model and machine-checked. That makes it
+    // the best-evidenced fact here AND the one whose evidence this system cannot
+    // reproduce, because the person who did the reading is not named.
+    checks: { linkCheckedOn: "2026-09-10", linkCheckOutcome: "pass", quoteMatchedOn: null, quoteMatchOutcome: "not-applicable", fingerprintCheckedOn: "2026-09-10", fingerprintOutcome: "pass" },
+    // Promoted candidate -> active on 2026-09-10: the one thing holding it back,
+    // a link check nobody had run, has now been run and passed.
+    life: { status: "active", firstSeenOn: "2026-07-15", extractedOn: "2026-07-15" },
     provenance: {
       route: "R2",
       acquiredBy: "human:unattributed",

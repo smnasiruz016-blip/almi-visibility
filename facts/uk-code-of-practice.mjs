@@ -25,7 +25,7 @@ import { fact } from "../src/facts/record.mjs";
 const URL =
   "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england";
 const OGL =
-  'EXPRESS PERMISSION. Open Government Licence v3.0, stated on the page: "© Crown copyright 2025. This publication is licensed under the terms of the Open Government Licence v3.0 except where otherwise stated." Read 2026-09-10.';
+  'EXPRESS PERMISSION. Open Government Licence v3.0, stated on the page: "© Crown copyright 2025. This publication is licensed under the terms of the Open Government Licence v3.0 except where otherwise stated." Licence read first-hand by the owner (_handoffs/SOURCE_QUOTABILITY.md, dated 11 September 2026); it permits copying, publishing, transmitting, adapting AND COMMERCIAL EXPLOITATION, conditional on attribution.';
 const MR = "fetched and read 2026-09-10; re-fetched 2026-09-10 by bin/quote-match.mjs, HTTP 200";
 
 const RED_SPAN = "Countries on the red list must not be targeted for international recruitment";
@@ -41,6 +41,18 @@ const common = {
   sourceMachineReadableBasis: MR,
   sourceQuotable: true,
   sourceQuotableBasis: OGL,
+  licence: "OGL-v3.0",
+  sourceDocumentClass: "guidance",
+  attributionStatement:
+    "Contains public sector information licensed under the Open Government Licence v3.0. https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  // The per-page check the word "MOST" forces. Measured 2026-09-10: two notices,
+  // both Crown, and the OGL statement present. No third-party credit.
+  thirdPartyRightsCheck: {
+    checkedOn: "2026-09-10",
+    clear: true,
+    detail: "no non-Crown copyright notice on the page; the OGL statement is present",
+    noticesFound: ["© Crown copyright 2025 This publication is licensed under the terms of the Open G", "© Crown copyright"],
+  },
   queue: "AUTOMATED",
   freshness: { rule: "machine-quote-match", days: 180 },
   life: { status: "active", firstSeenOn: "2026-09-10", extractedOn: "2026-09-10" },

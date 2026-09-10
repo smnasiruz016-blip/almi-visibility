@@ -28,6 +28,13 @@ export function fact(record) {
   return {
     ...record,
     locale: record.locale ?? null,
+    // Added 11 September 2026 with the licence findings. `attributionStatement`
+    // defaults to null rather than to the licence's boilerplate ON PURPOSE: a
+    // credit auto-filled by a constructor is a credit nobody chose, and F20
+    // must be able to catch a quotable record that carries no attribution.
+    attributionStatement: record.attributionStatement ?? null,
+    pageFingerprint: record.pageFingerprint ?? null,
+    thirdPartyRightsCheck: record.thirdPartyRightsCheck ?? null,
     evidence: {
       quotedSpan: null,
       quoteLocation: null,
@@ -39,6 +46,11 @@ export function fact(record) {
       linkCheckOutcome: "could-not-check",
       quoteMatchedOn: null,
       quoteMatchOutcome: "could-not-check",
+      // The fingerprint check's own date and outcome, kept apart from the quote
+      // match's. They are different checks proving different things and a
+      // shared field would let the weaker one answer for the stronger.
+      fingerprintCheckedOn: null,
+      fingerprintOutcome: "could-not-check",
       // 🔴 Both null on every record in this registry, and that is not an
       // oversight. See REGISTRY_FACT_CHECK_COUNT in registry.mjs.
       factCheckedOn: null,

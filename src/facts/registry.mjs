@@ -13,7 +13,8 @@ import { readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { queueFor, queueReason, manualQueueCost, automatedQueueIsUnattended } from "./queues.mjs";
+import { queueFor, queueReason, manualQueueCost, automatedQueueIsUnattended, freshnessRuleFor } from "./queues.mjs";
+import { quoteUsability } from "./freshness.mjs";
 import { validateRegistry } from "./validate.mjs";
 import { FACT_FRESHNESS_DAYS } from "./schema.mjs";
 import { countFacts } from "../gate-a/facts.mjs";
@@ -126,11 +127,27 @@ export function census(records = [], { now = new Date(), minutesPerFact = null }
     })
     .filter((x) => x.age === null || x.age > FACT_FRESHNESS_DAYS);
 
+  const byLicence = {};
+  const byDocumentClass = {};
+  const byFreshnessRule = {};
+  for (const r of records) {
+    byLicence[r?.licence] = (byLicence[r?.licence] ?? 0) + 1;
+    byDocumentClass[r?.sourceDocumentClass] = (byDocumentClass[r?.sourceDocumentClass] ?? 0) + 1;
+    byFreshnessRule[freshnessRuleFor(r)] = (byFreshnessRule[freshnessRuleFor(r)] ?? 0) + 1;
+  }
+
   return {
     generatedOn: now.toISOString().slice(0, 10),
     total: records.length,
     validation,
     byQueue: { AUTOMATED: byQueue.AUTOMATED.length, MANUAL: byQueue.MANUAL.length },
+    byLicence,
+    byDocumentClass,
+    byFreshnessRule,
+    // 🔴 Which quotes may lawfully be used TODAY. Kept apart from freshness on
+    // purpose: for a licence whose permission is conditional on currency, an
+    // expired record is not a stale fact, it is an out-of-licence reproduction.
+    quoteUsability: quoteUsability(records, now),
     byStatus,
     byTier,
     byScope,

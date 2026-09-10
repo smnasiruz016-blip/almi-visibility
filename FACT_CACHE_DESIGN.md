@@ -923,8 +923,10 @@ An empty population is a finding, never a pass.
 
 ⚠️ **NEITHER THE OWNER NOR I IS A LAWYER**, and this is the one mechanism here that *reasons* about
 a licence rather than obeying one. The reasoning is standard; where money meets a licensor's
-rights, **the owner may want it confirmed by somebody qualified before it ships.** It is built and
-it is flagged. It is not presented as settled.
+rights, ~~**the owner may want it confirmed by somebody qualified before it ships.**~~
+✅ **WITHDRAWN — see §11.2.** The owner ruled that no legal review is needed: hashing a public page
+to see whether it changed is what every monitoring tool does. **The flag was mine, and it
+manufactured a blocker out of an ordinary operation.**
 
 ## 9.8 · 🔴 THE TRAP — A CITATION CAN CHANGE OWNER WITHOUT ANYONE TOUCHING THE RECORD
 
@@ -1114,3 +1116,99 @@ document.**
 
 **176 tests. Every new guard red-forced and sabotaged against the real fact files. The nightly job
 run: 32/32 pass.** No table, no migration, no production write, no other product touched.
+
+---
+
+# 11 · THREE RULINGS, AND ONE OF THEM CHANGES A CHECK
+
+**10 September 2026.** PR #10 merged (`fd8c045`). Three things settled before the chain work, so
+none of them has to be argued again.
+
+---
+
+## 11.1 · 🔴 THE THIRD-PARTY CHECK WAS ASKING THE WRONG QUESTION
+
+| | |
+|---|---|
+| ❌ what it asked | *"is there a third-party notice anywhere on this page?"* |
+| ✅ what it must ask | *"THE TEXT I AM ABOUT TO STORE — is IT a third party's?"* |
+
+Immigration New Zealand showed what the difference costs. Its page carries `Crown copyright` in
+the footer **and** a separate `© 2026 Cookie Information` from a consent widget. The scan reported
+`clear: false` — **correct as an observation and useless as a decision.** A cookie banner in the
+page furniture had acquired a veto over a fact taken from the article body.
+
+### The narrowing is STRUCTURAL, never an opinion
+
+🔴 **`src/facts/third-party.mjs` does not know what "Cookie Information" is, and must not.**
+Recognising a vendor by name and deciding what its notice covers would be a judgement about
+somebody's rights made by pattern-matching a brand. So the decision rests on one thing **the
+publisher has already declared in their own markup**:
+
+> **IS THE NOTICE IN THE SAME CONTENT REGION AS THE TEXT I AM STORING?**
+
+| | |
+|---|---|
+| notice in `<footer>` / `<nav>` / `<aside>`, span from `<main>` | **no conflict** — the span stands |
+| notice **inside the region the span came from** | 🔴 **a real block** — the span is not stored |
+| span found in **no** content region | 🔴 **also a block** — we will not store what we cannot place |
+
+A page that puts a copyright line inside its own article body is telling us something about that
+article. A page that puts one in a consent widget is telling us about the widget. **We do not
+interpret either. We read where they are.**
+
+### ⚠️ AND THE OBSERVATION IS KEPT, NOT ERASED
+
+**`clear: false` stays on the New Zealand record.** What changed is what it is allowed to *decide*.
+`F22` now blocks on `spanRegionConflict`, and `clear` is deliberately not consulted.
+
+> **An observation that quietly became a veto is how a check ends up switched off by whoever it
+> inconveniences first.**
+
+### Red forced BOTH ways
+
+| fixture | whole page | region | result |
+|---|---|---|---|
+| notice in `<footer>`, span in `<main>` | — | `<main>` | **no conflict** ✅ |
+| notice **inside** `<article>`, span in it | — | `<main>` | 🔴 **conflict** |
+| the real NZ page | `clear: false` | `<main>` | **no conflict** — furniture |
+
+**Re-measured across the twelve gov.uk records that store a span: region `<main>`, conflict `false`
+on every one.**
+
+## 11.2 · ✅ NO LEGAL REVIEW IS NEEDED FOR THE HASH — AND THE FLAG WAS MY ERROR
+
+§9.7 flagged the page fingerprint as reasoning that might want a qualified eye. **The owner
+withdrew that, and he is right:**
+
+> **Taking a hash of a public page to see whether it changed is what every monitoring tool, every
+> uptime checker and every archive does.**
+
+It is not a new argument. Dressing it up as one **manufactured a blocker out of an ordinary
+operation** — and that is the part worth keeping, because an over-cautious flag is not free: it
+parks work, and it spends the owner's attention on a question nobody actually had.
+
+**The flag is removed from `fingerprint.mjs`, from `licences.mjs`, and from §9.7.** The mechanism
+is unchanged; only the warning that was never earned has gone.
+
+## 11.3 · 🔴 THE LICENCE AND THE FINGERPRINT ANSWER DIFFERENT QUESTIONS
+
+The finding the recount produced, stated as the rule it actually is:
+
+> **THE LICENCE DECIDES WHETHER WHAT WE HOLD IS LAWFUL.**
+> **THE FINGERPRINT DECIDES HOW MUCH IT COSTS.**
+> **TWO DIFFERENT QUESTIONS THAT LOOKED LIKE ONE.**
+
+Measured: **reading four licences moved ONE record's quotability and ZERO records between queues.**
+The manual queue emptied because of fingerprinting. §8.4 predicted the licences would move
+fourteen, and they moved none, because it had the two questions fused.
+
+### ⚠️ And the licence work was not wasted — it simply gets no credit for the cost
+
+Without it there would be no `attributionStatement`, no NMC guidance/news split, and no
+PERMITTED · RESERVED · PROHIBITED at all. It is what makes eleven of the nineteen facts on the
+`/nursing` page quotable **with the credit their licence requires**, instead of all nineteen being
+paraphrased.
+
+**What it never touched is the cost question — and it must not be given the credit for that.**
+Conflating the two is what produced a wrong prediction with a confident number attached.

@@ -325,9 +325,20 @@ export function validateRecord(record) {
   if (requiresPerPageThirdPartyCheck(r.licence) && isFilled(r.evidence?.quotedSpan)) {
     const check = r.thirdPartyRightsCheck;
     if (!check || !isIsoDate(check.checkedOn)) {
-      push("F22", `${r.licence} requires a PER-PAGE third-party rights check before storing this page's text, and none is recorded`);
-    } else if (check.clear !== true) {
-      push("F22", `the third-party rights check on this page is not clear (${JSON.stringify(check.detail)}) — a person must judge it before a quote is stored`);
+      push("F22", `${r.licence} requires a per-page third-party rights check before storing this page's text, and none is recorded`);
+    } else if (check.spanRegionConflict === true) {
+      // 🔴 NARROWED BY THE OWNER'S RULING, 2026-09-10. What blocks a stored
+      // span is a third-party notice INSIDE THE CONTENT REGION THE SPAN CAME
+      // FROM — not one anywhere on the page. A cookie banner in the footer is a
+      // fact about the banner; it never acquired a veto over the article body.
+      //
+      // `check.clear` is still RECORDED and is deliberately NOT consulted here:
+      // the whole-page observation survives, it simply no longer decides. An
+      // observation that quietly became a veto is how a check ends up switched
+      // off by whoever it inconveniences first.
+      push("F22", `a third-party notice sits INSIDE the content region this span came from (${JSON.stringify(check.detail)}) — a person must rule before it is stored`);
+    } else if (check.spanRegionConflict === undefined) {
+      push("F22", `the third-party check predates the region ruling — re-run it, because "clear" over a whole page is not the question`);
     }
   }
 

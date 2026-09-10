@@ -19,6 +19,7 @@ import { quotableUnder, requiredAttribution, LICENCES, quotabilityState, licence
 import { quoteUsableNow, renderableQuote } from "../src/facts/freshness.mjs";
 import { pageFingerprint, matchFingerprint, MIN_SUBSTANTIVE_LENGTH } from "../src/facts/fingerprint.mjs";
 import { scanForThirdPartyRights } from "../src/facts/quote-match.mjs";
+import { thirdPartyConflictForSpan, stripSubtrees, contentRegions } from "../src/facts/third-party.mjs";
 import { fact } from "../src/facts/record.mjs";
 import { validateRecord, validateRegistry } from "../src/facts/validate.mjs";
 import { queueFor, freshnessRuleFor, manualQueueCost, automatedQueueIsUnattended } from "../src/facts/queues.mjs";
@@ -765,7 +766,9 @@ describe('🔴 F22 — the per-page check the word "MOST" forces', () => {
       licence: "OGL-v3.0",
       sourceDocumentClass: "rules",
       attributionStatement: "Contains public sector information licensed under the Open Government Licence v3.0.",
-      thirdPartyRightsCheck: { checkedOn: "2026-09-10", clear: true, detail: "no non-Crown notice" },
+      // Updated for the region ruling: what a check must now carry is a verdict
+      // about the SPAN'S REGION, not a verdict about the whole page.
+      thirdPartyRightsCheck: { checkedOn: "2026-09-10", clear: true, spanRegionConflict: false, spanRegion: "main", detail: "no notice in <main>" },
       ...extra,
     });
 
@@ -777,8 +780,8 @@ describe('🔴 F22 — the per-page check the word "MOST" forces', () => {
     assert.ok(laws(ogl({ thirdPartyRightsCheck: null })).has("F22"));
   });
 
-  test("RED: a check that came back NOT clear blocks the quote", () => {
-    const r = ogl({ thirdPartyRightsCheck: { checkedOn: "2026-09-10", clear: false, detail: "a third-party credit is present" } });
+  test("🔴 RED: a check whose CONFLICT IS IN THE SPAN'S REGION blocks the quote", () => {
+    const r = ogl({ thirdPartyRightsCheck: { checkedOn: "2026-09-10", clear: false, spanRegionConflict: true, spanRegion: "main", detail: "a third-party credit sits inside the article" } });
     assert.ok(laws(r).has("F22"));
   });
 
@@ -1188,5 +1191,136 @@ describe("🔴 the nightly job routes by the STORED SPAN, not the permission", (
       const hasSpan = Boolean(r.evidence.quotedSpan);
       assert.equal(freshnessRuleFor(r), hasSpan ? "machine-quote-match" : "machine-fingerprint", r.id);
     }
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔴 THE THIRD-PARTY CHECK — THE RULING, RED FORCED BOTH WAYS
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe("🔴 a third-party notice blocks a span only from its OWN region", () => {
+  const SPAN = "Grade B is required for reading";
+  const FOOTER_NOTICE =
+    "<html><body><main><article><p>Grade B is required for reading.</p></article></main>" +
+    "<footer><p>© 2026 Cookie Information We use cookies.</p></footer></body></html>";
+  const INSIDE_NOTICE =
+    "<html><body><main><article><p>Grade B is required for reading.</p>" +
+    "<p>© 2026 Some Publisher Ltd.</p></article></main><footer><p>Crown copyright.</p></footer></body></html>";
+
+  test("GREEN: a notice in the FOOTER does not block a span from <main>", () => {
+    const r = thirdPartyConflictForSpan(FOOTER_NOTICE, SPAN, normaliseText);
+    assert.equal(r.conflict, false);
+    assert.equal(r.region, "main");
+    // 🔴 AND THE OBSERVATION SURVIVES. The notice is still recorded; it simply
+    // decides nothing. Erasing it would be the opposite error.
+    assert.ok(r.wholePageNotices.length > 0, "the whole-page notice must still be reported");
+  });
+
+  test("🔴 RED: the SAME notice INSIDE the region the span came from DOES block it", () => {
+    const r = thirdPartyConflictForSpan(INSIDE_NOTICE, SPAN, normaliseText);
+    assert.equal(r.conflict, true);
+    assert.equal(r.regionNotices.length, 1);
+    assert.match(r.reason, /INSIDE the <main>/);
+  });
+
+  test("🔴 the decision is STRUCTURAL — the same text decides differently by POSITION alone", () => {
+    // The two fixtures carry copyright notices; what differs is WHERE they sit.
+    // Nothing in this module knows what any vendor is, and nothing should.
+    const a = thirdPartyConflictForSpan(FOOTER_NOTICE, SPAN, normaliseText);
+    const b = thirdPartyConflictForSpan(INSIDE_NOTICE, SPAN, normaliseText);
+    assert.notEqual(a.conflict, b.conflict);
+  });
+
+  test("🔴 RED: a span found in NO content region is refused, not passed", () => {
+    const html = "<html><body><footer><p>Some text only in the footer.</p></footer><main><p>Body.</p></main></body></html>";
+    const r = thirdPartyConflictForSpan(html, "Some text only in the footer", normaliseText);
+    assert.equal(r.conflict, true);
+    assert.match(r.reason, /not found in any content region/);
+  });
+
+  test("a notice belonging to the publisher we are already citing is not third-party", () => {
+    const html = "<html><body><main><p>Grade B is required for reading. © Crown copyright 2025.</p></main></body></html>";
+    const isCrown = (n) => /crown copyright/i.test(n);
+    assert.equal(thirdPartyConflictForSpan(html, SPAN, normaliseText, isCrown).conflict, false);
+    // …and with no such predicate it WOULD block, which is the safe default.
+    assert.equal(thirdPartyConflictForSpan(html, SPAN, normaliseText).conflict, true);
+  });
+
+  test("chrome is stripped even when it is nested INSIDE the content region", () => {
+    const html =
+      "<html><body><main><article><p>Grade B is required for reading.</p>" +
+      "<aside><p>© 2026 Widget Co.</p></aside></article></main></body></html>";
+    assert.equal(thirdPartyConflictForSpan(html, SPAN, normaliseText).conflict, false);
+  });
+
+  test("stripSubtrees honours nesting rather than stopping at the first close tag", () => {
+    const html = "<div>keep<footer>a<footer>b</footer>c</footer>keep2</div>";
+    const out = stripSubtrees(html, ["footer"]);
+    assert.ok(out.includes("keep") && out.includes("keep2"));
+    assert.ok(!out.includes("a") || !out.includes("b"), "the nested footer must go with its parent");
+  });
+});
+
+describe("🔴 F22 blocks on the REGION, and never on the whole page", () => {
+  const govuk = (check) =>
+    fact({
+      id: "uk-ukvi.x",
+      claim: { subject: "uk-ukvi", predicate: "x", qualifier: null },
+      scope: "shared",
+      value: { value: "a value", valueType: "rule", unit: null },
+      source: { url: "https://www.gov.uk/guidance/x", label: "L", publisher: "UK Home Office", tier: 1, documentRef: null },
+      sourceMachineReadable: true,
+      sourceMachineReadableBasis: "fetched",
+      sourceQuotable: true,
+      sourceQuotableBasis: "OGL",
+      licence: "OGL-v3.0",
+      sourceDocumentClass: "rules",
+      attributionStatement: "Contains public sector information licensed under the Open Government Licence v3.0.",
+      evidence: { quotedSpan: "a stored span of sufficient length", quoteLocation: "x" },
+      thirdPartyRightsCheck: check,
+      queue: "AUTOMATED",
+      freshness: { rule: "machine-quote-match", days: 180 },
+      life: { status: "active", firstSeenOn: "2026-09-10", extractedOn: "2026-09-10" },
+      provenance: { route: "R3", acquiredBy: "model:x" },
+      checks: { linkCheckedOn: "2026-09-10", linkCheckOutcome: "pass", quoteMatchedOn: "2026-09-10", quoteMatchOutcome: "pass" },
+    });
+
+  test("🔴 GREEN: clear:false with NO region conflict is LAWFUL — the cookie-banner case", () => {
+    // This is the ruling in one assertion. The whole-page observation is false
+    // and the record is still valid, because the notice is not in the span's
+    // region. Before the ruling this record was rejected.
+    const r = govuk({ checkedOn: "2026-09-10", clear: false, spanRegionConflict: false, spanRegion: "main", detail: "furniture" });
+    assert.ok(!laws(r).has("F22"));
+  });
+
+  test("🔴 RED: a conflict IN THE REGION still blocks", () => {
+    const r = govuk({ checkedOn: "2026-09-10", clear: false, spanRegionConflict: true, spanRegion: "main", detail: "inside the article" });
+    assert.ok(laws(r).has("F22"));
+  });
+
+  test("RED: a check that predates the ruling must be re-run, not assumed", () => {
+    const r = govuk({ checkedOn: "2026-09-10", clear: true, detail: "old-style whole-page check" });
+    assert.ok(laws(r).has("F22"));
+  });
+
+  test("RED: no check at all is still a block", () => {
+    assert.ok(laws(govuk(null)).has("F22"));
+  });
+
+  test("every real gov.uk record carries a region verdict, and none conflicts", async () => {
+    const { records } = await loadRegistry();
+    const withSpan = records.filter((r) => r.thirdPartyRightsCheck && r.evidence.quotedSpan);
+    assert.ok(withSpan.length >= 12);
+    for (const r of withSpan) {
+      assert.equal(r.thirdPartyRightsCheck.spanRegionConflict, false, r.id);
+      assert.equal(r.thirdPartyRightsCheck.spanRegion, "main", r.id);
+    }
+  });
+
+  test("🔴 and the NZ record KEEPS clear:false — the observation was not erased", async () => {
+    const { records } = await loadRegistry();
+    const nz = records.find((r) => r.claim.subject === "nz-immigration-nz");
+    assert.equal(nz.thirdPartyRightsCheck.clear, false, "the whole-page observation must survive the ruling");
+    assert.equal(nz.thirdPartyRightsCheck.spanRegionConflict, null, "no span is stored, so there is nothing to place");
   });
 });

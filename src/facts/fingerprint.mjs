@@ -30,11 +30,18 @@
  *   hash changed   -> 🔴 a person looks. The machine decides WHEN TO LOOK, never
  *                     what changed, and never whether the fact is still true.
  *
- * ⚠️ NEITHER I NOR THE OWNER IS A LAWYER, AND THIS IS THE ONE MECHANISM HERE
- * THAT REASONS ABOUT A LICENCE RATHER THAN OBEYING ONE. The reasoning is
- * standard, and where money meets a licensor's rights the owner may want it
- * confirmed by somebody qualified before it ships. It is implemented and it is
- * flagged; it is not presented as settled.
+ * ✅ RULED BY THE OWNER, 2026-09-10: NO LEGAL REVIEW IS NEEDED FOR THIS.
+ *
+ * An earlier version of this header flagged the hash as novel reasoning that
+ * might want a qualified eye. THE OWNER WITHDREW THAT AND HE IS RIGHT:
+ *
+ *   TAKING A HASH OF A PUBLIC PAGE TO SEE WHETHER IT CHANGED IS WHAT EVERY
+ *   MONITORING TOOL, EVERY UPTIME CHECKER AND EVERY ARCHIVE DOES.
+ *
+ * It is not a new argument, and dressing it up as one manufactured a blocker out
+ * of an ordinary operation. Recorded because the error is worth keeping: an
+ * over-cautious flag is not free — it parks work, and it spends the owner's
+ * attention on a question nobody actually had.
  *
  * ══ 🔴 AND THE MEASUREMENT THAT DECIDES WHETHER IT WORKS AT ALL ════════════
  *

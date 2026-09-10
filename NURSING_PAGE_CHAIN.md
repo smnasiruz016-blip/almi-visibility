@@ -193,6 +193,38 @@ that measurement, and neither of these can.**
 
 ---
 
+## ✅ TWO RULINGS APPLIED BEFORE THIS RUN — NEITHER CHANGED A NUMBER
+
+**1. The third-party check now asks the right question.** *Not* "is there a notice on this page"
+but **"the text I am storing — is IT a third party's?"** The decision is region-scoped and
+STRUCTURAL: a notice in a footer or consent widget cannot veto a fact taken from `<main>`. The
+whole-page observation (`clear: false` on the NZ record) is **kept, not erased** — it simply no
+longer decides. Red forced both ways, and re-measured across the twelve gov.uk records that store
+a span: region `<main>`, conflict `false` on every one.
+
+**2. No legal review is needed for the page fingerprint.** Hashing a public page to see whether it
+changed is what every monitoring tool does. The flag was mine and it manufactured a blocker out of
+an ordinary operation. Removed.
+
+**Both were applied before this chain ran, and the chain's numbers are identical either way** —
+which is the point: a ruling that changes a verdict would have been a finding, and this one changes
+only what the check is entitled to say.
+
+## 🔴 AND THE RULE THE RECOUNT PRODUCED
+
+> **THE LICENCE DECIDES WHETHER WHAT WE HOLD IS LAWFUL.**
+> **THE FINGERPRINT DECIDES HOW MUCH IT COSTS.**
+> **TWO DIFFERENT QUESTIONS THAT LOOKED LIKE ONE.**
+
+Reading four licences moved **one record's quotability and zero records between queues.** The
+manual queue emptied because of fingerprinting. §8.4 predicted the licences would move fourteen
+records, and they moved none — because it had the two questions fused.
+
+⚠️ **The licence work was not wasted; it simply gets no credit for the cost.** Without it there
+would be no `attributionStatement`, no NMC guidance/news split, and no PERMITTED · RESERVED ·
+PROHIBITED — and **eleven of the nineteen facts on this page would be paraphrases instead of quotes
+carrying the credit their licence requires.** What it never touched is the cost question.
+
 ## WHAT THIS RUN DID NOT DO
 
 - **No page published. No page deleted. No DB table. No production write. No other product

@@ -80,12 +80,39 @@ organisation.
 > the dataset, so **even `uk-nmc` — the best-documented organisation in the file — produces ZERO
 > facts that meet Gate A's standard.** The obscure one has no source URL at all.
 
-**⚠️ And the honest limit of that verdict, because it changes what to do about it.** This measures
-**the data we have gathered**, not what could be gathered. The NMC's own English-language
-requirements page plainly contains five or more sourceable facts. **So the real sentence is: the
-data needed to make these pages worth having has never been collected.** That is exactly the
-shortfall rule — a DATA problem — and the alternative to deleting is a real content project, not
-a softer gate. **Which of the two is the owner's call, and this document does not take it.**
+**⚠️ And the honest limit of that verdict.** This measures **the data we have gathered**, not what
+could be gathered. The NMC's own English-language requirements page plainly contains five or more
+sourceable facts. **So the real sentence is: the data needed to make these pages worth having has
+never been collected.** That is exactly the shortfall rule — a DATA problem — and the alternative
+to deleting was a content project.
+
+### 🔴 THE OWNER'S RULING, 10 September 2026: NO CONTENT PROJECT. DELETE.
+
+> **An organisation page competes with that organisation.** Our NMC page is put in front of a
+> reader beside **nmc.org.uk** — the primary source, the one Google already trusts, the one every
+> link points at, and the one our own `website` field cites. **Gathering ~3,050 facts to build 610
+> pages that lose to the pages the facts were taken from is the worst trade available.**
+>
+> **THE RULE: effort goes where we can be the BEST answer, never where we can be a second-rate
+> copy.**
+
+**Recorded as a decision, not as a measurement** — the measurement above is that the data does not
+exist; **what to do about it is this ruling.**
+
+### The target shape — Gate A's run replaces these numbers with real ones
+
+| route | today | ruling |
+|---|---|---|
+| `/[profession]` | 12 | **KEEP** |
+| `/[profession]/from-[origin]` | 2,292 | **KEEP ONLY the corridors with real regulatory data.** This is where we genuinely can be the best answer: *"OET for Indian nurses"* is answered by **neither NMC nor OET**, and **no single body owns it** |
+| `/[profession]/from-[origin]/[organization]` | **237,413** | 🔴 **DELETE** |
+| `/register/[organization]` | 610 | **a separate class — these are not SEO pages** and are not judged here |
+
+**Estimate: one hundred to a few hundred pages.** ⚠️ **That is an estimate. Gate A's first run
+replaces it with the real number**, and if the run disagrees, the run wins.
+
+**Nothing is deleted yet.** Deletion waits on Gate A's result **and** 90 days of click data, and
+when it happens it is **410 Gone, not 404** — the keep list comes from Gate A.
 
 ---
 
@@ -275,4 +302,4 @@ migration, and the fix has **two halves**: (a) the branch, and (b) moving `DATAB
 | D3 | Exact all-pairs vs MinHash+LSH, and the group-size threshold | exact below ~5,000; LSH above, with a stated false-negative bound |
 | D4 | The tier vocabulary | the four rows in §3 |
 | D5 | Do shell facts count towards a page's five? | **No.** Otherwise the check measures the template |
-| D6 | **AlmiOET's 237,413 pages**: delete, or gather the data? | §0 says the data does not exist today. **Which of the two is a product decision and is not mine** |
+| D6 | ~~AlmiOET's 237,413 pages: delete, or gather the data?~~ | ✅ **RULED 10 Sep 2026: DELETE.** An organisation page competes with that organisation; effort goes where we can be the best answer, not where we can be a second-rate copy. See §0 |

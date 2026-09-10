@@ -1,0 +1,37 @@
+{
+  "url": "https://almioet.almiworld.com/nursing/from-bhutan/ie-nmbi",
+  "note": "CONTROL 3 — a second sourced grade, different regulator",
+  "capturedAt": "2026-09-10T01:13:53.124Z",
+  "requests": [
+    {
+      "n": 1,
+      "status": 200,
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "x-vercel-id": "dub1::iad1::dt57z-1789002834554-7f6eb949bb50",
+      "bodySha256": "a443b9d36d26a69ad0f8c9eeac9446e536f538bcd987dda0983c2befba125271",
+      "bodyBytes": 63404
+    },
+    {
+      "n": 2,
+      "status": 200,
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "x-vercel-id": "dub1::iad1::v6q98-1789002834761-39b143808e61",
+      "bodySha256": "a443b9d36d26a69ad0f8c9eeac9446e536f538bcd987dda0983c2befba125271",
+      "bodyBytes": 63404
+    },
+    {
+      "n": 3,
+      "status": 200,
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "x-vercel-id": "dub1::iad1::dt57z-1789002834951-8ba114ee7cee",
+      "bodySha256": "a443b9d36d26a69ad0f8c9eeac9446e536f538bcd987dda0983c2befba125271",
+      "bodyBytes": 63404
+    }
+  ]
+}

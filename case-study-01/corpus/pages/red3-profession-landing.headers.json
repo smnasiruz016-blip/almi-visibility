@@ -1,0 +1,37 @@
+{
+  "url": "https://almioet.almiworld.com/nursing",
+  "note": "RED 3 — profession landing, same layout",
+  "capturedAt": "2026-09-10T01:13:54.594Z",
+  "requests": [
+    {
+      "n": 1,
+      "status": 200,
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "x-vercel-id": "dub1::iad1::dt57z-1789002835993-af0c1a2cbb4e",
+      "bodySha256": "0176c19ddcd7f1b66f7c99b8bd4c37cdc293ff7811b287fa870ac64c094c8eb7",
+      "bodyBytes": 70828
+    },
+    {
+      "n": 2,
+      "status": 200,
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "x-vercel-id": "dub1::iad1::dt57z-1789002836198-a54e7e07188e",
+      "bodySha256": "0176c19ddcd7f1b66f7c99b8bd4c37cdc293ff7811b287fa870ac64c094c8eb7",
+      "bodyBytes": 70828
+    },
+    {
+      "n": 3,
+      "status": 200,
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "x-vercel-id": "dub1::iad1::dt57z-1789002836396-9b1c816aabae",
+      "bodySha256": "0176c19ddcd7f1b66f7c99b8bd4c37cdc293ff7811b287fa870ac64c094c8eb7",
+      "bodyBytes": 70828
+    }
+  ]
+}

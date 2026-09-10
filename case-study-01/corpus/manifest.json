@@ -1,0 +1,131 @@
+{
+  "capturedAt": "2026-09-10T01:13:58.421Z",
+  "pages": [
+    {
+      "name": "control-1-uk-nmc",
+      "url": "https://almioet.almiworld.com/nursing/from-india/uk-nmc",
+      "note": "CONTROL 1 — legitimate sourced grade",
+      "status": 200,
+      "cacheSequence": [
+        "MISS",
+        "MISS",
+        "MISS"
+      ],
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "sha256": "5c4419c8325db35e2375b68653955342cae17d0d7418ad28c3dbecfd5509fe0b",
+      "bytes": 62938
+    },
+    {
+      "name": "control-2-uk-ukvi",
+      "url": "https://almioet.almiworld.com/nursing/from-india/uk-ukvi",
+      "note": "CONTROL 2 — correctly declines to state an unknown",
+      "status": 200,
+      "cacheSequence": [
+        "MISS",
+        "MISS",
+        "MISS"
+      ],
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "sha256": "4da78719121a785dcb24bbfcf56455af66487852c296d66d27c24fae482fdb77",
+      "bytes": 62587
+    },
+    {
+      "name": "control-3-ie-nmbi",
+      "url": "https://almioet.almiworld.com/nursing/from-bhutan/ie-nmbi",
+      "note": "CONTROL 3 — a second sourced grade, different regulator",
+      "status": 200,
+      "cacheSequence": [
+        "MISS",
+        "MISS",
+        "MISS"
+      ],
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "sha256": "a443b9d36d26a69ad0f8c9eeac9446e536f538bcd987dda0983c2befba125271",
+      "bytes": 63404
+    },
+    {
+      "name": "red3-leaf-org-page",
+      "url": "https://almioet.almiworld.com/nursing/from-austria/ca-cannn",
+      "note": "RED 3 — the leaf route whose served state contradicts its declaration. Deliberately NOT one of the three control URLs.",
+      "status": 200,
+      "cacheSequence": [
+        "MISS",
+        "MISS",
+        "MISS"
+      ],
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "sha256": "see red3-leaf-org-page.headers.json",
+      "bytes": 63404
+    },
+    {
+      "name": "red3-profession-landing",
+      "url": "https://almioet.almiworld.com/nursing",
+      "note": "RED 3 — profession landing, same layout",
+      "status": 200,
+      "cacheSequence": [
+        "MISS",
+        "MISS",
+        "MISS"
+      ],
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "sha256": "0176c19ddcd7f1b66f7c99b8bd4c37cdc293ff7811b287fa870ac64c094c8eb7",
+      "bytes": 70828
+    },
+    {
+      "name": "red3-origin-page",
+      "url": "https://almioet.almiworld.com/nursing/from-india",
+      "note": "RED 3 — origin page, same layout",
+      "status": 200,
+      "cacheSequence": [
+        "MISS",
+        "MISS",
+        "MISS"
+      ],
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "sha256": "ced123aeeb6f05e92f6955c66d00e635032a8b2652e142818e2ea3c2a588e7a4",
+      "bytes": 221535
+    },
+    {
+      "name": "red3-register-org",
+      "url": "https://almioet.almiworld.com/register/uk-nmc",
+      "note": "RED 3 — register segment, different layout, same cause",
+      "status": 200,
+      "cacheSequence": [
+        "MISS",
+        "MISS",
+        "MISS"
+      ],
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "sha256": "2c1d537293d154e1195935b785444ce9233ab77502f745f0e8b7a4b731ac643f",
+      "bytes": 56500
+    },
+    {
+      "name": "control-cache-home",
+      "url": "https://almioet.almiworld.com/",
+      "note": "CACHE CONTROL — a route that IS cached, proving the platform works",
+      "status": 200,
+      "cacheSequence": [
+        "HIT",
+        "HIT",
+        "HIT"
+      ],
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "sha256": "7d63adc6c96f223b6cd4af3fb6eec4f2faa0d82b332d97d8087e0c09ef3bfeb3",
+      "bytes": 86909
+    },
+    {
+      "name": "control-cache-forgot-password",
+      "url": "https://almioet.almiworld.com/forgot-password",
+      "note": "CACHE CONTROL — a second cached route",
+      "status": 200,
+      "cacheSequence": [
+        "HIT",
+        "HIT",
+        "HIT"
+      ],
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "sha256": "f0779fd3fd8ff3f9fa571c91793bfc70b2e7dae7e7ed9a3b232a37a3db39b209",
+      "bytes": 48959
+    }
+  ]
+}

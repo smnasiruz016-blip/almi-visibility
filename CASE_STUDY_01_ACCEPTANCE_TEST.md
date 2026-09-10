@@ -47,14 +47,33 @@ exists because things were found and repaired. So:
   - the sitemap XML as served on that date,
   - the source registry (`docs/sources/`) as it stood at that commit.
 
-**The corpus must be pinned before the engine is built, and stored where the engine cannot edit
-it.** Pinning it is a Phase 0 closing task, costed in the architecture report §15–16. **Until it
-is pinned, this test cannot be run — and that is the correct state, not a blocker to route
-around.**
+### ✅ THE FIRST PIN IS TAKEN — `case-study-01/corpus/`
 
-**Two of the six are still reproducible on the live site today** (measured 10 September 2026) and
-are marked **VERIFIED LIVE**. The rest are marked **NEEDS FROZEN CORPUS** with the exact
-historical locator.
+**Captured 10 September 2026.** Full record: **`case-study-01/corpus/MANIFEST.md`**.
+
+| | |
+|---|---|
+| repository pin | `smnasiruz016-blip/almi-oet` @ **`07852f9e87c4273c5486445986251d11e415ecdf`** |
+| that commit | `fix: GAP-054 — omitted safety information is a PURPOSE failure… (#112)` |
+| deployed | Production deployment `6360382081`, **state success**, 2026-09-09T22:16:29Z |
+| captured | 9 URLs × **3 consecutive requests each**, with status, `x-vercel-cache`, `age`, `cache-control` and a **SHA-256 of every body** |
+| plus | `robots.txt`, `sitemap-index.xml`, and the **SHA-256 + URL count of all six child sitemaps** (the sitemaps themselves are 240,328 URLs and are not stored — their hashes pin them) |
+| size | 801 KB, 22 files |
+
+**The repository half of the corpus is the commit, not a copy.** `git checkout 07852f9` restores
+the source exactly.
+
+**This pin serves two of the six defects — RED 2 and RED 3 — and it serves them completely.**
+**Four still need a second, older pin** (RED 1, 4, 5, 6), because the defect must be *present* to
+be *found* and those were fixed before this commit. Which commits those are is open question Q3
+below, and it is the owner's to answer.
+
+> **So: the test cannot be run yet. That is the correct state, not a blocker to route around.**
+> Half a corpus does not become a whole one by lowering the pass mark.
+
+**Two of the six are reproducible on the live site today** (measured 10 September 2026) and are
+marked **✅ VERIFIED LIVE — IN THE CORPUS**. The other four are marked **⏳ NEEDS A SECOND PIN**
+with the exact historical locator.
 
 ---
 
@@ -73,7 +92,7 @@ built on the "overall score" side of that flip-flop states a band the engine nev
 Cross-reference: `_handoffs/AI_VISIBILITY_TARGETS.md`, question 10, still marked ❌ *"Hal hone
 tak ye safha na banay"* — do not build that page until it is resolved.
 
-**Status: NEEDS FROZEN CORPUS.** The page was never built, precisely because the contradiction
+**Status: ⏳ NEEDS A SECOND PIN.** The page was never built, precisely because the contradiction
 was caught. The corpus must therefore include the **repository at the commit where `scale.ts`
 asserted the second version**, so the claim is present to be found.
 
@@ -97,7 +116,7 @@ standards agency) as fact, and the source registry holds nothing that supports i
 - Cross-reference: `_handoffs/AI_VISIBILITY_TARGETS.md` questions 1 and 5, both marked ⚠️ with
   *"12 ki fehrist ki sanad nahi"* — the list has no source.
 
-**Status: VERIFIED LIVE.** No frozen corpus needed for this one; it is true today.
+**Status: ✅ VERIFIED LIVE — IN THE CORPUS.** Served by the pin `07852f9`; the claim is in `src/lib/oet/professions.ts:1` at that commit and `docs/sources/` at that commit holds only a README.
 
 **What counts as FOUND:** the ledger names an external-authority claim, states that the source
 registry has no evidence for it, and does not confuse it with a claim that *is* sourced.
@@ -121,7 +140,7 @@ declaration is in the repository, the truth is only in the response headers.
 | three requests in a row to `/nursing/from-bhutan/ie-nmbi` | `x-vercel-cache=MISS`, `age=0` — **every time** |
 | the scale | **240,328 URLs** |
 
-**Status: VERIFIED LIVE.**
+**Status: ✅ VERIFIED LIVE — IN THE CORPUS.** Four route patterns captured three times each in `case-study-01/corpus/pages/`, with two cached controls (`/` and `/forgot-password`, HIT HIT HIT) proving the platform caches correctly when nothing reads a cookie.
 
 **What counts as FOUND:** the ledger reports that the served state contradicts the declared state,
 **from the response**, not from reading the export. An engine that reads `revalidate = false` and
@@ -137,7 +156,7 @@ records "static" has failed this defect while appearing to pass it.
 sitemaps (8 per file, spread across each file, not the first eight): 48 of 48 returned HTTP
 200.** No 404, no redirect, at this sample size.
 
-**Status: NEEDS FROZEN CORPUS.** The class is real and recorded in this project's own lessons —
+**Status: ⏳ NEEDS A SECOND PIN.** The class is real and recorded in this project's own lessons —
 the case where **8 of 9 indexed URLs returned 301 → 404** because the redirect targets had been
 *derived* and never *checked*. It is not reproducible on AlmiOET today.
 
@@ -163,8 +182,7 @@ or an option count that the item did not keep, and `scripts/gates/claims.ts`, wh
 because *"a promise on screen must match the symbol that delivers it"*. Both gates are green
 today, which is the point: **the defect was real, and it was fixed by a check.**
 
-**Status: NEEDS FROZEN CORPUS.** The corpus must be pinned at a commit **before** the relevant
-gate landed, so an instance is present.
+**Status: ⏳ NEEDS A SECOND PIN**, at a commit **before** the relevant gate landed, so an instance is present.
 
 **What counts as FOUND:** the ledger names the page, the number it renders, the number the data
 holds, and the difference — without being told which page to compare.
@@ -186,7 +204,7 @@ internal links each**, on pages that sit in a 240,328-URL space with siblings by
 origin and by organisation. **Whether the template intends more than five is a question for the
 frozen corpus, not an assertion made here.** It is recorded as an observation, not as the defect.
 
-**Status: NEEDS FROZEN CORPUS.**
+**Status: ⏳ NEEDS A SECOND PIN.**
 
 **What counts as FOUND:** the ledger names the link that exists in the component and is missing
 from the rendered HTML, having compared the two — not having read only one of them.
@@ -237,17 +255,38 @@ one organisation.
 **Verified:** HTTP 200 · canonical `https://almioet.almiworld.com/nursing/from-bhutan/ie-nmbi`
 (self-referential, matches the URL) · indexable.
 
-### ⚠️ A property all three controls share, stated so it cannot be used against them
+### 🔴 TWO properties all three controls share — and the scoring rule that follows
 
-All three are **thin and highly duplicated** by Gate A's standard — 66–167 unique words against a
-threshold of 350, and 76–95 % sibling overlap (architecture report §10.1). **That is a Gate A
-publishing question, not one of the six defect classes.** Reporting these pages as *"thin"* or
-*"duplicate"* is **not** a false positive under this test and is **not** scored against the
-engine. Reporting them as carrying **RED 1–6** is a false positive and is **FAIL**.
+**This section is part of the test, not a caveat about it.** It was written after the corpus was
+captured, because capturing it exposed a flaw in an earlier draft of this file: the three
+controls are leaf pages, and **RED 3 is true of every leaf page**, so an earlier version of this
+document asked the engine both to find RED 3 and not to report it on the same URLs. That was
+incoherent. The fix is the distinction below, and it makes the test **harder**, not softer.
 
-**This distinction is deliberate and it is the point of the control set:** *"this page should not
-have been published"* and *"this page contains a specific defect"* are different sentences, and
-an engine that cannot tell them apart will flood the owner with findings he cannot act on.
+**Property 1 — all three are thin and duplicated.** 66–167 unique words against a threshold of
+350, and 76–95 % sibling overlap (architecture report §10.1).
+
+**Property 2 — all three sit on an uncached route.** `x-vercel-cache: MISS` on three consecutive
+requests, `Cache-Control: private, no-store` — because they are under the same layout as the
+RED 3 exhibit.
+
+**THE SCORING RULE:**
+
+| what the engine reports about a control page | verdict |
+|---|---|
+| **RED 1, 2, 5 or 6** — a defect *in this page's content, claims, counts or links* | 🔴 **FALSE POSITIVE → FAIL** |
+| **RED 4** — that this page's own sitemap entry is broken | 🔴 **FALSE POSITIVE → FAIL** (all three are 200) |
+| **RED 3** — that the **route** these pages sit on is served uncached | ✅ **CORRECT — not a false positive.** It is true, it is measured, and it is in the corpus |
+| **"thin"** or **"duplicate"** — a Gate A publishing judgement | ✅ **not scored either way.** Gate A is a publishing gate, not one of the six classes |
+
+**Why the test is built this way:** *"this route is served wrongly"*, *"this page should not have
+been published"* and *"this page makes a false claim"* are three different sentences about the
+same URL. **An engine that collapses them will hand the owner a list he cannot act on** — and
+the whole reason this product exists is that a machine once produced pages nobody could act on,
+at scale, for months.
+
+**A control is therefore clean AT THE PAGE LEVEL.** Nothing in this test asks anyone to pretend
+these pages are good.
 
 ---
 
@@ -255,12 +294,12 @@ an engine that cannot tell them apart will flood the owner with findings he cann
 
 | | class | status today | found? | notes |
 |---|---|---|---|---|
-| RED 1 | grade band never issued | needs frozen corpus | ☐ | |
-| RED 2 | external claim, no source evidence | **verified live** | ☐ | |
-| RED 3 | declared render mode ≠ served state | **verified live** | ☐ | |
-| RED 4 | sitemap URL 404 / redirect / non-indexable | needs frozen corpus | ☐ | 48/48 are 200 today |
-| RED 5 | rendered count ≠ underlying data | needs frozen corpus | ☐ | |
-| RED 6 | internal link in source, absent from render | needs frozen corpus | ☐ | |
+| RED 1 | grade band never issued | ⏳ needs a second pin | ☐ | |
+| RED 2 | external claim, no source evidence | ✅ **in the corpus** | ☐ | |
+| RED 3 | declared render mode ≠ served state | ✅ **in the corpus** | ☐ | |
+| RED 4 | sitemap URL 404 / redirect / non-indexable | ⏳ needs a second pin | ☐ | 48/48 are 200 today |
+| RED 5 | rendered count ≠ underlying data | ⏳ needs a second pin | ☐ | |
+| RED 6 | internal link in source, absent from render | ⏳ needs a second pin | ☐ | |
 | CONTROL 1 | `/nursing/from-india/uk-nmc` | live | ☐ not flagged | sourced grade |
 | CONTROL 2 | `/nursing/from-india/uk-ukvi` | live | ☐ not flagged | correctly declines |
 | CONTROL 3 | `/nursing/from-bhutan/ie-nmbi` | live | ☐ not flagged | sourced grade |
@@ -273,7 +312,7 @@ an engine that cannot tell them apart will flood the owner with findings he cann
 
 | # | question | who decides |
 |---|---|---|
-| Q1 | Which commit and which capture date pin the frozen corpus? | **owner** |
+| Q1 | ~~Which commit pins the corpus?~~ **ANSWERED 10 Sep 2026:** `07852f9`, captured into `case-study-01/corpus/`. Covers RED 2 and RED 3. | done |
 | Q2 | For RED 4, do we pin a historical AlmiOET deployment, or nominate AlmiPathway (registered, unreachable, no sitemap) as the instance? | **owner** |
 | Q3 | For RED 1 and RED 5, which pre-fix commits contain the instances? | **owner**, with a repository search |
 | Q4 | Is a *class* found if the engine reports a **different real instance** of the same class than the one pinned here? | **owner.** My recommendation: **yes** — the test asks whether the engine can find that kind of fault, not whether it can find one URL |

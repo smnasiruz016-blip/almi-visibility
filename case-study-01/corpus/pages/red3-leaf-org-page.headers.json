@@ -1,0 +1,34 @@
+{
+  "url": "https://almioet.almiworld.com/nursing/from-austria/ca-cannn",
+  "note": "RED 3 — the leaf route whose served state contradicts its declaration. Deliberately NOT one of the three control URLs.",
+  "capturedAt": "2026-09-10T01:14:28.279Z",
+  "requests": [
+    {
+      "n": 1,
+      "status": 200,
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "bodySha256": "eecc5ab6ac6fce69956f866520a66ac52517e6f090c26d5b6730f56b9f7efe08",
+      "bodyBytes": 64748
+    },
+    {
+      "n": 2,
+      "status": 200,
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "bodySha256": "eecc5ab6ac6fce69956f866520a66ac52517e6f090c26d5b6730f56b9f7efe08",
+      "bodyBytes": 64748
+    },
+    {
+      "n": 3,
+      "status": 200,
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "bodySha256": "eecc5ab6ac6fce69956f866520a66ac52517e6f090c26d5b6730f56b9f7efe08",
+      "bodyBytes": 64748
+    }
+  ]
+}

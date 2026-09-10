@@ -1,0 +1,48 @@
+{
+  "capturedAt": "2026-09-10T01:13:58.405Z",
+  "children": [
+    {
+      "url": "https://almioet.almiworld.com/sitemap/0.xml",
+      "status": 200,
+      "urls": 45000,
+      "bytes": 7525050,
+      "sha256": "1acddb48ce5529f64f5320a900e01be2288b577316ae5ffa46b494b80b7295cb"
+    },
+    {
+      "url": "https://almioet.almiworld.com/sitemap/1.xml",
+      "status": 200,
+      "urls": 45000,
+      "bytes": 7654097,
+      "sha256": "9875f464fe4fd34d18a95fcb660d207bad28dfe05be9d6c3c97bed05e8eb4120"
+    },
+    {
+      "url": "https://almioet.almiworld.com/sitemap/2.xml",
+      "status": 200,
+      "urls": 45000,
+      "bytes": 7792216,
+      "sha256": "0be439c1eb1eae565358eb594821ec3f1288960fe25de521836f954cbcc97da6"
+    },
+    {
+      "url": "https://almioet.almiworld.com/sitemap/3.xml",
+      "status": 200,
+      "urls": 45000,
+      "bytes": 7694986,
+      "sha256": "925f60d0bfe03f6772a057c09caaf0b6baf59e21756d4397a7ec1178a4c7b513"
+    },
+    {
+      "url": "https://almioet.almiworld.com/sitemap/4.xml",
+      "status": 200,
+      "urls": 45000,
+      "bytes": 7496809,
+      "sha256": "e653cd7cbf0b0f7750ef04731ec0a07e40797325b02b47087bda6d061c488ec3"
+    },
+    {
+      "url": "https://almioet.almiworld.com/sitemap/5.xml",
+      "status": 200,
+      "urls": 15328,
+      "bytes": 2671132,
+      "sha256": "7b77018d0eb665160d94f99698dd6bd95ce331085da918e48bccf55aac5d6894"
+    }
+  ],
+  "totalUrls": 240328
+}

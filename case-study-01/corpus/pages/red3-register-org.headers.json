@@ -1,0 +1,37 @@
+{
+  "url": "https://almioet.almiworld.com/register/uk-nmc",
+  "note": "RED 3 — register segment, different layout, same cause",
+  "capturedAt": "2026-09-10T01:13:56.169Z",
+  "requests": [
+    {
+      "n": 1,
+      "status": 200,
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "x-vercel-id": "dub1::iad1::mkzj2-1789002837703-70c2fb97e254",
+      "bodySha256": "2c1d537293d154e1195935b785444ce9233ab77502f745f0e8b7a4b731ac643f",
+      "bodyBytes": 56500
+    },
+    {
+      "n": 2,
+      "status": 200,
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "x-vercel-id": "dub1::iad1::mkzj2-1789002837934-a085b4f81bb0",
+      "bodySha256": "2c1d537293d154e1195935b785444ce9233ab77502f745f0e8b7a4b731ac643f",
+      "bodyBytes": 56500
+    },
+    {
+      "n": 3,
+      "status": 200,
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "x-vercel-id": "dub1::iad1::mkzj2-1789002838067-3dbee8d08ba3",
+      "bodySha256": "2c1d537293d154e1195935b785444ce9233ab77502f745f0e8b7a4b731ac643f",
+      "bodyBytes": 56500
+    }
+  ]
+}

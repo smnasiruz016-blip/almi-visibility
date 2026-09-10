@@ -1,0 +1,8 @@
+# The frozen corpus is EVIDENCE. Its bytes must survive a checkout unchanged, or
+# the SHA-256 recorded at capture time stops matching the file it names — and an
+# integrity record that cannot be checked is worse than none.
+#
+# Git's default on Windows converts LF to CRLF on checkout. That would rewrite
+# every captured HTML body and every headers file. `-text` disables all EOL
+# conversion for this directory, so what was captured is what is restored.
+case-study-01/corpus/** -text

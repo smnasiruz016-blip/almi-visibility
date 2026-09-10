@@ -1,0 +1,37 @@
+{
+  "url": "https://almioet.almiworld.com/nursing/from-india/uk-nmc",
+  "note": "CONTROL 1 — legitimate sourced grade",
+  "capturedAt": "2026-09-10T01:13:51.906Z",
+  "requests": [
+    {
+      "n": 1,
+      "status": 200,
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "x-vercel-id": "dub1::iad1::dt57z-1789002833378-76da130d1926",
+      "bodySha256": "5c4419c8325db35e2375b68653955342cae17d0d7418ad28c3dbecfd5509fe0b",
+      "bodyBytes": 62938
+    },
+    {
+      "n": 2,
+      "status": 200,
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "x-vercel-id": "dub1::iad1::dt57z-1789002833558-bc96dbb29f97",
+      "bodySha256": "5c4419c8325db35e2375b68653955342cae17d0d7418ad28c3dbecfd5509fe0b",
+      "bodyBytes": 62938
+    },
+    {
+      "n": 3,
+      "status": 200,
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "x-vercel-id": "dub1::iad1::dd4sc-1789002833737-8ff8d7210be5",
+      "bodySha256": "5c4419c8325db35e2375b68653955342cae17d0d7418ad28c3dbecfd5509fe0b",
+      "bodyBytes": 62938
+    }
+  ]
+}

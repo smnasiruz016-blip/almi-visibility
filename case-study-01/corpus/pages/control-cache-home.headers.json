@@ -1,0 +1,37 @@
+{
+  "url": "https://almioet.almiworld.com/",
+  "note": "CACHE CONTROL — a route that IS cached, proving the platform works",
+  "capturedAt": "2026-09-10T01:13:56.399Z",
+  "requests": [
+    {
+      "n": 1,
+      "status": 200,
+      "x-vercel-cache": "HIT",
+      "age": "2448",
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-id": "dub1::iad1::mkzj2-1789002838296-6a2536a6dcee",
+      "bodySha256": "7d63adc6c96f223b6cd4af3fb6eec4f2faa0d82b332d97d8087e0c09ef3bfeb3",
+      "bodyBytes": 86909
+    },
+    {
+      "n": 2,
+      "status": 200,
+      "x-vercel-cache": "HIT",
+      "age": "2448",
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-id": "dub1::iad1::mkzj2-1789002838330-ee4c5dcb672b",
+      "bodySha256": "7d63adc6c96f223b6cd4af3fb6eec4f2faa0d82b332d97d8087e0c09ef3bfeb3",
+      "bodyBytes": 86909
+    },
+    {
+      "n": 3,
+      "status": 200,
+      "x-vercel-cache": "HIT",
+      "age": "2448",
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-id": "dub1::iad1::mkzj2-1789002838367-3eaea41e3144",
+      "bodySha256": "7d63adc6c96f223b6cd4af3fb6eec4f2faa0d82b332d97d8087e0c09ef3bfeb3",
+      "bodyBytes": 86909
+    }
+  ]
+}

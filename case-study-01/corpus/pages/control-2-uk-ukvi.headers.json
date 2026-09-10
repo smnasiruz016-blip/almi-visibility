@@ -1,0 +1,37 @@
+{
+  "url": "https://almioet.almiworld.com/nursing/from-india/uk-ukvi",
+  "note": "CONTROL 2 — correctly declines to state an unknown",
+  "capturedAt": "2026-09-10T01:13:52.426Z",
+  "requests": [
+    {
+      "n": 1,
+      "status": 200,
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "x-vercel-id": "dub1::iad1::dd4sc-1789002834035-00dd0118ea1d",
+      "bodySha256": "4da78719121a785dcb24bbfcf56455af66487852c296d66d27c24fae482fdb77",
+      "bodyBytes": 62587
+    },
+    {
+      "n": 2,
+      "status": 200,
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "x-vercel-id": "dub1::iad1::cdgb9-1789002834170-85aac0a00fb8",
+      "bodySha256": "4da78719121a785dcb24bbfcf56455af66487852c296d66d27c24fae482fdb77",
+      "bodyBytes": 62587
+    },
+    {
+      "n": 3,
+      "status": 200,
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "x-vercel-id": "dub1::iad1::cdgb9-1789002834301-29ee712f5eb1",
+      "bodySha256": "4da78719121a785dcb24bbfcf56455af66487852c296d66d27c24fae482fdb77",
+      "bodyBytes": 62587
+    }
+  ]
+}

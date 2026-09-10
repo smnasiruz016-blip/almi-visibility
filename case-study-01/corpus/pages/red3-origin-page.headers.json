@@ -1,0 +1,37 @@
+{
+  "url": "https://almioet.almiworld.com/nursing/from-india",
+  "note": "RED 3 — origin page, same layout",
+  "capturedAt": "2026-09-10T01:13:55.574Z",
+  "requests": [
+    {
+      "n": 1,
+      "status": 200,
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "x-vercel-id": "dub1::iad1::dt57z-1789002836722-a71b61f3817e",
+      "bodySha256": "ced123aeeb6f05e92f6955c66d00e635032a8b2652e142818e2ea3c2a588e7a4",
+      "bodyBytes": 221535
+    },
+    {
+      "n": 2,
+      "status": 200,
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "x-vercel-id": "dub1::iad1::wnlqt-1789002836957-eb9a8921db76",
+      "bodySha256": "ced123aeeb6f05e92f6955c66d00e635032a8b2652e142818e2ea3c2a588e7a4",
+      "bodyBytes": 221535
+    },
+    {
+      "n": 3,
+      "status": 200,
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "x-vercel-id": "dub1::iad1::mkzj2-1789002837220-f12284dc1975",
+      "bodySha256": "ced123aeeb6f05e92f6955c66d00e635032a8b2652e142818e2ea3c2a588e7a4",
+      "bodyBytes": 221535
+    }
+  ]
+}

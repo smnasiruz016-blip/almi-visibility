@@ -21,11 +21,30 @@
  * the guard. So the result carries `reachedOverlap`, and the reporter says in
  * words when it is zero. An empty stage 3 is a finding about the corpus, never a
  * pass.
+ *
+ * ── 🔴 AND THE DENOMINATOR RULE, ADDED 10 SEPTEMBER 2026 ────────────────────
+ *
+ * An earlier version compared survivors against SURVIVORS. On the first real
+ * acceptance test that produced a perfect 0.0000 against a survivor population
+ * of ZERO — a page scoring full marks for being the last one standing, while all
+ * 190 of its near-identical siblings were still published and indexed.
+ *
+ *     A GATE MAY NOT BUILD ITS DENOMINATOR OUT OF ITS OWN OUTPUT.
+ *     The more it rejects, the more unique the remainder looks. A gate that gets
+ *     EASIER the more it rejects is not a gate.
+ *
+ *     "EVERY SIBLING" MEANS EVERY SIBLING A READER CAN STILL REACH.
+ *
+ * So stage 3 SCORES only survivors — D2-A is untouched, the work is still
+ * candidates x population rather than population squared — but it scores them
+ * against THE WHOLE PUBLISHED GROUP. What changed is the denominator, not the
+ * workload. `overlapPopulation` and `overlapComparisons` are reported beside
+ * `reachedOverlap` so the two can never again be confused.
  */
 import { tokensOf } from "./tokens.mjs";
 import { computeShells, uniqueWords, residualTokens } from "./shell.mjs";
 import { countFacts, MIN_FACTS } from "./facts.mjs";
-import { exactAllPairs, strategyFor, EXACT_ALL_PAIRS_MAX_GROUP } from "./overlap.mjs";
+import { maxAgainstPopulation, strategyFor, EXACT_ALL_PAIRS_MAX_GROUP } from "./overlap.mjs";
 
 /** Gate A's published thresholds. */
 export const MIN_UNIQUE_WORDS = 350;
@@ -81,32 +100,31 @@ export function runGateA(group, { now = new Date(), shellDefinition = "B" } = {}
     };
   });
 
-  // ── stage 3 · quadratic, survivors only ──────────────────────────────────
+  // ── stage 3 · only SURVIVORS are scored, against the WHOLE PUBLISHED GROUP ─
+  //
+  // 🔴 The denominator is the published population, never the run's own output.
+  // See maxAgainstPopulation() in overlap.mjs for the defect this replaces.
+  // D2-A still holds: the WORK is candidates x population, not population^2.
   const survivors = results.filter((r) => r.uniquePass && r.factsPass);
-  const strategy = strategyFor(survivors.length);
+  const strategy = strategyFor(pages.length);
 
-  if (survivors.length > 1 && survivors.length <= EXACT_ALL_PAIRS_MAX_GROUP) {
-    const byId = new Map(pages.map((p) => [p.id, p]));
-    const withResidual = survivors.map((r) => ({
-      id: r.id,
-      residual: residualTokens(byId.get(r.id).tokens, shell),
-    }));
-    for (const o of exactAllPairs(withResidual)) {
+  if (survivors.length > 0 && pages.length <= EXACT_ALL_PAIRS_MAX_GROUP) {
+    const withResidual = pages.map((p) => ({ id: p.id, residual: residualTokens(p.tokens, shell) }));
+    const byId = new Map(withResidual.map((p) => [p.id, p]));
+    const candidates = survivors.map((r) => byId.get(r.id));
+
+    for (const o of maxAgainstPopulation(candidates, withResidual)) {
       const row = results.find((r) => r.id === o.id);
       row.maxOverlap = o.maxOverlap;
       row.overlapAgainst = o.against;
       row.residualWords = o.residualWords;
       row.noisyResidual = o.noisy;
-      row.overlapPass = o.maxOverlap <= MAX_SIBLING_OVERLAP;
+      row.comparedWith = o.comparedWith;
+      // An empty population is a finding, not a pass. A page alone in its group
+      // has nothing to be different FROM, and must not collect a free pass here.
+      row.overlapVacuous = o.vacuous;
+      row.overlapPass = o.vacuous ? null : o.maxOverlap <= MAX_SIBLING_OVERLAP;
     }
-  } else if (survivors.length === 1) {
-    const only = results.find((r) => r.id === survivors[0].id);
-    const byId = new Map(pages.map((p) => [p.id, p]));
-    only.residualWords = residualTokens(byId.get(only.id).tokens, shell).length;
-    only.maxOverlap = 0;
-    only.overlapAgainst = null;
-    only.overlapPass = true;
-    only.onlySurvivor = true; // an overlap of 0 here means "no sibling to compare", not "unique"
   }
 
   for (const r of results) {
@@ -114,7 +132,15 @@ export function runGateA(group, { now = new Date(), shellDefinition = "B" } = {}
     else if (!r.factsPass) r.verdict = "REJECT";
     else if (!r.whyThisUrlPresent) { r.verdict = "REJECT"; r.rejectedAt = "whyThisUrl"; }
     else if (r.overlapPass === false) { r.verdict = "REJECT"; r.rejectedAt = "overlap"; }
-    else r.verdict = "KEEP";
+    else if (r.overlapVacuous) {
+      // The ONLY way this can happen now is a template group of exactly one page:
+      // there is genuinely no sibling to differ from. That is a real KEEP, not the
+      // old false pass — which came from an empty SURVIVOR set inside a full group
+      // and is now impossible, because the denominator is the published group.
+      // It is still flagged, loudly, so a one-page group is never mistaken for a
+      // page that was measured against siblings and won.
+      r.verdict = "KEEP";
+    } else r.verdict = "KEEP";
   }
 
   return {
@@ -129,6 +155,12 @@ export function runGateA(group, { now = new Date(), shellDefinition = "B" } = {}
     results,
     reachedOverlap: survivors.length,
     eliminatedBefore: pages.length - survivors.length,
+    // 🔴 The two numbers must be reported together. `reachedOverlap` is how many
+    // pages were SCORED; `overlapPopulation` is what they were scored AGAINST —
+    // and it is the published group, not the survivors. A report that showed only
+    // the first is how the survivor-population false pass stayed invisible.
+    overlapPopulation: pages.length,
+    overlapComparisons: survivors.length * Math.max(0, pages.length - 1),
     overlapStrategy: strategy,
     thresholds: { MIN_UNIQUE_WORDS, MIN_FACTS, MAX_SIBLING_OVERLAP },
     vacuous: false,

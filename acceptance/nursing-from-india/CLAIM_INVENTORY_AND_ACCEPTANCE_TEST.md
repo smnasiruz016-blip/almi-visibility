@@ -73,6 +73,23 @@ Grenada, Guyana, Jamaica, Malta, St Kitts and Nevis, St Lucia, St Vincent and th
 Grenadines, Trinidad and Tobago) and **178 are not.** So `from-bahamas` and `from-india`
 genuinely have different answers. **The variance is one bit.**
 
+### 🔴 1.5 · CORRECTED THE SAME DAY — see `ORIGIN_CLAIM_SHAPE.md`
+
+The owner ordered a last honest attempt: verify O5 and O6 for two deliberately different
+countries. It changed two things above, and I am leaving the original text standing rather
+than editing it quietly.
+
+| | what §1.2 and §1.4 said | what verification found |
+|---|---|---|
+| **O5** | *"not located"*, and implicitly another yes/no | 🔴 **WRONG — and it understated it.** Nigeria's own regulator publishes a named body, **four fees** (₦66,875 · ₦8,750 · ₦8,750), two document lists, **and a UK-specific line at ₦17,500**. That is a value, not a bit. For **India** it is worse than not-found: it is a **BRANCH** over ~30 state councils |
+| **O6** | listed as origin-scoped | 🔴 **MISCLASSIFIED BY ME.** The NMC's evidence is a **personal transcript** — per applicant, not per country. O6 is destination-scoped |
+| — | — | **O7 found and verified:** UK Code of Practice **red / amber / green** (54 red incl. Nigeria and Pakistan; 2 amber; India and the Philippines green) |
+
+**So "four of six are the same predicate" was too harsh, and the conclusion below stands
+for a different reason than the one given here.** The binding constraint is not the SHAPE
+of origin claims — it is their **AVAILABILITY**, which differs country by country and is
+structurally absent for India. `ORIGIN_CLAIM_SHAPE.md` carries the full working.
+
 ---
 
 ## PART TWO — THE ACCEPTANCE TEST
@@ -195,9 +212,27 @@ named: *count the population before the guard.* The rejected siblings are all st
 published and still indexed. **"Every sibling" has to mean every sibling a reader can
 still reach — not every sibling that survived an earlier stage of the same run.**
 
-**Not fixed today** (no gate change was authorised), but the acceptance test reports both
-numbers, and the honest one — against all 190 published siblings — is the one used for the
-verdict above.
+**FIXED 10 September 2026, on the owner's ruling.** `runGateA` now scores survivors against
+the **whole published group**, never against its own output. The rule is written beside the
+code:
+
+> **A GATE MAY NOT BUILD ITS DENOMINATOR OUT OF ITS OWN OUTPUT.**
+> The more it rejects, the more unique the remainder looks. A gate that gets EASIER the
+> more it rejects is not a gate.
+
+**And the fixed gate reproduces this test's honest verdict on its own**, without the
+acceptance harness computing anything itself:
+
+```
+reachedOverlap 1 · overlapPopulation 2292 · comparisons 2291
+nursing__from-india  maxOverlap 0.7364  against nursing__from-argentina
+                     overlapPass false · verdict REJECT · rejectedAt "overlap"
+```
+
+D2-A is untouched: only survivors are SCORED, so the work is candidates x population, not
+population squared. **What changed is the denominator, not the workload.** Re-running Gate A
+over the whole 3,414-page corpus produces **identical results to run 01** — nothing reached
+stage 3 there either way, so **no published verdict changed.**
 
 ### 3.2 · The prose/tabular hole — confirmed from the other direction
 

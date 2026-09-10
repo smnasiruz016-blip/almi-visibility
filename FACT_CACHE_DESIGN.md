@@ -210,6 +210,56 @@ and judge**, because §3 says no fact is verified until somebody did.
 
 ---
 
+## 4a · 🔴 THE COST THIS DESIGN WAS NOT CARRYING — SOURCES THAT REFUSE A MACHINE
+
+**Measured 10 September 2026**, while building the `nursing/from-india` claim inventory.
+The whole freshness mechanism rests on `quoteMatchedOn` being a **cheap nightly machine
+re-check**: fetch the URL, string-match the stored `quotedSpan`, flag it if it stopped
+matching. That assumption was never tested. It is now.
+
+| source | attempted | result |
+|---|---|---|
+| `nmc.org.uk` (HTML) | fetch | ✅ fetched and read |
+| `gov.uk` | fetch | ✅ fetched and read |
+| `nmcn.gov.ng` (Nigeria) | fetch | ✅ fetched and read |
+| **`ahpra.gov.au`** | fetch | 🔴 **HTTP 403** |
+| **`nursingmidwiferyboard.gov.au`** | fetch | 🔴 **HTTP 403** |
+| **`nursingcouncil.org.nz`** | fetch | 🔴 **HTTP 403** |
+| **`prc.gov.ph`** (Philippines) | fetch | 🔴 **HTTP 403** |
+| `nmc.org.uk` accepted-countries **PDF** | fetch + parse | 🔴 compressed stream, **not parsed** |
+
+**Four of eight regulator sources cannot be read by a machine at all, and a fifth is a PDF
+our parser could not open.** These are not obscure sources — they are AHPRA and the Nursing
+Council of New Zealand, two of the four destination regulators that matter most.
+
+### What this changes — and what it does NOT change
+
+**It does not change the design.** `quotedSpan`, the three dated check fields, and the
+tier vocabulary are all still right, and for `nmc.org.uk`, `gov.uk` and `nmcn.gov.ng` the
+nightly re-check works exactly as designed.
+
+**It changes the COST MODEL, and the design must carry it:**
+
+| class | how a fact is re-verified | who pays |
+|---|---|---|
+| **machine-readable source** | nightly fetch + string match on `quotedSpan` | a cron job, effectively free |
+| 🔴 **machine-refused source** | **a person opens the page and looks** | **human minutes, every 180 days, per fact** |
+
+**So a fact record must carry which class its source is in.** A new field —
+`sourceMachineReadable: true \| false \| "unknown"` — set from the last fetch attempt, not
+from a guess. Without it, the freshness queue silently mixes free work with expensive work
+and nobody can plan either.
+
+⚠️ **AND THE DANGEROUS FAILURE IS THE QUIET ONE.** A 403 must never be recorded as "the
+quote no longer matches", and must never be recorded as a successful check. It is a
+**third outcome — could not check** — and it needs its own state, or a blocked source
+will drift into looking either broken or verified, and both are lies.
+
+**What is deliberately NOT proposed:** no scraping workaround, no user-agent spoofing, no
+third-party proxy. A regulator that declines automated access has declined it. **The
+answer is to record the cost, not to route around the refusal** — and a tier-4 aggregator
+that *is* fetchable is still a lead, never a citation.
+
 ## 5 · 🔴 NO DATABASE TABLE — AND WHERE FACTS LIVE INSTEAD
 
 **No table is designed here and none will be created without stopping first.**

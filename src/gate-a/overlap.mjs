@@ -88,6 +88,64 @@ export function exactAllPairs(pages) {
 }
 
 /**
+ * 🔴 EVERY CANDIDATE AGAINST THE WHOLE PUBLISHED POPULATION.
+ *
+ * ── THE DEFECT THIS REPLACES, AND THE RULE THAT COMES OUT OF IT ─────────────
+ *
+ * `exactAllPairs` compares a set against ITSELF. Gate A used to hand it the
+ * SURVIVORS, which meant the population a page was judged against was the gate's
+ * own output. On the `nursing/from-india` acceptance test that produced:
+ *
+ *     overlap vs SURVIVORS ONLY   0.0000    survivor population: 0
+ *
+ * A PERFECT SCORE EARNED BY BEING THE LAST ONE STANDING — while all 190 of its
+ * near-identical siblings were still published and still indexed.
+ *
+ *     🔴 A GATE MAY NOT BUILD ITS DENOMINATOR OUT OF ITS OWN OUTPUT.
+ *     The more it rejects, the more unique the remainder looks. A gate that gets
+ *     EASIER the more it rejects is not a gate.
+ *
+ *     "EVERY SIBLING" MEANS EVERY SIBLING A READER CAN STILL REACH — not every
+ *     sibling that survived an earlier stage of the same run.
+ *
+ * This is the same illness as a check fed its own value, which this project has
+ * now rejected three times: twice in proposed bucket boundaries, and here.
+ *
+ * ⚠️ D2-A IS NOT UNDONE BY THIS. D2-A says do not do quadratic WORK on pages
+ * already rejected, and that still holds: only CANDIDATES get a score, so the
+ * cost is candidates x population, not population squared. What changes is the
+ * DENOMINATOR, not the workload.
+ *
+ * @param {{ id: string, residual: readonly string[] }[]} candidates pages being judged
+ * @param {{ id: string, residual: readonly string[] }[]} population every PUBLISHED sibling
+ */
+export function maxAgainstPopulation(candidates, population) {
+  const popSig = population.map((p) => shingles(p.residual));
+  return candidates.map((c) => {
+    const mine = shingles(c.residual);
+    let best = { score: 0, against: null };
+    let compared = 0;
+    for (let i = 0; i < population.length; i++) {
+      if (population[i].id === c.id) continue;
+      compared++;
+      const s = jaccard(mine, popSig[i]);
+      if (s > best.score) best = { score: s, against: population[i].id };
+    }
+    return {
+      id: c.id,
+      maxOverlap: best.score,
+      against: best.against,
+      comparedWith: compared,
+      residualWords: c.residual.length,
+      noisy: c.residual.length < NOISY_RESIDUAL_WORDS,
+      // 🔴 Zero comparisons is not a score of zero. It is an empty population,
+      // and the caller must treat it as a finding rather than a pass.
+      vacuous: compared === 0,
+    };
+  });
+}
+
+/**
  * The strategy this group size calls for. Returned rather than decided silently,
  * so the report can say which one ran and why.
  */

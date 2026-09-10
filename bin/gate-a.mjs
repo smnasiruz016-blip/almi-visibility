@@ -80,14 +80,40 @@ if (groups.length === 0) {
   process.exit(2);
 }
 
-const report = { generatedAt: new Date().toISOString(), shellDefinition, groups: [] };
+/**
+ * 🔴 WHICH GROUPS ARE ONLY A SAMPLE — and what that forbids.
+ *
+ * `uniqueWords` is a function of ONE page, so a sample gives an honest
+ * DISTRIBUTION of it. `overlap` is a claim about a PARTICULAR PAIR, and "every
+ * sibling, never a sample" was always its rule. A sample does not weaken that
+ * rule — it makes overlap INAPPLICABLE: an overlap computed inside a 500-page
+ * sample of a 237,413-page group is not that group's overlap and must never be
+ * printed as though it were.
+ */
+const manifestPath = join(corpusDir, "corpus-manifest.json");
+const corpusManifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, "utf8")) : null;
+const sampledGroups = new Set();
+if (corpusManifest && corpusManifest.leafSampled && corpusManifest.leafSampled < (corpusManifest.groups?.["profession-origin-org"] ?? Infinity)) {
+  sampledGroups.add("profession-origin-org");
+}
+
+/** min / median / max, plus the two ends of the distribution that matter. */
+function distribution(values) {
+  if (values.length === 0) return null;
+  const v = [...values].sort((a, b) => a - b);
+  const at = (p) => v[Math.min(v.length - 1, Math.floor(p * v.length))];
+  return { n: v.length, min: v[0], p25: at(0.25), median: at(0.5), p75: at(0.75), p95: at(0.95), max: v[v.length - 1] };
+}
+
+const report = { generatedAt: new Date().toISOString(), shellDefinition, corpus: corpusManifest, groups: [] };
 
 for (const g of groups) {
   const pages = readGroup(join(corpusDir, g));
+  const sampled = sampledGroups.has(g);
   const out = runGateA(pages, { shellDefinition });
-  report.groups.push({ group: g, ...out });
+  report.groups.push({ group: g, sampled, ...out });
 
-  console.log(`\n── ${g} — ${out.pages} page(s) ──`);
+  console.log(`\n── ${g} — ${out.pages} page(s)${sampled ? "  (A SAMPLE, not the whole group)" : ""} ──`);
   if (out.vacuous) {
     // Count the population BEFORE the guard. An empty group is a finding.
     console.log("  🔴 EMPTY GROUP — nothing was measured. This is not a pass.");
@@ -99,15 +125,44 @@ for (const g of groups) {
       (out.shell.bEqualsA ? "  (group is small: B IS A here, the definition is doing nothing)" : ""),
   );
 
+  // The DISTRIBUTION, not just pass/fail. On a sampled group this is the honest
+  // thing a sample can say, and on a full group it is the whole population.
+  const dist = distribution(out.results.map((r) => r.uniqueWords));
+  report.groups[report.groups.length - 1].uniqueWordsDistribution = dist;
+  console.log(
+    `  uniqueWords (threshold ${out.thresholds.MIN_UNIQUE_WORDS}): ` +
+      `min ${dist.min} · p25 ${dist.p25} · median ${dist.median} · p75 ${dist.p75} · p95 ${dist.p95} · MAX ${dist.max}`,
+  );
+  if (sampled) {
+    // The rule the owner set before the run: if even the sample's MAXIMUM is far
+    // below the bar, the finding is about the whole group. If anything came
+    // CLOSE, the sample has done its job and the group must be counted in full.
+    const near = dist.max >= out.thresholds.MIN_UNIQUE_WORDS * 0.8;
+    console.log(
+      near
+        ? `    🔴 the sample's MAXIMUM (${dist.max}) is within 20% of the threshold — THE SAMPLE HAS DONE ITS JOB. Count this group IN FULL before ruling on it.`
+        : `    the sample's MAXIMUM (${dist.max}) is far below ${out.thresholds.MIN_UNIQUE_WORDS} — one justification covers the whole group; it does not need 237,413 separate ones.`,
+    );
+  }
+
   const keep = out.results.filter((r) => r.verdict === "KEEP").length;
   console.log(`  KEEP ${keep} · REJECT ${out.results.length - keep}`);
   const byStage = {};
   for (const r of out.results) if (r.rejectedAt) byStage[r.rejectedAt] = (byStage[r.rejectedAt] ?? 0) + 1;
   for (const [stage, n] of Object.entries(byStage)) console.log(`    rejected at ${stage}: ${n}`);
 
+  const reachedFacts = out.results.filter((r) => r.uniquePass).length;
+  console.log(`  reached stage 2 (facts): ${reachedFacts}`);
+
   // 🔴 The quadratic stage must never be silently empty.
-  console.log(`  reached the overlap stage: ${out.reachedOverlap} (eliminated before it: ${out.eliminatedBefore})`);
-  if (out.reachedOverlap === 0) {
+  console.log(`  reached stage 3 (overlap): ${out.reachedOverlap} (eliminated before it: ${out.eliminatedBefore})`);
+  if (sampled) {
+    console.log(
+      "    🔴 OVERLAP IS NOT REPORTED FOR THIS GROUP. It is a SAMPLE, and overlap is a claim about a\n" +
+        "       particular PAIR — 'every sibling, never a sample' does not weaken here, it makes the\n" +
+        "       measurement INAPPLICABLE. An overlap inside a sample is not this group's overlap.",
+    );
+  } else if (out.reachedOverlap === 0) {
     console.log("    🔴 NO PAGE REACHED THE OVERLAP STAGE. That is a finding about this corpus, not a pass.");
   } else {
     console.log(`    strategy: ${out.overlapStrategy.kind} — ${out.overlapStrategy.note}`);

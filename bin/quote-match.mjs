@@ -43,14 +43,15 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
-import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
+import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
+import { FACTS_DIR } from "../products/almi-oet/product.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { runQuoteMatch } from "../src/facts/quote-match.mjs";
 
 const argv = process.argv.slice(2);
 const out = argv.find((a) => a.startsWith("--out="))?.split("=").slice(1).join("=") ?? null;
 
-const { records } = await loadRegistry();
+const { records } = await loadRegistry(FACTS_DIR);
 const permission = writePermission({ target: LOCAL, argv, env: process.env });
 if (out) announceWritePermission(permission);
 

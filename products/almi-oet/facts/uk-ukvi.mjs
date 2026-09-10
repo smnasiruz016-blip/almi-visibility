@@ -16,7 +16,7 @@
  * go stale for different reasons — the list changes when the Home Office edits
  * it; India's membership changes only if India is added.
  */
-import { fact } from "../src/facts/record.mjs";
+import { fact } from "../../../src/facts/record.mjs";
 
 const URL = "https://www.gov.uk/guidance/immigration-rules/immigration-rules-appendix-english-language";
 const OGL =

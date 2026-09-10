@@ -92,7 +92,7 @@ export function renderPage(spec, records, now = new Date()) {
   const missing = [];
   const out = [];
 
-  out.push(`<article class="profession" data-profession="${esc(spec.profession)}">`);
+  out.push(`<article class="variant" data-variant="${esc(spec.variant)}">`);
   out.push(`<h1>${esc(spec.title)}</h1>`);
   out.push(`<p class="intro">${esc(spec.intro)}</p>`);
 

@@ -21,7 +21,7 @@
  * both is honest — which is the argument for claim-binding restated as a
  * consequence.
  */
-import { fact } from "../src/facts/record.mjs";
+import { fact } from "../../../src/facts/record.mjs";
 
 const URL = "https://pnmc.gov.pk/verification-registration-2/";
 const MR = "fetched and read 2026-09-10 (A1_FACT_SUPPLY_FEASIBILITY.md §1), plain HTML; re-fetched 2026-09-10, HTTP 200.";

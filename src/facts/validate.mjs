@@ -246,14 +246,22 @@ export function validateRecord(record) {
   }
 
   // ── F17 · THE LICENCE AND THE DOCUMENT CLASS ARE BOTH NAMED ──────────────
-  // Owner's licence census, 11 September 2026. A domain is not a licence and a
+  // Owner's licence census, 10 September 2026. A domain is not a licence and a
   // licence is not a document class: the NMC grants for guidance what it
   // refuses for news, on the same site.
+  //
+  // ⚠️ The date above read "11 September" until 2026-09-10 — a day that had not
+  // happened, copied from a document header rather than read from the clock.
+  // The same mistake once stamped 32 records with tomorrow's date and Gate A
+  // caught it. A DATE IS A MEASUREMENT.
   if (!Object.prototype.hasOwnProperty.call(LICENCES, String(r.licence))) {
     push("F17", `licence is ${JSON.stringify(r.licence)}, not one of ${Object.keys(LICENCES).join(", ")}`);
   }
   if (!DOCUMENT_CLASSES.includes(r.sourceDocumentClass)) {
-    push("F17", `sourceDocumentClass is ${JSON.stringify(r.sourceDocumentClass)}, not one of ${DOCUMENT_CLASSES.join(", ")} — the NMC split is meaningless without it`);
+    // The message names no source. A licence that grants for one class what it
+    // refuses for another is meaningless without the class — that is true of
+    // every such licence, and the engine cites none of them by name.
+    push("F17", `sourceDocumentClass is ${JSON.stringify(r.sourceDocumentClass)}, not one of ${DOCUMENT_CLASSES.join(", ")} — a licence that splits by document class is meaningless without it`);
   }
 
   // ── F18 · 🔴 QUOTABILITY IS DERIVED FROM THE LICENCE, NEVER TYPED ─────────

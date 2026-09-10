@@ -28,7 +28,7 @@
  * A fee is a number the Council published; it is not their prose, and stating
  * ₦66,875 is not a reproduction of their wording.
  */
-import { fact } from "../src/facts/record.mjs";
+import { fact } from "../../../src/facts/record.mjs";
 
 const URL = "https://nmcn.gov.ng/verify.html";
 const MR = "fetched and read 2026-09-10 (ORIGIN_CLAIM_SHAPE.md §1.2); re-fetched 2026-09-10, HTTP 200. It is not a 403.";

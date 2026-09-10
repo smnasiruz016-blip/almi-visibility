@@ -10,8 +10,8 @@
  * assertable — including counting the things that are MISSING.
  */
 import { readdirSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 import { queueFor, queueReason, manualQueueCost, automatedQueueIsUnattended, freshnessRuleFor } from "./queues.mjs";
 import { quoteUsability } from "./freshness.mjs";
@@ -19,18 +19,26 @@ import { quotabilityState } from "./licences.mjs";
 import { validateRegistry } from "./validate.mjs";
 import { FACT_FRESHNESS_DAYS } from "./schema.mjs";
 import { countFacts } from "../gate-a/facts.mjs";
-import { DECLARED_GAPS } from "./gaps.mjs";
-
-const HERE = dirname(fileURLToPath(import.meta.url));
-export const FACTS_DIR = join(HERE, "..", "..", "facts");
+import { declaredGaps, gapRegisterProducts } from "./gaps.mjs";
 
 /**
  * Load every fact file. Files beginning with `_` are not facts.
  *
  * ⚠️ ORDER IS SORTED, NOT DIRECTORY ORDER, so two runs on two machines produce
  * the same report and a diff of two reports means something.
+ *
+ * 🔴 `dir` IS REQUIRED, AND THAT IS THE POINT.
+ *
+ * It used to default to a path this file computed for itself, which meant the
+ * loader knew where exactly one product kept its facts. A default is a
+ * dependency that never has to be declared by anyone, so it survives every
+ * refactor by being invisible. The caller names the directory now, and the
+ * caller is a product.
  */
-export async function loadRegistry(dir = FACTS_DIR) {
+export async function loadRegistry(dir) {
+  if (typeof dir !== "string" || dir.length === 0) {
+    throw new Error("loadRegistry(dir): a product must say where its facts live — there is no default");
+  }
   const files = readdirSync(dir)
     .filter((f) => f.endsWith(".mjs") && !f.startsWith("_"))
     .sort();
@@ -171,7 +179,11 @@ export function census(records = [], { now = new Date(), minutesPerFact = null }
     // the gate's own code rather than a second copy of its rules. A control that
     // does not share the rule's code proves nothing about the rule.
     gateA: countFacts(records.map(toGateAFact), now),
-    gaps: DECLARED_GAPS,
+    gaps: declaredGaps(),
+    // 🔴 So that "no gaps" cannot look like good news. An empty list means
+    // either nothing is missing or no product registered, and those are
+    // opposites.
+    gapRegisterProducts: gapRegisterProducts(),
   };
 }
 

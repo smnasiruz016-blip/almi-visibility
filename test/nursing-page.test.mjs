@@ -12,13 +12,13 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 
-import { loadRegistry } from "../src/facts/registry.mjs";
-import { NURSING_PAGE, PROFESSIONS, claimIdsOf } from "../src/page/spec.mjs";
+import { loadRegistry } from "../src/facts/registry.mjs";
+import { FACTS_DIR, PLACEMENT, VARIANTS } from "../products/almi-oet/product.mjs";
+import { NURSING_PAGE } from "../products/almi-oet/page-specs.mjs";
+import { claimIdsOf } from "../src/page/claim-ids.mjs";
 import { renderPage, renderFact, findCopiedFacts } from "../src/page/render.mjs";
-import {
-  placeClaims, UNIVERSAL_CLAIMS, ALL_REPEATED_CLAIMS, AWAITING_A_LAYER,
-  PENDING_ORIGIN_LAYER, PENDING_DESTINATION_LAYER, REMOVED_FROM_PROFESSION_PAGE,
-} from "../src/page/claim-placement.mjs";
+import { placeClaims } from "../src/page/claim-placement.mjs";
+import { PENDING_LAYERS } from "../products/almi-oet/claim-placement.mjs";
 import { fact } from "../src/facts/record.mjs";
 
 const NOW = new Date("2026-09-10T00:00:00Z");
@@ -48,12 +48,12 @@ const base = (extra = {}) =>
 
 describe("🔴 §5A — by reference, never by copy", () => {
   test("the spec holds claim IDs and NOT ONE fact", async () => {
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     assert.deepEqual(findCopiedFacts(NURSING_PAGE, records), []);
   });
 
   test("🔴 RED: planting a record's own sentence into the spec IS detected", async () => {
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     const victim = records.find((r) => r.evidence.ownWords && r.evidence.ownWords.length > 80);
     const sabotaged = { ...NURSING_PAGE, intro: `${NURSING_PAGE.intro} ${victim.evidence.ownWords}` };
     const found = findCopiedFacts(sabotaged, records);
@@ -62,7 +62,7 @@ describe("🔴 §5A — by reference, never by copy", () => {
   });
 
   test("every rendered fact carries its claim id into the HTML", async () => {
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     const { html, trace } = renderPage(NURSING_PAGE, records, NOW);
     for (const t of trace) {
       assert.ok(html.includes(`data-claim-id="${t.claimId}"`), t.claimId);
@@ -74,7 +74,7 @@ describe("🔴 §5A — by reference, never by copy", () => {
   });
 
   test("🔴 RED: a claim the registry does not have THROWS — it is never skipped", async () => {
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     const spec = { ...NURSING_PAGE, sections: [{ heading: "x", framing: "y", claims: ["nope.not-a-claim"] }] };
     assert.throws(() => renderPage(spec, records, NOW), /does not have/);
   });
@@ -130,20 +130,20 @@ describe("🔴 the renderer refuses what may not reach a reader", () => {
 
 describe("the page as it actually builds", () => {
   test("every referenced claim resolves, and the count is the count", async () => {
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     const { trace } = renderPage(NURSING_PAGE, records, NOW);
     assert.equal(trace.length, claimIdsOf(NURSING_PAGE).length);
     assert.ok(trace.length >= 15, `only ${trace.length} facts on the page`);
   });
 
   test("it draws on more than one regulator — a page from one source is that source's page", async () => {
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     const { trace } = renderPage(NURSING_PAGE, records, NOW);
     assert.ok(new Set(trace.map((t) => t.subject)).size >= 5);
   });
 
   test("🔴 both quotable and unquotable sources reach the page, and the split is visible", async () => {
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     const { trace } = renderPage(NURSING_PAGE, records, NOW);
     const quoted = trace.filter((t) => t.renderedQuote).length;
     const ourWords = trace.length - quoted;
@@ -152,18 +152,18 @@ describe("the page as it actually builds", () => {
   });
 
   test("the twelve professions are the published population, and nursing is one of them", () => {
-    assert.equal(PROFESSIONS.length, 12);
-    assert.ok(PROFESSIONS.includes("nursing"));
+    assert.equal(VARIANTS.length, 12);
+    assert.ok(VARIANTS.includes("nursing"));
   });
 });
 
 describe("🔴 a claim's SCOPE decides where it lives", () => {
   test("the three kinds are named, disjoint, and cover everything repeated", () => {
-    const all = new Set(ALL_REPEATED_CLAIMS);
-    assert.equal(all.size, UNIVERSAL_CLAIMS.length + PENDING_ORIGIN_LAYER.length + PENDING_DESTINATION_LAYER.length);
-    for (const id of [...UNIVERSAL_CLAIMS, ...PENDING_ORIGIN_LAYER, ...PENDING_DESTINATION_LAYER]) assert.ok(all.has(id), id);
+    const all = new Set(PLACEMENT.allRepeated);
+    assert.equal(all.size, PLACEMENT.universal.length + PLACEMENT.removed.length);
+    for (const id of PLACEMENT.allRepeated) assert.ok(all.has(id), id);
     // disjoint: a claim cannot be universal AND owed a layer
-    for (const id of UNIVERSAL_CLAIMS) assert.ok(!REMOVED_FROM_PROFESSION_PAGE.includes(id), id);
+    for (const id of PLACEMENT.universal) assert.ok(!PLACEMENT.removed.includes(id), id);
   });
 
   test("🔴 THERE IS NO SHARED PAGE — the module exports none", async () => {
@@ -176,47 +176,47 @@ describe("🔴 a claim's SCOPE decides where it lives", () => {
   });
 
   test("universals STAY on the profession page", () => {
-    const placed = placeClaims();
+    const placed = placeClaims(NURSING_PAGE, PLACEMENT.removed);
     const left = placed.sections.flatMap((s) => s.claims);
-    for (const id of UNIVERSAL_CLAIMS) assert.ok(left.includes(id), `${id} must stay`);
+    for (const id of PLACEMENT.universal) assert.ok(left.includes(id), `${id} must stay`);
   });
 
   test("🔴 out-of-scope claims render on NO page, and there is NO trailer", async () => {
-    const { records } = await loadRegistry();
-    const placed = placeClaims();
+    const { records } = await loadRegistry(FACTS_DIR);
+    const placed = placeClaims(NURSING_PAGE, PLACEMENT.removed);
     // A trailer hinting at a destination is how "awaiting its layer" quietly
     // becomes "behind a link" in somebody's summary six weeks from now.
     assert.equal(placed.trailer, null);
     const rendered = renderPage(placed, records, NOW).trace.map((t) => t.claimId);
-    for (const id of REMOVED_FROM_PROFESSION_PAGE) assert.ok(!rendered.includes(id), `${id} still renders`);
+    for (const id of PLACEMENT.removed) assert.ok(!rendered.includes(id), `${id} still renders`);
   });
 
   test("every removed claim names the layer it is waiting for, and that layer does NOT exist", () => {
-    assert.equal(AWAITING_A_LAYER.length, REMOVED_FROM_PROFESSION_PAGE.length);
-    for (const a of AWAITING_A_LAYER) {
-      assert.ok(REMOVED_FROM_PROFESSION_PAGE.includes(a.claim), a.claim);
+    assert.equal(PLACEMENT.awaiting.length, PLACEMENT.removed.length);
+    for (const a of PLACEMENT.awaiting) {
+      assert.ok(PLACEMENT.removed.includes(a.claim), a.claim);
       assert.equal(a.exists, false, "no layer exists yet, and the record must say so");
       assert.ok(a.layer.length > 10 && a.becomes.length > 20, a.claim);
     }
   });
 
   test("the placed page still holds enough facts for Gate A", async () => {
-    const { records } = await loadRegistry();
-    const { trace } = renderPage(placeClaims(), records, NOW);
+    const { records } = await loadRegistry(FACTS_DIR);
+    const { trace } = renderPage(placeClaims(NURSING_PAGE, PLACEMENT.removed), records, NOW);
     assert.ok(trace.length >= 5, `only ${trace.length} facts left`);
     assert.equal(trace.length, 14);
   });
 
   test("🔴 the shared half is a property of the PAGE, not of the ruling", async () => {
-    // This bit once: pointing the overlap set at UNIVERSAL_CLAIMS alone moved
+    // This bit once: pointing the overlap set at PLACEMENT.universal alone moved
     // the AS-BUILT baseline from 0.3921 to 0.1927, because the origin and
     // destination claims ARE on that page and ARE identical across the twelve.
     // A measurement that changes because a RULING changed is measuring the ruling.
-    const { records } = await loadRegistry();
+    const { records } = await loadRegistry(FACTS_DIR);
     const asBuilt = renderPage(NURSING_PAGE, records, NOW).trace.map((t) => t.claimId);
-    const repeatedOnAsBuilt = asBuilt.filter((id) => ALL_REPEATED_CLAIMS.includes(id));
+    const repeatedOnAsBuilt = asBuilt.filter((id) => PLACEMENT.allRepeated.includes(id));
     assert.equal(repeatedOnAsBuilt.length, 7, "all seven are repeated on the as-built page");
-    const placed = renderPage(placeClaims(), records, NOW).trace.map((t) => t.claimId);
-    assert.equal(placed.filter((id) => ALL_REPEATED_CLAIMS.includes(id)).length, 2, "only the universals remain");
+    const placed = renderPage(placeClaims(NURSING_PAGE, PLACEMENT.removed), records, NOW).trace.map((t) => t.claimId);
+    assert.equal(placed.filter((id) => PLACEMENT.allRepeated.includes(id)).length, 2, "only the universals remain");
   });
 });

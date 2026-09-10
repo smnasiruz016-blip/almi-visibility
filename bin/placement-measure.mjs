@@ -26,13 +26,11 @@
 import { readFileSync, existsSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
+import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
+import { FACTS_DIR, PLACEMENT, VARIANTS } from "../products/almi-oet/product.mjs";
 import { loadRegistry, toGateAFact } from "../src/facts/registry.mjs";
-import { NURSING_PAGE, PROFESSIONS } from "../src/page/spec.mjs";
-import {
-  ALL_REPEATED_CLAIMS, placeClaims, UNIVERSAL_CLAIMS,
-  PENDING_ORIGIN_LAYER, PENDING_DESTINATION_LAYER, REMOVED_FROM_PROFESSION_PAGE, AWAITING_A_LAYER,
-} from "../src/page/claim-placement.mjs";
+import { NURSING_PAGE } from "../products/almi-oet/page-specs.mjs";
+import { placeClaims, PENDING_ORIGIN_LAYER, PENDING_DESTINATION_LAYER } from "../src/page/claim-placement.mjs";
 import { renderPage } from "../src/page/render.mjs";
 import { runGateA, MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../src/gate-a/run.mjs";
 import { tokensWithKind } from "../src/gate-a/text-kind.mjs";
@@ -49,7 +47,7 @@ const line = (ch = "─") => console.log(ch.repeat(78));
 const f4 = (n) => (n === null || n === undefined ? "—" : n.toFixed(4));
 const CACHE = "runs/_profession-cache";
 
-const { records } = await loadRegistry();
+const { records } = await loadRegistry(FACTS_DIR);
 
 if (!existsSync(CACHE) || readdirSync(CACHE).length < 11) {
   console.error(`\n🔴 ${CACHE} is missing or short. Run \`npm run chain\` first — this script does not fetch.`);
@@ -103,7 +101,7 @@ function measure(spec, label) {
   };
   const rolloutGroup = [
     { id: "candidate", html, facts, whyThisUrl: "x" },
-    ...PROFESSIONS.filter((p) => p !== "nursing").map((p, i) => ({ id: `${p}-sim`, html: sim(p, i + 1), facts, whyThisUrl: "x" })),
+    ...VARIANTS.filter((p) => p !== "nursing").map((p, i) => ({ id: `${p}-sim`, html: sim(p, i + 1), facts, whyThisUrl: "x" })),
   ];
   const rollout = runGateA(rolloutGroup);
   const meAfter = rollout.results.find((r) => r.id === "candidate");
@@ -113,7 +111,7 @@ function measure(spec, label) {
   //    per-profession, because the regulator's name changes.
   // Intersected with the page by construction: a claim not on the page cannot
   // contribute to its shared half.
-  const shared = new Set(ALL_REPEATED_CLAIMS);
+  const shared = new Set(PLACEMENT.allRepeated);
   const blocks = html.split('<div class="fact" data-claim-id="').slice(1);
   let sharedA = html.split('<div class="fact"')[0];
   let uniqueA = "";
@@ -191,12 +189,12 @@ function measure(spec, label) {
 }
 
 const before = measure(NURSING_PAGE, "AS BUILT (shared block on every page)");
-const split = placeClaims();
+const split = placeClaims(NURSING_PAGE, PLACEMENT.removed);
 const after = measure(split, "PLACED BY SCOPE");
 // 🔴 Nothing out of scope may render anywhere. Checked, not asserted: a claim
 // "awaiting its layer" that is quietly still on a page would be the worst of both.
-const renderedPending = renderPage(split, records).trace.filter((t) => REMOVED_FROM_PROFESSION_PAGE.includes(t.claimId));
-const premiseRemovedToo = measure(placeClaims(NURSING_PAGE, ALL_REPEATED_CLAIMS), "UNIVERSALS REMOVED TOO (not taken)");
+const renderedPending = renderPage(split, records).trace.filter((t) => PLACEMENT.removed.includes(t.claimId));
+const premiseRemovedToo = measure(placeClaims(NURSING_PAGE, PLACEMENT.allRepeated), "UNIVERSALS REMOVED TOO (not taken)");
 
 console.log(`\nCLAIMS PLACED BY SCOPE — ARITHMETIC ONLY, NO NEW FETCH`);
 line("═");
@@ -252,12 +250,12 @@ console.log(`    keeping it costs ${f4(premiseRemovedToo.bestCaseA)} → ${f4(af
 console.log(`    ONE claim has been shown to earn its repetition. It is the only one.`);
 console.log("");
 console.log(`  🔴 AWAITING A LAYER THAT DOES NOT EXIST YET`);
-for (const a of AWAITING_A_LAYER) console.log(`     ${a.claim}` + " -> " + a.layer);
+for (const a of PLACEMENT.awaiting) console.log(`     ${a.claim}` + " -> " + a.layer);
 console.log(`     A profession page knows neither the reader's ORIGIN nor their DESTINATION,`);
 console.log(`     so these were shown to every reader alike. They are NOT behind a link —`);
 console.log(`     THERE IS NO LINK, because there is nowhere to send anyone. Held in the`);
 console.log(`     registry, rendered nowhere, counted as owed.`);
-console.log(`     rendered on a page today: ${renderedPending.length}   owed: ${AWAITING_A_LAYER.length}`);
+console.log(`     rendered on a page today: ${renderedPending.length}   owed: ${PLACEMENT.awaiting.length}`);
 console.log("");
 console.log(`     ⚠️  AND THIS DOES NOT BRING BACK 191 CORRIDOR PAGES. The red list is ONE`);
 console.log(`        CLAIM WITH 191 VALUES — a TABLE, not 191 pages. The per-origin measurement`);
@@ -274,7 +272,7 @@ console.log("");
 console.log(`  A CLAIM'S SCOPE DECIDES WHERE IT LIVES:`);
 console.log(`    origin-scoped       -> a layer that knows the ORIGIN        (${PENDING_ORIGIN_LAYER.length} owed)`);
 console.log(`    destination-scoped  -> a layer that knows the DESTINATION   (${PENDING_DESTINATION_LAYER.length} owed)`);
-console.log(`    universal           -> KEEP IT ON THE PAGE                  (${UNIVERSAL_CLAIMS.length} kept)`);
+console.log(`    universal           -> KEEP IT ON THE PAGE                  (${PLACEMENT.universal.length} kept)`);
 console.log(`    and nobody needs a page called "shared".`);
 console.log("");
 console.log(`  Removing the universals too would give overlap ${f4(premiseRemovedToo.bestCaseA)} / ${f4(premiseRemovedToo.bestCaseB)}.`);
@@ -292,8 +290,8 @@ if (outDir) {
           asBuilt: before,
           placedByScope: after,
           universalsRemovedToo: premiseRemovedToo,
-          universalClaims: UNIVERSAL_CLAIMS,
-          awaitingALayer: AWAITING_A_LAYER,
+          universalClaims: PLACEMENT.universal,
+          awaitingALayer: PLACEMENT.awaiting,
           removed: split.removedClaims,
           sharedPage: null,
         },

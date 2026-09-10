@@ -1,5 +1,16 @@
 # THE HARDEST PROFESSION — CENSUS, THEN THE CHAIN
 
+> ## ⚠️ §1’S RANKING IS SUPERSEDED — IT MEASURED THE WRONG THING.
+>
+> This document ranked professions by **how many regulators recognise OET**. `DISTINGUISHING_
+> SUPPLY.md` shows that is the wrong instrument: **AHPRA is reachable, rich, and adding it makes
+> a page WORSE**, because its rule is identical for all twelve professions.
+>
+> **A claim only helps a profession page if its value DIFFERS from another profession.**
+>
+> Kept unedited because the CHAIN RESULT in §3 stands and is what produced the correction — and
+> because deleting a superseded instrument hides that it was ever trusted.
+
 **10 September 2026.** `npm run census` · `node bin/profession-chain.mjs --page=<slug>`
 Nothing published, nothing deleted, no table, no production write.
 

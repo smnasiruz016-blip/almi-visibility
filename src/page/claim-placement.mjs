@@ -120,6 +120,26 @@ export function buildPlacement({ universal = [], pendingLayers = [] } = {}) {
  * not of anyone's memory. A hardcoded list is a check that silently stops being
  * complete the moment the registry grows — which is exactly what happened.
  */
+/**
+ * 🔴 AND ADDRESSABLE IS NOT DISTINGUISHING — MEASURED 2026-09-10.
+ *
+ * A qualifier on the axis makes a claim ADDRESSABLE. Whether it DISTINGUISHES
+ * depends on its VALUE differing from another variant, which this predicate
+ * cannot see and must not pretend to.
+ *
+ *   HCPC publishes an OET minimum for six professions. FIVE ARE THE SAME
+ *   NUMBER (1400/300). Only speech and language therapy differs (1800/400).
+ *
+ * A product’s own census does the comparison, and reports a THIRD answer —
+ * UNCOMPARABLE — where only one variant holds a predicate. For AlmiOET today
+ * that is 14 of 14, because its registry covers 2 of 12 professions.
+ *
+ * ✅ AND THE SUPPLY THAT DOES DISTINGUISH HAS BEEN FOUND, in almi-oet’s
+ * clinical item bank: 12/12 professions, 30 items each, cross-variant overlap
+ * 0.0125 against a market benchmark of 0.0828–0.1305. `recipient` measures
+ * 0.0011 and `setting` 0.0000; `letterType` measures 0.9242 and distinguishes
+ * nothing. See DISTINGUISHING_SUPPLY.md.
+ */
 export function isPerVariant(record, axisKey) {
   if (typeof axisKey !== "string" || axisKey.length === 0) {
     throw new Error("isPerVariant(record, axisKey): the engine does not know what the page varies BY \u2014 a product must say");

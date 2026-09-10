@@ -136,6 +136,26 @@ export const ALL_REPEATED_CLAIMS = Object.freeze([
  * not of anyone's memory. A hardcoded list is a check that silently stops being
  * complete the moment the registry grows — which is exactly what happened.
  */
+/**
+ * 🔴 AND ADDRESSABLE IS NOT DISTINGUISHING — MEASURED 2026-09-10.
+ *
+ * A `profession=` qualifier makes a claim ADDRESSABLE. Whether it DISTINGUISHES
+ * depends on its VALUE differing from another profession, which this predicate
+ * cannot see and must not pretend to.
+ *
+ *   HCPC publishes an OET minimum for six professions. FIVE ARE THE SAME NUMBER
+ *   (1400/300). Only speech and language therapy differs (1800/400).
+ *
+ * `bin/distinguishing-census.mjs` does the comparison, and reports a THIRD
+ * answer — UNCOMPARABLE — where only one profession holds a predicate. Today
+ * that is 14 of 14, because the registry covers 2 of 12 professions.
+ *
+ * ✅ AND THE SUPPLY THAT DOES DISTINGUISH HAS BEEN FOUND, in almi-oet’s clinical
+ * item bank: 12/12 professions, 30 items each, cross-profession overlap 0.0125
+ * against a market benchmark of 0.0828–0.1305. `recipient` measures 0.0011 and
+ * `setting` 0.0000; `letterType` measures 0.9242 and distinguishes nothing.
+ * See DISTINGUISHING_SUPPLY.md.
+ */
 export function isPerProfession(record) {
   return typeof record?.claim?.qualifier === "string" && record.claim.qualifier.includes("profession=");
 }

@@ -13,6 +13,8 @@
     "chain": "node bin/nursing-chain.mjs",
     "placement": "node bin/placement-measure.mjs",
     "census": "node bin/profession-census.mjs",
-    "profession-chain": "node bin/profession-chain.mjs"
+    "profession-chain": "node bin/profession-chain.mjs",
+    "census:distinguishing": "node bin/distinguishing-census.mjs",
+    "census:clinical": "node bin/clinical-layer-census.mjs"
   }
 }

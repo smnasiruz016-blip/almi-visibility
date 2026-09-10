@@ -10,6 +10,7 @@
     "facts:validate": "node bin/facts.mjs validate",
     "quote-match": "node bin/quote-match.mjs",
     "page": "node bin/build-page.mjs",
-    "chain": "node bin/nursing-chain.mjs"
+    "chain": "node bin/nursing-chain.mjs",
+    "split": "node bin/split-measure.mjs"
   }
 }

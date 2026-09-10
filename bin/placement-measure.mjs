@@ -32,7 +32,7 @@ import { loadRegistry, toGateAFact } from "../src/facts/registry.mjs";
 import { NURSING_PAGE, PROFESSIONS } from "../products/almi-oet/page-specs.mjs";
 import {
   ALL_REPEATED_CLAIMS, placeClaims, UNIVERSAL_CLAIMS,
-  PENDING_ORIGIN_LAYER, PENDING_DESTINATION_LAYER, REMOVED_FROM_PROFESSION_PAGE, AWAITING_A_LAYER,
+  PENDING_ORIGIN_LAYER, PENDING_DESTINATION_LAYER, REMOVED_FROM_VARIANT_PAGE, AWAITING_A_LAYER,
 } from "../src/page/claim-placement.mjs";
 import { renderPage } from "../src/page/render.mjs";
 import { runGateA, MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../src/gate-a/run.mjs";
@@ -196,7 +196,7 @@ const split = placeClaims(NURSING_PAGE);
 const after = measure(split, "PLACED BY SCOPE");
 // 🔴 Nothing out of scope may render anywhere. Checked, not asserted: a claim
 // "awaiting its layer" that is quietly still on a page would be the worst of both.
-const renderedPending = renderPage(split, records).trace.filter((t) => REMOVED_FROM_PROFESSION_PAGE.includes(t.claimId));
+const renderedPending = renderPage(split, records).trace.filter((t) => REMOVED_FROM_VARIANT_PAGE.includes(t.claimId));
 const premiseRemovedToo = measure(placeClaims(NURSING_PAGE, ALL_REPEATED_CLAIMS), "UNIVERSALS REMOVED TOO (not taken)");
 
 console.log(`\nCLAIMS PLACED BY SCOPE — ARITHMETIC ONLY, NO NEW FETCH`);

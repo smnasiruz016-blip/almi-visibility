@@ -88,7 +88,7 @@ export const PENDING_ORIGIN_LAYER = Object.freeze([
 export const PENDING_DESTINATION_LAYER = Object.freeze(["nz-immigration-nz.oet-must-be-taken-in-person"]);
 
 /** Everything that leaves the profession page. Nothing else does. */
-export const REMOVED_FROM_PROFESSION_PAGE = Object.freeze([...PENDING_ORIGIN_LAYER, ...PENDING_DESTINATION_LAYER]);
+export const REMOVED_FROM_VARIANT_PAGE = Object.freeze([...PENDING_ORIGIN_LAYER, ...PENDING_DESTINATION_LAYER]);
 
 /**
  * 🔴 EVERY CLAIM THAT WOULD RENDER IDENTICAL TEXT ON ALL TWELVE PAGES — used to
@@ -128,31 +128,38 @@ export const ALL_REPEATED_CLAIMS = Object.freeze([
  * `ie-nmbi.recognised-english-speaking-countries` has no profession qualifier and
  * is the same list for a dentist as for a nurse, yet it was counted as unique.
  *
- *   A CLAIM DISTINGUISHES A PROFESSION PAGE ONLY IF IT IS ABOUT THE PROFESSION.
+ *   A CLAIM DISTINGUISHES A PAGE ONLY IF ITS VALUE VARIES WITH THAT PAGE’S AXIS.
  *
  * So it is DERIVED from the claim itself rather than remembered: a claim carries
- * a `profession=` qualifier or it does not, and that is a property of the record,
+ * a qualifier on the axis or it does not, and that is a property of the record,
  * not of anyone's memory. A hardcoded list is a check that silently stops being
  * complete the moment the registry grows — which is exactly what happened.
  */
-export function isPerProfession(record) {
-  return typeof record?.claim?.qualifier === "string" && record.claim.qualifier.includes("profession=");
+export function isPerVariant(record, axisKey) {
+  if (typeof axisKey !== "string" || axisKey.length === 0) {
+    throw new Error("isPerVariant(record, axisKey): the engine does not know what the page varies BY \u2014 a product must say");
+  }
+  return typeof record?.claim?.qualifier === "string" && record.claim.qualifier.includes(axisKey + "=");
 }
 
 /**
- * Would this claim render IDENTICAL text on all twelve profession pages?
- * True for anything without a profession qualifier, plus the named sets above.
+ * Would this claim render IDENTICAL text on every sibling page?
+ *
+ * True for anything without a qualifier on the axis, plus the named sets
+ * above. This is the half of the overlap measure that decides what counts as
+ * SHARED text, so getting it wrong flatters the page — which it did, until
+ * the list above was replaced by the derivation below it.
  */
-export function rendersIdenticallyOnEveryProfessionPage(record) {
+export function isSharedAcrossVariants(record, axisKey) {
   if (ALL_REPEATED_CLAIMS.includes(record?.id)) return true;
-  return !isPerProfession(record);
+  return !isPerVariant(record, axisKey);
 }
 
 /** @deprecated use ALL_REPEATED_CLAIMS for overlap, UNIVERSAL_CLAIMS for placement. */
 export const SHARED_CLAIM_IDS = ALL_REPEATED_CLAIMS;
 
 /**
- * The profession page with out-of-scope claims removed. A section that loses all
+ * The variant page with out-of-scope claims removed. A section that loses all
  * of its claims is DROPPED — a heading over nothing is padding.
  *
  * 🔴 THERE IS NO `trailer`. Nothing links anywhere, because there is nowhere to
@@ -160,7 +167,7 @@ export const SHARED_CLAIM_IDS = ALL_REPEATED_CLAIMS;
  * trailer that hints at one is how "awaiting its layer" quietly becomes "behind
  * a link" in somebody's summary six weeks from now.
  */
-export function placeClaims(page, removeIds = REMOVED_FROM_PROFESSION_PAGE) {
+export function placeClaims(page, removeIds = REMOVED_FROM_VARIANT_PAGE) {
   if (!Array.isArray(page?.sections)) {
     throw new Error("placeClaims(page): the engine has no page of its own \u2014 a product must hand one over");
   }

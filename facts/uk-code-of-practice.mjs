@@ -50,7 +50,13 @@ const common = {
   thirdPartyRightsCheck: {
     checkedOn: "2026-09-10",
     clear: true,
-    detail: "no non-Crown copyright notice on the page; the OGL statement is present",
+    // 🔴 THE FIELD THAT DECIDES, narrowed by the owner's ruling: a notice only
+    // bites when it sits INSIDE the content region the span was taken from.
+    // Measured 2026-09-10 for every span in this file: region <main>, no
+    // third-party notice in it.
+    spanRegionConflict: false,
+    spanRegion: "main",
+    detail: "no third-party notice inside the <main> each span came from; the OGL statement is present",
     noticesFound: ["© Crown copyright 2025 This publication is licensed under the terms of the Open G", "© Crown copyright"],
   },
   queue: "AUTOMATED",

@@ -34,6 +34,7 @@
  */
 
 import { matchFingerprint } from "./fingerprint.mjs";
+import { thirdPartyConflictForSpan } from "./third-party.mjs";
 import { requiresPerPageThirdPartyCheck } from "./licences.mjs";
 
 const ENTITIES = Object.freeze({
@@ -212,13 +213,21 @@ export const MIN_SUBSTANTIVE_BODY = 500;
  * Deliberately returns the notices it found rather than a bare boolean, so a
  * reviewer can see WHAT it read and judge whether the scan understood it.
  */
-export function scanForThirdPartyRights(body) {
+export function scanForThirdPartyRights(body, span = null, isOwnPublisher = (n) => /crown copyright/i.test(n)) {
+  // 🔴 THE DECISION IS REGION-SCOPED. See src/facts/third-party.mjs for the
+  // ruling. The whole-page tally below is kept because it is a true observation;
+  // `spanRegionConflict` is what anything may act on.
+  const regional = span ? thirdPartyConflictForSpan(body, span, normaliseText, isOwnPublisher) : null;
   const text = normaliseText(body);
   const notices = [...text.matchAll(/©[^.©]{0,80}/g)].map((m) => m[0].trim());
   const nonCrown = notices.filter((n) => !/crown copyright/i.test(n));
   return {
     notices,
     nonCrown,
+    spanRegionConflict: regional ? regional.conflict : undefined,
+    spanRegion: regional ? regional.region : null,
+    regionNotices: regional ? regional.regionNotices : [],
+    regionalDetail: regional ? regional.reason : "no span supplied — whole-page observation only, which decides nothing",
     // A cookie-banner "© 2026 Cookie Information" is a third-party notice and it
     // is NOT a copyright claim over the page's text. The scan cannot tell those
     // apart, so it reports rather than decides, and `clear` is only asserted when

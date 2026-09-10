@@ -7,3 +7,10 @@ node_modules/
 # the per-page CSV, and the written result.
 corpus/
 oet-corpus/
+
+# The eleven sibling profession pages, fetched live for Gate A's denominator.
+# NOT committed: it is 796K of ANOTHER PRODUCT's rendered HTML, it is
+# regenerable in one command, and a repo is not a cache. Committing it would
+# also FREEZE a population that is supposed to be measured as SERVED.
+# runs/nursing-chain/chain-report.json records what was fetched and when.
+runs/_profession-cache/

@@ -27,9 +27,11 @@
  * licence somebody actually read. Written as data, it can be re-argued against
  * the clause.
  *
- * ⚠️ I AM NOT A LAWYER AND NEITHER IS THIS FILE. It encodes what the licensor's
- * own page says, so that a qualified reader can check the encoding against the
- * clause. It does not decide anything a licence does not already decide.
+ * ⚠️ THIS FILE ENCODES WHAT THE LICENSOR'S OWN PAGE SAYS, so a later reader can
+ * check the encoding against the clause. It does not decide anything a licence
+ * has not already decided — which is exactly why it needs no outside opinion to
+ * exist. Where a licence is silent, the answer is RESERVED, and that is the legal
+ * default rather than a reading of one.
  */
 
 /**

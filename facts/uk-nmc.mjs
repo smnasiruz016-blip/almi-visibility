@@ -173,4 +173,118 @@ export default [
     // destination-scoped and identical on all 191 corridor pages. It is not an
     // origin fact and must never be counted as one.
   }),
+
+  /**
+   * ── THE THREE ADDED FOR `/nursing`, 2026-09-10 ──────────────────────────
+   *
+   * `PROFESSION_PAGE_CLAIM_INVENTORY.md` §3 Block B puts the NMC at FIVE claims
+   * and names them: OET grades · combining sittings · three evidence routes ·
+   * transcript evidence · and an "approved-programme rule".
+   *
+   * ⚠️ A DEVIATION FROM THE INVENTORY, RECORDED RATHER THAN QUIETLY TAKEN.
+   * No "approved-programme rule" was found on the English-language pages. What
+   * IS there, and is far more nursing-specific than that phrase suggests, is the
+   * rule that an applicant must sit the NURSING version of OET. That is taken as
+   * the fifth claim.
+   *
+   * And TWO further claims are added beyond the inventory's five, which needs a
+   * reason because the brief says no facts "that might be useful later":
+   *
+   *   - the COMBINING FLOOR. A page that says "you can combine two sittings"
+   *     without saying that every score in both sittings must still clear a
+   *     floor is not merely incomplete, IT IS MISLEADING IN THE DIRECTION THAT
+   *     COSTS A NURSE A FEE. It is needed now, not later.
+   *   - the ACCEPTED DELIVERY MODES, because the combining rule cannot be stated
+   *     accurately without saying which modes may be combined.
+   *
+   * Both are conditions ON a claim the inventory already required. Neither is
+   * speculative.
+   */
+  fact({
+    ...common,
+    id: "uk-nmc.oet-profession-version.profession=nursing",
+    claim: { subject: "uk-nmc", predicate: "oet-profession-version", qualifier: "profession=nursing" },
+    value: {
+      value: "Applicants must sit the Nursing version of OET, chosen from OET's list of profession versions.",
+      valueType: "enum",
+      unit: "OET profession version",
+    },
+    source: {
+      url: OET_URL,
+      label: "Nursing and Midwifery Council — OET",
+      publisher: "Nursing and Midwifery Council",
+      tier: 1,
+      documentRef: null,
+    },
+    evidence: {
+      quotedSpan: "All applicants should choose the Nursing examination from the list of OET Professions versions",
+      quoteLocation: "accepted OET versions",
+    },
+    checks: { linkCheckedOn: "2026-09-10", linkCheckOutcome: "pass", quoteMatchedOn: "2026-09-10", quoteMatchOutcome: "pass" },
+    // 🔴 THE SECOND REGULATOR TO NAME A PROFESSION VERSION, AND IT MATTERS.
+    // NMBI does the same (`ie-nmbi.oet-version-required`). Two independent
+    // regulators asking for the NURSING test rather than for OET is what turns
+    // "which version does this regulator want" from a shared claim into a
+    // PER-PROFESSION one — the finding that moved the acquisition count from
+    // ~58 to ~150.
+  }),
+
+  fact({
+    ...common,
+    id: "uk-nmc.oet-combining-sittings-floor.profession=nursing",
+    claim: { subject: "uk-nmc", predicate: "oet-combining-sittings-floor", qualifier: "profession=nursing" },
+    value: {
+      value:
+        "When two sittings are combined, EVERY score across both sittings must still reach a floor: grade C+ (300-340) for listening, reading and speaking, and grade C (250-290) for writing.",
+      valueType: "grade-set",
+      unit: "OET grade",
+    },
+    source: {
+      url: OET_URL,
+      label: "Nursing and Midwifery Council — OET",
+      publisher: "Nursing and Midwifery Council",
+      tier: 1,
+      documentRef: null,
+    },
+    evidence: {
+      quotedSpan: "All of your test scores across both sittings must be equal to or higher than the minimum scores",
+      quoteLocation: "combining OET test scores",
+    },
+    checks: { linkCheckedOn: "2026-09-10", linkCheckOutcome: "pass", quoteMatchedOn: "2026-09-10", quoteMatchOutcome: "pass" },
+    // ⚠️ THE CONDITION THAT MAKES THE PREVIOUS RECORD SAFE TO PUBLISH.
+    // `uk-nmc.oet-combining-sittings` says scores may be combined. On its own
+    // that reads as "a bad sitting does not matter". It does: a single score
+    // below the floor disqualifies the combination even when the best scores
+    // between the two sittings would have cleared the requirement.
+  }),
+
+  fact({
+    ...common,
+    id: "uk-nmc.accepted-oet-delivery-modes.profession=nursing",
+    claim: { subject: "uk-nmc", predicate: "accepted-oet-delivery-modes", qualifier: "profession=nursing" },
+    value: {
+      value:
+        "OET on Paper, OET on Computer and OET@Home are all accepted, and OET@Home may be combined with either of the other two.",
+      valueType: "list",
+      unit: "delivery mode",
+    },
+    source: {
+      url: OET_URL,
+      label: "Nursing and Midwifery Council — OET",
+      publisher: "Nursing and Midwifery Council",
+      tier: 1,
+      documentRef: null,
+    },
+    evidence: {
+      quotedSpan: "We accept the OET on Paper, OET on Computer, and OET@Home test",
+      quoteLocation: "accepted OET versions",
+    },
+    checks: { linkCheckedOn: "2026-09-10", linkCheckOutcome: "pass", quoteMatchedOn: "2026-09-10", quoteMatchOutcome: "pass" },
+    // ⚠️ AND NOTE WHOSE RULE THIS IS. Immigration New Zealand reached the
+    // OPPOSITE conclusion about remote delivery for immigration purposes
+    // (`nz-immigration-nz.oet-must-be-taken-in-person`). Same test, same
+    // delivery mode, two regulators, two answers — which is exactly why a page
+    // must say WHOSE rule it is giving rather than stating "OET@Home is
+    // accepted" as though it were a property of the test.
+  }),
 ];

@@ -103,11 +103,24 @@ export default [
     // It blocks nothing today, because no span is stored. It would have to be
     // resolved before one ever is. Recorded here rather than in a report,
     // because the limitation belongs to the record and travels with it.
+    // 🔴 RULED 2026-09-10, AND THE OBSERVATION IS KEPT RATHER THAN ERASED.
+    //
+    // `clear: false` stands: this page really does carry a non-Crown notice. What
+    // changed is what that is allowed to DECIDE. The notice is in a cookie
+    // consent widget, structurally outside the <main> the facts come from — so
+    // it is a fact about the widget, not about the article, and it never had a
+    // veto over the article body.
+    //
+    // The narrowing is structural: nothing here knows what "Cookie Information"
+    // is, and nothing here should. It reads WHERE the notice sits, in the markup
+    // the publisher wrote, and nothing else.
     thirdPartyRightsCheck: {
       checkedOn: "2026-09-10",
       clear: false,
+      spanRegionConflict: null,
+      spanRegion: null,
       detail:
-        "one non-Crown notice present: a cookie-consent vendor banner. Needs a human ruling before any span is stored from this page",
+        "a non-Crown notice is present in a consent widget outside <main>. No span is stored from this page, so there is nothing to place; were one taken from <main>, the widget would not block it",
       noticesFound: ["© 2026 Cookie Information We use cookies on this website to show you relevant inf"],
     },
     // The page digest taken on 2026-09-10, and the ONLY thing about this page

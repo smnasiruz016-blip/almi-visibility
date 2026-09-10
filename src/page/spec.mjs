@@ -1,0 +1,110 @@
+/**
+ * THE `/nursing` PAGE SPEC — CLAIM IDs, AND NOT ONE FACT.
+ *
+ * ══ §5A, VERBATIM, AND IT IS THE WHOLE CONSTRAINT ═════════════════════════
+ *
+ *   "Facts must be reusable by reference. Page generation must not create
+ *    independent untraceable copies of the same factual claim."
+ *
+ * 🔴 SO THIS FILE CONTAINS NO FACTS. It contains claim ids and section
+ * headings. Every factual sentence on the rendered page is fetched from the
+ * registry at build time, and `test/nursing-page.test.mjs` asserts that no
+ * value or ownWords text from any record appears in this file.
+ *
+ * ── WHY THAT MATTERS MORE THAN IT SOUNDS ────────────────────────────────────
+ *
+ * The alternative — a template with the facts written into it — is what the
+ * network already has 240,328 times, and it is why the estate cannot be
+ * defended. When the NMC changes a grade, a page that COPIED the grade is a page
+ * nobody can find. A page that REFERENCES `uk-nmc.oet-minimum-grade` is fixed by
+ * fixing one record, and the nightly quote match already knows the day it moved.
+ *
+ * ⚠️ THE FRAMING TEXT BELOW IS DELIBERATELY NOT FACTUAL. Headings and
+ * connective sentences carry no claim about the world, so they need no source.
+ * The moment a line here would need a citation, IT BELONGS IN THE REGISTRY
+ * INSTEAD — and that rule is enforced, not merely stated: framing text is
+ * counted separately in the render report so it can never quietly grow into an
+ * unsourced fact bank.
+ */
+
+/** The twelve professions AlmiOET publishes a page for. */
+export const PROFESSIONS = Object.freeze([
+  "dentistry", "dietetics", "medicine", "nursing", "occupational-therapy", "optometry",
+  "pharmacy", "physiotherapy", "podiatry", "radiography", "speech-pathology", "veterinary-science",
+]);
+
+/**
+ * The page, as a list of sections. `claims` are ids into the registry.
+ *
+ * The order follows `PROFESSION_PAGE_CLAIM_INVENTORY.md` §3: what the test IS
+ * (Block A), then the destination regulators (Block B). Nothing was added for
+ * shape; a section exists only where the registry can fill it.
+ */
+export const NURSING_PAGE = Object.freeze({
+  slug: "nursing",
+  profession: "nursing",
+  title: "OET for nurses: what each regulator actually requires",
+  // Framing only. No claim, therefore no citation, therefore nothing that can
+  // go stale without anybody noticing.
+  intro:
+    "This page states what the test involves for nurses, and what each regulator that accepts it asks for. Every statement below is followed by the source it came from and the date that source was last checked. Where a source does not permit its wording to be reproduced, the requirement is stated in our own words and the link is given so it can be read at first hand.",
+  sections: [
+    {
+      heading: "What the OET Nursing test is",
+      framing:
+        "Nurses do not sit a general English exam. Two of the four sub-tests are built around the profession itself, and that is what regulators are referring to when they name a version of the test.",
+      claims: [
+        "oet.subtests-and-which-are-profession-specific",
+        "oet.writing-task-type.profession=nursing",
+        "oet.speaking-roleplay-setting.profession=nursing",
+        "oet.grade-bands-0-500",
+      ],
+    },
+    {
+      heading: "United Kingdom — the Nursing and Midwifery Council",
+      framing:
+        "The NMC sets both the scores and the conditions attached to them. The conditions matter as much as the scores, because most of the ways an application fails are conditions rather than marks.",
+      claims: [
+        "uk-nmc.oet-minimum-grade.profession=nursing",
+        "uk-nmc.oet-profession-version.profession=nursing",
+        "uk-nmc.accepted-oet-delivery-modes.profession=nursing",
+        "uk-nmc.oet-combining-sittings.profession=nursing",
+        "uk-nmc.oet-combining-sittings-floor.profession=nursing",
+        "uk-nmc.english-evidence-routes.profession=nursing",
+        "uk-nmc.qualified-in-english-evidence.profession=nursing",
+      ],
+    },
+    {
+      heading: "Ireland — the Nursing and Midwifery Board of Ireland",
+      framing:
+        "Ireland asks for the same test and answers two of the same questions differently. Comparing the two regulators side by side is the point of stating both.",
+      claims: [
+        "ie-nmbi.oet-minimum-grade.profession=nursing",
+        "ie-nmbi.oet-version-required.profession=nursing",
+        "ie-nmbi.recognised-english-speaking-countries",
+      ],
+    },
+    {
+      heading: "New Zealand — Immigration New Zealand",
+      framing:
+        "An immigration authority can impose a condition on the test that the professional regulator does not, and it applies to how the test was taken rather than to the score.",
+      claims: ["nz-immigration-nz.oet-must-be-taken-in-person"],
+    },
+    {
+      heading: "Before you book: the United Kingdom's recruitment rules",
+      framing:
+        "Two rules decide whether a nurse can be recruited at all, and neither is set by a nursing regulator. Both are easy to miss because they sit with immigration and with health policy rather than with registration.",
+      claims: [
+        "uk-ukvi.majority-english-speaking-countries",
+        "uk-code-of-practice.red-list-rule",
+        "uk-code-of-practice.amber-list-rule",
+        "uk-code-of-practice.direct-application-exception",
+      ],
+    },
+  ],
+});
+
+/** Every claim id the page references, in order, deduplicated. */
+export function claimIdsOf(page = NURSING_PAGE) {
+  return [...new Set(page.sections.flatMap((s) => s.claims))];
+}

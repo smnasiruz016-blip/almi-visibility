@@ -93,8 +93,8 @@ passed test.
 | **CS-2** | the **34 exhibit copies are pinned by commit SHA only**; no content hash, so an edited copy would go unnoticed | item 6 §2.4 | RECORD |
 | **CS-3** | **the acceptance test has never been run** — attempted 11 Sep and **NOT RUNNABLE**: nothing implements the contract. `bin/acceptance-test.mjs` is a different instrument (corridor Gate-A splice, verdict KEEP/REJECT) | `CASE_STUDY_01_RUN_01.md` §2 | RECORD |
 | **CS-4** | **no runner exists that reads the corpus AND the four exhibits and scores 6/6 + 0/3** | same §6 | RECORD |
-| **CS-5** | 🔴 **RED 2 has no frozen input.** It is *"live-confirmed"* only — no exhibit, no corpus page. **A frozen test with one unfrozen input is not frozen**, and the day that page is fixed the defect becomes unreproducible for ever | same §3 | RECORD — **needs an owner ruling** |
-| **DOC-2** | **18 of the 20 documents the build spec names do not exist.** Four are partly covered under other names; eleven have nothing at all | same §7 | RECORD |
+| **CS-5** | 🔴 **RED 2 has no frozen input** — *"live-confirmed"* only, no exhibit, no corpus page. **A frozen test with one unfrozen input is not frozen.** ⏳ **AND IT HAS A CLOCK: the day that page is fixed, the defect is unreproducible FOR EVER and the Case Study is capped at 5/6 — a permanent FAIL with no engine cause.** Two ways out, **both the owner's: (a) freeze a snapshot — one fetch, before the page is fixed; (b) remove RED 2 formally, pass mark becomes 5/5 + 0/3.** No fetch was made and no option chosen | `CASE_STUDY_01_RUN_01.md` §3 · `V51_REMEASURE.md` §D | RECORD — **owner ruling; option (a) expires without warning** |
+| **DOC-2** | 🔄 **RE-MEASURED against V5.1 §26, which wins: 18 deliverables, and ZERO exist.** The two I had counted as present are **inputs, not deliverables** — V5.1 lists them under *"existing artifacts to ingest rather than rebuild"*. **6 are partly covered under other names; 12 have nothing at all** | `V51_REMEASURE.md` §A | RECORD |
 | **GATE-1** | **four of seven gate families have no architectural home**: semantic, cannibalization, technical, cost | item 7 §3 | RECORD |
 | **GATE-2** | 🔴 **Gate C is a gate, not a governor.** It judges cost; nothing caps, meters or refuses spend | item 7 §2 | RECORD |
 | ~~DOD-MAP-1~~ | ~~the DoD is mapped from a status table, not its own text~~ | ✅ **CLOSED 11 Sep** — the text is at `DOD_FROZEN_TEXT_SOURCE.md`, hash-verified, and the map is rebuilt against §1–§5A | CLOSED |
@@ -126,6 +126,28 @@ passed test.
 | **PD-FUNNEL-1** | **26 of 27 products have no funnel instrumentation**, so visibility can be tied to traffic but not to conversion outside one product | items 1–2 §4.3 | RECORD |
 
 **10 product data gaps.**
+
+---
+
+# 2A · 🔴 PHASE 1 IS BLOCKED — THE SPEC'S OWN SENTENCE
+
+**`V51_MASTER_BUILD_COMMAND_SOURCE.md`, line 556, verbatim:**
+
+> *"**Phase 1 cannot begin while Search Console coverage/authorization, analytics availability,
+> worker execution layer, database isolation/capacity, and reusable existing artifacts remain
+> UNKNOWN or UNDECIDED.** Record each answer with a date."*
+
+| condition | state, 11 Sep 2026 | row | who |
+|---|---|---|---|
+| Search Console coverage / authorization | 🔴 **UNKNOWN** — the Domain property exists; **read-only API access is not granted** | **`B1`** | **owner** |
+| analytics availability | 🟡 **answered, and adverse** — funnel evidence on **1 of 27** products; no page-view analytics anywhere | `ANL-1` | recorded |
+| worker execution layer | 🔴 **UNDECIDED** — options, costs, limits and risks measured and written; **only the decision is missing** | `CRW-1` | **owner** |
+| database isolation / capacity | 🟡 isolation from product DBs **PASS** (Owner Ruling 1) · 🔴 **capacity: the v0.1 workload needs 288 % of the Free plan in month one**, and preview shares it | `DB-2`, `DB-3`, **`B2`** | **owner** |
+| reusable existing artifacts | ✅ **answered** — 11 assets named with their state | items 1–2 §6 | recorded |
+
+> ## 🔴 PHASE 1 IS BLOCKED. TWO OF THE FIVE ARE UNKNOWN OR UNDECIDED, AND BOTH ARE OWNER DECISIONS.
+>
+> **No attempt was made to resolve them, route around them, or start Phase 1 anyway.**
 
 ---
 

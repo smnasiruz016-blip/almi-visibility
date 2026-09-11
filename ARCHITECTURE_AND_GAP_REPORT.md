@@ -86,9 +86,9 @@ document's home, it is not one of the 23, and it contained only `README.md`.
 | URLs currently in sitemaps across the network | **12,855,354** |
 | AlmiOET pSEO pages against Gate A (dry run, live) | **0 of 5 sampled pages would pass** |
 | AlmiOET pSEO pages against Gate C (live) | 🔴 **no caching at all** — every request runs a function |
-| Google Search Console access | **UNKNOWN** — nothing enabled, nothing authorized |
+| Google Search Console access | 🔴 **CORRECTED 11 Sep 2026 — this row was wrong.** ~~UNKNOWN — nothing enabled, nothing authorized~~. Per the owner's first-hand reading of 10 Sep, recorded in **§6**: **a GSC Domain property for `almiworld.com` ALREADY EXISTS.** What is open is **one thing only — READ-ONLY API ACCESS** to it. The correction reached §6 and never reached this summary — see `PHASE_0_ITEM_3_AND_DEPLOYMENT.md` §2.2 |
 | ~15 sitemaps reading "Success" with 0 discovered | 🔴 **UNEXPLAINED and OPEN** — the 404 path does NOT explain them (§11a.3) |
-| `/sitemap.xml` on the 23 product hosts | 🔴 **404 on every one of them** — and our own submitter sends that path for 3 products |
+| `/sitemap.xml` on the 23 product hosts | 🔴 **404 on every one of them** — and our own submitter sends that path for 3 products. ⚠️ **Read with §4, which this row omits:** 26 hosts DECLARE a sitemap in `robots.txt`, 24 of them at `/sitemap-index.xml`, and **25 of 26 declared sitemaps return valid XML**. The estate's feeds are largely healthy; **this row alone reads as an estate-wide failure and is not one** (re-measured 11 Sep) |
 | `almioet` → `sitemap-nationality-nurse.xml` | 🔴 **404, confirmed today** — a stale submission Google has retried since 21 August |
 | Worker execution layer | **UNDECIDED** — three options costed below, owner decides |
 

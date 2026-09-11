@@ -16,7 +16,7 @@
  * the extracted block — and that link is COUNTED, because it is words on the
  * page and it is the same words on all twelve.
  *
- * ── BOTH VARIANTS, BOTH BOOKKEEPINGS, SIDE BY SIDE ──────────────────────────
+ * ── BOTH VARIANTS, BOTH BOOKKEEPINGS, SIDE BY SIDE ─────────────────────────
  *
  * The comparison is only worth anything if it is like-for-like, so the split
  * variant goes through THE SAME code path as the original: same renderer, same
@@ -26,17 +26,28 @@
 import { readFileSync, existsSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
-import { FACTS_DIR, PLACEMENT, VARIANTS } from "../products/almi-oet/product.mjs";
+import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
 import { loadRegistry, toGateAFact } from "../src/facts/registry.mjs";
-import { NURSING_PAGE } from "../products/almi-oet/page-specs.mjs";
-import { placeClaims, PENDING_ORIGIN_LAYER, PENDING_DESTINATION_LAYER } from "../src/page/claim-placement.mjs";
+import { placeClaims } from "../src/page/claim-placement.mjs";
 import { renderPage } from "../src/page/render.mjs";
 import { runGateA, MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../src/gate-a/run.mjs";
 import { tokensWithKind } from "../src/gate-a/text-kind.mjs";
 import { tokensOf } from "../src/gate-a/tokens.mjs";
 import { shingles, jaccard } from "../src/gate-a/overlap.mjs";
 import { uniqueWords } from "../src/gate-a/shell.mjs";
+
+import { productFromArgvOrExit } from "../src/product-cli.mjs";
+
+/**
+ * 🔴 THE PRODUCT ARRIVES AS AN ARGUMENT, NOT AS AN IMPORT.
+ *
+ * This runner used to resolve a product at IMPORT time, so it could not be
+ * pointed at a second one without editing this file. Its arithmetic was
+ * already generic; the BINDING was not.
+ *
+ * There is no default: a runner with no `--product=<id>` stops and says so.
+ */
+const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/placement-measure.mjs --product=<id>" });
 
 const argv = process.argv.slice(2);
 const outDir = argv.find((a) => a.startsWith("--out="))?.split("=").slice(1).join("=") ?? null;
@@ -47,7 +58,7 @@ const line = (ch = "─") => console.log(ch.repeat(78));
 const f4 = (n) => (n === null || n === undefined ? "—" : n.toFixed(4));
 const CACHE = "runs/_profession-cache";
 
-const { records } = await loadRegistry(FACTS_DIR);
+const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
 
 if (!existsSync(CACHE) || readdirSync(CACHE).length < 11) {
   console.error(`\n🔴 ${CACHE} is missing or short. Run \`npm run chain\` first — this script does not fetch.`);
@@ -101,7 +112,7 @@ function measure(spec, label) {
   };
   const rolloutGroup = [
     { id: "candidate", html, facts, whyThisUrl: "x" },
-    ...VARIANTS.filter((p) => p !== "nursing").map((p, i) => ({ id: `${p}-sim`, html: sim(p, i + 1), facts, whyThisUrl: "x" })),
+    ...PRODUCT.variants.filter((p) => p !== "nursing").map((p, i) => ({ id: `${p}-sim`, html: sim(p, i + 1), facts, whyThisUrl: "x" })),
   ];
   const rollout = runGateA(rolloutGroup);
   const meAfter = rollout.results.find((r) => r.id === "candidate");
@@ -111,7 +122,7 @@ function measure(spec, label) {
   //    per-profession, because the regulator's name changes.
   // Intersected with the page by construction: a claim not on the page cannot
   // contribute to its shared half.
-  const shared = new Set(PLACEMENT.allRepeated);
+  const shared = new Set(PRODUCT.placement.allRepeated);
   const blocks = html.split('<div class="fact" data-claim-id="').slice(1);
   let sharedA = html.split('<div class="fact"')[0];
   let uniqueA = "";
@@ -188,13 +199,13 @@ function measure(spec, label) {
   };
 }
 
-const before = measure(NURSING_PAGE, "AS BUILT (shared block on every page)");
-const split = placeClaims(NURSING_PAGE, PLACEMENT.removed);
+const before = measure(PRODUCT.pageSpecs.nursing, "AS BUILT (shared block on every page)");
+const split = placeClaims(PRODUCT.pageSpecs.nursing, PRODUCT.placement.removed);
 const after = measure(split, "PLACED BY SCOPE");
 // 🔴 Nothing out of scope may render anywhere. Checked, not asserted: a claim
 // "awaiting its layer" that is quietly still on a page would be the worst of both.
-const renderedPending = renderPage(split, records).trace.filter((t) => PLACEMENT.removed.includes(t.claimId));
-const premiseRemovedToo = measure(placeClaims(NURSING_PAGE, PLACEMENT.allRepeated), "UNIVERSALS REMOVED TOO (not taken)");
+const renderedPending = renderPage(split, records).trace.filter((t) => PRODUCT.placement.removed.includes(t.claimId));
+const premiseRemovedToo = measure(placeClaims(PRODUCT.pageSpecs.nursing, PRODUCT.placement.allRepeated), "UNIVERSALS REMOVED TOO (not taken)");
 
 console.log(`\nCLAIMS PLACED BY SCOPE — ARITHMETIC ONLY, NO NEW FETCH`);
 line("═");
@@ -250,12 +261,12 @@ console.log(`    keeping it costs ${f4(premiseRemovedToo.bestCaseA)} → ${f4(af
 console.log(`    ONE claim has been shown to earn its repetition. It is the only one.`);
 console.log("");
 console.log(`  🔴 AWAITING A LAYER THAT DOES NOT EXIST YET`);
-for (const a of PLACEMENT.awaiting) console.log(`     ${a.claim}` + " -> " + a.layer);
+for (const a of PRODUCT.placement.awaiting) console.log(`     ${a.claim}` + " -> " + a.layer);
 console.log(`     A profession page knows neither the reader's ORIGIN nor their DESTINATION,`);
 console.log(`     so these were shown to every reader alike. They are NOT behind a link —`);
 console.log(`     THERE IS NO LINK, because there is nowhere to send anyone. Held in the`);
 console.log(`     registry, rendered nowhere, counted as owed.`);
-console.log(`     rendered on a page today: ${renderedPending.length}   owed: ${PLACEMENT.awaiting.length}`);
+console.log(`     rendered on a page today: ${renderedPending.length}   owed: ${PRODUCT.placement.awaiting.length}`);
 console.log("");
 console.log(`     ⚠️  AND THIS DOES NOT BRING BACK 191 CORRIDOR PAGES. The red list is ONE`);
 console.log(`        CLAIM WITH 191 VALUES — a TABLE, not 191 pages. The per-origin measurement`);
@@ -270,9 +281,18 @@ console.log(`  thereby become a page. It is a sign that the thing being repeated
 console.log(`  WRONG PLACE — not that it needed a home of its own.`);
 console.log("");
 console.log(`  A CLAIM'S SCOPE DECIDES WHERE IT LIVES:`);
-console.log(`    origin-scoped       -> a layer that knows the ORIGIN        (${PENDING_ORIGIN_LAYER.length} owed)`);
-console.log(`    destination-scoped  -> a layer that knows the DESTINATION   (${PENDING_DESTINATION_LAYER.length} owed)`);
-console.log(`    universal           -> KEEP IT ON THE PAGE                  (${PLACEMENT.universal.length} kept)`);
+// 🔴 These two counts used to read named constants the engine no longer has.
+// They now come from the PRODUCT's own placement, grouped by the layer each
+// claim is waiting for — so the runner reports whatever layers that product
+// declared, not two the engine assumed.
+const owedByLayer = new Map();
+for (const a of PRODUCT.placement.awaiting) {
+  owedByLayer.set(a.layer, (owedByLayer.get(a.layer) ?? 0) + 1);
+}
+for (const [layer, owed] of owedByLayer) {
+  console.log(`    ${String(owed).padStart(2)} owed -> ${layer}`);
+}
+console.log(`    universal           -> KEEP IT ON THE PAGE                  (${PRODUCT.placement.universal.length} kept)`);
 console.log(`    and nobody needs a page called "shared".`);
 console.log("");
 console.log(`  Removing the universals too would give overlap ${f4(premiseRemovedToo.bestCaseA)} / ${f4(premiseRemovedToo.bestCaseB)}.`);
@@ -290,8 +310,8 @@ if (outDir) {
           asBuilt: before,
           placedByScope: after,
           universalsRemovedToo: premiseRemovedToo,
-          universalClaims: PLACEMENT.universal,
-          awaitingALayer: PLACEMENT.awaiting,
+          universalClaims: PRODUCT.placement.universal,
+          awaitingALayer: PRODUCT.placement.awaiting,
           removed: split.removedClaims,
           sharedPage: null,
         },

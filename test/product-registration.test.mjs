@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { LICENCES, registerLicences, quotabilityState, requiresCurrentVersion } from "../src/facts/licences.mjs";
+import { licencesVisibleTo, engineLicences, registerLicences, quotabilityState, requiresCurrentVersion } from "../src/facts/licences.mjs";
 import { registerGaps, declaredGaps, gapRegisterProducts } from "../src/facts/gaps.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { claimIdsOf } from "../src/page/claim-ids.mjs";
@@ -10,26 +10,30 @@ import { registerProduct, registeredProducts, coverage } from "../src/product.mj
 
 import { ALMI_OET, PRODUCT_ID, FACTS_DIR, AXIS_KEY, PLACEMENT } from "../products/almi-oet/product.mjs";
 import { ALMI_OET_LICENCES } from "../products/almi-oet/licences.mjs";
-import { ALMI_OET_GAPS } from "../products/almi-oet/gaps.mjs";
+import { ALMI_OET_GAPS } from "../products/almi-oet/gaps.mjs";
+
+// The licence view THIS product may read: the engine’s instruments plus its own.
+// Another product’s entries are not in it, and that is the point.
+const VISIBLE = licencesVisibleTo(PRODUCT_ID);
 
 /* ------------------------------------------------------------------ *
  * THE MOVE CHANGED NOTHING — the entries are still there and still bite.
  * ------------------------------------------------------------------ */
 
 test("the moved licence entries are in the catalogue, and behave exactly as before", () => {
-  assert.equal(quotabilityState("NMC-6.3"), "PERMITTED");
-  assert.equal(quotabilityState("OET-CBLA-IP"), "PROHIBITED");
+  assert.equal(quotabilityState("NMC-6.3", PRODUCT_ID), "PERMITTED");
+  assert.equal(quotabilityState("OET-CBLA-IP", PRODUCT_ID), "PROHIBITED");
   // 🔴 The condition that changes the engineering survived the move: this is
   // what makes an NMC quote lapse when the source stops being current.
-  assert.equal(requiresCurrentVersion("NMC-6.3"), true);
-  assert.equal(requiresCurrentVersion("OGL-v3.0"), false);
-  assert.equal(LICENCES["OET-CBLA-IP"].permitsCommercial, false);
+  assert.equal(requiresCurrentVersion("NMC-6.3", PRODUCT_ID), true);
+  assert.equal(requiresCurrentVersion("OGL-v3.0", PRODUCT_ID), false);
+  assert.equal(VISIBLE["OET-CBLA-IP"].permitsCommercial, false);
 });
 
 test("a registered entry records which product brought it", () => {
-  assert.equal(LICENCES["NMC-6.3"]._productId, PRODUCT_ID);
+  assert.equal(VISIBLE["NMC-6.3"]._productId, PRODUCT_ID);
   // The engine's own licences belong to nobody.
-  assert.equal(LICENCES["OGL-v3.0"]._productId, undefined);
+  assert.equal(VISIBLE["OGL-v3.0"]._productId, undefined);
 });
 
 test("the engine keeps the general instruments and the product keeps its documents", () => {
@@ -51,12 +55,12 @@ test("🔴 a licence may be ADDED, never REDEFINED", () => {
     /already defined/,
   );
   // …and the real entry is untouched by the attempt.
-  assert.equal(LICENCES["OGL-v3.0"].permitsCommercial, true);
+  assert.equal(VISIBLE["OGL-v3.0"].permitsCommercial, true);
 });
 
 test("🔴 a registered licence must declare a real quotability state", () => {
   assert.throws(() => registerLicences("bad-product", { "made-up": { state: "PROBABLY-FINE" } }), /not a quotability state/);
-  assert.equal("made-up" in LICENCES, false);
+  assert.equal("made-up" in VISIBLE, false);
 });
 
 test("🔴 registering the same product's gaps twice throws instead of doubling the count", () => {
@@ -220,7 +224,7 @@ test("🔴 coverage counts against what the product DECLARED, not what we built"
  * ------------------------------------------------------------------ */
 
 test("every declared gap is attributed to the product that declared it", () => {
-  const gaps = declaredGaps();
+  const gaps = declaredGaps(PRODUCT_ID);
   assert.equal(gaps.length, ALMI_OET_GAPS.length);
   assert.ok(gaps.length > 0, "an empty gap register would make the census flattering, not clean");
   for (const g of gaps) assert.equal(g.productId, PRODUCT_ID);
@@ -228,7 +232,7 @@ test("every declared gap is attributed to the product that declared it", () => {
 });
 
 test("the product's facts load from the product's own directory", async () => {
-  const { files, records } = await loadRegistry(FACTS_DIR);
+  const { files, records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
   assert.equal(records.length, 46);
   assert.ok(files.length > 0);
   assert.match(FACTS_DIR.replace(/\\/g, "/"), /products\/almi-oet\/facts$/);

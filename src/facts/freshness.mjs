@@ -81,7 +81,7 @@ export function quoteUsableNow(record, now = new Date()) {
   const basis = lastDemonstrated === null ? "none" : lastDemonstrated === matched ? "a passing quote match against the live document" : "the extraction, when the span was taken off the live page";
   const age = daysBetween(lastDemonstrated, now);
 
-  if (!requiresCurrentVersion(record?.licence)) {
+  if (!requiresCurrentVersion(record?.licence, record?._productId)) {
     // An ordinary licence. Age is a data-quality signal and nothing more, so the
     // quote stays usable and staleness is reported elsewhere.
     return { usable: true, reason: "the licence attaches no currency condition", legal: false, ageDays: age, basis };

@@ -267,7 +267,7 @@ export async function runQuoteMatch(records = [], { fetchImpl = fetch, now = new
     const fetched = await fetchForMatch(url, { fetchImpl });
 
     // The OGL per-page check, run once per page rather than once per record.
-    if (fetched.ok && group.some((r) => requiresPerPageThirdPartyCheck(r?.licence))) {
+    if (fetched.ok && group.some((r) => requiresPerPageThirdPartyCheck(r?.licence, r?._productId))) {
       thirdParty.push({ url, ...scanForThirdPartyRights(fetched.body) });
     }
 

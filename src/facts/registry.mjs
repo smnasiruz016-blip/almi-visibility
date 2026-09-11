@@ -35,7 +35,7 @@ import { declaredGaps, gapRegisterProducts } from "./gaps.mjs";
  * refactor by being invisible. The caller names the directory now, and the
  * caller is a product.
  */
-export async function loadRegistry(dir) {
+export async function loadRegistry(dir, productId = null) {
   if (typeof dir !== "string" || dir.length === 0) {
     throw new Error("loadRegistry(dir): a product must say where its facts live — there is no default");
   }
@@ -47,7 +47,11 @@ export async function loadRegistry(dir) {
     const mod = await import(pathToFileURL(join(dir, file)).href);
     const exported = mod.default;
     if (!Array.isArray(exported)) throw new Error(`facts/${file} must default-export an array of records`);
-    for (const r of exported) records.push({ ...r, _file: file });
+    // 🔴 THE RECORD CARRIES ITS PRODUCT FROM THE MOMENT IT IS LOADED.
+    // Licence terms are per product now, so every lookup downstream needs to
+    // know whose record this is. Deriving it later from a path or a filename
+    // would be a guess; carrying it is a fact.
+    for (const r of exported) records.push({ ...r, _file: file, _productId: productId });
   }
   return { files, records };
 }
@@ -98,7 +102,7 @@ function ageInDays(iso, now) {
 /**
  * The census. Everything DOD-03A asks to be shown, and the gaps as well.
  */
-export function census(records = [], { now = new Date(), minutesPerFact = null } = {}) {
+export function census(records = [], { now = new Date(), minutesPerFact = null, productId = null } = {}) {
   const validation = validateRegistry(records);
 
   const byQueue = { AUTOMATED: [], MANUAL: [] };
@@ -145,7 +149,7 @@ export function census(records = [], { now = new Date(), minutesPerFact = null }
   // those look like the same piece of work forever.
   const byQuotabilityState = { PERMITTED: 0, RESERVED: 0, PROHIBITED: 0, UNREAD: 0 };
   for (const r of records) {
-    byQuotabilityState[quotabilityState(r?.licence)] += 1;
+    byQuotabilityState[quotabilityState(r?.licence, r?._productId)] += 1;
     byLicence[r?.licence] = (byLicence[r?.licence] ?? 0) + 1;
     byDocumentClass[r?.sourceDocumentClass] = (byDocumentClass[r?.sourceDocumentClass] ?? 0) + 1;
     byFreshnessRule[freshnessRuleFor(r)] = (byFreshnessRule[freshnessRuleFor(r)] ?? 0) + 1;
@@ -179,7 +183,9 @@ export function census(records = [], { now = new Date(), minutesPerFact = null }
     // the gate's own code rather than a second copy of its rules. A control that
     // does not share the rule's code proves nothing about the rule.
     gateA: countFacts(records.map(toGateAFact), now),
-    gaps: declaredGaps(),
+    // 🔴 A product sees ITS OWN gaps. Passing none yields none — the safe
+    // direction, and the reason the census also prints who has registered.
+    gaps: declaredGaps(productId ?? records.find((r) => r?._productId)?._productId ?? null),
     // 🔴 So that "no gaps" cannot look like good news. An empty list means
     // either nothing is missing or no product registered, and those are
     // opposites.

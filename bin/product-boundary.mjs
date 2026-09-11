@@ -52,3 +52,16 @@ console.log("-".repeat(width + 15));
 console.log(`${"TOTAL".padEnd(width)}  ${String(codeLines).padStart(4)}  ${String(commentLines).padStart(7)}`);
 console.log(`\ncode lines: ${codeLines}  (${codeHits} occurrences)   comment lines: ${commentLines} — allowed`);
 console.log(codeLines === 0 ? "\n✅ the system names no product in code." : "\n🔴 the system still knows which product it is serving.");
+
+/**
+ * 🔴 AND THE EXIT CODE, WHICH THIS SCRIPT DID NOT HAVE UNTIL A CI JOB NEEDED IT.
+ *
+ * It printed the breach and exited 0 — so run as a build step it would have
+ * reported the failure in a log fold and passed the build anyway. **A check that
+ * cannot fail is the pattern this project hunts**, and this one had been sitting
+ * in `bin/` since the law was written.
+ *
+ * The test in `test/product-boundary.test.mjs` was always the real enforcement.
+ * This makes the REPORT enforce it too, so the two cannot disagree.
+ */
+process.exit(codeLines === 0 ? 0 : 1);

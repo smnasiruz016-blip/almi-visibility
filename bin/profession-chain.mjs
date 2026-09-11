@@ -29,23 +29,34 @@ import { readFileSync, existsSync, readdirSync, writeFileSync, mkdirSync } from 
 import { join } from "node:path";
 
 import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
-import { FACTS_DIR, AXIS_KEY, PLACEMENT, VARIANTS } from "../products/almi-oet/product.mjs";
 import { loadRegistry, toGateAFact } from "../src/facts/registry.mjs";
-import { NURSING_PAGE, SPEECH_PATHOLOGY_PAGE } from "../products/almi-oet/page-specs.mjs";
 import { placeClaims, isSharedAcrossVariants } from "../src/page/claim-placement.mjs";
 import { renderPage, findCopiedFacts } from "../src/page/render.mjs";
 import { runGateA, MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../src/gate-a/run.mjs";
 import { tokensWithKind } from "../src/gate-a/text-kind.mjs";
 import { tokensOf } from "../src/gate-a/tokens.mjs";
 import { shingles } from "../src/gate-a/overlap.mjs";
-import { uniqueWords } from "../src/gate-a/shell.mjs";
+import { uniqueWords } from "../src/gate-a/shell.mjs";
+
+import { productFromArgvOrExit } from "../src/product-cli.mjs";
+
+/**
+ * 🔴 THE PRODUCT ARRIVES AS AN ARGUMENT, NOT AS AN IMPORT.
+ *
+ * This runner used to resolve a product at IMPORT time, so it could not be
+ * pointed at a second one without editing this file. Its arithmetic was
+ * already generic; the BINDING was not.
+ *
+ * There is no default: a runner with no `--product=<id>` stops and says so.
+ */
+const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/profession-chain.mjs --product=<id> --page=<slug>" });
 
 const argv = process.argv.slice(2);
 const flag = (n) => argv.find((a) => a.startsWith(`--${n}=`))?.split("=").slice(1).join("=") ?? null;
 const which = flag("page") ?? "nursing";
 const outDir = flag("out");
 
-const PAGES = { nursing: NURSING_PAGE, "speech-pathology": SPEECH_PATHOLOGY_PAGE };
+const PAGES = { nursing: PRODUCT.pageSpecs.nursing, "speech-pathology": PRODUCT.pageSpecs["speech-pathology"] };
 const base = PAGES[which];
 if (!base) {
   console.error(`unknown --page=${which}. Known: ${Object.keys(PAGES).join(", ")}`);
@@ -59,8 +70,8 @@ const line = (ch = "─") => console.log(ch.repeat(78));
 const f4 = (n) => (n === null || n === undefined ? "—" : n.toFixed(4));
 const CACHE = "runs/_profession-cache";
 
-const { records } = await loadRegistry(FACTS_DIR);
-const spec = placeClaims(base, PLACEMENT.removed);
+const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
+const spec = placeClaims(base, PRODUCT.placement.removed);
 const { html, trace } = renderPage(spec, records);
 const facts = trace.map((t) => toGateAFact(records.find((r) => r.id === t.claimId)));
 const { tokens, kinds } = tokensWithKind(html);
@@ -81,7 +92,7 @@ const me = gate.results.find((r) => r.id === `${which} (CANDIDATE)`);
 // 🔴 DERIVED, not a list. See isSharedAcrossVariants:
 // a hardcoded set only knows the claims somebody remembered to add, and it
 // silently credited profession-independent text as distinguishing.
-const repeated = new Set(records.filter((r) => isSharedAcrossVariants(r, AXIS_KEY, PLACEMENT.allRepeated)).map((r) => r.id));
+const repeated = new Set(records.filter((r) => isSharedAcrossVariants(r, PRODUCT.axis.key, PRODUCT.placement.allRepeated)).map((r) => r.id));
 const blocks = html.split('<div class="fact" data-claim-id="').slice(1);
 let sharedA = html.split('<div class="fact"')[0];
 let uniqueA = "";
@@ -138,7 +149,7 @@ console.log(`  overlap B (cites shared)    ${f4(best(SB, UB))} / ${MAX_SIBLING_O
 const rolloutPass = bestRolloutUnique >= MIN_UNIQUE_WORDS && best(SA, UA) <= MAX_SIBLING_OVERLAP && best(SB, UB) <= MAX_SIBLING_OVERLAP;
 console.log(`\n  🔴 VERDICT AFTER ROLLOUT: ${me.verdict === "KEEP" && rolloutPass ? "KEEP" : "REJECT"}`);
 
-console.log(`\n  awaiting a layer that does not exist: ${PLACEMENT.awaiting.length}   rendered today: ${trace.filter((t) => PLACEMENT.awaiting.some((a) => a.claim === t.claimId)).length}`);
+console.log(`\n  awaiting a layer that does not exist: ${PRODUCT.placement.awaiting.length}   rendered today: ${trace.filter((t) => PRODUCT.placement.awaiting.some((a) => a.claim === t.claimId)).length}`);
 
 const report = {
   page: which, generatedOn: new Date().toISOString().slice(0, 10),

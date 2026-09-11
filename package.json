@@ -6,16 +6,16 @@
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "gate-a": "node bin/gate-a.mjs",
-    "facts": "node bin/facts.mjs census",
-    "facts:validate": "node bin/facts.mjs validate",
-    "quote-match": "node bin/quote-match.mjs",
-    "page": "node bin/build-page.mjs",
-    "chain": "node bin/nursing-chain.mjs",
-    "placement": "node bin/placement-measure.mjs",
+    "facts": "node bin/facts.mjs census --product=almi-oet",
+    "facts:validate": "node bin/facts.mjs validate --product=almi-oet",
+    "quote-match": "node bin/quote-match.mjs --product=almi-oet",
+    "page": "node bin/build-page.mjs --product=almi-oet",
+    "chain": "node bin/nursing-chain.mjs --product=almi-oet",
+    "placement": "node bin/placement-measure.mjs --product=almi-oet",
     "census": "node bin/profession-census.mjs",
-    "profession-chain": "node bin/profession-chain.mjs",
+    "profession-chain": "node bin/profession-chain.mjs --product=almi-oet",
     "boundary": "node bin/product-boundary.mjs",
-    "census:distinguishing": "node bin/distinguishing-census.mjs",
+    "census:distinguishing": "node bin/distinguishing-census.mjs --product=almi-oet",
     "census:clinical": "node bin/clinical-layer-census.mjs"
   }
 }

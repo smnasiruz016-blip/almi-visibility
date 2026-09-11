@@ -21,6 +21,53 @@ capability is a gap, not a question.
 
 ---
 
+# 0 · 🔴 OWNER RULINGS — FROZEN. NOT REOPENED BY ANY LATER AUDIT.
+
+**Two questions this register raised were put to the owner and answered on 11 September 2026. They
+are rulings, not opinions, and they are frozen here with their references.**
+
+> ### 🔴 NO LATER AUDIT REOPENS THESE FOR RE-INTERPRETATION.
+> Not this one, not the next one. **Two things, and only two, may disturb a ruling:**
+>
+> 1. **contradicting evidence**, or
+> 2. **an owner-approved scope change.**
+>
+> In either case the response is to **write the reason down and stop — never to decide.**
+
+## OWNER RULING 1 — `DOD-02` means isolation from PRODUCT databases
+
+**Answers `Q-DOD-2`.** References: §11 *"Visibility-engine database is isolated from product
+databases"*; ledger row *"`DOD-02` | Dedicated visibility data isolation"*.
+
+| | |
+|---|---|
+| the requirement | isolation of AlmiVisibility's database **from connected product databases** |
+| is it met? | ✅ **YES.** A dedicated Neon project satisfies it |
+| **`DOD-02`** | 🔴 RED → ✅ **PASS** |
+| what this is **not** | **Preview/Production separation is NOT `DOD-02`.** It is a separate infrastructure/safety requirement and **remains open as `B2`** |
+
+⚠️ **This is the only status change the two rulings produce.** No other status moved, no gate was
+touched, no threshold was moved.
+
+## OWNER RULING 2 — Amendment 1 is a formal amendment, and it is now FROZEN
+
+**Answers `Q-DOD-1`.** References: §12 *"The acceptance test may not be rewritten after
+implementation to fit what the engine happens to detect"*; `CASE_STUDY_01_ACCEPTANCE_TEST.md`
+Amendment 1; `PHASE_0_ITEM_6_CASE_STUDY_CONTRACT.md` §1.1a.
+
+| | |
+|---|---|
+| the change | Case Study #1's **input / fixture**: live site → pinned, hash-verified corpus |
+| its standing | ✅ **an OWNER-APPROVED AMENDMENT, not a rewrite** |
+| the pass criteria | 🔴 **UNCHANGED: 6/6 RED and 0/3 CONTROL false positives** |
+| its status now | ✅ **FROZEN** — it may not be amended again to suit an engine's output. §12 now protects this pass contract |
+
+⚠️ **What the ruling did NOT do:** it closed the §12 question. **It did not pass the test.**
+`DOD-15` stays 🟡 because **the test has never been run** (`CS-3`) — a closed question is not a
+passed test.
+
+---
+
 # 1 · ALMIVISIBILITY CAPABILITY GAPS
 
 | id | gap | evidence | state |
@@ -47,7 +94,13 @@ capability is a gap, not a question.
 | **CS-3** | **the acceptance test has never been run.** A frozen contract with no result is a contract, not evidence | item 6 §3 | RECORD |
 | **GATE-1** | **four of seven gate families have no architectural home**: semantic, cannibalization, technical, cost | item 7 §3 | RECORD |
 | **GATE-2** | 🔴 **Gate C is a gate, not a governor.** It judges cost; nothing caps, meters or refuses spend | item 7 §2 | RECORD |
-| **DOD-MAP-1** | the DoD is mapped from a **status table**, not from its own frozen text, which is **not held in this repository** | item 7 §4 | RECORD |
+| ~~DOD-MAP-1~~ | ~~the DoD is mapped from a status table, not its own text~~ | ✅ **CLOSED 11 Sep** — the text is at `DOD_FROZEN_TEXT_SOURCE.md`, hash-verified, and the map is rebuilt against §1–§5A | CLOSED |
+| **FACT-1** | §5A requires a derived fact to store **its formula and its input fact IDs**. No such field exists | `DOD_MAP_AGAINST_TEXT.md` §1 | RECORD |
+| **FACT-2** | §5A requires distinguishing **verified / derived / inference / recommendation / UNKNOWN**. The registry distinguishes acquisition confidence instead; **"derived" and "recommendation" have no representation** | same §1 | RECORD |
+| **FACT-3** | §5A requires conflicts to be **detected**. One can be **recorded**, and one is — **written by hand.** Nothing detects one | same §3 | RECORD |
+| **GATE-3** | §4: *"must not lower a frozen gate merely to increase page output"* — **nothing enforces it.** The thresholds are constants; only a written record has ever held them | same §2 | RECORD |
+| **GATE-4** | §4 asks for a **specific** URL justification; the check accepts **any non-empty string** — a single character passes | same §2 | RECORD |
+| **PAGE-1** | §3 makes five gates a **conjunction** before a new page. Two do not exist, so **the precondition for creating any page is unsatisfiable today** | same §4 | RECORD |
 | **SUB-1** | 🔴 **our own submitter sends `/sitemap.xml` for three products where it 404s.** `almi-monitor` was corrected for this and the submitter was not | architecture report §12 blocker 10, §11a.2 | RECORD |
 
 **24 capability gaps.**
@@ -164,12 +217,16 @@ capability is a gap, not a question.
 
 | | |
 |---|---|
-| capability gaps | **24** |
+| capability gaps | **29 open** — 24 rows, of which `DOD-MAP-1` is now **CLOSED**, plus **6** added by reading the DoD's own text (30 rows, 1 closed) |
 | product data gaps | **10** |
 | owner actions | **2** |
 | prerequisites | **9** |
 | open UNKNOWNs | **36** |
-| **DoD items complete** | 🔴 **0 of 21** |
+| **DoD items complete** | **1 of 21** — `DOD-02`, by **OWNER RULING 1** |
+
+⚠️ **The "1 of 21" follows from OWNER RULING 1 and from nothing else.** It is recorded here because
+a summary that lagged its own document's ruling is exactly `DOC-1`, and this register has now
+recorded that failure three times. **No other status moved.**
 
 > ### 🔴 THE SHAPE, STATED ONCE
 > **The engine that exists is well built and narrow.** One stage of twelve is complete, three gates

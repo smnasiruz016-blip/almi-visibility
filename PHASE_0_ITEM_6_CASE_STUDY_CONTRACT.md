@@ -26,6 +26,29 @@ read only; both working trees show **0 changes** after this work.
 **There is no half pass.** Amendment 1 (10 September, owner-approved) states explicitly: *"THE PASS
 MARK IS 6 of 6. IT HAS NOT BEEN LOWERED."*
 
+## 1.1a · ✅ AMENDMENT 1 IS A FORMAL, OWNER-APPROVED AMENDMENT — AND IT IS NOW FROZEN
+
+**OWNER RULING 2, 11 September 2026**, answering `Q-DOD-1`:
+
+> **The change from the live site to a frozen corpus is an owner-approved amendment to the
+> acceptance test's INPUT / FIXTURE. It is not a rewrite of the test.**
+> **The PASS criteria are exactly as they were: 6/6 RED and 0/3 CONTROL false positives.**
+
+| | |
+|---|---|
+| what Amendment 1 changed | the **input**: live site → a pinned, hash-verified corpus |
+| what it did **not** change | 🔴 **the pass mark. Not by one defect, in either direction** |
+| its status now | ✅ **FROZEN** |
+
+> ### 🔴 AND THE FREEZE CUTS BOTH WAYS.
+> §12: *"The acceptance test may not be rewritten after implementation to fit what the engine happens
+> to detect."* **That law now protects this pass contract.** Amendment 1 may not be amended again to
+> suit an engine's output — **and neither may the corpus, the pass mark, or the rule that one control
+> false positive is a FAIL.**
+
+⚠️ **This closes the §12 question and nothing else.** The ruling says the amendment is legitimate;
+it does not say the test has been passed. **It has never been run** — see §3 and `CS-3`.
+
 ## 1.2 · What the engine is told, and what it is not
 
 **The engine is never told where the defects are.** That clause is in the test document and is part

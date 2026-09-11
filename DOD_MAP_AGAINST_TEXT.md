@@ -103,9 +103,9 @@ reason to read the text rather than trust a label in either direction.
 
 | # | old map said | the text says | who is right |
 |---|---|---|---|
-| **1** | `DOD-02` 🔴 RED — *"preview and production are the same database"* | §11: *"Visibility-engine database **is isolated from product databases**"* · `DOD-02`: *"Dedicated visibility data isolation"* | ⚠️ **the old map was harsher than the requirement.** A dedicated Neon project **does** isolate the visibility store from the product stores, which is what is asked. **Preview↔production sharing is a real risk and it is NOT what `DOD-02` measures** — it belongs to `B2` and to §13's safety criteria. **Recorded. Not changed here.** |
+| **1** | `DOD-02` 🔴 RED — *"preview and production are the same database"* | §11: *"Visibility-engine database **is isolated from product databases**"* · `DOD-02`: *"Dedicated visibility data isolation"* | ⚠️ **the old map was harsher than the requirement.** A dedicated Neon project **does** isolate the visibility store from the product stores, which is what is asked. **Preview↔production sharing is a real risk and it is NOT what `DOD-02` measures** — it belongs to `B2` and to §13's safety criteria. ✅ **CLOSED BY OWNER RULING 1 — the text's reading is confirmed and `DOD-02` is PASS.** |
 | **2** | `DOD-06` 🟡 *"lexical ✅ · semantic ❌ · cannibalization ❌"* | §3 makes the five gates a **conjunction** before any new page | ⚠️ **the text is harsher.** Under §3, three of five passing does not mean "partial" — **it means the precondition for creating a page is not satisfied.** The old map's 🟡 reads as progress; the text reads as a gate that is shut |
-| **3** | `DOD-15` 🟡 *"corpus verified frozen — the test has never been run"* | §12: *"The acceptance test **may not be rewritten after implementation to fit what the engine happens to detect**"* | ⚠️ **a question the old map never asked.** Amendment 1 (owner-approved, 10 Sep) changed the **input** from the live site to a frozen corpus and **did not touch the 6/6 + 0/3 mark**. Whether changing the input is "rewriting the test" is **the owner's reading to give, and it is asked here rather than assumed** |
+| **3** | `DOD-15` 🟡 *"corpus verified frozen — the test has never been run"* | §12: *"The acceptance test **may not be rewritten after implementation to fit what the engine happens to detect**"* | ⚠️ **a question the old map never asked.** Amendment 1 (owner-approved, 10 Sep) changed the **input** from the live site to a frozen corpus and **did not touch the 6/6 + 0/3 mark**. ✅ **ANSWERED BY OWNER RULING 2: no.** Amendment 1 is a formal, owner-approved amendment to the **input/fixture**, it is now **FROZEN**, and §12's anti-rewrite law **protects that pass contract**. ⚠️ `DOD-15` stays 🟡 anyway — **for a different reason: the test has never been run** |
 | **4** | 12 requirements *"have no architectural home at all"* | §6–§14 specify them in detail — e.g. §7 lists nine technical-audit behaviours, §13 lists seven reliability behaviours | ✅ **both true, and the text makes it worse-defined rather than better**: the twelve are not merely unbuilt, **they are unbuilt against requirements that are fully written down.** No design work was ever blocked for want of a specification |
 
 ---
@@ -119,7 +119,7 @@ said.
 | id | what the TEXT requires (§ cited) | state (unchanged) |
 |---|---|---|
 | **01** | §1 safe operation across AlmiWorld *"without silently modifying another product"* | 🟡 |
-| **02** | §11 visibility DB isolated **from product databases** | 🟡 — see §4 `#1`; **not the RED the old map gave it** |
+| **02** | §11 visibility DB isolated **from product databases** | ✅ **PASS — OWNER RULING 1, 11 Sep 2026.** A dedicated Neon project satisfies §11. **Preview/Production separation is NOT `DOD-02`** — it stays open as `B2` |
 | **03** | §11 crawl work off *"an unsuitable request/response hosting path"* + budgets, caps, kill switches, hard stop on runaway | 🔴 |
 | **03A** | §5A + §5A.1's five conditions + §17's completion rule | 🟡 **4 of 5 met; condition 5 (real cohort supply) is not** |
 | **04** | §6 scores *"rankable QUERY CLUSTERS rather than treating isolated keywords as pages"* | 🔴 |
@@ -133,7 +133,7 @@ said.
 | **12** | §9 dated observations; *"absence of evidence is not reported as a guaranteed absence"*; never fabricate a citation | 🔴 |
 | **13** | §10 mark missing instrumentation **UNKNOWN/NOT MEASURABLE** rather than inventing attribution | 🔴 |
 | **14** | §11 budgets, caps, kill switches, cost per action, hard stop | 🔴 |
-| **15** | §12 6/6 RED, 0/3 CONTROL, **not rewritten after implementation** | 🟡 — see §4 `#3` |
+| **15** | §12 6/6 RED, 0/3 CONTROL, **not rewritten after implementation** | 🟡 **UNCHANGED — and the reason is now a different one.** OWNER RULING 2 closes the anti-rewrite question: Amendment 1 is an approved, **frozen** amendment to the INPUT and the pass mark was never touched. 🔴 **But §12 requires AlmiVisibility to PASS the test, and the test has never been run** (`CS-3`). A closed question is not a passed test |
 | **16** | §7 *"Recrawls/retests changed targets and records PASS/FAIL with evidence"* | 🔴 |
 | **17** | §14 owner distinguishes OBSERVED FACT / INFERENCE / RECOMMENDATION / UNKNOWN; **430px mobile** | 🔴 |
 | **18** | §13 idempotency, dedup, retry safety, audit trail, owner control, rollback, **UNKNOWN never converts to PASS** | 🟡 write law only |
@@ -159,12 +159,16 @@ said.
 
 **None added by this document.**
 
-## Questions for the owner — recorded, not asked as permission
+## ✅ Questions for the owner — BOTH ANSWERED, 11 September 2026
 
-| # | question | why it cannot be answered here |
+| # | question | ruling |
 |---|---|---|
-| **Q-DOD-1** | Does Amendment 1 (live site → frozen corpus) count as *"rewriting the acceptance test after implementation"* under §12? | it changed the **input**, not the pass mark, and the owner approved it. **Only he can say whether §12 reaches it** |
-| **Q-DOD-2** | Does `DOD-02` mean isolation **from product databases** (§11, satisfied) or **preview/production separation** (not satisfied)? | the old map assumed the second; the text says the first |
+| **Q-DOD-1** | Does Amendment 1 (live site → frozen corpus) count as *"rewriting the acceptance test"* under §12? | ✅ **OWNER RULING 2 — NO.** A formal, approved amendment to the **input/fixture**. Pass criteria unchanged: **6/6 RED + 0/3 CONTROL**. **Amendment 1 is now FROZEN**, and §12 protects it |
+| **Q-DOD-2** | Does `DOD-02` mean isolation **from product databases** or **preview/production separation**? | ✅ **OWNER RULING 1 — from product databases.** A dedicated Neon project satisfies it. **`DOD-02` → PASS.** Preview/Production is a separate infrastructure/safety requirement and **stays open as `B2`** |
+
+> 🔴 **Both rulings are FROZEN in `PHASE_0_FROZEN_GAP_REGISTER.md` §0 and are not reopened by any
+> later audit** — not unless contradicting evidence appears or the owner changes scope, and in
+> either case the response is to **write the reason and stop**, not to decide.
 
 ---
 

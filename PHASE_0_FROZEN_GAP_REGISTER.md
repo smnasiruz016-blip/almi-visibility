@@ -66,6 +66,70 @@ Amendment 1; `PHASE_0_ITEM_6_CASE_STUDY_CONTRACT.md` §1.1a.
 `DOD-15` stays 🟡 because **the test has never been run** (`CS-3`) — a closed question is not a
 passed test.
 
+## OWNER RULING 3 — every product is a subdomain of `almiworld.com`
+
+**Answers `U-EST-1`**, raised by the Search Console ingest of 11 September 2026, which could measure
+what the domain property covered but not what might sit outside it.
+
+| | |
+|---|---|
+| the question | does any AlmiWorld product run on its **own registered domain**, outside `sc-domain:almiworld.com`? |
+| the answer | 🔴 **NO.** All products are subdomains of `almiworld.com` |
+| source | **OWNER RULING, 11 September 2026** |
+| consequence | the DOMAIN property covers **the whole estate**. The **8 ZERO hostnames are real zeros** — hosts with no impressions, not hosts hiding outside the property |
+
+> ### 🔴 EXPIRY CONDITION — WRITTEN DOWN, NOT LEFT TO MEMORY.
+>
+> **If any future product launches on its own registered domain, THIS ANSWER DIES THAT DAY.**
+> That domain is then outside the property, its pages are invisible to every measurement built on
+> this ruling, and **it needs its own Search Console property and its own grant.**
+>
+> A ruling with no expiry condition is a ruling that quietly stops being true. This one says when.
+
+---
+
+# 0A · 🔴 LAWS — GENERAL, AND THEY APPLY TO CODE NOT YET WRITTEN
+
+## `LAW-BOUND-1` — EVERY BOUNDED OPERATION MUST PRINT ITS OWN BOUND NEXT TO ITS RESULT
+
+**Raised by PR #35, 11 September 2026.**
+
+That PR reported `requestCount=1` and `exhausted=true` — and did **not** print
+`rowLimitPerRequest`. Both numbers were correct. **The report still could not verify itself**,
+because "one request drained 1,527 rows" is only true if the per-request limit was above 1,527, and
+the limit was nowhere on the page. A reader had to go and find the source.
+
+> ### THAT IS THE 11 SEPTEMBER DEFECT IN A NEW COSTUME.
+>
+> The original was a cap that did not announce itself. This is a bound that does not announce
+> itself. In both cases the output looks complete and the evidence for completeness is missing.
+
+**The law:** any result produced under a limit — a row limit, a URL cap, a byte ceiling, a request
+budget, a timeout — **prints that limit beside the result**, in the same report, every time.
+
+**In force on:** `SearchQueryResult` (`rowLimitPerRequest`) and `CrawlRun` (`maxUrlsPerRun`).
+Both are asserted by tests that read the emitted report text.
+
+---
+
+# 0B · DECISIONS — CRAWLER
+
+Recorded as decisions, with their kind, their tier and their date. **A decision is not a gap and not
+an UNKNOWN**, and it is not evidence either — it is a choice somebody made and can be held to.
+
+| id | decision | kind | tier | date | state |
+|---|---|---|---|---|---|
+| **`D-CRW-1`** | execution layer = **GitHub Actions** | technical | beta-g | 11 Sep 2026 | ✅ recorded |
+| **`D-CRW-2`** | hard cap = **500 URLs per run** | technical | beta-g | 11 Sep 2026 | ✅ recorded |
+| **`D-CRW-3`** | **1 request/second, concurrency 1** | technical | beta-g | 11 Sep 2026 | ✅ recorded |
+| **`D-CRW-4`** | 🔴 **THE FIRST REAL RUN REQUIRES THE OWNER'S GREEN** | owner | — | — | 🔴 **NOT YET GIVEN** |
+
+> ### 🔴 `D-CRW-4` IS THE ONE THAT IS NOT DONE.
+>
+> The crawler exists, is tested, and **has never issued a request to any AlmiWorld host.** The
+> workflow that would run it has **no schedule trigger** and cannot fire by itself. Until the owner
+> gives `D-CRW-4`, every number the crawler has produced came from a local fixture server.
+
 ---
 
 # 1 · ALMIVISIBILITY CAPABILITY GAPS
@@ -192,6 +256,7 @@ passed test.
 | **U-DB-1** | do preview and production share a database | 🔴 **yes**, architecture report §2b — *never unknown, only unread* |
 | **U-DB-2** | which Postgres provider | **Neon**, same source |
 | **U-DEP-3** | are preview deployments public | ✅ **no — 302 to SSO.** Only merges publish |
+| **U-EST-1** | does any product run on its **own registered domain**, outside the domain property | **OWNER RULING 3, 11 Sep: NO** — every product is a subdomain of `almiworld.com`. 🔴 **Carries an expiry condition**: a future product on its own domain kills this answer that day |
 
 ## 5.2 · Open
 

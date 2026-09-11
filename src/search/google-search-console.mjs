@@ -205,6 +205,12 @@ export function createGoogleSearchConsoleProvider({ keyFilePath, fetchImpl = fet
         ...drained,
         propertyId,
         httpStatus: lastStatus,
+        // 🔴 LAW-BOUND-1. PR #35 returned requestCount and exhausted without
+        // these, so "one request drained 1,527 rows" could not be checked
+        // against the limit that made it possible. The bounds travel WITH the
+        // result, so a report can never be printed without them.
+        rowLimitPerRequest,
+        maxRequests,
         // 🔴 NOT MEASURED and said so. Deriving it from the returned rows would
         // report the last day WE happened to receive, not the last day Google
         // holds — and GSC lags by two to three days.

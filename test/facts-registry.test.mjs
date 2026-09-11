@@ -15,8 +15,8 @@ import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 
 import { factId, TIER_LEAD_ONLY, INCONCLUSIVE_OUTCOMES } from "../src/facts/schema.mjs";
-import { FACTS_DIR } from "../products/almi-oet/product.mjs";
-import { quotableUnder, requiredAttribution, LICENCES, quotabilityState, licenceClause } from "../src/facts/licences.mjs";
+import { FACTS_DIR, PRODUCT_ID } from "../products/almi-oet/product.mjs";
+import { quotableUnder, requiredAttribution, licencesVisibleTo, quotabilityState, licenceClause } from "../src/facts/licences.mjs";
 import { quoteUsableNow, renderableQuote } from "../src/facts/freshness.mjs";
 import { pageFingerprint, matchFingerprint, MIN_SUBSTANTIVE_LENGTH } from "../src/facts/fingerprint.mjs";
 import { scanForThirdPartyRights } from "../src/facts/quote-match.mjs";
@@ -25,13 +25,22 @@ import { fact } from "../src/facts/record.mjs";
 import { validateRecord, validateRegistry } from "../src/facts/validate.mjs";
 import { queueFor, freshnessRuleFor, manualQueueCost, automatedQueueIsUnattended } from "../src/facts/queues.mjs";
 import { normaliseText, matchQuote, runQuoteMatch, fetchForMatch } from "../src/facts/quote-match.mjs";
-import { loadRegistry, census, toGateAFact, REGISTRY_FACT_CHECK_COUNT } from "../src/facts/registry.mjs";
+import { loadRegistry, census, toGateAFact, REGISTRY_FACT_CHECK_COUNT } from "../src/facts/registry.mjs";
+
+// The licence view THIS product may read: the engine’s instruments plus its own.
+// Another product’s entries are not in it, and that is the point.
+const VISIBLE = licencesVisibleTo(PRODUCT_ID);
 
 const NOW = new Date("2026-09-10T00:00:00Z");
 
 /** A record that satisfies every law, so a test can break exactly one thing. */
 function lawful(overrides = {}) {
-  return fact({
+  // 🔴 A HAND-BUILT FIXTURE MUST STAMP ITS PRODUCT, exactly as loadRegistry
+  // stamps a record read from disk. Licence terms are per product now, so a
+  // record with no product sees only the ENGINE’s instruments — which is the
+  // safe direction, and which is why these fixtures were the first thing to go
+  // red when isolation landed.
+  return { _productId: PRODUCT_ID, ...fact({
     id: "uk-nmc.oet-minimum-grade.profession=nursing",
     claim: { subject: "uk-nmc", predicate: "oet-minimum-grade", qualifier: "profession=nursing" },
     scope: "destination",
@@ -57,7 +66,7 @@ function lawful(overrides = {}) {
     life: { status: "active", firstSeenOn: "2026-09-10", extractedOn: "2026-09-10" },
     provenance: { route: "R3", acquiredBy: "model:claude-opus-5" },
     ...overrides,
-  });
+  }) };
 }
 
 const laws = (r) => new Set(validateRecord(r).errors.map((e) => e.law));
@@ -292,8 +301,8 @@ describe("🔴 F11 — the queue is DERIVED, so it cannot be used to hide work",
     // What it can never do is authorise storing the source's words.
     assert.equal(freshnessRuleFor({ sourceMachineReadable: true, sourceQuotable: "unknown" }), "machine-fingerprint");
     for (const cls of ["rules", "standards", "guidance", "news", "general"]) {
-      assert.equal(quotableUnder("unknown-not-read", cls), "unknown");
-      assert.equal(quotableUnder("unknown-licence-unreachable", cls), "unknown");
+      assert.equal(quotableUnder("unknown-not-read", cls, PRODUCT_ID), "unknown");
+      assert.equal(quotableUnder("unknown-licence-unreachable", cls, PRODUCT_ID), "unknown");
     }
     assert.ok(laws(lawful({ licence: "unknown-not-read", sourceQuotable: true })).has("F18"));
   });
@@ -488,13 +497,13 @@ describe("🔴 the manual queue's cost", () => {
 
 describe("🔴 the registry as it actually stands on disk", () => {
   test("every record on disk satisfies every law", async () => {
-    const { records } = await loadRegistry(FACTS_DIR);
+    const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     const v = validateRegistry(records);
     assert.equal(v.valid, true, JSON.stringify({ bad: v.invalidRecords, registry: v.registryErrors }, null, 2));
   });
 
   test('🔴 §5A.1 — "a registry schema with zero usable supply is NOT PASS". There is supply', async () => {
-    const { records } = await loadRegistry(FACTS_DIR);
+    const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     assert.ok(records.length >= 30, `only ${records.length} records`);
     const c = census(records, { now: NOW });
     assert.ok(c.byQueue.AUTOMATED > 0, "an automated queue with nothing in it has not been demonstrated");
@@ -508,7 +517,7 @@ describe("🔴 the registry as it actually stands on disk", () => {
   });
 
   test("the registry holds facts from BOTH origin and destination sources, not one shape repeated", async () => {
-    const { records } = await loadRegistry(FACTS_DIR);
+    const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     const c = census(records, { now: NOW });
     assert.ok(c.byScope.origin > 0);
     assert.ok(c.byScope.destination > 0);
@@ -516,12 +525,12 @@ describe("🔴 the registry as it actually stands on disk", () => {
   });
 
   test("🔴 every record is tier 1 — not one citation in this registry is a blog", async () => {
-    const { records } = await loadRegistry(FACTS_DIR);
+    const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     assert.deepEqual(Object.keys(census(records, { now: NOW }).byTier), ["1"]);
   });
 
   test("the OET case is present and is machine-readable AND un-quotable", async () => {
-    const { records } = await loadRegistry(FACTS_DIR);
+    const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     const oet = records.find((r) => r.claim.subject === "oet");
     assert.ok(oet, "the case that split the two fields must be IN the registry, not only in the design");
     assert.equal(oet.sourceMachineReadable, true);
@@ -532,7 +541,7 @@ describe("🔴 the registry as it actually stands on disk", () => {
   });
 
   test("the corridor fact exists — Nigeria→UK has its own price", async () => {
-    const { records } = await loadRegistry(FACTS_DIR);
+    const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     const uk = records.find((r) => r.id === "ng-nmcn.verification-fee.destination=uk-nmc");
     assert.ok(uk);
     assert.equal(uk.value.value, 17500);
@@ -540,7 +549,7 @@ describe("🔴 the registry as it actually stands on disk", () => {
   });
 
   test("gaps are declared and counted — the alternative to declaring one is inventing a value", async () => {
-    const { records } = await loadRegistry(FACTS_DIR);
+    const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     const c = census(records, { now: NOW });
     assert.ok(c.gaps.length >= 5);
     // ✅ CORRECTED 2026-09-10: `writing-task-type` USED to be the example of an
@@ -559,7 +568,7 @@ describe("🔴 the registry as it actually stands on disk", () => {
 
 describe("🔴 factChecked stays ZERO, and records existing does not change that", () => {
   test("the registry's own count is zero, and the constant agrees with the data", async () => {
-    const { records } = await loadRegistry(FACTS_DIR);
+    const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     const c = census(records, { now: NOW });
     assert.equal(c.checks.factChecked, 0);
     assert.equal(REGISTRY_FACT_CHECK_COUNT, 0);
@@ -567,13 +576,13 @@ describe("🔴 factChecked stays ZERO, and records existing does not change that
   });
 
   test("🔴 not one record on disk carries factCheckedOn — link-checked is not read-and-judged", async () => {
-    const { records } = await loadRegistry(FACTS_DIR);
+    const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     const claimed = records.filter((r) => r.checks.factCheckedOn !== null);
     assert.deepEqual(claimed.map((r) => r.id), [], "somebody must NAME themselves to move this number");
   });
 
   test("Gate A's counter is still hard-coded 0 when fed this registry through the GATE'S OWN code", async () => {
-    const { records } = await loadRegistry(FACTS_DIR);
+    const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     const c = census(records, { now: NOW });
     assert.equal(c.gateA.factChecked, 0);
     assert.ok(c.gateA.linkChecked > 0, "and the link column is NOT zero, so the two are visibly different things");
@@ -601,11 +610,11 @@ describe("🔴 F17/F18 — quotability is decided PER DOCUMENT, not per domain",
     // Clause 6.3 permits reproducing rules, standards and guidance. Clause 6.2
     // refuses everything else storage "on any server ... connected to the
     // network" — which is exactly what this registry is.
-    assert.equal(quotableUnder("NMC-6.3", "guidance"), true);
-    assert.equal(quotableUnder("NMC-6.3", "rules"), true);
-    assert.equal(quotableUnder("NMC-6.3", "standards"), true);
-    assert.equal(quotableUnder("NMC-6.3", "news"), false, "an NMC news item is NOT quotable");
-    assert.equal(quotableUnder("NMC-6.3", "general"), false);
+    assert.equal(quotableUnder("NMC-6.3", "guidance", PRODUCT_ID), true);
+    assert.equal(quotableUnder("NMC-6.3", "rules", PRODUCT_ID), true);
+    assert.equal(quotableUnder("NMC-6.3", "standards", PRODUCT_ID), true);
+    assert.equal(quotableUnder("NMC-6.3", "news", PRODUCT_ID), false, "an NMC news item is NOT quotable");
+    assert.equal(quotableUnder("NMC-6.3", "general", PRODUCT_ID), false);
   });
 
   test("RED: a record claiming a quote from NMC NEWS is rejected", () => {
@@ -626,15 +635,15 @@ describe("🔴 F17/F18 — quotability is decided PER DOCUMENT, not per domain",
 
   test("gov.uk permits every class, INCLUDING commercially — AlmiWorld is commercial", () => {
     for (const cls of ["rules", "standards", "guidance", "news", "general"]) {
-      assert.equal(quotableUnder("OGL-v3.0", cls), true);
+      assert.equal(quotableUnder("OGL-v3.0", cls, PRODUCT_ID), true);
     }
-    assert.equal(LICENCES["OGL-v3.0"].permitsCommercial, true);
+    assert.equal(VISIBLE["OGL-v3.0"].permitsCommercial, true);
   });
 
   test("🔴 OET's carve-outs are NON-COMMERCIAL, so they do not reach us at all", () => {
-    assert.equal(LICENCES["OET-CBLA-IP"].permitsCommercial, false);
+    assert.equal(VISIBLE["OET-CBLA-IP"].permitsCommercial, false);
     for (const cls of ["rules", "standards", "guidance", "news", "general"]) {
-      assert.equal(quotableUnder("OET-CBLA-IP", cls), false);
+      assert.equal(quotableUnder("OET-CBLA-IP", cls, PRODUCT_ID), false);
     }
   });
 });
@@ -644,7 +653,7 @@ describe("🔴 F19 — silence is `false`, and only an UNREAD licence is `unknow
     // The owner's ruling: the absence of a licence is not permission, and
     // "all rights reserved" is what silence means. NMBI, PNMC and NMCN are all
     // this, and PR #9 had all three wrong as "unknown".
-    assert.equal(quotableUnder("proprietary-no-reuse", "guidance"), false);
+    assert.equal(quotableUnder("proprietary-no-reuse", "guidance", PRODUCT_ID), false);
   });
 
   test("RED: claiming `unknown` under a licence we HAVE read is rejected", () => {
@@ -689,9 +698,9 @@ describe("🔴 F20 — the credit is part of the permission, not a courtesy", ()
   });
 
   test("each licence names its own required credit", () => {
-    assert.match(requiredAttribution("OGL-v3.0"), /Open Government Licence v3\.0/);
-    assert.match(requiredAttribution("NMC-6.3"), /Nursing and Midwifery Council/);
-    assert.equal(requiredAttribution("OET-CBLA-IP"), null, "nothing may be quoted, so nothing needs crediting");
+    assert.match(requiredAttribution("OGL-v3.0", PRODUCT_ID), /Open Government Licence v3\.0/);
+    assert.match(requiredAttribution("NMC-6.3", PRODUCT_ID), /Nursing and Midwifery Council/);
+    assert.equal(requiredAttribution("OET-CBLA-IP", PRODUCT_ID), null, "nothing may be quoted, so nothing needs crediting");
   });
 });
 
@@ -902,7 +911,7 @@ describe("🔴 the link check must verify WHERE it landed", () => {
 
 describe("🔴 the registry after the licence correction", () => {
   test("every OET-sourced record stores NO span and its licence names all three grounds", async () => {
-    const { records } = await loadRegistry(FACTS_DIR);
+    const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     const oet = records.find((r) => r.claim.subject === "oet");
     assert.equal(oet.licence, "OET-CBLA-IP");
     assert.equal(oet.evidence.quotedSpan, null);
@@ -913,7 +922,7 @@ describe("🔴 the registry after the licence correction", () => {
   });
 
   test("🔴 the three silent sources are FALSE, not unknown — the owner's ruling", async () => {
-    const { records } = await loadRegistry(FACTS_DIR);
+    const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     for (const subject of ["ie-nmbi", "ng-nmcn", "pk-pnmc"]) {
       const rs = records.filter((r) => r.claim.subject === subject);
       assert.ok(rs.length > 0, subject);
@@ -927,14 +936,14 @@ describe("🔴 the registry after the licence correction", () => {
   });
 
   test("every quotable record carries the credit its licence requires", async () => {
-    const { records } = await loadRegistry(FACTS_DIR);
+    const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     // ⚠️ Scoped to records that actually STORE a span. A record holding only our
     // own words reproduces nothing and has nothing to credit — Immigration New
     // Zealand is exactly that shape.
     const withStoredSpan = records.filter((r) => r.sourceQuotable === true && r.evidence.quotedSpan);
     assert.ok(withStoredSpan.length > 0);
     for (const r of withStoredSpan) {
-      assert.ok(r.attributionStatement.includes(requiredAttribution(r.licence)), r.id);
+      assert.ok(r.attributionStatement.includes(requiredAttribution(r.licence, r._productId)), r.id);
     }
     const permittedButUnquoted = records.filter((r) => r.sourceQuotable === true && !r.evidence.quotedSpan);
     for (const r of permittedButUnquoted) {
@@ -943,14 +952,14 @@ describe("🔴 the registry after the licence correction", () => {
   });
 
   test("every fingerprint-watched record actually HAS a stored fingerprint", async () => {
-    const { records } = await loadRegistry(FACTS_DIR);
+    const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     const fp = records.filter((r) => freshnessRuleFor(r) === "machine-fingerprint");
     assert.ok(fp.length > 0);
     for (const r of fp) assert.equal(r.pageFingerprint.length, 64, r.id);
   });
 
   test("🔴 not one record's source URL is the parked nmcnigeria.org domain", async () => {
-    const { records } = await loadRegistry(FACTS_DIR);
+    const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     for (const r of records) assert.ok(!r.source.url.includes("nmcnigeria.org"), r.id);
     assert.ok(records.some((r) => r.source.url.includes("nmcn.gov.ng")), "Nigeria uses the real regulator domain");
   });
@@ -962,64 +971,64 @@ describe("🔴 the registry after the licence correction", () => {
 
 describe("🔴 quotability has THREE states, and RESERVED is not PROHIBITED", () => {
   test("each licence declares its state, and the vocabulary is closed", () => {
-    assert.equal(quotabilityState("OGL-v3.0"), "PERMITTED");
-    assert.equal(quotabilityState("NMC-6.3"), "PERMITTED");
-    assert.equal(quotabilityState("CC-BY-3.0-NZ"), "PERMITTED");
-    assert.equal(quotabilityState("proprietary-no-reuse"), "RESERVED");
-    assert.equal(quotabilityState("OET-CBLA-IP"), "PROHIBITED");
-    assert.equal(quotabilityState("unknown-not-read"), "UNREAD");
-    assert.equal(quotabilityState("unknown-licence-unreachable"), "UNREAD");
+    assert.equal(quotabilityState("OGL-v3.0", PRODUCT_ID), "PERMITTED");
+    assert.equal(quotabilityState("NMC-6.3", PRODUCT_ID), "PERMITTED");
+    assert.equal(quotabilityState("CC-BY-3.0-NZ", PRODUCT_ID), "PERMITTED");
+    assert.equal(quotabilityState("proprietary-no-reuse", PRODUCT_ID), "RESERVED");
+    assert.equal(quotabilityState("OET-CBLA-IP", PRODUCT_ID), "PROHIBITED");
+    assert.equal(quotabilityState("unknown-not-read", PRODUCT_ID), "UNREAD");
+    assert.equal(quotabilityState("unknown-licence-unreachable", PRODUCT_ID), "UNREAD");
   });
 
   test("🔴 RESERVED and PROHIBITED both block a quote AND ARE DIFFERENT STATES", () => {
     // Both produce sourceQuotable false. If the registry only recorded that
     // boolean, an unasked regulator and a flat refusal would look like the same
     // piece of work forever — one is closed by an email, the other by nothing.
-    assert.equal(quotableUnder("proprietary-no-reuse", "guidance"), false);
-    assert.equal(quotableUnder("OET-CBLA-IP", "guidance"), false);
-    assert.notEqual(quotabilityState("proprietary-no-reuse"), quotabilityState("OET-CBLA-IP"));
+    assert.equal(quotableUnder("proprietary-no-reuse", "guidance", PRODUCT_ID), false);
+    assert.equal(quotableUnder("OET-CBLA-IP", "guidance", PRODUCT_ID), false);
+    assert.notEqual(quotabilityState("proprietary-no-reuse", PRODUCT_ID), quotabilityState("OET-CBLA-IP", PRODUCT_ID));
   });
 
   test("every state carries the EXACT CLAUSE behind it, so it can be re-argued", () => {
-    for (const lic of Object.keys(LICENCES)) {
-      assert.ok(licenceClause(lic) && licenceClause(lic).length > 20, lic);
+    for (const lic of Object.keys(VISIBLE)) {
+      assert.ok(licenceClause(lic, PRODUCT_ID) && licenceClause(lic, PRODUCT_ID).length > 20, lic);
     }
-    assert.match(licenceClause("OET-CBLA-IP"), /commercially exploit/i);
-    assert.match(licenceClause("NMC-6.3"), /rules, standards and guidance/i);
-    assert.match(licenceClause("CC-BY-3.0-NZ"), /copy, distribute and adapt/i);
+    assert.match(licenceClause("OET-CBLA-IP", PRODUCT_ID), /commercially exploit/i);
+    assert.match(licenceClause("NMC-6.3", PRODUCT_ID), /rules, standards and guidance/i);
+    assert.match(licenceClause("CC-BY-3.0-NZ", PRODUCT_ID), /copy, distribute and adapt/i);
   });
 
   test("🔴 RESERVED is the LEGAL DEFAULT, not a cautious reading", () => {
     // Silence reserves every right. The conservative answer is the law as it
     // stands until somebody grants otherwise.
-    assert.equal(LICENCES["proprietary-no-reuse"].quotableClasses.length, 0);
-    assert.equal(LICENCES["proprietary-no-reuse"].permitsCommercial, false);
+    assert.equal(VISIBLE["proprietary-no-reuse"].quotableClasses.length, 0);
+    assert.equal(VISIBLE["proprietary-no-reuse"].permitsCommercial, false);
   });
 });
 
 describe("🔴 Immigration NZ — CC BY 3.0 NZ, and it broke a prediction", () => {
   test("it PERMITS copy, distribute and adapt, commercially", () => {
-    assert.equal(quotabilityState("CC-BY-3.0-NZ"), "PERMITTED");
-    assert.equal(LICENCES["CC-BY-3.0-NZ"].permitsCommercial, true);
+    assert.equal(quotabilityState("CC-BY-3.0-NZ", PRODUCT_ID), "PERMITTED");
+    assert.equal(VISIBLE["CC-BY-3.0-NZ"].permitsCommercial, true);
     for (const cls of ["rules", "standards", "guidance", "news", "general"]) {
-      assert.equal(quotableUnder("CC-BY-3.0-NZ", cls), true);
+      assert.equal(quotableUnder("CC-BY-3.0-NZ", cls, PRODUCT_ID), true);
     }
   });
 
   test("⚠️ it carries the same shape of caveat as the OGL's word MOST", () => {
     // PDFs, text files, documents, extracts and DATA may not be Crown copyright,
     // so a site-wide licence does not licence every artefact on the site.
-    assert.equal(LICENCES["CC-BY-3.0-NZ"].requiresPerPageThirdPartyCheck, true);
-    assert.match(LICENCES["CC-BY-3.0-NZ"].clause, /assessed per document/i);
+    assert.equal(VISIBLE["CC-BY-3.0-NZ"].requiresPerPageThirdPartyCheck, true);
+    assert.match(VISIBLE["CC-BY-3.0-NZ"].clause, /assessed per document/i);
   });
 
   test("its credit is Crown copyright, and it is NOT the OGL's credit", () => {
-    assert.match(requiredAttribution("CC-BY-3.0-NZ"), /Crown copyright/);
-    assert.notEqual(requiredAttribution("CC-BY-3.0-NZ"), requiredAttribution("OGL-v3.0"));
+    assert.match(requiredAttribution("CC-BY-3.0-NZ", PRODUCT_ID), /Crown copyright/);
+    assert.notEqual(requiredAttribution("CC-BY-3.0-NZ", PRODUCT_ID), requiredAttribution("OGL-v3.0", PRODUCT_ID));
   });
 
   test("🔴 the real record now says PERMITTED — and still stores no span", async () => {
-    const { records } = await loadRegistry(FACTS_DIR);
+    const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     const nz = records.find((r) => r.claim.subject === "nz-immigration-nz");
     assert.equal(nz.licence, "CC-BY-3.0-NZ");
     assert.equal(nz.sourceQuotable, true);
@@ -1029,7 +1038,7 @@ describe("🔴 Immigration NZ — CC BY 3.0 NZ, and it broke a prediction", () =
   });
 
   test("⚠️ and its per-page check is NOT clear — the scanner reports, a person rules", async () => {
-    const { records } = await loadRegistry(FACTS_DIR);
+    const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     const nz = records.find((r) => r.claim.subject === "nz-immigration-nz");
     assert.equal(nz.thirdPartyRightsCheck.clear, false);
     // It blocks nothing today because no span is stored, and it would have to be
@@ -1110,7 +1119,7 @@ describe("🔴 the freshness rule follows the STORED span, not the permission", 
     // The failure this correction removes: a rule that prescribed a quote match
     // for a record with no span, which could then never be anything but
     // permanently inconclusive.
-    const { records } = await loadRegistry(FACTS_DIR);
+    const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     for (const r of records) {
       if (freshnessRuleFor(r) === "machine-quote-match") {
         assert.ok(r.evidence.quotedSpan, `${r.id} is quote-matched with no span`);
@@ -1123,7 +1132,7 @@ describe("🔴 the freshness rule follows the STORED span, not the permission", 
 
 describe("🔴 the recount — the '16 → 2' prediction, measured", () => {
   test("of the four unread licences, ONE permitted and THREE reserved", async () => {
-    const { records } = await loadRegistry(FACTS_DIR);
+    const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     const bySubject = (s) => records.find((r) => r.claim.subject === s);
     assert.equal(quotabilityState(bySubject("nz-immigration-nz").licence), "PERMITTED");
     for (const s of ["ie-nmbi", "ng-nmcn", "pk-pnmc"]) {
@@ -1137,7 +1146,7 @@ describe("🔴 the recount — the '16 → 2' prediction, measured", () => {
     // between queues — the queue emptied because of FINGERPRINTING, which is a
     // different mechanism entirely. A projection where a measurement was
     // available. Rule Eight.
-    const { records } = await loadRegistry(FACTS_DIR);
+    const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     const c = census(records, { now: NOW });
     assert.equal(c.byQueue.MANUAL, 0);
     // Counts move as the registry is filled; what must NOT move is that all four
@@ -1196,7 +1205,7 @@ describe("🔴 the nightly job routes by the STORED SPAN, not the permission", (
   });
 
   test("and the whole real registry comes back with ZERO inconclusive checks", async () => {
-    const { records } = await loadRegistry(FACTS_DIR);
+    const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     for (const r of records) {
       const hasSpan = Boolean(r.evidence.quotedSpan);
       assert.equal(freshnessRuleFor(r), hasSpan ? "machine-quote-match" : "machine-fingerprint", r.id);
@@ -1318,7 +1327,7 @@ describe("🔴 F22 blocks on the REGION, and never on the whole page", () => {
   });
 
   test("every real gov.uk record carries a region verdict, and none conflicts", async () => {
-    const { records } = await loadRegistry(FACTS_DIR);
+    const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     const withSpan = records.filter((r) => r.thirdPartyRightsCheck && r.evidence.quotedSpan);
     assert.ok(withSpan.length >= 12);
     for (const r of withSpan) {
@@ -1328,7 +1337,7 @@ describe("🔴 F22 blocks on the REGION, and never on the whole page", () => {
   });
 
   test("🔴 and the NZ record KEEPS clear:false — the observation was not erased", async () => {
-    const { records } = await loadRegistry(FACTS_DIR);
+    const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     const nz = records.find((r) => r.claim.subject === "nz-immigration-nz");
     assert.equal(nz.thirdPartyRightsCheck.clear, false, "the whole-page observation must survive the ruling");
     assert.equal(nz.thirdPartyRightsCheck.spanRegionConflict, null, "no span is stored, so there is nothing to place");

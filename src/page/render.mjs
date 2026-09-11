@@ -70,7 +70,7 @@ export function renderFact(record, now = new Date()) {
       sourceUrl: url,
       tier: record.source.tier,
       licence: record.licence,
-      quotabilityState: quotabilityState(record.licence),
+      quotabilityState: quotabilityState(record.licence, record._productId),
       renderedQuote: Boolean(quote),
       quoteWithheld: !quote && record.sourceQuotable === true && Boolean(record.evidence.quotedSpan),
       quoteVerdict: verdict.reason,

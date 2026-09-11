@@ -29,16 +29,27 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
 import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
-import { FACTS_DIR, VARIANTS } from "../products/almi-oet/product.mjs";
 import { loadRegistry, toGateAFact } from "../src/facts/registry.mjs";
-import { NURSING_PAGE } from "../products/almi-oet/page-specs.mjs";
 import { claimIdsOf } from "../src/page/claim-ids.mjs";
 import { renderPage } from "../src/page/render.mjs";
 import { runGateA, MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../src/gate-a/run.mjs";
 import { tokensWithKind } from "../src/gate-a/text-kind.mjs";
 import { tokensOf } from "../src/gate-a/tokens.mjs";
 import { shingles, jaccard } from "../src/gate-a/overlap.mjs";
-import { fetchForMatch } from "../src/facts/quote-match.mjs";
+import { fetchForMatch } from "../src/facts/quote-match.mjs";
+
+import { productFromArgvOrExit } from "../src/product-cli.mjs";
+
+/**
+ * 🔴 THE PRODUCT ARRIVES AS AN ARGUMENT, NOT AS AN IMPORT.
+ *
+ * This runner used to resolve a product at IMPORT time, so it could not be
+ * pointed at a second one without editing this file. Its arithmetic was
+ * already generic; the BINDING was not.
+ *
+ * There is no default: a runner with no `--product=<id>` stops and says so.
+ */
+const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/nursing-chain.mjs --product=<id>" });
 
 const argv = process.argv.slice(2);
 const outDir = argv.find((a) => a.startsWith("--out="))?.split("=").slice(1).join("=") ?? null;
@@ -51,9 +62,9 @@ const f4 = (n) => (n === null || n === undefined ? "—" : n.toFixed(4));
 const SITE = "https://almioet.almiworld.com";
 
 // ── STEP 1 · the candidate, by reference ───────────────────────────────────
-const { records } = await loadRegistry(FACTS_DIR);
-const { html: candidateHtml, trace } = renderPage(NURSING_PAGE, records);
-const candidateFacts = claimIdsOf(NURSING_PAGE)
+const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
+const { html: candidateHtml, trace } = renderPage(PRODUCT.pageSpecs.nursing, records);
+const candidateFacts = claimIdsOf(PRODUCT.pageSpecs.nursing)
   .map((id) => records.find((r) => r.id === id))
   .map(toGateAFact);
 
@@ -68,7 +79,7 @@ console.log(`  ${trace.length} facts from ${new Set(trace.map((t) => t.subject))
 // this run's own output and not filtered by anything.
 mkdirSync(cacheDir, { recursive: true });
 const siblings = [];
-for (const p of VARIANTS) {
+for (const p of PRODUCT.variants) {
   if (p === "nursing") continue;
   const cached = join(cacheDir, `${p}.html`);
   if (existsSync(cached)) {
@@ -86,8 +97,8 @@ for (const p of VARIANTS) {
 console.log(`\nSTEP 2 · THE PUBLISHED POPULATION`);
 line("═");
 console.log(`  ${siblings.length} sibling profession pages, fetched live from ${SITE}`);
-if (siblings.length !== VARIANTS.length - 1) {
-  console.log(`  🔴 expected ${VARIANTS.length - 1}. A short population makes the overlap number weaker, not better.`);
+if (siblings.length !== PRODUCT.variants.length - 1) {
+  console.log(`  🔴 expected ${PRODUCT.variants.length - 1}. A short population makes the overlap number weaker, not better.`);
 }
 
 // ── STEP 3 · GATE A ────────────────────────────────────────────────────────
@@ -152,7 +163,7 @@ function simulateProfession(profession, index) {
 
 const rolloutGroup = [
   { id: "nursing (CANDIDATE)", html: candidateHtml, facts: candidateFacts, whyThisUrl: "x" },
-  ...VARIANTS.filter((p) => p !== "nursing").map((p, i) => ({
+  ...PRODUCT.variants.filter((p) => p !== "nursing").map((p, i) => ({
     id: `${p} (SIMULATED)`,
     html: simulateProfession(p, i + 1),
     facts: candidateFacts,
@@ -172,7 +183,7 @@ const sharedWords = sharedRecords.reduce(
   0,
 );
 const framingWords = tokensOf(
-  [NURSING_PAGE.title, NURSING_PAGE.intro, ...NURSING_PAGE.sections.map((s) => `${s.heading} ${s.framing ?? ""}`)].join(" "),
+  [PRODUCT.pageSpecs.nursing.title, PRODUCT.pageSpecs.nursing.intro, ...PRODUCT.pageSpecs.nursing.sections.map((s) => `${s.heading} ${s.framing ?? ""}`)].join(" "),
 ).length;
 const totalWords = tokensOf(candidateHtml).length;
 
@@ -248,9 +259,9 @@ const bestCaseOverlap = S.size / (S.size + U.size + U.size);
 // more than either number: a design whose verdict depends on which side of a
 // citation you draw a line is a design sitting ON the bar, not clearing it.
 const S2 = shingles(tokensOf([
-  NURSING_PAGE.title,
-  NURSING_PAGE.intro,
-  ...NURSING_PAGE.sections.map((sec) => `${sec.heading} ${sec.framing ?? ""}`),
+  PRODUCT.pageSpecs.nursing.title,
+  PRODUCT.pageSpecs.nursing.intro,
+  ...PRODUCT.pageSpecs.nursing.sections.map((sec) => `${sec.heading} ${sec.framing ?? ""}`),
   ...sharedRecords.map((r) => `${r.value.value} ${r.evidence.ownWords ?? ""} ${r.evidence.quotedSpan ?? ""}`),
 ].join(" ")));
 const U2 = shingles(tokensOf(trace

@@ -1,0 +1,55 @@
+# 🔴 THE GATE THAT STANDS BETWEEN A MERGE AND A DEPLOYMENT.
+#
+# Measured on 11 September 2026: every merge to `main` produces a PRODUCTION
+# deployment, three to five seconds after the merge commit. Until this file
+# existed, NOTHING ran between the two. The only thing protecting the estate was
+# that the deployment had nothing to serve.
+#
+# ⚠️ THIS WORKFLOW DOES NOT DEPLOY, AND MUST NOT.
+# It has no deploy step, no secret, no token, no environment, no `write`
+# permission and no access to any provider. It runs the test suite and the
+# boundary census, and reports. Deployment is Vercel's Git integration, which
+# this repository does not control and does not touch here.
+#
+# ── WHY THERE IS NO INSTALL STEP ────────────────────────────────────────────
+# `package.json` declares zero dependencies and zero devDependencies. The suite
+# is `node --test` over plain ESM. An `npm ci` here would install nothing, cost
+# minutes, and create a lockfile requirement this project deliberately does not
+# have.
+#
+# ⚠️ AND MINUTES ARE NOT FREE HERE. This repository is PRIVATE, so every minute
+# draws on the account's Actions allowance (public repositories are free). The
+# job is kept to one runner, one Node version and no install for that reason.
+
+name: test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Least privilege: read the code, write nothing.
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Matches the runtime every Vercel project in the estate reports: 24.x
+          node-version: '24'
+
+      - name: node --test
+        run: npm test
+
+      # 🔴 The boundary law is run SEPARATELY as well as inside the suite.
+      # Inside the suite it is one test among many and its number is invisible;
+      # here the count is printed, so a reviewer sees whether it is 0 without
+      # opening a log fold. The script exits non-zero when it is not.
+      - name: product boundary census
+        run: npm run boundary

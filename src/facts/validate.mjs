@@ -23,7 +23,7 @@ import {
 } from "./schema.mjs";
 import { queueFor, freshnessRuleFor } from "./queues.mjs";
 import {
-  LICENCES,
+  licencesVisibleTo,
   DOCUMENT_CLASSES,
   UNKNOWN_LICENCES,
   quotabilityState,
@@ -254,8 +254,9 @@ export function validateRecord(record) {
   // happened, copied from a document header rather than read from the clock.
   // The same mistake once stamped 32 records with tomorrow's date and Gate A
   // caught it. A DATE IS A MEASUREMENT.
-  if (!Object.prototype.hasOwnProperty.call(LICENCES, String(r.licence))) {
-    push("F17", `licence is ${JSON.stringify(r.licence)}, not one of ${Object.keys(LICENCES).join(", ")}`);
+  const visible = licencesVisibleTo(r._productId);
+  if (!Object.prototype.hasOwnProperty.call(visible, String(r.licence))) {
+    push("F17", `licence is ${JSON.stringify(r.licence)}, not one of ${Object.keys(visible).join(", ")}`);
   }
   if (!DOCUMENT_CLASSES.includes(r.sourceDocumentClass)) {
     // The message names no source. A licence that grants for one class what it
@@ -268,8 +269,8 @@ export function validateRecord(record) {
   // Same defence as the queue. A licence judgement written by hand cannot be
   // re-checked, and six months later it is indistinguishable from a licence
   // somebody actually read.
-  if (Object.prototype.hasOwnProperty.call(LICENCES, String(r.licence)) && DOCUMENT_CLASSES.includes(r.sourceDocumentClass)) {
-    const derivedQuotable = quotableUnder(r.licence, r.sourceDocumentClass);
+  if (Object.prototype.hasOwnProperty.call(visible, String(r.licence)) && DOCUMENT_CLASSES.includes(r.sourceDocumentClass)) {
+    const derivedQuotable = quotableUnder(r.licence, r.sourceDocumentClass, r._productId);
     if (r.sourceQuotable !== derivedQuotable) {
       push(
         "F18",
@@ -284,7 +285,7 @@ export function validateRecord(record) {
   // everything. "unknown" survives only where the terms could not be READ —
   // because AN UNREAD LICENCE IS NOT A PERMISSIVE ONE, and letting silence
   // register as uncertainty would quietly re-open a closed question.
-  if (r.sourceQuotable === "unknown" && quotabilityState(r.licence) !== "UNREAD") {
+  if (r.sourceQuotable === "unknown" && quotabilityState(r.licence, r._productId) !== "UNREAD") {
     push(
       "F19",
       `sourceQuotable is "unknown" under licence ${JSON.stringify(r.licence)} — "unknown" is only for ${UNKNOWN_LICENCES.join(" or ")}. A copyright notice with no grant is "all rights reserved", which is false, not unknown`,
@@ -300,7 +301,7 @@ export function validateRecord(record) {
   // REPRODUCING their words; a record holding only our own words reproduces
   // nothing and has nothing to credit.
   if (r.sourceQuotable === true && isFilled(r.evidence?.quotedSpan)) {
-    const needed = requiredAttribution(r.licence);
+    const needed = requiredAttribution(r.licence, r._productId);
     if (needed && !isFilled(r.attributionStatement)) {
       push("F20", `${r.licence} requires attribution and attributionStatement is empty — the credit is a CONDITION of the permission, not a courtesy`);
     } else if (needed && !String(r.attributionStatement).includes(needed)) {
@@ -317,7 +318,7 @@ export function validateRecord(record) {
   // sentence is the current wording.
   // ⚠️ Also scoped to a stored span: the currency condition governs a
   // reproduction, and there is no reproduction without one.
-  if (requiresCurrentVersion(r.licence) && isFilled(r.evidence?.quotedSpan) && r.freshness?.rule !== "machine-quote-match") {
+  if (requiresCurrentVersion(r.licence, r._productId) && isFilled(r.evidence?.quotedSpan) && r.freshness?.rule !== "machine-quote-match") {
     push(
       "F21",
       `${r.licence} makes currency a CONDITION OF THE PERMISSION, so this record must be watched by machine-quote-match, not ${JSON.stringify(r.freshness?.rule)}`,
@@ -330,7 +331,7 @@ export function validateRecord(record) {
   // carries no third-party credit — a per-page fact, not a domain-wide one.
   // ⚠️ Scoped the same way. The check exists to decide whether THIS page's
   // text may be stored — it is not owed for a record that stores none.
-  if (requiresPerPageThirdPartyCheck(r.licence) && isFilled(r.evidence?.quotedSpan)) {
+  if (requiresPerPageThirdPartyCheck(r.licence, r._productId) && isFilled(r.evidence?.quotedSpan)) {
     const check = r.thirdPartyRightsCheck;
     if (!check || !isIsoDate(check.checkedOn)) {
       push("F22", `${r.licence} requires a per-page third-party rights check before storing this page's text, and none is recorded`);

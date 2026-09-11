@@ -13,25 +13,36 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
-import { FACTS_DIR } from "../products/almi-oet/product.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
-import { NURSING_PAGE } from "../products/almi-oet/page-specs.mjs";
 import { claimIdsOf } from "../src/page/claim-ids.mjs";
 import { renderPage, findCopiedFacts } from "../src/page/render.mjs";
-import { tokensWithKind } from "../src/gate-a/text-kind.mjs";
+import { tokensWithKind } from "../src/gate-a/text-kind.mjs";
+
+import { productFromArgvOrExit } from "../src/product-cli.mjs";
+
+/**
+ * 🔴 THE PRODUCT ARRIVES AS AN ARGUMENT, NOT AS AN IMPORT.
+ *
+ * This runner used to resolve a product at IMPORT time, so it could not be
+ * pointed at a second one without editing this file. Its arithmetic was
+ * already generic; the BINDING was not.
+ *
+ * There is no default: a runner with no `--product=<id>` stops and says so.
+ */
+const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/build-page.mjs --product=<id>" });
 
 const argv = process.argv.slice(2);
 const outDir = argv.find((a) => a.startsWith("--out="))?.split("=").slice(1).join("=") ?? null;
 const permission = writePermission({ target: LOCAL, argv, env: process.env });
 if (outDir) announceWritePermission(permission);
 
-const { records } = await loadRegistry(FACTS_DIR);
-const { html, trace } = renderPage(NURSING_PAGE, records);
+const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
+const { html, trace } = renderPage(PRODUCT.pageSpecs.nursing, records);
 
 const line = (ch = "─") => console.log(ch.repeat(78));
 console.log(`\n/nursing — BUILT BY REFERENCE FROM THE REGISTRY`);
 line("═");
-console.log(`claims referenced   ${claimIdsOf(NURSING_PAGE).length}`);
+console.log(`claims referenced   ${claimIdsOf(PRODUCT.pageSpecs.nursing).length}`);
 console.log(`facts rendered      ${trace.length}`);
 console.log(`registry records    ${records.length}`);
 
@@ -59,7 +70,7 @@ for (const t of trace) byState[t.quotabilityState] = (byState[t.quotabilityState
 for (const [k, n] of Object.entries(byState)) console.log(`  ${k.padEnd(12)} ${n}`);
 
 // 🔴 §5A's actual requirement, checked rather than asserted.
-const copies = findCopiedFacts(NURSING_PAGE, records);
+const copies = findCopiedFacts(PRODUCT.pageSpecs.nursing, records);
 console.log(`\n🔴 §5A — "no independent untraceable copies of the same factual claim"`);
 line();
 console.log(`  fact text copied into the page spec: ${copies.length}`);

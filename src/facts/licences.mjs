@@ -75,7 +75,7 @@ export const QUOTABILITY_STATES = Object.freeze({
   UNREAD: "🔴 nobody has read the terms, or the licence page would not open. NEVER a permission",
 });
 
-const CATALOGUE = {
+const ENGINE_LICENCES = {
   /**
    * OGL v3.0 — read at nationalarchives.gov.uk/doc/open-government-licence/version/3/
    * and gov.uk/help/terms-conditions.
@@ -215,48 +215,73 @@ const CATALOGUE = {
 };
 
 /**
- * 🔴 A CATALOGUE IS NOT ITS ENTRIES, AND THIS IS THE CATALOGUE.
+ * 🔴 A CATALOGUE IS NOT ITS ENTRIES — AND NOW THE ENTRIES ARE PER PRODUCT.
  *
- * The four licences above are general instruments: OGL v3.0 licences most of
- * gov.uk, CC BY 3.0 NZ licences a great deal of the New Zealand government,
- * and the two UNKNOWN states are what every unread source starts as. None of
- * them is about one product.
+ * The instruments above are GENERAL: OGL v3.0 licences most of gov.uk, CC BY
+ * 3.0 NZ licences much of the New Zealand government, and the two UNKNOWN
+ * states are what every unread source starts as. Every product may read them,
+ * and that sharing is correct — they are the law, not one product’s data.
  *
- * The NMC's clause 6.3 and OET's IP policy are NOT general. They are the terms
- * of two named sources that one product happens to cite, and they moved to
- * `products/almi-oet/licences.mjs` unedited. The engine keeps the vocabulary,
- * the states, the derivation and the counting; the product brings the terms of
- * the documents it actually reads.
+ * A PRODUCT’S OWN ENTRIES ARE NOT. The NMC’s clause 6.3 and OET’s IP policy
+ * are the terms of two named documents one product happens to cite.
  *
- * ⚠️ ENTRIES MAY BE ADDED, NEVER REPLACED. A product that redefined `OGL-v3.0`
- * would change what every other product is permitted to do, silently and from
- * a file nobody reviewing the other product would ever open. So a duplicate key
- * throws, and every registered entry is frozen on arrival.
+ * ⚠️ WHAT THIS FIXES, AND IT WAS MEASURED BEFORE IT WAS FIXED. Registering a
+ * second product used to move shared counters — licences 7→8, gaps 12→13 — and
+ * either tenant could read the other’s terms by name. Redefinition was refused;
+ * READING WAS NOT. `test/product-isolation.test.mjs` now fails if that returns.
  */
+const BY_PRODUCT = new Map();
+
 export function registerLicences(productId, entries) {
   if (typeof productId !== "string" || productId.length === 0) {
     throw new Error("registerLicences(productId, entries): licence terms arrive from a product, so name it");
   }
+  const own = BY_PRODUCT.get(productId) ?? {};
   for (const [key, entry] of Object.entries(entries ?? {})) {
-    if (key in CATALOGUE) {
+    // 🔴 An ENGINE instrument may never be redefined by anyone. A product that
+    // redefined OGL-v3.0 would change what the LAW says, for everybody.
+    if (key in ENGINE_LICENCES) {
       throw new Error(
         `registerLicences(${productId}): "${key}" is already defined — a licence may be added, never redefined`,
       );
     }
+    if (key in own) {
+      throw new Error(`registerLicences(${productId}): "${key}" registered twice by the same product`);
+    }
     if (!(entry?.state in QUOTABILITY_STATES)) {
       throw new Error(`registerLicences(${productId}): "${key}" has state ${JSON.stringify(entry?.state)}, which is not a quotability state`);
     }
-    CATALOGUE[key] = Object.freeze({ ...entry, _productId: productId });
+    own[key] = Object.freeze({ ...entry, _productId: productId });
   }
+  BY_PRODUCT.set(productId, own);
 }
 
 /**
- * Every licence known right now — the engine's own plus whatever products have
- * registered. A live view, because registration happens at import time and a
- * frozen snapshot taken at module load would be empty.
+ * The one lookup every accessor goes through.
+ *
+ * 🔴 A PRODUCT SEES ITS OWN ENTRIES AND THE ENGINE’S — NEVER ANOTHER
+ * PRODUCT’S. Passing no product id sees the engine’s alone, which is the safe
+ * direction: a caller that forgets the product gets LESS, not more.
  */
-export const LICENCES = CATALOGUE;
+function resolve(licence, productId) {
+  const own = productId ? BY_PRODUCT.get(productId) : undefined;
+  return (own && own[licence]) ?? ENGINE_LICENCES[licence];
+}
 
+/** Every licence a given product may read: the engine’s, plus its own. */
+export function licencesVisibleTo(productId) {
+  return Object.freeze({ ...ENGINE_LICENCES, ...(productId ? BY_PRODUCT.get(productId) ?? {} : {}) });
+}
+
+/** The engine’s own general instruments, owned by nobody. */
+export function engineLicences() {
+  return Object.freeze({ ...ENGINE_LICENCES });
+}
+
+/** Which products have registered licence terms. */
+export function licenceRegisterProducts() {
+  return Object.freeze([...BY_PRODUCT.keys()]);
+}
 /** The two licences under which a record is allowed to say "unknown". */
 export const UNKNOWN_LICENCES = Object.freeze(["unknown-licence-unreachable", "unknown-not-read"]);
 
@@ -269,8 +294,8 @@ export const UNKNOWN_LICENCES = Object.freeze(["unknown-licence-unreachable", "u
  * produces `false`, not `"unknown"`** — that distinction is the whole of the
  * owner's ruling and collapsing it would quietly re-open a closed question.
  */
-export function quotableUnder(licence, documentClass) {
-  const l = LICENCES[licence];
+export function quotableUnder(licence, documentClass, productId) {
+  const l = resolve(licence, productId);
   if (!l) return false;
   if (l.state === "UNREAD") return "unknown";
   // PERMITTED still narrows by document class — NMC 6.3 grants for guidance and
@@ -286,26 +311,26 @@ export function quotableUnder(licence, documentClass) {
  * may do; the STATE decides what a person should do about it — write an email,
  * or stop.
  */
-export function quotabilityState(licence) {
-  return LICENCES[licence]?.state ?? "UNREAD";
+export function quotabilityState(licence, productId) {
+  return resolve(licence, productId)?.state ?? "UNREAD";
 }
 
 /** The exact clause behind a state, so the reasoning can be re-argued, never re-guessed. */
-export function licenceClause(licence) {
-  return LICENCES[licence]?.clause ?? null;
+export function licenceClause(licence, productId) {
+  return resolve(licence, productId)?.clause ?? null;
 }
 
 /** The exact credit this licence requires, or null where nothing may be quoted anyway. */
-export function requiredAttribution(licence) {
-  return LICENCES[licence]?.requiredAttribution ?? null;
+export function requiredAttribution(licence, productId) {
+  return resolve(licence, productId)?.requiredAttribution ?? null;
 }
 
 /** Does this licence make freshness a CONDITION OF THE PERMISSION rather than hygiene? */
-export function requiresCurrentVersion(licence) {
-  return LICENCES[licence]?.requiresCurrentVersion === true;
+export function requiresCurrentVersion(licence, productId) {
+  return resolve(licence, productId)?.requiresCurrentVersion === true;
 }
 
 /** Must each individual page be checked for a third-party credit before storing its text? */
-export function requiresPerPageThirdPartyCheck(licence) {
-  return LICENCES[licence]?.requiresPerPageThirdPartyCheck === true;
+export function requiresPerPageThirdPartyCheck(licence, productId) {
+  return resolve(licence, productId)?.requiresPerPageThirdPartyCheck === true;
 }

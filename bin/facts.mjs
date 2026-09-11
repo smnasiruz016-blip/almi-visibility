@@ -20,9 +20,21 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
 import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
-import { FACTS_DIR } from "../products/almi-oet/product.mjs";
 import { loadRegistry, census, REGISTRY_FACT_CHECK_COUNT } from "../src/facts/registry.mjs";
-import { queueReason } from "../src/facts/queues.mjs";
+import { queueReason } from "../src/facts/queues.mjs";
+
+import { productFromArgvOrExit } from "../src/product-cli.mjs";
+
+/**
+ * 🔴 THE PRODUCT ARRIVES AS AN ARGUMENT, NOT AS AN IMPORT.
+ *
+ * This runner used to resolve a product at IMPORT time, so it could not be
+ * pointed at a second one without editing this file. Its arithmetic was
+ * already generic; the BINDING was not.
+ *
+ * There is no default: a runner with no `--product=<id>` stops and says so.
+ */
+const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/facts.mjs <census|validate> --product=<id>" });
 
 const argv = process.argv.slice(2);
 const command = argv[0] ?? "census";
@@ -166,7 +178,7 @@ function reportCensus(c) {
 }
 
 async function main() {
-  const { files, records } = await loadRegistry(FACTS_DIR);
+  const { files, records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
   const out = flag("out");
 
   // 🔴 THE WRITE LAW, BEFORE ANYTHING CAN WRITE.

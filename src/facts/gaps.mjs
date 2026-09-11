@@ -56,9 +56,22 @@ export function registerGaps(productId, entries) {
   }
 }
 
-/** Every declared gap, across every product that has registered. */
-export function declaredGaps() {
-  return Object.freeze([...REGISTERED]);
+/**
+ * A product's declared gaps.
+ *
+ * 🔴 THE PRODUCT ID IS REQUIRED, AND THAT IS THE FIX.
+ *
+ * This used to return EVERY product's gaps to every caller, so a second tenant
+ * read the first's declared shortfalls simply by asking. Measured before it was
+ * fixed: registering a probe moved the shared count 12 to 13.
+ *
+ * ⚠️ A caller with no product gets an EMPTY list, not everything. The safe
+ * direction is LESS, not more — an omitted argument must never widen what is
+ * visible.
+ */
+export function declaredGaps(productId) {
+  if (!productId) return Object.freeze([]);
+  return Object.freeze(REGISTERED.filter((g) => g.productId === productId));
 }
 
 /**

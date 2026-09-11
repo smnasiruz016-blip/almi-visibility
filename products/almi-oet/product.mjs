@@ -64,6 +64,17 @@ export const ALMI_OET = registerProduct({
   placement: buildPlacement({ universal: UNIVERSAL_CLAIMS, pendingLayers: PENDING_LAYERS }),
 });
 
+/**
+ * 🔴 THE NAME THE ENGINE LOOKS FOR.
+ *
+ * `src/product-cli.mjs` resolves a product by reading `PRODUCT` from
+ * `products/<id>/product.mjs`. It must be a name that belongs to no product —
+ * reading a named export like this product's own constant would have put this
+ * product's name inside the engine, and the boundary law would have failed
+ * on the engine's own file. Caught while writing it.
+ */
+export const PRODUCT = ALMI_OET;
+
 /** Convenience re-exports for the runners. The engine uses the descriptor. */
 export const { productId: PRODUCT_ID, factsDir: FACTS_DIR, placement: PLACEMENT } = ALMI_OET;
 export const AXIS_KEY = ALMI_OET.axis.key;

@@ -24,6 +24,7 @@ import { createJsonlStore } from "../src/evidence/store.mjs";
 import { makeObservation } from "../src/evidence/records.mjs";
 import { sha256Hex } from "../src/evidence/ids.mjs";
 import { ESTATE_HOSTNAME_LIST, KNOWN_UNKNOWNS } from "../config/estate-hostnames.mjs";
+import { formatBoundedResult } from "../src/report/bounded.mjs";
 
 const COLLECTOR = "bin/gsc-ingest.mjs";
 const COLLECTOR_VERSION = "1";
@@ -95,7 +96,14 @@ const t = agg.rows[0];
 console.log("=== SITE TOTAL (dimensions:[], one aggregate row) ===");
 console.log(`  clicks=${t?.clicks ?? 0}  impressions=${t?.impressions ?? 0}  ` +
   `ctr=${((t?.ctr ?? 0) * 100).toFixed(2)}%  position=${(t?.position ?? 0).toFixed(2)}`);
-console.log(`  rowCount=${agg.rowCount} requestCount=${agg.requestCount} exhausted=${agg.exhausted} dataState=${agg.dataState}`);
+console.log(
+  "  " +
+    formatBoundedResult({
+      label: "searchAnalytics:aggregate",
+      bounds: { rowLimitPerRequest: agg.rowLimitPerRequest, maxRequests: agg.maxRequests },
+      fields: { rowCount: agg.rowCount, requestCount: agg.requestCount, exhausted: agg.exhausted, dataState: agg.dataState },
+    }),
+);
 console.log("");
 
 /* ---- 3. by page, paginated to exhaustion -------------------------------- */
@@ -159,7 +167,22 @@ record({ kind: "property", ref: property }, "gsc.searchAnalytics.query:by-page",
 });
 
 console.log(`=== BY PAGE — paginated to exhaustion ===`);
-console.log(`  rowCount=${pages.rowCount} requestCount=${pages.requestCount} exhausted=${pages.exhausted} dataState=${pages.dataState} truncationReason=${pages.truncationReason}`);
+/**
+ * 🔴 LAW-BOUND-1. PR #35 printed rowCount, requestCount and exhausted WITHOUT
+ * the row limit — so "one request drained 1,527 rows" could not be checked
+ * against the bound that made it possible. The bound prints here now.
+ */
+console.log(
+  "  " +
+    formatBoundedResult({
+      label: "searchAnalytics:by-page",
+      bounds: { rowLimitPerRequest: pages.rowLimitPerRequest, maxRequests: pages.maxRequests },
+      fields: {
+        rowCount: pages.rowCount, requestCount: pages.requestCount,
+        exhausted: pages.exhausted, dataState: pages.dataState, truncationReason: pages.truncationReason,
+      },
+    }),
+);
 console.log(`  cost: ${pages.cost.amount} ${pages.cost.currency} [${pages.cost.amountState}] apiCalls=${pages.cost.apiCalls}`);
 console.log("");
 

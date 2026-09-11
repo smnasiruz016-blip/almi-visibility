@@ -43,10 +43,19 @@ candidate           != generated page
 draft               != deployment
 deployment          != sitemap admission
 sitemap admission   != indexing, ranking or citation
+fetched URL         != indexed URL
+crawled inventory   != the site
 ```
 
 No generate-all or publish-all control. No research agent publishes production.
 No paid provider silently enabled. No uncontrolled recurring cost.
+
+🔴 **The last two were added with the crawler (11 September 2026), and they are the SEV-0
+failure seen from the other side.** Last time we *generated* the pages. A crawler we operate
+reading 240,328 dynamically-served pages would *pay to read them* — same account, same
+mechanism, opposite direction. So the crawler's cap is a module constant with no switch, its
+default is a dry run, and every run states in words that its requests are billable traffic on
+our own account.
 
 ## Status
 

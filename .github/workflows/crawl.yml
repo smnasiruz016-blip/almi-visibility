@@ -1,0 +1,70 @@
+# AlmiVisibility crawler — MANUAL ONLY.
+#
+# 🔴 THERE IS NO `schedule:` TRIGGER, AND THAT IS THE POINT.
+#
+# A cron on a crawler is a standing instruction to spend money on our own
+# infrastructure for ever, and the first person to notice is whoever reads the
+# bill. `workflow_dispatch` means somebody has to press the button, on purpose,
+# and their name is on the run.
+#
+# 🔴 `D-CRW-4` — the first REAL run requires the owner's green, which has NOT
+# been given. This workflow therefore defaults to a dry run, and a live run
+# needs BOTH inputs set deliberately.
+#
+# A test asserts this file has no `schedule:` key. If somebody adds one, the
+# suite goes red rather than the bill going up.
+
+name: crawl
+
+on:
+  workflow_dispatch:
+    inputs:
+      seeds:
+        description: "Path to a seed file in the repo (one URL per line)"
+        required: true
+        type: string
+      live:
+        description: "🔴 Issue REAL requests. Billable traffic on our own account. Requires the owner's green (D-CRW-4)."
+        required: true
+        default: false
+        type: boolean
+      owner_green:
+        description: "🔴 Confirm the owner has given D-CRW-4 green for this run"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Refuse a live run without the owner's green
+        if: ${{ inputs.live && !inputs.owner_green }}
+        run: |
+          echo "::error::D-CRW-4 has not been given. A live crawl issues billable requests against our own hosts."
+          exit 1
+
+      - name: Dry run (default)
+        if: ${{ !inputs.live }}
+        run: node bin/crawl.mjs --seeds=${{ inputs.seeds }}
+
+      - name: Live run
+        if: ${{ inputs.live && inputs.owner_green }}
+        run: node bin/crawl.mjs --seeds=${{ inputs.seeds }} --live --i-have-the-owners-green
+
+      - name: Upload the run
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crawl-run
+          path: runs/crawl/
+          if-no-files-found: ignore

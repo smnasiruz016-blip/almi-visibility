@@ -158,8 +158,27 @@ any form (§4.3, §9). **Isolation of a thing that does not exist is not a findi
 | migration counts, top three | `almi-prep-v2` **24** · `almi-cv-v2` **16** · `almi-pte` **14** | `ls prisma/migrations \| grep -c '^2'` |
 
 **`DATABASE_URL_UNPOOLED` on 38 of 53 is the pooled/unpooled pair characteristic of a serverless
-Postgres provider.** Which provider, and whether environments share an instance, is **UNKNOWN** and
-**must be answered by comparing HOSTS, never credentials** (§9, U-DB-1).
+Postgres provider.**
+
+### 🔴 AND I LISTED TWO OF THESE AS UNKNOWN WHEN THE REPOSITORY ALREADY HELD THE ANSWER
+
+`ARCHITECTURE_AND_GAP_REPORT.md` §2b answers both, **measured on 10 September by exactly the
+sanctioned method** — host comparison plus asking each server to name itself, no credential
+compared, no secret value printed:
+
+| question I marked UNKNOWN | the answer already on record |
+|---|---|
+| which provider? | **Neon**, project `noisy-truth-88221617`, database `neondb` |
+| do Preview and Production share an instance? | 🔴 **YES — the same database.** Same project id, same endpoint host, same `current_database()`, confirmed twice |
+
+**Consequences already recorded there, and not re-derived here:** AlmiVisibility has **no harmless
+place to test** — the first preview deployment that writes a row writes where production reads. The
+database is **empty** (`public` holds nothing but Neon's `neon_auth` scaffolding), the account is on
+**Neon Free** where branches are a limited resource (10), and **the owner ruled that no branch is
+created yet** precisely because there is nothing in it to protect.
+
+**U-DB-1 and U-DB-2 are therefore struck from my UNKNOWN list (§9).** They were never unknown; they
+were unread.
 
 ## 4.2 · 🔴 ALMIVISIBILITY HAS NO DATABASE AT ALL
 
@@ -170,27 +189,60 @@ ls prisma  →  NONE — no prisma, no schema, no migrations
 **This is the standing rule holding, not a defect:** *stop before the first valuable table.* It is
 recorded here so that the day a table appears, it is a visible change from a measured zero.
 
-## 4.3 · Analytics and funnel sources
+## 4.3 · Analytics and funnel sources — **AND MY FIRST ANSWER HERE WAS WRONG**
+
+🔴 **I first measured this as "NONE, zero across 27 live hosts". That was false, and it was caught
+by reconciling against `ARCHITECTURE_AND_GAP_REPORT.md` §3 — see **§10, AUDIT ONCE**.** The
+corrected measurement:
 
 | | measured |
 |---|---|
-| analytics packages in any `package.json` across the estate | **NONE** |
-| first-party analytics instrumentation in source | **NONE** |
+| third-party analytics (GA4 · GTM · Vercel Analytics · PostHog · Mixpanel) | ✅ **NONE, estate-wide** |
+| **Plausible page-view analytics** | ✅ **NONE, estate-wide** — see the tie-break below |
+| **first-party funnel event capture** | 🔴 **EXISTS — on exactly ONE product** |
 
-Search: `googletagmanager|gtag\(|@vercel/analytics|SpeedInsights|plausible\.io|posthog|mixpanel|G-[A-Z0-9]{9}`
-across `**/*.{ts,tsx,js,jsx,mjs,html}`. **Five files matched and all five were disqualified on
-reading:** one is an audit check that *looks for* analytics, three are third-party exam-board pages
-saved as research data (their own tags), and one was a **false positive** — the pattern `G-[A-Z0-9]{9}`
-matching the word fragment `G-PROBABILI` inside a comment about Whisper log-probabilities.
+### What actually exists, verified first-hand
 
-> ## 🔴 ALMIVISIBILITY CAPABILITY GAP — ANL-1
-> **There is no first-party analytics or funnel instrumentation anywhere in the estate: 27 live
-> hosts, zero.** Post-publish learning and any outcome/funnel measurement therefore has **no data
-> source today** — and that is **independent of, and additional to,** the Search Console blocker.
-> Recorded, not built.
+`almi-oet/src/lib/analytics/` holds `track.ts`, `events.ts` and `funnel-report.ts`.
+`export function track(name: FunnelEventName, …)` emits a log line **and** persists via
+`prisma.funnelEvent.create(...)` into a **`FunnelEvent` Postgres table** — and the file says why in
+its own header: *"FunnelEvent table rather than GA4, because UK/EU healthcare learners…"*. A build
+gate fails on an uncatalogued event name.
 
-⚠️ **The false positive is recorded deliberately.** Reporting "5 analytics hits" would have been
-wrong in the direction that looks like good news.
+**That is a real, readable data source, and it is one product of 27.**
+
+### 🔴 THE TIE-BREAK — TWO REPORTS DISAGREED AND A THIRD MEASUREMENT SETTLED IT
+
+`ARCHITECTURE_AND_GAP_REPORT.md` §3 records *"Plausible page-view analytics"* on **eleven**
+products. My first sweep found none. **Both were checked against the instrumentation signature
+rather than the word:**
+
+```
+rg "plausible\.io|data-domain=|script\.plausible"  across C:\Projects   →  NO MATCHES
+rg "[Pp]lausible" --glob "*.{ts,tsx,js,jsx,mjs}"                        →  20 files, ALL
+      ordinary English ("a plausible sentence") — including THIS repository's own fact-registry
+      comments, which I wrote
+```
+
+> **There is no Plausible anywhere. §3's eleven-product row is a keyword false positive** — the
+> exact trap that section's own method note says it guarded against. **Recorded, not quietly
+> dropped: a correction to another agent's report is worth as much as a correction to my own.**
+
+And my own sweep had a false positive too, in the other direction: of five files matched by
+`G-[A-Z0-9]{9}` etc., one was `G-PROBABILI` inside a comment about Whisper log-probabilities, three
+were third-party exam-board pages saved as research data, and one was an audit check that *looks
+for* analytics.
+
+> ### 🔴 I TRUSTED A ZERO FROM A PATTERN LIST I HAD NEVER VALIDATED AGAINST A KNOWN POSITIVE.
+> A package-manifest sweep cannot see instrumentation written by hand with no dependency, which is
+> precisely what AlmiOET's is. **Validate the scanner before trusting its zero** — a rule already on
+> this project's record, broken here by me.
+
+> ## 🔴 ALMIVISIBILITY CAPABILITY GAP — ANL-1 *(restated after correction)*
+> **Funnel evidence exists for 1 of 27 products and for no other. There is no page-view analytics
+> anywhere.** So an outcome claim of the form *"this page produced a signup"* is answerable for one
+> product and unanswerable for 26 — and AlmiVisibility has no capability that reads even the one
+> source that exists. Recorded, not built.
 
 ---
 
@@ -208,12 +260,19 @@ robots.txt** was fetched and checked for being real XML. **Nothing submitted, pi
 | DNS failure | **3** (`almipathway`, `almixyz`, `swedish`) |
 | `/` → **404** | **1** (`almivisibility`) |
 
-## 5.2 · 🔴 THE SITEMAP FINDING — AND IT REVERSES A LONG-STANDING BELIEF
+## 5.2 · THE SITEMAP SURFACE — **AND A CORRECTION TO MY OWN FRAMING**
 
-**`/sitemap.xml` returns 404 on 26 of 27 live hosts.** On the record, that has been carried as
-*"/sitemap.xml 404 on 23 of 23 hosts"* — a defect thought to affect the whole estate.
+🔴 **I first wrote that this "reverses a long-standing belief". It does not, and the claim was
+withdrawn before merge.** `ARCHITECTURE_AND_GAP_REPORT.md` §4 — in this repository, dated 10
+September — **had already established it**, by following `robots.txt` → declared sitemap → every
+child sitemap, and counting **12,855,354 URLs** across the network. It also already caught its own
+robots-parsing error. **The belief I thought I was overturning had been corrected a day earlier, in
+a file I had not read.**
 
-**It was the wrong URL.**
+What follows is therefore a **re-derivation on a wider host set**, and its value is the three hosts
+§4's product-name inventory did not include.
+
+**`/sitemap.xml` returns 404 on 26 of 27 live hosts — because that is the wrong URL.**
 
 | | measured |
 |---|---|
@@ -229,16 +288,24 @@ robots.txt** was fetched and checked for being real XML. **Nothing submitted, pi
 
 ### The three real defects, named
 
-| host | defect |
-|---|---|
-| 🔴 `almiarchitect` | its `robots.txt` declares `/sitemap.xml` — **and that URL returns 404.** The only broken declared sitemap in the estate |
-| ⚠️ `www.almiworld.com` | declares `/sitemap_index.xml` (underscore) **on a different host** — the apex `almiworld.com`, not the `www` host serving the robots file. It resolves and returns XML, but it is the estate's only cross-host declaration and its only underscore |
-| 🔴 `almihq` | `robots.txt` declares **no sitemap at all**, and `/sitemap.xml` returns **200 with `text/html`, byte-identical to its own homepage** |
+**All three are hosts `ARCHITECTURE_AND_GAP_REPORT.md` §4 did not cover.** Its inventory is keyed by
+product name and lists 24; it does not include `AlmiHQ`, `AlmiArchitect` or `AlmiVisibility`, and
+its "AlmiWorld Hub" row is `world.almiworld.com`, **not** `almihq`. (`almiswiss` was also outside
+it and is **healthy** — `/sitemap-index.xml` returns XML.)
+
+| host | defect | probed |
+|---|---|---|
+| 🔴 `almihq` | **no working sitemap anywhere.** `robots.txt` declares none; **both** `/sitemap.xml` **and** `/sitemap-index.xml` return `200 text/html`, byte-identical to its own homepage, **0 `<loc>` entries** | both paths |
+| 🔴 `almiarchitect` | its `robots.txt` declares `/sitemap.xml` — **and both** `/sitemap.xml` **and** `/sitemap-index.xml` return **404** | both paths |
+| ⚠️ `www.almiworld.com` | declares `/sitemap_index.xml` (underscore) **on a different host** — the apex — while its own `/sitemap-index.xml` is **404**. The declared one resolves and returns XML. The estate's only cross-host declaration and its only underscore | both paths |
 
 > ### 🔴 A `200` THAT IS THE HOMEPAGE IS WORSE THAN A `404`.
 > A 404 tells a crawler there is no sitemap. `almihq` tells it *"here is your sitemap"* and hands
-> over the app shell. Verified by fetching both and comparing SHA-256 of the bodies — **identical**.
-> The naive sweep counted this host as the estate's one working `/sitemap.xml`.
+> over the app shell. Verified by fetching both paths and comparing SHA-256 of the bodies —
+> **identical to the homepage, and containing zero `<loc>` elements.**
+>
+> ⚠️ **And it fooled the first sweep**: counting `200` responses alone, `almihq` was the estate's
+> *one working* `/sitemap.xml`. **A status code is not a content type, and neither is a parse.**
 
 **Register: PRODUCT DATA GAP** for all three — these are connected products' own published
 surfaces, not a missing AlmiVisibility mechanism. **Not fixed. Not touched.**
@@ -302,7 +369,8 @@ end of Phase 0; they are not a second register.
 | id | gap | evidence |
 |---|---|---|
 | **ISO-1** | licence and gap registries are shared global namespaces; two products read each other's | §3.1 — probe moved shared counters 7→8 and 12→13; six leak observations |
-| **ANL-1** | no analytics/funnel capability, and no data source for one | §4.3 — zero instrumentation across 27 live hosts |
+| **ANL-1** | funnel evidence exists for **1 of 27** products and nowhere else; no page-view analytics anywhere; AlmiVisibility reads neither | §4.3 — `almi-oet`'s `FunnelEvent` table verified first-hand; Plausible disproved estate-wide |
+| **AUD-1** | seven of the nine frozen items already had a document, and two successive audits were written without reading it | §10 |
 | **SEO-1** | no standing check of the public SEO surface; the sitemap sweep exists only as throwaway scripts | §5.3 |
 | **DEP-1** | AlmiVisibility deploys on every push and serves 404; no CI stands between a merge and that deployment | §2.2 |
 
@@ -322,12 +390,62 @@ end of Phase 0; they are not a second register.
 | # | UNKNOWN | reason | evidence required | who can resolve | recheck on |
 |---|---|---|---|---|---|
 | **U-ENV-1** | which of the 34 Vercel projects are live, retired or scratch | project count (34) exceeds linked repos (27) and live hosts (27); at least one is a dated scratch project | per-project domain assignment and last **production** deployment, read-only | **owner** (or a read-only CLI sweep, later phase) | next estate change |
-| **U-DB-1** | whether preview and production share one database instance | 38 of 53 schemas carry a pooled/unpooled pair; environment scoping was never inspected | **compare HOSTS, or ask each server its own identity. NEVER a credential** | **owner** | after **PRQ-2** |
-| **U-DB-2** | which Postgres provider hosts the 27 databases | inferred from the `DATABASE_URL_UNPOOLED` convention, **not measured** — measuring it from a connection string would mean reading a secret | the provider named by the owner, or a dashboard screenshot the owner takes | **owner** | — |
+| ~~U-DB-1~~ | ~~do preview and production share a database~~ | 🔴 **STRUCK — NOT UNKNOWN, UNREAD.** Answered in `ARCHITECTURE_AND_GAP_REPORT.md` §2b: **yes, the same Neon database**, measured by host comparison and by asking each server its identity | — | — | — |
+| ~~U-DB-2~~ | ~~which Postgres provider~~ | 🔴 **STRUCK — same source: Neon, project `noisy-truth-88221617`** | — | — | — |
 | **U-SEO-1** | whether the 25 healthy sitemaps are **submitted** and being fetched | submission state lives in Search Console, not in the artefact | Search Console coverage report | **owner**, after **PRQ-1** | after PRQ-1 |
 | **U-SEO-2** | whether `almihq`'s homepage-as-sitemap has been indexed as one | a `200 text/html` at a sitemap URL may or may not have been consumed | Search Console, or a crawl log | **owner**, after **PRQ-1** | after PRQ-1 |
 | **U-DEP-1** | whether the ~29-minute-old deployment was caused by the documentation merge | the timing matches within the hour; deployment-to-commit attribution was not read | a read-only deployment list with commit SHAs | **owner** or a later read-only sweep | next merge |
 | **U-ISO-1** | isolation of **costs** and **learning** | neither exists in any form, so neither can leak | the first cost record and the first learning record | later phase | when either exists |
+
+---
+
+# 10 · 🔴 AUDIT ONCE — AND IT HAD ALREADY BEEN BREACHED BEFORE I STARTED
+
+The owner's rule is **AUDIT ONCE → FREEZE GAP REGISTER → FIX → TARGETED VERIFY → CLOSE.**
+
+`ARCHITECTURE_AND_GAP_REPORT.md` — **1,064 lines, in this repository, dated 10 September** — already
+covers, by its own section headings:
+
+| frozen item | already covered by | |
+|---|---|---|
+| **2** database/infrastructure | §2, **§2b**, §2c | including the shared-database answer |
+| **2** analytics | §3 | |
+| **2** public SEO surface | §4 | 12,855,354 URLs counted, child sitemaps followed |
+| **2** reusable assets | §5 | *"what must NOT be rebuilt"* |
+| **3** GSC prerequisites | §6 | property type, API, scope, service account, what the owner must authorise |
+| **4** worker hosting | §7 | |
+| **5** DB growth and retention | §8 | |
+| **6** Case Study #1 | §9 | |
+| **7** gates | §10, §11, §11a, **§11b** | Gate A, B **and C** frozen |
+| **9** UNKNOWNs | §12, §13, §14 | |
+
+> ## 🔴 SEVEN OF THE NINE FROZEN ITEMS ALREADY HAD A DOCUMENT, AND TWO AUDITS WERE WRITTEN WITHOUT READING IT.
+>
+> The Phase 0 report re-audited without reconciling against it. **I then compounded the breach** by
+> re-measuring the SEO surface, the analytics coverage and the database questions from scratch —
+> and published a "reversal" of a belief this repository had already corrected a day earlier.
+
+**The cost is measurable and it is not only wasted effort:**
+
+| | |
+|---|---|
+| 🔴 | I reported analytics as **NONE** when one product has a full funnel table. **A fresh measurement is not automatically a better one** |
+| 🔴 | I raised **two UNKNOWNs that were already answered**, one of them the shared-database question — the single most consequential infrastructure fact in the estate |
+| 🔴 | I framed a re-derivation as a discovery |
+| ✅ | and the reconciliation paid for itself: it caught **§3's own false positive** — eleven products credited with Plausible analytics that do not exist |
+
+> ### THE RULE THIS PRODUCED
+> **Before measuring anything, read what the repository already measured. An audit that does not
+> start from the existing audit is not AUDIT ONCE — it is audit again, and the second one is not
+> automatically the right one.**
+
+⚠️ **What this does NOT mean:** the existing report is not assumed correct either. Where the two
+disagreed on Plausible, the tie was broken by a **third measurement against the instrumentation
+signature**, not by seniority. **Reconcile, then measure what is genuinely uncovered.**
+
+**Consequence for the remaining frozen items (3, 4, 5, 6, 7):** each begins by reading
+`ARCHITECTURE_AND_GAP_REPORT.md`'s corresponding section and recording what it already answers.
+**No section of it is rewritten.**
 
 ---
 

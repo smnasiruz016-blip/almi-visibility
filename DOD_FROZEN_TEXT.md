@@ -1,18 +1,45 @@
-# THE DEFINITION OF DONE — 🔴 THE FROZEN TEXT IS NOT HERE
+# THE DEFINITION OF DONE — ✅ THE FROZEN TEXT IS NOW IN THE REPOSITORY
 
-**11 September 2026.** This file exists because `DOD-MAP-1` says the Definition of Done is being
-mapped from a **status table**, not from its own text — and the fix was to put the text in the
-repository.
-
-> ## 🔴 UNKNOWN — THE TEXT WAS NOT FOUND, AND IT HAS NOT BEEN INVENTED.
+> ## ✅ UNKNOWN CLOSED — 11 September 2026.
 >
-> **`DOD-01`…`DOD-20`, `DOD-03A` and `§5A` do not exist as requirement text anywhere I can reach.**
-> What exists everywhere is **statuses** and **references to** the requirements. Not one file states
-> what any DoD item actually requires.
+> **The frozen text is at `DOD_FROZEN_TEXT_SOURCE.md`**, copied byte-for-byte (SHA-256 verified
+> against the handoff copy) with its provenance header intact. **21 identifiers: `DOD-01`…`DOD-20`
+> plus `DOD-03A`.**
+>
+> **Where it actually was:** the owner uploaded
+> `ALMIVISIBILITY_DEFINITION_OF_DONE_FINAL_1.docx` into the **Cowork conversation on 10 September
+> 2026, 18:25**. It lives in that session's upload store. **`C:\Projects\…` does not contain it and
+> never did.**
 
-**Nothing was reconstructed, paraphrased or inferred.** A reconstructed DoD would be
-indistinguishable from an invented one, and it would then be used to judge whether the product is
-done. That is the failure this project bought a lesson in the same night: *a label without a record*.
+## 🔴 THE SEARCH RECORD BELOW IS KEPT, NOT DELETED — IT IS THE USEFUL PART
+
+**The search was correct and its `UNKNOWN` was correct.** The file was not in the estate, so no
+amount of searching the estate could have found it. **What follows is the record of a search that
+found nothing because there was nothing there** — and that is a different thing from a search that
+missed something.
+
+> **It is kept for one reason: the next time a document cannot be found, this is the evidence that
+> "I looked and it is not here" is a finding, not a failure — and that the right response is to ask
+> rather than to write one.**
+
+⚠️ **And the discipline it bought was the expensive part.** Had a plausible Definition of Done been
+reconstructed from the status labels, it would have been indistinguishable from an invented one —
+and §3 below shows exactly what that would have cost: **the real text contains requirements the
+labels never hinted at**, and a reconstruction would have contained the hints instead of the
+requirements.
+
+---
+
+# 0 · WHAT THE REAL TEXT CHANGED — one correction to this document's own finding
+
+This file originally recorded that *"the other 18 rows could be checked against nothing."*
+
+**Half right, and the half that was wrong matters.** The table rows **are** labels — that part
+stands. But **the requirements were never in the table**: they are in **§1 through §5A**, which
+carry real, testable sentences. A map built from the table alone was reading the index and calling
+it the book.
+
+**The map has been rebuilt against the text — see `DOD_MAP_AGAINST_TEXT.md`.**
 
 ---
 
@@ -77,14 +104,15 @@ two-to-five-word label, and **that is the whole of `DOD-MAP-1`.**
 
 ---
 
-# 4 · WHAT IS NEEDED, AND FROM WHOM
+# 4 · ~~WHAT IS NEEDED, AND FROM WHOM~~ — ✅ SUPPLIED
 
-> ### 🔴 THE OWNER'S DoD DOCUMENT.
+> ### ✅ THE OWNER'S DoD DOCUMENT ARRIVED, AND IS NOW AT `DOD_FROZEN_TEXT_SOURCE.md`.
 >
-> The frozen text of **`DOD-01`…`DOD-20`, `DOD-03A`, and `§5A` in full** — as a file in
-> `_handoffs/`, or any form that can be committed here verbatim.
+> ~~The frozen text of `DOD-01`…`DOD-20`, `DOD-03A`, and `§5A` in full.~~ **Supplied 11 September
+> 2026.** The request below is kept because its reasoning is what made the request specific enough
+> to be answerable.
 
-**Why it cannot be substituted:**
+**Why it could not have been substituted:**
 
 - **Four UNKNOWNs already turn on wording nobody can read** — `U-DOD-2` (does `DOD-06`'s *"semantic"*
   mean embeddings or a rule?), `U-DOD-3` (what must `DOD-17` explain, and to whom?), `U-DOD-4` (is
@@ -94,9 +122,10 @@ two-to-five-word label, and **that is the whole of `DOD-MAP-1`.**
 - **One row has already moved once** on evidence rather than text: `DOD-03A` was carried as *"not
   started"* after the engine was built, merged and measured.
 
-⚠️ **Until it arrives, item 7's map stands as the best available reading and is labelled as one.**
-It is derived from a status table. **It is not a check against the Definition of Done, and this file
-exists so that nobody later mistakes it for one.**
+✅ **It has arrived, and item 7's map has been rebuilt against the text** — `DOD_MAP_AGAINST_TEXT.md`.
+The old map is **marked superseded, not deleted**: a reading that changed when the evidence arrived
+is worth keeping visible, and the difference between the two is the measure of what a label-based
+map was worth.
 
 ---
 

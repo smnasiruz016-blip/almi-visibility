@@ -1,5 +1,18 @@
 # PHASE 0 · FROZEN ITEM 7 — QUALITY GATES AND THE DEFINITION OF DONE, MAPPED TO ARCHITECTURE
 
+> ## ⚠️ SUPERSEDED 11 SEPTEMBER 2026 — SEE `DOD_MAP_AGAINST_TEXT.md`
+>
+> **This map was built against a 21-row status table of labels, because the DoD's own text could not
+> be found.** The text arrived the same night (`DOD_FROZEN_TEXT_SOURCE.md`) and the map was rebuilt
+> against **§1–§5A and the frozen gate tables**.
+>
+> **Kept, not deleted.** Its statuses were carried into the new map unchanged, and the *difference*
+> between the two is the measure of what a label-based map was worth: the text requires things no
+> label hinted at — a stored derivation formula, a five-way fact taxonomy, and a **conjunction** of
+> five gates before any page may be created.
+>
+> ⚠️ **And it was harsher than the text in one place and softer in another.** Read the new map.
+
 **11 September 2026.** Against the frozen boundary: **MEASURE FIRST. NO BUILD.**
 
 **Read first, per AUDIT ONCE:** `ARCHITECTURE_AND_GAP_REPORT.md` **§10** (Gate A), **§11** and

@@ -82,6 +82,24 @@ path is live.** Measured by `GET`:
 **And nothing restricts it:** `/robots.txt` returns **404**, so there is no `Disallow` of any kind.
 The tree is unlinked rather than protected — **obscure, not private.**
 
+### ✅ BUT PREVIEW DEPLOYMENTS ARE PROTECTED — AND THAT NARROWS THIS CONSIDERABLY
+
+Measured rather than assumed, because the difference decides how far the exposure reaches:
+
+| | result |
+|---|---|
+| **production** (`almivisibility.almiworld.com`) | 🔴 **200 — public to anyone** |
+| **preview** (a branch deployment) | ✅ **302 → `vercel.com/sso-api`** — Vercel Deployment Protection |
+
+> **A branch push publishes NOTHING. Only a merge to `main` does.**
+
+**So the exposed set is exactly what has been merged to `main`**, and the three branch pushes in the
+correlation table above — despite each producing a deployment — put nothing in public.
+
+⚠️ **I had listed this as an UNKNOWN and then measured it**, because a conclusion that says "every
+push deploys" without saying *what a preview deployment is readable by* is a finding shaped to
+alarm rather than to inform. **One `GET` was the whole cost.**
+
 ### 🔴 Why this is a finding and not a footnote
 
 Three of the project's own standing laws land on it at once:
@@ -202,7 +220,7 @@ is not repeated here. Not fixed — that is Phase 1.**
 | # | UNKNOWN | reason | evidence required | who can resolve | recheck on |
 |---|---|---|---|---|---|
 | **U-DEP-2** | whether the published tree has been **crawled or indexed** | it is unlinked and has no `robots.txt`, so discovery depends on external linking and on crawler behaviour, neither of which is visible from here | Search Console coverage / URL Inspection for the host | **owner**, after read-only API access | after that access |
-| **U-DEP-3** | whether **preview** deployments are equally public | only the production host was probed; preview URLs were not fetched, because probing them was not asked for and would widen the surface touched | one read-only `GET` per preview host, if the owner wants it | **owner decides whether to ask** | — |
+| ~~U-DEP-3~~ | ~~whether preview deployments are equally public~~ | ✅ **RESOLVED — measured, not left open.** A preview returns **302 to `vercel.com/sso-api`**: Vercel Deployment Protection. **Previews publish nothing; only merges to `main` do** | — | — | — |
 | **U-GSC-1** | the real Search Console **data lag** | Gate B's waiting period depends on the measured lag, not an assumed one | a first query against the property | **owner**, after read-only API access | after that access |
 | **U-GSC-2** | the **URL Inspection API quota** in practice | quota is per property and per day, and has never been exercised | a first run | **owner**, after read-only API access | after that access |
 | **U-DOC-1** | whether the same correction lags elsewhere | only the GSC fact was traced across the document | a sweep of every fact stated in both a summary and a body | later phase | — |

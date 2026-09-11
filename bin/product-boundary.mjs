@@ -11,6 +11,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { scanSource, distinctLines } from "../tools/product-boundary.mjs";
+import { countDetectorFiles, MAX_DETECTOR_FILES } from "../tools/detector-census.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const SRC = join(REPO, "src");
@@ -54,6 +55,22 @@ console.log(`\ncode lines: ${codeLines}  (${codeHits} occurrences)   comment lin
 console.log(codeLines === 0 ? "\n✅ the system names no product in code." : "\n🔴 the system still knows which product it is serving.");
 
 /**
+ * 🔴 C5 — THE DETECTOR CENSUS, PRINTED BY THE SAME COUNTER THE TEST USES.
+ *
+ * A second implementation here would eventually give the quieter answer, and the
+ * quieter answer is the one that gets believed. So `bin/` and `test/` share
+ * `tools/detector-census.mjs` and cannot disagree.
+ */
+const detectors = countDetectorFiles(REPO);
+console.log(`\nDETECTOR CENSUS: ${detectors.count} detector files (ceiling ${MAX_DETECTOR_FILES})`);
+if (detectors.count > 0) {
+  for (const f of detectors.files) console.log(`  🔴 ${f}`);
+  console.log("\n🔴 THIS PR BUILDS THE SHELF. IT DOES NOT BUILD WHAT GOES ON IT.");
+} else {
+  console.log("✅ zero detectors — the evidence store is not built to the six known RED classes.");
+}
+
+/**
  * 🔴 AND THE EXIT CODE, WHICH THIS SCRIPT DID NOT HAVE UNTIL A CI JOB NEEDED IT.
  *
  * It printed the breach and exited 0 — so run as a build step it would have
@@ -64,4 +81,4 @@ console.log(codeLines === 0 ? "\n✅ the system names no product in code." : "\n
  * The test in `test/product-boundary.test.mjs` was always the real enforcement.
  * This makes the REPORT enforce it too, so the two cannot disagree.
  */
-process.exit(codeLines === 0 ? 0 : 1);
+process.exit(codeLines === 0 && detectors.count <= MAX_DETECTOR_FILES ? 0 : 1);

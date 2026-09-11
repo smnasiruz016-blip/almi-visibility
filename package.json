@@ -16,6 +16,7 @@
     "profession-chain": "node bin/profession-chain.mjs --product=almi-oet",
     "boundary": "node bin/product-boundary.mjs",
     "census:distinguishing": "node bin/distinguishing-census.mjs --product=almi-oet",
-    "census:clinical": "node bin/clinical-layer-census.mjs"
+    "census:clinical": "node bin/clinical-layer-census.mjs",
+    "gsc:ingest": "node bin/gsc-ingest.mjs"
   }
 }

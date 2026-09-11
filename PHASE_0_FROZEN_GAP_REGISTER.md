@@ -91,7 +91,10 @@ passed test.
 | **DB-3** | **the Free plan has three limits and any one suspends compute. Only storage is modelled**; egress and compute are not | item 5 §4 | RECORD |
 | **CS-1** | the corpus manifest **cannot verify itself unaided** — one entry's hash field is a pointer, its size is another page's figure, and the size field is string length under a name that says bytes | item 6 §2.3 | RECORD |
 | **CS-2** | the **34 exhibit copies are pinned by commit SHA only**; no content hash, so an edited copy would go unnoticed | item 6 §2.4 | RECORD |
-| **CS-3** | **the acceptance test has never been run.** A frozen contract with no result is a contract, not evidence | item 6 §3 | RECORD |
+| **CS-3** | **the acceptance test has never been run** — attempted 11 Sep and **NOT RUNNABLE**: nothing implements the contract. `bin/acceptance-test.mjs` is a different instrument (corridor Gate-A splice, verdict KEEP/REJECT) | `CASE_STUDY_01_RUN_01.md` §2 | RECORD |
+| **CS-4** | **no runner exists that reads the corpus AND the four exhibits and scores 6/6 + 0/3** | same §6 | RECORD |
+| **CS-5** | 🔴 **RED 2 has no frozen input.** It is *"live-confirmed"* only — no exhibit, no corpus page. **A frozen test with one unfrozen input is not frozen**, and the day that page is fixed the defect becomes unreproducible for ever | same §3 | RECORD — **needs an owner ruling** |
+| **DOC-2** | **18 of the 20 documents the build spec names do not exist.** Four are partly covered under other names; eleven have nothing at all | same §7 | RECORD |
 | **GATE-1** | **four of seven gate families have no architectural home**: semantic, cannibalization, technical, cost | item 7 §3 | RECORD |
 | **GATE-2** | 🔴 **Gate C is a gate, not a governor.** It judges cost; nothing caps, meters or refuses spend | item 7 §2 | RECORD |
 | ~~DOD-MAP-1~~ | ~~the DoD is mapped from a status table, not its own text~~ | ✅ **CLOSED 11 Sep** — the text is at `DOD_FROZEN_TEXT_SOURCE.md`, hash-verified, and the map is rebuilt against §1–§5A | CLOSED |
@@ -217,7 +220,7 @@ passed test.
 
 | | |
 |---|---|
-| capability gaps | **29 open** — 24 rows, of which `DOD-MAP-1` is now **CLOSED**, plus **6** added by reading the DoD's own text (30 rows, 1 closed) |
+| capability gaps | **32 open** of 33 rows — `DOD-MAP-1` **CLOSED**; +6 from reading the DoD text, +3 from attempting Case Study #1 (`CS-4`, `CS-5`, `DOC-2`) |
 | product data gaps | **10** |
 | owner actions | **2** |
 | prerequisites | **9** |

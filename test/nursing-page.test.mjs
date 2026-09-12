@@ -28,7 +28,7 @@ const NOW = new Date("2026-09-10T00:00:00Z");
 // and the NMC currency condition — which is a PRODUCT licence — never fires.
 const base = (extra = {}) => ({
   _productId: PRODUCT_ID,
-  ...fact({
+  ...fact({ /*A3*/ verificationState: "UNVERIFIED",
     id: "uk-nmc.oet-minimum-grade.profession=nursing",
     claim: { subject: "uk-nmc", predicate: "oet-minimum-grade", qualifier: "profession=nursing" },
     scope: "destination",

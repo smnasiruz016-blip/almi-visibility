@@ -141,6 +141,47 @@ Both are asserted by tests that read the emitted report text.
 
 ---
 
+## `LAW-ORPHAN-1` — A MODULE IMPORTED ONLY BY ITS OWN TEST IS DEAD CODE
+
+**Raised 12 September 2026, from two incidents of the same shape.**
+
+1. `bin/placement-measure.mjs` imported constants that had been deleted. It threw on its first
+   line from PR #20 onward and **nobody noticed for a day**.
+2. `src/evidence/transitions.mjs` encoded the law that UNKNOWN never becomes PASS, was proved
+   falsifiable by injection — and was **imported by nothing except its own test.**
+
+> ### A GUARD THAT GOVERNS NO PRODUCTION PATH IS NOT A GUARD.
+> Its tests pass, its coverage looks healthy, and it is doing no work at all.
+
+**The law:** every module under `src/` must have at least one **non-test** importer. The census
+lives in `test/entry-points.test.mjs` and fails the build. An exemption is permitted, must be
+named in `ORPHAN_ALLOWLIST` with a written reason, and **the allowlist is empty today.**
+
+---
+
+# 0C · 🔴 A CORRECTION, RECORDED — THE 46 FACT RECORDS ARE RESTATED AS UNVERIFIED
+
+**12 September 2026.** The checklist audit found `factCheckedOn` **null on all 46 records** while
+the engine was being described as a *verified fact supply*. Key feature 15's PASS meaning requires
+a verification date, and there was none.
+
+| | |
+|---|---|
+| what changed | `verificationState` is **REQUIRED at construction**. A fact that will not declare `UNVERIFIED` or `VERIFIED` **throws**. `VERIFIED` without a date throws; `UNVERIFIED` carrying a date throws |
+| what the 46 records now say | **`UNVERIFIED`** — declared, on every record |
+| what did **not** change | their values, their sources, their tiers, their link/quote/fingerprint checks. **Nothing was deleted and no diff removed a line** (20 insertions, 0 deletions across 9 files) |
+
+> ### 🔴 THE DATE WAS NOT BACKFILLED, AND THAT IS THE POINT.
+>
+> Writing today's date into `factCheckedOn` would have turned 46 items green in an afternoon. It
+> would also have been **the exact failure key feature 50 forbids** — turning missing evidence into
+> an observed fact. The records were never verified; now they say so.
+>
+> **This is a CORRECTION, not a REGRESSION.** Nothing got worse on 12 September. The registry
+> stopped overstating what it had always been.
+
+---
+
 # 0B · DECISIONS — CRAWLER
 
 Recorded as decisions, with their kind, their tier and their date. **A decision is not a gap and not

@@ -27,6 +27,8 @@ const LIST_SPAN =
   "An applicant will meet the English language requirement if they are a national of any of the following majority-English-speaking countries:";
 
 const common = {
+  // 🔴 A3, 12 Sep 2026: declared UNVERIFIED. The value and source stand; nobody has fact-checked it.
+  verificationState: "UNVERIFIED",
   sourceMachineReadable: true,
   sourceMachineReadableBasis: MR,
   sourceQuotable: true,

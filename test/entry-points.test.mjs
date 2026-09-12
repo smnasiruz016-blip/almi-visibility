@@ -87,3 +87,97 @@ test("🔴 every runner that needs a product takes it as an ARGUMENT, never as a
   }
   assert.deepEqual(offenders, [], `\n  ${offenders.join("\n  ")}\n`);
 });
+
+/* ================================================================== *
+ * 🔴 THE ORPHAN MODULE CENSUS — GENERALISED FROM TWO REAL INCIDENTS.
+ *
+ * Incident one: `bin/placement-measure.mjs` was dead from PR #20 and nobody
+ * noticed for a day.
+ *
+ * Incident two: `src/evidence/transitions.mjs` encoded the law that UNKNOWN
+ * never becomes PASS, was proved falsifiable by injection — and was imported
+ * by NOTHING except its own test. It governed no production path at all.
+ *
+ * Same shape both times: a module whose only consumer is the thing that
+ * verifies it. Its tests pass, its coverage looks fine, and it is doing no
+ * work. **A guard that governs no production path is not a guard.**
+ *
+ * So this counts, for every module under src/, how many NON-TEST modules
+ * import it. Zero is a failure.
+ *
+ * ── WHY AN ALLOWLIST EXISTS, AND WHY IT IS EMPTY ───────────────────────────
+ *
+ * Some module will one day legitimately have no importer — a CLI-only helper,
+ * or code staged ahead of its caller. An exemption is fine; an exemption
+ * NOBODY WROTE DOWN is how the last two got in. So an entry needs a one-line
+ * reason, and the reason is read by a human at review time.
+ *
+ * 🔴 THE GOAL IS AN EMPTY ALLOWLIST. It is empty today.
+ * ================================================================== */
+
+/** module path (repo-relative, forward slashes) → why it has no importer. */
+const ORPHAN_ALLOWLIST = Object.freeze({
+  // "src/example.mjs": "reason, dated, and who accepted it",
+});
+
+function walkMjs(dir, prefix) {
+  const out = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isDirectory()) out.push(...walkMjs(join(dir, entry.name), `${prefix}${entry.name}/`));
+    else if (entry.name.endsWith(".mjs")) out.push(`${prefix}${entry.name}`);
+  }
+  return out;
+}
+
+test("🔴 ORPHAN CENSUS: no module under src/ is imported ONLY by its own test", () => {
+  const SRC = join(REPO, "src");
+  const modules = walkMjs(SRC, "src/").sort();
+  assert.ok(modules.length > 20, `only ${modules.length} modules found — the census would be weak`);
+
+  // Every place that could import a src/ module, EXCEPT test files.
+  const consumers = [
+    ...walkMjs(SRC, "src/"),
+    ...readdirSync(BIN).filter((f) => f.endsWith(".mjs")).map((f) => `bin/${f}`),
+    ...walkMjs(join(REPO, "tools"), "tools/"),
+    ...walkMjs(join(REPO, "products"), "products/"),
+  ];
+
+  const sources = new Map(consumers.map((rel) => [rel, readFileSync(join(REPO, rel), "utf8")]));
+
+  const orphans = [];
+  for (const mod of modules) {
+    const base = mod.split("/").pop();
+    let importers = 0;
+    for (const [rel, src] of sources) {
+      if (rel === mod) continue; // a module importing itself is not a consumer
+      // Match the filename in any import specifier. Coarse on purpose: a
+      // false NEGATIVE here would hide an orphan, and that is the failure
+      // mode this test exists to prevent. A false positive is harmless.
+      if (new RegExp(`from\\s*["'][^"']*${base.replace(/\./g, "\\.")}["']`).test(src)) {
+        importers += 1;
+        break;
+      }
+    }
+    if (importers === 0 && !(mod in ORPHAN_ALLOWLIST)) orphans.push(mod);
+  }
+
+  assert.deepEqual(
+    orphans,
+    [],
+    `\n  These modules under src/ are imported by nothing but their own tests:\n  ` +
+      `${orphans.join("\n  ")}\n\n  Wire it into the real path, delete it, or add it to ` +
+      `ORPHAN_ALLOWLIST with a written reason.\n`,
+  );
+});
+
+test("🔴 ORPHAN CENSUS: every allowlist entry carries a written reason", () => {
+  for (const [mod, reason] of Object.entries(ORPHAN_ALLOWLIST)) {
+    assert.ok(
+      typeof reason === "string" && reason.trim().length > 15,
+      `${mod} is allowlisted with no real reason — an undocumented exemption is how the last two orphans got in`,
+    );
+  }
+  // 🔴 Recorded, not asserted as a hard limit: the goal is zero. If this number
+  // grows, the census is being managed rather than obeyed.
+  assert.ok(Object.keys(ORPHAN_ALLOWLIST).length <= 3, "the allowlist is becoming a habit");
+});

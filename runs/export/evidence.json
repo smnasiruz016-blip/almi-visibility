@@ -1,0 +1,447 @@
+{
+  "_provenance": {
+    "title": "AlmiVisibility — evidence export",
+    "generatedAt": "2026-09-12T00:19:12.260Z",
+    "covers": [
+      "Search Console measurements already in the evidence store",
+      "the estate hostname table, with every hostname in exactly one state",
+      "no crawl run is present in this store"
+    ],
+    "doesNotCover": [
+      "🔴 anything not in the evidence store — this is an export, not a measurement",
+      "🔴 query text: it is deliberately never stored, so it cannot be exported",
+      "🔴 issues: no detector exists (C5), so there are no issues to export",
+      "🔴 any page not fetched: a crawled inventory is not the site, and a fetched URL is not an indexed URL"
+    ],
+    "states": {
+      "searchAnalytics:by-page": "COMPLETE",
+      "searchAnalytics:aggregate": "COMPLETE",
+      "control (403 expected)": "FORBIDDEN",
+      "crawl inventory": "NOT_QUERIED"
+    },
+    "bounds": {
+      "searchAnalytics.rowLimitPerRequest": 25000,
+      "searchAnalytics.maxRequests": 20,
+      "window.startDate": "2026-08-15",
+      "window.endDate": "2026-09-12",
+      "estate.hostnamesInCensus": 27
+    }
+  },
+  "estate": [
+    {
+      "hostname": "almicv.almiworld.com",
+      "state": "ROWS",
+      "authState": "GRANTED",
+      "rowCount": 482,
+      "clicks": 1,
+      "impressions": 885
+    },
+    {
+      "hostname": "almipte.almiworld.com",
+      "state": "ROWS",
+      "authState": "GRANTED",
+      "rowCount": 381,
+      "clicks": 1,
+      "impressions": 862
+    },
+    {
+      "hostname": "almiworld.com",
+      "state": "ROWS",
+      "authState": "GRANTED",
+      "rowCount": 30,
+      "clicks": 15,
+      "impressions": 451
+    },
+    {
+      "hostname": "almiitalian.almiworld.com",
+      "state": "ROWS",
+      "authState": "GRANTED",
+      "rowCount": 294,
+      "clicks": 4,
+      "impressions": 422
+    },
+    {
+      "hostname": "almioet.almiworld.com",
+      "state": "ROWS",
+      "authState": "GRANTED",
+      "rowCount": 103,
+      "clicks": 0,
+      "impressions": 147
+    },
+    {
+      "hostname": "almistudy.almiworld.com",
+      "state": "ROWS",
+      "authState": "GRANTED",
+      "rowCount": 58,
+      "clicks": 0,
+      "impressions": 93
+    },
+    {
+      "hostname": "almidutch.almiworld.com",
+      "state": "ROWS",
+      "authState": "GRANTED",
+      "rowCount": 42,
+      "clicks": 0,
+      "impressions": 85
+    },
+    {
+      "hostname": "almitoefl.almiworld.com",
+      "state": "ROWS",
+      "authState": "GRANTED",
+      "rowCount": 27,
+      "clicks": 0,
+      "impressions": 39
+    },
+    {
+      "hostname": "almidet.almiworld.com",
+      "state": "ROWS",
+      "authState": "GRANTED",
+      "rowCount": 17,
+      "clicks": 0,
+      "impressions": 35
+    },
+    {
+      "hostname": "almijob.almiworld.com",
+      "state": "ROWS",
+      "authState": "GRANTED",
+      "rowCount": 19,
+      "clicks": 0,
+      "impressions": 38
+    },
+    {
+      "hostname": "almispanish.almiworld.com",
+      "state": "ROWS",
+      "authState": "GRANTED",
+      "rowCount": 19,
+      "clicks": 0,
+      "impressions": 36
+    },
+    {
+      "hostname": "almiportuguese.almiworld.com",
+      "state": "ROWS",
+      "authState": "GRANTED",
+      "rowCount": 9,
+      "clicks": 0,
+      "impressions": 23
+    },
+    {
+      "hostname": "almidanish.almiworld.com",
+      "state": "ROWS",
+      "authState": "GRANTED",
+      "rowCount": 1,
+      "clicks": 0,
+      "impressions": 16
+    },
+    {
+      "hostname": "almigoethe.almiworld.com",
+      "state": "ROWS",
+      "authState": "GRANTED",
+      "rowCount": 1,
+      "clicks": 0,
+      "impressions": 12
+    },
+    {
+      "hostname": "almisalary.almiworld.com",
+      "state": "ROWS",
+      "authState": "GRANTED",
+      "rowCount": 7,
+      "clicks": 0,
+      "impressions": 12
+    },
+    {
+      "hostname": "almiswiss.almiworld.com",
+      "state": "ROWS",
+      "authState": "GRANTED",
+      "rowCount": 1,
+      "clicks": 0,
+      "impressions": 4
+    },
+    {
+      "hostname": "world.almiworld.com",
+      "state": "ROWS",
+      "authState": "GRANTED",
+      "rowCount": 4,
+      "clicks": 0,
+      "impressions": 4
+    },
+    {
+      "hostname": "alminorwegian.almiworld.com",
+      "state": "ROWS",
+      "authState": "GRANTED",
+      "rowCount": 1,
+      "clicks": 0,
+      "impressions": 3
+    },
+    {
+      "hostname": "almiicelandic.almiworld.com",
+      "state": "ROWS",
+      "authState": "GRANTED",
+      "rowCount": 1,
+      "clicks": 0,
+      "impressions": 1
+    },
+    {
+      "hostname": "almiprep.almiworld.com",
+      "state": "ZERO",
+      "authState": "GRANTED",
+      "rowCount": 0,
+      "clicks": 0,
+      "impressions": 0
+    },
+    {
+      "hostname": "almicelpip.almiworld.com",
+      "state": "ZERO",
+      "authState": "GRANTED",
+      "rowCount": 0,
+      "clicks": 0,
+      "impressions": 0
+    },
+    {
+      "hostname": "almifrench.almiworld.com",
+      "state": "ZERO",
+      "authState": "GRANTED",
+      "rowCount": 0,
+      "clicks": 0,
+      "impressions": 0
+    },
+    {
+      "hostname": "almijapanese.almiworld.com",
+      "state": "ZERO",
+      "authState": "GRANTED",
+      "rowCount": 0,
+      "clicks": 0,
+      "impressions": 0
+    },
+    {
+      "hostname": "almikorean.almiworld.com",
+      "state": "ZERO",
+      "authState": "GRANTED",
+      "rowCount": 0,
+      "clicks": 0,
+      "impressions": 0
+    },
+    {
+      "hostname": "almiswedish.almiworld.com",
+      "state": "ZERO",
+      "authState": "GRANTED",
+      "rowCount": 0,
+      "clicks": 0,
+      "impressions": 0
+    },
+    {
+      "hostname": "almiarchitect.almiworld.com",
+      "state": "ZERO",
+      "authState": "GRANTED",
+      "rowCount": 0,
+      "clicks": 0,
+      "impressions": 0
+    },
+    {
+      "hostname": "almipathway.almiworld.com",
+      "state": "ZERO",
+      "authState": "GRANTED",
+      "rowCount": 0,
+      "clicks": 0,
+      "impressions": 0
+    }
+  ],
+  "observations": [
+    {
+      "observation_id": "b53d43fb020c3daa",
+      "measurement_key": null,
+      "method": "gsc.sites.list",
+      "observed_at": "2026-09-11T22:58:51.912Z",
+      "target": {
+        "kind": "property",
+        "ref": "*"
+      },
+      "content_sha256": "474df47fdeca7c5e649a8a1ce967a7abbad823748868ee736a7580502f461596",
+      "collector": "bin/gsc-ingest.mjs",
+      "collector_version": "1"
+    },
+    {
+      "observation_id": "bb607c41cf0a2ce5",
+      "measurement_key": null,
+      "method": "gsc.searchAnalytics.query:aggregate",
+      "observed_at": "2026-09-11T22:58:52.117Z",
+      "target": {
+        "kind": "property",
+        "ref": "sc-domain:almiworld.com"
+      },
+      "content_sha256": "53f548b6c14e491e011bdcf012f15ea3f001b736f1ec4ab6049adf3fa94ed152",
+      "collector": "bin/gsc-ingest.mjs",
+      "collector_version": "1"
+    },
+    {
+      "observation_id": "aba4aff1b049b881",
+      "measurement_key": null,
+      "method": "gsc.searchAnalytics.query:control",
+      "observed_at": "2026-09-11T22:58:52.483Z",
+      "target": {
+        "kind": "property",
+        "ref": "https://example.com/"
+      },
+      "content_sha256": "be64a1e885640c0683ec51c803babcd3ec42b412700cfe2420cc3e38876e7b79",
+      "collector": "bin/gsc-ingest.mjs",
+      "collector_version": "1"
+    },
+    {
+      "observation_id": "c1ade75f5707bbb8",
+      "measurement_key": null,
+      "method": "gsc.searchAnalytics.query:by-page",
+      "observed_at": "2026-09-11T22:58:52.489Z",
+      "target": {
+        "kind": "property",
+        "ref": "sc-domain:almiworld.com"
+      },
+      "content_sha256": "1ca41a7f77e37799344f44698cb50662e41db6b5d40a1b396391b991d9a3c420",
+      "collector": "bin/gsc-ingest.mjs",
+      "collector_version": "1"
+    },
+    {
+      "observation_id": "df1e5200b1dc6fab",
+      "measurement_key": "06c6954f76fe6fef",
+      "method": "gsc.sites.list",
+      "observed_at": "2026-09-12T00:15:14.660Z",
+      "target": {
+        "kind": "property",
+        "ref": "*"
+      },
+      "content_sha256": "ae934edcba4bee3e53ed75557698214973c95b3f03c1546615d290aa98fa81b6",
+      "collector": "src/search/ingest.mjs",
+      "collector_version": "2"
+    },
+    {
+      "observation_id": "f294cb34162421cc",
+      "measurement_key": "5eab63386d677025",
+      "method": "gsc.searchAnalytics.query:aggregate",
+      "observed_at": "2026-09-12T00:15:14.861Z",
+      "target": {
+        "kind": "property",
+        "ref": "sc-domain:almiworld.com"
+      },
+      "content_sha256": "c9f268484c047077eb578f1ecd63eb64a792d41d84aa4d573d5625c10109db81",
+      "collector": "src/search/ingest.mjs",
+      "collector_version": "2"
+    },
+    {
+      "observation_id": "f2afedb7e11260a4",
+      "measurement_key": "617df2237d933ef1",
+      "method": "gsc.searchAnalytics.query:control",
+      "observed_at": "2026-09-12T00:15:15.168Z",
+      "target": {
+        "kind": "property",
+        "ref": "https://example.com/"
+      },
+      "content_sha256": "be64a1e885640c0683ec51c803babcd3ec42b412700cfe2420cc3e38876e7b79",
+      "collector": "src/search/ingest.mjs",
+      "collector_version": "2"
+    },
+    {
+      "observation_id": "73eadc8e01cd287b",
+      "measurement_key": "d4572d7287be082d",
+      "method": "gsc.searchAnalytics.query:by-page",
+      "observed_at": "2026-09-12T00:15:15.175Z",
+      "target": {
+        "kind": "property",
+        "ref": "sc-domain:almiworld.com"
+      },
+      "content_sha256": "1cf898a95e0c700c5574b06d4272f66c6073bd6781d87a687fa56e00f3e4dd15",
+      "collector": "src/search/ingest.mjs",
+      "collector_version": "2"
+    },
+    {
+      "observation_id": "1e2d5ec690b30bae",
+      "measurement_key": "f0366ae3909fc1ce",
+      "method": "gsc.sites.list",
+      "observed_at": "2026-09-12T00:15:15.685Z",
+      "target": {
+        "kind": "property",
+        "ref": "*"
+      },
+      "content_sha256": "9e51bc8a45f23d4ac6a534959763c990d1d7706e5866a13f9c8be46a4e7741cf",
+      "collector": "src/search/ingest.mjs",
+      "collector_version": "2"
+    },
+    {
+      "observation_id": "e9fcace3798fffbf",
+      "measurement_key": "1a359a0ef216104b",
+      "method": "gsc.sites.list",
+      "observed_at": "2026-09-12T00:16:19.426Z",
+      "target": {
+        "kind": "property",
+        "ref": "*"
+      },
+      "content_sha256": "25b3ba8190b3ae34ee844797ab3925ffcc17d7af83dc5b9a53b6080f7d36917d",
+      "collector": "src/search/ingest.mjs",
+      "collector_version": "2"
+    }
+  ],
+  "resightings": [
+    {
+      "record_type": "resighting",
+      "observation_id": "f294cb34162421cc",
+      "measurement_key": "5eab63386d677025",
+      "seen_at": "2026-09-12T00:15:15.892Z"
+    },
+    {
+      "record_type": "resighting",
+      "observation_id": "f2afedb7e11260a4",
+      "measurement_key": "617df2237d933ef1",
+      "seen_at": "2026-09-12T00:15:16.164Z"
+    },
+    {
+      "record_type": "resighting",
+      "observation_id": "73eadc8e01cd287b",
+      "measurement_key": "d4572d7287be082d",
+      "seen_at": "2026-09-12T00:15:16.173Z"
+    },
+    {
+      "record_type": "resighting",
+      "observation_id": "f294cb34162421cc",
+      "measurement_key": "5eab63386d677025",
+      "seen_at": "2026-09-12T00:16:19.718Z"
+    },
+    {
+      "record_type": "resighting",
+      "observation_id": "f2afedb7e11260a4",
+      "measurement_key": "617df2237d933ef1",
+      "seen_at": "2026-09-12T00:16:20.027Z"
+    },
+    {
+      "record_type": "resighting",
+      "observation_id": "73eadc8e01cd287b",
+      "measurement_key": "d4572d7287be082d",
+      "seen_at": "2026-09-12T00:16:20.036Z"
+    },
+    {
+      "record_type": "resighting",
+      "observation_id": "e9fcace3798fffbf",
+      "measurement_key": "1a359a0ef216104b",
+      "seen_at": "2026-09-12T00:16:20.518Z"
+    },
+    {
+      "record_type": "resighting",
+      "observation_id": "f294cb34162421cc",
+      "measurement_key": "5eab63386d677025",
+      "seen_at": "2026-09-12T00:16:20.730Z"
+    },
+    {
+      "record_type": "resighting",
+      "observation_id": "f2afedb7e11260a4",
+      "measurement_key": "617df2237d933ef1",
+      "seen_at": "2026-09-12T00:16:20.994Z"
+    },
+    {
+      "record_type": "resighting",
+      "observation_id": "73eadc8e01cd287b",
+      "measurement_key": "d4572d7287be082d",
+      "seen_at": "2026-09-12T00:16:21.003Z"
+    }
+  ],
+  "crawlRuns": [],
+  "issues": [],
+  "issuesNote": "no detector exists in v0.1 (C5), so no issue has ever been raised",
+  "sources": [],
+  "sourcesNote": "no Source record has been written yet"
+}

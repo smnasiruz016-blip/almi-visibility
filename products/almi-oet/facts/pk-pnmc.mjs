@@ -29,6 +29,8 @@ const QUOTABLE_BASIS =
   'PROHIBITED. Read first-hand by the owner (_handoffs/SOURCE_QUOTABILITY.md, dated 11 September 2026): "Copyright © 2026 Pakistan Nursing & Midwifery Council. ALL RIGHTS RESERVED." and no grant of reuse. 🔴 Recorded as "unknown" in PR #9; the owner has ruled it false. An absent licence reserves everything.';
 
 const common = {
+  // 🔴 A3, 12 Sep 2026: declared UNVERIFIED. The value and source stand; nobody has fact-checked it.
+  verificationState: "UNVERIFIED",
   scope: "origin",
   locale: { origin: "pakistan", profession: "nursing" },
   sourceMachineReadable: true,

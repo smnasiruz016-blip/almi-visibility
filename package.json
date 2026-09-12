@@ -17,6 +17,8 @@
     "boundary": "node bin/product-boundary.mjs",
     "census:distinguishing": "node bin/distinguishing-census.mjs --product=almi-oet",
     "census:clinical": "node bin/clinical-layer-census.mjs",
-    "gsc:ingest": "node bin/gsc-ingest.mjs"
+    "gsc:ingest": "node bin/gsc-ingest.mjs",
+    "export": "node bin/export.mjs",
+    "crawl": "node bin/crawl.mjs"
   }
 }

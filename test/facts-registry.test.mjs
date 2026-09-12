@@ -14,7 +14,7 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 
-import { factId, TIER_LEAD_ONLY, INCONCLUSIVE_OUTCOMES } from "../src/facts/schema.mjs";
+import { factId, TIER_LEAD_ONLY, INCONCLUSIVE_OUTCOMES } from "../src/facts/schema.mjs";
 import { FACTS_DIR, PRODUCT_ID } from "../products/almi-oet/product.mjs";
 import { quotableUnder, requiredAttribution, licencesVisibleTo, quotabilityState, licenceClause } from "../src/facts/licences.mjs";
 import { quoteUsableNow, renderableQuote } from "../src/facts/freshness.mjs";
@@ -25,7 +25,7 @@ import { fact } from "../src/facts/record.mjs";
 import { validateRecord, validateRegistry } from "../src/facts/validate.mjs";
 import { queueFor, freshnessRuleFor, manualQueueCost, automatedQueueIsUnattended } from "../src/facts/queues.mjs";
 import { normaliseText, matchQuote, runQuoteMatch, fetchForMatch } from "../src/facts/quote-match.mjs";
-import { loadRegistry, census, toGateAFact, REGISTRY_FACT_CHECK_COUNT } from "../src/facts/registry.mjs";
+import { loadRegistry, census, toGateAFact, REGISTRY_FACT_CHECK_COUNT } from "../src/facts/registry.mjs";
 
 // The licence view THIS product may read: the engine’s instruments plus its own.
 // Another product’s entries are not in it, and that is the point.
@@ -41,6 +41,10 @@ function lawful(overrides = {}) {
   // safe direction, and which is why these fixtures were the first thing to go
   // red when isolation landed.
   return { _productId: PRODUCT_ID, ...fact({
+    // 🔴 A3: the standing is DECLARED here, as it is on every real record. A
+    // fixture that could omit it would be testing a constructor the production
+    // records do not use.
+    verificationState: "UNVERIFIED",
     id: "uk-nmc.oet-minimum-grade.profession=nursing",
     claim: { subject: "uk-nmc", predicate: "oet-minimum-grade", qualifier: "profession=nursing" },
     scope: "destination",
@@ -236,12 +240,12 @@ describe("🔴 F8 — could-not-check is neither a pass nor a failure", () => {
 
 describe("🔴 F10 — a link check says NOTHING about the claim", () => {
   test("RED: factCheckedOn without factCheckedBy is rejected", () => {
-    const r = lawful({ checks: { ...lawful().checks, factCheckedOn: "2026-09-10", factCheckedBy: null } });
+    const r = lawful({ verificationState: "VERIFIED", checks: { ...lawful().checks, factCheckedOn: "2026-09-10", factCheckedBy: null } });
     assert.ok(laws(r).has("F10"));
   });
 
   test("RED: a checker that is neither human: nor model: is rejected — they are not the same evidence", () => {
-    const r = lawful({ checks: { ...lawful().checks, factCheckedOn: "2026-09-10", factCheckedBy: "someone" } });
+    const r = lawful({ verificationState: "VERIFIED", checks: { ...lawful().checks, factCheckedOn: "2026-09-10", factCheckedBy: "someone" } });
     assert.ok(laws(r).has("F10"));
   });
 
@@ -255,7 +259,7 @@ describe("🔴 F10 — a link check says NOTHING about the claim", () => {
   });
 
   test("GREEN: both together, properly attributed, is accepted", () => {
-    const r = lawful({ checks: { ...lawful().checks, factCheckedOn: "2026-09-10", factCheckedBy: "human:NU" } });
+    const r = lawful({ verificationState: "VERIFIED", checks: { ...lawful().checks, factCheckedOn: "2026-09-10", factCheckedBy: "human:NU" } });
     assert.ok(!laws(r).has("F10"));
   });
 });
@@ -1172,7 +1176,7 @@ describe("🔴 the nightly job routes by the STORED SPAN, not the permission", (
     // Found by running the job after the NZ correction: routing on
     // `sourceQuotable === true` sent a record with no span to the matcher, which
     // reported a permanent could-not-check on a record in perfect order.
-    const rec = fact({
+    const rec = fact({ /*A3*/ verificationState: "UNVERIFIED",
       id: "s.p",
       claim: { subject: "s", predicate: "p", qualifier: null },
       scope: "shared",
@@ -1282,7 +1286,7 @@ describe("🔴 a third-party notice blocks a span only from its OWN region", () 
 
 describe("🔴 F22 blocks on the REGION, and never on the whole page", () => {
   const govuk = (check) =>
-    fact({
+    fact({ /*A3*/ verificationState: "UNVERIFIED",
       id: "uk-ukvi.x",
       claim: { subject: "uk-ukvi", predicate: "x", qualifier: null },
       scope: "shared",

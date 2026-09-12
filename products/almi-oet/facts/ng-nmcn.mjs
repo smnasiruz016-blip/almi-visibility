@@ -36,6 +36,8 @@ const QUOTABLE_BASIS =
   'PROHIBITED. Read first-hand by the owner (_handoffs/SOURCE_QUOTABILITY.md, dated 11 September 2026): "Copyright © 2026 Nursing & Midwifery Council of Nigeria. ALL RIGHTS RESERVED." and no grant of reuse anywhere. 🔴 "All rights reserved" is not silence to be interpreted — it is a reservation of every right. PR #9 recorded this as "unknown" and left a ruling open; the owner has closed it as false.';
 
 const common = {
+  // 🔴 A3, 12 Sep 2026: declared UNVERIFIED. The value and source stand; nobody has fact-checked it.
+  verificationState: "UNVERIFIED",
   scope: "origin",
   locale: { origin: "nigeria", profession: "nursing" },
   sourceMachineReadable: true,

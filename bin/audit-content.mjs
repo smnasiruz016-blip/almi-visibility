@@ -122,7 +122,9 @@ for (const p of pages) {
       bump(check.id, null);
       continue;
     }
-    store.append(finding);
+    // 🔴 appendIfNew: the same finding from the same job run twice is ONE record
+    // plus a re-sighting — the discipline the technical audit writer lacked.
+    store.appendIfNew(finding, { seenAt: openedAt });
     bump(check.id, finding.verdict);
   }
 }

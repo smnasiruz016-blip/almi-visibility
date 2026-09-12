@@ -31,6 +31,7 @@
  */
 
 import { createJsonlStore } from "../evidence/store.mjs";
+import { MAX_URLS_PER_RUN, MAX_REQUESTS_PER_HOST } from "../crawl/frontier.mjs";
 
 export const COST_ENTRY_TYPE = "cost_entry";
 export const MONEY_STATES = Object.freeze(["MEASURED", "ZERO_BY_TARIFF", "UNKNOWN"]);
@@ -46,7 +47,7 @@ function checkUnknown(part, name) {
   need(UNKNOWN_KINDS.includes(part.unknownKind), `${name} is UNKNOWN without saying whether it was measurable (${UNKNOWN_KINDS.join(" | ")})`);
 }
 
-export function makeCostEntry({ entry_id, run_kind, run_ref, recorded_at, money, providerCalls, budget, founderTime, sources = [] }) {
+export function makeCostEntry({ entry_id, run_kind, run_ref, run_started_at = null, recorded_at, money, providerCalls, budget, founderTime, sources = [] }) {
   for (const [k, v] of Object.entries({ entry_id, run_kind, run_ref, recorded_at })) need(typeof v === "string" && v !== "", `${k} is required`);
   for (const [k, v] of Object.entries({ money, providerCalls, budget, founderTime })) need(v && typeof v === "object", `${k} is required — all four are tracked or the run is untracked`);
 
@@ -73,11 +74,29 @@ export function makeCostEntry({ entry_id, run_kind, run_ref, recorded_at, money,
   need(budget.bounds && Object.keys(budget.bounds).length > 0, "budget.bounds is required — LAW-BOUND-1: a figure without the bound that shaped it cannot be checked");
   need(typeof budget.capReached === "boolean", "budget.capReached must be a boolean");
 
+  /* 🔴 A LEGITIMATE ZERO IS TRACKED. AN ABSENT FIELD IS NOT.
+   * This product's first law since a 403 was once recorded as rowCount 0. A
+   * zero is a measurement only when it says why it is zero; without that it is
+   * indistinguishable from a field nobody filled. Enforced on every part that
+   * can read zero. */
+  need(budget.used && typeof budget.used === "object" && Object.keys(budget.used).length > 0, "budget.used is required — what the run used against the cap, even if it is nothing");
+  for (const [k, v] of Object.entries(budget.used)) need(typeof v === "number", `budget.used.${k} is not a number — a count that was not taken is UNKNOWN, not blank`);
+  if (Object.values(budget.used).every((v) => v === 0)) {
+    need(typeof budget.zeroBasis === "string" && budget.zeroBasis.length > 10, "budget.used is all zero with no zeroBasis — say why nothing was used, or it reads as nothing recorded");
+  }
+  if (providerCalls.state === "MEASURED" && providerCalls.total === 0) {
+    need(typeof providerCalls.zeroBasis === "string" && providerCalls.zeroBasis.length > 10, "providerCalls is 0 with no zeroBasis");
+  }
+  if (founderTime.state === "MEASURED" && founderTime.seconds === 0) {
+    need(typeof founderTime.zeroBasis === "string" && founderTime.zeroBasis.length > 10, "founderTime is 0 with no zeroBasis");
+  }
+
   return Object.freeze({
     record_type: COST_ENTRY_TYPE,
     entry_id,
     run_kind,
     run_ref,
+    ...(run_started_at ? { run_started_at } : {}),
     recorded_at,
     money: Object.freeze({ ...money }),
     providerCalls: Object.freeze({ ...providerCalls }),
@@ -256,24 +275,75 @@ export function entryFromIngestRun(run, { recordedAt } = {}) {
   });
 }
 
-/** An ingest run measured AS IT HAPPENED — what bin/gsc-ingest.mjs writes from now on. */
+/**
+ * An ingest run measured AS IT HAPPENED — what bin/gsc-ingest.mjs writes from now on.
+ *
+ * 🔴 ITS CRAWL BUDGET IS A TRACKED ZERO, NOT A MISSING FIELD. A Search Console
+ * read requests no page, so it uses none of the crawl budget — and the entry
+ * says so, with the crawl caps it did not touch printed beside the zero. The
+ * API's own pagination bounds travel with it separately.
+ */
 export function entryFromLiveIngest({ startedAt, finishedAt, governor, pulls, basis }) {
   const snap = governor.snapshot();
   return makeCostEntry({
     entry_id: `gsc-ingest:${startedAt}`,
     run_kind: "gsc-ingest",
     run_ref: `bin/gsc-ingest.mjs run started ${startedAt}`,
+    run_started_at: startedAt,
     recorded_at: finishedAt,
     money: { amountState: "ZERO_BY_TARIFF", amount: 0, currency: "USD", basis },
     providerCalls: { state: "MEASURED", total: snap.apiCalls, perProvider: { "google-search-console": snap.apiCalls }, note: "counted by the run's cost governor, charged before each call" },
     budget: {
-      kind: "api-pagination",
-      used: { pulls: pulls.length, requests: pulls.reduce((n, p) => n + p.requestCount, 0), governorCalls: snap.apiCalls },
-      bounds: { rowLimitPerRequest: pulls[0]?.rowLimitPerRequest, maxRequestsPerPull: pulls[0]?.maxRequests, maxApiCallsPerRun: snap.maxApiCalls, maxWallClockMs: snap.maxWallClockMs },
-      capReached: pulls.some((p) => p.truncationReason === "MAX_REQUESTS") || snap.stopped !== null,
+      kind: "crawl",
+      used: { urlsFetched: 0, requestsIssued: 0 },
+      zeroBasis: "this operation crawls nothing: a Search Console API read issues no request to any page, so no crawl budget is consumed",
+      bounds: { maxUrlsPerRun: MAX_URLS_PER_RUN, maxRequestsPerHost: MAX_REQUESTS_PER_HOST },
+      capReached: false,
+      apiPagination: {
+        pulls: pulls.length,
+        requests: pulls.reduce((n, p) => n + p.requestCount, 0),
+        bounds: { rowLimitPerRequest: pulls[0]?.rowLimitPerRequest ?? null, maxRequestsPerPull: pulls[0]?.maxRequests ?? null, maxApiCallsPerRun: snap.maxApiCalls, maxWallClockMs: snap.maxWallClockMs },
+        capReached: pulls.some((p) => p.truncationReason === "MAX_REQUESTS") || snap.stopped !== null,
+      },
     },
     founderTime: { state: "MEASURED", seconds: seconds(startedAt, finishedAt), from: startedAt, to: finishedAt },
   });
+}
+
+/* ================================================================== *
+ * 🔴 ITEM 45's SCOPE — technical-owner ruling, 12 September 2026.
+ *
+ * "A COMPONENT CANNOT BE FAILED FOR A PERIOD BEFORE IT EXISTED." The scope is
+ * runs FROM THE LEDGER'S EXISTENCE ONWARD. The instant is MEASURED, not chosen:
+ * the commit that first added this file, 8c9d68b, committed at
+ * 2026-09-12T23:03:09Z. The bar is unchanged — one real run, all four recorded.
+ * Runs before it are OUT of scope and stay on the ledger as permanent losses
+ * (L-COST-1); they are never estimated and never deleted.
+ * ================================================================== */
+export const LEDGER_EXISTS_FROM = "2026-09-12T23:03:09Z";
+
+/** When the run an entry describes began. From the entry itself — never from when it was written down. */
+export function runStartedAt(e) {
+  if (typeof e.run_started_at === "string") return e.run_started_at;
+  if (typeof e.founderTime?.from === "string") return e.founderTime.from;
+  const m = /:(\d{4}-\d{2}-\d{2}T[\d:.]+Z)$/.exec(e.entry_id ?? "");
+  return m ? m[1] : null;
+}
+
+/**
+ * Item 45's verdict under the ruling.
+ *
+ *   NOT_RUN — no in-scope run exists. Not a pass: a scope with nothing in it proves nothing.
+ *   FAILED  — an in-scope run has a part that was measurable and is UNKNOWN.
+ *   PASS    — every in-scope run tracks all four, with no measurable UNKNOWN.
+ */
+export function item45Verdict(entries, { from = LEDGER_EXISTS_FROM } = {}) {
+  const undated = entries.filter((e) => runStartedAt(e) === null);
+  const inScope = entries.filter((e) => runStartedAt(e) !== null && runStartedAt(e) >= from);
+  const outOfScope = entries.filter((e) => runStartedAt(e) !== null && runStartedAt(e) < from);
+  const failuresInScope = coverageFailures(inScope);
+  const verdict = undated.length ? "FAILED" : inScope.length === 0 ? "NOT_RUN" : failuresInScope.length ? "FAILED" : "PASS";
+  return { verdict, from, inScope, outOfScope, undated, failuresInScope, lostBeforeScope: coverageFailures(outOfScope) };
 }
 
 /* ================================================================== *

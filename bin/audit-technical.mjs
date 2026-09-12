@@ -163,6 +163,7 @@ for (const r of evidence) {
 /* ---- run every check ---------------------------------------------------- */
 if (!existsSync(dirname(out))) mkdirSync(dirname(out), { recursive: true });
 const store = createJsonlStore(out);
+const writes = { appended: 0, resighted: 0 };
 const tally = {};
 const bump = (id, v) => {
   tally[id] = tally[id] ?? { FAIL: 0, UNKNOWN: 0, silent: 0 };
@@ -215,7 +216,10 @@ for (const p of pages) {
       bump(check.id, null);
       continue;
     }
-    store.append(f);
+    // 🔴 appendIfNew, not append: this job run twice stored 868 issues twice
+    // (12 Sep 2026). The same finding is now one record plus a re-sighting.
+    const w = store.appendIfNew(f, { seenAt: openedAt });
+    writes[w.appended ? "appended" : "resighted"] += 1;
     bump(check.id, f.verdict);
   }
 }
@@ -251,5 +255,5 @@ if (sitemapByHost.size) {
 
 console.log("\n=== EVERY CHECK, AND ITS CONTROL ===");
 for (const c of registeredChecks()) console.log(`  ${c.id.padEnd(30)} fires: ${c.firingFixture.slice(0, 60)}…`);
-console.log(`\nwritten: ${out}  (${store.count()} records)`);
+console.log(`\nwritten: ${out}  (${store.count()} records) — this run: ${writes.appended} new issue(s), ${writes.resighted} re-sighting(s)`);
 console.log("🔴 Nothing was fixed. No product repository was touched.");

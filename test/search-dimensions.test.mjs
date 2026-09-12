@@ -204,6 +204,7 @@ test("🔴 REAL: the committed store holds 6 of 7 — countries INGESTED, outcom
 
 test("🔴 REAL: the stored country measurements pass item 8's guard — a count is not a demand claim", { skip: !existsSync(STORE) }, () => {
   const stored = createJsonlStore(STORE).readAll().filter((r) => /:country(-query)?$/.test(r.method ?? ""));
-  assert.equal(stored.length, 2);
+  // Two per real run that stored them; every one must pass, however many runs there have been.
+  assert.ok(stored.length >= 2 && stored.length % 2 === 0, `${stored.length} country records`);
   for (const r of stored) assert.deepEqual(measurementOnlyViolations(r.value), []);
 });

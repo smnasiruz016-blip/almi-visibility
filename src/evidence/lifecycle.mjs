@@ -122,6 +122,41 @@ export function lifecycleOf(records) {
   return { issues, errors, census };
 }
 
+export const DUPLICATE_SUPERSEDED_TYPE = "duplicate_record_superseded";
+
+/**
+ * 🔴 THE SAME ISSUE STORED MORE THAN ONCE — counted, and whether each extra
+ * copy has been SUPERSEDED. Nothing is ever removed: an extra copy stays in the
+ * store, and a `duplicate_record_superseded` note marks it, naming the copy it
+ * yields to. The census is exact: physical copies, logical issues, extra
+ * copies, and how many of those extras carry a note.
+ */
+export function duplicateCensus(records) {
+  const copies = new Map();
+  for (const r of records) {
+    if (r?.record_type !== "issue") continue;
+    copies.set(r.issue_id, [...(copies.get(r.issue_id) ?? []), r]);
+  }
+  const notes = new Set(records.filter((r) => r?.record_type === DUPLICATE_SUPERSEDED_TYPE).map((r) => `${r.issue_id}#${r.copy_index}`));
+  let extra = 0;
+  let superseded = 0;
+  const unsuperseded = [];
+  for (const [id, list] of copies) {
+    for (let k = 2; k <= list.length; k += 1) {
+      extra += 1;
+      if (notes.has(`${id}#${k}`)) superseded += 1;
+      else unsuperseded.push({ issue_id: id, copy_index: k });
+    }
+  }
+  return {
+    physicalIssueRecords: [...copies.values()].reduce((n, l) => n + l.length, 0),
+    logicalIssues: copies.size,
+    extraCopies: extra,
+    superseded,
+    unsuperseded,
+  };
+}
+
 /**
  * 🔴 WALK ONE CONCLUSION END TO END — the five things item 49 names.
  *

@@ -105,10 +105,14 @@ test("🔴 REAL: the 12 Sep crawl — 394 requests, 403.268 s, caps 500/200, mon
   assert.match(e.money.unknownReason, /U-COST-5/);
 });
 
-test("🔴 REAL: eight stored ingest runs — money ZERO_BY_TARIFF, and founder time UNKNOWN on every one because none recorded its start", () => {
+/* NINE since the real run of 12 Sep 23:25Z — which wrote its OWN measured
+ * ledger entry. Derived from the evidence store alone, even that run reads
+ * UNKNOWN for founder time, because the evidence store never held a start: the
+ * wall-clock lives in the ledger entry the run wrote as it happened. */
+test("🔴 REAL: nine stored ingest runs derived from evidence — money ZERO_BY_TARIFF, and founder time UNKNOWN from evidence alone", () => {
   const evidence = createJsonlStore(`${REPO}runs/evidence/evidence.jsonl`).readAll();
   const runs = ingestRunsOf(evidence);
-  assert.equal(runs.length, 8);
+  assert.equal(runs.length, 9);
   const entries = runs.map((r) => entryFromIngestRun(r, { recordedAt: "t" }));
   for (const e of entries) {
     assert.equal(e.money.amountState, "ZERO_BY_TARIFF");
@@ -128,7 +132,8 @@ const LEDGER = `${REPO}runs/cost/ledger.jsonl`;
 test("🔴 REAL: the committed ledger holds exactly the backfill, and names every measurable UNKNOWN", { skip: !existsSync(LEDGER) }, () => {
   const entries = createCostLedger(LEDGER).readAll();
   assert.equal(entries.filter((e) => e.run_kind === "crawl").length, 1);
-  assert.equal(entries.filter((e) => e.run_kind === "gsc-ingest").length, 8);
+  // 8 backfilled + 1 written live, as it happened, on 12 Sep 23:25Z.
+  assert.equal(entries.filter((e) => e.run_kind === "gsc-ingest").length, 9);
   for (const e of entries) makeCostEntry(e); // every stored entry still satisfies the laws
   const failures = coverageFailures(entries);
   // 8 unrecorded wall-clocks + the ingest runs whose final call count was never written.

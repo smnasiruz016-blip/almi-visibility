@@ -93,7 +93,8 @@ for (const obs of blockedObs) {
   }
 
   if (finding === null) continue;
-  store.append(finding);
+  // 🔴 appendIfNew: the same finding from the same job run twice is one record.
+  store.appendIfNew(finding, { seenAt: openedAt });
 
   if (finding.verdict === "UNKNOWN") {
     robotsUnknown += 1;
@@ -128,7 +129,7 @@ for (const host of ESTATE_HOSTNAME_LIST) {
     collector: "bin/audit.mjs",
     collector_version: DETECTOR_VERSION,
   });
-  store.append(fObs);
+  store.appendIfNew(fObs, { seenAt: openedAt });
 
   /* 🔴 Through the REGISTERED check. The families are passed in so the check
    * does not re-query DNS and produce a second, differently-timed measurement. */
@@ -138,7 +139,8 @@ for (const host of ESTATE_HOSTNAME_LIST) {
     siteContext: { openedAt, families: f },
   });
   if (finding === null) continue;
-  store.append(finding);
+  // 🔴 appendIfNew: the same finding from the same job run twice is one record.
+  store.appendIfNew(finding, { seenAt: openedAt });
   if (finding.verdict === "UNKNOWN") dnsUnknown += 1;
   else dnsFail += 1;
 }

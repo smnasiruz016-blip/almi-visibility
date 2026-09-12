@@ -76,7 +76,7 @@ footer{margin-top:2rem;padding-top:1rem;border-top:2px solid var(--line);color:v
 </header>
 
 <p class="legend">Every record below carries one of: <span class="lbl lbl-OBSERVED">OBSERVED</span><span class="lbl lbl-INFERRED">INFERRED</span><span class="lbl lbl-RECOMMENDED">RECOMMENDED</span><span class="lbl lbl-UNKNOWN">UNKNOWN</span></p>
-<p class="bound">Label census across all 1225 records: OBSERVED=605 · INFERRED=499 · RECOMMENDED=107 · UNKNOWN=14</p>
+<p class="bound">Label census across all 1234 records: OBSERVED=614 · INFERRED=499 · RECOMMENDED=107 · UNKNOWN=14</p>
 
 
 <section id="reconciliation">
@@ -123,15 +123,15 @@ footer{margin-top:2rem;padding-top:1rem;border-top:2px solid var(--line);color:v
     <tr><th>crawl requests issued</th><td>394 — <strong>billable traffic on our own account</strong></td></tr>
     <tr><th>crawl cost</th><td><span class="null" title="not measured">—</span> <span class="lbl lbl-UNKNOWN">UNKNOWN</span></td></tr>
     <tr><th>cost basis</th><td class="wrap">each request may invoke a function and trigger an ISR regeneration on our own account; Gate C has never been applied to a crawler we operate (U-COST-5)</td></tr>
-    <tr><th>evidence: new measurements</th><td>56</td></tr>
-    <tr><th>evidence: re-sightings</th><td>17</td></tr>
+    <tr><th>evidence: new measurements</th><td>63</td></tr>
+    <tr><th>evidence: re-sightings</th><td>19</td></tr>
   </tbody></table>
   <p>🔴 A repeat ingest that adds <strong>0 new</strong> and <strong>N re-sightings</strong> did real work: it
   proved the measurement had not changed. It must not read as an empty run.</p>
 </section>
 
 <section id="ledger">
-  <h2>Cost ledger — 9 entries</h2>
+  <h2>Cost ledger — 10 entries</h2>
   <pre class="wrap">crawl:42c54fa63036f1c7  money=UNKNOWN(NOT_MEASURABLE_WITH_TOOLS_WE_HOLD)  calls=394  time=403.268s  budget(crawl): urlsRequested=500 urlsFetched=394 requestsIssued=394 disallowedByRobots=106 capReached=false  [bound: maxUrlsPerRun=500 maxRequestsPerHost=200 maxResponseBytes=2097152 seedPoolSize=1497]
 gsc-ingest:2026-09-11T22:58:51.912Z  money=0 USD [ZERO_BY_TARIFF]  calls=5  time=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=2 requestsInNewPulls=2 resightings=0 capReached=false  [bound: rowLimitPerRequest=not stored in this run maxRequestsPerPull=not stored in this run]
 gsc-ingest:2026-09-12T00:15:14.660Z  money=0 USD [ZERO_BY_TARIFF]  calls=5  time=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=2 requestsInNewPulls=2 resightings=0 capReached=false  [bound: rowLimitPerRequest=25000 maxRequestsPerPull=20]
@@ -140,7 +140,8 @@ gsc-ingest:2026-09-12T00:16:19.426Z  money=0 USD [ZERO_BY_TARIFF]  calls=UNKNOWN
 gsc-ingest:2026-09-12T00:16:20.518Z  money=0 USD [ZERO_BY_TARIFF]  calls=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  time=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=0 requestsInNewPulls=0 resightings=4 capReached=false  [bound: rowLimitPerRequest=not stored in this run maxRequestsPerPull=not stored in this run]
 gsc-ingest:2026-09-12T00:36:17.340Z  money=0 USD [ZERO_BY_TARIFF]  calls=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  time=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=2 requestsInNewPulls=1 resightings=3 capReached=false  [bound: rowLimitPerRequest=25000 maxRequestsPerPull=20]
 gsc-ingest:2026-09-12T02:44:15.609Z  money=0 USD [ZERO_BY_TARIFF]  calls=7  time=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=2 requestsInNewPulls=2 resightings=3 capReached=false  [bound: rowLimitPerRequest=25000 maxRequestsPerPull=20]
-gsc-ingest:2026-09-12T22:06:42.662Z  money=0 USD [ZERO_BY_TARIFF]  calls=9  time=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=7 requestsInNewPulls=6 resightings=1 capReached=false  [bound: rowLimitPerRequest=25000 maxRequestsPerPull=20]</pre>
+gsc-ingest:2026-09-12T22:06:42.662Z  money=0 USD [ZERO_BY_TARIFF]  calls=9  time=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=7 requestsInNewPulls=6 resightings=1 capReached=false  [bound: rowLimitPerRequest=25000 maxRequestsPerPull=20]
+gsc-ingest:2026-09-12T23:25:02.608Z  money=0 USD [ZERO_BY_TARIFF]  calls=9  time=2.238s  budget(crawl): urlsFetched=0 requestsIssued=0 capReached=false  [bound: maxUrlsPerRun=500 maxRequestsPerHost=200]</pre>
   <p class="sum bad">UNKNOWN although measurable: <strong>12</strong> — gsc-ingest:2026-09-11T22:58:51.912Z · founderTime; gsc-ingest:2026-09-12T00:15:14.660Z · founderTime; gsc-ingest:2026-09-12T00:15:15.685Z · providerCalls; gsc-ingest:2026-09-12T00:15:15.685Z · founderTime; gsc-ingest:2026-09-12T00:16:19.426Z · providerCalls; gsc-ingest:2026-09-12T00:16:19.426Z · founderTime; gsc-ingest:2026-09-12T00:16:20.518Z · providerCalls; gsc-ingest:2026-09-12T00:16:20.518Z · founderTime; gsc-ingest:2026-09-12T00:36:17.340Z · providerCalls; gsc-ingest:2026-09-12T00:36:17.340Z · founderTime; gsc-ingest:2026-09-12T02:44:15.609Z · founderTime; gsc-ingest:2026-09-12T22:06:42.662Z · founderTime</p>
 </section>
 
@@ -1284,7 +1285,7 @@ gsc-ingest:2026-09-12T22:06:42.662Z  money=0 USD [ZERO_BY_TARIFF]  calls=9  time
 
 <section>
   <h2>Search Console evidence store</h2>
-  <p class="bound">Showing <strong>50</strong> of <strong>180</strong>
+  <p class="bound">Showing <strong>50</strong> of <strong>189</strong>
   [bound: limit=50] — <strong>TRUNCATED</strong>, this list is not the whole set</p>
   <table>
     <thead><tr><th>label</th><th>type</th><th>what</th><th>id</th><th>when</th></tr></thead>
@@ -1576,67 +1577,67 @@ gsc-ingest:2026-09-12T22:06:42.662Z  money=0 USD [ZERO_BY_TARIFF]  calls=9  time
       <td>2026-09-12T22:06:45.147Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
-      <td><code>observation</code></td>
-      <td class="wrap">robots.fetch</td>
-      <td><code>bd4e96b4beba602f</code></td>
-      <td>2026-09-12T01:56:32.727Z</td>
-    </tr>
-<tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
-      <td><code>observation</code></td>
-      <td class="wrap">robots.fetch</td>
-      <td><code>4fb6a4c960e070b3</code></td>
-      <td>2026-09-12T01:56:33.055Z</td>
-    </tr>
-<tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
-      <td><code>observation</code></td>
-      <td class="wrap">robots.fetch</td>
-      <td><code>9c92ca7dd25181b2</code></td>
-      <td>2026-09-12T01:56:33.285Z</td>
-    </tr>
-<tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
-      <td><code>observation</code></td>
-      <td class="wrap">robots.fetch</td>
-      <td><code>e45b65e7f2b659ae</code></td>
-      <td>2026-09-12T01:56:33.556Z</td>
-    </tr>
-<tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
-      <td><code>observation</code></td>
-      <td class="wrap">robots.fetch</td>
-      <td><code>393568b203c1d3d3</code></td>
-      <td>2026-09-12T02:48:58.279Z</td>
-    </tr>
-<tr>
-      <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
-      <td><code>issue</code></td>
+      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><code>resighting</code></td>
       <td class="wrap"></td>
-      <td><code></code></td>
-      <td><span class="null" title="not measured">—</span></td>
+      <td><code>e9fcace3798fffbf</code></td>
+      <td>2026-09-12T23:25:03.086Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
-      <td><code>issue</code></td>
-      <td class="wrap"></td>
-      <td><code></code></td>
-      <td><span class="null" title="not measured">—</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">gsc.searchAnalytics.query:aggregate</td>
+      <td><code>8c5f987dc5074cd5</code></td>
+      <td>2026-09-12T23:25:03.347Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
-      <td><code>issue</code></td>
+      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><code>resighting</code></td>
       <td class="wrap"></td>
-      <td><code></code></td>
-      <td><span class="null" title="not measured">—</span></td>
+      <td><code>9f8cbf772d1cd434</code></td>
+      <td>2026-09-12T23:25:03.652Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
-      <td><code>issue</code></td>
-      <td class="wrap"></td>
-      <td><code></code></td>
-      <td><span class="null" title="not measured">—</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">gsc.searchAnalytics.query:query</td>
+      <td><code>45ce21253a3fc58c</code></td>
+      <td>2026-09-12T23:25:03.868Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">gsc.searchAnalytics.query:query-page</td>
+      <td><code>c97334fdd102df8e</code></td>
+      <td>2026-09-12T23:25:04.172Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">gsc.searchAnalytics.query:country</td>
+      <td><code>59535dbde94fbacd</code></td>
+      <td>2026-09-12T23:25:04.351Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">gsc.searchAnalytics.query:country-query</td>
+      <td><code>9bf50cfb134a0d7d</code></td>
+      <td>2026-09-12T23:25:04.608Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">gsc.searchAnalytics.query:control</td>
+      <td><code>9c282bcc255de82d</code></td>
+      <td>2026-09-12T23:25:04.764Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">gsc.searchAnalytics.query:by-page</td>
+      <td><code>f77bfd93a0370b97</code></td>
+      <td>2026-09-12T23:25:04.805Z</td>
     </tr></tbody>
   </table>
 </section>
@@ -2001,7 +2002,7 @@ gsc-ingest:2026-09-12T22:06:42.662Z  money=0 USD [ZERO_BY_TARIFF]  calls=9  time
 </section>
 
 <footer>
-  <p>Generated 2026-09-12T22:53:48.206Z from the evidence store.</p>
+  <p>Generated 2026-09-12T23:31:50.646Z from the evidence store.</p>
   <p><strong>Read-only</strong> — this page has no action, no form and no write path of any kind.</p>
   <p>🔴 This is one report page, not a dashboard (V5.1 §62). It states what it covers and what it does not.</p>
 </footer>

@@ -161,6 +161,45 @@ export const MOVES_AMENDMENT_2 = Object.freeze({
       date: "2026-09-12",
       reason: "the ledger was built and backfilled from real records and the hard stop proved by injection; the FAILURE condition 'a cost reads UNKNOWN when it was measurable' is met by 12 parts of the eight stored ingest runs",
     }),
+    /* 🔴 LEFT FAILED BY RULE 1's SECOND ROUTE — AN OWNER RULING — and then SAT
+     * AGAIN. The ruling drew the scope (runs from the ledger's existence
+     * onward); it did not pass the row. The pass is the next, separate move. */
+    Object.freeze({
+      from: "FAILED",
+      to: "TESTABLE-NOW",
+      kind: "ruling",
+      route: "OWNER_RULING",
+      ruling: "TECHNICAL-OWNER RULING — ITEM 45's SCOPE BEGINS WHEN THE LEDGER EXISTED (PHASE_0_FROZEN_GAP_REGISTER.md)",
+      date: "2026-09-12",
+      reason: "'A component cannot be failed for a period before it existed.' The boundary's INPUT is a run; the scope is runs from 8c9d68b (2026-09-12T23:03:09Z) onward. The bar is unchanged; the eight earlier runs are recorded as a permanent loss (L-COST-1)",
+    }),
+    Object.freeze({
+      from: "TESTABLE-NOW",
+      to: "VERIFIED-PASS",
+      kind: "work",
+      route: "TEST_RUN",
+      test: "test/item45-scope.test.mjs · node bin/gsc-ingest.mjs (one real run, ledger live)",
+      date: "2026-09-12",
+      reason: "one real Search Console run inside the scope recorded all four: money 0 ZERO_BY_TARIFF with basis, 9 provider calls, crawl budget 0 with its basis, 2.238 s wall-clock; item45Verdict over the real ledger returns PASS",
+    }),
+  ]),
+  48: Object.freeze([
+    /* 🔴 THE FIRST TICK THIS PROJECT HAS REMOVED — by the checklist's reopen
+     * rule, now executable. The tick was earned on the ingest path; the audit
+     * writers were never in its population, and one of them duplicated. */
+    Object.freeze({
+      from: "VERIFIED-PASS",
+      to: "FAILED",
+      kind: "work",
+      route: "REOPENED",
+      reopenReason: "CONCRETE_CONTRADICTORY_EVIDENCE",
+      evidence: [
+        "runs/audit/technical-findings.jsonl — 868 extra copies of issues written by the same job run twice (02:49 and 02:57, 12 Sep 2026)",
+        "test/idempotency-retry.test.mjs — its 'same job run twice' test drives a synthetic observation through appendIfNew; no audit writer was ever run twice",
+      ],
+      date: "2026-09-12",
+      reason: "the tick was earned on a narrower population than the boundary names ('the same authorized job'), and outside that population the FAILURE condition 'a record duplicates' is met on real data",
+    }),
   ]),
   49: Object.freeze([
     Object.freeze({
@@ -211,6 +250,27 @@ export const MOVES_AMENDMENT_2 = Object.freeze({
 export const LEAVE_FAILED_ROUTES = Object.freeze(["RETEST_PASSED", "OWNER_RULING"]);
 
 /**
+ * 🔴 AND HOW A ROW MAY LOSE A VERIFIED-PASS — the gap in the seven states.
+ *
+ * Amendment 2 wrote rules for leaving FAILED and none for losing a tick. The
+ * KEY FEATURE CHECKLIST already has the rule; until 12 September 2026 it lived
+ * in a document nothing executed. It is quoted here verbatim — a test checks it
+ * is a substring of `KEY_FEATURE_CHECKLIST_SOURCE.md` — and enforced below: a
+ * VERIFIED-PASS row leaves only by a `REOPENED` move naming ONE of these five
+ * reasons, with its evidence, date and reason. Any other move off a tick fails
+ * the build. First invoked for item 48.
+ */
+export const REOPEN_RULE_TEXT =
+  "Closed items reopen only for concrete contradictory evidence, a real regression, new authoritative evidence, a security/data-safety risk, or an owner-approved scope change.";
+export const REOPEN_REASONS = Object.freeze([
+  "CONCRETE_CONTRADICTORY_EVIDENCE",
+  "REAL_REGRESSION",
+  "NEW_AUTHORITATIVE_EVIDENCE",
+  "SECURITY_OR_DATA_SAFETY_RISK",
+  "OWNER_APPROVED_SCOPE_CHANGE",
+]);
+
+/**
  * 🔴 RULES 1 AND 2, ENFORCED.
  *
  * Walks every row from its recorded before-state through its declared moves to
@@ -233,9 +293,12 @@ export function assertTransitions(rows, before = BEFORE_AMENDMENT_2, moves = MOV
         errors.push(`item ${r.id}: a declared move starts at ${step.from} but the row was at ${at} — the chain does not join up`);
       }
       if (!["ruling", "work"].includes(step.kind)) errors.push(`item ${r.id}: move kind ${JSON.stringify(step.kind)} is neither "ruling" nor "work"`);
-      if ((step.kind === "ruling") !== (step.route === "OWNER_RULING")) {
+      // A reopen for an owner-approved scope change is a ruling; every other reopen is evidence, i.e. work.
+      const isRuling = step.route === "OWNER_RULING" || (step.route === "REOPENED" && step.reopenReason === "OWNER_APPROVED_SCOPE_CHANGE");
+      if ((step.kind === "ruling") !== isRuling) {
         errors.push(`item ${r.id}: a "${step.kind}" move by route ${step.route} — only an owner ruling is a ruling move, and an owner ruling is never work`);
       }
+      errors.push(...losingPass(r.id, step.from, step.to, step));
       if (step.route === "OWNER_RULING" && !(step.ruling && step.date && step.reason)) {
         errors.push(`item ${r.id}: an owner-ruling move must record the ruling, its date AND its reason`);
       }
@@ -244,6 +307,7 @@ export function assertTransitions(rows, before = BEFORE_AMENDMENT_2, moves = MOV
     }
     if (at !== r.state) {
       errors.push(...leavingFailed(r.id, at, r.state, null));
+      errors.push(...losingPass(r.id, at, r.state, null));
       errors.push(
         `item ${r.id}: is ${r.state} but its recorded state is ${at} and no move was declared. ` +
           "A state never changes silently — declare the move, its kind, and what caused it.",
@@ -251,6 +315,17 @@ export function assertTransitions(rows, before = BEFORE_AMENDMENT_2, moves = MOV
     }
   }
   return errors;
+}
+
+function losingPass(id, from, to, step) {
+  if (from !== "VERIFIED-PASS" || to === "VERIFIED-PASS") return [];
+  const evidenceGiven = Array.isArray(step?.evidence) ? step.evidence.length > 0 : typeof step?.evidence === "string" && step.evidence.length > 10;
+  const lawful = step?.route === "REOPENED" && REOPEN_REASONS.includes(step.reopenReason) && evidenceGiven && Boolean(step.date && step.reason);
+  if (lawful) return [];
+  return [
+    `item ${id}: loses VERIFIED-PASS for ${to} by ${step ? `route ${step.route}` : "no declared route"}. "${REOPEN_RULE_TEXT}" ` +
+      `A tick leaves only by a REOPENED move naming one of ${REOPEN_REASONS.join(" | ")}, with its evidence, date and reason.`,
+  ];
 }
 
 function leavingFailed(id, from, to, step) {
@@ -329,18 +404,21 @@ const EXPLICIT = {
   38: { state: "BUILT-NOT-PROVED", why: "indexability of existing pages was inspected on real data (134 noindexed pages traced to one commit). Amendment 1 now supplies its four-part contract. Its EVIDENCE wants the state over the real corpus plus a test failing the build on any indexing promise. Not touched in this PR" },
   42: { state: "BLOCKED-UNKNOWN", why: "the ruling's own BLOCKER TODAY: requires a second authorised crawl run. Owner gate" },
   45: {
-    state: "FAILED",
+    state: "VERIFIED-PASS",
     changeKind: "work",
-    test: "node --test test/cost-ledger.test.mjs test/cost-governor.test.mjs · node bin/cost-ledger.mjs",
-    failureMet: "a cost reads UNKNOWN when it was measurable — 12 parts of the eight stored ingest runs: 8 wall-clocks the runs never recorded, and 4 call totals the store kept only as re-sightings",
-    why: "🔴 **THE LEDGER EXISTS AND THE HARD STOP HOLDS — AND THE FAILURE CONDITION IS MET, ON THE RECORDS WE ALREADY HAD.** Built: an append-only ledger tracking all four — money, provider calls, budget against its cap, founder time — every line printing its bound, every UNKNOWN required to say whether it WAS measurable. Backfilled from real records, nothing estimated: **the 12 September crawl** — 394 calls, founder time 403.268 s (the Actions run that hosted it: 423 s), 500 requested / 394 fetched / 106 disallowed against caps 500 and 200, cap not reached; money UNKNOWN and NOT measurable with tools we hold (the plan's price and allowance, U-COST-1; our own hosting's invocations, U-COST-5 — GitHub's reported 0 billable ms is not read as $0). **Eight stored ingest runs** — money ZERO_BY_TARIFF; calls MEASURED on 4; founder time on NONE. **12 parts read UNKNOWN although they were measurable at the time**, which is the FAILURE clause exactly. **Hard stop proved by injection** through the real adapter: pages that never end stop at the run cap with exactly that many requests reaching the boundary, the stop latches and is not swallowed as an API error. `apiCalls` is now per pull, with the running total in its own field. Every future ingest records all four as it happens. ⚠️ The eight past runs cannot be re-measured: leaving FAILED needs a run that records all four AND either a re-run that passes or an owner ruling on those eight",
+    test: "node --test test/item45-scope.test.mjs test/cost-ledger.test.mjs test/cost-governor.test.mjs · node bin/cost-ledger.mjs",
+    why: "🔴 **TICKED UNDER A SCOPE RULING, ON ONE REAL RUN — AND THE LOSS BEFORE IT STAYS ON THE RECORD.** The technical owner ruled that a component cannot be failed for a period before it existed: item 45's scope is runs from the ledger's existence (8c9d68b, 2026-09-12T23:03:09Z) onward, the bar unchanged. The row left FAILED by that ruling (a RULING move) and was then sat again (a WORK move). **One real Search Console run inside the scope recorded all four**: money 0 ZERO_BY_TARIFF with its basis; 9 provider calls, counted by the governor; crawl budget 0 fetched and 0 requests against the caps 500 and 200, with its basis — a tracked zero, not an absent field, and the ledger now refuses a zero without one; founder time 2.238 s wall-clock. `item45Verdict` over the real ledger: PASS, 1 run in scope, 0 measurable UNKNOWNs in scope. **The hard stop** remains proved by injection. **Out of scope and NOT forgotten:** 9 earlier runs, 12 measurable costs never recorded — permanent loss L-COST-1, never estimated, and the row outlives this tick",
+    whyFailed: "🔴 **THE LEDGER EXISTS AND THE HARD STOP HOLDS — AND THE FAILURE CONDITION IS MET, ON THE RECORDS WE ALREADY HAD.** Built: an append-only ledger tracking all four — money, provider calls, budget against its cap, founder time — every line printing its bound, every UNKNOWN required to say whether it WAS measurable. Backfilled from real records, nothing estimated: **the 12 September crawl** — 394 calls, founder time 403.268 s (the Actions run that hosted it: 423 s), 500 requested / 394 fetched / 106 disallowed against caps 500 and 200, cap not reached; money UNKNOWN and NOT measurable with tools we hold (the plan's price and allowance, U-COST-1; our own hosting's invocations, U-COST-5 — GitHub's reported 0 billable ms is not read as $0). **Eight stored ingest runs** — money ZERO_BY_TARIFF; calls MEASURED on 4; founder time on NONE. **12 parts read UNKNOWN although they were measurable at the time**, which is the FAILURE clause exactly. **Hard stop proved by injection** through the real adapter: pages that never end stop at the run cap with exactly that many requests reaching the boundary, the stop latches and is not swallowed as an API error. `apiCalls` is now per pull, with the running total in its own field. Every future ingest records all four as it happens. ⚠️ The eight past runs cannot be re-measured: leaving FAILED needs a run that records all four AND either a re-run that passes or an owner ruling on those eight",
   },
   46: { state: "BUILT-NOT-PROVED", why: "the EVIDENCE demands hit/miss counts over a LIVE RESEARCHER, not a pre-loaded registry, and nothing researches. The cache did improve on 12 September — it now refuses UNKNOWN facts, and the hit rate fell 100% → 69.6% — but a pre-loaded shelf is still what is being measured" },
   47: { state: "NOT-STARTED", why: "the ruling's NOTE is explicit: no paid provider exists, and ABSENCE IS NOT A CONTROL. The controls — authorization, budget/cap, kill switch — must exist before a provider does, and none is built" },
   48: {
-    state: "VERIFIED-PASS",
+    state: "FAILED",
     changeKind: "work",
-    why: "**INPUT** the same authorized job run twice, and a retry against a 4xx. **EXPECTED** the re-run appends no duplicate payload and mints no new id for the same measurement — before 1 / after 1, with the re-sighting recorded rather than dropped; and requests are counted at the boundary: 7 different 4xx statuses each issue exactly ONE request, a network error gets exactly ONE retry (2 attempts, never 3), and a 5xx is not retried at all. **FAILURE** not met, on real data: the 12 September crawl holds 500 observations with 500 distinct measurement keys and 500 distinct ids. **COST** — requests are the only metered thing this system issues (no paid provider exists, item 47), and a re-run over held input issues zero. 🔴 **The retry rule had NO test until now**; the code was right since PR #36 and nothing would have caught it changing. Three sabotages — retry a 4xx, retry twice, stop deduplicating — each landed in the intended test",
+    test: "node --test test/duplicate-writers.test.mjs test/idempotency-retry.test.mjs · node tools/duplicate-writer-census.mjs",
+    failureMet: "a record duplicates — the technical audit writer, run twice on 12 September 2026, stored 868 issues twice with a bare append; it was never inside the population the tick was earned on",
+    why: "🔴 **REOPENED — THE FIRST TICK THIS PROJECT HAS REMOVED.** By the checklist's reopen rule, for concrete contradictory evidence. **Was the audit writer inside the tested population? NO.** The tick's 'same job run twice' test drives one synthetic observation through appendIfNew, and its REAL test counts only the crawl file; no audit writer was ever run twice. Outside that population the FAILURE condition was met on real data: 868 extra copies in the technical findings. **Is an audit writer 'an authorized job'? Yes** — it is run deliberately by an operator, reads authorized evidence, and writes stored conclusions; nothing in the boundary limits 'job' to ingests. **Fixed in this change:** the store deduplicates an issue by its content-derived issue_id; all four unguarded writers (three audit writers and the crawler's observations) now use appendIfNew; the 868 copies are SUPERSEDED by append-only notes, none removed. **Re-test:** both offline audit writers run twice for real add 0 issues on the second run; a census finds 0 unguarded record writes. **Why it does NOT re-tick here:** two authorized jobs — the crawl (a second run needs the owner's green) and the DNS audit (network) — cannot be run twice in this change, so their fix is proved in source and through the store, not by the double run the boundary names. Leaves FAILED by that run passing, or an owner ruling",
+    whyPassed: "**INPUT** the same authorized job run twice, and a retry against a 4xx. **EXPECTED** the re-run appends no duplicate payload and mints no new id for the same measurement — before 1 / after 1, with the re-sighting recorded rather than dropped; and requests are counted at the boundary: 7 different 4xx statuses each issue exactly ONE request, a network error gets exactly ONE retry (2 attempts, never 3), and a 5xx is not retried at all. **FAILURE** not met, on real data: the 12 September crawl holds 500 observations with 500 distinct measurement keys and 500 distinct ids. **COST** — requests are the only metered thing this system issues (no paid provider exists, item 47), and a re-run over held input issues zero. 🔴 **The retry rule had NO test until now**; the code was right since PR #36 and nothing would have caught it changing. Three sabotages — retry a 4xx, retry twice, stop deduplicating — each landed in the intended test",
   },
   49: {
     state: "VERIFIED-PASS",

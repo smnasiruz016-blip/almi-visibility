@@ -4,7 +4,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
-import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { join } from "node:path";
 
 import { makeIssueStateChange, lifecycleOf, walkChain, ISSUE_TRANSITIONS } from "../src/evidence/lifecycle.mjs";
@@ -84,11 +84,43 @@ test("🔴 REAL: the ROBOTS issues are all still OPEN — they are not fixed and
   assert.ok(robots.every((e) => e.state === "OPEN"));
 });
 
-test("🔴 REAL: nothing was edited or deleted — the committed findings file before this change is a byte-for-byte PREFIX of it now", () => {
-  const before = execFileSync("git", ["show", "aa9a66b:runs/audit/technical-findings.jsonl"], { cwd: REPO, encoding: "utf8" }).replace(/\r\n/g, "\n");
+/**
+ * 🔴 THE PRE-CHANGE FILE IS FROZEN AS A MEASUREMENT, NOT READ FROM GIT HISTORY.
+ *
+ * The first version ran `git show aa9a66b:…`. It passed locally, where the full
+ * history exists — and FAILED IN CI, whose checkout is shallow (depth 1), with
+ * "fatal: invalid object name 'aa9a66b'". The PR merged with that red check.
+ *
+ * So the file as committed at aa9a66b is recorded here as what it measured:
+ * 1752 lines, 925,748 characters after LF normalisation, sha256 9ebca205…,
+ * read from the git blob as a raw buffer (927,216 bytes, no BOM, no CR). The
+ * test needs no history, and the claim is still falsifiable: edit or delete any
+ * pre-existing record and the prefix hash changes.
+ */
+const BEFORE_AA9A66B = Object.freeze({
+  chars: 925748,
+  lines: 1752,
+  sha256: "9ebca205515cee901727dd98b18008357da80ce3277cac25b10e1582be9e52fb",
+});
+
+test("🔴 REAL: nothing was edited or deleted — the findings file as committed before this change is a byte-for-byte PREFIX of it now", () => {
   const now = readFileSync(`${REPO}runs/audit/technical-findings.jsonl`, "utf8").replace(/\r\n/g, "\n");
-  assert.ok(now.length > before.length);
-  assert.ok(now.startsWith(before), "a record that existed before this change was altered or removed");
+  const prefix = now.slice(0, BEFORE_AA9A66B.chars);
+  assert.ok(now.length > prefix.length, "nothing was appended after the pre-change records");
+  assert.equal(prefix.split("\n").filter(Boolean).length, BEFORE_AA9A66B.lines);
+  assert.equal(
+    createHash("sha256").update(prefix, "utf8").digest("hex"),
+    BEFORE_AA9A66B.sha256,
+    "a record that existed before this change was altered or removed",
+  );
+});
+
+test("🔴 CONTROL: the prefix check FIRES when one pre-existing byte changes", () => {
+  const now = readFileSync(`${REPO}runs/audit/technical-findings.jsonl`, "utf8").replace(/\r\n/g, "\n");
+  const i = now.indexOf('"state":"OPEN"');
+  assert.ok(i !== -1 && i < BEFORE_AA9A66B.chars, "no pre-existing record to tamper with");
+  const tampered = `${now.slice(0, i)}"state":"CLOS"${now.slice(i + 14)}`;
+  assert.notEqual(createHash("sha256").update(tampered.slice(0, BEFORE_AA9A66B.chars), "utf8").digest("hex"), BEFORE_AA9A66B.sha256);
 });
 
 test("🔴 REAL: one chain walked end to end shows all five — what, why, evidence, when, and what changed it", () => {

@@ -159,6 +159,53 @@ named in `ORPHAN_ALLOWLIST` with a written reason, and **the allowlist is empty 
 
 ---
 
+## `LAW-FIXTURE-1` — A TEST DOUBLE MUST BE AT LEAST AS MESSY AS PRODUCTION
+
+**Raised by PR #38, 12 September 2026.**
+
+The fake Search Console provider returned a **constant timestamp**. Production returns a live
+clock. So the fake was **more idempotent than reality**, and it hid the very defect it existed to
+catch: `gsc.sites.list` was storing a per-property `observedAt` *inside the measured value*, so its
+content hash changed on every run and it could never deduplicate.
+
+> ### THE UNIT TEST WAS GREEN. THE DEFECT DIED ONLY WHEN THE THING WAS RUN FOR REAL.
+
+**The law:** a fixture must reproduce the *variability* of the thing it stands in for. Where a
+fixture is deliberately simpler than production, **that simplification is NAMED IN THE FIXTURE**,
+so the next reader knows what it is not testing.
+
+**In force on:** `test/idempotency-and-verification.test.mjs` (the fake now uses a live clock) and
+`test/report-view.test.mjs` (its simplifications are named at the head of the file, and the same
+assertions are re-run against the real store at the foot).
+
+---
+
+## `LAW-ABSENT-1` — A FAILURE TO MEASURE IS NEVER A FINDING ABOUT THE SUBJECT
+
+**Raised 12 September 2026. This one has cost us three times.**
+
+| # | the tool failed | and the SUBJECT got the blame | caught in |
+|---|---|---|---|
+| 1 | a property returned **403** | recorded as `rowCount: 0` — "this site has no data" | PR #35 |
+| 2 | the resolver **refused connections** (`ECONNREFUSED` on 127.0.0.1) | recorded as "this host publishes nothing" | PR #39 |
+| 3 | **`getaddrinfo` filtered AAAA** on a machine with no IPv6 | recorded as "no AAAA record exists" | PR #39 |
+
+In all three the instrument broke and the reading was written down as a fact about the target. All
+three produce **plausible-looking rows** — a zero, an absence, a missing record — which is why none
+of them announces itself.
+
+> ### THE LAW: ANY CODE PATH THAT CONVERTS AN ERROR INTO A NEGATIVE FINDING ABOUT A TARGET IS A BREACH.
+>
+> An error yields **UNKNOWN**, and the UNKNOWN says whose fault it was. Only the subject actually
+> answering — a 200 with no rows, an `ENOTFOUND`, an empty result set — may produce a negative
+> finding about the subject.
+
+**In force on:** `classify()` (403 → `rowCount: null`), `addressFamilies()` (only `ENOTFOUND` /
+`ENODATA` may yield `false`; anything else is `null` → UNKNOWN), `reachabilityState()` (a null
+family yields UNKNOWN, never UNREACHABLE), and the export state guard.
+
+---
+
 # 0C · 🔴 A CORRECTION, RECORDED — THE 46 FACT RECORDS ARE RESTATED AS UNVERIFIED
 
 **12 September 2026.** The checklist audit found `factCheckedOn` **null on all 46 records** while

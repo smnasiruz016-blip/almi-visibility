@@ -1,0 +1,1020 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AlmiVisibility — evidence</title>
+<style>
+:root{--bg:#fff;--fg:#111;--muted:#666;--line:#ddd;--warn:#8a1c1c;--ok:#0a5c2a}
+*{box-sizing:border-box}
+body{margin:0;padding:1rem;font:15px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--fg);background:var(--bg)}
+h1{font-size:1.4rem;margin:0 0 .3rem}
+h2{font-size:1.1rem;margin:2rem 0 .5rem;border-bottom:2px solid var(--line);padding-bottom:.25rem}
+header.banner{border:3px solid var(--warn);padding:1rem;border-radius:6px;background:#fff8f8}
+header.banner-COMPLETE{border-color:var(--ok);background:#f6fff9}
+.state{font-size:1.15rem;margin:.2rem 0 .6rem}
+.state strong{background:var(--warn);color:#fff;padding:.15rem .5rem;border-radius:4px}
+.banner-COMPLETE .state strong{background:var(--ok)}
+.lede{margin:.35rem 0}
+.correction{margin:.6rem 0;padding:.5rem;background:#fff;border-left:4px solid var(--warn)}
+.invariant{margin:.8rem 0 0;font-weight:700;color:var(--warn)}
+table{border-collapse:collapse;width:100%;margin:.5rem 0;font-size:.86rem}
+caption{text-align:left;font-weight:700;padding:.3rem 0;color:var(--muted)}
+th,td{border:1px solid var(--line);padding:.35rem .5rem;text-align:left;vertical-align:top}
+th{background:#f6f6f6;font-weight:600}
+code{font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all}
+.wrap{max-width:34rem}
+.null{color:var(--muted)}
+.sum{padding:.5rem;background:#f6f6f6;border-radius:4px}
+.sum.bad{background:#fff1f1;border-left:4px solid var(--warn)}
+.sum.ok{background:#f1fff6;border-left:4px solid var(--ok)}
+.bad{color:var(--warn);font-weight:600}
+.bound{color:var(--muted);font-size:.85rem}
+.lbl{display:inline-block;padding:.1rem .4rem;border-radius:3px;font-size:.72rem;font-weight:700;letter-spacing:.02em;white-space:nowrap}
+.lbl-OBSERVED{background:#0a5c2a;color:#fff}
+.lbl-INFERRED{background:#0b4a8a;color:#fff}
+.lbl-RECOMMENDED{background:#7a4b00;color:#fff}
+.lbl-UNKNOWN{background:#555;color:#fff}
+.vs-UNVERIFIED{color:var(--warn)}
+.vs-VERIFIED{color:var(--ok)}
+.legend span{margin-right:.5rem}
+footer{margin-top:2rem;padding-top:1rem;border-top:2px solid var(--line);color:var(--muted);font-size:.85rem}
+@media (max-width:430px){
+  body{padding:.6rem;font-size:14px}
+  table{font-size:.78rem;display:block;overflow-x:auto}
+  .wrap{max-width:none}
+  h1{font-size:1.2rem}
+}
+</style>
+</head>
+<body>
+
+<header class="banner banner-PARTIAL">
+  <h1>AlmiVisibility — evidence</h1>
+  <p class="state">COVERAGE: <strong>PARTIAL</strong></p>
+  <p class="lede">
+    <strong>394</strong> pages fetched, of <strong>500</strong> requested,
+    selected from a pool of <strong>1497</strong> pages with any search presence,
+    on a property whose sitemap carries <strong>~240,328</strong> URLs.
+    <strong>106</strong> were disallowed by robots.txt and never fetched.
+  </p>
+  <p class="lede">That is <strong>26.3%</strong> of the seed pool and well under 1% of the site.</p>
+  <p class="correction">🔴 The run RECORDED <code>COMPLETE</code>. That was wrong and is
+         corrected to <code>PARTIAL</code> by an appended correction record — the original is not edited.</p>
+  <table class="bounds">
+    <caption>Bounds that shaped everything below (LAW-BOUND-1)</caption>
+    <tbody>
+      <tr><th>maxUrlsPerRun</th><td>500</td></tr>
+      <tr><th>maxRequestsPerHost</th><td>200</td></tr>
+      <tr><th>maxResponseBytes</th><td>2097152</td></tr>
+      <tr><th>seed pool</th><td>1497</td></tr>
+      <tr><th>selection rule</th><td><code>sort by impressions DESC, tie-break by URL ASC, take the first 500; per-host cap 150</code></td></tr>
+      <tr><th>Search Console rows</th><td>1497</td></tr>
+    </tbody>
+  </table>
+  <p class="invariant">🔴 A FETCHED URL IS NOT AN INDEXED URL. A CRAWLED INVENTORY IS NOT THE SITE.</p>
+</header>
+
+<p class="legend">Every record below carries one of: <span class="lbl lbl-OBSERVED">OBSERVED</span><span class="lbl lbl-INFERRED">INFERRED</span><span class="lbl lbl-RECOMMENDED">RECOMMENDED</span><span class="lbl lbl-UNKNOWN">UNKNOWN</span></p>
+<p class="bound">Label census across all 1070 records: OBSERVED=525 · INFERRED=499 · RECOMMENDED=0 · UNKNOWN=46</p>
+
+
+<section id="reconciliation">
+  <h2>Reconciliation — why 500 observations became 495 pages</h2>
+  <p class="sum ok">
+    500 observations − 5 folded = <strong>495</strong> pages
+    ✅ balances
+  </p>
+  <p>Each pair below is two seed URLs that <strong>redirected to the same final URL</strong>, so they share one
+  <code>page_id</code>. Nothing was lost and nothing was invented.</p>
+  <table>
+    <thead><tr><th>page_id</th><th>requested (from Search Console)</th><th>final URL</th></tr></thead>
+    <tbody><tr>
+        <td><code>9998e5a8debc1705</code></td>
+        <td class="wrap"><code>https://almiworld.com/japan-esd-program-2027/</code><br><code>https://almiworld.com/japan-esd-program-2027</code></td>
+        <td class="wrap"><code>https://almiworld.com/japan-esd-program-2027</code></td>
+      </tr>
+<tr>
+        <td><code>30bc1eaa4a64edfd</code></td>
+        <td class="wrap"><code>https://almiworld.com/celpe-bras-2026-2-exam-dates-brazil-overseas/</code><br><code>https://almiworld.com/celpe-bras-2026-2-exam-dates-brazil-overseas</code></td>
+        <td class="wrap"><code>https://almiworld.com/celpe-bras-2026-2-exam-dates-brazil-overseas</code></td>
+      </tr>
+<tr>
+        <td><code>10737e79ff88ff5c</code></td>
+        <td class="wrap"><code>https://almiworld.com/det-interactive-speaking-2026-questions-strategy/</code><br><code>https://almiworld.com/det-interactive-</code></td>
+        <td class="wrap"><code>https://almiworld.com/det-interactive-speaking-2026-questions-strategy</code></td>
+      </tr>
+<tr>
+        <td><code>8324c0735997fb0a</code></td>
+        <td class="wrap"><code>https://almiworld.com/oet-for-australian-visa-2026-scores-and-validity-dates/</code><br><code>https://almiworld.com/oet-for-australian-</code></td>
+        <td class="wrap"><code>https://almiworld.com/oet-for-australian-visa-2026-scores-and-validity-dates</code></td>
+      </tr>
+<tr>
+        <td><code>856eeb8b5a794291</code></td>
+        <td class="wrap"><code>https://almiworld.com/italy-citizenship-descent-b1-2026</code><br><code>https://almiworld.com/italy-citizenship-descent-b1-2026/</code></td>
+        <td class="wrap"><code>https://almiworld.com/italy-citizenship-descent-b1-2026</code></td>
+      </tr></tbody>
+  </table>
+</section>
+
+<section id="cost">
+  <h2>Cost, and the work a repeat run does</h2>
+  <table class="bounds"><tbody>
+    <tr><th>crawl requests issued</th><td>394 — <strong>billable traffic on our own account</strong></td></tr>
+    <tr><th>crawl cost</th><td><span class="null" title="not measured">—</span> <span class="lbl lbl-UNKNOWN">UNKNOWN</span></td></tr>
+    <tr><th>cost basis</th><td class="wrap">each request may invoke a function and trigger an ISR regeneration on our own account; Gate C has never been applied to a crawler we operate (U-COST-5)</td></tr>
+    <tr><th>evidence: new measurements</th><td>12</td></tr>
+    <tr><th>evidence: re-sightings</th><td>13</td></tr>
+  </tbody></table>
+  <p>🔴 A repeat ingest that adds <strong>0 new</strong> and <strong>N re-sightings</strong> did real work: it
+  proved the measurement had not changed. It must not read as an empty run.</p>
+</section>
+
+<section id="issues">
+  <h2>Issues — none</h2>
+  <p class="sum">There are <strong>0</strong> issues, and that is not a measurement of health.
+  <strong>No detector exists in v0.1</strong> (constraint C5): nothing has ever judged a page, so nothing
+  could have raised an issue. An empty list here means the shelf is built and nothing has been put on it.</p>
+</section>
+
+<section id="facts">
+  <h2>Verified fact registry — 46 records</h2>
+  <p class="sum bad">🔴 <strong>46 of 46</strong> are <strong>UNVERIFIED</strong>.
+  They keep their values and their sources; nobody has fact-checked them, and no date was backfilled.</p>
+  <table>
+    <thead><tr><th>label</th><th>id</th><th>verificationState</th><th>factCheckedOn</th><th>tier</th></tr></thead>
+    <tbody><tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>ie-nmbi.oet-minimum-grade.profession=nursing</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>ie-nmbi.oet-version-required.profession=nursing</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>ie-nmbi.recognised-english-speaking-countries</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>ng-nmcn.issuing-body</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>ng-nmcn.verification-fee.purpose=certificate-verification</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>ng-nmcn.verification-fee.purpose=authentication</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>ng-nmcn.verification-fee.purpose=letter-of-good-standing</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>ng-nmcn.verification-fee.destination=uk-nmc</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>ng-nmcn.verification-documents</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>nz-immigration-nz.oet-must-be-taken-in-person</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>oet.content-licence-permits-stored-quotation</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>oet.writing-task-type.profession=nursing</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>oet.speaking-roleplay-setting.profession=nursing</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>oet.subtests-and-which-are-profession-specific</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>oet.grade-bands-0-500</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>pk-pnmc.issuing-body</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>pk-pnmc.verification-fee.destination=foreign</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>pk-pnmc.verification-fee.destination=domestic</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>pk-pnmc.verification-documents</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>pk-pnmc.verification-response-time</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>uk-code-of-practice.recruitment-list-membership.country=nigeria</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>uk-code-of-practice.recruitment-list-membership.country=pakistan</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>uk-code-of-practice.recruitment-list-membership.country=kenya</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>uk-code-of-practice.recruitment-list-membership.country=india</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>uk-code-of-practice.recruitment-list-membership.country=philippines</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>uk-code-of-practice.red-list-rule</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>uk-code-of-practice.amber-list-rule</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>uk-code-of-practice.amber-list-countries</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>uk-code-of-practice.direct-application-exception</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>uk-code-of-practice.red-list-country-count</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>uk-hcpc.oet-minimum-score.profession=speech-pathology</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>uk-hcpc.oet-score-differs-by-profession</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>uk-hcpc.ielts-minimum.profession=speech-pathology</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>uk-hcpc.accepted-english-tests</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>uk-hcpc.certificate-maximum-age</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>uk-hcpc.test-venue-requirement</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>uk-hcpc.oet-profession-version.profession=speech-pathology</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>uk-nmc.oet-minimum-grade.profession=nursing</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>uk-nmc.oet-combining-sittings.profession=nursing</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>uk-nmc.english-evidence-routes.profession=nursing</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>uk-nmc.qualified-in-english-evidence.profession=nursing</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>uk-nmc.oet-profession-version.profession=nursing</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>uk-nmc.oet-combining-sittings-floor.profession=nursing</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>uk-nmc.accepted-oet-delivery-modes.profession=nursing</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>uk-ukvi.majority-english-speaking-countries</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-UNKNOWN" title="the record is declared UNVERIFIED — nobody has fact-checked it">UNKNOWN</span></td>
+      <td class="wrap"><code>uk-ukvi.english-nationality-exemption.nationality=india</code></td>
+      <td><strong class="vs vs-UNVERIFIED">UNVERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td>1</td>
+    </tr></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Search Console evidence store</h2>
+  <p class="bound">Showing <strong>25</strong> of <strong>25</strong>
+  [bound: limit=50]</p>
+  <table>
+    <thead><tr><th>label</th><th>type</th><th>what</th><th>id</th><th>when</th></tr></thead>
+    <tbody><tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">gsc.sites.list</td>
+      <td><code>b53d43fb020c3daa</code></td>
+      <td>2026-09-11T22:58:51.912Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">gsc.searchAnalytics.query:aggregate</td>
+      <td><code>bb607c41cf0a2ce5</code></td>
+      <td>2026-09-11T22:58:52.117Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">gsc.searchAnalytics.query:control</td>
+      <td><code>aba4aff1b049b881</code></td>
+      <td>2026-09-11T22:58:52.483Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">gsc.searchAnalytics.query:by-page</td>
+      <td><code>c1ade75f5707bbb8</code></td>
+      <td>2026-09-11T22:58:52.489Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">gsc.sites.list</td>
+      <td><code>df1e5200b1dc6fab</code></td>
+      <td>2026-09-12T00:15:14.660Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">gsc.searchAnalytics.query:aggregate</td>
+      <td><code>f294cb34162421cc</code></td>
+      <td>2026-09-12T00:15:14.861Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">gsc.searchAnalytics.query:control</td>
+      <td><code>f2afedb7e11260a4</code></td>
+      <td>2026-09-12T00:15:15.168Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">gsc.searchAnalytics.query:by-page</td>
+      <td><code>73eadc8e01cd287b</code></td>
+      <td>2026-09-12T00:15:15.175Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">gsc.sites.list</td>
+      <td><code>1e2d5ec690b30bae</code></td>
+      <td>2026-09-12T00:15:15.685Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><code>resighting</code></td>
+      <td class="wrap"></td>
+      <td><code>f294cb34162421cc</code></td>
+      <td>2026-09-12T00:15:15.892Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><code>resighting</code></td>
+      <td class="wrap"></td>
+      <td><code>f2afedb7e11260a4</code></td>
+      <td>2026-09-12T00:15:16.164Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><code>resighting</code></td>
+      <td class="wrap"></td>
+      <td><code>73eadc8e01cd287b</code></td>
+      <td>2026-09-12T00:15:16.173Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">gsc.sites.list</td>
+      <td><code>e9fcace3798fffbf</code></td>
+      <td>2026-09-12T00:16:19.426Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><code>resighting</code></td>
+      <td class="wrap"></td>
+      <td><code>f294cb34162421cc</code></td>
+      <td>2026-09-12T00:16:19.718Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><code>resighting</code></td>
+      <td class="wrap"></td>
+      <td><code>f2afedb7e11260a4</code></td>
+      <td>2026-09-12T00:16:20.027Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><code>resighting</code></td>
+      <td class="wrap"></td>
+      <td><code>73eadc8e01cd287b</code></td>
+      <td>2026-09-12T00:16:20.036Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><code>resighting</code></td>
+      <td class="wrap"></td>
+      <td><code>e9fcace3798fffbf</code></td>
+      <td>2026-09-12T00:16:20.518Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><code>resighting</code></td>
+      <td class="wrap"></td>
+      <td><code>f294cb34162421cc</code></td>
+      <td>2026-09-12T00:16:20.730Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><code>resighting</code></td>
+      <td class="wrap"></td>
+      <td><code>f2afedb7e11260a4</code></td>
+      <td>2026-09-12T00:16:20.994Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><code>resighting</code></td>
+      <td class="wrap"></td>
+      <td><code>73eadc8e01cd287b</code></td>
+      <td>2026-09-12T00:16:21.003Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><code>resighting</code></td>
+      <td class="wrap"></td>
+      <td><code>e9fcace3798fffbf</code></td>
+      <td>2026-09-12T00:36:17.340Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><code>resighting</code></td>
+      <td class="wrap"></td>
+      <td><code>f294cb34162421cc</code></td>
+      <td>2026-09-12T00:36:17.543Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">gsc.searchAnalytics.query:page-rows</td>
+      <td><code>c1154a02cd5e4168</code></td>
+      <td>2026-09-12T00:36:17.753Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><code>resighting</code></td>
+      <td class="wrap"></td>
+      <td><code>f2afedb7e11260a4</code></td>
+      <td>2026-09-12T00:36:17.856Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">gsc.searchAnalytics.query:by-page</td>
+      <td><code>7232870b20c1c800</code></td>
+      <td>2026-09-12T00:36:17.883Z</td>
+    </tr></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Crawl records</h2>
+  <p class="bound">Showing <strong>50</strong> of <strong>504</strong>
+  [bound: limit=50] — <strong>TRUNCATED</strong>, this list is not the whole set</p>
+  <table>
+    <thead><tr><th>label</th><th>type</th><th>what</th><th>id</th><th>when</th></tr></thead>
+    <tbody><tr>
+      <td><span class="lbl lbl-INFERRED" title="computed from the observations of one run, not measured directly">INFERRED</span></td>
+      <td><code>crawl_run</code></td>
+      <td class="wrap">512ddf710a7e2f39</td>
+      <td><code>512ddf710a7e2f39</code></td>
+      <td><span class="null" title="not measured">—</span></td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>81de8a37a17861e8</code></td>
+      <td>2026-09-12T00:42:42.743Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>fe16bf0c821d847e</code></td>
+      <td>2026-09-12T00:42:45.126Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>ad9bee34f12b05a6</code></td>
+      <td>2026-09-12T00:42:45.898Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>5157357bd948a90f</code></td>
+      <td>2026-09-12T00:42:46.919Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>a326d6e12f2e84ab</code></td>
+      <td>2026-09-12T00:42:47.842Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>07daed64c6c80239</code></td>
+      <td>2026-09-12T00:42:48.175Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>d9e22e94edab919b</code></td>
+      <td>2026-09-12T00:42:49.978Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>ca8a97016419ddb6</code></td>
+      <td>2026-09-12T00:42:50.898Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>186a1245afadfdd9</code></td>
+      <td>2026-09-12T00:42:51.868Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>849417bd81582d4c</code></td>
+      <td>2026-09-12T00:42:52.936Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>188b3ae980d4220e</code></td>
+      <td>2026-09-12T00:42:53.320Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>80caf1128d729a9c</code></td>
+      <td>2026-09-12T00:42:54.258Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>3d54cd11dc3d6f87</code></td>
+      <td>2026-09-12T00:42:55.253Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>d90060b5635e695e</code></td>
+      <td>2026-09-12T00:42:56.205Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>286015ebc2571c4a</code></td>
+      <td>2026-09-12T00:42:57.220Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>1ec8e28a6fe1496d</code></td>
+      <td>2026-09-12T00:42:58.276Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>fde1274f2263172d</code></td>
+      <td>2026-09-12T00:43:00.552Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>e0b20c039149e85c</code></td>
+      <td>2026-09-12T00:43:01.316Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>167dab3768ac2185</code></td>
+      <td>2026-09-12T00:43:01.591Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>517c7132bfd0626d</code></td>
+      <td>2026-09-12T00:43:03.342Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.skipped</td>
+      <td><code>b80f51335c9d532a</code></td>
+      <td>2026-09-12T00:43:03.462Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>b6981e66a486f116</code></td>
+      <td>2026-09-12T00:43:03.730Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>28d0fcf9135785ee</code></td>
+      <td>2026-09-12T00:43:04.772Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>e212cab6786cc429</code></td>
+      <td>2026-09-12T00:43:05.716Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>9d57827c301f85df</code></td>
+      <td>2026-09-12T00:43:06.602Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>59e816111fcb73a0</code></td>
+      <td>2026-09-12T00:43:07.775Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>bee9446c65af488a</code></td>
+      <td>2026-09-12T00:43:08.874Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>e24117d2c163af64</code></td>
+      <td>2026-09-12T00:43:11.569Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>c0c72fbad998db69</code></td>
+      <td>2026-09-12T00:43:12.137Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>656e9cb206089e85</code></td>
+      <td>2026-09-12T00:43:12.864Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>dae82d3ee09d93a3</code></td>
+      <td>2026-09-12T00:43:13.810Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>a586285acd9a8646</code></td>
+      <td>2026-09-12T00:43:14.877Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>b219014f5a1befe7</code></td>
+      <td>2026-09-12T00:43:15.827Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>c66c7299c93e5379</code></td>
+      <td>2026-09-12T00:43:16.841Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>c097b22c80cf8688</code></td>
+      <td>2026-09-12T00:43:19.169Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>9120e6f43a88a049</code></td>
+      <td>2026-09-12T00:43:19.950Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>b20aeadacab9cbf3</code></td>
+      <td>2026-09-12T00:43:20.545Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>b62ad02430f2bd08</code></td>
+      <td>2026-09-12T00:43:21.309Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>912503582770b6f6</code></td>
+      <td>2026-09-12T00:43:22.307Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>73d45a9964d8bd0e</code></td>
+      <td>2026-09-12T00:43:23.385Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>5cd98710f0d2523f</code></td>
+      <td>2026-09-12T00:43:24.308Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>2fef055fa9b6021c</code></td>
+      <td>2026-09-12T00:43:25.316Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>fb8b25ef38482dfb</code></td>
+      <td>2026-09-12T00:43:26.295Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>85e0de8e23d97818</code></td>
+      <td>2026-09-12T00:43:27.292Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>3b81a698d79097b4</code></td>
+      <td>2026-09-12T00:43:28.359Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>11cad430c8311dec</code></td>
+      <td>2026-09-12T00:43:29.345Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>90a91ff3268081a9</code></td>
+      <td>2026-09-12T00:43:30.406Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>3f977d36c6b96b92</code></td>
+      <td>2026-09-12T00:43:31.346Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">crawl.fetch</td>
+      <td><code>272247b8eaa7a0c5</code></td>
+      <td>2026-09-12T00:43:32.349Z</td>
+    </tr></tbody>
+  </table>
+</section>
+
+<footer>
+  <p>Generated 2026-09-12T01:15:57.465Z from the evidence store.</p>
+  <p><strong>Read-only</strong> — this page has no action, no form and no write path of any kind.</p>
+  <p>🔴 This is one report page, not a dashboard (V5.1 §62). It states what it covers and what it does not.</p>
+</footer>
+</body>
+</html>

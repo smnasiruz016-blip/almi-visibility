@@ -12,11 +12,11 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
+import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { claimIdsOf } from "../src/page/claim-ids.mjs";
 import { renderPage, findCopiedFacts } from "../src/page/render.mjs";
-import { tokensWithKind } from "../src/gate-a/text-kind.mjs";
+import { tokensWithKind } from "../src/gate-a/text-kind.mjs";
 
 import { productFromArgvOrExit } from "../src/product-cli.mjs";
 
@@ -32,7 +32,7 @@ import { productFromArgvOrExit } from "../src/product-cli.mjs";
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/build-page.mjs --product=<id>" });
 
 const argv = process.argv.slice(2);
-const outDir = argv.find((a) => a.startsWith("--out="))?.split("=").slice(1).join("=") ?? null;
+const outDir = confineToRepo(argv.find((a) => a.startsWith("--out="))?.split("=").slice(1).join("=") ?? null, { label: "--out" });
 const permission = writePermission({ target: LOCAL, argv, env: process.env });
 if (outDir) announceWritePermission(permission);
 

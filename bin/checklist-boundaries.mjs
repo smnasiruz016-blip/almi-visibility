@@ -97,6 +97,11 @@ L.push("> count and it is **not progress**. It is also **worth more than BUILT-N
 L.push("> is one whose test was run against its own boundary — it means we looked.");
 L.push("");
 for (const r of failedRows) L.push(`- **item ${r.id} · ${r.name}** — FAILURE met: ${r.failureMet}`);
+// 🔴 A row that LEFT FAILED is named too, with its route — a FAILED count that
+// falls to zero must say why, or the fall reads as the column being tidied away.
+for (const s of steps.filter((x) => x.from === "FAILED")) {
+  L.push(`- **item ${s.id}** left FAILED for ${s.to} by route \`${s.route}\` on ${s.date} — ${esc(s.reason)}`);
+}
 L.push("");
 L.push(`**Rows that have been looked at (${LOOKED.join(" or ")}): ${Object.values(rows).filter((r) => LOOKED.includes(r.state)).length} of 58.**`);
 L.push("");

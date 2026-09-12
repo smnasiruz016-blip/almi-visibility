@@ -27,6 +27,7 @@ import { parseSitemap } from "../src/crawl/seeds.mjs";
 import { selectSeeds, renderSelection, SELECTION_RULE } from "../src/crawl/seed-selection.mjs";
 import { measureIpv6Egress, addressFamilies, reachabilityState } from "../src/crawl/ipv6.mjs";
 import { ESTATE_HOSTNAME_LIST } from "../config/estate-hostnames.mjs";
+import { confineToRepo } from "../src/write-law.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n, d = null) => {
@@ -40,8 +41,10 @@ const sitemapFile = arg("sitemap");
 const fromEvidence = arg("seeds-from-evidence");
 const live = flag("live");
 const green = flag("i-have-the-owners-green");
-const out = arg("out", `${REPO}runs/crawl/crawl.jsonl`);
-const corpusDir = arg("corpus", `${REPO}runs/crawl/corpus`);
+// 🔴 Confined here, BEFORE the egress measurement and DNS lookups below: a
+// destination outside this repository is refused before any network activity.
+const out = confineToRepo(arg("out", `${REPO}runs/crawl/crawl.jsonl`), { label: "--out" });
+const corpusDir = confineToRepo(arg("corpus", `${REPO}runs/crawl/corpus`), { label: "--corpus" });
 
 if (!seedsFile && !sitemapFile && !fromEvidence) {
   console.error(

@@ -8,6 +8,8 @@ evidence-backed fix commands for **one authorized product at a time**.
 > Evidence → action → reviewed fix command → re-test.
 > Never decorative scores. Never ranking or AI-placement promises.
 
+**This repository deploys nowhere:** it has no web application — only Node CLI scripts and a report file opened from disk — so `vercel.json` turns Git deployments off (`config/sources/vercel-git-configuration.mjs`); a preview built per PR spent build minutes on a check that meant nothing.
+
 ---
 
 ## 🔴 What this repository deliberately does NOT do

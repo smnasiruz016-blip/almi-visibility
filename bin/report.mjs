@@ -2,17 +2,23 @@
 /**
  * v0.1 ITEM 7 — generate the one report page.
  *
- * 🔴 READ-ONLY, AND LOCAL. It reads the evidence store and writes one HTML file.
- * No network, no server, no deploy. The page it produces has no action, no form
- * and no write path — see src/report/view.mjs.
+ * 🔴 LOCAL, AND DRY-RUN BY DEFAULT. It reads the evidence store and — only with
+ * `--confirm` — writes one HTML file inside this repository. No network, no
+ * server, no deploy. The page it produces has no action, no form and no write
+ * path — see src/report/view.mjs.
+ *
+ * 🔴 UNTIL 12 SEPTEMBER 2026 THIS FILE HAD NO GATE AT ALL. Its header said
+ * "read-only" while it wrote on every run, and it never imported the write law.
+ * Item 14 was FAILED on exactly that; the fix is here, not in the census.
  *
  * Usage:
- *   node bin/report.mjs [--evidence=<path>] [--crawl=<path>] [--out=<file>]
+ *   node bin/report.mjs [--evidence=<path>] [--crawl=<path>] [--out=<file>] [--confirm]
  */
 
 import { writeFileSync, mkdirSync, existsSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 
+import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { renderPage, summarise, reconcile } from "../src/report/view.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
@@ -27,7 +33,10 @@ const evidencePath = arg("evidence", `${REPO}runs/evidence/evidence.jsonl`);
 const robotsPath = arg("robots", `${REPO}runs/evidence/robots.jsonl`);
 const auditPath = arg("audit", `${REPO}runs/audit/findings.jsonl`);
 const crawlDir = arg("crawl-dir", `${REPO}runs/crawl`);
-const out = arg("out", `${REPO}runs/report/index.html`);
+// 🔴 Confined BEFORE anything is read or rendered: a destination outside this
+// repository is refused while nothing has happened yet.
+const out = confineToRepo(arg("out", `${REPO}runs/report/index.html`), { label: "--out" });
+const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
 
 const read = (p) => (existsSync(p) ? createJsonlStore(p).readAll() : []);
 
@@ -61,13 +70,16 @@ if (evidenceRecords.length === 0 && crawlRecords.length === 0) {
 const generatedAt = new Date().toISOString();
 const html = renderPage({ crawlRecords, evidenceRecords, facts, generatedAt });
 
-if (!existsSync(dirname(out))) mkdirSync(dirname(out), { recursive: true });
-writeFileSync(out, html, "utf8");
+if (!permission.mayWrite) {
+  console.log(`[dry-run] would have written ${out}  (${(Buffer.byteLength(html, "utf8") / 1024).toFixed(1)} KiB) — add --confirm`);
+} else {
+  if (!existsSync(dirname(out))) mkdirSync(dirname(out), { recursive: true });
+  writeFileSync(out, html, "utf8");
+  console.log(`written: ${out}  (${(Buffer.byteLength(html, "utf8") / 1024).toFixed(1)} KiB)`);
+}
 
 const s = summarise({ crawlRecords, evidenceRecords, facts });
 const rec = reconcile(crawlRecords);
-
-console.log(`written: ${out}  (${(Buffer.byteLength(html, "utf8") / 1024).toFixed(1)} KiB)`);
 console.log("");
 console.log(`COVERAGE            : ${s.coverageState}${s.recordedCoverageState && s.recordedCoverageState !== s.coverageState ? `  (the run recorded ${s.recordedCoverageState}; corrected)` : ""}`);
 console.log(`fetched / requested : ${s.fetched} / ${s.observations}   seed pool ${s.seedPoolSize}`);
@@ -76,4 +88,4 @@ console.log(`RECONCILIATION      : ${rec.observations} observations − ${rec.su
 console.log(`facts               : ${facts.length}, of which UNVERIFIED ${facts.filter((f) => f.verificationState === "UNVERIFIED").length}`);
 console.log(`label census        : ${Object.entries(s.labelCensus).map(([k, v]) => `${k}=${v}`).join(" · ")}`);
 console.log("");
-console.log("🔴 READ-ONLY. The page has no action, no form and no write path.");
+console.log("🔴 The page has no action, no form and no write path. This runner writes it only with --confirm.");

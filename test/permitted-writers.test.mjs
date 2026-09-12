@@ -54,14 +54,31 @@ test("(d) every entry states all four things — writes · where · gatedBy · w
 });
 
 /**
- * 🔴 A REASON NOBODY CAN STATE IS WRITTEN AS UNKNOWN, NOT INVENTED. Exactly one
- * is unknown today, and the field says so in its first word.
+ * 🔴 A REASON NOBODY CAN STATE IS WRITTEN AS UNKNOWN, NOT INVENTED. #49 had one:
+ * nursing-chain. It was DETERMINED on 12 September 2026 (night) rather than
+ * filled in — the chain half is superseded, the fetch half is load-bearing —
+ * and the determination is a document, so the stated reason can be checked.
  */
-test("🔴 an unstated reason says UNKNOWN in its first word — never an invented one", () => {
-  const unknown = PERMITTED_PAGE_WRITERS.filter((e) => !e.whyKnown);
-  assert.deepEqual(unknown.map((e) => e.file), ["bin/nursing-chain.mjs"]);
-  for (const e of unknown) assert.match(e.why, /^UNKNOWN\b/);
-  for (const e of PERMITTED_PAGE_WRITERS.filter((x) => x.whyKnown)) assert.doesNotMatch(e.why, /^UNKNOWN\b/);
+test("🔴 no reason is UNKNOWN now — and the one that was is backed by its written determination", () => {
+  assert.deepEqual(PERMITTED_PAGE_WRITERS.filter((e) => !e.whyKnown).map((e) => e.file), []);
+  for (const e of PERMITTED_PAGE_WRITERS) assert.doesNotMatch(e.why, /^UNKNOWN\b/);
+  const nc = PERMITTED_PAGE_WRITERS.find((e) => e.file === "bin/nursing-chain.mjs");
+  assert.match(nc.why, /NURSING_CHAIN_SUPERSESSION\.md/);
+  const doc = readFileSync(`${REPO}NURSING_CHAIN_SUPERSESSION.md`, "utf8");
+  assert.match(doc, /Nothing was removed/);
+  // The load-bearing claim, checked against the source rather than the prose:
+  for (const reader of ["bin/profession-chain.mjs", "bin/placement-measure.mjs"]) {
+    assert.match(readFileSync(`${REPO}${reader}`, "utf8"), /runs\/_profession-cache/, `${reader} no longer reads the cache — re-read the determination`);
+  }
+});
+
+test("🔴 CONTROL: an entry whose reason is UNKNOWN must say so in its first word", () => {
+  const liar = { ...PERMITTED_PAGE_WRITERS[0], whyKnown: false, why: "because it is useful" };
+  assert.doesNotMatch(liar.why, /^UNKNOWN\b/, "the fixture must be the dishonest shape");
+  const r = analyseWriters({ sources: realSources(), register: [...PERMITTED_PAGE_WRITERS.slice(1), liar] });
+  // Reconciliation is about files, not honesty — the honesty rule is this file's own assertion.
+  assert.equal(r.reconciles, true);
+  assert.ok(!(liar.whyKnown === false && /^UNKNOWN\b/.test(liar.why)), "the dishonest entry is detectable");
 });
 
 /* ---- RED, BOTH DIRECTIONS, BY INJECTION ------------------------------ */
@@ -103,24 +120,18 @@ test("CONTROL: the real sources injected unchanged reconcile exactly — the sea
  * ================================================================== */
 
 /**
- * 🔴 ITEM 14 FAILS HERE. These two write sites have no gate at all:
- *   - the owner report writer writes on every run;
- *   - the chain runner writes its cache of fetched sibling pages whenever a
- *     sibling is not already cached, with no flag.
- * Pinned by file and by the text of the write, so a THIRD cannot join them
- * quietly and a FIX cannot leave the row FAILED quietly either.
+ * 🔴 ZERO SINCE 12 SEPTEMBER 2026 (night). #49 pinned TWO here and FAILED item
+ * 14 on them: the owner report writer wrote on every run, and the chain runner
+ * wrote its fetch cache with no flag. Both are now behind --confirm. The pin is
+ * now ZERO, so a writer that defaults to writing turns this red at once.
  */
-test("(d) 🔴 exactly TWO write sites DEFAULT TO WRITING — item 14's FAILURE condition is met", () => {
-  const ungated = real.defaultsToWriting.map((s) => `${s.file} :: ${s.text}`).sort();
-  assert.deepEqual(ungated, [
-    'bin/nursing-chain.mjs :: writeFileSync(cached, res.body, "utf8");',
-    'bin/report.mjs :: writeFileSync(out, html, "utf8");',
-  ]);
+test("(d) 🔴 ZERO write sites DEFAULT TO WRITING — every one is dry-run by default", () => {
+  assert.deepEqual(real.defaultsToWriting.map((s) => `${s.file}:${s.line} :: ${s.text}`), []);
 });
 
-test("(d) the other six sites each sit behind their declared gate", () => {
+test("(d) all EIGHT sites sit behind their declared gate", () => {
   const gated = real.sites.filter((s) => s.gated);
-  assert.equal(gated.length, 6);
+  assert.equal(gated.length, 8);
   for (const s of gated) assert.ok(s.by, `${s.file}:${s.line} is gated by nothing it can name`);
 });
 
@@ -157,14 +168,17 @@ test("(d) 0 writes to a literal path outside this repository", () => {
 });
 
 /**
- * 🔴 AND WHAT THAT ZERO DOES NOT COVER. Every one of the seven takes its
- * destination from an operator flag, and nothing contains that path to this
- * repository. The register must say so, and says it truthfully — the flag is
- * DETECTED in each file, not taken from the entry.
+ * 🔴 AND THE FLAG IS NOW CONFINED. Every one of the seven takes its destination
+ * from an operator flag — detected in each file, not taken from the entry — and
+ * since 12 September 2026 (night) every one refuses a path outside this
+ * repository. `test/write-confinement.test.mjs` proves the refusal on a real
+ * writer; this checks that the register says so for all seven.
  */
-test("(d) 🔴 7 of 7 writers let an operator flag choose the destination — declared, and checked against the source", () => {
+test("(d) 🔴 7 of 7 writers take an operator destination, and 7 of 7 are confined before their first write", () => {
   assert.deepEqual(real.destinationMismatch, []);
   assert.equal(PERMITTED_PAGE_WRITERS.filter((e) => e.destinationOverridable).length, 7);
+  assert.deepEqual(real.unconfined, []);
+  for (const e of PERMITTED_PAGE_WRITERS) assert.match(e.where, /confined by confineToRepo/, `${e.file}: the register does not state its confinement`);
 });
 
 test("CONTROL: the destination detector knows all three spellings, and a fixed path is not a flag", () => {

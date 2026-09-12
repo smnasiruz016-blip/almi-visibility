@@ -28,9 +28,12 @@
 
 import { readFileSync } from "node:fs";
 
-import { splitSource, sectionSix, verify } from "../../tools/verify-pass-boundaries-source.mjs";
+import {
+  splitSource, sectionSix, verify, amendmentContracts, AMENDMENT_1_SPLIT_IDS,
+} from "../../tools/verify-pass-boundaries-source.mjs";
 
 const SOURCE = new URL("../../PASS_BOUNDARIES_SOURCE.md", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+const AMENDMENT_1 = new URL("../../PASS_BOUNDARIES_AMENDMENT_1.md", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 
 /** The four parts a VERIFIED-PASS requires. Frozen; adding a fifth is a ruling. */
 export const CONTRACT_PARTS = Object.freeze(["input", "expected", "failure", "evidence"]);
@@ -102,6 +105,27 @@ export function loadBoundaries() {
     );
   }
 
+  /**
+   * 🔴 AMENDMENT 1 — the six v0.1 halves that had no testable contract.
+   *
+   * PR #46 reported that items 10, 12, 13, 14, 25 and 38 were ruled as
+   * two-column tables and could therefore never be ticked. The owner accepted
+   * that and amended the ruling rather than letting the gap be filled in from
+   * this side — which is the difference between a boundary changing by owner
+   * ruling and a boundary being worked around.
+   *
+   * The amendment's contracts are OVERLAID onto §4's halves, never replacing
+   * the deferred half: that stays exactly as §4 and §5 record it, because a
+   * deferred half cannot be run and needs no testable contract.
+   */
+  const amendment = amendmentContracts(AMENDMENT_1);
+  if (!amendment.matches) {
+    throw new Error(
+      "PASS_BOUNDARIES_AMENDMENT_1.md does not match its recorded hash. The six v0.1-half " +
+        "contracts below would not be the owner's, and six features' tickability depends on them.",
+    );
+  }
+
   const text = readFileSync(SOURCE, "utf8").replace(/\r\n/g, "\n");
   const { body } = splitSource(text);
   const six = sectionSix(body);
@@ -130,12 +154,21 @@ export function loadBoundaries() {
       }
     }
 
+    // The amendment supplies the four parts §4 never stated. It adds; it does
+    // not overwrite a part the frozen ruling already gave.
+    const amended = amendment.contracts[id];
+    if (amended) {
+      for (const [k, v] of Object.entries(amended)) if (!parts[k]) parts[k] = v;
+      via = `${via}+A1`;
+    }
+
     out[id] = {
       id,
       name: clean(headline.replace(/ — \*\*[PSD].*$/, "")),
       class: klass ? klass[1] : null,
       classNote: klass && klass[2] ? klass[2] : null,
       via,
+      amendedByA1: Boolean(amended),
       ...parts,
       /* 🔴 Which of the four the DOCUMENT does not supply. Reported, never
        * filled in — a row cannot be VERIFIED-PASS without all four, and the

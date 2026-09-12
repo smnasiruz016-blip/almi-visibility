@@ -22,26 +22,24 @@ Frozen source verified: **YES** · features **58**
 | state | before (4-state) | after (6-state) |
 |---|---|---|
 | **NOT-STARTED** | 33 | **3** |
-| **BUILT-NOT-PROVED** | 24 | **17** |
-| **TESTABLE-NOW** | 0 | **4** |
-| **VERIFIED-PASS** | 0 | **0** |
+| **BUILT-NOT-PROVED** | 24 | **18** |
+| **TESTABLE-NOW** | 0 | **0** |
+| **VERIFIED-PASS** | 0 | **3** |
 | **BLOCKED-UNKNOWN** | 1 | **6** |
 | **DEFERRED** | 0 | **28** |
 | **total** | 58 | **58** |
 
 ### 🔴 THE MOST IMPORTANT LINE IN THIS DOCUMENT
 
-> **NOT ONE ROW CHANGED STATUS BECAUSE WORK HAPPENED. THE COUNT IS ZERO.**
->
-> 37 rows moved. Every one moved because the vocabulary changed — 28 of them
-> from NOT-STARTED to DEFERRED, which is a more honest label for the same absence and is
-> **not progress**. Nothing was built and nothing was proved in the change that produced
-> this ledger. A ledger that looks better because we renamed its columns is the exact
-> failure this instrument exists to prevent, so the number is stated first and plainly.
+> **3 row(s) changed because work happened.** Listed in (i) below.
 
 #### (i) changed because WORK HAPPENED
 
-**Zero rows. Nothing was built.**
+| # | feature | from | to |
+|---|---|---|---|
+| 8 | HEAVY / THIN / EMPTY Discipline | NOT-STARTED | **VERIFIED-PASS** |
+| 15 | Verified Fact Supply Engine | BUILT-NOT-PROVED | **VERIFIED-PASS** |
+| 48 | Idempotency & Retry Safety | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 
 #### (ii) changed ONLY because the vocabulary changed
 
@@ -49,11 +47,9 @@ Frozen source verified: **YES** · features **58**
 |---|---|---|
 | NOT-STARTED → DEFERRED | 28 | 2, 3, 4, 5, 6, 7, 18, 19, 20, 21, 22, 23, 24, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39, 40, 41, 43, 44 |
 | BUILT-NOT-PROVED → BLOCKED-UNKNOWN | 4 | 1, 11, 54, 56 |
-| BUILT-NOT-PROVED → TESTABLE-NOW | 3 | 14, 15, 48 |
-| NOT-STARTED → TESTABLE-NOW | 1 | 8 |
 | NOT-STARTED → BLOCKED-UNKNOWN | 1 | 42 |
 
-**Did not move: 21** — 9, 10, 12, 13, 16, 17, 25, 26, 36, 38, 45, 46, 47, 49, 50, 51, 52, 53, 55, 57, 58
+**Did not move: 22** — 9, 10, 12, 13, 14, 16, 17, 25, 26, 36, 38, 45, 46, 47, 49, 50, 51, 52, 53, 55, 57, 58
 
 ---
 
@@ -62,30 +58,6 @@ Frozen source verified: **YES** · features **58**
 🔴 **TESTABLE-NOW IS NOT A PASS.** The input finally exists; the falsifiable test has not
 been run. Between here and VERIFIED-PASS there is exactly one thing: the test, run, with
 its evidence. Each row names the single test that would settle it.
-
-### 8 · HEAVY / THIN / EMPTY Discipline
-
-**The one test:** run the four supply checks over the REAL 394-page corpus and assert no finding carries a RECOMMENDATION_FIELD or the word 'opportunity'
-
-**Why it is testable now:** 🔴 THE RULING PUTS THIS IN SCOPE AND THE TRACKER HAD IT OUT. Class P, but CHECKLIST_STATUS.md carried it as scope OUT / NOT STARTED — the only class-vs-scope disagreement in all 58, and precedence says the ruling wins. The guard the EVIDENCE clause names EXISTS (test/content-checks.test.mjs) but runs on inline fixtures, not the real corpus
-
-### 14 · No Blind Regeneration
-
-**The one test:** a census proving NO generator and NO publish path exists in the repository — the ruling's own words, 'prove the absence, do not simulate the danger'
-
-**Why it is testable now:** uniquely among the splits, the v0.1 half is provable by census today and needs nothing built first. 🔴 Its four parts are still not stated in §4
-
-### 15 · Verified Fact Supply Engine
-
-**The one test:** the whole loop over the 32 REAL verified facts: stored once, reused inside scope and window, refused outside either, expires on schedule
-
-**Why it is testable now:** 🔴 THE INPUT ARRIVED ON 12 SEPTEMBER. 32 facts now carry a source, tier, scope, verification date and freshness window — the boundary's INPUT exactly. The refuse-outside-scope and expiry legs are still fixture-only, and the boundary says any fixture-only leg is a FAILURE
-
-### 48 · Idempotency & Retry Safety
-
-**The one test:** run an authorized job twice and assert identical logical-record counts, plus the existing test that fails if the retry rule changes
-
-**Why it is testable now:** both halves are in place: idempotency was exercised on real data this week (a re-run appended re-sightings and zero duplicate payloads) and the never-retry-a-4xx rule has a test. What is missing is one run recorded AS THIS ROW'S EVIDENCE, with before/after IDs and counts
 
 ---
 
@@ -101,12 +73,6 @@ question for the owner, recorded as one.
 
 | # | feature | class | parts the document does not state |
 |---|---|---|---|
-| 10 | Technical SEO Audit Engine | S | input, expected, failure, evidence |
-| 12 | Duplicate / Thin / Template Detection | S | input, expected, failure, evidence |
-| 13 | Cannibalization Prevention | S | input, expected, failure, evidence |
-| 14 | No Blind Regeneration | S | input, expected, failure, evidence |
-| 25 | Page Quality Gate | S | input, expected |
-| 38 | Indexability Preflight | S | input, expected, failure, evidence |
 
 ---
 
@@ -205,7 +171,7 @@ question for the owner, recorded as one.
 
 ### 8 · HEAVY / THIN / EMPTY Discipline
 
-**TESTABLE-NOW** · class `P` · ruled in `§6` · was NOT-STARTED (vocabulary)
+**VERIFIED-PASS** · class `P` · ruled in `§6` · was NOT-STARTED (work)
 
 | part | the owner's words |
 |---|---|
@@ -214,9 +180,7 @@ question for the owner, recorded as one.
 | **FAILURE** | any of the three is converted, silently or otherwise, into a demand or opportunity conclusion. |
 | **EVIDENCE** | a test that fails the build if a supply label emits a recommendation. |
 
-**Verdict —** 🔴 THE RULING PUTS THIS IN SCOPE AND THE TRACKER HAD IT OUT. Class P, but CHECKLIST_STATUS.md carried it as scope OUT / NOT STARTED — the only class-vs-scope disagreement in all 58, and precedence says the ruling wins. The guard the EVIDENCE clause names EXISTS (test/content-checks.test.mjs) but runs on inline fixtures, not the real corpus
-
-**The one test that would settle it —** run the four supply checks over the REAL 394-page corpus and assert no finding carries a RECOMMENDATION_FIELD or the word 'opportunity'
+**Verdict —** all four parts answered on real data. **INPUT** the real 495-page corpus of 12 September, 389 with a stored body. **EXPECTED** the labels are a supply census and nothing else: HEAVY 269 · THIN 118 · EMPTY 0 · UNKNOWN 108 (106 no stored body, 2 empty in raw HTML), and the run states in its own output that these say nothing about demand. **FAILURE** not met — 0 of 550 real findings carries a recommendation field or any demand word. **EVIDENCE** `test/supply-labels.test.mjs` fails the build if a supply label emits one, RED-proved twice (an injected 'opportunity' and an injected `recommendation` field), each landing in the intended test
 
 ### 9 · Search Console / Analytics Intelligence
 
@@ -234,14 +198,14 @@ question for the owner, recorded as one.
 
 ### 10 · Technical SEO Audit Engine
 
-**BUILT-NOT-PROVED** · class `S` · ruled in `§4`
+**BUILT-NOT-PROVED** · class `S` · ruled in `§4+A1`
 
 | part | the owner's words |
 |---|---|
-| **INPUT** | 🔴 *not stated in the ruling* |
-| **EXPECTED** | 🔴 *not stated in the ruling* |
-| **FAILURE** | 🔴 *not stated in the ruling* |
-| **EVIDENCE** | 🔴 *not stated in the ruling* |
+| **INPUT** | the crawled corpus, its served HTML and headers, redirect chains, the edge graph, and the `robots.txt` and sitemap files of the hosts involved |
+| **EXPECTED** | each of the six named classes — status · redirects · sitemap · robots/indexability · canonical · **served-HTML content and link evidence** — returns, for every page, either a finding or an explicit UNKNOWN carrying its reason |
+| **FAILURE** | any of the six classes is absent; or a class returns `null` where it could not run; or a served-HTML conclusion is drawn on a body that was truncated |
+| **EVIDENCE** | per class: a firing fixture, a silent clean control, and the class run over the real corpus with its counts — plus the UNKNOWN path exercised at least once on real data |
 | **v0.1 PASS boundary** | the frozen v0.1 audit classes — **status, redirects, sitemap, robots/indexability, canonical, rendered-content/link evidence** — are **independently detected and re-tested in the Case Study** |
 | **⏭ deferred half** | all advanced technical SEO beyond those classes |
 
@@ -263,54 +227,52 @@ question for the owner, recorded as one.
 
 ### 12 · Duplicate / Thin / Template Detection
 
-**BUILT-NOT-PROVED** · class `S` · ruled in `§4`
+**BUILT-NOT-PROVED** · class `S` · ruled in `§4+A1`
 
 | part | the owner's words |
 |---|---|
-| **INPUT** | 🔴 *not stated in the ruling* |
-| **EXPECTED** | 🔴 *not stated in the ruling* |
-| **FAILURE** | 🔴 *not stated in the ruling* |
-| **EVIDENCE** | 🔴 *not stated in the ruling* |
+| **INPUT** | the corpus, with shell subtraction defined and printed |
+| **EXPECTED** | exact-duplicate, near-duplicate, thin and template-dominance each classify every page and each emits **evidence only** |
+| **FAILURE** | any supply label produces a demand or opportunity conclusion; or shell subtraction is undefined, untested, or not printed beside the result |
+| **EVIDENCE** | the four classifications over the real corpus; the shell definition printed; the shell-heavier-than-body test; and the item-8 guard passing |
 | **v0.1 PASS boundary** | observe, classify and produce evidence |
 | **⏭ deferred half** | a candidate or page failing the frozen duplicate/thin limits → **publishing path HARD BLOCK** |
 
-**Verdict —** the v0.1 half observes, classifies and produced real findings. 🔴 But §4 rules this row as a two-half table and never states its four parts, so there is no stated boundary to test it against
+**Verdict —** the v0.1 half observes, classifies and produced real findings. Amendment 1 now supplies its four-part contract, so it CAN be tested — but the EVIDENCE clause wants the four classifications over the real corpus with shell subtraction printed, plus the item-8 guard, and that run has not been made for this row. Not touched in this PR
 
 ### 13 · Cannibalization Prevention
 
-**BUILT-NOT-PROVED** · class `S` · ruled in `§4`
+**BUILT-NOT-PROVED** · class `S` · ruled in `§4+A1`
 
 | part | the owner's words |
 |---|---|
-| **INPUT** | 🔴 *not stated in the ruling* |
-| **EXPECTED** | 🔴 *not stated in the ruling* |
-| **FAILURE** | 🔴 *not stated in the ruling* |
-| **EVIDENCE** | 🔴 *not stated in the ruling* |
+| **INPUT** | query×page data in which one query draws impressions on more than one URL |
+| **EXPECTED** | every such overlap detected and reported with its query, the competing URLs and their positions |
+| **FAILURE** | a real overlap is missed, **or** a single-URL query is reported as an overlap |
+| **EVIDENCE** | detection over real query data, a firing fixture, a clean control, and the number of queries searched stated |
 | **v0.1 PASS boundary** | detect and report overlap between existing URLs and intents |
 | **⏭ deferred half** | where a suitable existing URL already serves the same intent → **default CREATE is not allowed**; the decision routes to IMPROVE or MERGE on the existing resource |
 
-**Verdict —** detection ran on real data (16 cannibalization findings). 🔴 Same gap as item 12: §4 gives halves, not the four parts
+**Verdict —** detection ran on real data (16 cannibalization findings). Amendment 1 now supplies its four-part contract. Its EVIDENCE wants a firing fixture, a clean control and the number of queries searched stated. Not touched in this PR
 
 ### 14 · No Blind Regeneration
 
-**TESTABLE-NOW** · class `S` · ruled in `§4` · was BUILT-NOT-PROVED (vocabulary)
+**BUILT-NOT-PROVED** · class `S` · ruled in `§4+A1`
 
 | part | the owner's words |
 |---|---|
-| **INPUT** | 🔴 *not stated in the ruling* |
-| **EXPECTED** | 🔴 *not stated in the ruling* |
-| **FAILURE** | 🔴 *not stated in the ruling* |
-| **EVIDENCE** | 🔴 *not stated in the ruling* |
+| **INPUT** | the repository as it stands, and a rediscovered URL |
+| **EXPECTED** | a census proves **no generator, no page-writing path and no product-repository write path exists**; and a rediscovered URL resolves to its **existing** `page_id` |
+| **FAILURE** | any generation or page-write path is found; or a rediscovered URL creates a second record |
+| **EVIDENCE** | the census output RED-proved by adding a throwaway generator and removing it; and the ID-stability test sabotaged and restored |
 | **v0.1 PASS boundary** | **the absence of the generator IS the strongest safety proof.** Prove the absence, do not simulate the danger |
 | **⏭ deferred half** | an unchanged existing page rediscovered → **KEEP**; automatic recreate or overwrite forbidden |
 
-**Verdict —** uniquely among the splits, the v0.1 half is provable by census today and needs nothing built first. 🔴 Its four parts are still not stated in §4
-
-**The one test that would settle it —** a census proving NO generator and NO publish path exists in the repository — the ruling's own words, 'prove the absence, do not simulate the danger'
+**Verdict —** 🔴 **ITS FAILURE CONDITION IS CURRENTLY MET, WHICH IS STRONGER THAN 'NOT PROVED'.** Amendment 1 requires a census proving no generator, no page-writing path and no product-repository write path exists. **Six page-writing paths exist** — four of them render a candidate page from the registry, via one renderer driven by four runners, built deliberately for earlier gate work. The other two write an audit report and stored corpus bodies. Every one is a LOCAL write behind write-law.mjs and --confirm, and **0 write into a product repository**, so the danger this item names is absent — but the boundary as written is not met, and closing the gap between those two is the owner's ruling to make, not mine. The other halves DO hold: 0 product-repo writes, 0 bulk generate-all paths, and ID stability proved on the real 495-page run (one record per page_id, every id derivable from its own URL). 🔴 The six paths are named in the census output, not here: the engine may not know which product it serves
 
 ### 15 · Verified Fact Supply Engine
 
-**TESTABLE-NOW** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (vocabulary)
+**VERIFIED-PASS** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (work)
 
 | part | the owner's words |
 |---|---|
@@ -319,9 +281,7 @@ question for the owner, recorded as one.
 | **FAILURE** | any leg of that loop is fixture-only, or a fact is reused out of scope or past expiry. |
 | **EVIDENCE** | the whole loop demonstrated end to end on real verified facts. |
 
-**Verdict —** 🔴 THE INPUT ARRIVED ON 12 SEPTEMBER. 32 facts now carry a source, tier, scope, verification date and freshness window — the boundary's INPUT exactly. The refuse-outside-scope and expiry legs are still fixture-only, and the boundary says any fixture-only leg is a FAILURE
-
-**The one test that would settle it —** the whole loop over the 32 REAL verified facts: stored once, reused inside scope and window, refused outside either, expires on schedule
+**Verdict —** the whole loop demonstrated end to end on the 32 REAL verified facts, **no leg fixture-only**. **(i) stored once** — one fact requested three times reaches the source 0 times, and a miss is memoised so it is researched once, not repeatedly. **(ii) reused within scope and window** — all 32 hit today, each returning its own record. **(iii) refused outside scope**, proved on a REAL PAIR: two regulators in different jurisdictions publish a minimum grade for the same qualification, and holding only one of them, a question about the other MISSES and hands back nothing. The two values genuinely differ, so a candidate given the wrong one would prepare to the wrong threshold. The same refusal holds across scopes within a jurisdiction. **(iv) expires on schedule** — each of the 32 goes STALE the day after its own recorded recheck date (earliest 2026-12-11, latest 2027-03-11), for that reason and not down the old extractedOn path; 0 of 32 are served once every date has passed. Four sabotages, each landing in the intended test. 🔴 The real pair is NAMED IN THE TEST, not here: the engine may not know which product it serves
 
 ### 16 · Fact Conflict & Freshness
 
@@ -443,12 +403,12 @@ question for the owner, recorded as one.
 
 ### 25 · Page Quality Gate
 
-**BUILT-NOT-PROVED** · class `S` · ruled in `§6`
+**BUILT-NOT-PROVED** · class `S` · ruled in `§6+A1`
 
 | part | the owner's words |
 |---|---|
-| **INPUT** | 🔴 *not stated in the ruling* |
-| **EXPECTED** | 🔴 *not stated in the ruling* |
+| **INPUT** | an existing page, its siblings, and the claims it makes |
+| **EXPECTED** | unique value, sibling overlap, verified-fact presence and source integrity each measured and reported per page |
 | **FAILURE** | any of the four in-scope checks is fixture-only or absent. |
 | **EVIDENCE** | the four checks over the real corpus, each with a clean control. |
 | **v0.1 PASS boundary** | unique value, verified facts, sibling overlap and source integrity measured on existing pages. |
@@ -614,18 +574,18 @@ question for the owner, recorded as one.
 
 ### 38 · Indexability Preflight
 
-**BUILT-NOT-PROVED** · class `S` · ruled in `§4`
+**BUILT-NOT-PROVED** · class `S` · ruled in `§4+A1`
 
 | part | the owner's words |
 |---|---|
-| **INPUT** | 🔴 *not stated in the ruling* |
-| **EXPECTED** | 🔴 *not stated in the ruling* |
-| **FAILURE** | 🔴 *not stated in the ruling* |
-| **EVIDENCE** | 🔴 *not stated in the ruling* |
+| **INPUT** | an existing page with its status, canonical, meta robots, `X-Robots-Tag`, matching `robots.txt` rule and sitemap membership |
+| **EXPECTED** | an indexability **state** per page, and the words **INDEXABLE ≠ INDEXED** printed wherever that state is shown |
+| **FAILURE** | indexability is reported as indexation; or any output states or implies that a page **will** be indexed, ranked or cited |
+| **EVIDENCE** | the state over the real corpus, plus a test that fails the build on any indexing, ranking or citation promise in output |
 | **v0.1 PASS boundary** | inspect the indexability of pages that already exist |
 | **⏭ deferred half** | a candidate failing required status / canonical / noindex / robots / renderability → **publish BLOCK** |
 
-**Verdict —** indexability of existing pages was inspected on real data (134 noindexed pages traced to one commit). 🔴 Same gap as items 12 and 13: §4 gives halves, not the four parts
+**Verdict —** indexability of existing pages was inspected on real data (134 noindexed pages traced to one commit). Amendment 1 now supplies its four-part contract. Its EVIDENCE wants the state over the real corpus plus a test failing the build on any indexing promise. Not touched in this PR
 
 ### 39 · Real Indexation Learning
 
@@ -750,7 +710,7 @@ question for the owner, recorded as one.
 
 ### 48 · Idempotency & Retry Safety
 
-**TESTABLE-NOW** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (vocabulary)
+**VERIFIED-PASS** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (work)
 
 | part | the owner's words |
 |---|---|
@@ -759,9 +719,7 @@ question for the owner, recorded as one.
 | **FAILURE** | a record, page, action or cost duplicates; or a 4xx is retried. |
 | **EVIDENCE** | before/after IDs and counts, plus a test that fails if the retry rule is changed. |
 
-**Verdict —** both halves are in place: idempotency was exercised on real data this week (a re-run appended re-sightings and zero duplicate payloads) and the never-retry-a-4xx rule has a test. What is missing is one run recorded AS THIS ROW'S EVIDENCE, with before/after IDs and counts
-
-**The one test that would settle it —** run an authorized job twice and assert identical logical-record counts, plus the existing test that fails if the retry rule changes
+**Verdict —** **INPUT** the same authorized job run twice, and a retry against a 4xx. **EXPECTED** the re-run appends no duplicate payload and mints no new id for the same measurement — before 1 / after 1, with the re-sighting recorded rather than dropped; and requests are counted at the boundary: 7 different 4xx statuses each issue exactly ONE request, a network error gets exactly ONE retry (2 attempts, never 3), and a 5xx is not retried at all. **FAILURE** not met, on real data: the 12 September crawl holds 500 observations with 500 distinct measurement keys and 500 distinct ids. **COST** — requests are the only metered thing this system issues (no paid provider exists, item 47), and a re-run over held input issues zero. 🔴 **The retry rule had NO test until now**; the code was right since PR #36 and nothing would have caught it changing. Three sabotages — retry a 4xx, retry twice, stop deduplicating — each landed in the intended test
 
 ### 49 · Audit Trail & Provenance
 

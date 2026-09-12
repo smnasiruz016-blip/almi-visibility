@@ -90,7 +90,7 @@ test("🔴 the tracker has exactly 58 item rows, numbered 1..58 with no gap and 
  * becomes a wrong status, and this file is read in terminals. The assertion
  * below fails on a symbol, which is the point.
  */
-test("🔴 every row carries one of the SIX states, written as a word", () => {
+test("🔴 every row carries one of the SEVEN states, written as a word", () => {
   for (const row of statusRows().filter((r) => r.cells.length >= 8)) {
     const status = row.cells[1];
     assert.ok(
@@ -174,8 +174,26 @@ test("🔴 the headline separates the three earned ticks from the 33 renamed row
   const text = readFileSync(STATUS, "utf8");
   assert.match(text, /THREE TICKS — THE FIRST THIS PROJECT HAS EVER AWARDED/);
   assert.match(text, /DEFERRED IS NOT A TICK AND NEVER COUNTS AS ONE/);
-  assert.match(text, /only three rows in the whole ledger whose status moved because \*\*work happened\*\*/);
+  assert.match(text, /only three rows in the whole ledger that \*\*reached a pass because work happened\*\*/);
   // 🔴 And the ledger must still say plainly that a deferral is not progress.
   assert.match(text, /The 28 DEFERRED rows are not progress and nothing was built for any of them/);
   assert.match(text, /Item 14 did NOT tick/);
+});
+
+/**
+ * 🔴 AMENDMENT 2, RULE 3 — FAILED IS COUNTED AND NAMED SEPARATELY IN EVERY REPORT,
+ * AND NEVER DESCRIBED AS PROGRESS. Both ledgers are held to it: the hand-written
+ * one and the generated one.
+ */
+test("🔴 RULE 3: both ledgers count FAILED in its own row, name the failed item, and say it is not progress", () => {
+  const status = readFileSync(STATUS, "utf8");
+  const generated = readFileSync(`${REPO}CHECKLIST_BOUNDARIES.md`, "utf8");
+  for (const [name, text] of [["CHECKLIST_STATUS.md", status], ["CHECKLIST_BOUNDARIES.md", generated]]) {
+    assert.match(text, /\| \*\*FAILED\*\* \|/, `${name} has no FAILED row of its own`);
+    assert.match(text, /FAILED[^\n]*counted and named separately/i, `${name} does not name FAILED separately`);
+    assert.match(text, /not progress/, `${name} does not say FAILED is not progress`);
+    assert.match(text, /item 14/i, `${name} does not name the failed item`);
+    // 🔴 Rule 4: it is reported as worth more than BUILT-NOT-PROVED.
+    assert.match(text, /worth more than\s+(\*\*)?BUILT-NOT-PROVED/, `${name} does not report FAILED as worth more than BUILT-NOT-PROVED`);
+  }
 });

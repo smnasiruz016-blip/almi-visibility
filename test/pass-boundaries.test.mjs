@@ -14,7 +14,7 @@ import {
   verify, EXPECTED_BODY_SHA256, EXPECTED_FEATURE_COUNT, EXPECTED_CLASS_COUNTS, splitSource, sectionSix,
 } from "../tools/verify-pass-boundaries-source.mjs";
 import { loadBoundaries, CONTRACT_PARTS } from "../src/checklist/boundaries.mjs";
-import { classify, assertLawful, tally, STATES } from "../src/checklist/classification.mjs";
+import { classify, assertLawful, tally, STATES, LOOKED } from "../src/checklist/classification.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const SOURCE = `${REPO}PASS_BOUNDARIES_SOURCE.md`;
@@ -74,7 +74,7 @@ test("the class counts are frozen too — they decide which rows may be deferred
  * paraphrase of the ruling through.
  */
 test("🔴 every boundary is present in one of the frozen texts, character for character", () => {
-  const flat = [SOURCE, AMENDMENT]
+  const flat = [SOURCE, AMENDMENT, `${REPO}PASS_BOUNDARIES_AMENDMENT_2.md`]
     .map((p) => splitSource(readFileSync(p, "utf8").replace(/\r\n/g, "\n")).body)
     .join("\n")
     .replace(/\s+/g, " ");
@@ -99,8 +99,9 @@ test("all 58 are parsed, and each knows WHICH document ruled it", () => {
   assert.equal(Object.keys(b).length, 58);
   const via = {};
   for (const r of Object.values(b)) via[r.via] = (via[r.via] ?? 0) + 1;
-  // §4+A1 — the five splits §4 named; §6+A1 — item 25, split inline in §6.
-  assert.deepEqual(via, { "§6": 50, "§4+A1": 5, "§6+A1": 1, "§5": 2 });
+  // §4+A1 — the splits §4 named; §6+A1 — item 25, split inline in §6;
+  // §4+A1+A2 — item 14, whose Amendment 1 contract Amendment 2 replaced.
+  assert.deepEqual(via, { "§6": 50, "§4+A1": 4, "§4+A1+A2": 1, "§6+A1": 1, "§5": 2 });
   assert.equal(Object.values(b).filter((r) => r.amendedByA1).length, 6);
 });
 
@@ -222,18 +223,24 @@ test("🔴 RED: TESTABLE-NOW without a named test is REFUSED", () => {
  * THE COUNTS, AND THE ONE NUMBER THAT MATTERS MOST.
  * ================================================================== */
 
-test("the six-state tally is 3 / 18 / 0 / 3 / 6 / 28", () => {
+/**
+ * 🔴 SEVEN STATES SINCE AMENDMENT 2. BUILT-NOT-PROVED fell by one and FAILED
+ * rose by one — item 14. That is not progress and not a loss either: it is a
+ * row that was looked at, and the ledger now says so in its own column.
+ */
+test("the seven-state tally is 3 / 17 / 0 / 3 / 1 / 6 / 28", () => {
   assert.deepEqual(tally(classify()), {
     "NOT-STARTED": 3,
-    "BUILT-NOT-PROVED": 18,
+    "BUILT-NOT-PROVED": 17,
     "TESTABLE-NOW": 0,
     "VERIFIED-PASS": 3,
+    FAILED: 1,
     "BLOCKED-UNKNOWN": 6,
     DEFERRED: 28,
   });
 });
 
-test("every state used is one of the six, and every row is classified", () => {
+test("every state used is one of the seven, and every row is classified", () => {
   const rows = classify();
   assert.equal(Object.keys(rows).length, 58);
   for (const r of Object.values(rows)) assert.ok(STATES.includes(r.state), `item ${r.id}: ${r.state}`);
@@ -258,15 +265,22 @@ test("every state used is one of the six, and every row is classified", () => {
  * "vocabulary". If this ever grows without a PR showing four parts of real
  * evidence per row, the ledger has started flattering itself again.
  */
-test("🔴 exactly THREE rows moved on WORK, and they are 8, 15 and 48", () => {
+/**
+ * 🔴 FOUR SINCE AMENDMENT 2 — AND THE FOURTH IS A FAILURE, WHICH IS STILL WORK.
+ * Item 14's test was run against its boundary. A row reaches FAILED only by
+ * being looked at, so it belongs in this column beside the three passes, and
+ * it must never be read as a fourth tick.
+ */
+test("🔴 exactly FOUR rows moved on WORK against the four-state baseline — 8, 14, 15 and 48 — and 14 FAILED", () => {
   const rows = Object.values(classify());
   const work = rows.filter((r) => r.changeKind === "work");
-  assert.deepEqual(work.map((r) => r.id).sort((a, b) => a - b), [8, 15, 48]);
+  assert.deepEqual(work.map((r) => r.id).sort((a, b) => a - b), [8, 14, 15, 48]);
   for (const r of work) {
-    assert.equal(r.state, "VERIFIED-PASS", `item ${r.id} claims work but did not reach a pass`);
+    assert.ok(LOOKED.includes(r.state), `item ${r.id} claims work but was neither passed nor failed`);
   }
+  assert.deepEqual(work.filter((r) => r.state === "FAILED").map((r) => r.id), [14]);
   assert.equal(rows.filter((r) => r.changeKind === "vocabulary").length, 33);
-  assert.equal(rows.filter((r) => r.changeKind === "none").length, 22);
+  assert.equal(rows.filter((r) => r.changeKind === "none").length, 21);
 });
 
 /**
@@ -279,8 +293,9 @@ test("🔴 VERIFIED-PASS is exactly 3 — items 8, 15 and 48, and no others", ()
   const passed = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS").map((r) => r.id).sort((a, b) => a - b);
   assert.deepEqual(passed, [8, 15, 48]);
   assert.equal(tally(rows)["VERIFIED-PASS"], 3);
-  // 🔴 Item 14 did NOT tick: its FAILURE condition is met, six page-writing
-  // paths exist. A row that nearly passes is a row that failed.
-  assert.equal(rows[14].state, "BUILT-NOT-PROVED");
-  assert.match(rows[14].why, /FAILURE CONDITION IS CURRENTLY MET/);
+  // 🔴 Item 14 did NOT tick. Sat again against Amendment 2, its FAILURE
+  // condition "defaults to writing" was met — and it is now FAILED, in its own
+  // column, instead of hiding among the unproven.
+  assert.equal(rows[14].state, "FAILED");
+  assert.match(rows[14].why, /SAT AGAIN AGAINST AMENDMENT 2, AND FAILED/);
 });

@@ -37,14 +37,31 @@
 
 import { loadBoundaries } from "./boundaries.mjs";
 
+/**
+ * 🔴 SEVEN STATES SINCE AMENDMENT 2 (12 September 2026, night).
+ *
+ * FAILED — the row's test was RUN against its own frozen boundary and the
+ * boundary's FAILURE condition was MET. Before it existed, item 14 had been
+ * proved to fail and could only be filed as BUILT-NOT-PROVED, which hid a known
+ * defeat among rows nobody had looked at.
+ */
 export const STATES = Object.freeze([
   "NOT-STARTED",
   "BUILT-NOT-PROVED",
   "TESTABLE-NOW",
   "VERIFIED-PASS",
+  "FAILED",
   "BLOCKED-UNKNOWN",
   "DEFERRED",
 ]);
+
+/**
+ * 🔴 RULE 4 — A FAILED ROW IS WORTH MORE THAN A BUILT-NOT-PROVED ONE. It means
+ * we looked. These are the two states that can only be reached by running a
+ * row's test against its boundary; every report reads them as knowledge.
+ */
+export const LOOKED = Object.freeze(["VERIFIED-PASS", "FAILED"]);
+export const hasBeenLookedAt = (state) => LOOKED.includes(state);
 
 export const CHANGE_KINDS = Object.freeze(["work", "vocabulary", "none"]);
 
@@ -91,6 +108,120 @@ export const BEFORE_2026_09_12 = Object.freeze({
 const D = (id, why) => ({ id, state: "DEFERRED", why });
 
 /**
+ * 🔴 THE LEDGER AS MERGED IN PR #48, BEFORE AMENDMENT 2. Frozen data, for the
+ * same reason as the snapshot above: the transitions this PR makes are measured
+ * against it, and it must not be re-read from a file the PR then overwrites.
+ * 3 NOT-STARTED · 18 BUILT-NOT-PROVED · 0 TESTABLE-NOW · 3 VERIFIED-PASS ·
+ * 6 BLOCKED-UNKNOWN · 28 DEFERRED — no FAILED, because the word did not exist.
+ */
+export const BEFORE_AMENDMENT_2 = Object.freeze((() => {
+  const out = {};
+  for (let id = 1; id <= 58; id += 1) out[id] = "BUILT-NOT-PROVED";
+  const set = (state, ids) => ids.forEach((id) => { out[id] = state; });
+  set("DEFERRED", [2, 3, 4, 5, 6, 7, 18, 19, 20, 21, 22, 23, 24, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39, 40, 41, 43, 44]);
+  set("VERIFIED-PASS", [8, 15, 48]);
+  set("BLOCKED-UNKNOWN", [1, 11, 42, 52, 54, 56]);
+  set("NOT-STARTED", [47, 57, 58]);
+  return out;
+})());
+
+/**
+ * 🔴 EVERY MOVE THIS PR MAKES, DECLARED — AND OF WHICH KIND.
+ *
+ *   kind "ruling" — the row moved ONLY because the owner changed its boundary.
+ *   kind "work"   — the row moved because its test was run.
+ *
+ * A row whose state differs from BEFORE_AMENDMENT_2 without a declared chain
+ * here fails the build. A move is never inferred.
+ */
+export const MOVES_AMENDMENT_2 = Object.freeze({
+  14: Object.freeze([
+    Object.freeze({
+      from: "BUILT-NOT-PROVED",
+      to: "TESTABLE-NOW",
+      kind: "ruling",
+      route: "OWNER_RULING",
+      ruling: "PASS_BOUNDARIES_AMENDMENT_2.md §A2.2 and §A2.4",
+      date: "2026-09-12",
+      reason: "the owner narrowed the boundary to product-repository writes and publishing, and added the register of permitted writers; its earlier result no longer applies, so the exam must be sat again. Not a tick and not a pass",
+    }),
+    Object.freeze({
+      from: "TESTABLE-NOW",
+      to: "FAILED",
+      kind: "work",
+      route: "TEST_RUN",
+      test: "test/permitted-writers.test.mjs",
+      date: "2026-09-12",
+      reason: "the re-test was run against the new contract, and its FAILURE condition 'defaults to writing' was met at two write sites",
+    }),
+  ]),
+});
+
+/** How a row may leave FAILED. Exactly two. Amendment 2, rule 1. */
+export const LEAVE_FAILED_ROUTES = Object.freeze(["RETEST_PASSED", "OWNER_RULING"]);
+
+/**
+ * 🔴 RULES 1 AND 2, ENFORCED.
+ *
+ * Walks every row from its recorded before-state through its declared moves to
+ * its current state, and refuses:
+ *   - a state change with no declared move;
+ *   - a chain that does not join up (a step's `from` is not the previous `to`);
+ *   - ANY step out of FAILED into BUILT-NOT-PROVED, whatever its route (rule 2);
+ *   - any other step out of FAILED that is neither a re-run that passed (to
+ *     VERIFIED-PASS, naming its test) nor an owner ruling with its date and
+ *     reason (rule 1);
+ *   - a "ruling" move that is not an owner ruling, or a "work" move that is.
+ */
+export function assertTransitions(rows, before = BEFORE_AMENDMENT_2, moves = MOVES_AMENDMENT_2) {
+  const errors = [];
+  for (const r of Object.values(rows)) {
+    const chain = moves[r.id] ?? [];
+    let at = before[r.id];
+    for (const step of chain) {
+      if (step.from !== at) {
+        errors.push(`item ${r.id}: a declared move starts at ${step.from} but the row was at ${at} — the chain does not join up`);
+      }
+      if (!["ruling", "work"].includes(step.kind)) errors.push(`item ${r.id}: move kind ${JSON.stringify(step.kind)} is neither "ruling" nor "work"`);
+      if ((step.kind === "ruling") !== (step.route === "OWNER_RULING")) {
+        errors.push(`item ${r.id}: a "${step.kind}" move by route ${step.route} — only an owner ruling is a ruling move, and an owner ruling is never work`);
+      }
+      if (step.route === "OWNER_RULING" && !(step.ruling && step.date && step.reason)) {
+        errors.push(`item ${r.id}: an owner-ruling move must record the ruling, its date AND its reason`);
+      }
+      errors.push(...leavingFailed(r.id, step.from, step.to, step));
+      at = step.to;
+    }
+    if (at !== r.state) {
+      errors.push(...leavingFailed(r.id, at, r.state, null));
+      errors.push(
+        `item ${r.id}: is ${r.state} but its recorded state is ${at} and no move was declared. ` +
+          "A state never changes silently — declare the move, its kind, and what caused it.",
+      );
+    }
+  }
+  return errors;
+}
+
+function leavingFailed(id, from, to, step) {
+  if (from !== "FAILED" || to === "FAILED") return [];
+  if (to === "BUILT-NOT-PROVED") {
+    return [
+      `item ${id}: FAILED may NEVER be returned to BUILT-NOT-PROVED (Amendment 2, rule 2). ` +
+        "That would hide a known defeat inside a crowd of unproven rows.",
+    ];
+  }
+  const retest = step?.route === "RETEST_PASSED" && to === "VERIFIED-PASS" && Boolean(step.test) && Boolean(step.date);
+  const ruling = step?.route === "OWNER_RULING" && Boolean(step.ruling && step.date && step.reason);
+  if (retest || ruling) return [];
+  return [
+    `item ${id}: leaves FAILED for ${to} by ${step ? `route ${step.route}` : "no declared route"}. A row leaves FAILED by ` +
+      "EXACTLY TWO routes — its test re-run and passing (to VERIFIED-PASS, naming the test and date), or an owner " +
+      "ruling changing its boundary, recorded with date and reason (Amendment 2, rule 1).",
+  ];
+}
+
+/**
  * Every row's verdict.
  *
  * The 28 class-`D` rows are generated rather than typed out, because typing 28
@@ -110,7 +241,7 @@ const EXPLICIT = {
   },
   9: {
     state: "BUILT-NOT-PROVED",
-    why: "of the seven named dimensions, downstream OUTCOMES has no tool behind it — the ruling's own NOTE makes that ⚠ rather than a failure. But COUNTRIES is suppliable by the Search Console API and simply has not been ingested (2 mentions in the whole evidence store), so work we can do remains. Lower of the two readings taken",
+    why: "🔴 **FIVE OF SEVEN DIMENSIONS ARE INGESTED; IT DOES NOT TICK.** Queries, pages, impressions, clicks and CTR are in the evidence store, each pull exhausted with dataState COMPLETE and its bounds recorded. **COUNTRIES** — the country and country×query pulls are now BUILT and tested against a fake provider (same pagination law, bounds and cost record), but have **NOT RUN against the real property**: the read-only Search Console key was not available to the session that built them, and a pull that has not run is not ingested. **DOWNSTREAM OUTCOMES** is BLOCKED, not failed, with evidence: the Search Console API has no outcome dimension; this engine's only credential is webmasters.readonly; 0 of 36 product repositories use a third-party analytics package; the one first-party funnel-event table in the estate stores a path and a user id and no search source, and this engine holds no authorization to read any product database. Whether the row can then tick turns on the NOTE — see `src/search/dimensions.mjs`. Not FAILED: the test of all seven has not been run, and NOT RUN = NOT TESTED",
   },
   10: {
     state: "BUILT-NOT-PROVED",
@@ -123,8 +254,12 @@ const EXPLICIT = {
   12: { state: "BUILT-NOT-PROVED", why: "the v0.1 half observes, classifies and produced real findings. Amendment 1 now supplies its four-part contract, so it CAN be tested — but the EVIDENCE clause wants the four classifications over the real corpus with shell subtraction printed, plus the item-8 guard, and that run has not been made for this row. Not touched in this PR" },
   13: { state: "BUILT-NOT-PROVED", why: "detection ran on real data (16 cannibalization findings). Amendment 1 now supplies its four-part contract. Its EVIDENCE wants a firing fixture, a clean control and the number of queries searched stated. Not touched in this PR" },
   14: {
-    state: "BUILT-NOT-PROVED",
-    why: "🔴 **ITS FAILURE CONDITION IS CURRENTLY MET, WHICH IS STRONGER THAN 'NOT PROVED'.** Amendment 1 requires a census proving no generator, no page-writing path and no product-repository write path exists. **Six page-writing paths exist** — four of them render a candidate page from the registry, via one renderer driven by four runners, built deliberately for earlier gate work. The other two write an audit report and stored corpus bodies. Every one is a LOCAL write behind write-law.mjs and --confirm, and **0 write into a product repository**, so the danger this item names is absent — but the boundary as written is not met, and closing the gap between those two is the owner's ruling to make, not mine. The other halves DO hold: 0 product-repo writes, 0 bulk generate-all paths, and ID stability proved on the real 495-page run (one record per page_id, every id derivable from its own URL). 🔴 The six paths are named in the census output, not here: the engine may not know which product it serves",
+    state: "FAILED",
+    changeKind: "work",
+    test: "node --test test/permitted-writers.test.mjs · node tools/permitted-writers.mjs",
+    failureMet: "DEFAULTS TO WRITING — two of the eight page-write sites write with no flag at all: the owner report writer, on every run, and one chain runner's cache of the sibling pages it fetches",
+    why: "🔴 **SAT AGAIN AGAINST AMENDMENT 2, AND FAILED.** The owner's ruling returned it to TESTABLE-NOW (a RULING move); the re-test then ran (a WORK move). **(a)** 0 writes into a product repository — PASS. **(b)** 0 publish paths — PASS. **(c)** 0 bulk generation — PASS. **(d)** NOT MET: the widened census finds **8 write sites in 7 files** (the census merged in #47 found 6 and was blind to two writes whose `.html` target is named one line up); all 7 are now named in the register and reconcile exactly; but **2 sites DEFAULT TO WRITING** — the owner report writer has no gate at all, and a chain runner writes its cache of fetched sibling pages with no flag. Also not met, and recorded rather than decided: **7 of 7 writers take their destination from an operator flag and nothing contains it to this repository**; the literal-path detector finds 0 outside writes, which is all a source scan can see. **(e)** a rediscovered URL resolves to its existing page_id — PASS on the real 495-page run, sabotage-proved. One reason is UNKNOWN in the register and says so. Closing (d) is a code change to two writers and a re-run — the route out of FAILED that rule 1 names",
+    whyBefore: "🔴 **ITS FAILURE CONDITION IS CURRENTLY MET, WHICH IS STRONGER THAN 'NOT PROVED'.** Amendment 1 requires a census proving no generator, no page-writing path and no product-repository write path exists. **Six page-writing paths exist** — four of them render a candidate page from the registry, via one renderer driven by four runners, built deliberately for earlier gate work. The other two write an audit report and stored corpus bodies. Every one is a LOCAL write behind write-law.mjs and --confirm, and **0 write into a product repository**, so the danger this item names is absent — but the boundary as written is not met, and closing the gap between those two is the owner's ruling to make, not mine. The other halves DO hold: 0 product-repo writes, 0 bulk generate-all paths, and ID stability proved on the real 495-page run (one record per page_id, every id derivable from its own URL). 🔴 The six paths are named in the census output, not here: the engine may not know which product it serves",
   },
   15: {
     state: "VERIFIED-PASS",
@@ -227,6 +362,16 @@ export function assertLawful(rows, boundaries = loadBoundaries()) {
         `item ${r.id} (${boundaries[r.id].name}) is DEFERRED but the frozen ruling classes it ` +
           `${boundaries[r.id].class}. A row is DEFERRED only where PASS_BOUNDARIES_SOURCE.md says so — ` +
           "believing one should be deferred is a question for the owner, not a reclassification.",
+      );
+    }
+
+    /* 🔴 FAILED IS A RESULT, SO IT MUST SAY WHAT RAN AND WHAT WAS MET. A FAILED
+     * with no test is an opinion, and an opinion filed as a defeat is as
+     * dishonest as one filed as a pass. */
+    if (r.state === "FAILED" && !(r.test && r.failureMet)) {
+      errors.push(
+        `item ${r.id} (${boundaries[r.id].name}) is FAILED but does not name ${r.test ? "the FAILURE condition that was met" : "the test that was run"}. ` +
+          "FAILED means the row's test was RUN against its own frozen boundary and the FAILURE condition was MET.",
       );
     }
 

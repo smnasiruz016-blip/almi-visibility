@@ -50,6 +50,10 @@ test("✅ NO bulk generate-all / publish-all path exists", () => {
  * So the detectors are driven with input that MUST fire. No generator is
  * planted in the repository to do it: the source is injected.
  */
+test("(b) ✅ NO path publishes — no deploy, push, package publish or release", () => {
+  assert.deepEqual(census().hits.PUBLISH, []);
+});
+
 test("🔴 CONTROL: the detectors FIRE on planted paths — an empty result means clean, not blind", () => {
   const planted = census({
     sources: [
@@ -57,15 +61,35 @@ test("🔴 CONTROL: the detectors FIRE on planted paths — an empty result mean
       { file: "planted/relative-write.mjs", text: 'writeFileSync("../almi-cv-v2/app/page.html", html, "utf8");\n' },
       { file: "planted/bulk.mjs", text: "export function generateAll(pages) { return pages; }\n" },
       { file: "planted/page.mjs", text: 'writeFileSync(join(out, "thing.html"), html, "utf8");\n' },
+      { file: "planted/two-line.mjs", text: 'const target = join(dir, `${id}.html`);\nwriteFileSync(target, body, "utf8");\n' },
+      { file: "planted/publish.mjs", text: 'execFileSync("vercel", ["deploy", "--prod"]);\n' },
+      { file: "planted/outside.mjs", text: 'writeFileSync(join(tmpdir(), "x.json"), data);\n' },
     ],
   });
   assert.equal(planted.hits.PRODUCT_REPO_WRITE.length, 2, "the product-repo detector is blind");
   assert.equal(planted.hits.BULK_GENERATION.length, 1, "the bulk-generation detector is blind");
-  // 🔴 THREE, NOT ONE. The categories OVERLAP on purpose: a write into a product
+  assert.equal(planted.hits.PUBLISH.length, 1, "the publish detector is blind");
+  // 🔴 FOUR, NOT ONE. The categories OVERLAP on purpose: a write into a product
   // repo that lands a `.html` file is both a product-repo write and a page
-  // write, and it should be counted under both. Expecting 1 here was my error,
-  // and expecting the smaller number is the direction that flatters a census.
-  assert.equal(planted.hits.PAGE_WRITE.length, 3, "the page-write detector is blind");
+  // write, and it should be counted under both. Expecting the smaller number is
+  // the direction that flatters a census.
+  assert.equal(planted.hits.PAGE_WRITE.length, 4, "the page-write detector is blind");
+  // Both product-repo writes name a path outside this repository, and so does the temp write.
+  assert.equal(planted.hits.OUTSIDE_REPO_WRITE.length, 3, "the outside-repo detector is blind");
+});
+
+/**
+ * 🔴 THE SHAPE THE #47 CENSUS COULD NOT SEE. A writer that names its `.html`
+ * target on one line and writes a bare variable on the next. Two real writers
+ * have exactly this shape, so the census reported six writers where there are
+ * seven. Detecting it is a WIDENING — nothing that fired before stops firing.
+ */
+test("🔴 CONTROL: a page write whose target was named on the line ABOVE is still a page write", () => {
+  const two = census({ sources: [{ file: "planted/x.mjs", text: 'const file = join(corpusDir, `${observationId}.html`);\nwriteFileSync(file, body, "utf8");\n' }] });
+  assert.deepEqual(two.hits.PAGE_WRITE.map((h) => h.line), [2]);
+  // And a variable named from a NON-html path is not.
+  const json = census({ sources: [{ file: "planted/y.mjs", text: 'const file = join(dir, "report.json");\nwriteFileSync(file, body, "utf8");\n' }] });
+  assert.deepEqual(json.hits.PAGE_WRITE, []);
 });
 
 /**
@@ -104,37 +128,38 @@ test("🔴 CONTROL: a COMMENT describing a generator is not a generator", () => 
 });
 
 /**
- * 🔴 THIS TEST RECORDS A FAILURE AGAINST ITEM 14's BOUNDARY. IT IS NOT A BUG
- * IN THE CENSUS, AND IT MUST NOT BE "FIXED" BY NARROWING THE CATEGORY.
+ * 🔴 EIGHT PAGE-WRITE SITES IN SEVEN FILES — AND UNDER AMENDMENT 2 THAT IS NOT
+ * ITSELF THE FAILURE.
  *
- * Amendment 1's boundary for item 14 says a census must prove **no generator,
- * no page-writing path and no product-repository write path exists**. Six
- * page-writing paths exist. Four of them render a candidate product page from
- * the registry — `src/page/render.mjs` driven by `bin/build-page.mjs`,
- * `bin/nursing-chain.mjs`, `bin/profession-chain.mjs` and
- * `bin/placement-measure.mjs`. They were built deliberately for the Gate A and
- * `/nursing` work; they are not an accident and not dead code.
+ * Amendment 1's boundary forbade every page-writing path, and #47 pinned SIX
+ * here and failed item 14 on them. Amendment 2 narrowed "page-writing path" to
+ * one that writes into a product repository or publishes, and permits local
+ * writers that are declared, gated and justified. So a local page write is now
+ * allowed to EXIST — whether each is lawful is `test/permitted-writers.test.mjs`.
  *
- * Every one is a LOCAL write, behind `write-law.mjs` and `--confirm`, and none
- * targets a product repository — so the DANGER item 14 names (a product page
- * silently recreated or overwritten) is not present. But the boundary as
- * written is not met, and the gap between "the danger is absent" and "the
- * boundary is met" is the owner's to close, not mine.
+ * 🔴 AND #47's SIX WAS UNDERCOUNTED. The census could not see a write whose
+ * `.html` target is named on the line above: the crawler's stored bodies and a
+ * chain runner's cache of fetched pages. Widened, it finds eight sites.
  *
- * 🔴 The count is pinned so it cannot grow quietly while the row sits unpassed.
+ * Pinned so the count cannot move without somebody reading why.
  */
-test("🔴 SIX page-writing paths exist — item 14 does NOT pass, and this pins the count", () => {
+test("🔴 EIGHT page-write sites in SEVEN files — pinned, and reconciled against the register elsewhere", () => {
   const found = census().hits.PAGE_WRITE;
-  assert.equal(found.length, 6, "the number of page-writing paths changed — re-read item 14 before touching this");
+  assert.equal(found.length, 8, "the number of page-write sites changed — update the register and re-read item 14");
   const files = [...new Set(found.map((h) => h.file))].sort();
   assert.deepEqual(files, [
     "bin/build-corpus.mjs",
     "bin/build-page.mjs",
+    "bin/crawl.mjs",
     "bin/nursing-chain.mjs",
     "bin/placement-measure.mjs",
     "bin/profession-chain.mjs",
     "bin/report.mjs",
   ]);
+});
+
+test("(d) ✅ NO write names a literal path outside this repository", () => {
+  assert.deepEqual(census().hits.OUTSIDE_REPO_WRITE, []);
 });
 
 test("the census names what it CANNOT scan — an unstated blind spot is a false absence", () => {
@@ -144,8 +169,8 @@ test("the census names what it CANNOT scan — an unstated blind spot is a false
   }
 });
 
-test("the three categories are kept apart — a product-repo write is not a local page write", () => {
-  assert.deepEqual(Object.keys(CATEGORIES).sort(), ["BULK_GENERATION", "PAGE_WRITE", "PRODUCT_REPO_WRITE"]);
+test("the five categories are kept apart — a product-repo write is not a local page write", () => {
+  assert.deepEqual(Object.keys(CATEGORIES).sort(), ["BULK_GENERATION", "OUTSIDE_REPO_WRITE", "PAGE_WRITE", "PRODUCT_REPO_WRITE", "PUBLISH"]);
 });
 
 /* ================================================================== *

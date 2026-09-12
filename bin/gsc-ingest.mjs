@@ -91,6 +91,24 @@ console.log("  " + formatBoundedResult({
 console.log(`  cost: ${r.pages.cost.amount} ${r.pages.cost.currency} [${r.pages.cost.amountState}] apiCalls=${r.pages.cost.apiCalls}`);
 console.log("");
 
+/* 🔴 ITEM 9 — COUNTRIES. MEASUREMENT ONLY: row counts, request counts, bounds,
+ * dataState and cost. No ranking, no top-N, no interpretation — a country row
+ * is where impressions happened, never a market or a demand claim (item 8). */
+console.log("=== COUNTRY DIMENSIONS — paginated to exhaustion ===");
+for (const [key, pull] of Object.entries(r.countryPulls)) {
+  console.log("  " + formatBoundedResult({
+    label: `searchAnalytics:${key}`,
+    bounds: { rowLimitPerRequest: pull.res.rowLimitPerRequest, maxRequests: pull.res.maxRequests },
+    fields: {
+      rowCount: pull.res.rowCount, requestCount: pull.res.requestCount,
+      exhausted: pull.res.exhausted, dataState: pull.res.dataState, truncationReason: pull.res.truncationReason,
+    },
+  }));
+  console.log(`  cost: ${pull.res.cost.amount} ${pull.res.cost.currency} [${pull.res.cost.amountState}] apiCalls=${pull.res.cost.apiCalls}`);
+  console.log(`  distinct countries: ${new Set(pull.rows.map((x) => x.country)).size}`);
+}
+console.log("");
+
 const w = Math.max(...r.table.rows.map((x) => x.hostname.length));
 console.log("=== ESTATE TABLE — every known hostname in exactly one state ===\n");
 console.log(`${"hostname".padEnd(w)}  STATE        URLs  clicks  impressions`);

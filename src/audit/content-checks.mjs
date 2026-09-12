@@ -36,6 +36,14 @@ import { measure, shingles, jaccard, SHELL_DEFINITION, THIN_UNIQUE_WORD_FLOOR } 
 /** 🔴 If any finding from this file ever carries one of these, item 8 is breached. */
 export const RECOMMENDATION_FIELDS = Object.freeze(["recommendation", "action", "opportunity", "suggest", "shouldCreate"]);
 
+/**
+ * Words that turn a measurement into a demand claim. Moved here from the item-8
+ * test on 12 September 2026 so the country measurement (item 9) is policed by
+ * the SAME list rather than a copy of it — a copy drifts, and the guard it came
+ * from would keep passing while the copy went stale.
+ */
+export const DEMAND_WORDS = Object.freeze(["opportunity", "should create", "worth creating", "demand", "underserved", "gap to fill"]);
+
 export const NEAR_DUPLICATE_THRESHOLD = 0.9;
 export const TEMPLATE_DOMINANCE_THRESHOLD = 0.75;
 

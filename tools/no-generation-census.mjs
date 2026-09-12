@@ -72,9 +72,54 @@ const ESCAPES_REPO = /\.\.[\\/]almi-|C:[\\/]Projects[\\/]almi-(?!visibility)/i;
 const HTML_TARGET = /\.html|html,\s*"utf8"|\bhtml\b\s*\)/;
 const BULK = new RegExp(`(${gen}|${pub}|${bld})`, "i");
 
+/* 🔴 ADDED WITH AMENDMENT 2 — a write whose TARGET was named on an EARLIER line.
+ *
+ * The census as merged in #47 matched only a write line that itself mentioned
+ * html. Two real writers name their `.html` path one line up and then write a
+ * bare variable — `const file = join(dir, `${id}.html`)` then a write of `file`
+ * — and the census could not see either. It reported six writers; there are
+ * seven, and eight write sites. A register reconciled against a census that
+ * blind would reconcile exactly and prove nothing, so the census is WIDENED:
+ * any file-write whose first argument is an identifier this same file assigned
+ * from an expression naming `.html`. Widened, never narrowed. */
+const HTML_VAR_ASSIGN = /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=.*\.html\b/;
+const WRITE_OF_IDENT = new RegExp(`\\b(?:${w}|${ws})\\(\\s*([A-Za-z_$][\\w$]*)\\s*[,)]`);
+
+/* (b) PUBLISHING — a deploy, a push, a package publish or a release. Built
+ * from parts for the same reason as above. The workflow YAML is NOT scanned. */
+/* 🔴 AND THE TOKENS ARE SPLIT INSIDE THE STRINGS, NOT JUST BETWEEN THEM. A first
+ * version wrote `["git", "push"]` — and the census reported ITSELF twice under
+ * PUBLISH, because `", "` is exactly the separator the pattern allows. */
+const PUBLISH = new RegExp(
+  [
+    ["gi" + "t", "pu" + "sh"], ["ver" + "cel", "dep" + "loy"], ["ver" + "cel", "--pr" + "od"],
+    ["np" + "m", "publ" + "ish"], ["g" + "h", "p" + "r", "cre" + "ate"], ["g" + "h", "rel" + "ease", "cre" + "ate"],
+    // `[` is a separator too — `execFileSync("vercel", ["deploy"])` puts one
+    // between the command and its first argument.
+  ].map((p) => p.join(`["'\\s,\\[]+`)).join("|"),
+  "i",
+);
+
+/* (d) WRITES OUTSIDE THIS REPOSITORY — a write naming an absolute path, a
+ * parent-directory escape, or the OS temp or home directory. 🔴 This sees
+ * LITERALS. A writer whose destination comes from an operator's `--out` is
+ * invisible to it, and that is disclosed per entry in the register. */
+const OUTSIDE_TARGET = new RegExp(
+  [
+    `["'\`][A-Za-z]:[\\\\/]`,
+    `["'\`]\\/(?:tmp|home|Users|var|etc)\\/`,
+    `\\.\\.[\\\\/]`,
+    ["tmp", "dir\\("].join(""),
+    ["home", "dir\\("].join(""),
+  ].join("|"),
+);
+
 /**
- * The three categories the boundary names, kept apart because they carry very
+ * The categories the boundary names, kept apart because they carry very
  * different weight. A product-repository write is the catastrophic one.
+ *
+ * Each test receives the line AND the file's context, because a page write can
+ * be spread over two lines.
  */
 export const CATEGORIES = Object.freeze({
   PRODUCT_REPO_WRITE: {
@@ -82,15 +127,40 @@ export const CATEGORIES = Object.freeze({
     // Any filesystem write whose path escapes this repo into a sibling product.
     test: (line) => ANY_WRITE.test(line) && ESCAPES_REPO.test(line),
   },
+  PUBLISH: {
+    label: "publishes (deploy / push / package publish / release)",
+    test: (line) => PUBLISH.test(line),
+  },
   PAGE_WRITE: {
     label: "writes an HTML page to disk",
-    test: (line) => FILE_WRITE.test(line) && HTML_TARGET.test(line),
+    test: (line, ctx = { htmlVars: new Set() }) => {
+      if (FILE_WRITE.test(line) && HTML_TARGET.test(line)) return true;
+      const m = WRITE_OF_IDENT.exec(line);
+      return Boolean(m && ctx.htmlVars.has(m[1]));
+    },
+  },
+  OUTSIDE_REPO_WRITE: {
+    label: "writes to a literal path outside this repository",
+    test: (line) => ANY_WRITE.test(line) && OUTSIDE_TARGET.test(line),
   },
   BULK_GENERATION: {
     label: "generates pages in bulk (generate-all / publish-all)",
     test: (line) => BULK.test(line),
   },
 });
+
+const isComment = (line) => /^\s*(\/\/|\*|\/\*)/.test(line);
+
+/** Identifiers a file assigns from an expression naming `.html`. */
+export function htmlVarsOf(lines) {
+  const out = new Set();
+  for (const line of lines) {
+    if (isComment(line)) continue;
+    const m = HTML_VAR_ASSIGN.exec(line);
+    if (m) out.add(m[1]);
+  }
+  return out;
+}
 
 /**
  * @param {object}  [opts]
@@ -121,19 +191,20 @@ export function census({ repo = REPO, sources = null } = {}) {
           .filter((p) => p.endsWith(".mjs")),
       )].sort();
 
-  const hits = { PRODUCT_REPO_WRITE: [], PAGE_WRITE: [], BULK_GENERATION: [] };
+  const hits = Object.fromEntries(Object.keys(CATEGORIES).map((k) => [k, []]));
   const injected = sources ? new Map(sources.map((s) => [s.file, s.text])) : null;
 
   for (const rel of tracked) {
     const text = injected ? injected.get(rel) : readFileSync(repo + rel, "utf8");
     const lines = text.split(/\r?\n/);
+    const ctx = { htmlVars: htmlVarsOf(lines) };
     for (let i = 0; i < lines.length; i += 1) {
       const line = lines[i];
       // A comment is not a code path. This is the one exemption, and it is
       // narrow: only a line whose first non-space characters begin a comment.
-      if (/^\s*(\/\/|\*|\/\*)/.test(line)) continue;
+      if (isComment(line)) continue;
       for (const [key, cat] of Object.entries(CATEGORIES)) {
-        if (cat.test(line)) hits[key].push({ file: rel, line: i + 1, text: line.trim().slice(0, 120) });
+        if (cat.test(line, ctx)) hits[key].push({ file: rel, line: i + 1, text: line.trim().slice(0, 120) });
       }
     }
   }
@@ -147,31 +218,28 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1].rep
   console.log(`[bound: ${r.scanned} git-tracked .mjs files under src/, bin/, tools/]`);
   console.log("🔴 CANNOT SCAN: dynamic dispatch, workflow YAML, node_modules, or anything a human does by hand.\n");
 
-  let bad = 0;
   for (const [key, cat] of Object.entries(CATEGORIES)) {
     const found = r.hits[key];
-    console.log(`${found.length === 0 ? "✅" : "🔴"} ${key} — ${cat.label}: ${found.length}`);
+    const mark = key === "PAGE_WRITE" ? "·" : found.length === 0 ? "✅" : "🔴";
+    console.log(`${mark} ${key} — ${cat.label}: ${found.length}`);
     for (const h of found) console.log(`     ${h.file}:${h.line}  ${h.text}`);
-    if (found.length) bad += 1;
   }
 
   /**
-   * 🔴 A BREAKDOWN, NOT AN EXEMPTION. The verdict above already counted all six.
+   * 🔴 THE LINE THAT USED TO BE HERE WAS FALSE, AND IS GONE.
    *
-   * The owner needs to know WHICH of the six render a candidate product page
-   * and which write some other HTML artefact, because the two carry different
-   * risk — but the boundary says "no page-writing path", and softening that
-   * into "no page-writing path that I consider dangerous" is how a bar moves
-   * without anyone ruling that it should. The count stands at six.
+   * It printed "every one is a LOCAL write behind write-law.mjs and --confirm"
+   * under the page-write count. `bin/report.mjs` has never imported write-law,
+   * and the crawler's body write is gated by the owner's-green flag, not
+   * --confirm. A reassurance printed beside a count is read as part of the
+   * measurement, and nobody had measured it.
+   *
+   * Under Amendment 2 a local page write is not itself a failure; whether each
+   * one is DECLARED and GATED is answered by `tools/permitted-writers.mjs`,
+   * which measures the gates instead of describing them.
    */
-  if (r.hits.PAGE_WRITE.length) {
-    const renders = r.hits.PAGE_WRITE.filter((h) => /nursing\.html|nursing-placed\.html|\$\{which\}\.html/.test(h.text));
-    console.log(`\n   breakdown (informational — the verdict already counted all ${r.hits.PAGE_WRITE.length}):`);
-    console.log(`     renders a CANDIDATE PRODUCT PAGE from the registry : ${renders.length}`);
-    console.log(`     writes another HTML artefact (audit report, stored corpus body) : ${r.hits.PAGE_WRITE.length - renders.length}`);
-    console.log(`     every one is a LOCAL write behind write-law.mjs and --confirm; none targets a product repo.`);
-  }
-
-  console.log(`\n${bad === 0 ? "✅ ABSENCE PROVED across all three categories." : `🔴 ${bad} of 3 categories are NOT empty — item 14 does NOT pass.`}`);
-  process.exit(bad === 0 ? 0 : 1);
+  const hard = ["PRODUCT_REPO_WRITE", "PUBLISH", "BULK_GENERATION", "OUTSIDE_REPO_WRITE"].filter((k) => r.hits[k].length);
+  console.log(`\n${hard.length === 0 ? "✅ (a) (b) (c) and literal outside-repo writes: all empty." : `🔴 NOT EMPTY: ${hard.join(", ")}`}`);
+  console.log("   Local page writes are reconciled and gate-checked by: node tools/permitted-writers.mjs");
+  process.exit(hard.length === 0 ? 0 : 1);
 }

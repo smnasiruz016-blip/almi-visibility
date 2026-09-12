@@ -39,7 +39,8 @@ const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, 
  * 🔴 THE FORBIDDEN VOCABULARY. A supply label describes what content EXISTS.
  * These words all assert something about what somebody WANTS.
  */
-const DEMAND_WORDS = ["opportunity", "should create", "worth creating", "demand", "underserved", "gap to fill"];
+// Shared with item 9's country measurement — see src/audit/content-checks.mjs.
+import { DEMAND_WORDS } from "../src/audit/content-checks.mjs";
 
 const words = (n) => Array.from({ length: n }, (_, i) => `w${i}`).join(" ");
 const shellHeavy = (body) =>

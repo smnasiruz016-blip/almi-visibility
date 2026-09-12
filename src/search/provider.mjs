@@ -50,14 +50,37 @@ export const AMOUNT_STATES = Object.freeze(["MEASURED", "ZERO_BY_TARIFF", "UNKNO
  * unmeasured field defaulting to zero, and a zero that means "nobody looked" is
  * the quietest wrong number in a cost report.
  */
-export function costRecord({ provider, apiCalls, billableUnits, currency, amount, amountState, basis }) {
+/**
+ * 🔴 `apiCalls` MEANS THE CALLS THIS RECORD'S OWN OPERATION ISSUED. Nothing else.
+ *
+ * Until 12 September 2026 the Search Console adapter filled it from a counter
+ * that ran for the whole ingest — 7 at the country pull and 8 at country×query,
+ * while each of those pulls issued exactly ONE request. A field named apiCalls
+ * that did not hold apiCalls. The running total is now a SEPARATE, optional
+ * field, `apiCallsCumulative`, and it may never be smaller than `apiCalls`.
+ */
+export function costRecord({ provider, apiCalls, apiCallsCumulative, billableUnits, currency, amount, amountState, basis }) {
   if (typeof provider !== "string" || provider === "") throw new TypeError("costRecord: provider is required");
   if (!Number.isInteger(apiCalls) || apiCalls < 0) throw new TypeError("costRecord: apiCalls must be a non-negative integer");
+  if (apiCallsCumulative !== undefined) {
+    if (!Number.isInteger(apiCallsCumulative) || apiCallsCumulative < apiCalls) {
+      throw new TypeError("costRecord: apiCallsCumulative must be an integer no smaller than apiCalls — a running total cannot be less than its latest step");
+    }
+  }
   if (!AMOUNT_STATES.includes(amountState)) throw new TypeError(`costRecord: amountState must be one of ${AMOUNT_STATES.join("|")}`);
   if (amountState !== "UNKNOWN" && typeof amount !== "number") throw new TypeError("costRecord: a non-UNKNOWN amount must be a number");
   if (amountState === "UNKNOWN" && amount !== null) throw new TypeError("costRecord: an UNKNOWN amount must be null, not 0");
   if (typeof basis !== "string" || basis === "") throw new TypeError("costRecord: basis is required — a figure without a basis is a guess");
-  return Object.freeze({ provider, apiCalls, billableUnits, currency, amount, amountState, basis });
+  return Object.freeze({
+    provider,
+    apiCalls,
+    ...(apiCallsCumulative === undefined ? {} : { apiCallsCumulative }),
+    billableUnits,
+    currency,
+    amount,
+    amountState,
+    basis,
+  });
 }
 
 /**

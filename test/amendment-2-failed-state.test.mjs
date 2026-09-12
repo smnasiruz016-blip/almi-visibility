@@ -77,9 +77,9 @@ test("the vocabulary is SEVEN states, FAILED among them", () => {
 test("🔴 RULE 3 — FAILED is its own count in the tally, never folded into another — including at ZERO", () => {
   const t = tally(classify());
   assert.deepEqual(Object.keys(t), [...STATES], "the tally has a bucket that is not a state, or lacks one");
-  // 0 since item 14 was fixed and re-run. The bucket stays: a column that
-  // disappears when it empties is a column nobody can watch refill.
-  assert.equal(t.FAILED, 0);
+  // Item 14 emptied it; item 45 refilled it. The bucket stayed, which is why
+  // the refill is visible — a column that vanishes when empty cannot be watched.
+  assert.equal(t.FAILED, 1);
   assert.ok("FAILED" in t);
   assert.equal(Object.values(t).reduce((a, b) => a + b, 0), 58);
 });
@@ -190,11 +190,12 @@ test("🔴 RED: a 'ruling' move that is not an owner ruling is refused — the t
  * 4D — THE TWO CHANGE LISTS, KEPT APART.
  * ================================================================== */
 
-test("🔴 moves since Amendment 2: ONE by ruling (14 → TESTABLE-NOW); THREE by work (9 → BLOCKED-UNKNOWN, 14 → FAILED, 14 FAILED → VERIFIED-PASS)", () => {
+test("🔴 moves since Amendment 2: ONE by ruling (14 → TESTABLE-NOW); FIVE by work (9, 14 twice, 45, 49)", () => {
   const all = Object.entries(MOVES_AMENDMENT_2).flatMap(([id, chain]) => chain.map((s) => ({ id: Number(id), ...s })));
   assert.deepEqual(all.filter((s) => s.kind === "ruling").map((s) => `${s.id}:${s.from}→${s.to}`), ["14:BUILT-NOT-PROVED→TESTABLE-NOW"]);
   assert.deepEqual(all.filter((s) => s.kind === "work").map((s) => `${s.id}:${s.from}→${s.to}`), [
     "9:BUILT-NOT-PROVED→BLOCKED-UNKNOWN", "14:TESTABLE-NOW→FAILED", "14:FAILED→VERIFIED-PASS",
+    "45:BUILT-NOT-PROVED→FAILED", "49:BUILT-NOT-PROVED→VERIFIED-PASS",
   ]);
   // 🔴 The way out of FAILED is rule 1's FIRST route, naming its test and date.
   const out = all.find((s) => s.from === "FAILED");
@@ -210,8 +211,8 @@ test("before Amendment 2 the ledger was 3 / 18 / 0 / 3 / 0 / 6 / 28", () => {
   });
 });
 
-test("🔴 since Amendment 2, exactly ONE row reached VERIFIED-PASS — item 14, and only by leaving FAILED", () => {
+test("🔴 since Amendment 2, exactly TWO rows reached VERIFIED-PASS — 14 (by leaving FAILED) and 49", () => {
   const rows = classify();
   const newPasses = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS" && BEFORE_AMENDMENT_2[r.id] !== "VERIFIED-PASS");
-  assert.deepEqual(newPasses.map((r) => r.id), [14]);
+  assert.deepEqual(newPasses.map((r) => r.id), [14, 49]);
 });

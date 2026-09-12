@@ -20,6 +20,7 @@
  */
 
 import { tierRank } from "../evidence/records.mjs";
+import { sourceTierOfFact } from "../evidence/source-tiers.mjs";
 
 export const FACT_STATES = Object.freeze(["USABLE", "STALE", "EXPIRED", "CONFLICTED", "UNKNOWN"]);
 export const REVIEW_REASONS = Object.freeze(["INPUT_CONFLICTED", "INPUT_STALE", "INPUT_EXPIRED", "INPUT_UNKNOWN", "INPUT_CHANGED"]);
@@ -69,13 +70,9 @@ export function detectConflicts(records) {
   return conflicts;
 }
 
-function sourceTier(f) {
-  const t = f?.source?.tier;
-  // The registry stores a numeric tier; map it onto the frozen §623 order.
-  const byNumber = ["OFFICIAL", "OFFICIAL", "VERIFIED_ALMIWORLD", "REPUTABLE_SECONDARY", "COMPETITOR_COMMUNITY"];
-  if (typeof t === "number") return byNumber[Math.min(t, byNumber.length - 1)] ?? "AGENT_INFERENCE";
-  return typeof t === "string" ? t : "AGENT_INFERENCE";
-}
+/* 🔴 One reader of a fact's tier, shared with the §623 layer — this module used
+ * to carry its own private copy of the mapping. */
+const sourceTier = sourceTierOfFact;
 
 /* ------------------------------------------------------------------ *
  * 2B — FRESHNESS.

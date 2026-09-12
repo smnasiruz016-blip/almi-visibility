@@ -31,6 +31,8 @@ import { runIngest } from "../src/search/ingest.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { formatBoundedResult } from "../src/report/bounded.mjs";
 import { ESTATE_HOSTNAME_LIST, KNOWN_UNKNOWNS } from "../config/estate-hostnames.mjs";
+import { createCostGovernor } from "../src/cost/governor.mjs";
+import { createCostLedger, entryFromLiveIngest, formatLedgerLine } from "../src/cost/ledger.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (name, fallback = null) => {
@@ -48,17 +50,36 @@ if (!propertyId) {
   process.exit(2);
 }
 
-const provider = createGoogleSearchConsoleProvider();
+/* 🔴 ITEM 45 — the run is governed and costed AS IT HAPPENS. The eight ingest
+ * runs before 12 September 2026 recorded no start and no finish, so their
+ * wall-clock is UNKNOWN for ever; this one is not. */
+const startedAt = new Date().toISOString();
+const governor = createCostGovernor({ label: "google-search-console ingest run" });
+const provider = createGoogleSearchConsoleProvider({ governor });
 const store = createJsonlStore(storePath);
+const ledger = createCostLedger(`${REPO}runs/cost/ledger.jsonl`);
 
-const r = await runIngest({
-  provider,
-  store,
-  propertyId,
-  estateHostnames: ESTATE_HOSTNAME_LIST,
-  days,
-  controlProperty,
-});
+let r;
+try {
+  r = await runIngest({
+    provider,
+    store,
+    propertyId,
+    estateHostnames: ESTATE_HOSTNAME_LIST,
+    days,
+    controlProperty,
+  });
+} catch (err) {
+  if (err?.hardStop) {
+    console.error(`\n${err.message}`);
+    const stoppedEntry = entryFromLiveIngest({ startedAt, finishedAt: new Date().toISOString(), governor, pulls: [], basis: "Search Console API is free; no billing account attached to almiworld-hq-502102" });
+    ledger.append(stoppedEntry);
+    console.error(`ledger: ${formatLedgerLine(stoppedEntry)}`);
+    process.exit(4);
+  }
+  throw err;
+}
+const finishedAt = new Date().toISOString();
 
 console.log(`window          : ${r.startDate} .. ${r.endDate} (${days} days)`);
 console.log(`evidence store  : ${storePath}`);
@@ -146,6 +167,11 @@ console.log(`evidence: ${r.appended} NEW measurement(s), ${r.resighted} re-sight
 if (r.appended === 0 && r.resighted > 0) {
   console.log("  ↳ nothing changed since the last run. Re-sightings recorded; no duplicate payload written.");
 }
+
+const pullsForLedger = [r.agg, r.pages, ...Object.values(r.queryPulls).map((p) => p.res), ...Object.values(r.countryPulls).map((p) => p.res), r.control];
+const costEntry = entryFromLiveIngest({ startedAt, finishedAt, governor, pulls: pullsForLedger, basis: r.agg.cost.basis });
+const ledgerWrite = ledger.append(costEntry);
+console.log(`\ncost ledger (${ledgerWrite.appended ? "appended" : "already present"}): ${formatLedgerLine(costEntry)}`);
 
 console.log("\n⚠️ KNOWN UNKNOWNS — the census denominator is not proven total:");
 for (const u of KNOWN_UNKNOWNS) console.log(`  · ${u}`);

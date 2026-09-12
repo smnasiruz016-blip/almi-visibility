@@ -626,6 +626,22 @@ would have destroyed the evidence that the derivation was wrong.
 
 ---
 
+## TECHNICAL-OWNER RULING — THE CRAWLER'S TWO FLAGS SATISFY "DRY-RUN BY DEFAULT"
+
+**12 September 2026 · beta-g, as technical owner.**
+
+> The crawler writes page bodies behind `--live` AND `--i-have-the-owners-green`, not behind
+> `--confirm`. **THIS SATISFIES "dry-run by default."** The boundary's words name `--confirm`, but
+> its PURPOSE is that nothing is written until a human says so explicitly, and two flags — one of
+> them named for the owner's own green — say that MORE firmly than `--confirm` does, not less.
+
+**Reason:** the purpose of the rule, not its letter. **Consequence recorded with it:** the register of
+permitted writers (`config/permitted-page-writers.mjs`) now names, **per writer, which flag gates
+it** (`gateFlags`), and a test checks each named flag is really parsed by that writer — so the
+variation is visible and the next reader does not read the letter against the intent.
+
+---
+
 # 5 · ITEM 9 — EVERY UNKNOWN, IN FOUR FIELDS
 
 **Rule: what is not known is written UNKNOWN. No blank cell is filled by inference.**

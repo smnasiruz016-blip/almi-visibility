@@ -46,6 +46,28 @@ test("(d) 🔴 SEVEN writers, EIGHT sites — the count is declared, and changin
   assert.equal(real.reconciles, true);
 });
 
+/**
+ * 🔴 THE GATING FLAG IS NAMED PER WRITER — technical-owner ruling, 12 Sep 2026.
+ * Six writers use write-law's --confirm; the crawler uses --live AND
+ * --i-have-the-owners-green. Naming it stops the variation hiding, and each
+ * named flag is checked to be REALLY parsed by that writer.
+ */
+test("🔴 every writer names the flag(s) that gate it, and each named flag appears in that writer's source", () => {
+  for (const e of PERMITTED_PAGE_WRITERS) {
+    assert.ok(Array.isArray(e.gateFlags) && e.gateFlags.length > 0, `${e.file} names no gating flag`);
+    const src = readFileSync(`${REPO}${e.file}`, "utf8");
+    for (const flag of e.gateFlags) {
+      const parsed = flag === "--confirm" ? /writePermission\(/.test(src) : src.includes(`"${flag.slice(2)}"`);
+      assert.ok(parsed, `${e.file} names ${flag} but its source does not parse it`);
+    }
+  }
+  const crawl = PERMITTED_PAGE_WRITERS.find((e) => e.file === "bin/crawl.mjs");
+  assert.deepEqual(crawl.gateFlags, ["--live", "--i-have-the-owners-green"]);
+  assert.match(crawl.gateRuling, /TECHNICAL-OWNER RULING, 12 Sep 2026/);
+  assert.equal(PERMITTED_PAGE_WRITERS.filter((e) => e.gateFlags.join() === "--confirm").length, 6);
+  assert.match(readFileSync(`${REPO}PHASE_0_FROZEN_GAP_REGISTER.md`, "utf8"), /TECHNICAL-OWNER RULING — THE CRAWLER'S TWO FLAGS SATISFY "DRY-RUN BY DEFAULT"/);
+});
+
 test("(d) every entry states all four things — writes · where · gatedBy · why", () => {
   assert.deepEqual(real.incomplete, []);
   for (const e of PERMITTED_PAGE_WRITERS) {

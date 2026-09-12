@@ -259,6 +259,60 @@ export function renderIssues(issues, allRecords) {
   <table><thead><tr><th>label</th><th>id</th><th>verdict</th><th>evidence chain</th></tr></thead><tbody>${rows}</tbody></table></section>`;
 }
 
+/**
+ * 🔴 ITEM 49 — ONE CONCLUSION WALKED END TO END: what, why, from which
+ * evidence, when, and what changed it. Each part is shown as the store
+ * supplies it, and a part the store cannot supply is shown as MISSING.
+ */
+export function renderChainWalk(walk) {
+  if (!walk) {
+    return `<section id="chain"><h2>A conclusion, walked end to end — none</h2>
+  <p class="sum bad">🔴 No stored conclusion has ever left OPEN, so no chain can show what changed it.</p></section>`;
+  }
+  const ok = (b) => (b ? "✅ present" : '<span class="bad">🔴 MISSING</span>');
+  const ev = (list) => list.map((e) => (e.found ? `<code>${esc(e.id)}</code> ${esc(e.method)} · ${esc(e.target ?? "")} · ${esc(e.observed_at)}` : `<span class="bad">🔴 ${esc(e.id)} — NOT IN THESE STORES</span>`)).join("<br>");
+  const changes = walk.changedBy.map((c) => `
+      <p><strong>→ ${esc(c.to)}</strong> by <code>${esc(c.action)}</code> (${esc(c.actor)})</p>
+      <p class="wrap">${esc(c.reason)}</p>
+      <p>evidence for the move:<br>${ev(c.evidence)}</p>
+      ${c.replacement ? `<p>replaced by <code>${esc(c.replacement.issue_id)}</code> — verdict <strong>${esc(c.replacement.verdict)}</strong>, ${esc(c.replacement.detector)} v${esc(c.replacement.detector_version)}<br><span class="wrap">${esc(c.replacement.reason ?? "")}</span></p>` : ""}`).join("");
+  return `
+<section id="chain">
+  <h2>A conclusion, walked end to end — <code>${esc(walk.issue_id)}</code> · now ${esc(walk.state)}</h2>
+  <table class="bounds"><tbody>
+    <tr><th>WHAT ${ok(walk.present.what)}</th><td>${esc(walk.what.issue_class)} on page <code>${esc(walk.what.target_page_id)}</code> — ${esc(walk.what.summary ?? "")}</td></tr>
+    <tr><th>WHY ${ok(walk.present.why)}</th><td>verdict ${esc(walk.why.verdict)} by detector <code>${esc(walk.why.detector)}</code> v${esc(walk.why.detector_version)} — ${esc(walk.why.reason ?? "")}</td></tr>
+    <tr><th>FROM WHICH EVIDENCE ${ok(walk.present.evidence)}</th><td class="wrap">${ev(walk.evidence)}</td></tr>
+    <tr><th>WHEN ${ok(walk.present.when)}</th><td>opened ${esc(walk.when.opened_at)}${walk.when.moves.map((m) => `; → ${esc(m.to)} ${esc(m.at)}`).join("")}</td></tr>
+    <tr><th>WHAT CHANGED IT ${ok(walk.present.changedBy)}</th><td class="wrap">${changes || '<span class="bad">🔴 nothing has changed it</span>'}</td></tr>
+  </tbody></table>
+  <p class="bound">The original record is unchanged in the store; the move is a second record. The store holds this issue_id ${esc(walk.copies)} time(s).</p>
+</section>`;
+}
+
+/** 🔴 ITEM 49 / §623 — the source-tier layer ordering REAL records. */
+export function renderSourceTiers(ranked, census) {
+  const rows = ranked
+    .map((s, i) => `<tr><td>${i + 1}</td><td>${esc(s.source_tier)}</td><td><code>${esc(s.source_id)}</code></td><td>${esc(s.publisher ?? "")}</td><td>${esc(s.retrieved_at)}</td></tr>`)
+    .join("\n");
+  return `
+<section id="source-tiers">
+  <h2>Sources, ranked by the §623 tier order — ${ranked.length} real records</h2>
+  <p class="bound">[bound: tier census ${Object.entries(census).map(([k, v]) => `${esc(k)}=${v}`).join(" · ")}; equal tiers keep their input order — the rule states no preference between them]</p>
+  <table><thead><tr><th>#</th><th>tier</th><th>source</th><th>publisher</th><th>retrieved</th></tr></thead><tbody>${rows}</tbody></table>
+</section>`;
+}
+
+/** 🔴 ITEM 45 — the cost ledger, every line with the bound that shaped it. */
+export function renderLedger(lines, failures) {
+  return `
+<section id="ledger">
+  <h2>Cost ledger — ${lines.length} entries</h2>
+  <pre class="wrap">${lines.map(esc).join("\n")}</pre>
+  <p class="${failures.length ? "sum bad" : "sum ok"}">UNKNOWN although measurable: <strong>${failures.length}</strong>${failures.length ? ` — ${failures.map((f) => `${esc(f.entry_id)} · ${esc(f.part)}`).join("; ")}` : ""}</p>
+</section>`;
+}
+
 export function renderRunCost(s) {
   const run = s.liveRun;
   return `
@@ -320,7 +374,7 @@ footer{margin-top:2rem;padding-top:1rem;border-top:2px solid var(--line);color:v
 `;
 
 /** The whole page. Pure — takes records, returns a string. */
-export function renderPage({ crawlRecords, evidenceRecords, facts, generatedAt }) {
+export function renderPage({ crawlRecords, evidenceRecords, facts, generatedAt, chainWalk, sourceTiers = null, ledger = null }) {
   const s = summarise({ crawlRecords, evidenceRecords, facts });
   const rec = reconcile(crawlRecords);
   const issues = [...crawlRecords, ...evidenceRecords].filter((r) => r.record_type === "issue");
@@ -345,7 +399,10 @@ ${renderHeader(s)}
 
 ${renderReconciliation(rec)}
 ${renderRunCost(s)}
+${ledger ? renderLedger(ledger.lines, ledger.failures) : ""}
+${chainWalk === undefined ? "" : renderChainWalk(chainWalk)}
 ${renderIssues(issues, [...crawlRecords, ...evidenceRecords])}
+${sourceTiers ? renderSourceTiers(sourceTiers.ranked, sourceTiers.census) : ""}
 ${renderFacts(facts)}
 ${renderRecords(evidenceRecords, { title: "Search Console evidence store", limit: 50 })}
 ${renderRecords(crawlRecords.filter((r) => r.record_type !== "page"), { title: "Crawl records", limit: 50 })}

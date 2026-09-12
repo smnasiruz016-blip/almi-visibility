@@ -88,6 +88,35 @@ what the domain property covered but not what might sit outside it.
 
 ---
 
+## OWNER RULING 4 — the KEY FEATURE CHECKLIST is the DONE standard
+
+**Issued 11 September 2026** as `ALMIVISIBILITY_KEY_FEATURE_CHECKLIST_FINAL.docx`. Frozen verbatim
+and hash-verified at `KEY_FEATURE_CHECKLIST_SOURCE.md`.
+
+| | |
+|---|---|
+| what it is | the **completion instrument** for AlmiVisibility — 58 key features, a four-value status key, and a four-question evidence rule |
+| its precedence | 🔴 **Where any internal status format of ours disagrees with it, THE CHECKLIST WINS** |
+| what it does **not** do | it does **not** replace the Definition of Done or V5.1. The DoD says what the product must be, V5.1 says what may be built and when, **and the checklist says when we may call any of it done** |
+| its first law | **"TICK LAW: A feature is not complete because code exists. Tick it only when real evidence proves it works."** |
+| the standing tracker | `CHECKLIST_STATUS.md` — one row per item, all 58, in the checklist's own §4 format |
+
+⚠️ **First measured status, 11 September 2026: ☑ 0 · ◐ 16 · ☐ 41 · ⚠ 1.** Of the 41 ☐, **32 are
+`v0.1 SCOPE = OUT`** — excluded by V5.1's own boundary, which is the cost gate working, not a
+failure.
+
+🔴 **AND A CORRECTION TO A CONTRADICTION THIS AUDIT FOUND — recorded, NOT decided.**
+`CS-5` below states that RED 2 has no frozen input and carries a clock. **Its premise is false.**
+`case-study-01/corpus/MANIFEST.md` line 74 pins RED 2 to commit `07852f9`, and that commit
+resolves today in `C:\Projects\almi-oet` with both halves of the evidence intact. A git commit is
+immutable, so fixing the live page cannot unfreeze it. The error traces to
+`CASE_STUDY_01_RUN_01.md` line 89, which quotes a phrase — *"live-confirmed"* — that appears
+nowhere in the contract, having dropped *"— IN THE CORPUS"* from `✅ VERIFIED LIVE — IN THE
+CORPUS`. **`CS-5` is left exactly as written: this register is frozen and its disposition is the
+owner's.** See `CHECKLIST_STATUS.md` §"Item 52".
+
+---
+
 # 0A · 🔴 LAWS — GENERAL, AND THEY APPLY TO CODE NOT YET WRITTEN
 
 ## `LAW-BOUND-1` — EVERY BOUNDED OPERATION MUST PRINT ITS OWN BOUND NEXT TO ITS RESULT
@@ -267,7 +296,8 @@ an UNKNOWN**, and it is not evidence either — it is a choice somebody made and
 | **U7** | GSC data lag | " — and **Gate B's waiting period depends on the real lag, not an assumed one** | the first week of real data | **owner**, then measurable | after PRQ-1 |
 | **U8** | **Vercel plan** and its per-unit prices | `vercel teams ls` names the team, not the plan; no read-only CLI command exposes it | one read of the billing page, with a date | **owner** | when the plan changes |
 | **U10** | whether the AI-crawler block on 12 products is intended | it is a policy, not a defect | a written ruling | **owner** | — |
-| **U11** | whether AlmiPathway is meant to be live | domain does not resolve; registry says `active:false` | a written ruling | **owner** | — |
+| **U11** | whether AlmiPathway is meant to be live | 🔴 **PREMISE CORRECTED 11 Sep 2026 — the old text said "domain does not resolve", and that is false.** Measured: `almipathway.almiworld.com` **RESOLVES OVER IPv6 ONLY** — an AAAA record exists, there is **no A record**, and it was **not reachable over IPv4 from the measuring machine**. Registry still says `active:false`. **The row stays OPEN; only the premise changed** | a written ruling | **owner** | — |
+| **U-CRW-IPv6** | **does the GitHub Actions runner have IPv6 egress?** | 🔴 **NOT MEASURED.** It matters because `U11`'s host is IPv6-only: if the runner has no IPv6 egress, our crawler **cannot reach that host at all** — and that is a **THIRD state**, distinct from both `FORBIDDEN` (a grant we lack) and `ZERO` (a host with no data). Collapsing it into either would be the same error the estate table exists to prevent. **Not guessed** | one dispatch of a workflow that reports the runner's own egress addressing | later phase, or **owner** | if the execution layer (`D-CRW-1`) changes |
 | **U12** | endpoint isolation for products with no local env file | no evidence on this machine, **and the answer must come from a HOST comparison, never a credential** | per-project project id | **owner** | — |
 | **U13** | whether AlmiOET's 240,328 pSEO pages are wanted at all | a product decision with a real cost attached | a ruling — *a product DECISION is not a defect* | **owner** | — |
 | **U14** | Gate A's exact sibling-overlap algorithm as specified | *"≤ 40 %"* was never written as a definition | a written definition, **before implementation** | **owner** | before `DOD-06`/`08` work |

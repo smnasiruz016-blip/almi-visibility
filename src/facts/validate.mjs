@@ -8,6 +8,9 @@
  * ⚠️ EVERY LAW HERE HAS ITS RED FORCED in test/facts-registry.test.mjs. A law
  * shown only passing proves the code runs, not that it measures.
  */
+// 🔴 F23's arbiter. The transition table now governs the registry rather than
+// only its own test — see src/evidence/verdict.mjs.
+import { judgeSupersession } from "../evidence/verdict.mjs";
 import {
   factId,
   TIERS,
@@ -392,6 +395,31 @@ export function validateRegistry(records = []) {
     const target = r?.life?.supersededBy;
     if (target && !known.has(target)) {
       errors.push({ law: "F16", message: `${r.id} is supersededBy ${JSON.stringify(target)}, which is not in the registry` });
+    }
+  }
+
+  // ── 🔴 F23 · A SUPERSESSION MAY NOT PROMOTE AN UNKNOWN INTO A PASS ────────
+  //
+  // This is the real verdict path, and it is the reason `transitions.mjs`
+  // exists. A new record replacing an old one is the ONE place a check outcome
+  // legitimately changes — so it is the place the transition table must be
+  // consulted. Before this, the table governed nothing: it was imported only by
+  // its own test, the same shape as the dead runner PR #20 shipped.
+  //
+  // The forbidden move: an old record says "could-not-check", the replacement
+  // says "pass", and no measurement happened in between. That is an absence
+  // promoted to evidence.
+  const byId = new Map(records.map((r) => [r?.id ?? factId(r?.claim), r]));
+  for (const next of records) {
+    const previousId = next?.life?.supersedes;
+    if (!previousId) continue;
+    const previous = byId.get(previousId);
+    if (!previous) continue; // F16 already reports a dangling pointer
+    for (const v of judgeSupersession({ previous, next })) {
+      errors.push({
+        law: "F23",
+        message: `${next.id ?? "(no id)"} supersedes ${previousId} — ${v.message}`,
+      });
     }
   }
 

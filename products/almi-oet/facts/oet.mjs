@@ -89,6 +89,7 @@ const oetCommon = {
 
 export default [
   fact({
+    verificationState: "UNVERIFIED", // 🔴 A3, 12 Sep 2026 — declared, not defaulted
     id: "oet.content-licence-permits-stored-quotation",
     claim: { subject: "oet", predicate: "content-licence-permits-stored-quotation", qualifier: null },
     scope: "shared",
@@ -151,6 +152,7 @@ export default [
    * there is lawfully nothing to quote-match.
    */
   fact({
+    verificationState: "UNVERIFIED", // 🔴 A3, 12 Sep 2026 — declared, not defaulted
     ...oetCommon,
     id: "oet.writing-task-type.profession=nursing",
     // Digest taken 2026-09-10 — the only thing about this page the registry
@@ -180,6 +182,7 @@ export default [
   }),
 
   fact({
+    verificationState: "UNVERIFIED", // 🔴 A3, 12 Sep 2026 — declared, not defaulted
     ...oetCommon,
     id: "oet.speaking-roleplay-setting.profession=nursing",
     // Digest taken 2026-09-10 — the only thing about this page the registry
@@ -209,6 +212,7 @@ export default [
   }),
 
   fact({
+    verificationState: "UNVERIFIED", // 🔴 A3, 12 Sep 2026 — declared, not defaulted
     ...oetCommon,
     id: "oet.subtests-and-which-are-profession-specific",
     // Digest taken 2026-09-10 — the only thing about this page the registry
@@ -237,6 +241,7 @@ export default [
   }),
 
   fact({
+    verificationState: "UNVERIFIED", // 🔴 A3, 12 Sep 2026 — declared, not defaulted
     ...oetCommon,
     id: "oet.grade-bands-0-500",
     // Digest taken 2026-09-10 — the only thing about this page the registry

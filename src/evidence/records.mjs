@@ -12,7 +12,7 @@
  * to lie in, because it cannot be constructed as an Observation at all.
  */
 
-import { observationId, issueId, targetPageId } from "./ids.mjs";
+import { observationId, issueId, targetPageId, measurementKey } from "./ids.mjs";
 
 /* ------------------------------------------------------------------ *
  * SOURCE — provenance (V5.1 §14), tier order frozen from §623.
@@ -91,15 +91,23 @@ export function makeObservation({
   for (const [name, v] of Object.entries({ observed_at, method, content_sha256, collector, collector_version })) {
     if (typeof v !== "string" || v === "") throw new TypeError(`observation: ${name} is required`);
   }
+  const targetRef = `${target.kind}:${target.ref}`;
   const observation_id = observationId({
-    target: `${target.kind}:${target.ref}`,
+    target: targetRef,
     method,
     observedAt: observed_at,
+    contentSha256: content_sha256,
+  });
+  // 🔴 Same inputs MINUS the clock. See measurementKey() for why both exist.
+  const measurement_key = measurementKey({
+    target: targetRef,
+    method,
     contentSha256: content_sha256,
   });
   return Object.freeze({
     record_type: "observation",
     observation_id,
+    measurement_key,
     observed_at,
     method,
     target: Object.freeze({ ...target }),

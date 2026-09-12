@@ -52,6 +52,8 @@ const QUOTABLE_BASIS =
   "PROHIBITED BY DEFAULT. Read first-hand by the owner (_handoffs/SOURCE_QUOTABILITY.md, dated 11 September 2026): the site carries a bare \"Copyright © Nursing & Midwifery Board of Ireland\" and NO REUSE TERMS EXIST AT ALL. 🔴 That is not an open question — the absence of a licence is not permission, and all rights reserved is what silence means. This was recorded as \"unknown\" in PR #9 and the owner has ruled it false.";
 
 const common = {
+  // 🔴 A3, 12 Sep 2026: declared UNVERIFIED. The value and source stand; nobody has fact-checked it.
+  verificationState: "UNVERIFIED",
   scope: "destination",
   locale: { destination: "ireland", profession: "nursing" },
   sourceMachineReadable: true,

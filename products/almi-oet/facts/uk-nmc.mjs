@@ -49,6 +49,8 @@ const EL_URL = "https://www.nmc.org.uk/registration/joining-the-register/english
 const QIE_URL = "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/qualified-in-english/";
 
 const common = {
+  // 🔴 A3, 12 Sep 2026: declared UNVERIFIED. The value and source stand; nobody has fact-checked it.
+  verificationState: "UNVERIFIED",
   scope: "destination",
   locale: { destination: "uk", profession: "nursing" },
   sourceMachineReadable: true,

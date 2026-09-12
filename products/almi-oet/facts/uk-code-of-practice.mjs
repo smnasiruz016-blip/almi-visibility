@@ -37,6 +37,8 @@ const DIRECT_APPLICATION_SPAN =
 const RED_LIST_TERMINUS_SPAN = "Zambia Zimbabwe Amber countries";
 
 const common = {
+  // 🔴 A3, 12 Sep 2026: declared UNVERIFIED. The value and source stand; nobody has fact-checked it.
+  verificationState: "UNVERIFIED",
   sourceMachineReadable: true,
   sourceMachineReadableBasis: MR,
   sourceQuotable: true,

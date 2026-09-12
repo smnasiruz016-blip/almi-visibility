@@ -45,6 +45,7 @@ import { fact } from "../../../src/facts/record.mjs";
 
 export default [
   fact({
+    verificationState: "UNVERIFIED", // 🔴 A3, 12 Sep 2026 — declared, not defaulted
     id: "nz-immigration-nz.oet-must-be-taken-in-person",
     claim: { subject: "nz-immigration-nz", predicate: "oet-must-be-taken-in-person", qualifier: null },
     scope: "destination",

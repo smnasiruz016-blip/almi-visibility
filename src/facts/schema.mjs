@@ -169,7 +169,20 @@ export const QUOTABLE_VALUES = Object.freeze([true, false, "unknown"]);
  * whenever `factCheckedOn` is set, because `human:NU` and `model:claude-opus-5`
  * are not the same evidence and must never be summed.
  */
-export const FACT_CHECKED_BY_PATTERN = /^(human:[A-Za-z. -]{2,40}|model:[A-Za-z0-9._-]{2,60})$/;
+/**
+ * 🔴 PARENTHESES ADDED 12 SEPTEMBER 2026, AND ONLY PARENTHESES.
+ *
+ * The first real verifier signed as `human:beta-g (Cowork)` and F10 rejected
+ * all 46 records. The alternative was to trim the name down to what the pattern
+ * already allowed — which would have thrown away how the checker chose to
+ * identify themselves, in order to keep a character class tidy. The record of
+ * WHO checked is the whole point of the field, so the pattern widened instead.
+ *
+ * 🔴 THE LENGTH FLOOR AND THE PREFIX ARE UNCHANGED. `human:` on its own, or a
+ * bare name with no prefix, still fails — those are the cases F10 exists for,
+ * and this must not become a class so wide that anything passes.
+ */
+export const FACT_CHECKED_BY_PATTERN = /^(human:[A-Za-z.() -]{2,40}|model:[A-Za-z0-9._-]{2,60})$/;
 
 /**
  * 🔴 FRESHNESS IS DERIVED FROM WHAT THE SOURCE PERMITS — NEVER CHOSEN.

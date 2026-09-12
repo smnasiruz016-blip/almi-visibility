@@ -305,6 +305,30 @@ export function createFactCache({ facts, now = () => new Date(), onLookup = () =
       return { hit: false, reason: "NOT_IN_CACHE", fact: null };
     }
     const fact = candidates[0];
+
+    /**
+     * 🔴 AN UNRESOLVED FACT IS A MISS. THIS MODULE'S OWN HEADER SAYS SO:
+     * "A STALE OR CONFLICTED FACT IS NEVER SILENTLY USED."
+     *
+     * It did not, until 12 September 2026. The cache checked FRESHNESS and
+     * nothing else, so all 14 records a human had just marked UNKNOWN came back
+     * as clean hits — including a contested NMCN fee whose value one official
+     * page gives as ₦66,875 and another contradicts. The caller got a number
+     * with no indication anyone had disputed it, and the hit rate read 100%.
+     *
+     * 🔴 THE HIT RATE GETS WORSE FOR THIS, AND THAT IS THE POINT. A cache that
+     * serves contested values has a better hit rate than one that admits it
+     * does not know — which is exactly why hit rate must never be the measure.
+     */
+    if (fact.verificationState === "UNKNOWN") {
+      misses += 1;
+      const why = fact.verification?.reason ?? "UNKNOWN";
+      bump(`UNKNOWN_${why}`);
+      lookups += 1;
+      onLookup({ subject, predicate, reason: `UNKNOWN_${why}` });
+      return { hit: false, reason: `UNKNOWN_${why}`, fact, unresolved: true };
+    }
+
     const fresh = freshnessOf(fact, { now: now() });
     if (fresh.state !== "USABLE") {
       misses += 1;

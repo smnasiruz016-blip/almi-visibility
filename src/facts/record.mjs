@@ -39,9 +39,67 @@
  * arriving by omission is how "nobody has checked this" came to look identical
  * to "this is a verified fact" for 46 records.
  */
-export const VERIFICATION_STATES = Object.freeze(["UNVERIFIED", "VERIFIED"]);
+/**
+ * 🔴 THREE STATES, BECAUSE TWO COULD NOT EXPRESS THE 12 SEPTEMBER RESULTS.
+ *
+ *   UNVERIFIED — nobody has looked. No check has happened.
+ *   VERIFIED   — somebody looked at an official source and CONFIRMED the claim.
+ *   UNKNOWN    — somebody looked and COULD NOT CONFIRM it.
+ *
+ * The third one is the important addition. Before today, a fact that had been
+ * carefully checked and found contradicted was indistinguishable from a fact
+ * nobody had opened — both were UNVERIFIED. That collapses the most expensive
+ * work in the system into the same cell as no work at all.
+ *
+ * An UNKNOWN therefore REQUIRES a check date: it is a record of a check that
+ * happened and did not settle the question, not an absence of one.
+ */
+export const VERIFICATION_STATES = Object.freeze(["UNVERIFIED", "VERIFIED", "UNKNOWN"]);
+
+/** Why a check that ran did not confirm. Frozen; a new reason is deliberate. */
+export const UNKNOWN_REASONS = Object.freeze({
+  CONFLICT: "two current official sources of the same authority disagree; both values retained",
+  INCOMPLETE: "true as far as it goes, but the source supports more than the fact states",
+  SOURCE_UNREACHABLE: "the source could not be read. LAW-ABSENT-1: that is not a source saying otherwise",
+});
 
 export function fact(record) {
+  /**
+   * 🔴 THE VERIFICATION BLOCK — ONE PLACE, SO A RECORD CANNOT HALF-DECLARE.
+   *
+   * A record may carry `verification: { state, checkedOn, checkedBy, reason,
+   * sourceUrl, sourceTier, note, recheckAfter }`. It is expanded here into
+   * `verificationState` and `checks.factCheckedOn/By`, so the two can never
+   * drift apart — which they would if each record set them separately.
+   */
+  if (record.verification) {
+    const v = record.verification;
+    record = {
+      ...record,
+      verificationState: v.state,
+      verification: Object.freeze({ ...v }),
+      checks: {
+        ...(record.checks ?? {}),
+        factCheckedOn: v.checkedOn ?? null,
+        factCheckedBy: v.checkedOn ? (v.checkedBy ?? null) : null,
+        /**
+         * 🔴 THE RECHECK DATE MUST LAND WHERE freshnessOf ACTUALLY LOOKS.
+         *
+         * Ingesting the 12 September verdicts set `verification.recheckAfter`
+         * on 32 records — and `freshnessOf` reads `checks.recheckAfter`, so all
+         * 32 were INERT. Every one of them still aged out on the old
+         * `extractedOn + freshness.days` rule, and the registry looked fully
+         * governed while the dates governed nothing.
+         *
+         * It survived the first probe because that probe asked on a day past
+         * BOTH rules' due dates, saw STALE and stopped. Only a day where the
+         * two rules DISAGREE can tell them apart: 32 of 32 came back inert.
+         */
+        ...(v.recheckAfter ? { recheckAfter: v.recheckAfter } : {}),
+      },
+    };
+  }
+
   const checks = record.checks ?? {};
 
   /* ---- A3 · THE DECLARATION IS REQUIRED AT CONSTRUCTION ------------------ *
@@ -60,6 +118,24 @@ export function fact(record) {
       `fact(${record.id ?? "(no id)"}): verificationState is VERIFIED but checks.factCheckedOn is null. ` +
         "A verification without a date is a claim about a check nobody can locate.",
     );
+  }
+  /* 🔴 AN UNKNOWN IS A RECORD OF A CHECK THAT RAN. Without a date it is
+   * indistinguishable from UNVERIFIED, which is the collapse this state was
+   * added to prevent. */
+  if (record.verificationState === "UNKNOWN") {
+    if (checkedOn === null) {
+      throw new TypeError(
+        `fact(${record.id ?? "(no id)"}): UNKNOWN requires checks.factCheckedOn. An UNKNOWN records a check ` +
+          "that RAN and did not confirm — without a date it cannot be told from a fact nobody opened.",
+      );
+    }
+    const reason = record.verification?.reason;
+    if (!(reason in UNKNOWN_REASONS)) {
+      throw new TypeError(
+        `fact(${record.id ?? "(no id)"}): UNKNOWN needs a declared reason, one of ` +
+          `${Object.keys(UNKNOWN_REASONS).join(" | ")} — got ${JSON.stringify(reason)}`,
+      );
+    }
   }
   if (record.verificationState === "UNVERIFIED" && checkedOn !== null) {
     throw new TypeError(

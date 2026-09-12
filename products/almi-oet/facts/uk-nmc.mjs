@@ -77,6 +77,17 @@ export default [
   fact({
     ...common,
     id: "uk-nmc.oet-minimum-grade.profession=nursing",
+    verification: {
+      state: "VERIFIED",
+      verdict: "VERIFIED",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/accepted-english-language-tests/oet/",
+      sourceTier: "OFFICIAL",
+      recheckAfter: "2027-03-11",
+      recheckWindowDays: 180,
+      note: "Page states reading/listening/speaking 'At least grade B (350 or above)'; writing 'At least grade C+ (300 or above)'. Exact match.",
+    },
     claim: { subject: "uk-nmc", predicate: "oet-minimum-grade", qualifier: "profession=nursing" },
     value: {
       value: "Reading, listening and speaking: grade B (350 or above). Writing: grade C+ (300 or above).",
@@ -104,6 +115,17 @@ export default [
   fact({
     ...common,
     id: "uk-nmc.oet-combining-sittings.profession=nursing",
+    verification: {
+      state: "VERIFIED",
+      verdict: "VERIFIED",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/accepted-english-language-tests/oet/",
+      sourceTier: "OFFICIAL",
+      recheckAfter: "2027-03-11",
+      recheckWindowDays: 180,
+      note: "Combining across two sittings permitted on the stated terms. Exact match.",
+    },
     claim: { subject: "uk-nmc", predicate: "oet-combining-sittings", qualifier: "profession=nursing" },
     value: {
       value:
@@ -125,6 +147,17 @@ export default [
   fact({
     ...common,
     id: "uk-nmc.english-evidence-routes.profession=nursing",
+    verification: {
+      state: "VERIFIED",
+      verdict: "VERIFIED",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/",
+      sourceTier: "OFFICIAL",
+      recheckAfter: "2027-03-11",
+      recheckWindowDays: 180,
+      note: "Page lists exactly three routes: accepted test; pre-registration qualification taught and examined in English; one year recent practice in a majority-English-speaking country.",
+    },
     claim: { subject: "uk-nmc", predicate: "english-evidence-routes", qualifier: "profession=nursing" },
     value: {
       value:
@@ -150,6 +183,17 @@ export default [
   fact({
     ...common,
     id: "uk-nmc.qualified-in-english-evidence.profession=nursing",
+    verification: {
+      state: "VERIFIED",
+      verdict: "VERIFIED",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/qualified-in-english/",
+      sourceTier: "OFFICIAL",
+      recheckAfter: "2027-03-11",
+      recheckWindowDays: 180,
+      note: "Page: 'at least half of your time interacting with patients, service users, their families and other healthcare professionals' and 'at least 75% of these interactions were in English'. Exact match.",
+    },
     claim: { subject: "uk-nmc", predicate: "qualified-in-english-evidence", qualifier: "profession=nursing" },
     value: {
       value:
@@ -205,6 +249,17 @@ export default [
   fact({
     ...common,
     id: "uk-nmc.oet-profession-version.profession=nursing",
+    verification: {
+      state: "VERIFIED",
+      verdict: "VERIFIED",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/accepted-english-language-tests/oet/",
+      sourceTier: "OFFICIAL",
+      recheckAfter: "2027-03-11",
+      recheckWindowDays: 180,
+      note: "Page: 'should choose the Nursing examination from the list of OET Professions versions'.",
+    },
     claim: { subject: "uk-nmc", predicate: "oet-profession-version", qualifier: "profession=nursing" },
     value: {
       value: "Applicants must sit the Nursing version of OET, chosen from OET's list of profession versions.",
@@ -234,6 +289,17 @@ export default [
   fact({
     ...common,
     id: "uk-nmc.oet-combining-sittings-floor.profession=nursing",
+    verification: {
+      state: "VERIFIED",
+      verdict: "VERIFIED",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/accepted-english-language-tests/oet/",
+      sourceTier: "OFFICIAL",
+      recheckAfter: "2027-03-11",
+      recheckWindowDays: 180,
+      note: "Page: all scores across both sittings must be at or above C+ (300-340) for listening/reading/speaking and C (250-290) for writing. Exact match.",
+    },
     claim: { subject: "uk-nmc", predicate: "oet-combining-sittings-floor", qualifier: "profession=nursing" },
     value: {
       value:
@@ -263,6 +329,17 @@ export default [
   fact({
     ...common,
     id: "uk-nmc.accepted-oet-delivery-modes.profession=nursing",
+    verification: {
+      state: "VERIFIED",
+      verdict: "VERIFIED",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/accepted-english-language-tests/oet/",
+      sourceTier: "OFFICIAL",
+      recheckAfter: "2027-03-11",
+      recheckWindowDays: 180,
+      note: "Page accepts OET on Paper, OET on Computer and OET@Home, and accepts OET@Home combined with either of the other two.",
+    },
     claim: { subject: "uk-nmc", predicate: "accepted-oet-delivery-modes", qualifier: "profession=nursing" },
     value: {
       value:

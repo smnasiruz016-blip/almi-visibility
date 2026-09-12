@@ -19,8 +19,10 @@
 import { writeFileSync, readFileSync } from "node:fs";
 
 import { loadBoundaries, CONTRACT_PARTS } from "../src/checklist/boundaries.mjs";
-import { classify, assertLawful, tally, STATES } from "../src/checklist/classification.mjs";
-import { verify, EXPECTED_BODY_SHA256 } from "../tools/verify-pass-boundaries-source.mjs";
+import {
+  classify, assertLawful, assertTransitions, tally, STATES, LOOKED, BEFORE_AMENDMENT_2, MOVES_AMENDMENT_2,
+} from "../src/checklist/classification.mjs";
+import { verify, EXPECTED_BODY_SHA256, AMENDMENT_2_BODY_SHA256 } from "../tools/verify-pass-boundaries-source.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const OUT = `${REPO}CHECKLIST_BOUNDARIES.md`;
@@ -29,7 +31,9 @@ const OUT = `${REPO}CHECKLIST_BOUNDARIES.md`;
 
 const boundaries = loadBoundaries();
 const rows = classify();
-const errors = assertLawful(rows);
+// 🔴 Amendment 2 rules 1 and 2 are part of the refusal: a ledger that moves a
+// row out of FAILED by any undeclared route is not written at all.
+const errors = [...assertLawful(rows), ...assertTransitions(rows)];
 if (errors.length) {
   console.error("🔴 the classification is unlawful — refusing to write a ledger that breaks its own contract:");
   for (const e of errors) console.error(`   ${e}`);
@@ -50,7 +54,7 @@ const incomplete = Object.values(boundaries).filter((b) => b.missingParts.length
 const esc = (s) => String(s ?? "").replace(/\|/g, "\\|");
 
 const L = [];
-L.push("# ALMIVISIBILITY — THE 58 PASS BOUNDARIES AND THE SIX-STATE LEDGER");
+L.push("# ALMIVISIBILITY — THE 58 PASS BOUNDARIES AND THE SEVEN-STATE LEDGER");
 L.push("");
 L.push("> 🔴 **GENERATED — DO NOT EDIT BY HAND.** `node bin/checklist-boundaries.mjs` rebuilds it.");
 L.push("> Every boundary below is read out of `PASS_BOUNDARIES_SOURCE.md`, whose body is verified");
@@ -69,9 +73,52 @@ L.push("> A boundary changes **only by owner ruling**, recorded with its date an
 L.push("");
 L.push("---");
 L.push("");
-L.push("## THE HEADLINE — BEFORE AND AFTER");
+/* ── 🔴 AMENDMENT 2 — THIS PR, MEASURED AGAINST THE LEDGER IT STARTED FROM ── */
+const beforeA2 = Object.fromEntries(STATES.map((s) => [s, 0]));
+for (const s of Object.values(BEFORE_AMENDMENT_2)) beforeA2[s] += 1;
+const steps = Object.entries(MOVES_AMENDMENT_2).flatMap(([id, chain]) => chain.map((s) => ({ id: Number(id), ...s })));
+const afterRuling = { ...beforeA2 };
+for (const s of steps.filter((x) => x.kind === "ruling")) { afterRuling[s.from] -= 1; afterRuling[s.to] += 1; }
+const failedRows = Object.values(rows).filter((r) => r.state === "FAILED");
+const newPasses = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS" && BEFORE_AMENDMENT_2[r.id] !== "VERIFIED-PASS");
+
+L.push("## 🔴 AMENDMENT 2 — THE SEVENTH STATE, AND ITEM 14 SAT AGAIN");
 L.push("");
-L.push("| state | before (4-state) | after (6-state) |");
+L.push(`Amendment 2 verified against sha256 \`${AMENDMENT_2_BODY_SHA256}\`.`);
+L.push("");
+L.push("| state | before Amendment 2 | after the RULING only | after the WORK |");
+L.push("|---|---|---|---|");
+for (const s of STATES) L.push(`| **${s}** | ${beforeA2[s]} | ${afterRuling[s]} | **${after[s]}** |`);
+L.push("");
+L.push(`### FAILED — counted and named separately: **${failedRows.length}**`);
+L.push("");
+L.push("> 🔴 **FAILED is counted and named separately in every report.** It is never folded into another");
+L.push("> count and it is **not progress**. It is also **worth more than BUILT-NOT-PROVED**: a FAILED row");
+L.push("> is one whose test was run against its own boundary — it means we looked.");
+L.push("");
+for (const r of failedRows) L.push(`- **item ${r.id} · ${r.name}** — FAILURE met: ${r.failureMet}`);
+L.push("");
+L.push(`**Rows that have been looked at (${LOOKED.join(" or ")}): ${Object.values(rows).filter((r) => LOOKED.includes(r.state)).length} of 58.**`);
+L.push("");
+L.push(`**Rows that reached VERIFIED-PASS in this PR: ${newPasses.length}.**`);
+L.push("");
+L.push("#### moved ONLY because a RULING changed");
+L.push("");
+L.push("| # | from | to | ruling | date | reason |");
+L.push("|---|---|---|---|---|---|");
+for (const s of steps.filter((x) => x.kind === "ruling")) L.push(`| ${s.id} | ${s.from} | ${s.to} | ${esc(s.ruling)} | ${s.date} | ${esc(s.reason)} |`);
+L.push("");
+L.push("#### moved because WORK HAPPENED");
+L.push("");
+L.push("| # | from | to | test | date | what happened |");
+L.push("|---|---|---|---|---|---|");
+for (const s of steps.filter((x) => x.kind === "work")) L.push(`| ${s.id} | ${s.from} | ${s.to} | \`${s.test}\` | ${s.date} | ${esc(s.reason)} |`);
+L.push("");
+L.push("---");
+L.push("");
+L.push("## THE HEADLINE — AGAINST THE FOUR-STATE BASELINE");
+L.push("");
+L.push("| state | before (4-state) | after (7-state) |");
 L.push("|---|---|---|");
 for (const s of STATES) L.push(`| **${s}** | ${before[s]} | **${after[s]}** |`);
 L.push(`| **total** | ${Object.values(before).reduce((a, b) => a + b, 0)} | **${Object.values(after).reduce((a, b) => a + b, 0)}** |`);
@@ -180,6 +227,10 @@ writeFileSync(OUT, L.join("\n") + "\n", "utf8");
 console.log(`wrote ${OUT}`);
 console.log(`  frozen source verified: ${check.matches}`);
 console.log(`  states: ${STATES.map((s) => `${s}=${after[s]}`).join("  ")}`);
+console.log(`  before Amendment 2: ${STATES.map((s) => `${s}=${beforeA2[s]}`).join("  ")}`);
+console.log(`  FAILED (named separately): ${failedRows.map((r) => r.id).join(", ") || "none"}   new VERIFIED-PASS this PR: ${newPasses.length}`);
+console.log(`  moves by RULING: ${steps.filter((s) => s.kind === "ruling").map((s) => `${s.id} ${s.from}→${s.to}`).join("; ")}`);
+console.log(`  moves by WORK:   ${steps.filter((s) => s.kind === "work").map((s) => `${s.id} ${s.from}→${s.to}`).join("; ")}`);
 console.log(`  changed on WORK: ${work.length}   on VOCABULARY: ${vocab.length}   unmoved: ${still.length}`);
 console.log(`  TESTABLE-NOW queue: ${testable.map((r) => r.id).join(", ")}`);
 console.log(`  boundaries the ruling leaves incomplete: ${incomplete.map((b) => b.id).join(", ")}`);

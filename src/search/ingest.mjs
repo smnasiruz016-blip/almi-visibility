@@ -187,6 +187,40 @@ export async function runIngest({
     });
   }
 
+  /* ---- country dimensions ---------------------------------------------- *
+   *
+   * 🔴 ADDED WITH AMENDMENT 2, FOR ITEM 9 — COUNTRIES IS ONE OF THE SEVEN.
+   *
+   * Same provider, same read-only scope, same free tariff, same pagination law,
+   * same bounds and cost stored with the rows. Search Console reports the
+   * country as a lower-case ISO 3166-1 alpha-3 code and it is stored as given.
+   *
+   * 🔴 MEASUREMENT ONLY. A country row is where impressions happened. It is not
+   * a market, not demand and not a recommendation, and nothing here ranks,
+   * scores or interprets it — item 8's guard must keep holding. */
+  const countryPulls = {};
+  for (const [key, dims] of [["country", ["country"]], ["country-query", ["country", "query"]]]) {
+    const res = await provider.queryRows({
+      propertyId, startDate, endDate, dimensions: dims, rowLimitPerRequest: 25000, maxRequests: 20,
+    });
+    const rows = res.rows.map((r) => ({
+      country: r.keys?.[0] ?? null,
+      query: dims.length > 1 ? (r.keys?.[1] ?? null) : null,
+      clicks: r.clicks ?? 0,
+      impressions: r.impressions ?? 0,
+      ctr: r.ctr ?? null,
+      position: r.position ?? null,
+    }));
+    countryPulls[key] = { res, rows };
+    record({ kind: "property", ref: propertyId }, `gsc.searchAnalytics.query:${key}`, {
+      startDate, endDate, dimensions: dims,
+      rowCount: res.rowCount, requestCount: res.requestCount, exhausted: res.exhausted,
+      dataState: res.dataState, truncationReason: res.truncationReason,
+      rowLimitPerRequest: res.rowLimitPerRequest, maxRequests: res.maxRequests,
+      cost: res.cost, rows,
+    });
+  }
+
   /* ---- control --------------------------------------------------------- */
   const control = await provider.queryRows({ propertyId: controlProperty, startDate, endDate, dimensions: [] });
   const controlState = classify({ attempted: true, httpStatus: control.httpStatus });
@@ -213,5 +247,5 @@ export async function runIngest({
     unparsedRows: unparsed, estateTable: table.rows,
   });
 
-  return { ...results, properties, agg, pages, control, controlState, table, queryPulls, startDate, endDate };
+  return { ...results, properties, agg, pages, control, controlState, table, queryPulls, countryPulls, startDate, endDate };
 }

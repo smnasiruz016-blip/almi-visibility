@@ -63,6 +63,49 @@ export function amendmentContracts(path) {
 }
 
 /**
+ * 🔴 AMENDMENT 2 — 12 September 2026, night. Frozen the same way.
+ *
+ * Two rulings: a seventh state, FAILED; and item 14's v0.1-half contract
+ * REPLACED — narrowed to product-repository writes and publishing, and given
+ * teeth in a declared register of permitted writers. Unlike Amendment 1 it does
+ * not fill a gap, it overwrites a contract, so the loader must REPLACE item
+ * 14's four parts rather than add the missing ones.
+ */
+export const AMENDMENT_2_BODY_SHA256 = "e799fedf5260940bc3835e7a3080cc003a550fb5ef1b03824c2ee029a9efa25e";
+export const AMENDMENT_2_REPLACED_IDS = Object.freeze([14]);
+
+/** The seventh state as the amendment spells it, read out rather than assumed. */
+export function amendment2(path) {
+  const text = readFileSync(path, "utf8").replace(/\r\n/g, "\n");
+  const idx = text.indexOf(BODY_MARKER);
+  const body = idx === -1 ? text : text.slice(idx + BODY_MARKER.length);
+  const sha = createHash("sha256").update(body, "utf8").digest("hex");
+
+  const contracts = {};
+  for (const h of body.matchAll(/^### Item (\d+) · v0\.1 half\b.*$/gm)) {
+    /* 🔴 The block starts AFTER the heading line. A first version searched from
+     * one character in — `rest.slice(1)` — which turned "### Item 14" into
+     * "## Item 14", matched it at once, and yielded an EMPTY block: 0 of 4 parts
+     * parsed, and the clean run exited 1 exactly like the corrupted one. */
+    const rest = body.slice(h.index);
+    const afterHeading = rest.indexOf("\n") + 1;
+    const next = rest.slice(afterHeading).search(/^#{2,3} /m);
+    const block = next === -1 ? rest : rest.slice(0, afterHeading + next);
+    const parts = {};
+    for (const m of block.matchAll(/^\| \*\*(INPUT|EXPECTED|FAILURE|EVIDENCE)\*\* \| (.+?) \|$/gm)) {
+      parts[m[1].toLowerCase()] = m[2].trim().replace(/\s+/g, " ");
+    }
+    contracts[Number(h[1])] = parts;
+  }
+  return {
+    sha,
+    matches: sha === AMENDMENT_2_BODY_SHA256,
+    contracts,
+    definesFailed: /^🔴 FAILED\s+← NEW$/m.test(body),
+  };
+}
+
+/**
  * 🔴 THE CLASS CENSUS IS PART OF THE FROZEN TEXT, NOT A DERIVED CONVENIENCE.
  *
  * `D` decides which rows may be DEFERRED, and the deferral law says a row is
@@ -162,11 +205,22 @@ if (invokedDirectly) {
   console.log(`  v0.1 halves : ${ids.length} — ${ids.join(", ")}`);
   console.log(`  complete    : ${complete.length}/6 carry all four parts`);
 
+  const a2 = amendment2(at("PASS_BOUNDARIES_AMENDMENT_2.md"));
+  const a2ids = Object.keys(a2.contracts).map(Number).sort((x, y) => x - y);
+  const a2complete = a2ids.filter((id) => ["input", "expected", "failure", "evidence"].every((p) => a2.contracts[id][p]));
+  console.log("PASS_BOUNDARIES_AMENDMENT_2.md");
+  console.log(`  body sha256 : ${a2.sha}`);
+  console.log(`  matches     : ${a2.matches ? "YES" : "🔴 NO — the amendment has changed"}`);
+  console.log(`  replaces    : item ${a2ids.join(", ")} — ${a2complete.length}/${a2ids.length} carry all four parts`);
+  console.log(`  FAILED state: ${a2.definesFailed ? "defined" : "🔴 NOT FOUND"}`);
+
   const bad =
     !r.matches || !r.classesMatch || r.features.count !== EXPECTED_FEATURE_COUNT || !r.features.ok ||
     !a.matches || ids.length !== 6 || complete.length !== 6 ||
-    ids.join(",") !== AMENDMENT_1_SPLIT_IDS.join(",");
+    ids.join(",") !== AMENDMENT_1_SPLIT_IDS.join(",") ||
+    !a2.matches || !a2.definesFailed || a2ids.join(",") !== AMENDMENT_2_REPLACED_IDS.join(",") ||
+    a2complete.length !== a2ids.length;
 
-  console.log(bad ? "\n🔴 VERIFICATION FAILED" : "\nboth frozen texts verified");
+  console.log(bad ? "\n🔴 VERIFICATION FAILED" : "\nall three frozen texts verified");
   process.exit(bad ? 1 : 0);
 }

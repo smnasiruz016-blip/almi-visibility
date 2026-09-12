@@ -1,4 +1,4 @@
-# ALMIVISIBILITY — THE 58 PASS BOUNDARIES AND THE SIX-STATE LEDGER
+# ALMIVISIBILITY — THE 58 PASS BOUNDARIES AND THE SEVEN-STATE LEDGER
 
 > 🔴 **GENERATED — DO NOT EDIT BY HAND.** `node bin/checklist-boundaries.mjs` rebuilds it.
 > Every boundary below is read out of `PASS_BOUNDARIES_SOURCE.md`, whose body is verified
@@ -17,27 +17,69 @@ Frozen source verified: **YES** · features **58**
 
 ---
 
-## THE HEADLINE — BEFORE AND AFTER
+## 🔴 AMENDMENT 2 — THE SEVENTH STATE, AND ITEM 14 SAT AGAIN
 
-| state | before (4-state) | after (6-state) |
+Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1b03824c2ee029a9efa25e`.
+
+| state | before Amendment 2 | after the RULING only | after the WORK |
+|---|---|---|---|
+| **NOT-STARTED** | 3 | 3 | **3** |
+| **BUILT-NOT-PROVED** | 18 | 17 | **17** |
+| **TESTABLE-NOW** | 0 | 1 | **0** |
+| **VERIFIED-PASS** | 3 | 3 | **3** |
+| **FAILED** | 0 | 0 | **1** |
+| **BLOCKED-UNKNOWN** | 6 | 6 | **6** |
+| **DEFERRED** | 28 | 28 | **28** |
+
+### FAILED — counted and named separately: **1**
+
+> 🔴 **FAILED is counted and named separately in every report.** It is never folded into another
+> count and it is **not progress**. It is also **worth more than BUILT-NOT-PROVED**: a FAILED row
+> is one whose test was run against its own boundary — it means we looked.
+
+- **item 14 · No Blind Regeneration** — FAILURE met: DEFAULTS TO WRITING — two of the eight page-write sites write with no flag at all: the owner report writer, on every run, and one chain runner's cache of the sibling pages it fetches
+
+**Rows that have been looked at (VERIFIED-PASS or FAILED): 4 of 58.**
+
+**Rows that reached VERIFIED-PASS in this PR: 0.**
+
+#### moved ONLY because a RULING changed
+
+| # | from | to | ruling | date | reason |
+|---|---|---|---|---|---|
+| 14 | BUILT-NOT-PROVED | TESTABLE-NOW | PASS_BOUNDARIES_AMENDMENT_2.md §A2.2 and §A2.4 | 2026-09-12 | the owner narrowed the boundary to product-repository writes and publishing, and added the register of permitted writers; its earlier result no longer applies, so the exam must be sat again. Not a tick and not a pass |
+
+#### moved because WORK HAPPENED
+
+| # | from | to | test | date | what happened |
+|---|---|---|---|---|---|
+| 14 | TESTABLE-NOW | FAILED | `test/permitted-writers.test.mjs` | 2026-09-12 | the re-test was run against the new contract, and its FAILURE condition 'defaults to writing' was met at two write sites |
+
+---
+
+## THE HEADLINE — AGAINST THE FOUR-STATE BASELINE
+
+| state | before (4-state) | after (7-state) |
 |---|---|---|
 | **NOT-STARTED** | 33 | **3** |
-| **BUILT-NOT-PROVED** | 24 | **18** |
+| **BUILT-NOT-PROVED** | 24 | **17** |
 | **TESTABLE-NOW** | 0 | **0** |
 | **VERIFIED-PASS** | 0 | **3** |
+| **FAILED** | 0 | **1** |
 | **BLOCKED-UNKNOWN** | 1 | **6** |
 | **DEFERRED** | 0 | **28** |
 | **total** | 58 | **58** |
 
 ### 🔴 THE MOST IMPORTANT LINE IN THIS DOCUMENT
 
-> **3 row(s) changed because work happened.** Listed in (i) below.
+> **4 row(s) changed because work happened.** Listed in (i) below.
 
 #### (i) changed because WORK HAPPENED
 
 | # | feature | from | to |
 |---|---|---|---|
 | 8 | HEAVY / THIN / EMPTY Discipline | NOT-STARTED | **VERIFIED-PASS** |
+| 14 | No Blind Regeneration | BUILT-NOT-PROVED | **FAILED** |
 | 15 | Verified Fact Supply Engine | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 48 | Idempotency & Retry Safety | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 
@@ -49,7 +91,7 @@ Frozen source verified: **YES** · features **58**
 | BUILT-NOT-PROVED → BLOCKED-UNKNOWN | 4 | 1, 11, 54, 56 |
 | NOT-STARTED → BLOCKED-UNKNOWN | 1 | 42 |
 
-**Did not move: 22** — 9, 10, 12, 13, 14, 16, 17, 25, 26, 36, 38, 45, 46, 47, 49, 50, 51, 52, 53, 55, 57, 58
+**Did not move: 21** — 9, 10, 12, 13, 16, 17, 25, 26, 36, 38, 45, 46, 47, 49, 50, 51, 52, 53, 55, 57, 58
 
 ---
 
@@ -194,7 +236,7 @@ question for the owner, recorded as one.
 | **EVIDENCE** | row counts, request counts, bounds, and `dataState` per pull. |
 | **NOTE** | "where authorized and available" — a dimension no tool can supply is `⚠`, not a failure. |
 
-**Verdict —** of the seven named dimensions, downstream OUTCOMES has no tool behind it — the ruling's own NOTE makes that ⚠ rather than a failure. But COUNTRIES is suppliable by the Search Console API and simply has not been ingested (2 mentions in the whole evidence store), so work we can do remains. Lower of the two readings taken
+**Verdict —** 🔴 **FIVE OF SEVEN DIMENSIONS ARE INGESTED; IT DOES NOT TICK.** Queries, pages, impressions, clicks and CTR are in the evidence store, each pull exhausted with dataState COMPLETE and its bounds recorded. **COUNTRIES** — the country and country×query pulls are now BUILT and tested against a fake provider (same pagination law, bounds and cost record), but have **NOT RUN against the real property**: the read-only Search Console key was not available to the session that built them, and a pull that has not run is not ingested. **DOWNSTREAM OUTCOMES** is BLOCKED, not failed, with evidence: the Search Console API has no outcome dimension; this engine's only credential is webmasters.readonly; 0 of 36 product repositories use a third-party analytics package; the one first-party funnel-event table in the estate stores a path and a user id and no search source, and this engine holds no authorization to read any product database. Whether the row can then tick turns on the NOTE — see `src/search/dimensions.mjs`. Not FAILED: the test of all seven has not been run, and NOT RUN = NOT TESTED
 
 ### 10 · Technical SEO Audit Engine
 
@@ -257,18 +299,20 @@ question for the owner, recorded as one.
 
 ### 14 · No Blind Regeneration
 
-**BUILT-NOT-PROVED** · class `S` · ruled in `§4+A1`
+**FAILED** · class `S` · ruled in `§4+A1+A2` · was BUILT-NOT-PROVED (work)
 
 | part | the owner's words |
 |---|---|
 | **INPUT** | the repository as it stands, and a rediscovered URL |
-| **EXPECTED** | a census proves **no generator, no page-writing path and no product-repository write path exists**; and a rediscovered URL resolves to its **existing** `page_id` |
-| **FAILURE** | any generation or page-write path is found; or a rediscovered URL creates a second record |
-| **EVIDENCE** | the census output RED-proved by adding a throwaway generator and removing it; and the ID-stability test sabotaged and restored |
+| **EXPECTED** | **(a)** no path writes into any product repository · **(b)** no path publishes · **(c)** no path generates in bulk · **(d)** **every** local page-writing path is dry-run by default, requires an explicit confirm flag, writes only inside this repository, **and is named in a declared register of permitted writers** · **(e)** a rediscovered URL resolves to its **existing** `page_id` |
+| **FAILURE** | any path writes outside this repository · or publishes · or generates in bulk · or **defaults to writing** · or **exists without being named in the register** · or a rediscovered URL creates a second record |
+| **EVIDENCE** | the census output; the register, reconciled line by line against the census; a RED proof for each of (a)–(d) by injection; and the ID-stability test sabotaged and restored |
 | **v0.1 PASS boundary** | **the absence of the generator IS the strongest safety proof.** Prove the absence, do not simulate the danger |
 | **⏭ deferred half** | an unchanged existing page rediscovered → **KEEP**; automatic recreate or overwrite forbidden |
 
-**Verdict —** 🔴 **ITS FAILURE CONDITION IS CURRENTLY MET, WHICH IS STRONGER THAN 'NOT PROVED'.** Amendment 1 requires a census proving no generator, no page-writing path and no product-repository write path exists. **Six page-writing paths exist** — four of them render a candidate page from the registry, via one renderer driven by four runners, built deliberately for earlier gate work. The other two write an audit report and stored corpus bodies. Every one is a LOCAL write behind write-law.mjs and --confirm, and **0 write into a product repository**, so the danger this item names is absent — but the boundary as written is not met, and closing the gap between those two is the owner's ruling to make, not mine. The other halves DO hold: 0 product-repo writes, 0 bulk generate-all paths, and ID stability proved on the real 495-page run (one record per page_id, every id derivable from its own URL). 🔴 The six paths are named in the census output, not here: the engine may not know which product it serves
+**Verdict —** 🔴 **SAT AGAIN AGAINST AMENDMENT 2, AND FAILED.** The owner's ruling returned it to TESTABLE-NOW (a RULING move); the re-test then ran (a WORK move). **(a)** 0 writes into a product repository — PASS. **(b)** 0 publish paths — PASS. **(c)** 0 bulk generation — PASS. **(d)** NOT MET: the widened census finds **8 write sites in 7 files** (the census merged in #47 found 6 and was blind to two writes whose `.html` target is named one line up); all 7 are now named in the register and reconcile exactly; but **2 sites DEFAULT TO WRITING** — the owner report writer has no gate at all, and a chain runner writes its cache of fetched sibling pages with no flag. Also not met, and recorded rather than decided: **7 of 7 writers take their destination from an operator flag and nothing contains it to this repository**; the literal-path detector finds 0 outside writes, which is all a source scan can see. **(e)** a rediscovered URL resolves to its existing page_id — PASS on the real 495-page run, sabotage-proved. One reason is UNKNOWN in the register and says so. Closing (d) is a code change to two writers and a re-run — the route out of FAILED that rule 1 names
+
+**The one test that would settle it —** node --test test/permitted-writers.test.mjs · node tools/permitted-writers.mjs
 
 ### 15 · Verified Fact Supply Engine
 

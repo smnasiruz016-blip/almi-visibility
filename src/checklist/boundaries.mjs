@@ -29,11 +29,12 @@
 import { readFileSync } from "node:fs";
 
 import {
-  splitSource, sectionSix, verify, amendmentContracts, AMENDMENT_1_SPLIT_IDS,
+  splitSource, sectionSix, verify, amendmentContracts, amendment2,
 } from "../../tools/verify-pass-boundaries-source.mjs";
 
 const SOURCE = new URL("../../PASS_BOUNDARIES_SOURCE.md", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const AMENDMENT_1 = new URL("../../PASS_BOUNDARIES_AMENDMENT_1.md", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+const AMENDMENT_2 = new URL("../../PASS_BOUNDARIES_AMENDMENT_2.md", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 
 /** The four parts a VERIFIED-PASS requires. Frozen; adding a fifth is a ruling. */
 export const CONTRACT_PARTS = Object.freeze(["input", "expected", "failure", "evidence"]);
@@ -126,6 +127,14 @@ export function loadBoundaries() {
     );
   }
 
+  const amendment2Result = amendment2(AMENDMENT_2);
+  if (!amendment2Result.matches) {
+    throw new Error(
+      "PASS_BOUNDARIES_AMENDMENT_2.md does not match its recorded hash. Item 14's contract and the " +
+        "seventh state would not be the owner's.",
+    );
+  }
+
   const text = readFileSync(SOURCE, "utf8").replace(/\r\n/g, "\n");
   const { body } = splitSource(text);
   const six = sectionSix(body);
@@ -162,6 +171,15 @@ export function loadBoundaries() {
       via = `${via}+A1`;
     }
 
+    // 🔴 Amendment 2 REPLACES rather than adds: its heading says "replaces the
+    // contract in Amendment 1". Adding only missing parts here would silently
+    // keep the old contract — every part was already filled by A1.
+    const replaced = amendment2Result.contracts[id];
+    if (replaced) {
+      for (const [k, v] of Object.entries(replaced)) parts[k] = v;
+      via = `${via}+A2`;
+    }
+
     out[id] = {
       id,
       name: clean(headline.replace(/ — \*\*[PSD].*$/, "")),
@@ -169,6 +187,7 @@ export function loadBoundaries() {
       classNote: klass && klass[2] ? klass[2] : null,
       via,
       amendedByA1: Boolean(amended),
+      replacedByA2: Boolean(replaced),
       ...parts,
       /* 🔴 Which of the four the DOCUMENT does not supply. Reported, never
        * filled in — a row cannot be VERIFIED-PASS without all four, and the

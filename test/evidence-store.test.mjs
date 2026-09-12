@@ -8,7 +8,7 @@ import { createJsonlStore, STORE_INTERFACE } from "../src/evidence/store.mjs";
 import { makeObservation, makeIssue, makeSource, SOURCE_TIERS, tierRank, ISSUE_VERDICTS } from "../src/evidence/records.mjs";
 import { targetPageId, canonicalUrl, observationId, sha256Hex } from "../src/evidence/ids.mjs";
 import { TRANSITIONS, allEdges, canTransition, transition, CHECK_OUTCOMES } from "../src/evidence/transitions.mjs";
-import { countDetectorFiles, MAX_DETECTOR_FILES, DETECTOR_DIRS } from "../tools/detector-census.mjs";
+
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 
@@ -232,30 +232,22 @@ test("C4: the same observation built twice has the same id — re-running the in
 });
 
 /* ================================================================== *
- * C5 — ZERO DETECTORS EXIST IN THIS PR.
+ * C5 — RETIRED 12 SEPTEMBER 2026, AND REPLACED.
+ *
+ * 🔴 The rule was "zero detectors", enforced by counting detector files. It
+ * ended because checklist items 10, 12 and 13 ARE detectors — keeping it would
+ * have forbidden the product.
+ *
+ * It is REPLACED, not dropped. What C5 was really protecting was never "no
+ * code": it was that a detector must not be built from the answers. That is now
+ * the SEALED CORPUS CENSUS in `tools/sealed-corpus-census.mjs`, tested in
+ * `test/audit-checks.test.mjs`, and wired into `bin/product-boundary.mjs`.
+ *
+ * ⚠️ The old census and its tests are DELETED rather than left passing. A file
+ * counter pointed at `src/detectors/` would still have read 0 for ever — the
+ * detectors live in `src/audit/` — and a check that cannot fail is the pattern
+ * this project hunts.
  * ================================================================== */
-
-test("🔴 C5: the detector census over this repository reads 0", () => {
-  const { count, files } = countDetectorFiles(REPO);
-  assert.equal(count, MAX_DETECTOR_FILES, `detector files present: ${files.join(", ")}`);
-});
-
-test("🔴 C5: the counter can actually COUNT — proved against a fixture, not an empty dir", () => {
-  // A counter only ever run against an empty tree is indistinguishable from one
-  // that returns 0 unconditionally. This is the control that makes the 0 mean
-  // something.
-  const dir = tmp();
-  try {
-    mkdirSync(join(dir, DETECTOR_DIRS[0]), { recursive: true });
-    writeFileSync(join(dir, DETECTOR_DIRS[0], "thin-content.mjs"), "export const x = 1;\n");
-    writeFileSync(join(dir, DETECTOR_DIRS[0], "notes.txt"), "not a detector\n");
-    const { count, files } = countDetectorFiles(dir);
-    assert.equal(count, 1, "the census failed to see a detector that was really there");
-    assert.deepEqual(files, [DETECTOR_DIRS[0] + "/thin-content.mjs"]);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
 
 /* ================================================================== *
  * PROVENANCE (§14) AND THE FROZEN TIER ORDER (§623).

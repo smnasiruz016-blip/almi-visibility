@@ -32,6 +32,37 @@ export const EXPECTED_BODY_SHA256 = "16c580160391eabb14a4d6754edfe18fe1def936384
 export const EXPECTED_FEATURE_COUNT = 58;
 
 /**
+ * 🔴 AMENDMENT 1 — 12 September 2026. Frozen the same way, for the same reason.
+ *
+ * It gives the six split features the four-part contract they were never given,
+ * so that they can be tested and, if the evidence is not there, failed. It
+ * amends the ruling above; it does not replace it. Both are law.
+ */
+export const AMENDMENT_1_BODY_SHA256 = "ef874f095048938a095613d140aba10451237afa26e6ea14a8aef07a962cc723";
+export const AMENDMENT_1_SPLIT_IDS = Object.freeze([10, 12, 13, 14, 25, 38]);
+
+/** The six v0.1-half contracts, read out of the amendment. */
+export function amendmentContracts(path) {
+  const text = readFileSync(path, "utf8").replace(/\r\n/g, "\n");
+  const idx = text.indexOf(BODY_MARKER);
+  const body = idx === -1 ? text : text.slice(idx + BODY_MARKER.length);
+  const sha = createHash("sha256").update(body, "utf8").digest("hex");
+
+  const heads = [...body.matchAll(/^### (\d+) · (.+?) — v0\.1 half$/gm)];
+  const out = {};
+  for (let i = 0; i < heads.length; i += 1) {
+    const id = Number(heads[i][1]);
+    const block = body.slice(heads[i].index, i + 1 < heads.length ? heads[i + 1].index : body.length);
+    const parts = {};
+    for (const m of block.matchAll(/^\| \*\*(INPUT|EXPECTED|FAILURE|EVIDENCE)\*\* \| (.+?) \|$/gm)) {
+      parts[m[1].toLowerCase()] = m[2].trim().replace(/\s+/g, " ");
+    }
+    out[id] = parts;
+  }
+  return { sha, matches: sha === AMENDMENT_1_BODY_SHA256, contracts: out };
+}
+
+/**
  * 🔴 THE CLASS CENSUS IS PART OF THE FROZEN TEXT, NOT A DERIVED CONVENIENCE.
  *
  * `D` decides which rows may be DEFERRED, and the deferral law says a row is
@@ -113,12 +144,29 @@ const invokedDirectly =
   process.argv[1] && import.meta.url === new URL(`file://${process.argv[1].replace(/\\/g, "/")}`).href;
 
 if (invokedDirectly) {
-  const path = new URL("../PASS_BOUNDARIES_SOURCE.md", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
-  const r = verify(path);
-  console.log(`body sha256 : ${r.sha}`);
-  console.log(`  matches   : ${r.matches ? "YES" : "🔴 NO — the owner's text has changed"}`);
-  console.log(`features    : ${r.features.count} (sequence 1..${r.features.sequential})`);
-  console.log(`classes     : P=${r.counts.P} S=${r.counts.S} D=${r.counts.D}  ${r.classesMatch ? "as frozen" : "🔴 CHANGED"}`);
-  const bad = !r.matches || !r.classesMatch || r.features.count !== EXPECTED_FEATURE_COUNT || !r.features.ok;
+  const at = (f) => new URL(`../${f}`, import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+
+  const r = verify(at("PASS_BOUNDARIES_SOURCE.md"));
+  console.log("PASS_BOUNDARIES_SOURCE.md");
+  console.log(`  body sha256 : ${r.sha}`);
+  console.log(`  matches     : ${r.matches ? "YES" : "🔴 NO — the owner's text has changed"}`);
+  console.log(`  features    : ${r.features.count} (sequence 1..${r.features.sequential})`);
+  console.log(`  classes     : P=${r.counts.P} S=${r.counts.S} D=${r.counts.D}  ${r.classesMatch ? "as frozen" : "🔴 CHANGED"}`);
+
+  const a = amendmentContracts(at("PASS_BOUNDARIES_AMENDMENT_1.md"));
+  const ids = Object.keys(a.contracts).map(Number).sort((x, y) => x - y);
+  const complete = ids.filter((id) => ["input", "expected", "failure", "evidence"].every((p) => a.contracts[id][p]));
+  console.log("PASS_BOUNDARIES_AMENDMENT_1.md");
+  console.log(`  body sha256 : ${a.sha}`);
+  console.log(`  matches     : ${a.matches ? "YES" : "🔴 NO — the amendment has changed"}`);
+  console.log(`  v0.1 halves : ${ids.length} — ${ids.join(", ")}`);
+  console.log(`  complete    : ${complete.length}/6 carry all four parts`);
+
+  const bad =
+    !r.matches || !r.classesMatch || r.features.count !== EXPECTED_FEATURE_COUNT || !r.features.ok ||
+    !a.matches || ids.length !== 6 || complete.length !== 6 ||
+    ids.join(",") !== AMENDMENT_1_SPLIT_IDS.join(",");
+
+  console.log(bad ? "\n🔴 VERIFICATION FAILED" : "\nboth frozen texts verified");
   process.exit(bad ? 1 : 0);
 }

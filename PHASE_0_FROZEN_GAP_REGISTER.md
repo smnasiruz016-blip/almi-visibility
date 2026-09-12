@@ -343,6 +343,56 @@ disagreement in all 58. By precedence the ruling wins, and item 8 is now `TESTAB
 
 ---
 
+## AMENDMENT 1 TO RULING 6 — THE SIX SPLITS GET THEIR CONTRACT
+
+**Ruled 12 September 2026.** Frozen verbatim as `PASS_BOUNDARIES_AMENDMENT_1.md`, body sha256
+`ef874f095048938a095613d140aba10451237afa26e6ea14a8aef07a962cc723`.
+
+PR #46 reported that items **10, 12, 13, 14, 25, 38** were ruled as two-column tables and never
+given the four-part contract, so **none of them could ever have been ticked**. The owner accepted
+that as his defect and amended the ruling. All six now carry INPUT · EXPECTED · FAILURE ·
+EVIDENCE, and `via` records which document supplied them (`§4+A1`, `§6+A1`).
+
+Two further corrections carried by the amendment:
+
+- **The count is SIX, not five.** §4 named five split features while §6 marked a sixth (item 25);
+  the document contradicted itself and now reads six.
+- **Item 8 is IN scope.** The ruling beat the tracker, and the amendment gives the reason: HEAVY /
+  THIN / EMPTY is not a discovery capability but a **guard**, and what it guards against is a
+  supply label quietly becoming a demand claim. That guard must exist from the first day there
+  are labels.
+
+🔴 **This is the mechanism working, not being worked around.** The gap was reported rather than
+filled in from this side, and it closed by owner ruling recorded with its date and reason —
+exactly what Ruling 6 requires. Had the missing parts been invented here, the repository would
+now be enforcing a boundary the owner never set.
+
+---
+
+## 🔴 A CORRECTED CLAIM — PR #45's ACCEPTANCE LINE WAS VACUOUS
+
+**PR #45 reported "checklist frozen-source hash verified, exit 0". That route proved nothing.**
+
+`tools/verify-checklist-source.mjs` is a pure module with **no main block at all**. Running it
+from a shell executes nothing and exits 0 whatever the file contains. The underlying check does
+run — in `test/checklist-status.test.mjs`, which passed — so the *claim* was true while the
+*evidence offered for it* was empty.
+
+The same trap was then hit a second time: the first version of
+`tools/verify-pass-boundaries-source.mjs` guarded its main block with
+`import.meta.url === "file://" + argv[1]`, which is **dead on Windows** — `import.meta.url` is
+`file:///C:/…` with three slashes and the concatenation makes two. It printed nothing and exited
+0, reading exactly like a pass.
+
+Both are now fixed, and the CLI is **RED-proved**: corrupt one byte of a frozen source and it
+exits 1; restore it and it exits 0.
+
+> **Recorded because a false acceptance line that nobody corrects becomes evidence later.** A
+> reader six months from now would find "hash verified, exit 0" in a merged PR and reasonably
+> treat it as a check that had run.
+
+---
+
 ## OWNER RULING 7 — ITEM 10's SPLIT, AND THE RENDERING TRIGGER ON ITEM 52
 
 **Decided 12 September 2026 by beta-g as technical owner**, on the owner's instruction, after

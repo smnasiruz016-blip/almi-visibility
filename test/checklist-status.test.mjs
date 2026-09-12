@@ -170,9 +170,12 @@ test("the headline counts match the rows they summarise", () => {
  * counts sees NOT-STARTED fall from 33 to 3 and concludes thirty features got
  * done. So the headline is REQUIRED to say otherwise, in its own words.
  */
-test("🔴 the headline states plainly that nothing was built", () => {
+test("🔴 the headline separates the three earned ticks from the 33 renamed rows", () => {
   const text = readFileSync(STATUS, "utf8");
-  assert.match(text, /THIS LEDGER DID NOT IMPROVE\. NOTHING WAS BUILT\./);
+  assert.match(text, /THREE TICKS — THE FIRST THIS PROJECT HAS EVER AWARDED/);
   assert.match(text, /DEFERRED IS NOT A TICK AND NEVER COUNTS AS ONE/);
-  assert.match(text, /[Nn]ot one moved because work happened — the count is ZERO/);
+  assert.match(text, /only three rows in the whole ledger whose status moved because \*\*work happened\*\*/);
+  // 🔴 And the ledger must still say plainly that a deferral is not progress.
+  assert.match(text, /The 28 DEFERRED rows are not progress and nothing was built for any of them/);
+  assert.match(text, /Item 14 did NOT tick/);
 });

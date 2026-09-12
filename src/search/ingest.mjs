@@ -151,6 +151,42 @@ export async function runIngest({
     rows: pageRows,
   });
 
+  /* ---- query dimensions ------------------------------------------------ *
+   *
+   * 🔴 ADDED 12 SEPTEMBER 2026 BECAUSE ITEM 13 HAD NO INPUT.
+   *
+   * Cannibalization needs QUERY TEXT, and the ingest stored only pages — so the
+   * check was built, correct, and unable to run. It returned nothing because
+   * there was nothing to read, which is indistinguishable from "no
+   * cannibalization" unless somebody says so.
+   *
+   * Same provider, same read-only scope, same free tariff, same pagination law.
+   * ⚠️ This stores query strings, which earlier ingests deliberately did not.
+   * They are OUR OWN search queries from OUR OWN property — not third-party
+   * content — and item 13 cannot exist without them. */
+  const queryPulls = {};
+  for (const [key, dims] of [["query", ["query"]], ["query-page", ["query", "page"]]]) {
+    const res = await provider.queryRows({
+      propertyId, startDate, endDate, dimensions: dims, rowLimitPerRequest: 25000, maxRequests: 20,
+    });
+    const rows = res.rows.map((r) => ({
+      query: r.keys?.[0] ?? null,
+      url: dims.length > 1 ? (r.keys?.[1] ?? null) : null,
+      clicks: r.clicks ?? 0,
+      impressions: r.impressions ?? 0,
+      ctr: r.ctr ?? null,
+      position: r.position ?? null,
+    }));
+    queryPulls[key] = { res, rows };
+    record({ kind: "property", ref: propertyId }, `gsc.searchAnalytics.query:${key}`, {
+      startDate, endDate, dimensions: dims,
+      rowCount: res.rowCount, requestCount: res.requestCount, exhausted: res.exhausted,
+      dataState: res.dataState, truncationReason: res.truncationReason,
+      rowLimitPerRequest: res.rowLimitPerRequest, maxRequests: res.maxRequests,
+      cost: res.cost, rows,
+    });
+  }
+
   /* ---- control --------------------------------------------------------- */
   const control = await provider.queryRows({ propertyId: controlProperty, startDate, endDate, dimensions: [] });
   const controlState = classify({ attempted: true, httpStatus: control.httpStatus });
@@ -177,5 +213,5 @@ export async function runIngest({
     unparsedRows: unparsed, estateTable: table.rows,
   });
 
-  return { ...results, properties, agg, pages, control, controlState, table, startDate, endDate };
+  return { ...results, properties, agg, pages, control, controlState, table, queryPulls, startDate, endDate };
 }

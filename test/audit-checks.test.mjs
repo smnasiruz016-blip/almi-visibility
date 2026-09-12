@@ -238,14 +238,31 @@ test("🔴 SEALED: the census can actually CATCH a breach — proved against a f
 
 const ROBOTS_FILE = `${REPO}runs/evidence/robots.jsonl`;
 
-test("🔴 REAL: all four stored robots.txt files put Googlebot in a SPECIFIC group that repeats the Disallow", { skip: !existsSync(ROBOTS_FILE) }, () => {
-  const records = createJsonlStore(ROBOTS_FILE).readAll().filter((r) => r.record_type === "observation");
-  assert.equal(records.length, 4, `expected 4 stored robots.txt files, found ${records.length}`);
+/** The four hosts whose crawl produced robots-blocked URLs. */
+const CORRIDOR_HOSTS = [
+  "almiitalian.almiworld.com", "almidutch.almiworld.com",
+  "almiportuguese.almiworld.com", "almiicelandic.almiworld.com",
+];
+
+test("🔴 REAL: all four CORRIDOR robots.txt files put Googlebot in a SPECIFIC group that repeats the Disallow", { skip: !existsSync(ROBOTS_FILE) }, () => {
+  const all = createJsonlStore(ROBOTS_FILE).readAll().filter((r) => r.record_type === "observation");
+  const records = all.filter((r) => CORRIDOR_HOSTS.includes(r.value.host));
+  assert.equal(records.length, 4, `expected the 4 corridor robots.txt files, found ${records.length}`);
   for (const r of records) {
     assert.equal(r.value.httpStatus, 200, `${r.value.host}: robots.txt did not return 200`);
     const g = selectGroup(parseGroups(r.value.body), "Googlebot");
     assert.equal(g.matchedBy, "SPECIFIC", `${r.value.host}: Googlebot is not in a specific group`);
     assert.ok(g.rules.some((x) => x.type === "disallow"), `${r.value.host}: the Googlebot group carries no Disallow`);
+  }
+
+  /* 🔴 almioet is stored too and is DIFFERENT: a bare `User-agent: *` with
+   * `Allow: /` and NO Googlebot group at all. Asserted so the contrast is
+   * visible — the corridor pattern is not universal across the estate. */
+  const oet = all.find((r) => r.value.host === "almioet.almiworld.com");
+  if (oet) {
+    const g = selectGroup(parseGroups(oet.value.body), "Googlebot");
+    assert.equal(g.matchedBy, "WILDCARD", "almioet has no Googlebot-specific group");
+    assert.equal(g.rules.filter((x) => x.type === "disallow").length, 0, "almioet disallows nothing");
   }
 });
 

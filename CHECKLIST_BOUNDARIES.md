@@ -24,24 +24,25 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | state | before Amendment 2 | after the RULING only | after the WORK |
 |---|---|---|---|
 | **NOT-STARTED** | 3 | 3 | **3** |
-| **BUILT-NOT-PROVED** | 18 | 17 | **16** |
+| **BUILT-NOT-PROVED** | 18 | 17 | **14** |
 | **TESTABLE-NOW** | 0 | 1 | **0** |
-| **VERIFIED-PASS** | 3 | 3 | **4** |
-| **FAILED** | 0 | 0 | **0** |
+| **VERIFIED-PASS** | 3 | 3 | **5** |
+| **FAILED** | 0 | 0 | **1** |
 | **BLOCKED-UNKNOWN** | 6 | 6 | **7** |
 | **DEFERRED** | 28 | 28 | **28** |
 
-### FAILED — counted and named separately: **0**
+### FAILED — counted and named separately: **1**
 
 > 🔴 **FAILED is counted and named separately in every report.** It is never folded into another
 > count and it is **not progress**. It is also **worth more than BUILT-NOT-PROVED**: a FAILED row
 > is one whose test was run against its own boundary — it means we looked.
 
+- **item 45 · Cost Governor** — FAILURE met: a cost reads UNKNOWN when it was measurable — 12 parts of the eight stored ingest runs: 8 wall-clocks the runs never recorded, and 4 call totals the store kept only as re-sightings
 - **item 14** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-12 — report.mjs and the chain runner's cache now write only with --confirm; every destination is confined to this repository and refused outside it; all five parts re-tested and each RED-proved
 
-**Rows that have been looked at (VERIFIED-PASS or FAILED): 4 of 58.**
+**Rows that have been looked at (VERIFIED-PASS or FAILED): 6 of 58.**
 
-**Rows that reached VERIFIED-PASS in this PR: 1.**
+**Rows that reached VERIFIED-PASS in this PR: 2.**
 
 #### moved ONLY because a RULING changed
 
@@ -56,6 +57,8 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 9 | BUILT-NOT-PROVED | BLOCKED-UNKNOWN | `node bin/gsc-ingest.mjs --property=sc-domain:almiworld.com · node bin/gsc-dimensions.mjs · test/search-dimensions.test.mjs` | 2026-09-12 | six of seven dimensions ingested from the real property, each pull exhausted and COMPLETE with its bounds; downstream outcomes is supplied by no tool this engine holds, which the NOTE makes ⚠ rather than a failure |
 | 14 | TESTABLE-NOW | FAILED | `test/permitted-writers.test.mjs` | 2026-09-12 | the re-test was run against the new contract, and its FAILURE condition 'defaults to writing' was met at two write sites |
 | 14 | FAILED | VERIFIED-PASS | `test/permitted-writers.test.mjs · test/write-confinement.test.mjs · test/no-blind-regeneration.test.mjs · node tools/permitted-writers.mjs` | 2026-09-12 | report.mjs and the chain runner's cache now write only with --confirm; every destination is confined to this repository and refused outside it; all five parts re-tested and each RED-proved |
+| 45 | BUILT-NOT-PROVED | FAILED | `test/cost-ledger.test.mjs · test/cost-governor.test.mjs · node bin/cost-ledger.mjs` | 2026-09-12 | the ledger was built and backfilled from real records and the hard stop proved by injection; the FAILURE condition 'a cost reads UNKNOWN when it was measurable' is met by 12 parts of the eight stored ingest runs |
+| 49 | BUILT-NOT-PROVED | VERIFIED-PASS | `test/issue-lifecycle.test.mjs · test/source-tiers.test.mjs` | 2026-09-12 | a real chain walked end to end with all five parts present, 134 real issues superseded with the originals retained, and the tier layer ordering the real verified facts |
 
 ---
 
@@ -64,17 +67,17 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | state | before (4-state) | after (7-state) |
 |---|---|---|
 | **NOT-STARTED** | 33 | **3** |
-| **BUILT-NOT-PROVED** | 24 | **16** |
+| **BUILT-NOT-PROVED** | 24 | **14** |
 | **TESTABLE-NOW** | 0 | **0** |
-| **VERIFIED-PASS** | 0 | **4** |
-| **FAILED** | 0 | **0** |
+| **VERIFIED-PASS** | 0 | **5** |
+| **FAILED** | 0 | **1** |
 | **BLOCKED-UNKNOWN** | 1 | **7** |
 | **DEFERRED** | 0 | **28** |
 | **total** | 58 | **58** |
 
 ### 🔴 THE MOST IMPORTANT LINE IN THIS DOCUMENT
 
-> **5 row(s) changed because work happened.** Listed in (i) below.
+> **7 row(s) changed because work happened.** Listed in (i) below.
 
 #### (i) changed because WORK HAPPENED
 
@@ -84,7 +87,9 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 9 | Search Console / Analytics Intelligence | BUILT-NOT-PROVED | **BLOCKED-UNKNOWN** |
 | 14 | No Blind Regeneration | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 15 | Verified Fact Supply Engine | BUILT-NOT-PROVED | **VERIFIED-PASS** |
+| 45 | Cost Governor | BUILT-NOT-PROVED | **FAILED** |
 | 48 | Idempotency & Retry Safety | BUILT-NOT-PROVED | **VERIFIED-PASS** |
+| 49 | Audit Trail & Provenance | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 
 #### (ii) changed ONLY because the vocabulary changed
 
@@ -94,7 +99,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | BUILT-NOT-PROVED → BLOCKED-UNKNOWN | 4 | 1, 11, 54, 56 |
 | NOT-STARTED → BLOCKED-UNKNOWN | 1 | 42 |
 
-**Did not move: 20** — 10, 12, 13, 16, 17, 25, 26, 36, 38, 45, 46, 47, 49, 50, 51, 52, 53, 55, 57, 58
+**Did not move: 18** — 10, 12, 13, 16, 17, 25, 26, 36, 38, 46, 47, 50, 51, 52, 53, 55, 57, 58
 
 ---
 
@@ -715,7 +720,7 @@ question for the owner, recorded as one.
 
 ### 45 · Cost Governor
 
-**BUILT-NOT-PROVED** · class `P` · ruled in `§6`
+**FAILED** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (work)
 
 | part | the owner's words |
 |---|---|
@@ -725,7 +730,9 @@ question for the owner, recorded as one.
 | **EVIDENCE** | the ledger with real figures, and the hard stop proved by injection. |
 | **BLOCKER TODAY** | **no ledger exists and no spend figure is recorded.** The cap holds; the money does not. |
 
-**Verdict —** the ruling's own BLOCKER TODAY: the cap holds, the money does not. No ledger and no spend figure. Unbuilt rather than blocked — nothing external prevents building it
+**Verdict —** 🔴 **THE LEDGER EXISTS AND THE HARD STOP HOLDS — AND THE FAILURE CONDITION IS MET, ON THE RECORDS WE ALREADY HAD.** Built: an append-only ledger tracking all four — money, provider calls, budget against its cap, founder time — every line printing its bound, every UNKNOWN required to say whether it WAS measurable. Backfilled from real records, nothing estimated: **the 12 September crawl** — 394 calls, founder time 403.268 s (the Actions run that hosted it: 423 s), 500 requested / 394 fetched / 106 disallowed against caps 500 and 200, cap not reached; money UNKNOWN and NOT measurable with tools we hold (the plan's price and allowance, U-COST-1; our own hosting's invocations, U-COST-5 — GitHub's reported 0 billable ms is not read as $0). **Eight stored ingest runs** — money ZERO_BY_TARIFF; calls MEASURED on 4; founder time on NONE. **12 parts read UNKNOWN although they were measurable at the time**, which is the FAILURE clause exactly. **Hard stop proved by injection** through the real adapter: pages that never end stop at the run cap with exactly that many requests reaching the boundary, the stop latches and is not swallowed as an API error. `apiCalls` is now per pull, with the running total in its own field. Every future ingest records all four as it happens. ⚠️ The eight past runs cannot be re-measured: leaving FAILED needs a run that records all four AND either a re-run that passes or an owner ruling on those eight
+
+**The one test that would settle it —** node --test test/cost-ledger.test.mjs test/cost-governor.test.mjs · node bin/cost-ledger.mjs
 
 ### 46 · Cache Before Re-Research
 
@@ -770,7 +777,7 @@ question for the owner, recorded as one.
 
 ### 49 · Audit Trail & Provenance
 
-**BUILT-NOT-PROVED** · class `P` · ruled in `§6`
+**VERIFIED-PASS** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (work)
 
 | part | the owner's words |
 |---|---|
@@ -779,7 +786,9 @@ question for the owner, recorded as one.
 | **FAILURE** | any of the five is missing, or no record has ever completed its lifecycle. |
 | **EVIDENCE** | a real chain walked end to end, and a real record closed or superseded. |
 
-**Verdict —** 🔴 THE FAILURE CONDITION IS CURRENTLY MET. The boundary requires the lifecycle to run to CLOSED or SUPERSEDED, and all 109 issues on disk are OPEN — not one record has ever completed its lifecycle
+**Verdict —** 🔴 **THE FIRST LIFECYCLES THIS PROJECT HAS COMPLETED.** An issue now leaves OPEN by a second, append-only record naming the move, when, why, its evidence and the action that made it; SUPERSEDED must name a replacement that names it back. **134 real noindex issues SUPERSEDED**: they claimed a DEFECT, and later evidence — the commit that set the gate and states its intent, plus search guidance that the pages are configured as de-indexing needs — shows a DELIBERATE decision. The replacements are UNKNOWN, not PASS: the near-duplicate premise the commit cites is NOT confirmed by our similarity measurement (0.685 average, none reaching 0.8), so whether the gate is still right is the owner's decision. The originals are retained byte for byte — the store before this change is a prefix of it now. **One real chain walked end to end in the report, all five present**: what, why, from which evidence (every id resolved), when, and what changed it. **The robots issues were NOT closed** — 106 remain OPEN, because they are not fixed and not superseded. **The §623 tier layer exercised on real records**: the 32 verified facts become OFFICIAL Source records and are ranked against our own analytics property and a drafted inference. ⚠️ Found on the way: the technical findings store holds every one of these issues TWICE — the audit writer appended the same issue_id on two runs; recorded, not fixed here
+
+**The one test that would settle it —** node --test test/issue-lifecycle.test.mjs test/source-tiers.test.mjs
 
 ### 50 · OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation
 

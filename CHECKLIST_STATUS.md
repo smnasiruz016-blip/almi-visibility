@@ -21,13 +21,37 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 | state | before (4-state) | after (7-state) |
 |---|---|---|
 | **NOT-STARTED** | 33 | **3** |
-| **BUILT-NOT-PROVED** | 24 | **16** |
+| **BUILT-NOT-PROVED** | 24 | **14** |
 | **TESTABLE-NOW** | — | **0** |
-| **VERIFIED-PASS** | 0 | **4** |
-| **FAILED** | — | **0** |
+| **VERIFIED-PASS** | 0 | **5** |
+| **FAILED** | — | **1** |
 | **BLOCKED-UNKNOWN** | 1 | **7** |
 | **DEFERRED** | — | **28** |
 | **total** | 58 | **58** |
+
+> ### 🔴 ITEMS 45 AND 49 RUN AGAINST THEIR BOUNDARIES — 12 SEPTEMBER 2026, NIGHT
+>
+> | state | before this change | after |
+> |---|---|---|
+> | NOT-STARTED | 3 | 3 |
+> | BUILT-NOT-PROVED | 16 | **14** |
+> | TESTABLE-NOW | 0 | 0 |
+> | VERIFIED-PASS | 4 | **5** |
+> | FAILED | 0 | **1** |
+> | BLOCKED-UNKNOWN | 7 | 7 |
+> | DEFERRED | 28 | 28 |
+>
+> **FAILED — counted and named separately: 1 — item 45, Cost Governor.** The ledger exists and the
+> hard stop holds, but 12 parts of the eight stored ingest runs read UNKNOWN although they were
+> measurable at the time. FAILED is not progress, and it is worth more than BUILT-NOT-PROVED: it
+> means we looked.
+>
+> **One row reached VERIFIED-PASS in this change: item 49.**
+>
+> - **moved because WORK HAPPENED:** item 45, BUILT-NOT-PROVED → FAILED · item 49,
+>   BUILT-NOT-PROVED → VERIFIED-PASS.
+> - **moved ONLY because a RULING changed:** none. (The crawler-flag ruling changed how the register
+>   names a gate, not any row's boundary.)
 
 > ### 🔴 ITEM 14 LEAVES FAILED — BY RULE 1's FIRST ROUTE. 12 SEPTEMBER 2026, NIGHT.
 >
@@ -79,13 +103,13 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 >   ingested and the seventh is supplied by no tool we hold. Not a tick. After it the counts are
 >   BUILT-NOT-PROVED **16** and BLOCKED-UNKNOWN **7**; the table above records Amendment 2 alone.
 
-> ### 🔴 FOUR TICKS — ITEMS 8, 15 AND 48, AND NOW 14
+> ### 🔴 FIVE TICKS — ITEMS 8, 14, 15, 48 AND 49
 >
-> **Items 8, 15, 48 and 14.** Each has all four parts of its boundary answered with real-data
+> **Items 8, 15, 48, 14 and 49.** Each has all four parts of its boundary answered with real-data
 > evidence, and each was RED-proved by sabotage that landed in the intended test. They are the
-> only four rows in the whole ledger that **reached a pass because work happened**; item 9 also
-> moved by work and ended BLOCKED-UNKNOWN; the other 33 moved when the vocabulary changed and are
-> counted apart.
+> only five rows in the whole ledger that **reached a pass because work happened**; item 9 also
+> moved by work and ended BLOCKED-UNKNOWN, and item 45 moved by work and FAILED; the other 33
+> moved when the vocabulary changed and are counted apart.
 >
 > **Item 14 did NOT tick the first time it was sat against Amendment 2**, and that result is kept
 > on the row: two write sites defaulted to writing, and it was FAILED. It ticked only after both
@@ -223,11 +247,11 @@ actually came from.
 | 42 | Re-crawl / Re-test Loop | BLOCKED-UNKNOWN | PARTIAL — the crawler is IN (l.974); the loop is not named in the v0.1 list | The crawler can be re-run by hand. No comparison, no PASS/FAIL record, no scheduling (the workflow is `workflow_dispatch` only, deliberately) | 2026-09-11 | Claude (repo audit) | No re-test or diff mechanism exists | — |
 | 43 | Experiment / Change Impact | DEFERRED | OUT — later phase; §62 l.553 | none | 2026-09-11 | Claude (repo audit) | — | — |
 | 44 | Funnel / Business Outcome Intelligence | DEFERRED | OUT — later phase; §62 l.553 | none | 2026-09-11 | Claude (repo audit) | — | — |
-| 45 | Cost Governor | BUILT-NOT-PROVED | IN — §32; §33 cost ledger | **Held under real load, 12 Sep:** 500 selected against a 1,497 pool, cap never exceeded, per-host budget applied (almicv 150 of 482), 1 req/s over 403s. Every host's billable traffic stated in words in the run summary. `CostRecord.amountState = UNKNOWN` | 2026-09-12 | Claude (repo audit) | 🔴 **The cap holds; nothing tracks money.** No ledger, no metering, no spend figure — the run's own cost is UNKNOWN because Gate C has never been applied to a crawler we operate (`U-COST-5`, `GATE-2`) | first real crawl, 12 Sep 2026 |
+| 45 | Cost Governor | FAILED | IN — §32; §33 cost ledger | **Held under real load, 12 Sep:** 500 selected against a 1,497 pool, cap never exceeded, per-host budget applied (almicv 150 of 482), 1 req/s over 403s. Every host's billable traffic stated in words in the run summary. `CostRecord.amountState = UNKNOWN` | 2026-09-12 | Claude (repo audit) | 🔴 **The cap holds; nothing tracks money.** No ledger, no metering, no spend figure — the run's own cost is UNKNOWN because Gate C has never been applied to a crawler we operate (`U-COST-5`, `GATE-2`) | first real crawl, 12 Sep 2026 |
 | 46 | Cache Before Re-Research | BUILT-NOT-PROVED | IN — §41, named a hard gate | Built and measured. The same fact requested three times **reaches the source exactly once** (sabotage-proved). Outside its applicability scope or its freshness window it is a **MISS, not a stretch**. Hits and misses are both counted and the **freshness window prints beside the hit rate** (LAW-BOUND-1). 🔴 **AND IT NOW REFUSES WHAT IT SHOULD.** Over the real registry, 46 facts × 2 requests → **64 hits, 28 misses, hit rate 69.6%**, misses named: `UNKNOWN_CONFLICT` 12, `UNKNOWN_INCOMPLETE` 8, `UNKNOWN_SOURCE_UNREACHABLE` 8 | 2026-09-12 | Claude (repo audit) | 🔴 **THE PREVIOUS ROW REPORTED 92 HITS / 0 MISSES / 100%, AND THAT NUMBER WAS THE DEFECT** (`D-FACT-3`). `get()` checked freshness and nothing else, so all 14 records a human had just marked UNKNOWN were served as clean hits — **including an NMCN fee one official page puts at ₦66,875 and another contradicts** — against this module's own header law that a conflicted fact is never silently used. Fixed; **the hit rate fell to 69.6% and the fall is the improvement**, which is why hit rate must never be the measure. Remaining blocker unchanged: **nothing researches yet**, so even 69.6% measures a pre-loaded registry, not a research loop | item 15 ingest, 12 Sep 2026 |
 | 47 | Paid Provider Controls | NOT-STARTED | IN — §62 l.555 "must not activate paid providers by default" | No paid provider is wired anywhere in the repository. The one external API in use (Search Console) is free and read-only | 2026-09-11 | Claude (repo audit) | Satisfied **by absence, not by a control**: there is no budget, cap, kill switch or test that would stop a paid provider being added tomorrow | — |
 | 48 | Idempotency & Retry Safety | VERIFIED-PASS | IN — safety; §62 l.553 audit slice | **A1 FIXED (12 Sep):** `measurement_key` (target+method+content, **no clock**) plus `store.appendIfNew`, which appends a **re-sighting** instead of a duplicate payload. Proved against the REAL API: run 4 → **0 new, 4 re-sightings**. Also fixed a second clock hidden *inside* the `sites.list` value | 2026-09-12 | Claude (repo audit) | **The "at most one retry, NEVER on a 4xx" rule still has no test.** The code is right; nothing would catch it being changed | A1 fix, 12 Sep 2026 |
-| 49 | Audit Trail & Provenance | BUILT-NOT-PROVED | IN — v0.1 CONTAINS l.974 (§14) | **The evidence → claim chain now runs end to end on real data.** 107 Issues written, each citing the crawl observation AND the stored robots.txt or DNS observation it was derived from. **0 broken chains** in the rendered report. The four robots.txt files are stored as observations with hashes, not looked up. **Two further Issues added 12 Sep from the verification return**, both verdict `UNKNOWN` not `FAIL`, citing 6 observations whose `method` is `human-verification-return` and whose target is the **verdict row we hold** — 🔴 *not* the official pages, which we never fetched. A content hash attributed to a page we never retrieved would be indistinguishable from a real one | 2026-09-12 | Claude (repo audit) | **No Source record has been written** — the §623 tier layer is still unexercised; the new Issues' `sources` carry fact ids, which is not the same thing. And **no issue has ever been CLOSED or SUPERSEDED**, so the lifecycle half of the audit trail remains untested — the two new Issues open, they do not close | item 15 ingest, 12 Sep 2026 |
+| 49 | Audit Trail & Provenance | VERIFIED-PASS | IN — v0.1 CONTAINS l.974 (§14) | **The evidence → claim chain now runs end to end on real data.** 107 Issues written, each citing the crawl observation AND the stored robots.txt or DNS observation it was derived from. **0 broken chains** in the rendered report. The four robots.txt files are stored as observations with hashes, not looked up. **Two further Issues added 12 Sep from the verification return**, both verdict `UNKNOWN` not `FAIL`, citing 6 observations whose `method` is `human-verification-return` and whose target is the **verdict row we hold** — 🔴 *not* the official pages, which we never fetched. A content hash attributed to a page we never retrieved would be indistinguishable from a real one | 2026-09-12 | Claude (repo audit) | **No Source record has been written** — the §623 tier layer is still unexercised; the new Issues' `sources` carry fact ids, which is not the same thing. And **no issue has ever been CLOSED or SUPERSEDED**, so the lifecycle half of the audit trail remains untested — the two new Issues open, they do not close | item 15 ingest, 12 Sep 2026 |
 | 50 | OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation | BUILT-NOT-PROVED | IN — DoD §170; v0.1 CONTAINS l.974 | 🔴 **THE UNKNOWN BRANCH HAS NOW FIRED ON REAL DATA FOR THE FIRST TIME — 346 real UNKNOWNs**, in three distinct reason codes: `NEEDS_RENDERED_HTML` (340 orphan + 2 empty-body), `TOOL_FAILED` (unrecognised layout). Before this PR it was fixture-proved only. All four labels are live. 🔴 **AND UNKNOWN IS NOW A FIRST-CLASS STATE IN THE FACT LAYER TOO** — 14 real records carry it with three declared reasons, and the constructor **refuses an UNKNOWN with no date or no reason**, because an undated UNKNOWN is indistinguishable from a record nobody opened | 2026-09-12 | Claude (repo audit) | **F23 still polices an empty population** — 0 of 46 records carry `life.supersedes`, so no real record has passed through the transition guard. The label layer is proved; the transition layer is not. Note the 14 new UNKNOWNs **do not** exercise F23: they are a verification standing, not a supersession | item 15 ingest, 12 Sep 2026 |
 | 51 | Explainability | BUILT-NOT-PROVED | IN — §62 l.553 "minimum internal report/action view" | The view now renders **107 issues with their evidence chains**, each labelled, each traceable to the observations it came from. Every finding carries a `summary` saying which rule in which user-agent group produced it | 2026-09-12 | Claude (repo audit) | The PASS meaning names **priority, confidence and cost per recommendation** — none of the three exists. Findings carry a severity; nothing ranks them, scores confidence, or costs them | hissa 2a, 12 Sep 2026 |
 | 52 | Case Study Acceptance Test | BLOCKED-UNKNOWN | IN — v0.1 CONTAINS l.974 "Case Study #1 acceptance test (§60)" | `CASE_STUDY_01_ACCEPTANCE_TEST.md`, `case-study-01/corpus/MANIFEST.md`, `case-study-01/exhibits/` (34 files, 4 exhibits) | 2026-09-11 | Claude (repo audit) | 🔴 **NOT RUN = NOT TESTED.** `CS-3`: the test has never been executed. See the contradiction resolved below — **`CS-5`'s premise is false**, and the register, `CASE_STUDY_01_RUN_01.md` and `V51_REMEASURE.md` all carry the false version | contradictory evidence found — see §"Item 52" |

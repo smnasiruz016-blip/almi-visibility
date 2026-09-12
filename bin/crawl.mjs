@@ -28,6 +28,7 @@ import { selectSeeds, renderSelection, SELECTION_RULE } from "../src/crawl/seed-
 import { measureIpv6Egress, addressFamilies, reachabilityState } from "../src/crawl/ipv6.mjs";
 import { ESTATE_HOSTNAME_LIST } from "../config/estate-hostnames.mjs";
 import { confineToRepo } from "../src/write-law.mjs";
+import { createCostLedger, entryFromCrawlRun, formatLedgerLine } from "../src/cost/ledger.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n, d = null) => {
@@ -245,3 +246,12 @@ const runRecord = {
 };
 store.append(runRecord);
 console.log(`\nwritten: ${out}  (${result.observations.length} observations + 1 run)`);
+
+/* 🔴 ITEM 45 — a live run is costed in the ledger as it happens. A dry run
+ * issues no request and spends nothing, so it writes no cost entry. */
+if (live) {
+  const costEntry = entryFromCrawlRun(runRecord, { recordedAt: new Date().toISOString() });
+  const ledgerPath = confineToRepo(`${REPO}runs/cost/ledger.jsonl`, { label: "the cost ledger" });
+  createCostLedger(ledgerPath).append(costEntry);
+  console.log(`cost ledger: ${formatLedgerLine(costEntry)}`);
+}

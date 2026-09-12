@@ -67,6 +67,10 @@ export async function drainPages(fetchPage, { rowLimitPerRequest, maxRequests })
     try {
       page = await fetchPage({ startRow: rows.length, rowLimit: rowLimitPerRequest });
     } catch (err) {
+      // 🔴 A COST GOVERNOR'S HARD STOP IS NOT AN API ERROR. Recording it as
+      // API_ERROR would turn "the run was stopped" into one quiet UNKNOWN pull,
+      // and the next pull would try again. It propagates and ends the run.
+      if (err?.hardStop === true) throw err;
       // 🔴 The rows already collected are KEPT and the result is marked. Throwing
       // away a partial read would turn a truncation into an absence, which is the
       // same collapse this module exists to prevent.

@@ -22,6 +22,10 @@ import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { renderPage, summarise, reconcile } from "../src/report/view.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
+import { lifecycleOf, walkChain } from "../src/evidence/lifecycle.mjs";
+import { makeSource } from "../src/evidence/records.mjs";
+import { sourceRecordFromFact, rankSources, tierCensus } from "../src/evidence/source-tiers.mjs";
+import { createCostLedger, formatLedgerLine, coverageFailures } from "../src/cost/ledger.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n, d) => {
@@ -67,8 +71,45 @@ if (evidenceRecords.length === 0 && crawlRecords.length === 0) {
   process.exit(2);
 }
 
+/* 🔴 ITEM 49 — one real chain, walked end to end. The technical findings and
+ * the origin observations are read for the WALK only, so the issues table above
+ * keeps its scope. The chain shown is the first issue that has left OPEN. */
+const auditDirPath = `${REPO}runs/audit`;
+const allAudit = existsSync(auditDirPath)
+  ? readdirSync(auditDirPath).filter((f) => f.endsWith(".jsonl")).flatMap((f) => read(join(auditDirPath, f)))
+  : [];
+const chainRecords = [...allAudit, ...crawlRecords];
+const moved = [...lifecycleOf(chainRecords).issues.values()].find((e) => e.state !== "OPEN");
+const chainWalk = moved ? walkChain(moved.issue.issue_id, chainRecords) : null;
+
+/* §623 — the tier layer ordering real sources: the verified facts' citations,
+ * the Search Console property this engine reads, and a drafted recommendation. */
+const sourcesIn = [
+  ...(evidenceRecords.some((r) => r.method === "gsc.sites.list")
+    ? [makeSource({
+        source_id: "gsc-property:sc-domain:almiworld.com",
+        source_url: "sc-domain:almiworld.com",
+        source_tier: "OWNED_GSC_ANALYTICS",
+        publisher: "Google Search Console (our own property)",
+        retrieved_at: evidenceRecords.filter((r) => r.method === "gsc.sites.list").map((r) => r.observed_at).sort().at(-1),
+      })]
+    : []),
+  ...allAudit.filter((r) => r.record_type === "draft_recommendation").map((r) => makeSource({
+    source_id: `draft:${r.recommendation_id}`,
+    source_url: `runs/audit/recommendations.jsonl#${r.recommendation_id}`,
+    source_tier: "AGENT_INFERENCE",
+    publisher: "AlmiVisibility (drafted, not approved)",
+    retrieved_at: r.drafted_at,
+  })),
+  ...facts.filter((f) => f.verificationState === "VERIFIED").map(sourceRecordFromFact),
+];
+const sourceTiers = { ranked: rankSources(sourcesIn), census: tierCensus(sourcesIn) };
+
+const ledgerEntries = createCostLedger(`${REPO}runs/cost/ledger.jsonl`).readAll();
+const ledgerView = { lines: ledgerEntries.map(formatLedgerLine), failures: coverageFailures(ledgerEntries) };
+
 const generatedAt = new Date().toISOString();
-const html = renderPage({ crawlRecords, evidenceRecords, facts, generatedAt });
+const html = renderPage({ crawlRecords, evidenceRecords, facts, generatedAt, chainWalk, sourceTiers, ledger: ledgerView });
 
 if (!permission.mayWrite) {
   console.log(`[dry-run] would have written ${out}  (${(Buffer.byteLength(html, "utf8") / 1024).toFixed(1)} KiB) — add --confirm`);

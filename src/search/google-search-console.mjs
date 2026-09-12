@@ -29,6 +29,7 @@ import { createSign } from "node:crypto";
 
 import { costRecord, propertyRecord, assertProviderShape } from "./provider.mjs";
 import { drainPages } from "./paginate.mjs";
+import { createCostGovernor } from "../cost/governor.mjs";
 
 /** 🔴 READ-ONLY. Least privilege. There is no setter for this. */
 const SCOPE = "https://www.googleapis.com/auth/webmasters.readonly";
@@ -99,7 +100,15 @@ export function propertyCovers(propertyId, hostname) {
   }
 }
 
-export function createGoogleSearchConsoleProvider({ keyFilePath, fetchImpl = fetch, now = () => new Date() } = {}) {
+export function createGoogleSearchConsoleProvider({
+  keyFilePath,
+  fetchImpl = fetch,
+  now = () => new Date(),
+  // 🔴 ITEM 45 — every call this adapter issues is charged to the run's
+  // governor BEFORE it is issued. The default bounds a run at
+  // DEFAULT_MAX_API_CALLS_PER_RUN calls and DEFAULT_MAX_WALL_CLOCK_MS.
+  governor = createCostGovernor({ label: "google-search-console ingest run" }),
+} = {}) {
   const path = keyFilePath ?? process.env.GSC_SERVICE_ACCOUNT_KEY_FILE;
   if (!path) {
     throw new Error(
@@ -115,6 +124,7 @@ export function createGoogleSearchConsoleProvider({ keyFilePath, fetchImpl = fet
     if (!tokenPromise) {
       tokenPromise = (async () => {
         const key = JSON.parse(await readFile(path, "utf8"));
+        governor.charge();
         apiCalls += 1;
         return mintToken(key, fetchImpl);
       })();
@@ -124,6 +134,7 @@ export function createGoogleSearchConsoleProvider({ keyFilePath, fetchImpl = fet
 
   async function authed(url, init = {}) {
     const t = await token();
+    governor.charge();
     apiCalls += 1;
     return fetchImpl(url, {
       ...init,
@@ -131,10 +142,16 @@ export function createGoogleSearchConsoleProvider({ keyFilePath, fetchImpl = fet
     });
   }
 
-  function cost(basisSuffix = "") {
+  /**
+   * 🔴 `pullCalls` is what THIS pull issued; `apiCalls` (the closure counter)
+   * is the whole run. They were one field until 12 September 2026, and the
+   * per-pull record carried the run's total under the per-pull name.
+   */
+  function cost(pullCalls, basisSuffix = "") {
     return costRecord({
       provider: PROVIDER_ID,
-      apiCalls,
+      apiCalls: pullCalls,
+      apiCallsCumulative: apiCalls,
       billableUnits: 0,
       currency: "USD",
       amount: 0,
@@ -171,12 +188,15 @@ export function createGoogleSearchConsoleProvider({ keyFilePath, fetchImpl = fet
       const observedAt = now().toISOString();
       const url = `${API_ROOT}/sites/${encodeURIComponent(propertyId)}/searchAnalytics/query`;
       let lastStatus = null;
+      const callsBefore = apiCalls;
 
       const fetchPage = async ({ startRow, rowLimit }) => {
+        const bearer = await token();
+        governor.charge();
         const res = await fetchImpl(url, {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${await token()}`,
+            Authorization: `Bearer ${bearer}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
@@ -215,7 +235,10 @@ export function createGoogleSearchConsoleProvider({ keyFilePath, fetchImpl = fet
         // report the last day WE happened to receive, not the last day Google
         // holds — and GSC lags by two to three days.
         latestDateWithData: null,
+        // Calls THIS pull issued: its requests, plus the token exchange if this
+        // was the pull that minted it. Counted from the counter, not assumed.
         cost: cost(
+          apiCalls - callsBefore,
           drained.truncationReason === "API_ERROR" ? "; call count includes the failed request" : "",
         ),
         observedAt,

@@ -233,13 +233,15 @@ test("🔴 RED: TESTABLE-NOW without a named test is REFUSED", () => {
 /* 🔴 AND ITEM 14 LEFT FAILED — fixed, re-run, passed: VERIFIED-PASS 3 → 4,
  * FAILED 1 → 0. FAILED at zero is not a column that vanished; it is a known
  * defeat that was repaired, and the move records the route it took. */
-test("the seven-state tally is 3 / 16 / 0 / 4 / 0 / 7 / 28", () => {
+/* 🔴 AND ITEMS 45 AND 49 WERE RUN: 49 passed (VERIFIED-PASS 4 → 5) and 45
+ * FAILED (FAILED 0 → 1). BUILT-NOT-PROVED 16 → 14. */
+test("the seven-state tally is 3 / 14 / 0 / 5 / 1 / 7 / 28", () => {
   assert.deepEqual(tally(classify()), {
     "NOT-STARTED": 3,
-    "BUILT-NOT-PROVED": 16,
+    "BUILT-NOT-PROVED": 14,
     "TESTABLE-NOW": 0,
-    "VERIFIED-PASS": 4,
-    FAILED: 0,
+    "VERIFIED-PASS": 5,
+    FAILED: 1,
     "BLOCKED-UNKNOWN": 7,
     DEFERRED: 28,
   });
@@ -280,14 +282,14 @@ test("every state used is one of the seven, and every row is classified", () => 
  * passed and not failed: every dimension a tool can supply was measured, and the
  * one no tool supplies was named. It is the only work row outside LOOKED, and
  * it is pinned so a second cannot join it quietly. */
-test("🔴 exactly FIVE rows moved on WORK against the four-state baseline — 8, 9, 14, 15 and 48 — 9 BLOCKED, the rest PASS", () => {
+test("🔴 exactly SEVEN rows moved on WORK against the four-state baseline — 8, 9, 14, 15, 45, 48, 49 — 9 BLOCKED, 45 FAILED, the rest PASS", () => {
   const rows = Object.values(classify());
   const work = rows.filter((r) => r.changeKind === "work");
-  assert.deepEqual(work.map((r) => r.id).sort((a, b) => a - b), [8, 9, 14, 15, 48]);
+  assert.deepEqual(work.map((r) => r.id).sort((a, b) => a - b), [8, 9, 14, 15, 45, 48, 49]);
   assert.deepEqual(work.filter((r) => !LOOKED.includes(r.state)).map((r) => `${r.id}:${r.state}`), ["9:BLOCKED-UNKNOWN"]);
-  assert.deepEqual(work.filter((r) => r.state === "FAILED").map((r) => r.id), []);
+  assert.deepEqual(work.filter((r) => r.state === "FAILED").map((r) => r.id), [45]);
   assert.equal(rows.filter((r) => r.changeKind === "vocabulary").length, 33);
-  assert.equal(rows.filter((r) => r.changeKind === "none").length, 20);
+  assert.equal(rows.filter((r) => r.changeKind === "none").length, 18);
 });
 
 /**
@@ -295,11 +297,15 @@ test("🔴 exactly FIVE rows moved on WORK against the four-state baseline — 8
  * it was earned on, so a fourth cannot appear without this test being edited by
  * someone who has to justify it.
  */
-test("🔴 VERIFIED-PASS is exactly 4 — items 8, 14, 15 and 48, and no others", () => {
+test("🔴 VERIFIED-PASS is exactly 5 — items 8, 14, 15, 48 and 49, and no others", () => {
   const rows = classify();
   const passed = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS").map((r) => r.id).sort((a, b) => a - b);
-  assert.deepEqual(passed, [8, 14, 15, 48]);
-  assert.equal(tally(rows)["VERIFIED-PASS"], 4);
+  assert.deepEqual(passed, [8, 14, 15, 48, 49]);
+  assert.equal(tally(rows)["VERIFIED-PASS"], 5);
+  // 🔴 Item 45 did NOT tick: its ledger and hard stop hold, and its FAILURE
+  // condition is met by costs that were measurable and never recorded.
+  assert.equal(rows[45].state, "FAILED");
+  assert.match(rows[45].failureMet, /reads UNKNOWN when it was measurable/);
   // 🔴 Item 14 ticked by leaving FAILED the lawful way: the cause fixed, the
   // test re-run and passed. The FAILED verdict is kept on the row, not erased.
   assert.match(rows[14].why, /LEFT FAILED BY RULE 1's FIRST ROUTE/);

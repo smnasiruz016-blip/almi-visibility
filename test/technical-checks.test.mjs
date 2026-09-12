@@ -382,8 +382,20 @@ test("🔴 REAL: no noindex finding claims a DISAGREEMENT any more", { skip: !ex
   assert.equal(ni.filter((x) => x.summary.includes("DISAGREE")).length, 0, "the false-positive disagreement is back");
 });
 
-test("🔴 REAL: every finding is FAIL or UNKNOWN with evidence, never PASS", { skip: !existsSync(TECH) }, () => {
+/**
+ * 🔴 SINCE 12 SEPTEMBER 2026 THIS STORE HOLDS A SECOND RECORD TYPE, AND THE TEST
+ * NAMES IT RATHER THAN SKIPPING IT. An issue leaves OPEN by an
+ * `issue_state_change` record (item 49), which carries no verdict. The verdict
+ * law still applies to every ISSUE; anything that is not an issue must be a
+ * state change with evidence — so a third, unexpected record type still fails.
+ */
+test("🔴 REAL: every finding is FAIL or UNKNOWN with evidence, never PASS — and every other record is a state change with evidence", { skip: !existsSync(TECH) }, () => {
   for (const r of createJsonlStore(TECH).readAll()) {
+    if (r.record_type === "issue_state_change") {
+      assert.ok(r.evidence?.length > 0, "a state change with no evidence");
+      continue;
+    }
+    assert.equal(r.record_type, "issue", `an unexpected record type in the findings store: ${r.record_type}`);
     assert.ok(["FAIL", "UNKNOWN"].includes(r.verdict));
     assert.ok(r.evidence?.length > 0);
   }

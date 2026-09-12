@@ -1,0 +1,156 @@
+/**
+ * THE FOUR-PART PASS BOUNDARY FOR EVERY ONE OF THE 58 FEATURES.
+ *
+ * ── 🔴 WHY THIS PARSES THE FROZEN SOURCE INSTEAD OF RESTATING IT ────────────
+ *
+ * The owner's ruling requires each row to carry its boundary VERBATIM — not
+ * summarised, not paraphrased, copied. The obvious implementation is to type
+ * all 58 × 4 parts into a data file. That would be 232 opportunities to
+ * paraphrase, and every one of them would look fine in review.
+ *
+ * So nothing is retyped. The boundaries are READ OUT of
+ * `PASS_BOUNDARIES_SOURCE.md`, whose body is sha256-verified against the
+ * owner's file. "Verbatim" is then a property of the mechanism rather than a
+ * promise about my typing, and the hash is what enforces it.
+ *
+ * ── THE THREE SHAPES THE DOCUMENT USES ──────────────────────────────────────
+ *
+ *   1. most items    — four `- **INPUT/EXPECTED/FAILURE/EVIDENCE**` bullets
+ *                      in §6, sometimes plus NOTE / BLOCKER TODAY / RULE.
+ *   2. `— see §4`    — a split item whose halves are ruled in §4 as a table.
+ *   3. `— see §5`    — items 53 and 56, whose four parts are a table in §5.
+ *
+ * Item 25 is a fourth shape and it is NOT normalised away: it is split inline
+ * in §6 with `v0.1 PASS boundary` / `deferred` and **no INPUT and no EXPECTED
+ * of its own**. That gap is reported, not filled in. Inventing the two missing
+ * parts so the row looks complete is exactly what the contract forbids.
+ */
+
+import { readFileSync } from "node:fs";
+
+import { splitSource, sectionSix, verify } from "../../tools/verify-pass-boundaries-source.mjs";
+
+const SOURCE = new URL("../../PASS_BOUNDARIES_SOURCE.md", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+
+/** The four parts a VERIFIED-PASS requires. Frozen; adding a fifth is a ruling. */
+export const CONTRACT_PARTS = Object.freeze(["input", "expected", "failure", "evidence"]);
+
+const LABELS = {
+  INPUT: "input",
+  EXPECTED: "expected",
+  FAILURE: "failure",
+  EVIDENCE: "evidence",
+  NOTE: "note",
+  RULE: "rule",
+  "BLOCKER TODAY": "blockerToday",
+  "v0.1 PASS boundary": "v01PassBoundary",
+  deferred: "deferred",
+  "FAILURE (v0.1 half)": "failure",
+};
+
+const clean = (s) => s.trim().replace(/\s+/g, " ");
+
+/** Pull `- **LABEL** text` bullets out of one §6 section. */
+function bulletsOf(block) {
+  const out = {};
+  for (const m of block.matchAll(/^- \*\*([^*]+)\*\*\s*([\s\S]*?)(?=\n- \*\*|\n### |\n---|$)/gm)) {
+    const key = LABELS[m[1].trim()];
+    if (key) out[key] = clean(m[2]);
+  }
+  return out;
+}
+
+/** Pull `| **LABEL** | text |` rows out of a §4 or §5 table. */
+function tableOf(block) {
+  const out = {};
+  for (const m of block.matchAll(/^\| \*\*([^*]+)\*\* \| (.+?) \|$/gm)) {
+    const key = LABELS[m[1].trim()];
+    if (key) out[key] = clean(m[2]);
+  }
+  return out;
+}
+
+/** The §4 / §5 block for one feature id, or null. */
+function referencedBlock(body, id, heading) {
+  const at = body.indexOf(`## ${heading}`);
+  if (at === -1) return null;
+  const section = body.slice(at, body.indexOf("\n## ", at + 1) === -1 ? undefined : body.indexOf("\n## ", at + 1));
+  const h = section.search(new RegExp(`^### ${id} · `, "m"));
+  if (h === -1) return null;
+  const rest = section.slice(h + 1);
+  const next = rest.search(/^### /m);
+  return section.slice(h, next === -1 ? undefined : h + 1 + next);
+}
+
+let cached = null;
+
+/**
+ * Every feature's boundary, keyed by id.
+ *
+ * 🔴 THE HASH IS CHECKED ON LOAD. If the frozen source has been edited, these
+ * boundaries are not the owner's and nothing downstream may rely on them — so
+ * this throws rather than returning text that merely looks official.
+ */
+export function loadBoundaries() {
+  if (cached) return cached;
+
+  const check = verify(SOURCE);
+  if (!check.matches) {
+    throw new Error(
+      "PASS_BOUNDARIES_SOURCE.md does not match its recorded hash. The boundaries below would not " +
+        "be the owner's ruling, and a boundary changes only by owner ruling recorded with its date and reason.",
+    );
+  }
+
+  const text = readFileSync(SOURCE, "utf8").replace(/\r\n/g, "\n");
+  const { body } = splitSource(text);
+  const six = sectionSix(body);
+
+  const heads = [...six.matchAll(/^### (\d+) · (.+?)$/gm)];
+  const out = {};
+
+  for (let i = 0; i < heads.length; i += 1) {
+    const id = Number(heads[i][1]);
+    const headline = heads[i][2];
+    const start = heads[i].index;
+    const end = i + 1 < heads.length ? heads[i + 1].index : six.length;
+    const block = six.slice(start, end);
+
+    const klass = /— \*\*([PSD])(?: \(([^)]*)\))?\*\*/.exec(headline);
+    const parts = bulletsOf(block);
+    let via = "§6";
+
+    // `— see §4` / `— see §5`: the ruling lives in the earlier section.
+    const ref = /— see §(\d)/.exec(headline);
+    if (ref) {
+      const refBlock = referencedBlock(body, id, `${ref[1]} · `);
+      if (refBlock) {
+        Object.assign(parts, tableOf(refBlock), parts);
+        via = `§${ref[1]}`;
+      }
+    }
+
+    out[id] = {
+      id,
+      name: clean(headline.replace(/ — \*\*[PSD].*$/, "")),
+      class: klass ? klass[1] : null,
+      classNote: klass && klass[2] ? klass[2] : null,
+      via,
+      ...parts,
+      /* 🔴 Which of the four the DOCUMENT does not supply. Reported, never
+       * filled in — a row cannot be VERIFIED-PASS without all four, and the
+       * honest way to fail that test is to leave the gap visible. */
+      missingParts: CONTRACT_PARTS.filter((p) => !parts[p]),
+    };
+  }
+
+  cached = Object.freeze(out);
+  return cached;
+}
+
+/** Ids the frozen document marks deferred, in whole (`D`) or in half (`S`). */
+export function deferrableIds(boundaries = loadBoundaries()) {
+  return Object.values(boundaries)
+    .filter((b) => b.class === "D" || b.class === "S")
+    .map((b) => b.id);
+}

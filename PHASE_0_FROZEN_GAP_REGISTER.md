@@ -300,6 +300,83 @@ a verification date, and there was none.
 
 ---
 
+## OWNER RULING 6 — `PASS_BOUNDARIES_SOURCE.md`, AND WHICH DOCUMENT WINS
+
+**Ruled 12 September 2026.** Frozen verbatim as `PASS_BOUNDARIES_SOURCE.md`, body sha256
+`16c580160391eabb14a4d6754edfe18fe1def936384cf831d300640ef73d9e5c`, verified by
+`tools/verify-pass-boundaries-source.mjs` and by `test/pass-boundaries.test.mjs`.
+
+> ### PRECEDENCE
+>
+> The **KEY FEATURE CHECKLIST** states **WHAT** each feature must do.
+> **PASS BOUNDARIES** states **EXACTLY WHEN** it may be ticked.
+> Where any internal practice disagrees with either, **THEY WIN**.
+> **A boundary changes ONLY by owner ruling, recorded with its date and reason.**
+
+Its purpose is one sentence, in the owner's own words: *so that nobody can change what
+"complete" means after the fact.* Every practice this repository has invented — the laws, the
+sealed exam rule, the sabotage habit — is subordinate to these two documents. Where one of our
+own rules would produce a tick the boundary forbids, **the boundary wins and the rule is wrong**.
+
+### The four-part contract, enforced rather than remembered
+
+No row may be `VERIFIED-PASS` unless **INPUT · EXPECTED BEHAVIOUR · FAILURE CONDITION ·
+EVIDENCE** are all four answered with real evidence. This is not a review convention: it is
+`assertLawful()` in `src/checklist/classification.mjs`, it fails the build, and it is
+RED-proved by four sabotages.
+
+### 🔴 SIX BOUNDARIES THE RULING DOES NOT STATE IN FULL — A QUESTION, NOT A GAP WE FILLED
+
+§4 rules items **10, 12, 13, 14, 38** — and §6 rules item **25** — as `v0.1 PASS boundary` /
+`deferred` tables rather than in the four-part form. **All six therefore cannot reach
+`VERIFIED-PASS` as the ruling stands**, and the contract guard refuses them.
+
+They were **not** filled in. Writing the missing parts ourselves would manufacture a boundary the
+owner never ruled, which the repository would then enforce as if he had — the precise move
+Ruling 6 exists to prevent. Recorded here for him to answer.
+
+### 🔴 ONE CLASS-VERSUS-SCOPE DISAGREEMENT, AND THE RULING WON
+
+Item **8 · HEAVY / THIN / EMPTY Discipline** is class **P** — passable in v0.1 — while
+`CHECKLIST_STATUS.md` had carried it as scope **OUT / NOT STARTED**. It is the only such
+disagreement in all 58. By precedence the ruling wins, and item 8 is now `TESTABLE-NOW`.
+
+---
+
+## OWNER RULING 7 — ITEM 10's SPLIT, AND THE RENDERING TRIGGER ON ITEM 52
+
+**Decided 12 September 2026 by beta-g as technical owner**, on the owner's instruction, after
+§4 flagged that item 10's boundary names *"rendered-content evidence"* while v0.1 has no
+JavaScript rendering and every record is `RAW_HTML` by deliberate design.
+
+| | |
+|---|---|
+| **item 10, v0.1 PASSABLE half** | status · redirects · sitemap · robots/indexability · canonical · **SERVED-HTML** content and link evidence |
+| **⏭ deferred** | the **post-JavaScript DOM**, and all advanced technical SEO beyond the named classes |
+
+### 🔴 THE TRIGGER — HARD, NOT SOMEDAY
+
+> ### RENDERING MUST BE BUILT **BEFORE ITEM 52 IS ATTEMPTED**.
+>
+> **Two of the six RED classes cannot be detected without it.** Running the Case Study before
+> rendering exists would produce a FAIL that measures **our sequencing, not the engine** — and
+> **the seal breaks only once.** There is no second attempt to spend.
+
+This is why item 52 stays `BLOCKED-UNKNOWN` and not `TESTABLE-NOW`: **NOT RUN = NOT TESTED**, and
+its precondition is unmet. Whoever runs the exam must read this row first.
+
+### 🔴 AND THE DISTINCTION THAT KEEPS THE EXAM HONEST
+
+> **A RENDERER IS A CAPABILITY. A SOURCE-VERSUS-RENDER CHECK IS A DETECTOR.**
+
+The capability may be built **openly** — it is infrastructure, and nothing about a headless
+browser reveals what is in the sealed corpus. The detector that compares served HTML against the
+rendered DOM is written **under the sealed exam rule**, without opening the sealed directory,
+exactly as every detector so far. Conflating the two would either stall the renderer needlessly
+or leak the exam; they are separated here so that neither happens by accident.
+
+---
+
 ## 🔴 `LAW-POPULATION-1` — FOUR DEFECTS THAT ONLY REAL DATA COULD FIND
 
 **Every one of these lived under a green test suite.** On 12 September 2026 beta-g returned

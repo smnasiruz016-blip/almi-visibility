@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import { verify, EXPECTED_BODY_SHA256, EXPECTED_FEATURE_COUNT, splitSource } from "../tools/verify-checklist-source.mjs";
+import { STATES as SIX_STATES, classify } from "../src/checklist/classification.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const SOURCE = REPO + "KEY_FEATURE_CHECKLIST_SOURCE.md";
@@ -77,12 +78,35 @@ test("🔴 the tracker has exactly 58 item rows, numbered 1..58 with no gap and 
   assert.deepEqual(numbers, Array.from({ length: 58 }, (_, i) => i + 1));
 });
 
-test("🔴 every row carries one of the four statuses — and nothing else", () => {
+/**
+ * 🔴 THE VOCABULARY CHANGED BY OWNER RULING ON 12 SEPTEMBER 2026.
+ *
+ * This test used to assert the four symbols, and it was right to while four was
+ * the vocabulary. `PASS_BOUNDARIES_SOURCE.md` replaced them with six states, and
+ * by the recorded precedence the ruling wins over any internal practice —
+ * including this test.
+ *
+ * 🔴 AND THE STATES ARE WORDS, NOT SYMBOLS. A broken glyph in a Windows terminal
+ * becomes a wrong status, and this file is read in terminals. The assertion
+ * below fails on a symbol, which is the point.
+ */
+test("🔴 every row carries one of the SIX states, written as a word", () => {
   for (const row of statusRows().filter((r) => r.cells.length >= 8)) {
     const status = row.cells[1];
     assert.ok(
-      STATUSES.includes(status),
-      `item ${row.n} has status "${status}", which is not one of ${STATUSES.join(" ")}`,
+      SIX_STATES.includes(status),
+      `item ${row.n} has status "${status}", which is not one of ${SIX_STATES.join(" | ")}`,
+    );
+  }
+});
+
+test("🔴 the tracker's states agree with the classification module, row for row", () => {
+  const rows = classify();
+  for (const row of statusRows().filter((r) => r.cells.length >= 8)) {
+    assert.equal(
+      row.cells[1],
+      rows[row.n].state,
+      `item ${row.n}: the tracker and the classification disagree — one of them is stale`,
     );
   }
 });
@@ -127,17 +151,28 @@ test("🔴 every ☑ would have to answer §3 question 4 — and there are none 
 
 test("the headline counts match the rows they summarise", () => {
   const rows = statusRows().filter((r) => r.cells.length >= 8);
-  const tally = Object.fromEntries(STATUSES.map((s) => [s, rows.filter((r) => r.cells[1] === s).length]));
+  const tally = Object.fromEntries(SIX_STATES.map((s) => [s, rows.filter((r) => r.cells[1] === s).length]));
   const text = readFileSync(STATUS, "utf8");
   // 🔴 The headline is the number people quote. If it drifts from the table, the
   // table is right and the headline is a lie — so they are compared here.
-  for (const [symbol, count] of Object.entries(tally)) {
-    const re = new RegExp(`\\| ${symbol} \\*\\*[A-Z /]+\\*\\* \\| \\*\\*${count}\\*\\* \\|`);
-    assert.match(text, re, `the headline count for ${symbol} does not say ${count}`);
+  for (const [state, count] of Object.entries(tally)) {
+    if (count === 0) continue;
+    const re = new RegExp(`\\| \\*\\*${state}\\*\\* \\| [^|]* \\| \\*\\*${count}\\*\\* \\|`);
+    assert.match(text, re, `the headline count for ${state} does not say ${count}`);
   }
-  const out = rows.filter((r) => r.cells[2].startsWith("OUT")).length;
-  assert.ok(
-    text.includes(`${out} are \`v0.1 SCOPE = OUT\``),
-    `the headline does not say ${out} items are scope OUT`,
-  );
+});
+
+/**
+ * 🔴 DEFERRED IS NOT A TICK, AND THE HEADLINE MUST NOT LET IT READ AS ONE.
+ *
+ * 28 rows moved out of NOT-STARTED into DEFERRED without anything being built.
+ * That is the most misreadable number in the document — a reader skimming the
+ * counts sees NOT-STARTED fall from 33 to 3 and concludes thirty features got
+ * done. So the headline is REQUIRED to say otherwise, in its own words.
+ */
+test("🔴 the headline states plainly that nothing was built", () => {
+  const text = readFileSync(STATUS, "utf8");
+  assert.match(text, /THIS LEDGER DID NOT IMPROVE\. NOTHING WAS BUILT\./);
+  assert.match(text, /DEFERRED IS NOT A TICK AND NEVER COUNTS AS ONE/);
+  assert.match(text, /[Nn]ot one moved because work happened — the count is ZERO/);
 });

@@ -76,7 +76,7 @@ footer{margin-top:2rem;padding-top:1rem;border-top:2px solid var(--line);color:v
 </header>
 
 <p class="legend">Every record below carries one of: <span class="lbl lbl-OBSERVED">OBSERVED</span><span class="lbl lbl-INFERRED">INFERRED</span><span class="lbl lbl-RECOMMENDED">RECOMMENDED</span><span class="lbl lbl-UNKNOWN">UNKNOWN</span></p>
-<p class="bound">Label census across all 1070 records: OBSERVED=525 · INFERRED=499 · RECOMMENDED=0 · UNKNOWN=46</p>
+<p class="bound">Label census across all 1208 records: OBSERVED=556 · INFERRED=499 · RECOMMENDED=107 · UNKNOWN=46</p>
 
 
 <section id="reconciliation">
@@ -123,19 +123,762 @@ footer{margin-top:2rem;padding-top:1rem;border-top:2px solid var(--line);color:v
     <tr><th>crawl requests issued</th><td>394 — <strong>billable traffic on our own account</strong></td></tr>
     <tr><th>crawl cost</th><td><span class="null" title="not measured">—</span> <span class="lbl lbl-UNKNOWN">UNKNOWN</span></td></tr>
     <tr><th>cost basis</th><td class="wrap">each request may invoke a function and trigger an ISR regeneration on our own account; Gate C has never been applied to a crawler we operate (U-COST-5)</td></tr>
-    <tr><th>evidence: new measurements</th><td>12</td></tr>
+    <tr><th>evidence: new measurements</th><td>43</td></tr>
     <tr><th>evidence: re-sightings</th><td>13</td></tr>
   </tbody></table>
   <p>🔴 A repeat ingest that adds <strong>0 new</strong> and <strong>N re-sightings</strong> did real work: it
   proved the measurement had not changed. It must not read as an empty run.</p>
 </section>
-
-<section id="issues">
-  <h2>Issues — none</h2>
-  <p class="sum">There are <strong>0</strong> issues, and that is not a measurement of health.
-  <strong>No detector exists in v0.1</strong> (constraint C5): nothing has ever judged a page, so nothing
-  could have raised an issue. An empty list here means the shelf is built and nothing has been put on it.</p>
-</section>
+<section id="issues"><h2>Issues — 107</h2>
+  <table><thead><tr><th>label</th><th>id</th><th>verdict</th><th>evidence chain</th></tr></thead><tbody><tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>b915be7ebbf1b546</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>b80f51335c9d532a</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>9f8cc3b6db5cf244</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>59e2c45516990db2</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>28a99a5a465e497a</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>c8206cc88ee3e6e5</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>c970d9b1a09afb48</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>6739cdbf58d08667</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>f0d0a22efc3bc6d3</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>375811db9ff02153</code><br><code>9c92ca7dd25181b2</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>46cd2885c8b5d03c</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>f153117b2c32d7aa</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>5fe4d9022f61d59d</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>afdc8ef113ce19ca</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>d86a64162626750c</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>56be5ebfe5bd9a27</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>4091694f0f8293b3</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>93d478d07764c360</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>2e9d0520c0aafa97</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>cfc966e31016647f</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>c1b39ac2213ba846</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>70052b7820129028</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>b16d253e877981f6</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>b2e11aa6cf8835b2</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>aee971e2a87b5add</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>456e292056866049</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>5128f7987ceb2917</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>817f3b8e2748891e</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>4d459eb397fc3245</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>57601586a5bbd584</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>39394962baca5f19</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>0a07de60e51aaa2b</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>3d804907998ad7bc</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>8891c6ec9eacf906</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>dcbd92794dada3f8</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>d1b543a05c2097af</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>80e87622f4aebc60</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>87408e59c049ca51</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>9b63d479ae199c65</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>be40f939229c3ad7</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>9133d1a7ae285b61</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>c7a67e3d33f3c4a0</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>ac66cc53ac0b8789</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>87098b9540d6a878</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>4410af2b24bd0df7</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>12eb1397d2b00a90</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>77c981dd57994eee</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>a4b73b38bbe4c64f</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>ba671b3cdfcb62f0</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>6a79e431c79fe554</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>12e7584967e8d358</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>e628f186dafa0759</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>f39be6292b083cc8</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>faec0a63003efea2</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>5301574ec530a10e</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>25f97b330f3efec2</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>c6ac978d32e90c34</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>7c32b5346a361921</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>c6401b9ce317e1c3</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>d16e21aee6b6babe</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>bb77e0623672929d</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>3aca6ed28ffe247e</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>734c5708ea8b4874</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>4ef66bcc72fb9243</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>4c19e5433fc0dc9a</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>788799fa5015ba98</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>e1057d91ad0678a8</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>874f0c91c0f9fde8</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>22792a33b9485c1f</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>d1939ce4588ecfea</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>b10e0fe25ddb301b</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>a3f79a0e417955d6</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>567cf0ed974a5715</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>ba9a627a847deffc</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>d75977b1339b4621</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>37967e27520c2d47</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>f8bb0e4a2e387759</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>c40a68b096c6be10</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>6363754f85a4b9ad</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>8167e1285ea6270b</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>1df86936efbe0828</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>2451e917374c164f</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>3b99fb7f914f60e5</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>ae997050177020cb</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>9bd70f63820fdec9</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>6be7dc674a38a316</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>8460d8c7c96ad0bc</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>d89d2df888e5b2a1</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>e2baec7d7d40d368</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>7cb766efec995bb1</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>3ddd8840852acceb</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>6a5eab3a4ef95fd1</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>e53771e3b510e6eb</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>4d451edd607c8528</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>8aeafdba8ce99067</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>a71251a2869027c0</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>28f63aa395f52a35</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>6f59aa8a13ac4591</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>dd6227eb7375de77</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>da13e1ee47725e76</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>d8d1f1459402e53e</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>19e5f22d1d028ba1</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>d3a8081cfec308d7</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>1aedd9f1530ec928</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>c0b4d598778da1ef</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>29bebd4b316df575</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>55489b83672612f8</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>5183f27c1ec94597</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>124309cf503012ca</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>f0314d68b6d7ee33</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>48abed71b121f88a</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>8cef476faa6085ac</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>a1db90429a52e7aa</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>9a761431a25b62c6</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>f34677d6574fb465</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>afc999974d318c36</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>4e64d126a8825cee</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>bea678fc152fb629</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>7ef8151d47f1b715</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>178b5d8a22c3efb4</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>0b6c0c55440388d1</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>7c5b8e4029557b0b</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>f3f4cecf31a079f7</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>33dd2365011cba59</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>587d133712240118</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>efee2f736e6153a1</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>028d9ac89b5c2b07</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>50e1da6740363287</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>e2b069334aec6ca4</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>230e5a4a22e020aa</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>1668eaa724facfc0</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>dfc96d00ded27e5b</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>266f5a77071f038a</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>ac3f813ecf11c718</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>3c83484063fd8574</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>29826b3bd5993ee0</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>f01ce18f9dadbf2f</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>77085effc092b9b7</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>0b11ad5f88c34cbb</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>93ea4e6ad2948b1d</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>9e3ca848a29cdbe5</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>0cf4a630b646b8e3</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>ae5e11405b32eba8</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>6a0b871090f1fb34</code><br><code>bd4e96b4beba602f</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>90a0ddd9348ef81f</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>40a37c23779de65e</code><br><code>9c92ca7dd25181b2</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>c7c0be3e71b8c2ce</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>d77d2fa17156ff28</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>428ab5dec9af6176</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>6a21174d76c2f210</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>f502e0386cd82177</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>c9558b2b2c63978a</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>9fa28d0e34d7b7d4</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>f1cdd5094fb95a3e</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>ec42ae3966d05bc2</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>2ab3d388b8520dda</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>b16abd70811c8f19</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>5fa8a1d369ec302e</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>c9441bdfecf4ef5a</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>1e2a519b53b3ff0c</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>7b244ffe0d83a251</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>463bf5cfc4c977f1</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>b04104beef8cb683</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>a87676e7e19ce731</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>61eb6b53bb360a1f</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>bcafe8bac67bb82c</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>2cd633dc700d60c5</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>03ec3857bd081b58</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>ef3364ec1dbd94a8</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>56e2dfc8286db09f</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>b65956f639e3ecfd</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>bba766f3b349487f</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>1300898f8dc67016</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>faaeb82520d082ea</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>f101fadaede3d3b6</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>4ba4b124167d5739</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>9b37a36a703a6460</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>4d664c5d5ccb0f26</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>d0c6de31e4a8934e</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>09344465216429c0</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>278c80909d01b436</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>e5018e1b574d2782</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>f3d79add7764a6ea</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>213d882944cd4a3d</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>d0d4172567b00079</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>2e5d6c01cdd79b25</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>1cf8954bc9eb198d</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>a6b62b85e8b94706</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>c6bb89715164bb26</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>6e7c04278f754581</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>696e40ab6b4549f5</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>e8d667312cacc587</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>adc7566262dea257</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>915786cbfbdbb6d3</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>42676603d564cbf3</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>2bc4a1b60691bba1</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>cd8dc59a47b92d88</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>f01431721788197f</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>84234d50fa047616</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>73fec095819b9a25</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>5a444d2bf3f8454a</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>a7f177a3db63fadf</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>2d9a55a7bfac9cb9</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>6a148db803da3ea6</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>98be6348b2429a47</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>a8a690791ddc757b</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>4565ceea5f05b025</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>0eb7c37bba4946c6</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>c007a5d2dbd8b4f6</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>400b10f86c5487ea</code><br><code>4fb6a4c960e070b3</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>387310653b1f0b6e</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>2b2d0f9df4b3aee1</code><br><code>e45b65e7f2b659ae</code>
+        </td>
+      </tr>
+<tr>
+        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><code>5a8a6d0594950162</code></td>
+        <td>FAIL</td>
+        <td class="wrap"><code>5e4fac8b6ad708fa</code>
+        </td>
+      </tr></tbody></table></section>
 
 <section id="facts">
   <h2>Verified fact registry — 46 records</h2>
@@ -470,8 +1213,8 @@ footer{margin-top:2rem;padding-top:1rem;border-top:2px solid var(--line);color:v
 
 <section>
   <h2>Search Console evidence store</h2>
-  <p class="bound">Showing <strong>25</strong> of <strong>25</strong>
-  [bound: limit=50]</p>
+  <p class="bound">Showing <strong>50</strong> of <strong>163</strong>
+  [bound: limit=50] — <strong>TRUNCATED</strong>, this list is not the whole set</p>
   <table>
     <thead><tr><th>label</th><th>type</th><th>what</th><th>id</th><th>when</th></tr></thead>
     <tbody><tr>
@@ -648,6 +1391,181 @@ footer{margin-top:2rem;padding-top:1rem;border-top:2px solid var(--line);color:v
       <td class="wrap">gsc.searchAnalytics.query:by-page</td>
       <td><code>7232870b20c1c800</code></td>
       <td>2026-09-12T00:36:17.883Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">robots.fetch</td>
+      <td><code>bd4e96b4beba602f</code></td>
+      <td>2026-09-12T01:56:32.727Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">robots.fetch</td>
+      <td><code>4fb6a4c960e070b3</code></td>
+      <td>2026-09-12T01:56:33.055Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">robots.fetch</td>
+      <td><code>9c92ca7dd25181b2</code></td>
+      <td>2026-09-12T01:56:33.285Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><code>observation</code></td>
+      <td class="wrap">robots.fetch</td>
+      <td><code>e45b65e7f2b659ae</code></td>
+      <td>2026-09-12T01:56:33.556Z</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+      <td><code>issue</code></td>
+      <td class="wrap"></td>
+      <td><code></code></td>
+      <td><span class="null" title="not measured">—</span></td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+      <td><code>issue</code></td>
+      <td class="wrap"></td>
+      <td><code></code></td>
+      <td><span class="null" title="not measured">—</span></td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+      <td><code>issue</code></td>
+      <td class="wrap"></td>
+      <td><code></code></td>
+      <td><span class="null" title="not measured">—</span></td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+      <td><code>issue</code></td>
+      <td class="wrap"></td>
+      <td><code></code></td>
+      <td><span class="null" title="not measured">—</span></td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+      <td><code>issue</code></td>
+      <td class="wrap"></td>
+      <td><code></code></td>
+      <td><span class="null" title="not measured">—</span></td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+      <td><code>issue</code></td>
+      <td class="wrap"></td>
+      <td><code></code></td>
+      <td><span class="null" title="not measured">—</span></td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+      <td><code>issue</code></td>
+      <td class="wrap"></td>
+      <td><code></code></td>
+      <td><span class="null" title="not measured">—</span></td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+      <td><code>issue</code></td>
+      <td class="wrap"></td>
+      <td><code></code></td>
+      <td><span class="null" title="not measured">—</span></td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+      <td><code>issue</code></td>
+      <td class="wrap"></td>
+      <td><code></code></td>
+      <td><span class="null" title="not measured">—</span></td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+      <td><code>issue</code></td>
+      <td class="wrap"></td>
+      <td><code></code></td>
+      <td><span class="null" title="not measured">—</span></td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+      <td><code>issue</code></td>
+      <td class="wrap"></td>
+      <td><code></code></td>
+      <td><span class="null" title="not measured">—</span></td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+      <td><code>issue</code></td>
+      <td class="wrap"></td>
+      <td><code></code></td>
+      <td><span class="null" title="not measured">—</span></td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+      <td><code>issue</code></td>
+      <td class="wrap"></td>
+      <td><code></code></td>
+      <td><span class="null" title="not measured">—</span></td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+      <td><code>issue</code></td>
+      <td class="wrap"></td>
+      <td><code></code></td>
+      <td><span class="null" title="not measured">—</span></td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+      <td><code>issue</code></td>
+      <td class="wrap"></td>
+      <td><code></code></td>
+      <td><span class="null" title="not measured">—</span></td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+      <td><code>issue</code></td>
+      <td class="wrap"></td>
+      <td><code></code></td>
+      <td><span class="null" title="not measured">—</span></td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+      <td><code>issue</code></td>
+      <td class="wrap"></td>
+      <td><code></code></td>
+      <td><span class="null" title="not measured">—</span></td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+      <td><code>issue</code></td>
+      <td class="wrap"></td>
+      <td><code></code></td>
+      <td><span class="null" title="not measured">—</span></td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+      <td><code>issue</code></td>
+      <td class="wrap"></td>
+      <td><code></code></td>
+      <td><span class="null" title="not measured">—</span></td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+      <td><code>issue</code></td>
+      <td class="wrap"></td>
+      <td><code></code></td>
+      <td><span class="null" title="not measured">—</span></td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+      <td><code>issue</code></td>
+      <td class="wrap"></td>
+      <td><code></code></td>
+      <td><span class="null" title="not measured">—</span></td>
     </tr></tbody>
   </table>
 </section>
@@ -1012,7 +1930,7 @@ footer{margin-top:2rem;padding-top:1rem;border-top:2px solid var(--line);color:v
 </section>
 
 <footer>
-  <p>Generated 2026-09-12T01:15:57.465Z from the evidence store.</p>
+  <p>Generated 2026-09-12T02:05:13.799Z from the evidence store.</p>
   <p><strong>Read-only</strong> — this page has no action, no form and no write path of any kind.</p>
   <p>🔴 This is one report page, not a dashboard (V5.1 §62). It states what it covers and what it does not.</p>
 </footer>

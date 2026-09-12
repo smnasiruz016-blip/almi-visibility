@@ -159,6 +159,36 @@ named in `ORPHAN_ALLOWLIST` with a written reason, and **the allowlist is empty 
 
 ---
 
+## 🔴 RULE SWAP — "ZERO DETECTORS" ENDS, THE SEALED EXAM RULE REPLACES IT
+
+**12 September 2026.** Every brief up to this point carried the rule **"zero detectors"**, enforced
+by a census that counted files under `src/detectors/` and required 0.
+
+**That rule has ended, because checklist items 10, 12 and 13 ARE detectors.** Keeping it would have
+forbidden the product it was meant to protect.
+
+> ### 🔴 THE SEALED EXAM RULE
+>
+> **While detectors are being written, `case-study-01/` IS NOT OPENED.**
+>
+> A detector is derived from the checklist's own PASS meanings, from CURRENT official search
+> guidance, and from the evidence store's data model. **NEVER from the six known RED classes.**
+
+**Why this is an honest exam.** The corpus is pinned to an immutable commit (`07852f9`), so it
+cannot drift while we build. A detector written without ever looking at it, then run against it, is
+a real test of the engine. One written while looking at it is a memorised answer sheet.
+
+**Enforced mechanically, not by good intentions.** `tools/sealed-corpus-census.mjs` fails the build
+if any file under `src/audit/` so much as names a path inside the sealed directory. It is wired
+into `bin/product-boundary.mjs` and RED-proved against a fixture.
+
+⚠️ **The old census was DELETED, not left passing.** `tools/detector-census.mjs` pointed at
+`src/detectors/`; the detectors live in `src/audit/`, so it would have read 0 for ever. **A check
+that cannot fail is the pattern this project hunts**, and a retired one left in place is the
+quietest example of it.
+
+---
+
 ## `LAW-FIXTURE-1` — A TEST DOUBLE MUST BE AT LEAST AS MESSY AS PRODUCTION
 
 **Raised by PR #38, 12 September 2026.**
@@ -430,6 +460,7 @@ would have destroyed the evidence that the derivation was wrong.
 | **U8** | **Vercel plan** and its per-unit prices | `vercel teams ls` names the team, not the plan; no read-only CLI command exposes it | one read of the billing page, with a date | **owner** | when the plan changes |
 | **U10** | whether the AI-crawler block on 12 products is intended | it is a policy, not a defect | a written ruling | **owner** | — |
 | **U11** | whether AlmiPathway is meant to be live | 🔴 **PREMISE CORRECTED 11 Sep 2026 — the old text said "domain does not resolve", and that is false.** Measured: `almipathway.almiworld.com` **RESOLVES OVER IPv6 ONLY** — an AAAA record exists, there is **no A record**, and it was **not reachable over IPv4 from the measuring machine**. Registry still says `active:false`. **The row stays OPEN; only the premise changed** | a written ruling | **owner** | — |
+| **U-TRUNC-1** | **what is producing TRUNCATED URLs that Google indexes?** | 🔴 **MEASURED, NOT EXPLAINED.** Two of the five folded URLs from the 12 Sep crawl are truncated — `https://almiworld.com/det-interactive-` and `https://almiworld.com/oet-for-australian-` — and **Google reports 7 and 2 impressions on them**. Confirmed from the STORED page rows, so the truncation is **not ours**: Google is reporting them that way. Both 301 to the full page. **Not chased in this PR** | the source of the truncated links — a template, an external link, or a Search Console artefact | later phase | if more truncated URLs appear |
 | **U-CRW-IPv6** | **does the GitHub Actions runner have IPv6 egress?** | 🔴 **NOT MEASURED.** It matters because `U11`'s host is IPv6-only: if the runner has no IPv6 egress, our crawler **cannot reach that host at all** — and that is a **THIRD state**, distinct from both `FORBIDDEN` (a grant we lack) and `ZERO` (a host with no data). Collapsing it into either would be the same error the estate table exists to prevent. **Not guessed** | one dispatch of a workflow that reports the runner's own egress addressing | later phase, or **owner** | if the execution layer (`D-CRW-1`) changes |
 | **U12** | endpoint isolation for products with no local env file | no evidence on this machine, **and the answer must come from a HOST comparison, never a credential** | per-project project id | **owner** | — |
 | **U13** | whether AlmiOET's 240,328 pSEO pages are wanted at all | a product decision with a real cost attached | a ruling — *a product DECISION is not a defect* | **owner** | — |

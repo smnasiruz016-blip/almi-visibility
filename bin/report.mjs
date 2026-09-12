@@ -24,12 +24,18 @@ const arg = (n, d) => {
 };
 
 const evidencePath = arg("evidence", `${REPO}runs/evidence/evidence.jsonl`);
+const robotsPath = arg("robots", `${REPO}runs/evidence/robots.jsonl`);
+const auditPath = arg("audit", `${REPO}runs/audit/findings.jsonl`);
 const crawlDir = arg("crawl-dir", `${REPO}runs/crawl`);
 const out = arg("out", `${REPO}runs/report/index.html`);
 
 const read = (p) => (existsSync(p) ? createJsonlStore(p).readAll() : []);
 
-const evidenceRecords = read(evidencePath);
+/* 🔴 The audit findings and the robots.txt observations are part of the same
+ * evidence store as far as a reader is concerned. An issue whose evidence id
+ * lives in a file the page did not load would render as a BROKEN chain — which
+ * would be a true statement about the page and a false one about the data. */
+const evidenceRecords = [...read(evidencePath), ...read(robotsPath), ...read(auditPath)];
 
 /* Every crawl file in the directory, so a second run's records would appear
  * rather than being silently ignored because the filename changed. */

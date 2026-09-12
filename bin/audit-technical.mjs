@@ -118,7 +118,22 @@ if (doSitemaps) {
       observed_at: new Date().toISOString(), method: "sitemap.collect",
       target: { kind: "url", ref: `https://${host}/sitemap-index.xml` },
       content_sha256: sha256Hex(JSON.stringify(r.urls)),
-      value: { ...r, urls: r.urls.slice(0, 20000) },
+      /* 🔴 THE STORED LIST IS CAPPED, AND THE RECORD SAYS SO.
+       * almioet's sitemap carries 240,328 URLs; storing them all would put ~20 MB
+       * of somebody else's URL list in git. The cap is a BOUND on the stored
+       * evidence, and a later reader must not mistake `urls.length` for the real
+       * total (LAW-BOUND-1). */
+      value: {
+        ...r,
+        urls: r.urls.slice(0, 20000),
+        urlsTotal: r.urls.length,
+        urlsStored: Math.min(20000, r.urls.length),
+        storageBound: 20000,
+        storageNote:
+          r.urls.length > 20000
+            ? `only the first 20,000 of ${r.urls.length} sitemap URLs are stored; the contradiction check ran on ALL ${r.urls.length} at collection time`
+            : "all sitemap URLs are stored",
+      },
       collector: "bin/audit-technical.mjs", collector_version: "1",
     });
     sitemapStore.appendIfNew(obs);

@@ -312,6 +312,56 @@ test("PREFLIGHT — an unmeasured condition yields UNKNOWN, never a pass", () =>
 });
 
 /* ================================================================== *
+ * PART 3 — THE 16 BLOCKED AGENTS. §832: NEVER INVENT A CRAWLER.
+ * ================================================================== */
+
+test("🔴 every classified agent cites the OPERATOR'S OWN doc, or is UNKNOWN with nothing substituted", async () => {
+  const { BLOCKED_CRAWLERS, CATEGORIES, categoryCensus } = await import("../config/blocked-crawlers.mjs");
+  assert.equal(BLOCKED_CRAWLERS.length, 16, "the block list is 16 agents");
+  for (const a of BLOCKED_CRAWLERS) {
+    assert.ok(CATEGORIES.includes(a.category), `${a.agent}: category ${a.category} is not declared`);
+    if (a.tier === "OFFICIAL") {
+      assert.match(a.source, /^https:\/\//, `${a.agent}: an OFFICIAL row needs a source URL`);
+      assert.ok(a.quote && a.quote.length > 5, `${a.agent}: an OFFICIAL row needs a quote from the doc`);
+      assert.notEqual(a.operator, "UNKNOWN");
+      assert.notEqual(a.category, "UNKNOWN");
+    } else {
+      /* 🔴 The UNKNOWN row must carry NOTHING invented — no operator, no
+       * purpose, no source. §832 in one assertion. */
+      assert.equal(a.category, "UNKNOWN");
+      assert.equal(a.source, null, `${a.agent}: an UNKNOWN row must not cite a source`);
+      assert.equal(a.quote, null, `${a.agent}: an UNKNOWN row must not carry a quote`);
+      assert.match(a.purpose, /UNKNOWN/);
+    }
+  }
+  const census = categoryCensus();
+  assert.equal(Object.values(census).reduce((x, y) => x + y, 0), 16);
+  assert.equal(census.UNKNOWN, 1, "anthropic-ai has no operator documentation and must stay UNKNOWN");
+});
+
+test("🔴 the list mixes SEO tools with AI answer engines — that mixture IS the finding", async () => {
+  const { categoryCensus } = await import("../config/blocked-crawlers.mjs");
+  const c = categoryCensus();
+  assert.ok(c.SEO_BACKLINK > 0, "no SEO crawlers — the mixture claim would be empty");
+  assert.ok(c.AI_SEARCH > 0, "no AI answer engines — the mixture claim would be empty");
+});
+
+test("🔴 a FORCED FIT is flagged as OURS, never presented as the operator's claim", async () => {
+  const { BLOCKED_CRAWLERS } = await import("../config/blocked-crawlers.mjs");
+  for (const a of BLOCKED_CRAWLERS.filter((x) => x.forcedFit)) {
+    assert.match(a.remarks, /TAXONOMY GAP, not an operator claim/, `${a.agent}: a forced fit must say so`);
+  }
+});
+
+test("🔴 the classification carries NO recommendation about what to unblock", async () => {
+  const { BLOCKED_CRAWLERS } = await import("../config/blocked-crawlers.mjs");
+  const text = JSON.stringify(BLOCKED_CRAWLERS).toLowerCase();
+  for (const word of ["should unblock", "recommend", "we suggest", "ought to allow"]) {
+    assert.ok(!text.includes(word), `the table contains a recommendation: "${word}"`);
+  }
+});
+
+/* ================================================================== *
  * AGAINST THE REAL DATA.
  * ================================================================== */
 

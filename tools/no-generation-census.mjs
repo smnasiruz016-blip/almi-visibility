@@ -67,6 +67,8 @@ const pub = ["publish", "All"].join("");
 const bld = ["build", "All"].join("");
 
 const ANY_WRITE = new RegExp(`(${[w, a, mk, rm, un, ws].join("|")})`);
+/** The same pattern, shared — so the confinement check counts writes exactly as the census does. */
+export const ANY_WRITE_PATTERN = ANY_WRITE;
 const FILE_WRITE = new RegExp(`(${w}|${ws})`);
 const ESCAPES_REPO = /\.\.[\\/]almi-|C:[\\/]Projects[\\/]almi-(?!visibility)/i;
 const HTML_TARGET = /\.html|html,\s*"utf8"|\bhtml\b\s*\)/;

@@ -28,7 +28,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
-import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
+import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
 import { loadRegistry, toGateAFact } from "../src/facts/registry.mjs";
 import { claimIdsOf } from "../src/page/claim-ids.mjs";
 import { renderPage } from "../src/page/render.mjs";
@@ -36,7 +36,7 @@ import { runGateA, MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../src/gate-a/r
 import { tokensWithKind } from "../src/gate-a/text-kind.mjs";
 import { tokensOf } from "../src/gate-a/tokens.mjs";
 import { shingles, jaccard } from "../src/gate-a/overlap.mjs";
-import { fetchForMatch } from "../src/facts/quote-match.mjs";
+import { fetchForMatch } from "../src/facts/quote-match.mjs";
 
 import { productFromArgvOrExit } from "../src/product-cli.mjs";
 
@@ -52,10 +52,14 @@ import { productFromArgvOrExit } from "../src/product-cli.mjs";
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/nursing-chain.mjs --product=<id>" });
 
 const argv = process.argv.slice(2);
-const outDir = argv.find((a) => a.startsWith("--out="))?.split("=").slice(1).join("=") ?? null;
-const cacheDir = "runs/_profession-cache";
+// 🔴 Both destinations are confined to this repository before anything runs.
+// The cache path is relative to the cwd, so run from anywhere else it would
+// have landed outside — and now it is refused instead.
+const outDir = confineToRepo(argv.find((a) => a.startsWith("--out="))?.split("=").slice(1).join("=") ?? null, { label: "--out" });
+const cacheDir = confineToRepo("runs/_profession-cache", { label: "the sibling-page cache" });
 const permission = writePermission({ target: LOCAL, argv, env: process.env });
-if (outDir) announceWritePermission(permission);
+// Announced on every run, not only with --out: the sibling cache is a write too.
+announceWritePermission(permission);
 
 const line = (ch = "─") => console.log(ch.repeat(78));
 const f4 = (n) => (n === null || n === undefined ? "—" : n.toFixed(4));
@@ -77,7 +81,10 @@ console.log(`  ${trace.length} facts from ${new Set(trace.map((t) => t.subject))
 // 🔴 THE DENOMINATOR RULE. "Every sibling" means every sibling A READER CAN
 // STILL REACH — so these are fetched from what is served today, not taken from
 // this run's own output and not filtered by anything.
-mkdirSync(cacheDir, { recursive: true });
+// 🔴 UNTIL 12 SEPTEMBER 2026 THE CACHE WAS WRITTEN WITH NO FLAG. Item 14 was
+// FAILED on it. The pages are still fetched (a read, which the scope law
+// permits) and still measured; they are only KEPT with --confirm.
+if (permission.mayWrite) mkdirSync(cacheDir, { recursive: true });
 const siblings = [];
 for (const p of PRODUCT.variants) {
   if (p === "nursing") continue;
@@ -91,7 +98,8 @@ for (const p of PRODUCT.variants) {
     console.log(`  🔴 ${p}: ${res.detail}`);
     continue;
   }
-  writeFileSync(cached, res.body, "utf8");
+  if (permission.mayWrite) writeFileSync(cached, res.body, "utf8");
+  else console.log(`  [dry-run] ${p}: fetched and measured, NOT cached — add --confirm to keep it`);
   siblings.push({ id: p, html: res.body });
 }
 console.log(`\nSTEP 2 · THE PUBLISHED POPULATION`);

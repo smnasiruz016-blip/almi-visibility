@@ -641,7 +641,7 @@ would have destroyed the evidence that the derivation was wrong.
 | **U9** | worker option costs | 🔄 **measured 11 Sep**, with URLs and date — item 4 §2 |
 | **U-DB-1** | do preview and production share a database | 🔴 **yes**, architecture report §2b — *never unknown, only unread* |
 | **U-DB-2** | which Postgres provider | **Neon**, same source |
-| **U-DEP-3** | are preview deployments public | ✅ **no — 302 to SSO.** Only merges publish |
+| **U-DEP-3** | are preview deployments public | ✅ **no — 302 to SSO.** Only merges publish. 🔄 **RE-VERIFIED AND CLOSED WITH EVIDENCE, 12 Sep 2026.** *Dashboard (owner):* project `almi-visibility` (Pro) has **Vercel Authentication, "Require Log In" ON, scope Standard Protection** — which also restricts the generated `.vercel.app` URL; only a custom production domain would stay open, and there is none. *Measured (one request, status only, no content read):* PR #49's preview root answered **`HTTP 302` to `vercel.com/sso-api`**, `x-robots-tag: noindex` — **matches the dashboard.** The exposure raised in the brief never existed; *we looked and it was already protected* is now a fact, not an assumption. Deployments were then turned off for **waste**, not security: `vercel.json` `git.deploymentEnabled: false`, source `config/sources/vercel-git-configuration.mjs` (OFFICIAL, read 12 Sep 2026) |
 | **U-EST-1** | does any product run on its **own registered domain**, outside the domain property | **OWNER RULING 3, 11 Sep: NO** — every product is a subdomain of `almiworld.com`. 🔴 **Carries an expiry condition**: a future product on its own domain kills this answer that day |
 
 ## 5.2 · Open

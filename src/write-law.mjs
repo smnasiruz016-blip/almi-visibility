@@ -48,7 +48,50 @@
  * least `--confirm`, and if it can reach production it needs both.
  */
 
+import { resolve, relative, isAbsolute, sep } from "node:path";
+
 export const CONFIRM_FLAG = "--confirm";
+
+/** This repository's root, resolved from this file's own location — never from the caller's cwd. */
+export const REPO_ROOT = resolve(new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
+
+/**
+ * 🔴 CONFINE A WRITE DESTINATION TO THIS REPOSITORY — OR THROW BEFORE ANY BYTE.
+ *
+ * Ruling, 12 September 2026, beta-g as technical owner:
+ *
+ *   "My own boundary says 'writes only inside this repository.' If --out can
+ *    point anywhere, that condition is not being MET — it is merely not being
+ *    EXERCISED. AN UNEXERCISED CONSTRAINT IS NOT A CONSTRAINT."
+ *
+ * Every page writer takes at least one destination from an operator flag. This
+ * resolves it (against the cwd, exactly as the write would) and refuses any
+ * path whose relation to the repository root climbs out of it — including a
+ * different drive letter, which `path.relative` returns as an absolute path.
+ *
+ * Called where the destination is PARSED, at the top of the runner, so the
+ * refusal happens before a directory is created or a request is issued.
+ *
+ * ⚠️ Lexical, not physical: a symlink or junction INSIDE the repository that
+ * points elsewhere is not followed. Stated, not solved.
+ *
+ * @returns {string|null} the absolute path, or null when no path was given
+ */
+export function confineToRepo(path, { label = "output path", repo = REPO_ROOT, cwd = process.cwd() } = {}) {
+  if (path === null || path === undefined) return null;
+  if (typeof path !== "string" || path.trim() === "") {
+    throw new TypeError(`${label}: an empty destination is not a destination`);
+  }
+  const abs = resolve(cwd, path);
+  const rel = relative(repo, abs);
+  if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
+    throw new Error(
+      `REFUSED — ${label} ${JSON.stringify(path)} resolves to ${abs}, which is OUTSIDE this repository (${repo}). ` +
+        "Nothing was written. Every local page writer writes only inside this repository.",
+    );
+  }
+  return abs;
+}
 export const DRY_RUN_FLAG = "--dry-run";
 export const ALLOW_ENV = "ALLOW_PROD_WRITE";
 

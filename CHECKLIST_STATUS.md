@@ -23,11 +23,33 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 | **NOT-STARTED** | 33 | **3** |
 | **BUILT-NOT-PROVED** | 24 | **16** |
 | **TESTABLE-NOW** | — | **0** |
-| **VERIFIED-PASS** | 0 | **3** |
-| **FAILED** | — | **1** |
+| **VERIFIED-PASS** | 0 | **4** |
+| **FAILED** | — | **0** |
 | **BLOCKED-UNKNOWN** | 1 | **7** |
 | **DEFERRED** | — | **28** |
 | **total** | 58 | **58** |
+
+> ### 🔴 ITEM 14 LEAVES FAILED — BY RULE 1's FIRST ROUTE. 12 SEPTEMBER 2026, NIGHT.
+>
+> | state | before this change | after |
+> |---|---|---|
+> | NOT-STARTED | 3 | 3 |
+> | BUILT-NOT-PROVED | 16 | 16 |
+> | TESTABLE-NOW | 0 | 0 |
+> | VERIFIED-PASS | 3 | **4** |
+> | FAILED | 1 | **0** |
+> | BLOCKED-UNKNOWN | 7 | 7 |
+> | DEFERRED | 28 | 28 |
+>
+> **FAILED — counted and named separately: 0.** Item 14 left it by the route rule 1 names first:
+> the cause was fixed and the test was re-run and passed. It did not leave by a ruling, and it did
+> not return to BUILT-NOT-PROVED. A FAILED count of zero is not progress in itself; the repair is.
+>
+> - **moved because WORK HAPPENED:** item 14, FAILED → VERIFIED-PASS. `bin/report.mjs` and the
+>   chain runner's sibling cache now write only with `--confirm`; every one of the seven writers
+>   confines its destination to this repository and refuses a path outside it; all five parts of
+>   Amendment 2's contract re-tested and each RED-proved.
+> - **moved ONLY because a RULING changed:** none.
 
 > ### 🔴 AMENDMENT 2 — 12 SEPTEMBER 2026, NIGHT. FAILED IS NOW A STATE, AND ITEM 14 IS IN IT.
 >
@@ -57,17 +79,17 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 >   ingested and the seventh is supplied by no tool we hold. Not a tick. After it the counts are
 >   BUILT-NOT-PROVED **16** and BLOCKED-UNKNOWN **7**; the table above records Amendment 2 alone.
 
-> ### 🔴 THREE TICKS — THE FIRST THIS PROJECT HAS EVER AWARDED
+> ### 🔴 FOUR TICKS — ITEMS 8, 15 AND 48, AND NOW 14
 >
-> **Items 8, 15 and 48.** Each has all four parts of its boundary answered with real-data
+> **Items 8, 15, 48 and 14.** Each has all four parts of its boundary answered with real-data
 > evidence, and each was RED-proved by sabotage that landed in the intended test. They are the
-> only three rows in the whole ledger that **reached a pass because work happened**; item 14 is
-> the fourth row moved by work and it FAILED; the other 33 moved when the vocabulary changed and
-> are counted apart.
+> only four rows in the whole ledger that **reached a pass because work happened**; item 9 also
+> moved by work and ended BLOCKED-UNKNOWN; the other 33 moved when the vocabulary changed and are
+> counted apart.
 >
-> **Item 14 did NOT tick, and that is the other real outcome.** Sat again against Amendment 2,
-> its FAILURE condition is *met*: two write sites default to writing. It is FAILED, in its own
-> column, instead of hiding among the unproven.
+> **Item 14 did NOT tick the first time it was sat against Amendment 2**, and that result is kept
+> on the row: two write sites defaulted to writing, and it was FAILED. It ticked only after both
+> writers were fixed and the whole test was run again.
 >
 > **DEFERRED IS NOT A TICK AND NEVER COUNTS AS ONE.** A v0.1 feature cannot FAIL for lacking
 > something frozen v0.1 deliberately excludes — and cannot be given a final-product PASS either.
@@ -170,7 +192,7 @@ actually came from.
 | 11 | Existing Page Inventory | BLOCKED-UNKNOWN | IN — v0.1 CONTAINS l.974 (§8) | 495 real PageRecords from the 12 Sep run, **and the 500→495 arithmetic is now reconciled ON THE PAGE**: 5 pairs of seed URLs redirected to one final URL, each pair listed. `runs/crawl/first-real-crawl-2026-09-12.jsonl` | 2026-09-12 | Claude (repo audit) | 🔴 **"MAINTAIN" IS STILL UNTESTED** — one run only, by the terms of `D-CRW-4`, so stability across runs has never been observed. Committed PageRecords still carry empty edge lists | report view, 12 Sep 2026 |
 | 12 | Duplicate / Thin / Template Detection | BUILT-NOT-PROVED | IN — required by Case Study #1 (§60) which v0.1 CONTAINS l.974 | **Four checks, run over the real 394-page corpus**: exact-duplicate 0, thin 118, near-duplicate 5, template-dominance 2, plus 6 UNKNOWN. Shell subtraction is **defined, printed in every result, and tested against a page whose shell is larger than its body**. Median shell share 12.5%, median 468 unique body words. A test fails the build if any check emits a recommendation (item 8) | 2026-09-12 | Claude (repo audit) | **Detection only — nothing BLOCKS duplicate or thin inventory**, and the PASS meaning says "detect and block". There is no publish path to block, so the second half cannot be built or proved in v0.1 | hissa 2b, 12 Sep 2026 |
 | 13 | Cannibalization Prevention | BUILT-NOT-PROVED | PARTIAL — detection rides on the GSC ingest (v0.1 CONTAINS l.974); prevention needs a URL proposer, which v0.1 excludes | 🔴 **IT RUNS NOW.** 543 query×page rows over 314 distinct queries → **16 cannibalization findings**, each naming the query, the competing URLs and their positions. Two `/learn/` pages compete on "ielts pte score" (pos 70 and 75) — genuine content cannibalization, not corridor noise | 2026-09-12 | Claude (repo audit) | **Detection only.** The PASS meaning is "check whether an existing URL already satisfies the same intent BEFORE proposing a new URL" — **v0.1 proposes no URLs**, so the prevention half has nothing to act on and cannot be built or proved here | hissa 2c, 12 Sep 2026 |
-| 14 | No Blind Regeneration | FAILED | IN — the inventory is v0.1 CONTAINS l.974 (§8) | **Sat again against Amendment 2.** (a) 0 product-repository writes · (b) 0 publish paths · (c) 0 bulk generation · (e) rediscovered URLs fold to their EXISTING `page_id` on the real 495-page run, sabotage-proved. (d) the widened census finds **8 write sites in 7 files** (the #47 census found 6 and was blind to two), all 7 named in `config/permitted-page-writers.mjs`, reconciling exactly, RED-proved both ways | 2026-09-12 | Claude (repo audit) | 🔴 **FAILURE MET — DEFAULTS TO WRITING.** `bin/report.mjs` writes on every run with no gate; `bin/nursing-chain.mjs` writes its cache of fetched sibling pages with no flag. Also recorded, not decided: all 7 writers take their destination from an operator flag that nothing contains to this repository. One register reason is UNKNOWN. Leaves FAILED only by a re-run that passes, or an owner ruling | Amendment 2, 12 Sep 2026 |
+| 14 | No Blind Regeneration | VERIFIED-PASS | IN — the inventory is v0.1 CONTAINS l.974 (§8) | **Re-run against Amendment 2 after the fix, and PASSED.** (a) 0 product-repository writes · (b) 0 publish paths · (c) 0 bulk generation · (d) 8 write sites in 7 files, all named in `config/permitted-page-writers.mjs` and reconciling exactly; **all 8 dry-run by default**; **all 7 confine their destination** and a real writer pointed outside the repository with `--confirm` refuses and creates nothing; every reason stated · (e) rediscovered URLs fold to their EXISTING `page_id` on the real 495-page run. Each part RED-proved | 2026-09-12 | Claude (repo audit) | Was FAILED earlier the same night — `bin/report.mjs` had no gate and `bin/nursing-chain.mjs` wrote its cache with no flag; both fixed, and it left FAILED by re-run. ⚠️ Recorded, not hidden: the crawler's body write is gated by `--live` plus the owner's-green flag rather than `--confirm`. `nursing-chain.mjs` is half superseded — see `NURSING_CHAIN_SUPERSESSION.md`; removal is the owner's call | Item 14 re-run, 12 Sep 2026 night |
 | 15 | Verified Fact Supply Engine | VERIFIED-PASS | IN — v0.1 CONTAINS l.974 "Source-of-truth and provenance layer (§14)" | 🔴 **THE FACTS ARE NOW CHECKED. ALL 46, BY A NAMED PERSON, ON A NAMED DATE.** beta-g read an official source for every record and returned a verdict: **32 VERIFIED, 14 UNKNOWN** (6 contested by a second official page, 4 true-but-incomplete, 4 source unreachable). Ingested as 456 added lines with **0 deletions — the proof that no value was amended**. A third state `UNKNOWN` was added because two could not tell "checked and contradicted" from "never opened". All 32 verified rows carry a recheck date that **governs freshness** (proved on a day the old and new rules disagree) | 2026-09-12 | Claude (repo audit) | 🔴 **STILL ◐, AND NOT BECAUSE 32 ROWS CHANGED COLOUR.** §3 Q4 asks for *integrated behaviour against real evidence*, and the integration is the part that does not exist: **the engine verified nothing — it ingested a spreadsheet a human filled in by hand.** There is no re-verification loop, so when the first recheck falls due **2026-12-11 nothing runs**. And ingesting real data exposed four defects the fixtures could not (`D-FACT-1..4`), two still open. A supply *engine* must produce supply; this one received a delivery | item 15 ingest, 12 Sep 2026 |
 | 16 | Fact Conflict & Freshness | BUILT-NOT-PROVED | IN — v0.1 CONTAINS l.974 (§14) | Freshness now runs on **real ingested dates**: 32 records governed by a human-set recheck date, windows of 90 days (fees and document lists) and 180 days (requirements), earliest due **2026-12-11**. The 14 UNKNOWN records deliberately carry **no** recheck date — an expiry implies good-until-then. Conflict detection still never auto-resolves and retains both values | 2026-09-12 | Claude (repo audit) | 🔴 **THE PREVIOUS NOTE SAID "ZERO CONFLICTS EXIST". THAT IS NOW FALSE, AND WORSE THAN IT SOUNDS.** Six real conflicts exist and **`detectConflicts` returns 0 on all six** (`D-FACT-1`): it only sees two records of OURS disagreeing, and every real conflict is registry-vs-a-second-official-page we do not hold. The detector is not broken, it is **blind to the only shape we actually have** — pinned by a test with a firing control, deliberately not worked around. Freshness is real; conflict is fixture-only *and now known to be unreachable* | item 15 ingest, 12 Sep 2026 |
 | 17 | Derived Fact Provenance | BUILT-NOT-PROVED | IN — v0.1 CONTAINS l.974 (§14) | Derived facts store a **re-executable formula** (not a description) plus every input's `fact_id`; `recomputeDerived` compares stored against recomputed and reports a mismatch as a **finding, never a repair**; and a derived fact **cannot be constructed more verified than its weakest input** — sabotage-proved twice | 2026-09-12 | Claude (repo audit) | 🔴 **NOT ONE DERIVED FACT EXISTS IN THE REGISTRY — UNCHANGED BY THIS PR.** All 46 records are primary, so 0 were recomputed: nothing rose and nothing fell. **This row was re-examined and did not move**, recorded so that "touched" is not mistaken for "advanced". It also explains half of `D-FACT-4`: with 0 derived facts and 0 findings citing a fact id, the dependency walk has an **empty population**, and its zero is not a clean bill of health | item 15 ingest, 12 Sep 2026 |

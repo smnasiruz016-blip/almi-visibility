@@ -26,7 +26,7 @@
 import { readFileSync, existsSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
+import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
 import { loadRegistry, toGateAFact } from "../src/facts/registry.mjs";
 import { placeClaims } from "../src/page/claim-placement.mjs";
 import { renderPage } from "../src/page/render.mjs";
@@ -50,7 +50,7 @@ import { productFromArgvOrExit } from "../src/product-cli.mjs";
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/placement-measure.mjs --product=<id>" });
 
 const argv = process.argv.slice(2);
-const outDir = argv.find((a) => a.startsWith("--out="))?.split("=").slice(1).join("=") ?? null;
+const outDir = confineToRepo(argv.find((a) => a.startsWith("--out="))?.split("=").slice(1).join("=") ?? null, { label: "--out" });
 const permission = writePermission({ target: LOCAL, argv, env: process.env });
 if (outDir) announceWritePermission(permission);
 
@@ -61,7 +61,7 @@ const CACHE = "runs/_profession-cache";
 const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
 
 if (!existsSync(CACHE) || readdirSync(CACHE).length < 11) {
-  console.error(`\n🔴 ${CACHE} is missing or short. Run \`npm run chain\` first — this script does not fetch.`);
+  console.error(`\n🔴 ${CACHE} is missing or short. Run \`npm run chain -- --confirm\` first — this script does not fetch, and the chain keeps its cache only with --confirm.`);
   process.exit(2);
 }
 const siblings = readdirSync(CACHE)

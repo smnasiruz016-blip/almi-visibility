@@ -31,7 +31,7 @@
 
 import { readFileSync } from "node:fs";
 
-import { census } from "./no-generation-census.mjs";
+import { census, ANY_WRITE_PATTERN } from "./no-generation-census.mjs";
 import { PERMITTED_PAGE_WRITERS } from "../config/permitted-page-writers.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -87,6 +87,30 @@ export function destinationFlagIn(text) {
 }
 
 /**
+ * 🔴 (d) "WRITES ONLY INSIDE THIS REPOSITORY" — IS IT EXERCISED?
+ *
+ * A writer is confined when it calls `confineToRepo(` BEFORE its first
+ * filesystem write. Read from the source, never from the register.
+ *
+ * ⚠️ WHAT THIS CANNOT SEE: that EVERY destination a writer uses passed through
+ * the call — only that the call precedes the first write. The dynamic RED proof
+ * in `test/write-confinement.test.mjs` points a real writer outside the
+ * repository and watches it refuse; this static check is what stops a new
+ * writer arriving without the call at all.
+ */
+export function confinementOf(text) {
+  const lines = text.split(/\r?\n/);
+  const code = (l) => !/^\s*(\/\/|\*|\/\*)/.test(l) && !/^\s*import\b/.test(l);
+  const firstConfine = lines.findIndex((l) => code(l) && /\bconfineToRepo\(/.test(l));
+  const firstWrite = lines.findIndex((l) => code(l) && ANY_WRITE_PATTERN.test(l));
+  return {
+    firstConfineLine: firstConfine === -1 ? null : firstConfine + 1,
+    firstWriteLine: firstWrite === -1 ? null : firstWrite + 1,
+    confinedBeforeFirstWrite: firstConfine !== -1 && (firstWrite === -1 || firstConfine < firstWrite),
+  };
+}
+
+/**
  * @param {object} [opts]
  * @param {Array}  [opts.sources]  INJECTED `[{file, text}]` — for RED proofs, never a back door
  * @param {Array}  [opts.register] INJECTED register — for RED proofs
@@ -118,6 +142,8 @@ export function analyseWriters({ repo = REPO, sources = null, register = PERMITT
     }
   }
 
+  const unconfined = [...sitesByFile.keys()].filter((f) => !confinementOf(read(f)).confinedBeforeFirstWrite).sort();
+
   const destinationMismatch = register
     .filter((e) => sitesByFile.has(e.file) && destinationFlagIn(read(e.file)) !== e.destinationOverridable)
     .map((e) => e.file);
@@ -130,6 +156,7 @@ export function analyseWriters({ repo = REPO, sources = null, register = PERMITT
     siteMismatch,
     incomplete,
     destinationMismatch,
+    unconfined,
     sites,
     defaultsToWriting: sites.filter((s) => !s.gated),
     reconciles: undeclared.length === 0 && stale.length === 0 && siteMismatch.length === 0 && incomplete.length === 0,
@@ -159,12 +186,14 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1].rep
   console.log(`  entries missing a field: ${r.incomplete.length ? JSON.stringify(r.incomplete) : "0"}`);
   console.log(`  destination declared wrongly: ${r.destinationMismatch.length ? r.destinationMismatch.join(", ") : "0"}`);
   console.log(`  reasons stated: ${r.register.filter((e) => e.whyKnown).length} of ${r.register.length} — UNKNOWN: ${r.register.filter((e) => !e.whyKnown).map((e) => e.file).join(", ") || "none"}`);
-  console.log(`  destination chosen by an operator flag, not contained to this repository: ${r.register.filter((e) => e.destinationOverridable).length} of ${r.register.length}`);
+  console.log(`  destination chosen by an operator flag: ${r.register.filter((e) => e.destinationOverridable).length} of ${r.register.length}`);
+  console.log(`  NOT confined to this repository before the first write: ${r.unconfined.length ? r.unconfined.join(", ") : "0"}`);
 
   const hard = ["PRODUCT_REPO_WRITE", "PUBLISH", "BULK_GENERATION", "OUTSIDE_REPO_WRITE"].filter((k) => r.census.hits[k].length);
-  const failed = hard.length > 0 || !r.reconciles || r.defaultsToWriting.length > 0;
+  const failed = hard.length > 0 || !r.reconciles || r.defaultsToWriting.length > 0 || r.unconfined.length > 0;
   console.log(`\n${failed ? "🔴 item 14's FAILURE condition is MET" : "✅ item 14's FAILURE condition is not met"}` +
     (r.defaultsToWriting.length ? ` — ${r.defaultsToWriting.length} write site(s) DEFAULT TO WRITING` : "") +
+    (r.unconfined.length ? ` — ${r.unconfined.length} writer(s) NOT CONFINED to this repository` : "") +
     (hard.length ? ` — non-empty: ${hard.join(", ")}` : "") +
     (!r.reconciles ? " — the register does not reconcile" : ""));
   process.exit(failed ? 1 : 0);

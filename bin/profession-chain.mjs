@@ -28,7 +28,7 @@
 import { readFileSync, existsSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
+import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
 import { loadRegistry, toGateAFact } from "../src/facts/registry.mjs";
 import { placeClaims, isSharedAcrossVariants } from "../src/page/claim-placement.mjs";
 import { renderPage, findCopiedFacts } from "../src/page/render.mjs";
@@ -36,7 +36,7 @@ import { runGateA, MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../src/gate-a/r
 import { tokensWithKind } from "../src/gate-a/text-kind.mjs";
 import { tokensOf } from "../src/gate-a/tokens.mjs";
 import { shingles } from "../src/gate-a/overlap.mjs";
-import { uniqueWords } from "../src/gate-a/shell.mjs";
+import { uniqueWords } from "../src/gate-a/shell.mjs";
 
 import { productFromArgvOrExit } from "../src/product-cli.mjs";
 
@@ -54,7 +54,7 @@ const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/pro
 const argv = process.argv.slice(2);
 const flag = (n) => argv.find((a) => a.startsWith(`--${n}=`))?.split("=").slice(1).join("=") ?? null;
 const which = flag("page") ?? "nursing";
-const outDir = flag("out");
+const outDir = confineToRepo(flag("out"), { label: "--out" });
 
 const PAGES = { nursing: PRODUCT.pageSpecs.nursing, "speech-pathology": PRODUCT.pageSpecs["speech-pathology"] };
 const base = PAGES[which];
@@ -78,7 +78,7 @@ const { tokens, kinds } = tokensWithKind(html);
 const k = (kind) => kinds.filter((x) => x === kind).length;
 
 if (!existsSync(CACHE) || readdirSync(CACHE).length < 11) {
-  console.error(`\n🔴 ${CACHE} missing or short. Run \`npm run chain\` first — this script does not fetch.`);
+  console.error(`\n🔴 ${CACHE} missing or short. Run \`npm run chain -- --confirm\` first — this script does not fetch, and the chain keeps its cache only with --confirm.`);
   process.exit(2);
 }
 const siblings = readdirSync(CACHE)

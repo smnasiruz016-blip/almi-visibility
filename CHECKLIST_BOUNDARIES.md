@@ -26,22 +26,22 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | **NOT-STARTED** | 3 | 3 | **3** |
 | **BUILT-NOT-PROVED** | 18 | 17 | **16** |
 | **TESTABLE-NOW** | 0 | 1 | **0** |
-| **VERIFIED-PASS** | 3 | 3 | **3** |
-| **FAILED** | 0 | 0 | **1** |
+| **VERIFIED-PASS** | 3 | 3 | **4** |
+| **FAILED** | 0 | 0 | **0** |
 | **BLOCKED-UNKNOWN** | 6 | 6 | **7** |
 | **DEFERRED** | 28 | 28 | **28** |
 
-### FAILED — counted and named separately: **1**
+### FAILED — counted and named separately: **0**
 
 > 🔴 **FAILED is counted and named separately in every report.** It is never folded into another
 > count and it is **not progress**. It is also **worth more than BUILT-NOT-PROVED**: a FAILED row
 > is one whose test was run against its own boundary — it means we looked.
 
-- **item 14 · No Blind Regeneration** — FAILURE met: DEFAULTS TO WRITING — two of the eight page-write sites write with no flag at all: the owner report writer, on every run, and one chain runner's cache of the sibling pages it fetches
+- **item 14** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-12 — report.mjs and the chain runner's cache now write only with --confirm; every destination is confined to this repository and refused outside it; all five parts re-tested and each RED-proved
 
 **Rows that have been looked at (VERIFIED-PASS or FAILED): 4 of 58.**
 
-**Rows that reached VERIFIED-PASS in this PR: 0.**
+**Rows that reached VERIFIED-PASS in this PR: 1.**
 
 #### moved ONLY because a RULING changed
 
@@ -55,6 +55,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 |---|---|---|---|---|---|
 | 9 | BUILT-NOT-PROVED | BLOCKED-UNKNOWN | `node bin/gsc-ingest.mjs --property=sc-domain:almiworld.com · node bin/gsc-dimensions.mjs · test/search-dimensions.test.mjs` | 2026-09-12 | six of seven dimensions ingested from the real property, each pull exhausted and COMPLETE with its bounds; downstream outcomes is supplied by no tool this engine holds, which the NOTE makes ⚠ rather than a failure |
 | 14 | TESTABLE-NOW | FAILED | `test/permitted-writers.test.mjs` | 2026-09-12 | the re-test was run against the new contract, and its FAILURE condition 'defaults to writing' was met at two write sites |
+| 14 | FAILED | VERIFIED-PASS | `test/permitted-writers.test.mjs · test/write-confinement.test.mjs · test/no-blind-regeneration.test.mjs · node tools/permitted-writers.mjs` | 2026-09-12 | report.mjs and the chain runner's cache now write only with --confirm; every destination is confined to this repository and refused outside it; all five parts re-tested and each RED-proved |
 
 ---
 
@@ -65,8 +66,8 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | **NOT-STARTED** | 33 | **3** |
 | **BUILT-NOT-PROVED** | 24 | **16** |
 | **TESTABLE-NOW** | 0 | **0** |
-| **VERIFIED-PASS** | 0 | **3** |
-| **FAILED** | 0 | **1** |
+| **VERIFIED-PASS** | 0 | **4** |
+| **FAILED** | 0 | **0** |
 | **BLOCKED-UNKNOWN** | 1 | **7** |
 | **DEFERRED** | 0 | **28** |
 | **total** | 58 | **58** |
@@ -81,7 +82,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 |---|---|---|---|
 | 8 | HEAVY / THIN / EMPTY Discipline | NOT-STARTED | **VERIFIED-PASS** |
 | 9 | Search Console / Analytics Intelligence | BUILT-NOT-PROVED | **BLOCKED-UNKNOWN** |
-| 14 | No Blind Regeneration | BUILT-NOT-PROVED | **FAILED** |
+| 14 | No Blind Regeneration | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 15 | Verified Fact Supply Engine | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 48 | Idempotency & Retry Safety | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 
@@ -301,7 +302,7 @@ question for the owner, recorded as one.
 
 ### 14 · No Blind Regeneration
 
-**FAILED** · class `S` · ruled in `§4+A1+A2` · was BUILT-NOT-PROVED (work)
+**VERIFIED-PASS** · class `S` · ruled in `§4+A1+A2` · was BUILT-NOT-PROVED (work)
 
 | part | the owner's words |
 |---|---|
@@ -312,9 +313,9 @@ question for the owner, recorded as one.
 | **v0.1 PASS boundary** | **the absence of the generator IS the strongest safety proof.** Prove the absence, do not simulate the danger |
 | **⏭ deferred half** | an unchanged existing page rediscovered → **KEEP**; automatic recreate or overwrite forbidden |
 
-**Verdict —** 🔴 **SAT AGAIN AGAINST AMENDMENT 2, AND FAILED.** The owner's ruling returned it to TESTABLE-NOW (a RULING move); the re-test then ran (a WORK move). **(a)** 0 writes into a product repository — PASS. **(b)** 0 publish paths — PASS. **(c)** 0 bulk generation — PASS. **(d)** NOT MET: the widened census finds **8 write sites in 7 files** (the census merged in #47 found 6 and was blind to two writes whose `.html` target is named one line up); all 7 are now named in the register and reconcile exactly; but **2 sites DEFAULT TO WRITING** — the owner report writer has no gate at all, and a chain runner writes its cache of fetched sibling pages with no flag. Also not met, and recorded rather than decided: **7 of 7 writers take their destination from an operator flag and nothing contains it to this repository**; the literal-path detector finds 0 outside writes, which is all a source scan can see. **(e)** a rediscovered URL resolves to its existing page_id — PASS on the real 495-page run, sabotage-proved. One reason is UNKNOWN in the register and says so. Closing (d) is a code change to two writers and a re-run — the route out of FAILED that rule 1 names
+**Verdict —** 🔴 **LEFT FAILED BY RULE 1's FIRST ROUTE — THE CAUSE WAS FIXED AND THE TEST RE-RUN AND PASSED.** All five parts against Amendment 2's contract, the census not narrowed and the contract not softened. **(a)** 0 writes into a product repository. **(b)** 0 publish paths. **(c)** 0 bulk generation. **(d)** 8 write sites in 7 files, all 7 named in the register and reconciling exactly (both directions RED-proved); **all 8 sites dry-run by default** — the owner report writer and the chain runner's sibling cache, which #49 failed on, now write only with --confirm; **every destination confined**: all 7 call the confinement check before their first write, and a real writer pointed outside the repository with --confirm REFUSES and creates nothing; every register reason stated (the one UNKNOWN was DETERMINED, not filled in). **(e)** a rediscovered URL resolves to its existing page_id on the real 495-page run. Each part RED-proved by injection, each landing in its intended test. ⚠️ One reading recorded rather than hidden: the crawler's body write is gated by --live plus the owner's-green flag, two explicit flags, rather than --confirm
 
-**The one test that would settle it —** node --test test/permitted-writers.test.mjs · node tools/permitted-writers.mjs
+**The one test that would settle it —** node --test test/permitted-writers.test.mjs test/write-confinement.test.mjs test/no-blind-regeneration.test.mjs · node tools/permitted-writers.mjs
 
 ### 15 · Verified Fact Supply Engine
 

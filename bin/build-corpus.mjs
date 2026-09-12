@@ -32,7 +32,7 @@
  */
 import { mkdirSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
+import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
 
 const argv = process.argv.slice(2);
 const flag = (n, d = null) => {
@@ -41,7 +41,8 @@ const flag = (n, d = null) => {
 };
 
 const SITE = (flag("--site", "https://almioet.almiworld.com")).replace(/\/$/, "");
-const OUT = flag("--out");
+// 🔴 Confined before the sitemap is fetched: an outside destination is refused while nothing has happened.
+const OUT = confineToRepo(flag("--out"), { label: "--out" });
 const LEAF_SAMPLE = Number(flag("--leaf-sample", "500"));
 const SEED = Number(flag("--seed", "20260910"));
 const CONCURRENCY = Number(flag("--concurrency", "6"));

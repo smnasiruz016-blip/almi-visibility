@@ -172,12 +172,14 @@ test("the headline counts match the rows they summarise", () => {
  */
 test("🔴 the headline separates the three earned ticks from the 33 renamed rows", () => {
   const text = readFileSync(STATUS, "utf8");
-  assert.match(text, /THREE TICKS — THE FIRST THIS PROJECT HAS EVER AWARDED/);
+  assert.match(text, /FOUR TICKS — ITEMS 8, 15 AND 48, AND NOW 14/);
   assert.match(text, /DEFERRED IS NOT A TICK AND NEVER COUNTS AS ONE/);
-  assert.match(text, /only three rows in the whole ledger that \*\*reached a pass because work happened\*\*/);
+  assert.match(text, /only four rows in the whole ledger that \*\*reached a pass because work happened\*\*/);
   // 🔴 And the ledger must still say plainly that a deferral is not progress.
   assert.match(text, /The 28 DEFERRED rows are not progress and nothing was built for any of them/);
-  assert.match(text, /Item 14 did NOT tick/);
+  // 🔴 The first FAILED result is kept, not erased by the later pass.
+  assert.match(text, /Item 14 did NOT tick the first time/);
+  assert.match(text, /left it by the route rule 1 names first/);
 });
 
 /**

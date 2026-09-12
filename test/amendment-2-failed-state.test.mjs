@@ -74,10 +74,13 @@ test("the vocabulary is SEVEN states, FAILED among them", () => {
   assert.deepEqual([...STATES], ["NOT-STARTED", "BUILT-NOT-PROVED", "TESTABLE-NOW", "VERIFIED-PASS", "FAILED", "BLOCKED-UNKNOWN", "DEFERRED"]);
 });
 
-test("🔴 RULE 3 — FAILED is its own count in the tally, never folded into another", () => {
+test("🔴 RULE 3 — FAILED is its own count in the tally, never folded into another — including at ZERO", () => {
   const t = tally(classify());
   assert.deepEqual(Object.keys(t), [...STATES], "the tally has a bucket that is not a state, or lacks one");
-  assert.equal(t.FAILED, 1);
+  // 0 since item 14 was fixed and re-run. The bucket stays: a column that
+  // disappears when it empties is a column nobody can watch refill.
+  assert.equal(t.FAILED, 0);
+  assert.ok("FAILED" in t);
   assert.equal(Object.values(t).reduce((a, b) => a + b, 0), 58);
 });
 
@@ -88,18 +91,24 @@ test("🔴 RULE 4 — FAILED counts as LOOKED; BUILT-NOT-PROVED does not", () =>
 });
 
 test("🔴 a FAILED row must name the test that ran AND the failure condition that was met", () => {
+  // No real row is FAILED today, so the guard is driven with one — a guard with
+  // no vehicle left to fire on would quietly become decoration.
   const rows = classify();
-  rows[14] = { ...rows[14], failureMet: "" };
+  rows[14] = { ...rows[14], state: "FAILED", test: "t", failureMet: "" };
   const errors = assertLawful(rows);
   assert.equal(errors.length, 1);
   assert.match(errors[0], /is FAILED but does not name the FAILURE condition that was met/);
 
   const noTest = classify();
-  noTest[14] = { ...noTest[14], test: undefined };
+  noTest[14] = { ...noTest[14], state: "FAILED", test: undefined, failureMet: "x" };
   assert.match(assertLawful(noTest)[0], /is FAILED but does not name the test that was run/);
+
+  const complete = classify();
+  complete[14] = { ...complete[14], state: "FAILED", test: "t", failureMet: "x" };
+  assert.deepEqual(assertLawful(complete), [], "CONTROL: a FAILED row with both is lawful");
 });
 
-test("CONTROL: the real FAILED row is lawful, and so is the whole ledger", () => {
+test("CONTROL: the whole real ledger is lawful, transitions included", () => {
   assert.deepEqual(assertLawful(classify()), []);
   assert.deepEqual(assertTransitions(classify()), []);
 });
@@ -181,10 +190,16 @@ test("🔴 RED: a 'ruling' move that is not an owner ruling is refused — the t
  * 4D — THE TWO CHANGE LISTS, KEPT APART.
  * ================================================================== */
 
-test("🔴 moves since Amendment 2: ONE by ruling (14 → TESTABLE-NOW); TWO by work (9 → BLOCKED-UNKNOWN, 14 → FAILED)", () => {
+test("🔴 moves since Amendment 2: ONE by ruling (14 → TESTABLE-NOW); THREE by work (9 → BLOCKED-UNKNOWN, 14 → FAILED, 14 FAILED → VERIFIED-PASS)", () => {
   const all = Object.entries(MOVES_AMENDMENT_2).flatMap(([id, chain]) => chain.map((s) => ({ id: Number(id), ...s })));
   assert.deepEqual(all.filter((s) => s.kind === "ruling").map((s) => `${s.id}:${s.from}→${s.to}`), ["14:BUILT-NOT-PROVED→TESTABLE-NOW"]);
-  assert.deepEqual(all.filter((s) => s.kind === "work").map((s) => `${s.id}:${s.from}→${s.to}`), ["9:BUILT-NOT-PROVED→BLOCKED-UNKNOWN", "14:TESTABLE-NOW→FAILED"]);
+  assert.deepEqual(all.filter((s) => s.kind === "work").map((s) => `${s.id}:${s.from}→${s.to}`), [
+    "9:BUILT-NOT-PROVED→BLOCKED-UNKNOWN", "14:TESTABLE-NOW→FAILED", "14:FAILED→VERIFIED-PASS",
+  ]);
+  // 🔴 The way out of FAILED is rule 1's FIRST route, naming its test and date.
+  const out = all.find((s) => s.from === "FAILED");
+  assert.equal(out.route, "RETEST_PASSED");
+  assert.ok(out.test && out.date);
 });
 
 test("before Amendment 2 the ledger was 3 / 18 / 0 / 3 / 0 / 6 / 28", () => {
@@ -195,8 +210,8 @@ test("before Amendment 2 the ledger was 3 / 18 / 0 / 3 / 0 / 6 / 28", () => {
   });
 });
 
-test("🔴 ZERO rows reached VERIFIED-PASS in this PR", () => {
+test("🔴 since Amendment 2, exactly ONE row reached VERIFIED-PASS — item 14, and only by leaving FAILED", () => {
   const rows = classify();
   const newPasses = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS" && BEFORE_AMENDMENT_2[r.id] !== "VERIFIED-PASS");
-  assert.deepEqual(newPasses.map((r) => r.id), []);
+  assert.deepEqual(newPasses.map((r) => r.id), [14]);
 });

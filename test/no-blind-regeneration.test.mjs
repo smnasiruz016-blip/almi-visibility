@@ -68,6 +68,33 @@ test("🔴 CONTROL: the detectors FIRE on planted paths — an empty result mean
   assert.equal(planted.hits.PAGE_WRITE.length, 3, "the page-write detector is blind");
 });
 
+/**
+ * 🔴 THE CENSUS MUST NOT REPORT ITSELF, AND IT DID.
+ *
+ * It scans `tools/` and it lives in `tools/`. With its detectors written as
+ * plain regex literals, its own source named every token it hunts — so once the
+ * file was committed and `git ls-files` began listing it, the census found
+ * itself: 7 page-writing paths instead of 6, plus a bulk-generation hit that
+ * did not exist.
+ *
+ * 🔴 AND IT WAS GREEN ON THE BRANCH. The file was still untracked when the
+ * suite last ran there, so it was not in the scanned population at all. The
+ * suite was green for a reason that stopped being true the moment it was
+ * staged — which is why a merge gets its own full run.
+ *
+ * Fixed the way `sealed-corpus-census.mjs` already fixes it: the tokens are
+ * built from parts, never spelled out. No exemption and no self-exclusion —
+ * the census still scans its own file along with everything else.
+ */
+test("🔴 the census does not report ITSELF — the law names nothing it hunts", () => {
+  const r = census();
+  assert.ok(r.files.includes("tools/no-generation-census.mjs"), "the census is not scanning itself — it must");
+  for (const [key, hits] of Object.entries(r.hits)) {
+    const self = hits.filter((h) => h.file === "tools/no-generation-census.mjs");
+    assert.deepEqual(self, [], `${key} matched the census's own source — its detectors are spelling out their tokens`);
+  }
+});
+
 test("🔴 CONTROL: a COMMENT describing a generator is not a generator", () => {
   const planted = census({
     sources: [{ file: "planted/comment.mjs", text: '// writeFileSync("C:/Projects/almi-oet/x.html", h);\n * generateAll(pages)\n' }],

@@ -231,13 +231,42 @@ test("A3: both honest combinations construct", () => {
   assert.equal(v.checks.factCheckedOn, "2026-09-12");
 });
 
-test("🔴 A3: every record on disk declares UNVERIFIED — restated honestly, not backfilled", async () => {
+/**
+ * 🔴 THIS TEST USED TO ASSERT THAT EVERY RECORD WAS UNVERIFIED. It was right to,
+ * for as long as nobody had checked one: the failure it guarded was a record
+ * quietly claiming a standing nobody had earned for it.
+ *
+ * On 12 September 2026 beta-g checked all 46 against official sources, and the
+ * verdicts were ingested. So the SNAPSHOT it pinned is now false while the
+ * INVARIANT it existed for is unchanged, and the two must not be confused —
+ * relaxing the assertion to "any state is fine" would retire the guard along
+ * with the snapshot.
+ *
+ * What earns a standing is therefore asserted directly: a named person, on a
+ * named date. A machine may not fact-check, and an absent checker may not.
+ */
+test("🔴 A3: no record on disk claims a standing it has not earned", async () => {
   const { loadRegistry } = await import("../src/facts/registry.mjs");
   const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
   const { records } = await loadRegistry(REPO + "products/almi-oet/facts", "almi-oet");
   assert.ok(records.length >= 30, `only ${records.length} records — this law would be weak`);
   for (const r of records) {
-    assert.equal(r.verificationState, "UNVERIFIED", `${r.id} claims a standing it has not earned`);
-    assert.equal(r.checks.factCheckedOn, null, `${r.id} carries a fact-check date that was never taken`);
+    assert.ok(
+      ["UNVERIFIED", "VERIFIED", "UNKNOWN"].includes(r.verificationState),
+      `${r.id}: undeclared standing`,
+    );
+    if (r.verificationState === "UNVERIFIED") {
+      assert.equal(r.checks.factCheckedOn, null, `${r.id} carries a fact-check date beside UNVERIFIED`);
+      continue;
+    }
+    // VERIFIED or UNKNOWN: both are records of a check that RAN, so both owe a
+    // date and a checker. UNKNOWN owes them just as much as VERIFIED — that is
+    // what separates "checked and unresolved" from "never opened".
+    assert.ok(r.checks.factCheckedOn, `${r.id}: ${r.verificationState} with no check date`);
+    assert.match(
+      r.checks.factCheckedBy ?? "",
+      /^human:/,
+      `${r.id}: a fact check must name a PERSON — a tool cannot read a source and judge a claim`,
+    );
   }
 });

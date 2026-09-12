@@ -79,12 +79,30 @@ const membership = (country, listName, valueText, span) =>
   fact({
     ...common,
     id: `uk-code-of-practice.recruitment-list-membership.country=${country}`,
+    verification: INGESTED_VERIFICATION[`uk-code-of-practice.recruitment-list-membership.country=${country}`],
     claim: { subject: "uk-code-of-practice", predicate: "recruitment-list-membership", qualifier: `country=${country}` },
     scope: "origin",
     locale: { destination: "uk", origin: country },
     value: { value: valueText, valueType: "enum", unit: "red | amber | not-listed" },
     evidence: { quotedSpan: span, quoteLocation: `${listName} list` },
   });
+
+/**
+ * 🔴 VERIFICATION VERDICTS FOR THE RECORDS BUILT BY THE FACTORY ABOVE.
+ *
+ * These records take their id as a parameter, so they cannot carry a literal
+ * `verification:` block the way the hand-written ones do. The verdicts are
+ * keyed by fact_id here and read by the factory — one table, one lookup, and
+ * no existing line rewritten.
+ *
+ * Ingested 12 September 2026 from FACT_VERIFICATION_2026-09-12.csv.
+ * 🔴 NO VALUE WAS AMENDED. Only the verification standing was ingested.
+ */
+const INGESTED_VERIFICATION = {
+  "uk-code-of-practice.recruitment-list-membership.country=nigeria": {"state":"VERIFIED","verdict":"VERIFIED","checkedOn":"2026-09-12","checkedBy":"human:beta-g (Cowork)","sourceUrl":"https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england","sourceTier":"OFFICIAL","recheckAfter":"2026-12-11","recheckWindowDays":90,"note":"Nigeria appears on the red list."},
+  "uk-code-of-practice.recruitment-list-membership.country=pakistan": {"state":"VERIFIED","verdict":"VERIFIED","checkedOn":"2026-09-12","checkedBy":"human:beta-g (Cowork)","sourceUrl":"https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england","sourceTier":"OFFICIAL","recheckAfter":"2026-12-11","recheckWindowDays":90,"note":"Pakistan appears on the red list."},
+  "uk-code-of-practice.recruitment-list-membership.country=kenya": {"state":"VERIFIED","verdict":"VERIFIED","checkedOn":"2026-09-12","checkedBy":"human:beta-g (Cowork)","sourceUrl":"https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england","sourceTier":"OFFICIAL","recheckAfter":"2026-12-11","recheckWindowDays":90,"note":"Kenya is on the amber list, not the red list."},
+};
 
 export default [
   membership("nigeria", "red", "Nigeria is on the RED list: UK health and care employers should not actively recruit from it.", RED_SPAN),
@@ -106,6 +124,16 @@ export default [
   fact({
     ...common,
     id: "uk-code-of-practice.recruitment-list-membership.country=india",
+    verification: {
+      state: "UNKNOWN",
+      verdict: "QUALIFIED",
+      reason: "INCOMPLETE",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england",
+      sourceTier: "OFFICIAL",
+      note: "TRUE AS FAR AS IT GOES, BUT INCOMPLETE. India is indeed on neither the red nor the amber list. The source also shows India as covered by a government-to-government agreement, which our fact does not mention. 'Permitted' without naming the agreement is a thinner truth than the source supports.",
+    },
     claim: { subject: "uk-code-of-practice", predicate: "recruitment-list-membership", qualifier: "country=india" },
     scope: "origin",
     locale: { destination: "uk", origin: "india" },
@@ -120,6 +148,16 @@ export default [
   fact({
     ...common,
     id: "uk-code-of-practice.recruitment-list-membership.country=philippines",
+    verification: {
+      state: "UNKNOWN",
+      verdict: "QUALIFIED",
+      reason: "INCOMPLETE",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england",
+      sourceTier: "OFFICIAL",
+      note: "Same shape as India: on neither list, but covered by a government-to-government agreement our fact omits.",
+    },
     claim: { subject: "uk-code-of-practice", predicate: "recruitment-list-membership", qualifier: "country=philippines" },
     scope: "origin",
     locale: { destination: "uk", origin: "philippines" },
@@ -135,6 +173,17 @@ export default [
   fact({
     ...common,
     id: "uk-code-of-practice.red-list-rule",
+    verification: {
+      state: "VERIFIED",
+      verdict: "VERIFIED",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england",
+      sourceTier: "OFFICIAL",
+      recheckAfter: "2026-12-11",
+      recheckWindowDays: 90,
+      note: "'No active recruitment permitted.'",
+    },
     claim: { subject: "uk-code-of-practice", predicate: "red-list-rule", qualifier: null },
     scope: "shared",
     value: {
@@ -148,6 +197,17 @@ export default [
   fact({
     ...common,
     id: "uk-code-of-practice.amber-list-rule",
+    verification: {
+      state: "VERIFIED",
+      verdict: "VERIFIED",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england",
+      sourceTier: "OFFICIAL",
+      recheckAfter: "2026-12-11",
+      recheckWindowDays: 90,
+      note: "'International recruitment is only permitted in compliance with the terms of the government-to-government agreement.'",
+    },
     claim: { subject: "uk-code-of-practice", predicate: "amber-list-rule", qualifier: null },
     scope: "shared",
     value: {
@@ -161,6 +221,17 @@ export default [
   fact({
     ...common,
     id: "uk-code-of-practice.amber-list-countries",
+    verification: {
+      state: "VERIFIED",
+      verdict: "VERIFIED",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england",
+      sourceTier: "OFFICIAL",
+      recheckAfter: "2026-12-11",
+      recheckWindowDays: 90,
+      note: "Amber list is Kenya and Nepal.",
+    },
     claim: { subject: "uk-code-of-practice", predicate: "amber-list-countries", qualifier: null },
     scope: "shared",
     value: { value: "Kenya, Nepal", valueType: "list", unit: "country" },
@@ -169,6 +240,16 @@ export default [
   fact({
     ...common,
     id: "uk-code-of-practice.direct-application-exception",
+    verification: {
+      state: "UNKNOWN",
+      verdict: "QUALIFIED",
+      reason: "INCOMPLETE",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england",
+      sourceTier: "OFFICIAL",
+      note: "🔴 OUR FACT IS NARROWER THAN THE SOURCE. We say 'red list'. The Code says employers may consider direct applications from individuals resident in countries on 'the code red AND AMBER list'. Amber is missing from our wording.",
+    },
     claim: { subject: "uk-code-of-practice", predicate: "direct-application-exception", qualifier: null },
     scope: "shared",
     value: {
@@ -203,6 +284,17 @@ export default [
   fact({
     ...common,
     id: "uk-code-of-practice.red-list-country-count",
+    verification: {
+      state: "VERIFIED",
+      verdict: "VERIFIED",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england",
+      sourceTier: "OFFICIAL",
+      recheckAfter: "2026-12-11",
+      recheckWindowDays: 90,
+      note: "Annex A lists 54 red list countries.",
+    },
     claim: { subject: "uk-code-of-practice", predicate: "red-list-country-count", qualifier: null },
     scope: "shared",
     value: { value: 54, valueType: "count", unit: "country" },

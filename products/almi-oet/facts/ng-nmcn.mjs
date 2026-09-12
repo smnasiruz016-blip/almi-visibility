@@ -76,15 +76,45 @@ const fee = (id, qualifier, amount, ownWords) =>
   fact({
     ...common,
     id,
+    verification: INGESTED_VERIFICATION[id],
     claim: { subject: "ng-nmcn", predicate: "verification-fee", qualifier },
     value: { value: amount, valueType: "money", unit: "NGN" },
     evidence: { ownWords },
   });
 
+/**
+ * 🔴 VERIFICATION VERDICTS FOR THE RECORDS BUILT BY THE FACTORY ABOVE.
+ *
+ * These records take their id as a parameter, so they cannot carry a literal
+ * `verification:` block the way the hand-written ones do. The verdicts are
+ * keyed by fact_id here and read by the factory — one table, one lookup, and
+ * no existing line rewritten.
+ *
+ * Ingested 12 September 2026 from FACT_VERIFICATION_2026-09-12.csv.
+ * 🔴 NO VALUE WAS AMENDED. Only the verification standing was ingested.
+ */
+const INGESTED_VERIFICATION = {
+  "ng-nmcn.verification-fee.purpose=certificate-verification": {"state":"UNKNOWN","verdict":"CONFLICT","reason":"CONFLICT","checkedOn":"2026-09-12","checkedBy":"human:beta-g (Cowork)","sourceUrl":"https://www.nmcn.gov.ng/verify.html","sourceTier":"OFFICIAL","note":"N66,875 on verify.html — matches our value EXACTLY.  🔴 BUT THE REGULATOR CONTRADICTS ITSELF. A second official NMCN page, https://nmcn.gov.ng/verification-of-certificates/, states ONE COMBINED FEE of N68,875 for verification/authentication/good standing. Two pages of the same regulator disagree. Per the frozen conflict rule this is NOT auto-resolved: the fact becomes UNKNOWN, both values are retained, and it is marked for review."},
+  "ng-nmcn.verification-fee.purpose=authentication": {"state":"UNKNOWN","verdict":"CONFLICT","reason":"CONFLICT","checkedOn":"2026-09-12","checkedBy":"human:beta-g (Cowork)","sourceUrl":"https://www.nmcn.gov.ng/verify.html","sourceTier":"OFFICIAL","note":"N8,750 on verify.html — matches our value EXACTLY.  🔴 BUT THE REGULATOR CONTRADICTS ITSELF. A second official NMCN page, https://nmcn.gov.ng/verification-of-certificates/, states ONE COMBINED FEE of N68,875 for verification/authentication/good standing. Two pages of the same regulator disagree. Per the frozen conflict rule this is NOT auto-resolved: the fact becomes UNKNOWN, both values are retained, and it is marked for review."},
+  "ng-nmcn.verification-fee.purpose=letter-of-good-standing": {"state":"UNKNOWN","verdict":"CONFLICT","reason":"CONFLICT","checkedOn":"2026-09-12","checkedBy":"human:beta-g (Cowork)","sourceUrl":"https://www.nmcn.gov.ng/verify.html","sourceTier":"OFFICIAL","note":"N8,750 on verify.html — matches our value EXACTLY.  🔴 BUT THE REGULATOR CONTRADICTS ITSELF. A second official NMCN page, https://nmcn.gov.ng/verification-of-certificates/, states ONE COMBINED FEE of N68,875 for verification/authentication/good standing. Two pages of the same regulator disagree. Per the frozen conflict rule this is NOT auto-resolved: the fact becomes UNKNOWN, both values are retained, and it is marked for review."},
+  "ng-nmcn.verification-fee.destination=uk-nmc": {"state":"UNKNOWN","verdict":"CONFLICT","reason":"CONFLICT","checkedOn":"2026-09-12","checkedBy":"human:beta-g (Cowork)","sourceUrl":"https://www.nmcn.gov.ng/verify.html","sourceTier":"OFFICIAL","note":"N17,500 on verify.html — matches our value EXACTLY.  🔴 BUT THE REGULATOR CONTRADICTS ITSELF. A second official NMCN page, https://nmcn.gov.ng/verification-of-certificates/, states ONE COMBINED FEE of N68,875 for verification/authentication/good standing. Two pages of the same regulator disagree. Per the frozen conflict rule this is NOT auto-resolved: the fact becomes UNKNOWN, both values are retained, and it is marked for review."},
+};
+
 export default [
   fact({
     ...common,
     id: "ng-nmcn.issuing-body",
+    verification: {
+      state: "VERIFIED",
+      verdict: "VERIFIED",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://www.nmcn.gov.ng/verify.html",
+      sourceTier: "OFFICIAL",
+      recheckAfter: "2027-03-11",
+      recheckWindowDays: 180,
+      note: "NMCN issues verification of registration for Nigerian nurses going abroad.",
+    },
     claim: { subject: "ng-nmcn", predicate: "issuing-body", qualifier: null },
     value: {
       value: "The Nursing and Midwifery Council of Nigeria issues verification of registration for Nigerian nurses going abroad.",
@@ -129,6 +159,16 @@ export default [
   fact({
     ...common,
     id: "ng-nmcn.verification-documents",
+    verification: {
+      state: "UNKNOWN",
+      verdict: "CONFLICT",
+      reason: "CONFLICT",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://www.nmcn.gov.ng/verify.html",
+      sourceTier: "OFFICIAL",
+      note: "We store 5. verify.html lists SIX required items (application letter, completed form, current licence photocopy, registration certificate photocopies, birth certificate/age declaration, payment receipt). The other official page lists THREE. Three sources, three counts. UNKNOWN pending review.",
+    },
     claim: { subject: "ng-nmcn", predicate: "verification-documents", qualifier: null },
     value: { value: 5, valueType: "count", unit: "document" },
     evidence: {

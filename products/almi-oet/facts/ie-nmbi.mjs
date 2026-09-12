@@ -89,6 +89,17 @@ export default [
   fact({
     ...common,
     id: "ie-nmbi.oet-minimum-grade.profession=nursing",
+    verification: {
+      state: "VERIFIED",
+      verdict: "VERIFIED",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://www.nmbi.ie/Registration/Qualified-outside-the-EU/Application-Process/English-Language-Requirements",
+      sourceTier: "OFFICIAL",
+      recheckAfter: "2027-03-11",
+      recheckWindowDays: 180,
+      note: "Page: OET (Nursing) with Grade B in three components and C+ in one. Listening/Reading/Speaking B, Writing C+.",
+    },
     claim: { subject: "ie-nmbi", predicate: "oet-minimum-grade", qualifier: "profession=nursing" },
     value: {
       value: "Listening B, Reading B, Speaking B, and Writing C+.",
@@ -105,6 +116,17 @@ export default [
   fact({
     ...common,
     id: "ie-nmbi.oet-version-required.profession=nursing",
+    verification: {
+      state: "VERIFIED",
+      verdict: "VERIFIED",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://www.nmbi.ie/Registration/Qualified-outside-the-EU/Application-Process/English-Language-Requirements",
+      sourceTier: "OFFICIAL",
+      recheckAfter: "2027-03-11",
+      recheckWindowDays: 180,
+      note: "Page names OET (Nursing) in the minimum scores table.",
+    },
     claim: { subject: "ie-nmbi", predicate: "oet-version-required", qualifier: "profession=nursing" },
     value: { value: "OET (Nursing)", valueType: "enum", unit: "OET profession version" },
     evidence: {
@@ -116,6 +138,17 @@ export default [
   fact({
     ...common,
     id: "ie-nmbi.recognised-english-speaking-countries",
+    verification: {
+      state: "VERIFIED",
+      verdict: "VERIFIED",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://www.nmbi.ie/Registration/Qualified-outside-the-EU/Application-Process/English-Language-Requirements",
+      sourceTier: "OFFICIAL",
+      recheckAfter: "2027-03-11",
+      recheckWindowDays: 180,
+      note: "Page lists Australia, Canada, New Zealand, the United States of America, United Kingdom. Exact match.",
+    },
     claim: { subject: "ie-nmbi", predicate: "recognised-english-speaking-countries", qualifier: null },
     value: {
       value: "Australia, Canada, New Zealand, the United States of America, the United Kingdom",

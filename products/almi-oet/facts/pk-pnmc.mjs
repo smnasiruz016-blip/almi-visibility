@@ -66,6 +66,17 @@ export default [
   fact({
     ...common,
     id: "pk-pnmc.issuing-body",
+    verification: {
+      state: "VERIFIED",
+      verdict: "VERIFIED",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://pnmc.gov.pk/verification-registration-2/",
+      sourceTier: "OFFICIAL",
+      recheckAfter: "2027-03-11",
+      recheckWindowDays: 180,
+      note: "Page confirms PNMC issues verification of registration and good standing certificates.",
+    },
     claim: { subject: "pk-pnmc", predicate: "issuing-body", qualifier: null },
     value: {
       value: "The Pakistan Nursing & Midwifery Council issues verification of registration and Good Standing certificates.",
@@ -81,6 +92,17 @@ export default [
   fact({
     ...common,
     id: "pk-pnmc.verification-fee.destination=foreign",
+    verification: {
+      state: "VERIFIED",
+      verdict: "VERIFIED",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://pnmc.gov.pk/verification-registration-2/",
+      sourceTier: "OFFICIAL",
+      recheckAfter: "2026-12-11",
+      recheckWindowDays: 90,
+      note: "'Processing fee PAK Rs.10000/-' — matches our value exactly.",
+    },
     claim: { subject: "pk-pnmc", predicate: "verification-fee", qualifier: "destination=foreign" },
     value: { value: 10000, valueType: "money", unit: "PKR" },
     evidence: {
@@ -91,6 +113,17 @@ export default [
   fact({
     ...common,
     id: "pk-pnmc.verification-fee.destination=domestic",
+    verification: {
+      state: "VERIFIED",
+      verdict: "VERIFIED",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://pnmc.gov.pk/verification-registration-2/",
+      sourceTier: "OFFICIAL",
+      recheckAfter: "2026-12-11",
+      recheckWindowDays: 90,
+      note: "'Processing fee PAK Rs.1000/-' — matches our value exactly.",
+    },
     claim: { subject: "pk-pnmc", predicate: "verification-fee", qualifier: "destination=domestic" },
     value: { value: 1000, valueType: "money", unit: "PKR" },
     evidence: { ownWords: "Verification sent to a body inside Pakistan carries a processing fee of Rs.1,000." },
@@ -99,6 +132,16 @@ export default [
   fact({
     ...common,
     id: "pk-pnmc.verification-documents",
+    verification: {
+      state: "UNKNOWN",
+      verdict: "CONFLICT",
+      reason: "CONFLICT",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://pnmc.gov.pk/verification-registration-2/",
+      sourceTier: "OFFICIAL",
+      note: "We store 3. The page specifies FOUR items per category: application form, processing fee, letter/verification form with organisation address, and photocopies of the PNMC/PNC registration card and all qualifications. UNKNOWN pending review.",
+    },
     claim: { subject: "pk-pnmc", predicate: "verification-documents", qualifier: null },
     value: { value: 3, valueType: "count", unit: "document" },
     evidence: {
@@ -110,6 +153,17 @@ export default [
   fact({
     ...common,
     id: "pk-pnmc.verification-response-time",
+    verification: {
+      state: "VERIFIED",
+      verdict: "VERIFIED",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://pnmc.gov.pk/verification-registration-2/",
+      sourceTier: "OFFICIAL",
+      recheckAfter: "2027-03-11",
+      recheckWindowDays: 180,
+      note: "'We aim to respond to your email within 3 working days.' Matches. NOTE: this is a response-to-email time, not a time to issue the certificate — our claim should not be read as a processing time.",
+    },
     claim: { subject: "pk-pnmc", predicate: "verification-response-time", qualifier: null },
     value: { value: 3, valueType: "duration", unit: "working day" },
     evidence: {

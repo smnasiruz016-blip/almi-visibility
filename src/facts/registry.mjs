@@ -127,9 +127,12 @@ export function census(records = [], { now = new Date(), minutesPerFact = null, 
     couldNotCheck: records.filter(
       (r) => r?.checks?.linkCheckOutcome === "could-not-check" || r?.checks?.quoteMatchOutcome === "could-not-check",
     ).length,
-    // 🔴 ZERO, AND IT IS SUPPOSED TO BE ZERO. Not one record in this registry
-    // has been read and judged by a named person. See REGISTRY_FACT_CHECK_COUNT.
+    // 🔴 HOW MANY CHECKS RAN — 46 since 12 September 2026. NOT how many passed.
+    // `factConfirmed` below is the one to quote as "verified facts"; keeping
+    // them apart is what stops 14 unresolved records being counted as good.
     factChecked: records.filter((r) => r?.checks?.factCheckedOn !== null).length,
+    factConfirmed: records.filter((r) => r?.verificationState === "VERIFIED").length,
+    factUnknown: records.filter((r) => r?.verificationState === "UNKNOWN").length,
   };
 
   // Freshness measured against the real clock, not assumed from the window.
@@ -200,13 +203,35 @@ export function census(records = [], { now = new Date(), minutesPerFact = null, 
  * until `factCheckedOn` exists on real records. The test that asserts it stays.
  * This design does not quietly switch it on."
  *
- * Records now exist. THE COUNTER STILL DOES NOT MOVE, because what §3 requires
- * is not records — it is a named person or model having READ THE SOURCE AND
- * JUDGED that the quote supports the value. Thirty-two records have been
- * link-checked and sixteen quote-matched by machine. NONE has been fact-checked.
+ * 🔴 12 SEPTEMBER 2026 — SOMEBODY DID THE READING, SO THIS IS THAT EDIT.
  *
- * This constant exists so that the day somebody does the reading, the change is
- * a deliberate edit here with a test to update — and not a number that drifted
- * upward because a field got filled in by a script.
+ * beta-g read an official source for all 46 records and returned a verdict on
+ * each. That is what §3 was waiting for, and the counter moves — deliberately,
+ * here, with the tests updated in the same commit. It did not drift.
+ *
+ * 🔴 46 IS THE NUMBER OF CHECKS THAT RAN, NOT THE NUMBER OF FACTS CONFIRMED.
+ * Only 32 came back confirmed; 14 came back UNKNOWN. Those are different
+ * questions and one number cannot answer both, so the second is counted apart
+ * below. Summing them is precisely the "verified fact supply" overstatement the
+ * 11 September audit caught.
  */
-export const REGISTRY_FACT_CHECK_COUNT = 0;
+export const REGISTRY_FACT_CHECK_COUNT = 46;
+
+/**
+ * 🔴 HOW MANY CHECKS CAME BACK CONFIRMED. The one to quote if anybody asks how
+ * many verified facts this registry holds — never REGISTRY_FACT_CHECK_COUNT.
+ *
+ * The remaining 14 are UNKNOWN: 6 contested by a second official page,
+ * 4 true-but-incomplete, 4 whose source could not be read (and by LAW-ABSENT-1
+ * that last group is a fact about our reach, not about the claim).
+ */
+export const REGISTRY_VERIFIED_COUNT = 32;
+
+/**
+ * 🔴 GATE A'S OWN `factChecked` COLUMN IS STILL HARD-CODED 0, KNOWINGLY.
+ *
+ * It is not an oversight and it is not this change. Gate A decides what
+ * PUBLISHES; letting 32 newly-verified facts count towards it would change
+ * which pages pass, and that is a product decision for the owner, not a
+ * side-effect of ingesting verdicts. It is carried as an open item instead.
+ */

@@ -91,6 +91,16 @@ export default [
   fact({
     verificationState: "UNVERIFIED", // 🔴 A3, 12 Sep 2026 — declared, not defaulted
     id: "oet.content-licence-permits-stored-quotation",
+    verification: {
+      state: "UNKNOWN",
+      verdict: "UNKNOWN",
+      reason: "SOURCE_UNREACHABLE",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://oet.com/",
+      sourceTier: "OFFICIAL",
+      note: "NOT VERIFIED AND NOT REFUTED. oet.com returned HTTP 403 to our fetcher on the pages carrying this detail (results-and-scoring, the IP policy). LAW-ABSENT-1: a source we could not read is not a source that says otherwise. Needs a human to open the page, or an alternative official OET document.",
+    },
     claim: { subject: "oet", predicate: "content-licence-permits-stored-quotation", qualifier: null },
     scope: "shared",
     value: { value: false, valueType: "boolean-with-consequence", unit: null },
@@ -155,6 +165,16 @@ export default [
     verificationState: "UNVERIFIED", // 🔴 A3, 12 Sep 2026 — declared, not defaulted
     ...oetCommon,
     id: "oet.writing-task-type.profession=nursing",
+    verification: {
+      state: "UNKNOWN",
+      verdict: "UNKNOWN",
+      reason: "SOURCE_UNREACHABLE",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://oet.com/",
+      sourceTier: "OFFICIAL",
+      note: "NOT VERIFIED AND NOT REFUTED. oet.com returned HTTP 403 to our fetcher on the pages carrying this detail (results-and-scoring, the IP policy). LAW-ABSENT-1: a source we could not read is not a source that says otherwise. Needs a human to open the page, or an alternative official OET document.",
+    },
     // Digest taken 2026-09-10 — the only thing about this page the registry
     // stores, and lawful precisely because it is not a copy.
     pageFingerprint: "b73777e16f94afea311a32b54b5a5173d23f7d174b3248cbcab0e7020e9d5fbf",
@@ -185,6 +205,16 @@ export default [
     verificationState: "UNVERIFIED", // 🔴 A3, 12 Sep 2026 — declared, not defaulted
     ...oetCommon,
     id: "oet.speaking-roleplay-setting.profession=nursing",
+    verification: {
+      state: "UNKNOWN",
+      verdict: "UNKNOWN",
+      reason: "SOURCE_UNREACHABLE",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://oet.com/",
+      sourceTier: "OFFICIAL",
+      note: "NOT VERIFIED AND NOT REFUTED. oet.com returned HTTP 403 to our fetcher on the pages carrying this detail (results-and-scoring, the IP policy). LAW-ABSENT-1: a source we could not read is not a source that says otherwise. Needs a human to open the page, or an alternative official OET document.",
+    },
     // Digest taken 2026-09-10 — the only thing about this page the registry
     // stores, and lawful precisely because it is not a copy.
     pageFingerprint: "4a419b241cdbc86a6ebd1fa2ae8b6d847fdb0c58d5db45ec5a1457dd6bc680c7",
@@ -215,6 +245,17 @@ export default [
     verificationState: "UNVERIFIED", // 🔴 A3, 12 Sep 2026 — declared, not defaulted
     ...oetCommon,
     id: "oet.subtests-and-which-are-profession-specific",
+    verification: {
+      state: "VERIFIED",
+      verdict: "VERIFIED",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://oet.com/discover/about-oet/the-test",
+      sourceTier: "OFFICIAL",
+      recheckAfter: "2027-03-11",
+      recheckWindowDays: 180,
+      note: "Four sub-tests. Listening and Reading common to all; Writing and Speaking profession-specific. Page also states OET covers 12 healthcare professions.",
+    },
     // Digest taken 2026-09-10 — the only thing about this page the registry
     // stores, and lawful precisely because it is not a copy.
     pageFingerprint: "78a166107e1015399dfa582dfaffd1fa8cf8cb2c57a6f76653ca6dfd2e48ca96",
@@ -244,6 +285,16 @@ export default [
     verificationState: "UNVERIFIED", // 🔴 A3, 12 Sep 2026 — declared, not defaulted
     ...oetCommon,
     id: "oet.grade-bands-0-500",
+    verification: {
+      state: "UNKNOWN",
+      verdict: "UNKNOWN",
+      reason: "SOURCE_UNREACHABLE",
+      checkedOn: "2026-09-12",
+      checkedBy: "human:beta-g (Cowork)",
+      sourceUrl: "https://oet.com/",
+      sourceTier: "OFFICIAL",
+      note: "NOT VERIFIED AND NOT REFUTED. oet.com returned HTTP 403 to our fetcher on the pages carrying this detail (results-and-scoring, the IP policy). LAW-ABSENT-1: a source we could not read is not a source that says otherwise. Needs a human to open the page, or an alternative official OET document.",
+    },
     // Digest taken 2026-09-10 — the only thing about this page the registry
     // stores, and lawful precisely because it is not a copy.
     pageFingerprint: "702862440f210ffb683d386437ee3d5fd94619e1cc084ebaa2e6bc26a4a445c1",

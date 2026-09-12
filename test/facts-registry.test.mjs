@@ -25,7 +25,7 @@ import { fact } from "../src/facts/record.mjs";
 import { validateRecord, validateRegistry } from "../src/facts/validate.mjs";
 import { queueFor, freshnessRuleFor, manualQueueCost, automatedQueueIsUnattended } from "../src/facts/queues.mjs";
 import { normaliseText, matchQuote, runQuoteMatch, fetchForMatch } from "../src/facts/quote-match.mjs";
-import { loadRegistry, census, toGateAFact, REGISTRY_FACT_CHECK_COUNT } from "../src/facts/registry.mjs";
+import { loadRegistry, census, toGateAFact, REGISTRY_FACT_CHECK_COUNT, REGISTRY_VERIFIED_COUNT } from "../src/facts/registry.mjs";
 
 // The licence view THIS product may read: the engine’s instruments plus its own.
 // Another product’s entries are not in it, and that is the point.
@@ -261,6 +261,24 @@ describe("🔴 F10 — a link check says NOTHING about the claim", () => {
   test("GREEN: both together, properly attributed, is accepted", () => {
     const r = lawful({ verificationState: "VERIFIED", checks: { ...lawful().checks, factCheckedOn: "2026-09-10", factCheckedBy: "human:NU" } });
     assert.ok(!laws(r).has("F10"));
+  });
+
+  /**
+   * 🔴 THE PATTERN WAS WIDENED ON 12 SEPTEMBER 2026 TO ADMIT PARENTHESES, so
+   * that a real verifier's `human:beta-g (Cowork)` was recorded as they wrote
+   * it. A widened rule needs a test that it did not widen into nothing —
+   * otherwise F10 accepts everything and is green forever.
+   */
+  test("GREEN: a real verifier's parenthesised name is accepted verbatim", () => {
+    const r = lawful({ verificationState: "VERIFIED", checks: { ...lawful().checks, factCheckedOn: "2026-09-12", factCheckedBy: "human:beta-g (Cowork)" } });
+    assert.ok(!laws(r).has("F10"));
+  });
+
+  test("🔴 RED: the widened pattern still rejects a prefix with no name behind it", () => {
+    for (const bad of ["human:", "human: ", "model:", "(Cowork)", "human", "beta-g"]) {
+      const r = lawful({ verificationState: "VERIFIED", checks: { ...lawful().checks, factCheckedOn: "2026-09-12", factCheckedBy: bad } });
+      assert.ok(laws(r).has("F10"), `${JSON.stringify(bad)} was accepted — the pattern has widened into nothing`);
+    }
   });
 });
 
@@ -570,19 +588,46 @@ describe("🔴 the registry as it actually stands on disk", () => {
 
 // ──────── 🔴 THE COUNTER THAT DOES NOT MOVE — §3'S STANDING PROMISE ─────────
 
-describe("🔴 factChecked stays ZERO, and records existing does not change that", () => {
-  test("the registry's own count is zero, and the constant agrees with the data", async () => {
+/**
+ * 🔴 THE COUNTER MOVED ON 12 SEPTEMBER 2026, AND THAT IS WHAT §3 PROMISED.
+ *
+ * §3's promise was never "this number stays 0 forever" — it was "this number
+ * does not move until a named person reads the sources, and when it moves it
+ * moves by a deliberate edit with its test updated". beta-g read all 46. So the
+ * assertions below now pin the two things that keep the move honest:
+ *
+ *   1. the hard-coded constant still has to AGREE WITH THE DATA, so it cannot
+ *      be set to a flattering number;
+ *   2. checks-that-RAN and checks-that-CONFIRMED stay separate columns.
+ */
+describe("🔴 factChecked moved 0 → 46, deliberately, and confirmed is counted apart", () => {
+  test("the constant agrees with the data — it cannot be set to a flattering number", async () => {
     const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     const c = census(records, { now: NOW });
-    assert.equal(c.checks.factChecked, 0);
-    assert.equal(REGISTRY_FACT_CHECK_COUNT, 0);
-    assert.equal(c.checks.factChecked, REGISTRY_FACT_CHECK_COUNT);
+    assert.equal(REGISTRY_FACT_CHECK_COUNT, 46);
+    assert.equal(c.checks.factChecked, REGISTRY_FACT_CHECK_COUNT, "the constant and the registry disagree");
   });
 
-  test("🔴 not one record on disk carries factCheckedOn — link-checked is not read-and-judged", async () => {
+  test("🔴 46 checks RAN but only 32 CONFIRMED — the two are never one number", async () => {
     const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
-    const claimed = records.filter((r) => r.checks.factCheckedOn !== null);
-    assert.deepEqual(claimed.map((r) => r.id), [], "somebody must NAME themselves to move this number");
+    const c = census(records, { now: NOW });
+    assert.equal(c.checks.factChecked, 46);
+    assert.equal(c.checks.factConfirmed, REGISTRY_VERIFIED_COUNT);
+    assert.equal(c.checks.factConfirmed, 32);
+    assert.equal(c.checks.factUnknown, 14);
+    assert.ok(
+      c.checks.factConfirmed < c.checks.factChecked,
+      "if these ever coincide, check it is because every check confirmed — not because they were merged",
+    );
+  });
+
+  test("🔴 every record that carries a fact-check date NAMES the person who did it", async () => {
+    const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
+    const dated = records.filter((r) => r.checks.factCheckedOn !== null);
+    assert.equal(dated.length, 46);
+    for (const r of dated) {
+      assert.match(r.checks.factCheckedBy ?? "", /^human:/, `${r.id}: somebody must NAME themselves to move this number`);
+    }
   });
 
   test("Gate A's counter is still hard-coded 0 when fed this registry through the GATE'S OWN code", async () => {

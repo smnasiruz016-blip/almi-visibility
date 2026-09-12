@@ -300,6 +300,32 @@ a verification date, and there was none.
 
 ---
 
+## 🔴 `LAW-POPULATION-1` — FOUR DEFECTS THAT ONLY REAL DATA COULD FIND
+
+**Every one of these lived under a green test suite.** On 12 September 2026 beta-g returned
+verified verdicts for all 46 fact records, and putting real verdicts through machinery that had
+only ever seen fixtures exposed four faults in a single afternoon. They are recorded together
+because they share one shape:
+
+> ### A GREEN TEST OVER AN EMPTY OR UNIFORM POPULATION MEASURES THE FIXTURE, NOT THE SYSTEM.
+>
+> Before ingestion every record was UNVERIFIED, no claim was held twice, no fact was derived and
+> nothing cited a fact id. Under those conditions **all four defects below were unreachable** — so
+> every test passed, and passing meant nothing. The population has to be counted before a zero
+> from it is believed.
+
+| id | defect | how it presented | state |
+|---|---|---|---|
+| **`D-FACT-1`** | **`detectConflicts` cannot see the conflicts we actually have** | It groups records by claim and reports groups that disagree — an *intra-registry* conflict. All six real conflicts are *registry-vs-second-official-page*: we hold ONE record and the disagreeing value is on a page we do not hold. Every group has one member, so it returns **0**, which reads exactly like "no conflicts" | 🔴 **OPEN — pinned by test, NOT worked around.** Transcribing the other pages' numbers into our records would make it fire and would prove only that I can type |
+| **`D-FACT-2`** | **32 ingested recheck dates governed nothing** | The ingest wrote `verification.recheckAfter`; `freshnessOf` reads `checks.recheckAfter`. All 32 still aged out on the old `extractedOn + freshness.days` rule. 🔴 **It survived the first probe**, which asked on a day past BOTH due dates, saw `STALE` and passed — both rules answer alike on such a day. Only a day where they DISAGREE carries information: **32 of 32 inert** | ✅ **FIXED** — the date now lands where freshness looks, proved on a disagreeing day |
+| **`D-FACT-3`** | **the cache served contested values as clean hits** | `get()` checked freshness and nothing else, so all 14 records a human had just marked UNKNOWN came back `hit: true` — including an NMCN fee one official page puts at ₦66,875 and another contradicts. **The hit rate read 100%.** This contradicted `lifecycle.mjs`'s own header: *"A STALE OR CONFLICTED FACT IS NEVER SILENTLY USED"* | ✅ **FIXED** — an UNKNOWN is now a MISS naming its reason. **Hit rate fell 100% → 69.6%, and that is the improvement** |
+| **`D-FACT-4`** | **the dependency walk has nothing to walk** | It reports 0 dependants of the 10 bad facts. Not because none exist — because **nothing in the system cites a fact id at all**: 0 derived facts, and 134 findings on disk of which **0** carry `sources` or `factIds`. The walk cannot fire on real data whatever goes wrong | 🔴 **OPEN** — recorded with its population counted, so the zero is not mistaken for health |
+
+**`D-FACT-3` is the one that reached a caller.** The other three are blind spots; that one handed
+out a disputed number with nothing to indicate anybody disputed it.
+
+---
+
 # 0B · DECISIONS — CRAWLER
 
 Recorded as decisions, with their kind, their tier and their date. **A decision is not a gap and not

@@ -190,12 +190,13 @@ test("🔴 RED: a 'ruling' move that is not an owner ruling is refused — the t
  * 4D — THE TWO CHANGE LISTS, KEPT APART.
  * ================================================================== */
 
-test("🔴 moves since Amendment 2: ONE by ruling (14 → TESTABLE-NOW); FIVE by work (9, 14 twice, 45, 49)", () => {
+test("🔴 moves since Amendment 2: TWO by ruling (14 and 45 → TESTABLE-NOW); SEVEN by work — including the first tick ever REMOVED (48)", () => {
   const all = Object.entries(MOVES_AMENDMENT_2).flatMap(([id, chain]) => chain.map((s) => ({ id: Number(id), ...s })));
-  assert.deepEqual(all.filter((s) => s.kind === "ruling").map((s) => `${s.id}:${s.from}→${s.to}`), ["14:BUILT-NOT-PROVED→TESTABLE-NOW"]);
+  assert.deepEqual(all.filter((s) => s.kind === "ruling").map((s) => `${s.id}:${s.from}→${s.to}`), ["14:BUILT-NOT-PROVED→TESTABLE-NOW", "45:FAILED→TESTABLE-NOW"]);
   assert.deepEqual(all.filter((s) => s.kind === "work").map((s) => `${s.id}:${s.from}→${s.to}`), [
     "9:BUILT-NOT-PROVED→BLOCKED-UNKNOWN", "14:TESTABLE-NOW→FAILED", "14:FAILED→VERIFIED-PASS",
-    "45:BUILT-NOT-PROVED→FAILED", "49:BUILT-NOT-PROVED→VERIFIED-PASS",
+    "45:BUILT-NOT-PROVED→FAILED", "45:TESTABLE-NOW→VERIFIED-PASS",
+    "48:VERIFIED-PASS→FAILED", "49:BUILT-NOT-PROVED→VERIFIED-PASS",
   ]);
   // 🔴 The way out of FAILED is rule 1's FIRST route, naming its test and date.
   const out = all.find((s) => s.from === "FAILED");
@@ -211,8 +212,10 @@ test("before Amendment 2 the ledger was 3 / 18 / 0 / 3 / 0 / 6 / 28", () => {
   });
 });
 
-test("🔴 since Amendment 2, exactly TWO rows reached VERIFIED-PASS — 14 (by leaving FAILED) and 49", () => {
+test("🔴 since Amendment 2, THREE rows reached VERIFIED-PASS (14, 45, 49) and ONE LOST it (48)", () => {
   const rows = classify();
   const newPasses = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS" && BEFORE_AMENDMENT_2[r.id] !== "VERIFIED-PASS");
-  assert.deepEqual(newPasses.map((r) => r.id), [14, 49]);
+  assert.deepEqual(newPasses.map((r) => r.id), [14, 45, 49]);
+  const lost = Object.values(rows).filter((r) => BEFORE_AMENDMENT_2[r.id] === "VERIFIED-PASS" && r.state !== "VERIFIED-PASS");
+  assert.deepEqual(lost.map((r) => r.id), [48]);
 });

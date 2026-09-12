@@ -65,6 +65,33 @@ export function createJsonlStore(filePath) {
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   }
 
+  /**
+   * 🔴 THE DEDUPE KEY. An observation's `measurement_key` (content, no clock).
+   * An ISSUE's `issue_id` — already content-derived (C4), with no clock in it —
+   * so the same finding written by the same job twice is ONE record.
+   *
+   * Added 12 September 2026, when the technical audit writer was found to have
+   * stored 868 issues twice: the ingest had this discipline since PR #36, the
+   * audit writers never did.
+   */
+  function dedupeKeyOf(r) {
+    if (typeof r?.measurement_key === "string" && r.measurement_key !== "") return r.measurement_key;
+    if (r?.record_type === "issue" && typeof r.issue_id === "string" && r.issue_id !== "") return `issue:${r.issue_id}`;
+    return null;
+  }
+
+  /* 🔴 LOADED ONCE PER STORE INSTANCE, UPDATED ON EVERY APPEND. The first
+   * appendIfNew re-read the whole file per call; an audit appending a thousand
+   * findings into a two-thousand-record file would parse it a thousand times. */
+  let index = null;
+  const indexKey = (r) => `${r.record_type}|${dedupeKeyOf(r)}`;
+  function ensureIndex() {
+    if (index) return index;
+    index = new Map();
+    for (const r of readAll()) if (dedupeKeyOf(r) !== null && !index.has(indexKey(r))) index.set(indexKey(r), r);
+    return index;
+  }
+
   function append(record) {
     if (!record || typeof record !== "object") throw new TypeError("append: a record object is required");
     if (typeof record.record_type !== "string") {
@@ -76,6 +103,7 @@ export function createJsonlStore(filePath) {
     const line = JSON.stringify(record);
     if (line.includes("\n")) throw new Error("append: a serialised record must not contain a newline");
     appendFileSync(filePath, line + "\n", "utf8");
+    if (index && dedupeKeyOf(record) !== null && !index.has(indexKey(record))) index.set(indexKey(record), record);
     return record;
   }
 
@@ -104,29 +132,28 @@ export function createJsonlStore(filePath) {
    * honestly instead of assuming its write landed.
    */
   function appendIfNew(record, { seenAt = new Date().toISOString() } = {}) {
-    if (!record || typeof record.measurement_key !== "string" || record.measurement_key === "") {
+    if (!record || dedupeKeyOf(record) === null) {
       throw new TypeError(
-        "appendIfNew: the record carries no measurement_key. Only a measurement can be deduplicated — " +
-          "use append() for anything else.",
+        "appendIfNew: the record carries no measurement_key and is not an issue with an issue_id. Only a measurement " +
+          "or a content-identified issue can be deduplicated — use append() for anything else.",
       );
     }
-    const existing = readAll().find(
-      (r) => r.record_type === record.record_type && r.measurement_key === record.measurement_key,
-    );
+    const existing = ensureIndex().get(indexKey(record));
     if (!existing) {
       append(record);
-      return { appended: true, observation_id: record.observation_id, resighting: false };
+      return { appended: true, observation_id: record.observation_id, issue_id: record.issue_id, resighting: false };
     }
     append({
       record_type: RESIGHTING_TYPE,
       // 🔴 The EXISTING id, not the incoming one. A re-sighting points at the
-      // measurement it confirms; minting a new id here would recreate the very
+      // record it confirms; minting a new id here would recreate the very
       // duplicate this function exists to prevent.
-      observation_id: existing.observation_id,
-      measurement_key: existing.measurement_key,
+      ...(existing.observation_id ? { observation_id: existing.observation_id } : {}),
+      ...(existing.record_type === "issue" ? { issue_id: existing.issue_id } : {}),
+      measurement_key: dedupeKeyOf(existing),
       seen_at: seenAt,
     });
-    return { appended: false, observation_id: existing.observation_id, resighting: true };
+    return { appended: false, observation_id: existing.observation_id, issue_id: existing.issue_id, resighting: true };
   }
 
   function readAll() {

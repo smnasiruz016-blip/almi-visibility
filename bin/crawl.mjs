@@ -200,7 +200,11 @@ console.log(`   coverageState=${run.coverageState} — this run saw what its see
 
 if (!existsSync(dirname(out))) mkdirSync(dirname(out), { recursive: true });
 const store = createJsonlStore(out);
-store.appendAll(result.observations);
+// 🔴 appendIfNew, not appendAll: a measurement_key carries no clock, so the
+// same page read twice with the same bytes is ONE observation plus a re-sighting.
+// The run record below is not deduplicated — its run_id includes the start
+// time, so a second run is a genuinely new record of a second run.
+for (const o of result.observations) store.appendIfNew(o, { seenAt: o.observed_at });
 
 /**
  * 🔴 RAW BODIES GO TO A CORPUS DIRECTORY, NOT INTO GIT.

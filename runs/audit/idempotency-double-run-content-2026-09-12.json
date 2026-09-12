@@ -1,0 +1,31 @@
+{
+  "job": "bin/audit-content.mjs",
+  "ranAt": "2026-09-12T23:50:18.717Z",
+  "note": "the same authorized job run twice into ONE store, offline, after the appendIfNew fix (12 Sep 2026)",
+  "runs": [
+    {
+      "run": 1,
+      "exit": 0,
+      "seconds": 91.345,
+      "after": {
+        "records": 1576,
+        "issues": 1576,
+        "distinctIssueIds": 1576,
+        "resightings": 0
+      }
+    },
+    {
+      "run": 2,
+      "exit": 0,
+      "seconds": 190.211,
+      "after": {
+        "records": 3152,
+        "issues": 1576,
+        "distinctIssueIds": 1576,
+        "resightings": 1576
+      }
+    }
+  ],
+  "secondRunAddedIssues": 0,
+  "secondRunResightings": 1576
+}

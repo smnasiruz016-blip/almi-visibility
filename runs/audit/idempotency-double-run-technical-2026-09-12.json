@@ -1,0 +1,33 @@
+{
+  "job": "bin/audit-technical.mjs",
+  "ranAt": "2026-09-12T23:54:17.820Z",
+  "note": "the same authorized job run twice into ONE store, offline (no --sitemaps, no corpus), after the appendIfNew fix",
+  "runs": [
+    {
+      "run": 1,
+      "exit": 0,
+      "seconds": 211.864,
+      "writerSaid": "this run: 2328 new issue(s), 0 re-sighting(s)",
+      "after": {
+        "records": 2328,
+        "issues": 2328,
+        "distinctIssueIds": 2328,
+        "resightings": 0
+      }
+    },
+    {
+      "run": 2,
+      "exit": 0,
+      "seconds": 463.712,
+      "writerSaid": "this run: 0 new issue(s), 2328 re-sighting(s)",
+      "after": {
+        "records": 4656,
+        "issues": 2328,
+        "distinctIssueIds": 2328,
+        "resightings": 2328
+      }
+    }
+  ],
+  "secondRunAddedIssues": 0,
+  "secondRunResightings": 2328
+}

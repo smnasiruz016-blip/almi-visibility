@@ -25,9 +25,9 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 |---|---|---|---|
 | **NOT-STARTED** | 3 | 3 | **3** |
 | **BUILT-NOT-PROVED** | 18 | 17 | **14** |
-| **TESTABLE-NOW** | 0 | 1 | **0** |
+| **TESTABLE-NOW** | 0 | 2 | **0** |
 | **VERIFIED-PASS** | 3 | 3 | **5** |
-| **FAILED** | 0 | 0 | **1** |
+| **FAILED** | 0 | -1 | **1** |
 | **BLOCKED-UNKNOWN** | 6 | 6 | **7** |
 | **DEFERRED** | 28 | 28 | **28** |
 
@@ -37,18 +37,20 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 > count and it is **not progress**. It is also **worth more than BUILT-NOT-PROVED**: a FAILED row
 > is one whose test was run against its own boundary — it means we looked.
 
-- **item 45 · Cost Governor** — FAILURE met: a cost reads UNKNOWN when it was measurable — 12 parts of the eight stored ingest runs: 8 wall-clocks the runs never recorded, and 4 call totals the store kept only as re-sightings
+- **item 48 · Idempotency & Retry Safety** — FAILURE met: a record duplicates — the technical audit writer, run twice on 12 September 2026, stored 868 issues twice with a bare append; it was never inside the population the tick was earned on
 - **item 14** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-12 — report.mjs and the chain runner's cache now write only with --confirm; every destination is confined to this repository and refused outside it; all five parts re-tested and each RED-proved
+- **item 45** left FAILED for TESTABLE-NOW by route `OWNER_RULING` on 2026-09-12 — 'A component cannot be failed for a period before it existed.' The boundary's INPUT is a run; the scope is runs from 8c9d68b (2026-09-12T23:03:09Z) onward. The bar is unchanged; the eight earlier runs are recorded as a permanent loss (L-COST-1)
 
 **Rows that have been looked at (VERIFIED-PASS or FAILED): 6 of 58.**
 
-**Rows that reached VERIFIED-PASS in this PR: 2.**
+**Rows that reached VERIFIED-PASS in this PR: 3.**
 
 #### moved ONLY because a RULING changed
 
 | # | from | to | ruling | date | reason |
 |---|---|---|---|---|---|
 | 14 | BUILT-NOT-PROVED | TESTABLE-NOW | PASS_BOUNDARIES_AMENDMENT_2.md §A2.2 and §A2.4 | 2026-09-12 | the owner narrowed the boundary to product-repository writes and publishing, and added the register of permitted writers; its earlier result no longer applies, so the exam must be sat again. Not a tick and not a pass |
+| 45 | FAILED | TESTABLE-NOW | TECHNICAL-OWNER RULING — ITEM 45's SCOPE BEGINS WHEN THE LEDGER EXISTED (PHASE_0_FROZEN_GAP_REGISTER.md) | 2026-09-12 | 'A component cannot be failed for a period before it existed.' The boundary's INPUT is a run; the scope is runs from 8c9d68b (2026-09-12T23:03:09Z) onward. The bar is unchanged; the eight earlier runs are recorded as a permanent loss (L-COST-1) |
 
 #### moved because WORK HAPPENED
 
@@ -58,6 +60,8 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 14 | TESTABLE-NOW | FAILED | `test/permitted-writers.test.mjs` | 2026-09-12 | the re-test was run against the new contract, and its FAILURE condition 'defaults to writing' was met at two write sites |
 | 14 | FAILED | VERIFIED-PASS | `test/permitted-writers.test.mjs · test/write-confinement.test.mjs · test/no-blind-regeneration.test.mjs · node tools/permitted-writers.mjs` | 2026-09-12 | report.mjs and the chain runner's cache now write only with --confirm; every destination is confined to this repository and refused outside it; all five parts re-tested and each RED-proved |
 | 45 | BUILT-NOT-PROVED | FAILED | `test/cost-ledger.test.mjs · test/cost-governor.test.mjs · node bin/cost-ledger.mjs` | 2026-09-12 | the ledger was built and backfilled from real records and the hard stop proved by injection; the FAILURE condition 'a cost reads UNKNOWN when it was measurable' is met by 12 parts of the eight stored ingest runs |
+| 45 | TESTABLE-NOW | VERIFIED-PASS | `test/item45-scope.test.mjs · node bin/gsc-ingest.mjs (one real run, ledger live)` | 2026-09-12 | one real Search Console run inside the scope recorded all four: money 0 ZERO_BY_TARIFF with basis, 9 provider calls, crawl budget 0 with its basis, 2.238 s wall-clock; item45Verdict over the real ledger returns PASS |
+| 48 | VERIFIED-PASS | FAILED | `undefined` | 2026-09-12 | the tick was earned on a narrower population than the boundary names ('the same authorized job'), and outside that population the FAILURE condition 'a record duplicates' is met on real data |
 | 49 | BUILT-NOT-PROVED | VERIFIED-PASS | `test/issue-lifecycle.test.mjs · test/source-tiers.test.mjs` | 2026-09-12 | a real chain walked end to end with all five parts present, 134 real issues superseded with the originals retained, and the tier layer ordering the real verified facts |
 
 ---
@@ -87,8 +91,8 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 9 | Search Console / Analytics Intelligence | BUILT-NOT-PROVED | **BLOCKED-UNKNOWN** |
 | 14 | No Blind Regeneration | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 15 | Verified Fact Supply Engine | BUILT-NOT-PROVED | **VERIFIED-PASS** |
-| 45 | Cost Governor | BUILT-NOT-PROVED | **FAILED** |
-| 48 | Idempotency & Retry Safety | BUILT-NOT-PROVED | **VERIFIED-PASS** |
+| 45 | Cost Governor | BUILT-NOT-PROVED | **VERIFIED-PASS** |
+| 48 | Idempotency & Retry Safety | BUILT-NOT-PROVED | **FAILED** |
 | 49 | Audit Trail & Provenance | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 
 #### (ii) changed ONLY because the vocabulary changed
@@ -720,7 +724,7 @@ question for the owner, recorded as one.
 
 ### 45 · Cost Governor
 
-**FAILED** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (work)
+**VERIFIED-PASS** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (work)
 
 | part | the owner's words |
 |---|---|
@@ -730,9 +734,9 @@ question for the owner, recorded as one.
 | **EVIDENCE** | the ledger with real figures, and the hard stop proved by injection. |
 | **BLOCKER TODAY** | **no ledger exists and no spend figure is recorded.** The cap holds; the money does not. |
 
-**Verdict —** 🔴 **THE LEDGER EXISTS AND THE HARD STOP HOLDS — AND THE FAILURE CONDITION IS MET, ON THE RECORDS WE ALREADY HAD.** Built: an append-only ledger tracking all four — money, provider calls, budget against its cap, founder time — every line printing its bound, every UNKNOWN required to say whether it WAS measurable. Backfilled from real records, nothing estimated: **the 12 September crawl** — 394 calls, founder time 403.268 s (the Actions run that hosted it: 423 s), 500 requested / 394 fetched / 106 disallowed against caps 500 and 200, cap not reached; money UNKNOWN and NOT measurable with tools we hold (the plan's price and allowance, U-COST-1; our own hosting's invocations, U-COST-5 — GitHub's reported 0 billable ms is not read as $0). **Eight stored ingest runs** — money ZERO_BY_TARIFF; calls MEASURED on 4; founder time on NONE. **12 parts read UNKNOWN although they were measurable at the time**, which is the FAILURE clause exactly. **Hard stop proved by injection** through the real adapter: pages that never end stop at the run cap with exactly that many requests reaching the boundary, the stop latches and is not swallowed as an API error. `apiCalls` is now per pull, with the running total in its own field. Every future ingest records all four as it happens. ⚠️ The eight past runs cannot be re-measured: leaving FAILED needs a run that records all four AND either a re-run that passes or an owner ruling on those eight
+**Verdict —** 🔴 **TICKED UNDER A SCOPE RULING, ON ONE REAL RUN — AND THE LOSS BEFORE IT STAYS ON THE RECORD.** The technical owner ruled that a component cannot be failed for a period before it existed: item 45's scope is runs from the ledger's existence (8c9d68b, 2026-09-12T23:03:09Z) onward, the bar unchanged. The row left FAILED by that ruling (a RULING move) and was then sat again (a WORK move). **One real Search Console run inside the scope recorded all four**: money 0 ZERO_BY_TARIFF with its basis; 9 provider calls, counted by the governor; crawl budget 0 fetched and 0 requests against the caps 500 and 200, with its basis — a tracked zero, not an absent field, and the ledger now refuses a zero without one; founder time 2.238 s wall-clock. `item45Verdict` over the real ledger: PASS, 1 run in scope, 0 measurable UNKNOWNs in scope. **The hard stop** remains proved by injection. **Out of scope and NOT forgotten:** 9 earlier runs, 12 measurable costs never recorded — permanent loss L-COST-1, never estimated, and the row outlives this tick
 
-**The one test that would settle it —** node --test test/cost-ledger.test.mjs test/cost-governor.test.mjs · node bin/cost-ledger.mjs
+**The one test that would settle it —** node --test test/item45-scope.test.mjs test/cost-ledger.test.mjs test/cost-governor.test.mjs · node bin/cost-ledger.mjs
 
 ### 46 · Cache Before Re-Research
 
@@ -764,7 +768,7 @@ question for the owner, recorded as one.
 
 ### 48 · Idempotency & Retry Safety
 
-**VERIFIED-PASS** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (work)
+**FAILED** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (work)
 
 | part | the owner's words |
 |---|---|
@@ -773,7 +777,9 @@ question for the owner, recorded as one.
 | **FAILURE** | a record, page, action or cost duplicates; or a 4xx is retried. |
 | **EVIDENCE** | before/after IDs and counts, plus a test that fails if the retry rule is changed. |
 
-**Verdict —** **INPUT** the same authorized job run twice, and a retry against a 4xx. **EXPECTED** the re-run appends no duplicate payload and mints no new id for the same measurement — before 1 / after 1, with the re-sighting recorded rather than dropped; and requests are counted at the boundary: 7 different 4xx statuses each issue exactly ONE request, a network error gets exactly ONE retry (2 attempts, never 3), and a 5xx is not retried at all. **FAILURE** not met, on real data: the 12 September crawl holds 500 observations with 500 distinct measurement keys and 500 distinct ids. **COST** — requests are the only metered thing this system issues (no paid provider exists, item 47), and a re-run over held input issues zero. 🔴 **The retry rule had NO test until now**; the code was right since PR #36 and nothing would have caught it changing. Three sabotages — retry a 4xx, retry twice, stop deduplicating — each landed in the intended test
+**Verdict —** 🔴 **REOPENED — THE FIRST TICK THIS PROJECT HAS REMOVED.** By the checklist's reopen rule, for concrete contradictory evidence. **Was the audit writer inside the tested population? NO.** The tick's 'same job run twice' test drives one synthetic observation through appendIfNew, and its REAL test counts only the crawl file; no audit writer was ever run twice. Outside that population the FAILURE condition was met on real data: 868 extra copies in the technical findings. **Is an audit writer 'an authorized job'? Yes** — it is run deliberately by an operator, reads authorized evidence, and writes stored conclusions; nothing in the boundary limits 'job' to ingests. **Fixed in this change:** the store deduplicates an issue by its content-derived issue_id; all four unguarded writers (three audit writers and the crawler's observations) now use appendIfNew; the 868 copies are SUPERSEDED by append-only notes, none removed. **Re-test:** both offline audit writers run twice for real add 0 issues on the second run; a census finds 0 unguarded record writes. **Why it does NOT re-tick here:** two authorized jobs — the crawl (a second run needs the owner's green) and the DNS audit (network) — cannot be run twice in this change, so their fix is proved in source and through the store, not by the double run the boundary names. Leaves FAILED by that run passing, or an owner ruling
+
+**The one test that would settle it —** node --test test/duplicate-writers.test.mjs test/idempotency-retry.test.mjs · node tools/duplicate-writer-census.mjs
 
 ### 49 · Audit Trail & Provenance
 

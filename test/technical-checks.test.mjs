@@ -391,8 +391,9 @@ test("🔴 REAL: no noindex finding claims a DISAGREEMENT any more", { skip: !ex
  */
 test("🔴 REAL: every finding is FAIL or UNKNOWN with evidence, never PASS — and every other record is a state change with evidence", { skip: !existsSync(TECH) }, () => {
   for (const r of createJsonlStore(TECH).readAll()) {
-    if (r.record_type === "issue_state_change") {
-      assert.ok(r.evidence?.length > 0, "a state change with no evidence");
+    // A supersession note (item 48, 2B) marks an extra copy of an issue; it too must carry evidence.
+    if (r.record_type === "issue_state_change" || r.record_type === "duplicate_record_superseded") {
+      assert.ok(r.evidence?.length > 0, `a ${r.record_type} with no evidence`);
       continue;
     }
     assert.equal(r.record_type, "issue", `an unexpected record type in the findings store: ${r.record_type}`);

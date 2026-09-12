@@ -642,6 +642,38 @@ variation is visible and the next reader does not read the letter against the in
 
 ---
 
+## TECHNICAL-OWNER RULING — ITEM 45's SCOPE BEGINS WHEN THE LEDGER EXISTED
+
+**12 September 2026 · beta-g, as technical owner.**
+
+> Item 45's boundary reads "INPUT: A RUN that spends money, provider calls, crawl budget or
+> founder time." It does not say "all history." **A COMPONENT CANNOT BE FAILED FOR A PERIOD BEFORE
+> IT EXISTED.** The ledger did not exist during those eight runs. Item 45's scope is runs **FROM THE
+> LEDGER'S EXISTENCE ONWARD.**
+
+**The goalpost check, recorded with the ruling so a later reader can judge it:** the owner checked
+this against the rule that a bar may not move to reach a pass. **The bar is unchanged** — one real
+run, all four costs, recorded. **Only the period is clarified.** The question for that reader is
+whether a post was moved or drawn; the evidence for "drawn" is that the boundary's own INPUT names
+*a run*, and that no ledger could have recorded a run before it existed.
+
+**The scope start, measured, not chosen:** the ledger first exists in commit `8c9d68b`, committed
+**2026-09-12T23:03:09Z** (PR #52). Runs that started before that instant are out of item 45's scope;
+their losses are recorded permanently below and are never estimated.
+
+---
+
+## 🔴 PERMANENT LOSSES — RECORDED, IRRECOVERABLE, NEVER DELETED
+
+These rows are **not gaps that can close.** They record something measurable that was never
+measured and can no longer be. **A row here outlives any tick it relates to.**
+
+| # | what was lost | when | how much | why | status |
+|---|---|---|---|---|---|
+| **L-COST-1** | the costs of **eight Search Console ingest runs**: **12 measurable costs never recorded** — 8 wall-clocks (none recorded a start or finish) and 4 provider-call totals (stored only as re-sightings, which carry no cost) | runs of 2026-09-11T22:58Z … 2026-09-12T22:06Z | 8 runs · 12 costs · 0 estimated | **the cost ledger did not exist** — it first exists at `8c9d68b`, 2026-09-12T23:03:09Z | 🔴 **IRRECOVERABLE.** Each is carried in `runs/cost/ledger.jsonl` as `UNKNOWN · MEASURABLE_BUT_NOT_RECORDED`, with lower bounds in their own labelled fields. **Not estimated. Not closed by item 45's tick** (recorded 12 Sep 2026) |
+
+---
+
 # 5 · ITEM 9 — EVERY UNKNOWN, IN FOUR FIELDS
 
 **Rule: what is not known is written UNKNOWN. No blank cell is filled by inference.**

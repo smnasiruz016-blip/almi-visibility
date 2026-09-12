@@ -140,6 +140,7 @@ if (fromEvidence) {
 const result = await crawl({
   seeds,
   seedSource,
+  seedPoolSize: selection?.seedPoolSize ?? seeds.length,
   fetchImpl: fetch,
   live,
   onPlan: (plan) => {

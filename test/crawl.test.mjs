@@ -107,6 +107,48 @@ test("🔴 CAP: 10,000 seeds yield EXACTLY 500 queued and capReached=true", () =
   assert.ok(plan.urlsRejected > 0);
 });
 
+/* ------------------------------------------------------------------ *
+ * 🔴 THE FIRST REAL RUN PROVED THE COVERAGE DERIVATION TOO NARROW.
+ *
+ * 12 September 2026: the crawler drained its frontier without hitting the cap
+ * and reported COMPLETE — having fetched 394 pages from a 1,497-page seed pool
+ * on a site with 240,328 URLs. Every input was true; the conclusion was
+ * nonsense. "The queue emptied" is not "the site is covered".
+ * ------------------------------------------------------------------ */
+
+test("🔴 a run whose SELECTION excluded pages is PARTIAL, even if the cap was never hit", () => {
+  const run = summariseRun({
+    run_id: "r", started_at: "t", finished_at: "t", seedSource: "SEARCH_CONSOLE",
+    urlsRequested: 500, urlsFetched: 500, requestsIssued: 500, perHostRequests: {},
+    capReached: false, seedPoolSize: 1497,
+    maxUrlsPerRun: MAX_URLS_PER_RUN, maxRequestsPerHost: 200, maxResponseBytes: 1, cost: null,
+  });
+  assert.equal(run.coverageState, "PARTIAL", "500 of 1497 is not COMPLETE");
+  assert.equal(run.coverageBasis.selectionExcluded, true);
+  assert.equal(run.seedPoolSize, 1497, "LAW-BOUND-1: the pool the selection drew from travels with the run");
+});
+
+test("🔴 a run where robots DISALLOWED some requested pages is PARTIAL — a lawful skip is still uncovered", () => {
+  const run = summariseRun({
+    run_id: "r", started_at: "t", finished_at: "t", seedSource: "EXPLICIT_LIST",
+    urlsRequested: 500, urlsFetched: 394, requestsIssued: 394, perHostRequests: {},
+    capReached: false, seedPoolSize: 500,
+    maxUrlsPerRun: MAX_URLS_PER_RUN, maxRequestsPerHost: 200, maxResponseBytes: 1, cost: null,
+  });
+  assert.equal(run.coverageState, "PARTIAL");
+  assert.equal(run.coverageBasis.fetchShortfall, true);
+});
+
+test("COMPLETE survives only when the pool was fully requested AND fully fetched", () => {
+  const run = summariseRun({
+    run_id: "r", started_at: "t", finished_at: "t", seedSource: "EXPLICIT_LIST",
+    urlsRequested: 10, urlsFetched: 10, requestsIssued: 10, perHostRequests: {},
+    capReached: false, seedPoolSize: 10,
+    maxUrlsPerRun: MAX_URLS_PER_RUN, maxRequestsPerHost: 200, maxResponseBytes: 1, cost: null,
+  });
+  assert.equal(run.coverageState, "COMPLETE");
+});
+
 test("🔴 CAP: a run that hit the cap is PARTIAL, never COMPLETE", () => {
   const run = summariseRun({
     run_id: "r", started_at: "t", finished_at: "t", seedSource: "EXPLICIT_LIST",

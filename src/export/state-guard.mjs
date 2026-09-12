@@ -30,6 +30,12 @@
 export const STATE_NEVER_UPGRADES = Object.freeze({
   FORBIDDEN: { countMustBe: null, because: "a 403 says nothing about the site; 0 would be a number nobody counted" },
   NOT_QUERIED: { countMustBe: null, because: "we did not look; 0 would claim we did" },
+  UNREACHABLE_NO_IPV6: {
+    countMustBe: null,
+    because:
+      "the host publishes AAAA and no A record and the runner has no IPv6 egress, so the question was never asked; " +
+      "0 would blame their site for our network",
+  },
 });
 
 /** Field names that carry a count alongside a state. */

@@ -92,17 +92,17 @@ test("🔴 A1: running the SAME ingest twice adds ZERO new measurements and one 
     const first = await INGEST(store, () => new Date("2026-09-12T00:00:00.000Z"));
     const second = await INGEST(store, () => new Date("2026-09-12T06:00:00.000Z"));
 
-    assert.equal(first.appended, 4, "the first run must write its four measurements");
+    assert.equal(first.appended, 5, "the first run must write its five measurements");
     assert.equal(first.resighted, 0);
 
     assert.equal(second.appended, 0, "🔴 the second run appended a duplicate measurement");
-    assert.equal(second.resighted, 4, "each measurement must be re-sighted exactly once");
+    assert.equal(second.resighted, 5, "each measurement must be re-sighted exactly once");
 
     const all = store.readAll();
     const measurements = all.filter((r) => r.record_type === "observation");
     const resightings = all.filter((r) => r.record_type === RESIGHTING_TYPE);
-    assert.equal(measurements.length, 4, `expected 4 measurements, found ${measurements.length}`);
-    assert.equal(resightings.length, 4);
+    assert.equal(measurements.length, 5, `expected 4 measurements, found ${measurements.length}`);
+    assert.equal(resightings.length, 5);
 
     // Every re-sighting points at a measurement that really exists.
     const ids = new Set(measurements.map((m) => m.observation_id));

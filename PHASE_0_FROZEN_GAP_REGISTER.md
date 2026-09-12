@@ -192,7 +192,26 @@ an UNKNOWN**, and it is not evidence either — it is a choice somebody made and
 | **`D-CRW-1`** | execution layer = **GitHub Actions** | technical | beta-g | 11 Sep 2026 | ✅ recorded |
 | **`D-CRW-2`** | hard cap = **500 URLs per run** | technical | beta-g | 11 Sep 2026 | ✅ recorded |
 | **`D-CRW-3`** | **1 request/second, concurrency 1** | technical | beta-g | 11 Sep 2026 | ✅ recorded |
-| **`D-CRW-4`** | 🔴 **THE FIRST REAL RUN REQUIRES THE OWNER'S GREEN** | owner | — | — | 🔴 **NOT YET GIVEN** |
+| **`D-CRW-4`** | 🔴 **THE FIRST REAL RUN REQUIRES THE OWNER'S GREEN** | owner | — | 12 Sep 2026 | ✅ **GRANTED — FOR ONE RUN ONLY** |
+
+## 🔴 `D-CRW-4` — THE GREEN, AND ITS EXACT TERMS
+
+**Granted by the owner on 12 September 2026.** Recorded here in full because a permission that is
+remembered rather than written down becomes a standing one.
+
+| | |
+|---|---|
+| what was granted | **ONE run.** Not a standing permission |
+| URL ceiling | **at most 500** — the existing hard cap, **unchanged** |
+| rate | **1 request/second, concurrency 1** |
+| nature | **read-only.** No product repository is touched. Nothing is published |
+| **a second run** | 🔴 **needs its own green.** This one does not carry forward |
+
+> ### 🔴 THE CAP WAS NOT RAISED FOR THIS, AND MUST NOT BE.
+>
+> `MAX_URLS_PER_RUN = 500` remains a module constant with no switch. The green authorises a run
+> **within** the existing bound; it does not authorise changing the bound. The workflow demands
+> both `live` and `owner_green` on **every** dispatch, so the grant cannot decay into a default.
 
 > ### 🔴 `D-CRW-4` IS THE ONE THAT IS NOT DONE.
 >

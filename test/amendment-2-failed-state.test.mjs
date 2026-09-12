@@ -143,11 +143,13 @@ test("🔴 RULE 1 RED: a route that is neither of the two is refused", () => {
 });
 
 test("CONTROL: the two lawful routes out of FAILED are accepted", () => {
-  const retest = { 14: [{ from: "FAILED", to: "VERIFIED-PASS", kind: "work", route: "RETEST_PASSED", test: "test/permitted-writers.test.mjs", date: "2026-10-01" }] };
+  /* Every OTHER row keeps its real declared moves — a control that dropped them
+   * would fail on item 9's real move and say nothing about item 14. */
+  const retest = { ...MOVES_AMENDMENT_2, 14: [{ from: "FAILED", to: "VERIFIED-PASS", kind: "work", route: "RETEST_PASSED", test: "test/permitted-writers.test.mjs", date: "2026-10-01" }] };
   const withTest = at("VERIFIED-PASS");
   assert.deepEqual(assertTransitions(withTest, failedBefore, retest), []);
 
-  const ruling = { 14: [{ from: "FAILED", to: "TESTABLE-NOW", kind: "ruling", route: "OWNER_RULING", ruling: "A3", date: "2026-10-01", reason: "boundary changed" }] };
+  const ruling = { ...MOVES_AMENDMENT_2, 14: [{ from: "FAILED", to: "TESTABLE-NOW", kind: "ruling", route: "OWNER_RULING", ruling: "A3", date: "2026-10-01", reason: "boundary changed" }] };
   assert.deepEqual(assertTransitions(at("TESTABLE-NOW"), failedBefore, ruling), []);
 });
 
@@ -167,7 +169,7 @@ test("🔴 RED: any state change with no declared move is refused — a move is 
   rows[9] = { ...rows[9], state: "TESTABLE-NOW", test: "x" };
   const errors = assertTransitions(rows);
   assert.equal(errors.length, 1);
-  assert.match(errors[0], /item 9: is TESTABLE-NOW but its recorded state is BUILT-NOT-PROVED and no move was declared/);
+  assert.match(errors[0], /item 9: is TESTABLE-NOW but its recorded state is BLOCKED-UNKNOWN and no move was declared/);
 });
 
 test("🔴 RED: a 'ruling' move that is not an owner ruling is refused — the two lists cannot blend", () => {
@@ -179,10 +181,10 @@ test("🔴 RED: a 'ruling' move that is not an owner ruling is refused — the t
  * 4D — THE TWO CHANGE LISTS, KEPT APART.
  * ================================================================== */
 
-test("🔴 this PR's moves: ONE by ruling (14 → TESTABLE-NOW), ONE by work (14 → FAILED), nothing else", () => {
+test("🔴 moves since Amendment 2: ONE by ruling (14 → TESTABLE-NOW); TWO by work (9 → BLOCKED-UNKNOWN, 14 → FAILED)", () => {
   const all = Object.entries(MOVES_AMENDMENT_2).flatMap(([id, chain]) => chain.map((s) => ({ id: Number(id), ...s })));
   assert.deepEqual(all.filter((s) => s.kind === "ruling").map((s) => `${s.id}:${s.from}→${s.to}`), ["14:BUILT-NOT-PROVED→TESTABLE-NOW"]);
-  assert.deepEqual(all.filter((s) => s.kind === "work").map((s) => `${s.id}:${s.from}→${s.to}`), ["14:TESTABLE-NOW→FAILED"]);
+  assert.deepEqual(all.filter((s) => s.kind === "work").map((s) => `${s.id}:${s.from}→${s.to}`), ["9:BUILT-NOT-PROVED→BLOCKED-UNKNOWN", "14:TESTABLE-NOW→FAILED"]);
 });
 
 test("before Amendment 2 the ledger was 3 / 18 / 0 / 3 / 0 / 6 / 28", () => {

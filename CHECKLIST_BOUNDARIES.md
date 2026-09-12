@@ -24,11 +24,11 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | state | before Amendment 2 | after the RULING only | after the WORK |
 |---|---|---|---|
 | **NOT-STARTED** | 3 | 3 | **3** |
-| **BUILT-NOT-PROVED** | 18 | 17 | **17** |
+| **BUILT-NOT-PROVED** | 18 | 17 | **16** |
 | **TESTABLE-NOW** | 0 | 1 | **0** |
 | **VERIFIED-PASS** | 3 | 3 | **3** |
 | **FAILED** | 0 | 0 | **1** |
-| **BLOCKED-UNKNOWN** | 6 | 6 | **6** |
+| **BLOCKED-UNKNOWN** | 6 | 6 | **7** |
 | **DEFERRED** | 28 | 28 | **28** |
 
 ### FAILED — counted and named separately: **1**
@@ -53,6 +53,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 | # | from | to | test | date | what happened |
 |---|---|---|---|---|---|
+| 9 | BUILT-NOT-PROVED | BLOCKED-UNKNOWN | `node bin/gsc-ingest.mjs --property=sc-domain:almiworld.com · node bin/gsc-dimensions.mjs · test/search-dimensions.test.mjs` | 2026-09-12 | six of seven dimensions ingested from the real property, each pull exhausted and COMPLETE with its bounds; downstream outcomes is supplied by no tool this engine holds, which the NOTE makes ⚠ rather than a failure |
 | 14 | TESTABLE-NOW | FAILED | `test/permitted-writers.test.mjs` | 2026-09-12 | the re-test was run against the new contract, and its FAILURE condition 'defaults to writing' was met at two write sites |
 
 ---
@@ -62,23 +63,24 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | state | before (4-state) | after (7-state) |
 |---|---|---|
 | **NOT-STARTED** | 33 | **3** |
-| **BUILT-NOT-PROVED** | 24 | **17** |
+| **BUILT-NOT-PROVED** | 24 | **16** |
 | **TESTABLE-NOW** | 0 | **0** |
 | **VERIFIED-PASS** | 0 | **3** |
 | **FAILED** | 0 | **1** |
-| **BLOCKED-UNKNOWN** | 1 | **6** |
+| **BLOCKED-UNKNOWN** | 1 | **7** |
 | **DEFERRED** | 0 | **28** |
 | **total** | 58 | **58** |
 
 ### 🔴 THE MOST IMPORTANT LINE IN THIS DOCUMENT
 
-> **4 row(s) changed because work happened.** Listed in (i) below.
+> **5 row(s) changed because work happened.** Listed in (i) below.
 
 #### (i) changed because WORK HAPPENED
 
 | # | feature | from | to |
 |---|---|---|---|
 | 8 | HEAVY / THIN / EMPTY Discipline | NOT-STARTED | **VERIFIED-PASS** |
+| 9 | Search Console / Analytics Intelligence | BUILT-NOT-PROVED | **BLOCKED-UNKNOWN** |
 | 14 | No Blind Regeneration | BUILT-NOT-PROVED | **FAILED** |
 | 15 | Verified Fact Supply Engine | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 48 | Idempotency & Retry Safety | BUILT-NOT-PROVED | **VERIFIED-PASS** |
@@ -91,7 +93,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | BUILT-NOT-PROVED → BLOCKED-UNKNOWN | 4 | 1, 11, 54, 56 |
 | NOT-STARTED → BLOCKED-UNKNOWN | 1 | 42 |
 
-**Did not move: 21** — 9, 10, 12, 13, 16, 17, 25, 26, 36, 38, 45, 46, 47, 49, 50, 51, 52, 53, 55, 57, 58
+**Did not move: 20** — 10, 12, 13, 16, 17, 25, 26, 36, 38, 45, 46, 47, 49, 50, 51, 52, 53, 55, 57, 58
 
 ---
 
@@ -226,7 +228,7 @@ question for the owner, recorded as one.
 
 ### 9 · Search Console / Analytics Intelligence
 
-**BUILT-NOT-PROVED** · class `P` · ruled in `§6`
+**BLOCKED-UNKNOWN** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (work)
 
 | part | the owner's words |
 |---|---|
@@ -236,7 +238,7 @@ question for the owner, recorded as one.
 | **EVIDENCE** | row counts, request counts, bounds, and `dataState` per pull. |
 | **NOTE** | "where authorized and available" — a dimension no tool can supply is `⚠`, not a failure. |
 
-**Verdict —** 🔴 **FIVE OF SEVEN DIMENSIONS ARE INGESTED; IT DOES NOT TICK.** Queries, pages, impressions, clicks and CTR are in the evidence store, each pull exhausted with dataState COMPLETE and its bounds recorded. **COUNTRIES** — the country and country×query pulls are now BUILT and tested against a fake provider (same pagination law, bounds and cost record), but have **NOT RUN against the real property**: the read-only Search Console key was not available to the session that built them, and a pull that has not run is not ingested. **DOWNSTREAM OUTCOMES** is BLOCKED, not failed, with evidence: the Search Console API has no outcome dimension; this engine's only credential is webmasters.readonly; 0 of 36 product repositories use a third-party analytics package; the one first-party funnel-event table in the estate stores a path and a user id and no search source, and this engine holds no authorization to read any product database. Whether the row can then tick turns on the NOTE — see `src/search/dimensions.mjs`. Not FAILED: the test of all seven has not been run, and NOT RUN = NOT TESTED
+**Verdict —** 🔴 **SIX OF SEVEN DIMENSIONS ARE INGESTED FROM THE REAL PROPERTY; THE SEVENTH IS BLOCKED; IT DOES NOT TICK.** On 12 September 2026 (night) the owner supplied the read-only key and the country pulls ran: **country** 126 rows and **country×query** 388 rows, each ONE request, exhausted, dataState COMPLETE, bounds rowLimitPerRequest=25000 / maxRequests=20, cost ZERO_BY_TARIFF. Queries (337), pages (1,525), impressions, clicks and CTR re-ingested in the same run, all COMPLETE. **DOWNSTREAM OUTCOMES** is not measurable by any tool this engine holds: Search Console has no outcome dimension; the credential is webmasters.readonly; 0 of 36 product repositories use an analytics package; the one first-party funnel-event table stores a path and a user id and no search source; and this engine may read no product database. The ruling's NOTE makes a dimension no tool can supply ⚠ — so the honest state is **BLOCKED-UNKNOWN, not FAILED** (every suppliable dimension was ingested and none claims a completeness it cannot show) and **not VERIFIED-PASS** (six of seven is not seven). The country distribution is recorded as measurement only and passes item 8's guard
 
 ### 10 · Technical SEO Audit Engine
 

@@ -21,11 +21,11 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 | state | before (4-state) | after (7-state) |
 |---|---|---|
 | **NOT-STARTED** | 33 | **3** |
-| **BUILT-NOT-PROVED** | 24 | **17** |
+| **BUILT-NOT-PROVED** | 24 | **16** |
 | **TESTABLE-NOW** | — | **0** |
 | **VERIFIED-PASS** | 0 | **3** |
 | **FAILED** | — | **1** |
-| **BLOCKED-UNKNOWN** | 1 | **6** |
+| **BLOCKED-UNKNOWN** | 1 | **7** |
 | **DEFERRED** | — | **28** |
 | **total** | 58 | **58** |
 
@@ -52,6 +52,10 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 >   narrowed its boundary and gave it teeth; its earlier result no longer applied. Not a tick.
 > - **moved because WORK HAPPENED:** item 14, TESTABLE-NOW → FAILED. The re-test ran against the
 >   new contract and its FAILURE condition *defaults to writing* was met at two write sites.
+> - **moved because WORK HAPPENED (follow-up, same night):** item 9, BUILT-NOT-PROVED →
+>   BLOCKED-UNKNOWN. The country pulls ran against the real property; six of seven dimensions are
+>   ingested and the seventh is supplied by no tool we hold. Not a tick. After it the counts are
+>   BUILT-NOT-PROVED **16** and BLOCKED-UNKNOWN **7**; the table above records Amendment 2 alone.
 
 > ### 🔴 THREE TICKS — THE FIRST THIS PROJECT HAS EVER AWARDED
 >
@@ -161,7 +165,7 @@ actually came from.
 | 6 | Axis Discovery | DEFERRED | OUT — discovery is "Search Intelligence"; §62 l.553 | Axis **declaration** exists and is tested (`test/product-registration.test.mjs`: "a product must say what its pages vary BY"). **Declaration is not discovery** | 2026-09-11 | Claude (repo audit) | — | — |
 | 7 | Market Measurement | DEFERRED | OUT — §62 l.553; phase table "Search Intelligence" | `DISTINGUISHING_SUPPLY.md` is a one-off measurement, not an engine | 2026-09-11 | Claude (repo audit) | — | — |
 | 8 | HEAVY / THIN / EMPTY Discipline | VERIFIED-PASS | OUT — component of item 7 | none | 2026-09-11 | Claude (repo audit) | — | — |
-| 9 | Search Console / Analytics Intelligence | BUILT-NOT-PROVED | IN — §62 l.553 "Search Console ingestion when authorized"; v0.1 CONTAINS l.974 (§9) | **5 of 7 dimensions INGESTED**, each pull exhausted, `dataState=COMPLETE`, bounds stored [rowLimitPerRequest=25000, maxRequests=20]: queries (314 query rows, 543 query×page rows), pages (1,497), impressions, clicks, CTR. **Countries: the `country` and `country`×`query` pulls are BUILT** (same pagination law, bounds and cost record; tested against a fake provider) **and have NOT RUN** against the real property. `node bin/gsc-dimensions.mjs` censuses the store | 2026-09-12 | Claude (repo audit) | 🔴 **Countries not run** — the read-only key was not available to the session that built the pull; the owner runs it. **Downstream outcomes BLOCKED, not failed:** Search Console has no outcome dimension; the engine's only credential is webmasters.readonly; 0 of 36 product repositories use an analytics package; the one first-party funnel-event table stores a path and a user id and no search source, and the engine may read no product database. **Does not tick** — six of seven would not either | Amendment 2 PR, 12 Sep 2026 |
+| 9 | Search Console / Analytics Intelligence | BLOCKED-UNKNOWN | IN — §62 l.553 "Search Console ingestion when authorized"; v0.1 CONTAINS l.974 (§9) | **6 of 7 dimensions INGESTED from the real property**, window 2026-08-15..2026-09-12, every pull exhausted, `dataState=COMPLETE` [bound: rowLimitPerRequest=25000, maxRequests=20]: **country 126 rows, country×query 388 rows** (1 request each), queries 337, query×page 574, pages 1,525, plus impressions, clicks and CTR. Cost ZERO_BY_TARIFF. Country rows stored as measurement only and pass item 8's guard. `node bin/gsc-dimensions.mjs --countries` | 2026-09-12 | Claude (repo audit) | 🔴 **Downstream outcomes is supplied by no tool we hold** — Search Console has no outcome dimension; the credential is webmasters.readonly; 0 of 36 product repositories use an analytics package; the one first-party funnel-event table stores a path and a user id and no search source; the engine may read no product database. The NOTE makes that ⚠, so **BLOCKED-UNKNOWN, not FAILED** — and **six of seven does not tick** | real country run, 12 Sep 2026 night |
 | 10 | Technical SEO Audit Engine | BUILT-NOT-PROVED | IN — v0.1 CONTAINS l.974 "Crawler and page inventory (§8)" | Seven of nine sub-requirements run over the 394 pages. **Part 0 adds the ORIGIN of the noindex finding**: all 134 come from one conditional gate in `almi-cv-v2`, traced to commit `50f8c20` (17 Aug 2026), and the commit's own "near-duplicates by construction" premise was measured — same-role siblings average 0.685 similarity, **none reaches 0.8** | 2026-09-12 | Claude (repo audit) | 🔴 **CANNOT REACH VERIFIED PASS IN v0.1 — a scope fact.** Rendering and crawl depth are structurally impossible: every record is `RAW_HTML`, and we seeded from Search Console and never followed links | hissa 3, 12 Sep 2026 |
 | 11 | Existing Page Inventory | BLOCKED-UNKNOWN | IN — v0.1 CONTAINS l.974 (§8) | 495 real PageRecords from the 12 Sep run, **and the 500→495 arithmetic is now reconciled ON THE PAGE**: 5 pairs of seed URLs redirected to one final URL, each pair listed. `runs/crawl/first-real-crawl-2026-09-12.jsonl` | 2026-09-12 | Claude (repo audit) | 🔴 **"MAINTAIN" IS STILL UNTESTED** — one run only, by the terms of `D-CRW-4`, so stability across runs has never been observed. Committed PageRecords still carry empty edge lists | report view, 12 Sep 2026 |
 | 12 | Duplicate / Thin / Template Detection | BUILT-NOT-PROVED | IN — required by Case Study #1 (§60) which v0.1 CONTAINS l.974 | **Four checks, run over the real 394-page corpus**: exact-duplicate 0, thin 118, near-duplicate 5, template-dominance 2, plus 6 UNKNOWN. Shell subtraction is **defined, printed in every result, and tested against a page whose shell is larger than its body**. Median shell share 12.5%, median 468 unique body words. A test fails the build if any check emits a recommendation (item 8) | 2026-09-12 | Claude (repo audit) | **Detection only — nothing BLOCKS duplicate or thin inventory**, and the PASS meaning says "detect and block". There is no publish path to block, so the second half cannot be built or proved in v0.1 | hissa 2b, 12 Sep 2026 |

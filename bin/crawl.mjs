@@ -17,13 +17,16 @@
  */
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
 
 import { crawl, renderPlan } from "../src/crawl/crawler.mjs";
 import { buildInventory, unlinkedWithinCrawledSet } from "../src/crawl/inventory.mjs";
 import { formatBoundedResult } from "../src/report/bounded.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { parseSitemap } from "../src/crawl/seeds.mjs";
+import { selectSeeds, renderSelection, SELECTION_RULE } from "../src/crawl/seed-selection.mjs";
+import { measureIpv6Egress, addressFamilies, reachabilityState } from "../src/crawl/ipv6.mjs";
+import { ESTATE_HOSTNAME_LIST } from "../config/estate-hostnames.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n, d = null) => {
@@ -34,12 +37,17 @@ const flag = (n) => process.argv.includes(`--${n}`);
 
 const seedsFile = arg("seeds");
 const sitemapFile = arg("sitemap");
+const fromEvidence = arg("seeds-from-evidence");
 const live = flag("live");
 const green = flag("i-have-the-owners-green");
 const out = arg("out", `${REPO}runs/crawl/crawl.jsonl`);
+const corpusDir = arg("corpus", `${REPO}runs/crawl/corpus`);
 
-if (!seedsFile && !sitemapFile) {
-  console.error("usage: node bin/crawl.mjs --seeds=<file.txt> | --sitemap=<file.xml> [--live --i-have-the-owners-green]");
+if (!seedsFile && !sitemapFile && !fromEvidence) {
+  console.error(
+    "usage: node bin/crawl.mjs (--seeds=<file.txt> | --sitemap=<file.xml> | --seeds-from-evidence=<evidence.jsonl>)\n" +
+      "                         [--live --i-have-the-owners-green]",
+  );
   process.exit(2);
 }
 
@@ -59,9 +67,66 @@ if (live && !green) {
   process.exit(3);
 }
 
+/* ---- 🔴 U-CRW-IPv6, MEASURED BEFORE ANYTHING IS FETCHED ----------------- *
+ *
+ * Measured even on a dry run: the answer is a fact about the runner, it costs
+ * one TCP connection to a third party, and knowing it BEFORE the live pass is
+ * the difference between recording a third state and inventing a zero.
+ */
+const egress = await measureIpv6Egress();
+console.log(`IPv6 EGRESS     : ${egress.state} — ${egress.detail} (${egress.elapsedMs}ms)`);
+
+const unreachable = new Map();
+const dnsUnknown = [];
+for (const host of ESTATE_HOSTNAME_LIST) {
+  const families = await addressFamilies(host);
+  if (families.hasA === true) continue; // the ordinary case; nothing to say
+  const verdict = reachabilityState({ families, egress });
+  if (!verdict) {
+    if (families.hasAAAA) console.log(`   ${host}: AAAA-only, and this runner HAS IPv6 egress — reachable.`);
+    continue;
+  }
+  if (verdict.state === "UNREACHABLE_NO_IPV6") {
+    unreachable.set(host, verdict);
+    console.log(`🔴 ${host}: ${verdict.state}`);
+    console.log(`   ${verdict.because}`);
+  } else {
+    /* 🔴 UNKNOWN is NOT filed as UNREACHABLE. "Our resolver failed" and "this
+     * host cannot be reached" are different facts, and the first one must not
+     * be allowed to masquerade as a finding about their site. */
+    dnsUnknown.push({ host, because: verdict.because });
+    console.log(`⚠️  ${host}: DNS UNKNOWN — ${families.error ?? "no reason recorded"}`);
+  }
+}
+if (dnsUnknown.length) {
+  console.log(`⚠️  DNS could not be read for ${dnsUnknown.length} host(s) from this machine.`);
+  console.log("   Recorded as UNKNOWN, not as unreachable and not as absent.");
+}
+console.log("");
+
 let seeds = [];
 let seedSource = "EXPLICIT_LIST";
-if (seedsFile) {
+let selection = null;
+
+if (fromEvidence) {
+  /* 🔴 SEEDS FROM THE EVIDENCE STORE — item 4's output is item 1's input. */
+  seedSource = "SEARCH_CONSOLE";
+  const records = createJsonlStore(fromEvidence).readAll();
+  const pageRows = records
+    .filter((r) => r.record_type === "observation" && r.method === "gsc.searchAnalytics.query:page-rows")
+    .at(-1)?.value?.rows;
+  if (!pageRows?.length) {
+    console.error(
+      `no page rows in ${fromEvidence}. Run bin/gsc-ingest.mjs first — the by-page HOSTNAME aggregate\n` +
+        "is not the page list, and this seeding mode needs the URLs themselves.",
+    );
+    process.exit(4);
+  }
+  selection = selectSeeds(pageRows);
+  seeds = selection.selected;
+  console.log(renderSelection(selection));
+  console.log("");
+} else if (seedsFile) {
   seeds = readFileSync(seedsFile, "utf8").split(/\r?\n/).map((s) => s.trim()).filter((s) => s !== "" && !s.startsWith("#"));
 } else {
   seedSource = "SITEMAP";
@@ -75,6 +140,7 @@ if (seedsFile) {
 const result = await crawl({
   seeds,
   seedSource,
+  seedPoolSize: selection?.seedPoolSize ?? seeds.length,
   fetchImpl: fetch,
   live,
   onPlan: (plan) => {
@@ -131,5 +197,48 @@ console.log(`   coverageState=${run.coverageState} — this run saw what its see
 if (!existsSync(dirname(out))) mkdirSync(dirname(out), { recursive: true });
 const store = createJsonlStore(out);
 store.appendAll(result.observations);
-store.append(run);
+
+/**
+ * 🔴 RAW BODIES GO TO A CORPUS DIRECTORY, NOT INTO GIT.
+ *
+ * 500 pages of somebody's rendered HTML is not repository content: it is large,
+ * it is regenerable, and a repo is not a cache. What IS committed is the record
+ * and its `content_sha256`, so anyone can verify a body against its hash later
+ * without the body ever having been versioned.
+ *
+ * The directory is uploaded as a CI artifact and named in the run record.
+ */
+let corpusFiles = 0;
+let corpusBytes = 0;
+if (live && result.bodies?.size) {
+  if (!existsSync(corpusDir)) mkdirSync(corpusDir, { recursive: true });
+  for (const [observationId, body] of result.bodies) {
+    const file = join(corpusDir, `${observationId}.html`);
+    writeFileSync(file, body, "utf8");
+    corpusFiles += 1;
+    corpusBytes += Buffer.byteLength(body, "utf8");
+  }
+  console.log(`\ncorpus: ${corpusFiles} bodies, ${(corpusBytes / 1024 / 1024).toFixed(2)} MiB → ${corpusDir}`);
+  console.log("  🔴 NOT committed. Verify any body against its content_sha256 in the run record.");
+}
+
+/* The selection rule and the CI identifiers travel WITH the run record: a
+ * selection nobody can reproduce is not evidence. */
+const runRecord = {
+  ...run,
+  selectionRule: selection?.rule ?? SELECTION_RULE,
+  seedPoolSize: selection?.seedPoolSize ?? seeds.length,
+  seedSelection: selection?.byHost ?? null,
+  ipv6Egress: egress,
+  unreachableHosts: [...unreachable.entries()].map(([host, v]) => ({ host, ...v })),
+  dnsUnknownHosts: dnsUnknown,
+  corpus: {
+    files: corpusFiles,
+    bytes: corpusBytes,
+    committed: false,
+    artifactName: process.env.CRAWL_ARTIFACT_NAME ?? null,
+    githubRunId: process.env.GITHUB_RUN_ID ?? null,
+  },
+};
+store.append(runRecord);
 console.log(`\nwritten: ${out}  (${result.observations.length} observations + 1 run)`);

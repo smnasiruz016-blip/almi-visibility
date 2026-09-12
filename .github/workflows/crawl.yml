@@ -7,9 +7,10 @@
 # bill. `workflow_dispatch` means somebody has to press the button, on purpose,
 # and their name is on the run.
 #
-# 🔴 `D-CRW-4` — the first REAL run requires the owner's green, which has NOT
-# been given. This workflow therefore defaults to a dry run, and a live run
-# needs BOTH inputs set deliberately.
+# 🔴 `D-CRW-4` — the owner's green. GRANTED 12 September 2026 for ONE run under
+# fixed terms. It is NOT a standing permission: a second run needs its own
+# green. The workflow still demands both inputs every time, because a green
+# that was given once must not become a default.
 #
 # A test asserts this file has no `schedule:` key. If somebody adds one, the
 # suite goes red rather than the bill going up.
@@ -19,9 +20,10 @@ name: crawl
 on:
   workflow_dispatch:
     inputs:
-      seeds:
-        description: "Path to a seed file in the repo (one URL per line)"
+      seeds_from_evidence:
+        description: "Path to the evidence store to seed from (item 4's output becomes item 1's input)"
         required: true
+        default: "runs/evidence/evidence.jsonl"
         type: string
       live:
         description: "🔴 Issue REAL requests. Billable traffic on our own account. Requires the owner's green (D-CRW-4)."
@@ -29,7 +31,7 @@ on:
         default: false
         type: boolean
       owner_green:
-        description: "🔴 Confirm the owner has given D-CRW-4 green for this run"
+        description: "🔴 Confirm the owner has given D-CRW-4 green FOR THIS RUN"
         required: true
         default: false
         type: boolean
@@ -50,21 +52,52 @@ jobs:
       - name: Refuse a live run without the owner's green
         if: ${{ inputs.live && !inputs.owner_green }}
         run: |
-          echo "::error::D-CRW-4 has not been given. A live crawl issues billable requests against our own hosts."
+          echo "::error::D-CRW-4 has not been given for this run. A live crawl issues billable requests against our own hosts."
           exit 1
 
-      - name: Dry run (default)
-        if: ${{ !inputs.live }}
-        run: node bin/crawl.mjs --seeds=${{ inputs.seeds }}
+      # 🔴 U-CRW-IPv6 is answered by the RUNNER, not by this laptop. The crawler
+      # measures it itself before fetching anything, but this records the
+      # runner's own view in the log too, so the two can be compared.
+      - name: Record the runner's IPv6 egress (U-CRW-IPv6)
+        run: |
+          echo "--- ip -6 addr (global scope) ---"
+          ip -6 addr show scope global || echo "(no global IPv6 addresses)"
+          echo "--- default IPv6 route ---"
+          ip -6 route show default || echo "(no default IPv6 route)"
+
+      # 🔴 DRY RUN ALWAYS RUNS FIRST, EVEN ON A LIVE PASS. The plan says WOULD,
+      # and it is printed before a single request is issued.
+      - name: Dry run — print the full plan first
+        run: node bin/crawl.mjs --seeds-from-evidence=${{ inputs.seeds_from_evidence }}
 
       - name: Live run
         if: ${{ inputs.live && inputs.owner_green }}
-        run: node bin/crawl.mjs --seeds=${{ inputs.seeds }} --live --i-have-the-owners-green
+        env:
+          CRAWL_ARTIFACT_NAME: crawl-corpus-${{ github.run_id }}
+        run: |
+          node bin/crawl.mjs \
+            --seeds-from-evidence=${{ inputs.seeds_from_evidence }} \
+            --live --i-have-the-owners-green
 
-      - name: Upload the run
+      # 🔴 THE RAW CORPUS IS AN ARTIFACT, NOT A COMMIT. 500 pages of rendered
+      # HTML is not repository content: it is large, regenerable, and a repo is
+      # not a cache. The records and their content_sha256 ARE committed, so any
+      # body can be verified against its hash later.
+      - name: Upload the raw corpus as an artifact
+        if: ${{ inputs.live && inputs.owner_green }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: crawl-corpus-${{ github.run_id }}
+          path: runs/crawl/corpus/
+          if-no-files-found: warn
+          retention-days: 90
+
+      # The records — small, and the thing that gets committed by hand after review.
+      - name: Upload the run records
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: crawl-run
-          path: runs/crawl/
+          name: crawl-records-${{ github.run_id }}
+          path: |
+            runs/crawl/*.jsonl
           if-no-files-found: ignore

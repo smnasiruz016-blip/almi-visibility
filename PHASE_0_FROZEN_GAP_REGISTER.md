@@ -192,7 +192,52 @@ an UNKNOWN**, and it is not evidence either — it is a choice somebody made and
 | **`D-CRW-1`** | execution layer = **GitHub Actions** | technical | beta-g | 11 Sep 2026 | ✅ recorded |
 | **`D-CRW-2`** | hard cap = **500 URLs per run** | technical | beta-g | 11 Sep 2026 | ✅ recorded |
 | **`D-CRW-3`** | **1 request/second, concurrency 1** | technical | beta-g | 11 Sep 2026 | ✅ recorded |
-| **`D-CRW-4`** | 🔴 **THE FIRST REAL RUN REQUIRES THE OWNER'S GREEN** | owner | — | — | 🔴 **NOT YET GIVEN** |
+| **`D-CRW-4`** | 🔴 **THE FIRST REAL RUN REQUIRES THE OWNER'S GREEN** | owner | — | 12 Sep 2026 | ✅ **GRANTED — FOR ONE RUN ONLY** |
+
+## 🔴 `D-CRW-4` — THE GREEN, AND ITS EXACT TERMS
+
+**Granted by the owner on 12 September 2026.** Recorded here in full because a permission that is
+remembered rather than written down becomes a standing one.
+
+| | |
+|---|---|
+| what was granted | **ONE run.** Not a standing permission |
+| URL ceiling | **at most 500** — the existing hard cap, **unchanged** |
+| rate | **1 request/second, concurrency 1** |
+| nature | **read-only.** No product repository is touched. Nothing is published |
+| **a second run** | 🔴 **needs its own green.** This one does not carry forward |
+
+### THE RUN THAT USED IT — 12 September 2026, GitHub Actions run `34662527129`
+
+| | |
+|---|---|
+| execution layer | **GitHub Actions** (`D-CRW-1` proved by use, not assumed) |
+| seeds | the evidence store's own 1,497 page rows — **item 4's output as item 1's input** |
+| selection rule | `sort by impressions DESC, tie-break by URL ASC, take the first 500; per-host cap 150` |
+| requested / fetched | **500 requested, 394 fetched** — 106 DISALLOWED by robots.txt and skipped |
+| wall clock | **403 seconds** at 1 req/s, concurrency 1 |
+| cap | **never exceeded.** `capReached=false`; the cap was not raised |
+| coverage | 🔴 **PARTIAL** — see the correction below |
+| cost | `amountState: UNKNOWN`. 394 billable requests on our own account, stated per host in words |
+| corpus | 394 bodies, 38.07 MiB — **artifact `crawl-corpus-34662527129`, NOT committed** |
+| records | 999, committed at `runs/crawl/first-real-crawl-2026-09-12.jsonl` (615 KiB, no bodies) |
+
+**🔴 `U-CRW-IPv6` — ANSWERED BY MEASUREMENT.** The runner has **no IPv6 egress**: no global IPv6
+address, no default IPv6 route, and a TCP probe returned `ENETUNREACH`. Therefore
+`almipathway.almiworld.com`, which publishes **AAAA and no A record**, is
+**`UNREACHABLE_NO_IPV6`** — a fifth state, recorded as such and never as `0`.
+
+**🔴 A CORRECTION, APPENDED NOT EDITED.** The run recorded `coverageState: COMPLETE`. It is
+**PARTIAL**: 500 URLs chosen from a 1,497 pool on a property with ~240,328 URLs, and 106 of the
+500 never fetched. The old derivation read "the frontier drained" as "the site is covered". The
+original record stands unaltered and a `crawl_run_correction` record supersedes it — rewriting it
+would have destroyed the evidence that the derivation was wrong.
+
+> ### 🔴 THE CAP WAS NOT RAISED FOR THIS, AND MUST NOT BE.
+>
+> `MAX_URLS_PER_RUN = 500` remains a module constant with no switch. The green authorises a run
+> **within** the existing bound; it does not authorise changing the bound. The workflow demands
+> both `live` and `owner_green` on **every** dispatch, so the grant cannot decay into a default.
 
 > ### 🔴 `D-CRW-4` IS THE ONE THAT IS NOT DONE.
 >

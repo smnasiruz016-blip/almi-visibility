@@ -120,6 +120,37 @@ export async function runIngest({
     observed.set(host, h);
   }
 
+  /* ---- the page rows themselves ---------------------------------------- *
+   *
+   * 🔴 STORED SEPARATELY, AND ONLY ADDED ON 12 SEPTEMBER 2026.
+   *
+   * The by-page observation below records the per-HOSTNAME aggregate. It does
+   * not record which URLs were seen — so a later brief that assumed "the 1,527
+   * by-page rows are already in the evidence store" was wrong: 27 hostname rows
+   * were, 1,497 page rows were not.
+   *
+   * They are stored now because the crawler seeds from them. That is what makes
+   * item 4's output item 1's INPUT rather than two components that merely exist
+   * beside each other.
+   *
+   * ⚠️ URLs only. Query text is still never stored — that is a separate rule and
+   * this does not weaken it. */
+  const pageRows = pages.rows
+    .map((row) => ({
+      url: row.keys?.[0] ?? null,
+      clicks: row.clicks ?? 0,
+      impressions: row.impressions ?? 0,
+    }))
+    .filter((r) => r.url !== null);
+  record({ kind: "property", ref: propertyId }, "gsc.searchAnalytics.query:page-rows", {
+    startDate, endDate,
+    rowCount: pageRows.length,
+    dataState: pages.dataState,
+    rowLimitPerRequest: pages.rowLimitPerRequest,
+    maxRequests: pages.maxRequests,
+    rows: pageRows,
+  });
+
   /* ---- control --------------------------------------------------------- */
   const control = await provider.queryRows({ propertyId: controlProperty, startDate, endDate, dimensions: [] });
   const controlState = classify({ attempted: true, httpStatus: control.httpStatus });

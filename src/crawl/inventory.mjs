@@ -119,7 +119,7 @@ export function summariseRun({
   run_id, started_at, finished_at, seedSource,
   urlsRequested, urlsFetched, requestsIssued, perHostRequests,
   capReached, maxUrlsPerRun, maxRequestsPerHost, maxResponseBytes,
-  robotsUnknownHosts = [], cost, dryRun = false,
+  robotsUnknownHosts = [], cost, dryRun = false, seedPoolSize = null,
 }) {
   /**
    * 🔴 A DRY RUN MEASURED NOTHING, SO ITS COVERAGE IS UNKNOWN — NEVER COMPLETE.
@@ -131,12 +131,32 @@ export function summariseRun({
    *
    * A run that could not read robots for some host also did not cover it.
    */
+  /**
+   * 🔴 AND THE FIRST REAL RUN PROVED THIS DERIVATION WAS TOO NARROW.
+   *
+   * On 12 September 2026 the crawler drained its frontier without hitting the
+   * cap and reported **COMPLETE** — for a run that had fetched 394 pages out of
+   * a 1,497-page seed pool, on a site with 240,328 URLs. Every input to the old
+   * expression was true and the conclusion was nonsense.
+   *
+   * "The queue emptied" is not "the site is covered". Two more ways a run is
+   * partial, both of which happened on that run:
+   *
+   *   · the SELECTION already excluded pages before the crawler saw them
+   *     (500 chosen from 1,497 — the other 997 are not covered by anything);
+   *   · pages were requested and NOT fetched, because robots.txt disallowed
+   *     them (106 of 500). A disallowed page is a lawful result and an
+   *     uncovered page at the same time.
+   */
+  const selectionExcluded = Number.isInteger(seedPoolSize) && seedPoolSize > urlsRequested;
+  const fetchShortfall = Number.isInteger(urlsFetched) && Number.isInteger(urlsRequested) && urlsFetched < urlsRequested;
+
   const coverageState = dryRun
     ? "UNKNOWN"
-    : capReached
-      ? "PARTIAL"
-      : robotsUnknownHosts.length > 0
-        ? "UNKNOWN"
+    : robotsUnknownHosts.length > 0
+      ? "UNKNOWN"
+      : capReached || selectionExcluded || fetchShortfall
+        ? "PARTIAL"
         : "COMPLETE";
   if (!COVERAGE_STATES.includes(coverageState)) throw new Error(`unknown coverageState ${coverageState}`);
   return Object.freeze({
@@ -145,8 +165,10 @@ export function summariseRun({
     urlsRequested, urlsFetched, requestsIssued,
     perHostRequests: Object.freeze({ ...perHostRequests }),
     capReached,
-    // 🔴 LAW-BOUND-1 — the bounds travel with the result.
-    maxUrlsPerRun, maxRequestsPerHost, maxResponseBytes,
+    // 🔴 LAW-BOUND-1 — the bounds travel with the result. `seedPoolSize` is one
+    // of them: 500 fetched means nothing without the pool it was drawn from.
+    maxUrlsPerRun, maxRequestsPerHost, maxResponseBytes, seedPoolSize,
+    coverageBasis: Object.freeze({ capReached, selectionExcluded, fetchShortfall, robotsUnknown: robotsUnknownHosts.length > 0 }),
     coverageState,
     robotsUnknownHosts: Object.freeze([...robotsUnknownHosts]),
     cost,

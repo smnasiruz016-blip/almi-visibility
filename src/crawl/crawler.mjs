@@ -101,6 +101,7 @@ export async function crawl({
   seeds,
   seedSource,
   fetchImpl,
+  seedPoolSize = null,
   live = false,
   capacity = MAX_URLS_PER_RUN,
   maxPerHost = MAX_REQUESTS_PER_HOST,
@@ -119,6 +120,15 @@ export async function crawl({
   const robotsUnknownHosts = new Set();
   const perHostRequests = {};
   let urlsFetched = 0;
+  /**
+   * 🔴 Bodies are handed BACK to the caller, never written from in here.
+   *
+   * The crawler's job is to observe. Deciding where bytes land — a corpus
+   * directory, an artifact, nowhere at all — is the caller's, and keeping that
+   * out of this function is what lets the whole suite run without writing a
+   * single file.
+   */
+  const bodies = new Map();
 
   if (!live) {
     /* 🔴 THE DRY-RUN PATH ISSUES NOTHING. It does not construct a fetcher, does
@@ -131,11 +141,11 @@ export async function crawl({
         urlsRequested: plan.urlsQueued, urlsFetched: 0, requestsIssued: 0, perHostRequests: {},
         capReached: plan.capReached,
         maxUrlsPerRun: MAX_URLS_PER_RUN, maxRequestsPerHost: maxPerHost, maxResponseBytes: MAX_RESPONSE_BYTES,
-        robotsUnknownHosts: [],
+        robotsUnknownHosts: [], seedPoolSize,
         cost: crawlCost(0),
         dryRun: true,
       }),
-      observations, edges, pages: [],
+      observations, edges, bodies, pages: [],
       dryRun: true,
     };
   }
@@ -179,6 +189,7 @@ export async function crawl({
       skipped: false,
     });
     observations.push(obs);
+    if (res.ok && res.body) bodies.set(obs.observation_id, res.body);
 
     /* 🔴 LINKS ARE RECORDED AS EDGES AND NEVER OFFERED TO THE FRONTIER.
      * There is deliberately no `frontier.offer(link)` anywhere in this file. */
@@ -197,10 +208,10 @@ export async function crawl({
       perHostRequests,
       capReached: plan.capReached,
       maxUrlsPerRun: MAX_URLS_PER_RUN, maxRequestsPerHost: maxPerHost, maxResponseBytes: MAX_RESPONSE_BYTES,
-      robotsUnknownHosts: [...robotsUnknownHosts],
+      robotsUnknownHosts: [...robotsUnknownHosts], seedPoolSize,
       cost: crawlCost(fetcher.requestsIssued()),
     }),
-    observations, edges,
+    observations, edges, bodies,
     dryRun: false,
   };
 }

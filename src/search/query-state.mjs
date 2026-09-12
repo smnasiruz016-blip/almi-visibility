@@ -24,7 +24,23 @@
  * summed into totals and quoted.
  */
 
-export const QUERY_STATES = Object.freeze(["ROWS", "ZERO", "FORBIDDEN", "NOT_QUERIED"]);
+/**
+ * 🔴 `UNREACHABLE_NO_IPV6` was ADDED 12 September 2026, and it is a fifth state
+ * rather than a special case of an existing one.
+ *
+ * A host publishing AAAA and no A record, measured against a runner with no
+ * IPv6 egress, was not reached — and the reason is OUR network. Filing that as
+ * ZERO would be a measurement nobody took; filing it as FORBIDDEN would blame
+ * their permissions for our plumbing. Both would survive review because both
+ * look like ordinary rows.
+ */
+export const QUERY_STATES = Object.freeze([
+  "ROWS",
+  "ZERO",
+  "FORBIDDEN",
+  "NOT_QUERIED",
+  "UNREACHABLE_NO_IPV6",
+]);
 
 /**
  * Classify one target from what the API actually did.
@@ -33,7 +49,18 @@ export const QUERY_STATES = Object.freeze(["ROWS", "ZERO", "FORBIDDEN", "NOT_QUE
  * can be reported, and a caller passing a status with `attempted: false` has a
  * bug we would rather throw on than paper over.
  */
-export function classify({ attempted, httpStatus, rowCount }) {
+export function classify({ attempted, httpStatus, rowCount, unreachable = null }) {
+  /* 🔴 UNREACHABLE wins over everything, because it is a statement about
+   * whether the question could be ASKED. A host we could not reach has no
+   * HTTP status and no row count, and inventing either would be the collapse
+   * this module exists to prevent. */
+  if (unreachable) {
+    if (httpStatus !== undefined && httpStatus !== null) {
+      throw new TypeError("classify: an unreachable target cannot carry an HTTP status");
+    }
+    return Object.freeze({ state: "UNREACHABLE_NO_IPV6", authState: "UNKNOWN", rowCount: null, because: unreachable.because });
+  }
+
   if (attempted === false) {
     if (httpStatus !== undefined && httpStatus !== null) {
       throw new TypeError("classify: an unattempted target cannot carry an HTTP status");
@@ -77,12 +104,17 @@ export function classify({ attempted, httpStatus, rowCount }) {
  * queried property covers is NOT_QUERIED. Without the estate census both look
  * like an empty line, which is how fifteen hostnames went missing.
  */
-export function estateTable({ estateHostnames, observed, coveredBy, forbidden = new Set() }) {
+export function estateTable({ estateHostnames, observed, coveredBy, forbidden = new Set(), unreachable = new Map() }) {
   if (!Array.isArray(estateHostnames) || estateHostnames.length === 0) {
     throw new TypeError("estateTable: the estate census is empty — the table would be vacuous");
   }
   const rows = [];
   for (const hostname of estateHostnames) {
+    // 🔴 Checked FIRST. A host we could not reach was never asked the question.
+    if (unreachable.has(hostname)) {
+      rows.push({ hostname, ...classify({ attempted: true, unreachable: unreachable.get(hostname) }) });
+      continue;
+    }
     if (forbidden.has(hostname)) {
       rows.push({ hostname, ...classify({ attempted: true, httpStatus: 403 }) });
       continue;

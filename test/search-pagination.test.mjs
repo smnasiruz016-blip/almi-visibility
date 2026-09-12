@@ -154,7 +154,7 @@ test("🔴 the estate table puts EVERY hostname in exactly one state, including 
   });
 
   assert.equal(rows.length, estate.length, "every estate hostname must appear exactly once");
-  assert.deepEqual(counts, { ROWS: 1, ZERO: 1, FORBIDDEN: 1, NOT_QUERIED: 1 });
+  assert.deepEqual(counts, { ROWS: 1, ZERO: 1, FORBIDDEN: 1, NOT_QUERIED: 1, UNREACHABLE_NO_IPV6: 0 });
 
   // 🔴 b is the case the whole module exists for: covered by a queried property,
   // absent from the rows -> a MEASURED zero, not an omission.
@@ -189,8 +189,35 @@ test("every declared QUERY_STATE is reachable from classify() — no dead state"
     classify({ attempted: true, httpStatus: 200, rowCount: 0 }).state,
     classify({ attempted: true, httpStatus: 403 }).state,
     classify({ attempted: false }).state,
+    classify({ attempted: true, unreachable: { because: "AAAA-only host, no IPv6 egress" } }).state,
   ]);
   assert.deepEqual([...produced].sort(), [...QUERY_STATES].sort());
+});
+
+test("🔴 UNREACHABLE_NO_IPV6 wins over everything and carries rowCount null", () => {
+  const c = classify({ attempted: true, unreachable: { because: "no IPv6 egress" } });
+  assert.equal(c.state, "UNREACHABLE_NO_IPV6");
+  assert.equal(c.rowCount, null, "0 here would blame their site for our network");
+  assert.match(c.because, /IPv6/);
+  // An unreachable target has no HTTP status; claiming one is a bug worth throwing on.
+  assert.throws(
+    () => classify({ attempted: true, httpStatus: 200, unreachable: { because: "x" } }),
+    /cannot carry an HTTP status/,
+  );
+});
+
+test("🔴 an UNREACHABLE host is not ZERO and not FORBIDDEN in the estate table", () => {
+  const { rows, counts } = estateTable({
+    estateHostnames: ["a.example.com", "ghost.example.com"],
+    observed: new Map([["a.example.com", { urls: 1, clicks: 0, impressions: 2 }]]),
+    coveredBy: () => true,
+    unreachable: new Map([["ghost.example.com", { state: "UNREACHABLE_NO_IPV6", because: "AAAA-only, no IPv6 egress" }]]),
+  });
+  const ghost = rows.find((r) => r.hostname === "ghost.example.com");
+  assert.equal(ghost.state, "UNREACHABLE_NO_IPV6");
+  assert.equal(ghost.rowCount, null);
+  assert.equal(counts.ZERO, 0, "an unreachable host must not be counted as a measured zero");
+  assert.equal(counts.UNREACHABLE_NO_IPV6, 1);
 });
 
 /* ------------------------------------------------------------------ *

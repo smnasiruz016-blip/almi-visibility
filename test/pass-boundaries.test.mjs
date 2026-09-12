@@ -228,14 +228,16 @@ test("🔴 RED: TESTABLE-NOW without a named test is REFUSED", () => {
  * rose by one — item 14. That is not progress and not a loss either: it is a
  * row that was looked at, and the ledger now says so in its own column.
  */
-test("the seven-state tally is 3 / 17 / 0 / 3 / 1 / 6 / 28", () => {
+/* 🔴 AND ITEM 9 MOVED BUILT-NOT-PROVED → BLOCKED-UNKNOWN on the real country
+ * run: six of seven ingested, the seventh supplied by no tool. Not a tick. */
+test("the seven-state tally is 3 / 16 / 0 / 3 / 1 / 7 / 28", () => {
   assert.deepEqual(tally(classify()), {
     "NOT-STARTED": 3,
-    "BUILT-NOT-PROVED": 17,
+    "BUILT-NOT-PROVED": 16,
     "TESTABLE-NOW": 0,
     "VERIFIED-PASS": 3,
     FAILED: 1,
-    "BLOCKED-UNKNOWN": 6,
+    "BLOCKED-UNKNOWN": 7,
     DEFERRED: 28,
   });
 });
@@ -271,16 +273,18 @@ test("every state used is one of the seven, and every row is classified", () => 
  * being looked at, so it belongs in this column beside the three passes, and
  * it must never be read as a fourth tick.
  */
-test("🔴 exactly FOUR rows moved on WORK against the four-state baseline — 8, 14, 15 and 48 — and 14 FAILED", () => {
+/* 🔴 FIVE since the real country run — item 9 is work that ended BLOCKED, not
+ * passed and not failed: every dimension a tool can supply was measured, and the
+ * one no tool supplies was named. It is the only work row outside LOOKED, and
+ * it is pinned so a second cannot join it quietly. */
+test("🔴 exactly FIVE rows moved on WORK against the four-state baseline — 8, 9, 14, 15 and 48 — 14 FAILED, 9 BLOCKED", () => {
   const rows = Object.values(classify());
   const work = rows.filter((r) => r.changeKind === "work");
-  assert.deepEqual(work.map((r) => r.id).sort((a, b) => a - b), [8, 14, 15, 48]);
-  for (const r of work) {
-    assert.ok(LOOKED.includes(r.state), `item ${r.id} claims work but was neither passed nor failed`);
-  }
+  assert.deepEqual(work.map((r) => r.id).sort((a, b) => a - b), [8, 9, 14, 15, 48]);
+  assert.deepEqual(work.filter((r) => !LOOKED.includes(r.state)).map((r) => `${r.id}:${r.state}`), ["9:BLOCKED-UNKNOWN"]);
   assert.deepEqual(work.filter((r) => r.state === "FAILED").map((r) => r.id), [14]);
   assert.equal(rows.filter((r) => r.changeKind === "vocabulary").length, 33);
-  assert.equal(rows.filter((r) => r.changeKind === "none").length, 21);
+  assert.equal(rows.filter((r) => r.changeKind === "none").length, 20);
 });
 
 /**

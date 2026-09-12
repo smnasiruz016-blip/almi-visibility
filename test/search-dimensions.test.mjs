@@ -172,18 +172,38 @@ test("the seven are the boundary's seven, in its order", () => {
 });
 
 /**
- * 🔴 REAL — THE COMMITTED EVIDENCE STORE. Five of seven. When the owner runs the
- * country pull against the real property this test goes red and must be updated
- * deliberately, with the new counts shown.
+ * 🔴 REAL — THE COMMITTED EVIDENCE STORE. SIX OF SEVEN since 12 September 2026,
+ * night: the owner supplied the read-only key and the country pulls ran against
+ * the real property — country 126 rows, country×query 388 rows, each ONE request,
+ * exhausted, dataState COMPLETE, bounds 25000/20. This test was 5 of 7 and went
+ * red on that run, as it was written to.
+ *
+ * Six of seven does NOT tick. The seventh is BLOCKED — no tool we hold supplies it.
  */
 const STORE = `${REPO}runs/evidence/evidence.jsonl`;
-test("🔴 REAL: the committed store holds 5 of 7 — countries BUILT_NOT_RUN, outcomes BLOCKED — so item 9 does NOT tick", { skip: !existsSync(STORE) }, () => {
+test("🔴 REAL: the committed store holds 6 of 7 — countries INGESTED, outcomes BLOCKED — so item 9 does NOT tick", { skip: !existsSync(STORE) }, () => {
   const c = dimensionCensus(createJsonlStore(STORE).readAll());
   const by = Object.fromEntries(c.dimensions.map((d) => [d.dimension, d.state]));
   assert.deepEqual(by, {
-    queries: "INGESTED", pages: "INGESTED", countries: "BUILT_NOT_RUN", impressions: "INGESTED",
+    queries: "INGESTED", pages: "INGESTED", countries: "INGESTED", impressions: "INGESTED",
     clicks: "INGESTED", CTR: "INGESTED", "downstream outcomes": "BLOCKED",
   });
-  assert.equal(c.ingested, 5);
-  assert.equal(item9Verdict(c), "NOT_ALL_INGESTED");
+  assert.equal(c.ingested, 6);
+  assert.equal(item9Verdict(c), "ONLY_BLOCKED_DIMENSIONS_SHORT");
+  const country = c.pulls.find((p) => p.pull === "country");
+  const countryQuery = c.pulls.find((p) => p.pull === "country-query");
+  assert.deepEqual(
+    [country.rowCount, country.requestCount, country.exhausted, country.dataState, country.rowLimitPerRequest, country.maxRequests],
+    [126, 1, true, "COMPLETE", 25000, 20],
+  );
+  assert.deepEqual(
+    [countryQuery.rowCount, countryQuery.requestCount, countryQuery.exhausted, countryQuery.dataState, countryQuery.rowLimitPerRequest, countryQuery.maxRequests],
+    [388, 1, true, "COMPLETE", 25000, 20],
+  );
+});
+
+test("🔴 REAL: the stored country measurements pass item 8's guard — a count is not a demand claim", { skip: !existsSync(STORE) }, () => {
+  const stored = createJsonlStore(STORE).readAll().filter((r) => /:country(-query)?$/.test(r.method ?? ""));
+  assert.equal(stored.length, 2);
+  for (const r of stored) assert.deepEqual(measurementOnlyViolations(r.value), []);
 });

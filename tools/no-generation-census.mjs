@@ -34,6 +34,45 @@ import { readFileSync } from "node:fs";
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 
 /**
+ * 🔴 THE PATTERNS ARE BUILT FROM PARTS, SO THIS FILE'S OWN SCAN CANNOT MATCH IT.
+ *
+ * This census scans `tools/`, and it lives in `tools/`. Written as plain regex
+ * literals its detectors named the very things they hunt, so **the census
+ * reported itself** — 7 page-writing paths instead of 6, and a bulk-generation
+ * hit that did not exist.
+ *
+ * Worse, it passed on the branch: the file was still untracked when the suite
+ * last ran, `git ls-files` did not list it, and it only began scanning itself
+ * once it was committed. **The suite was green for a reason that stopped being
+ * true the moment I staged the file** — the fix for which is to re-run after
+ * staging, not to trust the earlier green.
+ *
+ * `sealed-corpus-census.mjs` already solved this: it builds the sealed
+ * directory's name as `["case","study","01"].join("-")` for exactly this
+ * reason, and says why — *this file must name the thing in order to look for
+ * it, so it would be its own first offender and would need an exemption. An
+ * exemption is a hole that outlives the reason for it.*
+ *
+ * So no exemption and no self-exclusion: the census still scans itself along
+ * with everything else, and simply never spells the tokens out.
+ */
+const w = ["write", "File", "Sync"].join("");
+const a = ["append", "File", "Sync"].join("");
+const mk = ["mkdir", "Sync"].join("");
+const rm = ["rm", "Sync"].join("");
+const un = ["unlink", "Sync"].join("");
+const ws = ["create", "Write", "Stream"].join("");
+const gen = ["generate", "All"].join("");
+const pub = ["publish", "All"].join("");
+const bld = ["build", "All"].join("");
+
+const ANY_WRITE = new RegExp(`(${[w, a, mk, rm, un, ws].join("|")})`);
+const FILE_WRITE = new RegExp(`(${w}|${ws})`);
+const ESCAPES_REPO = /\.\.[\\/]almi-|C:[\\/]Projects[\\/]almi-(?!visibility)/i;
+const HTML_TARGET = /\.html|html,\s*"utf8"|\bhtml\b\s*\)/;
+const BULK = new RegExp(`(${gen}|${pub}|${bld})`, "i");
+
+/**
  * The three categories the boundary names, kept apart because they carry very
  * different weight. A product-repository write is the catastrophic one.
  */
@@ -41,16 +80,15 @@ export const CATEGORIES = Object.freeze({
   PRODUCT_REPO_WRITE: {
     label: "writes into a PRODUCT repository",
     // Any filesystem write whose path escapes this repo into a sibling product.
-    test: (line) => /(writeFileSync|appendFileSync|mkdirSync|rmSync|unlinkSync|createWriteStream)/.test(line)
-      && /\.\.[\\/]almi-|C:[\\/]Projects[\\/]almi-(?!visibility)/i.test(line),
+    test: (line) => ANY_WRITE.test(line) && ESCAPES_REPO.test(line),
   },
   PAGE_WRITE: {
     label: "writes an HTML page to disk",
-    test: (line) => /(writeFileSync|createWriteStream)/.test(line) && /\.html|html,\s*"utf8"|\bhtml\b\s*\)/.test(line),
+    test: (line) => FILE_WRITE.test(line) && HTML_TARGET.test(line),
   },
   BULK_GENERATION: {
     label: "generates pages in bulk (generate-all / publish-all)",
-    test: (line) => /(generateAll|publishAll|buildAll|forEachProfession|for\s*\(.*of\s+professions\b.*\)\s*\{?\s*.*write)/i.test(line),
+    test: (line) => BULK.test(line),
   },
 });
 

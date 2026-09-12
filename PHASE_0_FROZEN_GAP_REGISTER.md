@@ -115,6 +115,47 @@ nowhere in the contract, having dropped *"— IN THE CORPUS"* from `✅ VERIFIED
 CORPUS`. **`CS-5` is left exactly as written: this register is frozen and its disposition is the
 owner's.** See `CHECKLIST_STATUS.md` §"Item 52".
 
+## OWNER RULINGS 4 AND 5 — 12 SEPTEMBER 2026, AND THE EVIDENCE THAT CONTRADICTS THEM
+
+**RULING 4.** Asked: *was the `/from/` corridor robots.txt block on almiitalian, almidutch,
+almiportuguese and almiicelandic deliberate?* Answered: **NO. The owner did not instruct it and does
+not know of it. The finding stands as a defect.**
+
+**RULING 5.** Asked: *was the AI-crawler block on 12 products (`U10`) deliberate?* Answered:
+**NO. Same answer, same standing.** `U10` moves from *awaiting a ruling* to **a measured, unintended
+state whose origin is unknown**.
+
+**Neither ruling authorises a fix. Both authorise an investigation.** The investigation ran, and it
+returned something the rulings did not anticipate.
+
+> ### 🔴 CONTRADICTING EVIDENCE — RECORDED, NOT DECIDED.
+>
+> The register's own rule: *"Two things, and only two, may disturb a ruling: contradicting evidence,
+> or an owner-approved scope change. In either case the response is to write the reason down and
+> stop — never to decide."* This is the first case. **I am writing it down and stopping.**
+>
+> Git history shows **both rules were authored by the owner's own account**
+> (`smnasiruz016@gmail.com`), and **the commit messages explain the intent in detail**:
+>
+> > *"Cuts ISR-write cost driven by bot crawls of the deep per-origin long-tail: robots.txt:
+> > Googlebot/Bingbot keep full leaf access (SEO channel), generic bots get hubs+landing only (deep
+> > `/from/` leaves disallowed + crawlDelay), and heavy no-SEO crawlers … are blocked."*
+> > — `867790a`, `7fd0569`, `6054ed4`, 2026-07-20, byte-identical across three forks
+>
+> **What this does NOT establish:** that the owner recalls it, or that he intended the state we
+> measure *today*. Every one of those commits is co-authored by an AI assistant, and the block that
+> actually causes the defect — **extending the Disallow to Googlebot** — was a **separate, later**
+> change (`5e3e211`, `e462310` on 2026-07-28; `0397abd` on 2026-08-09). The original commits
+> explicitly *kept Googlebot's full leaf access*.
+>
+> **So the honest statement is:** the rules were authored deliberately, for a stated cost reason;
+> the Googlebot extension came later; and whether the owner intended **the state as it now stands**
+> is a question only he can answer. **The rulings are recorded as given and are not amended here.**
+
+⚠️ **The DEFECT finding is unaffected either way.** Whether the block was intended or not, 106 URLs
+carrying 216 impressions cannot be crawled by Googlebot. Intent changes what to do about it; it does
+not change the measurement.
+
 ---
 
 # 0A · 🔴 LAWS — GENERAL, AND THEY APPLY TO CODE NOT YET WRITTEN

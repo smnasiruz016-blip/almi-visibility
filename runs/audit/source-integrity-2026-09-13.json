@@ -1,0 +1,378 @@
+{
+  "startedAt": "2026-09-13T01:42:09.708Z",
+  "finishedAt": "2026-09-13T01:42:28.324Z",
+  "requests": 18,
+  "maxRequests": 40,
+  "intervalMs": 1000,
+  "plan": [
+    {
+      "url": "https://nmcn.gov.ng/verify.html",
+      "records": 6,
+      "verifiedRecords": 1
+    },
+    {
+      "url": "https://oet.com/en-us/Intellectual-Property-policy",
+      "records": 1,
+      "verifiedRecords": 0
+    },
+    {
+      "url": "https://oet.com/en-us/learn/speaking",
+      "records": 1,
+      "verifiedRecords": 0
+    },
+    {
+      "url": "https://oet.com/en-us/learn/writing",
+      "records": 1,
+      "verifiedRecords": 0
+    },
+    {
+      "url": "https://oet.com/en-us/test/oet-test",
+      "records": 1,
+      "verifiedRecords": 1
+    },
+    {
+      "url": "https://oet.com/en-us/test/results-and-scoring",
+      "records": 1,
+      "verifiedRecords": 0
+    },
+    {
+      "url": "https://pnmc.gov.pk/verification-registration-2/",
+      "records": 5,
+      "verifiedRecords": 4
+    },
+    {
+      "url": "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england",
+      "records": 10,
+      "verifiedRecords": 7
+    },
+    {
+      "url": "https://www.gov.uk/guidance/immigration-rules/immigration-rules-appendix-english-language",
+      "records": 2,
+      "verifiedRecords": 2
+    },
+    {
+      "url": "https://www.hcpc-uk.org/registration/getting-on-the-register/international-applications/documents/certificate-of-english-language-proficiency/",
+      "records": 7,
+      "verifiedRecords": 7
+    },
+    {
+      "url": "https://www.immigration.govt.nz/about-us/news-centre/update-on-english-language-testing-for-immigration-applications/",
+      "records": 1,
+      "verifiedRecords": 0
+    },
+    {
+      "url": "https://www.nmbi.ie/Registration/Qualified-outside-the-EU/Application-Process/English-Language-Requirements",
+      "records": 3,
+      "verifiedRecords": 3
+    },
+    {
+      "url": "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/",
+      "records": 1,
+      "verifiedRecords": 1
+    },
+    {
+      "url": "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/accepted-english-language-tests/oet/",
+      "records": 5,
+      "verifiedRecords": 5
+    },
+    {
+      "url": "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/qualified-in-english/",
+      "records": 1,
+      "verifiedRecords": 1
+    }
+  ],
+  "counts": {
+    "LIVE": 15,
+    "GONE": 0,
+    "UNKNOWN": 0
+  },
+  "results": [
+    {
+      "url": "https://nmcn.gov.ng/verify.html",
+      "methodsUsed": "HEAD",
+      "hops": [
+        {
+          "url": "https://nmcn.gov.ng/verify.html",
+          "method": "HEAD",
+          "status": 200
+        }
+      ],
+      "finalStatus": 200,
+      "error": null,
+      "verdict": "LIVE",
+      "reason": "HTTP 200",
+      "baseline": "CONTENT",
+      "agrees": true,
+      "note": "agrees: it answered, as it did for beta-g"
+    },
+    {
+      "url": "https://oet.com/en-us/Intellectual-Property-policy",
+      "methodsUsed": "HEAD",
+      "hops": [
+        {
+          "url": "https://oet.com/en-us/Intellectual-Property-policy",
+          "method": "HEAD",
+          "status": 200
+        }
+      ],
+      "finalStatus": 200,
+      "error": null,
+      "verdict": "LIVE",
+      "reason": "HTTP 200",
+      "baseline": "HTTP 403",
+      "agrees": null,
+      "note": "differs from the 12 September 403: now LIVE"
+    },
+    {
+      "url": "https://oet.com/en-us/learn/speaking",
+      "methodsUsed": "HEAD",
+      "hops": [
+        {
+          "url": "https://oet.com/en-us/learn/speaking",
+          "method": "HEAD",
+          "status": 308
+        },
+        {
+          "url": "https://oet.com/en-us/ready/speaking",
+          "method": "HEAD",
+          "status": 200
+        }
+      ],
+      "finalStatus": 200,
+      "error": null,
+      "verdict": "LIVE",
+      "reason": "HTTP 200",
+      "baseline": "HTTP 403",
+      "agrees": null,
+      "note": "differs from the 12 September 403: now LIVE"
+    },
+    {
+      "url": "https://oet.com/en-us/learn/writing",
+      "methodsUsed": "HEAD",
+      "hops": [
+        {
+          "url": "https://oet.com/en-us/learn/writing",
+          "method": "HEAD",
+          "status": 308
+        },
+        {
+          "url": "https://oet.com/en-us/ready/writing",
+          "method": "HEAD",
+          "status": 200
+        }
+      ],
+      "finalStatus": 200,
+      "error": null,
+      "verdict": "LIVE",
+      "reason": "HTTP 200",
+      "baseline": "HTTP 403",
+      "agrees": null,
+      "note": "differs from the 12 September 403: now LIVE"
+    },
+    {
+      "url": "https://oet.com/en-us/test/oet-test",
+      "methodsUsed": "HEAD",
+      "hops": [
+        {
+          "url": "https://oet.com/en-us/test/oet-test",
+          "method": "HEAD",
+          "status": 200
+        }
+      ],
+      "finalStatus": 200,
+      "error": null,
+      "verdict": "LIVE",
+      "reason": "HTTP 200",
+      "baseline": "HTTP 403",
+      "agrees": null,
+      "note": "differs from the 12 September 403: now LIVE"
+    },
+    {
+      "url": "https://oet.com/en-us/test/results-and-scoring",
+      "methodsUsed": "HEAD",
+      "hops": [
+        {
+          "url": "https://oet.com/en-us/test/results-and-scoring",
+          "method": "HEAD",
+          "status": 200
+        }
+      ],
+      "finalStatus": 200,
+      "error": null,
+      "verdict": "LIVE",
+      "reason": "HTTP 200",
+      "baseline": "HTTP 403",
+      "agrees": null,
+      "note": "differs from the 12 September 403: now LIVE"
+    },
+    {
+      "url": "https://pnmc.gov.pk/verification-registration-2/",
+      "methodsUsed": "HEAD",
+      "hops": [
+        {
+          "url": "https://pnmc.gov.pk/verification-registration-2/",
+          "method": "HEAD",
+          "status": 200
+        }
+      ],
+      "finalStatus": 200,
+      "error": null,
+      "verdict": "LIVE",
+      "reason": "HTTP 200",
+      "baseline": "CONTENT",
+      "agrees": true,
+      "note": "agrees: it answered, as it did for beta-g"
+    },
+    {
+      "url": "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england",
+      "methodsUsed": "HEAD",
+      "hops": [
+        {
+          "url": "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england",
+          "method": "HEAD",
+          "status": 200
+        }
+      ],
+      "finalStatus": 200,
+      "error": null,
+      "verdict": "LIVE",
+      "reason": "HTTP 200",
+      "baseline": "CONTENT",
+      "agrees": true,
+      "note": "agrees: it answered, as it did for beta-g"
+    },
+    {
+      "url": "https://www.gov.uk/guidance/immigration-rules/immigration-rules-appendix-english-language",
+      "methodsUsed": "HEAD",
+      "hops": [
+        {
+          "url": "https://www.gov.uk/guidance/immigration-rules/immigration-rules-appendix-english-language",
+          "method": "HEAD",
+          "status": 200
+        }
+      ],
+      "finalStatus": 200,
+      "error": null,
+      "verdict": "LIVE",
+      "reason": "HTTP 200",
+      "baseline": "CONTENT",
+      "agrees": true,
+      "note": "agrees: it answered, as it did for beta-g"
+    },
+    {
+      "url": "https://www.hcpc-uk.org/registration/getting-on-the-register/international-applications/documents/certificate-of-english-language-proficiency/",
+      "methodsUsed": "HEAD+GET",
+      "hops": [
+        {
+          "url": "https://www.hcpc-uk.org/registration/getting-on-the-register/international-applications/documents/certificate-of-english-language-proficiency/",
+          "method": "HEAD",
+          "status": 405,
+          "note": "HEAD refused — retried with GET"
+        },
+        {
+          "url": "https://www.hcpc-uk.org/registration/getting-on-the-register/international-applications/documents/certificate-of-english-language-proficiency/",
+          "method": "GET",
+          "status": 200
+        }
+      ],
+      "finalStatus": 200,
+      "error": null,
+      "verdict": "LIVE",
+      "reason": "HTTP 200",
+      "baseline": "CONTENT",
+      "agrees": true,
+      "note": "agrees: it answered, as it did for beta-g"
+    },
+    {
+      "url": "https://www.immigration.govt.nz/about-us/news-centre/update-on-english-language-testing-for-immigration-applications/",
+      "methodsUsed": "HEAD",
+      "hops": [
+        {
+          "url": "https://www.immigration.govt.nz/about-us/news-centre/update-on-english-language-testing-for-immigration-applications/",
+          "method": "HEAD",
+          "status": 200
+        }
+      ],
+      "finalStatus": 200,
+      "error": null,
+      "verdict": "LIVE",
+      "reason": "HTTP 200",
+      "baseline": "CONTENT",
+      "agrees": true,
+      "note": "agrees: it answered, as it did for beta-g"
+    },
+    {
+      "url": "https://www.nmbi.ie/Registration/Qualified-outside-the-EU/Application-Process/English-Language-Requirements",
+      "methodsUsed": "HEAD",
+      "hops": [
+        {
+          "url": "https://www.nmbi.ie/Registration/Qualified-outside-the-EU/Application-Process/English-Language-Requirements",
+          "method": "HEAD",
+          "status": 200
+        }
+      ],
+      "finalStatus": 200,
+      "error": null,
+      "verdict": "LIVE",
+      "reason": "HTTP 200",
+      "baseline": "CONTENT",
+      "agrees": true,
+      "note": "agrees: it answered, as it did for beta-g"
+    },
+    {
+      "url": "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/",
+      "methodsUsed": "HEAD",
+      "hops": [
+        {
+          "url": "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/",
+          "method": "HEAD",
+          "status": 200
+        }
+      ],
+      "finalStatus": 200,
+      "error": null,
+      "verdict": "LIVE",
+      "reason": "HTTP 200",
+      "baseline": "CONTENT",
+      "agrees": true,
+      "note": "agrees: it answered, as it did for beta-g"
+    },
+    {
+      "url": "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/accepted-english-language-tests/oet/",
+      "methodsUsed": "HEAD",
+      "hops": [
+        {
+          "url": "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/accepted-english-language-tests/oet/",
+          "method": "HEAD",
+          "status": 200
+        }
+      ],
+      "finalStatus": 200,
+      "error": null,
+      "verdict": "LIVE",
+      "reason": "HTTP 200",
+      "baseline": "CONTENT",
+      "agrees": true,
+      "note": "agrees: it answered, as it did for beta-g"
+    },
+    {
+      "url": "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/qualified-in-english/",
+      "methodsUsed": "HEAD",
+      "hops": [
+        {
+          "url": "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/qualified-in-english/",
+          "method": "HEAD",
+          "status": 200
+        }
+      ],
+      "finalStatus": 200,
+      "error": null,
+      "verdict": "LIVE",
+      "reason": "HTTP 200",
+      "baseline": "CONTENT",
+      "agrees": true,
+      "note": "agrees: it answered, as it did for beta-g"
+    }
+  ],
+  "ledgerEntry": "link-check:2026-09-13T01:42:09.708Z"
+}

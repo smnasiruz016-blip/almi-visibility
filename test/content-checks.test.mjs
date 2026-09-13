@@ -244,6 +244,29 @@ test("🔴 CANNIBALIZATION — CLEAN CONTROL: one query on one URL stays SILENT"
   assert.deepEqual(detectCannibalization([{ query: "solo", url: "https://e.example.com/c", position: 2 }]), []);
 });
 
+test("🔴 ITEM 13 REPORT — FIRING: each overlap is printed with its QUERY, every competing URL and its POSITION, beside the number searched", async () => {
+  const { reportCannibalization, DEMAND_WORDS } = await import("../src/audit/content-checks.mjs");
+  const rows = [
+    { query: "oet nursing", url: "https://e.example.com/a", position: 4, impressions: 20 },
+    { query: "oet nursing", url: "https://e.example.com/b", position: 9.5, impressions: 5 },
+    { query: "solo", url: "https://e.example.com/c", position: 2, impressions: 9 },
+  ];
+  const text = reportCannibalization({ findings: detectCannibalization(rows), queriesSearched: 2, rowsSearched: 3, source: "fixture" }).join("\n");
+  assert.match(text, /\[bound: 2 queries searched · 3 query×page rows · fixture\]/);
+  assert.match(text, /1 of 2 queries drew impressions on more than one URL/);
+  assert.match(text, /query: "oet nursing"/);
+  assert.match(text, /position 4\.0 · 20 impression\(s\) · https:\/\/e\.example\.com\/a/);
+  assert.match(text, /position 9\.5 · 5 impression\(s\) · https:\/\/e\.example\.com\/b/);
+  for (const w of DEMAND_WORDS) assert.ok(!text.toLowerCase().includes(w), `the overlap report said "${w}" — a measurement became a recommendation`);
+});
+
+test("🔴 ITEM 13 REPORT — CLEAN CONTROL: no overlap prints no query, and still states what was searched", async () => {
+  const { reportCannibalization } = await import("../src/audit/content-checks.mjs");
+  const text = reportCannibalization({ findings: [], queriesSearched: 1, rowsSearched: 1, source: "fixture" }).join("\n");
+  assert.match(text, /0 of 1 queries drew impressions on more than one URL/);
+  assert.doesNotMatch(text, /query: "/);
+});
+
 /* ================================================================== *
  * ITEM 14 — 🔴 NO BLIND REGENERATION. A REDISCOVERED URL KEEPS ITS ID.
  * ================================================================== */

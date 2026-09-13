@@ -197,16 +197,19 @@ test("🔴 moves since Amendment 2: TWO by ruling (14 and 45 → TESTABLE-NOW); 
   assert.deepEqual(all.filter((s) => s.kind === "ruling").map((s) => `${s.id}:${s.from}→${s.to}`), ["14:BUILT-NOT-PROVED→TESTABLE-NOW", "45:FAILED→TESTABLE-NOW"]);
   assert.deepEqual(all.filter((s) => s.kind === "work").map((s) => `${s.id}:${s.from}→${s.to}`), [
     "9:BUILT-NOT-PROVED→BLOCKED-UNKNOWN", "11:BLOCKED-UNKNOWN→VERIFIED-PASS",
-    "12:BUILT-NOT-PROVED→TESTABLE-NOW", "12:TESTABLE-NOW→VERIFIED-PASS", "13:BUILT-NOT-PROVED→TESTABLE-NOW",
+    "12:BUILT-NOT-PROVED→TESTABLE-NOW", "12:TESTABLE-NOW→VERIFIED-PASS", "13:BUILT-NOT-PROVED→TESTABLE-NOW", "13:TESTABLE-NOW→VERIFIED-PASS",
     "14:TESTABLE-NOW→FAILED", "14:FAILED→VERIFIED-PASS",
-    "25:BUILT-NOT-PROVED→TESTABLE-NOW", "26:BUILT-NOT-PROVED→TESTABLE-NOW",
+    "25:BUILT-NOT-PROVED→TESTABLE-NOW", "26:BUILT-NOT-PROVED→TESTABLE-NOW", "26:TESTABLE-NOW→VERIFIED-PASS",
     "38:BUILT-NOT-PROVED→TESTABLE-NOW", "38:TESTABLE-NOW→VERIFIED-PASS",
     "42:BLOCKED-UNKNOWN→VERIFIED-PASS", "45:BUILT-NOT-PROVED→FAILED", "45:TESTABLE-NOW→VERIFIED-PASS",
     "48:VERIFIED-PASS→FAILED", "48:FAILED→VERIFIED-PASS", "49:BUILT-NOT-PROVED→VERIFIED-PASS",
     "50:BUILT-NOT-PROVED→TESTABLE-NOW", "50:TESTABLE-NOW→FAILED",
     "51:BUILT-NOT-PROVED→TESTABLE-NOW", "51:TESTABLE-NOW→FAILED",
-    "55:BUILT-NOT-PROVED→TESTABLE-NOW",
+    "55:BUILT-NOT-PROVED→TESTABLE-NOW", "55:TESTABLE-NOW→FAILED", "55:FAILED→VERIFIED-PASS",
   ]);
+  // 🔴 55 left FAILED the way 14 and 48 did — its test re-run and passing, after the leak was fixed.
+  const out55 = MOVES_AMENDMENT_2[55].find((s) => s.from === "FAILED");
+  assert.equal(out55.route, "RETEST_PASSED");
   // 🔴 A re-scan move says the INPUT exists — never that the row passed.
   for (const s of all.filter((x) => x.route === "INPUT_EXISTS")) {
     assert.equal(s.to, "TESTABLE-NOW", `item ${s.id}: an input-exists move went somewhere other than TESTABLE-NOW`);
@@ -230,10 +233,10 @@ test("before Amendment 2 the ledger was 3 / 18 / 0 / 3 / 0 / 6 / 28", () => {
   });
 });
 
-test("🔴 since Amendment 2, SEVEN rows reached VERIFIED-PASS (11, 12, 14, 38, 42, 45, 49); 48 LOST it and EARNED IT BACK", () => {
+test("🔴 since Amendment 2, TEN rows reached VERIFIED-PASS (11, 12, 13, 14, 26, 38, 42, 45, 49, 55); 48 LOST it and EARNED IT BACK", () => {
   const rows = classify();
   const newPasses = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS" && BEFORE_AMENDMENT_2[r.id] !== "VERIFIED-PASS");
-  assert.deepEqual(newPasses.map((r) => r.id), [11, 12, 14, 38, 42, 45, 49]);
+  assert.deepEqual(newPasses.map((r) => r.id), [11, 12, 13, 14, 26, 38, 42, 45, 49, 55]);
   const lost = Object.values(rows).filter((r) => BEFORE_AMENDMENT_2[r.id] === "VERIFIED-PASS" && r.state !== "VERIFIED-PASS");
   assert.deepEqual(lost.map((r) => r.id), []);
   // The count hides a round trip — the chain does not.

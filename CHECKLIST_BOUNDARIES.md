@@ -25,8 +25,8 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 |---|---|---|---|
 | **NOT-STARTED** | 3 | 3 | **3** |
 | **BUILT-NOT-PROVED** | 18 | 17 | **6** |
-| **TESTABLE-NOW** | 0 | 2 | **4** |
-| **VERIFIED-PASS** | 3 | 3 | **10** |
+| **TESTABLE-NOW** | 0 | 2 | **1** |
+| **VERIFIED-PASS** | 3 | 3 | **13** |
 | **FAILED** | 0 | -1 | **2** |
 | **BLOCKED-UNKNOWN** | 6 | 6 | **5** |
 | **DEFERRED** | 28 | 28 | **28** |
@@ -42,10 +42,11 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 - **item 14** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-12 — report.mjs and the chain runner's cache now write only with --confirm; every destination is confined to this repository and refused outside it; all five parts re-tested and each RED-proved
 - **item 45** left FAILED for TESTABLE-NOW by route `OWNER_RULING` on 2026-09-12 — 'A component cannot be failed for a period before it existed.' The boundary's INPUT is a run; the scope is runs from 8c9d68b (2026-09-12T23:03:09Z) onward. The bar is unchanged; the eight earlier runs are recorded as a permanent loss (L-COST-1)
 - **item 48** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — every authorized job that stores a record has now been run twice into one store with zero duplicates on the second run — crawl (replay: 389 unchanged → 0 new, 389 re-sightings), DNS audit (RECORDED resolver answers: 134 → +0), technical, content, verification and supply-label writers — and the census holds every issue writer to appendIfNew; RED when the key takes the clock
+- **item 55** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — the parse is caught and rethrown with nothing from the file; the leak test re-run passed on every credential path, RED when the key or its length is logged; recovery proved by restoring torn stores from git, byte-identical by blob hash
 
-**Rows that have been looked at (VERIFIED-PASS or FAILED): 12 of 58.**
+**Rows that have been looked at (VERIFIED-PASS or FAILED): 15 of 58.**
 
-**Rows that reached VERIFIED-PASS in this PR: 7.**
+**Rows that reached VERIFIED-PASS in this PR: 10.**
 
 #### moved ONLY because a RULING changed
 
@@ -63,10 +64,12 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 12 | BUILT-NOT-PROVED | TESTABLE-NOW | `undefined` | 2026-09-13 | the corpus with shell subtraction defined and printed exists in the repository |
 | 12 | TESTABLE-NOW | VERIFIED-PASS | `node bin/audit-content.mjs over the committed archive · test/queue-rescan.test.mjs · test/content-checks.test.mjs · test/supply-labels.test.mjs` | 2026-09-13 | each of the four classifications accounts for all 394 pages (0/118/5/2 FAIL), the shell definition printed beside the result, the shell-heavier-than-body control and the item-8 guard passing |
 | 13 | BUILT-NOT-PROVED | TESTABLE-NOW | `undefined` | 2026-09-13 | query×page data with real overlaps exists; run, it detects all 21 and none falsely, but reports only a count — EXPECTED missed, FAILURE not met, so it stays here |
+| 13 | TESTABLE-NOW | VERIFIED-PASS | `node bin/audit-content.mjs · test/content-checks.test.mjs · test/queue-rescan.test.mjs` | 2026-09-13 | every overlap reported with its query, competing URLs and positions — 21 of 337 queries searched, printed beside the result, from the newest complete pull; firing fixture and clean control for detector and report; item 8's guard holds |
 | 14 | TESTABLE-NOW | FAILED | `test/permitted-writers.test.mjs` | 2026-09-12 | the re-test was run against the new contract, and its FAILURE condition 'defaults to writing' was met at two write sites |
 | 14 | FAILED | VERIFIED-PASS | `test/permitted-writers.test.mjs · test/write-confinement.test.mjs · test/no-blind-regeneration.test.mjs · node tools/permitted-writers.mjs` | 2026-09-12 | report.mjs and the chain runner's cache now write only with --confirm; every destination is confined to this repository and refused outside it; all five parts re-tested and each RED-proved |
 | 25 | BUILT-NOT-PROVED | TESTABLE-NOW | `undefined` | 2026-09-13 | the input exists; not run, because its source-integrity leg is a live link check this change may not make |
 | 26 | BUILT-NOT-PROVED | TESTABLE-NOW | `undefined` | 2026-09-13 | the input exists; run, the two runners' zero-inbound counts over the same bodies disagree (340 vs 341) — EXPECTED missed, FAILURE not met, so it stays here |
+| 26 | TESTABLE-NOW | VERIFIED-PASS | `node bin/edge-graph.mjs · node bin/audit-content.mjs · node bin/audit-technical.mjs · node bin/instrument-disagreement.mjs --close · test/edge-graph.test.mjs · test/queue-rescan.test.mjs` | 2026-09-13 | both runners read one stored graph through one definition and print 335; the 11 disagreement Issues closed on their recorded output; 335 pages with no inbound link, every one UNKNOWN and none 'missing'; the graph in durable storage |
 | 38 | BUILT-NOT-PROVED | TESTABLE-NOW | `undefined` | 2026-09-13 | every input the preflight names exists in the repository |
 | 38 | TESTABLE-NOW | VERIFIED-PASS | `node bin/audit-technical.mjs over the committed archive · test/queue-rescan.test.mjs · test/technical-checks.test.mjs` | 2026-09-13 | a state for all 394 pages — 158 BLOCKED, 210 UNKNOWN, 26 ELIGIBLE — with INDEXABLE ≠ INDEXED printed, and the build failing on any indexing promise |
 | 42 | BLOCKED-UNKNOWN | VERIFIED-PASS | `node bin/replay-crawl.mjs · test/replay.test.mjs` | 2026-09-13 | each of 5 changed targets re-tested on its LATEST stored observation, chosen from the store, with a verdict before and after naming the observation read: noindex FAIL→PASS and PASS→FAIL, canonical PASS→FAIL, head-elements PASS→FAIL, and a body-only change PASS→PASS on three checks |
@@ -80,6 +83,8 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 51 | BUILT-NOT-PROVED | TESTABLE-NOW | `undefined` | 2026-09-13 | a real recommendation exists |
 | 51 | TESTABLE-NOW | FAILED | `test/queue-rescan.test.mjs (item 51)` | 2026-09-13 | FAILURE met: priority, confidence and cost are missing on all three, and the real report renders none of the six |
 | 55 | BUILT-NOT-PROVED | TESTABLE-NOW | `undefined` | 2026-09-13 | the input exists; not run, because the executing leak test it needs does not exist yet |
+| 55 | TESTABLE-NOW | FAILED | `test/secret-leak.test.mjs (first honest run, before any fix)` | 2026-09-13 | FAILURE met — any leak: a key file that is not JSON was quoted by the adapter's parse error in-process and printed whole to stderr by the CLI (D-SEC-1) |
+| 55 | FAILED | VERIFIED-PASS | `test/secret-leak.test.mjs · test/store-recovery.test.mjs` | 2026-09-13 | the parse is caught and rethrown with nothing from the file; the leak test re-run passed on every credential path, RED when the key or its length is logged; recovery proved by restoring torn stores from git, byte-identical by blob hash |
 
 ---
 
@@ -89,8 +94,8 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 |---|---|---|
 | **NOT-STARTED** | 33 | **3** |
 | **BUILT-NOT-PROVED** | 24 | **6** |
-| **TESTABLE-NOW** | 0 | **4** |
-| **VERIFIED-PASS** | 0 | **10** |
+| **TESTABLE-NOW** | 0 | **1** |
+| **VERIFIED-PASS** | 0 | **13** |
 | **FAILED** | 0 | **2** |
 | **BLOCKED-UNKNOWN** | 1 | **5** |
 | **DEFERRED** | 0 | **28** |
@@ -108,11 +113,11 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 9 | Search Console / Analytics Intelligence | BUILT-NOT-PROVED | **BLOCKED-UNKNOWN** |
 | 11 | Existing Page Inventory | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 12 | Duplicate / Thin / Template Detection | BUILT-NOT-PROVED | **VERIFIED-PASS** |
-| 13 | Cannibalization Prevention | BUILT-NOT-PROVED | **TESTABLE-NOW** |
+| 13 | Cannibalization Prevention | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 14 | No Blind Regeneration | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 15 | Verified Fact Supply Engine | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 25 | Page Quality Gate | BUILT-NOT-PROVED | **TESTABLE-NOW** |
-| 26 | Internal-Link Intelligence | BUILT-NOT-PROVED | **TESTABLE-NOW** |
+| 26 | Internal-Link Intelligence | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 38 | Indexability Preflight | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 42 | Re-crawl / Re-test Loop | NOT-STARTED | **VERIFIED-PASS** |
 | 45 | Cost Governor | BUILT-NOT-PROVED | **VERIFIED-PASS** |
@@ -120,7 +125,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 49 | Audit Trail & Provenance | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 50 | OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation | BUILT-NOT-PROVED | **FAILED** |
 | 51 | Explainability | BUILT-NOT-PROVED | **FAILED** |
-| 55 | Security / Secrets / Recovery | BUILT-NOT-PROVED | **TESTABLE-NOW** |
+| 55 | Security / Secrets / Recovery | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 
 #### (ii) changed ONLY because the vocabulary changed
 
@@ -135,33 +140,17 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 ## 🧪 THE TESTABLE-NOW WORK QUEUE
 
-🔴 **TESTABLE-NOW IS NOT A PASS.** The input finally exists; the falsifiable test has not
-been run. Between here and VERIFIED-PASS there is exactly one thing: the test, run, with
-its evidence. Each row names the single test that would settle it.
-
-### 13 · Cannibalization Prevention
-
-**The one test:** make bin/audit-content.mjs REPORT each overlap — its query, the competing URLs and their positions — and state the number of queries searched; then re-run it over runs/evidence/evidence.jsonl and assert 337 queries searched, 21 overlaps, 0 that are one canonical page (test/queue-rescan.test.mjs)
-
-**Why it is testable now:** 🔴 **RE-SCANNED AND RUN 13 SEPTEMBER 2026 — IT DOES NOT TICK, AND BY AMENDMENT 2's OWN DEFINITION IT IS NOT FAILED EITHER.** **INPUT exists:** three query×page pulls for 2026-08-15 → 2026-09-12 carry query text (543, 574 and 574 rows, each COMPLETE and exhausted). **The detector is right on real data:** 337 distinct queries searched, 21 drawing impressions on more than one URL, and 0 of those 21 are two spellings of one canonical page — no single-URL query reported as an overlap. **EXPECTED NOT met:** the runner prints a COUNT ('21 queries on >1 URL'); it does not report any overlap's query, competing URLs or positions, and it never states how many queries it searched. **FAILURE not met** — no real overlap is missed and none is false — so Amendment 2 does not allow FAILED ('the boundary's FAILURE condition was met'), and a row that did not meet EXPECTED cannot pass. It stays TESTABLE-NOW with the one change and test named. ⚠️ The earlier '16 findings' was one of the three pulls; merged, it is 21
+🔴 **TESTABLE-NOW IS NOT A PASS.** The input exists; the test has not passed. Each row names
+the single test that would settle it, and (ruling 0B, 13 September 2026) whether it was
+NEVER TRIED or TRIED AND FELL SHORT — with the date and the specific gap when it was.
 
 ### 25 · Page Quality Gate
 
-**The one test:** run Gate A's four in-scope checks — unique value, sibling overlap, verified-fact presence, source integrity — over the 394 committed bodies (runs/crawl/bodies-2026-09-12.jsonl.br), each beside a clean control; the source-integrity leg opens each cited source URL and so needs the owner's green for a bounded live link check
+**The one test:** node bin/page-quality.mjs over an existing page set that includes pages known to state registry facts (a bounded capture of such pages needs the owner's green), with node bin/source-integrity.mjs's recorded run folded in per page · node --test test/existing-pages.test.mjs test/source-integrity.test.mjs
 
-**Why it is testable now:** 🔴 **RE-SCANNED 13 SEPTEMBER 2026: THE INPUT NOW EXISTS, AND THE TEST WAS NOT RUN.** **INPUT** 'an existing page, its siblings, and the claims it makes' — the 394 real bodies of 12 September are now committed, siblings included, and the 32 verified facts are the claims. **Not run here:** source integrity means opening each cited source URL, which is a live fetch, and this change may make none. Not a pass
+**Attempted 1 time(s), last on 2026-09-13. The gap that stopped it:** verified-fact presence finds 0 verified facts on all 389 existing pages, so source integrity — measured on all 15 cited sources, 15 LIVE — can be reported for NO existing page; the only page carrying verified facts is one this engine generated from the registry, which cannot show the check sees facts on a page someone else wrote
 
-### 26 · Internal-Link Intelligence
-
-**The one test:** make ONE definition of 'zero inbound links inside the crawled set' — used by both bin/audit-content.mjs and bin/audit-technical.mjs, stating whether a link from another host counts — store the edge graph (derivable from the committed body archive), then re-run both and assert they print the same count (test/queue-rescan.test.mjs)
-
-**Why it is testable now:** 🔴 **RE-SCANNED AND RUN 13 SEPTEMBER 2026 — IT DOES NOT TICK, AND IT IS NOT FAILED BY AMENDMENT 2's DEFINITION.** **INPUT exists:** the 394 served bodies are committed, and 19,926 links are read out of them. **What holds:** every edge is read from served HTML; a page with no inbound edge is reported UNKNOWN (NEEDS_RENDERED_HTML), never 'orphan' — 340 real UNKNOWN records. **What does not:** the two runners that count zero-inbound pages over the SAME bodies disagree — 340 (bin/audit-content.mjs, counts a link from any crawled host) against 341 (bin/audit-technical.mjs, same host only) — and neither states its scope, so 'orphan counts' has two answers. The graph is also still not stored as a graph. **FAILURE not met** — nothing unseen is recorded as absent and the graph is available — so it is TESTABLE-NOW with the fix and test named, not FAILED and not a pass
-
-### 55 · Security / Secrets / Recovery
-
-**The one test:** an executing test that drives the Search Console key-handling path with a PLANTED secret file and fails if any byte of it, its hash or its length reaches stdout, stderr, a log or a stored record; plus a recovery exercised — an evidence store restored to its last good prefix after an injected partial write
-
-**Why it is testable now:** 🔴 **RE-SCANNED 13 SEPTEMBER 2026: THE INPUT EXISTS, AND THE TEST WAS NOT RUN.** **INPUT** 'a code path that handles a secret, and a state that must be recoverable' — the key-file path through the Search Console adapter exists, and the append-only stores are the state. **Not run in this change:** no executing leak test exists yet — the FAILURE clause forbids proving it by manual grep, so it waits for that test, named here. Not a pass
+**Where it stands:** 🔴 **RUN 13 SEPTEMBER 2026 — ALL FOUR PARTS MEASURED, AND IT DOES NOT TICK, AND IT IS NOT FAILED.** **(1) UNIQUE VALUE — proved:** measured on all 389 existing pages with a served body (122 at or above 350 unique words after the group's shell, 267 below), firing fixture and clean control. **(2) SIBLING OVERLAP — proved, with its limits named:** MEASURED on 327 pages (239 within 0.40, 88 above); 52 pages sit alone in their template group (VACUOUS) and 10 in groups of two, where Gate A's shell is the pair's intersection and a duplicate pair would score 0 (UNMEASURABLE, D-GATEA-1) — neither is counted a pass. **(3) VERIFIED-FACT PRESENCE — measured, no real positive:** 0 of 389 existing pages carry a verified fact; the rule fires on real registry values on a page this engine GENERATED (14 present), which is a control and never an existing page. **(4) SOURCE INTEGRITY — measured live, per source, not per page:** the owner-authorised link check requested 18 of a hard cap of 40, 1/s, external hosts only, HEAD first — all 15 cited sources LIVE, 0 GONE, 0 UNKNOWN, 0 disagreements with beta-g's 12 September reading (the exam provider's site answered HEAD with 200 where beta-g's fetcher got 403). But with no existing page carrying a fact, no page has a source to report. **EXPECTED** ('each measured and reported per page') is not met for part 4; **FAILURE** ('fixture-only or absent') is not met — every part ran on real data. So: TESTABLE-NOW, attempted once, gap named
 
 ---
 
@@ -350,7 +339,7 @@ question for the owner, recorded as one.
 
 ### 13 · Cannibalization Prevention
 
-**TESTABLE-NOW** · class `S` · ruled in `§4+A1` · was BUILT-NOT-PROVED (work)
+**VERIFIED-PASS** · class `S` · ruled in `§4+A1` · was BUILT-NOT-PROVED (work)
 
 | part | the owner's words |
 |---|---|
@@ -361,9 +350,9 @@ question for the owner, recorded as one.
 | **v0.1 PASS boundary** | detect and report overlap between existing URLs and intents |
 | **⏭ deferred half** | where a suitable existing URL already serves the same intent → **default CREATE is not allowed**; the decision routes to IMPROVE or MERGE on the existing resource |
 
-**Verdict —** 🔴 **RE-SCANNED AND RUN 13 SEPTEMBER 2026 — IT DOES NOT TICK, AND BY AMENDMENT 2's OWN DEFINITION IT IS NOT FAILED EITHER.** **INPUT exists:** three query×page pulls for 2026-08-15 → 2026-09-12 carry query text (543, 574 and 574 rows, each COMPLETE and exhausted). **The detector is right on real data:** 337 distinct queries searched, 21 drawing impressions on more than one URL, and 0 of those 21 are two spellings of one canonical page — no single-URL query reported as an overlap. **EXPECTED NOT met:** the runner prints a COUNT ('21 queries on >1 URL'); it does not report any overlap's query, competing URLs or positions, and it never states how many queries it searched. **FAILURE not met** — no real overlap is missed and none is false — so Amendment 2 does not allow FAILED ('the boundary's FAILURE condition was met'), and a row that did not meet EXPECTED cannot pass. It stays TESTABLE-NOW with the one change and test named. ⚠️ The earlier '16 findings' was one of the three pulls; merged, it is 21
+**Verdict —** 🔴 **REPORTED, NOT COUNTED — AND THEN IT PASSED.** **INPUT** the newest COMPLETE query×page pull (c97334fdd102df8e, window 2026-08-15 → 2026-09-12, 574 rows) — one pull, because merging the three stored pulls of the same window mixes positions (12 query-URL pairs differ between pulls). **EXPECTED met:** every overlap is reported with its QUERY, every COMPETING URL and each URL's POSITION and impressions — **21 of 337 queries searched**, the number searched printed beside the result (LAW-BOUND-1). **FAILURE not met:** no real overlap missed (the detector reads every row of the pull) and none false — 0 of the 21 are two spellings of one canonical page. **EVIDENCE:** detection and report over real data (runs/audit/item-13-26-content-run-2026-09-13.txt); a firing fixture and a silent clean control for the detector AND for the report. **Measurement only:** alphabetical by query so nothing reads as a ranking, and item 8's demand-word guard holds over the report text
 
-**The one test that would settle it —** make bin/audit-content.mjs REPORT each overlap — its query, the competing URLs and their positions — and state the number of queries searched; then re-run it over runs/evidence/evidence.jsonl and assert 337 queries searched, 21 overlaps, 0 that are one canonical page (test/queue-rescan.test.mjs)
+**The one test that would settle it —** node bin/audit-content.mjs · node --test test/content-checks.test.mjs test/queue-rescan.test.mjs test/supply-labels.test.mjs
 
 ### 14 · No Blind Regeneration
 
@@ -526,13 +515,13 @@ question for the owner, recorded as one.
 | **v0.1 PASS boundary** | unique value, verified facts, sibling overlap and source integrity measured on existing pages. |
 | **⏭ deferred half** | right-to-exist, cannibalization and technical-readiness **as pre-publish gates** — they need a publish path. |
 
-**Verdict —** 🔴 **RE-SCANNED 13 SEPTEMBER 2026: THE INPUT NOW EXISTS, AND THE TEST WAS NOT RUN.** **INPUT** 'an existing page, its siblings, and the claims it makes' — the 394 real bodies of 12 September are now committed, siblings included, and the 32 verified facts are the claims. **Not run here:** source integrity means opening each cited source URL, which is a live fetch, and this change may make none. Not a pass
+**Verdict —** 🔴 **RUN 13 SEPTEMBER 2026 — ALL FOUR PARTS MEASURED, AND IT DOES NOT TICK, AND IT IS NOT FAILED.** **(1) UNIQUE VALUE — proved:** measured on all 389 existing pages with a served body (122 at or above 350 unique words after the group's shell, 267 below), firing fixture and clean control. **(2) SIBLING OVERLAP — proved, with its limits named:** MEASURED on 327 pages (239 within 0.40, 88 above); 52 pages sit alone in their template group (VACUOUS) and 10 in groups of two, where Gate A's shell is the pair's intersection and a duplicate pair would score 0 (UNMEASURABLE, D-GATEA-1) — neither is counted a pass. **(3) VERIFIED-FACT PRESENCE — measured, no real positive:** 0 of 389 existing pages carry a verified fact; the rule fires on real registry values on a page this engine GENERATED (14 present), which is a control and never an existing page. **(4) SOURCE INTEGRITY — measured live, per source, not per page:** the owner-authorised link check requested 18 of a hard cap of 40, 1/s, external hosts only, HEAD first — all 15 cited sources LIVE, 0 GONE, 0 UNKNOWN, 0 disagreements with beta-g's 12 September reading (the exam provider's site answered HEAD with 200 where beta-g's fetcher got 403). But with no existing page carrying a fact, no page has a source to report. **EXPECTED** ('each measured and reported per page') is not met for part 4; **FAILURE** ('fixture-only or absent') is not met — every part ran on real data. So: TESTABLE-NOW, attempted once, gap named
 
-**The one test that would settle it —** run Gate A's four in-scope checks — unique value, sibling overlap, verified-fact presence, source integrity — over the 394 committed bodies (runs/crawl/bodies-2026-09-12.jsonl.br), each beside a clean control; the source-integrity leg opens each cited source URL and so needs the owner's green for a bounded live link check
+**The one test that would settle it —** node bin/page-quality.mjs over an existing page set that includes pages known to state registry facts (a bounded capture of such pages needs the owner's green), with node bin/source-integrity.mjs's recorded run folded in per page · node --test test/existing-pages.test.mjs test/source-integrity.test.mjs
 
 ### 26 · Internal-Link Intelligence
 
-**TESTABLE-NOW** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (work)
+**VERIFIED-PASS** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (work)
 
 | part | the owner's words |
 |---|---|
@@ -541,9 +530,9 @@ question for the owner, recorded as one.
 | **FAILURE** | "we could not see it" is recorded as "it is not there"; or the graph is unavailable. |
 | **EVIDENCE** | the graph in durable storage, orphan counts, and the UNKNOWN path exercised. |
 
-**Verdict —** 🔴 **RE-SCANNED AND RUN 13 SEPTEMBER 2026 — IT DOES NOT TICK, AND IT IS NOT FAILED BY AMENDMENT 2's DEFINITION.** **INPUT exists:** the 394 served bodies are committed, and 19,926 links are read out of them. **What holds:** every edge is read from served HTML; a page with no inbound edge is reported UNKNOWN (NEEDS_RENDERED_HTML), never 'orphan' — 340 real UNKNOWN records. **What does not:** the two runners that count zero-inbound pages over the SAME bodies disagree — 340 (bin/audit-content.mjs, counts a link from any crawled host) against 341 (bin/audit-technical.mjs, same host only) — and neither states its scope, so 'orphan counts' has two answers. The graph is also still not stored as a graph. **FAILURE not met** — nothing unseen is recorded as absent and the graph is available — so it is TESTABLE-NOW with the fix and test named, not FAILED and not a pass
+**Verdict —** 🔴 **THE DISAGREEMENT WAS ITSELF A FINDING — RAISED, EXPLAINED, FIXED, AND CLOSED ON EVIDENCE. THEN THE ROW PASSED.** **Raised:** 340 against 341 over the same bodies became **11 Issues** in runs/audit/instrument-findings.jsonl, one per page the two instruments treated differently. **Explained — both were wrong:** bin/audit-content.mjs counted once per OBSERVATION, so the 5 pages two requested URLs reached were counted twice (its 340 was 335 pages); bin/audit-technical.mjs IGNORED A LINK FROM ANOTHER HOST, so the 6 sub-site homes linked from 359–393 crawled pages on other hosts read as unlinked (341). Neither said which question it answered. **Fixed:** ONE definition (src/crawl/inbound.mjs — a distinct page, a link from any crawled host, never a self-link) over ONE stored graph (runs/crawl/edges-2026-09-12.jsonl.br, 19,730 links, re-derived from the archive and compared on every commit). **Agreement shown:** both runners re-run print **335**, and the 11 Issues are CLOSED on their recorded output, not on a recount. **Item 26's own test:** links read from served HTML only; orphans detected — 335 pages with no inbound link inside the crawled set; every one reported UNKNOWN (NEEDS_RENDERED_HTML), **0 reported as 'missing'**, because a JavaScript-injected link is invisible to raw HTML; the graph in durable storage; the UNKNOWN path exercised on real data. **FAILURE not met.** Every other audit tally is identical before and after
 
-**The one test that would settle it —** make ONE definition of 'zero inbound links inside the crawled set' — used by both bin/audit-content.mjs and bin/audit-technical.mjs, stating whether a link from another host counts — store the edge graph (derivable from the committed body archive), then re-run both and assert they print the same count (test/queue-rescan.test.mjs)
+**The one test that would settle it —** node bin/edge-graph.mjs · node bin/audit-content.mjs · node bin/audit-technical.mjs · node bin/instrument-disagreement.mjs --close · node --test test/edge-graph.test.mjs test/queue-rescan.test.mjs
 
 ### 27 · Entity Intelligence
 
@@ -934,7 +923,7 @@ question for the owner, recorded as one.
 
 ### 55 · Security / Secrets / Recovery
 
-**TESTABLE-NOW** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (work)
+**VERIFIED-PASS** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (work)
 
 | part | the owner's words |
 |---|---|
@@ -943,9 +932,9 @@ question for the owner, recorded as one.
 | **FAILURE** | any leak — **or the no-leak property proved only by a manual grep, which would not catch a future change**. |
 | **EVIDENCE** | an executing test for the leak property, and a recovery exercised. |
 
-**Verdict —** 🔴 **RE-SCANNED 13 SEPTEMBER 2026: THE INPUT EXISTS, AND THE TEST WAS NOT RUN.** **INPUT** 'a code path that handles a secret, and a state that must be recoverable' — the key-file path through the Search Console adapter exists, and the append-only stores are the state. **Not run in this change:** no executing leak test exists yet — the FAILURE clause forbids proving it by manual grep, so it waits for that test, named here. Not a pass
+**Verdict —** 🔴 **LEFT FAILED BY RULE 1's FIRST ROUTE — A REAL LEAK, FOUND BY EXECUTION, FIXED, AND THE TEST RE-RUN AND PASSED.** **INPUT** the credential code path (the Search Console adapter, the ingest, and the CLI in a child process) and the recoverable state (the committed evidence stores). **The leak test EXECUTES, it does not grep:** a FAKE service-account key generated in the test, with an unmistakable marker inside the private key, padded so its lengths are unmistakable too; every path that touches it is driven — a successful ingest, a refused token exchange, a key file that is not JSON, a broken PEM, and the CLI in a child process whose network is replaced by a thrower — and the marker (any 8 consecutive characters), a key line, its sha256/sha1/md5 digests and its lengths are searched for in console output, stdout, stderr, error messages, stack traces, returned results and stored records. The real key is never read. **RED-proved twice:** logging the key, and logging its length, each turn the test red. **RECOVERY:** four committed stores and the body archive are torn the way a crashed write tears them, the damage is caught by the store's own reader, and each is restored from the committed state — byte-identical, by git's own blob hash. **FAILURE not met after the fix**
 
-**The one test that would settle it —** an executing test that drives the Search Console key-handling path with a PLANTED secret file and fails if any byte of it, its hash or its length reaches stdout, stderr, a log or a stored record; plus a recovery exercised — an evidence store restored to its last good prefix after an injected partial write
+**The one test that would settle it —** node --test test/secret-leak.test.mjs test/store-recovery.test.mjs
 
 ### 56 · Desktop + Mobile Owner Experience
 

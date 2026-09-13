@@ -213,7 +213,8 @@ test("CONTROL: DEFERRED is allowed on every row the ruling classes D", () => {
 
 test("🔴 RED: TESTABLE-NOW without a named test is REFUSED", () => {
   const rows = classify();
-  rows[9] = { ...rows[9], state: "TESTABLE-NOW" };
+  // attemptCount 0 isolates THIS rule from ruling 0B's (test/attempts.test.mjs).
+  rows[9] = { ...rows[9], state: "TESTABLE-NOW", attemptCount: 0 };
   const errors = assertLawful(rows);
   assert.equal(errors.length, 1);
   assert.match(errors[0], /is TESTABLE-NOW but names no test/);
@@ -243,12 +244,15 @@ test("🔴 RED: TESTABLE-NOW without a named test is REFUSED", () => {
  * exists → TESTABLE-NOW; of those, 12 and 38 were run and passed, 50 and 51 were
  * run and FAILED, 13 and 26 were run and stay TESTABLE-NOW (EXPECTED missed,
  * FAILURE not met), 25 and 55 were not run. */
-test("the seven-state tally is 3 / 6 / 4 / 10 / 2 / 5 / 28", () => {
+/* 🔴 AND THE QUEUE WAS RUN (13 Sep 2026, later): 13 and 26 ticked; 55 FAILED on
+ * a real leak, was fixed, re-run and ticked; 25 was attempted and stays with its
+ * gap. TESTABLE-NOW 4 → 1, VERIFIED-PASS 10 → 13, FAILED unchanged at 2. */
+test("the seven-state tally is 3 / 6 / 1 / 13 / 2 / 5 / 28", () => {
   assert.deepEqual(tally(classify()), {
     "NOT-STARTED": 3,
     "BUILT-NOT-PROVED": 6,
-    "TESTABLE-NOW": 4,
-    "VERIFIED-PASS": 10,
+    "TESTABLE-NOW": 1,
+    "VERIFIED-PASS": 13,
     FAILED: 2,
     "BLOCKED-UNKNOWN": 5,
     DEFERRED: 28,
@@ -299,9 +303,7 @@ test("🔴 exactly SEVENTEEN rows moved on WORK — 9 BLOCKED; 13, 25, 26, 55 TE
   const rows = Object.values(classify());
   const work = rows.filter((r) => r.changeKind === "work");
   assert.deepEqual(work.map((r) => r.id).sort((a, b) => a - b), [8, 9, 11, 12, 13, 14, 15, 25, 26, 38, 42, 45, 48, 49, 50, 51, 55]);
-  assert.deepEqual(work.filter((r) => !LOOKED.includes(r.state)).map((r) => `${r.id}:${r.state}`), [
-    "9:BLOCKED-UNKNOWN", "13:TESTABLE-NOW", "25:TESTABLE-NOW", "26:TESTABLE-NOW", "55:TESTABLE-NOW",
-  ]);
+  assert.deepEqual(work.filter((r) => !LOOKED.includes(r.state)).map((r) => `${r.id}:${r.state}`), ["9:BLOCKED-UNKNOWN", "25:TESTABLE-NOW"]);
   assert.deepEqual(work.filter((r) => r.state === "FAILED").map((r) => r.id), [50, 51]);
   assert.equal(rows.filter((r) => r.changeKind === "vocabulary").length, 31);
   assert.equal(rows.filter((r) => r.changeKind === "none").length, 10);
@@ -319,11 +321,13 @@ test("🔴 exactly SEVENTEEN rows moved on WORK — 9 BLOCKED; 13, 25, 26, 55 TE
 /* 🔴 EIGHT since the replay — 11, 42, and 48 back, by rule 1's first route. Its
  * reopen is KEPT on the row, as item 14's first failure is. */
 /* 🔴 TEN since the re-scan — 12 and 38, each run over the committed bodies. */
-test("🔴 VERIFIED-PASS is exactly 10 — items 8, 11, 12, 14, 15, 38, 42, 45, 48 and 49 — and 48's reopen stays on the record", () => {
+/* 🔴 THIRTEEN since the queue run — 13, 26 and 55; 55 through FAILED. */
+test("🔴 VERIFIED-PASS is exactly 13 — items 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 48, 49 and 55 — and 48's reopen stays on the record", () => {
   const rows = classify();
   const passed = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS").map((r) => r.id).sort((a, b) => a - b);
-  assert.deepEqual(passed, [8, 11, 12, 14, 15, 38, 42, 45, 48, 49]);
-  assert.equal(tally(rows)["VERIFIED-PASS"], 10);
+  assert.deepEqual(passed, [8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 48, 49, 55]);
+  assert.equal(tally(rows)["VERIFIED-PASS"], 13);
+  assert.match(rows[55].whyFailed, /LEAK/, "item 55's FAILED result was erased rather than kept");
   for (const id of [12, 38]) assert.match(rows[id].whyBefore, /Not touched in this PR/, `item ${id}'s earlier verdict was erased rather than kept`);
   assert.match(rows[48].why, /LEFT FAILED BY RULE 1's FIRST ROUTE/);
   assert.match(rows[48].why, /RECORDED resolver answers/);

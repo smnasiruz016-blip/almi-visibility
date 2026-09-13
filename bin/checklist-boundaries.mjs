@@ -168,16 +168,22 @@ L.push("---");
 L.push("");
 L.push("## 🧪 THE TESTABLE-NOW WORK QUEUE");
 L.push("");
-L.push("🔴 **TESTABLE-NOW IS NOT A PASS.** The input finally exists; the falsifiable test has not");
-L.push("been run. Between here and VERIFIED-PASS there is exactly one thing: the test, run, with");
-L.push("its evidence. Each row names the single test that would settle it.");
+L.push("🔴 **TESTABLE-NOW IS NOT A PASS.** The input exists; the test has not passed. Each row names");
+L.push("the single test that would settle it, and (ruling 0B, 13 September 2026) whether it was");
+L.push("NEVER TRIED or TRIED AND FELL SHORT — with the date and the specific gap when it was.");
 L.push("");
 for (const r of testable) {
   L.push(`### ${r.id} · ${r.name}`);
   L.push("");
   L.push(`**The one test:** ${r.test}`);
   L.push("");
-  L.push(`**Why it is testable now:** ${r.why}`);
+  L.push(
+    r.attemptCount > 0
+      ? `**Attempted ${r.attemptCount} time(s), last on ${r.lastAttempt}. The gap that stopped it:** ${r.gap}`
+      : "**Never attempted.**",
+  );
+  L.push("");
+  L.push(`**Where it stands:** ${r.why}`);
   L.push("");
 }
 L.push("---");

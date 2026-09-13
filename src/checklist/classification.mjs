@@ -259,6 +259,10 @@ export const MOVES_AMENDMENT_2 = Object.freeze({
     Object.freeze({ from: "BUILT-NOT-PROVED", to: "TESTABLE-NOW", kind: "work", route: "INPUT_EXISTS", date: "2026-09-13",
       input: "three query×page pulls with query text in runs/evidence/evidence.jsonl (543, 574, 574 rows, COMPLETE), in which 21 queries draw impressions on more than one URL",
       reason: "query×page data with real overlaps exists; run, it detects all 21 and none falsely, but reports only a count — EXPECTED missed, FAILURE not met, so it stays here" }),
+    /* The queue run, 13 September 2026 (later): the report was built and the test sat again. */
+    Object.freeze({ from: "TESTABLE-NOW", to: "VERIFIED-PASS", kind: "work", route: "TEST_RUN", date: "2026-09-13",
+      test: "node bin/audit-content.mjs · test/content-checks.test.mjs · test/queue-rescan.test.mjs",
+      reason: "every overlap reported with its query, competing URLs and positions — 21 of 337 queries searched, printed beside the result, from the newest complete pull; firing fixture and clean control for detector and report; item 8's guard holds" }),
   ]),
   25: Object.freeze([
     Object.freeze({ from: "BUILT-NOT-PROVED", to: "TESTABLE-NOW", kind: "work", route: "INPUT_EXISTS", date: "2026-09-13",
@@ -269,6 +273,10 @@ export const MOVES_AMENDMENT_2 = Object.freeze({
     Object.freeze({ from: "BUILT-NOT-PROVED", to: "TESTABLE-NOW", kind: "work", route: "INPUT_EXISTS", date: "2026-09-13",
       input: "the crawled corpus (committed bodies) and its edge graph, 19,926 links read from the served HTML",
       reason: "the input exists; run, the two runners' zero-inbound counts over the same bodies disagree (340 vs 341) — EXPECTED missed, FAILURE not met, so it stays here" }),
+    /* The queue run, 13 September 2026 (later): the disagreement raised as Issues, both found wrong, one definition, one stored graph. */
+    Object.freeze({ from: "TESTABLE-NOW", to: "VERIFIED-PASS", kind: "work", route: "TEST_RUN", date: "2026-09-13",
+      test: "node bin/edge-graph.mjs · node bin/audit-content.mjs · node bin/audit-technical.mjs · node bin/instrument-disagreement.mjs --close · test/edge-graph.test.mjs · test/queue-rescan.test.mjs",
+      reason: "both runners read one stored graph through one definition and print 335; the 11 disagreement Issues closed on their recorded output; 335 pages with no inbound link, every one UNKNOWN and none 'missing'; the graph in durable storage" }),
   ]),
   38: Object.freeze([
     Object.freeze({ from: "BUILT-NOT-PROVED", to: "TESTABLE-NOW", kind: "work", route: "INPUT_EXISTS", date: "2026-09-13",
@@ -298,6 +306,14 @@ export const MOVES_AMENDMENT_2 = Object.freeze({
     Object.freeze({ from: "BUILT-NOT-PROVED", to: "TESTABLE-NOW", kind: "work", route: "INPUT_EXISTS", date: "2026-09-13",
       input: "the Search Console key-handling path, and the append-only stores that must be recoverable",
       reason: "the input exists; not run, because the executing leak test it needs does not exist yet" }),
+    /* The queue run, 13 September 2026 (later): the executing leak test was built and its first honest run met the FAILURE condition. */
+    Object.freeze({ from: "TESTABLE-NOW", to: "FAILED", kind: "work", route: "TEST_RUN", date: "2026-09-13",
+      test: "test/secret-leak.test.mjs (first honest run, before any fix)",
+      reason: "FAILURE met — any leak: a key file that is not JSON was quoted by the adapter's parse error in-process and printed whole to stderr by the CLI (D-SEC-1)" }),
+    /* 🔴 Rule 1's first route: the cause fixed, the test re-run and passed. No boundary changed. */
+    Object.freeze({ from: "FAILED", to: "VERIFIED-PASS", kind: "work", route: "RETEST_PASSED", date: "2026-09-13",
+      test: "test/secret-leak.test.mjs · test/store-recovery.test.mjs",
+      reason: "the parse is caught and rethrown with nothing from the file; the leak test re-run passed on every credential path, RED when the key or its length is logged; recovery proved by restoring torn stores from git, byte-identical by blob hash" }),
   ]),
   49: Object.freeze([
     Object.freeze({
@@ -488,10 +504,13 @@ const EXPLICIT = {
     whyBefore: "the v0.1 half observes, classifies and produced real findings. Amendment 1 now supplies its four-part contract, so it CAN be tested — but the EVIDENCE clause wants the four classifications over the real corpus with shell subtraction printed, plus the item-8 guard, and that run has not been made for this row. Not touched in this PR",
   },
   13: {
-    state: "TESTABLE-NOW",
+    state: "VERIFIED-PASS",
     changeKind: "work",
-    test: "make bin/audit-content.mjs REPORT each overlap — its query, the competing URLs and their positions — and state the number of queries searched; then re-run it over runs/evidence/evidence.jsonl and assert 337 queries searched, 21 overlaps, 0 that are one canonical page (test/queue-rescan.test.mjs)",
-    why: "🔴 **RE-SCANNED AND RUN 13 SEPTEMBER 2026 — IT DOES NOT TICK, AND BY AMENDMENT 2's OWN DEFINITION IT IS NOT FAILED EITHER.** **INPUT exists:** three query×page pulls for 2026-08-15 → 2026-09-12 carry query text (543, 574 and 574 rows, each COMPLETE and exhausted). **The detector is right on real data:** 337 distinct queries searched, 21 drawing impressions on more than one URL, and 0 of those 21 are two spellings of one canonical page — no single-URL query reported as an overlap. **EXPECTED NOT met:** the runner prints a COUNT ('21 queries on >1 URL'); it does not report any overlap's query, competing URLs or positions, and it never states how many queries it searched. **FAILURE not met** — no real overlap is missed and none is false — so Amendment 2 does not allow FAILED ('the boundary's FAILURE condition was met'), and a row that did not meet EXPECTED cannot pass. It stays TESTABLE-NOW with the one change and test named. ⚠️ The earlier '16 findings' was one of the three pulls; merged, it is 21",
+    attemptCount: 2,
+    lastAttempt: "2026-09-13",
+    test: "node bin/audit-content.mjs · node --test test/content-checks.test.mjs test/queue-rescan.test.mjs test/supply-labels.test.mjs",
+    why: "🔴 **REPORTED, NOT COUNTED — AND THEN IT PASSED.** **INPUT** the newest COMPLETE query×page pull (c97334fdd102df8e, window 2026-08-15 → 2026-09-12, 574 rows) — one pull, because merging the three stored pulls of the same window mixes positions (12 query-URL pairs differ between pulls). **EXPECTED met:** every overlap is reported with its QUERY, every COMPETING URL and each URL's POSITION and impressions — **21 of 337 queries searched**, the number searched printed beside the result (LAW-BOUND-1). **FAILURE not met:** no real overlap missed (the detector reads every row of the pull) and none false — 0 of the 21 are two spellings of one canonical page. **EVIDENCE:** detection and report over real data (runs/audit/item-13-26-content-run-2026-09-13.txt); a firing fixture and a silent clean control for the detector AND for the report. **Measurement only:** alphabetical by query so nothing reads as a ranking, and item 8's demand-word guard holds over the report text",
+    whyAttempted: "🔴 **RE-SCANNED AND RUN 13 SEPTEMBER 2026 — IT DOES NOT TICK, AND BY AMENDMENT 2's OWN DEFINITION IT IS NOT FAILED EITHER.** **INPUT exists:** three query×page pulls for 2026-08-15 → 2026-09-12 carry query text (543, 574 and 574 rows, each COMPLETE and exhausted). **The detector is right on real data:** 337 distinct queries searched, 21 drawing impressions on more than one URL, and 0 of those 21 are two spellings of one canonical page — no single-URL query reported as an overlap. **EXPECTED NOT met:** the runner prints a COUNT ('21 queries on >1 URL'); it does not report any overlap's query, competing URLs or positions, and it never states how many queries it searched. **FAILURE not met** — no real overlap is missed and none is false — so Amendment 2 does not allow FAILED ('the boundary's FAILURE condition was met'), and a row that did not meet EXPECTED cannot pass. It stays TESTABLE-NOW with the one change and test named. ⚠️ The earlier '16 findings' was one of the three pulls; merged, it is 21",
     whyBefore: "detection ran on real data (16 cannibalization findings). Amendment 1 now supplies its four-part contract. Its EVIDENCE wants a firing fixture, a clean control and the number of queries searched stated. Not touched in this PR",
   },
   14: {
@@ -515,15 +534,21 @@ const EXPLICIT = {
   25: {
     state: "TESTABLE-NOW",
     changeKind: "work",
-    test: "run Gate A's four in-scope checks — unique value, sibling overlap, verified-fact presence, source integrity — over the 394 committed bodies (runs/crawl/bodies-2026-09-12.jsonl.br), each beside a clean control; the source-integrity leg opens each cited source URL and so needs the owner's green for a bounded live link check",
-    why: "🔴 **RE-SCANNED 13 SEPTEMBER 2026: THE INPUT NOW EXISTS, AND THE TEST WAS NOT RUN.** **INPUT** 'an existing page, its siblings, and the claims it makes' — the 394 real bodies of 12 September are now committed, siblings included, and the 32 verified facts are the claims. **Not run here:** source integrity means opening each cited source URL, which is a live fetch, and this change may make none. Not a pass",
+    attemptCount: 1,
+    lastAttempt: "2026-09-13",
+    gap: "verified-fact presence finds 0 verified facts on all 389 existing pages, so source integrity — measured on all 15 cited sources, 15 LIVE — can be reported for NO existing page; the only page carrying verified facts is one this engine generated from the registry, which cannot show the check sees facts on a page someone else wrote",
+    test: "node bin/page-quality.mjs over an existing page set that includes pages known to state registry facts (a bounded capture of such pages needs the owner's green), with node bin/source-integrity.mjs's recorded run folded in per page · node --test test/existing-pages.test.mjs test/source-integrity.test.mjs",
+    why: "🔴 **RUN 13 SEPTEMBER 2026 — ALL FOUR PARTS MEASURED, AND IT DOES NOT TICK, AND IT IS NOT FAILED.** **(1) UNIQUE VALUE — proved:** measured on all 389 existing pages with a served body (122 at or above 350 unique words after the group's shell, 267 below), firing fixture and clean control. **(2) SIBLING OVERLAP — proved, with its limits named:** MEASURED on 327 pages (239 within 0.40, 88 above); 52 pages sit alone in their template group (VACUOUS) and 10 in groups of two, where Gate A's shell is the pair's intersection and a duplicate pair would score 0 (UNMEASURABLE, D-GATEA-1) — neither is counted a pass. **(3) VERIFIED-FACT PRESENCE — measured, no real positive:** 0 of 389 existing pages carry a verified fact; the rule fires on real registry values on a page this engine GENERATED (14 present), which is a control and never an existing page. **(4) SOURCE INTEGRITY — measured live, per source, not per page:** the owner-authorised link check requested 18 of a hard cap of 40, 1/s, external hosts only, HEAD first — all 15 cited sources LIVE, 0 GONE, 0 UNKNOWN, 0 disagreements with beta-g's 12 September reading (the exam provider's site answered HEAD with 200 where beta-g's fetcher got 403). But with no existing page carrying a fact, no page has a source to report. **EXPECTED** ('each measured and reported per page') is not met for part 4; **FAILURE** ('fixture-only or absent') is not met — every part ran on real data. So: TESTABLE-NOW, attempted once, gap named",
     whyBefore: "Gate A measures overlap, facts and shell. The v0.1 half also names SOURCE INTEGRITY, and the EVIDENCE wants all four over the real corpus each with a clean control",
   },
   26: {
-    state: "TESTABLE-NOW",
+    state: "VERIFIED-PASS",
     changeKind: "work",
-    test: "make ONE definition of 'zero inbound links inside the crawled set' — used by both bin/audit-content.mjs and bin/audit-technical.mjs, stating whether a link from another host counts — store the edge graph (derivable from the committed body archive), then re-run both and assert they print the same count (test/queue-rescan.test.mjs)",
-    why: "🔴 **RE-SCANNED AND RUN 13 SEPTEMBER 2026 — IT DOES NOT TICK, AND IT IS NOT FAILED BY AMENDMENT 2's DEFINITION.** **INPUT exists:** the 394 served bodies are committed, and 19,926 links are read out of them. **What holds:** every edge is read from served HTML; a page with no inbound edge is reported UNKNOWN (NEEDS_RENDERED_HTML), never 'orphan' — 340 real UNKNOWN records. **What does not:** the two runners that count zero-inbound pages over the SAME bodies disagree — 340 (bin/audit-content.mjs, counts a link from any crawled host) against 341 (bin/audit-technical.mjs, same host only) — and neither states its scope, so 'orphan counts' has two answers. The graph is also still not stored as a graph. **FAILURE not met** — nothing unseen is recorded as absent and the graph is available — so it is TESTABLE-NOW with the fix and test named, not FAILED and not a pass",
+    attemptCount: 2,
+    lastAttempt: "2026-09-13",
+    test: "node bin/edge-graph.mjs · node bin/audit-content.mjs · node bin/audit-technical.mjs · node bin/instrument-disagreement.mjs --close · node --test test/edge-graph.test.mjs test/queue-rescan.test.mjs",
+    why: "🔴 **THE DISAGREEMENT WAS ITSELF A FINDING — RAISED, EXPLAINED, FIXED, AND CLOSED ON EVIDENCE. THEN THE ROW PASSED.** **Raised:** 340 against 341 over the same bodies became **11 Issues** in runs/audit/instrument-findings.jsonl, one per page the two instruments treated differently. **Explained — both were wrong:** bin/audit-content.mjs counted once per OBSERVATION, so the 5 pages two requested URLs reached were counted twice (its 340 was 335 pages); bin/audit-technical.mjs IGNORED A LINK FROM ANOTHER HOST, so the 6 sub-site homes linked from 359–393 crawled pages on other hosts read as unlinked (341). Neither said which question it answered. **Fixed:** ONE definition (src/crawl/inbound.mjs — a distinct page, a link from any crawled host, never a self-link) over ONE stored graph (runs/crawl/edges-2026-09-12.jsonl.br, 19,730 links, re-derived from the archive and compared on every commit). **Agreement shown:** both runners re-run print **335**, and the 11 Issues are CLOSED on their recorded output, not on a recount. **Item 26's own test:** links read from served HTML only; orphans detected — 335 pages with no inbound link inside the crawled set; every one reported UNKNOWN (NEEDS_RENDERED_HTML), **0 reported as 'missing'**, because a JavaScript-injected link is invisible to raw HTML; the graph in durable storage; the UNKNOWN path exercised on real data. **FAILURE not met.** Every other audit tally is identical before and after",
+    whyAttempted: "🔴 **RE-SCANNED AND RUN 13 SEPTEMBER 2026 — IT DOES NOT TICK, AND IT IS NOT FAILED BY AMENDMENT 2's DEFINITION.** **INPUT exists:** the 394 served bodies are committed, and 19,926 links are read out of them. **What holds:** every edge is read from served HTML; a page with no inbound edge is reported UNKNOWN (NEEDS_RENDERED_HTML), never 'orphan' — 340 real UNKNOWN records. **What does not:** the two runners that count zero-inbound pages over the SAME bodies disagree — 340 (bin/audit-content.mjs, counts a link from any crawled host) against 341 (bin/audit-technical.mjs, same host only) — and neither states its scope, so 'orphan counts' has two answers. The graph is also still not stored as a graph. **FAILURE not met** — nothing unseen is recorded as absent and the graph is available — so it is TESTABLE-NOW with the fix and test named, not FAILED and not a pass",
     whyBefore: "the graph, orphan counts and the UNKNOWN path all exist and ran. But the EVIDENCE wants the graph in DURABLE storage and the committed PageRecords still carry empty edge lists — the graph lives in an artifact that expires 2026-12-11",
   },
   36: { state: "BUILT-NOT-PROVED", why: "the EVIDENCE wants a test that RUNS each guard per category — destructive, paid, production, large-scale, cross-product. Exactly one runs today (the D-CRW-4 live-run refusal). The rest are asserted in prose, which the FAILURE clause names as a failure in itself" },
@@ -592,10 +617,15 @@ const EXPLICIT = {
     whyBefore: "the ruling's own BLOCKER TODAY: no cost record and no learning record exists, so two of the four classes cannot be tested. Learning is itself deferred, so this cannot be closed inside frozen v0.1",
   },
   55: {
-    state: "TESTABLE-NOW",
+    state: "VERIFIED-PASS",
     changeKind: "work",
-    test: "an executing test that drives the Search Console key-handling path with a PLANTED secret file and fails if any byte of it, its hash or its length reaches stdout, stderr, a log or a stored record; plus a recovery exercised — an evidence store restored to its last good prefix after an injected partial write",
-    why: "🔴 **RE-SCANNED 13 SEPTEMBER 2026: THE INPUT EXISTS, AND THE TEST WAS NOT RUN.** **INPUT** 'a code path that handles a secret, and a state that must be recoverable' — the key-file path through the Search Console adapter exists, and the append-only stores are the state. **Not run in this change:** no executing leak test exists yet — the FAILURE clause forbids proving it by manual grep, so it waits for that test, named here. Not a pass",
+    attemptCount: 2,
+    lastAttempt: "2026-09-13",
+    test: "node --test test/secret-leak.test.mjs test/store-recovery.test.mjs",
+    failureMetThen: "any leak — a key file that is not JSON was quoted by the adapter's parse error in-process, and printed whole to stderr by the CLI",
+    why: "🔴 **LEFT FAILED BY RULE 1's FIRST ROUTE — A REAL LEAK, FOUND BY EXECUTION, FIXED, AND THE TEST RE-RUN AND PASSED.** **INPUT** the credential code path (the Search Console adapter, the ingest, and the CLI in a child process) and the recoverable state (the committed evidence stores). **The leak test EXECUTES, it does not grep:** a FAKE service-account key generated in the test, with an unmistakable marker inside the private key, padded so its lengths are unmistakable too; every path that touches it is driven — a successful ingest, a refused token exchange, a key file that is not JSON, a broken PEM, and the CLI in a child process whose network is replaced by a thrower — and the marker (any 8 consecutive characters), a key line, its sha256/sha1/md5 digests and its lengths are searched for in console output, stdout, stderr, error messages, stack traces, returned results and stored records. The real key is never read. **RED-proved twice:** logging the key, and logging its length, each turn the test red. **RECOVERY:** four committed stores and the body archive are torn the way a crashed write tears them, the damage is caught by the store's own reader, and each is restored from the committed state — byte-identical, by git's own blob hash. **FAILURE not met after the fix**",
+    whyFailed: "🔴 **ITS FIRST HONEST RUN FOUND A LEAK — THE FAILURE CONDITION 'ANY LEAK' WAS MET.** The adapter parsed the key file with a bare JSON.parse. On a key file that is not JSON, the SyntaxError quotes the text it failed on: in-process its first characters appeared in the error; through the CLI, Node printed the WHOLE FIRST LINE of the file to stderr (runs/audit/item-55-leak-test-red-before-fix-2026-09-13.txt). A manual grep of this repository would never have found it — the quoting is Node's, not ours. That is the FAILURE clause's own point. (D-SEC-1)",
+    whyAttempted: "🔴 **RE-SCANNED 13 SEPTEMBER 2026: THE INPUT EXISTS, AND THE TEST WAS NOT RUN.** **INPUT** 'a code path that handles a secret, and a state that must be recoverable' — the key-file path through the Search Console adapter exists, and the append-only stores are the state. **Not run in this change:** no executing leak test exists yet — the FAILURE clause forbids proving it by manual grep, so it waits for that test, named here. Not a pass",
     whyBefore: "the no-leak property holds in practice — the Search Console key was never printed, hashed or length-measured — but the FAILURE clause forbids proving it BY MANUAL GREP, and no executing test hunts for a leak. Recovery has not been exercised either",
   },
   56: { state: "BLOCKED-UNKNOWN", why: "the walk must be recorded at both widths and the browser tooling failed on every attempt, including a trivial probe page. 🔴 That is a fact about our tooling, not about the interface (LAW-ABSENT-1) — so it is UNKNOWN, not a failure" },
@@ -685,6 +715,27 @@ export function assertLawful(rows, boundaries = loadBoundaries()) {
           "and VERIFIED-PASS there is exactly one thing: the test, run. A row that cannot name it is " +
           "BUILT-NOT-PROVED wearing a more optimistic label.",
       );
+    }
+
+    /* 🔴 RULING 0B, beta-g, 13 September 2026 — "NEVER TRIED" AND "TRIED, AND
+     * HERE IS EXACTLY WHAT IS MISSING" ARE DIFFERENT ROWS. A TESTABLE-NOW row
+     * carries attemptCount (0 when never run), and once it has been run it must
+     * carry the date of its last attempt and the SPECIFIC gap that stopped it —
+     * or the queue lets rows drift in a comfortable middle with nothing said. */
+    if (r.state === "TESTABLE-NOW") {
+      if (!Number.isInteger(r.attemptCount) || r.attemptCount < 0) {
+        errors.push(`item ${r.id} (${boundaries[r.id].name}) is TESTABLE-NOW with no attemptCount — record 0 if it has never been run`);
+      } else if (r.attemptCount > 0) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(r.lastAttempt ?? "")) {
+          errors.push(`item ${r.id} (${boundaries[r.id].name}) has been attempted ${r.attemptCount} time(s) but records no lastAttempt date`);
+        }
+        if (typeof r.gap !== "string" || r.gap.trim().length < 20) {
+          errors.push(
+            `item ${r.id} (${boundaries[r.id].name}) is TESTABLE-NOW, was attempted ${r.attemptCount} time(s), and names no gap. ` +
+              "A row that was run and fell short must say EXACTLY what stopped it.",
+          );
+        }
+      }
     }
   }
   return errors;

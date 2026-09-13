@@ -1,0 +1,321 @@
+corpus: C:/Projects/almi-visibility/runs/crawl/bodies-2026-09-12.jsonl.br (committed archive)
+pages with a fetched body: 394
+
+SHELL = head, script, style, noscript, svg, template, nav, header, footer, aside, [role=navigation], [aria-hidden=true], and cookie/consent containers. BODY = <main> or <article> if present, else the document minus the shell. Word counts are taken on BODY only.
+
+NO INBOUND LINKS INSIDE THE CRAWLED SET: a DISTINCT crawled page (by canonical URL — two requested URLs that reach one page are one page) that no OTHER distinct crawled page links to in its served HTML. A link from ANY crawled host counts; a page's link to itself does not. Raw HTML only: a JavaScript-injected link is invisible here, so zero inbound is UNKNOWN, never 'orphan'.
+EDGES: 19730 links in served HTML (the stored graph) over 389 distinct pages.
+pages with no inbound links inside the crawled set: 335
+
+
+=== FINDINGS ===
+  exact-duplicate            FAIL=   0  UNKNOWN=   0  silent= 394
+  thin-content               FAIL= 118  UNKNOWN=   2  silent= 274
+  near-duplicate             FAIL=   5  UNKNOWN=   2  silent= 387
+  template-dominance         FAIL=   2  UNKNOWN=   2  silent= 390
+  orphan-within-crawled-set  FAIL=   0  UNKNOWN= 335  silent=  54
+  (orphan-within-crawled-set is counted once per DISTINCT page: 389; the other four once per observation: 394)
+
+ITEM 13 — CANNIBALIZATION, MEASUREMENT ONLY. [bound: 337 queries searched · 574 query×page rows · pull c97334fdd102df8e observed 2026-09-12T23:25:04.172Z, window 2026-08-15..2026-09-12, dataState COMPLETE, newest of 3 complete pull(s)]
+21 of 337 queries drew impressions on more than one URL:
+  query: "\"cscs nigeria\" -site:reddit.com -site:twitter.com -site:x.com -site:wykop.pl -site:tripadvisor.com -site:youtube.com -site:yelp.com -site:booking.com -site:facebook.com -site:instagram.com -site:tiktok.com"  (2 URLs)
+     position 1.0 · 1 impression(s) · https://almipte.almiworld.com/pte-for/belgium/business-management/from-eritrea
+     position 8.0 · 1 impression(s) · https://almipte.almiworld.com/pte-for/denmark/natural-sciences/from-eritrea
+  query: "celips bari"  (2 URLs)
+     position 66.0 · 1 impression(s) · https://almiitalian.almiworld.com/university/bari/economia-finanza-e-impresa/from/brunei
+     position 64.0 · 1 impression(s) · https://almiitalian.almiworld.com/university/bari/economia-finanza-e-impresa/from/seychelles
+  query: "design of sustainable tourism systems"  (2 URLs)
+     position 52.0 · 1 impression(s) · https://almiitalian.almiworld.com/university/firenze/design-of-sustainable-tourism-systems-progettazione-dei-sistemi-turistici/from/botswana
+     position 31.5 · 2 impression(s) · https://almiitalian.almiworld.com/university/firenze/design-of-sustainable-tourism-systems-progettazione-dei-sistemi-turistici/from/uganda
+  query: "ielts accepting universities in peru"  (2 URLs)
+     position 59.0 · 1 impression(s) · https://almipte.almiworld.com/pte-for/united-kingdom/arts-humanities/from-peru
+     position 22.0 · 1 impression(s) · https://almipte.almiworld.com/pte-for/united-kingdom/social-sciences/from-peru
+  query: "ielts pte score"  (2 URLs)
+     position 70.0 · 1 impression(s) · https://almipte.almiworld.com/learn/pte-ielts-score-conversion
+     position 75.0 · 1 impression(s) · https://almipte.almiworld.com/learn/pte-vs-ielts
+  query: "ielts score compare to pte"  (2 URLs)
+     position 78.0 · 1 impression(s) · https://almipte.almiworld.com/learn/pte-ielts-score-conversion
+     position 85.0 · 1 impression(s) · https://almipte.almiworld.com/learn/pte-vs-ielts
+  query: "ml operations"  (2 URLs)
+     position 29.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eswatini/ml-operations-engineer
+     position 29.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/faroe-islands/ml-operations-engineer
+  query: "pearson test of english"  (5 URLs)
+     position 111.0 · 1 impression(s) · https://almipte.almiworld.com/pte-for/bahrain/from-trinidad-and-tobago
+     position 77.0 · 1 impression(s) · https://almipte.almiworld.com/pte-for/oman/arts-humanities/from-south-sudan
+     position 61.0 · 1 impression(s) · https://almipte.almiworld.com/pte-for/united-states/business-management/from-fiji
+     position 104.0 · 1 impression(s) · https://almipte.almiworld.com/pte-for/united-states/engineering-technology/from-liberia
+     position 118.0 · 1 impression(s) · https://almipte.almiworld.com/pte-for/united-states/from-liberia
+  query: "pte academic"  (2 URLs)
+     position 52.8 · 5 impression(s) · https://almipte.almiworld.com/learn/pte-what-is-pte-academic
+     position 63.0 · 1 impression(s) · https://almipte.almiworld.com/pte-for/united-states/from-liberia
+  query: "pte academic equivalent to ielts"  (2 URLs)
+     position 73.0 · 1 impression(s) · https://almipte.almiworld.com/learn/pte-ielts-score-conversion
+     position 82.0 · 1 impression(s) · https://almipte.almiworld.com/learn/pte-vs-ielts
+  query: "pte and ielts score"  (2 URLs)
+     position 64.0 · 1 impression(s) · https://almipte.almiworld.com/learn/pte-ielts-score-conversion
+     position 76.0 · 2 impression(s) · https://almipte.almiworld.com/learn/pte-vs-ielts
+  query: "pte equivalent to ielts"  (2 URLs)
+     position 71.5 · 2 impression(s) · https://almipte.almiworld.com/learn/pte-ielts-score-conversion
+     position 80.0 · 1 impression(s) · https://almipte.almiworld.com/learn/pte-vs-ielts
+  query: "pte for iranian"  (2 URLs)
+     position 11.0 · 1 impression(s) · https://almipte.almiworld.com/pte-for/singapore/law/from-iran
+     position 10.0 · 2 impression(s) · https://almipte.almiworld.com/pte-for/united-states/social-sciences/from-iran
+  query: "quant cv"  (2 URLs)
+     position 67.6 · 5 impression(s) · https://almicv.almiworld.com/cv-guide/kuwait/quantitative-analyst
+     position 59.7 · 7 impression(s) · https://almicv.almiworld.com/cv-guide/malta/quantitative-analyst
+  query: "retell ai funding 2026"  (4 URLs)
+     position 2.0 · 1 impression(s) · https://almipte.almiworld.com/pte-for/bahrain/business-management/from-senegal
+     position 1.0 · 1 impression(s) · https://almipte.almiworld.com/pte-for/bahrain/business-management/from-switzerland
+     position 5.0 · 1 impression(s) · https://almipte.almiworld.com/pte-for/denmark/arts-humanities/from-maldives
+     position 3.0 · 1 impression(s) · https://almipte.almiworld.com/pte-for/netherlands/social-sciences/from-vanuatu
+  query: "site:almicv.almiworld.com"  (125 URLs)
+     position 59.0 · 4 impression(s) · https://almicv.almiworld.com/cv-guide/belize/data-scientist
+     position 77.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/belize/kitchen-assistant
+     position 54.8 · 5 impression(s) · https://almicv.almiworld.com/cv-guide/belize/security-guard
+     position 88.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/belize/veterinary-assistant
+     position 17.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/bhutan/chemist
+     position 38.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/bhutan/journalist
+     position 51.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/burundi/audiologist
+     position 44.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/burundi/cleaner
+     position 50.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/burundi/courier
+     position 99.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/burundi/fashion-designer
+     position 44.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/burundi/lama
+     position 42.5 · 2 impression(s) · https://almicv.almiworld.com/cv-guide/burundi/oncologist
+     position 40.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/comoros/stockbroker
+     position 30.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/djibouti/aromatherapist
+     position 64.5 · 2 impression(s) · https://almicv.almiworld.com/cv-guide/djibouti/auditor
+     position 65.5 · 2 impression(s) · https://almicv.almiworld.com/cv-guide/djibouti/dermatologist
+     position 23.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/djibouti/gynecologist
+     position 27.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/djibouti/nephrologist
+     position 53.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/djibouti/stockbroker
+     position 14.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/djibouti/underwriter
+     position 39.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/dominica/bricklayer
+     position 75.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/dominica/forensic-accountant
+     position 46.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/dominica/mufti
+     position 52.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eritrea/accountant
+     position 7.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eritrea/auditor
+     position 95.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eritrea/dispensing-assistant
+     position 48.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eritrea/doctor
+     position 46.0 · 2 impression(s) · https://almicv.almiworld.com/cv-guide/eritrea/journalist
+     position 11.0 · 2 impression(s) · https://almicv.almiworld.com/cv-guide/eritrea/mufti
+     position 32.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eritrea/oncologist
+     position 26.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eritrea/pathologist
+     position 63.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eritrea/petroleum-engineer
+     position 46.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eritrea/radiographer
+     position 97.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eritrea/software-engineer
+     position 60.0 · 2 impression(s) · https://almicv.almiworld.com/cv-guide/eritrea/telesales-agent
+     position 56.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eswatini/anesthesiologist
+     position 24.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eswatini/courier
+     position 18.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eswatini/gastroenterologist
+     position 28.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eswatini/gynecologist
+     position 98.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eswatini/project-engineer
+     position 67.5 · 2 impression(s) · https://almicv.almiworld.com/cv-guide/eswatini/psychiatrist
+     position 19.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eswatini/qa
+     position 55.0 · 3 impression(s) · https://almicv.almiworld.com/cv-guide/eswatini/software-engineer
+     position 100.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eswatini/stock-associate
+     position 43.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eswatini/treasurer
+     position 94.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eswatini/truck-driver
+     position 11.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eswatini/underwriter
+     position 41.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/gabon/controller
+     position 49.5 · 2 impression(s) · https://almicv.almiworld.com/cv-guide/gabon/neurologist
+     position 55.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/gabon/orthodontist
+     position 40.5 · 2 impression(s) · https://almicv.almiworld.com/cv-guide/gabon/surgeon
+     position 20.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/gambia/illustrator
+     position 57.0 · 3 impression(s) · https://almicv.almiworld.com/cv-guide/gambia/loan-officer
+     position 88.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/gambia/mechanical-engineer
+     position 42.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/gambia/nephrologist
+     position 45.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/gambia/neurosurgeon
+     position 60.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/gambia/oncologist
+     position 48.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/gambia/phlebotomist
+     position 61.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/gambia/rabbi
+     position 56.8 · 4 impression(s) · https://almicv.almiworld.com/cv-guide/gambia/soc-analyst
+     position 46.7 · 3 impression(s) · https://almicv.almiworld.com/cv-guide/gambia/translator
+     position 37.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/gambia/underwriter
+     position 35.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/grenada/backend-developer
+     position 36.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/grenada/deacon
+     position 12.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/grenada/guru
+     position 10.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/grenada/illustrator
+     position 84.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/grenada/kitchen-assistant
+     position 21.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/grenada/midwife
+     position 67.7 · 3 impression(s) · https://almicv.almiworld.com/cv-guide/grenada/mri-technologist
+     position 79.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/grenada/office-manager
+     position 56.0 · 2 impression(s) · https://almicv.almiworld.com/cv-guide/grenada/personal-assistant
+     position 65.7 · 3 impression(s) · https://almicv.almiworld.com/cv-guide/grenada/shop-assistant
+     position 54.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/kiribati/audiologist
+     position 93.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/kiribati/er-nurse
+     position 5.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/kiribati/orthodontist
+     position 42.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/kiribati/secretary
+     position 85.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/kiribati/web-designer
+     position 11.0 · 2 impression(s) · https://almicv.almiworld.com/cv-guide/lesotho/aromatherapist
+     position 2.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/lesotho/chaplain
+     position 91.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/lesotho/hospital-consultant
+     position 38.0 · 2 impression(s) · https://almicv.almiworld.com/cv-guide/lesotho/oncologist
+     position 47.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/lesotho/ophthalmologist
+     position 29.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/lesotho/optometrist
+     position 3.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/lesotho/paralegal
+     position 53.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/lesotho/qari
+     position 60.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/lesotho/rheumatologist
+     position 31.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/lesotho/veterinarian
+     position 79.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/liechtenstein/financial-planner
+     position 86.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/mozambique/delivery-driver
+     position 56.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/nauru/audiologist
+     position 72.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/nauru/education-coordinator
+     position 96.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/nauru/office-administrator
+     position 8.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/nauru/pharmacist
+     position 70.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/nauru/pharmacy-assistant
+     position 89.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/saint-lucia/audiologist
+     position 71.0 · 3 impression(s) · https://almicv.almiworld.com/cv-guide/samoa/credit-controller
+     position 87.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/samoa/environmental-scientist
+     position 57.0 · 4 impression(s) · https://almicv.almiworld.com/cv-guide/samoa/industrial-engineer
+     position 86.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/samoa/logistics-coordinator
+     position 64.0 · 2 impression(s) · https://almicv.almiworld.com/cv-guide/samoa/massage-therapist
+     position 49.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/samoa/pediatrician
+     position 90.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/samoa/pharmacy-assistant
+     position 15.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/seychelles/editor
+     position 87.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/seychelles/islamic-scholar
+     position 24.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/seychelles/lash-technician
+     position 52.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/seychelles/pediatrician
+     position 61.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/seychelles/therapist
+     position 4.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/seychelles/trader
+     position 1.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/seychelles/veterinarian
+     position 85.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/tonga/manufacturing-engineer
+     position 58.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/tonga/missionary
+     position 82.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/tonga/qa-engineer
+     position 92.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/tuvalu/cardiothoracic-surgeon
+     position 49.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/tuvalu/cryptographer
+     position 22.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/tuvalu/dermatologist
+     position 56.5 · 2 impression(s) · https://almicv.almiworld.com/cv-guide/tuvalu/video-editor
+     position 25.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/vanuatu/dietitian
+     position 69.0 · 2 impression(s) · https://almicv.almiworld.com/cv-guide/vanuatu/equity-trader
+     position 57.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/vanuatu/orthodontist
+     position 55.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/vanuatu/pathologist
+     position 67.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/vanuatu/payroll-officer
+     position 35.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/vanuatu/reflexologist
+     position 54.5 · 2 impression(s) · https://almicv.almiworld.com/cv-guide/vanuatu/roofer
+     position 57.4 · 5 impression(s) · https://almicv.almiworld.com/cv-guide/vanuatu/scrum-master
+     position 82.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/vanuatu/truck-driver
+  query: "site:almijob.almiworld.com"  (3 URLs)
+     position 3.0 · 3 impression(s) · https://almijob.almiworld.com/jobs/liechtenstein/product-manager
+     position 2.0 · 3 impression(s) · https://almijob.almiworld.com/jobs/serbia/seo-specialist
+     position 1.0 · 3 impression(s) · https://almijob.almiworld.com/jobs/spain/cleaner
+  query: "site:almisalary.almiworld.com"  (3 URLs)
+     position 3.0 · 2 impression(s) · https://almisalary.almiworld.com/?role=psychiatrist&country=uae&from=salary-page
+     position 2.0 · 2 impression(s) · https://almisalary.almiworld.com/salary/colombia/environmental-scientist
+     position 1.0 · 2 impression(s) · https://almisalary.almiworld.com/salary/egypt/cloud-architect
+  query: "site:almiworld.com"  (88 URLs)
+     position 87.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/burundi/counseling-psychologist
+     position 67.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/burundi/quality-engineer
+     position 65.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/cape-verde/mufti
+     position 64.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/cape-verde/obstetrician
+     position 17.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/djibouti/aromatherapist
+     position 21.0 · 2 impression(s) · https://almicv.almiworld.com/cv-guide/djibouti/veterinarian
+     position 23.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eritrea/accountant
+     position 12.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eritrea/actuary
+     position 8.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eritrea/auditor
+     position 90.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eritrea/communications-director
+     position 14.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eritrea/pathologist
+     position 68.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eritrea/risk-manager
+     position 60.0 · 2 impression(s) · https://almicv.almiworld.com/cv-guide/eritrea/software-engineer
+     position 73.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eritrea/surgical-technologist
+     position 81.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eritrea/tax-consultant
+     position 24.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eswatini/anesthesiologist
+     position 56.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eswatini/cloud-engineer
+     position 70.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eswatini/equity-trader
+     position 63.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eswatini/financial-advisor
+     position 83.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eswatini/growth-hacker
+     position 15.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eswatini/gynecologist
+     position 18.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eswatini/khateeb
+     position 85.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eswatini/platform-engineer
+     position 60.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eswatini/project-engineer
+     position 25.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eswatini/psychiatrist
+     position 16.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/eswatini/rheumatologist
+     position 74.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/gambia/blockchain-developer
+     position 86.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/gambia/construction-worker
+     position 84.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/gambia/external-auditor
+     position 11.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/gambia/illustrator
+     position 49.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/gambia/mechanical-engineer
+     position 10.0 · 2 impression(s) · https://almicv.almiworld.com/cv-guide/grenada/illustrator
+     position 89.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/grenada/madrasa-teacher
+     position 35.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/grenada/mri-technologist
+     position 34.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/grenada/personal-assistant
+     position 47.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/grenada/senior-consultant
+     position 80.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/kiribati/bank-teller
+     position 71.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/kiribati/wealth-manager
+     position 75.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/kiribati/yoga-instructor
+     position 58.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/lesotho/account-executive
+     position 33.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/lesotho/cloud-engineer
+     position 69.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/lesotho/mri-technologist
+     position 19.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/lesotho/oncologist
+     position 66.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/lesotho/retail-pharmacist
+     position 1.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/lesotho/surveyor
+     position 9.0 · 2 impression(s) · https://almicv.almiworld.com/cv-guide/nauru/pharmacist
+     position 5.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/nauru/plasterer
+     position 38.5 · 2 impression(s) · https://almicv.almiworld.com/cv-guide/samoa/credit-controller
+     position 48.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/samoa/environmental-scientist
+     position 72.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/samoa/kubernetes-engineer
+     position 40.5 · 2 impression(s) · https://almicv.almiworld.com/cv-guide/samoa/logistics-coordinator
+     position 88.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/samoa/process-engineer
+     position 4.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/samoa/roofer
+     position 3.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/samoa/surveyor
+     position 78.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/samoa/technical-writer
+     position 76.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/samoa/wealth-manager
+     position 21.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/seychelles/orthodontist
+     position 82.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/sierra-leone/urologist
+     position 39.5 · 2 impression(s) · https://almicv.almiworld.com/cv-guide/tonga/compliance-officer
+     position 52.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/tonga/nlp-engineer
+     position 57.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/tuvalu/cardiothoracic-surgeon
+     position 62.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/tuvalu/marketing-analyst
+     position 13.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/vanuatu/dietitian
+     position 32.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/vanuatu/scrum-master
+     position 79.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/vanuatu/senior-consultant
+     position 51.0 · 1 impression(s) · https://almicv.almiworld.com/cv-guide/vanuatu/structural-engineer
+     position 4.0 · 1 impression(s) · https://almidanish.almiworld.com/
+     position 2.5 · 2 impression(s) · https://almidutch.almiworld.com/
+     position 7.5 · 2 impression(s) · https://almigoethe.almiworld.com/
+     position 5.0 · 1 impression(s) · https://almiitalian.almiworld.com/citizenship/gambia
+     position 6.0 · 1 impression(s) · https://almiitalian.almiworld.com/exams-in/guinea
+     position 6.0 · 1 impression(s) · https://almiitalian.almiworld.com/residence-permit/liechtenstein
+     position 28.0 · 1 impression(s) · https://almiitalian.almiworld.com/residence-permit/saint-lucia
+     position 27.0 · 1 impression(s) · https://almiitalian.almiworld.com/residence-permit/solomon-islands
+     position 26.0 · 1 impression(s) · https://almiitalian.almiworld.com/study-in-italy/brunei
+     position 77.0 · 1 impression(s) · https://almiitalian.almiworld.com/study-in-italy/north-korea
+     position 54.0 · 1 impression(s) · https://almipte.almiworld.com/pte-for/austria/from-eswatini
+     position 46.0 · 1 impression(s) · https://almipte.almiworld.com/pte-for/germany/from-belize
+     position 29.0 · 1 impression(s) · https://almipte.almiworld.com/pte-for/germany/from-kiribati
+     position 42.5 · 2 impression(s) · https://almipte.almiworld.com/pte-for/italy/from-malawi
+     position 53.0 · 1 impression(s) · https://almipte.almiworld.com/pte-for/luxembourg/from-lesotho
+     position 30.5 · 2 impression(s) · https://almipte.almiworld.com/pte-for/netherlands/from-palau
+     position 55.0 · 1 impression(s) · https://almipte.almiworld.com/pte-for/oman/from-barbados
+     position 50.0 · 1 impression(s) · https://almipte.almiworld.com/pte-for/philippines/from-brunei
+     position 41.5 · 2 impression(s) · https://almipte.almiworld.com/pte-for/portugal/from-gambia
+     position 7.0 · 1 impression(s) · https://almiworld.com/contact-us/
+     position 1.0 · 1 impression(s) · https://almiworld.com/privacy-policy/
+     position 2.0 · 1 impression(s) · https://almiworld.com/refund_returns/
+  query: "summarize spoken text pte word limit"  (2 URLs)
+     position 63.0 · 1 impression(s) · https://almipte.almiworld.com/learn/pte-summarize-spoken-text
+     position 87.0 · 1 impression(s) · https://almipte.almiworld.com/learn/pte-summarize-written-text
+  query: "switzerland pte score requirement"  (2 URLs)
+     position 11.0 · 1 impression(s) · https://almipte.almiworld.com/pte-for/switzerland/education/from-estonia
+     position 11.0 · 1 impression(s) · https://almipte.almiworld.com/pte-for/switzerland/education/from-portugal
+
+=== EVERY CHECK, AND ITS CONTROL ===
+  exact-duplicate
+     fires  : two observations on different URLs sharing one content_sha256 — must fire
+     control: two observations on different URLs with different hashes — must NOT fire
+  thin-content
+     fires  : a page with a 2,000-word shell and a 40-word body — must fire
+     control: a page with the SAME 2,000-word shell and a 900-word body — must NOT fire. This is the control that proves the shell is being subtracted rather than counted.
+  near-duplicate
+     fires  : two pages whose bodies differ by one word — must fire
+     control: two pages sharing a large identical shell but with wholly different bodies — must NOT fire. This is the control that proves similarity is measured on BODY, not on chrome.
+  template-dominance
+     fires  : a page that is 90% chrome by word count — must fire
+     control: a page that is 20% chrome — must NOT fire
+  orphan-within-crawled-set
+     fires  : a page with zero inbound edges — must produce an UNKNOWN finding
+     control: a page with one inbound edge — must NOT fire at all
+
+written: C:/Users/Lenovo/AppData/Local/Temp/claude/C--Users-Lenovo/fe389914-e9d9-4f06-8bb4-b10140673fdd/scratchpad/runs6/content.jsonl  (466 records)
+bound: thin floor = 350 unique body words
+🔴 Nothing was fixed. No product repository was touched. No recommendation was emitted by any check.
+exit=0

@@ -387,6 +387,44 @@ export function entryFromArtifactRecovery({ startedAt, finishedAt, artifact, fil
  * Runs before it are OUT of scope and stay on the ledger as permanent losses
  * (L-COST-1); they are never estimated and never deleted.
  * ================================================================== */
+/**
+ * ITEM 25, PART 4 — a bounded, read-only link check of EXTERNAL sources.
+ * Money is zero by tariff: unauthenticated requests to public pages, with no
+ * account, key or billing relationship with any target. Calls are counted at
+ * the checker's boundary against its hard cap.
+ */
+export function entryFromLinkCheck({ startedAt, finishedAt, requests, maxRequests, urls, capReached }) {
+  return makeCostEntry({
+    entry_id: `link-check:${startedAt}`,
+    run_kind: "link-check",
+    run_ref: `bin/source-integrity.mjs ${startedAt}`,
+    run_started_at: startedAt,
+    recorded_at: finishedAt,
+    money: {
+      amountState: "ZERO_BY_TARIFF",
+      amount: 0,
+      currency: "USD",
+      basis: "unauthenticated HEAD/GET requests to public web pages from this machine — no account, no API key and no billing relationship with any target",
+    },
+    providerCalls: {
+      state: "MEASURED",
+      total: requests,
+      perProvider: { "public-web-sources": requests },
+      note: "counted at the checker's boundary, against its hard cap",
+      ...(requests === 0 ? { zeroBasis: "the plan was printed and no request was issued" } : {}),
+    },
+    budget: {
+      kind: "link-check",
+      used: { urls, requests },
+      bounds: { maxRequests, intervalMs: 1000, concurrency: 1 },
+      capReached,
+      ...(requests === 0 && urls === 0 ? { zeroBasis: "an empty plan" } : {}),
+    },
+    founderTime: { state: "MEASURED", seconds: (Date.parse(finishedAt) - Date.parse(startedAt)) / 1000 },
+    sources: ["bin/source-integrity.mjs"],
+  });
+}
+
 export const LEDGER_EXISTS_FROM = "2026-09-12T23:03:09Z";
 
 /** When the run an entry describes began. From the entry itself — never from when it was written down. */

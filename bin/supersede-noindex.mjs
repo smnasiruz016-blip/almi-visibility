@@ -90,7 +90,9 @@ const REASON =
   "none reaches 0.8. So the replacement is UNKNOWN, not FAIL: whether the gate is still the right rule is the owner's " +
   "decision (REC-NOINDEX-CV-GUIDE).";
 
-const records = [];
+const replacements = [];
+const changes = [];
+const records = { get length() { return replacements.length + changes.length; } };
 for (const e of pending) {
   const old = e.issue;
   const replacement = {
@@ -110,8 +112,8 @@ for (const e of pending) {
       "The noindex is a stated, deliberate de-indexing gate, correctly configured (crawlable). Whether it is still the right rule is " +
       "UNKNOWN from our evidence: the premise it cites is not confirmed by our similarity measurement. Owner's decision: REC-NOINDEX-CV-GUIDE.",
   };
-  records.push(replacement);
-  records.push(
+  replacements.push(replacement);
+  changes.push(
     makeIssueStateChange({
       issue_id: old.issue_id,
       from: "OPEN",
@@ -131,14 +133,17 @@ console.log(`[bound: ${technical.filter((r) => r.record_type === "issue").length
 console.log(`  noindex issues on cv-guide role×country pages : ${candidates.length} distinct (the store holds each issue_id ${candidates[0]?.copies ?? 0} time(s))`);
 console.log(`  already superseded                            : ${candidates.length - pending.length}`);
 console.log(`  to supersede now                              : ${pending.length}`);
-console.log(`  records to append                             : ${records.length} (${records.filter((r) => r.record_type === "issue").length} replacements + ${records.filter((r) => r.record_type === STATE_CHANGE_TYPE).length} state changes)`);
+console.log(`  records to append                             : ${records.length} (${replacements.length} replacements + ${changes.filter((r) => r.record_type === STATE_CHANGE_TYPE).length} state changes)`);
 console.log("  🔴 nothing is edited or deleted; no other issue class is touched — the robots issues stay OPEN");
 
 if (!permission.mayWrite) {
   console.log(`\n[dry-run] would have appended ${records.length} records — add --confirm`);
 } else if (records.length) {
   const store = createJsonlStore(TARGET);
-  store.appendAll(records);
+  // 🔴 Issues through the dedupe entry point; state changes are not issues and
+  // are made idempotent by the OPEN-only filter above.
+  for (const issue of replacements) store.appendIfNew(issue, { seenAt: now });
+  store.appendAll(changes);
   const after = lifecycleOf(store.readAll());
   console.log(`\nappended ${records.length} records. lifecycle errors: ${after.errors.length}. states now: ${JSON.stringify(after.census)}`);
   if (after.errors.length) {

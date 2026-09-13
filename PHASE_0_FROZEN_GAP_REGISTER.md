@@ -15,6 +15,8 @@ frozen.
 
 **No gap appears in both.** A third list — **OWNER ACTION** — holds the two items that are neither:
 they are decisions or console work only the owner can do.
+🔄 **13 September 2026: `B1` is CLOSED** (§3) — Search Console read-only access was granted on 11 September.
+One owner action remains open: `B2`.
 
 🔴 **Nothing in this register is fixed, and nothing in it is a request for permission.** A missing
 capability is a gap, not a question.
@@ -532,7 +534,7 @@ would have destroyed the evidence that the derivation was wrong.
 | **DEP-1** | the repository **deploys on every push**, and **no CI** stands between a merge and that deployment | deployment §1.1–1.2, five events matched to the second | RECORD |
 | **DEP-2** | 🔴 **a settled rule — AlmiVisibility runs behind auth — had nothing enforcing it, so it broke silently across four merges and went unseen.** All 163 tracked files were publicly downloadable; `/robots.txt` 404 | deployment §1.3 | RECORD — **owner has ruled; auth is being applied. Do not reopen** |
 | **AUD-1** | **seven of the nine frozen items already had a document**, and two successive audits were written without reading it | items 1–2 §10 | RECORD |
-| **DOC-1** | **no mechanism makes a summary follow a correction made to its own body.** Observed **three times**, on three different facts: the GSC row, the Neon plan, and `DOD-03A`'s status | item 3 §2.2; item 5 §2; item 7 §2.1 | RECORD |
+| **DOC-1** | **no mechanism makes a summary follow a correction made to its own body.** Observed **three times**, on three different facts: the GSC row, the Neon plan, and `DOD-03A`'s status. 🔴 **A fourth instance, 13 September 2026 — the GSC row again, and this time it cost something:** `B1` and `PRQ-1` still read *not granted* two days after access was granted (11 Sep) and used by nine ingest runs. A stale blocker made the discovery rows (checklist items 2–7) look impossible to start while their input had been in the evidence store for two days | item 3 §2.2; item 5 §2; item 7 §2.1; `B1` / `PRQ-1` closure, §3–§4 | RECORD |
 | **CRW-1** | **no crawler or research worker exists in any form, on any host** | item 4 §6 | RECORD |
 | **CRW-2** | 🔴 **Gate C polices third-party crawlers; nothing applies it to a crawler we would operate ourselves** on our own ISR pages at our own expense | item 4 §4 `R1` | RECORD |
 | **CRW-3** | **no politeness or rate-limit policy exists**, and none has been measured | item 4 §4 `R4` | RECORD |
@@ -589,13 +591,17 @@ would have destroyed the evidence that the derivation was wrong.
 
 | condition | state, 11 Sep 2026 | row | who |
 |---|---|---|---|
-| Search Console coverage / authorization | 🔴 **UNKNOWN** — the Domain property exists; **read-only API access is not granted** | **`B1`** | **owner** |
+| Search Console coverage / authorization | ~~🔴 **UNKNOWN** — the Domain property exists; **read-only API access is not granted**~~ ✅ **ANSWERED — read-only API access GRANTED 11 September 2026**, and used: nine `gsc-ingest` runs, 2026-09-11T22:58Z → 2026-09-12T23:25Z. Recorded here 13 September — two days late (`DOC-1`) | **`B1`** — CLOSED | **owner** |
 | analytics availability | 🟡 **answered, and adverse** — funnel evidence on **1 of 27** products; no page-view analytics anywhere | `ANL-1` | recorded |
 | worker execution layer | 🔴 **UNDECIDED** — options, costs, limits and risks measured and written; **only the decision is missing** | `CRW-1` | **owner** |
 | database isolation / capacity | 🟡 isolation from product DBs **PASS** (Owner Ruling 1) · 🔴 **capacity: the v0.1 workload needs 288 % of the Free plan in month one**, and preview shares it | `DB-2`, `DB-3`, **`B2`** | **owner** |
 | reusable existing artifacts | ✅ **answered** — 11 assets named with their state | items 1–2 §6 | recorded |
 
 > ## 🔴 PHASE 1 IS BLOCKED. TWO OF THE FIVE ARE UNKNOWN OR UNDECIDED, AND BOTH ARE OWNER DECISIONS.
+>
+> 🔄 **13 September 2026 — this count was two, and the Search Console half of it is answered** (`B1` CLOSED, §3). The
+> worker execution layer is the one of the two this register still records UNDECIDED; whether it has since been
+> decided is **not re-measured here**.
 >
 > **No attempt was made to resolve them, route around them, or start Phase 1 anyway.**
 
@@ -605,7 +611,7 @@ would have destroyed the evidence that the derivation was wrong.
 
 | id | item | why it is neither | who |
 |---|---|---|---|
-| **B1** | **read-only Search Console API access.** The Domain property **already exists**; this is the one thing open | it is console work and a credential handover, not a mechanism anyone can build | **owner** |
+| ~~**B1**~~ | ~~**read-only Search Console API access.** The Domain property **already exists**; this is the one thing open~~ | ✅ **CLOSED 13 September 2026 — granted 11 September 2026.** Evidence: `bin/gsc-ingest.mjs` states the grant in its own header (*"a property the owner granted on 11 September 2026"*); `runs/cost/ledger.jsonl` records **nine `gsc-ingest` runs** from 2026-09-11T22:58Z to 2026-09-12T23:25Z *(the owner's Amendment 4 brief says eight; the ledger's count is the one recorded)*; `runs/evidence/evidence.jsonl` holds their rows — at 2026-09-12T23:25Z query 337 · query-page 574 · country 126 · country-query 388, and page rows 1,525 at 22:06Z. 🔴 **What the stale row cost:** it made the discovery rows look impossible to start while their input sat in the store for two days — a further instance of `DOC-1` | **owner** |
 | **B2** | **preview/production database split** — the Neon branch **and** moving `DATABASE_*` off "All Environments" | ⚠️ **either half alone changes nothing and looks solved.** Deferred by the owner's 10 September ruling, with a written trigger: **before the first migration that creates a table worth losing** | **owner** |
 
 ---
@@ -614,7 +620,7 @@ would have destroyed the evidence that the derivation was wrong.
 
 | # | prerequisite | for | who |
 |---|---|---|---|
-| **PRQ-1** | read-only Search Console API access | any demand evidence, S11 | owner |
+| ~~**PRQ-1**~~ | ~~read-only Search Console API access~~ ✅ **CLOSED 13 September 2026 — granted 11 September 2026**, nine ingest runs recorded (evidence under `B1`, §3). The demand evidence it gates exists. The six UNKNOWNs in §5 marked *after PRQ-1* (U6, U7, U-SEO-1, U-SEO-2, U-DEP-2, U-GSC-1) are **no longer blocked by it — and none is answered by this closure** | any demand evidence, S11 | owner |
 | **PRQ-2** | preview/production database separation, **both halves** | any AlmiVisibility persistence | owner |
 | **PRQ-3** | first-party analytics on at least one more host | outcome/funnel learning | owner decides, then later phase |
 | **PRQ-4** | a deployment surface that serves something intended | the operator interface | later phase |
@@ -1328,14 +1334,15 @@ measured and can no longer be. **A row here outlives any tick it relates to.**
 |---|---|
 | capability gaps | **32 open** of 33 rows — `DOD-MAP-1` **CLOSED**; +6 from reading the DoD text, +3 from attempting Case Study #1 (`CS-4`, `CS-5`, `DOC-2`) |
 | product data gaps | **10** |
-| owner actions | **2** |
-| prerequisites | **9** |
+| owner actions | **2** — `B1` CLOSED 13 Sep 2026 · **1 open** (`B2`) |
+| prerequisites | **9** — `PRQ-1` CLOSED 13 Sep 2026 · **8 open** |
 | open UNKNOWNs | **36** |
 | **DoD items complete** | **1 of 21** — `DOD-02`, by **OWNER RULING 1** |
 
 ⚠️ **The "1 of 21" follows from OWNER RULING 1 and from nothing else.** It is recorded here because
 a summary that lagged its own document's ruling is exactly `DOC-1`, and this register has now
-recorded that failure three times. **No other status moved.**
+recorded that failure three times. **No other status moved.** *(A fourth, recorded 13 September 2026: `B1` and
+`PRQ-1` read "not granted" for two days after the grant — see `DOC-1`.)*
 
 > ### 🔴 THE SHAPE, STATED ONCE
 > **The engine that exists is well built and narrow.** One stage of twelve is complete, three gates
@@ -1345,11 +1352,18 @@ recorded that failure three times. **No other status moved.**
 > **And the two things that would move the most are not engineering:** read-only Search Console
 > access unblocks four DoD items, and **claim supply for ten more variants** unblocks the cohort.
 > Neither is code.
+>
+> 🔄 **13 September 2026: the first of the two happened on 11 September** — Search Console access was granted
+> and used (`B1` CLOSED). This register did not record it for two days.
 
 ⚠️ **One pattern appears in every item and deserves naming once:** `DOC-1` was found **three
 times**, on three unrelated facts, always the same way — **a correction landed in a body and never
 reached the summary that people actually read.** Twice it made work look necessary that was already
 done; once it made a known fact look unknowable.
+
+🔴 **A fourth time, found 13 September 2026, and the first with a measured cost:** `B1` / `PRQ-1` kept Search Console
+access "not granted" for two days after it was granted and used, and the discovery rows looked impossible to start
+while their input was already in the evidence store.
 
 ---
 

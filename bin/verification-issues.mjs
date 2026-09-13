@@ -87,17 +87,16 @@ function observe(factId) {
 }
 
 /**
- * 🔴 AN ISSUE HAS NO `measurement_key`, SO `appendIfNew` CANNOT DEDUPE IT.
+ * 🔴 ISSUES GO THROUGH THE STORE'S ONE DEDUPE ENTRY POINT.
  *
- * That is by design: a measurement key deliberately excludes the clock so the
- * same reading twice is one record, and an Issue is not a reading. Its
- * `issue_id` is already content-derived (C4), so identity is dedupe here.
- * Re-running must not stack copies of the same finding.
+ * This file used to carry its own copy: an issue has no `measurement_key`, so it
+ * checked `issue_id` inline before a bare append. Since 12 September 2026 the
+ * store deduplicates an issue by its content-derived `issue_id` itself, and a
+ * private second copy of that rule is a copy that can drift. The issue-writer
+ * census now requires every issue writer to call `appendIfNew`.
  */
 function appendIssueIfNew(issue) {
-  const already = store.readAll().some((r) => r.record_type === "issue" && r.issue_id === issue.issue_id);
-  if (!already) store.append(issue);
-  return { appended: !already };
+  return store.appendIfNew(issue, { seenAt: `${CHECKED_ON}T00:00:00.000Z` });
 }
 
 /* ================================================================== *

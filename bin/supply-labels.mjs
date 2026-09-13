@@ -25,8 +25,10 @@
  * is touched and no new observation of the world is made.
  */
 
-import { existsSync, readFileSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+
+import { createJsonlStore } from "../src/evidence/store.mjs";
 
 import { EXACT_DUPLICATE, THIN_CONTENT, NEAR_DUPLICATE, TEMPLATE_DOMINANCE, RECOMMENDATION_FIELDS } from "../src/audit/content-checks.mjs";
 import { measure, SHELL_DEFINITION, THIN_UNIQUE_WORD_FLOOR } from "../src/audit/shell.mjs";
@@ -165,8 +167,17 @@ for (const f of findings) {
   }
 }
 
-if (!existsSync(dirname(OUT))) mkdirSync(dirname(OUT), { recursive: true });
-writeFileSync(OUT, findings.map((f) => JSON.stringify(f)).join("\n") + (findings.length ? "\n" : ""), "utf8");
+/* 🔴 APPEND-ONLY, THROUGH THE STORE'S ONE DEDUPE ENTRY POINT.
+ * This used to OVERWRITE the whole file on every run. It could not duplicate —
+ * but it was the one issue writer that was not append-only, and the
+ * issue-writer census found it by construction where no hand-kept list had.
+ * A re-run now adds a re-sighting per finding it has already stored. */
+const store = createJsonlStore(OUT);
+const writes = { appended: 0, resighted: 0 };
+for (const f of findings) {
+  const w = store.appendIfNew(f, { seenAt: openedAt });
+  writes[w.appended ? "appended" : "resighted"] += 1;
+}
 
 /* ---- report --------------------------------------------------------------- */
 
@@ -199,7 +210,7 @@ console.log(`  census THIN          : ${labels.THIN}`);
 console.log(`  thin-content FAILs   : ${thinFails}`);
 console.log(`  ${agree ? "they agree" : "🔴 THEY DISAGREE — one of them is wrong, and neither number may be quoted"}`);
 
-console.log(`\nfindings written: ${findings.length} → ${OUT}`);
+console.log(`\nfindings: ${findings.length} → ${OUT}  (this run: ${writes.appended} new, ${writes.resighted} re-sighting(s))`);
 const byClass = {};
 for (const f of findings) byClass[`${f.issue_class}/${f.verdict}`] = (byClass[`${f.issue_class}/${f.verdict}`] ?? 0) + 1;
 for (const k of Object.keys(byClass).sort()) console.log(`  ${k.padEnd(34)} ${byClass[k]}`);

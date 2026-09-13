@@ -160,14 +160,26 @@ export function judgeLeavingUnknown(id, verification, claimElements) {
   const v = verification;
   const e = reconcileElements(claimElements, v);
   const reasons = [];
-  if (!(ISO_DAY.test(v.checkedOn ?? "") && ISO_DAY.test(previous.checkedOn ?? "") && v.checkedOn > previous.checkedOn)) {
+  /* 🔴 A NEW MEASUREMENT, in both of the ways a record can leave UNKNOWN (13 September 2026):
+   *   · replacing an earlier UNKNOWN check — the new check must be dated AFTER it;
+   *   · a never-checked record (UNVERIFIED, no earlier check at all) — its FIRST dated check is the new measurement.
+   * A never-checked record with no dated check is still refused: an absence is never promoted. */
+  const firstCheckOfNeverChecked = previous.state === "UNVERIFIED" && (previous.checkedOn === null || previous.checkedOn === undefined) && ISO_DAY.test(v.checkedOn ?? "");
+  const laterThanEarlierCheck = ISO_DAY.test(v.checkedOn ?? "") && ISO_DAY.test(previous.checkedOn ?? "") && v.checkedOn > previous.checkedOn;
+  if (!(firstCheckOfNeverChecked || laterThanEarlierCheck)) {
     reasons.push("no NEW measurement — the check is not dated after the UNKNOWN it would replace");
   }
   if (!NAMED_CHECKER.test(v.checkedBy ?? "")) reasons.push("nobody is named as having checked it");
   if (v.sourceTier !== "OFFICIAL") reasons.push(`the source is ${v.sourceTier ?? "untiered"}, not OFFICIAL`);
-  if (v.sourceRead !== true) {
+  /* 🔴 WAS THE SOURCE READ? (13 September 2026, item 50's remaining population)
+   * A verdict that records `sourceRead` is taken at its word, and `false` always refuses. The 12 September verdicts
+   * were recorded before the field existed; for them "read" is DERIVED from the only evidence they carry — a verdict
+   * whose own words name at least one declared element saw that source, because nothing can be named from a page
+   * nobody read. A verdict that records no read and names nothing is not read. */
+  const readDerived = v.sourceRead === undefined && e.listed !== null && e.confirmed.length > 0;
+  if (!(v.sourceRead === true || readDerived)) {
     const refused = (v.attempts ?? []).filter((a) => a.status !== 200);
-    reasons.push(`the source was not read${refused.length ? ` — ${refused.length} page(s) refused (${[...new Set(refused.map((a) => a.status))].join(", ")})` : ""}`);
+    reasons.push(`the source was not read${refused.length ? ` — ${refused.length} page(s) refused (${[...new Set(refused.map((a) => a.status))].join(", ")})` : v.sourceRead === undefined ? " — the verdict records no read and names no element seen on it" : ""}`);
   }
   if (!e.listed) {
     reasons.push("the record declares no element list — what is missing cannot be reconciled, so nothing of it counts as confirmed");

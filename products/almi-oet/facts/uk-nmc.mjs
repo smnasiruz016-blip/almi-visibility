@@ -77,8 +77,16 @@ export default [
   fact({
     ...common,
     id: "uk-nmc.oet-minimum-grade.profession=nursing",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    claimElements: ["reading-grade-b-350", "listening-grade-b-350", "speaking-grade-b-350", "writing-grade-c-plus-300"],
     verification: {
       state: "VERIFIED",
+      elementsConfirmedKeys: ["reading-grade-b-350", "listening-grade-b-350", "speaking-grade-b-350", "writing-grade-c-plus-300"],
+      elementsNotFoundKeys: [],
+      reconciledOn: "2026-09-13",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 4 element(s) and the verdict's own words name all 4. Nothing was re-verified, and the verdict's wording is unchanged.",
+      elementAmbiguity: "the value states grades; that they apply to the NURSING profession; the claim's qualifier (who or what it applies to) is not part of the value text, and the verdict's own words do not name it — so the reconciliation cannot settle whether the qualifier was confirmed",
+      previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",
       checkedOn: "2026-09-12",
       checkedBy: "human:beta-g (Cowork)",
@@ -115,8 +123,16 @@ export default [
   fact({
     ...common,
     id: "uk-nmc.oet-combining-sittings.profession=nursing",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    claimElements: ["combine-two-sittings", "one-reading-grade-b", "one-listening-grade-b", "one-speaking-grade-b", "one-writing-grade-c-plus"],
     verification: {
-      state: "VERIFIED",
+      state: "UNKNOWN",
+      reason: "PARTIAL_EVIDENCE",
+      elementsConfirmedKeys: ["combine-two-sittings"],
+      elementsNotFoundKeys: [],
+      reconciledOn: "2026-09-13",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 5 element(s); the verdict's own words name 1; 4 are not named. Partial confirmation is not verification, so the label returns to UNKNOWN. Nothing was re-verified, and the verdict's wording is unchanged.",
+      previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",
       checkedOn: "2026-09-12",
       checkedBy: "human:beta-g (Cowork)",
@@ -147,8 +163,16 @@ export default [
   fact({
     ...common,
     id: "uk-nmc.english-evidence-routes.profession=nursing",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    claimElements: ["three-routes", "approved-english-test", "qualification-taught-in-english", "one-year-practice-majority-english"],
     verification: {
       state: "VERIFIED",
+      elementsConfirmedKeys: ["three-routes", "approved-english-test", "qualification-taught-in-english", "one-year-practice-majority-english"],
+      elementsNotFoundKeys: [],
+      reconciledOn: "2026-09-13",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 4 element(s) and the verdict's own words name all 4. Nothing was re-verified, and the verdict's wording is unchanged.",
+      elementAmbiguity: "the value states three routes; that they apply to the NURSING profession; the claim's qualifier (who or what it applies to) is not part of the value text, and the verdict's own words do not name it — so the reconciliation cannot settle whether the qualifier was confirmed",
+      previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",
       checkedOn: "2026-09-12",
       checkedBy: "human:beta-g (Cowork)",
@@ -183,8 +207,16 @@ export default [
   fact({
     ...common,
     id: "uk-nmc.qualified-in-english-evidence.profession=nursing",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    claimElements: ["transcript-is-the-evidence", "half-time-interacting", "seventy-five-percent-in-english"],
     verification: {
-      state: "VERIFIED",
+      state: "UNKNOWN",
+      reason: "PARTIAL_EVIDENCE",
+      elementsConfirmedKeys: ["half-time-interacting", "seventy-five-percent-in-english"],
+      elementsNotFoundKeys: [],
+      reconciledOn: "2026-09-13",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 3 element(s); the verdict's own words name 2; 1 are not named. Partial confirmation is not verification, so the label returns to UNKNOWN. Nothing was re-verified, and the verdict's wording is unchanged.",
+      previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",
       checkedOn: "2026-09-12",
       checkedBy: "human:beta-g (Cowork)",
@@ -249,8 +281,15 @@ export default [
   fact({
     ...common,
     id: "uk-nmc.oet-profession-version.profession=nursing",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    claimElements: ["nursing-version-required", "chosen-from-profession-versions"],
     verification: {
       state: "VERIFIED",
+      elementsConfirmedKeys: ["nursing-version-required", "chosen-from-profession-versions"],
+      elementsNotFoundKeys: [],
+      reconciledOn: "2026-09-13",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 2 element(s) and the verdict's own words name all 2. Nothing was re-verified, and the verdict's wording is unchanged.",
+      previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",
       checkedOn: "2026-09-12",
       checkedBy: "human:beta-g (Cowork)",
@@ -289,8 +328,16 @@ export default [
   fact({
     ...common,
     id: "uk-nmc.oet-combining-sittings-floor.profession=nursing",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    claimElements: ["every-score-reaches-floor", "listening-floor-c-plus", "reading-floor-c-plus", "speaking-floor-c-plus", "writing-floor-c"],
     verification: {
       state: "VERIFIED",
+      elementsConfirmedKeys: ["every-score-reaches-floor", "listening-floor-c-plus", "reading-floor-c-plus", "speaking-floor-c-plus", "writing-floor-c"],
+      elementsNotFoundKeys: [],
+      reconciledOn: "2026-09-13",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 5 element(s) and the verdict's own words name all 5. Nothing was re-verified, and the verdict's wording is unchanged.",
+      elementAmbiguity: "the value states score floors; that they apply to the NURSING profession; the claim's qualifier (who or what it applies to) is not part of the value text, and the verdict's own words do not name it — so the reconciliation cannot settle whether the qualifier was confirmed",
+      previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",
       checkedOn: "2026-09-12",
       checkedBy: "human:beta-g (Cowork)",
@@ -329,8 +376,16 @@ export default [
   fact({
     ...common,
     id: "uk-nmc.accepted-oet-delivery-modes.profession=nursing",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    claimElements: ["oet-on-paper", "oet-on-computer", "oet-at-home", "at-home-combinable"],
     verification: {
       state: "VERIFIED",
+      elementsConfirmedKeys: ["oet-on-paper", "oet-on-computer", "oet-at-home", "at-home-combinable"],
+      elementsNotFoundKeys: [],
+      reconciledOn: "2026-09-13",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 4 element(s) and the verdict's own words name all 4. Nothing was re-verified, and the verdict's wording is unchanged.",
+      elementAmbiguity: "the value states accepted delivery modes; that they apply to the NURSING profession; the claim's qualifier (who or what it applies to) is not part of the value text, and the verdict's own words do not name it — so the reconciliation cannot settle whether the qualifier was confirmed",
+      previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",
       checkedOn: "2026-09-12",
       checkedBy: "human:beta-g (Cowork)",

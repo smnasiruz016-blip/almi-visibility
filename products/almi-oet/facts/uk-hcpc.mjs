@@ -83,8 +83,15 @@ export default [
   fact({
     ...common,
     id: "uk-hcpc.oet-minimum-score.profession=speech-pathology",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    claimElements: ["total-score-1800"],
     verification: {
       state: "VERIFIED",
+      elementsConfirmedKeys: ["total-score-1800"],
+      elementsNotFoundKeys: [],
+      reconciledOn: "2026-09-13",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 1 element(s) and the verdict's own words name all 1. Nothing was re-verified, and the verdict's wording is unchanged.",
+      previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",
       checkedOn: "2026-09-12",
       checkedBy: "human:beta-g (Cowork)",
@@ -107,8 +114,15 @@ export default [
   fact({
     ...common,
     id: "uk-hcpc.oet-score-differs-by-profession",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    claimElements: ["slt-total-1800", "slt-no-element-below-400", "others-total-1400", "others-no-element-below-300"],
     verification: {
       state: "VERIFIED",
+      elementsConfirmedKeys: ["slt-total-1800", "slt-no-element-below-400", "others-total-1400", "others-no-element-below-300"],
+      elementsNotFoundKeys: [],
+      reconciledOn: "2026-09-13",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 4 element(s) and the verdict's own words name all 4. Nothing was re-verified, and the verdict's wording is unchanged.",
+      previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",
       checkedOn: "2026-09-12",
       checkedBy: "human:beta-g (Cowork)",
@@ -136,8 +150,15 @@ export default [
   fact({
     ...common,
     id: "uk-hcpc.ielts-minimum.profession=speech-pathology",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    claimElements: ["overall-8-0", "no-element-below-7-5"],
     verification: {
       state: "VERIFIED",
+      elementsConfirmedKeys: ["overall-8-0", "no-element-below-7-5"],
+      elementsNotFoundKeys: [],
+      reconciledOn: "2026-09-13",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 2 element(s) and the verdict's own words name all 2. Nothing was re-verified, and the verdict's wording is unchanged.",
+      previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",
       checkedOn: "2026-09-12",
       checkedBy: "human:beta-g (Cowork)",
@@ -158,8 +179,16 @@ export default [
   fact({
     ...common,
     id: "uk-hcpc.accepted-english-tests",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    claimElements: ["ielts", "toefl-ibt", "oet"],
     verification: {
       state: "VERIFIED",
+      elementsConfirmedKeys: ["ielts", "toefl-ibt", "oet"],
+      elementsNotFoundKeys: [],
+      reconciledOn: "2026-09-13",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 3 element(s) and the verdict's own words name all 3. Nothing was re-verified, and the verdict's wording is unchanged.",
+      elementAmbiguity: "the value lists its items; whether it ALSO claims the list is COMPLETE is not in the value text, and the verdict does not name a completeness check — so the reconciliation cannot settle it",
+      previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",
       checkedOn: "2026-09-12",
       checkedBy: "human:beta-g (Cowork)",
@@ -182,8 +211,15 @@ export default [
   fact({
     ...common,
     id: "uk-hcpc.certificate-maximum-age",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    claimElements: ["two-years"],
     verification: {
       state: "VERIFIED",
+      elementsConfirmedKeys: ["two-years"],
+      elementsNotFoundKeys: [],
+      reconciledOn: "2026-09-13",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 1 element(s) and the verdict's own words name all 1. Nothing was re-verified, and the verdict's wording is unchanged.",
+      previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",
       checkedOn: "2026-09-12",
       checkedBy: "human:beta-g (Cowork)",
@@ -206,8 +242,15 @@ export default [
   fact({
     ...common,
     id: "uk-hcpc.test-venue-requirement",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    claimElements: ["official-test-centre", "not-at-home"],
     verification: {
       state: "VERIFIED",
+      elementsConfirmedKeys: ["official-test-centre", "not-at-home"],
+      elementsNotFoundKeys: [],
+      reconciledOn: "2026-09-13",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 2 element(s) and the verdict's own words name all 2. Nothing was re-verified, and the verdict's wording is unchanged.",
+      previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",
       checkedOn: "2026-09-12",
       checkedBy: "human:beta-g (Cowork)",
@@ -232,8 +275,15 @@ export default [
   fact({
     ...common,
     id: "uk-hcpc.oet-profession-version.profession=speech-pathology",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    claimElements: ["speech-and-language-version-name"],
     verification: {
       state: "VERIFIED",
+      elementsConfirmedKeys: ["speech-and-language-version-name"],
+      elementsNotFoundKeys: [],
+      reconciledOn: "2026-09-13",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 1 element(s) and the verdict's own words name all 1. Nothing was re-verified, and the verdict's wording is unchanged.",
+      previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",
       checkedOn: "2026-09-12",
       checkedBy: "human:beta-g (Cowork)",

@@ -89,8 +89,15 @@ export default [
   fact({
     ...common,
     id: "ie-nmbi.oet-minimum-grade.profession=nursing",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    claimElements: ["listening-grade-b", "reading-grade-b", "speaking-grade-b", "writing-grade-c-plus"],
     verification: {
       state: "VERIFIED",
+      elementsConfirmedKeys: ["listening-grade-b", "reading-grade-b", "speaking-grade-b", "writing-grade-c-plus"],
+      elementsNotFoundKeys: [],
+      reconciledOn: "2026-09-13",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 4 element(s) and the verdict's own words name all 4. Nothing was re-verified, and the verdict's wording is unchanged.",
+      previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",
       checkedOn: "2026-09-12",
       checkedBy: "human:beta-g (Cowork)",
@@ -116,8 +123,15 @@ export default [
   fact({
     ...common,
     id: "ie-nmbi.oet-version-required.profession=nursing",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    claimElements: ["oet-nursing-version"],
     verification: {
       state: "VERIFIED",
+      elementsConfirmedKeys: ["oet-nursing-version"],
+      elementsNotFoundKeys: [],
+      reconciledOn: "2026-09-13",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 1 element(s) and the verdict's own words name all 1. Nothing was re-verified, and the verdict's wording is unchanged.",
+      previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",
       checkedOn: "2026-09-12",
       checkedBy: "human:beta-g (Cowork)",
@@ -138,8 +152,16 @@ export default [
   fact({
     ...common,
     id: "ie-nmbi.recognised-english-speaking-countries",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    claimElements: ["australia", "canada", "new-zealand", "united-states", "united-kingdom"],
     verification: {
       state: "VERIFIED",
+      elementsConfirmedKeys: ["australia", "canada", "new-zealand", "united-states", "united-kingdom"],
+      elementsNotFoundKeys: [],
+      reconciledOn: "2026-09-13",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 5 element(s) and the verdict's own words name all 5. Nothing was re-verified, and the verdict's wording is unchanged.",
+      elementAmbiguity: "the value lists its items; whether it ALSO claims the list is COMPLETE is not in the value text, and the verdict does not name a completeness check — so the reconciliation cannot settle it",
+      previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",
       checkedOn: "2026-09-12",
       checkedBy: "human:beta-g (Cowork)",

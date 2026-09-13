@@ -308,8 +308,15 @@ export default [
     verificationState: "UNVERIFIED", // 🔴 A3, 12 Sep 2026 — declared, not defaulted
     ...oetCommon,
     id: "oet.subtests-and-which-are-profession-specific",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    claimElements: ["four-subtests-named", "listening-reading-common", "writing-speaking-profession-specific"],
     verification: {
       state: "VERIFIED",
+      elementsConfirmedKeys: ["four-subtests-named", "listening-reading-common", "writing-speaking-profession-specific"],
+      elementsNotFoundKeys: [],
+      reconciledOn: "2026-09-13",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 3 element(s) and the verdict's own words name all 3. Nothing was re-verified, and the verdict's wording is unchanged.",
+      previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",
       checkedOn: "2026-09-12",
       checkedBy: "human:beta-g (Cowork)",

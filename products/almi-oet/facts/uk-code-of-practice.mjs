@@ -79,6 +79,7 @@ const membership = (country, listName, valueText, span) =>
   fact({
     ...common,
     id: `uk-code-of-practice.recruitment-list-membership.country=${country}`,
+    claimElements: MEMBERSHIP_ELEMENTS[`uk-code-of-practice.recruitment-list-membership.country=${country}`],
     verification: INGESTED_VERIFICATION[`uk-code-of-practice.recruitment-list-membership.country=${country}`],
     claim: { subject: "uk-code-of-practice", predicate: "recruitment-list-membership", qualifier: `country=${country}` },
     scope: "origin",
@@ -98,10 +99,17 @@ const membership = (country, listName, valueText, span) =>
  * Ingested 12 September 2026 from FACT_VERIFICATION_2026-09-12.csv.
  * 🔴 NO VALUE WAS AMENDED. Only the verification standing was ingested.
  */
+// D-GUARD-1 (13 September 2026): the declared elements of each factory-built membership record, keyed from its value text.
+const MEMBERSHIP_ELEMENTS = {
+  "uk-code-of-practice.recruitment-list-membership.country=nigeria": ["on-red-list", "no-active-recruitment"],
+  "uk-code-of-practice.recruitment-list-membership.country=pakistan": ["on-red-list", "no-active-recruitment"],
+  "uk-code-of-practice.recruitment-list-membership.country=kenya": ["on-amber-list", "recruitment-only-under-agreement"],
+};
+
 const INGESTED_VERIFICATION = {
-  "uk-code-of-practice.recruitment-list-membership.country=nigeria": {"state":"VERIFIED","verdict":"VERIFIED","checkedOn":"2026-09-12","checkedBy":"human:beta-g (Cowork)","sourceUrl":"https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england","sourceTier":"OFFICIAL","recheckAfter":"2026-12-11","recheckWindowDays":90,"note":"Nigeria appears on the red list."},
-  "uk-code-of-practice.recruitment-list-membership.country=pakistan": {"state":"VERIFIED","verdict":"VERIFIED","checkedOn":"2026-09-12","checkedBy":"human:beta-g (Cowork)","sourceUrl":"https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england","sourceTier":"OFFICIAL","recheckAfter":"2026-12-11","recheckWindowDays":90,"note":"Pakistan appears on the red list."},
-  "uk-code-of-practice.recruitment-list-membership.country=kenya": {"state":"VERIFIED","verdict":"VERIFIED","checkedOn":"2026-09-12","checkedBy":"human:beta-g (Cowork)","sourceUrl":"https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england","sourceTier":"OFFICIAL","recheckAfter":"2026-12-11","recheckWindowDays":90,"note":"Kenya is on the amber list, not the red list."},
+  "uk-code-of-practice.recruitment-list-membership.country=nigeria": {"state":"UNKNOWN","reason":"PARTIAL_EVIDENCE","elementsConfirmedKeys":["on-red-list"],"elementsNotFoundKeys":[],"reconciledOn":"2026-09-13","reconciliation":"RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 2 element(s); the verdict's own words name 1; 1 are not named. Partial confirmation is not verification, so the label returns to UNKNOWN. Nothing was re-verified, and the verdict's wording is unchanged.","previous":{"state":"UNVERIFIED","checkedOn":null,"note":"never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},"verdict":"VERIFIED","checkedOn":"2026-09-12","checkedBy":"human:beta-g (Cowork)","sourceUrl":"https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england","sourceTier":"OFFICIAL","recheckAfter":"2026-12-11","recheckWindowDays":90,"note":"Nigeria appears on the red list."},
+  "uk-code-of-practice.recruitment-list-membership.country=pakistan": {"state":"UNKNOWN","reason":"PARTIAL_EVIDENCE","elementsConfirmedKeys":["on-red-list"],"elementsNotFoundKeys":[],"reconciledOn":"2026-09-13","reconciliation":"RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 2 element(s); the verdict's own words name 1; 1 are not named. Partial confirmation is not verification, so the label returns to UNKNOWN. Nothing was re-verified, and the verdict's wording is unchanged.","previous":{"state":"UNVERIFIED","checkedOn":null,"note":"never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},"verdict":"VERIFIED","checkedOn":"2026-09-12","checkedBy":"human:beta-g (Cowork)","sourceUrl":"https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england","sourceTier":"OFFICIAL","recheckAfter":"2026-12-11","recheckWindowDays":90,"note":"Pakistan appears on the red list."},
+  "uk-code-of-practice.recruitment-list-membership.country=kenya": {"state":"UNKNOWN","reason":"PARTIAL_EVIDENCE","elementsConfirmedKeys":["on-amber-list"],"elementsNotFoundKeys":[],"reconciledOn":"2026-09-13","reconciliation":"RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 2 element(s); the verdict's own words name 1; 1 are not named. Partial confirmation is not verification, so the label returns to UNKNOWN. Nothing was re-verified, and the verdict's wording is unchanged.","previous":{"state":"UNVERIFIED","checkedOn":null,"note":"never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},"verdict":"VERIFIED","checkedOn":"2026-09-12","checkedBy":"human:beta-g (Cowork)","sourceUrl":"https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england","sourceTier":"OFFICIAL","recheckAfter":"2026-12-11","recheckWindowDays":90,"note":"Kenya is on the amber list, not the red list."},
 };
 
 export default [
@@ -173,8 +181,16 @@ export default [
   fact({
     ...common,
     id: "uk-code-of-practice.red-list-rule",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    claimElements: ["no-active-recruitment-from-red-list"],
     verification: {
       state: "VERIFIED",
+      elementsConfirmedKeys: ["no-active-recruitment-from-red-list"],
+      elementsNotFoundKeys: [],
+      reconciledOn: "2026-09-13",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 1 element(s) and the verdict's own words name all 1. Nothing was re-verified, and the verdict's wording is unchanged.",
+      elementAmbiguity: "one rule sentence, read as one claim; the verdict's words name the prohibition but not whom it binds — read as two claims, the second would be unnamed",
+      previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",
       checkedOn: "2026-09-12",
       checkedBy: "human:beta-g (Cowork)",
@@ -197,8 +213,16 @@ export default [
   fact({
     ...common,
     id: "uk-code-of-practice.amber-list-rule",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    claimElements: ["recruitment-only-under-agreement", "red-moves-to-amber-on-agreement"],
     verification: {
-      state: "VERIFIED",
+      state: "UNKNOWN",
+      reason: "PARTIAL_EVIDENCE",
+      elementsConfirmedKeys: ["recruitment-only-under-agreement"],
+      elementsNotFoundKeys: [],
+      reconciledOn: "2026-09-13",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 2 element(s); the verdict's own words name 1; 1 are not named. Partial confirmation is not verification, so the label returns to UNKNOWN. Nothing was re-verified, and the verdict's wording is unchanged.",
+      previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",
       checkedOn: "2026-09-12",
       checkedBy: "human:beta-g (Cowork)",
@@ -221,8 +245,15 @@ export default [
   fact({
     ...common,
     id: "uk-code-of-practice.amber-list-countries",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    claimElements: ["kenya", "nepal"],
     verification: {
       state: "VERIFIED",
+      elementsConfirmedKeys: ["kenya", "nepal"],
+      elementsNotFoundKeys: [],
+      reconciledOn: "2026-09-13",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 2 element(s) and the verdict's own words name all 2. Nothing was re-verified, and the verdict's wording is unchanged.",
+      previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",
       checkedOn: "2026-09-12",
       checkedBy: "human:beta-g (Cowork)",
@@ -284,8 +315,15 @@ export default [
   fact({
     ...common,
     id: "uk-code-of-practice.red-list-country-count",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    claimElements: ["fifty-four-countries"],
     verification: {
       state: "VERIFIED",
+      elementsConfirmedKeys: ["fifty-four-countries"],
+      elementsNotFoundKeys: [],
+      reconciledOn: "2026-09-13",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 1 element(s) and the verdict's own words name all 1. Nothing was re-verified, and the verdict's wording is unchanged.",
+      previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",
       checkedOn: "2026-09-12",
       checkedBy: "human:beta-g (Cowork)",

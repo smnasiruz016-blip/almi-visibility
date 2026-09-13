@@ -449,13 +449,32 @@ export function validateRegistry(records = []) {
     else guard.advanced += 1;
     guard.judgements.push(j);
     if (!j.agrees) {
-      errors.push({
-        law: "F24",
-        message:
-          j.permitted === "VERIFIED"
-            ? `${j.id} is held ${j.declared} although the guard finds its evidence sufficient to leave UNKNOWN — a sufficient verdict may not be blocked`
-            : `${j.id} is declared ${j.declared} but the guard REFUSES to let it leave UNKNOWN: ${j.reasons.join("; ")}`,
-      });
+      /* 🔴 F24 EXCEPTION — INTERIM (13 September 2026 evening, beta-g ruling):
+       * A record deliberately demoted for elementAmbiguity is lawful even when the
+       * guard would advance it. The guard's formula (declared ∩ named-confirmed)
+       * cannot police the qualifier, list completeness or binding party — three
+       * classes of ambiguity CC flagged in the 13 Sep D-GUARD-1 pass by writing an
+       * `elementAmbiguity` field onto the record. Under the owner steer "it will
+       * not be made by picking the reading that keeps the label", beta-g demoted
+       * these records to UNKNOWN / PARTIAL_EVIDENCE. F24 must not fire on them
+       * because the demotion is the ruling, not a bug.
+       *
+       * This exception is to be REMOVED once the guard's formula is extended to
+       * police qualifier / completeness / binder as first-class elements (R4 in
+       * `_handoffs/AlmiVisibility_BETA_G_RULING_9_AMBIGUOUS_2026-09-13_NIGHT.md`).
+       * At that point the formula would REFUSE these records itself, records and
+       * guard would agree, and this exception would never fire. */
+      const isAmbiguityDemotion =
+        j.permitted === "VERIFIED" && j.declared === "UNKNOWN" && r?.verification?.elementAmbiguity;
+      if (!isAmbiguityDemotion) {
+        errors.push({
+          law: "F24",
+          message:
+            j.permitted === "VERIFIED"
+              ? `${j.id} is held ${j.declared} although the guard finds its evidence sufficient to leave UNKNOWN — a sufficient verdict may not be blocked`
+              : `${j.id} is declared ${j.declared} but the guard REFUSES to let it leave UNKNOWN: ${j.reasons.join("; ")}`,
+        });
+      }
     }
     if (j.elements.suppliedCount.length && everyGovernedDeclaresItsList) {
       errors.push({ law: "F25", message: `${j.id}: the verdict supplies ${j.elements.suppliedCount.join(" and ")} — a count is derived by reconciling element keys, never taken from a verdict` });

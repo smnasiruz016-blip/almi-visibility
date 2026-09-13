@@ -1,3 +1,10 @@
+# Baseline, first so every later line can override it: text is stored LF and checked out LF
+# on every machine, whatever core.autocrlf says. Without it a Windows checkout writes CRLF,
+# and any check that reads checked-out bytes disagrees with the Linux CI runner about the
+# same unchanged file. The `-text` lines below override it for evidence, whose bytes must
+# not be converted in either direction.
+* text=auto eol=lf
+
 # The frozen corpus is EVIDENCE. Its bytes must survive a checkout unchanged, or
 # the SHA-256 recorded at capture time stops matching the file it names — and an
 # integrity record that cannot be checked is worse than none.
@@ -22,3 +29,11 @@ runs/crawl/*.br -text
 # The owner's verification screenshots behind item 56's tick. Binary PNGs, pinned by
 # git blob; no conversion may ever touch them.
 runs/owner-verification/** -text
+
+# ALL run evidence, not two paths out of four. runs/ holds the raw observations, findings,
+# census and export evidence that ticks stand on. runs/crawl/*.br and
+# runs/owner-verification/** were already protected; the other 69 tracked files under runs/
+# were not, and a Windows checkout rewrote every one of them on 13 September 2026.
+# test/renderer.test.mjs:266 is the alarm that caught it; test/evidence-eol.test.mjs now
+# holds the whole class, and was seen RED with this line removed.
+runs/** -text

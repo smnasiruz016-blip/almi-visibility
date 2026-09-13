@@ -1,0 +1,112 @@
+RED PROOF — test/evidence-eol.test.mjs with the `runs/** -text` line REMOVED from .gitattributes
+date: 2026-09-13T22:59:50.813Z · base HEAD 97eb7020d0d9472a3796f847b4c1eda4a58c4bdb (uncommitted change under test)
+.gitattributes sha256 before 66cf8187fd64f2ba6839cb0f9d60f9f0a4870136fbe549ef04c3177f6386d17e; line removed; git check-attr during sabotage: runs/evidence/evidence.jsonl: text: auto
+exit status: 1 · failed for the stated reason (69 files, only that test): true
+
+✔ 🔴 the population exists before the guard runs: tracked files under runs/, text AND binary (1.6494ms)
+✔ 🔴 every tracked file under runs/ is checked out as its committed bytes — the same blob with core.autocrlf=true, =false, and with no filter at all (287.6268ms)
+✖ 🔴 no line-ending conversion can LAUNDER a rewritten evidence file: a CRLF copy never hashes to the committed blob, under either core.autocrlf (8109.9474ms)
+✔ CONTROL: the same check DOES see conversion on an ordinary text file outside runs/ — it is measuring the attribute, not passing by construction (162.2823ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 3
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8743.1086
+
+✖ failing tests:
+
+test at test\evidence-eol.test.mjs:82:1
+✖ 🔴 no line-ending conversion can LAUNDER a rewritten evidence file: a CRLF copy never hashes to the committed blob, under either core.autocrlf (8109.9474ms)
+  AssertionError [ERR_ASSERTION]: 69 evidence file(s) are subject to EOL conversion: a Windows CRLF rewrite of them hashes to the SAME blob, so a blob pin cannot see it and a sha256 of the checked-out bytes disagrees across machines. runs/** must carry -text.
+  + actual - expected
+  
+  + [
+  +   'runs/2026-09-10-almioet/CORRIDOR_OVERLAP_DIAGNOSTIC.md (core.autocrlf=true,false)',
+  +   'runs/2026-09-10-almioet/GATE_A_RUN_01.md (core.autocrlf=true,false)',
+  +   'runs/2026-09-10-almioet/PROSE_VS_TABULAR.md (core.autocrlf=true,false)',
+  +   'runs/2026-09-10-almioet/corpus-manifest.json (core.autocrlf=true,false)',
+  +   'runs/2026-09-10-almioet/corridor-overlap.json (core.autocrlf=true,false)',
+  +   'runs/2026-09-10-almioet/gate-a.csv (core.autocrlf=true,false)',
+  +   'runs/2026-09-10-almioet/text-kind.json (core.autocrlf=true,false)',
+  +   'runs/audit/content-findings.jsonl (core.autocrlf=true,false)',
+  +   'runs/audit/crawler-classification.jsonl (core.autocrlf=true,false)',
+  +   'runs/audit/findings.jsonl (core.autocrlf=true,false)',
+  +   'runs/audit/idempotency-double-run-content-2026-09-12.json (core.autocrlf=true,false)',
+  +   'runs/audit/idempotency-double-run-supply-labels-2026-09-13.json (core.autocrlf=true,false)',
+  +   'runs/audit/idempotency-double-run-technical-2026-09-12.json (core.autocrlf=true,false)',
+  +   'runs/audit/idempotency-double-run-verification-2026-09-13.json (core.autocrlf=true,false)',
+  +   'runs/audit/instrument-findings.jsonl (core.autocrlf=true,false)',
+  +   'runs/audit/item-12-38-content-run-2026-09-13.txt (core.autocrlf=true,false)',
+  +   'runs/audit/item-12-38-technical-run-2026-09-13.txt (core.autocrlf=true,false)',
+  +   'runs/audit/item-13-26-content-run-2026-09-13.txt (core.autocrlf=true,false)',
+  +   'runs/audit/item-25-page-quality-run-2026-09-13.txt (core.autocrlf=true,false)',
+  +   'runs/audit/item-25-page-quality-run-after-gatea-fix-2026-09-13.txt (core.autocrlf=true,false)',
+  +   'runs/audit/item-26-technical-run-2026-09-13.txt (core.autocrlf=true,false)',
+  +   'runs/audit/item-50-guard-limbs-red-2026-09-13.txt (core.autocrlf=true,false)',
+  +   'runs/audit/item-50-guard-red-2026-09-13.txt (core.autocrlf=true,false)',
+  +   'runs/audit/item-53-portability-red-2026-09-13.txt (core.autocrlf=true,false)',
+  +   'runs/audit/item-55-leak-test-red-before-fix-2026-09-13.txt (core.autocrlf=true,false)',
+  +   'runs/audit/recommendations.jsonl (core.autocrlf=true,false)',
+  +   'runs/audit/source-integrity-2026-09-13.json (core.autocrlf=true,false)',
+  +   'runs/audit/source-integrity.jsonl (core.autocrlf=true,false)',
+  +   'runs/audit/supply-labels.jsonl (core.autocrlf=true,false)',
+  +   'runs/audit/technical-findings.jsonl (core.autocrlf=true,false)',
+  +   'runs/audit/verification-issues.jsonl (core.autocrlf=true,false)',
+  +   'runs/chain-nursing/nursing-chain.json (core.autocrlf=true,false)',
+  +   'runs/chain-nursing/nursing.html (core.autocrlf=true,false)',
+  +   'runs/chain-speech-pathology/speech-pathology-chain.json (core.autocrlf=true,false)',
+  +   'runs/chain-speech-pathology/speech-pathology.html (core.autocrlf=true,false)',
+  +   'runs/cost/actions-runs.jsonl (core.autocrlf=true,false)',
+  +   'runs/cost/ledger.jsonl (core.autocrlf=true,false)',
+  +   'runs/cost/paid-provider-controls-2026-09-13.txt (core.autocrlf=true,false)',
+  +   'runs/cost/paid-provider-controls-red-2026-09-13.txt (core.autocrlf=true,false)',
+  +   'runs/crawl/first-real-crawl-2026-09-12.jsonl (core.autocrlf=true,false)',
+  +   'runs/evidence/evidence.jsonl (core.autocrlf=true,false)',
+  +   'runs/evidence/robots.jsonl (core.autocrlf=true,false)',
+  +   'runs/evidence/sitemaps.jsonl (core.autocrlf=true,false)',
+  +   'runs/export/estate.csv (core.autocrlf=true,false)',
+  +   'runs/export/evidence.json (core.autocrlf=true,false)',
+  +   'runs/export/evidence.md (core.autocrlf=true,false)',
+  +   'runs/export/facts-for-verification.csv (core.autocrlf=true,false)',
+  +   'runs/facts-census-01.json (core.autocrlf=true,false)',
+  +   'runs/facts-census-02.json (core.autocrlf=true,false)',
+  +   'runs/facts-census-03.json (core.autocrlf=true,false)',
+  +   'runs/nursing-chain/chain-report.json (core.autocrlf=true,false)',
+  +   'runs/nursing-chain/nursing.html (core.autocrlf=true,false)',
+  +   'runs/placement/nursing-placed.html (core.autocrlf=true,false)',
+  +   'runs/placement/placement-report.json (core.autocrlf=true,false)',
+  +   'runs/quote-match-01.json (core.autocrlf=true,false)',
+  +   'runs/quote-match-02.json (core.autocrlf=true,false)',
+  +   'runs/quote-match-03.json (core.autocrlf=true,false)',
+  +   'runs/render/npm-install-playwright-core-2026-09-13.log (core.autocrlf=true,false)',
+  +   'runs/render/red-proof-2026-09-13.txt (core.autocrlf=true,false)',
+  +   'runs/render/render-run-2026-09-13.json (core.autocrlf=true,false)',
+  +   'runs/render/render-run-2026-09-13.txt (core.autocrlf=true,false)',
+  +   'runs/render/rendered-2026-09-13.jsonl (core.autocrlf=true,false)',
+  +   'runs/replay/replay-2026-09-13-journey-key.json (core.autocrlf=true,false)',
+  +   'runs/replay/replay-2026-09-13.json (core.autocrlf=true,false)',
+  +   'runs/replay/replay-audit-dns-2026-09-13-journey-key.jsonl (core.autocrlf=true,false)',
+  +   'runs/replay/replay-audit-dns-2026-09-13.jsonl (core.autocrlf=true,false)',
+  +   'runs/replay/replay-crawl-2026-09-13-journey-key.jsonl (core.autocrlf=true,false)',
+  +   'runs/replay/replay-crawl-2026-09-13.jsonl (core.autocrlf=true,false)',
+  +   'runs/report/index.html (core.autocrlf=true,false)'
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (file:///C:/Projects/almi-visibility/test/evidence-eol.test.mjs:92:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ 'runs/2026-09-10-almioet/CORRIDOR_OVERLAP_DIAGNOSTIC.md (core.autocrlf=true,false)', 'runs/2026-09-10-almioet/GATE_A_RUN_01.md (core.autocrlf=true,false)', 'runs/2026-09-10-almioet/PROSE_VS_TABULAR.md (core.autocrlf=true,false)', 'runs/2026-09-10-almioet/corpus-manifest.json (core.autocrlf=true,false)', 'runs/2026-09-10-almioet/corridor-overlap.json (core.autocrlf=true,false)', 'runs/2026-09-10-almioet/gate-a.csv (core.autocrlf=true,false)', 'runs/2026-09-10-almioet/text-kind.json (core.autocrlf=true,false)', 'runs/audit/content-findings.jsonl (core.autocrlf=true,false)', 'runs/audit/crawler-classification.jsonl (core.autocrlf=true,false)', 'runs/audit/findings.jsonl (core.autocrlf=true,false)', 'runs/audit/idempotency-double-run-content-2026-09-12.json (core.autocrlf=true,false)', 'runs/audit/idempotency-double-run-supply-labels-2026-09-13.json (core.autocrlf=true,false)', 'runs/audit/idempotency-double-run-technical-2026-09-12.json (core.autocrlf=true,false)', 'runs/audit/idempotency-double-run-verification-2026-09-13.json (core.autocrlf=true,false)', 'runs/audit/instrument-findings.jsonl (core.autocrlf=true,false)', 'runs/audit/item-12-38-content-run-2026-09-13.txt (core.autocrlf=true,false)', 'runs/audit/item-12-38-technical-run-2026-09-13.txt (core.autocrlf=true,false)', 'runs/audit/item-13-26-content-run-2026-09-13.txt (core.autocrlf=true,false)', 'runs/audit/item-25-page-quality-run-2026-09-13.txt (core.autocrlf=true,false)', 'runs/audit/item-25-page-quality-run-after-gatea-fix-2026-09-13.txt (core.autocrlf=true,false)', 'runs/audit/item-26-technical-run-2026-09-13.txt (core.autocrlf=true,false)', 'runs/audit/item-50-guard-limbs-red-2026-09-13.txt (core.autocrlf=true,false)', 'runs/audit/item-50-guard-red-2026-09-13.txt (core.autocrlf=true,false)', 'runs/audit/item-53-portability-red-2026-09-13.txt (core.autocrlf=true,false)', 'runs/audit/item-55-leak-test-red-before-fix-2026-09-13.txt (core.autocrlf=true,false)', 'runs/audit/recommendations.jsonl (core.autocrlf=true,false)', 'runs/audit/source-integrity-2026-09-13.json (core.autocrlf=true,false)', 'runs/audit/source-integrity.jsonl (core.autocrlf=true,false)', 'runs/audit/supply-labels.jsonl (core.autocrlf=true,false)', 'runs/audit/technical-findings.jsonl (core.autocrlf=true,false)', 'runs/audit/verification-issues.jsonl (core.autocrlf=true,false)', 'runs/chain-nursing/nursing-chain.json (core.autocrlf=true,false)', 'runs/chain-nursing/nursing.html (core.autocrlf=true,false)', 'runs/chain-speech-pathology/speech-pathology-chain.json (core.autocrlf=true,false)', 'runs/chain-speech-pathology/speech-pathology.html (core.autocrlf=true,false)', 'runs/cost/actions-runs.jsonl (core.autocrlf=true,false)', 'runs/cost/ledger.jsonl (core.autocrlf=true,false)', 'runs/cost/paid-provider-controls-2026-09-13.txt (core.autocrlf=true,false)', 'runs/cost/paid-provider-controls-red-2026-09-13.txt (core.autocrlf=true,false)', 'runs/crawl/first-real-crawl-2026-09-12.jsonl (core.autocrlf=true,false)', 'runs/evidence/evidence.jsonl (core.autocrlf=true,false)', 'runs/evidence/robots.jsonl (core.autocrlf=true,false)', 'runs/evidence/sitemaps.jsonl (core.autocrlf=true,false)', 'runs/export/estate.csv (core.autocrlf=true,false)', 'runs/export/evidence.json (core.autocrlf=true,false)', 'runs/export/evidence.md (core.autocrlf=true,false)', 'runs/export/facts-for-verification.csv (core.autocrlf=true,false)', 'runs/facts-census-01.json (core.autocrlf=true,false)', 'runs/facts-census-02.json (core.autocrlf=true,false)', 'runs/facts-census-03.json (core.autocrlf=true,false)', 'runs/nursing-chain/chain-report.json (core.autocrlf=true,false)', 'runs/nursing-chain/nursing.html (core.autocrlf=true,false)', 'runs/placement/nursing-placed.html (core.autocrlf=true,false)', 'runs/placement/placement-report.json (core.autocrlf=true,false)', 'runs/quote-match-01.json (core.autocrlf=true,false)', 'runs/quote-match-02.json (core.autocrlf=true,false)', 'runs/quote-match-03.json (core.autocrlf=true,false)', 'runs/render/npm-install-playwright-core-2026-09-13.log (core.autocrlf=true,false)', 'runs/render/red-proof-2026-09-13.txt (core.autocrlf=true,false)', 'runs/render/render-run-2026-09-13.json (core.autocrlf=true,false)', 'runs/render/render-run-2026-09-13.txt (core.autocrlf=true,false)', 'runs/render/rendered-2026-09-13.jsonl (core.autocrlf=true,false)', 'runs/replay/replay-2026-09-13-journey-key.json (core.autocrlf=true,false)', 'runs/replay/replay-2026-09-13.json (core.autocrlf=true,false)', 'runs/replay/replay-audit-dns-2026-09-13-journey-key.jsonl (core.autocrlf=true,false)', 'runs/replay/replay-audit-dns-2026-09-13.jsonl (core.autocrlf=true,false)', 'runs/replay/replay-crawl-2026-09-13-journey-key.jsonl (core.autocrlf=true,false)', 'runs/replay/replay-crawl-2026-09-13.jsonl (core.autocrlf=true,false)', 'runs/report/index.html (core.autocrlf=true,false)' ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

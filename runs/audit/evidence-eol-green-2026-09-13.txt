@@ -1,0 +1,17 @@
+GREEN PROOF — the same test with the line RESTORED
+date: 2026-09-13T22:59:50.819Z · .gitattributes restored, sha256 66cf8187fd64f2ba6839cb0f9d60f9f0a4870136fbe549ef04c3177f6386d17e (identical to before)
+git check-attr after restore: runs/evidence/evidence.jsonl: text: unset
+exit status: 0
+
+✔ 🔴 the population exists before the guard runs: tracked files under runs/, text AND binary (1.1065ms)
+✔ 🔴 every tracked file under runs/ is checked out as its committed bytes — the same blob with core.autocrlf=true, =false, and with no filter at all (229.7551ms)
+✔ 🔴 no line-ending conversion can LAUNDER a rewritten evidence file: a CRLF copy never hashes to the committed blob, under either core.autocrlf (7905.9434ms)
+✔ CONTROL: the same check DOES see conversion on an ordinary text file outside runs/ — it is measuring the attribute, not passing by construction (133.364ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8426.8729

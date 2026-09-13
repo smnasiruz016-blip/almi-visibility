@@ -123,7 +123,20 @@ export function createGoogleSearchConsoleProvider({
   async function token() {
     if (!tokenPromise) {
       tokenPromise = (async () => {
-        const key = JSON.parse(await readFile(path, "utf8"));
+        /* 🔴 FOUND BY THE EXECUTING LEAK TEST, 13 September 2026 (item 55). A
+         * bare JSON.parse on a key file that is not JSON throws a SyntaxError
+         * that QUOTES the text it failed on — its first characters in the
+         * message, and, uncaught, Node prints the whole first line to stderr.
+         * The text is the secret. So the parse is caught, and the error that
+         * leaves names the variable and says nothing of the file — no message,
+         * no cause, no quote. */
+        const raw = await readFile(path, "utf8");
+        let key;
+        try {
+          key = JSON.parse(raw);
+        } catch {
+          throw new Error("GSC_SERVICE_ACCOUNT_KEY_FILE does not contain valid JSON. Nothing from the file is shown: a parse error quotes the text it failed on, and that text is a secret.");
+        }
         governor.charge();
         apiCalls += 1;
         return mintToken(key, fetchImpl);

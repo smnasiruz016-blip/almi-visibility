@@ -22,12 +22,49 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 |---|---|---|
 | **NOT-STARTED** | 33 | **3** |
 | **BUILT-NOT-PROVED** | 24 | **6** |
-| **TESTABLE-NOW** | — | **4** |
-| **VERIFIED-PASS** | 0 | **10** |
+| **TESTABLE-NOW** | — | **1** |
+| **VERIFIED-PASS** | 0 | **13** |
 | **FAILED** | — | **2** |
 | **BLOCKED-UNKNOWN** | 1 | **5** |
 | **DEFERRED** | — | **28** |
 | **total** | 58 | **58** |
+
+> ### 🔴 THE FOUR IN THE QUEUE RUN — 13, 25, 26, 55 — 13 SEPTEMBER 2026
+>
+> | state | before this change | after |
+> |---|---|---|
+> | NOT-STARTED | 3 | 3 |
+> | BUILT-NOT-PROVED | 6 | 6 |
+> | TESTABLE-NOW | 4 (13, 25, 26, 55) | **1** (25) |
+> | VERIFIED-PASS | 10 | **13** (+13, 26, 55) |
+> | FAILED | 2 (50, 51) | 2 (50, 51) |
+> | BLOCKED-UNKNOWN | 5 | 5 |
+> | DEFERRED | 28 | 28 |
+>
+> **Ruling 0A, beta-g: FAILED means the boundary's FAILURE condition was met, and nothing else.** A row
+> that was run and fell short stays TESTABLE-NOW, and (ruling 0B) now records its attemptCount, the date
+> of its last attempt and the specific gap — so the queue tells "never tried" from "tried, and here is
+> exactly what is missing".
+>
+> **FAILED — counted and named separately: 2 — item 50 and item 51, unchanged.** Item 55 passed THROUGH
+> FAILED in this change: the executing leak test's first run met its FAILURE condition on a real leak
+> (a key file that is not JSON was quoted by the parse error, and printed whole to stderr by the CLI);
+> the leak was fixed and the test re-run and passed. FAILED is not progress; the repair is.
+>
+> **Three rows reached VERIFIED-PASS in this change: 13, 26 and 55. None lost one.**
+>
+> - **moved because WORK HAPPENED:** 13 TESTABLE-NOW → VERIFIED-PASS (every overlap reported with its
+>   query, URLs and positions, beside 337 queries searched); 26 TESTABLE-NOW → VERIFIED-PASS (the 340/341
+>   disagreement raised as 11 Issues, both instruments found wrong, one definition, one stored graph,
+>   both runners print 335, the Issues closed); 55 TESTABLE-NOW → FAILED → VERIFIED-PASS (a planted fake
+>   secret, a real leak found and fixed, recovery proved by hash). 25 was attempted and stays TESTABLE-NOW.
+> - **moved ONLY because a RULING changed:** none. Rulings 0A and 0B moved no row.
+>
+> 🔴 **Item 25 does not tick.** All four parts were measured: unique value and sibling overlap on every
+> existing page; verified-fact presence on every page — and it found **0 verified facts on all 389**; source
+> integrity by the owner-authorised live link check — **15 of 15 sources LIVE**, 0 GONE, 0 disagreements with
+> beta-g's 12 September reading, 18 of a hard cap of 40 requests, external hosts only. With no existing page
+> carrying a fact, no page has a source to report.
 
 > ### 🔴 THE QUEUE RE-SCANNED — AND EVERY ROW THAT COULD BE RUN, RUN — 13 SEPTEMBER 2026
 >
@@ -195,16 +232,14 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 >   ingested and the seventh is supplied by no tool we hold. Not a tick. After it the counts are
 >   BUILT-NOT-PROVED **16** and BLOCKED-UNKNOWN **7**; the table above records Amendment 2 alone.
 
-> ### 🔴 TEN TICKS — ITEMS 8, 11, 12, 14, 15, 38, 42, 45, 48 AND 49
+> ### 🔴 THIRTEEN TICKS — ITEMS 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 48, 49 AND 55
 >
-> **Items 8, 11, 12, 14, 15, 38, 42, 45, 48 and 49.** Each has all four parts of its boundary answered
-> with real-data evidence. They are the only ten rows in the whole ledger that **hold a pass earned by work**;
-> item 9 moved by work and ended BLOCKED-UNKNOWN; items 50 and 51 were run and FAILED; items 13, 25, 26
-> and 55 are TESTABLE-NOW; **item 48 held a tick, LOST it** when the evidence showed the tick had been
-> earned on too narrow a population, **and earned it back** only after every job that stores a record
-> was run twice; items 11 and 42 were proved on a local replay of real bodies, which does not prove
-> live reachability; items 12 and 38 were run over the committed bodies of 12 September; the other 31
-> moved when the vocabulary changed and are counted apart.
+> **Items 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 48, 49 and 55.** Each has all four parts of its boundary
+> answered with real-data evidence. They are the only thirteen rows in the whole ledger that **hold a pass earned by work**;
+> item 9 moved by work and ended BLOCKED-UNKNOWN; items 50 and 51 were run and FAILED; item 25 was run and is
+> TESTABLE-NOW with its gap named; **items 48 and 55 each passed through FAILED** and left it only by the test
+> re-run and passing; items 11 and 42 were proved on a local replay of real bodies, which does not prove
+> live reachability; the other 31 moved when the vocabulary changed and are counted apart.
 >
 > **Item 14 did NOT tick the first time it was sat against Amendment 2**, and that result is kept
 > on the row: two write sites defaulted to writing, and it was FAILED. It ticked only after both
@@ -310,7 +345,7 @@ actually came from.
 | 10 | Technical SEO Audit Engine | BUILT-NOT-PROVED | IN — v0.1 CONTAINS l.974 "Crawler and page inventory (§8)" | Seven of nine sub-requirements run over the 394 pages. **Part 0 adds the ORIGIN of the noindex finding**: all 134 come from one conditional gate in `almi-cv-v2`, traced to commit `50f8c20` (17 Aug 2026), and the commit's own "near-duplicates by construction" premise was measured — same-role siblings average 0.685 similarity, **none reaches 0.8** | 2026-09-12 | Claude (repo audit) | 🔴 **CANNOT REACH VERIFIED PASS IN v0.1 — a scope fact.** Rendering and crawl depth are structurally impossible: every record is `RAW_HTML`, and we seeded from Search Console and never followed links | hissa 3, 12 Sep 2026 |
 | 11 | Existing Page Inventory | VERIFIED-PASS | IN — v0.1 CONTAINS l.974 (§8) | 495 real PageRecords from the 12 Sep run, 500→495 reconciled on the page. **"Maintain" proved 13 Sep by a LOCAL REPLAY** of the run's own 394 bodies, crawled twice with 5 named changes: **394/394 page_ids identical, 389 pages before and across both runs, each change a new observation on its existing page**; RED when the id takes the clock. `runs/replay/replay-2026-09-13.json` | 2026-09-13 | Claude (replay) | 🔴 Does NOT prove live reachability today. Committed PageRecords still carry empty edge lists (item 26) | replay, 13 Sep 2026 |
 | 12 | Duplicate / Thin / Template Detection | VERIFIED-PASS | IN — required by Case Study #1 (§60) which v0.1 CONTAINS l.974 | **Re-scanned and run 13 Sep over the COMMITTED bodies**: each of the four classifications accounts for all 394 pages — exact-duplicate 0 · thin 118 · near-duplicate 5 · template-dominance 2, plus 6 UNKNOWN. Shell subtraction **defined, printed beside the result, and tested against a page whose shell is larger than its body**; the item-8 guard passes. `runs/audit/item-12-38-content-run-2026-09-13.txt` | 2026-09-13 | Claude (queue re-scan) | **Detection only — nothing BLOCKS duplicate or thin inventory** (the deferred half: no publish path). A clean page is the absence of a finding, counted, not a stored record | re-scan, 13 Sep 2026 |
-| 13 | Cannibalization Prevention | TESTABLE-NOW | PARTIAL — detection rides on the GSC ingest (v0.1 CONTAINS l.974); prevention needs a URL proposer, which v0.1 excludes | **Run 13 Sep over the three stored query×page pulls: 337 queries searched, 21 drawing impressions on more than one URL, 0 of them two spellings of one page.** The detector is right. The runner reports a COUNT only — no query, competing URLs, positions or number searched — so EXPECTED is not met; the FAILURE clause is not met either, so it is not FAILED | 2026-09-13 | Claude (queue re-scan) | Next: report each overlap with its query, URLs and positions and the number searched, then re-run. **Detection only** — v0.1 proposes no URLs, so the prevention half has nothing to act on | re-scan, 13 Sep 2026 |
+| 13 | Cannibalization Prevention | VERIFIED-PASS | PARTIAL — detection rides on the GSC ingest (v0.1 CONTAINS l.974); prevention needs a URL proposer, which v0.1 excludes | **Run 13 Sep over the newest complete query×page pull** (c97334fdd102df8e, 574 rows): **21 of 337 queries searched** draw impressions on more than one URL, and **each is reported with its query, every competing URL and its position**, beside the number searched; 0 are two spellings of one page. Firing fixture and silent control for both the detector and the report. `runs/audit/item-13-26-content-run-2026-09-13.txt` | 2026-09-13 | Claude (queue run) | **Measurement only** — alphabetical, no ranking, no recommendation; item 8's guard holds over the report. The prevention half has nothing to act on in v0.1 | queue run, 13 Sep 2026 |
 | 14 | No Blind Regeneration | VERIFIED-PASS | IN — the inventory is v0.1 CONTAINS l.974 (§8) | **Re-run against Amendment 2 after the fix, and PASSED.** (a) 0 product-repository writes · (b) 0 publish paths · (c) 0 bulk generation · (d) 8 write sites in 7 files, all named in `config/permitted-page-writers.mjs` and reconciling exactly; **all 8 dry-run by default**; **all 7 confine their destination** and a real writer pointed outside the repository with `--confirm` refuses and creates nothing; every reason stated · (e) rediscovered URLs fold to their EXISTING `page_id` on the real 495-page run. Each part RED-proved | 2026-09-12 | Claude (repo audit) | Was FAILED earlier the same night — `bin/report.mjs` had no gate and `bin/nursing-chain.mjs` wrote its cache with no flag; both fixed, and it left FAILED by re-run. ⚠️ Recorded, not hidden: the crawler's body write is gated by `--live` plus the owner's-green flag rather than `--confirm`. `nursing-chain.mjs` is half superseded — see `NURSING_CHAIN_SUPERSESSION.md`; removal is the owner's call | Item 14 re-run, 12 Sep 2026 night |
 | 15 | Verified Fact Supply Engine | VERIFIED-PASS | IN — v0.1 CONTAINS l.974 "Source-of-truth and provenance layer (§14)" | 🔴 **THE FACTS ARE NOW CHECKED. ALL 46, BY A NAMED PERSON, ON A NAMED DATE.** beta-g read an official source for every record and returned a verdict: **32 VERIFIED, 14 UNKNOWN** (6 contested by a second official page, 4 true-but-incomplete, 4 source unreachable). Ingested as 456 added lines with **0 deletions — the proof that no value was amended**. A third state `UNKNOWN` was added because two could not tell "checked and contradicted" from "never opened". All 32 verified rows carry a recheck date that **governs freshness** (proved on a day the old and new rules disagree) | 2026-09-12 | Claude (repo audit) | 🔴 **STILL ◐, AND NOT BECAUSE 32 ROWS CHANGED COLOUR.** §3 Q4 asks for *integrated behaviour against real evidence*, and the integration is the part that does not exist: **the engine verified nothing — it ingested a spreadsheet a human filled in by hand.** There is no re-verification loop, so when the first recheck falls due **2026-12-11 nothing runs**. And ingesting real data exposed four defects the fixtures could not (`D-FACT-1..4`), two still open. A supply *engine* must produce supply; this one received a delivery | item 15 ingest, 12 Sep 2026 |
 | 16 | Fact Conflict & Freshness | BUILT-NOT-PROVED | IN — v0.1 CONTAINS l.974 (§14) | Freshness now runs on **real ingested dates**: 32 records governed by a human-set recheck date, windows of 90 days (fees and document lists) and 180 days (requirements), earliest due **2026-12-11**. The 14 UNKNOWN records deliberately carry **no** recheck date — an expiry implies good-until-then. Conflict detection still never auto-resolves and retains both values | 2026-09-12 | Claude (repo audit) | 🔴 **THE PREVIOUS NOTE SAID "ZERO CONFLICTS EXIST". THAT IS NOW FALSE, AND WORSE THAN IT SOUNDS.** Six real conflicts exist and **`detectConflicts` returns 0 on all six** (`D-FACT-1`): it only sees two records of OURS disagreeing, and every real conflict is registry-vs-a-second-official-page we do not hold. The detector is not broken, it is **blind to the only shape we actually have** — pinned by a test with a firing control, deliberately not worked around. Freshness is real; conflict is fixture-only *and now known to be unreachable* | item 15 ingest, 12 Sep 2026 |
@@ -322,8 +357,8 @@ actually came from.
 | 22 | Best Answer Architecture | DEFERRED | OUT — v0.1 EXCLUDES l.974 page generation | none | 2026-09-11 | Claude (repo audit) | — | — |
 | 23 | Answer-First Content | DEFERRED | OUT — v0.1 EXCLUDES l.974 page generation | none | 2026-09-11 | Claude (repo audit) | — | — |
 | 24 | Original Information Gain | DEFERRED | OUT — v0.1 EXCLUDES l.974 page generation | Gate A's sibling-overlap measure is a partial instrument for uniqueness, but it does not measure value beyond competitors | 2026-09-11 | Claude (repo audit) | — | — |
-| 25 | Page Quality Gate | TESTABLE-NOW | PARTIAL — Gate A exists as the audit slice's quality instrument; the *publishing* gate is OUT (l.974) | Input now exists: the 394 real bodies of 12 Sep are committed with their siblings, and the 32 verified facts are the claims. **Not run** — the source-integrity leg opens each cited source URL, a live fetch this change may not make | 2026-09-13 | Claude (queue re-scan) | Gate A covers overlap, facts and shell; source integrity needs a bounded live link check and the owner's green. Right-to-exist, cannibalization and technical-readiness as pre-publish gates are the deferred half | re-scan, 13 Sep 2026 |
-| 26 | Internal-Link Intelligence | TESTABLE-NOW | PARTIAL — link capture rides on the crawler (IN, l.974); opportunity-finding is later | **Run 13 Sep over the committed bodies:** 19,926 links read from served HTML; a page with no inbound edge is UNKNOWN (NEEDS_RENDERED_HTML), never "orphan" — 340 real UNKNOWN records. 🔴 **But the two runners count zero-inbound pages over the same bodies and disagree: 340 against 341** (one counts a link from another crawled host, one does not, and neither says so) | 2026-09-13 | Claude (queue re-scan) | Next: one definition used by both runners, the graph stored as a graph, re-run until the counts agree. Not FAILED — nothing unseen is recorded as absent. No opportunity-finding exists | re-scan, 13 Sep 2026 |
+| 25 | Page Quality Gate | TESTABLE-NOW | PARTIAL — Gate A exists as the audit slice's quality instrument; the *publishing* gate is OUT (l.974) | **Attempted once, 13 Sep.** (1) unique value on 389/389 existing pages; (2) sibling overlap MEASURED on 327, with 52 VACUOUS and 10 UNMEASURABLE named (D-GATEA-1); (3) verified-fact presence on 389/389 — **0 carry a verified fact**; (4) source integrity by the owner-authorised live link check — **15/15 sources LIVE**, 0 GONE, 0 disagreements with the 12 Sep baseline, 18/40 requests | 2026-09-13 | Claude (queue run) | **Gap:** with no existing page carrying a verified fact, source integrity is reported for no page. Next: existing pages that state registry facts, which needs a bounded capture and the owner's green | queue run, 13 Sep 2026 |
+| 26 | Internal-Link Intelligence | VERIFIED-PASS | PARTIAL — link capture rides on the crawler (IN, l.974); opportunity-finding is later | **The 340/341 disagreement raised as 11 Issues, both instruments found wrong** (one counted observations, one ignored other hosts), **one definition** (`src/crawl/inbound.mjs`), **one stored graph** (`runs/crawl/edges-2026-09-12.jsonl.br`), **both runners print 335**, the Issues closed on that evidence. 335 pages with no inbound link, all UNKNOWN, 0 'missing' | 2026-09-13 | Claude (queue run) | Raw HTML only: a JavaScript-injected link is invisible and reads UNKNOWN. No opportunity-finding exists (the later half) | queue run, 13 Sep 2026 |
 | 27 | Entity Intelligence | DEFERRED | OUT — later phase; §62 l.553 | none | 2026-09-11 | Claude (repo audit) | — | — |
 | 28 | International / Local SEO | DEFERRED | OUT — v0.1 EXCLUDES l.974 corridor engine (§6, §15) | none | 2026-09-11 | Claude (repo audit) | — | — |
 | 29 | SERP Hook / CTR Intelligence | DEFERRED | OUT — phase table "Search Intelligence" | none | 2026-09-11 | Claude (repo audit) | — | — |
@@ -352,7 +387,7 @@ actually came from.
 | 52 | Case Study Acceptance Test | BLOCKED-UNKNOWN | IN — v0.1 CONTAINS l.974 "Case Study #1 acceptance test (§60)" | `CASE_STUDY_01_ACCEPTANCE_TEST.md`, `case-study-01/corpus/MANIFEST.md`, `case-study-01/exhibits/` (34 files, 4 exhibits) | 2026-09-11 | Claude (repo audit) | 🔴 **NOT RUN = NOT TESTED.** `CS-3`: the test has never been executed. See the contradiction resolved below — **`CS-5`'s premise is false**, and the register, `CASE_STUDY_01_RUN_01.md` and `V51_REMEASURE.md` all carry the false version | contradictory evidence found — see §"Item 52" |
 | 53 | Cross-Product Portability | BUILT-NOT-PROVED | IN — §62 l.555 provider-neutral foundation; boundary law | `tools/product-boundary.mjs` + 13 tests: **`src/` names no product in code, 0 lines**, with an independent `git ls-files` census of the population. `products/almi-oet/product.mjs` declares axis+variants | 2026-09-11 | Claude (repo audit) | **Only one real product exists in `products/`.** Portability is proved by a static boundary scan and by fixture tenants — **no second declared product has been operated end-to-end** | — |
 | 54 | Cross-Product Isolation Test | BLOCKED-UNKNOWN | IN — DoD `DOD-02`; §62 l.553 | `test/product-isolation.test.mjs`: adversarial — "B cannot read A's licence terms by name", "every accessor refuses the other tenant's licence", plus a non-empty guard so it cannot pass vacuously | 2026-09-13 | Claude (queue re-scan) | **Re-scanned 13 Sep: still blocked.** A cost ledger now exists, but **no cost entry names a product**, so neither product holds private costs; and **no learning record exists** (`U-ISO-1`). Half an input is not an input | re-scan, 13 Sep 2026 |
-| 55 | Security / Secrets / Recovery | TESTABLE-NOW | IN — §37 API-key & secret architecture; DoD | Input exists: a code path that handles the Search Console key file, and an append-only store that must be recoverable. **Not run in this change** | 2026-09-13 | Claude (queue re-scan) | 🔴 The no-leak property is still verified by a manual grep, not by a test. Next: an executing test that drives the key-handling path with a planted secret and fails on any print, log, hash or length of it, plus a store recovery exercised | re-scan, 13 Sep 2026 |
+| 55 | Security / Secrets / Recovery | VERIFIED-PASS | IN — §37 API-key & secret architecture; DoD | **An EXECUTING leak test with a planted fake secret** (`test/secret-leak.test.mjs`): the adapter, the ingest and the CLI in a child process, searched for the marker, key lines, three digests and the secret's length. **Its first run FAILED on a real leak** (D-SEC-1) — fixed, re-run, passed; a sabotage that logs the key turns it red. **Recovery:** four committed stores and the body archive torn, detected and restored from git, byte-identical by blob hash | 2026-09-13 | Claude (queue run) | The real key was never read. A leak through a module this test does not drive is not covered — every credential path in the repository today is driven | queue run, 13 Sep 2026 |
 | 56 | Desktop + Mobile Owner Experience | BLOCKED-UNKNOWN | IN — DoD v0.1 "dashboard/report works on desktop and 430px" | An owner-facing surface now exists. It declares `width=device-width`, a `@media (max-width:430px)` breakpoint, and `overflow-x:auto` on wide tables so the body never scrolls sideways — all asserted by test | 2026-09-12 | Claude (repo audit) | 🔴 **NOT VERIFIED BY LOOKING.** Chrome's screenshot injection timed out on every attempt, including on a trivial `<h1>probe ok</h1>` page — the extension, not this page. The structure is asserted; **the appearance is unverified** and a structural assertion is not a visual check | report view, 12 Sep 2026 |
 | 57 | Final Independent Audit | NOT-STARTED | IN — checklist §1; DoD v0.1 | This document is the **first status baseline**, not the final audit | 2026-09-11 | Claude (repo audit) | Cannot run while 16 items are ◐ and 1 is ⚠; and it must be *independent*, which a self-audit is not | — |
 | 58 | DONE Declaration | NOT-STARTED | IN — checklist §6, owner sign-off | none | 2026-09-11 | Claude (repo audit) | Requires every applicable item ☑ or justified N/A with no frozen blocker. **0 items are ☑**, and N/A justifications are the owner's — none exist | — |

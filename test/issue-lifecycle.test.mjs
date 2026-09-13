@@ -74,7 +74,12 @@ test("🔴 REAL: 134 cv-guide noindex issues are SUPERSEDED — the first lifecy
   const superseded = [...r.issues.values()].filter((e) => e.state === "SUPERSEDED");
   assert.equal(superseded.length, 134);
   assert.ok(superseded.every((e) => e.issue.issue_class === "noindex"));
-  assert.equal(r.census.CLOSED, 0, "an issue was CLOSED — nothing in this change fixed anything");
+  // 🔴 13 September 2026: the first CLOSED issues — the 11 raised when two instruments disagreed (item 26),
+  // closed only after both runners' recorded re-runs printed the same count. Nothing else may be CLOSED.
+  const closed = [...r.issues.values()].filter((e) => e.state === "CLOSED");
+  assert.equal(closed.length, 11, "an issue was CLOSED that nothing in these changes fixed");
+  assert.ok(closed.every((e) => e.issue.issue_class === "instrument-disagreement"), "an issue of another class was CLOSED");
+  assert.ok(closed.every((e) => e.changes.at(-1)?.evidence?.length > 0 && /same count: 335/.test(e.changes.at(-1).reason)), "a closure carries no evidence of the fix");
 });
 
 test("🔴 REAL: the ROBOTS issues are all still OPEN — they are not fixed and not superseded", () => {

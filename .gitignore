@@ -24,6 +24,14 @@ node_modules/
 #
 # A NEW exception to "a repo is not a cache" must meet the same bar, in words,
 # here: it underpins a VERIFIED-PASS row AND it cannot be regenerated.
+#
+# ONE STATED EXCEPTION TO THE SECOND HALF: runs/crawl/edges-2026-09-12.jsonl.br
+# (87,754 bytes) CAN be re-derived from the body archive, and is committed anyway,
+# because item 26's own EVIDENCE clause names "the graph in durable storage", and
+# because two runners each deriving a graph for themselves is how 340 and 341
+# happened (D-INST-1). It is not trusted for being committed:
+# test/edge-graph.test.mjs re-derives it from the archive on every commit and
+# fails if the stored bytes have drifted from their source.
 # The 3,414-page corpus is NOT committed: it is ~200 MB of somebody else's rendered
 # HTML, it is reproducible from corpus-manifest.json + the seed, and a repo is not a
 # cache. What IS committed is the manifest (which names the exact 500 sampled URLs),

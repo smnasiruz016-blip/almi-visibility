@@ -73,6 +73,8 @@ const DECLARED = Object.freeze({
   "bin/cost-ledger.mjs": "ledger.append — the ledger's own dedupe by entry_id",
   "bin/replay-crawl.mjs": "ledger.append — the ledger's own dedupe by entry_id; its crawl observations go through persistCrawlObservations (appendIfNew) and its audit through runRobotsAndDnsAudit (appendIfNew)",
   "bin/supersede-noindex.mjs": "writes only for issues still OPEN; its re-run appends 0 (proved when it was committed)",
+  "bin/source-integrity.mjs": "ledger.append — the ledger's own dedupe by entry_id; its status observations go through appendIfNew",
+  "bin/instrument-disagreement.mjs": "appends CLOSED state changes built only from OPEN instrument-disagreement issues, so a re-run closes none; the issues themselves go through appendIfNew",
   "bin/supersede-duplicates.mjs": "writes only for copies with no note yet; its re-run appends 0",
 });
 

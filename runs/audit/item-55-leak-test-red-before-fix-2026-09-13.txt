@@ -1,0 +1,110 @@
+﻿✔ CONTROL: the leak detector FINDS a ten-character slice of the marker, a key line and a hash — and nothing in clean text (34.5202ms)
+✔ 🔴 a SUCCESSFUL ingest with the planted key prints, returns and stores NOTHING derived from the secret (107.5068ms)
+✔ 🔴 a REFUSED token exchange fails without the secret in its message or its stack (21.6266ms)
+✖ 🔴 a key file that is NOT JSON fails without quoting any of the file (22.3643ms)
+✔ 🔴 a key whose PEM is broken fails without the secret in its message or its stack (21.7825ms)
+✖ 🔴 THE CLI, in a child process: a planted non-JSON key and a planted broken PEM — nothing on stdout or stderr, and no request made (125.9368ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 4
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 405.8767
+
+✖ failing tests:
+
+test at test\secret-leak.test.mjs:174:1
+✖ 🔴 a key file that is NOT JSON fails without quoting any of the file (22.3643ms)
+  AssertionError [ERR_ASSERTION]: the parse error quoted the secret file
+  + actual - expected
+  
+  + [
+  +   'marker window "ALMIVIS-"',
+  +   'marker window "LMIVIS-P"',
+  +   'marker window "MIVIS-PL"'
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (file:///C:/Projects/almi-visibility/test/secret-leak.test.mjs:180:12)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ 'marker window "ALMIVIS-"', 'marker window "LMIVIS-P"', 'marker window "MIVIS-PL"' ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test\secret-leak.test.mjs:203:1
+✖ 🔴 THE CLI, in a child process: a planted non-JSON key and a planted broken PEM — nothing on stdout or stderr, and no request made (125.9368ms)
+  AssertionError [ERR_ASSERTION]: not-json: the CLI printed planted secret material
+  + actual - expected
+  
+  + [
+  +   'marker window "ALMIVIS-"',
+  +   'marker window "LMIVIS-P"',
+  +   'marker window "MIVIS-PL"',
+  +   'marker window "IVIS-PLA"',
+  +   'marker window "VIS-PLAN"',
+  +   'marker window "IS-PLANT"',
+  +   'marker window "S-PLANTE"',
+  +   'marker window "-PLANTED"',
+  +   'marker window "PLANTED-"',
+  +   'marker window "LANTED-F"',
+  +   'marker window "ANTED-FA"',
+  +   'marker window "NTED-FAK"',
+  +   'marker window "TED-FAKE"',
+  +   'marker window "ED-FAKE-"',
+  +   'marker window "D-FAKE-S"',
+  +   'marker window "-FAKE-SE"',
+  +   'marker window "FAKE-SEC"',
+  +   'marker window "AKE-SECR"',
+  +   'marker window "KE-SECRE"',
+  +   'marker window "E-SECRET"',
+  +   'marker window "-SECRET-"',
+  +   'marker window "SECRET-3"',
+  +   'marker window "ECRET-3b"',
+  +   'marker window "CRET-3b7"',
+  +   'marker window "RET-3b7e"',
+  +   'marker window "ET-3b7e1"',
+  +   'marker window "T-3b7e1c"',
+  +   'marker window "-3b7e1c9"',
+  +   'marker window "3b7e1c9d"',
+  +   'derived material MIIEvA…'
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (file:///C:/Projects/almi-visibility/test/secret-leak.test.mjs:218:14)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [
+      'marker window "ALMIVIS-"', 'marker window "LMIVIS-P"',
+      'marker window "MIVIS-PL"', 'marker window "IVIS-PLA"',
+      'marker window "VIS-PLAN"', 'marker window "IS-PLANT"',
+      'marker window "S-PLANTE"', 'marker window "-PLANTED"',
+      'marker window "PLANTED-"', 'marker window "LANTED-F"',
+      'marker window "ANTED-FA"', 'marker window "NTED-FAK"',
+      'marker window "TED-FAKE"', 'marker window "ED-FAKE-"',
+      'marker window "D-FAKE-S"', 'marker window "-FAKE-SE"',
+      'marker window "FAKE-SEC"', 'marker window "AKE-SECR"',
+      'marker window "KE-SECRE"', 'marker window "E-SECRET"',
+      'marker window "-SECRET-"', 'marker window "SECRET-3"',
+      'marker window "ECRET-3b"', 'marker window "CRET-3b7"',
+      'marker window "RET-3b7e"', 'marker window "ET-3b7e1"',
+      'marker window "T-3b7e1c"', 'marker window "-3b7e1c9"',
+      'marker window "3b7e1c9d"', 'derived material MIIEvA…'
+    ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+

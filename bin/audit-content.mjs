@@ -2,23 +2,22 @@
 /**
  * HISSA 2b — items 12, 13 and 26 over the 394 crawled pages.
  *
- * 🔴 NO CRAWL, NO FETCH. Bodies come from the CI artifact
- * `crawl-corpus-34662527129`, which is downloaded to a local directory and
- * NEVER committed. Hashes in the committed records let anyone verify a body
- * against the run that produced it.
+ * 🔴 NO CRAWL, NO FETCH. With no --corpus the COMMITTED body archive is read;
+ * `--corpus=<dir>` reads an unpacked copy of the same bodies. Hashes in the
+ * committed records let anyone verify a body against the run that produced it.
  *
- * Usage: node bin/audit-content.mjs --corpus=<dir>
+ * Usage: node bin/audit-content.mjs [--corpus=<dir>] [--out=<store>]
  */
 
-import { existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { measure, shingles, SHELL_DEFINITION, THIN_UNIQUE_WORD_FLOOR } from "../src/audit/shell.mjs";
-import { EXACT_DUPLICATE, THIN_CONTENT, NEAR_DUPLICATE, TEMPLATE_DOMINANCE, ORPHAN_LINK, detectCannibalization } from "../src/audit/content-checks.mjs";
+import { EXACT_DUPLICATE, THIN_CONTENT, NEAR_DUPLICATE, TEMPLATE_DOMINANCE, ORPHAN_LINK, detectCannibalization, reportCannibalization } from "../src/audit/content-checks.mjs";
 import { registeredChecks } from "../src/audit/check.mjs";
-import { extractLinks } from "../src/crawl/seeds.mjs";
 import { canonicalUrl, targetPageId } from "../src/evidence/ids.mjs";
+import { pagesFromRun, deriveEdges, inboundOf, unpackGraph, ZERO_INBOUND_DEFINITION } from "../src/crawl/inbound.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n, d) => {
@@ -43,7 +42,7 @@ console.log(`corpus: ${archiveBodies ? `${ARCHIVE} (committed archive)` : haveCo
 console.log(`pages with a fetched body: ${observations.length}`);
 console.log(`\n${SHELL_DEFINITION}\n`);
 
-/* ---- build the per-page context ---------------------------------------- */
+/* ---- build the per-observation context ---------------------------------- */
 const pages = [];
 const byHash = new Map();
 for (const o of observations) {
@@ -61,33 +60,18 @@ for (const o of observations) {
   byHash.get(o.content_sha256).push(canonical);
 }
 
-/* ---- the edge graph, re-derived from the bodies (Part 5C) --------------- */
-const known = new Set(pages.map((p) => p.canonical));
-const inbound = new Map(pages.map((p) => [p.canonical, 0]));
-let edgesTotal = 0;
-let edgesInside = 0;
-for (const p of pages) {
-  if (!p.html) continue;
-  for (const to of extractLinks(p.html, p.canonical)) {
-    edgesTotal += 1;
-    let c;
-    try {
-      c = canonicalUrl(to);
-    } catch {
-      continue;
-    }
-    if (c === p.canonical) continue;
-    if (!known.has(c)) continue;
-    edgesInside += 1;
-    inbound.set(c, (inbound.get(c) ?? 0) + 1);
-  }
-}
-console.log(`EDGES: ${edgesTotal} links found, ${edgesInside} pointing inside the crawled set.`);
-console.log(
-  haveCorpus
-    ? "  (re-derived from the artifact bodies — the committed PageRecords carry empty edge lists)"
-    : "  🔴 no corpus: the edge graph is EMPTY and item 26 runs on nothing.",
-);
+/* ---- 🔴 ITEM 26 — THE STORED GRAPH, THROUGH THE ONE DEFINITION -----------
+ * Until 13 September 2026 this runner derived its own graph and counted once
+ * per OBSERVATION (340); bin/audit-technical.mjs derived another and ignored
+ * links from other hosts (341). Both now read runs/crawl/edges-2026-09-12.jsonl.br
+ * through src/crawl/inbound.mjs, and the orphan check runs ONCE PER DISTINCT PAGE. */
+const GRAPH = `${REPO}runs/crawl/edges-2026-09-12.jsonl.br`;
+const distinctPages = pagesFromRun({ crawlRecords: crawl, bodies: new Map(pages.filter((p) => p.html).map((p) => [p.observation.observation_id, p.html])) });
+const edges = existsSync(GRAPH) ? unpackGraph(readFileSync(GRAPH)) : deriveEdges(distinctPages);
+const { inbound, zero } = inboundOf({ pages: distinctPages, edges });
+console.log(ZERO_INBOUND_DEFINITION);
+console.log(`EDGES: ${edges.length} links in served HTML (${existsSync(GRAPH) ? "the stored graph" : "🔴 derived here — no stored graph"}) over ${distinctPages.length} distinct pages.`);
+console.log(`pages with no inbound links inside the crawled set: ${zero.length}\n`);
 
 /* ---- shingles for near-duplicate ---------------------------------------- */
 const peers = [];
@@ -110,18 +94,9 @@ const bump = (id, verdict) => {
 };
 
 for (const p of pages) {
-  const ctx = {
-    openedAt,
-    bodyHtml: p.html,
-    byHash,
-    twinObservationIds: [],
-    peers,
-    inboundCount: p.html ? (inbound.get(p.canonical) ?? 0) : null,
-    anchorObservationId: p.observation.observation_id,
-  };
+  const ctx = { openedAt, bodyHtml: p.html, byHash, twinObservationIds: [], peers, anchorObservationId: p.observation.observation_id };
   const page = { canonical_url: p.canonical, page_id: targetPageId(p.canonical) };
-
-  for (const check of [EXACT_DUPLICATE, THIN_CONTENT, NEAR_DUPLICATE, TEMPLATE_DOMINANCE, ORPHAN_LINK]) {
+  for (const check of [EXACT_DUPLICATE, THIN_CONTENT, NEAR_DUPLICATE, TEMPLATE_DOMINANCE]) {
     const finding = await check.run({ page, observations: [p.observation], siteContext: ctx });
     if (finding === null) {
       bump(check.id, null);
@@ -134,21 +109,45 @@ for (const p of pages) {
   }
 }
 
-/* ---- item 13, detection mode ------------------------------------------- */
+// The orphan check, once per DISTINCT page, citing every observation that reached it.
+const byId = new Map(observations.map((o) => [o.observation_id, o]));
+for (const dp of distinctPages) {
+  const page = { canonical_url: dp.canonical, page_id: targetPageId(dp.canonical) };
+  const ctx = { openedAt, inboundCount: dp.html !== null ? inbound.get(dp.canonical) ?? 0 : null };
+  const finding = await ORPHAN_LINK.run({ page, observations: dp.observation_ids.map((id) => byId.get(id)), siteContext: ctx });
+  if (finding === null) {
+    bump(ORPHAN_LINK.id, null);
+    continue;
+  }
+  store.appendIfNew(finding, { seenAt: openedAt });
+  bump(ORPHAN_LINK.id, finding.verdict);
+}
+
+/* ---- 🔴 ITEM 13 — the LATEST complete query×page pull, reported in full ----
+ * The store holds three pulls of the same window. Merging them mixes positions
+ * from different pulls for the same query and URL (12 pairs differ), so the
+ * report reads one pull — the newest COMPLETE one — and names it. */
 const evidence = createJsonlStore(`${REPO}runs/evidence/evidence.jsonl`).readAll();
-const queryRows = evidence
-  .filter((r) => r.method === "gsc.searchAnalytics.query:query-page")
-  .flatMap((r) => r.value.rows ?? []);
+const pulls = evidence
+  .filter((r) => r.method === "gsc.searchAnalytics.query:query-page" && r.value?.dataState === "COMPLETE")
+  .sort((a, b) => a.observed_at.localeCompare(b.observed_at));
+const pull = pulls.at(-1) ?? null;
+const queryRows = pull?.value.rows ?? [];
 const cannibal = detectCannibalization(queryRows);
 
 console.log("\n=== FINDINGS ===");
 for (const [id, t] of Object.entries(tally)) {
   console.log(`  ${id.padEnd(26)} FAIL=${String(t.FAIL).padStart(4)}  UNKNOWN=${String(t.UNKNOWN).padStart(4)}  silent=${String(t.silent).padStart(4)}`);
 }
-console.log(`\nITEM 13 (cannibalization, DETECTION MODE ONLY): ${cannibal.length} queries on >1 URL`);
-if (queryRows.length === 0) {
-  console.log("  🔴 UNKNOWN — no query×page rows are stored. Query text is deliberately never stored,");
-  console.log("     so this check has no input and CANNOT RUN. Detection mode is built; it has no data.");
+console.log(`  (orphan-within-crawled-set is counted once per DISTINCT page: ${distinctPages.length}; the other four once per observation: ${pages.length})`);
+
+console.log("");
+if (!pull) {
+  console.log("ITEM 13 — 🔴 UNKNOWN: no COMPLETE query×page pull is stored, so this check has no input and cannot run.");
+} else {
+  const source = `pull ${pull.observation_id} observed ${pull.observed_at}, window ${pull.value.startDate}..${pull.value.endDate}, dataState ${pull.value.dataState}, newest of ${pulls.length} complete pull(s)`;
+  const queriesSearched = new Set(queryRows.filter((r) => r.query).map((r) => r.query)).size;
+  for (const line of reportCannibalization({ findings: cannibal, queriesSearched, rowsSearched: queryRows.length, source })) console.log(line);
 }
 
 console.log("\n=== EVERY CHECK, AND ITS CONTROL ===");

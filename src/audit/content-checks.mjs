@@ -275,6 +275,28 @@ export function detectCannibalization(queryRows, { minUrls = 2 } = {}) {
   return findings;
 }
 
+/**
+ * 🔴 ITEM 13 — REPORT EACH OVERLAP, NOT A COUNT, AND PRINT WHAT WAS SEARCHED.
+ *
+ * Every overlap with its query, its competing URLs and their positions, and the
+ * number of queries searched beside the result (LAW-BOUND-1). MEASUREMENT ONLY:
+ * the order is alphabetical by query, so nothing reads as a ranking, and no
+ * line says what anyone should do (item 8's guard holds over this text).
+ */
+export function reportCannibalization({ findings, queriesSearched, rowsSearched, source }) {
+  const lines = [
+    `ITEM 13 — CANNIBALIZATION, MEASUREMENT ONLY. [bound: ${queriesSearched} queries searched · ${rowsSearched} query×page rows · ${source}]`,
+    `${findings.length} of ${queriesSearched} queries drew impressions on more than one URL:`,
+  ];
+  for (const f of [...findings].sort((a, b) => a.query.localeCompare(b.query))) {
+    lines.push(`  query: ${JSON.stringify(f.query)}  (${f.urls.length} URLs)`);
+    for (const p of [...f.positions].sort((a, b) => a.url.localeCompare(b.url))) {
+      lines.push(`     position ${p.position === null ? "—" : Number(p.position).toFixed(1)} · ${p.impressions} impression(s) · ${p.url}`);
+    }
+  }
+  return lines;
+}
+
 /* ------------------------------------------------------------------ *
  * ITEM 26 — INTERNAL LINKS IN THE SERVED HTML.
  * ------------------------------------------------------------------ */

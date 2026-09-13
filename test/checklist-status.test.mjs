@@ -172,9 +172,11 @@ test("the headline counts match the rows they summarise", () => {
  */
 test("🔴 the headline separates the three earned ticks from the 33 renamed rows", () => {
   const text = readFileSync(STATUS, "utf8");
-  assert.match(text, /TEN TICKS — ITEMS 8, 11, 12, 14, 15, 38, 42, 45, 48 AND 49/);
+  assert.match(text, /THIRTEEN TICKS — ITEMS 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 48, 49 AND 55/);
   assert.match(text, /DEFERRED IS NOT A TICK AND NEVER COUNTS AS ONE/);
-  assert.match(text, /only ten rows in the whole ledger that \*\*hold a pass earned by work\*\*/);
+  assert.match(text, /only thirteen rows in the whole ledger that \*\*hold a pass earned by work\*\*/);
+  // 🔴 Ruling 0A, recorded where the counts are read.
+  assert.match(text, /FAILED means the boundary's FAILURE condition was met, and nothing else/);
   // 🔴 The re-scan must say it did not move a row on a feeling, and answer items 1 and 54 plainly.
   assert.match(text, /did not move a row because it felt closer/);
   assert.match(text, /\*\*no learning record exists\*\*/);

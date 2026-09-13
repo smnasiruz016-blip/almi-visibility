@@ -79,30 +79,27 @@ for (const o of crawl.filter((r) => r.record_type === "observation" && r.value?.
   } catch {}
 }
 
-const outboundByPage = new Map();
-const inbound = new Map(pages.map((p) => [p.canonical, 0]));
-const known = new Set(pages.map((p) => p.canonical));
-let edgesTotal = 0;
-for (const p of pages) {
-  if (!p.html) continue;
-  const links = [];
-  for (const to of extractLinks(p.html, p.canonical)) {
-    edgesTotal += 1;
-    let c;
-    try {
-      c = canonicalUrl(to);
-    } catch {
-      continue;
-    }
-    if (new URL(c).hostname !== new URL(p.canonical).hostname) continue;
-    links.push(c);
-    if (known.has(c) && c !== p.canonical) inbound.set(c, (inbound.get(c) ?? 0) + 1);
-  }
-  outboundByPage.set(p.canonical, [...new Set(links)]);
+/* ---- 🔴 ITEM 26 — THE STORED GRAPH, THROUGH THE ONE DEFINITION -----------
+ * Until 13 September 2026 this runner derived its own graph and IGNORED A LINK
+ * FROM ANOTHER HOST when counting inbound links (341, where the definition
+ * gives 335). Inbound is now src/crawl/inbound.mjs over the stored graph.
+ * broken-internal-link still asks its own, stated question — a link WITHIN ONE
+ * SITE — so its outbound lists keep the same-host filter, read from the same graph. */
+const { pagesFromRun, deriveEdges, inboundOf, unpackGraph, ZERO_INBOUND_DEFINITION } = await import("../src/crawl/inbound.mjs");
+const GRAPH = `${REPO}runs/crawl/edges-2026-09-12.jsonl.br`;
+const distinctPages = pagesFromRun({ crawlRecords: crawl, bodies: new Map(pages.filter((p) => p.html).map((p) => [p.o.observation_id, p.html])) });
+const graphEdges = existsSync(GRAPH) ? unpackGraph(readFileSync(GRAPH)) : deriveEdges(distinctPages);
+const { inbound, zero } = inboundOf({ pages: distinctPages, edges: graphEdges });
+const sameSite = new Map();
+for (const e of graphEdges) {
+  if (!e.to_parsed || new URL(e.to).hostname !== new URL(e.from).hostname) continue;
+  if (!sameSite.has(e.from)) sameSite.set(e.from, new Set());
+  sameSite.get(e.from).add(e.to);
 }
-const orphans = [...inbound.values()].filter((n) => n === 0).length;
-console.log(`0B — EDGES RESTORED FROM THE ARTIFACT: ${edgesTotal} links, ${[...inbound.values()].reduce((a, b) => a + b, 0)} internal inbound.`);
-console.log(`     pages with zero inbound links inside the crawled set: ${orphans}  (was 340 UNKNOWN with an empty graph)\n`);
+const outboundByPage = new Map([...sameSite].map(([k, v]) => [k, [...v]]));
+console.log(ZERO_INBOUND_DEFINITION);
+console.log(`0B — EDGES: ${graphEdges.length} links in served HTML (${existsSync(GRAPH) ? "the stored graph" : "🔴 derived here — no stored graph"}) over ${distinctPages.length} distinct pages.`);
+console.log(`     pages with no inbound links inside the crawled set: ${zero.length}\n`);
 
 /* ---- PART 2 — sitemaps, bounded ---------------------------------------- */
 const SITEMAP_HOSTS = [

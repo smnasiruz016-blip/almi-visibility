@@ -308,10 +308,11 @@ test("🔴 REAL: the honest hit rate is BELOW 100% — a perfect one would mean 
   const s = cache.stats();
   // 🔴 64/28 on 12 Sep 2026; two records verified through the guard on 13 Sep add 4 hits and remove 4 misses.
   // 68/24 after #63; 66/26 after #64; 50/42 once the whole population was reconciled (8 more records UNKNOWN).
-  assert.equal(s.hits, 50);
-  assert.equal(s.misses, 42);
+  // 32/60 after the 13 Sep evening demotion of 9 ambiguous labels (each asked twice: 18 hits become 18 more misses).
+  assert.equal(s.hits, 32);
+  assert.equal(s.misses, 60);
   assert.ok(s.hitRate < 1, "🔴 100% means the cache is serving everything, including what it should refuse");
-  assert.deepEqual(s.missReasons, { UNKNOWN_CONFLICT: 12, UNKNOWN_INCOMPLETE: 8, UNKNOWN_PARTIAL_EVIDENCE: 20, UNKNOWN_SOURCE_UNREACHABLE: 2 });
+  assert.deepEqual(s.missReasons, { UNKNOWN_CONFLICT: 12, UNKNOWN_INCOMPLETE: 8, UNKNOWN_PARTIAL_EVIDENCE: 38, UNKNOWN_SOURCE_UNREACHABLE: 2 });
 });
 
 /* ================================================================== *

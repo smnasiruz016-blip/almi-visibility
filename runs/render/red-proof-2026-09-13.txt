@@ -1,0 +1,64 @@
+RED PROOF — 2E · 2026-09-13T03:10:20.925Z
+sabotage: in renderStateOf, "if (refused.length > 0) {" → "if (false && refused.length > 0) { // RED PROOF SABOTAGE" — refused requests are ignored, so a page with a refused script reads COMPLETE
+sabotage landed: true (sha256 now de5e86bb46f5f627)
+
+=== SABOTAGED — node --test test/renderer.test.mjs — exit 1
+✖ 🔴 COMPLETE only when NOTHING was refused — one refused script makes the render PARTIAL (184.0247ms)
+✔ 🔴 FAILED when there is no render to speak of — never served, navigation error, crash, or a request the interception never saw (7.0675ms)
+✔ a render that did not settle inside its bound is PARTIAL, not COMPLETE — and an unknown outcome is refused outright (0.8602ms)
+✔ the resource record counts every request by host, and refused ones by kind (7.0856ms)
+✔ 🔴 the Node side can reach 127.0.0.1 and NOTHING else — a non-local fetch THROWS before it is issued (0.3597ms)
+✔ Chromium starts with every name except 127.0.0.1 resolving to NOTFOUND, and background networking off (0.1533ms)
+✔ 🔴 a RENDERED observation sits BESIDE its raw one — the raw record is untouched, and both are stored (21.7081ms)
+✔ 🔴 the state is part of the measurement: the same DOM at a different state is a NEW measurement, not a re-sighting (0.5086ms)
+✔ 🔴 LIVE CONTROL: the sentinel DOES count a request when nothing refuses it — so its zero below means something (108.8441ms)
+✖ 🔴 LIVE: EVERY outbound request is REFUSED and recorded by host — even to another port on 127.0.0.1 — with ZERO egress, and the page's own JS still runs (598.1343ms)
+✔ 🔴 LIVE: a page that asks for nothing renders COMPLETE, with its JavaScript's DOM (573.5752ms)
+✔ LIVE: an id the local server does not hold comes back as that server's own 404 — recorded as served from 127.0.0.1, not passed off as the page; a document never served is FAILED (567.1382ms)
+✔ 🔴 RECORDED: all 394 committed bodies rendered, and the three states are COUNTED with their bounds printed beside them (0.6413ms)
+✔ 🔴 RECORDED: every observation carries RENDERED, its state and reason, the browser and Playwright versions, and its bounds (1.5853ms)
+✔ 🔴 RECORDED: ZERO EGRESS — every document from 127.0.0.1, no browser response from any other address, nothing unaccounted (0.4609ms)
+✔ 🔴 RECORDED: the raw observations are UNTOUCHED — same bytes as before the run — and every render points back to its raw one (6.1693ms)
+✔ 🔴 RECORDED: the DIFFER count, and only the count — the run's transcript and evidence name no page (0.2822ms)
+✔ RECORDED: the rendered bodies stay OUT of git with their size stated; the ledger holds both entries, every UNKNOWN with its reason (23.2399ms)
+✔ 🔴 NO ROW MOVED: item 10 and item 52 keep their states, and the renderer's code raises no issue and compares no render to its source (3.1075ms)
+ℹ tests 19
+ℹ pass 17
+ℹ fail 2
+ℹ skipped 0
+✖ failing tests:
+✖ 🔴 COMPLETE only when NOTHING was refused — one refused script makes the render PARTIAL (184.0247ms)
+✖ 🔴 LIVE: EVERY outbound request is REFUSED and recorded by host — even to another port on 127.0.0.1 — with ZERO egress, and the page's own JS still runs (598.1343ms)
+failure lines naming the defect: 2
+  AssertionError [ERR_ASSERTION]: a page with a refused script reported COMPLETE
+  AssertionError [ERR_ASSERTION]: a page with refused scripts reported COMPLETE
+
+restored src/render/render-state.mjs byte for byte: true (sha256 9bd17a106c99b76e)
+
+=== RESTORED — node --test test/renderer.test.mjs — exit 0
+✔ 🔴 COMPLETE only when NOTHING was refused — one refused script makes the render PARTIAL (197.7559ms)
+✔ 🔴 FAILED when there is no render to speak of — never served, navigation error, crash, or a request the interception never saw (7.8169ms)
+✔ a render that did not settle inside its bound is PARTIAL, not COMPLETE — and an unknown outcome is refused outright (0.9299ms)
+✔ the resource record counts every request by host, and refused ones by kind (8.1893ms)
+✔ 🔴 the Node side can reach 127.0.0.1 and NOTHING else — a non-local fetch THROWS before it is issued (0.4079ms)
+✔ Chromium starts with every name except 127.0.0.1 resolving to NOTFOUND, and background networking off (0.1758ms)
+✔ 🔴 a RENDERED observation sits BESIDE its raw one — the raw record is untouched, and both are stored (29.3701ms)
+✔ 🔴 the state is part of the measurement: the same DOM at a different state is a NEW measurement, not a re-sighting (0.9581ms)
+✔ 🔴 LIVE CONTROL: the sentinel DOES count a request when nothing refuses it — so its zero below means something (112.0546ms)
+✔ 🔴 LIVE: EVERY outbound request is REFUSED and recorded by host — even to another port on 127.0.0.1 — with ZERO egress, and the page's own JS still runs (609.6767ms)
+✔ 🔴 LIVE: a page that asks for nothing renders COMPLETE, with its JavaScript's DOM (571.2414ms)
+✔ LIVE: an id the local server does not hold comes back as that server's own 404 — recorded as served from 127.0.0.1, not passed off as the page; a document never served is FAILED (561.9008ms)
+✔ 🔴 RECORDED: all 394 committed bodies rendered, and the three states are COUNTED with their bounds printed beside them (0.8419ms)
+✔ 🔴 RECORDED: every observation carries RENDERED, its state and reason, the browser and Playwright versions, and its bounds (1.469ms)
+✔ 🔴 RECORDED: ZERO EGRESS — every document from 127.0.0.1, no browser response from any other address, nothing unaccounted (0.5194ms)
+✔ 🔴 RECORDED: the raw observations are UNTOUCHED — same bytes as before the run — and every render points back to its raw one (6.1659ms)
+✔ 🔴 RECORDED: the DIFFER count, and only the count — the run's transcript and evidence name no page (0.2595ms)
+✔ RECORDED: the rendered bodies stay OUT of git with their size stated; the ledger holds both entries, every UNKNOWN with its reason (21.3168ms)
+✔ 🔴 NO ROW MOVED: item 10 and item 52 keep their states, and the renderer's code raises no issue and compares no render to its source (3.0813ms)
+ℹ tests 19
+ℹ pass 19
+ℹ fail 0
+ℹ skipped 0
+failure lines naming the defect: 0
+
+verdict: sabotaged exit 1 (must be non-zero) · restored exit 0 (must be 0) → RED PROVED

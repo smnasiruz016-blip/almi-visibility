@@ -781,6 +781,54 @@ after the renderer exists. **An unused green is not progress and moves no row.**
 
 ---
 
+## R-REND-1 — THE RENDERER EXISTS: A CAPABILITY, NOT A DETECTOR
+
+**Recorded 13 September 2026.** Built openly under Owner Ruling 7's distinction. `src/render/renderer.mjs`
+renders a STORED body in headless Chromium (`playwright-core` 1.62.1, Chromium 151.0.7922.34) and
+records what it saw. It raises no issue, judges no page and compares nothing against the served HTML.
+
+**Offline by construction, and proved:** the document is served from 127.0.0.1; every other request
+— any host, any port, 127.0.0.1 included — is REFUSED at interception and recorded by host; Chromium
+resolves no name but 127.0.0.1; every browser response is asked for its server address. A live test
+puts a sentinel server on another local port and shows it receives 0 requests, with a control
+proving the sentinel would count one.
+
+**Run over the 394 committed bodies** (`bin/render-archive.mjs --confirm`, transcript
+`runs/render/render-run-2026-09-13.txt`) — bounds: 15,000 ms per page, 30 min wall clock, page cap 500,
+concurrency 1; none hit:
+
+| COMPLETE | PARTIAL | FAILED | refused requests | egress | rendered hash ≠ raw hash |
+|---|---|---|---|---|---|
+| 0 | 394 | 0 | 10,222, to 19 hosts | 0 | 394 of 394 |
+
+PARTIAL means at least one refusal, which is a fact about **this environment**, not about any page
+(LAW-ABSENT-1). The differ count is reported and **nothing about which pages, or why, was looked at**.
+The raw observations and raw archive are byte-identical before and after (sha256 pinned in
+`test/renderer.test.mjs`); the 394 RENDERED observations sit beside them in
+`runs/render/rendered-2026-09-13.jsonl`. The rendered DOMs (39,886,350 bytes → 661,614 compressed) are
+**not committed**: regenerable, and underpinning no VERIFIED-PASS row. **Proposed, not done:**
+committing that archive, if the owner wants the DOMs to outlive this machine.
+
+**Cost:** installing `playwright-core` — 1 registry request, tarball from the local npm cache, 2.342 s,
+money UNKNOWN (not measurable); the browser build was already cached (installed 2026-09-01 for other
+work), so this run downloaded 0 browser bytes. The render — money 0 (measured, basis stated), 0
+provider calls, 0 crawl budget, 245.527 s. **D-CRW-5 stays unspent.**
+
+**Rows:** none moved. Item 10's deferred half — the post-JavaScript DOM — is now **CAPABLE**, not
+impossible; it is still DEFERRED by Ruling 7 until an owner rules otherwise. Item 52's rendering
+trigger has a renderer to point at; the detector that compares source with render is **not written**
+and is the sealed exam rule's to write.
+
+**E-CL-2 (Claude), found by CI on this PR:** the "raw untouched" test first pinned the sha256 of the
+raw `.jsonl` *as checked out* — CRLF on the Windows machine, LF on the Linux runner — so an unchanged
+file failed in CI while passing locally and in a local depth-1 clone (also CRLF). Corrected to pin the
+git blob ids from main (`9728f19`), which do not depend on line endings; the binary archive keeps its
+byte sha256. The run's own before/after comparison was on one machine and was never affected.
+
+**Status:** 🟢 BUILT — capability only.
+
+---
+
 ## 🔴 PERMANENT LOSSES — RECORDED, IRRECOVERABLE, NEVER DELETED
 
 These rows are **not gaps that can close.** They record something measurable that was never

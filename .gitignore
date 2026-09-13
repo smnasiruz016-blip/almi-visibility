@@ -32,6 +32,15 @@ node_modules/
 # happened (D-INST-1). It is not trusted for being committed:
 # test/edge-graph.test.mjs re-derives it from the archive on every commit and
 # fails if the stored bytes have drifted from their source.
+#
+# 🔴 THE RENDERED BODIES ARE NOT COMMITTED (13 September 2026). The offline
+# renderer's DOMs of the 394 bodies fail BOTH halves of the bar: they underpin no
+# VERIFIED-PASS row, and they can be regenerated from the committed raw archive
+# with one command (node bin/render-archive.mjs --confirm). What IS committed is
+# runs/render/rendered-2026-09-13.jsonl — every render's hash, state, resource
+# record, browser and Playwright versions and bounds — and the run's evidence file.
+# The archive's size is printed by the run so the owner can rule otherwise.
+runs/render/*.jsonl.br
 # The 3,414-page corpus is NOT committed: it is ~200 MB of somebody else's rendered
 # HTML, it is reproducible from corpus-manifest.json + the seed, and a repo is not a
 # cache. What IS committed is the manifest (which names the exact 500 sampled URLs),

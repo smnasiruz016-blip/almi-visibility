@@ -20,5 +20,8 @@
     "gsc:ingest": "node bin/gsc-ingest.mjs",
     "export": "node bin/export.mjs",
     "crawl": "node bin/crawl.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "1.62.1"
   }
 }

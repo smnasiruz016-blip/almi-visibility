@@ -1,0 +1,36 @@
+[write:local] --confirm given, and this write stays on this machine
+input: runs/crawl/bodies-2026-09-12.jsonl.br (committed archive) · 394/394 bodies hash to their raw observation · missing 0 · mismatched 0
+
+PLAN — render 394 of 394 stored bodies, one at a time, offline
+[bound: per-page timeout 15000 ms · max total wall clock 1800000 ms · hard page cap 500 · concurrency 1]
+chromium args: --host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1 --disable-background-networking --disable-component-update --disable-domain-reliability --disable-sync --no-pings --dns-prefetch-disable
+browser: chromium 151.0.7922.34 (chromium-headless-shell (Playwright's headless launch)) · playwright-core 1.62.1
+
+  … 50 rendered (32s)
+  … 100 rendered (63s)
+  … 150 rendered (93s)
+  … 200 rendered (124s)
+  … 250 rendered (155s)
+  … 300 rendered (185s)
+  … 350 rendered (217s)
+RENDER STATES over 394 rendered of 394 stored bodies
+[bound: per-page timeout 15000 ms · max total wall clock 1800000 ms · hard page cap 500]
+  COMPLETE 0
+  PARTIAL  394
+  FAILED   0
+bounds hit: per-page timeout on 0 page(s) · wall clock not hit · page cap not hit
+refused requests: 10222 across 394 page(s), to 19 distinct host(s) · unaccounted by the interception: 0
+egress: 394 Node request(s), 0 not to 127.0.0.1 · 394 browser response(s), 0 from any address other than 127.0.0.1
+
+DIFFER — of 394 renders with a DOM, rendered content_sha256 ≠ raw content_sha256: 394
+   (the hash of the serialised DOM against the hash of the served bytes; any byte of difference counts. Which pages, and why, is not looked at here.)
+
+raw observations and raw archive unchanged: yes (store dfd8ea4e874b2bc9 · archive 3d857a9e53fd4b01)
+rendered-body archive: 39886350 bytes of DOM → 661614 bytes compressed (NOT committed — regenerable, underpins no VERIFIED-PASS row)
+ledger: render:2026-09-13T03:02:48.090Z  money=0 USD [MEASURED]  calls=0  time=245.527s  budget(crawl): urlsFetched=0 requestsIssued=0 capReached=false  [bound: maxUrlsPerRun=500 maxRequestsPerHost=200]
+ledger: tool-install:2026-09-13T02:54:16.342Z  money=UNKNOWN(NOT_MEASURABLE_WITH_TOOLS_WE_HOLD)  calls=1  time=2.342s  budget(tool-download): registryFetches=1 cacheHits=1 installedBytes=13442086 browserBytesDownloaded=0 capReached=false  [bound: package=playwright-core@1.62.1 browserRevision=chromium_headless_shell-1234]
+        NOT downloaded by this run: the browser build Playwright playwright-core@1.62.1 needs was already in the local cache, installed 2026-09-01T23:04:47.783Z for other work. That earlier download's cost is not this run's and was never recorded here
+
+recorded: C:\Projects\almi-visibility\runs\render\rendered-2026-09-13.jsonl (394 new / 0 re-sighted), C:\Projects\almi-visibility\runs\render\render-run-2026-09-13.json, the local archive, and 2 ledger entries
+
+✅ every assertion held

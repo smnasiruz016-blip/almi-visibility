@@ -29,6 +29,25 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 | **DEFERRED** | — | **28** |
 | **total** | 58 | **58** |
 
+> ### 🔴 THE RENDERER, BUILT — THE CAPABILITY ONLY — 13 SEPTEMBER 2026
+>
+> | state | before this change | after |
+> |---|---|---|
+> | NOT-STARTED | 3 | 3 |
+> | BUILT-NOT-PROVED | 6 | 6 |
+> | TESTABLE-NOW | 1 (25) | 1 (25) |
+> | VERIFIED-PASS | 14 | 14 |
+> | FAILED | 1 (50) | 1 (50) |
+> | BLOCKED-UNKNOWN | 5 | 5 |
+> | DEFERRED | 28 | 28 |
+>
+> **No row moved, as expected.** An offline headless-Chromium renderer now exists (R-REND-1). Over the 394
+> committed bodies: **COMPLETE 0 · PARTIAL 394 · FAILED 0**, 10,222 requests refused, **0 egress**, and
+> rendered hash ≠ raw hash on **394 of 394** — a count, with nothing looked at about which pages or why.
+> A renderer is a capability; the source-versus-render DETECTOR is not written. Item 10's post-JavaScript
+> half is now capable rather than impossible, and stays DEFERRED until an owner rules.
+> - **moved because WORK HAPPENED:** none. **moved ONLY because a RULING changed:** none.
+
 > ### 🔴 GATE A's BLIND SPOT FIXED, AND THE TWO FAILED ROWS — 13 SEPTEMBER 2026
 >
 > | state | before this change | after |

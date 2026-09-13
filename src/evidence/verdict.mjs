@@ -122,10 +122,43 @@ const NAMED_CHECKER = /^(human|model):\S/;
  *
  * Returns null for a record that is not leaving UNKNOWN (outside this population).
  */
-export function judgeLeavingUnknown(id, verification) {
+/**
+ * 🔴 D-GUARD-1 (13 September 2026) — "IS ANYTHING MISSING?" IS NEVER ANSWERED BY THE VERDICT'S OWN NUMBER.
+ *
+ * The first guard read `elementsNotFound` off the verdict and trusted it: a check fed
+ * its own value. A record whose value makes six claims was ingested with three
+ * confirmed and `elementsNotFound: 0`, and the guard advanced it. So the answer is now
+ * RECONCILED, the way item 14's register is reconciled against its census:
+ *
+ *   the RECORD declares its elements   `claimElements` — one short stable key per claim its value makes
+ *   the VERDICT names what it saw      `elementsConfirmedKeys` (and, where it said so, `elementsNotFoundKeys`)
+ *   the GUARD derives the counts       confirmed = declared ∩ named-confirmed; everything else is NOT CONFIRMED
+ *
+ * An element the verdict does not mention is NOT CONFIRMED — never confirmed by
+ * omission. A key the verdict names that the record does not declare is STALE. A key
+ * named both ways is contradictory. A supplied count is ignored for the decision, and
+ * the validator refuses it once every governed record declares its list. A record with
+ * no list cannot have what is missing reconciled, so nothing of it counts as confirmed.
+ */
+export function reconcileElements(claimElements, verification) {
+  const suppliedCount = ["elementsConfirmed", "elementsNotFound"].filter((k) => verification && Object.prototype.hasOwnProperty.call(verification, k));
+  const listed = Array.isArray(claimElements) ? [...claimElements] : null;
+  const confirmedKeys = Array.isArray(verification?.elementsConfirmedKeys) ? verification.elementsConfirmedKeys : [];
+  const notFoundKeys = Array.isArray(verification?.elementsNotFoundKeys) ? verification.elementsNotFoundKeys : [];
+  if (!listed) return Object.freeze({ listed: null, confirmed: [], notConfirmed: [], stale: [], contradictory: [], suppliedCount });
+  const declared = new Set(listed);
+  const stale = [...new Set([...confirmedKeys, ...notFoundKeys])].filter((k) => !declared.has(k));
+  const contradictory = confirmedKeys.filter((k) => notFoundKeys.includes(k));
+  const confirmed = listed.filter((k) => confirmedKeys.includes(k) && !notFoundKeys.includes(k));
+  const notConfirmed = listed.filter((k) => !confirmed.includes(k));
+  return Object.freeze({ listed, confirmed, notConfirmed, stale, contradictory, suppliedCount });
+}
+
+export function judgeLeavingUnknown(id, verification, claimElements) {
   const previous = verification?.previous;
   if (!previous || VERIFICATION_OUTCOME[previous.state] !== "UNKNOWN") return null;
   const v = verification;
+  const e = reconcileElements(claimElements, v);
   const reasons = [];
   if (!(ISO_DAY.test(v.checkedOn ?? "") && ISO_DAY.test(previous.checkedOn ?? "") && v.checkedOn > previous.checkedOn)) {
     reasons.push("no NEW measurement — the check is not dated after the UNKNOWN it would replace");
@@ -136,9 +169,13 @@ export function judgeLeavingUnknown(id, verification) {
     const refused = (v.attempts ?? []).filter((a) => a.status !== 200);
     reasons.push(`the source was not read${refused.length ? ` — ${refused.length} page(s) refused (${[...new Set(refused.map((a) => a.status))].join(", ")})` : ""}`);
   }
-  if (!(Number.isInteger(v.elementsConfirmed) && v.elementsConfirmed >= 1)) reasons.push("no element of the claim is confirmed");
-  if (v.elementsNotFound !== 0) {
-    reasons.push(`${v.elementsNotFound ?? "an unknown number of"} element(s) of the claim not found — partial confirmation is not verification`);
+  if (!e.listed) {
+    reasons.push("the record declares no element list — what is missing cannot be reconciled, so nothing of it counts as confirmed");
+  } else {
+    if (e.confirmed.length === 0) reasons.push("no declared element of the claim is confirmed");
+    if (e.notConfirmed.length > 0) {
+      reasons.push(`${e.notConfirmed.length} of ${e.listed.length} declared element(s) not confirmed — partial confirmation is not verification`);
+    }
   }
   const permitted = reasons.length === 0 && !canTransition("UNKNOWN", "PASS") ? "VERIFIED" : "UNKNOWN";
   return Object.freeze({
@@ -150,6 +187,15 @@ export function judgeLeavingUnknown(id, verification) {
     declared: v.state,
     agrees: v.state === permitted,
     reasons: Object.freeze(reasons),
+    elements: Object.freeze({
+      listed: e.listed ? e.listed.length : null,
+      confirmed: e.confirmed.length,
+      notConfirmed: e.notConfirmed.length,
+      stale: Object.freeze(e.stale),
+      contradictory: Object.freeze(e.contradictory),
+      suppliedCount: Object.freeze(e.suppliedCount),
+      missingList: !e.listed,
+    }),
   });
 }
 

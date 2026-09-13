@@ -1116,6 +1116,69 @@ repository is known to have quoted.
 These four were members of it, which the owner then ruled. **PD-2 is retired.** The first correction was E-BG-4
 (D-KEY-2 kept on the path by item 10's INPUT); this is the second, and the rule's author asked for both to be recorded.
 
+### 🔴 ITEM 50 REOPENED — 13 SEPTEMBER 2026 — THE OBSERVATION BELOW WAS A DEFECT, AND IT MET THE FAILURE CONDITION
+
+**The tick recorded by #63 is withdrawn by owner-side ruling (beta-g).** `oet.writing-task-type.profession=nursing`
+stored `elementsConfirmed: 3, elementsNotFound: 0`, while its own value makes **six** claims: a 45-minute task · a
+formal letter · on a matter of the candidate's own profession · worked from case notes · for nursing, a referral,
+advice, or transfer or discharge letter · marked against six criteria. Three were confirmed. Its previous state was
+UNKNOWN and it was labelled VERIFIED. **A label is wrong — item 50's FAILURE condition, met.** Item 50 is FAILED
+(ledger move: VERIFIED-PASS → FAILED, `REOPENED`, concrete contradictory evidence).
+
+**Part 1 — corrected, not re-verified.** No fetch, no network. The record now has the speaking record's shape:
+UNKNOWN · PARTIAL_EVIDENCE · *"PARTIAL EVIDENCE — three elements confirmed, three not found"* · the same checker, date,
+source URL, tier, `sourceRead` and `previous`. Its value and evidence hash exactly as on main.
+
+| id | error | whose |
+|---|---|---|
+| **E-BG-6** | In one pass, beta-g applied *"partial confirmation is not verification"* to the speaking record and **not** to the writing record, whose verdict also confirmed only part of its value. | beta-g |
+| **E-BG-7** | beta-g approved the #63 merge while item 50's failure condition was already met — the thinness had been flagged in #63's own report. | beta-g |
+
+### D-GUARD-1 — THE GUARD TOOK `elementsNotFound` ON TRUST
+
+**A check fed its own value.** The #63 guard answered "is anything missing?" from the number the verdict supplied, so
+a supplied 0 advanced a partly confirmed record. **Fixed by the pattern Amendment 2 proved for item 14 — a declared
+register reconciled against a census:**
+
+| limb | rule | law | RED proof — alone, on the real registry |
+|---|---|---|---|
+| (a)(c) | each governed record DECLARES its elements (`claimElements`); the guard DERIVES confirmed / not confirmed by reconciling them against the keys a verdict NAMES; a supplied count is ignored, and refused once every governed record declares its list | **F25** | `elementsNotFound: 0` added to a record whose list says 3 → only F25 |
+| (d) | a verdict key the record does not declare is STALE | **F26** | an undeclared key added to a verdict → only F26 |
+| (d) | an element no verdict mentions is **NOT CONFIRMED**, never confirmed by omission — and the record is refused advancement | **F24** | the licence record's only key removed from its verdict → only F24 |
+| (e) | a governed record with no element list is a FAILURE | **F27** | the writing record's list stripped → only F27 |
+
+Transcript: `runs/audit/item-50-guard-limbs-red-2026-09-13.txt` — each limb printed exactly its own law code, the file
+was restored byte for byte after each (sha256 checked), and the clean run is green.
+
+**Re-run on the corrected population:** 4 real records judged leaving UNKNOWN — **1 advanced** (licence, 1 of 1
+element confirmed), **3 refused** (writing 3 of 6 not confirmed · speaking 5 of 6 not confirmed · grade bands 5 of 5,
+source not read). Item 50's own test passes. **Verified facts: 33, measured** (32 on 12 September; #63's 34 included
+the writing record).
+
+### 🔴 WHY ITEM 50 STAYS FAILED ALTHOUGH ITS TEST PASSES — a finding, for beta-g to rule on
+
+- **32 of the 33 VERIFIED labels never passed through the guard.** Every one reached VERIFIED on 12 September from
+  `UNVERIFIED` — a never-checked state the guard itself treats as UNKNOWN — with no `previous`, so F24 never judged it,
+  and no element list, so nothing about it was reconciled. #63's baseline covered only the 14 records that were UNKNOWN
+  on 12 September, not these.
+- **11 of those 32 state more than one claim**, by a declared heuristic (a value of two or more sentences, or two or more
+  commas): 12 of the 42 records outside item 50's four look multi-claim, and 11 of those are VERIFIED. The heuristic is a
+  measurement of shape, not a judgement of claims; the count is what needs lists.
+- That is **the defect class that reopened item 50, unexamined on 11 labels.** "A label is wrong" cannot be shown not-met
+  while it stands. Moving item 50 back is a ruling, not a consequence of one passing test.
+- **Rule (e)'s reach, stated plainly:** F27 is enforced on the four records item 50 governs. The other multi-claim
+  records are counted above, not failed — failing them would need their element lists, which do not yet exist.
+
+### ⚠️ FOUR THINGS IN THE REOPEN BRIEF, CHECKED AGAINST THE REPO
+
+1. The speaking record is **one** fact below the writing record, not two. Cosmetic.
+2. **The speaking record's own count has the same flaw.** Its value states six claims; its verdict confirmed one, named
+   two not found, and was silent on three. Reconciled, that is **5 not confirmed, not 2** — its label (UNKNOWN) is right,
+   its count was not. Its `verdictWords` are kept exactly; the guard's derived count is what decides.
+3. **Part 1 prescribed counts that Part 2(c) refuses.** The record was corrected as Part 1 says, then its counts were
+   replaced by element keys as Part 2 requires; no governed record now carries a count.
+4. Line 474 of `PASS_BOUNDARIES_SOURCE.md` is item 50's heading; the EXPECTED and FAILURE wording quoted is exact.
+
 ### ⚠️ AN OBSERVATION FOR THE VERIFIER — NOT A RE-JUDGEMENT
 
 The writing verdict confirms three elements (the 45-minute duration, a letter, profession-specific). The stored value

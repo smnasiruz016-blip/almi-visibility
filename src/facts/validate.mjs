@@ -431,10 +431,19 @@ export function validateRegistry(records = []) {
   // answer: declared past a refusal is a forced transition; held back when the
   // evidence is sufficient is a blocked one. Both are breaches, and the guard's
   // own count travels with the validation so "it judged nothing" is visible.
+  //
+  // 🔴 D-GUARD-1 (13 September 2026): "none missing" is DERIVED by reconciling the
+  // record's declared element list against the keys its verdict names — never read
+  // from a count a verdict supplies. Three laws keep the reconciliation honest, each
+  // its own code so a failure names the one limb that broke:
+  //   F25 · a supplied count, once every governed record declares its list
+  //   F26 · a verdict key the record does not declare (stale), or a key named both ways
+  //   F27 · a governed record with no element list at all
   const guard = { judged: 0, advanced: 0, refused: 0, judgements: [] };
-  for (const r of records) {
-    const j = judgeLeavingUnknown(r?.id, r?.verification);
-    if (!j) continue;
+  const governed = records.filter((r) => judgeLeavingUnknown(r?.id, r?.verification, r?.claimElements));
+  const everyGovernedDeclaresItsList = governed.length > 0 && governed.every((r) => Array.isArray(r.claimElements));
+  for (const r of governed) {
+    const j = judgeLeavingUnknown(r.id, r.verification, r.claimElements);
     guard.judged += 1;
     if (j.decision === "REFUSED") guard.refused += 1;
     else guard.advanced += 1;
@@ -447,6 +456,18 @@ export function validateRegistry(records = []) {
             ? `${j.id} is held ${j.declared} although the guard finds its evidence sufficient to leave UNKNOWN — a sufficient verdict may not be blocked`
             : `${j.id} is declared ${j.declared} but the guard REFUSES to let it leave UNKNOWN: ${j.reasons.join("; ")}`,
       });
+    }
+    if (j.elements.suppliedCount.length && everyGovernedDeclaresItsList) {
+      errors.push({ law: "F25", message: `${j.id}: the verdict supplies ${j.elements.suppliedCount.join(" and ")} — a count is derived by reconciling element keys, never taken from a verdict` });
+    }
+    if (j.elements.stale.length || j.elements.contradictory.length) {
+      errors.push({
+        law: "F26",
+        message: `${j.id}: ${j.elements.stale.length ? `the verdict names element key(s) the record does not declare (stale): ${j.elements.stale.join(", ")}` : ""}${j.elements.stale.length && j.elements.contradictory.length ? "; " : ""}${j.elements.contradictory.length ? `key(s) named both confirmed and not found: ${j.elements.contradictory.join(", ")}` : ""}`,
+      });
+    }
+    if (j.elements.missingList) {
+      errors.push({ law: "F27", message: `${j.id}: a record leaving UNKNOWN declares no claimElements — what is missing cannot be reconciled` });
     }
   }
 

@@ -26,27 +26,27 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | **NOT-STARTED** | 3 | 3 | **2** |
 | **BUILT-NOT-PROVED** | 18 | 17 | **5** |
 | **TESTABLE-NOW** | 0 | 2 | **1** |
-| **VERIFIED-PASS** | 3 | 3 | **17** |
-| **FAILED** | 0 | -1 | **1** |
+| **VERIFIED-PASS** | 3 | 3 | **18** |
+| **FAILED** | 0 | -1 | **0** |
 | **BLOCKED-UNKNOWN** | 6 | 6 | **4** |
 | **DEFERRED** | 28 | 28 | **28** |
 
-### FAILED — counted and named separately: **1**
+### FAILED — counted and named separately: **0**
 
 > 🔴 **FAILED is counted and named separately in every report.** It is never folded into another
 > count and it is **not progress**. It is also **worth more than BUILT-NOT-PROVED**: a FAILED row
 > is one whose test was run against its own boundary — it means we looked.
 
-- **item 50 · OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation** — FAILURE met: the guard polices an empty population — the transitions it exists to police, out of UNKNOWN on real records, number 0: 0 of 46 facts carry a supersession, and 0 of the 145 real issue transitions it now judges start from UNKNOWN
 - **item 14** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-12 — report.mjs and the chain runner's cache now write only with --confirm; every destination is confined to this repository and refused outside it; all five parts re-tested and each RED-proved
 - **item 45** left FAILED for TESTABLE-NOW by route `OWNER_RULING` on 2026-09-12 — 'A component cannot be failed for a period before it existed.' The boundary's INPUT is a run; the scope is runs from 8c9d68b (2026-09-12T23:03:09Z) onward. The bar is unchanged; the eight earlier runs are recorded as a permanent loss (L-COST-1)
 - **item 48** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — every authorized job that stores a record has now been run twice into one store with zero duplicates on the second run — crawl (replay: 389 unchanged → 0 new, 389 re-sightings), DNS audit (RECORDED resolver answers: 134 → +0), technical, content, verification and supply-label writers — and the census holds every issue writer to appendIfNew; RED when the key takes the clock
+- **item 50** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — four real records put to the F24 guard leaving UNKNOWN: two with sufficient evidence advanced on a new measurement, two with insufficient evidence were refused and stay UNKNOWN with their reasons; both directions RED-proved
 - **item 51** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — priority, confidence and cost each computed from stored evidence and each able to say UNKNOWN — two recommendations ranked by measured impressions, one UNKNOWN; confidence derived on all three; cost UNKNOWN on all three with lower bounds — and all six visible on the real report
 - **item 55** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — the parse is caught and rethrown with nothing from the file; the leak test re-run passed on every credential path, RED when the key or its length is logged; recovery proved by restoring torn stores from git, byte-identical by blob hash
 
 **Rows that have been looked at (VERIFIED-PASS or FAILED): 18 of 58.**
 
-**Rows that reached VERIFIED-PASS in this PR: 14.**
+**Rows that reached VERIFIED-PASS in this PR: 15.**
 
 #### moved ONLY because a RULING changed
 
@@ -81,6 +81,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 49 | BUILT-NOT-PROVED | VERIFIED-PASS | `test/issue-lifecycle.test.mjs · test/source-tiers.test.mjs` | 2026-09-12 | a real chain walked end to end with all five parts present, 134 real issues superseded with the originals retained, and the tier layer ordering the real verified facts |
 | 50 | BUILT-NOT-PROVED | TESTABLE-NOW | `undefined` | 2026-09-13 | records of all four kinds exist on the real verdict path |
 | 50 | TESTABLE-NOW | FAILED | `test/queue-rescan.test.mjs (item 50)` | 2026-09-13 | FAILURE met: the UNKNOWN→PASS guard (F23) judges only fact supersessions, and 0 of 46 real facts carry one — the guard polices an empty population |
+| 50 | FAILED | VERIFIED-PASS | `node --test test/item-50-real-transitions.test.mjs · node bin/facts.mjs validate --product=<the first product> · node tools/forbidden-text-census.mjs` | 2026-09-13 | four real records put to the F24 guard leaving UNKNOWN: two with sufficient evidence advanced on a new measurement, two with insufficient evidence were refused and stay UNKNOWN with their reasons; both directions RED-proved |
 | 51 | BUILT-NOT-PROVED | TESTABLE-NOW | `undefined` | 2026-09-13 | a real recommendation exists |
 | 51 | TESTABLE-NOW | FAILED | `test/queue-rescan.test.mjs (item 51)` | 2026-09-13 | FAILURE met: priority, confidence and cost are missing on all three, and the real report renders none of the six |
 | 51 | FAILED | VERIFIED-PASS | `node bin/link-recommendation-evidence.mjs · node bin/report.mjs --confirm · test/recommendation-fields.test.mjs` | 2026-09-13 | priority, confidence and cost each computed from stored evidence and each able to say UNKNOWN — two recommendations ranked by measured impressions, one UNKNOWN; confidence derived on all three; cost UNKNOWN on all three with lower bounds — and all six visible on the real report |
@@ -99,8 +100,8 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | **NOT-STARTED** | 33 | **2** |
 | **BUILT-NOT-PROVED** | 24 | **5** |
 | **TESTABLE-NOW** | 0 | **1** |
-| **VERIFIED-PASS** | 0 | **17** |
-| **FAILED** | 0 | **1** |
+| **VERIFIED-PASS** | 0 | **18** |
+| **FAILED** | 0 | **0** |
 | **BLOCKED-UNKNOWN** | 1 | **4** |
 | **DEFERRED** | 0 | **28** |
 | **total** | 58 | **58** |
@@ -128,7 +129,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 47 | Paid Provider Controls | NOT-STARTED | **VERIFIED-PASS** |
 | 48 | Idempotency & Retry Safety | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 49 | Audit Trail & Provenance | BUILT-NOT-PROVED | **VERIFIED-PASS** |
-| 50 | OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation | BUILT-NOT-PROVED | **FAILED** |
+| 50 | OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 51 | Explainability | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 53 | Cross-Product Portability | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 55 | Security / Secrets / Recovery | BUILT-NOT-PROVED | **VERIFIED-PASS** |
@@ -860,7 +861,7 @@ question for the owner, recorded as one.
 
 ### 50 · OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation
 
-**FAILED** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (work)
+**VERIFIED-PASS** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (work)
 
 | part | the owner's words |
 |---|---|
@@ -869,9 +870,9 @@ question for the owner, recorded as one.
 | **FAILURE** | a label is absent or wrong, or the guard polices an empty population. |
 | **EVIDENCE** | the guard exercised by real records, not fixtures, and the forbidden transition proved impossible by injection. |
 
-**Verdict —** 🔴 **RE-SCANNED 13 SEPTEMBER 2026: ITS INPUT EXISTED, SO THE TEST WAS RUN — AND ITS FAILURE CONDITION IS MET.** **INPUT exists:** records of all four kinds on real data — observations (OBSERVED), run summaries (INFERRED), issues (RECOMMENDED) and UNKNOWN findings and facts. **The labels hold.** **The guard does not govern real records:** the only UNKNOWN→PASS arbiter on a real verdict path is F23 in src/facts/validate.mjs, it judges a fact that supersedes another, and **0 of 46 real facts carry life.supersedes** — the population is empty, which the FAILURE clause names word for word. The 134 superseded issues do not pass through it: issue lifecycle records are not check outcomes. ⚠️ Also found: a real `draft_recommendation` has no declared label and would render UNKNOWN. **Leaves FAILED** by a real record passing through the guard and the test re-run, or an owner ruling
+**Verdict —** 🔴 **LEFT FAILED BY RULE 1's FIRST ROUTE — THE GUARD NOW GOVERNS REAL RECORDS LEAVING UNKNOWN, IN BOTH DIRECTIONS.** **INPUT:** four real fact records of the first product, UNKNOWN since 12 September, un-parked by the owner for this test only and verified by beta-g on 13 September in ONE pass, attempted identically — two sources answered and two did not, so the two-and-two split is the sources' doing, not the tester's. **EXPECTED — both directions on REAL records, through the REAL validation path (F24 in src/facts/validate.mjs, judgeLeavingUnknown in src/evidence/verdict.mjs):** (1) evidence arrived → the licence record and the writing record were ASKED to advance, the guard found a new measurement, a named checker, an OFFICIAL source read and no element unfound, and they left UNKNOWN; (2) evidence insufficient → the speaking record (one element confirmed, two not found) and the grade-bands record (three pages returned 403) were ASKED the same question and REFUSED with their reasons, and stay UNKNOWN. A record declared past a refusal, or held back when its evidence is sufficient, fails validation; a record that left UNKNOWN without a judgement is caught against the 12 September baseline. **FAILURE not met:** the labels hold, and the guard no longer polices an empty population — 4 real records judged leaving UNKNOWN, 2 advanced, 2 refused. **EVIDENCE:** both directions RED-proved on the real records (runs/audit/item-50-guard-red-2026-09-13.txt). No text of the source was stored: the verdicts carry only verdict, URL, date, tier and counts, and the policy wording this repository had quoted was found by hash and removed. The earlier FAILED results are kept on the row
 
-**The one test that would settle it —** node --test test/issue-transition-guard.test.mjs test/queue-rescan.test.mjs · a real record leaving UNKNOWN through the guard
+**The one test that would settle it —** node --test test/item-50-real-transitions.test.mjs · node bin/facts.mjs validate --product=<the first product> · node tools/forbidden-text-census.mjs
 
 ### 51 · Explainability
 

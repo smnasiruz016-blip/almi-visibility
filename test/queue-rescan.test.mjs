@@ -110,11 +110,13 @@ test("🔴 ITEM 25: all four parts measured — and part 4 has no existing page 
 
 /* ---- 50, 51 · FAILED (re-scan) ------------------------------------------ */
 
-test("🔴 ITEM 50 FAILED: the UNKNOWN→PASS guard (F23) governs only fact supersessions, and 0 real facts carry one", async () => {
+/* 13 Sep 2026: F23 still judges no real supersession — the guard that governs real records leaving UNKNOWN is F24
+ * (test/item-50-real-transitions.test.mjs), and item 50 left FAILED on it. */
+test("🔴 ITEM 50: F23 still has 0 real supersessions to judge — the real population is F24's, and the row passed on it", async () => {
   const { records } = await loadRegistry(`${REPO}products/almi-oet/facts`, "almi-oet");
   assert.equal(records.length, 46);
   assert.equal(records.filter((r) => r.life?.supersedes).length, 0, "a real supersession now exists — re-sit item 50");
-  assert.equal(classify()[50].state, "FAILED");
+  assert.equal(classify()[50].state, "VERIFIED-PASS");
 });
 
 /* 51 was FAILED by the re-scan; its fields are now computed (test/recommendation-fields.test.mjs). */

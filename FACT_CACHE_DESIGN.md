@@ -326,9 +326,10 @@ mode for the freshness mechanism — one this design had no field for.**
 **OET's own site is none of those. It serves 200 to an automated fetch.** The barrier is its
 licence:
 
-> *"Any redistribution or reproduction of part or all of the Content in any form is
-> prohibited"* … *"store the Content in any other website or **other form of electronic
-> retrieval system**"* — OET Intellectual Property policy
+> OET's Intellectual Property policy forbids reproducing any of its content in any form, and forbids keeping it
+> in another website or any electronic retrieval system. *(Stated in our words. The policy's own wording was quoted
+> here until 13 September 2026 and was removed: a record that the licence forbids storing its text must not store
+> that text. Read it at oet.com/Intellectual-Property-policy.)*
 
 **A fact cache storing `quotedSpan` IS an electronic retrieval system holding a reproduction of
 their wording.**
@@ -797,11 +798,13 @@ over the page's text, so it hands a person the notices and the judgement.
 
 | prohibited without CBLA's prior express written permission | |
 |---|---|
-| *"transmit or reproduce **any part** of the Content"* | 🔴 broader than storage |
-| *"distribute or **commercially exploit** the Content"* | 🔴 |
-| *"store the Content in any other website or other form of electronic retrieval system"* | the one §8 had |
+| reproducing or transmitting **any portion** of the content | 🔴 broader than storage |
+| distributing it or **exploiting it commercially** | 🔴 |
+| keeping it in another website or any electronic retrieval system | the one §8 had |
 
-**And every permitted use is expressly for *"your own personal and NON-COMMERCIAL use only"*.
+*(In our words — the policy's wording was quoted in this table until 13 September 2026 and was removed.)*
+
+**And every permitted use is limited to personal use that is not commercial.
 AlmiWorld is commercial, so the carve-outs never reach us** — we are outside the permission before
 the retrieval-system clause is even argued.
 

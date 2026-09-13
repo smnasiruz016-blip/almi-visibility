@@ -10,7 +10,7 @@
  */
 // 🔴 F23's arbiter. The transition table now governs the registry rather than
 // only its own test — see src/evidence/verdict.mjs.
-import { judgeSupersession } from "../evidence/verdict.mjs";
+import { judgeSupersession, judgeLeavingUnknown } from "../evidence/verdict.mjs";
 import {
   factId,
   TIERS,
@@ -423,11 +423,39 @@ export function validateRegistry(records = []) {
     }
   }
 
+  // ── 🔴 F24 · ITEM 50 — A RECORD LEAVES UNKNOWN ONLY THROUGH THE GUARD ─────
+  //
+  // Every record whose verification names the UNKNOWN it replaces is asked the
+  // same question by judgeLeavingUnknown — may it advance to VERIFIED? — and the
+  // answer comes from its evidence. The record's declared state must BE that
+  // answer: declared past a refusal is a forced transition; held back when the
+  // evidence is sufficient is a blocked one. Both are breaches, and the guard's
+  // own count travels with the validation so "it judged nothing" is visible.
+  const guard = { judged: 0, advanced: 0, refused: 0, judgements: [] };
+  for (const r of records) {
+    const j = judgeLeavingUnknown(r?.id, r?.verification);
+    if (!j) continue;
+    guard.judged += 1;
+    if (j.decision === "REFUSED") guard.refused += 1;
+    else guard.advanced += 1;
+    guard.judgements.push(j);
+    if (!j.agrees) {
+      errors.push({
+        law: "F24",
+        message:
+          j.permitted === "VERIFIED"
+            ? `${j.id} is held ${j.declared} although the guard finds its evidence sufficient to leave UNKNOWN — a sufficient verdict may not be blocked`
+            : `${j.id} is declared ${j.declared} but the guard REFUSES to let it leave UNKNOWN: ${j.reasons.join("; ")}`,
+      });
+    }
+  }
+
   const recordErrors = results.filter((x) => !x.valid);
   return {
     total: records.length,
     valid: recordErrors.length === 0 && errors.length === 0,
     invalidRecords: recordErrors,
     registryErrors: errors,
+    guard,
   };
 }

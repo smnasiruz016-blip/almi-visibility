@@ -151,9 +151,10 @@ test("🔴 the ingested recheck date GOVERNS freshness — asked on a day the tw
   assert.equal(after.state, "STALE");
 });
 
-test("🔴 REAL: all 32 VERIFIED records carry a recheck date, and it is the one freshness uses", () => {
+// 🔴 34 since 13 Sep 2026: two OET records left UNKNOWN through the F24 guard (item 50), each with its recheck date.
+test("🔴 REAL: all 34 VERIFIED records carry a recheck date, and it is the one freshness uses", () => {
   const verified = records.filter((f) => f.verificationState === "VERIFIED");
-  assert.equal(verified.length, 32);
+  assert.equal(verified.length, 34);
   for (const f of verified) {
     assert.ok(f.verification.recheckAfter, `${f.id}: VERIFIED with no recheck date — it would never expire`);
     assert.equal(f.checks.recheckAfter, f.verification.recheckAfter, `${f.id}: the date did not reach freshnessOf`);
@@ -207,24 +208,27 @@ test("CONTROL: a well-formed UNKNOWN is accepted, so the two tests above are not
  * THE CENSUS — WHAT THE 12 SEPTEMBER VERDICTS ACTUALLY SAID.
  * ================================================================== */
 
-test("🔴 REAL: 46 records — 32 VERIFIED, 14 UNKNOWN, 0 left UNVERIFIED", () => {
+test("🔴 REAL: 46 records — 34 VERIFIED, 12 UNKNOWN, 0 left UNVERIFIED (32/14 on 12 Sep; +2 through the guard on 13 Sep)", () => {
   const by = {};
   for (const f of records) by[f.verificationState] = (by[f.verificationState] ?? 0) + 1;
-  assert.deepEqual(by, { VERIFIED: 32, UNKNOWN: 14 });
+  assert.deepEqual(by, { VERIFIED: 34, UNKNOWN: 12 });
 });
 
-test("🔴 REAL: the 14 UNKNOWNs break down 6 CONFLICT / 4 INCOMPLETE / 4 SOURCE_UNREACHABLE", () => {
+// 🔴 13 Sep 2026: of the four SOURCE_UNREACHABLE, two were VERIFIED, one is now PARTIAL_EVIDENCE, one stays SOURCE_UNREACHABLE.
+test("🔴 REAL: the 12 UNKNOWNs break down 6 CONFLICT / 4 INCOMPLETE / 1 PARTIAL_EVIDENCE / 1 SOURCE_UNREACHABLE", () => {
   const by = {};
   for (const f of records.filter((f) => f.verificationState === "UNKNOWN")) {
     by[f.verification.reason] = (by[f.verification.reason] ?? 0) + 1;
   }
-  assert.deepEqual(by, { CONFLICT: 6, INCOMPLETE: 4, SOURCE_UNREACHABLE: 4 });
+  assert.deepEqual(by, { CONFLICT: 6, INCOMPLETE: 4, PARTIAL_EVIDENCE: 1, SOURCE_UNREACHABLE: 1 });
   for (const r of Object.keys(by)) assert.ok(r in UNKNOWN_REASONS, `${r} is not a declared reason`);
 });
 
 test("🔴 REAL: every one of the 46 records names WHO checked it and WHEN", () => {
+  // 🔴 The four OET records were checked again on 13 Sep 2026 (item 50); the other 42 carry the 12 Sep check.
+  const rechecked = ["oet.content-licence-permits-stored-quotation", "oet.writing-task-type.profession=nursing", "oet.speaking-roleplay-setting.profession=nursing", "oet.grade-bands-0-500"];
   for (const f of records) {
-    assert.equal(f.checks.factCheckedOn, "2026-09-12", `${f.id}: no check date`);
+    assert.equal(f.checks.factCheckedOn, rechecked.includes(f.id) ? "2026-09-13" : "2026-09-12", `${f.id}: no check date`);
     assert.match(f.checks.factCheckedBy, /^human:/, `${f.id}: a fact check must name a person, not a tool`);
   }
 });
@@ -298,10 +302,11 @@ test("🔴 REAL: the honest hit rate is BELOW 100% — a perfect one would mean 
     cache.get(q); cache.get(q);
   }
   const s = cache.stats();
-  assert.equal(s.hits, 64);
-  assert.equal(s.misses, 28);
+  // 🔴 64/28 on 12 Sep 2026; two records verified through the guard on 13 Sep add 4 hits and remove 4 misses.
+  assert.equal(s.hits, 68);
+  assert.equal(s.misses, 24);
   assert.ok(s.hitRate < 1, "🔴 100% means the cache is serving everything, including what it should refuse");
-  assert.deepEqual(s.missReasons, { UNKNOWN_CONFLICT: 12, UNKNOWN_INCOMPLETE: 8, UNKNOWN_SOURCE_UNREACHABLE: 8 });
+  assert.deepEqual(s.missReasons, { UNKNOWN_CONFLICT: 12, UNKNOWN_INCOMPLETE: 8, UNKNOWN_PARTIAL_EVIDENCE: 2, UNKNOWN_SOURCE_UNREACHABLE: 2 });
 });
 
 /* ================================================================== *
@@ -337,7 +342,7 @@ test("🔴 REAL: the dependency walk's population is EMPTY — count it before t
 
 test("🔴 REAL: a SOURCE_UNREACHABLE row is not a finding about the subject (LAW-ABSENT-1)", () => {
   const unreachable = records.filter((f) => f.verification?.reason === "SOURCE_UNREACHABLE");
-  assert.equal(unreachable.length, 4);
+  assert.equal(unreachable.length, 1); // 4 on 12 Sep 2026; three re-read on 13 Sep (two VERIFIED, one PARTIAL_EVIDENCE)
   for (const f of unreachable) {
     assert.equal(f.verificationState, "UNKNOWN");
     assert.ok(f.value?.value !== null, `${f.id}: the value was voided because we could not read the source — that is our failure, not the source's`);

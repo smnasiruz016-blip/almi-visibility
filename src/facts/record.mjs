@@ -61,6 +61,9 @@ export const UNKNOWN_REASONS = Object.freeze({
   CONFLICT: "two current official sources of the same authority disagree; both values retained",
   INCOMPLETE: "true as far as it goes, but the source supports more than the fact states",
   SOURCE_UNREACHABLE: "the source could not be read. LAW-ABSENT-1: that is not a source saying otherwise",
+  // Added 13 September 2026 for a verdict of that name: part of the value confirmed on the source,
+  // part not found on any reachable page. A fact is one record with one value; partial confirmation is not verification.
+  PARTIAL_EVIDENCE: "part of the claim's value is confirmed on the source and part is not found on any reachable page — partial confirmation is not verification",
 });
 
 export function fact(record) {

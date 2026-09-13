@@ -13,9 +13,9 @@
  * re-probed on 2026-09-10 and is WRONG — it returns 200. The technical claim
  * was out of date. The legal claim below is unaffected and still binding.)
  *
- * The barrier is the licence. OET's Intellectual Property policy prohibits
- * redistribution or reproduction of its Content and prohibits storing that
- * Content in any other form of electronic retrieval system.
+ * The barrier is the licence. OET's Intellectual Property policy does not allow its
+ * content to be reproduced, redistributed, or kept in any store of ours — and the
+ * policy's own wording is deliberately not repeated here (13 September 2026).
  *
  *   🔴 A FACT CACHE HOLDING `quotedSpan` IS AN ELECTRONIC RETRIEVAL SYSTEM
  *      HOLDING A REPRODUCTION OF THEIR WORDING.
@@ -87,19 +87,43 @@ const oetCommon = {
 };
 
 
+/**
+ * 🔴 ITEM 50 — THE PASS THAT PRODUCED THE 13 SEPTEMBER VERDICTS. All four records
+ * below were attempted IDENTICALLY, in ONE pass, by the same verifier. Two sources
+ * answered and two did not: the two-and-two split is the SOURCES' doing, not the
+ * tester's — which is the only reason it can serve as evidence for the guard.
+ */
+const VERDICT_PASS_2026_09_13 =
+  "all four OET records attempted identically in one pass by beta-g, 13 September 2026; the split into two VERIFIED and two UNKNOWN is what the sources gave, not a choice (_handoffs/OET_FACT_VERDICTS_2026-09-13.md)";
+
 export default [
   fact({
     verificationState: "UNVERIFIED", // 🔴 A3, 12 Sep 2026 — declared, not defaulted
     id: "oet.content-licence-permits-stored-quotation",
     verification: {
-      state: "UNKNOWN",
-      verdict: "UNKNOWN",
-      reason: "SOURCE_UNREACHABLE",
-      checkedOn: "2026-09-12",
+      state: "VERIFIED",
+      verdict: "VERIFIED",
+      checkedOn: "2026-09-13",
       checkedBy: "human:beta-g (Cowork)",
-      sourceUrl: "https://oet.com/",
+      sourceUrl: "https://oet.com/Intellectual-Property-policy",
       sourceTier: "OFFICIAL",
-      note: "NOT VERIFIED AND NOT REFUTED. oet.com returned HTTP 403 to our fetcher on the pages carrying this detail (results-and-scoring, the IP policy). LAW-ABSENT-1: a source we could not read is not a source that says otherwise. Needs a human to open the page, or an alternative official OET document.",
+      sourceRead: true,
+      elementsConfirmed: 1,
+      elementsNotFound: 0,
+      recheckAfter: "2027-03-12",
+      recheckWindowDays: 180,
+      pass: VERDICT_PASS_2026_09_13,
+      note: "VERIFIED by beta-g, 13 September 2026 (_handoffs/OET_FACT_VERDICTS_2026-09-13.md). Only the verdict, the source URL, the read date, the tier and counts of what was confirmed are stored — no OET text.",
+      previous: {
+        state: "UNKNOWN",
+        verdict: "UNKNOWN",
+        reason: "SOURCE_UNREACHABLE",
+        checkedOn: "2026-09-12",
+        checkedBy: "human:beta-g (Cowork)",
+        sourceUrl: "https://oet.com/",
+        sourceTier: "OFFICIAL",
+        note: "NOT VERIFIED AND NOT REFUTED. oet.com returned HTTP 403 to our fetcher on the pages carrying this detail (results-and-scoring, the IP policy). LAW-ABSENT-1: a source we could not read is not a source that says otherwise. Needs a human to open the page, or an alternative official OET document.",
+      },
     },
     claim: { subject: "oet", predicate: "content-licence-permits-stored-quotation", qualifier: null },
     scope: "shared",
@@ -119,7 +143,7 @@ export default [
     sourceDocumentClass: "general",
     attributionStatement: null,
     sourceQuotableBasis:
-      'EXPRESS PROHIBITION, ON THREE INDEPENDENT GROUNDS. Read first-hand by the owner at oet.com/Intellectual-Property-policy (_handoffs/SOURCE_QUOTABILITY.md, dated 11 September 2026). Without CBLA prior express written permission it is prohibited to (1) "transmit or reproduce any part of the Content", (2) "distribute or commercially exploit the Content", and (3) store the Content "in any other website or other form of electronic retrieval system". 🔴 AND THE CARVE-OUTS DO NOT REACH US AT ALL: every permitted use is expressly for "your own personal and NON-COMMERCIAL use only", and AlmiWorld is a commercial product. PR #9 cited only ground (3); grounds (1) and (2) bite harder, and the non-commercial limit puts us outside the permission before ground (3) is even reached.',
+      "EXPRESS PROHIBITION, ON THREE INDEPENDENT GROUNDS. Read first-hand by the owner at oet.com/Intellectual-Property-policy (_handoffs/SOURCE_QUOTABILITY.md, dated 11 September 2026), and VERIFIED by beta-g on 13 September 2026. Without CBLA's prior written permission the policy forbids (1) reproducing or transmitting any portion of its content, (2) distributing it or exploiting it commercially, and (3) keeping it in another website or any electronic retrieval system. 🔴 AND THE CARVE-OUTS DO NOT REACH US AT ALL: every permitted use is limited to personal use that is not commercial, and AlmiWorld is a commercial product. PR #9 cited only ground (3); grounds (1) and (2) bite harder. 🔴 The policy's own wording was quoted here until 13 September 2026 and was removed: a record that the licence forbids storing its text must not store that text.",
     evidence: {
       ownWords:
         "OET's own intellectual property terms do not permit its wording to be reproduced or stored in a retrieval system. Facts sourced from OET are therefore recorded in our own words with a URL and a date, no verbatim extract is kept, and their freshness is a person re-reading the page rather than an automated match.",
@@ -166,14 +190,29 @@ export default [
     ...oetCommon,
     id: "oet.writing-task-type.profession=nursing",
     verification: {
-      state: "UNKNOWN",
-      verdict: "UNKNOWN",
-      reason: "SOURCE_UNREACHABLE",
-      checkedOn: "2026-09-12",
+      state: "VERIFIED",
+      verdict: "VERIFIED",
+      checkedOn: "2026-09-13",
       checkedBy: "human:beta-g (Cowork)",
-      sourceUrl: "https://oet.com/",
+      sourceUrl: "https://oet.com/ready/writing",
       sourceTier: "OFFICIAL",
-      note: "NOT VERIFIED AND NOT REFUTED. oet.com returned HTTP 403 to our fetcher on the pages carrying this detail (results-and-scoring, the IP policy). LAW-ABSENT-1: a source we could not read is not a source that says otherwise. Needs a human to open the page, or an alternative official OET document.",
+      sourceRead: true,
+      elementsConfirmed: 3,
+      elementsNotFound: 0,
+      recheckAfter: "2027-03-12",
+      recheckWindowDays: 180,
+      pass: VERDICT_PASS_2026_09_13,
+      note: "VERIFIED by beta-g, 13 September 2026 (_handoffs/OET_FACT_VERDICTS_2026-09-13.md). Only the verdict, the source URL, the read date, the tier and counts of what was confirmed are stored — no OET text.",
+      previous: {
+        state: "UNKNOWN",
+        verdict: "UNKNOWN",
+        reason: "SOURCE_UNREACHABLE",
+        checkedOn: "2026-09-12",
+        checkedBy: "human:beta-g (Cowork)",
+        sourceUrl: "https://oet.com/",
+        sourceTier: "OFFICIAL",
+        note: "NOT VERIFIED AND NOT REFUTED. oet.com returned HTTP 403 to our fetcher on the pages carrying this detail (results-and-scoring, the IP policy). LAW-ABSENT-1: a source we could not read is not a source that says otherwise. Needs a human to open the page, or an alternative official OET document.",
+      },
     },
     // Digest taken 2026-09-10 — the only thing about this page the registry
     // stores, and lawful precisely because it is not a copy.
@@ -208,12 +247,27 @@ export default [
     verification: {
       state: "UNKNOWN",
       verdict: "UNKNOWN",
-      reason: "SOURCE_UNREACHABLE",
-      checkedOn: "2026-09-12",
+      reason: "PARTIAL_EVIDENCE",
+      verdictWords: "PARTIAL EVIDENCE — one element confirmed, two not found",
+      checkedOn: "2026-09-13",
       checkedBy: "human:beta-g (Cowork)",
-      sourceUrl: "https://oet.com/",
+      sourceUrl: "https://oet.com/ready/speaking",
       sourceTier: "OFFICIAL",
-      note: "NOT VERIFIED AND NOT REFUTED. oet.com returned HTTP 403 to our fetcher on the pages carrying this detail (results-and-scoring, the IP policy). LAW-ABSENT-1: a source we could not read is not a source that says otherwise. Needs a human to open the page, or an alternative official OET document.",
+      sourceRead: true,
+      elementsConfirmed: 1,
+      elementsNotFound: 2,
+      pass: VERDICT_PASS_2026_09_13,
+      note: "STAYS UNKNOWN (beta-g, 13 September 2026): a fact is one record with one value, and part of this value is unevidenced. Only the verdict, the source URL, the read date, the tier and counts of what was confirmed are stored — no OET text.",
+      previous: {
+        state: "UNKNOWN",
+        verdict: "UNKNOWN",
+        reason: "SOURCE_UNREACHABLE",
+        checkedOn: "2026-09-12",
+        checkedBy: "human:beta-g (Cowork)",
+        sourceUrl: "https://oet.com/",
+        sourceTier: "OFFICIAL",
+        note: "NOT VERIFIED AND NOT REFUTED. oet.com returned HTTP 403 to our fetcher on the pages carrying this detail (results-and-scoring, the IP policy). LAW-ABSENT-1: a source we could not read is not a source that says otherwise. Needs a human to open the page, or an alternative official OET document.",
+      },
     },
     // Digest taken 2026-09-10 — the only thing about this page the registry
     // stores, and lawful precisely because it is not a copy.
@@ -289,11 +343,31 @@ export default [
       state: "UNKNOWN",
       verdict: "UNKNOWN",
       reason: "SOURCE_UNREACHABLE",
-      checkedOn: "2026-09-12",
+      verdictWords: "SOURCE UNREACHABLE — three pages returned 403",
+      checkedOn: "2026-09-13",
       checkedBy: "human:beta-g (Cowork)",
-      sourceUrl: "https://oet.com/",
+      sourceUrl: null,
+      attempts: [
+        { url: "https://oet.com/test/results-and-scoring", status: 403 },
+        { url: "https://oet.com/en-us/test/test-overview", status: 403 },
+        { url: "https://oet.com/en-us/about/test-statistics", status: 403 },
+      ],
       sourceTier: "OFFICIAL",
-      note: "NOT VERIFIED AND NOT REFUTED. oet.com returned HTTP 403 to our fetcher on the pages carrying this detail (results-and-scoring, the IP policy). LAW-ABSENT-1: a source we could not read is not a source that says otherwise. Needs a human to open the page, or an alternative official OET document.",
+      sourceRead: false,
+      elementsConfirmed: 0,
+      elementsNotFound: null,
+      pass: VERDICT_PASS_2026_09_13,
+      note: "STAYS UNKNOWN — NOT VERIFIED AND NOT REFUTED. LAW-ABSENT-1: a 403 is a fact about our fetcher, not about OET. Only the verdict, the source URL, the read date, the tier and counts of what was confirmed are stored — no OET text.",
+      previous: {
+        state: "UNKNOWN",
+        verdict: "UNKNOWN",
+        reason: "SOURCE_UNREACHABLE",
+        checkedOn: "2026-09-12",
+        checkedBy: "human:beta-g (Cowork)",
+        sourceUrl: "https://oet.com/",
+        sourceTier: "OFFICIAL",
+        note: "NOT VERIFIED AND NOT REFUTED. oet.com returned HTTP 403 to our fetcher on the pages carrying this detail (results-and-scoring, the IP policy). LAW-ABSENT-1: a source we could not read is not a source that says otherwise. Needs a human to open the page, or an alternative official OET document.",
+      },
     },
     // Digest taken 2026-09-10 — the only thing about this page the registry
     // stores, and lawful precisely because it is not a copy.

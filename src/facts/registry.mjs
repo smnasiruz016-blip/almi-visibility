@@ -225,7 +225,7 @@ export const REGISTRY_FACT_CHECK_COUNT = 46;
  * 4 true-but-incomplete, 4 whose source could not be read (and by LAW-ABSENT-1
  * that last group is a fact about our reach, not about the claim).
  */
-export const REGISTRY_VERIFIED_COUNT = 32;
+export const REGISTRY_VERIFIED_COUNT = 34; // 32 on 12 Sep 2026; +2 on 13 Sep 2026, each through the F24 guard (item 50)
 
 /**
  * 🔴 GATE A'S OWN `factChecked` COLUMN IS STILL HARD-CODED 0, KNOWINGLY.

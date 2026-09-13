@@ -19,9 +19,9 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
-import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
+import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
 import { loadRegistry, census, REGISTRY_FACT_CHECK_COUNT } from "../src/facts/registry.mjs";
-import { queueReason } from "../src/facts/queues.mjs";
+import { queueReason } from "../src/facts/queues.mjs";
 
 import { productFromArgvOrExit } from "../src/product-cli.mjs";
 
@@ -46,6 +46,10 @@ const line = (ch = "─") => console.log(ch.repeat(78));
 function reportValidation(v) {
   console.log(`\nVALIDATION — ${v.total} records`);
   line();
+  // 🔴 ITEM 50 — every record leaving UNKNOWN is judged by the guard (F24), and the count is printed where validation is read.
+  const g = v.guard ?? { judged: 0, advanced: 0, refused: 0, judgements: [] };
+  console.log(`F24 guard — records leaving UNKNOWN judged: ${g.judged} · advanced on a new measurement: ${g.advanced} · refused: ${g.refused}`);
+  for (const j of g.judgements) console.log(`   ${j.decision.padEnd(28)} ${j.id}${j.reasons.length ? ` — ${j.reasons.join("; ")}` : ""}`);
   if (v.valid) {
     console.log("✅ every record satisfies every law in src/facts/validate.mjs");
     return true;

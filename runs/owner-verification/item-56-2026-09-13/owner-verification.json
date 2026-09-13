@@ -1,0 +1,33 @@
+{
+  "record_type": "owner_verification",
+  "item": 56,
+  "name": "Desktop + Mobile Owner Experience",
+  "date": "2026-09-13",
+  "verifiedBy": "owner",
+  "verifier": "the owner, by his own visual check of the report — relayed in beta-g's (technical owner's) brief of 13 September 2026: 'THE OWNER VERIFIED IT'",
+  "surface": "runs/report/index.html — the owner-facing report",
+  "ruling": "OWNER_RULING_2026-09-13_COMPLETION_LAW.md §4 — 'Owner visual check ke baad hi Item 56 ko VERIFIED-PASS mark karo. Automated GREEN is owner-eye requirement ko replace nahi karta.'",
+  "criteriaOwnerWords": "PASS ka sawal khoobsurti ka nahi: critical information readable ho, workflow samajh aaye, controls/links usable hon, aur koi clipping/overlap/broken critical view na ho.",
+  "criteria": ["critical information readable", "workflow understandable", "controls and links usable", "no clipping, overlap or broken critical view", "beauty is not the question"],
+  "result": "VERIFIED-PASS",
+  "screenshots": [
+    { "file": "item56-narrow-1-labels-and-reconciliation.png", "pixels": "748x1060", "bytes": 112346, "sha256": "312abdee6f543764b28ee985fe01614335f8c219215012efdd1116f2af1a5f7f", "blob": "c8971209fd5a3c3d0d2b919c617c4434f8a1ff03" },
+    { "file": "item56-narrow-2-cost-table.png", "pixels": "743x936", "bytes": 80491, "sha256": "503238f6ea6d7376d38ac73278f38eee4b23fe6018ff5a8a561f820cb286c07b", "blob": "9157698fedcb91a7617fb00560eb02acefa8ac4f" },
+    { "file": "item56-narrow-3-cost-ledger.png", "pixels": "750x945", "bytes": 194786, "sha256": "aaa85cf9084114515af32e5170b45e35bb030cb70676039dab618b203b97ff37", "blob": "fea6a1ef96ccbdf801b9b5ecf292203c7a49d346" },
+    { "file": "item56-narrow-4-ledger-scrollbar.png", "pixels": "772x872", "bytes": 207922, "sha256": "0f8b4aa2f92ba742fd2beb8552fea69b632377911d7ffa470a6c51aeeefca963", "blob": "2cd39a8f255b2a21335e2cf452af940f30c8b46f" }
+  ],
+  "screenshotsSource": "C:\\Projects\\_handoffs\\item56\\ — copied byte for byte (sha256 of each copy equals its source)",
+  "widthsRecorded": "all four screenshots are at a NARROW (mobile-class) width, about 750 px. There is no desktop-width screenshot in this record: the desktop look rests on the owner's verification itself. Stated so that four narrow images are never read as a recording of both widths.",
+  "findingRaised": {
+    "status": "RAISED",
+    "by": "beta-g (technical owner)",
+    "finding": "the cost ledger's lines extend past a narrow viewport and are reached by horizontal scrolling",
+    "seenIn": ["item56-narrow-3-cost-ledger.png", "item56-narrow-4-ledger-scrollbar.png"]
+  },
+  "ownerRulingOnFinding": {
+    "by": "owner",
+    "date": "2026-09-13",
+    "ruling": "NOT CLIPPING — the content scrolls, nothing is lost, the view is not broken",
+    "consequence": "not a defect and not on the completion path; recorded as PD-1 in POST_DONE_BACKLOG.md as an optional improvement"
+  }
+}

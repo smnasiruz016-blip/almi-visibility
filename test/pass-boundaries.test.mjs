@@ -163,11 +163,13 @@ test("the live classification is lawful", () => {
  * SAME `assertLawful` is handed a row whose contract is missing a part, and it
  * must still refuse the pass.
  */
+/* Item 9 is BORROWED by the next tests only for its complete boundary; its external-prerequisite label
+ * (owner ruling, 13 Sep 2026) is dropped so each test isolates the ONE law it names. */
 test("🔴 RED: a VERIFIED-PASS on a row with an empty contract part is REFUSED", () => {
   const rows = classify();
   const boundaries = { ...loadBoundaries() };
   boundaries[9] = { ...boundaries[9], missingParts: ["evidence"] };
-  rows[9] = { ...rows[9], state: "VERIFIED-PASS" };
+  rows[9] = { ...rows[9], label: undefined, state: "VERIFIED-PASS" };
 
   const errors = assertLawful(rows, boundaries);
   assert.equal(errors.length, 1, "the guard did not fire");
@@ -177,7 +179,7 @@ test("🔴 RED: a VERIFIED-PASS on a row with an empty contract part is REFUSED"
 
 test("CONTROL: the same row with its real, complete contract passes the guard", () => {
   const rows = classify();
-  rows[9] = { ...rows[9], state: "VERIFIED-PASS" };
+  rows[9] = { ...rows[9], label: undefined, state: "VERIFIED-PASS" };
   assert.deepEqual(assertLawful(rows), [], "the guard rejects a complete contract — it is not measuring the parts");
 });
 
@@ -214,7 +216,7 @@ test("CONTROL: DEFERRED is allowed on every row the ruling classes D", () => {
 test("🔴 RED: TESTABLE-NOW without a named test is REFUSED", () => {
   const rows = classify();
   // attemptCount 0 isolates THIS rule from ruling 0B's (test/attempts.test.mjs).
-  rows[9] = { ...rows[9], state: "TESTABLE-NOW", attemptCount: 0 };
+  rows[9] = { ...rows[9], label: undefined, state: "TESTABLE-NOW", attemptCount: 0 };
   const errors = assertLawful(rows);
   assert.equal(errors.length, 1);
   assert.match(errors[0], /is TESTABLE-NOW but names no test/);
@@ -249,14 +251,17 @@ test("🔴 RED: TESTABLE-NOW without a named test is REFUSED", () => {
  * gap. TESTABLE-NOW 4 → 1, VERIFIED-PASS 10 → 13, FAILED unchanged at 2. */
 /* 🔴 AND 51 LEFT FAILED (13 Sep 2026, later): its three fields computed and all six on the
  * real report. 50 stays FAILED on an argued reading. VERIFIED-PASS 13 → 14, FAILED 2 → 1. */
-test("the seven-state tally is 3 / 6 / 1 / 14 / 1 / 5 / 28", () => {
+/* 🔴 AND 56 WAS VERIFIED BY THE OWNER (13 Sep 2026): BLOCKED-UNKNOWN → VERIFIED-PASS by a dated owner
+ * verification record, the only route that can set it. VERIFIED-PASS 14 → 15, BLOCKED-UNKNOWN 5 → 4.
+ * Item 9 kept its state; its label became BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE. */
+test("the seven-state tally is 3 / 6 / 1 / 15 / 1 / 4 / 28", () => {
   assert.deepEqual(tally(classify()), {
     "NOT-STARTED": 3,
     "BUILT-NOT-PROVED": 6,
     "TESTABLE-NOW": 1,
-    "VERIFIED-PASS": 14,
+    "VERIFIED-PASS": 15,
     FAILED: 1,
-    "BLOCKED-UNKNOWN": 5,
+    "BLOCKED-UNKNOWN": 4,
     DEFERRED: 28,
   });
 });
@@ -301,13 +306,15 @@ test("every state used is one of the seven, and every row is classified", () => 
 /* 🔴 SEVENTEEN since the re-scan: the eight re-scanned rows moved because work
  * made their input exist ("none" 18 → 10). Four of them are TESTABLE-NOW, which
  * is NOT looked-at: an input that exists is not a verdict. */
-test("🔴 exactly SEVENTEEN rows moved on WORK — 9 BLOCKED; 25 TESTABLE-NOW; 50 FAILED; the rest PASS", () => {
+/* 🔴 EIGHTEEN since the owner verified 56 — its test is the owner's eye, and it was sat
+ * ("vocabulary" 31 → 30). */
+test("🔴 exactly EIGHTEEN rows moved on WORK — 9 BLOCKED; 25 TESTABLE-NOW; 50 FAILED; the rest PASS", () => {
   const rows = Object.values(classify());
   const work = rows.filter((r) => r.changeKind === "work");
-  assert.deepEqual(work.map((r) => r.id).sort((a, b) => a - b), [8, 9, 11, 12, 13, 14, 15, 25, 26, 38, 42, 45, 48, 49, 50, 51, 55]);
+  assert.deepEqual(work.map((r) => r.id).sort((a, b) => a - b), [8, 9, 11, 12, 13, 14, 15, 25, 26, 38, 42, 45, 48, 49, 50, 51, 55, 56]);
   assert.deepEqual(work.filter((r) => !LOOKED.includes(r.state)).map((r) => `${r.id}:${r.state}`), ["9:BLOCKED-UNKNOWN", "25:TESTABLE-NOW"]);
   assert.deepEqual(work.filter((r) => r.state === "FAILED").map((r) => r.id), [50]);
-  assert.equal(rows.filter((r) => r.changeKind === "vocabulary").length, 31);
+  assert.equal(rows.filter((r) => r.changeKind === "vocabulary").length, 30);
   assert.equal(rows.filter((r) => r.changeKind === "none").length, 10);
 });
 
@@ -324,11 +331,12 @@ test("🔴 exactly SEVENTEEN rows moved on WORK — 9 BLOCKED; 25 TESTABLE-NOW; 
  * reopen is KEPT on the row, as item 14's first failure is. */
 /* 🔴 TEN since the re-scan — 12 and 38, each run over the committed bodies. */
 /* 🔴 THIRTEEN since the queue run — 13, 26 and 55; 55 through FAILED. */
-test("🔴 VERIFIED-PASS is exactly 13 — items 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 48, 49 and 55 — and 48's reopen stays on the record", () => {
+test("🔴 VERIFIED-PASS is exactly 15 — items 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 48, 49, 51, 55 and 56 — and 48's reopen stays on the record", () => {
   const rows = classify();
   const passed = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS").map((r) => r.id).sort((a, b) => a - b);
-  assert.deepEqual(passed, [8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 48, 49, 51, 55]);
-  assert.equal(tally(rows)["VERIFIED-PASS"], 14);
+  assert.deepEqual(passed, [8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 48, 49, 51, 55, 56]);
+  assert.equal(tally(rows)["VERIFIED-PASS"], 15);
+  assert.equal(rows[56].route, "OWNER_VERIFICATION", "item 56's tick did not come from the owner's eye");
   assert.match(rows[51].whyFailed, /FAILURE CONDITION IS MET/, "item 51's FAILED result was erased rather than kept");
   assert.match(rows[50].whyStillFailed, /IT STAYS FAILED/, "item 50's argued reading is not on the row");
   assert.match(rows[55].whyFailed, /LEAK/, "item 55's FAILED result was erased rather than kept");

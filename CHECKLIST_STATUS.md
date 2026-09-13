@@ -23,11 +23,34 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 | **NOT-STARTED** | 33 | **3** |
 | **BUILT-NOT-PROVED** | 24 | **6** |
 | **TESTABLE-NOW** | — | **1** |
-| **VERIFIED-PASS** | 0 | **14** |
+| **VERIFIED-PASS** | 0 | **15** |
 | **FAILED** | — | **1** |
-| **BLOCKED-UNKNOWN** | 1 | **5** |
+| **BLOCKED-UNKNOWN** | 1 | **4** |
 | **DEFERRED** | — | **28** |
 | **total** | 58 | **58** |
+
+> ### 🔴 THE COMPLETION LAW FROZEN · ITEM 56 VERIFIED BY THE OWNER · THE BACKLOG OPENED — 13 SEPTEMBER 2026
+>
+> | state | before this change | after |
+> |---|---|---|
+> | NOT-STARTED | 3 | 3 |
+> | BUILT-NOT-PROVED | 6 | 6 |
+> | TESTABLE-NOW | 1 (25) | 1 (25) |
+> | VERIFIED-PASS | 14 | **15** (+56) |
+> | FAILED | 1 (50) | 1 (50) |
+> | BLOCKED-UNKNOWN | 5 | **4** (1, 9, 52, 54) |
+> | DEFERRED | 28 | 28 |
+>
+> - **moved because WORK HAPPENED:** 56 BLOCKED-UNKNOWN → VERIFIED-PASS, by **OWNER VERIFICATION** — the owner's
+>   own visual check, the only route that may set it; four screenshots committed; the finding he overruled
+>   (the cost ledger scrolls sideways at narrow width — *not clipping*) kept on record and moved to PD-1.
+> - **moved ONLY because a RULING changed:** none. **Item 9 kept its state**; its label is now **BLOCKED /
+>   UNKNOWN BY EXTERNAL PREREQUISITE**, with its missing evidence, blocker and unlock condition on the row.
+>
+> The owner's completion ruling is frozen (`OWNER_RULING_2026-09-13_COMPLETION_LAW.md`): the checklist says
+> WHAT, the boundaries say WHEN, the ruling says HOW the path is walked. Two of the five reopen grounds were
+> worded differently in the ledger — his wording now governs. `POST_DONE_BACKLOG.md` is open; D-KEY-2 was
+> listed for it and stays on the path, because item 10's frozen INPUT names redirect chains.
 
 > ### 🔴 THE RENDERER, BUILT — THE CAPABILITY ONLY — 13 SEPTEMBER 2026
 >
@@ -286,10 +309,10 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 >   ingested and the seventh is supplied by no tool we hold. Not a tick. After it the counts are
 >   BUILT-NOT-PROVED **16** and BLOCKED-UNKNOWN **7**; the table above records Amendment 2 alone.
 
-> ### 🔴 FOURTEEN TICKS — ITEMS 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 48, 49, 51 AND 55
+> ### 🔴 FIFTEEN TICKS — ITEMS 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 48, 49, 51, 55 AND 56
 >
 > **Items 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 48, 49, 51 and 55.** Each has all four parts of its boundary
-> answered with real-data evidence. They are the only fourteen rows in the whole ledger that **hold a pass earned by work**;
+> answered with real-data evidence. They are the only fifteen rows in the whole ledger that **hold a pass earned by work**;
 > item 9 moved by work and ended BLOCKED-UNKNOWN; item 50 was run and stays FAILED; item 25 was run and is
 > TESTABLE-NOW with its gap named; **items 48, 51 and 55 each passed through FAILED** and left it only by the
 > test re-run and passing; items 11 and 42 were proved on a local replay of real bodies, which does not prove
@@ -395,7 +418,7 @@ actually came from.
 | 6 | Axis Discovery | DEFERRED | OUT — discovery is "Search Intelligence"; §62 l.553 | Axis **declaration** exists and is tested (`test/product-registration.test.mjs`: "a product must say what its pages vary BY"). **Declaration is not discovery** | 2026-09-11 | Claude (repo audit) | — | — |
 | 7 | Market Measurement | DEFERRED | OUT — §62 l.553; phase table "Search Intelligence" | `DISTINGUISHING_SUPPLY.md` is a one-off measurement, not an engine | 2026-09-11 | Claude (repo audit) | — | — |
 | 8 | HEAVY / THIN / EMPTY Discipline | VERIFIED-PASS | OUT — component of item 7 | none | 2026-09-11 | Claude (repo audit) | — | — |
-| 9 | Search Console / Analytics Intelligence | BLOCKED-UNKNOWN | IN — §62 l.553 "Search Console ingestion when authorized"; v0.1 CONTAINS l.974 (§9) | **6 of 7 dimensions INGESTED from the real property**, window 2026-08-15..2026-09-12, every pull exhausted, `dataState=COMPLETE` [bound: rowLimitPerRequest=25000, maxRequests=20]: **country 126 rows, country×query 388 rows** (1 request each), queries 337, query×page 574, pages 1,525, plus impressions, clicks and CTR. Cost ZERO_BY_TARIFF. Country rows stored as measurement only and pass item 8's guard. `node bin/gsc-dimensions.mjs --countries` | 2026-09-12 | Claude (repo audit) | 🔴 **Downstream outcomes is supplied by no tool we hold** — Search Console has no outcome dimension; the credential is webmasters.readonly; 0 of 36 product repositories use an analytics package; the one first-party funnel-event table stores a path and a user id and no search source; the engine may read no product database. The NOTE makes that ⚠, so **BLOCKED-UNKNOWN, not FAILED** — and **six of seven does not tick** | real country run, 12 Sep 2026 night |
+| 9 | Search Console / Analytics Intelligence | BLOCKED-UNKNOWN | IN — §62 l.553 "Search Console ingestion when authorized"; v0.1 CONTAINS l.974 (§9) | **BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE** (owner ruling, 13 Sep 2026, §3) — its missing evidence, blocker and future unlock condition are on the row; this is not the machinery declaring failure. **6 of 7 dimensions INGESTED from the real property**, window 2026-08-15..2026-09-12, every pull exhausted, `dataState=COMPLETE` [bound: rowLimitPerRequest=25000, maxRequests=20]: **country 126 rows, country×query 388 rows** (1 request each), queries 337, query×page 574, pages 1,525, plus impressions, clicks and CTR. Cost ZERO_BY_TARIFF. Country rows stored as measurement only and pass item 8's guard. `node bin/gsc-dimensions.mjs --countries` | 2026-09-12 | Claude (repo audit) | 🔴 **Downstream outcomes is supplied by no tool we hold** — Search Console has no outcome dimension; the credential is webmasters.readonly; 0 of 36 product repositories use an analytics package; the one first-party funnel-event table stores a path and a user id and no search source; the engine may read no product database. The NOTE makes that ⚠, so **BLOCKED-UNKNOWN, not FAILED** — and **six of seven does not tick** | real country run, 12 Sep 2026 night |
 | 10 | Technical SEO Audit Engine | BUILT-NOT-PROVED | IN — v0.1 CONTAINS l.974 "Crawler and page inventory (§8)" | Seven of nine sub-requirements run over the 394 pages. **Part 0 adds the ORIGIN of the noindex finding**: all 134 come from one conditional gate in `almi-cv-v2`, traced to commit `50f8c20` (17 Aug 2026), and the commit's own "near-duplicates by construction" premise was measured — same-role siblings average 0.685 similarity, **none reaches 0.8** | 2026-09-12 | Claude (repo audit) | 🔴 **CANNOT REACH VERIFIED PASS IN v0.1 — a scope fact.** Rendering and crawl depth are structurally impossible: every record is `RAW_HTML`, and we seeded from Search Console and never followed links | hissa 3, 12 Sep 2026 |
 | 11 | Existing Page Inventory | VERIFIED-PASS | IN — v0.1 CONTAINS l.974 (§8) | 495 real PageRecords from the 12 Sep run, 500→495 reconciled on the page. **"Maintain" proved 13 Sep by a LOCAL REPLAY** of the run's own 394 bodies, crawled twice with 5 named changes: **394/394 page_ids identical, 389 pages before and across both runs, each change a new observation on its existing page**; RED when the id takes the clock. `runs/replay/replay-2026-09-13.json` | 2026-09-13 | Claude (replay) | 🔴 Does NOT prove live reachability today. Committed PageRecords still carry empty edge lists (item 26) | replay, 13 Sep 2026 |
 | 12 | Duplicate / Thin / Template Detection | VERIFIED-PASS | IN — required by Case Study #1 (§60) which v0.1 CONTAINS l.974 | **Re-scanned and run 13 Sep over the COMMITTED bodies**: each of the four classifications accounts for all 394 pages — exact-duplicate 0 · thin 118 · near-duplicate 5 · template-dominance 2, plus 6 UNKNOWN. Shell subtraction **defined, printed beside the result, and tested against a page whose shell is larger than its body**; the item-8 guard passes. `runs/audit/item-12-38-content-run-2026-09-13.txt` | 2026-09-13 | Claude (queue re-scan) | **Detection only — nothing BLOCKS duplicate or thin inventory** (the deferred half: no publish path). A clean page is the absence of a finding, counted, not a stored record | re-scan, 13 Sep 2026 |
@@ -442,7 +465,7 @@ actually came from.
 | 53 | Cross-Product Portability | BUILT-NOT-PROVED | IN — §62 l.555 provider-neutral foundation; boundary law | `tools/product-boundary.mjs` + 13 tests: **`src/` names no product in code, 0 lines**, with an independent `git ls-files` census of the population. `products/almi-oet/product.mjs` declares axis+variants | 2026-09-11 | Claude (repo audit) | **Only one real product exists in `products/`.** Portability is proved by a static boundary scan and by fixture tenants — **no second declared product has been operated end-to-end** | — |
 | 54 | Cross-Product Isolation Test | BLOCKED-UNKNOWN | IN — DoD `DOD-02`; §62 l.553 | `test/product-isolation.test.mjs`: adversarial — "B cannot read A's licence terms by name", "every accessor refuses the other tenant's licence", plus a non-empty guard so it cannot pass vacuously | 2026-09-13 | Claude (queue re-scan) | **Re-scanned 13 Sep: still blocked.** A cost ledger now exists, but **no cost entry names a product**, so neither product holds private costs; and **no learning record exists** (`U-ISO-1`). Half an input is not an input | re-scan, 13 Sep 2026 |
 | 55 | Security / Secrets / Recovery | VERIFIED-PASS | IN — §37 API-key & secret architecture; DoD | **An EXECUTING leak test with a planted fake secret** (`test/secret-leak.test.mjs`): the adapter, the ingest and the CLI in a child process, searched for the marker, key lines, three digests and the secret's length. **Its first run FAILED on a real leak** (D-SEC-1) — fixed, re-run, passed; a sabotage that logs the key turns it red. **Recovery:** four committed stores and the body archive torn, detected and restored from git, byte-identical by blob hash | 2026-09-13 | Claude (queue run) | The real key was never read. A leak through a module this test does not drive is not covered — every credential path in the repository today is driven | queue run, 13 Sep 2026 |
-| 56 | Desktop + Mobile Owner Experience | BLOCKED-UNKNOWN | IN — DoD v0.1 "dashboard/report works on desktop and 430px" | An owner-facing surface now exists. It declares `width=device-width`, a `@media (max-width:430px)` breakpoint, and `overflow-x:auto` on wide tables so the body never scrolls sideways — all asserted by test | 2026-09-12 | Claude (repo audit) | 🔴 **NOT VERIFIED BY LOOKING.** Chrome's screenshot injection timed out on every attempt, including on a trivial `<h1>probe ok</h1>` page — the extension, not this page. The structure is asserted; **the appearance is unverified** and a structural assertion is not a visual check | report view, 12 Sep 2026 |
+| 56 | Desktop + Mobile Owner Experience | VERIFIED-PASS | IN — DoD v0.1 "dashboard/report works on desktop and 430px" | **VERIFIED BY THE OWNER, 13 Sep 2026** — four narrow-width screenshots in `runs/owner-verification/item-56-2026-09-13/`, the cost ledger's sideways scroll raised and ruled NOT clipping (PD-1). An owner-facing surface now exists. It declares `width=device-width`, a `@media (max-width:430px)` breakpoint, and `overflow-x:auto` on wide tables so the body never scrolls sideways — all asserted by test | 2026-09-12 | Claude (repo audit) | ✅ **VERIFIED BY THE OWNER'S LOOK, 13 Sep 2026** — no automated run may set this row. ⚠️ All four screenshots are narrow-width; the desktop half rests on the owner's verification. *Earlier, kept:* 🔴 **NOT VERIFIED BY LOOKING.** Chrome's screenshot injection timed out on every attempt, including on a trivial `<h1>probe ok</h1>` page — the extension, not this page. The structure is asserted; **the appearance is unverified** and a structural assertion is not a visual check | report view, 12 Sep 2026 |
 | 57 | Final Independent Audit | NOT-STARTED | IN — checklist §1; DoD v0.1 | This document is the **first status baseline**, not the final audit | 2026-09-11 | Claude (repo audit) | Cannot run while 16 items are ◐ and 1 is ⚠; and it must be *independent*, which a self-audit is not | — |
 | 58 | DONE Declaration | NOT-STARTED | IN — checklist §6, owner sign-off | none | 2026-09-11 | Claude (repo audit) | Requires every applicable item ☑ or justified N/A with no frozen blocker. **0 items are ☑**, and N/A justifications are the owner's — none exist | — |
 

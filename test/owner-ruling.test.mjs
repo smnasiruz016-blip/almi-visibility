@@ -8,6 +8,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 
 import {
   verifyRuling, bodyOf, blobOf, RULING_FILE, EXPECTED_BLOB, COMPLETION_LOOP, OWNER_REOPEN_SENTENCE, FREEZE_LINE,
@@ -38,10 +39,19 @@ test("🔴 RED: one corrupted byte in HIS text fails the blob AND the body; the 
   assert.equal(verifyRuling({ bytes: BYTES }).ok, true);
 });
 
-test("🔴 E-CL-2 cannot recur here: the same text checked out with CRLF has the SAME blob", () => {
+/* 🔴 E-CL-3 — the first version of this test asserted that CRLF bytes hash to the same blob on ANY
+ * machine. That is only true where git converts line endings on the way in (core.autocrlf=true, as on
+ * the Windows machine that checks the file out as CRLF). The Linux CI runner has no such setting — and
+ * it never sees CRLF, because it checks the file out as LF. So the Windows condition is now STATED to
+ * git explicitly, and the test holds on both platforms for the reason that is actually true. */
+test("🔴 E-CL-2 cannot recur here: a Windows CRLF checkout (core.autocrlf=true) has the SAME blob as the LF file", () => {
   const crlf = Buffer.from(BYTES.toString("utf8").replace(/\r?\n/g, "\r\n"), "utf8");
-  assert.equal(blobOf(crlf), EXPECTED_BLOB);
-  assert.equal(verifyRuling({ bytes: crlf }).ok, true);
+  const windowsBlob = execFileSync("git", ["-c", "core.autocrlf=true", "hash-object", "--stdin", `--path=${RULING_FILE}`], { cwd: REPO, input: crlf, encoding: "utf8" }).trim();
+  assert.equal(windowsBlob, EXPECTED_BLOB);
+  const lf = Buffer.from(BYTES.toString("utf8").replace(/\r\n/g, "\n"), "utf8");
+  const linuxBlob = execFileSync("git", ["-c", "core.autocrlf=false", "hash-object", "--stdin", `--path=${RULING_FILE}`], { cwd: REPO, input: lf, encoding: "utf8" }).trim();
+  assert.equal(linuxBlob, EXPECTED_BLOB, "the LF checkout a Linux runner holds does not hash to the pinned blob");
+  assert.equal(blobOf(BYTES), EXPECTED_BLOB, "this machine's own checkout does not verify");
 });
 
 test("1B/1C: the header records the precedence, and the body carries the loop exactly as he wrote it", () => {

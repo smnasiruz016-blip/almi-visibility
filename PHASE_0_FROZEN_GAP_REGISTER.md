@@ -838,6 +838,14 @@ byte sha256. The run's own before/after comparison was on one machine and was ne
 the trap `E-CL-2` fell into — and against the body's sha256 `40cb3ebc…9711d`. RED-proved: one corrupted
 byte → exit 1; restored → exit 0 (`runs/owner-verification/ruling-verifier-red-2026-09-13.txt`).
 
+**E-CL-3 (Claude), found by CI on this PR — the same family as E-CL-2, one layer down.** A test asserted
+that the ruling's text *with CRLF line endings* hashes to the pinned blob. It passed on Windows and failed
+on the Linux runner: `git hash-object` converts CRLF only where `core.autocrlf=true`, which this Windows
+machine sets and the runner does not. The verifier itself was right on both — each platform checks the
+file out in the form its own git stores back. The test now tells git the Windows condition explicitly
+(`-c core.autocrlf=true` for the CRLF bytes, `false` for the LF bytes), so it proves the true claim
+everywhere instead of a machine-specific one.
+
 **Precedence — all three bind:**
 
 | document | says |

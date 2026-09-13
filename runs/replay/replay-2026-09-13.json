@@ -1,0 +1,429 @@
+{
+  "recorded": "2026-09-13T00:28:39.700Z",
+  "kind": "LOCAL REPLAY of Actions run 34662527129 — the real captured bodies, served from 127.0.0.1",
+  "notAFixture": "These are the bodies the 12 September 2026 crawl captured, recovered from its own Actions artifact and verified byte for byte against each observation's content_sha256. LAW-FIXTURE-1 is satisfied because the double is production's own output, not an imitation of it.",
+  "doesNotProve": [
+    "that the crawler still reaches the live internet today — the 12 September 2026 run proved that, and this replay does not re-prove it",
+    "what DNS says today — the audit's double run used RECORDED resolver answers stored on 12 September 2026",
+    "robots.txt for hosts whose file was never stored — the replay served a 404 for them, which the crawler reads as 'no robots.txt, allowed'"
+  ],
+  "changeKind": "LOCAL_REPLAY_CHANGE — in-memory copies of recovered bodies, served on 127.0.0.1. NOT a change to any product's real page and NOT a write into any product repository.",
+  "recovery": {
+    "artifact": "crawl-corpus-34662527129",
+    "runId": "34662527129",
+    "recoveredThisRun": true,
+    "files": 394,
+    "bytes": 39921127,
+    "seconds": 80.025,
+    "integrity": {
+      "bodies": 394,
+      "sha256Matches": 394,
+      "missing": 0
+    }
+  },
+  "served": {
+    "bodies": 394,
+    "hosts": 17,
+    "robotsStoredFor": [
+      "almidutch.almiworld.com",
+      "almiicelandic.almiworld.com",
+      "almiitalian.almiworld.com",
+      "almioet.almiworld.com",
+      "almiportuguese.almiworld.com"
+    ],
+    "robotsServed404For": [
+      "almicv.almiworld.com",
+      "almidanish.almiworld.com",
+      "almidet.almiworld.com",
+      "almigoethe.almiworld.com",
+      "almijob.almiworld.com",
+      "alminorwegian.almiworld.com",
+      "almipte.almiworld.com",
+      "almisalary.almiworld.com",
+      "almispanish.almiworld.com",
+      "almistudy.almiworld.com",
+      "almiswiss.almiworld.com",
+      "almitoefl.almiworld.com",
+      "almiworld.com"
+    ]
+  },
+  "egress": {
+    "requests": 822,
+    "nonLocal": 0
+  },
+  "passes": [
+    {
+      "pass": 1,
+      "run_id": "2777d6679d390731",
+      "urlsFetched": 394,
+      "requestsIssued": 394,
+      "newMeasurements": 394,
+      "resightings": 0,
+      "pages": 389,
+      "seconds": 4.153
+    },
+    {
+      "pass": 2,
+      "run_id": "c78295589d71d81c",
+      "urlsFetched": 394,
+      "requestsIssued": 394,
+      "newMeasurements": 5,
+      "resightings": 389,
+      "pages": 389,
+      "seconds": 4.019
+    }
+  ],
+  "changes": [
+    {
+      "id": "C1",
+      "kind": "NOINDEX_REMOVED",
+      "url": "https://almicv.almiworld.com/cv-guide/andorra/housekeeper",
+      "observation_id": "7694a4810a7658a2",
+      "bytesBefore": 99148,
+      "bytesAfter": 99139,
+      "sha256Before": "7cb06ac99907a447922b0f6777f6a7966ca0a801e3f61604c41f879437f0eb41",
+      "sha256After": "bc4bb4e0e10a709d8ae2d05781f7a2da72f79c6e4cd667922cd2d352fbf8062e"
+    },
+    {
+      "id": "C2",
+      "kind": "NOINDEX_ADDED",
+      "url": "https://almicv.almiworld.com/cv-guide/ghana/audiologist",
+      "observation_id": "47fb3ad24283313c",
+      "bytesBefore": 98797,
+      "bytesAfter": 98835,
+      "sha256Before": "c7a69c2a21fe5b2d6ee2e6030c1d1da82f11759bdfe8a0d1f966afb2d67abd10",
+      "sha256After": "e61294ba95f5695d2c781eeb5eedbd737db72b2f30aae8e9b021657ac17cfb67"
+    },
+    {
+      "id": "C3",
+      "kind": "CANONICAL_REMOVED",
+      "url": "https://almicv.almiworld.com/cv-guide/india/internal-medicine-doctor",
+      "observation_id": "99eaea6e9c6d1d3a",
+      "bytesBefore": 94107,
+      "bytesAfter": 94008,
+      "sha256Before": "71b8883592fde88033b69f53e94d301be95f539e726fa14d4b58710f89f2c05a",
+      "sha256After": "8014485960816c0615ecb617ebd4ed28c2245bdb498f13665073f3d39699f295"
+    },
+    {
+      "id": "C4",
+      "kind": "TITLE_REMOVED",
+      "url": "https://almicv.almiworld.com/cv-guide/india/primary-school-teacher",
+      "observation_id": "63eeeafa8bf8cf34",
+      "bytesBefore": 93520,
+      "bytesAfter": 93439,
+      "sha256Before": "9252bb0ee7b985eee600c390ad7cd464e5742922a08193e1aabc1ae928d70574",
+      "sha256After": "65833369e08100493b5161137e2e68199f4fd32a40c2e33dbfb539d3badcd1bc"
+    },
+    {
+      "id": "C5",
+      "kind": "BODY_TEXT_ONLY_ON_A_REDIRECTED_PAGE",
+      "url": "https://almiworld.com/ielts-band-6-vs-band-7-what-actually-changes",
+      "observation_id": "2e2ad6fe30837206",
+      "bytesBefore": 163012,
+      "bytesAfter": 163081,
+      "sha256Before": "89547d32b01ca6b803342126b917d999f548d9733a62d580ae35d721034bfca1",
+      "sha256After": "697fd02b66edfab8b20778240cb7e844221f503b256f9341bd063c6c6c8595ae"
+    }
+  ],
+  "unchangedByteIdentical": 389,
+  "item11": {
+    "urls": 394,
+    "pageIdsIdentical": 394,
+    "pageIdsMoved": [],
+    "pagesPass1": 389,
+    "pagesPass2": 389,
+    "pagesAcrossBothPasses": 389,
+    "changedChains": [
+      {
+        "url": "https://almicv.almiworld.com/cv-guide/andorra/housekeeper",
+        "page_id": "999feba968ed65b0",
+        "sameIdBothRuns": true,
+        "observationsOnPage": 2,
+        "pageRecordsWithThisUrl": 1
+      },
+      {
+        "url": "https://almicv.almiworld.com/cv-guide/ghana/audiologist",
+        "page_id": "86d5052f80ceb974",
+        "sameIdBothRuns": true,
+        "observationsOnPage": 2,
+        "pageRecordsWithThisUrl": 1
+      },
+      {
+        "url": "https://almicv.almiworld.com/cv-guide/india/internal-medicine-doctor",
+        "page_id": "c4d3cac6b210a0fa",
+        "sameIdBothRuns": true,
+        "observationsOnPage": 2,
+        "pageRecordsWithThisUrl": 1
+      },
+      {
+        "url": "https://almicv.almiworld.com/cv-guide/india/primary-school-teacher",
+        "page_id": "a9ea837b3cabd2c6",
+        "sameIdBothRuns": true,
+        "observationsOnPage": 2,
+        "pageRecordsWithThisUrl": 1
+      },
+      {
+        "url": "https://almiworld.com/ielts-band-6-vs-band-7-what-actually-changes",
+        "page_id": "a16e6be0804cbbf4",
+        "sameIdBothRuns": true,
+        "observationsOnPage": 2,
+        "pageRecordsWithThisUrl": 1
+      }
+    ]
+  },
+  "item48": {
+    "crawler": {
+      "unchanged": {
+        "count": 389,
+        "newMeasurements": 0,
+        "resightings": 389,
+        "newMeasurementUrls": []
+      },
+      "changed": {
+        "count": 5,
+        "newObservations": 5
+      }
+    },
+    "dnsAudit": {
+      "resolver": "RECORDED — the dns.families observations stored on 12 September 2026, not a live query",
+      "run1": {
+        "appended": 134,
+        "resighted": 0
+      },
+      "run2": {
+        "appended": 0,
+        "resighted": 134
+      }
+    }
+  },
+  "item42": [
+    {
+      "change": "C1",
+      "kind": "NOINDEX_REMOVED",
+      "check": "noindex",
+      "url": "https://almicv.almiworld.com/cv-guide/andorra/housekeeper",
+      "page_id": "999feba968ed65b0",
+      "before": {
+        "verdict": "FAIL",
+        "summary": "noindex present (meta=true, header=false)",
+        "evidence": [
+          "5d82a20e171cddcc"
+        ],
+        "observed_at": "2026-09-13T00:28:26.421Z"
+      },
+      "after": {
+        "verdict": "PASS",
+        "summary": null,
+        "evidence": [
+          "d06fef6eb1cce6fb"
+        ],
+        "observed_at": "2026-09-13T00:28:30.528Z"
+      },
+      "verdictChanged": true,
+      "servedCurrent": true,
+      "evidenceBacked": true,
+      "expected": {
+        "check": "noindex",
+        "expectBefore": "FAIL",
+        "expectAfter": "PASS"
+      },
+      "meetsExpectation": true
+    },
+    {
+      "change": "C2",
+      "kind": "NOINDEX_ADDED",
+      "check": "noindex",
+      "url": "https://almicv.almiworld.com/cv-guide/ghana/audiologist",
+      "page_id": "86d5052f80ceb974",
+      "before": {
+        "verdict": "PASS",
+        "summary": null,
+        "evidence": [
+          "486fe86ea7941a7e"
+        ],
+        "observed_at": "2026-09-13T00:28:26.472Z"
+      },
+      "after": {
+        "verdict": "FAIL",
+        "summary": "noindex present (meta=true, header=false)",
+        "evidence": [
+          "04db0f7c1ce05e4e"
+        ],
+        "observed_at": "2026-09-13T00:28:30.575Z"
+      },
+      "verdictChanged": true,
+      "servedCurrent": true,
+      "evidenceBacked": true,
+      "expected": {
+        "check": "noindex",
+        "expectBefore": "PASS",
+        "expectAfter": "FAIL"
+      },
+      "meetsExpectation": true
+    },
+    {
+      "change": "C3",
+      "kind": "CANONICAL_REMOVED",
+      "check": "canonical",
+      "url": "https://almicv.almiworld.com/cv-guide/india/internal-medicine-doctor",
+      "page_id": "c4d3cac6b210a0fa",
+      "before": {
+        "verdict": "PASS",
+        "summary": null,
+        "evidence": [
+          "062996ef2121dbc9"
+        ],
+        "observed_at": "2026-09-13T00:28:26.342Z"
+      },
+      "after": {
+        "verdict": "FAIL",
+        "summary": "no rel=canonical in the raw HTML",
+        "evidence": [
+          "2ee6e562edd66d9b"
+        ],
+        "observed_at": "2026-09-13T00:28:30.467Z"
+      },
+      "verdictChanged": true,
+      "servedCurrent": true,
+      "evidenceBacked": true,
+      "expected": {
+        "check": "canonical",
+        "expectBefore": "PASS",
+        "expectAfter": "FAIL",
+        "expectSummaryIncludes": "no rel=canonical"
+      },
+      "meetsExpectation": true
+    },
+    {
+      "change": "C4",
+      "kind": "TITLE_REMOVED",
+      "check": "head-elements",
+      "url": "https://almicv.almiworld.com/cv-guide/india/primary-school-teacher",
+      "page_id": "a9ea837b3cabd2c6",
+      "before": {
+        "verdict": "PASS",
+        "summary": null,
+        "evidence": [
+          "38111b6cd840c84d"
+        ],
+        "observed_at": "2026-09-13T00:28:26.210Z"
+      },
+      "after": {
+        "verdict": "FAIL",
+        "summary": "no <title>",
+        "evidence": [
+          "63dad718ad3572a0"
+        ],
+        "observed_at": "2026-09-13T00:28:30.328Z"
+      },
+      "verdictChanged": true,
+      "servedCurrent": true,
+      "evidenceBacked": true,
+      "expected": {
+        "check": "head-elements",
+        "expectAfter": "FAIL",
+        "expectSummaryIncludes": "no <title>"
+      },
+      "meetsExpectation": true
+    },
+    {
+      "change": "C5",
+      "kind": "BODY_TEXT_ONLY_ON_A_REDIRECTED_PAGE",
+      "check": "noindex",
+      "url": "https://almiworld.com/ielts-band-6-vs-band-7-what-actually-changes",
+      "page_id": "a16e6be0804cbbf4",
+      "before": {
+        "verdict": "PASS",
+        "summary": null,
+        "evidence": [
+          "37cfa45841d84e2b"
+        ],
+        "observed_at": "2026-09-13T00:28:26.629Z"
+      },
+      "after": {
+        "verdict": "PASS",
+        "summary": null,
+        "evidence": [
+          "77f1805d9e7b4741"
+        ],
+        "observed_at": "2026-09-13T00:28:30.717Z"
+      },
+      "verdictChanged": false,
+      "servedCurrent": true,
+      "evidenceBacked": true,
+      "expected": {
+        "check": "noindex",
+        "expectAfter": "SAME"
+      },
+      "meetsExpectation": true
+    },
+    {
+      "change": "C5",
+      "kind": "BODY_TEXT_ONLY_ON_A_REDIRECTED_PAGE",
+      "check": "canonical",
+      "url": "https://almiworld.com/ielts-band-6-vs-band-7-what-actually-changes",
+      "page_id": "a16e6be0804cbbf4",
+      "before": {
+        "verdict": "PASS",
+        "summary": null,
+        "evidence": [
+          "37cfa45841d84e2b"
+        ],
+        "observed_at": "2026-09-13T00:28:26.629Z"
+      },
+      "after": {
+        "verdict": "PASS",
+        "summary": null,
+        "evidence": [
+          "77f1805d9e7b4741"
+        ],
+        "observed_at": "2026-09-13T00:28:30.717Z"
+      },
+      "verdictChanged": false,
+      "servedCurrent": true,
+      "evidenceBacked": true,
+      "expected": {
+        "check": "canonical",
+        "expectAfter": "SAME"
+      },
+      "meetsExpectation": true
+    },
+    {
+      "change": "C5",
+      "kind": "BODY_TEXT_ONLY_ON_A_REDIRECTED_PAGE",
+      "check": "head-elements",
+      "url": "https://almiworld.com/ielts-band-6-vs-band-7-what-actually-changes",
+      "page_id": "a16e6be0804cbbf4",
+      "before": {
+        "verdict": "PASS",
+        "summary": null,
+        "evidence": [
+          "37cfa45841d84e2b"
+        ],
+        "observed_at": "2026-09-13T00:28:26.629Z"
+      },
+      "after": {
+        "verdict": "PASS",
+        "summary": null,
+        "evidence": [
+          "77f1805d9e7b4741"
+        ],
+        "observed_at": "2026-09-13T00:28:30.717Z"
+      },
+      "verdictChanged": false,
+      "servedCurrent": true,
+      "evidenceBacked": true,
+      "expected": {
+        "check": "head-elements",
+        "expectAfter": "SAME"
+      },
+      "meetsExpectation": true
+    }
+  ],
+  "ledger": [
+    "replay:2026-09-13T00:27:05.860Z",
+    "artifact-recovery:2026-09-13T00:27:05.860Z"
+  ],
+  "failures": [],
+  "ok": true
+}

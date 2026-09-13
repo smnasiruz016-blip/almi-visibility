@@ -77,9 +77,10 @@ test("the vocabulary is SEVEN states, FAILED among them", () => {
 test("🔴 RULE 3 — FAILED is its own count in the tally, never folded into another — including at ZERO", () => {
   const t = tally(classify());
   assert.deepEqual(Object.keys(t), [...STATES], "the tally has a bucket that is not a state, or lacks one");
-  // Item 14 emptied it; item 45 refilled it. The bucket stayed, which is why
-  // the refill is visible — a column that vanishes when empty cannot be watched.
-  assert.equal(t.FAILED, 1);
+  // Item 14 emptied it; item 45 refilled it; item 48 filled it and, on 13 Sep,
+  // emptied it again by a re-run that passed. The bucket stays at ZERO, which is
+  // why every refill is visible — a column that vanishes when empty cannot be watched.
+  assert.equal(t.FAILED, 0);
   assert.ok("FAILED" in t);
   assert.equal(Object.values(t).reduce((a, b) => a + b, 0), 58);
 });
@@ -190,14 +191,18 @@ test("🔴 RED: a 'ruling' move that is not an owner ruling is refused — the t
  * 4D — THE TWO CHANGE LISTS, KEPT APART.
  * ================================================================== */
 
-test("🔴 moves since Amendment 2: TWO by ruling (14 and 45 → TESTABLE-NOW); SEVEN by work — including the first tick ever REMOVED (48)", () => {
+test("🔴 moves since Amendment 2: TWO by ruling (14 and 45 → TESTABLE-NOW); TEN by work — including the first tick ever REMOVED (48) and its return", () => {
   const all = Object.entries(MOVES_AMENDMENT_2).flatMap(([id, chain]) => chain.map((s) => ({ id: Number(id), ...s })));
   assert.deepEqual(all.filter((s) => s.kind === "ruling").map((s) => `${s.id}:${s.from}→${s.to}`), ["14:BUILT-NOT-PROVED→TESTABLE-NOW", "45:FAILED→TESTABLE-NOW"]);
   assert.deepEqual(all.filter((s) => s.kind === "work").map((s) => `${s.id}:${s.from}→${s.to}`), [
-    "9:BUILT-NOT-PROVED→BLOCKED-UNKNOWN", "14:TESTABLE-NOW→FAILED", "14:FAILED→VERIFIED-PASS",
-    "45:BUILT-NOT-PROVED→FAILED", "45:TESTABLE-NOW→VERIFIED-PASS",
-    "48:VERIFIED-PASS→FAILED", "49:BUILT-NOT-PROVED→VERIFIED-PASS",
+    "9:BUILT-NOT-PROVED→BLOCKED-UNKNOWN", "11:BLOCKED-UNKNOWN→VERIFIED-PASS", "14:TESTABLE-NOW→FAILED", "14:FAILED→VERIFIED-PASS",
+    "42:BLOCKED-UNKNOWN→VERIFIED-PASS", "45:BUILT-NOT-PROVED→FAILED", "45:TESTABLE-NOW→VERIFIED-PASS",
+    "48:VERIFIED-PASS→FAILED", "48:FAILED→VERIFIED-PASS", "49:BUILT-NOT-PROVED→VERIFIED-PASS",
   ]);
+  // 🔴 48 left FAILED the same way 14 did — a re-run that passed, never a ruling.
+  const back = MOVES_AMENDMENT_2[48][1];
+  assert.equal(back.route, "RETEST_PASSED");
+  assert.ok(back.test && back.date);
   // 🔴 The way out of FAILED is rule 1's FIRST route, naming its test and date.
   const out = all.find((s) => s.from === "FAILED");
   assert.equal(out.route, "RETEST_PASSED");
@@ -212,10 +217,12 @@ test("before Amendment 2 the ledger was 3 / 18 / 0 / 3 / 0 / 6 / 28", () => {
   });
 });
 
-test("🔴 since Amendment 2, THREE rows reached VERIFIED-PASS (14, 45, 49) and ONE LOST it (48)", () => {
+test("🔴 since Amendment 2, FIVE rows reached VERIFIED-PASS (11, 14, 42, 45, 49); 48 LOST it and EARNED IT BACK", () => {
   const rows = classify();
   const newPasses = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS" && BEFORE_AMENDMENT_2[r.id] !== "VERIFIED-PASS");
-  assert.deepEqual(newPasses.map((r) => r.id), [14, 45, 49]);
+  assert.deepEqual(newPasses.map((r) => r.id), [11, 14, 42, 45, 49]);
   const lost = Object.values(rows).filter((r) => BEFORE_AMENDMENT_2[r.id] === "VERIFIED-PASS" && r.state !== "VERIFIED-PASS");
-  assert.deepEqual(lost.map((r) => r.id), [48]);
+  assert.deepEqual(lost.map((r) => r.id), []);
+  // The count hides a round trip — the chain does not.
+  assert.deepEqual(MOVES_AMENDMENT_2[48].map((s) => s.to), ["FAILED", "VERIFIED-PASS"]);
 });

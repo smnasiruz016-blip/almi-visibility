@@ -67,5 +67,7 @@ test("🔴 REAL: item 48 lost its tick by a LAWFUL reopen — concrete contradic
   assert.equal(move.reopenReason, "CONCRETE_CONTRADICTORY_EVIDENCE");
   assert.ok(move.evidence.some((e) => /868 extra copies/.test(e)));
   assert.deepEqual(assertTransitions(classify()), []);
-  assert.equal(classify()[48].state, "FAILED");
+  // 13 Sep 2026: it then left FAILED by a re-run that passed — the reopen stays in the chain.
+  assert.equal(MOVES_AMENDMENT_2[48][1].route, "RETEST_PASSED");
+  assert.equal(classify()[48].state, "VERIFIED-PASS");
 });

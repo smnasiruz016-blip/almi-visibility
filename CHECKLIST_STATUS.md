@@ -23,11 +23,42 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 | **NOT-STARTED** | 33 | **3** |
 | **BUILT-NOT-PROVED** | 24 | **14** |
 | **TESTABLE-NOW** | — | **0** |
-| **VERIFIED-PASS** | 0 | **5** |
-| **FAILED** | — | **1** |
-| **BLOCKED-UNKNOWN** | 1 | **7** |
+| **VERIFIED-PASS** | 0 | **8** |
+| **FAILED** | — | **0** |
+| **BLOCKED-UNKNOWN** | 1 | **5** |
 | **DEFERRED** | — | **28** |
 | **total** | 58 | **58** |
+
+> ### 🔴 ITEMS 11, 42 AND 48 PROVED BY A LOCAL REPLAY — NOT BY A SECOND LIVE CRAWL — 13 SEPTEMBER 2026
+>
+> | state | before this change | after |
+> |---|---|---|
+> | NOT-STARTED | 3 | 3 |
+> | BUILT-NOT-PROVED | 14 | 14 |
+> | TESTABLE-NOW | 0 | 0 |
+> | VERIFIED-PASS | 5 (8, 14, 15, 45, 49) | **8 (8, 11, 14, 15, 42, 45, 48, 49)** |
+> | FAILED | 1 (48) | **0** |
+> | BLOCKED-UNKNOWN | 7 | **5** |
+> | DEFERRED | 28 | 28 |
+>
+> **FAILED — counted and named separately: 0.** Item 48 left it by the route rule 1 names first: the
+> two jobs its reopen named — the crawl and the DNS audit — were run twice into one store, and nothing
+> duplicated. Its reopen stays on the row. A FAILED count of zero is not progress in itself; the repair is.
+>
+> **D-CRW-5 — the green for a second live crawl — is GRANTED AND UNUSED, and moved nothing.** Items 11,
+> 42 and 48 test engine properties; a live second run would have muddied 11, might have left 42
+> unprovable, and cost money. They were proved instead by replaying the 12 September run's own 394
+> captured bodies from 127.0.0.1, verified 394/394 against their hashes, with **0 requests leaving
+> this machine**. 🔴 **The replay does NOT prove the crawler reaches the live internet today**, and the
+> DNS double run used **RECORDED** resolver answers, not live ones.
+>
+> - **moved because WORK HAPPENED:** item 11, BLOCKED-UNKNOWN → VERIFIED-PASS (394/394 page_ids
+>   identical across two runs, 389 pages before and after, 5 changes as new observations on existing
+>   pages) · item 42, BLOCKED-UNKNOWN → VERIFIED-PASS (5 changed targets re-tested on their latest
+>   observation: FAIL→PASS, PASS→FAIL ×3, PASS→PASS for a body-only change) · item 48, FAILED →
+>   VERIFIED-PASS (389 unchanged → 0 new records; 5 changed → 5 new observations; DNS audit 134 → +0).
+> - **moved ONLY because a RULING changed:** none. The withdrawal of the second crawl is not a ruling
+>   on any boundary.
 
 > ### 🔴 A TICK REMOVED — ITEM 48 — AND A TICK EARNED UNDER A SCOPE RULING — ITEM 45
 >
@@ -129,14 +160,15 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 >   ingested and the seventh is supplied by no tool we hold. Not a tick. After it the counts are
 >   BUILT-NOT-PROVED **16** and BLOCKED-UNKNOWN **7**; the table above records Amendment 2 alone.
 
-> ### 🔴 FIVE TICKS — ITEMS 8, 14, 15, 45 AND 49
+> ### 🔴 EIGHT TICKS — ITEMS 8, 11, 14, 15, 42, 45, 48 AND 49
 >
-> **Items 8, 14, 15, 45 and 49.** Each has all four parts of its boundary answered with real-data
-> evidence, and each was RED-proved by sabotage that landed in the intended test. They are the
-> only five rows in the whole ledger that **hold a pass earned by work**; item 9 moved by work and
-> ended BLOCKED-UNKNOWN; **item 48 held a tick and LOST it** when the evidence showed the tick had
-> been earned on too narrow a population; the other 33 moved when the vocabulary changed and are
-> counted apart.
+> **Items 8, 11, 14, 15, 42, 45, 48 and 49.** Each has all four parts of its boundary answered with
+> real-data evidence, and each was RED-proved by sabotage that landed in the intended test. They are
+> the only eight rows in the whole ledger that **hold a pass earned by work**; item 9 moved by work and
+> ended BLOCKED-UNKNOWN; **item 48 held a tick, LOST it** when the evidence showed the tick had been
+> earned on too narrow a population, **and earned it back** only after every job that stores a record
+> was run twice; items 11 and 42 were proved on a local replay of real bodies, which does not prove
+> live reachability; the other 31 moved when the vocabulary changed and are counted apart.
 >
 > **Item 14 did NOT tick the first time it was sat against Amendment 2**, and that result is kept
 > on the row: two write sites defaulted to writing, and it was FAILED. It ticked only after both
@@ -240,7 +272,7 @@ actually came from.
 | 8 | HEAVY / THIN / EMPTY Discipline | VERIFIED-PASS | OUT — component of item 7 | none | 2026-09-11 | Claude (repo audit) | — | — |
 | 9 | Search Console / Analytics Intelligence | BLOCKED-UNKNOWN | IN — §62 l.553 "Search Console ingestion when authorized"; v0.1 CONTAINS l.974 (§9) | **6 of 7 dimensions INGESTED from the real property**, window 2026-08-15..2026-09-12, every pull exhausted, `dataState=COMPLETE` [bound: rowLimitPerRequest=25000, maxRequests=20]: **country 126 rows, country×query 388 rows** (1 request each), queries 337, query×page 574, pages 1,525, plus impressions, clicks and CTR. Cost ZERO_BY_TARIFF. Country rows stored as measurement only and pass item 8's guard. `node bin/gsc-dimensions.mjs --countries` | 2026-09-12 | Claude (repo audit) | 🔴 **Downstream outcomes is supplied by no tool we hold** — Search Console has no outcome dimension; the credential is webmasters.readonly; 0 of 36 product repositories use an analytics package; the one first-party funnel-event table stores a path and a user id and no search source; the engine may read no product database. The NOTE makes that ⚠, so **BLOCKED-UNKNOWN, not FAILED** — and **six of seven does not tick** | real country run, 12 Sep 2026 night |
 | 10 | Technical SEO Audit Engine | BUILT-NOT-PROVED | IN — v0.1 CONTAINS l.974 "Crawler and page inventory (§8)" | Seven of nine sub-requirements run over the 394 pages. **Part 0 adds the ORIGIN of the noindex finding**: all 134 come from one conditional gate in `almi-cv-v2`, traced to commit `50f8c20` (17 Aug 2026), and the commit's own "near-duplicates by construction" premise was measured — same-role siblings average 0.685 similarity, **none reaches 0.8** | 2026-09-12 | Claude (repo audit) | 🔴 **CANNOT REACH VERIFIED PASS IN v0.1 — a scope fact.** Rendering and crawl depth are structurally impossible: every record is `RAW_HTML`, and we seeded from Search Console and never followed links | hissa 3, 12 Sep 2026 |
-| 11 | Existing Page Inventory | BLOCKED-UNKNOWN | IN — v0.1 CONTAINS l.974 (§8) | 495 real PageRecords from the 12 Sep run, **and the 500→495 arithmetic is now reconciled ON THE PAGE**: 5 pairs of seed URLs redirected to one final URL, each pair listed. `runs/crawl/first-real-crawl-2026-09-12.jsonl` | 2026-09-12 | Claude (repo audit) | 🔴 **"MAINTAIN" IS STILL UNTESTED** — one run only, by the terms of `D-CRW-4`, so stability across runs has never been observed. Committed PageRecords still carry empty edge lists | report view, 12 Sep 2026 |
+| 11 | Existing Page Inventory | VERIFIED-PASS | IN — v0.1 CONTAINS l.974 (§8) | 495 real PageRecords from the 12 Sep run, 500→495 reconciled on the page. **"Maintain" proved 13 Sep by a LOCAL REPLAY** of the run's own 394 bodies, crawled twice with 5 named changes: **394/394 page_ids identical, 389 pages before and across both runs, each change a new observation on its existing page**; RED when the id takes the clock. `runs/replay/replay-2026-09-13.json` | 2026-09-13 | Claude (replay) | 🔴 Does NOT prove live reachability today. Committed PageRecords still carry empty edge lists (item 26) | replay, 13 Sep 2026 |
 | 12 | Duplicate / Thin / Template Detection | BUILT-NOT-PROVED | IN — required by Case Study #1 (§60) which v0.1 CONTAINS l.974 | **Four checks, run over the real 394-page corpus**: exact-duplicate 0, thin 118, near-duplicate 5, template-dominance 2, plus 6 UNKNOWN. Shell subtraction is **defined, printed in every result, and tested against a page whose shell is larger than its body**. Median shell share 12.5%, median 468 unique body words. A test fails the build if any check emits a recommendation (item 8) | 2026-09-12 | Claude (repo audit) | **Detection only — nothing BLOCKS duplicate or thin inventory**, and the PASS meaning says "detect and block". There is no publish path to block, so the second half cannot be built or proved in v0.1 | hissa 2b, 12 Sep 2026 |
 | 13 | Cannibalization Prevention | BUILT-NOT-PROVED | PARTIAL — detection rides on the GSC ingest (v0.1 CONTAINS l.974); prevention needs a URL proposer, which v0.1 excludes | 🔴 **IT RUNS NOW.** 543 query×page rows over 314 distinct queries → **16 cannibalization findings**, each naming the query, the competing URLs and their positions. Two `/learn/` pages compete on "ielts pte score" (pos 70 and 75) — genuine content cannibalization, not corridor noise | 2026-09-12 | Claude (repo audit) | **Detection only.** The PASS meaning is "check whether an existing URL already satisfies the same intent BEFORE proposing a new URL" — **v0.1 proposes no URLs**, so the prevention half has nothing to act on and cannot be built or proved here | hissa 2c, 12 Sep 2026 |
 | 14 | No Blind Regeneration | VERIFIED-PASS | IN — the inventory is v0.1 CONTAINS l.974 (§8) | **Re-run against Amendment 2 after the fix, and PASSED.** (a) 0 product-repository writes · (b) 0 publish paths · (c) 0 bulk generation · (d) 8 write sites in 7 files, all named in `config/permitted-page-writers.mjs` and reconciling exactly; **all 8 dry-run by default**; **all 7 confine their destination** and a real writer pointed outside the repository with `--confirm` refuses and creates nothing; every reason stated · (e) rediscovered URLs fold to their EXISTING `page_id` on the real 495-page run. Each part RED-proved | 2026-09-12 | Claude (repo audit) | Was FAILED earlier the same night — `bin/report.mjs` had no gate and `bin/nursing-chain.mjs` wrote its cache with no flag; both fixed, and it left FAILED by re-run. ⚠️ Recorded, not hidden: the crawler's body write is gated by `--live` plus the owner's-green flag rather than `--confirm`. `nursing-chain.mjs` is half superseded — see `NURSING_CHAIN_SUPERSESSION.md`; removal is the owner's call | Item 14 re-run, 12 Sep 2026 night |
@@ -271,13 +303,13 @@ actually came from.
 | 39 | Real Indexation Learning | DEFERRED | OUT — post-publication; publishing excluded l.974 | none | 2026-09-11 | Claude (repo audit) | — | — |
 | 40 | Controlled Scaling | DEFERRED | OUT — phase table; expansion is a later gate | none | 2026-09-11 | Claude (repo audit) | — | — |
 | 41 | Failed-Cohort Backpressure | DEFERRED | OUT — requires cohorts, which require publishing (excluded l.974) | none | 2026-09-11 | Claude (repo audit) | — | — |
-| 42 | Re-crawl / Re-test Loop | BLOCKED-UNKNOWN | PARTIAL — the crawler is IN (l.974); the loop is not named in the v0.1 list | The crawler can be re-run by hand. No comparison, no PASS/FAIL record, no scheduling (the workflow is `workflow_dispatch` only, deliberately) | 2026-09-11 | Claude (repo audit) | No re-test or diff mechanism exists | — |
+| 42 | Re-crawl / Re-test Loop | VERIFIED-PASS | PARTIAL — the crawler is IN (l.974); the loop is not named in the v0.1 list | `src/audit/retest.mjs` re-tests a changed target on its **latest stored observation, chosen from the store**, with a verdict before and after naming the observation read. **5 LOCAL REPLAY changes:** noindex FAIL→PASS, noindex PASS→FAIL, canonical PASS→FAIL, head-elements PASS→FAIL, body-only PASS→PASS on three checks. `runs/replay/replay-2026-09-13.json` | 2026-09-13 | Claude (replay) | The changes were local replay changes, not product page changes. No scheduling (deliberately `workflow_dispatch`). A change on a LIVE page is not proved | replay, 13 Sep 2026 |
 | 43 | Experiment / Change Impact | DEFERRED | OUT — later phase; §62 l.553 | none | 2026-09-11 | Claude (repo audit) | — | — |
 | 44 | Funnel / Business Outcome Intelligence | DEFERRED | OUT — later phase; §62 l.553 | none | 2026-09-11 | Claude (repo audit) | — | — |
 | 45 | Cost Governor | VERIFIED-PASS | IN — §32; §33 cost ledger | **Held under real load, 12 Sep:** 500 selected against a 1,497 pool, cap never exceeded, per-host budget applied (almicv 150 of 482), 1 req/s over 403s. Every host's billable traffic stated in words in the run summary. `CostRecord.amountState = UNKNOWN` | 2026-09-12 | Claude (repo audit) | 🔴 **The cap holds; nothing tracks money.** No ledger, no metering, no spend figure — the run's own cost is UNKNOWN because Gate C has never been applied to a crawler we operate (`U-COST-5`, `GATE-2`) | first real crawl, 12 Sep 2026 |
 | 46 | Cache Before Re-Research | BUILT-NOT-PROVED | IN — §41, named a hard gate | Built and measured. The same fact requested three times **reaches the source exactly once** (sabotage-proved). Outside its applicability scope or its freshness window it is a **MISS, not a stretch**. Hits and misses are both counted and the **freshness window prints beside the hit rate** (LAW-BOUND-1). 🔴 **AND IT NOW REFUSES WHAT IT SHOULD.** Over the real registry, 46 facts × 2 requests → **64 hits, 28 misses, hit rate 69.6%**, misses named: `UNKNOWN_CONFLICT` 12, `UNKNOWN_INCOMPLETE` 8, `UNKNOWN_SOURCE_UNREACHABLE` 8 | 2026-09-12 | Claude (repo audit) | 🔴 **THE PREVIOUS ROW REPORTED 92 HITS / 0 MISSES / 100%, AND THAT NUMBER WAS THE DEFECT** (`D-FACT-3`). `get()` checked freshness and nothing else, so all 14 records a human had just marked UNKNOWN were served as clean hits — **including an NMCN fee one official page puts at ₦66,875 and another contradicts** — against this module's own header law that a conflicted fact is never silently used. Fixed; **the hit rate fell to 69.6% and the fall is the improvement**, which is why hit rate must never be the measure. Remaining blocker unchanged: **nothing researches yet**, so even 69.6% measures a pre-loaded registry, not a research loop | item 15 ingest, 12 Sep 2026 |
 | 47 | Paid Provider Controls | NOT-STARTED | IN — §62 l.555 "must not activate paid providers by default" | No paid provider is wired anywhere in the repository. The one external API in use (Search Console) is free and read-only | 2026-09-11 | Claude (repo audit) | Satisfied **by absence, not by a control**: there is no budget, cap, kill switch or test that would stop a paid provider being added tomorrow | — |
-| 48 | Idempotency & Retry Safety | FAILED | IN — safety; §62 l.553 audit slice | **A1 FIXED (12 Sep):** `measurement_key` (target+method+content, **no clock**) plus `store.appendIfNew`, which appends a **re-sighting** instead of a duplicate payload. Proved against the REAL API: run 4 → **0 new, 4 re-sightings**. Also fixed a second clock hidden *inside* the `sites.list` value | 2026-09-12 | Claude (repo audit) | **The "at most one retry, NEVER on a 4xx" rule still has no test.** The code is right; nothing would catch it being changed | A1 fix, 12 Sep 2026 |
+| 48 | Idempotency & Retry Safety | VERIFIED-PASS | IN — safety; §62 l.553 audit slice | **Reopened 12 Sep (868 duplicate issues); left FAILED 13 Sep by a re-run that passed.** Every job that stores a record run twice into one store: **crawl (local replay) 389 unchanged → 0 new, 389 re-sightings; 5 changed → 5 new observations**; DNS audit on RECORDED resolver answers 134 → +0; technical 2328 → +0; content 1576 → +0; verification 8 → +0; supply labels 550 → +0. Issue-writer census holds every writer to appendIfNew. Retry rule tested (one request per 4xx) | 2026-09-13 | Claude (replay) | DNS answers were recorded, not live | replay, 13 Sep 2026 |
 | 49 | Audit Trail & Provenance | VERIFIED-PASS | IN — v0.1 CONTAINS l.974 (§14) | **The evidence → claim chain now runs end to end on real data.** 107 Issues written, each citing the crawl observation AND the stored robots.txt or DNS observation it was derived from. **0 broken chains** in the rendered report. The four robots.txt files are stored as observations with hashes, not looked up. **Two further Issues added 12 Sep from the verification return**, both verdict `UNKNOWN` not `FAIL`, citing 6 observations whose `method` is `human-verification-return` and whose target is the **verdict row we hold** — 🔴 *not* the official pages, which we never fetched. A content hash attributed to a page we never retrieved would be indistinguishable from a real one | 2026-09-12 | Claude (repo audit) | **No Source record has been written** — the §623 tier layer is still unexercised; the new Issues' `sources` carry fact ids, which is not the same thing. And **no issue has ever been CLOSED or SUPERSEDED**, so the lifecycle half of the audit trail remains untested — the two new Issues open, they do not close | item 15 ingest, 12 Sep 2026 |
 | 50 | OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation | BUILT-NOT-PROVED | IN — DoD §170; v0.1 CONTAINS l.974 | 🔴 **THE UNKNOWN BRANCH HAS NOW FIRED ON REAL DATA FOR THE FIRST TIME — 346 real UNKNOWNs**, in three distinct reason codes: `NEEDS_RENDERED_HTML` (340 orphan + 2 empty-body), `TOOL_FAILED` (unrecognised layout). Before this PR it was fixture-proved only. All four labels are live. 🔴 **AND UNKNOWN IS NOW A FIRST-CLASS STATE IN THE FACT LAYER TOO** — 14 real records carry it with three declared reasons, and the constructor **refuses an UNKNOWN with no date or no reason**, because an undated UNKNOWN is indistinguishable from a record nobody opened | 2026-09-12 | Claude (repo audit) | **F23 still polices an empty population** — 0 of 46 records carry `life.supersedes`, so no real record has passed through the transition guard. The label layer is proved; the transition layer is not. Note the 14 new UNKNOWNs **do not** exercise F23: they are a verification standing, not a supersession | item 15 ingest, 12 Sep 2026 |
 | 51 | Explainability | BUILT-NOT-PROVED | IN — §62 l.553 "minimum internal report/action view" | The view now renders **107 issues with their evidence chains**, each labelled, each traceable to the observations it came from. Every finding carries a `summary` saying which rule in which user-agent group produced it | 2026-09-12 | Claude (repo audit) | The PASS meaning names **priority, confidence and cost per recommendation** — none of the three exists. Findings carry a severity; nothing ranks them, scores confidence, or costs them | hissa 2a, 12 Sep 2026 |

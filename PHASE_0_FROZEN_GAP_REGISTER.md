@@ -663,6 +663,29 @@ their losses are recorded permanently below and are never estimated.
 
 ---
 
+## D-CRW-5 — A SECOND LIVE CRAWL: GRANTED AND UNUSED
+
+**Recorded 13 September 2026.** The owner's green for a second live crawl (`D-CRW-5`) was granted
+and has **not** been spent. ⚠️ **The date it was granted is not recorded in this repository.**
+
+**Why it was not used** (beta-g, withdrawing the brief that would have spent it): items 11, 42 and
+48 test **ENGINE PROPERTIES**, not any one product — identity across runs, re-testing a changed
+target, the same job twice. None needs the live internet, and a live second run would be worse:
+
+- a live page changing naturally **muddies item 11** — a `page_id` that held on a page that never
+  moved proves nothing about the engine;
+- item 42 needs a **changed** target, and the live site might not have changed at all, leaving it
+  unprovable through no fault of the engine;
+- it costs money and minutes to learn less.
+
+They are proved instead by a **local replay of the 12 September run's own captured bodies**
+(`bin/replay-crawl.mjs`, evidence in `runs/replay/`), which does **not** prove live reachability.
+
+**Status:** 🟢 **GRANTED AND UNUSED** — available when a live run is genuinely needed, which will be
+after the renderer exists. **An unused green is not progress and moves no row.**
+
+---
+
 ## 🔴 PERMANENT LOSSES — RECORDED, IRRECOVERABLE, NEVER DELETED
 
 These rows are **not gaps that can close.** They record something measurable that was never

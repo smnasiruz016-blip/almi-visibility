@@ -20,7 +20,9 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, rmSync } from "node:fs";
+import { readFileSync, rmSync, mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import { createFetcher } from "../src/crawl/fetcher.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
@@ -98,37 +100,46 @@ test("CONTROL: a 200 issues exactly one request — the counter is not stuck at 
  * THE SAME JOB TWICE — no duplicate record, no duplicate side effect.
  * ================================================================== */
 
+/* 🔴 THE SCRATCH STORE LIVES IN ITS OWN OS TEMP DIRECTORY, NEVER UNDER runs/. It used to be
+ * runs/tmp/idempotency-<pid>.jsonl: inside the folder .gitattributes declares EVIDENCE, and inside the
+ * tree tools/duplicate-writer-census.mjs walks — so the data census could list the file and then read it
+ * after this test had deleted it (ENOENT, seen 13 Sep 2026). The delete also ran only when every assertion
+ * passed, so a failed run left a store behind for a later run to find non-empty. A fresh mkdtemp directory
+ * per run, removed in `finally`, closes both. */
 test("🔴 the same authorized job run twice creates NO duplicate logical record", () => {
-  const path = `${REPO}runs/tmp/idempotency-${process.pid}.jsonl`;
-  const store = createJsonlStore(path);
-  const obs = () =>
-    makeObservation({
-      observed_at: "2026-09-12T00:00:00.000Z",
-      method: "test-job",
-      target: { kind: "url", ref: "https://e.example.com/p" },
-      content_sha256: "a".repeat(64),
-      value: { n: 1 },
-      collector: "item-48",
-      collector_version: "1",
-    });
+  const dir = mkdtempSync(join(tmpdir(), "almivis-idem-retry-"));
+  try {
+    const path = join(dir, "idempotency.jsonl");
+    const store = createJsonlStore(path);
+    const obs = () =>
+      makeObservation({
+        observed_at: "2026-09-12T00:00:00.000Z",
+        method: "test-job",
+        target: { kind: "url", ref: "https://e.example.com/p" },
+        content_sha256: "a".repeat(64),
+        value: { n: 1 },
+        collector: "item-48",
+        collector_version: "1",
+      });
 
-  const before = store.count();
-  const first = store.appendIfNew(obs());
-  const afterFirst = store.readAll().filter((r) => r.record_type === "observation").length;
-  const second = store.appendIfNew(obs());
-  const afterSecond = store.readAll().filter((r) => r.record_type === "observation").length;
+    const before = store.count();
+    const first = store.appendIfNew(obs());
+    const afterFirst = store.readAll().filter((r) => r.record_type === "observation").length;
+    const second = store.appendIfNew(obs());
+    const afterSecond = store.readAll().filter((r) => r.record_type === "observation").length;
 
-  assert.equal(before, 0, "the store was not empty — this run would be measuring someone else's records");
-  assert.equal(first.appended, true);
-  assert.equal(second.appended, false, "the second run appended a duplicate payload");
-  assert.equal(second.observation_id, first.observation_id, "the re-run minted a NEW id for the same measurement");
-  assert.equal(afterFirst, 1);
-  assert.equal(afterSecond, 1, "a second observation record exists after an identical re-run");
-  // 🔴 The re-sighting IS recorded. Append-only: the fact that we looked again
-  // is itself evidence, and dropping it silently would lose it.
-  assert.ok(store.readAll().some((r) => r.record_type === "resighting"), "the re-check left no trace");
-
-  rmSync(path, { force: true });
+    assert.equal(before, 0, "the store was not empty — this run would be measuring someone else's records");
+    assert.equal(first.appended, true);
+    assert.equal(second.appended, false, "the second run appended a duplicate payload");
+    assert.equal(second.observation_id, first.observation_id, "the re-run minted a NEW id for the same measurement");
+    assert.equal(afterFirst, 1);
+    assert.equal(afterSecond, 1, "a second observation record exists after an identical re-run");
+    // 🔴 The re-sighting IS recorded. Append-only: the fact that we looked again
+    // is itself evidence, and dropping it silently would lose it.
+    assert.ok(store.readAll().some((r) => r.record_type === "resighting"), "the re-check left no trace");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 /* ================================================================== *

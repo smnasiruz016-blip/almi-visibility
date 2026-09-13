@@ -608,13 +608,14 @@ describe("🔴 factChecked moved 0 → 46, deliberately, and confirmed is counte
     assert.equal(c.checks.factChecked, REGISTRY_FACT_CHECK_COUNT, "the constant and the registry disagree");
   });
 
-  test("🔴 46 checks RAN but only 32 CONFIRMED — the two are never one number", async () => {
+  // 🔴 32/14 on 12 Sep 2026; 34/12 since 13 Sep, when two records left UNKNOWN through the F24 guard (item 50).
+  test("🔴 46 checks RAN but only 34 CONFIRMED — the two are never one number", async () => {
     const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     const c = census(records, { now: NOW });
     assert.equal(c.checks.factChecked, 46);
     assert.equal(c.checks.factConfirmed, REGISTRY_VERIFIED_COUNT);
-    assert.equal(c.checks.factConfirmed, 32);
-    assert.equal(c.checks.factUnknown, 14);
+    assert.equal(c.checks.factConfirmed, 34);
+    assert.equal(c.checks.factUnknown, 12);
     assert.ok(
       c.checks.factConfirmed < c.checks.factChecked,
       "if these ever coincide, check it is because every check confirmed — not because they were merged",
@@ -964,10 +965,12 @@ describe("🔴 the registry after the licence correction", () => {
     const oet = records.find((r) => r.claim.subject === "oet");
     assert.equal(oet.licence, "OET-CBLA-IP");
     assert.equal(oet.evidence.quotedSpan, null);
-    assert.match(oet.sourceQuotableBasis, /transmit or reproduce any part/i);
-    assert.match(oet.sourceQuotableBasis, /commercially exploit/i);
+    // 🔴 All three grounds, in OUR words since 13 Sep 2026 — the policy's own wording is no longer stored.
+    assert.match(oet.sourceQuotableBasis, /reproducing or transmitting any portion/i);
+    assert.match(oet.sourceQuotableBasis, /exploiting it commercially/i);
     assert.match(oet.sourceQuotableBasis, /electronic retrieval system/i);
-    assert.match(oet.sourceQuotableBasis, /NON-COMMERCIAL/i);
+    assert.match(oet.sourceQuotableBasis, /not commercial/i);
+    assert.match(oet.sourceQuotableBasis, /wording was quoted here until 13 September 2026 and was removed/);
   });
 
   test("🔴 the three silent sources are FALSE, not unknown — the owner's ruling", async () => {
@@ -1042,7 +1045,7 @@ describe("🔴 quotability has THREE states, and RESERVED is not PROHIBITED", ()
     for (const lic of Object.keys(VISIBLE)) {
       assert.ok(licenceClause(lic, PRODUCT_ID) && licenceClause(lic, PRODUCT_ID).length > 20, lic);
     }
-    assert.match(licenceClause("OET-CBLA-IP", PRODUCT_ID), /commercially exploit/i);
+    assert.match(licenceClause("OET-CBLA-IP", PRODUCT_ID), /exploiting it commercially/i);
     assert.match(licenceClause("NMC-6.3", PRODUCT_ID), /rules, standards and guidance/i);
     assert.match(licenceClause("CC-BY-3.0-NZ", PRODUCT_ID), /copy, distribute and adapt/i);
   });

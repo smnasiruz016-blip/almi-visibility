@@ -58,15 +58,17 @@ export const ALMI_OET_LICENCES = Object.freeze({
    * oet.com/Intellectual-Property-policy.
    *
    * 🔴 STRONGER THAN THIS PROJECT HAD IT RECORDED. PR #9 cited only the
-   * "electronic retrieval system" clause. Two others bite harder:
+   * retrieval-system ground. Two others bite harder: reproducing or transmitting
+   * any portion of the content, and distributing or exploiting it commercially,
+   * are both forbidden too.
    *
-   *   - "transmit or reproduce ANY PART of the Content"  — prohibited
-   *   - "distribute or commercially exploit the Content" — prohibited
+   * And every permitted use is limited to personal use that is not commercial.
+   * **AlmiWorld is commercial, so the carve-outs do not reach us at all** — we are
+   * outside the permission before the retrieval-system ground is even reached.
    *
-   * And every permitted use is expressly for "your own personal and
-   * NON-COMMERCIAL use only". **AlmiWorld is commercial, so the carve-outs do
-   * not reach us at all** — we are outside the permission before the retrieval-
-   * system clause is even reached.
+   * 🔴 The policy's own wording was quoted in this entry until 13 September 2026
+   * and was removed: a record that the licence forbids storing its text must not
+   * store that text.
    */
   "OET-CBLA-IP": {
     // 🔴 PROHIBITED, not RESERVED. The answer is written in their policy, and
@@ -81,6 +83,6 @@ export const ALMI_OET_LICENCES = Object.freeze({
     requiredAttribution: null,
     attributionMustLinkTo: null,
     clause:
-      'OET IP policy — prohibits "transmit or reproduce any part of the Content", "distribute or commercially exploit the Content", and storing the Content "in any other website or other form of electronic retrieval system". The permitted uses are personal and NON-COMMERCIAL only.',
+      "OET IP policy — without prior written permission it forbids reproducing or transmitting any portion of its content, distributing it or exploiting it commercially, and keeping it in another website or any electronic retrieval system. Permitted uses are limited to personal use that is not commercial. (Recorded in our words; the policy's wording is deliberately not reproduced.)",
   },
 });

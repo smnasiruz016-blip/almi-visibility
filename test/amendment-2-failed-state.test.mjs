@@ -80,9 +80,11 @@ test("🔴 RULE 3 — FAILED is its own count in the tally, never folded into an
   // Item 14 emptied it; item 45 refilled it; item 48 filled it and emptied it
   // again by a re-run that passed; the 13 Sep re-scan ran 50 and 51 and both
   // FAILED; 51 then left by a re-run that passed, and 50 stayed on an argued
-  // reading. The bucket never vanished at zero, which is why every refill is
-  // visible — a column that vanishes when empty cannot be watched.
-  assert.equal(t.FAILED, 1);
+  // reading — until 13 Sep 2026, when 50 left by a re-run that passed on real
+  // records. The bucket is at ZERO again and still here: it never vanished at
+  // zero, which is why every refill is visible — a column that vanishes when
+  // empty cannot be watched.
+  assert.equal(t.FAILED, 0);
   assert.ok("FAILED" in t);
   assert.equal(Object.values(t).reduce((a, b) => a + b, 0), 58);
 });
@@ -204,7 +206,7 @@ test("🔴 moves since Amendment 2: TWO by ruling (14 and 45 → TESTABLE-NOW); 
     "38:BUILT-NOT-PROVED→TESTABLE-NOW", "38:TESTABLE-NOW→VERIFIED-PASS",
     "42:BLOCKED-UNKNOWN→VERIFIED-PASS", "45:BUILT-NOT-PROVED→FAILED", "45:TESTABLE-NOW→VERIFIED-PASS", "47:NOT-STARTED→VERIFIED-PASS",
     "48:VERIFIED-PASS→FAILED", "48:FAILED→VERIFIED-PASS", "49:BUILT-NOT-PROVED→VERIFIED-PASS",
-    "50:BUILT-NOT-PROVED→TESTABLE-NOW", "50:TESTABLE-NOW→FAILED",
+    "50:BUILT-NOT-PROVED→TESTABLE-NOW", "50:TESTABLE-NOW→FAILED", "50:FAILED→VERIFIED-PASS",
     "51:BUILT-NOT-PROVED→TESTABLE-NOW", "51:TESTABLE-NOW→FAILED", "51:FAILED→VERIFIED-PASS", "53:BUILT-NOT-PROVED→VERIFIED-PASS",
     "55:BUILT-NOT-PROVED→TESTABLE-NOW", "55:TESTABLE-NOW→FAILED", "55:FAILED→VERIFIED-PASS",
     "56:BLOCKED-UNKNOWN→VERIFIED-PASS",
@@ -237,10 +239,10 @@ test("before Amendment 2 the ledger was 3 / 18 / 0 / 3 / 0 / 6 / 28", () => {
   });
 });
 
-test("🔴 since Amendment 2, FOURTEEN rows reached VERIFIED-PASS (11, 12, 13, 14, 26, 38, 42, 45, 47, 49, 51, 53, 55, 56); 48 LOST it and EARNED IT BACK", () => {
+test("🔴 since Amendment 2, FIFTEEN rows reached VERIFIED-PASS (11, 12, 13, 14, 26, 38, 42, 45, 47, 49, 50, 51, 53, 55, 56); 48 LOST it and EARNED IT BACK", () => {
   const rows = classify();
   const newPasses = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS" && BEFORE_AMENDMENT_2[r.id] !== "VERIFIED-PASS");
-  assert.deepEqual(newPasses.map((r) => r.id), [11, 12, 13, 14, 26, 38, 42, 45, 47, 49, 51, 53, 55, 56]);
+  assert.deepEqual(newPasses.map((r) => r.id), [11, 12, 13, 14, 26, 38, 42, 45, 47, 49, 50, 51, 53, 55, 56]);
   const lost = Object.values(rows).filter((r) => BEFORE_AMENDMENT_2[r.id] === "VERIFIED-PASS" && r.state !== "VERIFIED-PASS");
   assert.deepEqual(lost.map((r) => r.id), []);
   // The count hides a round trip — the chain does not.

@@ -92,9 +92,10 @@ claim — the IP policy itself is unchanged and still binding.)
 
 ### And the policy is the real barrier
 
-> *"Any redistribution or reproduction of part or all of the Content in any form is prohibited"*
-> … *"store the Content in any other website or **other form of electronic retrieval system**"*
-> — OET Intellectual Property policy
+> OET's Intellectual Property policy forbids reproducing any of its content in any form, and forbids keeping it
+> in another website or any electronic retrieval system. *(Stated in our words. The policy's own wording was quoted
+> here until 13 September 2026 and was removed: a record that the licence forbids storing its text must not store
+> that text. Read it at oet.com/Intellectual-Property-policy.)*
 
 **A fact cache that stores `quotedSpan` IS an electronic retrieval system holding a reproduction
 of their wording.**

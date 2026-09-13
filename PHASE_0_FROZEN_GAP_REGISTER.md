@@ -691,6 +691,26 @@ changed. No OET wording was stored.** Its outputs were NOT committed; the one co
 
 **Status:** ⏸️ PARKED — to be verified when they are next, by beta-g, who judges; this engine fetches.
 
+### OWNER RULING — 13 SEPTEMBER 2026 — THE FOUR UN-PARKED FOR ITEM 50 ONLY (recorded verbatim, before it was applied)
+
+⚠️ **Source of this text:** beta-g's brief of 13 September 2026 ("ITEM 50: THE REAL TRANSITION TEST"), Part 0,
+which relays the owner's ruling. No document written by the owner himself was supplied, so what is recorded
+here is that relay, word for word.
+
+> He un-parked the four OET facts FOR THIS TEST ONLY, on these conditions:
+>   - do not unnecessarily store or copy the original claim text
+>   - use the existing safe status/hash/provenance mechanism
+>   - verify the source genuinely
+>   - evidence supports it -> UNKNOWN becomes the appropriate verified state
+>   - evidence is insufficient -> it STAYS UNKNOWN
+>   - 🔴 DO NOT FORCE A RESULT MERELY TO PASS ITEM 50
+>   - if after genuine verification nothing can transition, RECORD THE ACTUAL RESULT.
+>     Do not invent or change data to turn a test green.
+>   - no connected-product modification, no publishing, no scope expansion.
+
+**Status of P-OET-1:** ✅ **RETIRED — the four are no longer parked.** Verdicts ingested 13 September 2026; see
+*ITEM 50 — THE REAL TRANSITION TEST* below.
+
 ---
 
 ## D-SEC-1 · D-INST-1 · D-GATEA-1 — FOUND WHILE RUNNING THE QUEUE, 13 SEPTEMBER 2026
@@ -1037,6 +1057,72 @@ Item 54 needs two declared products **each holding private evidence, facts, cost
 produced **no cost record and no learning record tied to any product**: the cost ledger names no product (its
 entries are runs of the engine — the five new refusal entries included), and no learning module, record or store
 exists. **Two of its four classes still do not exist to be tested. It stays BLOCKED-UNKNOWN.**
+
+---
+
+## ITEM 50 — THE REAL TRANSITION TEST (13 September 2026)
+
+**Input.** The four OET records of `P-OET-1`, UNKNOWN since 12 September, un-parked by the owner for this test
+only (ruling recorded verbatim above, under P-OET-1). Verdicts by beta-g, 13 September 2026
+(`_handoffs/OET_FACT_VERDICTS_2026-09-13.md`), **ingested, not re-judged**:
+
+| record | verdict | what is stored |
+|---|---|---|
+| `oet.content-licence-permits-stored-quotation` | VERIFIED | source URL · read date · OFFICIAL · 1 element confirmed, 0 not found |
+| `oet.writing-task-type.profession=nursing` | VERIFIED | source URL · read date · OFFICIAL · 3 elements confirmed, 0 not found |
+| `oet.speaking-roleplay-setting.profession=nursing` | UNKNOWN — *"PARTIAL EVIDENCE — one element confirmed, two not found"* | source URL · read date · OFFICIAL · 1 confirmed, 2 not found |
+| `oet.grade-bands-0-500` | UNKNOWN — *"SOURCE UNREACHABLE — three pages returned 403"* | the three URLs and their 403s · OFFICIAL · 0 confirmed |
+
+**🔴 THE SPLIT IS THE SOURCES' DOING, NOT THE TESTER'S.** All four were attempted identically, in one pass, by one
+verifier; two sources answered and two did not. That is recorded on each record (`verification.pass`) and asserted,
+because it is the only reason the split can serve as evidence at all. **LAW-ABSENT-1:** the 403s are a fact about our
+fetcher, not about OET — not verified, and not refuted.
+
+**The guard.** Until today nothing governed a FACT leaving UNKNOWN: the 12 September verdicts were written straight
+into the records, and F23 judges only supersessions, of which there are none. So `judgeLeavingUnknown`
+(`src/evidence/verdict.mjs`) and **F24** (`src/facts/validate.mjs`) put every record whose verification names the
+UNKNOWN it replaces to one question — *may it advance to VERIFIED?* — answered from the evidence (a check dated after
+the UNKNOWN · a named checker · an OFFICIAL source actually read · an element confirmed · none not found), never from
+the label. The record's declared state must be that answer.
+
+| direction | records | guard | RED proof |
+|---|---|---|---|
+| evidence arrived → **must transition** | licence, writing | ADVANCED ON A NEW MEASUREMENT | guard made to refuse everything → *50 · DIRECTION ONE* red |
+| evidence insufficient → **must be preserved** | speaking, grade bands | ASKED, **REFUSED** — "2 element(s) not found" · "source not read — 3 page(s) refused (403)" | guard made to ignore elements not found → *50 · DIRECTION TWO* red |
+
+Transcript: `runs/audit/item-50-guard-red-2026-09-13.txt`. **2D — 4 real records have now passed through the guard
+leaving UNKNOWN (2 advanced, 2 refused). "Polices an empty population" no longer holds.** A record that leaves UNKNOWN
+without a judgement is caught against the frozen 12 September baseline of 14 UNKNOWN ids.
+
+**Verdict: item 50 VERIFIED-PASS**, by rule 1's first route (re-run and passed). Item 15 stays VERIFIED-PASS with 34
+verified facts (was 32); item 16 does not move.
+
+### D-LIC-1 — THE REPOSITORY STORED OET's WORDING WHILE RECORDING THAT OET FORBIDS IT
+
+Found while asserting *"no OET text anywhere in the repo"*: that assertion was **false before this change began**. Five
+phrases of OET's Intellectual Property policy were quoted verbatim — in the licence record's quotability basis
+(`products/almi-oet/facts/oet.mjs`), the licence entry (`products/almi-oet/licences.mjs`), `FACT_CACHE_DESIGN.md` and
+`PROFESSION_PAGE_CLAIM_INVENTORY.md` — while the same records said the policy forbids storing its content in any
+electronic retrieval system. **Removed from the current tree**, restated in our words. `tools/forbidden-text-census.mjs`
+holds each phrase **only as a sha256** and scans every tracked text file by word window, so the check never becomes the
+breach; a control proves it finds a phrase it holds the hash of. ⚠️ **Git history still contains the five phrases.**
+Rewriting history is destructive and is the owner's call, not this change's. ⚠️ The census sees only wording this
+repository is known to have quoted.
+
+### E-BG-5 — THE ONE-QUESTION RULE CORRECTED ITS AUTHOR A SECOND TIME
+
+`POST_DONE_BACKLOG.md` PD-2 answered "no row's boundary names these four facts". The boundary does not name facts: item
+50's names a POPULATION — *"the guard exercised by real records"* — and FAILED *"the guard polices an empty population"*.
+These four were members of it, which the owner then ruled. **PD-2 is retired.** The first correction was E-BG-4
+(D-KEY-2 kept on the path by item 10's INPUT); this is the second, and the rule's author asked for both to be recorded.
+
+### ⚠️ AN OBSERVATION FOR THE VERIFIER — NOT A RE-JUDGEMENT
+
+The writing verdict confirms three elements (the 45-minute duration, a letter, profession-specific). The stored value
+also asserts working from case notes, three letter types and six assessment criteria, which the verdict does not say
+were read. By the verdicts file's own rule — *"a fact is one record with one value; if part is unevidenced, the record
+is not verified"* — beta-g may wish to confirm those elements were seen. **The verdict is ingested as given; nothing was
+overturned.**
 
 ---
 

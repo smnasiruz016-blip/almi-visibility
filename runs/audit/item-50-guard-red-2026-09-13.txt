@@ -1,0 +1,37 @@
+RED PROOF — ITEM 50 · 2C — the guard made to advance an insufficient record, and made to block a sufficient one · 2026-09-13T05:15:02.110Z
+test file: test/item-50-real-transitions.test.mjs
+
+=== 2C-a — the guard ADVANCES an insufficient record: elements not found are ignored
+sabotage in src/evidence/verdict.mjs: "if (v.elementsNotFound !== 0) {" → "if (false && v.elementsNotFound !== 0) { // RED PROOF SABOTAGE: partial evidence is let through"
+sabotage landed: true
+exit 1 · ℹ tests 10 · ℹ pass 5 · ℹ fail 5
+  ✖ 🔴 50 · DIRECTION ONE — evidence arrived: the two VERIFIED verdicts left UNKNOWN THROUGH the guard, on a new measurement
+  ✖ 🔴 50 · DIRECTION TWO — evidence insufficient: the two UNKNOWN verdicts were ASKED to advance, REFUSED, and stay UNKNOWN with their reasons   ← the test this sabotage was meant to break
+  ✖ 🔴 50 · THE POPULATION IS REAL AND NOT EMPTY — 4 real records judged leaving UNKNOWN: 2 advanced, 2 refused
+  ✖ 🔴 RED (injection): a record DECLARED past a refusal, a sufficient record HELD BACK, and a departure with no judgement are each caught
+  ✖ the guard's rule, one condition at a time — each missing piece alone refuses
+    reason: AssertionError [ERR_ASSERTION]: [
+    reason: AssertionError [ERR_ASSERTION]: the guard advanced oet.speaking-roleplay-setting.profession=nursing on insufficient evidence
+    reason: AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+    reason: AssertionError [ERR_ASSERTION]: a forced transition was accepted
+    reason: AssertionError [ERR_ASSERTION]: {"elementsNotFound":1}
+expected test red: YES ("50 · DIRECTION TWO") · restored byte for byte: true
+
+=== 2C-b — the guard BLOCKS a sufficient record: it refuses everything
+sabotage in src/evidence/verdict.mjs: "const reasons = [];" → "const reasons = [\"RED PROOF SABOTAGE — the guard refuses every record\"];"
+sabotage landed: true
+exit 1 · ℹ tests 10 · ℹ pass 6 · ℹ fail 4
+  ✖ 🔴 50 · DIRECTION ONE — evidence arrived: the two VERIFIED verdicts left UNKNOWN THROUGH the guard, on a new measurement   ← the test this sabotage was meant to break
+  ✖ 🔴 50 · THE POPULATION IS REAL AND NOT EMPTY — 4 real records judged leaving UNKNOWN: 2 advanced, 2 refused
+  ✖ 🔴 RED (injection): a record DECLARED past a refusal, a sufficient record HELD BACK, and a departure with no judgement are each caught
+  ✖ the guard's rule, one condition at a time — each missing piece alone refuses
+    reason: AssertionError [ERR_ASSERTION]: [
+    reason: AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+    reason: AssertionError [ERR_ASSERTION]: a blocked sufficient verdict was accepted
+    reason: AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+expected test red: YES ("50 · DIRECTION ONE") · restored byte for byte: true
+
+=== CLEAN — every file restored
+exit 0 · ℹ tests 10 · ℹ pass 10 · ℹ fail 0
+
+verdict: RED PROVED — every sabotage turned its named test red, and the clean run is green

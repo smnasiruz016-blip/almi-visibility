@@ -264,9 +264,16 @@ test("🔴 RECORDED: ZERO EGRESS — every document from 127.0.0.1, no browser r
 });
 
 test("🔴 RECORDED: the raw observations are UNTOUCHED — same bytes as before the run — and every render points back to its raw one", () => {
-  assert.equal(fileSha("runs/crawl/first-real-crawl-2026-09-12.jsonl"), "dfd8ea4e874b2bc97243acf1f4b5d6b572f7221c760de0a5d08abbc0707ea215");
-  assert.equal(fileSha("runs/crawl/bodies-2026-09-12.jsonl.br"), "3d857a9e53fd4b015131bfd721788942a7c3df15b775e6633fb429bc84af3ded");
-  assert.equal(EVIDENCE.input.rawUntouched, true);
+  /* 🔴 PINNED AS GIT BLOBS, NOT AS CHECKED-OUT BYTES. The first pin was the sha256 of
+   * the working-copy file — CRLF on the Windows machine that ran the render, LF on the
+   * Linux CI runner — so the same unchanged file failed in CI. A blob id is what was
+   * COMMITTED, independent of line endings; these are the ids on main before this PR
+   * (9728f19). The run itself compared the bytes before and after, on one machine. */
+  const blob = (p) => execFileSync("git", ["hash-object", p], { cwd: REPO, encoding: "utf8" }).trim();
+  assert.equal(blob("runs/crawl/first-real-crawl-2026-09-12.jsonl"), "feabcaed628c8ffdd9a92df98b3ea463ab800ff7", "the raw observations changed");
+  assert.equal(blob("runs/crawl/bodies-2026-09-12.jsonl.br"), "e7983d1a7976bc5970205b2965114b8567745c0a", "the raw archive changed");
+  assert.equal(fileSha("runs/crawl/bodies-2026-09-12.jsonl.br"), "3d857a9e53fd4b015131bfd721788942a7c3df15b775e6633fb429bc84af3ded", "binary: its bytes do not depend on line endings");
+  assert.deepEqual([EVIDENCE.input.rawUntouched, EVIDENCE.input.rawBefore.archive === EVIDENCE.input.rawAfter.archive, EVIDENCE.input.rawBefore.store === EVIDENCE.input.rawAfter.store], [true, true, true]);
   const raw = new Map(createJsonlStore(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`).readAll().filter((r) => r.record_type === "observation").map((r) => [r.observation_id, r]));
   assert.equal(new Set(RENDERED.map((o) => o.value.source_observation_id)).size, 394);
   for (const o of RENDERED) {

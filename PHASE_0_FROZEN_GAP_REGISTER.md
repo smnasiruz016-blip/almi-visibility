@@ -819,6 +819,12 @@ impossible; it is still DEFERRED by Ruling 7 until an owner rules otherwise. Ite
 trigger has a renderer to point at; the detector that compares source with render is **not written**
 and is the sealed exam rule's to write.
 
+**E-CL-2 (Claude), found by CI on this PR:** the "raw untouched" test first pinned the sha256 of the
+raw `.jsonl` *as checked out* — CRLF on the Windows machine, LF on the Linux runner — so an unchanged
+file failed in CI while passing locally and in a local depth-1 clone (also CRLF). Corrected to pin the
+git blob ids from main (`9728f19`), which do not depend on line endings; the binary archive keeps its
+byte sha256. The run's own before/after comparison was on one machine and was never affected.
+
 **Status:** 🟢 BUILT — capability only.
 
 ---

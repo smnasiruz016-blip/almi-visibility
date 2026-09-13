@@ -155,11 +155,12 @@ export default [
     // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
     claimElements: ["australia", "canada", "new-zealand", "united-states", "united-kingdom"],
     verification: {
-      state: "VERIFIED",
+      state: "UNKNOWN",
+      reason: "PARTIAL_EVIDENCE",
       elementsConfirmedKeys: ["australia", "canada", "new-zealand", "united-states", "united-kingdom"],
       elementsNotFoundKeys: [],
       reconciledOn: "2026-09-13",
-      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 5 element(s) and the verdict's own words name all 5. Nothing was re-verified, and the verdict's wording is unchanged.",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 5 element(s) and the verdict's own words name all 5. Nothing was re-verified, and the verdict's wording is unchanged. DEMOTED 13 September 2026 evening (beta-g ruling under owner steer 'it will not be made by picking the reading that keeps the label'): the reading the label rests on is the unsettled one flagged by elementAmbiguity — the guard's formula (declared ∩ named-confirmed) cannot police it. Returns to UNKNOWN — PARTIAL_EVIDENCE. Verdict wording, value and evidence hashes unchanged.",
       elementAmbiguity: "the value lists its items; whether it ALSO claims the list is COMPLETE is not in the value text, and the verdict does not name a completeness check — so the reconciliation cannot settle it",
       previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",

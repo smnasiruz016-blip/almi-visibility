@@ -80,11 +80,12 @@ export default [
     // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
     claimElements: ["reading-grade-b-350", "listening-grade-b-350", "speaking-grade-b-350", "writing-grade-c-plus-300"],
     verification: {
-      state: "VERIFIED",
+      state: "UNKNOWN",
+      reason: "PARTIAL_EVIDENCE",
       elementsConfirmedKeys: ["reading-grade-b-350", "listening-grade-b-350", "speaking-grade-b-350", "writing-grade-c-plus-300"],
       elementsNotFoundKeys: [],
       reconciledOn: "2026-09-13",
-      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 4 element(s) and the verdict's own words name all 4. Nothing was re-verified, and the verdict's wording is unchanged.",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 4 element(s) and the verdict's own words name all 4. Nothing was re-verified, and the verdict's wording is unchanged. DEMOTED 13 September 2026 evening (beta-g ruling under owner steer 'it will not be made by picking the reading that keeps the label'): the reading the label rests on is the unsettled one flagged by elementAmbiguity — the guard's formula (declared ∩ named-confirmed) cannot police it. Returns to UNKNOWN — PARTIAL_EVIDENCE. Verdict wording, value and evidence hashes unchanged.",
       elementAmbiguity: "the value states grades; that they apply to the NURSING profession; the claim's qualifier (who or what it applies to) is not part of the value text, and the verdict's own words do not name it — so the reconciliation cannot settle whether the qualifier was confirmed",
       previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",
@@ -166,11 +167,12 @@ export default [
     // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
     claimElements: ["three-routes", "approved-english-test", "qualification-taught-in-english", "one-year-practice-majority-english"],
     verification: {
-      state: "VERIFIED",
+      state: "UNKNOWN",
+      reason: "PARTIAL_EVIDENCE",
       elementsConfirmedKeys: ["three-routes", "approved-english-test", "qualification-taught-in-english", "one-year-practice-majority-english"],
       elementsNotFoundKeys: [],
       reconciledOn: "2026-09-13",
-      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 4 element(s) and the verdict's own words name all 4. Nothing was re-verified, and the verdict's wording is unchanged.",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 4 element(s) and the verdict's own words name all 4. Nothing was re-verified, and the verdict's wording is unchanged. DEMOTED 13 September 2026 evening (beta-g ruling under owner steer 'it will not be made by picking the reading that keeps the label'): the reading the label rests on is the unsettled one flagged by elementAmbiguity — the guard's formula (declared ∩ named-confirmed) cannot police it. Returns to UNKNOWN — PARTIAL_EVIDENCE. Verdict wording, value and evidence hashes unchanged.",
       elementAmbiguity: "the value states three routes; that they apply to the NURSING profession; the claim's qualifier (who or what it applies to) is not part of the value text, and the verdict's own words do not name it — so the reconciliation cannot settle whether the qualifier was confirmed",
       previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",
@@ -331,11 +333,12 @@ export default [
     // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
     claimElements: ["every-score-reaches-floor", "listening-floor-c-plus", "reading-floor-c-plus", "speaking-floor-c-plus", "writing-floor-c"],
     verification: {
-      state: "VERIFIED",
+      state: "UNKNOWN",
+      reason: "PARTIAL_EVIDENCE",
       elementsConfirmedKeys: ["every-score-reaches-floor", "listening-floor-c-plus", "reading-floor-c-plus", "speaking-floor-c-plus", "writing-floor-c"],
       elementsNotFoundKeys: [],
       reconciledOn: "2026-09-13",
-      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 5 element(s) and the verdict's own words name all 5. Nothing was re-verified, and the verdict's wording is unchanged.",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 5 element(s) and the verdict's own words name all 5. Nothing was re-verified, and the verdict's wording is unchanged. DEMOTED 13 September 2026 evening (beta-g ruling under owner steer 'it will not be made by picking the reading that keeps the label'): the reading the label rests on is the unsettled one flagged by elementAmbiguity — the guard's formula (declared ∩ named-confirmed) cannot police it. Returns to UNKNOWN — PARTIAL_EVIDENCE. Verdict wording, value and evidence hashes unchanged.",
       elementAmbiguity: "the value states score floors; that they apply to the NURSING profession; the claim's qualifier (who or what it applies to) is not part of the value text, and the verdict's own words do not name it — so the reconciliation cannot settle whether the qualifier was confirmed",
       previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",
@@ -379,11 +382,12 @@ export default [
     // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
     claimElements: ["oet-on-paper", "oet-on-computer", "oet-at-home", "at-home-combinable"],
     verification: {
-      state: "VERIFIED",
+      state: "UNKNOWN",
+      reason: "PARTIAL_EVIDENCE",
       elementsConfirmedKeys: ["oet-on-paper", "oet-on-computer", "oet-at-home", "at-home-combinable"],
       elementsNotFoundKeys: [],
       reconciledOn: "2026-09-13",
-      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 4 element(s) and the verdict's own words name all 4. Nothing was re-verified, and the verdict's wording is unchanged.",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 4 element(s) and the verdict's own words name all 4. Nothing was re-verified, and the verdict's wording is unchanged. DEMOTED 13 September 2026 evening (beta-g ruling under owner steer 'it will not be made by picking the reading that keeps the label'): the reading the label rests on is the unsettled one flagged by elementAmbiguity — the guard's formula (declared ∩ named-confirmed) cannot police it. Returns to UNKNOWN — PARTIAL_EVIDENCE. Verdict wording, value and evidence hashes unchanged.",
       elementAmbiguity: "the value states accepted delivery modes; that they apply to the NURSING profession; the claim's qualifier (who or what it applies to) is not part of the value text, and the verdict's own words do not name it — so the reconciliation cannot settle whether the qualifier was confirmed",
       previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",

@@ -35,6 +35,8 @@
  * is out of scope too" is how a deferral gets invented.
  */
 
+import { readFileSync } from "node:fs";
+
 import { loadBoundaries } from "./boundaries.mjs";
 
 /**
@@ -181,6 +183,22 @@ export const MOVES_AMENDMENT_2 = Object.freeze({
       test: "test/item45-scope.test.mjs · node bin/gsc-ingest.mjs (one real run, ledger live)",
       date: "2026-09-12",
       reason: "one real Search Console run inside the scope recorded all four: money 0 ZERO_BY_TARIFF with basis, 9 provider calls, crawl budget 0 with its basis, 2.238 s wall-clock; item45Verdict over the real ledger returns PASS",
+    }),
+  ]),
+  /* Item 56 — VERIFIED BY THE OWNER, 13 September 2026. The owner's ruling (§4) makes
+   * item 56 an owner-verification item: its test is the owner's own look at the report,
+   * and only a dated record of that look may set it (OWNER_VERIFIED_ITEMS). A WORK move —
+   * the test was sat — and no boundary changed. */
+  56: Object.freeze([
+    Object.freeze({
+      from: "BLOCKED-UNKNOWN",
+      to: "VERIFIED-PASS",
+      kind: "work",
+      route: "OWNER_VERIFICATION",
+      date: "2026-09-13",
+      record: "runs/owner-verification/item-56-2026-09-13/owner-verification.json",
+      test: "the owner's visual check of runs/report/index.html · test/item-56-owner-verification.test.mjs",
+      reason: "the owner looked at the report and verified it against his own criteria — critical information readable, workflow understandable, controls and links usable, no clipping, overlap or broken critical view; four screenshots committed; the cost ledger's horizontal scroll was raised and ruled not clipping",
     }),
   ]),
   /* Items 11 and 42 — proved by a LOCAL REPLAY of the 12 September crawl's own
@@ -380,11 +398,28 @@ export const LEAVE_FAILED_ROUTES = Object.freeze(["RETEST_PASSED", "OWNER_RULING
  */
 export const REOPEN_RULE_TEXT =
   "Closed items reopen only for concrete contradictory evidence, a real regression, new authoritative evidence, a security/data-safety risk, or an owner-approved scope change.";
+
+/**
+ * 🔴 SINCE 13 SEPTEMBER 2026 THE OWNER'S WORDING GOVERNS THE FIVE GROUNDS.
+ *
+ * `OWNER_RULING_2026-09-13_COMPLETION_LAW.md` §6 names them in his own sentence.
+ * Compared word for word with the checklist sentence above, TWO GROUNDS DIFFER:
+ *
+ *   checklist "new authoritative evidence"      → his "authoritative requirement change"
+ *   checklist "a security/data-safety risk"     → his "safety/data risk"
+ *
+ * The other three are the same words. His ruling says HOW the path to done is
+ * walked, and reopening a closed item is part of that walk — so HIS WORDING WINS,
+ * and the enum below is his five. The checklist's sentence stays quoted above as
+ * the text it replaced; a test holds each to its own document.
+ */
+export const OWNER_REOPEN_RULE_TEXT =
+  "Closed item ko dobara sirf concrete contradictory evidence, real regression, authoritative requirement change, safety/data risk, ya owner-approved scope change par kholo.";
 export const REOPEN_REASONS = Object.freeze([
   "CONCRETE_CONTRADICTORY_EVIDENCE",
   "REAL_REGRESSION",
-  "NEW_AUTHORITATIVE_EVIDENCE",
-  "SECURITY_OR_DATA_SAFETY_RISK",
+  "AUTHORITATIVE_REQUIREMENT_CHANGE",
+  "SAFETY_OR_DATA_RISK",
   "OWNER_APPROVED_SCOPE_CHANGE",
 ]);
 
@@ -401,12 +436,60 @@ export const REOPEN_REASONS = Object.freeze([
  *     reason (rule 1);
  *   - a "ruling" move that is not an owner ruling, or a "work" move that is.
  */
-export function assertTransitions(rows, before = BEFORE_AMENDMENT_2, moves = MOVES_AMENDMENT_2) {
+/**
+ * 🔴 ITEM 56 IS THE OWNER'S EYE — NO AUTOMATED RUN MAY EVER SET IT.
+ *
+ * The owner's ruling of 13 September 2026, §4: "Owner visual check ke baad hi Item
+ * 56 ko VERIFIED-PASS mark karo. Automated GREEN is owner-eye requirement ko
+ * replace nahi karta." So a row in this list reaches VERIFIED-PASS by exactly one
+ * route, OWNER_VERIFICATION, carrying a date and the path of a committed owner
+ * verification record — and the record itself is read and must be the owner's, for
+ * this item, on that date, with its screenshots. The route belongs to these rows
+ * only, so no other row can borrow it to tick.
+ */
+export const OWNER_VERIFIED_ITEMS = Object.freeze([56]);
+
+const REPO_ROOT = new URL("../../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+export function readOwnerVerificationRecord(path) {
+  try {
+    return JSON.parse(readFileSync(`${REPO_ROOT}${path}`, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function ownerVerification(id, step, to, readRecord) {
+  const errors = [];
+  if (step?.route === "OWNER_VERIFICATION" && !OWNER_VERIFIED_ITEMS.includes(id)) {
+    errors.push(`item ${id}: route OWNER_VERIFICATION belongs only to ${OWNER_VERIFIED_ITEMS.join(", ")} — no other row may borrow the owner's eye to tick`);
+  }
+  if (!OWNER_VERIFIED_ITEMS.includes(id) || to !== "VERIFIED-PASS") return errors;
+  if (step?.route !== "OWNER_VERIFICATION") {
+    errors.push(
+      `item ${id}: reaches VERIFIED-PASS by ${step ? `route ${step.route}` : "no declared route"} — only a dated owner verification record can set it. ` +
+        "No automated run may (owner ruling of 13 September 2026, §4).",
+    );
+    return errors;
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(step.date ?? "") || typeof step.record !== "string" || step.record === "") {
+    errors.push(`item ${id}: an OWNER_VERIFICATION move must carry a date and a record path`);
+    return errors;
+  }
+  const rec = readRecord(step.record);
+  if (!rec || rec.record_type !== "owner_verification" || rec.verifiedBy !== "owner" || rec.item !== id || rec.date !== step.date || !Array.isArray(rec.screenshots) || rec.screenshots.length === 0) {
+    errors.push(`item ${id}: ${step.record} is not an owner verification record of item ${id} dated ${step.date} with its screenshots`);
+  }
+  return errors;
+}
+
+export function assertTransitions(rows, before = BEFORE_AMENDMENT_2, moves = MOVES_AMENDMENT_2, readRecord = readOwnerVerificationRecord) {
   const errors = [];
   for (const r of Object.values(rows)) {
     const chain = moves[r.id] ?? [];
     let at = before[r.id];
+    if (chain.length === 0 && at !== r.state) errors.push(...ownerVerification(r.id, null, r.state, readRecord));
     for (const step of chain) {
+      errors.push(...ownerVerification(r.id, step, step.to, readRecord));
       if (step.from !== at) {
         errors.push(`item ${r.id}: a declared move starts at ${step.from} but the row was at ${at} — the chain does not join up`);
       }
@@ -441,7 +524,7 @@ function losingPass(id, from, to, step) {
   const lawful = step?.route === "REOPENED" && REOPEN_REASONS.includes(step.reopenReason) && evidenceGiven && Boolean(step.date && step.reason);
   if (lawful) return [];
   return [
-    `item ${id}: loses VERIFIED-PASS for ${to} by ${step ? `route ${step.route}` : "no declared route"}. "${REOPEN_RULE_TEXT}" ` +
+    `item ${id}: loses VERIFIED-PASS for ${to} by ${step ? `route ${step.route}` : "no declared route"}. "${OWNER_REOPEN_RULE_TEXT}" ` +
       `A tick leaves only by a REOPENED move naming one of ${REOPEN_REASONS.join(" | ")}, with its evidence, date and reason.`,
   ];
 }
@@ -485,8 +568,15 @@ const EXPLICIT = {
   },
   9: {
     state: "BLOCKED-UNKNOWN",
+    label: "BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE",
     changeKind: "work",
-    why: "🔴 **SIX OF SEVEN DIMENSIONS ARE INGESTED FROM THE REAL PROPERTY; THE SEVENTH IS BLOCKED; IT DOES NOT TICK.** On 12 September 2026 (night) the owner supplied the read-only key and the country pulls ran: **country** 126 rows and **country×query** 388 rows, each ONE request, exhausted, dataState COMPLETE, bounds rowLimitPerRequest=25000 / maxRequests=20, cost ZERO_BY_TARIFF. Queries (337), pages (1,525), impressions, clicks and CTR re-ingested in the same run, all COMPLETE. **DOWNSTREAM OUTCOMES** is not measurable by any tool this engine holds: Search Console has no outcome dimension; the credential is webmasters.readonly; 0 of 36 product repositories use an analytics package; the one first-party funnel-event table stores a path and a user id and no search source; and this engine may read no product database. The ruling's NOTE makes a dimension no tool can supply ⚠ — so the honest state is **BLOCKED-UNKNOWN, not FAILED** (every suppliable dimension was ingested and none claims a completeness it cannot show) and **not VERIFIED-PASS** (six of seven is not seven). The country distribution is recorded as measurement only and passes item 8's guard",
+    ruling: "OWNER_RULING_2026-09-13_COMPLETION_LAW.md §3 — verify what Search Console and owned evidence can prove; record the rest BLOCKED/UNKNOWN BY EXTERNAL PREREQUISITE; do not fabricate, infer or expand scope; do not touch a connected product to turn a checklist green",
+    missingEvidence: "a downstream outcome tied to a search — any stored record joining a product outcome (a signup, a purchase, a completed step) to the search query, landing page or search source that brought the visitor",
+    blocker: "no analytics package in any of the 36 product repositories (0 of 36 product repositories use one); the one first-party funnel-event table in the estate holds page path and user id but NO SEARCH SOURCE; and this engine cannot read product databases — its only credential is Search Console webmasters.readonly, and Search Console has no outcome dimension",
+    unlockCondition: "the seventh dimension becomes measurable when ALL THREE are true: (1) a connected product stores, for each downstream outcome, the search source that brought it — at least the landing page and a search referrer or campaign marker — with a date; (2) the owner authorises this engine in writing to READ that store read-only, and supplies the credential the way the Search Console key was supplied; (3) that instrumentation was built by the product's own work under its own brief, never by this engine and never to turn this row green. THEN: ingest downstream outcomes with row counts, request counts, bounds and dataState exactly as the other six dimensions were, and sit item 9's test again against its unchanged boundary",
+    ownerSentence: "Yeh status AlmiVisibility ki machinery ki automatic failure declaration nahi hai.",
+    why: "🔴 **BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE — the owner's ruling of 13 September 2026, §3, applied as written.** This is NOT the machinery declaring failure: Six of seven dimensions are ingested and complete — queries, pages, countries, impressions, clicks and CTR, each pull exhausted with dataState COMPLETE and its bounds printed. The seventh, downstream outcomes, needs evidence that exists only inside a connected product, and the ruling forbids fabricating it, inferring it, expanding scope for it, or touching a product to get it. The exact MISSING EVIDENCE, BLOCKER and FUTURE UNLOCK CONDITION are on this row",
+    whyMeasured: "🔴 **SIX OF SEVEN DIMENSIONS ARE INGESTED FROM THE REAL PROPERTY; THE SEVENTH IS BLOCKED; IT DOES NOT TICK.** On 12 September 2026 (night) the owner supplied the read-only key and the country pulls ran: **country** 126 rows and **country×query** 388 rows, each ONE request, exhausted, dataState COMPLETE, bounds rowLimitPerRequest=25000 / maxRequests=20, cost ZERO_BY_TARIFF. Queries (337), pages (1,525), impressions, clicks and CTR re-ingested in the same run, all COMPLETE. **DOWNSTREAM OUTCOMES** is not measurable by any tool this engine holds: Search Console has no outcome dimension; the credential is webmasters.readonly; 0 of 36 product repositories use an analytics package; the one first-party funnel-event table stores a path and a user id and no search source; and this engine may read no product database. The ruling's NOTE makes a dimension no tool can supply ⚠ — so the honest state is **BLOCKED-UNKNOWN, not FAILED** (every suppliable dimension was ingested and none claims a completeness it cannot show) and **not VERIFIED-PASS** (six of seven is not seven). The country distribution is recorded as measurement only and passes item 8's guard",
     whyBefore: "🔴 **FIVE OF SEVEN DIMENSIONS ARE INGESTED; IT DOES NOT TICK.** Queries, pages, impressions, clicks and CTR are in the evidence store, each pull exhausted with dataState COMPLETE and its bounds recorded. **COUNTRIES** — the country and country×query pulls are now BUILT and tested against a fake provider (same pagination law, bounds and cost record), but have **NOT RUN against the real property**: the read-only Search Console key was not available to the session that built them, and a pull that has not run is not ingested. **DOWNSTREAM OUTCOMES** is BLOCKED, not failed, with evidence: the Search Console API has no outcome dimension; this engine's only credential is webmasters.readonly; 0 of 36 product repositories use a third-party analytics package; the one first-party funnel-event table in the estate stores a path and a user id and no search source, and this engine holds no authorization to read any product database. Whether the row can then tick turns on the NOTE — see `src/search/dimensions.mjs`. Not FAILED: the test of all seven has not been run, and NOT RUN = NOT TESTED",
   },
   10: {
@@ -634,7 +724,21 @@ const EXPLICIT = {
     whyAttempted: "🔴 **RE-SCANNED 13 SEPTEMBER 2026: THE INPUT EXISTS, AND THE TEST WAS NOT RUN.** **INPUT** 'a code path that handles a secret, and a state that must be recoverable' — the key-file path through the Search Console adapter exists, and the append-only stores are the state. **Not run in this change:** no executing leak test exists yet — the FAILURE clause forbids proving it by manual grep, so it waits for that test, named here. Not a pass",
     whyBefore: "the no-leak property holds in practice — the Search Console key was never printed, hashed or length-measured — but the FAILURE clause forbids proving it BY MANUAL GREP, and no executing test hunts for a leak. Recovery has not been exercised either",
   },
-  56: { state: "BLOCKED-UNKNOWN", why: "the walk must be recorded at both widths and the browser tooling failed on every attempt, including a trivial probe page. 🔴 That is a fact about our tooling, not about the interface (LAW-ABSENT-1) — so it is UNKNOWN, not a failure" },
+  56: {
+    state: "VERIFIED-PASS",
+    changeKind: "work",
+    route: "OWNER_VERIFICATION",
+    test: "the owner's visual check of runs/report/index.html · test/item-56-owner-verification.test.mjs",
+    verifiedOn: "2026-09-13",
+    record: "runs/owner-verification/item-56-2026-09-13/owner-verification.json",
+    criteriaOwnerWords: "PASS ka sawal khoobsurti ka nahi: critical information readable ho, workflow samajh aaye, controls/links usable hon, aur koi clipping/overlap/broken critical view na ho.",
+    criteria: ["critical information readable", "workflow understandable", "controls and links usable", "no clipping, overlap or broken critical view", "beauty is not the question"],
+    findingRaised: "F-56-1, raised by beta-g: the cost ledger's lines extend past a narrow viewport and are reached by horizontal scrolling",
+    ownerRulingOnFinding: "the owner ruled it NOT CLIPPING — the content scrolls, nothing is lost, the view is not broken. Not a defect and not on the path: POST_DONE_BACKLOG.md PD-1",
+    evidenceNote: "four screenshots, all at a narrow (mobile-class) width of about 750 px. The boundary's EVIDENCE names both widths; the desktop half rests on the owner's verification itself, and no desktop screenshot is in the record",
+    why: "🔴 **VERIFIED-PASS BY OWNER VERIFICATION, 13 SEPTEMBER 2026.** The owner's ruling makes this an owner-verification item — 'Automated GREEN is owner-eye requirement ko replace nahi karta' — and the owner looked at the report and verified it against his own criteria. Four screenshots are committed beside the record and pinned by git blob. The one finding raised, the cost ledger scrolling sideways at narrow width, was ruled not clipping. No automated run set this row, and the ledger refuses any that tries",
+    whyBefore: "the walk must be recorded at both widths and the browser tooling failed on every attempt, including a trivial probe page. 🔴 That is a fact about our tooling, not about the interface (LAW-ABSENT-1) — so it is UNKNOWN, not a failure",
+  },
   57: { state: "NOT-STARTED", why: "runs last, and requires an auditor who is not the builder" },
   58: { state: "NOT-STARTED", why: "🔴 only the owner declares DONE. Requires the full ledger, the audit, and his own signature" },
 };
@@ -713,6 +817,17 @@ export function assertLawful(rows, boundaries = loadBoundaries()) {
         `item ${r.id} (${boundaries[r.id].name}) is FAILED but does not name ${r.test ? "the FAILURE condition that was met" : "the test that was run"}. ` +
           "FAILED means the row's test was RUN against its own frozen boundary and the FAILURE condition was MET.",
       );
+    }
+
+    /* 🔴 THE OWNER'S RULING OF 13 SEPTEMBER 2026, §3 — an UNKNOWN BY EXTERNAL PREREQUISITE must
+     * say exactly what evidence is missing, what blocks it, and what would unlock it. */
+    if (r.label === "BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE") {
+      if (r.state !== "BLOCKED-UNKNOWN") errors.push(`item ${r.id}: labelled BY EXTERNAL PREREQUISITE but its state is ${r.state}`);
+      for (const field of ["missingEvidence", "blocker", "unlockCondition"]) {
+        if (typeof r[field] !== "string" || r[field].trim().length < 20) {
+          errors.push(`item ${r.id} (${boundaries[r.id].name}) is BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE with no ${field} — the ruling requires the exact missing evidence, blocker and future unlock condition`);
+        }
+      }
     }
 
     if (r.state === "TESTABLE-NOW" && !r.test) {

@@ -1,0 +1,53 @@
+RED PROOF — 3E · no automated run may set item 56 · 2026-09-13T04:03:03.356Z
+sabotage: the guard returns no error for any route — "function ownerVerification(id, step, to, readRecord) {" → "function ownerVerification(id, step, to, readRecord) { return []; // RED PROOF SABOTAGE: an automated run may set item 56"
+sabotage landed: true
+
+=== SABOTAGED — node --test test/item-56-owner-verification.test.mjs — exit 1
+✔ 🔴 item 56 is VERIFIED-PASS by OWNER VERIFICATION on 13 September 2026, its move declared and lawful (5.1281ms)
+✔ 🔴 the owner's criteria are on the row in HIS words — and beauty is not the question (0.2353ms)
+✔ 🔴 the four screenshots are committed beside the row, tracked, and match the record — pinned as git BLOBS (102.8879ms)
+✔ 🔴 the finding beta-g raised AND the owner's ruling on it are both recorded — an overruled finding is still a finding (0.4593ms)
+✔ the record says which widths its screenshots hold — it does not let four narrow images pass for both (0.1691ms)
+✖ 🔴 RED: item 56 set VERIFIED-PASS by route TEST_RUN — an automated or non-verification route — is REFUSED (0.6224ms)
+✖ 🔴 RED: item 56 set VERIFIED-PASS by route RETEST_PASSED — an automated or non-verification route — is REFUSED (0.1607ms)
+✖ 🔴 RED: item 56 set VERIFIED-PASS by route INPUT_EXISTS — an automated or non-verification route — is REFUSED (0.1246ms)
+✖ 🔴 RED: item 56 set VERIFIED-PASS by route OWNER_RULING — an automated or non-verification route — is REFUSED (0.6728ms)
+✖ 🔴 RED: an owner-verification move with no date, or no record, is REFUSED (3.4221ms)
+✖ 🔴 RED: a record that is missing, not the owner's, for another date or another item is REFUSED (0.2937ms)
+✔ 🔴 RED: item 56 at VERIFIED-PASS with NO declared move at all is REFUSED (0.1493ms)
+✖ 🔴 RED: the OWNER_VERIFICATION route cannot be borrowed by another row to tick it (0.5785ms)
+✔ CONTROL: the real move and the real record are accepted (0.174ms)
+ℹ tests 14
+ℹ pass 7
+ℹ fail 7
+✖ failing tests:
+✖ 🔴 RED: item 56 set VERIFIED-PASS by route TEST_RUN — an automated or non-verification route — is REFUSED (0.6224ms)
+✖ 🔴 RED: item 56 set VERIFIED-PASS by route RETEST_PASSED — an automated or non-verification route — is REFUSED (0.1607ms)
+✖ 🔴 RED: item 56 set VERIFIED-PASS by route INPUT_EXISTS — an automated or non-verification route — is REFUSED (0.1246ms)
+✖ 🔴 RED: item 56 set VERIFIED-PASS by route OWNER_RULING — an automated or non-verification route — is REFUSED (0.6728ms)
+✖ 🔴 RED: an owner-verification move with no date, or no record, is REFUSED (3.4221ms)
+✖ 🔴 RED: a record that is missing, not the owner's, for another date or another item is REFUSED (0.2937ms)
+✖ 🔴 RED: the OWNER_VERIFICATION route cannot be borrowed by another row to tick it (0.5785ms)
+
+restored src/checklist/classification.mjs byte for byte: true (sha256 3820e255e3b82e35)
+
+=== RESTORED — node --test test/item-56-owner-verification.test.mjs — exit 0
+✔ 🔴 item 56 is VERIFIED-PASS by OWNER VERIFICATION on 13 September 2026, its move declared and lawful (5.6476ms)
+✔ 🔴 the owner's criteria are on the row in HIS words — and beauty is not the question (0.2594ms)
+✔ 🔴 the four screenshots are committed beside the row, tracked, and match the record — pinned as git BLOBS (104.4232ms)
+✔ 🔴 the finding beta-g raised AND the owner's ruling on it are both recorded — an overruled finding is still a finding (0.6535ms)
+✔ the record says which widths its screenshots hold — it does not let four narrow images pass for both (0.3092ms)
+✔ 🔴 RED: item 56 set VERIFIED-PASS by route TEST_RUN — an automated or non-verification route — is REFUSED (0.4348ms)
+✔ 🔴 RED: item 56 set VERIFIED-PASS by route RETEST_PASSED — an automated or non-verification route — is REFUSED (0.2213ms)
+✔ 🔴 RED: item 56 set VERIFIED-PASS by route INPUT_EXISTS — an automated or non-verification route — is REFUSED (0.2224ms)
+✔ 🔴 RED: item 56 set VERIFIED-PASS by route OWNER_RULING — an automated or non-verification route — is REFUSED (0.949ms)
+✔ 🔴 RED: an owner-verification move with no date, or no record, is REFUSED (0.4183ms)
+✔ 🔴 RED: a record that is missing, not the owner's, for another date or another item is REFUSED (0.4833ms)
+✔ 🔴 RED: item 56 at VERIFIED-PASS with NO declared move at all is REFUSED (0.1598ms)
+✔ 🔴 RED: the OWNER_VERIFICATION route cannot be borrowed by another row to tick it (0.4114ms)
+✔ CONTROL: the real move and the real record are accepted (0.1147ms)
+ℹ tests 14
+ℹ pass 14
+ℹ fail 0
+
+verdict: sabotaged exit 1 (must be non-zero) · restored exit 0 (must be 0) → RED PROVED

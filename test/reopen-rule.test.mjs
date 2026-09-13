@@ -14,10 +14,12 @@ import {
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 
-test("🔴 the rule in code is the checklist's sentence, VERBATIM", () => {
+test("🔴 the checklist's sentence is kept VERBATIM — and the enum is the OWNER's five since 13 Sep 2026", () => {
   const source = readFileSync(`${REPO}KEY_FEATURE_CHECKLIST_SOURCE.md`, "utf8").replace(/\s+/g, " ");
-  assert.ok(source.includes(REOPEN_RULE_TEXT), "the reopen rule in code is not the frozen checklist's words");
+  assert.ok(source.includes(REOPEN_RULE_TEXT), "the checklist's reopen sentence in code is not the frozen checklist's words");
   assert.equal(REOPEN_REASONS.length, 5);
+  assert.ok(REOPEN_REASONS.includes("AUTHORITATIVE_REQUIREMENT_CHANGE") && REOPEN_REASONS.includes("SAFETY_OR_DATA_RISK"));
+  assert.ok(!REOPEN_REASONS.includes("NEW_AUTHORITATIVE_EVIDENCE"), "the checklist's wording survived where the owner's won");
 });
 
 const passBefore = { ...BEFORE_AMENDMENT_2, 8: "VERIFIED-PASS" };

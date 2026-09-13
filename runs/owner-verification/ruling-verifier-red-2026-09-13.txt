@@ -1,0 +1,24 @@
+RED PROOF — 1A · the frozen ruling's verifier · 2026-09-13T04:00:59.068Z
+corruption: byte 1981 "T" → "t" in "Target fast completion" — bytes changed on disk: 1
+
+=== CORRUPTED (one byte) — node tools/verify-owner-ruling.mjs — exit 1
+  OWNER_RULING_2026-09-13_COMPLETION_LAW.md
+    git blob    : d78f6650d13d8b379adbab5354e454fb41436e3f  🔴 expected 33338a81c70791fbf03f71db10dba203c6771ca9
+    body sha256 : 0fbfaa79b9efe90c273b1e5836d3236add5e6affc7ba827c2e2334e94d38f5b0  🔴 expected 40cb3ebc2257373b99a3f682a4e7c6ab01d7243fc54164bfecb0a4798ab9711d
+    completion loop present : true
+    reopen grounds present  : true
+    ends with the freeze    : true
+  🔴 VERIFICATION FAILED — the frozen ruling has changed
+
+restored byte for byte: true (sha256 ffc821b9daab4847)
+
+=== RESTORED — node tools/verify-owner-ruling.mjs — exit 0
+  OWNER_RULING_2026-09-13_COMPLETION_LAW.md
+    git blob    : 33338a81c70791fbf03f71db10dba203c6771ca9  matches
+    body sha256 : 40cb3ebc2257373b99a3f682a4e7c6ab01d7243fc54164bfecb0a4798ab9711d  matches
+    completion loop present : true
+    reopen grounds present  : true
+    ends with the freeze    : true
+  the owner's ruling is verified
+
+verdict: corrupted exit 1 (must be 1) · restored exit 0 (must be 0) → RED PROVED

@@ -207,7 +207,10 @@ test("🔴 moves since Amendment 2: TWO by ruling (14 and 45 → TESTABLE-NOW); 
     "50:BUILT-NOT-PROVED→TESTABLE-NOW", "50:TESTABLE-NOW→FAILED",
     "51:BUILT-NOT-PROVED→TESTABLE-NOW", "51:TESTABLE-NOW→FAILED", "51:FAILED→VERIFIED-PASS",
     "55:BUILT-NOT-PROVED→TESTABLE-NOW", "55:TESTABLE-NOW→FAILED", "55:FAILED→VERIFIED-PASS",
+    "56:BLOCKED-UNKNOWN→VERIFIED-PASS",
   ]);
+  // 🔴 56 reached its tick by the owner's eye — the only route that may set it.
+  assert.equal(MOVES_AMENDMENT_2[56][0].route, "OWNER_VERIFICATION");
   // 🔴 55 left FAILED the way 14 and 48 did — its test re-run and passing, after the leak was fixed.
   const out55 = MOVES_AMENDMENT_2[55].find((s) => s.from === "FAILED");
   assert.equal(out55.route, "RETEST_PASSED");
@@ -234,10 +237,10 @@ test("before Amendment 2 the ledger was 3 / 18 / 0 / 3 / 0 / 6 / 28", () => {
   });
 });
 
-test("🔴 since Amendment 2, ELEVEN rows reached VERIFIED-PASS (11, 12, 13, 14, 26, 38, 42, 45, 49, 51, 55); 48 LOST it and EARNED IT BACK", () => {
+test("🔴 since Amendment 2, TWELVE rows reached VERIFIED-PASS (11, 12, 13, 14, 26, 38, 42, 45, 49, 51, 55, 56); 48 LOST it and EARNED IT BACK", () => {
   const rows = classify();
   const newPasses = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS" && BEFORE_AMENDMENT_2[r.id] !== "VERIFIED-PASS");
-  assert.deepEqual(newPasses.map((r) => r.id), [11, 12, 13, 14, 26, 38, 42, 45, 49, 51, 55]);
+  assert.deepEqual(newPasses.map((r) => r.id), [11, 12, 13, 14, 26, 38, 42, 45, 49, 51, 55, 56]);
   const lost = Object.values(rows).filter((r) => BEFORE_AMENDMENT_2[r.id] === "VERIFIED-PASS" && r.state !== "VERIFIED-PASS");
   assert.deepEqual(lost.map((r) => r.id), []);
   // The count hides a round trip — the chain does not.

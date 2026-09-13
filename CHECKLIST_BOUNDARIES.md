@@ -26,9 +26,9 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | **NOT-STARTED** | 3 | 3 | **3** |
 | **BUILT-NOT-PROVED** | 18 | 17 | **6** |
 | **TESTABLE-NOW** | 0 | 2 | **1** |
-| **VERIFIED-PASS** | 3 | 3 | **14** |
+| **VERIFIED-PASS** | 3 | 3 | **15** |
 | **FAILED** | 0 | -1 | **1** |
-| **BLOCKED-UNKNOWN** | 6 | 6 | **5** |
+| **BLOCKED-UNKNOWN** | 6 | 6 | **4** |
 | **DEFERRED** | 28 | 28 | **28** |
 
 ### FAILED — counted and named separately: **1**
@@ -44,9 +44,9 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 - **item 51** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — priority, confidence and cost each computed from stored evidence and each able to say UNKNOWN — two recommendations ranked by measured impressions, one UNKNOWN; confidence derived on all three; cost UNKNOWN on all three with lower bounds — and all six visible on the real report
 - **item 55** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — the parse is caught and rethrown with nothing from the file; the leak test re-run passed on every credential path, RED when the key or its length is logged; recovery proved by restoring torn stores from git, byte-identical by blob hash
 
-**Rows that have been looked at (VERIFIED-PASS or FAILED): 15 of 58.**
+**Rows that have been looked at (VERIFIED-PASS or FAILED): 16 of 58.**
 
-**Rows that reached VERIFIED-PASS in this PR: 11.**
+**Rows that reached VERIFIED-PASS in this PR: 12.**
 
 #### moved ONLY because a RULING changed
 
@@ -86,6 +86,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 55 | BUILT-NOT-PROVED | TESTABLE-NOW | `undefined` | 2026-09-13 | the input exists; not run, because the executing leak test it needs does not exist yet |
 | 55 | TESTABLE-NOW | FAILED | `test/secret-leak.test.mjs (first honest run, before any fix)` | 2026-09-13 | FAILURE met — any leak: a key file that is not JSON was quoted by the adapter's parse error in-process and printed whole to stderr by the CLI (D-SEC-1) |
 | 55 | FAILED | VERIFIED-PASS | `test/secret-leak.test.mjs · test/store-recovery.test.mjs` | 2026-09-13 | the parse is caught and rethrown with nothing from the file; the leak test re-run passed on every credential path, RED when the key or its length is logged; recovery proved by restoring torn stores from git, byte-identical by blob hash |
+| 56 | BLOCKED-UNKNOWN | VERIFIED-PASS | `the owner's visual check of runs/report/index.html · test/item-56-owner-verification.test.mjs` | 2026-09-13 | the owner looked at the report and verified it against his own criteria — critical information readable, workflow understandable, controls and links usable, no clipping, overlap or broken critical view; four screenshots committed; the cost ledger's horizontal scroll was raised and ruled not clipping |
 
 ---
 
@@ -96,15 +97,15 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | **NOT-STARTED** | 33 | **3** |
 | **BUILT-NOT-PROVED** | 24 | **6** |
 | **TESTABLE-NOW** | 0 | **1** |
-| **VERIFIED-PASS** | 0 | **14** |
+| **VERIFIED-PASS** | 0 | **15** |
 | **FAILED** | 0 | **1** |
-| **BLOCKED-UNKNOWN** | 1 | **5** |
+| **BLOCKED-UNKNOWN** | 1 | **4** |
 | **DEFERRED** | 0 | **28** |
 | **total** | 58 | **58** |
 
 ### 🔴 THE MOST IMPORTANT LINE IN THIS DOCUMENT
 
-> **17 row(s) changed because work happened.** Listed in (i) below.
+> **18 row(s) changed because work happened.** Listed in (i) below.
 
 #### (i) changed because WORK HAPPENED
 
@@ -127,13 +128,14 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 50 | OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation | BUILT-NOT-PROVED | **FAILED** |
 | 51 | Explainability | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 55 | Security / Secrets / Recovery | BUILT-NOT-PROVED | **VERIFIED-PASS** |
+| 56 | Desktop + Mobile Owner Experience | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 
 #### (ii) changed ONLY because the vocabulary changed
 
 | move | count | features |
 |---|---|---|
 | NOT-STARTED → DEFERRED | 28 | 2, 3, 4, 5, 6, 7, 18, 19, 20, 21, 22, 23, 24, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39, 40, 41, 43, 44 |
-| BUILT-NOT-PROVED → BLOCKED-UNKNOWN | 3 | 1, 54, 56 |
+| BUILT-NOT-PROVED → BLOCKED-UNKNOWN | 2 | 1, 54 |
 
 **Did not move: 10** — 10, 16, 17, 36, 46, 47, 52, 53, 57, 58
 
@@ -288,7 +290,7 @@ question for the owner, recorded as one.
 | **EVIDENCE** | row counts, request counts, bounds, and `dataState` per pull. |
 | **NOTE** | "where authorized and available" — a dimension no tool can supply is `⚠`, not a failure. |
 
-**Verdict —** 🔴 **SIX OF SEVEN DIMENSIONS ARE INGESTED FROM THE REAL PROPERTY; THE SEVENTH IS BLOCKED; IT DOES NOT TICK.** On 12 September 2026 (night) the owner supplied the read-only key and the country pulls ran: **country** 126 rows and **country×query** 388 rows, each ONE request, exhausted, dataState COMPLETE, bounds rowLimitPerRequest=25000 / maxRequests=20, cost ZERO_BY_TARIFF. Queries (337), pages (1,525), impressions, clicks and CTR re-ingested in the same run, all COMPLETE. **DOWNSTREAM OUTCOMES** is not measurable by any tool this engine holds: Search Console has no outcome dimension; the credential is webmasters.readonly; 0 of 36 product repositories use an analytics package; the one first-party funnel-event table stores a path and a user id and no search source; and this engine may read no product database. The ruling's NOTE makes a dimension no tool can supply ⚠ — so the honest state is **BLOCKED-UNKNOWN, not FAILED** (every suppliable dimension was ingested and none claims a completeness it cannot show) and **not VERIFIED-PASS** (six of seven is not seven). The country distribution is recorded as measurement only and passes item 8's guard
+**Verdict —** 🔴 **BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE — the owner's ruling of 13 September 2026, §3, applied as written.** This is NOT the machinery declaring failure: Six of seven dimensions are ingested and complete — queries, pages, countries, impressions, clicks and CTR, each pull exhausted with dataState COMPLETE and its bounds printed. The seventh, downstream outcomes, needs evidence that exists only inside a connected product, and the ruling forbids fabricating it, inferring it, expanding scope for it, or touching a product to get it. The exact MISSING EVIDENCE, BLOCKER and FUTURE UNLOCK CONDITION are on this row
 
 ### 10 · Technical SEO Audit Engine
 
@@ -939,7 +941,7 @@ question for the owner, recorded as one.
 
 ### 56 · Desktop + Mobile Owner Experience
 
-**BLOCKED-UNKNOWN** · class `P` · ruled in `§5` · was BUILT-NOT-PROVED (vocabulary)
+**VERIFIED-PASS** · class `P` · ruled in `§5` · was BUILT-NOT-PROVED (work)
 
 | part | the owner's words |
 |---|---|
@@ -948,7 +950,9 @@ question for the owner, recorded as one.
 | **FAILURE** | any of those is broken, hidden or unusable |
 | **EVIDENCE** | the walk, recorded, at both widths |
 
-**Verdict —** the walk must be recorded at both widths and the browser tooling failed on every attempt, including a trivial probe page. 🔴 That is a fact about our tooling, not about the interface (LAW-ABSENT-1) — so it is UNKNOWN, not a failure
+**Verdict —** 🔴 **VERIFIED-PASS BY OWNER VERIFICATION, 13 SEPTEMBER 2026.** The owner's ruling makes this an owner-verification item — 'Automated GREEN is owner-eye requirement ko replace nahi karta' — and the owner looked at the report and verified it against his own criteria. Four screenshots are committed beside the record and pinned by git blob. The one finding raised, the cost ledger scrolling sideways at narrow width, was ruled not clipping. No automated run set this row, and the ledger refuses any that tries
+
+**The one test that would settle it —** the owner's visual check of runs/report/index.html · test/item-56-owner-verification.test.mjs
 
 ### 57 · Final Independent Audit
 

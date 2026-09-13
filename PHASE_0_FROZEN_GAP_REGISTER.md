@@ -829,6 +829,149 @@ byte sha256. The run's own before/after comparison was on one machine and was ne
 
 ---
 
+## OWNER RULING — 13 SEPTEMBER 2026 — THE COMPLETION LAW (frozen)
+
+**Frozen verbatim** as `OWNER_RULING_2026-09-13_COMPLETION_LAW.md`, from
+`ALMIVISIBILITY_OWNER_REPLY_CURRENT_STATUS_AND_NEXT_STEPS.docx` (sha256 `fcc181f0…a680c`), which ends
+*"OWNER RULING — FREEZE THIS INTERPRETATION"*. Verified by `tools/verify-owner-ruling.mjs` against
+**git's stored blob** `33338a81c70791fbf03f71db10dba203c6771ca9` — never the checked-out bytes, which is
+the trap `E-CL-2` fell into — and against the body's sha256 `40cb3ebc…9711d`. RED-proved: one corrupted
+byte → exit 1; restored → exit 0 (`runs/owner-verification/ruling-verifier-red-2026-09-13.txt`).
+
+**Precedence — all three bind:**
+
+| document | says |
+|---|---|
+| `KEY_FEATURE_CHECKLIST_SOURCE.md` | **WHAT** the 58 features are |
+| `PASS_BOUNDARIES_SOURCE.md` + Amendments 1 and 2 | **WHEN** a row may tick |
+| **this ruling** | **HOW THE PATH TO DONE IS WALKED** |
+
+**The completion loop, as law:**
+**BUILD / FIX → TARGETED VERIFY → EVIDENCE → CLOSE → NEXT ITEM → FINAL INDEPENDENT AUDIT → DONE.**
+
+### 1D — THE FIVE REOPEN GROUNDS, COMPARED WORD FOR WORD — AND HIS WORDING WON
+
+| # | what the ledger enforced until today (the checklist's sentence) | **the owner's wording (§6)** | same? |
+|---|---|---|---|
+| 1 | concrete contradictory evidence | **concrete contradictory evidence** | same |
+| 2 | a real regression | **real regression** | same |
+| 3 | **new authoritative evidence** | **authoritative requirement change** | 🔴 **DIFFERENT** — new evidence is not a changed requirement |
+| 4 | **a security/data-safety risk** | **safety/data risk** | 🔴 **DIFFERENT** — his is not limited to security |
+| 5 | an owner-approved scope change | **owner-approved scope change** | same |
+
+Reopening a closed item is part of *how the path is walked*, so **his wording wins**: the enforced enum
+is now `CONCRETE_CONTRADICTORY_EVIDENCE · REAL_REGRESSION · AUTHORITATIVE_REQUIREMENT_CHANGE ·
+SAFETY_OR_DATA_RISK · OWNER_APPROVED_SCOPE_CHANGE` (`src/checklist/classification.mjs`). The checklist's
+sentence is kept quoted beside it as the text it replaced. No existing move used either changed ground —
+item 48's reopen was *concrete contradictory evidence*. beta-g's brief listed the five as the owner wrote
+them ("safety or data risk" for his "safety/data risk").
+
+---
+
+## 🔴 THE ONE QUESTION — WHICH FILE SOMETHING GOES IN (rule, 13 September 2026)
+
+> ### DOES SOME ROW'S FROZEN BOUNDARY REQUIRE IT?
+> **yes → the completion path. no → `POST_DONE_BACKLOG.md`.**
+
+A defect that breaches a boundary is on the path; an improvement that would be nice is not. The answer
+**names the row and quotes the boundary** — an answer that cannot is a feeling, and this rule exists so it
+is applied rather than felt. Required by the owner's ruling §2 (*"optional improvements … current
+completion path mein inject mat karo"*) and §6 (*"Optional ideas POST-DONE backlog mein jayengi"*).
+
+---
+
+## 🔴 STANDING INSTRUCTION — FROM beta-g (technical owner), TO CLAUDE — 13 SEPTEMBER 2026
+
+Recorded under beta-g's name, at beta-g's instruction:
+
+> **Every part of every brief I send must name the row whose frozen boundary requires it. A part that
+> names no row is scope creep wearing a helpful face.**
+>
+> **If a brief of mine contains a part that names no row — and is not recording an owner ruling — REFUSE
+> THAT PART AND SAY SO IN YOUR REPORT. Not quietly, and not kindly.**
+
+The one exception is named so it cannot be stretched: **a part that records an OWNER RULING is the law
+itself and names no row.**
+
+---
+
+## E-BG-4 — THE BACKLOG BRIEF LISTED D-KEY-2 FOR THE BACKLOG; ITS OWN RULE SENDS IT BACK
+
+**Recorded 13 September 2026, attributed to beta-g.** The brief that opened `POST_DONE_BACKLOG.md` named
+`D-KEY-2` (redirect hops are not captured) as an entry. Asked the one question, it answers **yes**: item
+10's v0.1 half, `PASS_BOUNDARIES_AMENDMENT_1.md`, INPUT — *"the crawled corpus, its served HTML and
+headers, **redirect chains**, the edge graph …"*. A row's frozen boundary names it, so **D-KEY-2 stays on
+the completion path**, blocking item 10, and the backlog records it under *listed and refused*. The rule
+was applied, not the list.
+
+---
+
+## ITEM 56 — VERIFIED BY THE OWNER, AND THE FINDING HE OVERRULED
+
+**13 September 2026. Item 56 → VERIFIED-PASS by OWNER VERIFICATION** — the only route that may set it
+(owner ruling §4; `OWNER_VERIFIED_ITEMS` in `src/checklist/classification.mjs`, RED-proved in
+`test/item-56-owner-verification.test.mjs`). His criteria, in his words: *"PASS ka sawal khoobsurti ka
+nahi: critical information readable ho, workflow samajh aaye, controls/links usable hon, aur koi
+clipping/overlap/broken critical view na ho."* Evidence: four screenshots committed beside the record,
+`runs/owner-verification/item-56-2026-09-13/`, pinned by git blob.
+
+| | |
+|---|---|
+| **F-56-1 · the finding, as raised by beta-g** | the cost ledger's lines extend past a narrow viewport and are reached by **horizontal scrolling** (`item56-narrow-3`, `-4`) |
+| **the owner's ruling on it** | **NOT CLIPPING** — the content scrolls, nothing is lost, the view is not broken |
+| **where it went** | `POST_DONE_BACKLOG.md` **PD-1** — an optional improvement, not a defect, not on the path |
+
+A finding the owner overruled is still a finding that was raised, and it stays here.
+
+⚠️ **Stated so it is not misread:** all four screenshots are at a **narrow** width (~750 px). The
+boundary's EVIDENCE is *"the walk, recorded, at both widths"*; the desktop half rests on the owner's
+verification itself and has **no screenshot in the record**.
+
+---
+
+## ITEM 9 — BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE
+
+By the owner's ruling §3, applied as written: verify what Search Console and owned evidence can prove;
+the rest is **BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE**; do not fabricate, infer or expand scope; do
+not touch a connected product to turn a checklist green. The row now carries its **missing evidence**,
+its **blocker**, its **future unlock condition**, and his sentence: *"Yeh status AlmiVisibility ki
+machinery ki automatic failure declaration nahi hai."* — this is not the machinery declaring failure; six
+of seven dimensions are ingested and complete. No instrumentation was added anywhere.
+
+---
+
+## R-REND-2 — THE TRAP AHEAD OF THE DETECTOR · THE COMMIT TRIGGER · ITEM 10 STAYS DEFERRED
+
+**Recorded 13 September 2026 — before any source-versus-render check exists, because it is not
+convenient later.** Rows **10** and **52**.
+
+### 🔴 6A — "394 OF 394 RENDERED HASHES DIFFER FROM RAW" IS NOT INTERPRETABLE
+
+Every one of the 394 offline renders is **PARTIAL**, because every page asked for something the renderer
+refused. So the difference between a rendered hash and its raw hash mixes two things in one number: **the
+page's own behaviour** and **our refusal**. Nothing in the 394 separates them.
+
+> **ANY future source-versus-render detector that reads a PARTIAL render is measuring our own refusals as
+> if they were the page's defects.** Whoever writes that detector must confront this first.
+
+This is **LAW-ABSENT-1 applied to rendering**: a script that did not load did not load *here*, and its
+absence is a fact about our environment, never a finding about the page.
+
+### 6B — THE COMMIT TRIGGER FOR THE RENDERED HTML
+
+The rendered DOMs are **not committed**, and that is correct: no passing row rests on them. **The day a
+row's evidence depends on a rendered body, that body is committed** — because the evidence behind a tick
+must outlive the tick. Until then it is `POST_DONE_BACKLOG.md` **PD-4**.
+
+### 6C — ITEM 10's RENDERING CLAUSE STAYS DEFERRED, AND ITEM 52 DOES NOT NEED IT UN-DEFERRED
+
+A renderer existing does **not** un-defer item 10's post-JavaScript half (Owner Ruling 7). And **item 52
+does not need that clause un-deferred: item 52 needs DETECTORS**, written under the sealed exam rule —
+which is a different thing from a deferred clause of item 10. Recorded so nobody creates work by
+confusing the two.
+
+---
+
 ## 🔴 PERMANENT LOSSES — RECORDED, IRRECOVERABLE, NEVER DELETED
 
 These rows are **not gaps that can close.** They record something measurable that was never

@@ -26,7 +26,7 @@
  */
 
 import { tokensOf, textOf } from "./tokens.mjs";
-import { computeShells, uniqueWords, residualTokens } from "./shell.mjs";
+import { shellFor, uniqueWords, residualTokens } from "./shell.mjs";
 import { maxAgainstPopulation } from "./overlap.mjs";
 import { countFacts, MIN_FACTS } from "./facts.mjs";
 import { MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "./run.mjs";
@@ -62,19 +62,31 @@ export function measureExistingPages(pages, facts, { now = new Date() } = {}) {
     if (!groups.has(g)) groups.set(g, []);
     groups.get(g).push({ ...p, tokens: tokensOf(p.html) });
   }
+  /* 🔴 D-GATEA-1, FIXED 13 September 2026. A group of one or two pages cannot
+   * learn its own shell — in a pair, a duplicated body IS the shell and an
+   * identical pair scored 0; in a single, the shell is the whole page and its
+   * unique words were 0. Such a group now borrows its shell from the OTHER pages
+   * of its own site (see shellFor in shell.mjs), and is UNMEASURABLE only when
+   * the site has too few other pages to lend one. */
+  const byHost = new Map();
+  for (const members of groups.values()) {
+    for (const m of members) {
+      const h = new URL(m.id).hostname;
+      if (!byHost.has(h)) byHost.set(h, []);
+      byHost.get(h).push(m);
+    }
+  }
   const results = [];
   for (const [group, members] of [...groups].sort(([a], [b]) => a.localeCompare(b))) {
-    const shell = computeShells(members.map((m) => m.tokens)).shellB;
+    const host = new URL(members[0].id).hostname;
+    const reference = (byHost.get(host) ?? []).filter((p) => !members.includes(p)).map((p) => p.tokens);
+    const chosen = shellFor({ groupTokens: members.map((m) => m.tokens), referenceTokens: reference });
+    const shell = chosen.shell ?? new Map();
     const withResidual = members.map((m) => ({ id: m.id, residual: residualTokens(m.tokens, shell) }));
     const overlaps = new Map(maxAgainstPopulation(withResidual, withResidual).map((o) => [o.id, o]));
-    /* 🔴 FOUND WHILE WRITING THIS MODULE'S FIRING FIXTURE: in a group of TWO,
-     * Gate A's shell is every token both pages share, so two identical pages
-     * subtract to nothing and score 0 — a duplicate pair reads as perfectly
-     * distinct. That is not a measurement of overlap, and it is reported as
-     * UNMEASURABLE rather than as a pass. A group of one has no sibling at all. */
-    const overlapState = members.length === 1 ? "VACUOUS" : members.length === 2 ? "UNMEASURABLE_PAIR" : "MEASURED";
+    const overlapState = members.length === 1 ? "VACUOUS" : chosen.source === "NONE" ? "UNMEASURABLE_PAIR" : "MEASURED";
     for (const m of members) {
-      const unique = uniqueWords(m.tokens, shell);
+      const unique = chosen.source === "NONE" ? null : uniqueWords(m.tokens, shell);
       const o = overlaps.get(m.id);
       const present = factsPresentIn(m.html, facts);
       const counted = countFacts(present.map(toGateAFact), now);
@@ -83,8 +95,10 @@ export function measureExistingPages(pages, facts, { now = new Date() } = {}) {
         id: m.id,
         group,
         groupSize: members.length,
+        shellSource: chosen.source,
+        shellPages: chosen.pages,
         uniqueWords: unique,
-        uniquePass: unique >= MIN_UNIQUE_WORDS,
+        uniquePass: unique === null ? null : unique >= MIN_UNIQUE_WORDS,
         overlapState,
         maxOverlap: measured ? o.maxOverlap : null,
         overlapAgainst: measured ? o.against : null,

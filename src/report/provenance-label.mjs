@@ -38,6 +38,13 @@ export const LABEL_BY_TYPE = Object.freeze({
   page: { label: "INFERRED", why: "a page identity assembled from one or more observations" },
   source: { label: "OBSERVED", why: "a retrieved document with a date" },
   issue: { label: "RECOMMENDED", why: "a claim that something is wrong, derived from evidence" },
+  /* 🔴 13 September 2026 (item 50): every record type in a committed store now has a DECLARED label.
+   * Before, these four fell through to UNKNOWN — a drafted recommendation read as "unknown". */
+  draft_recommendation: { label: "RECOMMENDED", why: "a drafted action — not approved and not applied" },
+  issue_state_change: { label: "INFERRED", why: "a lifecycle decision made from evidence, recorded beside the conclusion it changes" },
+  duplicate_record_superseded: { label: "INFERRED", why: "a note that a stored copy repeats an earlier record — derived, not measured" },
+  cost_entry: { label: "INFERRED", why: "computed from a run's own counts and clock; any part it could not measure says UNKNOWN" },
+  recommendation_evidence: { label: "INFERRED", why: "which stored records a recommendation stands on — a link, not a measurement" },
 });
 
 /**

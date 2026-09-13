@@ -40,11 +40,13 @@ console.log("corpus: runs/crawl/bodies-2026-09-12.jsonl.br (committed archive)")
 console.log(`[bound: ${n} distinct pages with a served body · ${m.groups} template groups · thresholds uniqueWords>=${m.thresholds.MIN_UNIQUE_WORDS}, siblingOverlap<=${m.thresholds.MAX_SIBLING_OVERLAP}, facts>=${m.thresholds.MIN_FACTS}, fact value >=${m.thresholds.MIN_VALUE_CHARS} chars]`);
 console.log("TEMPLATE GROUP = one host, the same first path segment, the same path depth.\n");
 
-console.log("=== 1 · UNIQUE VALUE (unique words after the group's shell) ===");
-console.log(`  measured ${count((r) => Number.isInteger(r.uniqueWords))} of ${n} · at or above ${m.thresholds.MIN_UNIQUE_WORDS}: ${count((r) => r.uniquePass)} · below: ${count((r) => !r.uniquePass)}`);
+console.log("SHELL = learned from the template group when it has 3 or more pages; otherwise borrowed from the OTHER pages of the same site (3 or more); otherwise UNMEASURABLE (D-GATEA-1).");
+console.log(`  shells: GROUP ${count((r) => r.shellSource === "GROUP")} · REFERENCE ${count((r) => r.shellSource === "REFERENCE")} · NONE ${count((r) => r.shellSource === "NONE")}\n`);
+console.log("=== 1 · UNIQUE VALUE (unique words after the page's shell) ===");
+console.log(`  measured ${count((r) => Number.isInteger(r.uniqueWords))} of ${n} · at or above ${m.thresholds.MIN_UNIQUE_WORDS}: ${count((r) => r.uniquePass === true)} · below: ${count((r) => r.uniquePass === false)} · UNMEASURABLE ${count((r) => r.uniquePass === null)} (the only crawled page on its site — no shell to learn)`);
 console.log("=== 2 · SIBLING OVERLAP (max body-shingle Jaccard against every sibling in the group) ===");
 console.log(`  MEASURED ${count((r) => r.overlapState === "MEASURED")} of ${n} · within ${m.thresholds.MAX_SIBLING_OVERLAP}: ${count((r) => r.overlapPass === true)} · above: ${count((r) => r.overlapPass === false)}`);
-console.log(`  VACUOUS ${count((r) => r.overlapState === "VACUOUS")} (a group of one — no sibling) · UNMEASURABLE ${count((r) => r.overlapState === "UNMEASURABLE_PAIR")} (a group of two — its shell is the pair's intersection, so a duplicate pair would score 0). Neither is a pass.`);
+console.log(`  VACUOUS ${count((r) => r.overlapState === "VACUOUS")} (a group of one — no sibling) · UNMEASURABLE ${count((r) => r.overlapState === "UNMEASURABLE_PAIR")} (a group of two — on a site with too few other pages to lend a shell). Neither is a pass.`);
 console.log("=== 3 · VERIFIED-FACT PRESENCE (registry VERIFIED values found in the page text) ===");
 console.log(`  measured ${n} of ${n} · carrying at least one verified fact: ${count((r) => r.factsPresent.length > 0)} · reaching ${m.thresholds.MIN_FACTS}: ${count((r) => r.factsPass)}`);
 console.log("=== 4 · SOURCE INTEGRITY (the recorded link check of every source a page's facts cite) ===");

@@ -117,12 +117,21 @@ test("🔴 ITEM 50 FAILED: the UNKNOWN→PASS guard (F23) governs only fact supe
   assert.equal(classify()[50].state, "FAILED");
 });
 
-test("🔴 ITEM 51 FAILED: every real recommendation lacks priority, confidence and cost, and the report renders none of them", () => {
+/* 51 was FAILED by the re-scan; its fields are now computed (test/recommendation-fields.test.mjs). */
+test("🔴 ITEM 51: the drafts themselves still carry no chosen priority, confidence or cost — the report COMPUTES them, and the row passed", () => {
   const drafts = createJsonlStore(`${REPO}runs/audit/recommendations.jsonl`).readAll().filter((r) => r.record_type === "draft_recommendation");
   assert.equal(drafts.length, 3);
-  for (const d of drafts) for (const field of ["priority", "confidence", "cost"]) assert.equal(d[field], undefined);
-  assert.doesNotMatch(read("src/report/view.mjs"), /draft_recommendation|recommendation_id/);
-  assert.equal(classify()[51].state, "FAILED");
+  for (const d of drafts) for (const field of ["priority", "confidence", "cost"]) assert.equal(d[field], undefined, "a number was written onto a recommendation instead of derived");
+  assert.match(read("src/report/view.mjs"), /renderRecommendations/);
+  assert.equal(classify()[51].state, "VERIFIED-PASS");
+  assert.match(classify()[51].whyFailed, /FAILURE CONDITION IS MET/);
+});
+
+test("🔴 ITEM 25 after D-GATEA-1: the re-run over the same 389 pages — pair and single-page measurements now real", () => {
+  const after = read("runs/audit/item-25-page-quality-run-after-gatea-fix-2026-09-13.txt");
+  assert.match(after, /at or above 350: 155 · below: 228 · UNMEASURABLE 6/);
+  assert.match(after, /MEASURED 337 of 389 · within 0\.4: 243 · above: 94/);
+  assert.match(after, /VACUOUS 52 .* UNMEASURABLE 0/);
 });
 
 /* ---- 1 and 54 · the learning record ------------------------------------- */

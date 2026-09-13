@@ -26,6 +26,7 @@ import { lifecycleOf, walkChain } from "../src/evidence/lifecycle.mjs";
 import { makeSource } from "../src/evidence/records.mjs";
 import { sourceRecordFromFact, rankSources, tierCensus } from "../src/evidence/source-tiers.mjs";
 import { createCostLedger, formatLedgerLine, coverageFailures } from "../src/cost/ledger.mjs";
+import { computeRecommendationFields } from "../src/report/recommendation-fields.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n, d) => {
@@ -108,8 +109,17 @@ const sourceTiers = { ranked: rankSources(sourcesIn), census: tierCensus(sources
 const ledgerEntries = createCostLedger(`${REPO}runs/cost/ledger.jsonl`).readAll();
 const ledgerView = { lines: ledgerEntries.map(formatLedgerLine), failures: coverageFailures(ledgerEntries) };
 
+/* 🔴 ITEM 51 — every drafted recommendation with all six fields; priority,
+ * confidence and cost computed from the stores (src/report/recommendation-fields.mjs). */
+const recommendationFields = computeRecommendationFields({
+  recommendations: allAudit.filter((r) => r.record_type === "draft_recommendation"),
+  links: allAudit.filter((r) => r.record_type === "recommendation_evidence"),
+  records: [...allAudit, ...evidenceRecords, ...crawlRecords],
+  ledger: ledgerEntries,
+});
+
 const generatedAt = new Date().toISOString();
-const html = renderPage({ crawlRecords, evidenceRecords, facts, generatedAt, chainWalk, sourceTiers, ledger: ledgerView });
+const html = renderPage({ crawlRecords, evidenceRecords, facts, generatedAt, chainWalk, sourceTiers, ledger: ledgerView, recommendations: recommendationFields });
 
 if (!permission.mayWrite) {
   console.log(`[dry-run] would have written ${out}  (${(Buffer.byteLength(html, "utf8") / 1024).toFixed(1)} KiB) — add --confirm`);

@@ -26,6 +26,7 @@
  */
 
 import { ISSUE_STATES } from "./records.mjs";
+import { canTransition } from "./transitions.mjs";
 
 export const STATE_CHANGE_TYPE = "issue_state_change";
 
@@ -84,6 +85,8 @@ export function lifecycleOf(records) {
   }
 
   const errors = [];
+  // The UNKNOWN→PASS guard's own count: every real transition it judged, refused, or allowed on a new measurement.
+  const guard = { judged: 0, refused: 0, onNewMeasurement: 0 };
   const changes = records
     .filter((r) => r?.record_type === STATE_CHANGE_TYPE)
     .sort((a, b) => (a.changed_at < b.changed_at ? -1 : a.changed_at > b.changed_at ? 1 : 0));
@@ -113,13 +116,34 @@ export function lifecycleOf(records) {
         continue;
       }
     }
+
+    /* 🔴 ITEM 50 — THE UNKNOWN→PASS GUARD, ON THE ISSUE PATH (13 September 2026).
+     * Closing an issue asserts that the defect is gone: a PASS. Superseding one
+     * hands its verdict to the replacement. Both are check-outcome transitions,
+     * and the ONE table in transitions.mjs decides them. Until this, an UNKNOWN
+     * issue could be CLOSED on any evidence at all — a path that turned
+     * "we could not tell" into "fixed" with nothing measured. An UNKNOWN issue
+     * may now leave for PASS only on a NEW measurement: evidence that was not
+     * already behind the issue. */
+    const fromOutcome = entry.issue.verdict;
+    const toOutcome = c.to === "CLOSED" ? "PASS" : issues.get(c.superseded_by).issue.verdict;
+    guard.judged += 1;
+    if (!canTransition(fromOutcome, toOutcome)) {
+      const fresh = (c.evidence ?? []).filter((id) => !(entry.issue.evidence ?? []).includes(id));
+      if (!(fromOutcome === "UNKNOWN" && toOutcome === "PASS" && fresh.length > 0)) {
+        guard.refused += 1;
+        errors.push(`state change for ${c.issue_id}: ${fromOutcome} → ${toOutcome} is forbidden — UNKNOWN never becomes PASS without a new measurement (DoD §170)`);
+        continue;
+      }
+      guard.onNewMeasurement += 1;
+    }
     entry.state = c.to;
     entry.changes.push(c);
   }
 
   const census = Object.fromEntries(ISSUE_STATES.map((s) => [s, 0]));
   for (const e of issues.values()) census[e.state] += 1;
-  return { issues, errors, census };
+  return { issues, errors, census, guard };
 }
 
 export const DUPLICATE_SUPERSEDED_TYPE = "duplicate_record_superseded";

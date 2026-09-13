@@ -26,27 +26,27 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | **NOT-STARTED** | 3 | 3 | **3** |
 | **BUILT-NOT-PROVED** | 18 | 17 | **6** |
 | **TESTABLE-NOW** | 0 | 2 | **1** |
-| **VERIFIED-PASS** | 3 | 3 | **13** |
-| **FAILED** | 0 | -1 | **2** |
+| **VERIFIED-PASS** | 3 | 3 | **14** |
+| **FAILED** | 0 | -1 | **1** |
 | **BLOCKED-UNKNOWN** | 6 | 6 | **5** |
 | **DEFERRED** | 28 | 28 | **28** |
 
-### FAILED — counted and named separately: **2**
+### FAILED — counted and named separately: **1**
 
 > 🔴 **FAILED is counted and named separately in every report.** It is never folded into another
 > count and it is **not progress**. It is also **worth more than BUILT-NOT-PROVED**: a FAILED row
 > is one whose test was run against its own boundary — it means we looked.
 
-- **item 50 · OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation** — FAILURE met: the guard polices an empty population — the UNKNOWN→PASS arbiter (F23) judges only fact supersessions, and 0 of 46 real facts carry life.supersedes
-- **item 51 · Explainability** — FAILURE met: priority, confidence and cost are missing on every real recommendation, and the real report renders no recommendation at all
+- **item 50 · OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation** — FAILURE met: the guard polices an empty population — the transitions it exists to police, out of UNKNOWN on real records, number 0: 0 of 46 facts carry a supersession, and 0 of the 145 real issue transitions it now judges start from UNKNOWN
 - **item 14** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-12 — report.mjs and the chain runner's cache now write only with --confirm; every destination is confined to this repository and refused outside it; all five parts re-tested and each RED-proved
 - **item 45** left FAILED for TESTABLE-NOW by route `OWNER_RULING` on 2026-09-12 — 'A component cannot be failed for a period before it existed.' The boundary's INPUT is a run; the scope is runs from 8c9d68b (2026-09-12T23:03:09Z) onward. The bar is unchanged; the eight earlier runs are recorded as a permanent loss (L-COST-1)
 - **item 48** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — every authorized job that stores a record has now been run twice into one store with zero duplicates on the second run — crawl (replay: 389 unchanged → 0 new, 389 re-sightings), DNS audit (RECORDED resolver answers: 134 → +0), technical, content, verification and supply-label writers — and the census holds every issue writer to appendIfNew; RED when the key takes the clock
+- **item 51** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — priority, confidence and cost each computed from stored evidence and each able to say UNKNOWN — two recommendations ranked by measured impressions, one UNKNOWN; confidence derived on all three; cost UNKNOWN on all three with lower bounds — and all six visible on the real report
 - **item 55** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — the parse is caught and rethrown with nothing from the file; the leak test re-run passed on every credential path, RED when the key or its length is logged; recovery proved by restoring torn stores from git, byte-identical by blob hash
 
 **Rows that have been looked at (VERIFIED-PASS or FAILED): 15 of 58.**
 
-**Rows that reached VERIFIED-PASS in this PR: 10.**
+**Rows that reached VERIFIED-PASS in this PR: 11.**
 
 #### moved ONLY because a RULING changed
 
@@ -82,6 +82,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 50 | TESTABLE-NOW | FAILED | `test/queue-rescan.test.mjs (item 50)` | 2026-09-13 | FAILURE met: the UNKNOWN→PASS guard (F23) judges only fact supersessions, and 0 of 46 real facts carry one — the guard polices an empty population |
 | 51 | BUILT-NOT-PROVED | TESTABLE-NOW | `undefined` | 2026-09-13 | a real recommendation exists |
 | 51 | TESTABLE-NOW | FAILED | `test/queue-rescan.test.mjs (item 51)` | 2026-09-13 | FAILURE met: priority, confidence and cost are missing on all three, and the real report renders none of the six |
+| 51 | FAILED | VERIFIED-PASS | `node bin/link-recommendation-evidence.mjs · node bin/report.mjs --confirm · test/recommendation-fields.test.mjs` | 2026-09-13 | priority, confidence and cost each computed from stored evidence and each able to say UNKNOWN — two recommendations ranked by measured impressions, one UNKNOWN; confidence derived on all three; cost UNKNOWN on all three with lower bounds — and all six visible on the real report |
 | 55 | BUILT-NOT-PROVED | TESTABLE-NOW | `undefined` | 2026-09-13 | the input exists; not run, because the executing leak test it needs does not exist yet |
 | 55 | TESTABLE-NOW | FAILED | `test/secret-leak.test.mjs (first honest run, before any fix)` | 2026-09-13 | FAILURE met — any leak: a key file that is not JSON was quoted by the adapter's parse error in-process and printed whole to stderr by the CLI (D-SEC-1) |
 | 55 | FAILED | VERIFIED-PASS | `test/secret-leak.test.mjs · test/store-recovery.test.mjs` | 2026-09-13 | the parse is caught and rethrown with nothing from the file; the leak test re-run passed on every credential path, RED when the key or its length is logged; recovery proved by restoring torn stores from git, byte-identical by blob hash |
@@ -95,8 +96,8 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | **NOT-STARTED** | 33 | **3** |
 | **BUILT-NOT-PROVED** | 24 | **6** |
 | **TESTABLE-NOW** | 0 | **1** |
-| **VERIFIED-PASS** | 0 | **13** |
-| **FAILED** | 0 | **2** |
+| **VERIFIED-PASS** | 0 | **14** |
+| **FAILED** | 0 | **1** |
 | **BLOCKED-UNKNOWN** | 1 | **5** |
 | **DEFERRED** | 0 | **28** |
 | **total** | 58 | **58** |
@@ -124,7 +125,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 48 | Idempotency & Retry Safety | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 49 | Audit Trail & Provenance | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 50 | OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation | BUILT-NOT-PROVED | **FAILED** |
-| 51 | Explainability | BUILT-NOT-PROVED | **FAILED** |
+| 51 | Explainability | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 55 | Security / Secrets / Recovery | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 
 #### (ii) changed ONLY because the vocabulary changed
@@ -150,7 +151,7 @@ NEVER TRIED or TRIED AND FELL SHORT — with the date and the specific gap when 
 
 **Attempted 1 time(s), last on 2026-09-13. The gap that stopped it:** verified-fact presence finds 0 verified facts on all 389 existing pages, so source integrity — measured on all 15 cited sources, 15 LIVE — can be reported for NO existing page; the only page carrying verified facts is one this engine generated from the registry, which cannot show the check sees facts on a page someone else wrote
 
-**Where it stands:** 🔴 **RUN 13 SEPTEMBER 2026 — ALL FOUR PARTS MEASURED, AND IT DOES NOT TICK, AND IT IS NOT FAILED.** **(1) UNIQUE VALUE — proved:** measured on all 389 existing pages with a served body (122 at or above 350 unique words after the group's shell, 267 below), firing fixture and clean control. **(2) SIBLING OVERLAP — proved, with its limits named:** MEASURED on 327 pages (239 within 0.40, 88 above); 52 pages sit alone in their template group (VACUOUS) and 10 in groups of two, where Gate A's shell is the pair's intersection and a duplicate pair would score 0 (UNMEASURABLE, D-GATEA-1) — neither is counted a pass. **(3) VERIFIED-FACT PRESENCE — measured, no real positive:** 0 of 389 existing pages carry a verified fact; the rule fires on real registry values on a page this engine GENERATED (14 present), which is a control and never an existing page. **(4) SOURCE INTEGRITY — measured live, per source, not per page:** the owner-authorised link check requested 18 of a hard cap of 40, 1/s, external hosts only, HEAD first — all 15 cited sources LIVE, 0 GONE, 0 UNKNOWN, 0 disagreements with beta-g's 12 September reading (the exam provider's site answered HEAD with 200 where beta-g's fetcher got 403). But with no existing page carrying a fact, no page has a source to report. **EXPECTED** ('each measured and reported per page') is not met for part 4; **FAILURE** ('fixture-only or absent') is not met — every part ran on real data. So: TESTABLE-NOW, attempted once, gap named
+**Where it stands:** 🔴 **RUN 13 SEPTEMBER 2026 — ALL FOUR PARTS MEASURED, AND IT DOES NOT TICK, AND IT IS NOT FAILED.** **(1) UNIQUE VALUE — proved:** measured on 383 of the 389 existing pages with a served body (155 at or above 350 unique words after the page's shell, 228 below); 6 sub-site homes are UNMEASURABLE, each the only crawled page on its site, so no shell can be learned; firing fixture and clean control. **(2) SIBLING OVERLAP — proved:** MEASURED on 337 pages (243 within 0.40, 94 above); 52 pages sit alone in their template group (VACUOUS, never a pass). ⚠️ These are the numbers AFTER D-GATEA-1 was fixed on 13 September 2026 — the first attempt reported 122 / 327 / 10 UNMEASURABLE, because a group of one or two pages learned its shell from itself; the recorded first run is kept (runs/audit/item-25-page-quality-run-2026-09-13.txt) beside the re-run. **(3) VERIFIED-FACT PRESENCE — measured, no real positive:** 0 of 389 existing pages carry a verified fact; the rule fires on real registry values on a page this engine GENERATED (14 present), which is a control and never an existing page. **(4) SOURCE INTEGRITY — measured live, per source, not per page:** the owner-authorised link check requested 18 of a hard cap of 40, 1/s, external hosts only, HEAD first — all 15 cited sources LIVE, 0 GONE, 0 UNKNOWN, 0 disagreements with beta-g's 12 September reading (the exam provider's site answered HEAD with 200 where beta-g's fetcher got 403). But with no existing page carrying a fact, no page has a source to report. **EXPECTED** ('each measured and reported per page') is not met for part 4; **FAILURE** ('fixture-only or absent') is not met — every part ran on real data. So: TESTABLE-NOW, attempted once, gap named
 
 ---
 
@@ -515,7 +516,7 @@ question for the owner, recorded as one.
 | **v0.1 PASS boundary** | unique value, verified facts, sibling overlap and source integrity measured on existing pages. |
 | **⏭ deferred half** | right-to-exist, cannibalization and technical-readiness **as pre-publish gates** — they need a publish path. |
 
-**Verdict —** 🔴 **RUN 13 SEPTEMBER 2026 — ALL FOUR PARTS MEASURED, AND IT DOES NOT TICK, AND IT IS NOT FAILED.** **(1) UNIQUE VALUE — proved:** measured on all 389 existing pages with a served body (122 at or above 350 unique words after the group's shell, 267 below), firing fixture and clean control. **(2) SIBLING OVERLAP — proved, with its limits named:** MEASURED on 327 pages (239 within 0.40, 88 above); 52 pages sit alone in their template group (VACUOUS) and 10 in groups of two, where Gate A's shell is the pair's intersection and a duplicate pair would score 0 (UNMEASURABLE, D-GATEA-1) — neither is counted a pass. **(3) VERIFIED-FACT PRESENCE — measured, no real positive:** 0 of 389 existing pages carry a verified fact; the rule fires on real registry values on a page this engine GENERATED (14 present), which is a control and never an existing page. **(4) SOURCE INTEGRITY — measured live, per source, not per page:** the owner-authorised link check requested 18 of a hard cap of 40, 1/s, external hosts only, HEAD first — all 15 cited sources LIVE, 0 GONE, 0 UNKNOWN, 0 disagreements with beta-g's 12 September reading (the exam provider's site answered HEAD with 200 where beta-g's fetcher got 403). But with no existing page carrying a fact, no page has a source to report. **EXPECTED** ('each measured and reported per page') is not met for part 4; **FAILURE** ('fixture-only or absent') is not met — every part ran on real data. So: TESTABLE-NOW, attempted once, gap named
+**Verdict —** 🔴 **RUN 13 SEPTEMBER 2026 — ALL FOUR PARTS MEASURED, AND IT DOES NOT TICK, AND IT IS NOT FAILED.** **(1) UNIQUE VALUE — proved:** measured on 383 of the 389 existing pages with a served body (155 at or above 350 unique words after the page's shell, 228 below); 6 sub-site homes are UNMEASURABLE, each the only crawled page on its site, so no shell can be learned; firing fixture and clean control. **(2) SIBLING OVERLAP — proved:** MEASURED on 337 pages (243 within 0.40, 94 above); 52 pages sit alone in their template group (VACUOUS, never a pass). ⚠️ These are the numbers AFTER D-GATEA-1 was fixed on 13 September 2026 — the first attempt reported 122 / 327 / 10 UNMEASURABLE, because a group of one or two pages learned its shell from itself; the recorded first run is kept (runs/audit/item-25-page-quality-run-2026-09-13.txt) beside the re-run. **(3) VERIFIED-FACT PRESENCE — measured, no real positive:** 0 of 389 existing pages carry a verified fact; the rule fires on real registry values on a page this engine GENERATED (14 present), which is a control and never an existing page. **(4) SOURCE INTEGRITY — measured live, per source, not per page:** the owner-authorised link check requested 18 of a hard cap of 40, 1/s, external hosts only, HEAD first — all 15 cited sources LIVE, 0 GONE, 0 UNKNOWN, 0 disagreements with beta-g's 12 September reading (the exam provider's site answered HEAD with 200 where beta-g's fetcher got 403). But with no existing page carrying a fact, no page has a source to report. **EXPECTED** ('each measured and reported per page') is not met for part 4; **FAILURE** ('fixture-only or absent') is not met — every part ran on real data. So: TESTABLE-NOW, attempted once, gap named
 
 **The one test that would settle it —** node bin/page-quality.mjs over an existing page set that includes pages known to state registry facts (a bounded capture of such pages needs the owner's green), with node bin/source-integrity.mjs's recorded run folded in per page · node --test test/existing-pages.test.mjs test/source-integrity.test.mjs
 
@@ -862,11 +863,11 @@ question for the owner, recorded as one.
 
 **Verdict —** 🔴 **RE-SCANNED 13 SEPTEMBER 2026: ITS INPUT EXISTED, SO THE TEST WAS RUN — AND ITS FAILURE CONDITION IS MET.** **INPUT exists:** records of all four kinds on real data — observations (OBSERVED), run summaries (INFERRED), issues (RECOMMENDED) and UNKNOWN findings and facts. **The labels hold.** **The guard does not govern real records:** the only UNKNOWN→PASS arbiter on a real verdict path is F23 in src/facts/validate.mjs, it judges a fact that supersedes another, and **0 of 46 real facts carry life.supersedes** — the population is empty, which the FAILURE clause names word for word. The 134 superseded issues do not pass through it: issue lifecycle records are not check outcomes. ⚠️ Also found: a real `draft_recommendation` has no declared label and would render UNKNOWN. **Leaves FAILED** by a real record passing through the guard and the test re-run, or an owner ruling
 
-**The one test that would settle it —** node --test test/queue-rescan.test.mjs (item 50) · a real fact supersession through src/facts/validate.mjs's F23 arbiter
+**The one test that would settle it —** node --test test/issue-transition-guard.test.mjs test/queue-rescan.test.mjs · a real record leaving UNKNOWN through the guard
 
 ### 51 · Explainability
 
-**FAILED** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (work)
+**VERIFIED-PASS** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (work)
 
 | part | the owner's words |
 |---|---|
@@ -876,9 +877,9 @@ question for the owner, recorded as one.
 | **EVIDENCE** | the six visible for a real recommendation, on the real report. |
 | **BLOCKER TODAY** | priority, confidence and cost do not exist. |
 
-**Verdict —** 🔴 **RE-SCANNED 13 SEPTEMBER 2026: ITS INPUT EXISTED, SO THE TEST WAS RUN — AND ITS FAILURE CONDITION IS MET.** **INPUT exists:** three real recommendations (runs/audit/recommendations.jsonl, drafted 12 September). **Of the six the owner must be able to inspect:** status ✅ (RECOMMENDED — NOT APPROVED — NOT APPLIED), evidence ✅ (a cited official source), reason ✅ (the finding and its origin); **priority ❌, confidence ❌, cost ❌** — no such field exists. And **on the real report none of the six is visible**: bin/report.mjs reads a recommendation only as a source-tier row. 'Any of the six is missing or unreadable' — met. **Leaves FAILED** when a real recommendation shows all six on the real report and the test is re-run
+**Verdict —** 🔴 **LEFT FAILED BY RULE 1's FIRST ROUTE — THE THREE MISSING FIELDS BUILT, EACH COMPUTED FROM STORED EVIDENCE, AND THE TEST RE-RUN AND PASSED.** **Evidence linked, not invented:** the three drafts named their findings in prose only, so each now has a recommendation_evidence record naming the stored records it stands on — refused unless the count its own finding states is reproduced (106 robots issues · 134 noindex issues · 16 crawler classifications). **PRIORITY, derived:** measured search impressions on the pages its issues name, from the newest COMPLETE page-rows pull, and the rank that gives — REC-NOINDEX-CV-GUIDE **1 of 2** (484 on 134 of 134 pages); REC-ROBOTS-CORRIDOR **2 of 2** (219 on 106 of 106 — its own text says 216, from the pull its audit read); REC-AI-CRAWLER-BLOCK **UNKNOWN** — its evidence names no page, so nothing measured can rank it. **CONFIDENCE, derived:** the WEAKEST §623 tier of the evidence and how complete it is — VERIFIED_ALMIWORLD at worst on all three, every linked id resolved, 0 linked issues UNKNOWN. **COST, from the ledger:** the entries that produced the evidence — and it reads **UNKNOWN on all three**, because the audit and crawl runs that raised most of that evidence were never costed; only lower bounds exist (9 provider calls where a Search Console pull is involved). The cost of CARRYING OUT a recommendation is **UNKNOWN**: no such run has happened. **No number was chosen:** the module holds no weight, threshold or score, and a test fails if one appears. **All six are visible on the real report** (runs/report/index.html, 'Recommendations'). **FAILURE not met:** none of the six is missing or unreadable — an UNKNOWN that states why is readable. ⚠️ Recorded rather than hidden: cost is UNKNOWN on every real recommendation, and stays so until the runs that raise issues are costed
 
-**The one test that would settle it —** node --test test/queue-rescan.test.mjs (item 51) · node bin/report.mjs, inspected for all six on a real recommendation
+**The one test that would settle it —** node bin/link-recommendation-evidence.mjs · node bin/report.mjs --confirm · node --test test/recommendation-fields.test.mjs
 
 ### 52 · Case Study Acceptance Test
 

@@ -63,7 +63,7 @@
  * `reachedOverlap` so the two can never again be confused.
  */
 import { tokensOf } from "./tokens.mjs";
-import { computeShells, uniqueWords, residualTokens } from "./shell.mjs";
+import { computeShells, uniqueWords, residualTokens, shellFor, MIN_PAGES_FOR_OWN_SHELL } from "./shell.mjs";
 import { countFacts, MIN_FACTS } from "./facts.mjs";
 import { maxAgainstPopulation, strategyFor, EXACT_ALL_PAIRS_MAX_GROUP } from "./overlap.mjs";
 
@@ -112,7 +112,7 @@ export const MAX_SIBLING_OVERLAP = 0.40;
  * @param {{ id: string, html: string, facts?: unknown[], whyThisUrl?: string }[]} group
  *        one TEMPLATE GROUP. Two templates are never compared to each other.
  */
-export function runGateA(group, { now = new Date(), shellDefinition = "B" } = {}) {
+export function runGateA(group, { now = new Date(), shellDefinition = "B", reference = null } = {}) {
   const pages = group.map((p) => ({ ...p, tokens: tokensOf(p.html) }));
 
   // Population before the guard — reported even when it is zero.
@@ -126,7 +126,18 @@ export function runGateA(group, { now = new Date(), shellDefinition = "B" } = {}
   }
 
   const shellInfo = computeShells(pages.map((p) => p.tokens));
-  const shell = shellDefinition === "A" ? shellInfo.shellA : shellInfo.shellB;
+  /* 🔴 D-GATEA-1 (13 September 2026). A group smaller than MIN_PAGES_FOR_OWN_SHELL
+   * cannot learn its own shell: in a pair, a duplicated body IS the shell and an
+   * identical pair scores 0. With a `reference` (other pages of the same site)
+   * the shell is borrowed from it. Without one, a PAIR's overlap is UNMEASURABLE
+   * and the page cannot be kept on it — see the verdict below. A single page is
+   * unchanged: the shell eats it at stage 1, as before. */
+  const borrowed =
+    pages.length < MIN_PAGES_FOR_OWN_SHELL && reference
+      ? shellFor({ groupTokens: pages.map((p) => p.tokens), referenceTokens: reference.map((r) => tokensOf(r.html)), definition: shellDefinition })
+      : null;
+  const shell = borrowed?.shell ?? (shellDefinition === "A" ? shellInfo.shellA : shellInfo.shellB);
+  const pairUnmeasurable = pages.length === 2 && !borrowed?.shell;
 
   // ── stage 1 and 2 · linear, per page ─────────────────────────────────────
   const results = pages.map((p) => {
@@ -181,7 +192,9 @@ export function runGateA(group, { now = new Date(), shellDefinition = "B" } = {}
       // An empty population is a finding, not a pass. A page alone in its group
       // has nothing to be different FROM, and must not collect a free pass here.
       row.overlapVacuous = o.vacuous;
-      row.overlapPass = o.vacuous ? null : o.maxOverlap <= MAX_SIBLING_OVERLAP;
+      // A pair with no reference shell: the score exists but measures nothing, so it is neither pass nor fail.
+      row.overlapUnmeasurable = pairUnmeasurable;
+      row.overlapPass = o.vacuous || pairUnmeasurable ? null : o.maxOverlap <= MAX_SIBLING_OVERLAP;
     }
   }
 
@@ -190,6 +203,8 @@ export function runGateA(group, { now = new Date(), shellDefinition = "B" } = {}
     else if (!r.factsPass) r.verdict = "REJECT";
     else if (!r.whyThisUrlPresent) { r.verdict = "REJECT"; r.rejectedAt = "whyThisUrl"; }
     else if (r.overlapPass === false) { r.verdict = "REJECT"; r.rejectedAt = "overlap"; }
+    // 🔴 D-GATEA-1: a page is never kept on an overlap that could not be measured.
+    else if (r.overlapUnmeasurable) { r.verdict = "REJECT"; r.rejectedAt = "overlap-unmeasurable"; }
     else if (r.overlapVacuous) {
       // The ONLY way this can happen now is a template group of exactly one page:
       // there is genuinely no sibling to differ from. That is a real KEEP, not the

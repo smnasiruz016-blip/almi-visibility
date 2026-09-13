@@ -109,6 +109,36 @@ export function computeShells(pagesTokens) {
 }
 
 /**
+ * 🔴 D-GATEA-1 — WHICH PAGES A SHELL MAY BE LEARNED FROM (13 September 2026).
+ *
+ * A shell is "what nearly every page in the population shares". In a group of
+ * TWO, that is everything the two pages share — so if they are duplicates, their
+ * duplicated body IS the shell, it is subtracted from both, and an identical
+ * pair scores 0 overlap. In a group of ONE the shell is the whole page, and its
+ * unique words are 0. A shell learned from the very pages being compared cannot
+ * tell their template from their duplication.
+ *
+ * So a group needs at least MIN_PAGES_FOR_OWN_SHELL pages to learn its own shell
+ * (with three, a body shared by two of them is no longer on 98% of pages). A
+ * smaller group borrows its shell from a REFERENCE population that does not
+ * contain it — the other pages of the same site — when that reference has at
+ * least as many pages; otherwise there is no honest shell, and the caller must
+ * report the measurement UNMEASURABLE rather than score it.
+ */
+export const MIN_PAGES_FOR_OWN_SHELL = 3;
+
+export function shellFor({ groupTokens, referenceTokens = [], definition = "B" }) {
+  const pick = (s) => (definition === "A" ? s.shellA : s.shellB);
+  if (groupTokens.length >= MIN_PAGES_FOR_OWN_SHELL) {
+    return { shell: pick(computeShells(groupTokens)), source: "GROUP", pages: groupTokens.length };
+  }
+  if (referenceTokens.length >= MIN_PAGES_FOR_OWN_SHELL) {
+    return { shell: pick(computeShells(referenceTokens)), source: "REFERENCE", pages: referenceTokens.length };
+  }
+  return { shell: null, source: "NONE", pages: 0 };
+}
+
+/**
  * Words this page has that the shell does not account for.
  * Multiset subtraction: a token present 5 times here and 4 times in the shell
  * contributes 1.

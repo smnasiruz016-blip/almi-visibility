@@ -131,7 +131,7 @@ footer{margin-top:2rem;padding-top:1rem;border-top:2px solid var(--line);color:v
 </section>
 
 <section id="ledger">
-  <h2>Cost ledger — 10 entries</h2>
+  <h2>Cost ledger — 15 entries</h2>
   <pre class="wrap">crawl:42c54fa63036f1c7  money=UNKNOWN(NOT_MEASURABLE_WITH_TOOLS_WE_HOLD)  calls=394  time=403.268s  budget(crawl): urlsRequested=500 urlsFetched=394 requestsIssued=394 disallowedByRobots=106 capReached=false  [bound: maxUrlsPerRun=500 maxRequestsPerHost=200 maxResponseBytes=2097152 seedPoolSize=1497]
 gsc-ingest:2026-09-11T22:58:51.912Z  money=0 USD [ZERO_BY_TARIFF]  calls=5  time=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=2 requestsInNewPulls=2 resightings=0 capReached=false  [bound: rowLimitPerRequest=not stored in this run maxRequestsPerPull=not stored in this run]
 gsc-ingest:2026-09-12T00:15:14.660Z  money=0 USD [ZERO_BY_TARIFF]  calls=5  time=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=2 requestsInNewPulls=2 resightings=0 capReached=false  [bound: rowLimitPerRequest=25000 maxRequestsPerPull=20]
@@ -141,24 +141,61 @@ gsc-ingest:2026-09-12T00:16:20.518Z  money=0 USD [ZERO_BY_TARIFF]  calls=UNKNOWN
 gsc-ingest:2026-09-12T00:36:17.340Z  money=0 USD [ZERO_BY_TARIFF]  calls=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  time=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=2 requestsInNewPulls=1 resightings=3 capReached=false  [bound: rowLimitPerRequest=25000 maxRequestsPerPull=20]
 gsc-ingest:2026-09-12T02:44:15.609Z  money=0 USD [ZERO_BY_TARIFF]  calls=7  time=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=2 requestsInNewPulls=2 resightings=3 capReached=false  [bound: rowLimitPerRequest=25000 maxRequestsPerPull=20]
 gsc-ingest:2026-09-12T22:06:42.662Z  money=0 USD [ZERO_BY_TARIFF]  calls=9  time=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=7 requestsInNewPulls=6 resightings=1 capReached=false  [bound: rowLimitPerRequest=25000 maxRequestsPerPull=20]
-gsc-ingest:2026-09-12T23:25:02.608Z  money=0 USD [ZERO_BY_TARIFF]  calls=9  time=2.238s  budget(crawl): urlsFetched=0 requestsIssued=0 capReached=false  [bound: maxUrlsPerRun=500 maxRequestsPerHost=200]</pre>
+gsc-ingest:2026-09-12T23:25:02.608Z  money=0 USD [ZERO_BY_TARIFF]  calls=9  time=2.238s  budget(crawl): urlsFetched=0 requestsIssued=0 capReached=false  [bound: maxUrlsPerRun=500 maxRequestsPerHost=200]
+artifact-recovery:2026-09-13T00:27:05.860Z  money=UNKNOWN(NOT_MEASURABLE_WITH_TOOLS_WE_HOLD)  calls=1  time=80.025s  budget(artifact-download): files=394 bytes=39921127 capReached=false  [bound: artifact=crawl-corpus-34662527129 artifactExpiresAt=2026-12-11T00:42:30Z]
+replay:2026-09-13T00:27:05.860Z  money=0 USD [MEASURED]  calls=0  time=93.84s  budget(crawl): passes=2 urlsFetched=788 requestsIssued=788 localRequests=822 nonLocalRequests=0 capReached=false  [bound: maxUrlsPerRun=500 maxRequestsPerHost=200]
+replay:2026-09-13T01:02:04.073Z  money=0 USD [MEASURED]  calls=0  time=13.814s  budget(crawl): passes=2 urlsFetched=788 requestsIssued=788 localRequests=822 nonLocalRequests=0 capReached=false  [bound: maxUrlsPerRun=500 maxRequestsPerHost=200]
+link-check:2026-09-13T01:42:09.708Z  money=0 USD [ZERO_BY_TARIFF]  calls=18  time=18.616s  budget(link-check): urls=15 requests=18 capReached=false  [bound: maxRequests=40 intervalMs=1000 concurrency=1]
+source-fetch:2026-09-13T02:19:52.573Z  money=0 USD [ZERO_BY_TARIFF]  calls=7  time=6.328s  budget(link-check): urls=5 requests=7 capReached=false  [bound: maxRequests=12 intervalMs=1000 concurrency=1]</pre>
   <p class="sum bad">UNKNOWN although measurable: <strong>12</strong> — gsc-ingest:2026-09-11T22:58:51.912Z · founderTime; gsc-ingest:2026-09-12T00:15:14.660Z · founderTime; gsc-ingest:2026-09-12T00:15:15.685Z · providerCalls; gsc-ingest:2026-09-12T00:15:15.685Z · founderTime; gsc-ingest:2026-09-12T00:16:19.426Z · providerCalls; gsc-ingest:2026-09-12T00:16:19.426Z · founderTime; gsc-ingest:2026-09-12T00:16:20.518Z · providerCalls; gsc-ingest:2026-09-12T00:16:20.518Z · founderTime; gsc-ingest:2026-09-12T00:36:17.340Z · providerCalls; gsc-ingest:2026-09-12T00:36:17.340Z · founderTime; gsc-ingest:2026-09-12T02:44:15.609Z · founderTime; gsc-ingest:2026-09-12T22:06:42.662Z · founderTime</p>
 </section>
 
 <section id="chain">
-  <h2>A conclusion, walked end to end — <code>2377eca209a7d1bb</code> · now SUPERSEDED</h2>
+  <h2>A conclusion, walked end to end — <code>c078c4028de76b49</code> · now CLOSED</h2>
   <table class="bounds"><tbody>
-    <tr><th>WHAT ✅ present</th><td>noindex on page <code>9b23a67e6f4eae6a</code> — noindex present (meta=true, header=false)</td></tr>
-    <tr><th>WHY ✅ present</th><td>verdict FAIL by detector <code>noindex</code> v1 — noindex present (meta=true, header=false)</td></tr>
-    <tr><th>FROM WHICH EVIDENCE ✅ present</th><td class="wrap"><code>c0c72fbad998db69</code> crawl.fetch · https://almicv.almiworld.com/cv-guide/grenada/illustrator · 2026-09-12T00:43:12.137Z</td></tr>
-    <tr><th>WHEN ✅ present</th><td>opened 2026-09-12T02:49:45.018Z; → SUPERSEDED 2026-09-12T22:53:18.491Z</td></tr>
+    <tr><th>WHAT ✅ present</th><td>instrument-disagreement on page <code>2d6cf82a519a04fb</code> — two instruments disagree about this page's inbound links over the same bodies (bin/audit-content.mjs 340, bin/audit-technical.mjs 341). bin/audit-content.mjs finds inbound links to this page and bin/audit-technical.mjs finds none: bin/audit-technical.mjs counts ONLY a link from the same host counts, bin/audit-content.mjs counts a link from any crawled host counts.</td></tr>
+    <tr><th>WHY ✅ present</th><td>verdict FAIL by detector <code>instrument-agreement</code> v1 — two instruments disagree about this page's inbound links over the same bodies (bin/audit-content.mjs 340, bin/audit-technical.mjs 341). bin/audit-content.mjs finds inbound links to this page and bin/audit-technical.mjs finds none: bin/audit-technical.mjs counts ONLY a link from the same host counts, bin/audit-content.mjs counts a link from any crawled host counts.</td></tr>
+    <tr><th>FROM WHICH EVIDENCE ✅ present</th><td class="wrap"><code>167dab3768ac2185</code> crawl.fetch · https://almidanish.almiworld.com/ · 2026-09-12T00:43:01.591Z</td></tr>
+    <tr><th>WHEN ✅ present</th><td>opened 2026-09-13T01:51:21.862Z; → CLOSED 2026-09-13T01:53:56.400Z</td></tr>
     <tr><th>WHAT CHANGED IT ✅ present</th><td class="wrap">
-      <p><strong>→ SUPERSEDED</strong> by <code>bin/supersede-noindex.mjs — replacement issued by detector noindex.origin-review v1</code> (Claude (repo audit), on the owner's brief of 12 Sep 2026)</p>
-      <p class="wrap">SUPERSEDED — this issue's premise was that noindex on this page is a DEFECT. Later evidence shows it is a DELIBERATE DE-INDEXING DECISION: commit 50f8c20 in almi-cv-v2 (17 Aug 2026) keys indexability on a verified country convention and states its intent ('avoids the 99k near-duplicate trap'; unverified siblings are 'near-duplicates by construction'), and the page is noindex-but-crawlable, the configuration Google's guidance names as the one that makes noindex effective. NOT established: that the near-duplicate premise holds here — same-role siblings measured 0.685 average similarity and none reaches 0.8. So the replacement is UNKNOWN, not FAIL: whether the gate is still the right rule is the owner's decision (REC-NOINDEX-CV-GUIDE).</p>
-      <p>evidence for the move:<br><code>8b90879f2f7c290b</code> noindex.origin · almicv.almiworld.com/cv-guide/{country}/{role} · 2026-09-12T03:15:46.798Z<br><code>841c7b897287e0d3</code> guidance.read · https://developers.google.com/search/docs/crawling-indexing/block-indexing · 2026-09-12T02:28:02.143Z</p>
-      <p>replaced by <code>6f6b1a0fae576b86</code> — verdict <strong>UNKNOWN</strong>, noindex.origin-review v1<br><span class="wrap">The noindex is a stated, deliberate de-indexing gate, correctly configured (crawlable). Whether it is still the right rule is UNKNOWN from our evidence: the premise it cites is not confirmed by our similarity measurement. Owner's decision: REC-NOINDEX-CV-GUIDE.</span></p></td></tr>
+      <p><strong>→ CLOSED</strong> by <code>src/crawl/inbound.mjs · bin/edge-graph.mjs · bin/audit-content.mjs · bin/audit-technical.mjs</code> (Claude (queue run), on beta-g's brief of 13 Sep 2026)</p>
+      <p class="wrap">both runners now read one stored graph (runs/crawl/edges-2026-09-12.jsonl.br) through one definition (src/crawl/inbound.mjs) and their recorded re-runs print the same count: 335</p>
+      <p>evidence for the move:<br><code>167dab3768ac2185</code> crawl.fetch · https://almidanish.almiworld.com/ · 2026-09-12T00:43:01.591Z</p>
+      </td></tr>
   </tbody></table>
-  <p class="bound">The original record is unchanged in the store; the move is a second record. The store holds this issue_id 2 time(s).</p>
+  <p class="bound">The original record is unchanged in the store; the move is a second record. The store holds this issue_id 1 time(s).</p>
+</section>
+
+<section id="recommendations">
+  <h2>Recommendations — 3, each with priority, evidence, confidence, cost, status and reason</h2>
+  <p class="bound">Priority, confidence and cost are COMPUTED from stored records, never chosen; each says UNKNOWN, and why, when its inputs are missing. Nothing here is approved or applied.</p>
+  <table><thead><tr><th>recommendation</th><th>priority</th><th>evidence</th><th>confidence</th><th>cost</th><th>status</th><th>reason</th></tr></thead><tbody><tr>
+      <td><span class="lbl lbl-RECOMMENDED">RECOMMENDED</span><br><code>REC-ROBOTS-CORRIDOR</code><br>Decide whether Googlebot should be blocked from the /from/ corridor leaves</td>
+      <td><strong>2 of 2</strong><br><span class="bound">219 search impressions on 106 of the 106 pages its issues name (page-rows pull 9f8cbf772d1cd434, 2026-08-15..2026-09-12) — ranked against the 2 recommendation(s) with a measured impact</span></td>
+      <td>108 of 108 linked records found — 106 issues · 1 observations · 1 sources</td>
+      <td>weakest source tier <strong>VERIFIED_ALMIWORLD</strong><br><span class="bound">tiers OFFICIAL=2 · VERIFIED_ALMIWORLD=106 · evidence resolved 108 of 108 · issues UNKNOWN 0 of 106 · pulls incomplete 0 of 0</span></td>
+      <td class="wrap"><strong>of the evidence</strong> (ledger <code>gsc-ingest:2026-09-12T22:06:42.662Z</code>):<br>money: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> 111 of 112 evidence records came from runs with no ledger entry (hissa-2b, src/crawl/crawler.mjs, hissa-2a robots evidence) (at least 0 measured)<br>provider calls: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> 111 of 112 evidence records came from runs with no ledger entry (hissa-2b, src/crawl/crawler.mjs, hissa-2a robots evidence) (at least 9 measured)<br>founder time: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> 1 producing run(s) recorded founder time as UNKNOWN; 111 of 112 evidence records came from runs with no ledger entry (hissa-2b, src/crawl/crawler.mjs, hissa-2a robots evidence) (at least 0 measured)<br><strong>to carry it out:</strong> <span class="lbl lbl-UNKNOWN">UNKNOWN</span> nothing in the ledger measures the cost of carrying out a recommendation — no such run has happened</td>
+      <td>RECOMMENDED — NOT APPROVED — NOT APPLIED</td>
+      <td class="wrap">106 URLs with 216 impressions in 28 days are Disallowed for Googlebot on four hosts</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-RECOMMENDED">RECOMMENDED</span><br><code>REC-AI-CRAWLER-BLOCK</code><br>Decide whether the 16-agent AI/SEO crawler block is still wanted</td>
+      <td><span class="lbl lbl-UNKNOWN">UNKNOWN</span> its evidence names no page, so there is no measured search impact to read — nothing ranks it</td>
+      <td>31 of 31 linked records found — 0 issues · 16 observations · 15 sources</td>
+      <td>weakest source tier <strong>VERIFIED_ALMIWORLD</strong><br><span class="bound">tiers OFFICIAL=15 · VERIFIED_ALMIWORLD=16 · evidence resolved 31 of 31 · issues UNKNOWN 0 of 0 · pulls incomplete 0 of 0</span></td>
+      <td class="wrap"><strong>of the evidence</strong> (ledger none):<br>money: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> no ledger entry lists any of the 16 records this evidence came from (produced by hissa-2c)<br>provider calls: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> no ledger entry lists any of the 16 records this evidence came from (produced by hissa-2c)<br>founder time: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> no ledger entry lists any of the 16 records this evidence came from (produced by hissa-2c)<br><strong>to carry it out:</strong> <span class="lbl lbl-UNKNOWN">UNKNOWN</span> nothing in the ledger measures the cost of carrying out a recommendation — no such run has happened</td>
+      <td>RECOMMENDED — NOT APPROVED — NOT APPLIED</td>
+      <td class="wrap">13 repos block the same 16 user-agents with Disallow: /</td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-RECOMMENDED">RECOMMENDED</span><br><code>REC-NOINDEX-CV-GUIDE</code><br>Decide whether the country-verification gate is still the right de-indexing rule</td>
+      <td><strong>1 of 2</strong><br><span class="bound">484 search impressions on 134 of the 134 pages its issues name (page-rows pull 9f8cbf772d1cd434, 2026-08-15..2026-09-12) — ranked against the 2 recommendation(s) with a measured impact</span></td>
+      <td>136 of 136 linked records found — 134 issues · 2 observations · 0 sources</td>
+      <td>weakest source tier <strong>VERIFIED_ALMIWORLD</strong><br><span class="bound">tiers VERIFIED_ALMIWORLD=136 · evidence resolved 136 of 136 · issues UNKNOWN 0 of 134 · pulls incomplete 0 of 0</span></td>
+      <td class="wrap"><strong>of the evidence</strong> (ledger <code>gsc-ingest:2026-09-12T22:06:42.662Z</code>):<br>money: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> 136 of 137 evidence records came from runs with no ledger entry (hissa-3, src/crawl/crawler.mjs) (at least 0 measured)<br>provider calls: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> 136 of 137 evidence records came from runs with no ledger entry (hissa-3, src/crawl/crawler.mjs) (at least 9 measured)<br>founder time: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> 1 producing run(s) recorded founder time as UNKNOWN; 136 of 137 evidence records came from runs with no ledger entry (hissa-3, src/crawl/crawler.mjs) (at least 0 measured)<br><strong>to carry it out:</strong> <span class="lbl lbl-UNKNOWN">UNKNOWN</span> nothing in the ledger measures the cost of carrying out a recommendation — no such run has happened</td>
+      <td>RECOMMENDED — NOT APPROVED — NOT APPLIED</td>
+      <td class="wrap">134 sampled cv-guide pages carry noindex. NONE is thin (median 473 unique body words) and together they hold 484 impressions. They fail the gate on the COUNTRY side only.</td>
+    </tr></tbody></table>
 </section>
 <section id="issues"><h2>Issues — 107</h2>
   <table><thead><tr><th>label</th><th>id</th><th>verdict</th><th>evidence chain</th></tr></thead><tbody><tr>
@@ -2002,7 +2039,7 @@ gsc-ingest:2026-09-12T23:25:02.608Z  money=0 USD [ZERO_BY_TARIFF]  calls=9  time
 </section>
 
 <footer>
-  <p>Generated 2026-09-12T23:31:50.646Z from the evidence store.</p>
+  <p>Generated 2026-09-13T02:27:01.194Z from the evidence store.</p>
   <p><strong>Read-only</strong> — this page has no action, no form and no write path of any kind.</p>
   <p>🔴 This is one report page, not a dashboard (V5.1 §62). It states what it covers and what it does not.</p>
 </footer>

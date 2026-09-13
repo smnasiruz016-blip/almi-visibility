@@ -130,10 +130,23 @@ test("🔴 1A · the four records store only verdict, source URL, read date, tie
   }
 });
 
-test("🔴 1C · no verdict was re-judged and no value amended — the values are byte-identical to main", () => {
-  const before = execFileSync("git", ["show", "9995edd:products/almi-oet/facts/oet.mjs"], { cwd: REPO, encoding: "utf8" });
+/* 🔴 PINNED AS HASHES, NOT READ FROM HISTORY. The first version ran `git show 9995edd:…` — which passed here and
+ * failed in a depth-1 clone, where that commit does not exist (and CI checks out depth 1). These are the sha256 of
+ * JSON.stringify(value) and JSON.stringify(evidence) for each record as committed on main (9995edd), measured
+ * 13 September 2026 before the verdicts were ingested. */
+const ON_MAIN = Object.freeze({
+  [LICENCE]: { value: "59eae93e7cd619eccde8e9f72894130cca17d4e2e13e9564996dfd04707011f5", evidence: "b6980e6d778e58aa7601d1f80e907b3eb1658ee1518cd7e46d9c0671e1832083" },
+  [WRITING]: { value: "6349d5afbef13b5e19b0cbbc9afabe3735660acc89ae9c886e50423611fd70ee", evidence: "ae6f858e03c35ed2d918e583c6e6286d01a60cc98d6a06ef992904bfd15b6c4f" },
+  [SPEAKING]: { value: "3307859cc7ce98608c10c34e126706632d0440ef2172addc147fb20447531b25", evidence: "3ceb60b9744185307d2ec3aa76013e9ce7583aca4dcf2fe01619e98226a1edf5" },
+  [GRADES]: { value: "442f7939b076a8b1a9577865d448d22b816b736a096973c7f69a81eea37e52dc", evidence: "6bef225f82cbc681b57a5e1885ca532de9b75dfff606b42876d2f833a019822f" },
+});
+
+test("🔴 1C · no verdict was re-judged and no value amended — each value and its evidence hash exactly as on main", async () => {
+  const { createHash } = await import("node:crypto");
+  const sha = (v) => createHash("sha256").update(JSON.stringify(v)).digest("hex");
   for (const id of [LICENCE, WRITING, SPEAKING, GRADES]) {
-    const value = byId.get(id).value.value;
-    assert.ok(before.includes(typeof value === "string" ? value : `value: ${value},`), `${id}: the value differs from main`);
+    const r = byId.get(id);
+    assert.equal(sha(r.value), ON_MAIN[id].value, `${id}: the value differs from main — ingestion amended it`);
+    assert.equal(sha(r.evidence), ON_MAIN[id].evidence, `${id}: the evidence differs from main`);
   }
 });

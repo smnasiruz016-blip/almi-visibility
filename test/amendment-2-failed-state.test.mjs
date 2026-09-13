@@ -202,10 +202,10 @@ test("🔴 moves since Amendment 2: TWO by ruling (14 and 45 → TESTABLE-NOW); 
     "14:TESTABLE-NOW→FAILED", "14:FAILED→VERIFIED-PASS",
     "25:BUILT-NOT-PROVED→TESTABLE-NOW", "26:BUILT-NOT-PROVED→TESTABLE-NOW", "26:TESTABLE-NOW→VERIFIED-PASS",
     "38:BUILT-NOT-PROVED→TESTABLE-NOW", "38:TESTABLE-NOW→VERIFIED-PASS",
-    "42:BLOCKED-UNKNOWN→VERIFIED-PASS", "45:BUILT-NOT-PROVED→FAILED", "45:TESTABLE-NOW→VERIFIED-PASS",
+    "42:BLOCKED-UNKNOWN→VERIFIED-PASS", "45:BUILT-NOT-PROVED→FAILED", "45:TESTABLE-NOW→VERIFIED-PASS", "47:NOT-STARTED→VERIFIED-PASS",
     "48:VERIFIED-PASS→FAILED", "48:FAILED→VERIFIED-PASS", "49:BUILT-NOT-PROVED→VERIFIED-PASS",
     "50:BUILT-NOT-PROVED→TESTABLE-NOW", "50:TESTABLE-NOW→FAILED",
-    "51:BUILT-NOT-PROVED→TESTABLE-NOW", "51:TESTABLE-NOW→FAILED", "51:FAILED→VERIFIED-PASS",
+    "51:BUILT-NOT-PROVED→TESTABLE-NOW", "51:TESTABLE-NOW→FAILED", "51:FAILED→VERIFIED-PASS", "53:BUILT-NOT-PROVED→VERIFIED-PASS",
     "55:BUILT-NOT-PROVED→TESTABLE-NOW", "55:TESTABLE-NOW→FAILED", "55:FAILED→VERIFIED-PASS",
     "56:BLOCKED-UNKNOWN→VERIFIED-PASS",
   ]);
@@ -237,10 +237,10 @@ test("before Amendment 2 the ledger was 3 / 18 / 0 / 3 / 0 / 6 / 28", () => {
   });
 });
 
-test("🔴 since Amendment 2, TWELVE rows reached VERIFIED-PASS (11, 12, 13, 14, 26, 38, 42, 45, 49, 51, 55, 56); 48 LOST it and EARNED IT BACK", () => {
+test("🔴 since Amendment 2, FOURTEEN rows reached VERIFIED-PASS (11, 12, 13, 14, 26, 38, 42, 45, 47, 49, 51, 53, 55, 56); 48 LOST it and EARNED IT BACK", () => {
   const rows = classify();
   const newPasses = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS" && BEFORE_AMENDMENT_2[r.id] !== "VERIFIED-PASS");
-  assert.deepEqual(newPasses.map((r) => r.id), [11, 12, 13, 14, 26, 38, 42, 45, 49, 51, 55, 56]);
+  assert.deepEqual(newPasses.map((r) => r.id), [11, 12, 13, 14, 26, 38, 42, 45, 47, 49, 51, 53, 55, 56]);
   const lost = Object.values(rows).filter((r) => BEFORE_AMENDMENT_2[r.id] === "VERIFIED-PASS" && r.state !== "VERIFIED-PASS");
   assert.deepEqual(lost.map((r) => r.id), []);
   // The count hides a round trip — the chain does not.

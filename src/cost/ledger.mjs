@@ -126,7 +126,8 @@ export function formatLedgerLine(e) {
   const time = e.founderTime.state === "MEASURED" ? `time=${e.founderTime.seconds}s` : `time=UNKNOWN(${e.founderTime.unknownKind})`;
   const used = Object.entries(e.budget.used ?? {}).map(([k, v]) => `${k}=${v}`).join(" ");
   const bounds = Object.entries(e.budget.bounds).map(([k, v]) => `${k}=${v}`).join(" ");
-  return `${e.entry_id}  ${money}  ${calls}  ${time}  budget(${e.budget.kind}): ${used} capReached=${e.budget.capReached}  [bound: ${bounds}]`;
+  const outcome = e.outcome ? `${e.outcome}(${e.refusal?.code ?? "?"})  ` : "";
+  return `${e.entry_id}  ${outcome}${money}  ${calls}  ${time}  budget(${e.budget.kind}): ${used} capReached=${e.budget.capReached}  [bound: ${bounds}]`;
 }
 
 /* ================================================================== *

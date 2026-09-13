@@ -1,0 +1,31 @@
+RED PROOF — ITEM 53 · both halves — the core made to need the first product, and a private record made readable across the boundary · 2026-09-13T04:32:00.794Z
+test file: test/portability-neutral-product.test.mjs
+
+=== 2E-a — the core NEEDS first-product knowledge: registration demands the first product's axis
+sabotage in src/product.mjs: "if (!isNonEmptyString(d.axis?.label)) fail(" → "if (d.axis?.key !== [\"prof\", \"ession\"].join(\"\")) fail(\"RED PROOF SABOTAGE — the core now requires the first product's axis\");\n  if (!isNonEmptyString(d.axis?.label)) fail("
+sabotage landed: true
+exit 1 · ℹ tests 5 · ℹ pass 1 · ℹ fail 4
+  ✖ 🔴 53 · THE DECLARATION — a neutral test product, declared as one, sharing no subject, axis, source or licence with the first
+  ✖ 🔴 53 · THE RUN — the generic core INITIALIZES and DISCOVERS the neutral product with no first-product knowledge   ← the test this sabotage was meant to break
+  ✖ 🔴 53 · DURING THAT SAME RUN — nothing private of the first product crossed the boundary: evidence, facts, licences, gaps
+  ✖ 🔴 53 · THE SAME RUN THROUGH THE REAL ENTRY POINT — bin/facts.mjs loads no module of the first product and reads none of its files
+    reason: Error: registerProduct: RED PROOF SABOTAGE — the core now requires the first product's axis
+    reason: AssertionError [ERR_ASSERTION]: the core could not run the neutral product: Error: registerProduct: RED PROOF SABOTAGE — the core now requires the first product's axis
+    reason: + Error: registerProduct: RED PROOF SABOTAGE — the core now requires the first product's axis
+    reason: actual: Error: registerProduct: RED PROOF SABOTAGE — the core now requires the first product's axis
+    reason: AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+    reason: + Error: registerProduct: RED PROOF SABOTAGE — the core now requires the first product's axis
+expected test red: YES ("53 · THE RUN") · restored byte for byte: true
+
+=== 2E-b — one private record readable across the boundary: every product's licence terms visible to every product
+sabotage in src/facts/licences.mjs: "return Object.freeze({ ...ENGINE_LICENCES, ...(productId ? BY_PRODUCT.get(productId) ?? {} : {}) });" → "return Object.freeze({ ...ENGINE_LICENCES, ...Object.assign({}, ...BY_PRODUCT.values()) }); // RED PROOF SABOTAGE"
+sabotage landed: true
+exit 1 · ℹ tests 5 · ℹ pass 4 · ℹ fail 1
+  ✖ 🔴 53 · DURING THAT SAME RUN — nothing private of the first product crossed the boundary: evidence, facts, licences, gaps   ← the test this sabotage was meant to break
+    reason: AssertionError [ERR_ASSERTION]: first-product licence NMC-6.3 is visible to the neutral product
+expected test red: YES ("53 · DURING THAT SAME RUN") · restored byte for byte: true
+
+=== CLEAN — every file restored
+exit 0 · ℹ tests 5 · ℹ pass 5 · ℹ fail 0
+
+verdict: RED PROVED — every sabotage turned its named test red, and the clean run is green

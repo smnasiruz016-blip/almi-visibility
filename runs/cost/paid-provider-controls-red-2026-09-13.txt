@@ -1,0 +1,77 @@
+RED PROOF — ITEM 47 · each paid-provider control removed, its named test red · 2026-09-13T04:31:55.819Z
+test file: test/paid-provider-controls.test.mjs
+
+=== CONTROL 1 removed — OFF BY DEFAULT
+sabotage in src/cost/paid-provider-gate.mjs: "if (!auth) return refuse(" → "if (false && !auth) return refuse("
+sabotage landed: true
+exit 1 · ℹ tests 9 · ℹ pass 5 · ℹ fail 3
+  ✖ 🔴 CONTROL 1 · OFF BY DEFAULT — no authorization, no budget, no cap: REFUSED, and the provider is never called   ← the test this sabotage was meant to break
+  ✖ 🔴 CONTROL 2 · EXPLICIT AUTHORIZATION — unnamed, undated, reasonless, budgetless or capless authorizes NOTHING
+  ✖ 🔴 1D · EVERY refused call is in the cost ledger as REFUSED with its code and reason — none leaves no trace
+    reason: AssertionError [ERR_ASSERTION]: expected a refusal with NOT_AUTHORIZED
+    reason: actual: PaidCallRefused: REFUSED AUTHORIZATION_INCOMPLETE — the authorization for fake-paid-provider authorizes nothing: it is not an authorization for fake-paid-provider; it names nobody who authorized it; it carries no date; it gives no reason; it sets no budget; it sets no cap
+    reason: AssertionError [ERR_ASSERTION]: expected a refusal with NOT_AUTHORIZED
+    reason: actual: PaidCallRefused: REFUSED AUTHORIZATION_INCOMPLETE — the authorization for fake-paid-provider authorizes nothing: it is not an authorization for fake-paid-provider; it names nobody who authorized it; it carries no date; it gives no reason; it sets no budget; it sets no cap
+    reason: AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+expected test red: YES ("CONTROL 1 · OFF BY DEFAULT") · restored byte for byte: true
+
+=== CONTROL 2 removed — EXPLICIT AUTHORIZATION
+sabotage in src/cost/paid-provider-gate.mjs: "if (problems.length) return refuse(" → "if (false && problems.length) return refuse("
+sabotage landed: true
+exit 1 · ℹ tests 9 · ℹ pass 6 · ℹ fail 2
+  ✖ 🔴 CONTROL 2 · EXPLICIT AUTHORIZATION — unnamed, undated, reasonless, budgetless or capless authorizes NOTHING   ← the test this sabotage was meant to break
+  ✖ 🔴 1D · EVERY refused call is in the cost ledger as REFUSED with its code and reason — none leaves no trace
+    reason: AssertionError [ERR_ASSERTION]: Missing expected rejection: expected a refusal with AUTHORIZATION_INCOMPLETE
+    reason: AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+expected test red: YES ("CONTROL 2 · EXPLICIT AUTHORIZATION") · restored byte for byte: true
+
+=== CONTROL 3 removed — KILL SWITCH
+sabotage in src/cost/paid-provider-gate.mjs: "if (killSwitch.isOn()) return refuse(" → "if (false && killSwitch.isOn()) return refuse("
+sabotage landed: true
+exit 1 · ℹ tests 9 · ℹ pass 6 · ℹ fail 2
+  ✖ 🔴 CONTROL 3 · KILL SWITCH — flips, and the very next call is REFUSED   ← the test this sabotage was meant to break
+  ✖ 🔴 1D · EVERY refused call is in the cost ledger as REFUSED with its code and reason — none leaves no trace
+    reason: AssertionError [ERR_ASSERTION]: Missing expected rejection: expected a refusal with KILL_SWITCH_ON
+    reason: AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+expected test red: YES ("CONTROL 3 · KILL SWITCH") · restored byte for byte: true
+
+=== CONTROL 4a removed — CAP
+sabotage in src/cost/paid-provider-gate.mjs: "if (s.calls + 1 > auth.cap.maxCalls) return refuse(" → "if (false && s.calls + 1 > auth.cap.maxCalls) return refuse("
+sabotage landed: true
+exit 1 · ℹ tests 9 · ℹ pass 6 · ℹ fail 2
+  ✖ 🔴 CONTROL 4a · CAP — the call that WOULD exceed the cap is REFUSED BEFORE it is made   ← the test this sabotage was meant to break
+  ✖ 🔴 1D · EVERY refused call is in the cost ledger as REFUSED with its code and reason — none leaves no trace
+    reason: AssertionError [ERR_ASSERTION]: Missing expected rejection: expected a refusal with CAP_WOULD_BE_EXCEEDED
+    reason: AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+expected test red: YES ("CONTROL 4a · CAP") · restored byte for byte: true
+
+=== CONTROL 4b removed — BUDGET
+sabotage in src/cost/paid-provider-gate.mjs: "if (s.spent + p.pricePerCall.amount > auth.budget.amount) return refuse(" → "if (false && s.spent + p.pricePerCall.amount > auth.budget.amount) return refuse("
+sabotage landed: true
+exit 1 · ℹ tests 9 · ℹ pass 6 · ℹ fail 2
+  ✖ 🔴 CONTROL 4b · BUDGET — the call that WOULD exceed the budget is REFUSED BEFORE it is made   ← the test this sabotage was meant to break
+  ✖ 🔴 1D · EVERY refused call is in the cost ledger as REFUSED with its code and reason — none leaves no trace
+    reason: AssertionError [ERR_ASSERTION]: Missing expected rejection: expected a refusal with BUDGET_WOULD_BE_EXCEEDED
+    reason: AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+expected test red: YES ("CONTROL 4b · BUDGET") · restored byte for byte: true
+
+=== 1D removed — a refusal writes nothing to the ledger
+sabotage in src/cost/paid-provider-gate.mjs: "if (!ledger.readAll().some((e) => e.entry_id === entry.entry_id)) ledger.append(entry);" → "// RED PROOF SABOTAGE: the refusal leaves no trace"
+sabotage landed: true
+exit 1 · ℹ tests 9 · ℹ pass 7 · ℹ fail 1
+  ✖ 🔴 1D · EVERY refused call is in the cost ledger as REFUSED with its code and reason — none leaves no trace   ← the test this sabotage was meant to break
+    reason: AssertionError [ERR_ASSERTION]: 5 calls were refused and 0 left a trace in the ledger
+expected test red: YES ("1D · EVERY refused call") · restored byte for byte: true
+
+=== 1D, the defect found by the demonstration — the old colliding id restored
+sabotage in src/cost/paid-provider-gate.mjs: "entry_id: `paid-refusal:${provider}:${at}:${seq}:${attemptId}`," → "entry_id: `paid-refusal:${provider}:${at}:${seq}`, // RED PROOF SABOTAGE: the first version's id"
+sabotage landed: true
+exit 1 · ℹ tests 9 · ℹ pass 7 · ℹ fail 1
+  ✖ 🔴 1D · EVERY refused call is in the cost ledger as REFUSED with its code and reason — none leaves no trace   ← the test this sabotage was meant to break
+    reason: AssertionError [ERR_ASSERTION]: 5 calls were refused and 2 left a trace in the ledger
+expected test red: YES ("1D · EVERY refused call") · restored byte for byte: true
+
+=== CLEAN — every file restored
+exit 0 · ℹ tests 9 · ℹ pass 8 · ℹ fail 0
+
+verdict: RED PROVED — every sabotage turned its named test red, and the clean run is green

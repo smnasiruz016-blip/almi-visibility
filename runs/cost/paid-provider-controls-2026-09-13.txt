@@ -1,0 +1,33 @@
+[write:local] --confirm given, and this write stays on this machine
+ITEM 47 — PAID PROVIDER CONTROLS, AGAINST A FAKE PROVIDER
+[bound: 1 fake provider · price 0.4 USD per call · 7 attempts · no network]
+
+  1 · no authorization at all
+     → REFUSED NOT_AUTHORIZED — paid services are OFF by default and fake-paid-provider has no authorization
+  2 · an authorization with no date
+     → REFUSED AUTHORIZATION_INCOMPLETE — the authorization for fake-paid-provider authorizes nothing: it carries no date
+  4a · first call, inside a cap of 1
+     → ISSUED (call 1, spent 0.4 USD)
+  4a · second call, past the cap of 1
+     → REFUSED CAP_WOULD_BE_EXCEEDED — 1 calls issued; one more would exceed the cap of 1
+  4b · first call, inside a budget of 0.5 USD
+     → ISSUED (call 1, spent 0.4 USD)
+  4b · second call, past the budget of 0.5 USD
+     → REFUSED BUDGET_WOULD_BE_EXCEEDED — 0.4 USD spent; this call's 0.4 would exceed the budget of 0.5
+  3 · a fully authorized call after the kill switch was flipped
+     → REFUSED KILL_SWITCH_ON — the kill switch is on (flipped by owner (fake provider exercise) at 2026-09-13T04:33:21.395Z: item 47 — the kill switch exercised)
+
+refusals: 5 · codes: NOT_AUTHORIZED, AUTHORIZATION_INCOMPLETE, CAP_WOULD_BE_EXCEEDED, BUDGET_WOULD_BE_EXCEEDED, KILL_SWITCH_ON
+calls that reached the fake provider: 2
+no real paid provider was called and no account exists
+
+ledger entries, one per refusal:
+  paid-refusal:fake-paid-provider:2026-09-13T04:33:21.328Z:1:af35b9c4-33ba-4f9a-a51a-2df12ca37099  REFUSED(NOT_AUTHORIZED)  money=0 USD [MEASURED]  calls=0  time=0s  budget(paid-provider): attempted=1 callsIssuedBefore=0 spentBefore=0 capReached=false  [bound: authorization=none complete — paid services are OFF by default]
+  paid-refusal:fake-paid-provider:2026-09-13T04:33:21.345Z:1:bd1ec9c5-cdea-4259-b932-a585b3916c2e  REFUSED(AUTHORIZATION_INCOMPLETE)  money=0 USD [MEASURED]  calls=0  time=0s  budget(paid-provider): attempted=1 callsIssuedBefore=0 spentBefore=0 capReached=false  [bound: authorization=none complete — paid services are OFF by default]
+  paid-refusal:fake-paid-provider:2026-09-13T04:33:21.363Z:2:72e3be6d-6f99-4754-abb5-7d6e02e7c7fc  REFUSED(CAP_WOULD_BE_EXCEEDED)  money=0 USD [MEASURED]  calls=0  time=0s  budget(paid-provider): attempted=1 callsIssuedBefore=1 spentBefore=0.4 capReached=true  [bound: maxCalls=1 budget=100 USD]
+  paid-refusal:fake-paid-provider:2026-09-13T04:33:21.379Z:2:c6514dda-f6f0-43fa-b8b7-33810f7a742c  REFUSED(BUDGET_WOULD_BE_EXCEEDED)  money=0 USD [MEASURED]  calls=0  time=0s  budget(paid-provider): attempted=1 callsIssuedBefore=1 spentBefore=0.4 capReached=true  [bound: maxCalls=50 budget=0.5 USD]
+  paid-refusal:fake-paid-provider:2026-09-13T04:33:21.395Z:1:da654c39-92e0-4cb0-90a1-09371bcc2a73  REFUSED(KILL_SWITCH_ON)  money=0 USD [MEASURED]  calls=0  time=0s  budget(paid-provider): attempted=1 callsIssuedBefore=0 spentBefore=0 capReached=false  [bound: maxCalls=50 budget=100 USD]
+
+every refusal left a trace: 5 of 5 in the REAL ledger (runs/cost/ledger.jsonl)
+
+✅ every control refused, before the call, and was recorded

@@ -172,9 +172,9 @@ test("the headline counts match the rows they summarise", () => {
  */
 test("🔴 the headline separates the three earned ticks from the 33 renamed rows", () => {
   const text = readFileSync(STATUS, "utf8");
-  assert.match(text, /FIFTEEN TICKS — ITEMS 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 48, 49, 51, 55 AND 56/);
+  assert.match(text, /SEVENTEEN TICKS — ITEMS 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 47, 48, 49, 51, 53, 55 AND 56/);
   assert.match(text, /DEFERRED IS NOT A TICK AND NEVER COUNTS AS ONE/);
-  assert.match(text, /only fifteen rows in the whole ledger that \*\*hold a pass earned by work\*\*/);
+  assert.match(text, /only seventeen rows in the whole ledger that \*\*hold a pass earned by work\*\*/);
   // 🔴 56's pass is the OWNER's eye, and the headline says so where the counts are read.
   assert.match(text, /by \*\*OWNER VERIFICATION\*\*/);
   // 🔴 The parked facts and the argued FAILED row are said in words where the counts are read.

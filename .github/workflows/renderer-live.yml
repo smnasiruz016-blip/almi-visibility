@@ -1,0 +1,70 @@
+# AlmiVisibility renderer — LIVE tests, MANUAL ONLY.
+#
+# 🔴 THERE IS NO `schedule:` TRIGGER, AND THAT IS THE POINT.
+#
+# `test.yml` runs on every push and skips the LIVE tests in test/renderer.test.mjs
+# because installing playwright and a browser costs Actions minutes on a private
+# repository. That is deliberate; the every-push cost stays low. But handoff
+# 2026-09-13 NIGHT §3.1 records the consequence: item 52 (Case Study) cannot
+# rest on tests that the shared, reproducible environment has never once
+# executed. This workflow does exactly that, on demand.
+#
+# Same rule as crawl.yml: no cron, no push trigger, no pull_request trigger.
+# `workflow_dispatch` only. Someone presses the button, on purpose, and their
+# name is on the run. A schedule turned on quietly is a bill nobody notices.
+#
+# ── COST, STATED HERE ────────────────────────────────────────────────────────
+# One run installs `playwright-core` (already the sole devDependency), then
+# fetches headless Chromium via the matching-version `playwright` CLI through
+# npx (nothing added to package.json), then runs `node --test` over one file.
+# Approximate wall clock on ubuntu-latest: 2-3 minutes. Approximate Actions
+# spend on a private repo at Linux 2-core rates ($0.008/min): about $0.02 per
+# run. `U-COST-1` — the account's Actions allowance — is UNKNOWN
+# (PHASE_0_ITEM_4_DECISION_BRIEF.md §3), so this figure is a rate against an
+# allowance that has not been read.
+#
+# ── WHAT THIS DOES NOT DO ────────────────────────────────────────────────────
+# No secrets. No deploy. No external network from the tests themselves — the
+# offline renderer refuses every request outside 127.0.0.1 and the LIVE tests
+# prove that. `contents: read` only; no write to the repository.
+
+name: renderer-live
+
+on:
+  workflow_dispatch:
+
+# Least privilege: read the code, write nothing.
+permissions:
+  contents: read
+
+jobs:
+  renderer-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Matches every other workflow in this repo and the Vercel runtime.
+          node-version: '24'
+
+      # playwright-core is the sole devDependency in package.json (pinned to
+      # 1.62.1). It ships the JavaScript client but NOT the browser binary —
+      # that download is precisely what test.yml avoids.
+      - name: Install playwright-core (from package.json)
+        run: npm install
+
+      # `playwright-core` does not carry the `install` CLI. We fetch it via
+      # `npx` at the matching version so nothing is added to package.json and
+      # the browser version stays in lock-step with playwright-core 1.62.1.
+      # `--with-deps` is deliberately not used: ubuntu-latest already carries
+      # the shared libraries Chromium needs, and `--with-deps` requires sudo.
+      - name: Install headless Chromium (playwright 1.62.1, matches playwright-core)
+        run: npx --yes -p playwright@1.62.1 playwright install chromium
+
+      # test/renderer.test.mjs is one file that contains PURE, LIVE and RECORDED
+      # tests. Running the file re-runs the four LIVE tests that skip in
+      # test.yml. The PURE and RECORDED tests re-run here too and cost seconds.
+      - name: node --test test/renderer.test.mjs
+        run: node --test test/renderer.test.mjs

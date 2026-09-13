@@ -422,7 +422,7 @@ export function createCostLedger(path) {
   function append(entry) {
     if (entry?.record_type !== COST_ENTRY_TYPE) throw new TypeError("ledger.append: only a cost entry may be written to the ledger");
     if (store.readAll().some((r) => r.entry_id === entry.entry_id)) return { appended: false, entry_id: entry.entry_id };
-    store.append(entry);
+    store.appendWithoutDedupe(entry); // guarded one line up: an entry_id already present returns before this
     return { appended: true, entry_id: entry.entry_id };
   }
   const readAll = () => store.readAll().filter((r) => r.record_type === COST_ENTRY_TYPE);

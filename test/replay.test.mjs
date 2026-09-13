@@ -4,9 +4,9 @@
  * THREE LAYERS, AND THEIR LIMITS:
  *   1. the RECORDED replay (`runs/replay/*`) — the full 394-body run, evidence
  *      of what happened once. Reading it reads a file.
- *   2. a LIVE replay over a SUBSET of the real bodies, run in this suite
- *      whenever the recovered corpus is present on the machine. CI does not
- *      hold the artifact, so there it is SKIPPED — and says why.
+ *   2. a LIVE replay over a SUBSET of the real bodies, run in this suite on
+ *      every commit — the bodies are committed (runs/crawl/bodies-2026-09-12.jsonl.br,
+ *      ruling of 13 September 2026), so CI replays the real bytes too.
  *   3. a MECHANICS CONTROL on three tiny bodies that CI does run: not evidence
  *      of anything about the estate, only proof that the comparison can fail.
  */
@@ -123,9 +123,27 @@ test("🔴 D-CRW-5 is recorded GRANTED AND UNUSED, with its reason — and it mo
 
 /* ---- 2 · a LIVE replay over real bodies, when they are on this machine -- */
 
-test("🔴 LIVE (real bodies, subset): two passes with one change — ids hold, the change is a new observation, the rest re-sighted", { skip: existsSync(CORPUS) ? false : "the recovered corpus is not on this machine (CI never holds the artifact) — layer 1 carries the full run" }, async () => {
+/* 🔴 1C — THE #56 PROOF RE-RUN AFTER THE KEY CHANGED (D-KEY-1). Pinned apart
+ * from the first run, so a moved split would show here and not be adjusted. */
+test("🔴 RECORDED (1C): the replay re-run with the journey-aware key — the 389/5 split, the ids and the verdicts are UNCHANGED", () => {
+  const first = ev();
+  const again = JSON.parse(readFileSync(`${REPO}runs/replay/replay-2026-09-13-journey-key.json`, "utf8"));
+  assert.equal(again.ok, true, again.failures.join("\n"));
+  assert.deepEqual(again.item48.crawler.unchanged, { ...first.item48.crawler.unchanged });
+  assert.deepEqual(again.item48.crawler.changed, first.item48.crawler.changed);
+  assert.equal(again.item11.pageIdsIdentical, 394);
+  assert.deepEqual(again.item11.pageIdsMoved, []);
+  assert.equal(again.item11.pagesAcrossBothPasses, first.item11.pagesAcrossBothPasses);
+  assert.deepEqual(again.item42.map((r) => `${r.change}/${r.check}:${r.before.verdict}->${r.after.verdict}`), first.item42.map((r) => `${r.change}/${r.check}:${r.before.verdict}->${r.after.verdict}`));
+  assert.equal(again.egress.nonLocal, 0);
+  assert.match(again.recovery.integrity.bodies === 394 ? "ok" : "", /ok/);
+});
+
+/* The corpus is now COMMITTED (ruling, 13 September 2026), so this runs in CI on real bodies. */
+test("🔴 LIVE (real bodies, subset): two passes with one change — ids hold, the change is a new observation, the rest re-sighted", async () => {
   const crawlRecords = createJsonlStore(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`).readAll();
-  const all = replayEntriesFrom({ crawlRecords, corpusDir: CORPUS }).entries;
+  const { readBodyArchive } = await import("../src/evidence/body-archive.mjs");
+  const all = replayEntriesFrom({ crawlRecords, bodies: readBodyArchive(`${REPO}runs/crawl/bodies-2026-09-12.jsonl.br`) }).entries;
   const entries = new Map([...all.entries()].slice(0, 12));
   for (const e of entries.values()) assert.equal(e.shaMatches, true, `${e.requested_url}: the local body is not the recorded one`);
   const dir = mkdtempSync(join(tmpdir(), "almivis-replay-test-"));

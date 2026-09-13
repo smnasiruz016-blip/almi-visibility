@@ -124,13 +124,13 @@ test("C2: a correction is a NEW record carrying supersedes — the original surv
   try {
     const store = createJsonlStore(join(dir, "e.jsonl"));
     const obs = OBS();
-    store.append(obs);
+    store.appendWithoutDedupe(obs);
     const first = makeIssue({
       issue_class: "x", canonical_url: "https://example.com/a", verdict: "FAIL", severity: "low",
       evidence: [obs.observation_id], opened_at: "t1", detector: "d", detector_version: "1",
     });
-    store.append(first);
-    store.append(
+    store.appendWithoutDedupe(first);
+    store.appendWithoutDedupe(
       makeIssue({
         issue_class: "x", canonical_url: "https://example.com/a", verdict: "UNKNOWN", severity: "low",
         evidence: [obs.observation_id], opened_at: "t2", detector: "d", detector_version: "2",
@@ -149,8 +149,8 @@ test("append is append-only across store instances — a reopen does not truncat
   const dir = tmp();
   const file = join(dir, "e.jsonl");
   try {
-    createJsonlStore(file).append(OBS());
-    createJsonlStore(file).append({ record_type: "observation", observation_id: "second" });
+    createJsonlStore(file).appendWithoutDedupe(OBS());
+    createJsonlStore(file).appendWithoutDedupe({ record_type: "observation", observation_id: "second" });
     assert.equal(createJsonlStore(file).count(), 2);
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -289,7 +289,7 @@ test("recheck_after defaults to null, not to a date nobody chose", () => {
 test("the store refuses a record with no record_type — an unlabelled row is unreadable later", () => {
   const dir = tmp();
   try {
-    assert.throws(() => createJsonlStore(join(dir, "e.jsonl")).append({ a: 1 }), /record_type/);
+    assert.throws(() => createJsonlStore(join(dir, "e.jsonl")).appendWithoutDedupe({ a: 1 }), /record_type/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -300,7 +300,7 @@ test("a corrupt line names its line number rather than failing anonymously", () 
   const file = join(dir, "e.jsonl");
   try {
     const store = createJsonlStore(file);
-    store.append(OBS());
+    store.appendWithoutDedupe(OBS());
     writeFileSync(file, JSON.stringify(OBS()) + "\n{ not json\n", { flag: "w" });
     assert.throws(() => store.readAll(), /line 2 is not valid JSON/);
   } finally {

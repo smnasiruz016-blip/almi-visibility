@@ -63,7 +63,7 @@ for (const f of readdirSync(AUDIT).filter((x) => x.endsWith(".jsonl")).sort()) {
       actor: "Claude (repo audit), on the owner's brief of 12 Sep 2026",
     });
   }
-  const after = notes.length && permission.mayWrite ? (store.appendAll(notes), duplicateCensus(store.readAll())) : null;
+  const after = notes.length && permission.mayWrite ? (store.appendAllWithoutDedupe(notes), duplicateCensus(store.readAll())) : null;
   totalNotes += notes.length;
   console.log(
     `  ${f.padEnd(32)} [bound: ${records.length} records] issue records=${before.physicalIssueRecords} logical=${before.logicalIssues} ` +

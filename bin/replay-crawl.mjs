@@ -54,10 +54,20 @@ const permission = announceWritePermission(writePermission({ target: LOCAL, argv
 
 const RUN_ID = "34662527129";
 const ARTIFACT = `crawl-corpus-${RUN_ID}`;
-const CORPUS = confineToRepo(arg("corpus") ?? `${REPO}runs/crawl/corpus`, { label: "--corpus" });
-const EVIDENCE = confineToRepo(`${REPO}runs/replay/replay-2026-09-13.json`, { label: "the replay evidence" });
-const CRAWL_STORE = confineToRepo(`${REPO}runs/replay/replay-crawl-2026-09-13.jsonl`, { label: "the replay crawl store" });
-const AUDIT_STORE = confineToRepo(`${REPO}runs/replay/replay-audit-dns-2026-09-13.jsonl`, { label: "the replay audit store" });
+/* The bodies come from the COMMITTED archive by default (the evidence that
+ * outlives the artifact); --corpus=<dir> replays an unpacked directory instead,
+ * and --recover re-downloads the artifact into one. */
+const ARCHIVE = `${REPO}runs/crawl/bodies-2026-09-12.jsonl.br`;
+const CORPUS = arg("corpus") || argv.includes("--recover") ? confineToRepo(arg("corpus") ?? `${REPO}runs/crawl/corpus`, { label: "--corpus" }) : null;
+// --label names a later re-run's evidence so it never overwrites the first (e.g. --label=2026-09-13-journey-key).
+const LABEL = arg("label") ?? "2026-09-13";
+if (!/^[0-9A-Za-z-]+$/.test(LABEL)) {
+  console.error("🔴 REFUSED — --label may hold only letters, digits and hyphens");
+  process.exit(2);
+}
+const EVIDENCE = confineToRepo(`${REPO}runs/replay/replay-${LABEL}.json`, { label: "the replay evidence" });
+const CRAWL_STORE = confineToRepo(`${REPO}runs/replay/replay-crawl-${LABEL}.jsonl`, { label: "the replay crawl store" });
+const AUDIT_STORE = confineToRepo(`${REPO}runs/replay/replay-audit-dns-${LABEL}.jsonl`, { label: "the replay audit store" });
 const LEDGER = confineToRepo(`${REPO}runs/cost/ledger.jsonl`, { label: "the cost ledger" });
 const LOCAL_HOSTS = ["127.0.0.1", "localhost"];
 
@@ -141,13 +151,17 @@ if (argv.includes("--recover")) {
  * ================================================================== */
 
 const crawlRecords = readJsonl(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`);
-if (!existsSync(CORPUS)) {
-  console.error(`🔴 REFUSED — no corpus at ${CORPUS}. Run with --recover --confirm. A replay with no bodies would report a clean zero.`);
+const BODY_SOURCE = CORPUS ?? ARCHIVE;
+if (!existsSync(BODY_SOURCE)) {
+  console.error(`🔴 REFUSED — no bodies at ${BODY_SOURCE}. A replay with no bodies would report a clean zero.`);
   process.exit(2);
 }
-const { entries, missing } = replayEntriesFrom({ crawlRecords, corpusDir: CORPUS });
+const { readBodyArchive } = await import("../src/evidence/body-archive.mjs");
+const { entries, missing } = CORPUS
+  ? replayEntriesFrom({ crawlRecords, corpusDir: CORPUS })
+  : replayEntriesFrom({ crawlRecords, bodies: readBodyArchive(ARCHIVE) });
 const shaMatches = [...entries.values()].filter((e) => e.shaMatches).length;
-console.log(`[bound: ${entries.size} recorded bodies found in ${CORPUS}; ${missing} missing]`);
+console.log(`[bound: ${entries.size} recorded bodies found in ${BODY_SOURCE}; ${missing} missing]`);
 console.log(`integrity: ${shaMatches}/${entries.size} bodies hash to their observation's content_sha256`);
 if (missing > 0 || shaMatches !== entries.size) {
   console.error("🔴 REFUSED — the recovered bodies are not the run's bodies. A replay of the wrong bytes proves nothing.");

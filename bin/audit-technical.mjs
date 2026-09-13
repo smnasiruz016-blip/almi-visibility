@@ -41,9 +41,13 @@ const evidence = createJsonlStore(`${REPO}runs/evidence/evidence.jsonl`).readAll
 const robotsRecords = createJsonlStore(`${REPO}runs/evidence/robots.jsonl`).readAll();
 
 const fetched = crawl.filter((r) => r.record_type === "observation" && !r.value?.skipped);
-const haveCorpus = corpusDir && existsSync(corpusDir);
+/* 🔴 With no --corpus, the COMMITTED body archive is read — the evidence that
+ * outlives the artifact (ruling, 13 September 2026). */
+const ARCHIVE = `${REPO}runs/crawl/bodies-2026-09-12.jsonl.br`;
+const archiveBodies = !corpusDir && existsSync(ARCHIVE) ? (await import("../src/evidence/body-archive.mjs")).readBodyArchive(ARCHIVE) : null;
+const haveCorpus = Boolean((corpusDir && existsSync(corpusDir)) || archiveBodies);
 
-console.log(`corpus  : ${haveCorpus ? corpusDir : "🔴 NOT AVAILABLE"}`);
+console.log(`corpus  : ${archiveBodies ? `${ARCHIVE} (committed archive)` : haveCorpus ? corpusDir : "🔴 NOT AVAILABLE"}`);
 console.log(`pages   : ${fetched.length}`);
 console.log(`${INDEXABLE_IS_NOT_INDEXED}\n`);
 
@@ -59,8 +63,8 @@ for (const o of fetched) {
   } catch {
     continue;
   }
-  const file = haveCorpus ? join(corpusDir, `${o.observation_id}.html`) : null;
-  const html = file && existsSync(file) ? readFileSync(file, "utf8") : null;
+  const file = haveCorpus && !archiveBodies ? join(corpusDir, `${o.observation_id}.html`) : null;
+  const html = archiveBodies ? archiveBodies.get(o.observation_id) ?? null : file && existsSync(file) ? readFileSync(file, "utf8") : null;
   pages.push({ canonical: c, o, html });
   statusByUrl.set(c.replace(/\/$/, ""), o.value.status);
   if (html) {

@@ -250,7 +250,8 @@ const runRecord = {
     githubRunId: process.env.GITHUB_RUN_ID ?? null,
   },
 };
-store.append(runRecord);
+// Declared: the RUN record is unique by construction — run_id carries the start time.
+store.appendWithoutDedupe(runRecord);
 console.log(`\nwritten: ${out}  (${result.observations.length} observations + 1 run)`);
 
 /* 🔴 ITEM 45 — a live run is costed in the ledger as it happens. A dry run

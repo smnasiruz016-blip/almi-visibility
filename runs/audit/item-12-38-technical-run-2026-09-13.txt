@@ -1,0 +1,47 @@
+corpus  : C:/Projects/almi-visibility/runs/crawl/bodies-2026-09-12.jsonl.br (committed archive)
+pages   : 394
+INDEXABLE ≠ INDEXED. This is a technical eligibility state, not a prediction. It says nothing about whether Google will index, rank or cite the page.
+
+0B — EDGES RESTORED FROM THE ARTIFACT: 19926 links, 505 internal inbound.
+     pages with zero inbound links inside the crawled set: 341  (was 340 UNKNOWN with an empty graph)
+
+PART 2 — SITEMAPS: reading 5 stored sitemap observation(s). Pass --sitemaps to re-read.
+
+=== ITEM 10 SUB-CHECKS + ITEM 38, over the 394 pages ===
+  status-and-redirects         FAIL=   7  UNKNOWN=   0  silent= 387
+  https-only                   FAIL=   0  UNKNOWN=   0  silent= 394
+  canonical                    FAIL=   6  UNKNOWN=   0  silent= 388
+  noindex                      FAIL= 134  UNKNOWN=   0  silent= 260
+  head-elements                FAIL=  18  UNKNOWN=   0  silent= 376
+  broken-internal-link         FAIL=   0  UNKNOWN=   0  silent= 394
+  query-parameters             FAIL=   1  UNKNOWN=   0  silent= 393
+  indexability-preflight       FAIL= 158  UNKNOWN= 210  silent=  26
+  sitemap-advertises-blocked-url FAIL=   0  UNKNOWN= 350  silent=  44
+
+=== 🔴 STRUCTURALLY UNKNOWN IN v0.1 — NOT MEASURED, NOT APPROXIMATED ===
+  rendering: UNKNOWN (NEEDS_RENDERED_HTML)
+     renderMode is RAW_HTML on every record and no JavaScript was ever executed. There is no honest approximation: inferring 'renders fine' from raw markup would be guessing about the exact thing this field exists to flag.
+  crawlDepth: UNKNOWN (NOT_APPLICABLE_YET)
+     we seeded from Search Console and never followed links — the frontier refuses discovered links by design — so depth was never measured. A deliberate design choice, not an oversight, and it must read UNKNOWN rather than as a number nobody can defend.
+
+=== PART 2 — SITEMAP ADVERTISES A URL ROBOTS FORBIDS ===
+  almiitalian.almiworld.com           0 of    855 sitemap URLs are DISALLOWED for Googlebot   impressions=0   [coverage COMPLETE: all children fetched]
+  almidutch.almiworld.com             0 of     12 sitemap URLs are DISALLOWED for Googlebot   impressions=0   [coverage COMPLETE: all children fetched]
+  almiportuguese.almiworld.com        0 of     13 sitemap URLs are DISALLOWED for Googlebot   impressions=0   [coverage COMPLETE: all children fetched]
+  almiicelandic.almiworld.com         0 of     15 sitemap URLs are DISALLOWED for Googlebot   impressions=0   [coverage COMPLETE: all children fetched]
+  almioet.almiworld.com               0 of  20000 sitemap URLs are DISALLOWED for Googlebot   impressions=0   [coverage COMPLETE: all children fetched]
+
+=== EVERY CHECK, AND ITS CONTROL ===
+  status-and-redirects           fires: an observation with status 404 — must fire…
+  https-only                     fires: an http:// final URL — must fire…
+  canonical                      fires: a page whose canonical points at another host — must fire…
+  noindex                        fires: a page with <meta name=robots content=noindex> — must fire…
+  head-elements                  fires: a page with no <h1> and an empty <title> — must fire…
+  broken-internal-link           fires: a page linking to a URL observed as 404 — must fire…
+  query-parameters               fires: a URL with ?sort=asc&page=2 — must fire…
+  indexability-preflight         fires: a page that is noindexed and robots-disallowed — must fire a…
+  sitemap-advertises-blocked-url fires: a sitemap listing /exam/x/from/y with a robots.txt whose Goo…
+
+written: C:/Users/Lenovo/AppData/Local/Temp/claude/C--Users-Lenovo/fe389914-e9d9-4f06-8bb4-b10140673fdd/scratchpad/runs5/technical.jsonl  (884 records) — this run: 884 new issue(s), 0 re-sighting(s)
+🔴 Nothing was fixed. No product repository was touched.
+exit=0

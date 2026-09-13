@@ -216,6 +216,19 @@ export async function crawl({
   };
 }
 
+/**
+ * 🔴 WHERE A REQUEST ENDED, WHEN THAT IS NOT WHERE IT STARTED — or null.
+ *
+ * Feeds the measurement key (see measurementKey() in ids.mjs). null for a
+ * request that ended where it started with no captured hop, so every
+ * unredirected page keeps the exact key it has always had; a string for
+ * anything else, so a changed destination is a changed measurement.
+ */
+export function journeyOf({ requested_url, final_url, redirect_chain = [] }) {
+  const redirected = Boolean(final_url && final_url !== requested_url) || redirect_chain.length > 0;
+  return redirected ? JSON.stringify({ final_url, redirect_chain }) : null;
+}
+
 function crawlCost(requests) {
   return costRecord({
     provider: "self-operated-crawler",
@@ -241,16 +254,23 @@ function pageObservation({
 }) {
   const observed_at = now().toISOString();
   const content_sha256 = sha256Hex(body ?? `<no-body:${status ?? error ?? "skipped"}>`);
+  /* ⚠️ The fetcher follows redirects with `redirect: "follow"`, which reports
+   * where a request ENDED but not the hops in between — so the chain is empty on
+   * every record, and a change of intermediate hop that keeps the same final URL
+   * and the same bytes is still invisible. Recorded as a declared limit, not
+   * papered over: the chain participates in the key the moment it is captured. */
+  const redirect_chain = [];
   return makeObservation({
     observed_at,
     method: skipped ? "crawl.skipped" : "crawl.fetch",
     target: { kind: "url", ref: requested_url },
     content_sha256,
+    journey: journeyOf({ requested_url, final_url, redirect_chain }),
     collector: COLLECTOR,
     collector_version: COLLECTOR_VERSION,
     value: {
       requested_url, final_url, status,
-      redirect_chain: [],
+      redirect_chain,
       timing_ms,
       response_headers_subset: headers,
       bytes, truncated, error,

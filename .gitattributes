@@ -13,3 +13,8 @@ case-study-01/corpus/** -text
 # rendered HTML file whose whitespace IS the exhibit — EOL conversion would edit
 # the very bytes the defect lives in.
 case-study-01/exhibits/** -text
+
+# The compressed bodies behind items 11, 42 and 48 (runs/crawl/bodies-*.jsonl.br).
+# Binary brotli: a single converted byte would corrupt the stream and every
+# body in it, and the hashes of 394 observations would stop being checkable.
+runs/crawl/*.br -text

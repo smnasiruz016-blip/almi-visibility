@@ -143,7 +143,7 @@ if (!permission.mayWrite) {
   // 🔴 Issues through the dedupe entry point; state changes are not issues and
   // are made idempotent by the OPEN-only filter above.
   for (const issue of replacements) store.appendIfNew(issue, { seenAt: now });
-  store.appendAll(changes);
+  store.appendAllWithoutDedupe(changes);
   const after = lifecycleOf(store.readAll());
   console.log(`\nappended ${records.length} records. lifecycle errors: ${after.errors.length}. states now: ${JSON.stringify(after.census)}`);
   if (after.errors.length) {

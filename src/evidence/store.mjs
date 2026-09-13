@@ -9,8 +9,8 @@
  * reviewable in a diff.
  *
  * Postgres later is a SECOND IMPLEMENTATION BEHIND THIS SAME INTERFACE — an
- * addition, not a rewrite. That is the whole reason `append` and `readAll` are
- * the only two verbs: they are the two a table can also offer.
+ * addition, not a rewrite. That is the whole reason appending and `readAll` are
+ * the only verbs: they are the ones a table can also offer.
  *
  * ── 🔴 C2 — THERE IS NO UPDATE AND NO DELETE ────────────────────────────────
  *
@@ -23,7 +23,16 @@
  * whose past can be rewritten to agree with its present, and every audit run
  * against it afterwards measures the rewrite.
  *
- * ── AND WHY `append` NEVER TRUNCATES ────────────────────────────────────────
+ * ── 🔴 AND THE UNSAFE VERB SAYS SO IN ITS NAME (13 September 2026) ──────────
+ *
+ * The plain `append` / `appendAll` were renamed `appendWithoutDedupe` /
+ * `appendAllWithoutDedupe`. Every audit writer that duplicated a record did it
+ * through a verb whose name sounded like the normal way to write. A census can
+ * miss a caller — a store passed in from another module was a declared blind
+ * spot — but a name cannot be missed in a diff: whoever types
+ * `appendWithoutDedupe` is told, by the word, what they are choosing.
+ *
+ * ── AND WHY APPENDING NEVER TRUNCATES ───────────────────────────────────────
  *
  * `appendFile`, never `writeFile`. A truncate-then-write that fails midway
  * leaves a zero-byte file where the evidence was; an append that fails midway
@@ -35,9 +44,9 @@ import { dirname } from "node:path";
 
 /** The verbs a store may expose. C2's test compares against this exact list. */
 export const STORE_INTERFACE = Object.freeze([
-  "append",
+  "appendWithoutDedupe",
   "appendIfNew",
-  "appendAll",
+  "appendAllWithoutDedupe",
   "readAll",
   "count",
   "path",
@@ -92,23 +101,30 @@ export function createJsonlStore(filePath) {
     return index;
   }
 
-  function append(record) {
-    if (!record || typeof record !== "object") throw new TypeError("append: a record object is required");
+  /**
+   * Append ONE record with NO duplicate check. The name is the warning.
+   *
+   * Lawful for records that are unique by construction (a run record whose id
+   * carries its start time, a supersession note written once per copy) — and
+   * every such caller is declared, with a checked reason, in the censuses.
+   */
+  function appendWithoutDedupe(record) {
+    if (!record || typeof record !== "object") throw new TypeError("appendWithoutDedupe: a record object is required");
     if (typeof record.record_type !== "string") {
-      throw new TypeError("append: every record must carry a record_type");
+      throw new TypeError("appendWithoutDedupe: every record must carry a record_type");
     }
     ensureDir();
     // 🔴 One record, one line, newline-terminated. A pretty-printed record would
     // make the file unparseable line-by-line and a partial write unrecoverable.
     const line = JSON.stringify(record);
-    if (line.includes("\n")) throw new Error("append: a serialised record must not contain a newline");
+    if (line.includes("\n")) throw new Error("appendWithoutDedupe: a serialised record must not contain a newline");
     appendFileSync(filePath, line + "\n", "utf8");
     if (index && dedupeKeyOf(record) !== null && !index.has(indexKey(record))) index.set(indexKey(record), record);
     return record;
   }
 
-  function appendAll(records) {
-    for (const r of records) append(r);
+  function appendAllWithoutDedupe(records) {
+    for (const r of records) appendWithoutDedupe(r);
     return records.length;
   }
 
@@ -135,15 +151,15 @@ export function createJsonlStore(filePath) {
     if (!record || dedupeKeyOf(record) === null) {
       throw new TypeError(
         "appendIfNew: the record carries no measurement_key and is not an issue with an issue_id. Only a measurement " +
-          "or a content-identified issue can be deduplicated — use append() for anything else.",
+          "or a content-identified issue can be deduplicated — use appendWithoutDedupe() for anything else, and declare why.",
       );
     }
     const existing = ensureIndex().get(indexKey(record));
     if (!existing) {
-      append(record);
+      appendWithoutDedupe(record);
       return { appended: true, observation_id: record.observation_id, issue_id: record.issue_id, resighting: false };
     }
-    append({
+    appendWithoutDedupe({
       record_type: RESIGHTING_TYPE,
       // 🔴 The EXISTING id, not the incoming one. A re-sighting points at the
       // record it confirms; minting a new id here would recreate the very
@@ -176,5 +192,5 @@ export function createJsonlStore(filePath) {
 
   // 🔴 Frozen so a caller cannot bolt an `update` onto the instance at runtime
   // and defeat C2 from the outside.
-  return Object.freeze({ append, appendIfNew, appendAll, readAll, count, path: filePath });
+  return Object.freeze({ appendWithoutDedupe, appendIfNew, appendAllWithoutDedupe, readAll, count, path: filePath });
 }

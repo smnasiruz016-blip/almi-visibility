@@ -42,7 +42,7 @@ test("🔴 a legacy issue stored WITHOUT any key is still found — a re-run can
   const dir = tmp();
   try {
     const path = join(dir, "s.jsonl");
-    createJsonlStore(path).append(issue()); // written the old way, with a bare append
+    createJsonlStore(path).appendWithoutDedupe(issue()); // written the old way, with no dedupe
     assert.equal(createJsonlStore(path).appendIfNew(issue()).appended, false);
   } finally {
     rmSync(dir, { recursive: true, force: true });

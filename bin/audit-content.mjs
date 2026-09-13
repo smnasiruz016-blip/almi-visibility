@@ -33,8 +33,13 @@ const openedAt = new Date().toISOString();
 const crawl = createJsonlStore(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`).readAll();
 const observations = crawl.filter((r) => r.record_type === "observation" && !r.value?.skipped);
 
-const haveCorpus = corpusDir && existsSync(corpusDir);
-console.log(`corpus: ${haveCorpus ? corpusDir : "🔴 NOT AVAILABLE — body-dependent checks will return UNKNOWN"}`);
+/* 🔴 With no --corpus, the COMMITTED body archive is read — the evidence that
+ * outlives the artifact (ruling, 13 September 2026). Same bytes, hash-checked
+ * against every observation by test/evidence-archive.test.mjs. */
+const ARCHIVE = `${REPO}runs/crawl/bodies-2026-09-12.jsonl.br`;
+const archiveBodies = !corpusDir && existsSync(ARCHIVE) ? (await import("../src/evidence/body-archive.mjs")).readBodyArchive(ARCHIVE) : null;
+const haveCorpus = Boolean((corpusDir && existsSync(corpusDir)) || archiveBodies);
+console.log(`corpus: ${archiveBodies ? `${ARCHIVE} (committed archive)` : haveCorpus ? corpusDir : "🔴 NOT AVAILABLE — body-dependent checks will return UNKNOWN"}`);
 console.log(`pages with a fetched body: ${observations.length}`);
 console.log(`\n${SHELL_DEFINITION}\n`);
 
@@ -49,8 +54,8 @@ for (const o of observations) {
   } catch {
     continue;
   }
-  const file = haveCorpus ? join(corpusDir, `${o.observation_id}.html`) : null;
-  const html = file && existsSync(file) ? readFileSync(file, "utf8") : null;
+  const file = haveCorpus && !archiveBodies ? join(corpusDir, `${o.observation_id}.html`) : null;
+  const html = archiveBodies ? archiveBodies.get(o.observation_id) ?? null : file && existsSync(file) ? readFileSync(file, "utf8") : null;
   pages.push({ canonical, observation: o, html });
   if (!byHash.has(o.content_sha256)) byHash.set(o.content_sha256, []);
   byHash.get(o.content_sha256).push(canonical);

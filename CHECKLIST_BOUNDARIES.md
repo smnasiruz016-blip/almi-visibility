@@ -26,24 +26,24 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | **NOT-STARTED** | 3 | 3 | **3** |
 | **BUILT-NOT-PROVED** | 18 | 17 | **14** |
 | **TESTABLE-NOW** | 0 | 2 | **0** |
-| **VERIFIED-PASS** | 3 | 3 | **5** |
-| **FAILED** | 0 | -1 | **1** |
-| **BLOCKED-UNKNOWN** | 6 | 6 | **7** |
+| **VERIFIED-PASS** | 3 | 3 | **8** |
+| **FAILED** | 0 | -1 | **0** |
+| **BLOCKED-UNKNOWN** | 6 | 6 | **5** |
 | **DEFERRED** | 28 | 28 | **28** |
 
-### FAILED — counted and named separately: **1**
+### FAILED — counted and named separately: **0**
 
 > 🔴 **FAILED is counted and named separately in every report.** It is never folded into another
 > count and it is **not progress**. It is also **worth more than BUILT-NOT-PROVED**: a FAILED row
 > is one whose test was run against its own boundary — it means we looked.
 
-- **item 48 · Idempotency & Retry Safety** — FAILURE met: a record duplicates — the technical audit writer, run twice on 12 September 2026, stored 868 issues twice with a bare append; it was never inside the population the tick was earned on
 - **item 14** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-12 — report.mjs and the chain runner's cache now write only with --confirm; every destination is confined to this repository and refused outside it; all five parts re-tested and each RED-proved
 - **item 45** left FAILED for TESTABLE-NOW by route `OWNER_RULING` on 2026-09-12 — 'A component cannot be failed for a period before it existed.' The boundary's INPUT is a run; the scope is runs from 8c9d68b (2026-09-12T23:03:09Z) onward. The bar is unchanged; the eight earlier runs are recorded as a permanent loss (L-COST-1)
+- **item 48** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — every authorized job that stores a record has now been run twice into one store with zero duplicates on the second run — crawl (replay: 389 unchanged → 0 new, 389 re-sightings), DNS audit (RECORDED resolver answers: 134 → +0), technical, content, verification and supply-label writers — and the census holds every issue writer to appendIfNew; RED when the key takes the clock
 
-**Rows that have been looked at (VERIFIED-PASS or FAILED): 6 of 58.**
+**Rows that have been looked at (VERIFIED-PASS or FAILED): 8 of 58.**
 
-**Rows that reached VERIFIED-PASS in this PR: 3.**
+**Rows that reached VERIFIED-PASS in this PR: 5.**
 
 #### moved ONLY because a RULING changed
 
@@ -57,11 +57,14 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | # | from | to | test | date | what happened |
 |---|---|---|---|---|---|
 | 9 | BUILT-NOT-PROVED | BLOCKED-UNKNOWN | `node bin/gsc-ingest.mjs --property=sc-domain:almiworld.com · node bin/gsc-dimensions.mjs · test/search-dimensions.test.mjs` | 2026-09-12 | six of seven dimensions ingested from the real property, each pull exhausted and COMPLETE with its bounds; downstream outcomes is supplied by no tool this engine holds, which the NOTE makes ⚠ rather than a failure |
+| 11 | BLOCKED-UNKNOWN | VERIFIED-PASS | `node bin/replay-crawl.mjs · test/replay.test.mjs` | 2026-09-13 | the same 394 URLs crawled twice through the production crawler and store, 5 named bodies changed between runs: 394/394 page_ids identical, 389 pages before and across both runs, each change a new observation on its existing page; RED when the id takes the clock |
 | 14 | TESTABLE-NOW | FAILED | `test/permitted-writers.test.mjs` | 2026-09-12 | the re-test was run against the new contract, and its FAILURE condition 'defaults to writing' was met at two write sites |
 | 14 | FAILED | VERIFIED-PASS | `test/permitted-writers.test.mjs · test/write-confinement.test.mjs · test/no-blind-regeneration.test.mjs · node tools/permitted-writers.mjs` | 2026-09-12 | report.mjs and the chain runner's cache now write only with --confirm; every destination is confined to this repository and refused outside it; all five parts re-tested and each RED-proved |
+| 42 | BLOCKED-UNKNOWN | VERIFIED-PASS | `node bin/replay-crawl.mjs · test/replay.test.mjs` | 2026-09-13 | each of 5 changed targets re-tested on its LATEST stored observation, chosen from the store, with a verdict before and after naming the observation read: noindex FAIL→PASS and PASS→FAIL, canonical PASS→FAIL, head-elements PASS→FAIL, and a body-only change PASS→PASS on three checks |
 | 45 | BUILT-NOT-PROVED | FAILED | `test/cost-ledger.test.mjs · test/cost-governor.test.mjs · node bin/cost-ledger.mjs` | 2026-09-12 | the ledger was built and backfilled from real records and the hard stop proved by injection; the FAILURE condition 'a cost reads UNKNOWN when it was measurable' is met by 12 parts of the eight stored ingest runs |
 | 45 | TESTABLE-NOW | VERIFIED-PASS | `test/item45-scope.test.mjs · node bin/gsc-ingest.mjs (one real run, ledger live)` | 2026-09-12 | one real Search Console run inside the scope recorded all four: money 0 ZERO_BY_TARIFF with basis, 9 provider calls, crawl budget 0 with its basis, 2.238 s wall-clock; item45Verdict over the real ledger returns PASS |
 | 48 | VERIFIED-PASS | FAILED | `undefined` | 2026-09-12 | the tick was earned on a narrower population than the boundary names ('the same authorized job'), and outside that population the FAILURE condition 'a record duplicates' is met on real data |
+| 48 | FAILED | VERIFIED-PASS | `node bin/replay-crawl.mjs · test/replay.test.mjs · test/duplicate-writers.test.mjs · test/issue-writer-census.test.mjs · test/idempotency-retry.test.mjs` | 2026-09-13 | every authorized job that stores a record has now been run twice into one store with zero duplicates on the second run — crawl (replay: 389 unchanged → 0 new, 389 re-sightings), DNS audit (RECORDED resolver answers: 134 → +0), technical, content, verification and supply-label writers — and the census holds every issue writer to appendIfNew; RED when the key takes the clock |
 | 49 | BUILT-NOT-PROVED | VERIFIED-PASS | `test/issue-lifecycle.test.mjs · test/source-tiers.test.mjs` | 2026-09-12 | a real chain walked end to end with all five parts present, 134 real issues superseded with the originals retained, and the tier layer ordering the real verified facts |
 
 ---
@@ -73,15 +76,15 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | **NOT-STARTED** | 33 | **3** |
 | **BUILT-NOT-PROVED** | 24 | **14** |
 | **TESTABLE-NOW** | 0 | **0** |
-| **VERIFIED-PASS** | 0 | **5** |
-| **FAILED** | 0 | **1** |
-| **BLOCKED-UNKNOWN** | 1 | **7** |
+| **VERIFIED-PASS** | 0 | **8** |
+| **FAILED** | 0 | **0** |
+| **BLOCKED-UNKNOWN** | 1 | **5** |
 | **DEFERRED** | 0 | **28** |
 | **total** | 58 | **58** |
 
 ### 🔴 THE MOST IMPORTANT LINE IN THIS DOCUMENT
 
-> **7 row(s) changed because work happened.** Listed in (i) below.
+> **9 row(s) changed because work happened.** Listed in (i) below.
 
 #### (i) changed because WORK HAPPENED
 
@@ -89,10 +92,12 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 |---|---|---|---|
 | 8 | HEAVY / THIN / EMPTY Discipline | NOT-STARTED | **VERIFIED-PASS** |
 | 9 | Search Console / Analytics Intelligence | BUILT-NOT-PROVED | **BLOCKED-UNKNOWN** |
+| 11 | Existing Page Inventory | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 14 | No Blind Regeneration | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 15 | Verified Fact Supply Engine | BUILT-NOT-PROVED | **VERIFIED-PASS** |
+| 42 | Re-crawl / Re-test Loop | NOT-STARTED | **VERIFIED-PASS** |
 | 45 | Cost Governor | BUILT-NOT-PROVED | **VERIFIED-PASS** |
-| 48 | Idempotency & Retry Safety | BUILT-NOT-PROVED | **FAILED** |
+| 48 | Idempotency & Retry Safety | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 49 | Audit Trail & Provenance | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 
 #### (ii) changed ONLY because the vocabulary changed
@@ -100,8 +105,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | move | count | features |
 |---|---|---|
 | NOT-STARTED → DEFERRED | 28 | 2, 3, 4, 5, 6, 7, 18, 19, 20, 21, 22, 23, 24, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39, 40, 41, 43, 44 |
-| BUILT-NOT-PROVED → BLOCKED-UNKNOWN | 4 | 1, 11, 54, 56 |
-| NOT-STARTED → BLOCKED-UNKNOWN | 1 | 42 |
+| BUILT-NOT-PROVED → BLOCKED-UNKNOWN | 3 | 1, 54, 56 |
 
 **Did not move: 18** — 10, 12, 13, 16, 17, 25, 26, 36, 38, 46, 47, 50, 51, 52, 53, 55, 57, 58
 
@@ -267,7 +271,7 @@ question for the owner, recorded as one.
 
 ### 11 · Existing Page Inventory
 
-**BLOCKED-UNKNOWN** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (vocabulary)
+**VERIFIED-PASS** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (work)
 
 | part | the owner's words |
 |---|---|
@@ -277,7 +281,9 @@ question for the owner, recorded as one.
 | **EVIDENCE** | two runs, the ID set compared, the changed page's observation chain. |
 | **BLOCKER TODAY** | one run only, by the terms of `D-CRW-4`. **"Maintain" cannot be tested until a second run is authorised.** |
 
-**Verdict —** the ruling's own BLOCKER TODAY: one crawl run only, by the terms of D-CRW-4. 'Maintain' needs a second run and a second run needs the owner's green — an owner gate, not unbuilt work
+**Verdict —** 🔴 **PROVED BY A LOCAL REPLAY, NOT A SECOND LIVE CRAWL — AND THE REPLAY SAYS WHAT IT DOES NOT PROVE.** **INPUT** the 12 September run's own 394 captured bodies, recovered from its Actions artifact and verified 394/394 against each observation's content_sha256, served from 127.0.0.1 and crawled TWICE through the production crawler, store and inventory; between the runs 5 NAMED bodies changed (C1 noindex removed, C2 noindex added, C3 canonical removed, C4 title removed, C5 body text only on a redirected page) and 389 stayed byte-identical. **EXPECTED met:** 394/394 page_ids identical, 0 moved; 389 pages after run 1 and 389 across both runs — no re-seen page became a second record; each of the 5 changes is a NEW OBSERVATION on its EXISTING page (2 observations, 1 page record each). **RED-proved:** a page_id that takes the clock moves 394 of 394 ids and the job fails on it. **Zero egress:** 822 requests, 0 not to 127.0.0.1. 🔴 **NOT PROVED:** that the crawler reaches the live internet today — the 12 September run proved that and the replay does not re-prove it. D-CRW-5, the green for a second live crawl, is GRANTED AND UNUSED and moved nothing
+
+**The one test that would settle it —** node bin/replay-crawl.mjs · node --test test/replay.test.mjs
 
 ### 12 · Duplicate / Thin / Template Detection
 
@@ -684,7 +690,7 @@ question for the owner, recorded as one.
 
 ### 42 · Re-crawl / Re-test Loop
 
-**BLOCKED-UNKNOWN** · class `P` · ruled in `§6` · was NOT-STARTED (vocabulary)
+**VERIFIED-PASS** · class `P` · ruled in `§6` · was NOT-STARTED (work)
 
 | part | the owner's words |
 |---|---|
@@ -694,7 +700,9 @@ question for the owner, recorded as one.
 | **EVIDENCE** | two observations of one target across a real change, with the verdict on each. |
 | **BLOCKER TODAY** | requires a second authorised crawl run. |
 
-**Verdict —** the ruling's own BLOCKER TODAY: requires a second authorised crawl run. Owner gate
+**Verdict —** 🔴 **FIVE CHANGED TARGETS, EACH RE-TESTED ON ITS LATEST OBSERVATION — AND THE CHANGE WAS A LOCAL REPLAY CHANGE, NOT A PRODUCT PAGE CHANGE.** **INPUT** 5 targets whose served body changed between two replay runs of the real 12 September corpus. **EXPECTED met:** the re-test picks the newest stored observation of the page FROM THE STORE, not the one the caller holds, and records a verdict before and after, each naming the observation it read: C1 noindex **FAIL → PASS**; C2 noindex **PASS → FAIL**; C3 canonical **PASS → FAIL** ('no rel=canonical'); C4 head-elements **PASS → FAIL** ('no <title>'); C5 body-text only, **PASS → PASS** on noindex, canonical and head-elements — a change that should move no verdict moved none. **FAILURE not met:** every re-test read an observation newer than the one before the change (no stale observation served as current), and every verdict names its evidence. **The change is legitimate:** in-memory copies of recovered bodies served on 127.0.0.1 — no product's real page was changed and nothing was written to any product repository, which would be forbidden. 🔴 **NOT PROVED:** that a change on a LIVE page is noticed by a live crawl; that needs a live second run, and D-CRW-5 stays unused for it
+
+**The one test that would settle it —** node bin/replay-crawl.mjs · node --test test/replay.test.mjs
 
 ### 43 · Experiment / Change Impact
 
@@ -768,7 +776,7 @@ question for the owner, recorded as one.
 
 ### 48 · Idempotency & Retry Safety
 
-**FAILED** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (work)
+**VERIFIED-PASS** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (work)
 
 | part | the owner's words |
 |---|---|
@@ -777,9 +785,9 @@ question for the owner, recorded as one.
 | **FAILURE** | a record, page, action or cost duplicates; or a 4xx is retried. |
 | **EVIDENCE** | before/after IDs and counts, plus a test that fails if the retry rule is changed. |
 
-**Verdict —** 🔴 **REOPENED — THE FIRST TICK THIS PROJECT HAS REMOVED.** By the checklist's reopen rule, for concrete contradictory evidence. **Was the audit writer inside the tested population? NO.** The tick's 'same job run twice' test drives one synthetic observation through appendIfNew, and its REAL test counts only the crawl file; no audit writer was ever run twice. Outside that population the FAILURE condition was met on real data: 868 extra copies in the technical findings. **Is an audit writer 'an authorized job'? Yes** — it is run deliberately by an operator, reads authorized evidence, and writes stored conclusions; nothing in the boundary limits 'job' to ingests. **Fixed in this change:** the store deduplicates an issue by its content-derived issue_id; all four unguarded writers (three audit writers and the crawler's observations) now use appendIfNew; the 868 copies are SUPERSEDED by append-only notes, none removed. **Re-test:** both offline audit writers run twice for real add 0 issues on the second run; a census finds 0 unguarded record writes. **The proof is in TWO LAYERS, and neither is enough alone:** the RECORDED double runs prove the audit writers WORKED, once, for real — but a test reading that file reads a file, not the code; the ISSUE-WRITER CENSUS proves, on every commit, that every writer of issue records (six, found from the code — including the supply-label writer, which overwrote its file and was not append-only) is STILL WIRED to appendIfNew. **Why it does NOT re-tick here:** two authorized jobs — the crawl (a second run needs the owner's green) and the DNS audit (network) — cannot be run twice in this change, so their fix is proved in source and through the store, not by the double run the boundary names. Leaves FAILED by that run passing, or an owner ruling
+**Verdict —** 🔴 **LEFT FAILED BY RULE 1's FIRST ROUTE — THE JOBS THE REOPEN NAMED WERE RUN TWICE, AND NOTHING DUPLICATED.** The reopen said exactly what was missing: two authorized jobs, the crawl and the DNS audit, had never been run twice. **Both now have.** **The crawl**, by a LOCAL REPLAY of the 12 September run's own 394 bodies through the production crawler and store, counted APART: **389 unchanged bodies → 0 new measurement records, 389 re-sightings**; **5 changed bodies → 5 new observations**, which is correct and not a duplicate. **The DNS audit**, run twice into one store on **RECORDED resolver answers** (the dns.families observations stored on 12 September — not a live query, and it says so): **134 records on the first run, +0 and 134 re-sightings on the second.** With the writers already proved, **every job that stores a record has now been run twice for real**: technical (2328 issues, +0), content (1576, +0), verification (2 issues and 6 observations, +0), supply labels (550, +0), Search Console ingest (re-sightings on real re-runs), crawl, DNS audit. **Two layers, and neither is enough alone:** the recorded double runs prove the writers WORKED; the issue-writer census proves on every commit that every issue writer is STILL WIRED to appendIfNew. **RED-proved through the real replay job:** a measurement_key that takes the clock turns all 389 unchanged bodies into new records and the job fails on it. **The retry half is unchanged and still tested**: one request per 4xx, one retry on a network error, none on a 5xx. **Cost side effects:** the cost ledger refuses a second entry with the same entry_id. 🔴 **NOT PROVED:** what DNS answers LIVE today, or that a live second crawl would behave the same against changed live pages — D-CRW-5 stays unused
 
-**The one test that would settle it —** node --test test/duplicate-writers.test.mjs test/idempotency-retry.test.mjs · node tools/duplicate-writer-census.mjs
+**The one test that would settle it —** node bin/replay-crawl.mjs · node --test test/replay.test.mjs test/duplicate-writers.test.mjs test/issue-writer-census.test.mjs test/idempotency-retry.test.mjs · node tools/duplicate-writer-census.mjs
 
 ### 49 · Audit Trail & Provenance
 

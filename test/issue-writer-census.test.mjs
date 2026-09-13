@@ -32,13 +32,15 @@ test("🔴 every issue writer found in the code persists through appendIfNew —
  */
 test("🔴 the population is found from the code, not listed — and today it is SIX writers", () => {
   assert.ok(real.scanned > 80, `only ${real.scanned} modules scanned`);
+  // bin/audit.mjs's writing moved into src/audit/run-audit.mjs (injectable
+  // resolver, 13 Sep 2026) — the census followed it there by construction.
   assert.deepEqual(real.population.map((p) => p.file), [
     "bin/audit-content.mjs",
     "bin/audit-technical.mjs",
-    "bin/audit.mjs",
     "bin/supersede-noindex.mjs",
     "bin/supply-labels.mjs",
     "bin/verification-issues.mjs",
+    "src/audit/run-audit.mjs",
   ]);
 });
 

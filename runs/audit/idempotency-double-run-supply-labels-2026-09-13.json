@@ -1,0 +1,38 @@
+{
+  "job": "bin/supply-labels.mjs",
+  "args": [
+    "--corpus=runs/crawl/corpus",
+    "--confirm"
+  ],
+  "ranAt": "2026-09-13T00:29:44.371Z",
+  "note": "the same authorized job run twice into ONE store, offline, after the appendIfNew fix",
+  "runs": [
+    {
+      "run": 1,
+      "exit": 0,
+      "seconds": 18.579,
+      "after": {
+        "records": 550,
+        "issues": 550,
+        "distinctIssueIds": 550,
+        "observations": 0,
+        "resightings": 0
+      }
+    },
+    {
+      "run": 2,
+      "exit": 0,
+      "seconds": 32.795,
+      "after": {
+        "records": 1100,
+        "issues": 550,
+        "distinctIssueIds": 550,
+        "observations": 0,
+        "resightings": 550
+      }
+    }
+  ],
+  "secondRunAddedIssues": 0,
+  "secondRunAddedObservations": 0,
+  "secondRunResightings": 550
+}

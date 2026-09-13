@@ -71,6 +71,7 @@ const DECLARED = Object.freeze({
   "bin/gsc-ingest.mjs": "ledger.append — the ledger's own dedupe by entry_id",
   "bin/crawl.mjs": "the RUN record and its ledger entry: run_id includes the start time, so a second run is a new run, not a duplicate; observations use appendIfNew",
   "bin/cost-ledger.mjs": "ledger.append — the ledger's own dedupe by entry_id",
+  "bin/replay-crawl.mjs": "ledger.append — the ledger's own dedupe by entry_id; its crawl observations go through persistCrawlObservations (appendIfNew) and its audit through runRobotsAndDnsAudit (appendIfNew)",
   "bin/supersede-noindex.mjs": "writes only for issues still OPEN; its re-run appends 0 (proved when it was committed)",
   "bin/supersede-duplicates.mjs": "writes only for copies with no note yet; its re-run appends 0",
 });
@@ -134,6 +135,9 @@ test("🔴 REAL (2B/2C): the technical findings — 868 extra copies, all SUPERS
 for (const [job, file] of [
   ["bin/audit-technical.mjs", "idempotency-double-run-technical-2026-09-12.json"],
   ["bin/audit-content.mjs", "idempotency-double-run-content-2026-09-12.json"],
+  // 13 Sep 2026 — the two remaining issue writers, run twice offline into one store.
+  ["bin/verification-issues.mjs", "idempotency-double-run-verification-2026-09-13.json"],
+  ["bin/supply-labels.mjs", "idempotency-double-run-supply-labels-2026-09-13.json"],
 ]) {
   test(`🔴 REAL, RECORDED: ${job} run twice into one store added ZERO issues the second time`, () => {
     const r = JSON.parse(readFileSync(`${REPO}runs/audit/${file}`, "utf8"));
@@ -142,7 +146,9 @@ for (const [job, file] of [
     assert.ok(r.runs.every((x) => x.exit === 0), "a run did not complete");
     assert.ok(r.runs[0].after.issues > 0, "the first run wrote no issues — the double run would be vacuous");
     assert.equal(r.secondRunAddedIssues, 0, `${job} duplicated issues on its second run`);
-    assert.equal(r.secondRunResightings, r.runs[0].after.issues, "the second run did not record that it looked again");
+    // A writer that also stores observations re-sights those too — every record of run 1 is looked at again.
+    assert.equal(r.secondRunResightings, r.runs[0].after.issues + (r.runs[0].after.observations ?? 0), "the second run did not record that it looked again");
+    if ("secondRunAddedObservations" in r) assert.equal(r.secondRunAddedObservations, 0, `${job} duplicated observations on its second run`);
     assert.equal(r.runs[1].after.distinctIssueIds, r.runs[1].after.issues, "the store holds an issue_id twice");
   });
 }

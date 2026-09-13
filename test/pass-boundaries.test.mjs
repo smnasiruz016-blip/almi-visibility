@@ -235,14 +235,18 @@ test("🔴 RED: TESTABLE-NOW without a named test is REFUSED", () => {
  * defeat that was repaired, and the move records the route it took. */
 /* 🔴 AND ITEMS 45 AND 49 WERE RUN: 49 passed (VERIFIED-PASS 4 → 5) and 45
  * FAILED (FAILED 0 → 1). BUILT-NOT-PROVED 16 → 14. */
-test("the seven-state tally is 3 / 14 / 0 / 5 / 1 / 7 / 28", () => {
+/* 🔴 AND ITEMS 11, 42 AND 48 WERE PROVED BY A LOCAL REPLAY (13 Sep 2026):
+ * 11 and 42 BLOCKED-UNKNOWN → VERIFIED-PASS, 48 FAILED → VERIFIED-PASS.
+ * VERIFIED-PASS 5 → 8, FAILED 1 → 0, BLOCKED-UNKNOWN 7 → 5. The D-CRW-5 green
+ * was not spent and moved nothing. */
+test("the seven-state tally is 3 / 14 / 0 / 8 / 0 / 5 / 28", () => {
   assert.deepEqual(tally(classify()), {
     "NOT-STARTED": 3,
     "BUILT-NOT-PROVED": 14,
     "TESTABLE-NOW": 0,
-    "VERIFIED-PASS": 5,
-    FAILED: 1,
-    "BLOCKED-UNKNOWN": 7,
+    "VERIFIED-PASS": 8,
+    FAILED: 0,
+    "BLOCKED-UNKNOWN": 5,
     DEFERRED: 28,
   });
 });
@@ -282,13 +286,15 @@ test("every state used is one of the seven, and every row is classified", () => 
  * passed and not failed: every dimension a tool can supply was measured, and the
  * one no tool supplies was named. It is the only work row outside LOOKED, and
  * it is pinned so a second cannot join it quietly. */
-test("🔴 exactly SEVEN rows moved on WORK against the four-state baseline — 8, 9, 14, 15, 45, 48, 49 — 9 BLOCKED, 48 FAILED (reopened), the rest PASS", () => {
+/* 🔴 NINE since the replay: 11 and 42 had moved on VOCABULARY into BLOCKED-UNKNOWN;
+ * their test has now been run, so they are work — vocabulary 33 → 31. */
+test("🔴 exactly NINE rows moved on WORK against the four-state baseline — 8, 9, 11, 14, 15, 42, 45, 48, 49 — 9 BLOCKED, the rest PASS, none FAILED", () => {
   const rows = Object.values(classify());
   const work = rows.filter((r) => r.changeKind === "work");
-  assert.deepEqual(work.map((r) => r.id).sort((a, b) => a - b), [8, 9, 14, 15, 45, 48, 49]);
+  assert.deepEqual(work.map((r) => r.id).sort((a, b) => a - b), [8, 9, 11, 14, 15, 42, 45, 48, 49]);
   assert.deepEqual(work.filter((r) => !LOOKED.includes(r.state)).map((r) => `${r.id}:${r.state}`), ["9:BLOCKED-UNKNOWN"]);
-  assert.deepEqual(work.filter((r) => r.state === "FAILED").map((r) => r.id), [48]);
-  assert.equal(rows.filter((r) => r.changeKind === "vocabulary").length, 33);
+  assert.deepEqual(work.filter((r) => r.state === "FAILED").map((r) => r.id), []);
+  assert.equal(rows.filter((r) => r.changeKind === "vocabulary").length, 31);
   assert.equal(rows.filter((r) => r.changeKind === "none").length, 18);
 });
 
@@ -301,13 +307,18 @@ test("🔴 exactly SEVEN rows moved on WORK against the four-state baseline — 
  * on one real run; item 48 LOST its tick by the reopen rule. The count is the
  * same and the ledger is more true, which is exactly why a count alone is never
  * the finding. */
-test("🔴 VERIFIED-PASS is exactly 5 — items 8, 14, 15, 45 and 49 — and 48 is no longer among them", () => {
+/* 🔴 EIGHT since the replay — 11, 42, and 48 back, by rule 1's first route. Its
+ * reopen is KEPT on the row, as item 14's first failure is. */
+test("🔴 VERIFIED-PASS is exactly 8 — items 8, 11, 14, 15, 42, 45, 48 and 49 — and 48's reopen stays on the record", () => {
   const rows = classify();
   const passed = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS").map((r) => r.id).sort((a, b) => a - b);
-  assert.deepEqual(passed, [8, 14, 15, 45, 49]);
-  assert.equal(tally(rows)["VERIFIED-PASS"], 5);
-  assert.equal(rows[48].state, "FAILED");
-  assert.match(rows[48].failureMet, /a record duplicates/);
+  assert.deepEqual(passed, [8, 11, 14, 15, 42, 45, 48, 49]);
+  assert.equal(tally(rows)["VERIFIED-PASS"], 8);
+  assert.match(rows[48].why, /LEFT FAILED BY RULE 1's FIRST ROUTE/);
+  assert.match(rows[48].why, /RECORDED resolver answers/);
+  assert.match(rows[48].whyFailed, /REOPENED — THE FIRST TICK THIS PROJECT HAS REMOVED/);
+  assert.match(rows[48].failureMetThen, /a record duplicates/);
+  for (const id of [11, 42]) assert.match(rows[id].why, /NOT PROVED/, `item ${id} does not say what the replay leaves unproved`);
   assert.match(rows[45].whyFailed, /FAILURE CONDITION IS MET/, "item 45's earlier FAILED verdict was erased rather than kept");
   // 🔴 Item 14 ticked by leaving FAILED the lawful way: the cause fixed, the
   // test re-run and passed. The FAILED verdict is kept on the row, not erased.

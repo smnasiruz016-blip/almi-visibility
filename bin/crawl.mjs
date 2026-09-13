@@ -29,6 +29,7 @@ import { measureIpv6Egress, addressFamilies, reachabilityState } from "../src/cr
 import { ESTATE_HOSTNAME_LIST } from "../config/estate-hostnames.mjs";
 import { confineToRepo } from "../src/write-law.mjs";
 import { createCostLedger, entryFromCrawlRun, formatLedgerLine } from "../src/cost/ledger.mjs";
+import { persistCrawlObservations } from "../src/crawl/persist.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n, d = null) => {
@@ -204,7 +205,8 @@ const store = createJsonlStore(out);
 // same page read twice with the same bytes is ONE observation plus a re-sighting.
 // The run record below is not deduplicated — its run_id includes the start
 // time, so a second run is a genuinely new record of a second run.
-for (const o of result.observations) store.appendIfNew(o, { seenAt: o.observed_at });
+// Through the shared write path — the replay (bin/replay-crawl.mjs) uses the same one.
+persistCrawlObservations(store, result.observations);
 
 /**
  * 🔴 RAW BODIES GO TO A CORPUS DIRECTORY, NOT INTO GIT.

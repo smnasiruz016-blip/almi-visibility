@@ -172,9 +172,11 @@ test("the headline counts match the rows they summarise", () => {
  */
 test("🔴 the headline separates the three earned ticks from the 33 renamed rows", () => {
   const text = readFileSync(STATUS, "utf8");
-  assert.match(text, /FIVE TICKS — ITEMS 8, 14, 15, 45 AND 49/);
+  assert.match(text, /EIGHT TICKS — ITEMS 8, 11, 14, 15, 42, 45, 48 AND 49/);
   assert.match(text, /DEFERRED IS NOT A TICK AND NEVER COUNTS AS ONE/);
-  assert.match(text, /only five rows in the whole ledger that \*\*hold a pass earned by work\*\*/);
+  assert.match(text, /only eight rows in the whole ledger that \*\*hold a pass earned by work\*\*/);
+  // 🔴 Two of the eight rest on a replay — the headline must say what that does not prove.
+  assert.match(text, /does not prove\s+(>\s*)?live reachability/);
   // 🔴 The tick that was REMOVED is named, not quietly dropped from the list.
   assert.match(text, /A TICK REMOVED — ITEM 48/);
   // 🔴 And the ledger must still say plainly that a deferral is not progress.

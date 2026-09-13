@@ -41,9 +41,13 @@ const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, 
 const IF_NEW_CALL = new RegExp(["\\.append", "IfNew\\("].join(""));
 const BARE_APPEND = new RegExp(["\\.append", "(All)?\\("].join(""));
 const FS_WRITE = new RegExp(["(write", "FileSync|append", "FileSync|create", "WriteStream)\\("].join(""));
+/* 🔴 A check imported RELATIVELY counts too. When the robots/DNS audit moved
+ * from bin/audit.mjs into src/audit/run-audit.mjs it imports "./checks.mjs" —
+ * and a pattern that only knew "src/audit/" would have let the real issue
+ * writer drop out of the population the moment it moved. */
 const BUILDS_ISSUES = [
   new RegExp(["\\bmake", "Issue\\b"].join("")),
-  /from\s+["'][^"']*src\/audit\/[^"']*check[^"']*\.mjs["']/,
+  /from\s+["'](?:[^"']*\/src\/audit\/|\.\/)[^"'/]*check[^"'/]*\.mjs["']/,
 ];
 const OPENS_STORE = new RegExp(["create", "JsonlStore\\("].join(""));
 

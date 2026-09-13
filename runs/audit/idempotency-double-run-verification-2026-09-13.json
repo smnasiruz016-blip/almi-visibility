@@ -1,0 +1,37 @@
+{
+  "job": "bin/verification-issues.mjs",
+  "args": [
+    "--confirm"
+  ],
+  "ranAt": "2026-09-13T00:28:49.880Z",
+  "note": "the same authorized job run twice into ONE store, offline, after the appendIfNew fix",
+  "runs": [
+    {
+      "run": 1,
+      "exit": 0,
+      "seconds": 0.135,
+      "after": {
+        "records": 8,
+        "issues": 2,
+        "distinctIssueIds": 2,
+        "observations": 6,
+        "resightings": 0
+      }
+    },
+    {
+      "run": 2,
+      "exit": 0,
+      "seconds": 0.128,
+      "after": {
+        "records": 16,
+        "issues": 2,
+        "distinctIssueIds": 2,
+        "observations": 6,
+        "resightings": 8
+      }
+    }
+  ],
+  "secondRunAddedIssues": 0,
+  "secondRunAddedObservations": 0,
+  "secondRunResightings": 8
+}

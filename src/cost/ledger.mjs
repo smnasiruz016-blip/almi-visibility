@@ -310,6 +310,73 @@ export function entryFromLiveIngest({ startedAt, finishedAt, governor, pulls, ba
   });
 }
 
+/**
+ * A LOCAL REPLAY of a real crawl (items 11, 42, 48). It still costs founder time
+ * and still belongs in the ledger. Money is a MEASURED zero: every request went
+ * to 127.0.0.1, and the egress log that proves it travels with the entry.
+ */
+export function entryFromReplay({ startedAt, finishedAt, passes, egressTotal, egressNonLocal }) {
+  const used = {
+    passes: passes.length,
+    urlsFetched: passes.reduce((n, p) => n + p.run.urlsFetched, 0),
+    requestsIssued: passes.reduce((n, p) => n + p.run.requestsIssued, 0),
+    localRequests: egressTotal,
+    nonLocalRequests: egressNonLocal,
+  };
+  return makeCostEntry({
+    entry_id: `replay:${startedAt}`,
+    run_kind: "replay",
+    run_ref: `bin/replay-crawl.mjs run started ${startedAt}`,
+    run_started_at: startedAt,
+    recorded_at: finishedAt,
+    money: {
+      amountState: "MEASURED",
+      amount: 0,
+      currency: "USD",
+      basis: `every crawl and robots request went to 127.0.0.1 (${egressTotal} requests recorded, ${egressNonLocal} to any other host): no hosted service, no provider and no page on any product host was touched`,
+    },
+    providerCalls: {
+      state: "MEASURED",
+      total: 0,
+      zeroBasis: "the replay calls no external provider; recovering the artifact is a separate job with its own entry",
+    },
+    budget: {
+      kind: "crawl",
+      used,
+      bounds: { maxUrlsPerRun: MAX_URLS_PER_RUN, maxRequestsPerHost: MAX_REQUESTS_PER_HOST },
+      capReached: passes.some((p) => p.run.capReached),
+      note: "requests to a local replay server, not to any AlmiWorld host",
+    },
+    founderTime: { state: "MEASURED", seconds: Math.round(Date.parse(finishedAt) - Date.parse(startedAt)) / 1000, from: startedAt, to: finishedAt },
+  });
+}
+
+/** Recovering a stored Actions artifact: one GitHub call, timed; its price is not ours to know. */
+export function entryFromArtifactRecovery({ startedAt, finishedAt, artifact, files, bytes }) {
+  return makeCostEntry({
+    entry_id: `artifact-recovery:${startedAt}`,
+    run_kind: "artifact-recovery",
+    run_ref: `gh run download — ${artifact}`,
+    run_started_at: startedAt,
+    recorded_at: finishedAt,
+    money: {
+      amountState: "UNKNOWN",
+      amount: null,
+      currency: "USD",
+      unknownKind: "NOT_MEASURABLE_WITH_TOOLS_WE_HOLD",
+      unknownReason: "downloading a stored Actions artifact is priced, if at all, under the account's GitHub plan, whose price and allowance are unmeasured (U-COST-1) — no estimate is made",
+    },
+    providerCalls: { state: "MEASURED", total: 1, perProvider: { github: 1 }, note: "one artifact download through gh" },
+    budget: {
+      kind: "artifact-download",
+      used: { files, bytes },
+      bounds: { artifact, artifactExpiresAt: "2026-12-11T00:42:30Z" },
+      capReached: false,
+    },
+    founderTime: { state: "MEASURED", seconds: Math.round(Date.parse(finishedAt) - Date.parse(startedAt)) / 1000, from: startedAt, to: finishedAt },
+  });
+}
+
 /* ================================================================== *
  * 🔴 ITEM 45's SCOPE — technical-owner ruling, 12 September 2026.
  *

@@ -38,9 +38,10 @@ const UK = records.find((f) => f.id === "uk-nmc.oet-minimum-grade.profession=nur
 
 // 🔴 34 since 13 Sep 2026: two more records left UNKNOWN through the F24 guard (item 50), dated that day.
 // 🔴 33 since the item-50 reopen: the writing record #63 counted as verified is UNKNOWN.
-// 🔴 25 since item 50's whole population was reconciled (13 Sep 2026).
-test("🔴 the input is 25 REAL verified facts, each with source, tier, scope, date and window", () => {
-  assert.equal(VERIFIED.length, 25);
+// 🔴 25 since item 50's whole population was reconciled (13 Sep 2026 morning).
+// 🔴 16 since the 9 ambiguous labels were demoted by beta-g ruling (13 Sep 2026 evening).
+test("🔴 the input is 16 REAL verified facts, each with source, tier, scope, date and window", () => {
+  assert.equal(VERIFIED.length, 16);
   for (const f of VERIFIED) {
     assert.ok(f.source?.url, `${f.id}: no source`);
     assert.ok(typeof f.source?.tier === "number", `${f.id}: no tier`);
@@ -53,7 +54,9 @@ test("🔴 the input is 25 REAL verified facts, each with source, tier, scope, d
 test("the recheck policy that set those dates: 90 days for fees and lists, 180 for requirements", () => {
   const w = {};
   for (const f of VERIFIED) w[f.verification.recheckWindowDays] = (w[f.verification.recheckWindowDays] ?? 0) + 1;
-  assert.deepEqual(w, { 90: 5, 180: 20 });
+  // 13 Sep evening demotion took 3 records with 90-day windows (2 pk-pnmc fees + 1 red-list-rule)
+  // and 6 with 180-day windows (4 uk-nmc + ie-nmbi + uk-hcpc). {90: 5-3=2, 180: 20-6=14}, total 16.
+  assert.deepEqual(w, { 90: 2, 180: 14 });
   const dates = VERIFIED.map((f) => f.checks.recheckAfter).sort();
   assert.equal(dates[0], "2026-12-11", "the earliest recheck falls due 11 December 2026");
   assert.equal(dates.at(-1), "2027-03-12"); // 2027-03-11 until the two 13 Sep verifications
@@ -94,14 +97,14 @@ test("🔴 LEG (i): a fact NOT held reaches the source exactly once, then is mem
  * LEG (ii) — REUSED WITHIN SCOPE AND WINDOW.
  * ================================================================== */
 
-test("🔴 LEG (ii): all 25 verified facts are reusable inside their scope and window today", () => {
+test("🔴 LEG (ii): all 16 verified facts are reusable inside their scope and window today", () => {
   const cache = createFactCache({ facts: VERIFIED, now: () => TODAY });
   for (const f of VERIFIED) {
     const r = cache.get(ask(f));
     assert.equal(r.hit, true, `${f.id} is verified and in-window but missed: ${r.reason}`);
     assert.equal(r.fact.id, f.id, `${f.id} returned a DIFFERENT fact — ${r.fact.id}`);
   }
-  assert.equal(cache.stats().hits, 25);
+  assert.equal(cache.stats().hits, 16);
 });
 
 /* ================================================================== *
@@ -162,7 +165,7 @@ test("🔴 LEG (iv): on the day after its recheck date, a real verified fact sto
   assert.match(after.freshness.why, new RegExp(`past its recheck date of ${IE.checks.recheckAfter}`));
 });
 
-test("🔴 LEG (iv): every one of the 25 expires on its own recorded date, none immortal", () => {
+test("🔴 LEG (iv): every one of the 16 expires on its own recorded date, none immortal", () => {
   for (const f of VERIFIED) {
     const day = new Date(f.checks.recheckAfter);
     day.setDate(day.getDate() + 1);
@@ -172,7 +175,7 @@ test("🔴 LEG (iv): every one of the 25 expires on its own recorded date, none 
   }
 });
 
-test("🔴 LEG (iv): the whole shelf goes stale on schedule — 0 of 25 usable after the last date", () => {
+test("🔴 LEG (iv): the whole shelf goes stale on schedule — 0 of 16 usable after the last date", () => {
   const past = new Date("2027-03-13"); // one day after the latest recheck (2027-03-12 since 13 Sep 2026)
   const cache = createFactCache({ facts: VERIFIED, now: () => past });
   let hits = 0;

@@ -153,10 +153,11 @@ test("🔴 the ingested recheck date GOVERNS freshness — asked on a day the tw
 
 // 🔴 34 since 13 Sep 2026: two OET records left UNKNOWN through the F24 guard (item 50), each with its recheck date.
 // 🔴 33 since the item-50 reopen (13 Sep 2026): #63's 34 included the writing record, corrected to UNKNOWN.
-// 🔴 25 since item 50's whole population was reconciled (13 Sep 2026): 8 records whose verdicts named only part of their value returned to UNKNOWN.
-test("🔴 REAL: all 25 VERIFIED records carry a recheck date, and it is the one freshness uses", () => {
+// 🔴 25 since item 50's whole population was reconciled (13 Sep 2026 morning): 8 records whose verdicts named only part of their value returned to UNKNOWN.
+// 🔴 16 since the 9 ambiguous labels were demoted by beta-g ruling (13 Sep 2026 evening).
+test("🔴 REAL: all 16 VERIFIED records carry a recheck date, and it is the one freshness uses", () => {
   const verified = records.filter((f) => f.verificationState === "VERIFIED");
-  assert.equal(verified.length, 25);
+  assert.equal(verified.length, 16);
   for (const f of verified) {
     assert.ok(f.verification.recheckAfter, `${f.id}: VERIFIED with no recheck date — it would never expire`);
     assert.equal(f.checks.recheckAfter, f.verification.recheckAfter, `${f.id}: the date did not reach freshnessOf`);
@@ -210,19 +211,20 @@ test("CONTROL: a well-formed UNKNOWN is accepted, so the two tests above are not
  * THE CENSUS — WHAT THE 12 SEPTEMBER VERDICTS ACTUALLY SAID.
  * ================================================================== */
 
-test("🔴 REAL: 46 records — 25 VERIFIED, 21 UNKNOWN, 0 left UNVERIFIED (measured after every label was reconciled through the guard)", () => {
+test("🔴 REAL: 46 records — 16 VERIFIED, 30 UNKNOWN, 0 left UNVERIFIED (after the 9 ambiguous labels were demoted 13 Sep evening)", () => {
   const by = {};
   for (const f of records) by[f.verificationState] = (by[f.verificationState] ?? 0) + 1;
-  assert.deepEqual(by, { VERIFIED: 25, UNKNOWN: 21 });
+  assert.deepEqual(by, { VERIFIED: 16, UNKNOWN: 30 });
 });
 
-// 🔴 13 Sep 2026: of the four SOURCE_UNREACHABLE, two were VERIFIED, one is now PARTIAL_EVIDENCE, one stays SOURCE_UNREACHABLE.
-test("🔴 REAL: the 21 UNKNOWNs break down 6 CONFLICT / 4 INCOMPLETE / 10 PARTIAL_EVIDENCE / 1 SOURCE_UNREACHABLE", () => {
+// 🔴 13 Sep 2026 morning: of the four SOURCE_UNREACHABLE, two were VERIFIED, one is now PARTIAL_EVIDENCE, one stays SOURCE_UNREACHABLE.
+// 🔴 13 Sep 2026 evening: 9 records demoted with reason PARTIAL_EVIDENCE (beta-g ruling). PARTIAL_EVIDENCE: 10 + 9 = 19.
+test("🔴 REAL: the 30 UNKNOWNs break down 6 CONFLICT / 4 INCOMPLETE / 19 PARTIAL_EVIDENCE / 1 SOURCE_UNREACHABLE", () => {
   const by = {};
   for (const f of records.filter((f) => f.verificationState === "UNKNOWN")) {
     by[f.verification.reason] = (by[f.verification.reason] ?? 0) + 1;
   }
-  assert.deepEqual(by, { CONFLICT: 6, INCOMPLETE: 4, PARTIAL_EVIDENCE: 10, SOURCE_UNREACHABLE: 1 });
+  assert.deepEqual(by, { CONFLICT: 6, INCOMPLETE: 4, PARTIAL_EVIDENCE: 19, SOURCE_UNREACHABLE: 1 });
   for (const r of Object.keys(by)) assert.ok(r in UNKNOWN_REASONS, `${r} is not a declared reason`);
 });
 

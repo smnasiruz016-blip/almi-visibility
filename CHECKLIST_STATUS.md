@@ -29,6 +29,27 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 | **DEFERRED** | — | **28** |
 | **total** | 58 | **58** |
 
+> ### 🔴 THE 9 AMBIGUOUS LABELS DEMOTED — 13 SEPTEMBER 2026, EVENING
+>
+> | state | before this change | after |
+> |---|---|---|
+> | NOT-STARTED | 2 (57, 58) | 2 (57, 58) |
+> | BUILT-NOT-PROVED | 5 | 5 |
+> | TESTABLE-NOW | 1 (25) | 1 (25) |
+> | VERIFIED-PASS | 17 | 17 |
+> | FAILED | 1 (50) | **1 (50)** |
+> | BLOCKED-UNKNOWN | 4 (1, 9, 52, 54) | 4 (1, 9, 52, 54) |
+> | DEFERRED | 28 | 28 |
+>
+> **FAILED — counted and named separately: 1 — item 50, OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation, stays FAILED on a NEW reason.** The 9 previously-VERIFIED labels that rested on a reading the reconciliation could not settle were **DEMOTED** to UNKNOWN — PARTIAL_EVIDENCE by beta-g ruling under owner steer *"it will not be made by picking the reading that keeps the label"*: 6 whose qualifier (destination of a fee, or the practitioner group a requirement applies to) is not part of the value text and is not named by the verdict, 2 lists whose completeness is not named, 1 rule whose binding party is not named. **Item 50 STAYS FAILED** because the guard's formula (declared ∩ named-confirmed) still advances all 9 — the demotion required a human ruling to catch what the formula could not, and a fresh record with the same defect would still be advanced. The formula fix (R4 in the ruling brief) is a follow-up amendment, not part of this change.
+>
+> - **measured, not predicted:** verified facts **25 → 16**; UNKNOWN **21 → 30** (CONFLICT 6 · INCOMPLETE 4 · PARTIAL_EVIDENCE **19** · SOURCE_UNREACHABLE 1). Item 50's `remainingPopulation` message now names the guard-formula gap explicitly.
+> - **moved because WORK HAPPENED:** none — no row moved. **moved ONLY because a RULING changed:** none — the ruling settles per-record labels, not row states.
+>
+> **No row reached VERIFIED-PASS; none lost one.** Row 15 stays VERIFIED-PASS on 16 verified facts; the real pair used to prove leg (iii) (IE-NMBI + UK-NMC nursing minimum grades) still exists as records with different values even though UK-NMC is now UNKNOWN. Row 16 unchanged; no real fact is stale. Row 50 stays FAILED with a NEW `remainingPopulation` message.
+>
+> 🔴 **The ruling brief lives at `_handoffs/AlmiVisibility_BETA_G_RULING_9_AMBIGUOUS_2026-09-13_NIGHT.md`** — R1/R2/R3 (per-category demotion) are what this change implements in the softest form; R4 (schema fix that hardens the guard) and R5 (bounded recheck of the 12 September verdicts) remain owner decisions.
+
 > ### 🔴 ITEM 50 — THE REMAINING POPULATION RECONCILED, AND THE TICK WITHHELD A THIRD TIME — 13 SEPTEMBER 2026
 >
 > | state | before this change | after |

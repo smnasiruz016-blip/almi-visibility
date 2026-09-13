@@ -144,11 +144,16 @@ test("🔴 the writing record is CORRECTED, not re-verified: UNKNOWN, PARTIAL_EV
 /* ---- 🔴 THE WHOLE GOVERNED POPULATION ------------------------------------ */
 
 test("🔴 50 · THE WHOLE GOVERNED POPULATION — 36 real records judged: 25 advanced, 11 refused; NO VERIFIED label reached VERIFIED without the guard", () => {
+  // 🔴 The guard's decisions are unchanged by the 13 Sep evening beta-g demotion of AMBIGUOUS.
+  // The demotion moved the RECORD's declared state; the guard's formula (declared ∩ named-confirmed)
+  // still advances the 9 because it does not police the qualifier / list completeness / binding party.
+  // That is exactly the gap the demotion exposes — see PART 4.
   assert.deepEqual([v.guard.judged, v.guard.advanced, v.guard.refused], [36, 25, 11]);
   assert.deepEqual(v.guard.judgements.map((j) => j.id).sort(), [...FOUR, ...THIRTY_TWO].sort());
   const unguarded = records.filter((r) => r.verificationState === "VERIFIED" && !judgementOf(r.id)).map((r) => r.id);
   assert.deepEqual(unguarded, [], "a VERIFIED label never passed through the guard");
-  assert.equal(records.filter((r) => r.verificationState === "VERIFIED").length, 25);
+  // MEASURED after the 9-record demotion: 25 - 9 = 16 records still declared VERIFIED.
+  assert.equal(records.filter((r) => r.verificationState === "VERIFIED").length, 16);
   assert.equal(UNKNOWN_ON_2026_09_12.length, 14);
   assert.deepEqual(departuresWithoutJudgement(records, UNKNOWN_ON_2026_09_12), []);
 });
@@ -180,18 +185,35 @@ test("🔴 PART 2 · the 8 whose verdicts named only part of their value returne
     assert.deepEqual([j.decision, j.declared, j.agrees, j.elements.notConfirmed], ["REFUSED", "UNKNOWN", true, notConfirmed], `${id}: derived counts`);
     assert.match(r.verification.reconciliation, /Nothing was re-verified/);
   }
-  const stillVerified = THIRTY_TWO.filter((id) => !(id in RETURNED));
-  assert.equal(stillVerified.length, 24);
+  // stillVerified now excludes both RETURNED (8, returned by their notConfirmed > 0 on 13 Sep morning)
+  // AND AMBIGUOUS (9, demoted by beta-g ruling on 13 Sep evening); 32 - 8 - 9 = 15.
+  const stillVerified = THIRTY_TWO.filter((id) => !(id in RETURNED) && !AMBIGUOUS.includes(id));
+  assert.equal(stillVerified.length, 15);
   for (const id of stillVerified) assert.deepEqual([byId.get(id).verificationState, judgementOf(id).elements.notConfirmed], ["VERIFIED", 0], id);
 });
 
-test("🔴 PART 4 · 9 VERIFIED labels rest on a reading the reconciliation cannot settle — so item 50 STAYS FAILED", () => {
+test("🔴 PART 4 · the 9 rested on an unsettled reading and were DEMOTED by beta-g ruling — item 50 STAYS FAILED because the guard's formula still advances them", () => {
   const flagged = records.filter((r) => r.verification?.elementAmbiguity).map((r) => r.id).sort();
-  assert.deepEqual(flagged, [...AMBIGUOUS].sort());
-  for (const id of AMBIGUOUS) assert.equal(byId.get(id).verificationState, "VERIFIED", `${id}: flagged records are the labels in question`);
+  assert.deepEqual(flagged, [...AMBIGUOUS].sort(), "the 9 flagged records are the labels in question");
+  for (const id of AMBIGUOUS) {
+    const r = byId.get(id);
+    const j = judgementOf(id);
+    // 🔴 The demotion: state moved UNKNOWN / PARTIAL_EVIDENCE, verdict wording UNTOUCHED, reconciliation records the ruling.
+    assert.equal(r.verificationState, "UNKNOWN", `${id}: not demoted to UNKNOWN`);
+    assert.equal(r.verification.reason, "PARTIAL_EVIDENCE", `${id}: PARTIAL_EVIDENCE not set`);
+    assert.equal(r.verification.verdict, "VERIFIED", `${id}: the verdict's own recorded wording was rewritten`);
+    assert.match(r.verification.reconciliation, /DEMOTED 13 September 2026 evening/, `${id}: reconciliation does not record the demotion`);
+    // 🔴 THE GAP THE DEMOTION EXPOSES: the guard's formula still advances all 9 because it does not police
+    // the qualifier / list completeness / binding party. That is why item 50 stays FAILED — the FAILURE
+    // condition (a label is absent or wrong) held on these 9 and required a human ruling to catch, not the guard.
+    assert.equal(j.decision, "ADVANCED_ON_NEW_MEASUREMENT", `${id}: guard should still advance (proving the formula gap)`);
+    assert.equal(j.declared, "UNKNOWN", `${id}: guard should read the demoted state`);
+    assert.equal(j.agrees, false, `${id}: record should DISAGREE with the guard — that is the point`);
+    assert.equal(j.elements.notConfirmed, 0, `${id}: element reconciliation still shows 0 not-confirmed — the ambiguity is outside the elements`);
+  }
   const row = classify()[50];
-  assert.equal(row.state, "FAILED", "item 50 was ticked while labels rest on an unsettled reading");
-  assert.match(row.remainingPopulation, /9 of the 25 VERIFIED labels rest on a reading the reconciliation cannot settle/);
+  assert.equal(row.state, "FAILED", "item 50 was ticked while the guard's formula still advances the demoted labels");
+  assert.match(row.remainingPopulation, /9 previously-VERIFIED labels were DEMOTED/);
 });
 
 test("🔴 no value and no evidence amended across the 32 — each hashes exactly as before reconciliation", async () => {

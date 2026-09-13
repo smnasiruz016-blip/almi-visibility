@@ -247,13 +247,15 @@ test("🔴 RED: TESTABLE-NOW without a named test is REFUSED", () => {
 /* 🔴 AND THE QUEUE WAS RUN (13 Sep 2026, later): 13 and 26 ticked; 55 FAILED on
  * a real leak, was fixed, re-run and ticked; 25 was attempted and stays with its
  * gap. TESTABLE-NOW 4 → 1, VERIFIED-PASS 10 → 13, FAILED unchanged at 2. */
-test("the seven-state tally is 3 / 6 / 1 / 13 / 2 / 5 / 28", () => {
+/* 🔴 AND 51 LEFT FAILED (13 Sep 2026, later): its three fields computed and all six on the
+ * real report. 50 stays FAILED on an argued reading. VERIFIED-PASS 13 → 14, FAILED 2 → 1. */
+test("the seven-state tally is 3 / 6 / 1 / 14 / 1 / 5 / 28", () => {
   assert.deepEqual(tally(classify()), {
     "NOT-STARTED": 3,
     "BUILT-NOT-PROVED": 6,
     "TESTABLE-NOW": 1,
-    "VERIFIED-PASS": 13,
-    FAILED: 2,
+    "VERIFIED-PASS": 14,
+    FAILED: 1,
     "BLOCKED-UNKNOWN": 5,
     DEFERRED: 28,
   });
@@ -299,12 +301,12 @@ test("every state used is one of the seven, and every row is classified", () => 
 /* 🔴 SEVENTEEN since the re-scan: the eight re-scanned rows moved because work
  * made their input exist ("none" 18 → 10). Four of them are TESTABLE-NOW, which
  * is NOT looked-at: an input that exists is not a verdict. */
-test("🔴 exactly SEVENTEEN rows moved on WORK — 9 BLOCKED; 13, 25, 26, 55 TESTABLE-NOW; 50, 51 FAILED; the rest PASS", () => {
+test("🔴 exactly SEVENTEEN rows moved on WORK — 9 BLOCKED; 25 TESTABLE-NOW; 50 FAILED; the rest PASS", () => {
   const rows = Object.values(classify());
   const work = rows.filter((r) => r.changeKind === "work");
   assert.deepEqual(work.map((r) => r.id).sort((a, b) => a - b), [8, 9, 11, 12, 13, 14, 15, 25, 26, 38, 42, 45, 48, 49, 50, 51, 55]);
   assert.deepEqual(work.filter((r) => !LOOKED.includes(r.state)).map((r) => `${r.id}:${r.state}`), ["9:BLOCKED-UNKNOWN", "25:TESTABLE-NOW"]);
-  assert.deepEqual(work.filter((r) => r.state === "FAILED").map((r) => r.id), [50, 51]);
+  assert.deepEqual(work.filter((r) => r.state === "FAILED").map((r) => r.id), [50]);
   assert.equal(rows.filter((r) => r.changeKind === "vocabulary").length, 31);
   assert.equal(rows.filter((r) => r.changeKind === "none").length, 10);
 });
@@ -325,8 +327,10 @@ test("🔴 exactly SEVENTEEN rows moved on WORK — 9 BLOCKED; 13, 25, 26, 55 TE
 test("🔴 VERIFIED-PASS is exactly 13 — items 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 48, 49 and 55 — and 48's reopen stays on the record", () => {
   const rows = classify();
   const passed = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS").map((r) => r.id).sort((a, b) => a - b);
-  assert.deepEqual(passed, [8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 48, 49, 55]);
-  assert.equal(tally(rows)["VERIFIED-PASS"], 13);
+  assert.deepEqual(passed, [8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 48, 49, 51, 55]);
+  assert.equal(tally(rows)["VERIFIED-PASS"], 14);
+  assert.match(rows[51].whyFailed, /FAILURE CONDITION IS MET/, "item 51's FAILED result was erased rather than kept");
+  assert.match(rows[50].whyStillFailed, /IT STAYS FAILED/, "item 50's argued reading is not on the row");
   assert.match(rows[55].whyFailed, /LEAK/, "item 55's FAILED result was erased rather than kept");
   for (const id of [12, 38]) assert.match(rows[id].whyBefore, /Not touched in this PR/, `item ${id}'s earlier verdict was erased rather than kept`);
   assert.match(rows[48].why, /LEFT FAILED BY RULE 1's FIRST ROUTE/);

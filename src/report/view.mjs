@@ -313,6 +313,49 @@ export function renderLedger(lines, failures) {
 </section>`;
 }
 
+/**
+ * 🔴 ITEM 51 — A RECOMMENDATION, WITH ALL SIX THINGS THE OWNER MUST BE ABLE TO INSPECT.
+ * Priority, confidence and cost come from src/report/recommendation-fields.mjs,
+ * each computed from stored evidence and each shown as UNKNOWN, with its reason,
+ * when its inputs are missing. Nothing here chooses a number.
+ */
+export function renderRecommendations(fields) {
+  if (!fields?.length) return "";
+  const show = (v) => {
+    if (!v) return '<span class="bad">🔴 MISSING</span>';
+    if (v.state === "UNKNOWN") return `<span class="lbl lbl-UNKNOWN">UNKNOWN</span> ${esc(v.reason)}${v.lowerBound !== undefined ? ` (at least ${esc(v.lowerBound)} measured)` : ""}`;
+    return null;
+  };
+  const priority = (p) => show(p) ?? `<strong>${esc(p.rank)} of ${esc(p.of)}</strong><br><span class="bound">${esc(p.basis)}</span>`;
+  const confidence = (c) =>
+    show(c) ??
+    `weakest source tier <strong>${esc(c.weakestTier)}</strong><br><span class="bound">tiers ${Object.entries(c.tierCensus).map(([k, v]) => `${esc(k)}=${v}`).join(" · ")} · evidence resolved ${esc(c.evidenceResolved)} · issues UNKNOWN ${esc(c.issuesUnknown)} · pulls incomplete ${esc(c.pullsIncomplete)}</span>`;
+  const part = (label, v, unit = "") => `${label}: ${v.state === "MEASURED" ? `<strong>${esc(v.value)}${unit}</strong>` : show(v)}`;
+  const cost = (c) =>
+    `<strong>of the evidence</strong> (ledger ${c.ofEvidence.ledgerEntries.length ? c.ofEvidence.ledgerEntries.map((e) => `<code>${esc(e)}</code>`).join(", ") : "none"}):<br>` +
+    `${part("money", c.ofEvidence.money, " USD")}<br>${part("provider calls", c.ofEvidence.providerCalls)}<br>${part("founder time", c.ofEvidence.founderSeconds, " s")}<br>` +
+    `<strong>to carry it out:</strong> ${show(c.toApply)}`;
+  const rows = fields
+    .map(
+      (f) => `<tr>
+      <td><span class="lbl lbl-RECOMMENDED">RECOMMENDED</span><br><code>${esc(f.recommendation_id)}</code><br>${esc(f.title)}</td>
+      <td>${priority(f.priority)}</td>
+      <td>${f.evidence.linked ? `${esc(f.evidence.resolved)} of ${esc(f.evidence.linked)} linked records found — ${esc(f.evidence.issues)} issues · ${esc(f.evidence.observations)} observations · ${esc(f.evidence.sources)} sources` : '<span class="bad">🔴 no evidence linked</span>'}</td>
+      <td>${confidence(f.confidence)}</td>
+      <td class="wrap">${cost(f.cost)}</td>
+      <td>${esc(f.status ?? "")}</td>
+      <td class="wrap">${esc(f.reason ?? "")}</td>
+    </tr>`,
+    )
+    .join("\n");
+  return `
+<section id="recommendations">
+  <h2>Recommendations — ${fields.length}, each with priority, evidence, confidence, cost, status and reason</h2>
+  <p class="bound">Priority, confidence and cost are COMPUTED from stored records, never chosen; each says UNKNOWN, and why, when its inputs are missing. Nothing here is approved or applied.</p>
+  <table><thead><tr><th>recommendation</th><th>priority</th><th>evidence</th><th>confidence</th><th>cost</th><th>status</th><th>reason</th></tr></thead><tbody>${rows}</tbody></table>
+</section>`;
+}
+
 export function renderRunCost(s) {
   const run = s.liveRun;
   return `
@@ -374,7 +417,7 @@ footer{margin-top:2rem;padding-top:1rem;border-top:2px solid var(--line);color:v
 `;
 
 /** The whole page. Pure — takes records, returns a string. */
-export function renderPage({ crawlRecords, evidenceRecords, facts, generatedAt, chainWalk, sourceTiers = null, ledger = null }) {
+export function renderPage({ crawlRecords, evidenceRecords, facts, generatedAt, chainWalk, sourceTiers = null, ledger = null, recommendations = null }) {
   const s = summarise({ crawlRecords, evidenceRecords, facts });
   const rec = reconcile(crawlRecords);
   const issues = [...crawlRecords, ...evidenceRecords].filter((r) => r.record_type === "issue");
@@ -401,6 +444,7 @@ ${renderReconciliation(rec)}
 ${renderRunCost(s)}
 ${ledger ? renderLedger(ledger.lines, ledger.failures) : ""}
 ${chainWalk === undefined ? "" : renderChainWalk(chainWalk)}
+${recommendations ? renderRecommendations(recommendations) : ""}
 ${renderIssues(issues, [...crawlRecords, ...evidenceRecords])}
 ${sourceTiers ? renderSourceTiers(sourceTiers.ranked, sourceTiers.census) : ""}
 ${renderFacts(facts)}

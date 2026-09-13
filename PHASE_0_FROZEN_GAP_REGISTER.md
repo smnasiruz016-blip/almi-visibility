@@ -663,13 +663,43 @@ their losses are recorded permanently below and are never estimated.
 
 ---
 
+## P-OET-1 — FOUR OET FACTS: PARKED, NOT VERIFIED
+
+**Recorded 13 September 2026, on beta-g's instruction.**
+
+| fact | state in the registry (unchanged) |
+|---|---|
+| `oet.grade-bands-0-500` | UNVERIFIED · UNKNOWN (SOURCE_UNREACHABLE) |
+| `oet.writing-task-type.profession=nursing` | UNVERIFIED · UNKNOWN (SOURCE_UNREACHABLE) |
+| `oet.speaking-roleplay-setting.profession=nursing` | UNVERIFIED · UNKNOWN (SOURCE_UNREACHABLE) |
+| `oet.content-licence-permits-stored-quotation` | UNVERIFIED · UNKNOWN (SOURCE_UNREACHABLE) |
+
+**Why they could now be verified:** each was UNKNOWN only because oet.com returned 403 to beta-g's fetcher on
+12 September, and the source-integrity link check of 13 September got HTTP 200 from the same host.
+
+**Why they are PARKED, in beta-g's words:** item 15 is already VERIFIED-PASS, these four move no row, and
+"verifying them because the door opened is not the same as verifying them because they are next." The
+opportunity is postponed, not lost.
+
+⚠️ **Disclosed, because it happened:** an earlier version of the same night's brief asked for these pages to be
+fetched for a verifier, and the replacement brief that parked them arrived after that fetch had run. At
+2026-09-13T02:19:52Z a bounded fetch made **7 GET requests** to oet.com (hard cap 12, 1 per second, external host
+only): all five pages returned HTTP 200, and the normalised-text fingerprint of each of the four CITED pages was
+**unchanged** since the registry's fingerprint of 2026-09-10. **No verificationState was read as a verdict or
+changed. No OET wording was stored.** Its outputs were NOT committed; the one cost-ledger line it wrote
+(`source-fetch:2026-09-13T02:19:52.573Z`) is kept, because the ledger is append-only and the requests were real.
+
+**Status:** ⏸️ PARKED — to be verified when they are next, by beta-g, who judges; this engine fetches.
+
+---
+
 ## D-SEC-1 · D-INST-1 · D-GATEA-1 — FOUND WHILE RUNNING THE QUEUE, 13 SEPTEMBER 2026
 
 | id | what | status |
 |---|---|---|
 | **D-SEC-1** | 🔴 **A SECRET LEAK, FOUND BY EXECUTION.** The Search Console adapter parsed the key file with a bare `JSON.parse`. On a key file that is not JSON, the error QUOTES the text it failed on — its first characters in the message, and, uncaught, Node prints the whole first line to stderr. The executing leak test (`test/secret-leak.test.mjs`), with a PLANTED fake secret, went red in-process and through the CLI (`runs/audit/item-55-leak-test-red-before-fix-2026-09-13.txt`). A manual grep would never have found it: the leaking code is Node's, not ours. | ✅ FIXED — the parse is caught and rethrown with no quote, no message and no cause; the test re-run passed; a sabotage that logs the key turns it red. |
 | **D-INST-1** | 🔴 **TWO INSTRUMENTS DISAGREED ABOUT ONE POPULATION.** 340 vs 341 pages with no inbound links over the same bodies. Both were wrong: one counted per observation (5 pages twice), one ignored links from other hosts (6 sub-site homes linked from 359–393 pages). Raised as 11 Issues in `runs/audit/instrument-findings.jsonl`, one per page. | ✅ FIXED — one definition (`src/crawl/inbound.mjs`), one stored graph, both runners agree on 335; the Issues are closed on the runners' own recorded output. |
-| **D-GATEA-1** | ⚠️ **GATE A CANNOT MEASURE OVERLAP IN A GROUP OF TWO.** Its shell for two pages is their intersection, so two identical pages subtract to nothing and score 0 — a duplicate pair reads as perfectly distinct. Found by the firing fixture for item 25's overlap measurement. 10 of the 389 existing pages sit in two-page groups. | 🔴 OPEN — declared: those pages report overlap UNMEASURABLE, never a pass. Gate A's own publish decision for a two-page group is unchanged here. |
+| **D-GATEA-1** | ⚠️ **GATE A CANNOT MEASURE OVERLAP IN A GROUP OF TWO.** Its shell for two pages is their intersection, so two identical pages subtract to nothing and score 0 — a duplicate pair reads as perfectly distinct. Found by the firing fixture for item 25's overlap measurement. 10 of the 389 existing pages sit in two-page groups. | ✅ FIXED 13 Sep 2026. **Cause:** the shell was learned from the very pages being compared — in a pair, their duplicated body IS "what nearly every page shares"; in a single page, the shell is the page. **Fix:** a group needs 3 pages to learn its own shell (`shellFor`, MIN_PAGES_FOR_OWN_SHELL); a smaller group borrows it from the other pages of its own site, else it is UNMEASURABLE; Gate A's publish run never keeps a pair on an overlap it could not measure. RED-proved both directions on the old code. **Effect on the real 389 — 47 pages moved:** the 10 pair pages became MEASURED (6 above 0.40: residence-permit 0.699, study-in-italy 0.741, pte-for 0.880; 4 within: 0.130 and 0.166); 31 single pages went from 0 unique words to a real count; 6 sub-site homes, the only crawled page on their site, are UNMEASURABLE. **Item 12 is not affected:** its near-duplicate check is a different metric (structural body extraction compared against every crawled page) — proved by an identical-pair fixture that fires. |
 | **E-CL-1** | **My own errors in this run (Claude).** (a) The first CLI leak case PASSED WITHOUT TESTING ANYTHING: its network stub was an inline `NODE_OPTIONS` data URL, which splits on spaces, so the child died before reading the key. (b) I called `runs/nursing-chain/nursing.html` "the captured live /nursing page" — it was GENERATED by this engine from the registry on 10 September. (c) The leak test's LENGTH clause was BLIND: it computed the secret's lengths and never searched for them, so a sabotage that logged the key's length PASSED. All three caught before any verdict rested on them — (c) by the RED harness, which is what it is for. | ✅ corrected — the CLI case proves it reached the key before its silence counts; the generated page is labelled a control and never counted as an existing page; the planted secret is padded to an unmistakable length that every assertion searches for, and the length sabotage now turns the test red. |
 
 ---

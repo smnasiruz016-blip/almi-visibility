@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 import { measure, extractBody, shingles, jaccard, SHELL_DEFINITION, THIN_UNIQUE_WORD_FLOOR } from "../src/audit/shell.mjs";
 import {
@@ -238,6 +238,25 @@ test("🔴 CANNIBALIZATION — FIRES when one query draws impressions on two URL
   assert.equal(f[0].query, "oet nursing");
   assert.equal(f[0].urls.length, 2);
   assert.equal(f[0].positions.length, 2);
+});
+
+/* 🔴 D-GATEA-1 AND ITEM 12 (13 September 2026). Gate A could not see an identical PAIR because its
+ * shell was learned from the pair itself. Item 12's near-duplicate check is a DIFFERENT metric: it
+ * takes the body structurally (src/audit/shell.mjs) and compares it against every crawled page — it
+ * never learns a shell from a template group. Both claims are proved here, not asserted. */
+test("🔴 ITEM 12 is NOT blind to a pair: two identical bodies, and no other page at all, FIRE the near-duplicate check", async () => {
+  const body = `<html><body><nav>home about</nav><main><p>${Array.from({ length: 300 }, (_, i) => `word${i}`).join(" ")}</p></main></body></html>`;
+  const { measure, shingles } = await import("../src/audit/shell.mjs");
+  const peers = [{ url: "https://p.example.com/a", shingles: shingles(measure(body).bodyText) }, { url: "https://p.example.com/b", shingles: shingles(measure(body).bodyText) }];
+  const f = await NEAR_DUPLICATE.run({ page: { canonical_url: "https://p.example.com/a", page_id: "pa" }, observations: [{ observation_id: "o1" }], siteContext: { openedAt: "t", bodyHtml: body, peers } });
+  assert.ok(f, "an identical pair was not flagged by item 12's near-duplicate check");
+  assert.equal(f.verdict, "FAIL");
+});
+
+test("🔴 ITEM 12's near-duplicate metric does not share Gate A's shell — no import of src/gate-a", () => {
+  const text = readFileSync(`${REPO}src/audit/content-checks.mjs`, "utf8");
+  assert.doesNotMatch(text, /from\s+["'][^"']*gate-a\//, "item 12's checks now read Gate A's shell — its tick must be re-examined");
+  assert.match(text, /from "\.\/shell\.mjs"/);
 });
 
 test("🔴 CANNIBALIZATION — CLEAN CONTROL: one query on one URL stays SILENT", () => {

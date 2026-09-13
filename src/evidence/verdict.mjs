@@ -172,10 +172,26 @@ export function judgeLeavingUnknown(id, verification, claimElements) {
   if (!NAMED_CHECKER.test(v.checkedBy ?? "")) reasons.push("nobody is named as having checked it");
   if (v.sourceTier !== "OFFICIAL") reasons.push(`the source is ${v.sourceTier ?? "untiered"}, not OFFICIAL`);
   /* 🔴 WAS THE SOURCE READ? (13 September 2026, item 50's remaining population)
+   *
+   * ── THE RULE ────────────────────────────────────────────────────────────────
    * A verdict that records `sourceRead` is taken at its word, and `false` always refuses. The 12 September verdicts
    * were recorded before the field existed; for them "read" is DERIVED from the only evidence they carry — a verdict
    * whose own words name at least one declared element saw that source, because nothing can be named from a page
-   * nobody read. A verdict that records no read and names nothing is not read. */
+   * nobody read. A verdict that records no read and names nothing is not read.
+   *
+   * ── 🔴 INTERIM ONLY — THE INFERENCE MUST BE REPLACED BY A DECLARATION ───────
+   * The `readDerived` case is a rule about our PROCESS inferred from the content of our OUTPUT — the self-report
+   * trap in a new costume. beta-g's own recorded error E-BG-3 proves it is unsound: the 1,527 page rows were
+   * asserted, by name, from memory — and were not in the store. A claim can be named without any source being read.
+   *
+   * REPLACEMENT: one provenance record for the 12 September 2026 verification run — who, when, which sources were
+   * read, the evidence artifact. Records from that run inherit `sourceRead` from that declaration, never from
+   * whether their verdict happens to name a claim. One place, human-readable, auditable.
+   *
+   * SCOPE: this derivation fires on any verdict without `sourceRead`, and in the current registry that is only the
+   * 12 September 2026 verdicts. Every verdict recorded after `sourceRead` was added to the field set must state it,
+   * and is taken at its word. This branch is scheduled for removal once the 12 September provenance declaration
+   * exists — at which point no verdict will lack `sourceRead` and the derivation will never fire. */
   const readDerived = v.sourceRead === undefined && e.listed !== null && e.confirmed.length > 0;
   if (!(v.sourceRead === true || readDerived)) {
     const refused = (v.attempts ?? []).filter((a) => a.status !== 200);

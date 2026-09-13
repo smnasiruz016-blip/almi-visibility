@@ -13,11 +13,12 @@ const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, 
 const realFacts = async () => (await loadRegistry(`${REPO}products/almi-oet/facts`, "almi-oet")).records;
 
 // 🔴 34 since 13 Sep 2026 (item 50): two records verified that day, so two sources carry 13 Sep.
-test("🔴 REAL: all 34 verified facts become Source records at the OFFICIAL tier, each dated and reviewed", async () => {
+// 🔴 33 since the item-50 reopen (13 Sep 2026).
+test("🔴 REAL: all 33 verified facts become Source records at the OFFICIAL tier, each dated and reviewed", async () => {
   const verified = (await realFacts()).filter((f) => f.verificationState === "VERIFIED");
-  assert.equal(verified.length, 34);
+  assert.equal(verified.length, 33);
   const sources = verified.map(sourceRecordFromFact);
-  assert.deepEqual(tierCensus(sources), { OFFICIAL: 34, OWNED_GSC_ANALYTICS: 0, VERIFIED_ALMIWORLD: 0, REPUTABLE_SECONDARY: 0, COMPETITOR_COMMUNITY: 0, AGENT_INFERENCE: 0 });
+  assert.deepEqual(tierCensus(sources), { OFFICIAL: 33, OWNED_GSC_ANALYTICS: 0, VERIFIED_ALMIWORLD: 0, REPUTABLE_SECONDARY: 0, COMPETITOR_COMMUNITY: 0, AGENT_INFERENCE: 0 });
   for (const s of sources) {
     assert.match(s.retrieved_at, /^2026-09-1[23]$/, `${s.source_id} carries no verification date`);
     assert.match(s.reviewer, /^human:/);
@@ -29,9 +30,9 @@ test("🔴 REAL: the tier layer ORDERS real records of different tiers — facts
   const gsc = makeSource({ source_id: "gsc-property:sc-domain:almiworld.com", source_url: "sc-domain:almiworld.com", source_tier: "OWNED_GSC_ANALYTICS", retrieved_at: "2026-09-12" });
   const draft = makeSource({ source_id: "draft:REC-NOINDEX-CV-GUIDE", source_url: "runs/audit/recommendations.jsonl#REC-NOINDEX-CV-GUIDE", source_tier: "AGENT_INFERENCE", retrieved_at: "2026-09-12" });
   const ranked = rankSources([draft, gsc, ...facts.slice().reverse()]);
-  assert.deepEqual(ranked.map((s) => s.source_tier), [...Array(34).fill("OFFICIAL"), "OWNED_GSC_ANALYTICS", "AGENT_INFERENCE"]);
+  assert.deepEqual(ranked.map((s) => s.source_tier), [...Array(33).fill("OFFICIAL"), "OWNED_GSC_ANALYTICS", "AGENT_INFERENCE"]);
   // STABLE: equal tiers keep input order — the rule states no preference between two official sources.
-  assert.deepEqual(ranked.slice(0, 34).map((s) => s.source_id), facts.slice().reverse().map((s) => s.source_id));
+  assert.deepEqual(ranked.slice(0, 33).map((s) => s.source_id), facts.slice().reverse().map((s) => s.source_id));
 });
 
 test("🔴 an unrecognised tier THROWS rather than defaulting — a tier silently read as OFFICIAL would outrank everything", () => {

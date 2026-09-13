@@ -1,0 +1,36 @@
+RED PROOF — D-GUARD-1, each limb alone, on the real registry · 2026-09-13T05:49:23.451Z
+file: products/almi-oet/facts/oet.mjs · sha256 before eff4ed757145dc0b
+
+=== LIMB 1 — a supplied count on a record whose list says otherwise
+sabotage landed: true
+restored byte for byte: true
+validate exit 1 · F24 guard — records leaving UNKNOWN judged: 4 · advanced on a new measurement: 1 · refused: 3
+  🔴 REGISTRY [F25] oet.writing-task-type.profession=nursing: the verdict supplies elementsNotFound — a count is derived by reconciling element keys, never taken from a verdict
+law codes printed: [F25] · expected exactly [F25] → THIS LIMB, AND ONLY THIS LIMB
+
+=== LIMB 2 — a verdict names an element key the record does not declare
+sabotage landed: true
+restored byte for byte: true
+validate exit 1 · F24 guard — records leaving UNKNOWN judged: 4 · advanced on a new measurement: 1 · refused: 3
+  🔴 REGISTRY [F26] oet.writing-task-type.profession=nursing: the verdict names element key(s) the record does not declare (stale): invented-element
+law codes printed: [F26] · expected exactly [F26] → THIS LIMB, AND ONLY THIS LIMB
+
+=== LIMB 3 — a verdict leaves a declared element unmentioned (the licence record's only element)
+sabotage landed: true
+restored byte for byte: true
+validate exit 1 · F24 guard — records leaving UNKNOWN judged: 4 · advanced on a new measurement: 0 · refused: 4
+  🔴 REGISTRY [F24] oet.content-licence-permits-stored-quotation is declared VERIFIED but the guard REFUSES to let it leave UNKNOWN: no declared element of the claim is confirmed; 1 of 1 declared element(s) not confirmed — partial confirmation is not verification
+law codes printed: [F24] · expected exactly [F24] → THIS LIMB, AND ONLY THIS LIMB
+
+=== LIMB 4 — a governed multi-claim record's element list is stripped
+sabotage landed: true
+restored byte for byte: true
+validate exit 1 · F24 guard — records leaving UNKNOWN judged: 4 · advanced on a new measurement: 1 · refused: 3
+  🔴 REGISTRY [F27] oet.writing-task-type.profession=nursing: a record leaving UNKNOWN declares no claimElements — what is missing cannot be reconciled
+law codes printed: [F27] · expected exactly [F27] → THIS LIMB, AND ONLY THIS LIMB
+
+=== CLEAN — every sabotage restored
+validate exit 0 · F24 guard — records leaving UNKNOWN judged: 4 · advanced on a new measurement: 1 · refused: 3 · law codes: []
+sha256 after: eff4ed757145dc0b (identical to before)
+
+verdict: RED PROVED — each limb, alone, turned the guard red with its own law code; the clean run is green

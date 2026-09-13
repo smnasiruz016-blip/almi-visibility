@@ -100,6 +100,9 @@ export default [
   fact({
     verificationState: "UNVERIFIED", // 🔴 A3, 12 Sep 2026 — declared, not defaulted
     id: "oet.content-licence-permits-stored-quotation",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    // The guard reconciles a verdict's named keys against this list and derives what is missing.
+    claimElements: ["stored-quotation-not-permitted"],
     verification: {
       state: "VERIFIED",
       verdict: "VERIFIED",
@@ -108,12 +111,12 @@ export default [
       sourceUrl: "https://oet.com/Intellectual-Property-policy",
       sourceTier: "OFFICIAL",
       sourceRead: true,
-      elementsConfirmed: 1,
-      elementsNotFound: 0,
+      elementsConfirmedKeys: ["stored-quotation-not-permitted"],
+      elementsNotFoundKeys: [],
       recheckAfter: "2027-03-12",
       recheckWindowDays: 180,
       pass: VERDICT_PASS_2026_09_13,
-      note: "VERIFIED by beta-g, 13 September 2026 (_handoffs/OET_FACT_VERDICTS_2026-09-13.md). Only the verdict, the source URL, the read date, the tier and counts of what was confirmed are stored — no OET text.",
+      note: "VERIFIED by beta-g, 13 September 2026 (_handoffs/OET_FACT_VERDICTS_2026-09-13.md). Only element keys, the source URL, the read date and the tier are stored — no OET text.",
       previous: {
         state: "UNKNOWN",
         verdict: "UNKNOWN",
@@ -189,20 +192,23 @@ export default [
     verificationState: "UNVERIFIED", // 🔴 A3, 12 Sep 2026 — declared, not defaulted
     ...oetCommon,
     id: "oet.writing-task-type.profession=nursing",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    // The guard reconciles a verdict's named keys against this list and derives what is missing.
+    claimElements: ["forty-five-minutes", "formal-letter", "own-profession-matter", "case-notes", "nursing-letter-types", "six-assessment-criteria"],
     verification: {
-      state: "VERIFIED",
-      verdict: "VERIFIED",
+      state: "UNKNOWN",
+      verdict: "UNKNOWN",
+      reason: "PARTIAL_EVIDENCE",
+      verdictWords: "PARTIAL EVIDENCE — three elements confirmed, three not found",
       checkedOn: "2026-09-13",
       checkedBy: "human:beta-g (Cowork)",
       sourceUrl: "https://oet.com/ready/writing",
       sourceTier: "OFFICIAL",
       sourceRead: true,
-      elementsConfirmed: 3,
-      elementsNotFound: 0,
-      recheckAfter: "2027-03-12",
-      recheckWindowDays: 180,
+      elementsConfirmedKeys: ["forty-five-minutes", "formal-letter", "own-profession-matter"],
+      elementsNotFoundKeys: ["case-notes", "nursing-letter-types", "six-assessment-criteria"],
       pass: VERDICT_PASS_2026_09_13,
-      note: "VERIFIED by beta-g, 13 September 2026 (_handoffs/OET_FACT_VERDICTS_2026-09-13.md). Only the verdict, the source URL, the read date, the tier and counts of what was confirmed are stored — no OET text.",
+      note: "STAYS UNKNOWN — CORRECTED 13 September 2026 (item 50 reopened, E-BG-6): the verdict confirmed three of the six elements this value states. It was first ingested VERIFIED with 0 not found, which was false; partial confirmation is not verification. Nothing was re-verified — only the count was wrong. Only element keys, the source URL, the read date and the tier are stored — no OET text.",
       previous: {
         state: "UNKNOWN",
         verdict: "UNKNOWN",
@@ -244,6 +250,9 @@ export default [
     verificationState: "UNVERIFIED", // 🔴 A3, 12 Sep 2026 — declared, not defaulted
     ...oetCommon,
     id: "oet.speaking-roleplay-setting.profession=nursing",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    // The guard reconciles a verdict's named keys against this list and derives what is missing.
+    claimElements: ["about-twenty-minutes-total", "two-roleplays", "roleplay-about-five-minutes", "profession-specific-scenarios", "linguistic-criteria", "clinical-communication-criteria"],
     verification: {
       state: "UNKNOWN",
       verdict: "UNKNOWN",
@@ -254,10 +263,10 @@ export default [
       sourceUrl: "https://oet.com/ready/speaking",
       sourceTier: "OFFICIAL",
       sourceRead: true,
-      elementsConfirmed: 1,
-      elementsNotFound: 2,
+      elementsConfirmedKeys: ["roleplay-about-five-minutes"],
+      elementsNotFoundKeys: ["about-twenty-minutes-total", "two-roleplays"],
       pass: VERDICT_PASS_2026_09_13,
-      note: "STAYS UNKNOWN (beta-g, 13 September 2026): a fact is one record with one value, and part of this value is unevidenced. Only the verdict, the source URL, the read date, the tier and counts of what was confirmed are stored — no OET text.",
+      note: "STAYS UNKNOWN (beta-g, 13 September 2026): a fact is one record with one value, and part of this value is unevidenced. Only element keys, the source URL, the read date and the tier are stored — no OET text.",
       previous: {
         state: "UNKNOWN",
         verdict: "UNKNOWN",
@@ -339,6 +348,9 @@ export default [
     verificationState: "UNVERIFIED", // 🔴 A3, 12 Sep 2026 — declared, not defaulted
     ...oetCommon,
     id: "oet.grade-bands-0-500",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    // The guard reconciles a verdict's named keys against this list and derives what is missing.
+    claimElements: ["per-subtest-score", "scale-0-to-500", "ten-point-increments", "letter-grade-per-score", "grades-a-to-e"],
     verification: {
       state: "UNKNOWN",
       verdict: "UNKNOWN",
@@ -354,10 +366,10 @@ export default [
       ],
       sourceTier: "OFFICIAL",
       sourceRead: false,
-      elementsConfirmed: 0,
-      elementsNotFound: null,
+      elementsConfirmedKeys: [],
+      elementsNotFoundKeys: [],
       pass: VERDICT_PASS_2026_09_13,
-      note: "STAYS UNKNOWN — NOT VERIFIED AND NOT REFUTED. LAW-ABSENT-1: a 403 is a fact about our fetcher, not about OET. Only the verdict, the source URL, the read date, the tier and counts of what was confirmed are stored — no OET text.",
+      note: "STAYS UNKNOWN — NOT VERIFIED AND NOT REFUTED. LAW-ABSENT-1: a 403 is a fact about our fetcher, not about OET. Only element keys, the source URL, the read date and the tier are stored — no OET text.",
       previous: {
         state: "UNKNOWN",
         verdict: "UNKNOWN",

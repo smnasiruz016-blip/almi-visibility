@@ -26,17 +26,18 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | **NOT-STARTED** | 3 | 3 | **2** |
 | **BUILT-NOT-PROVED** | 18 | 17 | **5** |
 | **TESTABLE-NOW** | 0 | 2 | **1** |
-| **VERIFIED-PASS** | 3 | 3 | **18** |
-| **FAILED** | 0 | -1 | **0** |
+| **VERIFIED-PASS** | 3 | 3 | **17** |
+| **FAILED** | 0 | -1 | **1** |
 | **BLOCKED-UNKNOWN** | 6 | 6 | **4** |
 | **DEFERRED** | 28 | 28 | **28** |
 
-### FAILED — counted and named separately: **0**
+### FAILED — counted and named separately: **1**
 
 > 🔴 **FAILED is counted and named separately in every report.** It is never folded into another
 > count and it is **not progress**. It is also **worth more than BUILT-NOT-PROVED**: a FAILED row
 > is one whose test was run against its own boundary — it means we looked.
 
+- **item 50 · OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation** — FAILURE met: a label is wrong: the first product's writing record was labelled VERIFIED on a verdict that confirmed three of the six claims its value makes, with a supplied 'not found' count of 0 — and the guard that should have caught it took that count on trust
 - **item 14** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-12 — report.mjs and the chain runner's cache now write only with --confirm; every destination is confined to this repository and refused outside it; all five parts re-tested and each RED-proved
 - **item 45** left FAILED for TESTABLE-NOW by route `OWNER_RULING` on 2026-09-12 — 'A component cannot be failed for a period before it existed.' The boundary's INPUT is a run; the scope is runs from 8c9d68b (2026-09-12T23:03:09Z) onward. The bar is unchanged; the eight earlier runs are recorded as a permanent loss (L-COST-1)
 - **item 48** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — every authorized job that stores a record has now been run twice into one store with zero duplicates on the second run — crawl (replay: 389 unchanged → 0 new, 389 re-sightings), DNS audit (RECORDED resolver answers: 134 → +0), technical, content, verification and supply-label writers — and the census holds every issue writer to appendIfNew; RED when the key takes the clock
@@ -46,7 +47,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 **Rows that have been looked at (VERIFIED-PASS or FAILED): 18 of 58.**
 
-**Rows that reached VERIFIED-PASS in this PR: 15.**
+**Rows that reached VERIFIED-PASS in this PR: 14.**
 
 #### moved ONLY because a RULING changed
 
@@ -82,6 +83,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 50 | BUILT-NOT-PROVED | TESTABLE-NOW | `undefined` | 2026-09-13 | records of all four kinds exist on the real verdict path |
 | 50 | TESTABLE-NOW | FAILED | `test/queue-rescan.test.mjs (item 50)` | 2026-09-13 | FAILURE met: the UNKNOWN→PASS guard (F23) judges only fact supersessions, and 0 of 46 real facts carry one — the guard polices an empty population |
 | 50 | FAILED | VERIFIED-PASS | `node --test test/item-50-real-transitions.test.mjs · node bin/facts.mjs validate --product=<the first product> · node tools/forbidden-text-census.mjs` | 2026-09-13 | four real records put to the F24 guard leaving UNKNOWN: two with sufficient evidence advanced on a new measurement, two with insufficient evidence were refused and stay UNKNOWN with their reasons; both directions RED-proved |
+| 50 | VERIFIED-PASS | FAILED | `undefined` | 2026-09-13 | a label is absent or wrong — item 50's FAILURE condition — met on a real record the guard had advanced; the record corrected to UNKNOWN and the guard made to reconcile declared elements instead of trusting a count |
 | 51 | BUILT-NOT-PROVED | TESTABLE-NOW | `undefined` | 2026-09-13 | a real recommendation exists |
 | 51 | TESTABLE-NOW | FAILED | `test/queue-rescan.test.mjs (item 51)` | 2026-09-13 | FAILURE met: priority, confidence and cost are missing on all three, and the real report renders none of the six |
 | 51 | FAILED | VERIFIED-PASS | `node bin/link-recommendation-evidence.mjs · node bin/report.mjs --confirm · test/recommendation-fields.test.mjs` | 2026-09-13 | priority, confidence and cost each computed from stored evidence and each able to say UNKNOWN — two recommendations ranked by measured impressions, one UNKNOWN; confidence derived on all three; cost UNKNOWN on all three with lower bounds — and all six visible on the real report |
@@ -100,8 +102,8 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | **NOT-STARTED** | 33 | **2** |
 | **BUILT-NOT-PROVED** | 24 | **5** |
 | **TESTABLE-NOW** | 0 | **1** |
-| **VERIFIED-PASS** | 0 | **18** |
-| **FAILED** | 0 | **0** |
+| **VERIFIED-PASS** | 0 | **17** |
+| **FAILED** | 0 | **1** |
 | **BLOCKED-UNKNOWN** | 1 | **4** |
 | **DEFERRED** | 0 | **28** |
 | **total** | 58 | **58** |
@@ -129,7 +131,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 47 | Paid Provider Controls | NOT-STARTED | **VERIFIED-PASS** |
 | 48 | Idempotency & Retry Safety | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 49 | Audit Trail & Provenance | BUILT-NOT-PROVED | **VERIFIED-PASS** |
-| 50 | OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation | BUILT-NOT-PROVED | **VERIFIED-PASS** |
+| 50 | OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation | BUILT-NOT-PROVED | **FAILED** |
 | 51 | Explainability | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 53 | Cross-Product Portability | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 55 | Security / Secrets / Recovery | BUILT-NOT-PROVED | **VERIFIED-PASS** |
@@ -861,7 +863,7 @@ question for the owner, recorded as one.
 
 ### 50 · OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation
 
-**VERIFIED-PASS** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (work)
+**FAILED** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (work)
 
 | part | the owner's words |
 |---|---|
@@ -870,7 +872,7 @@ question for the owner, recorded as one.
 | **FAILURE** | a label is absent or wrong, or the guard polices an empty population. |
 | **EVIDENCE** | the guard exercised by real records, not fixtures, and the forbidden transition proved impossible by injection. |
 
-**Verdict —** 🔴 **LEFT FAILED BY RULE 1's FIRST ROUTE — THE GUARD NOW GOVERNS REAL RECORDS LEAVING UNKNOWN, IN BOTH DIRECTIONS.** **INPUT:** four real fact records of the first product, UNKNOWN since 12 September, un-parked by the owner for this test only and verified by beta-g on 13 September in ONE pass, attempted identically — two sources answered and two did not, so the two-and-two split is the sources' doing, not the tester's. **EXPECTED — both directions on REAL records, through the REAL validation path (F24 in src/facts/validate.mjs, judgeLeavingUnknown in src/evidence/verdict.mjs):** (1) evidence arrived → the licence record and the writing record were ASKED to advance, the guard found a new measurement, a named checker, an OFFICIAL source read and no element unfound, and they left UNKNOWN; (2) evidence insufficient → the speaking record (one element confirmed, two not found) and the grade-bands record (three pages returned 403) were ASKED the same question and REFUSED with their reasons, and stay UNKNOWN. A record declared past a refusal, or held back when its evidence is sufficient, fails validation; a record that left UNKNOWN without a judgement is caught against the 12 September baseline. **FAILURE not met:** the labels hold, and the guard no longer polices an empty population — 4 real records judged leaving UNKNOWN, 2 advanced, 2 refused. **EVIDENCE:** both directions RED-proved on the real records (runs/audit/item-50-guard-red-2026-09-13.txt). No text of the source was stored: the verdicts carry only verdict, URL, date, tier and counts, and the policy wording this repository had quoted was found by hash and removed. The earlier FAILED results are kept on the row
+**Verdict —** 🔴 **REOPENED 13 SEPTEMBER 2026 — THE TICK OF PR #63 IS WITHDRAWN, AND THE ROW IS FAILED.** **The label was wrong:** the writing record's value makes six claims (a 45-minute task · a formal letter · on a matter of the candidate's own discipline · worked from case notes · for the variant, three named letter types · marked against six criteria); its verdict confirmed the first three and said nothing of the rest, yet it was ingested VERIFIED with elementsNotFound 0 — a number the verdict supplied and the guard trusted. **Corrected, not re-verified:** UNKNOWN, PARTIAL_EVIDENCE, three confirmed and three not found. **D-GUARD-1 fixed:** each governed record now DECLARES its elements (claimElements), a verdict NAMES the keys it confirmed, and the guard RECONCILES the two and derives what is missing — an unmentioned element is NOT CONFIRMED, a stale key is F26, a supplied count is F25, a governed record with no list is F27; each limb RED-proved alone (runs/audit/item-50-guard-limbs-red-2026-09-13.txt). **Re-run on the corrected population:** 4 real records judged leaving UNKNOWN, 1 advanced, 3 refused — the row's own test passes. 🔴 **THE MOVE IS WITHHELD, AND IT STAYS FAILED:** 32 of the registry's 33 VERIFIED labels reached VERIFIED on 12 September from UNVERIFIED — a never-checked state the guard treats as UNKNOWN — without passing through the guard and without any element reconciliation, and 11 of them state more than one claim by a declared heuristic. That is the exact defect class that reopened this row, unexamined on 11 labels; 'a label is wrong' cannot be shown not-met while it stands. Moving this row back is a ruling for beta-g, not a consequence of one passing test
 
 **The one test that would settle it —** node --test test/item-50-real-transitions.test.mjs · node bin/facts.mjs validate --product=<the first product> · node tools/forbidden-text-census.mjs
 

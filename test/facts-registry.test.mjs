@@ -609,13 +609,14 @@ describe("🔴 factChecked moved 0 → 46, deliberately, and confirmed is counte
   });
 
   // 🔴 32/14 on 12 Sep 2026; 34/12 since 13 Sep, when two records left UNKNOWN through the F24 guard (item 50).
-  test("🔴 46 checks RAN but only 34 CONFIRMED — the two are never one number", async () => {
+  // 🔴 33/13 since the item-50 reopen (13 Sep 2026); #63 had 34/12.
+  test("🔴 46 checks RAN but only 33 CONFIRMED — the two are never one number", async () => {
     const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     const c = census(records, { now: NOW });
     assert.equal(c.checks.factChecked, 46);
     assert.equal(c.checks.factConfirmed, REGISTRY_VERIFIED_COUNT);
-    assert.equal(c.checks.factConfirmed, 34);
-    assert.equal(c.checks.factUnknown, 12);
+    assert.equal(c.checks.factConfirmed, 33);
+    assert.equal(c.checks.factUnknown, 13);
     assert.ok(
       c.checks.factConfirmed < c.checks.factChecked,
       "if these ever coincide, check it is because every check confirmed — not because they were merged",

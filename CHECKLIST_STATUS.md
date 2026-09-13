@@ -23,11 +23,39 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 | **NOT-STARTED** | 33 | **2** |
 | **BUILT-NOT-PROVED** | 24 | **5** |
 | **TESTABLE-NOW** | — | **1** |
-| **VERIFIED-PASS** | 0 | **18** |
-| **FAILED** | — | **0** |
+| **VERIFIED-PASS** | 0 | **17** |
+| **FAILED** | — | **1** |
 | **BLOCKED-UNKNOWN** | 1 | **4** |
 | **DEFERRED** | — | **28** |
 | **total** | 58 | **58** |
+
+> ### 🔴 ITEM 50 REOPENED — THE TICK OF #63 WITHDRAWN — 13 SEPTEMBER 2026
+>
+> | state | before this change | after |
+> |---|---|---|
+> | NOT-STARTED | 2 (57, 58) | 2 (57, 58) |
+> | BUILT-NOT-PROVED | 5 | 5 |
+> | TESTABLE-NOW | 1 (25) | 1 (25) |
+> | VERIFIED-PASS | 18 | **17** (−50) |
+> | FAILED | 0 | **1 (50)** |
+> | BLOCKED-UNKNOWN | 4 (1, 9, 52, 54) | 4 (1, 9, 52, 54) |
+> | DEFERRED | 28 | 28 |
+>
+> **FAILED — counted and named separately: 1 — item 50, OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation.** Its
+> FAILURE condition — *a label is absent or wrong* — was met on a real record the guard had advanced: the writing record
+> was labelled VERIFIED on a verdict that confirmed three of the six claims its value makes, with a supplied "not found"
+> count of 0 that the guard trusted. FAILED is not progress, and it is worth more than BUILT-NOT-PROVED: it means we looked.
+>
+> - **moved because WORK HAPPENED:** 50 VERIFIED-PASS → FAILED, **reopened** on concrete contradictory evidence. The record
+>   was corrected to UNKNOWN (not re-verified), and the guard now RECONCILES each record's declared elements against the
+>   keys its verdict names (D-GUARD-1), each limb RED-proved alone. Its own test re-runs green on the corrected four
+>   (1 advanced, 3 refused) — 🔴 **but the move back is WITHHELD:** 32 of the 33 VERIFIED labels reached VERIFIED on 12
+>   September without the guard or any element reconciliation, and 11 of them state more than one claim. The defect that
+>   reopened item 50 is unexamined on those labels, so its FAILURE condition cannot be shown not-met.
+> - **moved ONLY because a RULING changed:** none.
+>
+> **No row reached VERIFIED-PASS; one LOST it — item 50.** Row 15 stays VERIFIED-PASS; its verified facts are **33**,
+> measured (32 on 12 Sep; #63's 34 counted the writing record).
 
 > ### 🔴 ITEM 50 — THE REAL TRANSITION TEST — 13 SEPTEMBER 2026
 >
@@ -359,10 +387,10 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 >   ingested and the seventh is supplied by no tool we hold. Not a tick. After it the counts are
 >   BUILT-NOT-PROVED **16** and BLOCKED-UNKNOWN **7**; the table above records Amendment 2 alone.
 
-> ### 🔴 EIGHTEEN TICKS — ITEMS 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 47, 48, 49, 50, 51, 53, 55 AND 56
+> ### 🔴 SEVENTEEN TICKS — ITEMS 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 47, 48, 49, 51, 53, 55 AND 56
 >
 > **Items 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 48, 49, 51 and 55.** Each has all four parts of its boundary
-> answered with real-data evidence. They are the only eighteen rows in the whole ledger that **hold a pass earned by work**;
+> answered with real-data evidence. They are the only seventeen rows in the whole ledger that **hold a pass earned by work**;
 > item 9 moved by work and ended BLOCKED-UNKNOWN; item 50 was run and stays FAILED; item 25 was run and is
 > TESTABLE-NOW with its gap named; **items 48, 51 and 55 each passed through FAILED** and left it only by the
 > test re-run and passing; items 11 and 42 were proved on a local replay of real bodies, which does not prove
@@ -509,7 +537,7 @@ actually came from.
 | 47 | Paid Provider Controls | VERIFIED-PASS | IN — §62 l.555 "must not activate paid providers by default" | **13 Sep 2026: the controls exist, against a FAKE provider** — `src/cost/paid-provider-gate.mjs`: off by default, explicit named/dated/per-provider authorization with budget and cap, kill switch, budget and cap refused before the call; each RED-proved; five refusals in `runs/cost/ledger.jsonl` as REFUSED. No paid provider is wired anywhere in the repository. The one external API in use (Search Console) is free and read-only | 2026-09-11 | Claude (repo audit) | ✅ **Satisfied by CONTROLS now, not by absence.** ⚠️ The gate binds calls made through it; no paid provider exists to census. *Earlier, kept:* Satisfied **by absence, not by a control**: there is no budget, cap, kill switch or test that would stop a paid provider being added tomorrow | — |
 | 48 | Idempotency & Retry Safety | VERIFIED-PASS | IN — safety; §62 l.553 audit slice | **Reopened 12 Sep (868 duplicate issues); left FAILED 13 Sep by a re-run that passed.** Every job that stores a record run twice into one store: **crawl (local replay) 389 unchanged → 0 new, 389 re-sightings; 5 changed → 5 new observations**; DNS audit on RECORDED resolver answers 134 → +0; technical 2328 → +0; content 1576 → +0; verification 8 → +0; supply labels 550 → +0. Issue-writer census holds every writer to appendIfNew. Retry rule tested (one request per 4xx) | 2026-09-13 | Claude (replay) | DNS answers were recorded, not live | replay, 13 Sep 2026 |
 | 49 | Audit Trail & Provenance | VERIFIED-PASS | IN — v0.1 CONTAINS l.974 (§14) | **The evidence → claim chain now runs end to end on real data.** 107 Issues written, each citing the crawl observation AND the stored robots.txt or DNS observation it was derived from. **0 broken chains** in the rendered report. The four robots.txt files are stored as observations with hashes, not looked up. **Two further Issues added 12 Sep from the verification return**, both verdict `UNKNOWN` not `FAIL`, citing 6 observations whose `method` is `human-verification-return` and whose target is the **verdict row we hold** — 🔴 *not* the official pages, which we never fetched. A content hash attributed to a page we never retrieved would be indistinguishable from a real one | 2026-09-12 | Claude (repo audit) | **No Source record has been written** — the §623 tier layer is still unexercised; the new Issues' `sources` carry fact ids, which is not the same thing. And **no issue has ever been CLOSED or SUPERSEDED**, so the lifecycle half of the audit trail remains untested — the two new Issues open, they do not close | item 15 ingest, 12 Sep 2026 |
-| 50 | OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation | VERIFIED-PASS | IN — DoD §170; v0.1 CONTAINS l.974 | **13 Sep 2026: LEFT FAILED — the F24 guard judged 4 real records leaving UNKNOWN (2 advanced on a new measurement, 2 refused and kept UNKNOWN), both directions RED-proved.** **Argued 13 Sep from the boundary's words — stays FAILED.** "No path converts UNKNOWN into PASS": closing an UNKNOWN issue was such a path, unguarded — so the guard was widened to issue transitions (the same law, the same table) and now judges **145 real transitions**, RED-proved on the old lifecycle. Four stored record types gained declared labels, with a census that fails on any undeclared type. **But all 145 start from FAIL** — a real record leaving UNKNOWN has still never passed through the guard | 2026-09-13 | Claude (queue run) | 🔴 **FAILED:** the guard still polices an empty population where it matters. Leaves FAILED when a real UNKNOWN record leaves UNKNOWN through it, refused or on a new measurement | queue run, 13 Sep 2026 |
+| 50 | OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation | FAILED | IN — DoD §170; v0.1 CONTAINS l.974 | **13 Sep 2026: REOPENED — the writing record's VERIFIED label was wrong (3 of 6 elements confirmed; a supplied 0 trusted). Record corrected; guard reconciles declared elements (D-GUARD-1); test re-runs green, move withheld: 32 VERIFIED labels were never reconciled, 11 multi-claim.** **13 Sep 2026: LEFT FAILED — the F24 guard judged 4 real records leaving UNKNOWN (2 advanced on a new measurement, 2 refused and kept UNKNOWN), both directions RED-proved.** **Argued 13 Sep from the boundary's words — stays FAILED.** "No path converts UNKNOWN into PASS": closing an UNKNOWN issue was such a path, unguarded — so the guard was widened to issue transitions (the same law, the same table) and now judges **145 real transitions**, RED-proved on the old lifecycle. Four stored record types gained declared labels, with a census that fails on any undeclared type. **But all 145 start from FAIL** — a real record leaving UNKNOWN has still never passed through the guard | 2026-09-13 | Claude (queue run) | 🔴 **FAILED:** the guard still polices an empty population where it matters. Leaves FAILED when a real UNKNOWN record leaves UNKNOWN through it, refused or on a new measurement | queue run, 13 Sep 2026 |
 | 51 | Explainability | VERIFIED-PASS | IN — §62 l.553 "minimum internal report/action view" | **All six on the real report for all three recommendations** (`runs/report/index.html`). Evidence linked by a count-checked record; **priority** derived from measured impressions and ranked (1 of 2, 2 of 2, one UNKNOWN — no page); **confidence** the weakest source tier plus completeness; **cost** from the ledger entries that produced the evidence. No number chosen — a test fails on any constant | 2026-09-13 | Claude (queue run) | ⚠️ Cost reads UNKNOWN on all three (the audit and crawl runs behind the evidence were never costed; only lower bounds), and the cost of carrying one out is UNKNOWN — readable, stated, and not yet measurable | queue run, 13 Sep 2026 |
 | 52 | Case Study Acceptance Test | BLOCKED-UNKNOWN | IN — v0.1 CONTAINS l.974 "Case Study #1 acceptance test (§60)" | `CASE_STUDY_01_ACCEPTANCE_TEST.md`, `case-study-01/corpus/MANIFEST.md`, `case-study-01/exhibits/` (34 files, 4 exhibits) | 2026-09-11 | Claude (repo audit) | 🔴 **NOT RUN = NOT TESTED.** `CS-3`: the test has never been executed. See the contradiction resolved below — **`CS-5`'s premise is false**, and the register, `CASE_STUDY_01_RUN_01.md` and `V51_REMEASURE.md` all carry the false version | contradictory evidence found — see §"Item 52" |
 | 53 | Cross-Product Portability | VERIFIED-PASS | IN — §62 l.555 provider-neutral foundation; boundary law | `tools/product-boundary.mjs` + 13 tests: **`src/` names no product in code, 0 lines**, with an independent `git ls-files` census of the population. `products/almi-oet/product.mjs` declares axis+variants | 2026-09-11 | Claude (repo audit) | ✅ **13 Sep 2026: a neutral declared test product (`products/neutral-test-ferments`) initialized and discovered by the generic core with no first-product knowledge, and no first-product private record leaked during that run — both halves RED-proved.** *Earlier, kept:* **Only one real product exists in `products/`.** Portability is proved by a static boundary scan and by fixture tenants — **no second declared product has been operated end-to-end** | — |

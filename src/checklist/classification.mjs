@@ -611,19 +611,19 @@ function leavingFailed(id, from, to, step) {
  * a list that agrees with a ruling only until the ruling changes.
  */
 const A4_STATIC = "🔴 **NOT-STARTED — IN SCOPE SINCE AMENDMENT 4** (owner ruling under §12, 13 September 2026). **Nothing has been built for it and nothing was run.** It left DEFERRED ONLY because a ruling changed its class — a class change is not progress. Its input is owned evidence already captured in `runs/evidence/evidence.jsonl` (Search Console ingest of 2026-09-12T23:25Z: query 337 · query-page 574 · country 126 · country-query 388 rows; page rows 1,525 from the 22:06Z run of the same day).";
-const A4_NO_HALF_CONTRACT = "🔴 **The owned half has no four-part contract of its own.** The ruling names the halves but states no INPUT / EXPECTED / FAILURE / EVIDENCE for the v0.1 half — the gap Amendment 1 closed for the first six splits — so the contract guard refuses a VERIFIED-PASS here until the owner states them. Not filled in.";
+const A4_HALF_CONTRACT = "🔴 **The owned half has its four-part contract** — stated by the owner's dated addendum to Amendment 4 (13 September 2026), and read from it. **A contract is not progress:** nothing is built and nothing was run, so the row stays NOT-STARTED. The §6 boundary stays on the row as the final boundary for when the deferred half opens.";
 
 const EXPLICIT = {
   3: {
     state: "NOT-STARTED",
-    why: `${A4_STATIC} **Class D → S (split).** In scope: the **owned** half — owned search data. Deferred, and named: the **public** half — legitimate public search evidence, which needs an external fetch no one has authorised. ${A4_NO_HALF_CONTRACT}`,
+    why: `${A4_STATIC} **Class D → S (split).** In scope: the **owned** half — owned search data. Deferred, and named: the **public** half — legitimate public search evidence, which needs an external fetch no one has authorised. ${A4_HALF_CONTRACT}`,
   },
   4: { state: "NOT-STARTED", why: `${A4_STATIC} **Class D → P.**` },
   5: { state: "NOT-STARTED", why: `${A4_STATIC} **Class D → P.**` },
   6: { state: "NOT-STARTED", why: `${A4_STATIC} **Class D → P.**` },
   7: {
     state: "NOT-STARTED",
-    why: `${A4_STATIC} **Class D → S (split).** In scope: **DEMAND** and **VISIBILITY/REACH**, both owned. Deferred, and named: **SUPPLY** and **AUDIENCE/NEED**, which need external evidence. 🔴 **WORTHINESS — the fifth measurement the boundary names — is in neither half: the ruling does not assign it.** A question for the owner, not a guess. ${A4_NO_HALF_CONTRACT}`,
+    why: `${A4_STATIC} **Class D → S (split).** In scope: **DEMAND** and **VISIBILITY/REACH**, both owned. Deferred, and named: **SUPPLY**, **AUDIENCE/NEED** and **WORTHINESS**. SUPPLY and AUDIENCE/NEED need external evidence; **WORTHINESS was assigned to the deferred half by the owner's addendum** (13 September 2026), on the reason that its inputs are themselves deferred. 🔴 That reason names the Human Question Universe (row 2), the information-gap test (row 19) and right-to-exist (row 21) as WORTHINESS's *"own named inputs"*; no frozen text in this repository names them so — rows 2, 19 and 21 are class D, which carries the conclusion, and the link is left for the owner to source. ${A4_HALF_CONTRACT}`,
   },
   1: {
     state: "BLOCKED-UNKNOWN",

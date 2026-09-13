@@ -38,10 +38,10 @@ const AMENDMENT_2 = new URL("../../PASS_BOUNDARIES_AMENDMENT_2.md", import.meta.
 const AMENDMENT_4 = new URL("../../PASS_BOUNDARIES_AMENDMENT_4.md", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 
 /**
- * 🔴 A SPLIT WITH NO v0.1-HALF CONTRACT CANNOT BE TICKED. Amendment 4 splits rows 3 and 7 and names their
- * halves in one verdict cell each; it does not give the owned half the four-part contract Amendment 1 gave
- * the first six splits. So the four parts of that half are reported missing — the guard then refuses a
- * VERIFIED-PASS on either row, exactly as it refused the first six before Amendment 1. Not filled in.
+ * 🔴 A SPLIT WITH NO v0.1-HALF CONTRACT CANNOT BE TICKED. Amendment 4 split rows 3 and 7 and, at first, gave
+ * their owned half no four-part contract; the guard refused a VERIFIED-PASS on either. The owner's dated
+ * addendum (13 September 2026) stated both contracts, and they are READ from the amendment's body. A split
+ * whose contract is absent or incomplete still reports the missing half-parts — never filled in from here.
  */
 export const HALF_CONTRACT_PARTS = Object.freeze(["v0.1-half input", "v0.1-half expected", "v0.1-half failure", "v0.1-half evidence"]);
 
@@ -225,7 +225,21 @@ export function loadBoundaries() {
     const kept = a4.kept[r.id];
     r.classByA4 = Boolean(moved);
     if (moved || kept) r.a4 = { inputClause: (moved ?? kept).inputClause, inputPresent: (moved ?? kept).inputPresent, verdict: moved ? `D → ${moved.to}` : "stays D" };
-    if (moved?.to === "S") r.missingParts = [...r.missingParts, ...HALF_CONTRACT_PARTS];
+    if (moved?.to === "S") {
+      /* 🔴 The tickable parts of a split are its v0.1 HALF. The §6 four parts are the FINAL boundary — the
+       * public half included — so they are kept on the row as `finalBoundary` for when the phase opens, and
+       * the addendum's contract becomes what a VERIFIED-PASS would be measured against. */
+      const half = a4.contracts[r.id] ?? {};
+      const missing = CONTRACT_PARTS.filter((p) => !half[p]);
+      if (missing.length === 0) {
+        r.finalBoundary = Object.fromEntries(CONTRACT_PARTS.map((p) => [p, r[p]]));
+        for (const p of CONTRACT_PARTS) r[p] = half[p];
+        if (half.deferred) r.deferred = half.deferred;
+        r.via = `${r.via}+A4`;
+        r.halfContractByA4 = true;
+      }
+      r.missingParts = [...r.missingParts, ...HALF_CONTRACT_PARTS.filter((_, i) => missing.includes(CONTRACT_PARTS[i]))];
+    }
   }
 
   cached = Object.freeze(out);

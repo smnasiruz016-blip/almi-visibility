@@ -104,9 +104,11 @@ L.push("- 🔴 **A class change is not progress.** Every row it opened arrives N
 for (const b of reclassed) L.push(`- **item ${b.id} · ${b.name}** — class \`${b.frozenClass}\` → \`${b.class}\`. Its INPUT clause, ${b.a4.inputClause}: ${b.a4.inputPresent}`);
 for (const b of keptByA4) L.push(`- **item ${b.id} · ${b.name}** — **stays \`D\`, and why:** its INPUT clause, ${b.a4.inputClause}: ${b.a4.inputPresent}`);
 L.push("");
-L.push("🔴 **Two things the ruling does not settle, raised and not filled in:** row 7's **WORTHINESS** measurement is in");
-L.push("neither half; and rows 3 and 7 carry **no four-part contract for their owned half**, so neither can be ticked");
-L.push("until the owner states one (listed below with the boundaries the document does not state in full).");
+const halves = Object.values(boundaries).filter((b) => b.halfContractByA4);
+L.push("🔴 **The owner's dated addendum (13 September 2026) closed the three gaps this amendment first left:** row 7's");
+L.push("**WORTHINESS** is assigned to the deferred half, and " + `${halves.map((b) => `item ${b.id}`).join(" and ")} carry a four-part contract for their owned half,`);
+L.push("read from the amendment. **A contract is not progress:** both rows stay NOT-STARTED, and each keeps its §6 text below");
+L.push("as the final boundary for when the deferred half opens.");
 L.push("");
 L.push("---");
 L.push("");
@@ -219,9 +221,9 @@ L.push("");
 L.push(`## 🔴 ${incomplete.length} BOUNDAR${incomplete.length === 1 ? "Y" : "IES"} THE DOCUMENTS DO NOT STATE IN FULL`);
 L.push("");
 L.push("§4 ruled the first six split features as `v0.1 PASS boundary` / `deferred` tables, and Amendment 1");
-L.push("gave each its four parts. **Amendment 4 splits rows 3 and 7 and gives their owned half no four-part");
-L.push("contract**, so they are listed here. **A row listed here cannot reach VERIFIED-PASS as the rulings");
-L.push("stand** — the contract guard refuses it, and correctly.");
+L.push("gave each its four parts. Amendment 4 split rows 3 and 7, and its addendum gave their owned half its");
+L.push("four parts. **A row listed here cannot reach VERIFIED-PASS as the rulings stand** — the contract guard");
+L.push("refuses it, and correctly.");
 L.push("");
 L.push("**They are not filled in.** Writing the missing parts myself would manufacture a boundary");
 L.push("the owner never ruled, which the repository would then enforce as if he had. This is a");
@@ -255,6 +257,9 @@ for (let id = 1; id <= 58; id += 1) {
   if (b.note) L.push(`| **NOTE** | ${esc(b.note)} |`);
   if (b.rule) L.push(`| **RULE** | ${esc(b.rule)} |`);
   if (b.a4) L.push(`| **Amendment 4 — its INPUT tested** | ${esc(b.a4.inputPresent)} → **${esc(b.a4.verdict)}** |`);
+  if (b.finalBoundary) {
+    for (const p of CONTRACT_PARTS) L.push(`| **⏭ final ${p.toUpperCase()} (§6, when the deferred half opens)** | ${esc(b.finalBoundary[p])} |`);
+  }
   L.push("");
   L.push(`**Verdict —** ${r.why}`);
   L.push("");

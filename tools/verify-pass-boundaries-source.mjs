@@ -114,9 +114,13 @@ export function amendment2(path) {
  * move the owner did not rule cannot appear, and the census they produce is checked against the
  * body's own before/after count table rather than against a number in this file alone.
  */
-export const AMENDMENT_4_BODY_SHA256 = "4d0dea705dbfb27e25263bca5bbc0c1efa79546b02dd6c7805e77380825f61d1";
+/* 🔴 RE-PINNED 13 September 2026 (was 4d0dea70…): the owner's dated ADDENDUM — WORTHINESS to row 7's
+ * deferred half, and a v0.1-half four-part contract for rows 3 and 7 — is now part of the body. */
+export const AMENDMENT_4_BODY_SHA256 = "c802429e46d60a2d6c75e0122054a642045c7362fa20ab2944283ae5b8702390";
 export const AMENDMENT_4_MOVES = Object.freeze({ 3: "S", 4: "P", 5: "P", 6: "P", 7: "S" });
 export const AMENDMENT_4_KEPT_DEFERRED = Object.freeze([2]);
+/** The splits the addendum gave a v0.1-half contract — read out of the body, and compared to this. */
+export const AMENDMENT_4_HALF_CONTRACT_IDS = Object.freeze([3, 7]);
 
 /** The class moves, the rows kept deferred, and the count table — as the amendment's body states them. */
 export function amendment4(path) {
@@ -137,7 +141,21 @@ export function amendment4(path) {
     const m = new RegExp(`^\\| ${label} \\| (\\d+) \\| \\*\\*(\\d+)\\*\\* \\|$`, "m").exec(body);
     return m ? { before: Number(m[1]), after: Number(m[2]) } : null;
   };
-  return { sha, matches: sha === AMENDMENT_4_BODY_SHA256, moves, kept, deferred: count("DEFERRED"), inScope: count("in scope") };
+  /* The addendum's v0.1-half contracts, read the way Amendment 2's are: the block starts AFTER its heading
+   * line and runs to the next heading or the END line. `deferred` names the half that stays out. */
+  const contracts = {};
+  for (const h of body.matchAll(/^### (\d+) · (.+?) — v0\.1 half$/gm)) {
+    const rest = body.slice(h.index);
+    const afterHeading = rest.indexOf("\n") + 1;
+    const next = rest.slice(afterHeading).search(/^(?:#{2,3} |\*\*END)/m);
+    const block = next === -1 ? rest : rest.slice(0, afterHeading + next);
+    const parts = {};
+    for (const m of block.matchAll(/^\| \*\*(INPUT|EXPECTED|FAILURE|EVIDENCE|deferred)\*\* \| (.+?) \|$/gm)) {
+      parts[m[1] === "deferred" ? "deferred" : m[1].toLowerCase()] = m[2].trim().replace(/\s+/g, " ");
+    }
+    contracts[Number(h[1])] = parts;
+  }
+  return { sha, matches: sha === AMENDMENT_4_BODY_SHA256, moves, kept, contracts, deferred: count("DEFERRED"), inScope: count("in scope") };
 }
 
 /**
@@ -278,6 +296,9 @@ if (invokedDirectly) {
   console.log(`  matches     : ${a4.matches ? "YES" : "🔴 NO — the amendment has changed"}`);
   console.log(`  moves       : ${Object.entries(a4Moves).map(([id, c]) => `${id} D→${c}`).join(" · ")} · kept D: ${Object.keys(a4.kept).join(", ")}`);
   console.log(`  in force    : P=${eff.P} S=${eff.S} D=${eff.D} · the body's table: DEFERRED ${a4.deferred?.before}→${a4.deferred?.after}, in scope ${a4.inScope?.before}→${a4.inScope?.after}  ${a4Census ? "agree" : "🔴 DISAGREE"}`);
+  const a4HalfIds = Object.keys(a4.contracts).map(Number).sort((x, y) => x - y);
+  const a4HalfComplete = a4HalfIds.filter((id) => ["input", "expected", "failure", "evidence"].every((p) => a4.contracts[id][p]));
+  console.log(`  addendum    : v0.1-half contracts for item ${a4HalfIds.join(", ")} — ${a4HalfComplete.length}/${a4HalfIds.length} carry all four parts`);
 
   const bad =
     !r.matches || !r.classesMatch || r.features.count !== EXPECTED_FEATURE_COUNT || !r.features.ok ||
@@ -287,7 +308,8 @@ if (invokedDirectly) {
     a2complete.length !== a2ids.length ||
     !a4.matches || !a4Census ||
     JSON.stringify(a4Moves) !== JSON.stringify(AMENDMENT_4_MOVES) ||
-    Object.keys(a4.kept).map(Number).join(",") !== AMENDMENT_4_KEPT_DEFERRED.join(",");
+    Object.keys(a4.kept).map(Number).join(",") !== AMENDMENT_4_KEPT_DEFERRED.join(",") ||
+    a4HalfIds.join(",") !== AMENDMENT_4_HALF_CONTRACT_IDS.join(",") || a4HalfComplete.length !== a4HalfIds.length;
 
   console.log(bad ? "\n🔴 VERIFICATION FAILED" : "\nall four frozen texts verified");
   process.exit(bad ? 1 : 0);

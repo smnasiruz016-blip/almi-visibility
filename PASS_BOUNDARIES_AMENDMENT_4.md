@@ -7,8 +7,9 @@
 - **Ruled:** **13 September 2026**, by the owner, under AlmiWorld Product Command §12 (owner override). Authored by beta-g.
 - **Amends:** `PASS_BOUNDARIES_SOURCE.md` — the **class** of rows 3, 4, 5, 6 and 7, and nothing else. **No boundary
   text changes and no threshold moves.** `PASS_BOUNDARIES_SOURCE.md` is untouched and still verifies byte for byte.
-- **Copy rule:** the body below is the brief's preamble, **§1, §3 and §4**, and its closing line — **verbatim**, cut by a
-  script as contiguous slices of the file at the brief's own section headings. Nothing retyped, paraphrased or corrected.
+- **Copy rule:** the body below is the brief's preamble, **§1, §3 and §4**, its closing line, and its **dated ADDENDUM of
+  13 September 2026** — **verbatim**, cut by a script as contiguous slices of the file at the brief's own section
+  headings. Nothing retyped, paraphrased or corrected. The addendum was committed to `_handoffs` before this file was rebuilt.
 - **Not carried:** §2 (the reason; it stays in `_handoffs`) · §5 (the gap-register correction, applied to
   `PHASE_0_FROZEN_GAP_REGISTER.md` in the same PR) · §6 (**not ruled** — waiting on the owner) · §7 (instructions to CC, not law).
 
@@ -24,8 +25,8 @@ with its date and reason — the mechanism Amendments 1 and 2 used.
 
 | artifact | bytes | sha256 |
 |---|---|---|
-| `AlmiVisibility_OWNER_RULING_2026-09-13_AMENDMENT_4_SCOPE_OPENS.md` as read | 9,970 | `06c69a50072f75f4d668aa4add9debb5ac3ab3b963efbd9ea6fc0e98f2bc3230` |
-| the body below (LF-normalised) | — | `4d0dea705dbfb27e25263bca5bbc0c1efa79546b02dd6c7805e77380825f61d1` |
+| `AlmiVisibility_OWNER_RULING_2026-09-13_AMENDMENT_4_SCOPE_OPENS.md` as read | 12,861 | `b246b659dbc83bc9de597b4acc925779a92b1122de19175737c7e3d60eabe8c0` |
+| the body below (LF-normalised) | — | `c802429e46d60a2d6c75e0122054a642045c7362fa20ab2944283ae5b8702390` |
 
 🔴 Verified by `tools/verify-pass-boundaries-source.mjs`. The class moves are **read out of the body's verdict table**,
 not typed into code, and the census they produce is checked against the body's own count table.
@@ -38,14 +39,21 @@ not typed into code, and the census they produce is checked against the body's o
 | rows moved **D → S** (split) | **2** — 3, 7 |
 | rows that **stay D**, with the reason on the row | **1** — 2 |
 | class census, frozen → effective | **P 24 → 27 · S 6 → 8 · D 28 → 23** |
+| v0.1-half four-part contracts (addendum) | **2** — items 3, 7 · 8 four-part rows |
 
-## 🔴 What the ruling does not settle — raised, not filled in
+## The addendum — what it closed, and one thing it asserts that this repository cannot find
 
-1. **Row 7's five measurements are not all assigned.** The verdict names DEMAND and VISIBILITY as owned and SUPPLY and
-   AUDIENCE as needing external evidence. **WORTHINESS is in neither half.** It is recorded on the row as unassigned.
-2. **Rows 3 and 7 have no four-part contract for their owned half** — the gap Amendment 1 closed for the first six
-   splits. The only four parts on file are the full §6 boundaries. The ledger names the halves as the verdict states
-   them and does not author a v0.1-half INPUT / EXPECTED / FAILURE / EVIDENCE. Both are questions for the owner.
+PR #71 raised three gaps: row 7's WORTHINESS was in neither half, and rows 3 and 7 had no four-part contract for their
+owned half. The owner closed all three by the dated addendum at the end of the body — WORTHINESS to the deferred half,
+and a v0.1-half contract for each row. The loader reads those contracts the way it reads Amendment 1's, and the
+contract guard now finds rows 3 and 7 complete. **Neither row moved: both stay NOT-STARTED. A contract is not progress.**
+
+🔴 **Recorded, not corrected:** the addendum's reason says WORTHINESS's *"own named inputs"* are the Human Question
+Universe (row 2), the information-gap test (row 19) and right-to-exist (row 21). **No frozen text in this repository
+names them as its inputs.** `PASS_BOUNDARIES_SOURCE.md` §6 and `KEY_FEATURE_CHECKLIST_SOURCE.md` name WORTHINESS
+only in the list of five measurements; *"Human Question Universe"* appears only in the checklist's resource-assembly
+feature. Rows 2, 19 and 21 are class D, so the conclusion stands on those rows' classes — but the *"named"* link
+is the owner's assertion, and is left for him to source.
 
 ---
 
@@ -140,3 +148,41 @@ Recorded explicitly, because a scope amendment is the easiest place to smuggle o
 ---
 
 **END — AMENDMENT 4. The standard did not move. The scope did, by owner ruling, with its date and reason.**
+
+---
+
+## ADDENDUM · 13 SEPTEMBER 2026 — THE THREE GAPS AMENDMENT 4 LEFT, CLOSED
+
+**Owner ruling, 13 September 2026.** Recorded verbatim from GOAL 1 of the owner's command of the same day, which
+answered the three gaps raised in PR #71. Mirrored into `PASS_BOUNDARIES_AMENDMENT_4.md`. It edits no text of
+`PASS_BOUNDARIES_SOURCE.md` and moves no row's state. Rows 3 and 7 stay NOT-STARTED. Nothing is built for them.
+A contract is not progress.
+
+### A4-ADD.1 · Row 7 · WORTHINESS is assigned to the DEFERRED half
+
+Reason, recorded on the row: its own named inputs — the Human Question Universe (row 2, still deferred), the
+information-gap test (row 19) and right-to-exist (row 21) — are themselves deferred. A measurement whose inputs are
+deferred cannot be in scope. This is the same input test Amendment 4 applied to every other row, not a new rule.
+
+Row 7 therefore reads: IN SCOPE — DEMAND, VISIBILITY/REACH. DEFERRED — SUPPLY, AUDIENCE/NEED, WORTHINESS. All three named.
+
+### 3 · Keyword & Search-Language Discovery — v0.1 half
+
+| | |
+|---|---|
+| **INPUT** | the owned Search Console rows already in the store — query, query×page and country×query — each with its ingest date and the store's own row counts. |
+| **EXPECTED** | the real wording people used is discovered and stored — long-tail phrasing, synonyms, abbreviations, local phrasing — each keeping its source observation id and ingest date; and no keyword ever becomes a URL by itself. |
+| **FAILURE** | a keyword is promoted to a URL without an intent decision; OR wording is normalised so the original phrasing cannot be recovered; OR any stored keyword is not traceable to a stored owned row. |
+| **EVIDENCE** | the stored search-language records with their observation ids, a held-out sample re-checked against the store, and a test proving no keyword→URL path exists. |
+
+### 7 · Market Measurement — v0.1 half
+
+| | |
+|---|---|
+| **INPUT** | the owned rows for the segment — impressions, clicks, CTR, position, by query, page and country — with their date range and dataState. |
+| **EXPECTED** | DEMAND and VISIBILITY/REACH measured and reported SEPARATELY, each naming its own method and date range; each carrying the store's own limits (query truncation, data lag, dataState) on its face; the other three dimensions read UNKNOWN. |
+| **FAILURE** | DEMAND and VISIBILITY conflated in one number; OR impressions reported as demand; OR SUPPLY, AUDIENCE/NEED or WORTHINESS rendered as measured, left indistinguishable from a measured value, or defaulted to low (LAW-ABSENT-1). |
+| **EVIDENCE** | the two measurements with two distinct methods, the date range and dataState quoted from the stored observation, and a test that goes RED when a third dimension is filled from an unmeasured source. |
+| **deferred** | SUPPLY, AUDIENCE/NEED, WORTHINESS. All three named. |
+
+**END — ADDENDUM.**

@@ -16,7 +16,7 @@ import { join } from "node:path";
 
 import {
   verify, EXPECTED_BODY_SHA256, EXPECTED_FEATURE_COUNT, EXPECTED_CLASS_COUNTS, splitSource, sectionSix,
-  amendment4, effectiveClasses, AMENDMENT_4_BODY_SHA256, AMENDMENT_4_MOVES, AMENDMENT_4_KEPT_DEFERRED, EXPECTED_EFFECTIVE_CLASS_COUNTS,
+  amendment4, effectiveClasses, AMENDMENT_4_BODY_SHA256, AMENDMENT_4_MOVES, AMENDMENT_4_KEPT_DEFERRED, AMENDMENT_4_HALF_CONTRACT_IDS, EXPECTED_EFFECTIVE_CLASS_COUNTS,
 } from "../tools/verify-pass-boundaries-source.mjs";
 import { loadBoundaries, CONTRACT_PARTS, HALF_CONTRACT_PARTS } from "../src/checklist/boundaries.mjs";
 import { classify, assertLawful, assertTransitions, tally, STATES, LOOKED, MOVES_AMENDMENT_2 } from "../src/checklist/classification.mjs";
@@ -79,7 +79,8 @@ test("the class counts are frozen too — they decide which rows may be deferred
  * paraphrase of the ruling through.
  */
 test("🔴 every boundary is present in one of the frozen texts, character for character", () => {
-  const flat = [SOURCE, AMENDMENT, `${REPO}PASS_BOUNDARIES_AMENDMENT_2.md`]
+  // Amendment 4's addendum supplies rows 3 and 7's v0.1-half contracts, so it is searched too.
+  const flat = [SOURCE, AMENDMENT, `${REPO}PASS_BOUNDARIES_AMENDMENT_2.md`, `${REPO}PASS_BOUNDARIES_AMENDMENT_4.md`]
     .map((p) => splitSource(readFileSync(p, "utf8").replace(/\r\n/g, "\n")).body)
     .join("\n")
     .replace(/\s+/g, " ");
@@ -106,7 +107,8 @@ test("all 58 are parsed, and each knows WHICH document ruled it", () => {
   for (const r of Object.values(b)) via[r.via] = (via[r.via] ?? 0) + 1;
   // §4+A1 — the splits §4 named; §6+A1 — item 25, split inline in §6;
   // §4+A1+A2 — item 14, whose Amendment 1 contract Amendment 2 replaced.
-  assert.deepEqual(via, { "§6": 50, "§4+A1": 4, "§4+A1+A2": 1, "§6+A1": 1, "§5": 2 });
+  // §6+A4 — rows 3 and 7, whose v0.1-half contract Amendment 4's addendum supplied.
+  assert.deepEqual(via, { "§6": 48, "§6+A4": 2, "§4+A1": 4, "§4+A1+A2": 1, "§6+A1": 1, "§5": 2 });
   assert.equal(Object.values(b).filter((r) => r.amendedByA1).length, 6);
 });
 
@@ -117,16 +119,22 @@ test("all 58 are parsed, and each knows WHICH document ruled it", () => {
  * ruling. All six now carry all four parts — supplied by HIM, not filled in
  * from this side, which is the whole difference.
  */
-/* 🔴 AND AMENDMENT 4 OPENED A GAP OF THE SAME KIND. It splits rows 3 and 7 without giving their owned half a
- * four-part contract, so those two — and only those two — lack the four v0.1-half parts. Their §6 boundary
- * text is all still present; what is missing is a contract for the half that is in scope. */
-test("🔴 Amendment 1 closed the six missing contracts — and the only rows now lacking parts are Amendment 4's splits, 3 and 7", () => {
+/* 🔴 AND AMENDMENT 4 OPENED A GAP OF THE SAME KIND, WHICH ITS ADDENDUM CLOSED. Rows 3 and 7 were split with no
+ * contract for their owned half; the owner's addendum (13 Sep 2026) stated both. No row now lacks a part — and
+ * each of the two keeps its §6 four parts as the final boundary, untouched. */
+test("🔴 Amendment 1 closed the six missing contracts, Amendment 4's addendum closed rows 3 and 7 — no row now lacks a part", () => {
   const b = loadBoundaries();
-  assert.deepEqual(Object.values(b).filter((r) => r.missingParts.length).map((r) => r.id), [3, 7]);
+  assert.deepEqual(Object.values(b).filter((r) => r.missingParts.length).map((r) => r.id), []);
   for (const id of [3, 7]) {
-    assert.deepEqual(b[id].missingParts, [...HALF_CONTRACT_PARTS], `item ${id} lacks something other than its v0.1-half contract`);
-    for (const p of CONTRACT_PARTS) assert.ok(b[id][p], `item ${id}'s frozen ${p} is no longer on the row`);
+    assert.equal(b[id].halfContractByA4, true, `item ${id} did not receive the addendum's contract`);
+    for (const p of CONTRACT_PARTS) {
+      assert.ok(b[id][p], `item ${id} has no v0.1-half ${p}`);
+      assert.ok(b[id].finalBoundary[p], `item ${id}'s frozen §6 ${p} is no longer on the row`);
+      assert.notEqual(b[id][p], b[id].finalBoundary[p], `item ${id}'s ${p} is still the §6 text — the half contract was not applied`);
+    }
   }
+  assert.equal(b[7].deferred, "SUPPLY, AUDIENCE/NEED, WORTHINESS. All three named.");
+  assert.match(b[3].input, /^the owned Search Console rows already in the store/);
   for (const id of [10, 12, 13, 14, 25, 38]) {
     assert.equal(b[id].class, "S", `${id} should be a split`);
     assert.equal(b[id].amendedByA1, true, `${id} did not receive its amended contract`);
@@ -353,6 +361,9 @@ test("🔴 Amendment 4 verifies, and its moves are READ from its verdict table: 
   assert.equal(a4.matches, true);
   assert.deepEqual(Object.fromEntries(Object.entries(a4.moves).map(([id, m]) => [id, m.to])), { ...AMENDMENT_4_MOVES });
   assert.deepEqual(Object.keys(a4.kept).map(Number), [...AMENDMENT_4_KEPT_DEFERRED]);
+  // the addendum's contracts, read from the body: exactly items 3 and 7, each with all four parts
+  assert.deepEqual(Object.keys(a4.contracts).map(Number), [...AMENDMENT_4_HALF_CONTRACT_IDS]);
+  for (const id of AMENDMENT_4_HALF_CONTRACT_IDS) for (const p of CONTRACT_PARTS) assert.ok(a4.contracts[id][p], `item ${id}'s addendum contract has no ${p}`);
   // 🔴 the frozen source is untouched — the amendment moved a class, not a byte of the owner's boundaries
   assert.equal(verify(SOURCE).sha, EXPECTED_BODY_SHA256);
 });
@@ -409,18 +420,54 @@ test("🔴 RED: DEFERRED on a row Amendment 4 opened is refused — and row 2, w
   assert.deepEqual(assertLawful(rows), []);
 });
 
-test("🔴 RED: a VERIFIED-PASS on row 3 or 7 is refused — their owned half has no four-part contract; CONTROL: row 4 has one", () => {
-  for (const id of [3, 7]) {
+/**
+ * 🔴 THE CONTRACT GUARD, BOTH HALVES. Rows 3 and 7 are now CONTRACT-COMPLETE, so the contract law must
+ * ACCEPT a VERIFIED-PASS on them — and the ledger must still REFUSE the tick, because each is NOT-STARTED and
+ * no move to VERIFIED-PASS was declared. Row 4, whose four parts came from §6, is the control for both.
+ */
+test("🔴 CONTRACT GUARD: rows 3 and 7 are contract-complete and ACCEPTED by the contract law — and still REFUSED a tick; row 4 is the control", () => {
+  const b = loadBoundaries();
+  for (const id of [3, 7, 4]) {
+    assert.deepEqual(b[id].missingParts, [], `item ${id} is not contract-complete`);
     const rows = classify();
+    assert.equal(rows[id].state, "NOT-STARTED");
     rows[id] = { ...rows[id], state: "VERIFIED-PASS" };
-    assert.match(assertLawful(rows).join("\n"), new RegExp(`item ${id} .* is VERIFIED-PASS but its boundary has no v0\\.1-half input`));
+    assert.deepEqual(assertLawful(rows), [], `item ${id}: the contract law refused a complete contract`);
+    const refused = assertTransitions(rows).filter((e) => e.startsWith(`item ${id}:`));
+    assert.ok(
+      refused.some((e) => e.includes("is VERIFIED-PASS but its recorded state is NOT-STARTED and no move was declared")),
+      `item ${id}: an undeclared tick was not refused — ${refused.join(" | ") || "no error at all"}`,
+    );
   }
-  const rows = classify();
-  rows[4] = { ...rows[4], state: "VERIFIED-PASS" };
-  assert.deepEqual(assertLawful(rows), [], "row 4's full four-part boundary was refused — the guard is not reading the contract");
+  // and with the rows as they really are, nothing is refused
+  assert.deepEqual(assertLawful(classify()), []);
+  assert.deepEqual(assertTransitions(classify()), []);
 });
 
-test("🔴 the five arrive NOT-STARTED by a RULING move and nothing else; row 2 says WHY it stayed; row 7 names WORTHINESS as unassigned", () => {
+test("🔴 RED: remove one part of row 3's contract and the parser loses it AND the guard refuses the tick again", () => {
+  const dir = mkdtempSync(join(tmpdir(), "a4-half-"));
+  try {
+    const original = readFileSync(AMENDMENT_4, "utf8");
+    const line = original.split("\n").find((l) => l.startsWith("| **EVIDENCE** | the stored search-language records"));
+    assert.ok(line, "row 3's EVIDENCE line was not found — the RED would not land");
+    const bad = original.replace(`${line}\n`, "");
+    assert.notEqual(bad, original);
+    writeFileSync(join(dir, "a4.md"), bad);
+    const parsed = amendment4(join(dir, "a4.md"));
+    assert.equal(parsed.contracts[3].evidence, undefined);
+    assert.ok(parsed.contracts[3].input && parsed.contracts[7].evidence, "the removal took more than the one part");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  // the guard, handed the row as the loader reports an incomplete half contract, refuses the tick
+  const rows = classify();
+  const boundaries = { ...loadBoundaries() };
+  boundaries[3] = { ...boundaries[3], missingParts: [HALF_CONTRACT_PARTS[3]] };
+  rows[3] = { ...rows[3], state: "VERIFIED-PASS" };
+  assert.match(assertLawful(rows, boundaries).join("\n"), /item 3 .* is VERIFIED-PASS but its boundary has no v0\.1-half evidence/);
+});
+
+test("🔴 the five arrive NOT-STARTED by a RULING move and nothing else; row 2 says WHY it stayed; row 7 puts WORTHINESS in the deferred half", () => {
   const rows = classify();
   for (const id of [3, 4, 5, 6, 7]) {
     assert.equal(rows[id].state, "NOT-STARTED");
@@ -434,7 +481,9 @@ test("🔴 the five arrive NOT-STARTED by a RULING move and nothing else; row 2 
   assert.match(rows[2].why, /KEPT D by Amendment 4/);
   assert.match(rows[2].why, /legitimate public question evidence/);
   assert.match(rows[2].why, /no fetch is authorised/);
-  assert.match(rows[7].why, /WORTHINESS[^.]*is in neither half/);
+  assert.match(rows[7].why, /Deferred, and named: \*\*SUPPLY\*\*, \*\*AUDIENCE\/NEED\*\* and \*\*WORTHINESS\*\*/);
+  assert.match(rows[7].why, /assigned to the deferred half by the owner's addendum/);
+  assert.doesNotMatch(rows[7].why, /in neither half/);
   assert.deepEqual(assertTransitions(rows), []);
 });
 

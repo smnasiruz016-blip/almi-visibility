@@ -35,17 +35,23 @@ import { sha256Hex } from "../evidence/ids.mjs";
  * The replay set: every FETCHED observation of the recorded run whose body is
  * in `corpusDir`, keyed by requested URL, with an integrity verdict per body.
  */
-export function replayEntriesFrom({ crawlRecords, corpusDir }) {
+export function replayEntriesFrom({ crawlRecords, corpusDir = null, bodies = null }) {
+  if (!corpusDir === !bodies) throw new TypeError("replayEntriesFrom: give exactly one of corpusDir or bodies (observation_id → body)");
   const entries = new Map();
   let missing = 0;
   for (const o of crawlRecords) {
     if (o.record_type !== "observation" || o.value?.skipped) continue;
-    const file = join(corpusDir, `${o.observation_id}.html`);
-    if (!existsSync(file)) {
+    let body;
+    if (bodies) {
+      body = bodies.get(o.observation_id);
+    } else {
+      const file = join(corpusDir, `${o.observation_id}.html`);
+      body = existsSync(file) ? readFileSync(file, "utf8") : undefined;
+    }
+    if (body === undefined) {
       missing += 1;
       continue;
     }
-    const body = readFileSync(file, "utf8");
     entries.set(o.value.requested_url, {
       observation_id: o.observation_id,
       requested_url: o.value.requested_url,

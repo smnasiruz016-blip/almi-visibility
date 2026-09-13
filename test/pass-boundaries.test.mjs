@@ -239,13 +239,17 @@ test("🔴 RED: TESTABLE-NOW without a named test is REFUSED", () => {
  * 11 and 42 BLOCKED-UNKNOWN → VERIFIED-PASS, 48 FAILED → VERIFIED-PASS.
  * VERIFIED-PASS 5 → 8, FAILED 1 → 0, BLOCKED-UNKNOWN 7 → 5. The D-CRW-5 green
  * was not spent and moved nothing. */
-test("the seven-state tally is 3 / 14 / 0 / 8 / 0 / 5 / 28", () => {
+/* 🔴 AND THE QUEUE WAS RE-SCANNED (13 Sep 2026): eight rows whose input now
+ * exists → TESTABLE-NOW; of those, 12 and 38 were run and passed, 50 and 51 were
+ * run and FAILED, 13 and 26 were run and stay TESTABLE-NOW (EXPECTED missed,
+ * FAILURE not met), 25 and 55 were not run. */
+test("the seven-state tally is 3 / 6 / 4 / 10 / 2 / 5 / 28", () => {
   assert.deepEqual(tally(classify()), {
     "NOT-STARTED": 3,
-    "BUILT-NOT-PROVED": 14,
-    "TESTABLE-NOW": 0,
-    "VERIFIED-PASS": 8,
-    FAILED: 0,
+    "BUILT-NOT-PROVED": 6,
+    "TESTABLE-NOW": 4,
+    "VERIFIED-PASS": 10,
+    FAILED: 2,
     "BLOCKED-UNKNOWN": 5,
     DEFERRED: 28,
   });
@@ -288,14 +292,19 @@ test("every state used is one of the seven, and every row is classified", () => 
  * it is pinned so a second cannot join it quietly. */
 /* 🔴 NINE since the replay: 11 and 42 had moved on VOCABULARY into BLOCKED-UNKNOWN;
  * their test has now been run, so they are work — vocabulary 33 → 31. */
-test("🔴 exactly NINE rows moved on WORK against the four-state baseline — 8, 9, 11, 14, 15, 42, 45, 48, 49 — 9 BLOCKED, the rest PASS, none FAILED", () => {
+/* 🔴 SEVENTEEN since the re-scan: the eight re-scanned rows moved because work
+ * made their input exist ("none" 18 → 10). Four of them are TESTABLE-NOW, which
+ * is NOT looked-at: an input that exists is not a verdict. */
+test("🔴 exactly SEVENTEEN rows moved on WORK — 9 BLOCKED; 13, 25, 26, 55 TESTABLE-NOW; 50, 51 FAILED; the rest PASS", () => {
   const rows = Object.values(classify());
   const work = rows.filter((r) => r.changeKind === "work");
-  assert.deepEqual(work.map((r) => r.id).sort((a, b) => a - b), [8, 9, 11, 14, 15, 42, 45, 48, 49]);
-  assert.deepEqual(work.filter((r) => !LOOKED.includes(r.state)).map((r) => `${r.id}:${r.state}`), ["9:BLOCKED-UNKNOWN"]);
-  assert.deepEqual(work.filter((r) => r.state === "FAILED").map((r) => r.id), []);
+  assert.deepEqual(work.map((r) => r.id).sort((a, b) => a - b), [8, 9, 11, 12, 13, 14, 15, 25, 26, 38, 42, 45, 48, 49, 50, 51, 55]);
+  assert.deepEqual(work.filter((r) => !LOOKED.includes(r.state)).map((r) => `${r.id}:${r.state}`), [
+    "9:BLOCKED-UNKNOWN", "13:TESTABLE-NOW", "25:TESTABLE-NOW", "26:TESTABLE-NOW", "55:TESTABLE-NOW",
+  ]);
+  assert.deepEqual(work.filter((r) => r.state === "FAILED").map((r) => r.id), [50, 51]);
   assert.equal(rows.filter((r) => r.changeKind === "vocabulary").length, 31);
-  assert.equal(rows.filter((r) => r.changeKind === "none").length, 18);
+  assert.equal(rows.filter((r) => r.changeKind === "none").length, 10);
 });
 
 /**
@@ -309,11 +318,13 @@ test("🔴 exactly NINE rows moved on WORK against the four-state baseline — 8
  * the finding. */
 /* 🔴 EIGHT since the replay — 11, 42, and 48 back, by rule 1's first route. Its
  * reopen is KEPT on the row, as item 14's first failure is. */
-test("🔴 VERIFIED-PASS is exactly 8 — items 8, 11, 14, 15, 42, 45, 48 and 49 — and 48's reopen stays on the record", () => {
+/* 🔴 TEN since the re-scan — 12 and 38, each run over the committed bodies. */
+test("🔴 VERIFIED-PASS is exactly 10 — items 8, 11, 12, 14, 15, 38, 42, 45, 48 and 49 — and 48's reopen stays on the record", () => {
   const rows = classify();
   const passed = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS").map((r) => r.id).sort((a, b) => a - b);
-  assert.deepEqual(passed, [8, 11, 14, 15, 42, 45, 48, 49]);
-  assert.equal(tally(rows)["VERIFIED-PASS"], 8);
+  assert.deepEqual(passed, [8, 11, 12, 14, 15, 38, 42, 45, 48, 49]);
+  assert.equal(tally(rows)["VERIFIED-PASS"], 10);
+  for (const id of [12, 38]) assert.match(rows[id].whyBefore, /Not touched in this PR/, `item ${id}'s earlier verdict was erased rather than kept`);
   assert.match(rows[48].why, /LEFT FAILED BY RULE 1's FIRST ROUTE/);
   assert.match(rows[48].why, /RECORDED resolver answers/);
   assert.match(rows[48].whyFailed, /REOPENED — THE FIRST TICK THIS PROJECT HAS REMOVED/);

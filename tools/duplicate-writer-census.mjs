@@ -28,7 +28,8 @@ import { execFileSync } from "node:child_process";
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 
 /* Tokens built from parts, so this file's own scan does not report itself. */
-const APPEND_CALL = new RegExp(["\\.app", "end(All)?\\(|app", "endFileSync\\("].join(""));
+// The bare names AND the renamed unsafe verbs (13 Sep 2026) — a rename is not a way out.
+const APPEND_CALL = new RegExp(["\\.app", "end(All)?(Without", "Dedupe)?\\(|app", "endFileSync\\("].join(""));
 const IF_NEW = ["append", "IfNew"].join("");
 /* 🔴 CORRECTED ON ITS FIRST RUN, IN BOTH DIRECTIONS.
  * The first pattern was `\b(already|existing|exists?|has\(|\.some\(|…)`. It

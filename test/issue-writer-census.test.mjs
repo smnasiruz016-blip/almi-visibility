@@ -48,7 +48,7 @@ test("the one declared non-issue write is checked against its own file, not trus
   const sn = real.population.find((p) => p.file === "bin/supersede-noindex.mjs");
   assert.equal(sn.otherWrites.length, 1);
   assert.equal(sn.otherWrites[0].declared, true);
-  assert.match(sn.otherWrites[0].text, /appendAll\(changes\)/);
+  assert.match(sn.otherWrites[0].text, /appendAllWithoutDedupe\(changes\)/);
 });
 
 /* ---- CONTROLS: the census must be able to fail -------------------------- */
@@ -60,6 +60,22 @@ test("🔴 CONTROL: a writer that builds issues and persists with a bare append 
   assert.equal(r.population.length, 1);
   assert.equal(r.failures.length, 1);
   assert.equal(r.failures[0].callsIfNew, false);
+});
+
+test("🔴 CONTROL: the RENAMED unsafe verb is caught too — a rename is not a way out of the census", () => {
+  const r = issueWriterCensus(src("bin/renamed.mjs", 'import { makeIssue } from "../src/evidence/records.mjs";\nconst store = createJsonlStore(out);\nstore.appendIfNew(makeIssue(a));\nstore.appendWithoutDedupe(makeIssue(b));\n'));
+  assert.equal(r.failures.length, 1);
+  assert.equal(r.failures[0].undeclared.length, 1);
+});
+
+test("🔴 the store no longer offers a bare append — the unsafe verb carries its warning in its name", async () => {
+  const { STORE_INTERFACE } = await import("../src/evidence/store.mjs");
+  assert.ok(!STORE_INTERFACE.includes("append") && !STORE_INTERFACE.includes("appendAll"));
+  assert.ok(STORE_INTERFACE.includes("appendWithoutDedupe") && STORE_INTERFACE.includes("appendAllWithoutDedupe"));
+  const text = readFileSync(`${REPO}tools/issue-writer-census.mjs`, "utf8");
+  assert.match(text, /CLOSED \(13 September 2026\) — "a store passed in from another module"/);
+  assert.match(text, /OPEN — a writer reached through DYNAMIC DISPATCH/);
+  assert.match(text, /OPEN — issues BUILT somewhere this file cannot see imported/);
 });
 
 test("🔴 CONTROL: a COMMENT that names appendIfNew is not a call", () => {

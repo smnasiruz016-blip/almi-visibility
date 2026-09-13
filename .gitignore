@@ -1,6 +1,29 @@
 .vercel
 .env*
 node_modules/
+
+# ── 🔴 A CACHE AND EVIDENCE ARE NOT THE SAME THING ─────────────────────────────
+# "A repo is not a cache" is RIGHT, and it stays. The line it draws is this:
+#
+#   A CACHE is regenerable and stays out. Anything one command can fetch or
+#   rebuild again — a corpus reproducible from its manifest, a sibling page
+#   measured as SERVED — is kept out of git, and the record of what was fetched
+#   and when is committed instead.
+#
+#   EVIDENCE UNDERPINNING A VERIFIED-PASS ROW IS NOT REGENERABLE and goes in.
+#   When the thing a tick stands on can never be fetched again — because the
+#   live pages have moved on — its only copy is the one we hold, and a repository
+#   that keeps only its hashes keeps a promise nobody can check.
+#
+# Ruling, beta-g as technical owner, 13 September 2026: THE EVIDENCE BEHIND A
+# TICK MUST OUTLIVE THE TICK. So the 394 bodies the 12 September crawl captured —
+# behind items 11, 42 and 48, in an Actions artifact that expires 2026-12-11 —
+# are committed compressed as runs/crawl/bodies-2026-09-12.jsonl.br (659,647
+# bytes). Their unpacked working copy, runs/crawl/corpus/, is a cache of that
+# archive and stays out under the `corpus/` rule below.
+#
+# A NEW exception to "a repo is not a cache" must meet the same bar, in words,
+# here: it underpins a VERIFIED-PASS row AND it cannot be regenerated.
 # The 3,414-page corpus is NOT committed: it is ~200 MB of somebody else's rendered
 # HTML, it is reproducible from corpus-manifest.json + the seed, and a repo is not a
 # cache. What IS committed is the manifest (which names the exact 500 sampled URLs),

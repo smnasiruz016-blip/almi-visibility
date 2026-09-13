@@ -83,6 +83,8 @@ export function makeObservation({
   collector,
   collector_version,
   raw_ref = null,
+  // Where the request ENDED, when that is not where it started — see measurementKey().
+  journey = null,
 }) {
   if (!target || !TARGET_KINDS.includes(target.kind)) {
     throw new TypeError(`target.kind must be one of ${TARGET_KINDS.join("|")}`);
@@ -103,6 +105,7 @@ export function makeObservation({
     target: targetRef,
     method,
     contentSha256: content_sha256,
+    journey,
   });
   return Object.freeze({
     record_type: "observation",

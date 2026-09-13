@@ -24,11 +24,29 @@
  *
  *   1. make a real `.appendIfNew(` CALL (a comment or a string does not count);
  *   2. write nothing else by a path that cannot deduplicate — no filesystem
- *      write, and no bare `.append(` / `.appendAll(` — unless that line is
- *      declared below with a reason this census CHECKS in the same file.
+ *      write, and no `appendWithoutDedupe` / `appendAllWithoutDedupe` (or the
+ *      old bare names) — unless that line is declared below with a reason this
+ *      census CHECKS in the same file.
  *
- * ⚠️ Blind to: a writer reached through dynamic dispatch, a store passed in from
- * another module, and issues built somewhere this file cannot see imported.
+ * ── ⚠️ BLIND SPOTS — THREE WERE DECLARED; ONE IS CLOSED, TWO STAY OPEN ──────
+ *
+ *   CLOSED (13 September 2026) — "a store passed in from another module". Not
+ *   by a better census: by the STORE. The unsafe verb is now named
+ *   `appendWithoutDedupe`, so a module handed a store from elsewhere cannot
+ *   write past the dedupe without typing that word, and the word is loud in any
+ *   diff whether or not this census ever reads the file.
+ *
+ *   OPEN — a writer reached through DYNAMIC DISPATCH (`store[verb](…)`, a verb
+ *   held in a variable). A source scan cannot resolve a computed property name,
+ *   and pretending to would be a heuristic that reports clean when it has not
+ *   looked. Kept declared because a named limit is worth more than a quiet one.
+ *
+ *   OPEN — issues BUILT somewhere this file cannot see imported (a module that
+ *   receives finished issue objects and writes them, building none itself). The
+ *   population rule is "builds AND writes"; such a module writes and does not
+ *   build, so it is not in the population. The store rename narrows the harm —
+ *   it would still have to call appendIfNew or type appendWithoutDedupe — but
+ *   this census does not find it, and says so.
  */
 
 import { readFileSync } from "node:fs";
@@ -39,7 +57,8 @@ const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, 
 
 /* Tokens built from parts so this file's own scan cannot report itself. */
 const IF_NEW_CALL = new RegExp(["\\.append", "IfNew\\("].join(""));
-const BARE_APPEND = new RegExp(["\\.append", "(All)?\\("].join(""));
+// The bare names AND the renamed unsafe verbs: a rename must not become a way out of the census.
+const BARE_APPEND = new RegExp(["\\.append", "(All)?(Without", "Dedupe)?\\("].join(""));
 const FS_WRITE = new RegExp(["(write", "FileSync|append", "FileSync|create", "WriteStream)\\("].join(""));
 /* 🔴 A check imported RELATIVELY counts too. When the robots/DNS audit moved
  * from bin/audit.mjs into src/audit/run-audit.mjs it imports "./checks.mjs" —
@@ -60,7 +79,7 @@ export const DECLARED = Object.freeze([
     file: "bin/supersede-noindex.mjs",
     // Built from parts: written as a literal, the duplicate-writer census read
     // this very line as a bare append — this file reporting itself.
-    line: new RegExp(["store\\.app", "end(All)?\\(changes\\)"].join("")),
+    line: new RegExp(["store\\.app", "end(All)?(Without", "Dedupe)?\\(changes\\)"].join("")),
     why: "appends issue_state_change records, not issues; built only from pending OPEN issues, so a re-run appends none",
     proof: /changes\.push\(\s*makeIssueStateChange\(/,
   },

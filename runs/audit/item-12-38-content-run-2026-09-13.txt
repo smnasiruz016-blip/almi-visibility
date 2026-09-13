@@ -1,0 +1,38 @@
+corpus: C:/Projects/almi-visibility/runs/crawl/bodies-2026-09-12.jsonl.br (committed archive)
+pages with a fetched body: 394
+
+SHELL = head, script, style, noscript, svg, template, nav, header, footer, aside, [role=navigation], [aria-hidden=true], and cookie/consent containers. BODY = <main> or <article> if present, else the document minus the shell. Word counts are taken on BODY only.
+
+EDGES: 19926 links found, 5128 pointing inside the crawled set.
+  (re-derived from the artifact bodies — the committed PageRecords carry empty edge lists)
+
+=== FINDINGS ===
+  exact-duplicate            FAIL=   0  UNKNOWN=   0  silent= 394
+  thin-content               FAIL= 118  UNKNOWN=   2  silent= 274
+  near-duplicate             FAIL=   5  UNKNOWN=   2  silent= 387
+  template-dominance         FAIL=   2  UNKNOWN=   2  silent= 390
+  orphan-within-crawled-set  FAIL=   0  UNKNOWN= 340  silent=  54
+
+ITEM 13 (cannibalization, DETECTION MODE ONLY): 21 queries on >1 URL
+
+=== EVERY CHECK, AND ITS CONTROL ===
+  exact-duplicate
+     fires  : two observations on different URLs sharing one content_sha256 — must fire
+     control: two observations on different URLs with different hashes — must NOT fire
+  thin-content
+     fires  : a page with a 2,000-word shell and a 40-word body — must fire
+     control: a page with the SAME 2,000-word shell and a 900-word body — must NOT fire. This is the control that proves the shell is being subtracted rather than counted.
+  near-duplicate
+     fires  : two pages whose bodies differ by one word — must fire
+     control: two pages sharing a large identical shell but with wholly different bodies — must NOT fire. This is the control that proves similarity is measured on BODY, not on chrome.
+  template-dominance
+     fires  : a page that is 90% chrome by word count — must fire
+     control: a page that is 20% chrome — must NOT fire
+  orphan-within-crawled-set
+     fires  : a page with zero inbound edges — must produce an UNKNOWN finding
+     control: a page with one inbound edge — must NOT fire at all
+
+written: C:/Users/Lenovo/AppData/Local/Temp/claude/C--Users-Lenovo/fe389914-e9d9-4f06-8bb4-b10140673fdd/scratchpad/runs5/content.jsonl  (471 records)
+bound: thin floor = 350 unique body words
+🔴 Nothing was fixed. No product repository was touched. No recommendation was emitted by any check.
+exit=0

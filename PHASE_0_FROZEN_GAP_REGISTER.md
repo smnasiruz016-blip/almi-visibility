@@ -663,6 +663,44 @@ their losses are recorded permanently below and are never estimated.
 
 ---
 
+## D-KEY-1 — THE MEASUREMENT KEY COULD NOT SEE A CHANGED REDIRECT DESTINATION
+
+**Recorded 13 September 2026. Defect in the SPECIFICATION — attributed to beta-g (technical owner), in beta-g's own words: "The cause is my specification."**
+
+**What:** `measurement_key` was specified as `sha256(target + method + content_sha256)`, where
+`target` is the URL **requested**, not the URL **reached**. A redirect that changed destination
+while serving byte-identical bytes produced the same key, so the store recorded a re-sighting and
+the new destination left no record. Found by Claude on 13 September 2026, while writing the
+mechanics control for the item 11 replay (#56).
+
+**Fixed:** the key now takes the **journey** — the final URL and the redirect chain — whenever a
+request did not end where it started (`journeyOf` in `src/crawl/crawler.mjs`, `measurementKey` in
+`src/evidence/ids.mjs`). Proved through the production crawler and store in all three directions
+(`test/redirect-journey.test.mjs`):
+same body + same destination → re-sighting; same body + **different** destination → new
+observation; different body + same destination → new observation. **Not over-corrected:** an
+unredirected page keeps its exact stored key. Re-keying the real 12 September run changes the key
+of **7 of 394** pages (the 7 that redirected) and no other. Those 7 will each record **one** new
+observation against the old key the next time they are crawled: a one-time, bounded consequence,
+stated here. The #56 replay, re-run with the corrected key, is unchanged:
+389 unchanged → 0 new, 5 changed → 5 new, 394/394 page_ids identical
+(`runs/replay/replay-2026-09-13-journey-key.json`).
+
+**Status:** ✅ FIXED — with one declared limit, D-KEY-2.
+
+## D-KEY-2 — THE REDIRECT CHAIN IS NOT CAPTURED
+
+**Recorded 13 September 2026.** The fetcher follows redirects with `redirect: "follow"`, which reports
+where a request ENDED but not the hops in between, so `redirect_chain` is `[]` on every record. The
+chain participates in the key the moment it is captured. Until then, a change of an **intermediate hop**
+that keeps the same final URL and the same bytes is still invisible. Capturing hops means following
+redirects by hand (robots and per-host caps on every hop), which is a crawler change and is not made
+here. Item 10's INPUT names "redirect chains", so this also stands between item 10 and its test.
+
+**Status:** 🔴 OPEN — declared, not worked around.
+
+---
+
 ## D-CRW-5 — A SECOND LIVE CRAWL: GRANTED AND UNUSED
 
 **Recorded 13 September 2026.** The owner's green for a second live crawl (`D-CRW-5`) was granted

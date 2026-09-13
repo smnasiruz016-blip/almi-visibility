@@ -1169,6 +1169,63 @@ the writing record).
 - **Rule (e)'s reach, stated plainly:** F27 is enforced on the four records item 50 governs. The other multi-claim
   records are counted above, not failed — failing them would need their element lists, which do not yet exist.
 
+### 🔴 ITEM 50 — THE REMAINING POPULATION, RECONCILED (13 SEPTEMBER 2026, later)
+
+**The work #64 named, done as item 50's own boundary (Q1).** The 32 records that reached VERIFIED on 12 September
+without ever passing through the guard were each given:
+
+- a declared element list — one short key per claim, derived from the record's **own value text**, never from a
+  verdict, a source page or a brief;
+- the keys their verdict's **own words** name. 🔴 **A blanket phrase names nothing:** "exact match", "matches item for
+  item", "Confirmed" are summaries of a comparison, not the comparison — the same flaw D-GUARD-1 closed for a supplied
+  count, and the same precedent as E-BG-6;
+- a `previous` of never-checked (they were declared UNVERIFIED under A3 before their 12 September verdict).
+
+**Nothing was re-verified.** No network, no fetch. Every verdict's `verdict`, `note`, dates and recheck fields are
+untouched; every value and evidence block hashes exactly as before.
+
+**Two guard changes, stated so they are not mistaken for softening:**
+
+1. **A never-checked record's first dated check is its new measurement.** Without it every one of the 32 was refused on
+   a date technicality — "not dated after the UNKNOWN it replaces" when there was no earlier check to be after.
+2. **"Was the source read?" is derived for verdicts recorded before that field existed.** A verdict with no `sourceRead`
+   whose own words name at least one declared element saw its source; one that names nothing was not read; an explicit
+   `sourceRead: false` still refuses. Without it all 32 were refused for a field the 12 September format never had.
+
+**The result, measured:**
+
+| | before | after |
+|---|---|---|
+| records the guard polices (F24–F27) | 4 | **36** |
+| advanced · refused | 1 · 3 | **25 · 11** |
+| VERIFIED labels never judged by the guard | 32 | **0** |
+| verified facts (census) | 33 | **25** |
+| UNKNOWN | 13 | **21** — CONFLICT 6 · INCOMPLETE 4 · PARTIAL_EVIDENCE 10 · SOURCE_UNREACHABLE 1 |
+
+**The 8 that returned to UNKNOWN / PARTIAL_EVIDENCE** (elements named of elements stated): Nigeria red-list
+membership 1/2 · Pakistan 1/2 · Kenya amber 1/2 · amber-list rule 1/2 · NMC combining two sittings 1/5 · NMC
+qualified-in-English evidence 2/3 · UKVI majority-English country list 0/18 · UKVI India exemption 1/2.
+
+### 🔴 WHY ITEM 50 STAYS FAILED — THE TICK WITHHELD A THIRD TIME
+
+Every label is now reconciled under the rule, and the guard's population is real and non-empty. But **9 of the 25
+VERIFIED labels rest on a reading the reconciliation cannot settle**, each named on its record (`elementAmbiguity`):
+
+| records | the unsettled reading |
+|---|---|
+| PNMC verification fee, foreign · PNMC verification fee, domestic | the value is a bare amount; which destination it applies to is the claim's qualifier, not value text, and the verdict does not name it |
+| NMC minimum grade · NMC evidence routes · NMC combining floor · NMC delivery modes (all profession = nursing) | the profession the requirement applies to is the qualifier; the verdict does not name it |
+| NMBI recognised English-speaking countries · HCPC accepted English tests | whether the list is also claimed COMPLETE; the verdict names the items, not a completeness check |
+| UK Code red-list rule | read as one claim; whom the prohibition binds is not named — read as two, the second is unnamed |
+
+The brief's two instructions pull opposite ways on exactly these — keys from the value text only, and never the
+reading that keeps the label — so the reading is recorded, not resolved. **"A label is wrong" cannot be shown not-met
+while 9 labels rest on it.** A ruling on qualifiers and list completeness would let item 50 re-run.
+
+⚠️ **One quote in the brief, corrected.** It quoted #64's report as "11 of the 32 state more than one claim"; the report
+said that was by a stated shape test (two sentences, or two commas). Counted from the declared element lists themselves,
+**23 of the 32 declare more than one element** — more than the heuristic found, which is why a heuristic is not a count.
+
 ### ⚠️ FOUR THINGS IN THE REOPEN BRIEF, CHECKED AGAINST THE REPO
 
 1. The speaking record is **one** fact below the writing record, not two. Cosmetic.

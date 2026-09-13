@@ -104,8 +104,15 @@ export default [
   fact({
     ...common,
     id: "ng-nmcn.issuing-body",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    claimElements: ["issuer-is-the-council", "issues-registration-verification", "for-nurses-going-abroad"],
     verification: {
       state: "VERIFIED",
+      elementsConfirmedKeys: ["issuer-is-the-council", "issues-registration-verification", "for-nurses-going-abroad"],
+      elementsNotFoundKeys: [],
+      reconciledOn: "2026-09-13",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 3 element(s) and the verdict's own words name all 3. Nothing was re-verified, and the verdict's wording is unchanged.",
+      previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",
       checkedOn: "2026-09-12",
       checkedBy: "human:beta-g (Cowork)",

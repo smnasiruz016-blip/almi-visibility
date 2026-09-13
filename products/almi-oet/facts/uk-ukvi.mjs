@@ -72,8 +72,16 @@ export default [
   fact({
     ...common,
     id: "uk-ukvi.majority-english-speaking-countries",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    claimElements: ["antigua-and-barbuda", "australia", "bahamas", "barbados", "belize", "british-overseas-territories", "canada", "dominica", "grenada", "guyana", "jamaica", "malta", "new-zealand", "st-kitts-and-nevis", "st-lucia", "st-vincent-and-the-grenadines", "trinidad-and-tobago", "united-states"],
     verification: {
-      state: "VERIFIED",
+      state: "UNKNOWN",
+      reason: "PARTIAL_EVIDENCE",
+      elementsConfirmedKeys: [],
+      elementsNotFoundKeys: [],
+      reconciledOn: "2026-09-13",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 18 element(s); the verdict's own words name 0; 18 are not named. Partial confirmation is not verification, so the label returns to UNKNOWN. Nothing was re-verified, and the verdict's wording is unchanged.",
+      previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",
       checkedOn: "2026-09-12",
       checkedBy: "human:beta-g (Cowork)",
@@ -99,8 +107,16 @@ export default [
   fact({
     ...common,
     id: "uk-ukvi.english-nationality-exemption.nationality=india",
+    // D-GUARD-1: one short stable key per distinct claim this record's value makes, in our own labels.
+    claimElements: ["india-not-on-el-4-1-list", "nationality-alone-does-not-meet-requirement"],
     verification: {
-      state: "VERIFIED",
+      state: "UNKNOWN",
+      reason: "PARTIAL_EVIDENCE",
+      elementsConfirmedKeys: ["india-not-on-el-4-1-list"],
+      elementsNotFoundKeys: [],
+      reconciledOn: "2026-09-13",
+      reconciliation: "RECONCILED 13 September 2026 (item 50, D-GUARD-1): the value states 2 element(s); the verdict's own words name 1; 1 are not named. Partial confirmation is not verification, so the label returns to UNKNOWN. Nothing was re-verified, and the verdict's wording is unchanged.",
+      previous: {"state": "UNVERIFIED", "checkedOn": null, "note": "never fact-checked before the 12 September 2026 verdict (declared UNVERIFIED under A3); recorded 13 September 2026 so the guard can judge the record's first check"},
       verdict: "VERIFIED",
       checkedOn: "2026-09-12",
       checkedBy: "human:beta-g (Cowork)",

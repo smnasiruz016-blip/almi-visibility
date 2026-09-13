@@ -153,9 +153,10 @@ test("🔴 the ingested recheck date GOVERNS freshness — asked on a day the tw
 
 // 🔴 34 since 13 Sep 2026: two OET records left UNKNOWN through the F24 guard (item 50), each with its recheck date.
 // 🔴 33 since the item-50 reopen (13 Sep 2026): #63's 34 included the writing record, corrected to UNKNOWN.
-test("🔴 REAL: all 33 VERIFIED records carry a recheck date, and it is the one freshness uses", () => {
+// 🔴 25 since item 50's whole population was reconciled (13 Sep 2026): 8 records whose verdicts named only part of their value returned to UNKNOWN.
+test("🔴 REAL: all 25 VERIFIED records carry a recheck date, and it is the one freshness uses", () => {
   const verified = records.filter((f) => f.verificationState === "VERIFIED");
-  assert.equal(verified.length, 33);
+  assert.equal(verified.length, 25);
   for (const f of verified) {
     assert.ok(f.verification.recheckAfter, `${f.id}: VERIFIED with no recheck date — it would never expire`);
     assert.equal(f.checks.recheckAfter, f.verification.recheckAfter, `${f.id}: the date did not reach freshnessOf`);
@@ -209,19 +210,19 @@ test("CONTROL: a well-formed UNKNOWN is accepted, so the two tests above are not
  * THE CENSUS — WHAT THE 12 SEPTEMBER VERDICTS ACTUALLY SAID.
  * ================================================================== */
 
-test("🔴 REAL: 46 records — 33 VERIFIED, 13 UNKNOWN, 0 left UNVERIFIED (32/14 on 12 Sep; +1 through the reconciled guard on 13 Sep)", () => {
+test("🔴 REAL: 46 records — 25 VERIFIED, 21 UNKNOWN, 0 left UNVERIFIED (measured after every label was reconciled through the guard)", () => {
   const by = {};
   for (const f of records) by[f.verificationState] = (by[f.verificationState] ?? 0) + 1;
-  assert.deepEqual(by, { VERIFIED: 33, UNKNOWN: 13 });
+  assert.deepEqual(by, { VERIFIED: 25, UNKNOWN: 21 });
 });
 
 // 🔴 13 Sep 2026: of the four SOURCE_UNREACHABLE, two were VERIFIED, one is now PARTIAL_EVIDENCE, one stays SOURCE_UNREACHABLE.
-test("🔴 REAL: the 13 UNKNOWNs break down 6 CONFLICT / 4 INCOMPLETE / 2 PARTIAL_EVIDENCE / 1 SOURCE_UNREACHABLE", () => {
+test("🔴 REAL: the 21 UNKNOWNs break down 6 CONFLICT / 4 INCOMPLETE / 10 PARTIAL_EVIDENCE / 1 SOURCE_UNREACHABLE", () => {
   const by = {};
   for (const f of records.filter((f) => f.verificationState === "UNKNOWN")) {
     by[f.verification.reason] = (by[f.verification.reason] ?? 0) + 1;
   }
-  assert.deepEqual(by, { CONFLICT: 6, INCOMPLETE: 4, PARTIAL_EVIDENCE: 2, SOURCE_UNREACHABLE: 1 });
+  assert.deepEqual(by, { CONFLICT: 6, INCOMPLETE: 4, PARTIAL_EVIDENCE: 10, SOURCE_UNREACHABLE: 1 });
   for (const r of Object.keys(by)) assert.ok(r in UNKNOWN_REASONS, `${r} is not a declared reason`);
 });
 
@@ -304,11 +305,11 @@ test("🔴 REAL: the honest hit rate is BELOW 100% — a perfect one would mean 
   }
   const s = cache.stats();
   // 🔴 64/28 on 12 Sep 2026; two records verified through the guard on 13 Sep add 4 hits and remove 4 misses.
-  // 68/24 after #63; the writing record reopened to UNKNOWN moves 2 hits to 2 misses.
-  assert.equal(s.hits, 66);
-  assert.equal(s.misses, 26);
+  // 68/24 after #63; 66/26 after #64; 50/42 once the whole population was reconciled (8 more records UNKNOWN).
+  assert.equal(s.hits, 50);
+  assert.equal(s.misses, 42);
   assert.ok(s.hitRate < 1, "🔴 100% means the cache is serving everything, including what it should refuse");
-  assert.deepEqual(s.missReasons, { UNKNOWN_CONFLICT: 12, UNKNOWN_INCOMPLETE: 8, UNKNOWN_PARTIAL_EVIDENCE: 4, UNKNOWN_SOURCE_UNREACHABLE: 2 });
+  assert.deepEqual(s.missReasons, { UNKNOWN_CONFLICT: 12, UNKNOWN_INCOMPLETE: 8, UNKNOWN_PARTIAL_EVIDENCE: 20, UNKNOWN_SOURCE_UNREACHABLE: 2 });
 });
 
 /* ================================================================== *

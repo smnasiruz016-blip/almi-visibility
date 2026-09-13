@@ -55,8 +55,8 @@ test("🔴 every named import in every runner resolves to a real export", async 
   for (const file of files) {
     const source = readFileSync(join(BIN, file), "utf8");
     for (const { spec, names } of namedImports(source)) {
-      // Only our own modules. A bare specifier is node: or a dependency, and
-      // this project has no dependencies.
+      // Only our own modules. A bare specifier is node: or a dependency — the one
+      // dependency, playwright-core, is loaded lazily by src/render/renderer.mjs.
       if (!spec.startsWith(".")) continue;
       const target = resolve(BIN, spec);
       let mod;

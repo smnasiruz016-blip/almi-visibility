@@ -12,10 +12,13 @@
 # this repository does not control and does not touch here.
 #
 # ── WHY THERE IS NO INSTALL STEP ────────────────────────────────────────────
-# `package.json` declares zero dependencies and zero devDependencies. The suite
-# is `node --test` over plain ESM. An `npm ci` here would install nothing, cost
-# minutes, and create a lockfile requirement this project deliberately does not
-# have.
+# `package.json` declares zero dependencies and ONE devDependency: playwright-core,
+# pinned exactly (13 September 2026), for the offline renderer. It is deliberately
+# NOT installed here: installing it and a browser would cost minutes on every
+# push, and the suite does not need it. `src/render/renderer.mjs` imports it
+# lazily, so everything loads without it; the tests that drive a real browser
+# SKIP here with their reason printed, and run on a machine that has it. The
+# suite is otherwise `node --test` over plain ESM.
 #
 # ⚠️ AND MINUTES ARE NOT FREE HERE. This repository is PRIVATE, so every minute
 # draws on the account's Actions allowance (public repositories are free). The

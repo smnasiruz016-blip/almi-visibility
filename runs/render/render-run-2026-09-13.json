@@ -1,0 +1,102 @@
+{
+  "recorded": "2026-09-13T03:06:53.617Z",
+  "kind": "OFFLINE RENDER of the 12 September 2026 crawl's committed bodies — the capability only",
+  "doesNotDo": [
+    "compare any render against its served HTML — a source-versus-render check is a DETECTOR, written under the sealed exam rule",
+    "say anything about which pages differ, or why",
+    "fetch anything: the input is the committed archive and every browser request beyond the local document was refused"
+  ],
+  "input": {
+    "archive": "runs/crawl/bodies-2026-09-12.jsonl.br",
+    "integrity": {
+      "expected": 394,
+      "present": 394,
+      "matches": 394,
+      "missing": [],
+      "mismatched": [],
+      "extra": []
+    },
+    "rawBefore": {
+      "store": "dfd8ea4e874b2bc97243acf1f4b5d6b572f7221c760de0a5d08abbc0707ea215",
+      "archive": "3d857a9e53fd4b015131bfd721788942a7c3df15b775e6633fb429bc84af3ded"
+    },
+    "rawAfter": {
+      "store": "dfd8ea4e874b2bc97243acf1f4b5d6b572f7221c760de0a5d08abbc0707ea215",
+      "archive": "3d857a9e53fd4b015131bfd721788942a7c3df15b775e6633fb429bc84af3ded"
+    },
+    "rawUntouched": true
+  },
+  "environment": {
+    "browser": {
+      "name": "chromium",
+      "build": "chromium-headless-shell (Playwright's headless launch)",
+      "version": "151.0.7922.34"
+    },
+    "playwright": {
+      "package": "playwright-core",
+      "version": "1.62.1"
+    },
+    "args": [
+      "--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1",
+      "--disable-background-networking",
+      "--disable-component-update",
+      "--disable-domain-reliability",
+      "--disable-sync",
+      "--no-pings",
+      "--dns-prefetch-disable"
+    ]
+  },
+  "bounds": {
+    "perPageTimeoutMs": 15000,
+    "maxWallClockMs": 1800000,
+    "maxPages": 500,
+    "concurrency": 1
+  },
+  "hit": {
+    "pagesTimedOut": 0,
+    "wallClock": false,
+    "pageCap": false,
+    "notAttemptedForCap": 0,
+    "notAttemptedForWallClock": 0
+  },
+  "states": {
+    "COMPLETE": 0,
+    "PARTIAL": 394,
+    "FAILED": 0
+  },
+  "rendered": 394,
+  "stored": 394,
+  "requests": {
+    "refused": 10222,
+    "pagesWithRefusal": 394,
+    "refusedHosts": 19,
+    "unaccounted": 0
+  },
+  "egress": {
+    "nodeRequests": 394,
+    "nodeNonLocal": 0,
+    "browserResponses": 394,
+    "browserNonLocal": 0
+  },
+  "differ": {
+    "of": 394,
+    "count": 394,
+    "definition": "rendered content_sha256 (serialised DOM) ≠ raw content_sha256 (served bytes)"
+  },
+  "renderedArchive": {
+    "path": "C:\\Projects\\almi-visibility\\runs\\render\\rendered-bodies-2026-09-13.jsonl.br",
+    "domBytes": 39886350,
+    "compressedBytes": 661614,
+    "committed": false
+  },
+  "ledger": [
+    "render:2026-09-13T03:02:48.090Z",
+    "tool-install:2026-09-13T02:54:16.342Z"
+  ],
+  "failures": [],
+  "ok": true,
+  "writes": {
+    "appended": 394,
+    "resighted": 0
+  }
+}

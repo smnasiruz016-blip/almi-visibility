@@ -425,6 +425,76 @@ export function entryFromLinkCheck({ startedAt, finishedAt, requests, maxRequest
   });
 }
 
+/**
+ * INSTALLING A TOOL — here the browser library the renderer needs. Bandwidth and
+ * founder time are real costs even when the money cannot be read. Every figure
+ * comes from the install's own log and the filesystem; nothing is estimated.
+ */
+export function entryFromToolInstall({ startedAt, finishedAt, pkg, registryFetches, cacheHits, installedBytes, browser, logRef }) {
+  return makeCostEntry({
+    entry_id: `tool-install:${startedAt}`,
+    run_kind: "tool-install",
+    run_ref: `npm install ${pkg} — log ${logRef}`,
+    run_started_at: startedAt,
+    recorded_at: finishedAt,
+    money: {
+      amountState: "UNKNOWN",
+      amount: null,
+      currency: "USD",
+      unknownKind: "NOT_MEASURABLE_WITH_TOOLS_WE_HOLD",
+      unknownReason: "the download travelled over the founder's own connection, whose price per byte nothing this engine reads; the npm registry charges nothing for a public package, but that is a tariff we have not measured, so no zero is claimed — and no estimate is made",
+    },
+    providerCalls: {
+      state: "MEASURED",
+      total: registryFetches,
+      perProvider: { "npm-registry": registryFetches },
+      note: `counted from the install log's own 'npm http fetch' lines; ${cacheHits} further item(s) came from the local npm cache without a request`,
+      ...(registryFetches === 0 ? { zeroBasis: "the install log records no network fetch — everything came from the local npm cache" } : {}),
+    },
+    budget: {
+      kind: "tool-download",
+      used: { registryFetches, cacheHits, installedBytes, browserBytesDownloaded: 0 },
+      bounds: { package: pkg, browserRevision: browser.revisionDir },
+      capReached: false,
+      browserNote: browser.note,
+    },
+    founderTime: { state: "MEASURED", seconds: (Date.parse(finishedAt) - Date.parse(startedAt)) / 1000, from: startedAt, to: finishedAt },
+    sources: [logRef],
+  });
+}
+
+/**
+ * A RENDER RUN over stored bodies. Money is a MEASURED zero with its proof:
+ * the documents came from 127.0.0.1 and every other request was refused inside
+ * the browser. Its crawl budget is a TRACKED zero: it requests no page.
+ */
+export function entryFromRender({ startedAt, finishedAt, pagesPlanned, pagesRendered, states, requestsRefused, localDocumentRequests, browserResponses, nonLocalResponses, bounds, hit, sources = [] }) {
+  return makeCostEntry({
+    entry_id: `render:${startedAt}`,
+    run_kind: "render",
+    run_ref: `bin/render-archive.mjs run started ${startedAt}`,
+    run_started_at: startedAt,
+    recorded_at: finishedAt,
+    money: {
+      amountState: "MEASURED",
+      amount: 0,
+      currency: "USD",
+      basis: `rendered on this machine from the committed body archive: ${localDocumentRequests} document request(s) to 127.0.0.1, ${browserResponses} browser response(s) of which ${nonLocalResponses} came from any other address, and ${requestsRefused} request(s) refused inside the browser before leaving it — no hosted service, no provider and no page on any host was touched`,
+    },
+    providerCalls: { state: "MEASURED", total: 0, zeroBasis: "the renderer calls no external provider; it reads a local archive and serves it from 127.0.0.1" },
+    budget: {
+      kind: "crawl",
+      used: { urlsFetched: 0, requestsIssued: 0 },
+      zeroBasis: "the renderer crawls nothing: its input is the committed body archive of the 12 September 2026 crawl, and no request reached any live host — the D-CRW-5 green stays unspent",
+      bounds: { maxUrlsPerRun: MAX_URLS_PER_RUN, maxRequestsPerHost: MAX_REQUESTS_PER_HOST },
+      capReached: false,
+      render: { used: { pagesPlanned, pagesRendered, ...states, requestsRefused, localDocumentRequests }, bounds, hit },
+    },
+    founderTime: { state: "MEASURED", seconds: (Date.parse(finishedAt) - Date.parse(startedAt)) / 1000, from: startedAt, to: finishedAt },
+    sources,
+  });
+}
+
 export const LEDGER_EXISTS_FROM = "2026-09-12T23:03:09Z";
 
 /** When the run an entry describes began. From the entry itself — never from when it was written down. */

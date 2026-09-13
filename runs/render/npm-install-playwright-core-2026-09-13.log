@@ -1,0 +1,10 @@
+# started=2026-09-13T02:54:16.342Z
+# finished=2026-09-13T02:54:18.684Z
+# rc=0
+# package=playwright-core@1.62.1
+# command=npm install --save-dev --save-exact playwright-core@1.62.1 --loglevel http --no-audit --no-fund
+# the lines above were printed by the same shell command that ran the install (date -u before and after); everything below is npm's own output, unedited
+npm http fetch GET 200 https://registry.npmjs.org/playwright-core 620ms (cache updated)
+npm http cache playwright-core@https://registry.npmjs.org/playwright-core/-/playwright-core-1.62.1.tgz 0ms (cache hit)
+
+added 1 package in 2s

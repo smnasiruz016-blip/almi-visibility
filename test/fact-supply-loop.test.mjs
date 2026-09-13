@@ -134,7 +134,10 @@ test("🔴 LEG (iii): asked for UK-NMC while holding only IE-NMBI, the cache MIS
 
 test("🔴 LEG (iii): and the same refusal ACROSS PROFESSIONS, not only across countries", () => {
   const nursing = VERIFIED.filter((f) => f.claim.qualifier === "profession=nursing");
-  assert.ok(nursing.length >= 4, `only ${nursing.length} nursing-scoped verified facts`);
+  // 🔴 3 since 13 Sep 2026 evening: 4 profession=nursing records were among the 9 demoted for elementAmbiguity
+  // (oet-minimum-grade, english-evidence-routes, oet-combining-sittings-floor, accepted-oet-delivery-modes).
+  // Remaining VERIFIED: uk-nmc.oet-profession-version, ie-nmbi.oet-minimum-grade, ie-nmbi.oet-version-required.
+  assert.ok(nursing.length >= 3, `only ${nursing.length} nursing-scoped verified facts`);
   const cache = createFactCache({ facts: nursing, now: () => TODAY });
   const f = nursing[0];
   const r = cache.get({ ...ask(f), qualifier: "profession=speech-pathology" });

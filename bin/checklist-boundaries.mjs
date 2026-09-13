@@ -22,7 +22,7 @@ import { loadBoundaries, CONTRACT_PARTS } from "../src/checklist/boundaries.mjs"
 import {
   classify, assertLawful, assertTransitions, tally, STATES, LOOKED, BEFORE_AMENDMENT_2, MOVES_AMENDMENT_2,
 } from "../src/checklist/classification.mjs";
-import { verify, EXPECTED_BODY_SHA256, AMENDMENT_2_BODY_SHA256 } from "../tools/verify-pass-boundaries-source.mjs";
+import { verify, EXPECTED_BODY_SHA256, AMENDMENT_2_BODY_SHA256, AMENDMENT_4_BODY_SHA256 } from "../tools/verify-pass-boundaries-source.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const OUT = `${REPO}CHECKLIST_BOUNDARIES.md`;
@@ -61,8 +61,14 @@ L.push("> Every boundary below is read out of `PASS_BOUNDARIES_SOURCE.md`, whose
 L.push(`> against sha256 \`${EXPECTED_BODY_SHA256}\`. Nothing here is retyped, so \`verbatim\` is a`);
 L.push("> property of the mechanism rather than a promise about anyone's typing.");
 L.push("");
+const inForce = { P: 0, S: 0, D: 0 };
+for (const b of Object.values(boundaries)) inForce[b.class] += 1;
+const reclassed = Object.values(boundaries).filter((b) => b.classByA4);
+const keptByA4 = Object.values(boundaries).filter((b) => b.a4 && !b.classByA4);
+
 L.push(`Frozen source verified: **${check.matches ? "YES" : "🔴 NO"}** · features **${check.features.count}**`);
-L.push(`(sequence 1..${check.features.sequential}) · classes **P=${check.counts.P} S=${check.counts.S} D=${check.counts.D}**`);
+L.push(`(sequence 1..${check.features.sequential}) · classes as frozen **P=${check.counts.P} S=${check.counts.S} D=${check.counts.D}**`);
+L.push(`· classes in force since Amendment 4 **P=${inForce.P} S=${inForce.S} D=${inForce.D}**`);
 L.push("");
 L.push("## Precedence");
 L.push("");
@@ -82,6 +88,28 @@ for (const s of steps.filter((x) => x.kind === "ruling")) { afterRuling[s.from] 
 const failedRows = Object.values(rows).filter((r) => r.state === "FAILED");
 const newPasses = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS" && BEFORE_AMENDMENT_2[r.id] !== "VERIFIED-PASS");
 
+L.push("## 🔴 AMENDMENT 4 — THE DISCOVERY ROWS ENTER SCOPE (owner ruling, 13 September 2026)");
+L.push("");
+L.push(`Amendment 4 verified against sha256 \`${AMENDMENT_4_BODY_SHA256}\`. **It changes CLASS, never text:** every`);
+L.push("boundary below is still read out of the frozen source, which still verifies byte for byte.");
+L.push("");
+L.push("| class | as frozen | in force |");
+L.push("|---|---|---|");
+for (const k of ["P", "S", "D"]) L.push(`| **${k}** | ${check.counts[k]} | **${inForce[k]}** |`);
+L.push(`| **in scope (P + S)** | ${check.counts.P + check.counts.S} | **${inForce.P + inForce.S}** |`);
+L.push("");
+const a4Steps = steps.filter((s) => s.kind === "ruling" && /AMENDMENT_4/.test(s.ruling ?? ""));
+L.push(`- **moved because WORK HAPPENED:** none. **moved ONLY because a RULING changed:** ${a4Steps.length} — ${a4Steps.map((s) => `${s.id} ${s.from} → ${s.to}`).join(" · ")}.`);
+L.push("- 🔴 **A class change is not progress.** Every row it opened arrives NOT-STARTED: nothing was built and nothing was run.");
+for (const b of reclassed) L.push(`- **item ${b.id} · ${b.name}** — class \`${b.frozenClass}\` → \`${b.class}\`. Its INPUT clause, ${b.a4.inputClause}: ${b.a4.inputPresent}`);
+for (const b of keptByA4) L.push(`- **item ${b.id} · ${b.name}** — **stays \`D\`, and why:** its INPUT clause, ${b.a4.inputClause}: ${b.a4.inputPresent}`);
+L.push("");
+L.push("🔴 **Two things the ruling does not settle, raised and not filled in:** row 7's **WORTHINESS** measurement is in");
+L.push("neither half; and rows 3 and 7 carry **no four-part contract for their owned half**, so neither can be ticked");
+L.push("until the owner states one (listed below with the boundaries the document does not state in full).");
+L.push("");
+L.push("---");
+L.push("");
 L.push("## 🔴 AMENDMENT 2 — THE SEVENTH STATE, AND ITEM 14 SAT AGAIN");
 L.push("");
 L.push(`Amendment 2 verified against sha256 \`${AMENDMENT_2_BODY_SHA256}\`.`);
@@ -188,11 +216,12 @@ for (const r of testable) {
 }
 L.push("---");
 L.push("");
-L.push("## 🔴 SIX BOUNDARIES THE DOCUMENT DOES NOT STATE IN FULL");
+L.push(`## 🔴 ${incomplete.length} BOUNDAR${incomplete.length === 1 ? "Y" : "IES"} THE DOCUMENTS DO NOT STATE IN FULL`);
 L.push("");
-L.push("§4 rules the split features as `v0.1 PASS boundary` / `deferred` tables rather than in the");
-L.push("four-part form. **These six therefore cannot reach VERIFIED-PASS as the ruling stands** —");
-L.push("the contract guard refuses it, and correctly.");
+L.push("§4 ruled the first six split features as `v0.1 PASS boundary` / `deferred` tables, and Amendment 1");
+L.push("gave each its four parts. **Amendment 4 splits rows 3 and 7 and gives their owned half no four-part");
+L.push("contract**, so they are listed here. **A row listed here cannot reach VERIFIED-PASS as the rulings");
+L.push("stand** — the contract guard refuses it, and correctly.");
 L.push("");
 L.push("**They are not filled in.** Writing the missing parts myself would manufacture a boundary");
 L.push("the owner never ruled, which the repository would then enforce as if he had. This is a");
@@ -212,7 +241,8 @@ for (let id = 1; id <= 58; id += 1) {
   const r = rows[id];
   L.push(`### ${id} · ${b.name}`);
   L.push("");
-  L.push(`**${r.state}** · class \`${b.class}\` · ruled in \`${b.via}\`${r.was && r.was !== r.state ? ` · was ${r.was} (${r.changeKind})` : ""}`);
+  const classNote = b.frozenClass !== b.class ? ` (frozen \`${b.frozenClass}\`, moved by Amendment 4)` : b.a4 ? " (kept by Amendment 4)" : "";
+  L.push(`**${r.state}** · class \`${b.class}\`${classNote} · ruled in \`${b.via}\`${r.was && r.was !== r.state ? ` · was ${r.was} (${r.changeKind})` : ""}`);
   L.push("");
   L.push("| part | the owner's words |");
   L.push("|---|---|");
@@ -224,6 +254,7 @@ for (let id = 1; id <= 58; id += 1) {
   if (b.blockerToday) L.push(`| **BLOCKER TODAY** | ${esc(b.blockerToday)} |`);
   if (b.note) L.push(`| **NOTE** | ${esc(b.note)} |`);
   if (b.rule) L.push(`| **RULE** | ${esc(b.rule)} |`);
+  if (b.a4) L.push(`| **Amendment 4 — its INPUT tested** | ${esc(b.a4.inputPresent)} → **${esc(b.a4.verdict)}** |`);
   L.push("");
   L.push(`**Verdict —** ${r.why}`);
   L.push("");

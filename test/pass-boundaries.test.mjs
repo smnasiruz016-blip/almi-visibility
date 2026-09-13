@@ -10,11 +10,16 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import {
   verify, EXPECTED_BODY_SHA256, EXPECTED_FEATURE_COUNT, EXPECTED_CLASS_COUNTS, splitSource, sectionSix,
+  amendment4, effectiveClasses, AMENDMENT_4_BODY_SHA256, AMENDMENT_4_MOVES, AMENDMENT_4_KEPT_DEFERRED, EXPECTED_EFFECTIVE_CLASS_COUNTS,
 } from "../tools/verify-pass-boundaries-source.mjs";
-import { loadBoundaries, CONTRACT_PARTS } from "../src/checklist/boundaries.mjs";
-import { classify, assertLawful, tally, STATES, LOOKED } from "../src/checklist/classification.mjs";
+import { loadBoundaries, CONTRACT_PARTS, HALF_CONTRACT_PARTS } from "../src/checklist/boundaries.mjs";
+import { classify, assertLawful, assertTransitions, tally, STATES, LOOKED, MOVES_AMENDMENT_2 } from "../src/checklist/classification.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const SOURCE = `${REPO}PASS_BOUNDARIES_SOURCE.md`;
@@ -112,9 +117,16 @@ test("all 58 are parsed, and each knows WHICH document ruled it", () => {
  * ruling. All six now carry all four parts — supplied by HIM, not filled in
  * from this side, which is the whole difference.
  */
-test("🔴 Amendment 1 closed the six missing contracts — no row now lacks a part", () => {
+/* 🔴 AND AMENDMENT 4 OPENED A GAP OF THE SAME KIND. It splits rows 3 and 7 without giving their owned half a
+ * four-part contract, so those two — and only those two — lack the four v0.1-half parts. Their §6 boundary
+ * text is all still present; what is missing is a contract for the half that is in scope. */
+test("🔴 Amendment 1 closed the six missing contracts — and the only rows now lacking parts are Amendment 4's splits, 3 and 7", () => {
   const b = loadBoundaries();
-  assert.deepEqual(Object.values(b).filter((r) => r.missingParts.length).map((r) => r.id), []);
+  assert.deepEqual(Object.values(b).filter((r) => r.missingParts.length).map((r) => r.id), [3, 7]);
+  for (const id of [3, 7]) {
+    assert.deepEqual(b[id].missingParts, [...HALF_CONTRACT_PARTS], `item ${id} lacks something other than its v0.1-half contract`);
+    for (const p of CONTRACT_PARTS) assert.ok(b[id][p], `item ${id}'s frozen ${p} is no longer on the row`);
+  }
   for (const id of [10, 12, 13, 14, 25, 38]) {
     assert.equal(b[id].class, "S", `${id} should be a split`);
     assert.equal(b[id].amendedByA1, true, `${id} did not receive its amended contract`);
@@ -259,15 +271,17 @@ test("🔴 RED: TESTABLE-NOW without a named test is REFUSED", () => {
 /* 🔴 AND 50 LEFT FAILED (13 Sep 2026): the guard re-run over real records leaving UNKNOWN, both directions.
  * VERIFIED-PASS 17 → 18, FAILED 1 → 0. */
 /* 🔴 AND 50 WAS REOPENED (13 Sep 2026): a wrong label on a real record — VERIFIED-PASS 18 → 17, FAILED 0 → 1. */
-test("the seven-state tally is 2 / 5 / 1 / 17 / 1 / 4 / 28", () => {
+/* 🔴 AND AMENDMENT 4 OPENED ROWS 3–7 (owner ruling, 13 Sep 2026): DEFERRED 28 → 23, NOT-STARTED 2 → 7. A class
+ * change, not progress — nothing was built or run, and no other count moved. */
+test("the seven-state tally is 7 / 5 / 1 / 17 / 1 / 4 / 23", () => {
   assert.deepEqual(tally(classify()), {
-    "NOT-STARTED": 2,
+    "NOT-STARTED": 7,
     "BUILT-NOT-PROVED": 5,
     "TESTABLE-NOW": 1,
     "VERIFIED-PASS": 17,
     FAILED: 1,
     "BLOCKED-UNKNOWN": 4,
-    DEFERRED: 28,
+    DEFERRED: 23,
   });
 });
 
@@ -320,8 +334,108 @@ test("🔴 exactly TWENTY rows moved on WORK — 9 BLOCKED; 25 TESTABLE-NOW; 50 
   assert.deepEqual(work.map((r) => r.id).sort((a, b) => a - b), [8, 9, 11, 12, 13, 14, 15, 25, 26, 38, 42, 45, 47, 48, 49, 50, 51, 53, 55, 56]);
   assert.deepEqual(work.filter((r) => !LOOKED.includes(r.state)).map((r) => `${r.id}:${r.state}`), ["9:BLOCKED-UNKNOWN", "25:TESTABLE-NOW"]);
   assert.deepEqual(work.filter((r) => r.state === "FAILED").map((r) => r.id), [50]);
-  assert.equal(rows.filter((r) => r.changeKind === "vocabulary").length, 30);
-  assert.equal(rows.filter((r) => r.changeKind === "none").length, 8);
+  // 🔴 Amendment 4: rows 3–7 are NOT-STARTED again, which is where the 11 September baseline had them — so
+  // against THAT baseline they did not move ("vocabulary" 30 → 25, "none" 8 → 13). Their ruling move is
+  // declared against the ledger they left, and it is never counted as work.
+  assert.equal(rows.filter((r) => r.changeKind === "vocabulary").length, 25);
+  assert.equal(rows.filter((r) => r.changeKind === "none").length, 13);
+});
+
+/* ================================================================== *
+ * 🔴 AMENDMENT 4 — THE CLASS OF SIX ROWS, BY OWNER RULING. NO TEXT MOVES.
+ * ================================================================== */
+
+const AMENDMENT_4 = `${REPO}PASS_BOUNDARIES_AMENDMENT_4.md`;
+
+test("🔴 Amendment 4 verifies, and its moves are READ from its verdict table: 4, 5, 6 D → P · 3, 7 D → S · 2 stays D", () => {
+  const a4 = amendment4(AMENDMENT_4);
+  assert.equal(a4.sha, AMENDMENT_4_BODY_SHA256);
+  assert.equal(a4.matches, true);
+  assert.deepEqual(Object.fromEntries(Object.entries(a4.moves).map(([id, m]) => [id, m.to])), { ...AMENDMENT_4_MOVES });
+  assert.deepEqual(Object.keys(a4.kept).map(Number), [...AMENDMENT_4_KEPT_DEFERRED]);
+  // 🔴 the frozen source is untouched — the amendment moved a class, not a byte of the owner's boundaries
+  assert.equal(verify(SOURCE).sha, EXPECTED_BODY_SHA256);
+});
+
+test("🔴 the class census in force is P=27 · S=8 · D=23 — computed, and checked against the amendment's OWN count table", () => {
+  const frozen = verify(SOURCE);
+  const a4 = amendment4(AMENDMENT_4);
+  const inForce = { P: 0, S: 0, D: 0 };
+  for (const c of Object.values(effectiveClasses(frozen.classes, a4))) inForce[c] += 1;
+  assert.deepEqual(inForce, { ...EXPECTED_EFFECTIVE_CLASS_COUNTS });
+  assert.deepEqual(a4.deferred, { before: frozen.counts.D, after: inForce.D }, "the amendment's DEFERRED row disagrees with the census");
+  assert.deepEqual(a4.inScope, { before: frozen.counts.P + frozen.counts.S, after: inForce.P + inForce.S }, "the amendment's in-scope row disagrees with the census");
+  // the loader carries both: the class in force, and what §6 froze
+  const b = Object.values(loadBoundaries());
+  const count = (key) => b.reduce((n, r) => ({ ...n, [r[key]]: (n[r[key]] ?? 0) + 1 }), {});
+  assert.deepEqual(count("class"), { P: 27, D: 23, S: 8 });
+  assert.deepEqual(count("frozenClass"), { ...EXPECTED_CLASS_COUNTS });
+});
+
+test("🔴 RED: one changed byte in Amendment 4's body fails its hash; the original passes", () => {
+  const dir = mkdtempSync(join(tmpdir(), "a4-"));
+  try {
+    const original = readFileSync(AMENDMENT_4, "utf8");
+    const at = original.lastIndexOf("stays D");
+    assert.ok(at > original.indexOf("\n---\n\n"), "the byte to corrupt is not in the body — the RED would not land");
+    const bad = `${original.slice(0, at)}stays P${original.slice(at + "stays D".length)}`;
+    assert.notEqual(bad, original);
+    writeFileSync(join(dir, "a4.md"), bad);
+    assert.equal(amendment4(join(dir, "a4.md")).matches, false);
+    assert.equal(amendment4(AMENDMENT_4).matches, true);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("🔴 RED: a class move off a row the frozen ruling does NOT class D is refused — Amendment 4 opens deferred rows only", () => {
+  const frozen = verify(SOURCE).classes;
+  const a4 = amendment4(AMENDMENT_4);
+  assert.throws(() => effectiveClasses(frozen, { ...a4, moves: { ...a4.moves, 15: { to: "S" } } }), /moves item 15, which the frozen ruling classes P, not D/);
+  assert.doesNotThrow(() => effectiveClasses(frozen, a4));
+});
+
+test("🔴 RED: DEFERRED on a row Amendment 4 opened is refused — and row 2, which it kept, may stay DEFERRED", () => {
+  for (const id of [3, 4, 5, 6, 7]) {
+    const rows = classify();
+    rows[id] = { ...rows[id], state: "DEFERRED" };
+    const errors = assertLawful(rows);
+    // S rows may lawfully defer their deferred half, so only the P rows are refused outright.
+    if (loadBoundaries()[id].class === "P") assert.match(errors.join("\n"), new RegExp(`item ${id} .* is DEFERRED but the frozen ruling classes it P`));
+    else assert.deepEqual(errors, [], `item ${id} is a split — its deferred half may lawfully be DEFERRED`);
+  }
+  const rows = classify();
+  assert.equal(rows[2].state, "DEFERRED");
+  assert.deepEqual(assertLawful(rows), []);
+});
+
+test("🔴 RED: a VERIFIED-PASS on row 3 or 7 is refused — their owned half has no four-part contract; CONTROL: row 4 has one", () => {
+  for (const id of [3, 7]) {
+    const rows = classify();
+    rows[id] = { ...rows[id], state: "VERIFIED-PASS" };
+    assert.match(assertLawful(rows).join("\n"), new RegExp(`item ${id} .* is VERIFIED-PASS but its boundary has no v0\\.1-half input`));
+  }
+  const rows = classify();
+  rows[4] = { ...rows[4], state: "VERIFIED-PASS" };
+  assert.deepEqual(assertLawful(rows), [], "row 4's full four-part boundary was refused — the guard is not reading the contract");
+});
+
+test("🔴 the five arrive NOT-STARTED by a RULING move and nothing else; row 2 says WHY it stayed; row 7 names WORTHINESS as unassigned", () => {
+  const rows = classify();
+  for (const id of [3, 4, 5, 6, 7]) {
+    assert.equal(rows[id].state, "NOT-STARTED");
+    const chain = MOVES_AMENDMENT_2[id];
+    assert.equal(chain.length, 1);
+    assert.deepEqual([chain[0].from, chain[0].to, chain[0].kind, chain[0].route], ["DEFERRED", "NOT-STARTED", "ruling", "OWNER_RULING"]);
+    assert.match(chain[0].ruling, /PASS_BOUNDARIES_AMENDMENT_4\.md/);
+    assert.match(rows[id].why, /a class change is not progress/);
+  }
+  assert.deepEqual(Object.values(rows).filter((r) => r.changeKind === "work" && [2, 3, 4, 5, 6, 7].includes(r.id)), []);
+  assert.match(rows[2].why, /KEPT D by Amendment 4/);
+  assert.match(rows[2].why, /legitimate public question evidence/);
+  assert.match(rows[2].why, /no fetch is authorised/);
+  assert.match(rows[7].why, /WORTHINESS[^.]*is in neither half/);
+  assert.deepEqual(assertTransitions(rows), []);
 });
 
 /**

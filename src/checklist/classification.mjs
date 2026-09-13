@@ -137,6 +137,22 @@ export const BEFORE_AMENDMENT_2 = Object.freeze((() => {
  * here fails the build. A move is never inferred.
  */
 export const MOVES_AMENDMENT_2 = Object.freeze({
+  /* 🔴 AMENDMENT 4 — owner ruling, 13 September 2026. Rows 3–7 leave class D. RULING moves and nothing else:
+   * no row was built, no test was run, and each arrives NOT-STARTED. Row 2 was put to the same input test,
+   * failed it, and stays DEFERRED — it has no move. */
+  ...Object.fromEntries(Object.entries({ 3: "S", 4: "P", 5: "P", 6: "P", 7: "S" }).map(([id, to]) => [id, Object.freeze([
+    Object.freeze({
+      from: "DEFERRED",
+      to: "NOT-STARTED",
+      kind: "ruling",
+      route: "OWNER_RULING",
+      ruling: "PASS_BOUNDARIES_AMENDMENT_4.md §1 and §3 — the discovery rows enter scope",
+      date: "2026-09-13",
+      reason: to === "P"
+        ? "class D → P: its frozen INPUT clause was tested against the owned evidence store and the input is present. Nothing was built or run; a class change is not progress"
+        : "class D → S (split): its frozen INPUT clause was tested against the owned evidence store and only the owned half is present — that half enters scope, the rest stays deferred and is named on the row. Nothing was built or run; a class change is not progress",
+    }),
+  ])])),
   /* Added by the follow-up PR stacked on #49, 12 September 2026 night: the
    * country pulls ran against the real property. A WORK move — the test of all
    * seven dimensions was run — and no boundary changed. */
@@ -586,12 +602,29 @@ function leavingFailed(id, from, to, step) {
 /**
  * Every row's verdict.
  *
- * The 28 class-`D` rows are generated rather than typed out, because typing 28
+ * The class-`D` rows are generated rather than typed out, because typing 23
  * near-identical justifications invites one of them to drift into a claim.
+ *
+ * 🔴 WHICH rows are D is READ from the class in force (PASS_BOUNDARIES_SOURCE.md
+ * §6 as amended by Amendment 4), no longer typed as a list of ids. The typed list
+ * was 28 long and would have kept rows 3–7 DEFERRED after the owner opened them —
+ * a list that agrees with a ruling only until the ruling changes.
  */
-const DEFERRED_IDS = [2, 3, 4, 5, 6, 7, 18, 19, 20, 21, 22, 23, 24, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39, 40, 41, 43, 44];
+const A4_STATIC = "🔴 **NOT-STARTED — IN SCOPE SINCE AMENDMENT 4** (owner ruling under §12, 13 September 2026). **Nothing has been built for it and nothing was run.** It left DEFERRED ONLY because a ruling changed its class — a class change is not progress. Its input is owned evidence already captured in `runs/evidence/evidence.jsonl` (Search Console ingest of 2026-09-12T23:25Z: query 337 · query-page 574 · country 126 · country-query 388 rows; page rows 1,525 from the 22:06Z run of the same day).";
+const A4_NO_HALF_CONTRACT = "🔴 **The owned half has no four-part contract of its own.** The ruling names the halves but states no INPUT / EXPECTED / FAILURE / EVIDENCE for the v0.1 half — the gap Amendment 1 closed for the first six splits — so the contract guard refuses a VERIFIED-PASS here until the owner states them. Not filled in.";
 
 const EXPLICIT = {
+  3: {
+    state: "NOT-STARTED",
+    why: `${A4_STATIC} **Class D → S (split).** In scope: the **owned** half — owned search data. Deferred, and named: the **public** half — legitimate public search evidence, which needs an external fetch no one has authorised. ${A4_NO_HALF_CONTRACT}`,
+  },
+  4: { state: "NOT-STARTED", why: `${A4_STATIC} **Class D → P.**` },
+  5: { state: "NOT-STARTED", why: `${A4_STATIC} **Class D → P.**` },
+  6: { state: "NOT-STARTED", why: `${A4_STATIC} **Class D → P.**` },
+  7: {
+    state: "NOT-STARTED",
+    why: `${A4_STATIC} **Class D → S (split).** In scope: **DEMAND** and **VISIBILITY/REACH**, both owned. Deferred, and named: **SUPPLY** and **AUDIENCE/NEED**, which need external evidence. 🔴 **WORTHINESS — the fifth measurement the boundary names — is in neither half: the ruling does not assign it.** A question for the owner, not a guess. ${A4_NO_HALF_CONTRACT}`,
+  },
   1: {
     state: "BLOCKED-UNKNOWN",
     why: "🔴 **RE-SCANNED 13 SEPTEMBER 2026: STILL BLOCKED — HALF AN INPUT IS NOT AN INPUT.** The boundary needs adversarial tests over NON-EMPTY populations of all four private classes, per product. Evidence and facts are populated. **COST: a ledger now exists, but no cost entry names a product** — every entry is a run of the engine — so no product holds private costs and there is nothing to isolate. **LEARNING: no learning record exists** (no module, no record, no store), and learning is itself deferred (items 39–41 are class D). 🔴 The ruling flags this explicitly only on item 54, but item 1 carries the identical four-class requirement — recorded as my judgement, not as the document's words",
@@ -805,9 +838,16 @@ export function classify(previousStates = BEFORE_2026_09_12) {
   const out = {};
   for (let id = 1; id <= 58; id += 1) {
     const b = boundaries[id];
-    const row = DEFERRED_IDS.includes(id)
+    let row = b.class === "D"
       ? D(id, `class D in the frozen ruling — frozen v0.1 deliberately does not contain this. It cannot FAIL for lacking it, and it cannot PASS either`)
       : { id, ...EXPLICIT[id] };
+    /* 🔴 WHY a row stayed deferred, not merely that it did — and the input test that moved the others — both
+     * READ from Amendment 4's verdict table rather than retyped. */
+    if (b.a4 && b.class === "D") {
+      row = D(id, `🔴 **class D in the frozen ruling, and KEPT D by Amendment 4** (owner ruling, 13 September 2026) — the amendment tested its frozen INPUT clause, ${b.a4.inputClause}, and found: ${b.a4.inputPresent}. Moving it in would create a row whose input does not exist in the current phase — paperwork, not progress. It enters scope on the day a bounded external-evidence GREEN is given, and not before. It cannot FAIL for lacking it, and it cannot PASS either`);
+    } else if (b.a4) {
+      row = { ...row, why: `${row.why} The amendment's test of its frozen INPUT clause, ${b.a4.inputClause}: ${b.a4.inputPresent}.` };
+    }
     if (!row?.state) throw new Error(`item ${id} has no classification`);
 
     const was = previousStates?.[id] ?? null;

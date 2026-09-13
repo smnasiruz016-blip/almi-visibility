@@ -610,14 +610,15 @@ describe("🔴 factChecked moved 0 → 46, deliberately, and confirmed is counte
 
   // 🔴 32/14 on 12 Sep 2026; 34/12 since 13 Sep, when two records left UNKNOWN through the F24 guard (item 50).
   // 🔴 33/13 since the item-50 reopen (13 Sep 2026); #63 had 34/12.
-  // 🔴 25/21 since item 50's whole population was reconciled (13 Sep 2026); #64 had 33/13.
-  test("🔴 46 checks RAN but only 25 CONFIRMED — the two are never one number", async () => {
+  // 🔴 25/21 since item 50's whole population was reconciled (13 Sep 2026 morning); #64 had 33/13.
+  // 🔴 16/30 since 9 ambiguous labels were demoted by beta-g ruling (13 Sep 2026 evening).
+  test("🔴 46 checks RAN but only 16 CONFIRMED — the two are never one number", async () => {
     const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     const c = census(records, { now: NOW });
     assert.equal(c.checks.factChecked, 46);
     assert.equal(c.checks.factConfirmed, REGISTRY_VERIFIED_COUNT);
-    assert.equal(c.checks.factConfirmed, 25);
-    assert.equal(c.checks.factUnknown, 21);
+    assert.equal(c.checks.factConfirmed, 16);
+    assert.equal(c.checks.factUnknown, 30);
     assert.ok(
       c.checks.factConfirmed < c.checks.factChecked,
       "if these ever coincide, check it is because every check confirmed — not because they were merged",

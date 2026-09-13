@@ -225,7 +225,7 @@ export const REGISTRY_FACT_CHECK_COUNT = 46;
  * 4 true-but-incomplete, 4 whose source could not be read (and by LAW-ABSENT-1
  * that last group is a fact about our reach, not about the claim).
  */
-export const REGISTRY_VERIFIED_COUNT = 25; // MEASURED 13 Sep 2026 after item 50's whole population was reconciled: 32 on 12 Sep; #63 counted 34; #64 33; 8 of the 32 returned to UNKNOWN
+export const REGISTRY_VERIFIED_COUNT = 16; // MEASURED 13 Sep 2026 evening: 32 on 12 Sep; #63 counted 34; #64 33; 8 of the 32 returned to UNKNOWN on 13 Sep morning; 9 more demoted by beta-g ruling 13 Sep evening (item 50)
 
 /**
  * 🔴 GATE A'S OWN `factChecked` COLUMN IS STILL HARD-CODED 0, KNOWINGLY.

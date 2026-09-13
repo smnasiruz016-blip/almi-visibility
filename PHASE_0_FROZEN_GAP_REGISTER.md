@@ -980,6 +980,66 @@ confusing the two.
 
 ---
 
+## ITEM 47 — PAID PROVIDER CONTROLS, BUILT BEFORE ANY PAID PROVIDER EXISTS (13 September 2026)
+
+The row's NOTE: *"no paid provider exists today. Absence is not a control — the controls must exist before one
+does."* Built in `src/cost/paid-provider-gate.mjs` against a **FAKE provider** (a test double — **no account was
+opened, no real paid provider was called**):
+
+| control | what refuses | RED proof — removed, and its named test went red |
+|---|---|---|
+| **OFF BY DEFAULT** | a provider with no authorization | ✅ (also turns control 2's per-provider case and the ledger test red — both exercise it) |
+| **EXPLICIT AUTHORIZATION** | anything short of named · per provider · dated · with a reason, a budget and a cap | ✅ |
+| **KILL SWITCH** | the very next call once flipped (by a named person, with a reason and a time) | ✅ |
+| **BUDGET AND CAP** | the call that WOULD exceed either — before it is made | ✅ cap and budget separately |
+| **EVERY REFUSAL IN THE LEDGER** | a refusal with no trace | ✅ removed, and with the colliding id below restored |
+
+Transcript: `runs/cost/paid-provider-controls-red-2026-09-13.txt`. The recorded run
+(`runs/cost/paid-provider-controls-2026-09-13.txt`) wrote **five REFUSED entries, one per code**, into
+`runs/cost/ledger.jsonl`; 2 calls inside cap and budget reached the fake provider. **Verdict: VERIFIED-PASS.**
+⚠️ Declared limit: the gate binds every call made **through** it. No paid provider exists, so there is no
+integration to census; the day one is written, its calls go through the gate or item 47 is breached.
+
+### E-CL-4 (Claude) — THE FIRST GATE COULD LOSE A REFUSAL, AND ITS OWN RUN SAID SO
+
+The first refusal id was the clock plus a per-gate counter. Two gates refusing in the same millisecond produced one
+id, the ledger kept one entry, and the other refusal **left no trace** — the exact failure 1D forbids. The unit
+test passed by timing; the demonstration run's own trace check printed **"3 of 5"** and exited 1. Fixed before
+commit: every refused attempt carries its own id, and the test now drives every gate on one frozen clock — with the
+old id restored, it goes red.
+
+---
+
+## ITEM 53 — PORTABILITY, PROVED ON A NEUTRAL DECLARED TEST PRODUCT (13 September 2026)
+
+**The declaration** — `products/neutral-test-ferments/product.mjs`, the INPUT the boundary names ("a neutral declared
+test product"). **Genuinely unseen:** home fermentation, pages varying by *ferment*, sources at a reserved
+`example.org` address that does not exist, its own reserve-everything licence; it shares **no subject, predicate,
+axis, variant, source host or licence** with the first product (asserted). Every record is declared test data —
+status `lead`, route R4 — so nothing can render or cite it.
+
+**The run** — through the same entry points a real product uses, no edit under `src/`: registered, **4 records from
+2 files**, every registry law valid, census, coverage (5 declared, 0 pages), its one gap. Through
+`bin/facts.mjs census` under a module/file probe: **no module of the first product loaded, none of its files read**
+(the products folder is listed and each descriptor's existence checked — names only).
+
+**The isolation, in that same run** — the first product's **46 records, private licence terms and gaps loaded in the
+same process**: no record, id, source host, licence term or gap crossed; every licence accessor refused the first
+product's terms; borrowing one failed F17.
+
+**RED** (`runs/audit/item-53-portability-red-2026-09-13.txt`): making registration demand the first product's axis
+turned *THE RUN* red; making every product's licence terms visible to every product turned *DURING THAT SAME RUN* red
+("first-product licence NMC-6.3 is visible to the neutral product"). **Verdict: VERIFIED-PASS.**
+
+### ITEM 54 — WHAT IT STILL LACKS, STATED PLAINLY
+
+Item 54 needs two declared products **each holding private evidence, facts, costs and learning**. Item 53's run
+produced **no cost record and no learning record tied to any product**: the cost ledger names no product (its
+entries are runs of the engine — the five new refusal entries included), and no learning module, record or store
+exists. **Two of its four classes still do not exist to be tested. It stays BLOCKED-UNKNOWN.**
+
+---
+
 ## 🔴 PERMANENT LOSSES — RECORDED, IRRECOVERABLE, NEVER DELETED
 
 These rows are **not gaps that can close.** They record something measurable that was never

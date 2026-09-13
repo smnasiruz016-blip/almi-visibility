@@ -185,6 +185,30 @@ export const MOVES_AMENDMENT_2 = Object.freeze({
       reason: "one real Search Console run inside the scope recorded all four: money 0 ZERO_BY_TARIFF with basis, 9 provider calls, crawl budget 0 with its basis, 2.238 s wall-clock; item45Verdict over the real ledger returns PASS",
     }),
   ]),
+  /* Items 47 and 53 — each run against its frozen boundary on 13 September 2026. WORK moves: each
+   * test was run and passed, and each was RED-proved by removing what it tests. No boundary changed. */
+  47: Object.freeze([
+    Object.freeze({
+      from: "NOT-STARTED",
+      to: "VERIFIED-PASS",
+      kind: "work",
+      route: "TEST_RUN",
+      test: "node --test test/paid-provider-controls.test.mjs · node bin/paid-provider-controls.mjs --confirm",
+      date: "2026-09-13",
+      reason: "the four paid-provider controls built against a FAKE provider and each refused a call before it was made — off by default, explicit authorization, kill switch, budget and cap; each RED-proved; five refusals recorded in the cost ledger as REFUSED with their reasons",
+    }),
+  ]),
+  53: Object.freeze([
+    Object.freeze({
+      from: "BUILT-NOT-PROVED",
+      to: "VERIFIED-PASS",
+      kind: "work",
+      route: "TEST_RUN",
+      test: "node --test test/portability-neutral-product.test.mjs · node bin/facts.mjs census --product=neutral-test-ferments",
+      date: "2026-09-13",
+      reason: "a neutral declared test product run through the generic core with no first-product knowledge (no module or file of the first product loaded or read), and the first product's private records, licence terms and gaps proved not to cross during that same run; both halves RED-proved",
+    }),
+  ]),
   /* Item 56 — VERIFIED BY THE OWNER, 13 September 2026. The owner's ruling (§4) makes
    * item 56 an owner-verification item: its test is the owner's own look at the report,
    * and only a dated record of that look may set it (OWNER_VERIFIED_ITEMS). A WORK move —
@@ -668,7 +692,13 @@ const EXPLICIT = {
     whyFailed: "🔴 **THE LEDGER EXISTS AND THE HARD STOP HOLDS — AND THE FAILURE CONDITION IS MET, ON THE RECORDS WE ALREADY HAD.** Built: an append-only ledger tracking all four — money, provider calls, budget against its cap, founder time — every line printing its bound, every UNKNOWN required to say whether it WAS measurable. Backfilled from real records, nothing estimated: **the 12 September crawl** — 394 calls, founder time 403.268 s (the Actions run that hosted it: 423 s), 500 requested / 394 fetched / 106 disallowed against caps 500 and 200, cap not reached; money UNKNOWN and NOT measurable with tools we hold (the plan's price and allowance, U-COST-1; our own hosting's invocations, U-COST-5 — GitHub's reported 0 billable ms is not read as $0). **Eight stored ingest runs** — money ZERO_BY_TARIFF; calls MEASURED on 4; founder time on NONE. **12 parts read UNKNOWN although they were measurable at the time**, which is the FAILURE clause exactly. **Hard stop proved by injection** through the real adapter: pages that never end stop at the run cap with exactly that many requests reaching the boundary, the stop latches and is not swallowed as an API error. `apiCalls` is now per pull, with the running total in its own field. Every future ingest records all four as it happens. ⚠️ The eight past runs cannot be re-measured: leaving FAILED needs a run that records all four AND either a re-run that passes or an owner ruling on those eight",
   },
   46: { state: "BUILT-NOT-PROVED", why: "the EVIDENCE demands hit/miss counts over a LIVE RESEARCHER, not a pre-loaded registry, and nothing researches. The cache did improve on 12 September — it now refuses UNKNOWN facts, and the hit rate fell 100% → 69.6% — but a pre-loaded shelf is still what is being measured" },
-  47: { state: "NOT-STARTED", why: "the ruling's NOTE is explicit: no paid provider exists, and ABSENCE IS NOT A CONTROL. The controls — authorization, budget/cap, kill switch — must exist before a provider does, and none is built" },
+  47: {
+    state: "VERIFIED-PASS",
+    changeKind: "work",
+    test: "node --test test/paid-provider-controls.test.mjs · node bin/paid-provider-controls.mjs --confirm",
+    why: "🔴 **THE CONTROLS EXIST BEFORE THE THING THEY CONTROL.** No paid provider exists and absence is not a control, so the controls were built against a FAKE provider — a test double; no account was opened and no real provider was called. **INPUT** an attempt to use a paid provider with no authorization, no budget and no cap. **EXPECTED** refusal, and every control exercised: (1) OFF BY DEFAULT — a provider with no authorization is refused; (2) EXPLICIT AUTHORIZATION — only a named, per-provider, dated authorization with a reason, a budget and a cap authorizes anything; (3) KILL SWITCH — flipped by a named person with a reason and a time, the very next call is refused; (4) BUDGET AND CAP — the call that would exceed either is refused BEFORE it is made. A gate cannot be built without a kill switch or a ledger. **FAILURE not met** — no unauthorized call reached the provider, and neither a cap nor a kill switch can be absent. **EVIDENCE** one refusal test per control, each RED-proved by removing that control (runs/cost/paid-provider-controls-red-2026-09-13.txt), and the kill switch exercised in the recorded run, whose five refusals — one per code — are in runs/cost/ledger.jsonl as REFUSED with their reasons. ⚠️ Declared limit: the gate binds every call made THROUGH it; with no paid provider in existence there is no integration to census, and the day one is written its calls must go through the gate",
+    whyBefore: "the ruling's NOTE is explicit: no paid provider exists, and ABSENCE IS NOT A CONTROL. The controls — authorization, budget/cap, kill switch — must exist before a provider does, and none is built",
+  },
   48: {
     state: "VERIFIED-PASS",
     changeKind: "work",
@@ -706,9 +736,16 @@ const EXPLICIT = {
     state: "BLOCKED-UNKNOWN",
     why: "🔴 NOT RUN = NOT TESTED, and the rendering trigger is unmet. Two of the six RED classes cannot be detected without a renderer, so running the exam today would produce a FAIL that measures our sequencing rather than the engine — and the seal breaks only once",
   },
-  53: { state: "BUILT-NOT-PROVED", why: "the boundary law and fixture tenants hold, but the INPUT is an UNSEEN product — a second real product or a neutral declared test product — and none has been declared and run" },
+  53: {
+    state: "VERIFIED-PASS",
+    changeKind: "work",
+    test: "node --test test/portability-neutral-product.test.mjs · node bin/facts.mjs census --product=neutral-test-ferments",
+    why: "🔴 **PORTABILITY PROVED ON SOMETHING UNSEEN, WITH THE ISOLATION ASSERTED DURING THE SAME RUN.** **INPUT** a NEUTRAL DECLARED TEST PRODUCT, declared as one on 13 September 2026 (products/neutral-test-ferments): home fermentation, pages varying by ferment, sources at a reserved address that does not exist, its own reserve-everything licence — sharing no subject, predicate, axis, variant, source host or licence with the first product. **EXPECTED** the generic core initialized and discovered it through the same entry points a real product uses — registered, 4 records loaded from 2 files, every registry law valid, census, coverage (5 declared ferments, 0 pages) and its one declared gap — with no edit under src/. **FAILURE not met on either half.** (a) The core needed no first-product knowledge: bin/facts.mjs, run under a probe, loaded no module of the first product and read none of its files (it listed the products folder and checked each has a descriptor — names only). (b) With the first product's 46 records, private licence terms and gaps loaded in the SAME process, none crossed: no record, id, source host, licence term or gap reached the neutral run, every licence accessor refused the first product's terms, and borrowing one failed validation (F17). **EVIDENCE** the declaration, the run, and the isolation assertion during that run — both halves RED-proved (runs/audit/item-53-portability-red-2026-09-13.txt). ⚠️ No cost and no learning record is tied to any product, so nothing of those two classes could leak and nothing about them is proved here — that is item 54",
+    whyBefore: "the boundary law and fixture tenants hold, but the INPUT is an UNSEEN product — a second real product or a neutral declared test product — and none has been declared and run",
+  },
   54: {
     state: "BLOCKED-UNKNOWN",
+    afterItem53: "13 September 2026, item 53's run: a second declared product now exists (the neutral test product), and its evidence, facts, licence terms and gaps were proved isolated from the first product's during that run. The run produced NO cost record and NO learning record tied to any product — the cost ledger names no product, and no learning module, record or store exists. So item 54 still lacks exactly what it lacked: costs and learning TIED TO A PRODUCT, two of its four classes, do not exist to be tested",
     why: "🔴 **RE-SCANNED 13 SEPTEMBER 2026: STILL BLOCKED — HALF AN INPUT IS NOT AN INPUT.** The INPUT is two declared products EACH holding private evidence, facts, costs and learning. **COST: a cost ledger now exists, but no cost entry names a product**, so neither product holds a private cost to be isolated. **LEARNING: no learning record exists** — no module, no record, no store. Two of the four classes still do not exist to be tested, which the FAILURE clause names ('a class does not exist to be tested') — but the test cannot be run without them, so it is not FAILED either. Learning is itself deferred, so this cannot be closed inside frozen v0.1",
     whyBefore: "the ruling's own BLOCKER TODAY: no cost record and no learning record exists, so two of the four classes cannot be tested. Learning is itself deferred, so this cannot be closed inside frozen v0.1",
   },

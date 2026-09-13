@@ -23,10 +23,10 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 | state | before Amendment 2 | after the RULING only | after the WORK |
 |---|---|---|---|
-| **NOT-STARTED** | 3 | 3 | **3** |
-| **BUILT-NOT-PROVED** | 18 | 17 | **6** |
+| **NOT-STARTED** | 3 | 3 | **2** |
+| **BUILT-NOT-PROVED** | 18 | 17 | **5** |
 | **TESTABLE-NOW** | 0 | 2 | **1** |
-| **VERIFIED-PASS** | 3 | 3 | **15** |
+| **VERIFIED-PASS** | 3 | 3 | **17** |
 | **FAILED** | 0 | -1 | **1** |
 | **BLOCKED-UNKNOWN** | 6 | 6 | **4** |
 | **DEFERRED** | 28 | 28 | **28** |
@@ -44,9 +44,9 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 - **item 51** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — priority, confidence and cost each computed from stored evidence and each able to say UNKNOWN — two recommendations ranked by measured impressions, one UNKNOWN; confidence derived on all three; cost UNKNOWN on all three with lower bounds — and all six visible on the real report
 - **item 55** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — the parse is caught and rethrown with nothing from the file; the leak test re-run passed on every credential path, RED when the key or its length is logged; recovery proved by restoring torn stores from git, byte-identical by blob hash
 
-**Rows that have been looked at (VERIFIED-PASS or FAILED): 16 of 58.**
+**Rows that have been looked at (VERIFIED-PASS or FAILED): 18 of 58.**
 
-**Rows that reached VERIFIED-PASS in this PR: 12.**
+**Rows that reached VERIFIED-PASS in this PR: 14.**
 
 #### moved ONLY because a RULING changed
 
@@ -75,6 +75,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 42 | BLOCKED-UNKNOWN | VERIFIED-PASS | `node bin/replay-crawl.mjs · test/replay.test.mjs` | 2026-09-13 | each of 5 changed targets re-tested on its LATEST stored observation, chosen from the store, with a verdict before and after naming the observation read: noindex FAIL→PASS and PASS→FAIL, canonical PASS→FAIL, head-elements PASS→FAIL, and a body-only change PASS→PASS on three checks |
 | 45 | BUILT-NOT-PROVED | FAILED | `test/cost-ledger.test.mjs · test/cost-governor.test.mjs · node bin/cost-ledger.mjs` | 2026-09-12 | the ledger was built and backfilled from real records and the hard stop proved by injection; the FAILURE condition 'a cost reads UNKNOWN when it was measurable' is met by 12 parts of the eight stored ingest runs |
 | 45 | TESTABLE-NOW | VERIFIED-PASS | `test/item45-scope.test.mjs · node bin/gsc-ingest.mjs (one real run, ledger live)` | 2026-09-12 | one real Search Console run inside the scope recorded all four: money 0 ZERO_BY_TARIFF with basis, 9 provider calls, crawl budget 0 with its basis, 2.238 s wall-clock; item45Verdict over the real ledger returns PASS |
+| 47 | NOT-STARTED | VERIFIED-PASS | `node --test test/paid-provider-controls.test.mjs · node bin/paid-provider-controls.mjs --confirm` | 2026-09-13 | the four paid-provider controls built against a FAKE provider and each refused a call before it was made — off by default, explicit authorization, kill switch, budget and cap; each RED-proved; five refusals recorded in the cost ledger as REFUSED with their reasons |
 | 48 | VERIFIED-PASS | FAILED | `undefined` | 2026-09-12 | the tick was earned on a narrower population than the boundary names ('the same authorized job'), and outside that population the FAILURE condition 'a record duplicates' is met on real data |
 | 48 | FAILED | VERIFIED-PASS | `node bin/replay-crawl.mjs · test/replay.test.mjs · test/duplicate-writers.test.mjs · test/issue-writer-census.test.mjs · test/idempotency-retry.test.mjs` | 2026-09-13 | every authorized job that stores a record has now been run twice into one store with zero duplicates on the second run — crawl (replay: 389 unchanged → 0 new, 389 re-sightings), DNS audit (RECORDED resolver answers: 134 → +0), technical, content, verification and supply-label writers — and the census holds every issue writer to appendIfNew; RED when the key takes the clock |
 | 49 | BUILT-NOT-PROVED | VERIFIED-PASS | `test/issue-lifecycle.test.mjs · test/source-tiers.test.mjs` | 2026-09-12 | a real chain walked end to end with all five parts present, 134 real issues superseded with the originals retained, and the tier layer ordering the real verified facts |
@@ -83,6 +84,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 51 | BUILT-NOT-PROVED | TESTABLE-NOW | `undefined` | 2026-09-13 | a real recommendation exists |
 | 51 | TESTABLE-NOW | FAILED | `test/queue-rescan.test.mjs (item 51)` | 2026-09-13 | FAILURE met: priority, confidence and cost are missing on all three, and the real report renders none of the six |
 | 51 | FAILED | VERIFIED-PASS | `node bin/link-recommendation-evidence.mjs · node bin/report.mjs --confirm · test/recommendation-fields.test.mjs` | 2026-09-13 | priority, confidence and cost each computed from stored evidence and each able to say UNKNOWN — two recommendations ranked by measured impressions, one UNKNOWN; confidence derived on all three; cost UNKNOWN on all three with lower bounds — and all six visible on the real report |
+| 53 | BUILT-NOT-PROVED | VERIFIED-PASS | `node --test test/portability-neutral-product.test.mjs · node bin/facts.mjs census --product=neutral-test-ferments` | 2026-09-13 | a neutral declared test product run through the generic core with no first-product knowledge (no module or file of the first product loaded or read), and the first product's private records, licence terms and gaps proved not to cross during that same run; both halves RED-proved |
 | 55 | BUILT-NOT-PROVED | TESTABLE-NOW | `undefined` | 2026-09-13 | the input exists; not run, because the executing leak test it needs does not exist yet |
 | 55 | TESTABLE-NOW | FAILED | `test/secret-leak.test.mjs (first honest run, before any fix)` | 2026-09-13 | FAILURE met — any leak: a key file that is not JSON was quoted by the adapter's parse error in-process and printed whole to stderr by the CLI (D-SEC-1) |
 | 55 | FAILED | VERIFIED-PASS | `test/secret-leak.test.mjs · test/store-recovery.test.mjs` | 2026-09-13 | the parse is caught and rethrown with nothing from the file; the leak test re-run passed on every credential path, RED when the key or its length is logged; recovery proved by restoring torn stores from git, byte-identical by blob hash |
@@ -94,10 +96,10 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 | state | before (4-state) | after (7-state) |
 |---|---|---|
-| **NOT-STARTED** | 33 | **3** |
-| **BUILT-NOT-PROVED** | 24 | **6** |
+| **NOT-STARTED** | 33 | **2** |
+| **BUILT-NOT-PROVED** | 24 | **5** |
 | **TESTABLE-NOW** | 0 | **1** |
-| **VERIFIED-PASS** | 0 | **15** |
+| **VERIFIED-PASS** | 0 | **17** |
 | **FAILED** | 0 | **1** |
 | **BLOCKED-UNKNOWN** | 1 | **4** |
 | **DEFERRED** | 0 | **28** |
@@ -105,7 +107,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 ### 🔴 THE MOST IMPORTANT LINE IN THIS DOCUMENT
 
-> **18 row(s) changed because work happened.** Listed in (i) below.
+> **20 row(s) changed because work happened.** Listed in (i) below.
 
 #### (i) changed because WORK HAPPENED
 
@@ -123,10 +125,12 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 38 | Indexability Preflight | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 42 | Re-crawl / Re-test Loop | NOT-STARTED | **VERIFIED-PASS** |
 | 45 | Cost Governor | BUILT-NOT-PROVED | **VERIFIED-PASS** |
+| 47 | Paid Provider Controls | NOT-STARTED | **VERIFIED-PASS** |
 | 48 | Idempotency & Retry Safety | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 49 | Audit Trail & Provenance | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 50 | OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation | BUILT-NOT-PROVED | **FAILED** |
 | 51 | Explainability | BUILT-NOT-PROVED | **VERIFIED-PASS** |
+| 53 | Cross-Product Portability | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 55 | Security / Secrets / Recovery | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 56 | Desktop + Mobile Owner Experience | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 
@@ -137,7 +141,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | NOT-STARTED → DEFERRED | 28 | 2, 3, 4, 5, 6, 7, 18, 19, 20, 21, 22, 23, 24, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39, 40, 41, 43, 44 |
 | BUILT-NOT-PROVED → BLOCKED-UNKNOWN | 2 | 1, 54 |
 
-**Did not move: 10** — 10, 16, 17, 36, 46, 47, 52, 53, 57, 58
+**Did not move: 8** — 10, 16, 17, 36, 46, 52, 57, 58
 
 ---
 
@@ -810,7 +814,7 @@ question for the owner, recorded as one.
 
 ### 47 · Paid Provider Controls
 
-**NOT-STARTED** · class `P` · ruled in `§6`
+**VERIFIED-PASS** · class `P` · ruled in `§6` · was NOT-STARTED (work)
 
 | part | the owner's words |
 |---|---|
@@ -820,7 +824,9 @@ question for the owner, recorded as one.
 | **EVIDENCE** | the refusal test per control, and the kill switch exercised. |
 | **NOTE** | no paid provider exists today. **Absence is not a control** — the controls must exist before one does. |
 
-**Verdict —** the ruling's NOTE is explicit: no paid provider exists, and ABSENCE IS NOT A CONTROL. The controls — authorization, budget/cap, kill switch — must exist before a provider does, and none is built
+**Verdict —** 🔴 **THE CONTROLS EXIST BEFORE THE THING THEY CONTROL.** No paid provider exists and absence is not a control, so the controls were built against a FAKE provider — a test double; no account was opened and no real provider was called. **INPUT** an attempt to use a paid provider with no authorization, no budget and no cap. **EXPECTED** refusal, and every control exercised: (1) OFF BY DEFAULT — a provider with no authorization is refused; (2) EXPLICIT AUTHORIZATION — only a named, per-provider, dated authorization with a reason, a budget and a cap authorizes anything; (3) KILL SWITCH — flipped by a named person with a reason and a time, the very next call is refused; (4) BUDGET AND CAP — the call that would exceed either is refused BEFORE it is made. A gate cannot be built without a kill switch or a ledger. **FAILURE not met** — no unauthorized call reached the provider, and neither a cap nor a kill switch can be absent. **EVIDENCE** one refusal test per control, each RED-proved by removing that control (runs/cost/paid-provider-controls-red-2026-09-13.txt), and the kill switch exercised in the recorded run, whose five refusals — one per code — are in runs/cost/ledger.jsonl as REFUSED with their reasons. ⚠️ Declared limit: the gate binds every call made THROUGH it; with no paid provider in existence there is no integration to census, and the day one is written its calls must go through the gate
+
+**The one test that would settle it —** node --test test/paid-provider-controls.test.mjs · node bin/paid-provider-controls.mjs --confirm
 
 ### 48 · Idempotency & Retry Safety
 
@@ -899,7 +905,7 @@ question for the owner, recorded as one.
 
 ### 53 · Cross-Product Portability
 
-**BUILT-NOT-PROVED** · class `P` · ruled in `§5`
+**VERIFIED-PASS** · class `P` · ruled in `§5` · was BUILT-NOT-PROVED (work)
 
 | part | the owner's words |
 |---|---|
@@ -908,7 +914,9 @@ question for the owner, recorded as one.
 | **FAILURE** | the core needs first-product knowledge to run — **or the first product's private evidence leaks during the test** |
 | **EVIDENCE** | the declaration, the run, and an isolation assertion across the boundary during that same run |
 
-**Verdict —** the boundary law and fixture tenants hold, but the INPUT is an UNSEEN product — a second real product or a neutral declared test product — and none has been declared and run
+**Verdict —** 🔴 **PORTABILITY PROVED ON SOMETHING UNSEEN, WITH THE ISOLATION ASSERTED DURING THE SAME RUN.** **INPUT** a NEUTRAL DECLARED TEST PRODUCT, declared as one on 13 September 2026 (products/neutral-test-ferments): home fermentation, pages varying by ferment, sources at a reserved address that does not exist, its own reserve-everything licence — sharing no subject, predicate, axis, variant, source host or licence with the first product. **EXPECTED** the generic core initialized and discovered it through the same entry points a real product uses — registered, 4 records loaded from 2 files, every registry law valid, census, coverage (5 declared ferments, 0 pages) and its one declared gap — with no edit under src/. **FAILURE not met on either half.** (a) The core needed no first-product knowledge: bin/facts.mjs, run under a probe, loaded no module of the first product and read none of its files (it listed the products folder and checked each has a descriptor — names only). (b) With the first product's 46 records, private licence terms and gaps loaded in the SAME process, none crossed: no record, id, source host, licence term or gap reached the neutral run, every licence accessor refused the first product's terms, and borrowing one failed validation (F17). **EVIDENCE** the declaration, the run, and the isolation assertion during that run — both halves RED-proved (runs/audit/item-53-portability-red-2026-09-13.txt). ⚠️ No cost and no learning record is tied to any product, so nothing of those two classes could leak and nothing about them is proved here — that is item 54
+
+**The one test that would settle it —** node --test test/portability-neutral-product.test.mjs · node bin/facts.mjs census --product=neutral-test-ferments
 
 ### 54 · Cross-Product Isolation Test
 

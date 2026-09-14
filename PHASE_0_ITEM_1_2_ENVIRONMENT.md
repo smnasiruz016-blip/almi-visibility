@@ -372,7 +372,7 @@ end of Phase 0; they are not a second register.
 | **ANL-1** | funnel evidence exists for **1 of 27** products and nowhere else; no page-view analytics anywhere; AlmiVisibility reads neither | §4.3 — `almi-oet`'s `FunnelEvent` table verified first-hand; Plausible disproved estate-wide |
 | **AUD-1** | seven of the nine frozen items already had a document, and two successive audits were written without reading it | §10 |
 | **SEO-1** | no standing check of the public SEO surface; the sitemap sweep exists only as throwaway scripts | §5.3 |
-| **DEP-1** | AlmiVisibility deploys on every push and serves 404; no CI stands between a merge and that deployment | §2.2 |
+| **DEP-1** | AlmiVisibility deploys on every push and serves 404; no CI stands between a merge and that deployment. 🔄 **SUPERSEDED 14 September 2026 — both halves are now false** (`DOC-1`, fifth instance; full evidence in `PHASE_0_FROZEN_GAP_REGISTER.md` `DEP-1`): `vercel.json` reads `{"git": {"deploymentEnabled": false}}` since `774791b` (12 Sep 2026), and CI (`.github/workflows/test.yml`) ran and passed on every PR head and every merge commit since — #71, #72, #73 and `a498a85` named there. Whether that check is **required** is not measured: branch protection returns HTTP 403 on this plan | §2.2 · superseded, see the register's `DEP-1` |
 
 ## PRODUCT DATA GAPS
 
@@ -394,7 +394,7 @@ end of Phase 0; they are not a second register.
 | ~~U-DB-2~~ | ~~which Postgres provider~~ | 🔴 **STRUCK — same source: Neon, project `noisy-truth-88221617`** | — | — | — |
 | **U-SEO-1** | whether the 25 healthy sitemaps are **submitted** and being fetched | submission state lives in Search Console, not in the artefact | Search Console coverage report | **owner**, after **PRQ-1** | after PRQ-1 |
 | **U-SEO-2** | whether `almihq`'s homepage-as-sitemap has been indexed as one | a `200 text/html` at a sitemap URL may or may not have been consumed | Search Console, or a crawl log | **owner**, after **PRQ-1** | after PRQ-1 |
-| **U-DEP-1** | whether the ~29-minute-old deployment was caused by the documentation merge | the timing matches within the hour; deployment-to-commit attribution was not read | a read-only deployment list with commit SHAs | **owner** or a later read-only sweep | next merge |
+| **U-DEP-1** | whether the ~29-minute-old deployment was caused by the documentation merge. 🔄 **RESTATED 14 September 2026 — STILL OPEN.** Still unread: the commit that ONE deployment was built from — its entry in Vercel's deployment history, with the commit SHA, compared with the documentation merge. That later merges produced no deployment, because Git deployments are now off, answers a different question and does **not** close this | the timing matches within the hour; deployment-to-commit attribution was not read | a read-only deployment list with commit SHAs | ~~**owner** or a later read-only sweep~~ **owner** — reading Vercel's deployment history is the owner's, as `U8` is; no sweep here reads it | ~~next merge~~ when the owner reads that history — merges no longer deploy |
 | **U-ISO-1** | isolation of **costs** and **learning** | neither exists in any form, so neither can leak | the first cost record and the first learning record | later phase | when either exists |
 
 ---

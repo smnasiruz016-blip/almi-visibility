@@ -64,7 +64,7 @@ it is — which is the direction nobody double-checks.
 | 13 | `SECURITY_AND_COST_GUARDRAILS.md` | 🟡 **half of one half** | `src/write-law.mjs` — **code, not a document**, and **cost guardrails do not exist at all** (`GATE-2`) |
 | 14 | `TEST_PLAN.md` | 🟡 **tests, not a plan** | 268 tests + `CASE_STUDY_01_ACCEPTANCE_TEST.md` |
 | 15 | `IMPLEMENTATION_CHANGELOG.md` | 🔴 nothing | — ⚠️ git history is not a changelog against this contract |
-| 16 | `DEPLOYMENT_AND_ROLLBACK.md` | 🔴 nothing | — ⚠️ and **every merge deploys** (`DEP-1`) |
+| 16 | `DEPLOYMENT_AND_ROLLBACK.md` | 🔴 nothing | — ⚠️ and **every merge deploys** (`DEP-1`). 🔄 **No longer true, 14 September 2026:** Git deployments are off — `vercel.json` reads `{"git": {"deploymentEnabled": false}}` since `774791b` — and `DEP-1` is superseded in `PHASE_0_FROZEN_GAP_REGISTER.md`. The deliverable itself still does not exist |
 | 17 | `USER_GUIDE.md` | 🔴 nothing | — |
 | 18 | `POST_BUILD_VERIFICATION.md` | 🔴 nothing | `PHASE_0_VERIFICATION.md` verifies **an audit, not a build** |
 

@@ -19,6 +19,7 @@
 import { writeFileSync, readFileSync } from "node:fs";
 
 import { loadBoundaries, CONTRACT_PARTS } from "../src/checklist/boundaries.mjs";
+import { classClause } from "../src/checklist/provenance.mjs";
 import {
   classify, assertLawful, assertTransitions, tally, STATES, LOOKED, BEFORE_AMENDMENT_2, MOVES_AMENDMENT_2,
 } from "../src/checklist/classification.mjs";
@@ -206,7 +207,16 @@ for (const k of Object.keys(byMove).sort((a, b) => byMove[b].length - byMove[a].
   L.push(`| ${k} | ${byMove[k].length} | ${byMove[k].join(", ")} |`);
 }
 L.push("");
-L.push(`**Did not move: ${still.length}** — ${still.map((r) => r.id).join(", ")}`);
+/* 🔴 MEASURED AGAINST THE 11 SEPTEMBER 2026 BASELINE (BEFORE_2026_09_12), and a row that was not on it counts as
+ * "did not move" only trivially. So the line says what it is measured against, and names those rows apart —
+ * row 61's work since is its declared move in the table above, never inferred from a baseline it was not on. */
+const stillOnBaseline = still.filter((r) => r.was !== null);
+const notOnBaseline = still.filter((r) => r.was === null);
+L.push(`**Did not move against the 11 September 2026 baseline: ${stillOnBaseline.length}** — ${stillOnBaseline.map((r) => r.id).join(", ")}`);
+if (notOnBaseline.length) {
+  L.push("");
+  L.push(`**Not on that baseline — admitted later by owner ruling: ${notOnBaseline.length}** — ${notOnBaseline.map((r) => r.id).join(", ")}. They are not "unmoved"; they did not exist. Any work on them since is a declared move above.`);
+}
 L.push("");
 L.push("---");
 L.push("");
@@ -270,8 +280,9 @@ for (const id of Object.keys(boundaries).map(Number).sort((a, b) => a - b)) {
   const r = rows[id];
   L.push(`### ${id} · ${b.name}`);
   L.push("");
-  const classNote = b.frozenClass !== b.class ? ` (frozen \`${b.frozenClass}\`, moved by Amendment 4)` : b.a4 ? " (kept by Amendment 4)" : "";
-  L.push(`**${r.state}** · class \`${b.class}\`${classNote} · ruled in \`${b.via}\`${r.was && r.was !== r.state ? ` · was ${r.was} (${r.changeKind})` : ""}`);
+  // 🔴 One builder for who gave the row its class (src/checklist/provenance.mjs). It used to be built here, and
+  // it sent every ADMITTED row — frozen class null — down the "moved by Amendment 4" branch.
+  L.push(`**${r.state}** · class \`${b.class}\`${classClause(b)} · ruled in \`${b.via}\`${r.was && r.was !== r.state ? ` · was ${r.was} (${r.changeKind})` : ""}`);
   L.push("");
   L.push("| part | the owner's words |");
   L.push("|---|---|");

@@ -5,6 +5,12 @@
 # existed, NOTHING ran between the two. The only thing protecting the estate was
 # that the deployment had nothing to serve.
 #
+# 🔄 SUPERSEDED 14 September 2026: merges no longer deploy. vercel.json has read
+# {"git": {"deploymentEnabled": false}} since 774791b (12 September 2026). This
+# workflow still runs on every pull request and every push to main; whether it is
+# a REQUIRED check cannot be read on this plan (branch protection returns 403).
+# See DEP-1 in PHASE_0_FROZEN_GAP_REGISTER.md.
+#
 # ⚠️ THIS WORKFLOW DOES NOT DEPLOY, AND MUST NOT.
 # It has no deploy step, no secret, no token, no environment, no `write`
 # permission and no access to any provider. It runs the test suite and the

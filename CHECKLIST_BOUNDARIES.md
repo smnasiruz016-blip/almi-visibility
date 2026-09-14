@@ -62,10 +62,10 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 | state | before Amendment 2 | after the RULING only | after the WORK |
 |---|---|---|---|
-| **NOT-STARTED** | 3 | 8 | **9** |
-| **BUILT-NOT-PROVED** | 18 | 17 | **6** |
+| **NOT-STARTED** | 3 | 8 | **7** |
+| **BUILT-NOT-PROVED** | 18 | 17 | **7** |
 | **TESTABLE-NOW** | 0 | 2 | **1** |
-| **VERIFIED-PASS** | 3 | 3 | **17** |
+| **VERIFIED-PASS** | 3 | 3 | **18** |
 | **FAILED** | 0 | -1 | **1** |
 | **BLOCKED-UNKNOWN** | 6 | 6 | **4** |
 | **DEFERRED** | 28 | 23 | **23** |
@@ -84,9 +84,9 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 - **item 51** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — priority, confidence and cost each computed from stored evidence and each able to say UNKNOWN — two recommendations ranked by measured impressions, one UNKNOWN; confidence derived on all three; cost UNKNOWN on all three with lower bounds — and all six visible on the real report
 - **item 55** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — the parse is caught and rethrown with nothing from the file; the leak test re-run passed on every credential path, RED when the key or its length is logged; recovery proved by restoring torn stores from git, byte-identical by blob hash
 
-**Rows that have been looked at (VERIFIED-PASS or FAILED): 18 of 58.**
+**Rows that have been looked at (VERIFIED-PASS or FAILED): 19 of 58.**
 
-**Rows that reached VERIFIED-PASS in this PR: 14.**
+**Rows that reached VERIFIED-PASS in this PR: 15.**
 
 #### moved ONLY because a RULING changed
 
@@ -136,6 +136,8 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 55 | TESTABLE-NOW | FAILED | `test/secret-leak.test.mjs (first honest run, before any fix)` | 2026-09-13 | FAILURE met — any leak: a key file that is not JSON was quoted by the adapter's parse error in-process and printed whole to stderr by the CLI (D-SEC-1) |
 | 55 | FAILED | VERIFIED-PASS | `test/secret-leak.test.mjs · test/store-recovery.test.mjs` | 2026-09-13 | the parse is caught and rethrown with nothing from the file; the leak test re-run passed on every credential path, RED when the key or its length is logged; recovery proved by restoring torn stores from git, byte-identical by blob hash |
 | 56 | BLOCKED-UNKNOWN | VERIFIED-PASS | `the owner's visual check of runs/report/index.html · test/item-56-owner-verification.test.mjs` | 2026-09-13 | the owner looked at the report and verified it against his own criteria — critical information readable, workflow understandable, controls and links usable, no clipping, overlap or broken critical view; four screenshots committed; the cost ledger's horizontal scroll was raised and ruled not clipping |
+| 59 | NOT-STARTED | VERIFIED-PASS | `node bin/refutation-census.mjs · node --test test/falsifiability.test.mjs · runs/audit/row59-census-2026-09-14.txt · runs/audit/row59-red-limbs-2026-09-14.txt` | 2026-09-14 | the census over the real store checked a population of 20 read from it — 17 finding classes and 3 recommendations — and all 20 carry observation, source and condition with a held method; each evidence limb was sabotaged alone in the real register, went RED on that limb only, and was restored and hash-checked. It proves presence and a held method, never that a refutation is well chosen |
+| 60 | NOT-STARTED | BUILT-NOT-PROVED | `node bin/consequence-census.mjs · node --test test/consequence-register.test.mjs · runs/audit/row60-census-2026-09-14.txt · runs/audit/row60-red-limbs-2026-09-14.txt` | 2026-09-14 | the register was built with every class in the store and every level UNCLASSIFIED, every presented priority states its basis and the entries that applied, and each limb went RED alone and was restored — and it stops at BUILT-NOT-PROVED because only the owner may declare the levels its EXPECTED requires |
 | 61 | NOT-STARTED | BUILT-NOT-PROVED | `node --test test/page-construction.test.mjs · node bin/build-page.mjs --product=<the first product> --all-slugs · runs/audit/row61-gate-a-red-2026-09-14.txt · runs/audit/row61-gate-a-green-2026-09-14.txt` | 2026-09-14 | the runner takes --slug / --all-slugs with no default; Gate A's four frozen parts are enforced inside the construction path and fail closed; seen RED with the acceptance rule bypassed and GREEN restored; 0 of 3 candidates accepted — and the neutral product was refused AT THE RUNNER, so the portability leg is not proved |
 
 ---
@@ -144,10 +146,10 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 | state | before (4-state) | after (7-state) |
 |---|---|---|
-| **NOT-STARTED** | 33 | **9** |
-| **BUILT-NOT-PROVED** | 24 | **6** |
+| **NOT-STARTED** | 33 | **7** |
+| **BUILT-NOT-PROVED** | 24 | **7** |
 | **TESTABLE-NOW** | 0 | **1** |
-| **VERIFIED-PASS** | 0 | **17** |
+| **VERIFIED-PASS** | 0 | **18** |
 | **FAILED** | 0 | **1** |
 | **BLOCKED-UNKNOWN** | 1 | **4** |
 | **DEFERRED** | 0 | **23** |
@@ -1068,7 +1070,7 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 
 ### 59 · FALSIFIABILITY OF FINDINGS
 
-**NOT-STARTED** · class `P` (admitted by Amendment 3) · ruled in `A3`
+**VERIFIED-PASS** · class `P` (admitted by Amendment 3) · ruled in `A3`
 
 | part | the owner's words |
 |---|---|
@@ -1077,11 +1079,11 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 | **FAILURE** | no `refutation` · any of the three parts absent or empty · the observation names something no method we hold could produce · the census polices an empty population · the census reads its own source as compliant. |
 | **EVIDENCE** | the census over the REAL findings already in the store, printing its count; RED by removing one finding's refutation; RED by emptying EACH of the three parts separately; RED by naming an unobtainable observation. Each limb sabotaged ALONE — a sabotage that trips two proves neither. Restore afterwards and hash-check the restore. |
 
-**Verdict —** 🔴 **NOT-STARTED — ADMITTED BY OWNER RULING** (Amendment 3: ruled 13 September 2026 under §12, re-issued 14 September 2026). **Nothing is built:** no refutation census, no `refutation` on any finding, no backfill into the evidence store. The owner's answer of 14 September 2026 scoped the admitting change to the row alone; a later change builds it. Its population was MEASURED, not built: 3 recommendations (REC-ROBOTS-CORRIDOR, REC-AI-CRAWLER-BLOCK, REC-NOINDEX-CV-GUIDE) and 17 distinct `issue_class` values in the store. 🔴 **The limit, written on the row as ruled:** a census can prove the three parts are present and point at a method this product has; it CANNOT prove a refutation is well chosen — that is human judgement
+**Verdict —** 🔴 **VERIFIED-PASS — 14 SEPTEMBER 2026**, on the owner's release of Amendment 3's work half (admitted 14 September as NOT-STARTED). **INPUT** every finding the product presents as actionable, READ FROM THE STORE: 17 finding classes and 3 drafted recommendations — a population of **20**, printed by the census. **EXPECTED** each carries a structured `refutation` — observation · source · condition — declared in `config/refutation-register.mjs`: **20 of 20** carry all three parts and a source naming a method this product holds (a detector recorded in the store, or a runner in bin/). **FAILURE** not met: 0 missing · 0 unrefutable · 0 empty parts · 0 unobtainable · 0 stale · the population is not empty, and it is read from the store, never from the register. **EVIDENCE** `bin/refutation-census.mjs` over the real store (runs/audit/row59-census-2026-09-14.txt); every limb sabotaged ALONE in the real register — one refutation removed, the observation emptied, the source emptied, the condition emptied, a method we do not hold — each RED on that limb only, each restored and hash-checked (runs/audit/row59-red-limbs-2026-09-14.txt). **Backfill: 20 written, 0 that could not be written.** 🔴 **THE LIMIT, as ruled:** the census proves each refutation's three parts are present and that its source names a method this product holds; it CANNOT prove the refutation is well chosen — that is human judgement. ⚠️ **Declared interpretation:** a refutation is declared once per finding CLASS and applies to every record of it; nothing is written into the append-only evidence store
 
 ### 60 · CONSEQUENCE-WEIGHTED PRIORITY
 
-**NOT-STARTED** · class `P` (admitted by Amendment 3) · ruled in `A3`
+**BUILT-NOT-PROVED** · class `P` (admitted by Amendment 3) · ruled in `A3`
 
 | part | the owner's words |
 |---|---|
@@ -1090,7 +1092,7 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 | **FAILURE** | the engine computes, infers or defaults a consequence level · an unclassified class is silently ranked, or is treated as low · priority does not state its own basis · the register and the classes actually in use do not reconcile exactly · a register entry exists for a class not in use (stale) · the census polices an empty population. |
 | **EVIDENCE** | the register reconciled LINE BY LINE against the finding classes actually present in the store; the real report showing the basis on real recommendations; RED by hard-coding a level in code; RED by removing a register entry so a class becomes unclassified and is still ranked; RED by emptying the basis field; RED by leaving a stale register entry. Each limb alone. Restore and hash-check. |
 
-**Verdict —** 🔴 **NOT-STARTED — ADMITTED BY OWNER RULING** (Amendment 3: ruled 13 September 2026 under §12, re-issued 14 September 2026). **Nothing is built:** no consequence register, no priority basis on the report. The brief's *"enters as BUILT-NOT-PROVED"* assumed that work; the owner's answer of 14 September 2026 admitted the row alone, and a row nothing was built for is NOT-STARTED. 🔴 **UNCLASSIFIED IS A REAL STATE AND NEVER DEFAULTS TO LOW** (LAW-ABSENT-1): when the register is built, every class starts UNCLASSIFIED and no level is filled in by the engine or by CC — the harm judgement is the owner's
+**Verdict —** 🔴 **BUILT-NOT-PROVED — BY DESIGN, AND THAT IS THE ROW WORKING.** Built 14 September 2026, on the owner's release of Amendment 3's work half. `config/consequence-register.mjs` holds every finding class ACTUALLY PRESENT in the store — **17** — each with what it is, level **UNCLASSIFIED** and why; it reconciles line by line with the store (0 missing · 0 stale · 0 invalid). Every presented recommendation's priority now states its **basis** (MEASURED VOLUME for the two ranked; NONE for the one with no measured impact), **which register entries applied**, and a consequence that reads **UNKNOWN** because every applied class is UNCLASSIFIED — and the real report shows all three. Each limb RED alone in the real files — a level hard-coded in the engine, a register entry removed, the basis emptied, a stale entry — each restored and hash-checked (runs/audit/row60-red-limbs-2026-09-14.txt). **It waits on the owner:** its EXPECTED needs a declared consequence level on every class, and not one may be filled in by the engine or by CC. 🔴 **UNCLASSIFIED IS A REAL STATE AND NEVER DEFAULTS TO LOW** (LAW-ABSENT-1): an unrated class ranks as UNKNOWN and says so
 
 ### 61 · SAFE LOCAL PAGE CONSTRUCTION
 

@@ -76,7 +76,7 @@ footer{margin-top:2rem;padding-top:1rem;border-top:2px solid var(--line);color:v
 </header>
 
 <p class="legend">Every record below carries one of: <span class="lbl lbl-OBSERVED">OBSERVED</span><span class="lbl lbl-INFERRED">INFERRED</span><span class="lbl lbl-RECOMMENDED">RECOMMENDED</span><span class="lbl lbl-UNKNOWN">UNKNOWN</span></p>
-<p class="bound">Label census across all 1234 records: OBSERVED=614 · INFERRED=499 · RECOMMENDED=107 · UNKNOWN=14</p>
+<p class="bound">Label census across all 1234 records: OBSERVED=598 · INFERRED=499 · RECOMMENDED=107 · UNKNOWN=30</p>
 
 
 <section id="reconciliation">
@@ -131,7 +131,7 @@ footer{margin-top:2rem;padding-top:1rem;border-top:2px solid var(--line);color:v
 </section>
 
 <section id="ledger">
-  <h2>Cost ledger — 15 entries</h2>
+  <h2>Cost ledger — 22 entries</h2>
   <pre class="wrap">crawl:42c54fa63036f1c7  money=UNKNOWN(NOT_MEASURABLE_WITH_TOOLS_WE_HOLD)  calls=394  time=403.268s  budget(crawl): urlsRequested=500 urlsFetched=394 requestsIssued=394 disallowedByRobots=106 capReached=false  [bound: maxUrlsPerRun=500 maxRequestsPerHost=200 maxResponseBytes=2097152 seedPoolSize=1497]
 gsc-ingest:2026-09-11T22:58:51.912Z  money=0 USD [ZERO_BY_TARIFF]  calls=5  time=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=2 requestsInNewPulls=2 resightings=0 capReached=false  [bound: rowLimitPerRequest=not stored in this run maxRequestsPerPull=not stored in this run]
 gsc-ingest:2026-09-12T00:15:14.660Z  money=0 USD [ZERO_BY_TARIFF]  calls=5  time=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=2 requestsInNewPulls=2 resightings=0 capReached=false  [bound: rowLimitPerRequest=25000 maxRequestsPerPull=20]
@@ -146,7 +146,14 @@ artifact-recovery:2026-09-13T00:27:05.860Z  money=UNKNOWN(NOT_MEASURABLE_WITH_TO
 replay:2026-09-13T00:27:05.860Z  money=0 USD [MEASURED]  calls=0  time=93.84s  budget(crawl): passes=2 urlsFetched=788 requestsIssued=788 localRequests=822 nonLocalRequests=0 capReached=false  [bound: maxUrlsPerRun=500 maxRequestsPerHost=200]
 replay:2026-09-13T01:02:04.073Z  money=0 USD [MEASURED]  calls=0  time=13.814s  budget(crawl): passes=2 urlsFetched=788 requestsIssued=788 localRequests=822 nonLocalRequests=0 capReached=false  [bound: maxUrlsPerRun=500 maxRequestsPerHost=200]
 link-check:2026-09-13T01:42:09.708Z  money=0 USD [ZERO_BY_TARIFF]  calls=18  time=18.616s  budget(link-check): urls=15 requests=18 capReached=false  [bound: maxRequests=40 intervalMs=1000 concurrency=1]
-source-fetch:2026-09-13T02:19:52.573Z  money=0 USD [ZERO_BY_TARIFF]  calls=7  time=6.328s  budget(link-check): urls=5 requests=7 capReached=false  [bound: maxRequests=12 intervalMs=1000 concurrency=1]</pre>
+source-fetch:2026-09-13T02:19:52.573Z  money=0 USD [ZERO_BY_TARIFF]  calls=7  time=6.328s  budget(link-check): urls=5 requests=7 capReached=false  [bound: maxRequests=12 intervalMs=1000 concurrency=1]
+tool-install:2026-09-13T02:54:16.342Z  money=UNKNOWN(NOT_MEASURABLE_WITH_TOOLS_WE_HOLD)  calls=1  time=2.342s  budget(tool-download): registryFetches=1 cacheHits=1 installedBytes=13442086 browserBytesDownloaded=0 capReached=false  [bound: package=playwright-core@1.62.1 browserRevision=chromium_headless_shell-1234]
+render:2026-09-13T03:02:48.090Z  money=0 USD [MEASURED]  calls=0  time=245.527s  budget(crawl): urlsFetched=0 requestsIssued=0 capReached=false  [bound: maxUrlsPerRun=500 maxRequestsPerHost=200]
+paid-refusal:fake-paid-provider:2026-09-13T04:33:21.328Z:1:af35b9c4-33ba-4f9a-a51a-2df12ca37099  REFUSED(NOT_AUTHORIZED)  money=0 USD [MEASURED]  calls=0  time=0s  budget(paid-provider): attempted=1 callsIssuedBefore=0 spentBefore=0 capReached=false  [bound: authorization=none complete — paid services are OFF by default]
+paid-refusal:fake-paid-provider:2026-09-13T04:33:21.345Z:1:bd1ec9c5-cdea-4259-b932-a585b3916c2e  REFUSED(AUTHORIZATION_INCOMPLETE)  money=0 USD [MEASURED]  calls=0  time=0s  budget(paid-provider): attempted=1 callsIssuedBefore=0 spentBefore=0 capReached=false  [bound: authorization=none complete — paid services are OFF by default]
+paid-refusal:fake-paid-provider:2026-09-13T04:33:21.363Z:2:72e3be6d-6f99-4754-abb5-7d6e02e7c7fc  REFUSED(CAP_WOULD_BE_EXCEEDED)  money=0 USD [MEASURED]  calls=0  time=0s  budget(paid-provider): attempted=1 callsIssuedBefore=1 spentBefore=0.4 capReached=true  [bound: maxCalls=1 budget=100 USD]
+paid-refusal:fake-paid-provider:2026-09-13T04:33:21.379Z:2:c6514dda-f6f0-43fa-b8b7-33810f7a742c  REFUSED(BUDGET_WOULD_BE_EXCEEDED)  money=0 USD [MEASURED]  calls=0  time=0s  budget(paid-provider): attempted=1 callsIssuedBefore=1 spentBefore=0.4 capReached=true  [bound: maxCalls=50 budget=0.5 USD]
+paid-refusal:fake-paid-provider:2026-09-13T04:33:21.395Z:1:da654c39-92e0-4cb0-90a1-09371bcc2a73  REFUSED(KILL_SWITCH_ON)  money=0 USD [MEASURED]  calls=0  time=0s  budget(paid-provider): attempted=1 callsIssuedBefore=0 spentBefore=0 capReached=false  [bound: maxCalls=50 budget=100 USD]</pre>
   <p class="sum bad">UNKNOWN although measurable: <strong>12</strong> — gsc-ingest:2026-09-11T22:58:51.912Z · founderTime; gsc-ingest:2026-09-12T00:15:14.660Z · founderTime; gsc-ingest:2026-09-12T00:15:15.685Z · providerCalls; gsc-ingest:2026-09-12T00:15:15.685Z · founderTime; gsc-ingest:2026-09-12T00:16:19.426Z · providerCalls; gsc-ingest:2026-09-12T00:16:19.426Z · founderTime; gsc-ingest:2026-09-12T00:16:20.518Z · providerCalls; gsc-ingest:2026-09-12T00:16:20.518Z · founderTime; gsc-ingest:2026-09-12T00:36:17.340Z · providerCalls; gsc-ingest:2026-09-12T00:36:17.340Z · founderTime; gsc-ingest:2026-09-12T02:44:15.609Z · founderTime; gsc-ingest:2026-09-12T22:06:42.662Z · founderTime</p>
 </section>
 
@@ -171,7 +178,7 @@ source-fetch:2026-09-13T02:19:52.573Z  money=0 USD [ZERO_BY_TARIFF]  calls=7  ti
   <p class="bound">Priority, confidence and cost are COMPUTED from stored records, never chosen; each says UNKNOWN, and why, when its inputs are missing. Nothing here is approved or applied.</p>
   <table><thead><tr><th>recommendation</th><th>priority</th><th>evidence</th><th>confidence</th><th>cost</th><th>status</th><th>reason</th></tr></thead><tbody><tr>
       <td><span class="lbl lbl-RECOMMENDED">RECOMMENDED</span><br><code>REC-ROBOTS-CORRIDOR</code><br>Decide whether Googlebot should be blocked from the /from/ corridor leaves</td>
-      <td><strong>2 of 2</strong><br><span class="bound">219 search impressions on 106 of the 106 pages its issues name (page-rows pull 9f8cbf772d1cd434, 2026-08-15..2026-09-12) — ranked against the 2 recommendation(s) with a measured impact</span></td>
+      <td><strong>2 of 2</strong><br><span class="bound">219 search impressions on 106 of the 106 pages its issues name (page-rows pull 9f8cbf772d1cd434, 2026-08-15..2026-09-12) — ranked against the 2 recommendation(s) with a measured impact</span><br>basis: <strong>MEASURED VOLUME</strong><br>consequence register entries: <code>robots-blocks-search-crawler</code> = <strong>UNCLASSIFIED</strong><br>consequence: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> UNCLASSIFIED — robots-blocks-search-crawler has no level the owner ruled; an unrated consequence is UNKNOWN, never low<br>consequence-weighted rank: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> <span class="bound">its consequence is UNKNOWN (UNCLASSIFIED — robots-blocks-search-crawler has no level the owner ruled; an unrated consequence is UNKNOWN, never low) — an unrated consequence is never ranked and never treated as low</span></td>
       <td>108 of 108 linked records found — 106 issues · 1 observations · 1 sources</td>
       <td>weakest source tier <strong>VERIFIED_ALMIWORLD</strong><br><span class="bound">tiers OFFICIAL=2 · VERIFIED_ALMIWORLD=106 · evidence resolved 108 of 108 · issues UNKNOWN 0 of 106 · pulls incomplete 0 of 0</span></td>
       <td class="wrap"><strong>of the evidence</strong> (ledger <code>gsc-ingest:2026-09-12T22:06:42.662Z</code>):<br>money: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> 111 of 112 evidence records came from runs with no ledger entry (hissa-2b, src/crawl/crawler.mjs, hissa-2a robots evidence) (at least 0 measured)<br>provider calls: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> 111 of 112 evidence records came from runs with no ledger entry (hissa-2b, src/crawl/crawler.mjs, hissa-2a robots evidence) (at least 9 measured)<br>founder time: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> 1 producing run(s) recorded founder time as UNKNOWN; 111 of 112 evidence records came from runs with no ledger entry (hissa-2b, src/crawl/crawler.mjs, hissa-2a robots evidence) (at least 0 measured)<br><strong>to carry it out:</strong> <span class="lbl lbl-UNKNOWN">UNKNOWN</span> nothing in the ledger measures the cost of carrying out a recommendation — no such run has happened</td>
@@ -180,7 +187,7 @@ source-fetch:2026-09-13T02:19:52.573Z  money=0 USD [ZERO_BY_TARIFF]  calls=7  ti
     </tr>
 <tr>
       <td><span class="lbl lbl-RECOMMENDED">RECOMMENDED</span><br><code>REC-AI-CRAWLER-BLOCK</code><br>Decide whether the 16-agent AI/SEO crawler block is still wanted</td>
-      <td><span class="lbl lbl-UNKNOWN">UNKNOWN</span> its evidence names no page, so there is no measured search impact to read — nothing ranks it</td>
+      <td><span class="lbl lbl-UNKNOWN">UNKNOWN</span> its evidence names no page, so there is no measured search impact to read — nothing ranks it<br>basis: <strong>NONE</strong><br>consequence register entries: none — no finding class is linked<br>consequence: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> its evidence links no finding class, so no register entry applies — its consequence is UNKNOWN, never low<br>consequence-weighted rank: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> <span class="bound">its consequence is UNKNOWN (its evidence links no finding class, so no register entry applies — its consequence is UNKNOWN, never low) — an unrated consequence is never ranked and never treated as low</span></td>
       <td>31 of 31 linked records found — 0 issues · 16 observations · 15 sources</td>
       <td>weakest source tier <strong>VERIFIED_ALMIWORLD</strong><br><span class="bound">tiers OFFICIAL=15 · VERIFIED_ALMIWORLD=16 · evidence resolved 31 of 31 · issues UNKNOWN 0 of 0 · pulls incomplete 0 of 0</span></td>
       <td class="wrap"><strong>of the evidence</strong> (ledger none):<br>money: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> no ledger entry lists any of the 16 records this evidence came from (produced by hissa-2c)<br>provider calls: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> no ledger entry lists any of the 16 records this evidence came from (produced by hissa-2c)<br>founder time: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> no ledger entry lists any of the 16 records this evidence came from (produced by hissa-2c)<br><strong>to carry it out:</strong> <span class="lbl lbl-UNKNOWN">UNKNOWN</span> nothing in the ledger measures the cost of carrying out a recommendation — no such run has happened</td>
@@ -189,7 +196,7 @@ source-fetch:2026-09-13T02:19:52.573Z  money=0 USD [ZERO_BY_TARIFF]  calls=7  ti
     </tr>
 <tr>
       <td><span class="lbl lbl-RECOMMENDED">RECOMMENDED</span><br><code>REC-NOINDEX-CV-GUIDE</code><br>Decide whether the country-verification gate is still the right de-indexing rule</td>
-      <td><strong>1 of 2</strong><br><span class="bound">484 search impressions on 134 of the 134 pages its issues name (page-rows pull 9f8cbf772d1cd434, 2026-08-15..2026-09-12) — ranked against the 2 recommendation(s) with a measured impact</span></td>
+      <td><strong>1 of 2</strong><br><span class="bound">484 search impressions on 134 of the 134 pages its issues name (page-rows pull 9f8cbf772d1cd434, 2026-08-15..2026-09-12) — ranked against the 2 recommendation(s) with a measured impact</span><br>basis: <strong>MEASURED VOLUME</strong><br>consequence register entries: <code>noindex</code> = <strong>UNCLASSIFIED</strong><br>consequence: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> UNCLASSIFIED — noindex has no level the owner ruled; an unrated consequence is UNKNOWN, never low<br>consequence-weighted rank: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> <span class="bound">its consequence is UNKNOWN (UNCLASSIFIED — noindex has no level the owner ruled; an unrated consequence is UNKNOWN, never low) — an unrated consequence is never ranked and never treated as low</span></td>
       <td>136 of 136 linked records found — 134 issues · 2 observations · 0 sources</td>
       <td>weakest source tier <strong>VERIFIED_ALMIWORLD</strong><br><span class="bound">tiers VERIFIED_ALMIWORLD=136 · evidence resolved 136 of 136 · issues UNKNOWN 0 of 134 · pulls incomplete 0 of 0</span></td>
       <td class="wrap"><strong>of the evidence</strong> (ledger <code>gsc-ingest:2026-09-12T22:06:42.662Z</code>):<br>money: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> 136 of 137 evidence records came from runs with no ledger entry (hissa-3, src/crawl/crawler.mjs) (at least 0 measured)<br>provider calls: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> 136 of 137 evidence records came from runs with no ledger entry (hissa-3, src/crawl/crawler.mjs) (at least 9 measured)<br>founder time: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> 1 producing run(s) recorded founder time as UNKNOWN; 136 of 137 evidence records came from runs with no ledger entry (hissa-3, src/crawl/crawler.mjs) (at least 0 measured)<br><strong>to carry it out:</strong> <span class="lbl lbl-UNKNOWN">UNKNOWN</span> nothing in the ledger measures the cost of carrying out a recommendation — no such run has happened</td>
@@ -949,44 +956,28 @@ source-fetch:2026-09-13T02:19:52.573Z  money=0 USD [ZERO_BY_TARIFF]  calls=7  ti
       </tr></tbody></table></section>
 
 <section id="source-tiers">
-  <h2>Sources, ranked by the §623 tier order — 36 real records</h2>
-  <p class="bound">[bound: tier census OFFICIAL=32 · OWNED_GSC_ANALYTICS=1 · VERIFIED_ALMIWORLD=0 · REPUTABLE_SECONDARY=0 · COMPETITOR_COMMUNITY=0 · AGENT_INFERENCE=3; equal tiers keep their input order — the rule states no preference between them]</p>
+  <h2>Sources, ranked by the §623 tier order — 20 real records</h2>
+  <p class="bound">[bound: tier census OFFICIAL=16 · OWNED_GSC_ANALYTICS=1 · VERIFIED_ALMIWORLD=0 · REPUTABLE_SECONDARY=0 · COMPETITOR_COMMUNITY=0 · AGENT_INFERENCE=3; equal tiers keep their input order — the rule states no preference between them]</p>
   <table><thead><tr><th>#</th><th>tier</th><th>source</th><th>publisher</th><th>retrieved</th></tr></thead><tbody><tr><td>1</td><td>OFFICIAL</td><td><code>fact-source:ie-nmbi.oet-minimum-grade.profession=nursing</code></td><td>Nursing and Midwifery Board of Ireland</td><td>2026-09-12</td></tr>
 <tr><td>2</td><td>OFFICIAL</td><td><code>fact-source:ie-nmbi.oet-version-required.profession=nursing</code></td><td>Nursing and Midwifery Board of Ireland</td><td>2026-09-12</td></tr>
-<tr><td>3</td><td>OFFICIAL</td><td><code>fact-source:ie-nmbi.recognised-english-speaking-countries</code></td><td>Nursing and Midwifery Board of Ireland</td><td>2026-09-12</td></tr>
-<tr><td>4</td><td>OFFICIAL</td><td><code>fact-source:ng-nmcn.issuing-body</code></td><td>Nursing and Midwifery Council of Nigeria</td><td>2026-09-12</td></tr>
+<tr><td>3</td><td>OFFICIAL</td><td><code>fact-source:ng-nmcn.issuing-body</code></td><td>Nursing and Midwifery Council of Nigeria</td><td>2026-09-12</td></tr>
+<tr><td>4</td><td>OFFICIAL</td><td><code>fact-source:oet.content-licence-permits-stored-quotation</code></td><td>Cambridge Boxhill Language Assessment (OET)</td><td>2026-09-13</td></tr>
 <tr><td>5</td><td>OFFICIAL</td><td><code>fact-source:oet.subtests-and-which-are-profession-specific</code></td><td>Cambridge Boxhill Language Assessment (OET)</td><td>2026-09-12</td></tr>
 <tr><td>6</td><td>OFFICIAL</td><td><code>fact-source:pk-pnmc.issuing-body</code></td><td>Pakistan Nursing &amp; Midwifery Council</td><td>2026-09-12</td></tr>
-<tr><td>7</td><td>OFFICIAL</td><td><code>fact-source:pk-pnmc.verification-fee.destination=foreign</code></td><td>Pakistan Nursing &amp; Midwifery Council</td><td>2026-09-12</td></tr>
-<tr><td>8</td><td>OFFICIAL</td><td><code>fact-source:pk-pnmc.verification-fee.destination=domestic</code></td><td>Pakistan Nursing &amp; Midwifery Council</td><td>2026-09-12</td></tr>
-<tr><td>9</td><td>OFFICIAL</td><td><code>fact-source:pk-pnmc.verification-response-time</code></td><td>Pakistan Nursing &amp; Midwifery Council</td><td>2026-09-12</td></tr>
-<tr><td>10</td><td>OFFICIAL</td><td><code>fact-source:uk-code-of-practice.recruitment-list-membership.country=nigeria</code></td><td>UK Department of Health and Social Care</td><td>2026-09-12</td></tr>
-<tr><td>11</td><td>OFFICIAL</td><td><code>fact-source:uk-code-of-practice.recruitment-list-membership.country=pakistan</code></td><td>UK Department of Health and Social Care</td><td>2026-09-12</td></tr>
-<tr><td>12</td><td>OFFICIAL</td><td><code>fact-source:uk-code-of-practice.recruitment-list-membership.country=kenya</code></td><td>UK Department of Health and Social Care</td><td>2026-09-12</td></tr>
-<tr><td>13</td><td>OFFICIAL</td><td><code>fact-source:uk-code-of-practice.red-list-rule</code></td><td>UK Department of Health and Social Care</td><td>2026-09-12</td></tr>
-<tr><td>14</td><td>OFFICIAL</td><td><code>fact-source:uk-code-of-practice.amber-list-rule</code></td><td>UK Department of Health and Social Care</td><td>2026-09-12</td></tr>
-<tr><td>15</td><td>OFFICIAL</td><td><code>fact-source:uk-code-of-practice.amber-list-countries</code></td><td>UK Department of Health and Social Care</td><td>2026-09-12</td></tr>
-<tr><td>16</td><td>OFFICIAL</td><td><code>fact-source:uk-code-of-practice.red-list-country-count</code></td><td>UK Department of Health and Social Care</td><td>2026-09-12</td></tr>
-<tr><td>17</td><td>OFFICIAL</td><td><code>fact-source:uk-hcpc.oet-minimum-score.profession=speech-pathology</code></td><td>Health and Care Professions Council</td><td>2026-09-12</td></tr>
-<tr><td>18</td><td>OFFICIAL</td><td><code>fact-source:uk-hcpc.oet-score-differs-by-profession</code></td><td>Health and Care Professions Council</td><td>2026-09-12</td></tr>
-<tr><td>19</td><td>OFFICIAL</td><td><code>fact-source:uk-hcpc.ielts-minimum.profession=speech-pathology</code></td><td>Health and Care Professions Council</td><td>2026-09-12</td></tr>
-<tr><td>20</td><td>OFFICIAL</td><td><code>fact-source:uk-hcpc.accepted-english-tests</code></td><td>Health and Care Professions Council</td><td>2026-09-12</td></tr>
-<tr><td>21</td><td>OFFICIAL</td><td><code>fact-source:uk-hcpc.certificate-maximum-age</code></td><td>Health and Care Professions Council</td><td>2026-09-12</td></tr>
-<tr><td>22</td><td>OFFICIAL</td><td><code>fact-source:uk-hcpc.test-venue-requirement</code></td><td>Health and Care Professions Council</td><td>2026-09-12</td></tr>
-<tr><td>23</td><td>OFFICIAL</td><td><code>fact-source:uk-hcpc.oet-profession-version.profession=speech-pathology</code></td><td>Health and Care Professions Council</td><td>2026-09-12</td></tr>
-<tr><td>24</td><td>OFFICIAL</td><td><code>fact-source:uk-nmc.oet-minimum-grade.profession=nursing</code></td><td>Nursing and Midwifery Council</td><td>2026-09-12</td></tr>
-<tr><td>25</td><td>OFFICIAL</td><td><code>fact-source:uk-nmc.oet-combining-sittings.profession=nursing</code></td><td>Nursing and Midwifery Council</td><td>2026-09-12</td></tr>
-<tr><td>26</td><td>OFFICIAL</td><td><code>fact-source:uk-nmc.english-evidence-routes.profession=nursing</code></td><td>Nursing and Midwifery Council</td><td>2026-09-12</td></tr>
-<tr><td>27</td><td>OFFICIAL</td><td><code>fact-source:uk-nmc.qualified-in-english-evidence.profession=nursing</code></td><td>Nursing and Midwifery Council</td><td>2026-09-12</td></tr>
-<tr><td>28</td><td>OFFICIAL</td><td><code>fact-source:uk-nmc.oet-profession-version.profession=nursing</code></td><td>Nursing and Midwifery Council</td><td>2026-09-12</td></tr>
-<tr><td>29</td><td>OFFICIAL</td><td><code>fact-source:uk-nmc.oet-combining-sittings-floor.profession=nursing</code></td><td>Nursing and Midwifery Council</td><td>2026-09-12</td></tr>
-<tr><td>30</td><td>OFFICIAL</td><td><code>fact-source:uk-nmc.accepted-oet-delivery-modes.profession=nursing</code></td><td>Nursing and Midwifery Council</td><td>2026-09-12</td></tr>
-<tr><td>31</td><td>OFFICIAL</td><td><code>fact-source:uk-ukvi.majority-english-speaking-countries</code></td><td>UK Home Office</td><td>2026-09-12</td></tr>
-<tr><td>32</td><td>OFFICIAL</td><td><code>fact-source:uk-ukvi.english-nationality-exemption.nationality=india</code></td><td>UK Home Office</td><td>2026-09-12</td></tr>
-<tr><td>33</td><td>OWNED_GSC_ANALYTICS</td><td><code>gsc-property:sc-domain:almiworld.com</code></td><td>Google Search Console (our own property)</td><td>2026-09-12T02:44:15.609Z</td></tr>
-<tr><td>34</td><td>AGENT_INFERENCE</td><td><code>draft:REC-ROBOTS-CORRIDOR</code></td><td>AlmiVisibility (drafted, not approved)</td><td>2026-09-12T02:28:02.143Z</td></tr>
-<tr><td>35</td><td>AGENT_INFERENCE</td><td><code>draft:REC-AI-CRAWLER-BLOCK</code></td><td>AlmiVisibility (drafted, not approved)</td><td>2026-09-12T02:28:02.143Z</td></tr>
-<tr><td>36</td><td>AGENT_INFERENCE</td><td><code>draft:REC-NOINDEX-CV-GUIDE</code></td><td>AlmiVisibility (drafted, not approved)</td><td>2026-09-12T03:15:46.798Z</td></tr></tbody></table>
+<tr><td>7</td><td>OFFICIAL</td><td><code>fact-source:pk-pnmc.verification-response-time</code></td><td>Pakistan Nursing &amp; Midwifery Council</td><td>2026-09-12</td></tr>
+<tr><td>8</td><td>OFFICIAL</td><td><code>fact-source:uk-code-of-practice.amber-list-countries</code></td><td>UK Department of Health and Social Care</td><td>2026-09-12</td></tr>
+<tr><td>9</td><td>OFFICIAL</td><td><code>fact-source:uk-code-of-practice.red-list-country-count</code></td><td>UK Department of Health and Social Care</td><td>2026-09-12</td></tr>
+<tr><td>10</td><td>OFFICIAL</td><td><code>fact-source:uk-hcpc.oet-minimum-score.profession=speech-pathology</code></td><td>Health and Care Professions Council</td><td>2026-09-12</td></tr>
+<tr><td>11</td><td>OFFICIAL</td><td><code>fact-source:uk-hcpc.oet-score-differs-by-profession</code></td><td>Health and Care Professions Council</td><td>2026-09-12</td></tr>
+<tr><td>12</td><td>OFFICIAL</td><td><code>fact-source:uk-hcpc.ielts-minimum.profession=speech-pathology</code></td><td>Health and Care Professions Council</td><td>2026-09-12</td></tr>
+<tr><td>13</td><td>OFFICIAL</td><td><code>fact-source:uk-hcpc.certificate-maximum-age</code></td><td>Health and Care Professions Council</td><td>2026-09-12</td></tr>
+<tr><td>14</td><td>OFFICIAL</td><td><code>fact-source:uk-hcpc.test-venue-requirement</code></td><td>Health and Care Professions Council</td><td>2026-09-12</td></tr>
+<tr><td>15</td><td>OFFICIAL</td><td><code>fact-source:uk-hcpc.oet-profession-version.profession=speech-pathology</code></td><td>Health and Care Professions Council</td><td>2026-09-12</td></tr>
+<tr><td>16</td><td>OFFICIAL</td><td><code>fact-source:uk-nmc.oet-profession-version.profession=nursing</code></td><td>Nursing and Midwifery Council</td><td>2026-09-12</td></tr>
+<tr><td>17</td><td>OWNED_GSC_ANALYTICS</td><td><code>gsc-property:sc-domain:almiworld.com</code></td><td>Google Search Console (our own property)</td><td>2026-09-12T02:44:15.609Z</td></tr>
+<tr><td>18</td><td>AGENT_INFERENCE</td><td><code>draft:REC-ROBOTS-CORRIDOR</code></td><td>AlmiVisibility (drafted, not approved)</td><td>2026-09-12T02:28:02.143Z</td></tr>
+<tr><td>19</td><td>AGENT_INFERENCE</td><td><code>draft:REC-AI-CRAWLER-BLOCK</code></td><td>AlmiVisibility (drafted, not approved)</td><td>2026-09-12T02:28:02.143Z</td></tr>
+<tr><td>20</td><td>AGENT_INFERENCE</td><td><code>draft:REC-NOINDEX-CV-GUIDE</code></td><td>AlmiVisibility (drafted, not approved)</td><td>2026-09-12T03:15:46.798Z</td></tr></tbody></table>
 </section>
 
 <section id="facts">
@@ -1010,9 +1001,9 @@ source-fetch:2026-09-13T02:19:52.573Z  money=0 USD [ZERO_BY_TARIFF]  calls=7  ti
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
       <td class="wrap"><code>ie-nmbi.recognised-english-speaking-countries</code></td>
-      <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
+      <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
@@ -1066,24 +1057,24 @@ source-fetch:2026-09-13T02:19:52.573Z  money=0 USD [ZERO_BY_TARIFF]  calls=7  ti
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
       <td class="wrap"><code>oet.content-licence-permits-stored-quotation</code></td>
-      <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
-      <td>2026-09-12</td>
+      <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
+      <td>2026-09-13</td>
       <td>1</td>
     </tr>
 <tr>
       <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
       <td class="wrap"><code>oet.writing-task-type.profession=nursing</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
-      <td>2026-09-12</td>
+      <td>2026-09-13</td>
       <td>1</td>
     </tr>
 <tr>
       <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
       <td class="wrap"><code>oet.speaking-roleplay-setting.profession=nursing</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
-      <td>2026-09-12</td>
+      <td>2026-09-13</td>
       <td>1</td>
     </tr>
 <tr>
@@ -1097,7 +1088,7 @@ source-fetch:2026-09-13T02:19:52.573Z  money=0 USD [ZERO_BY_TARIFF]  calls=7  ti
       <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
       <td class="wrap"><code>oet.grade-bands-0-500</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
-      <td>2026-09-12</td>
+      <td>2026-09-13</td>
       <td>1</td>
     </tr>
 <tr>
@@ -1108,16 +1099,16 @@ source-fetch:2026-09-13T02:19:52.573Z  money=0 USD [ZERO_BY_TARIFF]  calls=7  ti
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
       <td class="wrap"><code>pk-pnmc.verification-fee.destination=foreign</code></td>
-      <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
+      <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
       <td class="wrap"><code>pk-pnmc.verification-fee.destination=domestic</code></td>
-      <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
+      <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
@@ -1136,23 +1127,23 @@ source-fetch:2026-09-13T02:19:52.573Z  money=0 USD [ZERO_BY_TARIFF]  calls=7  ti
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
       <td class="wrap"><code>uk-code-of-practice.recruitment-list-membership.country=nigeria</code></td>
-      <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
+      <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
       <td class="wrap"><code>uk-code-of-practice.recruitment-list-membership.country=pakistan</code></td>
-      <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
+      <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
       <td class="wrap"><code>uk-code-of-practice.recruitment-list-membership.country=kenya</code></td>
-      <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
+      <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
@@ -1171,16 +1162,16 @@ source-fetch:2026-09-13T02:19:52.573Z  money=0 USD [ZERO_BY_TARIFF]  calls=7  ti
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
       <td class="wrap"><code>uk-code-of-practice.red-list-rule</code></td>
-      <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
+      <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
       <td class="wrap"><code>uk-code-of-practice.amber-list-rule</code></td>
-      <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
+      <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
@@ -1227,9 +1218,9 @@ source-fetch:2026-09-13T02:19:52.573Z  money=0 USD [ZERO_BY_TARIFF]  calls=7  ti
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
       <td class="wrap"><code>uk-hcpc.accepted-english-tests</code></td>
-      <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
+      <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
@@ -1255,30 +1246,30 @@ source-fetch:2026-09-13T02:19:52.573Z  money=0 USD [ZERO_BY_TARIFF]  calls=7  ti
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
       <td class="wrap"><code>uk-nmc.oet-minimum-grade.profession=nursing</code></td>
-      <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
+      <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
       <td class="wrap"><code>uk-nmc.oet-combining-sittings.profession=nursing</code></td>
-      <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
+      <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
       <td class="wrap"><code>uk-nmc.english-evidence-routes.profession=nursing</code></td>
-      <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
+      <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
       <td class="wrap"><code>uk-nmc.qualified-in-english-evidence.profession=nursing</code></td>
-      <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
+      <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
@@ -1290,30 +1281,30 @@ source-fetch:2026-09-13T02:19:52.573Z  money=0 USD [ZERO_BY_TARIFF]  calls=7  ti
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
       <td class="wrap"><code>uk-nmc.oet-combining-sittings-floor.profession=nursing</code></td>
-      <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
+      <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
       <td class="wrap"><code>uk-nmc.accepted-oet-delivery-modes.profession=nursing</code></td>
-      <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
+      <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
       <td class="wrap"><code>uk-ukvi.majority-english-speaking-countries</code></td>
-      <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
+      <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
       <td class="wrap"><code>uk-ukvi.english-nationality-exemption.nationality=india</code></td>
-      <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
+      <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr></tbody>
@@ -2039,7 +2030,7 @@ source-fetch:2026-09-13T02:19:52.573Z  money=0 USD [ZERO_BY_TARIFF]  calls=7  ti
 </section>
 
 <footer>
-  <p>Generated 2026-09-13T02:27:01.194Z from the evidence store.</p>
+  <p>Generated 2026-09-14T01:50:03.603Z from the evidence store.</p>
   <p><strong>Read-only</strong> — this page has no action, no form and no write path of any kind.</p>
   <p>🔴 This is one report page, not a dashboard (V5.1 §62). It states what it covers and what it does not.</p>
 </footer>

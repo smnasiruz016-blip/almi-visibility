@@ -1,0 +1,41 @@
+ROW 59 — THE REAL CENSUS, AS PRINTED
+date: 2026-09-14T01:50:36.229Z · base HEAD 2858812fe6e1ec3c2c3d05a224d1f5dced9e1dc9 (uncommitted change under test) · exit 0
+
+ROW 59 — REFUTATION CENSUS
+
+[bound: 4137 records read from runs/audit/*.jsonl]
+POPULATION CHECKED: 20 — 17 finding classes present in the store · 3 drafted recommendations
+  classes         : canonical, commencement-date-ambiguous-against-source, exact-duplicate, head-elements, host-publishes-no-a-record, indexability-preflight, instrument-disagreement, near-duplicate, noindex, official-source-contradicts-itself, orphan-within-crawled-set, query-parameters, robots-blocks-search-crawler, sitemap-advertises-blocked-url, status-and-redirects, template-dominance, thin-content
+  recommendations : REC-AI-CRAWLER-BLOCK, REC-NOINDEX-CV-GUIDE, REC-ROBOTS-CORRIDOR
+methods held      : 59 (detectors recorded in the store + runners in bin/)
+
+carrying all three parts and a held method : 20 of 20
+  ✅ class          canonical  ← canonical
+  ✅ class          commencement-date-ambiguous-against-source  ← human-verification
+  ✅ class          exact-duplicate  ← exact-duplicate
+  ✅ class          head-elements  ← head-elements
+  ✅ class          host-publishes-no-a-record  ← dns-family
+  ✅ class          indexability-preflight  ← indexability-preflight
+  ✅ class          instrument-disagreement  ← instrument-agreement
+  ✅ class          near-duplicate  ← near-duplicate
+  ✅ class          noindex  ← noindex
+  ✅ class          official-source-contradicts-itself  ← human-verification
+  ✅ class          orphan-within-crawled-set  ← orphan-within-crawled-set
+  ✅ class          query-parameters  ← query-parameters
+  ✅ class          robots-blocks-search-crawler  ← robots-scope
+  ✅ class          sitemap-advertises-blocked-url  ← sitemap-vs-robots
+  ✅ class          status-and-redirects  ← status-and-redirects
+  ✅ class          template-dominance  ← template-dominance
+  ✅ class          thin-content  ← thin-content
+  ✅ recommendation REC-AI-CRAWLER-BLOCK  ← robots-scope
+  ✅ recommendation REC-NOINDEX-CV-GUIDE  ← noindex
+  ✅ recommendation REC-ROBOTS-CORRIDOR  ← robots-scope
+✅ MISSING — no refutation: 0
+✅ NOT WRITTEN — declared unrefutable: 0
+✅ EMPTY PART: 0
+✅ UNOBTAINABLE — the source names no method we hold: 0
+✅ STALE — in the register, not in the store: 0
+
+🔴 LIMIT: the census proves each refutation's three parts are present and that its source names a method this product holds; it CANNOT prove the refutation is well chosen — that is human judgement
+
+✅ every presented finding carries a structured refutation

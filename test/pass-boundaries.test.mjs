@@ -294,10 +294,12 @@ test("🔴 RED: TESTABLE-NOW without a named test is REFUSED", () => {
  * limbs re-run RED alone. BUILT-NOT-PROVED 7 → 6, VERIFIED-PASS 18 → 19. */
 /* 🔴 AND ROW 5 WAS RUN AND FAILED (14 Sep 2026): its held-out check left 12 of 61 identical intents split — the FAILURE
  * clause, met on the evidence the contract names. NOT-STARTED 7 → 6, FAILED 1 → 2. Not progress; worth more than unrun. */
-test("the seven-state tally is 6 / 6 / 1 / 19 / 2 / 4 / 23 over 61 rows", () => {
+/* 🔴 AND ROW 6 WAS BUILT AND RUN (14 Sep 2026): every named axis and every discovered one tested on real evidence, 7 MONITOR ·
+ * 7 UNKNOWN, none accepted or rejected — so BUILT-NOT-PROVED, never further. NOT-STARTED 6 → 5, BUILT-NOT-PROVED 6 → 7. */
+test("the seven-state tally is 5 / 7 / 1 / 19 / 2 / 4 / 23 over 61 rows", () => {
   assert.deepEqual(tally(classify()), {
-    "NOT-STARTED": 6,
-    "BUILT-NOT-PROVED": 6,
+    "NOT-STARTED": 5,
+    "BUILT-NOT-PROVED": 7,
     "TESTABLE-NOW": 1,
     "VERIFIED-PASS": 19,
     FAILED: 2,
@@ -350,11 +352,13 @@ test("every state used is one of the seven, and every row is classified", () => 
  * ("vocabulary" 31 → 30). */
 /* 🔴 TWENTY since 47 and 53 were run ("none" 10 → 8). */
 /* 🔴 TWENTY-ONE since row 5 was run and FAILED (14 Sep 2026) — a failure is still work ("none" 16 → 15). */
-test("🔴 exactly TWENTY-ONE rows moved on WORK — 9 BLOCKED; 25 TESTABLE-NOW; 5 and 50 FAILED; the rest PASS", () => {
+/* 🔴 TWENTY-TWO since row 6 was built and run (14 Sep 2026) — work that stops at BUILT-NOT-PROVED, pinned beside 9 and 25
+ * as the third work row outside LOOKED ("none" 15 → 14). */
+test("🔴 exactly TWENTY-TWO rows moved on WORK — 6 BUILT-NOT-PROVED; 9 BLOCKED; 25 TESTABLE-NOW; 5 and 50 FAILED; the rest PASS", () => {
   const rows = Object.values(classify());
   const work = rows.filter((r) => r.changeKind === "work");
-  assert.deepEqual(work.map((r) => r.id).sort((a, b) => a - b), [5, 8, 9, 11, 12, 13, 14, 15, 25, 26, 38, 42, 45, 47, 48, 49, 50, 51, 53, 55, 56]);
-  assert.deepEqual(work.filter((r) => !LOOKED.includes(r.state)).map((r) => `${r.id}:${r.state}`), ["9:BLOCKED-UNKNOWN", "25:TESTABLE-NOW"]);
+  assert.deepEqual(work.map((r) => r.id).sort((a, b) => a - b), [5, 6, 8, 9, 11, 12, 13, 14, 15, 25, 26, 38, 42, 45, 47, 48, 49, 50, 51, 53, 55, 56]);
+  assert.deepEqual(work.filter((r) => !LOOKED.includes(r.state)).map((r) => `${r.id}:${r.state}`), ["6:BUILT-NOT-PROVED", "9:BLOCKED-UNKNOWN", "25:TESTABLE-NOW"]);
   assert.deepEqual(work.filter((r) => r.state === "FAILED").map((r) => r.id), [5, 50]);
   // 🔴 Amendment 4: rows 3–7 are NOT-STARTED again, which is where the 11 September baseline had them — so
   // against THAT baseline they did not move ("vocabulary" 30 → 25, "none" 8 → 13). Their ruling move is
@@ -362,8 +366,9 @@ test("🔴 exactly TWENTY-ONE rows moved on WORK — 9 BLOCKED; 25 TESTABLE-NOW;
   assert.equal(rows.filter((r) => r.changeKind === "vocabulary").length, 25);
   // 🔴 Rows 59, 60 and 61 have no 11 September baseline, so against it they are "none" (13 → 16). Row 61's WORK is
   // its declared move in MOVES_AMENDMENT_2 — never inferred from a baseline it was not in.
-  // 🔴 And row 5, run and FAILED on 14 September 2026, is work against that baseline, not "none" (16 → 15).
-  assert.equal(rows.filter((r) => r.changeKind === "none").length, 15);
+  // 🔴 And row 5, run and FAILED on 14 September 2026, is work against that baseline, not "none" (16 → 15);
+  // and row 6, built and run the same night, is work too (15 → 14).
+  assert.equal(rows.filter((r) => r.changeKind === "none").length, 14);
 });
 
 /* ================================================================== *
@@ -627,17 +632,22 @@ test("🔴 the five arrive NOT-STARTED by a RULING move and nothing else; row 2 
     assert.deepEqual([chain[0].from, chain[0].to, chain[0].kind, chain[0].route], ["DEFERRED", "NOT-STARTED", "ruling", "OWNER_RULING"]);
     assert.match(chain[0].ruling, /PASS_BOUNDARIES_AMENDMENT_4\.md/);
   }
-  for (const id of [3, 4, 6, 7]) {
+  for (const id of [3, 4, 7]) {
     assert.equal(rows[id].state, "NOT-STARTED");
     assert.equal(MOVES_AMENDMENT_2[id].length, 1);
     assert.match(rows[id].why, /a class change is not progress/);
   }
+  // 🔴 Row 6 arrived by the same ruling — and was then BUILT and run (14 September 2026), a WORK move that stops at BUILT-NOT-PROVED.
+  assert.equal(rows[6].state, "BUILT-NOT-PROVED");
+  assert.deepEqual(MOVES_AMENDMENT_2[6].map((m) => `${m.from}→${m.to}:${m.kind}:${m.route}`), ["DEFERRED→NOT-STARTED:ruling:OWNER_RULING", "NOT-STARTED→BUILT-NOT-PROVED:work:BUILT"]);
+  assert.match(rows[6].why, /7 MONITOR · 7 UNKNOWN · 0 BUILD · 0 REJECT/);
+  assert.match(rows[6].why, /both populations are EMPTY/);
   // 🔴 Row 5 arrived by the same ruling — and then its test was RUN (14 September 2026), a separate WORK move, to FAILED.
   assert.equal(rows[5].state, "FAILED");
   assert.deepEqual(MOVES_AMENDMENT_2[5].map((m) => `${m.from}→${m.to}:${m.kind}:${m.route}`), ["DEFERRED→NOT-STARTED:ruling:OWNER_RULING", "NOT-STARTED→FAILED:work:TEST_RUN"]);
   assert.match(rows[5].failureMet, /identical intents stay split/);
   assert.match(rows[5].why, /12 identical intents stayed split/);
-  assert.deepEqual(Object.values(rows).filter((r) => r.changeKind === "work" && [2, 3, 4, 6, 7].includes(r.id)), []);
+  assert.deepEqual(Object.values(rows).filter((r) => r.changeKind === "work" && [2, 3, 4, 7].includes(r.id)), []);
   assert.match(rows[2].why, /KEPT D by Amendment 4/);
   assert.match(rows[2].why, /legitimate public question evidence/);
   assert.match(rows[2].why, /no fetch is authorised/);

@@ -62,8 +62,8 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 | state | before Amendment 2 | after the RULING only | after the WORK |
 |---|---|---|---|
-| **NOT-STARTED** | 3 | 8 | **6** |
-| **BUILT-NOT-PROVED** | 18 | 17 | **6** |
+| **NOT-STARTED** | 3 | 8 | **5** |
+| **BUILT-NOT-PROVED** | 18 | 17 | **7** |
 | **TESTABLE-NOW** | 0 | 2 | **1** |
 | **VERIFIED-PASS** | 3 | 3 | **19** |
 | **FAILED** | 0 | -1 | **2** |
@@ -106,6 +106,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | # | from | to | test | date | what happened |
 |---|---|---|---|---|---|
 | 5 | NOT-STARTED | FAILED | `node bin/intent-clusters.mjs --check · node --test test/intent-clustering.test.mjs · runs/audit/row5-census-2026-09-14.txt · runs/audit/row5-red-limbs-2026-09-14.txt` | 2026-09-14 | 329 human queries (8 operator strings classified and kept apart); in-sample 268 → 73 clusters, 0 merged and 0 split against a reference written before the clusterer ran; the held-out check left 12 of 61 identical intents split — FAILURE met on the evidence the contract names; six limbs RED alone in the real files and restored. FAILED on the owner's answer |
+| 6 | NOT-STARTED | BUILT-NOT-PROVED | `node bin/axis-discovery.mjs --check · node --test test/axis-discovery.test.mjs · runs/audit/row6-census-2026-09-14.txt · runs/audit/row6-red-limbs-2026-09-14.txt` | 2026-09-14 | the six named axes (read from the contract) and 7 discovered slot types each tested with seven legs on real evidence: 7 MONITOR, 7 UNKNOWN, 0 BUILD, 0 REJECT — answer-level distinguishing power is UNKNOWN on every axis because the answer at each value is not owned; locality tested on the 10 countries with five or more rows, the other 38 UNKNOWN by LAW-ABSENT-1; every limb RED alone and restored; BUILD and REJECT shown reachable when measured. BUILT-NOT-PROVED on the owner's answer |
 | 9 | BUILT-NOT-PROVED | BLOCKED-UNKNOWN | `node bin/gsc-ingest.mjs --property=sc-domain:almiworld.com · node bin/gsc-dimensions.mjs · test/search-dimensions.test.mjs` | 2026-09-12 | six of seven dimensions ingested from the real property, each pull exhausted and COMPLETE with its bounds; downstream outcomes is supplied by no tool this engine holds, which the NOTE makes ⚠ rather than a failure |
 | 11 | BLOCKED-UNKNOWN | VERIFIED-PASS | `node bin/replay-crawl.mjs · test/replay.test.mjs` | 2026-09-13 | the same 394 URLs crawled twice through the production crawler and store, 5 named bodies changed between runs: 394/394 page_ids identical, 389 pages before and across both runs, each change a new observation on its existing page; RED when the id takes the clock |
 | 12 | BUILT-NOT-PROVED | TESTABLE-NOW | `undefined` | 2026-09-13 | the corpus with shell subtraction defined and printed exists in the repository |
@@ -149,8 +150,8 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 | state | before (4-state) | after (7-state) |
 |---|---|---|
-| **NOT-STARTED** | 33 | **6** |
-| **BUILT-NOT-PROVED** | 24 | **6** |
+| **NOT-STARTED** | 33 | **5** |
+| **BUILT-NOT-PROVED** | 24 | **7** |
 | **TESTABLE-NOW** | 0 | **1** |
 | **VERIFIED-PASS** | 0 | **19** |
 | **FAILED** | 0 | **2** |
@@ -160,13 +161,14 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 ### 🔴 THE MOST IMPORTANT LINE IN THIS DOCUMENT
 
-> **21 row(s) changed because work happened.** Listed in (i) below.
+> **22 row(s) changed because work happened.** Listed in (i) below.
 
 #### (i) changed because WORK HAPPENED
 
 | # | feature | from | to |
 |---|---|---|---|
 | 5 | Intent & Question Clustering | NOT-STARTED | **FAILED** |
+| 6 | Axis Discovery | NOT-STARTED | **BUILT-NOT-PROVED** |
 | 8 | HEAVY / THIN / EMPTY Discipline | NOT-STARTED | **VERIFIED-PASS** |
 | 9 | Search Console / Analytics Intelligence | BUILT-NOT-PROVED | **BLOCKED-UNKNOWN** |
 | 11 | Existing Page Inventory | BUILT-NOT-PROVED | **VERIFIED-PASS** |
@@ -195,7 +197,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | NOT-STARTED → DEFERRED | 23 | 2, 18, 19, 20, 21, 22, 23, 24, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39, 40, 41, 43, 44 |
 | BUILT-NOT-PROVED → BLOCKED-UNKNOWN | 2 | 1, 54 |
 
-**Did not move against the 11 September 2026 baseline: 12** — 3, 4, 6, 7, 10, 16, 17, 36, 46, 52, 57, 58
+**Did not move against the 11 September 2026 baseline: 11** — 3, 4, 7, 10, 16, 17, 36, 46, 52, 57, 58
 
 **Not on that baseline — admitted later by owner ruling: 3** — 59, 60, 61. They are not "unmoved"; they did not exist. Any work on them since is a declared move above.
 
@@ -322,7 +324,7 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 
 ### 6 · Axis Discovery
 
-**NOT-STARTED** · class `P` (frozen `D`, moved by Amendment 4) · ruled in `§6`
+**BUILT-NOT-PROVED** · class `P` (frozen `D`, moved by Amendment 4) · ruled in `§6` · was NOT-STARTED (work)
 
 | part | the owner's words |
 |---|---|
@@ -332,7 +334,9 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 | **EVIDENCE** | the evidence behind each accepted axis and each rejected one. |
 | **Amendment 4 — its INPUT tested** | ✅ **yes** — the evidence store: queries, countries, pages → **D → P** |
 
-**Verdict —** 🔴 **NOT-STARTED — IN SCOPE SINCE AMENDMENT 4** (owner ruling under §12, 13 September 2026). **Nothing has been built for it and nothing was run.** It left DEFERRED ONLY because a ruling changed its class — a class change is not progress. Its input is owned evidence already captured in `runs/evidence/evidence.jsonl` (Search Console ingest of 2026-09-12T23:25Z: query 337 · query-page 574 · country 126 · country-query 388 rows; page rows 1,525 from the 22:06Z run of the same day). **Class D → P.** The amendment's test of its frozen INPUT clause, *"the subject's real evidence"*: ✅ **yes** — the evidence store: queries, countries, pages.
+**Verdict —** 🔴 **BUILT AND RUN ON THE SUBJECT'S REAL EVIDENCE, 14 SEPTEMBER 2026 — AND STOPPED AT BUILT-NOT-PROVED ON THE OWNER'S ANSWER, BECAUSE NO AXIS CAN BE ACCEPTED OR REJECTED ON OWNED EVIDENCE.** **INPUT** row 5's intent record (329 human queries); the country×query pull `9bf50cfb134a0d7d` (388 rows = 379 human + 9 operator — **48** searcher countries once the operator rows are out); the page-rows pull (1,525 pages); 394 archived page bodies. **EXPECTED — discovered and tested, not assumed:** the six axes the contract names, READ from its own EXPECTED clause (origin/destination tested as its two directions), and 7 slot types the evidence carried that none of them claims — each with seven legs, every leg with a state and a basis. **Verdicts: 7 MONITOR · 7 UNKNOWN · 0 BUILD · 0 REJECT.** **the licensed-occupation axis (the first the contract names) UNKNOWN** — 3 human queries, each naming one licensed occupation, yet declared by hand as the connected product's axis and hard-coded on 89 pages. **role MONITOR** — 28 queries over 28 values, each seen once; our pages differing only by occupation overlap at median 0.561 (474 pairs). **stage MONITOR** — 64 queries, 7 values. **origin UNKNOWN** — 2 queries naming one nationality, yet hard-coded into 775 of the 1,525 pages (1,179 impressions), and our pages differing only by origin overlap at median 0.806 (23 pairs). **destination MONITOR** — 12 queries over 10 values, 80% seen once. **language MONITOR** — 8 queries (es 5, it 3). **locality MONITOR** — the question mix differs from the rest in all 10 countries with five or more rows (aus, usa, gbr and ind at p ≈ 0.001), and the other 38 countries are UNKNOWN by LAW-ABSENT-1, never 'no power'. Discovered: the score number (65 queries, 38 values) and the test variant MONITOR; year, budget, purpose, field and skill UNKNOWN. **Why none is BUILD or REJECT:** answer-level distinguishing power, evidence availability and human-value delta are UNKNOWN on every axis — the answer at each value is not in the store (row 7's SUPPLY and row 2 are deferred), and all 337 query rows carry 0 clicks. **FAILURE not met by this row:** it adopts no axis without a measurement — it adopts none; the axes the estate already hard-codes are reported beside their evidence, not endorsed. **EVIDENCE** the census and six sabotages over five limbs (accepted unmeasured, rejected on thin evidence — per axis and per country, a named axis untested, an inconsistent verdict, a leg with no basis), each RED alone in the real files and restored by sha256; and controls showing BUILD and REJECT ARE reachable when their measurement exists. 🔴 **Why not VERIFIED-PASS:** its EVIDENCE clause asks for the evidence behind each accepted axis and each rejected one, and both populations are EMPTY — a law seen only to refuse has not been seen to decide. BUILT-NOT-PROVED on the owner's answer, 14 September 2026 The amendment's test of its frozen INPUT clause, *"the subject's real evidence"*: ✅ **yes** — the evidence store: queries, countries, pages.
+
+**The one test that would settle it —** node bin/axis-discovery.mjs --check · node --test test/axis-discovery.test.mjs · runs/audit/row6-census-2026-09-14.txt · runs/audit/row6-red-limbs-2026-09-14.txt — and, to leave BUILT-NOT-PROVED, per-value answer evidence the owner authorises, with the row re-run
 
 ### 7 · Market Measurement
 

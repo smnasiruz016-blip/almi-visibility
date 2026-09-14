@@ -441,8 +441,8 @@ test("🔴 rows 59 and 60 left NOT-STARTED only by declared WORK moves — 59 VE
   assert.match(rows[59].why, /Backfill: 20 written, 0 that could not be written/);
   assert.equal(rows[60].state, "BUILT-NOT-PROVED");
   // 🔴 14 Sep 2026: ruled by the owner, and still not proved — the unmet limb is named on the row, not implied.
-  assert.match(rows[60].why, /TWELVE HALVES WAIT ON THE OWNER/);
-  assert.match(rows[60].why, /1,224 are checks that never ran/);
+  assert.match(rows[60].why, /AN UNMEASURED CHECK IS NOT A FINDING/);
+  assert.match(rows[60].why, /the two noindex classes do not/i);
   assert.match(rows[60].why, /The limb not met is EXPECTED's first clause/);
   assert.match(rows[60].why, /UNCLASSIFIED IS A REAL STATE AND NEVER DEFAULTS TO LOW/);
   assert.deepEqual(assertTransitions(rows), []);

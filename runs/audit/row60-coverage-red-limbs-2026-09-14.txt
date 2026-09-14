@@ -1,0 +1,63 @@
+ROW 60 — AN UNMEASURED CHECK IS NOT A FINDING (14 September 2026): EACH EVIDENCE LIMB SABOTAGED ALONE IN THE REAL FILES
+recorded 2026-09-14T04:33:13.762Z by the sabotage harness; runner: node bin/consequence-census.mjs (limb 6: node bin/row60-ruling-sheet.mjs)
+
+GREEN BEFORE — census exit 0, limbs tripped: none · sheet runner exit 0
+
+✅ RED ALONE — limb 1 · a check that never ran given a severity level (orphan's check-not-run class ruled MODERATE in the consequence register)
+   file config/consequence-register.mjs
+     sha256 before   784cd6dc16112aedf0370954f31b26a78c6314936f4b7e2438efb140e08382c1
+     sha256 sabotage 09c72b90d4bb05eca5a2d9f8a948acf35ab6f9a5b0f2f294ac4b515c77190908
+     sha256 restored 784cd6dc16112aedf0370954f31b26a78c6314936f4b7e2438efb140e08382c1
+   landed: true · restored identical: true
+   exit 1 · limbs tripped: coverage-level · expected exactly: coverage-level
+   [coverage-level] orphan-within-crawled-set-check-not-run a coverage class sits in the consequence register — a check that never ran is not a finding and is given no level
+
+✅ RED ALONE — limb 2 · a coverage-register entry ranked beside a finding (the census orders the coverage classes with the finding classes)
+   file bin/consequence-census.mjs
+     sha256 before   3fa6c0a216c42bb0f5ea68b5be0a4f44ec9ecf16f954cf10259a5a7fef9c7d36
+     sha256 sabotage d031759e4d8bb986804e7305018c15c30344037ac532e35b5938d27e1260c226
+     sha256 restored 3fa6c0a216c42bb0f5ea68b5be0a4f44ec9ecf16f954cf10259a5a7fef9c7d36
+   landed: true · restored identical: true
+   exit 1 · limbs tripped: coverage-ranked · expected exactly: coverage-ranked
+   [coverage-ranked] indexability-preflight-check-not-run a coverage class appears in the findings order — 'we did not look' is never ranked beside 'we found something'
+   [coverage-ranked] near-duplicate-check-not-run a coverage class appears in the findings order — 'we did not look' is never ranked beside 'we found something'
+   [coverage-ranked] orphan-within-crawled-set-check-not-run a coverage class appears in the findings order — 'we did not look' is never ranked beside 'we found something'
+
+✅ RED ALONE — limb 3 · a blast-radius figure that disagrees with the store's REAL count (near-duplicate-found back to the 113 that was never real)
+   file config/consequence-register.mjs
+     sha256 before   784cd6dc16112aedf0370954f31b26a78c6314936f4b7e2438efb140e08382c1
+     sha256 sabotage c46a0469f754e1b2de820d896bc7102ff661b8b5b16b5e3c543bdd239d7998c7
+     sha256 restored 784cd6dc16112aedf0370954f31b26a78c6314936f4b7e2438efb140e08382c1
+   landed: true · restored identical: true
+   exit 1 · limbs tripped: blast-radius · expected exactly: blast-radius
+   [blast-radius] near-duplicate-found its blast radius cites 113, and the store holds 5 real finding(s) for this class — volume that is not real findings may not stand in a level's reasoning
+
+✅ RED ALONE — limb 4 · a superseded escalation still applied (the orphan escalation's recorded void removed)
+   file config/consequence-register.mjs
+     sha256 before   784cd6dc16112aedf0370954f31b26a78c6314936f4b7e2438efb140e08382c1
+     sha256 sabotage 5c5559cae610d57aea4000031193cf02b64cc00bad0a6feae98d0299eaf56443
+     sha256 restored 784cd6dc16112aedf0370954f31b26a78c6314936f4b7e2438efb140e08382c1
+   landed: true · restored identical: true
+   exit 1 · limbs tripped: void-escalation · expected exactly: void-escalation
+   [void-escalation] orphan-within-crawled-set the superseded entry's escalation from LOW rests on 340 while the store holds 0 real finding(s), and no void is recorded — an escalation on volume that is not real is void and must say so
+
+✅ RED ALONE — limb 5 · a half inheriting a parent's level (thin-content-found's ruling names its parent, not the half)
+   file config/consequence-register.mjs
+     sha256 before   784cd6dc16112aedf0370954f31b26a78c6314936f4b7e2438efb140e08382c1
+     sha256 sabotage 806a7b764058826e59ba370fdd6c080f9680ec50e2ee63313986dd6169f5018f
+     sha256 restored 784cd6dc16112aedf0370954f31b26a78c6314936f4b7e2438efb140e08382c1
+   landed: true · restored identical: true
+   exit 1 · limbs tripped: half-level · expected exactly: half-level
+   [half-level] thin-content-found a half of thin-content arrives with level MODERATE ruled by owner and no ruling that names the half itself — a half is a new class, and no parent level carries down
+
+✅ RED ALONE — limb 6 · the sheet disagreeing with the store (orphan's coverage count 340 → 0 on the committed sheet) — the sheet runner must refuse to print
+   file runs/export/row60-ruling-sheet.json
+     sha256 before   a29c814c09a10730556354c9e6913aa97225f4eb2dc7b455449e8e23eb0eb5c3
+     sha256 sabotage 179ad0481dec34c9d91a91b4b69e1e170bc8b073d453775076b9bf7d12374299
+     sha256 restored a29c814c09a10730556354c9e6913aa97225f4eb2dc7b455449e8e23eb0eb5c3
+   landed: true · restored identical: true
+   exit 1 · limbs tripped: coverage · expected exactly: coverage
+   [coverage]  — the sheet's coverage population is not the one the store and the coverage register produce
+
+GREEN AFTER — census exit 0, limbs tripped: none · sheet runner exit 0
+RESULT: 6 of 6 limbs RED alone and restored

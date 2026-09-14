@@ -61,6 +61,11 @@ export function splitView(records, splits) {
   return { view, lifecycleErrors: life.errors };
 }
 
+/** 🔴 The classes whose records are checks that never ran: the COVERAGE population, never a finding (owner, 14 Sep 2026). */
+export function coverageClassesOf(splits) {
+  return new Set(Object.values(splits ?? {}).flatMap((s) => s.halves.filter((h) => h.measures === "unmeasured").map((h) => h.class)));
+}
+
 /** The effective classes present on issue records. */
 export function effectiveClassesInUse(records, splits) {
   return [...new Set([...splitView(records, splits).view.values()].map((v) => v.class).filter(Boolean))].sort();
@@ -79,6 +84,9 @@ export function splitErrors({ records, splits, unmeasuredCodes, view = splitView
   for (const s of Object.values(splits ?? {})) {
     for (const h of s.halves) {
       if (!h.when || Object.keys(h.when).length === 0) errors.push({ limb: "signal", id: h.class, why: `half ${h.class} of ${s.parent} declares no stored signal — a record cannot be placed in it without guessing` });
+      if ((h.measures === "unmeasured") !== String(h.class).endsWith(NOT_RUN)) {
+        errors.push({ limb: "misnamed", id: h.class, why: `half ${h.class} is declared to measure "${h.measures}", and its name says ${String(h.class).endsWith(NOT_RUN) ? "a check that never ran" : "something found"} — a declaration and its name may not disagree` });
+      }
     }
   }
 

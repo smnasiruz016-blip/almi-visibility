@@ -1,6 +1,6 @@
 # ALMIVISIBILITY — ROW 60 · CONSEQUENCE REGISTER · RULED 14 SEPTEMBER 2026 · SEVEN CLASSES SPLIT
 
-> 🔴 **GENERATED — DO NOT EDIT BY HAND.** `node bin/row60-ruling-sheet.mjs --confirm` writes it from the evidence store at 2026-09-14T03:55:30.039Z.
+> 🔴 **GENERATED — DO NOT EDIT BY HAND.** `node bin/row60-ruling-sheet.mjs --confirm` writes it from the evidence store at 2026-09-14T04:28:41.226Z.
 > Every count is derived by applying each state-change record to its issue on issue_id, with each issue counted under
 > the class its own stored fields place it in (`config/class-splits.mjs`). Every description, level and attribution is
 > copied from `config/consequence-register.mjs`, the scale from `config/consequence-scale.mjs`. The sheet sets no level.
@@ -44,7 +44,7 @@
 
 Units: **distinct** = issues, by issue_id · **open** = distinct issues still OPEN after every state change · **raw** = issue records, duplicate copies included · **not run** = distinct issues that record a check that never ran — not a defect found.
 
-## Part B — the 10 levels already ruled (unchanged, attributed)
+## Part B — the 14 levels already ruled (unchanged, attributed)
 
 | # | class | what it is (the register's words) | open | distinct | ruled states | raw | not run | level | ruled by |
 |---|---|---|---|---|---|---|---|---|---|
@@ -53,31 +53,25 @@ Units: **distinct** = issues, by issue_id · **open** = distinct issues still OP
 | 3 | `exact-duplicate` | a page's body is byte-identical to other pages' | 106 | 106 | — | 106 | 0 | HIGH | owner 2026-09-14 |
 | 4 | `head-elements` | a page's heading structure is broken — no h1, or a heading level used before it | 18 | 18 | — | 36 | 0 | LOW | owner 2026-09-14 |
 | 5 | `host-publishes-no-a-record` | a host publishes no IPv4 address, so IPv4 clients and crawlers cannot resolve it | 1 | 1 | — | 3 | 0 | HIGH | owner 2026-09-14 |
-| 6 | `instrument-disagreement` | two of our own instruments disagree about the same page over the same inputs | 0 | 11 | 11 CLOSED | 11 | 0 | HIGH | owner 2026-09-14 |
-| 7 | `official-source-contradicts-itself` | an official source states two things about the same fact that disagree | 1 | 1 | — | 1 | 0 | HIGH | owner 2026-09-14 |
-| 8 | `query-parameters` | a page's URL carries query parameters | 1 | 1 | — | 2 | 0 | LOW | owner 2026-09-14 |
-| 9 | `robots-blocks-search-crawler` | robots.txt disallows a search crawler from a page that draws search impressions | 106 | 106 | — | 318 | 0 | MODERATE | owner 2026-09-14 |
-| 10 | `status-and-redirects` | requesting a page's URL does not return 200 directly — it redirects or errors | 7 | 7 | — | 14 | 0 | LOW | owner 2026-09-14 |
+| 6 | `indexability-preflight-found` | the indexability check ran on a page and found a condition that blocks its eligibility | 158 | 158 | — | 300 | 0 | MODERATE | owner 2026-09-14 |
+| 7 | `instrument-disagreement` | two of our own instruments disagree about the same page over the same inputs | 0 | 11 | 11 CLOSED | 11 | 0 | HIGH | owner 2026-09-14 |
+| 8 | `near-duplicate-found` | the near-duplicate check ran and found a page's body highly similar to a sibling page's | 5 | 5 | — | 5 | 0 | MODERATE | owner 2026-09-14 |
+| 9 | `official-source-contradicts-itself` | an official source states two things about the same fact that disagree | 1 | 1 | — | 1 | 0 | HIGH | owner 2026-09-14 |
+| 10 | `query-parameters` | a page's URL carries query parameters | 1 | 1 | — | 2 | 0 | LOW | owner 2026-09-14 |
+| 11 | `robots-blocks-search-crawler` | robots.txt disallows a search crawler from a page that draws search impressions | 106 | 106 | — | 318 | 0 | MODERATE | owner 2026-09-14 |
+| 12 | `status-and-redirects` | requesting a page's URL does not return 200 directly — it redirects or errors | 7 | 7 | — | 14 | 0 | LOW | owner 2026-09-14 |
+| 13 | `template-dominance-found` | the template-dominance check ran and found the shared shell making up most of a page's words | 2 | 2 | — | 4 | 0 | MODERATE | owner 2026-09-14 |
+| 14 | `thin-content-found` | the thin-content check ran and found fewer unique body words than the floor after the shell is subtracted | 118 | 118 | — | 236 | 0 | MODERATE | owner 2026-09-14 |
 
-## Part B1 — the 12 classes for the owner to rule: LEVEL and WHY are blank
+## Part B1 — the 2 finding classes for the owner to rule: LEVEL and WHY are blank
 
 A half is a new class: no level of the class it was split from carries to it. A class whose name ends
 `-check-not-run` holds checks that never ran — nothing was found in it, and nothing was ruled out.
 
 | # | class | split from | what it is (the register's words) | open | distinct | ruled states | raw | not run | LEVEL | WHY |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 1 | `indexability-preflight-check-not-run` | `indexability-preflight` | the indexability check did not run for a page — a required input was absent. Nothing was found, and nothing was ruled out | 210 | 210 | — | 420 | 210 | | |
-| 2 | `indexability-preflight-found` | `indexability-preflight` | the indexability check ran on a page and found a condition that blocks its eligibility | 158 | 158 | — | 300 | 0 | | |
-| 3 | `near-duplicate-check-not-run` | `near-duplicate` | the near-duplicate check did not run — an input was absent, or the tool failed. No duplication was found, and none was ruled out | 108 | 108 | — | 110 | 108 | | |
-| 4 | `near-duplicate-found` | `near-duplicate` | the near-duplicate check ran and found a page's body highly similar to a sibling page's | 5 | 5 | — | 5 | 0 | | |
-| 5 | `noindex-declared-deliberate` | `noindex` | a page's noindex, recorded as a deliberate de-indexing decision; whether its near-duplicate premise holds is UNKNOWN | 134 | 134 | — | 134 | 0 | | |
-| 6 | `noindex-defect-claim-withdrawn` | `noindex` | a claim that a page's noindex was a defect — SUPERSEDED on 12 September 2026 by a record declaring that noindex deliberate | 0 | 134 | 134 SUPERSEDED | 268 | 0 | | |
-| 7 | `orphan-within-crawled-set-check-not-run` | `orphan-within-crawled-set` | the orphan check did not run — it needs rendered HTML and every record is raw HTML. No page was found orphaned, and none was ruled out | 340 | 340 | — | 340 | 340 | | |
-| 8 | `sitemap-advertises-blocked-url-check-not-run` | `sitemap-advertises-blocked-url` | the sitemap-against-robots check did not run for a host — no robots.txt or no sitemap URLs were stored. No contradiction was found, and none was ruled out | 350 | 350 | — | 700 | 350 | | |
-| 9 | `template-dominance-check-not-run` | `template-dominance` | the template-dominance check did not run — an input was absent, or shell subtraction was not confident. Nothing was found, and nothing was ruled out | 108 | 108 | — | 110 | 108 | | |
-| 10 | `template-dominance-found` | `template-dominance` | the template-dominance check ran and found the shared shell making up most of a page's words | 2 | 2 | — | 4 | 0 | | |
-| 11 | `thin-content-check-not-run` | `thin-content` | the thin-content check did not run — the stored body was absent, or rendered HTML was needed. No thin page was found, and none was ruled out | 108 | 108 | — | 110 | 108 | | |
-| 12 | `thin-content-found` | `thin-content` | the thin-content check ran and found fewer unique body words than the floor after the shell is subtracted | 118 | 118 | — | 236 | 0 | | |
+| 1 | `noindex-declared-deliberate` | `noindex` | a page's noindex, recorded as a deliberate de-indexing decision; whether its near-duplicate premise holds is UNKNOWN | 134 | 134 | — | 134 | 0 | | |
+| 2 | `noindex-defect-claim-withdrawn` | `noindex` | a claim that a page's noindex was a defect — SUPERSEDED on 12 September 2026 by a record declaring that noindex deliberate | 0 | 134 | 134 SUPERSEDED | 268 | 0 | | |
 
 ## Part B2 — the consequence-first order
 
@@ -85,28 +79,36 @@ Consequence first; the open count only amplifies INSIDE a level; the class name 
 
 | rank | class | level | open |
 |---|---|---|---|
-| 1 of 10 | `exact-duplicate` | HIGH | 106 |
-| 2 of 10 | `host-publishes-no-a-record` | HIGH | 1 |
-| 3 of 10 | `official-source-contradicts-itself` | HIGH | 1 |
-| 4 of 10 | `instrument-disagreement` | HIGH | 0 |
-| 5 of 10 | `robots-blocks-search-crawler` | MODERATE | 106 |
-| 6 of 10 | `commencement-date-ambiguous-against-source` | MODERATE | 1 |
-| 7 of 10 | `head-elements` | LOW | 18 |
-| 8 of 10 | `status-and-redirects` | LOW | 7 |
-| 9 of 10 | `canonical` | LOW | 6 |
-| 10 of 10 | `query-parameters` | LOW | 1 |
-| — | `indexability-preflight-check-not-run` | UNCLASSIFIED → OWNER REVIEW | 210 |
-| — | `indexability-preflight-found` | UNCLASSIFIED → OWNER REVIEW | 158 |
-| — | `near-duplicate-check-not-run` | UNCLASSIFIED → OWNER REVIEW | 108 |
-| — | `near-duplicate-found` | UNCLASSIFIED → OWNER REVIEW | 5 |
+| 1 of 14 | `exact-duplicate` | HIGH | 106 |
+| 2 of 14 | `host-publishes-no-a-record` | HIGH | 1 |
+| 3 of 14 | `official-source-contradicts-itself` | HIGH | 1 |
+| 4 of 14 | `instrument-disagreement` | HIGH | 0 |
+| 5 of 14 | `indexability-preflight-found` | MODERATE | 158 |
+| 6 of 14 | `thin-content-found` | MODERATE | 118 |
+| 7 of 14 | `robots-blocks-search-crawler` | MODERATE | 106 |
+| 8 of 14 | `near-duplicate-found` | MODERATE | 5 |
+| 9 of 14 | `template-dominance-found` | MODERATE | 2 |
+| 10 of 14 | `commencement-date-ambiguous-against-source` | MODERATE | 1 |
+| 11 of 14 | `head-elements` | LOW | 18 |
+| 12 of 14 | `status-and-redirects` | LOW | 7 |
+| 13 of 14 | `canonical` | LOW | 6 |
+| 14 of 14 | `query-parameters` | LOW | 1 |
 | — | `noindex-declared-deliberate` | UNCLASSIFIED → OWNER REVIEW | 134 |
 | — | `noindex-defect-claim-withdrawn` | UNCLASSIFIED → OWNER REVIEW | 0 |
-| — | `orphan-within-crawled-set-check-not-run` | UNCLASSIFIED → OWNER REVIEW | 340 |
-| — | `sitemap-advertises-blocked-url-check-not-run` | UNCLASSIFIED → OWNER REVIEW | 350 |
-| — | `template-dominance-check-not-run` | UNCLASSIFIED → OWNER REVIEW | 108 |
-| — | `template-dominance-found` | UNCLASSIFIED → OWNER REVIEW | 2 |
-| — | `thin-content-check-not-run` | UNCLASSIFIED → OWNER REVIEW | 108 |
-| — | `thin-content-found` | UNCLASSIFIED → OWNER REVIEW | 118 |
+
+## Part D — THE COVERAGE POPULATION: checks that never ran. Not findings, never a level, never ranked
+
+A check that never ran says nothing about the product. It says something about our instrument: we could not look.
+
+| class | split from | checks not run | raw | reason codes | what is missing |
+|---|---|---|---|---|---|
+| `indexability-preflight-check-not-run` | `indexability-preflight` | 210 | 420 | MISSING_INPUT | a required input was absent, so two eligibility conditions — notRobotsDisallowed and inSitemap — could not be evaluated for the page. The records name the unmeasured conditions, not the input that was missing |
+| `near-duplicate-check-not-run` | `near-duplicate` | 108 | 110 | MISSING_INPUT / TOOL_FAILED | 106: a required input was absent, and the records do not name which. 2: the tool failed — shell subtraction was not confident, so nothing remained to compare |
+| `orphan-within-crawled-set-check-not-run` | `orphan-within-crawled-set` | 340 | 340 | NEEDS_RENDERED_HTML | rendered HTML — every record is renderMode RAW_HTML in v0.1, so a link injected by JavaScript is invisible; and the crawled set is a sample of a much larger site |
+| `sitemap-advertises-blocked-url-check-not-run` | `sitemap-advertises-blocked-url` | 350 | 700 | MISSING_INPUT | a stored robots.txt, or stored sitemap URLs, for the host — the records say "no stored robots.txt or no sitemap URLs for this host" |
+| `template-dominance-check-not-run` | `template-dominance` | 108 | 110 | MISSING_INPUT / TOOL_FAILED | 106: a required input was absent, and the records do not name which. 2: the tool failed — shell subtraction was not confident, so nothing remained outside the shell to weigh |
+| `thin-content-check-not-run` | `thin-content` | 108 | 110 | MISSING_INPUT / NEEDS_RENDERED_HTML | 106: the stored page body was not available to the run. 2: rendered HTML — the body is empty in raw HTML, and a client-rendered page cannot be told from an empty one |
+| **total** | | **1224** | | | |
 
 ## Part B3 — the classes the split superseded (not in use; their words kept in the register)
 

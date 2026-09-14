@@ -39,6 +39,15 @@ export const NURSING_PAGE = Object.freeze({
   slug: "nursing",
   variant: "nursing",
   title: "OET for nurses: what each regulator actually requires",
+  // 🔴 WHY_THIS_URL_DESERVES_TO_EXIST — authored by beta-g on the owner's instruction (_handoffs/
+  // AlmiVisibility_WHY_THIS_URL_RATIONALES.md), word for word, cut at its own sentence "This page exists to…"
+  // (owner's answer, 14 September 2026). Framing, not fact: it names the reader's decision and cites nothing.
+  whyThisUrlDeservesToExist: Object.freeze({
+    humanNeed:
+      "A nurse deciding where to register is not looking up one requirement. She is choosing between four authorities across three destination countries, and one of them can end the journey before any exam matters: the United Kingdom's recruitment code decides whether she may be recruited from her country at all. Each authority publishes only its own rule, so no source she can reach answers the two questions she actually has — which of these applies to me, and am I permitted to be recruited in the first place.",
+    distinctValue:
+      "This page exists to put the recruitment gate ahead of the exam requirements, in the order the decision is really made, and to set the regulators side by side so the choice between them can be seen at once.",
+  }),
   // Framing only. No claim, therefore no citation, therefore nothing that can
   // go stale without anybody noticing.
   intro:
@@ -122,6 +131,13 @@ export const SPEECH_PATHOLOGY_PAGE = Object.freeze({
   slug: "speech-pathology",
   variant: "speech-pathology",
   title: "OET for speech and language therapists: the bar is higher than you think",
+  // 🔴 WHY_THIS_URL_DESERVES_TO_EXIST — as for /nursing: word for word from the brief, cut at "This page exists to…".
+  whyThisUrlDeservesToExist: Object.freeze({
+    humanNeed:
+      "A speech and language therapist has to clear a bar that no other profession the HCPC registers has to clear — a higher total and a higher floor on every sub-test — and must sit a profession-specific version of the test rather than the general one. The HCPC's own page states the requirement but never states the comparison, so a reader who was told the number by a colleague in another HCPC profession has no way to discover that the number does not apply to them.",
+    distinctValue:
+      "This page exists to state the difference itself, and what it changes about which test to book, how long a certificate stays valid, and where it may be taken.",
+  }),
   intro:
     "This page states what the test involves and what the regulator that accepts it asks for. Every statement below is followed by the source it came from and the date that source was last checked. Where a source does not permit its wording to be reproduced, or its terms have not been read, the requirement is stated in our own words and the link is given so it can be read at first hand.",
   sections: [

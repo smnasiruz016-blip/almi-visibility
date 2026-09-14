@@ -29,6 +29,22 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 | **DEFERRED** | — | **23** |
 | **total** | 58 | **61** |
 
+> ### 🔴 ROW 60 · AN UNMEASURED CHECK IS NOT A FINDING — 14 OF 16 CLASSES RULED — 14 SEPTEMBER 2026 — NO ROW MOVED
+>
+> - **No state moved, and the tally above is unchanged.** Row 60 stays BUILT-NOT-PROVED.
+> - **The owner's ruling** (`ROW60_COVERAGE_AND_LEVELS_RULING.md`, hash-pinned): a check that never ran says nothing about
+>   the product — it says we could not look. So the **1,224** left the findings population for
+>   `config/coverage-register.mjs`: separately counted, never ranked, never given a level, each entry naming what input or
+>   capability is missing. **Findings: 809 distinct issues, 664 open, 16 classes. Coverage: 1,224, 6 classes.**
+> - **Levels ruled:** MODERATE for `indexability-preflight-found` (158), `thin-content-found` (118), `near-duplicate-found` (5)
+>   and `template-dominance-found` (2), each resting on consequence, not on the count. **Corrected on the record:** the orphan
+>   escalation (LOW → MODERATE) is VOID — it rested on 340 checks that never ran; the figures 113, 110 and 226 were not
+>   real, and are now 5, 2 and 118. Every blast-radius figure is now held to the store's real findings.
+> - **Not ruled, on the owner's answer:** the two noindex classes stay UNCLASSIFIED — NONE is *verified* no adverse
+>   consequence, and their records are verdict UNKNOWN on whether the rule is right. **That is row 60's unmet clause.**
+> - **WHY_THIS_URL:** both declared specs now carry beta-g's rationale word for word; Gate A part 4 PASSES on both, and both
+>   candidates are still REFUSED (runs/audit/why-this-url-construction-run-2026-09-14.txt). No third spec; rows 21 and 61 unchanged.
+
 > ### 🔴 ROW 60 · 1,224 "FINDINGS" WERE CHECKS THAT NEVER RAN — SEVEN CLASSES SPLIT — 14 SEPTEMBER 2026 — NO ROW MOVED
 >
 > - **No state moved, and the tally above is unchanged.** Row 60 stays BUILT-NOT-PROVED.
@@ -763,7 +779,7 @@ actually came from.
 | 57 | Final Independent Audit | NOT-STARTED | IN — checklist §1; DoD v0.1 | This document is the **first status baseline**, not the final audit | 2026-09-11 | Claude (repo audit) | Cannot run while 16 items are ◐ and 1 is ⚠; and it must be *independent*, which a self-audit is not | — |
 | 58 | DONE Declaration | NOT-STARTED | IN — checklist §6, owner sign-off | none | 2026-09-11 | Claude (repo audit) | Requires every applicable item ☑ or justified N/A with no frozen blocker. **0 items are ☑**, and N/A justifications are the owner's — none exist | — |
 | 59 | Falsifiability of Findings | VERIFIED-PASS | IN — `PASS_BOUNDARIES_AMENDMENT_3.md`, owner ruling under §12, 13 Sep 2026, re-issued 14 Sep 2026 (class P) | `bin/refutation-census.mjs` over the real store: population 20 (17 finding classes + 3 recommendations), 20 carry observation · source · condition with a held method (`config/refutation-register.mjs`); every EVIDENCE limb RED alone in the real register and restored, hash-checked (runs/audit/row59-*). Backfill 20 written, 0 not written | 2026-09-14 | CC (Amendment 3 work half) | none for the tick. The limit, on the row: the census cannot prove a refutation is well chosen — that is human judgement | — |
-| 60 | Consequence-Weighted Priority | BUILT-NOT-PROVED | IN — `PASS_BOUNDARIES_AMENDMENT_3.md`, owner ruling under §12, 13 Sep 2026, re-issued 14 Sep 2026 (class P) | `ROW60_CONSEQUENCE_LAW.md` (owner, 14 Sep 2026, hash-pinned); `config/consequence-register.mjs` reconciled line by line with the 22 classes in use after `config/class-splits.mjs` split seven — 10 ruled (HIGH 4 · MODERATE 2 · LOW 4), 12 halves UNCLASSIFIED; 1,224 checks that never ran now counted under `-check-not-run` names; priority consequence first, on the real report; every limb RED alone and restored (runs/audit/row60-*) | 2026-09-14 | CC (row 60 split) | EXPECTED's first clause is not met: 12 of 22 classes in use — the halves of the seven split classes — carry no level until the owner rules them. UNCLASSIFIED never defaults to low | — |
+| 60 | Consequence-Weighted Priority | BUILT-NOT-PROVED | IN — `PASS_BOUNDARIES_AMENDMENT_3.md`, owner ruling under §12, 13 Sep 2026, re-issued 14 Sep 2026 (class P) | `ROW60_CONSEQUENCE_LAW.md` and `ROW60_COVERAGE_AND_LEVELS_RULING.md` (owner, 14 Sep 2026, hash-pinned); `config/consequence-register.mjs` reconciled line by line with the 16 finding classes in use — 14 ruled (HIGH 4 · MODERATE 6 · LOW 4), 2 UNCLASSIFIED; the 1,224 checks that never ran in `config/coverage-register.mjs`, never ranked; blast-radius figures held to real findings; priority consequence first, on the real report; every limb RED alone and restored (runs/audit/row60-*) | 2026-09-14 | CC (row 60 coverage) | EXPECTED's first clause is not met: `noindex-declared-deliberate` and `noindex-defect-claim-withdrawn` carry no level — NONE is not what their records verify, and REC-NOINDEX-CV-GUIDE is undecided. UNCLASSIFIED never defaults to low | — |
 | 61 | Safe Local Page Construction | BUILT-NOT-PROVED | IN — `PASS_BOUNDARIES_AMENDMENT_5.md` §4 (class P); reserved there, created 14 Sep 2026 once rows 59 and 60 existed | PR #72: `bin/build-page.mjs` takes `--slug` / `--all-slugs` with no default; Gate A's four parts enforced in the construction path, failing closed (`src/page/construct.mjs`); RED/GREEN in `runs/audit/row61-gate-a-*`; 0 of 3 candidates accepted | 2026-09-14 | CC (row 61 created) | **missing leg:** a second DECLARED product with its own DECLARED page spec, run through the runner — **blocked on an owner decision** (a second neutral declared test product, or a re-pin of row 53's coverage). No real page can be accepted: no WHY_THIS_URL is written, and no template family has three specs | — |
 
 ---

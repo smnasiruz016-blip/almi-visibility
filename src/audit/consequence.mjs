@@ -23,7 +23,7 @@
  * This module names no product, and holds no level of its own: every level it knows arrives in the scale passed in.
  */
 
-import { effectiveClassesInUse } from "./class-split.mjs";
+import { effectiveClassesInUse, coverageClassesOf } from "./class-split.mjs";
 
 export const UNCLASSIFIED = "UNCLASSIFIED";
 export const BASIS_KINDS = Object.freeze(["MEASURED VOLUME", "DECLARED CONSEQUENCE", "BOTH", "NONE"]);
@@ -59,10 +59,14 @@ export function reconcileRegister({ records, register, scale, splits }) {
   // 🔴 The classes in use are the SPLIT classes (config/class-splits.mjs). Leaving the splits out would read the
   // store's stored names and quietly reconcile against a bundle — so they are required: pass {} for none.
   if (splits === undefined) throw new TypeError("reconcileRegister needs the declared class splits — pass {} for none, never leave them out");
-  const inUse = effectiveClassesInUse(records, splits);
+  // 🔴 An unmeasured check is NOT a finding (owner, 14 Sep 2026): the coverage classes leave the findings population.
+  const coverage = coverageClassesOf(splits);
+  const inUse = effectiveClassesInUse(records, splits).filter((k) => !coverage.has(k));
   const declared = Object.keys(register ?? {}).sort();
   const missing = inUse.filter((k) => !declared.includes(k));
-  const stale = declared.filter((k) => !inUse.includes(k));
+  const stale = declared.filter((k) => !inUse.includes(k) && !coverage.has(k));
+  // a coverage class in this register is refused by coverageErrors (limb coverage-level), not reported as stale
+  const onCoverage = declared.filter((k) => coverage.has(k));
   const levels = levelsOf(scale);
   const invalid = [];
   for (const k of declared) {
@@ -93,10 +97,15 @@ export function reconcileRegister({ records, register, scale, splits }) {
   // 🔴 A HALF IS A NEW CLASS: it arrives UNCLASSIFIED and unruled, and no parent's level carries down to it.
   const inherited = declared
     .filter((k) => register[k]?.splitFrom !== undefined)
-    .filter((k) => !(register[k].level === UNCLASSIFIED && register[k].ruledBy === null && register[k].ruledOn === null))
+    .filter((k) => {
+      const e = register[k];
+      if (e.level === UNCLASSIFIED && e.ruledBy === null && e.ruledOn === null) return false;
+      // A half may carry a level only by a ruling that names THE HALF ITSELF. A parent ruling cannot — so a copy of it is refused.
+      return !(e.ruledFor === k && e.ruledBy === "owner" && /^\d{4}-\d{2}-\d{2}$/.test(e.ruledOn ?? ""));
+    })
     .map((k) => ({
       class: k,
-      why: `a half of ${register[k].splitFrom} arrives with level ${register[k].level}${register[k].ruledBy ? ` ruled by ${register[k].ruledBy}` : ""} — a half is a new class, the owner has ruled nothing about it, and no parent level carries down`,
+      why: `a half of ${register[k].splitFrom} arrives with level ${register[k].level}${register[k].ruledBy ? ` ruled by ${register[k].ruledBy}` : ""} and no ruling that names the half itself — a half is a new class, and no parent level carries down`,
     }));
   return {
     classesInUse: inUse,
@@ -105,6 +114,7 @@ export function reconcileRegister({ records, register, scale, splits }) {
     stale,
     invalid,
     inherited,
+    onCoverage,
     unclassified: declared.filter((k) => register[k]?.level === UNCLASSIFIED),
     ok: inUse.length > 0 && !missing.length && !stale.length && !invalid.length && !inherited.length,
     vacuous: inUse.length === 0,

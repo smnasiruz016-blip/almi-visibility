@@ -12,6 +12,7 @@ import { classOf, splitView, splitErrors, isUnmeasured, effectiveClassesInUse } 
 import { reconcileRegister } from "../src/audit/consequence.mjs";
 import { CLASS_SPLITS, UNMEASURED_REASON_CODES } from "../config/class-splits.mjs";
 import { CONSEQUENCE_REGISTER, SUPERSEDED_ENTRIES } from "../config/consequence-register.mjs";
+import { COVERAGE_REGISTER } from "../config/coverage-register.mjs";
 import { SEVERITY_SCALE } from "../config/consequence-scale.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -57,7 +58,8 @@ test("🟢 MEASURED — the split, per class and per half, distinct and open, ov
   // every check that never ran now sits under a name that says so
   assert.ok(notRun.every((v) => v.class.endsWith("-check-not-run")), "a check that never ran is still counted under a defect's name");
   // 🔴 no split class is in use without an entry, and the two empty "found" halves are not in use at all
-  assert.deepEqual(effectiveClassesInUse(ALL, CLASS_SPLITS), Object.keys(CONSEQUENCE_REGISTER).sort());
+  // since 14 Sep 2026 the checks-not-run halves are the COVERAGE register's, and every other class in use is a finding's
+  assert.deepEqual(effectiveClassesInUse(ALL, CLASS_SPLITS), [...Object.keys(CONSEQUENCE_REGISTER), ...Object.keys(COVERAGE_REGISTER)].sort());
 });
 
 test("🔴 the store is untouched: the split writes nothing, and a record reads the same before and after it is classified", () => {
@@ -98,8 +100,8 @@ test("🔴 RED half-level: a half arriving with a level — its parent's ruling 
   assert.equal(r.ok, false);
   // and a half given any level of its own, unruled, is refused the same way
   const reg2 = clone(CONSEQUENCE_REGISTER);
-  reg2["orphan-within-crawled-set-check-not-run"].ruledBy = "owner";
-  assert.deepEqual(reconcileRegister({ records: AUDIT, register: reg2, scale: SEVERITY_SCALE, splits: CLASS_SPLITS }).inherited.map((x) => x.class), ["orphan-within-crawled-set-check-not-run"]);
+  reg2["noindex-declared-deliberate"].ruledBy = "owner";
+  assert.deepEqual(reconcileRegister({ records: AUDIT, register: reg2, scale: SEVERITY_SCALE, splits: CLASS_SPLITS }).inherited.map((x) => x.class), ["noindex-declared-deliberate"]);
 });
 
 test("🔴 RED identity: an issue's opened_at or evidence changed by the split is refused, alone", () => {
@@ -122,7 +124,9 @@ test("🔴 RED misnamed: a class of checks that never ran named as a defect is r
   splits["orphan-within-crawled-set"].halves[1].class = "orphan-within-crawled-set-structural-failure";
   const errs = splitErrors({ records: ALL, splits, unmeasuredCodes: UNMEASURED_REASON_CODES });
   assert.deepEqual(limbs(errs), ["misnamed"]);
-  assert.match(errs[0].why, /all 340 of its records are checks that never ran/);
+  // two faces of the one limb: the records say "never ran", and the declaration's measure disagrees with the name
+  assert.ok(errs.some((e) => /all 340 of its records are checks that never ran/.test(e.why)), JSON.stringify(errs));
+  assert.ok(errs.some((e) => /declared to measure "unmeasured"/.test(e.why)), JSON.stringify(errs));
 });
 
 test("🔴 RED mixed: a class left unsplit while it holds both found defects and checks that never ran is refused, alone", () => {

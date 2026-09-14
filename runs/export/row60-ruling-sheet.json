@@ -1,22 +1,23 @@
 {
   "_provenance": {
     "title": "AlmiVisibility — row 60 consequence sheet",
-    "generatedAt": "2026-09-14T03:12:24.449Z",
+    "generatedAt": "2026-09-14T03:55:30.039Z",
     "generatedBy": "bin/row60-ruling-sheet.mjs",
     "covers": [
-      "every finding class present on an issue record in the files listed under `sources`",
-      "counts derived by applying every issue_state_change to its issue on issue_id (lifecycleOf)",
-      "descriptions, levels and Part C gaps copied from config/consequence-register.mjs at generation time",
+      "every finding class present on an issue record in the files listed under `sources`, as config/class-splits.mjs counts it",
+      "counts derived by applying every issue_state_change to its issue on issue_id (lifecycleOf), per split class",
+      "descriptions, levels, attributions and Part C gaps copied from config/consequence-register.mjs at generation time",
       "the scale copied from config/consequence-scale.mjs; the order computed consequence-first over the open counts"
     ],
     "doesNotCover": [
-      "🔴 any level the register does not declare — the sheet copies levels, it never sets one",
+      "🔴 any level the register does not declare — the sheet copies levels, it never sets one; a half's LEVEL and WHY are blank",
       "🔴 a detector's `severity` field — it is not a consequence level and is not read"
     ],
     "units": {
       "distinct": "issues, by issue_id",
       "open": "distinct issues still OPEN after every state change",
-      "raw": "issue records, duplicate copies included"
+      "raw": "issue records, duplicate copies included",
+      "notRun": "distinct issues that record a check that never ran — not a defect found"
     }
   },
   "sources": [
@@ -188,176 +189,314 @@
     {
       "issue_class": "canonical",
       "what": "a page's raw HTML carries no rel=canonical link",
+      "splitFrom": null,
       "distinct": 6,
       "open": 6,
       "raw": 12,
+      "notRun": 0,
       "ruled": {},
       "level": "LOW",
-      "escalatedFrom": null
+      "escalatedFrom": null,
+      "ruledBy": "owner",
+      "ruledOn": "2026-09-14"
     },
     {
       "issue_class": "commencement-date-ambiguous-against-source",
       "what": "a fact's commencement date cannot be read unambiguously from its official source",
+      "splitFrom": null,
       "distinct": 1,
       "open": 1,
       "raw": 1,
+      "notRun": 0,
       "ruled": {},
       "level": "MODERATE",
-      "escalatedFrom": null
+      "escalatedFrom": null,
+      "ruledBy": "owner",
+      "ruledOn": "2026-09-14"
     },
     {
       "issue_class": "exact-duplicate",
       "what": "a page's body is byte-identical to other pages'",
+      "splitFrom": null,
       "distinct": 106,
       "open": 106,
       "raw": 106,
+      "notRun": 0,
       "ruled": {},
       "level": "HIGH",
-      "escalatedFrom": null
+      "escalatedFrom": null,
+      "ruledBy": "owner",
+      "ruledOn": "2026-09-14"
     },
     {
       "issue_class": "head-elements",
       "what": "a page's heading structure is broken — no h1, or a heading level used before it",
+      "splitFrom": null,
       "distinct": 18,
       "open": 18,
       "raw": 36,
+      "notRun": 0,
       "ruled": {},
       "level": "LOW",
-      "escalatedFrom": null
+      "escalatedFrom": null,
+      "ruledBy": "owner",
+      "ruledOn": "2026-09-14"
     },
     {
       "issue_class": "host-publishes-no-a-record",
       "what": "a host publishes no IPv4 address, so IPv4 clients and crawlers cannot resolve it",
+      "splitFrom": null,
       "distinct": 1,
       "open": 1,
       "raw": 3,
+      "notRun": 0,
       "ruled": {},
       "level": "HIGH",
-      "escalatedFrom": null
+      "escalatedFrom": null,
+      "ruledBy": "owner",
+      "ruledOn": "2026-09-14"
     },
     {
-      "issue_class": "indexability-preflight",
-      "what": "a page's technical indexability state — a condition that blocks eligibility, or one left unmeasured",
-      "distinct": 368,
-      "open": 368,
-      "raw": 720,
+      "issue_class": "indexability-preflight-check-not-run",
+      "what": "the indexability check did not run for a page — a required input was absent. Nothing was found, and nothing was ruled out",
+      "splitFrom": "indexability-preflight",
+      "distinct": 210,
+      "open": 210,
+      "raw": 420,
+      "notRun": 210,
       "ruled": {},
       "level": "UNCLASSIFIED",
-      "escalatedFrom": null
+      "escalatedFrom": null,
+      "ruledBy": null,
+      "ruledOn": null
+    },
+    {
+      "issue_class": "indexability-preflight-found",
+      "what": "the indexability check ran on a page and found a condition that blocks its eligibility",
+      "splitFrom": "indexability-preflight",
+      "distinct": 158,
+      "open": 158,
+      "raw": 300,
+      "notRun": 0,
+      "ruled": {},
+      "level": "UNCLASSIFIED",
+      "escalatedFrom": null,
+      "ruledBy": null,
+      "ruledOn": null
     },
     {
       "issue_class": "instrument-disagreement",
       "what": "two of our own instruments disagree about the same page over the same inputs",
+      "splitFrom": null,
       "distinct": 11,
       "open": 0,
       "raw": 11,
+      "notRun": 0,
       "ruled": {
         "CLOSED": 11
       },
       "level": "HIGH",
-      "escalatedFrom": null
+      "escalatedFrom": null,
+      "ruledBy": "owner",
+      "ruledOn": "2026-09-14"
     },
     {
-      "issue_class": "near-duplicate",
-      "what": "a page's body is highly similar to a sibling page's",
-      "distinct": 113,
-      "open": 113,
-      "raw": 115,
+      "issue_class": "near-duplicate-check-not-run",
+      "what": "the near-duplicate check did not run — an input was absent, or the tool failed. No duplication was found, and none was ruled out",
+      "splitFrom": "near-duplicate",
+      "distinct": 108,
+      "open": 108,
+      "raw": 110,
+      "notRun": 108,
       "ruled": {},
-      "level": "MODERATE",
-      "escalatedFrom": null
+      "level": "UNCLASSIFIED",
+      "escalatedFrom": null,
+      "ruledBy": null,
+      "ruledOn": null
     },
     {
-      "issue_class": "noindex",
-      "what": "a page carries noindex in its meta robots tag or X-Robots-Tag header",
-      "distinct": 268,
+      "issue_class": "near-duplicate-found",
+      "what": "the near-duplicate check ran and found a page's body highly similar to a sibling page's",
+      "splitFrom": "near-duplicate",
+      "distinct": 5,
+      "open": 5,
+      "raw": 5,
+      "notRun": 0,
+      "ruled": {},
+      "level": "UNCLASSIFIED",
+      "escalatedFrom": null,
+      "ruledBy": null,
+      "ruledOn": null
+    },
+    {
+      "issue_class": "noindex-declared-deliberate",
+      "what": "a page's noindex, recorded as a deliberate de-indexing decision; whether its near-duplicate premise holds is UNKNOWN",
+      "splitFrom": "noindex",
+      "distinct": 134,
       "open": 134,
-      "raw": 402,
+      "raw": 134,
+      "notRun": 0,
+      "ruled": {},
+      "level": "UNCLASSIFIED",
+      "escalatedFrom": null,
+      "ruledBy": null,
+      "ruledOn": null
+    },
+    {
+      "issue_class": "noindex-defect-claim-withdrawn",
+      "what": "a claim that a page's noindex was a defect — SUPERSEDED on 12 September 2026 by a record declaring that noindex deliberate",
+      "splitFrom": "noindex",
+      "distinct": 134,
+      "open": 0,
+      "raw": 268,
+      "notRun": 0,
       "ruled": {
         "SUPERSEDED": 134
       },
       "level": "UNCLASSIFIED",
-      "escalatedFrom": null
+      "escalatedFrom": null,
+      "ruledBy": null,
+      "ruledOn": null
     },
     {
       "issue_class": "official-source-contradicts-itself",
       "what": "an official source states two things about the same fact that disagree",
+      "splitFrom": null,
       "distinct": 1,
       "open": 1,
       "raw": 1,
+      "notRun": 0,
       "ruled": {},
       "level": "HIGH",
-      "escalatedFrom": null
+      "escalatedFrom": null,
+      "ruledBy": "owner",
+      "ruledOn": "2026-09-14"
     },
     {
-      "issue_class": "orphan-within-crawled-set",
-      "what": "no page inside the crawled set links to this page",
+      "issue_class": "orphan-within-crawled-set-check-not-run",
+      "what": "the orphan check did not run — it needs rendered HTML and every record is raw HTML. No page was found orphaned, and none was ruled out",
+      "splitFrom": "orphan-within-crawled-set",
       "distinct": 340,
       "open": 340,
       "raw": 340,
+      "notRun": 340,
       "ruled": {},
-      "level": "MODERATE",
-      "escalatedFrom": "LOW"
+      "level": "UNCLASSIFIED",
+      "escalatedFrom": null,
+      "ruledBy": null,
+      "ruledOn": null
     },
     {
       "issue_class": "query-parameters",
       "what": "a page's URL carries query parameters",
+      "splitFrom": null,
       "distinct": 1,
       "open": 1,
       "raw": 2,
+      "notRun": 0,
       "ruled": {},
       "level": "LOW",
-      "escalatedFrom": null
+      "escalatedFrom": null,
+      "ruledBy": "owner",
+      "ruledOn": "2026-09-14"
     },
     {
       "issue_class": "robots-blocks-search-crawler",
       "what": "robots.txt disallows a search crawler from a page that draws search impressions",
+      "splitFrom": null,
       "distinct": 106,
       "open": 106,
       "raw": 318,
+      "notRun": 0,
       "ruled": {},
       "level": "MODERATE",
-      "escalatedFrom": null
+      "escalatedFrom": null,
+      "ruledBy": "owner",
+      "ruledOn": "2026-09-14"
     },
     {
-      "issue_class": "sitemap-advertises-blocked-url",
-      "what": "a sitemap advertises a URL that robots.txt blocks — or the inputs to check it are not stored",
+      "issue_class": "sitemap-advertises-blocked-url-check-not-run",
+      "what": "the sitemap-against-robots check did not run for a host — no robots.txt or no sitemap URLs were stored. No contradiction was found, and none was ruled out",
+      "splitFrom": "sitemap-advertises-blocked-url",
       "distinct": 350,
       "open": 350,
       "raw": 700,
+      "notRun": 350,
       "ruled": {},
       "level": "UNCLASSIFIED",
-      "escalatedFrom": null
+      "escalatedFrom": null,
+      "ruledBy": null,
+      "ruledOn": null
     },
     {
       "issue_class": "status-and-redirects",
       "what": "requesting a page's URL does not return 200 directly — it redirects or errors",
+      "splitFrom": null,
       "distinct": 7,
       "open": 7,
       "raw": 14,
+      "notRun": 0,
       "ruled": {},
       "level": "LOW",
-      "escalatedFrom": null
+      "escalatedFrom": null,
+      "ruledBy": "owner",
+      "ruledOn": "2026-09-14"
     },
     {
-      "issue_class": "template-dominance",
-      "what": "the shared shell makes up most of a page's words",
-      "distinct": 110,
-      "open": 110,
-      "raw": 114,
+      "issue_class": "template-dominance-check-not-run",
+      "what": "the template-dominance check did not run — an input was absent, or shell subtraction was not confident. Nothing was found, and nothing was ruled out",
+      "splitFrom": "template-dominance",
+      "distinct": 108,
+      "open": 108,
+      "raw": 110,
+      "notRun": 108,
       "ruled": {},
-      "level": "MODERATE",
-      "escalatedFrom": null
+      "level": "UNCLASSIFIED",
+      "escalatedFrom": null,
+      "ruledBy": null,
+      "ruledOn": null
     },
     {
-      "issue_class": "thin-content",
-      "what": "a page has fewer unique body words than the floor after the shell is subtracted",
-      "distinct": 226,
-      "open": 226,
-      "raw": 346,
+      "issue_class": "template-dominance-found",
+      "what": "the template-dominance check ran and found the shared shell making up most of a page's words",
+      "splitFrom": "template-dominance",
+      "distinct": 2,
+      "open": 2,
+      "raw": 4,
+      "notRun": 0,
       "ruled": {},
-      "level": "MODERATE",
-      "escalatedFrom": null
+      "level": "UNCLASSIFIED",
+      "escalatedFrom": null,
+      "ruledBy": null,
+      "ruledOn": null
+    },
+    {
+      "issue_class": "thin-content-check-not-run",
+      "what": "the thin-content check did not run — the stored body was absent, or rendered HTML was needed. No thin page was found, and none was ruled out",
+      "splitFrom": "thin-content",
+      "distinct": 108,
+      "open": 108,
+      "raw": 110,
+      "notRun": 108,
+      "ruled": {},
+      "level": "UNCLASSIFIED",
+      "escalatedFrom": null,
+      "ruledBy": null,
+      "ruledOn": null
+    },
+    {
+      "issue_class": "thin-content-found",
+      "what": "the thin-content check ran and found fewer unique body words than the floor after the shell is subtracted",
+      "splitFrom": "thin-content",
+      "distinct": 118,
+      "open": 118,
+      "raw": 236,
+      "notRun": 0,
+      "ruled": {},
+      "level": "UNCLASSIFIED",
+      "escalatedFrom": null,
+      "ruledBy": null,
+      "ruledOn": null
     }
   ],
   "order": {
@@ -365,123 +504,221 @@
       {
         "id": "exact-duplicate",
         "rank": 1,
-        "of": 14,
+        "of": 10,
         "level": "HIGH",
         "volume": 106
       },
       {
         "id": "host-publishes-no-a-record",
         "rank": 2,
-        "of": 14,
+        "of": 10,
         "level": "HIGH",
         "volume": 1
       },
       {
         "id": "official-source-contradicts-itself",
         "rank": 3,
-        "of": 14,
+        "of": 10,
         "level": "HIGH",
         "volume": 1
       },
       {
         "id": "instrument-disagreement",
         "rank": 4,
-        "of": 14,
+        "of": 10,
         "level": "HIGH",
         "volume": 0
       },
       {
-        "id": "orphan-within-crawled-set",
-        "rank": 5,
-        "of": 14,
-        "level": "MODERATE",
-        "volume": 340
-      },
-      {
-        "id": "thin-content",
-        "rank": 6,
-        "of": 14,
-        "level": "MODERATE",
-        "volume": 226
-      },
-      {
-        "id": "near-duplicate",
-        "rank": 7,
-        "of": 14,
-        "level": "MODERATE",
-        "volume": 113
-      },
-      {
-        "id": "template-dominance",
-        "rank": 8,
-        "of": 14,
-        "level": "MODERATE",
-        "volume": 110
-      },
-      {
         "id": "robots-blocks-search-crawler",
-        "rank": 9,
-        "of": 14,
+        "rank": 5,
+        "of": 10,
         "level": "MODERATE",
         "volume": 106
       },
       {
         "id": "commencement-date-ambiguous-against-source",
-        "rank": 10,
-        "of": 14,
+        "rank": 6,
+        "of": 10,
         "level": "MODERATE",
         "volume": 1
       },
       {
         "id": "head-elements",
-        "rank": 11,
-        "of": 14,
+        "rank": 7,
+        "of": 10,
         "level": "LOW",
         "volume": 18
       },
       {
         "id": "status-and-redirects",
-        "rank": 12,
-        "of": 14,
+        "rank": 8,
+        "of": 10,
         "level": "LOW",
         "volume": 7
       },
       {
         "id": "canonical",
-        "rank": 13,
-        "of": 14,
+        "rank": 9,
+        "of": 10,
         "level": "LOW",
         "volume": 6
       },
       {
         "id": "query-parameters",
-        "rank": 14,
-        "of": 14,
+        "rank": 10,
+        "of": 10,
         "level": "LOW",
         "volume": 1
       }
     ],
     "unranked": [
       {
-        "id": "indexability-preflight",
+        "id": "indexability-preflight-check-not-run",
         "state": "UNKNOWN",
         "route": "OWNER REVIEW",
-        "reason": "UNCLASSIFIED — indexability-preflight has no level the owner ruled; an unrated consequence is UNKNOWN, never low — routed to owner review; never ranked and never executed on a fallback"
+        "reason": "UNCLASSIFIED — indexability-preflight-check-not-run has no level the owner ruled; an unrated consequence is UNKNOWN, never low — routed to owner review; never ranked and never executed on a fallback"
       },
       {
-        "id": "noindex",
+        "id": "indexability-preflight-found",
         "state": "UNKNOWN",
         "route": "OWNER REVIEW",
-        "reason": "UNCLASSIFIED — noindex has no level the owner ruled; an unrated consequence is UNKNOWN, never low — routed to owner review; never ranked and never executed on a fallback"
+        "reason": "UNCLASSIFIED — indexability-preflight-found has no level the owner ruled; an unrated consequence is UNKNOWN, never low — routed to owner review; never ranked and never executed on a fallback"
       },
       {
-        "id": "sitemap-advertises-blocked-url",
+        "id": "near-duplicate-check-not-run",
         "state": "UNKNOWN",
         "route": "OWNER REVIEW",
-        "reason": "UNCLASSIFIED — sitemap-advertises-blocked-url has no level the owner ruled; an unrated consequence is UNKNOWN, never low — routed to owner review; never ranked and never executed on a fallback"
+        "reason": "UNCLASSIFIED — near-duplicate-check-not-run has no level the owner ruled; an unrated consequence is UNKNOWN, never low — routed to owner review; never ranked and never executed on a fallback"
+      },
+      {
+        "id": "near-duplicate-found",
+        "state": "UNKNOWN",
+        "route": "OWNER REVIEW",
+        "reason": "UNCLASSIFIED — near-duplicate-found has no level the owner ruled; an unrated consequence is UNKNOWN, never low — routed to owner review; never ranked and never executed on a fallback"
+      },
+      {
+        "id": "noindex-declared-deliberate",
+        "state": "UNKNOWN",
+        "route": "OWNER REVIEW",
+        "reason": "UNCLASSIFIED — noindex-declared-deliberate has no level the owner ruled; an unrated consequence is UNKNOWN, never low — routed to owner review; never ranked and never executed on a fallback"
+      },
+      {
+        "id": "noindex-defect-claim-withdrawn",
+        "state": "UNKNOWN",
+        "route": "OWNER REVIEW",
+        "reason": "UNCLASSIFIED — noindex-defect-claim-withdrawn has no level the owner ruled; an unrated consequence is UNKNOWN, never low — routed to owner review; never ranked and never executed on a fallback"
+      },
+      {
+        "id": "orphan-within-crawled-set-check-not-run",
+        "state": "UNKNOWN",
+        "route": "OWNER REVIEW",
+        "reason": "UNCLASSIFIED — orphan-within-crawled-set-check-not-run has no level the owner ruled; an unrated consequence is UNKNOWN, never low — routed to owner review; never ranked and never executed on a fallback"
+      },
+      {
+        "id": "sitemap-advertises-blocked-url-check-not-run",
+        "state": "UNKNOWN",
+        "route": "OWNER REVIEW",
+        "reason": "UNCLASSIFIED — sitemap-advertises-blocked-url-check-not-run has no level the owner ruled; an unrated consequence is UNKNOWN, never low — routed to owner review; never ranked and never executed on a fallback"
+      },
+      {
+        "id": "template-dominance-check-not-run",
+        "state": "UNKNOWN",
+        "route": "OWNER REVIEW",
+        "reason": "UNCLASSIFIED — template-dominance-check-not-run has no level the owner ruled; an unrated consequence is UNKNOWN, never low — routed to owner review; never ranked and never executed on a fallback"
+      },
+      {
+        "id": "template-dominance-found",
+        "state": "UNKNOWN",
+        "route": "OWNER REVIEW",
+        "reason": "UNCLASSIFIED — template-dominance-found has no level the owner ruled; an unrated consequence is UNKNOWN, never low — routed to owner review; never ranked and never executed on a fallback"
+      },
+      {
+        "id": "thin-content-check-not-run",
+        "state": "UNKNOWN",
+        "route": "OWNER REVIEW",
+        "reason": "UNCLASSIFIED — thin-content-check-not-run has no level the owner ruled; an unrated consequence is UNKNOWN, never low — routed to owner review; never ranked and never executed on a fallback"
+      },
+      {
+        "id": "thin-content-found",
+        "state": "UNKNOWN",
+        "route": "OWNER REVIEW",
+        "reason": "UNCLASSIFIED — thin-content-found has no level the owner ruled; an unrated consequence is UNKNOWN, never low — routed to owner review; never ranked and never executed on a fallback"
       }
     ]
   },
+  "supersededClasses": [
+    {
+      "issue_class": "indexability-preflight",
+      "level": "UNCLASSIFIED",
+      "ruledBy": "owner",
+      "supersededOn": "2026-09-14",
+      "supersededBy": [
+        "indexability-preflight-found",
+        "indexability-preflight-check-not-run"
+      ]
+    },
+    {
+      "issue_class": "near-duplicate",
+      "level": "MODERATE",
+      "ruledBy": "owner",
+      "supersededOn": "2026-09-14",
+      "supersededBy": [
+        "near-duplicate-found",
+        "near-duplicate-check-not-run"
+      ]
+    },
+    {
+      "issue_class": "noindex",
+      "level": "UNCLASSIFIED",
+      "ruledBy": "owner",
+      "supersededOn": "2026-09-14",
+      "supersededBy": [
+        "noindex-defect-claim-withdrawn",
+        "noindex-declared-deliberate"
+      ]
+    },
+    {
+      "issue_class": "orphan-within-crawled-set",
+      "level": "MODERATE",
+      "ruledBy": "owner",
+      "supersededOn": "2026-09-14",
+      "supersededBy": [
+        "orphan-within-crawled-set-found",
+        "orphan-within-crawled-set-check-not-run"
+      ]
+    },
+    {
+      "issue_class": "sitemap-advertises-blocked-url",
+      "level": "UNCLASSIFIED",
+      "ruledBy": "owner",
+      "supersededOn": "2026-09-14",
+      "supersededBy": [
+        "sitemap-advertises-blocked-url-found",
+        "sitemap-advertises-blocked-url-check-not-run"
+      ]
+    },
+    {
+      "issue_class": "template-dominance",
+      "level": "MODERATE",
+      "ruledBy": "owner",
+      "supersededOn": "2026-09-14",
+      "supersededBy": [
+        "template-dominance-found",
+        "template-dominance-check-not-run"
+      ]
+    },
+    {
+      "issue_class": "thin-content",
+      "level": "MODERATE",
+      "ruledBy": "owner",
+      "supersededOn": "2026-09-14",
+      "supersededBy": [
+        "thin-content-found",
+        "thin-content-check-not-run"
+      ]
+    }
+  ],
   "unreachableByAnyEntry": [
     {
       "recommendation_id": "REC-AI-CRAWLER-BLOCK",

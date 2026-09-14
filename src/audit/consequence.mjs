@@ -23,6 +23,8 @@
  * This module names no product, and holds no level of its own: every level it knows arrives in the scale passed in.
  */
 
+import { effectiveClassesInUse } from "./class-split.mjs";
+
 export const UNCLASSIFIED = "UNCLASSIFIED";
 export const BASIS_KINDS = Object.freeze(["MEASURED VOLUME", "DECLARED CONSEQUENCE", "BOTH", "NONE"]);
 
@@ -53,8 +55,11 @@ export function classesInUse(records = []) {
   return [...new Set(records.filter((r) => r.record_type === "issue" && filled(r.issue_class)).map((r) => r.issue_class))].sort();
 }
 
-export function reconcileRegister({ records, register, scale }) {
-  const inUse = classesInUse(records);
+export function reconcileRegister({ records, register, scale, splits }) {
+  // 🔴 The classes in use are the SPLIT classes (config/class-splits.mjs). Leaving the splits out would read the
+  // store's stored names and quietly reconcile against a bundle — so they are required: pass {} for none.
+  if (splits === undefined) throw new TypeError("reconcileRegister needs the declared class splits — pass {} for none, never leave them out");
+  const inUse = effectiveClassesInUse(records, splits);
   const declared = Object.keys(register ?? {}).sort();
   const missing = inUse.filter((k) => !declared.includes(k));
   const stale = declared.filter((k) => !inUse.includes(k));
@@ -85,14 +90,23 @@ export function reconcileRegister({ records, register, scale }) {
       if (from < 0 || to < 0 || from - to !== 1) bad(`escalatedFrom ${e.escalatedFrom} to ${e.level} is not one step up the scale — blast radius may escalate to the NEXT severity only (A3)`);
     }
   }
+  // 🔴 A HALF IS A NEW CLASS: it arrives UNCLASSIFIED and unruled, and no parent's level carries down to it.
+  const inherited = declared
+    .filter((k) => register[k]?.splitFrom !== undefined)
+    .filter((k) => !(register[k].level === UNCLASSIFIED && register[k].ruledBy === null && register[k].ruledOn === null))
+    .map((k) => ({
+      class: k,
+      why: `a half of ${register[k].splitFrom} arrives with level ${register[k].level}${register[k].ruledBy ? ` ruled by ${register[k].ruledBy}` : ""} — a half is a new class, the owner has ruled nothing about it, and no parent level carries down`,
+    }));
   return {
     classesInUse: inUse,
     entries: declared.length,
     missing,
     stale,
     invalid,
+    inherited,
     unclassified: declared.filter((k) => register[k]?.level === UNCLASSIFIED),
-    ok: inUse.length > 0 && !missing.length && !stale.length && !invalid.length,
+    ok: inUse.length > 0 && !missing.length && !stale.length && !invalid.length && !inherited.length,
     vacuous: inUse.length === 0,
   };
 }

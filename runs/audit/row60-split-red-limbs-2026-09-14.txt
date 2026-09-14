@@ -1,0 +1,75 @@
+ROW 60 — THE CLASS SPLIT (14 September 2026): EACH EVIDENCE LIMB SABOTAGED ALONE IN THE REAL FILES
+recorded 2026-09-14T04:00:00.796Z by the sabotage harness; runner: node bin/consequence-census.mjs (limb 5: node bin/row60-ruling-sheet.mjs)
+
+GREEN BEFORE — census exit 0, limbs tripped: none · sheet runner exit 0
+
+✅ RED ALONE — limb 1 · a record assigned to a half WITHOUT the stored signal that separates it (thin-content's found half narrowed to verdict PASS, and the classifier guessing the first half for a record no half claims)
+   file config/class-splits.mjs
+     sha256 before   0c62def4d762eceb11aba20aeb865d9e05900c16e0eec58143e23a4ebd88becb
+     sha256 sabotage eb0a137a67d8a5e12c0b9fa981330ad007d50b8f15237f3576c35308b312f76c
+     sha256 restored 0c62def4d762eceb11aba20aeb865d9e05900c16e0eec58143e23a4ebd88becb
+   file src/audit/class-split.mjs
+     sha256 before   58b3c09739ec2995d3d770562229a37d67f1df692605c70e81eb94d3fba06daa
+     sha256 sabotage d3da302d49d79971f78c7ad09ce2c6f94e4916e0e792d9ee8162a596e3b48c52
+     sha256 restored 58b3c09739ec2995d3d770562229a37d67f1df692605c70e81eb94d3fba06daa
+   landed: true · restored identical: true
+   exit 1 · limbs tripped: signal · expected exactly: signal
+   [signal] e62a93373e122ada a thin-content record (verdict FAIL, reason_code none, detector thin-content) is counted under thin-content-found, but its stored fields satisfy 0 half/halves — a record is placed only by the signal it carries, nev
+   [signal] d49299925e54df78 a thin-content record (verdict FAIL, reason_code none, detector thin-content) is counted under thin-content-found, but its stored fields satisfy 0 half/halves — a record is placed only by the signal it carries, nev
+   [signal] c73493f2c182eec0 a thin-content record (verdict FAIL, reason_code none, detector thin-content) is counted under thin-content-found, but its stored fields satisfy 0 half/halves — a record is placed only by the signal it carries, nev
+
+✅ RED ALONE — limb 2 · a new half arriving with its parent's level (thin-content-found given MODERATE, ruled, all six parts)
+   file config/consequence-register.mjs
+     sha256 before   e480bbaccc0abf0c96b6600185e2b2820694e59ea4efb960a8058358d5936d0d
+     sha256 sabotage fd1e604214b2615bedc8f046ae9e48d7ccee794bb2a08bc82c08c39a22eff2e4
+     sha256 restored e480bbaccc0abf0c96b6600185e2b2820694e59ea4efb960a8058358d5936d0d
+   landed: true · restored identical: true
+   exit 1 · limbs tripped: half-level · expected exactly: half-level
+   [half-level] thin-content-found a half of thin-content arrives with level MODERATE ruled by owner — a half is a new class, the owner has ruled nothing about it, and no parent level carries down
+
+✅ RED ALONE — limb 3 · an issue's opened_at changed by the split (every split issue's opened_at nulled in the view)
+   file src/audit/class-split.mjs
+     sha256 before   58b3c09739ec2995d3d770562229a37d67f1df692605c70e81eb94d3fba06daa
+     sha256 sabotage f8a0804edb288b6210c0d3a035e295cccaaa615b644d5e5fbe29edd1721932e5
+     sha256 restored 58b3c09739ec2995d3d770562229a37d67f1df692605c70e81eb94d3fba06daa
+   landed: true · restored identical: true
+   exit 1 · limbs tripped: identity · expected exactly: identity
+   [identity] e62a93373e122ada the split changed the issue's id, evidence or opened_at — a split changes the class it is counted under and nothing else
+   [identity] d49299925e54df78 the split changed the issue's id, evidence or opened_at — a split changes the class it is counted under and nothing else
+   [identity] c73493f2c182eec0 the split changed the issue's id, evidence or opened_at — a split changes the class it is counted under and nothing else
+
+✅ RED ALONE — limb 4 · a SUPERSEDED issue reopened by the split (every split issue read as OPEN)
+   file src/audit/class-split.mjs
+     sha256 before   58b3c09739ec2995d3d770562229a37d67f1df692605c70e81eb94d3fba06daa
+     sha256 sabotage d277a7f7d8850c9d9bcb8b79086c2ab5ad7ae77fa0b6745056c6fd02372a1c88
+     sha256 restored 58b3c09739ec2995d3d770562229a37d67f1df692605c70e81eb94d3fba06daa
+   landed: true · restored identical: true
+   exit 1 · limbs tripped: reopened · expected exactly: reopened
+   [reopened] 2377eca209a7d1bb the split reads OPEN where the store holds SUPERSEDED — a closed or superseded issue reopened
+   [reopened] ab4b68348fb3fb0b the split reads OPEN where the store holds SUPERSEDED — a closed or superseded issue reopened
+   [reopened] 73d7e14ec50b577a the split reads OPEN where the store holds SUPERSEDED — a closed or superseded issue reopened
+
+✅ RED ALONE — limb 5 · the register failing to reconcile with the classes in use (an entry for a class no record holds) — the sheet runner must refuse to print
+   file config/consequence-register.mjs
+     sha256 before   e480bbaccc0abf0c96b6600185e2b2820694e59ea4efb960a8058358d5936d0d
+     sha256 sabotage 39313f34a214f9cea1a47e70c09b786fc4c2c70319edac5524b84af707ae8e73
+     sha256 restored e480bbaccc0abf0c96b6600185e2b2820694e59ea4efb960a8058358d5936d0d
+   landed: true · restored identical: true
+   exit 1 · limbs tripped: stale-register · expected exactly: stale-register
+   [stale-register] a-class-no-store-holds — the register holds a class that is not in use
+
+✅ RED ALONE — limb 6 · a class of checks that never ran named as a defect (orphan's check-not-run half renamed, in the split and the register alike)
+   file config/class-splits.mjs
+     sha256 before   0c62def4d762eceb11aba20aeb865d9e05900c16e0eec58143e23a4ebd88becb
+     sha256 sabotage 748d64918af72aa30506651962b7fefe2d11495849928ebc4a70e492e49cfd66
+     sha256 restored 0c62def4d762eceb11aba20aeb865d9e05900c16e0eec58143e23a4ebd88becb
+   file config/consequence-register.mjs
+     sha256 before   e480bbaccc0abf0c96b6600185e2b2820694e59ea4efb960a8058358d5936d0d
+     sha256 sabotage 4d62a39e36cc9d6c242de73499c49e9e0984204e0e403f10db8cfd81c2ac0bdd
+     sha256 restored e480bbaccc0abf0c96b6600185e2b2820694e59ea4efb960a8058358d5936d0d
+   landed: true · restored identical: true
+   exit 1 · limbs tripped: misnamed · expected exactly: misnamed
+   [misnamed] orphan-within-crawled-set-structural-failure all 340 of its records are checks that never ran, and its name reads as a defect found — it must end -check-not-run
+
+GREEN AFTER — census exit 0, limbs tripped: none · sheet runner exit 0
+RESULT: 6 of 6 limbs RED alone and restored

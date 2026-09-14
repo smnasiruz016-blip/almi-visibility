@@ -37,6 +37,7 @@
 import { targetPageId, canonicalUrl } from "../evidence/ids.mjs";
 import { tierRank, SOURCE_TIERS } from "../evidence/records.mjs";
 import { consequenceFor, orderByConsequence } from "../audit/consequence.mjs";
+import { classOf } from "../audit/class-split.mjs";
 
 /* 🔴 ROW 60 (Amendment 3) — every priority also states its BASIS (measured volume · declared consequence · both ·
  * none) and WHICH consequence-register entries applied. The levels come ONLY from the register passed in, and their
@@ -65,7 +66,7 @@ function tierOf(record, sourcesById) {
  * @param {object[]} a.records           every record the links may point at
  * @param {object[]} a.ledger            cost_entry records
  */
-export function computeRecommendationFields({ recommendations, links, records, ledger, consequenceRegister = null, consequenceScale = null }) {
+export function computeRecommendationFields({ recommendations, links, records, ledger, consequenceRegister = null, consequenceScale = null, classSplits = null }) {
   const byObs = new Map(records.filter((r) => r.observation_id && r.record_type === "observation").map((r) => [r.observation_id, r]));
   const byIssue = new Map(records.filter((r) => r.record_type === "issue").map((r) => [r.issue_id, r]));
   const bySource = new Map(records.filter((r) => r.record_type === "source").map((r) => [r.source_id, r]));
@@ -168,7 +169,9 @@ export function computeRecommendationFields({ recommendations, links, records, l
     };
 
     /* ---- CONSEQUENCE: the register entries for the finding classes its issues belong to ---- */
-    const consequence = consequenceFor(resolved.issues.map((i) => i.issue_class).filter(Boolean), consequenceRegister, consequenceScale);
+    const consequence = // The class an issue is COUNTED under (config/class-splits.mjs). With no splits passed, the stored name is read, and a
+    // superseded parent has no register entry — so the consequence is UNKNOWN: it fails closed, never to a bundle.
+    consequenceFor(resolved.issues.map((i) => classOf(i, classSplits).class).filter(Boolean), consequenceRegister, consequenceScale);
 
     return { rec, link, impact, confidence, cost, consequence, evidence: { linked: linkedCount, resolved: resolvedCount, issues: ids.issues.length, observations: ids.observations.length, sources: ids.sources.length } };
   });

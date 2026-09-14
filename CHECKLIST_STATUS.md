@@ -29,6 +29,22 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 | **DEFERRED** | — | **23** |
 | **total** | 58 | **61** |
 
+> ### 🔴 ROW 60 · 1,224 "FINDINGS" WERE CHECKS THAT NEVER RAN — SEVEN CLASSES SPLIT — 14 SEPTEMBER 2026 — NO ROW MOVED
+>
+> - **No state moved, and the tally above is unchanged.** Row 60 stays BUILT-NOT-PROVED.
+> - **What the store holds, measured over every file under `runs/` with state changes applied:** 2,033 distinct issues —
+>   **673 FAIL** (a check found a defect), **1,224 checks that never ran** (verdict UNKNOWN with MISSING_INPUT,
+>   NEEDS_RENDERED_HTML or TOOL_FAILED), 136 other UNKNOWN. The 1,224 sat under seven names that read as defects found.
+>   🔴 That is absence of evidence presented as a finding — and `orphan-within-crawled-set`'s ruled MODERATE rested on
+>   340 such records and **no found orphan**.
+> - **Split on the owner's answer ("All seven"), each on the signal its own records carry** (`config/class-splits.mjs`):
+>   `indexability-preflight` 158 found / 210 not run · `sitemap-advertises-blocked-url` 0 / 350 · `orphan-within-crawled-set`
+>   0 / 340 · `thin-content` 118 / 108 · `near-duplicate` 5 / 108 · `template-dominance` 2 / 108 · `noindex` 134 withdrawn
+>   defect claims (all SUPERSEDED) / 134 declared deliberate (all OPEN). No issue's id, evidence, opened_at or state changed.
+> - **The register:** 10 ruled classes unchanged and attributed; 12 halves UNCLASSIFIED and unruled, no parent level carried
+>   down; the 7 bundled entries superseded with every word kept. Six split limbs RED alone in the real files and restored
+>   (runs/audit/row60-split-red-limbs-2026-09-14.txt). **Next:** the owner rules the 12 halves on the regenerated sheet.
+
 > ### 🔴 ROW 60 RULED BY THE OWNER · ROW 17's REAL GAPS CLOSED — 14 SEPTEMBER 2026 — NO ROW MOVED
 >
 > - **No state moved, and the tally above is unchanged.** Rows 60 and 17 both stay BUILT-NOT-PROVED, each with its
@@ -747,7 +763,7 @@ actually came from.
 | 57 | Final Independent Audit | NOT-STARTED | IN — checklist §1; DoD v0.1 | This document is the **first status baseline**, not the final audit | 2026-09-11 | Claude (repo audit) | Cannot run while 16 items are ◐ and 1 is ⚠; and it must be *independent*, which a self-audit is not | — |
 | 58 | DONE Declaration | NOT-STARTED | IN — checklist §6, owner sign-off | none | 2026-09-11 | Claude (repo audit) | Requires every applicable item ☑ or justified N/A with no frozen blocker. **0 items are ☑**, and N/A justifications are the owner's — none exist | — |
 | 59 | Falsifiability of Findings | VERIFIED-PASS | IN — `PASS_BOUNDARIES_AMENDMENT_3.md`, owner ruling under §12, 13 Sep 2026, re-issued 14 Sep 2026 (class P) | `bin/refutation-census.mjs` over the real store: population 20 (17 finding classes + 3 recommendations), 20 carry observation · source · condition with a held method (`config/refutation-register.mjs`); every EVIDENCE limb RED alone in the real register and restored, hash-checked (runs/audit/row59-*). Backfill 20 written, 0 not written | 2026-09-14 | CC (Amendment 3 work half) | none for the tick. The limit, on the row: the census cannot prove a refutation is well chosen — that is human judgement | — |
-| 60 | Consequence-Weighted Priority | BUILT-NOT-PROVED | IN — `PASS_BOUNDARIES_AMENDMENT_3.md`, owner ruling under §12, 13 Sep 2026, re-issued 14 Sep 2026 (class P) | `ROW60_CONSEQUENCE_LAW.md` (owner, 14 Sep 2026, hash-pinned) and `config/consequence-register.mjs`: 17 classes — HIGH 4 · MODERATE 6 · LOW 4 · UNCLASSIFIED 3 — each word for word, all six parts on every classified entry, reconciled line by line; priority consequence first with volume under it, on the real report; every limb RED alone and restored (runs/audit/row60-*) | 2026-09-14 | CC (row 60 ruling) | EXPECTED's first clause is not met: `noindex`, `indexability-preflight` and `sitemap-advertises-blocked-url` bundle two opposite consequences and carry no level until they are split — separate work. UNCLASSIFIED never defaults to low | — |
+| 60 | Consequence-Weighted Priority | BUILT-NOT-PROVED | IN — `PASS_BOUNDARIES_AMENDMENT_3.md`, owner ruling under §12, 13 Sep 2026, re-issued 14 Sep 2026 (class P) | `ROW60_CONSEQUENCE_LAW.md` (owner, 14 Sep 2026, hash-pinned); `config/consequence-register.mjs` reconciled line by line with the 22 classes in use after `config/class-splits.mjs` split seven — 10 ruled (HIGH 4 · MODERATE 2 · LOW 4), 12 halves UNCLASSIFIED; 1,224 checks that never ran now counted under `-check-not-run` names; priority consequence first, on the real report; every limb RED alone and restored (runs/audit/row60-*) | 2026-09-14 | CC (row 60 split) | EXPECTED's first clause is not met: 12 of 22 classes in use — the halves of the seven split classes — carry no level until the owner rules them. UNCLASSIFIED never defaults to low | — |
 | 61 | Safe Local Page Construction | BUILT-NOT-PROVED | IN — `PASS_BOUNDARIES_AMENDMENT_5.md` §4 (class P); reserved there, created 14 Sep 2026 once rows 59 and 60 existed | PR #72: `bin/build-page.mjs` takes `--slug` / `--all-slugs` with no default; Gate A's four parts enforced in the construction path, failing closed (`src/page/construct.mjs`); RED/GREEN in `runs/audit/row61-gate-a-*`; 0 of 3 candidates accepted | 2026-09-14 | CC (row 61 created) | **missing leg:** a second DECLARED product with its own DECLARED page spec, run through the runner — **blocked on an owner decision** (a second neutral declared test product, or a re-pin of row 53's coverage). No real page can be accepted: no WHY_THIS_URL is written, and no template family has three specs | — |
 
 ---

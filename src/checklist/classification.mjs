@@ -151,6 +151,30 @@ export const ADMITTED_ROWS = Object.freeze({
 });
 
 export const MOVES_AMENDMENT_2 = Object.freeze({
+  /* 🔴 ROWS 59 AND 60 — AMENDMENT 3's WORK HALF, released by the owner on 14 September 2026. WORK moves: 59's test
+   * was run against its own boundary and passed; 60 was built and waits on the owner's levels. No boundary changed. */
+  59: Object.freeze([
+    Object.freeze({
+      from: "NOT-STARTED",
+      to: "VERIFIED-PASS",
+      kind: "work",
+      route: "TEST_RUN",
+      test: "node bin/refutation-census.mjs · node --test test/falsifiability.test.mjs · runs/audit/row59-census-2026-09-14.txt · runs/audit/row59-red-limbs-2026-09-14.txt",
+      date: "2026-09-14",
+      reason: "the census over the real store checked a population of 20 read from it — 17 finding classes and 3 recommendations — and all 20 carry observation, source and condition with a held method; each evidence limb was sabotaged alone in the real register, went RED on that limb only, and was restored and hash-checked. It proves presence and a held method, never that a refutation is well chosen",
+    }),
+  ]),
+  60: Object.freeze([
+    Object.freeze({
+      from: "NOT-STARTED",
+      to: "BUILT-NOT-PROVED",
+      kind: "work",
+      route: "BUILT",
+      test: "node bin/consequence-census.mjs · node --test test/consequence-register.test.mjs · runs/audit/row60-census-2026-09-14.txt · runs/audit/row60-red-limbs-2026-09-14.txt",
+      date: "2026-09-14",
+      reason: "the register was built with every class in the store and every level UNCLASSIFIED, every presented priority states its basis and the entries that applied, and each limb went RED alone and was restored — and it stops at BUILT-NOT-PROVED because only the owner may declare the levels its EXPECTED requires",
+    }),
+  ]),
   /* 🔴 ROW 61 — WORK HAPPENED, AND IT IS NOT PROVED. PR #72 built it (merged 14 September 2026); the row was
    * reserved then and could not carry a state of its own. Created now, it records that work as a WORK move —
    * to BUILT-NOT-PROVED, never further: the EVIDENCE clause's portability leg was not run through the runner. */
@@ -863,12 +887,12 @@ const EXPLICIT = {
   57: { state: "NOT-STARTED", why: "runs last, and requires an auditor who is not the builder" },
   58: { state: "NOT-STARTED", why: "🔴 only the owner declares DONE. Requires the full ledger, the audit, and his own signature" },
   59: {
-    state: "NOT-STARTED",
-    why: "🔴 **NOT-STARTED — ADMITTED BY OWNER RULING** (Amendment 3: ruled 13 September 2026 under §12, re-issued 14 September 2026). **Nothing is built:** no refutation census, no `refutation` on any finding, no backfill into the evidence store. The owner's answer of 14 September 2026 scoped the admitting change to the row alone; a later change builds it. Its population was MEASURED, not built: 3 recommendations (REC-ROBOTS-CORRIDOR, REC-AI-CRAWLER-BLOCK, REC-NOINDEX-CV-GUIDE) and 17 distinct `issue_class` values in the store. 🔴 **The limit, written on the row as ruled:** a census can prove the three parts are present and point at a method this product has; it CANNOT prove a refutation is well chosen — that is human judgement",
+    state: "VERIFIED-PASS",
+    why: "🔴 **VERIFIED-PASS — 14 SEPTEMBER 2026**, on the owner's release of Amendment 3's work half (admitted 14 September as NOT-STARTED). **INPUT** every finding the product presents as actionable, READ FROM THE STORE: 17 finding classes and 3 drafted recommendations — a population of **20**, printed by the census. **EXPECTED** each carries a structured `refutation` — observation · source · condition — declared in `config/refutation-register.mjs`: **20 of 20** carry all three parts and a source naming a method this product holds (a detector recorded in the store, or a runner in bin/). **FAILURE** not met: 0 missing · 0 unrefutable · 0 empty parts · 0 unobtainable · 0 stale · the population is not empty, and it is read from the store, never from the register. **EVIDENCE** `bin/refutation-census.mjs` over the real store (runs/audit/row59-census-2026-09-14.txt); every limb sabotaged ALONE in the real register — one refutation removed, the observation emptied, the source emptied, the condition emptied, a method we do not hold — each RED on that limb only, each restored and hash-checked (runs/audit/row59-red-limbs-2026-09-14.txt). **Backfill: 20 written, 0 that could not be written.** 🔴 **THE LIMIT, as ruled:** the census proves each refutation's three parts are present and that its source names a method this product holds; it CANNOT prove the refutation is well chosen — that is human judgement. ⚠️ **Declared interpretation:** a refutation is declared once per finding CLASS and applies to every record of it; nothing is written into the append-only evidence store",
   },
   60: {
-    state: "NOT-STARTED",
-    why: "🔴 **NOT-STARTED — ADMITTED BY OWNER RULING** (Amendment 3: ruled 13 September 2026 under §12, re-issued 14 September 2026). **Nothing is built:** no consequence register, no priority basis on the report. The brief's *\"enters as BUILT-NOT-PROVED\"* assumed that work; the owner's answer of 14 September 2026 admitted the row alone, and a row nothing was built for is NOT-STARTED. 🔴 **UNCLASSIFIED IS A REAL STATE AND NEVER DEFAULTS TO LOW** (LAW-ABSENT-1): when the register is built, every class starts UNCLASSIFIED and no level is filled in by the engine or by CC — the harm judgement is the owner's",
+    state: "BUILT-NOT-PROVED",
+    why: "🔴 **BUILT-NOT-PROVED — BY DESIGN, AND THAT IS THE ROW WORKING.** Built 14 September 2026, on the owner's release of Amendment 3's work half. `config/consequence-register.mjs` holds every finding class ACTUALLY PRESENT in the store — **17** — each with what it is, level **UNCLASSIFIED** and why; it reconciles line by line with the store (0 missing · 0 stale · 0 invalid). Every presented recommendation's priority now states its **basis** (MEASURED VOLUME for the two ranked; NONE for the one with no measured impact), **which register entries applied**, and a consequence that reads **UNKNOWN** because every applied class is UNCLASSIFIED — and the real report shows all three. Each limb RED alone in the real files — a level hard-coded in the engine, a register entry removed, the basis emptied, a stale entry — each restored and hash-checked (runs/audit/row60-red-limbs-2026-09-14.txt). **It waits on the owner:** its EXPECTED needs a declared consequence level on every class, and not one may be filled in by the engine or by CC. 🔴 **UNCLASSIFIED IS A REAL STATE AND NEVER DEFAULTS TO LOW** (LAW-ABSENT-1): an unrated class ranks as UNKNOWN and says so",
   },
   /* Row 61's work is recorded as its declared move in MOVES_AMENDMENT_2 — it has no 11 September baseline to
    * have "changed" against, so it carries no changeKind of its own. */

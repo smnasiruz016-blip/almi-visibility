@@ -20,16 +20,48 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 
 | state | before (4-state) | after (7-state) |
 |---|---|---|
-| **NOT-STARTED** | 33 | **9** |
-| **BUILT-NOT-PROVED** | 24 | **6** |
+| **NOT-STARTED** | 33 | **7** |
+| **BUILT-NOT-PROVED** | 24 | **7** |
 | **TESTABLE-NOW** | — | **1** |
-| **VERIFIED-PASS** | 0 | **17** |
+| **VERIFIED-PASS** | 0 | **18** |
 | **FAILED** | — | **1** |
 | **BLOCKED-UNKNOWN** | 1 | **4** |
 | **DEFERRED** | — | **23** |
 | **total** | 58 | **61** |
 
-> ### 🔴 AMENDMENT 3 — ROWS 59 AND 60 ADMITTED · AND ROW 61 IS CREATED — 14 SEPTEMBER 2026
+> ### 🔴 AMENDMENT 3's WORK HALF — ROW 59 TICKED · ROW 60 BUILT, WAITING ON THE OWNER — 14 SEPTEMBER 2026
+>
+> | state | before this change | after |
+> |---|---|---|
+> | NOT-STARTED | 9 (3, 4, 5, 6, 7, 57, 58, 59, 60) | **7** (3, 4, 5, 6, 7, 57, 58) |
+> | BUILT-NOT-PROVED | 6 | **7** (+ 60) |
+> | TESTABLE-NOW | 1 (25) | 1 (25) |
+> | VERIFIED-PASS | 17 | **18** (+ 59) |
+> | FAILED | 1 (50) | 1 (50) |
+> | BLOCKED-UNKNOWN | 4 (1, 9, 52, 54) | 4 (1, 9, 52, 54) |
+> | DEFERRED | 23 | 23 |
+>
+> - **moved because WORK HAPPENED:** 59 NOT-STARTED → VERIFIED-PASS · 60 NOT-STARTED → BUILT-NOT-PROVED.
+>   **moved ONLY because a RULING changed:** none. The owner released the work half; no boundary moved.
+> - **Row 59 · Falsifiability of Findings — VERIFIED-PASS.** `bin/refutation-census.mjs` read the presented population
+>   from the store — **17 finding classes and 3 recommendations, 20** — and all 20 carry a structured refutation
+>   (observation · source · condition) whose source names a method this product holds. Every EVIDENCE limb was
+>   sabotaged ALONE in the real register — a refutation removed, each of the three parts emptied, a method we do not
+>   hold — each RED on that limb only, each restored and hash-checked. **Backfill: 20 written, 0 that could not be
+>   written.** 🔴 **The limit, on the row:** the census proves presence and a held method; it CANNOT prove a
+>   refutation is well chosen — that is human judgement. Refutations are declared per finding class, never written
+>   into the append-only evidence store.
+> - **Row 60 is BUILT-NOT-PROVED by design — the row working, not falling short.** `config/consequence-register.mjs`
+>   holds all 17 classes present in the store, every level **UNCLASSIFIED**, none filled in; it reconciles line by line.
+>   Every presented priority now shows its basis (MEASURED VOLUME, or NONE), the register entries that applied, and a
+>   consequence that reads UNKNOWN — never low. Every limb RED alone and restored. It waits on the owner's level for
+>   each of the 17 classes.
+> - 🔴 **The committed report was regenerated, and it had been STALE.** Rendering row 60's basis onto
+>   `runs/report/index.html` also brought three older sections current: the label census (OBSERVED 614 → 598, UNKNOWN
+>   14 → 30, after the nine facts demoted on 13 September), the source tiers (OFFICIAL 32 → 16), and seven cost-ledger
+>   lines recorded on 13 September. **Item 56 was verified by the owner's own look at an earlier render of this page.**
+>   Its state is not moved and its screenshots are unchanged, but the page he looked at is not the page committed now.
+
 >
 > | state | before this change | after |
 > |---|---|---|
@@ -534,10 +566,10 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 >   ingested and the seventh is supplied by no tool we hold. Not a tick. After it the counts are
 >   BUILT-NOT-PROVED **16** and BLOCKED-UNKNOWN **7**; the table above records Amendment 2 alone.
 
-> ### 🔴 SEVENTEEN TICKS — ITEMS 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 47, 48, 49, 51, 53, 55 AND 56
+> ### 🔴 EIGHTEEN TICKS — ITEMS 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56 AND 59
 >
-> **Items 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 48, 49, 51 and 55.** Each has all four parts of its boundary
-> answered with real-data evidence. They are the only seventeen rows in the whole ledger that **hold a pass earned by work**;
+> **Items 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 48, 49, 51, 55 and 59.** Each has all four parts of its boundary
+> answered with real-data evidence. They are the only eighteen rows in the whole ledger that **hold a pass earned by work**;
 > item 9 moved by work and ended BLOCKED-UNKNOWN; item 50 was run and stays FAILED; item 25 was run and is
 > TESTABLE-NOW with its gap named; **items 48, 51 and 55 each passed through FAILED** and left it only by the
 > test re-run and passing; items 11 and 42 were proved on a local replay of real bodies, which does not prove
@@ -696,8 +728,8 @@ actually came from.
 | 56 | Desktop + Mobile Owner Experience | VERIFIED-PASS | IN — DoD v0.1 "dashboard/report works on desktop and 430px" | **VERIFIED BY THE OWNER, 13 Sep 2026** — four narrow-width screenshots in `runs/owner-verification/item-56-2026-09-13/`, the cost ledger's sideways scroll raised and ruled NOT clipping (PD-1). An owner-facing surface now exists. It declares `width=device-width`, a `@media (max-width:430px)` breakpoint, and `overflow-x:auto` on wide tables so the body never scrolls sideways — all asserted by test | 2026-09-12 | Claude (repo audit) | ✅ **VERIFIED BY THE OWNER'S LOOK, 13 Sep 2026** — no automated run may set this row. ⚠️ All four screenshots are narrow-width; the desktop half rests on the owner's verification. *Earlier, kept:* 🔴 **NOT VERIFIED BY LOOKING.** Chrome's screenshot injection timed out on every attempt, including on a trivial `<h1>probe ok</h1>` page — the extension, not this page. The structure is asserted; **the appearance is unverified** and a structural assertion is not a visual check | report view, 12 Sep 2026 |
 | 57 | Final Independent Audit | NOT-STARTED | IN — checklist §1; DoD v0.1 | This document is the **first status baseline**, not the final audit | 2026-09-11 | Claude (repo audit) | Cannot run while 16 items are ◐ and 1 is ⚠; and it must be *independent*, which a self-audit is not | — |
 | 58 | DONE Declaration | NOT-STARTED | IN — checklist §6, owner sign-off | none | 2026-09-11 | Claude (repo audit) | Requires every applicable item ☑ or justified N/A with no frozen blocker. **0 items are ☑**, and N/A justifications are the owner's — none exist | — |
-| 59 | Falsifiability of Findings | NOT-STARTED | IN — `PASS_BOUNDARIES_AMENDMENT_3.md`, owner ruling under §12, 13 Sep 2026, re-issued 14 Sep 2026 (class P) | none — admitted only (owner's answer, 14 Sep 2026): no census, no `refutation` on any finding. Population measured: 3 recommendations, 17 `issue_class` values | 2026-09-14 | CC (Amendment 3 admission) | not started: no finding carries a structured refutation, and no census exists. The census, when built, cannot prove a refutation is well chosen — that is human judgement | — |
-| 60 | Consequence-Weighted Priority | NOT-STARTED | IN — `PASS_BOUNDARIES_AMENDMENT_3.md`, owner ruling under §12, 13 Sep 2026, re-issued 14 Sep 2026 (class P) | none — admitted only (owner's answer, 14 Sep 2026): no consequence register, no priority basis on the report | 2026-09-14 | CC (Amendment 3 admission) | not started: no register exists. When built, every class starts UNCLASSIFIED, never low; every level is the owner's to rule | — |
+| 59 | Falsifiability of Findings | VERIFIED-PASS | IN — `PASS_BOUNDARIES_AMENDMENT_3.md`, owner ruling under §12, 13 Sep 2026, re-issued 14 Sep 2026 (class P) | `bin/refutation-census.mjs` over the real store: population 20 (17 finding classes + 3 recommendations), 20 carry observation · source · condition with a held method (`config/refutation-register.mjs`); every EVIDENCE limb RED alone in the real register and restored, hash-checked (runs/audit/row59-*). Backfill 20 written, 0 not written | 2026-09-14 | CC (Amendment 3 work half) | none for the tick. The limit, on the row: the census cannot prove a refutation is well chosen — that is human judgement | — |
+| 60 | Consequence-Weighted Priority | BUILT-NOT-PROVED | IN — `PASS_BOUNDARIES_AMENDMENT_3.md`, owner ruling under §12, 13 Sep 2026, re-issued 14 Sep 2026 (class P) | `config/consequence-register.mjs`: all 17 classes in the store, every level UNCLASSIFIED, reconciled line by line; every presented priority shows its basis and the register entries applied, on the real report; every limb RED alone and restored (runs/audit/row60-*) | 2026-09-14 | CC (Amendment 3 work half) | waits on the owner: a declared consequence level for each of the 17 classes. By design — no level may be filled in by the engine or by CC, and UNCLASSIFIED never defaults to low | — |
 | 61 | Safe Local Page Construction | BUILT-NOT-PROVED | IN — `PASS_BOUNDARIES_AMENDMENT_5.md` §4 (class P); reserved there, created 14 Sep 2026 once rows 59 and 60 existed | PR #72: `bin/build-page.mjs` takes `--slug` / `--all-slugs` with no default; Gate A's four parts enforced in the construction path, failing closed (`src/page/construct.mjs`); RED/GREEN in `runs/audit/row61-gate-a-*`; 0 of 3 candidates accepted | 2026-09-14 | CC (row 61 created) | **missing leg:** a second DECLARED product with its own DECLARED page spec, run through the runner — **blocked on an owner decision** (a second neutral declared test product, or a re-pin of row 53's coverage). No real page can be accepted: no WHY_THIS_URL is written, and no template family has three specs | — |
 
 ---

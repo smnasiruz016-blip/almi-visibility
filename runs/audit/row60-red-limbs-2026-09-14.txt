@@ -1,0 +1,192 @@
+ROW 60 — EVERY EVIDENCE LIMB SABOTAGED ALONE IN THE REAL FILE, THEN RESTORED AND HASH-CHECKED
+date: 2026-09-14T01:50:36.229Z · base HEAD 2858812fe6e1ec3c2c3d05a224d1f5dced9e1dc9 (uncommitted change under test)
+
+════ LIMB: a level HARD-CODED in the engine (src/audit/consequence.mjs)
+file src/audit/consequence.mjs · sha256 before 7c5b666fbc5d6629b2964b1cf5426ecd6632d1e8070b924b5df41751bcc9e23c · restored 7c5b666fbc5d6629b2964b1cf5426ecd6632d1e8070b924b5df41751bcc9e23c (identical: true)
+RED   bin/consequence-census.mjs exit 1 · limb counters {"missing":0,"stale":0,"invalid":0,"priority:level":2,"priority:basis":0,"priority:entries":0,"priority:unclassified-ranked":0} · fired ALONE on "priority:level": true
+---- RED output ----
+ROW 60 — CONSEQUENCE REGISTER
+
+CLASSES IN USE: 17 · register entries: 17 · UNCLASSIFIED: 17
+
+| finding class | level | what it is |
+|---|---|---|
+| canonical | UNCLASSIFIED | a page's raw HTML carries no rel=canonical link |
+| commencement-date-ambiguous-against-source | UNCLASSIFIED | a fact's commencement date cannot be read unambiguously from its official source |
+| exact-duplicate | UNCLASSIFIED | a page's body is byte-identical to other pages' |
+| head-elements | UNCLASSIFIED | a page's heading structure is broken — no h1, or a heading level used before it |
+| host-publishes-no-a-record | UNCLASSIFIED | a host publishes no IPv4 address, so IPv4 clients and crawlers cannot resolve it |
+| indexability-preflight | UNCLASSIFIED | a page's technical indexability state — a condition that blocks eligibility, or one left unmeasured |
+| instrument-disagreement | UNCLASSIFIED | two of our own instruments disagree about the same page over the same inputs |
+| near-duplicate | UNCLASSIFIED | a page's body is highly similar to a sibling page's |
+| noindex | UNCLASSIFIED | a page carries noindex in its meta robots tag or X-Robots-Tag header |
+| official-source-contradicts-itself | UNCLASSIFIED | an official source states two things about the same fact that disagree |
+| orphan-within-crawled-set | UNCLASSIFIED | no page inside the crawled set links to this page |
+| query-parameters | UNCLASSIFIED | a page's URL carries query parameters |
+| robots-blocks-search-crawler | UNCLASSIFIED | robots.txt disallows a search crawler from a page that draws search impressions |
+| sitemap-advertises-blocked-url | UNCLASSIFIED | a sitemap advertises a URL that robots.txt blocks — or the inputs to check it are not stored |
+| status-and-redirects | UNCLASSIFIED | requesting a page's URL does not return 200 directly — it redirects or errors |
+| template-dominance | UNCLASSIFIED | the shared shell makes up most of a page's words |
+| thin-content | UNCLASSIFIED | a page has fewer unique body words than the floor after the shell is subtracted |
+
+✅ MISSING — a class in use with no register entry: 0
+✅ STALE — a register entry for a class not in use: 0
+✅ INVALID entry: 0
+
+PRESENTED RECOMMENDATIONS CHECKED: 3
+  REC-ROBOTS-CORRIDOR: priority 2 of 2 · basis BOTH · entries robots-blocks-search-crawler=LOW · consequence DECLARED · consequence-weighted rank UNKNOWN
+  REC-AI-CRAWLER-BLOCK: priority UNKNOWN · basis NONE · entries none · consequence UNKNOWN · consequence-weighted rank UNKNOWN
+  REC-NOINDEX-CV-GUIDE: priority 1 of 2 · basis BOTH · entries noindex=LOW · consequence DECLARED · consequence-weighted rank UNKNOWN
+🔴 PRIORITY ERROR: 2
+     [level] REC-ROBOTS-CORRIDOR: class robots-blocks-search-crawler carries level "LOW", but the register declares UNCLASSIFIED — the engine may not compute, infer or default a level
+     [level] REC-NOINDEX-CV-GUIDE: class noindex carries level "LOW", but the register declares UNCLASSIFIED — the engine may not compute, infer or default a level
+
+🔴 UNCLASSIFIED NEVER DEFAULTS TO LOW. Every level is the owner's to rule; none was filled in here.
+
+🔴 CENSUS FAILED
+---- GREEN after restore: exit 0 ----
+🔴 UNCLASSIFIED NEVER DEFAULTS TO LOW. Every level is the owner's to rule; none was filled in here.
+
+✅ the register reconciles and every priority states its basis and its entries
+
+════ LIMB: a register entry REMOVED (class noindex)
+file config/consequence-register.mjs · sha256 before c0d155968badbce86488f45d775d2eb7b11907067c8962ba14500affc57527f4 · restored c0d155968badbce86488f45d775d2eb7b11907067c8962ba14500affc57527f4 (identical: true)
+RED   bin/consequence-census.mjs exit 1 · limb counters {"missing":1,"stale":0,"invalid":0,"priority:level":0,"priority:basis":0,"priority:entries":0,"priority:unclassified-ranked":0} · fired ALONE on "missing": true
+---- RED output ----
+ROW 60 — CONSEQUENCE REGISTER
+
+CLASSES IN USE: 17 · register entries: 16 · UNCLASSIFIED: 16
+
+| finding class | level | what it is |
+|---|---|---|
+| canonical | UNCLASSIFIED | a page's raw HTML carries no rel=canonical link |
+| commencement-date-ambiguous-against-source | UNCLASSIFIED | a fact's commencement date cannot be read unambiguously from its official source |
+| exact-duplicate | UNCLASSIFIED | a page's body is byte-identical to other pages' |
+| head-elements | UNCLASSIFIED | a page's heading structure is broken — no h1, or a heading level used before it |
+| host-publishes-no-a-record | UNCLASSIFIED | a host publishes no IPv4 address, so IPv4 clients and crawlers cannot resolve it |
+| indexability-preflight | UNCLASSIFIED | a page's technical indexability state — a condition that blocks eligibility, or one left unmeasured |
+| instrument-disagreement | UNCLASSIFIED | two of our own instruments disagree about the same page over the same inputs |
+| near-duplicate | UNCLASSIFIED | a page's body is highly similar to a sibling page's |
+| noindex | 🔴 NO ENTRY |  |
+| official-source-contradicts-itself | UNCLASSIFIED | an official source states two things about the same fact that disagree |
+| orphan-within-crawled-set | UNCLASSIFIED | no page inside the crawled set links to this page |
+| query-parameters | UNCLASSIFIED | a page's URL carries query parameters |
+| robots-blocks-search-crawler | UNCLASSIFIED | robots.txt disallows a search crawler from a page that draws search impressions |
+| sitemap-advertises-blocked-url | UNCLASSIFIED | a sitemap advertises a URL that robots.txt blocks — or the inputs to check it are not stored |
+| status-and-redirects | UNCLASSIFIED | requesting a page's URL does not return 200 directly — it redirects or errors |
+| template-dominance | UNCLASSIFIED | the shared shell makes up most of a page's words |
+| thin-content | UNCLASSIFIED | a page has fewer unique body words than the floor after the shell is subtracted |
+
+🔴 MISSING — a class in use with no register entry: 1
+     noindex
+✅ STALE — a register entry for a class not in use: 0
+✅ INVALID entry: 0
+
+PRESENTED RECOMMENDATIONS CHECKED: 3
+  REC-ROBOTS-CORRIDOR: priority 2 of 2 · basis MEASURED VOLUME · entries robots-blocks-search-crawler=UNCLASSIFIED · consequence UNKNOWN · consequence-weighted rank UNKNOWN
+  REC-AI-CRAWLER-BLOCK: priority UNKNOWN · basis NONE · entries none · consequence UNKNOWN · consequence-weighted rank UNKNOWN
+  REC-NOINDEX-CV-GUIDE: priority 1 of 2 · basis MEASURED VOLUME · entries noindex=UNCLASSIFIED · consequence UNKNOWN · consequence-weighted rank UNKNOWN
+✅ PRIORITY ERROR: 0
+
+🔴 UNCLASSIFIED NEVER DEFAULTS TO LOW. Every level is the owner's to rule; none was filled in here.
+
+🔴 CENSUS FAILED
+---- GREEN after restore: exit 0 ----
+🔴 UNCLASSIFIED NEVER DEFAULTS TO LOW. Every level is the owner's to rule; none was filled in here.
+
+✅ the register reconciles and every priority states its basis and its entries
+
+════ LIMB: the BASIS emptied (src/report/recommendation-fields.mjs)
+file src/report/recommendation-fields.mjs · sha256 before fc3a091459e3adc17560791fb02a52c326eb1a7eb7edd38fe47a0db850ec6701 · restored fc3a091459e3adc17560791fb02a52c326eb1a7eb7edd38fe47a0db850ec6701 (identical: true)
+RED   bin/consequence-census.mjs exit 1 · limb counters {"missing":0,"stale":0,"invalid":0,"priority:level":0,"priority:basis":2,"priority:entries":0,"priority:unclassified-ranked":0} · fired ALONE on "priority:basis": true
+---- RED output ----
+ROW 60 — CONSEQUENCE REGISTER
+
+CLASSES IN USE: 17 · register entries: 17 · UNCLASSIFIED: 17
+
+| finding class | level | what it is |
+|---|---|---|
+| canonical | UNCLASSIFIED | a page's raw HTML carries no rel=canonical link |
+| commencement-date-ambiguous-against-source | UNCLASSIFIED | a fact's commencement date cannot be read unambiguously from its official source |
+| exact-duplicate | UNCLASSIFIED | a page's body is byte-identical to other pages' |
+| head-elements | UNCLASSIFIED | a page's heading structure is broken — no h1, or a heading level used before it |
+| host-publishes-no-a-record | UNCLASSIFIED | a host publishes no IPv4 address, so IPv4 clients and crawlers cannot resolve it |
+| indexability-preflight | UNCLASSIFIED | a page's technical indexability state — a condition that blocks eligibility, or one left unmeasured |
+| instrument-disagreement | UNCLASSIFIED | two of our own instruments disagree about the same page over the same inputs |
+| near-duplicate | UNCLASSIFIED | a page's body is highly similar to a sibling page's |
+| noindex | UNCLASSIFIED | a page carries noindex in its meta robots tag or X-Robots-Tag header |
+| official-source-contradicts-itself | UNCLASSIFIED | an official source states two things about the same fact that disagree |
+| orphan-within-crawled-set | UNCLASSIFIED | no page inside the crawled set links to this page |
+| query-parameters | UNCLASSIFIED | a page's URL carries query parameters |
+| robots-blocks-search-crawler | UNCLASSIFIED | robots.txt disallows a search crawler from a page that draws search impressions |
+| sitemap-advertises-blocked-url | UNCLASSIFIED | a sitemap advertises a URL that robots.txt blocks — or the inputs to check it are not stored |
+| status-and-redirects | UNCLASSIFIED | requesting a page's URL does not return 200 directly — it redirects or errors |
+| template-dominance | UNCLASSIFIED | the shared shell makes up most of a page's words |
+| thin-content | UNCLASSIFIED | a page has fewer unique body words than the floor after the shell is subtracted |
+
+✅ MISSING — a class in use with no register entry: 0
+✅ STALE — a register entry for a class not in use: 0
+✅ INVALID entry: 0
+
+PRESENTED RECOMMENDATIONS CHECKED: 3
+  REC-ROBOTS-CORRIDOR: priority 2 of 2 · basis  · entries robots-blocks-search-crawler=UNCLASSIFIED · consequence UNKNOWN · consequence-weighted rank UNKNOWN
+  REC-AI-CRAWLER-BLOCK: priority UNKNOWN · basis NONE · entries none · consequence UNKNOWN · consequence-weighted rank UNKNOWN
+  REC-NOINDEX-CV-GUIDE: priority 1 of 2 · basis  · entries noindex=UNCLASSIFIED · consequence UNKNOWN · consequence-weighted rank UNKNOWN
+🔴 PRIORITY ERROR: 2
+     [basis] REC-ROBOTS-CORRIDOR: its priority states no basis (got "")
+     [basis] REC-NOINDEX-CV-GUIDE: its priority states no basis (got "")
+
+🔴 UNCLASSIFIED NEVER DEFAULTS TO LOW. Every level is the owner's to rule; none was filled in here.
+
+🔴 CENSUS FAILED
+---- GREEN after restore: exit 0 ----
+🔴 UNCLASSIFIED NEVER DEFAULTS TO LOW. Every level is the owner's to rule; none was filled in here.
+
+✅ the register reconciles and every priority states its basis and its entries
+
+════ LIMB: a STALE register entry (a class not in use)
+file config/consequence-register.mjs · sha256 before c0d155968badbce86488f45d775d2eb7b11907067c8962ba14500affc57527f4 · restored c0d155968badbce86488f45d775d2eb7b11907067c8962ba14500affc57527f4 (identical: true)
+RED   bin/consequence-census.mjs exit 1 · limb counters {"missing":0,"stale":1,"invalid":0,"priority:level":0,"priority:basis":0,"priority:entries":0,"priority:unclassified-ranked":0} · fired ALONE on "stale": true
+---- RED output ----
+ROW 60 — CONSEQUENCE REGISTER
+
+CLASSES IN USE: 17 · register entries: 18 · UNCLASSIFIED: 18
+
+| finding class | level | what it is |
+|---|---|---|
+| canonical | UNCLASSIFIED | a page's raw HTML carries no rel=canonical link |
+| commencement-date-ambiguous-against-source | UNCLASSIFIED | a fact's commencement date cannot be read unambiguously from its official source |
+| exact-duplicate | UNCLASSIFIED | a page's body is byte-identical to other pages' |
+| head-elements | UNCLASSIFIED | a page's heading structure is broken — no h1, or a heading level used before it |
+| host-publishes-no-a-record | UNCLASSIFIED | a host publishes no IPv4 address, so IPv4 clients and crawlers cannot resolve it |
+| indexability-preflight | UNCLASSIFIED | a page's technical indexability state — a condition that blocks eligibility, or one left unmeasured |
+| instrument-disagreement | UNCLASSIFIED | two of our own instruments disagree about the same page over the same inputs |
+| near-duplicate | UNCLASSIFIED | a page's body is highly similar to a sibling page's |
+| noindex | UNCLASSIFIED | a page carries noindex in its meta robots tag or X-Robots-Tag header |
+| official-source-contradicts-itself | UNCLASSIFIED | an official source states two things about the same fact that disagree |
+| orphan-within-crawled-set | UNCLASSIFIED | no page inside the crawled set links to this page |
+| query-parameters | UNCLASSIFIED | a page's URL carries query parameters |
+| robots-blocks-search-crawler | UNCLASSIFIED | robots.txt disallows a search crawler from a page that draws search impressions |
+| sitemap-advertises-blocked-url | UNCLASSIFIED | a sitemap advertises a URL that robots.txt blocks — or the inputs to check it are not stored |
+| status-and-redirects | UNCLASSIFIED | requesting a page's URL does not return 200 directly — it redirects or errors |
+| template-dominance | UNCLASSIFIED | the shared shell makes up most of a page's words |
+| thin-content | UNCLASSIFIED | a page has fewer unique body words than the floor after the shell is subtracted |
+
+✅ MISSING — a class in use with no register entry: 0
+🔴 STALE — a register entry for a class not in use: 1
+     a-class-no-store-holds
+✅ INVALID entry: 0
+
+PRESENTED RECOMMENDATIONS CHECKED: 3
+  REC-ROBOTS-CORRIDOR: priority 2 of 2 · basis MEASURED VOLUME · entries robots-blocks-search-crawler=UNCLASSIFIED · consequence UNKNOWN · consequence-weighted rank UNKNOWN
+  REC-AI-CRAWLER-BLOCK: priority UNKNOWN · basis NONE · entries none · consequence UNKNOWN · consequence-weighted rank UNKNOWN
+  REC-NOINDEX-CV-GUIDE: priority 1 of 2 · basis MEASURED VOLUME · entries noindex=UNCLASSIFIED · consequence UNKNOWN · consequence-weighted rank UNKNOWN
+✅ PRIORITY ERROR: 0
+
+🔴 UNCLASSIFIED NEVER DEFAULTS TO LOW. Every level is the owner's to rule; none was filled in here.
+
+🔴 CENSUS FAILED
+---- GREEN after restore: exit 0 ----
+🔴 UNCLASSIFIED NEVER DEFAULTS TO LOW. Every level is the owner's to rule; none was filled in here.
+
+✅ the register reconciles and every priority states its basis and its entries

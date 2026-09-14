@@ -326,7 +326,17 @@ export function renderRecommendations(fields) {
     if (v.state === "UNKNOWN") return `<span class="lbl lbl-UNKNOWN">UNKNOWN</span> ${esc(v.reason)}${v.lowerBound !== undefined ? ` (at least ${esc(v.lowerBound)} measured)` : ""}`;
     return null;
   };
-  const priority = (p) => show(p) ?? `<strong>${esc(p.rank)} of ${esc(p.of)}</strong><br><span class="bound">${esc(p.basis)}</span>`;
+  /* 🔴 ROW 60 — beside the rank: its BASIS, the consequence register entries that applied, and the consequence-weighted
+   * rank, which is UNKNOWN for as long as any applied class is UNCLASSIFIED. Never a level the register does not declare. */
+  const consequence = (p) => {
+    if (!p?.consequence) return "";
+    const entries = p.consequence.entries.length
+      ? p.consequence.entries.map((e) => `<code>${esc(e.issue_class)}</code> = <strong>${esc(e.level ?? "none")}</strong>`).join(" · ")
+      : "none — no finding class is linked";
+    const state = p.consequence.state === "UNKNOWN" ? `<span class="lbl lbl-UNKNOWN">UNKNOWN</span> ${esc(p.consequence.reason)}` : "DECLARED";
+    return `<br>basis: <strong>${esc(p.basisKind)}</strong><br>consequence register entries: ${entries}<br>consequence: ${state}<br>consequence-weighted rank: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> <span class="bound">${esc(p.consequenceWeightedRank?.reason ?? "")}</span>`;
+  };
+  const priority = (p) => (show(p) ?? `<strong>${esc(p.rank)} of ${esc(p.of)}</strong><br><span class="bound">${esc(p.basis)}</span>`) + consequence(p);
   const confidence = (c) =>
     show(c) ??
     `weakest source tier <strong>${esc(c.weakestTier)}</strong><br><span class="bound">tiers ${Object.entries(c.tierCensus).map(([k, v]) => `${esc(k)}=${v}`).join(" · ")} · evidence resolved ${esc(c.evidenceResolved)} · issues UNKNOWN ${esc(c.issuesUnknown)} · pulls incomplete ${esc(c.pullsIncomplete)}</span>`;

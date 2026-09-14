@@ -39,9 +39,10 @@ test("🟢 GREEN: every row of the generated ledger states its authority consist
 });
 
 test("the admitted rows say who admitted them, and nothing about a move", () => {
-  assert.match(LEDGER, /### 59 · [^\n]*\n\n\*\*NOT-STARTED\*\* · class `P` \(admitted by Amendment 3\) · ruled in `A3`/);
-  assert.match(LEDGER, /### 60 · [^\n]*\n\n\*\*NOT-STARTED\*\* · class `P` \(admitted by Amendment 3\) · ruled in `A3`/);
-  assert.match(LEDGER, /### 61 · [^\n]*\n\n\*\*BUILT-NOT-PROVED\*\* · class `P` \(admitted by Amendment 5\) · ruled in `A5`/);
+  // The class clause is what this test is about — a row's STATE may move by work; who admitted it may not.
+  assert.match(LEDGER, /### 59 · [^\n]*\n\n\*\*[A-Z-]+\*\* · class `P` \(admitted by Amendment 3\) · ruled in `A3`/);
+  assert.match(LEDGER, /### 60 · [^\n]*\n\n\*\*[A-Z-]+\*\* · class `P` \(admitted by Amendment 3\) · ruled in `A3`/);
+  assert.match(LEDGER, /### 61 · [^\n]*\n\n\*\*[A-Z-]+\*\* · class `P` \(admitted by Amendment 5\) · ruled in `A5`/);
   assert.doesNotMatch(LEDGER, /frozen `null`/);
   const b = loadBoundaries();
   assert.equal(classClause(b[59]), " (admitted by Amendment 3)");

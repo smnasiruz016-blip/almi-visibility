@@ -1,0 +1,107 @@
+ROW 60 RULING SHEET — EACH RECONCILIATION LIMB SABOTAGED ALONE IN THE REAL FILE, THEN RESTORED AND HASH-CHECKED
+date: 2026-09-14T02:12:17.201Z · base HEAD 65cd13ad6c7488b7c106caf86c1a207b93dfde8a (uncommitted change under test)
+
+════ LIMB: a class in the store MISSING from the sheet (canonical removed from the committed JSON)
+file runs/export/row60-ruling-sheet.json · sha256 before 6c8b01b17cf52cd491efa0a3e03ad7de49dfc951a4930431548d1f6d0d021815 · after restore 6c8b01b17cf52cd491efa0a3e03ad7de49dfc951a4930431548d1f6d0d021815 (identical: true)
+RED   exit 1 · limb counters {"missing-class":1,"extra-class":0,"count":0,"stale-register":0,"missing-register":0,"register-text":0,"lifecycle":0} · fired ALONE on "missing-class": true · sheet printed: false
+---- RED output ----
+ROW 60 — OWNER RULING SHEET
+
+files read: 20 — every .jsonl under runs/
+  runs/audit/content-findings.jsonl                              records   471 · issues   471 · state changes    0 · recommendations 0
+  runs/audit/crawler-classification.jsonl                        records    32 · issues     0 · state changes    0 · recommendations 0
+  runs/audit/findings.jsonl                                      records   134 · issues   107 · state changes    0 · recommendations 0
+  runs/audit/instrument-findings.jsonl                           records    22 · issues    11 · state changes   11 · recommendations 0
+  runs/audit/recommendations.jsonl                               records    10 · issues     0 · state changes    0 · recommendations 3
+  runs/audit/source-integrity.jsonl                              records    15 · issues     0 · state changes    0 · recommendations 0
+  runs/audit/supply-labels.jsonl                                 records   550 · issues   550 · state changes    0 · recommendations 0
+  runs/audit/technical-findings.jsonl                            records  2888 · issues  1886 · state changes  134 · recommendations 0
+  runs/audit/verification-issues.jsonl                           records    15 · issues     2 · state changes    0 · recommendations 0
+  runs/cost/actions-runs.jsonl                                   records     1 · issues     0 · state changes    0 · recommendations 0
+  runs/cost/ledger.jsonl                                         records    22 · issues     0 · state changes    0 · recommendations 0
+  runs/crawl/first-real-crawl-2026-09-12.jsonl                   records   999 · issues     0 · state changes    0 · recommendations 0
+  runs/evidence/evidence.jsonl                                   records    50 · issues     0 · state changes    0 · recommendations 0
+  runs/evidence/robots.jsonl                                     records     5 · issues     0 · state changes    0 · recommendations 0
+  runs/evidence/sitemaps.jsonl                                   records     5 · issues     0 · state changes    0 · recommendations 0
+  runs/render/rendered-2026-09-13.jsonl                          records   394 · issues     0 · state changes    0 · recommendations 0
+  runs/replay/replay-audit-dns-2026-09-13-journey-key.jsonl      records   268 · issues   107 · state changes    0 · recommendations 0
+  runs/replay/replay-audit-dns-2026-09-13.jsonl                  records   268 · issues   107 · state changes    0 · recommendations 0
+  runs/replay/replay-crawl-2026-09-13-journey-key.jsonl          records   788 · issues     0 · state changes    0 · recommendations 0
+  runs/replay/replay-crawl-2026-09-13.jsonl                      records   788 · issues     0 · state changes    0 · recommendations 0
+
+🔴 REFUSED — the sheet, the register and the store do not agree. The sheet is NOT printed:
+   [missing-class] canonical — a class in the store is missing from the sheet
+---- GREEN after restore: exit 0 ----
+✅ the committed sheet, the register and the store agree
+| 7 | `instrument-disagreement` | two of our own instruments disagree about the same page over the same inputs | 0 | 11 | 11 CLOSED | 11 | UNCLASSIFIED | | |
+| 10 | `official-source-contradicts-itself` | an official source states two things about the same fact that disagree | 1 | 1 | — | 1 | UNCLASSIFIED | | |
+
+════ LIMB: a COUNT that disagrees with the store (noindex open 134 → 268, the first-recorded-state number)
+file runs/export/row60-ruling-sheet.json · sha256 before 6c8b01b17cf52cd491efa0a3e03ad7de49dfc951a4930431548d1f6d0d021815 · after restore 6c8b01b17cf52cd491efa0a3e03ad7de49dfc951a4930431548d1f6d0d021815 (identical: true)
+RED   exit 1 · limb counters {"missing-class":0,"extra-class":0,"count":1,"stale-register":0,"missing-register":0,"register-text":0,"lifecycle":0} · fired ALONE on "count": true · sheet printed: false
+---- RED output ----
+ROW 60 — OWNER RULING SHEET
+
+files read: 20 — every .jsonl under runs/
+  runs/audit/content-findings.jsonl                              records   471 · issues   471 · state changes    0 · recommendations 0
+  runs/audit/crawler-classification.jsonl                        records    32 · issues     0 · state changes    0 · recommendations 0
+  runs/audit/findings.jsonl                                      records   134 · issues   107 · state changes    0 · recommendations 0
+  runs/audit/instrument-findings.jsonl                           records    22 · issues    11 · state changes   11 · recommendations 0
+  runs/audit/recommendations.jsonl                               records    10 · issues     0 · state changes    0 · recommendations 3
+  runs/audit/source-integrity.jsonl                              records    15 · issues     0 · state changes    0 · recommendations 0
+  runs/audit/supply-labels.jsonl                                 records   550 · issues   550 · state changes    0 · recommendations 0
+  runs/audit/technical-findings.jsonl                            records  2888 · issues  1886 · state changes  134 · recommendations 0
+  runs/audit/verification-issues.jsonl                           records    15 · issues     2 · state changes    0 · recommendations 0
+  runs/cost/actions-runs.jsonl                                   records     1 · issues     0 · state changes    0 · recommendations 0
+  runs/cost/ledger.jsonl                                         records    22 · issues     0 · state changes    0 · recommendations 0
+  runs/crawl/first-real-crawl-2026-09-12.jsonl                   records   999 · issues     0 · state changes    0 · recommendations 0
+  runs/evidence/evidence.jsonl                                   records    50 · issues     0 · state changes    0 · recommendations 0
+  runs/evidence/robots.jsonl                                     records     5 · issues     0 · state changes    0 · recommendations 0
+  runs/evidence/sitemaps.jsonl                                   records     5 · issues     0 · state changes    0 · recommendations 0
+  runs/render/rendered-2026-09-13.jsonl                          records   394 · issues     0 · state changes    0 · recommendations 0
+  runs/replay/replay-audit-dns-2026-09-13-journey-key.jsonl      records   268 · issues   107 · state changes    0 · recommendations 0
+  runs/replay/replay-audit-dns-2026-09-13.jsonl                  records   268 · issues   107 · state changes    0 · recommendations 0
+  runs/replay/replay-crawl-2026-09-13-journey-key.jsonl          records   788 · issues     0 · state changes    0 · recommendations 0
+  runs/replay/replay-crawl-2026-09-13.jsonl                      records   788 · issues     0 · state changes    0 · recommendations 0
+
+🔴 REFUSED — the sheet, the register and the store do not agree. The sheet is NOT printed:
+   [count] noindex — open reads 268 on the sheet and 134 in the store
+---- GREEN after restore: exit 0 ----
+✅ the committed sheet, the register and the store agree
+| 7 | `instrument-disagreement` | two of our own instruments disagree about the same page over the same inputs | 0 | 11 | 11 CLOSED | 11 | UNCLASSIFIED | | |
+| 10 | `official-source-contradicts-itself` | an official source states two things about the same fact that disagree | 1 | 1 | — | 1 | UNCLASSIFIED | | |
+
+════ LIMB: a class in the REGISTER that is not in use (a stale entry added)
+file config/consequence-register.mjs · sha256 before c0d155968badbce86488f45d775d2eb7b11907067c8962ba14500affc57527f4 · after restore c0d155968badbce86488f45d775d2eb7b11907067c8962ba14500affc57527f4 (identical: true)
+RED   exit 1 · limb counters {"missing-class":0,"extra-class":0,"count":0,"stale-register":1,"missing-register":0,"register-text":0,"lifecycle":0} · fired ALONE on "stale-register": true · sheet printed: false
+---- RED output ----
+ROW 60 — OWNER RULING SHEET
+
+files read: 20 — every .jsonl under runs/
+  runs/audit/content-findings.jsonl                              records   471 · issues   471 · state changes    0 · recommendations 0
+  runs/audit/crawler-classification.jsonl                        records    32 · issues     0 · state changes    0 · recommendations 0
+  runs/audit/findings.jsonl                                      records   134 · issues   107 · state changes    0 · recommendations 0
+  runs/audit/instrument-findings.jsonl                           records    22 · issues    11 · state changes   11 · recommendations 0
+  runs/audit/recommendations.jsonl                               records    10 · issues     0 · state changes    0 · recommendations 3
+  runs/audit/source-integrity.jsonl                              records    15 · issues     0 · state changes    0 · recommendations 0
+  runs/audit/supply-labels.jsonl                                 records   550 · issues   550 · state changes    0 · recommendations 0
+  runs/audit/technical-findings.jsonl                            records  2888 · issues  1886 · state changes  134 · recommendations 0
+  runs/audit/verification-issues.jsonl                           records    15 · issues     2 · state changes    0 · recommendations 0
+  runs/cost/actions-runs.jsonl                                   records     1 · issues     0 · state changes    0 · recommendations 0
+  runs/cost/ledger.jsonl                                         records    22 · issues     0 · state changes    0 · recommendations 0
+  runs/crawl/first-real-crawl-2026-09-12.jsonl                   records   999 · issues     0 · state changes    0 · recommendations 0
+  runs/evidence/evidence.jsonl                                   records    50 · issues     0 · state changes    0 · recommendations 0
+  runs/evidence/robots.jsonl                                     records     5 · issues     0 · state changes    0 · recommendations 0
+  runs/evidence/sitemaps.jsonl                                   records     5 · issues     0 · state changes    0 · recommendations 0
+  runs/render/rendered-2026-09-13.jsonl                          records   394 · issues     0 · state changes    0 · recommendations 0
+  runs/replay/replay-audit-dns-2026-09-13-journey-key.jsonl      records   268 · issues   107 · state changes    0 · recommendations 0
+  runs/replay/replay-audit-dns-2026-09-13.jsonl                  records   268 · issues   107 · state changes    0 · recommendations 0
+  runs/replay/replay-crawl-2026-09-13-journey-key.jsonl          records   788 · issues     0 · state changes    0 · recommendations 0
+  runs/replay/replay-crawl-2026-09-13.jsonl                      records   788 · issues     0 · state changes    0 · recommendations 0
+
+🔴 REFUSED — the sheet, the register and the store do not agree. The sheet is NOT printed:
+   [stale-register] a-class-no-store-holds — the register holds a class that is not in use
+---- GREEN after restore: exit 0 ----
+✅ the committed sheet, the register and the store agree
+| 7 | `instrument-disagreement` | two of our own instruments disagree about the same page over the same inputs | 0 | 11 | 11 CLOSED | 11 | UNCLASSIFIED | | |
+| 10 | `official-source-contradicts-itself` | an official source states two things about the same fact that disagree | 1 | 1 | — | 1 | UNCLASSIFIED | | |

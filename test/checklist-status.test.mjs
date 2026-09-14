@@ -71,11 +71,13 @@ function statusRows() {
   return rows;
 }
 
-test("🔴 the tracker has exactly 58 item rows, numbered 1..58 with no gap and no duplicate", () => {
-  const rows = statusRows().filter((r) => r.n >= 1 && r.n <= 58 && r.cells.length >= 8);
-  assert.equal(rows.length, 58, `expected 58 item rows, found ${rows.length}`);
+/* 🔴 58 → 61 on 14 September 2026: rows 59 and 60 admitted by Amendment 3, row 61 created from Amendment 5. The
+ * frozen checklist still holds 58 (the test above); the TRACKER holds every row the ledger does. */
+test("🔴 the tracker has exactly 61 item rows, numbered 1..61 with no gap and no duplicate", () => {
+  const rows = statusRows().filter((r) => r.n >= 1 && r.n <= 61 && r.cells.length >= 8);
+  assert.equal(rows.length, 61, `expected 61 item rows, found ${rows.length}`);
   const numbers = rows.map((r) => r.n).sort((a, b) => a - b);
-  assert.deepEqual(numbers, Array.from({ length: 58 }, (_, i) => i + 1));
+  assert.deepEqual(numbers, Array.from({ length: 61 }, (_, i) => i + 1));
 });
 
 /**

@@ -87,7 +87,8 @@ test("🔴 RULE 3 — FAILED is its own count in the tally, never folded into an
   // 13 Sep 2026, later: item 50 was REOPENED on a wrong label, and the bucket holds 1 again.
   assert.equal(t.FAILED, 1);
   assert.ok("FAILED" in t);
-  assert.equal(Object.values(t).reduce((a, b) => a + b, 0), 58);
+  // 58 frozen rows plus rows 59, 60 and 61, admitted by owner ruling (Amendments 3 and 5, 14 September 2026).
+  assert.equal(Object.values(t).reduce((a, b) => a + b, 0), 61);
 });
 
 test("🔴 RULE 4 — FAILED counts as LOOKED; BUILT-NOT-PROVED does not", () => {
@@ -217,6 +218,8 @@ test("🔴 moves since Amendment 2: SEVEN by ruling (3–7 → NOT-STARTED by Am
     "51:BUILT-NOT-PROVED→TESTABLE-NOW", "51:TESTABLE-NOW→FAILED", "51:FAILED→VERIFIED-PASS", "53:BUILT-NOT-PROVED→VERIFIED-PASS",
     "55:BUILT-NOT-PROVED→TESTABLE-NOW", "55:TESTABLE-NOW→FAILED", "55:FAILED→VERIFIED-PASS",
     "56:BLOCKED-UNKNOWN→VERIFIED-PASS",
+    // 🔴 Row 61, created 14 September 2026: the work of PR #72, recorded as work — and it stops at BUILT-NOT-PROVED.
+    "61:NOT-STARTED→BUILT-NOT-PROVED",
   ]);
   // 🔴 56 reached its tick by the owner's eye — the only route that may set it.
   assert.equal(MOVES_AMENDMENT_2[56][0].route, "OWNER_VERIFICATION");

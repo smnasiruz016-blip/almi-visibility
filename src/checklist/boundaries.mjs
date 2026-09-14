@@ -29,8 +29,11 @@
 import { readFileSync } from "node:fs";
 
 import {
-  splitSource, sectionSix, verify, amendmentContracts, amendment2, amendment4, effectiveClasses,
+  splitSource, sectionSix, verify, amendmentContracts, amendment2, amendment4, effectiveClasses, amendment3, amendment5,
 } from "../../tools/verify-pass-boundaries-source.mjs";
+
+const AMENDMENT_3 = new URL("../../PASS_BOUNDARIES_AMENDMENT_3.md", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+const AMENDMENT_5 = new URL("../../PASS_BOUNDARIES_AMENDMENT_5.md", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 
 const SOURCE = new URL("../../PASS_BOUNDARIES_SOURCE.md", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const AMENDMENT_1 = new URL("../../PASS_BOUNDARIES_AMENDMENT_1.md", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -240,6 +243,31 @@ export function loadBoundaries() {
       }
       r.missingParts = [...r.missingParts, ...HALF_CONTRACT_PARTS.filter((_, i) => missing.includes(CONTRACT_PARTS[i]))];
     }
+  }
+
+  /* 🔴 ROWS ADMITTED BY OWNER RULING — not among the frozen 58, so read out of the amendment that admitted each:
+   * 59 and 60 from Amendment 3; 61 from Amendment 5 §4, reserved there until 59 and 60 existed. Never retyped,
+   * and each carries the amendment that admitted it. A missing part is reported, never filled in. */
+  const a3 = amendment3(AMENDMENT_3);
+  if (!a3.matches) throw new Error("PASS_BOUNDARIES_AMENDMENT_3.md does not match its recorded hash. Rows 59 and 60 would not be the owner's.");
+  const a5 = amendment5(AMENDMENT_5);
+  if (!a5.matches) throw new Error("PASS_BOUNDARIES_AMENDMENT_5.md does not match its recorded hash. Row 61 would not be the owner's.");
+  for (const [row, via] of [...a3.rows.map((row) => [row, "A3"]), [a5.row, "A5"]]) {
+    if (out[row.id]) throw new Error(`row ${row.id} is admitted by ${via} but already exists — a number is never reused`);
+    out[row.id] = {
+      id: row.id,
+      name: row.name,
+      class: row.class,
+      frozenClass: null,
+      classNote: null,
+      via,
+      admittedBy: via,
+      amendedByA1: false,
+      replacedByA2: false,
+      classByA4: false,
+      ...Object.fromEntries(CONTRACT_PARTS.filter((p) => row.contract[p]).map((p) => [p, row.contract[p]])),
+      missingParts: CONTRACT_PARTS.filter((p) => !row.contract[p]),
+    };
   }
 
   cached = Object.freeze(out);

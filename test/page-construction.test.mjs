@@ -11,7 +11,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
@@ -237,8 +237,11 @@ test("🔴 RUNNER: no slug stops with exit 1 and names the declared specs", () =
   assert.equal(runner("--product=almi-oet", "--slug=x", "--all-slugs").status, 1);
 });
 
+/* --out must be INSIDE the repository (the runner confines it), so the OS temp directory is not an option here,
+ * as it was for idempotency-retry. Not the repo root either: .test-scratch/, which .gitignore covers. */
 test("🔴 RUNNER FAILS CLOSED: the real product, every declared spec, --confirm given — REFUSED, exit 2, and NOTHING written", () => {
-  const out = mkdtempSync(join(REPO, ".tmp-row61-"));
+  mkdirSync(join(REPO, ".test-scratch"), { recursive: true });
+  const out = mkdtempSync(join(REPO, ".test-scratch", "row61-"));
   try {
     const r = runner("--product=almi-oet", "--all-slugs", `--out=${out}`, "--confirm");
     assert.equal(r.status, 2, r.stdout + r.stderr);

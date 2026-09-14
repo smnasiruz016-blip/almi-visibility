@@ -136,7 +136,35 @@ export const BEFORE_AMENDMENT_2 = Object.freeze((() => {
  * A row whose state differs from BEFORE_AMENDMENT_2 without a declared chain
  * here fails the build. A move is never inferred.
  */
+/**
+ * 🔴 ROWS ADMITTED BY OWNER RULING, AND THE STATE EACH ARRIVED IN.
+ *
+ * BEFORE_AMENDMENT_2 knows the frozen 58 and nothing else. A row admitted later has no before-state there, and
+ * a transition law that met `undefined` would either crash or wave the row through. So each admitted row
+ * declares the ruling that admitted it and the state it arrived in; that is where its chain starts. A row that
+ * is in neither place fails the build.
+ */
+export const ADMITTED_ROWS = Object.freeze({
+  59: Object.freeze({ arrivedAs: "NOT-STARTED", ruling: "PASS_BOUNDARIES_AMENDMENT_3.md — owner ruling under §12, 13 September 2026, re-issued 14 September 2026", date: "2026-09-14" }),
+  60: Object.freeze({ arrivedAs: "NOT-STARTED", ruling: "PASS_BOUNDARIES_AMENDMENT_3.md — owner ruling under §12, 13 September 2026, re-issued 14 September 2026", date: "2026-09-14" }),
+  61: Object.freeze({ arrivedAs: "NOT-STARTED", ruling: "PASS_BOUNDARIES_AMENDMENT_5.md §4 — reserved there as NOT-STARTED; created once rows 59 and 60 existed (Amendment 3)", date: "2026-09-14" }),
+});
+
 export const MOVES_AMENDMENT_2 = Object.freeze({
+  /* 🔴 ROW 61 — WORK HAPPENED, AND IT IS NOT PROVED. PR #72 built it (merged 14 September 2026); the row was
+   * reserved then and could not carry a state of its own. Created now, it records that work as a WORK move —
+   * to BUILT-NOT-PROVED, never further: the EVIDENCE clause's portability leg was not run through the runner. */
+  61: Object.freeze([
+    Object.freeze({
+      from: "NOT-STARTED",
+      to: "BUILT-NOT-PROVED",
+      kind: "work",
+      route: "BUILT",
+      test: "node --test test/page-construction.test.mjs · node bin/build-page.mjs --product=<the first product> --all-slugs · runs/audit/row61-gate-a-red-2026-09-14.txt · runs/audit/row61-gate-a-green-2026-09-14.txt",
+      date: "2026-09-14",
+      reason: "the runner takes --slug / --all-slugs with no default; Gate A's four frozen parts are enforced inside the construction path and fail closed; seen RED with the acceptance rule bypassed and GREEN restored; 0 of 3 candidates accepted — and the neutral product was refused AT THE RUNNER, so the portability leg is not proved",
+    }),
+  ]),
   /* 🔴 AMENDMENT 4 — owner ruling, 13 September 2026. Rows 3–7 leave class D. RULING moves and nothing else:
    * no row was built, no test was run, and each arrives NOT-STARTED. Row 2 was put to the same input test,
    * failed it, and stays DEFERRED — it has no move. */
@@ -538,7 +566,11 @@ export function assertTransitions(rows, before = BEFORE_AMENDMENT_2, moves = MOV
   const errors = [];
   for (const r of Object.values(rows)) {
     const chain = moves[r.id] ?? [];
-    let at = before[r.id];
+    let at = before[r.id] ?? ADMITTED_ROWS[r.id]?.arrivedAs;
+    if (at === undefined) {
+      errors.push(`item ${r.id}: is neither one of the frozen 58 nor a row admitted by a recorded owner ruling — a row never appears silently`);
+      continue;
+    }
     if (chain.length === 0 && at !== r.state) errors.push(...ownerVerification(r.id, null, r.state, readRecord));
     for (const step of chain) {
       errors.push(...ownerVerification(r.id, step, step.to, readRecord));
@@ -830,13 +862,33 @@ const EXPLICIT = {
   },
   57: { state: "NOT-STARTED", why: "runs last, and requires an auditor who is not the builder" },
   58: { state: "NOT-STARTED", why: "🔴 only the owner declares DONE. Requires the full ledger, the audit, and his own signature" },
+  59: {
+    state: "NOT-STARTED",
+    why: "🔴 **NOT-STARTED — ADMITTED BY OWNER RULING** (Amendment 3: ruled 13 September 2026 under §12, re-issued 14 September 2026). **Nothing is built:** no refutation census, no `refutation` on any finding, no backfill into the evidence store. The owner's answer of 14 September 2026 scoped the admitting change to the row alone; a later change builds it. Its population was MEASURED, not built: 3 recommendations (REC-ROBOTS-CORRIDOR, REC-AI-CRAWLER-BLOCK, REC-NOINDEX-CV-GUIDE) and 17 distinct `issue_class` values in the store. 🔴 **The limit, written on the row as ruled:** a census can prove the three parts are present and point at a method this product has; it CANNOT prove a refutation is well chosen — that is human judgement",
+  },
+  60: {
+    state: "NOT-STARTED",
+    why: "🔴 **NOT-STARTED — ADMITTED BY OWNER RULING** (Amendment 3: ruled 13 September 2026 under §12, re-issued 14 September 2026). **Nothing is built:** no consequence register, no priority basis on the report. The brief's *\"enters as BUILT-NOT-PROVED\"* assumed that work; the owner's answer of 14 September 2026 admitted the row alone, and a row nothing was built for is NOT-STARTED. 🔴 **UNCLASSIFIED IS A REAL STATE AND NEVER DEFAULTS TO LOW** (LAW-ABSENT-1): when the register is built, every class starts UNCLASSIFIED and no level is filled in by the engine or by CC — the harm judgement is the owner's",
+  },
+  /* Row 61's work is recorded as its declared move in MOVES_AMENDMENT_2 — it has no 11 September baseline to
+   * have "changed" against, so it carries no changeKind of its own. */
+  61: {
+    state: "BUILT-NOT-PROVED",
+    why: "🔴 **BUILT / NOT-PROVED — CREATED 14 SEPTEMBER 2026** (reserved by Amendment 5 until rows 59 and 60 existed). **Work happened (PR #72):** the runner is generic — `--slug` / `--all-slugs`, no default, specs from the product's declaration; Gate A's four frozen parts are enforced inside the construction path and FAIL CLOSED; the refusal was seen RED with the acceptance rule bypassed and GREEN restored (runs/audit/row61-gate-a-*); 0 of 3 candidates accepted. **Not proved:** the EVIDENCE clause requires *\"a run on two different products, one of them the neutral test product\"*. The neutral product was REFUSED AT THE RUNNER (\"it declares no page spec\"), and the full path was proved only with a spec declared inside a test — **a test fixture is not a declared product**, so the portability leg has not been run through the runner",
+    missingLeg: "a second DECLARED product with its own DECLARED page spec, reached end to end through bin/build-page.mjs",
+    blockedOn: "an OWNER DECISION, not yet made: either a second neutral declared test product that declares a page spec, or a deliberate re-pin of row 53's coverage (the neutral product declares pageSpecs {} today, and row 53 — VERIFIED-PASS — pins exactly that)",
+    realPageInputs: Object.freeze([
+      "no page spec declares a WHY_THIS_URL_DESERVES_TO_EXIST — whoever owns the evidence writes them, none has been written, and CC must not invent one",
+      "a template family needs at least THREE rendered specs before unique words and sibling overlap can be measured at all (D-GATEA-1: a group of one or two learns its shell from itself); two specs exist, so those two Gate A parts stay BLOCKED / NOT TESTED until a third does",
+    ]),
+  },
 };
 
-/** The 58 verdicts, with the recorded before-state folded in. */
+/** Every verdict — the frozen 58 and the rows admitted by ruling — with the recorded before-state folded in. */
 export function classify(previousStates = BEFORE_2026_09_12) {
   const boundaries = loadBoundaries();
   const out = {};
-  for (let id = 1; id <= 58; id += 1) {
+  for (const id of Object.keys(boundaries).map(Number).sort((a, b) => a - b)) {
     const b = boundaries[id];
     let row = b.class === "D"
       ? D(id, `class D in the frozen ruling — frozen v0.1 deliberately does not contain this. It cannot FAIL for lacking it, and it cannot PASS either`)

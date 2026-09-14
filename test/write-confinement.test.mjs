@@ -13,7 +13,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve, parse } from "node:path";
 
@@ -90,8 +90,12 @@ test("🔴 RED, REAL: bin/report.mjs --confirm --out=<outside> REFUSES, exits no
   }
 });
 
+/* The destination must be INSIDE the repository — pointed outside, confineToRepo refuses before the dry-run
+ * path is ever reached — but it has no business under runs/, which .gitattributes declares EVIDENCE. So it
+ * lives under .test-scratch/, which .gitignore covers: an interrupted run cannot leave anything trackable. */
 test("🔴 REAL: bin/report.mjs with NO flags writes nothing — dry-run is the default", () => {
-  const dir = mkdtempSync(join(REPO_ROOT, "runs", ".confine-probe-"));
+  mkdirSync(join(REPO_ROOT, ".test-scratch"), { recursive: true });
+  const dir = mkdtempSync(join(REPO_ROOT, ".test-scratch", "confine-probe-"));
   const target = join(dir, "index.html");
   try {
     const r = spawnSync(process.execPath, ["bin/report.mjs", `--out=${target}`], { cwd: REPO_ROOT, encoding: "utf8" });

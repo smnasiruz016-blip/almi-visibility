@@ -98,7 +98,10 @@ test("🔴 REAL: bin/report.mjs with NO flags writes nothing — dry-run is the 
   const dir = mkdtempSync(join(REPO_ROOT, ".test-scratch", "confine-probe-"));
   const target = join(dir, "index.html");
   try {
-    const r = spawnSync(process.execPath, ["bin/report.mjs", `--out=${target}`], { cwd: REPO_ROOT, encoding: "utf8" });
+    // `--product` is not a write flag. Since 14 September 2026 the runner has NO default product (owner ruling,
+    // Option A) and refuses without one, so the product is named here; the law under test — no --confirm, no write —
+    // is unchanged.
+    const r = spawnSync(process.execPath, ["bin/report.mjs", "--product=almi-oet", `--out=${target}`], { cwd: REPO_ROOT, encoding: "utf8" });
     assert.equal(r.status, 0, r.stderr);
     assert.match(r.stdout, /\[dry-run\] would have written/);
     assert.equal(existsSync(target), false, "the report writer wrote without --confirm");

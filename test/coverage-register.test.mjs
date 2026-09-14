@@ -20,7 +20,8 @@ import { COVERAGE_REGISTER } from "../config/coverage-register.mjs";
 import { DECISION_REGISTER } from "../config/decision-register.mjs";
 import { AUDIT_TRAIL } from "../config/audit-trail.mjs";
 import { CLASS_SPLITS, UNMEASURED_REASON_CODES } from "../config/class-splits.mjs";
-import { PRODUCT } from "../products/almi-oet/product.mjs";
+import { subject } from "./support/subjects.mjs";
+const PRODUCT = await subject("almi-oet");
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const walk = (dir) => readdirSync(dir).flatMap((n) => (statSync(join(dir, n)).isDirectory() ? walk(join(dir, n)) : n.endsWith(".jsonl") ? [join(dir, n)] : []));

@@ -20,6 +20,7 @@ import { createJsonlStore } from "../src/evidence/store.mjs";
 import { readBodyArchive } from "../src/evidence/body-archive.mjs";
 import { pagesFromRun } from "../src/crawl/inbound.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
+import { productFromArgvOrExit } from "../src/product-cli.mjs";
 import { measureExistingPages } from "../src/gate-a/existing-pages.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -27,7 +28,9 @@ const NOW = new Date("2026-09-13T00:00:00Z");
 
 const crawlRecords = createJsonlStore(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`).readAll();
 const pages = pagesFromRun({ crawlRecords, bodies: readBodyArchive(`${REPO}runs/crawl/bodies-2026-09-12.jsonl.br`) }).filter((p) => p.html !== null);
-const { records } = await loadRegistry(`${REPO}products/almi-oet/facts`, "almi-oet");
+// 🔴 The product is an ARGUMENT, never a folder written here (owner ruling, 14 September 2026): no default.
+const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/page-quality.mjs --product=<id>" });
+const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
 const m = measureExistingPages(pages.map((p) => ({ id: p.canonical, html: p.html })), records, { now: NOW });
 
 const siPath = `${REPO}runs/audit/source-integrity-2026-09-13.json`;

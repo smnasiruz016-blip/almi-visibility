@@ -11,6 +11,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
 import { loadRegistry } from "../src/facts/registry.mjs";
+import { productFromArgvOrExit } from "../src/product-cli.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { detectConflicts, freshnessOf, markForReview, createFactCache, reviewChangedInputs } from "../src/facts/lifecycle.mjs";
 
@@ -21,7 +22,9 @@ const arg = (n, d) => {
 };
 const out = arg("out", `${REPO}runs/export/facts-for-verification.csv`);
 
-const { records } = await loadRegistry(`${REPO}products/almi-oet/facts`, "almi-oet");
+// 🔴 The product is an ARGUMENT, never a folder written here (owner ruling, 14 September 2026): no default.
+const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/facts-lifecycle.mjs --product=<id> [--out=<file>]" });
+const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
 console.log(`records: ${records.length}`);
 
 /* ---- PART 1 — THE EXPORT ------------------------------------------------ */

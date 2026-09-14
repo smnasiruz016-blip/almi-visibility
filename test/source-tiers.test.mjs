@@ -10,7 +10,7 @@ import { loadRegistry } from "../src/facts/registry.mjs";
 import { detectConflicts } from "../src/facts/lifecycle.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
-const realFacts = async () => (await loadRegistry(`${REPO}products/almi-oet/facts`, "almi-oet")).records;
+const realFacts = async () => (await loadRegistry((await (await import("./support/subjects.mjs")).subject("almi-oet")).factsDir, "almi-oet")).records;
 
 // 🔴 34 since 13 Sep 2026 (item 50): two records verified that day, so two sources carry 13 Sep.
 // 🔴 33 since the item-50 reopen (13 Sep 2026).

@@ -1,0 +1,44 @@
+RED PROOF — PART 5 — ROW 53, CROSS-PRODUCT PORTABILITY, RE-SAT ON THE NEW LAYOUT (neutral product in the fixtures root, first product in the external root) · 2026-09-14T23:12:58.928Z
+test file: test/portability-neutral-product.test.mjs
+
+CLEAN before: exit 0 · tests 5 · pass 5 · fail 0
+
+=== 2E-a replayed — the core NEEDS first-product knowledge: registration demands the first product's axis
+   file: src/product.mjs
+   anchor matches: 1
+   sabotage landed: true
+   exit 1 · tests 5 · pass 1 · fail 4
+   ✖ 🔴 53 · THE DECLARATION — a neutral test product, declared as one, sharing no subject, axis, source or licence with the first
+   ✖ 🔴 53 · THE RUN — the generic core INITIALIZES and DISCOVERS the neutral product with no first-product knowledge   ← the test this sabotage was meant to break
+   ✖ 🔴 53 · DURING THAT SAME RUN — nothing private of the first product crossed the boundary: evidence, facts, licences, gaps
+   ✖ 🔴 53 · THE SAME RUN THROUGH THE REAL ENTRY POINT — bin/facts.mjs loads no module of the first product and reads none of its files
+     reason: Error: registerProduct: RED PROOF SABOTAGE — the core now requires the first product's axis
+     reason: AssertionError [ERR_ASSERTION]: the core could not run the neutral product: Error: registerProduct: RED PROOF SABOTAGE — the core now requires the first product's axis
+     reason: + Error: registerProduct: RED PROOF SABOTAGE — the core now requires the first product's axis
+   expected test red: YES ("53 · THE RUN")
+   restored byte for byte: true
+
+=== 2E-b replayed — a private record readable across the boundary: every product's licence terms visible to every product
+   file: src/facts/licences.mjs
+   anchor matches: 1
+   sabotage landed: true
+   exit 1 · tests 5 · pass 4 · fail 1
+   ✖ 🔴 53 · DURING THAT SAME RUN — nothing private of the first product crossed the boundary: evidence, facts, licences, gaps   ← the test this sabotage was meant to break
+     reason: AssertionError [ERR_ASSERTION]: first-product licence NMC-6.3 is visible to the neutral product
+   expected test red: YES ("53 · DURING THAT SAME RUN")
+   restored byte for byte: true
+
+=== NEW for the new layout — discovering subjects READS inside every subject's folder, the external first product's included
+   file: src/subject-roots.mjs
+   anchor matches: 1
+   sabotage landed: true
+   exit 1 · tests 5 · pass 4 · fail 1
+   ✖ 🔴 53 · THE SAME RUN THROUGH THE REAL ENTRY POINT — bin/facts.mjs loads no module of the first product and reads none of its files   ← the test this sabotage was meant to break
+     reason: AssertionError [ERR_ASSERTION]: the run READ a file of the first product
+   expected test red: YES ("53 · THE SAME RUN THROUGH THE REAL ENTRY POINT")
+   restored byte for byte: true
+
+=== CLEAN — every file restored
+exit 0 · tests 5 · pass 5 · fail 0
+
+verdict: RED PROVED — every sabotage turned its named test red, and the clean run is green

@@ -250,7 +250,7 @@ test("A3: both honest combinations construct", () => {
 test("🔴 A3: no record on disk claims a standing it has not earned", async () => {
   const { loadRegistry } = await import("../src/facts/registry.mjs");
   const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
-  const { records } = await loadRegistry(REPO + "products/almi-oet/facts", "almi-oet");
+  const { records } = await loadRegistry((await (await import("./support/subjects.mjs")).subject("almi-oet")).factsDir, "almi-oet");
   assert.ok(records.length >= 30, `only ${records.length} records — this law would be weak`);
   for (const r of records) {
     assert.ok(

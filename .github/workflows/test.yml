@@ -45,8 +45,29 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # 🔴 SINCE 14 SEPTEMBER 2026 A PRODUCT'S OWN DATA LIVES OUTSIDE THIS REPOSITORY (owner ruling, Option A), in the
+    # private repository smnasiruz016-blip/almi-visibility-data. The runner checks out BOTH, as sibling folders — the
+    # same layout as C:\Projects on the owner's machine — so config/subject-roots.mjs's default external root
+    # (../almi-visibility-data) resolves here unchanged, with no override and no path written for CI alone.
+    #
+    # ⚠️ The data repository is private. Reading it needs a READ-ONLY credential the owner adds as the repository
+    # secret ALMI_VISIBILITY_DATA_TOKEN (a fine-grained token with Contents: read on that one repository). Without it
+    # the second checkout fails and the job goes red — loudly, never by skipping the tests that read the data.
+    # Least privilege is unchanged: this job still writes nothing.
+    defaults:
+      run:
+        working-directory: almi-visibility
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: almi-visibility
+
+      - uses: actions/checkout@v4
+        with:
+          repository: smnasiruz016-blip/almi-visibility-data
+          token: ${{ secrets.ALMI_VISIBILITY_DATA_TOKEN }}
+          path: almi-visibility-data
+          persist-credentials: false
 
       - uses: actions/setup-node@v4
         with:

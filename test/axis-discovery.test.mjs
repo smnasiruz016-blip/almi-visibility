@@ -26,7 +26,7 @@ const R = row6({
   bodies: readBodyArchive(join(REPO, "runs", "crawl", "bodies-2026-09-12.jsonl.br")),
   lexicon: LEXICON, reference: INTENT_REFERENCE, ambiguous: AMBIGUOUS,
   specs: AXIS_SPECS, families: SIBLING_FAMILIES, patterns: HARD_CODED_PATTERNS,
-  declaredAxes: await readDeclaredAxes(join(REPO, "products")),
+  declaredAxes: await readDeclaredAxes(),
 });
 const NAMED = contractAxes();
 const by = (axis) => R.results.find((r) => r.axis === axis);

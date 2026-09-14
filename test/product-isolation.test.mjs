@@ -14,7 +14,8 @@ import {
 } from "../src/facts/licences.mjs";
 import { registerGaps, declaredGaps, gapRegisterProducts } from "../src/facts/gaps.mjs";
 
-import { PRODUCT_ID } from "../products/almi-oet/product.mjs";
+import { subject } from "./support/subjects.mjs";
+const { productId: PRODUCT_ID } = await subject("almi-oet");
 
 /**
  * 🔴 ISO-1 — TWO PRODUCTS MUST NOT SEE EACH OTHER'S EVIDENCE.

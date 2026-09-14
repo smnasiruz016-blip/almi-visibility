@@ -14,7 +14,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { FACTS_DIR, PRODUCT_ID } from "../products/almi-oet/product.mjs";
+import { subject } from "./support/subjects.mjs";
+const { factsDir: FACTS_DIR, productId: PRODUCT_ID } = await subject("almi-oet");
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { factId, FACT_KINDS } from "../src/facts/schema.mjs";
 import { fact } from "../src/facts/record.mjs";

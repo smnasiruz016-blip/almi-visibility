@@ -22,37 +22,38 @@
  *
  * ── WHAT THE ENGINE KNOWS, AND WHAT IT DOES NOT ────────────────────────────
  *
- * It knows two conventions and no products:
+ * It knows three conventions and no products:
  *
- *   1. a product with id `X` declares itself in `products/X/product.mjs`
- *   2. that module exports its registered descriptor as `PRODUCT`
+ *   1. a product with id `X` declares itself in `<root>/X/product.mjs`
+ *   2. the roots are a LIST, read from config/subject-roots.mjs (src/subject-roots.mjs) —
+ *      since the owner's ruling of 14 September 2026 a product's own data lives OUTSIDE
+ *      this repository, and only the engine's own fixtures stay in `products/`
+ *   3. that module exports its registered descriptor as `PRODUCT`
  *
- * ⚠️ The second convention exists because the obvious alternative — reading a
+ * ⚠️ The third convention exists because the obvious alternative — reading a
  * named export like the first product's own constant — **would have put that
  * product's name in the engine**, and the boundary law would have failed this
  * very file. Caught while writing it.
  */
-import { existsSync, readdirSync, statSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
-const REPO = join(dirname(fileURLToPath(import.meta.url)), "..");
+import { availableSubjects, resolveSubject, ensureSubjectHook } from "./subject-roots.mjs";
+
 const FLAG = "--product=";
 
-/** Every product that has a descriptor on disk. Used to make errors useful. */
+/** Every product that has a descriptor in any subject root. A missing root or a duplicate id is refused, not hidden. */
 export function availableProducts() {
-  const dir = join(REPO, "products");
-  if (!existsSync(dir)) return [];
-  return readdirSync(dir)
-    .filter((d) => {
-      try {
-        return statSync(join(dir, d)).isDirectory() && existsSync(join(dir, d, "product.mjs"));
-      } catch {
-        return false;
-      }
-    })
-    .sort();
+  return availableSubjects();
 }
+
+const availableForMessage = () => {
+  try {
+    return availableProducts().join(", ") || "(none found in any subject root)";
+  } catch (e) {
+    return `(could not list: ${e.message})`;
+  }
+};
 
 /** The id given on the command line, or null. */
 export function productIdFromArgv(argv = process.argv) {
@@ -70,38 +71,39 @@ export function productIdFromArgv(argv = process.argv) {
  */
 export async function productFromArgv(argv = process.argv, { usage = "" } = {}) {
   const id = productIdFromArgv(argv);
-  const available = availableProducts();
 
   if (!id) {
     throw new Error(
       `--product=<id> is required. There is no default, and that is deliberate: a default is a ` +
         `dependency nobody has to declare, so it survives every refactor by being invisible.` +
         (usage ? `\n  usage: ${usage}` : "") +
-        `\n  available: ${available.join(", ") || "(none found under products/)"}`,
+        `\n  available: ${availableForMessage()}`,
     );
   }
 
   // 🔴 A product id becomes a PATH here, so it is checked rather than trusted.
   // A name with a separator or a traversal in it would otherwise reach outside
-  // the products directory.
+  // a subject root — and a root may now be outside this repository.
   if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) {
     throw new Error(`--product=${JSON.stringify(id)} is not a product id — lowercase letters, digits and hyphens only`);
   }
 
-  const file = join(REPO, "products", id, "product.mjs");
-  if (!existsSync(file)) {
-    throw new Error(`--product=${id}: no descriptor at products/${id}/product.mjs. available: ${available.join(", ") || "(none)"}`);
+  let dir;
+  try {
+    ({ dir } = resolveSubject(id));
+  } catch (e) {
+    throw new Error(`--product=${id}: ${e.message}`);
   }
+  const file = join(dir, "product.mjs");
 
+  ensureSubjectHook();
   const mod = await import(pathToFileURL(file).href);
   const descriptor = mod.PRODUCT ?? mod.default;
   if (!descriptor?.productId) {
-    throw new Error(`products/${id}/product.mjs must export its registered descriptor as PRODUCT`);
+    throw new Error(`${file} must export its registered descriptor as PRODUCT`);
   }
   if (descriptor.productId !== id) {
-    throw new Error(
-      `products/${id}/product.mjs declares productId ${JSON.stringify(descriptor.productId)} — the folder and the id must agree`,
-    );
+    throw new Error(`${file} declares productId ${JSON.stringify(descriptor.productId)} — the folder and the id must agree`);
   }
   return descriptor;
 }

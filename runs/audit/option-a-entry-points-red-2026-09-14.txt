@@ -1,0 +1,19 @@
+RED PROOF — PART 1 — A RUNNER NAMING A PRODUCT FOLDER IN A STRING FAILS LIKE AN IMPORT · 2026-09-14T23:12:57.123Z
+test file: test/entry-points.test.mjs
+
+CLEAN before: exit 0 · tests 5 · pass 5 · fail 0
+
+=== one of the four welded lines put back: bin/page-quality.mjs loads the first product's facts by a path string
+   file: bin/page-quality.mjs
+   anchor matches: 1
+   sabotage landed: true
+   exit 1 · tests 5 · pass 4 · fail 1
+   ✖ 🔴 every runner that needs a product takes it as an ARGUMENT, never as an import   ← the test this sabotage was meant to break
+     reason: AssertionError [ERR_ASSERTION]:
+   expected test red: YES ("every runner that needs a product takes it as an ARGUMENT")
+   restored byte for byte: true
+
+=== CLEAN — every file restored
+exit 0 · tests 5 · pass 5 · fail 0
+
+verdict: RED PROVED — every sabotage turned its named test red, and the clean run is green

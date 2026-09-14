@@ -23,7 +23,7 @@ import {
   classify, assertLawful, assertTransitions, tally, STATES, LOOKED, BEFORE_AMENDMENT_2, MOVES_AMENDMENT_2,
 } from "../src/checklist/classification.mjs";
 import {
-  verify, EXPECTED_BODY_SHA256, AMENDMENT_2_BODY_SHA256, AMENDMENT_4_BODY_SHA256, AMENDMENT_5_BODY_SHA256, amendment5,
+  verify, EXPECTED_BODY_SHA256, AMENDMENT_2_BODY_SHA256, AMENDMENT_4_BODY_SHA256, AMENDMENT_5_BODY_SHA256, amendment5, AMENDMENT_3_BODY_SHA256,
 } from "../tools/verify-pass-boundaries-source.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -56,7 +56,7 @@ const incomplete = Object.values(boundaries).filter((b) => b.missingParts.length
 const esc = (s) => String(s ?? "").replace(/\|/g, "\\|");
 
 const L = [];
-L.push("# ALMIVISIBILITY — THE 58 PASS BOUNDARIES AND THE SEVEN-STATE LEDGER");
+L.push("# ALMIVISIBILITY — THE PASS BOUNDARIES (58 FROZEN, PLUS ROWS ADMITTED BY RULING) AND THE SEVEN-STATE LEDGER");
 L.push("");
 L.push("> 🔴 **GENERATED — DO NOT EDIT BY HAND.** `node bin/checklist-boundaries.mjs` rebuilds it.");
 L.push("> Every boundary below is read out of `PASS_BOUNDARIES_SOURCE.md`, whose body is verified");
@@ -116,21 +116,13 @@ L.push("---");
 L.push("");
 /* ── 🔴 AMENDMENT 5 — ROW 61, RESERVED, READ FROM §4 ── */
 const a5 = amendment5(`${REPO}PASS_BOUNDARIES_AMENDMENT_5.md`);
-L.push(`## 🔴 AMENDMENT 5 — ROW ${a5.row.id} RESERVED: ${a5.row.name}`);
+L.push(`## 🔴 AMENDMENT 5 — ROW ${a5.row.id}: ${a5.row.name} (reserved until 14 September 2026, now created)`);
 L.push("");
 L.push(`Amendment 5 verified against sha256 \`${AMENDMENT_5_BODY_SHA256}\`. **It adds one row and moves no text.**`);
 L.push("");
-L.push(`🔴 **Row ${a5.row.id} is RESERVED, not created:** rows 59 and 60 exist nowhere in this repository, and the ruling`);
-L.push("says to reserve the number and never renumber. The 58-row ledger below is untouched; the reserved row is carried");
-L.push(`beside it and counts toward scope: **in scope ${a5.inScope.before} → ${a5.inScope.after}**.`);
-L.push("");
-L.push(`**${a5.row.state}** · class \`${a5.row.class}\` · ruled in \`PASS_BOUNDARIES_AMENDMENT_5.md §4\` · RESERVED`);
-L.push("");
-L.push("| part | the owner's words |");
-L.push("|---|---|");
-for (const p of CONTRACT_PARTS) L.push(`| **${p.toUpperCase()}** | ${a5.row.contract[p] ? esc(a5.row.contract[p]) : "🔴 *not stated in the ruling*"} |`);
-L.push("");
-L.push("- **moved because WORK HAPPENED:** none. The row arrives NOT-STARTED, and it is not ticked by the PR that built its runner.");
+L.push(`🔴 **Row ${a5.row.id} was RESERVED** while rows 59 and 60 existed nowhere, as the ruling said (*reserve 61, never renumber*).`);
+L.push(`**On 14 September 2026 Amendment 3 admitted 59 and 60, and row ${a5.row.id} is CREATED** — its full verdict, missing leg and`);
+L.push("blocker are on the row in the ledger below. In scope, as Amendment 5 states it: " + `**${a5.inScope.before} → ${a5.inScope.after}**; with rows 59 and 60, **38**.`);
 L.push("");
 L.push("---");
 L.push("");
@@ -257,10 +249,23 @@ for (const b of incomplete) L.push(`| ${b.id} | ${esc(b.name)} | ${b.class} | ${
 L.push("");
 L.push("---");
 L.push("");
-L.push("## ALL 58 — BOUNDARY, VERBATIM, AND VERDICT");
+/* ── 🔴 AMENDMENT 3 — ROWS 59 AND 60, ADMITTED ONLY ── */
+L.push("## 🔴 AMENDMENT 3 — ROWS 59 AND 60 ADMITTED (owner ruling 13 September 2026, re-issued 14 September 2026)");
+L.push("");
+L.push(`Amendment 3 verified against sha256 \`${AMENDMENT_3_BODY_SHA256}\`. **Admitted only**, by the owner's answer of 14 September`);
+L.push("2026: contracts recorded, both rows NOT-STARTED, **moved because WORK HAPPENED: none.** The brief's two stale lines — *\"give to");
+L.push("CC tonight\"* and *\"in scope becomes 32\"* — are corrected in the amendment itself; the in-scope count is measured, not copied.");
+L.push("");
+const ledgerCensus = { P: 0, S: 0, D: 0 };
+for (const b of Object.values(boundaries)) ledgerCensus[b.class] += 1;
+L.push(`**The ledger: ${Object.keys(boundaries).length} rows · P=${ledgerCensus.P} S=${ledgerCensus.S} D=${ledgerCensus.D} · in scope ${ledgerCensus.P + ledgerCensus.S}.**`);
+L.push("");
+L.push("---");
+L.push("");
+L.push(`## ALL ${Object.keys(boundaries).length} — BOUNDARY, VERBATIM, AND VERDICT`);
 L.push("");
 
-for (let id = 1; id <= 58; id += 1) {
+for (const id of Object.keys(boundaries).map(Number).sort((a, b) => a - b)) {
   const b = boundaries[id];
   const r = rows[id];
   L.push(`### ${id} · ${b.name}`);
@@ -285,6 +290,15 @@ for (let id = 1; id <= 58; id += 1) {
   L.push("");
   L.push(`**Verdict —** ${r.why}`);
   L.push("");
+  if (r.missingLeg) {
+    L.push(`**🔴 The missing leg —** ${r.missingLeg}`);
+    L.push("");
+    L.push(`**Blocked on —** ${r.blockedOn}`);
+    L.push("");
+    L.push("**What stops ANY real page being accepted —**");
+    for (const x of r.realPageInputs) L.push(`- ${x}`);
+    L.push("");
+  }
   if (r.test) {
     L.push(`**The one test that would settle it —** ${r.test}`);
     L.push("");

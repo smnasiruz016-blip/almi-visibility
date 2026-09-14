@@ -18,9 +18,10 @@ import {
   verify, EXPECTED_BODY_SHA256, EXPECTED_FEATURE_COUNT, EXPECTED_CLASS_COUNTS, splitSource, sectionSix,
   amendment4, effectiveClasses, AMENDMENT_4_BODY_SHA256, AMENDMENT_4_MOVES, AMENDMENT_4_KEPT_DEFERRED, AMENDMENT_4_HALF_CONTRACT_IDS, EXPECTED_EFFECTIVE_CLASS_COUNTS,
   amendment5, AMENDMENT_5_BODY_SHA256, AMENDMENT_5_ROW,
+  amendment3, AMENDMENT_3_BODY_SHA256, AMENDMENT_3_ROWS, EXPECTED_LEDGER_CLASS_COUNTS, EXPECTED_LEDGER_ROWS,
 } from "../tools/verify-pass-boundaries-source.mjs";
 import { loadBoundaries, CONTRACT_PARTS, HALF_CONTRACT_PARTS } from "../src/checklist/boundaries.mjs";
-import { classify, assertLawful, assertTransitions, tally, STATES, LOOKED, MOVES_AMENDMENT_2 } from "../src/checklist/classification.mjs";
+import { classify, assertLawful, assertTransitions, tally, STATES, LOOKED, MOVES_AMENDMENT_2, ADMITTED_ROWS } from "../src/checklist/classification.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const SOURCE = `${REPO}PASS_BOUNDARIES_SOURCE.md`;
@@ -80,8 +81,9 @@ test("the class counts are frozen too — they decide which rows may be deferred
  * paraphrase of the ruling through.
  */
 test("🔴 every boundary is present in one of the frozen texts, character for character", () => {
-  // Amendment 4's addendum supplies rows 3 and 7's v0.1-half contracts, so it is searched too.
-  const flat = [SOURCE, AMENDMENT, `${REPO}PASS_BOUNDARIES_AMENDMENT_2.md`, `${REPO}PASS_BOUNDARIES_AMENDMENT_4.md`]
+  // Amendment 4's addendum supplies rows 3 and 7's v0.1-half contracts, so it is searched too. Amendments 3 and 5
+  // supply the contracts of rows 59, 60 and 61, which the frozen 58 do not hold.
+  const flat = [SOURCE, AMENDMENT, `${REPO}PASS_BOUNDARIES_AMENDMENT_2.md`, `${REPO}PASS_BOUNDARIES_AMENDMENT_4.md`, `${REPO}PASS_BOUNDARIES_AMENDMENT_3.md`, `${REPO}PASS_BOUNDARIES_AMENDMENT_5.md`]
     .map((p) => splitSource(readFileSync(p, "utf8").replace(/\r\n/g, "\n")).body)
     .join("\n")
     .replace(/\s+/g, " ");
@@ -97,19 +99,20 @@ test("🔴 every boundary is present in one of the frozen texts, character for c
       checked += 1;
     }
   }
-  // 🔴 All 58 × 4 now, because Amendment 1 closed the six gaps.
-  assert.equal(checked, 232, `only ${checked} of 232 parts checked — the law would be weak`);
+  // 🔴 All 58 × 4 because Amendment 1 closed the six gaps — plus 3 × 4 for rows 59, 60 and 61, admitted by ruling.
+  assert.equal(checked, 244, `only ${checked} of 244 parts checked — the law would be weak`);
 });
 
-test("all 58 are parsed, and each knows WHICH document ruled it", () => {
+test("all 61 are parsed — the frozen 58 and three admitted by ruling — and each knows WHICH document ruled it", () => {
   const b = loadBoundaries();
-  assert.equal(Object.keys(b).length, 58);
+  assert.equal(Object.keys(b).length, 61);
   const via = {};
   for (const r of Object.values(b)) via[r.via] = (via[r.via] ?? 0) + 1;
   // §4+A1 — the splits §4 named; §6+A1 — item 25, split inline in §6;
   // §4+A1+A2 — item 14, whose Amendment 1 contract Amendment 2 replaced.
   // §6+A4 — rows 3 and 7, whose v0.1-half contract Amendment 4's addendum supplied.
-  assert.deepEqual(via, { "§6": 48, "§6+A4": 2, "§4+A1": 4, "§4+A1+A2": 1, "§6+A1": 1, "§5": 2 });
+  // A3 — rows 59 and 60; A5 — row 61. Neither is among the frozen 58.
+  assert.deepEqual(via, { "§6": 48, "§6+A4": 2, "§4+A1": 4, "§4+A1+A2": 1, "§6+A1": 1, "§5": 2, A3: 2, A5: 1 });
   assert.equal(Object.values(b).filter((r) => r.amendedByA1).length, 6);
 });
 
@@ -282,10 +285,12 @@ test("🔴 RED: TESTABLE-NOW without a named test is REFUSED", () => {
 /* 🔴 AND 50 WAS REOPENED (13 Sep 2026): a wrong label on a real record — VERIFIED-PASS 18 → 17, FAILED 0 → 1. */
 /* 🔴 AND AMENDMENT 4 OPENED ROWS 3–7 (owner ruling, 13 Sep 2026): DEFERRED 28 → 23, NOT-STARTED 2 → 7. A class
  * change, not progress — nothing was built or run, and no other count moved. */
-test("the seven-state tally is 7 / 5 / 1 / 17 / 1 / 4 / 23", () => {
+/* 🔴 AND AMENDMENT 3 ADMITTED ROWS 59 AND 60 (NOT-STARTED, nothing built), AND ROW 61 WAS CREATED BUILT-NOT-PROVED
+ * (14 Sep 2026): NOT-STARTED 7 → 9, BUILT-NOT-PROVED 5 → 6, 58 → 61 rows. No existing row moved. */
+test("the seven-state tally is 9 / 6 / 1 / 17 / 1 / 4 / 23 over 61 rows", () => {
   assert.deepEqual(tally(classify()), {
-    "NOT-STARTED": 7,
-    "BUILT-NOT-PROVED": 5,
+    "NOT-STARTED": 9,
+    "BUILT-NOT-PROVED": 6,
     "TESTABLE-NOW": 1,
     "VERIFIED-PASS": 17,
     FAILED: 1,
@@ -296,7 +301,7 @@ test("the seven-state tally is 7 / 5 / 1 / 17 / 1 / 4 / 23", () => {
 
 test("every state used is one of the seven, and every row is classified", () => {
   const rows = classify();
-  assert.equal(Object.keys(rows).length, 58);
+  assert.equal(Object.keys(rows).length, 61);
   for (const r of Object.values(rows)) assert.ok(STATES.includes(r.state), `item ${r.id}: ${r.state}`);
 });
 
@@ -347,7 +352,9 @@ test("🔴 exactly TWENTY rows moved on WORK — 9 BLOCKED; 25 TESTABLE-NOW; 50 
   // against THAT baseline they did not move ("vocabulary" 30 → 25, "none" 8 → 13). Their ruling move is
   // declared against the ledger they left, and it is never counted as work.
   assert.equal(rows.filter((r) => r.changeKind === "vocabulary").length, 25);
-  assert.equal(rows.filter((r) => r.changeKind === "none").length, 13);
+  // 🔴 Rows 59, 60 and 61 have no 11 September baseline, so against it they are "none" (13 → 16). Row 61's WORK is
+  // its declared move in MOVES_AMENDMENT_2 — never inferred from a baseline it was not in.
+  assert.equal(rows.filter((r) => r.changeKind === "none").length, 16);
 });
 
 /* ================================================================== *
@@ -378,10 +385,78 @@ test("🔴 the class census in force is P=27 · S=8 · D=23 — computed, and ch
   assert.deepEqual(a4.deferred, { before: frozen.counts.D, after: inForce.D }, "the amendment's DEFERRED row disagrees with the census");
   assert.deepEqual(a4.inScope, { before: frozen.counts.P + frozen.counts.S, after: inForce.P + inForce.S }, "the amendment's in-scope row disagrees with the census");
   // the loader carries both: the class in force, and what §6 froze
-  const b = Object.values(loadBoundaries());
+  // the loader carries both over the FROZEN 58 — rows admitted later have no frozen class
+  const b = Object.values(loadBoundaries()).filter((r) => r.id <= 58);
   const count = (key) => b.reduce((n, r) => ({ ...n, [r[key]]: (n[r[key]] ?? 0) + 1 }), {});
   assert.deepEqual(count("class"), { P: 27, D: 23, S: 8 });
   assert.deepEqual(count("frozenClass"), { ...EXPECTED_CLASS_COUNTS });
+});
+
+/* ================================================================== *
+ * 🔴 AMENDMENT 3 — ROWS 59 AND 60, ADMITTED ONLY. AND ROW 61, CREATED.
+ * ================================================================== */
+
+const AMENDMENT_3 = `${REPO}PASS_BOUNDARIES_AMENDMENT_3.md`;
+
+test("🔴 Amendment 3 verifies; rows 59 and 60 are READ from it, class P, all four parts verbatim; its two stale lines are corrected in it", () => {
+  const a3 = amendment3(AMENDMENT_3);
+  assert.equal(a3.sha, AMENDMENT_3_BODY_SHA256);
+  assert.deepEqual(a3.rows.map((r) => [r.id, r.class]), [[59, "P"], [60, "P"]]);
+  assert.deepEqual(a3.rows.map((r) => r.id), [...AMENDMENT_3_ROWS]);
+  const body = splitSource(readFileSync(AMENDMENT_3, "utf8").replace(/\r\n/g, "\n")).body.replace(/\s+/g, " ");
+  for (const r of a3.rows) for (const p of CONTRACT_PARTS) assert.ok(r.contract[p] && body.includes(r.contract[p]), `row ${r.id} ${p}`);
+  assert.equal(a3.corrected, true, "the dated corrections are not in the amendment");
+  assert.equal(a3.admitOnly, true, "the owner's admit-only answer is not in the amendment");
+  // 🔴 the brief's "In scope becomes 32" survives as quoted history, and is NOT the count — the ledger is.
+  assert.match(readFileSync(AMENDMENT_3, "utf8"), /No number is copied from this brief/);
+});
+
+test("🔴 the LEDGER is 61 rows · P=30 · S=8 · D=23 · in scope 38 — counted from the loaded rows, not copied from any brief", () => {
+  const b = Object.values(loadBoundaries());
+  const c = { P: 0, S: 0, D: 0 };
+  for (const r of b) c[r.class] += 1;
+  assert.equal(b.length, EXPECTED_LEDGER_ROWS);
+  assert.deepEqual(c, { ...EXPECTED_LEDGER_CLASS_COUNTS });
+  assert.equal(c.P + c.S, 38);
+  // the frozen source still holds exactly 58, byte for byte
+  assert.equal(verify(SOURCE).features.count, 58);
+  assert.equal(verify(SOURCE).sha, EXPECTED_BODY_SHA256);
+});
+
+test("🔴 rows 59 and 60 arrive NOT-STARTED and nothing moved because work happened; each carries its written limit", () => {
+  const rows = classify();
+  for (const id of [59, 60]) {
+    assert.equal(rows[id].state, "NOT-STARTED");
+    assert.equal(MOVES_AMENDMENT_2[id], undefined, `row ${id} has a declared move — nothing was built for it`);
+    assert.equal(ADMITTED_ROWS[id].arrivedAs, "NOT-STARTED");
+    assert.match(rows[id].why, /Nothing is built/);
+  }
+  assert.match(rows[59].why, /CANNOT prove a refutation is well chosen/);
+  assert.match(rows[60].why, /UNCLASSIFIED IS A REAL STATE AND NEVER DEFAULTS TO LOW/);
+});
+
+test("🔴 row 61 is CREATED — BUILT-NOT-PROVED, by a declared WORK move — and carries its missing leg, its blocker and both real-page inputs", () => {
+  const r = classify()[61];
+  assert.equal(r.state, "BUILT-NOT-PROVED");
+  assert.equal(r.via, "A5");
+  assert.deepEqual(r.missingParts, []);
+  const [move] = MOVES_AMENDMENT_2[61];
+  assert.deepEqual([move.from, move.to, move.kind], ["NOT-STARTED", "BUILT-NOT-PROVED", "work"]);
+  assert.match(r.missingLeg, /second DECLARED product with its own DECLARED page spec, reached end to end through bin\/build-page\.mjs/);
+  assert.match(r.blockedOn, /OWNER DECISION/);
+  assert.match(r.blockedOn, /second neutral declared test product/);
+  assert.match(r.blockedOn, /re-pin of row 53's coverage/);
+  assert.equal(r.realPageInputs.length, 2);
+  assert.match(r.realPageInputs[0], /WHY_THIS_URL_DESERVES_TO_EXIST/);
+  assert.match(r.realPageInputs[1], /at least THREE rendered specs/);
+  assert.match(r.why, /a test fixture is not a declared product/);
+  assert.deepEqual(assertTransitions(classify()), []);
+});
+
+test("🔴 RED: a row that is neither one of the frozen 58 nor admitted by a ruling is REFUSED by the transition law", () => {
+  const rows = classify();
+  rows[62] = { ...rows[61], id: 62 };
+  assert.ok(assertTransitions(rows).some((e) => /item 62: is neither one of the frozen 58 nor a row admitted by a recorded owner ruling/.test(e)));
 });
 
 test("🔴 RED: one changed byte in Amendment 4's body fails its hash; the original passes", () => {
@@ -493,14 +568,17 @@ test("🔴 Amendment 5 verifies; row 61 is READ from §4 — class P, NOT-STARTE
   assert.equal(frozen.sha, EXPECTED_BODY_SHA256);
 });
 
-test("🔴 row 61 is RESERVED beside the ledger, not inside it — the 58 stay 58, and rows 59 and 60 exist nowhere", () => {
-  assert.equal(amendment5(AMENDMENT_5).reserveIfAbsent, true);
-  assert.equal(Object.keys(classify()).length, 58);
+/* 🔴 This test once asserted that row 61 was RESERVED and that rows 59 and 60 existed nowhere. Amendment 3 admitted 59
+ * and 60 on 14 September 2026, so the reservation ended as Amendment 5 said it would — and the test now asserts that. */
+test("🔴 row 61's reservation ENDED when 59 and 60 were admitted — all three are rows, and the tracker holds them", () => {
+  assert.equal(amendment5(AMENDMENT_5).reserveIfAbsent, true, "Amendment 5's own instruction is unchanged history");
   const b = loadBoundaries();
-  for (const id of [59, 60, 61]) assert.equal(b[id], undefined, `row ${id} appeared in the frozen ledger`);
+  for (const id of [59, 60, 61]) assert.ok(b[id], `row ${id} is not in the ledger`);
+  assert.deepEqual([b[59].via, b[60].via, b[61].via], ["A3", "A3", "A5"]);
   const status = readFileSync(`${REPO}CHECKLIST_STATUS.md`, "utf8");
-  for (const id of [59, 60, 61]) assert.doesNotMatch(status, new RegExp(`^\\| ${id} \\| `, "m"), `a tracker row ${id} exists`);
-  assert.match(status, /Row 61 is RESERVED, not created/);
+  for (const id of [59, 60, 61]) assert.match(status, new RegExp(`^\\| ${id} \\| `, "m"), `no tracker row ${id}`);
+  assert.match(status, /Row 61 is RESERVED, not created/, "the Amendment 5 record is kept, not rewritten");
+  assert.match(status, /Row 61 is CREATED, and it is BUILT-NOT-PROVED/);
 });
 
 test("🔴 RED: one changed byte in Amendment 5 fails its hash; dropping a part leaves row 61 incomplete", () => {

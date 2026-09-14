@@ -2,6 +2,15 @@
 .env*
 node_modules/
 
+# Test scratch. A test that must point a REAL writer at a path inside this repository (confineToRepo refuses
+# anything outside, so the OS temp directory cannot be used) makes its temporary directory under here — never
+# under runs/, which .gitattributes declares evidence, and never at the repository root. Ignored, so a run that
+# is interrupted before its `finally` cannot leave anything that looks trackable. The two older locations are
+# ignored too, for leftovers made before 14 September 2026.
+.test-scratch/
+.tmp-row61-*/
+runs/.confine-probe-*/
+
 # ── 🔴 A CACHE AND EVIDENCE ARE NOT THE SAME THING ─────────────────────────────
 # "A repo is not a cache" is RIGHT, and it stays. The line it draws is this:
 #

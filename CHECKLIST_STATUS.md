@@ -20,14 +20,51 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 
 | state | before (4-state) | after (7-state) |
 |---|---|---|
-| **NOT-STARTED** | 33 | **7** |
-| **BUILT-NOT-PROVED** | 24 | **5** |
+| **NOT-STARTED** | 33 | **9** |
+| **BUILT-NOT-PROVED** | 24 | **6** |
 | **TESTABLE-NOW** | — | **1** |
 | **VERIFIED-PASS** | 0 | **17** |
 | **FAILED** | — | **1** |
 | **BLOCKED-UNKNOWN** | 1 | **4** |
 | **DEFERRED** | — | **23** |
-| **total** | 58 | **58** |
+| **total** | 58 | **61** |
+
+> ### 🔴 AMENDMENT 3 — ROWS 59 AND 60 ADMITTED · AND ROW 61 IS CREATED — 14 SEPTEMBER 2026
+>
+> | state | before this change | after |
+> |---|---|---|
+> | NOT-STARTED | 7 (3, 4, 5, 6, 7, 57, 58) | **9** (+ 59, 60) |
+> | BUILT-NOT-PROVED | 5 | **6** (+ 61) |
+> | TESTABLE-NOW | 1 (25) | 1 (25) |
+> | VERIFIED-PASS | 17 | 17 |
+> | FAILED | 1 (50) | 1 (50) |
+> | BLOCKED-UNKNOWN | 4 (1, 9, 52, 54) | 4 (1, 9, 52, 54) |
+> | DEFERRED | 23 | 23 |
+> | **rows** | 58 (+ row 61 reserved) | **61** |
+>
+> **In scope, measured — not copied from any brief.** Amendment 4 left P 27 + S 8 = **35**. Amendment 5 added row 61
+> (P) = **36**. Amendment 3 adds rows 59 and 60 (both P) = **38**. The ledger now holds P 30 · S 8 · D 23 over 61 rows,
+> and `tools/verify-pass-boundaries-source.mjs` checks that count against the loaded rows. 🔴 **Disagreements found and
+> recorded:** the Amendment 3 brief said *"in scope becomes 32"* (true before Amendments 4 and 5 — corrected in the
+> amendment itself), and this file said *"in scope becomes 37 only when Amendment 3's rows 59 and 60 land"* (written
+> before row 61 existed — corrected where it stands).
+>
+> - **Rows 59 · FALSIFIABILITY OF FINDINGS and 60 · CONSEQUENCE-WEIGHTED PRIORITY — NOT-STARTED.** Admitted by owner ruling
+>   (13 September 2026 under §12, re-issued 14 September 2026). By the owner's answer of 14 September 2026 they are
+>   **admitted only**: no census, no refutation backfill, no consequence register, no priority basis is built.
+> - **moved because WORK HAPPENED:** row 61 only — NOT-STARTED → BUILT-NOT-PROVED, the work of PR #72.
+>   **moved ONLY because a RULING changed:** none; rows 59 and 60 were ADDED and arrive NOT-STARTED.
+> - 🔴 **Row 61 is CREATED, and it is BUILT-NOT-PROVED — not VERIFIED-PASS.** Work happened: the runner is generic, Gate A
+>   fails closed, the RED/GREEN proof exists. Not proved: its EVIDENCE clause needs *"a run on two different products, one
+>   of them the neutral test product"*, and the neutral product was refused AT THE RUNNER ("it declares no page spec") —
+>   the full path was proved only with a spec declared inside a test, and a test fixture is not a declared product.
+>   - **The missing leg:** a second DECLARED product with its own DECLARED page spec, reached end to end through
+>     `bin/build-page.mjs`.
+>   - **Blocked on an OWNER DECISION:** a second neutral declared test product that declares a page spec, or a
+>     deliberate re-pin of row 53's coverage (row 53, VERIFIED-PASS, pins the neutral product's empty page specs).
+>   - **What stops ANY real page:** no page spec declares a WHY_THIS_URL_DESERVES_TO_EXIST (whoever owns the evidence
+>     writes them; none has been written; CC does not invent one) · and a template family needs at least THREE specs
+>     before unique words and sibling overlap can be measured (D-GATEA-1); two exist.
 
 > ### 🔴 AMENDMENT 5 — ROW 61 RESERVED: SAFE LOCAL PAGE CONSTRUCTION — OWNER RULING, 14 SEPTEMBER 2026
 >
@@ -88,7 +125,8 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 > either, because **a contract is not progress: both stay NOT-STARTED.** One thing is recorded and not corrected:
 > the addendum's reason calls rows 2, 19 and 21 WORTHINESS's *"own named inputs"*, and no frozen text in this
 > repository names them so. *In scope becomes 37 only when Amendment 3's rows 59 and 60 land; that is a separate
-> command and not in this change.*
+> command and not in this change.* 🔄 **Corrected 14 September 2026:** that "37" was written before row 61 existed.
+> With row 61 (Amendment 5) and rows 59 and 60 (Amendment 3), in scope is **38** — see the Amendment 3 block above.
 
 > ### 🔴 THE 9 AMBIGUOUS LABELS DEMOTED — 13 SEPTEMBER 2026, EVENING
 >
@@ -515,8 +553,9 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 
 **Of the 23 DEFERRED items, all 23 are class `D` in the owner's ruling as amended** — deliberately excluded.
 A row is DEFERRED **only** where the frozen document, as amended, says so; the build fails on any other
-deferral. Seven items are NOT-STARTED and in scope: **3, 4, 5, 6, 7** (opened by Amendment 4 on 13 September
-2026; nothing built) and **57, 58**. *(This sentence read "47, 57, 58" until 13 September — stale since item 47
+deferral. Nine items are NOT-STARTED and in scope: **3, 4, 5, 6, 7** (opened by Amendment 4 on 13 September
+2026; nothing built), **57, 58**, and **59, 60** (admitted by Amendment 3 on 14 September 2026; nothing built). *(Seven
+until 14 September 2026.)* *(This sentence read "47, 57, 58" until 13 September — stale since item 47
 passed the same day. Corrected here, and recorded as one more summary that did not follow its own body.)*
 
 > ### 🔴 12 SEPTEMBER 2026, ITEM 15 INGEST — SIX ROWS REWRITTEN, **NOTHING MOVED**
@@ -657,6 +696,9 @@ actually came from.
 | 56 | Desktop + Mobile Owner Experience | VERIFIED-PASS | IN — DoD v0.1 "dashboard/report works on desktop and 430px" | **VERIFIED BY THE OWNER, 13 Sep 2026** — four narrow-width screenshots in `runs/owner-verification/item-56-2026-09-13/`, the cost ledger's sideways scroll raised and ruled NOT clipping (PD-1). An owner-facing surface now exists. It declares `width=device-width`, a `@media (max-width:430px)` breakpoint, and `overflow-x:auto` on wide tables so the body never scrolls sideways — all asserted by test | 2026-09-12 | Claude (repo audit) | ✅ **VERIFIED BY THE OWNER'S LOOK, 13 Sep 2026** — no automated run may set this row. ⚠️ All four screenshots are narrow-width; the desktop half rests on the owner's verification. *Earlier, kept:* 🔴 **NOT VERIFIED BY LOOKING.** Chrome's screenshot injection timed out on every attempt, including on a trivial `<h1>probe ok</h1>` page — the extension, not this page. The structure is asserted; **the appearance is unverified** and a structural assertion is not a visual check | report view, 12 Sep 2026 |
 | 57 | Final Independent Audit | NOT-STARTED | IN — checklist §1; DoD v0.1 | This document is the **first status baseline**, not the final audit | 2026-09-11 | Claude (repo audit) | Cannot run while 16 items are ◐ and 1 is ⚠; and it must be *independent*, which a self-audit is not | — |
 | 58 | DONE Declaration | NOT-STARTED | IN — checklist §6, owner sign-off | none | 2026-09-11 | Claude (repo audit) | Requires every applicable item ☑ or justified N/A with no frozen blocker. **0 items are ☑**, and N/A justifications are the owner's — none exist | — |
+| 59 | Falsifiability of Findings | NOT-STARTED | IN — `PASS_BOUNDARIES_AMENDMENT_3.md`, owner ruling under §12, 13 Sep 2026, re-issued 14 Sep 2026 (class P) | none — admitted only (owner's answer, 14 Sep 2026): no census, no `refutation` on any finding. Population measured: 3 recommendations, 17 `issue_class` values | 2026-09-14 | CC (Amendment 3 admission) | not started: no finding carries a structured refutation, and no census exists. The census, when built, cannot prove a refutation is well chosen — that is human judgement | — |
+| 60 | Consequence-Weighted Priority | NOT-STARTED | IN — `PASS_BOUNDARIES_AMENDMENT_3.md`, owner ruling under §12, 13 Sep 2026, re-issued 14 Sep 2026 (class P) | none — admitted only (owner's answer, 14 Sep 2026): no consequence register, no priority basis on the report | 2026-09-14 | CC (Amendment 3 admission) | not started: no register exists. When built, every class starts UNCLASSIFIED, never low; every level is the owner's to rule | — |
+| 61 | Safe Local Page Construction | BUILT-NOT-PROVED | IN — `PASS_BOUNDARIES_AMENDMENT_5.md` §4 (class P); reserved there, created 14 Sep 2026 once rows 59 and 60 existed | PR #72: `bin/build-page.mjs` takes `--slug` / `--all-slugs` with no default; Gate A's four parts enforced in the construction path, failing closed (`src/page/construct.mjs`); RED/GREEN in `runs/audit/row61-gate-a-*`; 0 of 3 candidates accepted | 2026-09-14 | CC (row 61 created) | **missing leg:** a second DECLARED product with its own DECLARED page spec, run through the runner — **blocked on an owner decision** (a second neutral declared test product, or a re-pin of row 53's coverage). No real page can be accepted: no WHY_THIS_URL is written, and no template family has three specs | — |
 
 ---
 

@@ -180,6 +180,60 @@ export const EXPECTED_EFFECTIVE_CLASS_COUNTS = Object.freeze({ P: 27, S: 8, D: 2
  * "reserve 61 and report it. Never renumber"). The 58-row frozen ledger is untouched; row 61 is read out
  * of §4 of the amendment — its class and its four parts — and counted toward scope beside it.
  */
+/**
+ * 🔴 AMENDMENT 3 — rows 59 and 60, ruled 13 September 2026, re-issued 14 September 2026 with dated corrections.
+ *
+ * The rows sit in the brief as fenced plain text, not tables: a label line (`INPUT     …`) followed by
+ * continuation lines indented ten spaces. The parser reads each part from its label to its last continuation
+ * line and never retypes it. The brief's own in-scope number (32) is stale and is NOT checked here — the
+ * ledger census below is.
+ */
+export const AMENDMENT_3_BODY_SHA256 = "e400bf06bf0980c1d94a85a38e86f0a3d9df47aea179e45e3f2054cc7fe3aa31";
+export const AMENDMENT_3_ROWS = Object.freeze([59, 60]);
+
+export function amendment3(path) {
+  const text = readFileSync(path, "utf8").replace(/\r\n/g, "\n");
+  const idx = text.indexOf(BODY_MARKER);
+  const body = idx === -1 ? text : text.slice(idx + BODY_MARKER.length);
+  const sha = createHash("sha256").update(body, "utf8").digest("hex");
+  const rows = [];
+  const heads = [...body.matchAll(/^ROW (\d+) · (.+?)\s+— ([PSD])$/gm)];
+  for (let i = 0; i < heads.length; i += 1) {
+    const end = i + 1 < heads.length ? heads[i + 1].index : body.indexOf("LEDGER AND REPORTING", heads[i].index);
+    const lines = body.slice(heads[i].index, end === -1 ? undefined : end).split("\n");
+    const contract = {};
+    let current = null;
+    for (const line of lines) {
+      const label = /^(INPUT|EXPECTED|FAILURE|EVIDENCE)\s{2,}(.*)$/.exec(line);
+      if (label) {
+        current = label[1].toLowerCase();
+        contract[current] = label[2].trim();
+      } else if (current && /^ {10}\S/.test(line)) {
+        contract[current] = `${contract[current]} ${line.trim()}`;
+      } else {
+        current = null;
+      }
+    }
+    for (const k of Object.keys(contract)) contract[k] = contract[k].replace(/\s+/g, " ");
+    rows.push({ id: Number(heads[i][1]), name: heads[i][2].trim(), class: heads[i][3], contract });
+  }
+  return {
+    sha,
+    matches: sha === AMENDMENT_3_BODY_SHA256,
+    rows,
+    corrected: /^## 🔴 CORRECTIONS · 14 SEPTEMBER 2026/m.test(body),
+    admitOnly: /\*\*ADMITTED ONLY\*\*/.test(body),
+  };
+}
+
+/**
+ * 🔴 THE LEDGER CENSUS — every row the ledger holds: the 58 frozen rows as amended, plus the rows admitted by
+ * ruling (59 and 60 by Amendment 3; 61 by Amendment 5, created once 59 and 60 existed). All three are P, so
+ * in scope is P + S = 38. Checked against the loaded ledger, not asserted from a brief.
+ */
+export const EXPECTED_LEDGER_CLASS_COUNTS = Object.freeze({ P: 30, S: 8, D: 23 });
+export const EXPECTED_LEDGER_ROWS = 61;
+
 export const AMENDMENT_5_BODY_SHA256 = "cab59fe7b78f37931ed4461d97f4646d2c23b880b3352c7eca56bfa12938cb11";
 export const AMENDMENT_5_ROW = 61;
 
@@ -336,8 +390,21 @@ if (invokedDirectly) {
   console.log("PASS_BOUNDARIES_AMENDMENT_5.md");
   console.log(`  body sha256 : ${a5.sha}`);
   console.log(`  matches     : ${a5.matches ? "YES" : "🔴 NO — the amendment has changed"}`);
-  console.log(`  row         : ${a5.row?.id} · ${a5.row?.name} · class ${a5.row?.class} · ${a5.row?.state} · ${a5Parts}/4 parts · RESERVED (rows 59, 60 do not exist)`);
-  console.log(`  in scope    : ${a5.inScope?.before} → ${a5.inScope?.after} · the census in force P+S=${eff.P + eff.S}, plus reserved row ${a5.row?.id}  ${a5Scope ? "agree" : "🔴 DISAGREE"}`);
+  console.log(`  row         : ${a5.row?.id} · ${a5.row?.name} · class ${a5.row?.class} · ${a5.row?.state} · ${a5Parts}/4 parts · reserved until rows 59 and 60 existed; created by Amendment 3`);
+  console.log(`  in scope    : ${a5.inScope?.before} → ${a5.inScope?.after} · the census in force P+S=${eff.P + eff.S}, plus row ${a5.row?.id}  ${a5Scope ? "agree" : "🔴 DISAGREE"}`);
+
+  const a3 = amendment3(at("PASS_BOUNDARIES_AMENDMENT_3.md"));
+  const a3Complete = a3.rows.filter((row) => ["input", "expected", "failure", "evidence"].every((p) => row.contract[p]));
+  const ledger = { ...eff };
+  for (const row of [...a3.rows, a5.row].filter(Boolean)) ledger[row.class] += 1;
+  const ledgerRows = 58 + a3.rows.length + (a5.row ? 1 : 0);
+  const ledgerOk = ["P", "S", "D"].every((k) => ledger[k] === EXPECTED_LEDGER_CLASS_COUNTS[k]) && ledgerRows === EXPECTED_LEDGER_ROWS;
+  console.log("PASS_BOUNDARIES_AMENDMENT_3.md");
+  console.log(`  body sha256 : ${a3.sha}`);
+  console.log(`  matches     : ${a3.matches ? "YES" : "🔴 NO — the amendment has changed"}`);
+  console.log(`  rows        : ${a3.rows.map((row) => `${row.id} · ${row.name} · ${row.class}`).join(" | ")} — ${a3Complete.length}/${a3.rows.length} carry all four parts`);
+  console.log(`  corrections : ${a3.corrected ? "recorded (the stale 'tonight' and 'in scope 32' lines)" : "🔴 NOT FOUND"} · admit-only: ${a3.admitOnly ? "yes" : "🔴 no"}`);
+  console.log(`  ledger      : ${ledgerRows} rows · P=${ledger.P} S=${ledger.S} D=${ledger.D} · in scope ${ledger.P + ledger.S}  ${ledgerOk ? "as expected" : "🔴 DISAGREES"}`);
 
   const bad =
     !r.matches || !r.classesMatch || r.features.count !== EXPECTED_FEATURE_COUNT || !r.features.ok ||
@@ -350,8 +417,10 @@ if (invokedDirectly) {
     Object.keys(a4.kept).map(Number).join(",") !== AMENDMENT_4_KEPT_DEFERRED.join(",") ||
     a4HalfIds.join(",") !== AMENDMENT_4_HALF_CONTRACT_IDS.join(",") || a4HalfComplete.length !== a4HalfIds.length ||
     !a5.matches || a5.row?.id !== AMENDMENT_5_ROW || a5.row?.class !== "P" || a5.row?.state !== "NOT-STARTED" || a5Parts !== 4 ||
-    !a5.reserveIfAbsent || !a5Scope;
+    !a5.reserveIfAbsent || !a5Scope ||
+    !a3.matches || a3.rows.map((row) => row.id).join(",") !== AMENDMENT_3_ROWS.join(",") || a3Complete.length !== a3.rows.length ||
+    a3.rows.some((row) => row.class !== "P") || !a3.corrected || !a3.admitOnly || !ledgerOk;
 
-  console.log(bad ? "\n🔴 VERIFICATION FAILED" : "\nall five frozen texts verified");
+  console.log(bad ? "\n🔴 VERIFICATION FAILED" : "\nall six frozen texts verified");
   process.exit(bad ? 1 : 0);
 }

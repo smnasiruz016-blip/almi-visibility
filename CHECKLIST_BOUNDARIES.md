@@ -1,4 +1,4 @@
-# ALMIVISIBILITY — THE 58 PASS BOUNDARIES AND THE SEVEN-STATE LEDGER
+# ALMIVISIBILITY — THE PASS BOUNDARIES (58 FROZEN, PLUS ROWS ADMITTED BY RULING) AND THE SEVEN-STATE LEDGER
 
 > 🔴 **GENERATED — DO NOT EDIT BY HAND.** `node bin/checklist-boundaries.mjs` rebuilds it.
 > Every boundary below is read out of `PASS_BOUNDARIES_SOURCE.md`, whose body is verified
@@ -7,7 +7,7 @@
 
 Frozen source verified: **YES** · features **58**
 (sequence 1..58) · classes as frozen **P=24 S=6 D=28**
-· classes in force since Amendment 4 **P=27 S=8 D=23**
+· classes in force since Amendment 4 **P=30 S=8 D=23**
 
 ## Precedence
 
@@ -25,10 +25,10 @@ boundary below is still read out of the frozen source, which still verifies byte
 
 | class | as frozen | in force |
 |---|---|---|
-| **P** | 24 | **27** |
+| **P** | 24 | **30** |
 | **S** | 6 | **8** |
 | **D** | 28 | **23** |
-| **in scope (P + S)** | 30 | **35** |
+| **in scope (P + S)** | 30 | **38** |
 
 - **moved because WORK HAPPENED:** none. **moved ONLY because a RULING changed:** 5 — 3 DEFERRED → NOT-STARTED · 4 DEFERRED → NOT-STARTED · 5 DEFERRED → NOT-STARTED · 6 DEFERRED → NOT-STARTED · 7 DEFERRED → NOT-STARTED.
 - 🔴 **A class change is not progress.** Every row it opened arrives NOT-STARTED: nothing was built and nothing was run.
@@ -46,24 +46,13 @@ as the final boundary for when the deferred half opens.
 
 ---
 
-## 🔴 AMENDMENT 5 — ROW 61 RESERVED: SAFE LOCAL PAGE CONSTRUCTION
+## 🔴 AMENDMENT 5 — ROW 61: SAFE LOCAL PAGE CONSTRUCTION (reserved until 14 September 2026, now created)
 
 Amendment 5 verified against sha256 `cab59fe7b78f37931ed4461d97f4646d2c23b880b3352c7eca56bfa12938cb11`. **It adds one row and moves no text.**
 
-🔴 **Row 61 is RESERVED, not created:** rows 59 and 60 exist nowhere in this repository, and the ruling
-says to reserve the number and never renumber. The 58-row ledger below is untouched; the reserved row is carried
-beside it and counts toward scope: **in scope 35 → 36**.
-
-**NOT-STARTED** · class `P` · ruled in `PASS_BOUNDARIES_AMENDMENT_5.md §4` · RESERVED
-
-| part | the owner's words |
-|---|---|
-| **INPUT** | any declared product with at least one evidence-backed page spec, and that product's fact registry |
-| **EXPECTED** | the runner builds **any** declared slug of **any** declared product; the spec holds claim ids and never a fact; **Gate A is invoked inside the construction path and fails closed**; a candidate that fails any part of the frozen floor is **not emitted as an accepted built page**, and its reason is recorded as DATA GAP / REJECT; where a frozen part cannot be exercised for want of sibling or existing-page evidence, it records **BLOCKED / NOT TESTED**, never PASS |
-| **FAILURE** | an accepted artefact bypasses Gate A · a threshold is weakened · facts are padded or invented · the generator writes to or publishes into a connected product · a generate-all or Cartesian path appears · first-product subject logic reaches the generic core · the runner can build only one product or only one slug |
-| **EVIDENCE** | a run on two different products, one of them the neutral test product; the refusal proved RED on a deliberately short / overlapping / fact-poor candidate and GREEN after restoration; `findCopiedFacts` clean on every spec of every declared product; the recorded DATA GAP / BLOCKED list |
-
-- **moved because WORK HAPPENED:** none. The row arrives NOT-STARTED, and it is not ticked by the PR that built its runner.
+🔴 **Row 61 was RESERVED** while rows 59 and 60 existed nowhere, as the ruling said (*reserve 61, never renumber*).
+**On 14 September 2026 Amendment 3 admitted 59 and 60, and row 61 is CREATED** — its full verdict, missing leg and
+blocker are on the row in the ledger below. In scope, as Amendment 5 states it: **35 → 36**; with rows 59 and 60, **38**.
 
 ---
 
@@ -73,8 +62,8 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 | state | before Amendment 2 | after the RULING only | after the WORK |
 |---|---|---|---|
-| **NOT-STARTED** | 3 | 8 | **7** |
-| **BUILT-NOT-PROVED** | 18 | 17 | **5** |
+| **NOT-STARTED** | 3 | 8 | **9** |
+| **BUILT-NOT-PROVED** | 18 | 17 | **6** |
 | **TESTABLE-NOW** | 0 | 2 | **1** |
 | **VERIFIED-PASS** | 3 | 3 | **17** |
 | **FAILED** | 0 | -1 | **1** |
@@ -147,6 +136,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 55 | TESTABLE-NOW | FAILED | `test/secret-leak.test.mjs (first honest run, before any fix)` | 2026-09-13 | FAILURE met — any leak: a key file that is not JSON was quoted by the adapter's parse error in-process and printed whole to stderr by the CLI (D-SEC-1) |
 | 55 | FAILED | VERIFIED-PASS | `test/secret-leak.test.mjs · test/store-recovery.test.mjs` | 2026-09-13 | the parse is caught and rethrown with nothing from the file; the leak test re-run passed on every credential path, RED when the key or its length is logged; recovery proved by restoring torn stores from git, byte-identical by blob hash |
 | 56 | BLOCKED-UNKNOWN | VERIFIED-PASS | `the owner's visual check of runs/report/index.html · test/item-56-owner-verification.test.mjs` | 2026-09-13 | the owner looked at the report and verified it against his own criteria — critical information readable, workflow understandable, controls and links usable, no clipping, overlap or broken critical view; four screenshots committed; the cost ledger's horizontal scroll was raised and ruled not clipping |
+| 61 | NOT-STARTED | BUILT-NOT-PROVED | `node --test test/page-construction.test.mjs · node bin/build-page.mjs --product=<the first product> --all-slugs · runs/audit/row61-gate-a-red-2026-09-14.txt · runs/audit/row61-gate-a-green-2026-09-14.txt` | 2026-09-14 | the runner takes --slug / --all-slugs with no default; Gate A's four frozen parts are enforced inside the construction path and fail closed; seen RED with the acceptance rule bypassed and GREEN restored; 0 of 3 candidates accepted — and the neutral product was refused AT THE RUNNER, so the portability leg is not proved |
 
 ---
 
@@ -154,14 +144,14 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 | state | before (4-state) | after (7-state) |
 |---|---|---|
-| **NOT-STARTED** | 33 | **7** |
-| **BUILT-NOT-PROVED** | 24 | **5** |
+| **NOT-STARTED** | 33 | **9** |
+| **BUILT-NOT-PROVED** | 24 | **6** |
 | **TESTABLE-NOW** | 0 | **1** |
 | **VERIFIED-PASS** | 0 | **17** |
 | **FAILED** | 0 | **1** |
 | **BLOCKED-UNKNOWN** | 1 | **4** |
 | **DEFERRED** | 0 | **23** |
-| **total** | 58 | **58** |
+| **total** | 58 | **61** |
 
 ### 🔴 THE MOST IMPORTANT LINE IN THIS DOCUMENT
 
@@ -199,7 +189,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | NOT-STARTED → DEFERRED | 23 | 2, 18, 19, 20, 21, 22, 23, 24, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39, 40, 41, 43, 44 |
 | BUILT-NOT-PROVED → BLOCKED-UNKNOWN | 2 | 1, 54 |
 
-**Did not move: 13** — 3, 4, 5, 6, 7, 10, 16, 17, 36, 46, 52, 57, 58
+**Did not move: 16** — 3, 4, 5, 6, 7, 10, 16, 17, 36, 46, 52, 57, 58, 59, 60, 61
 
 ---
 
@@ -235,7 +225,17 @@ question for the owner, recorded as one.
 
 ---
 
-## ALL 58 — BOUNDARY, VERBATIM, AND VERDICT
+## 🔴 AMENDMENT 3 — ROWS 59 AND 60 ADMITTED (owner ruling 13 September 2026, re-issued 14 September 2026)
+
+Amendment 3 verified against sha256 `e400bf06bf0980c1d94a85a38e86f0a3d9df47aea179e45e3f2054cc7fe3aa31`. **Admitted only**, by the owner's answer of 14 September
+2026: contracts recorded, both rows NOT-STARTED, **moved because WORK HAPPENED: none.** The brief's two stale lines — *"give to
+CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itself; the in-scope count is measured, not copied.
+
+**The ledger: 61 rows · P=30 S=8 D=23 · in scope 38.**
+
+---
+
+## ALL 61 — BOUNDARY, VERBATIM, AND VERDICT
 
 ### 1 · Product Intake & Isolation
 
@@ -1063,4 +1063,51 @@ question for the owner, recorded as one.
 | **RULE** | 🔴 **Only the owner declares DONE. Not CC. Not Claude.** |
 
 **Verdict —** 🔴 only the owner declares DONE. Requires the full ledger, the audit, and his own signature
+
+### 59 · FALSIFIABILITY OF FINDINGS
+
+**NOT-STARTED** · class `P` (frozen `null`, moved by Amendment 4) · ruled in `A3`
+
+| part | the owner's words |
+|---|---|
+| **INPUT** | every finding the product presents to the owner as actionable, as it stands in the evidence store. |
+| **EXPECTED** | each carries a STRUCTURED `refutation` — not prose — with three named parts: (a) `observation` — what would have to be seen to overturn it; (b) `source` — the method or source that observation comes from, and it must be a method this product actually has; (c) `condition` — the threshold at which the finding is void. A census proves every presented finding carries all three, and PRINTS THE POPULATION IT CHECKED. |
+| **FAILURE** | no `refutation` · any of the three parts absent or empty · the observation names something no method we hold could produce · the census polices an empty population · the census reads its own source as compliant. |
+| **EVIDENCE** | the census over the REAL findings already in the store, printing its count; RED by removing one finding's refutation; RED by emptying EACH of the three parts separately; RED by naming an unobtainable observation. Each limb sabotaged ALONE — a sabotage that trips two proves neither. Restore afterwards and hash-check the restore. |
+
+**Verdict —** 🔴 **NOT-STARTED — ADMITTED BY OWNER RULING** (Amendment 3: ruled 13 September 2026 under §12, re-issued 14 September 2026). **Nothing is built:** no refutation census, no `refutation` on any finding, no backfill into the evidence store. The owner's answer of 14 September 2026 scoped the admitting change to the row alone; a later change builds it. Its population was MEASURED, not built: 3 recommendations (REC-ROBOTS-CORRIDOR, REC-AI-CRAWLER-BLOCK, REC-NOINDEX-CV-GUIDE) and 17 distinct `issue_class` values in the store. 🔴 **The limit, written on the row as ruled:** a census can prove the three parts are present and point at a method this product has; it CANNOT prove a refutation is well chosen — that is human judgement
+
+### 60 · CONSEQUENCE-WEIGHTED PRIORITY
+
+**NOT-STARTED** · class `P` (frozen `null`, moved by Amendment 4) · ruled in `A3`
+
+| part | the owner's words |
+|---|---|
+| **INPUT** | every finding the product presents as actionable, and a declared consequence register the OWNER controls. |
+| **EXPECTED** | every finding CLASS present in the store carries a consequence level declared in a register a human reads, each entry stating what the class is, the level, and WHY that level. Every presented recommendation shows (a) its priority, (b) the BASIS of that priority — measured volume, declared consequence, or both — and (c) which register entry applied. An unclassified class is surfaced as UNCLASSIFIED. |
+| **FAILURE** | the engine computes, infers or defaults a consequence level · an unclassified class is silently ranked, or is treated as low · priority does not state its own basis · the register and the classes actually in use do not reconcile exactly · a register entry exists for a class not in use (stale) · the census polices an empty population. |
+| **EVIDENCE** | the register reconciled LINE BY LINE against the finding classes actually present in the store; the real report showing the basis on real recommendations; RED by hard-coding a level in code; RED by removing a register entry so a class becomes unclassified and is still ranked; RED by emptying the basis field; RED by leaving a stale register entry. Each limb alone. Restore and hash-check. |
+
+**Verdict —** 🔴 **NOT-STARTED — ADMITTED BY OWNER RULING** (Amendment 3: ruled 13 September 2026 under §12, re-issued 14 September 2026). **Nothing is built:** no consequence register, no priority basis on the report. The brief's *"enters as BUILT-NOT-PROVED"* assumed that work; the owner's answer of 14 September 2026 admitted the row alone, and a row nothing was built for is NOT-STARTED. 🔴 **UNCLASSIFIED IS A REAL STATE AND NEVER DEFAULTS TO LOW** (LAW-ABSENT-1): when the register is built, every class starts UNCLASSIFIED and no level is filled in by the engine or by CC — the harm judgement is the owner's
+
+### 61 · SAFE LOCAL PAGE CONSTRUCTION
+
+**BUILT-NOT-PROVED** · class `P` (frozen `null`, moved by Amendment 4) · ruled in `A5`
+
+| part | the owner's words |
+|---|---|
+| **INPUT** | any declared product with at least one evidence-backed page spec, and that product's fact registry |
+| **EXPECTED** | the runner builds **any** declared slug of **any** declared product; the spec holds claim ids and never a fact; **Gate A is invoked inside the construction path and fails closed**; a candidate that fails any part of the frozen floor is **not emitted as an accepted built page**, and its reason is recorded as DATA GAP / REJECT; where a frozen part cannot be exercised for want of sibling or existing-page evidence, it records **BLOCKED / NOT TESTED**, never PASS |
+| **FAILURE** | an accepted artefact bypasses Gate A · a threshold is weakened · facts are padded or invented · the generator writes to or publishes into a connected product · a generate-all or Cartesian path appears · first-product subject logic reaches the generic core · the runner can build only one product or only one slug |
+| **EVIDENCE** | a run on two different products, one of them the neutral test product; the refusal proved RED on a deliberately short / overlapping / fact-poor candidate and GREEN after restoration; `findCopiedFacts` clean on every spec of every declared product; the recorded DATA GAP / BLOCKED list |
+
+**Verdict —** 🔴 **BUILT / NOT-PROVED — CREATED 14 SEPTEMBER 2026** (reserved by Amendment 5 until rows 59 and 60 existed). **Work happened (PR #72):** the runner is generic — `--slug` / `--all-slugs`, no default, specs from the product's declaration; Gate A's four frozen parts are enforced inside the construction path and FAIL CLOSED; the refusal was seen RED with the acceptance rule bypassed and GREEN restored (runs/audit/row61-gate-a-*); 0 of 3 candidates accepted. **Not proved:** the EVIDENCE clause requires *"a run on two different products, one of them the neutral test product"*. The neutral product was REFUSED AT THE RUNNER ("it declares no page spec"), and the full path was proved only with a spec declared inside a test — **a test fixture is not a declared product**, so the portability leg has not been run through the runner
+
+**🔴 The missing leg —** a second DECLARED product with its own DECLARED page spec, reached end to end through bin/build-page.mjs
+
+**Blocked on —** an OWNER DECISION, not yet made: either a second neutral declared test product that declares a page spec, or a deliberate re-pin of row 53's coverage (the neutral product declares pageSpecs {} today, and row 53 — VERIFIED-PASS — pins exactly that)
+
+**What stops ANY real page being accepted —**
+- no page spec declares a WHY_THIS_URL_DESERVES_TO_EXIST — whoever owns the evidence writes them, none has been written, and CC must not invent one
+- a template family needs at least THREE rendered specs before unique words and sibling overlap can be measured at all (D-GATEA-1: a group of one or two learns its shell from itself); two specs exist, so those two Gate A parts stay BLOCKED / NOT TESTED until a third does
 

@@ -10,6 +10,7 @@ import { extractBody, shingles, jaccard } from "../audit/shell.mjs";
 import { row5 } from "./row5.mjs";
 import { splitPopulation } from "./query-population.mjs";
 import { discoverAxes, axisErrors } from "./axis-discovery.mjs";
+import { availableSubjects, importSubjectModule } from "../subject-roots.mjs";
 
 /** The Search Console country×query pull of 2026-09-12T23:25:04.608Z. */
 export const COUNTRY_QUERY_OBSERVATION = "9bf50cfb134a0d7d";
@@ -74,18 +75,14 @@ export function siblingPairs({ bodies, crawlRecords, families }) {
 }
 
 /**
- * Every declared product's axis, read from its own descriptor (`products/<id>/product.mjs`) — the axis a human
- * chose by hand before anything ran. The engine names no product: it lists the folder and reads what each declares.
+ * Every declared product's axis, read from its own descriptor (`<root>/<id>/product.mjs`, over every subject root) —
+ * the axis a human chose by hand before anything ran. The engine names no product: it lists the roots and reads what
+ * each declares.
  */
-export async function readDeclaredAxes(productsDir) {
-  const { readdirSync, existsSync } = await import("node:fs");
-  const { join } = await import("node:path");
-  const { pathToFileURL } = await import("node:url");
+export async function readDeclaredAxes() {
   const out = {};
-  for (const id of readdirSync(productsDir).sort()) {
-    const file = join(productsDir, id, "product.mjs");
-    if (!existsSync(file)) continue;
-    const mod = await import(pathToFileURL(file).href);
+  for (const id of availableSubjects()) {
+    const mod = await importSubjectModule(id, "product.mjs");
     const descriptor = Object.values(mod).find((v) => v && typeof v === "object" && v.axis?.key);
     if (descriptor) out[id] = descriptor.axis.key;
   }

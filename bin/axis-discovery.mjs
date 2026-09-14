@@ -29,7 +29,7 @@ const crawlRecords = createJsonlStore(join(REPO, "runs", "crawl", "first-real-cr
 const bodies = readBodyArchive(join(REPO, "runs", "crawl", "bodies-2026-09-12.jsonl.br"));
 
 // Each declared product's axis — the axis a human chose by hand, read from its own descriptor.
-const declaredAxes = await readDeclaredAxes(join(REPO, "products"));
+const declaredAxes = await readDeclaredAxes();
 
 const r = row6({ records, crawlRecords, bodies, lexicon: LEXICON, reference: INTENT_REFERENCE, ambiguous: AMBIGUOUS, specs: AXIS_SPECS, families: SIBLING_FAMILIES, patterns: HARD_CODED_PATTERNS, declaredAxes });
 

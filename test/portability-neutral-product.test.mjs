@@ -12,6 +12,7 @@ import { spawnSync, execFileSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
 import { productFromArgv, availableProducts } from "../src/product-cli.mjs";
+import { subjectModule, subjectDir } from "./support/subjects.mjs";
 import { registeredProducts, coverage } from "../src/product.mjs";
 import { loadRegistry, census } from "../src/facts/registry.mjs";
 import { licencesVisibleTo, engineLicences, quotabilityState, licenceClause } from "../src/facts/licences.mjs";
@@ -45,7 +46,7 @@ try {
 
 test("🔴 53 · THE DECLARATION — a neutral test product, declared as one, sharing no subject, axis, source or licence with the first", async () => {
   assert.ok(availableProducts().includes(NEUTRAL));
-  const { PRODUCT, DECLARATION } = await import(pathToFileURL(`${REPO}products/${NEUTRAL}/product.mjs`).href);
+  const { PRODUCT, DECLARATION } = await subjectModule(NEUTRAL, "product.mjs");
   assert.equal(PRODUCT.declaredTestProduct, true);
   assert.equal(DECLARATION.row, 53);
   assert.notEqual(PRODUCT.axis.key, first.axis.key);
@@ -117,13 +118,19 @@ test("🔴 53 · THE SAME RUN THROUGH THE REAL ENTRY POINT — bin/facts.mjs loa
   const modules = lines.filter((l) => l.startsWith("[probe:module] ")).map((l) => l.slice("[probe:module] ".length).replace(/\\/g, "/"));
   const touched = lines.filter((l) => l.startsWith("[probe:fs:")).map((l) => ({ call: l.slice(10, l.indexOf("]")), path: l.slice(l.indexOf("] ") + 2).replace(/\\/g, "/") }));
   // the probe must be SEEING — or its silence proves nothing
-  assert.ok(modules.some((u) => u.includes(`/products/${NEUTRAL}/facts/vegetable-ferments.mjs`)), "the probe did not see the neutral product's own facts load");
-  assert.ok(touched.some((t) => t.path.includes(`products/${NEUTRAL}`)), "the probe did not see the neutral product's own files touched");
-  assert.deepEqual(modules.filter((u) => u.includes(`/products/${FIRST}/`)), [], "the run LOADED a module of the first product");
-  // ⚠️ Discovering which products exist lists the products/ folder and checks each has a product.mjs —
+  // 🔴 Each product's folder is RESOLVED through the subject roots (owner ruling, 14 September 2026): the neutral
+  // product in this repository's fixtures root, the first product in its own repository outside — never a path baked in.
+  const slash = (p) => p.replace(/\\/g, "/");
+  const NEUTRAL_DIR = slash(subjectDir(NEUTRAL));
+  const FIRST_DIR = slash(subjectDir(FIRST));
+  assert.ok(!FIRST_DIR.startsWith(slash(REPO)), `the first product still resolves inside this repository: ${FIRST_DIR}`);
+  assert.ok(modules.some((u) => u.includes(`${NEUTRAL_DIR}/facts/vegetable-ferments.mjs`)), "the probe did not see the neutral product's own facts load");
+  assert.ok(touched.some((t) => t.path.includes(NEUTRAL_DIR)), "the probe did not see the neutral product's own files touched");
+  assert.deepEqual(modules.filter((u) => u.includes(`${FIRST_DIR}/`)), [], "the run LOADED a module of the first product");
+  // ⚠️ Discovering which products exist lists every subject root and checks each folder has a product.mjs —
   // names only. Anything that READS inside the first product's folder is a leak.
-  const namesOnly = (t) => ["existsSync", "statSync"].includes(t.call) && (t.path.endsWith(`products/${FIRST}`) || t.path.endsWith(`products/${FIRST}/product.mjs`));
-  assert.deepEqual(touched.filter((t) => t.path.includes(`products/${FIRST}`) && !namesOnly(t)), [], "the run READ a file of the first product");
+  const namesOnly = (t) => ["existsSync", "statSync"].includes(t.call) && (t.path.endsWith(FIRST_DIR) || t.path.endsWith(`${FIRST_DIR}/product.mjs`));
+  assert.deepEqual(touched.filter((t) => t.path.includes(FIRST_DIR) && !namesOnly(t)), [], "the run READ a file of the first product");
   for (const key of firstPrivateLicences) assert.ok(!r.stdout.includes(key), `the census printed first-product licence ${key}`);
   for (const id of firstIds) assert.ok(!r.stdout.includes(id), `the census printed first-product record ${id}`);
 });

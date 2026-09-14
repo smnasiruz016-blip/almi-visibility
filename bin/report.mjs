@@ -22,6 +22,7 @@ import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { renderPage, summarise, reconcile } from "../src/report/view.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
+import { productFromArgvOrExit } from "../src/product-cli.mjs";
 import { lifecycleOf, walkChain } from "../src/evidence/lifecycle.mjs";
 import { makeSource } from "../src/evidence/records.mjs";
 import { sourceRecordFromFact, rankSources, tierCensus } from "../src/evidence/source-tiers.mjs";
@@ -68,9 +69,11 @@ const crawlRecords = existsSync(crawlDir)
       .flatMap((f) => read(join(crawlDir, f)))
   : [];
 
+// 🔴 The product is an ARGUMENT, never a folder written here (owner ruling, 14 September 2026): no default.
+const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/report.mjs --product=<id> [--evidence=<path>] [--crawl=<path>] [--out=<file>] [--confirm]" });
 let facts = [];
 try {
-  ({ records: facts } = await loadRegistry(`${REPO}products/almi-oet/facts`, "almi-oet"));
+  ({ records: facts } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId));
 } catch (err) {
   console.error(`⚠️  fact registry could not be read: ${err.message}`);
   console.error("   The page will say so rather than showing an empty registry as if it were empty.");

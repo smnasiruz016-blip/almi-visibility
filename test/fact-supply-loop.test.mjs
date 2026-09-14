@@ -23,7 +23,7 @@ import { loadRegistry } from "../src/facts/registry.mjs";
 import { createFactCache, freshnessOf } from "../src/facts/lifecycle.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
-const { records } = await loadRegistry(`${REPO}products/almi-oet/facts`, "almi-oet");
+const { records } = await loadRegistry((await (await import("./support/subjects.mjs")).subject("almi-oet")).factsDir, "almi-oet");
 
 const VERIFIED = records.filter((f) => f.verificationState === "VERIFIED");
 const TODAY = new Date("2026-09-12");

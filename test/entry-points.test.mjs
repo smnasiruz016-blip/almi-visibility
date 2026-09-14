@@ -4,6 +4,8 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import { subjectRoots } from "../src/subject-roots.mjs";
+
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..");
 const BIN = join(REPO, "bin");
 
@@ -84,6 +86,14 @@ test("🔴 every runner that needs a product takes it as an ARGUMENT, never as a
     if (/from\s*["'][^"']*\/products\//.test(source)) {
       offenders.push(`${file} imports from products/ directly`);
     }
+    // 🔴 AND A STRING THAT NAMES A PRODUCT FOLDER IS THE SAME WELD (owner ruling, 14 September 2026). Four runners
+    // passed `${REPO}products/<the first product>/facts` straight to the registry loader for days: the import check
+    // above never saw them, because a path in a string is not an import. Comments are allowed — documentation is not
+    // a dependency — so the source is read with its comments removed.
+    const code = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
+    for (const m of code.matchAll(/(["'`])((?:(?!\1)[^\n])*?products\/(?:\$\{[^}]*\}|[a-z0-9][a-z0-9-]*))/g)) {
+      offenders.push(`${file} names a product folder in a string: ${m[0].slice(0, 90)}`);
+    }
   }
   assert.deepEqual(offenders, [], `\n  ${offenders.join("\n  ")}\n`);
 });
@@ -139,10 +149,13 @@ test("🔴 ORPHAN CENSUS: no module under src/ is imported ONLY by its own test"
     ...walkMjs(SRC, "src/"),
     ...readdirSync(BIN).filter((f) => f.endsWith(".mjs")).map((f) => `bin/${f}`),
     ...walkMjs(join(REPO, "tools"), "tools/"),
-    ...walkMjs(join(REPO, "products"), "products/"),
+    // every subject root — this engine's fixtures AND the external roots: a subject's descriptor is a real consumer of
+    // the engine even when it lives outside this repository (owner ruling, 14 September 2026)
+    ...subjectRoots().flatMap((r) => walkMjs(r.path, `${r.path.replace(/\\/g, "/")}/`)),
   ];
 
-  const sources = new Map(consumers.map((rel) => [rel, readFileSync(join(REPO, rel), "utf8")]));
+  // `resolve`, not `join`: a subject root outside this repository is walked by its absolute path
+  const sources = new Map(consumers.map((rel) => [rel, readFileSync(resolve(REPO, rel), "utf8")]));
 
   const orphans = [];
   for (const mod of modules) {

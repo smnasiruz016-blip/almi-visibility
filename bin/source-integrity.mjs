@@ -21,6 +21,7 @@ import { createJsonlStore } from "../src/evidence/store.mjs";
 import { makeObservation } from "../src/evidence/records.mjs";
 import { sha256Hex } from "../src/evidence/ids.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
+import { productFromArgvOrExit } from "../src/product-cli.mjs";
 import { checkSources, assertExternal, MAX_REQUESTS, INTERVAL_MS, HEAD_REFUSED, USER_AGENT } from "../src/audit/source-integrity.mjs";
 import { createCostLedger, entryFromLinkCheck, formatLedgerLine } from "../src/cost/ledger.mjs";
 import { ESTATE_HOSTNAME_LIST } from "../config/estate-hostnames.mjs";
@@ -36,7 +37,9 @@ const EVIDENCE = confineToRepo(`${REPO}runs/audit/source-integrity-2026-09-13.js
 const ESTATE = [...new Set([...ESTATE_HOSTNAME_LIST, "almiworld.com"])];
 
 /* ---- the plan: every distinct source URL cited by the fact registry ------ */
-const { records } = await loadRegistry(`${REPO}products/almi-oet/facts`, "almi-oet");
+// 🔴 The product is an ARGUMENT, never a folder written here (owner ruling, 14 September 2026): no default.
+const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/source-integrity.mjs --product=<id> [--live [--confirm]]" });
+const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
 const byUrl = new Map();
 for (const r of records) {
   const u = r.source?.url;

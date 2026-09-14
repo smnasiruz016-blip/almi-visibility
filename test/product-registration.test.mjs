@@ -8,9 +8,10 @@ import { claimIdsOf } from "../src/page/claim-ids.mjs";
 import { placeClaims, isPerVariant, isSharedAcrossVariants, buildPlacement } from "../src/page/claim-placement.mjs";
 import { registerProduct, registeredProducts, coverage } from "../src/product.mjs";
 
-import { ALMI_OET, PRODUCT_ID, FACTS_DIR, AXIS_KEY, PLACEMENT } from "../products/almi-oet/product.mjs";
-import { ALMI_OET_LICENCES } from "../products/almi-oet/licences.mjs";
-import { ALMI_OET_GAPS } from "../products/almi-oet/gaps.mjs";
+import { subjectModule } from "./support/subjects.mjs";
+const { ALMI_OET, PRODUCT_ID, FACTS_DIR, AXIS_KEY, PLACEMENT } = await subjectModule("almi-oet", "product.mjs");
+const { ALMI_OET_LICENCES } = await subjectModule("almi-oet", "licences.mjs");
+const { ALMI_OET_GAPS } = await subjectModule("almi-oet", "gaps.mjs");
 
 // The licence view THIS product may read: the engine’s instruments plus its own.
 // Another product’s entries are not in it, and that is the point.
@@ -235,5 +236,9 @@ test("the product's facts load from the product's own directory", async () => {
   const { files, records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
   assert.equal(records.length, 46);
   assert.ok(files.length > 0);
-  assert.match(FACTS_DIR.replace(/\\/g, "/"), /products\/almi-oet\/facts$/);
+  // 🔴 CHANGED 14 September 2026, with the owner's ruling (Option A): the product's own data left this repository.
+  // It pinned `products/almi-oet/facts`; it now pins that the facts load from the product's own folder OUTSIDE it.
+  assert.match(FACTS_DIR.replace(/\\/g, "/"), /\/almi-oet\/facts$/);
+  const repo = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1").replace(/\\/g, "/");
+  assert.ok(!FACTS_DIR.replace(/\\/g, "/").startsWith(repo), `the product's facts still load from inside this repository: ${FACTS_DIR}`);
 });

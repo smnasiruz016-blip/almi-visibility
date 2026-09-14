@@ -21,7 +21,8 @@ import { constructCandidates, selectCandidates, ACCEPTED, REFUSED, PASS, FAIL, N
 import { judgeWhy, WHY_NOT_ENFORCED } from "../src/gate-a/why-this-url.mjs";
 import { MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../src/gate-a/run.mjs";
 import { MIN_FACTS } from "../src/gate-a/facts.mjs";
-import { PRODUCT as NEUTRAL } from "../products/neutral-test-ferments/product.mjs";
+import { subject } from "./support/subjects.mjs";
+const NEUTRAL = await subject("neutral-test-ferments");
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const NOW = new Date("2026-09-14T00:00:00Z");

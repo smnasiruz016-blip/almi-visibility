@@ -113,7 +113,7 @@ test("🔴 ITEM 25: all four parts measured — and part 4 has no existing page 
 /* 13 Sep 2026: F23 still judges no real supersession — the guard that governs real records leaving UNKNOWN is F24
  * (test/item-50-real-transitions.test.mjs), and item 50 left FAILED on it. */
 test("🔴 ITEM 50: F23 still has 0 real supersessions to judge — the real population is F24's, and the row was REOPENED on it", async () => {
-  const { records } = await loadRegistry(`${REPO}products/almi-oet/facts`, "almi-oet");
+  const { records } = await loadRegistry((await (await import("./support/subjects.mjs")).subject("almi-oet")).factsDir, "almi-oet");
   assert.equal(records.length, 46);
   assert.equal(records.filter((r) => r.life?.supersedes).length, 0, "a real supersession now exists — re-sit item 50");
   assert.equal(classify()[50].state, "FAILED");

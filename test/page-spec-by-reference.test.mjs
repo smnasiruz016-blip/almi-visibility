@@ -13,7 +13,9 @@ import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 
 import { loadRegistry } from "../src/facts/registry.mjs";
-import { PRODUCT, FACTS_DIR, PLACEMENT, VARIANTS, PRODUCT_ID } from "../products/almi-oet/product.mjs";
+import { subject, subjectModule } from "./support/subjects.mjs";
+const PRODUCT = await subject("almi-oet");
+const { factsDir: FACTS_DIR, placement: PLACEMENT, variants: VARIANTS, productId: PRODUCT_ID } = PRODUCT;
 
 /* 🔴 RENAMED FROM nursing-page.test.mjs (row 61, Amendment 5). It was written around one subject, the same
  * way the runner was. The by-reference law now runs for EVERY page spec the product declares, read from the
@@ -26,7 +28,7 @@ const MEASURED = PRODUCT.pageSpecs[MEASURED_SLUG];
 import { claimIdsOf } from "../src/page/claim-ids.mjs";
 import { renderPage, renderFact, findCopiedFacts } from "../src/page/render.mjs";
 import { placeClaims } from "../src/page/claim-placement.mjs";
-import { PENDING_LAYERS } from "../products/almi-oet/claim-placement.mjs";
+const { PENDING_LAYERS } = await subjectModule("almi-oet", "claim-placement.mjs");
 import { fact } from "../src/facts/record.mjs";
 
 const NOW = new Date("2026-09-10T00:00:00Z");

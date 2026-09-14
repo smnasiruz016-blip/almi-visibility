@@ -15,7 +15,8 @@ import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 
 import { factId, TIER_LEAD_ONLY, INCONCLUSIVE_OUTCOMES } from "../src/facts/schema.mjs";
-import { FACTS_DIR, PRODUCT_ID } from "../products/almi-oet/product.mjs";
+import { subject } from "./support/subjects.mjs";
+const { factsDir: FACTS_DIR, productId: PRODUCT_ID } = await subject("almi-oet");
 import { quotableUnder, requiredAttribution, licencesVisibleTo, quotabilityState, licenceClause } from "../src/facts/licences.mjs";
 import { quoteUsableNow, renderableQuote } from "../src/facts/freshness.mjs";
 import { pageFingerprint, matchFingerprint, MIN_SUBSTANTIVE_LENGTH } from "../src/facts/fingerprint.mjs";

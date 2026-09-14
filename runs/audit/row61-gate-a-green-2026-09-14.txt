@@ -1,0 +1,27 @@
+GREEN PROOF — the same test with the acceptance rule RESTORED
+date: 2026-09-14T00:30:25.496Z · construct.mjs restored, sha256 9cf4bbec142e23da68ae4ea82975d125d7d3251a989aba1421ae055ba4d48e08 (identical to before)
+exit status: 0
+
+✔ 🟢 GREEN: a family built to clear all four parts is ACCEPTED — and only an accepted candidate carries HTML (12.3968ms)
+✔ 🔴 RED: SHORT — below 350 unique words after the shell is REFUSED (1.845ms)
+✔ 🔴 RED: FACT-POOR — four VERIFIED facts is a DATA GAP, never padded (2.6549ms)
+✔ 🔴 RED: FACT-POOR by STATE — five records cited but one is not VERIFIED; the record count does not count (2.9331ms)
+✔ 🔴 RED: OVERLAPPING — a sibling carrying the same body is REFUSED on overlap, named (2.3416ms)
+✔ 🔴 RED: WHY — a sibling's rationale with the variant swapped is a template, not a reason (2.2538ms)
+✔ 🔴 RED: WHY — no rationale is a DATA GAP; a need that names only the variant is REJECTED (5.3937ms)
+✔ 🔴 WHY — near-identical is measured, and what is NOT enforced is said (0.3043ms)
+✔ 🔴 BLOCKED / NOT TESTED — a two-spec family cannot learn a shell; both parts say so, and the candidate is REFUSED (0.9277ms)
+✔ 🔴 BLOCKED / NOT TESTED — a family of one has no sibling: overlap and distinctness are never a pass (0.4883ms)
+✔ 🔴 NO DEFAULT: neither --slug nor --all-slugs is refused; both together is refused; an undeclared slug is refused (0.6346ms)
+✔ 🔴 PORTABILITY: the neutral declared test product walks the same path and is REFUSED — no fact invented (1.9895ms)
+✔ 🔴 RUNNER: no slug stops with exit 1 and names the declared specs (189.8596ms)
+✔ 🔴 RUNNER FAILS CLOSED: the real product, every declared spec, --confirm given — REFUSED, exit 2, and NOTHING written (77.6498ms)
+✔ 🔴 RUNNER: the neutral product declares no page spec — DATA GAP, exit 2, nothing constructed (66.0995ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 450.6757

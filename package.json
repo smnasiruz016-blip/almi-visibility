@@ -9,7 +9,7 @@
     "facts": "node bin/facts.mjs census --product=almi-oet",
     "facts:validate": "node bin/facts.mjs validate --product=almi-oet",
     "quote-match": "node bin/quote-match.mjs --product=almi-oet",
-    "page": "node bin/build-page.mjs --product=almi-oet",
+    "page": "node bin/build-page.mjs --product=almi-oet --all-slugs",
     "chain": "node bin/nursing-chain.mjs --product=almi-oet",
     "placement": "node bin/placement-measure.mjs --product=almi-oet",
     "census": "node bin/profession-census.mjs",

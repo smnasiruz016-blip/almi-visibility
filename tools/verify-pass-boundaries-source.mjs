@@ -174,6 +174,36 @@ export function effectiveClasses(frozen, a4) {
 export const EXPECTED_EFFECTIVE_CLASS_COUNTS = Object.freeze({ P: 27, S: 8, D: 23 });
 
 /**
+ * 🔴 AMENDMENT 5 — the owner's ruling on safe local page construction. It ADDS row 61 and moves no text.
+ *
+ * Rows 59 and 60 exist nowhere, so row 61 is RESERVED rather than created (the brief's own instruction:
+ * "reserve 61 and report it. Never renumber"). The 58-row frozen ledger is untouched; row 61 is read out
+ * of §4 of the amendment — its class and its four parts — and counted toward scope beside it.
+ */
+export const AMENDMENT_5_BODY_SHA256 = "cab59fe7b78f37931ed4461d97f4646d2c23b880b3352c7eca56bfa12938cb11";
+export const AMENDMENT_5_ROW = 61;
+
+export function amendment5(path) {
+  const text = readFileSync(path, "utf8").replace(/\r\n/g, "\n");
+  const idx = text.indexOf(BODY_MARKER);
+  const body = idx === -1 ? text : text.slice(idx + BODY_MARKER.length);
+  const sha = createHash("sha256").update(body, "utf8").digest("hex");
+  const head = /^## 4 · ROW (\d+) · (.+)$/m.exec(body);
+  const section = head ? body.slice(head.index, body.indexOf("\n## ", head.index + 1) === -1 ? undefined : body.indexOf("\n## ", head.index + 1)) : "";
+  const contract = {};
+  for (const m of section.matchAll(/^\| \*\*(INPUT|EXPECTED|FAILURE|EVIDENCE)\*\* \| (.+?) \|$/gm)) contract[m[1].toLowerCase()] = m[2].trim().replace(/\s+/g, " ");
+  const klass = /^Class `([PSD])`\. (NOT-STARTED)\./m.exec(section);
+  const scope = /\*\*In scope: (\d+) → (\d+)\.\*\*/.exec(section);
+  return {
+    sha,
+    matches: sha === AMENDMENT_5_BODY_SHA256,
+    row: head ? { id: Number(head[1]), name: head[2].trim(), class: klass?.[1] ?? null, state: klass?.[2] ?? null, contract } : null,
+    reserveIfAbsent: /reserve 61/.test(section),
+    inScope: scope ? { before: Number(scope[1]), after: Number(scope[2]) } : null,
+  };
+}
+
+/**
  * 🔴 THE CLASS CENSUS IS PART OF THE FROZEN TEXT, NOT A DERIVED CONVENIENCE.
  *
  * `D` decides which rows may be DEFERRED, and the deferral law says a row is
@@ -300,6 +330,15 @@ if (invokedDirectly) {
   const a4HalfComplete = a4HalfIds.filter((id) => ["input", "expected", "failure", "evidence"].every((p) => a4.contracts[id][p]));
   console.log(`  addendum    : v0.1-half contracts for item ${a4HalfIds.join(", ")} — ${a4HalfComplete.length}/${a4HalfIds.length} carry all four parts`);
 
+  const a5 = amendment5(at("PASS_BOUNDARIES_AMENDMENT_5.md"));
+  const a5Parts = a5.row ? ["input", "expected", "failure", "evidence"].filter((p) => a5.row.contract[p]).length : 0;
+  const a5Scope = a5.inScope?.before === eff.P + eff.S && a5.inScope?.after === eff.P + eff.S + 1;
+  console.log("PASS_BOUNDARIES_AMENDMENT_5.md");
+  console.log(`  body sha256 : ${a5.sha}`);
+  console.log(`  matches     : ${a5.matches ? "YES" : "🔴 NO — the amendment has changed"}`);
+  console.log(`  row         : ${a5.row?.id} · ${a5.row?.name} · class ${a5.row?.class} · ${a5.row?.state} · ${a5Parts}/4 parts · RESERVED (rows 59, 60 do not exist)`);
+  console.log(`  in scope    : ${a5.inScope?.before} → ${a5.inScope?.after} · the census in force P+S=${eff.P + eff.S}, plus reserved row ${a5.row?.id}  ${a5Scope ? "agree" : "🔴 DISAGREE"}`);
+
   const bad =
     !r.matches || !r.classesMatch || r.features.count !== EXPECTED_FEATURE_COUNT || !r.features.ok ||
     !a.matches || ids.length !== 6 || complete.length !== 6 ||
@@ -309,8 +348,10 @@ if (invokedDirectly) {
     !a4.matches || !a4Census ||
     JSON.stringify(a4Moves) !== JSON.stringify(AMENDMENT_4_MOVES) ||
     Object.keys(a4.kept).map(Number).join(",") !== AMENDMENT_4_KEPT_DEFERRED.join(",") ||
-    a4HalfIds.join(",") !== AMENDMENT_4_HALF_CONTRACT_IDS.join(",") || a4HalfComplete.length !== a4HalfIds.length;
+    a4HalfIds.join(",") !== AMENDMENT_4_HALF_CONTRACT_IDS.join(",") || a4HalfComplete.length !== a4HalfIds.length ||
+    !a5.matches || a5.row?.id !== AMENDMENT_5_ROW || a5.row?.class !== "P" || a5.row?.state !== "NOT-STARTED" || a5Parts !== 4 ||
+    !a5.reserveIfAbsent || !a5Scope;
 
-  console.log(bad ? "\n🔴 VERIFICATION FAILED" : "\nall four frozen texts verified");
+  console.log(bad ? "\n🔴 VERIFICATION FAILED" : "\nall five frozen texts verified");
   process.exit(bad ? 1 : 0);
 }

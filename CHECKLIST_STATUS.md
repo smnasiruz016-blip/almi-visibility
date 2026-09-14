@@ -29,6 +29,23 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 | **DEFERRED** | — | **23** |
 | **total** | 58 | **58** |
 
+> ### 🔴 AMENDMENT 5 — ROW 61 RESERVED: SAFE LOCAL PAGE CONSTRUCTION — OWNER RULING, 14 SEPTEMBER 2026
+>
+> | | before this change | after |
+> |---|---|---|
+> | the 58-row ledger | 7 / 5 / 1 / 17 / 1 / 4 / 23 | **unchanged** |
+> | reserved rows | 0 | **1 — row 61, class P, NOT-STARTED** |
+> | in scope (P + S, plus reserved rows) | 35 | **36** |
+>
+> - **moved because WORK HAPPENED:** none. **moved ONLY because a RULING changed:** none — row 61 was ADDED by ruling and arrives NOT-STARTED.
+> - 🔴 **Row 61 is RESERVED, not created.** Rows 59 and 60 exist nowhere in this repository (Amendment 3 has not been given), and the
+>   ruling says to reserve 61 and never renumber. Its four-part contract is read out of §4 of `PASS_BOUNDARIES_AMENDMENT_5.md`
+>   (`cab59fe7…`), verbatim. Q7 was tested against the record: no dependency of 59 or 60 points into 61, so 61 does not wait.
+> - **Built in the same change, and still NOT-STARTED:** the runner takes `--slug` / `--all-slugs` with no default, and Gate A's four
+>   frozen parts are enforced inside the construction path, failing closed. **Accepted pages: 0 of 3 candidates across two products.**
+>   A refusal is the deliverable; the row is not ticked here, and generator output is **not** item 25's evidence.
+> - 🔴 **PAGE-1 stays UNSATISFIED:** four gate families (semantic, cannibalization, technical, cost) do not exist, and none was built.
+
 > ### 🔴 AMENDMENT 4 — THE DISCOVERY ROWS ENTER SCOPE — OWNER RULING, 13 SEPTEMBER 2026
 >
 > | state | before this change | after |

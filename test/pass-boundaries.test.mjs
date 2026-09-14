@@ -17,6 +17,7 @@ import { join } from "node:path";
 import {
   verify, EXPECTED_BODY_SHA256, EXPECTED_FEATURE_COUNT, EXPECTED_CLASS_COUNTS, splitSource, sectionSix,
   amendment4, effectiveClasses, AMENDMENT_4_BODY_SHA256, AMENDMENT_4_MOVES, AMENDMENT_4_KEPT_DEFERRED, AMENDMENT_4_HALF_CONTRACT_IDS, EXPECTED_EFFECTIVE_CLASS_COUNTS,
+  amendment5, AMENDMENT_5_BODY_SHA256, AMENDMENT_5_ROW,
 } from "../tools/verify-pass-boundaries-source.mjs";
 import { loadBoundaries, CONTRACT_PARTS, HALF_CONTRACT_PARTS } from "../src/checklist/boundaries.mjs";
 import { classify, assertLawful, assertTransitions, tally, STATES, LOOKED, MOVES_AMENDMENT_2 } from "../src/checklist/classification.mjs";
@@ -465,6 +466,57 @@ test("🔴 RED: remove one part of row 3's contract and the parser loses it AND 
   boundaries[3] = { ...boundaries[3], missingParts: [HALF_CONTRACT_PARTS[3]] };
   rows[3] = { ...rows[3], state: "VERIFIED-PASS" };
   assert.match(assertLawful(rows, boundaries).join("\n"), /item 3 .* is VERIFIED-PASS but its boundary has no v0\.1-half evidence/);
+});
+
+/* ================================================================== *
+ * 🔴 AMENDMENT 5 — ROW 61, RESERVED. ONE ROW ADDED, NO TEXT MOVED.
+ * ================================================================== */
+
+const AMENDMENT_5 = `${REPO}PASS_BOUNDARIES_AMENDMENT_5.md`;
+
+test("🔴 Amendment 5 verifies; row 61 is READ from §4 — class P, NOT-STARTED, all four parts, verbatim; in scope 35 → 36", () => {
+  const a5 = amendment5(AMENDMENT_5);
+  assert.equal(a5.sha, AMENDMENT_5_BODY_SHA256);
+  assert.equal(a5.matches, true);
+  assert.equal(a5.row.id, AMENDMENT_5_ROW);
+  assert.deepEqual([a5.row.class, a5.row.state], ["P", "NOT-STARTED"]);
+  const body = splitSource(readFileSync(AMENDMENT_5, "utf8").replace(/\r\n/g, "\n")).body.replace(/\s+/g, " ");
+  for (const p of CONTRACT_PARTS) {
+    assert.ok(a5.row.contract[p], `row 61 has no ${p}`);
+    assert.ok(body.includes(a5.row.contract[p]), `row 61's ${p} is not the owner's text`);
+  }
+  const frozen = verify(SOURCE);
+  const inForce = { P: 0, S: 0, D: 0 };
+  for (const c of Object.values(effectiveClasses(frozen.classes, amendment4(AMENDMENT_4)))) inForce[c] += 1;
+  assert.deepEqual(a5.inScope, { before: inForce.P + inForce.S, after: inForce.P + inForce.S + 1 });
+  // the frozen source is untouched
+  assert.equal(frozen.sha, EXPECTED_BODY_SHA256);
+});
+
+test("🔴 row 61 is RESERVED beside the ledger, not inside it — the 58 stay 58, and rows 59 and 60 exist nowhere", () => {
+  assert.equal(amendment5(AMENDMENT_5).reserveIfAbsent, true);
+  assert.equal(Object.keys(classify()).length, 58);
+  const b = loadBoundaries();
+  for (const id of [59, 60, 61]) assert.equal(b[id], undefined, `row ${id} appeared in the frozen ledger`);
+  const status = readFileSync(`${REPO}CHECKLIST_STATUS.md`, "utf8");
+  for (const id of [59, 60, 61]) assert.doesNotMatch(status, new RegExp(`^\\| ${id} \\| `, "m"), `a tracker row ${id} exists`);
+  assert.match(status, /Row 61 is RESERVED, not created/);
+});
+
+test("🔴 RED: one changed byte in Amendment 5 fails its hash; dropping a part leaves row 61 incomplete", () => {
+  const dir = mkdtempSync(join(tmpdir(), "a5-"));
+  try {
+    const original = readFileSync(AMENDMENT_5, "utf8");
+    const line = original.split("\n").find((l) => l.startsWith("| **FAILURE** | an accepted artefact bypasses Gate A"));
+    assert.ok(line, "row 61's FAILURE line was not found — the RED would not land");
+    writeFileSync(join(dir, "a5.md"), original.replace(`${line}\n`, ""));
+    const parsed = amendment5(join(dir, "a5.md"));
+    assert.equal(parsed.matches, false);
+    assert.equal(parsed.row.contract.failure, undefined);
+    assert.ok(parsed.row.contract.input && parsed.row.contract.evidence, "the removal took more than one part");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test("🔴 the five arrive NOT-STARTED by a RULING move and nothing else; row 2 says WHY it stayed; row 7 puts WORTHINESS in the deferred half", () => {

@@ -46,6 +46,27 @@ as the final boundary for when the deferred half opens.
 
 ---
 
+## 🔴 AMENDMENT 5 — ROW 61 RESERVED: SAFE LOCAL PAGE CONSTRUCTION
+
+Amendment 5 verified against sha256 `cab59fe7b78f37931ed4461d97f4646d2c23b880b3352c7eca56bfa12938cb11`. **It adds one row and moves no text.**
+
+🔴 **Row 61 is RESERVED, not created:** rows 59 and 60 exist nowhere in this repository, and the ruling
+says to reserve the number and never renumber. The 58-row ledger below is untouched; the reserved row is carried
+beside it and counts toward scope: **in scope 35 → 36**.
+
+**NOT-STARTED** · class `P` · ruled in `PASS_BOUNDARIES_AMENDMENT_5.md §4` · RESERVED
+
+| part | the owner's words |
+|---|---|
+| **INPUT** | any declared product with at least one evidence-backed page spec, and that product's fact registry |
+| **EXPECTED** | the runner builds **any** declared slug of **any** declared product; the spec holds claim ids and never a fact; **Gate A is invoked inside the construction path and fails closed**; a candidate that fails any part of the frozen floor is **not emitted as an accepted built page**, and its reason is recorded as DATA GAP / REJECT; where a frozen part cannot be exercised for want of sibling or existing-page evidence, it records **BLOCKED / NOT TESTED**, never PASS |
+| **FAILURE** | an accepted artefact bypasses Gate A · a threshold is weakened · facts are padded or invented · the generator writes to or publishes into a connected product · a generate-all or Cartesian path appears · first-product subject logic reaches the generic core · the runner can build only one product or only one slug |
+| **EVIDENCE** | a run on two different products, one of them the neutral test product; the refusal proved RED on a deliberately short / overlapping / fact-poor candidate and GREEN after restoration; `findCopiedFacts` clean on every spec of every declared product; the recorded DATA GAP / BLOCKED list |
+
+- **moved because WORK HAPPENED:** none. The row arrives NOT-STARTED, and it is not ticked by the PR that built its runner.
+
+---
+
 ## 🔴 AMENDMENT 2 — THE SEVENTH STATE, AND ITEM 14 SAT AGAIN
 
 Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1b03824c2ee029a9efa25e`.

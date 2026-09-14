@@ -20,14 +20,60 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 
 | state | before (4-state) | after (7-state) |
 |---|---|---|
-| **NOT-STARTED** | 33 | **7** |
-| **BUILT-NOT-PROVED** | 24 | **6** |
+| **NOT-STARTED** | 33 | **5** |
+| **BUILT-NOT-PROVED** | 24 | **7** |
 | **TESTABLE-NOW** | — | **1** |
 | **VERIFIED-PASS** | 0 | **19** |
-| **FAILED** | — | **1** |
+| **FAILED** | — | **2** |
 | **BLOCKED-UNKNOWN** | 1 | **4** |
 | **DEFERRED** | — | **23** |
 | **total** | 58 | **61** |
+
+> ### 🔴 ROW 6 BUILT AND RUN — AXIS DISCOVERY — NO AXIS ACCEPTED, NONE REJECTED — 14 SEPTEMBER 2026
+>
+> | state | before this change | after |
+> |---|---|---|
+> | NOT-STARTED | 6 | **5** (− 6) |
+> | BUILT-NOT-PROVED | 6 | **7** (+ 6) |
+>
+> - **moved because WORK HAPPENED:** 6 NOT-STARTED → BUILT-NOT-PROVED — built and run on the subject's real evidence, and
+>   stopped there on the owner's answer. **moved ONLY because a RULING changed:** none.
+> - **Tested, not assumed:** the six axes the contract names, read from its own EXPECTED clause (origin/destination as its two
+>   directions), and 7 slot types the evidence carried that none of them claims — each with seven legs, every leg with a basis.
+>   **7 MONITOR · 7 UNKNOWN · 0 BUILD · 0 REJECT.**
+> - 🔴 **The two axes this project built around, on their own evidence:** **profession UNKNOWN** — 3 human queries, yet the
+>   connected product declares it by hand and 89 pages carry it. **origin UNKNOWN** — 2 human queries naming one nationality,
+>   yet it is hard-coded into **775 of the 1,525 pages** (1,179 impressions), and our pages differing only by origin share a
+>   median 0.806 of their body. Neither is rejected: thin evidence is a fact about our data (LAW-ABSENT-1).
+> - **Locality:** the question mix differs from the rest in all **10** countries with five or more rows (aus, usa, gbr, ind at
+>   p ≈ 0.001); the other **38** are UNKNOWN, never "no power". Measured once operator rows are out: **48** searcher countries.
+> - **Why nothing is BUILD or REJECT:** whether the useful ANSWER changes along an axis is UNKNOWN everywhere — the answer at
+>   each value is not in the store (row 7's SUPPLY and row 2 are deferred), and all 337 query rows carry 0 clicks.
+> - 🔴 **Why not VERIFIED-PASS:** its EVIDENCE clause asks for the evidence behind each accepted axis and each rejected one, and
+>   both populations are empty. **Evidence:** runs/audit/row6-census-2026-09-14.txt · runs/audit/row6-red-limbs-2026-09-14.txt.
+
+> ### 🔴 ROW 5 RUN — INTENT & QUESTION CLUSTERING — AND FAILED ON ITS HELD-OUT CHECK — 14 SEPTEMBER 2026
+>
+> | state | before this change | after |
+> |---|---|---|
+> | NOT-STARTED | 7 | **6** (− 5) |
+> | FAILED | 1 | **2** (+ 5) |
+>
+> - **moved because WORK HAPPENED:** 5 NOT-STARTED → FAILED — its test run against its frozen boundary on the real query
+>   pull (`45ce21253a3fc58c`, 337 rows). **moved ONLY because a RULING changed:** none. FAILED is counted and named
+>   separately, is **not progress**, and is worth more than a row nobody ran.
+> - **The input, measured:** 337 query rows = **329 human** + **8 operator strings, classified and kept, not dropped** —
+>   4 `site:` inspections of the estate's own hosts, 3 carrying one fixed exclusion list of 11 social and review platforms
+>   on three unrelated terms (an automated monitoring or scraping tool, inferred from form), 1 exact-phrase fact lookup.
+> - **In-sample — met:** 268 queries → 73 clusters, **0 merged · 0 split** against a reference written before the clusterer
+>   ran (75 intents, 6 ambiguous; 2 amendments, each citing the rule the original broke). Every member keeps its wording
+>   byte for byte; "47" and "65" inside a question are one intent with two slot values, by an explicit ruling.
+> - 🔴 **Held-out — the FAILURE clause, met:** 61 held out → **49 HIT · 12 MISS**. All 12 are *identical intents left split*,
+>   each on a word the frozen lexicon never saw; 0 joined a wrong intent. The owner's answer: FAILED.
+> - **Evidence:** runs/audit/row5-census-2026-09-14.txt · runs/audit/row5-red-limbs-2026-09-14.txt (six limbs, each RED
+>   alone in the real files, restored by sha256).
+> - 🔴 **The limit, on the row:** the reference is a model's judgement standing in for a human's; clustering never proves a
+>   group is the intent a real person had (row 2, DEFERRED).
 
 > ### 🔴 ROW 60 TICKED — OPTION A: A DECISION ON RECORD IS NOT A FINDING EITHER — 14 SEPTEMBER 2026
 >
@@ -744,8 +790,8 @@ actually came from.
 | 2 | Human Question Discovery | DEFERRED | OUT — §62 l.553; phase table "Search Intelligence". **Kept class D by `PASS_BOUNDARIES_AMENDMENT_4.md` (13 Sep 2026): its input is legitimate public question evidence and no fetch is authorised** | none | 2026-09-13 | CC (Amendment 4 class change) | its input — public question evidence — needs an external fetch the owner has not authorised; it enters scope on a bounded external-evidence GREEN, and not before | — |
 | 3 | Keyword & Search-Language Discovery | NOT-STARTED | PARTIAL — `PASS_BOUNDARIES_AMENDMENT_4.md` (owner ruling 13 Sep 2026), class D → S: the **owned** half (owned search data) IN; the **public** half (public search evidence) OUT, deferred and named. Was OUT — §62 l.553 | none — nothing built or run; its owned input is in `runs/evidence/evidence.jsonl` | 2026-09-13 | CC (Amendment 4 class change) | not started: no search-language record exists. The owned half's four-part contract was stated by the owner's addendum to Amendment 4 (13 Sep 2026) — a contract, not progress | — |
 | 4 | Localized Human Thinking | NOT-STARTED | IN — `PASS_BOUNDARIES_AMENDMENT_4.md` (owner ruling 13 Sep 2026), class D → P: its input, the same goal from two or more countries, is present (388 country×query rows across 126 countries). Was OUT — v0.1 EXCLUDES l.974 "corridor engine (§6, §15)" | none — nothing built or run | 2026-09-13 | CC (Amendment 4 class change) | not started: no local-wording records exist | — |
-| 5 | Intent & Question Clustering | NOT-STARTED | IN — `PASS_BOUNDARIES_AMENDMENT_4.md` (owner ruling 13 Sep 2026), class D → P: its input, differently worded questions, is present (337 owned queries). Was OUT — §62 l.553 | none — nothing built or run | 2026-09-13 | CC (Amendment 4 class change) | not started: no cluster record and no held-out check exist | — |
-| 6 | Axis Discovery | NOT-STARTED | IN — `PASS_BOUNDARIES_AMENDMENT_4.md` (owner ruling 13 Sep 2026), class D → P: its input, the subject's real evidence, is present (queries, countries, pages in the evidence store). Was OUT — discovery is "Search Intelligence"; §62 l.553 | Axis **declaration** exists and is tested (`test/product-registration.test.mjs`: "a product must say what its pages vary BY"). **Declaration is not discovery** — nothing built or run for discovery | 2026-09-13 | CC (Amendment 4 class change) | not started: no axis has been discovered or tested from evidence | — |
+| 5 | Intent & Question Clustering | FAILED | IN — `PASS_BOUNDARIES_AMENDMENT_4.md` (owner ruling 13 Sep 2026), class D → P: its input, differently worded questions, is present (337 owned queries). Was OUT — §62 l.553 | `bin/intent-clusters.mjs` over the real query pull `45ce21253a3fc58c`: 337 rows = 329 human + 8 operator strings classified and kept (4 site-inspection · 3 exclusion-list monitor · 1 exact-phrase lookup); in-sample 268 → 73 clusters, 0 merged · 0 split against a reference written first (`config/discovery/intent-reference.mjs`, first-written copy in runs/audit); wording kept byte for byte; `test/intent-clustering.test.mjs`; six limbs RED alone in the real files (runs/audit/row5-red-limbs-2026-09-14.txt) | 2026-09-14 | CC (row 5 — test run; FAILED on the owner's answer) | 🔴 FAILURE MET on the held-out check: 61 held out → 49 HIT · 12 MISS, all 12 identical intents left split on words the frozen lexicon never saw. Limits: the reference is a model's judgement, not owner-verified; a cluster is not proved to be a real person's intent (row 2, DEFERRED). Leaves FAILED by the held-out check re-run and passing, or an owner ruling | — |
+| 6 | Axis Discovery | BUILT-NOT-PROVED | IN — `PASS_BOUNDARIES_AMENDMENT_4.md` (owner ruling 13 Sep 2026), class D → P: its input, the subject's real evidence, is present (queries, countries, pages in the evidence store). Was OUT — discovery is "Search Intelligence"; §62 l.553 | `bin/axis-discovery.mjs` over row 5's intent record, the country×query pull `9bf50cfb134a0d7d` (379 human rows, 48 countries), the page rows (1,525) and 394 archived bodies: the six named axes (read from the contract) and 7 discovered slot types, each with seven legs and a basis — 7 MONITOR · 7 UNKNOWN · 0 BUILD · 0 REJECT; `test/axis-discovery.test.mjs` with BUILD/REJECT controls; six sabotages over five limbs RED alone in the real files (runs/audit/row6-red-limbs-2026-09-14.txt). Axis **declaration** (`test/product-registration.test.mjs`) is still not discovery | 2026-09-14 | CC (row 6 — built and run; BUILT-NOT-PROVED on the owner's answer) | 🔴 answer-level distinguishing power, evidence availability and human-value delta are UNKNOWN on every axis — the answer at each value is not owned (row 7 SUPPLY and row 2 deferred), so the accepted and rejected populations the EVIDENCE clause names are EMPTY. Moves on per-value answer evidence the owner authorises, and the row re-run | — |
 | 7 | Market Measurement | NOT-STARTED | PARTIAL — `PASS_BOUNDARIES_AMENDMENT_4.md` (owner ruling 13 Sep 2026), class D → S: **DEMAND** and **VISIBILITY/REACH** (owned) IN; **SUPPLY**, **AUDIENCE/NEED** and **WORTHINESS** OUT, deferred and named (WORTHINESS by the owner's addendum, 13 Sep 2026). Was OUT — §62 l.553 | `DISTINGUISHING_SUPPLY.md` is a one-off measurement, not an engine — nothing built or run | 2026-09-13 | CC (Amendment 4 class change) | not started: no DEMAND or VISIBILITY measurement exists. The owned half's four-part contract was stated by the owner's addendum — a contract, not progress | — |
 | 8 | HEAVY / THIN / EMPTY Discipline | VERIFIED-PASS | OUT — component of item 7 | none | 2026-09-11 | Claude (repo audit) | — | — |
 | 9 | Search Console / Analytics Intelligence | BLOCKED-UNKNOWN | IN — §62 l.553 "Search Console ingestion when authorized"; v0.1 CONTAINS l.974 (§9) | **BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE** (owner ruling, 13 Sep 2026, §3) — its missing evidence, blocker and future unlock condition are on the row; this is not the machinery declaring failure. **6 of 7 dimensions INGESTED from the real property**, window 2026-08-15..2026-09-12, every pull exhausted, `dataState=COMPLETE` [bound: rowLimitPerRequest=25000, maxRequests=20]: **country 126 rows, country×query 388 rows** (1 request each), queries 337, query×page 574, pages 1,525, plus impressions, clicks and CTR. Cost ZERO_BY_TARIFF. Country rows stored as measurement only and pass item 8's guard. `node bin/gsc-dimensions.mjs --countries` | 2026-09-12 | Claude (repo audit) | 🔴 **Downstream outcomes is supplied by no tool we hold** — Search Console has no outcome dimension; the credential is webmasters.readonly; 0 of 36 product repositories use an analytics package; the one first-party funnel-event table stores a path and a user id and no search source; the engine may read no product database. The NOTE makes that ⚠, so **BLOCKED-UNKNOWN, not FAILED** — and **six of seven does not tick** | real country run, 12 Sep 2026 night |

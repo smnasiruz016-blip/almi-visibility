@@ -1,0 +1,208 @@
+ROW 6 — AXIS DISCOVERY
+
+[input: queries 45ce21253a3fc58c · 337 rows = 329 human + 8 operator]
+[input: country×query 9bf50cfb134a0d7d · observed 2026-09-12T23:25:04.608Z · 388 rows = 379 human + 9 operator · 48 searcher countries]
+[input: page rows 9f8cbf772d1cd434 · observed 2026-09-12T22:06:43.410Z · 1525 pages]
+[input: 394 archived page bodies, crawl of 12 September 2026]
+[declared product axes: almi-oet → profession · neutral-test-ferments → ferment]
+
+THE CONTRACT NAMES: profession · role · stage · origin/destination · language · locality
+
+VERDICTS: UNKNOWN 7 · MONITOR 7 over 14 candidates (7 named, 7 discovered)
+
+══ profession (named by the contract as 'profession') — VERDICT UNKNOWN
+   reads: an occupation slot value read as a licensed profession (LICENSED_HEADS)
+   discovery [PRESENT]: 3 human queries carry it
+     values (3): doctor 1q/2i · midwife 1q/1i · social worker 1q/1i
+   distinguishing — ANSWER [UNKNOWN]: no per-value ANSWER evidence is owned. Measuring whether the useful answer changes needs the answer at each value from a source that is not our own page — per-value verified claims (row 7 SUPPLY, deferred) or real people's questions and outcomes (row 2, deferred). Our pages differing, or a question changing, is not the answer changing
+   distinguishing — QUESTION [FROM_ROW5]: 1 row-5 intent(s) hold two or more of its values: there the question stays the same as the value changes. A consequence of row 5's slot ruling, not independent evidence (1 intent(s), 2 value(s))
+   demand [UNKNOWN · UNKNOWN · THIN]: 3 human queries across 3 value(s) — below the 5 queries across 2 values an axis needs to be present. LAW-ABSENT-1: that is thin evidence, not an absent axis
+   evidence availability [UNKNOWN]: whether enough verifiable per-value evidence can be acquired is itself a supply measurement, which needs external sources this row may not fetch (row 7 SUPPLY is deferred)
+   sibling collapse [UNKNOWN]: 0 measured archived pair(s) (almicv.almiworld.com/cv-guide varying occupation, same country, both read as licensed) — below the 10 needed. LAW-ABSENT-1: few pairs is a fact about our archive
+   human-value delta [UNKNOWN]: needs evidence of what a person does with the answer at each value — row 2 is deferred, and every query row in the store carries 0 clicks, so owned behaviour says nothing either way
+   hard-coded in the estate: 89 page(s) in the page rows, 125 impressions — e.g. https://almioet.almiworld.com/dentistry/from-monaco/uk-the-university-of-sheffield · declared as a product's axis by: almi-oet
+   VERDICT UNKNOWN: not decidable: 3 human queries across 3 value(s) — below the 5 queries across 2 values an axis needs to be present. LAW-ABSENT-1: that is thin evidence, not an absent axis
+
+══ role (named by the contract as 'role') — VERDICT MONITOR
+   reads: an occupation slot value NOT read as a licensed profession
+   discovery [PRESENT]: 28 human queries carry it
+     values (28): admin assistant 1q/4i · animal 1q/1i · bank 1q/1i · bartender 1q/2i · business management 1q/1i · customer assistant 1q/1i · engineer 1q/1i · events coordinator 1q/1i · house maid 1q/1i · housekeeper 1q/1i · hr assistant 1q/2i · it manager 1q/1i · …
+   distinguishing — ANSWER [UNKNOWN]: no per-value ANSWER evidence is owned. Measuring whether the useful answer changes needs the answer at each value from a source that is not our own page — per-value verified claims (row 7 SUPPLY, deferred) or real people's questions and outcomes (row 2, deferred). Our pages differing, or a question changing, is not the answer changing
+   distinguishing — QUESTION [FROM_ROW5]: 2 row-5 intent(s) hold two or more of its values: there the question stays the same as the value changes. A consequence of row 5's slot ruling, not independent evidence (2 intent(s), 25 value(s))
+   demand [MEASURED · SPARSE · THIN]: 28 human queries across 28 values; 0 value(s) with ≥ 3 queries; top value 'quant' holds 20.0% of 60 impressions; 100.0% of values appear once
+   evidence availability [UNKNOWN]: whether enough verifiable per-value evidence can be acquired is itself a supply measurement, which needs external sources this row may not fetch (row 7 SUPPLY is deferred)
+   sibling collapse [MEASURED]: 474 archived pairs of OUR pages (almicv.almiworld.com/cv-guide varying occupation, same country): body overlap median 0.561 (min 0.537, max 0.621); 474 above Gate A's 0.4; 0 at or above the near-duplicate line 0.9. It measures our construction, never the answer
+   human-value delta [UNKNOWN]: needs evidence of what a person does with the answer at each value — row 2 is deferred, and every query row in the store carries 0 clicks, so owned behaviour says nothing either way
+   hard-coded in the estate: 483 page(s) in the page rows, 892 impressions — e.g. https://almicv.almiworld.com/cv-guide/morocco/mental-health-nurse
+   VERDICT MONITOR: present in the evidence (28 human queries across 28 values; 0 value(s) with ≥ 3 queries; top value 'quant' holds 20.0% of 60 impressions; 100.0% of values appear once) — but the answer-level distinguishing power is UNKNOWN, so it can be neither adopted nor rejected
+
+══ stage (named by the contract as 'stage') — VERDICT MONITOR
+   reads: a word marking where in a journey the person is — preparing, booking, a result, retaking — or a career stage (no experience, a beginner, a student)
+   discovery [PRESENT]: 63 human queries carry it
+     values (7): preparing 16q/22i · result 13q/20i · no experience 12q/36i · booking 9q/11i · beginner 7q/11i · retaking 4q/5i · student 3q/3i
+   distinguishing — ANSWER [UNKNOWN]: no per-value ANSWER evidence is owned. Measuring whether the useful answer changes needs the answer at each value from a source that is not our own page — per-value verified claims (row 7 SUPPLY, deferred) or real people's questions and outcomes (row 2, deferred). Our pages differing, or a question changing, is not the answer changing
+   distinguishing — QUESTION [FROM_ROW5]: 1 row-5 intent(s) hold two or more of its values: there the question stays the same as the value changes. A consequence of row 5's slot ruling, not independent evidence (1 intent(s), 2 value(s))
+   demand [MEASURED · BROAD]: 64 human queries across 7 values; 7 value(s) with ≥ 3 queries; top value 'preparing' holds 20.4% of 108 impressions; 0.0% of values appear once
+   evidence availability [UNKNOWN]: whether enough verifiable per-value evidence can be acquired is itself a supply measurement, which needs external sources this row may not fetch (row 7 SUPPLY is deferred)
+   sibling collapse [UNKNOWN]: 0 measured archived pair(s) (no archived sibling family varies along this axis alone) — below the 10 needed. LAW-ABSENT-1: few pairs is a fact about our archive
+   human-value delta [UNKNOWN]: needs evidence of what a person does with the answer at each value — row 2 is deferred, and every query row in the store carries 0 clicks, so owned behaviour says nothing either way
+   hard-coded in the estate: 0 page(s) in the page rows, 0 impressions
+   VERDICT MONITOR: present in the evidence (64 human queries across 7 values; 7 value(s) with ≥ 3 queries; top value 'preparing' holds 20.4% of 108 impressions; 0.0% of values appear once) — but the answer-level distinguishing power is UNKNOWN, so it can be neither adopted nor rejected
+
+══ origin (named by the contract as 'origin/destination') — VERDICT UNKNOWN
+   reads: a nationality in the question (a demonym slot)
+   discovery [PRESENT]: 2 human queries carry it
+     values (1): iranian 2q/4i
+   distinguishing — ANSWER [UNKNOWN]: no per-value ANSWER evidence is owned. Measuring whether the useful answer changes needs the answer at each value from a source that is not our own page — per-value verified claims (row 7 SUPPLY, deferred) or real people's questions and outcomes (row 2, deferred). Our pages differing, or a question changing, is not the answer changing
+   distinguishing — QUESTION [FROM_ROW5]: 0 row-5 intent(s) hold two or more of its values: there the question stays the same as the value changes. A consequence of row 5's slot ruling, not independent evidence (0 intent(s), 0 value(s))
+   demand [UNKNOWN · UNKNOWN · THIN]: 2 human queries across 1 value(s) — below the 5 queries across 2 values an axis needs to be present. LAW-ABSENT-1: that is thin evidence, not an absent axis
+   evidence availability [UNKNOWN]: whether enough verifiable per-value evidence can be acquired is itself a supply measurement, which needs external sources this row may not fetch (row 7 SUPPLY is deferred)
+   sibling collapse [MEASURED]: 23 archived pairs of OUR pages (almipte.almiworld.com/pte-for varying origin, same destination and field; almipte.almiworld.com/pte-for varying origin, same destination): body overlap median 0.806 (min 0.710, max 0.853); 23 above Gate A's 0.4; 0 at or above the near-duplicate line 0.9. It measures our construction, never the answer
+   human-value delta [UNKNOWN]: needs evidence of what a person does with the answer at each value — row 2 is deferred, and every query row in the store carries 0 clicks, so owned behaviour says nothing either way
+   hard-coded in the estate: 775 page(s) in the page rows, 1179 impressions — e.g. https://almiitalian.almiworld.com/exam/cils-due-b2/from/pakistan
+   VERDICT UNKNOWN: not decidable: 2 human queries across 1 value(s) — below the 5 queries across 2 values an axis needs to be present. LAW-ABSENT-1: that is thin evidence, not an absent axis
+
+══ destination (named by the contract as 'origin/destination') — VERDICT MONITOR
+   reads: a country in a question about going there (beside a requirement, visa, migration, residency or study word)
+   discovery [PRESENT]: 12 human queries carry it
+     values (10): peru 2q/3i · spain 2q/2i · australia 1q/1i · china 1q/1i · denmark 1q/1i · japan 1q/1i · netherlands 1q/3i · new_zealand 1q/1i · philippines 1q/1i · switzerland 1q/2i
+   distinguishing — ANSWER [UNKNOWN]: no per-value ANSWER evidence is owned. Measuring whether the useful answer changes needs the answer at each value from a source that is not our own page — per-value verified claims (row 7 SUPPLY, deferred) or real people's questions and outcomes (row 2, deferred). Our pages differing, or a question changing, is not the answer changing
+   distinguishing — QUESTION [FROM_ROW5]: 2 row-5 intent(s) hold two or more of its values: there the question stays the same as the value changes. A consequence of row 5's slot ruling, not independent evidence (2 intent(s), 8 value(s))
+   demand [MEASURED · SPARSE · THIN]: 12 human queries across 10 values; 0 value(s) with ≥ 3 queries; top value 'peru' holds 18.8% of 16 impressions; 80.0% of values appear once
+   evidence availability [UNKNOWN]: whether enough verifiable per-value evidence can be acquired is itself a supply measurement, which needs external sources this row may not fetch (row 7 SUPPLY is deferred)
+   sibling collapse [UNKNOWN]: 9 measured archived pair(s) (almipte.almiworld.com/pte-for varying destination, same field and origin) — below the 10 needed. LAW-ABSENT-1: few pairs is a fact about our archive
+   human-value delta [UNKNOWN]: needs evidence of what a person does with the answer at each value — row 2 is deferred, and every query row in the store carries 0 clicks, so owned behaviour says nothing either way
+   hard-coded in the estate: 380 page(s) in the page rows, 617 impressions — e.g. https://almidet.almiworld.com/requirements/australia/macquarie-university/computer-science-it/from-poland
+   VERDICT MONITOR: present in the evidence (12 human queries across 10 values; 0 value(s) with ≥ 3 queries; top value 'peru' holds 18.8% of 16 impressions; 80.0% of values appear once) — but the answer-level distinguishing power is UNKNOWN, so it can be neither adopted nor rejected
+
+══ language (named by the contract as 'language') — VERDICT MONITOR
+   reads: the language the query is written in, from two or more marker words
+   discovery [PRESENT]: 8 human queries carry it
+     values (2): es 5q/10i · it 3q/3i
+   distinguishing — ANSWER [UNKNOWN]: no per-value ANSWER evidence is owned. Measuring whether the useful answer changes needs the answer at each value from a source that is not our own page — per-value verified claims (row 7 SUPPLY, deferred) or real people's questions and outcomes (row 2, deferred). Our pages differing, or a question changing, is not the answer changing
+   distinguishing — QUESTION [FROM_ROW5]: 0 row-5 intent(s) hold two or more of its values: there the question stays the same as the value changes. A consequence of row 5's slot ruling, not independent evidence (0 intent(s), 0 value(s))
+   demand [MEASURED · CONCENTRATED]: 8 human queries across 2 values; 2 value(s) with ≥ 3 queries; top value 'es' holds 76.9% of 13 impressions; 0.0% of values appear once
+   evidence availability [UNKNOWN]: whether enough verifiable per-value evidence can be acquired is itself a supply measurement, which needs external sources this row may not fetch (row 7 SUPPLY is deferred)
+   sibling collapse [UNKNOWN]: 0 measured archived pair(s) (no archived sibling family varies along this axis alone) — below the 10 needed. LAW-ABSENT-1: few pairs is a fact about our archive
+   human-value delta [UNKNOWN]: needs evidence of what a person does with the answer at each value — row 2 is deferred, and every query row in the store carries 0 clicks, so owned behaviour says nothing either way
+   hard-coded in the estate: 0 page(s) in the page rows, 0 impressions
+   VERDICT MONITOR: present in the evidence (8 human queries across 2 values; 2 value(s) with ≥ 3 queries; top value 'es' holds 76.9% of 13 impressions; 0.0% of values appear once) — but the answer-level distinguishing power is UNKNOWN, so it can be neither adopted nor rejected
+
+══ locality (named by the contract as 'locality') — VERDICT MONITOR
+   reads: where the searcher is (Search Console's country dimension), and a place named in a question that is not about going there
+   discovery [PRESENT]: 22 human queries carry it, plus 379 country×query rows
+     values (65): searcher:aus 148q/163i · searcher:usa 62q/101i · searcher:gbr 32q/60i · searcher:ind 23q/26i · searcher:can 14q/14i · searcher:rus 7q/10i · searcher:nzl 5q/7i · searcher:pak 5q/5i · searcher:phl 5q/12i · searcher:qat 5q/6i · searcher:are 4q/5i · searcher:esp 4q/5i · …
+   distinguishing — ANSWER [UNKNOWN]: no per-value ANSWER evidence is owned. Measuring whether the useful answer changes needs the answer at each value from a source that is not our own page — per-value verified claims (row 7 SUPPLY, deferred) or real people's questions and outcomes (row 2, deferred). Our pages differing, or a question changing, is not the answer changing
+   distinguishing — QUESTION [MEASURED]: whether the QUESTION mix changes by searcher country — measured where a country has enough rows
+     aus  148 rows · intent-mix distance 0.831 from the other countries; a random relabelling is as far 0 of 999 times (p ≈ 0.001). This is the QUESTION changing, never the answer
+     usa   62 rows · intent-mix distance 0.736 from the other countries; a random relabelling is as far 0 of 999 times (p ≈ 0.001). This is the QUESTION changing, never the answer
+     gbr   32 rows · intent-mix distance 0.672 from the other countries; a random relabelling is as far 0 of 999 times (p ≈ 0.001). This is the QUESTION changing, never the answer
+     ind   23 rows · intent-mix distance 0.732 from the other countries; a random relabelling is as far 0 of 999 times (p ≈ 0.001). This is the QUESTION changing, never the answer
+     can   14 rows · intent-mix distance 0.643 from the other countries; a random relabelling is as far 97 of 999 times (p ≈ 0.098). This is the QUESTION changing, never the answer
+     rus    7 rows · intent-mix distance 0.772 from the other countries; a random relabelling is as far 104 of 999 times (p ≈ 0.105). This is the QUESTION changing, never the answer
+     nzl    5 rows · intent-mix distance 0.925 from the other countries; a random relabelling is as far 27 of 999 times (p ≈ 0.028). This is the QUESTION changing, never the answer
+     pak    5 rows · intent-mix distance 0.955 from the other countries; a random relabelling is as far 11 of 999 times (p ≈ 0.012). This is the QUESTION changing, never the answer
+     phl    5 rows · intent-mix distance 0.805 from the other countries; a random relabelling is as far 122 of 999 times (p ≈ 0.123). This is the QUESTION changing, never the answer
+     qat    5 rows · intent-mix distance 0.845 from the other countries; a random relabelling is as far 126 of 999 times (p ≈ 0.127). This is the QUESTION changing, never the answer
+     UNKNOWN (LAW-ABSENT-1, fewer than 5 rows): 38 countries — are 4 · esp 4 · nld 4 · npl 4 · per 4 · tur 4 · cmr 3 · col 3 · ita 3 · mar 3 · bgd 2 · dnk 2 · fra 2 · idn 2 · irn 2 · mys 2 · sau 2 · sgp 2 · tha 2 · bhr 1 · bra 1 · cri 1 · deu 1 · dza 1 · eth 1 · fji 1 · gha 1 · hkg 1 · isl 1 · kor 1 · kwt 1 · mex 1 · mli 1 · mlt 1 · nga 1 · pol 1 · ukr 1 · vnm 1
+   demand [MEASURED · BROAD]: 402 human queries across 65 values; 22 value(s) with ≥ 3 queries; top value 'searcher:aus' holds 30.8% of 529 impressions; 49.2% of values appear once
+   evidence availability [UNKNOWN]: whether enough verifiable per-value evidence can be acquired is itself a supply measurement, which needs external sources this row may not fetch (row 7 SUPPLY is deferred)
+   sibling collapse [MEASURED]: 36 archived pairs of OUR pages (almicv.almiworld.com/cv-guide varying country, same occupation): body overlap median 0.676 (min 0.646, max 0.726); 36 above Gate A's 0.4; 0 at or above the near-duplicate line 0.9. It measures our construction, never the answer
+   human-value delta [UNKNOWN]: needs evidence of what a person does with the answer at each value — row 2 is deferred, and every query row in the store carries 0 clicks, so owned behaviour says nothing either way
+   hard-coded in the estate: 512 page(s) in the page rows, 947 impressions — e.g. https://almicv.almiworld.com/cv-guide/morocco/mental-health-nurse
+   VERDICT MONITOR: present in the evidence (402 human queries across 65 values; 22 value(s) with ≥ 3 queries; top value 'searcher:aus' holds 30.8% of 529 impressions; 49.2% of values appear once) — but the answer-level distinguishing power is UNKNOWN, so it can be neither adopted nor rejected
+
+══ budget (DISCOVERED in the evidence) — VERDICT UNKNOWN
+   reads: the 'budget' slot row 5 recorded — claimed by no named axis
+   discovery [PRESENT]: 5 human queries carry it
+     values (1): budget 5q/7i
+   distinguishing — ANSWER [UNKNOWN]: no per-value ANSWER evidence is owned. Measuring whether the useful answer changes needs the answer at each value from a source that is not our own page — per-value verified claims (row 7 SUPPLY, deferred) or real people's questions and outcomes (row 2, deferred). Our pages differing, or a question changing, is not the answer changing
+   distinguishing — QUESTION [FROM_ROW5]: 0 row-5 intent(s) hold two or more of its values: there the question stays the same as the value changes. A consequence of row 5's slot ruling, not independent evidence (0 intent(s), 0 value(s))
+   demand [UNKNOWN · UNKNOWN · THIN]: 5 human queries across 1 value(s) — below the 5 queries across 2 values an axis needs to be present. LAW-ABSENT-1: that is thin evidence, not an absent axis
+   evidence availability [UNKNOWN]: whether enough verifiable per-value evidence can be acquired is itself a supply measurement, which needs external sources this row may not fetch (row 7 SUPPLY is deferred)
+   sibling collapse [UNKNOWN]: 0 measured archived pair(s) (no archived sibling family varies along this axis alone) — below the 10 needed. LAW-ABSENT-1: few pairs is a fact about our archive
+   human-value delta [UNKNOWN]: needs evidence of what a person does with the answer at each value — row 2 is deferred, and every query row in the store carries 0 clicks, so owned behaviour says nothing either way
+   hard-coded in the estate: 0 page(s) in the page rows, 0 impressions
+   VERDICT UNKNOWN: not decidable: 5 human queries across 1 value(s) — below the 5 queries across 2 values an axis needs to be present. LAW-ABSENT-1: that is thin evidence, not an absent axis
+
+══ field (DISCOVERED in the evidence) — VERDICT UNKNOWN
+   reads: the 'field' slot row 5 recorded — claimed by no named axis
+   discovery [PRESENT]: 1 human queries carry it
+     values (1): mit 1q/1i
+   distinguishing — ANSWER [UNKNOWN]: no per-value ANSWER evidence is owned. Measuring whether the useful answer changes needs the answer at each value from a source that is not our own page — per-value verified claims (row 7 SUPPLY, deferred) or real people's questions and outcomes (row 2, deferred). Our pages differing, or a question changing, is not the answer changing
+   distinguishing — QUESTION [FROM_ROW5]: 0 row-5 intent(s) hold two or more of its values: there the question stays the same as the value changes. A consequence of row 5's slot ruling, not independent evidence (0 intent(s), 0 value(s))
+   demand [UNKNOWN · UNKNOWN · THIN]: 1 human queries across 1 value(s) — below the 5 queries across 2 values an axis needs to be present. LAW-ABSENT-1: that is thin evidence, not an absent axis
+   evidence availability [UNKNOWN]: whether enough verifiable per-value evidence can be acquired is itself a supply measurement, which needs external sources this row may not fetch (row 7 SUPPLY is deferred)
+   sibling collapse [UNKNOWN]: 0 measured archived pair(s) (no archived sibling family varies along this axis alone) — below the 10 needed. LAW-ABSENT-1: few pairs is a fact about our archive
+   human-value delta [UNKNOWN]: needs evidence of what a person does with the answer at each value — row 2 is deferred, and every query row in the store carries 0 clicks, so owned behaviour says nothing either way
+   hard-coded in the estate: 0 page(s) in the page rows, 0 impressions
+   VERDICT UNKNOWN: not decidable: 1 human queries across 1 value(s) — below the 5 queries across 2 values an axis needs to be present. LAW-ABSENT-1: that is thin evidence, not an absent axis
+
+══ number (DISCOVERED in the evidence) — VERDICT MONITOR
+   reads: the 'number' slot row 5 recorded — claimed by no named axis
+   discovery [PRESENT]: 65 human queries carry it
+     values (38): 6.5 6q/7i · 50 4q/4i · 79 4q/4i · 6 3q/3i · 65 3q/3i · 7 3q/4i · 47 2q/3i · 49 2q/2i · 52 2q/2i · 54 2q/2i · 55 2q/2i · 56 2q/2i · …
+   distinguishing — ANSWER [UNKNOWN]: no per-value ANSWER evidence is owned. Measuring whether the useful answer changes needs the answer at each value from a source that is not our own page — per-value verified claims (row 7 SUPPLY, deferred) or real people's questions and outcomes (row 2, deferred). Our pages differing, or a question changing, is not the answer changing
+   distinguishing — QUESTION [FROM_ROW5]: 1 row-5 intent(s) hold two or more of its values: there the question stays the same as the value changes. A consequence of row 5's slot ruling, not independent evidence (1 intent(s), 37 value(s))
+   demand [MEASURED · BROAD]: 65 human queries across 38 values; 6 value(s) with ≥ 3 queries; top value '6.5' holds 10.1% of 69 impressions; 57.9% of values appear once
+   evidence availability [UNKNOWN]: whether enough verifiable per-value evidence can be acquired is itself a supply measurement, which needs external sources this row may not fetch (row 7 SUPPLY is deferred)
+   sibling collapse [UNKNOWN]: 0 measured archived pair(s) (no archived sibling family varies along this axis alone) — below the 10 needed. LAW-ABSENT-1: few pairs is a fact about our archive
+   human-value delta [UNKNOWN]: needs evidence of what a person does with the answer at each value — row 2 is deferred, and every query row in the store carries 0 clicks, so owned behaviour says nothing either way
+   hard-coded in the estate: 0 page(s) in the page rows, 0 impressions
+   VERDICT MONITOR: present in the evidence (65 human queries across 38 values; 6 value(s) with ≥ 3 queries; top value '6.5' holds 10.1% of 69 impressions; 57.9% of values appear once) — but the answer-level distinguishing power is UNKNOWN, so it can be neither adopted nor rejected
+
+══ purpose (DISCOVERED in the evidence) — VERDICT UNKNOWN
+   reads: the 'purpose' slot row 5 recorded — claimed by no named axis
+   discovery [PRESENT]: 2 human queries carry it
+     values (1): migration 2q/2i
+   distinguishing — ANSWER [UNKNOWN]: no per-value ANSWER evidence is owned. Measuring whether the useful answer changes needs the answer at each value from a source that is not our own page — per-value verified claims (row 7 SUPPLY, deferred) or real people's questions and outcomes (row 2, deferred). Our pages differing, or a question changing, is not the answer changing
+   distinguishing — QUESTION [FROM_ROW5]: 0 row-5 intent(s) hold two or more of its values: there the question stays the same as the value changes. A consequence of row 5's slot ruling, not independent evidence (0 intent(s), 0 value(s))
+   demand [UNKNOWN · UNKNOWN · THIN]: 2 human queries across 1 value(s) — below the 5 queries across 2 values an axis needs to be present. LAW-ABSENT-1: that is thin evidence, not an absent axis
+   evidence availability [UNKNOWN]: whether enough verifiable per-value evidence can be acquired is itself a supply measurement, which needs external sources this row may not fetch (row 7 SUPPLY is deferred)
+   sibling collapse [UNKNOWN]: 0 measured archived pair(s) (no archived sibling family varies along this axis alone) — below the 10 needed. LAW-ABSENT-1: few pairs is a fact about our archive
+   human-value delta [UNKNOWN]: needs evidence of what a person does with the answer at each value — row 2 is deferred, and every query row in the store carries 0 clicks, so owned behaviour says nothing either way
+   hard-coded in the estate: 0 page(s) in the page rows, 0 impressions
+   VERDICT UNKNOWN: not decidable: 2 human queries across 1 value(s) — below the 5 queries across 2 values an axis needs to be present. LAW-ABSENT-1: that is thin evidence, not an absent axis
+
+══ skill (DISCOVERED in the evidence) — VERDICT UNKNOWN
+   reads: the 'skill' slot row 5 recorded — claimed by no named axis
+   discovery [PRESENT]: 1 human queries carry it
+     values (1): reading 1q/1i
+   distinguishing — ANSWER [UNKNOWN]: no per-value ANSWER evidence is owned. Measuring whether the useful answer changes needs the answer at each value from a source that is not our own page — per-value verified claims (row 7 SUPPLY, deferred) or real people's questions and outcomes (row 2, deferred). Our pages differing, or a question changing, is not the answer changing
+   distinguishing — QUESTION [FROM_ROW5]: 0 row-5 intent(s) hold two or more of its values: there the question stays the same as the value changes. A consequence of row 5's slot ruling, not independent evidence (0 intent(s), 0 value(s))
+   demand [UNKNOWN · UNKNOWN · THIN]: 1 human queries across 1 value(s) — below the 5 queries across 2 values an axis needs to be present. LAW-ABSENT-1: that is thin evidence, not an absent axis
+   evidence availability [UNKNOWN]: whether enough verifiable per-value evidence can be acquired is itself a supply measurement, which needs external sources this row may not fetch (row 7 SUPPLY is deferred)
+   sibling collapse [UNKNOWN]: 0 measured archived pair(s) (no archived sibling family varies along this axis alone) — below the 10 needed. LAW-ABSENT-1: few pairs is a fact about our archive
+   human-value delta [UNKNOWN]: needs evidence of what a person does with the answer at each value — row 2 is deferred, and every query row in the store carries 0 clicks, so owned behaviour says nothing either way
+   hard-coded in the estate: 0 page(s) in the page rows, 0 impressions
+   VERDICT UNKNOWN: not decidable: 1 human queries across 1 value(s) — below the 5 queries across 2 values an axis needs to be present. LAW-ABSENT-1: that is thin evidence, not an absent axis
+
+══ variant (DISCOVERED in the evidence) — VERDICT MONITOR
+   reads: the 'variant' slot row 5 recorded — claimed by no named axis
+   discovery [PRESENT]: 14 human queries carry it
+     values (2): academic 11q/18i · core 3q/3i
+   distinguishing — ANSWER [UNKNOWN]: no per-value ANSWER evidence is owned. Measuring whether the useful answer changes needs the answer at each value from a source that is not our own page — per-value verified claims (row 7 SUPPLY, deferred) or real people's questions and outcomes (row 2, deferred). Our pages differing, or a question changing, is not the answer changing
+   distinguishing — QUESTION [FROM_ROW5]: 2 row-5 intent(s) hold two or more of its values: there the question stays the same as the value changes. A consequence of row 5's slot ruling, not independent evidence (2 intent(s), 2 value(s))
+   demand [MEASURED · CONCENTRATED]: 14 human queries across 2 values; 2 value(s) with ≥ 3 queries; top value 'academic' holds 85.7% of 21 impressions; 0.0% of values appear once
+   evidence availability [UNKNOWN]: whether enough verifiable per-value evidence can be acquired is itself a supply measurement, which needs external sources this row may not fetch (row 7 SUPPLY is deferred)
+   sibling collapse [UNKNOWN]: 0 measured archived pair(s) (no archived sibling family varies along this axis alone) — below the 10 needed. LAW-ABSENT-1: few pairs is a fact about our archive
+   human-value delta [UNKNOWN]: needs evidence of what a person does with the answer at each value — row 2 is deferred, and every query row in the store carries 0 clicks, so owned behaviour says nothing either way
+   hard-coded in the estate: 0 page(s) in the page rows, 0 impressions
+   VERDICT MONITOR: present in the evidence (14 human queries across 2 values; 2 value(s) with ≥ 3 queries; top value 'academic' holds 85.7% of 21 impressions; 0.0% of values appear once) — but the answer-level distinguishing power is UNKNOWN, so it can be neither adopted nor rejected
+
+══ year (DISCOVERED in the evidence) — VERDICT UNKNOWN
+   reads: the 'year' slot row 5 recorded — claimed by no named axis
+   discovery [PRESENT]: 7 human queries carry it
+     values (1): 2026 7q/15i
+   distinguishing — ANSWER [UNKNOWN]: no per-value ANSWER evidence is owned. Measuring whether the useful answer changes needs the answer at each value from a source that is not our own page — per-value verified claims (row 7 SUPPLY, deferred) or real people's questions and outcomes (row 2, deferred). Our pages differing, or a question changing, is not the answer changing
+   distinguishing — QUESTION [FROM_ROW5]: 0 row-5 intent(s) hold two or more of its values: there the question stays the same as the value changes. A consequence of row 5's slot ruling, not independent evidence (0 intent(s), 0 value(s))
+   demand [UNKNOWN · UNKNOWN · THIN]: 7 human queries across 1 value(s) — below the 5 queries across 2 values an axis needs to be present. LAW-ABSENT-1: that is thin evidence, not an absent axis
+   evidence availability [UNKNOWN]: whether enough verifiable per-value evidence can be acquired is itself a supply measurement, which needs external sources this row may not fetch (row 7 SUPPLY is deferred)
+   sibling collapse [UNKNOWN]: 0 measured archived pair(s) (no archived sibling family varies along this axis alone) — below the 10 needed. LAW-ABSENT-1: few pairs is a fact about our archive
+   human-value delta [UNKNOWN]: needs evidence of what a person does with the answer at each value — row 2 is deferred, and every query row in the store carries 0 clicks, so owned behaviour says nothing either way
+   hard-coded in the estate: 0 page(s) in the page rows, 0 impressions
+   VERDICT UNKNOWN: not decidable: 7 human queries across 1 value(s) — below the 5 queries across 2 values an axis needs to be present. LAW-ABSENT-1: that is thin evidence, not an absent axis
+
+🔴 LIMIT: no axis can reach BUILD or REJECT on owned evidence — the answer at each value is not in the store. A MONITOR is an axis that is present and untested at the level that decides; our own pages differing or collapsing measures our construction, never the answer.
+
+ERRORS: 0

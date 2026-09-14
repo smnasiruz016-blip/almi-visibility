@@ -1,0 +1,77 @@
+ROW 6 — RED LIMBS, EACH ALONE IN THE REAL FILES · 2026-09-14T22:45:11.283Z
+runner: node bin/axis-discovery.mjs --check (exit 1 names every failed limb)
+
+CLEAN before: exit 0 · failed limbs: (none)
+
+── limb: accepted-unmeasured
+   file: src/discovery/axis-discovery.mjs
+   sabotage: the verdict adopts an axis because its demand is broad — with no answer-level measurement
+   anchor matches: 1
+   sha256 before f29712747ce4bb4117ae61badba560296fdc018820417c61d8b218e59e25d335
+   sha256 sabotaged 4947ce91aa0905b6685ac310157efec873e9c8b07eecfb738e34b82cdc3a8305 — LANDED
+   exit 1 · failed limbs: accepted-unmeasured — RED ON THIS LIMB ALONE
+       🔴 [accepted-unmeasured] stage is BUILD with answer-level distinguishing power UNKNOWN — an axis is adopted on a measurement, never because it is obvious
+       🔴 [accepted-unmeasured] locality is BUILD with answer-level distinguishing power UNKNOWN — an axis is adopted on a measurement, never because it is obvious
+       🔴 [accepted-unmeasured] number is BUILD with answer-level distinguishing power UNKNOWN — an axis is adopted on a measurement, never because it is obvious
+   restored: sha256 f29712747ce4bb4117ae61badba560296fdc018820417c61d8b218e59e25d335 — MATCHES
+
+── limb: rejected-on-thin
+   file: src/discovery/axis-discovery.mjs
+   sabotage: an axis too thin to decide is REJECTED instead of UNKNOWN
+   anchor matches: 1
+   sha256 before f29712747ce4bb4117ae61badba560296fdc018820417c61d8b218e59e25d335
+   sha256 sabotaged 0ef7a0318b3ab51c52a399db377747e8f0fb774da8cb3bf5b081b4aa2708b246 — LANDED
+   exit 1 · failed limbs: rejected-on-thin — RED ON THIS LIMB ALONE
+       🔴 [rejected-on-thin] profession is REJECT on an answer-level power that is UNKNOWN — LAW-ABSENT-1: thin evidence is a fact about our data, never a finding that the axis does not matter
+       🔴 [rejected-on-thin] origin is REJECT on an answer-level power that is UNKNOWN — LAW-ABSENT-1: thin evidence is a fact about our data, never a finding that the axis does not matter
+       🔴 [rejected-on-thin] budget is REJECT on an answer-level power that is UNKNOWN — LAW-ABSENT-1: thin evidence is a fact about our data, never a finding that the axis does not matter
+   restored: sha256 f29712747ce4bb4117ae61badba560296fdc018820417c61d8b218e59e25d335 — MATCHES
+
+── limb: rejected-on-thin
+   file: src/discovery/axis-discovery.mjs
+   sabotage: a searcher country with fewer than five rows is REJECTED instead of UNKNOWN (the locality case)
+   anchor matches: 1
+   sha256 before f29712747ce4bb4117ae61badba560296fdc018820417c61d8b218e59e25d335
+   sha256 sabotaged 53f5c1911732890f0d1917cc8f5d632805dc5dba60ffe01df515508877c86ffd — LANDED
+   exit 1 · failed limbs: rejected-on-thin — RED ON THIS LIMB ALONE
+       🔴 [rejected-on-thin] locality: searcher country 'are' is REJECT on 4 row(s) — a question mix is never an answer, and those rows are too few to decide (LAW-ABSENT-1)
+       🔴 [rejected-on-thin] locality: searcher country 'esp' is REJECT on 4 row(s) — a question mix is never an answer, and those rows are too few to decide (LAW-ABSENT-1)
+       🔴 [rejected-on-thin] locality: searcher country 'nld' is REJECT on 4 row(s) — a question mix is never an answer, and those rows are too few to decide (LAW-ABSENT-1)
+   restored: sha256 f29712747ce4bb4117ae61badba560296fdc018820417c61d8b218e59e25d335 — MATCHES
+
+── limb: named-axis-untested
+   file: config/discovery/axis-candidates.mjs
+   sabotage: the language candidate no longer answers to the contract's 'language'
+   anchor matches: 1
+   sha256 before d88fa5f5eb52cc2aa46afb4b57dfb744d44bffc2a9abaf8fe2683aec328c7365
+   sha256 sabotaged 215b3124f827000801f9fa3fb87132ca59d4571b3f72bfe5e467170cf24fdf14 — LANDED
+   exit 1 · failed limbs: named-axis-untested — RED ON THIS LIMB ALONE
+       🔴 [named-axis-untested] the contract names 'language' and no result tests it
+   restored: sha256 d88fa5f5eb52cc2aa46afb4b57dfb744d44bffc2a9abaf8fe2683aec328c7365 — MATCHES
+
+── limb: verdict-inconsistent
+   file: src/discovery/axis-discovery.mjs
+   sabotage: every named axis is recorded MONITOR whatever its legs say
+   anchor matches: 1
+   sha256 before f29712747ce4bb4117ae61badba560296fdc018820417c61d8b218e59e25d335
+   sha256 sabotaged d46404dc1ce9023f139be1d09b508b7a87025560f27e255301e4d74956676813 — LANDED
+   exit 1 · failed limbs: verdict-inconsistent — RED ON THIS LIMB ALONE
+       🔴 [verdict-inconsistent] profession records MONITOR; its own legs produce UNKNOWN
+       🔴 [verdict-inconsistent] origin records MONITOR; its own legs produce UNKNOWN
+   restored: sha256 f29712747ce4bb4117ae61badba560296fdc018820417c61d8b218e59e25d335 — MATCHES
+
+── limb: leg-missing
+   file: src/discovery/axis-discovery.mjs
+   sabotage: the human-value delta leg is recorded with no basis
+   anchor matches: 1
+   sha256 before f29712747ce4bb4117ae61badba560296fdc018820417c61d8b218e59e25d335
+   sha256 sabotaged b9d65e301bc8be140bb17c1d13b81205e4a7ecbe17ea5ec63f03eb810d9b16b7 — LANDED
+   exit 1 · failed limbs: leg-missing — RED ON THIS LIMB ALONE
+       🔴 [leg-missing] profession: leg 'humanValue' states UNKNOWN with no basis
+       🔴 [leg-missing] role: leg 'humanValue' states UNKNOWN with no basis
+       🔴 [leg-missing] stage: leg 'humanValue' states UNKNOWN with no basis
+   restored: sha256 f29712747ce4bb4117ae61badba560296fdc018820417c61d8b218e59e25d335 — MATCHES
+
+CLEAN after: exit 0 · failed limbs: (none)
+
+✅ 6 sabotages over 5 limbs, each RED alone on its own limb, each restored byte for byte

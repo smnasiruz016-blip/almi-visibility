@@ -190,7 +190,13 @@ const WEAKEST = ["VERIFIED", "UNVERIFIED", "UNKNOWN"];
  * arithmetic — and the arithmetic being clean is exactly what makes the
  * mistake persuasive.
  */
-export function makeDerivedFact({ id, claim, formula, inputs, inputFacts, verificationState, unit = null }) {
+export function makeDerivedFact({ id, claim, formula, inputs, inputFacts, verificationState, unit = null, computedOn = null }) {
+  /* 🔴 ROW 17 GAP 3 (14 September 2026): the derivation once stamped `computedAt: new Date()`, so the same
+   * derivation over the same inputs was never the same bytes twice. It reads no clock now. A date, where one is
+   * wanted, is DECLARED by the caller — a date is a measurement, never the clock's guess — and null says none was. */
+  if (computedOn !== null && !/^\d{4}-\d{2}-\d{2}$/.test(computedOn)) {
+    throw new TypeError(`computedOn must be an ISO date or null, got ${JSON.stringify(computedOn)}`);
+  }
   if (!(formula in FORMULAS)) {
     throw new TypeError(`unknown formula ${JSON.stringify(formula)} — a formula must be re-executable, not described`);
   }
@@ -220,13 +226,15 @@ export function makeDerivedFact({ id, claim, formula, inputs, inputFacts, verifi
     id,
     claim,
     derived: true,
+    // 🔴 ROW 17 GAP 1: the KIND the registry validates (src/facts/schema.mjs FACT_KINDS, laws F28 and F29).
+    kind: "derived",
     verificationState: weakest,
     value: { value: computed, valueType: "derived", unit },
     derivation: Object.freeze({
       formula,
       inputs: Object.freeze([...inputs]),
       inputValues: Object.freeze([...values]),
-      computedAt: new Date().toISOString(),
+      computedOn,
     }),
   });
 }
@@ -246,6 +254,42 @@ export function recomputeDerived(fact, inputFacts) {
      * rewriting it would destroy the only evidence of which. */
     note: "a mismatch is a finding, not a repair",
   };
+}
+
+/**
+ * 🔴 ROW 17 GAP 2 — AN INPUT THAT CHANGED IS DETECTED, NOT ANNOUNCED.
+ *
+ * `markForReview` walks dependents from the facts a CALLER says went bad; nothing noticed an input whose value had
+ * moved. Every derived fact stores the value of each input it was computed from (`derivation.inputValues`), so the
+ * comparison needs no caller: each stored value against the input record as it stands now.
+ *
+ *   INPUT_CHANGED  the input record holds a different value from the one the derivation used
+ *   INPUT_UNKNOWN  the input record is no longer there to compare — LAW-ABSENT-1: that is not "unchanged"
+ */
+export function detectInputChanges(facts = []) {
+  const byId = new Map(facts.map((f) => [f?.id, f]));
+  const changes = [];
+  for (const f of facts) {
+    const d = f?.derivation;
+    if (!Array.isArray(d?.inputs) || !Array.isArray(d?.inputValues)) continue;
+    d.inputs.forEach((input, i) => {
+      const current = byId.get(input);
+      if (!current) {
+        changes.push({ derivedId: f.id, input, stored: d.inputValues[i], current: null, reason: "INPUT_UNKNOWN" });
+      } else if (JSON.stringify(current.value?.value) !== JSON.stringify(d.inputValues[i])) {
+        changes.push({ derivedId: f.id, input, stored: d.inputValues[i], current: current.value?.value, reason: "INPUT_CHANGED" });
+      }
+    });
+  }
+  return changes;
+}
+
+/** Every changed input found by `detectInputChanges`, fed to the dependency walk as INPUT_CHANGED. */
+export function reviewChangedInputs({ facts = [], findings = [] }) {
+  const changes = detectInputChanges(facts);
+  const changed = changes.filter((c) => c.reason === "INPUT_CHANGED");
+  const walk = markForReview({ facts, findings, badFactIds: [...new Set(changed.map((c) => c.input))], reason: "INPUT_CHANGED" });
+  return { derivedFacts: facts.filter((f) => Array.isArray(f?.derivation?.inputs)).length, changes, ...walk };
 }
 
 /* ------------------------------------------------------------------ *

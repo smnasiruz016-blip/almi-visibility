@@ -28,6 +28,7 @@ import { sourceRecordFromFact, rankSources, tierCensus } from "../src/evidence/s
 import { createCostLedger, formatLedgerLine, coverageFailures } from "../src/cost/ledger.mjs";
 import { computeRecommendationFields } from "../src/report/recommendation-fields.mjs";
 import { CONSEQUENCE_REGISTER } from "../config/consequence-register.mjs";
+import { SEVERITY_SCALE } from "../config/consequence-scale.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n, d) => {
@@ -118,7 +119,7 @@ const recommendationFields = computeRecommendationFields({
   records: [...allAudit, ...evidenceRecords, ...crawlRecords],
   ledger: ledgerEntries,
   // 🔴 ROW 60: the owner-controlled consequence register. Every level in it is UNCLASSIFIED until he rules.
-  consequenceRegister: CONSEQUENCE_REGISTER,
+  consequenceRegister: CONSEQUENCE_REGISTER, consequenceScale: SEVERITY_SCALE,
 });
 
 const generatedAt = new Date().toISOString();

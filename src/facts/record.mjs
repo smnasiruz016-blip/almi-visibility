@@ -116,7 +116,17 @@ export function fact(record) {
     );
   }
   const checkedOn = checks.factCheckedOn ?? null;
-  if (record.verificationState === "VERIFIED" && checkedOn === null) {
+  /* 🔴 ROW 17 — A DERIVED FACT'S STANDING IS INHERITED, NEVER CHECKED. It is its weakest input's
+   * (makeDerivedFact), and validateRegistry's F29 holds it there against the records it cites. So it carries no
+   * check date: a date beside a derived fact would claim a check of arithmetic that nobody read on a source. */
+  const derivedKind = record.kind === "derived";
+  if (derivedKind && checkedOn !== null) {
+    throw new TypeError(
+      `fact(${record.id ?? "(no id)"}): a derived fact carries checks.factCheckedOn ${JSON.stringify(checkedOn)}. ` +
+        "Its standing is inherited from its weakest input — it is not a check that happened on a day.",
+    );
+  }
+  if (!derivedKind && record.verificationState === "VERIFIED" && checkedOn === null) {
     throw new TypeError(
       `fact(${record.id ?? "(no id)"}): verificationState is VERIFIED but checks.factCheckedOn is null. ` +
         "A verification without a date is a claim about a check nobody can locate.",
@@ -125,7 +135,7 @@ export function fact(record) {
   /* 🔴 AN UNKNOWN IS A RECORD OF A CHECK THAT RAN. Without a date it is
    * indistinguishable from UNVERIFIED, which is the collapse this state was
    * added to prevent. */
-  if (record.verificationState === "UNKNOWN") {
+  if (!derivedKind && record.verificationState === "UNKNOWN") {
     if (checkedOn === null) {
       throw new TypeError(
         `fact(${record.id ?? "(no id)"}): UNKNOWN requires checks.factCheckedOn. An UNKNOWN records a check ` +

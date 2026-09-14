@@ -22,8 +22,8 @@ controls | PASS"*. **A label tells you a subject. It does not tell you what pass
 
 | # | the text requires | measured today |
 |---|---|---|
-| **1** | §5A: *"Where a fact is derived from other verified values, **the derivation/formula and input fact IDs must be stored**"* | 🔴 **no such field exists.** `grep` for `derivedFrom\|formula\|inputFactIds` across `src/facts/` returns nothing |
-| **2** | §5A: *"The system must distinguish **verified fact, derived/calculated fact, inference, recommendation, and UNKNOWN**"* | 🔴 **a different taxonomy.** We distinguish `active / candidate / lead / conflict / retired` by acquisition confidence, and `R1–R4` by route. **"derived" and "recommendation" have no representation at all** |
+| **1** | §5A: *"Where a fact is derived from other verified values, **the derivation/formula and input fact IDs must be stored**"* | 🔴 ~~**no such field exists.** `grep` for `derivedFrom\|formula\|inputFactIds` across `src/facts/` returns nothing~~ 🔄 **SUPERSEDED 14 September 2026 — true when written on 11 September, false from 12 September** (`DOC-1`'s sixth instance, `PHASE_0_FROZEN_GAP_REGISTER.md` `FACT-1`): `makeDerivedFact` in `src/facts/lifecycle.mjs` stores `derivation: { formula, inputs, inputValues }` with the formula from the frozen `FORMULAS` table, and `recomputeDerived` re-executes it. On 14 September a derived record also became a registry kind (`FACT_KINDS`, laws F28 and F29) |
+| **2** | §5A: *"The system must distinguish **verified fact, derived/calculated fact, inference, recommendation, and UNKNOWN**"* | 🔴 **a different taxonomy.** We distinguish `active / candidate / lead / conflict / retired` by acquisition confidence, and `R1–R4` by route. **"derived" and "recommendation" have no representation at all** 🔄 **NARROWED 14 September 2026:** `derived` now has a representation in the registry — `FACT_KINDS` `primary · derived` (`FACT-2`). `recommendation` and `inference` still have none |
 | **3** | §3: a new page may be created *"only after **cannibalization, duplication, thinness, factual-evidence and WHY_THIS_URL** gates pass"* — a **conjunction of five** | 🔴 **3 of 5 are real.** Cannibalization does not exist; `whyThisUrl` is checked for **presence** (`trim().length > 0`), and the text asks for a *"Specific"* rationale |
 | **4** | §5A.1: *"The owner can inspect where an important page fact came from **and when it was last verified**"* | 🟡 **half.** Provenance is complete; `factCheckedOn` is **null on 46 of 46 records**. What exists is a machine **check** date, and this project has always refused to call that "verified" |
 
@@ -148,8 +148,8 @@ said.
 
 | id | gap | evidence |
 |---|---|---|
-| **FACT-1** | §5A requires a derived fact to store **its formula and its input fact IDs**. No such field exists | §1 `#1`, §3 |
-| **FACT-2** | §5A requires distinguishing **verified / derived / inference / recommendation / UNKNOWN**. The registry distinguishes acquisition confidence instead; **"derived" and "recommendation" have no representation** | §1 `#2`, §3 |
+| **FACT-1** | §5A requires a derived fact to store **its formula and its input fact IDs**. ~~No such field exists~~ 🔄 **SUPERSEDED 14 Sep 2026** — see the register's `FACT-1` | §1 `#1`, §3 |
+| **FACT-2** | §5A requires distinguishing **verified / derived / inference / recommendation / UNKNOWN**. The registry distinguishes acquisition confidence instead; **"derived" and "recommendation" have no representation** 🔄 **NARROWED 14 Sep 2026** — `derived` now has one in the registry; `recommendation` and `inference` do not | §1 `#2`, §3 |
 | **FACT-3** | §5A requires conflicts to be **detected**. A conflict can be **recorded** and one is; **nothing detects one** | §3 |
 | **GATE-3** | §4: *"must not lower a frozen gate merely to increase page output"* — **nothing enforces this.** Thresholds are constants, and only a written record has ever held them | §2 |
 | **GATE-4** | §4's URL-justification gate asks for a **specific** rationale; the check accepts **any non-empty string** | §2 row 4 |

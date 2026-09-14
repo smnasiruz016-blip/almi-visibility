@@ -12,7 +12,7 @@ import { dirname } from "node:path";
 
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
-import { detectConflicts, freshnessOf, markForReview, createFactCache } from "../src/facts/lifecycle.mjs";
+import { detectConflicts, freshnessOf, markForReview, createFactCache, reviewChangedInputs } from "../src/facts/lifecycle.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n, d) => {
@@ -122,6 +122,13 @@ if (bad.length) {
   console.log("\nPART 2C — DEPENDENCY WALK: no bad facts in the registry today, so nothing to mark.");
   console.log("  ⚠️ The walk is proved by fixture, not by real data. Stated rather than implied.");
 }
+
+/* ---- 2D — AN INPUT THAT CHANGED, DETECTED WITHOUT A CALLER NAMING IT ----- */
+
+const changed = reviewChangedInputs({ facts: records, findings });
+console.log(`\nPART 2D — CHANGED INPUTS: ${changed.derivedFacts} derived fact(s) compared against their inputs as they stand now`);
+console.log(`  INPUT_CHANGED=${changed.changes.filter((c) => c.reason === "INPUT_CHANGED").length}  INPUT_UNKNOWN=${changed.changes.filter((c) => c.reason === "INPUT_UNKNOWN").length}  marked for review: ${changed.total}`);
+if (changed.derivedFacts === 0) console.log("  ⚠️ The registry holds no derived fact, so nothing was compared — an empty population, stated rather than implied.");
 
 /* ---- PART 4 — THE CACHE -------------------------------------------------- */
 

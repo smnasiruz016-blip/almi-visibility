@@ -326,17 +326,25 @@ export function renderRecommendations(fields) {
     if (v.state === "UNKNOWN") return `<span class="lbl lbl-UNKNOWN">UNKNOWN</span> ${esc(v.reason)}${v.lowerBound !== undefined ? ` (at least ${esc(v.lowerBound)} measured)` : ""}`;
     return null;
   };
-  /* 🔴 ROW 60 — beside the rank: its BASIS, the consequence register entries that applied, and the consequence-weighted
-   * rank, which is UNKNOWN for as long as any applied class is UNCLASSIFIED. Never a level the register does not declare. */
+  /* 🔴 ROW 60 — CONSEQUENCE FIRST. The consequence-weighted rank leads; the impressions rank sits UNDER it as the
+   * amplifier inside a level, then the BASIS and the register entries that applied. An UNKNOWN consequence is shown
+   * as UNKNOWN and routed to owner review — never ranked. Never a level the register does not declare. */
   const consequence = (p) => {
-    if (!p?.consequence) return "";
     const entries = p.consequence.entries.length
       ? p.consequence.entries.map((e) => `<code>${esc(e.issue_class)}</code> = <strong>${esc(e.level ?? "none")}</strong>`).join(" · ")
       : "none — no finding class is linked";
-    const state = p.consequence.state === "UNKNOWN" ? `<span class="lbl lbl-UNKNOWN">UNKNOWN</span> ${esc(p.consequence.reason)}` : "DECLARED";
-    return `<br>basis: <strong>${esc(p.basisKind)}</strong><br>consequence register entries: ${entries}<br>consequence: ${state}<br>consequence-weighted rank: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> <span class="bound">${esc(p.consequenceWeightedRank?.reason ?? "")}</span>`;
+    const state = p.consequence.state === "UNKNOWN" ? `<span class="lbl lbl-UNKNOWN">UNKNOWN</span> ${esc(p.consequence.reason)}` : `DECLARED <strong>${esc(p.consequence.level)}</strong>`;
+    return `<br>basis: <strong>${esc(p.basisKind)}</strong><br>consequence register entries: ${entries}<br>consequence: ${state}`;
   };
-  const priority = (p) => (show(p) ?? `<strong>${esc(p.rank)} of ${esc(p.of)}</strong><br><span class="bound">${esc(p.basis)}</span>`) + consequence(p);
+  const weighted = (w) =>
+    w?.state === "DERIVED"
+      ? `consequence-weighted rank: <strong>${esc(w.rank)} of ${esc(w.of)}</strong> at <strong>${esc(w.level)}</strong> <span class="bound">${esc(w.basis)}</span>`
+      : `consequence-weighted rank: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> <span class="bound">${esc(w?.reason ?? "")}</span>`;
+  const priority = (p) => {
+    const volume = show(p) ?? `<strong>${esc(p.rank)} of ${esc(p.of)}</strong><br><span class="bound">${esc(p.basis)}</span>`;
+    if (!p?.consequence) return volume;
+    return `${weighted(p.consequenceWeightedRank)}<br>under it, measured volume (the amplifier inside a level): ${volume}${consequence(p)}`;
+  };
   const confidence = (c) =>
     show(c) ??
     `weakest source tier <strong>${esc(c.weakestTier)}</strong><br><span class="bound">tiers ${Object.entries(c.tierCensus).map(([k, v]) => `${esc(k)}=${v}`).join(" · ")} · evidence resolved ${esc(c.evidenceResolved)} · issues UNKNOWN ${esc(c.issuesUnknown)} · pulls incomplete ${esc(c.pullsIncomplete)}</span>`;

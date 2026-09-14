@@ -36,12 +36,13 @@
 
 import { targetPageId, canonicalUrl } from "../evidence/ids.mjs";
 import { tierRank, SOURCE_TIERS } from "../evidence/records.mjs";
-import { consequenceFor } from "../audit/consequence.mjs";
+import { consequenceFor, orderByConsequence } from "../audit/consequence.mjs";
 
 /* 🔴 ROW 60 (Amendment 3) — every priority also states its BASIS (measured volume · declared consequence · both ·
- * none) and WHICH consequence-register entries applied. The levels come ONLY from the register passed in; with
- * none passed, the consequence is UNKNOWN and says so. An unclassified class is never ranked by consequence and
- * never treated as low: the consequence-weighted rank is UNKNOWN until the owner declares levels AND their order. */
+ * none) and WHICH consequence-register entries applied. The levels come ONLY from the register passed in, and their
+ * order ONLY from the owner's scale passed in (ruled 14 September 2026); with either missing, the consequence is
+ * UNKNOWN and says so. The consequence-weighted rank puts consequence FIRST and the impressions rank UNDER it, as the
+ * amplifier inside a level. An unclassified class is never ranked, never treated as low: it goes to owner review. */
 
 const unknown = (reason) => ({ state: "UNKNOWN", reason });
 
@@ -64,7 +65,7 @@ function tierOf(record, sourcesById) {
  * @param {object[]} a.records           every record the links may point at
  * @param {object[]} a.ledger            cost_entry records
  */
-export function computeRecommendationFields({ recommendations, links, records, ledger, consequenceRegister = null }) {
+export function computeRecommendationFields({ recommendations, links, records, ledger, consequenceRegister = null, consequenceScale = null }) {
   const byObs = new Map(records.filter((r) => r.observation_id && r.record_type === "observation").map((r) => [r.observation_id, r]));
   const byIssue = new Map(records.filter((r) => r.record_type === "issue").map((r) => [r.issue_id, r]));
   const bySource = new Map(records.filter((r) => r.record_type === "source").map((r) => [r.source_id, r]));
@@ -167,13 +168,34 @@ export function computeRecommendationFields({ recommendations, links, records, l
     };
 
     /* ---- CONSEQUENCE: the register entries for the finding classes its issues belong to ---- */
-    const consequence = consequenceFor(resolved.issues.map((i) => i.issue_class).filter(Boolean), consequenceRegister);
+    const consequence = consequenceFor(resolved.issues.map((i) => i.issue_class).filter(Boolean), consequenceRegister, consequenceScale);
 
     return { rec, link, impact, confidence, cost, consequence, evidence: { linked: linkedCount, resolved: resolvedCount, issues: ids.issues.length, observations: ids.observations.length, sources: ids.sources.length } };
   });
 
   /* ---- PRIORITY: the rank by measured impact, among those that have one ---- */
   const ranked = drafts.filter((d) => d.impact.state === "MEASURED").sort((a, b) => b.impact.impressions - a.impact.impressions);
+
+  /* ---- 🔴 ROW 60 — THE ORDER: declared consequence FIRST; measured impressions only as the amplifier INSIDE a level.
+   * The scale arrives as an argument, like the register — with none, nothing is declared and nothing ranks. ---- */
+  const order = orderByConsequence({
+    items: drafts.map((d) => ({ id: d.rec.recommendation_id, consequence: d.consequence, volume: d.impact.state === "MEASURED" ? d.impact.impressions : null })),
+    scale: consequenceScale,
+  });
+  const weighted = (id) => {
+    const r = order.ranked.find((x) => x.id === id);
+    if (r) {
+      return {
+        state: "DERIVED",
+        rank: r.rank,
+        of: r.of,
+        level: r.level,
+        basis: `declared consequence ${r.level} first; ${r.volume === null ? "no measured volume, so nothing amplifies it" : `${r.volume} search impressions only as the amplifier inside ${r.level}`}`,
+      };
+    }
+    const u = order.unranked.find((x) => x.id === id);
+    return { state: "UNKNOWN", route: u.route, reason: u.reason };
+  };
   return drafts.map((d) => ({
     recommendation_id: d.rec.recommendation_id,
     title: d.rec.title,
@@ -194,13 +216,7 @@ export function computeRecommendationFields({ recommendations, links, records, l
           ? d.consequence.state === "DECLARED" ? "BOTH" : "MEASURED VOLUME"
           : d.consequence.state === "DECLARED" ? "DECLARED CONSEQUENCE" : "NONE",
       consequence: d.consequence,
-      consequenceWeightedRank: {
-        state: "UNKNOWN",
-        reason:
-          d.consequence.state === "DECLARED"
-            ? "the owner has declared levels for its classes but no ORDER between levels, so no consequence-weighted rank can be derived"
-            : `its consequence is UNKNOWN (${d.consequence.reason}) — an unrated consequence is never ranked and never treated as low`,
-      },
+      consequenceWeightedRank: weighted(d.rec.recommendation_id),
     },
     confidence: d.confidence,
     cost: d.cost,

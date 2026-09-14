@@ -1,0 +1,259 @@
+/**
+ * ROW 61 — SAFE LOCAL PAGE CONSTRUCTION. THE REFUSAL IS THE DELIVERABLE, SO IT IS WHAT IS PROVED.
+ *
+ * GREEN is a synthetic three-spec family built to clear all four frozen parts of Gate A. Every RED below is
+ * that GREEN with ONE thing broken — short, fact-poor, overlapping, a one-variable-swap rationale, no
+ * rationale, too small a family — and each must come back REFUSED with no HTML to write. A gate seen only
+ * refusing could be a gate that refuses everything; a gate seen only passing could be a gate that is not
+ * wired in. Both directions, on the same fixture.
+ *
+ * Then the real runner, on the real products: it must refuse, exit non-zero and write nothing.
+ */
+import test from "node:test";
+import assert from "node:assert/strict";
+import { mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { spawnSync } from "node:child_process";
+
+import { fact } from "../src/facts/record.mjs";
+import { loadRegistry } from "../src/facts/registry.mjs";
+import { constructCandidates, selectCandidates, ACCEPTED, REFUSED, PASS, FAIL, NOT_TESTED, PAGE_ONE } from "../src/page/construct.mjs";
+import { judgeWhy, WHY_NOT_ENFORCED } from "../src/gate-a/why-this-url.mjs";
+import { MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../src/gate-a/run.mjs";
+import { MIN_FACTS } from "../src/gate-a/facts.mjs";
+import { PRODUCT as NEUTRAL } from "../products/neutral-test-ferments/product.mjs";
+
+const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+const NOW = new Date("2026-09-14T00:00:00Z");
+const VARIANTS = ["alpha", "beta", "gamma"];
+
+/* ---- the synthetic family ------------------------------------------------ */
+
+const SYLLABLES = ["ka", "lo", "mi", "ne", "pu", "ra", "si", "to", "vu", "we", "xa", "yo", "zi", "bo", "cu", "de", "fa", "gi", "ho", "ju"];
+/** `count` distinct words, disjoint between pages because each page owns a leading syllable. */
+const wordsFor = (page, count, offset = 0) =>
+  Array.from({ length: count }, (_, i) => {
+    const n = i + offset;
+    return `${SYLLABLES[page]}${SYLLABLES[n % 20]}${SYLLABLES[Math.floor(n / 20) % 20]}${SYLLABLES[Math.floor(n / 400) % 20]}`;
+  }).join(" ");
+
+const verifiedRecord = (variant, i) =>
+  fact({
+    verification: { state: "VERIFIED", checkedOn: "2026-09-10", checkedBy: "fixture" },
+    id: `fixture-subject.claim-${i}.axis=${variant}`,
+    claim: { subject: "fixture-subject", predicate: `claim-${i}`, qualifier: `axis=${variant}` },
+    scope: "destination",
+    value: { value: `fixture value ${variant} ${i}`, valueType: "text", unit: null },
+    source: { url: `https://example.org/fixture/${variant}/${i}`, label: "fixture", publisher: "fixture", tier: 1, documentRef: null },
+    sourceMachineReadable: true,
+    sourceMachineReadableBasis: "fixture",
+    sourceQuotable: false,
+    sourceQuotableBasis: "fixture",
+    licence: "proprietary-no-reuse",
+    sourceDocumentClass: "general",
+    evidence: { quotedSpan: null, quoteLocation: null, ownWords: `Fixture statement ${i} for ${variant}.` },
+    checks: { linkCheckedOn: "2026-09-10", linkCheckOutcome: "pass", quoteMatchedOn: null, quoteMatchOutcome: "not-applicable", fingerprintCheckedOn: "2026-09-10", fingerprintOutcome: "pass" },
+    pageFingerprint: "a".repeat(64),
+    queue: "AUTOMATED",
+    freshness: { rule: "machine-fingerprint", days: 180 },
+    life: { status: "active", firstSeenOn: "2026-09-10", extractedOn: "2026-09-10" },
+    provenance: { route: "R3", acquiredBy: "fixture" },
+  });
+
+const WHY = {
+  alpha: { humanNeed: "a first-time applicant in the alpha region who must choose between two filing routes before a deadline", distinctValue: "sets the two routes side by side with the one condition that decides between them" },
+  beta: { humanNeed: "a returning practitioner who lost a certificate and needs to know whether an older result can still be used", distinctValue: "explains the expiry rule and the single exception that keeps an old result valid" },
+  gamma: { humanNeed: "an employer checking a candidate's documents who cannot tell which of three evidence forms is acceptable", distinctValue: "a checklist of acceptable evidence with what each one does not prove" },
+};
+
+function family({ pages = VARIANTS, words = 420, claims = MIN_FACTS } = {}) {
+  const pageSpecs = {};
+  const records = [];
+  pages.forEach((variant, p) => {
+    for (let i = 0; i < MIN_FACTS; i += 1) records.push(verifiedRecord(variant, i));
+    pageSpecs[variant] = {
+      slug: variant,
+      variant,
+      title: `Fixture page ${variant}`,
+      intro: "Fixture framing shared by every page of the family.",
+      sections: [{ heading: "Body", framing: wordsFor(p, words), claims: Array.from({ length: claims }, (_, i) => `fixture-subject.claim-${i}.axis=${variant}`) }],
+      whyThisUrlDeservesToExist: WHY[variant],
+    };
+  });
+  return { pageSpecs, records };
+}
+
+const judge = ({ pageSpecs, records }, requested = Object.keys(pageSpecs)) =>
+  constructCandidates({ pageSpecs, variants: VARIANTS, records, requested, now: NOW });
+
+/* ---- GREEN ---------------------------------------------------------------- */
+
+test("🟢 GREEN: a family built to clear all four parts is ACCEPTED — and only an accepted candidate carries HTML", () => {
+  const results = judge(family());
+  for (const r of results) {
+    assert.equal(r.verdict, ACCEPTED, `${r.slug}: ${JSON.stringify({ gaps: r.dataGaps, rejects: r.rejects, notTested: r.notTested })}`);
+    assert.deepEqual(Object.values(r.parts).map((p) => p.state), [PASS, PASS, PASS, PASS]);
+    assert.ok(r.parts.uniqueWords.value >= MIN_UNIQUE_WORDS);
+    assert.ok(r.parts.facts.value >= MIN_FACTS);
+    assert.ok(r.parts.overlap.value <= MAX_SIBLING_OVERLAP);
+    assert.equal(r.parts.overlap.comparedWith, 2, "not measured against EVERY sibling");
+    assert.ok(typeof r.html === "string" && r.html.includes('data-claim-id="'));
+    // passing Gate A is not permission to create a page
+    assert.equal(r.pageOne.state, "UNSATISFIED");
+  }
+});
+
+/* ---- RED: one thing broken at a time ------------------------------------- */
+
+const refusedOn = (r, part, state) => {
+  assert.equal(r.verdict, REFUSED, `${r.slug} was accepted`);
+  assert.equal(r.html, null, `${r.slug}: a refused candidate still carries HTML — the runner could write it`);
+  assert.equal(r.trace, null);
+  assert.equal(r.parts[part].state, state, `${r.slug}: ${part} is ${r.parts[part].state}, expected ${state}`);
+};
+
+test("🔴 RED: SHORT — below 350 unique words after the shell is REFUSED", () => {
+  const f = family();
+  f.pageSpecs.alpha.sections[0].framing = wordsFor(0, 60);
+  const [r] = judge(f, ["alpha"]);
+  refusedOn(r, "uniqueWords", FAIL);
+  assert.ok(r.parts.uniqueWords.value < MIN_UNIQUE_WORDS);
+  assert.ok(r.rejects.some((x) => x.part === "uniqueWords"));
+});
+
+test("🔴 RED: FACT-POOR — four VERIFIED facts is a DATA GAP, never padded", () => {
+  const f = family();
+  f.pageSpecs.alpha.sections[0].claims = f.pageSpecs.alpha.sections[0].claims.slice(0, MIN_FACTS - 1);
+  const [r] = judge(f, ["alpha"]);
+  refusedOn(r, "facts", FAIL);
+  assert.equal(r.parts.facts.value, MIN_FACTS - 1);
+  assert.ok(r.dataGaps.some((x) => x.part === "facts"));
+});
+
+test("🔴 RED: FACT-POOR by STATE — five records cited but one is not VERIFIED; the record count does not count", () => {
+  const f = family();
+  const i = f.records.findIndex((r) => r.id === "fixture-subject.claim-4.axis=alpha");
+  const { verification, ...rest } = f.records[i];
+  f.records[i] = fact({ ...rest, verificationState: "UNVERIFIED", checks: { ...rest.checks, factCheckedOn: null, factCheckedBy: null } });
+  const [r] = judge(f, ["alpha"]);
+  refusedOn(r, "facts", FAIL);
+  assert.equal(r.parts.facts.value, 4);
+  assert.match(r.parts.facts.notVerified.join(" "), /claim-4\.axis=alpha \(UNVERIFIED/);
+});
+
+test("🔴 RED: OVERLAPPING — a sibling carrying the same body is REFUSED on overlap, named", () => {
+  const f = family();
+  f.pageSpecs.beta.sections[0].framing = f.pageSpecs.alpha.sections[0].framing;
+  const [r] = judge(f, ["alpha"]);
+  refusedOn(r, "overlap", FAIL);
+  assert.equal(r.parts.overlap.against, "beta");
+  assert.ok(r.parts.overlap.value > MAX_SIBLING_OVERLAP);
+});
+
+test("🔴 RED: WHY — a sibling's rationale with the variant swapped is a template, not a reason", () => {
+  const f = family();
+  f.pageSpecs.beta.whyThisUrlDeservesToExist = {
+    humanNeed: WHY.alpha.humanNeed.replace("alpha", "beta"),
+    distinctValue: WHY.alpha.distinctValue,
+  };
+  const [r] = judge(f, ["alpha"]);
+  refusedOn(r, "whyThisUrl", FAIL);
+  assert.match(r.parts.whyThisUrl.reason, /variant swapped — a template/);
+});
+
+test("🔴 RED: WHY — no rationale is a DATA GAP; a need that names only the variant is REJECTED", () => {
+  const f = family();
+  delete f.pageSpecs.alpha.whyThisUrlDeservesToExist;
+  refusedOn(judge(f, ["alpha"])[0], "whyThisUrl", FAIL);
+  assert.ok(judge(f, ["alpha"])[0].dataGaps.some((x) => x.part === "whyThisUrl"));
+  const g = family();
+  g.pageSpecs.alpha.whyThisUrlDeservesToExist = { humanNeed: "alpha", distinctValue: "something" };
+  const [r] = judge(g, ["alpha"]);
+  refusedOn(r, "whyThisUrl", FAIL);
+  assert.match(r.parts.whyThisUrl.reason, /names nothing but the variant/);
+});
+
+test("🔴 WHY — near-identical is measured, and what is NOT enforced is said", () => {
+  const siblings = [{ slug: "beta", spec: { whyThisUrlDeservesToExist: { humanNeed: `${WHY.alpha.humanNeed} today`, distinctValue: WHY.alpha.distinctValue } } }];
+  const near = judgeWhy("alpha", { whyThisUrlDeservesToExist: WHY.alpha }, siblings, VARIANTS);
+  assert.equal(near.state, FAIL);
+  assert.match(near.reason, /near-identical to beta/);
+  assert.match(WHY_NOT_ENFORCED, /NOT ENFORCED/);
+  assert.match(WHY_NOT_ENFORCED, /residue of GATE-4 stays OPEN/);
+});
+
+test("🔴 BLOCKED / NOT TESTED — a two-spec family cannot learn a shell; both parts say so, and the candidate is REFUSED", () => {
+  const [r] = judge(family({ pages: ["alpha", "beta"] }), ["alpha"]);
+  refusedOn(r, "uniqueWords", NOT_TESTED);
+  assert.equal(r.parts.overlap.state, NOT_TESTED);
+  assert.match(r.parts.uniqueWords.reason, /shared shell is learned from at least 3/);
+  assert.equal(r.notTested.length, 2);
+});
+
+test("🔴 BLOCKED / NOT TESTED — a family of one has no sibling: overlap and distinctness are never a pass", () => {
+  const [r] = judge(family({ pages: ["alpha"] }), ["alpha"]);
+  assert.equal(r.verdict, REFUSED);
+  assert.equal(r.parts.overlap.state, NOT_TESTED);
+  assert.equal(r.parts.whyThisUrl.state, NOT_TESTED);
+});
+
+/* ---- selection: no default ------------------------------------------------ */
+
+test("🔴 NO DEFAULT: neither --slug nor --all-slugs is refused; both together is refused; an undeclared slug is refused", () => {
+  const { pageSpecs } = family();
+  assert.throws(() => selectCandidates(pageSpecs, {}), /--slug=<slug> or --all-slugs is required/);
+  assert.throws(() => selectCandidates(pageSpecs, { slug: "alpha", allSlugs: true }), /choose one/);
+  assert.throws(() => selectCandidates(pageSpecs, { slug: "delta" }), /not a declared page spec/);
+  assert.deepEqual(selectCandidates(pageSpecs, { slug: "beta" }), ["beta"]);
+  assert.deepEqual(selectCandidates(pageSpecs, { allSlugs: true }), ["alpha", "beta", "gamma"]);
+});
+
+/* ---- portability: the neutral product's REAL registry --------------------- */
+
+test("🔴 PORTABILITY: the neutral declared test product walks the same path and is REFUSED — no fact invented", async () => {
+  const { records } = await loadRegistry(NEUTRAL.factsDir, NEUTRAL.productId);
+  // Declared HERE, in the test, so row 53's product descriptor stays exactly as row 53 measured it.
+  const pageSpecs = {
+    sauerkraut: { slug: "sauerkraut", variant: "sauerkraut", title: "declared test", intro: "declared test framing", sections: [{ heading: "h", framing: "declared test framing", claims: ["cabbage-brine.minimum-salt-by-weight.ferment=sauerkraut"] }] },
+  };
+  const [r] = constructCandidates({ pageSpecs, variants: NEUTRAL.variants, records, requested: ["sauerkraut"], now: NOW });
+  assert.equal(r.verdict, REFUSED);
+  assert.equal(r.html, null);
+  assert.equal(r.parts.facts.value, 0);
+  assert.ok(r.dataGaps.some((g) => g.part === "facts"));
+  assert.match(r.rejects.find((x) => x.part === "render").reason, /status "lead" may not reach a reader/);
+  assert.equal(records.filter((x) => x.verificationState === "VERIFIED").length, 0);
+});
+
+/* ---- the real runner ------------------------------------------------------ */
+
+const runner = (...args) => spawnSync(process.execPath, ["bin/build-page.mjs", ...args], { cwd: REPO, encoding: "utf8" });
+
+test("🔴 RUNNER: no slug stops with exit 1 and names the declared specs", () => {
+  const r = runner("--product=almi-oet");
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /--slug=<slug> or --all-slugs is required/);
+  assert.equal(runner("--product=almi-oet", "--slug=not-declared").status, 1);
+  assert.equal(runner("--product=almi-oet", "--slug=x", "--all-slugs").status, 1);
+});
+
+test("🔴 RUNNER FAILS CLOSED: the real product, every declared spec, --confirm given — REFUSED, exit 2, and NOTHING written", () => {
+  const out = mkdtempSync(join(REPO, ".tmp-row61-"));
+  try {
+    const r = runner("--product=almi-oet", "--all-slugs", `--out=${out}`, "--confirm");
+    assert.equal(r.status, 2, r.stdout + r.stderr);
+    assert.match(r.stdout, /ACCEPTED 0 of 2 candidate\(s\)/);
+    assert.match(r.stdout, /\[refused\] nothing written for /);
+    assert.match(r.stdout, /DATA GAP {3}facts: 4 of 5 verified sourced facts/);
+    assert.match(r.stdout, new RegExp(PAGE_ONE.id));
+    assert.deepEqual(readdirSync(out), [], "a refused candidate was written");
+  } finally {
+    rmSync(out, { recursive: true, force: true });
+  }
+});
+
+test("🔴 RUNNER: the neutral product declares no page spec — DATA GAP, exit 2, nothing constructed", () => {
+  const r = runner("--product=neutral-test-ferments", "--all-slugs");
+  assert.equal(r.status, 2);
+  assert.match(r.stdout, /DATA GAP — neutral-test-ferments declares no page spec/);
+});

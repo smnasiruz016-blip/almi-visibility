@@ -22,7 +22,9 @@ import { loadBoundaries, CONTRACT_PARTS } from "../src/checklist/boundaries.mjs"
 import {
   classify, assertLawful, assertTransitions, tally, STATES, LOOKED, BEFORE_AMENDMENT_2, MOVES_AMENDMENT_2,
 } from "../src/checklist/classification.mjs";
-import { verify, EXPECTED_BODY_SHA256, AMENDMENT_2_BODY_SHA256, AMENDMENT_4_BODY_SHA256 } from "../tools/verify-pass-boundaries-source.mjs";
+import {
+  verify, EXPECTED_BODY_SHA256, AMENDMENT_2_BODY_SHA256, AMENDMENT_4_BODY_SHA256, AMENDMENT_5_BODY_SHA256, amendment5,
+} from "../tools/verify-pass-boundaries-source.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const OUT = `${REPO}CHECKLIST_BOUNDARIES.md`;
@@ -109,6 +111,26 @@ L.push("🔴 **The owner's dated addendum (13 September 2026) closed the three g
 L.push("**WORTHINESS** is assigned to the deferred half, and " + `${halves.map((b) => `item ${b.id}`).join(" and ")} carry a four-part contract for their owned half,`);
 L.push("read from the amendment. **A contract is not progress:** both rows stay NOT-STARTED, and each keeps its §6 text below");
 L.push("as the final boundary for when the deferred half opens.");
+L.push("");
+L.push("---");
+L.push("");
+/* ── 🔴 AMENDMENT 5 — ROW 61, RESERVED, READ FROM §4 ── */
+const a5 = amendment5(`${REPO}PASS_BOUNDARIES_AMENDMENT_5.md`);
+L.push(`## 🔴 AMENDMENT 5 — ROW ${a5.row.id} RESERVED: ${a5.row.name}`);
+L.push("");
+L.push(`Amendment 5 verified against sha256 \`${AMENDMENT_5_BODY_SHA256}\`. **It adds one row and moves no text.**`);
+L.push("");
+L.push(`🔴 **Row ${a5.row.id} is RESERVED, not created:** rows 59 and 60 exist nowhere in this repository, and the ruling`);
+L.push("says to reserve the number and never renumber. The 58-row ledger below is untouched; the reserved row is carried");
+L.push(`beside it and counts toward scope: **in scope ${a5.inScope.before} → ${a5.inScope.after}**.`);
+L.push("");
+L.push(`**${a5.row.state}** · class \`${a5.row.class}\` · ruled in \`PASS_BOUNDARIES_AMENDMENT_5.md §4\` · RESERVED`);
+L.push("");
+L.push("| part | the owner's words |");
+L.push("|---|---|");
+for (const p of CONTRACT_PARTS) L.push(`| **${p.toUpperCase()}** | ${a5.row.contract[p] ? esc(a5.row.contract[p]) : "🔴 *not stated in the ruling*"} |`);
+L.push("");
+L.push("- **moved because WORK HAPPENED:** none. The row arrives NOT-STARTED, and it is not ticked by the PR that built its runner.");
 L.push("");
 L.push("---");
 L.push("");

@@ -1,0 +1,370 @@
+{
+  "_provenance": {
+    "title": "AlmiVisibility — row 60 owner ruling sheet",
+    "generatedAt": "2026-09-14T02:11:42.069Z",
+    "generatedBy": "bin/row60-ruling-sheet.mjs",
+    "covers": [
+      "every finding class present on an issue record in the files listed under `sources`",
+      "counts derived by applying every issue_state_change to its issue on issue_id (lifecycleOf)",
+      "descriptions and current levels copied from config/consequence-register.mjs at generation time"
+    ],
+    "doesNotCover": [
+      "🔴 any consequence level — this sheet proposes none, and orders classes by name only",
+      "🔴 a detector's `severity` field — it is not a consequence level and is not read"
+    ],
+    "units": {
+      "distinct": "issues, by issue_id",
+      "open": "distinct issues still OPEN after every state change",
+      "raw": "issue records, duplicate copies included"
+    }
+  },
+  "sources": [
+    {
+      "file": "runs/audit/content-findings.jsonl",
+      "records": 471,
+      "issueRecords": 471,
+      "stateChanges": 0,
+      "recommendations": 0
+    },
+    {
+      "file": "runs/audit/crawler-classification.jsonl",
+      "records": 32,
+      "issueRecords": 0,
+      "stateChanges": 0,
+      "recommendations": 0
+    },
+    {
+      "file": "runs/audit/findings.jsonl",
+      "records": 134,
+      "issueRecords": 107,
+      "stateChanges": 0,
+      "recommendations": 0
+    },
+    {
+      "file": "runs/audit/instrument-findings.jsonl",
+      "records": 22,
+      "issueRecords": 11,
+      "stateChanges": 11,
+      "recommendations": 0
+    },
+    {
+      "file": "runs/audit/recommendations.jsonl",
+      "records": 10,
+      "issueRecords": 0,
+      "stateChanges": 0,
+      "recommendations": 3
+    },
+    {
+      "file": "runs/audit/source-integrity.jsonl",
+      "records": 15,
+      "issueRecords": 0,
+      "stateChanges": 0,
+      "recommendations": 0
+    },
+    {
+      "file": "runs/audit/supply-labels.jsonl",
+      "records": 550,
+      "issueRecords": 550,
+      "stateChanges": 0,
+      "recommendations": 0
+    },
+    {
+      "file": "runs/audit/technical-findings.jsonl",
+      "records": 2888,
+      "issueRecords": 1886,
+      "stateChanges": 134,
+      "recommendations": 0
+    },
+    {
+      "file": "runs/audit/verification-issues.jsonl",
+      "records": 15,
+      "issueRecords": 2,
+      "stateChanges": 0,
+      "recommendations": 0
+    },
+    {
+      "file": "runs/cost/actions-runs.jsonl",
+      "records": 1,
+      "issueRecords": 0,
+      "stateChanges": 0,
+      "recommendations": 0
+    },
+    {
+      "file": "runs/cost/ledger.jsonl",
+      "records": 22,
+      "issueRecords": 0,
+      "stateChanges": 0,
+      "recommendations": 0
+    },
+    {
+      "file": "runs/crawl/first-real-crawl-2026-09-12.jsonl",
+      "records": 999,
+      "issueRecords": 0,
+      "stateChanges": 0,
+      "recommendations": 0
+    },
+    {
+      "file": "runs/evidence/evidence.jsonl",
+      "records": 50,
+      "issueRecords": 0,
+      "stateChanges": 0,
+      "recommendations": 0
+    },
+    {
+      "file": "runs/evidence/robots.jsonl",
+      "records": 5,
+      "issueRecords": 0,
+      "stateChanges": 0,
+      "recommendations": 0
+    },
+    {
+      "file": "runs/evidence/sitemaps.jsonl",
+      "records": 5,
+      "issueRecords": 0,
+      "stateChanges": 0,
+      "recommendations": 0
+    },
+    {
+      "file": "runs/render/rendered-2026-09-13.jsonl",
+      "records": 394,
+      "issueRecords": 0,
+      "stateChanges": 0,
+      "recommendations": 0
+    },
+    {
+      "file": "runs/replay/replay-audit-dns-2026-09-13-journey-key.jsonl",
+      "records": 268,
+      "issueRecords": 107,
+      "stateChanges": 0,
+      "recommendations": 0
+    },
+    {
+      "file": "runs/replay/replay-audit-dns-2026-09-13.jsonl",
+      "records": 268,
+      "issueRecords": 107,
+      "stateChanges": 0,
+      "recommendations": 0
+    },
+    {
+      "file": "runs/replay/replay-crawl-2026-09-13-journey-key.jsonl",
+      "records": 788,
+      "issueRecords": 0,
+      "stateChanges": 0,
+      "recommendations": 0
+    },
+    {
+      "file": "runs/replay/replay-crawl-2026-09-13.jsonl",
+      "records": 788,
+      "issueRecords": 0,
+      "stateChanges": 0,
+      "recommendations": 0
+    }
+  ],
+  "lifecycleErrors": [],
+  "classes": [
+    {
+      "issue_class": "canonical",
+      "what": "a page's raw HTML carries no rel=canonical link",
+      "distinct": 6,
+      "open": 6,
+      "raw": 12,
+      "ruled": {},
+      "currentLevel": "UNCLASSIFIED",
+      "level": "",
+      "why": ""
+    },
+    {
+      "issue_class": "commencement-date-ambiguous-against-source",
+      "what": "a fact's commencement date cannot be read unambiguously from its official source",
+      "distinct": 1,
+      "open": 1,
+      "raw": 1,
+      "ruled": {},
+      "currentLevel": "UNCLASSIFIED",
+      "level": "",
+      "why": ""
+    },
+    {
+      "issue_class": "exact-duplicate",
+      "what": "a page's body is byte-identical to other pages'",
+      "distinct": 106,
+      "open": 106,
+      "raw": 106,
+      "ruled": {},
+      "currentLevel": "UNCLASSIFIED",
+      "level": "",
+      "why": ""
+    },
+    {
+      "issue_class": "head-elements",
+      "what": "a page's heading structure is broken — no h1, or a heading level used before it",
+      "distinct": 18,
+      "open": 18,
+      "raw": 36,
+      "ruled": {},
+      "currentLevel": "UNCLASSIFIED",
+      "level": "",
+      "why": ""
+    },
+    {
+      "issue_class": "host-publishes-no-a-record",
+      "what": "a host publishes no IPv4 address, so IPv4 clients and crawlers cannot resolve it",
+      "distinct": 1,
+      "open": 1,
+      "raw": 3,
+      "ruled": {},
+      "currentLevel": "UNCLASSIFIED",
+      "level": "",
+      "why": ""
+    },
+    {
+      "issue_class": "indexability-preflight",
+      "what": "a page's technical indexability state — a condition that blocks eligibility, or one left unmeasured",
+      "distinct": 368,
+      "open": 368,
+      "raw": 720,
+      "ruled": {},
+      "currentLevel": "UNCLASSIFIED",
+      "level": "",
+      "why": ""
+    },
+    {
+      "issue_class": "instrument-disagreement",
+      "what": "two of our own instruments disagree about the same page over the same inputs",
+      "distinct": 11,
+      "open": 0,
+      "raw": 11,
+      "ruled": {
+        "CLOSED": 11
+      },
+      "currentLevel": "UNCLASSIFIED",
+      "level": "",
+      "why": ""
+    },
+    {
+      "issue_class": "near-duplicate",
+      "what": "a page's body is highly similar to a sibling page's",
+      "distinct": 113,
+      "open": 113,
+      "raw": 115,
+      "ruled": {},
+      "currentLevel": "UNCLASSIFIED",
+      "level": "",
+      "why": ""
+    },
+    {
+      "issue_class": "noindex",
+      "what": "a page carries noindex in its meta robots tag or X-Robots-Tag header",
+      "distinct": 268,
+      "open": 134,
+      "raw": 402,
+      "ruled": {
+        "SUPERSEDED": 134
+      },
+      "currentLevel": "UNCLASSIFIED",
+      "level": "",
+      "why": ""
+    },
+    {
+      "issue_class": "official-source-contradicts-itself",
+      "what": "an official source states two things about the same fact that disagree",
+      "distinct": 1,
+      "open": 1,
+      "raw": 1,
+      "ruled": {},
+      "currentLevel": "UNCLASSIFIED",
+      "level": "",
+      "why": ""
+    },
+    {
+      "issue_class": "orphan-within-crawled-set",
+      "what": "no page inside the crawled set links to this page",
+      "distinct": 340,
+      "open": 340,
+      "raw": 340,
+      "ruled": {},
+      "currentLevel": "UNCLASSIFIED",
+      "level": "",
+      "why": ""
+    },
+    {
+      "issue_class": "query-parameters",
+      "what": "a page's URL carries query parameters",
+      "distinct": 1,
+      "open": 1,
+      "raw": 2,
+      "ruled": {},
+      "currentLevel": "UNCLASSIFIED",
+      "level": "",
+      "why": ""
+    },
+    {
+      "issue_class": "robots-blocks-search-crawler",
+      "what": "robots.txt disallows a search crawler from a page that draws search impressions",
+      "distinct": 106,
+      "open": 106,
+      "raw": 318,
+      "ruled": {},
+      "currentLevel": "UNCLASSIFIED",
+      "level": "",
+      "why": ""
+    },
+    {
+      "issue_class": "sitemap-advertises-blocked-url",
+      "what": "a sitemap advertises a URL that robots.txt blocks — or the inputs to check it are not stored",
+      "distinct": 350,
+      "open": 350,
+      "raw": 700,
+      "ruled": {},
+      "currentLevel": "UNCLASSIFIED",
+      "level": "",
+      "why": ""
+    },
+    {
+      "issue_class": "status-and-redirects",
+      "what": "requesting a page's URL does not return 200 directly — it redirects or errors",
+      "distinct": 7,
+      "open": 7,
+      "raw": 14,
+      "ruled": {},
+      "currentLevel": "UNCLASSIFIED",
+      "level": "",
+      "why": ""
+    },
+    {
+      "issue_class": "template-dominance",
+      "what": "the shared shell makes up most of a page's words",
+      "distinct": 110,
+      "open": 110,
+      "raw": 114,
+      "ruled": {},
+      "currentLevel": "UNCLASSIFIED",
+      "level": "",
+      "why": ""
+    },
+    {
+      "issue_class": "thin-content",
+      "what": "a page has fewer unique body words than the floor after the shell is subtracted",
+      "distinct": 226,
+      "open": 226,
+      "raw": 346,
+      "ruled": {},
+      "currentLevel": "UNCLASSIFIED",
+      "level": "",
+      "why": ""
+    }
+  ],
+  "unreachableByAnyEntry": [
+    {
+      "recommendation_id": "REC-AI-CRAWLER-BLOCK",
+      "reason": "its evidence links no issue, so no finding class — and no register entry — can apply to it",
+      "ruling": ""
+    }
+  ],
+  "scale": {
+    "levelNames": "",
+    "order": "",
+    "consequenceAgainstVolume": "",
+    "keepUnclassifiedAsUnknown": ""
+  }
+}

@@ -1,15 +1,16 @@
 {
   "_provenance": {
-    "title": "AlmiVisibility — row 60 owner ruling sheet",
-    "generatedAt": "2026-09-14T02:11:42.069Z",
+    "title": "AlmiVisibility — row 60 consequence sheet",
+    "generatedAt": "2026-09-14T03:12:24.449Z",
     "generatedBy": "bin/row60-ruling-sheet.mjs",
     "covers": [
       "every finding class present on an issue record in the files listed under `sources`",
       "counts derived by applying every issue_state_change to its issue on issue_id (lifecycleOf)",
-      "descriptions and current levels copied from config/consequence-register.mjs at generation time"
+      "descriptions, levels and Part C gaps copied from config/consequence-register.mjs at generation time",
+      "the scale copied from config/consequence-scale.mjs; the order computed consequence-first over the open counts"
     ],
     "doesNotCover": [
-      "🔴 any consequence level — this sheet proposes none, and orders classes by name only",
+      "🔴 any level the register does not declare — the sheet copies levels, it never sets one",
       "🔴 a detector's `severity` field — it is not a consequence level and is not read"
     ],
     "units": {
@@ -161,6 +162,28 @@
     }
   ],
   "lifecycleErrors": [],
+  "scale": [
+    {
+      "level": "CRITICAL",
+      "definition": "consequence irreversible, or practical recovery not dependable; credible risk of catastrophic or systemic loss to security, data, production or search visibility."
+    },
+    {
+      "level": "HIGH",
+      "definition": "material serious harm possible, but recovery is possible — costly, complex, slow, or demanding broad intervention."
+    },
+    {
+      "level": "MODERATE",
+      "definition": "meaningful harm, bounded and reversible, recoverable by normal corrective work."
+    },
+    {
+      "level": "LOW",
+      "definition": "limited or minor consequence; easily reversible; does not materially threaten core production, data, security or indexation integrity."
+    },
+    {
+      "level": "NONE",
+      "definition": "verified no material adverse consequence."
+    }
+  ],
   "classes": [
     {
       "issue_class": "canonical",
@@ -169,9 +192,8 @@
       "open": 6,
       "raw": 12,
       "ruled": {},
-      "currentLevel": "UNCLASSIFIED",
-      "level": "",
-      "why": ""
+      "level": "LOW",
+      "escalatedFrom": null
     },
     {
       "issue_class": "commencement-date-ambiguous-against-source",
@@ -180,9 +202,8 @@
       "open": 1,
       "raw": 1,
       "ruled": {},
-      "currentLevel": "UNCLASSIFIED",
-      "level": "",
-      "why": ""
+      "level": "MODERATE",
+      "escalatedFrom": null
     },
     {
       "issue_class": "exact-duplicate",
@@ -191,9 +212,8 @@
       "open": 106,
       "raw": 106,
       "ruled": {},
-      "currentLevel": "UNCLASSIFIED",
-      "level": "",
-      "why": ""
+      "level": "HIGH",
+      "escalatedFrom": null
     },
     {
       "issue_class": "head-elements",
@@ -202,9 +222,8 @@
       "open": 18,
       "raw": 36,
       "ruled": {},
-      "currentLevel": "UNCLASSIFIED",
-      "level": "",
-      "why": ""
+      "level": "LOW",
+      "escalatedFrom": null
     },
     {
       "issue_class": "host-publishes-no-a-record",
@@ -213,9 +232,8 @@
       "open": 1,
       "raw": 3,
       "ruled": {},
-      "currentLevel": "UNCLASSIFIED",
-      "level": "",
-      "why": ""
+      "level": "HIGH",
+      "escalatedFrom": null
     },
     {
       "issue_class": "indexability-preflight",
@@ -224,9 +242,8 @@
       "open": 368,
       "raw": 720,
       "ruled": {},
-      "currentLevel": "UNCLASSIFIED",
-      "level": "",
-      "why": ""
+      "level": "UNCLASSIFIED",
+      "escalatedFrom": null
     },
     {
       "issue_class": "instrument-disagreement",
@@ -237,9 +254,8 @@
       "ruled": {
         "CLOSED": 11
       },
-      "currentLevel": "UNCLASSIFIED",
-      "level": "",
-      "why": ""
+      "level": "HIGH",
+      "escalatedFrom": null
     },
     {
       "issue_class": "near-duplicate",
@@ -248,9 +264,8 @@
       "open": 113,
       "raw": 115,
       "ruled": {},
-      "currentLevel": "UNCLASSIFIED",
-      "level": "",
-      "why": ""
+      "level": "MODERATE",
+      "escalatedFrom": null
     },
     {
       "issue_class": "noindex",
@@ -261,9 +276,8 @@
       "ruled": {
         "SUPERSEDED": 134
       },
-      "currentLevel": "UNCLASSIFIED",
-      "level": "",
-      "why": ""
+      "level": "UNCLASSIFIED",
+      "escalatedFrom": null
     },
     {
       "issue_class": "official-source-contradicts-itself",
@@ -272,9 +286,8 @@
       "open": 1,
       "raw": 1,
       "ruled": {},
-      "currentLevel": "UNCLASSIFIED",
-      "level": "",
-      "why": ""
+      "level": "HIGH",
+      "escalatedFrom": null
     },
     {
       "issue_class": "orphan-within-crawled-set",
@@ -283,9 +296,8 @@
       "open": 340,
       "raw": 340,
       "ruled": {},
-      "currentLevel": "UNCLASSIFIED",
-      "level": "",
-      "why": ""
+      "level": "MODERATE",
+      "escalatedFrom": "LOW"
     },
     {
       "issue_class": "query-parameters",
@@ -294,9 +306,8 @@
       "open": 1,
       "raw": 2,
       "ruled": {},
-      "currentLevel": "UNCLASSIFIED",
-      "level": "",
-      "why": ""
+      "level": "LOW",
+      "escalatedFrom": null
     },
     {
       "issue_class": "robots-blocks-search-crawler",
@@ -305,9 +316,8 @@
       "open": 106,
       "raw": 318,
       "ruled": {},
-      "currentLevel": "UNCLASSIFIED",
-      "level": "",
-      "why": ""
+      "level": "MODERATE",
+      "escalatedFrom": null
     },
     {
       "issue_class": "sitemap-advertises-blocked-url",
@@ -316,9 +326,8 @@
       "open": 350,
       "raw": 700,
       "ruled": {},
-      "currentLevel": "UNCLASSIFIED",
-      "level": "",
-      "why": ""
+      "level": "UNCLASSIFIED",
+      "escalatedFrom": null
     },
     {
       "issue_class": "status-and-redirects",
@@ -327,9 +336,8 @@
       "open": 7,
       "raw": 14,
       "ruled": {},
-      "currentLevel": "UNCLASSIFIED",
-      "level": "",
-      "why": ""
+      "level": "LOW",
+      "escalatedFrom": null
     },
     {
       "issue_class": "template-dominance",
@@ -338,9 +346,8 @@
       "open": 110,
       "raw": 114,
       "ruled": {},
-      "currentLevel": "UNCLASSIFIED",
-      "level": "",
-      "why": ""
+      "level": "MODERATE",
+      "escalatedFrom": null
     },
     {
       "issue_class": "thin-content",
@@ -349,22 +356,145 @@
       "open": 226,
       "raw": 346,
       "ruled": {},
-      "currentLevel": "UNCLASSIFIED",
-      "level": "",
-      "why": ""
+      "level": "MODERATE",
+      "escalatedFrom": null
     }
   ],
+  "order": {
+    "ranked": [
+      {
+        "id": "exact-duplicate",
+        "rank": 1,
+        "of": 14,
+        "level": "HIGH",
+        "volume": 106
+      },
+      {
+        "id": "host-publishes-no-a-record",
+        "rank": 2,
+        "of": 14,
+        "level": "HIGH",
+        "volume": 1
+      },
+      {
+        "id": "official-source-contradicts-itself",
+        "rank": 3,
+        "of": 14,
+        "level": "HIGH",
+        "volume": 1
+      },
+      {
+        "id": "instrument-disagreement",
+        "rank": 4,
+        "of": 14,
+        "level": "HIGH",
+        "volume": 0
+      },
+      {
+        "id": "orphan-within-crawled-set",
+        "rank": 5,
+        "of": 14,
+        "level": "MODERATE",
+        "volume": 340
+      },
+      {
+        "id": "thin-content",
+        "rank": 6,
+        "of": 14,
+        "level": "MODERATE",
+        "volume": 226
+      },
+      {
+        "id": "near-duplicate",
+        "rank": 7,
+        "of": 14,
+        "level": "MODERATE",
+        "volume": 113
+      },
+      {
+        "id": "template-dominance",
+        "rank": 8,
+        "of": 14,
+        "level": "MODERATE",
+        "volume": 110
+      },
+      {
+        "id": "robots-blocks-search-crawler",
+        "rank": 9,
+        "of": 14,
+        "level": "MODERATE",
+        "volume": 106
+      },
+      {
+        "id": "commencement-date-ambiguous-against-source",
+        "rank": 10,
+        "of": 14,
+        "level": "MODERATE",
+        "volume": 1
+      },
+      {
+        "id": "head-elements",
+        "rank": 11,
+        "of": 14,
+        "level": "LOW",
+        "volume": 18
+      },
+      {
+        "id": "status-and-redirects",
+        "rank": 12,
+        "of": 14,
+        "level": "LOW",
+        "volume": 7
+      },
+      {
+        "id": "canonical",
+        "rank": 13,
+        "of": 14,
+        "level": "LOW",
+        "volume": 6
+      },
+      {
+        "id": "query-parameters",
+        "rank": 14,
+        "of": 14,
+        "level": "LOW",
+        "volume": 1
+      }
+    ],
+    "unranked": [
+      {
+        "id": "indexability-preflight",
+        "state": "UNKNOWN",
+        "route": "OWNER REVIEW",
+        "reason": "UNCLASSIFIED — indexability-preflight has no level the owner ruled; an unrated consequence is UNKNOWN, never low — routed to owner review; never ranked and never executed on a fallback"
+      },
+      {
+        "id": "noindex",
+        "state": "UNKNOWN",
+        "route": "OWNER REVIEW",
+        "reason": "UNCLASSIFIED — noindex has no level the owner ruled; an unrated consequence is UNKNOWN, never low — routed to owner review; never ranked and never executed on a fallback"
+      },
+      {
+        "id": "sitemap-advertises-blocked-url",
+        "state": "UNKNOWN",
+        "route": "OWNER REVIEW",
+        "reason": "UNCLASSIFIED — sitemap-advertises-blocked-url has no level the owner ruled; an unrated consequence is UNKNOWN, never low — routed to owner review; never ranked and never executed on a fallback"
+      }
+    ]
+  },
   "unreachableByAnyEntry": [
     {
       "recommendation_id": "REC-AI-CRAWLER-BLOCK",
       "reason": "its evidence links no issue, so no finding class — and no register entry — can apply to it",
-      "ruling": ""
+      "level": "UNCLASSIFIED",
+      "gap": "it rests on crawler observations, not on a finding class, so no class-keyed register entry can ever apply to it.",
+      "needs": [
+        "affected scope",
+        "crawler access",
+        "robots directives in force",
+        "reversibility",
+        "the measured visibility or indexation consequence"
+      ]
     }
-  ],
-  "scale": {
-    "levelNames": "",
-    "order": "",
-    "consequenceAgainstVolume": "",
-    "keepUnclassifiedAsUnknown": ""
-  }
+  ]
 }

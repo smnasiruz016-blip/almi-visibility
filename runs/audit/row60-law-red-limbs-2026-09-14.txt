@@ -1,0 +1,68 @@
+ROW 60 — THE OWNER'S LAW (14 September 2026): EACH EVIDENCE LIMB SABOTAGED ALONE IN THE REAL FILES
+recorded 2026-09-14T03:16:13.814Z by the sabotage harness; runner: node bin/consequence-census.mjs (limb 7: node bin/row60-ruling-sheet.mjs)
+
+GREEN BEFORE — census exit 0, limbs tripped: none · sheet runner exit 0
+
+✅ RED ALONE — limb 1 · an entry missing REVERSIBILITY (orphan-within-crawled-set)
+   file config/consequence-register.mjs
+   sha256 before   0fd7931c20b4eed7085d43be91310c0406a5eb2b2802a9f2b86da2749f9ce852
+   sha256 sabotage 1ad18da1a56ecad0a564af3379c5cc4504ee6eb6e04b15ecbee5283cb48ef137   (landed: true)
+   exit 1 · limbs tripped: entry · expected exactly: entry
+   [entry] orphan-within-crawled-set the entry has no reversibility — a classified entry states all six parts, and a partial one is refused
+   sha256 restored 0fd7931c20b4eed7085d43be91310c0406a5eb2b2802a9f2b86da2749f9ce852   (identical to before: true)
+
+✅ RED ALONE — limb 2 · volume amplifying ACROSS a level boundary (the comparator sorts volume before level)
+   file src/audit/consequence.mjs
+   sha256 before   8d9d705792b71630779fd2da33f872b6a5e96afebe97f686c77c7489a28c2901
+   sha256 sabotage 22b88cbd8da983197cf18e9fb691356b41f863f4ac95004906c1a41eb522da31   (landed: true)
+   exit 1 · limbs tripped: cross-level-amplifier · expected exactly: cross-level-amplifier
+   [cross-level-amplifier] template-dominance template-dominance (MODERATE, volume 110) ranks above exact-duplicate (HIGH, volume 106) — volume never crosses a level; only a declared escalation does
+   [cross-level-amplifier] canonical canonical (LOW, volume 6) ranks above host-publishes-no-a-record (HIGH, volume 1) — volume never crosses a level; only a declared escalation does
+   [cross-level-amplifier] query-parameters query-parameters (LOW, volume 1) ranks above instrument-disagreement (HIGH, volume 0) — volume never crosses a level; only a declared escalation does
+   sha256 restored 8d9d705792b71630779fd2da33f872b6a5e96afebe97f686c77c7489a28c2901   (identical to before: true)
+
+✅ RED ALONE — limb 3 · the same evidence ranking differently on a second run (the deterministic tie-break removed)
+   file src/audit/consequence.mjs
+   sha256 before   8d9d705792b71630779fd2da33f872b6a5e96afebe97f686c77c7489a28c2901
+   sha256 sabotage 4a75ab1f181316151172656ce50961acc50fda5889aef1391ddfcf24aa4dfd77   (landed: true)
+   exit 1 · limbs tripped: determinism · expected exactly: determinism
+   [determinism]  the same evidence, presented in a different order, ordered differently — a ranking that depends on input order is not a classification (A2)
+   sha256 restored 8d9d705792b71630779fd2da33f872b6a5e96afebe97f686c77c7489a28c2901   (identical to before: true)
+
+✅ RED ALONE — limb 4 · an UNCLASSIFIED class ranked on a fallback, as LOW
+   file src/audit/consequence.mjs
+   sha256 before   8d9d705792b71630779fd2da33f872b6a5e96afebe97f686c77c7489a28c2901
+   sha256 sabotage c1173a744cd02366d6fd1e8c6d35473ed3c6569911e506c8af1e87bf8a2f63c0   (landed: true)
+   exit 1 · limbs tripped: unclassified-ordered · expected exactly: unclassified-ordered
+   [unclassified-ordered] indexability-preflight ranked 11 at LOW while the register gives [UNCLASSIFIED] — an UNCLASSIFIED consequence is UNKNOWN, never low, never ranked on a fallback
+   [unclassified-ordered] sitemap-advertises-blocked-url ranked 12 at LOW while the register gives [UNCLASSIFIED] — an UNCLASSIFIED consequence is UNKNOWN, never low, never ranked on a fallback
+   [unclassified-ordered] noindex ranked 13 at LOW while the register gives [UNCLASSIFIED] — an UNCLASSIFIED consequence is UNKNOWN, never low, never ranked on a fallback
+   [unclassified-ordered] REC-NOINDEX-CV-GUIDE ranked 2 at LOW while the register gives [UNCLASSIFIED] — an UNCLASSIFIED consequence is UNKNOWN, never low, never ranked on a fallback
+   sha256 restored 8d9d705792b71630779fd2da33f872b6a5e96afebe97f686c77c7489a28c2901   (identical to before: true)
+
+✅ RED ALONE — limb 5 · UNCLASSIFIED admitted into the severity scale
+   file config/consequence-scale.mjs
+   sha256 before   36153b4b1db876207cf3a0651cb338fe4e2a9e933fd7899e3d9be4c4beb2aa76
+   sha256 sabotage 9b7f696f3257940db2a6fad015616435ef7c60636c77a8862cfa7d230ed375fa   (landed: true)
+   exit 1 · limbs tripped: scale · expected exactly: scale
+   [scale]  UNCLASSIFIED is a classification or reporting STATE, not a severity — it may never be a member of the scale (A4)
+   sha256 restored 36153b4b1db876207cf3a0651cb338fe4e2a9e933fd7899e3d9be4c4beb2aa76   (identical to before: true)
+
+✅ RED ALONE — limb 6 · REC-AI-CRAWLER-BLOCK given a level by nearest-class guessing
+   file src/report/recommendation-fields.mjs
+   sha256 before   db6993cf222c17d4c0c0732f6597e8dde3cc787aafdd64b93b11141c45ab1f47
+   sha256 sabotage 0da24f8d02e285d9cfa38c9f5e160f4856b422360ef470d23cabe8c457e8c43b   (landed: true)
+   exit 1 · limbs tripped: nearest-class · expected exactly: nearest-class
+   [nearest-class] REC-AI-CRAWLER-BLOCK its consequence applied [robots-blocks-search-crawler] but its evidence links [] — no entry is stretched to reach an item, and no nearest class is guessed
+   sha256 restored db6993cf222c17d4c0c0732f6597e8dde3cc787aafdd64b93b11141c45ab1f47   (identical to before: true)
+
+✅ RED ALONE — limb 7 · the regenerated sheet disagreeing with the store (noindex open 134 → 268) — the sheet runner must refuse to print
+   file runs/export/row60-ruling-sheet.json
+   sha256 before   5984fbf49362d32f84a78d63baf35f5ee48ffcbe57d360620b72ca8166577079
+   sha256 sabotage b47481146f3e9161b0a2ee8bf9694e636c491d9529c7c0ca7a41c7b01e334389   (landed: true)
+   exit 1 · limbs tripped: count · expected exactly: count
+   [count] noindex — open reads 268 on the sheet and 134 in the store
+   sha256 restored 5984fbf49362d32f84a78d63baf35f5ee48ffcbe57d360620b72ca8166577079   (identical to before: true)
+
+GREEN AFTER — census exit 0, limbs tripped: none · sheet runner exit 0
+RESULT: 7 of 7 limbs RED alone and restored

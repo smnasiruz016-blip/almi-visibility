@@ -229,6 +229,16 @@ export const EVIDENCE_STRENGTH = Object.freeze({
  */
 export { FACT_FRESHNESS_DAYS } from "../gate-a/facts.mjs";
 
+/**
+ * 🔴 ROW 17 — THE KIND OF A FACT. §5A: "where a fact is derived from other verified values, the derivation/formula
+ * and input fact IDs must be stored". A KIND, not a flag: a record is one or the other, and the validator judges each
+ * by its own laws (F28, F29). A record that declares no kind is primary — the 46 written before kinds existed.
+ */
+export const FACT_KINDS = Object.freeze({
+  primary: "read from a source — every source law, F3 to F22, binds it",
+  derived: "computed by a declared formula from other records in this registry — its source is its inputs (F28, F29)",
+});
+
 /** R1–R4. `FACT_CACHE_DESIGN.md` §2 — they are not interchangeable. */
 export const ROUTES = Object.freeze({
   R1: "official structured source — an index, API or dataset the authority publishes",

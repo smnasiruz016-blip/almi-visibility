@@ -440,7 +440,9 @@ test("🔴 rows 59 and 60 left NOT-STARTED only by declared WORK moves — 59 VE
   assert.match(rows[59].why, /CANNOT prove the refutation is well chosen — that is human judgement/, "the census's limit is not written on the row");
   assert.match(rows[59].why, /Backfill: 20 written, 0 that could not be written/);
   assert.equal(rows[60].state, "BUILT-NOT-PROVED");
-  assert.match(rows[60].why, /BY DESIGN, AND THAT IS THE ROW WORKING/);
+  // 🔴 14 Sep 2026: ruled by the owner, and still not proved — the unmet limb is named on the row, not implied.
+  assert.match(rows[60].why, /THREE CLASSES CANNOT CARRY A LEVEL/);
+  assert.match(rows[60].why, /The limb not met is EXPECTED's first clause/);
   assert.match(rows[60].why, /UNCLASSIFIED IS A REAL STATE AND NEVER DEFAULTS TO LOW/);
   assert.deepEqual(assertTransitions(rows), []);
   assert.deepEqual(assertLawful(rows), []);

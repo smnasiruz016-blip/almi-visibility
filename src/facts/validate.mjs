@@ -23,7 +23,9 @@ import {
   FRESHNESS_RULES,
   FACT_CHECKED_BY_PATTERN,
   ROUTES,
+  FACT_KINDS,
 } from "./schema.mjs";
+import { FORMULAS, makeDerivedFact, recomputeDerived } from "./lifecycle.mjs";
 import { queueFor, freshnessRuleFor } from "./queues.mjs";
 import {
   licencesVisibleTo,
@@ -71,6 +73,37 @@ export function validateRecord(record) {
   // shipped: ₦66,875 and Rs.10,000 are both "10000-ish" and mean nothing alike.
   if (["money", "duration", "count"].includes(v.valueType) && !isFilled(v.unit)) {
     push("F2", `valueType is "${v.valueType}" and there is no unit — a bare number is not a fact`);
+  }
+
+  // ── F28 · 🔴 ROW 17 — A DERIVED FACT IS A KIND, AND ITS SOURCE IS ITS INPUTS ─
+  // A record is `primary` (read from a source) or `derived` (computed by a declared formula from other records).
+  // The 46 records written before kinds existed declare none and are primary, and EVERY source law below still
+  // binds them. A derived record is waived F3–F11, F13 and F17–F22 — the laws of reading a source — because it
+  // reads none; it pays for that here and in F29, against the records it cites. Half a derived fact is refused
+  // both ways: a derivation without the kind, and the kind without a derivation or while carrying a source.
+  const kind = r.kind === undefined ? "primary" : r.kind;
+  if (!Object.prototype.hasOwnProperty.call(FACT_KINDS, String(kind))) {
+    push("F28", `kind is ${JSON.stringify(r.kind)}, not one of ${Object.keys(FACT_KINDS).join(", ")}`);
+  }
+  if (kind !== "derived" && r.derivation !== undefined && r.derivation !== null) {
+    push("F28", 'the record carries a derivation but does not declare kind "derived" — half a derived fact is not one');
+  }
+  if (kind === "derived") {
+    const d = r.derivation;
+    if (!Object.prototype.hasOwnProperty.call(FORMULAS, String(d?.formula))) {
+      push("F28", `derivation.formula is ${JSON.stringify(d?.formula)} — a formula must be one of ${Object.keys(FORMULAS).join(", ")}, re-executable, not described`);
+    }
+    if (!Array.isArray(d?.inputs) || d.inputs.length === 0 || !d.inputs.every(isFilled)) push("F28", "a derived fact must cite the fact_ids of its inputs");
+    if (!Array.isArray(d?.inputValues) || d.inputValues.length !== (Array.isArray(d?.inputs) ? d.inputs.length : -1)) {
+      push("F28", "derivation.inputValues must hold the value of every input it was computed from — without them a changed input cannot be detected");
+    }
+    if (Array.isArray(d?.inputs) && d.inputs.includes(r.id)) push("F28", "a derived fact cannot be its own input");
+    if (r.source !== undefined && r.source !== null) push("F28", "a derived fact carries a source — its source is its inputs, and a source here is a primary fact dressed as derived");
+    if ((r.checks?.factCheckedOn ?? null) !== null) push("F28", "a derived fact carries factCheckedOn — its standing is its weakest input's, not a check");
+    if (!["UNVERIFIED", "VERIFIED", "UNKNOWN"].includes(r.verificationState)) push("F28", `verificationState is ${JSON.stringify(r.verificationState)} — a derived fact declares the standing it inherits`);
+    lifeLaws(r, push);
+    conflictLaws(r, push);
+    return { id: r.id ?? derived ?? "(no id)", valid: errors.length === 0, errors };
   }
 
   // ── F3 · THE SOURCE ───────────────────────────────────────────────────────
@@ -213,21 +246,8 @@ export function validateRecord(record) {
   }
 
   // ── F12 · LIFE, AND NOTHING IS EVER EDITED IN PLACE ───────────────────────
+  lifeLaws(r, push);
   const l = r.life ?? {};
-  if (!Object.prototype.hasOwnProperty.call(STATUSES, String(l.status))) {
-    push("F12", `life.status is ${JSON.stringify(l.status)}, not one of ${Object.keys(STATUSES).join(", ")}`);
-  }
-  if (!isIsoDate(l.extractedOn)) push("F12", "life.extractedOn (the extraction date) is required as an ISO date");
-  if (!isIsoDate(l.firstSeenOn)) push("F12", "life.firstSeenOn is required as an ISO date");
-  // A changed value writes a NEW record and points the old one at it. A cache
-  // that overwrites cannot answer "when did this change and what did it say
-  // before?" — which is the question a stale page always raises.
-  if (isFilled(l.supersededBy) && l.status !== "retired") {
-    push("F12", `supersededBy is set but status is ${JSON.stringify(l.status)} — a superseded record is retired, never silently edited`);
-  }
-  if (l.status === "retired" && !isFilled(l.retiredReason)) {
-    push("F12", "a retired record must carry retiredReason — a fact that vanished without a reason will be re-researched");
-  }
 
   // ── F13 · PROVENANCE IS A FIELD, NEVER A COMMENT ──────────────────────────
   const p = r.provenance ?? {};
@@ -355,14 +375,38 @@ export function validateRecord(record) {
   }
 
   // ── F14 · A CONFLICT IS FROZEN, NOT RESOLVED BY WHOEVER WROTE LAST ────────
-  if (l.status === "conflict" && !r.conflict) {
+  conflictLaws(r, push);
+
+  return { id: r.id ?? derived ?? "(no id)", valid: errors.length === 0, errors };
+}
+
+/** F12 — shared by every kind: a derived fact has a life too, and is never edited in place either. */
+function lifeLaws(r, push) {
+  const l = r.life ?? {};
+  if (!Object.prototype.hasOwnProperty.call(STATUSES, String(l.status))) {
+    push("F12", `life.status is ${JSON.stringify(l.status)}, not one of ${Object.keys(STATUSES).join(", ")}`);
+  }
+  if (!isIsoDate(l.extractedOn)) push("F12", "life.extractedOn (the extraction date) is required as an ISO date");
+  if (!isIsoDate(l.firstSeenOn)) push("F12", "life.firstSeenOn is required as an ISO date");
+  // A changed value writes a NEW record and points the old one at it. A cache
+  // that overwrites cannot answer "when did this change and what did it say
+  // before?" — which is the question a stale page always raises.
+  if (isFilled(l.supersededBy) && l.status !== "retired") {
+    push("F12", `supersededBy is set but status is ${JSON.stringify(l.status)} — a superseded record is retired, never silently edited`);
+  }
+  if (l.status === "retired" && !isFilled(l.retiredReason)) {
+    push("F12", "a retired record must carry retiredReason — a fact that vanished without a reason will be re-researched");
+  }
+}
+
+/** F14 — shared by every kind. */
+function conflictLaws(r, push) {
+  if (r.life?.status === "conflict" && !r.conflict) {
     push("F14", 'status is "conflict" but no `conflict` block says what disagrees with what');
   }
   if (r.conflict && !isFilled(r.conflict.resolution)) {
     push("F14", "a conflict must name the resolution that would settle it — an open disagreement with no named test never closes");
   }
-
-  return { id: r.id ?? derived ?? "(no id)", valid: errors.length === 0, errors };
 }
 
 /**
@@ -487,6 +531,36 @@ export function validateRegistry(records = []) {
     }
     if (j.elements.missingList) {
       errors.push({ law: "F27", message: `${j.id}: a record leaving UNKNOWN declares no claimElements — what is missing cannot be reconciled` });
+    }
+  }
+
+  // ── 🔴 F29 · ROW 17 — A DERIVED FACT, JUDGED AGAINST THE RECORDS IT CITES ───
+  // The source laws waived for a derived record (F28) are paid here instead. Every input resolves to a record in
+  // this registry; its standing IS its weakest input's — decided by makeDerivedFact's own ceiling, never a copy of
+  // it; and its stored value is what its formula gives over the inputs as they stand now. A mismatch is a finding,
+  // never a repair. A primary record dressed as derived cannot pass: its value would have to BE the arithmetic.
+  for (const r of records) {
+    if (r?.kind !== "derived") continue;
+    const inputs = Array.isArray(r.derivation?.inputs) ? r.derivation.inputs : [];
+    const found = inputs.map((id) => byId.get(id));
+    const dangling = inputs.filter((_, i) => !found[i]);
+    if (dangling.length) {
+      errors.push({ law: "F29", message: `${r.id}: input ${dangling.join(", ")} is not in the registry — a derived fact cites records, never memories` });
+      continue;
+    }
+    let ceiling;
+    try {
+      ceiling = makeDerivedFact({ id: r.id, claim: r.claim, formula: r.derivation?.formula, inputs, inputFacts: found, verificationState: r.verificationState }).verificationState;
+    } catch (err) {
+      errors.push({ law: "F29", message: err.message });
+      continue;
+    }
+    if (r.verificationState !== ceiling) {
+      errors.push({ law: "F29", message: `${r.id} is declared ${r.verificationState}, but its weakest input makes it ${ceiling} — a derived fact's standing IS its weakest input's` });
+    }
+    const again = recomputeDerived(r, found);
+    if (!again.ok) {
+      errors.push({ law: "F29", message: `${r.id}: stored ${JSON.stringify(again.stored)}, but its formula over the current inputs gives ${JSON.stringify(again.recomputed)} — a finding, never a repair` });
     }
   }
 

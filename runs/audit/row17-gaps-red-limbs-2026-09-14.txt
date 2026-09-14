@@ -1,0 +1,35 @@
+ROW 17 — THE THREE REAL GAPS: EACH SABOTAGED ALONE IN THE REAL FILES
+recorded 2026-09-14T03:25:41.643Z by the sabotage harness; runner: node --test test/derived-fact-registry.test.mjs
+
+GREEN BEFORE — exit 0 · tests 10 · pass 10 · fail 0 · skipped 0 · failing: 0
+
+✅ RED ALONE — gap 1 · BEFORE THE KIND EXISTS — `derived` removed from FACT_KINDS: the validator must refuse the derived record
+   file src/facts/schema.mjs
+   sha256 before   1470adb5f9631d574acb708cbd66d1baad5bc35070433d575f2ac8f754e13a38
+   sha256 sabotage ad5c27c5f92294a9f1aaaa1badf4255cbd90dd3d7b66b4b223b23ab50fc162e0   (landed: true)
+   exit 1 · tests 10 · pass 8 · fail 2 · skipped 0
+   not ok — 🟢 GREEN: a derived record of kind "derived" passes the validator on its own, and against the records it cites
+   not ok — 🔴 PRIMARY RECORDS LOSE NOTHING: a real record without its source still fails F3, and cannot dodge it by claiming the kind
+   expected exactly: 2 test(s) of this limb — both tests assert the validator ACCEPTS a lawful derived record's shape; with the kind gone it refuses it (F28) — one limb, two assertions of it
+   sha256 restored 1470adb5f9631d574acb708cbd66d1baad5bc35070433d575f2ac8f754e13a38   (identical to before: true)
+
+✅ RED ALONE — gap 2 · the stored input value is no longer compared: a changed input must go undetected, and the test must say so
+   file src/facts/lifecycle.mjs
+   sha256 before   4955a1ff0ba0a3672c45645c312d8e13ddc3f58e6f5bc07a54ed29eac4d7aa00
+   sha256 sabotage 683db4b71de994cb3b056af26424f3fc62dee26d36e8656ed10dac123a135ab1   (landed: true)
+   exit 1 · tests 10 · pass 9 · fail 1 · skipped 0
+   not ok — 🔴 a stored input value CHANGED → INPUT_CHANGED is raised and every dependent marked, without the caller naming any fact
+   expected exactly: 1 test(s) of this limb
+   sha256 restored 4955a1ff0ba0a3672c45645c312d8e13ddc3f58e6f5bc07a54ed29eac4d7aa00   (identical to before: true)
+
+✅ RED ALONE — gap 3 · the clock put back into the derivation: the same derivation computed twice must stop being byte-identical
+   file src/facts/lifecycle.mjs
+   sha256 before   4955a1ff0ba0a3672c45645c312d8e13ddc3f58e6f5bc07a54ed29eac4d7aa00
+   sha256 sabotage bc7f5089882d6f578deb81ba8fceb72ea4b424c77014900610e1d5d1bd4fc3f5   (landed: true)
+   exit 1 · tests 10 · pass 9 · fail 1 · skipped 0
+   not ok — 🔴 the same derivation computed twice is BYTE-IDENTICAL — even when the clock has moved between the two
+   expected exactly: 1 test(s) of this limb
+   sha256 restored 4955a1ff0ba0a3672c45645c312d8e13ddc3f58e6f5bc07a54ed29eac4d7aa00   (identical to before: true)
+
+GREEN AFTER — exit 0 · tests 10 · pass 10 · fail 0 · skipped 0 · failing: 0
+RESULT: 3 of 3 limbs RED alone and restored

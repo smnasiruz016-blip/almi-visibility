@@ -1,0 +1,113 @@
+ROW 60 — OPTION A (14 September 2026), AND ROW 60's FROZEN EVIDENCE LIMBS: EACH SABOTAGED ALONE IN THE REAL FILES
+recorded 2026-09-14T05:14:59.884Z by the sabotage harness; runner: node bin/consequence-census.mjs (A7: node bin/row60-ruling-sheet.mjs)
+
+GREEN BEFORE — census exit 0, limbs tripped: none · sheet runner exit 0
+
+✅ RED ALONE — limb A1 · a decision on record given a level (NONE on noindex-declared-deliberate)
+   file config/decision-register.mjs
+     sha256 before   18d1f898f7507824b72f26f8add19474d1f161d84ed465196b2f95f3760149c3
+     sha256 sabotage 9d7125d96686d9d4255c88856d2791f27dda260d72287d6525929d5e69f8999a
+     sha256 restored 18d1f898f7507824b72f26f8add19474d1f161d84ed465196b2f95f3760149c3
+   landed: true · restored identical: true
+   exit 1 · limbs tripped: population-level · expected exactly: population-level
+   [population-level] noindex-declared-deliberate a decision on record entry carries level — it is not a finding, and no severity is true of it
+
+✅ RED ALONE — limb A2 · a decision on record ranked beside a finding (the census orders the decision class with the findings)
+   file bin/consequence-census.mjs
+     sha256 before   2bbff41147acc9f3a7ab5f91ed8e7588cb334a02c489ca0b11c179f4e84ff285
+     sha256 sabotage ceabeb4fa426e86c9939db24a034246bf3a17080211768955dfcd4ffe098c28c
+     sha256 restored 2bbff41147acc9f3a7ab5f91ed8e7588cb334a02c489ca0b11c179f4e84ff285
+   landed: true · restored identical: true
+   exit 1 · limbs tripped: population-ranked · expected exactly: population-ranked
+   [population-ranked] noindex-declared-deliberate a decision on record class appears in the findings order — it is never ranked beside a finding
+
+✅ RED ALONE — limb A3 · 🔴 a decision on record that does NOT surface on the owner's report (its section removed from the committed report)
+   file runs/report/index.html
+     sha256 before   76071182e27416b91282ea4725b08a52ecba52e7a34fe8aab56ae0579f0c7517
+     sha256 sabotage bbda3966c6e5955a87ccc324154a064fac61717898a5a15f9ae14bc08151add2
+     sha256 restored 76071182e27416b91282ea4725b08a52ecba52e7a34fe8aab56ae0579f0c7517
+   landed: true · restored identical: true
+   exit 1 · limbs tripped: decision-hidden · expected exactly: decision-hidden
+   [decision-hidden] noindex-declared-deliberate a decision on record does not surface on the owner's report — its count, impressions and the recommendation it waits on, above the findings
+
+✅ RED ALONE — limb A4 · an issue landing in two populations (the assignment puts canonical in DECISION ON RECORD as well)
+   file src/audit/populations.mjs
+     sha256 before   301f29c166fa927f3395b22cfb52a98c7d9b6ceb2db709dfce75b9858e212fbd
+     sha256 sabotage 3a1fcb154d715eff48c5f3fcb05607aae41b8458e4e270ac7d68ec1b25517ffd
+     sha256 restored 301f29c166fa927f3395b22cfb52a98c7d9b6ceb2db709dfce75b9858e212fbd
+   landed: true · restored identical: true
+   exit 1 · limbs tripped: population-membership · expected exactly: population-membership
+   [population-membership] e88e02c0756c676a issue of class canonical lands in FINDINGS AND DECISION ON RECORD — every issue lands in exactly one
+
+✅ RED ALONE — limb A5 · the four totals failing to sum to the store (the audit trail declares 135)
+   file config/audit-trail.mjs
+     sha256 before   284e3e613ba44163196cc4f079262d28d21ce0b1fc32845a9364046e4d68b65a
+     sha256 sabotage b042a3823ae2418308fd1db3bd4906f8838b4bd4101d1a7338fa90f181f387c3
+     sha256 restored 284e3e613ba44163196cc4f079262d28d21ce0b1fc32845a9364046e4d68b65a
+   landed: true · restored identical: true
+   exit 1 · limbs tripped: population-sum · expected exactly: population-sum
+   [population-sum] noindex-defect-claim-withdrawn the entry records 135 and the store holds 134
+   [population-sum]  findings 541 + coverage + decisions + audit trail = 2034, and the store holds 2033 distinct issues — the four populations must sum to the store
+
+✅ RED ALONE — limb A6 · a class with open issues put in the archive (the decision on record moved into the audit trail)
+   file config/decision-register.mjs
+     sha256 before   18d1f898f7507824b72f26f8add19474d1f161d84ed465196b2f95f3760149c3
+     sha256 sabotage 3b282968190eaa0f68c465df11cd5616e4e06111d2b6373533f4ed3cbc92c756
+     sha256 restored 18d1f898f7507824b72f26f8add19474d1f161d84ed465196b2f95f3760149c3
+   file config/audit-trail.mjs
+     sha256 before   284e3e613ba44163196cc4f079262d28d21ce0b1fc32845a9364046e4d68b65a
+     sha256 sabotage cdc4a27133dcd078943d845c8f0cabbc74daa83b49e85db75a403fea6d470e2c
+     sha256 restored 284e3e613ba44163196cc4f079262d28d21ce0b1fc32845a9364046e4d68b65a
+   landed: true · restored identical: true
+   exit 1 · limbs tripped: archive · expected exactly: archive
+   [archive] noindex-declared-deliberate 134 OPEN issue(s) put in the audit trail — a class with open issues is live, never history
+
+✅ RED ALONE — limb A7 · the sheet disagreeing with the populations (DECISION ON RECORD 134 → 0 on the committed sheet) — the sheet runner must refuse to print
+   file runs/export/row60-ruling-sheet.json
+     sha256 before   57e1ea175710cfac8b39eca88821ff8e821d44af4fa26c8a49b70a24f5a8233f
+     sha256 sabotage db23998b7884c42688ec71f65118de55b980e62ae06f257f40524c633de05262
+     sha256 restored 57e1ea175710cfac8b39eca88821ff8e821d44af4fa26c8a49b70a24f5a8233f
+   landed: true · restored identical: true
+   exit 1 · limbs tripped: populations · expected exactly: populations
+   [populations]  — the four populations on the sheet do not sum to the store's distinct issues, or differ from the store
+
+✅ RED ALONE — limb F1 · RED by hard-coding a level in code (robots-blocks-search-crawler's applied level forced to HIGH in the engine)
+   file src/report/recommendation-fields.mjs
+     sha256 before   9d9140027ed4ba9f7b67d855edfd3930175fba4793a4dc16f4e267c94274b7ea
+     sha256 sabotage dbfd03e6c15b42258d40fbc6299fed798bdd21d5c0dd07dc2f8de7674dbec6ad
+     sha256 restored 9d9140027ed4ba9f7b67d855edfd3930175fba4793a4dc16f4e267c94274b7ea
+   landed: true · restored identical: true
+   exit 1 · limbs tripped: level · expected exactly: level
+   [level] REC-ROBOTS-CORRIDOR class robots-blocks-search-crawler carries level "HIGH", but the register declares MODERATE — the engine may not compute, infer or default a level
+
+✅ RED ALONE — limb F2 · RED by removing a register entry so a class becomes unclassified and is still ranked (robots-blocks-search-crawler's entry removed)
+   file config/consequence-register.mjs
+     sha256 before   1bdc1d8908828412d475d7e93d0de0117df7e0038ef9feea98c4e3fdcb95eda9
+     sha256 sabotage 20e4e1bbb0f01c341ec0701efb6c8eae8c90233b04de1722ed33129b8f8aaf31
+     sha256 restored 1bdc1d8908828412d475d7e93d0de0117df7e0038ef9feea98c4e3fdcb95eda9
+   landed: true · restored identical: true
+   exit 1 · limbs tripped: missing · expected exactly: missing
+   [missing] robots-blocks-search-crawler a class in use has no register entry
+
+✅ RED ALONE — limb F3 · RED by emptying the basis field (every priority's basisKind emptied)
+   file src/report/recommendation-fields.mjs
+     sha256 before   9d9140027ed4ba9f7b67d855edfd3930175fba4793a4dc16f4e267c94274b7ea
+     sha256 sabotage 4b80ce389e9ee9b0e71524259ce05283833172f4ccd0bacd7535f8c46d12cb9f
+     sha256 restored 9d9140027ed4ba9f7b67d855edfd3930175fba4793a4dc16f4e267c94274b7ea
+   landed: true · restored identical: true
+   exit 1 · limbs tripped: basis · expected exactly: basis
+   [basis] REC-ROBOTS-CORRIDOR its priority states no basis (got "")
+   [basis] REC-AI-CRAWLER-BLOCK its priority states no basis (got "")
+   [basis] REC-NOINDEX-CV-GUIDE its priority states no basis (got "")
+
+✅ RED ALONE — limb F4 · RED by leaving a stale register entry (an entry for a class the store does not hold)
+   file config/consequence-register.mjs
+     sha256 before   1bdc1d8908828412d475d7e93d0de0117df7e0038ef9feea98c4e3fdcb95eda9
+     sha256 sabotage c9b1996a9a6abcfec6e68e8af45ad840746f0fa612e969034f70c12a1eda23bb
+     sha256 restored 1bdc1d8908828412d475d7e93d0de0117df7e0038ef9feea98c4e3fdcb95eda9
+   landed: true · restored identical: true
+   exit 1 · limbs tripped: stale · expected exactly: stale
+   [stale] a-class-no-store-holds a register entry for a class not in use
+
+GREEN AFTER — census exit 0, limbs tripped: none · sheet runner exit 0
+RESULT: 11 of 11 limbs RED alone and restored

@@ -66,7 +66,7 @@ function tierOf(record, sourcesById) {
  * @param {object[]} a.records           every record the links may point at
  * @param {object[]} a.ledger            cost_entry records
  */
-export function computeRecommendationFields({ recommendations, links, records, ledger, consequenceRegister = null, consequenceScale = null, classSplits = null }) {
+export function computeRecommendationFields({ recommendations, links, records, ledger, consequenceRegister = null, consequenceScale = null, classSplits = null, classPopulations = null }) {
   const byObs = new Map(records.filter((r) => r.observation_id && r.record_type === "observation").map((r) => [r.observation_id, r]));
   const byIssue = new Map(records.filter((r) => r.record_type === "issue").map((r) => [r.issue_id, r]));
   const bySource = new Map(records.filter((r) => r.record_type === "source").map((r) => [r.source_id, r]));
@@ -171,7 +171,7 @@ export function computeRecommendationFields({ recommendations, links, records, l
     /* ---- CONSEQUENCE: the register entries for the finding classes its issues belong to ---- */
     const consequence = // The class an issue is COUNTED under (config/class-splits.mjs). With no splits passed, the stored name is read, and a
     // superseded parent has no register entry — so the consequence is UNKNOWN: it fails closed, never to a bundle.
-    consequenceFor(resolved.issues.map((i) => classOf(i, classSplits).class).filter(Boolean), consequenceRegister, consequenceScale);
+    consequenceFor(resolved.issues.map((i) => classOf(i, classSplits).class).filter(Boolean), consequenceRegister, consequenceScale, classPopulations);
 
     return { rec, link, impact, confidence, cost, consequence, evidence: { linked: linkedCount, resolved: resolvedCount, issues: ids.issues.length, observations: ids.observations.length, sources: ids.sources.length } };
   });

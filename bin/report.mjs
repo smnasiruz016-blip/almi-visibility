@@ -30,6 +30,12 @@ import { computeRecommendationFields } from "../src/report/recommendation-fields
 import { CONSEQUENCE_REGISTER } from "../config/consequence-register.mjs";
 import { SEVERITY_SCALE } from "../config/consequence-scale.mjs";
 import { CLASS_SPLITS } from "../config/class-splits.mjs";
+import { COVERAGE_REGISTER } from "../config/coverage-register.mjs";
+import { DECISION_REGISTER } from "../config/decision-register.mjs";
+import { AUDIT_TRAIL } from "../config/audit-trail.mjs";
+import { splitView } from "../src/audit/class-split.mjs";
+import { fourWay, impressionsForClass } from "../src/audit/populations.mjs";
+import { statSync } from "node:fs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n, d) => {
@@ -114,17 +120,41 @@ const ledgerView = { lines: ledgerEntries.map(formatLedgerLine), failures: cover
 
 /* 🔴 ITEM 51 — every drafted recommendation with all six fields; priority,
  * confidence and cost computed from the stores (src/report/recommendation-fields.mjs). */
+/* 🔴 ROW 60, Option A — every issue in the store, in exactly one of four populations; the decisions on record shown first. */
+const walkRuns = (dir) => readdirSync(dir).flatMap((n) => (statSync(join(dir, n)).isDirectory() ? walkRuns(join(dir, n)) : n.endsWith(".jsonl") ? [join(dir, n)] : []));
+const storeRecords = walkRuns(`${REPO}runs`).sort().flatMap((p) => read(p));
+const { view: storeView } = splitView(storeRecords, CLASS_SPLITS);
+const registers = { register: CONSEQUENCE_REGISTER, coverage: COVERAGE_REGISTER, decisions: DECISION_REGISTER, auditTrail: AUDIT_TRAIL };
+const classPopulations = Object.fromEntries([
+  ...Object.keys(COVERAGE_REGISTER).map((k) => [k, "COVERAGE GAP"]),
+  ...Object.keys(DECISION_REGISTER).map((k) => [k, "DECISION ON RECORD"]),
+  ...Object.keys(AUDIT_TRAIL).map((k) => [k, "AUDIT TRAIL"]),
+]);
+const decisions = {
+  entries: Object.entries(DECISION_REGISTER).map(([k, e]) => ({
+    issue_class: k,
+    count: e.count,
+    open: [...storeView.values()].filter((v) => v.class === k && v.state === "OPEN").length,
+    impressions: impressionsForClass(k, { view: storeView, records: storeRecords }),
+    decided: e.decided,
+    notEstablished: e.notEstablished,
+    awaits: e.awaits,
+  })),
+  fourWay: fourWay(storeView, registers),
+  auditTrail: Object.entries(AUDIT_TRAIL).map(([k, e]) => ({ issue_class: k, count: e.count, why: e.why })),
+};
+
 const recommendationFields = computeRecommendationFields({
   recommendations: allAudit.filter((r) => r.record_type === "draft_recommendation"),
   links: allAudit.filter((r) => r.record_type === "recommendation_evidence"),
   records: [...allAudit, ...evidenceRecords, ...crawlRecords],
   ledger: ledgerEntries,
   // 🔴 ROW 60: the owner-controlled consequence register. Every level in it is UNCLASSIFIED until he rules.
-  consequenceRegister: CONSEQUENCE_REGISTER, consequenceScale: SEVERITY_SCALE, classSplits: CLASS_SPLITS,
+  consequenceRegister: CONSEQUENCE_REGISTER, consequenceScale: SEVERITY_SCALE, classSplits: CLASS_SPLITS, classPopulations,
 });
 
 const generatedAt = new Date().toISOString();
-const html = renderPage({ crawlRecords, evidenceRecords, facts, generatedAt, chainWalk, sourceTiers, ledger: ledgerView, recommendations: recommendationFields });
+const html = renderPage({ crawlRecords, evidenceRecords, facts, generatedAt, chainWalk, sourceTiers, ledger: ledgerView, recommendations: recommendationFields, decisions });
 
 if (!permission.mayWrite) {
   console.log(`[dry-run] would have written ${out}  (${(Buffer.byteLength(html, "utf8") / 1024).toFixed(1)} KiB) — add --confirm`);

@@ -46,7 +46,7 @@ const COUNT_FIELDS = Object.freeze(["distinct", "open", "raw", "notRun"]);
  * @param {string[]} a.unmeasuredCodes  reason codes that mean no measurement was made
  * @param {string}   a.generatedAt
  */
-export function buildRulingSheet({ files, register, unreachable = {}, scale, splits, superseded = {}, coverage = {}, unmeasuredCodes, generatedAt }) {
+export function buildRulingSheet({ files, register, unreachable = {}, scale, splits, superseded = {}, coverage = {}, decisions = {}, auditTrail = {}, unmeasuredCodes, generatedAt }) {
   const all = files.flatMap((f) => f.records);
   const { view, lifecycleErrors } = splitView(all, splits);
 
@@ -74,7 +74,22 @@ export function buildRulingSheet({ files, register, unreachable = {}, scale, spl
     const reasonCodes = [...new Set([...e.ids].map((id) => view.get(id).reason_code))].sort();
     return { issue_class, splitFrom: coverage?.[issue_class]?.splitFrom ?? null, count: e.ids.size, raw: e.raw, reasonCodes, missing: coverage?.[issue_class]?.missing ?? null };
   });
-  const classes = [...byClass.keys()].filter((k) => !coverageClasses.has(k)).sort().map((issue_class) => {
+  // 🔴 Option A (owner, 14 Sep 2026): a decision on record and the audit trail are not findings either — each apart.
+  const measureOf = new Map(Object.values(splits ?? {}).flatMap((s) => s.halves.map((h) => [h.class, h.measures])));
+  const ofMeasure = (m) => [...byClass.keys()].filter((k) => measureOf.get(k) === m).sort();
+  const decisionRows = ofMeasure("decision").map((issue_class) => {
+    const e = byClass.get(issue_class);
+    const d = decisions?.[issue_class];
+    return { issue_class, splitFrom: d?.splitFrom ?? null, count: e.ids.size, open: [...e.ids].filter((id) => view.get(id).state === "OPEN").length, raw: e.raw, decided: d?.decided ?? null, notEstablished: d?.notEstablished ?? null, awaits: d?.awaits ?? null };
+  });
+  const auditRows = ofMeasure("withdrawn").map((issue_class) => {
+    const e = byClass.get(issue_class);
+    const states = {};
+    for (const id of e.ids) states[view.get(id).state] = (states[view.get(id).state] ?? 0) + 1;
+    return { issue_class, splitFrom: auditTrail?.[issue_class]?.splitFrom ?? null, count: e.ids.size, raw: e.raw, states, why: auditTrail?.[issue_class]?.why ?? null };
+  });
+  const notFindings = new Set([...coverageClasses, ...decisionRows.map((d) => d.issue_class), ...auditRows.map((a) => a.issue_class)]);
+  const classes = [...byClass.keys()].filter((k) => !notFindings.has(k)).sort().map((issue_class) => {
     const e = byClass.get(issue_class);
     const states = {};
     let notRun = 0;
@@ -150,6 +165,15 @@ export function buildRulingSheet({ files, register, unreachable = {}, scale, spl
     classes,
     order,
     coverage: coverageRows,
+    decisions: decisionRows,
+    auditTrail: auditRows,
+    populations: {
+      FINDINGS: classes.reduce((n, c) => n + c.distinct, 0),
+      "COVERAGE GAP": coverageRows.reduce((n, c) => n + c.count, 0),
+      "DECISION ON RECORD": decisionRows.reduce((n, c) => n + c.count, 0),
+      "AUDIT TRAIL": auditRows.reduce((n, c) => n + c.count, 0),
+      distinct: view.size,
+    },
     supersededClasses,
     unreachableByAnyEntry,
   };
@@ -164,7 +188,7 @@ export function buildRulingSheet({ files, register, unreachable = {}, scale, spl
  *   sheet ↔ register   register-text (descriptions, levels, attributions, splits, superseded, Part C) · scale
  *   the join itself    lifecycle
  */
-export function reconcileSheet({ sheet, fresh, register, unreachable = {}, scale, superseded = {}, coverage = {} }) {
+export function reconcileSheet({ sheet, fresh, register, unreachable = {}, scale, superseded = {}, coverage = {}, decisions = {}, auditTrail = {} }) {
   const errors = [];
   const inStore = new Map(fresh.classes.map((c) => [c.issue_class, c]));
   const inSheet = new Map((sheet?.classes ?? []).map((c) => [c.issue_class, c]));
@@ -193,6 +217,15 @@ export function reconcileSheet({ sheet, fresh, register, unreachable = {}, scale
   // the coverage population: its counts are the store's, its words the coverage register's, and none of it is ranked
   if (JSON.stringify(sheet?.coverage) !== JSON.stringify(fresh.coverage)) errors.push({ limb: "coverage", why: "the sheet's coverage population is not the one the store and the coverage register produce" });
   for (const c of fresh.coverage) if (c.missing === null || c.missing !== (coverage?.[c.issue_class]?.missing ?? null)) errors.push({ limb: "coverage", class: c.issue_class, why: "a coverage class has no coverage-register entry" });
+  // the decisions on record and the audit trail: counts the store's, words their registers', and the four totals summing to the store
+  for (const [key, reg, words] of [["decisions", decisions, ["decided", "notEstablished", "awaits"]], ["auditTrail", auditTrail, ["why"]]]) {
+    if (JSON.stringify(sheet?.[key]) !== JSON.stringify(fresh[key])) errors.push({ limb: "populations", why: `the sheet's ${key} are not the ones the store and their register produce` });
+    for (const row of fresh[key]) if (words.some((w) => row[w] === null || row[w] !== reg?.[row.issue_class]?.[w])) errors.push({ limb: "populations", class: row.issue_class, why: `a ${key} class has no entry in its register, or its words differ` });
+  }
+  const p = fresh.populations;
+  if (JSON.stringify(sheet?.populations) !== JSON.stringify(p) || p.FINDINGS + p["COVERAGE GAP"] + p["DECISION ON RECORD"] + p["AUDIT TRAIL"] !== p.distinct) {
+    errors.push({ limb: "populations", why: "the four populations on the sheet do not sum to the store's distinct issues, or differ from the store" });
+  }
   if (JSON.stringify(sheet?.order) !== JSON.stringify(fresh.order)) errors.push({ limb: "order", why: "the sheet's consequence-first order is not the order the store and the register produce" });
   if (JSON.stringify(sheet?.scale) !== JSON.stringify((scale ?? []).map((s) => ({ level: s.level, definition: s.definition })))) {
     errors.push({ limb: "scale", why: "the sheet's scale is not the owner's scale" });
@@ -278,6 +311,21 @@ export function renderRulingSheet(sheet) {
   L.push("|---|---|---|---|---|---|");
   for (const c of sheet.coverage) L.push(`| \`${c.issue_class}\` | ${c.splitFrom ? `\`${c.splitFrom}\`` : "—"} | ${c.count} | ${c.raw} | ${c.reasonCodes.join(" / ")} | ${c.missing ?? "🔴 no coverage entry"} |`);
   L.push(`| **total** | | **${sheet.coverage.reduce((n, c) => n + c.count, 0)}** | | | |`);
+  L.push("");
+  L.push("## Part E — DECISIONS ON RECORD: a deliberate choice whose consequence is not established. Never a level, never ranked — it waits on the owner");
+  L.push("");
+  L.push("| class | split from | issues | open | raw | what was decided | why its consequence is not established | waits on |");
+  L.push("|---|---|---|---|---|---|---|---|");
+  for (const d of sheet.decisions) L.push(`| \`${d.issue_class}\` | ${d.splitFrom ? `\`${d.splitFrom}\`` : "—"} | ${d.count} | ${d.open} | ${d.raw} | ${d.decided ?? "🔴 no entry"} | ${d.notEstablished ?? "🔴 no entry"} | ${d.awaits ? `\`${d.awaits}\`` : "🔴 none"} |`);
+  L.push("");
+  L.push("## Part F — THE AUDIT TRAIL: claims withdrawn as wrong. History, never live");
+  L.push("");
+  L.push("| class | split from | issues | states | raw | why it was withdrawn |");
+  L.push("|---|---|---|---|---|---|");
+  for (const a of sheet.auditTrail) L.push(`| \`${a.issue_class}\` | ${a.splitFrom ? `\`${a.splitFrom}\`` : "—"} | ${a.count} | ${Object.entries(a.states).map(([s, n]) => `${n} ${s}`).join(" · ")} | ${a.raw} | ${a.why ?? "🔴 no entry"} |`);
+  L.push("");
+  const pp = sheet.populations;
+  L.push(`**Every issue in exactly one population:** findings **${pp.FINDINGS}** + coverage gaps **${pp["COVERAGE GAP"]}** + decisions on record **${pp["DECISION ON RECORD"]}** + audit trail **${pp["AUDIT TRAIL"]}** = **${pp.FINDINGS + pp["COVERAGE GAP"] + pp["DECISION ON RECORD"] + pp["AUDIT TRAIL"]}** of **${pp.distinct}** distinct issues.`);
   L.push("");
   L.push("## Part B3 — the classes the split superseded (not in use; their words kept in the register)");
   L.push("");

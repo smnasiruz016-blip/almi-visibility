@@ -13,6 +13,8 @@ import { reconcileRegister } from "../src/audit/consequence.mjs";
 import { CLASS_SPLITS, UNMEASURED_REASON_CODES } from "../config/class-splits.mjs";
 import { CONSEQUENCE_REGISTER, SUPERSEDED_ENTRIES } from "../config/consequence-register.mjs";
 import { COVERAGE_REGISTER } from "../config/coverage-register.mjs";
+import { DECISION_REGISTER } from "../config/decision-register.mjs";
+import { AUDIT_TRAIL } from "../config/audit-trail.mjs";
 import { SEVERITY_SCALE } from "../config/consequence-scale.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -59,7 +61,8 @@ test("🟢 MEASURED — the split, per class and per half, distinct and open, ov
   assert.ok(notRun.every((v) => v.class.endsWith("-check-not-run")), "a check that never ran is still counted under a defect's name");
   // 🔴 no split class is in use without an entry, and the two empty "found" halves are not in use at all
   // since 14 Sep 2026 the checks-not-run halves are the COVERAGE register's, and every other class in use is a finding's
-  assert.deepEqual(effectiveClassesInUse(ALL, CLASS_SPLITS), [...Object.keys(CONSEQUENCE_REGISTER), ...Object.keys(COVERAGE_REGISTER)].sort());
+  // since Option A (14 Sep 2026) every class in use sits in exactly one of the four registers
+  assert.deepEqual(effectiveClassesInUse(ALL, CLASS_SPLITS), [...Object.keys(CONSEQUENCE_REGISTER), ...Object.keys(COVERAGE_REGISTER), ...Object.keys(DECISION_REGISTER), ...Object.keys(AUDIT_TRAIL)].sort());
 });
 
 test("🔴 the store is untouched: the split writes nothing, and a record reads the same before and after it is classified", () => {
@@ -100,8 +103,8 @@ test("🔴 RED half-level: a half arriving with a level — its parent's ruling 
   assert.equal(r.ok, false);
   // and a half given any level of its own, unruled, is refused the same way
   const reg2 = clone(CONSEQUENCE_REGISTER);
-  reg2["noindex-declared-deliberate"].ruledBy = "owner";
-  assert.deepEqual(reconcileRegister({ records: AUDIT, register: reg2, scale: SEVERITY_SCALE, splits: CLASS_SPLITS }).inherited.map((x) => x.class), ["noindex-declared-deliberate"]);
+  reg2["near-duplicate-found"].ruledFor = "near-duplicate"; // a ruling that names the parent, not the half
+  assert.deepEqual(reconcileRegister({ records: AUDIT, register: reg2, scale: SEVERITY_SCALE, splits: CLASS_SPLITS }).inherited.map((x) => x.class), ["near-duplicate-found"]);
 });
 
 test("🔴 RED identity: an issue's opened_at or evidence changed by the split is refused, alone", () => {

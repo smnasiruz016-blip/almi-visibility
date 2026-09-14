@@ -331,7 +331,7 @@ export function renderRecommendations(fields) {
    * as UNKNOWN and routed to owner review — never ranked. Never a level the register does not declare. */
   const consequence = (p) => {
     const entries = p.consequence.entries.length
-      ? p.consequence.entries.map((e) => `<code>${esc(e.issue_class)}</code> = <strong>${esc(e.level ?? "none")}</strong>`).join(" · ")
+      ? p.consequence.entries.map((e) => `<code>${esc(e.issue_class)}</code> = <strong>${esc(e.population ? `${e.population} (not a finding)` : e.level ?? "none")}</strong>`).join(" · ")
       : "none — no finding class is linked";
     const state = p.consequence.state === "UNKNOWN" ? `<span class="lbl lbl-UNKNOWN">UNKNOWN</span> ${esc(p.consequence.reason)}` : `DECLARED <strong>${esc(p.consequence.level)}</strong>`;
     return `<br>basis: <strong>${esc(p.basisKind)}</strong><br>consequence register entries: ${entries}<br>consequence: ${state}`;
@@ -434,8 +434,42 @@ footer{margin-top:2rem;padding-top:1rem;border-top:2px solid var(--line);color:v
 }
 `;
 
+/**
+ * 🔴 ROW 60 — DECISIONS ON RECORD, SHOWN FIRST (owner's ruling, Option A, 14 September 2026).
+ *
+ * A deliberate choice whose consequence is not established is not a finding, carries no level and is never ranked —
+ * and it waits on a human, so it must be MORE visible than a finding, not less. It sits directly under the header,
+ * above every finding and recommendation, with its count, its measured search impressions and the recommendation it
+ * waits on. src/audit/populations.mjs (limb decision-hidden) refuses a report that does not show it this way.
+ */
+export function renderDecisions(d) {
+  if (!d) return "";
+  const rows = d.entries
+    .map((e) => {
+      const imp = e.impressions.state === "MEASURED"
+        ? `<strong>${esc(e.impressions.impressions)}</strong> search impressions on ${esc(e.impressions.pagesJoined)} of the ${esc(e.impressions.pages)} pages<br><span class="bound">page-rows pull ${esc(e.impressions.pull)}, ${esc(e.impressions.window)}</span>`
+        : `<span class="lbl lbl-UNKNOWN">UNKNOWN</span> ${esc(e.impressions.reason)}`;
+      return `    <tr><td><code>${esc(e.issue_class)}</code></td><td><strong>${esc(e.count)}</strong> issues · ${esc(e.open)} open</td><td>${imp}</td><td class="wrap">${esc(e.decided)}</td><td class="wrap">${esc(e.notEstablished)}</td><td><code>${esc(e.awaits)}</code></td></tr>`;
+    })
+    .join("\n");
+  const t = d.fourWay.totals;
+  const audit = d.auditTrail.map((a) => `<code>${esc(a.issue_class)}</code> ${esc(a.count)} — ${esc(a.why)}`).join(" · ") || "none";
+  return `<section id="decisions">
+  <h2>🔴 Decisions on record — waiting on the owner — ${d.entries.length}</h2>
+  <p class="bound">Not findings: nothing was detected. Each is a deliberate choice whose consequence is NOT established. It carries no level and is never ranked beside a finding — and it is shown first, because it waits on a human.</p>
+  <table>
+    <thead><tr><th>decision</th><th>issues</th><th>measured search impact</th><th>what was decided</th><th>why its consequence is not established</th><th>waits on</th></tr></thead>
+    <tbody>
+${rows}
+    </tbody>
+  </table>
+  <p class="bound">Every issue lands in exactly one population — findings <strong>${esc(t.FINDINGS)}</strong> · coverage gaps <strong>${esc(t["COVERAGE GAP"])}</strong> · decisions on record <strong>${esc(t["DECISION ON RECORD"])}</strong> · audit trail <strong>${esc(t["AUDIT TRAIL"])}</strong> = <strong>${esc(d.fourWay.distinct)}</strong> distinct issues.</p>
+  <p class="bound">Audit trail — history, kept and queryable, never live: ${audit}</p>
+</section>`;
+}
+
 /** The whole page. Pure — takes records, returns a string. */
-export function renderPage({ crawlRecords, evidenceRecords, facts, generatedAt, chainWalk, sourceTiers = null, ledger = null, recommendations = null }) {
+export function renderPage({ crawlRecords, evidenceRecords, facts, generatedAt, chainWalk, sourceTiers = null, ledger = null, recommendations = null, decisions = null }) {
   const s = summarise({ crawlRecords, evidenceRecords, facts });
   const rec = reconcile(crawlRecords);
   const issues = [...crawlRecords, ...evidenceRecords].filter((r) => r.record_type === "issue");
@@ -452,6 +486,7 @@ export function renderPage({ crawlRecords, evidenceRecords, facts, generatedAt, 
 </head>
 <body>
 ${renderHeader(s)}
+${decisions ? renderDecisions(decisions) : ""}
 
 <p class="legend">Every record below carries one of: ${legend}</p>
 <p class="bound">Label census across all ${

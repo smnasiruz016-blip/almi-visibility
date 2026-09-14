@@ -15,17 +15,19 @@ import { CONSEQUENCE_REGISTER, UNREACHABLE_RECOMMENDATIONS, SUPERSEDED_ENTRIES }
 import { SEVERITY_SCALE } from "../config/consequence-scale.mjs";
 import { CLASS_SPLITS, UNMEASURED_REASON_CODES } from "../config/class-splits.mjs";
 import { COVERAGE_REGISTER } from "../config/coverage-register.mjs";
+import { DECISION_REGISTER } from "../config/decision-register.mjs";
+import { AUDIT_TRAIL } from "../config/audit-trail.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const walk = (dir) => readdirSync(dir).flatMap((n) => (statSync(join(dir, n)).isDirectory() ? walk(join(dir, n)) : n.endsWith(".jsonl") ? [join(dir, n)] : []));
 const FILES = walk(join(REPO, "runs")).sort().map((p) => ({ file: relative(REPO, p).split("\\").join("/"), records: createJsonlStore(p).readAll() }));
 const LAW = { register: CONSEQUENCE_REGISTER, unreachable: UNREACHABLE_RECOMMENDATIONS, scale: SEVERITY_SCALE };
-const FRESH = buildRulingSheet({ files: FILES, ...LAW, splits: CLASS_SPLITS, superseded: SUPERSEDED_ENTRIES, coverage: COVERAGE_REGISTER, unmeasuredCodes: UNMEASURED_REASON_CODES, generatedAt: "test" });
+const FRESH = buildRulingSheet({ files: FILES, ...LAW, splits: CLASS_SPLITS, superseded: SUPERSEDED_ENTRIES, coverage: COVERAGE_REGISTER, decisions: DECISION_REGISTER, auditTrail: AUDIT_TRAIL, unmeasuredCodes: UNMEASURED_REASON_CODES, generatedAt: "test" });
 const COMMITTED = JSON.parse(readFileSync(join(REPO, "runs", "export", "row60-ruling-sheet.json"), "utf8"));
 const MD = readFileSync(join(REPO, "runs", "export", "row60-ruling-sheet.md"), "utf8").replace(/\r\n/g, "\n");
 const clone = () => JSON.parse(JSON.stringify(COMMITTED));
 const limbs = (r) => [...new Set(r.errors.map((e) => e.limb))];
-const reconcile = (sheet, over = {}) => reconcileSheet({ sheet, fresh: FRESH, ...LAW, superseded: SUPERSEDED_ENTRIES, coverage: COVERAGE_REGISTER, ...over });
+const reconcile = (sheet, over = {}) => reconcileSheet({ sheet, fresh: FRESH, ...LAW, superseded: SUPERSEDED_ENTRIES, coverage: COVERAGE_REGISTER, decisions: DECISION_REGISTER, auditTrail: AUDIT_TRAIL, ...over });
 
 test("🟢 GREEN: the committed sheet, the register, the scale, the splits and the store agree", () => {
   const r = reconcile(COMMITTED);
@@ -50,25 +52,32 @@ test("🔴 counts are the JOIN's, not each issue's first recorded state — and 
   const firstStateOpen = (k) => FILES.flatMap((f) => f.records).filter((r) => r.record_type === "issue" && classOf(r, CLASS_SPLITS).class === k && (r.state ?? "OPEN") === "OPEN");
   const naiveOpen = (k) => new Set(firstStateOpen(k).map((r) => r.issue_id)).size;
   const differs = COMMITTED.classes.filter((c) => naiveOpen(c.issue_class) !== c.open).map((c) => c.issue_class);
-  assert.deepEqual(differs.sort(), ["instrument-disagreement", "noindex-defect-claim-withdrawn"], "the join is untested unless a state change moves a class");
+  // the withdrawn claims are the audit trail's since Option A; instrument-disagreement is the finding a state change moves
+  assert.deepEqual(differs.sort(), ["instrument-disagreement"], "the join is untested unless a state change moves a class");
   for (const k of differs) assert.ok(Object.keys(by[k].ruled).length > 0, `${k} differs from its first-state count but carries no ruling`);
 });
 
-test("🔴 the sheet SETS nothing: the 14 ruled levels copied and attributed, the 2 unruled classes with LEVEL and WHY blank, the coverage population apart", () => {
+test("🔴 the sheet SETS nothing: the 14 ruled levels copied and attributed, and every other population apart — coverage, decisions on record, audit trail", () => {
   for (const c of COMMITTED.classes) {
     const e = CONSEQUENCE_REGISTER[c.issue_class];
     assert.deepEqual([c.level, c.ruledBy, c.ruledOn, c.splitFrom], [e.level, e.ruledBy, e.ruledOn, e.splitFrom ?? null], c.issue_class);
     assert.ok(!("severity" in c), `${c.issue_class} carries a severity`);
   }
   const halves = COMMITTED.classes.filter((c) => c.splitFrom && c.level === "UNCLASSIFIED");
-  assert.equal(halves.length, 2);
+  assert.equal(halves.length, 0);
   for (const h of halves) {
     const row = MD.split("\n").find((l) => l.startsWith("| ") && l.includes(`| \`${h.issue_class}\` | \`${h.splitFrom}\` |`));
     assert.ok(row, `${h.issue_class} has no row in the owner's ruling table`);
     assert.match(row, /\| \| \|$/, `${h.issue_class}'s LEVEL and WHY are not blank`);
   }
   assert.match(MD, /## Part B — the 14 levels already ruled \(unchanged, attributed\)/);
-  assert.match(MD, /## Part B1 — the 2 finding classes for the owner to rule: LEVEL and WHY are blank/);
+  assert.match(MD, /## Part B1 — the 0 finding classes for the owner to rule: LEVEL and WHY are blank/);
+  // 🔴 Option A: the decisions on record and the audit trail, each apart, and the four totals summing to the store
+  assert.deepEqual(COMMITTED.decisions.map((d) => [d.issue_class, d.count, d.open, d.awaits]), [["noindex-declared-deliberate", 134, 134, "REC-NOINDEX-CV-GUIDE"]]);
+  assert.deepEqual(COMMITTED.auditTrail.map((a) => [a.issue_class, a.count, a.states]), [["noindex-defect-claim-withdrawn", 134, { SUPERSEDED: 134 }]]);
+  assert.deepEqual(COMMITTED.populations, { FINDINGS: 541, "COVERAGE GAP": 1224, "DECISION ON RECORD": 134, "AUDIT TRAIL": 134, distinct: 2033 });
+  assert.match(MD, /## Part E — DECISIONS ON RECORD/);
+  assert.match(MD, /## Part F — THE AUDIT TRAIL/);
   assert.equal((MD.match(/\| owner 2026-09-14 \|/g) ?? []).length, 14);
   // 🔴 the coverage population: its own part, its own total, no level, and not one of its classes among the findings
   assert.match(MD, /## Part D — THE COVERAGE POPULATION: checks that never ran\. Not findings, never a level, never ranked/);
@@ -79,7 +88,7 @@ test("🔴 the sheet SETS nothing: the 14 ruled levels copied and attributed, th
   assert.deepEqual(COMMITTED.scale.map((s) => s.level), ["CRITICAL", "HIGH", "MODERATE", "LOW", "NONE"]);
   assert.deepEqual(COMMITTED.supersededClasses.map((s) => s.issue_class), Object.keys(SUPERSEDED_ENTRIES).sort());
   assert.deepEqual(COMMITTED.unreachableByAnyEntry.map((u) => [u.recommendation_id, u.level]), [["REC-AI-CRAWLER-BLOCK", "UNCLASSIFIED"]]);
-  assert.equal(COMMITTED.order.unranked.length, 2);
+  assert.equal(COMMITTED.order.unranked.length, 0);
 });
 
 test("🔴 the Markdown is the JSON rendered — the two cannot say different things", () => {
@@ -94,7 +103,7 @@ test("🔴 RED: a class in the store MISSING from the sheet is refused — alone
 
 test("🔴 RED: a COUNT that disagrees with the store is refused — alone", () => {
   const s = clone();
-  s.classes.find((x) => x.issue_class === "noindex-declared-deliberate").open = 0;
+  s.classes.find((x) => x.issue_class === "exact-duplicate").open = 0;
   assert.deepEqual(limbs(reconcile(s)), ["count"]);
 });
 
@@ -105,7 +114,7 @@ test("🔴 RED: a class in the REGISTER that is not in use is refused — alone"
 
 test("🔴 RED: a level on the sheet that the register does not declare is refused — alone", () => {
   const s = clone();
-  s.classes.find((c) => c.issue_class === "noindex-declared-deliberate").level = "LOW";
+  s.classes.find((c) => c.issue_class === "canonical").level = "HIGH";
   assert.deepEqual(limbs(reconcile(s)), ["register-text"]);
 });
 
@@ -113,6 +122,15 @@ test("🔴 RED: an ORDER on the sheet that the store and register do not produce
   const s = clone();
   [s.order.ranked[0], s.order.ranked[4]] = [s.order.ranked[4], s.order.ranked[0]];
   assert.deepEqual(limbs(reconcile(s)), ["order"]);
+});
+
+test("🔴 RED: a DECISION ON RECORD on the sheet that disagrees with the store — or four totals that do not sum — is refused, alone", () => {
+  const s = clone();
+  s.decisions[0].open = 0;
+  assert.deepEqual(limbs(reconcile(s)), ["populations"]);
+  const t = clone();
+  t.populations["AUDIT TRAIL"] = 0;
+  assert.deepEqual(limbs(reconcile(t)), ["populations"]);
 });
 
 test("🔴 RED: a COVERAGE count on the sheet that disagrees with the store is refused — alone", () => {

@@ -11,7 +11,7 @@ import { join } from "node:path";
 
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { reconcileRegister, consequenceFor, priorityCensus, UNCLASSIFIED, BASIS_KINDS } from "../src/audit/consequence.mjs";
-import { effectiveClassesInUse, coverageClassesOf } from "../src/audit/class-split.mjs";
+import { effectiveClassesInUse, nonFindingClassesOf } from "../src/audit/class-split.mjs";
 import { computeRecommendationFields } from "../src/report/recommendation-fields.mjs";
 import { CONSEQUENCE_REGISTER } from "../config/consequence-register.mjs";
 import { SEVERITY_SCALE } from "../config/consequence-scale.mjs";
@@ -29,19 +29,22 @@ const fieldsWith = (register, scale = SEVERITY_SCALE) =>
     consequenceRegister: register,
     consequenceScale: scale,
     classSplits: CLASS_SPLITS,
+    classPopulations: POPULATIONS,
   });
 const clone = () => JSON.parse(JSON.stringify(CONSEQUENCE_REGISTER));
 const reconcile = (register) => reconcileRegister({ records: AUDIT, register, scale: SEVERITY_SCALE, splits: CLASS_SPLITS });
 
 // the two halves the owner left UNCLASSIFIED (14 Sep 2026): NONE is not what their records verify
-const HALVES = ["noindex-declared-deliberate", "noindex-defect-claim-withdrawn"];
+// since Option A (14 Sep 2026) no finding class is left unrated
+const HALVES = [];
+const POPULATIONS = { "noindex-declared-deliberate": "DECISION ON RECORD", "noindex-defect-claim-withdrawn": "AUDIT TRAIL" };
 
-test("🟢 REAL: the register holds exactly the 16 FINDING classes in use — 14 ruled and attributed, 2 UNCLASSIFIED; no check that never ran is among them", () => {
+test("🟢 REAL: the register holds exactly the 14 FINDING classes in use — every one ruled and attributed; no coverage gap, decision on record or audit trail among them", () => {
   const r = reconcile(CONSEQUENCE_REGISTER);
   assert.equal(r.ok, true, JSON.stringify(r));
-  const coverage = coverageClassesOf(CLASS_SPLITS);
-  assert.deepEqual(Object.keys(CONSEQUENCE_REGISTER).sort(), effectiveClassesInUse(AUDIT, CLASS_SPLITS).filter((k) => !coverage.has(k)));
-  assert.equal(r.classesInUse.length, 16);
+  const notFindings = nonFindingClassesOf(CLASS_SPLITS);
+  assert.deepEqual(Object.keys(CONSEQUENCE_REGISTER).sort(), effectiveClassesInUse(AUDIT, CLASS_SPLITS).filter((k) => !notFindings.has(k)));
+  assert.equal(r.classesInUse.length, 14);
   assert.deepEqual(r.onCoverage, []);
   assert.deepEqual(r.unclassified, HALVES);
   const byLevel = {};
@@ -51,7 +54,7 @@ test("🟢 REAL: the register holds exactly the 16 FINDING classes in use — 14
     else if (e.splitFrom) assert.deepEqual([e.ruledFor, e.ruledBy, e.ruledOn], [k, "owner", "2026-09-14"], `${k}: a half is ruled only by a ruling that names it`);
     else assert.deepEqual([e.ruledBy, e.ruledOn], ["owner", "2026-09-14"], `${k} carries no dated owner ruling`);
   }
-  assert.deepEqual(Object.fromEntries(Object.entries(byLevel).map(([l, ks]) => [l, ks.length])), { HIGH: 4, MODERATE: 6, LOW: 4, UNCLASSIFIED: 2 });
+  assert.deepEqual(Object.fromEntries(Object.entries(byLevel).map(([l, ks]) => [l, ks.length])), { HIGH: 4, MODERATE: 6, LOW: 4 });
 });
 
 test("🔴 the splits are REQUIRED — a reconciliation that leaves them out would reconcile against a bundle", () => {
@@ -67,7 +70,9 @@ test("🟢 REAL: every presented recommendation states its priority, its BASIS a
   assert.deepEqual([by["REC-NOINDEX-CV-GUIDE"].rank, by["REC-NOINDEX-CV-GUIDE"].basisKind], [1, "MEASURED VOLUME"]);
   assert.deepEqual([by["REC-ROBOTS-CORRIDOR"].rank, by["REC-ROBOTS-CORRIDOR"].basisKind], [2, "BOTH"]);
   // its evidence is the 134 withdrawn defect claims — counted under the half that says so
-  assert.deepEqual(by["REC-NOINDEX-CV-GUIDE"].consequence.entries, [{ issue_class: "noindex-defect-claim-withdrawn", level: UNCLASSIFIED, inRegister: true }]);
+  // its evidence is the 134 withdrawn defect claims — the AUDIT TRAIL, named as not a finding
+  assert.deepEqual(by["REC-NOINDEX-CV-GUIDE"].consequence.entries, [{ issue_class: "noindex-defect-claim-withdrawn", level: UNCLASSIFIED, inRegister: false, population: "AUDIT TRAIL" }]);
+  assert.match(by["REC-NOINDEX-CV-GUIDE"].consequence.reason, /is AUDIT TRAIL — not a finding, so no level applies/);
   assert.deepEqual(by["REC-ROBOTS-CORRIDOR"].consequence.entries, [{ issue_class: "robots-blocks-search-crawler", level: "MODERATE", inRegister: true }]);
   const w = by["REC-ROBOTS-CORRIDOR"].consequenceWeightedRank;
   assert.deepEqual([w.state, w.rank, w.of, w.level], ["DERIVED", 1, 1, "MODERATE"]);
@@ -138,6 +143,6 @@ test("🔴 UNCLASSIFIED never becomes a consequence, and a claim of a consequenc
 test("🔴 REAL: the committed report leads with the consequence-weighted rank, and puts measured volume UNDER it", () => {
   const html = readFileSync(`${REPO}runs/report/index.html`, "utf8");
   assert.match(html, /REC-ROBOTS-CORRIDOR[\s\S]*?consequence-weighted rank: <strong>1 of 1<\/strong> at <strong>MODERATE<\/strong>[\s\S]*?under it, measured volume \(the amplifier inside a level\): <strong>2 of 2<\/strong>[\s\S]*?basis: <strong>BOTH<\/strong>[\s\S]*?<code>robots-blocks-search-crawler<\/code> = <strong>MODERATE<\/strong>/);
-  assert.match(html, /REC-NOINDEX-CV-GUIDE[\s\S]*?consequence-weighted rank: <span class="lbl lbl-UNKNOWN">UNKNOWN<\/span>[\s\S]*?routed to owner review[\s\S]*?<strong>1 of 2<\/strong>[\s\S]*?basis: <strong>MEASURED VOLUME<\/strong>[\s\S]*?<code>noindex-defect-claim-withdrawn<\/code> = <strong>UNCLASSIFIED<\/strong>/);
+  assert.match(html, /REC-NOINDEX-CV-GUIDE[\s\S]*?consequence-weighted rank: <span class="lbl lbl-UNKNOWN">UNKNOWN<\/span>[\s\S]*?routed to owner review[\s\S]*?<strong>1 of 2<\/strong>[\s\S]*?basis: <strong>MEASURED VOLUME<\/strong>[\s\S]*?<code>noindex-defect-claim-withdrawn<\/code> = <strong>AUDIT TRAIL \(not a finding\)<\/strong>/);
   assert.match(html, /REC-AI-CRAWLER-BLOCK[\s\S]*?basis: <strong>NONE<\/strong>[\s\S]*?none — no finding class is linked/);
 });

@@ -63,9 +63,9 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | state | before Amendment 2 | after the RULING only | after the WORK |
 |---|---|---|---|
 | **NOT-STARTED** | 3 | 8 | **7** |
-| **BUILT-NOT-PROVED** | 18 | 17 | **7** |
+| **BUILT-NOT-PROVED** | 18 | 17 | **6** |
 | **TESTABLE-NOW** | 0 | 2 | **1** |
-| **VERIFIED-PASS** | 3 | 3 | **18** |
+| **VERIFIED-PASS** | 3 | 3 | **19** |
 | **FAILED** | 0 | -1 | **1** |
 | **BLOCKED-UNKNOWN** | 6 | 6 | **4** |
 | **DEFERRED** | 28 | 23 | **23** |
@@ -84,9 +84,9 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 - **item 51** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — priority, confidence and cost each computed from stored evidence and each able to say UNKNOWN — two recommendations ranked by measured impressions, one UNKNOWN; confidence derived on all three; cost UNKNOWN on all three with lower bounds — and all six visible on the real report
 - **item 55** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — the parse is caught and rethrown with nothing from the file; the leak test re-run passed on every credential path, RED when the key or its length is logged; recovery proved by restoring torn stores from git, byte-identical by blob hash
 
-**Rows that have been looked at (VERIFIED-PASS or FAILED): 19 of 58.**
+**Rows that have been looked at (VERIFIED-PASS or FAILED): 20 of 58.**
 
-**Rows that reached VERIFIED-PASS in this PR: 15.**
+**Rows that reached VERIFIED-PASS in this PR: 16.**
 
 #### moved ONLY because a RULING changed
 
@@ -138,6 +138,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 56 | BLOCKED-UNKNOWN | VERIFIED-PASS | `the owner's visual check of runs/report/index.html · test/item-56-owner-verification.test.mjs` | 2026-09-13 | the owner looked at the report and verified it against his own criteria — critical information readable, workflow understandable, controls and links usable, no clipping, overlap or broken critical view; four screenshots committed; the cost ledger's horizontal scroll was raised and ruled not clipping |
 | 59 | NOT-STARTED | VERIFIED-PASS | `node bin/refutation-census.mjs · node --test test/falsifiability.test.mjs · runs/audit/row59-census-2026-09-14.txt · runs/audit/row59-red-limbs-2026-09-14.txt` | 2026-09-14 | the census over the real store checked a population of 20 read from it — 17 finding classes and 3 recommendations — and all 20 carry observation, source and condition with a held method; each evidence limb was sabotaged alone in the real register, went RED on that limb only, and was restored and hash-checked. It proves presence and a held method, never that a refutation is well chosen |
 | 60 | NOT-STARTED | BUILT-NOT-PROVED | `node bin/consequence-census.mjs · node --test test/consequence-register.test.mjs · runs/audit/row60-census-2026-09-14.txt · runs/audit/row60-red-limbs-2026-09-14.txt` | 2026-09-14 | the register was built with every class in the store and every level UNCLASSIFIED, every presented priority states its basis and the entries that applied, and each limb went RED alone and was restored — and it stops at BUILT-NOT-PROVED because only the owner may declare the levels its EXPECTED requires |
+| 60 | BUILT-NOT-PROVED | VERIFIED-PASS | `node bin/consequence-census.mjs · node --test test/consequence-register.test.mjs test/populations.test.mjs test/row60-ruling-sheet.test.mjs · runs/audit/row60-populations-red-limbs-2026-09-14.txt` | 2026-09-14 | the census over the real store reconciled the register line by line against the 14 finding classes in use, every one carrying the owner's level; the real report shows every presented recommendation's basis and the entries that applied; and row 60's four frozen evidence limbs were sabotaged alone in today's real files, each RED on its own limb, restored and hash-checked. It proves consistent application of the owner's judgement, never that a level is well chosen |
 | 61 | NOT-STARTED | BUILT-NOT-PROVED | `node --test test/page-construction.test.mjs · node bin/build-page.mjs --product=<the first product> --all-slugs · runs/audit/row61-gate-a-red-2026-09-14.txt · runs/audit/row61-gate-a-green-2026-09-14.txt` | 2026-09-14 | the runner takes --slug / --all-slugs with no default; Gate A's four frozen parts are enforced inside the construction path and fail closed; seen RED with the acceptance rule bypassed and GREEN restored; 0 of 3 candidates accepted — and the neutral product was refused AT THE RUNNER, so the portability leg is not proved |
 
 ---
@@ -147,9 +148,9 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | state | before (4-state) | after (7-state) |
 |---|---|---|
 | **NOT-STARTED** | 33 | **7** |
-| **BUILT-NOT-PROVED** | 24 | **7** |
+| **BUILT-NOT-PROVED** | 24 | **6** |
 | **TESTABLE-NOW** | 0 | **1** |
-| **VERIFIED-PASS** | 0 | **18** |
+| **VERIFIED-PASS** | 0 | **19** |
 | **FAILED** | 0 | **1** |
 | **BLOCKED-UNKNOWN** | 1 | **4** |
 | **DEFERRED** | 0 | **23** |
@@ -1083,7 +1084,7 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 
 ### 60 · CONSEQUENCE-WEIGHTED PRIORITY
 
-**BUILT-NOT-PROVED** · class `P` (admitted by Amendment 3) · ruled in `A3`
+**VERIFIED-PASS** · class `P` (admitted by Amendment 3) · ruled in `A3`
 
 | part | the owner's words |
 |---|---|
@@ -1092,7 +1093,7 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 | **FAILURE** | the engine computes, infers or defaults a consequence level · an unclassified class is silently ranked, or is treated as low · priority does not state its own basis · the register and the classes actually in use do not reconcile exactly · a register entry exists for a class not in use (stale) · the census polices an empty population. |
 | **EVIDENCE** | the register reconciled LINE BY LINE against the finding classes actually present in the store; the real report showing the basis on real recommendations; RED by hard-coding a level in code; RED by removing a register entry so a class becomes unclassified and is still ranked; RED by emptying the basis field; RED by leaving a stale register entry. Each limb alone. Restore and hash-check. |
 
-**Verdict —** 🔴 **BUILT-NOT-PROVED — AN UNMEASURED CHECK IS NOT A FINDING; 14 OF 16 FINDING CLASSES CARRY A LEVEL, AND THE TWO NOINDEX CLASSES DO NOT.** The owner ruled the scale and the law A1–A4 (`ROW60_CONSEQUENCE_LAW.md`), and on 14 September 2026 that **an unmeasured check is not a finding** (`ROW60_COVERAGE_AND_LEVELS_RULING.md`, hash-pinned): the 1,224 checks that never ran — MISSING_INPUT 878 · NEEDS_RENDERED_HTML 342 · TOOL_FAILED 4 — left the findings population for `config/coverage-register.mjs`, separately counted, never ranked, never given a level. **Findings: 809 distinct issues, 664 open, in 16 classes.** He ruled MODERATE for the four real `-found` halves, each by a ruling that names the half; voided the orphan escalation that rested on 340 checks that never ran; and corrected the figures 113, 110 and 226 to the real findings 5, 2 and 118. Every blast-radius figure is held to the store's real findings, and every limb went RED alone in the real files, restored and hash-checked (runs/audit/row60-coverage-red-limbs-2026-09-14.txt). **The limb not met is EXPECTED's first clause:** *"every finding CLASS present in the store carries a consequence level"* — `noindex-declared-deliberate` and `noindex-defect-claim-withdrawn` carry none. On the owner's answer they stay UNCLASSIFIED: NONE means *verified* no material adverse consequence, and their records are verdict UNKNOWN on whether the de-indexing rule is right (REC-NOINDEX-CV-GUIDE, undecided). 🔴 **UNCLASSIFIED IS A REAL STATE AND NEVER DEFAULTS TO LOW** (LAW-ABSENT-1): an unrated class is UNKNOWN, never ranked, routed to owner review
+**Verdict —** 🔴 **VERIFIED-PASS — 14 SEPTEMBER 2026 — ITS FIRST TICK, EVERY CLAUSE OF ITS CONTRACT MET ON THE REAL STORE.** **INPUT** every finding the product presents as actionable, and a consequence register the owner controls: `config/consequence-register.mjs`, under the owner's rulings `ROW60_CONSEQUENCE_LAW.md`, `ROW60_COVERAGE_AND_LEVELS_RULING.md` and `ROW60_POPULATIONS_RULING.md`, all hash-pinned. **EXPECTED** every finding class present carries a declared level, each entry stating what, the level and why — the 14 finding classes, HIGH 4 · MODERATE 6 · LOW 4 — and every presented recommendation shows its priority, its basis and which entry applied: REC-ROBOTS-CORRIDOR 1 of 1 at MODERATE, basis BOTH; REC-NOINDEX-CV-GUIDE's evidence is the audit trail, shown as not a finding, consequence UNKNOWN; REC-AI-CRAWLER-BLOCK none (Part C). **What is a finding, by the owner's rulings of 14 September 2026:** of 2,033 distinct issues, **541 are FINDINGS**; 1,224 are COVERAGE GAPS (checks that never ran); 134 are a DECISION ON RECORD awaiting REC-NOINDEX-CV-GUIDE, shown FIRST on the owner's report with its 484 search impressions; 134 are AUDIT TRAIL (claims withdrawn as wrong) — every issue in exactly one population. **EVIDENCE** the register reconciled line by line against the 14 finding classes in use (0 missing · 0 stale · 0 invalid); the real report shows the basis on the real recommendations; row 60's four frozen limbs re-run on today's real files — a level hard-coded in code, a register entry removed, the basis emptied, a stale entry — each RED alone, restored and hash-checked, beside the seven limbs of the population ruling (runs/audit/row60-populations-red-limbs-2026-09-14.txt). 🔴 **The limit, on the row:** the pass rests on three owner rulings that moved what counts as a finding while this row was blocked — each put to the ANTI-CIRCLE self-check, its answer recorded in the ruling. It proves the engine applies the owner's judgement consistently; it can never prove a level is well chosen — that is his. 🔴 **UNCLASSIFIED IS A REAL STATE AND NEVER DEFAULTS TO LOW** (LAW-ABSENT-1)
 
 ### 61 · SAFE LOCAL PAGE CONSTRUCTION
 

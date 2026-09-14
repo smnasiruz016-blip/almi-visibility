@@ -1,7 +1,7 @@
 {
   "_provenance": {
     "title": "AlmiVisibility — row 60 consequence sheet",
-    "generatedAt": "2026-09-14T04:28:41.226Z",
+    "generatedAt": "2026-09-14T05:08:37.966Z",
     "generatedBy": "bin/row60-ruling-sheet.mjs",
     "covers": [
       "every finding class present on an issue record in the files listed under `sources`, as config/class-splits.mjs counts it",
@@ -301,36 +301,6 @@
       "ruledOn": "2026-09-14"
     },
     {
-      "issue_class": "noindex-declared-deliberate",
-      "what": "a page's noindex, recorded as a deliberate de-indexing decision; whether its near-duplicate premise holds is UNKNOWN",
-      "splitFrom": "noindex",
-      "distinct": 134,
-      "open": 134,
-      "raw": 134,
-      "notRun": 0,
-      "ruled": {},
-      "level": "UNCLASSIFIED",
-      "escalatedFrom": null,
-      "ruledBy": null,
-      "ruledOn": null
-    },
-    {
-      "issue_class": "noindex-defect-claim-withdrawn",
-      "what": "a claim that a page's noindex was a defect — SUPERSEDED on 12 September 2026 by a record declaring that noindex deliberate",
-      "splitFrom": "noindex",
-      "distinct": 134,
-      "open": 0,
-      "raw": 268,
-      "notRun": 0,
-      "ruled": {
-        "SUPERSEDED": 134
-      },
-      "level": "UNCLASSIFIED",
-      "escalatedFrom": null,
-      "ruledBy": null,
-      "ruledOn": null
-    },
-    {
       "issue_class": "official-source-contradicts-itself",
       "what": "an official source states two things about the same fact that disagree",
       "splitFrom": null,
@@ -516,20 +486,7 @@
         "volume": 1
       }
     ],
-    "unranked": [
-      {
-        "id": "noindex-declared-deliberate",
-        "state": "UNKNOWN",
-        "route": "OWNER REVIEW",
-        "reason": "UNCLASSIFIED — noindex-declared-deliberate has no level the owner ruled; an unrated consequence is UNKNOWN, never low — routed to owner review; never ranked and never executed on a fallback"
-      },
-      {
-        "id": "noindex-defect-claim-withdrawn",
-        "state": "UNKNOWN",
-        "route": "OWNER REVIEW",
-        "reason": "UNCLASSIFIED — noindex-defect-claim-withdrawn has no level the owner ruled; an unrated consequence is UNKNOWN, never low — routed to owner review; never ranked and never executed on a fallback"
-      }
-    ]
+    "unranked": []
   },
   "coverage": [
     {
@@ -596,6 +553,37 @@
       "missing": "106: the stored page body was not available to the run. 2: rendered HTML — the body is empty in raw HTML, and a client-rendered page cannot be told from an empty one"
     }
   ],
+  "decisions": [
+    {
+      "issue_class": "noindex-declared-deliberate",
+      "splitFrom": "noindex",
+      "count": 134,
+      "open": 134,
+      "raw": 134,
+      "decided": "to de-index these cv-guide pages deliberately: noindex, correctly configured and crawlable, keyed on a country-verification gate (commit 50f8c20, as the review record reads)",
+      "notEstablished": "Whether it is still the right rule is UNKNOWN from our evidence: the premise it cites is not confirmed by our similarity measurement. Owner's decision: REC-NOINDEX-CV-GUIDE.",
+      "awaits": "REC-NOINDEX-CV-GUIDE"
+    }
+  ],
+  "auditTrail": [
+    {
+      "issue_class": "noindex-defect-claim-withdrawn",
+      "splitFrom": "noindex",
+      "count": 134,
+      "raw": 268,
+      "states": {
+        "SUPERSEDED": 134
+      },
+      "why": "the claim that noindex on these pages was a DEFECT was withdrawn on 12 September 2026 — later evidence showed a deliberate de-indexing decision — and each claim was superseded by the review record now held under noindex-declared-deliberate"
+    }
+  ],
+  "populations": {
+    "FINDINGS": 541,
+    "COVERAGE GAP": 1224,
+    "DECISION ON RECORD": 134,
+    "AUDIT TRAIL": 134,
+    "distinct": 2033
+  },
   "supersededClasses": [
     {
       "issue_class": "indexability-preflight",

@@ -187,10 +187,8 @@ export const CONSEQUENCE_REGISTER = Object.freeze({
     levelRestsOn: "consequence, not the count — the level stands because the consequence has not changed; PR #77's figure of 226 counted checks that never ran, the real findings are 118, and volume amplifies within a level and never defines it",
   }),
 
-  /* ── 🔴 UNCLASSIFIED — the noindex halves, on the owner's answer: NONE is "verified no material adverse consequence",
-   * and these records are verdict UNKNOWN on whether the rule is right (REC-NOINDEX-CV-GUIDE decides it) ── */
-  "noindex-defect-claim-withdrawn": half("noindex", "a claim that a page's noindex was a defect — SUPERSEDED on 12 September 2026 by a record declaring that noindex deliberate"),
-  "noindex-declared-deliberate": half("noindex", "a page's noindex, recorded as a deliberate de-indexing decision; whether its near-duplicate premise holds is UNKNOWN"),
+  /* ── the two noindex halves are NOT findings (owner's ruling, Option A, 14 September 2026): noindex-declared-deliberate is
+   * a DECISION ON RECORD (config/decision-register.mjs) and noindex-defect-claim-withdrawn is AUDIT TRAIL (config/audit-trail.mjs) ── */
 });
 
 /**

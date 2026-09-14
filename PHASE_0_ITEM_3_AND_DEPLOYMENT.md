@@ -202,6 +202,11 @@ correction stands independently of it.
 
 `DEP-1` (deploys on push, no CI) stands and is now **measured rather than inferred**.
 
+🔄 **SUPERSEDED 14 September 2026:** it no longer stands. Git deployments are off (`vercel.json`
+`{"git": {"deploymentEnabled": false}}`, since `774791b`), and CI runs on every pull request and every merge commit.
+The evidence, and what is still not measured (whether the check is required), is in `PHASE_0_FROZEN_GAP_REGISTER.md`
+under `DEP-1`. The measurement above was true on the day it was made and is kept as it was.
+
 ## PRODUCT DATA GAPS
 
 **None added by this document.**

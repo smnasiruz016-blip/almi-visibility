@@ -189,7 +189,9 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | NOT-STARTED → DEFERRED | 23 | 2, 18, 19, 20, 21, 22, 23, 24, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39, 40, 41, 43, 44 |
 | BUILT-NOT-PROVED → BLOCKED-UNKNOWN | 2 | 1, 54 |
 
-**Did not move: 16** — 3, 4, 5, 6, 7, 10, 16, 17, 36, 46, 52, 57, 58, 59, 60, 61
+**Did not move against the 11 September 2026 baseline: 13** — 3, 4, 5, 6, 7, 10, 16, 17, 36, 46, 52, 57, 58
+
+**Not on that baseline — admitted later by owner ruling: 3** — 59, 60, 61. They are not "unmoved"; they did not exist. Any work on them since is a declared move above.
 
 ---
 
@@ -1066,7 +1068,7 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 
 ### 59 · FALSIFIABILITY OF FINDINGS
 
-**NOT-STARTED** · class `P` (frozen `null`, moved by Amendment 4) · ruled in `A3`
+**NOT-STARTED** · class `P` (admitted by Amendment 3) · ruled in `A3`
 
 | part | the owner's words |
 |---|---|
@@ -1079,7 +1081,7 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 
 ### 60 · CONSEQUENCE-WEIGHTED PRIORITY
 
-**NOT-STARTED** · class `P` (frozen `null`, moved by Amendment 4) · ruled in `A3`
+**NOT-STARTED** · class `P` (admitted by Amendment 3) · ruled in `A3`
 
 | part | the owner's words |
 |---|---|
@@ -1092,7 +1094,7 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 
 ### 61 · SAFE LOCAL PAGE CONSTRUCTION
 
-**BUILT-NOT-PROVED** · class `P` (frozen `null`, moved by Amendment 4) · ruled in `A5`
+**BUILT-NOT-PROVED** · class `P` (admitted by Amendment 5) · ruled in `A5`
 
 | part | the owner's words |
 |---|---|

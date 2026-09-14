@@ -1,0 +1,18 @@
+GREEN PROOF — the same test with provenance.mjs and CHECKLIST_BOUNDARIES.md RESTORED
+date: 2026-09-14T01:19:03.643Z · provenance.mjs sha256 d72e7cd1ef49dbbba373870409019b5cd48f93d6262c9d6bbfa0e75542f094e6 · CHECKLIST_BOUNDARIES.md sha256 30f138fb1bde8ab336c183385b5a09a4b9b0324b07817822c7cd3516da3efcd3 (both identical to before)
+exit status: 0
+
+✔ 🟢 GREEN: every row of the generated ledger states its authority consistently — against itself and the loaded boundaries (6.5252ms)
+✔ the admitted rows say who admitted them, and nothing about a move (0.4096ms)
+✔ CONTROL: a row Amendment 4 really moved keeps its moved clause, and passes (0.0953ms)
+✔ 🔴 RED: the old wording — an admitted row that 'was moved', from a frozen class of null — is REFUSED (0.4547ms)
+✔ 🔴 RED: a class clause naming one amendment and a ruled-in clause naming another is REFUSED (0.3871ms)
+✔ 🔴 RED: a row ruled in an admitting amendment whose class clause says nothing of it is REFUSED; so is a moved row the boundaries say was not moved (0.5195ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 76.584

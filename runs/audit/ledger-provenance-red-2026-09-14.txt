@@ -1,0 +1,252 @@
+RED PROOF — test/ledger-provenance.test.mjs with the admitted-row line REMOVED from classClause (src/checklist/provenance.mjs)
+date: 2026-09-14T01:19:03.643Z · base HEAD a498a85a43dc2b213362df27d14fd8de2214a7f5 (uncommitted change under test)
+provenance.mjs sha256 before d72e7cd1ef49dbbba373870409019b5cd48f93d6262c9d6bbfa0e75542f094e6 · CHECKLIST_BOUNDARIES.md sha256 before 30f138fb1bde8ab336c183385b5a09a4b9b0324b07817822c7cd3516da3efcd3
+regenerated ledger: exit 0; lines carrying "frozen `null`, moved by Amendment 4": 3
+exit status: 1 · failed for the stated reason: true · tests that failed: 5
+
+✖ 🟢 GREEN: every row of the generated ledger states its authority consistently — against itself and the loaded boundaries (8.1314ms)
+✖ the admitted rows say who admitted them, and nothing about a move (0.6371ms)
+✔ CONTROL: a row Amendment 4 really moved keeps its moved clause, and passes (0.2117ms)
+✖ 🔴 RED: the old wording — an admitted row that 'was moved', from a frozen class of null — is REFUSED (0.4166ms)
+✖ 🔴 RED: a class clause naming one amendment and a ruled-in clause naming another is REFUSED (0.1613ms)
+✖ 🔴 RED: a row ruled in an admitting amendment whose class clause says nothing of it is REFUSED; so is a moved row the boundaries say was not moved (0.1318ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 1
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 85.4492
+
+✖ failing tests:
+
+test at test\ledger-provenance.test.mjs:33:1
+✖ 🟢 GREEN: every row of the generated ledger states its authority consistently — against itself and the loaded boundaries (8.1314ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + [
+  +   'item 59: its class clause records a frozen class of `null` — a row with no frozen class was admitted, not moved',
+  +   'item 59: its class clause says "moved by Amendment 4" but it is ruled in `A3`, an admitting amendment',
+  +   'item 59: it is ruled in `A3`, an admitting amendment, but its class clause does not say it was admitted',
+  +   "item 59: the boundaries say admitted by A3, the ledger's class clause does not agree",
+  +   "item 59: the boundaries say not moved, the ledger's class clause does not agree",
+  +   'item 60: its class clause records a frozen class of `null` — a row with no frozen class was admitted, not moved',
+  +   'item 60: its class clause says "moved by Amendment 4" but it is ruled in `A3`, an admitting amendment',
+  +   'item 60: it is ruled in `A3`, an admitting amendment, but its class clause does not say it was admitted',
+  +   "item 60: the boundaries say admitted by A3, the ledger's class clause does not agree",
+  +   "item 60: the boundaries say not moved, the ledger's class clause does not agree",
+  +   'item 61: its class clause records a frozen class of `null` — a row with no frozen class was admitted, not moved',
+  +   'item 61: its class clause says "moved by Amendment 4" but it is ruled in `A5`, an admitting amendment',
+  +   'item 61: it is ruled in `A5`, an admitting amendment, but its class clause does not say it was admitted',
+  +   "item 61: the boundaries say admitted by A5, the ledger's class clause does not agree",
+  +   "item 61: the boundaries say not moved, the ledger's class clause does not agree"
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (file:///C:/Projects/almi-visibility/test/ledger-provenance.test.mjs:36:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.start (node:internal/test_runner/test:1096:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'item 59: its class clause records a frozen class of `null` — a row with no frozen class was admitted, not moved', 'item 59: its class clause says "moved by Amendment 4" but it is ruled in `A3`, an admitting amendment', 'item 59: it is ruled in `A3`, an admitting amendment, but its class clause does not say it was admitted', "item 59: the boundaries say admitted by A3, the ledger's class clause does not agree", "item 59: the boundaries say not moved, the ledger's class clause does not agree", 'item 60: its class clause records a frozen class of `null` — a row with no frozen class was admitted, not moved', 'item 60: its class clause says "moved by Amendment 4" but it is ruled in `A3`, an admitting amendment', 'item 60: it is ruled in `A3`, an admitting amendment, but its class clause does not say it was admitted', "item 60: the boundaries say admitted by A3, the ledger's class clause does not agree", "item 60: the boundaries say not moved, the ledger's class clause does not agree", 'item 61: its class clause records a frozen class of `null` — a row with no frozen class was admitted, not moved', 'item 61: its class clause says "moved by Amendment 4" but it is ruled in `A5`, an admitting amendment', 'item 61: it is ruled in `A5`, an admitting amendment, but its class clause does not say it was admitted', "item 61: the boundaries say admitted by A5, the ledger's class clause does not agree", "item 61: the boundaries say not moved, the ledger's class clause does not agree" ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test\ledger-provenance.test.mjs:41:1
+✖ the admitted rows say who admitted them, and nothing about a move (0.6371ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /### 59 · [^\n]*\n\n\*\*NOT-STARTED\*\* · class `P` \(admitted by Amendment 3\) · ruled in `A3`/. Input:
+  
+  '# ALMIVISIBILITY — THE PASS BOUNDARIES (58 FROZEN, PLUS ROWS ADMITTED BY RULING) AND THE SEVEN-STATE LEDGER\n' +
+    '\n' +
+    '> 🔴 **GENERATED — DO NOT EDIT BY HAND.** `node bin/checklist-boundaries.mjs` rebuilds it.\n' +
+    '> Every boundary below is read out of `PASS_BOUNDARIES_SOURCE.md`, whose body is verified\n' +
+    '> against sha256 `16c580160391eabb14a4d6754edfe18fe1def936384cf831d300640ef73d9e5c`. Nothing here is retyped, so `verbatim` is a\n' +
+    "> property of the mechanism rather than a promise about anyone's typing.\n" +
+    '\n' +
+    'Frozen source verified: **YES** · features **58**\n' +
+    '(sequence 1..58) · classes as frozen **P=24 S=6 D=28**\n' +
+    '· classes in force since Amendment 4 **P=30 S=8 D=23**\n' +
+    '\n' +
+    '## Precedence\n' +
+    '\n' +
+    '> The **KEY FEATURE CHECKLIST** states WHAT each feature must do.\n' +
+    '> **PASS BOUNDARIES** states EXACTLY WHEN it may be ticked.\n' +
+    '> Where any internal practice disagrees with either, **THEY WIN**.\n' +
+    '> A boundary changes **only by owner ruling**, recorded with its date and reason.\n' +
+    '\n' +
+    '---\n' +
+    '\n' +
+    '## 🔴 AMENDMENT 4 — THE DISCOVERY ROWS ENTER SCOPE (owner ruling, 13 September 2026)\n' +
+    '\n' +
+    'Amendment 4 verified against sha256 `c802429e46d60a2d6c75e0122054a642045c7362fa20ab2944283ae5b8702390`. **It changes CLASS, never text:** every\n' +
+    'boundary below is still read out of the frozen source, which still verifies byte for byte.\n' +
+    '\n' +
+    '| class | as frozen | in force |\n' +
+    '|---|---|---|\n' +
+    '| **P** | 24 | **30** |\n' +
+    '| **S** | 6 | **8** |\n' +
+    '| **D** | 28 | **23** |\n' +
+    '| **in scope (P + S)** | 30 | **38** |\n' +
+    '\n' +
+    '- **moved because WORK HAPPENED:** none. **moved ONLY because a RULING changed:** 5 — 3 DEFERRED → NOT-STARTED · 4 DEFERRED → NOT-STARTED · 5 DEFERRED → NOT-STARTED · 6 DEFERRED → NOT-STARTED · 7 DEFERRED → NOT-STARTED.\n' +
+    '- 🔴 **A class change is not progress.** Every row it opened arrives NOT-STARTED: nothing was built and nothing was run.\n' +
+    '- **item 3 · Keyword & Search-Language Discovery** — class `D` → `S`. Its INPUT clause, *"**owned search data** plus legitimate public search evidence"*: 🟡 **half** — the owned half is present; the public half needs an external fetch\n' +
+    '- **item 4 · Localized Human Thinking** — class `D` → `P`. Its INPUT clause, *"the same goal expressed from two or more countries"*: ✅ **yes** — 388 country×query rows across 126 countries\n' +
+    '- **item 5 · Intent & Question Clustering** — class `D` → `P`. Its INPUT clause, *"a set of differently worded questions with the same underlying intent"*: ✅ **yes** — 337 owned queries\n' +
+    '- **item 6 · Axis Discovery** — class `D` → `P`. Its INPUT clause, *"the subject\'s real evidence"*: ✅ **yes** — the evidence store: queries, countries, pages\n' +
+    '- **item 7 · Market Measurement** — class `D` → `S`. Its INPUT clause, five measurements, separately: SUPPLY · VISIBILITY/REACH · DEMAND · AUDIENCE/NEED · WORTHINESS: 🟡 **two of five** — DEMAND and VISIBILITY are owned; SUPPLY and AUDIENCE need external evidence\n' +
+    '- **item 2 · Human Question Discovery** — **stays `D`, and why:** its INPUT clause, *"a declared subject and **legitimate public question evidence**"*: ❌ **no** — its input is public evidence, and no fetch is authorised\n' +
+    '\n' +
+    "🔴 **The owner's dated addendum (13 September 2026) closed the three gaps this amendment first left:** row 7's\n" +
+    '**WORTHINESS** is assigned to the deferred half, and item 3 and item 7 carry a four-part contract for their owned half,\n' +
+    'read from the amendment. **A contract is not progress:** both rows stay NOT-STARTED, and each keeps its §6 text below\n' +
+    'as the final boundary for when the deferred half opens.\n' +
+    '\n' +
+    '---\n' +
+    '\n' +
+    '## 🔴 AMENDMENT 5 — ROW 61: SAFE LOCAL PAGE CONSTRUCTION (reserved until 14 September 2026, now created)\n' +
+    '\n' +
+    'Amendment 5 verified against sha256 `cab59fe7b78f37931ed4461d97f4646d2c23b880b3352c7eca56bfa12938cb11`. **It adds one row and moves no text.**\n' +
+    '\n' +
+    '🔴 **Row 61 was RESERVED** while rows 59 and 60 existed nowhere, as the ruling said (*reserve 61, never renumber*).\n' +
+    '**On 14 September 2026 Amendment 3 admitted 59 and 60, and row 61 is CREATED** — its full verdict, missing leg and\n' +
+    'blocker are on the row in the ledger below. In scope, as Amendment 5 states it: **35 → 36**; with rows 59 and 60, **38**.\n' +
+    '\n' +
+    '---\n' +
+    '\n' +
+    '## 🔴 AMENDMENT 2 — THE SEVENTH STATE, AND ITEM 14 SAT AGAIN\n' +
+    '\n' +
+    'Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1b03824c2ee029a9efa25e`.\n' +
+    '\n' +
+    '| state | before Amendment 2 | after the RULING only | after the WORK |\n' +
+    '|---|---|---|---|\n' +
+    '| **NOT-STARTED** | 3 | 8 | **9** |\n' +
+    '| **BUILT-NOT-PROVED** | 18 | 17 | **6** |\n' +
+    '| **TESTABLE-NOW** | 0 | 2 | **1** |\n' +
+    '| **VERIFIED-PASS** | 3 | 3 | **17** |\n' +
+    '| **FAILED** | 0 | -1 | **1** |\n' +
+    '| **BLOCKED-UNKNOWN** | 6 | 6 | **4** |\n' +
+    '| **DEFERRED** | 28 | 23 | **23** |\n' +
+    '\n' +
+    '### FAILED — counted and named separately: **1**\n' +
+    '\n' +
+    '> 🔴 **FAILED is counted and named separately in every report.** It is never folded into another\n' +
+    '> count and it is **not progress**. It is also **worth more than BUILT-NOT-PROVED**: a FAILED row\n' +
+    '> is one whose test was run against its own boundary — it means we looked.\n' +
+    '\n' +
+    "- **item 50 · OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation** — FAILURE met: a label is wrong: the first product's writing record was labelled VERIFIED on a verdict that confirmed three of the six claims its value makes, with a supplied 'not found' count of 0 — and the guard that should have caught it took that count on trust\n" +
+    "- **item 14** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-12 — report.mjs and the chain runner's cache now write only with --confirm; every destination is confined to this repository and refused outside it; all five parts re-tested and each RED-proved\n" +
+    "- **item 45** left FAILED for TESTABLE-NOW by route `OWNER_RULING` on 2026-09-12 — 'A component cannot be failed for a period before it existed.' The boundary's INPUT is a run; the scope is runs from 8c9d68b (2026-09-12T23:03:09Z) onward. The bar is unchanged; the eight earlier runs are recorded as a permanent loss (L-COST-1)\n" +
+    '- **item 48** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — every authorized job that stores a record has now been run twice into one store with zero duplicates on the second run — crawl (replay: 389 unchanged → 0 new, 389 re-sightings), DNS audit (RECORDED resolver answers: 134 → +0), technical, content, verification and supply-label writers — and the census holds every issue writer to appendIfNew; RED when the key takes the clock\n' +
+    '- **item 50** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — four real records put to the F24 guard leaving UNKNOWN: two with sufficient evidence advanced on a new measurement, two with insufficient evidence were refused and stay UNKNOWN with their reasons; both directions RED-proved\n' +
+    '- **item 51** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — priority, confidence and cost each computed from stored evidence and each able to say UNKNOWN — two recommendations ranked by measured impressions, one UNKNOWN; confidence derived on all three; cost UNKNOWN on all three with lower bounds — and all six visible on the real report\n' +
+    '- **item 55** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — the parse is caught and rethrown with nothing from the file; the leak test re-run passed on every credential path, RED when the key or its length is logged; recovery proved by restoring torn stores from git, byte-identical by blob hash\n' +
+    '\n' +
+    '**Rows that have been looked at (VERIFIED-PASS or FAILED): 18 of 58.**\n' +
+    '\n' +
+    '**Rows that reached VERIFIED-PASS in this PR: 14.**\n' +
+    '\n' +
+    '#### moved ONLY because a RULING changed\n' +
+    '\n' +
+    '| # | from | to | ruling | date | reason |\n' +
+    '|---|---|---|---|---|---|\n' +
+    '| 3 | DEFERRED | NOT-STARTED | PASS_BOUNDARIES_AMENDMENT_4.md §1 and §3 — the discovery rows enter scope | 2026-09-13 | class D → S (split): its frozen INPUT clause was tested against the owned evidence store and only the owned half is present — that half enters scope, the rest stays deferred and is named on the row. Nothing was built or run; a class change is not progress |\n' +
+    '| 4 | DEFERRED | NOT-STARTED | PASS_BOUNDARIES_AMENDMENT_4.md §1 and §3 — the discovery rows enter scope | 2026-09-13 | class D → P: its frozen INPUT clause was tested against the owned evidence store and the input is present. Nothing was built or run; a class change is not progress |\n' +
+    '| 5 | DEFERRED | NOT-STARTED | PASS_BOUNDARIES_AMENDMENT_4.md §1 and §3 — the discovery rows enter scope | 2026-09-13 | class D → P: its frozen INPUT clause was tested against the owned evidence store and the input is present. Nothing was built or run; a class change is not progress |\n' +
+    '| 6 | DEFERRED | NOT-STARTED | PASS_BOUNDARIES_AMENDMENT_4.md §1 and §3 — the discovery rows enter scope | 2026-09-13 | class D → P: its frozen INPUT clause was tested against the owned evidence store and the input is present. Nothing was built or run; a class change is not progress |\n' +
+    '| 7 | DEFERRED | NOT-STARTED | PASS_BOUNDARIES_AMENDMENT_4.md §1 and §3 — the discovery rows enter scope | 2026-09-13 | class D → S (split): its frozen INPUT clause was tested against the owned evidence store and only the owned half is present — that half enters scope, the rest stays deferred and is named on the row. Nothing was built or run; a class change is not progress |\n' +
+    '| 14 | BUILT-NOT-PROVED | TESTABLE-NOW | PASS_BOUNDARIES_AMENDMENT_2.md §A2.2 and §A2.4 | 2026-09-12 | the owner narrowed the boundary to product-repository writes and publishing, and added the register of permitted writers; its earlier result no longer applies, so the exam must be sat again. Not a tick and not a pass |\n' +
+    "| 45 | FAILED | TESTABLE-NOW | TECHNICAL-OWNER RULING — ITEM 45's SCOPE BEGINS WHEN THE LEDGER EXISTED (PHASE_0_FROZEN_GAP_REGISTER.md) | 2026-09-12 | 'A component cannot be failed for a period before it existed.' The boundary's INPUT is a run; the scope is runs from 8c9d68b (2026-09-12T23:03:09Z) onward. The bar is unchanged; the eight earlier runs are recorded as a permanent loss (L-COST-1) |\n" +
+    '\n' +
+    '#### moved because WORK HAPPENED\n' +
+    '\n' +
+    '| # | from | to | test | date | what happened |\n' +
+    '|---|---|---|---|---|---|\n' +
+    '| 9 | BUILT-NOT-PROVED | BLOCKED-UNKNOWN '... 100565 more characters
+  
+      at TestContext.<anonymous> (file:///C:/Projects/almi-visibility/test/ledger-provenance.test.mjs:42:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '# ALMIVISIBILITY — THE PASS BOUNDARIES (58 FROZEN, PLUS ROWS ADMITTED BY RULING) AND THE SEVEN-STATE LEDGER\n\n> 🔴 **GENERATED — DO NOT EDIT BY HAND.** `node bin/checklist-boundaries.mjs` rebuilds it.\n> Every boundary below is read out of `PASS_BOUNDARIES_SOURCE.md`, whose body is verified\n> against sha256 `16c580160391eabb14a4d6754edfe18fe1def936384cf831d300640ef73d9e5c`. Nothing here is retyped, so `verbatim` is a\n> property of the mechanism rather than a promise about anyone\'s typing.\n\nFrozen source verified: **YES** · features **58**\n(sequence 1..58) · classes as frozen **P=24 S=6 D=28**\n· classes in force since Amendment 4 **P=30 S=8 D=23**\n\n## Precedence\n\n> The **KEY FEATURE CHECKLIST** states WHAT each feature must do.\n> **PASS BOUNDARIES** states EXACTLY WHEN it may be ticked.\n> Where any internal practice disagrees with either, **THEY WIN**.\n> A boundary changes **only by owner ruling**, recorded with its date and reason.\n\n---\n\n## 🔴 AMENDMENT 4 — THE DISCOVERY ROWS ENTER SCOPE (owner ruling, 13 September 2026)\n\nAmendment 4 verified against sha256 `c802429e46d60a2d6c75e0122054a642045c7362fa20ab2944283ae5b8702390`. **It changes CLASS, never text:** every\nboundary below is still read out of the frozen source, which still verifies byte for byte.\n\n| class | as frozen | in force |\n|---|---|---|\n| **P** | 24 | **30** |\n| **S** | 6 | **8** |\n| **D** | 28 | **23** |\n| **in scope (P + S)** | 30 | **38** |\n\n- **moved because WORK HAPPENED:** none. **moved ONLY because a RULING changed:** 5 — 3 DEFERRED → NOT-STARTED · 4 DEFERRED → NOT-STARTED · 5 DEFERRED → NOT-STARTED · 6 DEFERRED → NOT-STARTED · 7 DEFERRED → NOT-STARTED.\n- 🔴 **A class change is not progress.** Every row it opened arrives NOT-STARTED: nothing was built and nothing was run.\n- **item 3 · Keyword & Search-Language Discovery** — class `D` → `S`. Its INPUT clause, *"**owned search data** plus legitimate public search evidence"*: 🟡 **half** — the owned half is present; the public half needs an external fetch\n- **item 4 · Localized Human Thinking** — class `D` → `P`. Its INPUT clause, *"the same goal expressed from two or more countries"*: ✅ **yes** — 388 country×query rows across 126 countries\n- **item 5 · Intent & Question Clustering** — class `D` → `P`. Its INPUT clause, *"a set of differently worded questions with the same underlying intent"*: ✅ **yes** — 337 owned queries\n- **item 6 · Axis Discovery** — class `D` → `P`. Its INPUT clause, *"the subject\'s real evidence"*: ✅ **yes** — the evidence store: queries, countries, pages\n- **item 7 · Market Measurement** — class `D` → `S`. Its INPUT clause, five measurements, separately: SUPPLY · VISIBILITY/REACH · DEMAND · AUDIENCE/NEED · WORTHINESS: 🟡 **two of five** — DEMAND and VISIBILITY are owned; SUPPLY and AUDIENCE need external evidence\n- **item 2 · Human Question Discovery** — **stays `D`, and why:** its INPUT clause, *"a declared subject and **legitimate public question evidence**"*: ❌ **no** — its input is public evidence, and no fetch is authorised\n\n🔴 **The owner\'s dated addendum (13 September 2026) closed the three gaps this amendment first left:** row 7\'s\n**WORTHINESS** is assigned to the deferred half, and item 3 and item 7 carry a four-part contract for their owned half,\nread from the amendment. **A contract is not progress:** both rows stay NOT-STARTED, and each keeps its §6 text below\nas the final boundary for when the deferred half opens.\n\n---\n\n## 🔴 AMENDMENT 5 — ROW 61: SAFE LOCAL PAGE CONSTRUCTION (reserved until 14 September 2026, now created)\n\nAmendment 5 verified against sha256 `cab59fe7b78f37931ed4461d97f4646d2c23b880b3352c7eca56bfa12938cb11`. **It adds one row and moves no text.**\n\n🔴 **Row 61 was RESERVED** while rows 59 and 60 existed nowhere, as the ruling said (*reserve 61, never renumber*).\n**On 14 September 2026 Amendment 3 admitted 59 and 60, and row 61 is CREATED** — its full verdict, missing leg and\nblocker are on the row in the ledger below. In scope, as Amendment 5 states it: **35 → 36**; with rows 59 and 60, **38**.\n\n---\n\n## 🔴 AMENDMENT 2 — THE SEVENTH STATE, AND ITEM 14 SAT AGAIN\n\nAmendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1b03824c2ee029a9efa25e`.\n\n| state | before Amendment 2 | after the RULING only | after the WORK |\n|---|---|---|---|\n| **NOT-STARTED** | 3 | 8 | **9** |\n| **BUILT-NOT-PROVED** | 18 | 17 | **6** |\n| **TESTABLE-NOW** | 0 | 2 | **1** |\n| **VERIFIED-PASS** | 3 | 3 | **17** |\n| **FAILED** | 0 | -1 | **1** |\n| **BLOCKED-UNKNOWN** | 6 | 6 | **4** |\n| **DEFERRED** | 28 | 23 | **23** |\n\n### FAILED — counted and named separately: **1**\n\n> 🔴 **FAILED is counted and named separately in every report.** It is never folded into another\n> count and it is **not progress**. It is also **worth more than BUILT-NOT-PROVED**: a FAILED row\n> is one whose test was run against its own boundary — it means we looked.\n\n- **item 50 · OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation** — FAILURE met: a label is wrong: the first product\'s writing record was labelled VERIFIED on a verdict that confirmed three of the six claims its value makes, with a supplied \'not found\' count of 0 — and the guard that should have caught it took that count on trust\n- **item 14** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-12 — report.mjs and the chain runner\'s cache now write only with --confirm; every destination is confined to this repository and refused outside it; all five parts re-tested and each RED-proved\n- **item 45** left FAILED for TESTABLE-NOW by route `OWNER_RULING` on 2026-09-12 — \'A component cannot be failed for a period before it existed.\' The boundary\'s INPUT is a run; the scope is runs from 8c9d68b (2026-09-12T23:03:09Z) onward. The bar is unchanged; the eight earlier runs are recorded as a permanent loss (L-COST-1)\n- **item 48** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — every authorized job that stores a record has now been run twice into one store with zero duplicates on the second run — crawl (replay: 389 unchanged → 0 new, 389 re-sightings), DNS audit (RECORDED resolver answers: 134 → +0), technical, content, verification and supply-label writers — and the census holds every issue writer to appendIfNew; RED when the key takes the clock\n- **item 50** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — four real records put to the F24 guard leaving UNKNOWN: two with sufficient evidence advanced on a new measurement, two with insufficient evidence were refused and stay UNKNOWN with their reasons; both directions RED-proved\n- **item 51** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — priority, confidence and cost each computed from stored evidence and each able to say UNKNOWN — two recommendations ranked by measured impressions, one UNKNOWN; confidence derived on all three; cost UNKNOWN on all three with lower bounds — and all six visible on the real report\n- **item 55** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — the parse is caught and rethrown with nothing from the file; the leak test re-run passed on every credential path, RED when the key or its length is logged; recovery proved by restoring torn stores from git, byte-identical by blob hash\n\n**Rows that have been looked at (VERIFIED-PASS or FAILED): 18 of 58.**\n\n**Rows that reached VERIFIED-PASS in this PR: 14.**\n\n#### moved ONLY because a RULING changed\n\n| # | from | to | ruling | date | reason |\n|---|---|---|---|---|---|\n| 3 | DEFERRED | NOT-STARTED | PASS_BOUNDARIES_AMENDMENT_4.md §1 and §3 — the discovery rows enter scope | 2026-09-13 | class D → S (split): its frozen INPUT clause was tested against the owned evidence store and only the owned half is present — that half enters scope, the rest stays deferred and is named on the row. Nothing was built or run; a class change is not progress |\n| 4 | DEFERRED | NOT-STARTED | PASS_BOUNDARIES_AMENDMENT_4.md §1 and §3 — the discovery rows enter scope | 2026-09-13 | class D → P: its frozen INPUT clause was tested against the owned evidence store and the input is present. Nothing was built or run; a class change is not progress |\n| 5 | DEFERRED | NOT-STARTED | PASS_BOUNDARIES_AMENDMENT_4.md §1 and §3 — the discovery rows enter scope | 2026-09-13 | class D → P: its frozen INPUT clause was tested against the owned evidence store and the input is present. Nothing was built or run; a class change is not progress |\n| 6 | DEFERRED | NOT-STARTED | PASS_BOUNDARIES_AMENDMENT_4.md §1 and §3 — the discovery rows enter scope | 2026-09-13 | class D → P: its frozen INPUT clause was tested against the owned evidence store and the input is present. Nothing was built or run; a class change is not progress |\n| 7 | DEFERRED | NOT-STARTED | PASS_BOUNDARIES_AMENDMENT_4.md §1 and §3 — the discovery rows enter scope | 2026-09-13 | class D → S (split): its frozen INPUT clause was tested against the owned evidence store and only the owned half is present — that half enters scope, the rest stays deferred and is named on the row. Nothing was built or run; a class change is not progress |\n| 14 | BUILT-NOT-PROVED | TESTABLE-NOW | PASS_BOUNDARIES_AMENDMENT_2.md §A2.2 and §A2.4 | 2026-09-12 | the owner narrowed the boundary to product-repository writes and publishing, and added the register of permitted writers; its earlier result no longer applies, so the exam must be sat again. Not a tick and not a pass |\n| 45 | FAILED | TESTABLE-NOW | TECHNICAL-OWNER RULING — ITEM 45\'s SCOPE BEGINS WHEN THE LEDGER EXISTED (PHASE_0_FROZEN_GAP_REGISTER.md) | 2026-09-12 | \'A component cannot be failed for a period before it existed.\' The boundary\'s INPUT is a run; the scope is runs from 8c9d68b (2026-09-12T23:03:09Z) onward. The bar is unchanged; the eight earlier runs are recorded as a permanent loss (L-COST-1) |\n\n#### moved because WORK HAPPENED\n\n| # | from | to | test | date | what happened |\n|---|---|---|---|---|---|\n| 9 | BUILT-NOT-PROVED | BLOCKED-UNKNOWN '... 100565 more characters,
+    expected: /### 59 · [^\n]*\n\n\*\*NOT-STARTED\*\* · class `P` \(admitted by Amendment 3\) · ruled in `A3`/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at test\ledger-provenance.test.mjs:56:1
+✖ 🔴 RED: the old wording — an admitted row that 'was moved', from a frozen class of null — is REFUSED (0.4166ms)
+  AssertionError [ERR_ASSERTION]: row 59's state line does not contain the text to sabotage exactly once — the RED would not land
+  
+  0 !== 1
+  
+      at onRow (file:///C:/Projects/almi-visibility/test/ledger-provenance.test.mjs:29:10)
+      at TestContext.<anonymous> (file:///C:/Projects/almi-visibility/test/ledger-provenance.test.mjs:57:15)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test\ledger-provenance.test.mjs:65:1
+✖ 🔴 RED: a class clause naming one amendment and a ruled-in clause naming another is REFUSED (0.1613ms)
+  AssertionError [ERR_ASSERTION]: the text to sabotage occurs 0 time(s), not once — the RED would not land
+  
+  0 !== 1
+  
+      at once (file:///C:/Projects/almi-visibility/test/ledger-provenance.test.mjs:21:10)
+      at TestContext.<anonymous> (file:///C:/Projects/almi-visibility/test/ledger-provenance.test.mjs:66:15)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test\ledger-provenance.test.mjs:71:1
+✖ 🔴 RED: a row ruled in an admitting amendment whose class clause says nothing of it is REFUSED; so is a moved row the boundaries say was not moved (0.1318ms)
+  AssertionError [ERR_ASSERTION]: the text to sabotage occurs 0 time(s), not once — the RED would not land
+  
+  0 !== 1
+  
+      at once (file:///C:/Projects/almi-visibility/test/ledger-provenance.test.mjs:21:10)
+      at TestContext.<anonymous> (file:///C:/Projects/almi-visibility/test/ledger-provenance.test.mjs:72:18)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

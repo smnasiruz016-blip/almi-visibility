@@ -31,7 +31,7 @@
  */
 
 import { UNCLASSIFIED, consequenceFor, orderByConsequence } from "./consequence.mjs";
-import { classOf, splitView, isUnmeasured } from "./class-split.mjs";
+import { classOf, splitView, isUnmeasured, coverageClassesOf } from "./class-split.mjs";
 
 const COUNT_FIELDS = Object.freeze(["distinct", "open", "raw", "notRun"]);
 
@@ -46,7 +46,7 @@ const COUNT_FIELDS = Object.freeze(["distinct", "open", "raw", "notRun"]);
  * @param {string[]} a.unmeasuredCodes  reason codes that mean no measurement was made
  * @param {string}   a.generatedAt
  */
-export function buildRulingSheet({ files, register, unreachable = {}, scale, splits, superseded = {}, unmeasuredCodes, generatedAt }) {
+export function buildRulingSheet({ files, register, unreachable = {}, scale, splits, superseded = {}, coverage = {}, unmeasuredCodes, generatedAt }) {
   const all = files.flatMap((f) => f.records);
   const { view, lifecycleErrors } = splitView(all, splits);
 
@@ -67,7 +67,14 @@ export function buildRulingSheet({ files, register, unreachable = {}, scale, spl
     e.ids.add(r.issue_id);
   }
 
-  const classes = [...byClass.keys()].sort().map((issue_class) => {
+  // 🔴 An unmeasured check is not a finding (owner, 14 Sep 2026): coverage classes are counted apart and never ranked.
+  const coverageClasses = coverageClassesOf(splits);
+  const coverageRows = [...byClass.keys()].filter((k) => coverageClasses.has(k)).sort().map((issue_class) => {
+    const e = byClass.get(issue_class);
+    const reasonCodes = [...new Set([...e.ids].map((id) => view.get(id).reason_code))].sort();
+    return { issue_class, splitFrom: coverage?.[issue_class]?.splitFrom ?? null, count: e.ids.size, raw: e.raw, reasonCodes, missing: coverage?.[issue_class]?.missing ?? null };
+  });
+  const classes = [...byClass.keys()].filter((k) => !coverageClasses.has(k)).sort().map((issue_class) => {
     const e = byClass.get(issue_class);
     const states = {};
     let notRun = 0;
@@ -142,6 +149,7 @@ export function buildRulingSheet({ files, register, unreachable = {}, scale, spl
     scale: (scale ?? []).map((s) => ({ level: s.level, definition: s.definition })),
     classes,
     order,
+    coverage: coverageRows,
     supersededClasses,
     unreachableByAnyEntry,
   };
@@ -156,7 +164,7 @@ export function buildRulingSheet({ files, register, unreachable = {}, scale, spl
  *   sheet ↔ register   register-text (descriptions, levels, attributions, splits, superseded, Part C) · scale
  *   the join itself    lifecycle
  */
-export function reconcileSheet({ sheet, fresh, register, unreachable = {}, scale, superseded = {} }) {
+export function reconcileSheet({ sheet, fresh, register, unreachable = {}, scale, superseded = {}, coverage = {} }) {
   const errors = [];
   const inStore = new Map(fresh.classes.map((c) => [c.issue_class, c]));
   const inSheet = new Map((sheet?.classes ?? []).map((c) => [c.issue_class, c]));
@@ -182,6 +190,9 @@ export function reconcileSheet({ sheet, fresh, register, unreachable = {}, scale
   for (const k of Object.keys(register ?? {})) if (!inStore.has(k)) errors.push({ limb: "stale-register", class: k, why: "the register holds a class that is not in use" });
   for (const k of inStore.keys()) if (!register?.[k]) errors.push({ limb: "missing-register", class: k, why: "a class in use has no register entry" });
 
+  // the coverage population: its counts are the store's, its words the coverage register's, and none of it is ranked
+  if (JSON.stringify(sheet?.coverage) !== JSON.stringify(fresh.coverage)) errors.push({ limb: "coverage", why: "the sheet's coverage population is not the one the store and the coverage register produce" });
+  for (const c of fresh.coverage) if (c.missing === null || c.missing !== (coverage?.[c.issue_class]?.missing ?? null)) errors.push({ limb: "coverage", class: c.issue_class, why: "a coverage class has no coverage-register entry" });
   if (JSON.stringify(sheet?.order) !== JSON.stringify(fresh.order)) errors.push({ limb: "order", why: "the sheet's consequence-first order is not the order the store and the register produce" });
   if (JSON.stringify(sheet?.scale) !== JSON.stringify((scale ?? []).map((s) => ({ level: s.level, definition: s.definition })))) {
     errors.push({ limb: "scale", why: "the sheet's scale is not the owner's scale" });
@@ -239,7 +250,7 @@ export function renderRulingSheet(sheet) {
     L.push(`| ${i + 1} | \`${c.issue_class}\` | ${c.what ?? "🔴 no register entry"} | ${c.open} | ${c.distinct} | ${states(c)} | ${c.raw} | ${c.notRun} | ${level} | ${c.ruledBy ?? "—"} ${c.ruledOn ?? ""} |`);
   });
   L.push("");
-  L.push(`## Part B1 — the ${openRows.length} classes for the owner to rule: LEVEL and WHY are blank`);
+  L.push(`## Part B1 — the ${openRows.length} finding classes for the owner to rule: LEVEL and WHY are blank`);
   L.push("");
   L.push("A half is a new class: no level of the class it was split from carries to it. A class whose name ends");
   L.push("`-check-not-run` holds checks that never ran — nothing was found in it, and nothing was ruled out.");
@@ -258,6 +269,15 @@ export function renderRulingSheet(sheet) {
   L.push("|---|---|---|---|");
   for (const r of sheet.order.ranked) L.push(`| ${r.rank} of ${r.of} | \`${r.id}\` | ${r.level} | ${r.volume} |`);
   for (const x of sheet.order.unranked) L.push(`| — | \`${x.id}\` | UNCLASSIFIED → ${x.route} | ${sheet.classes.find((c) => c.issue_class === x.id)?.open ?? "—"} |`);
+  L.push("");
+  L.push("## Part D — THE COVERAGE POPULATION: checks that never ran. Not findings, never a level, never ranked");
+  L.push("");
+  L.push("A check that never ran says nothing about the product. It says something about our instrument: we could not look.");
+  L.push("");
+  L.push("| class | split from | checks not run | raw | reason codes | what is missing |");
+  L.push("|---|---|---|---|---|---|");
+  for (const c of sheet.coverage) L.push(`| \`${c.issue_class}\` | ${c.splitFrom ? `\`${c.splitFrom}\`` : "—"} | ${c.count} | ${c.raw} | ${c.reasonCodes.join(" / ")} | ${c.missing ?? "🔴 no coverage entry"} |`);
+  L.push(`| **total** | | **${sheet.coverage.reduce((n, c) => n + c.count, 0)}** | | | |`);
   L.push("");
   L.push("## Part B3 — the classes the split superseded (not in use; their words kept in the register)");
   L.push("");

@@ -11,7 +11,7 @@ import { join } from "node:path";
 
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { reconcileRegister, consequenceFor, priorityCensus, UNCLASSIFIED, BASIS_KINDS } from "../src/audit/consequence.mjs";
-import { effectiveClassesInUse } from "../src/audit/class-split.mjs";
+import { effectiveClassesInUse, coverageClassesOf } from "../src/audit/class-split.mjs";
 import { computeRecommendationFields } from "../src/report/recommendation-fields.mjs";
 import { CONSEQUENCE_REGISTER } from "../config/consequence-register.mjs";
 import { SEVERITY_SCALE } from "../config/consequence-scale.mjs";
@@ -33,26 +33,25 @@ const fieldsWith = (register, scale = SEVERITY_SCALE) =>
 const clone = () => JSON.parse(JSON.stringify(CONSEQUENCE_REGISTER));
 const reconcile = (register) => reconcileRegister({ records: AUDIT, register, scale: SEVERITY_SCALE, splits: CLASS_SPLITS });
 
-const HALVES = [
-  "indexability-preflight-check-not-run", "indexability-preflight-found", "near-duplicate-check-not-run", "near-duplicate-found",
-  "noindex-declared-deliberate", "noindex-defect-claim-withdrawn", "orphan-within-crawled-set-check-not-run",
-  "sitemap-advertises-blocked-url-check-not-run", "template-dominance-check-not-run", "template-dominance-found",
-  "thin-content-check-not-run", "thin-content-found",
-];
+// the two halves the owner left UNCLASSIFIED (14 Sep 2026): NONE is not what their records verify
+const HALVES = ["noindex-declared-deliberate", "noindex-defect-claim-withdrawn"];
 
-test("🟢 REAL: the register holds exactly the 22 classes in use — 10 ruled and attributed, 12 halves UNCLASSIFIED and unruled", () => {
+test("🟢 REAL: the register holds exactly the 16 FINDING classes in use — 14 ruled and attributed, 2 UNCLASSIFIED; no check that never ran is among them", () => {
   const r = reconcile(CONSEQUENCE_REGISTER);
   assert.equal(r.ok, true, JSON.stringify(r));
-  assert.deepEqual(Object.keys(CONSEQUENCE_REGISTER).sort(), effectiveClassesInUse(AUDIT, CLASS_SPLITS));
-  assert.equal(r.classesInUse.length, 22);
+  const coverage = coverageClassesOf(CLASS_SPLITS);
+  assert.deepEqual(Object.keys(CONSEQUENCE_REGISTER).sort(), effectiveClassesInUse(AUDIT, CLASS_SPLITS).filter((k) => !coverage.has(k)));
+  assert.equal(r.classesInUse.length, 16);
+  assert.deepEqual(r.onCoverage, []);
   assert.deepEqual(r.unclassified, HALVES);
   const byLevel = {};
   for (const [k, e] of Object.entries(CONSEQUENCE_REGISTER)) {
     (byLevel[e.level] ??= []).push(k);
-    if (e.splitFrom) assert.deepEqual([e.level, e.ruledBy, e.ruledOn], [UNCLASSIFIED, null, null], `${k} arrived with a ruling`);
+    if (e.splitFrom && e.level === UNCLASSIFIED) assert.deepEqual([e.ruledBy, e.ruledOn], [null, null], `${k} claims a ruling`);
+    else if (e.splitFrom) assert.deepEqual([e.ruledFor, e.ruledBy, e.ruledOn], [k, "owner", "2026-09-14"], `${k}: a half is ruled only by a ruling that names it`);
     else assert.deepEqual([e.ruledBy, e.ruledOn], ["owner", "2026-09-14"], `${k} carries no dated owner ruling`);
   }
-  assert.deepEqual(Object.fromEntries(Object.entries(byLevel).map(([l, ks]) => [l, ks.length])), { HIGH: 4, MODERATE: 2, LOW: 4, UNCLASSIFIED: 12 });
+  assert.deepEqual(Object.fromEntries(Object.entries(byLevel).map(([l, ks]) => [l, ks.length])), { HIGH: 4, MODERATE: 6, LOW: 4, UNCLASSIFIED: 2 });
 });
 
 test("🔴 the splits are REQUIRED — a reconciliation that leaves them out would reconcile against a bundle", () => {

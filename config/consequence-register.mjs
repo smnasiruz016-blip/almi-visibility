@@ -57,8 +57,27 @@ const half = (parent, what) =>
   });
 
 /* A superseded entry keeps every word it had, and names the halves it became. It is not in use and ranks nothing. */
-const superseded = (parent, entry) =>
-  Object.freeze({ ...entry, supersededOn: CLASS_SPLITS[parent].splitOn, supersededBy: Object.freeze(CLASS_SPLITS[parent].halves.map((h) => h.class)) });
+const superseded = (parent, entry, record = {}) =>
+  Object.freeze({ ...entry, ...record, supersededOn: CLASS_SPLITS[parent].splitOn, supersededBy: Object.freeze(CLASS_SPLITS[parent].halves.map((h) => h.class)) });
+
+/* 🔴 A half the owner ruled: the ruling names THE HALF ITSELF (`ruledFor`). A copy of a parent's ruling cannot. */
+const SPLIT_RULING = Object.freeze({
+  ruledBy: "owner",
+  ruledOn: "2026-09-14",
+  wording: "the owner's ruling of 14 September 2026 on the split halves (ROW60_COVERAGE_AND_LEVELS_RULING.md) — beta-g's reasoning adopted, the 3b figures corrected to the store's real findings",
+});
+const ruledHalf = (parent, half, what, level, parts) => Object.freeze({ what, level, ...parts, splitFrom: parent, ruledFor: half, ...SPLIT_RULING });
+
+/* 🔴 3a — THE ESCALATION IS VOID, recorded on the entry that made it. */
+const ORPHAN_ESCALATION_VOID = Object.freeze({
+  escalationVoid: Object.freeze({
+    on: "2026-09-14",
+    cause: "the blast-radius amplifier was applied to a count of records that were not findings — inside the very ruling whose purpose is to stop volume deciding severity. ALL 340 ARE UNMEASURED. Zero are findings; each record says \"This is not an orphan\".",
+    nothingLeftToRule: "there is no orphan-within-crawled-set-found class in use — the store holds 0 real orphan findings — so there is nothing left to rule",
+  }),
+});
+/* 🔴 3b — the figure in each content parent's blast radius counted checks that never ran. */
+const figureCorrected = (was, real) => Object.freeze({ figureCorrection: Object.freeze({ on: "2026-09-14", was, realFindings: real, levelUnchanged: "MODERATE, now carried by the -found half — it rests on consequence, not on the count" }) });
 const unclassified = (what, bundles, split) =>
   Object.freeze({ what, level: "UNCLASSIFIED", consequence: null, reversibility: null, blastRadius: null, why: BUNDLED, bundles, split, ...RULING });
 
@@ -138,17 +157,38 @@ export const CONSEQUENCE_REGISTER = Object.freeze({
   }),
 
 
-  /* ── 🔴 THE HALVES — every one UNCLASSIFIED, unruled, for the owner to rule on the sheet ── */
-  "indexability-preflight-found": half("indexability-preflight", "the indexability check ran on a page and found a condition that blocks its eligibility"),
-  "indexability-preflight-check-not-run": half("indexability-preflight", "the indexability check did not run for a page — a required input was absent. Nothing was found, and nothing was ruled out"),
-  "sitemap-advertises-blocked-url-check-not-run": half("sitemap-advertises-blocked-url", "the sitemap-against-robots check did not run for a host — no robots.txt or no sitemap URLs were stored. No contradiction was found, and none was ruled out"),
-  "orphan-within-crawled-set-check-not-run": half("orphan-within-crawled-set", "the orphan check did not run — it needs rendered HTML and every record is raw HTML. No page was found orphaned, and none was ruled out"),
-  "thin-content-found": half("thin-content", "the thin-content check ran and found fewer unique body words than the floor after the shell is subtracted"),
-  "thin-content-check-not-run": half("thin-content", "the thin-content check did not run — the stored body was absent, or rendered HTML was needed. No thin page was found, and none was ruled out"),
-  "near-duplicate-found": half("near-duplicate", "the near-duplicate check ran and found a page's body highly similar to a sibling page's"),
-  "near-duplicate-check-not-run": half("near-duplicate", "the near-duplicate check did not run — an input was absent, or the tool failed. No duplication was found, and none was ruled out"),
-  "template-dominance-found": half("template-dominance", "the template-dominance check ran and found the shared shell making up most of a page's words"),
-  "template-dominance-check-not-run": half("template-dominance", "the template-dominance check did not run — an input was absent, or shell subtraction was not confident. Nothing was found, and nothing was ruled out"),
+  /* ── 🔴 THE HALVES THE OWNER RULED, 14 September 2026 (ROW60_COVERAGE_AND_LEVELS_RULING.md) — each by a ruling that
+   * names the half itself; no parent's ruling carried down. Their checks-not-run halves are in config/coverage-register.mjs. */
+  "indexability-preflight-found": ruledHalf("indexability-preflight", "indexability-preflight-found", "the indexability check ran on a page and found a condition that blocks its eligibility", "MODERATE", {
+    consequence: "a measured condition blocks the page's eligibility to be indexed, so a page that should be findable is not",
+    reversibility: "reversible — it is configuration",
+    blastRadius: "158 real findings; bounded, not systemic",
+    why: "the same family as robots-blocks and a defect noindex: meaningful harm to discovery, bounded, recoverable by normal corrective work",
+  }),
+  "near-duplicate-found": ruledHalf("near-duplicate", "near-duplicate-found", "the near-duplicate check ran and found a page's body highly similar to a sibling page's", "MODERATE", {
+    consequence: "bodies highly similar to a sibling",
+    reversibility: "reversible — merge, differentiate or remove",
+    why: "the same family as exact-duplicate but at a judged threshold rather than a byte match, so the consequence is weaker and the remedy is ordinary editorial work",
+    blastRadius: "5",
+    levelRestsOn: "consequence, not the count — the level stands because the consequence has not changed; PR #77's figure of 113 counted checks that never ran, the real findings are 5, and volume amplifies within a level and never defines it",
+  }),
+  "template-dominance-found": ruledHalf("template-dominance", "template-dominance-found", "the template-dominance check ran and found the shared shell making up most of a page's words", "MODERATE", {
+    consequence: "the shared shell makes up most of a page's words — the reader receives furniture, not answer",
+    reversibility: "reversible — add real content or remove the page",
+    why: "bounded and reversible; it is a quality failure, not an integrity failure",
+    blastRadius: "2",
+    levelRestsOn: "consequence, not the count — the level stands because the consequence has not changed; PR #77's figure of 110 counted checks that never ran, the real findings are 2, and volume amplifies within a level and never defines it",
+  }),
+  "thin-content-found": ruledHalf("thin-content", "thin-content-found", "the thin-content check ran and found fewer unique body words than the floor after the shell is subtracted", "MODERATE", {
+    consequence: "fewer unique body words than the floor after the shell is subtracted",
+    reversibility: "reversible — write it properly or remove it",
+    why: "the other named half of the historical failure, but unlike exact-duplicate a thin page may still carry some value, so the consequence is weaker",
+    blastRadius: "118, the largest content class",
+    levelRestsOn: "consequence, not the count — the level stands because the consequence has not changed; PR #77's figure of 226 counted checks that never ran, the real findings are 118, and volume amplifies within a level and never defines it",
+  }),
+
+  /* ── 🔴 UNCLASSIFIED — the noindex halves, on the owner's answer: NONE is "verified no material adverse consequence",
+   * and these records are verdict UNKNOWN on whether the rule is right (REC-NOINDEX-CV-GUIDE decides it) ── */
   "noindex-defect-claim-withdrawn": half("noindex", "a claim that a page's noindex was a defect — SUPERSEDED on 12 September 2026 by a record declaring that noindex deliberate"),
   "noindex-declared-deliberate": half("noindex", "a page's noindex, recorded as a deliberate de-indexing decision; whether its near-duplicate premise holds is UNKNOWN"),
 });
@@ -165,25 +205,25 @@ export const SUPERSEDED_ENTRIES = Object.freeze({
     blastRadius: "340 is where the amplifier legitimately escalates: one orphan is a stranded page, 340 is a structural linking failure, and that is a different consequence, not merely more of the same",
     why: "escalated from LOW to MODERATE by blast radius, under the rule that volume may cross a boundary only when it objectively changes the consequence. Flagged as the one escalation in this proposal",
     escalatedFrom: "LOW",
-  })),
+  }), ORPHAN_ESCALATION_VOID),
   "near-duplicate": superseded("near-duplicate", ruled("a page's body is highly similar to a sibling page's", "MODERATE", {
     consequence: "bodies highly similar to a sibling",
     reversibility: "reversible — merge, differentiate or remove",
     blastRadius: "113",
     why: "the same family as exact-duplicate but at a judged threshold rather than a byte match, so the consequence is weaker and the remedy is ordinary editorial work",
-  })),
+  }), figureCorrected("113", 5)),
   "template-dominance": superseded("template-dominance", ruled("the shared shell makes up most of a page's words", "MODERATE", {
     consequence: "the shared shell makes up most of a page's words — the reader receives furniture, not answer",
     reversibility: "reversible — add real content or remove the page",
     blastRadius: "110",
     why: "bounded and reversible; it is a quality failure, not an integrity failure",
-  })),
+  }), figureCorrected("110", 2)),
   "thin-content": superseded("thin-content", ruled("a page has fewer unique body words than the floor after the shell is subtracted", "MODERATE", {
     consequence: "fewer unique body words than the floor after the shell is subtracted",
     reversibility: "reversible — write it properly or remove it",
     blastRadius: "226, the largest content class",
     why: "the other named half of the historical failure, but unlike exact-duplicate a thin page may still carry some value, so the consequence is weaker",
-  })),
+  }), figureCorrected("226", 118)),
   noindex: superseded("noindex", unclassified(
     "a page carries noindex in its meta robots tag or X-Robots-Tag header",
     "a defect and a deliberate decision. 134 of the 268 were already ruled SUPERSEDED as intentional de-indexing. The same class therefore holds pages we meant to hide and pages accidentally hidden — opposite consequences",

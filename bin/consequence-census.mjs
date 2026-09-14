@@ -32,6 +32,8 @@ import {
   reconcileRegister, priorityCensus, scaleErrors, consequenceFor, orderByConsequence, orderErrors, determinismErrors, UNCLASSIFIED,
 } from "../src/audit/consequence.mjs";
 import { classOf, splitView, splitErrors, isUnmeasured } from "../src/audit/class-split.mjs";
+import { coverageErrors, blastRadiusErrors, voidEscalationErrors, populationOf } from "../src/audit/coverage.mjs";
+import { COVERAGE_REGISTER } from "../config/coverage-register.mjs";
 import { computeRecommendationFields } from "../src/report/recommendation-fields.mjs";
 import { CONSEQUENCE_REGISTER, UNREACHABLE_RECOMMENDATIONS, SUPERSEDED_ENTRIES } from "../config/consequence-register.mjs";
 import { SEVERITY_SCALE } from "../config/consequence-scale.mjs";
@@ -78,6 +80,11 @@ const classItems = rec.classesInUse.map((k) => ({
 const classOrder = orderByConsequence({ items: classItems, scale: SEVERITY_SCALE });
 add(orderErrors({ order: classOrder, items: classItems, register: CONSEQUENCE_REGISTER, scale: SEVERITY_SCALE }));
 add(determinismErrors({ items: classItems, scale: SEVERITY_SCALE }));
+
+/* ---- 🔴 an unmeasured check is not a finding: the coverage population, kept apart; and volume that is not real ---- */
+add(coverageErrors({ coverage: COVERAGE_REGISTER, register: CONSEQUENCE_REGISTER, view, unmeasuredCodes: UNMEASURED_REASON_CODES, orderIds: [...classOrder.ranked.map((r) => r.id), ...classOrder.unranked.map((u) => u.id)] }));
+add(blastRadiusErrors({ register: CONSEQUENCE_REGISTER, view, unmeasuredCodes: UNMEASURED_REASON_CODES }));
+add(voidEscalationErrors({ register: CONSEQUENCE_REGISTER, superseded: SUPERSEDED_ENTRIES, view, unmeasuredCodes: UNMEASURED_REASON_CODES }));
 
 /* ---- the presented recommendations ---- */
 const links = audit.filter((r) => r.record_type === "recommendation_evidence");
@@ -136,7 +143,13 @@ for (const s of Object.values(CLASS_SPLITS)) {
   }
 }
 
-console.log(`\nCLASSES IN USE: ${rec.classesInUse.length} · register entries: ${rec.entries} · UNCLASSIFIED: ${rec.unclassified.length} · superseded: ${Object.keys(SUPERSEDED_ENTRIES).length}\n`);
+const findings = all.filter((v) => !isUnmeasured(v, UNMEASURED_REASON_CODES));
+console.log(`\n🔴 TWO POPULATIONS, NEVER RANKED TOGETHER:`);
+console.log(`  FINDINGS  ${findings.length} distinct issues · ${findings.filter((v) => v.state === "OPEN").length} open · ${rec.classesInUse.length} classes — each ranked by its declared consequence`);
+console.log(`  COVERAGE  ${notRun.length} checks that never ran · ${Object.keys(COVERAGE_REGISTER).length} classes — never a finding, never a level, never ranked`);
+const pop = populationOf(view, UNMEASURED_REASON_CODES);
+for (const [k, e] of Object.entries(COVERAGE_REGISTER)) console.log(`     ${k.padEnd(46)} ${String(pop.get(k)?.notRun ?? 0).padStart(4)} (register ${e.count}) · ${e.reasonCodes.join(" / ")} · missing: ${e.missing}`);
+console.log(`\nCLASSES IN USE (findings): ${rec.classesInUse.length} · register entries: ${rec.entries} · UNCLASSIFIED: ${rec.unclassified.length} · superseded: ${Object.keys(SUPERSEDED_ENTRIES).length}\n`);
 console.log("CONSEQUENCE-FIRST ORDER — volume (open issues) only amplifies inside a level:");
 console.log("| rank | finding class | level | open |");
 console.log("|---|---|---|---|");

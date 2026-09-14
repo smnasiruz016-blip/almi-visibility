@@ -43,7 +43,8 @@ for (const v of VIEW.values()) if (v.state === "OPEN") OPEN.set(v.class, (OPEN.g
 const classItems = (register = CONSEQUENCE_REGISTER, scale = SEVERITY_SCALE) =>
   Object.keys(register).sort().map((k) => ({ id: k, consequence: consequenceFor([k], register, scale), volume: OPEN.get(k) ?? 0, appliedClasses: [k], linkedClasses: [k] }));
 
-const HALVES = Object.keys(CONSEQUENCE_REGISTER).filter((k) => CONSEQUENCE_REGISTER[k].splitFrom).sort();
+// the halves nobody has ruled — since 14 Sep 2026, the two noindex classes
+const HALVES = Object.keys(CONSEQUENCE_REGISTER).filter((k) => CONSEQUENCE_REGISTER[k].splitFrom && CONSEQUENCE_REGISTER[k].level === UNCLASSIFIED).sort();
 
 /* ================================================================== *
  * THE LAW IS FROZEN, AND THE REGISTER IS ITS WORDS
@@ -115,7 +116,7 @@ test("🟢 GREEN: the real classes order consequence-first, the unclassified go 
   assert.deepEqual(determinismErrors({ items, scale: SEVERITY_SCALE }), []);
   assert.deepEqual(order.ranked.map((r) => r.id), [
     "exact-duplicate", "host-publishes-no-a-record", "official-source-contradicts-itself", "instrument-disagreement",
-    "robots-blocks-search-crawler", "commencement-date-ambiguous-against-source",
+    "indexability-preflight-found", "thin-content-found", "robots-blocks-search-crawler", "near-duplicate-found", "template-dominance-found", "commencement-date-ambiguous-against-source",
     "head-elements", "status-and-redirects", "canonical", "query-parameters",
   ]);
   assert.deepEqual(order.unranked.map((u) => u.id), HALVES);
@@ -166,8 +167,8 @@ test("🔴 RED limb 2: volume amplifying ACROSS a level — LOW 18 above HIGH 1 
   assert.ok(at("head-elements") < at("host-publishes-no-a-record"), "the sabotaged order must actually put volume above consequence");
   const errs = orderErrors({ order, items, register: CONSEQUENCE_REGISTER, scale: SEVERITY_SCALE });
   assert.deepEqual(limbs(errs), ["cross-level-amplifier"], JSON.stringify(errs));
-  // the check reads adjacent pairs: the first boundary volume crossed is LOW 6 sitting directly above HIGH 1
-  assert.ok(errs.some((e) => /canonical \(LOW, volume 6\) ranks above host-publishes-no-a-record \(HIGH, volume 1\)/.test(e.why)), JSON.stringify(errs));
+  // the check reads adjacent pairs: the first boundary volume crossed is MODERATE 118 sitting directly above HIGH 106
+  assert.ok(errs.some((e) => /thin-content-found \(MODERATE, volume 118\) ranks above exact-duplicate \(HIGH, volume 106\)/.test(e.why)), JSON.stringify(errs));
 });
 
 test("🔴 inside ONE level, less volume above more is refused too — volume is the amplifier there", () => {

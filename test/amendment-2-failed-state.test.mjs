@@ -85,7 +85,8 @@ test("🔴 RULE 3 — FAILED is its own count in the tally, never folded into an
   // zero, which is why every refill is visible — a column that vanishes when
   // empty cannot be watched.
   // 13 Sep 2026, later: item 50 was REOPENED on a wrong label, and the bucket holds 1 again.
-  assert.equal(t.FAILED, 1);
+  // 14 Sep 2026: row 5 was run and FAILED on its held-out check — the bucket holds 2.
+  assert.equal(t.FAILED, 2);
   assert.ok("FAILED" in t);
   // 58 frozen rows plus rows 59, 60 and 61, admitted by owner ruling (Amendments 3 and 5, 14 September 2026).
   assert.equal(Object.values(t).reduce((a, b) => a + b, 0), 61);
@@ -207,6 +208,8 @@ test("🔴 moves since Amendment 2: SEVEN by ruling (3–7 → NOT-STARTED by Am
     "14:BUILT-NOT-PROVED→TESTABLE-NOW", "45:FAILED→TESTABLE-NOW",
   ]);
   assert.deepEqual(all.filter((s) => s.kind === "work").map((s) => `${s.id}:${s.from}→${s.to}`), [
+    // 🔴 Row 5, 14 September 2026: run against its boundary and FAILED on its held-out check — work, after its ruling move.
+    "5:NOT-STARTED→FAILED",
     "9:BUILT-NOT-PROVED→BLOCKED-UNKNOWN", "11:BLOCKED-UNKNOWN→VERIFIED-PASS",
     "12:BUILT-NOT-PROVED→TESTABLE-NOW", "12:TESTABLE-NOW→VERIFIED-PASS", "13:BUILT-NOT-PROVED→TESTABLE-NOW", "13:TESTABLE-NOW→VERIFIED-PASS",
     "14:TESTABLE-NOW→FAILED", "14:FAILED→VERIFIED-PASS",

@@ -216,6 +216,21 @@ export const MOVES_AMENDMENT_2 = Object.freeze({
         ? "class D → P: its frozen INPUT clause was tested against the owned evidence store and the input is present. Nothing was built or run; a class change is not progress"
         : "class D → S (split): its frozen INPUT clause was tested against the owned evidence store and only the owned half is present — that half enters scope, the rest stays deferred and is named on the row. Nothing was built or run; a class change is not progress",
     }),
+    /* 🔴 WORK SINCE AMENDMENT 4, per row — each move declared, never inferred from the ruling that opened the row. */
+    ...(({
+      /* Row 5, 14 September 2026: its test run against its boundary on the real query pull — and its FAILURE clause met on the held-out check. */
+      5: [
+        Object.freeze({
+          from: "NOT-STARTED",
+          to: "FAILED",
+          kind: "work",
+          route: "TEST_RUN",
+          test: "node bin/intent-clusters.mjs --check · node --test test/intent-clustering.test.mjs · runs/audit/row5-census-2026-09-14.txt · runs/audit/row5-red-limbs-2026-09-14.txt",
+          date: "2026-09-14",
+          reason: "329 human queries (8 operator strings classified and kept apart); in-sample 268 → 73 clusters, 0 merged and 0 split against a reference written before the clusterer ran; the held-out check left 12 of 61 identical intents split — FAILURE met on the evidence the contract names; six limbs RED alone in the real files and restored. FAILED on the owner's answer",
+        }),
+      ],
+    })[id] ?? []),
   ])])),
   /* Added by the follow-up PR stacked on #49, 12 September 2026 night: the
    * country pulls ran against the real property. A WORK move — the test of all
@@ -687,7 +702,13 @@ const EXPLICIT = {
     why: `${A4_STATIC} **Class D → S (split).** In scope: the **owned** half — owned search data. Deferred, and named: the **public** half — legitimate public search evidence, which needs an external fetch no one has authorised. ${A4_HALF_CONTRACT}`,
   },
   4: { state: "NOT-STARTED", why: `${A4_STATIC} **Class D → P.**` },
-  5: { state: "NOT-STARTED", why: `${A4_STATIC} **Class D → P.**` },
+  5: {
+    state: "FAILED",
+    changeKind: "work",
+    test: "node bin/intent-clusters.mjs --check · node --test test/intent-clustering.test.mjs · runs/audit/row5-census-2026-09-14.txt · runs/audit/row5-red-limbs-2026-09-14.txt",
+    failureMet: "identical intents stay split — on the held-out check the EVIDENCE clause names, 12 of 61 held-out queries were left in a new cluster although their intent had in-sample members, each on a word the frozen lexicon never saw",
+    why: "🔴 **RUN AGAINST ITS FROZEN BOUNDARY ON 14 SEPTEMBER 2026 — AND ITS FAILURE CONDITION IS MET, ON THE HELD-OUT CHECK ITS OWN EVIDENCE CLAUSE NAMES.** **INPUT** the Search Console query pull `45ce21253a3fc58c` (2026-09-12T23:25:03.868Z, 337 rows). 8 are search-operator strings, classified and kept out of the human population, not dropped: 4 SITE_INSPECTION of the estate's own hosts, 3 EXCLUSION_LIST_MONITOR (one fixed exclusion list of 11 social and review platforms appended to three unrelated terms — an automated monitoring or scraping tool, inferred from form), 1 EXACT_PHRASE_LOOKUP. **329 human queries.** **EXPECTED — met in-sample:** a generic clusterer (its subject words in config/discovery/intent-lexicon.mjs, none taken from a held-out query) groups the 268 in-sample queries into 73 clusters with **0 distinct intents merged and 0 identical intents split** against a reference placement written before it ran (75 intents; 6 ambiguous, scored in neither direction; 2 later amendments, each citing the rule the original broke — the first-written file kept byte for byte). Every member keeps its store wording byte for byte; a number, a year or an occupation inside a question is recorded as a slot value under an explicit ruling, never left to a threshold. **FAILURE — met on the held-out fifth:** of 61 held-out queries, 49 landed where the reference puts them and **12 identical intents stayed split** — each left NEW on a word the frozen lexicon never saw (neurologist, cardiology, psychologist, business intelligence, points, table, comparison, nz residency, architecture, students, your, speaking/mock); **0 joined a wrong intent**. **EVIDENCE** the census and six limbs — merged, split, wording lost, held-out unrun, operator counted as human, a held-out lexicon word — each RED alone in the real files and restored by sha256. FAILED on the owner's answer, 14 September 2026. 🔴 **Limits:** the reference is a model's judgement standing in for a human's and is not owner-verified; clustering proves wordings group together, never that a group is the intent a real person had — that needs row 2 (DEFERRED). **Leaves FAILED** by the held-out check re-run and passing, or an owner ruling",
+  },
   6: { state: "NOT-STARTED", why: `${A4_STATIC} **Class D → P.**` },
   7: {
     state: "NOT-STARTED",

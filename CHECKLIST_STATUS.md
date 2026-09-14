@@ -20,14 +20,37 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 
 | state | before (4-state) | after (7-state) |
 |---|---|---|
-| **NOT-STARTED** | 33 | **7** |
+| **NOT-STARTED** | 33 | **6** |
 | **BUILT-NOT-PROVED** | 24 | **6** |
 | **TESTABLE-NOW** | — | **1** |
 | **VERIFIED-PASS** | 0 | **19** |
-| **FAILED** | — | **1** |
+| **FAILED** | — | **2** |
 | **BLOCKED-UNKNOWN** | 1 | **4** |
 | **DEFERRED** | — | **23** |
 | **total** | 58 | **61** |
+
+> ### 🔴 ROW 5 RUN — INTENT & QUESTION CLUSTERING — AND FAILED ON ITS HELD-OUT CHECK — 14 SEPTEMBER 2026
+>
+> | state | before this change | after |
+> |---|---|---|
+> | NOT-STARTED | 7 | **6** (− 5) |
+> | FAILED | 1 | **2** (+ 5) |
+>
+> - **moved because WORK HAPPENED:** 5 NOT-STARTED → FAILED — its test run against its frozen boundary on the real query
+>   pull (`45ce21253a3fc58c`, 337 rows). **moved ONLY because a RULING changed:** none. FAILED is counted and named
+>   separately, is **not progress**, and is worth more than a row nobody ran.
+> - **The input, measured:** 337 query rows = **329 human** + **8 operator strings, classified and kept, not dropped** —
+>   4 `site:` inspections of the estate's own hosts, 3 carrying one fixed exclusion list of 11 social and review platforms
+>   on three unrelated terms (an automated monitoring or scraping tool, inferred from form), 1 exact-phrase fact lookup.
+> - **In-sample — met:** 268 queries → 73 clusters, **0 merged · 0 split** against a reference written before the clusterer
+>   ran (75 intents, 6 ambiguous; 2 amendments, each citing the rule the original broke). Every member keeps its wording
+>   byte for byte; "47" and "65" inside a question are one intent with two slot values, by an explicit ruling.
+> - 🔴 **Held-out — the FAILURE clause, met:** 61 held out → **49 HIT · 12 MISS**. All 12 are *identical intents left split*,
+>   each on a word the frozen lexicon never saw; 0 joined a wrong intent. The owner's answer: FAILED.
+> - **Evidence:** runs/audit/row5-census-2026-09-14.txt · runs/audit/row5-red-limbs-2026-09-14.txt (six limbs, each RED
+>   alone in the real files, restored by sha256).
+> - 🔴 **The limit, on the row:** the reference is a model's judgement standing in for a human's; clustering never proves a
+>   group is the intent a real person had (row 2, DEFERRED).
 
 > ### 🔴 ROW 60 TICKED — OPTION A: A DECISION ON RECORD IS NOT A FINDING EITHER — 14 SEPTEMBER 2026
 >
@@ -744,7 +767,7 @@ actually came from.
 | 2 | Human Question Discovery | DEFERRED | OUT — §62 l.553; phase table "Search Intelligence". **Kept class D by `PASS_BOUNDARIES_AMENDMENT_4.md` (13 Sep 2026): its input is legitimate public question evidence and no fetch is authorised** | none | 2026-09-13 | CC (Amendment 4 class change) | its input — public question evidence — needs an external fetch the owner has not authorised; it enters scope on a bounded external-evidence GREEN, and not before | — |
 | 3 | Keyword & Search-Language Discovery | NOT-STARTED | PARTIAL — `PASS_BOUNDARIES_AMENDMENT_4.md` (owner ruling 13 Sep 2026), class D → S: the **owned** half (owned search data) IN; the **public** half (public search evidence) OUT, deferred and named. Was OUT — §62 l.553 | none — nothing built or run; its owned input is in `runs/evidence/evidence.jsonl` | 2026-09-13 | CC (Amendment 4 class change) | not started: no search-language record exists. The owned half's four-part contract was stated by the owner's addendum to Amendment 4 (13 Sep 2026) — a contract, not progress | — |
 | 4 | Localized Human Thinking | NOT-STARTED | IN — `PASS_BOUNDARIES_AMENDMENT_4.md` (owner ruling 13 Sep 2026), class D → P: its input, the same goal from two or more countries, is present (388 country×query rows across 126 countries). Was OUT — v0.1 EXCLUDES l.974 "corridor engine (§6, §15)" | none — nothing built or run | 2026-09-13 | CC (Amendment 4 class change) | not started: no local-wording records exist | — |
-| 5 | Intent & Question Clustering | NOT-STARTED | IN — `PASS_BOUNDARIES_AMENDMENT_4.md` (owner ruling 13 Sep 2026), class D → P: its input, differently worded questions, is present (337 owned queries). Was OUT — §62 l.553 | none — nothing built or run | 2026-09-13 | CC (Amendment 4 class change) | not started: no cluster record and no held-out check exist | — |
+| 5 | Intent & Question Clustering | FAILED | IN — `PASS_BOUNDARIES_AMENDMENT_4.md` (owner ruling 13 Sep 2026), class D → P: its input, differently worded questions, is present (337 owned queries). Was OUT — §62 l.553 | `bin/intent-clusters.mjs` over the real query pull `45ce21253a3fc58c`: 337 rows = 329 human + 8 operator strings classified and kept (4 site-inspection · 3 exclusion-list monitor · 1 exact-phrase lookup); in-sample 268 → 73 clusters, 0 merged · 0 split against a reference written first (`config/discovery/intent-reference.mjs`, first-written copy in runs/audit); wording kept byte for byte; `test/intent-clustering.test.mjs`; six limbs RED alone in the real files (runs/audit/row5-red-limbs-2026-09-14.txt) | 2026-09-14 | CC (row 5 — test run; FAILED on the owner's answer) | 🔴 FAILURE MET on the held-out check: 61 held out → 49 HIT · 12 MISS, all 12 identical intents left split on words the frozen lexicon never saw. Limits: the reference is a model's judgement, not owner-verified; a cluster is not proved to be a real person's intent (row 2, DEFERRED). Leaves FAILED by the held-out check re-run and passing, or an owner ruling | — |
 | 6 | Axis Discovery | NOT-STARTED | IN — `PASS_BOUNDARIES_AMENDMENT_4.md` (owner ruling 13 Sep 2026), class D → P: its input, the subject's real evidence, is present (queries, countries, pages in the evidence store). Was OUT — discovery is "Search Intelligence"; §62 l.553 | Axis **declaration** exists and is tested (`test/product-registration.test.mjs`: "a product must say what its pages vary BY"). **Declaration is not discovery** — nothing built or run for discovery | 2026-09-13 | CC (Amendment 4 class change) | not started: no axis has been discovered or tested from evidence | — |
 | 7 | Market Measurement | NOT-STARTED | PARTIAL — `PASS_BOUNDARIES_AMENDMENT_4.md` (owner ruling 13 Sep 2026), class D → S: **DEMAND** and **VISIBILITY/REACH** (owned) IN; **SUPPLY**, **AUDIENCE/NEED** and **WORTHINESS** OUT, deferred and named (WORTHINESS by the owner's addendum, 13 Sep 2026). Was OUT — §62 l.553 | `DISTINGUISHING_SUPPLY.md` is a one-off measurement, not an engine — nothing built or run | 2026-09-13 | CC (Amendment 4 class change) | not started: no DEMAND or VISIBILITY measurement exists. The owned half's four-part contract was stated by the owner's addendum — a contract, not progress | — |
 | 8 | HEAVY / THIN / EMPTY Discipline | VERIFIED-PASS | OUT — component of item 7 | none | 2026-09-11 | Claude (repo audit) | — | — |

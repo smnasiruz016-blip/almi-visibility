@@ -6,7 +6,8 @@
 > property of the mechanism rather than a promise about anyone's typing.
 
 Frozen source verified: **YES** · features **58**
-(sequence 1..58) · classes **P=24 S=6 D=28**
+(sequence 1..58) · classes as frozen **P=24 S=6 D=28**
+· classes in force since Amendment 4 **P=27 S=8 D=23**
 
 ## Precedence
 
@@ -17,19 +18,47 @@ Frozen source verified: **YES** · features **58**
 
 ---
 
+## 🔴 AMENDMENT 4 — THE DISCOVERY ROWS ENTER SCOPE (owner ruling, 13 September 2026)
+
+Amendment 4 verified against sha256 `c802429e46d60a2d6c75e0122054a642045c7362fa20ab2944283ae5b8702390`. **It changes CLASS, never text:** every
+boundary below is still read out of the frozen source, which still verifies byte for byte.
+
+| class | as frozen | in force |
+|---|---|---|
+| **P** | 24 | **27** |
+| **S** | 6 | **8** |
+| **D** | 28 | **23** |
+| **in scope (P + S)** | 30 | **35** |
+
+- **moved because WORK HAPPENED:** none. **moved ONLY because a RULING changed:** 5 — 3 DEFERRED → NOT-STARTED · 4 DEFERRED → NOT-STARTED · 5 DEFERRED → NOT-STARTED · 6 DEFERRED → NOT-STARTED · 7 DEFERRED → NOT-STARTED.
+- 🔴 **A class change is not progress.** Every row it opened arrives NOT-STARTED: nothing was built and nothing was run.
+- **item 3 · Keyword & Search-Language Discovery** — class `D` → `S`. Its INPUT clause, *"**owned search data** plus legitimate public search evidence"*: 🟡 **half** — the owned half is present; the public half needs an external fetch
+- **item 4 · Localized Human Thinking** — class `D` → `P`. Its INPUT clause, *"the same goal expressed from two or more countries"*: ✅ **yes** — 388 country×query rows across 126 countries
+- **item 5 · Intent & Question Clustering** — class `D` → `P`. Its INPUT clause, *"a set of differently worded questions with the same underlying intent"*: ✅ **yes** — 337 owned queries
+- **item 6 · Axis Discovery** — class `D` → `P`. Its INPUT clause, *"the subject's real evidence"*: ✅ **yes** — the evidence store: queries, countries, pages
+- **item 7 · Market Measurement** — class `D` → `S`. Its INPUT clause, five measurements, separately: SUPPLY · VISIBILITY/REACH · DEMAND · AUDIENCE/NEED · WORTHINESS: 🟡 **two of five** — DEMAND and VISIBILITY are owned; SUPPLY and AUDIENCE need external evidence
+- **item 2 · Human Question Discovery** — **stays `D`, and why:** its INPUT clause, *"a declared subject and **legitimate public question evidence**"*: ❌ **no** — its input is public evidence, and no fetch is authorised
+
+🔴 **The owner's dated addendum (13 September 2026) closed the three gaps this amendment first left:** row 7's
+**WORTHINESS** is assigned to the deferred half, and item 3 and item 7 carry a four-part contract for their owned half,
+read from the amendment. **A contract is not progress:** both rows stay NOT-STARTED, and each keeps its §6 text below
+as the final boundary for when the deferred half opens.
+
+---
+
 ## 🔴 AMENDMENT 2 — THE SEVENTH STATE, AND ITEM 14 SAT AGAIN
 
 Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1b03824c2ee029a9efa25e`.
 
 | state | before Amendment 2 | after the RULING only | after the WORK |
 |---|---|---|---|
-| **NOT-STARTED** | 3 | 3 | **2** |
+| **NOT-STARTED** | 3 | 8 | **7** |
 | **BUILT-NOT-PROVED** | 18 | 17 | **5** |
 | **TESTABLE-NOW** | 0 | 2 | **1** |
 | **VERIFIED-PASS** | 3 | 3 | **17** |
 | **FAILED** | 0 | -1 | **1** |
 | **BLOCKED-UNKNOWN** | 6 | 6 | **4** |
-| **DEFERRED** | 28 | 28 | **28** |
+| **DEFERRED** | 28 | 23 | **23** |
 
 ### FAILED — counted and named separately: **1**
 
@@ -53,6 +82,11 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 | # | from | to | ruling | date | reason |
 |---|---|---|---|---|---|
+| 3 | DEFERRED | NOT-STARTED | PASS_BOUNDARIES_AMENDMENT_4.md §1 and §3 — the discovery rows enter scope | 2026-09-13 | class D → S (split): its frozen INPUT clause was tested against the owned evidence store and only the owned half is present — that half enters scope, the rest stays deferred and is named on the row. Nothing was built or run; a class change is not progress |
+| 4 | DEFERRED | NOT-STARTED | PASS_BOUNDARIES_AMENDMENT_4.md §1 and §3 — the discovery rows enter scope | 2026-09-13 | class D → P: its frozen INPUT clause was tested against the owned evidence store and the input is present. Nothing was built or run; a class change is not progress |
+| 5 | DEFERRED | NOT-STARTED | PASS_BOUNDARIES_AMENDMENT_4.md §1 and §3 — the discovery rows enter scope | 2026-09-13 | class D → P: its frozen INPUT clause was tested against the owned evidence store and the input is present. Nothing was built or run; a class change is not progress |
+| 6 | DEFERRED | NOT-STARTED | PASS_BOUNDARIES_AMENDMENT_4.md §1 and §3 — the discovery rows enter scope | 2026-09-13 | class D → P: its frozen INPUT clause was tested against the owned evidence store and the input is present. Nothing was built or run; a class change is not progress |
+| 7 | DEFERRED | NOT-STARTED | PASS_BOUNDARIES_AMENDMENT_4.md §1 and §3 — the discovery rows enter scope | 2026-09-13 | class D → S (split): its frozen INPUT clause was tested against the owned evidence store and only the owned half is present — that half enters scope, the rest stays deferred and is named on the row. Nothing was built or run; a class change is not progress |
 | 14 | BUILT-NOT-PROVED | TESTABLE-NOW | PASS_BOUNDARIES_AMENDMENT_2.md §A2.2 and §A2.4 | 2026-09-12 | the owner narrowed the boundary to product-repository writes and publishing, and added the register of permitted writers; its earlier result no longer applies, so the exam must be sat again. Not a tick and not a pass |
 | 45 | FAILED | TESTABLE-NOW | TECHNICAL-OWNER RULING — ITEM 45's SCOPE BEGINS WHEN THE LEDGER EXISTED (PHASE_0_FROZEN_GAP_REGISTER.md) | 2026-09-12 | 'A component cannot be failed for a period before it existed.' The boundary's INPUT is a run; the scope is runs from 8c9d68b (2026-09-12T23:03:09Z) onward. The bar is unchanged; the eight earlier runs are recorded as a permanent loss (L-COST-1) |
 
@@ -99,13 +133,13 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 | state | before (4-state) | after (7-state) |
 |---|---|---|
-| **NOT-STARTED** | 33 | **2** |
+| **NOT-STARTED** | 33 | **7** |
 | **BUILT-NOT-PROVED** | 24 | **5** |
 | **TESTABLE-NOW** | 0 | **1** |
 | **VERIFIED-PASS** | 0 | **17** |
 | **FAILED** | 0 | **1** |
 | **BLOCKED-UNKNOWN** | 1 | **4** |
-| **DEFERRED** | 0 | **28** |
+| **DEFERRED** | 0 | **23** |
 | **total** | 58 | **58** |
 
 ### 🔴 THE MOST IMPORTANT LINE IN THIS DOCUMENT
@@ -141,10 +175,10 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 | move | count | features |
 |---|---|---|
-| NOT-STARTED → DEFERRED | 28 | 2, 3, 4, 5, 6, 7, 18, 19, 20, 21, 22, 23, 24, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39, 40, 41, 43, 44 |
+| NOT-STARTED → DEFERRED | 23 | 2, 18, 19, 20, 21, 22, 23, 24, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39, 40, 41, 43, 44 |
 | BUILT-NOT-PROVED → BLOCKED-UNKNOWN | 2 | 1, 54 |
 
-**Did not move: 8** — 10, 16, 17, 36, 46, 52, 57, 58
+**Did not move: 13** — 3, 4, 5, 6, 7, 10, 16, 17, 36, 46, 52, 57, 58
 
 ---
 
@@ -164,11 +198,12 @@ NEVER TRIED or TRIED AND FELL SHORT — with the date and the specific gap when 
 
 ---
 
-## 🔴 SIX BOUNDARIES THE DOCUMENT DOES NOT STATE IN FULL
+## 🔴 0 BOUNDARIES THE DOCUMENTS DO NOT STATE IN FULL
 
-§4 rules the split features as `v0.1 PASS boundary` / `deferred` tables rather than in the
-four-part form. **These six therefore cannot reach VERIFIED-PASS as the ruling stands** —
-the contract guard refuses it, and correctly.
+§4 ruled the first six split features as `v0.1 PASS boundary` / `deferred` tables, and Amendment 1
+gave each its four parts. Amendment 4 split rows 3 and 7, and its addendum gave their owned half its
+four parts. **A row listed here cannot reach VERIFIED-PASS as the rulings stand** — the contract guard
+refuses it, and correctly.
 
 **They are not filled in.** Writing the missing parts myself would manufacture a boundary
 the owner never ruled, which the repository would then enforce as if he had. This is a
@@ -196,7 +231,7 @@ question for the owner, recorded as one.
 
 ### 2 · Human Question Discovery
 
-**DEFERRED** · class `D` · ruled in `§6` · was NOT-STARTED (vocabulary)
+**DEFERRED** · class `D` (kept by Amendment 4) · ruled in `§6` · was NOT-STARTED (vocabulary)
 
 | part | the owner's words |
 |---|---|
@@ -204,25 +239,31 @@ question for the owner, recorded as one.
 | **EXPECTED** | real questions, goals, confusions and likely follow-ups are discovered and stored with provenance. |
 | **FAILURE** | questions are invented, or sourced from the product's own marketing. |
 | **EVIDENCE** | the source of every stored question, with its read date. |
+| **Amendment 4 — its INPUT tested** | ❌ **no** — its input is public evidence, and no fetch is authorised → **stays D** |
 
-**Verdict —** class D in the frozen ruling — frozen v0.1 deliberately does not contain this. It cannot FAIL for lacking it, and it cannot PASS either
+**Verdict —** 🔴 **class D in the frozen ruling, and KEPT D by Amendment 4** (owner ruling, 13 September 2026) — the amendment tested its frozen INPUT clause, *"a declared subject and **legitimate public question evidence**"*, and found: ❌ **no** — its input is public evidence, and no fetch is authorised. Moving it in would create a row whose input does not exist in the current phase — paperwork, not progress. It enters scope on the day a bounded external-evidence GREEN is given, and not before. It cannot FAIL for lacking it, and it cannot PASS either
 
 ### 3 · Keyword & Search-Language Discovery
 
-**DEFERRED** · class `D` · ruled in `§6` · was NOT-STARTED (vocabulary)
+**NOT-STARTED** · class `S` (frozen `D`, moved by Amendment 4) · ruled in `§6+A4`
 
 | part | the owner's words |
 |---|---|
-| **INPUT** | owned search data plus legitimate public search evidence. |
-| **EXPECTED** | keywords, long-tail wording, synonyms and local phrasing discovered; **no keyword ever becomes a page by itself.** |
-| **FAILURE** | a keyword is promoted to a URL without an intent decision. |
-| **EVIDENCE** | the cluster records, and the absence of any keyword→URL path. |
+| **INPUT** | the owned Search Console rows already in the store — query, query×page and country×query — each with its ingest date and the store's own row counts. |
+| **EXPECTED** | the real wording people used is discovered and stored — long-tail phrasing, synonyms, abbreviations, local phrasing — each keeping its source observation id and ingest date; and no keyword ever becomes a URL by itself. |
+| **FAILURE** | a keyword is promoted to a URL without an intent decision; OR wording is normalised so the original phrasing cannot be recovered; OR any stored keyword is not traceable to a stored owned row. |
+| **EVIDENCE** | the stored search-language records with their observation ids, a held-out sample re-checked against the store, and a test proving no keyword→URL path exists. |
+| **Amendment 4 — its INPUT tested** | 🟡 **half** — the owned half is present; the public half needs an external fetch → **D → S** |
+| **⏭ final INPUT (§6, when the deferred half opens)** | owned search data plus legitimate public search evidence. |
+| **⏭ final EXPECTED (§6, when the deferred half opens)** | keywords, long-tail wording, synonyms and local phrasing discovered; **no keyword ever becomes a page by itself.** |
+| **⏭ final FAILURE (§6, when the deferred half opens)** | a keyword is promoted to a URL without an intent decision. |
+| **⏭ final EVIDENCE (§6, when the deferred half opens)** | the cluster records, and the absence of any keyword→URL path. |
 
-**Verdict —** class D in the frozen ruling — frozen v0.1 deliberately does not contain this. It cannot FAIL for lacking it, and it cannot PASS either
+**Verdict —** 🔴 **NOT-STARTED — IN SCOPE SINCE AMENDMENT 4** (owner ruling under §12, 13 September 2026). **Nothing has been built for it and nothing was run.** It left DEFERRED ONLY because a ruling changed its class — a class change is not progress. Its input is owned evidence already captured in `runs/evidence/evidence.jsonl` (Search Console ingest of 2026-09-12T23:25Z: query 337 · query-page 574 · country 126 · country-query 388 rows; page rows 1,525 from the 22:06Z run of the same day). **Class D → S (split).** In scope: the **owned** half — owned search data. Deferred, and named: the **public** half — legitimate public search evidence, which needs an external fetch no one has authorised. 🔴 **The owned half has its four-part contract** — stated by the owner's dated addendum to Amendment 4 (13 September 2026), and read from it. **A contract is not progress:** nothing is built and nothing was run, so the row stays NOT-STARTED. The §6 boundary stays on the row as the final boundary for when the deferred half opens. The amendment's test of its frozen INPUT clause, *"**owned search data** plus legitimate public search evidence"*: 🟡 **half** — the owned half is present; the public half needs an external fetch.
 
 ### 4 · Localized Human Thinking
 
-**DEFERRED** · class `D` · ruled in `§6` · was NOT-STARTED (vocabulary)
+**NOT-STARTED** · class `P` (frozen `D`, moved by Amendment 4) · ruled in `§6`
 
 | part | the owner's words |
 |---|---|
@@ -230,12 +271,13 @@ question for the owner, recorded as one.
 | **EXPECTED** | local phrasing and reasoning are researched; **country is a research lens, never an automatic URL axis.** |
 | **FAILURE** | a country multiplies URLs without evidence of materially different useful content. |
 | **EVIDENCE** | the local-wording records and their sources. |
+| **Amendment 4 — its INPUT tested** | ✅ **yes** — 388 country×query rows across 126 countries → **D → P** |
 
-**Verdict —** class D in the frozen ruling — frozen v0.1 deliberately does not contain this. It cannot FAIL for lacking it, and it cannot PASS either
+**Verdict —** 🔴 **NOT-STARTED — IN SCOPE SINCE AMENDMENT 4** (owner ruling under §12, 13 September 2026). **Nothing has been built for it and nothing was run.** It left DEFERRED ONLY because a ruling changed its class — a class change is not progress. Its input is owned evidence already captured in `runs/evidence/evidence.jsonl` (Search Console ingest of 2026-09-12T23:25Z: query 337 · query-page 574 · country 126 · country-query 388 rows; page rows 1,525 from the 22:06Z run of the same day). **Class D → P.** The amendment's test of its frozen INPUT clause, *"the same goal expressed from two or more countries"*: ✅ **yes** — 388 country×query rows across 126 countries.
 
 ### 5 · Intent & Question Clustering
 
-**DEFERRED** · class `D` · ruled in `§6` · was NOT-STARTED (vocabulary)
+**NOT-STARTED** · class `P` (frozen `D`, moved by Amendment 4) · ruled in `§6`
 
 | part | the owner's words |
 |---|---|
@@ -243,12 +285,13 @@ question for the owner, recorded as one.
 | **EXPECTED** | they cluster into one intent; local wording is preserved, not erased. |
 | **FAILURE** | distinct intents merge, or identical intents stay split. |
 | **EVIDENCE** | the cluster with its members and a held-out check. |
+| **Amendment 4 — its INPUT tested** | ✅ **yes** — 337 owned queries → **D → P** |
 
-**Verdict —** class D in the frozen ruling — frozen v0.1 deliberately does not contain this. It cannot FAIL for lacking it, and it cannot PASS either
+**Verdict —** 🔴 **NOT-STARTED — IN SCOPE SINCE AMENDMENT 4** (owner ruling under §12, 13 September 2026). **Nothing has been built for it and nothing was run.** It left DEFERRED ONLY because a ruling changed its class — a class change is not progress. Its input is owned evidence already captured in `runs/evidence/evidence.jsonl` (Search Console ingest of 2026-09-12T23:25Z: query 337 · query-page 574 · country 126 · country-query 388 rows; page rows 1,525 from the 22:06Z run of the same day). **Class D → P.** The amendment's test of its frozen INPUT clause, *"a set of differently worded questions with the same underlying intent"*: ✅ **yes** — 337 owned queries.
 
 ### 6 · Axis Discovery
 
-**DEFERRED** · class `D` · ruled in `§6` · was NOT-STARTED (vocabulary)
+**NOT-STARTED** · class `P` (frozen `D`, moved by Amendment 4) · ruled in `§6`
 
 | part | the owner's words |
 |---|---|
@@ -256,21 +299,28 @@ question for the owner, recorded as one.
 | **EXPECTED** | axes (profession, role, stage, origin/destination, language, locality) are **discovered and tested**, not assumed. |
 | **FAILURE** | an obvious axis is hard-coded by habit without evidence. |
 | **EVIDENCE** | the evidence behind each accepted axis and each rejected one. |
+| **Amendment 4 — its INPUT tested** | ✅ **yes** — the evidence store: queries, countries, pages → **D → P** |
 
-**Verdict —** class D in the frozen ruling — frozen v0.1 deliberately does not contain this. It cannot FAIL for lacking it, and it cannot PASS either
+**Verdict —** 🔴 **NOT-STARTED — IN SCOPE SINCE AMENDMENT 4** (owner ruling under §12, 13 September 2026). **Nothing has been built for it and nothing was run.** It left DEFERRED ONLY because a ruling changed its class — a class change is not progress. Its input is owned evidence already captured in `runs/evidence/evidence.jsonl` (Search Console ingest of 2026-09-12T23:25Z: query 337 · query-page 574 · country 126 · country-query 388 rows; page rows 1,525 from the 22:06Z run of the same day). **Class D → P.** The amendment's test of its frozen INPUT clause, *"the subject's real evidence"*: ✅ **yes** — the evidence store: queries, countries, pages.
 
 ### 7 · Market Measurement
 
-**DEFERRED** · class `D` · ruled in `§6` · was NOT-STARTED (vocabulary)
+**NOT-STARTED** · class `S` (frozen `D`, moved by Amendment 4) · ruled in `§6+A4`
 
 | part | the owner's words |
 |---|---|
-| **INPUT** | a market or segment. |
-| **EXPECTED** | SUPPLY, VISIBILITY/REACH, DEMAND, AUDIENCE/NEED and WORTHINESS measured **separately**. |
-| **FAILURE** | any two are conflated — above all, supply reported as demand. |
-| **EVIDENCE** | five separate measurements with five separate methods. |
+| **INPUT** | the owned rows for the segment — impressions, clicks, CTR, position, by query, page and country — with their date range and dataState. |
+| **EXPECTED** | DEMAND and VISIBILITY/REACH measured and reported SEPARATELY, each naming its own method and date range; each carrying the store's own limits (query truncation, data lag, dataState) on its face; the other three dimensions read UNKNOWN. |
+| **FAILURE** | DEMAND and VISIBILITY conflated in one number; OR impressions reported as demand; OR SUPPLY, AUDIENCE/NEED or WORTHINESS rendered as measured, left indistinguishable from a measured value, or defaulted to low (LAW-ABSENT-1). |
+| **EVIDENCE** | the two measurements with two distinct methods, the date range and dataState quoted from the stored observation, and a test that goes RED when a third dimension is filled from an unmeasured source. |
+| **⏭ deferred half** | SUPPLY, AUDIENCE/NEED, WORTHINESS. All three named. |
+| **Amendment 4 — its INPUT tested** | 🟡 **two of five** — DEMAND and VISIBILITY are owned; SUPPLY and AUDIENCE need external evidence → **D → S** |
+| **⏭ final INPUT (§6, when the deferred half opens)** | a market or segment. |
+| **⏭ final EXPECTED (§6, when the deferred half opens)** | SUPPLY, VISIBILITY/REACH, DEMAND, AUDIENCE/NEED and WORTHINESS measured **separately**. |
+| **⏭ final FAILURE (§6, when the deferred half opens)** | any two are conflated — above all, supply reported as demand. |
+| **⏭ final EVIDENCE (§6, when the deferred half opens)** | five separate measurements with five separate methods. |
 
-**Verdict —** class D in the frozen ruling — frozen v0.1 deliberately does not contain this. It cannot FAIL for lacking it, and it cannot PASS either
+**Verdict —** 🔴 **NOT-STARTED — IN SCOPE SINCE AMENDMENT 4** (owner ruling under §12, 13 September 2026). **Nothing has been built for it and nothing was run.** It left DEFERRED ONLY because a ruling changed its class — a class change is not progress. Its input is owned evidence already captured in `runs/evidence/evidence.jsonl` (Search Console ingest of 2026-09-12T23:25Z: query 337 · query-page 574 · country 126 · country-query 388 rows; page rows 1,525 from the 22:06Z run of the same day). **Class D → S (split).** In scope: **DEMAND** and **VISIBILITY/REACH**, both owned. Deferred, and named: **SUPPLY**, **AUDIENCE/NEED** and **WORTHINESS**. SUPPLY and AUDIENCE/NEED need external evidence; **WORTHINESS was assigned to the deferred half by the owner's addendum** (13 September 2026), on the reason that its inputs are themselves deferred. 🔴 That reason names the Human Question Universe (row 2), the information-gap test (row 19) and right-to-exist (row 21) as WORTHINESS's *"own named inputs"*; no frozen text in this repository names them so — rows 2, 19 and 21 are class D, which carries the conclusion, and the link is left for the owner to source. 🔴 **The owned half has its four-part contract** — stated by the owner's dated addendum to Amendment 4 (13 September 2026), and read from it. **A contract is not progress:** nothing is built and nothing was run, so the row stays NOT-STARTED. The §6 boundary stays on the row as the final boundary for when the deferred half opens. The amendment's test of its frozen INPUT clause, five measurements, separately: SUPPLY · VISIBILITY/REACH · DEMAND · AUDIENCE/NEED · WORTHINESS: 🟡 **two of five** — DEMAND and VISIBILITY are owned; SUPPLY and AUDIENCE need external evidence.
 
 ### 8 · HEAVY / THIN / EMPTY Discipline
 

@@ -29,12 +29,21 @@
 import { readFileSync } from "node:fs";
 
 import {
-  splitSource, sectionSix, verify, amendmentContracts, amendment2,
+  splitSource, sectionSix, verify, amendmentContracts, amendment2, amendment4, effectiveClasses,
 } from "../../tools/verify-pass-boundaries-source.mjs";
 
 const SOURCE = new URL("../../PASS_BOUNDARIES_SOURCE.md", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const AMENDMENT_1 = new URL("../../PASS_BOUNDARIES_AMENDMENT_1.md", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const AMENDMENT_2 = new URL("../../PASS_BOUNDARIES_AMENDMENT_2.md", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+const AMENDMENT_4 = new URL("../../PASS_BOUNDARIES_AMENDMENT_4.md", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+
+/**
+ * 🔴 A SPLIT WITH NO v0.1-HALF CONTRACT CANNOT BE TICKED. Amendment 4 split rows 3 and 7 and, at first, gave
+ * their owned half no four-part contract; the guard refused a VERIFIED-PASS on either. The owner's dated
+ * addendum (13 September 2026) stated both contracts, and they are READ from the amendment's body. A split
+ * whose contract is absent or incomplete still reports the missing half-parts — never filled in from here.
+ */
+export const HALF_CONTRACT_PARTS = Object.freeze(["v0.1-half input", "v0.1-half expected", "v0.1-half failure", "v0.1-half evidence"]);
 
 /** The four parts a VERIFIED-PASS requires. Frozen; adding a fifth is a ruling. */
 export const CONTRACT_PARTS = Object.freeze(["input", "expected", "failure", "evidence"]);
@@ -135,6 +144,14 @@ export function loadBoundaries() {
     );
   }
 
+  const a4 = amendment4(AMENDMENT_4);
+  if (!a4.matches) {
+    throw new Error(
+      "PASS_BOUNDARIES_AMENDMENT_4.md does not match its recorded hash. The classes of rows 2–7 would not " +
+        "be the owner's, and which rows may be DEFERRED depends on them.",
+    );
+  }
+
   const text = readFileSync(SOURCE, "utf8").replace(/\r\n/g, "\n");
   const { body } = splitSource(text);
   const six = sectionSix(body);
@@ -194,6 +211,35 @@ export function loadBoundaries() {
        * honest way to fail that test is to leave the gap visible. */
       missingParts: CONTRACT_PARTS.filter((p) => !parts[p]),
     };
+  }
+
+  /* 🔴 AMENDMENT 4 — the CLASS changes, the text does not. `frozenClass` keeps what §6 says on every row, so
+   * a reader can always see a class that moved by ruling; `class` is the one in force. effectiveClasses()
+   * refuses a move off any row §6 does not class D. */
+  const frozen = Object.fromEntries(Object.values(out).map((r) => [r.id, r.class]));
+  const inForce = effectiveClasses(frozen, a4);
+  for (const r of Object.values(out)) {
+    r.frozenClass = r.class;
+    r.class = inForce[r.id];
+    const moved = a4.moves[r.id];
+    const kept = a4.kept[r.id];
+    r.classByA4 = Boolean(moved);
+    if (moved || kept) r.a4 = { inputClause: (moved ?? kept).inputClause, inputPresent: (moved ?? kept).inputPresent, verdict: moved ? `D → ${moved.to}` : "stays D" };
+    if (moved?.to === "S") {
+      /* 🔴 The tickable parts of a split are its v0.1 HALF. The §6 four parts are the FINAL boundary — the
+       * public half included — so they are kept on the row as `finalBoundary` for when the phase opens, and
+       * the addendum's contract becomes what a VERIFIED-PASS would be measured against. */
+      const half = a4.contracts[r.id] ?? {};
+      const missing = CONTRACT_PARTS.filter((p) => !half[p]);
+      if (missing.length === 0) {
+        r.finalBoundary = Object.fromEntries(CONTRACT_PARTS.map((p) => [p, r[p]]));
+        for (const p of CONTRACT_PARTS) r[p] = half[p];
+        if (half.deferred) r.deferred = half.deferred;
+        r.via = `${r.via}+A4`;
+        r.halfContractByA4 = true;
+      }
+      r.missingParts = [...r.missingParts, ...HALF_CONTRACT_PARTS.filter((_, i) => missing.includes(CONTRACT_PARTS[i]))];
+    }
   }
 
   cached = Object.freeze(out);

@@ -106,6 +106,74 @@ export function amendment2(path) {
 }
 
 /**
+ * 🔴 AMENDMENT 4 — 13 September 2026. Frozen the same way.
+ *
+ * The first amendment that changes a CLASS. It leaves every boundary's text alone — the frozen source
+ * above still hashes byte for byte — and moves rows 4, 5 and 6 D → P and rows 3 and 7 D → S, keeping
+ * row 2 D with its reason. The moves are READ out of the body's verdict table, never typed here, so a
+ * move the owner did not rule cannot appear, and the census they produce is checked against the
+ * body's own before/after count table rather than against a number in this file alone.
+ */
+/* 🔴 RE-PINNED 13 September 2026 (was 4d0dea70…): the owner's dated ADDENDUM — WORTHINESS to row 7's
+ * deferred half, and a v0.1-half four-part contract for rows 3 and 7 — is now part of the body. */
+export const AMENDMENT_4_BODY_SHA256 = "c802429e46d60a2d6c75e0122054a642045c7362fa20ab2944283ae5b8702390";
+export const AMENDMENT_4_MOVES = Object.freeze({ 3: "S", 4: "P", 5: "P", 6: "P", 7: "S" });
+export const AMENDMENT_4_KEPT_DEFERRED = Object.freeze([2]);
+/** The splits the addendum gave a v0.1-half contract — read out of the body, and compared to this. */
+export const AMENDMENT_4_HALF_CONTRACT_IDS = Object.freeze([3, 7]);
+
+/** The class moves, the rows kept deferred, and the count table — as the amendment's body states them. */
+export function amendment4(path) {
+  const text = readFileSync(path, "utf8").replace(/\r\n/g, "\n");
+  const idx = text.indexOf(BODY_MARKER);
+  const body = idx === -1 ? text : text.slice(idx + BODY_MARKER.length);
+  const sha = createHash("sha256").update(body, "utf8").digest("hex");
+
+  const moves = {};
+  const kept = {};
+  const verdictRow = /^\| \*\*(\d+) · (.+?)\*\* \| (.+?) \| (.+?) \| \*\*(?:D → ([PS])(?: \(split\))?|(stays D))\*\* \|$/gm;
+  for (const m of body.matchAll(verdictRow)) {
+    const row = { name: m[2], inputClause: m[3].trim(), inputPresent: m[4].trim() };
+    if (m[5]) moves[Number(m[1])] = { to: m[5], ...row };
+    else kept[Number(m[1])] = row;
+  }
+  const count = (label) => {
+    const m = new RegExp(`^\\| ${label} \\| (\\d+) \\| \\*\\*(\\d+)\\*\\* \\|$`, "m").exec(body);
+    return m ? { before: Number(m[1]), after: Number(m[2]) } : null;
+  };
+  /* The addendum's v0.1-half contracts, read the way Amendment 2's are: the block starts AFTER its heading
+   * line and runs to the next heading or the END line. `deferred` names the half that stays out. */
+  const contracts = {};
+  for (const h of body.matchAll(/^### (\d+) · (.+?) — v0\.1 half$/gm)) {
+    const rest = body.slice(h.index);
+    const afterHeading = rest.indexOf("\n") + 1;
+    const next = rest.slice(afterHeading).search(/^(?:#{2,3} |\*\*END)/m);
+    const block = next === -1 ? rest : rest.slice(0, afterHeading + next);
+    const parts = {};
+    for (const m of block.matchAll(/^\| \*\*(INPUT|EXPECTED|FAILURE|EVIDENCE|deferred)\*\* \| (.+?) \|$/gm)) {
+      parts[m[1] === "deferred" ? "deferred" : m[1].toLowerCase()] = m[2].trim().replace(/\s+/g, " ");
+    }
+    contracts[Number(h[1])] = parts;
+  }
+  return { sha, matches: sha === AMENDMENT_4_BODY_SHA256, moves, kept, contracts, deferred: count("DEFERRED"), inScope: count("in scope") };
+}
+
+/**
+ * The classes in force: the frozen §6 letters with Amendment 4's moves applied. Refuses a move off a row
+ * the frozen text does not class D — Amendment 4 opens deferred rows; it never re-classes an in-scope one.
+ */
+export function effectiveClasses(frozen, a4) {
+  const out = { ...frozen };
+  for (const [id, m] of Object.entries(a4.moves)) {
+    if (frozen[id] !== "D") throw new Error(`Amendment 4 moves item ${id}, which the frozen ruling classes ${frozen[id]}, not D`);
+    out[id] = m.to;
+  }
+  return out;
+}
+
+export const EXPECTED_EFFECTIVE_CLASS_COUNTS = Object.freeze({ P: 27, S: 8, D: 23 });
+
+/**
  * 🔴 THE CLASS CENSUS IS PART OF THE FROZEN TEXT, NOT A DERIVED CONVENIENCE.
  *
  * `D` decides which rows may be DEFERRED, and the deferral law says a row is
@@ -214,13 +282,35 @@ if (invokedDirectly) {
   console.log(`  replaces    : item ${a2ids.join(", ")} — ${a2complete.length}/${a2ids.length} carry all four parts`);
   console.log(`  FAILED state: ${a2.definesFailed ? "defined" : "🔴 NOT FOUND"}`);
 
+  const a4 = amendment4(at("PASS_BOUNDARIES_AMENDMENT_4.md"));
+  const inForce = effectiveClasses(r.classes, a4);
+  const eff = { P: 0, S: 0, D: 0 };
+  for (const c of Object.values(inForce)) eff[c] += 1;
+  const a4Moves = Object.fromEntries(Object.entries(a4.moves).map(([id, m]) => [id, m.to]));
+  const a4Census =
+    ["P", "S", "D"].every((k) => eff[k] === EXPECTED_EFFECTIVE_CLASS_COUNTS[k]) &&
+    a4.deferred?.before === r.counts.D && a4.deferred?.after === eff.D &&
+    a4.inScope?.before === r.counts.P + r.counts.S && a4.inScope?.after === eff.P + eff.S;
+  console.log("PASS_BOUNDARIES_AMENDMENT_4.md");
+  console.log(`  body sha256 : ${a4.sha}`);
+  console.log(`  matches     : ${a4.matches ? "YES" : "🔴 NO — the amendment has changed"}`);
+  console.log(`  moves       : ${Object.entries(a4Moves).map(([id, c]) => `${id} D→${c}`).join(" · ")} · kept D: ${Object.keys(a4.kept).join(", ")}`);
+  console.log(`  in force    : P=${eff.P} S=${eff.S} D=${eff.D} · the body's table: DEFERRED ${a4.deferred?.before}→${a4.deferred?.after}, in scope ${a4.inScope?.before}→${a4.inScope?.after}  ${a4Census ? "agree" : "🔴 DISAGREE"}`);
+  const a4HalfIds = Object.keys(a4.contracts).map(Number).sort((x, y) => x - y);
+  const a4HalfComplete = a4HalfIds.filter((id) => ["input", "expected", "failure", "evidence"].every((p) => a4.contracts[id][p]));
+  console.log(`  addendum    : v0.1-half contracts for item ${a4HalfIds.join(", ")} — ${a4HalfComplete.length}/${a4HalfIds.length} carry all four parts`);
+
   const bad =
     !r.matches || !r.classesMatch || r.features.count !== EXPECTED_FEATURE_COUNT || !r.features.ok ||
     !a.matches || ids.length !== 6 || complete.length !== 6 ||
     ids.join(",") !== AMENDMENT_1_SPLIT_IDS.join(",") ||
     !a2.matches || !a2.definesFailed || a2ids.join(",") !== AMENDMENT_2_REPLACED_IDS.join(",") ||
-    a2complete.length !== a2ids.length;
+    a2complete.length !== a2ids.length ||
+    !a4.matches || !a4Census ||
+    JSON.stringify(a4Moves) !== JSON.stringify(AMENDMENT_4_MOVES) ||
+    Object.keys(a4.kept).map(Number).join(",") !== AMENDMENT_4_KEPT_DEFERRED.join(",") ||
+    a4HalfIds.join(",") !== AMENDMENT_4_HALF_CONTRACT_IDS.join(",") || a4HalfComplete.length !== a4HalfIds.length;
 
-  console.log(bad ? "\n🔴 VERIFICATION FAILED" : "\nall three frozen texts verified");
+  console.log(bad ? "\n🔴 VERIFICATION FAILED" : "\nall four frozen texts verified");
   process.exit(bad ? 1 : 0);
 }

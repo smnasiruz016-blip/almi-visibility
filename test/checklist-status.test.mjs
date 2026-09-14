@@ -192,7 +192,10 @@ test("🔴 the headline separates the three earned ticks from the 33 renamed row
   // 🔴 The tick that was REMOVED is named, not quietly dropped from the list.
   assert.match(text, /A TICK REMOVED — ITEM 48/);
   // 🔴 And the ledger must still say plainly that a deferral is not progress.
-  assert.match(text, /The 28 DEFERRED rows are not progress and nothing was built for any of them/);
+  assert.match(text, /The 23 DEFERRED rows are not progress and nothing was built for any of them/);
+  // 🔴 Amendment 4 opened five rows by ruling; the headline must say that is not progress either.
+  assert.match(text, /moved because WORK HAPPENED:\*\* none\. \*\*moved ONLY because a RULING changed:\*\* 5\./);
+  assert.match(text, /A class change is not progress/);
   // 🔴 The first FAILED result is kept, not erased by the later pass.
   assert.match(text, /Item 14 did NOT tick the first time/);
   assert.match(text, /left it by the route rule 1 names first/);

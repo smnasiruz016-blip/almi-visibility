@@ -196,9 +196,15 @@ test("🔴 RED: a 'ruling' move that is not an owner ruling is refused — the t
  * 4D — THE TWO CHANGE LISTS, KEPT APART.
  * ================================================================== */
 
-test("🔴 moves since Amendment 2: TWO by ruling (14 and 45 → TESTABLE-NOW); TEN by work — including the first tick ever REMOVED (48) and its return", () => {
+/* 🔴 SEVEN BY RULING SINCE AMENDMENT 4 (owner ruling, 13 September 2026): rows 3–7 DEFERRED → NOT-STARTED, their
+ * class opened and nothing built. The WORK list below is deliberately UNCHANGED — that is the proof, in this test,
+ * that none of the five was counted as work. */
+test("🔴 moves since Amendment 2: SEVEN by ruling (3–7 → NOT-STARTED by Amendment 4; 14 and 45 → TESTABLE-NOW); the work list unchanged — including the first tick ever REMOVED (48) and its return", () => {
   const all = Object.entries(MOVES_AMENDMENT_2).flatMap(([id, chain]) => chain.map((s) => ({ id: Number(id), ...s })));
-  assert.deepEqual(all.filter((s) => s.kind === "ruling").map((s) => `${s.id}:${s.from}→${s.to}`), ["14:BUILT-NOT-PROVED→TESTABLE-NOW", "45:FAILED→TESTABLE-NOW"]);
+  assert.deepEqual(all.filter((s) => s.kind === "ruling").map((s) => `${s.id}:${s.from}→${s.to}`), [
+    "3:DEFERRED→NOT-STARTED", "4:DEFERRED→NOT-STARTED", "5:DEFERRED→NOT-STARTED", "6:DEFERRED→NOT-STARTED", "7:DEFERRED→NOT-STARTED",
+    "14:BUILT-NOT-PROVED→TESTABLE-NOW", "45:FAILED→TESTABLE-NOW",
+  ]);
   assert.deepEqual(all.filter((s) => s.kind === "work").map((s) => `${s.id}:${s.from}→${s.to}`), [
     "9:BUILT-NOT-PROVED→BLOCKED-UNKNOWN", "11:BLOCKED-UNKNOWN→VERIFIED-PASS",
     "12:BUILT-NOT-PROVED→TESTABLE-NOW", "12:TESTABLE-NOW→VERIFIED-PASS", "13:BUILT-NOT-PROVED→TESTABLE-NOW", "13:TESTABLE-NOW→VERIFIED-PASS",

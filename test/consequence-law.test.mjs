@@ -142,8 +142,8 @@ test("🔴 RED limb 1: an entry missing REVERSIBILITY — or any one of the six 
 
 test("🔴 an UNCLASSIFIED entry that writes a consequence has picked a half — refused; and an escalation may cross ONE level only", () => {
   const reg = JSON.parse(JSON.stringify(CONSEQUENCE_REGISTER));
-  reg["noindex-declared-deliberate"].consequence = "the dominant half";
-  assert.ok(reconcile(reg).invalid.some((x) => x.class === "noindex-declared-deliberate" && /picks a half/.test(x.why)));
+  reg.canonical = { what: reg.canonical.what, level: UNCLASSIFIED, consequence: "the dominant half", why: "a class that bundles two things", ruledBy: null, ruledOn: null };
+  assert.ok(reconcile(reg).invalid.some((x) => x.class === "canonical" && /picks a half/.test(x.why)));
   const esc = JSON.parse(JSON.stringify(CONSEQUENCE_REGISTER));
   esc["robots-blocks-search-crawler"].escalatedFrom = "NONE"; // NONE → MODERATE is two steps
   assert.ok(reconcile(esc).invalid.some((x) => /one step up/.test(x.why)));
@@ -198,15 +198,19 @@ test("🔴 RED limb 3: the same evidence ranking differently on a second run is 
  * ================================================================== */
 
 test("🔴 RED limb 4: an UNCLASSIFIED class ranked as LOW — the fallback — is refused, alone", () => {
-  const items = classItems();
+  // every finding class is ruled since Option A, so the limb is exercised on a register with one class left unrated
+  const reg = JSON.parse(JSON.stringify(CONSEQUENCE_REGISTER));
+  reg.canonical = { ...reg.canonical, level: UNCLASSIFIED };
+  const items = classItems(reg);
   const fallback = orderByConsequence({
     items: items.map((i) => (i.consequence.state === "DECLARED" ? i : { ...i, consequence: { ...i.consequence, state: "DECLARED", level: "LOW" } })),
     scale: SEVERITY_SCALE,
   });
   assert.equal(fallback.unranked.length, 0);
-  const errs = orderErrors({ order: fallback, items, register: CONSEQUENCE_REGISTER, scale: SEVERITY_SCALE });
+  const errs = orderErrors({ order: fallback, items, register: reg, scale: SEVERITY_SCALE });
   assert.deepEqual(limbs(errs), ["unclassified-ordered"], JSON.stringify(errs));
-  assert.deepEqual(errs.map((e) => e.id).sort(), HALVES);
+  assert.deepEqual(errs.map((e) => e.id), ["canonical"]);
+  assert.deepEqual(HALVES, [], "since Option A no finding class is left unrated");
 });
 
 test("🔴 A4 on the real recommendations: the one with the MOST volume (noindex, 484) is not ranked, because its consequence is unknown", () => {

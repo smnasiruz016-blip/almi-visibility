@@ -220,6 +220,8 @@ test("🔴 moves since Amendment 2: SEVEN by ruling (3–7 → NOT-STARTED by Am
     "56:BLOCKED-UNKNOWN→VERIFIED-PASS",
     // 🔴 Rows 59 and 60, Amendment 3's work half (14 September 2026): 59's test run and passed; 60 built, waiting on the owner's levels.
     "59:NOT-STARTED→VERIFIED-PASS", "60:NOT-STARTED→BUILT-NOT-PROVED",
+    // 🔴 Row 60's first tick (14 September 2026): its census run over the real store, its frozen limbs re-run alone.
+    "60:BUILT-NOT-PROVED→VERIFIED-PASS",
     // 🔴 Row 61, created 14 September 2026: the work of PR #72, recorded as work — and it stops at BUILT-NOT-PROVED.
     "61:NOT-STARTED→BUILT-NOT-PROVED",
   ]);
@@ -253,10 +255,11 @@ test("before Amendment 2 the ledger was 3 / 18 / 0 / 3 / 0 / 6 / 28", () => {
 
 /* 🔴 FIFTEEN since Amendment 3's work half (14 Sep 2026): row 59 — admitted NOT-STARTED, so never VERIFIED-PASS before
  * Amendment 2 either — ticked on its census and every evidence limb RED alone. */
-test("🔴 since Amendment 2, FIFTEEN rows hold VERIFIED-PASS (11, 12, 13, 14, 26, 38, 42, 45, 47, 49, 51, 53, 55, 56, 59) — 50 reached it and was REOPENED; 48 LOST it and EARNED IT BACK", () => {
+/* 🔴 SIXTEEN since row 60 ticked (14 Sep 2026). */
+test("🔴 since Amendment 2, SIXTEEN rows hold VERIFIED-PASS (11, 12, 13, 14, 26, 38, 42, 45, 47, 49, 51, 53, 55, 56, 59, 60) — 50 reached it and was REOPENED; 48 LOST it and EARNED IT BACK", () => {
   const rows = classify();
   const newPasses = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS" && BEFORE_AMENDMENT_2[r.id] !== "VERIFIED-PASS");
-  assert.deepEqual(newPasses.map((r) => r.id), [11, 12, 13, 14, 26, 38, 42, 45, 47, 49, 51, 53, 55, 56, 59]);
+  assert.deepEqual(newPasses.map((r) => r.id), [11, 12, 13, 14, 26, 38, 42, 45, 47, 49, 51, 53, 55, 56, 59, 60]);
   const lost = Object.values(rows).filter((r) => BEFORE_AMENDMENT_2[r.id] === "VERIFIED-PASS" && r.state !== "VERIFIED-PASS");
   assert.deepEqual(lost.map((r) => r.id), []);
   // The count hides a round trip — the chain does not.

@@ -21,13 +21,33 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 | state | before (4-state) | after (7-state) |
 |---|---|---|
 | **NOT-STARTED** | 33 | **7** |
-| **BUILT-NOT-PROVED** | 24 | **7** |
+| **BUILT-NOT-PROVED** | 24 | **6** |
 | **TESTABLE-NOW** | — | **1** |
-| **VERIFIED-PASS** | 0 | **18** |
+| **VERIFIED-PASS** | 0 | **19** |
 | **FAILED** | — | **1** |
 | **BLOCKED-UNKNOWN** | 1 | **4** |
 | **DEFERRED** | — | **23** |
 | **total** | 58 | **61** |
+
+> ### 🔴 ROW 60 TICKED — OPTION A: A DECISION ON RECORD IS NOT A FINDING EITHER — 14 SEPTEMBER 2026
+>
+> | state | before this change | after |
+> |---|---|---|
+> | BUILT-NOT-PROVED | 7 | **6** (− 60) |
+> | VERIFIED-PASS | 18 | **19** (+ 60) |
+>
+> - **moved because WORK HAPPENED:** 60 BUILT-NOT-PROVED → VERIFIED-PASS — its census run over the real store and its four
+>   frozen evidence limbs re-run alone (runs/audit/row60-populations-red-limbs-2026-09-14.txt). **moved ONLY because a RULING
+>   changed:** none — 🔴 but the tick rests on three owner rulings of the same day that moved what counts as a finding, each
+>   put to the ANTI-CIRCLE self-check with its answer recorded (`ROW60_POPULATIONS_RULING.md` Part 3).
+> - **Four populations, every one of 2,033 distinct issues in exactly one:** FINDINGS **541** (530 open, 14 classes, every
+>   one ruled) · COVERAGE GAPS **1,224** · DECISION ON RECORD **134** · AUDIT TRAIL **134**.
+> - 🔴 **The decision is louder, not quieter:** `noindex-declared-deliberate` — 134 pages, 484 search impressions, waiting on
+>   REC-NOINDEX-CV-GUIDE — now sits FIRST on the owner's report, above every finding.
+> - **The archive rule, the owner's answer:** withdrawn claims only. `instrument-disagreement` (11, all CLOSED) stays a live
+>   HIGH finding — a zero-open rule would have swept it, against its own ruled reason.
+> - 🔴 **The limit, on the row:** it proves the engine applies the owner's judgement consistently; it never proves a level is
+>   well chosen.
 
 > ### 🔴 ROW 60 · AN UNMEASURED CHECK IS NOT A FINDING — 14 OF 16 CLASSES RULED — 14 SEPTEMBER 2026 — NO ROW MOVED
 >
@@ -616,10 +636,10 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 >   ingested and the seventh is supplied by no tool we hold. Not a tick. After it the counts are
 >   BUILT-NOT-PROVED **16** and BLOCKED-UNKNOWN **7**; the table above records Amendment 2 alone.
 
-> ### 🔴 EIGHTEEN TICKS — ITEMS 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56 AND 59
+> ### 🔴 NINETEEN TICKS — ITEMS 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56, 59 AND 60
 >
-> **Items 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 48, 49, 51, 55 and 59.** Each has all four parts of its boundary
-> answered with real-data evidence. They are the only eighteen rows in the whole ledger that **hold a pass earned by work**;
+> **Items 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 48, 49, 51, 55, 59 and 60.** Each has all four parts of its boundary
+> answered with real-data evidence. They are the only nineteen rows in the whole ledger that **hold a pass earned by work**;
 > item 9 moved by work and ended BLOCKED-UNKNOWN; item 50 was run and stays FAILED; item 25 was run and is
 > TESTABLE-NOW with its gap named; **items 48, 51 and 55 each passed through FAILED** and left it only by the
 > test re-run and passing; items 11 and 42 were proved on a local replay of real bodies, which does not prove
@@ -779,7 +799,7 @@ actually came from.
 | 57 | Final Independent Audit | NOT-STARTED | IN — checklist §1; DoD v0.1 | This document is the **first status baseline**, not the final audit | 2026-09-11 | Claude (repo audit) | Cannot run while 16 items are ◐ and 1 is ⚠; and it must be *independent*, which a self-audit is not | — |
 | 58 | DONE Declaration | NOT-STARTED | IN — checklist §6, owner sign-off | none | 2026-09-11 | Claude (repo audit) | Requires every applicable item ☑ or justified N/A with no frozen blocker. **0 items are ☑**, and N/A justifications are the owner's — none exist | — |
 | 59 | Falsifiability of Findings | VERIFIED-PASS | IN — `PASS_BOUNDARIES_AMENDMENT_3.md`, owner ruling under §12, 13 Sep 2026, re-issued 14 Sep 2026 (class P) | `bin/refutation-census.mjs` over the real store: population 20 (17 finding classes + 3 recommendations), 20 carry observation · source · condition with a held method (`config/refutation-register.mjs`); every EVIDENCE limb RED alone in the real register and restored, hash-checked (runs/audit/row59-*). Backfill 20 written, 0 not written | 2026-09-14 | CC (Amendment 3 work half) | none for the tick. The limit, on the row: the census cannot prove a refutation is well chosen — that is human judgement | — |
-| 60 | Consequence-Weighted Priority | BUILT-NOT-PROVED | IN — `PASS_BOUNDARIES_AMENDMENT_3.md`, owner ruling under §12, 13 Sep 2026, re-issued 14 Sep 2026 (class P) | `ROW60_CONSEQUENCE_LAW.md` and `ROW60_COVERAGE_AND_LEVELS_RULING.md` (owner, 14 Sep 2026, hash-pinned); `config/consequence-register.mjs` reconciled line by line with the 16 finding classes in use — 14 ruled (HIGH 4 · MODERATE 6 · LOW 4), 2 UNCLASSIFIED; the 1,224 checks that never ran in `config/coverage-register.mjs`, never ranked; blast-radius figures held to real findings; priority consequence first, on the real report; every limb RED alone and restored (runs/audit/row60-*) | 2026-09-14 | CC (row 60 coverage) | EXPECTED's first clause is not met: `noindex-declared-deliberate` and `noindex-defect-claim-withdrawn` carry no level — NONE is not what their records verify, and REC-NOINDEX-CV-GUIDE is undecided. UNCLASSIFIED never defaults to low | — |
+| 60 | Consequence-Weighted Priority | VERIFIED-PASS | IN — `PASS_BOUNDARIES_AMENDMENT_3.md`, owner ruling under §12, 13 Sep 2026, re-issued 14 Sep 2026 (class P) | `config/consequence-register.mjs` reconciled line by line with the 14 finding classes in use — HIGH 4 · MODERATE 6 · LOW 4, every one the owner's (`ROW60_CONSEQUENCE_LAW.md`, `ROW60_COVERAGE_AND_LEVELS_RULING.md`, `ROW60_POPULATIONS_RULING.md`); every issue in exactly one of four populations (541 findings · 1,224 coverage gaps · 134 decisions on record · 134 audit trail); the decision on record first on the owner's report; the basis on the real report; the four frozen limbs RED alone and restored (runs/audit/row60-*) | 2026-09-14 | CC (row 60 — Option A) | 🔴 the limit: it proves consistent application of the owner's judgement, never that a level is well chosen; the tick rests on three same-day rulings, each self-checked against the ANTI-CIRCLE law | — |
 | 61 | Safe Local Page Construction | BUILT-NOT-PROVED | IN — `PASS_BOUNDARIES_AMENDMENT_5.md` §4 (class P); reserved there, created 14 Sep 2026 once rows 59 and 60 existed | PR #72: `bin/build-page.mjs` takes `--slug` / `--all-slugs` with no default; Gate A's four parts enforced in the construction path, failing closed (`src/page/construct.mjs`); RED/GREEN in `runs/audit/row61-gate-a-*`; 0 of 3 candidates accepted | 2026-09-14 | CC (row 61 created) | **missing leg:** a second DECLARED product with its own DECLARED page spec, run through the runner — **blocked on an owner decision** (a second neutral declared test product, or a re-pin of row 53's coverage). No real page can be accepted: no WHY_THIS_URL is written, and no template family has three specs | — |
 
 ---

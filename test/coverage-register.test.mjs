@@ -17,6 +17,8 @@ import { loadRegistry } from "../src/facts/registry.mjs";
 import { constructCandidates, selectCandidates, REFUSED, PASS, FAIL, NOT_TESTED } from "../src/page/construct.mjs";
 import { CONSEQUENCE_REGISTER, SUPERSEDED_ENTRIES } from "../config/consequence-register.mjs";
 import { COVERAGE_REGISTER } from "../config/coverage-register.mjs";
+import { DECISION_REGISTER } from "../config/decision-register.mjs";
+import { AUDIT_TRAIL } from "../config/audit-trail.mjs";
 import { CLASS_SPLITS, UNMEASURED_REASON_CODES } from "../config/class-splits.mjs";
 import { PRODUCT } from "../products/almi-oet/product.mjs";
 
@@ -51,8 +53,9 @@ test("🔴 every ruled half's words are the ruling's or the law's, WORD FOR WORD
   }
   assert.ok(words.includes(norm(CONSEQUENCE_REGISTER["indexability-preflight-found"].blastRadius)));
   for (const k of ["near-duplicate-found", "template-dominance-found", "thin-content-found"]) assert.match(CONSEQUENCE_REGISTER[k].levelRestsOn, /^consequence, not the count/);
-  // the noindex halves stay UNCLASSIFIED, on the owner's answer — neither NONE was written
-  for (const k of ["noindex-declared-deliberate", "noindex-defect-claim-withdrawn"]) assert.deepEqual([CONSEQUENCE_REGISTER[k].level, CONSEQUENCE_REGISTER[k].ruledBy], ["UNCLASSIFIED", null], k);
+  // the noindex halves were never given NONE — and since Option A they are not findings at all
+  for (const k of ["noindex-declared-deliberate", "noindex-defect-claim-withdrawn"]) assert.equal(CONSEQUENCE_REGISTER[k], undefined, k);
+  assert.ok(DECISION_REGISTER["noindex-declared-deliberate"] && AUDIT_TRAIL["noindex-defect-claim-withdrawn"]);
   assert.ok(!Object.values(CONSEQUENCE_REGISTER).some((e) => e.level === "NONE"), "a NONE was written — the owner's answer left the noindex classes UNCLASSIFIED");
 });
 
@@ -79,7 +82,7 @@ test("🟢 MEASURED — the findings population and the coverage population, apa
   });
   // every finding class in use carries a register entry, and not one coverage class does
   const pop = populationOf(VIEW, U);
-  assert.deepEqual([...pop.keys()].filter((k) => pop.get(k).real > 0).sort(), Object.keys(CONSEQUENCE_REGISTER).sort());
+  assert.deepEqual([...pop.keys()].filter((k) => pop.get(k).real > 0 && !DECISION_REGISTER[k] && !AUDIT_TRAIL[k]).sort(), Object.keys(CONSEQUENCE_REGISTER).sort());
 });
 
 test("🟢 GREEN: the coverage register, the blast-radius figures and the void escalation all hold on the real store", () => {

@@ -1,6 +1,6 @@
 # ALMIVISIBILITY — ROW 60 · CONSEQUENCE REGISTER · RULED 14 SEPTEMBER 2026 · SEVEN CLASSES SPLIT
 
-> 🔴 **GENERATED — DO NOT EDIT BY HAND.** `node bin/row60-ruling-sheet.mjs --confirm` writes it from the evidence store at 2026-09-14T04:28:41.226Z.
+> 🔴 **GENERATED — DO NOT EDIT BY HAND.** `node bin/row60-ruling-sheet.mjs --confirm` writes it from the evidence store at 2026-09-14T05:08:37.966Z.
 > Every count is derived by applying each state-change record to its issue on issue_id, with each issue counted under
 > the class its own stored fields place it in (`config/class-splits.mjs`). Every description, level and attribution is
 > copied from `config/consequence-register.mjs`, the scale from `config/consequence-scale.mjs`. The sheet sets no level.
@@ -63,15 +63,13 @@ Units: **distinct** = issues, by issue_id · **open** = distinct issues still OP
 | 13 | `template-dominance-found` | the template-dominance check ran and found the shared shell making up most of a page's words | 2 | 2 | — | 4 | 0 | MODERATE | owner 2026-09-14 |
 | 14 | `thin-content-found` | the thin-content check ran and found fewer unique body words than the floor after the shell is subtracted | 118 | 118 | — | 236 | 0 | MODERATE | owner 2026-09-14 |
 
-## Part B1 — the 2 finding classes for the owner to rule: LEVEL and WHY are blank
+## Part B1 — the 0 finding classes for the owner to rule: LEVEL and WHY are blank
 
 A half is a new class: no level of the class it was split from carries to it. A class whose name ends
 `-check-not-run` holds checks that never ran — nothing was found in it, and nothing was ruled out.
 
 | # | class | split from | what it is (the register's words) | open | distinct | ruled states | raw | not run | LEVEL | WHY |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 1 | `noindex-declared-deliberate` | `noindex` | a page's noindex, recorded as a deliberate de-indexing decision; whether its near-duplicate premise holds is UNKNOWN | 134 | 134 | — | 134 | 0 | | |
-| 2 | `noindex-defect-claim-withdrawn` | `noindex` | a claim that a page's noindex was a defect — SUPERSEDED on 12 September 2026 by a record declaring that noindex deliberate | 0 | 134 | 134 SUPERSEDED | 268 | 0 | | |
 
 ## Part B2 — the consequence-first order
 
@@ -93,8 +91,6 @@ Consequence first; the open count only amplifies INSIDE a level; the class name 
 | 12 of 14 | `status-and-redirects` | LOW | 7 |
 | 13 of 14 | `canonical` | LOW | 6 |
 | 14 of 14 | `query-parameters` | LOW | 1 |
-| — | `noindex-declared-deliberate` | UNCLASSIFIED → OWNER REVIEW | 134 |
-| — | `noindex-defect-claim-withdrawn` | UNCLASSIFIED → OWNER REVIEW | 0 |
 
 ## Part D — THE COVERAGE POPULATION: checks that never ran. Not findings, never a level, never ranked
 
@@ -109,6 +105,20 @@ A check that never ran says nothing about the product. It says something about o
 | `template-dominance-check-not-run` | `template-dominance` | 108 | 110 | MISSING_INPUT / TOOL_FAILED | 106: a required input was absent, and the records do not name which. 2: the tool failed — shell subtraction was not confident, so nothing remained outside the shell to weigh |
 | `thin-content-check-not-run` | `thin-content` | 108 | 110 | MISSING_INPUT / NEEDS_RENDERED_HTML | 106: the stored page body was not available to the run. 2: rendered HTML — the body is empty in raw HTML, and a client-rendered page cannot be told from an empty one |
 | **total** | | **1224** | | | |
+
+## Part E — DECISIONS ON RECORD: a deliberate choice whose consequence is not established. Never a level, never ranked — it waits on the owner
+
+| class | split from | issues | open | raw | what was decided | why its consequence is not established | waits on |
+|---|---|---|---|---|---|---|---|
+| `noindex-declared-deliberate` | `noindex` | 134 | 134 | 134 | to de-index these cv-guide pages deliberately: noindex, correctly configured and crawlable, keyed on a country-verification gate (commit 50f8c20, as the review record reads) | Whether it is still the right rule is UNKNOWN from our evidence: the premise it cites is not confirmed by our similarity measurement. Owner's decision: REC-NOINDEX-CV-GUIDE. | `REC-NOINDEX-CV-GUIDE` |
+
+## Part F — THE AUDIT TRAIL: claims withdrawn as wrong. History, never live
+
+| class | split from | issues | states | raw | why it was withdrawn |
+|---|---|---|---|---|---|
+| `noindex-defect-claim-withdrawn` | `noindex` | 134 | 134 SUPERSEDED | 268 | the claim that noindex on these pages was a DEFECT was withdrawn on 12 September 2026 — later evidence showed a deliberate de-indexing decision — and each claim was superseded by the review record now held under noindex-declared-deliberate |
+
+**Every issue in exactly one population:** findings **541** + coverage gaps **1224** + decisions on record **134** + audit trail **134** = **2033** of **2033** distinct issues.
 
 ## Part B3 — the classes the split superseded (not in use; their words kept in the register)
 

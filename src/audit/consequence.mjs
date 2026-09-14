@@ -23,7 +23,7 @@
  * This module names no product, and holds no level of its own: every level it knows arrives in the scale passed in.
  */
 
-import { effectiveClassesInUse, coverageClassesOf } from "./class-split.mjs";
+import { effectiveClassesInUse, nonFindingClassesOf } from "./class-split.mjs";
 
 export const UNCLASSIFIED = "UNCLASSIFIED";
 export const BASIS_KINDS = Object.freeze(["MEASURED VOLUME", "DECLARED CONSEQUENCE", "BOTH", "NONE"]);
@@ -59,8 +59,9 @@ export function reconcileRegister({ records, register, scale, splits }) {
   // 🔴 The classes in use are the SPLIT classes (config/class-splits.mjs). Leaving the splits out would read the
   // store's stored names and quietly reconcile against a bundle — so they are required: pass {} for none.
   if (splits === undefined) throw new TypeError("reconcileRegister needs the declared class splits — pass {} for none, never leave them out");
-  // 🔴 An unmeasured check is NOT a finding (owner, 14 Sep 2026): the coverage classes leave the findings population.
-  const coverage = coverageClassesOf(splits);
+  // 🔴 Only a check that ran and found something is a finding (owner, 14 Sep 2026): coverage gaps, decisions on record
+  // and the audit trail all leave the findings population.
+  const coverage = nonFindingClassesOf(splits);
   const inUse = effectiveClassesInUse(records, splits).filter((k) => !coverage.has(k));
   const declared = Object.keys(register ?? {}).sort();
   const missing = inUse.filter((k) => !declared.includes(k));
@@ -122,16 +123,24 @@ export function reconcileRegister({ records, register, scale, splits }) {
 }
 
 /** The register entries that apply to these finding classes, and the consequence they declare. */
-export function consequenceFor(classes = [], register, scale) {
+export function consequenceFor(classes = [], register, scale, populations = null) {
   const unique = [...new Set(classes)].sort();
   if (!register) {
     return { state: "UNKNOWN", reason: "no consequence register was supplied to this computation", entries: unique.map((c) => ({ issue_class: c, level: null, inRegister: false })) };
   }
-  const entries = unique.map((c) => ({ issue_class: c, level: register[c]?.level ?? UNCLASSIFIED, inRegister: Boolean(register[c]) }));
+  const entries = unique.map((c) => ({ issue_class: c, level: register[c]?.level ?? UNCLASSIFIED, inRegister: Boolean(register[c]), ...(populations?.[c] ? { population: populations[c] } : {}) }));
   if (entries.length === 0) {
     return { state: "UNKNOWN", reason: "its evidence links no finding class, so no register entry applies — its consequence is UNKNOWN, never low", entries };
   }
   const unrated = entries.filter((e) => e.level === UNCLASSIFIED);
+  const notFindings = unrated.filter((e) => e.population);
+  if (unrated.length && notFindings.length === unrated.length) {
+    return {
+      state: "UNKNOWN",
+      reason: `${notFindings.map((e) => `${e.issue_class} is ${e.population}`).join("; ")} — not a finding, so no level applies; its consequence is UNKNOWN, never low`,
+      entries,
+    };
+  }
   if (unrated.length) {
     return {
       state: "UNKNOWN",

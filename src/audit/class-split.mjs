@@ -66,6 +66,12 @@ export function coverageClassesOf(splits) {
   return new Set(Object.values(splits ?? {}).flatMap((s) => s.halves.filter((h) => h.measures === "unmeasured").map((h) => h.class)));
 }
 
+/** 🔴 Every class that is NOT a finding — a coverage gap, a decision on record, or the audit trail (owner, Option A, 14 Sep 2026). */
+export const NON_FINDING_MEASURES = Object.freeze({ unmeasured: "COVERAGE GAP", decision: "DECISION ON RECORD", withdrawn: "AUDIT TRAIL" });
+export function nonFindingClassesOf(splits) {
+  return new Map(Object.values(splits ?? {}).flatMap((s) => s.halves.filter((h) => NON_FINDING_MEASURES[h.measures]).map((h) => [h.class, NON_FINDING_MEASURES[h.measures]])));
+}
+
 /** The effective classes present on issue records. */
 export function effectiveClassesInUse(records, splits) {
   return [...new Set([...splitView(records, splits).view.values()].map((v) => v.class).filter(Boolean))].sort();

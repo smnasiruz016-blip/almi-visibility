@@ -290,12 +290,14 @@ test("🔴 RED: TESTABLE-NOW without a named test is REFUSED", () => {
 /* 🔴 AND AMENDMENT 3's WORK HALF (14 Sep 2026): row 59 NOT-STARTED → VERIFIED-PASS on its census and every limb RED
  * alone; row 60 NOT-STARTED → BUILT-NOT-PROVED, waiting on the owner's levels. NOT-STARTED 9 → 7, BUILT-NOT-PROVED
  * 6 → 7, VERIFIED-PASS 17 → 18. */
-test("the seven-state tally is 7 / 7 / 1 / 18 / 1 / 4 / 23 over 61 rows", () => {
+/* 🔴 AND ROW 60 TICKED (14 Sep 2026): BUILT-NOT-PROVED → VERIFIED-PASS on its census over the real store, its four frozen
+ * limbs re-run RED alone. BUILT-NOT-PROVED 7 → 6, VERIFIED-PASS 18 → 19. */
+test("the seven-state tally is 7 / 6 / 1 / 19 / 1 / 4 / 23 over 61 rows", () => {
   assert.deepEqual(tally(classify()), {
     "NOT-STARTED": 7,
-    "BUILT-NOT-PROVED": 7,
+    "BUILT-NOT-PROVED": 6,
     "TESTABLE-NOW": 1,
-    "VERIFIED-PASS": 18,
+    "VERIFIED-PASS": 19,
     FAILED: 1,
     "BLOCKED-UNKNOWN": 4,
     DEFERRED: 23,
@@ -428,22 +430,25 @@ test("🔴 the LEDGER is 61 rows · P=30 · S=8 · D=23 · in scope 38 — count
 
 /* 🔴 Rows 59 and 60 were ADMITTED NOT-STARTED (PR #73). Amendment 3's work half, released 14 September 2026, moved
  * each by a declared WORK move from that arrival state — 59 to VERIFIED-PASS, 60 to BUILT-NOT-PROVED. */
-test("🔴 rows 59 and 60 left NOT-STARTED only by declared WORK moves — 59 VERIFIED-PASS with its limit on the row, 60 BUILT-NOT-PROVED waiting on the owner", () => {
+test("🔴 rows 59 and 60 left NOT-STARTED only by declared WORK moves — both VERIFIED-PASS, each with its limit on the row", () => {
   const rows = classify();
   for (const id of [59, 60]) {
     assert.equal(ADMITTED_ROWS[id].arrivedAs, "NOT-STARTED");
-    const [move] = MOVES_AMENDMENT_2[id];
-    assert.deepEqual([move.from, move.to, move.kind], ["NOT-STARTED", rows[id].state, "work"]);
+    const chain = MOVES_AMENDMENT_2[id];
+    assert.equal(chain[0].from, "NOT-STARTED");
+    assert.equal(chain.at(-1).to, rows[id].state, `row ${id}: its chain does not end where it stands`);
+    assert.ok(chain.every((m) => m.kind === "work"), `row ${id} moved by something other than work`);
   }
   assert.equal(rows[59].state, "VERIFIED-PASS");
   assert.equal(MOVES_AMENDMENT_2[59][0].route, "TEST_RUN");
   assert.match(rows[59].why, /CANNOT prove the refutation is well chosen — that is human judgement/, "the census's limit is not written on the row");
   assert.match(rows[59].why, /Backfill: 20 written, 0 that could not be written/);
-  assert.equal(rows[60].state, "BUILT-NOT-PROVED");
-  // 🔴 14 Sep 2026: ruled by the owner, and still not proved — the unmet limb is named on the row, not implied.
-  assert.match(rows[60].why, /AN UNMEASURED CHECK IS NOT A FINDING/);
-  assert.match(rows[60].why, /the two noindex classes do not/i);
-  assert.match(rows[60].why, /The limb not met is EXPECTED's first clause/);
+  assert.equal(rows[60].state, "VERIFIED-PASS");
+  assert.deepEqual(MOVES_AMENDMENT_2[60].map((m) => `${m.from}→${m.to}:${m.route}`), ["NOT-STARTED→BUILT-NOT-PROVED:BUILT", "BUILT-NOT-PROVED→VERIFIED-PASS:TEST_RUN"]);
+  // 🔴 14 Sep 2026: its first tick, by its test — and the pass's limit is written on the row, not implied.
+  assert.match(rows[60].why, /VERIFIED-PASS — 14 SEPTEMBER 2026 — ITS FIRST TICK/);
+  assert.match(rows[60].why, /it can never prove a level is well chosen — that is his/, "the pass's limit is not written on the row");
+  assert.match(rows[60].why, /ANTI-CIRCLE self-check/, "the rulings the pass rests on are not named on the row");
   assert.match(rows[60].why, /UNCLASSIFIED IS A REAL STATE AND NEVER DEFAULTS TO LOW/);
   assert.deepEqual(assertTransitions(rows), []);
   assert.deepEqual(assertLawful(rows), []);
@@ -646,11 +651,13 @@ test("🔴 the five arrive NOT-STARTED by a RULING move and nothing else; row 2 
 /* 🔴 THIRTEEN since the queue run — 13, 26 and 55; 55 through FAILED. */
 /* 🔴 EIGHTEEN since Amendment 3's work half (14 Sep 2026) — row 59, on its census over the real store and every
  * evidence limb RED alone. */
-test("🔴 VERIFIED-PASS is exactly 18 — items 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56 and 59 — and 48's reopen stays on the record", () => {
+/* 🔴 NINETEEN since row 60 ticked (14 Sep 2026) — on its census over the real store, its four frozen limbs re-run RED alone. */
+test("🔴 VERIFIED-PASS is exactly 19 — items 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56, 59 and 60 — and 48's reopen stays on the record", () => {
   const rows = classify();
   const passed = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS").map((r) => r.id).sort((a, b) => a - b);
-  assert.deepEqual(passed, [8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56, 59]);
-  assert.equal(tally(rows)["VERIFIED-PASS"], 18);
+  assert.deepEqual(passed, [8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56, 59, 60]);
+  assert.equal(tally(rows)["VERIFIED-PASS"], 19);
+  assert.equal(MOVES_AMENDMENT_2[60].at(-1).route, "TEST_RUN", "row 60's tick did not come from its test");
   assert.equal(MOVES_AMENDMENT_2[59][0].route, "TEST_RUN", "row 59's tick did not come from its test");
   assert.equal(rows[56].route, "OWNER_VERIFICATION", "item 56's tick did not come from the owner's eye");
   assert.match(rows[51].whyFailed, /FAILURE CONDITION IS MET/, "item 51's FAILED result was erased rather than kept");

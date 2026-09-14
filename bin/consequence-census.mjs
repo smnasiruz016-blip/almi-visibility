@@ -34,6 +34,10 @@ import {
 import { classOf, splitView, splitErrors, isUnmeasured } from "../src/audit/class-split.mjs";
 import { coverageErrors, blastRadiusErrors, voidEscalationErrors, populationOf } from "../src/audit/coverage.mjs";
 import { COVERAGE_REGISTER } from "../config/coverage-register.mjs";
+import { DECISION_REGISTER } from "../config/decision-register.mjs";
+import { AUDIT_TRAIL } from "../config/audit-trail.mjs";
+import { populationErrors, fourWay, impressionsForClass, POPULATIONS } from "../src/audit/populations.mjs";
+import { readFileSync as readText, existsSync as exists } from "node:fs";
 import { computeRecommendationFields } from "../src/report/recommendation-fields.mjs";
 import { CONSEQUENCE_REGISTER, UNREACHABLE_RECOMMENDATIONS, SUPERSEDED_ENTRIES } from "../config/consequence-register.mjs";
 import { SEVERITY_SCALE } from "../config/consequence-scale.mjs";
@@ -86,6 +90,25 @@ add(coverageErrors({ coverage: COVERAGE_REGISTER, register: CONSEQUENCE_REGISTER
 add(blastRadiusErrors({ register: CONSEQUENCE_REGISTER, view, unmeasuredCodes: UNMEASURED_REASON_CODES }));
 add(voidEscalationErrors({ register: CONSEQUENCE_REGISTER, superseded: SUPERSEDED_ENTRIES, view, unmeasuredCodes: UNMEASURED_REASON_CODES }));
 
+/* ---- 🔴 Option A — three live populations and one archive; the decisions on record surfaced on the owner's report ---- */
+const REPORT = join(REPO, "runs", "report", "index.html");
+const registers = { register: CONSEQUENCE_REGISTER, coverage: COVERAGE_REGISTER, decisions: DECISION_REGISTER, auditTrail: AUDIT_TRAIL };
+// A finding class with NO register entry is already `missing` above; its issues landing in no population is the same
+// defect seen twice, so it is reported once — under `missing`. An issue in TWO populations is always reported.
+add(populationErrors({
+  view,
+  records: everything,
+  ...registers,
+  orderIds: [...classOrder.ranked.map((r) => r.id), ...classOrder.unranked.map((u) => u.id)],
+  reportHtml: exists(REPORT) ? readText(REPORT, "utf8") : "",
+}).filter((e) => {
+  // …and the four totals falling short by exactly the issues of those classes is the same defect a third time.
+  const homeless = [...view.values()].filter((v) => rec.missing.includes(v.class)).length;
+  if (e.limb === "population-membership" && e.count === 0 && rec.missing.includes(e.class)) return false;
+  if (e.limb === "population-sum" && homeless > 0 && e.shortfall === homeless) return false;
+  return true;
+}));
+
 /* ---- the presented recommendations ---- */
 const links = audit.filter((r) => r.record_type === "recommendation_evidence");
 const fields = computeRecommendationFields({
@@ -96,6 +119,11 @@ const fields = computeRecommendationFields({
   consequenceRegister: CONSEQUENCE_REGISTER,
   consequenceScale: SEVERITY_SCALE,
   classSplits: CLASS_SPLITS,
+  classPopulations: Object.fromEntries([
+    ...Object.keys(COVERAGE_REGISTER).map((k) => [k, "COVERAGE GAP"]),
+    ...Object.keys(DECISION_REGISTER).map((k) => [k, "DECISION ON RECORD"]),
+    ...Object.keys(AUDIT_TRAIL).map((k) => [k, "AUDIT TRAIL"]),
+  ]),
 });
 const pc = priorityCensus({ fields, register: CONSEQUENCE_REGISTER });
 add(pc.errors);
@@ -143,8 +171,17 @@ for (const s of Object.values(CLASS_SPLITS)) {
   }
 }
 
-const findings = all.filter((v) => !isUnmeasured(v, UNMEASURED_REASON_CODES));
-console.log(`\n🔴 TWO POPULATIONS, NEVER RANKED TOGETHER:`);
+const four = fourWay(view, registers);
+console.log(`\n🔴 FOUR POPULATIONS — every distinct issue in exactly one:`);
+for (const p of POPULATIONS) console.log(`  ${p.padEnd(20)} ${String(four.totals[p]).padStart(5)} distinct · ${String(four.open[p]).padStart(5)} open`);
+console.log(`  ${"= the store".padEnd(20)} ${String(POPULATIONS.reduce((n, p) => n + four.totals[p], 0)).padStart(5)} of ${four.distinct} distinct issues · unplaced ${four.unplaced}`);
+for (const [k, e] of Object.entries(DECISION_REGISTER)) {
+  const imp = impressionsForClass(k, { view, records: everything });
+  console.log(`  DECISION ON RECORD ${k}: ${e.count} issues · ${imp.state === "MEASURED" ? `${imp.impressions} search impressions on ${imp.pagesJoined} of ${imp.pages} pages` : imp.reason} · waits on ${e.awaits}`);
+}
+for (const [k, e] of Object.entries(AUDIT_TRAIL)) console.log(`  AUDIT TRAIL ${k}: ${e.count} issues, none open — ${e.why}`);
+const findings = all.filter((v) => CONSEQUENCE_REGISTER[v.class]);
+console.log(`\n🔴 THE LIVE POPULATIONS, NEVER RANKED TOGETHER:`);
 console.log(`  FINDINGS  ${findings.length} distinct issues · ${findings.filter((v) => v.state === "OPEN").length} open · ${rec.classesInUse.length} classes — each ranked by its declared consequence`);
 console.log(`  COVERAGE  ${notRun.length} checks that never ran · ${Object.keys(COVERAGE_REGISTER).length} classes — never a finding, never a level, never ranked`);
 const pop = populationOf(view, UNMEASURED_REASON_CODES);
@@ -160,7 +197,7 @@ console.log(`\nPRESENTED RECOMMENDATIONS CHECKED: ${pc.checked}`);
 for (const f of fields) {
   const p = f.priority;
   const w = p.consequenceWeightedRank;
-  const entries = p.consequence.entries.map((e) => `${e.issue_class}=${e.level}`).join(", ") || "none";
+  const entries = p.consequence.entries.map((e) => `${e.issue_class}=${e.population ? `${e.population} (not a finding)` : e.level}`).join(", ") || "none";
   console.log(`  ${f.recommendation_id}: consequence-weighted ${w.state === "DERIVED" ? `${w.rank} of ${w.of} at ${w.level}` : `UNKNOWN → ${w.route}`} · volume rank ${p.state === "DERIVED" ? `${p.rank} of ${p.of}` : "UNKNOWN"} · basis ${p.basisKind} · entries ${entries}`);
 }
 for (const [id, e] of Object.entries(UNREACHABLE_RECOMMENDATIONS)) console.log(`  PART C ${id}: ${e.level} — ${e.gap} Needs: ${e.needs.join("; ")}.`);

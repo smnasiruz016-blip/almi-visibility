@@ -21,6 +21,8 @@ import { CONSEQUENCE_REGISTER, UNREACHABLE_RECOMMENDATIONS, SUPERSEDED_ENTRIES }
 import { SEVERITY_SCALE } from "../config/consequence-scale.mjs";
 import { CLASS_SPLITS, UNMEASURED_REASON_CODES } from "../config/class-splits.mjs";
 import { COVERAGE_REGISTER } from "../config/coverage-register.mjs";
+import { DECISION_REGISTER } from "../config/decision-register.mjs";
+import { AUDIT_TRAIL } from "../config/audit-trail.mjs";
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -33,7 +35,7 @@ const walk = (dir) => readdirSync(dir).flatMap((n) => {
 });
 const files = walk(join(REPO, "runs")).sort().map((p) => ({ file: relative(REPO, p).split("\\").join("/"), records: createJsonlStore(p).readAll() }));
 
-const fresh = buildRulingSheet({ files, register: CONSEQUENCE_REGISTER, unreachable: UNREACHABLE_RECOMMENDATIONS, scale: SEVERITY_SCALE, splits: CLASS_SPLITS, superseded: SUPERSEDED_ENTRIES, coverage: COVERAGE_REGISTER, unmeasuredCodes: UNMEASURED_REASON_CODES, generatedAt: new Date().toISOString() });
+const fresh = buildRulingSheet({ files, register: CONSEQUENCE_REGISTER, unreachable: UNREACHABLE_RECOMMENDATIONS, scale: SEVERITY_SCALE, splits: CLASS_SPLITS, superseded: SUPERSEDED_ENTRIES, coverage: COVERAGE_REGISTER, decisions: DECISION_REGISTER, auditTrail: AUDIT_TRAIL, unmeasuredCodes: UNMEASURED_REASON_CODES, generatedAt: new Date().toISOString() });
 const confirmMode = process.argv.includes("--confirm");
 
 console.log("ROW 60 — OWNER RULING SHEET\n");
@@ -44,7 +46,7 @@ console.log("");
 if (confirmMode) {
   const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
   // The register must already agree with the store: a sheet is never written over a disagreement.
-  const pre = reconcileSheet({ sheet: fresh, fresh, register: CONSEQUENCE_REGISTER, unreachable: UNREACHABLE_RECOMMENDATIONS, scale: SEVERITY_SCALE, superseded: SUPERSEDED_ENTRIES, coverage: COVERAGE_REGISTER });
+  const pre = reconcileSheet({ sheet: fresh, fresh, register: CONSEQUENCE_REGISTER, unreachable: UNREACHABLE_RECOMMENDATIONS, scale: SEVERITY_SCALE, superseded: SUPERSEDED_ENTRIES, coverage: COVERAGE_REGISTER, decisions: DECISION_REGISTER, auditTrail: AUDIT_TRAIL });
   if (!pre.ok) {
     console.error("🔴 REFUSED — the register and the store disagree, so no sheet is written:");
     for (const e of pre.errors) console.error(`   [${e.limb}] ${e.class ?? ""} ${e.why}`);
@@ -64,7 +66,7 @@ if (!existsSync(JSON_OUT)) {
   process.exit(1);
 }
 const committed = JSON.parse(readFileSync(JSON_OUT, "utf8"));
-const r = reconcileSheet({ sheet: committed, fresh, register: CONSEQUENCE_REGISTER, unreachable: UNREACHABLE_RECOMMENDATIONS, scale: SEVERITY_SCALE, superseded: SUPERSEDED_ENTRIES, coverage: COVERAGE_REGISTER });
+const r = reconcileSheet({ sheet: committed, fresh, register: CONSEQUENCE_REGISTER, unreachable: UNREACHABLE_RECOMMENDATIONS, scale: SEVERITY_SCALE, superseded: SUPERSEDED_ENTRIES, coverage: COVERAGE_REGISTER, decisions: DECISION_REGISTER, auditTrail: AUDIT_TRAIL });
 if (!r.ok) {
   console.error("🔴 REFUSED — the sheet, the register and the store do not agree. The sheet is NOT printed:");
   for (const e of r.errors) console.error(`   [${e.limb}] ${e.class ?? ""} — ${e.why}`);

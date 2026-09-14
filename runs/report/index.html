@@ -74,6 +74,18 @@ footer{margin-top:2rem;padding-top:1rem;border-top:2px solid var(--line);color:v
   </table>
   <p class="invariant">🔴 A FETCHED URL IS NOT AN INDEXED URL. A CRAWLED INVENTORY IS NOT THE SITE.</p>
 </header>
+<section id="decisions">
+  <h2>🔴 Decisions on record — waiting on the owner — 1</h2>
+  <p class="bound">Not findings: nothing was detected. Each is a deliberate choice whose consequence is NOT established. It carries no level and is never ranked beside a finding — and it is shown first, because it waits on a human.</p>
+  <table>
+    <thead><tr><th>decision</th><th>issues</th><th>measured search impact</th><th>what was decided</th><th>why its consequence is not established</th><th>waits on</th></tr></thead>
+    <tbody>
+    <tr><td><code>noindex-declared-deliberate</code></td><td><strong>134</strong> issues · 134 open</td><td><strong>484</strong> search impressions on 134 of the 134 pages<br><span class="bound">page-rows pull 9f8cbf772d1cd434, 2026-08-15..2026-09-12</span></td><td class="wrap">to de-index these cv-guide pages deliberately: noindex, correctly configured and crawlable, keyed on a country-verification gate (commit 50f8c20, as the review record reads)</td><td class="wrap">Whether it is still the right rule is UNKNOWN from our evidence: the premise it cites is not confirmed by our similarity measurement. Owner's decision: REC-NOINDEX-CV-GUIDE.</td><td><code>REC-NOINDEX-CV-GUIDE</code></td></tr>
+    </tbody>
+  </table>
+  <p class="bound">Every issue lands in exactly one population — findings <strong>541</strong> · coverage gaps <strong>1224</strong> · decisions on record <strong>134</strong> · audit trail <strong>134</strong> = <strong>2033</strong> distinct issues.</p>
+  <p class="bound">Audit trail — history, kept and queryable, never live: <code>noindex-defect-claim-withdrawn</code> 134 — the claim that noindex on these pages was a DEFECT was withdrawn on 12 September 2026 — later evidence showed a deliberate de-indexing decision — and each claim was superseded by the review record now held under noindex-declared-deliberate</p>
+</section>
 
 <p class="legend">Every record below carries one of: <span class="lbl lbl-OBSERVED">OBSERVED</span><span class="lbl lbl-INFERRED">INFERRED</span><span class="lbl lbl-RECOMMENDED">RECOMMENDED</span><span class="lbl lbl-UNKNOWN">UNKNOWN</span></p>
 <p class="bound">Label census across all 1234 records: OBSERVED=598 · INFERRED=499 · RECOMMENDED=107 · UNKNOWN=30</p>
@@ -196,7 +208,7 @@ paid-refusal:fake-paid-provider:2026-09-13T04:33:21.395Z:1:da654c39-92e0-4cb0-90
     </tr>
 <tr>
       <td><span class="lbl lbl-RECOMMENDED">RECOMMENDED</span><br><code>REC-NOINDEX-CV-GUIDE</code><br>Decide whether the country-verification gate is still the right de-indexing rule</td>
-      <td>consequence-weighted rank: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> <span class="bound">UNCLASSIFIED — noindex-defect-claim-withdrawn has no level the owner ruled; an unrated consequence is UNKNOWN, never low — routed to owner review; never ranked and never executed on a fallback</span><br>under it, measured volume (the amplifier inside a level): <strong>1 of 2</strong><br><span class="bound">484 search impressions on 134 of the 134 pages its issues name (page-rows pull 9f8cbf772d1cd434, 2026-08-15..2026-09-12) — ranked against the 2 recommendation(s) with a measured impact</span><br>basis: <strong>MEASURED VOLUME</strong><br>consequence register entries: <code>noindex-defect-claim-withdrawn</code> = <strong>UNCLASSIFIED</strong><br>consequence: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> UNCLASSIFIED — noindex-defect-claim-withdrawn has no level the owner ruled; an unrated consequence is UNKNOWN, never low</td>
+      <td>consequence-weighted rank: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> <span class="bound">noindex-defect-claim-withdrawn is AUDIT TRAIL — not a finding, so no level applies; its consequence is UNKNOWN, never low — routed to owner review; never ranked and never executed on a fallback</span><br>under it, measured volume (the amplifier inside a level): <strong>1 of 2</strong><br><span class="bound">484 search impressions on 134 of the 134 pages its issues name (page-rows pull 9f8cbf772d1cd434, 2026-08-15..2026-09-12) — ranked against the 2 recommendation(s) with a measured impact</span><br>basis: <strong>MEASURED VOLUME</strong><br>consequence register entries: <code>noindex-defect-claim-withdrawn</code> = <strong>AUDIT TRAIL (not a finding)</strong><br>consequence: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> noindex-defect-claim-withdrawn is AUDIT TRAIL — not a finding, so no level applies; its consequence is UNKNOWN, never low</td>
       <td>136 of 136 linked records found — 134 issues · 2 observations · 0 sources</td>
       <td>weakest source tier <strong>VERIFIED_ALMIWORLD</strong><br><span class="bound">tiers VERIFIED_ALMIWORLD=136 · evidence resolved 136 of 136 · issues UNKNOWN 0 of 134 · pulls incomplete 0 of 0</span></td>
       <td class="wrap"><strong>of the evidence</strong> (ledger <code>gsc-ingest:2026-09-12T22:06:42.662Z</code>):<br>money: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> 136 of 137 evidence records came from runs with no ledger entry (hissa-3, src/crawl/crawler.mjs) (at least 0 measured)<br>provider calls: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> 136 of 137 evidence records came from runs with no ledger entry (hissa-3, src/crawl/crawler.mjs) (at least 9 measured)<br>founder time: <span class="lbl lbl-UNKNOWN">UNKNOWN</span> 1 producing run(s) recorded founder time as UNKNOWN; 136 of 137 evidence records came from runs with no ledger entry (hissa-3, src/crawl/crawler.mjs) (at least 0 measured)<br><strong>to carry it out:</strong> <span class="lbl lbl-UNKNOWN">UNKNOWN</span> nothing in the ledger measures the cost of carrying out a recommendation — no such run has happened</td>
@@ -2030,7 +2042,7 @@ paid-refusal:fake-paid-provider:2026-09-13T04:33:21.395Z:1:da654c39-92e0-4cb0-90
 </section>
 
 <footer>
-  <p>Generated 2026-09-14T04:28:41.561Z from the evidence store.</p>
+  <p>Generated 2026-09-14T05:08:37.525Z from the evidence store.</p>
   <p><strong>Read-only</strong> — this page has no action, no form and no write path of any kind.</p>
   <p>🔴 This is one report page, not a dashboard (V5.1 §62). It states what it covers and what it does not.</p>
 </footer>

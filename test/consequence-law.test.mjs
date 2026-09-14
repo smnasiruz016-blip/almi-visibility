@@ -8,6 +8,9 @@
  *   an UNCLASSIFIED class ranked LOW, or ranked on a fallback        → unclassified-ordered    (A4)
  *   UNCLASSIFIED, INFORMATIONAL or OBSERVATION admitted to the scale → scale
  *   REC-AI-CRAWLER-BLOCK given a level by nearest-class guessing     → nearest-class
+ *
+ * Since the split of 14 September 2026 the classes in use are the SPLIT classes (config/class-splits.mjs): ten keep
+ * the owner's level, and the seven superseded entries keep every word the law holds them to.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -16,27 +19,31 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import { createJsonlStore } from "../src/evidence/store.mjs";
-import { lifecycleOf } from "../src/evidence/lifecycle.mjs";
 import { targetPageId, canonicalUrl } from "../src/evidence/ids.mjs";
 import {
   reconcileRegister, scaleErrors, consequenceFor, orderByConsequence, orderErrors, determinismErrors, ENTRY_PARTS, NOT_SEVERITIES, UNCLASSIFIED,
 } from "../src/audit/consequence.mjs";
+import { splitView } from "../src/audit/class-split.mjs";
 import { computeRecommendationFields } from "../src/report/recommendation-fields.mjs";
-import { CONSEQUENCE_REGISTER, UNREACHABLE_RECOMMENDATIONS } from "../config/consequence-register.mjs";
+import { CONSEQUENCE_REGISTER, UNREACHABLE_RECOMMENDATIONS, SUPERSEDED_ENTRIES } from "../config/consequence-register.mjs";
 import { SEVERITY_SCALE } from "../config/consequence-scale.mjs";
+import { CLASS_SPLITS } from "../config/class-splits.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const walk = (dir) => readdirSync(dir).flatMap((n) => (statSync(join(dir, n)).isDirectory() ? walk(join(dir, n)) : n.endsWith(".jsonl") ? [join(dir, n)] : []));
 const read = (dir) => readdirSync(join(REPO, dir)).filter((f) => f.endsWith(".jsonl")).flatMap((f) => createJsonlStore(join(REPO, dir, f)).readAll());
 const AUDIT = read("runs/audit");
 const ALL = walk(join(REPO, "runs")).sort().flatMap((p) => createJsonlStore(p).readAll());
-const LIFE = lifecycleOf(ALL);
+const { view: VIEW } = splitView(ALL, CLASS_SPLITS);
 const limbs = (errs) => [...new Set(errs.map((e) => e.limb))];
+const reconcile = (register) => reconcileRegister({ records: AUDIT, register, scale: SEVERITY_SCALE, splits: CLASS_SPLITS });
 
 const OPEN = new Map();
-for (const [, i] of LIFE.issues) if ((i.state ?? "OPEN") === "OPEN") OPEN.set(i.issue.issue_class, (OPEN.get(i.issue.issue_class) ?? 0) + 1);
+for (const v of VIEW.values()) if (v.state === "OPEN") OPEN.set(v.class, (OPEN.get(v.class) ?? 0) + 1);
 const classItems = (register = CONSEQUENCE_REGISTER, scale = SEVERITY_SCALE) =>
   Object.keys(register).sort().map((k) => ({ id: k, consequence: consequenceFor([k], register, scale), volume: OPEN.get(k) ?? 0, appliedClasses: [k], linkedClasses: [k] }));
+
+const HALVES = Object.keys(CONSEQUENCE_REGISTER).filter((k) => CONSEQUENCE_REGISTER[k].splitFrom).sort();
 
 /* ================================================================== *
  * THE LAW IS FROZEN, AND THE REGISTER IS ITS WORDS
@@ -50,16 +57,20 @@ test("🔴 the owner's law is frozen — its LF-normalised bytes hash to the val
   assert.equal(createHash("sha256").update(LAW_RAW, "utf8").digest("hex"), "d6ae2f156587fdbbc848a04dc284f7527c816f7d26a23c917233beb227008723");
 });
 
-test("🔴 every text field of every register entry, the Part C gap and every scale definition appear in the law WORD FOR WORD", () => {
-  const skip = new Set(["what", "level", "ruledBy", "ruledOn", "wording", "figuresFrom", "escalatedFrom"]);
+test("🔴 every text field of every RULED entry — live or superseded — the Part C gap and every scale definition appear in the law WORD FOR WORD", () => {
+  const skip = new Set(["what", "level", "ruledBy", "ruledOn", "wording", "figuresFrom", "escalatedFrom", "supersededOn", "supersededBy"]);
+  const ruledEntries = [...Object.entries(CONSEQUENCE_REGISTER).filter(([, e]) => !e.splitFrom), ...Object.entries(SUPERSEDED_ENTRIES)];
+  assert.equal(ruledEntries.length, 17, "the owner ruled 17 entries — 10 live, 7 superseded");
   const notVerbatim = [];
   const check = (where, s) => typeof s === "string" && !LAW.includes(norm(s)) && notVerbatim.push(where);
   let checked = 0;
-  for (const [k, e] of Object.entries(CONSEQUENCE_REGISTER)) for (const [f, v] of Object.entries(e)) if (!skip.has(f) && typeof v === "string") (checked++, check(`${k}.${f}`, v));
+  for (const [k, e] of ruledEntries) for (const [f, v] of Object.entries(e)) if (!skip.has(f) && typeof v === "string") (checked++, check(`${k}.${f}`, v));
   for (const [k, e] of Object.entries(UNREACHABLE_RECOMMENDATIONS)) for (const s of [e.gap, e.why, ...e.needs]) (checked++, check(k, s));
   for (const s of SEVERITY_SCALE) (checked++, check(`scale.${s.level}`, s.definition));
   assert.ok(checked >= 17 * 3, `only ${checked} fields checked — the check is policing too little`);
   assert.deepEqual(notVerbatim, [], "a field was paraphrased or invented");
+  // a half claims none of the owner's words: it carries no consequence, reversibility, blast radius or ruling
+  for (const k of HALVES) assert.deepEqual([CONSEQUENCE_REGISTER[k].consequence, CONSEQUENCE_REGISTER[k].reversibility, CONSEQUENCE_REGISTER[k].blastRadius, CONSEQUENCE_REGISTER[k].ruledBy], [null, null, null, null], k);
 });
 
 test("🔴 the scale is the law's: five levels, strongest first, and no state among them", () => {
@@ -68,12 +79,13 @@ test("🔴 the scale is the law's: five levels, strongest first, and no state am
   for (const s of SEVERITY_SCALE) assert.ok(LAW.includes(`${s.level} ${norm(s.definition)}`), `${s.level}'s definition is not the law's line`);
 });
 
-test("🟢 the evidence the assignments cite is the store's: the counts, the robots figures' pull, and the canonical intersection", () => {
+test("🟢 the evidence the ruled entries cite is the store's: the counts, the robots figures' pull, and the canonical intersection", () => {
   const e = CONSEQUENCE_REGISTER;
   assert.equal(OPEN.get("exact-duplicate"), 106);
-  assert.equal(OPEN.get("orphan-within-crawled-set"), 340);
-  assert.deepEqual(["near-duplicate", "template-dominance", "thin-content", "status-and-redirects", "head-elements", "canonical", "query-parameters"].map((k) => [k, String(OPEN.get(k))]), ["near-duplicate", "template-dominance", "thin-content", "status-and-redirects", "head-elements", "canonical", "query-parameters"].map((k) => [k, e[k].blastRadius.match(/^\d+/)[0]]));
-  // 216 impressions on all 106 and a 1,497-row pool: the COMPLETE page-rows pull the entry names
+  const liveNumbered = ["status-and-redirects", "head-elements", "canonical", "query-parameters"];
+  assert.deepEqual(liveNumbered.map((k) => [k, String(OPEN.get(k))]), liveNumbered.map((k) => [k, e[k].blastRadius.match(/^\d+/)[0]]));
+  // 🔴 4b: 216 impressions on all 106 and a 1,497-row pool are the COMPLETE page-rows pull the entry NAMES — an older
+  // pull of the same window than the one the report ranks on (219 on 1,525 rows). The words are the owner's.
   const pull = ALL.find((r) => r.observation_id === e["robots-blocks-search-crawler"].figuresFrom && r.method === "gsc.searchAnalytics.query:page-rows");
   assert.equal(pull.value.dataState, "COMPLETE");
   assert.equal(pull.value.rows.length, 1497);
@@ -86,11 +98,14 @@ test("🟢 the evidence the assignments cite is the store's: the counts, the rob
   }
   assert.deepEqual([robots.size, [...robots].filter((p) => (imp.get(p) ?? 0) > 0).length, [...imp.values()].reduce((a, b) => a + b, 0)], [106, 106, 216]);
   // canonical is LOW "on its own evidence today" — the intersection it names is measured, and it is empty
-  const open = (k) => [...LIFE.issues.values()].filter((i) => i.issue.issue_class === k && (i.state ?? "OPEN") === "OPEN").map((i) => i.issue.target_page_id);
-  const dup = new Set([...open("exact-duplicate"), ...open("near-duplicate")]);
-  assert.equal(open("canonical").filter((p) => dup.has(p)).length, 0, "a canonical-less page now sits on a duplicated page — the entry must be revisited");
-  // the host entry rests on what its record states, and only that
+  const open = (pred) => [...VIEW.values()].filter((v) => v.state === "OPEN" && pred(v)).map((v) => ALL.find((r) => r.issue_id === v.issue_id).target_page_id);
+  const dup = new Set(open((v) => v.class === "exact-duplicate" || v.class === "near-duplicate-found"));
+  assert.equal(open((v) => v.class === "canonical").filter((p) => dup.has(p)).length, 0, "a canonical-less page now sits on a duplicated page — the entry must be revisited");
   assert.match(AUDIT.find((r) => r.issue_class === "host-publishes-no-a-record").summary, /does NOT establish whether Googlebot reaches the host/);
+  // 🔴 and the finding behind the split, held: the superseded orphan entry's 340 are all checks that never ran
+  assert.equal(SUPERSEDED_ENTRIES["orphan-within-crawled-set"].blastRadius.match(/^\d+/)[0], "340");
+  assert.equal(OPEN.get("orphan-within-crawled-set-check-not-run"), 340);
+  assert.equal(OPEN.get("orphan-within-crawled-set-found") ?? 0, 0);
 });
 
 test("🟢 GREEN: the real classes order consequence-first, the unclassified go to owner review, and every check holds", () => {
@@ -100,10 +115,11 @@ test("🟢 GREEN: the real classes order consequence-first, the unclassified go 
   assert.deepEqual(determinismErrors({ items, scale: SEVERITY_SCALE }), []);
   assert.deepEqual(order.ranked.map((r) => r.id), [
     "exact-duplicate", "host-publishes-no-a-record", "official-source-contradicts-itself", "instrument-disagreement",
-    "orphan-within-crawled-set", "thin-content", "near-duplicate", "template-dominance", "robots-blocks-search-crawler", "commencement-date-ambiguous-against-source",
+    "robots-blocks-search-crawler", "commencement-date-ambiguous-against-source",
     "head-elements", "status-and-redirects", "canonical", "query-parameters",
   ]);
-  assert.deepEqual(order.unranked.map((u) => [u.id, u.route]), [["indexability-preflight", "OWNER REVIEW"], ["noindex", "OWNER REVIEW"], ["sitemap-advertises-blocked-url", "OWNER REVIEW"]]);
+  assert.deepEqual(order.unranked.map((u) => u.id), HALVES);
+  assert.ok(order.unranked.every((u) => u.route === "OWNER REVIEW"));
 });
 
 /* ================================================================== *
@@ -113,54 +129,51 @@ test("🟢 GREEN: the real classes order consequence-first, the unclassified go 
 test("🔴 RED limb 1: an entry missing REVERSIBILITY — or any one of the six parts — is refused, alone", () => {
   for (const part of ENTRY_PARTS) {
     const reg = JSON.parse(JSON.stringify(CONSEQUENCE_REGISTER));
-    delete reg["orphan-within-crawled-set"][part];
-    const r = reconcileRegister({ records: AUDIT, register: reg, scale: SEVERITY_SCALE });
+    delete reg["robots-blocks-search-crawler"][part];
+    const r = reconcile(reg);
     assert.equal(r.ok, false, `${part} removed and the register still reconciled`);
-    assert.deepEqual([r.missing, r.stale], [[], []]);
-    assert.ok(r.invalid.length > 0 && r.invalid.every((x) => x.class === "orphan-within-crawled-set"), `${part}: ${JSON.stringify(r.invalid)}`);
+    assert.deepEqual([r.missing, r.stale, r.inherited], [[], [], []]);
+    assert.ok(r.invalid.length > 0 && r.invalid.every((x) => x.class === "robots-blocks-search-crawler"), `${part}: ${JSON.stringify(r.invalid)}`);
   }
-  // the class key is the sixth part: an entry with no class is an entry the store cannot hold → stale
   const reg = { ...CONSEQUENCE_REGISTER, "": CONSEQUENCE_REGISTER.canonical };
-  assert.ok(reconcileRegister({ records: AUDIT, register: reg, scale: SEVERITY_SCALE }).stale.includes(""));
+  assert.ok(reconcile(reg).stale.includes(""));
 });
 
 test("🔴 an UNCLASSIFIED entry that writes a consequence has picked a half — refused; and an escalation may cross ONE level only", () => {
   const reg = JSON.parse(JSON.stringify(CONSEQUENCE_REGISTER));
-  reg.noindex.consequence = "the dominant half";
-  assert.ok(reconcileRegister({ records: AUDIT, register: reg, scale: SEVERITY_SCALE }).invalid.some((x) => x.class === "noindex" && /picks a half/.test(x.why)));
+  reg["noindex-declared-deliberate"].consequence = "the dominant half";
+  assert.ok(reconcile(reg).invalid.some((x) => x.class === "noindex-declared-deliberate" && /picks a half/.test(x.why)));
   const esc = JSON.parse(JSON.stringify(CONSEQUENCE_REGISTER));
-  esc["orphan-within-crawled-set"].level = "HIGH"; // LOW → HIGH is two steps
-  assert.ok(reconcileRegister({ records: AUDIT, register: esc, scale: SEVERITY_SCALE }).invalid.some((x) => /one step up/.test(x.why)));
+  esc["robots-blocks-search-crawler"].escalatedFrom = "NONE"; // NONE → MODERATE is two steps
+  assert.ok(reconcile(esc).invalid.some((x) => /one step up/.test(x.why)));
 });
 
 /* ================================================================== *
  * LIMB 2 — A3's TEETH: VOLUME NEVER CROSSES A LEVEL
  * ================================================================== */
 
-test("🔴 RED limb 2: volume amplifying ACROSS a level — orphan (MODERATE, 340) above exact-duplicate (HIGH, 106) — is refused, alone", () => {
+test("🔴 RED limb 2: volume amplifying ACROSS a level — LOW 18 above HIGH 1 — is refused, alone", () => {
   const items = classItems();
-  const volumeFirst = (xs) => {
-    const levels = SEVERITY_SCALE.map((s) => s.level);
-    const declared = xs.filter((i) => i.consequence.state === "DECLARED");
-    return {
-      ranked: [...declared].sort((a, b) => b.volume - a.volume || levels.indexOf(a.consequence.level) - levels.indexOf(b.consequence.level) || (a.id < b.id ? -1 : 1)).map((i, n) => ({ id: i.id, rank: n + 1, of: declared.length, level: i.consequence.level, volume: i.volume })),
-      unranked: xs.filter((i) => i.consequence.state !== "DECLARED").map((i) => ({ id: i.id })),
-    };
+  const levels = SEVERITY_SCALE.map((s) => s.level);
+  const declared = items.filter((i) => i.consequence.state === "DECLARED");
+  const order = {
+    ranked: [...declared]
+      .sort((a, b) => b.volume - a.volume || levels.indexOf(a.consequence.level) - levels.indexOf(b.consequence.level) || (a.id < b.id ? -1 : 1))
+      .map((i, n) => ({ id: i.id, rank: n + 1, of: declared.length, level: i.consequence.level, volume: i.volume })),
+    unranked: items.filter((i) => i.consequence.state !== "DECLARED").map((i) => ({ id: i.id })),
   };
-  const order = volumeFirst(items);
   const at = (id) => order.ranked.findIndex((r) => r.id === id);
-  assert.ok(at("orphan-within-crawled-set") < at("exact-duplicate"), "the sabotaged order must actually put volume above consequence");
+  assert.ok(at("head-elements") < at("host-publishes-no-a-record"), "the sabotaged order must actually put volume above consequence");
   const errs = orderErrors({ order, items, register: CONSEQUENCE_REGISTER, scale: SEVERITY_SCALE });
   assert.deepEqual(limbs(errs), ["cross-level-amplifier"], JSON.stringify(errs));
-  // the check reads adjacent pairs: the first boundary volume crossed is MODERATE 110 sitting directly above HIGH 106
-  assert.ok(errs.some((e) => /template-dominance \(MODERATE, volume 110\) ranks above exact-duplicate \(HIGH, volume 106\)/.test(e.why)), JSON.stringify(errs));
+  // the check reads adjacent pairs: the first boundary volume crossed is LOW 6 sitting directly above HIGH 1
+  assert.ok(errs.some((e) => /canonical \(LOW, volume 6\) ranks above host-publishes-no-a-record \(HIGH, volume 1\)/.test(e.why)), JSON.stringify(errs));
 });
 
 test("🔴 inside ONE level, less volume above more is refused too — volume is the amplifier there", () => {
   const items = classItems();
   const order = orderByConsequence({ items, scale: SEVERITY_SCALE });
-  const i = order.ranked.findIndex((r) => r.id === "orphan-within-crawled-set");
-  [order.ranked[i], order.ranked[i + 1]] = [order.ranked[i + 1], order.ranked[i]];
+  [order.ranked[0], order.ranked[1]] = [order.ranked[1], order.ranked[0]]; // host (HIGH, 1) above exact-duplicate (HIGH, 106)
   assert.deepEqual(limbs(orderErrors({ order, items, register: CONSEQUENCE_REGISTER, scale: SEVERITY_SCALE })), ["amplifier"]);
 });
 
@@ -175,7 +188,6 @@ test("🔴 RED limb 3: the same evidence ranking differently on a second run is 
     return xs.filter((i) => i.consequence.state === "DECLARED").sort((a, b) => levels.indexOf(a.consequence.level) - levels.indexOf(b.consequence.level) || b.volume - a.volume).map((i) => i.id);
   };
   assert.deepEqual(limbs(determinismErrors({ order: noTieBreak, items, scale: SEVERITY_SCALE })), ["determinism"]);
-  // and the real orderer, on the same evidence, is identical however it is presented
   assert.deepEqual(determinismErrors({ items, scale: SEVERITY_SCALE }), []);
   assert.equal(JSON.stringify(orderByConsequence({ items, scale: SEVERITY_SCALE })), JSON.stringify(orderByConsequence({ items: [...items].reverse(), scale: SEVERITY_SCALE })));
 });
@@ -193,7 +205,7 @@ test("🔴 RED limb 4: an UNCLASSIFIED class ranked as LOW — the fallback — 
   assert.equal(fallback.unranked.length, 0);
   const errs = orderErrors({ order: fallback, items, register: CONSEQUENCE_REGISTER, scale: SEVERITY_SCALE });
   assert.deepEqual(limbs(errs), ["unclassified-ordered"], JSON.stringify(errs));
-  assert.deepEqual(errs.map((e) => e.id).sort(), ["indexability-preflight", "noindex", "sitemap-advertises-blocked-url"]);
+  assert.deepEqual(errs.map((e) => e.id).sort(), HALVES);
 });
 
 test("🔴 A4 on the real recommendations: the one with the MOST volume (noindex, 484) is not ranked, because its consequence is unknown", () => {
@@ -204,6 +216,7 @@ test("🔴 A4 on the real recommendations: the one with the MOST volume (noindex
     ledger: createJsonlStore(join(REPO, "runs", "cost", "ledger.jsonl")).readAll(),
     consequenceRegister: CONSEQUENCE_REGISTER,
     consequenceScale: SEVERITY_SCALE,
+    classSplits: CLASS_SPLITS,
   });
   const n = fields.find((f) => f.recommendation_id === "REC-NOINDEX-CV-GUIDE").priority;
   assert.equal(n.rank, 1, "it has the most measured volume");
@@ -217,8 +230,7 @@ test("🔴 A4 on the real recommendations: the one with the MOST volume (noindex
 test("🔴 RED limb 5: UNCLASSIFIED, INFORMATIONAL or OBSERVATION admitted into the severity scale is refused, alone — each one", () => {
   assert.deepEqual([...NOT_SEVERITIES].sort(), ["INFORMATIONAL", "OBSERVATION", "UNCLASSIFIED", "UNKNOWN"]);
   for (const state of ["UNCLASSIFIED", "INFORMATIONAL", "OBSERVATION", "UNKNOWN"]) {
-    const scale = [...SEVERITY_SCALE, { level: state, definition: "a state dressed as a level" }];
-    const errs = scaleErrors(scale);
+    const errs = scaleErrors([...SEVERITY_SCALE, { level: state, definition: "a state dressed as a level" }]);
     assert.deepEqual(limbs(errs), ["scale"], state);
     assert.equal(errs.length, 1, state);
   }
@@ -240,7 +252,6 @@ test("🔴 RED limb 6: REC-AI-CRAWLER-BLOCK given a level by borrowing the neare
   const errs = orderErrors({ order: orderByConsequence({ items, scale: SEVERITY_SCALE }), items, register: CONSEQUENCE_REGISTER, scale: SEVERITY_SCALE });
   assert.deepEqual(limbs(errs), ["nearest-class"], JSON.stringify(errs));
   assert.deepEqual(errs.map((e) => e.id), ["REC-AI-CRAWLER-BLOCK"]);
-  // and as ruled: UNCLASSIFIED, its gap named, what it needs named — never a level
   const c = UNREACHABLE_RECOMMENDATIONS["REC-AI-CRAWLER-BLOCK"];
   assert.equal(c.level, UNCLASSIFIED);
   assert.deepEqual([...c.needs], ["affected scope", "crawler access", "robots directives in force", "reversibility", "the measured visibility or indexation consequence"]);

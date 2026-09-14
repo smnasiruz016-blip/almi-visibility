@@ -7,44 +7,48 @@
  *   v1  `noindex` counted as 268 open when 134 had already been ruled SUPERSEDED
  *   v2  one column mixing two units — distinct issues against raw records
  *
- * and the first sheet's error had already gone out in PR #75's table. The owner ruled on 14 September 2026; the
- * sheet now shows that ruling beside the store's numbers, and still refuses to print a disagreement.
+ * and the first sheet's error had already gone out in PR #75's table. The owner ruled on 14 September 2026; the same
+ * day seven classes were split (config/class-splits.mjs), and their halves arrive for him to rule in one pass — each
+ * with blank LEVEL and WHY, beside the ten levels already ruled and attributed.
  *
  * 🔴 THE CAUSE, NAMED: a state-change record carries NO CLASS FIELD. An issue's state is its FIRST recorded state
  * only until a change record moves it, and that change can only be tied to a class by joining on `issue_id`.
  *
- * So nothing on this sheet is typed. Every count is derived by `lifecycleOf` (src/evidence/lifecycle.mjs), which
- * applies every state change to its issue in time order and refuses a change that cannot apply. Every description,
- * level and Part C gap is copied from the register at generation time; the scale from the owner's scale; the order
- * is `orderByConsequence` over the store's open counts.
+ * So nothing on this sheet is typed. Every count comes from `splitView` — the lifecycle join, with each issue counted
+ * under the class its own stored fields place it in. Every description, level and attribution is copied from the
+ * register at generation time; the scale from the owner's scale; the order is `orderByConsequence` over open counts.
  *
- * ── THREE UNITS, NEVER MIXED IN ONE COLUMN ───────────────────────────────────
+ * ── UNITS, NEVER MIXED IN ONE COLUMN ─────────────────────────────────────────
  *
  *   distinct   issues, by issue_id
  *   open       of those distinct issues, the ones still OPEN after every state change — the volume that amplifies
- *   raw        issue RECORDS, duplicate copies included — its own column, so a duplicate can never pass for a ruling
+ *   raw        issue RECORDS, duplicate copies included
+ *   not run    of the distinct issues, the ones that record a check that never ran — never a defect found
  *
  * A detector's `severity` is a label about a measured defect and is never read here.
  *
  * This module names no product.
  */
 
-import { lifecycleOf } from "../evidence/lifecycle.mjs";
 import { UNCLASSIFIED, consequenceFor, orderByConsequence } from "./consequence.mjs";
+import { classOf, splitView, isUnmeasured } from "./class-split.mjs";
 
-const COUNT_FIELDS = Object.freeze(["distinct", "open", "raw"]);
+const COUNT_FIELDS = Object.freeze(["distinct", "open", "raw", "notRun"]);
 
 /**
  * @param {object}   a
  * @param {{file: string, records: object[]}[]} a.files  every file read — each one is reported, with what it held
- * @param {object}   a.register     the consequence register
- * @param {object}   a.unreachable  the register's Part C — recommendations no class-keyed entry can reach
- * @param {object[]} a.scale        the owner's severity scale
+ * @param {object}   a.register         the consequence register
+ * @param {object}   a.unreachable      the register's Part C — recommendations no class-keyed entry can reach
+ * @param {object[]} a.scale            the owner's severity scale
+ * @param {object}   a.splits           the declared class splits
+ * @param {object}   a.superseded       the register entries the splits superseded
+ * @param {string[]} a.unmeasuredCodes  reason codes that mean no measurement was made
  * @param {string}   a.generatedAt
  */
-export function buildRulingSheet({ files, register, unreachable = {}, scale, generatedAt }) {
+export function buildRulingSheet({ files, register, unreachable = {}, scale, splits, superseded = {}, unmeasuredCodes, generatedAt }) {
   const all = files.flatMap((f) => f.records);
-  const life = lifecycleOf(all);
+  const { view, lifecycleErrors } = splitView(all, splits);
 
   const sources = files.map((f) => ({
     file: f.file,
@@ -55,32 +59,38 @@ export function buildRulingSheet({ files, register, unreachable = {}, scale, gen
   }));
 
   const byClass = new Map();
+  const entryFor = (k) => byClass.get(k) ?? byClass.set(k, { raw: 0, ids: new Set() }).get(k);
   for (const r of all) {
     if (r.record_type !== "issue" || typeof r.issue_class !== "string") continue;
-    const e = byClass.get(r.issue_class) ?? { raw: 0, ids: new Set() };
+    const e = entryFor(classOf(r, splits).class);
     e.raw += 1;
     e.ids.add(r.issue_id);
-    byClass.set(r.issue_class, e);
   }
 
   const classes = [...byClass.keys()].sort().map((issue_class) => {
     const e = byClass.get(issue_class);
     const states = {};
+    let notRun = 0;
     for (const id of e.ids) {
-      const s = life.issues.get(id)?.state ?? "OPEN";
-      states[s] = (states[s] ?? 0) + 1;
+      const v = view.get(id);
+      states[v.state] = (states[v.state] ?? 0) + 1;
+      if (isUnmeasured(v, unmeasuredCodes)) notRun += 1;
     }
     const ruled = Object.fromEntries(Object.entries(states).filter(([s]) => s !== "OPEN").sort());
     const entry = register?.[issue_class];
     return {
       issue_class,
       what: entry?.what ?? null,
+      splitFrom: entry?.splitFrom ?? null,
       distinct: e.ids.size,
       open: states.OPEN ?? 0,
       raw: e.raw,
+      notRun,
       ruled,
       level: entry?.level ?? null,
       escalatedFrom: entry?.escalatedFrom ?? null,
+      ruledBy: entry?.ruledBy ?? null,
+      ruledOn: entry?.ruledOn ?? null,
     };
   });
 
@@ -88,6 +98,10 @@ export function buildRulingSheet({ files, register, unreachable = {}, scale, gen
     items: classes.map((c) => ({ id: c.issue_class, consequence: consequenceFor([c.issue_class], register, scale), volume: c.open })),
     scale,
   });
+
+  const supersededClasses = Object.entries(superseded)
+    .sort(([a], [b]) => (a < b ? -1 : 1))
+    .map(([issue_class, e]) => ({ issue_class, level: e.level, ruledBy: e.ruledBy ?? null, supersededOn: e.supersededOn, supersededBy: [...e.supersededBy] }));
 
   const links = all.filter((r) => r.record_type === "recommendation_evidence");
   const unreachableByAnyEntry = [...new Set(all.filter((r) => r.record_type === "draft_recommendation").map((r) => r.recommendation_id))]
@@ -107,22 +121,28 @@ export function buildRulingSheet({ files, register, unreachable = {}, scale, gen
       generatedAt,
       generatedBy: "bin/row60-ruling-sheet.mjs",
       covers: [
-        "every finding class present on an issue record in the files listed under `sources`",
-        "counts derived by applying every issue_state_change to its issue on issue_id (lifecycleOf)",
-        "descriptions, levels and Part C gaps copied from config/consequence-register.mjs at generation time",
+        "every finding class present on an issue record in the files listed under `sources`, as config/class-splits.mjs counts it",
+        "counts derived by applying every issue_state_change to its issue on issue_id (lifecycleOf), per split class",
+        "descriptions, levels, attributions and Part C gaps copied from config/consequence-register.mjs at generation time",
         "the scale copied from config/consequence-scale.mjs; the order computed consequence-first over the open counts",
       ],
       doesNotCover: [
-        "🔴 any level the register does not declare — the sheet copies levels, it never sets one",
+        "🔴 any level the register does not declare — the sheet copies levels, it never sets one; a half's LEVEL and WHY are blank",
         "🔴 a detector's `severity` field — it is not a consequence level and is not read",
       ],
-      units: { distinct: "issues, by issue_id", open: "distinct issues still OPEN after every state change", raw: "issue records, duplicate copies included" },
+      units: {
+        distinct: "issues, by issue_id",
+        open: "distinct issues still OPEN after every state change",
+        raw: "issue records, duplicate copies included",
+        notRun: "distinct issues that record a check that never ran — not a defect found",
+      },
     },
     sources,
-    lifecycleErrors: life.errors,
+    lifecycleErrors,
     scale: (scale ?? []).map((s) => ({ level: s.level, definition: s.definition })),
     classes,
     order,
+    supersededClasses,
     unreachableByAnyEntry,
   };
 }
@@ -133,10 +153,10 @@ export function buildRulingSheet({ files, register, unreachable = {}, scale, gen
  *
  *   sheet ↔ store      missing-class · extra-class · count · order
  *   register ↔ store   stale-register · missing-register
- *   sheet ↔ register   register-text (descriptions, levels, escalations, Part C) · scale
+ *   sheet ↔ register   register-text (descriptions, levels, attributions, splits, superseded, Part C) · scale
  *   the join itself    lifecycle
  */
-export function reconcileSheet({ sheet, fresh, register, unreachable = {}, scale }) {
+export function reconcileSheet({ sheet, fresh, register, unreachable = {}, scale, superseded = {} }) {
   const errors = [];
   const inStore = new Map(fresh.classes.map((c) => [c.issue_class, c]));
   const inSheet = new Map((sheet?.classes ?? []).map((c) => [c.issue_class, c]));
@@ -153,9 +173,9 @@ export function reconcileSheet({ sheet, fresh, register, unreachable = {}, scale
       if (s[f] !== c[f]) errors.push({ limb: "count", class: k, why: `${f} reads ${s[f]} on the sheet and ${c[f]} in the store` });
     }
     if (JSON.stringify(s.ruled) !== JSON.stringify(c.ruled)) errors.push({ limb: "count", class: k, why: `rulings read ${JSON.stringify(s.ruled)} on the sheet and ${JSON.stringify(c.ruled)} in the store` });
-    if (s.what !== register?.[k]?.what || s.level !== register?.[k]?.level || s.escalatedFrom !== (register?.[k]?.escalatedFrom ?? null)) {
-      errors.push({ limb: "register-text", class: k, why: "the sheet's description, level or escalation is not the register's" });
-    }
+    const e = register?.[k];
+    const same = s.what === e?.what && s.level === e?.level && s.escalatedFrom === (e?.escalatedFrom ?? null) && s.splitFrom === (e?.splitFrom ?? null) && s.ruledBy === (e?.ruledBy ?? null) && s.ruledOn === (e?.ruledOn ?? null);
+    if (!same) errors.push({ limb: "register-text", class: k, why: "the sheet's description, level, attribution, escalation or split is not the register's" });
   }
   for (const k of inSheet.keys()) if (!inStore.has(k)) errors.push({ limb: "extra-class", class: k, why: "the sheet lists a class the store does not hold" });
 
@@ -165,6 +185,9 @@ export function reconcileSheet({ sheet, fresh, register, unreachable = {}, scale
   if (JSON.stringify(sheet?.order) !== JSON.stringify(fresh.order)) errors.push({ limb: "order", why: "the sheet's consequence-first order is not the order the store and the register produce" });
   if (JSON.stringify(sheet?.scale) !== JSON.stringify((scale ?? []).map((s) => ({ level: s.level, definition: s.definition })))) {
     errors.push({ limb: "scale", why: "the sheet's scale is not the owner's scale" });
+  }
+  if (JSON.stringify(sheet?.supersededClasses) !== JSON.stringify(fresh.supersededClasses) || Object.keys(superseded).length !== (sheet?.supersededClasses ?? []).length) {
+    errors.push({ limb: "register-text", why: "the sheet's superseded classes are not the register's" });
   }
   for (const u of sheet?.unreachableByAnyEntry ?? []) {
     const e = unreachable?.[u.recommendation_id];
@@ -179,12 +202,13 @@ export function reconcileSheet({ sheet, fresh, register, unreachable = {}, scale
 /** The human-readable sheet, rendered from the JSON alone — so the two cannot say different things. */
 export function renderRulingSheet(sheet) {
   const L = [];
-  L.push("# ALMIVISIBILITY — ROW 60 · CONSEQUENCE REGISTER · RULED 14 SEPTEMBER 2026");
+  L.push("# ALMIVISIBILITY — ROW 60 · CONSEQUENCE REGISTER · RULED 14 SEPTEMBER 2026 · SEVEN CLASSES SPLIT");
   L.push("");
   L.push(`> 🔴 **GENERATED — DO NOT EDIT BY HAND.** \`node bin/row60-ruling-sheet.mjs --confirm\` writes it from the evidence store at ${sheet._provenance.generatedAt}.`);
-  L.push("> Every count is derived by applying each state-change record to its issue on issue_id. Every description, level");
-  L.push("> and Part C gap is copied from `config/consequence-register.mjs`, the scale from `config/consequence-scale.mjs`.");
-  L.push("> The sheet sets no level. A detector's `severity` is not a consequence level and is not shown.");
+  L.push("> Every count is derived by applying each state-change record to its issue on issue_id, with each issue counted under");
+  L.push("> the class its own stored fields place it in (`config/class-splits.mjs`). Every description, level and attribution is");
+  L.push("> copied from `config/consequence-register.mjs`, the scale from `config/consequence-scale.mjs`. The sheet sets no level.");
+  L.push("> A detector's `severity` is not a consequence level and is not shown.");
   L.push("");
   L.push("## Files read — every `.jsonl` under `runs/`");
   L.push("");
@@ -200,16 +224,30 @@ export function renderRulingSheet(sheet) {
   L.push("");
   L.push(`**${UNCLASSIFIED} is not a level.** It is UNKNOWN: never low, never ranked, routed to owner review (A4).`);
   L.push("");
-  L.push("## Part B — the finding classes, by name");
+  const ruledRows = sheet.classes.filter((c) => c.level !== UNCLASSIFIED);
+  const openRows = sheet.classes.filter((c) => c.level === UNCLASSIFIED);
+  const u = sheet._provenance.units;
+  L.push(`Units: **distinct** = ${u.distinct} · **open** = ${u.open} · **raw** = ${u.raw} · **not run** = ${u.notRun}.`);
   L.push("");
-  L.push(`Units: **distinct** = ${sheet._provenance.units.distinct} · **open** = ${sheet._provenance.units.open} · **raw** = ${sheet._provenance.units.raw}.`);
+  L.push(`## Part B — the ${ruledRows.length} levels already ruled (unchanged, attributed)`);
   L.push("");
-  L.push("| # | class | what it is (the register's words) | open | distinct | ruled | raw records | level |");
-  L.push("|---|---|---|---|---|---|---|---|");
-  sheet.classes.forEach((c, i) => {
-    const ruled = Object.entries(c.ruled).map(([s, n]) => `${n} ${s}`).join(" · ") || "—";
+  L.push("| # | class | what it is (the register's words) | open | distinct | ruled states | raw | not run | level | ruled by |");
+  L.push("|---|---|---|---|---|---|---|---|---|---|");
+  const states = (c) => Object.entries(c.ruled).map(([s, n]) => `${n} ${s}`).join(" · ") || "—";
+  ruledRows.forEach((c, i) => {
     const level = `${c.level ?? "🔴 no register entry"}${c.escalatedFrom ? ` (escalated from ${c.escalatedFrom})` : ""}`;
-    L.push(`| ${i + 1} | \`${c.issue_class}\` | ${c.what ?? "🔴 no register entry"} | ${c.open} | ${c.distinct} | ${ruled} | ${c.raw} | ${level} |`);
+    L.push(`| ${i + 1} | \`${c.issue_class}\` | ${c.what ?? "🔴 no register entry"} | ${c.open} | ${c.distinct} | ${states(c)} | ${c.raw} | ${c.notRun} | ${level} | ${c.ruledBy ?? "—"} ${c.ruledOn ?? ""} |`);
+  });
+  L.push("");
+  L.push(`## Part B1 — the ${openRows.length} classes for the owner to rule: LEVEL and WHY are blank`);
+  L.push("");
+  L.push("A half is a new class: no level of the class it was split from carries to it. A class whose name ends");
+  L.push("`-check-not-run` holds checks that never ran — nothing was found in it, and nothing was ruled out.");
+  L.push("");
+  L.push("| # | class | split from | what it is (the register's words) | open | distinct | ruled states | raw | not run | LEVEL | WHY |");
+  L.push("|---|---|---|---|---|---|---|---|---|---|---|");
+  openRows.forEach((c, i) => {
+    L.push(`| ${i + 1} | \`${c.issue_class}\` | ${c.splitFrom ? `\`${c.splitFrom}\`` : "—"} | ${c.what ?? "🔴 no register entry"} | ${c.open} | ${c.distinct} | ${states(c)} | ${c.raw} | ${c.notRun} | | |`);
   });
   L.push("");
   L.push("## Part B2 — the consequence-first order");
@@ -219,17 +257,23 @@ export function renderRulingSheet(sheet) {
   L.push("| rank | class | level | open |");
   L.push("|---|---|---|---|");
   for (const r of sheet.order.ranked) L.push(`| ${r.rank} of ${r.of} | \`${r.id}\` | ${r.level} | ${r.volume} |`);
-  for (const u of sheet.order.unranked) L.push(`| — | \`${u.id}\` | UNCLASSIFIED → ${u.route} | ${sheet.classes.find((c) => c.issue_class === u.id)?.open ?? "—"} |`);
+  for (const x of sheet.order.unranked) L.push(`| — | \`${x.id}\` | UNCLASSIFIED → ${x.route} | ${sheet.classes.find((c) => c.issue_class === x.id)?.open ?? "—"} |`);
+  L.push("");
+  L.push("## Part B3 — the classes the split superseded (not in use; their words kept in the register)");
+  L.push("");
+  L.push("| class | its level before the split | became |");
+  L.push("|---|---|---|");
+  for (const s of sheet.supersededClasses) L.push(`| \`${s.issue_class}\` | ${s.level}${s.ruledBy ? ` (${s.ruledBy})` : ""} — carries to neither half | ${s.supersededBy.map((h) => `\`${h}\``).join(" + ")} |`);
   L.push("");
   L.push("## Part C — recommendations no register entry can reach");
   L.push("");
   if (sheet.unreachableByAnyEntry.length === 0) L.push("None.");
-  for (const u of sheet.unreachableByAnyEntry) {
-    L.push(`- \`${u.recommendation_id}\` — ${u.reason}. **${u.level ?? "🔴 no Part C entry"}**${u.gap ? ` — ${u.gap}` : ""}${u.needs ? ` Needs, defined and tested: ${u.needs.join("; ")}.` : ""}`);
+  for (const x of sheet.unreachableByAnyEntry) {
+    L.push(`- \`${x.recommendation_id}\` — ${x.reason}. **${x.level ?? "🔴 no Part C entry"}**${x.gap ? ` — ${x.gap}` : ""}${x.needs ? ` Needs, defined and tested: ${x.needs.join("; ")}.` : ""}`);
   }
   L.push("");
-  L.push("Each level was ruled by the owner and is written into `config/consequence-register.mjs` with his name, the date");
-  L.push("and the reason. Nothing else may set one.");
+  L.push("Each level is ruled by the owner and written into `config/consequence-register.mjs` with his name, the date and");
+  L.push("the reason. Nothing else may set one.");
   return `${L.join("\n")}\n`;
 }
 

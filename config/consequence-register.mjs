@@ -29,6 +29,8 @@
  * a consequence level and is not read as one.
  */
 
+import { CLASS_SPLITS } from "./class-splits.mjs";
+
 const RULING = Object.freeze({
   ruledBy: "owner",
   ruledOn: "2026-09-14",
@@ -38,6 +40,25 @@ const RULING = Object.freeze({
 const ruled = (what, level, parts) => Object.freeze({ what, level, ...parts, ...RULING });
 
 const BUNDLED = "A class whose own definition holds two opposite consequences cannot carry one severity.";
+
+/* 🔴 A HALF IS A NEW CLASS. It arrives UNCLASSIFIED, unruled, with no consequence of its own — and no level of the
+ * class it was split from carries down to it. The census refuses a half that arrives any other way. */
+const half = (parent, what) =>
+  Object.freeze({
+    what,
+    level: "UNCLASSIFIED",
+    consequence: null,
+    reversibility: null,
+    blastRadius: null,
+    why: `NEW — split from ${parent} on 14 September 2026 (config/class-splits.mjs). The owner has ruled nothing about this class, and no level of ${parent} carries to it.`,
+    splitFrom: parent,
+    ruledBy: null,
+    ruledOn: null,
+  });
+
+/* A superseded entry keeps every word it had, and names the halves it became. It is not in use and ranks nothing. */
+const superseded = (parent, entry) =>
+  Object.freeze({ ...entry, supersededOn: CLASS_SPLITS[parent].splitOn, supersededBy: Object.freeze(CLASS_SPLITS[parent].halves.map((h) => h.class)) });
 const unclassified = (what, bundles, split) =>
   Object.freeze({ what, level: "UNCLASSIFIED", consequence: null, reversibility: null, blastRadius: null, why: BUNDLED, bundles, split, ...RULING });
 
@@ -79,31 +100,6 @@ export const CONSEQUENCE_REGISTER = Object.freeze({
     // of the same window, 9f8cbf772d1cd434 (219 on 1,525 rows). test/consequence-law.test.mjs holds both.
     figuresFrom: "c1154a02cd5e4168",
   }),
-  "orphan-within-crawled-set": ruled("no page inside the crawled set links to this page", "MODERATE", {
-    consequence: "no page inside the crawled set links to it — discovery depends entirely on sitemaps",
-    reversibility: "add links",
-    blastRadius: "340 is where the amplifier legitimately escalates: one orphan is a stranded page, 340 is a structural linking failure, and that is a different consequence, not merely more of the same",
-    why: "escalated from LOW to MODERATE by blast radius, under the rule that volume may cross a boundary only when it objectively changes the consequence. Flagged as the one escalation in this proposal",
-    escalatedFrom: "LOW",
-  }),
-  "near-duplicate": ruled("a page's body is highly similar to a sibling page's", "MODERATE", {
-    consequence: "bodies highly similar to a sibling",
-    reversibility: "reversible — merge, differentiate or remove",
-    blastRadius: "113",
-    why: "the same family as exact-duplicate but at a judged threshold rather than a byte match, so the consequence is weaker and the remedy is ordinary editorial work",
-  }),
-  "template-dominance": ruled("the shared shell makes up most of a page's words", "MODERATE", {
-    consequence: "the shared shell makes up most of a page's words — the reader receives furniture, not answer",
-    reversibility: "reversible — add real content or remove the page",
-    blastRadius: "110",
-    why: "bounded and reversible; it is a quality failure, not an integrity failure",
-  }),
-  "thin-content": ruled("a page has fewer unique body words than the floor after the shell is subtracted", "MODERATE", {
-    consequence: "fewer unique body words than the floor after the shell is subtracted",
-    reversibility: "reversible — write it properly or remove it",
-    blastRadius: "226, the largest content class",
-    why: "the other named half of the historical failure, but unlike exact-duplicate a thin page may still carry some value, so the consequence is weaker",
-  }),
   "commencement-date-ambiguous-against-source": ruled("a fact's commencement date cannot be read unambiguously from its official source", "MODERATE", {
     consequence: "a date someone plans around cannot be read unambiguously from its source",
     reversibility: "our response is to mark UNKNOWN and withhold",
@@ -141,22 +137,68 @@ export const CONSEQUENCE_REGISTER = Object.freeze({
     why: "limited, reversible, no integrity threat",
   }),
 
-  /* ── 🔴 UNCLASSIFIED — STRUCTURAL: each class bundles two opposite consequences ── */
-  noindex: unclassified(
+
+  /* ── 🔴 THE HALVES — every one UNCLASSIFIED, unruled, for the owner to rule on the sheet ── */
+  "indexability-preflight-found": half("indexability-preflight", "the indexability check ran on a page and found a condition that blocks its eligibility"),
+  "indexability-preflight-check-not-run": half("indexability-preflight", "the indexability check did not run for a page — a required input was absent. Nothing was found, and nothing was ruled out"),
+  "sitemap-advertises-blocked-url-check-not-run": half("sitemap-advertises-blocked-url", "the sitemap-against-robots check did not run for a host — no robots.txt or no sitemap URLs were stored. No contradiction was found, and none was ruled out"),
+  "orphan-within-crawled-set-check-not-run": half("orphan-within-crawled-set", "the orphan check did not run — it needs rendered HTML and every record is raw HTML. No page was found orphaned, and none was ruled out"),
+  "thin-content-found": half("thin-content", "the thin-content check ran and found fewer unique body words than the floor after the shell is subtracted"),
+  "thin-content-check-not-run": half("thin-content", "the thin-content check did not run — the stored body was absent, or rendered HTML was needed. No thin page was found, and none was ruled out"),
+  "near-duplicate-found": half("near-duplicate", "the near-duplicate check ran and found a page's body highly similar to a sibling page's"),
+  "near-duplicate-check-not-run": half("near-duplicate", "the near-duplicate check did not run — an input was absent, or the tool failed. No duplication was found, and none was ruled out"),
+  "template-dominance-found": half("template-dominance", "the template-dominance check ran and found the shared shell making up most of a page's words"),
+  "template-dominance-check-not-run": half("template-dominance", "the template-dominance check did not run — an input was absent, or shell subtraction was not confident. Nothing was found, and nothing was ruled out"),
+  "noindex-defect-claim-withdrawn": half("noindex", "a claim that a page's noindex was a defect — SUPERSEDED on 12 September 2026 by a record declaring that noindex deliberate"),
+  "noindex-declared-deliberate": half("noindex", "a page's noindex, recorded as a deliberate de-indexing decision; whether its near-duplicate premise holds is UNKNOWN"),
+});
+
+/**
+ * 🔴 SPLIT 14 SEPTEMBER 2026 — THE SEVEN ENTRIES THAT BECAME HALVES. Superseded, never erased: each keeps its words
+ * exactly as ruled or recorded, and names the halves it became. Four carried an owner's level (MODERATE); that level
+ * applied to a class that no longer exists as one, and it carries to neither half.
+ */
+export const SUPERSEDED_ENTRIES = Object.freeze({
+  "orphan-within-crawled-set": superseded("orphan-within-crawled-set", ruled("no page inside the crawled set links to this page", "MODERATE", {
+    consequence: "no page inside the crawled set links to it — discovery depends entirely on sitemaps",
+    reversibility: "add links",
+    blastRadius: "340 is where the amplifier legitimately escalates: one orphan is a stranded page, 340 is a structural linking failure, and that is a different consequence, not merely more of the same",
+    why: "escalated from LOW to MODERATE by blast radius, under the rule that volume may cross a boundary only when it objectively changes the consequence. Flagged as the one escalation in this proposal",
+    escalatedFrom: "LOW",
+  })),
+  "near-duplicate": superseded("near-duplicate", ruled("a page's body is highly similar to a sibling page's", "MODERATE", {
+    consequence: "bodies highly similar to a sibling",
+    reversibility: "reversible — merge, differentiate or remove",
+    blastRadius: "113",
+    why: "the same family as exact-duplicate but at a judged threshold rather than a byte match, so the consequence is weaker and the remedy is ordinary editorial work",
+  })),
+  "template-dominance": superseded("template-dominance", ruled("the shared shell makes up most of a page's words", "MODERATE", {
+    consequence: "the shared shell makes up most of a page's words — the reader receives furniture, not answer",
+    reversibility: "reversible — add real content or remove the page",
+    blastRadius: "110",
+    why: "bounded and reversible; it is a quality failure, not an integrity failure",
+  })),
+  "thin-content": superseded("thin-content", ruled("a page has fewer unique body words than the floor after the shell is subtracted", "MODERATE", {
+    consequence: "fewer unique body words than the floor after the shell is subtracted",
+    reversibility: "reversible — write it properly or remove it",
+    blastRadius: "226, the largest content class",
+    why: "the other named half of the historical failure, but unlike exact-duplicate a thin page may still carry some value, so the consequence is weaker",
+  })),
+  noindex: superseded("noindex", unclassified(
     "a page carries noindex in its meta robots tag or X-Robots-Tag header",
     "a defect and a deliberate decision. 134 of the 268 were already ruled SUPERSEDED as intentional de-indexing. The same class therefore holds pages we meant to hide and pages accidentally hidden — opposite consequences",
     "split into unintended noindex (a defect) and declared noindex (not a finding at all)",
-  ),
-  "indexability-preflight": unclassified(
+  )),
+  "indexability-preflight": superseded("indexability-preflight", unclassified(
     "a page's technical indexability state — a condition that blocks eligibility, or one left unmeasured",
     '"a condition blocks eligibility, or one left unmeasured" — a blocked page and an unrun check are not the same event, and only one of them is a defect',
     "split the blocked condition from the unmeasured check",
-  ),
-  "sitemap-advertises-blocked-url": unclassified(
+  )),
+  "sitemap-advertises-blocked-url": superseded("sitemap-advertises-blocked-url", unclassified(
     "a sitemap advertises a URL that robots.txt blocks — or the inputs to check it are not stored",
     '"a sitemap advertises a URL that robots.txt blocks — or the inputs to check it are not stored" — same shape: a real contradiction bundled with a measurement gap',
     "split the contradiction from the missing input",
-  ),
+  )),
 });
 
 /**

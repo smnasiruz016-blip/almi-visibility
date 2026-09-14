@@ -1,14 +1,18 @@
 #!/usr/bin/env node
 /**
- * ROW 60 — THE CONSEQUENCE REGISTER AND THE OWNER'S LAW, CHECKED OVER THE REAL STORE.
+ * ROW 60 — THE CONSEQUENCE REGISTER, THE OWNER'S LAW AND THE CLASS SPLITS, CHECKED OVER THE REAL STORE.
  *
  *   node bin/consequence-census.mjs          report only — it reads, prints and exits; it writes nothing
  *
  * Every limb is its own, so a sabotage can be shown to trip exactly one:
  *
  *   scale                  the scale holds levels only — no UNCLASSIFIED, UNKNOWN, INFORMATIONAL or OBSERVATION (A4)
- *   missing · stale        the register against the finding classes actually in the store, line by line
+ *   missing · stale        the register against the SPLIT classes actually in the store, line by line
  *   entry                  a partial entry (any of the six parts), a level off the scale or unruled, a bad escalation
+ *   half-level             a half of a split class arriving with a level, or with its parent's ruling
+ *   signal                 a half with no stored signal, or a record matching no half or more than one
+ *   identity · state · reopened   the split changing an issue's id, evidence, opened_at or state
+ *   misnamed · mixed       a class of checks that never ran named as a defect, or a bundle nobody split
  *   part-c                 a recommendation no class-keyed entry can reach keeps its declared gap and stays UNCLASSIFIED
  *   cross-level-amplifier  volume ranked a weaker level above a stronger one (A3)
  *   amplifier              inside one level, less volume ranked above more (A3)
@@ -18,19 +22,20 @@
  *   determinism            the same evidence ordered differently when presented in a different order (A2)
  *   basis · entries · level · unclassified-ranked   every presented priority's basis and entries (Amendment 3)
  *
- * The order is checked from the REGISTER, independently of the code that produced it.
+ * The order and the split are checked from the REGISTER and the STORE, independently of the code that produced them.
  */
 import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import { createJsonlStore } from "../src/evidence/store.mjs";
-import { lifecycleOf } from "../src/evidence/lifecycle.mjs";
 import {
   reconcileRegister, priorityCensus, scaleErrors, consequenceFor, orderByConsequence, orderErrors, determinismErrors, UNCLASSIFIED,
 } from "../src/audit/consequence.mjs";
+import { classOf, splitView, splitErrors, isUnmeasured } from "../src/audit/class-split.mjs";
 import { computeRecommendationFields } from "../src/report/recommendation-fields.mjs";
-import { CONSEQUENCE_REGISTER, UNREACHABLE_RECOMMENDATIONS } from "../config/consequence-register.mjs";
+import { CONSEQUENCE_REGISTER, UNREACHABLE_RECOMMENDATIONS, SUPERSEDED_ENTRIES } from "../config/consequence-register.mjs";
 import { SEVERITY_SCALE } from "../config/consequence-scale.mjs";
+import { CLASS_SPLITS, UNMEASURED_REASON_CODES } from "../config/class-splits.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const read = (dir) => readdirSync(join(REPO, dir)).filter((f) => f.endsWith(".jsonl")).flatMap((f) => createJsonlStore(join(REPO, dir, f)).readAll());
@@ -44,21 +49,25 @@ const add = (xs) => errors.push(...xs);
 /* ---- the scale ---- */
 add(scaleErrors(SEVERITY_SCALE));
 
-/* ---- the register, line by line ---- */
-const rec = reconcileRegister({ records: audit, register: CONSEQUENCE_REGISTER, scale: SEVERITY_SCALE });
+/* ---- the split: every issue in the store, as row 60 counts it ---- */
+const { view } = splitView(everything, CLASS_SPLITS);
+add(splitErrors({ records: everything, splits: CLASS_SPLITS, unmeasuredCodes: UNMEASURED_REASON_CODES, view }));
+
+/* ---- the register, line by line, against the split classes ---- */
+const rec = reconcileRegister({ records: audit, register: CONSEQUENCE_REGISTER, scale: SEVERITY_SCALE, splits: CLASS_SPLITS });
 add(rec.missing.map((k) => ({ limb: "missing", id: k, why: "a class in use has no register entry" })));
 add(rec.stale.map((k) => ({ limb: "stale", id: k, why: "a register entry for a class not in use" })));
 add(rec.invalid.map((x) => ({ limb: "entry", id: x.class, why: x.why })));
+add(rec.inherited.map((x) => ({ limb: "half-level", id: x.class, why: x.why })));
 if (rec.vacuous) add([{ limb: "missing", why: "VACUOUS — no finding class is in use" }]);
-
-/* ---- the classes, ordered consequence-first; volume = distinct issues still OPEN after every state change ---- */
-const life = lifecycleOf(everything);
-const openByClass = new Map();
-for (const [id, i] of life.issues) {
-  if ((i.state ?? "OPEN") !== "OPEN") continue;
-  const k = i.issue?.issue_class;
-  if (typeof k === "string") openByClass.set(k, (openByClass.get(k) ?? 0) + 1);
+for (const [k, e] of Object.entries(SUPERSEDED_ENTRIES)) {
+  if (CONSEQUENCE_REGISTER[k]) add([{ limb: "stale", id: k, why: "a superseded class still has a live register entry" }]);
+  if (JSON.stringify([...e.supersededBy]) !== JSON.stringify(CLASS_SPLITS[k]?.halves.map((h) => h.class))) add([{ limb: "entry", id: k, why: "a superseded entry does not name exactly the halves its split declares" }]);
 }
+
+/* ---- the classes, ordered consequence-first; volume = distinct issues still OPEN ---- */
+const openByClass = new Map();
+for (const v of view.values()) if (v.state === "OPEN") openByClass.set(v.class, (openByClass.get(v.class) ?? 0) + 1);
 const classItems = rec.classesInUse.map((k) => ({
   id: k,
   consequence: consequenceFor([k], CONSEQUENCE_REGISTER, SEVERITY_SCALE),
@@ -79,13 +88,14 @@ const fields = computeRecommendationFields({
   ledger: createJsonlStore(join(REPO, "runs", "cost", "ledger.jsonl")).readAll(),
   consequenceRegister: CONSEQUENCE_REGISTER,
   consequenceScale: SEVERITY_SCALE,
+  classSplits: CLASS_SPLITS,
 });
 const pc = priorityCensus({ fields, register: CONSEQUENCE_REGISTER });
 add(pc.errors);
 
-// Linked classes are read from the evidence links here, not from the fields — the law stands outside its territory.
-const issueClass = new Map(audit.filter((r) => r.record_type === "issue").map((r) => [r.issue_id, r.issue_class]));
-const linkedClassesOf = (id) => [...new Set((links.filter((l) => l.recommendation_id === id).at(-1)?.issues ?? []).map((i) => issueClass.get(i)).filter(Boolean))];
+// Linked classes are read from the evidence links and the stored issues here, not from the fields.
+const issueById = new Map(audit.filter((r) => r.record_type === "issue").map((r) => [r.issue_id, r]));
+const linkedClassesOf = (id) => [...new Set((links.filter((l) => l.recommendation_id === id).at(-1)?.issues ?? []).map((i) => issueById.get(i)).filter(Boolean).map((i) => classOf(i, CLASS_SPLITS).class))];
 const recItems = fields.map((f) => ({
   id: f.recommendation_id,
   appliedClasses: f.priority.consequence.entries.map((e) => e.issue_class),
@@ -110,9 +120,23 @@ for (const [id, e] of Object.entries(UNREACHABLE_RECOMMENDATIONS)) {
 }
 
 /* ---- print ---- */
-console.log("ROW 60 — CONSEQUENCE REGISTER AND THE OWNER'S LAW (ruled 14 September 2026)\n");
+console.log("ROW 60 — CONSEQUENCE REGISTER, THE OWNER'S LAW AND THE CLASS SPLITS (14 September 2026)\n");
 console.log(`SCALE, strongest first: ${SEVERITY_SCALE.map((s) => s.level).join(" > ")}   (UNCLASSIFIED is a state, not a level)`);
-console.log(`CLASSES IN USE: ${rec.classesInUse.length} · register entries: ${rec.entries} · UNCLASSIFIED: ${rec.unclassified.length}\n`);
+
+const all = [...view.values()];
+const notRun = all.filter((v) => isUnmeasured(v, UNMEASURED_REASON_CODES));
+console.log(`\nTHE STORE: ${all.length} distinct issues · ${all.filter((v) => v.verdict === "FAIL").length} FAIL (a defect found) · ${notRun.length} CHECKS THAT NEVER RAN (verdict UNKNOWN with ${UNMEASURED_REASON_CODES.join(" / ")}) · ${all.length - notRun.length - all.filter((v) => v.verdict === "FAIL").length} other UNKNOWN`);
+console.log("\nTHE SPLITS — each half by its stored signal (distinct · open · not run):");
+for (const s of Object.values(CLASS_SPLITS)) {
+  const members = all.filter((v) => v.storedClass === s.parent);
+  console.log(`  ${s.parent} — ${members.length} distinct · ${members.filter((v) => v.state === "OPEN").length} open`);
+  for (const h of s.halves) {
+    const m = members.filter((v) => v.class === h.class);
+    console.log(`     ${h.class.padEnd(48)} ${String(m.length).padStart(4)} distinct · ${String(m.filter((v) => v.state === "OPEN").length).padStart(4)} open · ${String(m.filter((v) => isUnmeasured(v, UNMEASURED_REASON_CODES)).length).padStart(4)} not run   when ${JSON.stringify(h.when)}`);
+  }
+}
+
+console.log(`\nCLASSES IN USE: ${rec.classesInUse.length} · register entries: ${rec.entries} · UNCLASSIFIED: ${rec.unclassified.length} · superseded: ${Object.keys(SUPERSEDED_ENTRIES).length}\n`);
 console.log("CONSEQUENCE-FIRST ORDER — volume (open issues) only amplifies inside a level:");
 console.log("| rank | finding class | level | open |");
 console.log("|---|---|---|---|");
@@ -129,10 +153,11 @@ for (const f of fields) {
 for (const [id, e] of Object.entries(UNREACHABLE_RECOMMENDATIONS)) console.log(`  PART C ${id}: ${e.level} — ${e.gap} Needs: ${e.needs.join("; ")}.`);
 
 console.log(`\n${errors.length ? "🔴" : "✅"} ERRORS: ${errors.length}`);
-for (const e of errors) console.log(`   [${e.limb}] ${e.id ?? ""} ${e.why}`);
+for (const e of errors.slice(0, 40)) console.log(`   [${e.limb}] ${e.id ?? ""} ${e.why}`);
+if (errors.length > 40) console.log(`   … and ${errors.length - 40} more`);
 console.log(`LIMBS TRIPPED: ${[...new Set(errors.map((e) => e.limb))].join(", ") || "none"}`);
 
 console.log("\n🔴 UNCLASSIFIED NEVER DEFAULTS TO LOW. It is UNKNOWN, never ranked, and routed to owner review.");
 const ok = errors.length === 0 && rec.ok && pc.ok;
-console.log(ok ? "\n✅ the scale, the register, the order and every presented priority hold" : "\n🔴 CENSUS FAILED");
+console.log(ok ? "\n✅ the scale, the split, the register, the order and every presented priority hold" : "\n🔴 CENSUS FAILED");
 process.exit(ok ? 0 : 1);

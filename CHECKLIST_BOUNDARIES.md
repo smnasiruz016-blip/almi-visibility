@@ -62,8 +62,8 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 | state | before Amendment 2 | after the RULING only | after the WORK |
 |---|---|---|---|
-| **NOT-STARTED** | 3 | 8 | **3** |
-| **BUILT-NOT-PROVED** | 18 | 17 | **8** |
+| **NOT-STARTED** | 3 | 8 | **2** |
+| **BUILT-NOT-PROVED** | 18 | 17 | **9** |
 | **TESTABLE-NOW** | 0 | 2 | **1** |
 | **VERIFIED-PASS** | 3 | 3 | **20** |
 | **FAILED** | 0 | -1 | **2** |
@@ -109,6 +109,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 4 | NOT-STARTED | BUILT-NOT-PROVED | `node bin/localized-thinking.mjs --check · node --test test/localized-thinking.test.mjs · runs/discovery/localized-thinking-2026-09-15.json · runs/audit/row4-red-limbs-2026-09-15.txt` | 2026-09-15 | 37 goals seen from two or more countries grouped on row 3's discovered relations only (12 worded differently, 25 the same wording), each wording traceable to its country row; 38 of 48 countries UNKNOWN below a floor of 5 rows; no consumer builds an address from a country; each limb RED alone in the real files and restored. Stops at BUILT-NOT-PROVED because half (b) — materially different useful content — needs per-value answer evidence the owner has not authorised |
 | 5 | NOT-STARTED | FAILED | `node bin/intent-clusters.mjs --check · node --test test/intent-clustering.test.mjs · runs/audit/row5-census-2026-09-14.txt · runs/audit/row5-red-limbs-2026-09-14.txt` | 2026-09-14 | 329 human queries (8 operator strings classified and kept apart); in-sample 268 → 73 clusters, 0 merged and 0 split against a reference written before the clusterer ran; the held-out check left 12 of 61 identical intents split — FAILURE met on the evidence the contract names; six limbs RED alone in the real files and restored. FAILED on the owner's answer |
 | 6 | NOT-STARTED | BUILT-NOT-PROVED | `node bin/axis-discovery.mjs --check · node --test test/axis-discovery.test.mjs · runs/audit/row6-census-2026-09-14.txt · runs/audit/row6-red-limbs-2026-09-14.txt` | 2026-09-14 | the six named axes (read from the contract) and 7 discovered slot types each tested with seven legs on real evidence: 7 MONITOR, 7 UNKNOWN, 0 BUILD, 0 REJECT — answer-level distinguishing power is UNKNOWN on every axis because the answer at each value is not owned; locality tested on the 10 countries with five or more rows, the other 38 UNKNOWN by LAW-ABSENT-1; every limb RED alone and restored; BUILD and REJECT shown reachable when measured. BUILT-NOT-PROVED on the owner's answer |
+| 7 | NOT-STARTED | BUILT-NOT-PROVED | `node bin/market-measurement.mjs --check · node --test test/market-measurement.test.mjs · runs/discovery/market-measurement-2026-09-15.json · runs/audit/row7-red-limbs-2026-09-15.txt` | 2026-09-15 | VISIBILITY/REACH measured (impressions, position, clicks, CTR by property, country and page) and DEMAND bounded by a distinct method on the query field alone (at least 329 wordings searched; magnitude UNKNOWN), each quoting its range and dataState and carrying query truncation (22.8% of impressions, 0 of 20 clicks carry a query), data lag and dataState on its face; SUPPLY, AUDIENCE/NEED and WORTHINESS UNKNOWN; each limb RED alone. Stops at BUILT-NOT-PROVED: DEMAND cannot be sized on owned evidence |
 | 9 | BUILT-NOT-PROVED | BLOCKED-UNKNOWN | `node bin/gsc-ingest.mjs --property=sc-domain:almiworld.com · node bin/gsc-dimensions.mjs · test/search-dimensions.test.mjs` | 2026-09-12 | six of seven dimensions ingested from the real property, each pull exhausted and COMPLETE with its bounds; downstream outcomes is supplied by no tool this engine holds, which the NOTE makes ⚠ rather than a failure |
 | 11 | BLOCKED-UNKNOWN | VERIFIED-PASS | `node bin/replay-crawl.mjs · test/replay.test.mjs` | 2026-09-13 | the same 394 URLs crawled twice through the production crawler and store, 5 named bodies changed between runs: 394/394 page_ids identical, 389 pages before and across both runs, each change a new observation on its existing page; RED when the id takes the clock |
 | 12 | BUILT-NOT-PROVED | TESTABLE-NOW | `undefined` | 2026-09-13 | the corpus with shell subtraction defined and printed exists in the repository |
@@ -152,8 +153,8 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 | state | before (4-state) | after (7-state) |
 |---|---|---|
-| **NOT-STARTED** | 33 | **3** |
-| **BUILT-NOT-PROVED** | 24 | **8** |
+| **NOT-STARTED** | 33 | **2** |
+| **BUILT-NOT-PROVED** | 24 | **9** |
 | **TESTABLE-NOW** | 0 | **1** |
 | **VERIFIED-PASS** | 0 | **20** |
 | **FAILED** | 0 | **2** |
@@ -163,7 +164,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 ### 🔴 THE MOST IMPORTANT LINE IN THIS DOCUMENT
 
-> **24 row(s) changed because work happened.** Listed in (i) below.
+> **25 row(s) changed because work happened.** Listed in (i) below.
 
 #### (i) changed because WORK HAPPENED
 
@@ -173,6 +174,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 4 | Localized Human Thinking | NOT-STARTED | **BUILT-NOT-PROVED** |
 | 5 | Intent & Question Clustering | NOT-STARTED | **FAILED** |
 | 6 | Axis Discovery | NOT-STARTED | **BUILT-NOT-PROVED** |
+| 7 | Market Measurement | NOT-STARTED | **BUILT-NOT-PROVED** |
 | 8 | HEAVY / THIN / EMPTY Discipline | NOT-STARTED | **VERIFIED-PASS** |
 | 9 | Search Console / Analytics Intelligence | BUILT-NOT-PROVED | **BLOCKED-UNKNOWN** |
 | 11 | Existing Page Inventory | BUILT-NOT-PROVED | **VERIFIED-PASS** |
@@ -201,7 +203,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | NOT-STARTED → DEFERRED | 23 | 2, 18, 19, 20, 21, 22, 23, 24, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39, 40, 41, 43, 44 |
 | BUILT-NOT-PROVED → BLOCKED-UNKNOWN | 2 | 1, 54 |
 
-**Did not move against the 11 September 2026 baseline: 9** — 7, 10, 16, 17, 36, 46, 52, 57, 58
+**Did not move against the 11 September 2026 baseline: 8** — 10, 16, 17, 36, 46, 52, 57, 58
 
 **Not on that baseline — admitted later by owner ruling: 3** — 59, 60, 61. They are not "unmoved"; they did not exist. Any work on them since is a declared move above.
 
@@ -348,7 +350,7 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 
 ### 7 · Market Measurement
 
-**NOT-STARTED** · class `S` (frozen `D`, moved by Amendment 4) · ruled in `§6+A4`
+**BUILT-NOT-PROVED** · class `S` (frozen `D`, moved by Amendment 4) · ruled in `§6+A4` · was NOT-STARTED (work)
 
 | part | the owner's words |
 |---|---|
@@ -363,7 +365,9 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 | **⏭ final FAILURE (§6, when the deferred half opens)** | any two are conflated — above all, supply reported as demand. |
 | **⏭ final EVIDENCE (§6, when the deferred half opens)** | five separate measurements with five separate methods. |
 
-**Verdict —** 🔴 **NOT-STARTED — IN SCOPE SINCE AMENDMENT 4** (owner ruling under §12, 13 September 2026). **Nothing has been built for it and nothing was run.** It left DEFERRED ONLY because a ruling changed its class — a class change is not progress. Its input is owned evidence already captured in `runs/evidence/evidence.jsonl` (Search Console ingest of 2026-09-12T23:25Z: query 337 · query-page 574 · country 126 · country-query 388 rows; page rows 1,525 from the 22:06Z run of the same day). **Class D → S (split).** In scope: **DEMAND** and **VISIBILITY/REACH**, both owned. Deferred, and named: **SUPPLY**, **AUDIENCE/NEED** and **WORTHINESS**. SUPPLY and AUDIENCE/NEED need external evidence; **WORTHINESS was assigned to the deferred half by the owner's addendum** (13 September 2026), on the reason that its inputs are themselves deferred. 🔴 That reason names the Human Question Universe (row 2), the information-gap test (row 19) and right-to-exist (row 21) as WORTHINESS's *"own named inputs"*; no frozen text in this repository names them so — rows 2, 19 and 21 are class D, which carries the conclusion, and the link is left for the owner to source. 🔴 **The owned half has its four-part contract** — stated by the owner's dated addendum to Amendment 4 (13 September 2026), and read from it. **A contract is not progress:** nothing is built and nothing was run, so the row stays NOT-STARTED. The §6 boundary stays on the row as the final boundary for when the deferred half opens. The amendment's test of its frozen INPUT clause, five measurements, separately: SUPPLY · VISIBILITY/REACH · DEMAND · AUDIENCE/NEED · WORTHINESS: 🟡 **two of five** — DEMAND and VISIBILITY are owned; SUPPLY and AUDIENCE need external evidence.
+**Verdict —** 🔴 **THE OWNED HALF, BUILT AND RUN ON 15 SEPTEMBER 2026 — AND STOPPED AT BUILT-NOT-PROVED, BECAUSE DEMAND CAN ONLY BE BOUNDED ON OWNED EVIDENCE, NEVER SIZED.** **INPUT** the newest owned pull of each cut, all over 2026-08-15 → 2026-09-12, dataState COMPLETE, quoted from each observation: the property total `8c5f987dc5074cd5` 2,374 impressions · 20 clicks; by country `59535dbde94fbacd` 126 rows · 2,374 · 20; by page `9f8cbf772d1cd434` 1,525 rows · 3,289 · 21 (exhausted and truncationReason NOT STORED on that pull); by query `45ce21253a3fc58c` 337 rows · 541 · 0; country×query `9bf50cfb134a0d7d` 388 rows · 541 · 0; query×page `c97334fdd102df8e` 574 rows · 807 · 0. **VISIBILITY/REACH — MEASURED** by its own method (impressions, position, clicks, CTR, where shown): property position 36.07; by country and by page side by side, never summed; position by page NOT STORED. **DEMAND — BOUNDED, PRESENCE ONLY, MAGNITUDE UNKNOWN** by a distinct method that reads the `query` field alone: at least 329 distinct human wordings (8 operator strings excluded) were each searched at least once; how many people searched is not in the owned evidence, and a need the property was never shown for cannot appear — demand seen through our own visibility. Impressions are not an input to it. **The two methods share no stored field.** 🔴 **Query truncation, on both faces:** truncationReason reads null on every query pull — the pager drained every row, not every search was reported: only 541 of 2,374 impressions (22.8%) and 0 of 20 clicks carry a query (by page, 807 of 3,289 — 24.5% — and 0 of 21). The 16.4% often quoted divides a count without the page dimension by one with it. **OBSERVED / INFERRED kept apart:** that the missing queries are Google's anonymisation is UNKNOWN — the store holds the gap, not its cause. **The 807-vs-541 discrepancy is LOCALISED, NOT CLOSED:** 324 of 337 queries agree; all 266 excess impressions sit on 13 queries shown with more than one of our pages; a finer cut never loses impressions; the same gap separates page (3,289) from property (2,374). That a page-dimension pull counts once per page shown is INFERRED — the request named no aggregationType and no stored field records Google's counting. **Data lag, observed:** the range ends on the day it was pulled, and the same range grew from 2,261 to 2,374 impressions in 23.2 hours; whether it is final is UNKNOWN. dataState COMPLETE is the pager's word, not freshness. **The other three read UNKNOWN** — present, unmeasured, valueless, never low. Deferred, and named: **SUPPLY**, **AUDIENCE/NEED** and **WORTHINESS**. SUPPLY and AUDIENCE/NEED need external evidence; **WORTHINESS was assigned to the deferred half by the owner's addendum** (13 September 2026), on the reason that its inputs are themselves deferred. **FAILURE not met:** not conflated, no impressions as demand, no deferred dimension filled. **EVIDENCE** the EVIDENCE clause's test — a third dimension filled from an unmeasured source — RED-proved in the code that builds the measurement, once per dimension (SUPPLY from our own page count, AUDIENCE/NEED from the searcher-country mix, WORTHINESS defaulted to LOW behind an UNKNOWN label), and impressions-as-demand, a conflated method and an inference promoted to OBSERVED in the stored measurement — each RED alone, containment proved first, restored by sha256 and against the git index (runs/audit/row7-red-limbs-2026-09-15.txt). 🔴 **A finding for the owner, reported and not acted on:** rows 3, 5 and 6 stand on the query pull — 22.8% of impressions and 0 of 20 clicks; row 6 names the 0 clicks, none of the three names the coverage. No row was changed by row 7. **Class S: the deferred half stays DEFERRED** The amendment's test of its frozen INPUT clause, five measurements, separately: SUPPLY · VISIBILITY/REACH · DEMAND · AUDIENCE/NEED · WORTHINESS: 🟡 **two of five** — DEMAND and VISIBILITY are owned; SUPPLY and AUDIENCE need external evidence.
+
+**The one test that would settle it —** node bin/market-measurement.mjs --check · node --test test/market-measurement.test.mjs · runs/discovery/market-measurement-2026-09-15.json · runs/audit/row7-census-2026-09-15.txt · runs/audit/row7-red-limbs-2026-09-15.txt — and, to leave BUILT-NOT-PROVED, an owner ruling that a presence bound with its magnitude UNKNOWN is what "DEMAND measured" asks of owned evidence, or a demand-magnitude source the owner authorises
 
 ### 8 · HEAVY / THIN / EMPTY Discipline
 

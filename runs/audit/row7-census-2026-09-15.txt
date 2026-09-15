@@ -1,0 +1,72 @@
+ROW 7 — MARKET MEASUREMENT · THE OWNED HALF · DEMAND AND VISIBILITY/REACH, SEPARATELY
+
+segment: sc-domain:almiworld.com — no narrower segment is defined in the owned evidence — the segment is the whole property
+[input: aggregate    8c5f987dc5074cd5 · gsc.searchAnalytics.query:aggregate · observed 2026-09-12T23:25:03.347Z · 2026-08-15 → 2026-09-12 · dataState COMPLETE · exhausted true · truncationReason null]
+[input: country      59535dbde94fbacd · gsc.searchAnalytics.query:country · observed 2026-09-12T23:25:04.351Z · 2026-08-15 → 2026-09-12 · dataState COMPLETE · exhausted true · truncationReason null]
+[input: pageRows     9f8cbf772d1cd434 · gsc.searchAnalytics.query:page-rows · observed 2026-09-12T22:06:43.410Z · 2026-08-15 → 2026-09-12 · dataState COMPLETE · exhausted NOT STORED · truncationReason "NOT STORED"]
+[input: query        45ce21253a3fc58c · gsc.searchAnalytics.query:query · observed 2026-09-12T23:25:03.868Z · 2026-08-15 → 2026-09-12 · dataState COMPLETE · exhausted true · truncationReason null]
+[input: queryPage    c97334fdd102df8e · gsc.searchAnalytics.query:query-page · observed 2026-09-12T23:25:04.172Z · 2026-08-15 → 2026-09-12 · dataState COMPLETE · exhausted true · truncationReason null]
+[input: countryQuery 9bf50cfb134a0d7d · gsc.searchAnalytics.query:country-query · observed 2026-09-12T23:25:04.608Z · 2026-08-15 → 2026-09-12 · dataState COMPLETE · exhausted true · truncationReason null]
+
+OBSERVED — TOTALS PER CUT, FROM THE ROWS THEMSELVES
+  property           1 rows ·  2374 impressions ·  20 clicks · 8c5f987dc5074cd5 · counting (inferred): once per search
+  by country       126 rows ·  2374 impressions ·  20 clicks · 59535dbde94fbacd · counting (inferred): once per search
+  by page         1525 rows ·  3289 impressions ·  21 clicks · 9f8cbf772d1cd434 · counting (inferred): once per page shown
+  by query         337 rows ·   541 impressions ·   0 clicks · 45ce21253a3fc58c · counting (inferred): once per search
+  country×query    388 rows ·   541 impressions ·   0 clicks · 9bf50cfb134a0d7d · counting (inferred): once per search
+  query×page       574 rows ·   807 impressions ·   0 clicks · c97334fdd102df8e · counting (inferred): once per page shown
+
+OBSERVED — QUERY COVERAGE: by property 541 of 2374 impressions (22.8%), clicks 0 of 20 · by page 807 of 3289 (24.5%), clicks 0 of 21
+  mixed basis, not the coverage: 541 of 3289 = 16.4% — divides a count pulled without the page dimension by one pulled with it — not recorded as the coverage
+  clicked pages 9, of which carry any query row: 2 · truncationReason on every query pull: null, null, null
+  UNKNOWN — "the impressions and clicks with no query attached are Google's anonymisation of rare or clicked queries": the store holds the GAP, not its cause: no stored field names which searches were withheld, or why. The likely explanation is recorded UNKNOWN, not promoted to an observation
+
+THE 807-vs-541 DISCREPANCY — LOCALISED, NOT CLOSED
+  OBSERVED: excess 266 · queries in both 337, in only one 0 · sums agree on 324 · excess on 13, every one shown with more than one page: 13 · finer cut has fewer: 0
+  country×query agrees with query on 337 of 337 queries · pages where query×page exceeds the page row: 0 · the same gap at the top: page 3289 against property 2374 and country 2374
+    "celips bari" — query row 1, query×page sum 2 over 2 pages
+    "ielts pte score" — query row 1, query×page sum 2 over 2 pages
+    "ielts score compare to pte" — query row 1, query×page sum 2 over 2 pages
+    "pearson test of english" — query row 1, query×page sum 5 over 5 pages
+    "pte academic equivalent to ielts" — query row 1, query×page sum 2 over 2 pages
+  INFERRED — "a pull with the page dimension counts an impression once per page shown; a pull without it counts once per search": consistent with every stored comparison — the excess sits only on queries shown with more than one of our pages, never on a single-page query; a finer cut never loses impressions; the same gap separates page from property. But the counting rule is Google's, not the store's: the request named no aggregationType (src/search/google-search-console.mjs), and no stored field records how Google counted
+
+DATA LAG — OBSERVED: the range ends on the pull day: true
+    2026-09-12T00:15:14.861Z f294cb34162421cc · 2261 impressions · 20 clicks
+    2026-09-12T22:06:43.095Z 96ac9479e50cee08 · 2374 impressions · 20 clicks
+    2026-09-12T23:25:03.347Z 8c5f987dc5074cd5 · 2374 impressions · 20 clicks
+  grew 113 impressions and 0 clicks over 23.2 hours · final: UNKNOWN — no freshness field is stored and the request named no dataState, so whether these totals will still change is not in the store
+
+══ DEMAND — BOUNDED — PRESENCE ONLY, MAGNITUDE UNKNOWN
+   method: distinct-searched-wordings · fields query
+   rule: count the distinct human query strings the property was shown for at least once in the range, operator strings excluded (query-population). Each is a need at least one person searched for. How many people searched is not read: impressions, clicks, CTR and position are not inputs
+   quoted: 45ce21253a3fc58c · 2026-08-15 → 2026-09-12 · dataState COMPLETE
+   value: {"distinctHumanWordings":329,"operatorStringsExcluded":8,"lowerBound":"at least 329 distinct human wordings were each searched at least once in the range","upperBound":"UNKNOWN — searches with no query attached are not counted, and a need the property was never shown for cannot appear at all","magnitude":"UNKNOWN — how many people searched is not in the owned evidence"}
+   limit · queryTruncation: QUERY TRUNCATION: truncationReason reads null on every query pull — that says the pager drained every row, NOT that every search was reported. Only 541 of 2374 impressions (22.8%) and 0 of 20 clicks carry a query; by page, 807 of 3289 (24.5%) and 0 of 21 clicks. Every click and most impressions have no query attached. The 16.4% often quoted divides a count without the page dimension by one with it
+   limit · dataLag: DATA LAG: the range 2026-08-15 → 2026-09-12 ends on the day it was pulled; pulled 3 times, the same range grew from 2261 to 2374 impressions over 23.2 hours. Whether the newest totals are final is UNKNOWN
+   limit · dataState: dataState COMPLETE, quoted from each observation, is the pager's word for "every page of rows was drained" (src/search/paginate.mjs) — not Google's freshness, and not query coverage
+   limit · selection: a wording is visible here only because our property was shown for it: this is demand seen THROUGH our own visibility, never the market's demand
+
+══ VISIBILITY/REACH — MEASURED
+   method: shown-and-reached · fields impressions, position, clicks, ctr
+   rule: where and how prominently the property was shown, and what that reach earned: impressions, position, clicks and CTR, for the property, by country and by page, each quoted from its own observation. The property and country cuts are never added to the page cut
+   quoted: 8c5f987dc5074cd5 · 2026-08-15 → 2026-09-12 · dataState COMPLETE
+   quoted: 59535dbde94fbacd · 2026-08-15 → 2026-09-12 · dataState COMPLETE
+   quoted: 9f8cbf772d1cd434 · 2026-08-15 → 2026-09-12 · dataState COMPLETE
+   value: {"property":{"observation_id":"8c5f987dc5074cd5","impressions":2374,"clicks":20,"ctr":0.008424599831508003,"position":36.069081718618364},"byCountry":{"observation_id":"59535dbde94fbacd","rows":126,"impressions":2374,"clicks":20,"top":"10 rows (in the JSON)"},"byPage":{"observation_id":"9f8cbf772d1cd434","rows":1525,"impressions":3289,"clicks":21,"position":"NOT STORED — the page-rows pull keeps url, clicks and impressions only","top":"10 rows (in the JSON)"},"neverAdded":"the property and country cuts and the page cut count differently (INFERRED — see the discrepancy); they are reported side by side and never summed"}
+   limit · queryTruncation: QUERY TRUNCATION: truncationReason reads null on every query pull — that says the pager drained every row, NOT that every search was reported. Only 541 of 2374 impressions (22.8%) and 0 of 20 clicks carry a query; by page, 807 of 3289 (24.5%) and 0 of 21 clicks. Every click and most impressions have no query attached. The 16.4% often quoted divides a count without the page dimension by one with it. Visibility by property, country and page is NOT restricted by it — those cuts carry every impression the property earned; only the query cuts lose them
+   limit · dataLag: DATA LAG: the range 2026-08-15 → 2026-09-12 ends on the day it was pulled; pulled 3 times, the same range grew from 2261 to 2374 impressions over 23.2 hours. Whether the newest totals are final is UNKNOWN
+   limit · dataState: dataState COMPLETE, quoted from each observation, is the pager's word for "every page of rows was drained" (src/search/paginate.mjs) — not Google's freshness, and not query coverage
+
+══ SUPPLY — UNKNOWN · measured false · value null · method null
+   the deferred half (Amendment 4): what already answers these needs, and how well, needs external evidence, and no fetch is authorised. Nothing owned measures it — our own page count is our supply, not the market's
+
+══ AUDIENCE/NEED — UNKNOWN · measured false · value null · method null
+   the deferred half (Amendment 4): who searches and what they need needs external evidence. A searcher's country is where they were, not who they are
+
+══ WORTHINESS — UNKNOWN · measured false · value null · method null
+   the deferred half, assigned by the owner's addendum to Amendment 4 (13 September 2026), because its own inputs are themselves deferred
+
+🔴 A FINDING THAT REACHES BACKWARDS — rows 3, 5, 6: rows 3, 5 and 6 stand on the query pull 45ce21253a3fc58c: 22.8% of the property's impressions and 0 of 20 of its clicks. The wording they study is the part of search that carries a query and was never clicked. row 6 names the 0 clicks; none of the three names the query coverage. REPORTED FOR THE OWNER'S RULING — no row changed by row 7
+
+ERRORS: 0

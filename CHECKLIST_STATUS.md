@@ -45,8 +45,13 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 >   alone (`runs/audit/row16-external-conflict-red-2026-09-15.txt`). Still not proved: the dependency walk has no
 >   population and no fact is past its recheck date (earliest 2026-12-11). Neither was manufactured.
 > - **R5 — COMPLETE, and NOTHING WAS PROMOTED.** All nine stay UNKNOWN / PARTIAL_EVIDENCE; the data repository is
->   untouched at `a4b38cf`. The pages support most of the missing dimensions, and that reading is a MODEL's — this
->   registry's law is that a fact check names a person. The owner ruled "evidence only, no promotion" on 15 September.
+>   untouched at `a4b38cf`. The pages support most of the missing dimensions, and that reading is a MODEL's.
+>   **Why nothing was promoted — the REPOSITORY's law, not a ruling:** a fact check must name a person, not a tool,
+>   pinned by `test/facts-verification-ingest.test.mjs`; a model may PROPOSE a fact, never BE the source.
+>   **The owner's ruling, separately and verbatim:** *"Evidence decides each outcome. NO target number of VERIFIED
+>   records. NO forced promotion. UNKNOWN / PARTIAL_EVIDENCE is valid where evidence is insufficient."* He forbade
+>   FORCED promotion, not promotion. (Corrected 16 September 2026: this entry had put "evidence only, no promotion"
+>   in his mouth.)
 >   Per-record findings, including the declarations R4 would require: `runs/audit/r5-evidence-2026-09-15.md`.
 > - **ROW 46 — two legs proved, row stays BUILT-NOT-PROVED.** The live researcher's lookup WAS the single authorised
 >   request for the OET page: miss → 1 request; the same eligible fact again → hit, 0 requests; outside its scope →

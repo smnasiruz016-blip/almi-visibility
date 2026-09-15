@@ -1,0 +1,28 @@
+GAP 3 · archive-corpus — THE OVERWRITE GUARD INVERTED ALONE · 2026-09-15T03:33:38.452Z
+test file: test/owner-authorization-gates.test.mjs
+
+=== CONTAINMENT, BEFORE ANY SABOTAGE
+   bin/archive-corpus.mjs: in the index true · matches the index true · a trial write seen by git true · restored byte for byte true · sha256 cb282414a27c848c83a6aef99c426626303be5066561409751dd2b265a508c11
+   runs/crawl/bodies-2026-09-12.jsonl.br: in the index true · matches the index true · sha256 3d857a9e53fd4b015131bfd721788942a7c3df15b775e6633fb429bc84af3ded · NOT trial-written (the ruling forbids modifying it)
+   runs/crawl/first-real-crawl-2026-09-12.jsonl: in the index true · matches the index true · sha256 0b9fb848436eca43dac54b0a4d3f220bb637e3c35b18a9d6297bc50b71bcc345 · NOT trial-written (the ruling forbids modifying it)
+   the fence (FENCE_ROOT=C:\Projects\almi-visibility\.test-scratch): write into runs/ → EACCES · write into the OS temp dir → EACCES · write inside .test-scratch/ → WROTE · rename out of .test-scratch/ → EACCES · files leaked past it: 0
+
+CLEAN before (whole file, unfenced): exit 0 · tests 8 · pass 8 · fail 0
+CLEAN before, INSIDE THE FENCE, only "archive-corpus --confirm --out=<an EXISTING archive>": exit 0 · tests 1 · pass 1 · fail 0
+
+=== THE OVERWRITE GUARD INVERTED — `if (existsSync(OUT))` → `if (!existsSync(OUT))`, nothing else
+   file line endings: CRLF · sabotage landed: true
+   ran only "archive-corpus --confirm --out=<an EXISTING archive>", INSIDE THE FENCE: exit 1 · tests 1 · pass 0 · fail 1
+   ✖ 🔴 DESTRUCTIVE · archive-corpus --confirm --out=<an EXISTING archive> is REFUSED — exit 2 — and OVERWRITES NOTHING, byte for byte
+     reason: AssertionError [ERR_ASSERTION]: 🔴 the existing archive was OVERWRITTEN — the refusal did not hold
+   RED on the sha256 claim ("the existing archive was OVERWRITTEN"): YES · the fence had to refuse anything: false
+   bin/archive-corpus.mjs restored byte for byte and matching the git index: true (sha256 cb282414a27c848c83a6aef99c426626303be5066561409751dd2b265a508c11)
+   runs/crawl/bodies-2026-09-12.jsonl.br after the sabotaged run: sha256 3d857a9e53fd4b015131bfd721788942a7c3df15b775e6633fb429bc84af3ded · unchanged true · matches the index true
+   runs/crawl/first-real-crawl-2026-09-12.jsonl after the sabotaged run: sha256 0b9fb848436eca43dac54b0a4d3f220bb637e3c35b18a9d6297bc50b71bcc345 · unchanged true · matches the index true
+
+=== CLEAN — the file restored (whole file, unfenced)
+exit 0 · tests 8 · pass 8 · fail 0
+   runs/crawl/bodies-2026-09-12.jsonl.br at the end: sha256 3d857a9e53fd4b015131bfd721788942a7c3df15b775e6633fb429bc84af3ded · unchanged since before containment true
+   runs/crawl/first-real-crawl-2026-09-12.jsonl at the end: sha256 0b9fb848436eca43dac54b0a4d3f220bb637e3c35b18a9d6297bc50b71bcc345 · unchanged since before containment true
+
+verdict: RED PROVED — the overwrite guard inverted alone in its real file, inside a proved fence; the test went red on the sha256 claim; the file restored; both evidence files unchanged throughout

@@ -1,0 +1,45 @@
+ROW 16 / D-FACT-1 — RED/GREEN, ONE LIMB AT A TIME
+run at 2026-09-15T23:02:05.443Z · node v24.15.0
+branch v0.1/row16-external-conflict-and-r5-evidence · target src/facts/lifecycle.mjs · sha256 fc8c93ee134bac29508479fee6b649507a349ab5459247450c93f9ec033a7d3c · index blob 8e01706d2e5187e236cbdf1c9a1f22b96e244056
+data repository a4b38cf93439ffba4bc737c0415476c1d29ee755 (clean) — this run never writes to it
+
+CONTAINMENT (before any sabotage)
+  working file == staged index blob: yes
+  0-match anchor REFUSED: anchor matched 0 times
+  file untouched after the refusal: yes
+  GREEN baseline: test/external-conflict.test.mjs pass 8 fail 0
+
+LIMB 1 · the value comparison — every observation treated as agreeing
+  sabotage landed: sha256 a0c90b95584b44d89b53ae8f2e38fc063806e9d2d93f0179cb6e559fd02db935
+  test/external-conflict.test.mjs: pass 4 fail 4
+    not ok — 🔴 D-FACT-1 · the detector FIRES on real data: a held record against a real external observation
+    not ok — 🔴 D-FACT-1 · a conflict is NEVER auto-resolved — UNKNOWN, needing a person, with no authority picked
+    not ok — 🔴 CONTROL · the AGREEING observation from the same page, at the same moment, produces NO conflict
+    not ok — a DIFFERENT claim does not fire — qualifier and scope are part of the identity
+  named test RED: YES
+  restored: sha256 == original · git hash-object == index blob
+
+LIMB 2 · the never-auto-resolve rule — the conflict resolves itself
+  sabotage landed: sha256 563b1760209e7b8c1971c1cf94f465f46011b3220334e97c08f9687411284a27
+  test/external-conflict.test.mjs: pass 7 fail 1
+    not ok — 🔴 D-FACT-1 · a conflict is NEVER auto-resolved — UNKNOWN, needing a person, with no authority picked
+  named test RED: YES
+  restored: sha256 == original · git hash-object == index blob
+
+LIMB 3 · both-values-retained — the observed value dropped from the conflict
+  sabotage landed: sha256 0afd85fd07d944d25e7fea2092cc9312f5b3b1c8baf60af44b34725b5f1e48b9
+  test/external-conflict.test.mjs: pass 7 fail 1
+    not ok — 🔴 D-FACT-1 · the detector FIRES on real data: a held record against a real external observation
+  named test RED: YES
+  restored: sha256 == original · git hash-object == index blob
+
+LIMB 4 · claim identity — qualifier and scope dropped from the key
+  sabotage landed: sha256 cbce2efe4392947487337c0a9b69edba37c2d9667549f8e9e0be2a007a420574
+  test/external-conflict.test.mjs: pass 7 fail 1
+    not ok — a DIFFERENT claim does not fire — qualifier and scope are part of the identity
+  named test RED: YES
+  restored: sha256 == original · git hash-object == index blob
+
+GREEN after all limbs restored: pass 8 fail 0
+data repository a4b38cf93439ffba4bc737c0415476c1d29ee755 (clean)
+every named test went RED on its limb alone: YES

@@ -29,6 +29,30 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 | **DEFERRED** | — | **23** |
 | **total** | 58 | **61** |
 
+> ### 🔴 THE BOUNDED SEVEN-URL EVIDENCE RUN — D-FACT-1 CLOSED, R5 COMPLETE WITH NO PROMOTION, NO ROW MOVES — 15 SEPTEMBER 2026
+>
+> - **Authority:** the owner's ruling "MINIMAL ALMIVISIBILITY EVIDENCE PLAN APPROVED", brief committed at
+>   `_handoffs/AlmiVisibility_BOUNDED_7URL_EVIDENCE_RUN_BRIEF_2026-09-16.md`. Seven URLs, seven requests, and no eighth.
+> - **The network boundary held:** 7 requests for 7 manifest URLs, ≥1.1 s apart, GET only, no redirect followed, no
+>   discovery, no robots or licence fetch. The guard refused the two named bad hosts and two off-manifest URLs with no
+>   network at all. Six returned documents; **the second Nigerian page returned HTTP 404** and no substitute was sought.
+>   Transcript `runs/audit/evidence-run-2026-09-15.txt`; observations `runs/evidence/external-observations-2026-09-15.jsonl`.
+> - **Licence:** no page text is stored anywhere — no new span for the three quotable sources, and own words plus a
+>   normalised-text sha256 for the four that may not be quoted. The captured bodies were deleted after reading.
+> - **ROW 16 — D-FACT-1 closed on real data, row stays BUILT-NOT-PROVED.** `detectExternalConflicts` compares a held
+>   record against an external observation that declares its claim: 1 real conflict (a document count, 3 held vs 4
+>   stated) and 1 agreeing control from the same page. Never auto-resolved, both values retained. Four limbs RED-proved
+>   alone (`runs/audit/row16-external-conflict-red-2026-09-15.txt`). Still not proved: the dependency walk has no
+>   population and no fact is past its recheck date (earliest 2026-12-11). Neither was manufactured.
+> - **R5 — COMPLETE, and NOTHING WAS PROMOTED.** All nine stay UNKNOWN / PARTIAL_EVIDENCE; the data repository is
+>   untouched at `a4b38cf`. The pages support most of the missing dimensions, and that reading is a MODEL's — this
+>   registry's law is that a fact check names a person. The owner ruled "evidence only, no promotion" on 15 September.
+>   Per-record findings, including the declarations R4 would require: `runs/audit/r5-evidence-2026-09-15.md`.
+> - **ROW 46 — two legs proved, row stays BUILT-NOT-PROVED.** The live researcher's lookup WAS the single authorised
+>   request for the OET page: miss → 1 request; the same eligible fact again → hit, 0 requests; outside its scope →
+>   miss, refused at the boundary, 0 requests. The past-window leg stays BLOCKED — no fact has expired.
+> - **Item 50 stays FAILED**; rows 25, 17 and 10 untouched; no row changed status.
+
 > ### 🔴 FAISLA 1 + FAISLA 2 — ROWS 3/5/6 CARRY THEIR QUERY-PULL LIMITATION; R4 LANDS; NO ROW MOVES — 16 SEPTEMBER 2026
 >
 > - **Authority:** the owner's ruling of 16 September 2026, committed at `_handoffs/AlmiVisibility_FAISLA_1_2_ROWS_3_5_6_AND_R4_BRIEF_2026-09-16.md`.

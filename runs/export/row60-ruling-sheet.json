@@ -1,7 +1,7 @@
 {
   "_provenance": {
     "title": "AlmiVisibility — row 60 consequence sheet",
-    "generatedAt": "2026-09-14T05:08:37.966Z",
+    "generatedAt": "2026-09-15T23:13:29.300Z",
     "generatedBy": "bin/row60-ruling-sheet.mjs",
     "covers": [
       "every finding class present on an issue record in the files listed under `sources`, as config/class-splits.mjs counts it",
@@ -108,6 +108,13 @@
     {
       "file": "runs/evidence/evidence.jsonl",
       "records": 50,
+      "issueRecords": 0,
+      "stateChanges": 0,
+      "recommendations": 0
+    },
+    {
+      "file": "runs/evidence/external-observations-2026-09-15.jsonl",
+      "records": 9,
       "issueRecords": 0,
       "stateChanges": 0,
       "recommendations": 0

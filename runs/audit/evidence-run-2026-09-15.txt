@@ -1,0 +1,126 @@
+OWNER-GREEN BOUNDED 7-URL EVIDENCE RUN
+run started 2026-09-15T22:49:42.469Z Â· node v24.15.0 Â· max 7 requests Â· â‰¥1100 ms apart Â· GET only Â· redirects NOT followed
+FROZEN MANIFEST:
+  1  https://pnmc.gov.pk/verification-registration-2/
+       R5 pk-pnmc.verification-fee.destination=foreign Â· R5 pk-pnmc.verification-fee.destination=domestic Â· ROW 16 conflict 6 (same page)
+  2  https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/accepted-english-language-tests/oet/
+       ROW 46 live-researcher lookup (this IS the single request) Â· R5 uk-nmc.oet-minimum-grade.profession=nursing Â· R5 uk-nmc.oet-combining-sittings-floor.profession=nursing Â· R5 uk-nmc.accepted-oet-delivery-modes.profession=nursing
+  3  https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/
+       R5 uk-nmc.english-evidence-routes.profession=nursing
+  4  https://www.nmbi.ie/Registration/Qualified-outside-the-EU/Application-Process/English-Language-Requirements
+       R5 ie-nmbi.recognised-english-speaking-countries
+  5  https://www.hcpc-uk.org/registration/getting-on-the-register/international-applications/documents/certificate-of-english-language-proficiency/
+       R5 uk-hcpc.accepted-english-tests
+  6  https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england
+       R5 uk-code-of-practice.red-list-rule
+  7  https://nmcn.gov.ng/verification-of-certificates/
+       ROW 16 conflicts 1-5 (the second official page)
+
+PRE-FLIGHT â€” the guard refuses without any network:
+  refused: https://nmcn.gov.uk/verification-of-certificates/ â€” REFUSED before any network â€” forbidden host nmcn.gov.uk
+  refused: https://nmcnigeria.org/ â€” REFUSED before any network â€” forbidden host nmcnigeria.org
+  refused: https://pnmc.gov.pk/verification-registration-2/?x=1 â€” REFUSED before any network â€” not in the frozen manifest: https://pnmc.gov.pk/verification-registration-2/?x=1
+  refused: https://www.nmc.org.uk/robots.txt â€” REFUSED before any network â€” not in the frozen manifest: https://www.nmc.org.uk/robots.txt
+  requests made so far: 0
+
+REQUESTS:
+  #1 [manifest 1] 2026-09-15T22:49:42.563Z HTTP 200 â†’ SUCCESS: HTTP 200, landed on the requested host, 5058 characters of normalised text
+  #2 [manifest 2] 2026-09-15T22:49:44.310Z HTTP 200 â†’ SUCCESS: HTTP 200, landed on the requested host, 7913 characters of normalised text
+  ROW 46 leg 1 Â· first request: hit=false reason=NOT_IN_CACHE researched=true network requests during leg=1
+  ROW 46 leg 2 Â· the same eligible fact again: hit=true reason=â€” researched=false network requests during leg=0
+  ROW 46 leg 3 Â· outside scope (scope origin): hit=false reason=NOT_IN_CACHE researched=false network requests during leg=0
+  #3 [manifest 3] 2026-09-15T22:49:45.418Z HTTP 200 â†’ SUCCESS: HTTP 200, landed on the requested host, 6438 characters of normalised text
+  #4 [manifest 4] 2026-09-15T22:49:46.537Z HTTP 200 â†’ SUCCESS: HTTP 200, landed on the requested host, 10308 characters of normalised text
+  #5 [manifest 5] 2026-09-15T22:49:47.650Z HTTP 200 â†’ SUCCESS: HTTP 200, landed on the requested host, 8472 characters of normalised text
+  #6 [manifest 6] 2026-09-15T22:49:48.767Z HTTP 200 â†’ SUCCESS: HTTP 200, landed on the requested host, 91818 characters of normalised text
+  #7 [manifest 7] 2026-09-15T22:49:49.866Z HTTP 404 â†’ FAILED: HTTP 404
+
+REQUESTS MADE: 7 of 7 Â· distinct URLs requested: 7 Â· every one in the manifest: true
+ROW 46 stats: {"hits":1,"misses":2,"lookupsReachingSource":2,"hitRate":0.3333333333333333,"missReasons":{"NOT_IN_CACHE":2},"bound":{"freshnessWindowDays":[],"scopeRule":"a fact is reused ONLY inside its applicability scope and freshness window; outside either it is a MISS, not a stretch"}}
+ROW 46 researched fact freshness: window 180 days Â· recheckAfter 2027-03-11
+ROW 46 research log: [{"q":{"subject":"uk-nmc","predicate":"oet-profession-version","qualifier":"profession=nursing","scope":"destination"},"networkRequest":true,"observation_id":"ext-0e73d091ef7a8526","outcome":"fetched; the registered record's stored span: pass â€” span found once, verbatim, in 7913 chars of text"},{"q":{"subject":"uk-nmc","predicate":"oet-profession-version","qualifier":"profession=nursing","scope":"origin"},"networkRequest":false,"outcome":"REFUSED at the boundary â€” outside the authorised lookup's scope; the lookup it would trigger is not authorised and was not made"}]
+
+ROW 46 — the live-researcher legs, as recorded:
+{
+  "targetId": "uk-nmc.oet-profession-version.profession=nursing",
+  "legs": [
+    {
+      "label": "leg 1 Â· first request",
+      "hit": false,
+      "reason": "NOT_IN_CACHE",
+      "researched": true,
+      "freshness": null,
+      "factId": "uk-nmc.oet-profession-version.profession=nursing",
+      "networkRequestsDuringLeg": 1
+    },
+    {
+      "label": "leg 2 Â· the same eligible fact again",
+      "hit": true,
+      "reason": null,
+      "researched": false,
+      "freshness": {
+        "state": "USABLE",
+        "why": "recheck due 2027-03-11",
+        "dueOn": "2027-03-11"
+      },
+      "factId": "uk-nmc.oet-profession-version.profession=nursing",
+      "networkRequestsDuringLeg": 0
+    },
+    {
+      "label": "leg 3 Â· outside scope (scope origin)",
+      "hit": false,
+      "reason": "NOT_IN_CACHE",
+      "researched": false,
+      "freshness": null,
+      "factId": null,
+      "networkRequestsDuringLeg": 0
+    }
+  ],
+  "stats": {
+    "hits": 1,
+    "misses": 2,
+    "lookupsReachingSource": 2,
+    "hitRate": 0.3333333333333333,
+    "missReasons": {
+      "NOT_IN_CACHE": 2
+    },
+    "bound": {
+      "freshnessWindowDays": [],
+      "scopeRule": "a fact is reused ONLY inside its applicability scope and freshness window; outside either it is a MISS, not a stretch"
+    }
+  },
+  "researchLog": [
+    {
+      "q": {
+        "subject": "uk-nmc",
+        "predicate": "oet-profession-version",
+        "qualifier": "profession=nursing",
+        "scope": "destination"
+      },
+      "networkRequest": true,
+      "observation_id": "ext-0e73d091ef7a8526",
+      "outcome": "fetched; the registered record's stored span: pass â€” span found once, verbatim, in 7913 chars of text"
+    },
+    {
+      "q": {
+        "subject": "uk-nmc",
+        "predicate": "oet-profession-version",
+        "qualifier": "profession=nursing",
+        "scope": "origin"
+      },
+      "networkRequest": false,
+      "outcome": "REFUSED at the boundary â€” outside the authorised lookup's scope; the lookup it would trigger is not authorised and was not made"
+    }
+  ],
+  "freshnessWindowDays": 180,
+  "recheckAfter": "2027-03-11"
+}
+
+ATTEMPTS (status and digest only; no page text):
+{"record_type":"external_source_capture","n":1,"requestedUrl":"https://pnmc.gov.pk/verification-registration-2/","finalUrl":"https://pnmc.gov.pk/verification-registration-2/","redirectChain":[],"startedAt":"2026-09-15T22:49:42.563Z","ingestDate":"2026-09-15","httpStatus":200,"contentType":"text/html; charset=UTF-8","bytes":86289,"userAgent":"AlmiVisibility-EvidenceRun/0.1 (read-only; owner-authorised 7-URL manifest; 1 request/second; no link following)","purposes":["R5 pk-pnmc.verification-fee.destination=foreign","R5 pk-pnmc.verification-fee.destination=domestic","ROW 16 conflict 6 (same page)"],"result":"SUCCESS","reason":"HTTP 200, landed on the requested host, 5058 characters of normalised text","normalisedFingerprint":"f3740f058f6df75846b99b66d49450291809aa875413a9a9c5f82a4e54324a92","normalisedLength":5058,"observation_id":"ext-c0e1ac71bcc07bb5","measurement_key":"external-page|https://pnmc.gov.pk/verification-registration-2/|f3740f058f6df75846b99b66d49450291809aa875413a9a9c5f82a4e54324a92"}
+{"record_type":"external_source_capture","n":2,"requestedUrl":"https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/accepted-english-language-tests/oet/","finalUrl":"https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/accepted-english-language-tests/oet/","redirectChain":[],"startedAt":"2026-09-15T22:49:44.310Z","ingestDate":"2026-09-15","httpStatus":200,"contentType":"text/html; charset=utf-8","bytes":176915,"userAgent":"AlmiVisibility-EvidenceRun/0.1 (read-only; owner-authorised 7-URL manifest; 1 request/second; no link following)","purposes":["ROW 46 live-researcher lookup (this IS the single request)","R5 uk-nmc.oet-minimum-grade.profession=nursing","R5 uk-nmc.oet-combining-sittings-floor.profession=nursing","R5 uk-nmc.accepted-oet-delivery-modes.profession=nursing"],"result":"SUCCESS","reason":"HTTP 200, landed on the requested host, 7913 characters of normalised text","normalisedFingerprint":"c61f78aa82c0be79e4618ec976fc7c60c9a6042db9ca8726a7f8179cdd2e8dc4","normalisedLength":7913,"observation_id":"ext-0e73d091ef7a8526","measurement_key":"external-page|https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/accepted-english-language-tests/oet/|c61f78aa82c0be79e4618ec976fc7c60c9a6042db9ca8726a7f8179cdd2e8dc4"}
+{"record_type":"external_source_capture","n":3,"requestedUrl":"https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/","finalUrl":"https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/","redirectChain":[],"startedAt":"2026-09-15T22:49:45.418Z","ingestDate":"2026-09-15","httpStatus":200,"contentType":"text/html; charset=utf-8","bytes":161626,"userAgent":"AlmiVisibility-EvidenceRun/0.1 (read-only; owner-authorised 7-URL manifest; 1 request/second; no link following)","purposes":["R5 uk-nmc.english-evidence-routes.profession=nursing"],"result":"SUCCESS","reason":"HTTP 200, landed on the requested host, 6438 characters of normalised text","normalisedFingerprint":"9597d09134e26e40bed99e367564043470482bb902fac1541d1f7abdb68bbb3b","normalisedLength":6438,"observation_id":"ext-6d6bc248b3a3cffc","measurement_key":"external-page|https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/|9597d09134e26e40bed99e367564043470482bb902fac1541d1f7abdb68bbb3b"}
+{"record_type":"external_source_capture","n":4,"requestedUrl":"https://www.nmbi.ie/Registration/Qualified-outside-the-EU/Application-Process/English-Language-Requirements","finalUrl":"https://www.nmbi.ie/Registration/Qualified-outside-the-EU/Application-Process/English-Language-Requirements","redirectChain":[],"startedAt":"2026-09-15T22:49:46.537Z","ingestDate":"2026-09-15","httpStatus":200,"contentType":"text/html; charset=utf-8","bytes":49163,"userAgent":"AlmiVisibility-EvidenceRun/0.1 (read-only; owner-authorised 7-URL manifest; 1 request/second; no link following)","purposes":["R5 ie-nmbi.recognised-english-speaking-countries"],"result":"SUCCESS","reason":"HTTP 200, landed on the requested host, 10308 characters of normalised text","normalisedFingerprint":"50384bb0515bd611f8aca71ffb5b9714b8ac79f167e2360a3665ae74e5d1443e","normalisedLength":10308,"observation_id":"ext-7e95e6ff4de8ee9b","measurement_key":"external-page|https://www.nmbi.ie/Registration/Qualified-outside-the-EU/Application-Process/English-Language-Requirements|50384bb0515bd611f8aca71ffb5b9714b8ac79f167e2360a3665ae74e5d1443e"}
+{"record_type":"external_source_capture","n":5,"requestedUrl":"https://www.hcpc-uk.org/registration/getting-on-the-register/international-applications/documents/certificate-of-english-language-proficiency/","finalUrl":"https://www.hcpc-uk.org/registration/getting-on-the-register/international-applications/documents/certificate-of-english-language-proficiency/","redirectChain":[],"startedAt":"2026-09-15T22:49:47.650Z","ingestDate":"2026-09-15","httpStatus":200,"contentType":"text/html; charset=utf-8","bytes":98651,"userAgent":"AlmiVisibility-EvidenceRun/0.1 (read-only; owner-authorised 7-URL manifest; 1 request/second; no link following)","purposes":["R5 uk-hcpc.accepted-english-tests"],"result":"SUCCESS","reason":"HTTP 200, landed on the requested host, 8472 characters of normalised text","normalisedFingerprint":"de74bee06687d543fa082c823407eab5a6f2cfc265fd77bc6f1b6316d1d26c62","normalisedLength":8472,"observation_id":"ext-e646be810a3ccb2a","measurement_key":"external-page|https://www.hcpc-uk.org/registration/getting-on-the-register/international-applications/documents/certificate-of-english-language-proficiency/|de74bee06687d543fa082c823407eab5a6f2cfc265fd77bc6f1b6316d1d26c62"}
+{"record_type":"external_source_capture","n":6,"requestedUrl":"https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england","finalUrl":"https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england","redirectChain":[],"startedAt":"2026-09-15T22:49:48.767Z","ingestDate":"2026-09-15","httpStatus":200,"contentType":"text/html; charset=utf-8","bytes":334886,"userAgent":"AlmiVisibility-EvidenceRun/0.1 (read-only; owner-authorised 7-URL manifest; 1 request/second; no link following)","purposes":["R5 uk-code-of-practice.red-list-rule"],"result":"SUCCESS","reason":"HTTP 200, landed on the requested host, 91818 characters of normalised text","normalisedFingerprint":"b7e91b57cb5bf93fb12075fae707997e5f70c52e7cd9fc871ad49d18a1510d95","normalisedLength":91818,"observation_id":"ext-4244268a585fe472","measurement_key":"external-page|https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england|b7e91b57cb5bf93fb12075fae707997e5f70c52e7cd9fc871ad49d18a1510d95"}
+{"record_type":"external_source_capture","n":7,"requestedUrl":"https://nmcn.gov.ng/verification-of-certificates/","finalUrl":"https://nmcn.gov.ng/verification-of-certificates/","redirectChain":[],"startedAt":"2026-09-15T22:49:49.866Z","ingestDate":"2026-09-15","httpStatus":404,"contentType":"text/html; charset=iso-8859-1","bytes":0,"userAgent":"AlmiVisibility-EvidenceRun/0.1 (read-only; owner-authorised 7-URL manifest; 1 request/second; no link following)","purposes":["ROW 16 conflicts 1-5 (the second official page)"],"result":"FAILED","reason":"HTTP 404","normalisedFingerprint":null,"normalisedLength":null,"observation_id":"ext-33c77a06cdf302c6","measurement_key":"external-page|https://nmcn.gov.ng/verification-of-certificates/|FAILED"}

@@ -1,0 +1,35 @@
+GAP 1 · facts-lifecycle — THE ONE THAT FIRED — RED LIMBS, EACH ALONE IN THE REAL FILES · 2026-09-15T03:00:26.971Z
+test file: test/ungated-writers.test.mjs
+
+=== CONTAINMENT, BEFORE ANY SABOTAGE — the sources sabotaged AND the evidence a sabotaged run could rewrite
+   bin/facts-lifecycle.mjs: in the index true · matches the index true · a trial write seen by git true · restored to the index byte for byte true · sha256 ad29d0c915fed118bd477f8be3d9ed88bea058bc7bfdcdda09f167b8406b06d0
+   runs/export/facts-for-verification.csv: in the index true · matches the index true · a trial write seen by git true · restored to the index byte for byte true · sha256 02c1f2662ad08bf7b5b0ebe69f78cbb2c6775899650029d54cb134784bbfd4b1
+CLEAN before: exit 0 · tests 8 · pass 8 · fail 0
+
+=== with no flag the writer writes nothing — broken by writing unconditionally (the 14 September shape)
+   file: bin/facts-lifecycle.mjs
+   sabotage landed: true
+   ran only "THE INCIDENT, AS A TEST": exit 1 · tests 1 · pass 0 · fail 1
+   ✖ 🔴 THE INCIDENT, AS A TEST — `node bin/facts-lifecycle.mjs --product=almi-oet` with NO flags leaves runs/export/facts-for-verification.csv BYTE-IDENTICAL
+     reason: AssertionError [ERR_ASSERTION]: 🔴 14 SEPTEMBER AGAIN — a run with no flags rewrote runs/export/facts-for-verification.csv (restored by this test)
+   RED on this limb alone ("14 SEPTEMBER AGAIN"): YES
+   also caught by "THE DRY RUN PRINTS EVERYTHING": exit 1 · fail 1 — RED
+   also caught by "THE DECLARED LOCAL WRITERS": exit 1 · fail 1 — RED
+   after the limb, bin/facts-lifecycle.mjs matches its original bytes and the git index: true
+   after the limb, runs/export/facts-for-verification.csv matches its original bytes and the git index: true
+
+=== --out outside the repository is refused and creates nothing — broken by dropping confineToRepo
+   file: bin/facts-lifecycle.mjs
+   sabotage landed: true
+   ran only "RED, REAL: facts-lifecycle --confirm --out=<outside": exit 1 · tests 1 · pass 0 · fail 1
+   ✖ 🔴 RED, REAL: facts-lifecycle --confirm --out=<outside the repository> REFUSES, exits non-zero, and creates NOTHING
+     reason: AssertionError [ERR_ASSERTION]: facts-lifecycle exited 0 while pointed outside the repository
+   RED on this limb alone ("exited 0 while pointed outside the repository"): YES
+   also caught by "THE DECLARED LOCAL WRITERS": exit 1 · fail 1 — RED
+   after the limb, bin/facts-lifecycle.mjs matches its original bytes and the git index: true
+   after the limb, runs/export/facts-for-verification.csv matches its original bytes and the git index: true
+
+=== CLEAN — every file restored
+exit 0 · tests 8 · pass 8 · fail 0
+
+verdict: RED PROVED — 2 limbs, containment proved first, each sabotaged alone in its real file, each RED on its own named test, every source and evidence file back to its bytes

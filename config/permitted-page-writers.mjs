@@ -130,3 +130,33 @@ export const PERMITTED_PAGE_WRITERS = Object.freeze([
     whyKnown: true,
   },
 ]);
+
+/**
+ * 🔴 GAP 1 (15 September 2026) — THE LOCAL WRITERS THAT WRITE NO PAGE, DECLARED BESIDE THE PAGE WRITERS.
+ *
+ * The write law says EVERY write path defaults to dry-run. The census above reconciles PAGE writes only, so a CSV
+ * export into runs/ was outside the population the law was enforced over — and on 14 September one such writer
+ * rewrote committed evidence on a run made only to read a number (_handoffs/AlmiVisibility_WRITE_LAW_GAP_2026-09-14.md).
+ *
+ * Each entry states the same four things, and `test/ungated-writers.test.mjs` checks each against its source: that it
+ * calls writePermission and confineToRepo before its first write, that every write site sits behind its gateToken, and
+ * that its site count and destination flag are what the entry declares.
+ *
+ * ⚠️ WHAT THIS LIST IS NOT: a census. Nothing finds a writer that is missing from it — widening the census beyond
+ * PAGE_WRITE so every write path must be declared is gap 2 in the owner's frozen register, a separate slot, and is NOT
+ * done here. A new ungated local writer can still arrive unseen, exactly as these did.
+ */
+export const PERMITTED_LOCAL_WRITERS = Object.freeze([
+  {
+    file: "bin/facts-lifecycle.mjs",
+    sites: 2,
+    writes: "the fact registry exported for VERIFICATION as one CSV — the list of questions a verifier must answer, never the answers",
+    where: `runs/export/facts-for-verification.csv by default — a tracked EVIDENCE file (.gitattributes runs/**) — or the file given by --out; ${CONFINED}`,
+    gatedBy: "write-law LOCAL: the directory and the file sit behind permission.mayWrite, which only --confirm grants. Every figure — conflict, freshness, the dependency walk, changed inputs, the cache — prints with no flag. 🔴 Until 15 September 2026 it wrote on EVERY run, and on 14 September a run made to read one number rewrote committed evidence",
+    gateFlags: ["--confirm"],
+    gateToken: "permission.mayWrite",
+    destinationOverridable: true,
+    why: "the verification hand-off for rows 16, 17 and 46: a person verifies the registry by reading official sources, and this file tells them which claims to read for and what kind of authority settles each",
+    whyKnown: true,
+  },
+]);

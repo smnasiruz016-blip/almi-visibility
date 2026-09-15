@@ -298,12 +298,14 @@ test("🔴 RED: TESTABLE-NOW without a named test is REFUSED", () => {
  * 7 UNKNOWN, none accepted or rejected — so BUILT-NOT-PROVED, never further. NOT-STARTED 6 → 5, BUILT-NOT-PROVED 6 → 7. */
 /* 🔴 AND ROW 3's OWNED HALF WAS RUN AND PASSED (15 Sep 2026): the real wording discovered from the owned pulls and stored,
  * traceable byte for byte, no keyword→URL path; each FAILURE limb RED alone. NOT-STARTED 5 → 4, VERIFIED-PASS 19 → 20. */
-test("the seven-state tally is 2 / 9 / 1 / 20 / 2 / 4 / 23 over 61 rows", () => {
+/* 🔴 AND ROW 36 TICKED (15 Sep 2026): the archive-corpus overwrite refusal ran at last, so every category its frozen boundary
+ * names has a test that runs the guard. BUILT-NOT-PROVED 9 → 8, VERIFIED-PASS 20 → 21. */
+test("the seven-state tally is 2 / 8 / 1 / 21 / 2 / 4 / 23 over 61 rows", () => {
   assert.deepEqual(tally(classify()), {
     "NOT-STARTED": 2,
-    "BUILT-NOT-PROVED": 9,
+    "BUILT-NOT-PROVED": 8,
     "TESTABLE-NOW": 1,
-    "VERIFIED-PASS": 20,
+    "VERIFIED-PASS": 21,
     FAILED: 2,
     "BLOCKED-UNKNOWN": 4,
     DEFERRED: 23,
@@ -359,10 +361,11 @@ test("every state used is one of the seven, and every row is classified", () => 
 /* 🔴 TWENTY-THREE since row 3's owned half was run and passed (15 Sep 2026) ("none" 14 → 13). */
 /* 🔴 TWENTY-FOUR since row 4 was built and run (15 Sep 2026) — work that stops at BUILT-NOT-PROVED, beside row 6 ("none" 13 → 12). */
 /* 🔴 TWENTY-FIVE since row 7's owned half was built and run (15 Sep 2026) — BUILT-NOT-PROVED beside 4 and 6 ("none" 12 → 11). */
-test("🔴 exactly TWENTY-FIVE rows moved on WORK — 4, 6 and 7 BUILT-NOT-PROVED; 9 BLOCKED; 25 TESTABLE-NOW; 5 and 50 FAILED; the rest PASS", () => {
+/* 🔴 TWENTY-SIX since row 36 ticked (15 Sep 2026) — it was BUILT-NOT-PROVED on 11 September too, so until now it was "none" (11 → 10). */
+test("🔴 exactly TWENTY-SIX rows moved on WORK — 4, 6 and 7 BUILT-NOT-PROVED; 9 BLOCKED; 25 TESTABLE-NOW; 5 and 50 FAILED; the rest PASS", () => {
   const rows = Object.values(classify());
   const work = rows.filter((r) => r.changeKind === "work");
-  assert.deepEqual(work.map((r) => r.id).sort((a, b) => a - b), [3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 25, 26, 38, 42, 45, 47, 48, 49, 50, 51, 53, 55, 56]);
+  assert.deepEqual(work.map((r) => r.id).sort((a, b) => a - b), [3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 25, 26, 36, 38, 42, 45, 47, 48, 49, 50, 51, 53, 55, 56]);
   assert.deepEqual(work.filter((r) => !LOOKED.includes(r.state)).map((r) => `${r.id}:${r.state}`), ["4:BUILT-NOT-PROVED", "6:BUILT-NOT-PROVED", "7:BUILT-NOT-PROVED", "9:BLOCKED-UNKNOWN", "25:TESTABLE-NOW"]);
   assert.deepEqual(work.filter((r) => r.state === "FAILED").map((r) => r.id), [5, 50]);
   // 🔴 Amendment 4: rows 3–7 are NOT-STARTED again, which is where the 11 September baseline had them — so
@@ -373,8 +376,9 @@ test("🔴 exactly TWENTY-FIVE rows moved on WORK — 4, 6 and 7 BUILT-NOT-PROVE
   // its declared move in MOVES_AMENDMENT_2 — never inferred from a baseline it was not in.
   // 🔴 And row 5, run and FAILED on 14 September 2026, is work against that baseline, not "none" (16 → 15);
   // and row 6, built and run the same night, is work too (15 → 14).
-  // and row 4, built and run on 15 September 2026, is work too (13 → 12); and row 7 the same day (12 → 11).
-  assert.equal(rows.filter((r) => r.changeKind === "none").length, 11);
+  // and row 4, built and run on 15 September 2026, is work too (13 → 12); and row 7 the same day (12 → 11);
+  // and row 36, ticked the same night on its executed guards (11 → 10).
+  assert.equal(rows.filter((r) => r.changeKind === "none").length, 10);
 });
 
 /* ================================================================== *
@@ -705,11 +709,14 @@ test("🔴 the five arrive NOT-STARTED by a RULING move and nothing else; row 2 
  * evidence limb RED alone. */
 /* 🔴 NINETEEN since row 60 ticked (14 Sep 2026) — on its census over the real store, its four frozen limbs re-run RED alone. */
 /* 🔴 TWENTY since row 3's owned half ran against its boundary (15 Sep 2026) — every FAILURE limb RED alone, held-out 61/61. */
-test("🔴 VERIFIED-PASS is exactly 20 — items 3, 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56, 59 and 60 — and 48's reopen stays on the record", () => {
+/* 🔴 TWENTY-ONE since row 36 ticked (15 Sep 2026) — every category its frozen boundary names runs its guard in CI on main. */
+test("🔴 VERIFIED-PASS is exactly 21 — items 3, 8, 11, 12, 13, 14, 15, 26, 36, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56, 59 and 60 — and 48's reopen stays on the record", () => {
   const rows = classify();
   const passed = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS").map((r) => r.id).sort((a, b) => a - b);
-  assert.deepEqual(passed, [3, 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56, 59, 60]);
-  assert.equal(tally(rows)["VERIFIED-PASS"], 20);
+  assert.deepEqual(passed, [3, 8, 11, 12, 13, 14, 15, 26, 36, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56, 59, 60]);
+  assert.equal(tally(rows)["VERIFIED-PASS"], 21);
+  assert.equal(MOVES_AMENDMENT_2[36].at(-1).route, "TEST_RUN", "row 36's tick did not come from its tests");
+  assert.match(rows[36].why, /NO PRODUCTION WRITE PATH EXISTS/, "row 36's production residue is not on the row");
   assert.equal(MOVES_AMENDMENT_2[3].at(-1).route, "TEST_RUN", "row 3's tick did not come from its test");
   assert.equal(MOVES_AMENDMENT_2[60].at(-1).route, "TEST_RUN", "row 60's tick did not come from its test");
   assert.equal(MOVES_AMENDMENT_2[59][0].route, "TEST_RUN", "row 59's tick did not come from its test");

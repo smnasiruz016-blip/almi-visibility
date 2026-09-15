@@ -21,13 +21,31 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 | state | before (4-state) | after (7-state) |
 |---|---|---|
 | **NOT-STARTED** | 33 | **2** |
-| **BUILT-NOT-PROVED** | 24 | **9** |
+| **BUILT-NOT-PROVED** | 24 | **8** |
 | **TESTABLE-NOW** | — | **1** |
-| **VERIFIED-PASS** | 0 | **20** |
+| **VERIFIED-PASS** | 0 | **21** |
 | **FAILED** | — | **2** |
 | **BLOCKED-UNKNOWN** | 1 | **4** |
 | **DEFERRED** | — | **23** |
 | **total** | 58 | **61** |
+
+> ### 🔴 GAP 3 CLOSED (#90) — AND ROW 36 TICKED: EVERY GUARD ITS FROZEN BOUNDARY NAMES NOW RUNS — 15 SEPTEMBER 2026
+>
+> - **Gap 3 (#90, merged as ce43c4b):** `bin/archive-corpus.mjs` takes `--out=` — default identical, confined to this repository —
+>   and its overwrite refusal now RUNS: against a disposable read-only copy of the run's 394 real bodies in `.test-scratch/`, it
+>   refuses `--confirm --out=<an existing archive>` with exit 2 and that file's sha256 unchanged. The run record stays hard-coded,
+>   `verifyBodiesAgainstRun` is untouched, and the committed archive (`3d857a9e53fd4b015131bfd721788942a7c3df15b775e6633fb429bc84af3ded`)
+>   and run record (`0b9fb848436eca43dac54b0a4d3f220bb637e3c35b18a9d6297bc50b71bcc345`) are asserted unchanged after every spawned run.
+>   RED-proved by inverting the guard alone inside a filesystem fence (`runs/audit/gap3-archive-corpus-red-2026-09-15.txt`).
+> - **CI, measured:** the job took **215 s** on the PR (run 34927611441, head 3c56cae) and **172 s** on main (run 34927704324,
+>   ce43c4b) — `node --test` 206 s and 160 s — against a 20-minute ceiling (≥ 985 s headroom). At the Linux 2-core rate on the
+>   record, **$0.006 / minute after the allowance** (`PHASE_0_ITEM_4_WORKER_HOSTING.md`), that is **$0.0215** and **$0.0172** of
+>   runner time. 🔴 **`U-COST-1` stays UNREAD:** the rate is known, the allowance is not, so no run is recorded as costing money.
+> - 🔴 **Merged before its own CI finished:** #90 merged at 04:09:08Z; its PR run completed green at 04:11:24Z. Recorded, as #89's was.
+> - **Row 36 · BUILT-NOT-PROVED → VERIFIED-PASS (work)**, judged against its frozen boundary after main's CI went green:
+>   **destructive** (replay-crawl `--recover`; archive-corpus's overwrite refusal) · **paid** · **large-scale** · **cross-product** ·
+>   **production** each have a test that runs the guard and observes the refusal. 🔴 **Production is proved at the permission
+>   function because NO PRODUCTION WRITE PATH EXISTS** — that residue stays on the row. Ledger 2 / 8 / 1 / 21 / 2 / 4 / 23 = 61.
 
 > ### 🔴 GAP 1 CLOSED — THE FOUR UNGATED WRITE PATHS BEHIND THE WRITE LAW — 15 SEPTEMBER 2026 — NO ROW MOVED
 >
@@ -812,10 +830,10 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 >   ingested and the seventh is supplied by no tool we hold. Not a tick. After it the counts are
 >   BUILT-NOT-PROVED **16** and BLOCKED-UNKNOWN **7**; the table above records Amendment 2 alone.
 
-> ### 🔴 TWENTY TICKS — ITEMS 3, 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56, 59 AND 60
+> ### 🔴 TWENTY-ONE TICKS — ITEMS 3, 8, 11, 12, 13, 14, 15, 26, 36, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56, 59 AND 60
 >
-> **Items 3 (its owned half), 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 48, 49, 51, 55, 59 and 60.** Each has all four parts of its boundary
-> answered with real-data evidence. They are the only twenty rows in the whole ledger that **hold a pass earned by work**;
+> **Items 3 (its owned half), 8, 11, 12, 13, 14, 15, 26, 36, 38, 42, 45, 48, 49, 51, 55, 59 and 60.** Each has all four parts of its boundary
+> answered with real-data evidence. They are the only twenty-one rows in the whole ledger that **hold a pass earned by work**;
 > item 9 moved by work and ended BLOCKED-UNKNOWN; item 50 was run and stays FAILED; item 25 was run and is
 > TESTABLE-NOW with its gap named; **items 48, 51 and 55 each passed through FAILED** and left it only by the
 > test re-run and passing; items 11 and 42 were proved on a local replay of real bodies, which does not prove
@@ -951,7 +969,7 @@ actually came from.
 | 33 | Content Decay & Pruning | DEFERRED | OUT — acts on published inventory; publishing excluded l.974 | none | 2026-09-11 | Claude (repo audit) | — | — |
 | 34 | Content Brief Engine | DEFERRED | OUT — phase table "Controlled pSEO" | none | 2026-09-11 | Claude (repo audit) | — | — |
 | 35 | Safe CC Command Generation | DEFERRED | OUT — §18, later phase | none | 2026-09-11 | Claude (repo audit) | — | — |
-| 36 | Owner Authorization Gates | BUILT-NOT-PROVED | IN — §32 cost/mass-page gate; safety applies to every phase | **Re-measured 15 Sep 2026 on main (11ba98d), per category.** **paid** `test/paid-provider-controls.test.mjs` (the real gate refuses before the provider is called; every refusal ledgered) · **large-scale** `test/cost-governor.test.mjs` (cap throws before the call, stop latches, injected runaway hard-stopped) · **cross-product** `test/product-isolation.test.mjs` (accessors refuse the other tenant) + `test/write-confinement.test.mjs` (real `bin/report.mjs --confirm` aimed outside the repo refuses, creates nothing) · **production** `test/gate-a.test.mjs` (the write law's permission function only) · **destructive** NEW `test/owner-authorization-gates.test.mjs`: `bin/replay-crawl.mjs --recover` without `--confirm` → exit 2, REFUSED, scratch corpus intact byte for byte; RED-proved by inverting the guard (runs/audit/row36-destructive-red-2026-09-15.txt) · **network · D-CRW-4** NEW: `bin/crawl.mjs --live` without `--i-have-the-owners-green`, loopback-only seeds, scratch `--out`/`--corpus` → exit EXACTLY 3, REFUSED, nothing written, runs/crawl and the cost ledger unchanged; RED-proved under a network-and-runs/ containment preload (runs/audit/row36-dcrw4-red-2026-09-15.txt) | 2026-09-15 | CC (row 36 — D-CRW-4) | 🔴 **Still not ticked — ONE named guard does not run.** `bin/archive-corpus.mjs`'s overwrite refusal is NOT SAFELY TESTABLE: its destination is hard-coded to the committed body archive and the refusal sits behind `--confirm`; it needs an operator `--out=` first, in its own PR. And **production** runs only as a permission function, because no production write path exists. ⚠️ Found while proving D-CRW-4: a loopback seeds file does NOT bound an inverted gate — it reaches a third-party IPv6 probe and estate DNS before reading seeds, and a live run writes the cost ledger under runs/ | — |
+| 36 | Owner Authorization Gates | VERIFIED-PASS | IN — §32 cost/mass-page gate; safety applies to every phase | **VERIFIED-PASS 15 Sep 2026 on main (ce43c4b, CI run 34927704324):** the last named guard now runs — `bin/archive-corpus.mjs --confirm --out=<an existing archive>` → exit 2, that archive's sha256 unchanged, past the full 394-body verification (gap 3, #90; RED-proved inside a filesystem fence, runs/audit/gap3-archive-corpus-red-2026-09-15.txt). Every category the frozen boundary names runs its guard; production at the permission function because NO PRODUCTION WRITE PATH EXISTS. ── EARLIER, KEPT: **Re-measured 15 Sep 2026 on main (11ba98d), per category.** **paid** `test/paid-provider-controls.test.mjs` (the real gate refuses before the provider is called; every refusal ledgered) · **large-scale** `test/cost-governor.test.mjs` (cap throws before the call, stop latches, injected runaway hard-stopped) · **cross-product** `test/product-isolation.test.mjs` (accessors refuse the other tenant) + `test/write-confinement.test.mjs` (real `bin/report.mjs --confirm` aimed outside the repo refuses, creates nothing) · **production** `test/gate-a.test.mjs` (the write law's permission function only) · **destructive** NEW `test/owner-authorization-gates.test.mjs`: `bin/replay-crawl.mjs --recover` without `--confirm` → exit 2, REFUSED, scratch corpus intact byte for byte; RED-proved by inverting the guard (runs/audit/row36-destructive-red-2026-09-15.txt) · **network · D-CRW-4** NEW: `bin/crawl.mjs --live` without `--i-have-the-owners-green`, loopback-only seeds, scratch `--out`/`--corpus` → exit EXACTLY 3, REFUSED, nothing written, runs/crawl and the cost ledger unchanged; RED-proved under a network-and-runs/ containment preload (runs/audit/row36-dcrw4-red-2026-09-15.txt) | 2026-09-15 | CC (row 36 — gap 3, work) | ✅ **Ticked 15 Sep 2026 on its executed guards, judged against the frozen boundary after main's CI.** Production residue kept: proved at the permission function because no production write path exists. ── EARLIER VERDICT, KEPT: 🔴 **Still not ticked — ONE named guard does not run.** `bin/archive-corpus.mjs`'s overwrite refusal is NOT SAFELY TESTABLE: its destination is hard-coded to the committed body archive and the refusal sits behind `--confirm`; it needs an operator `--out=` first, in its own PR. And **production** runs only as a permission function, because no production write path exists. ⚠️ Found while proving D-CRW-4: a loopback seeds file does NOT bound an inverted gate — it reaches a third-party IPv6 probe and estate DNS before reading seeds, and a live run writes the cost ledger under runs/ | — |
 | 37 | Controlled Publishing | DEFERRED | OUT — v0.1 EXCLUDES l.974 "Page generation, in every form" | none — and l.610 says the absent feature *is* the gate | 2026-09-11 | Claude (repo audit) | — | — |
 | 38 | Indexability Preflight | VERIFIED-PASS | IN — §62 l.553; the preflight assesses pages that already exist | **Re-scanned and run 13 Sep over the COMMITTED bodies** in ASSESS MODE: a state for every page — **158 BLOCKED, 210 UNKNOWN, 26 ELIGIBLE** (total 394). **`INDEXABLE ≠ INDEXED` printed at the head of the run and in every preflight finding**, and a test fails the build on any wording that promises indexing, ranking or citation. `runs/audit/item-12-38-technical-run-2026-09-13.txt` | 2026-09-13 | Claude (queue re-scan) | **It assesses; it does not gate** (the deferred half: nothing is published). An ELIGIBLE page is the absence of a finding, counted, not a stored record | re-scan, 13 Sep 2026 |
 | 39 | Real Indexation Learning | DEFERRED | OUT — post-publication; publishing excluded l.974 | none | 2026-09-11 | Claude (repo audit) | — | — |

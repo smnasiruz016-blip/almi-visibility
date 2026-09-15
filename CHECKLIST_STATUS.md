@@ -46,7 +46,18 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 >   test, GREEN after. ⚠️ The copied-fact limb's first attempt planted an 18-character value and did not go red: `findCopiedFacts` skips
 >   text under 40 characters and catches a sentence, not a paraphrase, by its own recorded design. Re-run with the record's sentence;
 >   the check is unchanged.
-> - **Row 53 is untouched:** neutral-test-ferments still declares `pageSpecs {}`; row 53 stays VERIFIED-PASS. No file under `src/` changed.
+> - 🔴 **NAMED RESIDUE (close-out, 15 September 2026):** `findCopiedFacts` does not detect a copied fact value that is not a string, or
+>   a string shorter than 40 characters; the registry holds such values (`pk-pnmc.verification-fee` = 10000, a number). Measured: of the
+>   first product's 46 values, 13 are not strings and 5 are strings under 40 characters — 18 of 46 unseen if copied; all 3 of
+>   neutral-test-knots are under 40. The floor is not changed. On the row, in the same shape as GATE-4.
+> - **The provenance guard re-anchored in #92, re-proved against real breaks** (`runs/audit/row61-provenance-anchor-red-2026-09-15.txt`):
+>   the amendment-mismatch rule disabled → the re-anchored test RED on its assertion; row 61's recorded move deleted → the transition
+>   law refused item 61 by name ("no move was declared"). Every file restored byte for byte.
+> - **Row 53 is untouched:** neutral-test-ferments still declares `pageSpecs {}`; row 53 stays VERIFIED-PASS. No file under `src/` changed
+>   except the ledger (`src/checklist/classification.mjs`).
+> - **#92 merged at 05:46:32Z as `6d536d2`, 83 s after its own CI finished green** (run 34933770349 on head `06a9dff`: 1,187 tests ·
+>   1,183 pass · 0 fail · 4 skipped, the LIVE renderer tests only); the merge tree is identical to the approved head's. **Main's own
+>   CI on `6d536d2`** (run 34934113268, push): green — 1,187 tests · 1,183 pass · 0 fail · 4 skipped; `node --test` 196 s.
 > - 🔴 **No real page can be accepted, and the pass does not say otherwise:** no spec declares a WHY_THIS_URL, no template family has three
 >   rendered specs, and PAGE-1 stays UNSATISFIED. Row 61 proves the generator refuses correctly on any declared product.
 > - **Row 61 · BUILT-NOT-PROVED → VERIFIED-PASS (work, TEST_RUN).** Ledger 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61.

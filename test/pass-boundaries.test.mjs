@@ -497,6 +497,10 @@ test("🔴 row 61 — CREATED BUILT-NOT-PROVED by a WORK move, then VERIFIED-PAS
   assert.match(r.why, /WHY_THIS_URL_DESERVES_TO_EXIST/);
   assert.match(r.why, /THREE rendered specs/);
   assert.match(r.why, /a test fixture is not a declared product/, "the earlier verdict was not kept");
+  // 🔴 A measured limit of a live detector stays ON THE ROW, not in a sabotage anecdote (owner, 15 Sep 2026).
+  assert.match(r.why, /does not detect a copied fact VALUE that is not a string, or a string shorter than 40 characters/, "the 40-character residue left the row");
+  assert.match(r.why, /18 of 46 could be copied into a spec unseen/);
+  assert.match(r.why, /row61-provenance-anchor-red-2026-09-15\.txt/, "the re-anchored provenance guard's re-proof is not on the row");
   assert.equal(rows[53].state, "VERIFIED-PASS", "row 53 lost its pass");
   assert.deepEqual(assertTransitions(rows), []);
   assert.deepEqual(assertLawful(rows), []);

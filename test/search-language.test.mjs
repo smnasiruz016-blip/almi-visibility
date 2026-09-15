@@ -63,7 +63,8 @@ test("🔴 HELD-OUT RE-CHECK — traceability, read from the raw store text: 61 
 
 test("🔴 KEYWORD→URL CENSUS — no consumer of the search-language module builds a URL-shaped value", () => {
   const c = keywordUrlCensus(SOURCES);
-  assert.deepEqual(c.consumers, ["bin/search-language.mjs", "src/discovery/search-language.mjs"]);
+  // 🔴 row 4 (15 Sep 2026) builds on row 3's relations and imports its variant rule — so this census polices row 4 too
+  assert.deepEqual(c.consumers, ["bin/localized-thinking.mjs", "bin/search-language.mjs", "src/discovery/localized-thinking.mjs", "src/discovery/search-language.mjs"]);
   assert.deepEqual(c.breaches, [], c.breaches.map((b) => `${b.file}:${b.line} ${b.shape}`).join("\n"));
 });
 

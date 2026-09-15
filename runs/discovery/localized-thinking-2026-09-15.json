@@ -1,0 +1,3266 @@
+{
+  "row": 4,
+  "class": "P",
+  "input": {
+    "countryQuery": {
+      "observation_id": "9bf50cfb134a0d7d",
+      "method": "gsc.searchAnalytics.query:country-query",
+      "observed_at": "2026-09-12T23:25:04.608Z",
+      "rows": 388,
+      "rowCount": 388
+    },
+    "pageRows": {
+      "observation_id": "9f8cbf772d1cd434",
+      "method": "gsc.searchAnalytics.query:page-rows",
+      "observed_at": "2026-09-12T22:06:43.410Z",
+      "rows": 1525
+    },
+    "row3": {
+      "stored": "runs/discovery/search-language-2026-09-15.json",
+      "records": 329
+    }
+  },
+  "dependency": {
+    "builtOn": "row 3 — Keyword & Search-Language Discovery (VERIFIED-PASS): its discovered wording relations, reused from its stored records",
+    "notBuiltOn": "row 5 — Intent & Question Clustering (FAILED): its clusters are not read, and a test fails the build if this module's import closure reaches row 5's clusterer, lexicon or reference, or row 6's modules that import them"
+  },
+  "rules": {
+    "COUNTRY_FLOOR": 5,
+    "floor": "a country says something about local phrasing only with at least 5 human country×query rows — the floor row 6 set for locality. Below it the country is UNKNOWN: never \"no local difference\", and UNKNOWN never defaults to anything (LAW-ABSENT-1)",
+    "grouping": "two wordings express the same goal only when ROW 3's discovered evidence links them — a SYNONYM or ABBREVIATION pair row 3 recorded on a shared landing page, or a VARIANT form (a plural, a one-letter spelling, punctuation) found by row 3's own rule and checked against row 3's counts — joined transitively. Nothing is grouped by hand, and row 5's clusters are not read",
+    "absence": "a wording not seen from a country is UNKNOWN for that country, never \"not used there\": Search Console withholds rare queries, and each country×query pair is ONE row (LAW-ABSENT-1)"
+  },
+  "population": {
+    "rows": 388,
+    "humanRows": 379,
+    "operatorRows": 9,
+    "distinctQueries": 337,
+    "multiCountryQueries": 33,
+    "multiCountryHuman": 32,
+    "multiCountryOperator": [
+      {
+        "original": "\"mastercard foundation\" -site:reddit.com -site:twitter.com -site:x.com -site:wykop.pl -site:tripadvisor.com -site:youtube.com -site:yelp.com -site:booking.com -site:facebook.com -site:instagram.com -site:tiktok.com",
+        "countries": [
+          "arg",
+          "bra"
+        ]
+      }
+    ],
+    "widestSpread": {
+      "countries": 6,
+      "queries": [
+        {
+          "original": "celpe bras 2026",
+          "countries": [
+            "gha",
+            "ind",
+            "kor",
+            "nga",
+            "nzl",
+            "usa"
+          ]
+        },
+        {
+          "original": "daily habits",
+          "countries": [
+            "can",
+            "gbr",
+            "hkg",
+            "ind",
+            "qat",
+            "usa"
+          ]
+        }
+      ]
+    },
+    "countriesAllRows": {
+      "countries": 49,
+      "atOrAboveFloor": 10,
+      "exactlyOne": 19
+    },
+    "countriesHumanRows": {
+      "countries": 48,
+      "atOrAboveFloor": 10,
+      "exactlyOne": 19
+    },
+    "operatorOnlyCountries": [
+      "arg"
+    ],
+    "outsideRow3": {
+      "queries": 0,
+      "multiCountry": []
+    }
+  },
+  "relationsUsed": {
+    "SYNONYM": 19,
+    "ABBREVIATION": 1,
+    "VARIANT": 10
+  },
+  "abbreviationPairsRefused": [
+    {
+      "a": "cv with no experience",
+      "b": "how to write a curriculum vitae with no experience",
+      "short": "cv",
+      "long": "curriculum vitae",
+      "why": "not the same frame — the words are evidenced as one, the queries are not"
+    },
+    {
+      "a": "how many pte score required for new zealand student visa",
+      "b": "pte score for nz residency",
+      "short": "nz",
+      "long": "new zealand",
+      "why": "not the same frame — the words are evidenced as one, the queries are not"
+    },
+    {
+      "a": "how to make a cv for students with no experience",
+      "b": "how to write a curriculum vitae with no experience",
+      "short": "cv",
+      "long": "curriculum vitae",
+      "why": "not the same frame — the words are evidenced as one, the queries are not"
+    },
+    {
+      "a": "how to make a cv when u have zero experience",
+      "b": "how to write a curriculum vitae with no experience",
+      "short": "cv",
+      "long": "curriculum vitae",
+      "why": "not the same frame — the words are evidenced as one, the queries are not"
+    },
+    {
+      "a": "how to make a cv with no experience",
+      "b": "how to write a curriculum vitae with no experience",
+      "short": "cv",
+      "long": "curriculum vitae",
+      "why": "not the same frame — the words are evidenced as one, the queries are not"
+    },
+    {
+      "a": "how to write a curriculum vitae with no experience",
+      "b": "how to write a cv when you have no experience",
+      "short": "cv",
+      "long": "curriculum vitae",
+      "why": "not the same frame — the words are evidenced as one, the queries are not"
+    },
+    {
+      "a": "how to write a curriculum vitae with no experience",
+      "b": "i don t have a cv",
+      "short": "cv",
+      "long": "curriculum vitae",
+      "why": "not the same frame — the words are evidenced as one, the queries are not"
+    },
+    {
+      "a": "how to write a curriculum vitae with no experience",
+      "b": "what to put in a cv with no experience",
+      "short": "cv",
+      "long": "curriculum vitae",
+      "why": "not the same frame — the words are evidenced as one, the queries are not"
+    },
+    {
+      "a": "how to write a curriculum vitae with no experience",
+      "b": "what to put on a cv with no experience",
+      "short": "cv",
+      "long": "curriculum vitae",
+      "why": "not the same frame — the words are evidenced as one, the queries are not"
+    },
+    {
+      "a": "how to write a curriculum vitae with no experience",
+      "b": "what to put on cv with no experience",
+      "short": "cv",
+      "long": "curriculum vitae",
+      "why": "not the same frame — the words are evidenced as one, the queries are not"
+    },
+    {
+      "a": "how to write a curriculum vitae with no experience",
+      "b": "what to write in cv with no experience",
+      "short": "cv",
+      "long": "curriculum vitae",
+      "why": "not the same frame — the words are evidenced as one, the queries are not"
+    },
+    {
+      "a": "how to write a curriculum vitae with no experience",
+      "b": "write a cv with no experience",
+      "short": "cv",
+      "long": "curriculum vitae",
+      "why": "not the same frame — the words are evidenced as one, the queries are not"
+    },
+    {
+      "a": "pearson test of english",
+      "b": "pte academic",
+      "short": "pte",
+      "long": "pearson test of english",
+      "why": "not the same frame — the words are evidenced as one, the queries are not"
+    }
+  ],
+  "counts": {
+    "goals": 37,
+    "DIFFERENT_WORDING": 12,
+    "SAME_WORDING": 25,
+    "countriesAboveFloor": 10,
+    "countriesUnknown": 38
+  },
+  "countries": [
+    {
+      "country": "aus",
+      "humanRows": 148,
+      "status": "ABOVE_FLOOR"
+    },
+    {
+      "country": "usa",
+      "humanRows": 62,
+      "status": "ABOVE_FLOOR"
+    },
+    {
+      "country": "gbr",
+      "humanRows": 32,
+      "status": "ABOVE_FLOOR"
+    },
+    {
+      "country": "ind",
+      "humanRows": 23,
+      "status": "ABOVE_FLOOR"
+    },
+    {
+      "country": "can",
+      "humanRows": 14,
+      "status": "ABOVE_FLOOR"
+    },
+    {
+      "country": "rus",
+      "humanRows": 7,
+      "status": "ABOVE_FLOOR"
+    },
+    {
+      "country": "nzl",
+      "humanRows": 5,
+      "status": "ABOVE_FLOOR"
+    },
+    {
+      "country": "pak",
+      "humanRows": 5,
+      "status": "ABOVE_FLOOR"
+    },
+    {
+      "country": "phl",
+      "humanRows": 5,
+      "status": "ABOVE_FLOOR"
+    },
+    {
+      "country": "qat",
+      "humanRows": 5,
+      "status": "ABOVE_FLOOR"
+    },
+    {
+      "country": "are",
+      "humanRows": 4,
+      "status": "UNKNOWN",
+      "why": "4 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "esp",
+      "humanRows": 4,
+      "status": "UNKNOWN",
+      "why": "4 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "nld",
+      "humanRows": 4,
+      "status": "UNKNOWN",
+      "why": "4 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "npl",
+      "humanRows": 4,
+      "status": "UNKNOWN",
+      "why": "4 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "per",
+      "humanRows": 4,
+      "status": "UNKNOWN",
+      "why": "4 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "tur",
+      "humanRows": 4,
+      "status": "UNKNOWN",
+      "why": "4 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "cmr",
+      "humanRows": 3,
+      "status": "UNKNOWN",
+      "why": "3 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "col",
+      "humanRows": 3,
+      "status": "UNKNOWN",
+      "why": "3 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "ita",
+      "humanRows": 3,
+      "status": "UNKNOWN",
+      "why": "3 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "mar",
+      "humanRows": 3,
+      "status": "UNKNOWN",
+      "why": "3 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "bgd",
+      "humanRows": 2,
+      "status": "UNKNOWN",
+      "why": "2 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "dnk",
+      "humanRows": 2,
+      "status": "UNKNOWN",
+      "why": "2 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "fra",
+      "humanRows": 2,
+      "status": "UNKNOWN",
+      "why": "2 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "idn",
+      "humanRows": 2,
+      "status": "UNKNOWN",
+      "why": "2 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "irn",
+      "humanRows": 2,
+      "status": "UNKNOWN",
+      "why": "2 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "mys",
+      "humanRows": 2,
+      "status": "UNKNOWN",
+      "why": "2 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "sau",
+      "humanRows": 2,
+      "status": "UNKNOWN",
+      "why": "2 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "sgp",
+      "humanRows": 2,
+      "status": "UNKNOWN",
+      "why": "2 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "tha",
+      "humanRows": 2,
+      "status": "UNKNOWN",
+      "why": "2 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "bhr",
+      "humanRows": 1,
+      "status": "UNKNOWN",
+      "why": "1 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "bra",
+      "humanRows": 1,
+      "status": "UNKNOWN",
+      "why": "1 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "cri",
+      "humanRows": 1,
+      "status": "UNKNOWN",
+      "why": "1 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "deu",
+      "humanRows": 1,
+      "status": "UNKNOWN",
+      "why": "1 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "dza",
+      "humanRows": 1,
+      "status": "UNKNOWN",
+      "why": "1 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "eth",
+      "humanRows": 1,
+      "status": "UNKNOWN",
+      "why": "1 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "fji",
+      "humanRows": 1,
+      "status": "UNKNOWN",
+      "why": "1 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "gha",
+      "humanRows": 1,
+      "status": "UNKNOWN",
+      "why": "1 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "hkg",
+      "humanRows": 1,
+      "status": "UNKNOWN",
+      "why": "1 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "isl",
+      "humanRows": 1,
+      "status": "UNKNOWN",
+      "why": "1 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "kor",
+      "humanRows": 1,
+      "status": "UNKNOWN",
+      "why": "1 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "kwt",
+      "humanRows": 1,
+      "status": "UNKNOWN",
+      "why": "1 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "mex",
+      "humanRows": 1,
+      "status": "UNKNOWN",
+      "why": "1 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "mli",
+      "humanRows": 1,
+      "status": "UNKNOWN",
+      "why": "1 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "mlt",
+      "humanRows": 1,
+      "status": "UNKNOWN",
+      "why": "1 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "nga",
+      "humanRows": 1,
+      "status": "UNKNOWN",
+      "why": "1 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "pol",
+      "humanRows": 1,
+      "status": "UNKNOWN",
+      "why": "1 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "ukr",
+      "humanRows": 1,
+      "status": "UNKNOWN",
+      "why": "1 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    },
+    {
+      "country": "vnm",
+      "humanRows": 1,
+      "status": "UNKNOWN",
+      "why": "1 human row(s), below the floor of 5 — thin evidence, not an absence of local phrasing"
+    }
+  ],
+  "goals": [
+    {
+      "goal": "G01",
+      "kind": "DIFFERENT_WORDING",
+      "wordings": [
+        {
+          "original": "daily habits",
+          "countries": [
+            {
+              "country": "can",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 162
+              }
+            },
+            {
+              "country": "gbr",
+              "impressions": 2,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 204
+              }
+            },
+            {
+              "country": "hkg",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 226
+              }
+            },
+            {
+              "country": "ind",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 235
+              }
+            },
+            {
+              "country": "qat",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 297
+              }
+            },
+            {
+              "country": "usa",
+              "impressions": 5,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 332
+              }
+            }
+          ]
+        },
+        {
+          "original": "life habits",
+          "countries": [
+            {
+              "country": "usa",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 355
+              }
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "a": "daily habits",
+          "b": "life habits",
+          "relation": "SYNONYM",
+          "words": [
+            "daily",
+            "life"
+          ],
+          "sharedUrls": [
+            "https://almiworld.com/25-daily-habits-that-will-improve-your-life-simple-powerful-guide/"
+          ]
+        }
+      ],
+      "countries": [
+        "can",
+        "gbr",
+        "hkg",
+        "ind",
+        "qat",
+        "usa"
+      ],
+      "countriesAboveFloor": [
+        "can",
+        "gbr",
+        "ind",
+        "qat",
+        "usa"
+      ],
+      "countriesUnknown": [
+        "hkg"
+      ],
+      "observedAboveFloor": [
+        {
+          "country": "can",
+          "wordings": [
+            "daily habits"
+          ]
+        },
+        {
+          "country": "gbr",
+          "wordings": [
+            "daily habits"
+          ]
+        },
+        {
+          "country": "ind",
+          "wordings": [
+            "daily habits"
+          ]
+        },
+        {
+          "country": "qat",
+          "wordings": [
+            "daily habits"
+          ]
+        },
+        {
+          "country": "usa",
+          "wordings": [
+            "daily habits",
+            "life habits"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G02",
+      "kind": "DIFFERENT_WORDING",
+      "wordings": [
+        {
+          "original": "best daily habits",
+          "countries": [
+            {
+              "country": "ind",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 231
+              }
+            }
+          ]
+        },
+        {
+          "original": "best life habits",
+          "countries": [
+            {
+              "country": "usa",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 324
+              }
+            }
+          ]
+        },
+        {
+          "original": "good daily habits",
+          "countries": [
+            {
+              "country": "aus",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 33
+              }
+            },
+            {
+              "country": "can",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 163
+              }
+            },
+            {
+              "country": "gbr",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 205
+              }
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "a": "best daily habits",
+          "b": "best life habits",
+          "relation": "SYNONYM",
+          "words": [
+            "daily",
+            "life"
+          ],
+          "sharedUrls": [
+            "https://almiworld.com/25-daily-habits-that-will-improve-your-life-simple-powerful-guide/"
+          ]
+        },
+        {
+          "a": "best daily habits",
+          "b": "good daily habits",
+          "relation": "SYNONYM",
+          "words": [
+            "best",
+            "good"
+          ],
+          "sharedUrls": [
+            "https://almiworld.com/25-daily-habits-that-will-improve-your-life-simple-powerful-guide/"
+          ]
+        }
+      ],
+      "countries": [
+        "aus",
+        "can",
+        "gbr",
+        "ind",
+        "usa"
+      ],
+      "countriesAboveFloor": [
+        "aus",
+        "can",
+        "gbr",
+        "ind",
+        "usa"
+      ],
+      "countriesUnknown": [],
+      "observedAboveFloor": [
+        {
+          "country": "aus",
+          "wordings": [
+            "good daily habits"
+          ]
+        },
+        {
+          "country": "can",
+          "wordings": [
+            "good daily habits"
+          ]
+        },
+        {
+          "country": "gbr",
+          "wordings": [
+            "good daily habits"
+          ]
+        },
+        {
+          "country": "ind",
+          "wordings": [
+            "best daily habits"
+          ]
+        },
+        {
+          "country": "usa",
+          "wordings": [
+            "best life habits"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G03",
+      "kind": "DIFFERENT_WORDING",
+      "wordings": [
+        {
+          "original": "personal habit",
+          "countries": [
+            {
+              "country": "usa",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 359
+              }
+            }
+          ]
+        },
+        {
+          "original": "personal habits",
+          "countries": [
+            {
+              "country": "ind",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 242
+              }
+            },
+            {
+              "country": "npl",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 274
+              }
+            },
+            {
+              "country": "usa",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 360
+              }
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "a": "personal habit",
+          "b": "personal habits",
+          "relation": "VARIANT",
+          "form": "plural",
+          "words": [
+            "habit",
+            "habits"
+          ]
+        }
+      ],
+      "countries": [
+        "ind",
+        "npl",
+        "usa"
+      ],
+      "countriesAboveFloor": [
+        "ind",
+        "usa"
+      ],
+      "countriesUnknown": [
+        "npl"
+      ],
+      "observedAboveFloor": [
+        {
+          "country": "ind",
+          "wordings": [
+            "personal habits"
+          ]
+        },
+        {
+          "country": "usa",
+          "wordings": [
+            "personal habit",
+            "personal habits"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G04",
+      "kind": "DIFFERENT_WORDING",
+      "wordings": [
+        {
+          "original": "pte result",
+          "countries": [
+            {
+              "country": "aus",
+              "impressions": 2,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 118
+              }
+            },
+            {
+              "country": "can",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 171
+              }
+            }
+          ]
+        },
+        {
+          "original": "pte results",
+          "countries": [
+            {
+              "country": "aus",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 119
+              }
+            },
+            {
+              "country": "gbr",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 219
+              }
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "a": "pte result",
+          "b": "pte results",
+          "relation": "VARIANT",
+          "form": "plural",
+          "words": [
+            "result",
+            "results"
+          ]
+        }
+      ],
+      "countries": [
+        "aus",
+        "can",
+        "gbr"
+      ],
+      "countriesAboveFloor": [
+        "aus",
+        "can",
+        "gbr"
+      ],
+      "countriesUnknown": [],
+      "observedAboveFloor": [
+        {
+          "country": "aus",
+          "wordings": [
+            "pte result",
+            "pte results"
+          ]
+        },
+        {
+          "country": "can",
+          "wordings": [
+            "pte result"
+          ]
+        },
+        {
+          "country": "gbr",
+          "wordings": [
+            "pte results"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G05",
+      "kind": "DIFFERENT_WORDING",
+      "wordings": [
+        {
+          "original": "best business ideas for beginners",
+          "countries": [
+            {
+              "country": "rus",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 303
+              }
+            }
+          ]
+        },
+        {
+          "original": "good business ideas for beginners",
+          "countries": [
+            {
+              "country": "usa",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 340
+              }
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "a": "best business ideas for beginners",
+          "b": "good business ideas for beginners",
+          "relation": "SYNONYM",
+          "words": [
+            "best",
+            "good"
+          ],
+          "sharedUrls": [
+            "https://almiworld.com/50-business-ideas-for-beginners-start-with-low-budget-today/"
+          ]
+        }
+      ],
+      "countries": [
+        "rus",
+        "usa"
+      ],
+      "countriesAboveFloor": [
+        "rus",
+        "usa"
+      ],
+      "countriesUnknown": [],
+      "observedAboveFloor": [
+        {
+          "country": "rus",
+          "wordings": [
+            "best business ideas for beginners"
+          ]
+        },
+        {
+          "country": "usa",
+          "wordings": [
+            "good business ideas for beginners"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G06",
+      "kind": "DIFFERENT_WORDING",
+      "wordings": [
+        {
+          "original": "ielts pte conversion",
+          "countries": [
+            {
+              "country": "aus",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 49
+              }
+            }
+          ]
+        },
+        {
+          "original": "ielts pte equivalent",
+          "countries": [
+            {
+              "country": "aus",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 50
+              }
+            }
+          ]
+        },
+        {
+          "original": "ielts pte score",
+          "countries": [
+            {
+              "country": "usa",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 351
+              }
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "a": "ielts pte conversion",
+          "b": "ielts pte equivalent",
+          "relation": "SYNONYM",
+          "words": [
+            "conversion",
+            "equivalent"
+          ],
+          "sharedUrls": [
+            "https://almipte.almiworld.com/learn/pte-ielts-score-conversion"
+          ]
+        },
+        {
+          "a": "ielts pte conversion",
+          "b": "ielts pte score",
+          "relation": "SYNONYM",
+          "words": [
+            "conversion",
+            "score"
+          ],
+          "sharedUrls": [
+            "https://almipte.almiworld.com/learn/pte-ielts-score-conversion"
+          ]
+        },
+        {
+          "a": "ielts pte equivalent",
+          "b": "ielts pte score",
+          "relation": "SYNONYM",
+          "words": [
+            "equivalent",
+            "score"
+          ],
+          "sharedUrls": [
+            "https://almipte.almiworld.com/learn/pte-ielts-score-conversion"
+          ]
+        }
+      ],
+      "countries": [
+        "aus",
+        "usa"
+      ],
+      "countriesAboveFloor": [
+        "aus",
+        "usa"
+      ],
+      "countriesUnknown": [],
+      "observedAboveFloor": [
+        {
+          "country": "aus",
+          "wordings": [
+            "ielts pte conversion",
+            "ielts pte equivalent"
+          ]
+        },
+        {
+          "country": "usa",
+          "wordings": [
+            "ielts pte score"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G07",
+      "kind": "DIFFERENT_WORDING",
+      "wordings": [
+        {
+          "original": "pte and ielts conversion",
+          "countries": [
+            {
+              "country": "aus",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 94
+              }
+            }
+          ]
+        },
+        {
+          "original": "pte and ielts equivalent",
+          "countries": [
+            {
+              "country": "aus",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 95
+              }
+            }
+          ]
+        },
+        {
+          "original": "pte and ielts score",
+          "countries": [
+            {
+              "country": "aus",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 96
+              }
+            },
+            {
+              "country": "bgd",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 153
+              }
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "a": "pte and ielts conversion",
+          "b": "pte and ielts equivalent",
+          "relation": "SYNONYM",
+          "words": [
+            "conversion",
+            "equivalent"
+          ],
+          "sharedUrls": [
+            "https://almipte.almiworld.com/learn/pte-ielts-score-conversion"
+          ]
+        },
+        {
+          "a": "pte and ielts conversion",
+          "b": "pte and ielts score",
+          "relation": "SYNONYM",
+          "words": [
+            "conversion",
+            "score"
+          ],
+          "sharedUrls": [
+            "https://almipte.almiworld.com/learn/pte-ielts-score-conversion"
+          ]
+        },
+        {
+          "a": "pte and ielts equivalent",
+          "b": "pte and ielts score",
+          "relation": "SYNONYM",
+          "words": [
+            "equivalent",
+            "score"
+          ],
+          "sharedUrls": [
+            "https://almipte.almiworld.com/learn/pte-ielts-score-conversion"
+          ]
+        }
+      ],
+      "countries": [
+        "aus",
+        "bgd"
+      ],
+      "countriesAboveFloor": [
+        "aus"
+      ],
+      "countriesUnknown": [
+        "bgd"
+      ],
+      "observedAboveFloor": [
+        {
+          "country": "aus",
+          "wordings": [
+            "pte and ielts conversion",
+            "pte and ielts equivalent",
+            "pte and ielts score"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G08",
+      "kind": "DIFFERENT_WORDING",
+      "wordings": [
+        {
+          "original": "pte equivalent to ielts score",
+          "countries": [
+            {
+              "country": "aus",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 105
+              }
+            }
+          ]
+        },
+        {
+          "original": "pte score to ielts band",
+          "countries": [
+            {
+              "country": "gbr",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 220
+              }
+            }
+          ]
+        },
+        {
+          "original": "pte score to ielts bands",
+          "countries": [
+            {
+              "country": "aus",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 126
+              }
+            }
+          ]
+        },
+        {
+          "original": "pte score to ielts score",
+          "countries": [
+            {
+              "country": "aus",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 127
+              }
+            }
+          ]
+        },
+        {
+          "original": "pte scores to ielts bands",
+          "countries": [
+            {
+              "country": "aus",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 128
+              }
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "a": "pte equivalent to ielts score",
+          "b": "pte score to ielts score",
+          "relation": "SYNONYM",
+          "words": [
+            "equivalent",
+            "score"
+          ],
+          "sharedUrls": [
+            "https://almipte.almiworld.com/learn/pte-ielts-score-conversion"
+          ]
+        },
+        {
+          "a": "pte score to ielts band",
+          "b": "pte score to ielts bands",
+          "relation": "VARIANT",
+          "form": "plural",
+          "words": [
+            "band",
+            "bands"
+          ]
+        },
+        {
+          "a": "pte score to ielts band",
+          "b": "pte score to ielts score",
+          "relation": "SYNONYM",
+          "words": [
+            "band",
+            "score"
+          ],
+          "sharedUrls": [
+            "https://almipte.almiworld.com/learn/pte-ielts-score-conversion"
+          ]
+        },
+        {
+          "a": "pte score to ielts bands",
+          "b": "pte scores to ielts bands",
+          "relation": "VARIANT",
+          "form": "plural",
+          "words": [
+            "score",
+            "scores"
+          ]
+        }
+      ],
+      "countries": [
+        "aus",
+        "gbr"
+      ],
+      "countriesAboveFloor": [
+        "aus",
+        "gbr"
+      ],
+      "countriesUnknown": [],
+      "observedAboveFloor": [
+        {
+          "country": "aus",
+          "wordings": [
+            "pte equivalent to ielts score",
+            "pte score to ielts bands",
+            "pte score to ielts score",
+            "pte scores to ielts bands"
+          ]
+        },
+        {
+          "country": "gbr",
+          "wordings": [
+            "pte score to ielts band"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G09",
+      "kind": "DIFFERENT_WORDING",
+      "wordings": [
+        {
+          "original": "pte exam result",
+          "countries": [
+            {
+              "country": "usa",
+              "impressions": 3,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 365
+              }
+            }
+          ]
+        },
+        {
+          "original": "pte exam results",
+          "countries": [
+            {
+              "country": "gbr",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 218
+              }
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "a": "pte exam result",
+          "b": "pte exam results",
+          "relation": "VARIANT",
+          "form": "plural",
+          "words": [
+            "result",
+            "results"
+          ]
+        }
+      ],
+      "countries": [
+        "gbr",
+        "usa"
+      ],
+      "countriesAboveFloor": [
+        "gbr",
+        "usa"
+      ],
+      "countriesUnknown": [],
+      "observedAboveFloor": [
+        {
+          "country": "gbr",
+          "wordings": [
+            "pte exam results"
+          ]
+        },
+        {
+          "country": "usa",
+          "wordings": [
+            "pte exam result"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G10",
+      "kind": "DIFFERENT_WORDING",
+      "wordings": [
+        {
+          "original": "pte ielts equivalent",
+          "countries": [
+            {
+              "country": "aus",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 111
+              }
+            }
+          ]
+        },
+        {
+          "original": "pte ielts score",
+          "countries": [
+            {
+              "country": "aus",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 113
+              }
+            },
+            {
+              "country": "usa",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 366
+              }
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "a": "pte ielts equivalent",
+          "b": "pte ielts score",
+          "relation": "SYNONYM",
+          "words": [
+            "equivalent",
+            "score"
+          ],
+          "sharedUrls": [
+            "https://almipte.almiworld.com/learn/pte-ielts-score-conversion"
+          ]
+        }
+      ],
+      "countries": [
+        "aus",
+        "usa"
+      ],
+      "countriesAboveFloor": [
+        "aus",
+        "usa"
+      ],
+      "countriesUnknown": [],
+      "observedAboveFloor": [
+        {
+          "country": "aus",
+          "wordings": [
+            "pte ielts equivalent",
+            "pte ielts score"
+          ]
+        },
+        {
+          "country": "usa",
+          "wordings": [
+            "pte ielts score"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G11",
+      "kind": "DIFFERENT_WORDING",
+      "wordings": [
+        {
+          "original": "pte result check",
+          "countries": [
+            {
+              "country": "ind",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 246
+              }
+            }
+          ]
+        },
+        {
+          "original": "pte results check",
+          "countries": [
+            {
+              "country": "can",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 172
+              }
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "a": "pte result check",
+          "b": "pte results check",
+          "relation": "VARIANT",
+          "form": "plural",
+          "words": [
+            "result",
+            "results"
+          ]
+        }
+      ],
+      "countries": [
+        "can",
+        "ind"
+      ],
+      "countriesAboveFloor": [
+        "can",
+        "ind"
+      ],
+      "countriesUnknown": [],
+      "observedAboveFloor": [
+        {
+          "country": "can",
+          "wordings": [
+            "pte results check"
+          ]
+        },
+        {
+          "country": "ind",
+          "wordings": [
+            "pte result check"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G12",
+      "kind": "DIFFERENT_WORDING",
+      "wordings": [
+        {
+          "original": "pte to ielts band",
+          "countries": [
+            {
+              "country": "aus",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 135
+              }
+            }
+          ]
+        },
+        {
+          "original": "pte to ielts conversion",
+          "countries": [
+            {
+              "country": "aus",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 136
+              }
+            }
+          ]
+        },
+        {
+          "original": "pte to ielts score",
+          "countries": [
+            {
+              "country": "usa",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 367
+              }
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "a": "pte to ielts band",
+          "b": "pte to ielts conversion",
+          "relation": "SYNONYM",
+          "words": [
+            "band",
+            "conversion"
+          ],
+          "sharedUrls": [
+            "https://almipte.almiworld.com/learn/pte-ielts-score-conversion"
+          ]
+        },
+        {
+          "a": "pte to ielts band",
+          "b": "pte to ielts score",
+          "relation": "SYNONYM",
+          "words": [
+            "band",
+            "score"
+          ],
+          "sharedUrls": [
+            "https://almipte.almiworld.com/learn/pte-ielts-score-conversion"
+          ]
+        },
+        {
+          "a": "pte to ielts conversion",
+          "b": "pte to ielts score",
+          "relation": "SYNONYM",
+          "words": [
+            "conversion",
+            "score"
+          ],
+          "sharedUrls": [
+            "https://almipte.almiworld.com/learn/pte-ielts-score-conversion"
+          ]
+        }
+      ],
+      "countries": [
+        "aus",
+        "usa"
+      ],
+      "countriesAboveFloor": [
+        "aus",
+        "usa"
+      ],
+      "countriesUnknown": [],
+      "observedAboveFloor": [
+        {
+          "country": "aus",
+          "wordings": [
+            "pte to ielts band",
+            "pte to ielts conversion"
+          ]
+        },
+        {
+          "country": "usa",
+          "wordings": [
+            "pte to ielts score"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G13",
+      "kind": "SAME_WORDING",
+      "wordings": [
+        {
+          "original": "celpe bras 2026",
+          "countries": [
+            {
+              "country": "gha",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 225
+              }
+            },
+            {
+              "country": "ind",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 234
+              }
+            },
+            {
+              "country": "kor",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 258
+              }
+            },
+            {
+              "country": "nga",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 268
+              }
+            },
+            {
+              "country": "nzl",
+              "impressions": 2,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 277
+              }
+            },
+            {
+              "country": "usa",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 329
+              }
+            }
+          ]
+        }
+      ],
+      "links": [],
+      "countries": [
+        "gha",
+        "ind",
+        "kor",
+        "nga",
+        "nzl",
+        "usa"
+      ],
+      "countriesAboveFloor": [
+        "ind",
+        "nzl",
+        "usa"
+      ],
+      "countriesUnknown": [
+        "gha",
+        "kor",
+        "nga"
+      ],
+      "observedAboveFloor": [
+        {
+          "country": "ind",
+          "wordings": [
+            "celpe bras 2026"
+          ]
+        },
+        {
+          "country": "nzl",
+          "wordings": [
+            "celpe bras 2026"
+          ]
+        },
+        {
+          "country": "usa",
+          "wordings": [
+            "celpe bras 2026"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G14",
+      "kind": "SAME_WORDING",
+      "wordings": [
+        {
+          "original": "daily lifestyle",
+          "countries": [
+            {
+              "country": "are",
+              "impressions": 2,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 0
+              }
+            },
+            {
+              "country": "aus",
+              "impressions": 3,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 32
+              }
+            },
+            {
+              "country": "esp",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 186
+              }
+            },
+            {
+              "country": "fra",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 191
+              }
+            },
+            {
+              "country": "sgp",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 311
+              }
+            }
+          ]
+        }
+      ],
+      "links": [],
+      "countries": [
+        "are",
+        "aus",
+        "esp",
+        "fra",
+        "sgp"
+      ],
+      "countriesAboveFloor": [
+        "aus"
+      ],
+      "countriesUnknown": [
+        "are",
+        "esp",
+        "fra",
+        "sgp"
+      ],
+      "observedAboveFloor": [
+        {
+          "country": "aus",
+          "wordings": [
+            "daily lifestyle"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G15",
+      "kind": "SAME_WORDING",
+      "wordings": [
+        {
+          "original": "pte academic",
+          "countries": [
+            {
+              "country": "are",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 2
+              }
+            },
+            {
+              "country": "aus",
+              "impressions": 2,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 90
+              }
+            },
+            {
+              "country": "ind",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 244
+              }
+            },
+            {
+              "country": "pak",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 284
+              }
+            },
+            {
+              "country": "phl",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 295
+              }
+            }
+          ]
+        }
+      ],
+      "links": [],
+      "countries": [
+        "are",
+        "aus",
+        "ind",
+        "pak",
+        "phl"
+      ],
+      "countriesAboveFloor": [
+        "aus",
+        "ind",
+        "pak",
+        "phl"
+      ],
+      "countriesUnknown": [
+        "are"
+      ],
+      "observedAboveFloor": [
+        {
+          "country": "aus",
+          "wordings": [
+            "pte academic"
+          ]
+        },
+        {
+          "country": "ind",
+          "wordings": [
+            "pte academic"
+          ]
+        },
+        {
+          "country": "pak",
+          "wordings": [
+            "pte academic"
+          ]
+        },
+        {
+          "country": "phl",
+          "wordings": [
+            "pte academic"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G16",
+      "kind": "SAME_WORDING",
+      "wordings": [
+        {
+          "original": "business ideas for beginners",
+          "countries": [
+            {
+              "country": "aus",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 26
+              }
+            },
+            {
+              "country": "ind",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 233
+              }
+            },
+            {
+              "country": "nld",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 269
+              }
+            }
+          ]
+        }
+      ],
+      "links": [],
+      "countries": [
+        "aus",
+        "ind",
+        "nld"
+      ],
+      "countriesAboveFloor": [
+        "aus",
+        "ind"
+      ],
+      "countriesUnknown": [
+        "nld"
+      ],
+      "observedAboveFloor": [
+        {
+          "country": "aus",
+          "wordings": [
+            "business ideas for beginners"
+          ]
+        },
+        {
+          "country": "ind",
+          "wordings": [
+            "business ideas for beginners"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G17",
+      "kind": "SAME_WORDING",
+      "wordings": [
+        {
+          "original": "quant cv",
+          "countries": [
+            {
+              "country": "are",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 3
+              }
+            },
+            {
+              "country": "bra",
+              "impressions": 10,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 159
+              }
+            },
+            {
+              "country": "sau",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 310
+              }
+            }
+          ]
+        }
+      ],
+      "links": [],
+      "countries": [
+        "are",
+        "bra",
+        "sau"
+      ],
+      "countriesAboveFloor": [],
+      "countriesUnknown": [
+        "are",
+        "bra",
+        "sau"
+      ],
+      "observedAboveFloor": []
+    },
+    {
+      "goal": "G18",
+      "kind": "SAME_WORDING",
+      "wordings": [
+        {
+          "original": "almi jobs",
+          "countries": [
+            {
+              "country": "can",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 160
+              }
+            },
+            {
+              "country": "ind",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 229
+              }
+            }
+          ]
+        }
+      ],
+      "links": [],
+      "countries": [
+        "can",
+        "ind"
+      ],
+      "countriesAboveFloor": [
+        "can",
+        "ind"
+      ],
+      "countriesUnknown": [],
+      "observedAboveFloor": [
+        {
+          "country": "can",
+          "wordings": [
+            "almi jobs"
+          ]
+        },
+        {
+          "country": "ind",
+          "wordings": [
+            "almi jobs"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G19",
+      "kind": "SAME_WORDING",
+      "wordings": [
+        {
+          "original": "almitest",
+          "countries": [
+            {
+              "country": "ind",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 230
+              }
+            },
+            {
+              "country": "tha",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 313
+              }
+            }
+          ]
+        }
+      ],
+      "links": [],
+      "countries": [
+        "ind",
+        "tha"
+      ],
+      "countriesAboveFloor": [
+        "ind"
+      ],
+      "countriesUnknown": [
+        "tha"
+      ],
+      "observedAboveFloor": [
+        {
+          "country": "ind",
+          "wordings": [
+            "almitest"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G20",
+      "kind": "SAME_WORDING",
+      "wordings": [
+        {
+          "original": "basic business ideas",
+          "countries": [
+            {
+              "country": "aus",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 25
+              }
+            },
+            {
+              "country": "gbr",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 196
+              }
+            }
+          ]
+        }
+      ],
+      "links": [],
+      "countries": [
+        "aus",
+        "gbr"
+      ],
+      "countriesAboveFloor": [
+        "aus",
+        "gbr"
+      ],
+      "countriesUnknown": [],
+      "observedAboveFloor": [
+        {
+          "country": "aus",
+          "wordings": [
+            "basic business ideas"
+          ]
+        },
+        {
+          "country": "gbr",
+          "wordings": [
+            "basic business ideas"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G21",
+      "kind": "SAME_WORDING",
+      "wordings": [
+        {
+          "original": "celpe-bras 2026",
+          "countries": [
+            {
+              "country": "nld",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 270
+              }
+            },
+            {
+              "country": "usa",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 330
+              }
+            }
+          ]
+        }
+      ],
+      "links": [],
+      "countries": [
+        "nld",
+        "usa"
+      ],
+      "countriesAboveFloor": [
+        "usa"
+      ],
+      "countriesUnknown": [
+        "nld"
+      ],
+      "observedAboveFloor": [
+        {
+          "country": "usa",
+          "wordings": [
+            "celpe-bras 2026"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G22",
+      "kind": "SAME_WORDING",
+      "wordings": [
+        {
+          "original": "cv with no experience",
+          "countries": [
+            {
+              "country": "phl",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 292
+              }
+            },
+            {
+              "country": "usa",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 331
+              }
+            }
+          ]
+        }
+      ],
+      "links": [],
+      "countries": [
+        "phl",
+        "usa"
+      ],
+      "countriesAboveFloor": [
+        "phl",
+        "usa"
+      ],
+      "countriesUnknown": [],
+      "observedAboveFloor": [
+        {
+          "country": "phl",
+          "wordings": [
+            "cv with no experience"
+          ]
+        },
+        {
+          "country": "usa",
+          "wordings": [
+            "cv with no experience"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G23",
+      "kind": "SAME_WORDING",
+      "wordings": [
+        {
+          "original": "daily habits to improve life",
+          "countries": [
+            {
+              "country": "aus",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 31
+              }
+            },
+            {
+              "country": "usa",
+              "impressions": 2,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 334
+              }
+            }
+          ]
+        }
+      ],
+      "links": [],
+      "countries": [
+        "aus",
+        "usa"
+      ],
+      "countriesAboveFloor": [
+        "aus",
+        "usa"
+      ],
+      "countriesUnknown": [],
+      "observedAboveFloor": [
+        {
+          "country": "aus",
+          "wordings": [
+            "daily habits to improve life"
+          ]
+        },
+        {
+          "country": "usa",
+          "wordings": [
+            "daily habits to improve life"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G24",
+      "kind": "SAME_WORDING",
+      "wordings": [
+        {
+          "original": "daily life style",
+          "countries": [
+            {
+              "country": "ind",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 237
+              }
+            },
+            {
+              "country": "usa",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 335
+              }
+            }
+          ]
+        }
+      ],
+      "links": [],
+      "countries": [
+        "ind",
+        "usa"
+      ],
+      "countriesAboveFloor": [
+        "ind",
+        "usa"
+      ],
+      "countriesUnknown": [],
+      "observedAboveFloor": [
+        {
+          "country": "ind",
+          "wordings": [
+            "daily life style"
+          ]
+        },
+        {
+          "country": "usa",
+          "wordings": [
+            "daily life style"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G25",
+      "kind": "SAME_WORDING",
+      "wordings": [
+        {
+          "original": "fasocourses",
+          "countries": [
+            {
+              "country": "fra",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 192
+              }
+            },
+            {
+              "country": "mli",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 264
+              }
+            }
+          ]
+        }
+      ],
+      "links": [],
+      "countries": [
+        "fra",
+        "mli"
+      ],
+      "countriesAboveFloor": [],
+      "countriesUnknown": [
+        "fra",
+        "mli"
+      ],
+      "observedAboveFloor": []
+    },
+    {
+      "goal": "G26",
+      "kind": "SAME_WORDING",
+      "wordings": [
+        {
+          "original": "how to check pte result",
+          "countries": [
+            {
+              "country": "dnk",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 183
+              }
+            },
+            {
+              "country": "ind",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 238
+              }
+            }
+          ]
+        }
+      ],
+      "links": [],
+      "countries": [
+        "dnk",
+        "ind"
+      ],
+      "countriesAboveFloor": [
+        "ind"
+      ],
+      "countriesUnknown": [
+        "dnk"
+      ],
+      "observedAboveFloor": [
+        {
+          "country": "ind",
+          "wordings": [
+            "how to check pte result"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G27",
+      "kind": "SAME_WORDING",
+      "wordings": [
+        {
+          "original": "how to make a cv with no experience",
+          "countries": [
+            {
+              "country": "gbr",
+              "impressions": 12,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 208
+              }
+            },
+            {
+              "country": "usa",
+              "impressions": 3,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 346
+              }
+            }
+          ]
+        }
+      ],
+      "links": [],
+      "countries": [
+        "gbr",
+        "usa"
+      ],
+      "countriesAboveFloor": [
+        "gbr",
+        "usa"
+      ],
+      "countriesUnknown": [],
+      "observedAboveFloor": [
+        {
+          "country": "gbr",
+          "wordings": [
+            "how to make a cv with no experience"
+          ]
+        },
+        {
+          "country": "usa",
+          "wordings": [
+            "how to make a cv with no experience"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G28",
+      "kind": "SAME_WORDING",
+      "wordings": [
+        {
+          "original": "idutch",
+          "countries": [
+            {
+              "country": "aus",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 34
+              }
+            },
+            {
+              "country": "gbr",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 209
+              }
+            }
+          ]
+        }
+      ],
+      "links": [],
+      "countries": [
+        "aus",
+        "gbr"
+      ],
+      "countriesAboveFloor": [
+        "aus",
+        "gbr"
+      ],
+      "countriesUnknown": [],
+      "observedAboveFloor": [
+        {
+          "country": "aus",
+          "wordings": [
+            "idutch"
+          ]
+        },
+        {
+          "country": "gbr",
+          "wordings": [
+            "idutch"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G29",
+      "kind": "SAME_WORDING",
+      "wordings": [
+        {
+          "original": "iuav venezia fashion design",
+          "countries": [
+            {
+              "country": "tur",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 316
+              }
+            },
+            {
+              "country": "vnm",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 387
+              }
+            }
+          ]
+        }
+      ],
+      "links": [],
+      "countries": [
+        "tur",
+        "vnm"
+      ],
+      "countriesAboveFloor": [],
+      "countriesUnknown": [
+        "tur",
+        "vnm"
+      ],
+      "observedAboveFloor": []
+    },
+    {
+      "goal": "G30",
+      "kind": "SAME_WORDING",
+      "wordings": [
+        {
+          "original": "my pte",
+          "countries": [
+            {
+              "country": "npl",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 273
+              }
+            },
+            {
+              "country": "pak",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 283
+              }
+            }
+          ]
+        }
+      ],
+      "links": [],
+      "countries": [
+        "npl",
+        "pak"
+      ],
+      "countriesAboveFloor": [
+        "pak"
+      ],
+      "countriesUnknown": [
+        "npl"
+      ],
+      "observedAboveFloor": [
+        {
+          "country": "pak",
+          "wordings": [
+            "my pte"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G31",
+      "kind": "SAME_WORDING",
+      "wordings": [
+        {
+          "original": "pearson pte academic",
+          "countries": [
+            {
+              "country": "gbr",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 216
+              }
+            },
+            {
+              "country": "usa",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 358
+              }
+            }
+          ]
+        }
+      ],
+      "links": [],
+      "countries": [
+        "gbr",
+        "usa"
+      ],
+      "countriesAboveFloor": [
+        "gbr",
+        "usa"
+      ],
+      "countriesUnknown": [],
+      "observedAboveFloor": [
+        {
+          "country": "gbr",
+          "wordings": [
+            "pearson pte academic"
+          ]
+        },
+        {
+          "country": "usa",
+          "wordings": [
+            "pearson pte academic"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G32",
+      "kind": "SAME_WORDING",
+      "wordings": [
+        {
+          "original": "pte doctor",
+          "countries": [
+            {
+              "country": "aus",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 102
+              }
+            },
+            {
+              "country": "fji",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 190
+              }
+            }
+          ]
+        }
+      ],
+      "links": [],
+      "countries": [
+        "aus",
+        "fji"
+      ],
+      "countriesAboveFloor": [
+        "aus"
+      ],
+      "countriesUnknown": [
+        "fji"
+      ],
+      "observedAboveFloor": [
+        {
+          "country": "aus",
+          "wordings": [
+            "pte doctor"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G33",
+      "kind": "SAME_WORDING",
+      "wordings": [
+        {
+          "original": "pte for iranian",
+          "countries": [
+            {
+              "country": "aus",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 109
+              }
+            },
+            {
+              "country": "irn",
+              "impressions": 2,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 252
+              }
+            }
+          ]
+        }
+      ],
+      "links": [],
+      "countries": [
+        "aus",
+        "irn"
+      ],
+      "countriesAboveFloor": [
+        "aus"
+      ],
+      "countriesUnknown": [
+        "irn"
+      ],
+      "observedAboveFloor": [
+        {
+          "country": "aus",
+          "wordings": [
+            "pte for iranian"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G34",
+      "kind": "SAME_WORDING",
+      "wordings": [
+        {
+          "original": "pte test result",
+          "countries": [
+            {
+              "country": "aus",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 132
+              }
+            },
+            {
+              "country": "can",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 173
+              }
+            }
+          ]
+        }
+      ],
+      "links": [],
+      "countries": [
+        "aus",
+        "can"
+      ],
+      "countriesAboveFloor": [
+        "aus",
+        "can"
+      ],
+      "countriesUnknown": [],
+      "observedAboveFloor": [
+        {
+          "country": "aus",
+          "wordings": [
+            "pte test result"
+          ]
+        },
+        {
+          "country": "can",
+          "wordings": [
+            "pte test result"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G35",
+      "kind": "SAME_WORDING",
+      "wordings": [
+        {
+          "original": "small business ideas",
+          "countries": [
+            {
+              "country": "bhr",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 155
+              }
+            },
+            {
+              "country": "qat",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 300
+              }
+            }
+          ]
+        }
+      ],
+      "links": [],
+      "countries": [
+        "bhr",
+        "qat"
+      ],
+      "countriesAboveFloor": [
+        "qat"
+      ],
+      "countriesUnknown": [
+        "bhr"
+      ],
+      "observedAboveFloor": [
+        {
+          "country": "qat",
+          "wordings": [
+            "small business ideas"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G36",
+      "kind": "SAME_WORDING",
+      "wordings": [
+        {
+          "original": "switzerland pte score requirement",
+          "countries": [
+            {
+              "country": "ind",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 250
+              }
+            },
+            {
+              "country": "npl",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 276
+              }
+            }
+          ]
+        }
+      ],
+      "links": [],
+      "countries": [
+        "ind",
+        "npl"
+      ],
+      "countriesAboveFloor": [
+        "ind"
+      ],
+      "countriesUnknown": [
+        "npl"
+      ],
+      "observedAboveFloor": [
+        {
+          "country": "ind",
+          "wordings": [
+            "switzerland pte score requirement"
+          ]
+        }
+      ]
+    },
+    {
+      "goal": "G37",
+      "kind": "SAME_WORDING",
+      "wordings": [
+        {
+          "original": "writing summary in pte",
+          "countries": [
+            {
+              "country": "ind",
+              "impressions": 2,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 251
+              }
+            },
+            {
+              "country": "usa",
+              "impressions": 1,
+              "source": {
+                "observation_id": "9bf50cfb134a0d7d",
+                "observed_at": "2026-09-12T23:25:04.608Z",
+                "method": "gsc.searchAnalytics.query:country-query",
+                "row": 385
+              }
+            }
+          ]
+        }
+      ],
+      "links": [],
+      "countries": [
+        "ind",
+        "usa"
+      ],
+      "countriesAboveFloor": [
+        "ind",
+        "usa"
+      ],
+      "countriesUnknown": [],
+      "observedAboveFloor": [
+        {
+          "country": "ind",
+          "wordings": [
+            "writing summary in pte"
+          ]
+        },
+        {
+          "country": "usa",
+          "wordings": [
+            "writing summary in pte"
+          ]
+        }
+      ]
+    }
+  ],
+  "reasoning": {
+    "state": "NOT OBSERVABLE IN OWNED EVIDENCE",
+    "why": "a query row carries the words a person typed and the country Search Console places them in — not why they typed them. Local PHRASING is researched here; local REASONING is not in the store"
+  },
+  "halfA": {
+    "clause": "a country multiplies URLs",
+    "state": "TESTED — by the country→URL census over src/ and bin/, within its stated limits",
+    "buildsFromCountry": false
+  },
+  "halfB": {
+    "clause": "without evidence of materially different useful content",
+    "state": "BLOCKED — NOT TESTED",
+    "why": "whether the useful content differs by country needs the ANSWER at each country, and the store holds questions, not answers. A different question mix is not a different answer: row 6 measured that the question mix differs in all 10 countries with five or more rows, and that is NOT evidence for this half",
+    "unblockedBy": "per-value answer evidence — for each country compared, the useful answer from a source that is not our own page (row 7 SUPPLY or row 2, both deferred) — which is the owner's pending decision. With it authorised and captured, this half is run; until then it is never PASS"
+  },
+  "estate": {
+    "observation_id": "9f8cbf772d1cd434",
+    "pages": 1525,
+    "originHardCoded": 775,
+    "impressions": 1179,
+    "patterns": [
+      "/\\/from-[a-z-]+(\\/|$)/",
+      "/\\/from\\/[a-z-]+(\\/|$)/"
+    ],
+    "example": "https://almiitalian.almiworld.com/exam/cils-due-b2/from/pakistan",
+    "row6": {
+      "supportingQueries": 2,
+      "siblingPairs": 23,
+      "siblingOverlapMedian": "0.806",
+      "source": "row 6 — runs/audit/row6-census-2026-09-14.txt, pinned by row 6's own test"
+    },
+    "why": "a country-like axis ALREADY multiplying the connected products' pages without evidence — in their pages, not in this engine's code, so no census of src/ and bin/ can see it"
+  },
+  "limits": [
+    "every country×query pair is ONE row: a country's use of a wording is one observation, however many impressions it carries",
+    "the grouping inherits row 3's limits: a SYNONYM is interchangeable use in the same query frame for the same page, not proof of the same meaning (daily↔life among them), and transitive joins can chain wordings no single pair connects",
+    "row 3's relations are sparse, so a goal a person would recognise is NOT joined unless row 3's evidence joins it — \"daily lifestyle\" and \"personal habits\" stay apart from \"daily habits\" here, however alike they read",
+    "Search Console's country is where the searcher was, as Google reports it — not their nationality and not their language",
+    "local REASONING is not observable in query rows; only local PHRASING is researched",
+    "a row-3 ABBREVIATION pair joins two wordings only in the same frame; the grouping rule gained that constraint after its first run, when a pair sharing only a landing page joined \"i don t have a cv\" to \"how to write a curriculum vitae with no experience\"",
+    "row 3's VARIANT spelling rule is an edit distance of one, so in↔on is read as one word written two ways"
+  ]
+}

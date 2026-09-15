@@ -63,9 +63,9 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | state | before Amendment 2 | after the RULING only | after the WORK |
 |---|---|---|---|
 | **NOT-STARTED** | 3 | 8 | **2** |
-| **BUILT-NOT-PROVED** | 18 | 17 | **8** |
+| **BUILT-NOT-PROVED** | 18 | 17 | **7** |
 | **TESTABLE-NOW** | 0 | 2 | **1** |
-| **VERIFIED-PASS** | 3 | 3 | **21** |
+| **VERIFIED-PASS** | 3 | 3 | **22** |
 | **FAILED** | 0 | -1 | **2** |
 | **BLOCKED-UNKNOWN** | 6 | 6 | **4** |
 | **DEFERRED** | 28 | 23 | **23** |
@@ -85,9 +85,9 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 - **item 51** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — priority, confidence and cost each computed from stored evidence and each able to say UNKNOWN — two recommendations ranked by measured impressions, one UNKNOWN; confidence derived on all three; cost UNKNOWN on all three with lower bounds — and all six visible on the real report
 - **item 55** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — the parse is caught and rethrown with nothing from the file; the leak test re-run passed on every credential path, RED when the key or its length is logged; recovery proved by restoring torn stores from git, byte-identical by blob hash
 
-**Rows that have been looked at (VERIFIED-PASS or FAILED): 23 of 58.**
+**Rows that have been looked at (VERIFIED-PASS or FAILED): 24 of 58.**
 
-**Rows that reached VERIFIED-PASS in this PR: 18.**
+**Rows that reached VERIFIED-PASS in this PR: 19.**
 
 #### moved ONLY because a RULING changed
 
@@ -147,6 +147,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 60 | NOT-STARTED | BUILT-NOT-PROVED | `node bin/consequence-census.mjs · node --test test/consequence-register.test.mjs · runs/audit/row60-census-2026-09-14.txt · runs/audit/row60-red-limbs-2026-09-14.txt` | 2026-09-14 | the register was built with every class in the store and every level UNCLASSIFIED, every presented priority states its basis and the entries that applied, and each limb went RED alone and was restored — and it stops at BUILT-NOT-PROVED because only the owner may declare the levels its EXPECTED requires |
 | 60 | BUILT-NOT-PROVED | VERIFIED-PASS | `node bin/consequence-census.mjs · node --test test/consequence-register.test.mjs test/populations.test.mjs test/row60-ruling-sheet.test.mjs · runs/audit/row60-populations-red-limbs-2026-09-14.txt` | 2026-09-14 | the census over the real store reconciled the register line by line against the 14 finding classes in use, every one carrying the owner's level; the real report shows every presented recommendation's basis and the entries that applied; and row 60's four frozen evidence limbs were sabotaged alone in today's real files, each RED on its own limb, restored and hash-checked. It proves consistent application of the owner's judgement, never that a level is well chosen |
 | 61 | NOT-STARTED | BUILT-NOT-PROVED | `node --test test/page-construction.test.mjs · node bin/build-page.mjs --product=<the first product> --all-slugs · runs/audit/row61-gate-a-red-2026-09-14.txt · runs/audit/row61-gate-a-green-2026-09-14.txt` | 2026-09-14 | the runner takes --slug / --all-slugs with no default; Gate A's four frozen parts are enforced inside the construction path and fail closed; seen RED with the acceptance rule bypassed and GREEN restored; 0 of 3 candidates accepted — and the neutral product was refused AT THE RUNNER, so the portability leg is not proved |
+| 61 | BUILT-NOT-PROVED | VERIFIED-PASS | `node --test test/page-construction.test.mjs test/page-spec-by-reference.test.mjs test/portability-neutral-product.test.mjs test/product-boundary.test.mjs · node bin/build-page.mjs --product=neutral-test-knots --all-slugs · runs/audit/row61-second-product-construction-run-2026-09-15.txt · runs/audit/row61-second-product-red-2026-09-15.txt · runs/audit/row61-gate-a-red-2026-09-14.txt · runs/audit/row61-gate-a-green-2026-09-14.txt` | 2026-09-15 | owner decision of 15 September 2026 (_handoffs/AlmiVisibility_ROW61_OWNER_DECISION_2026-09-15.md): a second declared neutral test product (neutral-test-knots) declaring two claim-id-only specs, reached end to end through bin/build-page.mjs — every spec REFUSED inside the construction path at the verified-fact floor, DATA GAP and BLOCKED / NOT TESTED recorded, --confirm wrote nothing; each slug of both declared products judged alone; findCopiedFacts clean on every spec of every declared product; the runner loads and reads nothing of the first product; four limbs RED alone and restored; row 53's product unchanged |
 
 ---
 
@@ -155,9 +156,9 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | state | before (4-state) | after (7-state) |
 |---|---|---|
 | **NOT-STARTED** | 33 | **2** |
-| **BUILT-NOT-PROVED** | 24 | **8** |
+| **BUILT-NOT-PROVED** | 24 | **7** |
 | **TESTABLE-NOW** | 0 | **1** |
-| **VERIFIED-PASS** | 0 | **21** |
+| **VERIFIED-PASS** | 0 | **22** |
 | **FAILED** | 0 | **2** |
 | **BLOCKED-UNKNOWN** | 1 | **4** |
 | **DEFERRED** | 0 | **23** |
@@ -1122,7 +1123,7 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 
 ### 61 · SAFE LOCAL PAGE CONSTRUCTION
 
-**BUILT-NOT-PROVED** · class `P` (admitted by Amendment 5) · ruled in `A5`
+**VERIFIED-PASS** · class `P` (admitted by Amendment 5) · ruled in `A5`
 
 | part | the owner's words |
 |---|---|
@@ -1131,13 +1132,7 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 | **FAILURE** | an accepted artefact bypasses Gate A · a threshold is weakened · facts are padded or invented · the generator writes to or publishes into a connected product · a generate-all or Cartesian path appears · first-product subject logic reaches the generic core · the runner can build only one product or only one slug |
 | **EVIDENCE** | a run on two different products, one of them the neutral test product; the refusal proved RED on a deliberately short / overlapping / fact-poor candidate and GREEN after restoration; `findCopiedFacts` clean on every spec of every declared product; the recorded DATA GAP / BLOCKED list |
 
-**Verdict —** 🔴 **BUILT / NOT-PROVED — CREATED 14 SEPTEMBER 2026** (reserved by Amendment 5 until rows 59 and 60 existed). **Work happened (PR #72):** the runner is generic — `--slug` / `--all-slugs`, no default, specs from the product's declaration; Gate A's four frozen parts are enforced inside the construction path and FAIL CLOSED; the refusal was seen RED with the acceptance rule bypassed and GREEN restored (runs/audit/row61-gate-a-*); 0 of 3 candidates accepted. **Not proved:** the EVIDENCE clause requires *"a run on two different products, one of them the neutral test product"*. The neutral product was REFUSED AT THE RUNNER ("it declares no page spec"), and the full path was proved only with a spec declared inside a test — **a test fixture is not a declared product**, so the portability leg has not been run through the runner
+**Verdict —** 🔴 **VERIFIED-PASS — 15 SEPTEMBER 2026: THE MISSING LEG RUN THROUGH THE REAL RUNNER, ON A SECOND DECLARED PRODUCT, AND REFUSED CORRECTLY.** **Authority:** the owner decided the recorded blocker on 15 September 2026 (_handoffs/AlmiVisibility_ROW61_OWNER_DECISION_2026-09-15.md) — *"use a SECOND DECLARED NEUTRAL TEST PRODUCT / PROJECT · use an evidence-bearing page spec · DO NOT change what Row 53 checks"*. **INPUT** products/neutral-test-knots — declared as a neutral test product (rope knots, axis `knot`), sharing no subject, predicate, axis, variant, source host or licence with the first product or with row 53's product — declaring two page specs that hold CLAIM IDS ONLY, each resolving in its own registry of three declared-test-data records (UNVERIFIED, status `lead`, route R4: nothing in it is a fact, and none was made VERIFIED). **EXPECTED, met:** bin/build-page.mjs builds any declared slug of any declared product — `--all-slugs` and `--slug=<each>` on both the first product and neutral-test-knots, each judged alone; Gate A runs inside the construction path and FAILS CLOSED — every candidate REFUSED, exit 2, `--confirm --out` wrote nothing; the refusals are recorded as DATA GAP (facts 0 of 5; no WHY_THIS_URL_DESERVES_TO_EXIST) and REJECT (render: status `lead` may not reach a reader), and the two parts that cannot be exercised as BLOCKED / NOT TESTED, never PASS (runs/audit/row61-second-product-construction-run-2026-09-15.txt). **FAILURE, not met:** no accepted artefact exists to bypass anything; no threshold moved and no file under src/ changed; no fact padded or invented; nothing written into any product; no cross-product loop; the runner on the second product LOADS no module and READS no file of the first product and prints none of its records, under the same access probe row 53 uses. **EVIDENCE:** a run on two different products, one a neutral declared test product; the refusal proved RED and GREEN — on the synthetic family (runs/audit/row61-gate-a-*) and again for the new leg, each limb broken ALONE in the real file and restored byte for byte (runs/audit/row61-second-product-red-2026-09-15.txt): the acceptance rule forced open, row 53's product given a page spec, a record's sentence planted in the spec, and the runner loading the first product — each RED on its named test; `findCopiedFacts` clean on every spec of every declared product, read from the subject roots; the DATA GAP / BLOCKED list recorded. ⚠️ **Kept on the row:** the copied-fact limb's first attempt planted an 18-character value and did not go red — `findCopiedFacts` skips record text under 40 characters and catches a copied sentence, not a paraphrase, by its own recorded design; the limb was re-run with the record's own sentence and the check was not changed. **Row 53 is untouched:** neutral-test-ferments still declares `pageSpecs {}`, and its runner test still records that DATA GAP. 🔴 **NO REAL PAGE CAN BE ACCEPTED, AND THIS PASS DOES NOT SAY OTHERWISE:** no page spec declares a WHY_THIS_URL_DESERVES_TO_EXIST (whoever owns the evidence writes them; CC must not invent one); no template family has THREE rendered specs, so unique words and sibling overlap stay BLOCKED / NOT TESTED (D-GATEA-1); a declared test product renders nothing; the GREEN direction exists only on the synthetic family; and PAGE-1 stays UNSATISFIED. The row proves the generator REFUSES correctly on any declared product — the owner's own success test — not that it produces a page. ── EARLIER, 14 SEPTEMBER 2026, KEPT: 🔴 **BUILT / NOT-PROVED — CREATED 14 SEPTEMBER 2026** (reserved by Amendment 5 until rows 59 and 60 existed). **Work happened (PR #72):** the runner is generic — `--slug` / `--all-slugs`, no default, specs from the product's declaration; Gate A's four frozen parts are enforced inside the construction path and FAIL CLOSED; the refusal was seen RED with the acceptance rule bypassed and GREEN restored (runs/audit/row61-gate-a-*); 0 of 3 candidates accepted. **Not proved:** the EVIDENCE clause requires *"a run on two different products, one of them the neutral test product"*. The neutral product was REFUSED AT THE RUNNER ("it declares no page spec"), and the full path was proved only with a spec declared inside a test — **a test fixture is not a declared product**, so the portability leg has not been run through the runner. Its missing leg was "a second DECLARED product with its own DECLARED page spec, reached end to end through bin/build-page.mjs", blocked on an OWNER DECISION not yet made then — decided 15 September 2026
 
-**🔴 The missing leg —** a second DECLARED product with its own DECLARED page spec, reached end to end through bin/build-page.mjs
-
-**Blocked on —** an OWNER DECISION, not yet made: either a second neutral declared test product that declares a page spec, or a deliberate re-pin of row 53's coverage (the neutral product declares pageSpecs {} today, and row 53 — VERIFIED-PASS — pins exactly that)
-
-**What stops ANY real page being accepted —**
-- no page spec declares a WHY_THIS_URL_DESERVES_TO_EXIST — whoever owns the evidence writes them, none has been written, and CC must not invent one
-- a template family needs at least THREE rendered specs before unique words and sibling overlap can be measured at all (D-GATEA-1: a group of one or two learns its shell from itself); two specs exist, so those two Gate A parts stay BLOCKED / NOT TESTED until a third does
+**The one test that would settle it —** node --test test/page-construction.test.mjs test/page-spec-by-reference.test.mjs test/portability-neutral-product.test.mjs test/product-boundary.test.mjs · node bin/build-page.mjs --product=neutral-test-knots --all-slugs · runs/audit/row61-second-product-construction-run-2026-09-15.txt · runs/audit/row61-second-product-red-2026-09-15.txt · runs/audit/row61-gate-a-red-2026-09-14.txt · runs/audit/row61-gate-a-green-2026-09-14.txt
 

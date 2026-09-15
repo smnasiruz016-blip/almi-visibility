@@ -29,6 +29,19 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 | **DEFERRED** | — | **23** |
 | **total** | 58 | **61** |
 
+> ### 🔴 FAISLA 1 + FAISLA 2 — ROWS 3/5/6 CARRY THEIR QUERY-PULL LIMITATION; R4 LANDS; NO ROW MOVES — 16 SEPTEMBER 2026
+>
+> - **Authority:** the owner's ruling of 16 September 2026, committed at `_handoffs/AlmiVisibility_FAISLA_1_2_ROWS_3_5_6_AND_R4_BRIEF_2026-09-16.md`.
+> - **FAISLA 1:** rows 3, 5 and 6 each carry, on their own face, *"Observed query-pull coverage: 22.8% of measured impressions; the 337 query
+>   rows carried 0 of 20 measured clicks. This is query-pull coverage, not a claim of complete search-demand coverage."* — row 7's finding,
+>   now on the rows it concerned. Row 3 stays VERIFIED-PASS, row 5 FAILED, row 6 BUILT-NOT-PROVED; row 7 is unchanged. No row was re-audited.
+> - **FAISLA 2 — R4 only:** the declaration contract (`claimDimensions`, law F30, `src/facts/schema.mjs` · `src/evidence/verdict.mjs` ·
+>   `src/facts/validate.mjs`; tests `test/r4-declaration-contract.test.mjs`). It binds verifications dated after 2026-09-13; all 36 governed records are
+>   before it and were not re-judged. **The nine are untouched** and stay UNKNOWN / PARTIAL_EVIDENCE; the elementAmbiguity exemption stays.
+> - **R5 = WAITING FOR GREEN A / AUTHORIZED EVIDENCE FETCH.** Not executed; nothing fetched. Page-generator ruling Q6 stays controlling.
+> - **Item 50 stays FAILED** — remaining: R5, and the 12 September 2026 run's provenance declaration that would retire the pre-contract read derivation.
+>   Headline counts unchanged.
+
 > ### 🔴 ROW 61 TICKED — THE OWNER DECIDED ITS BLOCKER, AND THE MISSING LEG WAS RUN AND REFUSED CORRECTLY — 15 SEPTEMBER 2026
 >
 > - **Authority:** the owner's decision of 15 September 2026, committed at `_handoffs/AlmiVisibility_ROW61_OWNER_DECISION_2026-09-15.md`:

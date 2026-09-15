@@ -10,7 +10,7 @@
  */
 // 🔴 F23's arbiter. The transition table now governs the registry rather than
 // only its own test — see src/evidence/verdict.mjs.
-import { judgeSupersession, judgeLeavingUnknown } from "../evidence/verdict.mjs";
+import { judgeSupersession, judgeLeavingUnknown, DIMENSION_DECLARATION_FAULTS } from "../evidence/verdict.mjs";
 import {
   factId,
   TIERS,
@@ -483,11 +483,12 @@ export function validateRegistry(records = []) {
   //   F25 · a supplied count, once every governed record declares its list
   //   F26 · a verdict key the record does not declare (stale), or a key named both ways
   //   F27 · a governed record with no element list at all
+  //   F30 · 🔴 R4 — a record under the declaration contract whose claimDimensions is absent or malformed
   const guard = { judged: 0, advanced: 0, refused: 0, judgements: [] };
-  const governed = records.filter((r) => judgeLeavingUnknown(r?.id, r?.verification, r?.claimElements));
+  const governed = records.filter((r) => judgeLeavingUnknown(r?.id, r?.verification, r?.claimElements, r));
   const everyGovernedDeclaresItsList = governed.length > 0 && governed.every((r) => Array.isArray(r.claimElements));
   for (const r of governed) {
-    const j = judgeLeavingUnknown(r.id, r.verification, r.claimElements);
+    const j = judgeLeavingUnknown(r.id, r.verification, r.claimElements, r);
     guard.judged += 1;
     if (j.decision === "REFUSED") guard.refused += 1;
     else guard.advanced += 1;
@@ -507,7 +508,15 @@ export function validateRegistry(records = []) {
        * police qualifier / completeness / binder as first-class elements (R4 in
        * `_handoffs/AlmiVisibility_BETA_G_RULING_9_AMBIGUOUS_2026-09-13_NIGHT.md`).
        * At that point the formula would REFUSE these records itself, records and
-       * guard would agree, and this exception would never fire. */
+       * guard would agree, and this exception would never fire.
+       *
+       * 🔴 16 September 2026 (owner ruling FAISLA 2): R4 LANDED, AND THIS EXCEPTION
+       * STAYS. The declaration contract binds verifications dated after
+       * DECLARATION_CONTRACT_AFTER (src/facts/schema.mjs); the nine are dated before
+       * it, carry no claimDimensions, and are NOT re-judged by it — so the guard
+       * still advances them and this exception still keeps them lawful. It goes
+       * when R5 re-checks the nine under the contract on actual evidence:
+       * R5 = WAITING FOR GREEN A / AUTHORIZED EVIDENCE FETCH. */
       const isAmbiguityDemotion =
         j.permitted === "VERIFIED" && j.declared === "UNKNOWN" && r?.verification?.elementAmbiguity;
       if (!isAmbiguityDemotion) {
@@ -531,6 +540,13 @@ export function validateRegistry(records = []) {
     }
     if (j.elements.missingList) {
       errors.push({ law: "F27", message: `${j.id}: a record leaving UNKNOWN declares no claimElements — what is missing cannot be reconciled` });
+    }
+    // 🔴 F30 · R4 — under the declaration contract every dimension is declared: as one of the record's elements, or
+    // NOT_APPLICABLE where the claim's structure allows it. A declared dimension the verdict did not confirm is not a
+    // fault of the declaration — the guard refuses it, and F24 fires if the record is declared past that refusal.
+    const faults = Object.entries(j.dimensions ?? {}).filter(([, d]) => DIMENSION_DECLARATION_FAULTS.includes(d.state));
+    if (faults.length) {
+      errors.push({ law: "F30", message: `${j.id}: under the declaration contract its claimDimensions are not declared — ${faults.map(([dim, d]) => `${dim} ${d.state}`).join(", ")}` });
     }
   }
 

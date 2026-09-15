@@ -1,0 +1,66 @@
+R4 DECLARATION CONTRACT — RED/GREEN, ONE LIMB AT A TIME
+run at 2026-09-15T21:48:35.284Z · node v24.15.0
+branch v0.1/faisla-rows-3-5-6-and-r4-declaration-contract · HEAD b685f220092fabd64d0e00b6df1aaca8b82fa5eb
+target src/evidence/verdict.mjs · original sha256 248b5cc9dff2b5c41aa40469ede6c71e5235eafe162c7ad20c2474ea6abb3d84 · staged index blob 3681e5b83920eceba4f91def97fa3ae0a3548af6
+data repository a4b38cf93439ffba4bc737c0415476c1d29ee755 (clean)
+
+CONTAINMENT (before any sabotage)
+  working file == staged index blob: yes
+  0-match anchor REFUSED: anchor matched 0 times
+  file untouched after the refusal: yes
+  probe landed (sha256 3842b51aec188edca6170c0a58abdb10b51c19bbf915315607408a9baff8d06a), then restored:
+  restored: sha256 248b5cc9dff2b5c41aa40469ede6c71e5235eafe162c7ad20c2474ea6abb3d84 == original · git hash-object 3681e5b83920eceba4f91def97fa3ae0a3548af6 == index blob
+  GREEN baseline: test/r4-declaration-contract.test.mjs pass 12 fail 0
+
+LIMB 1 · qualifier — the declaration requirement switched off for this dimension alone
+  sabotage landed: 1 anchor match · sha256 2a3920a67acded6db7c2e32f0848271e4c6c6a1f2ddd7855bf67e8a324f8e08e
+  test/r4-declaration-contract.test.mjs: pass 11 fail 1
+    not ok — 🔴 R4 · 1 · QUALIFIER required and NOT declared → REFUSED
+  named test RED: YES
+  restored: sha256 248b5cc9dff2b5c41aa40469ede6c71e5235eafe162c7ad20c2474ea6abb3d84 == original · git hash-object 3681e5b83920eceba4f91def97fa3ae0a3548af6 == index blob
+
+LIMB 2 · qualifier — confirmation by name switched off for this dimension alone
+  sabotage landed: 1 anchor match · sha256 07d7e67b5a413f34b604bc7a07d29f82f352e2d2a7131fdb9c1c755cbb690b04
+  test/r4-declaration-contract.test.mjs: pass 11 fail 1
+    not ok — 🔴 R4 · 2 · QUALIFIER declared but NOT explicitly confirmed by the verdict → REFUSED
+  named test RED: YES
+  restored: sha256 248b5cc9dff2b5c41aa40469ede6c71e5235eafe162c7ad20c2474ea6abb3d84 == original · git hash-object 3681e5b83920eceba4f91def97fa3ae0a3548af6 == index blob
+
+LIMB 3 · list completeness — the declaration requirement switched off for this dimension alone
+  sabotage landed: 1 anchor match · sha256 0457d0bf416b77289cfdc1741da9720cee9c39cc8156c9e8c0a94a2913ca524e
+  test/r4-declaration-contract.test.mjs: pass 11 fail 1
+    not ok — 🔴 R4 · 4 · LIST COMPLETENESS material and NOT declared → REFUSED
+  named test RED: YES
+  restored: sha256 248b5cc9dff2b5c41aa40469ede6c71e5235eafe162c7ad20c2474ea6abb3d84 == original · git hash-object 3681e5b83920eceba4f91def97fa3ae0a3548af6 == index blob
+
+LIMB 4 · list completeness — confirmation by name switched off for this dimension alone
+  sabotage landed: 1 anchor match · sha256 68c50a97678946298b058140aa1d46a95a3506951e944178c9194d7d9391ca18
+  test/r4-declaration-contract.test.mjs: pass 11 fail 1
+    not ok — 🔴 R4 · 5 · LIST COMPLETENESS declared but NOT explicitly confirmed → REFUSED
+  named test RED: YES
+  restored: sha256 248b5cc9dff2b5c41aa40469ede6c71e5235eafe162c7ad20c2474ea6abb3d84 == original · git hash-object 3681e5b83920eceba4f91def97fa3ae0a3548af6 == index blob
+
+LIMB 5 · binding party — the declaration requirement switched off for this dimension alone
+  sabotage landed: 1 anchor match · sha256 77e083e7c5d87ff186ac5735ef7014125c656380149a15167915d73099183a7d
+  test/r4-declaration-contract.test.mjs: pass 11 fail 1
+    not ok — 🔴 R4 · 7 · BINDING PARTY required and NOT declared → REFUSED
+  named test RED: YES
+  restored: sha256 248b5cc9dff2b5c41aa40469ede6c71e5235eafe162c7ad20c2474ea6abb3d84 == original · git hash-object 3681e5b83920eceba4f91def97fa3ae0a3548af6 == index blob
+
+LIMB 6 · binding party — confirmation by name switched off for this dimension alone
+  sabotage landed: 1 anchor match · sha256 bc955368ae369dc378acc9a6234e90957597a0f45e6535564f68e488e25057e8
+  test/r4-declaration-contract.test.mjs: pass 11 fail 1
+    not ok — 🔴 R4 · 8 · BINDING PARTY declared but NOT explicitly confirmed → REFUSED
+  named test RED: YES
+  restored: sha256 248b5cc9dff2b5c41aa40469ede6c71e5235eafe162c7ad20c2474ea6abb3d84 == original · git hash-object 3681e5b83920eceba4f91def97fa3ae0a3548af6 == index blob
+
+LIMB 7 · the read derivation allowed back under the contract (the interim inference, unscoped)
+  sabotage landed: 1 anchor match · sha256 47260fc47df5774fe335281935e293f09d69e03835d11fa7ec4d0711a59a1d92
+  test/r4-declaration-contract.test.mjs: pass 11 fail 1
+    not ok — 🔴 R4 · 10 · UNKNOWN / insufficient evidence stays FAIL-CLOSED — and under the contract a read is declared, never derived
+  named test RED: YES
+  restored: sha256 248b5cc9dff2b5c41aa40469ede6c71e5235eafe162c7ad20c2474ea6abb3d84 == original · git hash-object 3681e5b83920eceba4f91def97fa3ae0a3548af6 == index blob
+
+GREEN after all limbs restored: pass 12 fail 0
+data repository a4b38cf93439ffba4bc737c0415476c1d29ee755 (clean)
+every named test went RED on its limb alone: YES

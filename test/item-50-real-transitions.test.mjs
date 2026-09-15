@@ -216,6 +216,17 @@ test("🔴 PART 4 · the 9 rested on an unsettled reading and were DEMOTED by be
   assert.match(row.remainingPopulation, /9 previously-VERIFIED labels were DEMOTED/);
 });
 
+test("🔴 R4 · the pre-contract population is EXACTLY the 36 by name — none carries a declaration, and the nine's exemption is still reachable", () => {
+  const preContract = v.guard.judgements.filter((j) => j.contract === "PRE_CONTRACT").map((j) => j.id).sort();
+  assert.deepEqual(preContract, [...FOUR, ...THIRTY_TWO].sort(), "a record was dated into the pre-contract population, or one left it");
+  assert.equal(records.filter((r) => r.claimDimensions !== undefined).length, 0, "a claimDimensions declaration was manufactured on a real record");
+  for (const id of AMBIGUOUS) {
+    const j = judgementOf(id);
+    assert.deepEqual([j.contract, j.permitted, j.declared, Boolean(byId.get(id).verification.elementAmbiguity)], ["PRE_CONTRACT", "VERIFIED", "UNKNOWN", true], `${id}: re-judged by R4 by side effect`);
+  }
+  assert.ok(!v.registryErrors.some((e) => e.law === "F24" || e.law === "F30"), "the nine became invalid");
+});
+
 test("🔴 no value and no evidence amended across the 32 — each hashes exactly as before reconciliation", async () => {
   for (const [id, [value, evidence]] of Object.entries(BEFORE_RECONCILIATION)) {
     const r = byId.get(id);

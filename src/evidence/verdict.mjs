@@ -25,6 +25,7 @@
  */
 
 import { transition, canTransition, CHECK_OUTCOMES } from "./transitions.mjs";
+import { CLAIM_DIMENSIONS, DIMENSION_NOT_APPLICABLE, DIMENSION_REQUIRED_BY, DECLARATION_CONTRACT_AFTER } from "../facts/schema.mjs";
 
 /**
  * The registry's vocabulary → the three outcomes.
@@ -154,11 +155,50 @@ export function reconcileElements(claimElements, verification) {
   return Object.freeze({ listed, confirmed, notConfirmed, stale, contradictory, suppliedCount });
 }
 
-export function judgeLeavingUnknown(id, verification, claimElements) {
+/** 🔴 R4 — is this verification bound by the declaration contract? Dated after the contract's day, or not dated at all. */
+export function underDeclarationContract(verification) {
+  const on = verification?.checkedOn;
+  return !(ISO_DAY.test(on ?? "") && on <= DECLARATION_CONTRACT_AFTER);
+}
+
+/**
+ * 🔴 R4 — each dimension's declaration, judged against the record's own elements and the verdict's named keys.
+ *
+ *   UNDECLARED              absent, empty or not a string — an absent dimension is not an inapplicable one
+ *   REQUIRED_NOT_DECLARED   "NOT_APPLICABLE" where the claim's own structure makes the dimension real
+ *   NOT_AN_ELEMENT          a key that is not one of the record's claimElements — a dimension is a first-class element
+ *   NOT_CONFIRMED_BY_NAME   a declared element the verdict does not confirm by name, or names as not found
+ *   NOT_APPLICABLE · CONFIRMED
+ */
+export function judgeDimensions(declaration, claimElements, verification) {
+  const declared = declaration?.claimDimensions;
+  const listed = Array.isArray(claimElements) ? claimElements : [];
+  const confirmedKeys = Array.isArray(verification?.elementsConfirmedKeys) ? verification.elementsConfirmedKeys : [];
+  const notFoundKeys = Array.isArray(verification?.elementsNotFoundKeys) ? verification.elementsNotFoundKeys : [];
+  const out = {};
+  for (const dim of Object.keys(CLAIM_DIMENSIONS)) {
+    const value = declared !== null && typeof declared === "object" ? declared[dim] : undefined;
+    const required = DIMENSION_REQUIRED_BY[dim](declaration);
+    let state;
+    if (typeof value !== "string" || value.trim() === "") state = "UNDECLARED";
+    else if (value === DIMENSION_NOT_APPLICABLE) state = required ? "REQUIRED_NOT_DECLARED" : "NOT_APPLICABLE";
+    else if (!listed.includes(value)) state = "NOT_AN_ELEMENT";
+    else if (!confirmedKeys.includes(value) || notFoundKeys.includes(value)) state = "NOT_CONFIRMED_BY_NAME";
+    else state = "CONFIRMED";
+    out[dim] = Object.freeze({ declared: value === undefined ? null : value, required, state });
+  }
+  return Object.freeze(out);
+}
+
+/** F30's population: a declaration that is absent or malformed, as distinct from one the verdict failed to confirm. */
+export const DIMENSION_DECLARATION_FAULTS = Object.freeze(["UNDECLARED", "REQUIRED_NOT_DECLARED", "NOT_AN_ELEMENT"]);
+
+export function judgeLeavingUnknown(id, verification, claimElements, declaration) {
   const previous = verification?.previous;
   if (!previous || VERIFICATION_OUTCOME[previous.state] !== "UNKNOWN") return null;
   const v = verification;
   const e = reconcileElements(claimElements, v);
+  const contract = underDeclarationContract(v);
   const reasons = [];
   /* 🔴 A NEW MEASUREMENT, in both of the ways a record can leave UNKNOWN (13 September 2026):
    *   · replacing an earlier UNKNOWN check — the new check must be dated AFTER it;
@@ -191,11 +231,24 @@ export function judgeLeavingUnknown(id, verification, claimElements) {
    * SCOPE: this derivation fires on any verdict without `sourceRead`, and in the current registry that is only the
    * 12 September 2026 verdicts. Every verdict recorded after `sourceRead` was added to the field set must state it,
    * and is taken at its word. This branch is scheduled for removal once the 12 September provenance declaration
-   * exists — at which point no verdict will lack `sourceRead` and the derivation will never fire. */
-  const readDerived = v.sourceRead === undefined && e.listed !== null && e.confirmed.length > 0;
+   * exists — at which point no verdict will lack `sourceRead` and the derivation will never fire.
+   *
+   * 🔴 R4 (owner ruling FAISLA 2, 16 September 2026) — REPLACED BY THE DECLARATION FOR EVERY NEW VERDICT, NOT YET
+   * REMOVED. Under the declaration contract (dated after DECLARATION_CONTRACT_AFTER, or undated) the derivation never
+   * fires: a read is declared `sourceRead: true`, or refused. It survives ONLY for pre-contract verdicts. MEASURED
+   * 15 September 2026 on the first product's registry: 32 of the 36 governed verdicts carry no `sourceRead`, and 24
+   * judgements depend on this branch — 15 labels declared VERIFIED and the nine held UNKNOWN by elementAmbiguity.
+   * Removing it now would re-judge all 24 by side effect. It goes when the 12 September run's provenance declaration
+   * is recorded beside those records, in the data repository, from that run's own evidence — never manufactured from
+   * this inference. */
+  /* 🔴 R4 (16 September 2026): under the declaration contract the derivation never fires — a read is DECLARED. */
+  const readDerived = !contract && v.sourceRead === undefined && e.listed !== null && e.confirmed.length > 0;
   if (!(v.sourceRead === true || readDerived)) {
     const refused = (v.attempts ?? []).filter((a) => a.status !== 200);
-    reasons.push(`the source was not read${refused.length ? ` — ${refused.length} page(s) refused (${[...new Set(refused.map((a) => a.status))].join(", ")})` : v.sourceRead === undefined ? " — the verdict records no read and names no element seen on it" : ""}`);
+    const unrecorded = contract
+      ? " — under the declaration contract a read is DECLARED (sourceRead: true), never derived from the elements a verdict names"
+      : " — the verdict records no read and names no element seen on it";
+    reasons.push(`the source was not read${refused.length ? ` — ${refused.length} page(s) refused (${[...new Set(refused.map((a) => a.status))].join(", ")})` : v.sourceRead === undefined ? unrecorded : ""}`);
   }
   if (!e.listed) {
     reasons.push("the record declares no element list — what is missing cannot be reconciled, so nothing of it counts as confirmed");
@@ -203,6 +256,21 @@ export function judgeLeavingUnknown(id, verification, claimElements) {
     if (e.confirmed.length === 0) reasons.push("no declared element of the claim is confirmed");
     if (e.notConfirmed.length > 0) {
       reasons.push(`${e.notConfirmed.length} of ${e.listed.length} declared element(s) not confirmed — partial confirmation is not verification`);
+    }
+  }
+  /* 🔴 R4 — under the declaration contract every dimension is DECLARED, and a declared one is CONFIRMED BY NAME.
+   * A declared dimension is one of the record's claimElements, so D-GUARD-1's all-elements limb above refuses an
+   * unconfirmed one too; this names WHICH dimension failed, and is the only limb that refuses an undeclared one. */
+  const dimensions = contract ? judgeDimensions(declaration, claimElements, v) : null;
+  for (const [dim, d] of Object.entries(dimensions ?? {})) {
+    if (d.state === "UNDECLARED") {
+      reasons.push(`${dim} is not declared — claimDimensions must name it as one of the record's elements or say ${DIMENSION_NOT_APPLICABLE}; an absent dimension is not an inapplicable one`);
+    } else if (d.state === "REQUIRED_NOT_DECLARED") {
+      reasons.push(`${dim} is declared ${DIMENSION_NOT_APPLICABLE}, but the claim's own structure requires it — ${CLAIM_DIMENSIONS[dim]}`);
+    } else if (d.state === "NOT_AN_ELEMENT") {
+      reasons.push(`${dim} is declared as ${JSON.stringify(d.declared)}, which is not one of the record's claimElements — a dimension is a first-class element`);
+    } else if (d.state === "NOT_CONFIRMED_BY_NAME") {
+      reasons.push(`${dim} is declared as ${JSON.stringify(d.declared)} and the verdict does not confirm it by name`);
     }
   }
   const permitted = reasons.length === 0 && !canTransition("UNKNOWN", "PASS") ? "VERIFIED" : "UNKNOWN";
@@ -214,6 +282,8 @@ export function judgeLeavingUnknown(id, verification, claimElements) {
     permitted,
     declared: v.state,
     agrees: v.state === permitted,
+    contract: contract ? "DECLARATION_CONTRACT" : "PRE_CONTRACT",
+    dimensions,
     reasons: Object.freeze(reasons),
     elements: Object.freeze({
       listed: e.listed ? e.listed.length : null,

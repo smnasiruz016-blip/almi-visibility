@@ -239,6 +239,50 @@ export const FACT_KINDS = Object.freeze({
   derived: "computed by a declared formula from other records in this registry — its source is its inputs (F28, F29)",
 });
 
+/**
+ * 🔴 R4 · THE DECLARATION CONTRACT — owner ruling FAISLA 2 (16 September 2026), on beta-g's ruling of 13 September
+ * 2026 §5 R1–R4 (`_handoffs/AlmiVisibility_BETA_G_RULING_9_AMBIGUOUS_2026-09-13_NIGHT.md`).
+ *
+ * D-GUARD-1 reconciles what a record DECLARES (`claimElements`) against the keys its verdict NAMES. A dimension the
+ * record never declared sits outside that reconciliation, so the guard could not refuse it: nine labels stood on
+ * exactly that gap — a qualifier outside the value text, a list whose completeness nobody named, a rule whose binding
+ * party nobody named — and a human ruling, not the guard, had to catch them.
+ *
+ * So a record leaving UNKNOWN under the contract declares EVERY dimension, out loud, in `claimDimensions`:
+ *   an element key      one of its own `claimElements` — a first-class element, which its verdict must confirm BY NAME
+ *   "NOT_APPLICABLE"    said in words, never defaulted — and refused where the claim's own structure makes it real
+ * An absent dimension is not an inapplicable one. It is undeclared, and the guard refuses.
+ */
+export const CLAIM_DIMENSIONS = Object.freeze({
+  qualifier: "whom or what the claim applies to (R1)",
+  listCompleteness: "whether the listed items are the whole list (R2)",
+  bindingParty: "who the rule binds (R3)",
+});
+
+export const DIMENSION_NOT_APPLICABLE = "NOT_APPLICABLE";
+
+/**
+ * Where the claim's OWN declared structure makes a dimension real — read from declared fields (`claim.qualifier`,
+ * `value.valueType`), never from value text. No qualifier, completeness or binding party is ever inferred: these
+ * only decide that "NOT_APPLICABLE" may not be said.
+ */
+export const DIMENSION_REQUIRED_BY = Object.freeze({
+  qualifier: (record) => typeof record?.claim?.qualifier === "string" && record.claim.qualifier.trim() !== "",
+  listCompleteness: (record) => record?.value?.valueType === "list",
+  bindingParty: (record) => record?.value?.valueType === "rule",
+});
+
+/**
+ * The contract binds every verification dated AFTER this day, and every undated one.
+ *
+ * MEASURED 15 September 2026 on the first product's registry: all 36 governed verifications are dated 2026-09-12 or
+ * 2026-09-13, and none carries `claimDimensions` — they were recorded before any contract existed. They are judged
+ * exactly as before, so R4 re-judges none of them by side effect; the nine demoted labels wait for R5. A record later
+ * dated into that population is caught by the census in test/item-50-real-transitions.test.mjs, which pins it to the
+ * 36 by name.
+ */
+export const DECLARATION_CONTRACT_AFTER = "2026-09-13";
+
 /** R1–R4. `FACT_CACHE_DESIGN.md` §2 — they are not interchangeable. */
 export const ROUTES = Object.freeze({
   R1: "official structured source — an index, API or dataset the authority publishes",

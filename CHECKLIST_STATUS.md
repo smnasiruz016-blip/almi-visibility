@@ -20,14 +20,30 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 
 | state | before (4-state) | after (7-state) |
 |---|---|---|
-| **NOT-STARTED** | 33 | **5** |
+| **NOT-STARTED** | 33 | **4** |
 | **BUILT-NOT-PROVED** | 24 | **7** |
 | **TESTABLE-NOW** | — | **1** |
-| **VERIFIED-PASS** | 0 | **19** |
+| **VERIFIED-PASS** | 0 | **20** |
 | **FAILED** | — | **2** |
 | **BLOCKED-UNKNOWN** | 1 | **4** |
 | **DEFERRED** | — | **23** |
 | **total** | 58 | **61** |
+
+> ### 🔴 ROW 3 RUN — KEYWORD & SEARCH-LANGUAGE DISCOVERY — THE OWNED HALF ONLY — VERIFIED-PASS — 15 SEPTEMBER 2026
+>
+> - **Input:** the owned Search Console rows already in the store — query (`45ce21253a3fc58c`), query×page (`c97334fdd102df8e`)
+>   and country×query (`9bf50cfb134a0d7d`). No fetch, crawl, provider or network of any kind.
+> - **Stored:** 329 records in `runs/discovery/search-language-2026-09-15.json`, each carrying the original bytes, its kinds with
+>   evidence, and every source observation_id and ingest date — **207 LONG_TAIL · 26 SYNONYM · 17 ABBREVIATION · 53 LOCAL**, and
+>   **106 UNCLASSIFIED** counted separately. 8 operator strings excluded, by name.
+> - **Each FAILURE limb RED alone** in the real files, then restored by sha256: wording normalised, keyword untraceable, a keyword→URL
+>   path, and the intent lexicon read by the discovery code. **Held-out:** 61 of 61 hash-chosen records re-resolved against the raw
+>   store — a TRACEABILITY check, not a generalisation check, and not row 5's held-out.
+> - **The census's limits are on the row:** it cannot see a page written by hand, data copied elsewhere, a consumer outside src/ and
+>   bin/, a computed import, or a path held only as text and run by another module. The lexicon was compared only AFTER discovery, both ways, and not tuned: the lexicon claims 103 of
+>   its 115 pairs with no owned evidence; the owned data holds 6 pairs the lexicon does not.
+> - 🔴 **The PUBLIC half stays DEFERRED.** Row 5 stays FAILED, row 6 stays BUILT-NOT-PROVED; no page, route or slug was made.
+>   Ledger 4 / 7 / 1 / 20 / 2 / 4 / 23 = 61.
 
 > ### 🔴 fcd27d6 — LOCALLY PASSING; CI NEVER RAN ON IT; FIRST EXECUTED ON 07df435 — CORRECTED 15 SEPTEMBER 2026 — NO ROW MOVED
 >
@@ -722,10 +738,10 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 >   ingested and the seventh is supplied by no tool we hold. Not a tick. After it the counts are
 >   BUILT-NOT-PROVED **16** and BLOCKED-UNKNOWN **7**; the table above records Amendment 2 alone.
 
-> ### 🔴 NINETEEN TICKS — ITEMS 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56, 59 AND 60
+> ### 🔴 TWENTY TICKS — ITEMS 3, 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56, 59 AND 60
 >
-> **Items 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 48, 49, 51, 55, 59 and 60.** Each has all four parts of its boundary
-> answered with real-data evidence. They are the only nineteen rows in the whole ledger that **hold a pass earned by work**;
+> **Items 3 (its owned half), 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 48, 49, 51, 55, 59 and 60.** Each has all four parts of its boundary
+> answered with real-data evidence. They are the only twenty rows in the whole ledger that **hold a pass earned by work**;
 > item 9 moved by work and ended BLOCKED-UNKNOWN; item 50 was run and stays FAILED; item 25 was run and is
 > TESTABLE-NOW with its gap named; **items 48, 51 and 55 each passed through FAILED** and left it only by the
 > test re-run and passing; items 11 and 42 were proved on a local replay of real bodies, which does not prove
@@ -828,7 +844,7 @@ actually came from.
 |---|---|---|---|---|---|---|---|---|
 | 1 | Product Intake & Isolation | BLOCKED-UNKNOWN | IN — §62 l.553 provider-neutral foundation; DoD `DOD-02` | `test/product-registration.test.mjs`, `test/product-isolation.test.mjs` (16 tests, two real registered tenants, adversarial accessors, non-empty guard). `src/product.mjs` | 2026-09-13 | Claude (queue re-scan) | **Re-scanned 13 Sep: still blocked.** A cost ledger now exists, but **no cost entry names a product**, so no product holds private costs; and **no learning record exists** (`U-ISO-1`). Half an input is not an input | re-scan, 13 Sep 2026 |
 | 2 | Human Question Discovery | DEFERRED | OUT — §62 l.553; phase table "Search Intelligence". **Kept class D by `PASS_BOUNDARIES_AMENDMENT_4.md` (13 Sep 2026): its input is legitimate public question evidence and no fetch is authorised** | none | 2026-09-13 | CC (Amendment 4 class change) | its input — public question evidence — needs an external fetch the owner has not authorised; it enters scope on a bounded external-evidence GREEN, and not before | — |
-| 3 | Keyword & Search-Language Discovery | NOT-STARTED | PARTIAL — `PASS_BOUNDARIES_AMENDMENT_4.md` (owner ruling 13 Sep 2026), class D → S: the **owned** half (owned search data) IN; the **public** half (public search evidence) OUT, deferred and named. Was OUT — §62 l.553 | none — nothing built or run; its owned input is in `runs/evidence/evidence.jsonl` | 2026-09-13 | CC (Amendment 4 class change) | not started: no search-language record exists. The owned half's four-part contract was stated by the owner's addendum to Amendment 4 (13 Sep 2026) — a contract, not progress | — |
+| 3 | Keyword & Search-Language Discovery | VERIFIED-PASS | PARTIAL — `PASS_BOUNDARIES_AMENDMENT_4.md` (owner ruling 13 Sep 2026), class D → S: the **owned** half (owned search data) IN; the **public** half (public search evidence) OUT, deferred and named. Was OUT — §62 l.553 | `node bin/search-language.mjs --check` · `test/search-language.test.mjs` · `runs/discovery/search-language-2026-09-15.json` (329 records, each with its source observation_id + ingest date) · `runs/audit/row3-census-2026-09-15.txt` · `runs/audit/row3-red-limbs-2026-09-15.txt` (4 limbs, each RED alone, restored by sha256) | 2026-09-15 | CC (work, TEST_RUN) | THE OWNED HALF ONLY: 207 LONG_TAIL · 26 SYNONYM · 17 ABBREVIATION · 53 LOCAL · 106 UNCLASSIFIED; held-out 61/61 traceable; keyword→URL census 0 breaches (limits stated); discovery never reads the intent lexicon. The PUBLIC half stays DEFERRED | — |
 | 4 | Localized Human Thinking | NOT-STARTED | IN — `PASS_BOUNDARIES_AMENDMENT_4.md` (owner ruling 13 Sep 2026), class D → P: its input, the same goal from two or more countries, is present (388 country×query rows across 126 countries). Was OUT — v0.1 EXCLUDES l.974 "corridor engine (§6, §15)" | none — nothing built or run | 2026-09-13 | CC (Amendment 4 class change) | not started: no local-wording records exist | — |
 | 5 | Intent & Question Clustering | FAILED | IN — `PASS_BOUNDARIES_AMENDMENT_4.md` (owner ruling 13 Sep 2026), class D → P: its input, differently worded questions, is present (337 owned queries). Was OUT — §62 l.553 | `bin/intent-clusters.mjs` over the real query pull `45ce21253a3fc58c`: 337 rows = 329 human + 8 operator strings classified and kept (4 site-inspection · 3 exclusion-list monitor · 1 exact-phrase lookup); in-sample 268 → 73 clusters, 0 merged · 0 split against a reference written first (`config/discovery/intent-reference.mjs`, first-written copy in runs/audit); wording kept byte for byte; `test/intent-clustering.test.mjs`; six limbs RED alone in the real files (runs/audit/row5-red-limbs-2026-09-14.txt) | 2026-09-14 | CC (row 5 — test run; FAILED on the owner's answer) | 🔴 FAILURE MET on the held-out check: 61 held out → 49 HIT · 12 MISS, all 12 identical intents left split on words the frozen lexicon never saw. Limits: the reference is a model's judgement, not owner-verified; a cluster is not proved to be a real person's intent (row 2, DEFERRED). Leaves FAILED by the held-out check re-run and passing, or an owner ruling | — |
 | 6 | Axis Discovery | BUILT-NOT-PROVED | IN — `PASS_BOUNDARIES_AMENDMENT_4.md` (owner ruling 13 Sep 2026), class D → P: its input, the subject's real evidence, is present (queries, countries, pages in the evidence store). Was OUT — discovery is "Search Intelligence"; §62 l.553 | `bin/axis-discovery.mjs` over row 5's intent record, the country×query pull `9bf50cfb134a0d7d` (379 human rows, 48 countries), the page rows (1,525) and 394 archived bodies: the six named axes (read from the contract) and 7 discovered slot types, each with seven legs and a basis — 7 MONITOR · 7 UNKNOWN · 0 BUILD · 0 REJECT; `test/axis-discovery.test.mjs` with BUILD/REJECT controls; six sabotages over five limbs RED alone in the real files (runs/audit/row6-red-limbs-2026-09-14.txt). Axis **declaration** (`test/product-registration.test.mjs`) is still not discovery | 2026-09-14 | CC (row 6 — built and run; BUILT-NOT-PROVED on the owner's answer) | 🔴 answer-level distinguishing power, evidence availability and human-value delta are UNKNOWN on every axis — the answer at each value is not owned (row 7 SUPPLY and row 2 deferred), so the accepted and rejected populations the EVIDENCE clause names are EMPTY. Moves on per-value answer evidence the owner authorises, and the row re-run | — |

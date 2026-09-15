@@ -1,0 +1,190 @@
+ROW 3 — KEYWORD & SEARCH-LANGUAGE DISCOVERY · THE OWNED HALF
+
+[input: query        45ce21253a3fc58c · gsc.searchAnalytics.query:query · ingested 2026-09-12T23:25:03.868Z · 337 rows]
+[input: queryPage    c97334fdd102df8e · gsc.searchAnalytics.query:query-page · ingested 2026-09-12T23:25:04.172Z · 574 rows]
+[input: countryQuery 9bf50cfb134a0d7d · gsc.searchAnalytics.query:country-query · ingested 2026-09-12T23:25:04.608Z · 388 rows]
+
+operator strings excluded from people's wording: 8 — search-operator strings are an engine's instruction, not a person's words
+
+RECORDS: 329 pieces of real wording, every one with a pointer to each owned row it came from
+  LONG_TAIL 207 · SYNONYM 26 · ABBREVIATION 17 · LOCAL 53 · UNCLASSIFIED 106  (a record may carry more than one kind)
+
+SYNONYMS discovered (7):
+  equivalent ↔ score — 5 query pairs, same landing page
+  conversion ↔ equivalent — 3 query pairs, same landing page
+  conversion ↔ score — 3 query pairs, same landing page
+  band ↔ conversion — 2 query pairs, same landing page
+  band ↔ score — 2 query pairs, same landing page
+  best ↔ good — 2 query pairs, same landing page
+  daily ↔ life — 2 query pairs, same landing page
+ABBREVIATIONS discovered (3):
+  cv = curriculum vitae — 12 query pair(s) sharing a landing page
+  nz = new zealand — 1 query pair(s) sharing a landing page
+  pte = pearson test of english — 1 query pair(s) sharing a landing page
+LOCAL words discovered (10):
+  peru — per ×4 (country share 0.0106, p 1.24e-8)
+  cameroon — cmr ×3 (country share 0.0079, p 4.96e-7)
+  licenciatura — col ×3 (country share 0.0079, p 4.96e-7)
+  equivalent — aus ×15 (country share 0.3905, p 7.49e-7)
+  have — usa ×5 (country share 0.1636, p 0.000117)
+  budget — usa ×4 (country share 0.1636, p 0.000716)
+  conversion — aus ×6 (country share 0.3905, p 0.00355)
+  limit — aus ×6 (country share 0.3905, p 0.00355)
+  put — usa ×3 (country share 0.1636, p 0.00438)
+  fee — aus ×4 (country share 0.3905, p 0.0233)
+VARIANT forms (8, not one of the four kinds):
+  result ↔ results — plural, 3 pair(s)
+  b.v. ↔ bv — punctuation, 1 pair(s)
+  band ↔ bands — plural, 1 pair(s)
+  change ↔ changes — plural, 1 pair(s)
+  habit ↔ habits — plural, 1 pair(s)
+  in ↔ on — spelling, 1 pair(s)
+  score ↔ scores — plural, 1 pair(s)
+  summarise ↔ summarize — spelling, 1 pair(s)
+
+THE HAND-WRITTEN ROW-5 LEXICON, MEASURED AFTERWARDS — A FINDING, NEVER A TARGET
+  pairs the lexicon claims (both forms occur in the owned queries): 115
+  pairs the evidence yields: 18
+  🔴 the EVIDENCE yields and the lexicon never named: 6
+    best ↔ good  [SYNONYM]
+    daily ↔ life  [SYNONYM]
+    new zealand ↔ nz  [ABBREVIATION]
+    b.v. ↔ bv  [VARIANT (punctuation)]
+    in ↔ on  [VARIANT (spelling)]
+    summarise ↔ summarize  [VARIANT (spelling)]
+  🔴 the LEXICON claims and the evidence does not support: 103
+    accepted ↔ accepting
+    accepted ↔ required
+    accepted ↔ requirement
+    accepted ↔ requirements
+    accepting ↔ required
+    accepting ↔ requirement
+    accepting ↔ requirements
+    band ↔ chart
+    band ↔ compare
+    band ↔ compared
+    band ↔ convert
+    band ↔ converter
+    band ↔ equal
+    band ↔ equivalent
+    band ↔ scores
+    bands ↔ chart
+    bands ↔ compare
+    bands ↔ compared
+    bands ↔ conversion
+    bands ↔ convert
+    bands ↔ converter
+    bands ↔ equal
+    bands ↔ equivalent
+    bands ↔ score
+    bands ↔ scores
+    beginners ↔ newbies
+    budget ↔ low budget
+    budget ↔ low start
+    budget ↔ small budget
+    business ↔ businesses
+    business ↔ self employment
+    businesses ↔ self employment
+    c v ↔ curriculum vitae
+    c v ↔ cv
+    c v ↔ resume
+    c v ↔ resumes
+    cancellation ↔ refund
+    chart ↔ compare
+    chart ↔ compared
+    chart ↔ conversion
+    chart ↔ convert
+    chart ↔ converter
+    chart ↔ equal
+    chart ↔ equivalent
+    chart ↔ score
+    chart ↔ scores
+    compare ↔ compared
+    compare ↔ conversion
+    compare ↔ convert
+    compare ↔ converter
+    compare ↔ equal
+    compare ↔ equivalent
+    compare ↔ score
+    compare ↔ scores
+    compared ↔ conversion
+    compared ↔ convert
+    compared ↔ converter
+    compared ↔ equal
+    compared ↔ equivalent
+    compared ↔ score
+    compared ↔ scores
+    conversion ↔ convert
+    conversion ↔ converter
+    conversion ↔ equal
+    conversion ↔ scores
+    convert ↔ converter
+    convert ↔ equal
+    convert ↔ equivalent
+    convert ↔ score
+    convert ↔ scores
+    converter ↔ equal
+    converter ↔ equivalent
+    converter ↔ score
+    converter ↔ scores
+    curriculum vitae ↔ resume
+    curriculum vitae ↔ resumes
+    cv ↔ resume
+    cv ↔ resumes
+    difference ↔ or
+    difference ↔ vs
+    equal ↔ equivalent
+    equal ↔ score
+    equal ↔ scores
+    equivalent ↔ scores
+    habit ↔ routine
+    habits ↔ routine
+    improvement ↔ retake
+    improvement ↔ single module
+    job ↔ jobs
+    life style ↔ lifestyle
+    low budget ↔ low start
+    low budget ↔ small budget
+    low start ↔ small budget
+    migration ↔ pr
+    mypte ↔ pearson test of english
+    mypte ↔ pte
+    no experience ↔ zero experience
+    or ↔ vs
+    required ↔ requirement
+    required ↔ requirements
+    requirement ↔ requirements
+    resume ↔ resumes
+    retake ↔ single module
+  both: 12
+  by lexicon GROUP (forms the lexicon maps to one canonical, at least two present): 17 groups · 6 with at least one evidenced pair · 11 with none
+    evidenced — c v, curriculum vitae, cv, resume, resumes
+    evidenced — result, results
+    evidenced — habit, habits, routine
+    🔴 no evidence — business, businesses, self employment
+    evidenced — band, bands, chart, compare, compared, conversion, convert, converter, equal, equivalent, score, scores
+    🔴 no evidence — difference, or, vs
+    evidenced — mypte, pearson test of english, pte
+    evidenced — change, changes
+    🔴 no evidence — job, jobs
+    🔴 no evidence — beginners, newbies
+    🔴 no evidence — accepted, accepting, required, requirement, requirements
+    🔴 no evidence — cancellation, refund
+    🔴 no evidence — improvement, retake, single module
+    🔴 no evidence — migration, pr
+    🔴 no evidence — no experience, zero experience
+    🔴 no evidence — life style, lifestyle
+    🔴 no evidence — budget, low budget, low start, small budget
+
+HELD-OUT RE-CHECK (traceability, read from the raw store text): 61 of 61 resolve byte for byte, completely · failures 0
+
+KEYWORD→URL CENSUS: consumers bin/search-language.mjs, src/discovery/search-language.mjs · URL-shaped constructions in them: 0
+NO-LEXICON LAW: src/discovery/search-language.mjs names neither the row-5 lexicon nor its reference in code
+
+🔴 LIMITS:
+  · a SYNONYM is interchangeable use in the same query frame landing on the same page — not proof of the same meaning
+  · LOCAL phrasing rests on Search Console's country of the searcher; only 32 of 329 queries have more than one country row, so most locality is undecidable and stays UNCLASSIFIED
+  · the public half — legitimate public search evidence — is DEFERRED: no fetch is authorised
+  · the keyword→URL census reads code: it cannot see a page written by hand, wording copied out of the records, a consumer outside src/ and bin/, a computed import, or a path held as text and run by another module
+
+ERRORS: 0

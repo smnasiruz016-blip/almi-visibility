@@ -110,7 +110,7 @@ L.push("");
 const halves = Object.values(boundaries).filter((b) => b.halfContractByA4);
 L.push("🔴 **The owner's dated addendum (13 September 2026) closed the three gaps this amendment first left:** row 7's");
 L.push("**WORTHINESS** is assigned to the deferred half, and " + `${halves.map((b) => `item ${b.id}`).join(" and ")} carry a four-part contract for their owned half,`);
-L.push("read from the amendment. **A contract is not progress:** both rows stay NOT-STARTED, and each keeps its §6 text below");
+L.push("read from the amendment. **A contract is not progress:** each row stays NOT-STARTED until its owned half is RUN, and each keeps its §6 text below");
 L.push("as the final boundary for when the deferred half opens.");
 L.push("");
 L.push("---");

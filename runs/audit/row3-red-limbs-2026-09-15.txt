@@ -1,0 +1,53 @@
+ROW 3 — RED LIMBS, EACH ALONE IN THE REAL FILES · 2026-09-15T01:10:14.268Z
+test file: test/search-language.test.mjs
+
+CLEAN before: exit 0 · tests 12 · pass 12 · fail 0
+
+=== wording normalised — one stored original loses its accent
+   file: runs/discovery/search-language-2026-09-15.json
+   sabotage landed: true · lines removed 1 · lines added 1
+   ran only "every limb holds": exit 1 · tests 1 · pass 0 · fail 1
+   ✖ 🔴 STORED RECORDS — every limb holds: wording byte-identical, every pointer traceable, every kind evidenced, no operator string
+     reason: AssertionError [ERR_ASSERTION]: [wording-normalised] "licenciatura en bilinguismo" is stored as "licenciatura en bilingüismo" at row 149 of 45ce21253a3fc58c — the original wording was changed
+     reason: [wording-normalised] "licenciatura en bilinguismo" is stored as "licenciatura en bilingüismo" at row 155 of c97334fdd102df8e — the original wording was changed
+     reason: [wording-normalised] "licenciatura en bilinguismo" is stored as "licenciatura en bilingüismo" at row 177 of 9bf50cfb134a0d7d — the original wording was changed
+   RED on this limb alone ("wording-normalised"): YES
+   also caught by "EXACTLY WHAT THE STORE YIELDS" (a separate law — the stored file must equal a fresh discovery): exit 1 · fail 1 — RED, as it must be
+   restored byte for byte: true (sha256 06ba66ac27e2f3eb26d005841b76817838926b8d868b188beab04fc988d492e2)
+
+=== untraceable — one stored record points at an observation the store does not hold
+   file: runs/discovery/search-language-2026-09-15.json
+   sabotage landed: true · lines removed 1 · lines added 1
+   ran only "every limb holds": exit 1 · tests 1 · pass 0 · fail 1
+   ✖ 🔴 STORED RECORDS — every limb holds: wording byte-identical, every pointer traceable, every kind evidenced, no operator string
+     reason: AssertionError [ERR_ASSERTION]: [untraceable] "47 pte score in ielts" points at observation 0000000000000000, which the store does not hold
+   RED on this limb alone ("untraceable"): YES
+   also caught by "EXACTLY WHAT THE STORE YIELDS" (a separate law — the stored file must equal a fresh discovery): exit 1 · fail 1 — RED, as it must be
+   restored byte for byte: true (sha256 06ba66ac27e2f3eb26d005841b76817838926b8d868b188beab04fc988d492e2)
+
+=== keyword promoted to a URL — the runner builds a route from a stored keyword
+   file: bin/search-language.mjs
+   sabotage landed: true · lines removed 0 · lines added 1
+   ran only "KEYWORD→URL CENSUS": exit 1 · tests 1 · pass 0 · fail 1
+   ✖ 🔴 KEYWORD→URL CENSUS — no consumer of the search-language module builds a URL-shaped value
+     reason: AssertionError [ERR_ASSERTION]: bin/search-language.mjs:26 a /${…} path template
+     reason: bin/search-language.mjs:26 route
+     reason: bin/search-language.mjs:26 spaces → hyphens slugify
+   RED on this limb alone ("bin/search-language.mjs:"): YES
+   restored byte for byte: true (sha256 e81fff21cb4089cf5c90b4bfb99a9842a38d9e1facaeed948abdf2c422da5220)
+
+=== the discovery module names the hand-written lexicon — by a bare path string, not an import
+   file: src/discovery/search-language.mjs
+   sabotage landed: true · lines removed 0 · lines added 1
+   ran only "NO-LEXICON LAW": exit 1 · tests 1 · pass 0 · fail 1
+   ✖ 🔴 NO-LEXICON LAW — the discovery module names neither the row-5 lexicon nor its reference, by import or by path string
+     reason: AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+     reason: +   'intent-lexicon'
+     reason: actual: [ 'intent-lexicon' ],
+   RED on this limb alone ("intent-lexicon"): YES
+   restored byte for byte: true (sha256 d764d22862c98beef43a449edd81892359d9f5aca0565ef0c1a895d075b16a48)
+
+=== CLEAN — every file restored
+exit 0 · tests 12 · pass 12 · fail 0
+
+verdict: RED PROVED — four limbs, each sabotaged alone in its real file, each RED on its own named test, each restored byte for byte

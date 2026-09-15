@@ -300,12 +300,14 @@ test("🔴 RED: TESTABLE-NOW without a named test is REFUSED", () => {
  * traceable byte for byte, no keyword→URL path; each FAILURE limb RED alone. NOT-STARTED 5 → 4, VERIFIED-PASS 19 → 20. */
 /* 🔴 AND ROW 36 TICKED (15 Sep 2026): the archive-corpus overwrite refusal ran at last, so every category its frozen boundary
  * names has a test that runs the guard. BUILT-NOT-PROVED 9 → 8, VERIFIED-PASS 20 → 21. */
-test("the seven-state tally is 2 / 8 / 1 / 21 / 2 / 4 / 23 over 61 rows", () => {
+/* 🔴 AND ROW 61 TICKED (15 Sep 2026): the owner decided its blocker, and the missing leg ran through the real runner on a
+ * second declared neutral test product — refused correctly, every limb RED alone. BUILT-NOT-PROVED 8 → 7, VERIFIED-PASS 21 → 22. */
+test("the seven-state tally is 2 / 7 / 1 / 22 / 2 / 4 / 23 over 61 rows", () => {
   assert.deepEqual(tally(classify()), {
     "NOT-STARTED": 2,
-    "BUILT-NOT-PROVED": 8,
+    "BUILT-NOT-PROVED": 7,
     "TESTABLE-NOW": 1,
-    "VERIFIED-PASS": 21,
+    "VERIFIED-PASS": 22,
     FAILED: 2,
     "BLOCKED-UNKNOWN": 4,
     DEFERRED: 23,
@@ -473,22 +475,31 @@ test("🔴 rows 59 and 60 left NOT-STARTED only by declared WORK moves — both 
   assert.deepEqual(assertLawful(rows), []);
 });
 
-test("🔴 row 61 is CREATED — BUILT-NOT-PROVED, by a declared WORK move — and carries its missing leg, its blocker and both real-page inputs", () => {
-  const r = classify()[61];
-  assert.equal(r.state, "BUILT-NOT-PROVED");
+/* 🔴 Row 61 was CREATED BUILT-NOT-PROVED on 14 September 2026 with its missing leg and an owner decision it was blocked on.
+ * The owner decided it on 15 September 2026, the leg ran through the real runner on a second declared product, and the
+ * row ticked by its tests. Both moves stay on the chain; the residue on real pages stays on the row. */
+test("🔴 row 61 — CREATED BUILT-NOT-PROVED by a WORK move, then VERIFIED-PASS by its tests on a SECOND DECLARED product under the owner's decision; row 53 untouched; the real-page residue kept", () => {
+  const rows = classify();
+  const r = rows[61];
+  assert.equal(r.state, "VERIFIED-PASS");
   assert.equal(r.via, "A5");
   assert.deepEqual(r.missingParts, []);
-  const [move] = MOVES_AMENDMENT_2[61];
-  assert.deepEqual([move.from, move.to, move.kind], ["NOT-STARTED", "BUILT-NOT-PROVED", "work"]);
-  assert.match(r.missingLeg, /second DECLARED product with its own DECLARED page spec, reached end to end through bin\/build-page\.mjs/);
-  assert.match(r.blockedOn, /OWNER DECISION/);
-  assert.match(r.blockedOn, /second neutral declared test product/);
-  assert.match(r.blockedOn, /re-pin of row 53's coverage/);
-  assert.equal(r.realPageInputs.length, 2);
-  assert.match(r.realPageInputs[0], /WHY_THIS_URL_DESERVES_TO_EXIST/);
-  assert.match(r.realPageInputs[1], /at least THREE rendered specs/);
-  assert.match(r.why, /a test fixture is not a declared product/);
-  assert.deepEqual(assertTransitions(classify()), []);
+  const [created, ticked, ...more] = MOVES_AMENDMENT_2[61];
+  assert.deepEqual(more, []);
+  assert.deepEqual([created.from, created.to, created.kind], ["NOT-STARTED", "BUILT-NOT-PROVED", "work"]);
+  assert.deepEqual([ticked.from, ticked.to, ticked.kind, ticked.route, ticked.date], ["BUILT-NOT-PROVED", "VERIFIED-PASS", "work", "TEST_RUN", "2026-09-15"]);
+  assert.match(ticked.reason, /AlmiVisibility_ROW61_OWNER_DECISION_2026-09-15\.md/, "the tick does not cite the owner's decision as its authority");
+  assert.match(ticked.test, /runs\/audit\/row61-second-product-red-2026-09-15\.txt/);
+  assert.equal(r.missingLeg, undefined, "a VERIFIED-PASS row still carries a missing leg");
+  assert.equal(r.blockedOn, undefined, "a VERIFIED-PASS row still says it is blocked");
+  assert.match(r.why, /neutral-test-knots/);
+  assert.match(r.why, /NO REAL PAGE CAN BE ACCEPTED/, "the real-page residue left the row");
+  assert.match(r.why, /WHY_THIS_URL_DESERVES_TO_EXIST/);
+  assert.match(r.why, /THREE rendered specs/);
+  assert.match(r.why, /a test fixture is not a declared product/, "the earlier verdict was not kept");
+  assert.equal(rows[53].state, "VERIFIED-PASS", "row 53 lost its pass");
+  assert.deepEqual(assertTransitions(rows), []);
+  assert.deepEqual(assertLawful(rows), []);
 });
 
 test("🔴 RED: a row that is neither one of the frozen 58 nor admitted by a ruling is REFUSED by the transition law", () => {
@@ -710,11 +721,13 @@ test("🔴 the five arrive NOT-STARTED by a RULING move and nothing else; row 2 
 /* 🔴 NINETEEN since row 60 ticked (14 Sep 2026) — on its census over the real store, its four frozen limbs re-run RED alone. */
 /* 🔴 TWENTY since row 3's owned half ran against its boundary (15 Sep 2026) — every FAILURE limb RED alone, held-out 61/61. */
 /* 🔴 TWENTY-ONE since row 36 ticked (15 Sep 2026) — every category its frozen boundary names runs its guard in CI on main. */
-test("🔴 VERIFIED-PASS is exactly 21 — items 3, 8, 11, 12, 13, 14, 15, 26, 36, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56, 59 and 60 — and 48's reopen stays on the record", () => {
+/* 🔴 TWENTY-TWO since row 61 ticked (15 Sep 2026) — its missing leg run through the real runner on a second declared product. */
+test("🔴 VERIFIED-PASS is exactly 22 — items 3, 8, 11, 12, 13, 14, 15, 26, 36, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56, 59, 60 and 61 — and 48's reopen stays on the record", () => {
   const rows = classify();
   const passed = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS").map((r) => r.id).sort((a, b) => a - b);
-  assert.deepEqual(passed, [3, 8, 11, 12, 13, 14, 15, 26, 36, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56, 59, 60]);
-  assert.equal(tally(rows)["VERIFIED-PASS"], 21);
+  assert.deepEqual(passed, [3, 8, 11, 12, 13, 14, 15, 26, 36, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56, 59, 60, 61]);
+  assert.equal(tally(rows)["VERIFIED-PASS"], 22);
+  assert.equal(MOVES_AMENDMENT_2[61].at(-1).route, "TEST_RUN", "row 61's tick did not come from its tests");
   assert.equal(MOVES_AMENDMENT_2[36].at(-1).route, "TEST_RUN", "row 36's tick did not come from its tests");
   assert.match(rows[36].why, /NO PRODUCTION WRITE PATH EXISTS/, "row 36's production residue is not on the row");
   assert.equal(MOVES_AMENDMENT_2[3].at(-1).route, "TEST_RUN", "row 3's tick did not come from its test");

@@ -21,13 +21,35 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 | state | before (4-state) | after (7-state) |
 |---|---|---|
 | **NOT-STARTED** | 33 | **2** |
-| **BUILT-NOT-PROVED** | 24 | **8** |
+| **BUILT-NOT-PROVED** | 24 | **7** |
 | **TESTABLE-NOW** | — | **1** |
-| **VERIFIED-PASS** | 0 | **21** |
+| **VERIFIED-PASS** | 0 | **22** |
 | **FAILED** | — | **2** |
 | **BLOCKED-UNKNOWN** | 1 | **4** |
 | **DEFERRED** | — | **23** |
 | **total** | 58 | **61** |
+
+> ### 🔴 ROW 61 TICKED — THE OWNER DECIDED ITS BLOCKER, AND THE MISSING LEG WAS RUN AND REFUSED CORRECTLY — 15 SEPTEMBER 2026
+>
+> - **Authority:** the owner's decision of 15 September 2026, committed at `_handoffs/AlmiVisibility_ROW61_OWNER_DECISION_2026-09-15.md`:
+>   *"use a SECOND DECLARED NEUTRAL TEST PRODUCT / PROJECT · use an evidence-bearing page spec · DO NOT change what Row 53 checks"*.
+>   Row 61's recorded blocker — *"an OWNER DECISION, not yet made"* — was accurate until then.
+> - **The input:** `products/neutral-test-knots/` — a second neutral declared test product (rope knots, axis `knot`), sharing no subject,
+>   axis, variant, source host or licence with the first product or with row 53's product. Two page specs holding **claim ids only**;
+>   three declared-test-data records, UNVERIFIED, status `lead` — **nothing in it is a fact, and none was made VERIFIED.**
+> - **The run:** `bin/build-page.mjs` on almi-oet and on neutral-test-knots, `--all-slugs` and each `--slug` alone — **every candidate
+>   REFUSED inside the construction path**, exit 2, `--confirm` wrote nothing; DATA GAP (facts 0 of 5, no WHY_THIS_URL) and BLOCKED /
+>   NOT TESTED recorded, never PASS (`runs/audit/row61-second-product-construction-run-2026-09-15.txt`). `findCopiedFacts` is clean on
+>   every spec of every declared product; the runner on the second product loads and reads nothing of the first.
+> - **RED alone, restored byte for byte** (`runs/audit/row61-second-product-red-2026-09-15.txt`): the acceptance rule forced open · row 53's
+>   product given a page spec · a record's sentence planted in the spec · the runner loading the first product — each RED on its named
+>   test, GREEN after. ⚠️ The copied-fact limb's first attempt planted an 18-character value and did not go red: `findCopiedFacts` skips
+>   text under 40 characters and catches a sentence, not a paraphrase, by its own recorded design. Re-run with the record's sentence;
+>   the check is unchanged.
+> - **Row 53 is untouched:** neutral-test-ferments still declares `pageSpecs {}`; row 53 stays VERIFIED-PASS. No file under `src/` changed.
+> - 🔴 **No real page can be accepted, and the pass does not say otherwise:** no spec declares a WHY_THIS_URL, no template family has three
+>   rendered specs, and PAGE-1 stays UNSATISFIED. Row 61 proves the generator refuses correctly on any declared product.
+> - **Row 61 · BUILT-NOT-PROVED → VERIFIED-PASS (work, TEST_RUN).** Ledger 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61.
 
 > ### 🔴 GAP 3 CLOSED (#90) — AND ROW 36 TICKED: EVERY GUARD ITS FROZEN BOUNDARY NAMES NOW RUNS — 15 SEPTEMBER 2026
 >
@@ -830,10 +852,10 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 >   ingested and the seventh is supplied by no tool we hold. Not a tick. After it the counts are
 >   BUILT-NOT-PROVED **16** and BLOCKED-UNKNOWN **7**; the table above records Amendment 2 alone.
 
-> ### 🔴 TWENTY-ONE TICKS — ITEMS 3, 8, 11, 12, 13, 14, 15, 26, 36, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56, 59 AND 60
+> ### 🔴 TWENTY-TWO TICKS — ITEMS 3, 8, 11, 12, 13, 14, 15, 26, 36, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56, 59, 60 AND 61
 >
-> **Items 3 (its owned half), 8, 11, 12, 13, 14, 15, 26, 36, 38, 42, 45, 48, 49, 51, 55, 59 and 60.** Each has all four parts of its boundary
-> answered with real-data evidence. They are the only twenty-one rows in the whole ledger that **hold a pass earned by work**;
+> **Items 3 (its owned half), 8, 11, 12, 13, 14, 15, 26, 36, 38, 42, 45, 48, 49, 51, 55, 59, 60 and 61.** Each has all four parts of its boundary
+> answered with real-data evidence. They are the only twenty-two rows in the whole ledger that **hold a pass earned by work**;
 > item 9 moved by work and ended BLOCKED-UNKNOWN; item 50 was run and stays FAILED; item 25 was run and is
 > TESTABLE-NOW with its gap named; **items 48, 51 and 55 each passed through FAILED** and left it only by the
 > test re-run and passing; items 11 and 42 were proved on a local replay of real bodies, which does not prove
@@ -994,7 +1016,7 @@ actually came from.
 | 58 | DONE Declaration | NOT-STARTED | IN — checklist §6, owner sign-off | none | 2026-09-11 | Claude (repo audit) | Requires every applicable item ☑ or justified N/A with no frozen blocker. **0 items are ☑**, and N/A justifications are the owner's — none exist | — |
 | 59 | Falsifiability of Findings | VERIFIED-PASS | IN — `PASS_BOUNDARIES_AMENDMENT_3.md`, owner ruling under §12, 13 Sep 2026, re-issued 14 Sep 2026 (class P) | `bin/refutation-census.mjs` over the real store: population 20 (17 finding classes + 3 recommendations), 20 carry observation · source · condition with a held method (`config/refutation-register.mjs`); every EVIDENCE limb RED alone in the real register and restored, hash-checked (runs/audit/row59-*). Backfill 20 written, 0 not written | 2026-09-14 | CC (Amendment 3 work half) | none for the tick. The limit, on the row: the census cannot prove a refutation is well chosen — that is human judgement | — |
 | 60 | Consequence-Weighted Priority | VERIFIED-PASS | IN — `PASS_BOUNDARIES_AMENDMENT_3.md`, owner ruling under §12, 13 Sep 2026, re-issued 14 Sep 2026 (class P) | `config/consequence-register.mjs` reconciled line by line with the 14 finding classes in use — HIGH 4 · MODERATE 6 · LOW 4, every one the owner's (`ROW60_CONSEQUENCE_LAW.md`, `ROW60_COVERAGE_AND_LEVELS_RULING.md`, `ROW60_POPULATIONS_RULING.md`); every issue in exactly one of four populations (541 findings · 1,224 coverage gaps · 134 decisions on record · 134 audit trail); the decision on record first on the owner's report; the basis on the real report; the four frozen limbs RED alone and restored (runs/audit/row60-*) | 2026-09-14 | CC (row 60 — Option A) | 🔴 the limit: it proves consistent application of the owner's judgement, never that a level is well chosen; the tick rests on three same-day rulings, each self-checked against the ANTI-CIRCLE law | — |
-| 61 | Safe Local Page Construction | BUILT-NOT-PROVED | IN — `PASS_BOUNDARIES_AMENDMENT_5.md` §4 (class P); reserved there, created 14 Sep 2026 once rows 59 and 60 existed | PR #72: `bin/build-page.mjs` takes `--slug` / `--all-slugs` with no default; Gate A's four parts enforced in the construction path, failing closed (`src/page/construct.mjs`); RED/GREEN in `runs/audit/row61-gate-a-*`; 0 of 3 candidates accepted | 2026-09-14 | CC (row 61 created) | **missing leg:** a second DECLARED product with its own DECLARED page spec, run through the runner — **blocked on an owner decision** (a second neutral declared test product, or a re-pin of row 53's coverage). No real page can be accepted: no WHY_THIS_URL is written, and no template family has three specs | — |
+| 61 | Safe Local Page Construction | VERIFIED-PASS | IN — `PASS_BOUNDARIES_AMENDMENT_5.md` §4 (class P); reserved there, created 14 Sep 2026 once rows 59 and 60 existed | PR #72 built it: `bin/build-page.mjs` takes `--slug` / `--all-slugs` with no default; Gate A's four parts enforced in the construction path, failing closed; RED/GREEN in `runs/audit/row61-gate-a-*`. 15 Sep 2026, on the owner's decision (`_handoffs/AlmiVisibility_ROW61_OWNER_DECISION_2026-09-15.md`): the second declared neutral test product `neutral-test-knots` run end to end through the runner — every spec REFUSED, DATA GAP / BLOCKED recorded, nothing written, no first-product load or read; four limbs RED alone (`runs/audit/row61-second-product-*`) | 2026-09-15 | CC (row 61 ticked on the owner's decision) | No real page can be accepted: no WHY_THIS_URL is written, no template family has three rendered specs, PAGE-1 UNSATISFIED. Row 53's product untouched | — |
 
 ---
 

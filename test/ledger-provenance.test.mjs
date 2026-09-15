@@ -65,7 +65,8 @@ test("🔴 RED: the old wording — an admitted row that 'was moved', from a fro
 });
 
 test("🔴 RED: a class clause naming one amendment and a ruled-in clause naming another is REFUSED", () => {
-  const bad = once(LEDGER, "**BUILT-NOT-PROVED** · class `P` (admitted by Amendment 5) · ruled in `A5`", "**BUILT-NOT-PROVED** · class `P` (admitted by Amendment 3) · ruled in `A5`");
+  // The sabotage is anchored on the class clause, not the state word: row 61's STATE moved by work on 15 Sep 2026, its authority did not.
+  const bad = once(LEDGER, "class `P` (admitted by Amendment 5) · ruled in `A5`", "class `P` (admitted by Amendment 3) · ruled in `A5`");
   const { errors } = provenanceErrors(bad);
   assert.deepEqual(errors, ["item 61: its class clause names Amendment 3 but it is ruled in `A5`"]);
 });

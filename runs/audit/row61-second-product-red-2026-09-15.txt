@@ -1,0 +1,41 @@
+ROW 61 — THE SECOND DECLARED PRODUCT'S LIMBS, EACH BROKEN ALONE IN THE REAL FILE, RUN, AND RESTORED
+date: 2026-09-15T05:28:19.375Z · branch v0.1/row61-second-declared-product · base 9c04bcc440782b9fa478d5f485b17a77f241028b (uncommitted row 61 change under test)
+test: node --test test/page-construction.test.mjs
+⚠️ FIRST ATTEMPT (05:27Z) KEPT ON THE RECORD: the copied-fact limb planted an 18-character VALUE ("two crossing turns") and did NOT go
+   red. Its reason, read in src/page/render.mjs findCopiedFacts: the check skips any record text under 40 characters and, by its own
+   recorded design, "catches a copied sentence, not a paraphrase". The limb was outside what the check claims — not a defect in it.
+   Re-run below planting the record's own sentence, as test/page-spec-by-reference.test.mjs's RED does. The check is unchanged.
+
+GREEN before any sabotage: exit 0 · tests 20 · pass 20 · fail 0
+
+🔴 FAIL-OPEN — the acceptance rule forced open in the construction path
+   file src/page/construct.mjs · anchor matched 1 · sha256 changed: true
+   run: exit 1 · fail 13 — failing: 🔴 RED: SHORT — below 350 unique words after the shell is REFUSED | 🔴 RED: FACT-POOR — four VERIFIED facts is a DATA GAP, never padded | 🔴 RED: FACT-POOR by STATE — five records cited but one is not VERIFIED; the record count  | 🔴 RED: OVERLAPPING — a sibling carrying the same body is REFUSED on overlap, named | 🔴 RED: WHY — a sibling's rationale with the variant swapped is a template, not a reason | 🔴 RED: WHY — no rationale is a DATA GAP; a need that names only the variant is REJECTED | 🔴 BLOCKED / NOT TESTED — a two-spec family cannot learn a shell; both parts say so, and t | 🔴 BLOCKED / NOT TESTED — a family of one has no sibling: overlap and distinctness are nev | 🔴 PORTABILITY: the neutral declared test product walks the same path and is REFUSED — no  | 🔴 RUNNER FAILS CLOSED: the real product, every declared spec, --confirm given — REFUSED,  | 🔴 61 · RUNNER ON THE SECOND DECLARED PRODUCT — every declared spec REFUSED inside the con | 🔴 61 · ANY DECLARED SLUG OF ANY DECLARED PRODUCT — each slug of both products judged ALON | 🔴 61 · THE SAME RUN THROUGH THE REAL RUNNER — bin/build-page.mjs on the second product lo
+   named test "61 · RUNNER ON THE SECOND DECLARED PRODUCT" RED: YES
+   restored byte for byte: YES (9cf4bbec142e23da68ae4ea82975d125d7d3251a989aba1421ae055ba4d48e08)
+
+🔴 ROW 53's INPUT CHANGED — the first neutral product given a page spec
+   file products/neutral-test-ferments/product.mjs · anchor matched 1 · sha256 changed: true
+   run: exit 1 · fail 2 — failing: 🔴 RUNNER: the neutral product declares no page spec — DATA GAP, exit 2, nothing construct | 🔴 61 · THE SECOND DECLARED PRODUCT — declared as one, sharing no subject, axis, variant, 
+   named test "61 · THE SECOND DECLARED PRODUCT" RED: YES
+   restored byte for byte: YES (5a617b37ad2a3c4fa75775e09e7a4388d14245ac026710009b11d2fdf9177767)
+
+🔴 COPIED FACT — a record's own sentence planted into the second product's spec framing
+   file products/neutral-test-knots/product.mjs · anchor matched 1 · sha256 changed: true
+   run: exit 1 · fail 2 — failing: 🔴 61 · RUNNER ON THE SECOND DECLARED PRODUCT — every declared spec REFUSED inside the con | 🔴 61 · findCopiedFacts is clean on EVERY spec of EVERY declared product — read from the s
+   named test "61 · findCopiedFacts is clean on EVERY spec of EVERY declared product" RED: YES
+   restored byte for byte: YES (66a64c226e8b8ad98f749ea919a9e316d291dde0d6c8bd17293e6c334bb8e9d8)
+
+🔴 LEAKAGE — the runner loads the first product while building the second
+   file bin/build-page.mjs · anchor matched 1 · sha256 changed: true
+   run: exit 1 · fail 1 — failing: 🔴 61 · THE SAME RUN THROUGH THE REAL RUNNER — bin/build-page.mjs on the second product lo
+   named test "61 · THE SAME RUN THROUGH THE REAL RUNNER" RED: YES
+   restored byte for byte: YES (4f75ebcc013b654f5f4eed8bcd3109b59e752b871dcf69451f211de19c6e2172)
+
+GREEN after restoration: exit 0 · tests 20 · pass 20 · fail 0
+final sha256 src/page/construct.mjs: unchanged
+final sha256 products/neutral-test-ferments/product.mjs: unchanged
+final sha256 products/neutral-test-knots/product.mjs: unchanged
+final sha256 bin/build-page.mjs: unchanged
+
+RESULT: every limb RED alone on its named test, every file restored, GREEN after

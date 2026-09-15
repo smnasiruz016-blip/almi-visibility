@@ -14,6 +14,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
+import { pathToFileURL } from "node:url";
 
 import { fact } from "../src/facts/record.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
@@ -21,7 +22,7 @@ import { constructCandidates, selectCandidates, ACCEPTED, REFUSED, PASS, FAIL, N
 import { judgeWhy, WHY_NOT_ENFORCED } from "../src/gate-a/why-this-url.mjs";
 import { MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../src/gate-a/run.mjs";
 import { MIN_FACTS } from "../src/gate-a/facts.mjs";
-import { subject } from "./support/subjects.mjs";
+import { subject, subjectModule, subjectDir } from "./support/subjects.mjs";
 const NEUTRAL = await subject("neutral-test-ferments");
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -260,4 +261,120 @@ test("🔴 RUNNER: the neutral product declares no page spec — DATA GAP, exit 
   const r = runner("--product=neutral-test-ferments", "--all-slugs");
   assert.equal(r.status, 2);
   assert.match(r.stdout, /DATA GAP — neutral-test-ferments declares no page spec/);
+});
+
+/* ---- 🔴 THE MISSING LEG: a SECOND DECLARED product, its OWN DECLARED specs, through the real runner ----
+ * Owner ruling, 15 September 2026 (_handoffs/AlmiVisibility_ROW61_OWNER_DECISION_2026-09-15.md): a second declared
+ * neutral test product with an evidence-bearing page spec; row 53's product is not touched. Its specs hold claim ids
+ * only, its records are declared test data at status `lead` — so Gate A must REFUSE inside the construction path. */
+
+const SECOND = "neutral-test-knots";
+const FIRST = "almi-oet";
+
+test("🔴 61 · THE SECOND DECLARED PRODUCT — declared as one, sharing no subject, axis, variant, source host or licence with the first product or with row 53's product; nothing in it is VERIFIED", async () => {
+  const second = await subject(SECOND);
+  const { DECLARATION } = await subjectModule(SECOND, "product.mjs");
+  assert.equal(second.declaredTestProduct, true);
+  assert.equal(DECLARATION.row, 61);
+  assert.ok(Object.keys(second.pageSpecs).length >= 1, "the second product declares no page spec — the leg would be refused at the runner again");
+  assert.deepEqual(NEUTRAL.pageSpecs, {}, "row 53's product gained a page spec — row 53's frozen input changed");
+  const { records } = await loadRegistry(second.factsDir, second.productId);
+  assert.equal(records.filter((r) => r.verificationState === "VERIFIED").length, 0, "the declared test product carries a VERIFIED record — evidence was manufactured");
+  assert.deepEqual([...new Set(records.map((r) => r.life.status))], ["lead"]);
+  assert.deepEqual([...new Set(records.map((r) => r.licence))], ["DECLARED-TEST-DATA"]);
+  for (const other of [await subject(FIRST), NEUTRAL]) {
+    const theirs = (await loadRegistry(other.factsDir, other.productId)).records;
+    assert.notEqual(second.axis.key, other.axis.key);
+    assert.deepEqual(second.variants.filter((v) => other.variants.includes(v)), []);
+    const subjects = new Set(records.map((r) => r.claim.subject));
+    const predicates = new Set(records.map((r) => r.claim.predicate));
+    assert.deepEqual(theirs.filter((r) => subjects.has(r.claim.subject) || predicates.has(r.claim.predicate)).map((r) => r.id), [], `shaped around ${other.productId}'s claims`);
+    const hosts = new Set(theirs.map((r) => new URL(r.source.url).hostname));
+    if (other.productId === FIRST) assert.deepEqual(records.filter((r) => hosts.has(new URL(r.source.url).hostname)).map((r) => r.id), []);
+  }
+  // every spec holds claim ids that resolve in ITS OWN registry — ids, never a value
+  const own = new Set(records.map((r) => r.id));
+  for (const [slug, spec] of Object.entries(second.pageSpecs)) {
+    const ids = spec.sections.flatMap((s) => s.claims);
+    assert.ok(ids.length > 0, `${slug} cites no claim`);
+    assert.deepEqual(ids.filter((id) => !own.has(id)), [], `${slug} cites a claim its own registry does not hold`);
+  }
+});
+
+test("🔴 61 · RUNNER ON THE SECOND DECLARED PRODUCT — every declared spec REFUSED inside the construction path, DATA GAP and BLOCKED recorded, exit 2, and --confirm writes NOTHING", async () => {
+  const second = await subject(SECOND);
+  const slugs = Object.keys(second.pageSpecs);
+  mkdirSync(join(REPO, ".test-scratch"), { recursive: true });
+  const out = mkdtempSync(join(REPO, ".test-scratch", "row61-second-"));
+  try {
+    const r = runner(`--product=${SECOND}`, "--all-slugs", `--out=${out}`, "--confirm");
+    assert.equal(r.status, 2, r.stdout + r.stderr);
+    assert.match(r.stdout, new RegExp(`SAFE LOCAL PAGE CONSTRUCTION — product ${SECOND}`));
+    assert.match(r.stdout, new RegExp(`declared page specs {3}${slugs.length} {3}requested ${slugs.length}`));
+    assert.match(r.stdout, new RegExp(`ACCEPTED 0 of ${slugs.length} candidate\\(s\\)`));
+    for (const slug of slugs) {
+      assert.match(r.stdout, new RegExp(`🔴 ${slug} — REFUSED`));
+      assert.match(r.stdout, new RegExp(`\\[refused\\] nothing written for ${slug}`));
+    }
+    assert.equal((r.stdout.match(/DATA GAP {3}facts: 0 of 5 verified sourced facts/g) ?? []).length, slugs.length, "the verified-fact floor did not refuse every spec");
+    assert.equal((r.stdout.match(/BLOCKED \/ NOT TESTED {2}uniqueWords: /g) ?? []).length, slugs.length);
+    assert.equal((r.stdout.match(/BLOCKED \/ NOT TESTED {2}overlap: /g) ?? []).length, slugs.length);
+    assert.equal((r.stdout.match(/§5A fact text copied into the spec: 0/g) ?? []).length, slugs.length);
+    assert.doesNotMatch(r.stdout, /(uniqueWords|overlap|facts) +PASS/, "a part that could not be exercised was reported as a pass");
+    assert.deepEqual(readdirSync(out), [], "a refused candidate was written");
+  } finally {
+    rmSync(out, { recursive: true, force: true });
+  }
+});
+
+test("🔴 61 · ANY DECLARED SLUG OF ANY DECLARED PRODUCT — each slug of both products judged ALONE through the runner", async () => {
+  for (const id of [FIRST, SECOND]) {
+    const p = await subject(id);
+    for (const slug of Object.keys(p.pageSpecs)) {
+      const r = runner(`--product=${id}`, `--slug=${slug}`);
+      assert.equal(r.status, 2, `${id} --slug=${slug}: ${r.stdout}${r.stderr}`);
+      assert.match(r.stdout, /declared page specs {3}\d+ {3}requested 1/);
+      assert.match(r.stdout, new RegExp(`🔴 ${slug} — REFUSED`));
+      assert.match(r.stdout, /ACCEPTED 0 of 1 candidate\(s\)/);
+    }
+  }
+});
+
+test("🔴 61 · findCopiedFacts is clean on EVERY spec of EVERY declared product — read from the subject roots, not a list written here", async () => {
+  const { availableProducts } = await import("../src/product-cli.mjs");
+  const { findCopiedFacts } = await import("../src/page/render.mjs");
+  const ids = availableProducts();
+  for (const id of [FIRST, SECOND, NEUTRAL.productId]) assert.ok(ids.includes(id), `${id} is not declared in any subject root`);
+  let specs = 0;
+  for (const id of ids) {
+    const p = await subject(id);
+    const { records } = await loadRegistry(p.factsDir, p.productId);
+    for (const [slug, spec] of Object.entries(p.pageSpecs)) {
+      specs += 1;
+      assert.deepEqual(findCopiedFacts(spec, records), [], `${id}/${slug} copies fact text into the spec`);
+    }
+  }
+  assert.ok(specs >= 4, `only ${specs} spec(s) checked — the law would be vacuous`);
+});
+
+test("🔴 61 · THE SAME RUN THROUGH THE REAL RUNNER — bin/build-page.mjs on the second product loads no module of the first product, reads none of its files, and prints none of its records", async () => {
+  const probe = pathToFileURL(`${REPO}test/support/access-probe.mjs`).href;
+  const r = spawnSync(process.execPath, ["--import", probe, "bin/build-page.mjs", `--product=${SECOND}`, "--all-slugs"], { cwd: REPO, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
+  assert.equal(r.status, 2, `${r.stdout.slice(-2000)}\n${r.stderr.split("\n").filter((l) => !l.startsWith("[probe:")).join("\n").slice(-2000)}`);
+  const lines = r.stderr.split(/\r?\n/);
+  const modules = lines.filter((l) => l.startsWith("[probe:module] ")).map((l) => l.slice("[probe:module] ".length).replace(/\\/g, "/"));
+  const touched = lines.filter((l) => l.startsWith("[probe:fs:")).map((l) => ({ call: l.slice(10, l.indexOf("]")), path: l.slice(l.indexOf("] ") + 2).replace(/\\/g, "/") }));
+  const slash = (p) => p.replace(/\\/g, "/");
+  const SECOND_DIR = slash(subjectDir(SECOND));
+  const FIRST_DIR = slash(subjectDir(FIRST));
+  // the probe must be SEEING — or its silence proves nothing
+  assert.ok(modules.some((u) => u.includes(`${SECOND_DIR}/facts/knots.mjs`)), "the probe did not see the second product's own facts load");
+  assert.ok(modules.some((u) => u.includes("/src/page/construct.mjs")), "the probe did not see the construction path load");
+  assert.deepEqual(modules.filter((u) => u.includes(`${FIRST_DIR}/`)), [], "the runner LOADED a module of the first product");
+  const namesOnly = (t) => ["existsSync", "statSync"].includes(t.call) && (t.path.endsWith(FIRST_DIR) || t.path.endsWith(`${FIRST_DIR}/product.mjs`));
+  assert.deepEqual(touched.filter((t) => t.path.includes(FIRST_DIR) && !namesOnly(t)), [], "the runner READ a file of the first product");
+  const first = await subject(FIRST);
+  const { records } = await loadRegistry(first.factsDir, first.productId);
+  for (const rec of records) assert.ok(!r.stdout.includes(rec.id), `the runner printed first-product record ${rec.id}`);
+  assert.doesNotMatch(r.stdout, new RegExp(FIRST));
 });

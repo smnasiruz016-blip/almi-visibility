@@ -1,0 +1,121 @@
+ROW 61 — THE REAL RUNNER ON TWO DECLARED PRODUCTS, AS PRINTED (report only: no --out, no --confirm)
+date: 2026-09-15T05:29:08.3370545Z · base HEAD 9c04bcc440782b9fa478d5f485b17a77f241028b (uncommitted row 61 change under test)
+ruling: _handoffs/AlmiVisibility_ROW61_OWNER_DECISION_2026-09-15.md (second declared neutral test product; row 53 unchanged)
+
+$ node bin/build-page.mjs --product=neutral-test-knots --all-slugs          → exit 2
+
+SAFE LOCAL PAGE CONSTRUCTION — product neutral-test-knots
+══════════════════════════════════════════════════════════════════════════════
+declared page specs   2   requested 2
+registry records      3   VERIFIED 0
+
+🔴 bowline — REFUSED
+──────────────────────────────────────────────────────────────────────────────
+  template family: 0 of 2 declared spec(s) rendered · shell NONE (0 page(s))
+  facts        FAIL 0 (bar 5) — 0 of 5 verified sourced facts — the spec cites 2 claim(s): 0 VERIFIED and renderable, 2 not, 0 absent from the registry
+  uniqueWords  BLOCKED / NOT TESTED — the candidate does not render: fixed-loop.turns-before-tuck.knot=bowline: status "lead" may not reach a reader
+  overlap      BLOCKED / NOT TESTED — the candidate does not render: fixed-loop.turns-before-tuck.knot=bowline: status "lead" may not reach a reader
+  whyThisUrl   FAIL — bowline: no whyThisUrlDeservesToExist declared with both humanNeed and distinctValue
+  DATA GAP   facts: 0 of 5 verified sourced facts — the spec cites 2 claim(s): 0 VERIFIED and renderable, 2 not, 0 absent from the registry
+  DATA GAP   whyThisUrl: bowline: no whyThisUrlDeservesToExist declared with both humanNeed and distinctValue
+  REJECT     render: the candidate does not render: fixed-loop.turns-before-tuck.knot=bowline: status "lead" may not reach a reader
+  BLOCKED / NOT TESTED  uniqueWords: the candidate does not render: fixed-loop.turns-before-tuck.knot=bowline: status "lead" may not reach a reader
+  BLOCKED / NOT TESTED  overlap: the candidate does not render: fixed-loop.turns-before-tuck.knot=bowline: status "lead" may not reach a reader
+  cited but not VERIFIED: fixed-loop.turns-before-tuck.knot=bowline (UNVERIFIED, lead) · fixed-loop.holds-under-cyclic-load.knot=bowline (UNVERIFIED, lead)
+  NOT ENFORCED: whether the named need is real, whether the declared value is genuinely distinct in substance, and whether the page deserves to exist — judging specificity beyond the four measurable checks is not done here. The residue of GATE-4 stays OPEN.
+  PAGE-1 UNSATISFIED: §3 makes five gates a CONJUNCTION before a new page; two of the five do not exist, so the precondition for creating any page is not satisfiable today — missing: semantic, cannibalization, technical, cost
+  §5A fact text copied into the spec: 0
+
+🔴 clove-hitch — REFUSED
+──────────────────────────────────────────────────────────────────────────────
+  template family: 0 of 2 declared spec(s) rendered · shell NONE (0 page(s))
+  facts        FAIL 0 (bar 5) — 0 of 5 verified sourced facts — the spec cites 1 claim(s): 0 VERIFIED and renderable, 1 not, 0 absent from the registry
+  uniqueWords  BLOCKED / NOT TESTED — the candidate does not render: post-hitch.crossing-turns.knot=clove-hitch: status "lead" may not reach a reader
+  overlap      BLOCKED / NOT TESTED — the candidate does not render: post-hitch.crossing-turns.knot=clove-hitch: status "lead" may not reach a reader
+  whyThisUrl   FAIL — clove-hitch: no whyThisUrlDeservesToExist declared with both humanNeed and distinctValue
+  DATA GAP   facts: 0 of 5 verified sourced facts — the spec cites 1 claim(s): 0 VERIFIED and renderable, 1 not, 0 absent from the registry
+  DATA GAP   whyThisUrl: clove-hitch: no whyThisUrlDeservesToExist declared with both humanNeed and distinctValue
+  REJECT     render: the candidate does not render: post-hitch.crossing-turns.knot=clove-hitch: status "lead" may not reach a reader
+  BLOCKED / NOT TESTED  uniqueWords: the candidate does not render: post-hitch.crossing-turns.knot=clove-hitch: status "lead" may not reach a reader
+  BLOCKED / NOT TESTED  overlap: the candidate does not render: post-hitch.crossing-turns.knot=clove-hitch: status "lead" may not reach a reader
+  cited but not VERIFIED: post-hitch.crossing-turns.knot=clove-hitch (UNVERIFIED, lead)
+  NOT ENFORCED: whether the named need is real, whether the declared value is genuinely distinct in substance, and whether the page deserves to exist — judging specificity beyond the four measurable checks is not done here. The residue of GATE-4 stays OPEN.
+  PAGE-1 UNSATISFIED: §3 makes five gates a CONJUNCTION before a new page; two of the five do not exist, so the precondition for creating any page is not satisfiable today — missing: semantic, cannibalization, technical, cost
+  §5A fact text copied into the spec: 0
+
+ACCEPTED 0 of 2 candidate(s). A refusal is a result, not an error.
+
+$ node bin/build-page.mjs --product=neutral-test-knots --slug=clove-hitch          → exit 2
+
+SAFE LOCAL PAGE CONSTRUCTION — product neutral-test-knots
+══════════════════════════════════════════════════════════════════════════════
+declared page specs   2   requested 1
+registry records      3   VERIFIED 0
+
+🔴 clove-hitch — REFUSED
+──────────────────────────────────────────────────────────────────────────────
+  template family: 0 of 2 declared spec(s) rendered · shell NONE (0 page(s))
+  facts        FAIL 0 (bar 5) — 0 of 5 verified sourced facts — the spec cites 1 claim(s): 0 VERIFIED and renderable, 1 not, 0 absent from the registry
+  uniqueWords  BLOCKED / NOT TESTED — the candidate does not render: post-hitch.crossing-turns.knot=clove-hitch: status "lead" may not reach a reader
+  overlap      BLOCKED / NOT TESTED — the candidate does not render: post-hitch.crossing-turns.knot=clove-hitch: status "lead" may not reach a reader
+  whyThisUrl   FAIL — clove-hitch: no whyThisUrlDeservesToExist declared with both humanNeed and distinctValue
+  DATA GAP   facts: 0 of 5 verified sourced facts — the spec cites 1 claim(s): 0 VERIFIED and renderable, 1 not, 0 absent from the registry
+  DATA GAP   whyThisUrl: clove-hitch: no whyThisUrlDeservesToExist declared with both humanNeed and distinctValue
+  REJECT     render: the candidate does not render: post-hitch.crossing-turns.knot=clove-hitch: status "lead" may not reach a reader
+  BLOCKED / NOT TESTED  uniqueWords: the candidate does not render: post-hitch.crossing-turns.knot=clove-hitch: status "lead" may not reach a reader
+  BLOCKED / NOT TESTED  overlap: the candidate does not render: post-hitch.crossing-turns.knot=clove-hitch: status "lead" may not reach a reader
+  cited but not VERIFIED: post-hitch.crossing-turns.knot=clove-hitch (UNVERIFIED, lead)
+  NOT ENFORCED: whether the named need is real, whether the declared value is genuinely distinct in substance, and whether the page deserves to exist — judging specificity beyond the four measurable checks is not done here. The residue of GATE-4 stays OPEN.
+  PAGE-1 UNSATISFIED: §3 makes five gates a CONJUNCTION before a new page; two of the five do not exist, so the precondition for creating any page is not satisfiable today — missing: semantic, cannibalization, technical, cost
+  §5A fact text copied into the spec: 0
+
+ACCEPTED 0 of 1 candidate(s). A refusal is a result, not an error.
+
+$ node bin/build-page.mjs --product=almi-oet --all-slugs          → exit 2
+
+SAFE LOCAL PAGE CONSTRUCTION — product almi-oet
+══════════════════════════════════════════════════════════════════════════════
+declared page specs   2   requested 2
+registry records      46   VERIFIED 16
+
+🔴 nursing — REFUSED
+──────────────────────────────────────────────────────────────────────────────
+  template family: 2 of 2 declared spec(s) rendered · shell NONE (0 page(s))
+  rendered words 1980
+  facts        FAIL 4 (bar 5) — 4 of 5 verified sourced facts — the spec cites 19 claim(s): 4 VERIFIED and renderable, 15 not, 0 absent from the registry
+  uniqueWords  BLOCKED / NOT TESTED — the template family renders 2 of 2 declared page(s); a shared shell is learned from at least 3, and a constructed page has no existing pages to borrow one from
+  overlap      BLOCKED / NOT TESTED — overlap is measured on what is left after the shell, and the template family renders 2 of 2 declared page(s); a shared shell is learned from at least 3, and a constructed page has no existing pages to borrow one from
+  whyThisUrl   PASS
+  DATA GAP   facts: 4 of 5 verified sourced facts — the spec cites 19 claim(s): 4 VERIFIED and renderable, 15 not, 0 absent from the registry
+  BLOCKED / NOT TESTED  uniqueWords: the template family renders 2 of 2 declared page(s); a shared shell is learned from at least 3, and a constructed page has no existing pages to borrow one from
+  BLOCKED / NOT TESTED  overlap: overlap is measured on what is left after the shell, and the template family renders 2 of 2 declared page(s); a shared shell is learned from at least 3, and a constructed page has no existing pages to borrow one from
+  cited but not VERIFIED: oet.writing-task-type.profession=nursing (UNKNOWN, active) · oet.speaking-roleplay-setting.profession=nursing (UNKNOWN, active) · oet.grade-bands-0-500 (UNKNOWN, active) · uk-nmc.oet-minimum-grade.profession=nursing (UNKNOWN, active) · uk-nmc.accepted-oet-delivery-modes.profession=nursing (UNKNOWN, active) · uk-nmc.oet-combining-sittings.profession=nursing (UNKNOWN, active) · uk-nmc.oet-combining-sittings-floor.profession=nursing (UNKNOWN, active) · uk-nmc.english-evidence-routes.profession=nursing (UNKNOWN, active) · uk-nmc.qualified-in-english-evidence.profession=nursing (UNKNOWN, active) · ie-nmbi.recognised-english-speaking-countries (UNKNOWN, active) · nz-immigration-nz.oet-must-be-taken-in-person (UNKNOWN, active) · uk-ukvi.majority-english-speaking-countries (UNKNOWN, active) · uk-code-of-practice.red-list-rule (UNKNOWN, active) · uk-code-of-practice.amber-list-rule (UNKNOWN, active) · uk-code-of-practice.direct-application-exception (UNKNOWN, active)
+  NOT ENFORCED: whether the named need is real, whether the declared value is genuinely distinct in substance, and whether the page deserves to exist — judging specificity beyond the four measurable checks is not done here. The residue of GATE-4 stays OPEN.
+  PAGE-1 UNSATISFIED: §3 makes five gates a CONJUNCTION before a new page; two of the five do not exist, so the precondition for creating any page is not satisfiable today — missing: semantic, cannibalization, technical, cost
+  §5A fact text copied into the spec: 0
+
+🔴 speech-pathology — REFUSED
+──────────────────────────────────────────────────────────────────────────────
+  template family: 2 of 2 declared spec(s) rendered · shell NONE (0 page(s))
+  rendered words 972
+  facts        PASS 7 (bar 5)
+  uniqueWords  BLOCKED / NOT TESTED — the template family renders 2 of 2 declared page(s); a shared shell is learned from at least 3, and a constructed page has no existing pages to borrow one from
+  overlap      BLOCKED / NOT TESTED — overlap is measured on what is left after the shell, and the template family renders 2 of 2 declared page(s); a shared shell is learned from at least 3, and a constructed page has no existing pages to borrow one from
+  whyThisUrl   PASS
+  BLOCKED / NOT TESTED  uniqueWords: the template family renders 2 of 2 declared page(s); a shared shell is learned from at least 3, and a constructed page has no existing pages to borrow one from
+  BLOCKED / NOT TESTED  overlap: overlap is measured on what is left after the shell, and the template family renders 2 of 2 declared page(s); a shared shell is learned from at least 3, and a constructed page has no existing pages to borrow one from
+  cited but not VERIFIED: oet.grade-bands-0-500 (UNKNOWN, active) · uk-hcpc.accepted-english-tests (UNKNOWN, active)
+  NOT ENFORCED: whether the named need is real, whether the declared value is genuinely distinct in substance, and whether the page deserves to exist — judging specificity beyond the four measurable checks is not done here. The residue of GATE-4 stays OPEN.
+  PAGE-1 UNSATISFIED: §3 makes five gates a CONJUNCTION before a new page; two of the five do not exist, so the precondition for creating any page is not satisfiable today — missing: semantic, cannibalization, technical, cost
+  §5A fact text copied into the spec: 0
+
+ACCEPTED 0 of 2 candidate(s). A refusal is a result, not an error.
+
+$ node bin/build-page.mjs --product=neutral-test-ferments --all-slugs          → exit 2
+
+SAFE LOCAL PAGE CONSTRUCTION — product neutral-test-ferments
+══════════════════════════════════════════════════════════════════════════════
+declared page specs   0   requested 0
+registry records      4   VERIFIED 0
+
+🔴 DATA GAP — neutral-test-ferments declares no page spec. Nothing to construct, and nothing was.

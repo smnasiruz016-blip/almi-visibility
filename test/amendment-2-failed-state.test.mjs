@@ -237,6 +237,8 @@ test("🔴 moves since Amendment 2: SEVEN by ruling (3–7 → NOT-STARTED by Am
     "60:BUILT-NOT-PROVED→VERIFIED-PASS",
     // 🔴 Row 61, created 14 September 2026: the work of PR #72, recorded as work — and it stops at BUILT-NOT-PROVED.
     "61:NOT-STARTED→BUILT-NOT-PROVED",
+    // 🔴 Row 61, 15 September 2026: the owner decided its blocker; the missing leg ran on a second declared product and ticked by its tests.
+    "61:BUILT-NOT-PROVED→VERIFIED-PASS",
   ]);
   // 🔴 56 reached its tick by the owner's eye — the only route that may set it.
   assert.equal(MOVES_AMENDMENT_2[56][0].route, "OWNER_VERIFICATION");
@@ -270,10 +272,11 @@ test("before Amendment 2 the ledger was 3 / 18 / 0 / 3 / 0 / 6 / 28", () => {
  * Amendment 2 either — ticked on its census and every evidence limb RED alone. */
 /* 🔴 SIXTEEN since row 60 ticked (14 Sep 2026). */
 /* 🔴 EIGHTEEN since row 36 ticked (15 Sep 2026). */
-test("🔴 since Amendment 2, EIGHTEEN rows hold VERIFIED-PASS (3, 11, 12, 13, 14, 26, 36, 38, 42, 45, 47, 49, 51, 53, 55, 56, 59, 60) — 50 reached it and was REOPENED; 48 LOST it and EARNED IT BACK", () => {
+/* 🔴 NINETEEN since row 61 ticked (15 Sep 2026) — admitted by Amendment 5, so never VERIFIED-PASS before Amendment 2. */
+test("🔴 since Amendment 2, NINETEEN rows hold VERIFIED-PASS (3, 11, 12, 13, 14, 26, 36, 38, 42, 45, 47, 49, 51, 53, 55, 56, 59, 60, 61) — 50 reached it and was REOPENED; 48 LOST it and EARNED IT BACK", () => {
   const rows = classify();
   const newPasses = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS" && BEFORE_AMENDMENT_2[r.id] !== "VERIFIED-PASS");
-  assert.deepEqual(newPasses.map((r) => r.id), [3, 11, 12, 13, 14, 26, 36, 38, 42, 45, 47, 49, 51, 53, 55, 56, 59, 60]);
+  assert.deepEqual(newPasses.map((r) => r.id), [3, 11, 12, 13, 14, 26, 36, 38, 42, 45, 47, 49, 51, 53, 55, 56, 59, 60, 61]);
   const lost = Object.values(rows).filter((r) => BEFORE_AMENDMENT_2[r.id] === "VERIFIED-PASS" && r.state !== "VERIFIED-PASS");
   assert.deepEqual(lost.map((r) => r.id), []);
   // The count hides a round trip — the chain does not.

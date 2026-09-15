@@ -54,7 +54,10 @@ jobs:
     # KEY scoped to that one repository — its public half is a deploy key on almi-visibility-data with write access
     # disabled, its private half lives ONLY in this repository's secret ALMI_VISIBILITY_DATA_KEY. It replaced an
     # account-wide personal access token whose checkout failed with "Bad credentials" on both runs of PR #82: a deploy
-    # key is not an account credential, reaches no other repository, and does not expire the job into a silent red.
+    # key is not an account credential and reaches no other repository. ⚠️ It is NOT permanent: it was added with `gh`,
+    # and gh's own help says a key it adds "will be associated with the current authentication token" — de-authorising
+    # the GitHub CLI app or that token REMOVES the key, and this checkout goes red. (Corrected 15 September 2026: this
+    # comment first said the key "does not expire", which nobody had verified.)
     # actions/checkout@v4 configures it for this step and its post-job step removes it; persist-credentials: false keeps
     # it out of the checked-out repository's git config. Without the secret the second checkout fails and the job goes
     # red — loudly, never by skipping the tests that read the data. Least privilege is unchanged: this job still writes nothing.

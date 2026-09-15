@@ -1,0 +1,21 @@
+RED PROOF — ROW 36 · DESTRUCTIVE · bin/replay-crawl.mjs --recover refusal · 2026-09-15T00:19:28.177Z
+test file: test/owner-authorization-gates.test.mjs
+PATH entries holding a gh executable, removed for the sabotaged run: 1 (GitHub CLI)
+
+CLEAN before: exit 0 · tests 1 · pass 1 · fail 0
+line ending of the checked-out file: CRLF
+
+=== the refusal inverted: `if (!permission.mayWrite)` → `if (permission.mayWrite)`
+   file: bin/replay-crawl.mjs
+   anchor matches: 1
+   sabotage landed: true
+   exit 1 · tests 1 · pass 0 · fail 1
+   ✖ 🔴 DESTRUCTIVE · bin/replay-crawl.mjs --recover WITHOUT --confirm is REFUSED — exit 2 — and DELETES NOTHING, byte for byte
+     reason: AssertionError [ERR_ASSERTION]: the corpus directory's files changed — the refused run touched them
+   red on the no-delete claim: YES · the download never started (gh unreachable, no "recovered" line): YES
+   restored byte for byte: true (sha256 fbf8617b0db9ebfda9341b445b3f717008301605af602cd6f3401f7c5a07d65e)
+
+=== CLEAN — the file restored
+exit 0 · tests 1 · pass 1 · fail 0
+
+verdict: RED PROVED — with the guard inverted the refused run DELETED the scratch corpus and the test caught it; restored, green

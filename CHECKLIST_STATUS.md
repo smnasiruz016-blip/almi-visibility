@@ -29,15 +29,21 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 | **DEFERRED** | — | **23** |
 | **total** | 58 | **61** |
 
-> ### 🔴 fcd27d6 — LOCALLY PASSING, CI NOT EXECUTED ON CODE — RECORDED ON THE OWNER'S RULING A, 15 SEPTEMBER 2026 — NO ROW MOVED
+> ### 🔴 fcd27d6 — LOCALLY PASSING; CI NEVER RAN ON IT; FIRST EXECUTED ON 07df435 — CORRECTED 15 SEPTEMBER 2026 — NO ROW MOVED
 >
 > - **fcd27d6 (PR #82, the subject registry leaving this repository):** **LOCALLY PASSING** — 1,111 tests, 0 fail,
 >   0 skipped, on the owner's machine.
-> - 🔴 **CI NOT EXECUTED ON CODE.** Both runs — 34908985957 on the merge commit, and 34908203940 on head eff0233 — failed at
->   the data-repository checkout ("Bad credentials"); setup, the suite and the boundary census were skipped. **No CI run has
->   ever executed this suite on this code.** No row's state rests on this change, and none may until a clean Linux CI run does.
-> - **This is a record, not a state change.** The ledger stays 5 / 7 / 1 / 19 / 2 / 4 / 23. The credential is being restored as
->   a read-only deploy key (owner ruling A); that work may change nothing a row stands on.
+> - 🔴 **CI NEVER EXECUTED ON fcd27d6 ITSELF.** Both of its runs — 34908985957 on the merge commit, and 34908203940 on head
+>   eff0233 — failed at the data-repository checkout ("Bad credentials"); setup, the suite and the boundary census were skipped.
+> - **CI first executed this code on 07df435** — fcd27d6 plus the read-only deploy key (PR #83, owner ruling A), run
+>   **34910905742**; then on main at the merge **11ba98d**, run **34911433119**. Both printed **1,111 tests · 1,107 pass · 0 fail ·
+>   4 skipped**, with the data repository checked out over SSH at a4b38cf, boundary 0 code lines, sealed-corpus census 0 breaches.
+> - **The 4 skips are pre-existing** — the four LIVE tests in test/renderer.test.mjs, skipped on every push run because test.yml
+>   installs no playwright-core (they skipped on 06050a8 and 0e3bbd0 too). **They executed separately in renderer-live run
+>   34911619574 on 11ba98d**, pressed once: all four PASSED, including every outbound request refused with ZERO egress, and
+>   test/renderer.test.mjs ran **19 · 19 pass · 0 fail · 0 skipped**.
+> - 🔴 **No row moved on any of it, and none rests on it.** Running the renderer's LIVE tests is not item 52's rendering trigger
+>   and not item 52's evidence. The ledger stays 5 / 7 / 1 / 19 / 2 / 4 / 23 = 61.
 
 > ### 🔴 OPTION A — THE SUBJECT REGISTRY LEAVES THIS REPOSITORY — OWNER RULING, 14 SEPTEMBER 2026 — NO ROW MOVED
 >
@@ -855,7 +861,7 @@ actually came from.
 | 33 | Content Decay & Pruning | DEFERRED | OUT — acts on published inventory; publishing excluded l.974 | none | 2026-09-11 | Claude (repo audit) | — | — |
 | 34 | Content Brief Engine | DEFERRED | OUT — phase table "Controlled pSEO" | none | 2026-09-11 | Claude (repo audit) | — | — |
 | 35 | Safe CC Command Generation | DEFERRED | OUT — §18, later phase | none | 2026-09-11 | Claude (repo audit) | — | — |
-| 36 | Owner Authorization Gates | BUILT-NOT-PROVED | IN — §32 cost/mass-page gate; safety applies to every phase | `src/write-law.mjs` (2 tests: production needs both flags; local needs `--confirm`). `D-CRW-4` gate: `bin/crawl.mjs` refuses `--live` without `--i-have-the-owners-green` (exit 3), workflow refuses without `owner_green`. 2 workflow tests | 2026-09-11 | Claude (repo audit) | 🔴 **The CLI refusal is demonstrated by hand, not by a test**, and the workflow guard is asserted only as YAML *text* — no test executes either. A guard nothing exercises is a guard nobody has proved | — |
+| 36 | Owner Authorization Gates | BUILT-NOT-PROVED | IN — §32 cost/mass-page gate; safety applies to every phase | **Re-measured 15 Sep 2026 on main (11ba98d), per category.** **paid** `test/paid-provider-controls.test.mjs` (the real gate refuses before the provider is called; every refusal ledgered) · **large-scale** `test/cost-governor.test.mjs` (cap throws before the call, stop latches, injected runaway hard-stopped) · **cross-product** `test/product-isolation.test.mjs` (accessors refuse the other tenant) + `test/write-confinement.test.mjs` (real `bin/report.mjs --confirm` aimed outside the repo refuses, creates nothing) · **production** `test/gate-a.test.mjs` (the write law's permission function only) · **destructive** NEW `test/owner-authorization-gates.test.mjs`: `bin/replay-crawl.mjs --recover` without `--confirm` → exit 2, REFUSED, scratch corpus intact byte for byte; RED-proved by inverting the guard (runs/audit/row36-destructive-red-2026-09-15.txt) | 2026-09-15 | CC (row 36 — destructive category) | 🔴 **Still not ticked — two named guards do not run.** (1) `bin/archive-corpus.mjs`'s overwrite refusal is NOT SAFELY TESTABLE: its destination is hard-coded to the committed body archive and the refusal sits behind `--confirm`. (2) The `D-CRW-4` refusal (`bin/crawl.mjs --live` without `--i-have-the-owners-green`, exit 3) is still asserted only as YAML text and a static flag census — no test executes it. And **production** runs only as a permission function, because no production write path exists | — |
 | 37 | Controlled Publishing | DEFERRED | OUT — v0.1 EXCLUDES l.974 "Page generation, in every form" | none — and l.610 says the absent feature *is* the gate | 2026-09-11 | Claude (repo audit) | — | — |
 | 38 | Indexability Preflight | VERIFIED-PASS | IN — §62 l.553; the preflight assesses pages that already exist | **Re-scanned and run 13 Sep over the COMMITTED bodies** in ASSESS MODE: a state for every page — **158 BLOCKED, 210 UNKNOWN, 26 ELIGIBLE** (total 394). **`INDEXABLE ≠ INDEXED` printed at the head of the run and in every preflight finding**, and a test fails the build on any wording that promises indexing, ranking or citation. `runs/audit/item-12-38-technical-run-2026-09-13.txt` | 2026-09-13 | Claude (queue re-scan) | **It assesses; it does not gate** (the deferred half: nothing is published). An ELIGIBLE page is the absence of a finding, counted, not a stored record | re-scan, 13 Sep 2026 |
 | 39 | Real Indexation Learning | DEFERRED | OUT — post-publication; publishing excluded l.974 | none | 2026-09-11 | Claude (repo audit) | — | — |

@@ -50,7 +50,8 @@ test("the admitted rows say who admitted them, and nothing about a move", () => 
 });
 
 test("CONTROL: a row Amendment 4 really moved keeps its moved clause, and passes", () => {
-  assert.match(LEDGER, /### 4 · Localized Human Thinking\n\n\*\*NOT-STARTED\*\* · class `P` \(frozen `D`, moved by Amendment 4\) · ruled in `§6`/);
+  // row 4 was built on 15 Sep 2026 (BUILT-NOT-PROVED) — its state changed, its provenance clause did not
+  assert.match(LEDGER, /### 4 · Localized Human Thinking\n\n\*\*BUILT-NOT-PROVED\*\* · class `P` \(frozen `D`, moved by Amendment 4\) · ruled in `§6`/);
   assert.equal(classClause(loadBoundaries()[4]), " (frozen `D`, moved by Amendment 4)");
 });
 

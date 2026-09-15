@@ -22,6 +22,8 @@
  *     only in a file that itself imports child_process or worker_threads, or calls import().
  * It proves no code path in this repository takes a stored keyword to a URL. It does not prove none will ever exist.
  */
+import { posix } from "node:path";
+
 import { commentMask } from "./product-boundary.mjs";
 
 export const TARGET_BASENAME = "search-language.mjs";
@@ -66,8 +68,17 @@ const names = (code, basename) => {
  * @returns {{ consumers: string[], breaches: { file: string, shape: string, line: number, text: string }[] }}
  */
 export function keywordUrlCensus(sources) {
+  return urlCensus(sources, TARGET_BASENAME);
+}
+
+/**
+ * The same census for any module's basename — row 4's country→URL census runs it on its own module (15 Sep 2026).
+ * @param {Map<string, string>} sources  repo-relative path → file text
+ * @param {string} targetBasename        the module whose consumers are censused
+ */
+export function urlCensus(sources, targetBasename) {
   const code = new Map([...sources].map(([f, s]) => [f, codeOnly(s)]));
-  const consumers = new Set([...code].filter(([f, c]) => f.endsWith(`/${TARGET_BASENAME}`) || names(c, TARGET_BASENAME)).map(([f]) => f));
+  const consumers = new Set([...code].filter(([f, c]) => f.endsWith(`/${targetBasename}`) || names(c, targetBasename)).map(([f]) => f));
   for (let grew = true; grew;) {
     grew = false;
     for (const [f, c] of code) {
@@ -95,4 +106,28 @@ export function keywordUrlCensus(sources) {
 export function forbiddenReferences(source, forbidden) {
   const c = codeOnly(source);
   return forbidden.filter((name) => c.includes(name));
+}
+
+/**
+ * Every module `start` reaches through RELATIVE static and dynamic import specifiers, itself included, resolved inside
+ * `sources`. A specifier that resolves to a file `sources` does not hold is still listed, so an unread dependency is
+ * visible rather than silently skipped. Package and node: imports are not followed.
+ */
+export function importClosure(sources, start) {
+  const seen = new Set([start]);
+  const queue = [start];
+  while (queue.length) {
+    const file = queue.shift();
+    const text = sources.get(file);
+    if (text === undefined) continue;
+    for (const m of codeOnly(text).matchAll(SPECIFIER)) {
+      if (!m[1].startsWith(".")) continue;
+      const target = posix.normalize(posix.join(posix.dirname(file), m[1]));
+      if (!seen.has(target)) {
+        seen.add(target);
+        queue.push(target);
+      }
+    }
+  }
+  return [...seen].sort();
 }

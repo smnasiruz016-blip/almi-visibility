@@ -62,8 +62,8 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 | state | before Amendment 2 | after the RULING only | after the WORK |
 |---|---|---|---|
-| **NOT-STARTED** | 3 | 8 | **4** |
-| **BUILT-NOT-PROVED** | 18 | 17 | **7** |
+| **NOT-STARTED** | 3 | 8 | **3** |
+| **BUILT-NOT-PROVED** | 18 | 17 | **8** |
 | **TESTABLE-NOW** | 0 | 2 | **1** |
 | **VERIFIED-PASS** | 3 | 3 | **20** |
 | **FAILED** | 0 | -1 | **2** |
@@ -106,6 +106,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | # | from | to | test | date | what happened |
 |---|---|---|---|---|---|
 | 3 | NOT-STARTED | VERIFIED-PASS | `node bin/search-language.mjs --check · node --test test/search-language.test.mjs · runs/discovery/search-language-2026-09-15.json · runs/audit/row3-red-limbs-2026-09-15.txt` | 2026-09-15 | 329 pieces of real wording discovered from the owned pulls and stored with a pointer to every row (observation id, ingest date, row), kinds evidenced or UNCLASSIFIED, no hand-written lexicon read; the held-out sample re-read from the raw store resolves 61 of 61; the keyword→URL census finds no path; each FAILURE limb RED alone in the real files and restored. The owned half passes; the public half stays deferred |
+| 4 | NOT-STARTED | BUILT-NOT-PROVED | `node bin/localized-thinking.mjs --check · node --test test/localized-thinking.test.mjs · runs/discovery/localized-thinking-2026-09-15.json · runs/audit/row4-red-limbs-2026-09-15.txt` | 2026-09-15 | 37 goals seen from two or more countries grouped on row 3's discovered relations only (12 worded differently, 25 the same wording), each wording traceable to its country row; 38 of 48 countries UNKNOWN below a floor of 5 rows; no consumer builds an address from a country; each limb RED alone in the real files and restored. Stops at BUILT-NOT-PROVED because half (b) — materially different useful content — needs per-value answer evidence the owner has not authorised |
 | 5 | NOT-STARTED | FAILED | `node bin/intent-clusters.mjs --check · node --test test/intent-clustering.test.mjs · runs/audit/row5-census-2026-09-14.txt · runs/audit/row5-red-limbs-2026-09-14.txt` | 2026-09-14 | 329 human queries (8 operator strings classified and kept apart); in-sample 268 → 73 clusters, 0 merged and 0 split against a reference written before the clusterer ran; the held-out check left 12 of 61 identical intents split — FAILURE met on the evidence the contract names; six limbs RED alone in the real files and restored. FAILED on the owner's answer |
 | 6 | NOT-STARTED | BUILT-NOT-PROVED | `node bin/axis-discovery.mjs --check · node --test test/axis-discovery.test.mjs · runs/audit/row6-census-2026-09-14.txt · runs/audit/row6-red-limbs-2026-09-14.txt` | 2026-09-14 | the six named axes (read from the contract) and 7 discovered slot types each tested with seven legs on real evidence: 7 MONITOR, 7 UNKNOWN, 0 BUILD, 0 REJECT — answer-level distinguishing power is UNKNOWN on every axis because the answer at each value is not owned; locality tested on the 10 countries with five or more rows, the other 38 UNKNOWN by LAW-ABSENT-1; every limb RED alone and restored; BUILD and REJECT shown reachable when measured. BUILT-NOT-PROVED on the owner's answer |
 | 9 | BUILT-NOT-PROVED | BLOCKED-UNKNOWN | `node bin/gsc-ingest.mjs --property=sc-domain:almiworld.com · node bin/gsc-dimensions.mjs · test/search-dimensions.test.mjs` | 2026-09-12 | six of seven dimensions ingested from the real property, each pull exhausted and COMPLETE with its bounds; downstream outcomes is supplied by no tool this engine holds, which the NOTE makes ⚠ rather than a failure |
@@ -151,8 +152,8 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 | state | before (4-state) | after (7-state) |
 |---|---|---|
-| **NOT-STARTED** | 33 | **4** |
-| **BUILT-NOT-PROVED** | 24 | **7** |
+| **NOT-STARTED** | 33 | **3** |
+| **BUILT-NOT-PROVED** | 24 | **8** |
 | **TESTABLE-NOW** | 0 | **1** |
 | **VERIFIED-PASS** | 0 | **20** |
 | **FAILED** | 0 | **2** |
@@ -162,13 +163,14 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 ### 🔴 THE MOST IMPORTANT LINE IN THIS DOCUMENT
 
-> **23 row(s) changed because work happened.** Listed in (i) below.
+> **24 row(s) changed because work happened.** Listed in (i) below.
 
 #### (i) changed because WORK HAPPENED
 
 | # | feature | from | to |
 |---|---|---|---|
 | 3 | Keyword & Search-Language Discovery | NOT-STARTED | **VERIFIED-PASS** |
+| 4 | Localized Human Thinking | NOT-STARTED | **BUILT-NOT-PROVED** |
 | 5 | Intent & Question Clustering | NOT-STARTED | **FAILED** |
 | 6 | Axis Discovery | NOT-STARTED | **BUILT-NOT-PROVED** |
 | 8 | HEAVY / THIN / EMPTY Discipline | NOT-STARTED | **VERIFIED-PASS** |
@@ -199,7 +201,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | NOT-STARTED → DEFERRED | 23 | 2, 18, 19, 20, 21, 22, 23, 24, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39, 40, 41, 43, 44 |
 | BUILT-NOT-PROVED → BLOCKED-UNKNOWN | 2 | 1, 54 |
 
-**Did not move against the 11 September 2026 baseline: 10** — 4, 7, 10, 16, 17, 36, 46, 52, 57, 58
+**Did not move against the 11 September 2026 baseline: 9** — 7, 10, 16, 17, 36, 46, 52, 57, 58
 
 **Not on that baseline — admitted later by owner ruling: 3** — 59, 60, 61. They are not "unmoved"; they did not exist. Any work on them since is a declared move above.
 
@@ -298,7 +300,7 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 
 ### 4 · Localized Human Thinking
 
-**NOT-STARTED** · class `P` (frozen `D`, moved by Amendment 4) · ruled in `§6`
+**BUILT-NOT-PROVED** · class `P` (frozen `D`, moved by Amendment 4) · ruled in `§6` · was NOT-STARTED (work)
 
 | part | the owner's words |
 |---|---|
@@ -308,7 +310,9 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 | **EVIDENCE** | the local-wording records and their sources. |
 | **Amendment 4 — its INPUT tested** | ✅ **yes** — 388 country×query rows across 126 countries → **D → P** |
 
-**Verdict —** 🔴 **NOT-STARTED — IN SCOPE SINCE AMENDMENT 4** (owner ruling under §12, 13 September 2026). **Nothing has been built for it and nothing was run.** It left DEFERRED ONLY because a ruling changed its class — a class change is not progress. Its input is owned evidence already captured in `runs/evidence/evidence.jsonl` (Search Console ingest of 2026-09-12T23:25Z: query 337 · query-page 574 · country 126 · country-query 388 rows; page rows 1,525 from the 22:06Z run of the same day). **Class D → P.** The amendment's test of its frozen INPUT clause, *"the same goal expressed from two or more countries"*: ✅ **yes** — 388 country×query rows across 126 countries.
+**Verdict —** 🔴 **BUILT AND RUN ON OWNED EVIDENCE, 15 SEPTEMBER 2026 — AND STOPPED AT BUILT-NOT-PROVED, BECAUSE HALF OF ITS FAILURE CLAUSE CANNOT BE TESTED ON WHAT THE STORE HOLDS.** **INPUT** the country×query pull `9bf50cfb134a0d7d` (2026-09-12T23:25:04.608Z): 388 rows = 379 human + 9 operator; 337 query strings, 33 seen from two or more countries — 32 human and 1 operator string (from arg and bra), kept out and counted; 49 countries over all rows, 48 once the operator rows are out. **Built on row 3, not row 5:** two wordings are one goal only when row 3's discovered relations link them (VERIFIED-PASS, earned from the evidence) — 19 SYNONYM, 1 ABBREVIATION and 10 VARIANT links; row 5's clusters (FAILED) are not read, and a test fails the build if the module's import closure reaches them. The grouping rule gained one constraint after its first run: a row-3 ABBREVIATION pair joins two wordings only in the same frame — 13 pairs sharing only a landing page were refused, after one joined "i don t have a cv" to "how to write a curriculum vitae with no experience". **EXPECTED — local PHRASING researched:** 37 goals seen from two or more countries — **12 worded differently** (e.g. "daily habits" can,gbr,hkg,ind,qat,usa beside "life habits" usa; "good daily habits" aus,can,gbr beside "best daily habits" ind and "best life habits" usa; "pte result" aus,can beside "pte results" aus,gbr) and **25 the same wording in several countries**, kept apart because the same words in two places are not a goal expressed differently. "daily lifestyle" and "personal habits" are NOT joined to "daily habits": row 3's evidence does not link them. Every wording keeps its original bytes, its country and its source row, observation id and ingest date (runs/discovery/localized-thinking-2026-09-15.json). **Thin evidence:** a floor of 5 human rows (row 6's locality floor) — 10 countries above it, **38 UNKNOWN** (19 with a single row), never 'no local difference'; a wording not seen from a country is UNKNOWN there. 🔴 **Local REASONING is not observable in query rows** — only phrasing is. **FAILURE (a), a country multiplying URLs — not met:** the country→URL census finds no consumer of the module building a URL-shaped value. **FAILURE (b), without evidence of materially different useful content — 🔴 BLOCKED, NOT TESTED:** the answer at each country is not in the store, and a different question is not a different answer (row 6's finding that the question mix differs in all 10 countries with five or more rows is NOT used as evidence here). **Unblocked by:** per-value answer evidence — the useful answer at each country compared, from a source that is not our own page (row 7 SUPPLY or row 2, both deferred) — the owner's pending decision. **EVIDENCE** each limb RED alone in the real files, containment proved first, restored by sha256 and against the git index (runs/audit/row4-red-limbs-2026-09-15.txt): a wording recorded from the wrong country, a one-row country recorded as 'no local difference', a goal joined by hand, half (b) recorded as PASS, the runner building an address from a country, and the module naming row 5's clusterer. 🔴 **What the census cannot see:** a page written by hand, countries or wording copied out of the records, a consumer outside src/ and bin/, a computed import, a path held only as text and run by another module — and, **above all, the connected products' own pages: origin is ALREADY hard-coded into 775 of the 1,525 pages in the page rows (1,179 impressions), on 2 supporting queries, with our pages differing only by origin overlapping at median 0.806 (23 pairs, row 6). That is a country-like axis already multiplying pages without evidence, and no census of this engine's code can see it.** Row 3 stays VERIFIED-PASS, row 5 FAILED and row 6 BUILT-NOT-PROVED; nothing here is evidence for them The amendment's test of its frozen INPUT clause, *"the same goal expressed from two or more countries"*: ✅ **yes** — 388 country×query rows across 126 countries.
+
+**The one test that would settle it —** node bin/localized-thinking.mjs --check · node --test test/localized-thinking.test.mjs · runs/discovery/localized-thinking-2026-09-15.json · runs/audit/row4-census-2026-09-15.txt · runs/audit/row4-red-limbs-2026-09-15.txt — and, to leave BUILT-NOT-PROVED, per-value answer evidence the owner authorises, with half (b) of FAILURE run on it
 
 ### 5 · Intent & Question Clustering
 

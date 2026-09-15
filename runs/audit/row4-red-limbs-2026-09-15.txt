@@ -1,0 +1,73 @@
+ROW 4 — RED LIMBS, EACH ALONE IN THE REAL FILES · 2026-09-15T01:57:54.787Z
+test file: test/localized-thinking.test.mjs
+
+=== CONTAINMENT, BEFORE ANY SABOTAGE
+   runs/discovery/localized-thinking-2026-09-15.json: in the index true · matches the index true · a trial write seen by git true · restored to the index byte for byte true
+   bin/localized-thinking.mjs: in the index true · matches the index true · a trial write seen by git true · restored to the index byte for byte true
+   src/discovery/localized-thinking.mjs: in the index true · matches the index true · a trial write seen by git true · restored to the index byte for byte true
+CLEAN before: exit 0 · tests 16 · pass 16 · fail 0
+
+=== untraceable — one stored wording recorded from a country its own row is not from
+   file: runs/discovery/localized-thinking-2026-09-15.json
+   sabotage landed: true · lines removed 1 · lines added 1
+   ran only "every limb holds": exit 1 · tests 1 · pass 0 · fail 1
+   ✖ 🔴 STORED RECORDS — every limb holds: traceable to the country×query rows, thin evidence UNKNOWN, goals only on row 3's links, half (b) not decided
+     reason: AssertionError [ERR_ASSERTION]: [untraceable] "pte result" is recorded from gbr; row 118 of 9bf50cfb134a0d7d is from aus
+   RED on this limb alone ("[untraceable]"): YES
+   also caught by "EXACTLY WHAT THE STORE YIELDS" (a separate law — the stored file must equal a fresh run): exit 1 · fail 1 — RED, as it must be
+   restored byte for byte, and matching the git index: true (sha256 de1f4fce664d27ed35a1a5874d907cfe4b36a10d4c1601f26c640a2c0f3646c5)
+
+=== thin evidence decided — a country with ONE row recorded as 'no local difference'
+   file: runs/discovery/localized-thinking-2026-09-15.json
+   sabotage landed: true · lines removed 1 · lines added 1
+   ran only "every limb holds": exit 1 · tests 1 · pass 0 · fail 1
+   ✖ 🔴 STORED RECORDS — every limb holds: traceable to the country×query rows, thin evidence UNKNOWN, goals only on row 3's links, half (b) not decided
+     reason: AssertionError [ERR_ASSERTION]: [thin-evidence-decided] bhr is "NO_LOCAL_DIFFERENCE" — a country is ABOVE_FLOOR or UNKNOWN, and nothing else
+     reason: [thin-evidence-decided] goal G35 lists bhr as UNKNOWN; the country is NO_LOCAL_DIFFERENCE
+   RED on this limb alone ("[thin-evidence-decided]"): YES
+   also caught by "EXACTLY WHAT THE STORE YIELDS" (a separate law — the stored file must equal a fresh run): exit 1 · fail 1 — RED, as it must be
+   restored byte for byte, and matching the git index: true (sha256 de1f4fce664d27ed35a1a5874d907cfe4b36a10d4c1601f26c640a2c0f3646c5)
+
+=== goal joined by hand — 'daily lifestyle' put beside 'daily habits' on a link row 3 never found
+   file: runs/discovery/localized-thinking-2026-09-15.json
+   sabotage landed: true · lines removed 1 · lines added 75
+   ran only "every limb holds": exit 1 · tests 1 · pass 0 · fail 1
+   ✖ 🔴 STORED RECORDS — every limb holds: traceable to the country×query rows, thin evidence UNKNOWN, goals only on row 3's links, half (b) not decided
+     reason: AssertionError [ERR_ASSERTION]: [goal-by-hand] goal G01 joins "daily habits" and "daily lifestyle" by a SYNONYM link row 3's evidence does not hold
+   RED on this limb alone ("[goal-by-hand]"): YES
+   also caught by "EXACTLY WHAT THE STORE YIELDS" (a separate law — the stored file must equal a fresh run): exit 1 · fail 1 — RED, as it must be
+   restored byte for byte, and matching the git index: true (sha256 de1f4fce664d27ed35a1a5874d907cfe4b36a10d4c1601f26c640a2c0f3646c5)
+
+=== half (b) decided — 'without evidence of materially different useful content' recorded as PASS
+   file: runs/discovery/localized-thinking-2026-09-15.json
+   sabotage landed: true · lines removed 1 · lines added 1
+   ran only "every limb holds": exit 1 · tests 1 · pass 0 · fail 1
+   ✖ 🔴 STORED RECORDS — every limb holds: traceable to the country×query rows, thin evidence UNKNOWN, goals only on row 3's links, half (b) not decided
+     reason: AssertionError [ERR_ASSERTION]: [half-b-decided] half (b) is recorded "PASS" — it is BLOCKED — NOT TESTED until per-value answer evidence exists
+   RED on this limb alone ("[half-b-decided]"): YES
+   also caught by "EXACTLY WHAT THE STORE YIELDS" (a separate law — the stored file must equal a fresh run): exit 1 · fail 1 — RED, as it must be
+   restored byte for byte, and matching the git index: true (sha256 de1f4fce664d27ed35a1a5874d907cfe4b36a10d4c1601f26c640a2c0f3646c5)
+
+=== a country multiplies URLs — the runner builds an address from a country
+   file: bin/localized-thinking.mjs
+   sabotage landed: true · lines removed 0 · lines added 1
+   ran only "COUNTRY→URL CENSUS": exit 1 · tests 1 · pass 0 · fail 1
+   ✖ 🔴 COUNTRY→URL CENSUS — no consumer of the localized-thinking module builds a URL-shaped value
+     reason: AssertionError [ERR_ASSERTION]: bin/localized-thinking.mjs:26 a /${…} path template
+   RED on this limb alone ("bin/localized-thinking.mjs:"): YES
+   restored byte for byte, and matching the git index: true (sha256 bc3994405eb76f6376e70138ba8279aa2039f72e96f7dd3a339a215e90c0859d)
+
+=== stands on a FAILED row — the module names row 5's clusterer by a bare path string, not an import
+   file: src/discovery/localized-thinking.mjs
+   sabotage landed: true · lines removed 0 · lines added 1
+   ran only "DEPENDENCY —": exit 1 · tests 1 · pass 0 · fail 1
+   ✖ 🔴 DEPENDENCY — built on row 3, NOT on row 5: the module's import closure holds row 3's module and no row-5 or row-6 module
+     reason: AssertionError [ERR_ASSERTION]: src/discovery/localized-thinking.mjs names intent-clusters
+     reason: +       'intent-clusters'
+   RED on this limb alone ("intent-clusters"): YES
+   restored byte for byte, and matching the git index: true (sha256 68d105f652a9fdd8fefaf9a8e88b3faee19109e098780e40193e62415e155fe2)
+
+=== CLEAN — every file restored
+exit 0 · tests 16 · pass 16 · fail 0
+
+verdict: RED PROVED — 6 limbs, containment proved first, each sabotaged alone in its real file, each RED on its own named test, each restored byte for byte

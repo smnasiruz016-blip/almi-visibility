@@ -210,6 +210,8 @@ test("🔴 moves since Amendment 2: SEVEN by ruling (3–7 → NOT-STARTED by Am
   assert.deepEqual(all.filter((s) => s.kind === "work").map((s) => `${s.id}:${s.from}→${s.to}`), [
     // 🔴 Row 3, 15 September 2026: its owned half run against its boundary and PASSED — work, after its ruling move.
     "3:NOT-STARTED→VERIFIED-PASS",
+    // 🔴 Row 4, 15 September 2026: built and run on owned evidence; half (b) of FAILURE needs answers the store lacks — BUILT-NOT-PROVED.
+    "4:NOT-STARTED→BUILT-NOT-PROVED",
     // 🔴 Row 5, 14 September 2026: run against its boundary and FAILED on its held-out check — work, after its ruling move.
     "5:NOT-STARTED→FAILED",
     // 🔴 Row 6, 14 September 2026: built and run on real evidence; no axis could be accepted or rejected — BUILT-NOT-PROVED.

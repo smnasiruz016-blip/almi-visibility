@@ -1,0 +1,69 @@
+ROW 7 — RED LIMBS, EACH ALONE IN THE REAL FILES · 2026-09-15T02:23:29.222Z
+test file: test/market-measurement.test.mjs
+
+=== CONTAINMENT, BEFORE ANY SABOTAGE
+   src/discovery/market-measurement.mjs: in the index true · matches the index true · a trial write seen by git true · restored to the index byte for byte true
+   runs/discovery/market-measurement-2026-09-15.json: in the index true · matches the index true · a trial write seen by git true · restored to the index byte for byte true
+CLEAN before: exit 0 · tests 19 · pass 19 · fail 0
+
+=== SUPPLY filled from an unmeasured source — the code reads our own page count as the market's supply
+   file: src/discovery/market-measurement.mjs
+   sabotage landed: true · lines removed 1 · lines added 1
+   ran only "FRESH RUN": exit 1 · tests 1 · pass 0 · fail 1
+   ✖ 🔴 FRESH RUN — every limb holds on the measurement the code produces now, not only on the stored file
+     reason: AssertionError [ERR_ASSERTION]: [third-dimension-filled] SUPPLY reads state "MEASURED", measured true, value 1525, method "pages-in-the-estate" — the deferred half is UNKNOWN: never measured, never valued, never defaulted to low
+   RED on this limb alone ("[third-dimension-filled] SUPPLY reads"): YES
+   restored byte for byte, and matching the git index: true (sha256 b64d1aaf5a9d3e020fc8d63a32da6ca00a5421acb32dd77082da7d596619896d)
+
+=== AUDIENCE/NEED filled from an unmeasured source — the code reads the top searcher country as the audience
+   file: src/discovery/market-measurement.mjs
+   sabotage landed: true · lines removed 1 · lines added 1
+   ran only "FRESH RUN": exit 1 · tests 1 · pass 0 · fail 1
+   ✖ 🔴 FRESH RUN — every limb holds on the measurement the code produces now, not only on the stored file
+     reason: AssertionError [ERR_ASSERTION]: [third-dimension-filled] AUDIENCE/NEED reads state "MEASURED", measured true, value "sau", method "searcher-country-mix" — the deferred half is UNKNOWN: never measured, never valued, never defaulted to low
+   RED on this limb alone ("[third-dimension-filled] AUDIENCE/NEED reads"): YES
+   restored byte for byte, and matching the git index: true (sha256 b64d1aaf5a9d3e020fc8d63a32da6ca00a5421acb32dd77082da7d596619896d)
+
+=== WORTHINESS defaulted to low — the code keeps the label UNKNOWN and quietly sets the value LOW
+   file: src/discovery/market-measurement.mjs
+   sabotage landed: true · lines removed 1 · lines added 1
+   ran only "FRESH RUN": exit 1 · tests 1 · pass 0 · fail 1
+   ✖ 🔴 FRESH RUN — every limb holds on the measurement the code produces now, not only on the stored file
+     reason: AssertionError [ERR_ASSERTION]: [third-dimension-filled] WORTHINESS reads state "UNKNOWN", measured false, value "LOW", method null — the deferred half is UNKNOWN: never measured, never valued, never defaulted to low
+   RED on this limb alone ("[third-dimension-filled] WORTHINESS reads"): YES
+   restored byte for byte, and matching the git index: true (sha256 b64d1aaf5a9d3e020fc8d63a32da6ca00a5421acb32dd77082da7d596619896d)
+
+=== impressions reported as demand — the stored DEMAND states its magnitude in impressions
+   file: runs/discovery/market-measurement-2026-09-15.json
+   sabotage landed: true · lines removed 1 · lines added 1
+   ran only "STORED MEASUREMENT — every limb holds": exit 1 · tests 1 · pass 0 · fail 1
+   ✖ 🔴 STORED MEASUREMENT — every limb holds: two separate measurements, no impressions as demand, three dimensions UNKNOWN, quoted, limited, no inference promoted
+     reason: AssertionError [ERR_ASSERTION]: [impressions-as-demand] DEMAND reads or states impressions — an impression is our page being shown, not a person's need
+   RED on this limb alone ("[impressions-as-demand]"): YES
+   also caught by "EXACTLY WHAT THE STORE YIELDS" (a separate law — the stored file must equal a fresh run): exit 1 · fail 1 — RED, as it must be
+   restored byte for byte, and matching the git index: true (sha256 34bcac0714db248e16a342a0a57f2b72bc97be9e41fffff71eb3f67fd152d2bd)
+
+=== DEMAND and VISIBILITY conflated — the stored DEMAND carries VISIBILITY's method
+   file: runs/discovery/market-measurement-2026-09-15.json
+   sabotage landed: true · lines removed 1 · lines added 1
+   ran only "STORED MEASUREMENT — every limb holds": exit 1 · tests 1 · pass 0 · fail 1
+   ✖ 🔴 STORED MEASUREMENT — every limb holds: two separate measurements, no impressions as demand, three dimensions UNKNOWN, quoted, limited, no inference promoted
+     reason: AssertionError [ERR_ASSERTION]: [conflated] DEMAND and VISIBILITY/REACH share the method "shown-and-reached" — one measurement wearing two names
+   RED on this limb alone ("[conflated]"): YES
+   also caught by "EXACTLY WHAT THE STORE YIELDS" (a separate law — the stored file must equal a fresh run): exit 1 · fail 1 — RED, as it must be
+   restored byte for byte, and matching the git index: true (sha256 34bcac0714db248e16a342a0a57f2b72bc97be9e41fffff71eb3f67fd152d2bd)
+
+=== an inference promoted — the anonymisation reading stored as OBSERVED
+   file: runs/discovery/market-measurement-2026-09-15.json
+   sabotage landed: true · lines removed 1 · lines added 1
+   ran only "STORED MEASUREMENT — every limb holds": exit 1 · tests 1 · pass 0 · fail 1
+   ✖ 🔴 STORED MEASUREMENT — every limb holds: two separate measurements, no impressions as demand, three dimensions UNKNOWN, quoted, limited, no inference promoted
+     reason: AssertionError [ERR_ASSERTION]: [inference-promoted] the anonymisation explanation is labelled OBSERVED — the store holds the gap, not its cause
+   RED on this limb alone ("[inference-promoted]"): YES
+   also caught by "EXACTLY WHAT THE STORE YIELDS" (a separate law — the stored file must equal a fresh run): exit 1 · fail 1 — RED, as it must be
+   restored byte for byte, and matching the git index: true (sha256 34bcac0714db248e16a342a0a57f2b72bc97be9e41fffff71eb3f67fd152d2bd)
+
+=== CLEAN — every file restored
+exit 0 · tests 19 · pass 19 · fail 0
+
+verdict: RED PROVED — 6 limbs, containment proved first, each sabotaged alone in its real file, each RED on its own named test, each restored byte for byte

@@ -1,0 +1,508 @@
+{
+  "row": 7,
+  "class": "S",
+  "half": "OWNED",
+  "segment": {
+    "property": "sc-domain:almiworld.com",
+    "why": "no narrower segment is defined in the owned evidence — the segment is the whole property"
+  },
+  "input": {
+    "aggregate": {
+      "observation_id": "8c5f987dc5074cd5",
+      "method": "gsc.searchAnalytics.query:aggregate",
+      "observed_at": "2026-09-12T23:25:03.347Z",
+      "startDate": "2026-08-15",
+      "endDate": "2026-09-12",
+      "dataState": "COMPLETE",
+      "exhausted": true,
+      "truncationReason": null
+    },
+    "country": {
+      "observation_id": "59535dbde94fbacd",
+      "method": "gsc.searchAnalytics.query:country",
+      "observed_at": "2026-09-12T23:25:04.351Z",
+      "startDate": "2026-08-15",
+      "endDate": "2026-09-12",
+      "dataState": "COMPLETE",
+      "exhausted": true,
+      "truncationReason": null
+    },
+    "pageRows": {
+      "observation_id": "9f8cbf772d1cd434",
+      "method": "gsc.searchAnalytics.query:page-rows",
+      "observed_at": "2026-09-12T22:06:43.410Z",
+      "startDate": "2026-08-15",
+      "endDate": "2026-09-12",
+      "dataState": "COMPLETE",
+      "exhausted": "NOT STORED",
+      "truncationReason": "NOT STORED"
+    },
+    "query": {
+      "observation_id": "45ce21253a3fc58c",
+      "method": "gsc.searchAnalytics.query:query",
+      "observed_at": "2026-09-12T23:25:03.868Z",
+      "startDate": "2026-08-15",
+      "endDate": "2026-09-12",
+      "dataState": "COMPLETE",
+      "exhausted": true,
+      "truncationReason": null
+    },
+    "queryPage": {
+      "observation_id": "c97334fdd102df8e",
+      "method": "gsc.searchAnalytics.query:query-page",
+      "observed_at": "2026-09-12T23:25:04.172Z",
+      "startDate": "2026-08-15",
+      "endDate": "2026-09-12",
+      "dataState": "COMPLETE",
+      "exhausted": true,
+      "truncationReason": null
+    },
+    "countryQuery": {
+      "observation_id": "9bf50cfb134a0d7d",
+      "method": "gsc.searchAnalytics.query:country-query",
+      "observed_at": "2026-09-12T23:25:04.608Z",
+      "startDate": "2026-08-15",
+      "endDate": "2026-09-12",
+      "dataState": "COMPLETE",
+      "exhausted": true,
+      "truncationReason": null
+    }
+  },
+  "totals": {
+    "property": {
+      "observation_id": "8c5f987dc5074cd5",
+      "rows": 1,
+      "impressions": 2374,
+      "clicks": 20,
+      "dimensions": [],
+      "countingInferred": "once per search"
+    },
+    "country": {
+      "observation_id": "59535dbde94fbacd",
+      "rows": 126,
+      "impressions": 2374,
+      "clicks": 20,
+      "dimensions": [
+        "country"
+      ],
+      "countingInferred": "once per search"
+    },
+    "page": {
+      "observation_id": "9f8cbf772d1cd434",
+      "rows": 1525,
+      "impressions": 3289,
+      "clicks": 21,
+      "dimensions": "NOT STORED — the page-rows pull records no dimensions field; its rows are by page",
+      "countingInferred": "once per page shown"
+    },
+    "query": {
+      "observation_id": "45ce21253a3fc58c",
+      "rows": 337,
+      "impressions": 541,
+      "clicks": 0,
+      "dimensions": [
+        "query"
+      ],
+      "countingInferred": "once per search"
+    },
+    "countryQuery": {
+      "observation_id": "9bf50cfb134a0d7d",
+      "rows": 388,
+      "impressions": 541,
+      "clicks": 0,
+      "dimensions": [
+        "country",
+        "query"
+      ],
+      "countingInferred": "once per search"
+    },
+    "queryPage": {
+      "observation_id": "c97334fdd102df8e",
+      "rows": 574,
+      "impressions": 807,
+      "clicks": 0,
+      "dimensions": [
+        "query",
+        "page"
+      ],
+      "countingInferred": "once per page shown"
+    }
+  },
+  "coverage": {
+    "label": "OBSERVED",
+    "byProperty": {
+      "impressions": "541 of 2374",
+      "share": "22.8%",
+      "clicks": "0 of 20"
+    },
+    "byPage": {
+      "impressions": "807 of 3289",
+      "share": "24.5%",
+      "clicks": "0 of 21"
+    },
+    "mixedBasis": {
+      "ratio": "541 of 3289 = 16.4%",
+      "why": "divides a count pulled without the page dimension by one pulled with it — not recorded as the coverage"
+    },
+    "clickedPages": 9,
+    "clickedPagesWithAnyQueryRow": 2,
+    "truncationReasonOnEveryQueryPull": [
+      null,
+      null,
+      null
+    ],
+    "explanation": {
+      "claim": "the impressions and clicks with no query attached are Google's anonymisation of rare or clicked queries",
+      "label": "UNKNOWN",
+      "why": "the store holds the GAP, not its cause: no stored field names which searches were withheld, or why. The likely explanation is recorded UNKNOWN, not promoted to an observation"
+    }
+  },
+  "discrepancy": {
+    "status": "LOCALISED, NOT CLOSED",
+    "observed": {
+      "label": "OBSERVED",
+      "queryImpressions": 541,
+      "queryPageImpressions": 807,
+      "excess": 266,
+      "queriesInBoth": 337,
+      "queriesOnlyInOne": 0,
+      "queriesWhereTheSumsAgree": 324,
+      "queriesWithExcess": 13,
+      "excessQueriesShownWithMoreThanOnePage": 13,
+      "queriesWhereTheFinerCutHasFewer": 0,
+      "countryQueryAgreesWithQuery": "337 of 337 queries",
+      "pagesWhereQueryPageExceedsThePageRow": 0,
+      "theSameGapAtTheTop": "page 3289 against property 2374 and country 2374",
+      "examples": [
+        {
+          "query": "celips bari",
+          "queryRow": 1,
+          "queryPageSum": 2,
+          "pages": 2
+        },
+        {
+          "query": "ielts pte score",
+          "queryRow": 1,
+          "queryPageSum": 2,
+          "pages": 2
+        },
+        {
+          "query": "ielts score compare to pte",
+          "queryRow": 1,
+          "queryPageSum": 2,
+          "pages": 2
+        },
+        {
+          "query": "pearson test of english",
+          "queryRow": 1,
+          "queryPageSum": 5,
+          "pages": 5
+        },
+        {
+          "query": "pte academic equivalent to ielts",
+          "queryRow": 1,
+          "queryPageSum": 2,
+          "pages": 2
+        }
+      ]
+    },
+    "explanation": {
+      "claim": "a pull with the page dimension counts an impression once per page shown; a pull without it counts once per search",
+      "label": "INFERRED",
+      "why": "consistent with every stored comparison — the excess sits only on queries shown with more than one of our pages, never on a single-page query; a finer cut never loses impressions; the same gap separates page from property. But the counting rule is Google's, not the store's: the request named no aggregationType (src/search/google-search-console.mjs), and no stored field records how Google counted"
+    }
+  },
+  "dataLag": {
+    "label": "OBSERVED",
+    "rangeEndsOnThePullDay": true,
+    "restatements": [
+      {
+        "observation_id": "f294cb34162421cc",
+        "observed_at": "2026-09-12T00:15:14.861Z",
+        "impressions": 2261,
+        "clicks": 20
+      },
+      {
+        "observation_id": "96ac9479e50cee08",
+        "observed_at": "2026-09-12T22:06:43.095Z",
+        "impressions": 2374,
+        "clicks": 20
+      },
+      {
+        "observation_id": "8c5f987dc5074cd5",
+        "observed_at": "2026-09-12T23:25:03.347Z",
+        "impressions": 2374,
+        "clicks": 20
+      }
+    ],
+    "grew": {
+      "impressions": 113,
+      "clicks": 0,
+      "hours": 23.2
+    },
+    "final": {
+      "label": "UNKNOWN",
+      "why": "no freshness field is stored and the request named no dataState, so whether these totals will still change is not in the store"
+    }
+  },
+  "dimensions": {
+    "DEMAND": {
+      "dimension": "DEMAND",
+      "state": "BOUNDED — PRESENCE ONLY, MAGNITUDE UNKNOWN",
+      "measured": true,
+      "method": {
+        "name": "distinct-searched-wordings",
+        "fields": [
+          "query"
+        ],
+        "rule": "count the distinct human query strings the property was shown for at least once in the range, operator strings excluded (query-population). Each is a need at least one person searched for. How many people searched is not read: impressions, clicks, CTR and position are not inputs"
+      },
+      "source": {
+        "observation_id": "45ce21253a3fc58c",
+        "method": "gsc.searchAnalytics.query:query",
+        "observed_at": "2026-09-12T23:25:03.868Z",
+        "startDate": "2026-08-15",
+        "endDate": "2026-09-12",
+        "dataState": "COMPLETE",
+        "exhausted": true,
+        "truncationReason": null
+      },
+      "value": {
+        "distinctHumanWordings": 329,
+        "operatorStringsExcluded": 8,
+        "lowerBound": "at least 329 distinct human wordings were each searched at least once in the range",
+        "upperBound": "UNKNOWN — searches with no query attached are not counted, and a need the property was never shown for cannot appear at all",
+        "magnitude": "UNKNOWN — how many people searched is not in the owned evidence"
+      },
+      "limits": {
+        "queryTruncation": "QUERY TRUNCATION: truncationReason reads null on every query pull — that says the pager drained every row, NOT that every search was reported. Only 541 of 2374 impressions (22.8%) and 0 of 20 clicks carry a query; by page, 807 of 3289 (24.5%) and 0 of 21 clicks. Every click and most impressions have no query attached. The 16.4% often quoted divides a count without the page dimension by one with it",
+        "dataLag": "DATA LAG: the range 2026-08-15 → 2026-09-12 ends on the day it was pulled; pulled 3 times, the same range grew from 2261 to 2374 impressions over 23.2 hours. Whether the newest totals are final is UNKNOWN",
+        "dataState": "dataState COMPLETE, quoted from each observation, is the pager's word for \"every page of rows was drained\" (src/search/paginate.mjs) — not Google's freshness, and not query coverage",
+        "selection": "a wording is visible here only because our property was shown for it: this is demand seen THROUGH our own visibility, never the market's demand"
+      }
+    },
+    "VISIBILITY_REACH": {
+      "dimension": "VISIBILITY/REACH",
+      "state": "MEASURED",
+      "measured": true,
+      "method": {
+        "name": "shown-and-reached",
+        "fields": [
+          "impressions",
+          "position",
+          "clicks",
+          "ctr"
+        ],
+        "rule": "where and how prominently the property was shown, and what that reach earned: impressions, position, clicks and CTR, for the property, by country and by page, each quoted from its own observation. The property and country cuts are never added to the page cut"
+      },
+      "sources": [
+        {
+          "observation_id": "8c5f987dc5074cd5",
+          "method": "gsc.searchAnalytics.query:aggregate",
+          "observed_at": "2026-09-12T23:25:03.347Z",
+          "startDate": "2026-08-15",
+          "endDate": "2026-09-12",
+          "dataState": "COMPLETE",
+          "exhausted": true,
+          "truncationReason": null
+        },
+        {
+          "observation_id": "59535dbde94fbacd",
+          "method": "gsc.searchAnalytics.query:country",
+          "observed_at": "2026-09-12T23:25:04.351Z",
+          "startDate": "2026-08-15",
+          "endDate": "2026-09-12",
+          "dataState": "COMPLETE",
+          "exhausted": true,
+          "truncationReason": null
+        },
+        {
+          "observation_id": "9f8cbf772d1cd434",
+          "method": "gsc.searchAnalytics.query:page-rows",
+          "observed_at": "2026-09-12T22:06:43.410Z",
+          "startDate": "2026-08-15",
+          "endDate": "2026-09-12",
+          "dataState": "COMPLETE",
+          "exhausted": "NOT STORED",
+          "truncationReason": "NOT STORED"
+        }
+      ],
+      "value": {
+        "property": {
+          "observation_id": "8c5f987dc5074cd5",
+          "impressions": 2374,
+          "clicks": 20,
+          "ctr": 0.008424599831508003,
+          "position": 36.069081718618364
+        },
+        "byCountry": {
+          "observation_id": "59535dbde94fbacd",
+          "rows": 126,
+          "impressions": 2374,
+          "clicks": 20,
+          "top": [
+            {
+              "country": "usa",
+              "impressions": 457,
+              "clicks": 2,
+              "position": 25.277899343544856
+            },
+            {
+              "country": "aus",
+              "impressions": 257,
+              "clicks": 0,
+              "position": 57.87548638132296
+            },
+            {
+              "country": "gbr",
+              "impressions": 167,
+              "clicks": 1,
+              "position": 25.167664670658684
+            },
+            {
+              "country": "ind",
+              "impressions": 167,
+              "clicks": 3,
+              "position": 52.2814371257485
+            },
+            {
+              "country": "phl",
+              "impressions": 100,
+              "clicks": 1,
+              "position": 56.65
+            },
+            {
+              "country": "bgd",
+              "impressions": 82,
+              "clicks": 0,
+              "position": 46.390243902439025
+            },
+            {
+              "country": "idn",
+              "impressions": 64,
+              "clicks": 0,
+              "position": 66.078125
+            },
+            {
+              "country": "vnm",
+              "impressions": 63,
+              "clicks": 0,
+              "position": 69.55555555555556
+            },
+            {
+              "country": "ita",
+              "impressions": 61,
+              "clicks": 0,
+              "position": 8.278688524590164
+            },
+            {
+              "country": "tur",
+              "impressions": 50,
+              "clicks": 0,
+              "position": 66.9
+            }
+          ]
+        },
+        "byPage": {
+          "observation_id": "9f8cbf772d1cd434",
+          "rows": 1525,
+          "impressions": 3289,
+          "clicks": 21,
+          "position": "NOT STORED — the page-rows pull keeps url, clicks and impressions only",
+          "top": [
+            {
+              "url": "https://almipte.almiworld.com/learn/pte-ielts-score-conversion",
+              "impressions": 159,
+              "clicks": 0
+            },
+            {
+              "url": "https://almiworld.com/",
+              "impressions": 77,
+              "clicks": 11
+            },
+            {
+              "url": "https://almiworld.com/25-daily-habits-that-will-improve-your-life-simple-powerful-guide/",
+              "impressions": 67,
+              "clicks": 0
+            },
+            {
+              "url": "https://almiworld.com/japan-esd-program-2027/",
+              "impressions": 49,
+              "clicks": 3
+            },
+            {
+              "url": "https://almiworld.com/cv-with-no-experience/",
+              "impressions": 40,
+              "clicks": 0
+            },
+            {
+              "url": "https://almidutch.almiworld.com/",
+              "impressions": 33,
+              "clicks": 0
+            },
+            {
+              "url": "https://almiworld.com/celpe-bras-2026-2-exam-dates-brazil-overseas/",
+              "impressions": 30,
+              "clicks": 0
+            },
+            {
+              "url": "https://almipte.almiworld.com/learn/pte-vs-ielts",
+              "impressions": 29,
+              "clicks": 0
+            },
+            {
+              "url": "https://almiworld.com/50-business-ideas-for-beginners-start-with-low-budget-today/",
+              "impressions": 27,
+              "clicks": 0
+            },
+            {
+              "url": "https://almiworld.com/contact-us/",
+              "impressions": 27,
+              "clicks": 0
+            }
+          ]
+        },
+        "neverAdded": "the property and country cuts and the page cut count differently (INFERRED — see the discrepancy); they are reported side by side and never summed"
+      },
+      "limits": {
+        "queryTruncation": "QUERY TRUNCATION: truncationReason reads null on every query pull — that says the pager drained every row, NOT that every search was reported. Only 541 of 2374 impressions (22.8%) and 0 of 20 clicks carry a query; by page, 807 of 3289 (24.5%) and 0 of 21 clicks. Every click and most impressions have no query attached. The 16.4% often quoted divides a count without the page dimension by one with it. Visibility by property, country and page is NOT restricted by it — those cuts carry every impression the property earned; only the query cuts lose them",
+        "dataLag": "DATA LAG: the range 2026-08-15 → 2026-09-12 ends on the day it was pulled; pulled 3 times, the same range grew from 2261 to 2374 impressions over 23.2 hours. Whether the newest totals are final is UNKNOWN",
+        "dataState": "dataState COMPLETE, quoted from each observation, is the pager's word for \"every page of rows was drained\" (src/search/paginate.mjs) — not Google's freshness, and not query coverage"
+      }
+    },
+    "SUPPLY": {
+      "dimension": "SUPPLY",
+      "state": "UNKNOWN",
+      "measured": false,
+      "value": null,
+      "method": null,
+      "why": "the deferred half (Amendment 4): what already answers these needs, and how well, needs external evidence, and no fetch is authorised. Nothing owned measures it — our own page count is our supply, not the market's"
+    },
+    "AUDIENCE_NEED": {
+      "dimension": "AUDIENCE/NEED",
+      "state": "UNKNOWN",
+      "measured": false,
+      "value": null,
+      "method": null,
+      "why": "the deferred half (Amendment 4): who searches and what they need needs external evidence. A searcher's country is where they were, not who they are"
+    },
+    "WORTHINESS": {
+      "dimension": "WORTHINESS",
+      "state": "UNKNOWN",
+      "measured": false,
+      "value": null,
+      "method": null,
+      "why": "the deferred half, assigned by the owner's addendum to Amendment 4 (13 September 2026), because its own inputs are themselves deferred"
+    }
+  },
+  "backwardsFinding": {
+    "rows": [
+      3,
+      5,
+      6
+    ],
+    "observed": "rows 3, 5 and 6 stand on the query pull 45ce21253a3fc58c: 22.8% of the property's impressions and 0 of 20 of its clicks. The wording they study is the part of search that carries a query and was never clicked",
+    "onTheirFaces": "row 6 names the 0 clicks; none of the three names the query coverage",
+    "action": "REPORTED FOR THE OWNER'S RULING — no row changed by row 7"
+  }
+}

@@ -216,6 +216,8 @@ test("🔴 moves since Amendment 2: SEVEN by ruling (3–7 → NOT-STARTED by Am
     "5:NOT-STARTED→FAILED",
     // 🔴 Row 6, 14 September 2026: built and run on real evidence; no axis could be accepted or rejected — BUILT-NOT-PROVED.
     "6:NOT-STARTED→BUILT-NOT-PROVED",
+    // 🔴 Row 7, 15 September 2026: its owned half built and run; DEMAND can only be bounded on owned evidence — BUILT-NOT-PROVED.
+    "7:NOT-STARTED→BUILT-NOT-PROVED",
     "9:BUILT-NOT-PROVED→BLOCKED-UNKNOWN", "11:BLOCKED-UNKNOWN→VERIFIED-PASS",
     "12:BUILT-NOT-PROVED→TESTABLE-NOW", "12:TESTABLE-NOW→VERIFIED-PASS", "13:BUILT-NOT-PROVED→TESTABLE-NOW", "13:TESTABLE-NOW→VERIFIED-PASS",
     "14:TESTABLE-NOW→FAILED", "14:FAILED→VERIFIED-PASS",

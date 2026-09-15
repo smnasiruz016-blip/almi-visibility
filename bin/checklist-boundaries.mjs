@@ -16,7 +16,7 @@
  * that one is written and is edited by hand.
  */
 
-import { writeFileSync, readFileSync } from "node:fs";
+import { existsSync, writeFileSync, readFileSync } from "node:fs";
 
 import { loadBoundaries, CONTRACT_PARTS } from "../src/checklist/boundaries.mjs";
 import { classClause } from "../src/checklist/provenance.mjs";
@@ -26,9 +26,15 @@ import {
 import {
   verify, EXPECTED_BODY_SHA256, AMENDMENT_2_BODY_SHA256, AMENDMENT_4_BODY_SHA256, AMENDMENT_5_BODY_SHA256, amendment5, AMENDMENT_3_BODY_SHA256,
 } from "../tools/verify-pass-boundaries-source.mjs";
+import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
-const OUT = `${REPO}CHECKLIST_BOUNDARIES.md`;
+/* 🔴 GAP 1 (15 September 2026) — DRY-RUN BY DEFAULT, LIKE EVERY OTHER WRITE PATH. Regenerating this document is routine,
+ * so the flag is typed often — and the write law already decided that --confirm is the right price for a LOCAL write
+ * (src/write-law.mjs: "--confirm is still required for a local write"). Without it the run still builds the document and
+ * says whether the committed one is UP TO DATE, STALE or MISSING, so a run made only to look is a check, not a write. */
+const OUT = confineToRepo(`${REPO}CHECKLIST_BOUNDARIES.md`, { label: "the generated boundaries document" });
+const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
 
 
 
@@ -59,7 +65,7 @@ const esc = (s) => String(s ?? "").replace(/\|/g, "\\|");
 const L = [];
 L.push("# ALMIVISIBILITY — THE PASS BOUNDARIES (58 FROZEN, PLUS ROWS ADMITTED BY RULING) AND THE SEVEN-STATE LEDGER");
 L.push("");
-L.push("> 🔴 **GENERATED — DO NOT EDIT BY HAND.** `node bin/checklist-boundaries.mjs` rebuilds it.");
+L.push("> 🔴 **GENERATED — DO NOT EDIT BY HAND.** `node bin/checklist-boundaries.mjs --confirm` rebuilds it; without `--confirm` the run writes nothing and reports whether this file is stale.");
 L.push("> Every boundary below is read out of `PASS_BOUNDARIES_SOURCE.md`, whose body is verified");
 L.push(`> against sha256 \`${EXPECTED_BODY_SHA256}\`. Nothing here is retyped, so \`verbatim\` is a`);
 L.push("> property of the mechanism rather than a promise about anyone's typing.");
@@ -316,9 +322,15 @@ for (const id of Object.keys(boundaries).map(Number).sort((a, b) => a - b)) {
   }
 }
 
-writeFileSync(OUT, L.join("\n") + "\n", "utf8");
-
-console.log(`wrote ${OUT}`);
+const generated = L.join("\n") + "\n";
+const onDisk = existsSync(OUT) ? readFileSync(OUT, "utf8").replace(/\r\n/g, "\n") : null;
+const freshness = onDisk === null ? "MISSING" : onDisk === generated ? "UP TO DATE" : "STALE";
+if (permission.mayWrite) {
+  writeFileSync(OUT, generated, "utf8");
+  console.log(`wrote ${OUT} (it was ${freshness})`);
+} else {
+  console.log(`[dry-run] ${OUT} is ${freshness}${freshness === "UP TO DATE" ? " — nothing to write" : " — run with --confirm to rebuild it"}`);
+}
 console.log(`  frozen source verified: ${check.matches}`);
 console.log(`  states: ${STATES.map((s) => `${s}=${after[s]}`).join("  ")}`);
 console.log(`  before Amendment 2: ${STATES.map((s) => `${s}=${beforeA2[s]}`).join("  ")}`);

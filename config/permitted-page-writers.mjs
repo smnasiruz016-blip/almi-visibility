@@ -130,3 +130,69 @@ export const PERMITTED_PAGE_WRITERS = Object.freeze([
     whyKnown: true,
   },
 ]);
+
+/**
+ * 🔴 GAP 1 (15 September 2026) — THE LOCAL WRITERS THAT WRITE NO PAGE, DECLARED BESIDE THE PAGE WRITERS.
+ *
+ * The write law says EVERY write path defaults to dry-run. The census above reconciles PAGE writes only, so a CSV
+ * export into runs/ was outside the population the law was enforced over — and on 14 September one such writer
+ * rewrote committed evidence on a run made only to read a number (_handoffs/AlmiVisibility_WRITE_LAW_GAP_2026-09-14.md).
+ *
+ * Each entry states the same four things, and `test/ungated-writers.test.mjs` checks each against its source: that it
+ * calls writePermission and confineToRepo before its first write, that every write site sits behind its gateToken, and
+ * that its site count and destination flag are what the entry declares.
+ *
+ * ⚠️ WHAT THIS LIST IS NOT: a census. Nothing finds a writer that is missing from it — widening the census beyond
+ * PAGE_WRITE so every write path must be declared is gap 2 in the owner's frozen register, a separate slot, and is NOT
+ * done here. A new ungated local writer can still arrive unseen, exactly as these did.
+ */
+export const PERMITTED_LOCAL_WRITERS = Object.freeze([
+  {
+    file: "bin/facts-lifecycle.mjs",
+    sites: 2,
+    writes: "the fact registry exported for VERIFICATION as one CSV — the list of questions a verifier must answer, never the answers",
+    where: `runs/export/facts-for-verification.csv by default — a tracked EVIDENCE file (.gitattributes runs/**) — or the file given by --out; ${CONFINED}`,
+    gatedBy: "write-law LOCAL: the directory and the file sit behind permission.mayWrite, which only --confirm grants. Every figure — conflict, freshness, the dependency walk, changed inputs, the cache — prints with no flag. 🔴 Until 15 September 2026 it wrote on EVERY run, and on 14 September a run made to read one number rewrote committed evidence",
+    gateFlags: ["--confirm"],
+    gateToken: "permission.mayWrite",
+    destinationOverridable: true,
+    why: "the verification hand-off for rows 16, 17 and 46: a person verifies the registry by reading official sources, and this file tells them which claims to read for and what kind of authority settles each",
+    whyKnown: true,
+  },
+  {
+    file: "bin/export.mjs",
+    sites: 2,
+    writes: "the three exports of the evidence store — evidence.md, evidence.json and estate.csv — each carrying the states and bounds of what it summarises",
+    where: `runs/export/ by default — three tracked EVIDENCE files (.gitattributes runs/**) — or the directory given by --out; ${CONFINED}`,
+    gatedBy: "write-law LOCAL: the directory and all three files sit behind permission.mayWrite, which only --confirm grants. With no flag it still builds all three and prints each one's size, the states and the bounds. 🔴 Until 15 September 2026 it wrote on every run — the same shape as the writer that fired on 14 September. `npm run export` is therefore a dry run; `npm run export -- --confirm` writes",
+    gateFlags: ["--confirm"],
+    gateToken: "permission.mayWrite",
+    destinationOverridable: true,
+    why: "item 6: the evidence store rendered for a reader who does not read JSONL — the Markdown and CSV an owner opens, and the JSON another tool reads — with every state carried through and never upgraded",
+    whyKnown: true,
+  },
+  {
+    file: "bin/checklist-boundaries.mjs",
+    sites: 1,
+    writes: "CHECKLIST_BOUNDARIES.md — every row's four-part boundary quoted verbatim from the hash-verified frozen sources, beside its seven-state verdict",
+    where: `CHECKLIST_BOUNDARIES.md at the repository root — a fixed path, no operator flag; a GENERATED document, not evidence; ${CONFINED}`,
+    gatedBy: "write-law LOCAL: permission.mayWrite, which only --confirm grants. Without it the run still builds the document and reports whether the committed one is UP TO DATE, STALE or MISSING. Judged on 15 September 2026: routine regeneration makes the flag a daily keystroke, and the write law already names --confirm as the right price for a local write",
+    gateFlags: ["--confirm"],
+    gateToken: "permission.mayWrite",
+    destinationOverridable: false,
+    why: "the boundaries must be verbatim, and the surest way to keep them verbatim is never to type them: they are read from the frozen sources on every run, so this document can be rebuilt and never hand-edited",
+    whyKnown: true,
+  },
+  {
+    file: "bin/crawl.mjs",
+    sites: 6,
+    writes: "the crawl record — its observations and one run record — and, on a LIVE run, the raw bodies (also declared above as a page writer) and a cost-ledger entry",
+    where: `runs/crawl/crawl.jsonl by default (not tracked; uploaded as a CI artifact), or the file given by --out; bodies under --corpus; the ledger at runs/cost/ledger.jsonl; ${CONFINED}`,
+    gatedBy: "mayRecord = a LIVE run OR write-law LOCAL permission.mayWrite. A DRY run records nothing unless --confirm; a LIVE run has already passed D-CRW-4's --live AND --i-have-the-owners-green and records what it fetched and spent, because a billable run that kept no record would be the worse failure. 🔴 Until 15 September 2026 every DRY run appended a run record: the D-CRW-4 gate was on the network, not on these local writes",
+    gateFlags: ["--confirm", "--live", "--i-have-the-owners-green"],
+    gateToken: "mayRecord",
+    destinationOverridable: true,
+    why: "the crawl's record is item 1's evidence — every fetched page's hash and bounds — and the run record is what a later reviewer commits by hand; the ledger entry is item 45's cost of a live run",
+    whyKnown: true,
+  },
+]);

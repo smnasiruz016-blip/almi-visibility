@@ -29,6 +29,19 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 | **DEFERRED** | — | **23** |
 | **total** | 58 | **61** |
 
+> ### 🔴 GAP 1 CLOSED — THE FOUR UNGATED WRITE PATHS BEHIND THE WRITE LAW — 15 SEPTEMBER 2026 — NO ROW MOVED
+>
+> - **The incident:** on 14 September `node bin/facts-lifecycle.mjs` was run to read one number and rewrote
+>   `runs/export/facts-for-verification.csv`, tracked evidence. **Fixed first, in its own commit**, on the owner's order.
+> - **The fix is the dry-run DEFAULT, not the flag:** facts-lifecycle, export, checklist-boundaries and crawl's local record now
+>   write only with `--confirm`, and every operator destination is confined to this repository before the first write. With no
+>   flag each still prints what a reader came for. A LIVE crawl, already past D-CRW-4's two flags, still records what it spent.
+> - 🔴 **`node bin/checklist-boundaries.mjs --confirm` now rebuilds `CHECKLIST_BOUNDARIES.md`**; without the flag it writes nothing
+>   and says whether the file is UP TO DATE or STALE. `npm run export` is a dry run; `npm run export -- --confirm` writes.
+> - **Declared** in `PERMITTED_LOCAL_WRITERS` beside the page register, and checked against each source. **Not a census:** widening
+>   the census beyond PAGE_WRITE is gap 2, a separate slot, and was not done. Row 36 still waits on archive-corpus (gap 3).
+> - Ledger unchanged: 2 / 9 / 1 / 20 / 2 / 4 / 23 = 61.
+
 > ### 🔴 ROW 7 BUILT — MARKET MEASUREMENT, THE OWNED HALF — BUILT-NOT-PROVED, BECAUSE DEMAND CAN ONLY BE BOUNDED — 15 SEPTEMBER 2026
 >
 > - **Totals, re-derived from the rows** (2026-08-15 → 2026-09-12, dataState COMPLETE on every pull): property 2,374 impressions ·

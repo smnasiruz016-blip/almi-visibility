@@ -5,6 +5,18 @@
  * 🔴 IT VERIFIES NOTHING. Verification means reading an official source and
  * judging the claim, which is research and belongs to a person. This exports
  * the questions and stops.
+ *
+ * 🔴 DRY-RUN BY DEFAULT SINCE 15 SEPTEMBER 2026 — THE WRITE LAW, AND THE NIGHT IT WAS NEEDED.
+ *
+ * Until then PART 1 wrote runs/export/facts-for-verification.csv on EVERY run. On 14 September a run made only to
+ * read ONE number — row 46's cache hit rate — rewrote that committed evidence file while other work was under way
+ * in the repository, and two tests went red for a writer nobody could name
+ * (_handoffs/AlmiVisibility_WRITE_LAW_GAP_2026-09-14.md). A `--confirm` flag alone would not have stopped it: the
+ * reader wanted the number and would have typed the flag. What stops it is the DEFAULT — every figure below prints
+ * with no flag at all, and the export is written only with --confirm, into a destination confined to this repository.
+ *
+ *   node bin/facts-lifecycle.mjs --product=<id>                         prints everything, writes nothing
+ *   node bin/facts-lifecycle.mjs --product=<id> --confirm [--out=<file>] also writes the export
  */
 
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
@@ -14,16 +26,19 @@ import { loadRegistry } from "../src/facts/registry.mjs";
 import { productFromArgvOrExit } from "../src/product-cli.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { detectConflicts, freshnessOf, markForReview, createFactCache, reviewChangedInputs } from "../src/facts/lifecycle.mjs";
+import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n, d) => {
   const hit = process.argv.find((a) => a.startsWith(`--${n}=`));
   return hit ? hit.slice(n.length + 3) : d;
 };
-const out = arg("out", `${REPO}runs/export/facts-for-verification.csv`);
+// 🔴 Confined BEFORE anything is read or computed: a destination outside this repository is refused while nothing has happened.
+const out = confineToRepo(arg("out", `${REPO}runs/export/facts-for-verification.csv`), { label: "--out" });
+const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
 
 // 🔴 The product is an ARGUMENT, never a folder written here (owner ruling, 14 September 2026): no default.
-const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/facts-lifecycle.mjs --product=<id> [--out=<file>]" });
+const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/facts-lifecycle.mjs --product=<id> [--confirm] [--out=<file>]" });
 const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
 console.log(`records: ${records.length}`);
 
@@ -86,11 +101,13 @@ const header = [
 ].join("\n");
 
 const csv = [header, COLUMNS.join(","), ...rows.map((r) => COLUMNS.map((c) => esc(r[c])).join(","))].join("\n") + "\n";
-if (!existsSync(dirname(out))) mkdirSync(dirname(out), { recursive: true });
-writeFileSync(out, csv, "utf8");
+if (permission.mayWrite) {
+  if (!existsSync(dirname(out))) mkdirSync(dirname(out), { recursive: true });
+  writeFileSync(out, csv, "utf8");
+}
 
 const unknownVerify = rows.filter((r) => r.what_would_verify_it === "UNKNOWN").length;
-console.log(`\nPART 1 — exported ${rows.length} rows → ${out}`);
+console.log(`\nPART 1 — ${permission.mayWrite ? "exported" : "[dry-run] would have exported"} ${rows.length} rows → ${out}${permission.mayWrite ? "" : " (nothing written — --confirm to write it)"}`);
 console.log(`  every row UNVERIFIED: ${rows.every((r) => r.verificationState === "UNVERIFIED")}`);
 console.log(`  'what would verify it' = UNKNOWN on ${unknownVerify} row(s) — stated, not guessed`);
 console.log(`  🔴 NOTHING WAS VERIFIED. Verification is research and it is not this tool's.`);

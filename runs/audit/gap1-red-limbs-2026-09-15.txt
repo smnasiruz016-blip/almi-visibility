@@ -1,0 +1,95 @@
+GAP 1 · export, checklist-boundaries, crawl — RED LIMBS, EACH ALONE IN THE REAL FILES · 2026-09-15T03:06:01.075Z
+test file: test/ungated-writers.test.mjs
+
+=== CONTAINMENT, BEFORE ANY SABOTAGE — the sources sabotaged AND the evidence a sabotaged run could rewrite
+   bin/export.mjs: in the index true · matches the index true · a trial write seen by git true · restored to the index byte for byte true · sha256 cf295ee184c5a2ee2c1c805f9a354b3e6f2535d87533f5a5897ba231076bda1d
+   bin/checklist-boundaries.mjs: in the index true · matches the index true · a trial write seen by git true · restored to the index byte for byte true · sha256 96c77c373f84863c61736037487a18305cc2d137ead83c46d60b1f0d64d9073c
+   bin/crawl.mjs: in the index true · matches the index true · a trial write seen by git true · restored to the index byte for byte true · sha256 c5d4ac6492a9a2f9537047550f5e55addf0bb50e1032263eae60ad8b60a39abf
+   runs/export/evidence.md: in the index true · matches the index true · a trial write seen by git true · restored to the index byte for byte true · sha256 a850ecf44f9f73af9ca45f97256dd0e45c02894ab95d77b51cbef589087f684d
+   runs/export/evidence.json: in the index true · matches the index true · a trial write seen by git true · restored to the index byte for byte true · sha256 ad62fc702828e736bcdf269e6098794cb45e3b84e5e8382b49f356c8f264c7d1
+   runs/export/estate.csv: in the index true · matches the index true · a trial write seen by git true · restored to the index byte for byte true · sha256 2ca416923709fb5407fea2e07e134a75d6a1cb9bb493a6bc4705b33bb93819f9
+   CHECKLIST_BOUNDARIES.md: in the index true · matches the index true · a trial write seen by git true · restored to the index byte for byte true · sha256 c381553676ff2011db9b4f4efd5e17afdaad9304a0ed95f8f945d910617ed279
+CLEAN before: exit 0 · tests 15 · pass 15 · fail 0
+
+=== export: with no flag it writes nothing — broken by writing unconditionally
+   file: bin/export.mjs
+   sabotage landed: true
+   ran only "export — with NO flags": exit 1 · tests 1 · pass 0 · fail 1
+   ✖ 🔴 export — with NO flags the three exports in runs/export stay byte-identical and untouched, and the run still prints every size, state and bound
+     reason: AssertionError [ERR_ASSERTION]: export with no flags wrote into runs/export: {"added":[],"changed":["estate.csv","evidence.json","evidence.md"],"touched":[]} (restored)
+   RED on this limb alone ("export with no flags wrote into runs/export"): YES
+   also caught by "THE DECLARED LOCAL WRITERS": exit 1 · fail 1 — RED
+   after the limb, bin/export.mjs matches its original bytes and the git index: true
+   after the limb, bin/checklist-boundaries.mjs matches its original bytes and the git index: true
+   after the limb, bin/crawl.mjs matches its original bytes and the git index: true
+   after the limb, runs/export/evidence.md matches its original bytes and the git index: true
+   after the limb, runs/export/evidence.json matches its original bytes and the git index: true
+   after the limb, runs/export/estate.csv matches its original bytes and the git index: true
+   after the limb, CHECKLIST_BOUNDARIES.md matches its original bytes and the git index: true
+
+=== export: --out outside the repository is refused and creates nothing — broken by dropping confineToRepo
+   file: bin/export.mjs
+   sabotage landed: true
+   ran only "RED, REAL: export --confirm --out=<outside": exit 1 · tests 1 · pass 0 · fail 1
+   ✖ 🔴 RED, REAL: export --confirm --out=<outside the repository> REFUSES, exits non-zero, and creates NOTHING
+     reason: AssertionError [ERR_ASSERTION]: export exited 0 while pointed outside the repository
+   RED on this limb alone ("export exited 0 while pointed outside the repository"): YES
+   also caught by "THE DECLARED LOCAL WRITERS": exit 1 · fail 1 — RED
+   after the limb, bin/export.mjs matches its original bytes and the git index: true
+   after the limb, bin/checklist-boundaries.mjs matches its original bytes and the git index: true
+   after the limb, bin/crawl.mjs matches its original bytes and the git index: true
+   after the limb, runs/export/evidence.md matches its original bytes and the git index: true
+   after the limb, runs/export/evidence.json matches its original bytes and the git index: true
+   after the limb, runs/export/estate.csv matches its original bytes and the git index: true
+   after the limb, CHECKLIST_BOUNDARIES.md matches its original bytes and the git index: true
+
+=== checklist-boundaries: with no flag it writes nothing — broken by writing unconditionally (the same bytes, still a write)
+   file: bin/checklist-boundaries.mjs
+   sabotage landed: true
+   ran only "checklist-boundaries — with NO flags": exit 1 · tests 1 · pass 0 · fail 1
+   ✖ 🔴 checklist-boundaries — with NO flags CHECKLIST_BOUNDARIES.md is byte-identical and untouched, and the run says whether it is stale
+     reason: AssertionError [ERR_ASSERTION]: checklist-boundaries with no flags wrote CHECKLIST_BOUNDARIES.md — same bytes, but written
+   RED on this limb alone ("same bytes, but written"): YES
+   also caught by "THE DECLARED LOCAL WRITERS": exit 1 · fail 1 — RED
+   after the limb, bin/export.mjs matches its original bytes and the git index: true
+   after the limb, bin/checklist-boundaries.mjs matches its original bytes and the git index: true
+   after the limb, bin/crawl.mjs matches its original bytes and the git index: true
+   after the limb, runs/export/evidence.md matches its original bytes and the git index: true
+   after the limb, runs/export/evidence.json matches its original bytes and the git index: true
+   after the limb, runs/export/estate.csv matches its original bytes and the git index: true
+   after the limb, CHECKLIST_BOUNDARIES.md matches its original bytes and the git index: true
+
+=== crawl: a DRY run with no flag records nothing — broken by recording every run
+   file: bin/crawl.mjs
+   sabotage landed: true
+   ran only "crawl — a DRY run with NO flags": exit 1 · tests 1 · pass 0 · fail 1
+   ✖ 🔴 crawl — a DRY run with NO flags writes no record and no corpus, issues no request, and every network call it asks for is refused
+     reason: AssertionError [ERR_ASSERTION]: a dry crawl created its record directory without --confirm
+   RED on this limb alone ("a dry crawl created its record directory without --confirm"): YES
+   after the limb, bin/export.mjs matches its original bytes and the git index: true
+   after the limb, bin/checklist-boundaries.mjs matches its original bytes and the git index: true
+   after the limb, bin/crawl.mjs matches its original bytes and the git index: true
+   after the limb, runs/export/evidence.md matches its original bytes and the git index: true
+   after the limb, runs/export/evidence.json matches its original bytes and the git index: true
+   after the limb, runs/export/estate.csv matches its original bytes and the git index: true
+   after the limb, CHECKLIST_BOUNDARIES.md matches its original bytes and the git index: true
+
+=== crawl: --out outside the repository is refused and creates nothing — broken by dropping confineToRepo on --out
+   file: bin/crawl.mjs
+   sabotage landed: true
+   ran only "RED, REAL: crawl --confirm --out=<outside": exit 1 · tests 1 · pass 0 · fail 1
+   ✖ 🔴 RED, REAL: crawl --confirm --out=<outside the repository> REFUSES, exits non-zero, and creates NOTHING
+     reason: AssertionError [ERR_ASSERTION]: crawl exited 0 while pointed outside the repository
+   RED on this limb alone ("crawl exited 0 while pointed outside the repository"): YES
+   after the limb, bin/export.mjs matches its original bytes and the git index: true
+   after the limb, bin/checklist-boundaries.mjs matches its original bytes and the git index: true
+   after the limb, bin/crawl.mjs matches its original bytes and the git index: true
+   after the limb, runs/export/evidence.md matches its original bytes and the git index: true
+   after the limb, runs/export/evidence.json matches its original bytes and the git index: true
+   after the limb, runs/export/estate.csv matches its original bytes and the git index: true
+   after the limb, CHECKLIST_BOUNDARIES.md matches its original bytes and the git index: true
+
+=== CLEAN — every file restored
+exit 0 · tests 15 · pass 15 · fail 0
+
+verdict: RED PROVED — 5 limbs, containment proved first, each sabotaged alone in its real file, each RED on its own named test, every source and evidence file back to its bytes

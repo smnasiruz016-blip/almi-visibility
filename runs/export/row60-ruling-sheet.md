@@ -1,6 +1,6 @@
 # ALMIVISIBILITY — ROW 60 · CONSEQUENCE REGISTER · RULED 14 SEPTEMBER 2026 · SEVEN CLASSES SPLIT
 
-> 🔴 **GENERATED — DO NOT EDIT BY HAND.** `node bin/row60-ruling-sheet.mjs --confirm` writes it from the evidence store at 2026-09-14T05:08:37.966Z.
+> 🔴 **GENERATED — DO NOT EDIT BY HAND.** `node bin/row60-ruling-sheet.mjs --confirm` writes it from the evidence store at 2026-09-15T23:13:29.300Z.
 > Every count is derived by applying each state-change record to its issue on issue_id, with each issue counted under
 > the class its own stored fields place it in (`config/class-splits.mjs`). Every description, level and attribution is
 > copied from `config/consequence-register.mjs`, the scale from `config/consequence-scale.mjs`. The sheet sets no level.
@@ -23,6 +23,7 @@
 | `runs/cost/ledger.jsonl` | 22 | 0 | 0 | 0 |
 | `runs/crawl/first-real-crawl-2026-09-12.jsonl` | 999 | 0 | 0 | 0 |
 | `runs/evidence/evidence.jsonl` | 50 | 0 | 0 | 0 |
+| `runs/evidence/external-observations-2026-09-15.jsonl` | 9 | 0 | 0 | 0 |
 | `runs/evidence/robots.jsonl` | 5 | 0 | 0 | 0 |
 | `runs/evidence/sitemaps.jsonl` | 5 | 0 | 0 | 0 |
 | `runs/render/rendered-2026-09-13.jsonl` | 394 | 0 | 0 | 0 |
@@ -30,7 +31,7 @@
 | `runs/replay/replay-audit-dns-2026-09-13.jsonl` | 268 | 107 | 0 | 0 |
 | `runs/replay/replay-crawl-2026-09-13-journey-key.jsonl` | 788 | 0 | 0 | 0 |
 | `runs/replay/replay-crawl-2026-09-13.jsonl` | 788 | 0 | 0 | 0 |
-| **20 files** | **7725** | **3241** | **145** | **3** |
+| **21 files** | **7734** | **3241** | **145** | **3** |
 
 ## Part A — the owner's scale, strongest first
 

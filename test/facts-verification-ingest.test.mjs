@@ -61,6 +61,13 @@ const F = (id, over = {}) => ({
  * other page's numbers into our records would make the detector fire and would
  * prove nothing about the detector — it would prove I can type. The gap is
  * pinned as a gap.
+ *
+ * 🔴 UPDATED 15 September 2026 (row 16, the owner-authorised evidence run), AND THE TEST BELOW
+ * STAYS EXACTLY AS IT IS. The external shape is now detected — by `detectExternalConflicts`, which
+ * compares a held record against an external OBSERVATION that declares the claim it speaks to
+ * (test/external-conflict.test.mjs, firing on a real capture). `detectConflicts` itself is
+ * UNCHANGED and still narrow, so the assertion below still reads 0, and it is still the thing that
+ * would tell us if it ever quietly widened. The defect note moves; the pin does not.
  */
 test("🔴 DEFECT: a registry-vs-external conflict is INVISIBLE to detectConflicts", () => {
   // Exactly the shape of all six real ones: one record, marked UNKNOWN/CONFLICT

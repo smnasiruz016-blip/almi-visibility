@@ -75,6 +75,93 @@ export function detectConflicts(records) {
 const sourceTier = sourceTierOfFact;
 
 /* ------------------------------------------------------------------ *
+ * 2A(ii) — 🔴 D-FACT-1. THE CONFLICT SHAPE `detectConflicts` CANNOT SEE.
+ * ------------------------------------------------------------------ */
+
+/**
+ * `detectConflicts` above compares records WE HOLD against each other. Every real
+ * conflict found so far is the other shape: ONE held record against a value read on
+ * a second official page we do not hold as a record. Each group therefore has one
+ * member, the detector returns zero, and that reads exactly like "no conflicts".
+ *
+ * 🔴 THE FIX IS NOT TO TRANSCRIBE THE OTHER PAGE INTO A RECORD. That would make the
+ * old detector fire and would prove only that somebody can type; and it would invent
+ * a fact nobody verified. The external value stays an OBSERVATION — evidence, not a
+ * fact — and this compares the two.
+ *
+ * An observation must DECLARE the claim it speaks to (`value.kind`, `value.claim`,
+ * `value.scope`, `value.observedValue`). Nothing is inferred from its text, and an
+ * observation that declares no claim is REPORTED as ignored rather than dropped: a
+ * detector that silently skips what it cannot read is a detector that cannot go red.
+ *
+ * The rule of 2A holds unchanged: a conflict is NEVER auto-resolved, BOTH values are
+ * retained, the fact's state is UNKNOWN, and a person must rule.
+ */
+export const EXTERNAL_CLAIM_OBSERVATION = "external_claim_observation";
+
+export function detectExternalConflicts({ records = [], observations = [] } = {}) {
+  const byClaim = new Map();
+  for (const f of records) {
+    if (f?.life?.status === "retired") continue;
+    const k = claimKey(f);
+    if (!byClaim.has(k)) byClaim.set(k, []);
+    byClaim.get(k).push(f);
+  }
+
+  const conflicts = [];
+  const ignored = [];
+  const agreed = [];
+  for (const o of observations) {
+    const v = o?.value;
+    if (!v || v.kind !== EXTERNAL_CLAIM_OBSERVATION) continue; // not an observation of a claim — not this detector's population
+    const claim = v.claim ?? {};
+    /* 🔴 `undefined` IS AN ABSENCE, `null` IS A DECLARED VALUE, AND THEY ARE NOT THE SAME.
+     * An observation with no observedValue has nothing to compare, and comparing it anyway would
+     * manufacture a conflict out of an absence (LAW-ABSENT-1). A page that positively states there
+     * is none declares `null`, and that DOES compare. */
+    if (!claim.subject || !claim.predicate || v.observedValue === undefined) {
+      ignored.push({ observation_id: o.observation_id ?? null, why: "declares no claim subject/predicate or no observedValue — there is nothing to compare, and it is reported rather than dropped" });
+      continue;
+    }
+    const k = `${claim.subject}|${claim.predicate}|${claim.qualifier ?? ""}|${v.scope ?? ""}`;
+    const group = byClaim.get(k) ?? [];
+    if (group.length === 0) {
+      ignored.push({ observation_id: o.observation_id ?? null, claimKey: k, why: "no active record holds this claim — an observation of something we do not hold is not a conflict" });
+      continue;
+    }
+    for (const r of group) {
+      if (JSON.stringify(r.value?.value ?? null) === JSON.stringify(v.observedValue ?? null)) {
+        agreed.push({ observation_id: o.observation_id ?? null, id: r.id, claimKey: k, value: r.value?.value ?? null });
+        continue;
+      }
+      conflicts.push({
+        claimKey: k,
+        /* 🔴 BOTH VALUES ARE RETAINED — the held one and the observed one. Dropping
+         * either destroys the evidence that there was ever a disagreement. */
+        records: [{ id: r.id, value: r.value?.value ?? null, tier: sourceTier(r) }],
+        external: {
+          observation_id: o.observation_id ?? null,
+          value: v.observedValue ?? null,
+          // The page is DECLARED in the value: an observation's target names the claim it speaks to, so that two
+          // claims read from one page at one instant are two observations rather than one and a re-sighting.
+          sourceUrl: v.sourceUrl ?? o.target?.ref ?? null,
+          observedOn: o.observed_at ?? null,
+          inOurWords: v.inOurWords ?? null,
+        },
+        state: "CONFLICTED",
+        resolvedState: "UNKNOWN",
+        /* 🔴 NEVER AUTO-RESOLVED, and no authority is suggested here at all: the two
+         * sides are a record and a page, not two records whose tiers can be ranked. */
+        suggestedAuthority: null,
+        needsExplicitReview: true,
+        why: "a held record and an external observation of the same claim disagree — both values are retained, the fact is UNKNOWN, and only a person may rule",
+      });
+    }
+  }
+  return { conflicts, ignored, agreed };
+}
+
+/* ------------------------------------------------------------------ *
  * 2B — FRESHNESS.
  * ------------------------------------------------------------------ */
 

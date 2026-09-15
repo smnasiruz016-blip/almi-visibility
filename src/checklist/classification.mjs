@@ -218,6 +218,18 @@ export const MOVES_AMENDMENT_2 = Object.freeze({
     }),
     /* 🔴 WORK SINCE AMENDMENT 4, per row — each move declared, never inferred from the ruling that opened the row. */
     ...(({
+      /* Row 3, 15 September 2026: its OWNED half run against its boundary on the three owned pulls — and passed. The public half stays deferred. */
+      3: [
+        Object.freeze({
+          from: "NOT-STARTED",
+          to: "VERIFIED-PASS",
+          kind: "work",
+          route: "TEST_RUN",
+          test: "node bin/search-language.mjs --check · node --test test/search-language.test.mjs · runs/discovery/search-language-2026-09-15.json · runs/audit/row3-red-limbs-2026-09-15.txt",
+          date: "2026-09-15",
+          reason: "329 pieces of real wording discovered from the owned pulls and stored with a pointer to every row (observation id, ingest date, row), kinds evidenced or UNCLASSIFIED, no hand-written lexicon read; the held-out sample re-read from the raw store resolves 61 of 61; the keyword→URL census finds no path; each FAILURE limb RED alone in the real files and restored. The owned half passes; the public half stays deferred",
+        }),
+      ],
       /* Row 5, 14 September 2026: its test run against its boundary on the real query pull — and its FAILURE clause met on the held-out check. */
       5: [
         Object.freeze({
@@ -711,8 +723,10 @@ const A4_HALF_CONTRACT = "🔴 **The owned half has its four-part contract** —
 
 const EXPLICIT = {
   3: {
-    state: "NOT-STARTED",
-    why: `${A4_STATIC} **Class D → S (split).** In scope: the **owned** half — owned search data. Deferred, and named: the **public** half — legitimate public search evidence, which needs an external fetch no one has authorised. ${A4_HALF_CONTRACT}`,
+    state: "VERIFIED-PASS",
+    changeKind: "work",
+    test: "node bin/search-language.mjs --check · node --test test/search-language.test.mjs · runs/discovery/search-language-2026-09-15.json · runs/audit/row3-census-2026-09-15.txt · runs/audit/row3-red-limbs-2026-09-15.txt",
+    why: "🔴 **THE OWNED HALF, RUN AGAINST ITS BOUNDARY ON 15 SEPTEMBER 2026 — AND PASSED.** **INPUT** the three owned Search Console pulls, each with its ingest date and the store's own row count: query `45ce21253a3fc58c` (2026-09-12T23:25:03.868Z, 337 rows), query×page `c97334fdd102df8e` (23:25:04.172Z, 574), country×query `9bf50cfb134a0d7d` (23:25:04.608Z, 388); the 8 search-operator strings are an engine's instruction, kept out of people's wording and counted. **EXPECTED met:** 329 pieces of real wording stored (runs/discovery/search-language-2026-09-15.json), each with a pointer to every owned row it came from — observation id, ingest date, row — and every kind DISCOVERED FROM THE EVIDENCE, never read from the hand-written row-5 lexicon (a test fails the build if the discovery module names it, by import or by path string): LONG_TAIL 207 · SYNONYM 26 · ABBREVIATION 17 · LOCAL 53 · **UNCLASSIFIED 106**. Discovered: 7 synonyms (e.g. equivalent↔score, 5 query pairs landing on one page), 3 abbreviations (cv = curriculum vitae, nz = new zealand, pte = pearson test of english), 10 local words, 8 variant forms; no keyword becomes a URL. **FAILURE not met — each limb RED-proved alone in the real files and restored by sha256** (runs/audit/row3-red-limbs-2026-09-15.txt): wording normalised (one accent stripped from a stored original — lower-casing could not land, as no owned query holds an uppercase letter), untraceable (a stored pointer to an observation the store does not hold), a keyword turned into a route (the keyword→URL census over src/ and bin/), and the discovery module naming the lexicon by a bare path string. **EVIDENCE:** the stored records; the held-out sample (61 of 329, by hash, fixed before any rule) re-read from the raw store text resolves 61 of 61 byte for byte and completely — a TRACEABILITY check, not row 5's generalisation test; and the census proving no code path takes a stored keyword to a URL. 🔴 **Limits, on the row:** a SYNONYM is interchangeable use in the same query frame for the same page, not proof of the same meaning — daily↔life passes the rule; the abbreviation rule gained one constraint after its first run (a short form cannot stand for an expansion whose own words sit in the same query), which removed a false is = ielts score; LOCAL rests on the searcher's country, and only 32 of 329 queries have more than one country row; the census reads code, so it cannot see a page written by hand, wording copied out of the records, a consumer outside src/ and bin/, a computed import, or a path held only as text and run by another module. **Measured against the hand-written lexicon afterwards, never tuned:** the evidence yields 6 pairs the lexicon never named; the lexicon claims 103 of its 115 pairs — 11 of its 17 groups — that the owned evidence does not support. **Class S: the PUBLIC half stays DEFERRED** — legitimate public search evidence needs an external fetch no one has authorised",
   },
   4: { state: "NOT-STARTED", why: `${A4_STATIC} **Class D → P.**` },
   5: {

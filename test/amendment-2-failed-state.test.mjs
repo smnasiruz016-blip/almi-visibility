@@ -208,6 +208,8 @@ test("🔴 moves since Amendment 2: SEVEN by ruling (3–7 → NOT-STARTED by Am
     "14:BUILT-NOT-PROVED→TESTABLE-NOW", "45:FAILED→TESTABLE-NOW",
   ]);
   assert.deepEqual(all.filter((s) => s.kind === "work").map((s) => `${s.id}:${s.from}→${s.to}`), [
+    // 🔴 Row 3, 15 September 2026: its owned half run against its boundary and PASSED — work, after its ruling move.
+    "3:NOT-STARTED→VERIFIED-PASS",
     // 🔴 Row 5, 14 September 2026: run against its boundary and FAILED on its held-out check — work, after its ruling move.
     "5:NOT-STARTED→FAILED",
     // 🔴 Row 6, 14 September 2026: built and run on real evidence; no axis could be accepted or rejected — BUILT-NOT-PROVED.
@@ -261,10 +263,10 @@ test("before Amendment 2 the ledger was 3 / 18 / 0 / 3 / 0 / 6 / 28", () => {
 /* 🔴 FIFTEEN since Amendment 3's work half (14 Sep 2026): row 59 — admitted NOT-STARTED, so never VERIFIED-PASS before
  * Amendment 2 either — ticked on its census and every evidence limb RED alone. */
 /* 🔴 SIXTEEN since row 60 ticked (14 Sep 2026). */
-test("🔴 since Amendment 2, SIXTEEN rows hold VERIFIED-PASS (11, 12, 13, 14, 26, 38, 42, 45, 47, 49, 51, 53, 55, 56, 59, 60) — 50 reached it and was REOPENED; 48 LOST it and EARNED IT BACK", () => {
+test("🔴 since Amendment 2, SEVENTEEN rows hold VERIFIED-PASS (3, 11, 12, 13, 14, 26, 38, 42, 45, 47, 49, 51, 53, 55, 56, 59, 60) — 50 reached it and was REOPENED; 48 LOST it and EARNED IT BACK", () => {
   const rows = classify();
   const newPasses = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS" && BEFORE_AMENDMENT_2[r.id] !== "VERIFIED-PASS");
-  assert.deepEqual(newPasses.map((r) => r.id), [11, 12, 13, 14, 26, 38, 42, 45, 47, 49, 51, 53, 55, 56, 59, 60]);
+  assert.deepEqual(newPasses.map((r) => r.id), [3, 11, 12, 13, 14, 26, 38, 42, 45, 47, 49, 51, 53, 55, 56, 59, 60]);
   const lost = Object.values(rows).filter((r) => BEFORE_AMENDMENT_2[r.id] === "VERIFIED-PASS" && r.state !== "VERIFIED-PASS");
   assert.deepEqual(lost.map((r) => r.id), []);
   // The count hides a round trip — the chain does not.

@@ -41,7 +41,7 @@ boundary below is still read out of the frozen source, which still verifies byte
 
 🔴 **The owner's dated addendum (13 September 2026) closed the three gaps this amendment first left:** row 7's
 **WORTHINESS** is assigned to the deferred half, and item 3 and item 7 carry a four-part contract for their owned half,
-read from the amendment. **A contract is not progress:** both rows stay NOT-STARTED, and each keeps its §6 text below
+read from the amendment. **A contract is not progress:** each row stays NOT-STARTED until its owned half is RUN, and each keeps its §6 text below
 as the final boundary for when the deferred half opens.
 
 ---
@@ -62,10 +62,10 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 | state | before Amendment 2 | after the RULING only | after the WORK |
 |---|---|---|---|
-| **NOT-STARTED** | 3 | 8 | **5** |
+| **NOT-STARTED** | 3 | 8 | **4** |
 | **BUILT-NOT-PROVED** | 18 | 17 | **7** |
 | **TESTABLE-NOW** | 0 | 2 | **1** |
-| **VERIFIED-PASS** | 3 | 3 | **19** |
+| **VERIFIED-PASS** | 3 | 3 | **20** |
 | **FAILED** | 0 | -1 | **2** |
 | **BLOCKED-UNKNOWN** | 6 | 6 | **4** |
 | **DEFERRED** | 28 | 23 | **23** |
@@ -85,9 +85,9 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 - **item 51** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — priority, confidence and cost each computed from stored evidence and each able to say UNKNOWN — two recommendations ranked by measured impressions, one UNKNOWN; confidence derived on all three; cost UNKNOWN on all three with lower bounds — and all six visible on the real report
 - **item 55** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — the parse is caught and rethrown with nothing from the file; the leak test re-run passed on every credential path, RED when the key or its length is logged; recovery proved by restoring torn stores from git, byte-identical by blob hash
 
-**Rows that have been looked at (VERIFIED-PASS or FAILED): 21 of 58.**
+**Rows that have been looked at (VERIFIED-PASS or FAILED): 22 of 58.**
 
-**Rows that reached VERIFIED-PASS in this PR: 16.**
+**Rows that reached VERIFIED-PASS in this PR: 17.**
 
 #### moved ONLY because a RULING changed
 
@@ -105,6 +105,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 | # | from | to | test | date | what happened |
 |---|---|---|---|---|---|
+| 3 | NOT-STARTED | VERIFIED-PASS | `node bin/search-language.mjs --check · node --test test/search-language.test.mjs · runs/discovery/search-language-2026-09-15.json · runs/audit/row3-red-limbs-2026-09-15.txt` | 2026-09-15 | 329 pieces of real wording discovered from the owned pulls and stored with a pointer to every row (observation id, ingest date, row), kinds evidenced or UNCLASSIFIED, no hand-written lexicon read; the held-out sample re-read from the raw store resolves 61 of 61; the keyword→URL census finds no path; each FAILURE limb RED alone in the real files and restored. The owned half passes; the public half stays deferred |
 | 5 | NOT-STARTED | FAILED | `node bin/intent-clusters.mjs --check · node --test test/intent-clustering.test.mjs · runs/audit/row5-census-2026-09-14.txt · runs/audit/row5-red-limbs-2026-09-14.txt` | 2026-09-14 | 329 human queries (8 operator strings classified and kept apart); in-sample 268 → 73 clusters, 0 merged and 0 split against a reference written before the clusterer ran; the held-out check left 12 of 61 identical intents split — FAILURE met on the evidence the contract names; six limbs RED alone in the real files and restored. FAILED on the owner's answer |
 | 6 | NOT-STARTED | BUILT-NOT-PROVED | `node bin/axis-discovery.mjs --check · node --test test/axis-discovery.test.mjs · runs/audit/row6-census-2026-09-14.txt · runs/audit/row6-red-limbs-2026-09-14.txt` | 2026-09-14 | the six named axes (read from the contract) and 7 discovered slot types each tested with seven legs on real evidence: 7 MONITOR, 7 UNKNOWN, 0 BUILD, 0 REJECT — answer-level distinguishing power is UNKNOWN on every axis because the answer at each value is not owned; locality tested on the 10 countries with five or more rows, the other 38 UNKNOWN by LAW-ABSENT-1; every limb RED alone and restored; BUILD and REJECT shown reachable when measured. BUILT-NOT-PROVED on the owner's answer |
 | 9 | BUILT-NOT-PROVED | BLOCKED-UNKNOWN | `node bin/gsc-ingest.mjs --property=sc-domain:almiworld.com · node bin/gsc-dimensions.mjs · test/search-dimensions.test.mjs` | 2026-09-12 | six of seven dimensions ingested from the real property, each pull exhausted and COMPLETE with its bounds; downstream outcomes is supplied by no tool this engine holds, which the NOTE makes ⚠ rather than a failure |
@@ -150,10 +151,10 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 | state | before (4-state) | after (7-state) |
 |---|---|---|
-| **NOT-STARTED** | 33 | **5** |
+| **NOT-STARTED** | 33 | **4** |
 | **BUILT-NOT-PROVED** | 24 | **7** |
 | **TESTABLE-NOW** | 0 | **1** |
-| **VERIFIED-PASS** | 0 | **19** |
+| **VERIFIED-PASS** | 0 | **20** |
 | **FAILED** | 0 | **2** |
 | **BLOCKED-UNKNOWN** | 1 | **4** |
 | **DEFERRED** | 0 | **23** |
@@ -161,12 +162,13 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 ### 🔴 THE MOST IMPORTANT LINE IN THIS DOCUMENT
 
-> **22 row(s) changed because work happened.** Listed in (i) below.
+> **23 row(s) changed because work happened.** Listed in (i) below.
 
 #### (i) changed because WORK HAPPENED
 
 | # | feature | from | to |
 |---|---|---|---|
+| 3 | Keyword & Search-Language Discovery | NOT-STARTED | **VERIFIED-PASS** |
 | 5 | Intent & Question Clustering | NOT-STARTED | **FAILED** |
 | 6 | Axis Discovery | NOT-STARTED | **BUILT-NOT-PROVED** |
 | 8 | HEAVY / THIN / EMPTY Discipline | NOT-STARTED | **VERIFIED-PASS** |
@@ -197,7 +199,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | NOT-STARTED → DEFERRED | 23 | 2, 18, 19, 20, 21, 22, 23, 24, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39, 40, 41, 43, 44 |
 | BUILT-NOT-PROVED → BLOCKED-UNKNOWN | 2 | 1, 54 |
 
-**Did not move against the 11 September 2026 baseline: 11** — 3, 4, 7, 10, 16, 17, 36, 46, 52, 57, 58
+**Did not move against the 11 September 2026 baseline: 10** — 4, 7, 10, 16, 17, 36, 46, 52, 57, 58
 
 **Not on that baseline — admitted later by owner ruling: 3** — 59, 60, 61. They are not "unmoved"; they did not exist. Any work on them since is a declared move above.
 
@@ -276,7 +278,7 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 
 ### 3 · Keyword & Search-Language Discovery
 
-**NOT-STARTED** · class `S` (frozen `D`, moved by Amendment 4) · ruled in `§6+A4`
+**VERIFIED-PASS** · class `S` (frozen `D`, moved by Amendment 4) · ruled in `§6+A4` · was NOT-STARTED (work)
 
 | part | the owner's words |
 |---|---|
@@ -290,7 +292,9 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 | **⏭ final FAILURE (§6, when the deferred half opens)** | a keyword is promoted to a URL without an intent decision. |
 | **⏭ final EVIDENCE (§6, when the deferred half opens)** | the cluster records, and the absence of any keyword→URL path. |
 
-**Verdict —** 🔴 **NOT-STARTED — IN SCOPE SINCE AMENDMENT 4** (owner ruling under §12, 13 September 2026). **Nothing has been built for it and nothing was run.** It left DEFERRED ONLY because a ruling changed its class — a class change is not progress. Its input is owned evidence already captured in `runs/evidence/evidence.jsonl` (Search Console ingest of 2026-09-12T23:25Z: query 337 · query-page 574 · country 126 · country-query 388 rows; page rows 1,525 from the 22:06Z run of the same day). **Class D → S (split).** In scope: the **owned** half — owned search data. Deferred, and named: the **public** half — legitimate public search evidence, which needs an external fetch no one has authorised. 🔴 **The owned half has its four-part contract** — stated by the owner's dated addendum to Amendment 4 (13 September 2026), and read from it. **A contract is not progress:** nothing is built and nothing was run, so the row stays NOT-STARTED. The §6 boundary stays on the row as the final boundary for when the deferred half opens. The amendment's test of its frozen INPUT clause, *"**owned search data** plus legitimate public search evidence"*: 🟡 **half** — the owned half is present; the public half needs an external fetch.
+**Verdict —** 🔴 **THE OWNED HALF, RUN AGAINST ITS BOUNDARY ON 15 SEPTEMBER 2026 — AND PASSED.** **INPUT** the three owned Search Console pulls, each with its ingest date and the store's own row count: query `45ce21253a3fc58c` (2026-09-12T23:25:03.868Z, 337 rows), query×page `c97334fdd102df8e` (23:25:04.172Z, 574), country×query `9bf50cfb134a0d7d` (23:25:04.608Z, 388); the 8 search-operator strings are an engine's instruction, kept out of people's wording and counted. **EXPECTED met:** 329 pieces of real wording stored (runs/discovery/search-language-2026-09-15.json), each with a pointer to every owned row it came from — observation id, ingest date, row — and every kind DISCOVERED FROM THE EVIDENCE, never read from the hand-written row-5 lexicon (a test fails the build if the discovery module names it, by import or by path string): LONG_TAIL 207 · SYNONYM 26 · ABBREVIATION 17 · LOCAL 53 · **UNCLASSIFIED 106**. Discovered: 7 synonyms (e.g. equivalent↔score, 5 query pairs landing on one page), 3 abbreviations (cv = curriculum vitae, nz = new zealand, pte = pearson test of english), 10 local words, 8 variant forms; no keyword becomes a URL. **FAILURE not met — each limb RED-proved alone in the real files and restored by sha256** (runs/audit/row3-red-limbs-2026-09-15.txt): wording normalised (one accent stripped from a stored original — lower-casing could not land, as no owned query holds an uppercase letter), untraceable (a stored pointer to an observation the store does not hold), a keyword turned into a route (the keyword→URL census over src/ and bin/), and the discovery module naming the lexicon by a bare path string. **EVIDENCE:** the stored records; the held-out sample (61 of 329, by hash, fixed before any rule) re-read from the raw store text resolves 61 of 61 byte for byte and completely — a TRACEABILITY check, not row 5's generalisation test; and the census proving no code path takes a stored keyword to a URL. 🔴 **Limits, on the row:** a SYNONYM is interchangeable use in the same query frame for the same page, not proof of the same meaning — daily↔life passes the rule; the abbreviation rule gained one constraint after its first run (a short form cannot stand for an expansion whose own words sit in the same query), which removed a false is = ielts score; LOCAL rests on the searcher's country, and only 32 of 329 queries have more than one country row; the census reads code, so it cannot see a page written by hand, wording copied out of the records, a consumer outside src/ and bin/, a computed import, or a path held only as text and run by another module. **Measured against the hand-written lexicon afterwards, never tuned:** the evidence yields 6 pairs the lexicon never named; the lexicon claims 103 of its 115 pairs — 11 of its 17 groups — that the owned evidence does not support. **Class S: the PUBLIC half stays DEFERRED** — legitimate public search evidence needs an external fetch no one has authorised The amendment's test of its frozen INPUT clause, *"**owned search data** plus legitimate public search evidence"*: 🟡 **half** — the owned half is present; the public half needs an external fetch.
+
+**The one test that would settle it —** node bin/search-language.mjs --check · node --test test/search-language.test.mjs · runs/discovery/search-language-2026-09-15.json · runs/audit/row3-census-2026-09-15.txt · runs/audit/row3-red-limbs-2026-09-15.txt
 
 ### 4 · Localized Human Thinking
 

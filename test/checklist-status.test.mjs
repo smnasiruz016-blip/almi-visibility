@@ -174,9 +174,9 @@ test("the headline counts match the rows they summarise", () => {
  */
 test("🔴 the headline separates the three earned ticks from the 33 renamed rows", () => {
   const text = readFileSync(STATUS, "utf8");
-  assert.match(text, /NINETEEN TICKS — ITEMS 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56, 59 AND 60/);
+  assert.match(text, /TWENTY TICKS — ITEMS 3, 8, 11, 12, 13, 14, 15, 26, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56, 59 AND 60/);
   assert.match(text, /DEFERRED IS NOT A TICK AND NEVER COUNTS AS ONE/);
-  assert.match(text, /only nineteen rows in the whole ledger that \*\*hold a pass earned by work\*\*/);
+  assert.match(text, /only twenty rows in the whole ledger that \*\*hold a pass earned by work\*\*/);
   // 🔴 Row 60 is built and waits on the owner's levels — said where the counts are read, and not as a shortfall.
   assert.match(text, /Row 60 is BUILT-NOT-PROVED by design/);
   // 🔴 56's pass is the OWNER's eye, and the headline says so where the counts are read.

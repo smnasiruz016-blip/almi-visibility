@@ -1,0 +1,30 @@
+ROW 61 §4(b) — THE PROVENANCE GUARD WHOSE ANCHOR MOVED IN THIS PR, RE-PROVED AGAINST A REAL BREAK
+date: 2026-09-15T05:49:33.247Z · branch v0.1/row61-closeout-residue-provenance · base 6d536d2fc1ab1baf69dbf253179c18f71a7cba82
+beside: runs/audit/row61-second-product-red-2026-09-15.txt (the four limbs)
+
+GREEN before any sabotage (test/ledger-provenance.test.mjs test/pass-boundaries.test.mjs test/amendment-2-failed-state.test.mjs): exit 0 · tests 63 · pass 63 · fail 0
+   (the re-anchored RED test passing here means its anchor matched exactly once — once() refuses otherwise)
+
+🔴 B1 · THE MOVED ANCHOR'S OWN GUARD BROKEN — provenance no longer refuses a class clause naming the wrong amendment
+   test/ledger-provenance.test.mjs's RED test was re-anchored in this PR from the state word to the class clause. Its guard is src/checklist/provenance.mjs's amendment-mismatch rule; with that rule disabled, the re-anchored test must FAIL on its assertion — not on its anchor.
+   file src/checklist/provenance.mjs · anchor matched 1 · sha256 changed: true
+   run: exit 1 · fail 1 — failing: 🔴 RED: a class clause naming one amendment and a ruled-in clause naming another is REFUSED
+   named test RED: YES · reason read: error: |- ⏎ + actual - expected ⏎ -   'item 61: its class clause names Amendment 3 but it is ruled in `A5`' ⏎ expected: ⏎ 0: 'item 61: its class clause names Amendment 3 but it is ruled in `A5`' ⏎ actual:
+   RED for the RIGHT reason (not a missing anchor / load error): YES
+   restored byte for byte: YES (d72e7cd1ef49dbbba373870409019b5cd48f93d6262c9d6bbfa0e75542f094e6)
+
+🔴 B2 · THE OWNER'S NAMED BREAK — row 61 moved to VERIFIED-PASS with its recorded move deleted
+   Row 61 carries no changeKind by design (no 11 September baseline); its movement is recorded as MOVES_AMENDMENT_2[61]. Deleting the tick's move leaves a row that moved with nothing recorded. That is policed by assertTransitions, not by ledger-provenance — named here so the mismatch is on the record.
+   file src/checklist/classification.mjs · anchor matched 1 · sha256 changed: true
+   run: exit 1 · fail 9 — failing: CONTROL: the whole real ledger is lawful, transitions included | CONTROL: the two lawful routes out of FAILED are accepted | 🔴 RED: any state change with no declared move is refused — a move is never inferred | 🔴 moves since Amendment 2: SEVEN by ruling (3–7 → NOT-STARTED by Amendment 4; 14 and 45 → TESTABLE- | 🔴 rows 59 and 60 left NOT-STARTED only by declared WORK moves — both VERIFIED-PASS, each with its l | 🔴 row 61 — CREATED BUILT-NOT-PROVED by a WORK move, then VERIFIED-PASS by its tests on a SECOND DEC | 🔴 CONTRACT GUARD: rows 3, 4, 7 and 57 are contract-complete and ACCEPTED by the contract law — an u | 🔴 the five arrive NOT-STARTED by a RULING move and nothing else; row 2 says WHY it stayed; row 7 pu | 🔴 VERIFIED-PASS is exactly 22 — items 3, 8, 11, 12, 13, 14, 15, 26, 36, 38, 42, 45, 47, 48, 49, 51,
+   named test RED: YES · reason read: error: "Cannot read properties of undefined (reading 'from')"
+   RED for the RIGHT reason (not a missing anchor / load error): YES
+   ⚠️ READ, NOT ASSUMED: this named test crashed on the missing move (a TypeError), it did not refuse it. The guard that refuses is below.
+   guard "CONTROL: the whole real ledger is lawful, transitions included": RED YES · reason read: error: |- ⏎ + actual - expected ⏎ +   'item 61: is VERIFIED-PASS but its recorded state is BUILT-NOT-PROVED and no move was declared. A state never changes silently — declare the move, its kind, and what caused it.' ⏎ expected: ⏎ actual: ⏎ 0: 'item 61: is VERIFIED-PASS but its recorded state is BUILT-NOT-PROVED and no move was declared. A state never changes silently — declare the move, its kind, and what caused it.' · names item 61: YES
+   restored byte for byte: YES (b3211b07061096e266340590e7b62f5a941dd218fa39934943d069cd66837c4f)
+
+GREEN after restoration: exit 0 · tests 63 · pass 63 · fail 0
+final sha256 src/checklist/provenance.mjs: unchanged
+final sha256 src/checklist/classification.mjs: unchanged
+
+RESULT: each limb RED alone on its named test for the right reason, every file restored, GREEN after

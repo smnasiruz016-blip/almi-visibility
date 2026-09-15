@@ -1,6 +1,6 @@
 # ALMIVISIBILITY — THE PASS BOUNDARIES (58 FROZEN, PLUS ROWS ADMITTED BY RULING) AND THE SEVEN-STATE LEDGER
 
-> 🔴 **GENERATED — DO NOT EDIT BY HAND.** `node bin/checklist-boundaries.mjs` rebuilds it.
+> 🔴 **GENERATED — DO NOT EDIT BY HAND.** `node bin/checklist-boundaries.mjs --confirm` rebuilds it; without `--confirm` the run writes nothing and reports whether this file is stale.
 > Every boundary below is read out of `PASS_BOUNDARIES_SOURCE.md`, whose body is verified
 > against sha256 `16c580160391eabb14a4d6754edfe18fe1def936384cf831d300640ef73d9e5c`. Nothing here is retyped, so `verbatim` is a
 > property of the mechanism rather than a promise about anyone's typing.

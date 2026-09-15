@@ -15,6 +15,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 import { REPO_ROOT } from "../src/write-law.mjs";
 import { gateOf, confinementOf, destinationFlagIn, REQUIRED_FIELDS } from "../tools/permitted-writers.mjs";
@@ -141,11 +142,139 @@ test("CONTROL: facts-lifecycle --confirm --out=<inside> DOES write — the gate 
 });
 
 /* ================================================================== *
+ * export — THE SAME SHAPE, A WHOLE DIRECTORY OF EVIDENCE
+ * ================================================================== */
+
+test("🔴 export — with NO flags the three exports in runs/export stay byte-identical and untouched, and the run still prints every size, state and bound", () => {
+  const check = guardDir(EXPORT_DIR);
+  let r;
+  try {
+    r = run(["bin/export.mjs"]);
+  } finally {
+    const w = check();
+    assert.deepEqual(w, { added: [], changed: [], touched: [] }, `export with no flags wrote into runs/export: ${JSON.stringify(w)} (restored)`);
+  }
+  assert.equal(r.status, 0, r.stderr);
+  for (const name of ["evidence.md", "evidence.json", "estate.csv"]) {
+    assert.match(r.stdout, new RegExp(`\\[dry-run\\] would have written: .*${name.replace(".", "\\.")}  \\(\\d+ bytes\\) — nothing written, --confirm to write`));
+  }
+  assert.match(r.stdout, /STATES CARRIED THROUGH/);
+  assert.match(r.stdout, /BOUNDS STATED IN EVERY FILE/);
+});
+
+test("🔴 RED, REAL: export --confirm --out=<outside the repository> REFUSES, exits non-zero, and creates NOTHING", () => {
+  const dir = mkdtempSync(join(tmpdir(), "almivis-gap1-export-"));
+  const target = join(dir, "nested");
+  try {
+    const r = run(["bin/export.mjs", "--confirm", `--out=${target}`]);
+    assert.notEqual(r.status, 0, "export exited 0 while pointed outside the repository");
+    assert.match(r.stderr, /REFUSED — --out .* OUTSIDE this repository/);
+    assert.equal(existsSync(target), false, "a directory was created outside the repository");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("CONTROL: export --confirm --out=<inside> DOES write all three — the gate opens", () => {
+  const dir = scratch();
+  try {
+    const r = run(["bin/export.mjs", "--confirm", `--out=${dir}`]);
+    assert.equal(r.status, 0, r.stderr);
+    for (const name of ["evidence.md", "evidence.json", "estate.csv"]) assert.equal(existsSync(join(dir, name)), true, `${name} was not written with --confirm`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+/* ================================================================== *
+ * checklist-boundaries — A GENERATED DOCUMENT, GATED ON PURPOSE
+ * ================================================================== */
+
+const BOUNDARIES = join(REPO_ROOT, "CHECKLIST_BOUNDARIES.md");
+
+test("🔴 checklist-boundaries — with NO flags CHECKLIST_BOUNDARIES.md is byte-identical and untouched, and the run says whether it is stale", () => {
+  const before = readFileSync(BOUNDARIES);
+  const mtimeMs = statSync(BOUNDARIES).mtimeMs;
+  let r;
+  try {
+    r = run(["bin/checklist-boundaries.mjs"]);
+  } finally {
+    const after = readFileSync(BOUNDARIES);
+    if (!after.equals(before)) writeFileSync(BOUNDARIES, before);
+    assert.ok(after.equals(before), "checklist-boundaries with no flags rewrote CHECKLIST_BOUNDARIES.md (restored)");
+    assert.equal(statSync(BOUNDARIES).mtimeMs, mtimeMs, "checklist-boundaries with no flags wrote CHECKLIST_BOUNDARIES.md — same bytes, but written");
+  }
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /\[dry-run\] no writes will happen/);
+  assert.match(r.stdout, /states: NOT-STARTED=\d+/);
+  assert.match(r.stdout, /\[dry-run\] .*CHECKLIST_BOUNDARIES\.md is UP TO DATE — nothing to write/, "the committed document is not what the generator builds — rebuild it with --confirm");
+});
+
+/* ================================================================== *
+ * crawl — ALREADY CONFINED, BUT A DRY RUN WROTE ITS RECORD
+ * ================================================================== */
+
+const NO_NETWORK = pathToFileURL(join(REPO_ROOT, "test", "support", "no-network.mjs")).href;
+const crawlRun = (dir, extra) => {
+  writeFileSync(join(dir, "seeds.txt"), "https://almioet.almiworld.com/\n");
+  return run(["--import", NO_NETWORK, "bin/crawl.mjs", `--seeds=${join(dir, "seeds.txt")}`, ...extra]);
+};
+
+test("🔴 crawl — a DRY run with NO flags writes no record and no corpus, issues no request, and every network call it asks for is refused", () => {
+  const dir = scratch();
+  const out = join(dir, "record", "crawl.jsonl");
+  const corpus = join(dir, "corpus");
+  try {
+    const r = crawlRun(dir, [`--out=${out}`, `--corpus=${corpus}`]);
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stderr, /\[no-network\] refused/, "the preload refused nothing — this run's network was not contained");
+    // The filesystem first: what the limb protects is that nothing was WRITTEN, not how the run words it.
+    assert.equal(existsSync(join(dir, "record")), false, "a dry crawl created its record directory without --confirm");
+    assert.equal(existsSync(out), false, "a dry crawl wrote its record without --confirm");
+    assert.equal(existsSync(corpus), false, "a dry crawl created a corpus");
+    assert.match(r.stdout, /\[dry-run\] no writes will happen/);
+    assert.match(r.stdout, /0 requests issued — dry run/);
+    assert.match(r.stdout, /\[dry-run\] the crawl record was NOT written/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("🔴 RED, REAL: crawl --confirm --out=<outside the repository> REFUSES, exits non-zero, and creates NOTHING", () => {
+  const dir = scratch();
+  const outside = mkdtempSync(join(tmpdir(), "almivis-gap1-crawl-"));
+  const target = join(outside, "nested", "crawl.jsonl");
+  try {
+    const r = crawlRun(dir, ["--confirm", `--out=${target}`, `--corpus=${join(dir, "corpus")}`]);
+    assert.notEqual(r.status, 0, "crawl exited 0 while pointed outside the repository");
+    assert.match(r.stderr, /REFUSED — --out .* OUTSIDE this repository/);
+    assert.equal(existsSync(join(outside, "nested")), false, "a directory was created outside the repository");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+    rmSync(outside, { recursive: true, force: true });
+  }
+});
+
+test("CONTROL: crawl --confirm on a DRY run DOES write its record — the gate opens, and still no request is issued", () => {
+  const dir = scratch();
+  const out = join(dir, "crawl.jsonl");
+  try {
+    const r = crawlRun(dir, ["--confirm", `--out=${out}`, `--corpus=${join(dir, "corpus")}`]);
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout, /0 requests issued — dry run/);
+    assert.equal(existsSync(out), true, "crawl --confirm did not write its record");
+    assert.equal(existsSync(join(dir, "corpus")), false, "a dry run wrote a corpus — bodies are for a live run only");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+/* ================================================================== *
  * THE DECLARED LOCAL WRITERS — checked against their sources
  * ================================================================== */
 
 test("🔴 THE DECLARED LOCAL WRITERS — each states writes · where · gatedBy · why, calls writePermission and confineToRepo before its first write, and every write site sits behind its gate", () => {
-  assert.deepEqual(PERMITTED_LOCAL_WRITERS.map((e) => e.file), ["bin/facts-lifecycle.mjs"]);
+  assert.deepEqual(PERMITTED_LOCAL_WRITERS.map((e) => e.file), ["bin/facts-lifecycle.mjs", "bin/export.mjs", "bin/checklist-boundaries.mjs", "bin/crawl.mjs"]);
   for (const e of PERMITTED_LOCAL_WRITERS) {
     for (const k of REQUIRED_FIELDS) assert.ok(typeof e[k] === "string" && e[k].length > 20, `${e.file}: ${k} is too thin to be read by a human`);
     assert.equal(e.whyKnown, true, `${e.file}: its reason is not stated`);

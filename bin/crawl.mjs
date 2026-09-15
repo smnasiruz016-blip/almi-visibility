@@ -27,7 +27,7 @@ import { parseSitemap } from "../src/crawl/seeds.mjs";
 import { selectSeeds, renderSelection, SELECTION_RULE } from "../src/crawl/seed-selection.mjs";
 import { measureIpv6Egress, addressFamilies, reachabilityState } from "../src/crawl/ipv6.mjs";
 import { ESTATE_HOSTNAME_LIST } from "../config/estate-hostnames.mjs";
-import { confineToRepo } from "../src/write-law.mjs";
+import { confineToRepo, writePermission, LOCAL } from "../src/write-law.mjs";
 import { createCostLedger, entryFromCrawlRun, formatLedgerLine } from "../src/cost/ledger.mjs";
 import { persistCrawlObservations } from "../src/crawl/persist.mjs";
 
@@ -47,6 +47,12 @@ const green = flag("i-have-the-owners-green");
 // destination outside this repository is refused before any network activity.
 const out = confineToRepo(arg("out", `${REPO}runs/crawl/crawl.jsonl`), { label: "--out" });
 const corpusDir = confineToRepo(arg("corpus", `${REPO}runs/crawl/corpus`), { label: "--corpus" });
+/* 🔴 GAP 1 (15 September 2026) — THE LOCAL RECORD. D-CRW-4's two flags gate the NETWORK and the bodies; until today
+ * every DRY run still appended a run record to --out. A dry run now records nothing unless --confirm. A LIVE run has
+ * already passed D-CRW-4's two flags and records what it fetched and spent: a billable run that kept no record would be
+ * the worse failure. */
+const permission = writePermission({ target: LOCAL, argv: process.argv, env: process.env });
+const mayRecord = live || permission.mayWrite;
 
 if (!seedsFile && !sitemapFile && !fromEvidence) {
   console.error(
@@ -78,6 +84,7 @@ if (live && !green) {
  * one TCP connection to a third party, and knowing it BEFORE the live pass is
  * the difference between recording a third state and inventing a zero.
  */
+console.log(live ? "[write:local] a LIVE run records what it fetches and spends — D-CRW-4's two flags were given" : permission.mayWrite ? `[write:local] ${permission.reason}` : `[dry-run] no writes will happen — ${permission.reason}`);
 const egress = await measureIpv6Egress();
 console.log(`IPv6 EGRESS     : ${egress.state} — ${egress.detail} (${egress.elapsedMs}ms)`);
 
@@ -199,14 +206,17 @@ if (pages.length) {
 console.log("\n🔴 A FETCHED URL IS NOT AN INDEXED URL. A CRAWLED INVENTORY IS NOT THE SITE.");
 console.log(`   coverageState=${run.coverageState} — this run saw what its seeds named, up to its bounds.`);
 
-if (!existsSync(dirname(out))) mkdirSync(dirname(out), { recursive: true });
-const store = createJsonlStore(out);
-// 🔴 appendIfNew, not appendAll: a measurement_key carries no clock, so the
-// same page read twice with the same bytes is ONE observation plus a re-sighting.
-// The run record below is not deduplicated — its run_id includes the start
-// time, so a second run is a genuinely new record of a second run.
-// Through the shared write path — the replay (bin/replay-crawl.mjs) uses the same one.
-persistCrawlObservations(store, result.observations);
+let store = null;
+if (mayRecord) {
+  if (!existsSync(dirname(out))) mkdirSync(dirname(out), { recursive: true });
+  store = createJsonlStore(out);
+  // 🔴 appendIfNew, not appendAll: a measurement_key carries no clock, so the
+  // same page read twice with the same bytes is ONE observation plus a re-sighting.
+  // The run record below is not deduplicated — its run_id includes the start
+  // time, so a second run is a genuinely new record of a second run.
+  // Through the shared write path — the replay (bin/replay-crawl.mjs) uses the same one.
+  persistCrawlObservations(store, result.observations);
+}
 
 /**
  * 🔴 RAW BODIES GO TO A CORPUS DIRECTORY, NOT INTO GIT.
@@ -220,16 +230,18 @@ persistCrawlObservations(store, result.observations);
  */
 let corpusFiles = 0;
 let corpusBytes = 0;
-if (live && result.bodies?.size) {
-  if (!existsSync(corpusDir)) mkdirSync(corpusDir, { recursive: true });
-  for (const [observationId, body] of result.bodies) {
-    const file = join(corpusDir, `${observationId}.html`);
-    writeFileSync(file, body, "utf8");
-    corpusFiles += 1;
-    corpusBytes += Buffer.byteLength(body, "utf8");
+if (mayRecord) {
+  if (live && result.bodies?.size) {
+    if (!existsSync(corpusDir)) mkdirSync(corpusDir, { recursive: true });
+    for (const [observationId, body] of result.bodies) {
+      const file = join(corpusDir, `${observationId}.html`);
+      writeFileSync(file, body, "utf8");
+      corpusFiles += 1;
+      corpusBytes += Buffer.byteLength(body, "utf8");
+    }
+    console.log(`\ncorpus: ${corpusFiles} bodies, ${(corpusBytes / 1024 / 1024).toFixed(2)} MiB → ${corpusDir}`);
+    console.log("  🔴 NOT committed. Verify any body against its content_sha256 in the run record.");
   }
-  console.log(`\ncorpus: ${corpusFiles} bodies, ${(corpusBytes / 1024 / 1024).toFixed(2)} MiB → ${corpusDir}`);
-  console.log("  🔴 NOT committed. Verify any body against its content_sha256 in the run record.");
 }
 
 /* The selection rule and the CI identifiers travel WITH the run record: a
@@ -250,13 +262,17 @@ const runRecord = {
     githubRunId: process.env.GITHUB_RUN_ID ?? null,
   },
 };
-// Declared: the RUN record is unique by construction — run_id carries the start time.
-store.appendWithoutDedupe(runRecord);
-console.log(`\nwritten: ${out}  (${result.observations.length} observations + 1 run)`);
+if (mayRecord) {
+  // Declared: the RUN record is unique by construction — run_id carries the start time.
+  store.appendWithoutDedupe(runRecord);
+  console.log(`\nwritten: ${out}  (${result.observations.length} observations + 1 run)`);
+} else {
+  console.log(`\n[dry-run] the crawl record was NOT written to ${out} — a dry run records nothing unless --confirm`);
+}
 
 /* 🔴 ITEM 45 — a live run is costed in the ledger as it happens. A dry run
  * issues no request and spends nothing, so it writes no cost entry. */
-if (live) {
+if (mayRecord && live) {
   const costEntry = entryFromCrawlRun(runRecord, { recordedAt: new Date().toISOString() });
   const ledgerPath = confineToRepo(`${REPO}runs/cost/ledger.jsonl`, { label: "the cost ledger" });
   createCostLedger(ledgerPath).append(costEntry);

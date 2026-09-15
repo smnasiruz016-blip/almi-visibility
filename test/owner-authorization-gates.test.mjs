@@ -31,7 +31,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -61,5 +61,61 @@ test("🔴 DESTRUCTIVE · bin/replay-crawl.mjs --recover WITHOUT --confirm is RE
     assert.doesNotMatch(r.stdout, /recovered crawl-corpus-/, "the refused run reported a recovery");
   } finally {
     rmSync(corpus, { recursive: true, force: true });
+  }
+});
+
+/* ================================================================== *
+ * 🔴 NETWORK · D-CRW-4 — bin/crawl.mjs --live WITHOUT THE OWNER'S GREEN.
+ *
+ * `--live` issues billable requests against our own hosts. The gate (bin/crawl.mjs :60-72) refuses it without
+ * `--i-have-the-owners-green`, exit 3 — and it stands BEFORE the first network call (the IPv6 egress probe, :81), the
+ * DNS lookups of every estate host (:86) and every write (:202 onwards, including the cost ledger under runs/ at :259).
+ * Until 15 September 2026 no test executed it: it was asserted only as workflow YAML text and a static flag census.
+ *
+ * The blast radius of this test is fenced three ways: the seeds file holds ONLY a 127.0.0.1 URL — never a real host,
+ * not even one of ours; `--out` and `--corpus` point into .test-scratch/, never at their runs/crawl/ defaults; and
+ * the assertion is not "it refused" but "IT DID NOTHING": exit EXACTLY 3 (2 is the usage gate, and would satisfy a
+ * weaker check while proving nothing about D-CRW-4), no scratch output created, runs/crawl/ and the cost ledger unchanged.
+ *
+ * 🔴 THE AUTHORISED PATH IS NOT RUN. `--live --i-have-the-owners-green` is a live crawl, and D-CRW-4 is the owner's to
+ * green — it was granted for ONE run only (12 September 2026), and that run is spent. Only the refusal is under test.
+ * ================================================================== */
+
+/** name → size and mtime for every file under a directory (recursive), or null when it does not exist. */
+const fileState = (p) => {
+  if (!existsSync(p)) return null;
+  const s = statSync(p);
+  if (!s.isDirectory()) return { [p]: `${s.size}:${s.mtimeMs}` };
+  return Object.assign({}, ...readdirSync(p).sort().map((n) => fileState(join(p, n)) ?? {}));
+};
+
+test("🔴 NETWORK · D-CRW-4 · bin/crawl.mjs --live WITHOUT --i-have-the-owners-green is REFUSED — exit EXACTLY 3 — and DOES NOTHING", () => {
+  mkdirSync(join(REPO, ".test-scratch"), { recursive: true });
+  const scratch = mkdtempSync(join(REPO, ".test-scratch", "row36-dcrw4-"));
+  const seeds = join(scratch, "seeds.txt");
+  const out = join(scratch, "out", "crawl.jsonl");
+  const corpus = join(scratch, "corpus");
+  const crawlDir = join(REPO, "runs", "crawl");
+  const ledger = join(REPO, "runs", "cost", "ledger.jsonl");
+  try {
+    // ONLY a loopback URL — the reader takes one URL per line
+    writeFileSync(seeds, "http://127.0.0.1:9/row36-dcrw4-never-fetched\n");
+    const crawlBefore = fileState(crawlDir);
+    const ledgerBefore = existsSync(ledger) ? sha(readFileSync(ledger)) : null;
+
+    const r = spawnSync(process.execPath, ["bin/crawl.mjs", `--seeds=${seeds}`, `--out=${out}`, `--corpus=${corpus}`, "--live"], { cwd: REPO, encoding: "utf8", timeout: 20_000 });
+
+    // THE CLAIM FIRST: it did nothing
+    assert.equal(existsSync(out), false, "the refused run wrote its crawl records");
+    assert.equal(existsSync(join(scratch, "out")), false, "the refused run created its output directory");
+    assert.equal(existsSync(corpus), false, "the refused run created its corpus directory");
+    assert.deepEqual(fileState(crawlDir), crawlBefore, "runs/crawl/ changed — the refused run touched evidence");
+    assert.equal(existsSync(ledger) ? sha(readFileSync(ledger)) : null, ledgerBefore, "runs/cost/ledger.jsonl changed — the refused run wrote a cost entry");
+    assert.doesNotMatch(r.stdout, /IPv6 EGRESS|requests issued to host|written:/, "the refused run went past the gate");
+    // and the refusal itself: EXACTLY 3, and its own words
+    assert.equal(r.status, 3, `expected the D-CRW-4 refusal's exit 3, got ${r.status}\nstdout: ${r.stdout}\nstderr: ${r.stderr}`);
+    assert.match(r.stderr, /REFUSED\. --live requires --i-have-the-owners-green/);
+  } finally {
+    rmSync(scratch, { recursive: true, force: true });
   }
 });

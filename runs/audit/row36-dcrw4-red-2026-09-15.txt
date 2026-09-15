@@ -1,0 +1,38 @@
+RED PROOF — ROW 36 · NETWORK · D-CRW-4 (bin/crawl.mjs --live refusal) · 2026-09-15T00:50:53.436Z
+test file: test/owner-authorization-gates.test.mjs
+containment preload for the sabotaged run: netblock.mjs (non-loopback sockets, DNS, non-loopback fetch, writes under runs/)
+runs/cost/ledger.jsonl sha256 before: c2a27880b880cb3d8c41f79f558248dab08229023d4c33160ebeb769a162320b · git status runs/ before: clean
+
+=== CONTROL — the containment, proved before any sabotage
+   egress: UNAVAILABLE | could not create an IPv6 socket: NETBLOCK: 2606:4700:4700::1111 is not loopback
+   dns: {"hostname":"almiworld.com","hasA":null,"hasAAAA":null,"error":"ENETBLOCK","method":"dns.resolve4/resolve6"}
+   fetch: refused: NETBLOCK: fetch to example.com refused
+   write under runs/: refused: NETBLOCK: write under runs/ refused: C:/Projects/almi-visibility/runs/.confine-probe-netblock
+   refusals logged: 5
+     [netblock] refused net.connect to 2606:4700:4700::1111:443
+     [netblock] refused dns.resolve4 almiworld.com
+     [netblock] refused dns.resolve6 almiworld.com
+     [netblock] refused fetch https://example.com/
+     [netblock] refused fs.mkdirSync C:/Projects/almi-visibility/runs/.confine-probe-netblock
+   containment holds (socket, DNS, fetch and runs/ write all refused; no probe file): YES
+
+=== CLEAN before (the D-CRW-4 test only): exit 0 · tests 1 · pass 1 · fail 0 · skipped 0
+
+=== the D-CRW-4 guard inverted: `if (live && !green)` → `if (live && green)`
+   file: bin/crawl.mjs · line ending CRLF · anchor matches: 1
+   sabotage landed: true
+   exit 1 · tests 1 · pass 0 · fail 1
+   ✖ 🔴 NETWORK · D-CRW-4 · bin/crawl.mjs --live WITHOUT --i-have-the-owners-green is REFUSED — exit EXACTLY 3 — and DOES NOTHING
+     reason: AssertionError [ERR_ASSERTION]: the refused run wrote its crawl records
+   contained refusals during the sabotaged run: 55
+     [netblock] refused net.connect to …
+     [netblock] refused dns.resolve4 …
+     [netblock] refused dns.resolve6 …
+   the test went RED: YES
+   restored byte for byte: true (sha256 372a67a6e3cf28e0a70b43825c3b63617f30d8b42391d81020f7f87c39fa8a57)
+
+runs/cost/ledger.jsonl sha256 after: c2a27880b880cb3d8c41f79f558248dab08229023d4c33160ebeb769a162320b — UNCHANGED · git status runs/ after: clean
+
+=== CLEAN after: exit 0 · tests 1 · pass 1 · fail 0 · skipped 0
+
+verdict: RED PROVED — with the D-CRW-4 guard inverted the test went red; every external call and every runs/ write was refused by the containment; restored, green; the ledger and runs/ untouched

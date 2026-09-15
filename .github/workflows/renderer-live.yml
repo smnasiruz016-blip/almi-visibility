@@ -17,10 +17,13 @@
 # One run installs `playwright-core` (already the sole devDependency), then
 # fetches headless Chromium via the matching-version `playwright` CLI through
 # npx (nothing added to package.json), then runs `node --test` over one file.
-# Approximate wall clock on ubuntu-latest: 2-3 minutes. Approximate Actions
-# spend on a private repo at Linux 2-core rates ($0.008/min): about $0.02 per
-# run. `U-COST-1` — the account's Actions allowance — is UNKNOWN
-# (PHASE_0_ITEM_4_DECISION_BRIEF.md §3), so this figure is a rate against an
+# MEASURED, not estimated (the first run, 34911619574, on main at 11ba98d,
+# 15 September 2026): 31 s end to end — the job 27 s, headless Chromium fetched
+# in 15 s, the test file 3 s. (It had said "2-3 minutes".) At Linux 2-core rates
+# ($0.008/min) that is under one minute; how GitHub rounds a job's minutes has
+# NOT been read, so whether it is billed as one minute is an assumption, not a
+# measurement. `U-COST-1` — the account's Actions allowance — is still UNREAD
+# (PHASE_0_ITEM_4_DECISION_BRIEF.md §3), so any figure here is a rate against an
 # allowance that has not been read.
 #
 # ── WHAT THIS DOES NOT DO ────────────────────────────────────────────────────

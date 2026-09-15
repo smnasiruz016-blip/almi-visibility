@@ -29,6 +29,16 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 | **DEFERRED** | — | **23** |
 | **total** | 58 | **61** |
 
+> ### 🔴 fcd27d6 — LOCALLY PASSING, CI NOT EXECUTED ON CODE — RECORDED ON THE OWNER'S RULING A, 15 SEPTEMBER 2026 — NO ROW MOVED
+>
+> - **fcd27d6 (PR #82, the subject registry leaving this repository):** **LOCALLY PASSING** — 1,111 tests, 0 fail,
+>   0 skipped, on the owner's machine.
+> - 🔴 **CI NOT EXECUTED ON CODE.** Both runs — 34908985957 on the merge commit, and 34908203940 on head eff0233 — failed at
+>   the data-repository checkout ("Bad credentials"); setup, the suite and the boundary census were skipped. **No CI run has
+>   ever executed this suite on this code.** No row's state rests on this change, and none may until a clean Linux CI run does.
+> - **This is a record, not a state change.** The ledger stays 5 / 7 / 1 / 19 / 2 / 4 / 23. The credential is being restored as
+>   a read-only deploy key (owner ruling A); that work may change nothing a row stands on.
+
 > ### 🔴 OPTION A — THE SUBJECT REGISTRY LEAVES THIS REPOSITORY — OWNER RULING, 14 SEPTEMBER 2026 — NO ROW MOVED
 >
 > - **The ruling:** row 1 says *"keep each product's data, evidence, costs and learning ISOLATED"*; a product's own data

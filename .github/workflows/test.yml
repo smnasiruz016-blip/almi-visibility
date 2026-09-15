@@ -50,10 +50,14 @@ jobs:
     # same layout as C:\Projects on the owner's machine — so config/subject-roots.mjs's default external root
     # (../almi-visibility-data) resolves here unchanged, with no override and no path written for CI alone.
     #
-    # ⚠️ The data repository is private. Reading it needs a READ-ONLY credential the owner adds as the repository
-    # secret ALMI_VISIBILITY_DATA_TOKEN (a fine-grained token with Contents: read on that one repository). Without it
-    # the second checkout fails and the job goes red — loudly, never by skipping the tests that read the data.
-    # Least privilege is unchanged: this job still writes nothing.
+    # ⚠️ The data repository is private. Since 15 September 2026 (owner ruling A) it is read with a READ-ONLY DEPLOY
+    # KEY scoped to that one repository — its public half is a deploy key on almi-visibility-data with write access
+    # disabled, its private half lives ONLY in this repository's secret ALMI_VISIBILITY_DATA_KEY. It replaced an
+    # account-wide personal access token whose checkout failed with "Bad credentials" on both runs of PR #82: a deploy
+    # key is not an account credential, reaches no other repository, and does not expire the job into a silent red.
+    # actions/checkout@v4 configures it for this step and its post-job step removes it; persist-credentials: false keeps
+    # it out of the checked-out repository's git config. Without the secret the second checkout fails and the job goes
+    # red — loudly, never by skipping the tests that read the data. Least privilege is unchanged: this job still writes nothing.
     defaults:
       run:
         working-directory: almi-visibility
@@ -65,7 +69,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: smnasiruz016-blip/almi-visibility-data
-          token: ${{ secrets.ALMI_VISIBILITY_DATA_TOKEN }}
+          ssh-key: ${{ secrets.ALMI_VISIBILITY_DATA_KEY }}
           path: almi-visibility-data
           persist-credentials: false
 

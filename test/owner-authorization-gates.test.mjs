@@ -20,19 +20,28 @@
  * not in question. Only the refusal is under test, so only the refusal is run. An unexercised GREEN, stated plainly,
  * beats a GREEN faked.
  *
- * ── AND THE GUARD NOT RUN HERE, ON PURPOSE ──────────────────────────────────
+ * ── AND THE GUARD THAT COULD NOT BE RUN, NOW RUN — OWNER RULING, OPTION (a), 15 SEPTEMBER 2026 ──────────────────
  *
- * `bin/archive-corpus.mjs` refuses to overwrite the body archive — but its destination is hard-coded to the COMMITTED
- * `runs/crawl/bodies-2026-09-12.jsonl.br`, and the refusal sits behind `--confirm`. A test of it would be a `--confirm`
- * run aimed at the live evidence: if the guard were broken, the test would destroy what the guard protects. It is not
- * run. The gap is written onto row 36.
+ * `bin/archive-corpus.mjs` refuses to overwrite the body archive. Its destination was hard-coded to the COMMITTED
+ * `runs/crawl/bodies-2026-09-12.jsonl.br`, so a test of the refusal would have been a `--confirm` run aimed at the live
+ * evidence — if the guard were broken, the test would destroy what the guard protects. It now takes `--out=` (default
+ * IDENTICAL, confined to this repository), and the tests at the end of this file aim it at scratch archives under
+ * `.test-scratch/` instead. To pass its verification — every one of the run's 394 fetched bodies, hash for hash, nothing
+ * extra — the fixture COPIES those bodies, READ-ONLY, out of the committed archive into `.test-scratch/`. That copy is a
+ * disposable fixture: NOT evidence, NOT a verified fact, NOT a corpus of record, and nothing cites or ingests it. The
+ * verification and its binding to the real run record are untouched. The committed archive and the run record are hashed
+ * when this file loads, and re-checked before the copy, after it, and after EVERY spawned run.
  */
-import test from "node:test";
+import test, { after } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+
+import { unpackBodies, verifyBodiesAgainstRun } from "../src/evidence/body-archive.mjs";
+import { createJsonlStore } from "../src/evidence/store.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const sha = (b) => createHash("sha256").update(b).digest("hex");
@@ -118,4 +127,140 @@ test("🔴 NETWORK · D-CRW-4 · bin/crawl.mjs --live WITHOUT --i-have-the-owner
   } finally {
     rmSync(scratch, { recursive: true, force: true });
   }
+});
+
+/* ================================================================== *
+ * 🔴 DESTRUCTIVE · bin/archive-corpus.mjs — THE OVERWRITE REFUSAL, RUN AT LAST (gap 3, owner ruling option (a)).
+ *
+ * The committed body archive and the run record it is verified against are EVIDENCE: 394 observation hashes depend on
+ * the first, and the second is the binding at archive-corpus's run-record line. Neither may change — their sha256 is
+ * recorded when this file loads and asserted before the copy, after it, after every spawned run, and at the end.
+ * ================================================================== */
+
+const ARCHIVE = join(REPO, "runs", "crawl", "bodies-2026-09-12.jsonl.br");
+const RUN_RECORD = join(REPO, "runs", "crawl", "first-real-crawl-2026-09-12.jsonl");
+const COMMITTED_ARCHIVE_SHA256 = "3d857a9e53fd4b015131bfd721788942a7c3df15b775e6633fb429bc84af3ded";
+const COMMITTED_RUN_RECORD_SHA256 = "0b9fb848436eca43dac54b0a4d3f220bb637e3c35b18a9d6297bc50b71bcc345";
+const EVIDENCE_AT_LOAD = { archive: sha(readFileSync(ARCHIVE)), run: sha(readFileSync(RUN_RECORD)) };
+
+function evidenceUntouched(when) {
+  assert.equal(sha(readFileSync(ARCHIVE)), EVIDENCE_AT_LOAD.archive, `🔴 runs/crawl/bodies-2026-09-12.jsonl.br CHANGED ${when}`);
+  assert.equal(sha(readFileSync(RUN_RECORD)), EVIDENCE_AT_LOAD.run, `🔴 runs/crawl/first-real-crawl-2026-09-12.jsonl CHANGED ${when}`);
+}
+
+/** The disposable fixture: the 394 fetched bodies, copied READ-ONLY out of the committed archive into .test-scratch/. */
+let FIXTURE = null;
+function fixture() {
+  if (FIXTURE) return FIXTURE;
+  mkdirSync(join(REPO, ".test-scratch"), { recursive: true });
+  const root = mkdtempSync(join(REPO, ".test-scratch", "gap3-archive-"));
+  const corpus = join(root, "corpus");
+  mkdirSync(corpus);
+  evidenceUntouched("before the read-only copy");
+  const bodies = unpackBodies(readFileSync(ARCHIVE));
+  for (const [id, body] of bodies) writeFileSync(join(corpus, `${id}.html`), body, "utf8");
+  evidenceUntouched("after the read-only copy");
+  FIXTURE = { root, corpus, count: bodies.size };
+  return FIXTURE;
+}
+after(() => {
+  if (FIXTURE) rmSync(FIXTURE.root, { recursive: true, force: true });
+});
+
+const archiveRun = (args) => spawnSync(process.execPath, ["bin/archive-corpus.mjs", ...args], { cwd: REPO, encoding: "utf8", timeout: 180_000, maxBuffer: 32 * 1024 * 1024 });
+const tmpLeftovers = (dir) => readdirSync(dir).filter((n) => n.includes(".tmp-"));
+const VERIFIED_394 = /verify: expected 394, present 394, hash matches 394, missing 0, mismatched 0, extra 0/;
+
+test("🔴 DESTRUCTIVE · archive-corpus — the 394 fetched bodies, copied read-only into .test-scratch/, REACH verification and pass it; and with no --out the destination is EXACTLY the committed archive's path", () => {
+  const f = fixture();
+  assert.equal(f.count, 394, "the fixture does not hold the run's 394 fetched bodies");
+  const r = archiveRun([`--corpus=${f.corpus}`]);
+  evidenceUntouched("after the dry run");
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, VERIFIED_394);
+  // 🔴 THE DEFAULT IS IDENTICAL — proved by the runner's own statement of its destination, on a run that writes nothing.
+  assert.ok(r.stdout.includes(`[dry-run] nothing written — add --confirm (destination: ${resolve(ARCHIVE)})`), `the default destination moved:\n${r.stdout}`);
+  const src = readFileSync(join(REPO, "bin", "archive-corpus.mjs"), "utf8");
+  assert.ok(src.includes("outArg ?? `${REPO}runs/crawl/bodies-2026-09-12.jsonl.br`"), "the default destination literal changed");
+  // 🔴 AND NOTHING THE RULING FORBADE: the run record stays hard-coded, no --run exists, the verification is the same call.
+  assert.ok(src.includes("createJsonlStore(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`)"), "the binding to the real run record is gone");
+  assert.doesNotMatch(src, /arg\(\s*["']run["']\s*\)|--run=/, "a --run flag was added");
+  assert.ok(src.includes("verifyBodiesAgainstRun({ bodies: unpackBodies(packed), crawlRecords })"), "the verification call changed");
+});
+
+test("🔴 DESTRUCTIVE · archive-corpus --confirm --out=<an EXISTING archive> is REFUSED — exit 2 — and OVERWRITES NOTHING, byte for byte", () => {
+  const f = fixture();
+  const existing = join(f.root, "existing-archive.jsonl.br");
+  writeFileSync(existing, "row 36 · a scratch archive with known bytes — it must survive a --confirm run aimed at it\n");
+  const before = sha(readFileSync(existing));
+  const r = archiveRun([`--corpus=${f.corpus}`, "--confirm", `--out=${existing}`]);
+  // THE CLAIM FIRST: the existing archive was NOT overwritten. A broken guard fails HERE.
+  assert.equal(sha(readFileSync(existing)), before, "🔴 the existing archive was OVERWRITTEN — the refusal did not hold");
+  assert.deepEqual(tmpLeftovers(f.root), [], "a temporary archive was left beside the refused destination");
+  evidenceUntouched("after the refused overwrite");
+  // and it got there honestly: past the full verification, to the guard
+  assert.match(r.stdout, VERIFIED_394);
+  // and the refusal itself: its own exit code and its own words
+  assert.equal(r.status, 2, `expected the overwrite refusal's exit 2, got ${r.status}\nstdout: ${r.stdout}\nstderr: ${r.stderr}`);
+  assert.match(r.stderr, /REFUSED — .*existing-archive\.jsonl\.br already exists\. Recorded evidence is not re-recorded over itself\./);
+});
+
+test("CONTROL: archive-corpus --confirm --out=<a path with no archive> proceeds past the overwrite guard and writes a verified archive at exactly that path", () => {
+  const f = fixture();
+  const target = join(f.root, "control-archive.jsonl.br");
+  const r = archiveRun([`--corpus=${f.corpus}`, "--confirm", `--out=${target}`]);
+  evidenceUntouched("after the control write");
+  assert.equal(r.status, 0, r.stderr);
+  assert.ok(r.stdout.includes(`written: ${resolve(target)}`), `the archive was not written at its --out path:\n${r.stdout}`);
+  assert.equal(existsSync(target), true);
+  assert.deepEqual(tmpLeftovers(f.root), []);
+  const check = verifyBodiesAgainstRun({ bodies: unpackBodies(readFileSync(target)), crawlRecords: createJsonlStore(RUN_RECORD).readAll() });
+  assert.deepEqual([check.expected, check.matches, check.missing.length, check.mismatched.length, check.extra.length], [394, 394, 0, 0, 0]);
+});
+
+test("🔴 archive-corpus — --out relaxes NO validation: a MISSING, an EXTRA and a MISMATCHED body are each still REFUSED at verification, exit 1, and nothing is written", () => {
+  const f = fixture();
+  const names = readdirSync(f.corpus).sort();
+  const variant = (label, mutate) => {
+    const dir = join(f.root, `corpus-${label}`);
+    mkdirSync(dir);
+    for (const n of names) writeFileSync(join(dir, n), readFileSync(join(f.corpus, n)));
+    mutate(dir);
+    return dir;
+  };
+  const cases = [
+    ["missing", variant("missing", (d) => rmSync(join(d, names[0]))), /missing 1, mismatched 0, extra 0/],
+    ["extra", variant("extra", (d) => writeFileSync(join(d, "0000000000000000.html"), "not a body of the run\n")), /missing 0, mismatched 0, extra 1/],
+    ["mismatched", variant("mismatched", (d) => writeFileSync(join(d, names[0]), `${readFileSync(join(d, names[0]), "utf8")} `)), /missing 0, mismatched 1, extra 0/],
+  ];
+  for (const [label, dir, counts] of cases) {
+    const target = join(f.root, `out-${label}.jsonl.br`);
+    const r = archiveRun([`--corpus=${dir}`, "--confirm", `--out=${target}`]);
+    evidenceUntouched(`after the ${label}-body run`);
+    assert.equal(existsSync(target), false, `a ${label}-body corpus was archived`);
+    assert.equal(r.status, 1, `${label}: expected the verification refusal's exit 1, got ${r.status}\n${r.stderr}`);
+    assert.match(r.stdout, counts, `${label}: the verification did not see the ${label} body`);
+    assert.match(r.stderr, /REFUSED — the bodies are not exactly the run's bodies/);
+  }
+});
+
+test("🔴 archive-corpus --confirm --out=<outside the repository> is REFUSED before anything is read, and creates NOTHING", () => {
+  const f = fixture();
+  const outside = mkdtempSync(join(tmpdir(), "almivis-gap3-"));
+  const target = join(outside, "nested", "archive.jsonl.br");
+  try {
+    const r = archiveRun([`--corpus=${f.corpus}`, "--confirm", `--out=${target}`]);
+    evidenceUntouched("after the outside-repository refusal");
+    assert.notEqual(r.status, 0, "archive-corpus exited 0 while pointed outside the repository");
+    assert.match(r.stderr, /REFUSED — --out .* OUTSIDE this repository/);
+    assert.equal(existsSync(join(outside, "nested")), false, "a directory was created outside the repository");
+  } finally {
+    rmSync(outside, { recursive: true, force: true });
+  }
+});
+
+test("🔴 THE COMMITTED BODY ARCHIVE AND ITS RUN RECORD ARE EXACTLY UNCHANGED ACROSS THIS WHOLE FILE — and are the committed bytes", () => {
+  evidenceUntouched("across the whole test file");
+  assert.equal(EVIDENCE_AT_LOAD.archive, COMMITTED_ARCHIVE_SHA256, "the body archive this file loaded is not the committed one");
+  assert.equal(EVIDENCE_AT_LOAD.run, COMMITTED_RUN_RECORD_SHA256, "the run record this file loaded is not the committed one");
 });

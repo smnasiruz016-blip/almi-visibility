@@ -44,7 +44,13 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # 🔴 20 SINCE 15 SEPTEMBER 2026 (gap 3, owner-approved; was 10). test/owner-authorization-gates.test.mjs now RUNS
+    # bin/archive-corpus.mjs's overwrite refusal against a disposable copy of the run's 394 real fetched bodies. Every
+    # spawned archive-corpus run re-verifies all 394 bodies against their observation hashes and repacks them — that is
+    # the guard's own integrity check, inherent to the test and NOT to be reduced — and it measured ~7½ added minutes on
+    # the owner's machine (100.8 s + 21.8 s + 22.1 s + 302.5 s across the four new tests). The ceiling is raised rather
+    # than the tests moved to a manual workflow: a guard row 36 ticks on must be a test every push actually runs.
+    timeout-minutes: 20
     # 🔴 SINCE 14 SEPTEMBER 2026 A PRODUCT'S OWN DATA LIVES OUTSIDE THIS REPOSITORY (owner ruling, Option A), in the
     # private repository smnasiruz016-blip/almi-visibility-data. The runner checks out BOTH, as sibling folders — the
     # same layout as C:\Projects on the owner's machine — so config/subject-roots.mjs's default external root

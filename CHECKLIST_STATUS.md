@@ -42,6 +42,29 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 >   the census beyond PAGE_WRITE is gap 2, a separate slot, and was not done. Row 36 still waits on archive-corpus (gap 3).
 > - Ledger unchanged: 2 / 9 / 1 / 20 / 2 / 4 / 23 = 61.
 
+> ### 🔴 GAP 2's POPULATION RE-MEASURED — THE FROZEN REGISTER UNDERSTATED THE UNGATED WRITERS — RECORDED 15 SEPTEMBER 2026, NOTHING FIXED
+>
+> Recorded in three stages, on the owner's ruling. The gap 1 block above is left as it was written.
+>
+> - **PREVIOUS MEASUREMENT — beta-g, 14 September 2026:** four `bin/*.mjs` wrote with no gate (facts-lifecycle, export,
+>   checklist-boundaries, crawl — closed by gap 1). Of the rest, beta-g's reading was **3 fully ungated + 3 partially gated**:
+>   audit, audit-content, audit-technical fully; supply-labels, verification-issues, gsc-ingest partially.
+> - **TARGETED RE-MEASUREMENT — CC, 15 September 2026, at each write site:**
+>   `bin/audit.mjs` `mkdirSync` :51 · `bin/audit-content.mjs` `mkdirSync` :86, `appendIfNew` :107, :122 ·
+>   `bin/audit-technical.mjs` `appendIfNew` :140, :222, `mkdirSync` :165 · `bin/supply-labels.mjs` `appendIfNew` :178 ·
+>   `bin/verification-issues.mjs` `appendIfNew` :74, :99 · `bin/gsc-ingest.mjs` evidence writes through `runIngest` :64,
+>   `ledger.append` :76, :173 (its cost governor bounds network spend; it gates no write). No site sits behind a condition,
+>   and none of the six files references `writePermission`, `mayWrite` or `--confirm`.
+> - 🔴 **CORRECTED FINDING — SIX fully ungated bins:** audit · audit-content · audit-technical · supply-labels ·
+>   verification-issues · gsc-ingest — plus **`src/evidence/store.mjs`** (`mkdirSync` :74, `appendFileSync` :121), the
+>   underlying store, ungated by design because its CALLERS are expected to enforce authorization; these six are callers
+>   that do not.
+> - **WHY the earlier figure was wrong:** it detected writes by PRIMITIVE NAME, so every write going through a helper —
+>   `appendIfNew`, `ledger.append` — was never in the population at all. The same error shape as the PAGE_WRITE census it was
+>   meant to expose: it checked the file, not the site.
+> - 🔴 **This is gap 2's work, not gap 3's. None of them is fixed here**, and by the owner's ruling their discovery does not
+>   start another broad plumbing audit.
+
 > ### 🔴 ROW 7 BUILT — MARKET MEASUREMENT, THE OWNED HALF — BUILT-NOT-PROVED, BECAUSE DEMAND CAN ONLY BE BOUNDED — 15 SEPTEMBER 2026
 >
 > - **Totals, re-derived from the rows** (2026-08-15 → 2026-09-12, dataState COMPLETE on every pull): property 2,374 impressions ·

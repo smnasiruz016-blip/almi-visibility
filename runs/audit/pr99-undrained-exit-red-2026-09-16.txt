@@ -1,0 +1,47 @@
+SABOTAGE — #99 UNDRAINED-EXIT GUARD (choke point: every exit routes through exitAfterDrain)
+run at 2026-09-16T06:28:36.713Z · node v24.15.0 · branch v0.1/row61-findcopiedfacts-third-state · HEAD 143dbbc5e23e4b9a94fb9bf0e43dd6ef5dba28f2
+
+BEFORE ANY LIMB: sha256 4f389f692ae66166  blob b83065fdb95a81269f0445f76a8febf3b5c370d2  bin/build-page.mjs
+
+0 · CONTAINMENT — damage, restore, prove by sha256 AND git blob AND the guard's own reading
+  damaged da3c793a73996724 → restored 4f389f692ae66166 · blob b83065fdb95a81269f0445f76a8febf3b5c370d2 · guard SAFE again: YES
+  ✅ containment proved.
+
+BASELINE — test/build-page-exit-drain.test.mjs: PASS
+
+LIMB :84 (was :45) — the selectCandidates catch
+  damage LANDED (sha256 now cbafd28f79cec5fb)
+  ✅ RED — 🔴 STRUCTURAL: every exit in bin/build-page.mjs routes throu…
+  assertions that went red: 🔴 STRUCTURAL: every exit in bin/build-page.mjs routes through e
+  collateral beyond the named one: none
+  restored: sha256 4f389f692ae66166 · blob b83065fdb95a81269f0445f76a8febf3b5c370d2 · sha match YES · blob match YES · guard SAFE again YES
+
+LIMB :101 (was :62) — the DATA GAP path
+  damage LANDED (sha256 now c122a75ae8203971)
+  ✅ RED — 🔴 STRUCTURAL: every exit in bin/build-page.mjs routes throu…
+  assertions that went red: 🔴 STRUCTURAL: every exit in bin/build-page.mjs routes through e
+  collateral beyond the named one: none
+  restored: sha256 4f389f692ae66166 · blob b83065fdb95a81269f0445f76a8febf3b5c370d2 · sha match YES · blob match YES · guard SAFE again YES
+
+LIMB :142 (was :103) — the fail-closed verdict
+  damage LANDED (sha256 now 554a4702223c3baf)
+  ✅ RED — 🔴 STRUCTURAL: every exit in bin/build-page.mjs routes throu…
+  assertions that went red: 🔴 STRUCTURAL: every exit in bin/build-page.mjs routes through e
+  collateral beyond the named one: none
+  restored: sha256 4f389f692ae66166 · blob b83065fdb95a81269f0445f76a8febf3b5c370d2 · sha match YES · blob match YES · guard SAFE again YES
+
+LIMB 🔴 LIMB 4 — THE COMMENT MASKER: real code on the line after a string containing /*
+  damage LANDED (sha256 now 404d224de0d300ae)
+  ✅ RED — 🔴 STRUCTURAL: every exit in bin/build-page.mjs routes throu…
+  assertions that went red: 🔴 STRUCTURAL: every exit in bin/build-page.mjs routes through e | 🔴 BOUNDED EXIT: over a PIPE the runner terminates and does not 
+  collateral beyond the named one: 🔴 BOUNDED EXIT: over a PIPE the runner terminates and 
+  restored: sha256 4f389f692ae66166 · blob b83065fdb95a81269f0445f76a8febf3b5c370d2 · sha match YES · blob match YES · guard SAFE again YES
+
+AFTER EVERY RESTORE:
+  test/build-page-exit-drain.test.mjs: PASS
+  bin/build-page.mjs: sha256 4f389f692ae66166  blob b83065fdb95a81269f0445f76a8febf3b5c370d2
+
+EVERY LIMB WENT RED ON THE STRUCTURAL ASSERTION: YES
+RESTORES VERIFIED (sha256 · blob · guard reads SAFE): ALL THREE, EVERY LIMB
+limbs with collateral beyond the named assertion (recorded, not narrowed):
+   🔴 LIMB 4 — THE COMMENT MASKER: real code on the line after a string containing /*: 1

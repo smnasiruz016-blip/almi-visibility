@@ -1263,6 +1263,35 @@ overturned.**
 
 ---
 
+## 🔴 `D-SWEEP-1` · `D-EXIT-1` · `D-MASK-1` · `D-OUTPUT-1` · `D-SPAWN-1` — RECORDED 16 SEPTEMBER 2026, ON THE OWNER'S RULING, NOTHING FIXED
+
+These five were measured on **16 September 2026** during #99 / #100 (the `bin/build-page.mjs` drain-before-exit
+work) and were reported there with no id. The owner ruled on 16 September 2026 that they are recorded here, in this
+register only, with these ids — and that **recording a finding does not authorize its fix**: each gets its own
+targeted slot only when the owner authorizes it. `D-SWEEP-1` is not `D-GUARD-*`: that id is already
+`D-GUARD-1` above (item 50, 13 September 2026), and the defect here is ownership-blind sweep/delete behaviour, of which
+`guardDir` is only the implementation. Before any was written, each id was searched for across the tracked files on
+`origin/main` (`6927a7d`), the full working tree including untracked files, and git history on all refs: **0 hits for
+each**, against **14** for `D-GUARD-1` as the positive control. **No checklist status moved; gap 2 stays OPEN** — these
+five do not redefine, narrow or close it.
+
+| id | defect | how it presented | state |
+|---|---|---|---|
+| **`D-SWEEP-1`** | **`guardDir`'s delete-by-pattern may delete matching content under `runs/export`, `runs/evidence`, `runs/audit` or `runs/cost` that was not created or owned by the current operation** | Evidence as measured: `test/ungated-writers.test.mjs:42-59` — `for (const n of report.added) rmSync(join(dir, n), { force: true });` (the `rmSync` at :56). It filters `isFile()` (:43, :46), so it cannot remove a directory. **NOT a cause of #99:** cross-file interference via `.test-scratch` was excluded by measurement; `guardDir` never targets `.test-scratch` | 🔴 **OPEN** · RECORDED · measured 16 September 2026 · **SEVERITY: UNCLASSIFIED** — this register carries no severity scale; UNCLASSIFIED is **not** LOW (LAW-ABSENT-1). **Recorded only:** nothing in `guardDir` was changed |
+| **`D-EXIT-1`** | **`src/product-cli.mjs:127` holds a direct `process.exit(1)` outside any authorised drain helper, in a module the #100 structural guard does not scan** | **MEASURED 2026-09-16 on `origin/main` `6927a7d`.** First reported as `:129`; the measured call site is `:127`, unchanged since `eff0233` (14 Sep 2026), so `:129` was incorrect on #99's tree as well. `:129` appears to be the file's line count (the file is 129 lines), not a call site. The earlier `:129` wording is left as written where it was written; this note connects the two, and they are **one finding, not two**. 🔴 **NOT MEASURED: whether any stdout write precedes that exit. The undrained-exit property is therefore NOT established at this site.** Historical #99 CI causation remains **UNKNOWN** unless separately proved | 🔴 **OPEN** · RECORDED · measured 16 September 2026 · **SEVERITY: UNCLASSIFIED** (not LOW). **Recorded only:** the file was not opened beyond confirming its path and line |
+| **`D-MASK-1`** | **#100's structural-guard comment masker produced the measured false-positive shape** | Three things, verbatim, and nothing generalised beyond them: **(1) the masker** — quoted exactly below this table — is line-based, stateless, with no block-comment mode. **(2) SHAPE PROVEN (sabotage limb 4):** real code on the line immediately following a string literal containing `/*` is **CAUGHT, not swallowed** (`runs/audit/pr99-undrained-exit-red-2026-09-16.txt`). **(3) SHAPE NOT PROVEN:** real code inside an actual multi-line `/* … */` block, where the masker mis-reads the opposite way and flags commented-out text as UNSAFE — a false positive, fail-safe direction. **Constraint carried forward** from `test/build-page-exit-drain.test.mjs:47-49`, which describes the sabotage limb **by its shape** (a genuine `process.exit(9)` on the line following a string literal containing `/*`), not by a limb number: any future change giving the masker block-comment state, or any other stateful behaviour, **MUST re-run that shape before acceptance** | 🔴 **OPEN** · RECORDED · measured 16 September 2026 · **SEVERITY: UNCLASSIFIED** (not LOW). **Recorded only:** the masker was not changed |
+| **`D-OUTPUT-1`** | **output volume — `bin/build-page.mjs` emitted 184 lines / 45,416 bytes of per-value NOT TESTED prose** | Approximately 90% of that command's stdout in the measured run (2 declared page specs, 2 requested; total stdout 50,335 bytes). **Classification: output-volume / usability finding ONLY.** 🔴 **NOT attributed to #99's CI failure.** It was recorded as an amplifier, not a cause — and that mechanism is itself **NAMED, NOT REPRODUCED** | 🔴 **OPEN** · RECORDED · measured 16 September 2026 · **SEVERITY: UNCLASSIFIED** (not LOW). **Recorded only:** the output was not changed |
+| **`D-SPAWN-1`** | **Seven `spawnSync` call sites without explicit `maxBuffer`** — a bounded robustness **observation ONLY** | Measured by grep over tracked files on `origin/main` `6927a7d`, re-derivable from these lines: **12** `spawnSync(` matches. **4 set `maxBuffer`:** `test/owner-authorization-gates.test.mjs:170` · `test/page-construction.test.mjs:362` · `test/portability-neutral-product.test.mjs:114` · `test/ungated-writers.test.mjs:35`. **1 excluded** as a string literal, not a call: `test/search-language.test.mjs:116`. **7 call sites without explicit `maxBuffer`:** `test/build-page-exit-drain.test.mjs:163` · `test/owner-authorization-gates.test.mjs:61` · `test/owner-authorization-gates.test.mjs:115` · `test/page-construction.test.mjs:232` · `test/secret-leak.test.mjs:234` · `test/write-confinement.test.mjs:83` · `test/write-confinement.test.mjs:104`. 7 + 4 + 1 = 12. Separately: `bin/build-page.mjs:39` mentions `spawnSync` in a comment only and is **not** among the 12. 🔴 **Absence of an explicit `maxBuffer` is an observation — NOT a proven defect and NOT a proven failure mechanism. No site has per-site evidence.** The count matches the seven first reported | 🔴 **OPEN** · RECORDED · measured 16 September 2026 · **SEVERITY: UNCLASSIFIED** (not LOW). **Recorded only:** no site was opened beyond the grep, none was changed |
+
+`D-MASK-1`'s masker, verbatim (`test/build-page-exit-drain.test.mjs:57` on `6927a7d`) — in a code block because its
+`|` would break a table cell:
+
+```js
+isComment = (l) => /^\s*(\/\/|\*|\/\*)/.test(l)
+```
+
+---
+
 ## 🔴 PERMANENT LOSSES — RECORDED, IRRECOVERABLE, NEVER DELETED
 
 These rows are **not gaps that can close.** They record something measurable that was never

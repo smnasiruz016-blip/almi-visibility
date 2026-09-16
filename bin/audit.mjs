@@ -18,7 +18,8 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
-import { createJsonlStore } from "../src/evidence/store.mjs";
+import { createJsonlStore, createDryRunStore } from "../src/evidence/store.mjs";
+import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
 import { familiesFor } from "../src/audit/dns-family.mjs";
 import { runRobotsAndDnsAudit } from "../src/audit/run-audit.mjs";
 /**
@@ -40,7 +41,12 @@ const arg = (n, d) => {
   return hit ? hit.slice(n.length + 3) : d;
 };
 
-const out = arg("out", `${REPO}runs/audit/findings.jsonl`);
+/* 🔴 GAP 2 (16 September 2026) — the destination is confined before anything is read, and the run is
+ * DRY BY DEFAULT. This bin writes through a store it hands to `runRobotsAndDnsAudit`, so the gate is
+ * WHICH STORE it hands over: without --confirm it hands the dry-run implementation of the same
+ * interface, which counts what would be stored and touches no file. */
+const out = confineToRepo(arg("out", `${REPO}runs/audit/findings.jsonl`), { label: "--out" });
+const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
 const openedAt = new Date().toISOString();
 
 const load = (p) => (existsSync(p) ? createJsonlStore(p).readAll() : []);
@@ -48,8 +54,8 @@ const robotsRecords = load(`${REPO}runs/evidence/robots.jsonl`);
 const evidence = load(`${REPO}runs/evidence/evidence.jsonl`);
 const crawl = load(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`);
 
-if (!existsSync(dirname(out))) mkdirSync(dirname(out), { recursive: true });
-const store = createJsonlStore(out);
+if (permission.mayWrite && !existsSync(dirname(out))) mkdirSync(dirname(out), { recursive: true });
+const store = permission.mayWrite ? createJsonlStore(out) : createDryRunStore(out);
 
 const r = await runRobotsAndDnsAudit({
   store, robotsRecords, evidence, crawl,
@@ -92,5 +98,9 @@ for (const c of registeredChecks()) {
   console.log(`     control  : ${c.cleanControl}`);
 }
 
-console.log(`\nwritten: ${out}   (${store.count()} records) — this run: ${r.writes.appended} new, ${r.writes.resighted} re-sighting(s)`);
+console.log(
+  permission.mayWrite
+    ? `\nwritten: ${out}   (${store.count()} records) — this run: ${r.writes.appended} new, ${r.writes.resighted} re-sighting(s)`
+    : `\n[dry-run] would have written ${store.wouldWrite().length} record(s) → ${out} (${store.count()} already stored) — this run: ${r.writes.appended} new, ${r.writes.resighted} re-sighting(s); nothing written, --confirm to write`,
+);
 console.log("🔴 Nothing was fixed. No product repository was touched.");

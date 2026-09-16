@@ -11,6 +11,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { createJsonlStore } from "../src/evidence/store.mjs";
+import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
 import { makeObservation } from "../src/evidence/records.mjs";
 import { sha256Hex, canonicalUrl, targetPageId } from "../src/evidence/ids.mjs";
 import { extractLinks } from "../src/crawl/seeds.mjs";
@@ -25,6 +26,10 @@ import { SITEMAP_VS_ROBOTS, collectSitemapUrls, contradictions, MAX_CHILD_SITEMA
 import { parseGroups, selectGroup, decide } from "../src/audit/robots-scope.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+/* 🔴 GAP 2 (16 September 2026) — DRY-RUN BY DEFAULT, for the findings AND for the sitemap
+ * observations. Until now both appended on every run with no flag and no gate. */
+const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
+const wouldWrite = { findings: 0, sitemapObservations: 0 };
 const arg = (n, d) => {
   const hit = process.argv.find((a) => a.startsWith(`--${n}=`));
   return hit ? hit.slice(n.length + 3) : d;
@@ -33,7 +38,7 @@ const flag = (n) => process.argv.includes(`--${n}`);
 
 const corpusDir = arg("corpus", null);
 const doSitemaps = flag("sitemaps");
-const out = arg("out", `${REPO}runs/audit/technical-findings.jsonl`);
+const out = confineToRepo(arg("out", `${REPO}runs/audit/technical-findings.jsonl`), { label: "--out" });
 const openedAt = new Date().toISOString();
 
 const crawl = createJsonlStore(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`).readAll();
@@ -137,7 +142,8 @@ if (doSitemaps) {
       },
       collector: "bin/audit-technical.mjs", collector_version: "1",
     });
-    sitemapStore.appendIfNew(obs);
+    if (permission.mayWrite) sitemapStore.appendIfNew(obs);
+    else wouldWrite.sitemapObservations += 1;
     r.observationId = obs.observation_id;
     console.log(
       `  ${host.padEnd(30)} urls=${String(r.urls.length).padStart(6)}  children ${r.childrenFetched}/${r.childrenTotal ?? "?"}` +
@@ -162,7 +168,7 @@ for (const r of evidence) {
 }
 
 /* ---- run every check ---------------------------------------------------- */
-if (!existsSync(dirname(out))) mkdirSync(dirname(out), { recursive: true });
+if (permission.mayWrite && !existsSync(dirname(out))) mkdirSync(dirname(out), { recursive: true });
 const store = createJsonlStore(out);
 const writes = { appended: 0, resighted: 0 };
 const tally = {};
@@ -219,8 +225,9 @@ for (const p of pages) {
     }
     // 🔴 appendIfNew, not append: this job run twice stored 868 issues twice
     // (12 Sep 2026). The same finding is now one record plus a re-sighting.
-    const w = store.appendIfNew(f, { seenAt: openedAt });
-    writes[w.appended ? "appended" : "resighted"] += 1;
+    const w = permission.mayWrite ? store.appendIfNew(f, { seenAt: openedAt }) : null;
+    if (w) writes[w.appended ? "appended" : "resighted"] += 1;
+    else wouldWrite.findings += 1;
     bump(check.id, f.verdict);
   }
 }
@@ -229,6 +236,12 @@ for (const p of pages) {
 console.log("=== ITEM 10 SUB-CHECKS + ITEM 38, over the 394 pages ===");
 for (const [id, t] of Object.entries(tally)) {
   console.log(`  ${id.padEnd(28)} FAIL=${String(t.FAIL).padStart(4)}  UNKNOWN=${String(t.UNKNOWN).padStart(4)}  silent=${String(t.silent).padStart(4)}`);
+}
+
+if (!permission.mayWrite) {
+  console.log(`\n[dry-run] would have written ${wouldWrite.findings} finding(s) → ${out}` +
+    (wouldWrite.sitemapObservations ? ` and ${wouldWrite.sitemapObservations} sitemap observation(s) → ${REPO}runs/evidence/sitemaps.jsonl` : "") +
+    " — nothing written, --confirm to write");
 }
 
 console.log("\n=== 🔴 STRUCTURALLY UNKNOWN IN v0.1 — NOT MEASURED, NOT APPROXIMATED ===");

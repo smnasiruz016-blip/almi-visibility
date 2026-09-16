@@ -1,0 +1,56 @@
+GAP 2 — THE WRITE LAW: RED/GREEN, ONE LIMB AT A TIME
+run at 2026-09-16T00:34:58.481Z · node v24.15.0
+branch v0.1/gap2-write-law-census
+target tools/permitted-writers.mjs · sha256 c3de12d9b4016a70f2e2788cdc854504c126e6def81339edf2a30b752f9941d8 · index blob cb921f525594b536a9819c8696b3cb004127e094
+target bin/audit-content.mjs · sha256 5eb9db43c7d9c1a36084bfdbf02c162f54fbd0f1053f1d014265ca6920dbd0d8 · index blob 4298785da3446db5fb6a0220b0184ddea3ca35b2
+data repository a4b38cf93439ffba4bc737c0415476c1d29ee755 (clean) — this run never writes to it
+
+CONTAINMENT (before any sabotage)
+  tools/permitted-writers.mjs: working file == staged index blob
+  bin/audit-content.mjs: working file == staged index blob
+  0-match anchor REFUSED: anchor matched 0 times in tools/permitted-writers.mjs
+  files untouched after the refusal: yes
+  GREEN baseline: test/ungated-writers.test.mjs pass 25 fail 0
+
+LIMB 1 · helper-reached writes stop being write sites (the census counts primitives only, as the figure that said FOUR did)
+  sabotage landed in tools/permitted-writers.mjs: sha256 8a4c2898a1ee2528c29eb6c3a5670dd4efc0d093458efe514e73e59e0494564a
+  test/ungated-writers.test.mjs: pass 20 fail 5
+    not ok — 🔴 GAP 2 · the census covers EVERY write path, and a HELPER-reached write is a site
+    not ok — 🔴 GAP 2 · the six that had NO gate at all are gated at every site, and confined before the first write
+    not ok — 🔴 GAP 2 · an UNDECLARED ungated writer FAILS; the known ones are declared BY NAME and none is stale
+    not ok — 🔴 GAP 2 · a site in a MODULE that takes its store from a caller is reported GATED-AT-CALLER, never counted as gated
+    not ok — 🔴 CONTROL: the census FIRES on a new ungated writer, and on a stale declaration
+  named test RED: YES
+  restored tools/permitted-writers.mjs: sha256 == original · git hash-object == index blob
+  restored bin/audit-content.mjs: sha256 == original · git hash-object == index blob
+
+LIMB 2 · an UNDECLARED ungated writer is treated as declared
+  sabotage landed in tools/permitted-writers.mjs: sha256 e294b0f1e6be8f233ceba104733a1e70e197a662c0ce11240da8e0091c807157
+  test/ungated-writers.test.mjs: pass 24 fail 1
+    not ok — 🔴 CONTROL: the census FIRES on a new ungated writer, and on a stale declaration
+  named test RED: YES
+  restored tools/permitted-writers.mjs: sha256 == original · git hash-object == index blob
+  restored bin/audit-content.mjs: sha256 == original · git hash-object == index blob
+
+LIMB 3 · a module site is claimed as GATED rather than reported gated-at-caller
+  sabotage landed in tools/permitted-writers.mjs: sha256 b7e29aeb886989c0fb6ddcaa06d4a5da83263bff7e293933187c83ec5c4086b7
+  test/ungated-writers.test.mjs: pass 24 fail 1
+    not ok — 🔴 GAP 2 · a site in a MODULE that takes its store from a caller is reported GATED-AT-CALLER, never counted as gated
+  named test RED: YES
+  restored tools/permitted-writers.mjs: sha256 == original · git hash-object == index blob
+  restored bin/audit-content.mjs: sha256 == original · git hash-object == index blob
+
+LIMB 4 · one bin's gate removed — audit-content appends on every run again
+  sabotage landed in bin/audit-content.mjs: sha256 c411764659fa0d0a88b9398764345188b4212bcba2912a1d1270f4ef9e5817fa
+  test/ungated-writers.test.mjs: pass 21 fail 4
+    not ok — 🔴 THE DECLARED LOCAL WRITERS — each states writes · where · gatedBy · why, calls writePermission and confineToRepo before its first write, and every write site sits behind its gate
+    not ok — 🔴 GAP 2 · the six that had NO gate at all are gated at every site, and confined before the first write
+    not ok — 🔴 GAP 2 · an UNDECLARED ungated writer FAILS; the known ones are declared BY NAME and none is stale
+    not ok — 🔴 INCIDENT TEST — `node bin/audit-content.mjs` with NO flags writes NOTHING: every file it would touch stays byte-identical
+  named test RED: YES
+  restored tools/permitted-writers.mjs: sha256 == original · git hash-object == index blob
+  restored bin/audit-content.mjs: sha256 == original · git hash-object == index blob
+
+GREEN after all limbs restored: pass 25 fail 0
+data repository a4b38cf93439ffba4bc737c0415476c1d29ee755 (clean)
+every named test went RED on its limb alone: YES

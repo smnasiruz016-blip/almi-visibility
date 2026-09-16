@@ -28,7 +28,8 @@
 
 import { createGoogleSearchConsoleProvider } from "../src/search/google-search-console.mjs";
 import { runIngest } from "../src/search/ingest.mjs";
-import { createJsonlStore } from "../src/evidence/store.mjs";
+import { createJsonlStore, createDryRunStore } from "../src/evidence/store.mjs";
+import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
 import { formatBoundedResult } from "../src/report/bounded.mjs";
 import { ESTATE_HOSTNAME_LIST, KNOWN_UNKNOWNS } from "../config/estate-hostnames.mjs";
 import { createCostGovernor } from "../src/cost/governor.mjs";
@@ -42,7 +43,12 @@ const arg = (name, fallback = null) => {
 
 const propertyId = arg("property");
 const days = Number(arg("days", "28"));
-const storePath = arg("store", `${REPO}runs/evidence/evidence.jsonl`);
+/* 🔴 GAP 2 (16 September 2026) — the evidence store and the cost ledger are both confined before the
+ * first request, and the run is DRY BY DEFAULT: without --confirm it queries, reports every number,
+ * and stores nothing. The observations are written inside `runIngest`, so the gate is WHICH STORE it
+ * is handed — the dry-run implementation of the same interface when the write is not permitted. */
+const storePath = confineToRepo(arg("store", `${REPO}runs/evidence/evidence.jsonl`), { label: "--store" });
+const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
 const controlProperty = arg("control", "https://example.com/");
 
 if (!propertyId) {
@@ -56,8 +62,8 @@ if (!propertyId) {
 const startedAt = new Date().toISOString();
 const governor = createCostGovernor({ label: "google-search-console ingest run" });
 const provider = createGoogleSearchConsoleProvider({ governor });
-const store = createJsonlStore(storePath);
-const ledger = createCostLedger(`${REPO}runs/cost/ledger.jsonl`);
+const store = permission.mayWrite ? createJsonlStore(storePath) : createDryRunStore(storePath);
+const ledger = createCostLedger(confineToRepo(`${REPO}runs/cost/ledger.jsonl`, { label: "the cost ledger" }));
 
 let r;
 try {
@@ -73,8 +79,8 @@ try {
   if (err?.hardStop) {
     console.error(`\n${err.message}`);
     const stoppedEntry = entryFromLiveIngest({ startedAt, finishedAt: new Date().toISOString(), governor, pulls: [], basis: "Search Console API is free; no billing account attached to almiworld-hq-502102" });
-    ledger.append(stoppedEntry);
-    console.error(`ledger: ${formatLedgerLine(stoppedEntry)}`);
+    if (permission.mayWrite) ledger.append(stoppedEntry);
+    console.error(`ledger${permission.mayWrite ? "" : " [dry-run, not written]"}: ${formatLedgerLine(stoppedEntry)}`);
     process.exit(4);
   }
   throw err;
@@ -170,8 +176,11 @@ if (r.appended === 0 && r.resighted > 0) {
 
 const pullsForLedger = [r.agg, r.pages, ...Object.values(r.queryPulls).map((p) => p.res), ...Object.values(r.countryPulls).map((p) => p.res), r.control];
 const costEntry = entryFromLiveIngest({ startedAt, finishedAt, governor, pulls: pullsForLedger, basis: r.agg.cost.basis });
-const ledgerWrite = ledger.append(costEntry);
-console.log(`\ncost ledger (${ledgerWrite.appended ? "appended" : "already present"}): ${formatLedgerLine(costEntry)}`);
+const ledgerWrite = permission.mayWrite ? ledger.append(costEntry) : { appended: false, dryRun: true };
+console.log(`\ncost ledger (${ledgerWrite.dryRun ? "dry-run, NOT written" : ledgerWrite.appended ? "appended" : "already present"}): ${formatLedgerLine(costEntry)}`);
+if (!permission.mayWrite) {
+  console.log(`[dry-run] would have written ${store.wouldWrite().length} evidence record(s) → ${storePath} and 1 ledger entry — nothing written, --confirm to write`);
+}
 
 console.log("\n⚠️ KNOWN UNKNOWNS — the census denominator is not proven total:");
 for (const u of KNOWN_UNKNOWNS) console.log(`  · ${u}`);

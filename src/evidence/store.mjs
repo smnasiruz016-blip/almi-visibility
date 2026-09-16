@@ -66,6 +66,76 @@ export const STORE_INTERFACE = Object.freeze([
  */
 export const RESIGHTING_TYPE = "resighting";
 
+/**
+ * 🔴 GAP 2 — THE SAME INTERFACE, WRITING NOTHING.
+ *
+ * The write law's default is DRY RUN: with no flags a writer reports what it WOULD write and
+ * writes nothing. Four bins could obey that by putting each write site behind `permission.mayWrite`.
+ * Two cannot: they hand a store to a module (`runRobotsAndDnsAudit`, `runIngest`) and the write
+ * happens in there. Teaching the store about permissions would put the decision inside the thing
+ * being governed — so instead the CALLER chooses which store it hands over, and an unauthorised run
+ * hands over this one.
+ *
+ * This is not a new mechanism. The header above already says the store's verbs are the ones a second
+ * implementation can also offer; this is that second implementation, and `STORE_INTERFACE` is the
+ * list it has to satisfy — the same list `test/store-recovery.test.mjs` enumerates.
+ *
+ * 🔴 IT RETURNS WHAT THE REAL STORE RETURNS. `runIngest` and `runRobotsAndDnsAudit` count appended
+ * against resighted from the return value, so a shim that returned nothing would silently make every
+ * dry run report zero writes — a lie in the safe-looking direction. Every record it is handed is
+ * kept in memory and counted, so the caller can print exactly what the run would have stored.
+ */
+export function createDryRunStore(filePath) {
+  if (typeof filePath !== "string" || filePath === "") throw new TypeError("createDryRunStore: a path is required");
+  const existing = existsSync(filePath) ? createJsonlStore(filePath).readAll() : [];
+  const wouldWrite = [];
+  const keyOf = (r) => {
+    if (typeof r?.measurement_key === "string" && r.measurement_key !== "") return r.measurement_key;
+    if (r?.record_type === "issue" && typeof r.issue_id === "string" && r.issue_id !== "") return `issue:${r.issue_id}`;
+    return null;
+  };
+  const indexKey = (r) => `${r.record_type}|${keyOf(r)}`;
+  const seen = new Set(existing.filter((r) => keyOf(r) !== null).map(indexKey));
+
+  function appendWithoutDedupe(record) {
+    if (!record || typeof record !== "object") throw new TypeError("appendWithoutDedupe: a record object is required");
+    if (typeof record.record_type !== "string") throw new TypeError("appendWithoutDedupe: every record must carry a record_type");
+    wouldWrite.push(record);
+    return record;
+  }
+  function appendIfNew(record, { seenAt = new Date().toISOString() } = {}) {
+    if (!record || keyOf(record) === null) {
+      throw new TypeError(
+        "appendIfNew: the record carries no measurement_key and is not an issue with an issue_id. Only a measurement " +
+          "or a content-identified issue can be deduplicated — use appendWithoutDedupe() for anything else, and declare why.",
+      );
+    }
+    const k = indexKey(record);
+    if (seen.has(k)) return { appended: false, observation_id: record.observation_id, issue_id: record.issue_id, resighting: true };
+    seen.add(k);
+    wouldWrite.push(record);
+    return { appended: true, observation_id: record.observation_id, issue_id: record.issue_id, resighting: false, seenAt };
+  }
+  const appendAllWithoutDedupe = (records) => {
+    for (const r of records) appendWithoutDedupe(r);
+    return records.length;
+  };
+  // 🔴 readAll returns what the file HOLDS. A dry run reads real evidence; it simply adds none.
+  const readAll = () => [...existing];
+  const count = () => existing.length;
+
+  return Object.freeze({
+    appendWithoutDedupe,
+    appendIfNew,
+    appendAllWithoutDedupe,
+    readAll,
+    count,
+    path: filePath,
+    /** 🔴 NOT part of STORE_INTERFACE — the dry run's own report, so a caller can print what it would have stored. */
+    wouldWrite: () => [...wouldWrite],
+  });
+}
+
 export function createJsonlStore(filePath) {
   if (typeof filePath !== "string" || filePath === "") throw new TypeError("createJsonlStore: a path is required");
 

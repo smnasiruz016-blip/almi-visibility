@@ -13,6 +13,7 @@ import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { createJsonlStore } from "../src/evidence/store.mjs";
+import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
 import { measure, shingles, SHELL_DEFINITION, THIN_UNIQUE_WORD_FLOOR } from "../src/audit/shell.mjs";
 import { EXACT_DUPLICATE, THIN_CONTENT, NEAR_DUPLICATE, TEMPLATE_DOMINANCE, ORPHAN_LINK, detectCannibalization, reportCannibalization } from "../src/audit/content-checks.mjs";
 import { registeredChecks } from "../src/audit/check.mjs";
@@ -20,13 +21,17 @@ import { canonicalUrl, targetPageId } from "../src/evidence/ids.mjs";
 import { pagesFromRun, deriveEdges, inboundOf, unpackGraph, ZERO_INBOUND_DEFINITION } from "../src/crawl/inbound.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+/* 🔴 GAP 2 (16 September 2026) — DRY-RUN BY DEFAULT. Until now this appended its findings on every
+ * run with no flag and no gate: the shape that rewrote committed evidence on 14 September when a
+ * writer was run only to read a number. The destination is confined before anything is read. */
+const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
 const arg = (n, d) => {
   const hit = process.argv.find((a) => a.startsWith(`--${n}=`));
   return hit ? hit.slice(n.length + 3) : d;
 };
 
 const corpusDir = arg("corpus", null);
-const out = arg("out", `${REPO}runs/audit/content-findings.jsonl`);
+const out = confineToRepo(arg("out", `${REPO}runs/audit/content-findings.jsonl`), { label: "--out" });
 const openedAt = new Date().toISOString();
 
 const crawl = createJsonlStore(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`).readAll();
@@ -83,8 +88,11 @@ for (const p of pages) {
 }
 
 /* ---- run every check ---------------------------------------------------- */
-if (!existsSync(dirname(out))) mkdirSync(dirname(out), { recursive: true });
+/* 🔴 GAP 2 — DRY-RUN BY DEFAULT. The directory and every append sit behind permission.mayWrite. */
+if (permission.mayWrite && !existsSync(dirname(out))) mkdirSync(dirname(out), { recursive: true });
 const store = createJsonlStore(out);
+const wouldWrite = { findings: 0 };
+const put = (finding) => (permission.mayWrite ? store.appendIfNew(finding, { seenAt: openedAt }) : (wouldWrite.findings += 1));
 
 const tally = {};
 const bump = (id, verdict) => {
@@ -104,7 +112,7 @@ for (const p of pages) {
     }
     // 🔴 appendIfNew: the same finding from the same job run twice is ONE record
     // plus a re-sighting — the discipline the technical audit writer lacked.
-    store.appendIfNew(finding, { seenAt: openedAt });
+    put(finding);
     bump(check.id, finding.verdict);
   }
 }
@@ -119,9 +127,10 @@ for (const dp of distinctPages) {
     bump(ORPHAN_LINK.id, null);
     continue;
   }
-  store.appendIfNew(finding, { seenAt: openedAt });
+  put(finding);
   bump(ORPHAN_LINK.id, finding.verdict);
 }
+if (!permission.mayWrite) console.log(`[dry-run] would have written ${wouldWrite.findings} finding(s) → ${out} — nothing written, --confirm to write`);
 
 /* ---- 🔴 ITEM 13 — the LATEST complete query×page pull, reported in full ----
  * The store holds three pulls of the same window. Merging them mixes positions

@@ -24,14 +24,19 @@ import { readFileSync } from "node:fs";
 
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { makeObservation, makeIssue } from "../src/evidence/records.mjs";
+import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n, d) => {
   const hit = process.argv.find((a) => a.startsWith(`--${n}=`));
   return hit ? hit.slice(n.length + 3) : d;
 };
+// The CSV is READ, not written: it is the verifier's returned rows and it lives wherever they put it.
 const CSV = arg("csv", "C:/Users/Lenovo/OneDrive/Desktop/AlmiWorld project/Claude outputs/FACT_VERIFICATION_2026-09-12.csv");
-const OUT = arg("out", `${REPO}runs/audit/verification-issues.jsonl`);
+/* 🔴 GAP 2 — the DESTINATION is confined before anything is read, and this run is DRY BY DEFAULT. */
+const OUT = confineToRepo(arg("out", `${REPO}runs/audit/verification-issues.jsonl`), { label: "--out" });
+const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
+const wouldWrite = { observations: 0, issues: 0 };
 const CHECKED_ON = "2026-09-12";
 const VERIFIER = "human:beta-g (Cowork)";
 
@@ -71,7 +76,8 @@ const store = createJsonlStore(OUT);
 function observe(factId) {
   const line = rawLine.get(factId);
   if (!line) throw new Error(`no verdict row for ${factId} — refusing to invent one`);
-  return store.appendIfNew(
+  if (!permission.mayWrite) wouldWrite.observations += 1;
+  return (permission.mayWrite ? store.appendIfNew : (r) => ({ observation_id: r.observation_id }))(
     makeObservation({
       observed_at: `${CHECKED_ON}T00:00:00.000Z`,
       /* 🔴 The method names the chain of custody. Not "fetch": nothing was
@@ -96,7 +102,11 @@ function observe(factId) {
  * census now requires every issue writer to call `appendIfNew`.
  */
 function appendIssueIfNew(issue) {
-  return store.appendIfNew(issue, { seenAt: `${CHECKED_ON}T00:00:00.000Z` });
+  /* 🔴 THE TOKEN IS ON THE WRITE LINE ITSELF, not only in a guard above it. An early return does
+   * gate the run, but `tools/permitted-writers.mjs` reads the enclosing condition of each site —
+   * a gate it cannot see is the shape this slot exists to close, so the site names the gate. */
+  if (!permission.mayWrite) wouldWrite.issues += 1;
+  return permission.mayWrite ? store.appendIfNew(issue, { seenAt: `${CHECKED_ON}T00:00:00.000Z` }) : { appended: false, issue_id: issue.issue_id, dryRun: true };
 }
 
 /* ================================================================== *

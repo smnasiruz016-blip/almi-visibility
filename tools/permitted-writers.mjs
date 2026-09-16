@@ -43,15 +43,125 @@ const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 /** The four fields the ruling requires, plus the two that are checked. */
 export const REQUIRED_FIELDS = Object.freeze(["writes", "where", "gatedBy", "why"]);
 
-/**
- * Is the write on `lineNo` (1-based) behind `token`?
- * @returns {{ gated: boolean, by: string | null }}
+/** Is the write on `lineNo` (1-based) behind `token`? Three answers, never two. */
+export const GATE_STATES = Object.freeze(["GATED", "UNGATED", "CANNOT_DETERMINE"]);
+
+/* ── 🔴 THREE OUTCOMES, BECAUSE TWO INVENTED ELEVEN DEFECTS (16 September 2026) ─────────────────
+ *
+ * This function used to answer `{gated: true|false}`. A shape it could not READ therefore fell to
+ * `false` — "I cannot determine" written down as "no gate". On 16 September the widened census
+ * reported ELEVEN binaries as ungated on exactly that fall-through; every one of them was then
+ * measured running with no flags and left every target file byte-identical, and they had already
+ * been DECLARED in KNOWN_UNGATED_WRITERS as defects that do not exist.
+ *
+ * 🔴 LAW-ABSENT-1, APPLIED TO THE CENSUS ITSELF: the absence of a RECOGNISED gate shape is not
+ * evidence of no gate. UNCLASSIFIED never defaults to safe, and never defaults to broken.
+ *
+ * So the third state is not a softening — it is the honest answer, and it is counted in its own
+ * column. The danger it guards against runs both ways: a detector widened until it can read
+ * everything stops being able to go red, and calling unsafe control flow GATED is worse than the
+ * blind spot this replaces.
+ *
+ * @returns {{ state: "GATED"|"UNGATED"|"CANNOT_DETERMINE", gated: boolean, by: string|null, why: string|null }}
+ *   `gated` stays a boolean for every existing caller, and it is true ONLY for GATED.
  */
+const GATED = (by) => ({ state: "GATED", gated: true, by, why: null });
+const UNGATED = (why) => ({ state: "UNGATED", gated: false, by: null, why });
+const UNREADABLE = (why) => ({ state: "CANNOT_DETERMINE", gated: false, by: null, why });
+
 export function gateOf(lines, lineNo, token) {
   const tokenRe = new RegExp(`(^|[^\\w.$])${escape(token)}(?![\\w$])`);
   const negRe = new RegExp(`!\\s*${escape(token)}(?![\\w$])`);
   const site = lines[lineNo - 1];
-  if (tokenRe.test(site) && !negRe.test(site)) return { gated: true, by: `line ${lineNo}` };
+  if (tokenRe.test(site) && !negRe.test(site)) return GATED(`line ${lineNo}`);
+
+  /* ── THE SITE LINE *IS* THE `else`: `if (!token) log();` / `else { write }` ────────────────────
+   * Four binaries write exactly this way — acceptance-test:228, cost-ledger:76,
+   * diagnose-overlap:170, measure-text-kind:100 — the report and the write one statement each on
+   * two lines. 🔴 A walk that only looks ABOVE the site never sees the `else`, because the `else`
+   * IS the site. That is why all four read as unreadable, and it is a blind spot, not a shape. */
+  if (/^\}?\s*else\b/.test(site.trim())) {
+    for (let k = lineNo - 2; k >= 0; k -= 1) {
+      if (!lines[k].trim()) continue;
+      if (!/^(\}\s*)?(else\s+)?if\s*\(/.test(lines[k].trim())) break;
+      if (negRe.test(lines[k])) return GATED(`else of line ${k + 1}`);
+      break;
+    }
+  }
+
+  /* ── THE GUARDED ELSE, ATTACHED TO A TOP-LEVEL `if (!token)` ────────────────────────────────
+   * `if (!token) report(); else { write }` and its `else if` form. The write runs only when the
+   * token is true, because the false case is consumed by the branch above it. This is the shape
+   * of four one-line guards and of supersede-noindex's `else if (records.length)`. */
+  for (let j = lineNo - 2; j >= 0; j -= 1) {
+    const t = lines[j].trim();
+    if (!t) continue;
+    if (indentOf(lines[j]) > indentOf(site)) continue;
+    const attachedElse = /^\}?\s*else\b/.test(t) || /\belse\b\s*\{?\s*$/.test(t);
+    if (attachedElse) {
+      // Walk up to the `if (...)` this else belongs to.
+      for (let k = j; k >= 0; k -= 1) {
+        const open = lines[k].trim();
+        if (!/^(\}\s*)?if\s*\(/.test(open)) continue;
+        if (negRe.test(lines[k])) return GATED(`else of line ${k + 1}`);
+        break;
+      }
+    }
+    break;
+  }
+
+  /* ── 🔴 THE EARLY-EXIT GUARD, WHICH THIS FUNCTION USED TO CALL "UNGATED" ──────────────────────
+   *
+   * The walk below reads ENCLOSING blocks by indentation, so it can only see a gate that WRAPS the
+   * write. A guard that says `if (!permission.mayWrite) { …; process.exit(0); }` and then falls
+   * through to a TOP-LEVEL write has no enclosing block at all — and the header above admitted the
+   * blind spot while calling it "the strict direction".
+   *
+   * 🔴 IT WAS NOT STRICT, IT WAS WRONG, AND IT COST SOMETHING. On 16 September 2026 the widened
+   * census reported ELEVEN binaries as ungated on exactly this shape; every one of them was then
+   * measured running with no flags and left every target file byte-identical. They had already
+   * been DECLARED in KNOWN_UNGATED_WRITERS as defects that do not exist. A detector that cannot
+   * see a real gate does not fail safe — it manufactures work and buries the true signal among
+   * false ones.
+   *
+   * So a write is gated when, ABOVE it and at the top level of the same file, a block opened by
+   * `if (!token)` leaves the program: `process.exit(...)` or a bare `return`. Anything else in that
+   * block (a log line, a report of what would have been written) is irrelevant — what matters is
+   * that the write below is unreachable when the token is false. */
+  const siteIndent = indentOf(site);
+  /** An `if (!token)` block that does NOT leave: after it closes, control reaches the write. */
+  let fellThrough = null;
+  for (let j = lineNo - 2; j >= 0; j -= 1) {
+    const open = lines[j];
+    const t = open.trim();
+    if (!t) continue;
+    // Only a guard at or outside the site's own nesting can make the site unreachable.
+    if (indentOf(open) > siteIndent) continue;
+    if (!/^(\}\s*else\s+)?if\s*\(/.test(t) || !negRe.test(open)) continue;
+
+    /* `if (!token) …` — does the block LEAVE before the write, merely report and fall through, or
+     * hand the write to a LATER BRANCH of its own if/else chain? */
+    const guardIndent = indentOf(open);
+    const braces = [];
+    for (let k = j + 1; k < lineNo - 1; k += 1) {
+      if (!lines[k].trim() || indentOf(lines[k]) !== guardIndent) continue;
+      if (/^\}/.test(lines[k].trim())) braces.push(k);
+    }
+    if (!braces.length) {
+      // Nothing closed above the site: a single-statement guard, or the site is INSIDE the block.
+      if (/\bprocess\.exit\s*\(|\breturn\b/.test(t)) return GATED(`early exit of line ${j + 1}`);
+      continue;
+    }
+    /* 🔴 `} else if (records.length) {` IS NOT THE END OF THE CONSTRUCT — IT OPENS THE NEXT BRANCH.
+     * supersede-noindex:145 writes inside such a branch, reachable only when the token is true.
+     * Reading that brace as "the guard closed, control falls through" is exactly what turned a
+     * genuinely gated write into an ungated FINDING. The brace that ends a chain carries no else. */
+    if (/^\}\s*else\b/.test(lines[braces[braces.length - 1]].trim())) return GATED(`else of line ${j + 1}`);
+    const body = lines.slice(j + 1, braces[0]).join("\n");
+    if (/\bprocess\.exit\s*\(|^\s*return\b/m.test(body)) return GATED(`early exit of line ${j + 1}`);
+    // 🔴 It only reports. The write below is REACHABLE with the token false — a real defect shape.
+    fellThrough = j + 1;
+  }
 
   let depth = indentOf(site);
   for (let i = lineNo - 2; i >= 0 && depth > 0; i -= 1) {
@@ -66,17 +176,33 @@ export function gateOf(lines, lineNo, token) {
       for (let j = i - 1; j >= 0; j -= 1) {
         if (!lines[j].trim() || indentOf(lines[j]) !== ind) continue;
         if (/^\s*(\}\s*else\s+)?if\s*\(/.test(lines[j])) {
-          if (negRe.test(lines[j])) return { gated: true, by: `else of line ${j + 1}` };
+          if (negRe.test(lines[j])) return GATED(`else of line ${j + 1}`);
           break;
         }
       }
       continue;
     }
-    if (/^(\}\s*else\s+)?if\s*\(/.test(t) && tokenRe.test(t) && !negRe.test(t)) {
-      return { gated: true, by: `line ${i + 1}` };
+    if (/^(\}\s*else\s+)?if\s*\(/.test(t)) {
+      // 🔴 RETURN, DO NOT RECORD AND CARRY ON. The write sits in the branch taken when writing is
+      // NOT permitted; an OUTER positive test must never be allowed to overturn that into GATED.
+      // "A detector that calls unsafe control flow GATED is worse than the original blind spot."
+      if (negRe.test(t)) return UNGATED(`the write is INSIDE \`if (!${token})\` at line ${i + 1} — that branch runs when writing is NOT permitted`);
+      if (tokenRe.test(t)) return GATED(`line ${i + 1}`);
     }
   }
-  return { gated: false, by: null };
+
+  /* ── 🔴 THE THIRD STATE, DECIDED — NEVER A FALL-THROUGH ──────────────────────────────────────
+   * Each branch below states WHY. An UNGATED verdict must rest on control flow that provably
+   * reaches the write; anything else is CANNOT_DETERMINE, which is a correct answer and not a
+   * failure. The four unsafe shapes stay UNGATED, and that is what keeps this able to go red. */
+  if (fellThrough !== null) {
+    return UNGATED(`the \`if (!${token})\` at line ${fellThrough} only reports and falls through — control reaches this write with no permission`);
+  }
+  const testedAbove = lines.slice(0, lineNo - 1).some((l) => !/^\s*(\/\/|\*|\/\*)/.test(l) && tokenRe.test(l));
+  if (!testedAbove) {
+    return UNGATED(`\`${token}\` is never tested above this line — control flow reaches the write unguarded`);
+  }
+  return UNREADABLE(`\`${token}\` is tested above line ${lineNo}, but not in a shape this detector reads — it may or may not guard this write`);
 }
 
 /** Does this file let an operator choose where it writes? */
@@ -230,8 +356,10 @@ export function writeSiteCensus({ repo = REPO, sources = null, register = [...PE
         reachedBy: [...(reachedBy.get(file) ?? [])].sort(),
         declared: Boolean(entry),
         gateToken: entry?.gateToken ?? null,
+        state: g.state,
         gated: g.gated,
         by: g.by,
+        why: g.why,
         gatedAtCaller,
       });
     });
@@ -240,7 +368,12 @@ export function writeSiteCensus({ repo = REPO, sources = null, register = [...PE
   const byClass = Object.fromEntries(["page", "evidence", "export", "ledger", "other"].map((k) => [k, sites.filter((s) => s.class === k).length]));
   // 🔴 THE FAILURE CONDITION IS ABOUT ENTRY POINTS. A library write is reached through a binary, and
   // the binary is where an operator's flag lands; a site in src/ that its caller gates is not a defect.
-  const ungatedBins = sites.filter((s) => s.file.startsWith("bin/") && !s.gated);
+  /* 🔴 `state === "UNGATED"`, NOT `!gated`. Those differ by exactly the third state, and that
+   * difference is the whole defect: `!gated` swept every shape the detector could not read into
+   * the defect list, which is how eleven binaries came to be declared as defects that do not exist.
+   * A site this census cannot read is counted below, in its own column, and is NOT a finding. */
+  const ungatedBins = sites.filter((s) => s.file.startsWith("bin/") && s.state === "UNGATED");
+  const cannotDetermine = sites.filter((s) => s.state === "CANNOT_DETERMINE");
   /* 🔴 DECLARED IS NOT FIXED. Widening the census found eleven more ungated binaries than the six
    * this slot gates. A census that failed on all of them would fail the build on day one and be
    * switched off; one that passed on all of them could never go red. So the known ones are DECLARED
@@ -248,6 +381,10 @@ export function writeSiteCensus({ repo = REPO, sources = null, register = [...PE
    * writer no longer has an ungated site is STALE, so the list cannot rot into a blanket exemption. */
   const declaredUngated = new Set(knownUngated.map((e) => e.file));
   const ungatedFiles = new Set(ungatedBins.map((s) => s.file));
+  /* 🔴 AN UNREADABLE NAME IS NOT A STALE NAME. Stale means "gated now, so the name must go"; a
+   * file this census CANNOT READ has not been shown to be gated, and striking its name would be
+   * the third state quietly collapsing into the first. It is carried, by name, as UNRESOLVED. */
+  const unreadableFiles = new Set(cannotDetermine.map((s) => s.file));
   return {
     scanned: files.length,
     sites,
@@ -256,7 +393,13 @@ export function writeSiteCensus({ repo = REPO, sources = null, register = [...PE
     ungatedBins,
     declaredUngated: ungatedBins.filter((s) => declaredUngated.has(s.file)),
     undeclaredUngated: ungatedBins.filter((s) => !declaredUngated.has(s.file)),
-    staleUngatedDeclarations: [...declaredUngated].filter((f) => !ungatedFiles.has(f)).sort(),
+    staleUngatedDeclarations: [...declaredUngated].filter((f) => !ungatedFiles.has(f) && !unreadableFiles.has(f)).sort(),
+    unresolvedDeclarations: [...declaredUngated].filter((f) => unreadableFiles.has(f)).sort(),
+    /* 🔴 THE THIRD STATE'S OWN COLUMN. Never folded into gated, never folded into ungated, never
+     * summed into a clean total. An unreadable site MAY be hiding a real ungated writer — that is
+     * LAW-ABSENT-1, and "we could not tell" is not "there is nothing there". */
+    cannotDetermine,
+    cannotDetermineBins: cannotDetermine.filter((s) => s.file.startsWith("bin/")),
     gatedAtCaller: sites.filter((s) => s.gatedAtCaller),
     cannotSee: [
       "a computed import, or a module reached through a variable",
@@ -294,7 +437,9 @@ export function analyseWriters({ repo = REPO, sources = null, register = PERMITT
     const entry = byFile.get(file);
     const lines = read(file).split(/\r?\n/);
     for (const h of hits) {
-      const g = entry ? gateOf(lines, h.line, entry.gateToken) : { gated: false, by: null };
+      const g = entry
+        ? gateOf(lines, h.line, entry.gateToken)
+        : { state: "UNGATED", gated: false, by: null, why: "no register entry names a gate token for this file" };
       sites.push({ file, line: h.line, text: h.text, declared: Boolean(entry), gateToken: entry?.gateToken ?? null, ...g });
     }
   }
@@ -315,7 +460,11 @@ export function analyseWriters({ repo = REPO, sources = null, register = PERMITT
     destinationMismatch,
     unconfined,
     sites,
-    defaultsToWriting: sites.filter((s) => !s.gated),
+    /* 🔴 UNGATED ONLY — a page write whose gate this detector cannot READ is not a page write that
+     * DEFAULTS TO WRITING, and saying so would be the same false claim in the other direction. It
+     * is carried below, by name, and it still fails: unreadable is not clean. */
+    defaultsToWriting: sites.filter((s) => s.state === "UNGATED"),
+    undeterminedGate: sites.filter((s) => s.state === "CANNOT_DETERMINE"),
     reconciles: undeclared.length === 0 && stale.length === 0 && siteMismatch.length === 0 && incomplete.length === 0,
   };
 }
@@ -335,7 +484,8 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1].rep
 
   console.log("RECONCILIATION — census against register, line by line:");
   for (const s of r.sites) {
-    console.log(`  ${s.declared ? "named " : "🔴 UNNAMED"}  ${s.gated ? "gated   " : "🔴 DEFAULTS TO WRITING"}  ${s.file}:${s.line}${s.by ? `  (gate: ${s.by})` : ""}`);
+    const verdict = { GATED: "gated   ", UNGATED: "🔴 DEFAULTS TO WRITING", CANNOT_DETERMINE: "⚠️ CANNOT DETERMINE" }[s.state];
+    console.log(`  ${s.declared ? "named " : "🔴 UNNAMED"}  ${verdict}  ${s.file}:${s.line}${s.by ? `  (gate: ${s.by})` : ""}${s.state === "CANNOT_DETERMINE" ? `  — ${s.why}` : ""}`);
   }
   console.log(`  undeclared writers : ${r.undeclared.length ? r.undeclared.join(", ") : "0"}`);
   console.log(`  stale entries      : ${r.stale.length ? r.stale.join(", ") : "0"}`);
@@ -351,7 +501,9 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1].rep
   console.log("\nGAP 2 — THE WRITE-SITE CENSUS (every write path under src/, bin/, tools/)");
   console.log(`[bound: ${w.scanned} git-tracked .mjs files · ${w.sites.length} write site(s) · ${w.viaHelper} reached through a HELPER, which a primitive-name census cannot see at all]`);
   console.log(`  by class: ${Object.entries(w.byClass).map(([k, v]) => `${k}=${v}`).join("  ")}`);
-  console.log(`  gated: ${w.sites.filter((s) => s.gated).length}   ungated in bin/: ${w.ungatedBins.length} (declared ${w.declaredUngated.length}, UNDECLARED ${w.undeclaredUngated.length})`);
+  console.log(`  gated: ${w.sites.filter((s) => s.state === "GATED").length}   ungated in bin/: ${w.ungatedBins.length} (declared ${w.declaredUngated.length}, UNDECLARED ${w.undeclaredUngated.length})`);
+  console.log(`  ⚠️ CANNOT_DETERMINE: ${w.cannotDetermine.length} site(s), ${w.cannotDetermineBins.length} in bin/ — its OWN column, folded into neither state (LAW-ABSENT-1)`);
+  for (const s of w.cannotDetermine) console.log(`     ⚠️ UNREADABLE  ${s.file}:${s.line}  [${s.class}]  ${s.why}`);
   for (const s of w.undeclaredUngated) console.log(`     🔴 UNDECLARED, UNGATED  ${s.file}:${s.line}  [${s.class}]  ${s.text.slice(0, 70)}`);
   for (const s of w.declaredUngated) console.log(`     declared (next slot)    ${s.file}:${s.line}  [${s.class}]  ${s.text.slice(0, 70)}`);
   console.log(`  GATED-AT-CALLER — a module that takes its store from a caller; this census CANNOT judge it, the incident tests do: ${w.gatedAtCaller.length}`);
@@ -362,9 +514,10 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1].rep
 
   const hard = ["PRODUCT_REPO_WRITE", "PUBLISH", "BULK_GENERATION", "OUTSIDE_REPO_WRITE"].filter((k) => r.census.hits[k].length);
   const failed = hard.length > 0 || !r.reconciles || r.defaultsToWriting.length > 0 || r.unconfined.length > 0 ||
-    w.undeclaredUngated.length > 0 || w.staleUngatedDeclarations.length > 0;
+    r.undeterminedGate.length > 0 || w.undeclaredUngated.length > 0 || w.staleUngatedDeclarations.length > 0;
   console.log(`\n${failed ? "🔴 item 14's FAILURE condition is MET" : "✅ item 14's FAILURE condition is not met"}` +
     (r.defaultsToWriting.length ? ` — ${r.defaultsToWriting.length} write site(s) DEFAULT TO WRITING` : "") +
+    (r.undeterminedGate.length ? ` — ${r.undeterminedGate.length} PAGE write site(s) whose gate CANNOT BE DETERMINED (unreadable is not clean)` : "") +
     (r.unconfined.length ? ` — ${r.unconfined.length} writer(s) NOT CONFINED to this repository` : "") +
     (hard.length ? ` — non-empty: ${hard.join(", ")}` : "") +
     (!r.reconciles ? " — the register does not reconcile" : ""));

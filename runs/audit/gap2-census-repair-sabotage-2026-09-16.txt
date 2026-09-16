@@ -1,0 +1,58 @@
+SABOTAGE — THE CENSUS FALSE-NEGATIVE REPAIR, EACH LIMB ALONE
+run at 2026-09-16T02:11:34.034Z · node v24.15.0 · branch v0.1/gap2-census-false-negative-repair · HEAD 3bbb31ae247bcbb717d801642dc66445c2422dba
+
+FILES UNDER TEST, BEFORE ANY LIMB:
+  sha256 52c4ecb5af347d90  blob 00569426f35fb250a4a5dd0006cce4a441101f8b  tools/permitted-writers.mjs
+  sha256 aa40a87329bec231  blob 95af5bc995419c976374aa54b2fd4d6ec1170a7c  test/permitted-writers.test.mjs
+  sha256 4d9cf689d030a069  blob 90ecae793df4c157b73c07192f3deb5cc613d606  test/ungated-writers.test.mjs
+
+0 · CONTAINMENT — damage a file, restore it, and prove the restore by sha256 AND git blob
+  damaged sha256 04ec776b37e873f3 → restored sha256 52c4ecb5af347d90 · blob 00569426f35fb250a4a5dd0006cce4a441101f8b
+  ✅ containment proved: the harness changes the real file and puts it back byte for byte.
+
+BASELINE — both test files with NO damage:
+  test/permitted-writers.test.mjs: PASS
+  test/ungated-writers.test.mjs: PASS
+
+LIMB 1 · the guarded-else shape where the SITE LINE IS THE ELSE (acceptance-test:228, cost-ledger:76, diagnose-overlap:170, measure-text-kind:100)
+  damage LANDED in tools/permitted-writers.mjs (sha256 now 2a0bed2c7bc64eab)
+  ✅ RED — test/permitted-writers.test.mjs :: CONTROL: the gate finder recognises the five real gate shapes
+      tests that failed: CONTROL: the gate finder recognises the five real gate shapes | CONTROL: the gate finder recognises the five real gate shapes
+  restored: sha256 52c4ecb5af347d90 · blob 00569426f35fb250a4a5dd0006cce4a441101f8b — verified against BOTH
+
+LIMB 2 · `} else if (…) {` is a BRANCH, not the close of the guard (supersede-noindex:145)
+  damage LANDED in tools/permitted-writers.mjs (sha256 now f80eb1a0be63ca9a)
+  ✅ RED — test/permitted-writers.test.mjs :: 🔴 CONTROL: `} else if` OPENS a branch — a write inside it is GATED even with lines in between
+      tests that failed: 🔴 CONTROL: `} else if` OPENS a branch — a write inside it is GATED ev | 🔴 CONTROL: `} else if` OPENS a branch — a write inside it is GATED ev
+  ✅ RED — test/ungated-writers.test.mjs :: 🔴 GAP 2 · an UNDECLARED ungated writer FAILS; every declared name matches the census and none is stale
+      tests that failed: 🔴 GAP 2 · an UNDECLARED ungated writer FAILS; every declared name mat | 🔴 GAP 2 · an UNDECLARED ungated writer FAILS; every declared name mat
+  restored: sha256 52c4ecb5af347d90 · blob 00569426f35fb250a4a5dd0006cce4a441101f8b — verified against BOTH
+
+LIMB 3 · 🔴 THE THIRD STATE COLLAPSED INTO GATED — unclassified defaulting to SAFE
+  damage LANDED in tools/permitted-writers.mjs (sha256 now ce5f0c9d5785330f)
+  ✅ RED — test/permitted-writers.test.mjs :: 🔴 THE THIRD STATE: a REAL guard in a shape the detector cannot read is CANNOT_DETERMINE
+      tests that failed: 🔴 THE THIRD STATE: a REAL guard in a shape the detector cannot read i | 🔴 THE THIRD STATE: a REAL guard in a shape the detector cannot read i
+  ✅ RED — test/ungated-writers.test.mjs :: 🔴 CONTROL: a site the census CANNOT READ is CANNOT_DETERMINE — not a finding, not clean, and a declared one is UNRESOLVED, never stale
+      tests that failed: 🔴 CONTROL: a site the census CANNOT READ is CANNOT_DETERMINE — not a  | 🔴 CONTROL: a site the census CANNOT READ is CANNOT_DETERMINE — not a 
+  restored: sha256 52c4ecb5af347d90 · blob 00569426f35fb250a4a5dd0006cce4a441101f8b — verified against BOTH
+
+LIMB 4 · 🔴 THE THIRD STATE COLLAPSED INTO UNGATED — the exact defect that invented eleven findings
+  damage LANDED in tools/permitted-writers.mjs (sha256 now afa7395f18314fee)
+  ✅ RED — test/permitted-writers.test.mjs :: 🔴 THE THIRD STATE: a REAL guard in a shape the detector cannot read is CANNOT_DETERMINE
+      tests that failed: 🔴 THE THIRD STATE: a REAL guard in a shape the detector cannot read i | 🔴 THE THIRD STATE: a REAL guard in a shape the detector cannot read i
+  ✅ RED — test/ungated-writers.test.mjs :: 🔴 CONTROL: a site the census CANNOT READ is CANNOT_DETERMINE — not a finding, not clean, and a declared one is UNRESOLVED, never stale
+      tests that failed: 🔴 CONTROL: a site the census CANNOT READ is CANNOT_DETERMINE — not a  | 🔴 CONTROL: a site the census CANNOT READ is CANNOT_DETERMINE — not a 
+  restored: sha256 52c4ecb5af347d90 · blob 00569426f35fb250a4a5dd0006cce4a441101f8b — verified against BOTH
+
+AFTER EVERY RESTORE — the four unsafe shapes must still read UNGATED, and both files green:
+  test/permitted-writers.test.mjs: PASS
+  test/ungated-writers.test.mjs: PASS
+
+FINAL STATE OF EVERY FILE TOUCHED:
+  sha256 52c4ecb5af347d90  blob 00569426f35fb250a4a5dd0006cce4a441101f8b  tools/permitted-writers.mjs
+  sha256 aa40a87329bec231  blob 95af5bc995419c976374aa54b2fd4d6ec1170a7c  test/permitted-writers.test.mjs
+  sha256 4d9cf689d030a069  blob 90ecae793df4c157b73c07192f3deb5cc613d606  test/ungated-writers.test.mjs
+
+EVERY LIMB WENT RED ON ITS OWN NAMED TEST: YES
+🔴 A third state that cannot go red is decoration: limbs 3 and 4 collapse it into each of the
+   other two states, and each collapse fails a named test in BOTH the detector and the census.

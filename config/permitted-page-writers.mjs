@@ -147,30 +147,46 @@ export const PERMITTED_PAGE_WRITERS = Object.freeze([
  * done here. A new ungated local writer can still arrive unseen, exactly as these did.
  */
 /**
- * 🔴 GAP 2, THE PART THAT IS NOT DONE — DECLARED SO IT CANNOT GROW SILENTLY (16 September 2026).
+ * 🔴 GAP 2, RECONCILED — WHAT #97 DECLARED, AND WHAT MEASUREMENT ACTUALLY FOUND (16 September 2026).
  *
- * Widening the census from PAGE writes to EVERY write path is what found these. They are binaries
- * that still write with no gate: the census reports each one, and `test/ungated-writers.test.mjs`
- * pins this list, so a NEW ungated writer fails the build while these known ones do not.
+ * #97's widened census reported ELEVEN binaries as ungated writers, and they were declared here BY
+ * NAME as eleven real defects. THEY WERE NOT DEFECTS. The owner withdrew the premise after
+ * measurement, and this list is reconciled to what was measured.
  *
- * 🔴 THIS IS A DECLARATION, NOT AN EXEMPTION. Each is a real defect of the same shape as the six
- * gated in this PR. The owner's brief drew the line: land the census and the six, and REPORT the
- * rest rather than expanding the PR. Removing a name from this list means gating that writer —
- * never deleting the entry.
+ * WHAT WENT WRONG, IN ORDER — the record must not read as though #97 never made the error:
+ *   · #97's census reported the eleven as ungated, and they were declared here as defects;
+ *   · running each with no flags left every file it could write BYTE-IDENTICAL: the premise was
+ *     overbroad, and this list described defects that do not exist;
+ *   · gateOf had two NAMED control-flow blind spots — (a) a write on the `else` LINE of a top-level
+ *     `if (!token)`, where the site IS the else and a walk that only looks ABOVE the site can never
+ *     see it; (b) `} else if (…) {` read as the CLOSE of the guard rather than as the opening of its
+ *     next branch, which made supersede-noindex's gated write look like a fall-through;
+ *   · 🔴 THE ROOT CAUSE WAS NEITHER BLIND SPOT. IT WAS THE TWO-STATE DESIGN ITSELF: a shape gateOf
+ *     could not READ fell to "ungated", so "I cannot determine" was written down as "no gate". That
+ *     is fixed here by the third state — GATED / UNGATED / CANNOT_DETERMINE — counted in its own
+ *     column and folded into neither of the others (LAW-ABSENT-1);
+ *   · this PR corrects both blind spots and the design, and reconciles these declarations.
+ *
+ * 🔴 THIS LIST IS EMPTY BECAUSE THE DETECTOR WAS FIXED, NOT BECAUSE THE WRITERS WERE. No binary was
+ * modified by that PR. A register emptied by repairing a census is NOT the same as a register
+ * emptied by repairing writers, and gap 2 is not closed by this file being empty.
+ *
+ * THE EVIDENCE BEHIND EVERY REMOVAL (runs/audit/gap2-eleven-remeasured-2026-09-16.txt):
+ *   · corrected static census — all eleven GATED; 0 UNGATED; 0 CANNOT_DETERMINE;
+ *   · behavioural, write path demonstrably REACHED and nothing written — acceptance-test,
+ *     edge-graph, instrument-disagreement, link-recommendation-evidence, measure-text-kind,
+ *     replay-crawl, supersede-noindex (7 of 11);
+ *   · 🔴 STATIC EVIDENCE ONLY, because no no-flag run could REACH the write path, and each says why:
+ *     archive-corpus (its corpus must be byte-exact against an expiring artifact), cost-ledger (its
+ *     write sits behind `capture-actions --run=`, which calls `gh api`), source-integrity (its write
+ *     sits behind `--live`, which fetches), diagnose-overlap (threw on a synthetic corpus before the
+ *     write decision). This PR forbids the network, so those runs were NOT made, and a run that
+ *     exits before its write path is recorded as proving nothing rather than counted as agreement.
+ *
+ * A NAME RETURNS HERE only for a writer MEASURED as genuinely ungated. A writer whose state is
+ * CANNOT_DETERMINE is never declared here: the census carries it, by name, as UNRESOLVED.
  */
-export const KNOWN_UNGATED_WRITERS = Object.freeze([
-  { file: "bin/acceptance-test.mjs", writes: "the acceptance result JSON", why: "next slot" },
-  { file: "bin/archive-corpus.mjs", writes: "the packed body archive", why: "next slot — its overwrite REFUSAL is gated (row 36), the write itself is not" },
-  { file: "bin/cost-ledger.mjs", writes: "an actions-run record", why: "next slot" },
-  { file: "bin/diagnose-overlap.mjs", writes: "the overlap diagnostic JSON", why: "next slot" },
-  { file: "bin/edge-graph.mjs", writes: "the packed edge graph", why: "next slot" },
-  { file: "bin/instrument-disagreement.mjs", writes: "instrument-disagreement issues and their closures", why: "next slot" },
-  { file: "bin/link-recommendation-evidence.mjs", writes: "the link-recommendation evidence record", why: "next slot" },
-  { file: "bin/measure-text-kind.mjs", writes: "the text-kind report JSON", why: "next slot" },
-  { file: "bin/replay-crawl.mjs", writes: "the replay corpus directory and its temporary files", why: "next slot" },
-  { file: "bin/source-integrity.mjs", writes: "status observations, a ledger entry and the integrity evidence JSON", why: "next slot" },
-  { file: "bin/supersede-noindex.mjs", writes: "replacement issues for superseded noindex findings", why: "next slot" },
-]);
+export const KNOWN_UNGATED_WRITERS = Object.freeze([]);
 
 export const PERMITTED_LOCAL_WRITERS = Object.freeze([
   {

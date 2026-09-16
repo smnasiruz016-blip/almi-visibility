@@ -157,28 +157,113 @@ test("(d) all EIGHT sites sit behind their declared gate", () => {
   for (const s of gated) assert.ok(s.by, `${s.file}:${s.line} is gated by nothing it can name`);
 });
 
+/**
+ * 🔴 THE FOUR UNSAFE SHAPES — THE POINT OF THE WHOLE DETECTOR.
+ *
+ * Widening a detector until it can read everything is how it stops being able to go red, and on
+ * 16 September 2026 this one was widened twice in a day. These four must stay UNGATED, by STATE
+ * and not merely by the `gated` boolean: after the third state arrived, `!gated` is true for
+ * CANNOT_DETERMINE as well, so a test that only checked `gated === false` would pass while the
+ * detector quietly stopped calling anything a defect.
+ */
 test("🔴 CONTROL: the gate finder FIRES on an ungated write and on a write in the wrong branch", () => {
   const top = ['const p = writePermission({ target: LOCAL, argv });', 'writeFileSync(out, html, "utf8");'];
-  assert.equal(gateOf(top, 2, "permission.mayWrite").gated, false, "a top-level write was called gated");
+  assert.equal(gateOf(top, 2, "permission.mayWrite").state, "UNGATED", "a top-level write was not called ungated");
 
   // The branch that runs when writing is NOT permitted gates nothing.
   const wrong = ["if (!permission.mayWrite) {", '  writeFileSync(out, html, "utf8");', "}"];
-  assert.equal(gateOf(wrong, 2, "permission.mayWrite").gated, false, "a write inside if (!mayWrite) was called gated");
+  assert.equal(gateOf(wrong, 2, "permission.mayWrite").state, "UNGATED", "a write inside if (!mayWrite) was not called ungated");
 
   // A condition on some OTHER variable is not the gate.
   const other = ["if (outDir) {", '  writeFileSync(out, html, "utf8");', "}"];
-  assert.equal(gateOf(other, 2, "permission.mayWrite").gated, false);
+  assert.equal(gateOf(other, 2, "permission.mayWrite").state, "UNGATED");
+
+  // 🔴 AND THE FOURTH: a !token block that only REPORTS, then falls through to the write. The write
+  // below it runs with the token false — reading this as a gate would be the worst failure of all.
+  const fallsThrough = ["if (!permission.mayWrite) {", '  console.log("[dry-run] would write");', "}", 'writeFileSync(out, html, "utf8");'];
+  assert.equal(gateOf(fallsThrough, 4, "permission.mayWrite").state, "UNGATED", "a guard that only logs and falls through was treated as a gate");
 });
 
-test("CONTROL: the gate finder recognises the three real gate shapes", () => {
-  assert.equal(gateOf(['if (permission.mayWrite) writeFileSync(f, b, "utf8");'], 1, "permission.mayWrite").gated, true);
-  assert.equal(gateOf(["if (x) {", "  if (permission.mayWrite) {", '    writeFileSync(f, b, "utf8");', "  }", "}"], 3, "permission.mayWrite").gated, true);
+/**
+ * 🔴 THE THIRD STATE, AND IT MUST BE ABLE TO GO RED IN BOTH DIRECTIONS.
+ *
+ * `gateOf` used to answer only yes/no, so a shape it could not READ fell to "no gate" — and that
+ * is how the widened census of 16 September 2026 reported eleven binaries as ungated writers when
+ * every one of them was gated. LAW-ABSENT-1 applied to the census itself: the absence of a
+ * RECOGNISED gate shape is not evidence of no gate.
+ *
+ * The two assertions below are deliberately a pair. Collapse CANNOT_DETERMINE into GATED and the
+ * second fails; collapse it into UNGATED and the first fails. A third state that cannot go red is
+ * decoration.
+ */
+test("🔴 THE THIRD STATE: a REAL guard in a shape the detector cannot read is CANNOT_DETERMINE", () => {
+  // A switch is a real gate — the write runs only when mayWrite is true — and this detector, which
+  // reads `if` shapes by indentation, genuinely cannot say so. That is an honest answer, not a bug.
+  const unreadable = ["switch (permission.mayWrite) {", "  case true:", '    writeFileSync(f, b, "utf8");', "    break;", "}"];
+  const g = gateOf(unreadable, 3, "permission.mayWrite");
+  assert.equal(g.state, "CANNOT_DETERMINE", "an unreadable guard was forced into a yes/no answer");
+  assert.equal(g.gated, false, "CANNOT_DETERMINE was counted as GATED — unclassified must never default to safe");
+  assert.ok(g.why, "the third state must state WHY it could not read the shape");
+});
+
+test("CONTROL: the gate finder recognises the five real gate shapes", () => {
+  assert.equal(gateOf(['if (permission.mayWrite) writeFileSync(f, b, "utf8");'], 1, "permission.mayWrite").state, "GATED");
+  assert.equal(gateOf(["if (x) {", "  if (permission.mayWrite) {", '    writeFileSync(f, b, "utf8");', "  }", "}"], 3, "permission.mayWrite").state, "GATED");
   assert.equal(
-    gateOf(["if (outDir) {", "  if (!permission.mayWrite) console.log(1);", "  else {", '    writeFileSync(f, b, "utf8");', "  }", "}"], 4, "permission.mayWrite").gated,
-    true,
+    gateOf(["if (outDir) {", "  if (!permission.mayWrite) console.log(1);", "  else {", '    writeFileSync(f, b, "utf8");', "  }", "}"], 4, "permission.mayWrite").state,
+    "GATED",
   );
+
+  /* 🔴 THE FOURTH — THE SITE LINE *IS* THE ELSE. Four binaries write exactly this way
+   * (acceptance-test:228, cost-ledger:76, diagnose-overlap:170, measure-text-kind:100): the report
+   * and the write are one statement each, on two lines. A walk that only looks ABOVE the site never
+   * sees the `else`, because the `else` is the site — and all four read as unreadable until it did. */
+  assert.equal(
+    gateOf(["if (!permission.mayWrite) console.log(1);", 'else { writeFileSync(f, b, "utf8"); }'], 2, "permission.mayWrite").state,
+    "GATED",
+    "the guarded-else shape, where the write sits ON the else line, was not read as a gate",
+  );
+
+  /* 🔴 THE FIFTH — `} else if (…) {` OPENS A BRANCH, IT DOES NOT CLOSE THE GUARD. supersede-noindex
+   * writes inside such a branch, reachable only when the token is true. Reading that brace as "the
+   * guard closed, control falls through" is what turned a genuinely gated write into a FINDING. */
+  assert.equal(
+    gateOf(["if (!permission.mayWrite) {", "  console.log(1);", "} else if (records.length) {", '  writeFileSync(f, b, "utf8");', "}"], 4, "permission.mayWrite").state,
+    "GATED",
+    "a write inside the else-if branch of `if (!token)` was not read as a gate",
+  );
+
   // A token that merely CONTAINS the gate's name is not the gate.
-  assert.equal(gateOf(["if (alive) {", '  writeFileSync(f, b, "utf8");', "}"], 2, "live").gated, false);
+  assert.equal(gateOf(["if (alive) {", '  writeFileSync(f, b, "utf8");', "}"], 2, "live").state, "UNGATED");
+});
+
+/**
+ * 🔴 THE ELSE-IF BRANCH WITH LINES BETWEEN IT AND THE WRITE — supersede-noindex's REAL layout.
+ *
+ * Found by sabotage, and worth recording why. The case in the test above puts `} else if (…) {`
+ * on the line IMMEDIATELY above the write, where a different walk already resolves it — so
+ * disabling the chain rule broke nothing any test could see, while the repository depended on it.
+ * bin/supersede-noindex.mjs has a `const` and two comment lines between the branch and its write
+ * (lines 141-145), which is precisely the gap the other walk cannot cross.
+ *
+ * A rule the repository relies on and no test pins is a rule that will be deleted by someone
+ * tidying up, and the census will silently start reporting a gated write as a defect again.
+ */
+test("🔴 CONTROL: `} else if` OPENS a branch — a write inside it is GATED even with lines in between", () => {
+  const real = [
+    "if (!permission.mayWrite) {",
+    "  console.log(`[dry-run] would have appended ${records.length} records — add --confirm`);",
+    "} else if (records.length) {",
+    "  const store = createJsonlStore(TARGET);",
+    "  // 🔴 Issues through the dedupe entry point; state changes are not issues.",
+    "  for (const issue of replacements) store.appendIfNew(issue, { seenAt: now });",
+    "}",
+  ];
+  assert.equal(
+    gateOf(real, 6, "permission.mayWrite").state,
+    "GATED",
+    "the brace of `} else if` was read as the END of the guard, so a write reachable only WITH permission was called ungated",
+  );
 });
 
 /* ================================================================== *

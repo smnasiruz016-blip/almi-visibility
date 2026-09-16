@@ -1,0 +1,116 @@
+EVIDENCE A AND B, SIDE BY SIDE — THE ELEVEN 'DECLARED UNGATED WRITERS', RE-MEASURED
+run at 2026-09-16T01:55:59.790Z · node v24.15.0 · branch v0.1/gap2-census-false-negative-repair · HEAD 3bbb31ae247bcbb717d801642dc66445c2422dba
+
+THE QUESTION: #97 declared these eleven as ungated writer defects. Are they?
+
+🔴 WHAT THIS RUN CANNOT ANSWER, STATED BEFORE THE RESULT AND NOT AFTER:
+   · ONE RUN PROVES ONE PATH, NOT EVERY PATH.
+   · A run that exits before it reaches a write path leaves files byte-identical for a reason
+     that proves NOTHING about that write path. Such a run is marked NOT DEMONSTRATED here and
+     is never counted as agreement. Silence is not agreement.
+   · A behaviourally-safe run does NOT upgrade a CANNOT_DETERMINE to GATED. Evidence A and the
+     static classification B are recorded side by side; neither stands in for the other.
+
+NETWORK BOUND: no binary is given --live, --confirm or any network-reaching subcommand.
+  · source-integrity's only fetch is inside its --live branch (bin/source-integrity.mjs:80-90);
+  · cost-ledger's `gh api` is inside `capture-actions` (bin/cost-ledger.mjs:41-49), and cmd
+    defaults to the read-only `show` (bin/cost-ledger.mjs:35);
+  · replay-crawl's `gh run download` is inside --recover AND behind --confirm (bin/replay-crawl.mjs:133-141).
+  NO REQUEST WAS MADE BY ANY RUN IN THIS TRANSCRIPT.
+
+PASS 1 — TARGET FILES, BEFORE:
+  48b302cedb1230b7  runs/audit/findings.jsonl
+  d605d2949ca778f8  runs/audit/instrument-findings.jsonl
+  8e8be57357d8df2d  runs/audit/recommendations.jsonl
+  78cee90f31fe8d4c  runs/audit/source-integrity.jsonl
+  bb0ef42feb34aad4  runs/audit/source-integrity-2026-09-13.json
+  cea87220044a36ee  runs/audit/technical-findings.jsonl
+  c2a27880b880cb3d  runs/cost/ledger.jsonl
+  ee5db0b350c1ed1a  runs/cost/actions-runs.jsonl
+  a367b8464fd1bd8f  runs/crawl/edges-2026-09-12.jsonl.br
+  3d857a9e53fd4b01  runs/crawl/bodies-2026-09-12.jsonl.br
+
+PASS 1 — EACH BINARY, NO FLAGS:
+  bin/acceptance-test.mjs  exit=2  dry-run banner: YES  write path REACHED: NOT DEMONSTRATED
+  bin/archive-corpus.mjs  exit=2  dry-run banner: YES  write path REACHED: NOT DEMONSTRATED
+  bin/cost-ledger.mjs  exit=0  dry-run banner: NO  write path REACHED: NOT DEMONSTRATED
+  bin/diagnose-overlap.mjs  exit=2  dry-run banner: YES  write path REACHED: NOT DEMONSTRATED
+  bin/edge-graph.mjs  exit=0  dry-run banner: YES  write path REACHED: YES
+      report: [dry-run] nothing written — add --confirm
+  bin/instrument-disagreement.mjs  exit=0  dry-run banner: YES  write path REACHED: YES
+      report: [dry-run] nothing raised — add --confirm
+  bin/link-recommendation-evidence.mjs  exit=0  dry-run banner: YES  write path REACHED: YES
+      report: [dry-run] nothing written — add --confirm
+  bin/measure-text-kind.mjs  exit=2  dry-run banner: YES  write path REACHED: NOT DEMONSTRATED
+  bin/replay-crawl.mjs  exit=0  dry-run banner: YES  write path REACHED: YES
+      report: [dry-run] nothing recorded — add --confirm
+  bin/source-integrity.mjs  exit=1  dry-run banner: YES  write path REACHED: NOT DEMONSTRATED
+  bin/supersede-noindex.mjs  exit=0  dry-run banner: YES  write path REACHED: YES
+      report: [dry-run] would have appended 0 records — add --confirm
+
+PASS 1 — TARGET FILES, AFTER:
+  unchanged  runs/audit/findings.jsonl
+  unchanged  runs/audit/instrument-findings.jsonl
+  unchanged  runs/audit/recommendations.jsonl
+  unchanged  runs/audit/source-integrity.jsonl
+  unchanged  runs/audit/source-integrity-2026-09-13.json
+  unchanged  runs/audit/technical-findings.jsonl
+  unchanged  runs/cost/ledger.jsonl
+  unchanged  runs/cost/actions-runs.jsonl
+  unchanged  runs/crawl/edges-2026-09-12.jsonl.br
+  unchanged  runs/crawl/bodies-2026-09-12.jsonl.br
+
+FILES CHANGED BY THE ELEVEN NO-FLAG RUNS: 0
+ANNOUNCED THE DRY-RUN DEFAULT: 10 of 11
+  🔴 cost-ledger does not announce it because its DEFAULT subcommand is the read-only `show`,
+     which never asks to write. That is a fact about its default path, not a missing gate.
+
+PASS 2 — THE BINARIES PASS 1 COULD NOT REACH, GIVEN THEIR INPUTS AND STILL NO --confirm
+  🔴 WHY: #97's CI caught an incident test that passed only because the binary exited early.
+     A dry run that never reaches its write path guards nothing, so these are given a corpus
+     built here (the real one is an expiring artifact) and an --out, and the question becomes:
+     with the write path REACHED, does it REPORT instead of writing, and does --out stay absent?
+
+  bin/measure-text-kind.mjs  exit=0  --out exists after: no  write path REACHED: YES
+      report: [dry-run] --out C:\Projects\almi-visibility\.test-scratch\remeasure-MmaWIL\measure-text-kind.json given, nothing written. Add --co
+  bin/diagnose-overlap.mjs  exit=1  --out exists after: no  write path REACHED: NOT DEMONSTRATED
+      not reached: the binary threw on the synthetic corpus BEFORE the write decision — it wrote nothing, and that proves nothing
+  bin/acceptance-test.mjs  exit=0  --out exists after: no  write path REACHED: YES
+      report: [dry-run] --out C:\Projects\almi-visibility\.test-scratch\remeasure-MmaWIL\acceptance-test.json given, nothing written. Add --conf
+
+EVIDENCE B — THE CORRECTED STATIC CENSUS
+  write sites: 101 · GATED 82 · UNGATED in bin/ 0 · CANNOT_DETERMINE 0
+  undeclared ungated: 0 · stale declarations: 0 · unresolved declarations: 0
+
+THE ORIGINAL ELEVEN — A AND B SIDE BY SIDE
+
+  binary                         B: static          A: behavioural
+  bin/acceptance-test.mjs        GATED              reached its write path and WROTE NOTHING
+  bin/archive-corpus.mjs         GATED              NOT DEMONSTRATED
+                                                    └ its --corpus must be byte-exact against the crawl run's bodies, which live in an EXPIRING GitHub artifact absent here and in CI
+  bin/cost-ledger.mjs            GATED              NOT DEMONSTRATED
+                                                    └ its write sits behind `capture-actions --run=<id>`, which calls `gh api` — a NETWORK call this PR forbids
+  bin/diagnose-overlap.mjs       GATED              NOT DEMONSTRATED
+  bin/edge-graph.mjs             GATED              reached its write path and WROTE NOTHING
+  bin/instrument-disagreement.mjs GATED              reached its write path and WROTE NOTHING
+  bin/link-recommendation-evidence.mjs GATED              reached its write path and WROTE NOTHING
+  bin/measure-text-kind.mjs      GATED              reached its write path and WROTE NOTHING
+  bin/replay-crawl.mjs           GATED              reached its write path and WROTE NOTHING
+  bin/source-integrity.mjs       GATED              NOT DEMONSTRATED
+                                                    └ its write sits behind `--live`, which FETCHES — a network call this PR forbids
+  bin/supersede-noindex.mjs      GATED              reached its write path and WROTE NOTHING
+
+🔴 DISAGREEMENTS BETWEEN A AND B: 0
+STATIC EVIDENCE ONLY (A says nothing, and that is recorded as silence, never as agreement): bin/archive-corpus.mjs, bin/cost-ledger.mjs, bin/diagnose-overlap.mjs, bin/source-integrity.mjs
+
+WHAT THIS MEASURED, AND NOTHING MORE:
+  · NO target file changed across all eleven no-flag runs;
+  · 7 of 11 binaries demonstrably REACHED their write decision and reported what they
+    WOULD have written instead of writing it — that is behavioural evidence of a gate;
+  · for the remaining 4, this transcript says NOTHING about their write path. Their
+    classification rests on the corrected static control-flow reading alone, and the reason no
+    behavioural run was possible is named against each above.
+
+🔴 WHAT THIS DOES NOT SAY: that gap 2 is closed. No binary was modified. The eleven declarations
+   were removed because the DETECTOR was repaired, not because any writer was. A register emptied
+   by fixing a census is not a register emptied by fixing writers.

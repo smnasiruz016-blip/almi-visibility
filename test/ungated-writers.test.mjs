@@ -346,7 +346,7 @@ test("🔴 GAP 2 · the six that had NO gate at all are gated at every site, and
   }
 });
 
-test("🔴 GAP 2 · an UNDECLARED ungated writer FAILS; the known ones are declared BY NAME and none is stale", () => {
+test("🔴 GAP 2 · an UNDECLARED ungated writer FAILS; every declared name matches the census and none is stale", () => {
   const w = writeSiteCensus();
   assert.deepEqual(w.undeclaredUngated.map((s) => `${s.file}:${s.line}`), [], "a binary writes with no gate and nobody declared it");
   assert.deepEqual(w.staleUngatedDeclarations, [], "a declared ungated writer is gated now — remove the name, do not keep the exemption");
@@ -357,6 +357,35 @@ test("🔴 GAP 2 · an UNDECLARED ungated writer FAILS; the known ones are decla
     "the declared list and the census disagree about which writers are still ungated",
   );
   for (const e of KNOWN_UNGATED_WRITERS) assert.ok(e.writes && e.why, `${e.file}: a declaration with no reason is an exemption`);
+  /* 🔴 AND A NAME IS NEVER DECLARED UNGATED ON A SITE THE CENSUS COULD NOT READ. That is how the
+   * eleven were declared in the first place: "cannot determine" written down as "no gate". */
+  assert.deepEqual(w.unresolvedDeclarations, [], "a name is declared ungated while its own state is CANNOT_DETERMINE");
+});
+
+/**
+ * 🔴 THE THIRD STATE, AT CENSUS LEVEL, AND IT MUST GO RED IN BOTH DIRECTIONS.
+ *
+ * `gateOf` answering only yes/no is what turned eleven gated binaries into eleven declared defects.
+ * The census must now carry a site it CANNOT READ in its own column: not a finding, not a clean
+ * pass, and — for a declared name — UNRESOLVED rather than stale.
+ *
+ * Collapse CANNOT_DETERMINE into UNGATED and the `ungatedBins` assertion fails; collapse it into
+ * GATED and both the `cannotDetermine` and `unresolvedDeclarations` assertions fail. A third state
+ * that cannot go red is decoration.
+ */
+test("🔴 CONTROL: a site the census CANNOT READ is CANNOT_DETERMINE — not a finding, not clean, and a declared one is UNRESOLVED, never stale", () => {
+  // A real gate (the write runs only when mayWrite is true) in a shape this detector cannot read.
+  const sources = [{ file: "bin/switchy.mjs", text: "switch (permission.mayWrite) {\n  case true:\n    store.appendIfNew(rec);\n    break;\n}\n" }];
+
+  const undeclared = writeSiteCensus({ sources, register: [], knownUngated: [] });
+  assert.equal(undeclared.cannotDetermine.length, 1, "an unreadable guard was not carried in the third state's own column");
+  assert.deepEqual(undeclared.ungatedBins.map((s) => s.file), [], "an unreadable guard was reported as an ungated writer — that is the defect this PR removes");
+  assert.deepEqual(undeclared.undeclaredUngated, [], "an unreadable guard was raised as a finding against a binary nobody could judge");
+  assert.ok(undeclared.cannotDetermine[0].why, "the census must say WHY it could not read the site");
+
+  const declared = writeSiteCensus({ sources, register: [], knownUngated: [{ file: "bin/switchy.mjs", writes: "x", why: "y" }] });
+  assert.deepEqual(declared.unresolvedDeclarations, ["bin/switchy.mjs"], "a declared name whose state is CANNOT_DETERMINE was not carried as UNRESOLVED");
+  assert.deepEqual(declared.staleUngatedDeclarations, [], "a name the census cannot read was called STALE — striking it would collapse the third state into GATED");
 });
 
 test("🔴 GAP 2 · a site in a MODULE that takes its store from a caller is reported GATED-AT-CALLER, never counted as gated", () => {

@@ -445,10 +445,36 @@ function scratchCorpus() {
   return dir;
 }
 
+/**
+ * 🔴 THE VERDICT ROWS, BUILT FROM COMMITTED RECORDS — GAP 2, 16 SEPTEMBER 2026.
+ *
+ * `bin/verification-issues.mjs` reads its CSV from a default path outside this repository, so in CI it
+ * printed the dry-run banner and then died at `readFileSync` before its first write decision — and this
+ * case, which asserted only the banner, passed on that death exactly as it passed on a refused write.
+ * A banner is printed BEFORE any input is read; it is not evidence that the write was reached.
+ *
+ * The six verdict rows the bin records are the six `human-verification-return` observations it has
+ * already committed to runs/audit/verification-issues.jsonl, so the CSV is rebuilt from those, into
+ * git-ignored `.test-scratch`. `[bound: 6 verdict rows read …]` is printed after BOTH issue write
+ * decisions, so seeing it — with exactly 6 — proves the run reached them.
+ */
+function scratchVerdictCsv() {
+  const rows = createJsonlStore(join(REPO_ROOT, "runs", "audit", "verification-issues.jsonl")).readAll()
+    .filter((r) => r.record_type === "observation" && r.method === "human-verification-return");
+  assert.equal(rows.length, 6, "the committed verification store no longer holds the six verdict rows this case is built from");
+  const cell = (v) => `"${String(v).replace(/"/g, '""')}"`;
+  const csv = ["fact_id,verdict,note", ...rows.map((r) => [r.value.fact_id, cell(r.value.verdict), cell(r.value.note)].join(","))].join("\n") + "\n";
+  mkdirSync(join(REPO_ROOT, ".test-scratch"), { recursive: true });
+  const file = join(mkdtempSync(join(REPO_ROOT, ".test-scratch", "verdicts-")), "verdicts.csv");
+  writeFileSync(file, csv, "utf8");
+  return file;
+}
+
 for (const [bin, args, dirs, expect] of [
   ["bin/audit-content.mjs", [], [AUDIT_DIR], /\[dry-run\] would have written \d+ finding\(s\)/],
   ["bin/audit-technical.mjs", [], [AUDIT_DIR, EVIDENCE_DIR], /\[dry-run\] would have written \d+ finding\(s\)/],
-  ["bin/verification-issues.mjs", [], [AUDIT_DIR], /\[dry-run\] no writes will happen/],
+  // 🔴 REACH, NOT THE BANNER: given its input, and required to print the line that follows both write decisions.
+  ["bin/verification-issues.mjs", [`--csv=${scratchVerdictCsv()}`], [AUDIT_DIR], /\[bound: 6 verdict rows read from /],
   ["bin/audit.mjs", [], [AUDIT_DIR], /\[dry-run\] would have written \d+ record\(s\)/],
   // 🔴 These two exit early without their input, so they are given it — a dry run that never
   // reaches its write path would prove nothing at all.

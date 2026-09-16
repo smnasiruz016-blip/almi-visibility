@@ -29,6 +29,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { createJsonlStore } from "../src/evidence/store.mjs";
+import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
 
 import { EXACT_DUPLICATE, THIN_CONTENT, NEAR_DUPLICATE, TEMPLATE_DOMINANCE, RECOMMENDATION_FIELDS } from "../src/audit/content-checks.mjs";
 import { measure, SHELL_DEFINITION, THIN_UNIQUE_WORD_FLOOR } from "../src/audit/shell.mjs";
@@ -40,7 +41,11 @@ const arg = (n, d) => {
 };
 const CORPUS = arg("corpus", null);
 const CRAWL = arg("crawl", `${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`);
-const OUT = arg("out", `${REPO}runs/audit/supply-labels.jsonl`);
+/* 🔴 GAP 2 — confined BEFORE anything is read, and DRY-RUN BY DEFAULT. Until 16 September 2026 this
+ * appended its findings on every run, with no flag and no gate: the shape that rewrote committed
+ * evidence on 14 September when a writer was run only to read a number. */
+const OUT = confineToRepo(arg("out", `${REPO}runs/audit/supply-labels.jsonl`), { label: "--out" });
+const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
 
 /* ---- the corpus ---------------------------------------------------------- */
 
@@ -173,11 +178,13 @@ for (const f of findings) {
  * issue-writer census found it by construction where no hand-kept list had.
  * A re-run now adds a re-sighting per finding it has already stored. */
 const store = createJsonlStore(OUT);
-const writes = { appended: 0, resighted: 0 };
+const writes = { appended: 0, resighted: 0, wouldWrite: 0 };
 for (const f of findings) {
-  const w = store.appendIfNew(f, { seenAt: openedAt });
-  writes[w.appended ? "appended" : "resighted"] += 1;
+  const w = permission.mayWrite ? store.appendIfNew(f, { seenAt: openedAt }) : null;
+  if (w) writes[w.appended ? "appended" : "resighted"] += 1;
+  else writes.wouldWrite += 1;
 }
+if (!permission.mayWrite) console.log(`[dry-run] would have written ${writes.wouldWrite} finding(s) → ${OUT} — nothing written, --confirm to write`);
 
 /* ---- report --------------------------------------------------------------- */
 

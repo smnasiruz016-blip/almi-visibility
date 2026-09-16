@@ -29,10 +29,11 @@
  * derives it, and `write-law.mjs` has its own tests.
  */
 
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
 import { census, ANY_WRITE_PATTERN } from "./no-generation-census.mjs";
-import { PERMITTED_PAGE_WRITERS } from "../config/permitted-page-writers.mjs";
+import { PERMITTED_PAGE_WRITERS, PERMITTED_LOCAL_WRITERS, KNOWN_UNGATED_WRITERS } from "../config/permitted-page-writers.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 
@@ -83,7 +84,14 @@ export function destinationFlagIn(text) {
   // 🔴 Three spellings exist in bin/ today — `arg("out")`, `"--out="` and
   // `flag("out")`. A first version knew two and declared profession-chain's
   // destination wrongly; the mismatch check is what caught it.
-  return /(?:arg|flag)\(\s*["'](?:--)?(out|corpus)["']|["']--out[="']/.test(text);
+  //
+  // 🔴 AND `store` IS A FOURTH NAME FOR THE SAME THING, added 16 September 2026 (gap 2). The Search
+  // Console ingest lets an operator choose its destination with `--store=`, which is exactly what
+  // this field is for — and because the detector did not know the word, the register declared that
+  // writer's destination wrongly and the mismatch check caught it, a second time and the same way.
+  // The lesson is the one already written above: a destination has more than one spelling, and the
+  // detector learns them rather than the register lying about them.
+  return /(?:arg|flag)\(\s*["'](?:--)?(out|corpus|store)["']|["']--(?:out|store)[="']/.test(text);
 }
 
 /**
@@ -107,6 +115,155 @@ export function confinementOf(text) {
     firstConfineLine: firstConfine === -1 ? null : firstConfine + 1,
     firstWriteLine: firstWrite === -1 ? null : firstWrite + 1,
     confinedBeforeFirstWrite: firstConfine !== -1 && (firstWrite === -1 || firstConfine < firstWrite),
+  };
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════════ *
+ * 🔴 GAP 2 — EVERY WRITE PATH, NOT ONLY THE PAGE ONES.
+ *
+ * `analyseWriters` below reconciles PAGE writes against the page register, and that is all it ever
+ * did. A CSV export into runs/, an append into an evidence store, a cost-ledger entry — none of them
+ * were in the population the write law was enforced over, which is how six binaries came to write
+ * with no gate at all while a census stood beside them reporting nothing wrong.
+ *
+ * ── 🔴 WHY THE EARLIER FIGURE SAID FOUR, AND WHAT THAT TEACHES THIS ONE ────────────────────────
+ *
+ * The count that found "four" detected writes by PRIMITIVE NAME, so every write reached through a
+ * helper — `appendIfNew`, `ledger.append` — was never in the population at all. That is the same
+ * error shape as the PAGE_WRITE census it was meant to expose: IT CHECKED THE FILE, NOT THE WRITE
+ * SITE. So a helper call IS a write site here, and the reaching binaries are resolved from the
+ * import graph rather than assumed.
+ *
+ * ── 🔴 WHAT THIS CANNOT SEE, STATED RATHER THAN IMPLIED ────────────────────────────────────────
+ *
+ *   · a computed import, or a module reached through a variable — the graph is read statically
+ *   · a path held only as text and run by something else (a shell script, a workflow, a human)
+ *   · a consumer outside src/, bin/ and tools/ — node_modules included
+ *   · WHETHER A SITE IN A MODULE IS GATED AT ITS CALLER. A module that receives a store as a
+ *     parameter cannot be judged from its own source: the gate is the caller's choice of store.
+ *     Those sites are reported GATED-AT-CALLER, never counted as gated, and the dynamic incident
+ *     tests in test/ungated-writers.test.mjs are what actually prove them.
+ * ══════════════════════════════════════════════════════════════════════════════════════════════ */
+
+/** Tokens built from parts, so this file's own scan never reports itself. */
+const helperVerbs = [["append", "IfNew"].join(""), ["append", "All"].join(""), ["append", "WithoutDedupe"].join(""), ["persist", "CrawlObservations"].join("")];
+const HELPER_WRITE = new RegExp(`\\b(?:${helperVerbs.join("|")})\\(|\\.${["app", "end"].join("")}\\(`);
+
+/** What a site writes, decided by the path or store it names. Frozen, and `other` is never a default nobody reads. */
+/* 🔴 ORDER MATTERS, AND `page` IS LAST FOR A REASON. A first version put `page` first and matched
+ * `html` anywhere on the line, so a brotli archive and a JSON evidence file were both reported as
+ * PAGE writes. A census whose classes are wrong is worse than none: it is a wrong answer wearing a
+ * measurement's clothes. `page` now requires an HTML DESTINATION, not the mention of html. */
+export const WRITE_CLASSES = Object.freeze({
+  ledger: /\bledger\b|runs\/cost\b/,
+  export: /runs\/export\b|\.csv\b|CHECKLIST_BOUNDARIES/,
+  evidence: /runs\/(?:evidence|crawl|audit|replay|render|discovery)\b|\.jsonl\b|\bstore\b|\bcorpus\b|\.br\b/,
+  page: /\.html\b|\bhtmlFile\b|\boutFile\b.*\.html/,
+});
+
+export function classOfSite(line, fileText = "") {
+  for (const [name, re] of Object.entries(WRITE_CLASSES)) if (re.test(line)) return name;
+  // The destination is often named a line or two above; fall back to the file's own subject.
+  for (const [name, re] of Object.entries(WRITE_CLASSES)) if (re.test(fileText)) return name;
+  return "other";
+}
+
+/** Every import this module resolves to, as repo-relative paths. Static only — a computed import is invisible. */
+export function importsOf(file, text) {
+  const dir = file.slice(0, file.lastIndexOf("/") + 1);
+  return [...text.matchAll(/from\s+["'](\.[^"']+)["']/g)].map((m) => {
+    const parts = (dir + m[1]).split("/");
+    const out = [];
+    for (const p of parts) {
+      if (p === "." || p === "") continue;
+      if (p === "..") out.pop();
+      else out.push(p);
+    }
+    return out.join("/");
+  });
+}
+
+/**
+ * Every write site under src/, bin/ and tools/ — filesystem primitives AND helper calls — with its
+ * class, the binaries that reach it, and whether its own source gates it.
+ */
+export function writeSiteCensus({ repo = REPO, sources = null, register = [...PERMITTED_PAGE_WRITERS, ...PERMITTED_LOCAL_WRITERS], knownUngated = KNOWN_UNGATED_WRITERS } = {}) {
+  const files = sources
+    ? sources.map((s) => s.file)
+    : [...new Set(execFileSync("git", ["ls-files", "src", "bin", "tools"], { cwd: repo, encoding: "utf8" }).split("\n").filter((p) => p.endsWith(".mjs")))].sort();
+  const textOf = (f) => (sources ? sources.find((s) => s.file === f)?.text ?? "" : readFileSync(repo + f, "utf8"));
+  const texts = new Map(files.map((f) => [f, textOf(f)]));
+
+  // Which binaries reach each module, transitively, through static imports.
+  const graph = new Map([...texts].map(([f, t]) => [f, importsOf(f, t).filter((i) => texts.has(i))]));
+  const reachedBy = new Map(files.map((f) => [f, new Set()]));
+  for (const bin of files.filter((f) => f.startsWith("bin/"))) {
+    const seen = new Set();
+    const walk = (f) => {
+      if (seen.has(f)) return;
+      seen.add(f);
+      reachedBy.get(f)?.add(bin);
+      for (const next of graph.get(f) ?? []) walk(next);
+    };
+    walk(bin);
+  }
+
+  const byFile = new Map(register.map((e) => [e.file, e]));
+  const isCode = (l) => !/^\s*(\/\/|\*|\/\*)/.test(l) && !/^\s*import\b/.test(l);
+  const sites = [];
+  for (const file of files) {
+    const text = texts.get(file);
+    const lines = text.split(/\r?\n/);
+    lines.forEach((line, i) => {
+      if (!isCode(line) || !(ANY_WRITE_PATTERN.test(line) || HELPER_WRITE.test(line))) return;
+      const entry = byFile.get(file);
+      const token = entry?.gateToken ?? "permission.mayWrite";
+      const g = gateOf(lines, i + 1, token);
+      // A module that takes its store from a caller cannot be judged here — say so, never assume.
+      const gatedAtCaller = !g.gated && !file.startsWith("bin/") && /\bstore\b|\bledger\b/.test(line);
+      sites.push({
+        file,
+        line: i + 1,
+        text: line.trim().slice(0, 120),
+        class: classOfSite(line, text),
+        viaHelper: HELPER_WRITE.test(line) && !ANY_WRITE_PATTERN.test(line),
+        reachedBy: [...(reachedBy.get(file) ?? [])].sort(),
+        declared: Boolean(entry),
+        gateToken: entry?.gateToken ?? null,
+        gated: g.gated,
+        by: g.by,
+        gatedAtCaller,
+      });
+    });
+  }
+
+  const byClass = Object.fromEntries(["page", "evidence", "export", "ledger", "other"].map((k) => [k, sites.filter((s) => s.class === k).length]));
+  // 🔴 THE FAILURE CONDITION IS ABOUT ENTRY POINTS. A library write is reached through a binary, and
+  // the binary is where an operator's flag lands; a site in src/ that its caller gates is not a defect.
+  const ungatedBins = sites.filter((s) => s.file.startsWith("bin/") && !s.gated);
+  /* 🔴 DECLARED IS NOT FIXED. Widening the census found eleven more ungated binaries than the six
+   * this slot gates. A census that failed on all of them would fail the build on day one and be
+   * switched off; one that passed on all of them could never go red. So the known ones are DECLARED
+   * BY NAME (config/permitted-page-writers.mjs) and only an UNDECLARED one fails — and a name whose
+   * writer no longer has an ungated site is STALE, so the list cannot rot into a blanket exemption. */
+  const declaredUngated = new Set(knownUngated.map((e) => e.file));
+  const ungatedFiles = new Set(ungatedBins.map((s) => s.file));
+  return {
+    scanned: files.length,
+    sites,
+    byClass,
+    viaHelper: sites.filter((s) => s.viaHelper).length,
+    ungatedBins,
+    declaredUngated: ungatedBins.filter((s) => declaredUngated.has(s.file)),
+    undeclaredUngated: ungatedBins.filter((s) => !declaredUngated.has(s.file)),
+    staleUngatedDeclarations: [...declaredUngated].filter((f) => !ungatedFiles.has(f)).sort(),
+    gatedAtCaller: sites.filter((s) => s.gatedAtCaller),
+    cannotSee: [
+      "a computed import, or a module reached through a variable",
+      "a path held only as text and run by a shell script, a workflow or a human",
+      "a consumer outside src/, bin/ and tools/, node_modules included",
+      "whether a site in a module is gated at its CALLER — reported GATED-AT-CALLER, proved only by the incident tests",
+    ],
   };
 }
 
@@ -189,8 +346,23 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1].rep
   console.log(`  destination chosen by an operator flag: ${r.register.filter((e) => e.destinationOverridable).length} of ${r.register.length}`);
   console.log(`  NOT confined to this repository before the first write: ${r.unconfined.length ? r.unconfined.join(", ") : "0"}`);
 
+  /* ── 🔴 GAP 2 — EVERY WRITE PATH, NOT ONLY THE PAGE ONES ──────────────────────────────────── */
+  const w = writeSiteCensus();
+  console.log("\nGAP 2 — THE WRITE-SITE CENSUS (every write path under src/, bin/, tools/)");
+  console.log(`[bound: ${w.scanned} git-tracked .mjs files · ${w.sites.length} write site(s) · ${w.viaHelper} reached through a HELPER, which a primitive-name census cannot see at all]`);
+  console.log(`  by class: ${Object.entries(w.byClass).map(([k, v]) => `${k}=${v}`).join("  ")}`);
+  console.log(`  gated: ${w.sites.filter((s) => s.gated).length}   ungated in bin/: ${w.ungatedBins.length} (declared ${w.declaredUngated.length}, UNDECLARED ${w.undeclaredUngated.length})`);
+  for (const s of w.undeclaredUngated) console.log(`     🔴 UNDECLARED, UNGATED  ${s.file}:${s.line}  [${s.class}]  ${s.text.slice(0, 70)}`);
+  for (const s of w.declaredUngated) console.log(`     declared (next slot)    ${s.file}:${s.line}  [${s.class}]  ${s.text.slice(0, 70)}`);
+  console.log(`  GATED-AT-CALLER — a module that takes its store from a caller; this census CANNOT judge it, the incident tests do: ${w.gatedAtCaller.length}`);
+  for (const s of w.gatedAtCaller) console.log(`     ${s.file}:${s.line}  [${s.class}]  reached by ${s.reachedBy.join(", ") || "nothing"}`);
+  if (w.staleUngatedDeclarations.length) console.log(`  🔴 STALE declaration(s) — gated now, so the name must go: ${w.staleUngatedDeclarations.join(", ")}`);
+  console.log("  🔴 CANNOT SEE:");
+  for (const c of w.cannotSee) console.log(`     · ${c}`);
+
   const hard = ["PRODUCT_REPO_WRITE", "PUBLISH", "BULK_GENERATION", "OUTSIDE_REPO_WRITE"].filter((k) => r.census.hits[k].length);
-  const failed = hard.length > 0 || !r.reconciles || r.defaultsToWriting.length > 0 || r.unconfined.length > 0;
+  const failed = hard.length > 0 || !r.reconciles || r.defaultsToWriting.length > 0 || r.unconfined.length > 0 ||
+    w.undeclaredUngated.length > 0 || w.staleUngatedDeclarations.length > 0;
   console.log(`\n${failed ? "🔴 item 14's FAILURE condition is MET" : "✅ item 14's FAILURE condition is not met"}` +
     (r.defaultsToWriting.length ? ` — ${r.defaultsToWriting.length} write site(s) DEFAULT TO WRITING` : "") +
     (r.unconfined.length ? ` — ${r.unconfined.length} writer(s) NOT CONFINED to this repository` : "") +

@@ -18,9 +18,9 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { REPO_ROOT } from "../src/write-law.mjs";
-import { gateOf, confinementOf, destinationFlagIn, REQUIRED_FIELDS } from "../tools/permitted-writers.mjs";
+import { gateOf, confinementOf, destinationFlagIn, REQUIRED_FIELDS, writeSiteCensus } from "../tools/permitted-writers.mjs";
 import { ANY_WRITE_PATTERN } from "../tools/no-generation-census.mjs";
-import { PERMITTED_LOCAL_WRITERS } from "../config/permitted-page-writers.mjs";
+import { PERMITTED_LOCAL_WRITERS, KNOWN_UNGATED_WRITERS } from "../config/permitted-page-writers.mjs";
 
 /** A write through a store is a write too — the page census never counted these, which is how they went unseen. */
 const STORE_WRITE = /\b(?:persistCrawlObservations|appendWithoutDedupe|appendIfNew|appendAll)\(|\.append\(/;
@@ -274,7 +274,19 @@ test("CONTROL: crawl --confirm on a DRY run DOES write its record — the gate o
  * ================================================================== */
 
 test("🔴 THE DECLARED LOCAL WRITERS — each states writes · where · gatedBy · why, calls writePermission and confineToRepo before its first write, and every write site sits behind its gate", () => {
-  assert.deepEqual(PERMITTED_LOCAL_WRITERS.map((e) => e.file), ["bin/facts-lifecycle.mjs", "bin/export.mjs", "bin/checklist-boundaries.mjs", "bin/crawl.mjs"]);
+  // 🔴 FOUR until gap 1; TEN since gap 2 (16 September 2026) put the six ungated binaries behind the same law.
+  assert.deepEqual(PERMITTED_LOCAL_WRITERS.map((e) => e.file), [
+    "bin/facts-lifecycle.mjs",
+    "bin/export.mjs",
+    "bin/checklist-boundaries.mjs",
+    "bin/audit.mjs",
+    "bin/audit-content.mjs",
+    "bin/audit-technical.mjs",
+    "bin/supply-labels.mjs",
+    "bin/verification-issues.mjs",
+    "bin/gsc-ingest.mjs",
+    "bin/crawl.mjs",
+  ]);
   for (const e of PERMITTED_LOCAL_WRITERS) {
     for (const k of REQUIRED_FIELDS) assert.ok(typeof e[k] === "string" && e[k].length > 20, `${e.file}: ${k} is too thin to be read by a human`);
     assert.equal(e.whyKnown, true, `${e.file}: its reason is not stated`);
@@ -298,8 +310,104 @@ test("🔴 CONTROL: the check FIRES on facts-lifecycle as it stood on 14 Septemb
   assert.equal(confinementOf(incident).confinedBeforeFirstWrite, false);
 });
 
-test("🔴 THE CENSUS IS NOT WIDENED — gap 2 is a separate slot: the page census still reconciles PAGE writes against the page register only", () => {
-  const tool = readFileSync(join(REPO_ROOT, "tools", "permitted-writers.mjs"), "utf8");
-  assert.doesNotMatch(tool, /PERMITTED_LOCAL_WRITERS/);
-  assert.match(tool, /census\.hits\.PAGE_WRITE/);
+/* ================================================================== *
+ * 🔴 GAP 2 (16 September 2026) — THE CENSUS IS NOW WIDENED, AND THE SIX ARE GATED.
+ *
+ * The test that stood here asserted the OPPOSITE: that `permitted-writers.mjs` named no local
+ * writer and still reconciled PAGE writes only. That was the marker saying gap 2 was unfinished,
+ * and this slot is the work it was waiting for — so it is replaced, not deleted, by tests of what
+ * the widened census actually does.
+ * ================================================================== */
+
+test("🔴 GAP 2 · the census covers EVERY write path, and a HELPER-reached write is a site", () => {
+  const w = writeSiteCensus();
+  assert.ok(w.sites.length > 90, `only ${w.sites.length} write sites — the population is not the widened one`);
+  // 🔴 THE FIGURE THAT SAID "FOUR" MISSED EXACTLY THESE: a write reached through appendIfNew or
+  // ledger.append is invisible to a primitive-name scan, and they are more than a third of all sites.
+  assert.ok(w.viaHelper > 30, `only ${w.viaHelper} helper-reached sites — the census is counting primitives again`);
+  assert.deepEqual(Object.keys(w.byClass).sort(), ["evidence", "export", "ledger", "other", "page"]);
+  assert.ok(w.byClass.evidence > 0 && w.byClass.ledger > 0, "evidence and ledger writes are not being classified");
+  assert.ok(w.cannotSee.length >= 4, "the census must state what it cannot see");
+  assert.match(w.cannotSee.join(" "), /computed import/);
+  assert.match(w.cannotSee.join(" "), /gated at its CALLER/);
 });
+
+test("🔴 GAP 2 · the six that had NO gate at all are gated at every site, and confined before the first write", () => {
+  const w = writeSiteCensus();
+  const six = ["bin/audit.mjs", "bin/audit-content.mjs", "bin/audit-technical.mjs", "bin/supply-labels.mjs", "bin/verification-issues.mjs", "bin/gsc-ingest.mjs"];
+  for (const file of six) {
+    const sites = w.sites.filter((s) => s.file === file);
+    assert.ok(sites.length > 0, `${file}: no write site found — the census stopped seeing this writer`);
+    for (const s of sites) assert.equal(s.gated, true, `${file}:${s.line} DEFAULTS TO WRITING — ${s.text}`);
+    const text = readFileSync(join(REPO_ROOT, file), "utf8");
+    assert.match(text, /writePermission\(\{ target: LOCAL/, `${file} does not ask the write law`);
+    assert.equal(confinementOf(text).confinedBeforeFirstWrite, true, `${file} does not confine before its first write`);
+  }
+});
+
+test("🔴 GAP 2 · an UNDECLARED ungated writer FAILS; the known ones are declared BY NAME and none is stale", () => {
+  const w = writeSiteCensus();
+  assert.deepEqual(w.undeclaredUngated.map((s) => `${s.file}:${s.line}`), [], "a binary writes with no gate and nobody declared it");
+  assert.deepEqual(w.staleUngatedDeclarations, [], "a declared ungated writer is gated now — remove the name, do not keep the exemption");
+  // The declaration is a LIST OF DEFECTS, not an exemption: every name is still an ungated writer.
+  assert.deepEqual(
+    [...new Set(w.declaredUngated.map((s) => s.file))].sort(),
+    KNOWN_UNGATED_WRITERS.map((e) => e.file).sort(),
+    "the declared list and the census disagree about which writers are still ungated",
+  );
+  for (const e of KNOWN_UNGATED_WRITERS) assert.ok(e.writes && e.why, `${e.file}: a declaration with no reason is an exemption`);
+});
+
+test("🔴 GAP 2 · a site in a MODULE that takes its store from a caller is reported GATED-AT-CALLER, never counted as gated", () => {
+  const w = writeSiteCensus();
+  assert.ok(w.gatedAtCaller.length > 0, "nothing is reported gated-at-caller — the census is claiming to judge what it cannot see");
+  for (const s of w.gatedAtCaller) {
+    assert.equal(s.gated, false, `${s.file}:${s.line} is counted as gated AND as gated-at-caller`);
+    assert.ok(!s.file.startsWith("bin/"), "a binary's own site must be judged, not deferred to a caller");
+    assert.ok(s.reachedBy.length > 0, `${s.file}:${s.line} is reached by nothing — then nothing gates it`);
+  }
+  // The two this PR relies on: each bin hands its store to a module, and THAT is where the write is.
+  const files = w.gatedAtCaller.map((s) => s.file);
+  assert.ok(files.includes("src/audit/run-audit.mjs"), "the audit's write site is not being tracked to its caller");
+  assert.ok(files.includes("src/search/ingest.mjs"), "the ingest's write site is not being tracked to its caller");
+});
+
+test("🔴 CONTROL: the census FIRES on a new ungated writer, and on a stale declaration", () => {
+  const sources = [{ file: "bin/new-writer.mjs", text: 'const store = createJsonlStore(out);\nstore.appendIfNew(rec);\n' }];
+  const fired = writeSiteCensus({ sources, register: [], knownUngated: [] });
+  assert.equal(fired.undeclaredUngated.length, 1, "a brand-new ungated writer was not reported");
+  const declared = writeSiteCensus({ sources, register: [], knownUngated: [{ file: "bin/new-writer.mjs", writes: "x", why: "y" }] });
+  assert.deepEqual(declared.undeclaredUngated, [], "a declared writer still failed");
+  const stale = writeSiteCensus({ sources, register: [], knownUngated: [{ file: "bin/gone.mjs", writes: "x", why: "y" }] });
+  assert.deepEqual(stale.staleUngatedDeclarations, ["bin/gone.mjs"], "a declaration for a writer with no ungated site was not called stale");
+});
+
+/* ---- 🔴 THE INCIDENT TEST, PER BIN: no flags → the files it would touch are BYTE-IDENTICAL ---- */
+
+const EVIDENCE_DIR = join(REPO_ROOT, "runs", "evidence");
+const AUDIT_DIR = join(REPO_ROOT, "runs", "audit");
+const COST_DIR = join(REPO_ROOT, "runs", "cost");
+
+for (const [bin, args, dirs, expect] of [
+  ["bin/audit-content.mjs", [], [AUDIT_DIR], /\[dry-run\] would have written \d+ finding\(s\)/],
+  ["bin/audit-technical.mjs", [], [AUDIT_DIR, EVIDENCE_DIR], /\[dry-run\] would have written \d+ finding\(s\)/],
+  ["bin/verification-issues.mjs", [], [AUDIT_DIR], /\[dry-run\] no writes will happen/],
+  ["bin/audit.mjs", [], [AUDIT_DIR], /\[dry-run\] would have written \d+ record\(s\)/],
+  // 🔴 These two exit early without their input, so they are given it — a dry run that never
+  // reaches its write path would prove nothing at all.
+  ["bin/supply-labels.mjs", [`--corpus=${join(REPO_ROOT, "runs", "crawl", "corpus")}`], [AUDIT_DIR], /\[dry-run\] would have written \d+ finding\(s\)/],
+  ["bin/gsc-ingest.mjs", ["--property=sc-domain:example.invalid"], [EVIDENCE_DIR, COST_DIR], /\[dry-run\] no writes will happen/],
+]) {
+  test(`🔴 INCIDENT TEST — \`node ${bin}\` with NO flags writes NOTHING: every file it would touch stays byte-identical`, () => {
+    const checks = dirs.map((d) => guardDir(d));
+    let r;
+    try {
+      r = run([bin, ...args]);
+    } finally {
+      const damage = checks.map((c) => c()).filter((w) => w.added.length || w.changed.length || w.touched.length);
+      assert.deepEqual(damage, [], `${bin} with no flags wrote into runs/: ${JSON.stringify(damage)} (restored)`);
+    }
+    assert.match(r.stdout + r.stderr, /\[dry-run\] no writes will happen — no --confirm/, `${bin} did not announce the dry run`);
+    assert.match(r.stdout + r.stderr, expect, `${bin} did not report what it would have written`);
+  });
+}

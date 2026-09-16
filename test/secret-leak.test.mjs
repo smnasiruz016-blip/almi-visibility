@@ -34,7 +34,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { generateKeyPairSync, createHash } from "node:crypto";
-import { mkdtempSync, writeFileSync, rmSync, readFileSync, existsSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync, rmSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -223,11 +223,20 @@ test("🔴 THE CLI, in a child process: a planted non-JSON key and a planted bro
     try {
       const stub = join(key.dir, "no-network.mjs");
       writeFileSync(stub, 'globalThis.fetch = () => { throw new Error("NETWORK ATTEMPTED IN LEAK TEST"); };\n');
-      const r = spawnSync(process.execPath, ["--import", pathToFileURL(stub).href, "bin/gsc-ingest.mjs", "--property=sc-domain:example.com", `--store=${join(key.dir, "e.jsonl")}`], {
+      /* 🔴 THE STORE PATH IS INSIDE THE REPOSITORY, SINCE GAP 2 (16 September 2026).
+       * It used to be the planted key's tmpdir. `bin/gsc-ingest.mjs` now confines --store BEFORE
+       * anything is read, so a destination outside this repository is REFUSED and the child exits
+       * without ever reaching the credential — and this case's own guard below caught exactly that:
+       * silence from a process that died early proves nothing. The key itself stays in its tmpdir;
+       * only the destination moves, and the case still drives the CLI into the key-handling path. */
+      mkdirSync(join(REPO, ".test-scratch"), { recursive: true });
+      const storeDir = mkdtempSync(join(REPO, ".test-scratch", "leak-"));
+      const r = spawnSync(process.execPath, ["--import", pathToFileURL(stub).href, "bin/gsc-ingest.mjs", "--property=sc-domain:example.com", `--store=${join(storeDir, "e.jsonl")}`], {
         cwd: REPO,
         encoding: "utf8",
         env: { ...process.env, GSC_SERVICE_ACCOUNT_KEY_FILE: key.path },
       });
+      rmSync(storeDir, { recursive: true, force: true });
       const output = `${r.stdout}\n${r.stderr}`;
       assert.notEqual(r.status, 0, `${shape}: the CLI succeeded with a planted broken key`);
       assert.doesNotMatch(output, /NETWORK ATTEMPTED IN LEAK TEST/, `${shape}: a request was attempted before the key was rejected`);

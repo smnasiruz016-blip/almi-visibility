@@ -146,6 +146,32 @@ export const PERMITTED_PAGE_WRITERS = Object.freeze([
  * PAGE_WRITE so every write path must be declared is gap 2 in the owner's frozen register, a separate slot, and is NOT
  * done here. A new ungated local writer can still arrive unseen, exactly as these did.
  */
+/**
+ * 🔴 GAP 2, THE PART THAT IS NOT DONE — DECLARED SO IT CANNOT GROW SILENTLY (16 September 2026).
+ *
+ * Widening the census from PAGE writes to EVERY write path is what found these. They are binaries
+ * that still write with no gate: the census reports each one, and `test/ungated-writers.test.mjs`
+ * pins this list, so a NEW ungated writer fails the build while these known ones do not.
+ *
+ * 🔴 THIS IS A DECLARATION, NOT AN EXEMPTION. Each is a real defect of the same shape as the six
+ * gated in this PR. The owner's brief drew the line: land the census and the six, and REPORT the
+ * rest rather than expanding the PR. Removing a name from this list means gating that writer —
+ * never deleting the entry.
+ */
+export const KNOWN_UNGATED_WRITERS = Object.freeze([
+  { file: "bin/acceptance-test.mjs", writes: "the acceptance result JSON", why: "next slot" },
+  { file: "bin/archive-corpus.mjs", writes: "the packed body archive", why: "next slot — its overwrite REFUSAL is gated (row 36), the write itself is not" },
+  { file: "bin/cost-ledger.mjs", writes: "an actions-run record", why: "next slot" },
+  { file: "bin/diagnose-overlap.mjs", writes: "the overlap diagnostic JSON", why: "next slot" },
+  { file: "bin/edge-graph.mjs", writes: "the packed edge graph", why: "next slot" },
+  { file: "bin/instrument-disagreement.mjs", writes: "instrument-disagreement issues and their closures", why: "next slot" },
+  { file: "bin/link-recommendation-evidence.mjs", writes: "the link-recommendation evidence record", why: "next slot" },
+  { file: "bin/measure-text-kind.mjs", writes: "the text-kind report JSON", why: "next slot" },
+  { file: "bin/replay-crawl.mjs", writes: "the replay corpus directory and its temporary files", why: "next slot" },
+  { file: "bin/source-integrity.mjs", writes: "status observations, a ledger entry and the integrity evidence JSON", why: "next slot" },
+  { file: "bin/supersede-noindex.mjs", writes: "replacement issues for superseded noindex findings", why: "next slot" },
+]);
+
 export const PERMITTED_LOCAL_WRITERS = Object.freeze([
   {
     file: "bin/facts-lifecycle.mjs",
@@ -181,6 +207,87 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
     gateToken: "permission.mayWrite",
     destinationOverridable: false,
     why: "the boundaries must be verbatim, and the surest way to keep them verbatim is never to type them: they are read from the frozen sources on every run, so this document can be rebuilt and never hand-edited",
+    whyKnown: true,
+  },
+  /* ── 🔴 GAP 2 (16 September 2026) — THE SIX THAT WROTE WITH NO GATE AT ALL ──────────────────────
+   *
+   * Gap 1 gated four writers and said plainly that nothing yet FINDS one that is missing from this
+   * list. These six were exactly that: zero occurrences of writePermission, mayWrite or --confirm in
+   * any of them, appending findings, observations and ledger entries on every run. Two of them do not
+   * write at their own call site at all — they hand a store to a module — so their gate is WHICH
+   * STORE they hand over, and `createDryRunStore` (src/evidence/store.mjs) is the second
+   * implementation of the frozen STORE_INTERFACE they pass when the write is not permitted.
+   */
+  {
+    file: "bin/audit.mjs",
+    sites: 1,
+    writes: "the robots-scope and DNS-family findings, and one DNS observation per estate host — written inside runRobotsAndDnsAudit, through the store this bin hands it",
+    where: `runs/audit/findings.jsonl by default, or the file given by --out; ${CONFINED}`,
+    gatedBy: "write-law LOCAL: the directory sits behind permission.mayWrite, and without it the store handed to the audit is createDryRunStore — the same interface, writing nothing and counting what it would have stored. 🔴 Until 16 September 2026 it had NO gate and appended on every run",
+    gateFlags: ["--confirm"],
+    gateToken: "permission.mayWrite",
+    destinationOverridable: true,
+    why: "items 10 and 26: whether a URL blocked in robots.txt is blocked for GOOGLEBOT, and which DNS families each estate host answers on — the evidence both rows' verdicts rest on",
+    whyKnown: true,
+  },
+  {
+    file: "bin/audit-content.mjs",
+    sites: 2,
+    writes: "the content findings — exact duplicate, thin content, near duplicate, template dominance and the orphan check — over the archived corpus",
+    where: `runs/audit/content-findings.jsonl by default, or the file given by --out; ${CONFINED}`,
+    gatedBy: "write-law LOCAL: the directory and every append sit behind permission.mayWrite, which only --confirm grants. With no flag it runs every check and prints how many findings it WOULD store. 🔴 Until 16 September 2026 it had NO gate",
+    gateFlags: ["--confirm"],
+    gateToken: "permission.mayWrite",
+    destinationOverridable: true,
+    why: "items 12 and 13: the duplicate/thin/template census and the cannibalisation report, both read from the committed body archive rather than from a fresh crawl",
+    whyKnown: true,
+  },
+  {
+    file: "bin/audit-technical.mjs",
+    sites: 3,
+    writes: "the technical findings (status, https, canonical, noindex, head elements, broken links, query parameters, indexability preflight) and, with --sitemaps, one observation per host's sitemap collection",
+    where: `runs/audit/technical-findings.jsonl by default, or the file given by --out; the sitemap observations at runs/evidence/sitemaps.jsonl; ${CONFINED}`,
+    gatedBy: "write-law LOCAL: the directory, the findings and the sitemap observations each sit behind permission.mayWrite. 🔴 Until 16 September 2026 it had NO gate — and it is the writer that once stored 868 issues twice",
+    gateFlags: ["--confirm"],
+    gateToken: "permission.mayWrite",
+    destinationOverridable: true,
+    why: "items 10 and 38: the per-page technical state and the indexability preflight over the 394 archived pages, with INDEXABLE ≠ INDEXED kept apart",
+    whyKnown: true,
+  },
+  {
+    file: "bin/supply-labels.mjs",
+    sites: 1,
+    writes: "the HEAVY / THIN / EMPTY supply labels as findings, over the unpacked crawl corpus",
+    where: `runs/audit/supply-labels.jsonl by default, or the file given by --out; ${CONFINED}`,
+    gatedBy: "write-law LOCAL: the append sits behind permission.mayWrite, which only --confirm grants. With no flag it labels the whole corpus and prints how many findings it WOULD store. 🔴 Until 16 September 2026 it had NO gate",
+    gateFlags: ["--confirm"],
+    gateToken: "permission.mayWrite",
+    destinationOverridable: true,
+    why: "item 8: a census of WHAT CONTENT EXISTS, with the guard that stops a supply label being read as a demand claim",
+    whyKnown: true,
+  },
+  {
+    file: "bin/verification-issues.mjs",
+    sites: 1,
+    writes: "the issues a human verification returned, each citing an observation of the VERDICT ROW we hold — never of a page we did not fetch",
+    where: `runs/audit/verification-issues.jsonl by default, or the file given by --out; ${CONFINED}`,
+    gatedBy: "write-law LOCAL: the append sits behind permission.mayWrite, which only --confirm grants. With no flag it prints every issue it would record, marked already-present or new. 🔴 Until 16 September 2026 it had NO gate",
+    gateFlags: ["--confirm"],
+    gateToken: "permission.mayWrite",
+    destinationOverridable: true,
+    why: "item 15, part 4: what the 12 September verification turned up, recorded as issues with an honest chain of custody",
+    whyKnown: true,
+  },
+  {
+    file: "bin/gsc-ingest.mjs",
+    sites: 2,
+    writes: "the Search Console measurements — written inside runIngest through the store this bin hands it — and one cost-ledger entry per run",
+    where: `runs/evidence/evidence.jsonl by default, or the file given by --store; the ledger at runs/cost/ledger.jsonl; ${CONFINED}`,
+    gatedBy: "write-law LOCAL: both ledger appends sit behind permission.mayWrite, and without it the store handed to runIngest is createDryRunStore — so a run queries, reports every row count, bound and cost, and stores nothing. 🔴 Until 16 September 2026 it had NO gate",
+    gateFlags: ["--confirm"],
+    gateToken: "permission.mayWrite",
+    destinationOverridable: true,
+    why: "item 9: the owned Search Console evidence every discovery row reads, and item 45's cost of the run that fetched it",
     whyKnown: true,
   },
   {

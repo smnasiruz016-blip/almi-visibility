@@ -31,6 +31,45 @@ import { loadRegistry } from "../src/facts/registry.mjs";
 import { selectCandidates, constructCandidates, ACCEPTED, NOT_TESTED } from "../src/page/construct.mjs";
 import { productFromArgvOrExit } from "../src/product-cli.mjs";
 
+/**
+ * 🔴 THE ONE AUTHORISED EXIT — EVERY EXIT FROM THIS MODULE DRAINS FIRST.
+ *
+ * `process.exit()` forces the process down "even if there are still asynchronous operations
+ * pending ... including I/O operations to process.stdout", and writes to stdout ARE
+ * asynchronous when stdout is a pipe — which is exactly what `spawnSync` gives a child, and
+ * what CI runs everything through. So a runner that prints its verdict and exits immediately
+ * can lose the tail of its own output, and the reader sees a truncated report with a correct
+ * exit code: a result that looks complete and is not.
+ *
+ * 🔴 THIS IS CORRECTED AS AN UNSAFE PROPERTY IN ITS OWN RIGHT, NOT AS A PROVEN ROOT CAUSE.
+ * It was found while investigating #99's intermittent CI failure; whether it caused that
+ * failure is UNKNOWN and is not claimed here.
+ *
+ * Why a choke point rather than "drain the paths that print": reachability in JavaScript is
+ * where "I cannot determine" multiplies — callbacks, dynamic dispatch, writes inside imported
+ * helpers. One helper, every exit routed through it, and a guard that only has to scan for
+ * `process.exit(` outside it. Correctness lives in one place instead of three, and the cost —
+ * paths that printed nothing also drain — is nothing.
+ *
+ * 🔴 THE WAIT IS BOUNDED. `process.exitCode` is NOT used: it makes exit depend on the event
+ * loop draining, so one stray handle turns a truncated run into a hanging one, and a build
+ * binary that hangs is worse than one that truncates. The zero-length write's callback fires
+ * after every earlier write has been handled (stream callbacks run in order), and the timer
+ * is a floor under the worst case, not a substitute for the drain.
+ */
+const DRAIN_TIMEOUT_MS = 5000;
+function exitAfterDrain(code) {
+  let exited = false;
+  const go = () => {
+    if (exited) return;
+    exited = true;
+    process.exit(code);
+  };
+  const timer = setTimeout(go, DRAIN_TIMEOUT_MS);
+  timer.unref?.();
+  process.stdout.write("", go);
+}
+
 const USAGE = "node bin/build-page.mjs --product=<id> (--slug=<slug> | --all-slugs) [--out=<dir> --confirm]";
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: USAGE });
 
@@ -42,7 +81,7 @@ try {
   requested = selectCandidates(PRODUCT.pageSpecs, { slug: flag("slug"), allSlugs: argv.includes("--all-slugs") });
 } catch (e) {
   console.error(`\n🔴 ${e.message}\n  usage: ${USAGE}\n`);
-  process.exit(1);
+  exitAfterDrain(1);
 }
 
 const outDir = confineToRepo(flag("out"), { label: "--out" });
@@ -59,7 +98,7 @@ console.log(`declared page specs   ${Object.keys(PRODUCT.pageSpecs).length}   re
 console.log(`registry records      ${records.length}   VERIFIED ${verifiedInRegistry}`);
 if (requested.length === 0) {
   console.log(`\n🔴 DATA GAP — ${PRODUCT.productId} declares no page spec. Nothing to construct, and nothing was.`);
-  process.exit(2);
+  exitAfterDrain(2);
 }
 
 const results = constructCandidates({ pageSpecs: PRODUCT.pageSpecs, variants: PRODUCT.variants, records, requested });
@@ -100,4 +139,4 @@ if (outDir) {
     }
   }
 }
-process.exit(accepted.length === results.length ? 0 : 2);
+exitAfterDrain(accepted.length === results.length ? 0 : 2);

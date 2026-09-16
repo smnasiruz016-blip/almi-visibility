@@ -88,10 +88,24 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 >   test, GREEN after. ⚠️ The copied-fact limb's first attempt planted an 18-character value and did not go red: `findCopiedFacts` skips
 >   text under 40 characters and catches a sentence, not a paraphrase, by its own recorded design. Re-run with the record's sentence;
 >   the check is unchanged.
-> - 🔴 **NAMED RESIDUE (close-out, 15 September 2026):** `findCopiedFacts` does not detect a copied fact value that is not a string, or
->   a string shorter than 40 characters; the registry holds such values (`pk-pnmc.verification-fee` = 10000, a number). Measured: of the
->   first product's 46 values, 13 are not strings and 5 are strings under 40 characters — 18 of 46 unseen if copied; all 3 of
->   neutral-test-knots are under 40. The floor is not changed. On the row, in the same shape as GATE-4.
+> - 🔴 **NAMED RESIDUE (close-out, 15 September 2026), AND WHAT CORRECTED IT (16 September 2026):** as first recorded, the residue named
+>   two escapes — `findCopiedFacts` did not detect a copied fact value that is not a string, or a string shorter than 40 characters;
+>   measured then as 13 non-strings and 5 short strings of the first product's 46 values, 18 of 46 unseen if copied.
+>   **Measurement on 16 September found a second and LARGER escape, inside the fields that were reported clean:** the probe read only
+>   `text.slice(0, 60)`, and **27 of 27 ownWords and 17 of 18 quotedSpans exceed 60 characters**, so their tails were never examined.
+>   🔴 **Of 46 values, exactly ONE was ever fully checked.** The earlier "clean on every spec" therefore covered only the detector's
+>   eligible first-60-character probes and excluded the 18 entirely.
+>   **Corrected in this PR by declaration, not by coverage:** every value the detector cannot judge is now an accounted NOT_TESTED entry,
+>   named with its reason — numeric 12, boolean 1, short-string 5, long-tail 27 (45 of 46; 1 fully checked and clean; 0 copied).
+>   **A fixed-window method was measured and REJECTED:** at 40 characters / stride 20 it reported the 40-character run
+>   `" not permit its wording to be reproduced"` as COPIED into both declared specs — a run equal in length to the window, beginning
+>   mid-clause and joining two different subjects, occurring in 0 other fact records but in both specs as shared editorial boilerplate.
+>   A false COPIED is a §5A refusal of a legitimate page, so the method does not ship and a committed control keeps it rejected.
+>   **Numbers and the boolean stay NOT_TESTED by measurement** (10000 is found inside 110000 and 2100009; `"true"`/`"false"` are ordinary
+>   language), and long-field tails stay NOT_TESTED for want of a proved-safe method. **Both escapes are DECLARED, not closed.**
+>   **A further coverage limitation, stated not acted on:** free-text registry fields outside the detector's three-field scope
+>   (`value.value`, `evidence.ownWords`, `evidence.quotedSpan`) are not read by it; whether any belongs in scope is a separate semantic
+>   boundary decision and is not assumed here. The 40-character floor is unchanged. On the row, in the same shape as GATE-4.
 > - **The provenance guard re-anchored in #92, re-proved against real breaks** (`runs/audit/row61-provenance-anchor-red-2026-09-15.txt`):
 >   the amendment-mismatch rule disabled → the re-anchored test RED on its assertion; row 61's recorded move deleted → the transition
 >   law refused item 61 by name ("no move was declared"). Every file restored byte for byte.

@@ -125,7 +125,9 @@ console.log(`  population: ${siblings.length} published sibling profession pages
 
 console.log(`\nSTEP 2 · BY REFERENCE (§5A)`);
 line();
-console.log(`  fact text copied into the spec: ${findCopiedFacts(base, records).length}`);
+const copyCheck = findCopiedFacts(base, records);
+console.log(`  fact text copied into the spec: ${copyCheck.copied.length} DETECTED · ${copyCheck.notTested.length} value(s) NOT TESTED · ${copyCheck.clean.length} fully checked and clean`);
+for (const n of copyCheck.notTested) console.log(`    NOT TESTED  ${n.claimId} (${n.field}): ${n.reason}`);
 console.log(`  every rendered fact carries data-claim-id: ${trace.length}/${trace.length}`);
 console.log(`  their words quoted: ${trace.filter((t) => t.renderedQuote).length}   🔴 our words: ${trace.filter((t) => !t.renderedQuote).length}`);
 

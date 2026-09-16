@@ -79,7 +79,8 @@ for (const c of results) {
   if (c.parts.facts.notVerified.length) console.log(`  cited but not VERIFIED: ${c.parts.facts.notVerified.join(" · ")}`);
   console.log(`  ${c.parts.whyThisUrl.notEnforced}`);
   console.log(`  ${c.pageOne.id} ${c.pageOne.state}: ${c.pageOne.statement} — missing: ${c.pageOne.missingGateFamilies.join(", ")}`);
-  console.log(`  §5A fact text copied into the spec: ${c.copies.length}`);
+  console.log(`  §5A fact text copied into the spec: ${c.copies.length} DETECTED · ${c.copiesNotTested.length} value(s) NOT TESTED · ${c.copiesFullyChecked} fully checked and clean`);
+  for (const n of c.copiesNotTested) console.log(`    NOT TESTED  ${n.claimId} (${n.field}): ${n.reason}`);
 }
 
 const accepted = results.filter((c) => c.verdict === ACCEPTED);

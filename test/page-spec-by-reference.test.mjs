@@ -69,14 +69,14 @@ for (const [slug, SPEC] of SPECS_UNDER_TEST) {
   describe(`🔴 §5A — by reference, never by copy — ${slug}`, () => {
     test("the spec holds claim IDs and NOT ONE fact", async () => {
       const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
-      assert.deepEqual(findCopiedFacts(SPEC, records), []);
+      assert.deepEqual(findCopiedFacts(SPEC, records).copied, []);
     });
 
     test("🔴 RED: planting a record's own sentence into the spec IS detected", async () => {
       const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
       const victim = records.find((r) => r.evidence.ownWords && r.evidence.ownWords.length > 80);
       const sabotaged = { ...SPEC, intro: `${SPEC.intro} ${victim.evidence.ownWords}` };
-      const found = findCopiedFacts(sabotaged, records);
+      const found = findCopiedFacts(sabotaged, records).copied;
       assert.ok(found.length > 0, "a fact copied into the template must not pass unnoticed");
       assert.equal(found[0].claimId, victim.id);
     });

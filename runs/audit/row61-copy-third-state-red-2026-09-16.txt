@@ -1,0 +1,66 @@
+SABOTAGE — ROW 61 COPY-CHECK THIRD STATE (COPIED / CLEAN / NOT_TESTED)
+run at 2026-09-16T04:05:54.311Z · node v24.15.0 · branch v0.1/row61-findcopiedfacts-third-state · HEAD b64da1466a0f7187f3bf204eab1a948015fefa34
+
+FILES UNDER TEST, BEFORE ANY LIMB:
+  sha256 b2bb406c6396068c  blob cd8501040c1f5b0993b8b1222cbcbb319091f16a  src/page/render.mjs
+  sha256 a1f624d731a0b9ad  blob 6b90b71d3af9ac1ba0ea77d746686947064dbf71  src/page/construct.mjs
+  sha256 630f3d135d397624  blob eab22096fda76719c3843df049015dcc7493e8e0  test/copied-facts-coverage.test.mjs
+  sha256 204b8f09639d396c  blob 7c7426247ab35ab1ac39a0c6097457f823108c33  test/page-construction.test.mjs
+  sha256 b3e4fc9790b2542c  blob efbd9cde7f88d8033767570fa3e9e56bbed7c5f3  test/page-spec-by-reference.test.mjs
+
+0 · CONTAINMENT — damage a file, restore it, prove the restore by sha256 AND git blob
+  damaged 6b1e2593a4e3ab26 → restored b2bb406c6396068c · blob cd8501040c1f5b0993b8b1222cbcbb319091f16a
+  ✅ containment proved.
+
+BASELINE — the three test files with NO damage:
+  test/copied-facts-coverage.test.mjs: PASS
+  test/page-construction.test.mjs: PASS
+  test/page-spec-by-reference.test.mjs: PASS
+
+LIMB A · the SILENT SKIP restored — a value the detector cannot judge vanishes instead of being declared
+  damage LANDED in src/page/render.mjs (sha256 now fbe7d3772e57941c)
+  ✅ RED — test/copied-facts-coverage.test.mjs :: short-string is 6 at field level and 5 among values
+  ✅ RED — test/copied-facts-coverage.test.mjs :: 46 values accounted
+      test/copied-facts-coverage.test.mjs: 9 failed · NAMED 4 · OTHERS THAT CHANGED STATE: 🔴 EVERY present field is accounted for — a skip with no rec | 92 field-instances per spec: COPIED 0 · CLEAN 2 · NOT_TESTED | 🔴 the measured split of the first product, pinned exactly | 🔴 EVERY present field is accounted for — a skip with no rec | 92 field-instances per spec: COPIED 0 · CLEAN 2 · NOT_TESTED
+  restored: sha256 b2bb406c6396068c · blob cd8501040c1f5b0993b8b1222cbcbb319091f16a — verified against BOTH
+
+LIMB B · a PARTIALLY CHECKED value collapses into CLEAN — the probe's blind tail called clean
+  damage LANDED in src/page/render.mjs (sha256 now 47defd5e70445435)
+  ✅ RED — test/copied-facts-coverage.test.mjs :: a value longer than the probe whose first 60 characters are clean is NOT_TESTED, never CLEAN
+  ✅ RED — test/copied-facts-coverage.test.mjs :: 46 values accounted
+      test/copied-facts-coverage.test.mjs: 9 failed · NAMED 4 · OTHERS THAT CHANGED STATE: 🔴 CONTROL: shared editorial boilerplate does NOT become a § | 92 field-instances per spec: COPIED 0 · CLEAN 2 · NOT_TESTED | 🔴 the measured split of the first product, pinned exactly | 🔴 CONTROL: shared editorial boilerplate does NOT become a § | 92 field-instances per spec: COPIED 0 · CLEAN 2 · NOT_TESTED
+  restored: sha256 b2bb406c6396068c · blob cd8501040c1f5b0993b8b1222cbcbb319091f16a — verified against BOTH
+
+LIMB C · NOT_TESTED collapses into COPIED — unjudged reported as a copy, refusing legitimate pages
+  damage LANDED in src/page/render.mjs (sha256 now c5ac8ca9747494d1)
+  ✅ RED — test/copied-facts-coverage.test.mjs :: a longer number CONTAINING the value does NOT make the value COPIED
+  ✅ RED — test/copied-facts-coverage.test.mjs :: ordinary framing containing the word "false" does NOT make a boolean value COPIED
+      test/copied-facts-coverage.test.mjs: 20 failed · NAMED 4 · OTHERS THAT CHANGED STATE: a reference number containing the value does NOT make the va | an unrelated longer numeric occurrence does NOT make the val | 🔴 CONTROL: a number is never matched by substring, because  | 🔴 CONTROL: shared editorial boilerplate does NOT become a § | 🔴 a value longer than the probe whose first 60 characters a | 46 values accounted: COPIED 0 · CLEAN 1 · NOT_TESTED 45 (num | 92 field-instances per spec: COPIED 0 · CLEAN 2 · NOT_TESTED | short-string is 6 at field level and 5 among values — the si | 🔴 the measured split of the first product, pinned exactly | a reference number containing the value does NOT make the va | an unrelated longer numeric occurrence does NOT make the val | 🔴 CONTROL: shared editorial boilerplate does NOT become a § | 🔴 a value longer than the probe whose first 60 characters a | 46 values accounted: COPIED 0 · CLEAN 1 · NOT_TESTED 45 (num | 92 field-instances per spec: COPIED 0 · CLEAN 2 · NOT_TESTED | short-string is 6 at field level and 5 among values — the si
+  restored: sha256 b2bb406c6396068c · blob cd8501040c1f5b0993b8b1222cbcbb319091f16a — verified against BOTH
+
+LIMB D · NOT_TESTED becomes a §5A REJECT — acceptance semantics silently changed
+  damage LANDED in src/page/construct.mjs (sha256 now 4d0a29af3db5e850)
+  ✅ RED — test/page-construction.test.mjs :: 🟢 GREEN: a family built to clear all four parts is ACCEPTED
+      test/page-construction.test.mjs: 4 failed · NAMED 2 · OTHERS THAT CHANGED STATE: 🔴 61 · RUNNER ON THE SECOND DECLARED PRODUCT — every declar | 🔴 61 · RUNNER ON THE SECOND DECLARED PRODUCT — every declar
+  restored: sha256 a1f624d731a0b9ad · blob 6b90b71d3af9ac1ba0ea77d746686947064dbf71 — verified against BOTH
+
+AFTER EVERY RESTORE — the controls must still be green:
+  test/copied-facts-coverage.test.mjs: PASS
+  test/page-construction.test.mjs: PASS
+  test/page-spec-by-reference.test.mjs: PASS
+
+FINAL STATE OF EVERY FILE TOUCHED:
+  sha256 b2bb406c6396068c  blob cd8501040c1f5b0993b8b1222cbcbb319091f16a  src/page/render.mjs
+  sha256 a1f624d731a0b9ad  blob 6b90b71d3af9ac1ba0ea77d746686947064dbf71  src/page/construct.mjs
+  sha256 630f3d135d397624  blob eab22096fda76719c3843df049015dcc7493e8e0  test/copied-facts-coverage.test.mjs
+  sha256 204b8f09639d396c  blob 7c7426247ab35ab1ac39a0c6097457f823108c33  test/page-construction.test.mjs
+  sha256 b3e4fc9790b2542c  blob efbd9cde7f88d8033767570fa3e9e56bbed7c5f3  test/page-spec-by-reference.test.mjs
+
+EVERY LIMB WENT RED ON ITS OWN NAMED TEST: YES
+EVERY LIMB FAILED NARROWLY (named test only, no collateral): 🔴 NO
+🔴 LIMBS THAT WENT RED TOO BROADLY — a limb that cannot fail narrowly cannot prove a law
+   narrowly. Recorded as a finding about the limb's precision; NOT narrowed to look clean:
+   A · → test/copied-facts-coverage.test.mjs: 5 collateral
+   B · → test/copied-facts-coverage.test.mjs: 5 collateral
+   C · → test/copied-facts-coverage.test.mjs: 16 collateral
+   D · → test/page-construction.test.mjs: 2 collateral

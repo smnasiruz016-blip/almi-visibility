@@ -18,6 +18,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { REPO_ROOT } from "../src/write-law.mjs";
+import { createJsonlStore } from "../src/evidence/store.mjs";
 import { gateOf, confinementOf, destinationFlagIn, REQUIRED_FIELDS, writeSiteCensus } from "../tools/permitted-writers.mjs";
 import { ANY_WRITE_PATTERN } from "../tools/no-generation-census.mjs";
 import { PERMITTED_LOCAL_WRITERS, KNOWN_UNGATED_WRITERS } from "../config/permitted-page-writers.mjs";
@@ -388,6 +389,33 @@ const EVIDENCE_DIR = join(REPO_ROOT, "runs", "evidence");
 const AUDIT_DIR = join(REPO_ROOT, "runs", "audit");
 const COST_DIR = join(REPO_ROOT, "runs", "cost");
 
+/**
+ * 🔴 A CORPUS THAT EXISTS EVERYWHERE, BUILT FROM COMMITTED RECORDS.
+ *
+ * `bin/supply-labels.mjs` REFUSES to run without `--corpus`, and the real corpus is an expiring
+ * GitHub artifact that is present on a developer's machine and absent in CI. Pointing the incident
+ * test at it passed locally and failed in CI, where the bin exited at "NO CORPUS" and never reached
+ * the write path the test exists to guard — caught by this case's own assertion that the run must
+ * REPORT what it would have written.
+ *
+ * So the corpus is built here from `runs/crawl/first-real-crawl-2026-09-12.jsonl`, which IS
+ * committed. The bodies are keyed by `observation_id` (the bin's own lookup key — by `page_id` it
+ * silently finds nothing and labels everything UNKNOWN), and they are deliberately THIN so the
+ * content checks fire: a run that reached its write path and had nothing to write would satisfy a
+ * "wrote nothing" assertion while proving as little as the early exit did.
+ */
+function scratchCorpus() {
+  const crawl = createJsonlStore(join(REPO_ROOT, "runs", "crawl", "first-real-crawl-2026-09-12.jsonl")).readAll();
+  const withBody = crawl.filter((r) => r.record_type === "observation" && r.content_sha256).slice(0, 12);
+  assert.ok(withBody.length >= 2, "the committed crawl record holds too few observations to build a corpus from");
+  mkdirSync(join(REPO_ROOT, ".test-scratch"), { recursive: true });
+  const dir = mkdtempSync(join(REPO_ROOT, ".test-scratch", "corpus-"));
+  for (const o of withBody) {
+    writeFileSync(join(dir, `${o.observation_id}.html`), "<html><head><title>t</title></head><body><p>one two three</p></body></html>", "utf8");
+  }
+  return dir;
+}
+
 for (const [bin, args, dirs, expect] of [
   ["bin/audit-content.mjs", [], [AUDIT_DIR], /\[dry-run\] would have written \d+ finding\(s\)/],
   ["bin/audit-technical.mjs", [], [AUDIT_DIR, EVIDENCE_DIR], /\[dry-run\] would have written \d+ finding\(s\)/],
@@ -395,7 +423,13 @@ for (const [bin, args, dirs, expect] of [
   ["bin/audit.mjs", [], [AUDIT_DIR], /\[dry-run\] would have written \d+ record\(s\)/],
   // 🔴 These two exit early without their input, so they are given it — a dry run that never
   // reaches its write path would prove nothing at all.
-  ["bin/supply-labels.mjs", [`--corpus=${join(REPO_ROOT, "runs", "crawl", "corpus")}`], [AUDIT_DIR], /\[dry-run\] would have written \d+ finding\(s\)/],
+  //
+  // 🔴 AND THE CORPUS IS BUILT HERE, NOT BORROWED FROM THE MACHINE. The first version pointed at
+  // runs/crawl/corpus, which exists on a developer's machine and NOT in CI — the committed crawl
+  // records carry no bodies, they live in an expiring artifact. So in CI the bin exited at
+  // "NO CORPUS" and never reached its write path, and this case's own assertion caught it: a run
+  // that stopped early writes nothing for a reason that proves nothing.
+  ["bin/supply-labels.mjs", [`--corpus=${scratchCorpus()}`], [AUDIT_DIR], /\[dry-run\] would have written \d+ finding\(s\)/],
   ["bin/gsc-ingest.mjs", ["--property=sc-domain:example.invalid"], [EVIDENCE_DIR, COST_DIR], /\[dry-run\] no writes will happen/],
 ]) {
   test(`🔴 INCIDENT TEST — \`node ${bin}\` with NO flags writes NOTHING: every file it would touch stays byte-identical`, () => {

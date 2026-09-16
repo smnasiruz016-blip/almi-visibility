@@ -351,7 +351,7 @@ test("🔴 61 · findCopiedFacts is clean on EVERY spec of EVERY declared produc
     const { records } = await loadRegistry(p.factsDir, p.productId);
     for (const [slug, spec] of Object.entries(p.pageSpecs)) {
       specs += 1;
-      assert.deepEqual(findCopiedFacts(spec, records), [], `${id}/${slug} copies fact text into the spec`);
+      assert.deepEqual(findCopiedFacts(spec, records).copied, [], `${id}/${slug} copies fact text into the spec`);
     }
   }
   assert.ok(specs >= 4, `only ${specs} spec(s) checked — the law would be vacuous`);

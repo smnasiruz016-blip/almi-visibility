@@ -140,17 +140,95 @@ export function renderPage(spec, records, now = new Date()) {
  * citation it belongs in the registry — which is a review rule, not a machine
  * one, and is recorded as such rather than pretended away.
  */
+/** The three answers. A field is COPIED, or CLEAN, or the detector could not judge it. */
+export const COPY_STATES = Object.freeze(["COPIED", "CLEAN", "NOT_TESTED"]);
+
+/** The probe length this detector has always used. Detection is UNCHANGED by the third state. */
+const PROBE = 60;
+/**
+ * Below this, a span is too short for substring matching to mean anything — the trap recorded
+ * in FACT_CACHE_DESIGN.md §8.6, where four common words matched a glossary entry. The number is
+ * NOT a distinctiveness threshold and must not be treated as one: the same measurement found the
+ * other weak pass at 190 characters, so length does not predict anchoring (n=17). It marks only
+ * where this detector stops claiming to know.
+ */
+const TOO_SHORT = 40;
+
+/* ── THE MEASURED REASONS, so a future reader sees evidence and not an opinion ─────────────── */
+const WHY = Object.freeze({
+  number:
+    "a number cannot be judged by substring matching: measured false positives — 10000 is found inside " +
+    "110000 and inside 2100009 — and measured representation misses: a grouped, currency-prefixed, " +
+    "space-grouped or spelled-out form of the same number is not the same string",
+  boolean:
+    'a boolean renders as "true" or "false", which are ordinary language: substring matching would ' +
+    "report any framing containing the word as a copy of the value",
+  otherType: (t) => `a ${t} value has no proved-safe textual form to match against the framing`,
+  tooShort:
+    `under ${TOO_SHORT} characters there is no proved-safe method: a short common phrase matches ` +
+    "trivially (FACT_CACHE_DESIGN.md §8.6), and length is not a proxy for anchoring, so a longer " +
+    "floor would not fix it either",
+  tail:
+    `first ${PROBE} characters checked and clean; the tail beyond character ${PROBE} is NOT checked ` +
+    "by any proved-safe method, so this value is not clean — it is unjudged",
+});
+
+/**
+ * 🔴 THREE ANSWERS, BECAUSE TWO SILENTLY HID THE THING THIS CHECK EXISTS TO FIND.
+ *
+ * This function used to `continue` past every value it could not judge. A skip with no record is
+ * indistinguishable from a clean result to everything downstream — so the §5A guarantee read
+ * "no copied facts" while, of the first product's 46 values, 13 (12 numbers and 1 boolean) and 5
+ * strings under 40 characters were never examined at all, and the probe read only the first 60
+ * characters of the rest. Measured 16 September 2026: 27 of 27 ownWords and 17 of 18 quotedSpans
+ * exceed 60 characters, so the unexamined tail was the LARGER escape, and it sat inside fields
+ * that were reported clean.
+ *
+ * 🔴 LAW-ABSENT-1: THE ABSENCE OF A DETECTABLE COPY IS NOT EVIDENCE THAT NOTHING WAS COPIED.
+ *    NOT_TESTED is never counted as CLEAN and never counted as COPIED.
+ *
+ * 🔴 CLEAN NOW MEANS FULLY CHECKED. A value whose probe was clean but whose tail was never read is
+ *    NOT_TESTED. The clean count collapses when you do this, and that is the measurement becoming
+ *    honest rather than a regression.
+ *
+ * 🔴 DETECTION IS UNCHANGED. The same probe finds the same copies it always did. A fixed-window
+ *    method was measured and REJECTED on 16 September: it reported a 40-character run of shared
+ *    editorial boilerplate as COPIED, and a false COPIED is a §5A refusal of a legitimate page.
+ *    Widening the probe is the opposite of a fix — a longer needle matches strictly less often.
+ *
+ * @returns {{copied: Array, clean: Array, notTested: Array}} every present field, accounted for
+ */
 export function findCopiedFacts(spec, records) {
   const framingText = [spec.intro, ...spec.sections.map((s) => `${s.heading} ${s.framing ?? ""}`)].join(" ");
-  const copies = [];
+  const copied = [];
+  const clean = [];
+  const notTested = [];
+
   for (const r of records) {
     for (const [field, text] of [["value", r.value?.value], ["ownWords", r.evidence?.ownWords], ["quotedSpan", r.evidence?.quotedSpan]]) {
-      if (typeof text !== "string" || text.length < 40) continue;
+      if (text === undefined || text === null) continue; // absent: there is nothing to copy
+
+      const declare = (reason) => notTested.push({ claimId: r.id, field, reason });
+
+      if (typeof text !== "string") {
+        if (typeof text === "number") declare(WHY.number);
+        else if (typeof text === "boolean") declare(WHY.boolean);
+        else declare(WHY.otherType(typeof text));
+        continue;
+      }
+      if (text.length < TOO_SHORT) { declare(WHY.tooShort); continue; }
+
       // Compare on a distinctive run rather than the whole string, so a copy that
       // was lightly trimmed still trips it.
-      const probe = text.slice(0, 60);
-      if (framingText.includes(probe)) copies.push({ claimId: r.id, field, probe });
+      const probe = text.slice(0, PROBE);
+      if (framingText.includes(probe)) { copied.push({ claimId: r.id, field, probe }); continue; }
+
+      // 🔴 A PARTIALLY CHECKED VALUE IS NOT CLEAN. The probe covers the whole value only when the
+      // value is no longer than the probe; beyond that the tail was never read.
+      if (text.length <= PROBE) clean.push({ claimId: r.id, field });
+      else declare(WHY.tail);
     }
   }
-  return copies;
+
+  return { copied, clean, notTested };
 }

@@ -163,7 +163,18 @@ export function constructCandidates({ pageSpecs, variants = [], records = [], re
     // ── part 4 · WHY_THIS_URL_DESERVES_TO_EXIST ──
     parts.whyThisUrl = judgeWhy(slug, me.spec, siblings.map((s) => ({ slug: s.slug, spec: s.spec })), variants);
 
-    const copies = findCopiedFacts(me.spec, records);
+    /* 🔴 THE COPY CHECK NOW ACCOUNTS FOR EVERY VALUE IT READS, AND ITS THIRD STATE IS NOT A REJECT.
+     *
+     * `copied` keeps exactly its old meaning and its old effect: a detected copy is a §5A refusal.
+     * `notTested` is the population the detector CANNOT judge — numbers, booleans, spans under the
+     * floor, and the tail of any value longer than the probe. It is carried onto the result so the
+     * acceptance record can never again read "no copied facts" when it means "none detected among
+     * the part that was looked at". It does NOT block acceptance: making it block would change what
+     * ACCEPTED means, which is a frozen boundary and the owner's ruling, not a side effect of this.
+     * It is deliberately NOT merged into `notTested` below — that list is Gate A's unmeasurable
+     * PARTS, a different population with a different meaning. */
+    const copyCheck = findCopiedFacts(me.spec, records);
+    const copies = copyCheck.copied;
     const dataGaps = [];
     const rejects = [];
     const notTested = [];
@@ -186,6 +197,10 @@ export function constructCandidates({ pageSpecs, variants = [], records = [], re
       rejects,
       notTested,
       copies,
+      /* 🔴 NAMED, NEVER A BARE COUNT — an accepted page's record must not read "no copied facts"
+       * when it means "none detected among the part the detector could read". */
+      copiesNotTested: copyCheck.notTested,
+      copiesFullyChecked: copyCheck.clean.length,
       family: { declared: family.length, rendered: rendered.length, shellSource: shell.source, shellPages: shell.pages },
       renderedWords: me.tokens ? me.tokens.length : null,
       pageOne: PAGE_ONE,

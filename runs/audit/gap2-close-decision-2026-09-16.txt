@@ -1,0 +1,183 @@
+GAP 2 — CLOSE / NOT-CLOSE DECISION, AND THE CENSUS MEASURED BEFORE ANYTHING IS FIXED
+recorded 2026-09-16 · engine main bd10a47 · node v24.15.0
+authority: owner rulings of 16 September 2026 (_handoffs a079c38, a456d87, 5e2d6f0)
+
+Gap 2's frozen meaning: writer authorization / writer census correctness.
+The five #101 findings (D-SWEEP-1, D-EXIT-1, D-MASK-1, D-OUTPUT-1, D-SPAWN-1) are NOT part of it.
+
+======================================================================================
+PART A · OBSERVED
+======================================================================================
+
+A1 · THE FROZEN WRITER POPULATION — READ, NOT CHOSEN
+  source: CHECKLIST_STATUS.md:152-172 (anchor re-measured on bd10a47: :152 -> :152;
+          file last changed 143dbbc), "GAP 2's POPULATION RE-MEASURED", recorded
+          15 September 2026 on the owner's ruling.
+  enumerated: six bins — bin/audit.mjs · bin/audit-content.mjs · bin/audit-technical.mjs ·
+          bin/supply-labels.mjs · bin/verification-issues.mjs · bin/gsc-ingest.mjs —
+          plus src/evidence/store.mjs, "ungated by design because its CALLERS are expected
+          to enforce authorization". 7 modules.
+
+A2 · THE ORIGINAL MEASUREMENT — PRESERVED VERBATIM
+  instrument: tools/permitted-writers.mjs writeSiteCensus (authoritative post-#98;
+          last changed e916dac; run read-only, git status clean before and after)
+  frozen population  22 = 10 GATED + 12 UNGATED + 0 CANNOT_DETERMINE
+  whole census      101 = 82 GATED + 19 UNGATED + 0 CANNOT_DETERMINE
+  whole-census verdict fields: ungatedBins 0 · undeclaredUngated 0 · stale 0 ·
+          unresolvedDeclarations 0 · gatedAtCaller 7 · KNOWN_UNGATED_WRITERS 0
+  negative controls: node --test test/permitted-writers.test.mjs test/ungated-writers.test.mjs
+          -> 47 of 47 pass (gate finder fires on an ungated write and on a write in the wrong
+          branch · five real gate shapes recognised · `} else if` opens a branch · an unreadable
+          shape is CANNOT_DETERMINE · the census fires on a new ungated writer and a stale name)
+
+A3 · OLD -> CURRENT ANCHORS (15 Sep record -> bd10a47; every change landed in a4f258f, #97)
+  bin/audit.mjs                mkdirSync :51                      -> :57
+  bin/audit-content.mjs        mkdirSync :86 · appendIfNew :107, :122 -> :92 · one gated helper :95
+  bin/audit-technical.mjs      appendIfNew :140, :222 · mkdirSync :165 -> :145, :228 · :171
+  bin/supply-labels.mjs        appendIfNew :178                   -> :183
+  bin/verification-issues.mjs  appendIfNew :74, :99               -> :109
+  bin/gsc-ingest.mjs           runIngest :64 · ledger.append :76, :173
+                               -> no census site at :64; the store is CHOSEN at :65
+                                  (permission.mayWrite ? createJsonlStore : createDryRunStore);
+                                  runIngest called at :70 · ledger.append :82, :179
+  src/evidence/store.mjs       mkdirSync :74 · appendFileSync :121 -> :144 · :191
+  all 10 sites in the six bins: GATED, by permission.mayWrite on their own line.
+
+A4 · THE 12 STORE SITES, CLASSIFIED BY SYNTAX AND ENCLOSING SCOPE — NOT BY LINE TEXT
+  src/evidence/store.mjs holds two factories. createDryRunStore (:88-137) touches no file:
+  its "appends" push into an in-memory array. createJsonlStore (:139-266) writes to disk
+  at exactly two primitives, mkdirSync :144 and appendFileSync :191.
+
+  line  syntactic kind                                  state                     why
+  :100  function declaration (dry-run appendWithoutDedupe) NON-WRITE DECLARATION  declares a function; its body pushes to an in-memory array
+  :106  function declaration (dry-run appendIfNew)      NON-WRITE DECLARATION     declares a function; its body pushes to an in-memory array
+  :110  string-literal continuation of a TypeError message NON-WRITE STRING LITERAL the "appendWithoutDedupe()" on this line is text in an error message
+  :120  call statement in a for-of loop, inside
+        createDryRunStore's appendAllWithoutDedupe      UNKNOWN                   it calls the dry-run append (:100), which persists nothing — but it
+                                                                                  is a CALL, and none of the four states names a non-persisting call
+  :144  if-statement calling mkdirSync (ensureDir)      REAL WRITE SITE           creates a directory on disk
+  :181  function declaration (real appendWithoutDedupe) NON-WRITE DECLARATION     declares the function; its disk write is counted at :191
+  :191  call statement: appendFileSync(filePath, ...)   REAL WRITE SITE           appends a line to the evidence file
+  :197  call statement in a for-of loop (real store)    REAL WRITE SITE           calls the real appendWithoutDedupe, which writes at :191
+  :220  function declaration (real appendIfNew)         NON-WRITE DECLARATION     declares a function; its writes are the calls at :229 and :232
+  :224  string-literal continuation of a TypeError message NON-WRITE STRING LITERAL the "appendWithoutDedupe()" on this line is text in an error message
+  :229  call statement: appendWithoutDedupe(record)     REAL WRITE SITE           calls the real append, which writes at :191
+  :232  call statement: appendWithoutDedupe({...})      REAL WRITE SITE           appends a re-sighting through the real append, which writes at :191
+
+  tally: REAL WRITE 5 · DECLARATION 4 · STRING LITERAL 2 · UNKNOWN 1  (= 12)
+  of the 5 real writes: 2 are primitives (:144, :191), 3 are helper-reached calls (:197, :229, :232).
+
+A5 · CORRECTED FROZEN POPULATION — ALONGSIDE THE ORIGINAL, NOT IN PLACE OF IT
+  original (A2):  22 sites = 10 GATED + 12 UNGATED + 0 CANNOT_DETERMINE
+  corrected:      16 sites = 10 GATED + 5 UNGATED (real store writes, ungated by design)
+                            + 1 UNKNOWN (:120)
+                  plus 6 sites the census counts that are not writes (:100 :106 :181 :220
+                  declarations; :110 :224 string literals), excluded from the 16.
+  what changed: nothing in the code or the census. The 12 was re-read by syntax, and 6 of
+  them are not writes. The census's CANNOT_DETERMINE count is still 0; the UNKNOWN above is
+  this classification's state, not the census's.
+
+A6 · CALLERS — OLD 31 -> CURRENT
+  old: 31 = bins whose static import closure contains src/evidence/store.mjs (census reachedBy).
+  current: 16 bins whose closure CALLS a store or ledger append (25 append-call sites in 18
+  files outside the store). The other 15 reach the module and call no append:
+    archive-corpus · axis-discovery · consequence-census · edge-graph · export · facts-lifecycle ·
+    gsc-dimensions · intent-clusters · localized-thinking · market-measurement · page-quality ·
+    refutation-census · row60-ruling-sheet · search-language · supersede-duplicates
+  the 16 write-callers, and the behavioural evidence each has (a test that SPAWNS the bin with
+  no --confirm and asserts nothing was written):
+    TEST, reach asserted:  audit · audit-content · audit-technical · supply-labels
+                           (ungated-writers incident loop, "would have written N")
+                           crawl (ungated-writers dry-run case, "the crawl record was NOT written")
+    TEST, reach NOT asserted before this change: verification-issues · gsc-ingest (banner only)
+    TEST, partial:         report (write-confinement: asserts its --out target unwritten, not the store)
+    NO TEST, committed #98 transcript shows REACHED and wrote nothing
+                           (runs/audit/gap2-eleven-remeasured-2026-09-16.txt):
+                           instrument-disagreement · link-recommendation-evidence · replay-crawl ·
+                           supersede-noindex
+    NO TEST, transcript NOT DEMONSTRATED: cost-ledger · source-integrity
+    NOTHING:               paid-provider-controls · render-archive
+  old "6 of 31 proved" -> current "7 of 16 proved by a test" (the six Gap 2 bins + crawl),
+  of which reach is asserted for 5 before this change and 6 after it; plus 1 partial.
+
+A7 · BLOCKER 2 — THE TWO BINS
+  bin/verification-issues.mjs reads its CSV (:61) from a default path OUTSIDE this repository
+  (:35). The dry-run banner is printed at :38, before any input is read. Measured locally,
+  dry run, no network, runs/ index unchanged:
+    --csv=<missing file>  -> exit 1, banner printed, ENOENT at readFileSync, no "[bound:" line
+    default CSV (present on this machine only) -> exit 0, both issue lines, "[bound: 46 verdict rows ...]"
+  So in CI, where that path does not exist, the bin dies before its first write decision and
+  the old case — which asserted only the banner — passes on that death.
+  The bin counts what it would write (wouldWrite, :39/:79/:108) but never prints the count.
+  bin/gsc-ingest.mjs: every write decision lies after a Search Console API call —
+    runIngest records nothing before `await provider.listProperties()`;
+    the ledger write at :82 needs a hardStop raised during provider calls;
+    the ledger write at :179 runs only after runIngest returns.
+  It was NOT run here.
+
+A8 · THE CHANGE MADE UNDER THE OWNER'S CONDITIONAL AUTHORISATION (verification-issues only)
+  test/ungated-writers.test.mjs: the verification-issues incident case now receives its input,
+  rebuilt from the six committed human-verification-return observations in
+  runs/audit/verification-issues.jsonl into git-ignored .test-scratch, and must print
+  "[bound: 6 verdict rows read from " — a line printed after BOTH issue write decisions.
+  No bin, census, register or status file was changed.
+  sabotage, each limb alone, restored byte for byte in finally:
+    BEFORE / AFTER: sha256 7112ccc0cc46a09f · blob 1ed9cdee42bfcd395a3c3559654c4e6a3fe68f5a
+    BASELINE, real input                                   PASS
+    LIMB 1 · new assertion, input missing (what CI sees)   FAIL (RED) — reason read:
+             "bin/verification-issues.mjs did not report what it would have written"
+    LIMB 2 · OLD banner-only assertion, input missing      PASS — the blind spot, reproduced
+    every damage LANDED (sha256 changed; exact replacement counts 1 and 2), every restore matched
+    sha256 AND git blob, and the case passes again after the last restore.
+
+A9 · ALREADY ANSWERED — NOT RE-OPENED
+  bin/supersede-noindex.mjs: GATED. #98's measurement stands (the file is identical on bd10a47;
+  :139 if (!permission.mayWrite) { · :141 } else if (records.length) { · :145 and :146 writes).
+
+A10 · OUTSIDE THE FROZEN POPULATION — REPORTED, NOT INVESTIGATED
+  seven GATED-AT-CALLER sites: src/audit/run-audit.mjs:35 · src/cost/ledger.mjs:534 ·
+  src/cost/paid-provider-gate.mjs:166 · src/crawl/persist.mjs:14, :17 · src/crawl/replay.mjs:141 ·
+  src/search/ingest.mjs:57
+
+======================================================================================
+PART B · CONCLUSIONS
+======================================================================================
+
+B1 · CENSUS CORRECTNESS — A GAP 2 FINDING, NOT A REPAIR
+  Inside the frozen population the census over-counts: 6 of the 12 store sites are not writes
+  (:100 :106 :181 :220 declarations; :110 :224 string literals), and :120 is UNKNOWN.
+  tools/permitted-writers.mjs was NOT edited. CHECKLIST_STATUS.md was NOT edited; the 15 Sep
+  ruling that the store is ungated by design stands — this concerns how many sites it covers.
+  For an owner decision.
+
+B2 · BLOCKER 1 — OWNER DECISION POINT, NOTHING BUILT
+  After the correction, 5 real store write sites remain ungated by design. The frozen brief's
+  option (C) needs either a store that refuses an unauthorised caller, or every caller gated AND
+  a test proving no ungated caller exists. Of 16 write-callers, 7 have such a test; 9 do not:
+    replay-crawl · supersede-noindex · instrument-disagreement · link-recommendation-evidence
+    (transcript only) · cost-ledger · source-integrity (not demonstrated) ·
+    paid-provider-controls · render-archive (nothing) · report (partial).
+  No brief authorises building either route. Not built.
+
+B3 · BLOCKER 2
+  verification-issues: CORRECTED in this change — its incident case now proves reach, and fails
+  when the input is missing (A8).
+  gsc-ingest: NOT PROVABLE without a network call or a stub; the ruling forbids both. It was not
+  run, not stubbed, and no fixture fakes its reach. OWNER DECISION POINT.
+
+B4 · CANDIDATE FINDINGS — NO IDS ASSIGNED
+  (a) #98's sabotage transcript (runs/audit/gap2-census-repair-sabotage-2026-09-16.txt:23) labels
+      its `} else if` limb "(supersede-noindex:145)". The limb damaged tools/permitted-writers.mjs,
+      not supersede-noindex; on this tree the else-if is :141 and :145 is the write inside it.
+      LABEL ONLY — the verdict does not depend on the number.
+  (b) In a dry run, bin/verification-issues.mjs prints "already present (re-sighted)" for both
+      issues, because the dry-run return carries appended:false; nothing was re-sighted.
+      Observed in A7's output. Not investigated, not changed.
+
+B5 · DECISION
+  GAP 2 = REMAINS OPEN.
+  smallest exact blocker set:
+    1. census correctness inside the frozen population (B1) — owner decision
+    2. store option (C): 9 of 16 write-callers without a no-write test (B2) — owner decision
+    3. gsc-ingest reach unprovable without network (B3) — owner decision
+  ledger unchanged: 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61 · row 53 untouched · row 61 VERIFIED-PASS.

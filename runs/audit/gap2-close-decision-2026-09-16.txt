@@ -1121,7 +1121,7 @@ A56 · THE FROZEN PROPOSITION, AND ONLY IT — "every caller is gated and a test
   G. therefore option (C) limb (ii) holds for the frozen population: PASS.
   Not examined, by the ruling: the decoupled Blocker 2 items (B27), any wider population, store-level refusal.
 
-A57 · A SUITE FAILURE DURING THE CLOSURE-RECORD CHECK — A RACE ON .test-scratch (observed once; not fixed; no ID)
+A57 · A SUITE FAILURE DURING THE CLOSURE-RECORD CHECK — A RACE ON .test-scratch (observed twice; not fixed; no ID)
   OBSERVED: the full local suite, run on the closure-record documentation change (base 7470c06; only two .md/.txt
     files changed), gave 1,290 tests · 1,289 pass · 1 fail. The failing test is test/no-symlinks.test.mjs "the
     repository holds ZERO symbolic links — on disk or in git's index", with the error
@@ -1129,9 +1129,11 @@ A57 · A SUITE FAILURE DURING THE CLOSURE-RECORD CHECK — A RACE ON .test-scrat
     skips only .git), reads a directory's names, then lstats each. gsc-source-* directories are created and removed
     by test/gap2-gsc-ingest-source.test.mjs (#111), which runs in parallel. One was listed and then removed before
     its lstat.
+  OBSERVED AGAIN on the next full run (same test, same error, .test-scratch/gsc-source-LDgPWT). Full local runs with
+    #111 present: 1 pass (on its branch) then 2 fail (on this change); Linux CI with #111: 2 of 2 pass (PR, main).
   OBSERVED: not reproduced in 8 paired runs of test/no-symlinks.test.mjs with that file, nor in 8 with
     test/gap2-ledger-seam.test.mjs; three earlier full local runs and the #111 PR and main CI runs were green. The
-    paired runs are no positive control: the one failure above is the evidence that it can happen.
+    paired runs are no positive control: the two failures above are the evidence that it happens.
   MECHANISM, NOT OBSERVED: test/gap2-ledger-seam.test.mjs (#110) creates a JUNCTION inside .test-scratch for its
     SYMLINK test. The same census reports a link under the repository as a failure (its own CONTROL test plants a
     junction and sees it), so a parallel run in that window could turn no-symlinks red on a real link report. Other
@@ -1438,7 +1440,7 @@ B30 · THE TARGETED VERIFICATION PASSES (A56) — CLOSURE NOT RECORDED: ONE ACCE
   gated, and tests prove no ungated caller exists there, including a gsc-ingest case that can no longer pass on an
   early death.
   UNKNOWN, not decided here: the Gap 2 close law (_handoffs a079c38 §5) also asks that "no current evidence/provenance
-  corruption or test unreliability remains inside Gap 2's frozen boundary". A57 is a test unreliability whose failing
+  corruption or test unreliability remains inside Gap 2's frozen boundary". A57 is a test unreliability (2 of the last 3 full local runs) whose failing
   test (no-symlinks) is not a Gap 2 test, but whose trigger is the scratch churn of a Gap 2 test (#111), with a second,
   unobserved mechanism in #110's junction. Whether that is "inside Gap 2's frozen boundary" is for the owner.
   So GAP 2 is NOT recorded CLOSED in CHECKLIST_STATUS.md by this change.

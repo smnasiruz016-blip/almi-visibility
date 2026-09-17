@@ -748,6 +748,77 @@ A41 · THE ALIAS LIMITATION, AND THE FROZEN-TEXT CHECK (17 Sep 2026)
     say so and report what it cannot see". No criterion requires universal recognition of future syntax. The
     census's own cannotSee list does not name the aliased shape — recorded, not changed (no authority to change it).
 
+--------------------------------------------------------------------------------------
+ADDED 17 SEPTEMBER 2026 — STATE CHECKPOINT, AND SUPERSEDE-DUPLICATES MEASURED (owner ruling, _handoffs d89b19d)
+MEASURED 17 SEPTEMBER 2026 on main 60844a4 (main CI run 35178650638: success). Documentation only.
+A1-A41 above stay as written.
+--------------------------------------------------------------------------------------
+
+A42 · STATE CHECKPOINT (17 Sep 2026) — what has landed, as merged
+  #101 bd10a47 (16 Sep 22:07Z) five gap ids recorded in the frozen register
+  #102 3324f98 (16 Sep 23:25Z) verification-issues incident test proves reach; this transcript begun
+  #103 ccb869a (17 Sep 00:16Z) census excludes three proved non-write shapes; floor re-based on set equality
+                               -> Blocker 1 (census over-count) CLOSED
+  #104 c03ed15 (17 Sep 01:54Z) instrument-disagreement default path proved (easy four measured)
+  #105 e90d039 (17 Sep 02:28Z) confined --store seam in four bins; four previously blocked non-network paths
+                               PROVED (supersede-noindex · instrument-disagreement --close ·
+                               link-recommendation-evidence · cost-ledger backfill)
+  #106 e860f75 (17 Sep 03:00Z) difficult-five feasibility evidence (documentation only)
+  #107 60844a4 (17 Sep 03:34Z) D-CENSUS-1: appendAllWithoutDedupe( recognised; exclusion pin 8 -> 9 on a set
+                               proof -> D-CENSUS-1 CLOSED
+  corrections kept as OLD -> CURRENT (A36, A37, A40):
+    replay-crawl "corpus unavailable in CI" -> WRONG: the default is the committed archive; a measured no-flag run
+      made 822 requests, 0 outside 127.0.0.1
+    report "partial test" -> NOT APPLICABLE: only .readAll() on stores; its one write, the HTML page, is proved by
+      write-confinement.test.mjs:79 and :96
+    the D-CENSUS-1 ruling's store.mjs:220/:224 -> not the verb's lines; its declaration is :196
+    "supersede-noindex is a frozen Gap 2 bin" -> WRONG: the six are audit · audit-content · audit-technical ·
+      supply-labels · verification-issues · gsc-ingest (CHECKLIST_STATUS.md:164-165); supersede-noindex is one of
+      #97's eleven
+  Gap 2 surface before this section: LEDGER-SEAM CANDIDATES replay-crawl · paid-provider-controls · NETWORK
+    source-integrity · cost-ledger capture-actions · gsc-ingest · BROWSER RUNTIME render-archive ·
+    UNMEASURED supersede-duplicates (NOT YET MEASURED before this section).
+  Row 53 unchanged · Row 61 VERIFIED-PASS · ledger 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61.
+
+A43 · SUPERSEDE-DUPLICATES (17 Sep 2026)
+  PRIOR STATE: NOT YET MEASURED — it entered the write-caller population (16 -> 17) only when D-CENSUS-1 made its
+    call shape visible (A40).
+  OBSERVED
+    path: bin/supersede-duplicates.mjs (74 lines; last changed 50975e4)
+    real write: :66 `store.appendAllWithoutDedupe(notes)` -> store.mjs :197 -> :181 (-> :186 ensureDir -> :144) -> :191
+    gate: on the same line, `notes.length && permission.mayWrite ? (…) : null` — writes only when there are notes AND
+      --confirm was given (permission read at :31)
+    input and store: every runs/audit/*.jsonl, read and written in place; the directory is hard-coded and confined
+      (:30 `confineToRepo(\`${REPO}runs/audit\`)`), enumerated at :36; no override exists
+    imports: the write law, the store, src/evidence/lifecycle.mjs (duplicateCensus) — no network, provider, browser
+      or data-repo access anywhere
+    tests: test/duplicate-writers.test.mjs:78 declares its reason ("writes only for copies with no note yet; its
+      re-run appends 0") for the source census; :106 asserts that NO committed store holds an unsuperseded
+      duplicate; :114 checks technical-findings' 868 extra copies are all superseded; test/gap2-d-census-1.test.mjs
+      asserts :66 is a GATED site. NO test runs the bin.
+    SOURCE READ: YES · RUN PERMITTED: YES (nothing crosses a boundary before the gate) · RUN PERFORMED: YES, no flag:
+      nine stores, "to supersede now=0" in every one (technical-findings: 868 extra copies, 868 already superseded),
+      "[dry-run] 0 note(s) not written", exit 0; runs/ porcelain and the runs/audit index unchanged.
+  INFERRED
+    with --confirm on the committed data the write is not reached either: notes.length is 0, so :66 short-circuits.
+    A proof that distinguishes "never reached" from "reached and refused" needs an audit store holding a duplicated
+      issue with no note. The committed stores cannot hold one (:106), and the only place the bin reads is
+      runs/audit — a directory the incident tests sweep by pattern (D-SWEEP-1), so a fixture may not live there.
+    #105 CAUSAL BRIDGE — none. BEFORE: the store DIRECTORY is fixed and its committed state has nothing pending.
+      #105's CAPABILITY: a confined single-file --store in four other bins. AFTER: nothing — this bin has no
+      --store, and its obstacle is a directory of evidence stores, not one file.
+    LEDGER-SEAM FAMILY: NO — it writes evidence stores through createJsonlStore, not the cost ledger through
+      createCostLedger; replay-crawl's and paid-provider-controls' remaining obstacle is the hard-coded LEDGER.
+    What would remove the obstacle is a confined, overridable audit-store DIRECTORY for this bin — an extension of
+      the #105 kind, not of the ledger kind. Not built; not an existing route.
+  UNKNOWN
+    whether the owner wants such a directory override; nothing in this measurement decides it.
+  CONCLUSION
+    classification: BLOCKED BY MISSING SAFE TEST INPUT — the controlled audit-store state a complete proof needs
+      cannot be supplied by any existing mechanism.
+    not ALREADY PROVED (no test runs the bin) · not PARTIALLY FEASIBLE (with 0 pending, a no-flag run shows no reach)
+    future ledger-seam slot population: 2 (replay-crawl · paid-provider-controls) — unchanged.
+
 ======================================================================================
 PART B · CONCLUSIONS
 ======================================================================================
@@ -957,4 +1028,19 @@ B22 · DECISION (17 Sep 2026): GAP 2 = REMAINS OPEN
     2. gsc-ingest reach proof = BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE
          (prerequisite: owner-authorised network execution)
        gsc-ingest incident-test reliability = UNPROVED; therefore Gap 2 remains OPEN on this blocker.
+  Ledger unchanged: 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61.
+
+--------------------------------------------------------------------------------------
+CONCLUSIONS ADDED 17 SEPTEMBER 2026 — SUPERSEDE-DUPLICATES (B1-B22 above are kept as first written)
+--------------------------------------------------------------------------------------
+
+B23 · SUPERSEDE-DUPLICATES: NOT YET MEASURED -> BLOCKED BY MISSING SAFE TEST INPUT (A43)
+  only its bucket moves; the others are as they were.
+  GAP 2 BUCKETS (17 Sep 2026):
+    LEDGER-SEAM CANDIDATES (2)      replay-crawl · paid-provider-controls
+    NETWORK (3)                     source-integrity · cost-ledger capture-actions · gsc-ingest
+    BROWSER RUNTIME (1)             render-archive
+    MISSING SAFE TEST INPUT (1)     supersede-duplicates — hard-coded runs/audit store directory; committed state
+                                    has nothing pending (and is required to have nothing pending)
+  GAP 2 = REMAINS OPEN, on those seven, and on gsc-ingest's incident-test reliability (UNPROVED).
   Ledger unchanged: 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61.

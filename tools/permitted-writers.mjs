@@ -275,6 +275,69 @@ export function confinementOf(text) {
 const helperVerbs = [["append", "IfNew"].join(""), ["append", "All"].join(""), ["append", "WithoutDedupe"].join(""), ["persist", "CrawlObservations"].join("")];
 const HELPER_WRITE = new RegExp(`\\b(?:${helperVerbs.join("|")})\\(|\\.${["app", "end"].join("")}\\(`);
 
+/* ══ 🔴 GAP 2 · THREE PROVED FALSE-POSITIVE SHAPES — AND ONLY THOSE (owner ruling, 16 September 2026) ══
+ *
+ * A helper verb followed by "(" was counted as a write wherever it appeared. Read by syntax and
+ * enclosing scope, seven of the twelve sites this census reported in src/evidence/store.mjs are not
+ * writes (runs/audit/gap2-close-decision-2026-09-16.txt). Exactly three shapes were proved there, so
+ * exactly three are recognised here — nothing is generalised to a shape nobody measured:
+ *
+ *   declaration    — the line DECLARES a helper-named function (`function appendIfNew(…) {`); the
+ *                    writes inside its body are sites of their own, on their own lines.
+ *   string-literal — the WHOLE line is one quoted string (a continued error message that names a
+ *                    helper); text is not a call.
+ *   dry-run-call   — an unqualified helper call inside the dry-run store factory, whose body holds no
+ *                    write primitive and no qualified store call: the callee is that factory's own
+ *                    in-memory function.
+ *
+ * 🔴 THE FAILURE DIRECTION IS A MISSED WRITE, SO EVERY SHAPE IS NARROWED AGAINST IT: a line that
+ * names a write PRIMITIVE is always a site; a declaration line that also calls a helper is a site; the
+ * dry-run shape switches itself off the moment that factory's body gains a primitive or a qualified
+ * store call, or its extent cannot be read. An excluded line is REPORTED (excludedNonWrites), never
+ * silently dropped. test/gap2-census-non-write-shapes.test.mjs holds each shape and each real write.
+ */
+const HELPER_DECLARATION = new RegExp(`\\bfunction\\s+(?:${helperVerbs.join("|")})\\s*\\(`);
+const WHOLE_LINE_STRING = /^\s*(["'])(?:\\.|(?!\1).)*\1\s*[,+;)]*\s*$/;
+const DRY_RUN_FACTORY = new RegExp(`\\bfunction\\s+${["create", "DryRun", "Store"].join("")}\\s*\\(`);
+const UNQUALIFIED_HELPER_CALL = new RegExp(`(?:^|[^.\\w])(?:${helperVerbs.join("|")})\\(`);
+const QUALIFIED_HELPER_CALL = new RegExp(`\\.(?:${helperVerbs.join("|")})\\(|\\.${["app", "end"].join("")}\\(`);
+
+/** Index of the line closing the block opened on line `start`, by brace balance; -1 if it cannot be read. */
+function blockEnd(lines, start) {
+  let depth = 0;
+  let opened = false;
+  for (let j = start; j < lines.length; j++) {
+    for (const ch of lines[j]) {
+      if (ch === "{") { depth++; opened = true; } else if (ch === "}") depth--;
+    }
+    if (opened && depth === 0) return j;
+    if (depth < 0) return -1;
+  }
+  return -1;
+}
+
+/**
+ * Which proved non-write shape line `i` has, or null — null means "count it".
+ * @returns {null | "declaration" | "string-literal" | "dry-run-call"}
+ */
+export function nonWriteShapeOf(lines, i) {
+  const line = lines[i];
+  if (ANY_WRITE_PATTERN.test(line)) return null;
+  if (HELPER_DECLARATION.test(line) && !HELPER_WRITE.test(line.replace(HELPER_DECLARATION, "function _("))) return "declaration";
+  if (WHOLE_LINE_STRING.test(line)) return "string-literal";
+  if (UNQUALIFIED_HELPER_CALL.test(line) && !QUALIFIED_HELPER_CALL.test(line)) {
+    for (let s = i - 1; s >= 0; s--) {
+      if (!DRY_RUN_FACTORY.test(lines[s])) continue;
+      const e = blockEnd(lines, s);
+      if (e < i) return null;
+      const body = lines.slice(s, e + 1);
+      if (body.some((l) => ANY_WRITE_PATTERN.test(l) || QUALIFIED_HELPER_CALL.test(l))) return null;
+      return "dry-run-call";
+    }
+  }
+  return null;
+}
+
 /** What a site writes, decided by the path or store it names. Frozen, and `other` is never a default nobody reads. */
 /* 🔴 ORDER MATTERS, AND `page` IS LAST FOR A REASON. A first version put `page` first and matched
  * `html` anywhere on the line, so a brotli archive and a JSON evidence file were both reported as
@@ -337,11 +400,17 @@ export function writeSiteCensus({ repo = REPO, sources = null, register = [...PE
   const byFile = new Map(register.map((e) => [e.file, e]));
   const isCode = (l) => !/^\s*(\/\/|\*|\/\*)/.test(l) && !/^\s*import\b/.test(l);
   const sites = [];
+  const excludedNonWrites = [];
   for (const file of files) {
     const text = texts.get(file);
     const lines = text.split(/\r?\n/);
     lines.forEach((line, i) => {
       if (!isCode(line) || !(ANY_WRITE_PATTERN.test(line) || HELPER_WRITE.test(line))) return;
+      const shape = nonWriteShapeOf(lines, i);
+      if (shape) {
+        excludedNonWrites.push({ file, line: i + 1, shape, text: line.trim().slice(0, 120) });
+        return;
+      }
       const entry = byFile.get(file);
       const token = entry?.gateToken ?? "permission.mayWrite";
       const g = gateOf(lines, i + 1, token);
@@ -388,6 +457,8 @@ export function writeSiteCensus({ repo = REPO, sources = null, register = [...PE
   return {
     scanned: files.length,
     sites,
+    /** 🔴 Lines that matched the write patterns and were proved NOT to be writes — reported, not dropped. */
+    excludedNonWrites,
     byClass,
     viaHelper: sites.filter((s) => s.viaHelper).length,
     ungatedBins,

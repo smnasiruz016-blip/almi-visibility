@@ -1,0 +1,154 @@
+NOTE — this file records FOUR executions of the harness. Runs 1 and 2 are recorded, not hidden; run 3's output
+follows this note; run 4, the controlled one, follows the methodological finding at the end:
+  · run 1: the five REAL WRITE limbs were REFUSED (damage anchor found 0 times) — the checkout carries CRLF and the anchor
+    carried a bare LF. The harness refused rather than report a limb whose damage had not landed.
+  · run 2: every limb went RED for exactly itself, but the census totals read MID-LIMB were contaminated: the census scans
+    its own file, and the injected damage spelled "mkdirSync(" (and the helper names) literally, so it counted itself
+    (+1 site in tools/permitted-writers.mjs, -1 in the store = 93). The verdicts were unaffected; the figures were not clean.
+  · run 3 (below): the injected key is assembled from single characters. Mid-limb totals are now 92 = 82 + 10 + 0.
+
+SABOTAGE — GAP 2 BOUNDED CENSUS CORRECTION, EACH LIMB ALONE · 2026-09-16T23:41:43.645Z · node v24.15.0
+BEFORE: tools/permitted-writers.mjs sha256 c3c1bba6517f0481 · index blob f41f8a7484234c3816d3db98673bf5cc37d2ff83 · on-disk blob matches index: YES
+BEFORE: census 93=82+11+0 excluded 8
+BASELINE: new test file pass 8 fail 0
+
+LIMB · SHAPE declaration — its exclusion switched off
+  damage LANDED (sha256 de3bae9790b2e8f8, differs: YES) · census now 96=82+14+0 excluded 5
+  RED: 🔴 SHAPE declaration — the four helper-named function declarations in the store are not write sites
+  collateral beyond the named assertion: 0
+  ✅ RED for exactly this limb
+  restored: sha256 c3c1bba6517f0481 · blob f41f8a7484234c3816d3db98673bf5cc37d2ff83 · census 93=82+11+0 excluded 8 · all three match: YES
+
+LIMB · SHAPE string-literal — its exclusion switched off
+  damage LANDED (sha256 bb6e2b2803efc8c2, differs: YES) · census now 94=82+12+0 excluded 7
+  RED: 🔴 SHAPE string-literal — the two whole-line error-message strings that name a helper are not write sites
+  collateral beyond the named assertion: 0
+  ✅ RED for exactly this limb
+  restored: sha256 c3c1bba6517f0481 · blob f41f8a7484234c3816d3db98673bf5cc37d2ff83 · census 93=82+11+0 excluded 8 · all three match: YES
+
+LIMB · SHAPE dry-run-call — its exclusion switched off
+  damage LANDED (sha256 36be5192c6e1db3b, differs: YES) · census now 94=82+12+0 excluded 7
+  RED: 🔴 SHAPE dry-run-call — the dry-run factory's call to its own in-memory append is not a write site
+  collateral beyond the named assertion: 0
+  ✅ RED for exactly this limb
+  restored: sha256 c3c1bba6517f0481 · blob f41f8a7484234c3816d3db98673bf5cc37d2ff83 · census 93=82+11+0 excluded 8 · all three match: YES
+
+LIMB · REAL WRITE store.mjs:144 mkdirSync — wrongly excluded
+  damage LANDED (sha256 ce5c2d22f8f19a6f, differs: YES) · census now 92=82+10+0 excluded 9
+  RED: 🔴 REAL WRITE — mkdirSync in the real store's ensureDir is a write site
+  collateral beyond the named assertion: 0
+  ✅ RED for exactly this limb
+  restored: sha256 c3c1bba6517f0481 · blob f41f8a7484234c3816d3db98673bf5cc37d2ff83 · census 93=82+11+0 excluded 8 · all three match: YES
+
+LIMB · REAL WRITE store.mjs:191 appendFileSync — wrongly excluded
+  damage LANDED (sha256 1a310c91d5ea1d6b, differs: YES) · census now 92=82+10+0 excluded 9
+  RED: 🔴 REAL WRITE — appendFileSync in the real store's appendWithoutDedupe is a write site
+  collateral beyond the named assertion: 0
+  ✅ RED for exactly this limb
+  restored: sha256 c3c1bba6517f0481 · blob f41f8a7484234c3816d3db98673bf5cc37d2ff83 · census 93=82+11+0 excluded 8 · all three match: YES
+
+LIMB · REAL WRITE store.mjs:197 real loop call — wrongly excluded
+  damage LANDED (sha256 c505d85e3c68d2ba, differs: YES) · census now 92=82+10+0 excluded 9
+  RED: 🔴 REAL WRITE — the real store's appendAllWithoutDedupe loop call is a write site
+  collateral beyond the named assertion: 0
+  ✅ RED for exactly this limb
+  restored: sha256 c3c1bba6517f0481 · blob f41f8a7484234c3816d3db98673bf5cc37d2ff83 · census 93=82+11+0 excluded 8 · all three match: YES
+
+LIMB · REAL WRITE store.mjs:229 new-record append — wrongly excluded
+  damage LANDED (sha256 cb812fd130a32d53, differs: YES) · census now 92=82+10+0 excluded 9
+  RED: 🔴 REAL WRITE — the real store's appendIfNew call for a NEW record is a write site
+  collateral beyond the named assertion: 0
+  ✅ RED for exactly this limb
+  restored: sha256 c3c1bba6517f0481 · blob f41f8a7484234c3816d3db98673bf5cc37d2ff83 · census 93=82+11+0 excluded 8 · all three match: YES
+
+LIMB · REAL WRITE store.mjs:232 re-sighting append — wrongly excluded
+  damage LANDED (sha256 cc7793fce441f46a, differs: YES) · census now 92=82+10+0 excluded 9
+  RED: 🔴 REAL WRITE — the real store's appendIfNew call for a RE-SIGHTING is a write site
+  collateral beyond the named assertion: 0
+  ✅ RED for exactly this limb
+  restored: sha256 c3c1bba6517f0481 · blob f41f8a7484234c3816d3db98673bf5cc37d2ff83 · census 93=82+11+0 excluded 8 · all three match: YES
+
+AFTER EVERY RESTORE: new test file pass 8 fail 0 · census 93=82+11+0 excluded 8 · sha256 c3c1bba6517f0481 · blob f41f8a7484234c3816d3db98673bf5cc37d2ff83
+EVERY LIMB RED FOR EXACTLY ITSELF, EVERY RESTORE VERIFIED: YES
+
+======================================================================================
+METHODOLOGICAL FINDING (owner ruling, recorded precisely and no further)
+  the census implementation scans its own source file as part of the census population, so mutating
+  the implementation can alter the population and the counts as well as the behaviour under test.
+  Runs 1 and 2 (header above) are kept. No inference is drawn from either: a refused or contaminated
+  run says nothing about whether the detector is safe or unsafe, in either direction.
+  Run 3 (above) avoided the contamination by assembling the injected tokens from single characters.
+  That is a workaround, not a method, so run 4 (below) replaces it with a controlled one.
+
+RUN 4 · THE CONTROLLED METHOD
+  · the new test (test/gap2-census-non-write-shapes.test.mjs) hands the census ONE fixed input — the
+    text of src/evidence/store.mjs — through `sources`; the census reads nothing else, so its own
+    source file is not in the population the test judges, whatever is done to the implementation.
+  · the totals read mid-limb come from a snapshot of every src/ bin/ tools/ .mjs index blob captured
+    BEFORE any damage, passed through `sources`; the damaged file on disk is never scanned.
+  · the damage spells the tokens LITERALLY again (as run 2 did), to show the method, not a workaround,
+    is what keeps the figures clean: real-write limbs now read 92 = 82 + 10 + 0.
+======================================================================================
+SABOTAGE RUN 4 — CONTROLLED: fixed-input test, fixed-population totals, damage spelled LITERALLY · 2026-09-17T00:01:50.038Z · node v24.15.0
+BEFORE: tools/permitted-writers.mjs sha256 c3c1bba6517f0481 · index blob f41f8a7484234c3816d3db98673bf5cc37d2ff83 · on-disk blob matches index: YES
+BEFORE: census 93=82+11+0 excluded 8
+BASELINE: new test file pass 8 fail 0
+
+LIMB · SHAPE declaration — its exclusion switched off
+  damage LANDED (sha256 de3bae9790b2e8f8, differs: YES) · census now 96=82+14+0 excluded 5
+  RED: 🔴 SHAPE declaration — the four helper-named function declarations in the store are not write sites
+  collateral beyond the named assertion: 0
+  ✅ RED for exactly this limb
+  restored: sha256 c3c1bba6517f0481 · blob f41f8a7484234c3816d3db98673bf5cc37d2ff83 · census 93=82+11+0 excluded 8 · all three match: YES
+
+LIMB · SHAPE string-literal — its exclusion switched off
+  damage LANDED (sha256 bb6e2b2803efc8c2, differs: YES) · census now 94=82+12+0 excluded 7
+  RED: 🔴 SHAPE string-literal — the two whole-line error-message strings that name a helper are not write sites
+  collateral beyond the named assertion: 0
+  ✅ RED for exactly this limb
+  restored: sha256 c3c1bba6517f0481 · blob f41f8a7484234c3816d3db98673bf5cc37d2ff83 · census 93=82+11+0 excluded 8 · all three match: YES
+
+LIMB · SHAPE dry-run-call — its exclusion switched off
+  damage LANDED (sha256 36be5192c6e1db3b, differs: YES) · census now 94=82+12+0 excluded 7
+  RED: 🔴 SHAPE dry-run-call — the dry-run factory's call to its own in-memory append is not a write site
+  collateral beyond the named assertion: 0
+  ✅ RED for exactly this limb
+  restored: sha256 c3c1bba6517f0481 · blob f41f8a7484234c3816d3db98673bf5cc37d2ff83 · census 93=82+11+0 excluded 8 · all three match: YES
+
+LIMB · REAL WRITE store.mjs:144 mkdirSync — wrongly excluded
+  damage LANDED (sha256 d9abb99b1f664ff0, differs: YES) · census now 92=82+10+0 excluded 9
+  RED: 🔴 REAL WRITE — mkdirSync in the real store's ensureDir is a write site
+  collateral beyond the named assertion: 0
+  ✅ RED for exactly this limb
+  restored: sha256 c3c1bba6517f0481 · blob f41f8a7484234c3816d3db98673bf5cc37d2ff83 · census 93=82+11+0 excluded 8 · all three match: YES
+
+LIMB · REAL WRITE store.mjs:191 appendFileSync — wrongly excluded
+  damage LANDED (sha256 513f3dd0b548382a, differs: YES) · census now 92=82+10+0 excluded 9
+  RED: 🔴 REAL WRITE — appendFileSync in the real store's appendWithoutDedupe is a write site
+  collateral beyond the named assertion: 0
+  ✅ RED for exactly this limb
+  restored: sha256 c3c1bba6517f0481 · blob f41f8a7484234c3816d3db98673bf5cc37d2ff83 · census 93=82+11+0 excluded 8 · all three match: YES
+
+LIMB · REAL WRITE store.mjs:197 real loop call — wrongly excluded
+  damage LANDED (sha256 e5846aa395c59e6a, differs: YES) · census now 92=82+10+0 excluded 9
+  RED: 🔴 REAL WRITE — the real store's appendAllWithoutDedupe loop call is a write site
+  collateral beyond the named assertion: 0
+  ✅ RED for exactly this limb
+  restored: sha256 c3c1bba6517f0481 · blob f41f8a7484234c3816d3db98673bf5cc37d2ff83 · census 93=82+11+0 excluded 8 · all three match: YES
+
+LIMB · REAL WRITE store.mjs:229 new-record append — wrongly excluded
+  damage LANDED (sha256 68d909eb23781d5f, differs: YES) · census now 92=82+10+0 excluded 9
+  RED: 🔴 REAL WRITE — the real store's appendIfNew call for a NEW record is a write site
+  collateral beyond the named assertion: 0
+  ✅ RED for exactly this limb
+  restored: sha256 c3c1bba6517f0481 · blob f41f8a7484234c3816d3db98673bf5cc37d2ff83 · census 93=82+11+0 excluded 8 · all three match: YES
+
+LIMB · REAL WRITE store.mjs:232 re-sighting append — wrongly excluded
+  damage LANDED (sha256 82e6ade8b829d28d, differs: YES) · census now 92=82+10+0 excluded 9
+  RED: 🔴 REAL WRITE — the real store's appendIfNew call for a RE-SIGHTING is a write site
+  collateral beyond the named assertion: 0
+  ✅ RED for exactly this limb
+  restored: sha256 c3c1bba6517f0481 · blob f41f8a7484234c3816d3db98673bf5cc37d2ff83 · census 93=82+11+0 excluded 8 · all three match: YES
+
+AFTER EVERY RESTORE: new test file pass 8 fail 0 · census 93=82+11+0 excluded 8 · sha256 c3c1bba6517f0481 · blob f41f8a7484234c3816d3db98673bf5cc37d2ff83
+EVERY LIMB RED FOR EXACTLY ITSELF, EVERY RESTORE VERIFIED: YES

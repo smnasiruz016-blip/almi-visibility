@@ -32,6 +32,10 @@ export function row5({ records, lexicon, reference, ambiguous, observationId = Q
     population,
     heldOut,
     record,
+    /* 🔴 UNEVALUATED BY RULE — NEITHER PASSED NOR FAILED. The reference's own R6 keeps an ambiguous wording
+     * "scored in NEITHER direction", and `compareToReference` skips those members. They are carried here BY NAME so
+     * no report can quietly count them as evaluated. This turn does not adjudicate them. */
+    ruleExcluded: { rule: "R6", state: "UNEVALUATED-BY-RULE", why: "the reference cannot say which intent the wording has; scored in neither direction", members: Object.keys(ambiguous ?? {}) },
     errors,
     threshold,
     limit: LIMIT,

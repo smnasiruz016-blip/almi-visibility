@@ -326,8 +326,19 @@ export function lexiconWordsAbsentFrom(lexicon, rows) {
  * 🔴 ROW 5's CLUSTERING LAW. Returns [] when every limb holds; each error names its limb.
  *   wording-lost          — a store query is not a record member verbatim exactly once, or a member's wording differs from its store row
  *   merged / split        — the in-sample clusters against the reference, separately
+ *   record-merged /       — 🔴 THE FROZEN CLAUSE OVER THE WHOLE OUTPUT (D-HELDOUT-1): the RECORD — in-sample
+ *   record-split             clusters PLUS held-out placements — against the same reference, by the same
+ *                            `compareToReference`. The in-sample limbs above cannot see a held-out member at all:
+ *                            `inSampleClusters` is built from the training half alone, so a held-out query left in
+ *                            its own cluster is invisible to them however wrong it is. These two limbs are what
+ *                            makes "distinct intents merge, or identical intents stay split" fail-capable for the
+ *                            whole population the clusterer actually produced.
  *   held-out-unrun        — the held-out report did not run over exactly the held-out population, or its counts disagree with its own results
  *   lexicon-held-out-word — the lexicon holds a word no in-sample query contains
+ *
+ * 🔴 RULE-EXCLUDED, NOT EVALUATED: `compareToReference` skips every R6-AMBIGUOUS member (:214), by the reference's
+ * own rule that an ambiguous wording is "scored in NEITHER direction". Those members are neither passed nor failed
+ * by any limb here; they are reported separately, by name, as UNEVALUATED-BY-RULE.
  */
 export function clusteringErrors({ humanRows, record, heldOut, reference, ambiguous = {}, lexicon }) {
   const errs = [];
@@ -358,6 +369,17 @@ export function clusteringErrors({ humanRows, record, heldOut, reference, ambigu
     const { merged, split } = compareToReference(h.inSampleClusters || [], reference, ambiguous);
     for (const x of merged) errs.push({ limb: "merged", why: `cluster ${x.cluster} merges ${Object.keys(x.intents).length} distinct intents: ${Object.entries(x.intents).map(([k, v]) => `${k} [${v.join(" · ")}]`).join(" + ")}` });
     for (const x of split) errs.push({ limb: "split", why: `intent ${x.intent} is split across ${x.clusters.length} clusters: ${x.clusters.map((c) => `[${c.members.join(" · ")}]`).join(" | ")}` });
+  }
+
+  /* 🔴 D-HELDOUT-1 — THE SAME COMPARISON, OVER THE WHOLE RECORD. Not a new rule and not a new qualifier: the same
+   * `compareToReference`, the same reference, the same two directions — applied to the output the clusterer actually
+   * produced rather than to the training half of it. */
+  const overRecord = compareToReference(record || [], reference, ambiguous);
+  for (const x of overRecord.merged) {
+    errs.push({ limb: "record-merged", why: `cluster ${x.cluster} merges ${Object.keys(x.intents).length} distinct intents: ${Object.entries(x.intents).map(([k, v]) => `${k} [${v.join(" · ")}]`).join(" + ")}` });
+  }
+  for (const x of overRecord.split) {
+    errs.push({ limb: "record-split", why: `intent ${x.intent} is split across ${x.clusters.length} clusters: ${x.clusters.map((c) => `[${c.members.join(" · ")}]`).join(" | ")}` });
   }
 
   if (lexicon) {

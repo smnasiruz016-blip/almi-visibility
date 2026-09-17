@@ -139,6 +139,203 @@ A10 · OUTSIDE THE FROZEN POPULATION — REPORTED, NOT INVESTIGATED
   src/cost/paid-provider-gate.mjs:166 · src/crawl/persist.mjs:14, :17 · src/crawl/replay.mjs:141 ·
   src/search/ingest.mjs:57
 
+--------------------------------------------------------------------------------------
+ADDED LATER ON 16 SEPTEMBER 2026 — BOUNDED CENSUS CORRECTION (owner ruling, _handoffs b7b82ec)
+Everything above is kept as first written; the sections below are recorded ALONGSIDE it.
+Measured on engine main 3324f98 (store.mjs and the census unchanged since bd10a47).
+--------------------------------------------------------------------------------------
+
+A11 · :120 RECLASSIFIED — A FIFTH STATE, NON-WRITE CALL (added by the owner)
+  :120 is `for (const r of records) appendWithoutDedupe(r);` inside the arrow function
+  appendAllWithoutDedupe (:119-122), inside createDryRunStore (:88-137). The unqualified name
+  resolves to the function declared at :100 in the same factory; that function throws on a bad
+  record, pushes onto the in-memory array `wouldWrite` (:91) and returns. No file is touched.
+  The only other function of that name (:181) is in createJsonlStore, a different scope.
+  :120 = NON-WRITE CALL (was UNKNOWN in A4).
+  FINAL TALLY of the 12: REAL WRITE 5 · NON-WRITE 7 (4 declaration + 2 string literal + 1 call) · UNKNOWN 0
+
+A12 · THE CORRECTION — tools/permitted-writers.mjs, three proved shapes and nothing else
+  declaration    — a line declaring a helper-named function, with no other helper call on it
+  string-literal — a line that is wholly one quoted string
+  dry-run-call   — an unqualified helper call inside the dry-run store factory, only while that
+                   factory's body holds no write primitive and no qualified store call
+  every shape: a line naming a write primitive is always a site. Excluded lines are returned in
+  a new field, excludedNonWrites, with file, line and shape.
+  untouched: gate recognition (gateOf), the three states, anchoring, site classes, reachedBy,
+  gatedAtCaller, the declared/stale logic, analyseWriters.
+  new guard: test/gap2-census-non-write-shapes.test.mjs — 3 shape assertions + 5 real-write
+  assertions, lines found by content and enclosing factory, not by number.
+
+A13 · CORRECTED TOTALS — ALONGSIDE A2 AND A5, NOT IN PLACE OF THEM
+  frozen population  original 22 = 10 GATED + 12 UNGATED + 0 CANNOT_DETERMINE
+                     (A5 by-syntax reading: 16 = 10 + 5 + 1 UNKNOWN)
+                     census-corrected 15 = 10 GATED + 5 UNGATED + 0 CANNOT_DETERMINE
+  whole census       original 101 = 82 GATED + 19 UNGATED + 0 CANNOT_DETERMINE · viaHelper 38
+                     census-corrected 93 = 82 GATED + 11 UNGATED + 0 CANNOT_DETERMINE · viaHelper 30
+  (the original figures were re-derived by running the unmodified origin/main census from a copy:
+  101 = 82 + 19 + 0, viaHelper 38 — it reproduces A2.)
+  what changed: 8 of the 19 UNGATED sites were removed; no site was added; no site changed state.
+    in the frozen population: store.mjs :100 :106 :181 :220 (declaration) · :110 :224 (string-literal)
+                              · :120 (dry-run-call)
+    OUTSIDE the frozen population, reported and NOT investigated:
+      src/crawl/persist.mjs:14 `export function persistCrawlObservations(store, observations) {`
+      — excluded as a declaration; it was one of the seven GATED-AT-CALLER sites in A10, which are
+      now six. src/crawl/persist.mjs:17 is still a site.
+  still true after the correction: the 5 real store writes :144 :191 :197 :229 :232 are sites
+  (UNGATED, by design); the 10 bin sites are GATED; ungatedBins 0 · undeclared 0 ·
+  CANNOT_DETERMINE 0 and still reported in its own column.
+
+A14 · SABOTAGE OF THE CORRECTION — runs/audit/gap2-census-correction-sabotage-2026-09-16.txt
+  8 limbs, each alone: 3 shapes switched off, 5 real writes wrongly excluded. Each went RED on
+  exactly its own assertion with 0 collateral. Every restore matched sha256 c3c1bba6517f0481,
+  index blob f41f8a7484234c3816d3db98673bf5cc37d2ff83, and census 93 = 82 + 11 + 0 (8 excluded).
+  mid-limb totals: shape limbs 96 / 94 / 94; real-write limbs 92 = 82 + 10 + 0.
+  two earlier runs are recorded in that file's header (CRLF anchor refused; self-scan contamination).
+
+A15 · 🔴 ONE EXISTING ASSERTION NOW FAILS
+  node --test test/permitted-writers.test.mjs test/ungated-writers.test.mjs -> 46 of 47 pass.
+  failing: test/ungated-writers.test.mjs:323 "the census covers EVERY write path, and a
+  HELPER-reached write is a site" — at :328 `assert.ok(w.viaHelper > 30, ...)`:
+  "only 30 helper-reached sites — the census is counting primitives again".
+  that floor was set in a4f258f against the population that still held the 8 false positives
+  (viaHelper 38). The corrected census has exactly 30. The assertion was NOT changed.
+
+A16 · BLOCKER 3 — THE FROZEN TEXT, QUOTED
+  Gap 2 close law (_handoffs a079c38 §5): "Gap 2 closes ONLY if corrected current evidence
+  establishes: - frozen writer population is completely enumerated; - census recognises
+  legitimate authorization control-flow shapes; - unsafe negative controls remain classified
+  unsafe; - no genuine undeclared ungated writer exists in the frozen population; - no genuine
+  declared ungated writer remains unresolved; - behavioural evidence and corrected static census
+  agree; - no current evidence/provenance corruption or test unreliability remains inside Gap 2's
+  frozen boundary."
+  the incident-test mandate (_handoffs 289d471): "THE INCIDENT TEST, MANDATORY: run each of the
+  six with NO FLAGS and assert the files it would touch are BYTE-IDENTICAL afterwards."
+  #98's own-state rule (_handoffs 3e5bf1a §7): "ZERO genuine ungated writers AND ZERO
+  CANNOT_DETERMINE sites in the frozen GAP 2 population → report GAP 2 candidate CLOSED".
+  none of these names runtime REACH proof, per bin, or external availability.
+  recorded for bin/gsc-ingest.mjs: BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE —
+  prerequisite: owner-authorized network execution. Not run, not stubbed, not inferred.
+
+A17 · BLOCKER 2 — SCOPE ONLY, NOTHING BUILT (the 9 write-callers without complete proof)
+  proof needed for each: a no-flag run in a test that REACHES its write decision (positive reach
+  output) and leaves every store it would touch byte-identical.
+  #98 transcript shows REACHED + wrote nothing, no test:
+    replay-crawl · reads committed crawl records + a corpus directory (the corpus is an expiring
+      artifact, absent in CI; --recover downloads and is out of scope) · network: the #98 run
+      reached its write without --recover, but whether any request was issued is NOT
+      ESTABLISHED here · data repo: no write seen · connected product: its source names
+      product URLs as fixed data, read only
+    supersede-noindex · reads committed runs/audit records · a grep of its source finds no
+      fetch or URL · data repo: no write seen · product: none named
+    instrument-disagreement · reads committed runs/crawl records and edges · grep: no fetch or
+      URL · no data-repo write seen · no product named
+    link-recommendation-evidence · reads committed runs/ records · grep: no fetch or URL ·
+      no data-repo write seen · no product named
+  reach NOT DEMONSTRATED by #98:
+    cost-ledger · its write (:76) sits on an argument path (--run); which arguments reach it is
+      NOT ESTABLISHED here · network: none seen · data repo: no · product: no
+    source-integrity · has a --live path (network) and --product; whether a non-network path
+      reaches its write is UNKNOWN
+  no evidence at all:
+    paid-provider-controls · names a provider and the network; whether its write is reachable
+      without a provider call is UNKNOWN
+    render-archive · launches a local chromium with node-side egress refused, reads the crawl
+      store and a corpus; needs a browser and the corpus; browser-side egress NOT ESTABLISHED
+  partial test:
+    report · write-confinement.test.mjs:96 runs it with no flags and asserts its --out target is
+      absent and "[dry-run] would have written"; it does not guard the stores. It already runs
+      without network, names the product by argument, and writes nothing to the data repo.
+
+A18 · verification-issues DRY-RUN OUTPUT — RECORDED ONLY
+  in a measured dry-run execution, bin/verification-issues.mjs printed
+  "already present (re-sighted)" where no re-sighting occurred.
+  no severity, cause or family is inferred; not fixed; not part of Blocker 2; no id.
+
+--------------------------------------------------------------------------------------
+ADDED 17 SEPTEMBER 2026 — CONDITIONAL FLOOR RE-BASE (owner ruling, _handoffs 19f1a56)
+A11-A18 above stay as written; A15 was true when written (the assertion had not been changed).
+--------------------------------------------------------------------------------------
+
+A19 · SET EQUALITY — THE SITES THAT LEFT viaHelper == THE 8 CLASSIFIED NON-WRITES
+  METHOD — the population held fixed, only the implementation swapped:
+    writeSiteCensus accepts `sources` ([{file, text}]); given it, the census reads nothing from disk and
+    runs no `git ls-files`. One frozen snapshot array was built and the SAME array was handed to both
+    implementations, so where an implementation's module file lives cannot change what it scans.
+    Two populations, each scanned by both: P-committed (every src/ bin/ tools/ .mjs blob at 3324f98 —
+    the ORIGINAL census text is in it) and P-staged (every such index blob — the CORRECTED text is in
+    it). Both lists are the same 155 files.
+    ORIGINAL implementation: the 3324f98 blob of tools/permitted-writers.mjs, loaded as a module with
+    its relative imports pointed at the repository's own modules (the same URLs the corrected one
+    imports). CORRECTED: the working-tree tools/permitted-writers.mjs.
+  RESULT, identical in both populations:
+    ORIGINAL  101 = 82 GATED + 19 UNGATED + 0 CANNOT_DETERMINE · viaHelper 38
+    CORRECTED  93 = 82 GATED + 11 UNGATED + 0 CANNOT_DETERMINE · viaHelper 30 · excludedNonWrites 8
+    LEFT viaHelper (8):   src/crawl/persist.mjs:14 · src/evidence/store.mjs:100 :106 :110 :120 :181 :220 :224
+    CLASSIFIED NON-WRITES (8, by syntax and enclosing scope — A4, A11, and persist.mjs:14 below):
+                          src/crawl/persist.mjs:14 · src/evidence/store.mjs:100 :106 :110 :120 :181 :220 :224
+    left but not classified: none · classified but did not leave: none
+    added to viaHelper: none · the sites that left ALL sites are the same 8 · no site added ·
+    excludedNonWrites == the classified set · no common site changed state, viaHelper or gatedAtCaller
+    the census's own file contributes 0 sites under either implementation.
+  persist.mjs:14 classified independently: `export function persistCrawlObservations(store, observations) {`
+    — a function declaration (NON-WRITE DECLARATION); its body's write is :17 `store.appendIfNew(...)`,
+    which remains a site.
+  POSITIVE CONTROL: the same harness given a deliberately wrong classified set (store.mjs:197, a real
+    write, in place of :120) reports MISMATCH in both populations, naming both directions:
+    "left but not classified: src/evidence/store.mjs:120 · classified but did not leave:
+    src/evidence/store.mjs:197".
+  SET EQUALITY: IDENTICAL.
+
+A20 · THE FLOOR, RE-BASED — test/ungated-writers.test.mjs
+  (re-measured: the test is still at :323; the assertion OLD :328 -> CURRENT :342, below an in-file
+  rationale block at :328-:341; the pin follows at :343-:345)
+  old:  assert.ok(w.viaHelper > 30, ...)
+  new:  assert.ok(w.viaHelper >= 30, ...)
+  why this form: 30 is the measured corrected count, with no headroom; it stays a floor (>=) because
+    the assertion guards against the census losing helper-reached writes, and a new real writer may
+    raise the count. The rationale, the 38 -> 30 history and the 8 sites are written in the test file.
+  pinned beside it: assert.equal(w.excludedNonWrites.length, 8, ...) and the per-file split
+    { src/crawl/persist.mjs: 1, src/evidence/store.mjs: 7 }.
+  census test files: 55 of 55 pass (the 47 existing + the 8 new).
+
+A21 · PROVING THE CORRECTED CENSUS WITHOUT SELF-CONTAMINATION
+  methodological finding, recorded as ruled: the census implementation scans its own source file as
+    part of the census population, so mutating the implementation can alter the population and the
+    counts as well as the behaviour under test.
+  runs 1 and 2 are preserved (runs/audit/gap2-census-correction-sabotage-2026-09-16.txt). No inference
+    is drawn from either about whether the detector is safe or unsafe.
+  METHOD: a FIXED INPUT held outside the census's own source. The new test hands the census exactly
+    one input — the text of src/evidence/store.mjs — through `sources`, and the census reads nothing
+    else; the mid-limb totals are read over a snapshot of the index taken before any damage, also
+    through `sources`. Mutating tools/permitted-writers.mjs therefore changes the behaviour under
+    test and nothing in the population.
+  RUN 4, with the damage spelled literally: 8 limbs, each RED on exactly its own assertion, 0
+    collateral; mid-limb totals clean (shapes 96 / 94 / 94, real writes 92 = 82 + 10 + 0); every
+    restore matched sha256 c3c1bba6517f0481, index blob f41f8a7484234c3816d3db98673bf5cc37d2ff83 and
+    census 93 = 82 + 11 + 0 (8 excluded).
+
+A22 · BLOCKER 3 — BOTH LINES, TOGETHER
+  gsc-ingest reach proof = BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE
+    (prerequisite: owner-authorised network execution)
+  gsc-ingest incident-test reliability = UNPROVED; therefore Gap 2 remains OPEN on this blocker.
+
+A23 · BLOCKER 2 — THE POPULATION, FROZEN (as scoped in A17; nothing started)
+  16 real write-callers (A6). 7 with complete no-write proof by a test:
+    audit · audit-content · audit-technical · supply-labels · verification-issues · gsc-ingest · crawl
+    (gsc-ingest's case proves no write but not reach — A22)
+  9 WITHOUT complete no-write behavioural proof, each needing a no-flag test that reaches its write
+  decision and leaves every store it would touch byte-identical:
+    replay-crawl                  #98 transcript: reached, wrote nothing · no test
+    supersede-noindex             #98 transcript: reached, wrote nothing · no test
+    instrument-disagreement       #98 transcript: reached, wrote nothing · no test
+    link-recommendation-evidence  #98 transcript: reached, wrote nothing · no test
+    cost-ledger                   reach not demonstrated · which arguments reach its write: not established
+    source-integrity              reach not demonstrated · a no-network path to its write: unknown
+    paid-provider-controls        no evidence · reachable without a provider call: unknown
+    render-archive                no evidence · needs a local browser and the corpus
+    report                        partial test · its --out target is guarded, its stores are not
+  network / data-repo write / connected product, per caller: as recorded in A17.
+
 ======================================================================================
 PART B · CONCLUSIONS
 ======================================================================================
@@ -181,3 +378,60 @@ B5 · DECISION
     2. store option (C): 9 of 16 write-callers without a no-write test (B2) — owner decision
     3. gsc-ingest reach unprovable without network (B3) — owner decision
   ledger unchanged: 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61 · row 53 untouched · row 61 VERIFIED-PASS.
+
+--------------------------------------------------------------------------------------
+CONCLUSIONS ADDED LATER ON 16 SEPTEMBER 2026 (B1-B5 above are kept as first written)
+--------------------------------------------------------------------------------------
+
+B6 · BLOCKER 1 (census correctness) — NOT CLOSED
+  The correction does what it was authorised to do: the three proved shapes are excluded, the
+  five real writes and the ten gated bin sites are unchanged, CANNOT_DETERMINE is untouched, and
+  every limb of its sabotage went RED for exactly itself (A12-A14).
+  But the owner's condition "all 47 existing negative controls still pass" is not met: 46 of 47
+  pass (A15). The failing floor, viaHelper > 30, counted the 8 false positives; the corrected
+  census has exactly 30. Changing that assertion is not authorised by this ruling, so it was not
+  changed, and the correction was NOT committed.
+  smallest exact reason: test/ungated-writers.test.mjs:328 needs an owner ruling.
+
+B7 · BLOCKER 3 (gsc-ingest) — RECORDED AS BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE
+  No quoted frozen text explicitly requires runtime reach proof for every bin regardless of
+  external availability (A16), so by the owner's rule the external-prerequisite record stands.
+  NOT DECIDED HERE, for the owner: whether the close law's "no ... test unreliability remains
+  inside Gap 2's frozen boundary" covers gsc-ingest's incident case, which asserts only the
+  dry-run banner and would pass on a run that never reached a write.
+
+B8 · BLOCKER 2 (store option C) — SCOPED, NOT BUILT (A17). Authorised in a later slot only.
+
+B9 · DECISION: GAP 2 = REMAINS OPEN
+  smallest exact blocker set:
+    1. census correctness — correction proven but blocked by one existing floor (B6) — owner ruling
+    2. store option (C) — 9 of 16 write-callers without complete no-write proof (B8)
+    3. the reading of "test unreliability" for gsc-ingest's banner-only case (B7) — owner ruling
+
+--------------------------------------------------------------------------------------
+CONCLUSIONS ADDED 17 SEPTEMBER 2026 (B1-B9 above are kept as first written)
+--------------------------------------------------------------------------------------
+
+B10 · BLOCKER 1 (census correctness) — CLOSED
+  The set of sites that left the helper count is identical to the 8 proved non-writes, in both fixed
+  populations, with a positive control that detects a mismatch (A19). So the floor was re-based, not
+  relaxed: 30 is what the census covers once the proved non-writes are removed (A20). The correction
+  excludes the three proved shapes and nothing else; the five real store writes and the ten gated bin
+  sites are unchanged; CANNOT_DETERMINE is untouched; the exclusions are pinned at 8; and the
+  corrected behaviour is proved on a fixed input that cannot contaminate itself (A21).
+  frozen population: original 22 = 10 + 12 + 0 -> corrected 15 = 10 + 5 + 0 (the 5 are the store's
+  real writes, ungated by design, the 15 September ruling standing).
+  whole census: original 101 = 82 + 19 + 0 -> corrected 93 = 82 + 11 + 0.
+
+B11 · BLOCKER 3 — OPEN (A22): the reach proof is blocked by an external prerequisite AND the incident
+  test's reliability is unproved. The prerequisite blocks the fix; it does not exempt the criterion.
+
+B12 · BLOCKER 2 — OPEN, POPULATION FROZEN (A23): 9 of 16 write-callers without complete no-write proof.
+  Nothing started; its own slot, on the owner's ruling.
+
+B13 · DECISION: GAP 2 = REMAINS OPEN
+  smallest exact blocker set:
+    1. store option (C): 9 of 16 write-callers without complete no-write behavioural proof (A23)
+    2. gsc-ingest reach proof = BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE
+         (prerequisite: owner-authorised network execution)
+       gsc-ingest incident-test reliability = UNPROVED; therefore Gap 2 remains OPEN on this blocker.

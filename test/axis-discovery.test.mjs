@@ -47,9 +47,16 @@ test("🟢 MEASURED — the input: 379 human country×query rows in 48 countries
   assert.equal(R.input.archivedBodies, 394);
 });
 
-test("🟢 GREEN: every row-6 limb holds on the real evidence — and row 5's record under it is itself lawful", () => {
+test("🟢 GREEN: every row-6 limb holds on the real evidence — and row 5's record under it carries exactly its known acceptance failure", () => {
   assert.deepEqual(R.errors, []);
-  assert.deepEqual(R.row5Errors, []);
+  /* 🔴 CORRECTED 17 SEPTEMBER 2026 (D-HELDOUT-1). This once asserted `R.row5Errors` was EMPTY — which was true only
+   * because row 5's acceptance then judged the training half of its output alone. Row 5 is FAILED, and its record
+   * is NOT error-free: acceptance reports 8 identical-intent splits over the whole record. Row 6's own verdict does
+   * not depend on that — `row5Errors` is carried through for reporting (src/discovery/row6.mjs:129) while row 6's
+   * limbs come from axisErrors — so row 6 is unaffected, and this assertion now says what is true rather than what
+   * was convenient. It goes red if row 5's acceptance failure changes shape, which is when it should be re-read. */
+  assert.deepEqual([...new Set(R.row5Errors.map((e) => e.limb))], ["record-split"]);
+  assert.equal(R.row5Errors.length, 8);
 });
 
 test("🟢 MEASURED — 14 candidates (7 named, 7 discovered): 7 MONITOR · 7 UNKNOWN · 0 BUILD · 0 REJECT", () => {

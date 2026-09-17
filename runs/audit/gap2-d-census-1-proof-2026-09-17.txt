@@ -1,0 +1,109 @@
+D-CENSUS-1 — SET PROOF, ITS CONTROL, AND THE SABOTAGE · MEASURED 17 SEPTEMBER 2026
+engine branch v0.1/gap2-d-census-1, cut from main e860f75. Owner rulings: _handoffs cc5a7c0, 34d727c.
+Method: one frozen sources array per population, handed to both the ORIGINAL census (the committed file, loaded
+from a copy whose relative imports point at this repository) and the CORRECTED one. With sources the census reads
+nothing from disk, so neither file can change what is scanned. The sabotage never writes the live census: each limb
+is a damaged COPY in .test-scratch, loaded by test/gap2-d-census-1.test.mjs through GAP2_CENSUS_IMPL, and that test
+itself judges a fixed five-file input.
+
+==================== 1 · MEASUREMENT (sites, callers, shape list) ====================
+
+=== P-committed (HEAD e860f75) · 155 files, same array to both ===
+ORIGINAL : whole 93 = 82 + 11 + 0 · frozen 15 = 10 + 5 + 0 · excludedNonWrites 8 · undeclared 0 · CD 0 · stale 0 · gatedAtCaller 6 · viaHelper 30
+CORRECTED: whole 96 = 85 + 11 + 0 · frozen 15 = 10 + 5 + 0 · excludedNonWrites 9 · undeclared 0 · CD 0 · stale 0 · gatedAtCaller 6 · viaHelper 33
+sites ADDED: bin/instrument-disagreement.mjs:90  bin/supersede-duplicates.mjs:66  bin/supersede-noindex.mjs:150
+sites REMOVED: none
+common sites changed: none
+excluded ADDED: src/evidence/store.mjs:196 declaration
+  bin/instrument-disagreement.mjs:90: GATED (by early exit of line 85) · declared false · store.appendAllWithoutDedupe(changes); · (was NOT a site before)
+  bin/supersede-noindex.mjs:150: GATED (by else of line 143) · declared false · store.appendAllWithoutDedupe(changes); · (was NOT a site before)
+  bin/supersede-duplicates.mjs:66: GATED (by line 66) · declared false · const after = notes.length && permission.mayWrite ? (store.appendAllWi · (was NOT a site before)
+write-callers: ORIGINAL 16 -> CORRECTED 17 · added bin/supersede-duplicates.mjs · removed none · supersede-duplicates in ORIGINAL: NO
+
+=== P-corrected (working tree) · 155 files, same array to both ===
+ORIGINAL : whole 93 = 82 + 11 + 0 · frozen 15 = 10 + 5 + 0 · excludedNonWrites 8 · undeclared 0 · CD 0 · stale 0 · gatedAtCaller 6 · viaHelper 30
+CORRECTED: whole 96 = 85 + 11 + 0 · frozen 15 = 10 + 5 + 0 · excludedNonWrites 9 · undeclared 0 · CD 0 · stale 0 · gatedAtCaller 6 · viaHelper 33
+sites ADDED: bin/instrument-disagreement.mjs:90  bin/supersede-duplicates.mjs:66  bin/supersede-noindex.mjs:150
+sites REMOVED: none
+common sites changed: none
+excluded ADDED: src/evidence/store.mjs:196 declaration
+  bin/instrument-disagreement.mjs:90: GATED (by early exit of line 85) · declared false · store.appendAllWithoutDedupe(changes); · (was NOT a site before)
+  bin/supersede-noindex.mjs:150: GATED (by else of line 143) · declared false · store.appendAllWithoutDedupe(changes); · (was NOT a site before)
+  bin/supersede-duplicates.mjs:66: GATED (by line 66) · declared false · const after = notes.length && permission.mayWrite ? (store.appendAllWi · (was NOT a site before)
+write-callers: ORIGINAL 16 -> CORRECTED 17 · added bin/supersede-duplicates.mjs · removed none · supersede-duplicates in ORIGINAL: NO
+
+=== SHAPE LIST — src/evidence/store.mjs write-capable verbs (createJsonlStore's returned methods) ===
+  store.appendWithoutDedupe(r)                     ORIGINAL RECOGNISED · CORRECTED RECOGNISED
+  appendWithoutDedupe(r) unqualified               ORIGINAL RECOGNISED · CORRECTED RECOGNISED
+  createJsonlStore(p).appendWithoutDedupe(r)       ORIGINAL RECOGNISED · CORRECTED RECOGNISED
+  const w = store.appendWithoutDedupe; w(r)  (aliased) ORIGINAL NOT RECOGNISED · CORRECTED NOT RECOGNISED
+  store.appendIfNew(r)                             ORIGINAL RECOGNISED · CORRECTED RECOGNISED
+  appendIfNew(r) unqualified                       ORIGINAL RECOGNISED · CORRECTED RECOGNISED
+  createJsonlStore(p).appendIfNew(r)               ORIGINAL RECOGNISED · CORRECTED RECOGNISED
+  const w = store.appendIfNew; w(r)  (aliased)     ORIGINAL NOT RECOGNISED · CORRECTED NOT RECOGNISED
+  store.appendAllWithoutDedupe(r)                  ORIGINAL NOT RECOGNISED · CORRECTED RECOGNISED
+  appendAllWithoutDedupe(r) unqualified            ORIGINAL NOT RECOGNISED · CORRECTED RECOGNISED
+  createJsonlStore(p).appendAllWithoutDedupe(r)    ORIGINAL NOT RECOGNISED · CORRECTED RECOGNISED
+  const w = store.appendAllWithoutDedupe; w(r)  (aliased) ORIGINAL NOT RECOGNISED · CORRECTED NOT RECOGNISED
+
+==================== 2 · SET PROOF ON excludedNonWrites ====================
+
+=== P-committed (HEAD) · 155 files, same array to both ===
+BEFORE (8): src/crawl/persist.mjs:14  src/evidence/store.mjs:100  src/evidence/store.mjs:106  src/evidence/store.mjs:110  src/evidence/store.mjs:120  src/evidence/store.mjs:181  src/evidence/store.mjs:220  src/evidence/store.mjs:224
+AFTER  (9): src/crawl/persist.mjs:14  src/evidence/store.mjs:100  src/evidence/store.mjs:106  src/evidence/store.mjs:110  src/evidence/store.mjs:120  src/evidence/store.mjs:181  src/evidence/store.mjs:196  src/evidence/store.mjs:220  src/evidence/store.mjs:224
+AFTER − BEFORE = { src/evidence/store.mjs:196 } · expected { src/evidence/store.mjs:196 } · MATCH
+BEFORE − AFTER = {  } · must be empty · EMPTY
+per-file split AFTER: {"src/crawl/persist.mjs":1,"src/evidence/store.mjs":8} · expected {"src/crawl/persist.mjs":1,"src/evidence/store.mjs":8} · MATCH
+the new exclusion: src/evidence/store.mjs:196 declaration | function appendAllWithoutDedupe(records) {
+SET PROOF: HOLDS
+
+=== P-corrected (working tree) · 155 files, same array to both ===
+BEFORE (8): src/crawl/persist.mjs:14  src/evidence/store.mjs:100  src/evidence/store.mjs:106  src/evidence/store.mjs:110  src/evidence/store.mjs:120  src/evidence/store.mjs:181  src/evidence/store.mjs:220  src/evidence/store.mjs:224
+AFTER  (9): src/crawl/persist.mjs:14  src/evidence/store.mjs:100  src/evidence/store.mjs:106  src/evidence/store.mjs:110  src/evidence/store.mjs:120  src/evidence/store.mjs:181  src/evidence/store.mjs:196  src/evidence/store.mjs:220  src/evidence/store.mjs:224
+AFTER − BEFORE = { src/evidence/store.mjs:196 } · expected { src/evidence/store.mjs:196 } · MATCH
+BEFORE − AFTER = {  } · must be empty · EMPTY
+per-file split AFTER: {"src/crawl/persist.mjs":1,"src/evidence/store.mjs":8} · expected {"src/crawl/persist.mjs":1,"src/evidence/store.mjs":8} · MATCH
+the new exclusion: src/evidence/store.mjs:196 declaration | function appendAllWithoutDedupe(records) {
+SET PROOF: HOLDS
+
+SET PROOF ACROSS BOTH POPULATIONS: HOLDS
+
+==================== 3 · SET PROOF HARNESS CONTROL (a deliberately wrong expectation) ====================
+AFTER − BEFORE = { src/evidence/store.mjs:196 } · expected { src/evidence/store.mjs:197 } · 🔴 MISMATCH
+   in AFTER−BEFORE but not expected: src/evidence/store.mjs:196 · expected but not in AFTER−BEFORE: src/evidence/store.mjs:197
+SET PROOF: 🔴 MISMATCH
+AFTER − BEFORE = { src/evidence/store.mjs:196 } · expected { src/evidence/store.mjs:197 } · 🔴 MISMATCH
+   in AFTER−BEFORE but not expected: src/evidence/store.mjs:196 · expected but not in AFTER−BEFORE: src/evidence/store.mjs:197
+SET PROOF: 🔴 MISMATCH
+SET PROOF ACROSS BOTH POPULATIONS (CONTROL — wrong expectation): 🔴 MISMATCH
+
+==================== 4 · SABOTAGE ====================
+SABOTAGE — D-CENSUS-1, EACH LIMB ALONE, VIA A DAMAGED COPY (the live census is never written) · 2026-09-17T03:19:19.755Z · node v24.15.0
+LIVE tools/permitted-writers.mjs: sha256 a42e0efc4f0bcc3e · index blob 19278309333e7c45545e7e02eec804160fe961f8 · disk matches index: YES · census over the frozen snapshot: 96=85+11+0 excluded 9
+BASELINE (live census): test/gap2-d-census-1.test.mjs pass 6 fail 0
+CONTROL (an UNDAMAGED copy through GAP2_CENSUS_IMPL): pass 6 fail 0 — the copy mechanism itself changes nothing
+
+LIMB · L1 · the new call shape removed
+  damage LANDED in the COPY .test-scratch\dcensus-sabotage-nz1qEP\limb-L1.mjs (sha256 5b9a6858f92b0dec, differs from the intact copy: YES)
+  RED: 🔴 POSITIVE · the three bin calls of the store's bulk verb are write sites, and  | 🔴 NEGATIVE · the verb's own declaration in the real store is excluded as a decl
+  expected RED: POSITIVE · the three bin calls + NEGATIVE · the verb's own declaration (without the shape the calls are not sites, and the declaration no longer matches a write pattern, so it is not excluded either) · missing 0 · beyond expected 0
+  ✅ RED exactly where expected
+  live census after the limb: sha256 a42e0efc4f0bcc3e · blob 19278309333e7c45545e7e02eec804160fe961f8 · census 96=85+11+0 excluded 9 · all three unchanged: YES
+
+LIMB · L2 · store.mjs:196 no longer excluded (the declaration shape skips this one verb only)
+  damage LANDED in the COPY .test-scratch\dcensus-sabotage-nz1qEP\limb-L2.mjs (sha256 a2ed86618c9c6cdb, differs from the intact copy: YES)
+  RED: 🔴 NEGATIVE · the verb's own declaration in the real store is excluded as a decl
+  expected RED: NEGATIVE · the verb's own declaration · missing 0 · beyond expected 0
+  ✅ RED exactly where expected
+  live census after the limb: sha256 a42e0efc4f0bcc3e · blob 19278309333e7c45545e7e02eec804160fe961f8 · census 96=85+11+0 excluded 9 · all three unchanged: YES
+
+LIMB · L3 · a pre-existing #103 exclusion broken (whole-line strings)
+  damage LANDED in the COPY .test-scratch\dcensus-sabotage-nz1qEP\limb-L3.mjs (sha256 4b305e43402decb8, differs from the intact copy: YES)
+  RED: NEGATIVE · the two whole-line strings proved in #103 remain excluded
+  expected RED: NEGATIVE · the two whole-line strings · missing 0 · beyond expected 0
+  ✅ RED exactly where expected
+  live census after the limb: sha256 a42e0efc4f0bcc3e · blob 19278309333e7c45545e7e02eec804160fe961f8 · census 96=85+11+0 excluded 9 · all three unchanged: YES
+
+AFTER EVERY LIMB (live census): pass 6 fail 0 · sha256 a42e0efc4f0bcc3e · blob 19278309333e7c45545e7e02eec804160fe961f8 · census 96=85+11+0 excluded 9
+damaged copies removed: YES
+EVERY LIMB RED EXACTLY WHERE EXPECTED, LIVE CENSUS NEVER CHANGED: YES

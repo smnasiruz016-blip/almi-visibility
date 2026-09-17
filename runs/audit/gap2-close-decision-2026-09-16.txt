@@ -662,6 +662,92 @@ A35 · THE DIFFICULT FIVE, CALLER BY CALLER (17 Sep 2026)
         RUN PERFORMED: NO. Measured from source.
       CLASSIFICATION: NOT APPLICABLE — not a store write-caller; no option (C) proof is owed.
 
+--------------------------------------------------------------------------------------
+ADDED 17 SEPTEMBER 2026 — D-CENSUS-1 (owner rulings, _handoffs cc5a7c0 and 34d727c)
+MEASURED 17 SEPTEMBER 2026 on main e860f75 (main CI run 35176557916: success), branch v0.1/gap2-d-census-1.
+A1-A35 above stay as written. Full proof output: runs/audit/gap2-d-census-1-proof-2026-09-17.txt
+--------------------------------------------------------------------------------------
+
+A36 · TWO EARLIER-SCOPING CORRECTIONS, OWNER-ACCEPTED (17 Sep 2026) — OLD -> CURRENT, history kept above
+  replay-crawl: OLD (A17/A23) "the corpus is unavailable in CI" -> CURRENT (A35) WRONG — the default input is the
+    committed archive; test/replay.test.mjs already exercises the replay on 127.0.0.1; a measured no-flag run made
+    822 requests, 0 outside 127.0.0.1. That mis-scoping was CC's, relayed by beta-g.
+  report: OLD (A17/A23) "partial test; stores hard-coded" -> CURRENT (A35) NOT APPLICABLE — it only calls
+    .readAll(); its one write is the page, covered by write-confinement.test.mjs:79 and :96.
+
+A37 · A PREMISE IN THE D-CENSUS-1 RULING, CORRECTED BY MEASUREMENT (17 Sep 2026)
+  the ruling's §4.1 said appendAllWithoutDedupe's declaration is store.mjs:220 and its string literal :224.
+  MEASURED: :220 declares appendIfNew, and :224 is a string naming appendWithoutDedupe() — both #103 exclusions,
+  neither belonging to this verb. appendAllWithoutDedupe occurs in the store at :29 (comment), :49 (interface list,
+  no parenthesis), :119 (the dry-run store's arrow binding), :130 and :265 (object shorthand), and :196 — its only
+  declaration, `function appendAllWithoutDedupe(records) {`, in the real store. The ruling's author records it as
+  an unmeasured association passed on as a measurement; the measured lines are used everywhere below.
+
+A38 · THE CORRECTION AND ITS SET PROOF (17 Sep 2026)
+  change: tools/permitted-writers.mjs adds the helper verb ["append", "AllWithoutDedupe"].join("") — built from
+    parts, so the census never counts its own source. Nothing else in the census changed.
+  the three call sites, OLD -> CURRENT (e90d039 -> e860f75): instrument-disagreement :90 -> :90 ·
+    supersede-noindex :150 -> :150 · supersede-duplicates :66 -> :66.
+  corrected census verdicts: instrument-disagreement:90 GATED (early exit of :85) · supersede-noindex:150 GATED
+    (else of :143) · supersede-duplicates:66 GATED (mayWrite on the same line). UNGATED 0 · CANNOT_DETERMINE 0.
+  set proof on excludedNonWrites — one frozen sources array per population (the committed tree; the corrected
+    tree), the same array to the committed and the corrected census:
+      BEFORE (8): persist.mjs:14 · store.mjs:100 :106 :110 :120 :181 :220 :224
+      AFTER  (9): the same eight + store.mjs:196
+      AFTER − BEFORE = { store.mjs:196 }   (declaration)       — as required
+      BEFORE − AFTER = { }                                     — EMPTY, as required
+      per-file split AFTER: store 8 · persist 1
+    identical in both populations. HARNESS CONTROL: given the wrong expectation {store.mjs:197}, it reports
+    MISMATCH in both populations and names both sides (":196 in AFTER−BEFORE but not expected · :197 expected
+    but not present").
+  re-pin (test/ungated-writers.test.mjs): excludedNonWrites 8 -> 9, per-file store 7 -> 8, persist 1, with the
+    ninth exclusion named and the reason and ruling written in the file. The floor viaHelper >= 30 is unchanged;
+    the helper-reached count is now 33 (was 30) — recorded as an observation only.
+
+A39 · ADVERSARIAL PROOF (17 Sep 2026) — test/gap2-d-census-1.test.mjs, 6 of 6
+  a fixed five-file input (the three bins, the store, persist.mjs) handed to the census through `sources`.
+  POSITIVE: the three calls are write sites, each GATED. NEGATIVE: store.mjs:196 is excluded as a declaration and
+  is not a site; the four #103 declarations, the two #103 strings, the #103 dry-run call and persist.mjs:14 all
+  remain excluded. Every existing census control passes (62 of 62 across the four census test files).
+  SABOTAGE via damaged COPIES of the census in .test-scratch, loaded through GAP2_CENSUS_IMPL — the live census was
+  never written, and after every limb its sha256 (a42e0efc4f0bcc3e), index blob (1927830…) and totals over a
+  frozen snapshot (96 = 85 + 11 + 0, 9 excluded) were unchanged. An undamaged copy passed 6 of 6.
+    L1 the new shape removed          -> RED: POSITIVE and the :196 exclusion (inseparable: without the shape the
+                                         declaration matches no write pattern, so it is not excluded either)
+    L2 :196 no longer excluded (only)  -> RED: the :196 exclusion only
+    L3 a #103 exclusion broken (strings) -> RED: the #103 strings assertion only
+
+A40 · THE RE-CENSUS, BESIDE THE PREVIOUS NUMBERS (17 Sep 2026)
+  whole census       93 = 82 + 11 + 0  ->  96 = 85 + 11 + 0   (+3 sites, all GATED; none removed; none changed state)
+  frozen population  15 = 10 +  5 + 0  ->  15 = 10 +  5 + 0   (unchanged)
+  undeclared 0 -> 0 · CANNOT_DETERMINE 0 -> 0 · stale 0 -> 0 · gated-at-caller 6 -> 6 · excluded 8 -> 9
+  RECONCILIATION (the owner's question): bin/supersede-noindex.mjs is NOT one of the six frozen Gap 2 bins.
+    CHECKLIST_STATUS.md:164-165 (re-measured on e860f75, unchanged) names them: audit · audit-content ·
+    audit-technical · supply-labels · verification-issues · gsc-ingest, plus src/evidence/store.mjs. supersede-
+    noindex belongs to the separate "eleven" declared in #97. So its new site lies outside the frozen population,
+    and 15 correctly stays 15.
+  WRITE-CALLERS: OLD 16 -> CURRENT 17. The only addition is bin/supersede-duplicates.mjs (not in the 16), status
+    NO BEHAVIOURAL PROOF MEASURED. Not investigated, modified or tested.
+  what the corrected census CONFIRMS from tonight: undeclared 0 · CANNOT_DETERMINE 0 · the frozen population 15 =
+    10 + 5 + 0 · Blocker 1's over-count fix (the new verb's declaration is excluded, not counted) · the four #105 bins
+    stay GATED, and their two appendAll paths (instrument-disagreement --close, supersede-noindex), exercised by the
+    #105 seam tests, are now also visible as GATED sites.
+  what it CHANGES: the whole-census totals (93 -> 96), the exclusion count (8 -> 9), and the write-caller
+    population (16 -> 17).
+
+A41 · THE ALIAS LIMITATION, AND THE FROZEN-TEXT CHECK (17 Sep 2026)
+  shape list (bounded to store.mjs's three write-capable verbs), on controlled one-line inputs:
+    qualified `store.v(r)`, unqualified `v(r)`, chained `createJsonlStore(p).v(r)`: RECOGNISED for all three verbs
+      (appendAllWithoutDedupe only after the correction).
+    aliased `const w = store.v; w(r)`: NOT RECOGNISED for all three, before and after.
+  occurrences today: 0 — a grep of bin/ src/ tools/ on e860f75; the same pattern caught 3 planted aliased lines and
+    skipped the plain call.
+  frozen text: the Gap 2 close law (_handoffs a079c38 §5) asks that the "census recognises legitimate authorization
+    control-flow shapes" — gate shapes, not call syntax. The write-law brief (_handoffs 289d471) says "Your census
+    must resolve a WRITE SITE, including writes reached through a helper. If you cannot do that deterministically,
+    say so and report what it cannot see". No criterion requires universal recognition of future syntax. The
+    census's own cannotSee list does not name the aliased shape — recorded, not changed (no authority to change it).
+
 ======================================================================================
 PART B · CONCLUSIONS
 ======================================================================================
@@ -846,3 +932,29 @@ B20 · DECISION (17 Sep 2026): GAP 2 = REMAINS OPEN
   candidate finding recorded, not in the blocker set until the owner rules: the census does not count
   `.appendAllWithoutDedupe(` call sites (A33).
   Blocker 1 stays CLOSED. Ledger unchanged: 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61.
+
+--------------------------------------------------------------------------------------
+CONCLUSIONS ADDED 17 SEPTEMBER 2026 — D-CENSUS-1 (B1-B20 above are kept as first written)
+--------------------------------------------------------------------------------------
+
+B21 · D-CENSUS-1 — CLOSED on the landing of the change that records it (register entry, same change)
+  a. the correction lands with this change · b. the 8 -> 9 set proof holds in both directions (A38) ·
+  c. every positive and negative census control passes, including each unsafe shape and gateOf's
+     non-over-acceptance (A39) · d. the corrected census re-run beside the previous totals, with what it confirms
+     and changes (A40) · e. the frozen-population question reconciled (A40).
+  If that change is not merged, D-CENSUS-1 is OPEN. The alias shape is a documented limitation with zero current
+  occurrences, not an open blocker (A41). Blocker 1 stays CLOSED.
+
+B22 · DECISION (17 Sep 2026): GAP 2 = REMAINS OPEN
+  smallest exact remaining blocker set:
+    1. store option (C), over 17 write-callers (was 16):
+       · replay-crawl — PARTIALLY FEASIBLE (hard-coded ledger)
+       · paid-provider-controls — PARTIALLY FEASIBLE (hard-coded ledger)
+       · source-integrity — BLOCKED BY EXTERNAL PREREQUISITE (owner-authorised network execution)
+       · render-archive — BLOCKED BY EXTERNAL PREREQUISITE (an owner-authorised browser runtime)
+       · cost-ledger capture-actions — BLOCKED BY EXTERNAL PREREQUISITE (owner-authorised network execution)
+       · supersede-duplicates — NO BEHAVIOURAL PROOF MEASURED (new to the population)
+    2. gsc-ingest reach proof = BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE
+         (prerequisite: owner-authorised network execution)
+       gsc-ingest incident-test reliability = UNPROVED; therefore Gap 2 remains OPEN on this blocker.
+  Ledger unchanged: 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61.

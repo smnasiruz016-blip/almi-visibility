@@ -272,7 +272,9 @@ export function confinementOf(text) {
  * ══════════════════════════════════════════════════════════════════════════════════════════════ */
 
 /** Tokens built from parts, so this file's own scan never reports itself. */
-const helperVerbs = [["append", "IfNew"].join(""), ["append", "All"].join(""), ["append", "WithoutDedupe"].join(""), ["persist", "CrawlObservations"].join("")];
+/* 🔴 D-CENSUS-1 (17 September 2026): `appendAll` matched only `appendAll(`, so the store's real bulk verb
+ * `appendAllWithoutDedupe(` was never a site — three bin call sites were missing from the enumeration. */
+const helperVerbs = [["append", "IfNew"].join(""), ["append", "All"].join(""), ["append", "WithoutDedupe"].join(""), ["persist", "CrawlObservations"].join(""), ["append", "AllWithoutDedupe"].join("")];
 const HELPER_WRITE = new RegExp(`\\b(?:${helperVerbs.join("|")})\\(|\\.${["app", "end"].join("")}\\(`);
 
 /* ══ 🔴 GAP 2 · THREE PROVED FALSE-POSITIVE SHAPES — AND ONLY THOSE (owner ruling, 16 September 2026) ══

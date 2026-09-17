@@ -819,6 +819,59 @@ A43 · SUPERSEDE-DUPLICATES (17 Sep 2026)
     not ALREADY PROVED (no test runs the bin) · not PARTIALLY FEASIBLE (with 0 pending, a no-flag run shows no reach)
     future ledger-seam slot population: 2 (replay-crawl · paid-provider-controls) — unchanged.
 
+--------------------------------------------------------------------------------------
+ADDED 17 SEPTEMBER 2026 — LEDGER SEAM, RE-MEASURED BEFORE BUILDING; IMPLEMENTATION STOPPED (owner ruling,
+_handoffs 843403a). MEASURED 17 SEPTEMBER 2026 on main b8e79a5 (main CI run 35180240228: success).
+No bin, test, store, census or status file was changed. A1-A43 above stay as written.
+--------------------------------------------------------------------------------------
+
+A44 · CHECKPOINT (17 Sep 2026)
+  main b8e79a5 · #101-#108 merged (A42 lists #101-#107; #108 b8e79a5 at 03:59:50Z landed A42-A43) · Blocker 1 CLOSED
+  · D-CENSUS-1 CLOSED · #105's confined store seam proved · the difficult five measured (A35) · replay-crawl's
+  "corpus unavailable" corrected (A36) · report NOT APPLICABLE (A35) · supersede-duplicates measured (A43) · ledger-seam
+  population measured at 2 (A43) · the audit-store directory is a separate mechanism (A43) · network and browser
+  blockers unchanged · no checklist movement · ledger 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61, VERIFIED-PASS 22.
+
+A45 · D-SWEEP-1 — DEPENDENCY RELEVANCE ONLY (17 Sep 2026; no severity change, not fixed, not closed, not merged)
+  OBSERVED: supersede-duplicates reads and writes a hard-coded audit store directory, runs/audit (A43).
+  OBSERVED: runs/audit is one of the four directories the incident tests' guardDir sweeps by pattern
+    (test/ungated-writers.test.mjs; D-SWEEP-1), so a fixture placed there cannot be assumed to survive.
+  INFERRED: D-SWEEP-1 is materially implicated in a live Gap 2 proof blocker — but it is not the sole cause. Two
+    distinct facts hold: (1) the hard-coded directory prevents controlled store injection; (2) that directory is
+    swept.
+
+A46 · THE LEDGER SEAM, RE-MEASURED (17 Sep 2026)
+  replay-crawl — bin/replay-crawl.mjs (last changed 50975e4)
+    ledger: `const LEDGER = confineToRepo(\`${REPO}runs/cost/ledger.jsonl\`, …)` (:71), constructed only inside the
+      confirmed branch (:341-:344: createCostLedger(LEDGER), append of the replay entry and, with --recover, the
+      recovery entry). Gate: permission.mayWrite (:53, :185, :341). Without it: temp stores, "[dry-run] nothing
+      recorded" (:347-:349), and the ledger is never constructed.
+    tests: test/replay.test.mjs runs the replay module on 127.0.0.1 and reads the committed runs/replay records; no
+      test runs the bin. Missing proof: an authorised --confirm leg in disposable state.
+    🔴 DISCREPANCY: the --confirm leg also writes three recorded outputs, and they are hard-coded to runs/replay
+      (:68 evidence, :69 crawl store, :70 audit store; only a --label suffix varies them), and refuses if they exist
+      (:186-:190). test/issue-transition-guard.test.mjs:68 lists runs/replay among the store directories it reads
+      from disk (:70-:73) while the suite runs its files in parallel. A confined disposable LEDGER alone therefore
+      does not make replay-crawl's authorised leg disposable: it would still write ~800 records into a directory
+      another test reads concurrently, and leave them there if the run died. The ledger file is AN obstacle for this
+      caller, not the only one.
+  paid-provider-controls — bin/paid-provider-controls.mjs (last changed 8f0d13b)
+    ledger: `const LEDGER = confineToRepo(\`${REPO}runs/cost/ledger.jsonl\`, …)` (:20); the real ledger is
+      constructed only when permitted (:24), otherwise an in-memory object with the same two verbs. Its refusals are
+      appended by the gate (src/cost/paid-provider-gate.mjs:166 -> ledger.mjs:534). The ledger is its ONLY recorded
+      output.
+    re-confirmed (OLD -> CURRENT, unchanged since e90d039): no-flag run — 5 refusals (NOT_AUTHORIZED,
+      AUTHORIZATION_INCOMPLETE, CAP_WOULD_BE_EXCEEDED, BUDGET_WOULD_BE_EXCEEDED, KILL_SWITCH_ON), "calls that reached
+      the fake provider: 2", "every refusal left a trace: 5 of 5 in the dry-run ledger (in memory)", exit 0, the real
+      ledger unchanged. The provider is createFakePaidProvider, an in-process double that only counts and echoes.
+      A FAKE IN-PROCESS PROVIDER IS NOT A PAID PROVIDER CALL; no network, account, browser or data repo is touched.
+    shared blocker holds for this caller: the ledger FILE path is hard-coded, and it is the only thing between the
+      bin and a disposable --confirm leg.
+  §17.B: both resolve to the SAME file, runs/cost/ledger.jsonl.
+  §17.C: a bin-level override is possible in both (each builds its own path). A module-level change would expose 8
+    bins that construct createCostLedger: cost-ledger · crawl · gsc-ingest · paid-provider-controls · render-archive
+    · replay-crawl · report · source-integrity. Not proposed.
+
 ======================================================================================
 PART B · CONCLUSIONS
 ======================================================================================
@@ -1044,3 +1097,14 @@ B23 · SUPERSEDE-DUPLICATES: NOT YET MEASURED -> BLOCKED BY MISSING SAFE TEST IN
                                     has nothing pending (and is required to have nothing pending)
   GAP 2 = REMAINS OPEN, on those seven, and on gsc-ingest's incident-test reliability (UNPROVED).
   Ledger unchanged: 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61.
+
+--------------------------------------------------------------------------------------
+CONCLUSIONS ADDED 17 SEPTEMBER 2026 — LEDGER SEAM STOPPED (B1-B23 above are kept as first written)
+--------------------------------------------------------------------------------------
+
+B24 · THE LEDGER-SEAM IMPLEMENTATION WAS STOPPED BEFORE ANY CODE CHANGE (A46)
+  The owner's precondition was that both callers share one blocker: a hard-coded ledger FILE. It holds for
+  paid-provider-controls. It does not hold, alone, for replay-crawl, whose authorised leg also writes three
+  hard-coded recorded outputs into runs/replay, a directory another test reads from disk during the suite.
+  The ledger-seam population is therefore not confirmed at 2. Awaiting the owner's ruling. Buckets unchanged.
+  GAP 2 = REMAINS OPEN. Ledger unchanged: 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61.

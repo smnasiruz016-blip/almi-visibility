@@ -969,6 +969,133 @@ A51 · OBSERVATION — runs/ IS SHARED MUTABLE STATE UNDER A PARALLEL TEST RUNNE
   No common root cause is inferred beyond what these three show, no fix is proposed, and no directory that was not
   measured is included. Recorded so that the next proof under runs/ does not discover it a fourth time.
 
+--------------------------------------------------------------------------------------
+ADDED 17 SEPTEMBER 2026 — CONTRACT RECONCILIATION AND THE gsc-ingest REACH PROOF (owner ruling "GAP 2 CONTRACT
+RECONCILIATION + FINAL FINISH PATH", _handoffs 610e8cf, which supersedes afb0fec). MEASURED on main 5e42de2 (main CI
+run 35186044647: success), branch v0.1/gap2-gsc-ingest-reach-and-closure. A1-A51 above stay as written.
+--------------------------------------------------------------------------------------
+
+A52 · THE FROZEN ACCEPTANCE CONTRACT, TEXT-LOCATED (old anchor -> current anchor; nothing re-investigated)
+  _handoffs/AlmiVisibility_GAP2_WRITE_LAW_BRIEF_2026-09-16.md (last changed 289d471):
+    (b) :19-22 -> :19-22  "Six binaries write with NO gate at all — zero occurrences of writePermission, mayWrite
+        or --confirm in each: bin/audit.mjs · bin/audit-content.mjs · bin/audit-technical.mjs · bin/supply-labels.mjs
+        · bin/verification-issues.mjs · bin/gsc-ingest.mjs"
+    (c) :24-26 -> :24-26  "src/evidence/store.mjs is the ungated store beneath them … Its CALLERS are expected to
+        enforce authorisation, and those six are callers that do not."
+    (C) :59-63 -> :60-63  "Its callers must carry the authorisation. Either the store refuses an unauthorised
+        caller, or every caller is gated and a test proves no ungated caller exists. 🔴 Choose the one the existing
+        architecture already implies — do not redesign the store. If the honest answer is that this needs an owner
+        decision, STOP and say so."
+    :75-76 -> :75-76  "If gap 2 turns out larger than one clean PR, land the census and the six bins, and REPORT the
+        store question rather than expanding the PR."
+  CHECKLIST_STATUS.md block :152-173 -> :152-173, finding :165-168 -> :165-168: "CORRECTED FINDING — SIX fully
+    ungated bins: audit · audit-content · audit-technical · supply-labels · verification-issues · gsc-ingest — plus
+    src/evidence/store.mjs … ungated by design because its CALLERS are expected to enforce authorization".
+  FROZEN GAP 2 ACCEPTANCE POPULATION: those six bins (the store ungated by design beneath them).
+  The contradiction-stop of 17 Sep 2026 (afb0fec) quoted the owner texts that FROZE the wider Blocker 2 population:
+    _handoffs CONDITIONAL_FLOOR_REBASE §5 "FREEZE that population in the transcript, with each caller named"
+    _handoffs D_CENSUS_1_SET_PROOF_REPIN §5 "BLOCKER 2 POPULATION — 16 -> 17 … The frozen population changes with
+      the evidence."
+  OWNER RULING (610e8cf §3): "FROZEN GAP 2 ACCEPTANCE CONTRACT ≠ LATER BLOCKER 2 WORK / MEASUREMENT POPULATION" —
+    that wording "freezes the measured work population at that checkpoint"; it did not amend the acceptance
+    contract. No other amendment of the acceptance population was found on current main.
+
+A53 · THE BLOCKER 2 WORK POPULATION, FROM THE RECORDS ONLY (no new census, no item re-investigated)
+  HISTORICAL: A23 — 16 real write-callers, 9 without complete no-write proof: replay-crawl · supersede-noindex ·
+    instrument-disagreement · link-recommendation-evidence · cost-ledger · source-integrity · paid-provider-controls
+    · render-archive · report. B22 — 17 write-callers (was 16): supersede-duplicates added, "NO BEHAVIOURAL PROOF
+    MEASURED". So 10 items in all.
+  RESOLVED OR REMOVED, each by its existing record:
+    instrument-disagreement — PROVED, default path (B14) and --close (B17)
+    supersede-noindex · link-recommendation-evidence — PROVED (B17, #105)
+    cost-ledger backfill — PROVED (B17, #105); its capture-actions leg is NOT resolved (below)
+    report — NOT APPLICABLE, "leaves the set" (B20)
+    paid-provider-controls — authorised leg PROVED in confined disposable state, "It leaves the Gap 2 blocker set"
+      (B25, #110)
+  REMAINING, with each item's recorded state and category verbatim (B25 buckets; B22/B23 wording):
+    supersede-duplicates         DIRECTORY SEAM — "runs/audit; missing safe test input" (B25);
+                                 "BLOCKED BY MISSING SAFE TEST INPUT" (B23)
+    replay-crawl                 DIRECTORY SEAM — "runs/replay; the outputs must leave runs/replay" (B25)
+    source-integrity             NETWORK — "BLOCKED BY EXTERNAL PREREQUISITE (owner-authorised network execution)"
+    cost-ledger capture-actions  NETWORK — "BLOCKED BY EXTERNAL PREREQUISITE (owner-authorised network execution)"
+    render-archive               BROWSER RUNTIME — "BLOCKED BY EXTERNAL PREREQUISITE (an owner-authorised browser
+                                 runtime)"
+  EXACT COUNT: 5. gsc-ingest was never in the nine; it is one of the frozen six, and its reach proof is A54.
+
+A54 · gsc-ingest REACHES ITS WRITE PATH — THE CONFINED SYNTHETIC SOURCE (this change)
+  RESULT B, re-verified once on 5e42de2: bin/gsc-ingest.mjs prints the dry-run banner at :51, before the provider
+    (:64 createGoogleSearchConsoleProvider) and before runIngest (:70). test/ungated-writers.test.mjs:528 expected
+    /\[dry-run\] no writes will happen/ — a shorter piece of the banner the loop body already asserts (:541) — so
+    without credentials the case passed on a death before the write decision. The other entries' asserted lines are
+    printed at or after their write decisions (audit :104 after :57-58 · audit-content :133 after :95 ·
+    audit-technical :241-242 after :228 · supply-labels :187 after :183 · verification-issues :199 after both
+    appendIssueIfNew results · instrument-disagreement per its in-file rationale).
+  WHY ARCHITECTURE-IMPLIED: the bin's own header (:21-22) says the pipeline "takes its provider and its store as
+    arguments and runs in the suite against a fake provider"; runIngest({ provider, store, … })
+    (src/search/ingest.mjs:35) hands every observation to store.appendIfNew (:57); the bin already chooses the store
+    by permission (:65) and confines --store (:50). The seam only chooses which provider the bin hands over.
+  THE SEAM: --source=<file>, confined by the same confineToRepo as --store (label "--source"); absent by default. It
+    builds an in-process provider from the file, with the two methods the pipeline calls (listProperties, queryRows)
+    and no request. src/search/*, src/evidence/store.mjs and the evidence schema are untouched.
+  SYNTHETIC MARKER "synthetic-gsc-source", in the records themselves: the source must declare it, every property id
+    must contain it (so it is in every observation's target or value), and every property record and cost object
+    carries it. A synthetic run with --confirm and a store under runs/ is REFUSED, and a synthetic run never writes
+    the cost ledger.
+  DEFAULT UNCHANGED: main's bin (worktree at 5e42de2, removed after) and this bin, with the credential variable set
+    to the empty string, for [--property=…], [--property=… --confirm] and [] — identical exit status (1, 1, 2),
+    identical stdout, identical stderr after normalising the checkout root and stack line:column numbers.
+    test/gap2-gsc-ingest-source.test.mjs also pins the default provider expression.
+  PROOF — test/gap2-gsc-ingest-source.test.mjs, 13 tests, 13 pass, 0 skipped. Exactly one outcome per run:
+    CONFINEMENT · SYNTHETIC-REFUSED · AUTHORIZATION "[dry-run] would have written N evidence record(s) → …" · WRITE
+    "[synthetic source] wrote N evidence record(s) → …"; a run showing none never reached either gate.
+    THIRD STATE: no --source, empty credential variable -> the banner is printed, "GSC_SERVICE_ACCOUNT_KEY_FILE is
+      not set" comes from the real provider, exit != 0, gate NEITHER. The old expect passed on exactly this run.
+    REACH (no --confirm, canonical store): AUTHORIZATION with N = 9 aimed at runs/evidence/evidence.jsonl; the
+      source's own totals printed (clicks=7 impressions=4243: consumed); no network asked; runs/evidence/evidence.jsonl
+      and runs/cost/ledger.jsonl byte-identical.
+    POSITIVE CONTROL (--confirm, disposable --store): WRITE, 9 observation records in that store and only there,
+      every record carrying the marker, the source's page rows stored, canonical stores byte-identical.
+    NOT PERMISSION (--source and --store, no --confirm): an absent store stays absent; a held store stays
+      sha256-identical, and the refused run counts 0 pending.
+    COMMITTED STATE: --confirm with the default store, or --store=runs/evidence/evidence.jsonl -> SYNTHETIC-REFUSED,
+      exit 2, the pipeline never ran. UNMARKED SOURCE: no marker, or a property id without it -> refused, exit 2.
+    CONFINEMENT: --source absolute outside, and a ../ escape (safe form: it lands in the test's own OS temp
+      directory) -> CONFINEMENT; --store outside with --confirm -> CONFINEMENT, the outside directory empty.
+    NO NETWORK: every synthetic run is preloaded with test/support/no-network.mjs and shows no refusal; the preload's
+      own positive control refuses a fetch.
+    MARKER GUARD: runs/evidence/evidence.jsonl holds 0 marked records; the same guard FAILS on a store the real bin
+      wrote from the synthetic source (9 of 9 marked).
+  INCIDENT LOOP UPDATED (test/ungated-writers.test.mjs): OLD expect /\[dry-run\] no writes will happen/ — the banner,
+    printed before the provider is built; NEW expect "[dry-run] would have written 9 evidence record(s) →
+    …runs/evidence/evidence.jsonl (synthetic source: never the cost ledger)" — printed only after runIngest has
+    handed all 9 observations to the store gate, which the old one could not show.
+  SABOTAGE (scratch harness, not committed), one file damaged per limb, anchor found exactly once, sha256 changed,
+    and each limb REFUSED unless the tests that actually ran equal the pinned count (13 for the new file; 1 for the
+    incident loop, selected by name and counted, SKIP lines not counted as run):
+    L1 the source dies right after the banner -> 13 ran, 4 RED (REACH, CONTROL, NOT PERMISSION, guard positive
+       control); incident 1 ran, 1 RED. On that damaged run the OLD expect MATCHES and the NEW one does NOT.
+    L2 a synthetic source with a --store grants the write (safe form: only a given, disposable --store) -> 13 ran,
+       1 RED (NOT PERMISSION).
+    L3 --store alone grants the write -> 13 ran, 1 RED (NOT PERMISSION).
+    L4 the property-id marker check removed -> 13 ran, 1 RED (UNMARKED SOURCE).
+    L5 the marker guard made blind -> 13 ran, 2 RED (CONTROL, guard positive control).
+    L6 the third state read as a refusal -> 13 ran, 1 RED (THIRD STATE).
+    NOT RUN, and why: removing the committed-state refusal — with --confirm it would write synthetic records into
+       runs/evidence/evidence.jsonl. SAFETY OUTRANKS THEATRICAL SABOTAGE.
+    every restore: bin blob 9aad8202d3e10e5df98b8221daed91cddd8737e3 and test blob
+       5605fb788094bd652189a8c15214764d0900d04b match; canonical evidence and ledger sha256 unchanged after each limb;
+       after every restore 13/13 and 1/1 pass; 0 scratch directories left.
+  SECRETS: no key was created, read, printed, hashed, measured or compared. Every spawned run has the credential
+    variable set to the empty string; a synthetic run never builds the real provider.
+
+A55 · OBSERVATION — ZERO-ACCEPTING REACH REGEXES (recorded, not fixed; no severity; not a Gap 2 blocker; no ID)
+  "Some existing incident reach regexes accept zero counts. On current evidence this makes them weaker than pinned
+   count assertions but does not invalidate reach, because the relevant messages are emitted only at or after the
+   write-site path."
+  Where: test/ungated-writers.test.mjs, the incident loop — audit-content, audit-technical, supply-labels
+  ("would have written \d+ finding(s)") and audit ("would have written \d+ record(s)"); pinned by contrast:
+  verification-issues (6) and instrument-disagreement (11), and now gsc-ingest (9). Not modified by this change.
+
 ======================================================================================
 PART B · CONCLUSIONS
 ======================================================================================
@@ -1224,3 +1351,37 @@ B25 · paid-provider-controls: AUTHORISED LEG PROVED IN CONFINED DISPOSABLE STAT
     RELIABILITY                     gsc-ingest incident test = UNPROVED
   GAP 2 = REMAINS OPEN, on those six and on that reliability item. Row 53 untouched · Row 61 VERIFIED-PASS.
   Ledger unchanged: 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61.
+
+--------------------------------------------------------------------------------------
+CONCLUSIONS ADDED 17 SEPTEMBER 2026 — CONTRACT RECONCILIATION (B1-B25 above are kept as first written)
+--------------------------------------------------------------------------------------
+
+B26 · CURRENT AUTHORITATIVE RECONCILIATION — GAP 2 IS JUDGED ON ITS FROZEN ACCEPTANCE CONTRACT (A52)
+  Blocker 2's wider caller population (16, then 17) was a diagnostic / work-scoping population, developed while
+  pursuing option (C) limb (ii). Its "POPULATION FROZEN" wording (A23, B12) froze the measured work inventory at that
+  checkpoint; it did not amend the frozen Gap 2 acceptance contract, whose population is the six bins of A52.
+  The "GAP 2 = REMAINS OPEN" decisions B9-B25, which counted that population as a Gap 2 blocker, are kept as
+  written, and are superseded on that point by this reconciliation (owner ruling 610e8cf).
+
+B27 · BLOCKER 2 — DECOUPLED FROM GAP 2, AND STILL OPEN (A53)
+  ONE recorded work entry, outside Gap 2, holding the remaining items with their recorded states:
+    supersede-duplicates · replay-crawl                                  DIRECTORY SEAM
+    source-integrity · cost-ledger capture-actions                       NETWORK (owner-authorised execution)
+    render-archive                                                       BROWSER RUNTIME (owner-authorised)
+  EXACT COUNT: 5. None is closed, none is withdrawn, and their evidence stands. They do not block Gap 2 closure
+  unless another existing frozen acceptance condition independently requires one of them. They may interrupt
+  feature work only under the interruption law (evidence/provenance corruption · production, data or security risk
+  · test/acceptance verdict unreliability · a direct dependency of a current frozen acceptance condition);
+  otherwise they are backlog for a bounded later slot.
+
+B28 · gsc-ingest REACH — PROVED IN THIS CHANGE (A54)
+  The incident case now fails on a death before the write decision, and passes only on a run that handed every
+  observation to the store gate and was refused, with the canonical stores byte-identical. Its former reading,
+  "gsc-ingest incident-test reliability = UNPROVED", is answered by that proof. The network prerequisite recorded
+  in B7/B11 is not needed for it: the reach proof uses no network and no credentials.
+
+B29 · STATE AT THIS CHANGE: GAP 2 = OPEN, PENDING ITS TARGETED CLOSURE VERIFICATION
+  Its only in-boundary item is this change. Closure is decided only after this change is merged and main CI is
+  green, by the targeted verification of the frozen proposition, "every caller is gated and a test proves no
+  ungated caller exists", for the six bins of A52, recorded as its own documentation change.
+  Ledger unchanged: 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61. Row 53 untouched · Row 61 VERIFIED-PASS.

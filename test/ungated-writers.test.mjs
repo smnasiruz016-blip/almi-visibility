@@ -22,6 +22,7 @@ import { createJsonlStore } from "../src/evidence/store.mjs";
 import { gateOf, confinementOf, destinationFlagIn, REQUIRED_FIELDS, writeSiteCensus } from "../tools/permitted-writers.mjs";
 import { ANY_WRITE_PATTERN } from "../tools/no-generation-census.mjs";
 import { PERMITTED_LOCAL_WRITERS, KNOWN_UNGATED_WRITERS } from "../config/permitted-page-writers.mjs";
+import { SYNTHETIC_PROPERTY, writeSyntheticSource } from "./support/gsc-synthetic-source.mjs";
 
 /** A write through a store is a write too — the page census never counted these, which is how they went unseen. */
 const STORE_WRITE = /\b(?:persistCrawlObservations|appendWithoutDedupe|appendIfNew|appendAll)\(|\.append\(/;
@@ -525,7 +526,14 @@ for (const [bin, args, dirs, expect] of [
   // "NO CORPUS" and never reached its write path, and this case's own assertion caught it: a run
   // that stopped early writes nothing for a reason that proves nothing.
   ["bin/supply-labels.mjs", [`--corpus=${scratchCorpus()}`], [AUDIT_DIR], /\[dry-run\] would have written \d+ finding\(s\)/],
-  ["bin/gsc-ingest.mjs", ["--property=sc-domain:example.invalid"], [EVIDENCE_DIR, COST_DIR], /\[dry-run\] no writes will happen/],
+  /* 🔴 GAP 2 (17 September 2026) — REACH, NOT THE BANNER. The old expect, /\[dry-run\] no writes will happen/, repeated
+   * the banner asserted below, which gsc-ingest prints BEFORE building its provider: without credentials the run died
+   * there and this case passed on that death. It is now given a SYNTHETIC source (test/support/gsc-synthetic-source.mjs;
+   * no request, no key) and must print the line that exists only after runIngest has handed all 9 observations to the
+   * store gate — aimed at the canonical evidence store, which must stay byte-identical. See
+   * test/gap2-gsc-ingest-source.test.mjs for the seam's own proof. */
+  ["bin/gsc-ingest.mjs", [`--property=${SYNTHETIC_PROPERTY}`, `--source=${writeSyntheticSource(REPO_ROOT, "gsc-incident-").file}`], [EVIDENCE_DIR, COST_DIR],
+    /\[dry-run\] would have written 9 evidence record\(s\) → [^\n]*runs[\\/]evidence[\\/]evidence\.jsonl \(synthetic source: never the cost ledger\)/],
 ]) {
   test(`🔴 INCIDENT TEST — \`node ${bin}\` with NO flags writes NOTHING: every file it would touch stays byte-identical`, () => {
     const checks = dirs.map((d) => guardDir(d));

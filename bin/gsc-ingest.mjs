@@ -24,6 +24,8 @@
  *
  * Usage:
  *   GSC_SERVICE_ACCOUNT_KEY_FILE=<path> node bin/gsc-ingest.mjs --property=sc-domain:example.com
+ *   node bin/gsc-ingest.mjs --property=sc-domain:<id containing the marker> --source=<synthetic source file>
+ *                                        the gap 2 test seam: no request, no key read (see --source below)
  */
 
 import { createGoogleSearchConsoleProvider } from "../src/search/google-search-console.mjs";
@@ -34,6 +36,8 @@ import { formatBoundedResult } from "../src/report/bounded.mjs";
 import { ESTATE_HOSTNAME_LIST, KNOWN_UNKNOWNS } from "../config/estate-hostnames.mjs";
 import { createCostGovernor } from "../src/cost/governor.mjs";
 import { createCostLedger, entryFromLiveIngest, formatLedgerLine } from "../src/cost/ledger.mjs";
+import { readFileSync } from "node:fs";
+import { isAbsolute, join, relative } from "node:path";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (name, fallback = null) => {
@@ -50,10 +54,64 @@ const days = Number(arg("days", "28"));
 const storePath = confineToRepo(arg("store", `${REPO}runs/evidence/evidence.jsonl`), { label: "--store" });
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
 const controlProperty = arg("control", "https://example.com/");
+/* 🔴 GAP 2 (17 September 2026) — --source=<path>: the testability seam. A SYNTHETIC source file, CONFINED to this
+ * repository by the same confineToRepo as --store, stands in for Search Console, so the suite can drive the real
+ * pipeline and the real store gate with no network and no credentials. It chooses WHAT DATA, never WHETHER to
+ * write: the store is still chosen by permission alone. Absent by default; without it, nothing below changes.
+ * Everything it produces is MARKED — every property id must contain SYNTHETIC_MARKER, and every property record
+ * and every cost object carries it — and it can never reach committed state: with --confirm, a store under runs/
+ * is REFUSED, and the cost ledger is never written. */
+const SYNTHETIC_MARKER = "synthetic-gsc-source";
+const sourceArg = arg("source");
+const SOURCE = sourceArg === null ? null : confineToRepo(sourceArg, { label: "--source" });
 
 if (!propertyId) {
   console.error("usage: node bin/gsc-ingest.mjs --property=sc-domain:<domain> [--days=28]");
   process.exit(2);
+}
+
+function refuseSource(why) {
+  console.error(`REFUSED — --source: ${why}. Nothing was read from Search Console and nothing was written.`);
+  process.exit(2);
+}
+if (SOURCE !== null && permission.mayWrite) {
+  const inRuns = relative(join(REPO, "runs"), storePath);
+  if (!inRuns.startsWith("..") && !isAbsolute(inRuns)) {
+    refuseSource(`a synthetic run may not write into committed state, and the store ${storePath} is under runs/ — give --store=<a disposable store>`);
+  }
+}
+
+/** The synthetic stand-in: the provider interface the pipeline takes, answered from the source file. No request. */
+function syntheticProvider(file, governor) {
+  let spec = null;
+  try {
+    spec = JSON.parse(readFileSync(file, "utf8"));
+  } catch {
+    refuseSource(`${file} is not a readable JSON source`);
+  }
+  if (spec?.marker !== SYNTHETIC_MARKER) refuseSource(`${file} does not declare marker "${SYNTHETIC_MARKER}"`);
+  const properties = Array.isArray(spec.properties) ? spec.properties : [];
+  if (properties.length === 0 || properties.some((p) => !String(p?.propertyId).includes(SYNTHETIC_MARKER))) {
+    refuseSource(`every property id in ${file} must contain "${SYNTHETIC_MARKER}"`);
+  }
+  const cost = () => ({ provider: SYNTHETIC_MARKER, synthetic: true, apiCalls: 1, billableUnits: 0, currency: "USD", amount: 0, amountState: "ZERO_BY_TARIFF", basis: "synthetic source — no request issued" });
+  return {
+    providerId: SYNTHETIC_MARKER,
+    async listProperties() {
+      const observedAt = new Date().toISOString();
+      return properties.map((p) => ({ ...p, authState: "GRANTED", synthetic: SYNTHETIC_MARKER, observedAt }));
+    },
+    async queryRows({ propertyId: id, dimensions = [], rowLimitPerRequest = 25000, maxRequests = 20 }) {
+      governor.charge();
+      const known = properties.some((p) => p.propertyId === id);
+      const rows = known ? (spec.rows?.[dimensions.join(",")] ?? []) : [];
+      return {
+        rows, rowCount: rows.length, requestCount: 1, exhausted: known, truncationReason: known ? null : "API_ERROR",
+        dataState: known ? "COMPLETE" : "UNKNOWN", propertyId: id, httpStatus: known ? 200 : 403,
+        rowLimitPerRequest, maxRequests, latestDateWithData: null, cost: cost(), observedAt: new Date().toISOString(),
+      };
+    },
+  };
 }
 
 /* 🔴 ITEM 45 — the run is governed and costed AS IT HAPPENS. The eight ingest
@@ -61,7 +119,7 @@ if (!propertyId) {
  * wall-clock is UNKNOWN for ever; this one is not. */
 const startedAt = new Date().toISOString();
 const governor = createCostGovernor({ label: "google-search-console ingest run" });
-const provider = createGoogleSearchConsoleProvider({ governor });
+const provider = SOURCE === null ? createGoogleSearchConsoleProvider({ governor }) : syntheticProvider(SOURCE, governor);
 const store = permission.mayWrite ? createJsonlStore(storePath) : createDryRunStore(storePath);
 const ledger = createCostLedger(confineToRepo(`${REPO}runs/cost/ledger.jsonl`, { label: "the cost ledger" }));
 
@@ -79,7 +137,7 @@ try {
   if (err?.hardStop) {
     console.error(`\n${err.message}`);
     const stoppedEntry = entryFromLiveIngest({ startedAt, finishedAt: new Date().toISOString(), governor, pulls: [], basis: "Search Console API is free; no billing account attached to almiworld-hq-502102" });
-    if (permission.mayWrite) ledger.append(stoppedEntry);
+    if (permission.mayWrite && SOURCE === null) ledger.append(stoppedEntry);
     console.error(`ledger${permission.mayWrite ? "" : " [dry-run, not written]"}: ${formatLedgerLine(stoppedEntry)}`);
     process.exit(4);
   }
@@ -176,10 +234,15 @@ if (r.appended === 0 && r.resighted > 0) {
 
 const pullsForLedger = [r.agg, r.pages, ...Object.values(r.queryPulls).map((p) => p.res), ...Object.values(r.countryPulls).map((p) => p.res), r.control];
 const costEntry = entryFromLiveIngest({ startedAt, finishedAt, governor, pulls: pullsForLedger, basis: r.agg.cost.basis });
-const ledgerWrite = permission.mayWrite ? ledger.append(costEntry) : { appended: false, dryRun: true };
-console.log(`\ncost ledger (${ledgerWrite.dryRun ? "dry-run, NOT written" : ledgerWrite.appended ? "appended" : "already present"}): ${formatLedgerLine(costEntry)}`);
+const ledgerWrite = SOURCE !== null ? { appended: false, synthetic: true } : permission.mayWrite ? ledger.append(costEntry) : { appended: false, dryRun: true };
+console.log(`\ncost ledger (${ledgerWrite.synthetic ? "synthetic source, NEVER written" : ledgerWrite.dryRun ? "dry-run, NOT written" : ledgerWrite.appended ? "appended" : "already present"}): ${formatLedgerLine(costEntry)}`);
+/* 🔴 THE REACH LINES. Both are printed only here: after runIngest has returned — so every observation has already
+ * been handed to store.appendIfNew, the one write call — and after the ledger decision. A run that dies before its
+ * write decision (no credentials, a refused source, a failed request) cannot print either. */
 if (!permission.mayWrite) {
-  console.log(`[dry-run] would have written ${store.wouldWrite().length} evidence record(s) → ${storePath} and 1 ledger entry — nothing written, --confirm to write`);
+  console.log(`[dry-run] would have written ${store.wouldWrite().length} evidence record(s) → ${storePath}${SOURCE === null ? " and 1 ledger entry" : " (synthetic source: never the cost ledger)"} — nothing written, --confirm to write`);
+} else if (SOURCE !== null) {
+  console.log(`[synthetic source] wrote ${r.appended} evidence record(s) → ${storePath} — the cost ledger was not written`);
 }
 
 console.log("\n⚠️ KNOWN UNKNOWNS — the census denominator is not proven total:");

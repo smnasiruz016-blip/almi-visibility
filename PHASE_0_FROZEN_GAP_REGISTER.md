@@ -1379,6 +1379,89 @@ and inside no other instrument's.
 
 ---
 
+## 🔴 `D-HELDOUT-1` — RECORDED 17 SEPTEMBER 2026: ROW 5's ACCEPTANCE INSTRUMENT CANNOT FAIL ON THE HELD-OUT LIMB IT IS REQUIRED TO JUDGE
+
+Established **by property**, not by symptom, on **17 September 2026**, and ruled by the owner the same day ("ROW 5
+OWNER RULINGS · REGISTER TWO FINDINGS + MEASURE SAFE INSTRUMENT PATH", brief committed at
+`_handoffs/AlmiVisibility_ROW5_OWNER_RULINGS_REGISTER_TWO_FINDINGS_2026-09-17.md`, `2d19ac8`). The owner's **RULING 1**
+of the same date settles the scope question this rests on: *a qualifying held-out identical-intent MISS falls under the
+frozen Row 5 failure proposition "identical intents stay split"; there is no tolerance; **one** genuine qualifying
+held-out MISS is sufficient for Row 5 failure.* That interpretation is not reopened here. Before this id was written it
+was searched for across the tracked files on `origin/main` (`ceee2a6`), the full working tree including untracked
+files, and git history on all refs: **0 / 0 / 0 hits**, against **9 / 9 / 8** for `D-GUARD-1` as the positive control.
+**Recording a finding does not authorize its fix:** no instrument, test, clusterer, reference or row status is changed
+by the change that records this.
+
+| id | defect | how it presented | state |
+|---|---|---|---|
+| **`D-HELDOUT-1`** | **Row 5's acceptance instrument does not fail when a qualifying held-out identical-intent pair remains split, despite that state violating the frozen Row 5 failure condition** | **OBSERVED, by property, 17 September 2026 on `ceee2a6`, read-only and in memory.** `clusteringErrors` (`src/discovery/intent-clusters.mjs:332`) computes its `merged` and `split` limbs at `:357-359` over `h.inSampleClusters` **only**; its single held-out limb, `held-out-unrun` (`:346-355`), asks whether the check ran, whether its results cover exactly the held-out population, whether the reported hit/miss/unscored counts agree with its own results, and whether every miss is named. **The MISS count is never compared to zero.** Driving the real store's held-out report through three states gave: **HIT 61 / MISS 0 → GREEN · HIT 49 / MISS 12 (the real store today) → GREEN · HIT 0 / MISS 61 → GREEN.** 🔴 **POSITIVE CONTROLS, same run, same harness — the limb list is alive:** merging two in-sample clusters fired `merged`; making the held-out counts disagree with their own results fired `held-out-unrun`. A third control already exists in the suite — the lexicon leakage limb at `test/intent-clustering.test.mjs:99`. **CONSEQUENCE, measured:** two materially different held-out outcomes — every qualifying pair clustered correctly, and every qualifying pair left split — are **indistinguishable** to the instrument, so `test/intent-clustering.test.mjs:81` ("every row-5 limb holds on the real store") is GREEN today while Row 5 is recorded **FAILED**. That GREEN is **narrower than the frozen Row 5 acceptance proposition**, and narrower in exactly the place the row was failed. **NOT CLAIMED:** that the in-sample limbs are wrong, that any past verdict was mis-recorded, or that the row's FAILED state is unsound — the row's FAILED state is the *correct* one and was reached by applying the frozen clause to the held-out result (`src/checklist/classification.mjs`, row 5 `why`: "FAILURE — met on the held-out fifth … 12 identical intents stayed split", "FAILED on the owner's answer, 14 September 2026") | 🔴 **OPEN** · RECORDED · established 17 September 2026 · **SEVERITY: UNCLASSIFIED** — this register classifies by state and carries no severity scale (`D-FACT-5`, above); UNCLASSIFIED is **not** LOW and is not defaulted to one (LAW-ABSENT-1). **Recorded only:** `src/discovery/intent-clusters.mjs`, `src/discovery/row5.mjs`, `test/intent-clustering.test.mjs`, the intent reference, the lexicon, Row 3's artifact and Row 5's status are **unchanged** by the change that records this |
+
+**🔴 WHAT THIS DOES AND DOES NOT MOVE.** Row 5 stays **FAILED**. `D-HELDOUT-1` is about the *instrument*, not the
+*verdict*: **DETECTOR CORRECTNESS ≠ CURRENT ROW ACCEPTANCE STATE.** The practical consequence is forward-looking — a
+future `RETEST_PASSED` for Row 5 (Amendment 2, rule 1) **cannot be relied upon** until this limb can fail, because a
+re-run would go green at any MISS count. No row moved; the ledger is unchanged at 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61.
+
+**A RECORDED AMBIGUITY THAT TRAVELS WITH THIS ENTRY, AND IS NOT RESOLVED BY IT (owner RULING 2).** The frozen EVIDENCE
+clause (`PASS_BOUNDARIES_SOURCE.md:221`) requires "the cluster with its members and a held-out check" but does **not**
+independently specify what substantive proposition that check must establish. That ambiguity is **preserved as an
+ambiguity**. It does not block this finding, because the substantive held-out failure condition comes from RULING 1's
+Q1-A reading of the FAILURE clause, not from the EVIDENCE clause — and **no extra held-out requirement is invented from
+it here.**
+
+**🔴 REQUIRED PROPERTY PROOF FOR ANY FUTURE CORRECTION — RECORDED NOW, ON THE OWNER'S RULING, SO A WEAKER FIX CANNOT
+LATER BE ADOPTED BY DEFAULT.** A correction must prove at minimum: **(1)** 61 HIT / 0 MISS → the held-out failure limb
+does **not** fire · **(2)** 60 HIT / 1 qualifying identical-intent MISS → the limb **FIRES** · **(3)** 49 HIT / 12
+current genuine MISS → the limb **FIRES** · **(4)** 0 HIT / 61 MISS → the limb **FIRES** · **(5)** the existing
+in-sample `merged` control still fires · **(6)** the existing held-out count-integrity control still fires · **(7)** no
+tolerance is introduced · **(8)** no held-out data leaks into learning or remediation · **(9)** Row 3's VERIFIED-PASS
+artifact and state remain untouched. Exact intended test counts must be **PINNED** wherever filtering or sabotage could
+silently omit a limb. **PROPERTY PROOF > SYMPTOM ABSENCE.**
+
+**🔴 AND THE FIX MUST NOT BUY GREEN WITH A LIE.** A known FAILED row may not be disguised as PASS to keep CI green, and
+a truthful detector must not be neutralised by `xfail`, `skip`, `ignore` or a tolerance. The repository already has a
+convention for holding both truths at once — see `test/queue-rescan.test.mjs:114-119`, where item 50's adverse
+measurement is asserted *as* the expectation together with `assert.equal(classify()[50].state, "FAILED")` and a re-sit
+trigger message. CI is green there because the test asserts the truth, not because the row passes.
+
+---
+
+## 🔴 `D-ADJUDICATION-1` — RECORDED 17 SEPTEMBER 2026: THE ACCEPTANCE REFERENCE MAY BE AMENDED AFTER THE RESULT IS KNOWN, AND THE CITED RULE VIOLATION IS RECORDED BUT NOT INDEPENDENTLY VERIFIED
+
+Established on **17 September 2026** and ruled by the owner the same day (**RULING 4** of the brief above, `2d19ac8`).
+Before this id was written it was searched for across the tracked files on `origin/main` (`ceee2a6`), the full working
+tree including untracked files, and git history on all refs: **0 / 0 / 0 hits**, against **9 / 9 / 8** for `D-GUARD-1`
+as the positive control. The namespace was chosen, not defaulted: the proposition registered here is an **established
+absence of a verification step in an existing mechanism**, the same shape as `D-GUARD-1` ("the guard took
+`elementsNotFound` on trust"), which is why it sits in `D-*` rather than in the `U-*` unknowns of section 5.
+
+| id | defect | how it presented | state |
+|---|---|---|---|
+| **`D-ADJUDICATION-1`** | **Row 5's acceptance reference can be amended after the clusterer's output is known, in a way that changes the acceptance verdict, while the mechanism records each amendment's cited rule violation without independently verifying it and carries no safeguard against amendments moving systematically in the evaluated clusterer's favour** | **OBSERVED, 17 September 2026 on `ceee2a6`, read-only.** The pinned pre-clustering reference (`runs/audit/row5-reference-as-first-written-2026-09-14.mjs.txt`, sha256 **`626a37ea124cab39e7c40c9417926673377d953573ef5d28ee31aca615c348f3`** — the exact full value recomputed this turn over its LF-normalised bytes, matching `test/intent-clustering.test.mjs:32`) was replayed against the same clusterer and the same input, inside disposable `.test-scratch` with a before/after fingerprint of the protected population proved **IDENTICAL**. **Result: original reference → in-sample merged 1 · split 1 · Row 5 verdict RED; current amended reference → in-sample merged 0 · split 0 · verdict GREEN.** The pin's own `AMENDMENTS` is `Object.freeze([])`; the current file carries **2** (`config/discovery/intent-reference.mjs:46-60`), each with a `brokenRule` citing R2 and R3. **The held-out result is 49 HIT / 12 MISS under BOTH references** — the amendments moved the in-sample verdict and left the held-out numbers untouched. **WHAT THE MECHANISM DOES ESTABLISH:** the original is immutable and byte-pinned, and every amendment must cite a rule matching `/^R[1-6] — /` (`test/intent-clustering.test.mjs:35-37`). **WHAT IT DOES NOT:** nothing verifies that the cited rule was in fact violated, and nothing flags or caps amendments all moving one way — the test's own title merely records that both did. **UNKNOWN, recorded as unknown (LAW-ABSENT-1):** git history cannot corroborate the claimed ordering "frozen before any clustering run" (`config/discovery/intent-reference.mjs:42-43`), because the pin, the clusterer, both amendments and the result all entered history in **one commit**, `dd15acf` (2026-09-14 22:36:10Z); the claimed freeze time of 21:44:57Z is consistent with that commit but is not independently provable | 🔴 **OPEN** · RECORDED · established 17 September 2026 · **SEVERITY: UNCLASSIFIED** — this register classifies by state and carries no severity scale (`D-FACT-5`, above); UNCLASSIFIED is **not** LOW (LAW-ABSENT-1). **Recorded only:** no amendment was modified, reverted or invalidated; the original pin, the current reference, the 49 / 12 result and Row 5's status are **unchanged** |
+
+**🔴 WHAT THIS FINDING DOES NOT CLAIM — read this before citing it.** It does **not** claim that the amendments were
+wrong · that the cited rules were not violated · deliberate manipulation · bad faith · reference corruption · or that
+post-result adjudication is inherently forbidden. **None of those propositions is established, and this entry may not
+be used to assert any of them.** Authorised and auditable is not the same proposition as independent of observed
+output, and a cited adjudication rule is not proof that the cited rule was violated. Those are the only two
+distinctions this entry rests on.
+
+**REFERENCE POLICY IS NOT DECIDED HERE (owner RULING 5).** Post-result adjudication is neither banned nor blessed; the
+two amendments stand; the original reference is not rewritten or regenerated; 49 / 12 is unchanged; Row 5's status is
+unchanged. Historical evidence remains immutable and auditable. This entry exists to preserve the unresolved
+policy-and-verification problem for a bounded prospective decision by the owner.
+
+**CROSS-REFERENCES.** Row 5 (`PASS_BOUNDARIES_SOURCE.md:217-221`, FAILED since 14 September 2026) · `D-HELDOUT-1`
+above, which concerns the *held-out* limb of the same row's instrument and is a **separate** finding from this one ·
+the reference and its amendment record (`config/discovery/intent-reference.mjs`) · the immutable pin
+(`runs/audit/row5-reference-as-first-written-2026-09-14.mjs.txt`).
+
+**THE CURRENT LABEL FOR THE HELD-OUT NUMBERS, so a later reader does not overstate their independence:** 49 HIT /
+12 MISS is the **CURRENT POST-AMENDMENT HELD-OUT RESULT**. It is not an "original", a "pre-result baseline" or an
+"independent untouched reference result" — even though, as measured above, the original pinned reference yields the
+same 49 / 12.
+
+---
+
 ## 🔴 PERMANENT LOSSES — RECORDED, IRRECOVERABLE, NEVER DELETED
 
 These rows are **not gaps that can close.** They record something measurable that was never

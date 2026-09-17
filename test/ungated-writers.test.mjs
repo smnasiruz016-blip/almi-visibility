@@ -492,6 +492,13 @@ for (const [bin, args, dirs, expect] of [
   ["bin/audit-technical.mjs", [], [AUDIT_DIR, EVIDENCE_DIR], /\[dry-run\] would have written \d+ finding\(s\)/],
   // 🔴 REACH, NOT THE BANNER: given its input, and required to print the line that follows both write decisions.
   ["bin/verification-issues.mjs", [`--csv=${scratchVerdictCsv()}`], [AUDIT_DIR], /\[bound: 6 verdict rows read from /],
+  /* 🔴 GAP 2 · BLOCKER 2 (17 September 2026) — REACH, NOT THE BANNER. With no flag the bin rebuilds the 11
+   * disagreement issues from the COMMITTED graph and stops in its refusal branch, immediately before the
+   * write block. With --confirm every one of those 11 goes through appendIfNew, which always writes (a new
+   * issue, or a re-sighting of one already stored) — so reaching that branch with 11 means a real store
+   * write was pending and was refused. The count comes before the refusal line, and both are required.
+   * Only the default path: `--close` finds nothing OPEN on the committed data, so it cannot show a refusal. */
+  ["bin/instrument-disagreement.mjs", [], [AUDIT_DIR], /issues: 11 — one per page they treat differently[\s\S]*\[dry-run\] nothing raised — add --confirm/],
   ["bin/audit.mjs", [], [AUDIT_DIR], /\[dry-run\] would have written \d+ record\(s\)/],
   // 🔴 These two exit early without their input, so they are given it — a dry run that never
   // reaches its write path would prove nothing at all.

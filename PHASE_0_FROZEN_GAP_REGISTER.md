@@ -1334,7 +1334,7 @@ Evidence: `runs/audit/gap2-close-decision-2026-09-16.txt` (A57, A58, B30, B31).
 
 | id | defect | how it presented | state |
 |---|---|---|---|
-| **`D-SCRATCH-1`** | **`tools/symlink-census.mjs` walks the whole repository, including the git-ignored disposable `.test-scratch/` state that tests create and delete in parallel, so an entry can be listed by `readdirSync` and gone before its `lstatSync`** | **OBSERVED, three times, all on Windows under `node --test`'s parallel runner:** twice on 16–17 September 2026 during the closure-record check (A57 — `.test-scratch/gsc-source-mrpC0A`, then `.test-scratch/gsc-source-LDgPWT`), and a third time on 17 September 2026 on merged main `7470c06` itself with a clean tracked tree (A58.1) — `npm test` → 1,290 tests · 1,289 pass · **1 fail**, the failure being `test/no-symlinks.test.mjs:13` with `Error: ENOENT: no such file or directory, lstat '…\.test-scratch\gsc-source-7RJ2Zx'` raised at `tools/symlink-census.mjs:34`. **Linux CI is green on the same commits** (#111 PR and merged main, run 35190981828) — environment-dependent, and 0 of 8 paired local reproductions **disprove nothing** (LAW-ABSENT-1). **OBSERVED, direction:** the instrument holds zero `try`/`catch`, and a positive control run on 17 September 2026 confirmed `lstatSync` **throws** `ENOENT` on a listed-then-removed entry, so the race can only make the test **RED** — it cannot today report a false clean zero (A58.5). **NOT PROVED CAUSE:** the exact interleaving is not instrumented; `gsc-source-` directories are created at exactly one place, `test/support/gsc-synthetic-source.mjs:39` from `test/gap2-gsc-ingest-source.test.mjs:60` (A58.7). **CONSEQUENCE, measured:** an unreliable **repository-wide symbolic-link guard**, which is the guard standing behind `confineToRepo`'s path-text check. **NOT a Gap 2 dependency:** the writer census enumerates `git ls-files src bin tools` and never walks `.test-scratch`, and `symlinkCensus` has exactly one consumer in the repository — its own test (A58.2, A58.3) | 🔴 **OPEN** · RECORDED · observed 16–17 September 2026 · **SEVERITY: UNCLASSIFIED** — this register carries no severity scale; UNCLASSIFIED is **not** LOW (LAW-ABSENT-1), and severity is withheld until consequence and reversibility evidence justify one. **Recorded only:** `tools/symlink-census.mjs`, `test/no-symlinks.test.mjs`, #110, #111, every scratch cleanup, the test ordering and the runner's concurrency are **unchanged** by the change that records this |
+| **`D-SCRATCH-1`** | **`tools/symlink-census.mjs` walks the whole repository, including the git-ignored disposable `.test-scratch/` state that tests create and delete in parallel, so an entry can be listed by `readdirSync` and gone before its `lstatSync`** | **OBSERVED, four times, all on Windows under `node --test`'s parallel runner.** 🔴 **OLD → CURRENT: the observed trigger population is WIDER than this entry first recorded.** As first written, all three observations involved `gsc-source-*` scratch directories (#111's test). **ADDED 17 September 2026, later:** a fourth instance was observed during the `D-HELDOUT-1` H2 run, the same `no-symlinks` test and the same ENOENT shape, on **`.test-scratch/ledger-seam-6WOWOr`** — a directory created by `test/gap2-ledger-seam.test.mjs` (#110), **not** by #111. Local full suite on that change: 1,297 tests · 1,296 pass · 1 fail. 🔴 **NOT PROVED:** that the `gsc-source-*` and `ledger-seam-*` observations share a root cause, or that one fix would address both. Both are ENOENT on a listed-then-vanished `.test-scratch` entry under a parallel runner; that is a shared SYMPTOM and a shared SHAPE, and nothing here establishes more. The A51 relationship, and the #110 junction held inside this entry as POSSIBLE-ONLY, stay exactly as strong as their own evidence — no stronger. **THE FIRST THREE, AS FIRST RECORDED:** twice on 16–17 September 2026 during the closure-record check (A57 — `.test-scratch/gsc-source-mrpC0A`, then `.test-scratch/gsc-source-LDgPWT`), and a third time on 17 September 2026 on merged main `7470c06` itself with a clean tracked tree (A58.1) — `npm test` → 1,290 tests · 1,289 pass · **1 fail**, the failure being `test/no-symlinks.test.mjs:13` with `Error: ENOENT: no such file or directory, lstat '…\.test-scratch\gsc-source-7RJ2Zx'` raised at `tools/symlink-census.mjs:34`. **Linux CI is green on the same commits** (#111 PR and merged main, run 35190981828) — environment-dependent, and 0 of 8 paired local reproductions **disprove nothing** (LAW-ABSENT-1). **OBSERVED, direction:** the instrument holds zero `try`/`catch`, and a positive control run on 17 September 2026 confirmed `lstatSync` **throws** `ENOENT` on a listed-then-removed entry, so the race can only make the test **RED** — it cannot today report a false clean zero (A58.5). **NOT PROVED CAUSE:** the exact interleaving is not instrumented; `gsc-source-` directories are created at exactly one place, `test/support/gsc-synthetic-source.mjs:39` from `test/gap2-gsc-ingest-source.test.mjs:60` (A58.7). **CONSEQUENCE, measured:** an unreliable **repository-wide symbolic-link guard**, which is the guard standing behind `confineToRepo`'s path-text check. **NOT a Gap 2 dependency:** the writer census enumerates `git ls-files src bin tools` and never walks `.test-scratch`, and `symlinkCensus` has exactly one consumer in the repository — its own test (A58.2, A58.3) | 🔴 **OPEN** · RECORDED · observed 16–17 September 2026 · **SEVERITY: UNCLASSIFIED** — this register carries no severity scale; UNCLASSIFIED is **not** LOW (LAW-ABSENT-1), and severity is withheld until consequence and reversibility evidence justify one. **Recorded only:** `tools/symlink-census.mjs`, `test/no-symlinks.test.mjs`, #110, #111, every scratch cleanup, the test ordering and the runner's concurrency are **unchanged** by the change that records this |
 
 **RELATIONSHIP TO `A51`, IN THE OWNER'S WORDS AND NO STRONGER.** Recorded verbatim, on the owner's ruling:
 
@@ -1394,7 +1394,7 @@ by the change that records this.
 
 | id | defect | how it presented | state |
 |---|---|---|---|
-| **`D-HELDOUT-1`** | **Row 5's acceptance instrument does not fail when a qualifying held-out identical-intent pair remains split, despite that state violating the frozen Row 5 failure condition** | **OBSERVED, by property, 17 September 2026 on `ceee2a6`, read-only and in memory.** `clusteringErrors` (`src/discovery/intent-clusters.mjs:332`) computes its `merged` and `split` limbs at `:357-359` over `h.inSampleClusters` **only**; its single held-out limb, `held-out-unrun` (`:346-355`), asks whether the check ran, whether its results cover exactly the held-out population, whether the reported hit/miss/unscored counts agree with its own results, and whether every miss is named. **The MISS count is never compared to zero.** Driving the real store's held-out report through three states gave: **HIT 61 / MISS 0 → GREEN · HIT 49 / MISS 12 (the real store today) → GREEN · HIT 0 / MISS 61 → GREEN.** 🔴 **POSITIVE CONTROLS, same run, same harness — the limb list is alive:** merging two in-sample clusters fired `merged`; making the held-out counts disagree with their own results fired `held-out-unrun`. A third control already exists in the suite — the lexicon leakage limb at `test/intent-clustering.test.mjs:99`. **CONSEQUENCE, measured:** two materially different held-out outcomes — every qualifying pair clustered correctly, and every qualifying pair left split — are **indistinguishable** to the instrument, so `test/intent-clustering.test.mjs:81` ("every row-5 limb holds on the real store") is GREEN today while Row 5 is recorded **FAILED**. That GREEN is **narrower than the frozen Row 5 acceptance proposition**, and narrower in exactly the place the row was failed. **NOT CLAIMED:** that the in-sample limbs are wrong, that any past verdict was mis-recorded, or that the row's FAILED state is unsound — the row's FAILED state is the *correct* one and was reached by applying the frozen clause to the held-out result (`src/checklist/classification.mjs`, row 5 `why`: "FAILURE — met on the held-out fifth … 12 identical intents stayed split", "FAILED on the owner's answer, 14 September 2026") | 🔴 **OPEN** · RECORDED · established 17 September 2026 · **SEVERITY: UNCLASSIFIED** — this register classifies by state and carries no severity scale (`D-FACT-5`, above); UNCLASSIFIED is **not** LOW and is not defaulted to one (LAW-ABSENT-1). **Recorded only:** `src/discovery/intent-clusters.mjs`, `src/discovery/row5.mjs`, `test/intent-clustering.test.mjs`, the intent reference, the lexicon, Row 3's artifact and Row 5's status are **unchanged** by the change that records this |
+| **`D-HELDOUT-1`** | **Row 5's acceptance instrument does not fail when a qualifying held-out identical-intent pair remains split, despite that state violating the frozen Row 5 failure condition** | **OBSERVED, by property, 17 September 2026 on `ceee2a6`, read-only and in memory.** `clusteringErrors` (`src/discovery/intent-clusters.mjs:332`) computes its `merged` and `split` limbs at `:357-359` over `h.inSampleClusters` **only**; its single held-out limb, `held-out-unrun` (`:346-355`), asks whether the check ran, whether its results cover exactly the held-out population, whether the reported hit/miss/unscored counts agree with its own results, and whether every miss is named. **The MISS count is never compared to zero.** Driving the real store's held-out report through three states gave: **HIT 61 / MISS 0 → GREEN · HIT 49 / MISS 12 (the real store today) → GREEN · HIT 0 / MISS 61 → GREEN.** 🔴 **POSITIVE CONTROLS, same run, same harness — the limb list is alive:** merging two in-sample clusters fired `merged`; making the held-out counts disagree with their own results fired `held-out-unrun`. A third control already exists in the suite — the lexicon leakage limb at `test/intent-clustering.test.mjs:99`. **CONSEQUENCE, measured:** two materially different held-out outcomes — every qualifying pair clustered correctly, and every qualifying pair left split — are **indistinguishable** to the instrument, so `test/intent-clustering.test.mjs:81` ("every row-5 limb holds on the real store") is GREEN today while Row 5 is recorded **FAILED**. That GREEN is **narrower than the frozen Row 5 acceptance proposition**, and narrower in exactly the place the row was failed. **NOT CLAIMED:** that the in-sample limbs are wrong, that any past verdict was mis-recorded, or that the row's FAILED state is unsound — the row's FAILED state is the *correct* one and was reached by applying the frozen clause to the held-out result (`src/checklist/classification.mjs`, row 5 `why`: "FAILURE — met on the held-out fifth … 12 identical intents stayed split", "FAILED on the owner's answer, 14 September 2026") | ✅ **CLOSED 17 September 2026 against merged proof `fb68db9`** (PR #114; PR check `test` run 35286615410 SUCCESS, main CI run 35287647431 SUCCESS) — the acceptance instrument is fail-capable, and on merged main it truthfully fails: `node bin/intent-clusters.mjs --check` exits **1** at 0 distinct-intent merges · 8 identical-intent splits. 🔴 **This closes the INSTRUMENT, not the row: Row 5 remains FAILED and no row moved.** Full closure evidence below the table. · **SEVERITY: UNCLASSIFIED** — this register classifies by state and carries no severity scale (`D-FACT-5`, above); UNCLASSIFIED is **not** LOW and is not defaulted to one (LAW-ABSENT-1). **When it was recorded, nothing was changed:** `src/discovery/intent-clusters.mjs`, `src/discovery/row5.mjs`, `test/intent-clustering.test.mjs`, the intent reference, the lexicon, Row 3's artifact and Row 5's status are **unchanged** by the change that records this |
 
 **🔴 WHAT THIS DOES AND DOES NOT MOVE.** Row 5 stays **FAILED**. `D-HELDOUT-1` is about the *instrument*, not the
 *verdict*: **DETECTOR CORRECTNESS ≠ CURRENT ROW ACCEPTANCE STATE.** The practical consequence is forward-looking — a
@@ -1422,6 +1422,73 @@ a truthful detector must not be neutralised by `xfail`, `skip`, `ignore` or a to
 convention for holding both truths at once — see `test/queue-rescan.test.mjs:114-119`, where item 50's adverse
 measurement is asserted *as* the expectation together with `assert.equal(classify()[50].state, "FAILED")` and a re-sit
 trigger message. CI is green there because the test asserts the truth, not because the row passes.
+
+---
+
+### ✅ `D-HELDOUT-1` — CLOSURE EVIDENCE, 17 SEPTEMBER 2026, AGAINST MERGED PROOF `fb68db9`
+
+Closed on the owner's ruling ("ROW 5 · D-HELDOUT-1 H2 IMPLEMENTATION", `_handoffs` `d15b8c9`), on this evidence and
+nothing wider:
+
+- **The instrument is fail-capable, proved by property through the real `clusteringErrors` path.** Acceptance is now
+  the SAME `compareToReference` the in-sample limbs already used, applied to the **whole record** — in-sample clusters
+  **plus** held-out placements — as limbs `record-merged` / `record-split`. No new qualifier, no threshold, no
+  tolerance. Controls, each on records rebuilt from the real members so no limb is bypassed: a clean state (one
+  reference intent, one cluster) → **silent**; one legitimate merge → **`record-merged` fires**; one legitimate split
+  → **`record-split` fires**. The three cases are pinned at 3 and counted as they run (A49).
+- **The current real state fails, truthfully:** **0 distinct-intent merges · 8 identical-intent splits**, and
+  `node bin/intent-clusters.mjs --check` exits **1** — re-verified on merged main `fb68db9`.
+- **The eight split identities are pinned**, with the re-sit trigger beside them (where the 8 comes from, and what
+  would legitimately move it): `score-equivalence` · `cv-for-occupation` · `cv-no-experience` · `daily-habits` ·
+  `ielts-free-practice` · `pte-destination-requirement` · `pte-for-occupation` · `bilingual-licenciatura`.
+- 🔴 **The case that justified rejecting the narrower qualifier is visible to acceptance.**
+  `bilingual-licenciatura`'s two members are **both held out**, so the proposed `referenceIntent has in-sample
+  members` qualifier — measured to cover only **7 of 8** — could never have seen it. The full-reference oracle does.
+- **The existing controls stayed fail-capable.** The sabotage tests keep their "alone" claim at full strength: each
+  now asserts the limbs its damage **adds** to the baseline and that it **removes none**, which still fails on any
+  collateral limb. The held-out count-integrity control still fires. The lexicon held-out-leakage guard is intact,
+  and `compareToReference` remains post-output evaluation — the clusterer still trains on the 268 in-sample alone.
+- 🔴 **A stale assertion was EXPOSED by the corrected instrument, and corrected rather than worked around.**
+  `test/axis-discovery.test.mjs` asserted that Row 5's errors were **empty** — true only while acceptance judged the
+  training half of its own output. When the instrument began returning the truthful adverse result, that assertion
+  went red. It now states the truth (exactly `["record-split"]`, length 8). **Row 6's own verdict was shown not to
+  depend on it:** `row5Errors` is carried through for reporting only (`src/discovery/row6.mjs:129`), while row 6's
+  limbs come from `axisErrors` — so row 6 is unaffected, and its own limbs still hold.
+- **PR #114 check `test` run 35286615410 SUCCESS · merged `fb68db9` · main CI run 35287647431 SUCCESS**, each read
+  from the checks API rather than a `--watch` exit code.
+- 🔴 **Row 5 remains FAILED. Row 3 remains VERIFIED-PASS. No row moved; the ledger is unchanged at
+  2 / 7 / 1 / 22 / 2 / 4 / 23 = 61.** Detector correctness is not row acceptance state, and this closure is not a
+  Row 5 pass. The suite is green because it **asserts the failure** — together with `classify()[5].state === "FAILED"`
+  and a re-sit trigger — never by `xfail`, `skip`, `ignore` or tolerance.
+
+**🔴 CLOSURE SCOPE LIMITATION — LAW-ABSENT-1.** Recorded verbatim on the owner's ruling:
+
+> During the D-HELDOUT-1 implementation, the stale assertion in `test/axis-discovery.test.mjs` was discovered
+> INCIDENTALLY, when the corrected instrument began returning the truthful adverse Row 5 result.
+>
+> That observed instance was corrected and verified.
+>
+> NO systematic repository-wide sweep was performed for other tests or consumers that may encode the same or an
+> analogous assumption — such as asserting an acceptance or error collection is empty when the underlying row is
+> known FAILED.
+>
+> Therefore:
+> - additional same-shape instances = UNKNOWN;
+> - absence of additional instances is NOT established;
+> - D-HELDOUT-1 closure does NOT certify repository-wide absence of this pattern;
+> - no new finding is created merely from this UNKNOWN;
+> - no sweep is authorised in this turn.
+>
+> This limitation does NOT prevent D-HELDOUT-1 closure, because its frozen proposition and bounded acceptance path
+> have been directly corrected and verified.
+>
+> A future concrete contradictory instance may be handled under the standing reopen / new-finding law; UNKNOWN alone
+> does not reopen the closed finding.
+
+**WHAT THIS CLOSURE DOES NOT TOUCH.** The scorer's own HIT/UNEVALUATED collapse is a **separate** defect, registered
+as `D-VERDICT-1` below and **OPEN**: acceptance is corrected, yet `heldOutCheck` can still independently report a
+no-comparison-target case as HIT. `D-ADJUDICATION-1` and `D-SCRATCH-1` remain OPEN. The six R6-AMBIGUOUS members
+remain **UNEVALUATED-BY-RULE** — neither passed nor failed — and the E-D evidence-clause ambiguity is unresolved.
 
 ---
 
@@ -1459,6 +1526,36 @@ the reference and its amendment record (`config/discovery/intent-reference.mjs`)
 12 MISS is the **CURRENT POST-AMENDMENT HELD-OUT RESULT**. It is not an "original", a "pre-result baseline" or an
 "independent untouched reference result" — even though, as measured above, the original pinned reference yields the
 same 49 / 12.
+
+---
+
+## 🔴 `D-VERDICT-1` — RECORDED 17 SEPTEMBER 2026: ROW 5's HELD-OUT SCORER REPORTS "NOTHING TO COMPARE AGAINST" AS A HIT
+
+Measured on **17 September 2026** and ruled by the owner the same day ("REGISTER-ONLY CONSOLIDATION TURN", brief
+committed at `_handoffs/AlmiVisibility_REGISTER_ONLY_CONSOLIDATION_HELDOUT_CLOSE_H3_SCRATCH_EXPAND_2026-09-17.md`,
+`aecdb56`). This is the finding carried through the Row 5 work as **H3**. Before this id was written it was searched
+for across the tracked files on `origin/main` (`fb68db9`), the full working tree including untracked files, and git
+history on all refs: **0 / 0 / 0 hits**, against **9 / 9 / 9** for `D-GUARD-1` as the positive control. The namespace
+was chosen, not defaulted: the collapse is an **established behaviour of existing code**, read directly at
+`src/discovery/intent-clusters.mjs:263-270` and measured over the real population — not an unknown, so `D-*` and not
+the `U-*` unknowns of section 5. It is the same shape as `D-GUARD-1`, "the guard took `elementsNotFound` on trust".
+
+| id | defect | how it presented | state |
+|---|---|---|---|
+| **`D-VERDICT-1`** | **`heldOutCheck` gives the same `HIT` label to two different states: (A) a held-out query substantively evaluated and correctly placed, and (B) a held-out query for which no in-sample comparison target existed, so nothing could be evaluated at all** | **OBSERVED in the code**, `src/discovery/intent-clusters.mjs:263-270`: `intentInSample = train.some(…)` at `:263`, then for a query left `NEW` the verdict is `intentInSample ? "MISS" : "HIT"` at `:267`, and the no-target branch says so in its own words — `"NEW, and no in-sample query has its intent '…'"` at `:270`. Nothing downstream distinguishes the two: the report returns only `hits` / `misses` / `unscored`. **OBSERVED in the population**, measured over the real store: the published headline **49 HIT / 12 MISS** of 61 decomposes as **44 evaluated HIT · 12 evaluated MISS · 5 no-comparison-target**. 🔴 The 49 is therefore **not 49 evaluated HITs**. **THE FIVE, AND THEY ARE NOT ALIKE:** **3** are singleton intents with no same-intent partner anywhere, so no split was possible for them on this output — `best nursing school in st. kitts and nevis` · `dams bari` · `nmbi to ahpra`; **2** are the members of `bilingual-licenciatura`, where the reference asserts **SAME INTENT** (rule "R5: one degree, narrowed", `doubt: null`) and the clusterer's output leaves them **SPLIT**, yet the scorer reports **HIT** for both because no in-sample query carries that intent. **CONSEQUENCE, measured:** any report or re-sit reading `heldOutCheck`'s own counts reads 49 successes where 5 were never tested. **NOT CLAIMED:** that any of the 44 is wrong, that the 12 are wrong, or that the scorer mis-measures what it does measure — only that its verdict label cannot express "not determined by this protocol". The machinery already accepts that such a state exists: R6-AMBIGUOUS members get their own `UNSCORED` verdict at `:259` | 🔴 **OPEN** · RECORDED · measured 17 September 2026 · **SEVERITY: UNCLASSIFIED** — this register classifies by state and carries no severity scale (`D-FACT-5`, above); UNCLASSIFIED is **not** LOW, NONE or SAFE, and is not defaulted to one (LAW-ABSENT-1). **Recorded only:** `src/discovery/intent-clusters.mjs` and every other scoring path are **unchanged** by the change that records this |
+
+**🔴 THIS IS NOT `D-HELDOUT-1`, AND IT MUST NOT BE FOLDED INTO IT.** `D-HELDOUT-1` was about **acceptance** — the
+instrument could not fail when the frozen clause was violated — and it is **CLOSED** against `fb68db9`. This one is
+about **scoring and reporting**. The two are independent, and the proof is that closing the first did not fix the
+second: acceptance now correctly reports 8 identical-intent splits, and `heldOutCheck` still independently reports
+the two `bilingual-licenciatura` members as HIT on the very same run.
+
+**WHAT A FUTURE CORRECTION WOULD HAVE TO DO — recorded as direction, not as an authorised implementation.** Give the
+no-comparison-target case its own verdict rather than `HIT`, so the report reads **44 · 12 · 5** instead of 49 · 12.
+That is correcting a misleading number, **not** weakening acceptance: the frozen failure condition and the
+`record-split` limbs are untouched by it. Any such change moves the pinned `[49, 12, 0]` in
+`test/intent-clustering.test.mjs`, which must be re-based **with the reason recorded there**, never silently. Nothing
+is authorised here: **no scoring code was modified by the change that records this entry.**
 
 ---
 

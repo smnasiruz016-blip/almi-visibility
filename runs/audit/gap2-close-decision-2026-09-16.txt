@@ -1448,3 +1448,35 @@ B30 · THE TARGETED VERIFICATION PASSES (A56) — CLOSURE NOT RECORDED: ONE ACCE
   source-integrity · cost-ledger capture-actions · render-archive. Preserved observations, unfixed: A51 · A55 · A57 ·
   D-SWEEP-1, D-EXIT-1, D-MASK-1, D-OUTPUT-1, D-SPAWN-1.
   No row moved. Ledger 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61, VERIFIED-PASS 22. Row 53 untouched · Row 61 VERIFIED-PASS.
+
+--------------------------------------------------------------------------------------
+DRAFT — UNAPPROVED AND NOT RECORDED (17 September 2026). Saved on the owner's order "SAVE TODAY'S WORK AND STOP".
+This is the CHECKLIST_STATUS.md "GAP 2 CLOSED" block drafted before A57 was observed. It is NOT in
+CHECKLIST_STATUS.md, it records nothing, and Gap 2 is OPEN (B30). It may be used only if the owner rules the A57
+question in favour of closure. Quoted verbatim below, each line prefixed "DRAFT| ".
+--------------------------------------------------------------------------------------
+DRAFT| > ### 🔴 GAP 2 CLOSED (#101–#111) — EVERY CALLER IN ITS FROZEN POPULATION IS GATED, AND A TEST PROVES IT — 17 SEPTEMBER 2026 — NO ROW MOVED
+DRAFT| >
+DRAFT| > - **The frozen contract** (`_handoffs` 289d471, the write-law brief, option (C)): "Either the store refuses an unauthorised
+DRAFT| >   caller, or every caller is gated and a test proves no ungated caller exists. 🔴 Choose the one the existing architecture
+DRAFT| >   already implies — do not redesign the store." The architecture implies the second. Its population is the six bins in the
+DRAFT| >   block below — audit · audit-content · audit-technical · supply-labels · verification-issues · gsc-ingest — with
+DRAFT| >   `src/evidence/store.mjs` beneath them, ungated by design.
+DRAFT| > - **Verified on merged main `7470c06`** (main CI run 35190981828: success), targeted, not a new audit:
+DRAFT| >   census of the frozen population **15 = 10 GATED + 5 UNGATED + 0 CANNOT_DETERMINE**, the 5 being the store's own writes
+DRAFT| >   (`src/evidence/store.mjs` :144 :191 :197 :229 :232) · every site in each of the six GATED (1 · 2 · 3 · 1 · 1 · 2) ·
+DRAFT| >   undeclared ungated **0** · CANNOT_DETERMINE **0** · whole census 96 = 85 + 11 + 0 · the six incident tests ran (6 of 6)
+DRAFT| >   and pass, each asserting a line printed at or after its write decision · the census test for the six passes ·
+DRAFT| >   `test/gap2-gsc-ingest-source.test.mjs` ran 13 of 13 and passes.
+DRAFT| > - **The last in-boundary item, #111 (`7470c06`):** gsc-ingest's incident case asserted only the dry-run banner, which the bin
+DRAFT| >   prints before building its provider, so it passed on a run that died before its write decision. `--source=<file>` —
+DRAFT| >   confined like `--store`, absent by default, never permission — drives the real pipeline from a SYNTHETIC, marked source
+DRAFT| >   with no network and no key; the case now requires "would have written 9 evidence record(s)", printed only after every
+DRAFT| >   observation reached the store gate. The canonical evidence store holds 0 marked records, and the same guard fails on a
+DRAFT| >   store the real bin wrote. Default behaviour identical to main's; six sabotage limbs, each at its pinned test count.
+DRAFT| > - **Blocker 2 is DECOUPLED, not closed** (owner ruling `_handoffs` 610e8cf): its wider caller population was a work
+DRAFT| >   population and did not amend the contract. Still OPEN, outside Gap 2, with their recorded states: supersede-duplicates ·
+DRAFT| >   replay-crawl (directory seam) · source-integrity · cost-ledger capture-actions (owner-authorised network) · render-archive
+DRAFT| >   (owner-authorised browser runtime). Evidence: `runs/audit/gap2-close-decision-2026-09-16.txt` (A52–A56, B26–B30).
+DRAFT| > - **Along the way:** Blocker 1 (census over-count, #103) and `D-CENSUS-1` (#107) CLOSED; the confined `--store` (#105) and
+DRAFT| >   `--ledger` (#110) seams proved. **No row moved** — Gap 2's closure is not a row's acceptance. Ledger 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61.

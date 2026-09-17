@@ -29,6 +29,47 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 | **DEFERRED** | — | **23** |
 | **total** | 58 | **61** |
 
+> ### 🔴 GAP 2 CLOSED (#101–#111) — EVERY CALLER IN ITS FROZEN POPULATION IS GATED, AND A TEST PROVES IT — 17 SEPTEMBER 2026 — NO ROW MOVED
+>
+> - **The frozen contract** (`_handoffs` 289d471, the write-law brief, option (C)): "Either the store refuses an unauthorised
+>   caller, or every caller is gated and a test proves no ungated caller exists. 🔴 Choose the one the existing architecture
+>   already implies — do not redesign the store." The architecture implies the second. Its population is the six bins named
+>   in the `GAP 2's POPULATION RE-MEASURED` block below — audit · audit-content · audit-technical · supply-labels ·
+>   verification-issues · gsc-ingest — with `src/evidence/store.mjs` beneath them, ungated by design.
+> - **Verified on merged main `7470c06`** (main CI run 35190981828: success), targeted, not a new audit, and re-run in full
+>   on 17 September 2026 before closure was recorded: census of the frozen population
+>   **15 = 10 GATED + 5 UNGATED + 0 CANNOT_DETERMINE**, the 5 being the store's own writes (`src/evidence/store.mjs`
+>   :144 :191 :197 :229 :232) · every site in each of the six GATED (1 · 2 · 3 · 1 · 1 · 2) · undeclared ungated **0** ·
+>   CANNOT_DETERMINE **0** · stale **0** · unresolved declarations **0** · whole census 96 = 85 + 11 + 0 ·
+>   `test/ungated-writers.test.mjs` **27 of 27 pass**, carrying the census case for the six and all six incident tests, each
+>   asserting a line printed at or after its write decision · `test/gap2-gsc-ingest-source.test.mjs` **13 of 13 pass** ·
+>   `test/permitted-writers.test.mjs` with `test/gap2-census-non-write-shapes.test.mjs` **29 of 29 pass**.
+> - **The last in-boundary item, #111 (`7470c06`):** gsc-ingest's incident case asserted only the dry-run banner, which the bin
+>   prints before building its provider, so it passed on a run that died before its write decision. `--source=<file>` —
+>   confined like `--store`, absent by default, never permission — drives the real pipeline from a SYNTHETIC, marked source
+>   with no network and no key; the case now requires "would have written 9 evidence record(s)", printed only after every
+>   observation reached the store gate. The canonical evidence store holds 0 marked records, and the same guard fails on a
+>   store the real bin wrote. Default behaviour identical to main's; six sabotage limbs, each at its pinned test count.
+> - **🔴 The close law's last clause was RULED, not assumed — and the finding behind it is OPEN, not buried.** The law
+>   (`_handoffs` `a079c38` §5) also asks that "no current evidence/provenance corruption or test unreliability remains inside
+>   Gap 2's frozen boundary". A real test unreliability exists and was **observed a third time on this very commit** while
+>   closure was being recorded: the full local suite gave **1,290 tests · 1,289 pass · 1 fail**, the failure being
+>   `test/no-symlinks.test.mjs` with `ENOENT … lstat '.test-scratch\gsc-source-7RJ2Zx'`. It is recorded as its own OPEN
+>   finding, **`D-SCRATCH-1`** (`PHASE_0_FROZEN_GAP_REGISTER.md`), severity UNCLASSIFIED, carrying the owner's A51
+>   cross-reference and fix-direction guard, and **nothing about it was fixed here**. It is **OUTSIDE** Gap 2's frozen
+>   boundary, and that was measured, not asserted: the writer census enumerates `git ls-files src bin tools` and never walks
+>   `.test-scratch` · `symlinkCensus` has exactly one consumer in the repository, its own test, which no Gap 2 proposition
+>   reads · the census writes nothing, and the tracked tree was byte-clean after the failing run · a positive control showed
+>   the race can only make that test RED, never falsely green · and in the one run where it fired, **every** Gap 2 test
+>   passed beside it. Neither "CI is green" nor "the full suite is red" decided this; dependence did. Evidence:
+>   `runs/audit/gap2-close-decision-2026-09-16.txt` (A57, A58, B31).
+> - **Blocker 2 is DECOUPLED, not closed** (owner ruling `_handoffs` 610e8cf): its wider caller population was a work
+>   population and did not amend the contract. Still OPEN, outside Gap 2, with their recorded states: supersede-duplicates ·
+>   replay-crawl (directory seam) · source-integrity · cost-ledger capture-actions (owner-authorised network) · render-archive
+>   (owner-authorised browser runtime). Evidence: `runs/audit/gap2-close-decision-2026-09-16.txt` (A52–A58, B26–B31).
+> - **Along the way:** Blocker 1 (census over-count, #103) and `D-CENSUS-1` (#107) CLOSED; the confined `--store` (#105) and
+>   `--ledger` (#110) seams proved. **No row moved** — Gap 2's closure is not a row's acceptance. Ledger 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61.
+
 > ### 🔴 THE BOUNDED SEVEN-URL EVIDENCE RUN — D-FACT-1 CLOSED, R5 COMPLETE WITH NO PROMOTION, NO ROW MOVES — 15 SEPTEMBER 2026
 >
 > - **Authority:** the owner's ruling "MINIMAL ALMIVISIBILITY EVIDENCE PLAN APPROVED", brief committed at

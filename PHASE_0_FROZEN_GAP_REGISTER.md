@@ -1320,6 +1320,65 @@ not changed.
 
 ---
 
+## 🔴 `D-SCRATCH-1` — RECORDED 17 SEPTEMBER 2026: THE WHOLE-TREE SYMLINK CENSUS RACES DISPOSABLE `.test-scratch` STATE
+
+Observed on **17 September 2026** while recording Gap 2's closure, and ruled by the owner the same day ("GAP 2 FINAL
+CLOSURE DECISION ONLY", brief committed at
+`_handoffs/AlmiVisibility_GAP2_FINAL_CLOSURE_DECISION_ONLY_RESUME_2026-09-17.md`, `24d8189`). The owner ruled that it
+gets a dedicated id **because an actual failure was observed**, that CI green and a non-reproduction do not cancel an
+observed failure, and that **recording a finding does not authorize its fix**. Before this id was written it was
+searched for across the tracked files on `origin/main` (`7470c06`), the full working tree including untracked files,
+and git history on all refs: **0 / 0 / 0 hits**, against **9 / 9 / 7** for `D-GUARD-1` as the positive control. It is
+**OUTSIDE Gap 2's frozen boundary** — that dependency was measured, not assumed, and Gap 2 closed on the same change.
+Evidence: `runs/audit/gap2-close-decision-2026-09-16.txt` (A57, A58, B30, B31).
+
+| id | defect | how it presented | state |
+|---|---|---|---|
+| **`D-SCRATCH-1`** | **`tools/symlink-census.mjs` walks the whole repository, including the git-ignored disposable `.test-scratch/` state that tests create and delete in parallel, so an entry can be listed by `readdirSync` and gone before its `lstatSync`** | **OBSERVED, three times, all on Windows under `node --test`'s parallel runner:** twice on 16–17 September 2026 during the closure-record check (A57 — `.test-scratch/gsc-source-mrpC0A`, then `.test-scratch/gsc-source-LDgPWT`), and a third time on 17 September 2026 on merged main `7470c06` itself with a clean tracked tree (A58.1) — `npm test` → 1,290 tests · 1,289 pass · **1 fail**, the failure being `test/no-symlinks.test.mjs:13` with `Error: ENOENT: no such file or directory, lstat '…\.test-scratch\gsc-source-7RJ2Zx'` raised at `tools/symlink-census.mjs:34`. **Linux CI is green on the same commits** (#111 PR and merged main, run 35190981828) — environment-dependent, and 0 of 8 paired local reproductions **disprove nothing** (LAW-ABSENT-1). **OBSERVED, direction:** the instrument holds zero `try`/`catch`, and a positive control run on 17 September 2026 confirmed `lstatSync` **throws** `ENOENT` on a listed-then-removed entry, so the race can only make the test **RED** — it cannot today report a false clean zero (A58.5). **NOT PROVED CAUSE:** the exact interleaving is not instrumented; `gsc-source-` directories are created at exactly one place, `test/support/gsc-synthetic-source.mjs:39` from `test/gap2-gsc-ingest-source.test.mjs:60` (A58.7). **CONSEQUENCE, measured:** an unreliable **repository-wide symbolic-link guard**, which is the guard standing behind `confineToRepo`'s path-text check. **NOT a Gap 2 dependency:** the writer census enumerates `git ls-files src bin tools` and never walks `.test-scratch`, and `symlinkCensus` has exactly one consumer in the repository — its own test (A58.2, A58.3) | 🔴 **OPEN** · RECORDED · observed 16–17 September 2026 · **SEVERITY: UNCLASSIFIED** — this register carries no severity scale; UNCLASSIFIED is **not** LOW (LAW-ABSENT-1), and severity is withheld until consequence and reversibility evidence justify one. **Recorded only:** `tools/symlink-census.mjs`, `test/no-symlinks.test.mjs`, #110, #111, every scratch cleanup, the test ordering and the runner's concurrency are **unchanged** by the change that records this |
+
+**RELATIONSHIP TO `A51`, IN THE OWNER'S WORDS AND NO STRONGER.** Recorded verbatim, on the owner's ruling:
+
+> "Observed fourth instance consistent with the A51 shared-mutable / disposable-state concurrency pattern; common
+> root cause and common fix NOT YET PROVED."
+
+`A51`'s three measured instances are all under `runs/`; this one is under `.test-scratch/`, a directory `A51` did not
+measure. The pattern relationship is useful; **causal equivalence is not proved**, and nothing here may be read as
+"`A51`'s proven same root cause".
+
+**🔴 THE FIX-DIRECTION GUARD, RECORDED NOW SO THE WRONG FIX CANNOT LATER BE ADOPTED BY DEFAULT.** Recorded verbatim,
+on the owner's ruling:
+
+> "Preferred investigation direction is POPULATION CORRECTION / ISOLATION: determine whether git-ignored disposable
+> `.test-scratch` state belongs in the repository symlink-census population at all. Any future correction MUST
+> preserve fail-closed census semantics and MUST include a positive control proving that a genuine in-population
+> repository symlink is still DETECTED. Silently swallowing ENOENT or vanished entries is NOT an authorised fix."
+
+**Why:** an `ENOENT`-tolerating census can no longer distinguish **VERIFIED ABSENT SYMLINK** from **ENTRY VANISHED
+BEFORE INSPECTION** — the exact two-state collapse the whole of Gap 2 was about, and it must not be reintroduced in
+the instrument that guards against symlinks. Measured today, that collapse **does not exist** in this instrument
+(A58.5), and no correction may introduce it.
+
+**🔴 THE DIRECTION IS FROZEN, THE IMPLEMENTATION IS NOT.** Population exclusion is **not** recorded as the final fix.
+Any correction must first prove by measurement that `.test-scratch` legitimately sits outside the census population
+**and** that excluding it removes no required security or integrity coverage.
+
+**#110's JUNCTION — HELD INSIDE THIS ID AS A POSSIBLE-ONLY MECHANISM, NOT A SECOND GAP AND NOT A CAUSE.**
+`test/gap2-ledger-seam.test.mjs` (#110) plants a junction inside its own `mkdtemp` directory under `.test-scratch` for
+its SYMLINK case, and the same census reports a link under the repository as a failure — so a parallel run inside that
+window could turn `no-symlinks` red on a real link report. A second, opposite possibility is recorded with it: a
+junction created inside a directory the walk has **already passed** would not be seen at all (A58.6). **Both are
+MECHANISTICALLY POSSIBLE and NEITHER IS OBSERVED.** A remaining hypothesis is not a proof, and **no fix may rest on
+possibility alone**.
+
+**Scratch state as measured on 17 September 2026:** every `.test-scratch` fixture in the repository is a
+`mkdtempSync` directory with its own per-test prefix, no test removes another test's scratch directory, and `guardDir`
+never targets `.test-scratch` (`D-SWEEP-1`, above). After one round of targeted runs the directory held **107**
+leftover directories — `corpus` 56 · `verdicts` 32 · `gsc-incident` 10 · `confine-probe` 5 · `row61` 3 ·
+`gap3-archive` 1 (A58.8). They are git-ignored and disposable, and every one of them is inside the walk's population
+and inside no other instrument's.
+
+---
+
 ## 🔴 PERMANENT LOSSES — RECORDED, IRRECOVERABLE, NEVER DELETED
 
 These rows are **not gaps that can close.** They record something measurable that was never

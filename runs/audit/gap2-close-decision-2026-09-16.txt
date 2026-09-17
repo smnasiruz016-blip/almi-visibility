@@ -1096,6 +1096,51 @@ A55 · OBSERVATION — ZERO-ACCEPTING REACH REGEXES (recorded, not fixed; no sev
   ("would have written \d+ finding(s)") and audit ("would have written \d+ record(s)"); pinned by contrast:
   verification-issues (6) and instrument-disagreement (11), and now gsc-ingest (9). Not modified by this change.
 
+--------------------------------------------------------------------------------------
+ADDED 17 SEPTEMBER 2026 — THE TARGETED CLOSURE VERIFICATION (owner ruling _handoffs 610e8cf §18). MEASURED on merged
+main 7470c06 (#111, parents 5e42de2 + 3886c71; PR check "test" pass, 1,290 tests · 1,286 pass · 0 fail · 4 skipped, the
+LIVE renderer tests only; main CI run 35190981828: success). A1-A55 above stay as written.
+--------------------------------------------------------------------------------------
+
+A56 · THE FROZEN PROPOSITION, AND ONLY IT — "every caller is gated and a test proves no ungated caller exists"
+  read-only, tracked tree clean; the existing census verdict and the existing tests, nothing new:
+  A. frozen population (A52): bin/audit.mjs · bin/audit-content.mjs · bin/audit-technical.mjs · bin/supply-labels.mjs ·
+     bin/verification-issues.mjs · bin/gsc-ingest.mjs, with src/evidence/store.mjs beneath them.
+  B. corrected census (tools/permitted-writers.mjs writeSiteCensus), frozen population:
+     15 = 10 GATED + 5 UNGATED + 0 CANNOT_DETERMINE; whole census 96 = 85 + 11 + 0; excludedNonWrites 9.
+  C. the six, every site GATED: audit 1/1 · audit-content 2/2 · audit-technical 3/3 · supply-labels 1/1 ·
+     verification-issues 1/1 · gsc-ingest 2/2. The 5 UNGATED sites are the store's own (:144 :191 :197 :229 :232),
+     ungated by design, their callers gating (A52 (c)). test/ungated-writers.test.mjs "the six that had NO gate at all
+     are gated at every site": ran 1 of 1 (selected by name, counted), pass.
+  D. undeclaredUngated 0 · CANNOT_DETERMINE 0 (bins 0) · unresolvedDeclarations 0 · stale declarations 0 · ungated
+     bins among the six 0.
+  E. the six incident tests, selected by name and counted: ran 6 of 6, pass — each asserts a line printed at or after
+     its write decision (A54).
+  F. test/gap2-gsc-ingest-source.test.mjs: ran 13 of 13, pass — the third state (banner, no gate outcome) is
+     distinguished from reach (9 records at the store gate, refused).
+  G. therefore option (C) limb (ii) holds for the frozen population: PASS.
+  Not examined, by the ruling: the decoupled Blocker 2 items (B27), any wider population, store-level refusal.
+
+A57 · A SUITE FAILURE DURING THE CLOSURE-RECORD CHECK — A RACE ON .test-scratch (observed twice; not fixed; no ID)
+  OBSERVED: the full local suite, run on the closure-record documentation change (base 7470c06; only two .md/.txt
+    files changed), gave 1,290 tests · 1,289 pass · 1 fail. The failing test is test/no-symlinks.test.mjs "the
+    repository holds ZERO symbolic links — on disk or in git's index", with the error
+    ENOENT … lstat '…\.test-scratch\gsc-source-mrpC0A'. tools/symlink-census.mjs walks the whole repository (it
+    skips only .git), reads a directory's names, then lstats each. gsc-source-* directories are created and removed
+    by test/gap2-gsc-ingest-source.test.mjs (#111), which runs in parallel. One was listed and then removed before
+    its lstat.
+  OBSERVED AGAIN on the next full run (same test, same error, .test-scratch/gsc-source-LDgPWT). Full local runs with
+    #111 present: 1 pass (on its branch) then 2 fail (on this change); Linux CI with #111: 2 of 2 pass (PR, main).
+  OBSERVED: not reproduced in 8 paired runs of test/no-symlinks.test.mjs with that file, nor in 8 with
+    test/gap2-ledger-seam.test.mjs; three earlier full local runs and the #111 PR and main CI runs were green. The
+    paired runs are no positive control: the two failures above are the evidence that it happens.
+  MECHANISM, NOT OBSERVED: test/gap2-ledger-seam.test.mjs (#110) creates a JUNCTION inside .test-scratch for its
+    SYMLINK test. The same census reports a link under the repository as a failure (its own CONTROL test plants a
+    junction and sees it), so a parallel run in that window could turn no-symlinks red on a real link report. Other
+    tests that create and remove .test-scratch directories (for example #105's store seam) share the ENOENT shape.
+  SAME SHAPE AS A51 (shared mutable state under a parallel runner), in a directory A51 did not measure. Recorded;
+    no cause is inferred beyond these facts; nothing is fixed; no ID is assigned.
+
 ======================================================================================
 PART B · CONCLUSIONS
 ======================================================================================
@@ -1385,3 +1430,183 @@ B29 · STATE AT THIS CHANGE: GAP 2 = OPEN, PENDING ITS TARGETED CLOSURE VERIFICA
   green, by the targeted verification of the frozen proposition, "every caller is gated and a test proves no
   ungated caller exists", for the six bins of A52, recorded as its own documentation change.
   Ledger unchanged: 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61. Row 53 untouched · Row 61 VERIFIED-PASS.
+
+--------------------------------------------------------------------------------------
+CONCLUSIONS ADDED 17 SEPTEMBER 2026 — CLOSURE VERIFICATION (B1-B29 above are kept as first written)
+--------------------------------------------------------------------------------------
+
+B30 · THE TARGETED VERIFICATION PASSES (A56) — CLOSURE NOT RECORDED: ONE ACCEPTANCE QUESTION FOR THE OWNER (A57)
+  The frozen proposition holds on merged main 7470c06 with main CI green: every caller in the frozen population is
+  gated, and tests prove no ungated caller exists there, including a gsc-ingest case that can no longer pass on an
+  early death.
+  UNKNOWN, not decided here: the Gap 2 close law (_handoffs a079c38 §5) also asks that "no current evidence/provenance
+  corruption or test unreliability remains inside Gap 2's frozen boundary". A57 is a test unreliability (2 of the last 3 full local runs) whose failing
+  test (no-symlinks) is not a Gap 2 test, but whose trigger is the scratch churn of a Gap 2 test (#111), with a second,
+  unobserved mechanism in #110's junction. Whether that is "inside Gap 2's frozen boundary" is for the owner.
+  So GAP 2 is NOT recorded CLOSED in CHECKLIST_STATUS.md by this change.
+  STILL OPEN, OUTSIDE GAP 2 (B27): Blocker 2's 5 remaining items — supersede-duplicates · replay-crawl ·
+  source-integrity · cost-ledger capture-actions · render-archive. Preserved observations, unfixed: A51 · A55 · A57 ·
+  D-SWEEP-1, D-EXIT-1, D-MASK-1, D-OUTPUT-1, D-SPAWN-1.
+  No row moved. Ledger 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61, VERIFIED-PASS 22. Row 53 untouched · Row 61 VERIFIED-PASS.
+
+--------------------------------------------------------------------------------------
+DRAFT — UNAPPROVED AND NOT RECORDED (17 September 2026). Saved on the owner's order "SAVE TODAY'S WORK AND STOP".
+This is the CHECKLIST_STATUS.md "GAP 2 CLOSED" block drafted before A57 was observed. It is NOT in
+CHECKLIST_STATUS.md, it records nothing, and Gap 2 is OPEN (B30). It may be used only if the owner rules the A57
+question in favour of closure. Quoted verbatim below, each line prefixed "DRAFT| ".
+--------------------------------------------------------------------------------------
+DRAFT| > ### 🔴 GAP 2 CLOSED (#101–#111) — EVERY CALLER IN ITS FROZEN POPULATION IS GATED, AND A TEST PROVES IT — 17 SEPTEMBER 2026 — NO ROW MOVED
+DRAFT| >
+DRAFT| > - **The frozen contract** (`_handoffs` 289d471, the write-law brief, option (C)): "Either the store refuses an unauthorised
+DRAFT| >   caller, or every caller is gated and a test proves no ungated caller exists. 🔴 Choose the one the existing architecture
+DRAFT| >   already implies — do not redesign the store." The architecture implies the second. Its population is the six bins in the
+DRAFT| >   block below — audit · audit-content · audit-technical · supply-labels · verification-issues · gsc-ingest — with
+DRAFT| >   `src/evidence/store.mjs` beneath them, ungated by design.
+DRAFT| > - **Verified on merged main `7470c06`** (main CI run 35190981828: success), targeted, not a new audit:
+DRAFT| >   census of the frozen population **15 = 10 GATED + 5 UNGATED + 0 CANNOT_DETERMINE**, the 5 being the store's own writes
+DRAFT| >   (`src/evidence/store.mjs` :144 :191 :197 :229 :232) · every site in each of the six GATED (1 · 2 · 3 · 1 · 1 · 2) ·
+DRAFT| >   undeclared ungated **0** · CANNOT_DETERMINE **0** · whole census 96 = 85 + 11 + 0 · the six incident tests ran (6 of 6)
+DRAFT| >   and pass, each asserting a line printed at or after its write decision · the census test for the six passes ·
+DRAFT| >   `test/gap2-gsc-ingest-source.test.mjs` ran 13 of 13 and passes.
+DRAFT| > - **The last in-boundary item, #111 (`7470c06`):** gsc-ingest's incident case asserted only the dry-run banner, which the bin
+DRAFT| >   prints before building its provider, so it passed on a run that died before its write decision. `--source=<file>` —
+DRAFT| >   confined like `--store`, absent by default, never permission — drives the real pipeline from a SYNTHETIC, marked source
+DRAFT| >   with no network and no key; the case now requires "would have written 9 evidence record(s)", printed only after every
+DRAFT| >   observation reached the store gate. The canonical evidence store holds 0 marked records, and the same guard fails on a
+DRAFT| >   store the real bin wrote. Default behaviour identical to main's; six sabotage limbs, each at its pinned test count.
+DRAFT| > - **Blocker 2 is DECOUPLED, not closed** (owner ruling `_handoffs` 610e8cf): its wider caller population was a work
+DRAFT| >   population and did not amend the contract. Still OPEN, outside Gap 2, with their recorded states: supersede-duplicates ·
+DRAFT| >   replay-crawl (directory seam) · source-integrity · cost-ledger capture-actions (owner-authorised network) · render-archive
+DRAFT| >   (owner-authorised browser runtime). Evidence: `runs/audit/gap2-close-decision-2026-09-16.txt` (A52–A56, B26–B30).
+DRAFT| > - **Along the way:** Blocker 1 (census over-count, #103) and `D-CENSUS-1` (#107) CLOSED; the confined `--store` (#105) and
+DRAFT| >   `--ledger` (#110) seams proved. **No row moved** — Gap 2's closure is not a row's acceptance. Ledger 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61.
+
+--------------------------------------------------------------------------------------
+ADDED 17 SEPTEMBER 2026, LATER — THE BOUNDARY MEASUREMENT AND THE CLOSURE DECISION (owner ruling "GAP 2 FINAL
+CLOSURE DECISION ONLY", _handoffs 24d8189). A1-A57 and B1-B30 above stay as written. MEASURED on merged main
+7470c06 (main CI run 35190981828: success), tracked tree clean, Windows 11, node v24.15.0, node --test's default
+parallel runner. Every number below was produced by a command run in this session.
+--------------------------------------------------------------------------------------
+
+A58 · THE .test-scratch RACE, OBSERVED A THIRD TIME — AND ITS DEPENDENCE ON GAP 2, MEASURED
+  A58.1 OBSERVED, THIS SESSION, ON MERGED MAIN ITSELF (not on a documentation branch):
+    `npm test` (node --test test/*.test.mjs) on 7470c06 with a clean tracked tree ->
+      1,290 tests · 1,289 pass · 1 fail · 0 cancelled · 0 skipped · duration 592,102 ms.
+    the single failure, verbatim:
+      test at test\no-symlinks.test.mjs:13:1
+      x the repository holds ZERO symbolic links - on disk or in git's index (120.6119ms)
+      Error: ENOENT: no such file or directory, lstat 'C:\Projects\almi-visibility\.test-scratch\gsc-source-7RJ2Zx'
+          at lstatSync (node:fs:1702:25)
+          at walk (tools/symlink-census.mjs:34:18) / walk (:40:29) / symlinkCensus (:43:3)
+          at test/no-symlinks.test.mjs:14:13
+    This is the SAME test, the SAME error shape and the SAME directory family as A57's two observations. The
+    earlier count stands as recorded there and is NOT re-derived here; counting only what was watched in this
+    session, the observation total is now THREE, and the newest one is on merged main, which A57's two were not.
+  A58.2 OBSERVED — the whole-tree walk is the ONLY consumer. `git grep symlinkCensus` on origin/main returns
+    tools/symlink-census.mjs (its own definition and CLI) and test/no-symlinks.test.mjs (import and two calls).
+    No bin, no src module, no tool and no Gap 2 test reads it.
+  A58.3 OBSERVED — the two populations are DISJOINT BY CONSTRUCTION. The Gap 2 instrument enumerates with
+    `git ls-files src bin tools` filtered to .mjs (tools/permitted-writers.mjs:384): 155 git-tracked .mjs files
+    under src/, bin/ and tools/. `.test-scratch/` is git-ignored (.gitignore:10) and is under none of those three.
+    The writer census performs NO filesystem walk, and never reads .test-scratch. tools/symlink-census.mjs walks
+    the whole tree and skips only .git, so .test-scratch is in ITS population and in no other instrument's.
+  A58.4 OBSERVED — symlinkCensus WRITES NOTHING: readdirSync, lstatSync and `git ls-files -s`, and no other
+    filesystem call. It cannot create, move, truncate or delete anything, so it cannot corrupt evidence or
+    provenance. After the full suite above, the tracked tree was byte-clean (`git status --porcelain`: only the
+    two pre-existing untracked entries, neither touched).
+  A58.5 OBSERVED, POSITIVE CONTROL RUN THIS SESSION — THE FAILURE DIRECTION IS FAIL-CLOSED. In an OS temp
+    directory: readdirSync listed one entry; the entry was removed; lstatSync on that listed name threw
+      "CONTROL RESULT: lstatSync THREW ENOENT".
+    tools/symlink-census.mjs contains ZERO occurrences of `try` or `catch` (grep count 0), so the throw leaves
+    symlinkCensus and the test errors. 🔴 THEREFORE the race can turn no-symlinks RED and CANNOT turn it falsely
+    GREEN from a vanished entry: the instrument does not today collapse VERIFIED ABSENT SYMLINK into ENTRY
+    VANISHED BEFORE INSPECTION. That collapse is what the fix-direction guard below exists to prevent.
+  A58.6 MECHANISTICALLY POSSIBLE, NOT OBSERVED — the OTHER direction. The walk reads a directory's names and then
+    descends. A junction created INSIDE a directory the walk has already passed would not be seen at all, and the
+    run would report zero links while one existed. The only junction anywhere under .test-scratch is the one
+    test/gap2-ledger-seam.test.mjs (#110) plants for its own SYMLINK case, inside its own mkdtemp directory. This
+    is recorded as a second POSSIBLE-ONLY mechanism of the same finding. It is not promoted to cause, and no fix
+    rests on it.
+  A58.7 OBSERVED — `gsc-source-` directories are created at exactly one place in the repository:
+    test/support/gsc-synthetic-source.mjs:39, called from test/gap2-gsc-ingest-source.test.mjs:60 — #111's test.
+    So the entry that vanished under the walk was a Gap 2 test's disposable fixture. The precise interleaving
+    (listed, then removed, then lstat'd) is the only mechanism consistent with the stack and the path; it is NOT
+    separately instrumented, and is not claimed as PROVED CAUSE.
+  A58.8 OBSERVED — scratch state is per-test and nothing sweeps it. Every .test-scratch fixture in the repository
+    is a mkdtempSync directory with its own prefix; no test removes another test's scratch directory, and
+    guardDir never targets .test-scratch (PHASE_0_FROZEN_GAP_REGISTER.md, D-SWEEP-1, measured 16 Sep 2026).
+    Measured after the targeted runs of A58.9 and before the full suite, .test-scratch held 107 leftover
+    directories: corpus 56 · verdicts 32 · gsc-incident 10 · confine-probe 5 · row61 3 · gap3-archive 1. They are
+    git-ignored and disposable, and every one of them is inside the symlink walk's population.
+  A58.9 OBSERVED — THE FROZEN PROPOSITIONS, RE-RUN THIS SESSION ON 7470c06, TARGETED (A56 reproduced, not quoted):
+    census of the frozen population (tools/permitted-writers.mjs writeSiteCensus):
+      15 = 10 GATED + 5 UNGATED + 0 CANNOT_DETERMINE
+      audit 1/1 :57 · audit-content 2/2 :92 :95 · audit-technical 3/3 :145 :171 :228 · supply-labels 1/1 :183 ·
+      verification-issues 1/1 :109 · gsc-ingest 2/2 :140 :237 — every one GATED;
+      the 5 UNGATED are the store's own writes, src/evidence/store.mjs :144 :191 :197 :229 :232.
+    whole census 96 = 85 GATED + 11 UNGATED + 0 CANNOT_DETERMINE · viaHelper 33 · excludedNonWrites 9 ·
+      scanned 155.
+    verdict fields: ungatedBins 0 · declaredUngated 0 · undeclaredUngated 0 · staleUngatedDeclarations 0 ·
+      unresolvedDeclarations 0 · cannotDetermine 0 · cannotDetermineBins 0 · gatedAtCaller 6.
+    node --test test/ungated-writers.test.mjs                -> tests 27 · pass 27 · fail 0, including
+      "the six that had NO gate at all are gated at every site, and confined before the first write" and all six
+      incident tests (audit · audit-content · audit-technical · supply-labels · verification-issues · gsc-ingest).
+    node --test test/gap2-gsc-ingest-source.test.mjs         -> tests 13 · pass 13 · fail 0.
+    node --test test/permitted-writers.test.mjs test/gap2-census-non-write-shapes.test.mjs
+                                                             -> tests 29 · pass 29 · fail 0.
+    node --test test/no-symlinks.test.mjs (alone)            -> tests 2 · pass 2 · fail 0.
+  A58.10 OBSERVED — THE DECISIVE CO-OCCURRENCE. In the single full-suite run of A58.1, the one failing test was
+    no-symlinks and 1,289 others passed. Every Gap 2 test named in A58.9 ran inside that same run, in the same
+    parallel pool, in the same process, and passed. The race fired and the frozen propositions held, in one run.
+
+======================================================================================
+CONCLUSIONS ADDED 17 SEPTEMBER 2026, LATER — THE BOUNDARY VERDICT (B1-B30 above are kept as first written)
+======================================================================================
+
+B31 · THE BOUNDARY VERDICT: THE RACE IS OUTSIDE GAP 2's FROZEN BOUNDARY — GAP 2 IS CLOSED, AND THE RACE IS
+      RECORDED AS ITS OWN OPEN FINDING, D-SCRATCH-1
+  The close law (_handoffs/AlmiVisibility_PUSH_GATE_THEN_GAP2_COMPLETE_BRIEF_2026-09-17.md:205-206, §5, commit
+  a079c38, unchanged since): "no current evidence/provenance corruption or test unreliability remains inside
+  Gap 2's frozen boundary". The phrase decided here is "inside Gap 2's frozen boundary". Each limb separately:
+
+  A · CENSUS RELIABILITY — OUTSIDE · PASS. The corrected writer census enumerates 155 git-tracked .mjs files
+    under src/, bin/ and tools/ (A58.3) and never walks .test-scratch. The race lives entirely in .test-scratch.
+    Re-run this session: 15 = 10 + 5 + 0, whole 96 = 85 + 11 + 0 (A58.9). No dependency exists to be unreliable.
+  B · SIX-BIN GATING RELIABILITY — OUTSIDE · PASS. Each of the six bins' verdicts is read from that same census,
+    plus test/ungated-writers.test.mjs, which reads tracked source. 27 of 27 pass (A58.9). No scratch input.
+  C · INCIDENT REACH RELIABILITY — OUTSIDE · PASS. The six incident tests spawn their bin with no --confirm and
+    assert a line printed at or after the write decision; the files they compare are tracked evidence under
+    runs/, never .test-scratch. All six pass (A58.9), and passed again inside the failing full run (A58.10).
+  D · gsc-ingest PROOF RELIABILITY — OUTSIDE · PASS. This is the limb the race touches at all, and it touches it
+    in one direction only: #111's test CREATES the scratch directory whose disappearance the unrelated walk
+    trips over (A58.7). Nothing reads back into the test. Its own fixtures are per-test mkdtemp directories that
+    no other test removes (A58.8), and symlinkCensus cannot delete anything (A58.4). 13 of 13 pass (A58.9).
+  E · SYNTHETIC / CANONICAL EVIDENCE RELIABILITY — OUTSIDE · PASS. The marker guard reads the committed evidence
+    store (0 marked records) and its positive control reads a store the real bin wrote; neither is in the walk's
+    path of influence, and the walk writes nothing (A58.4). Both pass (A58.9).
+  F · EVIDENCE / PROVENANCE CORRUPTION — NONE ESTABLISHED. symlinkCensus performs no write of any kind (A58.4),
+    and after the full suite in which it failed the tracked tree was byte-clean (A58.1, A58.4). The failure is a
+    read-side throw. No Gap 2 evidence artefact was written, moved or deleted by it.
+  G · INDEPENDENT FAILURE WHILE GAP 2 REMAINS TRUE — OBSERVED, NOT ARGUED. A58.10: in one run the race fired and
+    every frozen Gap 2 proposition passed beside it. This is the limb the whole question turns on, and it is a
+    measurement, not an inference.
+
+  🔴 WHY THIS IS NOT "CI IS GREEN SO IT DOES NOT MATTER": the failure is real, it was observed a third time in
+  this session, and it is recorded below with its own id. The verdict rests on DEPENDENCE, not on frequency and
+  not on CI. 🔴 AND IT IS NOT "THE FULL SUITE IS RED SO GAP 2 IS OPEN": the failing test is the only consumer of
+  an instrument no Gap 2 proposition reads, over a population the Gap 2 census cannot see.
+
+  D-SCRATCH-1 is recorded in PHASE_0_FROZEN_GAP_REGISTER.md, OPEN, SEVERITY UNCLASSIFIED, carrying the A51
+  cross-reference, the fix-direction guard and the #110 junction as a POSSIBLE-ONLY mechanism. Nothing was fixed:
+  tools/symlink-census.mjs, test/no-symlinks.test.mjs, #110, #111 and every scratch cleanup are untouched by this
+  change, which is documentation only.
+
+  GAP 2 = CLOSED, recorded in CHECKLIST_STATUS.md by this change.
+  STILL OPEN, OUTSIDE GAP 2 (B27): Blocker 2's 5 remaining items — supersede-duplicates · replay-crawl ·
+  source-integrity · cost-ledger capture-actions · render-archive. Preserved observations, unfixed: A51 · A55 ·
+  D-SWEEP-1, D-EXIT-1, D-MASK-1, D-OUTPUT-1, D-SPAWN-1. A57/A58 now carry the id D-SCRATCH-1.
+  No row moved. Ledger 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61, VERIFIED-PASS 22. Row 53 untouched · Row 61 VERIFIED-PASS.
+
+  THE DRAFT ABOVE IS SUPERSEDED. The "DRAFT - UNAPPROVED AND NOT RECORDED" block was written before A57 was
+  observed and says nothing about the race. The block actually recorded in CHECKLIST_STATUS.md by this change
+  differs from it: it states the boundary ruling and names D-SCRATCH-1. The draft is kept above as first written.

@@ -872,6 +872,103 @@ A46 · THE LEDGER SEAM, RE-MEASURED (17 Sep 2026)
     bins that construct createCostLedger: cost-ledger · crawl · gsc-ingest · paid-provider-controls · render-archive
     · replay-crawl · report · source-integrity. Not proposed.
 
+--------------------------------------------------------------------------------------
+ADDED 17 SEPTEMBER 2026 — THE CONFINED LEDGER SEAM, paid-provider-controls ALONE (owner ruling "EVIDENCE FIRST,
+THEN SEAM FOR ONE CALLER", _handoffs 4810ca8). A44-A46 landed first, documentation only: #109, merge fc15a8c
+(parents b8e79a5 + 978c6cb), PR check "test" pass, main CI run 35183849045: success. MEASURED on fc15a8c.
+A1-A46 above stay as written.
+--------------------------------------------------------------------------------------
+
+A47 · RE-MEASURED BEFORE BUILDING (OLD = A46 on b8e79a5 -> CURRENT = fc15a8c)
+  bin/paid-provider-controls.mjs: permission :19 -> :19 · LEDGER confineToRepo(`${REPO}runs/cost/ledger.jsonl`,
+    { label: "the cost ledger" }) :20 -> :20 · real ledger constructed only when permitted :24 -> :24. Unchanged.
+  src/cost/paid-provider-gate.mjs:166 -> :166 (ledger.append of each refusal, after the entry_id check at :165).
+  bins constructing createCostLedger: 8 -> 8 (cost-ledger · crawl · gsc-ingest · paid-provider-controls ·
+    render-archive · replay-crawl · report · source-integrity).
+  test/paid-provider-controls.test.mjs:177-190 pins the REAL ledger to exactly one paid-provider refusal per code,
+    so an authorised run against the default ledger would change committed evidence. That is the blocker.
+  SEAM POPULATION: 1 (paid-provider-controls). replay-crawl removed from this slot (A50).
+
+A48 · THE SEAM (this change; bin level only — src/cost/ledger.mjs untouched)
+  input: --ledger=<path> · default path: runs/cost/ledger.jsonl · allowed root: this repository, through the SAME
+    confineToRepo call as the default (label "the cost ledger" with no override, "--ledger" with one).
+  AT: bin/paid-provider-controls.mjs:23-27 (LEDGER was :20, now :26; the usage header gained 2 lines, so permission
+    :19 -> :21 and the ledger construction :24 -> :31, unchanged). The success line now names the ledger it wrote:
+    the default still prints "REAL ledger (runs/cost/ledger.jsonl)"; an override prints its resolved path.
+  override != permission: without --confirm the refusals still go to the in-memory ledger; the file is not opened.
+  DEFAULT UNCHANGED, proved two ways:
+    (1) the no-flag run of main's bin (a detached worktree at fc15a8c, removed after) and of this bin: 33 output lines each,
+        byte-identical once each run's timestamps and attempt UUIDs are normalised; exit 0 both.
+    (2) test/gap2-ledger-seam.test.mjs "DEFAULT" (two tests): the no-flag dry run, and the default expression.
+  FIXTURE: .test-scratch/ledger-seam-XXXXXX (mkdtemp), asserted not under runs/export, runs/evidence, runs/audit or
+    runs/cost, and asserted to sit directly inside .test-scratch. None left behind after any run.
+
+A49 · CONFINEMENT AND BEHAVIOUR — test/gap2-ledger-seam.test.mjs, 9 tests, 9 pass, 0 skipped (node v24.15.0)
+  WHICH GATE FIRED — read from output, exactly one allowed per run:
+    CONFINEMENT   "REFUSED — --ledger "<path>" resolves to …, which is OUTSIDE this repository" (stderr)
+    AUTHORIZATION "every refusal left a trace: 5 of 5 in the dry-run ledger (in memory)"
+    WRITE         "every refusal left a trace: 5 of 5 in the REAL ledger (<path>)"
+  inside-root positive: absolute .test-scratch ledger + --confirm -> WRITE, exit 0, the printed path is the one
+    given; ABSENT -> 5 entries, all run_kind paid-provider-call, outcome REFUSED, refusal.fake true, codes = the five
+    REFUSAL_CODES. Paired transition: a second run -> 10 entries, the first 5 byte-identical, 5 new of the same kind.
+    Nothing else written beside the ledger.
+  lexical inside: ".test-scratch/<d>/../<d>/ledger.jsonl" + --confirm -> WRITE at the lexically resolved path.
+  outside-root absolute + --confirm -> CONFINEMENT, exit != 0, "calls that reached the fake provider" NOT printed
+    (the refusal is before the gate is built and before the ledger is opened), the OS temp directory still empty.
+  traversal + --confirm -> CONFINEMENT, same assertions. SAFE ADVERSARIAL FORM: the ../ path is relative(repo,
+    <the test's own mkdtemp directory>), so it climbs out of the repository and lands only in that disposable
+    directory — never beside the repository (C:\Projects holds other repositories). Skipped only if the temp
+    directory were on another drive; it was not.
+  no-permission: inside ledger, no --confirm -> AUTHORIZATION, "[dry-run] no writes will happen — no --confirm",
+    "calls that reached the fake provider: 2" printed; an ABSENT ledger stays absent; a ledger holding 5 entries
+    stays sha256-identical.
+  symlink: existing semantics are lexical (src/write-law.mjs:75-76, "Stated, not solved"). A junction inside
+    .test-scratch pointing at an OS temp directory, --ledger through it, WITHOUT --confirm -> AUTHORIZATION (accepted
+    by confinement, lexically inside), nothing written through it. The --confirm leg through a link is NOT run: it
+    would write outside the repository. The seam adds no resolution of its own.
+  outside target unchanged: every outside directory empty after each run. default target unchanged:
+    runs/cost/ledger.jsonl sha256 c2a27880b880cb3d… before and after every test, the sabotage and the full suite.
+  PROVIDER CALLED: NO. The provider is createFakePaidProvider, in process; it received its 2 designed calls. No paid
+    provider, network, browser, account or data repository was touched.
+  SABOTAGE (scratch harness, not committed), bin damaged ALONE per limb, anchor found exactly once, sha256 changed:
+    BEFORE bin sha256 349885cf33b5c4d1 · index blob 74628d7f27692eeafba3f89ccc0ea4663d8cc1d6 · baseline 9/9 pass.
+    C · confinement removed (confineToRepo(ledgerArg ?? -> ((p) => p)(ledgerArg ??) -> 4 RED: both CONFINEMENT tests
+      (status 0: the broken bin wrote — into the tests' own temp directories, which they removed), the DEFAULT
+      expression test, and the lexical CONTROL (the bin used the unresolved relative path). The last was not in the
+      first expected set; its reason was read (actual ".test-scratch/<d>/../<d>/ledger.jsonl", expected the
+      resolved path) and it pins confineToRepo's resolution, so the expected set was corrected, not the test.
+    P · override grants permission (permission.mayWrite -> permission.mayWrite || ledgerArg !== undefined) ->
+      1 RED: NOT PERMISSION ("a ledger was created without --confirm"). The SYMLINK test was excluded under P,
+      because an unconfirmed run writes and the link would carry that write outside the repository.
+      RECORDED: the first harness run excluded it with --test-name-pattern "^(?!SYMLINK)", which excluded nothing;
+      under P that run wrote one ledger into the SYMLINK test's own OS temp directory, which the test removed. The
+      exclusion was then made --test-skip-pattern=SYMLINK, proved on the undamaged tree (8 tests ran, SYMLINK
+      absent), and the harness now refuses a P run that does not run exactly 8.
+    every restore: sha256 349885cf33b5c4d1 and blob 74628d7f… match · runs/cost/ledger.jsonl unchanged after each
+      limb · after every restore 9/9 pass · 0 scratch directories left.
+  full local suite: 1,277 tests · 1,277 pass · 0 fail · 0 skipped · product-boundary breaches 0 · checklist
+    boundaries exit 0, states NOT-STARTED=2 BUILT-NOT-PROVED=7 TESTABLE-NOW=1 VERIFIED-PASS=22 FAILED=2
+    BLOCKED-UNKNOWN=4 DEFERRED=23.
+
+A50 · replay-crawl RECLASSIFIED — DIRECTORY-SEAM FAMILY (owner ruling; recorded, not acted on)
+  Its obstacle is a directory of recorded outputs — evidence, crawl store and audit store under runs/replay
+  (bin/replay-crawl.mjs:68-70) — the same shape as supersede-duplicates' hard-coded runs/audit (A43), not the file
+  shape. It waits for that family's own slot, threat model, confinement and sabotage proof. FILE CONFINEMENT PROOF
+  != DIRECTORY CONFINEMENT PROOF.
+  --label IS NOT SUFFICIENT: test/issue-transition-guard.test.mjs:68-73 reads EVERY runs/replay/*.jsonl, so a
+  renamed output inside that directory still collides. The outputs would have to leave runs/replay entirely.
+  bin/replay-crawl.mjs NOT TOUCHED.
+
+A51 · OBSERVATION — runs/ IS SHARED MUTABLE STATE UNDER A PARALLEL TEST RUNNER (no ID, no fix)
+  Its three measured instances, and only these:
+    - D-SWEEP-1: guardDir deletes by pattern under runs/{export,evidence,audit,cost}, removing files it did not
+      create.
+    - supersede-duplicates: a fixture cannot be assumed to survive in runs/audit.
+    - replay-crawl: test/issue-transition-guard.test.mjs:68-73 reads every runs/replay/*.jsonl while files run in
+      parallel.
+  No common root cause is inferred beyond what these three show, no fix is proposed, and no directory that was not
+  measured is included. Recorded so that the next proof under runs/ does not discover it a fourth time.
+
 ======================================================================================
 PART B · CONCLUSIONS
 ======================================================================================
@@ -1108,3 +1205,22 @@ B24 · THE LEDGER-SEAM IMPLEMENTATION WAS STOPPED BEFORE ANY CODE CHANGE (A46)
   hard-coded recorded outputs into runs/replay, a directory another test reads from disk during the suite.
   The ledger-seam population is therefore not confirmed at 2. Awaiting the owner's ruling. Buckets unchanged.
   GAP 2 = REMAINS OPEN. Ledger unchanged: 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61.
+
+--------------------------------------------------------------------------------------
+CONCLUSIONS ADDED 17 SEPTEMBER 2026 — LEDGER SEAM FOR ONE CALLER (B1-B24 above are kept as first written)
+--------------------------------------------------------------------------------------
+
+B25 · paid-provider-controls: AUTHORISED LEG PROVED IN CONFINED DISPOSABLE STATE (A47-A49)
+  Its one missing proof (A46: an authorised --confirm leg that does not touch committed evidence) now runs in
+  test/gap2-ledger-seam.test.mjs, behind a bin-level --ledger= seam confined by the default's own confineToRepo.
+  It leaves the Gap 2 blocker set. replay-crawl moves to the directory-seam family (A50). The runs/ observation
+  is recorded (A51), without an ID and without a fix.
+  GAP 2 BUCKETS (17 Sep 2026), the smallest exact remaining blocker set:
+    LEDGER-SEAM (0)                 —
+    DIRECTORY SEAM (2)              supersede-duplicates (runs/audit; missing safe test input) · replay-crawl
+                                    (runs/replay; the outputs must leave runs/replay)
+    NETWORK (3)                     source-integrity · cost-ledger capture-actions · gsc-ingest
+    BROWSER RUNTIME (1)             render-archive
+    RELIABILITY                     gsc-ingest incident test = UNPROVED
+  GAP 2 = REMAINS OPEN, on those six and on that reliability item. Row 53 untouched · Row 61 VERIFIED-PASS.
+  Ledger unchanged: 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61.

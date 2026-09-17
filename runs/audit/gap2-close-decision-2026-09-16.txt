@@ -1096,6 +1096,49 @@ A55 · OBSERVATION — ZERO-ACCEPTING REACH REGEXES (recorded, not fixed; no sev
   ("would have written \d+ finding(s)") and audit ("would have written \d+ record(s)"); pinned by contrast:
   verification-issues (6) and instrument-disagreement (11), and now gsc-ingest (9). Not modified by this change.
 
+--------------------------------------------------------------------------------------
+ADDED 17 SEPTEMBER 2026 — THE TARGETED CLOSURE VERIFICATION (owner ruling _handoffs 610e8cf §18). MEASURED on merged
+main 7470c06 (#111, parents 5e42de2 + 3886c71; PR check "test" pass, 1,290 tests · 1,286 pass · 0 fail · 4 skipped, the
+LIVE renderer tests only; main CI run 35190981828: success). A1-A55 above stay as written.
+--------------------------------------------------------------------------------------
+
+A56 · THE FROZEN PROPOSITION, AND ONLY IT — "every caller is gated and a test proves no ungated caller exists"
+  read-only, tracked tree clean; the existing census verdict and the existing tests, nothing new:
+  A. frozen population (A52): bin/audit.mjs · bin/audit-content.mjs · bin/audit-technical.mjs · bin/supply-labels.mjs ·
+     bin/verification-issues.mjs · bin/gsc-ingest.mjs, with src/evidence/store.mjs beneath them.
+  B. corrected census (tools/permitted-writers.mjs writeSiteCensus), frozen population:
+     15 = 10 GATED + 5 UNGATED + 0 CANNOT_DETERMINE; whole census 96 = 85 + 11 + 0; excludedNonWrites 9.
+  C. the six, every site GATED: audit 1/1 · audit-content 2/2 · audit-technical 3/3 · supply-labels 1/1 ·
+     verification-issues 1/1 · gsc-ingest 2/2. The 5 UNGATED sites are the store's own (:144 :191 :197 :229 :232),
+     ungated by design, their callers gating (A52 (c)). test/ungated-writers.test.mjs "the six that had NO gate at all
+     are gated at every site": ran 1 of 1 (selected by name, counted), pass.
+  D. undeclaredUngated 0 · CANNOT_DETERMINE 0 (bins 0) · unresolvedDeclarations 0 · stale declarations 0 · ungated
+     bins among the six 0.
+  E. the six incident tests, selected by name and counted: ran 6 of 6, pass — each asserts a line printed at or after
+     its write decision (A54).
+  F. test/gap2-gsc-ingest-source.test.mjs: ran 13 of 13, pass — the third state (banner, no gate outcome) is
+     distinguished from reach (9 records at the store gate, refused).
+  G. therefore option (C) limb (ii) holds for the frozen population: PASS.
+  Not examined, by the ruling: the decoupled Blocker 2 items (B27), any wider population, store-level refusal.
+
+A57 · A SUITE FAILURE DURING THE CLOSURE-RECORD CHECK — A RACE ON .test-scratch (observed once; not fixed; no ID)
+  OBSERVED: the full local suite, run on the closure-record documentation change (base 7470c06; only two .md/.txt
+    files changed), gave 1,290 tests · 1,289 pass · 1 fail. The failing test is test/no-symlinks.test.mjs "the
+    repository holds ZERO symbolic links — on disk or in git's index", with the error
+    ENOENT … lstat '…\.test-scratch\gsc-source-mrpC0A'. tools/symlink-census.mjs walks the whole repository (it
+    skips only .git), reads a directory's names, then lstats each. gsc-source-* directories are created and removed
+    by test/gap2-gsc-ingest-source.test.mjs (#111), which runs in parallel. One was listed and then removed before
+    its lstat.
+  OBSERVED: not reproduced in 8 paired runs of test/no-symlinks.test.mjs with that file, nor in 8 with
+    test/gap2-ledger-seam.test.mjs; three earlier full local runs and the #111 PR and main CI runs were green. The
+    paired runs are no positive control: the one failure above is the evidence that it can happen.
+  MECHANISM, NOT OBSERVED: test/gap2-ledger-seam.test.mjs (#110) creates a JUNCTION inside .test-scratch for its
+    SYMLINK test. The same census reports a link under the repository as a failure (its own CONTROL test plants a
+    junction and sees it), so a parallel run in that window could turn no-symlinks red on a real link report. Other
+    tests that create and remove .test-scratch directories (for example #105's store seam) share the ENOENT shape.
+  SAME SHAPE AS A51 (shared mutable state under a parallel runner), in a directory A51 did not measure. Recorded;
+    no cause is inferred beyond these facts; nothing is fixed; no ID is assigned.
+
 ======================================================================================
 PART B · CONCLUSIONS
 ======================================================================================
@@ -1385,3 +1428,21 @@ B29 · STATE AT THIS CHANGE: GAP 2 = OPEN, PENDING ITS TARGETED CLOSURE VERIFICA
   green, by the targeted verification of the frozen proposition, "every caller is gated and a test proves no
   ungated caller exists", for the six bins of A52, recorded as its own documentation change.
   Ledger unchanged: 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61. Row 53 untouched · Row 61 VERIFIED-PASS.
+
+--------------------------------------------------------------------------------------
+CONCLUSIONS ADDED 17 SEPTEMBER 2026 — CLOSURE VERIFICATION (B1-B29 above are kept as first written)
+--------------------------------------------------------------------------------------
+
+B30 · THE TARGETED VERIFICATION PASSES (A56) — CLOSURE NOT RECORDED: ONE ACCEPTANCE QUESTION FOR THE OWNER (A57)
+  The frozen proposition holds on merged main 7470c06 with main CI green: every caller in the frozen population is
+  gated, and tests prove no ungated caller exists there, including a gsc-ingest case that can no longer pass on an
+  early death.
+  UNKNOWN, not decided here: the Gap 2 close law (_handoffs a079c38 §5) also asks that "no current evidence/provenance
+  corruption or test unreliability remains inside Gap 2's frozen boundary". A57 is a test unreliability whose failing
+  test (no-symlinks) is not a Gap 2 test, but whose trigger is the scratch churn of a Gap 2 test (#111), with a second,
+  unobserved mechanism in #110's junction. Whether that is "inside Gap 2's frozen boundary" is for the owner.
+  So GAP 2 is NOT recorded CLOSED in CHECKLIST_STATUS.md by this change.
+  STILL OPEN, OUTSIDE GAP 2 (B27): Blocker 2's 5 remaining items — supersede-duplicates · replay-crawl ·
+  source-integrity · cost-ledger capture-actions · render-archive. Preserved observations, unfixed: A51 · A55 · A57 ·
+  D-SWEEP-1, D-EXIT-1, D-MASK-1, D-OUTPUT-1, D-SPAWN-1.
+  No row moved. Ledger 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61, VERIFIED-PASS 22. Row 53 untouched · Row 61 VERIFIED-PASS.

@@ -338,11 +338,21 @@ test("🔴 GAP 2 · the census covers EVERY write path, and a HELPER-reached wri
    * (runs/audit/gap2-close-decision-2026-09-16.txt). Removing proved non-writes does not shrink coverage,
    * so the floor keeps its purpose — to fail if the census stops seeing helper-reached writes — at the
    * measured value, with no headroom: `>= 30`, a floor because a new real writer may raise it.
-   * The exclusions are pinned beside it, so the correction cannot hide census drift behind itself. */
+   * The exclusions are pinned beside it, so the correction cannot hide census drift behind itself.
+   *
+   * 🔴 RE-PINNED 8 -> 9, 17 SEPTEMBER 2026 (D-CENSUS-1, owner ruling "D-CENSUS-1 · SET PROOF, RE-PIN, CLOSE
+   * DECISION"). The census did not recognise `appendAllWithoutDedupe(` as a write-helper call, so three real
+   * gated bin call sites were missing. Adding that call shape also brings
+   *   src/evidence/store.mjs:196               — `function appendAllWithoutDedupe(records) {` (declaration)
+   * into the enumeration, and the existing declaration exclusion above then excludes it — an over-count
+   * PREVENTED, not re-created. The ninth exclusion is that line. The set of exclusions was proved to have gained
+   * exactly {store.mjs:196} and lost nothing, with the population held fixed and only the census implementation
+   * swapped (runs/audit/gap2-close-decision-2026-09-16.txt). The floor above is unchanged; the helper-reached
+   * count is now 33. */
   assert.ok(w.viaHelper >= 30, `only ${w.viaHelper} helper-reached sites — the census is counting primitives again`);
-  assert.equal(w.excludedNonWrites.length, 8, `the census excluded ${w.excludedNonWrites.length} lines as non-writes, not the 8 proved: ${w.excludedNonWrites.map((e) => `${e.file}:${e.line} ${e.shape}`).join(" · ")}`);
+  assert.equal(w.excludedNonWrites.length, 9, `the census excluded ${w.excludedNonWrites.length} lines as non-writes, not the 9 proved: ${w.excludedNonWrites.map((e) => `${e.file}:${e.line} ${e.shape}`).join(" · ")}`);
   const excludedPerFile = w.excludedNonWrites.reduce((m, e) => ({ ...m, [e.file]: (m[e.file] ?? 0) + 1 }), {});
-  assert.deepEqual(excludedPerFile, { "src/crawl/persist.mjs": 1, "src/evidence/store.mjs": 7 }, "the proved non-writes are 7 in the store and 1 in persist.mjs");
+  assert.deepEqual(excludedPerFile, { "src/crawl/persist.mjs": 1, "src/evidence/store.mjs": 8 }, "the proved non-writes are 8 in the store and 1 in persist.mjs");
   assert.deepEqual(Object.keys(w.byClass).sort(), ["evidence", "export", "ledger", "other", "page"]);
   assert.ok(w.byClass.evidence > 0 && w.byClass.ledger > 0, "evidence and ledger writes are not being classified");
   assert.ok(w.cannotSee.length >= 4, "the census must state what it cannot see");

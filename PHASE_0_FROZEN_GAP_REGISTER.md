@@ -1292,6 +1292,34 @@ isComment = (l) => /^\s*(\/\/|\*|\/\*)/.test(l)
 
 ---
 
+## 🔴 `D-CENSUS-1` — RECORDED 17 SEPTEMBER 2026, A GAP 2 BLOCKER: THE WRITER CENSUS UNDER-COUNTED A STORE VERB
+
+Found on **17 September 2026** during the Gap 2 difficult-five feasibility check, and ruled by the owner the same day
+("D-CENSUS-1 · UNDER-COUNT BEFORE ANYTHING ELSE" and "D-CENSUS-1 · SET PROOF, RE-PIN, CLOSE DECISION"). It is the
+opposite direction to Gap 2's closed Blocker 1 (the census's OVER-count, corrected in #103), in the same instrument;
+Blocker 1 is not reopened. Before it was written, `D-CENSUS-1` was searched for across the tracked files on
+`origin/main` (`e860f75`), the full working tree and git history on all refs: **0 hits**, against **16 / 16 / 6** for
+`D-GUARD-1` as the positive control. Evidence: `runs/audit/gap2-close-decision-2026-09-16.txt` (sections dated 17 Sep).
+
+| id | defect | how it presented | state |
+|---|---|---|---|
+| **`D-CENSUS-1`** | **the writer census did not recognise `.appendAllWithoutDedupe(` as a write-helper call** | **OBSERVED:** the census's helper call shapes named `appendAll(`, which `appendAllWithoutDedupe(` does not contain, so three bin call sites were absent from its site enumeration — `bin/instrument-disagreement.mjs:90` · `bin/supersede-noindex.mjs:150` · `bin/supersede-duplicates.mjs:66` (measured on `e860f75`). **RISK / CONSEQUENCE — not an observation:** an ungated writer calling the store in that shape would not have been detected. **NOT OBSERVED:** any ungated writer at those sites — the corrected census classifies all three **GATED** (`:90` by the early exit at `:85`; `:150` by the else-branch of `:143`; `:66` by `permission.mayWrite` on its own line), with 0 CANNOT_DETERMINE. **CORRECTION:** the shape is now recognised (`tools/permitted-writers.mjs`, built from parts). The verb's own declaration, `src/evidence/store.mjs:196` (`function appendAllWithoutDedupe(`), then enters the enumeration and is excluded by the declaration exclusion #103 established — the excluded set was proved to gain exactly `{store.mjs:196}` and lose nothing, and its pin moved 8 → 9 with the reason in the test | ✅ **CLOSED on the landing of the change that records this entry**, on the owner's conditions: the correction landed · the 8 → 9 set proof in both directions · every existing positive and negative census control passing · the corrected census re-run beside the previous totals (whole 93 = 82 + 11 + 0 → 96 = 85 + 11 + 0; frozen Gap 2 population 15 = 10 + 5 + 0, unchanged) · the frozen-population reconciliation (`supersede-noindex` is not one of the six frozen bins). If that change is not merged, this entry is **OPEN**. **SEVERITY: UNCLASSIFIED** (not LOW) |
+
+**A SEPARATE OBSERVED LIMITATION, INSIDE `D-CENSUS-1` — NOT A NEW ID, NOT A CURRENT DEFECT.** Two facts, neither
+standing for the other:
+
+- **Not recognised:** an ALIASED call — `const w = store.<verb>; w(r)` — is not a write site to the census, for all
+  three write-capable verbs of `src/evidence/store.mjs` (`appendWithoutDedupe`, `appendIfNew`,
+  `appendAllWithoutDedupe`). Qualified, unqualified and chained calls are recognised for all three.
+- **Zero current occurrences:** a grep of `bin/`, `src/` and `tools/` on `e860f75` finds no such aliased assignment;
+  the same pattern caught all 3 planted aliased lines and correctly skipped the plain call.
+
+No fix is authorised. It is not an open blocker: no frozen Gap 2 criterion requires universal recognition of future
+call syntax. The census's own list of what it cannot see does not yet name this shape; that is recorded here and was
+not changed.
+
+---
+
 ## 🔴 PERMANENT LOSSES — RECORDED, IRRECOVERABLE, NEVER DELETED
 
 These rows are **not gaps that can close.** They record something measurable that was never

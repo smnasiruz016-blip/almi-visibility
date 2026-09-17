@@ -459,6 +459,86 @@ A27 · OUTSIDE THIS SLOT — PRESERVED, NOT TOUCHED (17 Sep 2026)
   verification-issues: dry-run output reported "already present (re-sighted)" in a measured case where
     no actual re-sighting occurred. Recorded only.
 
+--------------------------------------------------------------------------------------
+ADDED 17 SEPTEMBER 2026 — CONFINED STORE-PATH TESTABILITY SEAM (owner ruling, _handoffs 4674e3e)
+MEASURED 17 SEPTEMBER 2026 on main c03ed15 (main CI run 35172383226: success), branch
+v0.1/gap2-confined-store-seam. A1-A27 above stay as written, including every BLOCKED-UNKNOWN in A26.
+--------------------------------------------------------------------------------------
+
+A28 · #104's "issues: 11" — THE RATIONALE, REVIEWED (17 Sep 2026)
+  present in the landed test: why default mode structurally writes (every one of the 11 goes through
+  appendIfNew: a new issue or a re-sighting). ABSENT: which committed files 11 comes from, and what
+  legitimate change would move it. ACTION: rationale ONLY, added in test/ungated-writers.test.mjs
+  (the crawl record, body archive and link graph of 2026-09-12; a different committed crawl/archive/graph or
+  a change to either instrument's definition would move it). The assertion value is unchanged.
+
+A29 · OBSERVED BEFORE (17 Sep 2026) — the measured population, exactly four paths
+  path                                  store constant (default)                                write reached through
+  supersede-noindex                     TARGET :46  runs/audit/technical-findings.jsonl          :145 -> :229/:232 · :146 -> :197 · -> :191, :144
+  instrument-disagreement --close       STORE  :27  runs/audit/instrument-findings.jsonl         :86 -> :197 -> :191, :144
+  link-recommendation-evidence          REC_STORE :25 (also read at :28) runs/audit/recommendations.jsonl  :98 -> :181 -> :191, :144
+  cost-ledger backfill                  LEDGER :32  runs/cost/ledger.jsonl                       :103 -> ledger.mjs:534 -> :181 -> :191, :144
+  every default root: this repository, through confineToRepo. None of the four is in the writer register.
+  why committed data could not give stable structural reach: 0 pending · 0 OPEN · 3 of 3 linked ·
+  1 incidental pending entry (A26). A fixed store path meant no test could hand the path a controlled state.
+
+A30 · THE CHANGE (17 Sep 2026) — the minimum confined seam
+  each of the four bins reads `--store=<path>` and passes it to the SAME confineToRepo call as its default,
+  with the label "--store"; without it, the default path and label exactly as before. In
+  link-recommendation-evidence the store it reads its recommendations from (:28) is now the same REC_STORE it
+  writes, so one override moves both. In cost-ledger `--store` names the LEDGER only; the Actions timing store
+  (ACTIONS) is untouched. `--store` is the spelling the destination detector already knows (tools/
+  permitted-writers.mjs destinationFlagIn). No gate, no write, no output line was changed.
+  THREAT MODEL
+    INPUT: --store=<path> on argv · TRUST BOUNDARY: argv is untrusted
+    ALLOWED: a path that resolves inside this repository (confineToRepo's existing lexical resolve/relative;
+      its semantics are unchanged) · FORBIDDEN: anything resolving outside it — an absolute path elsewhere,
+      a ../ escape, another drive, a sibling whose name merely starts with the repository's
+    CONFINEMENT GATE: confineToRepo at module load, before any read or write — throws
+      "REFUSED — --store … OUTSIDE this repository"
+    AUTHORIZATION GATE: writePermission (--confirm), unchanged, evaluated without reference to --store
+    WRITE: the bin's existing store write, only when BOTH gates pass
+    FAILURE: confinement -> non-zero exit, nothing written; no authorization -> the bin's own dry-run refusal,
+      exit 0, nothing written
+
+A31 · SAFETY PROOF (17 Sep 2026) — test/gap2-store-seam.test.mjs, 17 of 17 pass
+  WHICH GATE FIRED is read from the output, and exactly one outcome may appear:
+    CONFINEMENT = the confineToRepo "REFUSED — --store …" text · AUTHORIZATION = the bin's dry-run refusal line ·
+    WRITE = the bin's success line · none of them = the run reached neither gate.
+  default unchanged: with no --store, each of six invocations (supersede-noindex, instrument-disagreement,
+    instrument-disagreement --close, link-recommendation-evidence, cost-ledger backfill, cost-ledger) printed
+    output byte-identical to the unmodified main binaries (timestamps normalised).
+  outside, absolute (OS temp dir), WITH --confirm: CONFINEMENT fired for all four · exit non-zero · target not
+    created · default store unchanged.
+  outside, ../ escape (resolving into the repository's parent), WITH --confirm: CONFINEMENT fired for all four ·
+    nothing created there · default store unchanged.
+  inside (.test-scratch), WITH --confirm — POSITIVE CONTROL: WRITE fired; the controlled store received exactly
+    268 / 11 / 3 / 10 records; default store unchanged.
+  inside, WITHOUT --confirm — OVERRIDE IS NOT PERMISSION: AUTHORIZATION fired; the store is byte-identical;
+    default store unchanged.
+  sabotage (runs/audit/gap2-store-seam-sabotage-2026-09-17.txt): 12 limbs, each alone, each RED exactly where
+    expected, 0 beyond; every restore matched sha256 and index blob; 17 of 17 again afterwards.
+    C (confinement removed, per bin)       -> that bin's absolute-outside test RED
+    P (--store grants --confirm, per bin)   -> that bin's NOT PERMISSION test RED
+    R (controlled state already done)       -> supersede-noindex, instrument-disagreement: CONTROL + NOT PERMISSION
+                                               link-recommendation-evidence, cost-ledger: CONTROL only
+  fixture locations: every controlled store is created directly under .test-scratch/store-seam-*/ — none
+    under runs/export, runs/evidence, runs/audit or runs/cost (asserted in the test). D-SWEEP-1 not touched.
+
+A32 · BEHAVIOURAL RESULT (17 Sep 2026) — one row per authorised path
+  path                              controlled state (from committed records)          no --confirm                                   --confirm
+  supersede-noindex                 the 268 original noindex issue records, no          "records to append : 268 (134 + 134)" then     +268 records, "lifecycle errors: 0"
+                                    state changes                                       "[dry-run] would have appended 268 records"
+  instrument-disagreement --close   the 11 disagreement issues, no state changes        "OPEN … to close: 11" then "[dry-run]          +11 state changes
+                                                                                         nothing closed"
+  link-recommendation-evidence      the 7 recommendation records, no links              the three links, then "[dry-run] nothing       +3 links
+                                                                                         written"
+  cost-ledger backfill              an empty ledger                                     "[dry-run] 10 entries not written"             +10 entries, "already present 0"
+  in every row, without --confirm the controlled store is byte-identical.
+  for link-recommendation-evidence and cost-ledger the dry-run count is taken before the store is consulted,
+  so the pending write is proved by the --confirm run on the SAME controlled state, paired with the refusal.
+  cost-ledger capture-actions: not run, not changed, not reordered — it calls `gh api` before its gate.
+
 ======================================================================================
 PART B · CONCLUSIONS
 ======================================================================================
@@ -585,3 +665,30 @@ B15 · DECISION (17 Sep 2026): GAP 2 = REMAINS OPEN
          (prerequisite: owner-authorised network execution)
        gsc-ingest incident-test reliability = UNPROVED; therefore Gap 2 remains OPEN on this blocker.
   Blocker 1 stays CLOSED (B10). Ledger unchanged: 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61.
+
+--------------------------------------------------------------------------------------
+CONCLUSIONS ADDED 17 SEPTEMBER 2026 — CONFINED STORE-PATH SEAM (B1-B15 above are kept as first written)
+--------------------------------------------------------------------------------------
+
+B16 · THE SEAM IS CONFINED AND IS NOT PERMISSION (A30-A31)
+  Default behaviour is unchanged. An override outside the repository is refused by the confinement gate,
+  identified by its own text, before any write, even with --confirm. An override inside the repository is
+  used only when --confirm is given, and without it the write law refuses and the store stays byte-identical.
+  Removing the confinement, or letting the override grant permission, turns the named test red in each bin.
+
+B17 · FOUR PATHS PROVED (A32) — the four marked BLOCKED-UNKNOWN in A26 on 17 Sep 2026 are now PROVED:
+  supersede-noindex · instrument-disagreement --close · link-recommendation-evidence · cost-ledger backfill.
+  With instrument-disagreement's default path (A26), 5 of the 6 easy-four write paths are proved.
+  Still BLOCKED-UNKNOWN: cost-ledger capture-actions — prerequisite: owner-authorised network execution
+  (it calls `gh api` before its gate; a store path does not change that).
+
+B18 · DECISION (17 Sep 2026): GAP 2 = REMAINS OPEN
+  smallest exact remaining blocker set:
+    1. store option (C), within the frozen 9:
+       · needs owner-authorised network execution: cost-ledger capture-actions
+       · untouched, awaiting a feasibility ruling: replay-crawl · source-integrity · paid-provider-controls ·
+         render-archive · report
+    2. gsc-ingest reach proof = BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE
+         (prerequisite: owner-authorised network execution)
+       gsc-ingest incident-test reliability = UNPROVED; therefore Gap 2 remains OPEN on this blocker.
+  Blocker 1 stays CLOSED. Ledger unchanged: 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61.

@@ -497,7 +497,13 @@ for (const [bin, args, dirs, expect] of [
    * write block. With --confirm every one of those 11 goes through appendIfNew, which always writes (a new
    * issue, or a re-sighting of one already stored) — so reaching that branch with 11 means a real store
    * write was pending and was refused. The count comes before the refusal line, and both are required.
-   * Only the default path: `--close` finds nothing OPEN on the committed data, so it cannot show a refusal. */
+   * Only the default path: `--close` finds nothing OPEN on the committed data, so it cannot show a refusal.
+   * WHERE 11 COMES FROM (rationale added 17 September 2026, value unchanged): disagreementIssues() over the
+   * committed crawl record runs/crawl/first-real-crawl-2026-09-12.jsonl, its body archive
+   * runs/crawl/bodies-2026-09-12.jsonl.br and its link graph runs/crawl/edges-2026-09-12.jsonl.br — one issue per
+   * page the two instruments treat differently (340 vs 341). WHAT WOULD LEGITIMATELY MOVE IT: a different committed
+   * crawl, body archive or graph, or a change to either instrument's definition (src/crawl/inbound.mjs,
+   * src/audit/instrument-agreement.mjs). Then re-measure, and re-base this number with the reason recorded here. */
   ["bin/instrument-disagreement.mjs", [], [AUDIT_DIR], /issues: 11 — one per page they treat differently[\s\S]*\[dry-run\] nothing raised — add --confirm/],
   ["bin/audit.mjs", [], [AUDIT_DIR], /\[dry-run\] would have written \d+ record\(s\)/],
   // 🔴 These two exit early without their input, so they are given it — a dry run that never

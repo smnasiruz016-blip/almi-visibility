@@ -24,7 +24,11 @@ import { lifecycleOf, makeIssueStateChange } from "../src/evidence/lifecycle.mjs
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const argv = process.argv.slice(2);
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv, env: process.env }));
-const STORE = confineToRepo(`${REPO}runs/audit/instrument-findings.jsonl`, { label: "the instrument findings store" });
+/* 🔴 GAP 2 · TESTABILITY SEAM (17 September 2026): `--store=` names a different findings store, CONFINED to this
+ * repository by the same confineToRepo as the default — it refuses before anything is read or written. It chooses
+ * WHERE, never WHETHER: the write still needs --confirm. Without it, the default store, exactly as before. */
+const storeArg = argv.find((a) => a.startsWith("--store="))?.slice("--store=".length);
+const STORE = confineToRepo(storeArg ?? `${REPO}runs/audit/instrument-findings.jsonl`, { label: storeArg === undefined ? "the instrument findings store" : "--store" });
 const CONTENT_RUN = `${REPO}runs/audit/item-13-26-content-run-2026-09-13.txt`;
 const TECHNICAL_RUN = `${REPO}runs/audit/item-26-technical-run-2026-09-13.txt`;
 

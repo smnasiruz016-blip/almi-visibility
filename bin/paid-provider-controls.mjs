@@ -4,6 +4,8 @@
  *
  *   node bin/paid-provider-controls.mjs            dry run: the refusals are shown, nothing is recorded
  *   node bin/paid-provider-controls.mjs --confirm  record every refusal in runs/cost/ledger.jsonl
+ *   node bin/paid-provider-controls.mjs --confirm --ledger=<path inside this repository>
+ *                                                  record them in that ledger instead (the gap 2 test seam)
  *
  * 🔴 NO REAL PAID PROVIDER IS CALLED AND NO ACCOUNT EXISTS. The provider is a test
  * double from src/cost/paid-provider-gate.mjs that makes no request. What is real
@@ -17,7 +19,12 @@ import { createPaidProviderGate, createKillSwitch, createFakePaidProvider, PaidC
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const argv = process.argv.slice(2);
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv, env: process.env }));
-const LEDGER = confineToRepo(`${REPO}runs/cost/ledger.jsonl`, { label: "the cost ledger" });
+/* --ledger=<path>: the testability seam (gap 2) — the ledger this run appends its refusals to, CONFINED to this
+ * repository by the same confineToRepo as the default, which it refuses before the ledger is opened. It chooses
+ * WHERE, never WHETHER: without --confirm the refusals still go to the in-memory ledger and the file is not opened. */
+const ledgerArg = argv.find((a) => a.startsWith("--ledger="))?.slice("--ledger=".length);
+const LEDGER = confineToRepo(ledgerArg ?? `${REPO}runs/cost/ledger.jsonl`, { label: ledgerArg === undefined ? "the cost ledger" : "--ledger" });
+const LEDGER_SHOWN = ledgerArg === undefined ? "runs/cost/ledger.jsonl" : LEDGER;
 
 /* Dry run: an in-memory ledger with the same two verbs. --confirm: the real one. */
 const memory = [];
@@ -64,7 +71,7 @@ for (const r of refused) console.log(`  ${formatLedgerLine(r.entry)}`);
 
 const missing = REFUSAL_CODES.filter((c) => !refused.some((r) => r.entry.refusal.code === c));
 const traced = ledger.readAll().filter((e) => e.outcome === "REFUSED" && refused.some((r) => r.entry.entry_id === e.entry_id)).length;
-console.log(`\nevery refusal left a trace: ${traced} of ${refused.length} in the ${permission.mayWrite ? "REAL ledger (runs/cost/ledger.jsonl)" : "dry-run ledger (in memory)"}`);
+console.log(`\nevery refusal left a trace: ${traced} of ${refused.length} in the ${permission.mayWrite ? `REAL ledger (${LEDGER_SHOWN})` : "dry-run ledger (in memory)"}`);
 const ok = missing.length === 0 && traced === refused.length && fake.callsReceived() === 2;
 console.log(ok ? "\n✅ every control refused, before the call, and was recorded" : `\n🔴 NOT PROVED — codes never exercised: ${missing.join(", ") || "none"}; traced ${traced}/${refused.length}; provider calls ${fake.callsReceived()}`);
 process.exit(ok ? 0 : 1);

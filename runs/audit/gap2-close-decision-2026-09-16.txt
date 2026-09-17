@@ -336,6 +336,129 @@ A23 · BLOCKER 2 — THE POPULATION, FROZEN (as scoped in A17; nothing started)
     report                        partial test · its --out target is guarded, its stores are not
   network / data-repo write / connected product, per caller: as recorded in A17.
 
+--------------------------------------------------------------------------------------
+ADDED 17 SEPTEMBER 2026 — BLOCKER 2 · EASY FOUR (owner ruling, _handoffs b559a55)
+MEASURED 17 SEPTEMBER 2026 on engine main ccb869a (main CI run 35165851238: success).
+A1-A23 above stay as written.
+--------------------------------------------------------------------------------------
+
+A24 · THE TARGET WRITE SET, RE-MEASURED (measured 17 Sep 2026)
+  src/evidence/store.mjs last changed a4f258f; the five real write sites are unchanged:
+    :144 mkdirSync (ensureDir)           OLD :144 -> CURRENT :144
+    :191 appendFileSync                  OLD :191 -> CURRENT :191
+    :197 real appendAllWithoutDedupe     OLD :197 -> CURRENT :197
+    :229 real appendIfNew, new record    OLD :229 -> CURRENT :229
+    :232 real appendIfNew, re-sighting   OLD :232 -> CURRENT :232
+  (:120 has the same text as :197 but sits inside createDryRunStore, :88-137 — not a target.)
+  Every real write ends at :191, and every appendWithoutDedupe passes ensureDir (:186 -> :144).
+
+A25 · TWO cost-ledger NUMBERS, DISAMBIGUATED (measured 17 Sep 2026)
+  src/cost/ledger.mjs:534 — a MODULE line, unchanged: `store.appendWithoutDedupe(entry)` inside
+    createCostLedger().append, reached only when the entry_id is not already in the ledger (:533
+    returns first). It is one of the gated-at-caller sites. It leads to store :181 -> :144, :191.
+  bin/cost-ledger.mjs:76 — a BIN line, unchanged: `createJsonlStore(ACTIONS).appendIfNew(obs)` in the
+    `capture-actions` subcommand. It leads to store :220 -> :229/:232 -> :144, :191.
+  The bin's `backfill` subcommand writes through the MODULE line (:102-103 -> ledger.mjs:534).
+
+A26 · THE EASY FOUR, CALLER BY CALLER (measured 17 Sep 2026)
+  method: each bin read in full; each no-flag path run once (dry run, no network, runs/ porcelain
+  identical before and after); whether a --confirm run WOULD write was established read-only, by
+  applying each bin's own skip/dedupe rule to the committed stores through the same modules — no
+  --confirm run was made. Every input these paths read is tracked (CI sees the same data); the only
+  ignored paths under runs/ (_profession-cache/, crawl/corpus/, one render archive) are not read.
+
+  1 · supersede-noindex — bin/supersede-noindex.mjs (last changed 50975e4)
+      write block :139-:146, behind permission.mayWrite (:139); the write happens only when
+        records.length > 0 (:141). Real writes it can reach: :145 appendIfNew -> :229/:232;
+        :146 appendAllWithoutDedupe -> :197; all -> :191, :144.
+      no-flag output: "already superseded : 134 · to supersede now : 0 · records to append : 0" and
+        "[dry-run] would have appended 0 records — add --confirm".
+      REAL STORE WRITE REACHABLE on the committed data: NO — 0 records pending, so --confirm writes nothing.
+      test before: none behavioural (#98's transcript only).
+      missing property: a refusal cannot be told from "nothing to do" while 0 records are pending.
+      reach from what is already observable (§3.2): checked — the printed counts and the target's own
+        state both say 0 pending. No observable shows a pending write.
+      what would have to change: TARGET is hard-coded (:46), so no test can hand it a store with an
+        OPEN cv-guide noindex issue. Smallest change: an overridable, repo-confined store path
+        (e.g. --target=, confined like --out elsewhere), so a test can supply the ORIGINAL committed
+        noindex issues without their state changes, from committed records. NOT MADE (bin change).
+      change: none · STATUS: BLOCKED-UNKNOWN — prerequisite: an owner-authorised bin change.
+
+  2 · instrument-disagreement — bin/instrument-disagreement.mjs (last changed 1ba079d)
+      default path: write block :42-:48, behind permission.mayWrite (:42). With --confirm every one of
+        the computed issues goes through appendIfNew (:48), which always writes: a new issue (:229) or a
+        re-sighting (:232); both -> :191, :144.
+      no-flag output: "issues: 11 — one per page they treat differently" … "[dry-run] nothing raised".
+      committed store: all 11 issue_ids already present -> --confirm would append 11 re-sightings via :232.
+      REAL STORE WRITE REACHABLE: YES — :232 (-> :191, :144), 11 times.
+      test before: none behavioural.
+      change (test only): test/ungated-writers.test.mjs incident loop gains this bin, no flag, runs/audit
+        guarded byte-identical, and it must print "issues: 11 — one per page they treat differently"
+        followed by "[dry-run] nothing raised — add --confirm". 11 is deterministic from committed files.
+      sabotage (each limb alone, test file only, restored by sha256 + index blob):
+        BEFORE sha256 7ca200d6c9b41829 · blob 244b525cd337e869897c19dafcad4fef60cb212a
+        BASELINE (default path)                                        PASS
+        LIMB 1 · new assertion on the --close path (banner, no pending write, exit 0)
+                                                                       FAIL (RED) — reason read:
+                 "bin/instrument-disagreement.mjs did not report what it would have written"
+        LIMB 2 · banner-only assertion on the same --close path        PASS — the blind spot
+        every damage landed, every restore matched, the case passes again afterwards.
+      targeted result: PASS. no-write evidence: runs/audit byte-identical (guardDir), and the refusal
+        line is printed in the branch immediately before the write block.
+      the --close path: write :86 appendAllWithoutDedupe -> :197, behind permission.mayWrite (:81).
+        no-flag output: "recorded re-runs: 335 · 335 · 335" and "OPEN instrument-disagreement issues to
+        close: 0" -> --confirm writes nothing. REAL WRITE REACHABLE on the committed data: NO.
+        STORE is hard-coded (:27); smallest change: an overridable, repo-confined store path. NOT MADE.
+      STATUS: default path PROVED · --close path BLOCKED-UNKNOWN (prerequisite: an owner-authorised bin
+        change).
+
+  3 · link-recommendation-evidence — bin/link-recommendation-evidence.mjs (last changed 84496ac)
+      write block :93-:100, behind permission.mayWrite (:89); inside it a recommendation that already
+        has a recommendation_evidence record is skipped (:97). Real writes it can reach: :98
+        appendWithoutDedupe -> :181 -> :144, :191.
+      no-flag output: three links reproduced (106 · 134 · 16), then "[dry-run] nothing written".
+      committed store: all 3 recommendations already linked -> --confirm writes 0.
+      REAL STORE WRITE REACHABLE on the committed data: NO.
+      test before: none behavioural. reach from what is observable (§3.2): checked — the skip happens
+        after the gate, so the dry run cannot show whether anything would be written, and the store
+        says nothing would.
+      what would have to change: the store is read at :28 and written at :93 by fixed paths (:25-:26).
+        Smallest change: one overridable, repo-confined recommendations-store path used for both. NOT MADE.
+      change: none · STATUS: BLOCKED-UNKNOWN — prerequisite: an owner-authorised bin change.
+
+  4 · cost-ledger — bin/cost-ledger.mjs (last changed 8c9d68b; src/cost/ledger.mjs 8f0d13b;
+      three subcommands; see A25)
+      show (no subcommand): reads and prints; no write. NOT APPLICABLE.
+      capture-actions --run=<id>: calls `gh api` three times (:49-:52) BEFORE its gate (:75); write
+        :76 -> :220 -> :229/:232 -> :144, :191. Not run.
+        STATUS: BLOCKED-UNKNOWN BY EXTERNAL PREREQUISITE — prerequisite: owner-authorised network
+        execution (GitHub API).
+      backfill: write :102-:103 ledger.append -> ledger.mjs:534 -> :181 -> :144, :191, behind
+        permission.mayWrite (:99).
+        no-flag output: "[bound: 2 stored crawl runs …, 50 evidence records, 1 Actions timing
+        observation(s)]" and "[dry-run] 10 entries not written — add --confirm".
+        committed ledger: 9 of the 10 entry_ids present; 1 is not (gsc-ingest:2026-09-12T23:25:03.086Z),
+        so --confirm would write exactly 1 entry.
+        REAL STORE WRITE REACHABLE: YES, today — :191 (and :144), once.
+        but the proof is not durable: that one pending entry is a data state a legitimate
+        `backfill --confirm` would remove, after which a test asserting "10 entries not written" would
+        still pass while no write is reachable (§9). Asserting the pending entry inside the test would
+        instead turn red on a legitimate backfill.
+        what would have to change: LEDGER is hard-coded (:32). Smallest change: an overridable,
+        repo-confined ledger path, so a test can supply a ledger missing a known entry. NOT MADE.
+        change: none · STATUS: BLOCKED-UNKNOWN — prerequisite: an owner-authorised bin change.
+      OBSERVATION, RECORDED ONLY: the committed cost ledger lacks the backfill entry
+        gsc-ingest:2026-09-12T23:25:03.086Z. Not investigated, not written.
+
+A27 · OUTSIDE THIS SLOT — PRESERVED, NOT TOUCHED (17 Sep 2026)
+  the difficult five (replay-crawl · source-integrity · paid-provider-controls · render-archive ·
+  report): not investigated, run, tested or modified.
+  gsc-ingest reach proof = BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE
+    (prerequisite: owner-authorised network execution)
+  gsc-ingest incident-test reliability = UNPROVED; therefore Gap 2 remains OPEN on this blocker.
+  verification-issues: dry-run output reported "already present (re-sighted)" in a measured case where
+    no actual re-sighting occurred. Recorded only.
+
 ======================================================================================
 PART B · CONCLUSIONS
 ======================================================================================
@@ -435,3 +558,30 @@ B13 · DECISION: GAP 2 = REMAINS OPEN
     2. gsc-ingest reach proof = BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE
          (prerequisite: owner-authorised network execution)
        gsc-ingest incident-test reliability = UNPROVED; therefore Gap 2 remains OPEN on this blocker.
+
+--------------------------------------------------------------------------------------
+CONCLUSIONS ADDED 17 SEPTEMBER 2026 — EASY FOUR (B1-B13 above are kept as first written)
+--------------------------------------------------------------------------------------
+
+B14 · EASY FOUR RESULT (A26)
+  PROVED by a test change only: instrument-disagreement, default path.
+  Not provable without an owner-authorised bin change (an overridable, repo-confined store path),
+  because no real write is reachable on the committed data or the pending one is not durable:
+    supersede-noindex · link-recommendation-evidence · instrument-disagreement --close ·
+    cost-ledger backfill.
+  External prerequisite (network): cost-ledger capture-actions.
+  No bin was changed. No input was manufactured.
+
+B15 · DECISION (17 Sep 2026): GAP 2 = REMAINS OPEN
+  smallest exact remaining blocker set:
+    1. store option (C), within the frozen 9:
+       · proved now: instrument-disagreement (default path)
+       · needs an owner-authorised bin change: supersede-noindex · link-recommendation-evidence ·
+         instrument-disagreement --close · cost-ledger backfill
+       · needs owner-authorised network execution: cost-ledger capture-actions
+       · untouched, awaiting a feasibility ruling: replay-crawl · source-integrity ·
+         paid-provider-controls · render-archive · report
+    2. gsc-ingest reach proof = BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE
+         (prerequisite: owner-authorised network execution)
+       gsc-ingest incident-test reliability = UNPROVED; therefore Gap 2 remains OPEN on this blocker.
+  Blocker 1 stays CLOSED (B10). Ledger unchanged: 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61.

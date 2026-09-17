@@ -29,7 +29,12 @@ import {
 } from "../src/cost/ledger.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
-const LEDGER = confineToRepo(`${REPO}runs/cost/ledger.jsonl`, { label: "the cost ledger" });
+/* 🔴 GAP 2 · TESTABILITY SEAM (17 September 2026): `--store=` names a different COST LEDGER — only the ledger;
+ * the Actions timing store is not affected — CONFINED to this repository by the same confineToRepo as the default,
+ * refusing before anything is read or written. It chooses WHERE, never WHETHER: the write still needs --confirm.
+ * Without it, the default ledger, exactly as before. */
+const storeArg = process.argv.slice(2).find((a) => a.startsWith("--store="))?.slice("--store=".length);
+const LEDGER = confineToRepo(storeArg ?? `${REPO}runs/cost/ledger.jsonl`, { label: storeArg === undefined ? "the cost ledger" : "--store" });
 const ACTIONS = confineToRepo(`${REPO}runs/cost/actions-runs.jsonl`, { label: "the Actions timing store" });
 const argv = process.argv.slice(2);
 const cmd = argv.find((a) => !a.startsWith("--")) ?? "show";

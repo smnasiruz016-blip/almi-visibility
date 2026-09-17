@@ -1,0 +1,109 @@
+MEASURED 17 SEPTEMBER 2026 · engine branch v0.1/gap2-confined-store-seam, cut from main c03ed15
+Owner ruling: _handoffs 4674e3e (confined store-path testability seam).
+Limbs: C = the override's confinement removed in one bin · P = the override treated as permission in one bin ·
+R = the controlled state damaged for one path (test file only).
+While a bin's confinement is broken the ../ escape tests are not run, so a broken bin cannot write into the
+repository's parent; the absolute-outside tests use fresh OS temp directories that each test removes.
+R limbs for link-recommendation-evidence and cost-ledger go red on CONTROL only: their dry-run count is taken
+before the store is consulted, so for those two the proof of a pending write is the CONTROL run on the same
+controlled state, paired with the NOT PERMISSION run.
+
+SABOTAGE — GAP 2 CONFINED STORE-PATH SEAM, EACH LIMB ALONE · 2026-09-17T02:11:58.997Z · node v24.15.0
+BEFORE: bin/supersede-noindex.mjs sha256 5b641814a059ec0b · index blob f1885a12aba0f0f35ec9a426ce7220e57e3fb94f · disk matches index: YES
+BEFORE: bin/instrument-disagreement.mjs sha256 c2edc7975f5047bb · index blob a213fbb0c79618393969f93fecc1241ded3cb80d · disk matches index: YES
+BEFORE: bin/link-recommendation-evidence.mjs sha256 ffe57505acab8a5d · index blob d9eda25ba3e6203271c8e12795e8666bba159bf1 · disk matches index: YES
+BEFORE: bin/cost-ledger.mjs sha256 07c4e120fd47486d · index blob a007a373e9e7038a70ce19139dc3fde831fa67d7 · disk matches index: YES
+BEFORE: test/gap2-store-seam.test.mjs sha256 41c978552d6d206e · index blob da820c8ea5b5b1a13e0a619e376ed8b36a264b2a · disk matches index: YES
+BASELINE: test/gap2-store-seam.test.mjs pass 17 fail 0
+
+LIMB · C · supersede-noindex: --store no longer confined
+  damage LANDED in bin/supersede-noindex.mjs (sha256 c949bd3e62a174d6, differs: YES) · escape tests not run
+  RED: 🔴 CONFINEMENT · supersede-noindex · an absolute store OUTSIDE the repository is refused b
+  expected RED: CONFINEMENT · supersede-noindex · an absolute store OUTSIDE · missing: 0 · beyond expected: 0
+  ✅ RED exactly where expected
+  restored bin/supersede-noindex.mjs: sha256 5b641814a059ec0b · blob f1885a12aba0f0f35ec9a426ce7220e57e3fb94f · match YES
+
+LIMB · C · instrument-disagreement: --store no longer confined
+  damage LANDED in bin/instrument-disagreement.mjs (sha256 2b27d23ca9e20c20, differs: YES) · escape tests not run
+  RED: 🔴 CONFINEMENT · instrument-disagreement · an absolute store OUTSIDE the repository is ref
+  expected RED: CONFINEMENT · instrument-disagreement · an absolute store OUTSIDE · missing: 0 · beyond expected: 0
+  ✅ RED exactly where expected
+  restored bin/instrument-disagreement.mjs: sha256 c2edc7975f5047bb · blob a213fbb0c79618393969f93fecc1241ded3cb80d · match YES
+
+LIMB · C · link-recommendation-evidence: --store no longer confined
+  damage LANDED in bin/link-recommendation-evidence.mjs (sha256 e3792d0240a979ed, differs: YES) · escape tests not run
+  RED: 🔴 CONFINEMENT · link-recommendation-evidence · an absolute store OUTSIDE the repository i
+  expected RED: CONFINEMENT · link-recommendation-evidence · an absolute store OUTSIDE · missing: 0 · beyond expected: 0
+  ✅ RED exactly where expected
+  restored bin/link-recommendation-evidence.mjs: sha256 ffe57505acab8a5d · blob d9eda25ba3e6203271c8e12795e8666bba159bf1 · match YES
+
+LIMB · C · cost-ledger: --store no longer confined
+  damage LANDED in bin/cost-ledger.mjs (sha256 03251fca042d71d1, differs: YES) · escape tests not run
+  RED: 🔴 CONFINEMENT · cost-ledger · an absolute store OUTSIDE the repository is refused by the 
+  expected RED: CONFINEMENT · cost-ledger · an absolute store OUTSIDE · missing: 0 · beyond expected: 0
+  ✅ RED exactly where expected
+  restored bin/cost-ledger.mjs: sha256 07c4e120fd47486d · blob a007a373e9e7038a70ce19139dc3fde831fa67d7 · match YES
+
+LIMB · P · supersede-noindex: --store grants --confirm
+  damage LANDED in bin/supersede-noindex.mjs (sha256 9ab9a88e76af47b1, differs: YES) · escape tests not run
+  RED: 🔴 NOT PERMISSION · supersede-noindex · the same inside store WITHOUT --confirm: the write
+  expected RED: NOT PERMISSION · supersede-noindex · missing: 0 · beyond expected: 0
+  ✅ RED exactly where expected
+  restored bin/supersede-noindex.mjs: sha256 5b641814a059ec0b · blob f1885a12aba0f0f35ec9a426ce7220e57e3fb94f · match YES
+
+LIMB · P · instrument-disagreement: --store grants --confirm
+  damage LANDED in bin/instrument-disagreement.mjs (sha256 0c77be7fe214fde5, differs: YES) · escape tests not run
+  RED: 🔴 NOT PERMISSION · instrument-disagreement · the same inside store WITHOUT --confirm: the
+  expected RED: NOT PERMISSION · instrument-disagreement · missing: 0 · beyond expected: 0
+  ✅ RED exactly where expected
+  restored bin/instrument-disagreement.mjs: sha256 c2edc7975f5047bb · blob a213fbb0c79618393969f93fecc1241ded3cb80d · match YES
+
+LIMB · P · link-recommendation-evidence: --store grants --confirm
+  damage LANDED in bin/link-recommendation-evidence.mjs (sha256 1c2971d21b371e47, differs: YES) · escape tests not run
+  RED: 🔴 NOT PERMISSION · link-recommendation-evidence · the same inside store WITHOUT --confirm
+  expected RED: NOT PERMISSION · link-recommendation-evidence · missing: 0 · beyond expected: 0
+  ✅ RED exactly where expected
+  restored bin/link-recommendation-evidence.mjs: sha256 ffe57505acab8a5d · blob d9eda25ba3e6203271c8e12795e8666bba159bf1 · match YES
+
+LIMB · P · cost-ledger: --store grants --confirm
+  damage LANDED in bin/cost-ledger.mjs (sha256 5b543900cedf3925, differs: YES) · escape tests not run
+  RED: 🔴 NOT PERMISSION · cost-ledger · the same inside store WITHOUT --confirm: the write is re
+  expected RED: NOT PERMISSION · cost-ledger · missing: 0 · beyond expected: 0
+  ✅ RED exactly where expected
+  restored bin/cost-ledger.mjs: sha256 07c4e120fd47486d · blob a007a373e9e7038a70ce19139dc3fde831fa67d7 · match YES
+
+LIMB · R · supersede-noindex: fixture already superseded (every committed record)
+  damage LANDED in test/gap2-store-seam.test.mjs (sha256 f39b83f990bd1aa8, differs: YES)
+  RED: CONTROL · supersede-noindex · a store INSIDE the repository is used when --confirm is give | 🔴 NOT PERMISSION · supersede-noindex · the same inside store WITHOUT --confirm: the write
+  expected RED: CONTROL · supersede-noindex + NOT PERMISSION · supersede-noindex · missing: 0 · beyond expected: 0
+  ✅ RED exactly where expected
+  restored test/gap2-store-seam.test.mjs: sha256 41c978552d6d206e · blob da820c8ea5b5b1a13e0a619e376ed8b36a264b2a · match YES
+
+LIMB · R · instrument-disagreement: fixture already closed (every committed record)
+  damage LANDED in test/gap2-store-seam.test.mjs (sha256 b9034883f67e1d2d, differs: YES)
+  RED: CONTROL · instrument-disagreement · a store INSIDE the repository is used when --confirm i | 🔴 NOT PERMISSION · instrument-disagreement · the same inside store WITHOUT --confirm: the
+  expected RED: CONTROL · instrument-disagreement + NOT PERMISSION · instrument-disagreement · missing: 0 · beyond expected: 0
+  ✅ RED exactly where expected
+  restored test/gap2-store-seam.test.mjs: sha256 41c978552d6d206e · blob da820c8ea5b5b1a13e0a619e376ed8b36a264b2a · match YES
+
+LIMB · R · link-recommendation-evidence: fixture already linked (every committed record)
+  damage LANDED in test/gap2-store-seam.test.mjs (sha256 b2c92a7348088c82, differs: YES)
+  RED: CONTROL · link-recommendation-evidence · a store INSIDE the repository is used when --conf
+  expected RED: CONTROL · link-recommendation-evidence · missing: 0 · beyond expected: 0
+  ✅ RED exactly where expected
+  restored test/gap2-store-seam.test.mjs: sha256 41c978552d6d206e · blob da820c8ea5b5b1a13e0a619e376ed8b36a264b2a · match YES
+
+LIMB · R · cost-ledger: fixture is the committed ledger
+  damage LANDED in test/gap2-store-seam.test.mjs (sha256 f5686686076eb8ed, differs: YES)
+  RED: CONTROL · cost-ledger · a store INSIDE the repository is used when --confirm is given: the
+  expected RED: CONTROL · cost-ledger · missing: 0 · beyond expected: 0
+  ✅ RED exactly where expected
+  restored test/gap2-store-seam.test.mjs: sha256 41c978552d6d206e · blob da820c8ea5b5b1a13e0a619e376ed8b36a264b2a · match YES
+
+AFTER EVERY RESTORE: test/gap2-store-seam.test.mjs pass 17 fail 0
+  bin/supersede-noindex.mjs sha256 5b641814a059ec0b · blob f1885a12aba0f0f35ec9a426ce7220e57e3fb94f · matches BEFORE: YES
+  bin/instrument-disagreement.mjs sha256 c2edc7975f5047bb · blob a213fbb0c79618393969f93fecc1241ded3cb80d · matches BEFORE: YES
+  bin/link-recommendation-evidence.mjs sha256 ffe57505acab8a5d · blob d9eda25ba3e6203271c8e12795e8666bba159bf1 · matches BEFORE: YES
+  bin/cost-ledger.mjs sha256 07c4e120fd47486d · blob a007a373e9e7038a70ce19139dc3fde831fa67d7 · matches BEFORE: YES
+  test/gap2-store-seam.test.mjs sha256 41c978552d6d206e · blob da820c8ea5b5b1a13e0a619e376ed8b36a264b2a · matches BEFORE: YES
+EVERY LIMB RED EXACTLY WHERE EXPECTED, EVERY RESTORE VERIFIED: YES

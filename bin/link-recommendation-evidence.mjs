@@ -22,10 +22,15 @@ import { createJsonlStore } from "../src/evidence/store.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv.slice(2), env: process.env }));
-const REC_STORE = confineToRepo(`${REPO}runs/audit/recommendations.jsonl`, { label: "the recommendations store" });
+/* 🔴 GAP 2 · TESTABILITY SEAM (17 September 2026): `--store=` names a different recommendations store — the one
+ * this reads its recommendations from AND links them in — CONFINED to this repository by the same confineToRepo
+ * as the default, refusing before anything is read or written. It chooses WHERE, never WHETHER: the write still
+ * needs --confirm. Without it, the default store, exactly as before. */
+const storeArg = process.argv.slice(2).find((a) => a.startsWith("--store="))?.slice("--store=".length);
+const REC_STORE = confineToRepo(storeArg ?? `${REPO}runs/audit/recommendations.jsonl`, { label: storeArg === undefined ? "the recommendations store" : "--store" });
 const read = (p) => (existsSync(`${REPO}${p}`) ? createJsonlStore(`${REPO}${p}`).readAll() : []);
 
-const recRecords = read("runs/audit/recommendations.jsonl");
+const recRecords = existsSync(REC_STORE) ? createJsonlStore(REC_STORE).readAll() : [];
 const recs = new Map(recRecords.filter((r) => r.record_type === "draft_recommendation").map((r) => [r.recommendation_id, r]));
 const distinctIssues = (records, pred) => [...new Map(records.filter((r) => r.record_type === "issue" && pred(r)).map((r) => [r.issue_id, r])).keys()];
 const crawlerRecords = read("runs/audit/crawler-classification.jsonl");

@@ -539,6 +539,129 @@ A32 · BEHAVIOURAL RESULT (17 Sep 2026) — one row per authorised path
   so the pending write is proved by the --confirm run on the SAME controlled state, paired with the refusal.
   cost-ledger capture-actions: not run, not changed, not reordered — it calls `gh api` before its gate.
 
+--------------------------------------------------------------------------------------
+ADDED 17 SEPTEMBER 2026 — DIFFICULT FIVE FEASIBILITY AFTER #105 (owner ruling, _handoffs b5670c5,
+with its §13 = addendum 6cde43a). MEASUREMENT AND EVIDENCE ONLY: no bin, test or fixture was changed.
+MEASURED 17 SEPTEMBER 2026 on main e90d039 (main CI run 35174520633: success).
+A1-A32 above stay as written, including the difficult-five scope in A17 and A23.
+--------------------------------------------------------------------------------------
+
+A33 · WRITER-CENSUS CONFIRMATION (17 Sep 2026)
+  writeSiteCensus on e90d039: 93 = 82 GATED + 11 UNGATED + 0 CANNOT_DETERMINE · excludedNonWrites 8 ·
+  ungatedBins 0 · undeclaredUngated 0 · declaredUngated 0 · stale 0 · unresolvedDeclarations 0 ·
+  cannotDetermine 0 (bins 0) · gatedAtCaller 6. The four #105 bins' sites: supersede-noindex :149 GATED ·
+  instrument-disagreement :52 GATED · link-recommendation-evidence :103 GATED · cost-ledger :81, :108 GATED.
+  UNDECLARED = 0 -> feasibility continued.
+  CANDIDATE FINDING, RECORDED ONLY (no id, not investigated, not fixed): the census counts no
+  `.appendAllWithoutDedupe(` call site. Three bin lines call it and none is a site or an exclusion:
+  bin/instrument-disagreement.mjs:90 · bin/supersede-noindex.mjs:150 · bin/supersede-duplicates.mjs:66.
+  (Each sits behind permission.mayWrite in its own source.) The helper verb list names `appendAll(`,
+  which `appendAllWithoutDedupe(` does not contain. This is an UNDER-count, the opposite direction to B1.
+
+A34 · THE FIVE STORE WRITE SITES (17 Sep 2026): src/evidence/store.mjs last changed a4f258f;
+  :144 -> :144 · :191 -> :191 · :197 -> :197 · :229 -> :229 · :232 -> :232.
+
+A35 · THE DIFFICULT FIVE, CALLER BY CALLER (17 Sep 2026)
+  run rule (§13.C): source read in full first; a no-flag run only where no network, provider, browser
+  or data-repo access precedes the write gate. runs/ porcelain, the cost ledger and the runs/replay
+  listing were identical before and after the two runs made; no temp replay directory was left.
+
+  1 · replay-crawl — bin/replay-crawl.mjs (last changed 50975e4; src/crawl/replay.mjs,
+      src/audit/run-audit.mjs unchanged since)
+      OLD OBSERVATION (A17/A23): needs a corpus directory absent in CI; --recover downloads.
+      CURRENT: the default input is the COMMITTED archive runs/crawl/bodies-2026-09-12.jsonl.br (:57-:60,
+        :154); --corpus is optional. External network only behind --recover AND --confirm (:133-:141,
+        `gh run download`). fetch is replaced before the passes with a guard that throws on any host but
+        127.0.0.1/localhost (:176-:181); test/replay.test.mjs already runs runReplayPass over 127.0.0.1 in
+        every-push CI. No provider, browser or data-repo access.
+      REACHES A REAL STORE WRITE SITE: YES — the persisted observations and the recorded-DNS audit go
+        through store.appendIfNew -> :229 / :232 -> :191, :144; with --confirm the ledger also
+        (:342-:344 -> ledger.mjs:534 -> :181 -> :191, :144).
+      RUN PERMITTED: YES (source shows only loopback, no external network, before the gate) · RUN
+        PERFORMED: YES, no flag. Result: integrity 394/394 · pass 1 "394 new / 0 re-sighted" · pass 2
+        "5 new / 389 re-sighted" · audit "run 1 134 new … run 2 0 new / 134 re-sighted" · 822 requests,
+        0 not to 127.0.0.1 · "[dry-run] nothing recorded" · "✅ every assertion held" · exit 0.
+      OBSERVED: without --confirm the real stores ARE written — into an OS temp directory the bin deletes
+        (:193-:197, :348). The write law here chooses WHERE (temp vs runs/replay), as gsc-ingest does.
+      WHAT A COMPLETE PROOF REQUIRES: (i) a no-flag run whose reach is the persisted counts above and whose
+        protected targets (runs/replay/*, the cost ledger, the evidence file) stay unchanged; (ii) an
+        authorised --confirm run landing in disposable state.
+      BOUNDARY THAT WOULD BE BROKEN: for (i) NONE (committed archive, loopback already in CI). For (ii):
+        the ledger is hard-coded (:71) and the replay entry's id carries its start time, so --confirm
+        always appends to the committed runs/cost/ledger.jsonl — a write to committed evidence.
+      SAFE EXISTING ALTERNATIVE: --label varies the replay stores and evidence under runs/replay
+        (confined); nothing varies the ledger.
+      #105 SEAM EFFECT: NONE. BEFORE #105: a missing corpus (already false on this tree — the default is the
+        committed archive) and no disposable ledger. AFTER #105: the seam exists only in the four #105 bins;
+        replay-crawl has no --store, so no existing capability removes the ledger obstacle.
+      CLASSIFICATION: PARTIALLY FEASIBLE — (i) obtainable now; (ii) blocked by the hard-coded ledger.
+
+  2 · source-integrity — bin/source-integrity.mjs
+      OLD OBSERVATION: --live involves network.
+      CURRENT: requires --product (:41), whose fact registry resolves to ../almi-visibility-data
+        (config/subject-roots.mjs) — DATA-REPO ACCESS before any gate. Without --live it prints the plan and
+        exits (:80-:83) BEFORE every write. With --live it calls checkSources with the real fetch (:86-:92).
+      REACHES A REAL STORE WRITE SITE: YES, only after --live: :118 appendIfNew -> :229/:232 -> :191, :144;
+        :131 ledger.append -> ledger.mjs:534 -> :181 -> :191, :144.
+      RUN PERMITTED: NO (data-repo access, and a network path, precede the write gate) · RUN PERFORMED: NO.
+      WHAT A COMPLETE PROOF REQUIRES: a --live run that reaches the result block, then the --confirm refusal.
+      BOUNDARY THAT WOULD BE BROKEN: network (external source URLs) — unavoidable: no non-live path reaches
+        any write. Supplying checkSources a stand-in fetch would fabricate reach.
+      SAFE EXISTING ALTERNATIVE: NONE.
+      #105 SEAM EFFECT: NONE — the obstacle is the network, not the destination; the bin has no --store.
+      CLASSIFICATION: BLOCKED BY EXTERNAL PREREQUISITE — owner-authorised network execution.
+
+  3 · paid-provider-controls — bin/paid-provider-controls.mjs (src/cost/paid-provider-gate.mjs)
+      CURRENT: permission first (:19); without it the ledger is an in-memory object with the same two verbs,
+        with it the real ledger at a hard-coded path (:20, :24). The provider is createFakePaidProvider,
+        whose invoke only counts and echoes — no request. No network, provider account, browser or data
+        repo anywhere. Each refusal's entry_id embeds the time and a fresh id
+        ("paid-refusal:<provider>:<at>:<seq>:<id>"), so every run's refusals are new entries.
+      REACHES A REAL STORE WRITE SITE: YES, with --confirm: the gate appends each refusal
+        (paid-provider-gate.mjs:166 -> ledger.mjs:534 -> :181 -> :191, :144).
+      RUN PERMITTED: YES (no network/provider/browser/data-repo) · RUN PERFORMED: YES, no flag. Result:
+        "refusals: 5" (NOT_AUTHORIZED, AUTHORIZATION_INCOMPLETE, CAP_WOULD_BE_EXCEEDED,
+        BUDGET_WOULD_BE_EXCEEDED, KILL_SWITCH_ON) · "calls that reached the fake provider: 2" ·
+        "every refusal left a trace: 5 of 5 in the dry-run ledger (in memory)" · exit 0.
+      WHAT A COMPLETE PROOF REQUIRES: (i) the no-flag run above, with the real ledger unchanged; (ii) an
+        authorised --confirm run whose 5 refusal entries land in a disposable ledger.
+      BOUNDARY THAT WOULD BE BROKEN: for (i) NONE. For (ii): the ledger path is hard-coded (:20), so
+        --confirm appends 5 new entries to the committed runs/cost/ledger.jsonl.
+      SAFE EXISTING ALTERNATIVE: NONE for (ii) in this bin.
+      #105 SEAM EFFECT: NONE — the bin has no --store; the obstacle (a fixed ledger path) is exactly the kind
+        #105 removed elsewhere, but only by a change to this bin, which is not an existing route.
+      CLASSIFICATION: PARTIALLY FEASIBLE — (i) obtainable now; (ii) blocked by the hard-coded ledger.
+
+  4 · render-archive — bin/render-archive.mjs
+      OLD OBSERVATION: local browser + corpus.
+      CURRENT: the input is the COMMITTED archive (:52-:53, verified :86-:94) — the corpus is available. A
+        browser is required: loadPlaywright (:103, exit 2 if unavailable, before any write) and
+        launchOfflineChromium (:115). Every write is after the render (:254-:269).
+      REACHES A REAL STORE WRITE SITE: YES, only after a render: :260 appendIfNew -> :229/:232 -> :191, :144;
+        :268 ledger.append -> ledger.mjs:534 -> :181 -> :191, :144.
+      RUN PERMITTED: NO (§13.C.3: no browser launch) · RUN PERFORMED: NO.
+      WHAT A COMPLETE PROOF REQUIRES: a launchable offline Chromium, then the no-flag refusal and a
+        disposable --confirm run.
+      BOUNDARY THAT WOULD BE BROKEN: a local browser runtime. The every-push CI deliberately installs none
+        (test.yml; test/renderer.test.mjs skips its LIVE tests there); the only workflow that installs one is
+        renderer-live.yml, workflow_dispatch only, which fetches Chromium over the network.
+      SAFE EXISTING ALTERNATIVE: NONE without that runtime.
+      #105 SEAM EFFECT: NONE — the obstacle is the browser; the destinations (:54-:57) are also hard-coded,
+        a second obstacle behind the first.
+      CLASSIFICATION: BLOCKED BY EXTERNAL PREREQUISITE — an owner-authorised browser runtime.
+
+  5 · report — bin/report.mjs
+      OLD OBSERVATION: its test checks only its --out target; its stores are hard-coded.
+      CURRENT: its only calls on a store or ledger are .readAll() (:56, :121, and :128 through read). It
+        appends nothing. Statically its imports reach store.mjs and ledger.mjs:534, but no module it calls
+        at runtime appends (the census lists no other append site reachable from it). Its one write is the
+        page: :165-:166 mkdirSync / writeFileSync, both GATED, already proved by write-confinement.test.mjs
+        (:79 outside refused; :96 no flag writes nothing and reports "would have written").
+      REACHES A REAL STORE WRITE SITE: NO.
+      RUN PERMITTED: NO (it reads the product registry in the data repo, :73-:76, before its write gate) ·
+        RUN PERFORMED: NO. Measured from source.
+      CLASSIFICATION: NOT APPLICABLE — not a store write-caller; no option (C) proof is owed.
+
 ======================================================================================
 PART B · CONCLUSIONS
 ======================================================================================
@@ -691,4 +814,35 @@ B18 · DECISION (17 Sep 2026): GAP 2 = REMAINS OPEN
     2. gsc-ingest reach proof = BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE
          (prerequisite: owner-authorised network execution)
        gsc-ingest incident-test reliability = UNPROVED; therefore Gap 2 remains OPEN on this blocker.
+  Blocker 1 stays CLOSED. Ledger unchanged: 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61.
+
+--------------------------------------------------------------------------------------
+CONCLUSIONS ADDED 17 SEPTEMBER 2026 — DIFFICULT FIVE FEASIBILITY (B1-B18 above are kept as first written)
+--------------------------------------------------------------------------------------
+
+B19 · FEASIBILITY (A35)
+  FEASIBLE NOW 0 · PARTIALLY FEASIBLE 2 (replay-crawl, paid-provider-controls) · BLOCKED BY EXTERNAL
+  PREREQUISITE 2 (source-integrity: network; render-archive: browser runtime) · BLOCKED BY MISSING SAFE
+  TEST INPUT 0 · NOT APPLICABLE 1 (report) · UNKNOWN 0.
+  #105-UNLOCKED POPULATION: 0. None of the five carries the seam, and for none is the destination the
+  only obstacle except replay-crawl and paid-provider-controls, whose remaining obstacle is a hard-coded
+  LEDGER path that no existing mechanism in those bins can move. That would be a change to them.
+  "The replay corpus is unavailable" (A17) no longer holds on this tree: the default is the committed
+  archive.
+
+B20 · DECISION (17 Sep 2026): GAP 2 = REMAINS OPEN
+  smallest exact remaining blocker set:
+    1. store option (C):
+       · replay-crawl — PARTIALLY FEASIBLE: no-flag proof obtainable; an authorised disposable --confirm
+         run needs a confined ledger destination the bin does not have
+       · paid-provider-controls — PARTIALLY FEASIBLE: same, for its ledger
+       · source-integrity — BLOCKED BY EXTERNAL PREREQUISITE: owner-authorised network execution
+       · render-archive — BLOCKED BY EXTERNAL PREREQUISITE: an owner-authorised browser runtime
+       · cost-ledger capture-actions — BLOCKED BY EXTERNAL PREREQUISITE: owner-authorised network execution
+       (report is NOT APPLICABLE and leaves the set)
+    2. gsc-ingest reach proof = BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE
+         (prerequisite: owner-authorised network execution)
+       gsc-ingest incident-test reliability = UNPROVED; therefore Gap 2 remains OPEN on this blocker.
+  candidate finding recorded, not in the blocker set until the owner rules: the census does not count
+  `.appendAllWithoutDedupe(` call sites (A33).
   Blocker 1 stays CLOSED. Ledger unchanged: 2 / 7 / 1 / 22 / 2 / 4 / 23 = 61.

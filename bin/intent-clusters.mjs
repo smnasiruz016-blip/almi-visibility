@@ -17,6 +17,35 @@ import { row5 } from "../src/discovery/row5.mjs";
 import { LEXICON } from "../config/discovery/intent-lexicon.mjs";
 import { INTENT_REFERENCE, AMBIGUOUS, AMENDMENTS, REFERENCE_AUTHOR } from "../config/discovery/intent-reference.mjs";
 
+/**
+ * 🔴 DRAIN BEFORE EXIT — `process.exit()` tears the process down with asynchronous stdout writes
+ * still pending, so the LAST thing printed is the first thing lost. On a terminal that rarely
+ * shows; on a PIPE it does, and `spawnSync` gives this command a pipe.
+ *
+ * OBSERVED, 18 September 2026, main CI run 35292702919 on `e112cdc`: the `--check` failure branch
+ * printed `FAILED LIMBS: record-split` and exited 1, and the reader received everything EXCEPT that
+ * final line — while the acceptance block printed just above it arrived intact. The branch had never
+ * executed on the real store before #114, because `r.errors.length` was 0; making acceptance
+ * fail-capable made this latent truncation reachable, and a test depended on the line it drops.
+ *
+ * Same shape, same fix and the same bounded wait as `bin/build-page.mjs`'s helper (see its header):
+ * the zero-length write's callback fires after every earlier write has been handled, and the timer
+ * is a floor under the worst case, never a substitute for the drain. `process.exitCode` is NOT used
+ * — it makes exit wait on the event loop, and a command that hangs is worse than one that truncates.
+ */
+const DRAIN_TIMEOUT_MS = 5000;
+function exitAfterDrain(code) {
+  let exited = false;
+  const go = () => {
+    if (exited) return;
+    exited = true;
+    process.exit(code);
+  };
+  const timer = setTimeout(go, DRAIN_TIMEOUT_MS);
+  timer.unref?.();
+  process.stdout.write("", go);
+}
+
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const records = createJsonlStore(join(REPO, "runs", "evidence", "evidence.jsonl")).readAll();
 const r = row5({ records, lexicon: LEXICON, reference: INTENT_REFERENCE, ambiguous: AMBIGUOUS });
@@ -65,5 +94,5 @@ console.log(`\nERRORS: ${r.errors.length}`);
 for (const e of r.errors) console.log(`  🔴 [${e.limb}] ${e.why}`);
 if (process.argv.includes("--check") && r.errors.length) {
   console.log(`\nFAILED LIMBS: ${[...new Set(r.errors.map((e) => e.limb))].join(", ")}`);
-  process.exit(1);
+  exitAfterDrain(1);
 }

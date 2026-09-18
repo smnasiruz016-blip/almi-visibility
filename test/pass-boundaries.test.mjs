@@ -302,12 +302,14 @@ test("🔴 RED: TESTABLE-NOW without a named test is REFUSED", () => {
  * names has a test that runs the guard. BUILT-NOT-PROVED 9 → 8, VERIFIED-PASS 20 → 21. */
 /* 🔴 AND ROW 61 TICKED (15 Sep 2026): the owner decided its blocker, and the missing leg ran through the real runner on a
  * second declared neutral test product — refused correctly, every limb RED alone. BUILT-NOT-PROVED 8 → 7, VERIFIED-PASS 21 → 22. */
-test("the seven-state tally is 2 / 7 / 1 / 22 / 2 / 4 / 23 over 61 rows", () => {
+/* 🔴 18 Sep 2026: 7 → 6 BUILT-NOT-PROVED and 22 → 23 VERIFIED-PASS, because ROW 7 ticked on the owner's status-
+ * semantics Ruling D plus a current-tree re-verification (two declared moves). The denominator did not move. */
+test("the seven-state tally is 2 / 6 / 1 / 23 / 2 / 4 / 23 over 61 rows", () => {
   assert.deepEqual(tally(classify()), {
     "NOT-STARTED": 2,
-    "BUILT-NOT-PROVED": 7,
+    "BUILT-NOT-PROVED": 6,
     "TESTABLE-NOW": 1,
-    "VERIFIED-PASS": 22,
+    "VERIFIED-PASS": 23,
     FAILED: 2,
     "BLOCKED-UNKNOWN": 4,
     DEFERRED: 23,
@@ -364,11 +366,13 @@ test("every state used is one of the seven, and every row is classified", () => 
 /* 🔴 TWENTY-FOUR since row 4 was built and run (15 Sep 2026) — work that stops at BUILT-NOT-PROVED, beside row 6 ("none" 13 → 12). */
 /* 🔴 TWENTY-FIVE since row 7's owned half was built and run (15 Sep 2026) — BUILT-NOT-PROVED beside 4 and 6 ("none" 12 → 11). */
 /* 🔴 TWENTY-SIX since row 36 ticked (15 Sep 2026) — it was BUILT-NOT-PROVED on 11 September too, so until now it was "none" (11 → 10). */
-test("🔴 exactly TWENTY-SIX rows moved on WORK — 4, 6 and 7 BUILT-NOT-PROVED; 9 BLOCKED; 25 TESTABLE-NOW; 5 and 50 FAILED; the rest PASS", () => {
+/* 🔴 18 Sep 2026: row 7 left the not-yet-looked-at list — it is VERIFIED-PASS now. The count of rows that moved on
+ * WORK is UNCHANGED at twenty-six: row 7 already carried a work move, and its new one is a second, not a first. */
+test("🔴 exactly TWENTY-SIX rows moved on WORK — 4 and 6 BUILT-NOT-PROVED; 9 BLOCKED; 25 TESTABLE-NOW; 5 and 50 FAILED; the rest PASS", () => {
   const rows = Object.values(classify());
   const work = rows.filter((r) => r.changeKind === "work");
   assert.deepEqual(work.map((r) => r.id).sort((a, b) => a - b), [3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 25, 26, 36, 38, 42, 45, 47, 48, 49, 50, 51, 53, 55, 56]);
-  assert.deepEqual(work.filter((r) => !LOOKED.includes(r.state)).map((r) => `${r.id}:${r.state}`), ["4:BUILT-NOT-PROVED", "6:BUILT-NOT-PROVED", "7:BUILT-NOT-PROVED", "9:BLOCKED-UNKNOWN", "25:TESTABLE-NOW"]);
+  assert.deepEqual(work.filter((r) => !LOOKED.includes(r.state)).map((r) => `${r.id}:${r.state}`), ["4:BUILT-NOT-PROVED", "6:BUILT-NOT-PROVED", "9:BLOCKED-UNKNOWN", "25:TESTABLE-NOW"]);
   assert.deepEqual(work.filter((r) => r.state === "FAILED").map((r) => r.id), [5, 50]);
   // 🔴 Amendment 4: rows 3–7 are NOT-STARTED again, which is where the 11 September baseline had them — so
   // against THAT baseline they did not move ("vocabulary" 30 → 25, "none" 8 → 13). Their ruling move is
@@ -560,10 +564,14 @@ test("🔴 RED: DEFERRED on a row Amendment 4 opened is refused — and row 2, w
  * checked complete, and an undeclared tick on it is still refused — from BUILT-NOT-PROVED now, not NOT-STARTED. */
 /* 🔴 Row 7 left it on 15 Sep 2026 as well — its owned half built and run, BUILT-NOT-PROVED by a declared work move. The
  * refusal of an undeclared tick FROM NOT-STARTED is now proved on row 57, contract-complete and still NOT-STARTED. */
-test("🔴 CONTRACT GUARD: rows 3, 4, 7 and 57 are contract-complete and ACCEPTED by the contract law — an undeclared tick is still REFUSED on 4, 7 and 57", () => {
+/* 🔴 AND ROW 7 LEFT THE VEHICLE LIST ENTIRELY ON 18 Sep 2026 — it is VERIFIED-PASS by two DECLARED moves, so it can no
+ * longer stand for "an undeclared tick from BUILT-NOT-PROVED is refused". Row 4 still can, and does. The guard's
+ * property is untouched and still proved from BOTH start states; only the vehicle was retired, as for rows 3 and 4. */
+test("🔴 CONTRACT GUARD: rows 3, 4, 7 and 57 are contract-complete and ACCEPTED by the contract law — an undeclared tick is still REFUSED on 4 and 57", () => {
   const b = loadBoundaries();
   assert.deepEqual(b[3].missingParts, [], "item 3 is not contract-complete");
-  for (const id of [4, 7]) {
+  assert.deepEqual(b[7].missingParts, [], "item 7 is not contract-complete");
+  for (const id of [4]) {
     assert.deepEqual(b[id].missingParts, [], `item ${id} is not contract-complete`);
     const rows = classify();
     assert.equal(rows[id].state, "BUILT-NOT-PROVED");
@@ -673,9 +681,14 @@ test("🔴 the five arrive NOT-STARTED by a RULING move and nothing else; row 2 
     assert.deepEqual([chain[0].from, chain[0].to, chain[0].kind, chain[0].route], ["DEFERRED", "NOT-STARTED", "ruling", "OWNER_RULING"]);
     assert.match(chain[0].ruling, /PASS_BOUNDARIES_AMENDMENT_4\.md/);
   }
-  // 🔴 Row 7 arrived by the same ruling — and its owned half was then BUILT and run (15 September 2026), a WORK move that stops at BUILT-NOT-PROVED.
-  assert.equal(rows[7].state, "BUILT-NOT-PROVED");
-  assert.deepEqual(MOVES_AMENDMENT_2[7].map((m) => `${m.from}→${m.to}:${m.kind}:${m.route}`), ["DEFERRED→NOT-STARTED:ruling:OWNER_RULING", "NOT-STARTED→BUILT-NOT-PROVED:work:BUILT"]);
+  /* 🔴 Row 7 arrived by the same ruling; its owned half was BUILT and run (15 September 2026); and on 18 September 2026
+   * the owner's Ruling D re-opened its exam — the withheld tick had rested on demand-SIZING, which the frozen clause
+   * does not require — after which the re-run test ticked it. FOUR declared moves now, ruling then work, twice. */
+  assert.equal(rows[7].state, "VERIFIED-PASS");
+  assert.deepEqual(MOVES_AMENDMENT_2[7].map((m) => `${m.from}→${m.to}:${m.kind}:${m.route}`), ["DEFERRED→NOT-STARTED:ruling:OWNER_RULING", "NOT-STARTED→BUILT-NOT-PROVED:work:BUILT", "BUILT-NOT-PROVED→TESTABLE-NOW:ruling:OWNER_RULING", "TESTABLE-NOW→VERIFIED-PASS:work:RETEST_PASSED"]);
+  // 🔴 the tick is a WORK move; the ruling before it is not a tick and never counts as one
+  assert.equal(MOVES_AMENDMENT_2[7].at(-1).route, "RETEST_PASSED");
+  assert.equal(MOVES_AMENDMENT_2[7].at(-2).kind, "ruling");
   assert.match(rows[7].why, /DEMAND — BOUNDED, PRESENCE ONLY, MAGNITUDE UNKNOWN/);
   assert.match(rows[7].why, /The other three read UNKNOWN/);
   // 🔴 Row 4 arrived by the same ruling — and was then BUILT and run (15 September 2026), a WORK move that stops at BUILT-NOT-PROVED.
@@ -726,11 +739,14 @@ test("🔴 the five arrive NOT-STARTED by a RULING move and nothing else; row 2 
 /* 🔴 TWENTY since row 3's owned half ran against its boundary (15 Sep 2026) — every FAILURE limb RED alone, held-out 61/61. */
 /* 🔴 TWENTY-ONE since row 36 ticked (15 Sep 2026) — every category its frozen boundary names runs its guard in CI on main. */
 /* 🔴 TWENTY-TWO since row 61 ticked (15 Sep 2026) — its missing leg run through the real runner on a second declared product. */
-test("🔴 VERIFIED-PASS is exactly 22 — items 3, 8, 11, 12, 13, 14, 15, 26, 36, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56, 59, 60 and 61 — and 48's reopen stays on the record", () => {
+/* 🔴 18 Sep 2026: row 7 joins them, by Ruling D plus a re-run test. It is the FIRST tick whose cause was a reading,
+ * not new evidence — so its route is RETEST_PASSED and the ruling that preceded it is recorded as a separate move. */
+test("🔴 VERIFIED-PASS is exactly 23 — items 3, 7, 8, 11, 12, 13, 14, 15, 26, 36, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56, 59, 60 and 61 — and 48's reopen stays on the record", () => {
   const rows = classify();
   const passed = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS").map((r) => r.id).sort((a, b) => a - b);
-  assert.deepEqual(passed, [3, 8, 11, 12, 13, 14, 15, 26, 36, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56, 59, 60, 61]);
-  assert.equal(tally(rows)["VERIFIED-PASS"], 22);
+  assert.deepEqual(passed, [3, 7, 8, 11, 12, 13, 14, 15, 26, 36, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56, 59, 60, 61]);
+  assert.equal(tally(rows)["VERIFIED-PASS"], 23);
+  assert.equal(MOVES_AMENDMENT_2[7].at(-1).route, "RETEST_PASSED", "row 7's tick did not come from its re-run test");
   assert.equal(MOVES_AMENDMENT_2[61].at(-1).route, "TEST_RUN", "row 61's tick did not come from its tests");
   assert.equal(MOVES_AMENDMENT_2[36].at(-1).route, "TEST_RUN", "row 36's tick did not come from its tests");
   assert.match(rows[36].why, /NO PRODUCTION WRITE PATH EXISTS/, "row 36's production residue is not on the row");

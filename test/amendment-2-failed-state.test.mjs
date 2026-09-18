@@ -201,12 +201,17 @@ test("🔴 RED: a 'ruling' move that is not an owner ruling is refused — the t
 /* 🔴 SEVEN BY RULING SINCE AMENDMENT 4 (owner ruling, 13 September 2026): rows 3–7 DEFERRED → NOT-STARTED, their
  * class opened and nothing built. The WORK list below is deliberately UNCHANGED — that is the proof, in this test,
  * that none of the five was counted as work. */
-test("🔴 moves since Amendment 2: SEVEN by ruling (3–7 → NOT-STARTED by Amendment 4; 14 and 45 → TESTABLE-NOW); the work list unchanged — including the first tick ever REMOVED (48) and its return", () => {
+/* 🔴 18 Sep 2026: EIGHT by ruling now. Row 7's reading was ruled (OWNER_RULING_2026-09-18_STATUS_SEMANTICS.md, D)
+ * and its exam re-opened to TESTABLE-NOW — the third ruling move to land there, after 14 and 45, and like them it is
+ * NOT a tick. The tick that followed is a WORK move, listed separately below. A ruling never passes a row. */
+test("🔴 moves since Amendment 2: EIGHT by ruling (3–7 → NOT-STARTED by Amendment 4; 14, 45 and 7 → TESTABLE-NOW); the work list grows by row 7's re-run — including the first tick ever REMOVED (48) and its return", () => {
   const all = Object.entries(MOVES_AMENDMENT_2).flatMap(([id, chain]) => chain.map((s) => ({ id: Number(id), ...s })));
   assert.deepEqual(all.filter((s) => s.kind === "ruling").map((s) => `${s.id}:${s.from}→${s.to}`), [
     "3:DEFERRED→NOT-STARTED", "4:DEFERRED→NOT-STARTED", "5:DEFERRED→NOT-STARTED", "6:DEFERRED→NOT-STARTED", "7:DEFERRED→NOT-STARTED",
-    "14:BUILT-NOT-PROVED→TESTABLE-NOW", "45:FAILED→TESTABLE-NOW",
+    "7:BUILT-NOT-PROVED→TESTABLE-NOW", "14:BUILT-NOT-PROVED→TESTABLE-NOW", "45:FAILED→TESTABLE-NOW",
   ]);
+  // 🔴 NO RULING MOVE ANYWHERE LANDS ON VERIFIED-PASS. This is the guard that keeps an interpretation from ticking a row.
+  assert.deepEqual(all.filter((s) => s.kind === "ruling" && s.to === "VERIFIED-PASS"), []);
   assert.deepEqual(all.filter((s) => s.kind === "work").map((s) => `${s.id}:${s.from}→${s.to}`), [
     // 🔴 Row 3, 15 September 2026: its owned half run against its boundary and PASSED — work, after its ruling move.
     "3:NOT-STARTED→VERIFIED-PASS",
@@ -218,6 +223,9 @@ test("🔴 moves since Amendment 2: SEVEN by ruling (3–7 → NOT-STARTED by Am
     "6:NOT-STARTED→BUILT-NOT-PROVED",
     // 🔴 Row 7, 15 September 2026: its owned half built and run; DEMAND can only be bounded on owned evidence — BUILT-NOT-PROVED.
     "7:NOT-STARTED→BUILT-NOT-PROVED",
+    // 🔴 Row 7, 18 September 2026: after the ruling re-opened its exam, the test was RE-RUN on the current tree and passed
+    // — 19 of 19, clean side 0 limbs, and the frozen failure limb still fires. The evidence ticked it; the ruling did not.
+    "7:TESTABLE-NOW→VERIFIED-PASS",
     "9:BUILT-NOT-PROVED→BLOCKED-UNKNOWN", "11:BLOCKED-UNKNOWN→VERIFIED-PASS",
     "12:BUILT-NOT-PROVED→TESTABLE-NOW", "12:TESTABLE-NOW→VERIFIED-PASS", "13:BUILT-NOT-PROVED→TESTABLE-NOW", "13:TESTABLE-NOW→VERIFIED-PASS",
     "14:TESTABLE-NOW→FAILED", "14:FAILED→VERIFIED-PASS",
@@ -273,10 +281,12 @@ test("before Amendment 2 the ledger was 3 / 18 / 0 / 3 / 0 / 6 / 28", () => {
 /* 🔴 SIXTEEN since row 60 ticked (14 Sep 2026). */
 /* 🔴 EIGHTEEN since row 36 ticked (15 Sep 2026). */
 /* 🔴 NINETEEN since row 61 ticked (15 Sep 2026) — admitted by Amendment 5, so never VERIFIED-PASS before Amendment 2. */
-test("🔴 since Amendment 2, NINETEEN rows hold VERIFIED-PASS (3, 11, 12, 13, 14, 26, 36, 38, 42, 45, 47, 49, 51, 53, 55, 56, 59, 60, 61) — 50 reached it and was REOPENED; 48 LOST it and EARNED IT BACK", () => {
+/* 🔴 18 Sep 2026: TWENTY. Row 7 joins on a reading, not on new evidence — the first tick of that kind, which is why
+ * its ruling and its re-run are two separate declared moves and only the second one is a tick. */
+test("🔴 since Amendment 2, TWENTY rows hold VERIFIED-PASS (3, 7, 11, 12, 13, 14, 26, 36, 38, 42, 45, 47, 49, 51, 53, 55, 56, 59, 60, 61) — 50 reached it and was REOPENED; 48 LOST it and EARNED IT BACK", () => {
   const rows = classify();
   const newPasses = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS" && BEFORE_AMENDMENT_2[r.id] !== "VERIFIED-PASS");
-  assert.deepEqual(newPasses.map((r) => r.id), [3, 11, 12, 13, 14, 26, 36, 38, 42, 45, 47, 49, 51, 53, 55, 56, 59, 60, 61]);
+  assert.deepEqual(newPasses.map((r) => r.id), [3, 7, 11, 12, 13, 14, 26, 36, 38, 42, 45, 47, 49, 51, 53, 55, 56, 59, 60, 61]);
   const lost = Object.values(rows).filter((r) => BEFORE_AMENDMENT_2[r.id] === "VERIFIED-PASS" && r.state !== "VERIFIED-PASS");
   assert.deepEqual(lost.map((r) => r.id), []);
   // The count hides a round trip — the chain does not.

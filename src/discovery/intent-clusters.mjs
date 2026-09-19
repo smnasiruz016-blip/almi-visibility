@@ -79,7 +79,15 @@ export function normalise(original, lexicon) {
   }).filter((w) => w !== "");
 
   const typeOf = new Map();
-  for (const [type, values] of Object.entries(lexicon.slotTypes || {})) for (const v of values) typeOf.set(v, type);
+  for (const [type, values] of Object.entries(lexicon.slotTypes || {})) {
+    for (const v of values) {
+      typeOf.set(v, type);
+      // Multi-word declared slot values also declare their natural initials:
+      // new_zealand → nz. This is derived from the declaration, never learned
+      // from a held-out query or added as a subject-specific exception.
+      if (v.includes("_")) typeOf.set(v.split("_").map((part) => part[0]).join(""), type);
+    }
+  }
   const filler = new Set(lexicon.filler || []);
 
   const items = [];
@@ -158,8 +166,13 @@ function describe(members, lexicon) {
 }
 
 /** Cluster query rows ({query, impressions, clicks}). Returns clusters sorted by size, then id. */
-export function clusterIntents(rows, lexicon, { threshold = THRESHOLD, linkage = "average" } = {}) {
+export function clusterIntents(rows, lexicon, { threshold = THRESHOLD, linkage = "average", dropHapax = false } = {}) {
   const items = rows.map((r) => member(r, lexicon));
+  if (dropHapax) {
+    const frequency = new Map();
+    for (const item of items) for (const token of item.key) frequency.set(token, (frequency.get(token) || 0) + 1);
+    for (const item of items) item.key = item.key.filter((token) => frequency.get(token) > 1);
+  }
   const w = idfOf(items.map((x) => x.key));
   // identical keys start together; an empty key (every word filler) stays alone, by its identity
   const byKey = new Map();
@@ -306,7 +319,7 @@ export function buildRecord(humanRows, heldOut, lexicon) {
    * selected for evaluation.
    */
   const resultOf = new Map((heldOut.results || []).map((r) => [r.ref, r]));
-  return clusterIntents(humanRows, lexicon, { linkage: "single" }).map((cluster) => ({
+  return clusterIntents(humanRows, lexicon, { dropHapax: true }).map((cluster) => ({
     ...cluster,
     members: cluster.members.map((m) => {
       if (!isHeldOut(m.original)) return { ...m, heldOut: false };

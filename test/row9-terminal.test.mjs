@@ -9,7 +9,10 @@
  *
  *   (a) the `⚠` is dropped                           → NOT_TERMINAL_MARK_INCOMPLETE
  *   (b) the row is counted as all dimensions satisfied → overcountErrors fires
- *   (c) the unlock condition becomes true, not re-sat  → NOT_TERMINAL_UNLOCKED_AND_NOT_RE_SAT
+ *   (c) an unlock predicate becomes TRUE                → NOT_TERMINAL_UNLOCKED
+ *
+ * 🔴 (c) CHANGED AFTER PR #120. It read "becomes true, and the row is not re-sat", and a re-sit
+ * DATE alone was accepted as the answer. A date is not evidence. See the three states below.
  *
  * And condition 2 — the whole-boundary verification the 18 September ruling
  * waited for — is proved failable too, because a verification that cannot fail
@@ -22,14 +25,15 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { createJsonlStore } from "../src/evidence/store.mjs";
-import { PASS_DIMENSIONS } from "../src/search/dimensions.mjs";
+import { PASS_DIMENSIONS, dimensionCensus } from "../src/search/dimensions.mjs";
 import { classify, assertLawful, assertTransitions } from "../src/checklist/classification.mjs";
 import {
   JUSTIFIED_UNAVAILABLE,
+  MEASUREMENT_PRODUCER,
   UNAVAILABLE_DIMENSION,
   UNLOCK_CLAUSES,
   UNSUPPLIABLE_MEASUREMENT,
@@ -52,6 +56,9 @@ const complete = (rows, extra = {}) => ({
 });
 const metricRow = { clicks: 1, impressions: 2, ctr: 0.5, position: 3 };
 
+/** Row 9 as the ledger holds it: six proven pulls and the ⚠ record the row actually claims. */
+const asRowNine = (over = {}) => ({ mark: JUSTIFIED_UNAVAILABLE, ...over });
+
 /** The six buildable pulls, all proven — the world in which row 9 may stand terminal. */
 function sixPulls(countryValue = complete([{ country: "gbr", ...metricRow }])) {
   return [
@@ -67,7 +74,7 @@ function sixPulls(countryValue = complete([{ country: "gbr", ...metricRow }])) {
  * ================================================================== */
 
 test("with the six proven and nothing unlocked, row 9 stands terminal with its ⚠", () => {
-  assert.equal(row9Terminal({ records: sixPulls() }), "TERMINAL_WITH_JUSTIFIED_UNAVAILABLE");
+  assert.equal(row9Terminal(asRowNine({ records: sixPulls() })), "TERMINAL_WITH_JUSTIFIED_UNAVAILABLE");
 });
 
 /* ==================================================================
@@ -128,15 +135,15 @@ test("🔴 RED (b): the mark declares it is never to be represented as measured"
  * STATE (c) — A TOOL BECAME AVAILABLE AND THE ROW WAS NOT SAT AGAIN.
  * ================================================================== */
 
-test("🔴 RED (c): an analytics package appears in a product repo — the row is NOT terminal until re-sat", () => {
+test("🔴 RED (c): an analytics package in a product repo ends terminal status — no date restores it", () => {
   const unlockInputs = { ...UNSUPPLIABLE_MEASUREMENT, productReposWithAnalytics: 1 };
   assert.deepEqual(unlockState(unlockInputs).map((c) => c.id), ["analytics-package"]);
-  assert.equal(row9Terminal({ records: sixPulls(), unlockInputs }), "NOT_TERMINAL_UNLOCKED_AND_NOT_RE_SAT");
+  assert.equal(row9Terminal(asRowNine({ records: sixPulls(), unlockInputs })), "NOT_TERMINAL_UNLOCKED");
 });
 
-test("🔴 RED (c): an analytics TAG in a product layout unlocks it just as a package does", () => {
+test("🔴 RED (c): an analytics TAG in a product layout ends it just as a package does", () => {
   const unlockInputs = { ...UNSUPPLIABLE_MEASUREMENT, productReposLoadingAnalyticsTag: 1 };
-  assert.equal(row9Terminal({ records: sixPulls(), unlockInputs }), "NOT_TERMINAL_UNLOCKED_AND_NOT_RE_SAT");
+  assert.equal(row9Terminal(asRowNine({ records: sixPulls(), unlockInputs })), "NOT_TERMINAL_UNLOCKED");
 });
 
 test("🔴 RED (c): the credential gaining an analytics scope unlocks it", () => {
@@ -145,24 +152,95 @@ test("🔴 RED (c): the credential gaining an analytics scope unlocks it", () =>
     credentialScopes: [...UNSUPPLIABLE_MEASUREMENT.credentialScopes, "https://www.googleapis.com/auth/analytics.readonly"],
   };
   assert.deepEqual(unlockState(unlockInputs).map((c) => c.id), ["analytics-scope"]);
-  assert.equal(row9Terminal({ records: sixPulls(), unlockInputs }), "NOT_TERMINAL_UNLOCKED_AND_NOT_RE_SAT");
+  assert.equal(row9Terminal(asRowNine({ records: sixPulls(), unlockInputs })), "NOT_TERMINAL_UNLOCKED");
 });
 
 test("🔴 RED (c): the funnel allow-list gaining a search-source key unlocks it", () => {
   const unlockInputs = { ...UNSUPPLIABLE_MEASUREMENT, funnelKeysCarryingSearchSource: 1 };
-  assert.equal(row9Terminal({ records: sixPulls(), unlockInputs }), "NOT_TERMINAL_UNLOCKED_AND_NOT_RE_SAT");
+  assert.equal(row9Terminal(asRowNine({ records: sixPulls(), unlockInputs })), "NOT_TERMINAL_UNLOCKED");
 });
 
 test("🔴 RED (c): authorising a product-database read unlocks it", () => {
   const unlockInputs = { ...UNSUPPLIABLE_MEASUREMENT, productDatabaseReadAuthorised: true };
-  assert.equal(row9Terminal({ records: sixPulls(), unlockInputs }), "NOT_TERMINAL_UNLOCKED_AND_NOT_RE_SAT");
+  assert.equal(row9Terminal(asRowNine({ records: sixPulls(), unlockInputs })), "NOT_TERMINAL_UNLOCKED");
 });
 
-test("🔴 (c) THE THIRD STATE: unlocked AND re-sat afterwards is terminal again — the guard is not a one-way door", () => {
-  const unlockInputs = { ...UNSUPPLIABLE_MEASUREMENT, measuredOn: "2026-10-01", productReposWithAnalytics: 1 };
-  assert.equal(row9Terminal({ records: sixPulls(), unlockInputs, reSatOn: "2026-09-30" }), "NOT_TERMINAL_UNLOCKED_AND_NOT_RE_SAT",
-    "a re-sit BEFORE the unlock does not answer it");
-  assert.equal(row9Terminal({ records: sixPulls(), unlockInputs, reSatOn: "2026-10-02" }), "TERMINAL_WITH_JUSTIFIED_UNAVAILABLE");
+/* ==================================================================
+ * 🔴 THE THREE STATES — REPLACING THE DEFECTIVE "re-sit DATE" TEST.
+ *
+ * WHAT THE DELETED TEST ASSERTED: that an unlocked row became terminal again as soon as
+ * `reSatOn` was on or after the unlock measurement's date. That was the defect, asserted as
+ * if it were the law. It could only ever catch a re-sit dated BEFORE the unlock.
+ *
+ * WHAT THESE COVER THAT IT DID NOT:
+ *   · a re-sit date is now NEVER sufficient — there is no date input left to pass;
+ *   · terminal returns only on a NEWLY DATED all-FALSE measurement (route A);
+ *   · the case the old test could not reach at all: `downstream outcomes` genuinely
+ *     INGESTED (route B), where the justified-unavailable answer must never be returned
+ *     and a ⚠ still claimed on it is itself a defect.
+ * ================================================================== */
+
+/** The dimension table as it would read once an outcome pull exists and is ingested. */
+const SEVEN_WITH_OUTCOMES = PASS_DIMENSIONS.map((d) =>
+  d.dimension === UNAVAILABLE_DIMENSION ? { dimension: d.dimension, pulls: ["outcomes"] } : d);
+
+const UNLOCKED = { ...UNSUPPLIABLE_MEASUREMENT, measuredOn: "2026-10-01", productReposWithAnalytics: 1 };
+
+test("🔴 STATE 1: unlock FALSE + six ingested + a lawful ⚠ → terminal", () => {
+  assert.deepEqual(unlockState(UNSUPPLIABLE_MEASUREMENT), []);
+  assert.equal(row9Terminal(asRowNine({ records: sixPulls() })), "TERMINAL_WITH_JUSTIFIED_UNAVAILABLE");
+});
+
+test("🔴 STATE 2: unlock TRUE + a later re-sit date + outcomes still ⚠ → NOT terminal", () => {
+  assert.deepEqual(unlockState(UNLOCKED).map((c) => c.id), ["analytics-package"]);
+  assert.equal(row9Terminal(asRowNine({ records: sixPulls(), unlockInputs: UNLOCKED })), "NOT_TERMINAL_UNLOCKED");
+  // 🔴 A DATE BUYS NOTHING. Passing one — by any name — does not move the answer, because
+  // there is no date input left for it to land in.
+  assert.equal(row9Terminal(asRowNine({ records: sixPulls(), unlockInputs: UNLOCKED, reSatOn: "2026-10-02" })), "NOT_TERMINAL_UNLOCKED");
+  assert.equal(row9Terminal(asRowNine({ records: sixPulls(), unlockInputs: UNLOCKED, reSatOn: "2099-01-01" })), "NOT_TERMINAL_UNLOCKED");
+});
+
+test("🔴 STATE 2, ROUTE A: only a NEWLY DATED all-FALSE measurement restores terminal", () => {
+  const reMeasured = { ...UNSUPPLIABLE_MEASUREMENT, measuredOn: "2026-10-05", productReposWithAnalytics: 0 };
+  assert.deepEqual(unlockState(reMeasured), []);
+  assert.equal(row9Terminal(asRowNine({ records: sixPulls(), unlockInputs: reMeasured })), "TERMINAL_WITH_JUSTIFIED_UNAVAILABLE");
+});
+
+test("🔴 STATE 3: unlock TRUE + outcomes genuinely INGESTED + ⚠ removed → the ordinary seven, never justified-unavailable", () => {
+  const records = [...sixPulls(), obs("outcomes", complete([{ outcome: "signup", query: "q", ...metricRow }]))];
+  const census = dimensionCensus(records, SEVEN_WITH_OUTCOMES);
+  assert.equal(census.dimensions.find((d) => d.dimension === UNAVAILABLE_DIMENSION).state, "INGESTED",
+    "the state-3 world was not built — outcomes is not ingested, so this proves nothing");
+  assert.equal(census.ingested, 7);
+
+  const verdict = row9Terminal({ records, unlockInputs: UNLOCKED, mark: undefined, table: SEVEN_WITH_OUTCOMES });
+  assert.equal(verdict, "TERMINAL_ALL_SEVEN_INGESTED");
+  assert.notEqual(verdict, "TERMINAL_WITH_JUSTIFIED_UNAVAILABLE",
+    "🔴 a measured dimension was reported as justified-unavailable");
+});
+
+test("🔴 STATE 3 RED: keeping the ⚠ on a dimension the store proves INGESTED is refused", () => {
+  const records = [...sixPulls(), obs("outcomes", complete([{ outcome: "signup", query: "q", ...metricRow }]))];
+  assert.equal(
+    row9Terminal({ records, unlockInputs: UNLOCKED, mark: JUSTIFIED_UNAVAILABLE, table: SEVEN_WITH_OUTCOMES }),
+    "NOT_TERMINAL_MARK_CLAIMED_ON_AN_INGESTED_DIMENSION",
+  );
+});
+
+test("🔴 dropping the ⚠ while the dimension is STILL blocked does not tick the row either", () => {
+  assert.equal(row9Terminal({ records: sixPulls(), mark: undefined }), "NOT_TERMINAL_MARK_INCOMPLETE");
+  assert.equal(row9Terminal({ records: sixPulls(), mark: null }), "NOT_TERMINAL_MARK_INCOMPLETE");
+});
+
+/* 🔴 §4 — THE MEASUREMENT BOUNDARY, STATED HONESTLY AND CHECKED. */
+test("🔴 UNSUPPLIABLE_MEASUREMENT is a DATED SNAPSHOT, not a live detector — and no source claims otherwise", () => {
+  assert.equal(MEASUREMENT_PRODUCER, null, "a producer now exists — this test and the module's comment must be rewritten");
+  const src = readFileSync(new URL("../src/search/row9-terminal.mjs", import.meta.url), "utf8");
+  assert.match(src, /DATED SNAPSHOT, not a live detector/);
+  assert.match(src, /IT WOULD NOT/, "the withdrawn claim is not recorded as withdrawn");
+  for (const overclaim of [/will be detected automatically(?! )/i, /automatically detected/i, /will notice/i]) {
+    assert.ok(!overclaim.test(src), `the source still claims live detection: ${overclaim}`);
+  }
 });
 
 test("🔴 every unlock clause is individually capable of firing — none is decorative", () => {
@@ -193,14 +271,14 @@ test("🔴 RED: a missing dimension fails the FAILURE clause's first limb", () =
   const v = boundaryVerification([obs("query", complete([{ query: "q", ...metricRow }]))]);
   assert.equal(v.satisfied, false);
   assert.ok(v.failures.some((f) => /"pages" is/.test(f)), JSON.stringify(v.failures));
-  assert.equal(row9Terminal({ records: [obs("query", complete([{ query: "q", ...metricRow }]))] }), "NOT_TERMINAL_BOUNDARY_UNPROVED");
+  assert.equal(row9Terminal(asRowNine({ records: [obs("query", complete([{ query: "q", ...metricRow }]))] })), "NOT_TERMINAL_BOUNDARY_UNPROVED");
 });
 
 test("🔴 RED: a truncated country pull leaves countries BUILT_NOT_RUN and the boundary unproved", () => {
   const records = sixPulls(complete([{ country: "gbr", ...metricRow }], { exhausted: false, dataState: "UNKNOWN" }));
   const v = boundaryVerification(records);
   assert.equal(v.satisfied, false);
-  assert.equal(row9Terminal({ records }), "NOT_TERMINAL_BOUNDARY_UNPROVED");
+  assert.equal(row9Terminal(asRowNine({ records })), "NOT_TERMINAL_BOUNDARY_UNPROVED");
 });
 
 test("a pull that CLAIMS NOTHING is reported, never counted against the row and never dropped", () => {
@@ -217,7 +295,7 @@ test("a pull that CLAIMS NOTHING is reported, never counted against the row and 
 test("🔴 REAL: the committed store proves six of seven, outcomes ⚠, and row 9 stands terminal",
   { skip: !existsSync(STORE) }, () => {
     const records = createJsonlStore(STORE).readAll();
-    const c = row9Conditions({ records });
+    const c = row9Conditions(asRowNine({ records }));
 
     assert.equal(c.verification.ingested, 6);
     assert.equal(c.verification.blocked, 1);
@@ -230,7 +308,7 @@ test("🔴 REAL: the committed store proves six of seven, outcomes ⚠, and row 
     assert.deepEqual(c.c3_stillVisiblyUnavailable.failures, []);
     assert.deepEqual(c.c4_noRequiredToolHasBecomeAvailable.unlocked, []);
 
-    assert.equal(row9Terminal({ records }), "TERMINAL_WITH_JUSTIFIED_UNAVAILABLE");
+    assert.equal(row9Terminal(asRowNine({ records })), "TERMINAL_WITH_JUSTIFIED_UNAVAILABLE");
     assert.equal(
       c.verification.dimensions.find((d) => d.dimension === UNAVAILABLE_DIMENSION).state,
       "BLOCKED",

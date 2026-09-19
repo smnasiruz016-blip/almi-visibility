@@ -248,11 +248,32 @@ test("A3: both honest combinations construct", () => {
  * named date. A machine may not fact-check, and an absent checker may not.
  */
 test("🔴 A3: no record on disk claims a standing it has not earned", async () => {
-  const { loadRegistry } = await import("../src/facts/registry.mjs");
+  const { loadRegistry, primaryFacts, derivedFacts } = await import("../src/facts/registry.mjs");
+  const { makeDerivedFact } = await import("../src/facts/lifecycle.mjs");
   const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
   const { records } = await loadRegistry((await (await import("./support/subjects.mjs")).subject("almi-oet")).factsDir, "almi-oet");
   assert.ok(records.length >= 30, `only ${records.length} records — this law would be weak`);
-  for (const r of records) {
+
+  /* 🔴 EVERY RECORD IS STILL JUDGED — THE TWO KINDS EARN A STANDING DIFFERENTLY, AND BOTH ARE
+   * CHECKED HERE. A primary record earns it by a PERSON reading its source, so it owes a date and a
+   * human checker (below). A derived record cannot earn one that way at all: F28 refuses it a
+   * `factCheckedOn` and `fact()` throws if given one. What it owes instead is that its standing is
+   * its weakest input's — so it is held to exactly that, recomputed from the records it cites by
+   * the production constructor rather than by a second copy of the rule. Neither kind escapes:
+   * the loop below plus this block cover `records` completely, which the final line asserts. */
+  const computed = derivedFacts(records);
+  for (const r of computed) {
+    assert.ok(["UNVERIFIED", "VERIFIED", "UNKNOWN"].includes(r.verificationState), `${r.id}: undeclared standing`);
+    assert.equal(r.checks?.factCheckedOn ?? null, null, `${r.id}: a derived record carries a fact-check date — its standing is inherited, not checked`);
+    const inputs = r.derivation.inputs.map((id) => records.find((x) => x.id === id));
+    assert.ok(inputs.every(Boolean), `${r.id}: cites a record not in the registry`);
+    const ceiling = makeDerivedFact({ id: r.id, claim: r.claim, formula: r.derivation.formula, inputs: r.derivation.inputs, inputFacts: inputs }).verificationState;
+    assert.equal(r.verificationState, ceiling, `${r.id}: claims ${r.verificationState} but its weakest input earns only ${ceiling}`);
+  }
+
+  const sourced = primaryFacts(records);
+  assert.equal(sourced.length + computed.length, records.length, "a record is neither primary nor derived — it escaped both laws");
+  for (const r of sourced) {
     assert.ok(
       ["UNVERIFIED", "VERIFIED", "UNKNOWN"].includes(r.verificationState),
       `${r.id}: undeclared standing`,

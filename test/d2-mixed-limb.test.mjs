@@ -142,9 +142,9 @@ test("🔴 the split did NOT improve either row — both stay exactly where thei
     assert.equal(rows[id].state, "BLOCKED-UNKNOWN", `row ${id} moved. A ruling is not a tick — RR-52 Ruling 0.3`);
   }
   /* 🔴 19 Sep 2026: the tally moved to 24 / 3 — and NOT because of the split. Rows 1 and 54, the only two
-   * Amendment 6 touches, are asserted UNMOVED directly above; the row that moved is 9, which Amendment 6
+   * Amendment 6 touches, are asserted UNMOVED directly above; the rows that moved are 9 and 17, which Amendment 6
    * never names. The tally is pinned here so a future split cannot hide a movement inside it. */
-  assert.deepEqual(tally(rows), { "NOT-STARTED": 2, "BUILT-NOT-PROVED": 6, "TESTABLE-NOW": 1, "VERIFIED-PASS": 24, FAILED: 2, "BLOCKED-UNKNOWN": 3, DEFERRED: 23 });
+  assert.deepEqual(tally(rows), { "NOT-STARTED": 2, "BUILT-NOT-PROVED": 5, "TESTABLE-NOW": 1, "VERIFIED-PASS": 25, FAILED: 2, "BLOCKED-UNKNOWN": 3, DEFERRED: 23 });
 });
 
 test("🔴 ABSENT DETECTOR, DECLARED: nothing refuses a whole-row DEFERRED on a split row — the `state` field is overloaded", () => {
@@ -305,17 +305,17 @@ test("🔴 the four inventories stay SEPARATE, and 58/58 stays unreachable insid
   const legacyPass = legacy.filter((r) => r.state === "VERIFIED-PASS").length;
   const legacyDeferred = legacy.filter((r) => r.state === "DEFERRED").length;
   assert.equal(legacy.length, 58);
-  assert.equal(legacyPass, 21, "the legacy 58-row inventory is x / 58 and is reported on its own");
+  assert.equal(legacyPass, 22, "the legacy 58-row inventory is x / 58 and is reported on its own");
   assert.equal(legacyDeferred, 23);
   // 🔴 THE POINT OF R5: 23 of the 58 are deferred, so the legacy inventory can never reach 58.
   assert.equal(58 - legacyDeferred, 35, "the maximum reachable value of the legacy inventory inside v0.1");
   assert.ok(legacyPass < 58 - legacyDeferred || legacyPass === 35);
   // the other three inventories, each counted separately
   assert.equal(rows.length, 61);
-  assert.equal(rows.filter((r) => r.state === "VERIFIED-PASS").length, 24, "x / 61");
+  assert.equal(rows.filter((r) => r.state === "VERIFIED-PASS").length, 25, "x / 61");
   const inScope = rows.filter((r) => r.state !== "DEFERRED");
   assert.equal(inScope.length, 38);
-  assert.equal(inScope.filter((r) => r.state === "VERIFIED-PASS").length, 24, "x / 38");
+  assert.equal(inScope.filter((r) => r.state === "VERIFIED-PASS").length, 25, "x / 38");
 });
 
 /* ================================================================== *

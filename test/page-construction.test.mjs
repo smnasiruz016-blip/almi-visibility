@@ -17,7 +17,7 @@ import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
 import { fact } from "../src/facts/record.mjs";
-import { loadRegistry } from "../src/facts/registry.mjs";
+import { loadRegistry, primaryFacts } from "../src/facts/registry.mjs";
 import { constructCandidates, selectCandidates, ACCEPTED, REFUSED, PASS, FAIL, NOT_TESTED, PAGE_ONE } from "../src/page/construct.mjs";
 import { judgeWhy, WHY_NOT_ENFORCED } from "../src/gate-a/why-this-url.mjs";
 import { MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../src/gate-a/run.mjs";
@@ -289,8 +289,15 @@ test("🔴 61 · THE SECOND DECLARED PRODUCT — declared as one, sharing no sub
     const subjects = new Set(records.map((r) => r.claim.subject));
     const predicates = new Set(records.map((r) => r.claim.predicate));
     assert.deepEqual(theirs.filter((r) => subjects.has(r.claim.subject) || predicates.has(r.claim.predicate)).map((r) => r.id), [], `shaped around ${other.productId}'s claims`);
-    const hosts = new Set(theirs.map((r) => new URL(r.source.url).hostname));
-    if (other.productId === FIRST) assert.deepEqual(records.filter((r) => hosts.has(new URL(r.source.url).hostname)).map((r) => r.id), []);
+    /* 🔴 SOURCE HOSTS ARE A PROPERTY OF SOURCE-BEARING RECORDS (F28). Row 61's boundary asks that
+     * the second declared product share no "source host or licence" with the first — and a derived
+     * record carries neither, because F28 forbids it a `source` at all. It cannot share a host it
+     * does not have, and asking would throw on the `source.url` that is lawfully absent. The floor
+     * below keeps the narrowing from emptying the comparison. */
+    const theirHosts = primaryFacts(theirs);
+    assert.ok(theirHosts.length > 0, `${other.productId} has no source-bearing records — the host comparison would be vacuous`);
+    const hosts = new Set(theirHosts.map((r) => new URL(r.source.url).hostname));
+    if (other.productId === FIRST) assert.deepEqual(primaryFacts(records).filter((r) => hosts.has(new URL(r.source.url).hostname)).map((r) => r.id), []);
   }
   // every spec holds claim ids that resolve in ITS OWN registry — ids, never a value
   const own = new Set(records.map((r) => r.id));

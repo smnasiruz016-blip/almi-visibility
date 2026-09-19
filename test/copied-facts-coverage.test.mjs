@@ -14,7 +14,7 @@
 import test, { describe } from "node:test";
 import assert from "node:assert/strict";
 
-import { loadRegistry } from "../src/facts/registry.mjs";
+import { loadRegistry, primaryFacts } from "../src/facts/registry.mjs";
 import { findCopiedFacts } from "../src/page/render.mjs";
 import { availableProducts } from "../src/product-cli.mjs";
 import { subject } from "./support/subjects.mjs";
@@ -145,8 +145,16 @@ describe("🔴 the measured split of the first product, pinned exactly", () => {
     const id = availableProducts()[0];
     const p = await subject(id);
     const { records } = await loadRegistry(p.factsDir, p.productId);
+    /* 🔴 SOURCE-BEARING ONLY (F28), and the reason is what this detector is FOR. A copied fact is a
+     * publisher's protected WORDING reproduced on our page — which is why the check reads
+     * `evidence.ownWords` and `evidence.quotedSpan`. F28 waives F17–F22, the licence and
+     * attribution laws, for a derived record precisely because it reproduces nobody's words: its
+     * value is our own arithmetic over records we already hold. There is no licensor whose wording
+     * it could copy, so it is not a value this check can find a COPIED verdict in. */
+    const sourced = primaryFacts(records);
+    assert.ok(sourced.length > 0, "no source-bearing records — this pin would be vacuous");
     const [slug, spec] = Object.entries(p.pageSpecs)[0];
-    const { copied, clean, notTested } = findCopiedFacts(spec, records);
+    const { copied, clean, notTested } = findCopiedFacts(spec, sourced);
 
     const vCopied = copied.filter((x) => x.field === "value");
     const vClean = clean.filter((x) => x.field === "value");
@@ -164,8 +172,12 @@ describe("🔴 the measured split of the first product, pinned exactly", () => {
   test("92 field-instances per spec: COPIED 0 · CLEAN 2 · NOT_TESTED 90", async () => {
     const p = await subject(availableProducts()[0]);
     const { records } = await loadRegistry(p.factsDir, p.productId);
+    /* 🔴 SOURCE-BEARING ONLY (F28) — same reason as the pin above: a derived record reproduces no
+     * publisher's wording, so it carries no field this detector can return COPIED on. */
+    const sourced = primaryFacts(records);
+    assert.ok(sourced.length > 0, "no source-bearing records — this pin would be vacuous");
     for (const [slug, spec] of Object.entries(p.pageSpecs)) {
-      const { copied, clean, notTested } = findCopiedFacts(spec, records);
+      const { copied, clean, notTested } = findCopiedFacts(spec, sourced);
       assert.equal(copied.length + clean.length + notTested.length, 92, slug);
       assert.equal(copied.length, 0, slug);
       assert.equal(clean.length, 2, slug);

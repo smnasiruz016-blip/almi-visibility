@@ -242,6 +242,9 @@ test("🔴 moves since Amendment 2: EIGHT by ruling (3–7 → NOT-STARTED by Am
     "11:BLOCKED-UNKNOWN→VERIFIED-PASS",
     "12:BUILT-NOT-PROVED→TESTABLE-NOW", "12:TESTABLE-NOW→VERIFIED-PASS", "13:BUILT-NOT-PROVED→TESTABLE-NOW", "13:TESTABLE-NOW→VERIFIED-PASS",
     "14:TESTABLE-NOW→FAILED", "14:FAILED→VERIFIED-PASS",
+    // 🔴 Row 17, 19 September 2026: its INPUT came into existence — one real derived fact in the first product's external
+    // store — and then its own test ran over it. The capability had been complete since 12 September; only the input was missing.
+    "17:BUILT-NOT-PROVED→TESTABLE-NOW", "17:TESTABLE-NOW→VERIFIED-PASS",
     "25:BUILT-NOT-PROVED→TESTABLE-NOW", "26:BUILT-NOT-PROVED→TESTABLE-NOW", "26:TESTABLE-NOW→VERIFIED-PASS",
     // 🔴 Row 36, 15 September 2026: every guard its frozen boundary names executed, the archive-corpus refusal last.
     "36:BUILT-NOT-PROVED→VERIFIED-PASS",
@@ -300,10 +303,10 @@ test("before Amendment 2 the ledger was 3 / 18 / 0 / 3 / 0 / 6 / 28", () => {
  * semantics and recorded NO MOVEMENT, because its condition 2 was answered UNKNOWN. What closed row 9 was running
  * the whole-boundary verification that condition named. It is the first row to tick while one of its own frozen
  * dimensions stays permanently unmeasured — which is why the ⚠ is machine-readable and guarded, not prose. */
-test("🔴 since Amendment 2, TWENTY-ONE rows hold VERIFIED-PASS (3, 7, 9, 11, 12, 13, 14, 26, 36, 38, 42, 45, 47, 49, 51, 53, 55, 56, 59, 60, 61) — 50 reached it and was REOPENED; 48 LOST it and EARNED IT BACK", () => {
+test("🔴 since Amendment 2, TWENTY-TWO rows hold VERIFIED-PASS (3, 7, 9, 11, 12, 13, 14, 17, 26, 36, 38, 42, 45, 47, 49, 51, 53, 55, 56, 59, 60, 61) — 50 reached it and was REOPENED; 48 LOST it and EARNED IT BACK", () => {
   const rows = classify();
   const newPasses = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS" && BEFORE_AMENDMENT_2[r.id] !== "VERIFIED-PASS");
-  assert.deepEqual(newPasses.map((r) => r.id), [3, 7, 9, 11, 12, 13, 14, 26, 36, 38, 42, 45, 47, 49, 51, 53, 55, 56, 59, 60, 61]);
+  assert.deepEqual(newPasses.map((r) => r.id), [3, 7, 9, 11, 12, 13, 14, 17, 26, 36, 38, 42, 45, 47, 49, 51, 53, 55, 56, 59, 60, 61]);
   const lost = Object.values(rows).filter((r) => BEFORE_AMENDMENT_2[r.id] === "VERIFIED-PASS" && r.state !== "VERIFIED-PASS");
   assert.deepEqual(lost.map((r) => r.id), []);
   // The count hides a round trip — the chain does not.

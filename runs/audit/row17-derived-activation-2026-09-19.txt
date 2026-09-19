@@ -1,0 +1,132 @@
+ROW 17 · DERIVED FACT PROVENANCE — ACTIVATION EVIDENCE
+19 September 2026
+engine at 7d2a2cb (before this change) · data at a4b38cf (before this change)
+
+🔴 THE REAL DERIVED POPULATION IS ONE. The frozen EVIDENCE clause asks for "recomputation of every
+derived fact". There is one derived fact, so that is ONE recomputation. Nothing below is broader
+than that, and none of it is described as though a corpus had been exercised.
+
+════════════════════════════════════════════════════════════════════════════════
+0 · BASELINE, TAKEN THIS TURN ON THE UNTOUCHED TREE
+════════════════════════════════════════════════════════════════════════════════
+  command: node --test test/*.test.mjs   (cwd C:\Projects\almi-visibility)
+  tests 1349 · suites 45 · pass 1349 · fail 0 · skipped 0 · duration 447,030 ms
+  The symlink/.test-scratch race did NOT reproduce in this baseline.
+
+════════════════════════════════════════════════════════════════════════════════
+1 · THE RECORD
+════════════════════════════════════════════════════════════════════════════════
+  id                pk-pnmc.verification-fee-foreign-to-domestic-ratio
+  kind              derived
+  formula           ratio          (frozen FORMULAS table; no new formula)
+  inputs            pk-pnmc.verification-fee.destination=foreign    10000 PKR  UNKNOWN
+                    pk-pnmc.verification-fee.destination=domestic    1000 PKR  UNKNOWN
+  inputValues       [10000, 1000]  — a SNAPSHOT, so a changed input can be detected at all
+  value             10   valueType "derived"   unit null (a ratio of two PKR amounts is dimensionless)
+  verificationState UNKNOWN — its weakest input's, enforced by the constructor, re-derived by F29
+  computedOn        2026-09-19 (declared; the derivation reads no clock)
+  source            ABSENT by law (F28) · checks.factCheckedOn ABSENT by law
+  lives in          almi-visibility-data/almi-oet/facts/pk-pnmc-derived.mjs  (EXTERNAL store)
+
+  WHY ratio AND NOT difference — the declaration commits to one number, TENFOLD, and ratio is the
+  only member of the frozen table that yields it. difference yields 9,000, which appears nowhere in
+  either repository. The formula was read off the declaration, not chosen for it.
+
+  THE NEED PREDATES THE RECORD BY NINE DAYS
+    pk-pnmc.mjs:13 — "the comparison between them is the fact a reader actually needs"
+    introduced  engine commit 4b55e5e, 2026-09-10 18:52:20 +0000
+    moved       data commit a4b38cf, 2026-09-14 (Option A)
+    corroborated A1_FACT_SUPPLY_FEASIBILITY.md:49 — "a ten-fold difference"
+
+════════════════════════════════════════════════════════════════════════════════
+2 · ROW 17's FROZEN CLAUSES, OVER THE REAL RECORD
+════════════════════════════════════════════════════════════════════════════════
+  formula and input IDs stored ........... YES — derivation.formula + derivation.inputs (2)
+  the value recomputable ................. YES — recomputeDerived over the LIVE records: 10 = 10
+  never more verified than weakest input .. YES — UNKNOWN; ceiling recomputed by F29 = UNKNOWN
+  dependents marked when an input changes . YES — domestic moved 1000 -> 2000 in an isolated
+        in-process copy: INPUT_CHANGED raised on the real derived id, walk.total > 0, stored value
+        still 10, mismatch reported as a FINDING (recomputed 5) and never repaired. Store untouched.
+  FAILURE limbs ......................... neither met
+
+════════════════════════════════════════════════════════════════════════════════
+3 · THREE STATES
+════════════════════════════════════════════════════════════════════════════════
+  STATE 1 · PRIMARY-ONLY (46 primary)     full suite 1349/1349 pass, 0 fail
+  STATE 2 · MIXED (46 primary + 1 derived) full suite 1350/1350 pass, 0 fail
+                                           node bin/facts.mjs validate -> every record satisfies
+                                           every law, 47 records; F24 guard unchanged 36/25/11
+  STATE 3 · MALFORMED DERIVED — ALL FIVE FAIL CLOSED
+    3a missing input id ................ LANDED · RED · validation REFUSED · restored (sha256 equal)
+    3b unresolved input id ............. LANDED · RED · validation REFUSED · restored (sha256 equal)
+    3c stored value != recomputation ... LANDED · RED · validation REFUSED · restored (sha256 equal)
+    3d state above the weakest input ... LANDED · RED · validation REFUSED · restored (sha256 equal)
+         record genuinely declared VERIFIED while BOTH real inputs read UNKNOWN; F29:
+         "declared VERIFIED but its least-verified input is UNKNOWN. A derived fact can never be
+          more verified than its weakest input"
+         🔴 FIRST ATTEMPT AT 3d WAS INEFFECTIVE AND IS RECORDED AS SUCH: setting ONE snapshot input
+         to VERIFIED left the other UNKNOWN, so the ceiling was still UNKNOWN and no over-verified
+         record was produced. The sabotage had landed in the file but not as the defect. Re-run with
+         BOTH inputs VERIFIED, it produced the defect and the guard refused it.
+    3e primary source falsely attached . LANDED · RED · validation REFUSED · restored (sha256 equal)
+
+════════════════════════════════════════════════════════════════════════════════
+4 · CHANGED-ASSERTION PROOF — 11 sabotages, 11 RED, 11 restored byte-identically
+════════════════════════════════════════════════════════════════════════════════
+  Every assertion narrowed by this change had the concrete defect it used to catch reintroduced into
+  the REAL file. Each sabotage was verified to have landed (sha256 changed AND the replacement text
+  present), the NEW assertion was required to go RED, and the file was restored and re-hashed.
+
+  parked domain in a source URL ................. RED  73ed3bc5a024 -> 73ed3bc5a024
+  a silent source recorded "unknown" not false .. RED  f9072c989990 -> f9072c989990
+  a reserved licence swapped for a permitted one  RED  f9072c989990 -> f9072c989990
+  a record removed from the registry ............ RED  18fa5d06e6f5 -> 18fa5d06e6f5
+  a verification state flipped .................. RED  29285824cad4 -> 29285824cad4
+  a fact check signed by a TOOL not a person .... RED  8f575a4d4f28 -> 8f575a4d4f28
+  a derived fact citing a CONFLICTED input ...... RED  f9072c989990 -> f9072c989990
+  the second product sharing a source host ...... RED  c652881e37b0 -> c652881e37b0
+  a VERIFIED record with no fact-check date ..... RED  29285824cad4 -> 29285824cad4
+  a freshness rule disagreeing with its span .... RED  29285824cad4 -> 29285824cad4
+  a value's TYPE changed (copy-check split) ..... RED  f8ceb3e2cdba -> f8ceb3e2cdba
+
+  🔴 THE ROW 16 REPLACEMENT IS SHARPER, NOT QUIETER. The old tripwire asserted "zero derived facts
+  exist" and would have fired merely because a derived fact was added. The new assertion asks row
+  16's own question — are there derived facts citing an input row 16 has marked CONFLICT or
+  INCOMPLETE? — and the sabotage above proves it fires on exactly that.
+
+════════════════════════════════════════════════════════════════════════════════
+5 · ROW 16's SCORED POPULATION (nothing hidden, nothing ticked)
+════════════════════════════════════════════════════════════════════════════════
+  conflicted/incomplete inputs row 16 governs ........... 10 of 47
+  derived facts total ................................... 1 of 47
+  derived facts dependent on a row-16 conflicted input ... 0 of 1
+  why the zero holds: both inputs of the one derived fact are PARTIAL_EVIDENCE, which is neither
+  CONFLICT nor INCOMPLETE, so it is not a dependent. The dependency walk still has nothing real to
+  walk. ROW 16 IS NOT TICKED and does not move.
+
+════════════════════════════════════════════════════════════════════════════════
+6 · ROW 61 — THE DERIVED FACT REACHES NO PAGE, MEASURED
+════════════════════════════════════════════════════════════════════════════════
+  pages rendered (denominator) .......... 4   (all declared specs of both declared products)
+  total rendered bytes .................. 29,074
+      almi-oet/nursing            rendered   19,961 B   gate A REFUSED
+      almi-oet/speech-pathology   rendered    9,113 B   gate A REFUSED
+      neutral-test-knots/bowline      render REFUSED (status "lead" may not reach a reader)
+      neutral-test-knots/clove-hitch  render REFUSED (status "lead" may not reach a reader)
+  derived record ID in rendered output ... 0 of 4
+  derived record VALUE in rendered output  0 of 4
+  POSITIVE CONTROL ....................... 28 of 31 cited PRIMARY record values DO appear in the
+      same bytes, so the search is capable of finding a value when one is there. Without this the
+      zero above would be the vacuous kind.
+  Gate A still REFUSES all four candidates — a page lacking its own Gate-A evidence is refused
+  exactly as before, and the derived fact did not become page content by existing.
+
+════════════════════════════════════════════════════════════════════════════════
+7 · WHAT DID NOT CHANGE
+════════════════════════════════════════════════════════════════════════════════
+  46 primary records — not one edited; none declares a kind.
+  No fact promoted, demoted, authored or re-verified. No verdict rewritten.
+  No new formula. One derived record, not two.
+  No client data inside almi-visibility: its only fact-record files remain the two NEUTRAL DECLARED
+  TEST PRODUCTS (3 files). No products/almi-oet exists in the engine.
+  No page, page spec, route, sitemap, publish or deploy. No network. No spend.

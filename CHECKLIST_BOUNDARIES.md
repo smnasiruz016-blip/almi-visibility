@@ -7,7 +7,7 @@
 
 Frozen source verified: **YES** · features **58**
 (sequence 1..58) · classes as frozen **P=24 S=6 D=28**
-· classes in force since Amendment 4 **P=30 S=8 D=23**
+· classes in force since Amendment 4 **P=28 S=10 D=23**
 
 ## Precedence
 
@@ -25,8 +25,8 @@ boundary below is still read out of the frozen source, which still verifies byte
 
 | class | as frozen | in force |
 |---|---|---|
-| **P** | 24 | **30** |
-| **S** | 6 | **8** |
+| **P** | 24 | **28** |
+| **S** | 6 | **10** |
 | **D** | 28 | **23** |
 | **in scope (P + S)** | 30 | **38** |
 
@@ -252,7 +252,7 @@ Amendment 3 verified against sha256 `e400bf06bf0980c1d94a85a38e86f0a3d9df47aea17
 2026: contracts recorded, both rows NOT-STARTED, **moved because WORK HAPPENED: none.** The brief's two stale lines — *"give to
 CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itself; the in-scope count is measured, not copied.
 
-**The ledger: 61 rows · P=30 S=8 D=23 · in scope 38.**
+**The ledger: 61 rows · P=28 S=10 D=23 · in scope 38.**
 
 ---
 
@@ -260,14 +260,19 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 
 ### 1 · Product Intake & Isolation
 
-**BLOCKED-UNKNOWN** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (vocabulary)
+**BLOCKED-UNKNOWN** · class `S` (frozen `P`, moved by Amendment 6) · ruled in `§6+A6` · was BUILT-NOT-PROVED (vocabulary)
 
 | part | the owner's words |
 |---|---|
-| **INPUT** | two declared products, and an accessor from each reaching for the other's data, evidence, cost and learning records. |
-| **EXPECTED** | each of the four record classes is reachable only from its own product. |
-| **FAILURE** | any cross-product read succeeds, **or** a class does not exist to be isolated. |
-| **EVIDENCE** | adversarial accessor tests over non-empty populations of all four classes. |
+| **INPUT** | two declared products, and an accessor from each reaching for the other's **data, evidence and cost** records. |
+| **EXPECTED** | each of the three applicable record classes is reachable only from its own product. |
+| **FAILURE** | any cross-product read succeeds, **or** an applicable class does not exist to be isolated. |
+| **EVIDENCE** | adversarial accessor tests over non-empty populations of all three applicable classes. |
+| **⏭ deferred half** | learning — rows 39, 40 and 41 are class D, so no learning record is created in v0.1; its isolation is proved when that phase opens, against the frozen §6 boundary. |
+| **⏭ final INPUT (§6, when the deferred half opens)** | two declared products, and an accessor from each reaching for the other's data, evidence, cost and learning records. |
+| **⏭ final EXPECTED (§6, when the deferred half opens)** | each of the four record classes is reachable only from its own product. |
+| **⏭ final FAILURE (§6, when the deferred half opens)** | any cross-product read succeeds, **or** a class does not exist to be isolated. |
+| **⏭ final EVIDENCE (§6, when the deferred half opens)** | adversarial accessor tests over non-empty populations of all four classes. |
 
 **Verdict —** 🔴 **RE-SCANNED 13 SEPTEMBER 2026: STILL BLOCKED — HALF AN INPUT IS NOT AN INPUT.** The boundary needs adversarial tests over NON-EMPTY populations of all four private classes, per product. Evidence and facts are populated. **COST: a ledger now exists, but no cost entry names a product** — every entry is a run of the engine — so no product holds private costs and there is nothing to isolate. **LEARNING: no learning record exists** (no module, no record, no store), and learning is itself deferred (items 39–41 are class D). 🔴 The ruling flags this explicitly only on item 54, but item 1 carries the identical four-class requirement — recorded as my judgement, not as the document's words
 
@@ -1027,15 +1032,20 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 
 ### 54 · Cross-Product Isolation Test
 
-**BLOCKED-UNKNOWN** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (vocabulary)
+**BLOCKED-UNKNOWN** · class `S` (frozen `P`, moved by Amendment 6) · ruled in `§6+A6` · was BUILT-NOT-PROVED (vocabulary)
 
 | part | the owner's words |
 |---|---|
-| **INPUT** | two declared products, each holding private evidence, facts, **costs** and **learning**. |
-| **EXPECTED** | neither can see any of the other's four classes. |
-| **FAILURE** | any cross read succeeds, **or a class does not exist to be tested**. |
-| **EVIDENCE** | adversarial tests over non-empty populations of all four. |
+| **INPUT** | two declared products, each holding private **evidence, facts and costs**. |
+| **EXPECTED** | neither can see any of the other's three applicable classes. |
+| **FAILURE** | any cross read succeeds, **or an applicable class does not exist to be tested**. |
+| **EVIDENCE** | adversarial tests over non-empty populations of all three applicable. |
+| **⏭ deferred half** | learning — as row 1. Row 54's frozen `BLOCKER TODAY` line stands unamended: it named both cost and learning, and **cost remains an applicable v0.1 obligation**. |
 | **BLOCKER TODAY** | no cost record and no learning record exists — two of the four cannot be tested. |
+| **⏭ final INPUT (§6, when the deferred half opens)** | two declared products, each holding private evidence, facts, **costs** and **learning**. |
+| **⏭ final EXPECTED (§6, when the deferred half opens)** | neither can see any of the other's four classes. |
+| **⏭ final FAILURE (§6, when the deferred half opens)** | any cross read succeeds, **or a class does not exist to be tested**. |
+| **⏭ final EVIDENCE (§6, when the deferred half opens)** | adversarial tests over non-empty populations of all four. |
 
 **Verdict —** 🔴 **RE-SCANNED AGAIN 14 SEPTEMBER 2026, ON THE NEW LAYOUT (Option A): STILL BLOCKED, AND NOT BECAUSE OF THE MOVE.** The first product's own data now lives in its own repository and the neutral product stays here; the isolation half re-sat and held (row 53, runs/audit/row53-portability-red-2026-09-14.txt). But this row's INPUT still lacks two of its four classes — the run's own check found no cost entry naming a product and no learning record — so nothing here can be tested yet. 🔴 **RE-SCANNED 13 SEPTEMBER 2026: STILL BLOCKED — HALF AN INPUT IS NOT AN INPUT.** The INPUT is two declared products EACH holding private evidence, facts, costs and learning. **COST: a cost ledger now exists, but no cost entry names a product**, so neither product holds a private cost to be isolated. **LEARNING: no learning record exists** — no module, no record, no store. Two of the four classes still do not exist to be tested, which the FAILURE clause names ('a class does not exist to be tested') — but the test cannot be run without them, so it is not FAILED either. Learning is itself deferred, so this cannot be closed inside frozen v0.1
 

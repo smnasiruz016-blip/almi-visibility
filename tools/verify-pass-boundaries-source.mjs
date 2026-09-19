@@ -171,7 +171,77 @@ export function effectiveClasses(frozen, a4) {
   return out;
 }
 
+/**
+ * 🔴 AMENDMENT 6 — THE D2 MIXED-LIMB SPLIT, `OWNER-RULING-D2-2026-09-19`.
+ *
+ * ── WHY THIS IS A SECOND MECHANISM AND NOT A WIDER `effectiveClasses` ───────
+ *
+ * Amendment 4 opens DEFERRED rows: its parser reads only `D → P`, `D → S` or
+ * `stays D`, and `effectiveClasses` above THROWS on a move off any row the
+ * frozen ruling does not class D. Rows 1 and 54 are frozen **P**, so their
+ * `P → S` split is not representable there at all.
+ *
+ * The cheapest fix would have been to relax `frozen[id] !== "D"` to admit P.
+ * 🔴 THAT IS WIDENING A GUARD TO MAKE A MOVE PASS, AND THE RULING FORBIDS IT.
+ * So Amendment 4's rule is left exactly as it stands and this function is
+ * added BESIDE it, with its own refusal: it admits `P → S` and nothing else.
+ * Two narrow rules, each able to refuse, instead of one rule that can refuse
+ * less than it used to.
+ */
+export const AMENDMENT_6_BODY_SHA256 = "b3e2634ec52ba02745220a433b070ef09a5b0c11055af0efc9b74f2904aa52dc";
+export const AMENDMENT_6_SPLIT_IDS = Object.freeze([1, 54]);
+
+/** The `P → S` moves and their v0.1-half contracts — READ out of the body, never typed here. */
+export function amendment6(path) {
+  const text = readFileSync(path, "utf8").replace(/\r\n/g, "\n");
+  const idx = text.indexOf(BODY_MARKER);
+  const body = idx === -1 ? text : text.slice(idx + BODY_MARKER.length);
+  const sha = createHash("sha256").update(body, "utf8").digest("hex");
+
+  const moves = {};
+  for (const m of body.matchAll(/^\| \*\*(\d+) · (.+?)\*\* \| (.+?) \| (.+?) \| \*\*P → S\*\* \|$/gm)) {
+    moves[Number(m[1])] = { to: "S", name: m[2], applicable: m[3].trim(), deferredLimb: m[4].trim() };
+  }
+
+  const contracts = {};
+  for (const h of body.matchAll(/^### (\d+) · (.+?) — v0\.1 half$/gm)) {
+    const rest = body.slice(h.index);
+    const afterHeading = rest.indexOf("\n") + 1;
+    const next = rest.slice(afterHeading).search(/^(?:#{2,3} |\*\*END)/m);
+    const block = next === -1 ? rest : rest.slice(0, afterHeading + next);
+    const parts = {};
+    for (const m of block.matchAll(/^\| \*\*(INPUT|EXPECTED|FAILURE|EVIDENCE|deferred|deferred limbs)\*\* \| (.+?) \|$/gm)) {
+      const key = m[1] === "deferred limbs" ? "deferredLimbs" : m[1] === "deferred" ? "deferred" : m[1].toLowerCase();
+      parts[key] = m[2].trim().replace(/\s+/g, " ");
+    }
+    contracts[Number(h[1])] = parts;
+  }
+  return { sha, matches: sha === AMENDMENT_6_BODY_SHA256, moves, contracts };
+}
+
+/**
+ * The `P → S` splits in force. 🔴 It refuses a move off a row that is not currently P — so it can
+ * never re-class a deferred row, and it can never move a row twice. `effectiveClasses` is untouched.
+ */
+export function applySplitAmendment(inForce, a6) {
+  const out = { ...inForce };
+  for (const [id, m] of Object.entries(a6.moves)) {
+    if (out[id] !== "P") throw new Error(`Amendment 6 splits item ${id}, which is currently classed ${out[id]}, not P`);
+    out[id] = m.to;
+  }
+  return out;
+}
+
+/* 🔴 AMENDMENT 4's census, and it is NOT repurposed. A first attempt at Amendment 6 changed this
+ * constant's VALUE to mean "after the D2 split", which silently changed what an existing, correct
+ * assertion was asserting. It is left exactly as it was — it is A4's census and still true — and
+ * the post-split census is a SEPARATE constant below. A shared name that quietly changes meaning is
+ * the same defect as a widened guard, wearing different clothes. */
 export const EXPECTED_EFFECTIVE_CLASS_COUNTS = Object.freeze({ P: 27, S: 8, D: 23 });
+
+/* 🔴 After Amendment 6 as well: rows 1 and 54 leave P for S. The IN-SCOPE total does not move — a
+ * split relocates a row between two in-scope classes and admits nothing. P 27 → 25, S 8 → 10. */
+export const EXPECTED_SPLIT_CLASS_COUNTS = Object.freeze({ P: 25, S: 10, D: 23 });
 
 /**
  * 🔴 AMENDMENT 5 — the owner's ruling on safe local page construction. It ADDS row 61 and moves no text.
@@ -231,7 +301,7 @@ export function amendment3(path) {
  * ruling (59 and 60 by Amendment 3; 61 by Amendment 5, created once 59 and 60 existed). All three are P, so
  * in scope is P + S = 38. Checked against the loaded ledger, not asserted from a brief.
  */
-export const EXPECTED_LEDGER_CLASS_COUNTS = Object.freeze({ P: 30, S: 8, D: 23 });
+export const EXPECTED_LEDGER_CLASS_COUNTS = Object.freeze({ P: 28, S: 10, D: 23 });
 export const EXPECTED_LEDGER_ROWS = 61;
 
 export const AMENDMENT_5_BODY_SHA256 = "cab59fe7b78f37931ed4461d97f4646d2c23b880b3352c7eca56bfa12938cb11";

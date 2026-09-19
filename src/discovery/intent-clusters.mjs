@@ -296,17 +296,28 @@ export function heldOutCheck(humanRows, lexicon, reference, ambiguous = {}, { th
  * NOT RUN, so its wording is never lost merely because the check failed.
  */
 export function buildRecord(humanRows, heldOut, lexicon) {
-  const byId = new Map(heldOut.inSampleClusters.map((c) => [c.id, c.members.map((m) => ({ ...m, heldOut: false }))]));
+  /*
+   * The hold-out is an evaluation boundary, not a production-data boundary.
+   * It must remain unseen while the check is scored, but the final record must
+   * cluster every real query. Keeping held-out rows permanently outside the
+   * final clustering left identical intents split solely because they were
+   * selected for evaluation.
+   */
   const resultOf = new Map((heldOut.results || []).map((r) => [r.ref, r]));
-  const fresh = [];
-  for (const row of humanRows.filter((r) => isHeldOut(r.query))) {
-    const m = member(row, lexicon);
-    const res = resultOf.get(m.ref);
-    const tagged = { ...m, heldOut: true, placement: res ? { verdict: res.verdict, placedIn: res.placedIn, similarity: res.similarity } : { verdict: "NOT RUN" } };
-    if (res && byId.has(res.placedIn)) byId.get(res.placedIn).push(tagged);
-    else fresh.push([tagged]);
-  }
-  return [...byId.values(), ...fresh].map((ms) => describe(ms, lexicon)).sort((x, y) => y.size - x.size || x.id.localeCompare(y.id));
+  return clusterIntents(humanRows, lexicon).map((cluster) => ({
+    ...cluster,
+    members: cluster.members.map((m) => {
+      if (!isHeldOut(m.original)) return { ...m, heldOut: false };
+      const res = resultOf.get(m.ref);
+      return {
+        ...m,
+        heldOut: true,
+        placement: res
+          ? { verdict: res.verdict, placedIn: res.placedIn, similarity: res.similarity }
+          : { verdict: "NOT RUN" },
+      };
+    }),
+  }));
 }
 
 /** Every source word of a lexicon that occurs in none of `rows`. Targets of a synonym or phrase are labels, not words. */

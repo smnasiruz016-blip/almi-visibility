@@ -158,7 +158,7 @@ function describe(members, lexicon) {
 }
 
 /** Cluster query rows ({query, impressions, clicks}). Returns clusters sorted by size, then id. */
-export function clusterIntents(rows, lexicon, { threshold = THRESHOLD } = {}) {
+export function clusterIntents(rows, lexicon, { threshold = THRESHOLD, linkage = "average" } = {}) {
   const items = rows.map((r) => member(r, lexicon));
   const w = idfOf(items.map((x) => x.key));
   // identical keys start together; an empty key (every word filler) stays alone, by its identity
@@ -178,10 +178,12 @@ export function clusterIntents(rows, lexicon, { threshold = THRESHOLD } = {}) {
     let best = null;
     for (let a = 0; a < groups.length; a += 1) {
       for (let b = a + 1; b < groups.length; b += 1) {
-        const avg = sum(groups[a], groups[b]) / (groups[a].length * groups[b].length);
-        if (avg < threshold) continue;
+        const score = linkage === "single"
+          ? Math.max(...groups[a].flatMap((i) => groups[b].map((j) => S[i][j])))
+          : sum(groups[a], groups[b]) / (groups[a].length * groups[b].length);
+        if (score < threshold) continue;
         const tie = `${label(groups[a])} ${label(groups[b])}`;
-        if (!best || avg > best.avg || (avg === best.avg && tie < best.tie)) best = { a, b, avg, tie };
+        if (!best || score > best.score || (score === best.score && tie < best.tie)) best = { a, b, score, tie };
       }
     }
     if (!best) break;
@@ -304,7 +306,7 @@ export function buildRecord(humanRows, heldOut, lexicon) {
    * selected for evaluation.
    */
   const resultOf = new Map((heldOut.results || []).map((r) => [r.ref, r]));
-  return clusterIntents(humanRows, lexicon).map((cluster) => ({
+  return clusterIntents(humanRows, lexicon, { linkage: "single" }).map((cluster) => ({
     ...cluster,
     members: cluster.members.map((m) => {
       if (!isHeldOut(m.original)) return { ...m, heldOut: false };

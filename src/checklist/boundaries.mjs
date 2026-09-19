@@ -30,7 +30,10 @@ import { readFileSync } from "node:fs";
 
 import {
   splitSource, sectionSix, verify, amendmentContracts, amendment2, amendment4, effectiveClasses, amendment3, amendment5,
+  amendment6, applySplitAmendment,
 } from "../../tools/verify-pass-boundaries-source.mjs";
+
+const AMENDMENT_6 = new URL("../../PASS_BOUNDARIES_AMENDMENT_6.md", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 
 const AMENDMENT_3 = new URL("../../PASS_BOUNDARIES_AMENDMENT_3.md", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const AMENDMENT_5 = new URL("../../PASS_BOUNDARIES_AMENDMENT_5.md", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -219,8 +222,14 @@ export function loadBoundaries() {
   /* 🔴 AMENDMENT 4 — the CLASS changes, the text does not. `frozenClass` keeps what §6 says on every row, so
    * a reader can always see a class that moved by ruling; `class` is the one in force. effectiveClasses()
    * refuses a move off any row §6 does not class D. */
+  /* 🔴 AMENDMENT 6 — the D2 mixed-limb split (OWNER-RULING-D2-2026-09-19). It is applied BESIDE
+   * Amendment 4, never through it: A4's mechanism reads `D → …` only, and its D-only refusal is
+   * left intact. applySplitAmendment has its own refusal and admits `P → S` alone. */
+  const a6 = amendment6(AMENDMENT_6);
+  if (!a6.matches) throw new Error("PASS_BOUNDARIES_AMENDMENT_6.md does not match its recorded hash. The D2 split would not be the owner's.");
+
   const frozen = Object.fromEntries(Object.values(out).map((r) => [r.id, r.class]));
-  const inForce = effectiveClasses(frozen, a4);
+  const inForce = applySplitAmendment(effectiveClasses(frozen, a4), a6);
   for (const r of Object.values(out)) {
     r.frozenClass = r.class;
     r.class = inForce[r.id];
@@ -243,6 +252,40 @@ export function loadBoundaries() {
       }
       r.missingParts = [...r.missingParts, ...HALF_CONTRACT_PARTS.filter((_, i) => missing.includes(CONTRACT_PARTS[i]))];
     }
+
+    /* 🔴 AMENDMENT 6's splits, handled the same way A4's are: the §6 four parts are the FINAL
+     * boundary and stay on the row; the v0.1 half becomes what a VERIFIED-PASS is measured
+     * against. A half whose contract is incomplete is REPORTED, never filled in from here. */
+    const split6 = a6.moves[r.id];
+    if (split6) {
+      const half = a6.contracts[r.id] ?? {};
+      const missing6 = CONTRACT_PARTS.filter((p) => !half[p]);
+      if (missing6.length === 0) {
+        r.finalBoundary = Object.fromEntries(CONTRACT_PARTS.map((p) => [p, r[p]]));
+        for (const p of CONTRACT_PARTS) r[p] = half[p];
+        if (half.deferred) r.deferred = half.deferred;
+        r.via = `${r.via}+A6`;
+        r.halfContractByA6 = true;
+      }
+      r.classByA6 = true;
+      r.a6 = { applicable: split6.applicable, deferredLimb: split6.deferredLimb, verdict: "P → S" };
+      r.missingParts = [...r.missingParts, ...HALF_CONTRACT_PARTS.filter((_, i) => missing6.includes(CONTRACT_PARTS[i]))];
+      /* 🔴 BOUNDARY-LAW CLAUSE 5 — the deferred limb as DATA, not only as prose. */
+      if (half.deferredLimbs) r.deferredLimbs = half.deferredLimbs.split(/\s*·\s*|\s*,\s*/).filter(Boolean);
+    }
+  }
+
+  /* 🔴 BOUNDARY-LAW CLAUSE 5, APPLIED TO EVERY SPLIT — "every deferred limb must remain visible in
+   * durable, machine-readable status data as well as human-readable boundary prose."
+   *
+   * The prose already exists for seven of the eight pre-D2 splits as `deferred`. What did not exist
+   * anywhere was a STRUCTURED list. It is derived here only where the amendment declared one; where
+   * no declaration exists the row is marked UNDECLARED and SAYS SO. 🔴 It is never inferred from the
+   * prose — parsing a sentence into limbs would be exactly the invention this file refuses. */
+  for (const r of Object.values(out)) {
+    if (r.class !== "S") continue;
+    if (!r.deferredLimbs) r.deferredLimbs = null;
+    r.deferredLimbsDeclared = Array.isArray(r.deferredLimbs) && r.deferredLimbs.length > 0;
   }
 
   /* 🔴 ROWS ADMITTED BY OWNER RULING — not among the frozen 58, so read out of the amendment that admitted each:

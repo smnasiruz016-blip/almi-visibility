@@ -83,7 +83,10 @@ test("the class counts are frozen too — they decide which rows may be deferred
 test("🔴 every boundary is present in one of the frozen texts, character for character", () => {
   // Amendment 4's addendum supplies rows 3 and 7's v0.1-half contracts, so it is searched too. Amendments 3 and 5
   // supply the contracts of rows 59, 60 and 61, which the frozen 58 do not hold.
-  const flat = [SOURCE, AMENDMENT, `${REPO}PASS_BOUNDARIES_AMENDMENT_2.md`, `${REPO}PASS_BOUNDARIES_AMENDMENT_4.md`, `${REPO}PASS_BOUNDARIES_AMENDMENT_3.md`, `${REPO}PASS_BOUNDARIES_AMENDMENT_5.md`]
+  // 🔴 Amendment 6 supplies rows 1 and 54's v0.1-half contracts (the D2 split, 19 September 2026). It is added to
+  // the SEARCHED SET, which is how a half-contract has always been admitted — the guard itself is unchanged, and
+  // it still refuses any part that is not character-for-character inside one of the owner's own texts.
+  const flat = [SOURCE, AMENDMENT, `${REPO}PASS_BOUNDARIES_AMENDMENT_2.md`, `${REPO}PASS_BOUNDARIES_AMENDMENT_4.md`, `${REPO}PASS_BOUNDARIES_AMENDMENT_3.md`, `${REPO}PASS_BOUNDARIES_AMENDMENT_5.md`, `${REPO}PASS_BOUNDARIES_AMENDMENT_6.md`]
     .map((p) => splitSource(readFileSync(p, "utf8").replace(/\r\n/g, "\n")).body)
     .join("\n")
     .replace(/\s+/g, " ");
@@ -111,8 +114,10 @@ test("all 61 are parsed — the frozen 58 and three admitted by ruling — and e
   // §4+A1 — the splits §4 named; §6+A1 — item 25, split inline in §6;
   // §4+A1+A2 — item 14, whose Amendment 1 contract Amendment 2 replaced.
   // §6+A4 — rows 3 and 7, whose v0.1-half contract Amendment 4's addendum supplied.
+  // §6+A6 — rows 1 and 54, split P → S by Amendment 6 (the D2 ruling, 19 September 2026),
+  //         each taking its v0.1-half contract from that amendment's body.
   // A3 — rows 59 and 60; A5 — row 61. Neither is among the frozen 58.
-  assert.deepEqual(via, { "§6": 48, "§6+A4": 2, "§4+A1": 4, "§4+A1+A2": 1, "§6+A1": 1, "§5": 2, A3: 2, A5: 1 });
+  assert.deepEqual(via, { "§6": 46, "§6+A4": 2, "§6+A6": 2, "§4+A1": 4, "§4+A1+A2": 1, "§6+A1": 1, "§5": 2, A3: 2, A5: 1 });
   assert.equal(Object.values(b).filter((r) => r.amendedByA1).length, 6);
 });
 
@@ -418,7 +423,11 @@ test("🔴 the class census in force is P=27 · S=8 · D=23 — computed, and ch
   // the loader carries both over the FROZEN 58 — rows admitted later have no frozen class
   const b = Object.values(loadBoundaries()).filter((r) => r.id <= 58);
   const count = (key) => b.reduce((n, r) => ({ ...n, [r[key]]: (n[r[key]] ?? 0) + 1 }), {});
-  assert.deepEqual(count("class"), { P: 27, D: 23, S: 8 });
+  /* 🔴 The LOADER's class is every lawful amendment applied, not A4's alone. Amendment 6 (the D2
+   * split, 19 Sep 2026) then moves rows 1 and 54 P → S, so the loader reads 25/10/23 while
+   * effectiveClasses — which is A4's step and only A4's — still reads 27/8/23 above. Both are
+   * asserted, separately, so that a later amendment cannot move one without the other being seen. */
+  assert.deepEqual(count("class"), { P: 25, D: 23, S: 10 });
   assert.deepEqual(count("frozenClass"), { ...EXPECTED_CLASS_COUNTS });
 });
 
@@ -441,7 +450,7 @@ test("🔴 Amendment 3 verifies; rows 59 and 60 are READ from it, class P, all f
   assert.match(readFileSync(AMENDMENT_3, "utf8"), /No number is copied from this brief/);
 });
 
-test("🔴 the LEDGER is 61 rows · P=30 · S=8 · D=23 · in scope 38 — counted from the loaded rows, not copied from any brief", () => {
+test("🔴 the LEDGER is 61 rows · P=28 · S=10 · D=23 · in scope 38 — counted from the loaded rows, not copied from any brief", () => {
   const b = Object.values(loadBoundaries());
   const c = { P: 0, S: 0, D: 0 };
   for (const r of b) c[r.class] += 1;

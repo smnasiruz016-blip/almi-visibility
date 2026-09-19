@@ -1082,6 +1082,17 @@ export function classify(previousStates = BEFORE_2026_09_12) {
       class: b.class,
       via: b.via,
       missingParts: b.missingParts,
+      /**
+       * 🔴 BOUNDARY-LAW CLAUSE 5 (`OWNER-RULING-D2-2026-09-19`): a deferred limb must survive in
+       * DURABLE, MACHINE-READABLE STATUS DATA, not only in boundary prose. Before D2 a split row's
+       * deferred half existed as a sentence on the boundary and nowhere in the status at all — a
+       * reader saw one aggregate state and had to go and find the prose to learn a half was out.
+       *
+       * `deferredLimbs` is null where the amendment that split the row declared no structured list,
+       * and `deferredLimbsDeclared` says which case this is. 🔴 It is NEVER inferred from the prose.
+       */
+      deferredLimbs: b.class === "S" ? (b.deferredLimbs ?? null) : null,
+      deferredLimbsDeclared: b.class === "S" ? Boolean(b.deferredLimbsDeclared) : null,
       was,
       /**
        * 🔴 "work" IS DECLARED BY THE ROW, NEVER INFERRED FROM THE MOVE.
@@ -1120,6 +1131,33 @@ export function assertLawful(rows, boundaries = loadBoundaries()) {
             '"it is built" and "it looks right" are not verdicts.',
         );
       }
+    }
+
+    /* 🔴 A CLAUSE-3 GUARD WAS WRITTEN HERE ON 19 SEPTEMBER 2026 AND THEN REMOVED. Recorded rather
+     * than deleted silently, because the removal is the finding.
+     *
+     * Boundary-law clause 3 says an applicable limb "CANNOT BE HIDDEN BY AGGREGATION", and a guard
+     * refusing DEFERRED on a class-S row looked like its natural expression. It went RED against
+     * test/pass-boundaries.test.mjs:542, whose own comment states the opposite convention in words:
+     * "S rows may lawfully defer their deferred half, so only the P rows are refused outright."
+     *
+     * That is a DELIBERATE, DOCUMENTED convention, not a stale inventory pin — classification B, a
+     * genuine contradiction with an existing contract, and only class A may ride along in a bounded
+     * slot. The guard was removed rather than the test weakened.
+     *
+     * 🔴 THE OPEN QUESTION IT LEAVES, for the owner: on a split row a single `state` field is
+     * OVERLOADED — it can mean the v0.1 half's verdict or the deferred half's, and nothing in the
+     * data says which. That overload is why clause 5 exists, and clause 5 alone does not resolve it. */
+
+    /* 🔴 BOUNDARY-LAW CLAUSE 5 — a row split by Amendment 6 must carry its deferred limbs as DATA.
+     * The eight pre-D2 splits predate the clause and are reported by the clause-5 census in
+     * test/d2-mixed-limb.test.mjs rather than failed here; this guard binds what D2 authorised. */
+    if (boundaries[r.id].classByA6 && !boundaries[r.id].deferredLimbsDeclared) {
+      errors.push(
+        `item ${r.id} (${boundaries[r.id].name}) was split by Amendment 6 but declares no machine-readable ` +
+          "deferred limbs. Boundary-law clause 5 requires the deferred limb to survive as status data, " +
+          "not only as boundary prose.",
+      );
     }
 
     if (r.state === "DEFERRED" && !["D", "S"].includes(boundaries[r.id].class)) {

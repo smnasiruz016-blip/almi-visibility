@@ -14,10 +14,34 @@
  * refuses any row whose recorded authority disagrees with itself or with the loaded boundaries.
  */
 
+/**
+ * 🔴 AND IT HAPPENED AGAIN ON 19 SEPTEMBER 2026, WHICH IS WHY THIS FUNCTION NOW NAMES THE MOVER.
+ *
+ * Amendment 6 (the D2 split) moved rows 1 and 54 P → S. The rule below still read "the class in force
+ * differs from the frozen one → moved by Amendment 4", so both rows credited an amendment that never
+ * names them — the same shape as the 14 September defect, one amendment later. `provenanceErrors`
+ * refused it, in its output, before it reached the owner.
+ *
+ * The fix is to ask WHICH amendment moved the row rather than assuming there is only one that can.
+ */
+const MOVERS = [
+  { flag: "classByA6", number: 6 },
+  { flag: "classByA4", number: 4 },
+];
+
+/** The amendment that moved this row, or null. */
+export function movedBy(b) {
+  const hit = MOVERS.find((m) => b?.[m.flag]);
+  return hit ? hit.number : null;
+}
+
 /** The class clause that follows the class letter. */
 export function classClause(b) {
   if (b.admittedBy) return ` (admitted by Amendment ${amendmentNumber(b.admittedBy)})`;
-  if (b.frozenClass !== b.class) return ` (frozen \`${b.frozenClass}\`, moved by Amendment 4)`;
+  const mover = movedBy(b);
+  if (mover) return ` (frozen \`${b.frozenClass}\`, moved by Amendment ${mover})`;
+  /* 🔴 A class that differs from the frozen one with NO mover flag is not describable, and it is not
+   * guessed. Saying nothing here makes provenanceErrors refuse the row rather than print a wrong name. */
   return b.a4 ? " (kept by Amendment 4)" : "";
 }
 
@@ -67,8 +91,13 @@ export function provenanceErrors(markdown, boundaries = null) {
       if (Boolean(b.admittedBy) !== Boolean(admitted)) {
         errors.push(`item ${id}: the boundaries say ${b.admittedBy ? `admitted by ${b.admittedBy}` : "not admitted"}, the ledger's class clause does not agree`);
       }
-      if (Boolean(b.classByA4) !== Boolean(moved)) {
-        errors.push(`item ${id}: the boundaries say ${b.classByA4 ? "moved by Amendment 4" : "not moved"}, the ledger's class clause does not agree`);
+      const mover = movedBy(b);
+      if (Boolean(mover) !== Boolean(moved)) {
+        errors.push(`item ${id}: the boundaries say ${mover ? `moved by Amendment ${mover}` : "not moved"}, the ledger's class clause does not agree`);
+      } else if (mover && Number(moved[1]) !== mover) {
+        /* 🔴 NAMING THE WRONG MOVER IS ITS OWN DEFECT — it is the 14 September error exactly, and a
+         * check that only asked "was it moved?" would have let Amendment 6's rows credit Amendment 4. */
+        errors.push(`item ${id}: its class clause says "moved by Amendment ${moved[1]}" but the boundaries say Amendment ${mover} moved it`);
       }
     }
   }

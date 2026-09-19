@@ -65,9 +65,9 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | **NOT-STARTED** | 3 | 8 | **2** |
 | **BUILT-NOT-PROVED** | 18 | 16 | **6** |
 | **TESTABLE-NOW** | 0 | 3 | **1** |
-| **VERIFIED-PASS** | 3 | 3 | **23** |
+| **VERIFIED-PASS** | 3 | 3 | **24** |
 | **FAILED** | 0 | -1 | **2** |
-| **BLOCKED-UNKNOWN** | 6 | 6 | **4** |
+| **BLOCKED-UNKNOWN** | 6 | 6 | **3** |
 | **DEFERRED** | 28 | 23 | **23** |
 
 ### FAILED — counted and named separately: **2**
@@ -85,9 +85,9 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 - **item 51** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — priority, confidence and cost each computed from stored evidence and each able to say UNKNOWN — two recommendations ranked by measured impressions, one UNKNOWN; confidence derived on all three; cost UNKNOWN on all three with lower bounds — and all six visible on the real report
 - **item 55** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — the parse is caught and rethrown with nothing from the file; the leak test re-run passed on every credential path, RED when the key or its length is logged; recovery proved by restoring torn stores from git, byte-identical by blob hash
 
-**Rows that have been looked at (VERIFIED-PASS or FAILED): 25 of 58.**
+**Rows that have been looked at (VERIFIED-PASS or FAILED): 26 of 58.**
 
-**Rows that reached VERIFIED-PASS in this PR: 20.**
+**Rows that reached VERIFIED-PASS in this PR: 21.**
 
 #### moved ONLY because a RULING changed
 
@@ -113,6 +113,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 7 | NOT-STARTED | BUILT-NOT-PROVED | `node bin/market-measurement.mjs --check · node --test test/market-measurement.test.mjs · runs/discovery/market-measurement-2026-09-15.json · runs/audit/row7-red-limbs-2026-09-15.txt` | 2026-09-15 | VISIBILITY/REACH measured (impressions, position, clicks, CTR by property, country and page) and DEMAND bounded by a distinct method on the query field alone (at least 329 wordings searched; magnitude UNKNOWN), each quoting its range and dataState and carrying query truncation (22.8% of impressions, 0 of 20 clicks carry a query), data lag and dataState on its face; SUPPLY, AUDIENCE/NEED and WORTHINESS UNKNOWN; each limb RED alone. Stops at BUILT-NOT-PROVED: DEMAND cannot be sized on owned evidence |
 | 7 | TESTABLE-NOW | VERIFIED-PASS | `node --test test/market-measurement.test.mjs (19 of 19) · marketErrors over the stored measurement and over a fresh measureMarket(store) run — 0 limbs each · the frozen EVIDENCE limb re-fired on the current tree: SUPPLY filled from our own page count (1,525) raises exactly third-dimension-filled` | 2026-09-18 | re-verified on main 98c4b15 (main CI run 35294137887), not on the 15 September record. Every frozen v0.1 proposition passes: two separate measurements with two distinct methods sharing no stored field; each naming its method, range and dataState; query truncation, data lag and dataState on both faces; SUPPLY, AUDIENCE/NEED and WORTHINESS UNKNOWN, never low. All eight RED limbs fire alone. The deferred half stays DEFERRED, demand magnitude stays UNKNOWN, and the 22.8% coverage finding stands unresolved |
 | 9 | BUILT-NOT-PROVED | BLOCKED-UNKNOWN | `node bin/gsc-ingest.mjs --property=sc-domain:almiworld.com · node bin/gsc-dimensions.mjs · test/search-dimensions.test.mjs` | 2026-09-12 | six of seven dimensions ingested from the real property, each pull exhausted and COMPLETE with its bounds; downstream outcomes is supplied by no tool this engine holds, which the NOTE makes ⚠ rather than a failure |
+| 9 | BLOCKED-UNKNOWN | VERIFIED-PASS | `node bin/gsc-dimensions.mjs · node --test test/row9-terminal.test.mjs · node --test test/search-dimensions.test.mjs` | 2026-09-19 | the whole-boundary verification the 18 September ruling left UNKNOWN was run against the committed store and returned 0 failures — row 9's EVIDENCE clause (row counts, request counts, both bounds, dataState per pull) and both limbs of its FAILURE clause hold, with 6 INGESTED, 0 MISSING, 0 BUILT_NOT_RUN and 1 BLOCKED. The seventh dimension is recorded ⚠ in machine-readable form with four unlock clauses and the date it was re-measured unsuppliable (19 September: scope webmasters.readonly, 0 of 36 product repositories with an analytics package, 0 of 36 loading a tag, 0 funnel keys carrying a search source). All three guard states were proved RED without the fix. Six of seven remains six: overcountErrors fails any report that counts seven |
 | 11 | BLOCKED-UNKNOWN | VERIFIED-PASS | `node bin/replay-crawl.mjs · test/replay.test.mjs` | 2026-09-13 | the same 394 URLs crawled twice through the production crawler and store, 5 named bodies changed between runs: 394/394 page_ids identical, 389 pages before and across both runs, each change a new observation on its existing page; RED when the id takes the clock |
 | 12 | BUILT-NOT-PROVED | TESTABLE-NOW | `undefined` | 2026-09-13 | the corpus with shell subtraction defined and printed exists in the repository |
 | 12 | TESTABLE-NOW | VERIFIED-PASS | `node bin/audit-content.mjs over the committed archive · test/queue-rescan.test.mjs · test/content-checks.test.mjs · test/supply-labels.test.mjs` | 2026-09-13 | each of the four classifications accounts for all 394 pages (0/118/5/2 FAIL), the shell definition printed beside the result, the shell-heavier-than-body control and the item-8 guard passing |
@@ -160,9 +161,9 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | **NOT-STARTED** | 33 | **2** |
 | **BUILT-NOT-PROVED** | 24 | **6** |
 | **TESTABLE-NOW** | 0 | **1** |
-| **VERIFIED-PASS** | 0 | **23** |
+| **VERIFIED-PASS** | 0 | **24** |
 | **FAILED** | 0 | **2** |
-| **BLOCKED-UNKNOWN** | 1 | **4** |
+| **BLOCKED-UNKNOWN** | 1 | **3** |
 | **DEFERRED** | 0 | **23** |
 | **total** | 58 | **61** |
 
@@ -180,7 +181,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 6 | Axis Discovery | NOT-STARTED | **BUILT-NOT-PROVED** |
 | 7 | Market Measurement | NOT-STARTED | **VERIFIED-PASS** |
 | 8 | HEAVY / THIN / EMPTY Discipline | NOT-STARTED | **VERIFIED-PASS** |
-| 9 | Search Console / Analytics Intelligence | BUILT-NOT-PROVED | **BLOCKED-UNKNOWN** |
+| 9 | Search Console / Analytics Intelligence | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 11 | Existing Page Inventory | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 12 | Duplicate / Thin / Template Detection | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 13 | Cannibalization Prevention | BUILT-NOT-PROVED | **VERIFIED-PASS** |
@@ -394,7 +395,7 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 
 ### 9 · Search Console / Analytics Intelligence
 
-**BLOCKED-UNKNOWN** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (work)
+**VERIFIED-PASS** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (work)
 
 | part | the owner's words |
 |---|---|
@@ -404,7 +405,7 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 | **EVIDENCE** | row counts, request counts, bounds, and `dataState` per pull. |
 | **NOTE** | "where authorized and available" — a dimension no tool can supply is `⚠`, not a failure. |
 
-**Verdict —** 🔴 **BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE — the owner's ruling of 13 September 2026, §3, applied as written.** This is NOT the machinery declaring failure: Six of seven dimensions are ingested and complete — queries, pages, countries, impressions, clicks and CTR, each pull exhausted with dataState COMPLETE and its bounds printed. The seventh, downstream outcomes, needs evidence that exists only inside a connected product, and the ruling forbids fabricating it, inferring it, expanding scope for it, or touching a product to get it. The exact MISSING EVIDENCE, BLOCKER and FUTURE UNLOCK CONDITION are on this row
+**Verdict —** 🔴 **VERIFIED PASS WITH ONE JUSTIFIED UNAVAILABLE DIMENSION — all four conditions of the 18 September ruling proved, 19 September 2026.** **C1** row 9's own NOTE authorises ⚠ for a dimension no tool can supply. **C2** — the condition that ruling left UNKNOWN — is now PROVED: `boundaryVerification` checks row 9's frozen EVIDENCE clause (row counts, request counts, both bounds and dataState per pull) and BOTH limbs of its FAILURE clause against the committed store, and returns **0 failures** — 6 INGESTED, 0 MISSING, 0 BUILT_NOT_RUN, 1 BLOCKED. The one pull that claims nothing (`control`, dataState UNKNOWN) is reported by name and counted against nothing, because a pull claiming no completeness cannot overclaim one. **C3** the ⚠ is machine-readable on this row — dimension, four unlock clauses and the date it was measured unsuppliable — and `overcountErrors` fails any report that counts 7 of 7. **C4** re-measured 19 September, not carried forward: credential scope `webmasters.readonly` (a frozen constant with no setter), **0 of 36** product repositories declare an analytics package, **0 of 36** load an analytics tag across 6,765 source files, and the one first-party funnel-event table's 7 allow-listed keys (days, limit, path, planLabel, subTest, taskType, userId) carry **no search source**. 🔴 **SIX OF SEVEN IS STILL SIX**: the seventh was never measured and no report may say otherwise — `test/row9-terminal.test.mjs` proves all three states RED without the fix
 
 ### 10 · Technical SEO Audit Engine
 

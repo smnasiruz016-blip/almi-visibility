@@ -38,6 +38,7 @@
 import { readFileSync } from "node:fs";
 
 import { loadBoundaries } from "./boundaries.mjs";
+import { JUSTIFIED_UNAVAILABLE, justifiedUnavailableErrors } from "../search/row9-terminal.mjs";
 
 /**
  * 🔴 SEVEN STATES SINCE AMENDMENT 2 (12 September 2026, night).
@@ -330,6 +331,20 @@ export const MOVES_AMENDMENT_2 = Object.freeze({
       test: "node bin/gsc-ingest.mjs --property=sc-domain:almiworld.com · node bin/gsc-dimensions.mjs · test/search-dimensions.test.mjs",
       date: "2026-09-12",
       reason: "six of seven dimensions ingested from the real property, each pull exhausted and COMPLETE with its bounds; downstream outcomes is supplied by no tool this engine holds, which the NOTE makes ⚠ rather than a failure",
+    }),
+    /* 🔴 19 SEPTEMBER 2026 — THE MOVE THE 18 SEPTEMBER RULING WAS WAITING FOR.
+     * That ruling settled row 9's ⚠ reading and recorded NO MOVEMENT, because its condition 2
+     * was answered UNKNOWN: no whole-boundary verification had been run. This move is that
+     * verification, run. It is a WORK move and not a RULING move — the reading was already
+     * settled a day earlier, and what changed today is the evidence. */
+    Object.freeze({
+      from: "BLOCKED-UNKNOWN",
+      to: "VERIFIED-PASS",
+      kind: "work",
+      route: "TEST_RUN",
+      test: "node bin/gsc-dimensions.mjs · node --test test/row9-terminal.test.mjs · node --test test/search-dimensions.test.mjs",
+      date: "2026-09-19",
+      reason: "the whole-boundary verification the 18 September ruling left UNKNOWN was run against the committed store and returned 0 failures — row 9's EVIDENCE clause (row counts, request counts, both bounds, dataState per pull) and both limbs of its FAILURE clause hold, with 6 INGESTED, 0 MISSING, 0 BUILT_NOT_RUN and 1 BLOCKED. The seventh dimension is recorded ⚠ in machine-readable form with four unlock clauses and the date it was re-measured unsuppliable (19 September: scope webmasters.readonly, 0 of 36 product repositories with an analytics package, 0 of 36 loading a tag, 0 funnel keys carrying a search source). All three guard states were proved RED without the fix. Six of seven remains six: overcountErrors fails any report that counts seven",
     }),
   ]),
   /* Items 45 and 49 — the cost ledger and the audit-trail lifecycle, both run
@@ -838,15 +853,24 @@ const EXPLICIT = {
     why: "all four parts answered on real data. **INPUT** the real 495-page corpus of 12 September, 389 with a stored body. **EXPECTED** the labels are a supply census and nothing else: HEAVY 269 · THIN 118 · EMPTY 0 · UNKNOWN 108 (106 no stored body, 2 empty in raw HTML), and the run states in its own output that these say nothing about demand. **FAILURE** not met — 0 of 550 real findings carries a recommendation field or any demand word. **EVIDENCE** `test/supply-labels.test.mjs` fails the build if a supply label emits one, RED-proved twice (an injected 'opportunity' and an injected `recommendation` field), each landing in the intended test",
   },
   9: {
-    state: "BLOCKED-UNKNOWN",
-    label: "BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE",
+    state: "VERIFIED-PASS",
+    label: "VERIFIED PASS WITH A JUSTIFIED UNAVAILABLE DIMENSION",
     changeKind: "work",
-    ruling: "OWNER_RULING_2026-09-13_COMPLETION_LAW.md §3 — verify what Search Console and owned evidence can prove; record the rest BLOCKED/UNKNOWN BY EXTERNAL PREREQUISITE; do not fabricate, infer or expand scope; do not touch a connected product to turn a checklist green",
+    /* 🔴 THE `⚠` IS NOW MACHINE-READABLE, AND THE MOVE IS WORK, NOT A RE-READING.
+     * `OWNER_RULING_2026-09-18_STATUS_SEMANTICS.md` settled this reading a day earlier and
+     * recorded **NO MOVEMENT**, because its condition 2 — that every OTHER applicable row 9
+     * requirement is genuinely satisfied — was answered UNKNOWN: *"No such whole-boundary
+     * verification has been run, and this ruling turn did not run one."* It stood the rule ready
+     * *"for the day condition 2 is actually proved."* `boundaryVerification` in
+     * `src/search/row9-terminal.mjs` is that verification, and running it is what moved this row.
+     * The ruling is not the tick; the evidence is. */
+    justifiedUnavailable: JUSTIFIED_UNAVAILABLE,
+    ruling: "OWNER_RULING_2026-09-13_COMPLETION_LAW.md §3 — verify what Search Console and owned evidence can prove; record the rest BLOCKED/UNKNOWN BY EXTERNAL PREREQUISITE; do not fabricate, infer or expand scope; do not touch a connected product to turn a checklist green. THEN OWNER_RULING_2026-09-18_STATUS_SEMANTICS.md — FROZEN TERMINAL SEMANTICS, ROW 9 ONLY: a dimension row 9's own boundary classifies ⚠ because no authorised tool can supply it is a JUSTIFIED UNAVAILABLE DIMENSION, not a failure, provided all four conditions hold",
     missingEvidence: "a downstream outcome tied to a search — any stored record joining a product outcome (a signup, a purchase, a completed step) to the search query, landing page or search source that brought the visitor",
     blocker: "no analytics package in any of the 36 product repositories (0 of 36 product repositories use one); the one first-party funnel-event table in the estate holds page path and user id but NO SEARCH SOURCE; and this engine cannot read product databases — its only credential is Search Console webmasters.readonly, and Search Console has no outcome dimension",
     unlockCondition: "the seventh dimension becomes measurable when ALL THREE are true: (1) a connected product stores, for each downstream outcome, the search source that brought it — at least the landing page and a search referrer or campaign marker — with a date; (2) the owner authorises this engine in writing to READ that store read-only, and supplies the credential the way the Search Console key was supplied; (3) that instrumentation was built by the product's own work under its own brief, never by this engine and never to turn this row green. THEN: ingest downstream outcomes with row counts, request counts, bounds and dataState exactly as the other six dimensions were, and sit item 9's test again against its unchanged boundary",
     ownerSentence: "Yeh status AlmiVisibility ki machinery ki automatic failure declaration nahi hai.",
-    why: "🔴 **BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE — the owner's ruling of 13 September 2026, §3, applied as written.** This is NOT the machinery declaring failure: Six of seven dimensions are ingested and complete — queries, pages, countries, impressions, clicks and CTR, each pull exhausted with dataState COMPLETE and its bounds printed. The seventh, downstream outcomes, needs evidence that exists only inside a connected product, and the ruling forbids fabricating it, inferring it, expanding scope for it, or touching a product to get it. The exact MISSING EVIDENCE, BLOCKER and FUTURE UNLOCK CONDITION are on this row",
+    why: "🔴 **VERIFIED PASS WITH ONE JUSTIFIED UNAVAILABLE DIMENSION — all four conditions of the 18 September ruling proved, 19 September 2026.** **C1** row 9's own NOTE authorises ⚠ for a dimension no tool can supply. **C2** — the condition that ruling left UNKNOWN — is now PROVED: `boundaryVerification` checks row 9's frozen EVIDENCE clause (row counts, request counts, both bounds and dataState per pull) and BOTH limbs of its FAILURE clause against the committed store, and returns **0 failures** — 6 INGESTED, 0 MISSING, 0 BUILT_NOT_RUN, 1 BLOCKED. The one pull that claims nothing (`control`, dataState UNKNOWN) is reported by name and counted against nothing, because a pull claiming no completeness cannot overclaim one. **C3** the ⚠ is machine-readable on this row — dimension, four unlock clauses and the date it was measured unsuppliable — and `overcountErrors` fails any report that counts 7 of 7. **C4** re-measured 19 September, not carried forward: credential scope `webmasters.readonly` (a frozen constant with no setter), **0 of 36** product repositories declare an analytics package, **0 of 36** load an analytics tag across 6,765 source files, and the one first-party funnel-event table's 7 allow-listed keys (days, limit, path, planLabel, subTest, taskType, userId) carry **no search source**. 🔴 **SIX OF SEVEN IS STILL SIX**: the seventh was never measured and no report may say otherwise — `test/row9-terminal.test.mjs` proves all three states RED without the fix",
     whyMeasured: "🔴 **SIX OF SEVEN DIMENSIONS ARE INGESTED FROM THE REAL PROPERTY; THE SEVENTH IS BLOCKED; IT DOES NOT TICK.** On 12 September 2026 (night) the owner supplied the read-only key and the country pulls ran: **country** 126 rows and **country×query** 388 rows, each ONE request, exhausted, dataState COMPLETE, bounds rowLimitPerRequest=25000 / maxRequests=20, cost ZERO_BY_TARIFF. Queries (337), pages (1,525), impressions, clicks and CTR re-ingested in the same run, all COMPLETE. **DOWNSTREAM OUTCOMES** is not measurable by any tool this engine holds: Search Console has no outcome dimension; the credential is webmasters.readonly; 0 of 36 product repositories use an analytics package; the one first-party funnel-event table stores a path and a user id and no search source; and this engine may read no product database. The ruling's NOTE makes a dimension no tool can supply ⚠ — so the honest state is **BLOCKED-UNKNOWN, not FAILED** (every suppliable dimension was ingested and none claims a completeness it cannot show) and **not VERIFIED-PASS** (six of seven is not seven). The country distribution is recorded as measurement only and passes item 8's guard",
     whyBefore: "🔴 **FIVE OF SEVEN DIMENSIONS ARE INGESTED; IT DOES NOT TICK.** Queries, pages, impressions, clicks and CTR are in the evidence store, each pull exhausted with dataState COMPLETE and its bounds recorded. **COUNTRIES** — the country and country×query pulls are now BUILT and tested against a fake provider (same pagination law, bounds and cost record), but have **NOT RUN against the real property**: the read-only Search Console key was not available to the session that built them, and a pull that has not run is not ingested. **DOWNSTREAM OUTCOMES** is BLOCKED, not failed, with evidence: the Search Console API has no outcome dimension; this engine's only credential is webmasters.readonly; 0 of 36 product repositories use a third-party analytics package; the one first-party funnel-event table in the estate stores a path and a user id and no search source, and this engine holds no authorization to read any product database. Whether the row can then tick turns on the NOTE — see `src/search/dimensions.mjs`. Not FAILED: the test of all seven has not been run, and NOT RUN = NOT TESTED",
   },
@@ -1185,6 +1209,32 @@ export function assertLawful(rows, boundaries = loadBoundaries()) {
       for (const field of ["missingEvidence", "blocker", "unlockCondition"]) {
         if (typeof r[field] !== "string" || r[field].trim().length < 20) {
           errors.push(`item ${r.id} (${boundaries[r.id].name}) is BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE with no ${field} — the ruling requires the exact missing evidence, blocker and future unlock condition`);
+        }
+      }
+    }
+
+    /* 🔴 THE GUARD THAT REPLACES THE ONE THE LABEL CHANGE WOULD HAVE DROPPED.
+     *
+     * The clause above forces a BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE row to keep its
+     * missing evidence, blocker and unlock condition on the record. Row 9 left that label on
+     * 19 September 2026 — and without this, leaving the label would have silently discarded the
+     * requirement, which is condition 3 of `OWNER_RULING_2026-09-18_STATUS_SEMANTICS.md`:
+     * the dimension must STAY visibly ⚠ and must never be represented as measured.
+     *
+     * So the obligation follows the ⚠, not the label. Any row that claims a justified
+     * unavailable dimension — in ANY state — must still name the dimension, an unlock condition
+     * that could become true, and the date it was measured unsuppliable. A row that ticks while
+     * quietly dropping one of the three is refused here. */
+    if (r.justifiedUnavailable !== undefined) {
+      for (const e of justifiedUnavailableErrors(r.justifiedUnavailable)) {
+        errors.push(`item ${r.id} (${boundaries[r.id].name}) claims a JUSTIFIED UNAVAILABLE DIMENSION but ${e}`);
+      }
+      for (const field of ["missingEvidence", "blocker", "unlockCondition"]) {
+        if (typeof r[field] !== "string" || r[field].trim().length < 20) {
+          errors.push(
+            `item ${r.id} (${boundaries[r.id].name}) claims a JUSTIFIED UNAVAILABLE DIMENSION with no ${field}. ` +
+              "Leaving BLOCKED / UNKNOWN does not retire the obligation to say what is missing, what blocks it and what would unlock it.",
+          );
         }
       }
     }

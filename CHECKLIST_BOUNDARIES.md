@@ -63,9 +63,9 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | state | before Amendment 2 | after the RULING only | after the WORK |
 |---|---|---|---|
 | **NOT-STARTED** | 3 | 8 | **2** |
-| **BUILT-NOT-PROVED** | 18 | 16 | **6** |
+| **BUILT-NOT-PROVED** | 18 | 16 | **5** |
 | **TESTABLE-NOW** | 0 | 3 | **1** |
-| **VERIFIED-PASS** | 3 | 3 | **24** |
+| **VERIFIED-PASS** | 3 | 3 | **25** |
 | **FAILED** | 0 | -1 | **2** |
 | **BLOCKED-UNKNOWN** | 6 | 6 | **3** |
 | **DEFERRED** | 28 | 23 | **23** |
@@ -85,9 +85,9 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 - **item 51** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — priority, confidence and cost each computed from stored evidence and each able to say UNKNOWN — two recommendations ranked by measured impressions, one UNKNOWN; confidence derived on all three; cost UNKNOWN on all three with lower bounds — and all six visible on the real report
 - **item 55** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — the parse is caught and rethrown with nothing from the file; the leak test re-run passed on every credential path, RED when the key or its length is logged; recovery proved by restoring torn stores from git, byte-identical by blob hash
 
-**Rows that have been looked at (VERIFIED-PASS or FAILED): 26 of 58.**
+**Rows that have been looked at (VERIFIED-PASS or FAILED): 27 of 58.**
 
-**Rows that reached VERIFIED-PASS in this PR: 21.**
+**Rows that reached VERIFIED-PASS in this PR: 22.**
 
 #### moved ONLY because a RULING changed
 
@@ -121,6 +121,8 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 13 | TESTABLE-NOW | VERIFIED-PASS | `node bin/audit-content.mjs · test/content-checks.test.mjs · test/queue-rescan.test.mjs` | 2026-09-13 | every overlap reported with its query, competing URLs and positions — 21 of 337 queries searched, printed beside the result, from the newest complete pull; firing fixture and clean control for detector and report; item 8's guard holds |
 | 14 | TESTABLE-NOW | FAILED | `test/permitted-writers.test.mjs` | 2026-09-12 | the re-test was run against the new contract, and its FAILURE condition 'defaults to writing' was met at two write sites |
 | 14 | FAILED | VERIFIED-PASS | `test/permitted-writers.test.mjs · test/write-confinement.test.mjs · test/no-blind-regeneration.test.mjs · node tools/permitted-writers.mjs` | 2026-09-12 | report.mjs and the chain runner's cache now write only with --confirm; every destination is confined to this repository and refused outside it; all five parts re-tested and each RED-proved |
+| 17 | BUILT-NOT-PROVED | TESTABLE-NOW | `undefined` | 2026-09-19 | row 17's frozen INPUT is 'a real derived fact with real inputs' and the registry held none — 0 of 46. It now holds one, of 47, and the need it serves was declared in that product's own fact file nine days earlier (engine commit 4b55e5e, 10 September 2026), so the record is not a thing built for the row and then read back as its input |
+| 17 | TESTABLE-NOW | VERIFIED-PASS | `node --test test/derived-fact-registry.test.mjs · node bin/facts.mjs validate --product=<the first product> · runs/audit/row17-derived-activation-2026-09-19.txt` | 2026-09-19 | over the ONE real derived fact — formula and both input ids stored, the value recomputed from the live records, the standing equal to its weakest input (UNKNOWN from two UNKNOWN inputs, the ceiling recomputed by F29 from the records rather than read off the file), and a moved input raising INPUT_CHANGED on the real record in an isolated copy without rewriting it. The over-verified construction is REFUSED by name, and five malformed-derived defects fail closed — each sabotaged alone, landed, RED, restored byte-identically by sha256 |
 | 25 | BUILT-NOT-PROVED | TESTABLE-NOW | `undefined` | 2026-09-13 | the input exists; not run, because its source-integrity leg is a live link check this change may not make |
 | 26 | BUILT-NOT-PROVED | TESTABLE-NOW | `undefined` | 2026-09-13 | the input exists; run, the two runners' zero-inbound counts over the same bodies disagree (340 vs 341) — EXPECTED missed, FAILURE not met, so it stays here |
 | 26 | TESTABLE-NOW | VERIFIED-PASS | `node bin/edge-graph.mjs · node bin/audit-content.mjs · node bin/audit-technical.mjs · node bin/instrument-disagreement.mjs --close · test/edge-graph.test.mjs · test/queue-rescan.test.mjs` | 2026-09-13 | both runners read one stored graph through one definition and print 335; the 11 disagreement Issues closed on their recorded output; 335 pages with no inbound link, every one UNKNOWN and none 'missing'; the graph in durable storage |
@@ -159,9 +161,9 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | state | before (4-state) | after (7-state) |
 |---|---|---|
 | **NOT-STARTED** | 33 | **2** |
-| **BUILT-NOT-PROVED** | 24 | **6** |
+| **BUILT-NOT-PROVED** | 24 | **5** |
 | **TESTABLE-NOW** | 0 | **1** |
-| **VERIFIED-PASS** | 0 | **24** |
+| **VERIFIED-PASS** | 0 | **25** |
 | **FAILED** | 0 | **2** |
 | **BLOCKED-UNKNOWN** | 1 | **3** |
 | **DEFERRED** | 0 | **23** |
@@ -169,7 +171,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 ### 🔴 THE MOST IMPORTANT LINE IN THIS DOCUMENT
 
-> **26 row(s) changed because work happened.** Listed in (i) below.
+> **27 row(s) changed because work happened.** Listed in (i) below.
 
 #### (i) changed because WORK HAPPENED
 
@@ -187,6 +189,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 13 | Cannibalization Prevention | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 14 | No Blind Regeneration | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 15 | Verified Fact Supply Engine | BUILT-NOT-PROVED | **VERIFIED-PASS** |
+| 17 | Derived Fact Provenance | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 25 | Page Quality Gate | BUILT-NOT-PROVED | **TESTABLE-NOW** |
 | 26 | Internal-Link Intelligence | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 36 | Owner Authorization Gates | BUILT-NOT-PROVED | **VERIFIED-PASS** |
@@ -209,7 +212,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | NOT-STARTED → DEFERRED | 23 | 2, 18, 19, 20, 21, 22, 23, 24, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39, 40, 41, 43, 44 |
 | BUILT-NOT-PROVED → BLOCKED-UNKNOWN | 2 | 1, 54 |
 
-**Did not move against the 11 September 2026 baseline: 7** — 10, 16, 17, 46, 52, 57, 58
+**Did not move against the 11 September 2026 baseline: 6** — 10, 16, 46, 52, 57, 58
 
 **Not on that baseline — admitted later by owner ruling: 3** — 59, 60, 61. They are not "unmoved"; they did not exist. Any work on them since is a declared move above.
 
@@ -517,7 +520,7 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 
 ### 17 · Derived Fact Provenance
 
-**BUILT-NOT-PROVED** · class `P` · ruled in `§6`
+**VERIFIED-PASS** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (work)
 
 | part | the owner's words |
 |---|---|
@@ -527,7 +530,9 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 | **EVIDENCE** | recomputation of every derived fact, and the constructor refusing an over-verified one. |
 | **BLOCKER TODAY** | **zero derived facts exist.** All 46 records are primary. |
 
-**Verdict —** 🔴 **BUILT-NOT-PROVED — THE CAPABILITY IS COMPLETE; ITS INPUT DOES NOT EXIST.** Built and tested since 12 September 2026: `makeDerivedFact` stores a re-executable formula from the frozen `FORMULAS` table with every input's fact_id and value, and refuses a derived fact more verified than its weakest input; `recomputeDerived` reports a mismatch as a finding, never a repair; `markForReview` walks dependents transitively. **The three real gaps closed 14 September 2026:** a derived record lives in the registry as kind `derived` — F28 judges its own shape and waives the source laws for it alone, F29 holds it to the records it cites (every input resolves, its standing IS its weakest input's, its value is its formula's over the inputs as they stand) — with every primary law unchanged; a changed stored input value raises INPUT_CHANGED with no caller naming a fact (`detectInputChanges` → `reviewChangedInputs`); and the derivation reads no clock, so the same derivation is byte-identical. Each RED alone in the real files, restored and hash-checked (runs/audit/row17-gaps-red-limbs-2026-09-14.txt). **Not proved — its INPUT, a real derived fact with real inputs, does not exist: 0 of 46 registry records are derived**, so nothing was recomputed, and none was added to exercise the code. ⚠️ **The blocker is not missing capability:** the Pakistan origin regulator fact file itself calls the foreign/domestic verification-fee comparison (Rs.10,000 against Rs.1,000) *the fact a reader actually needs*. Whether to hold it as a derived fact is the owner's decision — no page uses it today, and from two UNKNOWN inputs it could only ever be UNKNOWN
+**Verdict —** 🔴 **THE INPUT EXISTS, AND THE ROW IS PROVED ON IT — 19 SEPTEMBER 2026. THE POPULATION IS ONE, AND THAT IS SAID IN WORDS.** The frozen EVIDENCE asks for "recomputation of EVERY derived fact"; the registry holds exactly **ONE** derived fact, so that is **one recomputation**, and nothing here is broader than that. **INPUT — a real derived fact with real inputs:** one derived record in the first product's EXTERNAL subject store, built by the production constructor from two REAL stored records of that registry, both remeasured on the day and both UNKNOWN. **EXPECTED, all four clauses:** the formula and both input fact_ids are STORED, with the inputs' values as a snapshot; the value RECOMPUTES from the records as they now stand; its standing IS its weakest input's — both inputs are UNKNOWN, so the derived fact could never be anything else, and F29 recomputes that ceiling from the live records rather than trusting the file; and a moved input marks it for review (`detectInputChanges` → INPUT_CHANGED on the REAL record, in an isolated in-process copy — the store is not touched). **FAILURE, neither limb met:** it does not exceed its weakest input, and it recomputes. **The over-verification refusal is PROVED, not assumed** — declared VERIFIED over two UNKNOWN inputs, F29 refuses it by name. **Five malformed-derived defects fail closed, each sabotaged alone, landed, RED, restored byte-identically by sha256:** a missing input id, an unresolved input id, a stored value that is not its formula's, a standing above the weakest input, and a primary SOURCE falsely attached to a computed result. 🔴 **THE NEED PREDATES THE RECORD BY NINE DAYS** — the subject's own fact file has called this comparison "the fact a reader actually needs" since engine commit 4b55e5e (10 September 2026), so the record is not a thing built for the row and then read back as its input. The formula was read off that declaration's own quantitative word, the only member of the frozen table that reproduces it. ⚠️ **AND IT IS UNKNOWN, WHICH IS THE POINT** — the row proves the mechanism, not a verified value. ⚠️ **No page uses it:** rendered over all 4 declared specs of both declared products (29,074 bytes; 2 rendered, 2 refused at render), its id and value appear in **0 of 4** outputs, with a positive control finding 28 of 31 cited PRIMARY values in the same bytes. 🔴 The record, its inputs and their values are NAMED IN THE TEST AND IN `runs/audit/row17-derived-activation-2026-09-19.txt`, not here: the engine may not know which product it serves
+
+**The one test that would settle it —** node --test test/derived-fact-registry.test.mjs · node bin/facts.mjs validate --product=<the first product>
 
 ### 18 · Competitor Intelligence
 

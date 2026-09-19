@@ -68,6 +68,16 @@ function reportCensus(c) {
   line("═");
   console.log(`records: ${c.total}   (files on disk, in git. 🔴 NO DATABASE TABLE EXISTS)`);
 
+  /* 🔴 ROW 17 — THE TWO KINDS, PRINTED WHERE THE TOTAL IS PRINTED. The source columns below count
+   * SOURCE-BEARING records only, because F28 waives the laws of reading a source for a derived one.
+   * That narrowing is stated here rather than left for a reader to infer from a total that no longer
+   * matches its columns, and every derived record is named with the formula and inputs it stands on. */
+  console.log(`  of which  primary ${c.byKind.primary}  ·  derived ${c.byKind.derived}   — the columns below count the ${c.byKind.primary} SOURCE-BEARING records`);
+  for (const d of c.derived) {
+    console.log(`  🔗 ${d.id}`);
+    console.log(`       ${d.verificationState} · ${d.formula}(${d.inputs.join(", ")})   — its source is its inputs, and its standing is their weakest`);
+  }
+
   console.log(`\nBY SUBJECT`);
   for (const [k, n] of Object.entries(c.bySubject).sort((a, b) => b[1] - a[1])) console.log(`  ${pad(k, 26)} ${n}`);
   console.log(`\nBY SCOPE      ${Object.entries(c.byScope).map(([k, n]) => `${k}=${n}`).join("  ")}`);

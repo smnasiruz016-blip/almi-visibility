@@ -26,7 +26,7 @@ import { fact } from "../src/facts/record.mjs";
 import { validateRecord, validateRegistry } from "../src/facts/validate.mjs";
 import { queueFor, freshnessRuleFor, manualQueueCost, automatedQueueIsUnattended } from "../src/facts/queues.mjs";
 import { normaliseText, matchQuote, runQuoteMatch, fetchForMatch } from "../src/facts/quote-match.mjs";
-import { loadRegistry, census, toGateAFact, REGISTRY_FACT_CHECK_COUNT, REGISTRY_VERIFIED_COUNT } from "../src/facts/registry.mjs";
+import { loadRegistry, census, toGateAFact, primaryFacts, REGISTRY_FACT_CHECK_COUNT, REGISTRY_VERIFIED_COUNT } from "../src/facts/registry.mjs";
 
 // The licence view THIS product may read: the engine’s instruments plus its own.
 // Another product’s entries are not in it, and that is the point.
@@ -979,8 +979,12 @@ describe("🔴 the registry after the licence correction", () => {
 
   test("🔴 the three silent sources are FALSE, not unknown — the owner's ruling", async () => {
     const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
+    /* 🔴 SOURCE-BEARING ONLY (F28). This law is about what a PUBLISHER's silence means — it reads
+     * `sourceQuotable`, `licence` and `evidence`, three fields F28 forbids a derived record to
+     * carry. The population narrows; the law does not. The `rs.length > 0` floor below is the
+     * positive control and stays: it is what stops the narrowing emptying the population. */
     for (const subject of ["ie-nmbi", "ng-nmcn", "pk-pnmc"]) {
-      const rs = records.filter((r) => r.claim.subject === subject);
+      const rs = primaryFacts(records).filter((r) => r.claim.subject === subject);
       assert.ok(rs.length > 0, subject);
       for (const r of rs) {
         assert.equal(r.sourceQuotable, false, `${r.id} must be false, not unknown`);
@@ -1016,8 +1020,13 @@ describe("🔴 the registry after the licence correction", () => {
 
   test("🔴 not one record's source URL is the parked nmcnigeria.org domain", async () => {
     const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
-    for (const r of records) assert.ok(!r.source.url.includes("nmcnigeria.org"), r.id);
-    assert.ok(records.some((r) => r.source.url.includes("nmcn.gov.ng")), "Nigeria uses the real regulator domain");
+    /* 🔴 SOURCE-BEARING ONLY (F28): `source.url` is the field a derived record may not carry at all,
+     * so a parked domain can only ever reach the registry through a primary record. The `some(...)`
+     * below is the positive control — it fails if the narrowing ever empties this population. */
+    const sourced = primaryFacts(records);
+    assert.ok(sourced.length > 0, "no source-bearing records — this law would be vacuous");
+    for (const r of sourced) assert.ok(!r.source.url.includes("nmcnigeria.org"), r.id);
+    assert.ok(sourced.some((r) => r.source.url.includes("nmcn.gov.ng")), "Nigeria uses the real regulator domain");
   });
 });
 
@@ -1189,7 +1198,11 @@ describe("🔴 the freshness rule follows the STORED span, not the permission", 
 describe("🔴 the recount — the '16 → 2' prediction, measured", () => {
   test("of the four unread licences, ONE permitted and THREE reserved", async () => {
     const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
-    const bySubject = (s) => records.find((r) => r.claim.subject === s);
+    /* 🔴 SOURCE-BEARING ONLY (F28) — and here the narrowing is load-bearing twice over. A licence is
+     * a term set on a publisher's words, which a derived record has none of; and `find` takes the
+     * FIRST match in sorted file order, where `pk-pnmc-derived.mjs` sorts ahead of `pk-pnmc.mjs`,
+     * so an unnarrowed `find` would silently read the licence of the wrong record. */
+    const bySubject = (s) => primaryFacts(records).find((r) => r.claim.subject === s);
     assert.equal(quotabilityState(bySubject("nz-immigration-nz").licence), "PERMITTED");
     for (const s of ["ie-nmbi", "ng-nmcn", "pk-pnmc"]) {
       assert.equal(quotabilityState(bySubject(s).licence), "RESERVED", s);
@@ -1262,7 +1275,12 @@ describe("🔴 the nightly job routes by the STORED SPAN, not the permission", (
 
   test("and the whole real registry comes back with ZERO inconclusive checks", async () => {
     const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
-    for (const r of records) {
+    /* 🔴 SOURCE-BEARING ONLY (F28): a freshness rule names how a SOURCE is re-checked — by matching
+     * its stored span or by hashing its page. A derived record has no page to re-fetch; it goes
+     * stale when an INPUT moves, which `detectInputChanges` reports and this law never could. */
+    const sourced = primaryFacts(records);
+    assert.ok(sourced.length > 0, "no source-bearing records — this law would be vacuous");
+    for (const r of sourced) {
       const hasSpan = Boolean(r.evidence.quotedSpan);
       assert.equal(freshnessRuleFor(r), hasSpan ? "machine-quote-match" : "machine-fingerprint", r.id);
     }

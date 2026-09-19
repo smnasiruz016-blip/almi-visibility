@@ -16,11 +16,26 @@ import { existsSync } from "node:fs";
 
 import { fact, VERIFICATION_STATES, UNKNOWN_REASONS } from "../src/facts/record.mjs";
 import { detectConflicts, freshnessOf, createFactCache, markForReview } from "../src/facts/lifecycle.mjs";
-import { loadRegistry } from "../src/facts/registry.mjs";
+import { loadRegistry, primaryFacts, derivedFacts } from "../src/facts/registry.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const { records } = await loadRegistry((await (await import("./support/subjects.mjs")).subject("almi-oet")).factsDir, "almi-oet");
+
+/**
+ * 🔴 THE POPULATION THE 12 SEPTEMBER VERIFICATION RUN GOVERNS — SOURCE-BEARING RECORDS.
+ *
+ * This file is about INGESTING VERDICTS: a person opened a source, read it, and returned a check.
+ * Every assertion below reads `checks.factCheckedOn`, `checks.factCheckedBy` or
+ * `verification.reason` — the outcome of that reading. F28 waives F13 for a derived record and
+ * `fact()` THROWS if one is handed a `factCheckedOn` at all, because its standing is inherited from
+ * its weakest input rather than reached by anybody reading anything. So a derived record is not a
+ * record this run under-checked; it is a record this run could not have checked.
+ *
+ * 🔴 `records` STILL MEANS THE WHOLE REGISTRY and is used where the whole registry is the subject.
+ * The two names are kept apart so that neither question can be answered with the other's population.
+ */
+const checked = primaryFacts(records);
 
 /**
  * 🔴 LAW-FIXTURE-1 — what F is NOT.
@@ -28,7 +43,7 @@ const { records } = await loadRegistry((await (await import("./support/subjects.
  * A minimal record: id, claim, value, tier, freshness rule. Real records carry
  * licences, quotability, fingerprints and check outcomes, none of which this
  * exercises. Simplifications are NAMED here rather than discovered later. The
- * assertions against `records` below run on the real 46.
+ * assertions against `checked` below run on the real 46 source-bearing records; `records` is the whole registry.
  */
 const F = (id, over = {}) => ({
   id,
@@ -220,7 +235,7 @@ test("CONTROL: a well-formed UNKNOWN is accepted, so the two tests above are not
 
 test("🔴 REAL: 46 records — 16 VERIFIED, 30 UNKNOWN, 0 left UNVERIFIED (after the 9 ambiguous labels were demoted 13 Sep evening)", () => {
   const by = {};
-  for (const f of records) by[f.verificationState] = (by[f.verificationState] ?? 0) + 1;
+  for (const f of checked) by[f.verificationState] = (by[f.verificationState] ?? 0) + 1;
   assert.deepEqual(by, { VERIFIED: 16, UNKNOWN: 30 });
 });
 
@@ -228,7 +243,7 @@ test("🔴 REAL: 46 records — 16 VERIFIED, 30 UNKNOWN, 0 left UNVERIFIED (afte
 // 🔴 13 Sep 2026 evening: 9 records demoted with reason PARTIAL_EVIDENCE (beta-g ruling). PARTIAL_EVIDENCE: 10 + 9 = 19.
 test("🔴 REAL: the 30 UNKNOWNs break down 6 CONFLICT / 4 INCOMPLETE / 19 PARTIAL_EVIDENCE / 1 SOURCE_UNREACHABLE", () => {
   const by = {};
-  for (const f of records.filter((f) => f.verificationState === "UNKNOWN")) {
+  for (const f of checked.filter((f) => f.verificationState === "UNKNOWN")) {
     by[f.verification.reason] = (by[f.verification.reason] ?? 0) + 1;
   }
   assert.deepEqual(by, { CONFLICT: 6, INCOMPLETE: 4, PARTIAL_EVIDENCE: 19, SOURCE_UNREACHABLE: 1 });
@@ -238,7 +253,7 @@ test("🔴 REAL: the 30 UNKNOWNs break down 6 CONFLICT / 4 INCOMPLETE / 19 PARTI
 test("🔴 REAL: every one of the 46 records names WHO checked it and WHEN", () => {
   // 🔴 The four OET records were checked again on 13 Sep 2026 (item 50); the other 42 carry the 12 Sep check.
   const rechecked = ["oet.content-licence-permits-stored-quotation", "oet.writing-task-type.profession=nursing", "oet.speaking-roleplay-setting.profession=nursing", "oet.grade-bands-0-500"];
-  for (const f of records) {
+  for (const f of checked) {
     assert.equal(f.checks.factCheckedOn, rechecked.includes(f.id) ? "2026-09-13" : "2026-09-12", `${f.id}: no check date`);
     assert.match(f.checks.factCheckedBy, /^human:/, `${f.id}: a fact check must name a person, not a tool`);
   }
@@ -299,16 +314,16 @@ test("CONTROL: a VERIFIED, in-window fact is still a hit — the cache was not s
 });
 
 test("🔴 REAL: not one of the 14 UNKNOWN records can be obtained as a cache hit", () => {
-  const cache = createFactCache({ facts: records, now: () => new Date("2026-09-12") });
-  for (const f of records.filter((f) => f.verificationState === "UNKNOWN")) {
+  const cache = createFactCache({ facts: checked, now: () => new Date("2026-09-12") });
+  for (const f of checked.filter((f) => f.verificationState === "UNKNOWN")) {
     const r = cache.get({ subject: f.claim.subject, predicate: f.claim.predicate, qualifier: f.claim.qualifier, scope: f.scope });
     assert.equal(r.hit, false, `${f.id}: served as a clean hit while marked ${f.verification.reason}`);
   }
 });
 
 test("🔴 REAL: the honest hit rate is BELOW 100% — a perfect one would mean nothing is being refused", () => {
-  const cache = createFactCache({ facts: records, now: () => new Date("2026-09-12") });
-  for (const f of records) {
+  const cache = createFactCache({ facts: checked, now: () => new Date("2026-09-12") });
+  for (const f of checked) {
     const q = { subject: f.claim.subject, predicate: f.claim.predicate, qualifier: f.claim.qualifier, scope: f.scope };
     cache.get(q); cache.get(q);
   }
@@ -347,8 +362,24 @@ test("🔴 REAL: the dependency walk's population is EMPTY — count it before t
   const walk = markForReview({ facts: records, findings, badFactIds: bad, reason: "INPUT_CONFLICTED" });
   assert.equal(walk.total, 0);
 
-  // 🔴 The zero is only honest alongside these two numbers.
-  assert.equal(derived.length, 0, "derived facts now exist — the walk's zero may finally mean something");
+  /* 🔴 19 SEPTEMBER 2026 — THE GLOBAL ZERO IS GONE, AND IT IS NOT BEING HIDDEN.
+   *
+   * This line used to read `derived.length === 0` with the note "derived facts now exist — the
+   * walk's zero may finally mean something". A derived fact NOW EXISTS, so that tripwire has done
+   * its job and fired; deleting it and keeping the walk's zero unexplained is exactly what it was
+   * written to prevent. It is replaced by the narrower question row 16 actually governs.
+   *
+   * Row 16's frozen EVIDENCE asks for "the dependency walk ON REAL DEPENDENTS". A dependent is a
+   * record that CITES a conflicted one. So the population that decides whether this zero is honest
+   * is not "derived facts" — it is "derived facts citing an input row 16 has marked bad", and that
+   * is the number pinned below. The registry now holds one derived record; NONE of its inputs is
+   * CONFLICT or INCOMPLETE (both are PARTIAL_EVIDENCE), so it is not a dependent and the walk still
+   * has nothing real to walk. 🔴 THE DAY A DERIVED FACT CITES A CONFLICTED INPUT THIS GOES RED and
+   * row 16 is re-sat on a real dependency — which is the whole point of keeping a tripwire here. */
+  assert.ok(derived.length > 0, "no derived record at all — this pin cannot tell a real zero from an empty population");
+  const dependentOnConflicted = derived.filter((f) => f.derivation.inputs.some((i) => bad.includes(i)));
+  assert.deepEqual(dependentOnConflicted.map((f) => f.id), [],
+    "a derived fact now cites a CONFLICT/INCOMPLETE input — the walk has a real dependent and row 16 must be re-sat");
   assert.equal(citing.length, 0, "findings now cite fact ids — re-read this test, the walk can fire");
   assert.ok(findings.length > 0, "and it is not that there are no findings: there are plenty");
 });

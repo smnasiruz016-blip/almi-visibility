@@ -100,43 +100,92 @@ function ageInDays(iso, now) {
 }
 
 /**
+ * ── 🔴 ROW 17 · THE TWO KINDS, AND THE ONE PLACE THAT DECIDES WHICH ─────────
+ *
+ * A derived record reads no source, so `FACT_KINDS` and F28 waive the laws of
+ * READING one for it — F3–F11, F13 and F17–F22. Every census column that
+ * measures one of those laws is therefore a question about SOURCE-BEARING
+ * records, and asking it of a derived record does not return a weaker answer:
+ * it returns `undefined` as if it were a tier, or throws on a `source.url` that
+ * by law is absent. Both are worse than not asking.
+ *
+ * 🔴 THIS IS A NARROWING OF THE POPULATION, NEVER OF THE WORD. "tier", "queue",
+ * "licence" and "fact check" keep exactly the meanings they had; what changes is
+ * that the registry can now hold a record to which they do not apply, and the
+ * census says which records those are instead of silently folding them in.
+ *
+ * 🔴 AND IT IS ONE DEFINITION, EXPORTED. A second copy of `kind === "derived"`
+ * inline in a caller is a control that does not share the rule's code, and this
+ * project has already paid for that shape once.
+ *
+ * An absent `kind` still means primary — that is the schema's own rule for the
+ * records written before kinds existed. It is NOT a permissive default for a
+ * malformed new record: a record carrying a `derivation` without declaring the
+ * kind is refused by F28, and `validation` below runs over EVERY record, derived
+ * included, so nothing reaches a census column by being unclassifiable.
+ */
+export const isDerivedFact = (r) => r?.kind === "derived";
+/** The source-bearing records — the population every source law governs. */
+export const primaryFacts = (records = []) => records.filter((r) => !isDerivedFact(r));
+/** The computed records — judged by F28 and F29 against the records they cite. */
+export const derivedFacts = (records = []) => records.filter((r) => isDerivedFact(r));
+
+/**
  * The census. Everything DOD-03A asks to be shown, and the gaps as well.
  */
 export function census(records = [], { now = new Date(), minutesPerFact = null, productId = null } = {}) {
+  /* 🔴 OVER EVERY RECORD, DERIVED INCLUDED. Validation is the one thing that must never be
+   * narrowed: F28 and F29 exist precisely to judge the kind the columns below step around. */
   const validation = validateRegistry(records);
 
-  const byQueue = { AUTOMATED: [], MANUAL: [] };
-  for (const r of records) byQueue[queueFor(r)].push(r);
+  /* The source-bearing population. Named once, used by every column that measures a source law. */
+  const sourced = primaryFacts(records);
+  const computed = derivedFacts(records);
 
+  const byQueue = { AUTOMATED: [], MANUAL: [] };
+  for (const r of sourced) byQueue[queueFor(r)].push(r);
+
+  /* 🔴 STATUS, SUBJECT AND SCOPE ARE NOT SOURCE LAWS — F1 and F12 bind a derived record exactly as
+   * they bind a primary one, so these three count the WHOLE registry. Only `byTier` narrows, and it
+   * narrows because `source.tier` is the field F28 forbids a derived record to carry at all. */
   const byStatus = {};
   const byTier = {};
   const bySubject = {};
   const byScope = {};
   for (const r of records) {
     byStatus[r?.life?.status] = (byStatus[r?.life?.status] ?? 0) + 1;
-    byTier[r?.source?.tier] = (byTier[r?.source?.tier] ?? 0) + 1;
     bySubject[r?.claim?.subject] = (bySubject[r?.claim?.subject] ?? 0) + 1;
     byScope[r?.scope] = (byScope[r?.scope] ?? 0) + 1;
   }
+  for (const r of sourced) byTier[r?.source?.tier] = (byTier[r?.source?.tier] ?? 0) + 1;
 
   // 🔴 The three dates, counted apart. They are never summed into "verified".
+  //
+  // 🔴 ROW 17 — THIS COLUMN COUNTS CHECKS, AND A DERIVED RECORD CANNOT CARRY ONE.
+  // F28 refuses `factCheckedOn` on a derived record and `fact()` throws if one is supplied: its
+  // standing is INHERITED from its weakest input, not the outcome of a check that ran on a day.
+  // Folding it in would put an inherited UNKNOWN in the same column as an UNKNOWN that a person
+  // reached by reading a source — which is the exact merge the three dates were split to prevent.
+  // The derived records' standings are reported in `derived` below, apart, where they belong.
   const checks = {
-    linkChecked: records.filter((r) => r?.checks?.linkCheckOutcome === "pass").length,
-    quoteMatched: records.filter((r) => r?.checks?.quoteMatchOutcome === "pass").length,
-    quoteNotApplicable: records.filter((r) => r?.checks?.quoteMatchOutcome === "not-applicable").length,
-    couldNotCheck: records.filter(
+    linkChecked: sourced.filter((r) => r?.checks?.linkCheckOutcome === "pass").length,
+    quoteMatched: sourced.filter((r) => r?.checks?.quoteMatchOutcome === "pass").length,
+    quoteNotApplicable: sourced.filter((r) => r?.checks?.quoteMatchOutcome === "not-applicable").length,
+    couldNotCheck: sourced.filter(
       (r) => r?.checks?.linkCheckOutcome === "could-not-check" || r?.checks?.quoteMatchOutcome === "could-not-check",
     ).length,
     // 🔴 HOW MANY CHECKS RAN — 46 since 12 September 2026. NOT how many passed.
     // `factConfirmed` below is the one to quote as "verified facts"; keeping
     // them apart is what stops 14 unresolved records being counted as good.
-    factChecked: records.filter((r) => r?.checks?.factCheckedOn !== null).length,
-    factConfirmed: records.filter((r) => r?.verificationState === "VERIFIED").length,
-    factUnknown: records.filter((r) => r?.verificationState === "UNKNOWN").length,
+    factChecked: sourced.filter((r) => r?.checks?.factCheckedOn !== null).length,
+    factConfirmed: sourced.filter((r) => r?.verificationState === "VERIFIED").length,
+    factUnknown: sourced.filter((r) => r?.verificationState === "UNKNOWN").length,
   };
 
   // Freshness measured against the real clock, not assumed from the window.
-  const overdue = records
+  // 🔴 SOURCE-BEARING ONLY: "overdue" means a source has not been re-read, and a derived record has
+  // no source to re-read. It goes stale when an INPUT moves, which `detectInputChanges` reports.
+  const overdue = sourced
     .map((r) => {
       const newest = [r?.checks?.linkCheckedOn, r?.checks?.quoteMatchedOn, r?.life?.extractedOn].filter(Boolean).sort().at(-1) ?? null;
       return { id: r.id, queue: queueFor(r), lastTouched: newest, age: ageInDays(newest, now) };
@@ -151,7 +200,11 @@ export function census(records = [], { now = new Date(), minutesPerFact = null, 
   // licensor changing their mind. A single "not quotable" number would have made
   // those look like the same piece of work forever.
   const byQuotabilityState = { PERMITTED: 0, RESERVED: 0, PROHIBITED: 0, UNREAD: 0 };
-  for (const r of records) {
+  /* 🔴 SOURCE-BEARING ONLY. A licence is a term somebody else set on THEIR words; a derived record
+   * reproduces nobody's words, so it has no licence to be read, reserved or prohibited — and
+   * counting it as UNREAD would invent a licence nobody has to go and read. Same for the document
+   * class and the freshness rule, which are both properties of the source being re-checked. */
+  for (const r of sourced) {
     byQuotabilityState[quotabilityState(r?.licence, r?._productId)] += 1;
     byLicence[r?.licence] = (byLicence[r?.licence] ?? 0) + 1;
     byDocumentClass[r?.sourceDocumentClass] = (byDocumentClass[r?.sourceDocumentClass] ?? 0) + 1;
@@ -160,7 +213,21 @@ export function census(records = [], { now = new Date(), minutesPerFact = null, 
 
   return {
     generatedOn: now.toISOString().slice(0, 10),
+    /* 🔴 THE WHOLE REGISTRY. `total` is every record of every kind, so a derived record can never
+     * be hidden by the narrowing the columns below apply — `total` and `byKind` together say
+     * exactly how many records the source columns did not measure, and why. */
     total: records.length,
+    byKind: { primary: sourced.length, derived: computed.length },
+    /* 🔴 REPORTED APART, NEVER FOLDED IN. Everything a derived record's standing rests on, named:
+     * its formula, the records it cites, and the state it inherited. A reader who wants to know
+     * what the registry computes rather than reads looks here, and finds it stated rather than
+     * mixed into a tier or a licence column where it would silently distort both. */
+    derived: computed.map((r) => ({
+      id: r.id,
+      formula: r?.derivation?.formula ?? null,
+      inputs: r?.derivation?.inputs ?? [],
+      verificationState: r?.verificationState ?? null,
+    })),
     validation,
     byQueue: { AUTOMATED: byQueue.AUTOMATED.length, MANUAL: byQueue.MANUAL.length },
     byQuotabilityState,
@@ -170,7 +237,7 @@ export function census(records = [], { now = new Date(), minutesPerFact = null, 
     // 🔴 Which quotes may lawfully be used TODAY. Kept apart from freshness on
     // purpose: for a licence whose permission is conditional on currency, an
     // expired record is not a stale fact, it is an out-of-licence reproduction.
-    quoteUsability: quoteUsability(records, now),
+    quoteUsability: quoteUsability(sourced, now),
     byStatus,
     byTier,
     byScope,
@@ -178,14 +245,14 @@ export function census(records = [], { now = new Date(), minutesPerFact = null, 
     checks,
     overdue,
     manualQueue: {
-      cost: manualQueueCost(records, { minutesPerFact }),
+      cost: manualQueueCost(sourced, { minutesPerFact }),
       members: byQueue.MANUAL.map((r) => ({ id: r.id, reason: queueReason(r) })),
     },
-    automatedQueue: automatedQueueIsUnattended(records),
+    automatedQueue: automatedQueueIsUnattended(sourced),
     // Proof that the supply is usable BY THE GATE THAT WILL CONSUME IT, using
     // the gate's own code rather than a second copy of its rules. A control that
     // does not share the rule's code proves nothing about the rule.
-    gateA: countFacts(records.map(toGateAFact), now),
+    gateA: countFacts(sourced.map(toGateAFact), now),
     // 🔴 A product sees ITS OWN gaps. Passing none yields none — the safe
     // direction, and the reason the census also prints who has registered.
     gaps: declaredGaps(productId ?? records.find((r) => r?._productId)?._productId ?? null),

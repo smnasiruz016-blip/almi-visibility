@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import { licencesVisibleTo, engineLicences, registerLicences, quotabilityState, requiresCurrentVersion } from "../src/facts/licences.mjs";
 import { registerGaps, declaredGaps, gapRegisterProducts } from "../src/facts/gaps.mjs";
-import { loadRegistry } from "../src/facts/registry.mjs";
+import { loadRegistry, primaryFacts, derivedFacts } from "../src/facts/registry.mjs";
 import { claimIdsOf } from "../src/page/claim-ids.mjs";
 import { placeClaims, isPerVariant, isSharedAcrossVariants, buildPlacement } from "../src/page/claim-placement.mjs";
 import { registerProduct, registeredProducts, coverage } from "../src/product.mjs";
@@ -234,7 +234,13 @@ test("every declared gap is attributed to the product that declared it", () => {
 
 test("the product's facts load from the product's own directory", async () => {
   const { files, records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
-  assert.equal(records.length, 46);
+  /* 🔴 THE SOURCE-BEARING POPULATION, PINNED EXACTLY — this test is about WHERE the facts load
+   * from, and the count is how it catches the loader reading a different directory. That catch is
+   * kept at its exact number; what is no longer asserted is that the directory holds records of
+   * only one KIND, which was never this test's subject. `byKind` below states the whole file's
+   * contents so a derived record cannot arrive here unnoticed either. */
+  assert.equal(primaryFacts(records).length, 46);
+  assert.equal(primaryFacts(records).length + derivedFacts(records).length, records.length, "a record is neither primary nor derived");
   assert.ok(files.length > 0);
   // 🔴 CHANGED 14 September 2026, with the owner's ruling (Option A): the product's own data left this repository.
   // It pinned `products/almi-oet/facts`; it now pins that the facts load from the product's own folder OUTSIDE it.

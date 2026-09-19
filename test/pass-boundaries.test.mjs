@@ -314,12 +314,12 @@ test("🔴 RED: TESTABLE-NOW without a named test is REFUSED", () => {
  * MOVEMENT, because its condition 2 ("every OTHER applicable row 9 requirement is genuinely satisfied") was
  * answered UNKNOWN. This turn RAN that whole-boundary verification and it returned 0 failures. The denominator
  * did not move, and the seventh dimension is still unmeasured and still ⚠. */
-test("the seven-state tally is 2 / 6 / 1 / 24 / 2 / 3 / 23 over 61 rows", () => {
+test("the seven-state tally is 2 / 5 / 1 / 25 / 2 / 3 / 23 over 61 rows (row 17 ticked 19 Sep 2026)", () => {
   assert.deepEqual(tally(classify()), {
     "NOT-STARTED": 2,
-    "BUILT-NOT-PROVED": 6,
+    "BUILT-NOT-PROVED": 5,
     "TESTABLE-NOW": 1,
-    "VERIFIED-PASS": 24,
+    "VERIFIED-PASS": 25,
     FAILED: 2,
     "BLOCKED-UNKNOWN": 3,
     DEFERRED: 23,
@@ -381,10 +381,10 @@ test("every state used is one of the seven, and every row is classified", () => 
 /* 🔴 19 Sep 2026: row 9 leaves the not-yet-looked-at list — it is VERIFIED-PASS now, on its whole-boundary
  * verification. The count of rows that moved on WORK is UNCHANGED at twenty-six: row 9 already carried a work
  * move (BUILT-NOT-PROVED → BLOCKED-UNKNOWN), and its tick is a second, not a first. */
-test("🔴 exactly TWENTY-SIX rows moved on WORK — 4 and 6 BUILT-NOT-PROVED; 25 TESTABLE-NOW; 5 and 50 FAILED; the rest PASS", () => {
+test("🔴 exactly TWENTY-SEVEN rows moved on WORK — row 17 joined 19 Sep 2026 — 4 and 6 BUILT-NOT-PROVED; 25 TESTABLE-NOW; 5 and 50 FAILED; the rest PASS", () => {
   const rows = Object.values(classify());
   const work = rows.filter((r) => r.changeKind === "work");
-  assert.deepEqual(work.map((r) => r.id).sort((a, b) => a - b), [3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 25, 26, 36, 38, 42, 45, 47, 48, 49, 50, 51, 53, 55, 56]);
+  assert.deepEqual(work.map((r) => r.id).sort((a, b) => a - b), [3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 17, 25, 26, 36, 38, 42, 45, 47, 48, 49, 50, 51, 53, 55, 56]);
   assert.deepEqual(work.filter((r) => !LOOKED.includes(r.state)).map((r) => `${r.id}:${r.state}`), ["4:BUILT-NOT-PROVED", "6:BUILT-NOT-PROVED", "25:TESTABLE-NOW"]);
   assert.deepEqual(work.filter((r) => r.state === "FAILED").map((r) => r.id), [5, 50]);
   // 🔴 Amendment 4: rows 3–7 are NOT-STARTED again, which is where the 11 September baseline had them — so
@@ -397,7 +397,8 @@ test("🔴 exactly TWENTY-SIX rows moved on WORK — 4 and 6 BUILT-NOT-PROVED; 2
   // and row 6, built and run the same night, is work too (15 → 14).
   // and row 4, built and run on 15 September 2026, is work too (13 → 12); and row 7 the same day (12 → 11);
   // and row 36, ticked the same night on its executed guards (11 → 10).
-  assert.equal(rows.filter((r) => r.changeKind === "none").length, 10);
+  // and row 17, proved on its first real derived fact on 19 September 2026, is work too (10 → 9).
+  assert.equal(rows.filter((r) => r.changeKind === "none").length, 9);
 });
 
 /* ================================================================== *
@@ -761,11 +762,11 @@ test("🔴 the five arrive NOT-STARTED by a RULING move and nothing else; row 2 
 /* 🔴 19 Sep 2026: row 9 joins them, and it is the FIRST tick this project has given a row one of whose own frozen
  * dimensions is permanently unmeasured. That is why its ⚠ is machine-readable — dimension, four unlock clauses and
  * the date it was measured unsuppliable — and why `overcountErrors` fails any report that counts seven of seven. */
-test("🔴 VERIFIED-PASS is exactly 24 — items 3, 7, 8, 9, 11, 12, 13, 14, 15, 26, 36, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56, 59, 60 and 61 — and 48's reopen stays on the record", () => {
+test("🔴 VERIFIED-PASS is exactly 25 — items 3, 7, 8, 9, 11, 12, 13, 14, 15, 17, 26, 36, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56, 59, 60 and 61 — and 48's reopen stays on the record", () => {
   const rows = classify();
   const passed = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS").map((r) => r.id).sort((a, b) => a - b);
-  assert.deepEqual(passed, [3, 7, 8, 9, 11, 12, 13, 14, 15, 26, 36, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56, 59, 60, 61]);
-  assert.equal(tally(rows)["VERIFIED-PASS"], 24);
+  assert.deepEqual(passed, [3, 7, 8, 9, 11, 12, 13, 14, 15, 17, 26, 36, 38, 42, 45, 47, 48, 49, 51, 53, 55, 56, 59, 60, 61]);
+  assert.equal(tally(rows)["VERIFIED-PASS"], 25);
   assert.equal(MOVES_AMENDMENT_2[9].at(-1).route, "TEST_RUN", "row 9's tick did not come from a test run");
   assert.equal(MOVES_AMENDMENT_2[9].at(-1).kind, "work", "🔴 row 9 ticked as a RULING move — a ruling never passes a row");
   assert.equal(rows[9].justifiedUnavailable.mark, "⚠", "row 9's unmeasured dimension lost its ⚠");

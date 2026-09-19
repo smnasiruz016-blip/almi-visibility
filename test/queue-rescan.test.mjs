@@ -14,7 +14,8 @@ import { execFileSync } from "node:child_process";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { canonicalUrl } from "../src/evidence/ids.mjs";
 import { detectCannibalization } from "../src/audit/content-checks.mjs";
-import { loadRegistry } from "../src/facts/registry.mjs";
+import { loadRegistry, primaryFacts, derivedFacts } from "../src/facts/registry.mjs";
+import { judgeLeavingUnknown } from "../src/evidence/verdict.mjs";
 import { classify } from "../src/checklist/classification.mjs";
 import { lifecycleOf } from "../src/evidence/lifecycle.mjs";
 
@@ -114,7 +115,15 @@ test("🔴 ITEM 25: all four parts measured — and part 4 has no existing page 
  * (test/item-50-real-transitions.test.mjs), and item 50 left FAILED on it. */
 test("🔴 ITEM 50: F23 still has 0 real supersessions to judge — the real population is F24's, and the row was REOPENED on it", async () => {
   const { records } = await loadRegistry((await (await import("./support/subjects.mjs")).subject("almi-oet")).factsDir, "almi-oet");
-  assert.equal(records.length, 46);
+  /* 🔴 ROW 50's OWN POPULATION, AND THE DERIVED RECORD IS NOT IN IT. Row 50's frozen boundary reads
+   * "the guard governs **real** records" and fails if "the guard polices an empty population". The
+   * guard's population is the records LEAVING UNKNOWN through the verdict path — a derived record
+   * carries no verification and no `previous`, so `judgeLeavingUnknown` returns null for it and it
+   * never enters that population. The 46 is kept exactly, on the population row 50 actually
+   * governs, and the line below PROVES the derived record stayed out rather than assuming it. */
+  assert.equal(primaryFacts(records).length, 46);
+  assert.equal(derivedFacts(records).every((r) => judgeLeavingUnknown(r.id, r.verification, r.claimElements, r) === null), true,
+    "a derived record entered row 50's pre-contract guard population — it does not belong there");
   assert.equal(records.filter((r) => r.life?.supersedes).length, 0, "a real supersession now exists — re-sit item 50");
   assert.equal(classify()[50].state, "FAILED");
 });

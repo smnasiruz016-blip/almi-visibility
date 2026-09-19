@@ -88,9 +88,14 @@ function provenPull(obs) {
 
 /**
  * @param {Array} records every record in the evidence store
+ * @param {Array} table the dimension table to census against. It is a DATA TABLE, not a guard, and
+ *   every caller in the product passes `PASS_DIMENSIONS`. It is a parameter so that the day
+ *   `downstream outcomes` becomes suppliable can be exercised in a test — that world cannot be
+ *   built from the store alone, because the frozen table hard-codes the dimension BLOCKED. Nothing
+ *   about the default behaviour changes.
  * @returns {{ dimensions: Array, pulls: Array, ingested: number, blocked: number, builtNotRun: number, missing: number }}
  */
-export function dimensionCensus(records) {
+export function dimensionCensus(records, table = PASS_DIMENSIONS) {
   const latest = new Map();
   for (const r of records) {
     if (r.record_type !== "observation" || typeof r.method !== "string" || !r.method.startsWith(PREFIX)) continue;
@@ -113,7 +118,7 @@ export function dimensionCensus(records) {
   }));
   const proven = new Map(pulls.filter((p) => p.proven).map((p) => [p.pull, latest.get(p.pull)]));
 
-  const dimensions = PASS_DIMENSIONS.map((d) => {
+  const dimensions = table.map((d) => {
     if (d.blocked) return { dimension: d.dimension, state: "BLOCKED", evidence: d.blocked };
     if (d.field) {
       const carriers = [...proven.entries()].filter(([, r]) =>

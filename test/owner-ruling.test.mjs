@@ -78,25 +78,57 @@ test("🔴 1D: the ledger's reopen grounds are the OWNER's sentence — and the 
 
 /* ---- PART 2 · item 9 ------------------------------------------------------ */
 
-test("🔴 ITEM 9 — BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE, with its missing evidence, blocker, unlock condition and his sentence", () => {
+/* 🔴 19 SEPTEMBER 2026 — ROW 9 LEFT THIS LABEL, AND THE RULING'S REQUIREMENT DID NOT LEAVE WITH IT.
+ *
+ * The 13 September ruling's subject is the downstream-outcome EVIDENCE, not the whole row: what is
+ * unavailable without connected-product instrumentation must be recorded BLOCKED / UNKNOWN BY EXTERNAL
+ * PREREQUISITE, with its missing evidence, blocker and unlock condition. The later ruling of 18 September
+ * (FROZEN TERMINAL SEMANTICS, ROW 9 ONLY) settled that such a dimension does not by itself hold the ROW open.
+ *
+ * So the dimension keeps every specific the 13 September ruling demanded, and this test now checks exactly
+ * that: the row ticked, and NOTHING the ruling required was dropped on the way through. */
+test("🔴 ITEM 9 — its missing evidence, blocker, unlock condition and his sentence all SURVIVE the tick", () => {
   const r = classify()[9];
-  assert.equal(r.state, "BLOCKED-UNKNOWN");
-  assert.equal(r.label, "BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE");
+  assert.equal(r.state, "VERIFIED-PASS");
+  assert.equal(r.label, "VERIFIED PASS WITH A JUSTIFIED UNAVAILABLE DIMENSION");
   assert.match(r.missingEvidence, /downstream outcome tied to a search/);
   assert.match(r.blocker, /0 of 36 product repositories/);
   assert.match(r.blocker, /NO SEARCH SOURCE/);
   assert.match(r.blocker, /cannot read product databases/);
   assert.ok(r.unlockCondition.length > 200, "the unlock condition does not tell a later reader what to do");
   assert.ok(BODY.includes(r.ownerSentence), "the owner's sentence on the row is not his sentence");
-  assert.match(r.why, /NOT the machinery declaring failure/);
-  assert.match(r.why, /Six of seven dimensions are ingested and complete/);
+  // 🔴 The ⚠ is machine-readable now, not prose only — dimension, unlock clauses and the date measured.
+  assert.equal(r.justifiedUnavailable.dimension, "downstream outcomes");
+  assert.ok(r.justifiedUnavailable.unlockClauses.length >= 3, "the ⚠ carries too few unlock clauses to notice a change");
+  assert.match(r.justifiedUnavailable.measuredUnsuppliableOn, /^2026-09-19$/);
+  assert.match(r.why, /VERIFIED PASS WITH ONE JUSTIFIED UNAVAILABLE DIMENSION/);
+  assert.match(r.why, /SIX OF SEVEN IS STILL SIX/);
 });
 
+/* 🔴 ROW 9 WAS THIS GUARD'S ONLY VEHICLE, AND IT TICKED ON 19 SEPTEMBER. A guard with no vehicle left to
+ * fire on quietly becomes decoration — so the label guard is driven with a row that wears the label, and the
+ * guard that REPLACED it for row 9 is proved separately, on row 9 itself. Both laws stay executable. */
 test("🔴 RED: an external-prerequisite label that drops any of its three specifics is refused", () => {
+  const wearing = (over) => {
+    const rows = classify();
+    rows[9] = { ...rows[9], state: "BLOCKED-UNKNOWN", label: "BLOCKED / UNKNOWN BY EXTERNAL PREREQUISITE", justifiedUnavailable: undefined, ...over };
+    return rows;
+  };
+  for (const field of ["missingEvidence", "blocker", "unlockCondition"]) {
+    const rows = wearing({ [field]: "" });
+    assert.ok(assertLawful(rows).some((e) => /BY EXTERNAL PREREQUISITE/.test(e) && e.includes(field)), `dropping ${field} was accepted`);
+  }
+  assert.deepEqual(assertLawful(wearing({})), [], "CONTROL: a row wearing the label with all three specifics is lawful");
+});
+
+test("🔴 RED: the guard that REPLACED it — a ticked row may not drop the same three specifics", () => {
   for (const field of ["missingEvidence", "blocker", "unlockCondition"]) {
     const rows = classify();
     rows[9] = { ...rows[9], [field]: "" };
-    assert.ok(assertLawful(rows).some((e) => /BY EXTERNAL PREREQUISITE/.test(e) && e.includes(field)), `dropping ${field} was accepted`);
+    assert.ok(
+      assertLawful(rows).some((e) => /JUSTIFIED UNAVAILABLE DIMENSION/.test(e) && e.includes(field)),
+      `a VERIFIED-PASS row dropped its ${field} and was accepted — leaving the label retired the obligation`,
+    );
   }
   assert.deepEqual(assertLawful(classify()), []);
 });

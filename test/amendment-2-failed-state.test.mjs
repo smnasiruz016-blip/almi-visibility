@@ -185,8 +185,15 @@ test("🔴 RED: any state change with no declared move is refused — a move is 
   const rows = classify();
   rows[9] = { ...rows[9], state: "TESTABLE-NOW", test: "x" };
   const errors = assertTransitions(rows);
-  assert.equal(errors.length, 1);
-  assert.match(errors[0], /item 9: is TESTABLE-NOW but its recorded state is BLOCKED-UNKNOWN and no move was declared/);
+  /* 🔴 19 Sep 2026: row 9's recorded state is VERIFIED-PASS, not BLOCKED-UNKNOWN — it closed on the
+   * whole-boundary verification. The vehicle is unchanged and so is what this proves.
+   *
+   * TWO laws now fire on it instead of one, and BOTH are asserted rather than the count loosened:
+   * the row is a TICK now, so dragging it backwards also trips the reopen guard. A test that only
+   * counted errors would have gone green on either one alone. */
+  assert.equal(errors.length, 2);
+  assert.ok(errors.some((e) => /item 9: is TESTABLE-NOW but its recorded state is VERIFIED-PASS and no move was declared/.test(e)), errors.join("\n"));
+  assert.ok(errors.some((e) => /item 9: loses VERIFIED-PASS for TESTABLE-NOW by no declared route/.test(e)), errors.join("\n"));
 });
 
 test("🔴 RED: a 'ruling' move that is not an owner ruling is refused — the two lists cannot blend", () => {
@@ -226,7 +233,13 @@ test("🔴 moves since Amendment 2: EIGHT by ruling (3–7 → NOT-STARTED by Am
     // 🔴 Row 7, 18 September 2026: after the ruling re-opened its exam, the test was RE-RUN on the current tree and passed
     // — 19 of 19, clean side 0 limbs, and the frozen failure limb still fires. The evidence ticked it; the ruling did not.
     "7:TESTABLE-NOW→VERIFIED-PASS",
-    "9:BUILT-NOT-PROVED→BLOCKED-UNKNOWN", "11:BLOCKED-UNKNOWN→VERIFIED-PASS",
+    "9:BUILT-NOT-PROVED→BLOCKED-UNKNOWN",
+    /* 🔴 Row 9, 19 September 2026: the whole-boundary verification that OWNER_RULING_2026-09-18_STATUS_SEMANTICS.md
+     * left answered UNKNOWN was RUN, and returned 0 failures. That ruling settled the ⚠ reading and recorded NO
+     * MOVEMENT; this is a WORK move because the evidence changed, not the reading. The ⚠ dimension is still
+     * unmeasured and is now machine-readable with four unlock clauses and its measured date. */
+    "9:BLOCKED-UNKNOWN→VERIFIED-PASS",
+    "11:BLOCKED-UNKNOWN→VERIFIED-PASS",
     "12:BUILT-NOT-PROVED→TESTABLE-NOW", "12:TESTABLE-NOW→VERIFIED-PASS", "13:BUILT-NOT-PROVED→TESTABLE-NOW", "13:TESTABLE-NOW→VERIFIED-PASS",
     "14:TESTABLE-NOW→FAILED", "14:FAILED→VERIFIED-PASS",
     "25:BUILT-NOT-PROVED→TESTABLE-NOW", "26:BUILT-NOT-PROVED→TESTABLE-NOW", "26:TESTABLE-NOW→VERIFIED-PASS",
@@ -283,10 +296,14 @@ test("before Amendment 2 the ledger was 3 / 18 / 0 / 3 / 0 / 6 / 28", () => {
 /* 🔴 NINETEEN since row 61 ticked (15 Sep 2026) — admitted by Amendment 5, so never VERIFIED-PASS before Amendment 2. */
 /* 🔴 18 Sep 2026: TWENTY. Row 7 joins on a reading, not on new evidence — the first tick of that kind, which is why
  * its ruling and its re-run are two separate declared moves and only the second one is a tick. */
-test("🔴 since Amendment 2, TWENTY rows hold VERIFIED-PASS (3, 7, 11, 12, 13, 14, 26, 36, 38, 42, 45, 47, 49, 51, 53, 55, 56, 59, 60, 61) — 50 reached it and was REOPENED; 48 LOST it and EARNED IT BACK", () => {
+/* 🔴 19 Sep 2026: TWENTY-ONE. Row 9 joins — and NOT on a reading. The 18 September ruling had already settled its ⚠
+ * semantics and recorded NO MOVEMENT, because its condition 2 was answered UNKNOWN. What closed row 9 was running
+ * the whole-boundary verification that condition named. It is the first row to tick while one of its own frozen
+ * dimensions stays permanently unmeasured — which is why the ⚠ is machine-readable and guarded, not prose. */
+test("🔴 since Amendment 2, TWENTY-ONE rows hold VERIFIED-PASS (3, 7, 9, 11, 12, 13, 14, 26, 36, 38, 42, 45, 47, 49, 51, 53, 55, 56, 59, 60, 61) — 50 reached it and was REOPENED; 48 LOST it and EARNED IT BACK", () => {
   const rows = classify();
   const newPasses = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS" && BEFORE_AMENDMENT_2[r.id] !== "VERIFIED-PASS");
-  assert.deepEqual(newPasses.map((r) => r.id), [3, 7, 11, 12, 13, 14, 26, 36, 38, 42, 45, 47, 49, 51, 53, 55, 56, 59, 60, 61]);
+  assert.deepEqual(newPasses.map((r) => r.id), [3, 7, 9, 11, 12, 13, 14, 26, 36, 38, 42, 45, 47, 49, 51, 53, 55, 56, 59, 60, 61]);
   const lost = Object.values(rows).filter((r) => BEFORE_AMENDMENT_2[r.id] === "VERIFIED-PASS" && r.state !== "VERIFIED-PASS");
   assert.deepEqual(lost.map((r) => r.id), []);
   // The count hides a round trip — the chain does not.

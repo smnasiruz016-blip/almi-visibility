@@ -37,9 +37,12 @@ const bundlePath = flag("bundle");
 const runAt = flag("run-at");
 const outDir = flag("out");
 const expectPath = flag("expect");
+/* 🔴 THE TENANT IS DECLARED, NEVER DEFAULTED (subject binding contract V1). Without it every
+ * result binds INVALID and nothing actionable leaves — which is the correct refusal, not a bug. */
+const tenantId = flag("tenant");
 
 if (!bundlePath || !runAt) {
-  console.error("usage: node bin/detect.mjs --bundle=<file> --run-at=<iso> [--expect=<file>] [--out=<dir> --confirm]");
+  console.error("usage: node bin/detect.mjs --bundle=<file> --run-at=<iso> [--tenant=<id>] [--expect=<file>] [--out=<dir> --confirm]");
   console.error("🔴 there is no default bundle and no default clock — a runner that picks its own input measures nothing in particular");
   process.exitCode = 2;
 } else {
@@ -117,7 +120,7 @@ if (!bundlePath || !runAt) {
   };
 
   const bundle = bundlePath === "discover" ? discoverBundle() : await loadBundle(bundlePath);
-  const result = runDetectors({ bundle, runAt });
+  const result = runDetectors({ bundle, runAt, tenantId });
   const serialised = serialiseFindings(result);
   const digest = createHash("sha256").update(serialised).digest("hex");
 
@@ -132,6 +135,7 @@ if (!bundlePath || !runAt) {
     console.log(`  ${d.key}  ${d.name.padEnd(30)} FINDING ${String(c.FINDING).padStart(3)} · CLEAN ${String(c.CLEAN).padStart(3)} · UNKNOWN ${String(c.UNKNOWN).padStart(3)} · N/A ${String(c.NOT_APPLICABLE).padStart(3)}   (${d.outcomes.length} outcome(s))`);
   }
   console.log(`  TOTAL: FINDING ${counts.FINDING} · CLEAN ${counts.CLEAN} · UNKNOWN ${counts.UNKNOWN} · NOT_APPLICABLE ${counts.NOT_APPLICABLE}`);
+  console.log(`  tenant: ${result.tenantId ?? "(none declared — every result binds INVALID and nothing actionable leaves)"}`);
   console.log(`  findings sha256: ${digest}`);
 
   /* 🔴 THE OUTPUT IS WRITTEN AND CLOSED BEFORE ANY EXPECTATION IS READ. */

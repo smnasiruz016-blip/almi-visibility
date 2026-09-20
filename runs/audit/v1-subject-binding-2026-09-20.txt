@@ -1,0 +1,139 @@
+SUBJECT BINDING CONTRACT V1 — BOUNDED RUN RECORD
+20 September 2026 · engine main before this change: 3b5f7af
+
+WHY THIS EXISTS
+  The Case Study was sat once and failed 1 of 6. The diagnosis was not sensitivity: the comparators
+  fired 6,640 times and five of six planted defects went unfound, because the findings and the
+  scored subjects were largely DISJOINT populations — thousands of results attached to file paths
+  nobody was asking about, while the pages under examination drew nothing. V1 does not repair that
+  run. It gives every result a tenant, a typed subject and a binding state, so an unbound result can
+  no longer pass itself off as an actionable finding.
+
+════════════════════════════════════════════════════════════════════════════════
+0 · BASELINE, TAKEN THIS TURN ON THE UNTOUCHED TREE
+════════════════════════════════════════════════════════════════════════════════
+  command: node --test test/*.test.mjs   (cwd C:\Projects\almi-visibility)
+  tests 1424 · suites 62 · pass 1424 · fail 0 · skipped 0
+
+════════════════════════════════════════════════════════════════════════════════
+1 · FEASIBILITY — PASS, MEASURED BEFORE ANY CODE
+════════════════════════════════════════════════════════════════════════════════
+  shared A-F integration point: EXACTLY ONE. Every detector is invoked only from
+  src/detect/run.mjs; each detector file contains its own single export and imports
+  only outcome.mjs. No detector needs redesign.
+  new production modules: 2 (the maximum allowed)
+  no discovery algorithm, no report/UI, no migration, no second repository, no network,
+  no product-specific configuration, no second PR, no checklist ruling.
+
+════════════════════════════════════════════════════════════════════════════════
+2-4 · THE CONTRACT
+════════════════════════════════════════════════════════════════════════════════
+  states  BOUND · AMBIGUOUS · UNBOUND · INVALID
+  types   PAGE · URL_ROUTE · SERVED_OBSERVATION · RENDERED_OBSERVATION · SITEMAP_ENTRY ·
+          SOURCE_ARTIFACT · PRODUCER · PUBLIC_CLAIM · FACT_RECORD          (9, none added)
+  edges   BELONGS_TO_TENANT · OBSERVATION_OF_PAGE · RENDER_OF_OBSERVATION · PAGE_HAS_ROUTE ·
+          SITEMAP_ADVERTISES_PAGE · CLAIM_FROM_ARTIFACT · CLAIM_SUPPORTED_BY_FACT ·
+          CLAIM_PRODUCED_BY                                                (8, none added)
+  identity kinds admitted: TENANT_ID, PAGE_ID, CANONICAL_URL, OBSERVATION_ID,
+          PATH_AT_COMMIT, FACT_ID, STRUCTURED_REFERENCE
+  refused outright as identity: similar text, same number, filename resemblance,
+          directory proximity, array position, discovery order, first match.
+
+════════════════════════════════════════════════════════════════════════════════
+6 · WHAT MAY NOW LEAVE THE ENGINE
+════════════════════════════════════════════════════════════════════════════════
+  FINDING requires BOUND.  CLEAN requires BOUND.
+  AMBIGUOUS -> UNKNOWN / COVERAGE_GAP_AMBIGUOUS
+  UNBOUND   -> UNKNOWN / COVERAGE_GAP_UNBOUND
+  INVALID   -> UNKNOWN / BINDING_INVALID          (fails closed)
+  UNKNOWN and NOT_APPLICABLE pass through — they are statements about the detector's
+  reach, not about a subject.
+  🔴 A FILE PATH ALONE CANNOT BECOME A PAGE-LEVEL FINDING. Proved directly.
+  No detector threshold or detection meaning was changed.
+
+════════════════════════════════════════════════════════════════════════════════
+7 · THE EIGHT CASES — two neutral fixture tenants, no client data
+════════════════════════════════════════════════════════════════════════════════
+  1 one lawful subject + edge ............................. BOUND
+  2 two lawful subjects ................................... AMBIGUOUS, both named
+  3 candidate with no edge ................................ UNBOUND, still visible
+  4 missing tenant ........................................ INVALID
+  5 cross-tenant edge ..................................... INVALID (not a weaker binding)
+  6 fixture-to-real edge .................................. INVALID
+  7 same wording/number without provenance ................ NOT bound
+  8 removing the one required edge ........................ BOUND -> UNBOUND
+  plus: all six detectors enveloped, no bypass, no actionable finding on a
+  non-BOUND subject, and the detector's own verdict preserved byte-equivalent
+  inside the envelope when BOUND.
+
+════════════════════════════════════════════════════════════════════════════════
+SABOTAGE — FIRST PASS 11/11, FINAL 11/11
+════════════════════════════════════════════════════════════════════════════════
+  Every guard sabotaged separately; each landed, turned its test RED, and was restored
+  byte-identically by sha256. No sabotage had to be re-run for failing to form its defect.
+    1  a lawful single subject no longer binds .................... RED (25 tests)
+    2  two candidates silently resolved to the first .............. RED  (3)
+    3  a candidate with no edge binds anyway ...................... RED  (6)
+    4  a missing tenant is tolerated .............................. RED  (4)
+    5  a cross-tenant edge is accepted ............................ RED  (3)
+    6  a foreign candidate accepted into a tenant's run ........... RED  (2)
+    7  a non-stable identity kind is accepted ..................... RED  (2)
+    8  a FINDING may leave on an unbound subject .................. RED  (5)
+    9  a detector result bypasses the envelope .................... RED  (7)
+   10  the runner supplies a default tenant ....................... RED  (2)
+   11  CHANGED-ASSERTION: a comparator stops finding its defect .... RED  (3)
+
+════════════════════════════════════════════════════════════════════════════════
+8 · THE POPULATION, NAMED WITH ITS DENOMINATOR — AND IT IS NOT A REAL RUN
+════════════════════════════════════════════════════════════════════════════════
+  🔴 ZERO REAL COMMITTED INPUTS EXIST for the A-F pipeline outside the sealed corpus.
+
+    2  products/                      NEUTRAL DECLARED TEST PRODUCT
+    4  test/fixtures/synthetic-*      SYNTHETIC FIXTURE
+    0  runs/** archived responses     none outside the sealed corpus
+    9  case-study-01/corpus           SEALED — excluded, not opened, not read
+
+  NON-SEALED population available to V1: 6, of which REAL COMMITTED: 0.
+  The counts below are therefore a FIXTURE run and are not presented as a real one.
+
+    A-F results        144   (72 per fixture tenant)
+    BOUND              144
+    AMBIGUOUS            0
+    UNBOUND              0
+    INVALID              0
+    NOT_APPLICABLE     118
+    CROSS-TENANT EDGES   0
+
+  🔴 144 of 144 BOUND says nothing about real material. Every subject in this population
+  is a captured fixture page the run was handed directly, which is the easiest possible
+  binding. The honest reading is that the contract works and has not yet been tested
+  against anything hard. The sealed run's 6,640 file-path results are exactly the
+  population it has NOT been measured on, and this command forbids re-running it.
+
+════════════════════════════════════════════════════════════════════════════════
+10 · SUITE IMPACT
+════════════════════════════════════════════════════════════════════════════════
+  18 new failures, all classified before any was touched:
+    A · CORRECT DOWNGRADE  17 — test/discover-portability.test.mjs called the runner with
+        no tenant, so every envelope bound INVALID and nothing actionable could leave.
+        The envelope was right to refuse. FIXED BY DECLARING A TENANT IN THE HARNESS;
+        🔴 EVERY ASSERTION IS BYTE-IDENTICAL. Nothing was weakened, narrowed or removed.
+    A · staging artifact  1 — product-boundary's src/ census reads git ls-files, which did
+        not yet see the two new untracked modules. Resolved by staging them.
+    B · DEFECT  0
+    C · UNRELATED  0
+  Changed-assertion proof: sabotage 11 above reintroduces the defect those assertions
+  protect against (a comparator that stops finding its planted defect) and they go RED.
+  Anything the old assertions caught that the new ones do not: NONE — they are the same
+  assertions, byte for byte.
+
+  ROWS WHOSE FROZEN EVIDENCE SAW THIS CHANGE: none. No row's named frozen test appears in
+  the new failures; discover-portability and subject-binding are named by no row.
+
+════════════════════════════════════════════════════════════════════════════════
+RESULT
+════════════════════════════════════════════════════════════════════════════════
+  targeted: subject-binding 20/20 · discover-portability 29/29 · detect-scorer 16/16
+  full suite: 1444/1444, 0 failures
+  board unchanged: 2 / 5 / 1 / 25 / 3 / 2 / 23 = 61 · 25 / 38
+  Row 52 not rerun, not rescored, not repaired. Row 10 not ticked. Sealed corpus not opened.

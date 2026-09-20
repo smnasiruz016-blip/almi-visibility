@@ -24,14 +24,19 @@ import {
 } from "../src/discover/candidates.mjs";
 
 const RUN_AT = "2026-09-20T00:00:00.000Z";
-const outcomesOf = (product) => {
-  const r = runDetectors({ bundle: buildBundle(product), runAt: RUN_AT });
+/* 🔴 EACH PRODUCT DECLARES ITS OWN TENANT, AND THERE IS NO DEFAULT (V1 subject binding contract).
+ * A run with no tenant now binds INVALID and lets nothing actionable leave — so the two products
+ * are two tenants here, which is also what makes the isolation assertions below mean anything. */
+const TENANT_P = "fixture-tenant-p";
+const TENANT_Q = "fixture-tenant-q";
+const outcomesOf = (product, tenantId) => {
+  const r = runDetectors({ bundle: buildBundle(product), runAt: RUN_AT, tenantId });
   const by = new Map();
   for (const d of r.detectors) by.set(d.key, d.outcomes);
   return by;
 };
-const P_OUT = outcomesOf(PRODUCT_P);
-const Q_OUT = outcomesOf(PRODUCT_Q);
+const P_OUT = outcomesOf(PRODUCT_P, TENANT_P);
+const Q_OUT = outcomesOf(PRODUCT_Q, TENANT_Q);
 const PRODUCTS = [["P", PRODUCT_P, P_OUT], ["Q", PRODUCT_Q, Q_OUT]];
 
 describe("🔴 1 & 2 · each comparator finds a real defect AND reaches CLEAN on a real clean case — on BOTH products", () => {
@@ -104,7 +109,7 @@ describe("🔴 3 · a real candidate that cannot be lawfully bound returns UNKNO
   });
   test("B · an unreadable registry makes every authority claim UNKNOWN, never a finding", () => {
     const bundle = buildBundle({ ...PRODUCT_P, registry: { readable: false, unreadableReason: "not supplied" } });
-    const out = runDetectors({ bundle, runAt: RUN_AT }).detectors.find((d) => d.key === "B").outcomes;
+    const out = runDetectors({ bundle, runAt: RUN_AT, tenantId: TENANT_P }).detectors.find((d) => d.key === "B").outcomes;
     assert.equal(out.some((o) => o.outcome === "FINDING"), false, "absence of evidence became a finding while the registry could not be read");
     assert.ok(out.some((o) => o.outcome === "UNKNOWN" && o.reasonCode === "REGISTRY_UNREADABLE"));
   });
@@ -162,7 +167,7 @@ describe("🔴 5 · moving the source to another layout needs no product-specifi
       ...PRODUCT_P,
       files: PRODUCT_P.files.map((f) => (f.path === "src/app/hub/page.tsx" ? { ...f, path: "pages/hub.tsx" } : f)),
     };
-    const out = runDetectors({ bundle: buildBundle(moved), runAt: RUN_AT }).detectors.find((d) => d.key === "F").outcomes;
+    const out = runDetectors({ bundle: buildBundle(moved), runAt: RUN_AT, tenantId: TENANT_P }).detectors.find((d) => d.key === "F").outcomes;
     assert.equal(out.filter((o) => o.outcome === "FINDING").length, 1, "renaming the file lost the defect — the rule was path-specific");
   });
 });

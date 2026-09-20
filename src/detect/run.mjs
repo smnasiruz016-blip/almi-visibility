@@ -11,6 +11,8 @@
  * examination that scores well because it stopped early.
  */
 import { assertOutcomes, unknown, notApplicable } from "./outcome.mjs";
+import { subjectRef, refLabel } from "./subject.mjs";
+import { evidenceEdge, bindSubject, effectiveOutcome } from "./binding.mjs";
 import { detectClaimVsProducer } from "./claim-producer.mjs";
 import { detectClaimVsRegistry } from "./claim-registry.mjs";
 import { detectDeclaredVsServed } from "./declared-served.mjs";
@@ -34,13 +36,17 @@ export const DETECTORS = Object.freeze([
  * `runAt` is DECLARED by the caller — a date is a measurement, and a runner that stamps its own
  * clock produces a different output for the same evidence every time, which cannot be hashed.
  */
-export function runDetectors({ bundle, runAt } = {}) {
+export function runDetectors({ bundle, runAt, tenantId } = {}) {
   if (bundle === undefined || bundle === null || typeof bundle !== "object") {
     throw new TypeError("runDetectors({bundle}): a bundle is required — there is no empty default, because an empty run would report six silent detectors as a clean sweep");
   }
   if (typeof runAt !== "string" || !/^\d{4}-\d{2}-\d{2}T/.test(runAt)) {
     throw new TypeError(`runAt must be a declared ISO timestamp, got ${JSON.stringify(runAt)} — the runner does not read a clock`);
   }
+  /* 🔴 THE TENANT IS DECLARED BY THE CALLER AND HAS NO DEFAULT. A run with no tenant cannot isolate
+   * anything, and "the usual tenant" is exactly the assumption that lets one tenant's evidence reach
+   * another's subject. Absent, every envelope below binds INVALID and nothing leaves as a finding. */
+  const tenant = typeof tenantId === "string" && tenantId.trim() !== "" ? tenantId : null;
 
   const detectors = DETECTORS.map(({ key, name, run }) => {
     let outcomes;
@@ -74,10 +80,70 @@ export function runDetectors({ bundle, runAt } = {}) {
         summary: "examined, and it carries nothing of the kind this comparator judges",
       }));
     }
-    return Object.freeze({ key, name, outcomes: Object.freeze(outcomes) });
+    /* 🔴 THE ONE SHARED INTEGRATION POINT. Every A–F result leaves through here and nowhere else,
+     * so the envelope cannot be bypassed by a detector, present or future. */
+    const enveloped = outcomes.map((o) => envelopeOf({ detectorKey: key, detectorName: name, outcome: o, tenant, bundle }));
+    return Object.freeze({ key, name, outcomes: Object.freeze(enveloped) });
   });
 
-  return Object.freeze({ runAt, detectors: Object.freeze(detectors) });
+  return Object.freeze({ runAt, tenantId: tenant, detectors: Object.freeze(detectors) });
+}
+
+/**
+ * 🔴 WRAP ONE RESULT — AND REFUSE TO LET AN UNBOUND ONE LEAVE AS A FINDING.
+ *
+ * The subject is read from what the run already holds, never invented. A page subject is one of the
+ * bundle's own captured pages; anything else is a SOURCE_ARTIFACT, which is a real thing to have
+ * found and NOT a page-level finding. That distinction is the Case Study's whole lesson: thousands
+ * of results attached to file paths while the pages under examination drew nothing, and no part of
+ * the engine could tell the two apart.
+ */
+function envelopeOf({ detectorKey, detectorName, outcome, tenant, bundle }) {
+  const pages = Array.isArray(bundle.pageSubjects) ? bundle.pageSubjects : [];
+  let candidates = [];
+  let edges = [];
+
+  if (tenant !== null) {
+    try {
+      if (pages.includes(outcome.subject)) {
+        const page = subjectRef({ type: "PAGE", tenantId: tenant, identityKind: "CANONICAL_URL", identity: outcome.subject, locator: outcome.subject });
+        candidates = [page];
+        edges = [evidenceEdge({
+          from: page, to: page, edgeType: "BELONGS_TO_TENANT", tenantId: tenant,
+          method: "the page is one of the captured pages this run was given",
+          artifact: `bundle.pageSubjects (${pages.length} page(s))`,
+          reason: "a captured page carries its own canonical URL as a stable identity, and the run declares the tenant it was captured for",
+        })];
+      } else if (typeof outcome.subject === "string" && outcome.subject.trim() !== "") {
+        /* A real artefact, named, with no edge to a page. It stays visible as a candidate and binds
+         * UNBOUND — which is why it can never be reported as a page-level finding. */
+        candidates = [subjectRef({ type: "SOURCE_ARTIFACT", tenantId: tenant, identityKind: "PATH_AT_COMMIT", identity: outcome.subject, locator: outcome.subject })];
+        edges = [];
+      }
+    } catch {
+      candidates = [];
+      edges = [];
+    }
+  }
+
+  const binding = bindSubject({ tenantId: tenant, candidates, edges });
+  const effective = effectiveOutcome(outcome.outcome, binding.state);
+  return Object.freeze({
+    ...outcome,
+    outcome: effective.outcome,
+    detectorId: detectorKey,
+    detectorName,
+    detectorOutcome: outcome.outcome,
+    tenantId: tenant,
+    primarySubject: binding.subject ? refLabel(binding.subject) : null,
+    primarySubjectType: binding.subject ? binding.subject.type : null,
+    bindingState: binding.state,
+    bindingReason: binding.reason,
+    bindingDetail: binding.detail,
+    bindingCandidates: Object.freeze([...binding.candidates]),
+    evidenceEdges: Object.freeze(binding.edges.map((e) => ({ edgeType: e.edgeType, from: refLabel(e.from), to: refLabel(e.to), method: e.method, artifact: e.artifact, reason: e.reason }))),
+    coverageReason: effective.reason,
+  });
 }
 
 /**
@@ -100,9 +166,17 @@ export function serialiseFindings(result) {
         evidence: o.evidence ? [...o.evidence] : null,
         checked: o.checked ? [...o.checked] : null,
         examined: o.examined ? [...o.examined] : null,
+        detectorOutcome: o.detectorOutcome ?? null,
+        tenantId: o.tenantId ?? null,
+        primarySubject: o.primarySubject ?? null,
+        primarySubjectType: o.primarySubjectType ?? null,
+        bindingState: o.bindingState ?? null,
+        bindingReason: o.bindingReason ?? null,
+        coverageReason: o.coverageReason ?? null,
+        evidenceEdges: o.evidenceEdges ? [...o.evidenceEdges] : null,
       });
     }
   }
   rows.sort((a, b) => (a.detectorKey + a.subject).localeCompare(b.detectorKey + b.subject));
-  return JSON.stringify({ runAt: result.runAt, rows }, null, 2) + "\n";
+  return JSON.stringify({ runAt: result.runAt, tenantId: result.tenantId ?? null, rows }, null, 2) + "\n";
 }

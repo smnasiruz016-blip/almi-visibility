@@ -371,5 +371,56 @@ these pages are good.
 
 ---
 
-**Status: DRAFT — awaiting the owner's approval. On approval this file is FROZEN under the law at
-the top of this document.**
+## 🔴 AMENDMENT 2 — 20 September 2026, the owner's ruling
+
+**RECORDED WITH A DATE AND A REASON, exactly as the freeze law requires.**
+
+🔴 **APPENDED BELOW THE SCORING SHEET ON PURPOSE, AND THAT IS NOT A STYLE CHOICE.** The six RED
+descriptions and the three control descriptions occupy **lines 132–309** of this file. An amendment
+inserted above them would move them down, and this amendment's own verification requires that region
+to be byte-identical **and still at those lines**. Nothing at or before line 309 is touched.
+
+### What it settles
+
+This file named only **found** and **flagged**. A detector has three outcomes — FINDING, CLEAN and
+UNKNOWN — and this file was silent on how UNKNOWN scores, on **both** limbs. That silence is closed
+here, **before any detector was built and before the seal was opened**, and never afterwards.
+
+**THE SCORING MODEL IS THREE-STATE:**
+
+| | outcome | scores as |
+|---|---|---|
+| **REQUIRED RED** | matching **FINDING** | ✅ detected |
+| | **CLEAN** | 🔴 missed → **FAIL** |
+| | **UNKNOWN** | 🔴 not detected → **FAIL** |
+| **CLEAN CONTROL** | **CLEAN** | ✅ unflagged |
+| | **FINDING** | 🔴 false positive → **FAIL** |
+| | **UNKNOWN** | 🔴 control not successfully evaluated → **FAIL**, recorded as **UNEVALUATED**, *not* as a false positive |
+
+**An absent detector, a null result, a crash, a skipped input or no output never earns *unflagged*,
+and never contributes to a PASS.**
+
+### Why
+
+The frozen contract requires every RED **detected** and every control **successfully left clean**. An
+UNKNOWN scored as either would let the engine pass by failing to look — a vacuous pass, and the one
+result this test exists to make impossible. A false positive and an UNEVALUATED control are kept
+apart because they are different faults: one is noise, the other is blindness, and an owner who
+cannot tell them apart cannot fix either.
+
+### What this amendment does NOT change
+
+The pass mark stays **6 of 6 RED and 0 of 3 CONTROL**. No RED, control, locator, input, corpus hash,
+exhibit hash or existing sentence is altered. It adds a scoring rule that was missing; it softens
+nothing. Under the freeze law this is lawful because it was recorded **before implementation began**,
+and its reason is never *"the engine reports it differently"* — no engine had run.
+
+### The stale status line
+
+The trailing line read *"DRAFT — awaiting the owner's approval"*. That was stale metadata: this
+contract was owner-approved, amended by the owner-approved Amendment 1, and adopted into Row 52's
+frozen boundary in `PASS_BOUNDARIES_SOURCE.md`. It is corrected below, and nothing else changes.
+
+---
+
+**Status: FROZEN AND OWNER-APPROVED — Amendment 2, 20 September 2026.**

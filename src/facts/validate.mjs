@@ -11,6 +11,7 @@
 // 🔴 F23's arbiter. The transition table now governs the registry rather than
 // only its own test — see src/evidence/verdict.mjs.
 import { judgeSupersession, judgeLeavingUnknown, DIMENSION_DECLARATION_FAULTS } from "../evidence/verdict.mjs";
+import { judgeGrandfathering } from "../evidence/pre-contract-grandfathering.mjs";
 import {
   factId,
   TIERS,
@@ -547,6 +548,31 @@ export function validateRegistry(records = []) {
     const faults = Object.entries(j.dimensions ?? {}).filter(([, d]) => DIMENSION_DECLARATION_FAULTS.includes(d.state));
     if (faults.length) {
       errors.push({ law: "F30", message: `${j.id}: under the declaration contract its claimDimensions are not declared — ${faults.map(([dim, d]) => `${dim} ${d.state}`).join(", ")}` });
+    }
+
+    /* 🔴 F31 · THE PRE-CONTRACT GRANDFATHERING RULING, ENFORCED.
+     *
+     * A record that pre-dates the declaration contract may satisfy "labelled on its face" without
+     * retrospective claimDimensions — but only when all five declared conditions hold. The five are
+     * CONJUNCTIVE: a record failing any one is refused, never excused.
+     *
+     * 🔴 WHAT THIS CATCHES THAT NOTHING ELSE DID: a pre-contract record whose checker is a
+     * `model:` signature. `judgeLeavingUnknown` asks only whether ANYBODY is named and accepts
+     * either prefix, so such a record advances today. Grandfathering asks whether a PERSON signed
+     * it, and this registry's law is that a model may propose a fact but never be its source.
+     * No real record exercises that branch — all 46 signatures are `human:` — so it is driven by a
+     * crafted verification in the tests, and is named here rather than left implicit. */
+    const grandfathering = judgeGrandfathering({
+      verificationState: r.verificationState,
+      verification: r.verification,
+      claimElements: r.claimElements,
+      governed: true,
+    });
+    if (grandfathering.regime === "REFUSED_PRE_CONTRACT" && j.decision !== "REFUSED") {
+      errors.push({
+        law: "F31",
+        message: `${j.id}: it pre-dates the declaration contract but fails ${grandfathering.failed.join(", ")} — grandfathering is conjunctive, so it may not advance on a pre-contract exemption`,
+      });
     }
   }
 

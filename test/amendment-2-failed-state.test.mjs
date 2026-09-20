@@ -87,7 +87,10 @@ test("🔴 RULE 3 — FAILED is its own count in the tally, never folded into an
   // 13 Sep 2026, later: item 50 was REOPENED on a wrong label, and the bucket holds 1 again.
   // 14 Sep 2026: row 5 was run and FAILED on its held-out check — the bucket holds 2.
   // 20 Sep 2026: row 52 sat the Case Study once and FAILED — the bucket holds 3.
-  assert.equal(t.FAILED, 3);
+  // 20 Sep 2026, later: row 50 left FAILED by rule 1's first route, under the owner's pre-contract
+  // label ruling — the bucket holds 2. It has now been refilled and emptied five times over, and it
+  // has never vanished at zero.
+  assert.equal(t.FAILED, 2);
   assert.ok("FAILED" in t);
   // 58 frozen rows plus rows 59, 60 and 61, admitted by owner ruling (Amendments 3 and 5, 14 September 2026).
   assert.equal(Object.values(t).reduce((a, b) => a + b, 0), 61);
@@ -253,6 +256,10 @@ test("🔴 moves since Amendment 2: EIGHT by ruling (3–7 → NOT-STARTED by Am
     "42:BLOCKED-UNKNOWN→VERIFIED-PASS", "45:BUILT-NOT-PROVED→FAILED", "45:TESTABLE-NOW→VERIFIED-PASS", "47:NOT-STARTED→VERIFIED-PASS",
     "48:VERIFIED-PASS→FAILED", "48:FAILED→VERIFIED-PASS", "49:BUILT-NOT-PROVED→VERIFIED-PASS",
     "50:BUILT-NOT-PROVED→TESTABLE-NOW", "50:TESTABLE-NOW→FAILED", "50:FAILED→VERIFIED-PASS", "50:VERIFIED-PASS→FAILED",
+    // 🔴 20 Sep 2026: row 50 leaves FAILED a second time, by rule 1's first route. The owner's pre-contract
+    // ruling settled the reading; this move is WORK because what closed the row is the injection the settled
+    // reading made readable, not the ruling itself — and the list above confirms no ruling move ever ticks a row.
+    "50:FAILED→VERIFIED-PASS",
     "51:BUILT-NOT-PROVED→TESTABLE-NOW", "51:TESTABLE-NOW→FAILED", "51:FAILED→VERIFIED-PASS",
     /* 🔴 Row 52, 20 September 2026: the Case Study was sat ONCE and FAILED. One shot, spent. */
     "52:BLOCKED-UNKNOWN→TESTABLE-NOW", "52:TESTABLE-NOW→FAILED", "53:BUILT-NOT-PROVED→VERIFIED-PASS",
@@ -306,12 +313,18 @@ test("before Amendment 2 the ledger was 3 / 18 / 0 / 3 / 0 / 6 / 28", () => {
  * semantics and recorded NO MOVEMENT, because its condition 2 was answered UNKNOWN. What closed row 9 was running
  * the whole-boundary verification that condition named. It is the first row to tick while one of its own frozen
  * dimensions stays permanently unmeasured — which is why the ⚠ is machine-readable and guarded, not prose. */
-test("🔴 since Amendment 2, TWENTY-TWO rows hold VERIFIED-PASS (3, 7, 9, 11, 12, 13, 14, 17, 26, 36, 38, 42, 45, 47, 49, 51, 53, 55, 56, 59, 60, 61) — 50 reached it and was REOPENED; 48 LOST it and EARNED IT BACK", () => {
+/* 🔴 20 Sep 2026: TWENTY-THREE. Row 50 joins — the row that reached VERIFIED-PASS, was REOPENED on a
+ * wrong label, and has now earned it back a second time. Like row 7 its blocker was a READING, and
+ * like row 9 what closed it was the measurement the settled reading made readable, not the ruling:
+ * the ruling is recorded as data the validator evaluates, and the tick rests on an injection. */
+test("🔴 since Amendment 2, TWENTY-THREE rows hold VERIFIED-PASS (3, 7, 9, 11, 12, 13, 14, 17, 26, 36, 38, 42, 45, 47, 49, 50, 51, 53, 55, 56, 59, 60, 61) — 50 reached it, was REOPENED, and EARNED IT BACK; 48 LOST it and EARNED IT BACK", () => {
   const rows = classify();
   const newPasses = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS" && BEFORE_AMENDMENT_2[r.id] !== "VERIFIED-PASS");
-  assert.deepEqual(newPasses.map((r) => r.id), [3, 7, 9, 11, 12, 13, 14, 17, 26, 36, 38, 42, 45, 47, 49, 51, 53, 55, 56, 59, 60, 61]);
+  assert.deepEqual(newPasses.map((r) => r.id), [3, 7, 9, 11, 12, 13, 14, 17, 26, 36, 38, 42, 45, 47, 49, 50, 51, 53, 55, 56, 59, 60, 61]);
   const lost = Object.values(rows).filter((r) => BEFORE_AMENDMENT_2[r.id] === "VERIFIED-PASS" && r.state !== "VERIFIED-PASS");
   assert.deepEqual(lost.map((r) => r.id), []);
   // The count hides a round trip — the chain does not.
   assert.deepEqual(MOVES_AMENDMENT_2[48].map((s) => s.to), ["FAILED", "VERIFIED-PASS"]);
+  // 🔴 Row 50's round trip is longer, and the chain keeps every leg of it.
+  assert.deepEqual(MOVES_AMENDMENT_2[50].map((s) => s.to), ["TESTABLE-NOW", "FAILED", "VERIFIED-PASS", "FAILED", "VERIFIED-PASS"]);
 });

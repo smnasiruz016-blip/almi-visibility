@@ -40,6 +40,10 @@ const REPO = join(dirname(fileURLToPath(import.meta.url)), "..");
  * from it, and a file only leaves the list by ceasing to exist.
  */
 const OWNED = Object.freeze([
+  /* 🔴 The pre-contract ruling module joins the list it must honour, 20 Sep 2026. It encodes an
+   * OWNER RULING about evidence, which is exactly the kind of module a client name creeps into — a
+   * checker name, a registry id, a hostname in an example. It carries none, and now it cannot. */
+  "src/evidence/pre-contract-grandfathering.mjs",
   "src/tenancy/resolver.mjs",
   "src/tenancy/sitemap-residency.mjs",
   "src/adapter/sitemap-subject.mjs",

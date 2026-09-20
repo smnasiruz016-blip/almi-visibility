@@ -192,7 +192,7 @@ test("🔴 PART 2 · the 8 whose verdicts named only part of their value returne
   for (const id of stillVerified) assert.deepEqual([byId.get(id).verificationState, judgementOf(id).elements.notConfirmed], ["VERIFIED", 0], id);
 });
 
-test("🔴 PART 4 · the 9 rested on an unsettled reading and were DEMOTED by beta-g ruling — item 50 STAYS FAILED because the guard's formula still advances them", () => {
+test("🔴 PART 4 · the 9 rested on an unsettled reading and were DEMOTED by beta-g ruling — and the guard's formula still advances them, reproduced", () => {
   const flagged = records.filter((r) => r.verification?.elementAmbiguity).map((r) => r.id).sort();
   assert.deepEqual(flagged, [...AMBIGUOUS].sort(), "the 9 flagged records are the labels in question");
   for (const id of AMBIGUOUS) {
@@ -204,17 +204,66 @@ test("🔴 PART 4 · the 9 rested on an unsettled reading and were DEMOTED by be
     assert.equal(r.verification.verdict, "VERIFIED", `${id}: the verdict's own recorded wording was rewritten`);
     assert.match(r.verification.reconciliation, /DEMOTED 13 September 2026 evening/, `${id}: reconciliation does not record the demotion`);
     // 🔴 THE GAP THE DEMOTION EXPOSES: the guard's formula still advances all 9 because it does not police
-    // the qualifier / list completeness / binding party. That is why item 50 stays FAILED — the FAILURE
-    // condition (a label is absent or wrong) held on these 9 and required a human ruling to catch, not the guard.
+    // the qualifier / list completeness / binding party. That gap kept item 50 FAILED from 13 September — the
+    // FAILURE condition (a label is absent or wrong) held on these 9 and required a human ruling to catch.
+    // 🔴 IT IS STILL TRUE, AND THIS WORK DID NOT CHANGE IT. What closed the row is that the gap is BOUNDED to
+    // this frozen pre-contract set: PART 5 injects the same defect into a record dated after the contract's
+    // cut-off and the real guard refuses it, with the control that proves the date is what did the refusing.
     assert.equal(j.decision, "ADVANCED_ON_NEW_MEASUREMENT", `${id}: guard should still advance (proving the formula gap)`);
     assert.equal(j.declared, "UNKNOWN", `${id}: guard should read the demoted state`);
     assert.equal(j.agrees, false, `${id}: record should DISAGREE with the guard — that is the point`);
     assert.equal(j.elements.notConfirmed, 0, `${id}: element reconciliation still shows 0 not-confirmed — the ambiguity is outside the elements`);
   }
   const row = classify()[50];
-  assert.equal(row.state, "FAILED", "item 50 was ticked while the guard's formula still advances the demoted labels");
   assert.match(row.remainingPopulation, /9 previously-VERIFIED labels were DEMOTED/);
+  // 🔴 The nine are still UNKNOWN. Whatever else changed, nothing here was promoted.
+  for (const id of AMBIGUOUS) assert.equal(byId.get(id).verificationState, "UNKNOWN", `${id}: promoted`);
 });
+/* ================================================================== *
+ * 🔴 PART 5 — WHAT CLOSED ROW 50.
+ *
+ * PART 4 reproduces the gap: the guard's formula still advances all nine. The owner's pre-contract
+ * ruling does not close that by itself — the nine satisfy all five of its conditions.
+ *
+ * What closes the row is the BOUND. The formula gap can only be reached by a record that pre-dates
+ * the declaration contract, and that set is frozen: today is after the cut-off, so every fresh
+ * verification is R4-governed. This proves it by INJECTION rather than by argument — the same nine
+ * records, ONE field changed, put through the REAL validator.
+ *
+ * 🔴 AND IT CARRIES ITS CONTROL. A refusal proves nothing if the judge refuses everything, so the
+ * same nine are re-dated back inside the cut-off and must advance again.
+ * ================================================================== */
+
+test("🔴 PART 5 · the forbidden transition, proved impossible by INJECTION — the same defect in a record we can be handed TODAY is refused", () => {
+  const advancing = (recs, id) => {
+    const r = recs.find((x) => x.id === id);
+    return judgeLeavingUnknown(r.id, r.verification, r.claimElements, r)?.decision === "ADVANCED_ON_NEW_MEASUREMENT";
+  };
+
+  for (const id of AMBIGUOUS) {
+    /* ONE field changes. Same value, same verdict wording, same elements, same human signature,
+     * same ambiguity flag — only the date moves past the contract's cut-off. */
+    const injected = withVerification(id, { checkedOn: "2026-09-14", recheckedOn: undefined });
+    const before = byId.get(id).verification;
+    const after = injected.find((r) => r.id === id).verification;
+    const changed = [...new Set([...Object.keys(before), ...Object.keys(after)])].filter((k) => JSON.stringify(before[k]) !== JSON.stringify(after[k]));
+    assert.deepEqual(changed, ["checkedOn"], `${id}: the injection changed more than the date — ${changed.join(", ")}`);
+
+    assert.equal(advancing(injected, id), false, `${id}: the same defect STILL ADVANCES when it is post-contract — row 50's gap is live on records we can still create`);
+    assert.ok(lawsOf(injected).includes("F30"), `${id}: refused without F30 naming the missing declaration`);
+
+    /* 🔴 THE CONTROL. Re-dated inside the cut-off, the very same record must advance again — so the
+     * refusal above is the declaration contract talking, not a judge that refuses everything. */
+    assert.equal(advancing(withVerification(id, { checkedOn: "2026-09-12" }), id), true,
+      `${id}: CONTROL FAILED — it does not advance even inside the cut-off, so the refusal proves nothing`);
+  }
+
+  /* The bound, stated as the row states it. */
+  const row = classify()[50];
+  assert.equal(row.state, "VERIFIED-PASS");
+  assert.match(row.why, /the SAME defect in a record this system can be handed TODAY is REFUSED/);
+});
+
 
 test("🔴 R4 · the pre-contract population is EXACTLY the 36 by name — none carries a declaration, and the nine's exemption is still reachable", () => {
   const preContract = v.guard.judgements.filter((j) => j.contract === "PRE_CONTRACT").map((j) => j.id).sort();

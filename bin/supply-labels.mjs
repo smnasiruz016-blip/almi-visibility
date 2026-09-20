@@ -33,6 +33,7 @@ import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "
 
 import { EXACT_DUPLICATE, THIN_CONTENT, NEAR_DUPLICATE, TEMPLATE_DOMINANCE, RECOMMENDATION_FIELDS } from "../src/audit/content-checks.mjs";
 import { measure, SHELL_DEFINITION, THIN_UNIQUE_WORD_FLOOR } from "../src/audit/shell.mjs";
+import { batchFile } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n, d) => {
@@ -40,7 +41,7 @@ const arg = (n, d) => {
   return hit ? hit.slice(n.length + 3) : d;
 };
 const CORPUS = arg("corpus", null);
-const CRAWL = arg("crawl", `${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`);
+const CRAWL = arg("crawl", batchFile("first-real-crawl-2026-09-12.jsonl"));
 /* 🔴 GAP 2 — confined BEFORE anything is read, and DRY-RUN BY DEFAULT. Until 16 September 2026 this
  * appended its findings on every run, with no flag and no gate: the shape that rewrote committed
  * evidence on 14 September when a writer was run only to read a number. */

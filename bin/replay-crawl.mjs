@@ -46,6 +46,7 @@ import { retestChange, headFacts, titleCountsOf } from "../src/audit/retest.mjs"
 import { runRobotsAndDnsAudit } from "../src/audit/run-audit.mjs";
 import { createCostLedger, entryFromReplay, entryFromArtifactRecovery, formatLedgerLine } from "../src/cost/ledger.mjs";
 import { ESTATE_HOSTNAME_LIST } from "../config/estate-hostnames.mjs";
+import { batchFile } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const argv = process.argv.slice(2);
@@ -57,7 +58,7 @@ const ARTIFACT = `crawl-corpus-${RUN_ID}`;
 /* The bodies come from the COMMITTED archive by default (the evidence that
  * outlives the artifact); --corpus=<dir> replays an unpacked directory instead,
  * and --recover re-downloads the artifact into one. */
-const ARCHIVE = `${REPO}runs/crawl/bodies-2026-09-12.jsonl.br`;
+const ARCHIVE = batchFile("bodies-2026-09-12.jsonl.br");
 const CORPUS = arg("corpus") || argv.includes("--recover") ? confineToRepo(arg("corpus") ?? `${REPO}runs/crawl/corpus`, { label: "--corpus" }) : null;
 // --label names a later re-run's evidence so it never overwrites the first (e.g. --label=2026-09-13-journey-key).
 const LABEL = arg("label") ?? "2026-09-13";
@@ -150,7 +151,7 @@ if (argv.includes("--recover")) {
  * 1B — THE REPLAY SET, VERIFIED BYTE FOR BYTE.
  * ================================================================== */
 
-const crawlRecords = readJsonl(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`);
+const crawlRecords = readJsonl(batchFile("first-real-crawl-2026-09-12.jsonl"));
 const BODY_SOURCE = CORPUS ?? ARCHIVE;
 if (!existsSync(BODY_SOURCE)) {
   console.error(`🔴 REFUSED — no bodies at ${BODY_SOURCE}. A replay with no bodies would report a clean zero.`);

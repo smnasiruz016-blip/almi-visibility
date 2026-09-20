@@ -26,7 +26,15 @@ const sha256 = (b) => createHash("sha256").update(b).digest("hex");
 /** git's own object id for a blob: sha1("blob <n>\0" + bytes). */
 const gitBlobId = (bytes) => createHash("sha1").update(Buffer.concat([Buffer.from(`blob ${bytes.length}\0`), bytes])).digest("hex");
 
-const STORES = ["runs/evidence/evidence.jsonl", "runs/crawl/first-real-crawl-2026-09-12.jsonl", "runs/audit/technical-findings.jsonl", "runs/cost/ledger.jsonl"];
+/* 🔴 20 September 2026: runs/crawl/first-real-crawl-2026-09-12.jsonl left this list because the
+ * observation batch moved to the external data repository. It did NOT stop being covered — it is
+ * recovered below through dataGit, from the repository that now commits it, by the same rule. */
+const STORES = ["runs/evidence/evidence.jsonl", "runs/audit/technical-findings.jsonl", "runs/cost/ledger.jsonl"];
+
+/** The same reader, pointed at the repository that now holds the observation batch. */
+const BATCH_REPO = join(REPO, "..", "almi-visibility-data");
+const dataGit = (args, opts = {}) => execFileSync("git", args, { cwd: BATCH_REPO, maxBuffer: 256 * 1024 * 1024, ...opts });
+const BATCH = "observations/crawl-2026-09-12";
 
 for (const path of STORES) {
   test(`🔴 RECOVERY: ${path} — torn by a partial write, detected by the reader, restored from the commit, and byte-identical`, () => {
@@ -57,16 +65,35 @@ for (const path of STORES) {
   });
 }
 
+test("🔴 RECOVERY: the EXTERNAL run record — torn by a partial write, detected by the reader, restored from the commit, byte-identical", () => {
+  const path = `${BATCH}/first-real-crawl-2026-09-12.jsonl`;
+  const committed = dataGit(["show", `HEAD:${path}`]);
+  const blobId = String(dataGit(["rev-parse", `HEAD:${path}`], { encoding: "utf8" })).trim();
+  assert.equal(gitBlobId(committed), blobId, "the bytes read back from git are not the blob git recorded");
+  const dir = mkdtempSync(join(tmpdir(), "almivis-recover-ext-"));
+  try {
+    const copy = join(dir, "run.jsonl");
+    /* A torn last line is how a failed append damages a JSONL store. */
+    writeFileSync(copy, Buffer.concat([committed.subarray(0, committed.length - 40)]));
+    assert.throws(() => createJsonlStore(copy).readAll(), "a torn store was read as if whole");
+    writeFileSync(copy, dataGit(["show", `HEAD:${path}`]));
+    assert.equal(gitBlobId(readFileSync(copy)), blobId);
+    assert.equal(createJsonlStore(copy).readAll().length, 999);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("🔴 RECOVERY: the committed body archive restores byte-identically, and still unpacks to 394 bodies", () => {
-  const path = "runs/crawl/bodies-2026-09-12.jsonl.br";
-  const committed = git(["show", `HEAD:${path}`]);
-  const blobId = String(git(["rev-parse", `HEAD:${path}`], { encoding: "utf8" })).trim();
+  const path = `${BATCH}/bodies-2026-09-12.jsonl.br`;
+  const committed = dataGit(["show", `HEAD:${path}`]);
+  const blobId = String(dataGit(["rev-parse", `HEAD:${path}`], { encoding: "utf8" })).trim();
   const dir = mkdtempSync(join(tmpdir(), "almivis-recover-br-"));
   try {
     const copy = join(dir, "bodies.br");
     writeFileSync(copy, committed.subarray(0, Math.floor(committed.length / 2)));
     assert.throws(() => readBodyArchive(copy), "a truncated archive was read as if whole");
-    writeFileSync(copy, git(["show", `HEAD:${path}`]));
+    writeFileSync(copy, dataGit(["show", `HEAD:${path}`]));
     assert.equal(gitBlobId(readFileSync(copy)), blobId);
     assert.equal(readBodyArchive(copy).size, 394);
   } finally {

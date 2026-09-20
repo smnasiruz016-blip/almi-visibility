@@ -19,13 +19,19 @@ import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { readBodyArchive } from "../src/evidence/body-archive.mjs";
 import { pagesFromRun, deriveEdges, inboundOf, packGraph, ZERO_INBOUND_DEFINITION } from "../src/crawl/inbound.mjs";
+import { batchFile } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv.slice(2), env: process.env }));
-const OUT = confineToRepo(`${REPO}runs/crawl/edges-2026-09-12.jsonl.br`, { label: "the edge graph" });
+/* 🔴 NO DEFAULT DESTINATION, SINCE 20 SEPTEMBER 2026. The canonical edge graph lives in the external
+ * observation batch, where it is immutable evidence. Re-deriving it into THIS repository would put
+ * back exactly the artifact the migration removed, so a destination must now be named explicitly.
+ * The write stays confined to this repository either way: the engine never writes to the data one. */
+const outArg = process.argv.find((a) => a.startsWith("--out="))?.slice("--out=".length) ?? null;
+const OUT = outArg === null ? null : confineToRepo(outArg, { label: "--out" });
 
-const crawlRecords = createJsonlStore(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`).readAll();
-const pages = pagesFromRun({ crawlRecords, bodies: readBodyArchive(`${REPO}runs/crawl/bodies-2026-09-12.jsonl.br`) });
+const crawlRecords = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll();
+const pages = pagesFromRun({ crawlRecords, bodies: readBodyArchive(batchFile("bodies-2026-09-12.jsonl.br")) });
 const edges = deriveEdges(pages);
 const { zero } = inboundOf({ pages, edges });
 const packed = packGraph(edges);
@@ -39,6 +45,10 @@ console.log(`packed: ${packed.length} bytes`);
 if (!permission.mayWrite) {
   console.log("[dry-run] nothing written — add --confirm");
   process.exit(0);
+}
+if (OUT === null) {
+  console.error("🔴 REFUSED — no destination. The canonical edge graph is in the external observation batch; writing one into this repository would recreate a real observation artifact here. Pass --out=<path> to write a copy for inspection.");
+  process.exit(2);
 }
 if (existsSync(OUT)) {
   console.error(`🔴 REFUSED — ${OUT} already exists. Recorded evidence is not re-recorded over itself.`);

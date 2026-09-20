@@ -11,14 +11,15 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { readBodyArchive, verifyBodiesAgainstRun, packBodies, unpackBodies } from "../src/evidence/body-archive.mjs";
+import { batchFile } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
-export const ARCHIVE = `${REPO}runs/crawl/bodies-2026-09-12.jsonl.br`;
+export const ARCHIVE = batchFile("bodies-2026-09-12.jsonl.br");
 
 test("🔴 the body archive is PRESENT, and every one of the run's 394 bodies hashes to its observation", () => {
   assert.ok(existsSync(ARCHIVE), "the evidence behind items 11, 42 and 48 is missing from the repository");
   const bodies = readBodyArchive(ARCHIVE);
-  const crawlRecords = createJsonlStore(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`).readAll();
+  const crawlRecords = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll();
   const v = verifyBodiesAgainstRun({ bodies, crawlRecords });
   assert.equal(v.expected, 394);
   assert.deepEqual(v.missing, [], "a body is missing");

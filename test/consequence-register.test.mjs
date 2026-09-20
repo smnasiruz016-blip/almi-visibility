@@ -16,6 +16,7 @@ import { computeRecommendationFields } from "../src/report/recommendation-fields
 import { CONSEQUENCE_REGISTER } from "../config/consequence-register.mjs";
 import { SEVERITY_SCALE } from "../config/consequence-scale.mjs";
 import { CLASS_SPLITS } from "../config/class-splits.mjs";
+import { batchJsonlFiles } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const read = (dir) => readdirSync(join(REPO, dir)).filter((f) => f.endsWith(".jsonl")).flatMap((f) => createJsonlStore(join(REPO, dir, f)).readAll());
@@ -24,7 +25,7 @@ const fieldsWith = (register, scale = SEVERITY_SCALE) =>
   computeRecommendationFields({
     recommendations: AUDIT.filter((r) => r.record_type === "draft_recommendation"),
     links: AUDIT.filter((r) => r.record_type === "recommendation_evidence"),
-    records: [...AUDIT, ...read("runs/evidence"), ...read("runs/crawl")],
+    records: [...AUDIT, ...read("runs/evidence"), ...batchJsonlFiles().flatMap((p) => createJsonlStore(p).readAll())],
     ledger: createJsonlStore(join(REPO, "runs", "cost", "ledger.jsonl")).readAll(),
     consequenceRegister: register,
     consequenceScale: scale,

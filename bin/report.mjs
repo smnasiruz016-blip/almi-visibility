@@ -37,6 +37,7 @@ import { AUDIT_TRAIL } from "../config/audit-trail.mjs";
 import { splitView } from "../src/audit/class-split.mjs";
 import { fourWay, impressionsForClass } from "../src/audit/populations.mjs";
 import { statSync } from "node:fs";
+import { batchJsonlFiles } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n, d) => {
@@ -47,7 +48,10 @@ const arg = (n, d) => {
 const evidencePath = arg("evidence", `${REPO}runs/evidence/evidence.jsonl`);
 const robotsPath = arg("robots", `${REPO}runs/evidence/robots.jsonl`);
 const auditPath = arg("audit", `${REPO}runs/audit/findings.jsonl`);
-const crawlDir = arg("crawl-dir", `${REPO}runs/crawl`);
+/* 🔴 No in-repository default since 20 September 2026: the observation batch lives in the external
+ * data repository. --crawl-dir still overrides, for a local corpus; with no override the batch is
+ * resolved, and an unreadable batch REFUSES rather than reporting over an empty population. */
+const crawlDir = arg("crawl-dir", null);
 // 🔴 Confined BEFORE anything is read or rendered: a destination outside this
 // repository is refused while nothing has happened yet.
 const out = confineToRepo(arg("out", `${REPO}runs/report/index.html`), { label: "--out" });
@@ -63,11 +67,13 @@ const evidenceRecords = [...read(evidencePath), ...read(robotsPath), ...read(aud
 
 /* Every crawl file in the directory, so a second run's records would appear
  * rather than being silently ignored because the filename changed. */
-const crawlRecords = existsSync(crawlDir)
-  ? readdirSync(crawlDir)
-      .filter((f) => f.endsWith(".jsonl"))
-      .flatMap((f) => read(join(crawlDir, f)))
-  : [];
+const crawlRecords = crawlDir === null
+  ? batchJsonlFiles().flatMap((p) => read(p))
+  : existsSync(crawlDir)
+    ? readdirSync(crawlDir)
+        .filter((f) => f.endsWith(".jsonl"))
+        .flatMap((f) => read(join(crawlDir, f)))
+    : [];
 
 // 🔴 The product is an ARGUMENT, never a folder written here (owner ruling, 14 September 2026): no default.
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/report.mjs --product=<id> [--evidence=<path>] [--crawl=<path>] [--out=<file>] [--confirm]" });

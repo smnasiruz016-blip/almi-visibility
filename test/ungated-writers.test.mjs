@@ -23,6 +23,7 @@ import { gateOf, confinementOf, destinationFlagIn, REQUIRED_FIELDS, writeSiteCen
 import { ANY_WRITE_PATTERN } from "../tools/no-generation-census.mjs";
 import { PERMITTED_LOCAL_WRITERS, KNOWN_UNGATED_WRITERS } from "../config/permitted-page-writers.mjs";
 import { SYNTHETIC_PROPERTY, writeSyntheticSource } from "./support/gsc-synthetic-source.mjs";
+import { batchFile } from "../src/crawl/observation-batch.mjs";
 
 /** A write through a store is a write too — the page census never counted these, which is how they went unseen. */
 const STORE_WRITE = /\b(?:persistCrawlObservations|appendWithoutDedupe|appendIfNew|appendAll)\(|\.append\(/;
@@ -463,7 +464,7 @@ const COST_DIR = join(REPO_ROOT, "runs", "cost");
  * "wrote nothing" assertion while proving as little as the early exit did.
  */
 function scratchCorpus() {
-  const crawl = createJsonlStore(join(REPO_ROOT, "runs", "crawl", "first-real-crawl-2026-09-12.jsonl")).readAll();
+  const crawl = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll();
   const withBody = crawl.filter((r) => r.record_type === "observation" && r.content_sha256).slice(0, 12);
   assert.ok(withBody.length >= 2, "the committed crawl record holds too few observations to build a corpus from");
   mkdirSync(join(REPO_ROOT, ".test-scratch"), { recursive: true });

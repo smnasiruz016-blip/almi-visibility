@@ -28,6 +28,7 @@ import { createFetcher } from "../src/crawl/fetcher.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { makeObservation } from "../src/evidence/records.mjs";
 import { targetPageId, canonicalUrl } from "../src/evidence/ids.mjs";
+import { batchFile } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 
@@ -167,7 +168,7 @@ test("🔴 COST: a re-run over cached input issues ZERO new requests", async () 
 });
 
 test("🔴 REAL: the 12 September crawl stored no duplicate reading — 500 distinct measurement keys", () => {
-  const records = readFileSync(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`, "utf8")
+  const records = readFileSync(batchFile("first-real-crawl-2026-09-12.jsonl"), "utf8")
     .trim().split("\n").map((l) => JSON.parse(l));
   const observations = records.filter((r) => r.record_type === "observation");
   assert.equal(observations.length, 500, "the run's observation count changed");

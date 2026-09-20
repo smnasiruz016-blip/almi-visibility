@@ -10,6 +10,7 @@ import { assessFamilies, FAMILY_STATES, DEFAULT_RESOLVERS } from "../src/audit/d
 import { ROBOTS_SCOPE, DNS_FAMILY } from "../src/audit/checks.mjs";
 import { sealedCorpusCensus, renderCensus, AUDIT_DIR, SEALED_DIR } from "../tools/sealed-corpus-census.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
+import { batchFile } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const tmp = () => mkdtempSync(join(tmpdir(), "almivis-audit-"));
@@ -271,7 +272,7 @@ test("🔴 REAL: every one of the 106 blocked URLs is blocked for GOOGLEBOT too"
   for (const r of createJsonlStore(ROBOTS_FILE).readAll()) {
     if (r.record_type === "observation") robots.set(r.value.host, r.value.body);
   }
-  const blocked = createJsonlStore(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`)
+  const blocked = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl"))
     .readAll()
     .filter((r) => r.record_type === "observation" && r.value?.skipped)
     .map((r) => r.value.requested_url);

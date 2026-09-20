@@ -10,6 +10,7 @@ import { join } from "node:path";
 import { makeIssueStateChange, lifecycleOf, walkChain, ISSUE_TRANSITIONS } from "../src/evidence/lifecycle.mjs";
 import { makeIssue } from "../src/evidence/records.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
+import { batchJsonlFiles } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 
@@ -66,7 +67,7 @@ test("🔴 CONTROL: the walk reports a MISSING part rather than filling it in", 
 /* ---- REAL ----------------------------------------------------------------- */
 
 const audit = () => readdirSync(`${REPO}runs/audit`).filter((f) => f.endsWith(".jsonl")).flatMap((f) => createJsonlStore(`${REPO}runs/audit/${f}`).readAll());
-const crawl = () => readdirSync(`${REPO}runs/crawl`).filter((f) => f.endsWith(".jsonl")).flatMap((f) => createJsonlStore(`${REPO}runs/crawl/${f}`).readAll());
+const crawl = () => batchJsonlFiles().flatMap((p) => createJsonlStore(p).readAll());
 
 test("🔴 REAL: 134 cv-guide noindex issues are SUPERSEDED — the first lifecycles this project has completed — with no lifecycle error", () => {
   const r = lifecycleOf([...audit(), ...crawl()]);

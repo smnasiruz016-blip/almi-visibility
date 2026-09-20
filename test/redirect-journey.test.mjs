@@ -20,6 +20,7 @@ import { createJsonlStore } from "../src/evidence/store.mjs";
 import { measurementKey, sha256Hex } from "../src/evidence/ids.mjs";
 import { journeyOf } from "../src/crawl/crawler.mjs";
 import { replayEntriesFrom, runReplayPass } from "../src/crawl/replay.mjs";
+import { batchFile } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 
@@ -89,7 +90,7 @@ test("the journey participates ONLY when the request did not end where it starte
  * the correction, stated rather than hidden.
  */
 test("🔴 REAL: re-keying the stored 12 September run — unredirected keys unchanged; the redirected ones counted", () => {
-  const records = createJsonlStore(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`).readAll();
+  const records = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll();
   const fetched = records.filter((r) => r.record_type === "observation" && r.method === "crawl.fetch");
   let unchanged = 0;
   const moved = [];

@@ -41,6 +41,7 @@ import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { makeIssue } from "../src/evidence/records.mjs";
 import { makeIssueStateChange, lifecycleOf, STATE_CHANGE_TYPE } from "../src/evidence/lifecycle.mjs";
+import { batchJsonlFiles } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 /* 🔴 GAP 2 · TESTABILITY SEAM (17 September 2026): `--store=` names a different findings store, CONFINED to this
@@ -57,9 +58,8 @@ export const REVIEW_VERSION = "1";
 
 const readJsonl = (p) => (existsSync(p) ? createJsonlStore(p).readAll() : []);
 const auditDir = `${REPO}runs/audit`;
-const crawlDir = `${REPO}runs/crawl`;
 const audit = readdirSync(auditDir).filter((f) => f.endsWith(".jsonl")).flatMap((f) => readJsonl(join(auditDir, f)));
-const crawl = readdirSync(crawlDir).filter((f) => f.endsWith(".jsonl")).flatMap((f) => readJsonl(join(crawlDir, f)));
+const crawl = batchJsonlFiles().flatMap((p) => createJsonlStore(p).readAll());
 
 const observationIds = new Set([...audit, ...crawl].filter((r) => r.record_type === "observation").map((r) => r.observation_id));
 for (const id of [ORIGIN_OBSERVATION, GUIDANCE_OBSERVATION]) {

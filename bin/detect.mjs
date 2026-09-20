@@ -28,6 +28,8 @@ import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "
 import { runDetectors, serialiseFindings } from "../src/detect/run.mjs";
 import { readTree, readArchivedPages } from "../src/discover/corpus.mjs";
 import { buildBundle } from "../src/discover/bundle.mjs";
+import { readExternalSubject, toBundle } from "../src/adapter/external-subject.mjs";
+import { productFromArgvOrExit } from "../src/product-cli.mjs";
 import { score } from "../src/detect/score.mjs";
 
 const argv = process.argv.slice(2);
@@ -119,8 +121,35 @@ if (!bundlePath || !runAt) {
     return b;
   };
 
-  const bundle = bundlePath === "discover" ? discoverBundle() : await loadBundle(bundlePath);
-  const result = runDetectors({ bundle, runAt, tenantId });
+  /**
+   * 🔴 READ ONE DECLARED EXTERNAL SUBJECT, THROUGH THE ENGINE'S OWN ROOT MECHANISM.
+   *
+   * The id selects a declared root; it is not a rule about any subject, and this runner holds no
+   * knowledge of what it will find there. Nothing is copied into this repository, and a root that
+   * cannot be read yields UNKNOWN rather than an empty run that looks clean.
+   */
+  const subjectBundle = async () => {
+    const id = flag("subject");
+    if (!id) throw new Error('--bundle=subject needs --subject=<declared product id>; there is no default subject, because a runner that picks its own measures nothing in particular');
+    const product = await productFromArgvOrExit(["node", "x", `--product=${id}`], { usage: "node bin/detect.mjs --bundle=subject --subject=<id>" });
+    const subject = await readExternalSubject({ product });
+    console.log(`\nEXTERNAL SUBJECT — read-only, through the declared root`);
+    console.log(`  available   : ${subject.available}`);
+    if (!subject.available) console.log(`  reason      : ${subject.reason} — ${subject.detail}`);
+    console.log(`  populations : ${JSON.stringify(subject.populations)}`);
+    return { bundle: toBundle(subject), tenant: subject.tenantId };
+  };
+
+  let tenantForRun = tenantId;
+  let bundle;
+  if (bundlePath === "subject") {
+    const r = await subjectBundle();
+    bundle = r.bundle;
+    tenantForRun = tenantId ?? r.tenant;
+  } else {
+    bundle = bundlePath === "discover" ? discoverBundle() : await loadBundle(bundlePath);
+  }
+  const result = runDetectors({ bundle, runAt, tenantId: tenantForRun });
   const serialised = serialiseFindings(result);
   const digest = createHash("sha256").update(serialised).digest("hex");
 

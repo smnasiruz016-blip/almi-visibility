@@ -103,6 +103,22 @@ function envelopeOf({ detectorKey, detectorName, outcome, tenant, bundle }) {
   let candidates = [];
   let edges = [];
 
+  /* 🔴 A SUPPLIER MAY DECLARE THE BINDING IT DERIVED FROM ITS OWN MATERIAL — and it is still judged.
+   *
+   * An adapter reading a real external subject can see relationships this runner cannot: a citation
+   * the subject's own page spec carries into its own registry, for instance. It hands those over
+   * here. What it CANNOT do is assert the verdict: `bindSubject` below re-judges every candidate and
+   * edge it was given, so a malformed edge, a cross-tenant edge or two competing candidates end as
+   * INVALID or AMBIGUOUS exactly as if this runner had derived them. A supplied binding is evidence
+   * offered, never a conclusion accepted. */
+  const supplied = bundle.subjectBindings && typeof bundle.subjectBindings === "object" ? bundle.subjectBindings[outcome.subject] : null;
+  if (tenant !== null && supplied) {
+    candidates = Array.isArray(supplied.candidates) ? supplied.candidates : [];
+    edges = Array.isArray(supplied.edges) ? supplied.edges : [];
+    const binding = bindSubject({ tenantId: tenant, candidates, edges });
+    return envelope({ detectorKey, detectorName, outcome, tenant, binding });
+  }
+
   if (tenant !== null) {
     try {
       if (pages.includes(outcome.subject)) {
@@ -127,6 +143,11 @@ function envelopeOf({ detectorKey, detectorName, outcome, tenant, bundle }) {
   }
 
   const binding = bindSubject({ tenantId: tenant, candidates, edges });
+  return envelope({ detectorKey, detectorName, outcome, tenant, binding });
+}
+
+/** One envelope, built from a judged binding. The single place the four states become an outcome. */
+function envelope({ detectorKey, detectorName, outcome, tenant, binding }) {
   const effective = effectiveOutcome(outcome.outcome, binding.state);
   return Object.freeze({
     ...outcome,

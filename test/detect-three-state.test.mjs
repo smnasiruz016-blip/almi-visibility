@@ -19,7 +19,7 @@ import { detectDeclaredVsServed } from "../src/detect/declared-served.mjs";
 import { detectSitemapVsObserved } from "../src/detect/sitemap-observed.mjs";
 import { detectCountVsData } from "../src/detect/count-data.mjs";
 import { detectSourceLinkVsRendered } from "../src/detect/link-render.mjs";
-import { finding, clean, unknown, assertOutcome, OUTCOMES } from "../src/detect/outcome.mjs";
+import { finding, clean, unknown, notApplicable, assertOutcome, OUTCOMES } from "../src/detect/outcome.mjs";
 
 const only = (list) => { assert.equal(list.length, 1, `expected exactly one outcome, got ${list.length}`); return list[0]; };
 
@@ -166,12 +166,23 @@ describe("F · a source-declared link versus the rendered body", () => {
   });
 });
 
-describe("🔴 the outcome type refuses everything that is not one of the three", () => {
+describe("🔴 the outcome type refuses everything that is not one of the four", () => {
   test("null, undefined and a bare object are all refused at the boundary", () => {
     for (const v of [null, undefined, {}, { outcome: "OK" }, 7, "CLEAN"]) {
       assert.throws(() => assertOutcome(v, { detector: "d", subject: "s" }), /must answer|not one of/);
     }
-    assert.deepEqual(OUTCOMES, ["FINDING", "CLEAN", "UNKNOWN"]);
+    assert.deepEqual(OUTCOMES, ["FINDING", "CLEAN", "UNKNOWN", "NOT_APPLICABLE"]);
+  });
+
+  test("🔴 NOT_APPLICABLE is distinguishable from UNKNOWN, and must say what it looked for", () => {
+    const na = notApplicable({ detector: "d", subject: "s", reasonCode: "NO_CANDIDATE_OF_THIS_KIND", examined: ["scanned 0 candidates"], summary: "nothing of this kind here" });
+    const un = unknown({ detector: "d", subject: "s", reasonCode: "INPUT_ABSENT", detail: "a candidate was found and could not be bound" });
+    assert.equal(na.outcome, "NOT_APPLICABLE");
+    assert.equal(un.outcome, "UNKNOWN");
+    assert.notEqual(na.outcome, un.outcome, "the two absences must never collapse into one");
+    /* 🔴 It is not scored, so it must not be the cheapest way to make an input vanish. */
+    assert.throws(() => notApplicable({ detector: "d", subject: "s", reasonCode: "NO_CANDIDATE_OF_THIS_KIND", examined: [], summary: "x" }), /indistinguishable from never looking/);
+    assert.throws(() => notApplicable({ detector: "d", subject: "s", reasonCode: "NOPE", examined: ["x"], summary: "x" }), /add it to NOT_APPLICABLE_REASONS/);
   });
   test("🔴 a FINDING without evidence and a CLEAN without what it checked are both refused", () => {
     assert.throws(() => finding({ detector: "d", subject: "s", defectClass: "c", evidence: [], summary: "x" }), /unevidenced finding/);

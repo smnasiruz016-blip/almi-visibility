@@ -1,0 +1,16 @@
+{
+  "note": "The DEVELOPMENT rehearsal expectation set for the discovery path. Synthetic product P only. Read by bin/detect.mjs after the findings output is written and hashed, never before.",
+  "requiredReds": [
+    { "id": "SYN-A", "detectorKey": "A", "subject": "https://p.invalid/swatches" },
+    { "id": "SYN-B", "detectorKey": "B", "subject": "https://p.invalid/standards" },
+    { "id": "SYN-C", "detectorKey": "C", "subject": "https://p.invalid/cached" },
+    { "id": "SYN-D", "detectorKey": "D", "subject": "https://p.invalid/dead" },
+    { "id": "SYN-E", "detectorKey": "E", "subject": "https://p.invalid/tools" },
+    { "id": "SYN-F", "detectorKey": "F", "subject": "https://p.invalid/hub" }
+  ],
+  "controls": [
+    { "id": "SYN-CTL-1", "subject": "https://p.invalid/quiet" },
+    { "id": "SYN-CTL-2", "subject": "https://p.invalid/swatches-ok" },
+    { "id": "SYN-CTL-3", "subject": "https://p.invalid/hub-ok" }
+  ]
+}

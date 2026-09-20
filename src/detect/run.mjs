@@ -10,7 +10,7 @@
  * leave a shorter output that still looked complete, which is the most dangerous shape of all: an
  * examination that scores well because it stopped early.
  */
-import { assertOutcomes, unknown } from "./outcome.mjs";
+import { assertOutcomes, unknown, notApplicable } from "./outcome.mjs";
 import { detectClaimVsProducer } from "./claim-producer.mjs";
 import { detectClaimVsRegistry } from "./claim-registry.mjs";
 import { detectDeclaredVsServed } from "./declared-served.mjs";
@@ -54,6 +54,26 @@ export function runDetectors({ bundle, runAt } = {}) {
     } catch (e) {
       outcomes = [unknown({ detector: name, subject: "(detector threw)", reasonCode: "INPUT_UNREADABLE", detail: `the detector threw: ${e.message}` })];
     }
+
+    /* 🔴 EVERY PAGE GETS A DISPOSITION FROM EVERY COMPARATOR, OR IT WOULD SIMPLY BE ABSENT.
+     *
+     * A page this comparator produced nothing about was not examined by it — and a page nobody
+     * examined must never be readable as clean. It is recorded as NOT_APPLICABLE, which is unscored
+     * but VISIBLE, rather than left out of the findings where silence would do the work of a pass.
+     *
+     * This is the fourth disposition doing its job: "nothing of this kind is on this page" is a true
+     * statement about a control that neither fails it nor earns it a tick, and it is emitted here
+     * rather than collapsed into UNKNOWN — which under Amendment 2 would fail every control. */
+    const seen = new Set(outcomes.map((o) => o.subject));
+    const pageSubjects = Array.isArray(bundle.pageSubjects) ? bundle.pageSubjects : [];
+    for (const subject of pageSubjects) {
+      if (seen.has(subject)) continue;
+      outcomes.push(notApplicable({
+        detector: name, subject, reasonCode: "NO_CANDIDATE_OF_THIS_KIND",
+        examined: [`the page was in the examined population of ${pageSubjects.length}`, `${name} discovered no candidate of its kind on it`],
+        summary: "examined, and it carries nothing of the kind this comparator judges",
+      }));
+    }
     return Object.freeze({ key, name, outcomes: Object.freeze(outcomes) });
   });
 
@@ -79,6 +99,7 @@ export function serialiseFindings(result) {
         detail: o.detail ?? null,
         evidence: o.evidence ? [...o.evidence] : null,
         checked: o.checked ? [...o.checked] : null,
+        examined: o.examined ? [...o.examined] : null,
       });
     }
   }

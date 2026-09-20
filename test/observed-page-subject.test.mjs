@@ -13,8 +13,9 @@ import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 
 import {
-  observedPageSubjects, judgeObservedPage, batchTenantId, normaliseObservedUrl, toBundle, PAGE_REASONS,
+  observedPageSubjects, judgeObservedPage, normaliseObservedUrl, toBundle, bundlesByTenant, pageOriginRef, PAGE_REASONS,
 } from "../src/adapter/observed-page-subject.mjs";
+import { createTenantResolver, TENANT_ID_PATTERN } from "../src/tenancy/resolver.mjs";
 import { ObservationBatchFault, BATCH_FAULTS, BATCH_ID } from "../src/crawl/observation-batch.mjs";
 import { runDetectors } from "../src/detect/run.mjs";
 import { effectiveOutcome } from "../src/detect/binding.mjs";
@@ -29,20 +30,86 @@ const REAL = observedPageSubjects();
  * THE TENANT — B2's question, enforced in code
  * ================================================================== */
 
-test("🔴 the tenant of an UNASSIGNED batch is the batch itself, and it names no product", () => {
-  assert.equal(REAL.classificationState, "UNASSIGNED");
-  assert.equal(REAL.tenantId, `observation-batch:${REAL.batchId}`);
-  /* The one thing it must never be: a product id. */
-  assert.doesNotMatch(REAL.tenantId, /almi(?!.*observation-batch)/i, "the tenant names a product");
-  assert.match(REAL.tenantId, /^observation-batch:/);
+/**
+ * 🔴 WHAT THE TWO TESTS REPLACED HERE USED TO CATCH, AND WHERE IT WENT.
+ *
+ * They asserted that the tenant WAS the capture batch (`observation-batch:<batchId>`), that it never
+ * named a product, and that `batchTenantId` threw on a missing batchId or an already-ASSIGNED batch.
+ *
+ * Two of those three properties are now stronger, not weaker, and are re-proved below: the tenant
+ * still never names a product — it cannot, being an opaque declared identifier — and an identity the
+ * engine cannot establish still refuses rather than defaulting, now per page rather than per batch.
+ *
+ * 🔴 WHAT IS GENUINELY LOST, STATED PLAINLY: the ASSIGNED-batch refusal. `batchTenantId` enforced
+ * "an assigned batch has an owner and this adapter must not overwrite one". There is no longer
+ * anything to overwrite, because the batch is not a scope in the first place — the manifest's
+ * classificationState is now provenance that nothing reads as authority. The property did not move
+ * somewhere else; it stopped being meaningful. It is recorded here rather than quietly dropped.
+ */
+test("🔴 the tenant of an observed page is DECLARED — never the batch, never a product", () => {
+  assert.equal(REAL.classificationState, "UNASSIGNED", "the batch's own state is still carried as provenance");
+
+  const tenants = REAL.tenants;
+  assert.ok(tenants.length > 1, `expected the population to span several declared scopes, got ${tenants.length}`);
+
+  for (const t of tenants) {
+    /* Opaque and declared: it cannot encode a product, a host or a batch, because it is 32 hex
+     * characters that were assigned once and mean nothing on their own. */
+    assert.match(t, TENANT_ID_PATTERN, `${t} is not a declared opaque identifier`);
+    assert.doesNotMatch(t, /almi/i, "the tenant names a product");
+    assert.ok(!t.includes(REAL.batchId), "the tenant is derived from the capture batch");
+    assert.doesNotMatch(t, /^observation-batch:/, "the tenant is still the batch — the superseded mechanism");
+  }
+
+  /* Every page that has a scope got it from a declaration, and the resolution is accounted for. */
+  const resolvedPages = REAL.pages.filter((p) => p.tenantId).length;
+  assert.equal(REAL.resolution.RESOLVED, resolvedPages, "a page carries a tenant the resolver did not resolve");
+  assert.equal(Object.values(REAL.resolution).reduce((a, b) => a + b, 0), REAL.population);
 });
 
-test("🔴 a batch that has been ASSIGNED is refused — this adapter never overwrites an owner", () => {
-  assert.throws(() => batchTenantId({ batchId: "b", classificationState: "ASSIGNED" }), /not UNASSIGNED/);
-  assert.throws(() => batchTenantId({ classificationState: "UNASSIGNED" }), /no batchId/);
-  assert.throws(() => batchTenantId({ batchId: "   ", classificationState: "UNASSIGNED" }), /no batchId/);
-  /* CONTROL: the lawful shape still succeeds, so the refusals above are not refusing everything. */
-  assert.equal(batchTenantId({ batchId: "crawl-2026-09-12", classificationState: "UNASSIGNED" }), "observation-batch:crawl-2026-09-12");
+test("🔴 an UNDECLARED origin gets no tenant and no binding — never a neighbour's, never the batch's", () => {
+  /* A resolver over declarations that exist but attach nothing: every page must refuse. */
+  const declaresNothing = () => ({ state: "UNDECLARED", tenantId: null, reason: "NO_ATTACHMENT", detail: "test" });
+  const none = observedPageSubjects({ resolveTenant: declaresNothing });
+
+  assert.equal(none.population, REAL.population, "the population changed when nothing was declared");
+  assert.equal(none.counts.BOUND, 0, "a page bound without a declared scope");
+  assert.equal(none.counts.UNBOUND, none.population, "every page must stay visible and refuse");
+  assert.equal(none.resolution.UNDECLARED, none.population);
+  for (const p of none.pages) {
+    assert.equal(p.tenantId, null, `${p.pageId} was given a tenant nobody declared`);
+    assert.equal(p.reason, "TENANT_UNDECLARED");
+  }
+  /* And nothing is offered to a runner, so no fallback can bind it downstream. */
+  assert.equal(bundlesByTenant(none).length, 0, "an undeclared page was offered to the runner anyway");
+
+  /* CONTROL: the same call with the real declarations binds — so the refusal above is not a
+   * function that refuses everything. */
+  assert.equal(REAL.counts.BOUND, 389, "the control arm did not bind, so the refusal proves nothing");
+});
+
+test("🔴 each of the four non-RESOLVED states fails closed, each driven by a real resolver answer", () => {
+  const cases = [
+    ["UNDECLARED", "UNBOUND", "TENANT_UNDECLARED"],
+    ["AMBIGUOUS", "AMBIGUOUS", "TENANT_AMBIGUOUS"],
+    ["INVALID", "INVALID", "TENANT_INVALID"],
+    ["UNKNOWN", "UNBOUND", "TENANT_SOURCE_UNKNOWN"],
+  ];
+  for (const [resolverState, pageState, reason] of cases) {
+    const r = observedPageSubjects({ resolveTenant: () => ({ state: resolverState, tenantId: null, reason: "x", detail: "driven by a real resolver answer" }) });
+    assert.equal(r.counts[pageState], r.population, `${resolverState} did not put every page in ${pageState}`);
+    assert.equal(r.counts.BOUND, 0, `${resolverState} produced a binding`);
+    assert.ok(r.pages.every((p) => p.reason === reason), `${resolverState} did not record ${reason}`);
+    assert.ok(r.pages.every((p) => p.url), "a page lost its URL and therefore its visibility");
+  }
+});
+
+test("🔴 the origin reference a page resolves by is its canonical origin, and nothing else", () => {
+  const ref = pageOriginRef("https://Example.test:8443/a/b?q=1#frag");
+  assert.deepEqual(ref, { resourceKind: "SITE_ORIGIN", resourceRef: "https://example.test:8443" });
+  /* The path, the query and the fragment are not part of a site's identity; the port and scheme are. */
+  assert.equal(pageOriginRef("http://example.test/x").resourceRef, "http://example.test");
+  assert.notEqual(pageOriginRef("http://example.test/x").resourceRef, pageOriginRef("https://example.test/x").resourceRef);
 });
 
 /* ================================================================== *
@@ -84,10 +151,16 @@ test("🔴 P1 · real pages become BOUND through page.observations -> observatio
     assert.equal(p.distinctContents, 1, `${p.url}: BOUND with ${p.distinctContents} distinct contents`);
     assert.equal(p.binding.state, "BOUND");
     assert.equal(p.binding.reason, "BOUND_SINGLE_LAWFUL_EDGE");
-    assert.ok(p.subject.startsWith(`${REAL.tenantId}:PAGE:`), `${p.subject} is not a page subject of this tenant`);
+    /* The scope is now the page's OWN declared one, resolved from its origin — so the assertion is
+     * per page rather than per run. That is the substantive change: 389 pages that once shared one
+     * scope now sit in the scopes their origins are declared in. */
+    assert.match(p.tenantId, TENANT_ID_PATTERN, `${p.pageId} carries a tenant that is not a declared identifier`);
+    assert.ok(p.subject.startsWith(`${p.tenantId}:PAGE:`), `${p.subject} is not a page subject of its own tenant`);
     assert.equal(p.edges.length, 1);
     assert.equal(p.edges[0].edgeType, "OBSERVATION_OF_PAGE");
-    assert.equal(p.edges[0].tenantId, REAL.tenantId);
+    assert.equal(p.edges[0].tenantId, p.tenantId);
+    /* And the page's scope is the one its origin resolves to — not a neighbour's. */
+    assert.equal(p.tenantId, createTenantResolver({})(pageOriginRef(p.url)).tenantId);
   }
 });
 
@@ -244,20 +317,27 @@ test("🔴 P6 · an unreadable external root produces UNKNOWN, never an empty su
  * ================================================================== */
 
 test("🔴 P7 · bound pages reach the shared A–F integration point and are RE-JUDGED there as BOUND", () => {
-  const bundle = toBundle(REAL);
-  assert.equal(bundle.pageSubjects.length, 495, "a page did not reach the bundle");
-  const result = runDetectors({ bundle, runAt: "2026-09-20T12:00:00Z", tenantId: REAL.tenantId });
-  assert.equal(result.tenantId, REAL.tenantId);
+  /* 🔴 ONE RUN PER DECLARED SCOPE — and the reason is measured two tests below. The bundle spans
+   * many scopes now, and runDetectors takes one; handing it the whole population under a single
+   * scope is exactly the mistake this loop exists to prevent. */
+  const groups = bundlesByTenant(REAL);
+  assert.ok(groups.length > 1, `expected several declared scopes, got ${groups.length}`);
+  assert.equal(groups.reduce((n, g) => n + g.bundle.pageSubjects.length, 0), 495, "a page did not reach any bundle");
 
-  /* The result is { runAt, tenantId, detectors: [{ key, name, outcomes }] }. */
-  assert.equal(result.detectors.length, 6, "the six A–F comparators did not all run");
-  const rows = result.detectors.flatMap((d) => d.outcomes);
-  assert.ok(rows.length > 0, "the run produced no outcomes at all");
-
+  const rows = [];
   const states = {};
-  for (const r of rows) states[r.bindingState] = (states[r.bindingState] ?? 0) + 1;
-  /* Every one of the 495 pages is seen by every comparator. */
-  assert.equal(rows.length, 6 * 496, `the comparators saw ${rows.length} subjects, not every page`);
+  for (const g of groups) {
+    const result = runDetectors({ bundle: g.bundle, runAt: "2026-09-20T12:00:00Z", tenantId: g.tenantId });
+    assert.equal(result.tenantId, g.tenantId);
+    assert.equal(result.detectors.length, 6, "the six A–F comparators did not all run");
+    for (const r of result.detectors.flatMap((d) => d.outcomes)) {
+      rows.push(r);
+      states[r.bindingState] = (states[r.bindingState] ?? 0) + 1;
+    }
+  }
+  assert.ok(rows.length > 0, "the runs produced no outcomes at all");
+  /* Every page is seen by every comparator, plus one input-level outcome per comparator per run. */
+  assert.equal(rows.length, 6 * (495 + groups.length), `the comparators saw ${rows.length} subjects, not every page`);
 
   /* 🔴 THE RE-JUDGEMENT IS THE POINT. This adapter OFFERED a binding per page; runDetectors ran
    * bindSubject over the candidates and edges again. The states below are its verdict, not ours. */
@@ -362,8 +442,10 @@ test("🔴 P9 · no page body, URL population or client record is committed insi
   const bodyLeaks = bodySample.filter((id) => grep(["-l", "-F", id, "--", ...MINE]).length > 0);
   assert.deepEqual(bodyLeaks, [], "a real observation id is hard-coded into this change");
 
-  /* CONTROL: the census DOES find a string that is genuinely in these files. */
-  assert.ok(grep(["-l", "-F", "observation-batch:", "--", "src/adapter/observed-page-subject.mjs"]).length > 0,
+  /* CONTROL: the census DOES find a string that is genuinely in these files. (It used to look for
+   * "observation-batch:", which this change deleted along with the mechanism — a control that tests
+   * a string the code no longer contains proves nothing, so it now names one the file really has.) */
+  assert.ok(grep(["-l", "-F", "SITE_ORIGIN", "--", "src/adapter/observed-page-subject.mjs"]).length > 0,
     "the leak census cannot find a string known to be present — it would report 0 whatever were there");
 });
 

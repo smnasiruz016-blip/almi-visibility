@@ -144,7 +144,7 @@ test("🔴 the split did NOT improve either row — both stay exactly where thei
   /* 🔴 19 Sep 2026: the tally moved to 24 / 3 — and NOT because of the split. Rows 1 and 54, the only two
    * Amendment 6 touches, are asserted UNMOVED directly above; the rows that moved are 9 and 17, which Amendment 6
    * never names. The tally is pinned here so a future split cannot hide a movement inside it. */
-  assert.deepEqual(tally(rows), { "NOT-STARTED": 2, "BUILT-NOT-PROVED": 5, "TESTABLE-NOW": 1, "VERIFIED-PASS": 25, FAILED: 2, "BLOCKED-UNKNOWN": 3, DEFERRED: 23 });
+  assert.deepEqual(tally(rows), { "NOT-STARTED": 2, "BUILT-NOT-PROVED": 5, "TESTABLE-NOW": 1, "VERIFIED-PASS": 25, FAILED: 3, "BLOCKED-UNKNOWN": 2, DEFERRED: 23 });
 });
 
 test("🔴 ABSENT DETECTOR, DECLARED: nothing refuses a whole-row DEFERRED on a split row — the `state` field is overloaded", () => {

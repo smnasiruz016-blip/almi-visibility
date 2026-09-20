@@ -493,6 +493,16 @@ export const MOVES_AMENDMENT_2 = Object.freeze({
       test: "node bin/audit-content.mjs over the committed archive · test/queue-rescan.test.mjs · test/content-checks.test.mjs · test/supply-labels.test.mjs",
       reason: "each of the four classifications accounts for all 394 pages (0/118/5/2 FAIL), the shell definition printed beside the result, the shell-heavier-than-body control and the item-8 guard passing" }),
   ]),
+  /* 🔴 ROW 52 — THE CASE STUDY, SAT ONCE ON 20 September 2026, AND FAILED. One shot, and it was
+   * spent. The seal is open and does not close again; the result stands exactly as it came out. */
+  52: Object.freeze([
+    Object.freeze({ from: "BLOCKED-UNKNOWN", to: "TESTABLE-NOW", kind: "work", route: "INPUT_EXISTS", date: "2026-09-20",
+      input: "automatic subject discovery over generic roots, so the comparators could be fed real subjects without an operator naming any of them; the scoring of an inapplicable comparator settled first, from the frozen text",
+      reason: "the row was blocked because nothing discovered subjects for four of the six comparators. That layer now exists and is proved portable across two unrelated synthetic layouts, so the examination could be sat" }),
+    Object.freeze({ from: "TESTABLE-NOW", to: "FAILED", kind: "work", route: "TEST_RUN", date: "2026-09-20",
+      test: "node bin/detect.mjs --bundle=discover over the frozen corpus and every pinned exhibit · runs/case-study-01/findings.json · runs/case-study-01/score.json",
+      reason: "sat once against the frozen acceptance contract and FAILED: 1 of 6 required classes detected, 0 of 3 controls left clean. The run completed, the output was written and hashed BEFORE anything holding the answers was read, and the result is recorded as it came out" }),
+  ]),
   /* 🔴 ROW 17 — DERIVED FACT PROVENANCE, 19 September 2026. The same two-step shape as 12 and 13, and for the same
    * reason: the capability had been complete and tested since 12 September while its INPUT did not exist, so the row
    * could not move on code. It moved when a real derived fact came into existence, and then when its own test ran. */
@@ -1032,9 +1042,22 @@ const EXPLICIT = {
     whyFailed: "🔴 **RE-SCANNED 13 SEPTEMBER 2026: ITS INPUT EXISTED, SO THE TEST WAS RUN — AND ITS FAILURE CONDITION IS MET.** **INPUT exists:** three real recommendations (runs/audit/recommendations.jsonl, drafted 12 September). **Of the six the owner must be able to inspect:** status ✅ (RECOMMENDED — NOT APPROVED — NOT APPLIED), evidence ✅ (a cited official source), reason ✅ (the finding and its origin); **priority ❌, confidence ❌, cost ❌** — no such field exists. And **on the real report none of the six is visible**: bin/report.mjs reads a recommendation only as a source-tier row. 'Any of the six is missing or unreadable' — met. **Leaves FAILED** when a real recommendation shows all six on the real report and the test is re-run",
     whyBefore: "the ruling's own BLOCKER TODAY: of the six the owner must be able to inspect, PRIORITY, CONFIDENCE and COST do not exist at all",
   },
+  /* 🔴 ROW 10 — RE-SAT AGAINST ITS OWN BOUNDARY AFTER THE CASE STUDY RAN, 20 September 2026, AND IT
+   * DOES NOT MOVE. Its v0.1 PASS boundary asks that the six audit classes be "independently detected
+   * and re-tested IN THE CASE STUDY". The Case Study has now run, and it did not do that: over the
+   * frozen corpus the sitemap comparator returned 0 FINDING, 0 CLEAN, 6 UNKNOWN and 9 NOT_APPLICABLE
+   * — the six UNKNOWNs are child sitemap documents the corpus advertises and does not hold, so status,
+   * redirect, indexability and canonical were never reached on them — and the declared-vs-served
+   * comparator returned 0 FINDING, 0 CLEAN, 1 UNKNOWN, 8 NOT_APPLICABLE. Not one of row 10's classes
+   * was independently DETECTED in the Case Study. The row stays BUILT-NOT-PROVED on its own terms,
+   * and the Case Study's failure is recorded on row 52 where it belongs, not inherited here. */
   52: {
-    state: "BLOCKED-UNKNOWN",
-    why: "🔴 NOT RUN = NOT TESTED, and the rendering trigger is unmet. Two of the six RED classes cannot be detected without a renderer, so running the exam today would produce a FAIL that measures our sequencing rather than the engine — and the seal breaks only once",
+    state: "FAILED",
+    changeKind: "work",
+    test: "node bin/detect.mjs --bundle=discover over the frozen corpus and every pinned exhibit · runs/case-study-01/findings.json · runs/case-study-01/score.json",
+    failureMet: "🔴 THE FIRST LIMB, AND ONLY THE FIRST. The row's frozen FAILURE clause reads: \"a required RED is missed, **or any control false-positives — that alone is FAIL**.\" FIVE of the six required REDs were missed — RED 2, 4, 5 and 6 produced no outcome naming their pinned locator, and RED 3 returned NOT_APPLICABLE — so the first limb is met outright. ⚠️ THE SECOND LIMB WAS NOT MET: no control drew a FINDING from any comparator, so there was no false positive. All three controls nevertheless score UNEVALUATED under Amendment 2, because every comparator returned NOT_APPLICABLE on them and a page on which nothing was positively examined is never unflagged. Both are failures; they are not the same failure, and folding them together would hide that the noise never reached the controls",
+    why: "🔴 **SAT ONCE ON 20 SEPTEMBER 2026 AND FAILED — 1 of 6 REQUIRED CLASSES DETECTED, 0 of 3 CONTROLS LEFT CLEAN.** The seal is open and does not close again. **RED 1 DETECTED** — the value-set comparator found the scoring claim at its pinned locator unsupported by the code that produces it. **Every other class failed, and each failed differently, which is the useful part:** RED 2 and RED 5 produced NO OUTCOME NAMING THEIR LOCATOR while the same comparators reported 2,959 and 1,664 findings elsewhere; RED 4 produced no output at all; RED 6's comparator reported one finding, not at its locator; RED 3 returned NOT_APPLICABLE because the leaf route's declaration was never bound to its captured response. **All three controls scored UNEVALUATED** — every comparator returned NOT_APPLICABLE on them, so nothing was positively examined, and an unexamined page is never unflagged. 🔴 **THE DIAGNOSIS IS BINDING, NOT DETECTION.** Discovery found 12,756 candidates and bound 6,892, but it binds by exported identifier and derived route, and the corpus's nine captured pages share almost no such edge with the five pinned repository trees. The comparators then fired 6,640 times on file-path subjects nobody asked about and 0 times on the page subjects that are scored. A detector that reports thousands of findings and misses five of six planted defects is not short of sensitivity; it is short of a way to know WHICH SUBJECT it is talking about. ⚠️ **NO FALSE POSITIVE ON ANY CONTROL** — the three controls drew 0 findings, so the noise, however large, did not reach them. That is the one property the run establishes in the engine's favour. 🔴 **The output was written and hashed (2085c5c0…) BEFORE the marking key was read**, the implementation was frozen at f10e964 before the seal opened, and no executable byte changed afterwards",
+    whyBefore: "🔴 NOT RUN = NOT TESTED, and the rendering trigger is unmet. Two of the six RED classes cannot be detected without a renderer, so running the exam today would produce a FAIL that measures our sequencing rather than the engine — and the seal breaks only once",
   },
   53: {
     state: "VERIFIED-PASS",

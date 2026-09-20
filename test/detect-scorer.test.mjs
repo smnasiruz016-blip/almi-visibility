@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 
 import { score } from "../src/detect/score.mjs";
 import { runDetectors } from "../src/detect/run.mjs";
-import { finding, clean, unknown } from "../src/detect/outcome.mjs";
+import { finding, clean, unknown, notApplicable } from "../src/detect/outcome.mjs";
 
 const RUN_AT = "2026-09-20T00:00:00.000Z";
 const wrap = (key, name, outcomes) => ({ runAt: RUN_AT, detectors: [{ key, name, outcomes }] });
@@ -45,6 +45,25 @@ describe("required RED", () => {
     assert.equal(r.reds[0].result, "NO_OUTPUT");
     assert.equal(r.pass, false);
   });
+
+  test("🔴 A FINDING SOMEWHERE ELSE DOES NOT TICK THIS RED — the false-pass machine, closed", () => {
+    /* Discovery over a real repository makes every comparator report something. Scored loosely,
+     * that alone would tick all six without the engine going near the planted defect. */
+    const r = score({
+      findings: wrap("A", "d", [F("some-other-subject"), F("another-unrelated"), C("k1")]),
+      requiredReds: REDS, controls: CONTROLS,
+    });
+    assert.equal(r.reds[0].result, "NO_OUTPUT");
+    assert.match(r.reds[0].evidence, /no outcome naming s1/);
+    assert.match(r.reds[0].evidence, /2 finding\(s\) about other subjects/);
+    assert.equal(r.pass, false);
+  });
+
+  test("a finding that NAMES the locator in its evidence does tick it, even under another subject", () => {
+    const hit = finding({ detector: "d", subject: "page-url", defectClass: "c", evidence: ["derived from s1"], summary: "s" });
+    const r = score({ findings: wrap("A", "d", [hit, C("k1")]), requiredReds: REDS, controls: CONTROLS });
+    assert.equal(r.reds[0].result, "DETECTED");
+  });
 });
 
 describe("clean control", () => {
@@ -64,6 +83,24 @@ describe("clean control", () => {
     assert.equal(r.unevaluated, 1);
     assert.equal(r.pass, false);
   });
+  test("🔴 a control whose every comparator found nothing applicable is UNEVALUATED, never unflagged", () => {
+    /* NOT_APPLICABLE is unscored — but a page on which NOTHING was positively examined was not
+     * examined, and Amendment 2 is explicit that a skipped input never earns unflagged. */
+    const NA = (subject) => notApplicable({ detector: "d", subject, reasonCode: "NO_CANDIDATE_OF_THIS_KIND", examined: ["looked"], summary: "nothing of this kind" });
+    const r = score({ findings: wrap("A", "d", [F("s1"), NA("k1"), NA("k1")]), requiredReds: REDS, controls: CONTROLS });
+    assert.equal(r.controls[0].result, "UNEVALUATED");
+    assert.equal(r.unflagged, 0);
+    assert.equal(r.falsePositives, 0, "blindness is still not noise");
+    assert.equal(r.pass, false);
+  });
+
+  test("🔴 an operator-supplied answer map in the bundle is IGNORED — the output comes from the detectors", () => {
+    const planted = [finding({ detector: "planted", subject: "s1", defectClass: "c", evidence: ["e"], summary: "planted answer" })];
+    const result = runDetectors({ bundle: { __answers: { A: planted }, claimProducer: { claims: [], producers: [], bindings: {} } }, runAt: RUN_AT });
+    const a = result.detectors.find((d) => d.key === "A");
+    assert.equal(a.outcomes.some((o) => o.detector === "planted"), false, "the runner honoured an answer map handed to it in the bundle");
+  });
+
   test("🔴 no output at all about a control never earns unflagged", () => {
     const r = score({ findings: wrap("A", "d", [F("s1")]), requiredReds: REDS, controls: CONTROLS });
     assert.equal(r.controls[0].result, "NO_OUTPUT");

@@ -14,7 +14,7 @@
  * consecutive misses, and the run length is a required parameter with NO DEFAULT, so nobody can
  * quietly weaken it to make a page pass or fail.
  */
-import { finding, clean, unknown } from "./outcome.mjs";
+import { finding, clean, unknown, notApplicable } from "./outcome.mjs";
 import { parseHead, noindexState } from "../audit/technical-checks.mjs";
 
 const DETECTOR = "declared-vs-served";
@@ -56,8 +56,22 @@ export function detectDeclaredVsServed({ routes, missRunRequired } = {}) {
   const out = [];
   for (const r of routes) {
     const id = r?.id ?? "(unnamed route)";
-    if (!DECLARED_MODES.includes(r?.declaredMode)) {
-      out.push(unknown({ detector: DETECTOR, subject: id, reasonCode: "EVIDENCE_INCOMPLETE", detail: `declaredMode is ${JSON.stringify(r?.declaredMode)}, not one of ${DECLARED_MODES.join(", ")} — nothing to compare the served state against` }));
+    if (r?.declaredMode === null || r?.declaredMode === undefined) {
+      /* 🔴 NO DECLARATION IS NOT AN UNRESOLVED CANDIDATE — IT IS NO CANDIDATE.
+       *
+       * This comparator judges a DECLARED mode against a served one. A route that declares no mode
+       * makes no claim of this kind, so there is nothing here to contradict. Answering UNKNOWN would
+       * say "a claim exists and I could not judge it", which is false, and on a clean page that
+       * false UNKNOWN is fatal: under Amendment 2 an UNKNOWN on a control fails the control. */
+      out.push(notApplicable({
+        detector: DETECTOR, subject: id, reasonCode: "NO_CANDIDATE_OF_THIS_KIND",
+        examined: [`${r?.locator ?? id}`, "the serving source declares no delivery mode (no dynamic, revalidate or fetchCache export)"],
+        summary: "the route declares no delivery mode, so there is no declaration for the served state to contradict",
+      }));
+      continue;
+    }
+    if (!DECLARED_MODES.includes(r.declaredMode)) {
+      out.push(unknown({ detector: DETECTOR, subject: id, reasonCode: "EVIDENCE_INCOMPLETE", detail: `declaredMode is ${JSON.stringify(r.declaredMode)}, not one of ${DECLARED_MODES.join(", ")} — a mode was declared and this comparator cannot read it` }));
       continue;
     }
     const responses = Array.isArray(r.responses) ? r.responses : [];

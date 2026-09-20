@@ -18,7 +18,32 @@
  * array read as "nothing wrong" — none of those may reach a scorer.
  */
 
-export const OUTCOMES = Object.freeze(["FINDING", "CLEAN", "UNKNOWN"]);
+export const OUTCOMES = Object.freeze(["FINDING", "CLEAN", "UNKNOWN", "NOT_APPLICABLE"]);
+
+/**
+ * 🔴 THE FOURTH DISPOSITION — 20 September 2026, and it is NOT a softer UNKNOWN.
+ *
+ *   UNKNOWN          a real candidate WAS discovered and could not be bound or resolved.
+ *                    Something of this kind is here and I could not judge it.
+ *   NOT_APPLICABLE   nothing of this kind exists on this input at all.
+ *                    The comparator did not fail; there was nothing to judge.
+ *
+ * Collapsing these loses the exam to a labelling choice rather than to the engine's ability: a
+ * clean page will not carry a claim of all six kinds, so emitting "nothing of this kind here" as
+ * UNKNOWN would fail every control automatically.
+ *
+ * 🔴 AND IT IS NEVER A QUIET CLEAN EITHER. NOT_APPLICABLE is not scored in either direction — it
+ * contributes nothing to a pass. A page on which every comparator found nothing applicable was not
+ * examined, and an unexamined page may not be called unflagged.
+ *
+ * The contract already knows this shape: a Gate A "thin"/"duplicate" judgement about a control is
+ * "not scored either way", for exactly the same reason — it is a true statement about the page that
+ * is not one of the classes under examination.
+ */
+export const NOT_APPLICABLE_REASONS = Object.freeze({
+  NO_CANDIDATE_OF_THIS_KIND: "the input was examined and carries nothing of the kind this comparator judges",
+  KIND_NOT_PRESENT_IN_ARTEFACT: "the artefact class this comparator reads does not exist for this subject",
+});
 
 /**
  * Why a detector could not answer. Frozen — a new reason is a deliberate addition, never free text,
@@ -100,6 +125,24 @@ export function assertOutcome(value, { detector = "(unnamed)", subject = "(unnam
     throw new TypeError(`${detector}/${subject}: returned ${JSON.stringify(value)?.slice(0, 80)} — not one of ${OUTCOMES.join(", ")}`);
   }
   return value;
+}
+
+/**
+ * Nothing of this kind is here.
+ *
+ * 🔴 IT STATES WHAT IT LOOKED FOR. Without `examined`, "not applicable" is indistinguishable from a
+ * comparator that never looked — and since this disposition is not scored, that would be the
+ * cheapest possible way to make an input disappear from the examination.
+ */
+export function notApplicable({ detector, subject, reasonCode, examined, summary }) {
+  if (!(reasonCode in NOT_APPLICABLE_REASONS)) {
+    throw new TypeError(`unknown NOT_APPLICABLE reasonCode ${JSON.stringify(reasonCode)} — add it to NOT_APPLICABLE_REASONS deliberately`);
+  }
+  if (!Array.isArray(examined) || examined.length === 0) {
+    throw new TypeError(`${detector}/${subject}: NOT_APPLICABLE must state what was looked for — otherwise it is indistinguishable from never looking, and it is not scored`);
+  }
+  if (!nonEmptyString(summary)) throw new TypeError("summary is required");
+  return Object.freeze({ ...base(detector, subject), outcome: "NOT_APPLICABLE", reasonCode, examined: Object.freeze([...examined]), summary });
 }
 
 /** Every outcome in a list, gated. Used by the runner so one bad detector cannot slip through a batch. */

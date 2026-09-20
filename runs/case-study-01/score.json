@@ -1,0 +1,74 @@
+{
+  "findingsSha256": "2085c5c0d0329c363a1bab608e36b91dfa1942dd04523a8e1ab01ad4fddf28e8",
+  "pass": false,
+  "detected": 1,
+  "redTotal": 6,
+  "unflagged": 0,
+  "controlTotal": 3,
+  "falsePositives": 0,
+  "unevaluated": 3,
+  "reds": [
+    {
+      "id": "RED 1",
+      "detectorKey": "A",
+      "subject": "src/lib/oet/scale.ts",
+      "result": "DETECTED",
+      "evidence": "claim-vs-producer FINDING on src/lib/oet/scale.ts#value-2802: the surface states 2 value(s) the producing data or code never produces"
+    },
+    {
+      "id": "RED 2",
+      "detectorKey": "B",
+      "subject": "src/lib/oet/professions.ts",
+      "result": "NO_OUTPUT",
+      "evidence": "detector B produced no outcome naming src/lib/oet/professions.ts; it reported 2959 finding(s) about other subjects, which are not this RED"
+    },
+    {
+      "id": "RED 3",
+      "detectorKey": "C",
+      "subject": "https://almioet.almiworld.com/nursing/from-austria/ca-cannn",
+      "result": "NOT_DETECTED_NOT_APPLICABLE",
+      "evidence": "C found no candidate of its kind at all: https://almioet.almiworld.com/nursing/from-austria/ca-cannn"
+    },
+    {
+      "id": "RED 4",
+      "detectorKey": "D",
+      "subject": "src/lib/learn/articles.ts",
+      "result": "NO_OUTPUT",
+      "evidence": "detector D produced no outcome naming src/lib/learn/articles.ts; it reported 0 finding(s) about other subjects, which are not this RED"
+    },
+    {
+      "id": "RED 5",
+      "detectorKey": "E",
+      "subject": "scripts/seed/gen/reading_c.ts",
+      "result": "NO_OUTPUT",
+      "evidence": "detector E produced no outcome naming scripts/seed/gen/reading_c.ts; it reported 1664 finding(s) about other subjects, which are not this RED"
+    },
+    {
+      "id": "RED 6",
+      "detectorKey": "F",
+      "subject": "src/components/GlobalFooter.tsx",
+      "result": "NO_OUTPUT",
+      "evidence": "detector F produced no outcome naming src/components/GlobalFooter.tsx; it reported 1 finding(s) about other subjects, which are not this RED"
+    }
+  ],
+  "controls": [
+    {
+      "id": "CONTROL 1",
+      "subject": "https://almioet.almiworld.com/nursing/from-india/uk-nmc",
+      "result": "UNEVALUATED",
+      "evidence": "nothing was positively examined — 6 comparator(s) found nothing of their kind, and an unexamined page is never unflagged"
+    },
+    {
+      "id": "CONTROL 2",
+      "subject": "https://almioet.almiworld.com/nursing/from-india/uk-ukvi",
+      "result": "UNEVALUATED",
+      "evidence": "nothing was positively examined — 6 comparator(s) found nothing of their kind, and an unexamined page is never unflagged"
+    },
+    {
+      "id": "CONTROL 3",
+      "subject": "https://almioet.almiworld.com/nursing/from-bhutan/ie-nmbi",
+      "result": "UNEVALUATED",
+      "evidence": "nothing was positively examined — 6 comparator(s) found nothing of their kind, and an unexamined page is never unflagged"
+    }
+  ]
+}

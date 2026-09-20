@@ -29,6 +29,7 @@ import { runDetectors, serialiseFindings } from "../src/detect/run.mjs";
 import { readTree, readArchivedPages } from "../src/discover/corpus.mjs";
 import { buildBundle } from "../src/discover/bundle.mjs";
 import { readExternalSubject, toBundle } from "../src/adapter/external-subject.mjs";
+import { observedPageSubjects, toBundle as toPageBundle } from "../src/adapter/observed-page-subject.mjs";
 import { productFromArgvOrExit } from "../src/product-cli.mjs";
 import { score } from "../src/detect/score.mjs";
 
@@ -140,9 +141,33 @@ if (!bundlePath || !runAt) {
     return { bundle: toBundle(subject), tenant: subject.tenantId };
   };
 
+  /**
+   * 🔴 REAL OBSERVED PAGES FROM THE EXTERNAL OBSERVATION BATCH.
+   *
+   * The batch is UNASSIGNED, so its tenant is the batch's own identity and never a product — which
+   * also means any edge from these pages to a product's subject is INVALID_CROSS_TENANT rather than
+   * a rule this runner has to remember. Unbound pages are printed with their reason, because a page
+   * that drops out of the population is how a joiner reports a clean rate over what it chose.
+   */
+  const observedPagesBundle = () => {
+    const r = observedPageSubjects();
+    console.log(`\nOBSERVED PAGE SUBJECTS — read-only, from the external observation batch`);
+    console.log(`  batch   : ${r.batchId} (${r.classificationState})`);
+    console.log(`  tenant  : ${r.tenantId}`);
+    console.log(`  pages   : ${r.population} · ${JSON.stringify(r.counts)}`);
+    console.log(`  reasons : ${JSON.stringify(r.reasons)}`);
+    const sum = Object.values(r.counts).reduce((a, b) => a + b, 0);
+    if (sum !== r.population) throw new Error(`the buckets sum to ${sum} but the population is ${r.population} — a page has gone missing`);
+    return { bundle: toPageBundle(r), tenant: r.tenantId };
+  };
+
   let tenantForRun = tenantId;
   let bundle;
-  if (bundlePath === "subject") {
+  if (bundlePath === "observed-pages") {
+    const r = observedPagesBundle();
+    bundle = r.bundle;
+    tenantForRun = tenantId ?? r.tenant;
+  } else if (bundlePath === "subject") {
     const r = await subjectBundle();
     bundle = r.bundle;
     tenantForRun = tenantId ?? r.tenant;

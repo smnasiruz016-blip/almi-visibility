@@ -34,6 +34,7 @@ import { runRobotsAndDnsAudit } from "../src/audit/run-audit.mjs";
  */
 import { registeredChecks } from "../src/audit/check.mjs";
 import { ESTATE_HOSTNAME_LIST } from "../config/estate-hostnames.mjs";
+import { batchFile } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n, d) => {
@@ -52,7 +53,7 @@ const openedAt = new Date().toISOString();
 const load = (p) => (existsSync(p) ? createJsonlStore(p).readAll() : []);
 const robotsRecords = load(`${REPO}runs/evidence/robots.jsonl`);
 const evidence = load(`${REPO}runs/evidence/evidence.jsonl`);
-const crawl = load(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`);
+const crawl = load(batchFile("first-real-crawl-2026-09-12.jsonl"));
 
 if (permission.mayWrite && !existsSync(dirname(out))) mkdirSync(dirname(out), { recursive: true });
 const store = permission.mayWrite ? createJsonlStore(out) : createDryRunStore(out);

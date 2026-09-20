@@ -24,6 +24,7 @@ import {
 } from "../src/audit/technical-checks.mjs";
 import { SITEMAP_VS_ROBOTS, collectSitemapUrls, contradictions, MAX_CHILD_SITEMAPS } from "../src/audit/sitemap-check.mjs";
 import { parseGroups, selectGroup, decide } from "../src/audit/robots-scope.mjs";
+import { batchFile } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 /* 🔴 GAP 2 (16 September 2026) — DRY-RUN BY DEFAULT, for the findings AND for the sitemap
@@ -41,14 +42,14 @@ const doSitemaps = flag("sitemaps");
 const out = confineToRepo(arg("out", `${REPO}runs/audit/technical-findings.jsonl`), { label: "--out" });
 const openedAt = new Date().toISOString();
 
-const crawl = createJsonlStore(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`).readAll();
+const crawl = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll();
 const evidence = createJsonlStore(`${REPO}runs/evidence/evidence.jsonl`).readAll();
 const robotsRecords = createJsonlStore(`${REPO}runs/evidence/robots.jsonl`).readAll();
 
 const fetched = crawl.filter((r) => r.record_type === "observation" && !r.value?.skipped);
 /* 🔴 With no --corpus, the COMMITTED body archive is read — the evidence that
  * outlives the artifact (ruling, 13 September 2026). */
-const ARCHIVE = `${REPO}runs/crawl/bodies-2026-09-12.jsonl.br`;
+const ARCHIVE = batchFile("bodies-2026-09-12.jsonl.br");
 const archiveBodies = !corpusDir && existsSync(ARCHIVE) ? (await import("../src/evidence/body-archive.mjs")).readBodyArchive(ARCHIVE) : null;
 const haveCorpus = Boolean((corpusDir && existsSync(corpusDir)) || archiveBodies);
 
@@ -91,7 +92,7 @@ for (const o of crawl.filter((r) => r.record_type === "observation" && r.value?.
  * broken-internal-link still asks its own, stated question — a link WITHIN ONE
  * SITE — so its outbound lists keep the same-host filter, read from the same graph. */
 const { pagesFromRun, deriveEdges, inboundOf, unpackGraph, ZERO_INBOUND_DEFINITION } = await import("../src/crawl/inbound.mjs");
-const GRAPH = `${REPO}runs/crawl/edges-2026-09-12.jsonl.br`;
+const GRAPH = batchFile("edges-2026-09-12.jsonl.br");
 const distinctPages = pagesFromRun({ crawlRecords: crawl, bodies: new Map(pages.filter((p) => p.html).map((p) => [p.o.observation_id, p.html])) });
 const graphEdges = existsSync(GRAPH) ? unpackGraph(readFileSync(GRAPH)) : deriveEdges(distinctPages);
 const { inbound, zero } = inboundOf({ pages: distinctPages, edges: graphEdges });

@@ -24,6 +24,7 @@ import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { makeObservation } from "../src/evidence/records.mjs";
 import { sha256Hex } from "../src/evidence/ids.mjs";
+import { batchJsonlFiles } from "../src/crawl/observation-batch.mjs";
 import {
   createCostLedger, entryFromCrawlRun, ingestRunsOf, entryFromIngestRun, formatLedgerLine, coverageFailures,
 } from "../src/cost/ledger.mjs";
@@ -84,8 +85,7 @@ if (cmd === "capture-actions") {
 
 if (cmd === "backfill") {
   announceWritePermission(permission);
-  const crawlDir = `${REPO}runs/crawl`;
-  const crawl = readdirSync(crawlDir).filter((f) => f.endsWith(".jsonl")).flatMap((f) => readJsonl(join(crawlDir, f)));
+  const crawl = batchJsonlFiles().flatMap((p) => createJsonlStore(p).readAll());
   const timings = readJsonl(ACTIONS).filter((r) => r.method === "github.actions.run.timing");
   const recordedAt = new Date().toISOString();
   const entries = [];

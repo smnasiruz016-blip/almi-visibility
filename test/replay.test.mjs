@@ -20,6 +20,7 @@ import { createJsonlStore } from "../src/evidence/store.mjs";
 import { buildInventory } from "../src/crawl/inventory.mjs";
 import { replayEntriesFrom, runReplayPass, comparePasses } from "../src/crawl/replay.mjs";
 import { sha256Hex } from "../src/evidence/ids.mjs";
+import { batchFile } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const EVIDENCE = `${REPO}runs/replay/replay-2026-09-13.json`;
@@ -141,9 +142,9 @@ test("🔴 RECORDED (1C): the replay re-run with the journey-aware key — the 3
 
 /* The corpus is now COMMITTED (ruling, 13 September 2026), so this runs in CI on real bodies. */
 test("🔴 LIVE (real bodies, subset): two passes with one change — ids hold, the change is a new observation, the rest re-sighted", async () => {
-  const crawlRecords = createJsonlStore(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`).readAll();
+  const crawlRecords = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll();
   const { readBodyArchive } = await import("../src/evidence/body-archive.mjs");
-  const all = replayEntriesFrom({ crawlRecords, bodies: readBodyArchive(`${REPO}runs/crawl/bodies-2026-09-12.jsonl.br`) }).entries;
+  const all = replayEntriesFrom({ crawlRecords, bodies: readBodyArchive(batchFile("bodies-2026-09-12.jsonl.br")) }).entries;
   const entries = new Map([...all.entries()].slice(0, 12));
   for (const e of entries.values()) assert.equal(e.shaMatches, true, `${e.requested_url}: the local body is not the recorded one`);
   const dir = mkdtempSync(join(tmpdir(), "almivis-replay-test-"));

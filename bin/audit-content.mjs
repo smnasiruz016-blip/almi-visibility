@@ -19,6 +19,7 @@ import { EXACT_DUPLICATE, THIN_CONTENT, NEAR_DUPLICATE, TEMPLATE_DOMINANCE, ORPH
 import { registeredChecks } from "../src/audit/check.mjs";
 import { canonicalUrl, targetPageId } from "../src/evidence/ids.mjs";
 import { pagesFromRun, deriveEdges, inboundOf, unpackGraph, ZERO_INBOUND_DEFINITION } from "../src/crawl/inbound.mjs";
+import { batchFile } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 /* 🔴 GAP 2 (16 September 2026) — DRY-RUN BY DEFAULT. Until now this appended its findings on every
@@ -34,13 +35,13 @@ const corpusDir = arg("corpus", null);
 const out = confineToRepo(arg("out", `${REPO}runs/audit/content-findings.jsonl`), { label: "--out" });
 const openedAt = new Date().toISOString();
 
-const crawl = createJsonlStore(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`).readAll();
+const crawl = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll();
 const observations = crawl.filter((r) => r.record_type === "observation" && !r.value?.skipped);
 
 /* 🔴 With no --corpus, the COMMITTED body archive is read — the evidence that
  * outlives the artifact (ruling, 13 September 2026). Same bytes, hash-checked
  * against every observation by test/evidence-archive.test.mjs. */
-const ARCHIVE = `${REPO}runs/crawl/bodies-2026-09-12.jsonl.br`;
+const ARCHIVE = batchFile("bodies-2026-09-12.jsonl.br");
 const archiveBodies = !corpusDir && existsSync(ARCHIVE) ? (await import("../src/evidence/body-archive.mjs")).readBodyArchive(ARCHIVE) : null;
 const haveCorpus = Boolean((corpusDir && existsSync(corpusDir)) || archiveBodies);
 console.log(`corpus: ${archiveBodies ? `${ARCHIVE} (committed archive)` : haveCorpus ? corpusDir : "🔴 NOT AVAILABLE — body-dependent checks will return UNKNOWN"}`);
@@ -70,7 +71,7 @@ for (const o of observations) {
  * per OBSERVATION (340); bin/audit-technical.mjs derived another and ignored
  * links from other hosts (341). Both now read runs/crawl/edges-2026-09-12.jsonl.br
  * through src/crawl/inbound.mjs, and the orphan check runs ONCE PER DISTINCT PAGE. */
-const GRAPH = `${REPO}runs/crawl/edges-2026-09-12.jsonl.br`;
+const GRAPH = batchFile("edges-2026-09-12.jsonl.br");
 const distinctPages = pagesFromRun({ crawlRecords: crawl, bodies: new Map(pages.filter((p) => p.html).map((p) => [p.observation.observation_id, p.html])) });
 const edges = existsSync(GRAPH) ? unpackGraph(readFileSync(GRAPH)) : deriveEdges(distinctPages);
 const { inbound, zero } = inboundOf({ pages: distinctPages, edges });

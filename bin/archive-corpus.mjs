@@ -23,6 +23,7 @@ import { join } from "node:path";
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { packBodies, unpackBodies, verifyBodiesAgainstRun } from "../src/evidence/body-archive.mjs";
+import { batchFile } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const argv = process.argv.slice(2);
@@ -39,10 +40,15 @@ const CORPUS = confineToRepo(corpusArg, { label: "--corpus" });
  * destination is exactly the committed archive's path, as it always was; either way it is confined to this repository
  * before anything is read. It changes nothing about what the bodies are verified against — the run record below stays
  * hard-coded, and so does the verification. */
+/* 🔴 THE DEFAULT DESTINATION IS GONE, 20 SEPTEMBER 2026. The committed archive moved to the external
+ * observation batch, where it is immutable evidence, so there is no in-repository path left for this
+ * to mean. --out= is now required: packing a fresh archive into this repository would recreate the
+ * real observation artifact the migration removed. The write is still confined to this repository —
+ * the engine never writes into the data one — and the verification below is unchanged. */
 const outArg = arg("out");
-const OUT = confineToRepo(outArg ?? `${REPO}runs/crawl/bodies-2026-09-12.jsonl.br`, { label: outArg === null ? "the body archive" : "--out" });
+const OUT = outArg === null ? null : confineToRepo(outArg, { label: "--out" });
 
-const crawlRecords = createJsonlStore(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`).readAll();
+const crawlRecords = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll();
 const files = existsSync(CORPUS) ? readdirSync(CORPUS).filter((f) => f.endsWith(".html")) : [];
 const entries = files.map((f) => ({ observation_id: f.replace(/\.html$/, ""), body: readFileSync(join(CORPUS, f), "utf8") }));
 const rawBytes = entries.reduce((n, e) => n + Buffer.byteLength(e.body, "utf8"), 0);
@@ -59,8 +65,12 @@ if (check.matches !== check.expected || check.missing.length || check.mismatched
   process.exit(1);
 }
 if (!permission.mayWrite) {
-  console.log(`[dry-run] nothing written — add --confirm (destination: ${OUT})`);
+  console.log(`[dry-run] nothing written — add --confirm (destination: ${OUT ?? "none — --out= is required"})`);
   process.exit(0);
+}
+if (OUT === null) {
+  console.error("🔴 REFUSED — no destination. The committed body archive is in the external observation batch; packing one into this repository would recreate a real observation artifact here. Pass --out=<path>.");
+  process.exit(2);
 }
 if (existsSync(OUT)) {
   console.error(`🔴 REFUSED — ${OUT} already exists. Recorded evidence is not re-recorded over itself.`);

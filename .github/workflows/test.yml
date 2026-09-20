@@ -96,3 +96,9 @@ jobs:
       # opening a log fold. The script exits non-zero when it is not.
       - name: product boundary census
         run: npm run boundary
+
+      # 🔴 Run SEPARATELY as well as inside the suite, for the same reason the boundary census is:
+      # inside the suite the number is invisible, and here a reviewer sees whether any real
+      # observation artifact has been committed back into the engine without opening a log fold.
+      - name: observation artifact guard
+        run: npm run observation-guard

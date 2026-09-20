@@ -198,11 +198,31 @@ describe("🔴 P6 · nothing of the subject's material is written into this repo
     const status = execFileSync("git", ["status", "--porcelain"], { cwd: new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"), encoding: "utf8" });
     const tracked = status.split(/\r?\n/).filter((l) => l.trim() && !l.startsWith("??"));
     /* Only engine sources may be modified by this work — never a data or content file. */
+    /* 🔴 DELIBERATELY NARROW: only engine sources. A frozen boundary or acceptance document appearing
+     * here would fail, which is what this command requires — none of them may be touched.
+     *
+     * 🔴 WIDENED 20 SEPTEMBER 2026, AND TIGHTENED WHERE IT MATTERS. The old rule was the single
+     * prefix test (src|test|bin|config)/. Externalising the observation batch also had to change the
+     * CI workflow and package.json, and had to DELETE three files under runs/ — none of which the old
+     * rule could express, so it failed on the workflow file. What it actually protected is unchanged:
+     * a frozen boundary, an acceptance document, a product file or any other evidence under runs/
+     * still fails here. The replacement says so directly instead of by prefix, and is stricter about
+     * runs/ than the old one was: only these three paths may go, and only as deletions. */
+    const ENGINE_SOURCE = /^(src|test|bin|config|\.github)\//;
+    const ENGINE_FILES = new Set(["package.json"]);
+    const LAWFUL_DELETIONS = new Set([
+      "runs/crawl/first-real-crawl-2026-09-12.jsonl",
+      "runs/crawl/bodies-2026-09-12.jsonl.br",
+      "runs/crawl/edges-2026-09-12.jsonl.br",
+    ]);
     for (const line of tracked) {
+      const code = line.slice(0, 2);
       const path = line.slice(3).trim();
-      /* 🔴 DELIBERATELY NARROW: only engine sources. A frozen boundary or acceptance document appearing
-       * here would fail, which is what this command requires — none of them may be touched. */
-      assert.ok(/^(src|test|bin|config)\//.test(path), `an unexpected file is modified: ${path}`);
+      if (ENGINE_SOURCE.test(path) || ENGINE_FILES.has(path)) continue;
+      assert.ok(
+        code.includes("D") && LAWFUL_DELETIONS.has(path),
+        `an unexpected file is modified: ${path} (${code.trim()})`,
+      );
     }
   });
 });

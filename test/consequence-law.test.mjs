@@ -28,6 +28,7 @@ import { computeRecommendationFields } from "../src/report/recommendation-fields
 import { CONSEQUENCE_REGISTER, UNREACHABLE_RECOMMENDATIONS, SUPERSEDED_ENTRIES } from "../config/consequence-register.mjs";
 import { SEVERITY_SCALE } from "../config/consequence-scale.mjs";
 import { CLASS_SPLITS } from "../config/class-splits.mjs";
+import { batchJsonlFiles } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const walk = (dir) => readdirSync(dir).flatMap((n) => (statSync(join(dir, n)).isDirectory() ? walk(join(dir, n)) : n.endsWith(".jsonl") ? [join(dir, n)] : []));
@@ -217,7 +218,7 @@ test("🔴 A4 on the real recommendations: the one with the MOST volume (noindex
   const fields = computeRecommendationFields({
     recommendations: AUDIT.filter((r) => r.record_type === "draft_recommendation"),
     links: AUDIT.filter((r) => r.record_type === "recommendation_evidence"),
-    records: [...AUDIT, ...read("runs/evidence"), ...read("runs/crawl")],
+    records: [...AUDIT, ...read("runs/evidence"), ...batchJsonlFiles().flatMap((p) => createJsonlStore(p).readAll())],
     ledger: createJsonlStore(join(REPO, "runs", "cost", "ledger.jsonl")).readAll(),
     consequenceRegister: CONSEQUENCE_REGISTER,
     consequenceScale: SEVERITY_SCALE,

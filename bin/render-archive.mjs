@@ -42,6 +42,7 @@ import {
 } from "../src/render/renderer.mjs";
 import { RENDER_STATES } from "../src/render/render-state.mjs";
 import { createCostLedger, entryFromRender, entryFromToolInstall, formatLedgerLine } from "../src/cost/ledger.mjs";
+import { batchFile, BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const argv = process.argv.slice(2);
@@ -49,8 +50,8 @@ const arg = (n) => argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv, env: process.env }));
 
 const LABEL = "2026-09-13";
-const RAW_STORE = `${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`;
-const RAW_ARCHIVE = `${REPO}runs/crawl/bodies-2026-09-12.jsonl.br`;
+const RAW_STORE = batchFile("first-real-crawl-2026-09-12.jsonl");
+const RAW_ARCHIVE = batchFile("bodies-2026-09-12.jsonl.br");
 const RENDER_STORE = confineToRepo(`${REPO}runs/render/rendered-${LABEL}.jsonl`, { label: "the render store" });
 const RENDER_ARCHIVE = confineToRepo(`${REPO}runs/render/rendered-bodies-${LABEL}.jsonl.br`, { label: "the rendered-body archive" });
 const EVIDENCE = confineToRepo(`${REPO}runs/render/render-run-${LABEL}.json`, { label: "the render evidence" });
@@ -239,7 +240,7 @@ const evidence = {
     "say anything about which pages differ, or why",
     "fetch anything: the input is the committed archive and every browser request beyond the local document was refused",
   ],
-  input: { archive: "runs/crawl/bodies-2026-09-12.jsonl.br", integrity, rawBefore, rawAfter, rawUntouched },
+  input: { archive: `observations/${BATCH_ID}/bodies-2026-09-12.jsonl.br`, integrity, rawBefore, rawAfter, rawUntouched },
   environment,
   bounds, hit,
   states, rendered: observations.length, stored: raws.length,

@@ -20,6 +20,7 @@ import { readBodyArchive } from "../src/evidence/body-archive.mjs";
 import { pagesFromRun, inboundOf, unpackGraph } from "../src/crawl/inbound.mjs";
 import { disagreementIssues, ISSUE_CLASS } from "../src/audit/instrument-agreement.mjs";
 import { lifecycleOf, makeIssueStateChange } from "../src/evidence/lifecycle.mjs";
+import { batchFile } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const argv = process.argv.slice(2);
@@ -32,9 +33,9 @@ const STORE = confineToRepo(storeArg ?? `${REPO}runs/audit/instrument-findings.j
 const CONTENT_RUN = `${REPO}runs/audit/item-13-26-content-run-2026-09-13.txt`;
 const TECHNICAL_RUN = `${REPO}runs/audit/item-26-technical-run-2026-09-13.txt`;
 
-const crawlRecords = createJsonlStore(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`).readAll();
-const pages = pagesFromRun({ crawlRecords, bodies: readBodyArchive(`${REPO}runs/crawl/bodies-2026-09-12.jsonl.br`) });
-const edges = unpackGraph(readFileSync(`${REPO}runs/crawl/edges-2026-09-12.jsonl.br`));
+const crawlRecords = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll();
+const pages = pagesFromRun({ crawlRecords, bodies: readBodyArchive(batchFile("bodies-2026-09-12.jsonl.br")) });
+const edges = unpackGraph(readFileSync(batchFile("edges-2026-09-12.jsonl.br")));
 const now = new Date().toISOString();
 
 if (!argv.includes("--close")) {
@@ -74,7 +75,7 @@ for (const e of open) {
       from: "OPEN",
       to: "CLOSED",
       changed_at: now,
-      reason: `both runners now read one stored graph (runs/crawl/edges-2026-09-12.jsonl.br) through one definition (src/crawl/inbound.mjs) and their recorded re-runs print the same count: ${content}`,
+      reason: `both runners now read one stored graph (the external observation batch's edges-2026-09-12.jsonl.br) through one definition (src/crawl/inbound.mjs) and their recorded re-runs print the same count: ${content}`,
       evidence: [...e.issue.evidence],
       action: "src/crawl/inbound.mjs · bin/edge-graph.mjs · bin/audit-content.mjs · bin/audit-technical.mjs",
       actor: "Claude (queue run), on beta-g's brief of 13 Sep 2026",

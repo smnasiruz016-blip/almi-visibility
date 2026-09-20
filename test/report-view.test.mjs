@@ -5,6 +5,7 @@ import { existsSync } from "node:fs";
 import { renderPage, renderHeader, renderRecords, renderIssues, renderFacts, summarise, reconcile } from "../src/report/view.mjs";
 import { labelFor, labelCensus, LABELS, LABEL_BY_TYPE } from "../src/report/provenance-label.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
+import { batchFile } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 
@@ -265,8 +266,8 @@ test("the page declares a viewport and a 430px breakpoint, and lets wide tables 
  * production, and LAW-FIXTURE-1 says a fixture must not be the only witness.
  * ================================================================== */
 
-test("🔴 the REAL evidence store renders, and the real page states PARTIAL", { skip: !existsSync(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`) }, () => {
-  const crawlRecords = createJsonlStore(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`).readAll();
+test("🔴 the REAL evidence store renders, and the real page states PARTIAL", { skip: !existsSync(batchFile("first-real-crawl-2026-09-12.jsonl")) }, () => {
+  const crawlRecords = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll();
   const evidenceRecords = createJsonlStore(`${REPO}runs/evidence/evidence.jsonl`).readAll();
   const s = summarise({ crawlRecords, evidenceRecords, facts: [] });
 
@@ -285,8 +286,8 @@ test("🔴 the REAL evidence store renders, and the real page states PARTIAL", {
 });
 
 test("the real record set contains no label the census cannot place", () => {
-  const crawlRecords = existsSync(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`)
-    ? createJsonlStore(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`).readAll()
+  const crawlRecords = existsSync(batchFile("first-real-crawl-2026-09-12.jsonl"))
+    ? createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll()
     : [];
   const census = labelCensus(crawlRecords);
   const total = Object.values(census).reduce((a, b) => a + b, 0);

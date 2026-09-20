@@ -22,11 +22,12 @@ import { row6, readDeclaredAxes } from "../src/discovery/row6.mjs";
 import { LEXICON } from "../config/discovery/intent-lexicon.mjs";
 import { INTENT_REFERENCE, AMBIGUOUS } from "../config/discovery/intent-reference.mjs";
 import { AXIS_SPECS, SIBLING_FAMILIES, HARD_CODED_PATTERNS } from "../config/discovery/axis-candidates.mjs";
+import { batchFile } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const records = createJsonlStore(join(REPO, "runs", "evidence", "evidence.jsonl")).readAll();
-const crawlRecords = createJsonlStore(join(REPO, "runs", "crawl", "first-real-crawl-2026-09-12.jsonl")).readAll();
-const bodies = readBodyArchive(join(REPO, "runs", "crawl", "bodies-2026-09-12.jsonl.br"));
+const crawlRecords = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll();
+const bodies = readBodyArchive(batchFile("bodies-2026-09-12.jsonl.br"));
 
 // Each declared product's axis — the axis a human chose by hand, read from its own descriptor.
 const declaredAxes = await readDeclaredAxes();

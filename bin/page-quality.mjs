@@ -22,12 +22,13 @@ import { pagesFromRun } from "../src/crawl/inbound.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { productFromArgvOrExit } from "../src/product-cli.mjs";
 import { measureExistingPages } from "../src/gate-a/existing-pages.mjs";
+import { batchFile } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const NOW = new Date("2026-09-13T00:00:00Z");
 
-const crawlRecords = createJsonlStore(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`).readAll();
-const pages = pagesFromRun({ crawlRecords, bodies: readBodyArchive(`${REPO}runs/crawl/bodies-2026-09-12.jsonl.br`) }).filter((p) => p.html !== null);
+const crawlRecords = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll();
+const pages = pagesFromRun({ crawlRecords, bodies: readBodyArchive(batchFile("bodies-2026-09-12.jsonl.br")) }).filter((p) => p.html !== null);
 // 🔴 The product is an ARGUMENT, never a folder written here (owner ruling, 14 September 2026): no default.
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/page-quality.mjs --product=<id>" });
 const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
@@ -39,7 +40,7 @@ const siByUrl = new Map((si?.results ?? []).map((r) => [r.url, r]));
 
 const n = m.results.length;
 const count = (f) => m.results.filter(f).length;
-console.log("corpus: runs/crawl/bodies-2026-09-12.jsonl.br (committed archive)");
+console.log(`corpus: ${batchFile("bodies-2026-09-12.jsonl.br")} (committed archive)`);
 console.log(`[bound: ${n} distinct pages with a served body · ${m.groups} template groups · thresholds uniqueWords>=${m.thresholds.MIN_UNIQUE_WORDS}, siblingOverlap<=${m.thresholds.MAX_SIBLING_OVERLAP}, facts>=${m.thresholds.MIN_FACTS}, fact value >=${m.thresholds.MIN_VALUE_CHARS} chars]`);
 console.log("TEMPLATE GROUP = one host, the same first path segment, the same path depth.\n");
 

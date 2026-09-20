@@ -42,6 +42,7 @@ import { join, resolve } from "node:path";
 
 import { unpackBodies, verifyBodiesAgainstRun } from "../src/evidence/body-archive.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
+import { batchFile } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const sha = (b) => createHash("sha256").update(b).digest("hex");
@@ -137,15 +138,20 @@ test("🔴 NETWORK · D-CRW-4 · bin/crawl.mjs --live WITHOUT --i-have-the-owner
  * recorded when this file loads and asserted before the copy, after it, after every spawned run, and at the end.
  * ================================================================== */
 
-const ARCHIVE = join(REPO, "runs", "crawl", "bodies-2026-09-12.jsonl.br");
-const RUN_RECORD = join(REPO, "runs", "crawl", "first-real-crawl-2026-09-12.jsonl");
+/* 🔴 20 September 2026: both moved to the external observation batch. The sha256 constants below are
+ * UNCHANGED, because the bytes are unchanged — which is the whole claim the move had to satisfy. */
+const ARCHIVE = batchFile("bodies-2026-09-12.jsonl.br");
+const RUN_RECORD = batchFile("first-real-crawl-2026-09-12.jsonl");
 const COMMITTED_ARCHIVE_SHA256 = "3d857a9e53fd4b015131bfd721788942a7c3df15b775e6633fb429bc84af3ded";
 const COMMITTED_RUN_RECORD_SHA256 = "0b9fb848436eca43dac54b0a4d3f220bb637e3c35b18a9d6297bc50b71bcc345";
 const EVIDENCE_AT_LOAD = { archive: sha(readFileSync(ARCHIVE)), run: sha(readFileSync(RUN_RECORD)) };
 
 function evidenceUntouched(when) {
-  assert.equal(sha(readFileSync(ARCHIVE)), EVIDENCE_AT_LOAD.archive, `🔴 runs/crawl/bodies-2026-09-12.jsonl.br CHANGED ${when}`);
-  assert.equal(sha(readFileSync(RUN_RECORD)), EVIDENCE_AT_LOAD.run, `🔴 runs/crawl/first-real-crawl-2026-09-12.jsonl CHANGED ${when}`);
+  assert.equal(sha(readFileSync(ARCHIVE)), EVIDENCE_AT_LOAD.archive, `🔴 the external batch's bodies-2026-09-12.jsonl.br CHANGED ${when}`);
+  assert.equal(sha(readFileSync(RUN_RECORD)), EVIDENCE_AT_LOAD.run, `🔴 the external batch's first-real-crawl-2026-09-12.jsonl CHANGED ${when}`);
+  /* The recorded sha256 did not move with the files: same bytes, new address. */
+  assert.equal(EVIDENCE_AT_LOAD.archive, COMMITTED_ARCHIVE_SHA256, "the archive's bytes are not the committed evidence");
+  assert.equal(EVIDENCE_AT_LOAD.run, COMMITTED_RUN_RECORD_SHA256, "the run record's bytes are not the committed evidence");
 }
 
 /** The disposable fixture: the 394 fetched bodies, copied READ-ONLY out of the committed archive into .test-scratch/. */
@@ -178,14 +184,36 @@ test("🔴 DESTRUCTIVE · archive-corpus — the 394 fetched bodies, copied read
   evidenceUntouched("after the dry run");
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout, VERIFIED_394);
-  // 🔴 THE DEFAULT IS IDENTICAL — proved by the runner's own statement of its destination, on a run that writes nothing.
-  assert.ok(r.stdout.includes(`[dry-run] nothing written — add --confirm (destination: ${resolve(ARCHIVE)})`), `the default destination moved:\n${r.stdout}`);
+  /* 🔴 WHAT THIS ASSERTION USED TO CATCH, AND WHAT REPLACED IT (20 September 2026).
+   *
+   * It caught the DEFAULT DESTINATION silently moving: with no --out the tool had to name exactly the
+   * committed archive's in-repository path, proved from the runner's own dry-run statement and from
+   * the literal in its source. The committed archive is now external, so that default no longer has a
+   * lawful meaning — writing a fresh archive into this repository would recreate the real observation
+   * artifact the migration removed.
+   *
+   * So the law changed from "the default must be this exact path" to "there is NO default". That is
+   * strictly stronger: a value that does not exist cannot drift. Both halves are still proved from the
+   * runner's own behaviour — the dry-run statement below, and the --confirm refusal in the next test —
+   * and the source-literal check is replaced by one that no in-repository default was reintroduced.
+   * Nothing the old assertion caught is unguarded: destination drift is impossible, not merely pinned. */
+  assert.ok(r.stdout.includes("[dry-run] nothing written — add --confirm (destination: none — --out= is required)"), `the destination law moved:\n${r.stdout}`);
   const src = readFileSync(join(REPO, "bin", "archive-corpus.mjs"), "utf8");
-  assert.ok(src.includes("outArg ?? `${REPO}runs/crawl/bodies-2026-09-12.jsonl.br`"), "the default destination literal changed");
+  assert.doesNotMatch(src, /outArg \?\?/, "an in-repository default destination was reintroduced");
+  assert.ok(src.includes('const OUT = outArg === null ? null : confineToRepo(outArg, { label: "--out" });'), "the destination is no longer --out-only, confined");
   // 🔴 AND NOTHING THE RULING FORBADE: the run record stays hard-coded, no --run exists, the verification is the same call.
-  assert.ok(src.includes("createJsonlStore(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`)"), "the binding to the real run record is gone");
+  assert.ok(src.includes('createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl"))'), "the binding to the real run record is gone");
   assert.doesNotMatch(src, /arg\(\s*["']run["']\s*\)|--run=/, "a --run flag was added");
   assert.ok(src.includes("verifyBodiesAgainstRun({ bodies: unpackBodies(packed), crawlRecords })"), "the verification call changed");
+});
+
+test("🔴 DESTRUCTIVE · archive-corpus --confirm with NO --out is REFUSED — exit 2 — because there is no lawful in-repository destination left", () => {
+  const f = fixture();
+  const r = archiveRun([`--corpus=${f.corpus}`, "--confirm"]);
+  evidenceUntouched("after the defaulted --confirm run");
+  assert.equal(r.status, 2, `expected the no-destination refusal's exit 2, got ${r.status}\nstdout: ${r.stdout}\nstderr: ${r.stderr}`);
+  assert.match(r.stderr, /REFUSED — no destination/);
+  assert.equal(tmpLeftovers(f.root).length, 0, "the refused run left a temp file behind");
 });
 
 test("🔴 DESTRUCTIVE · archive-corpus --confirm --out=<an EXISTING archive> is REFUSED — exit 2 — and OVERWRITES NOTHING, byte for byte", () => {

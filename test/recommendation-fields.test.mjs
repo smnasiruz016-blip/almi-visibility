@@ -9,6 +9,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { computeRecommendationFields } from "../src/report/recommendation-fields.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { targetPageId } from "../src/evidence/ids.mjs";
+import { batchJsonlFiles } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 
@@ -82,7 +83,7 @@ test("🔴 REAL: all three recommendations carry all six — two ranked by measu
   const fields = computeRecommendationFields({
     recommendations: audit.filter((r) => r.record_type === "draft_recommendation"),
     links: audit.filter((r) => r.record_type === "recommendation_evidence"),
-    records: [...audit, ...read("runs/evidence"), ...read("runs/crawl")],
+    records: [...audit, ...read("runs/evidence"), ...batchJsonlFiles().flatMap((p) => createJsonlStore(p).readAll())],
     ledger: createJsonlStore(`${REPO}runs/cost/ledger.jsonl`).readAll(),
   });
   assert.equal(fields.length, 3);

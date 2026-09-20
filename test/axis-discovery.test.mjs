@@ -18,12 +18,13 @@ import { axisErrors, verdictOf, demandDistribution, MIN_ROWS_PER_COUNTRY } from 
 import { LEXICON } from "../config/discovery/intent-lexicon.mjs";
 import { INTENT_REFERENCE, AMBIGUOUS } from "../config/discovery/intent-reference.mjs";
 import { AXIS_SPECS, SIBLING_FAMILIES, HARD_CODED_PATTERNS } from "../config/discovery/axis-candidates.mjs";
+import { batchFile } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const R = row6({
   records: createJsonlStore(join(REPO, "runs", "evidence", "evidence.jsonl")).readAll(),
-  crawlRecords: createJsonlStore(join(REPO, "runs", "crawl", "first-real-crawl-2026-09-12.jsonl")).readAll(),
-  bodies: readBodyArchive(join(REPO, "runs", "crawl", "bodies-2026-09-12.jsonl.br")),
+  crawlRecords: createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll(),
+  bodies: readBodyArchive(batchFile("bodies-2026-09-12.jsonl.br")),
   lexicon: LEXICON, reference: INTENT_REFERENCE, ambiguous: AMBIGUOUS,
   specs: AXIS_SPECS, families: SIBLING_FAMILIES, patterns: HARD_CODED_PATTERNS,
   declaredAxes: await readDeclaredAxes(),

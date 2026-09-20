@@ -12,6 +12,7 @@ import {
   makeCostEntry, coverageFailures, formatLedgerLine, createCostLedger, entryFromCrawlRun, ingestRunsOf, entryFromIngestRun, UNKNOWN_KINDS,
 } from "../src/cost/ledger.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
+import { batchJsonlFiles } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 
@@ -84,7 +85,7 @@ test("the ledger is append-only and refuses a second entry with the same entry_i
 
 /* ---- REAL: the 12 September crawl and the stored ingest runs ------------- */
 
-const crawlRecords = () => readdirSync(`${REPO}runs/crawl`).filter((f) => f.endsWith(".jsonl")).flatMap((f) => createJsonlStore(`${REPO}runs/crawl/${f}`).readAll());
+const crawlRecords = () => batchJsonlFiles().flatMap((p) => createJsonlStore(p).readAll());
 
 test("🔴 REAL: the 12 Sep crawl — 394 requests, 403.268 s, caps 500/200, money UNKNOWN and NOT measurable with tools we hold", () => {
   const crawl = crawlRecords();

@@ -8,11 +8,12 @@ import { readFileSync } from "node:fs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { readBodyArchive } from "../src/evidence/body-archive.mjs";
 import { pagesFromRun, deriveEdges, inboundOf, packGraph, unpackGraph } from "../src/crawl/inbound.mjs";
+import { batchFile } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
-const GRAPH = `${REPO}runs/crawl/edges-2026-09-12.jsonl.br`;
-const crawlRecords = createJsonlStore(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`).readAll();
-const pages = pagesFromRun({ crawlRecords, bodies: readBodyArchive(`${REPO}runs/crawl/bodies-2026-09-12.jsonl.br`) });
+const GRAPH = batchFile("edges-2026-09-12.jsonl.br");
+const crawlRecords = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll();
+const pages = pagesFromRun({ crawlRecords, bodies: readBodyArchive(batchFile("bodies-2026-09-12.jsonl.br")) });
 
 test("🔴 the STORED graph is exactly what the committed bodies yield — it has not drifted from its source", () => {
   const stored = readFileSync(GRAPH);

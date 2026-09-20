@@ -17,6 +17,7 @@ import { readFileSync } from "node:fs";
 import { census, CATEGORIES } from "../tools/no-generation-census.mjs";
 import { targetPageId, canonicalUrl } from "../src/evidence/ids.mjs";
 import { buildInventory } from "../src/crawl/inventory.mjs";
+import { batchFile } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 
@@ -214,7 +215,7 @@ test("🔴 a DIFFERENT query string is a DIFFERENT page — merging would be unr
 });
 
 test("🔴 REAL: the 12 September crawl holds one record per page_id — no page became two", () => {
-  const records = readFileSync(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`, "utf8")
+  const records = readFileSync(batchFile("first-real-crawl-2026-09-12.jsonl"), "utf8")
     .trim().split("\n").map((l) => JSON.parse(l));
   const pages = records.filter((r) => r.record_type === "page");
   assert.ok(pages.length > 400, `only ${pages.length} pages — too few to prove anything`);
@@ -226,7 +227,7 @@ test("🔴 REAL: the 12 September crawl holds one record per page_id — no page
 });
 
 test("🔴 re-running the inventory over the SAME observations yields the SAME ids", () => {
-  const records = readFileSync(`${REPO}runs/crawl/first-real-crawl-2026-09-12.jsonl`, "utf8")
+  const records = readFileSync(batchFile("first-real-crawl-2026-09-12.jsonl"), "utf8")
     .trim().split("\n").map((l) => JSON.parse(l));
   // buildInventory reads `final_url`/`requested_url` off the observation's own
   // value block, so the stored records are flattened the way the crawler hands

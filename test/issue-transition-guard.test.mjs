@@ -21,6 +21,7 @@ import { lifecycleOf, makeIssueStateChange } from "../src/evidence/lifecycle.mjs
 import { makeIssue } from "../src/evidence/records.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { LABEL_BY_TYPE, labelFor } from "../src/report/provenance-label.mjs";
+import { batchJsonlFiles } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const issue = (verdict, evidence = ["obs-1"]) =>
@@ -55,7 +56,7 @@ test("CONTROL: a FAIL issue CLOSED, and a FAIL superseded by an UNKNOWN, pass th
 });
 
 const audit = () => readdirSync(`${REPO}runs/audit`).filter((f) => f.endsWith(".jsonl")).flatMap((f) => createJsonlStore(`${REPO}runs/audit/${f}`).readAll());
-const crawl = () => readdirSync(`${REPO}runs/crawl`).filter((f) => f.endsWith(".jsonl")).flatMap((f) => createJsonlStore(`${REPO}runs/crawl/${f}`).readAll());
+const crawl = () => batchJsonlFiles().flatMap((p) => createJsonlStore(p).readAll());
 
 test("🔴 REAL: the guard judges every real issue transition — 145, none refused — so it no longer polices an empty population", () => {
   const r = lifecycleOf([...audit(), ...crawl()]);
@@ -64,14 +65,18 @@ test("🔴 REAL: the guard judges every real issue transition — 145, none refu
   assert.equal(r.guard.refused, 0);
 });
 
-/** Every directory of stored records the report and the tests read. */
-const STORE_DIRS = ["runs/audit", "runs/crawl", "runs/evidence", "runs/cost", "runs/replay"];
+/** Every directory of stored records the report and the tests read. 🔴 runs/crawl is no longer one of
+ * them: the observation batch moved to the external data repository on 20 September 2026, and after
+ * the move a fresh checkout has no runs/crawl directory at all — readdirSync would throw rather than
+ * quietly find nothing. Its record types are gathered from the batch instead, below. */
+const STORE_DIRS = ["runs/audit", "runs/evidence", "runs/cost", "runs/replay"];
 
 test("🔴 REAL: every record type in every committed store has a DECLARED label — none falls through to UNKNOWN", () => {
   const types = new Set();
   for (const d of STORE_DIRS) {
     for (const f of readdirSync(`${REPO}${d}`).filter((x) => x.endsWith(".jsonl"))) for (const r of createJsonlStore(`${REPO}${d}/${f}`).readAll()) types.add(r.record_type);
   }
+  for (const p of batchJsonlFiles()) for (const r of createJsonlStore(p).readAll()) types.add(r.record_type);
   assert.ok(types.size >= 12);
   const undeclared = [...types].filter((t) => !(t in LABEL_BY_TYPE));
   assert.deepEqual(undeclared, [], "a stored record type has no declared label and would render UNKNOWN by default");

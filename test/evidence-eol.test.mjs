@@ -60,9 +60,17 @@ function launderedByConversion(path, blob) {
 test("🔴 the population exists before the guard runs: tracked files under runs/, text AND binary", () => {
   assert.ok(TRACKED.length > 70, `only ${TRACKED.length} tracked files under runs/ — the guard would police almost nothing`);
   const paths = TRACKED.map((t) => t.path);
-  for (const p of ["runs/crawl/first-real-crawl-2026-09-12.jsonl", "runs/crawl/bodies-2026-09-12.jsonl.br", "runs/evidence/evidence.jsonl"]) {
+  /* 🔴 20 September 2026: the two named sentinels used to be runs/crawl/first-real-crawl-2026-09-12.jsonl
+   * and runs/crawl/bodies-2026-09-12.jsonl.br — one text, one binary. The observation batch moved to the
+   * external data repository, and with it the ONLY binary files tracked under runs/. What that pair
+   * caught here (that this law polices a real, mixed population) is now caught in two places: the text
+   * half below, and the batch's own byte law in test/observation-batch.test.mjs, which holds the moved
+   * files to their recorded sha256 AND re-checks them under core.autocrlf=true/false in the repository
+   * that now stores them. Nothing about the binary class went unpoliced; it changed address. */
+  for (const p of ["runs/evidence/evidence.jsonl", "runs/audit/findings.jsonl"]) {
     assert.ok(paths.includes(p), `${p} is not tracked — the population is not the one this test was written for`);
   }
+  assert.equal(paths.filter((p) => p.startsWith("runs/crawl/")).length, 0, "a runs/crawl file is tracked again — the observation batch belongs in the external data repository");
 });
 
 test("🔴 every tracked file under runs/ is checked out as its committed bytes — the same blob with core.autocrlf=true, =false, and with no filter at all", () => {

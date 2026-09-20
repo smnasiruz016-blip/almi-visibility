@@ -225,8 +225,14 @@ function verdictBasis(r) {
  *   intentOf       query → row-5 cluster id
  *   siblingPairs   axis → [{ a, b, overlap }] measured on archived pages; siblingFamilies axis → families
  *   hardCoded      axis → { pages, impressions, examples } read from the page rows; declaredBy axis → [product ids]
+ *   answerLegs     axis → a measured answer leg from src/discovery/answer-evidence.mjs
+ *
+ * 🔴 answerLegs IS THE WAY IN, AND IT DEFAULTS TO CLOSED. Until this parameter existed the answer
+ * leg was the literal UNKNOWN and no input could change it, so BUILD and REJECT were unreachable from
+ * this path however much evidence was owned. Supplying nothing still yields that same literal and the
+ * same basis, so a caller that does not pass it behaves exactly as it did before.
  */
-export function discoverAxes({ record, specs, countryRows = [], intentOf = () => null, siblingPairs = {}, siblingFamilies = {}, hardCoded = {}, declaredBy = {} }) {
+export function discoverAxes({ record, specs, countryRows = [], intentOf = () => null, siblingPairs = {}, siblingFamilies = {}, hardCoded = {}, declaredBy = {}, answerLegs = {}, answerDefault = null }) {
   const members = record.flatMap((c) => c.members.map((m) => ({ ...m, cluster: c.id })));
   const claimed = new Set(Object.values(specs).flatMap((s) => s.slotTypes || []));
   const discovered = [...new Set(members.flatMap((m) => (m.slots || []).map((s) => s.type)))].filter((t) => !claimed.has(t)).sort();
@@ -262,7 +268,10 @@ export function discoverAxes({ record, specs, countryRows = [], intentOf = () =>
       contractName: spec.contractName ?? (spec.named ? axis : null),
       reads: spec.reads,
       discovery: { state: carrying || values.size ? "PRESENT" : "ABSENT_IN_SAMPLE", queriesCarrying: carrying, values: [...values.values()].sort((a, b) => b.queries - a.queries || String(a.value).localeCompare(String(b.value))), basis: carrying || values.size ? `${carrying} human queries carry it${spec.searcherCountry ? `, plus ${countryRows.length} country×query rows` : ""}` : "no human query carries it — LAW-ABSENT-1: absent from 329 queries over four weeks is thin evidence, not an absent axis" },
-      distinguishing: { answer: { state: "UNKNOWN", basis: ANSWER_UNKNOWN }, question },
+      /* 🔴 A REFUSAL IS NOT AN ABSENCE. When the join was refused, every axis says SO — carrying the
+       * refusal's own state and reason — instead of the "no evidence is owned" text, which is false
+       * the moment evidence exists and is being refused. */
+      distinguishing: { answer: answerLegs[axis] ?? answerDefault ?? { state: "UNKNOWN", basis: ANSWER_UNKNOWN }, question },
       demand,
       evidenceAvailability: { state: "UNKNOWN", basis: AVAILABILITY_UNKNOWN },
       siblingCollapse: siblingCollapse(siblingPairs[axis] || [], siblingFamilies[axis] || []),

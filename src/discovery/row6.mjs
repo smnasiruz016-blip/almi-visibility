@@ -10,7 +10,12 @@ import { extractBody, shingles, jaccard } from "../audit/shell.mjs";
 import { row5 } from "./row5.mjs";
 import { splitPopulation } from "./query-population.mjs";
 import { discoverAxes, axisErrors } from "./axis-discovery.mjs";
+import { answerEvidence } from "./answer-evidence.mjs";
 import { availableSubjects, importSubjectModule } from "../subject-roots.mjs";
+import { createTenantResolver } from "../tenancy/resolver.mjs";
+import { factRegistryRef, externalRootContaining } from "../adapter/external-subject.mjs";
+import { loadRegistry } from "../facts/registry.mjs";
+import { product } from "../product.mjs";
 
 /** The Search Console country×query pull of 2026-09-12T23:25:04.608Z. */
 export const COUNTRY_QUERY_OBSERVATION = "9bf50cfb134a0d7d";
@@ -89,6 +94,62 @@ export async function readDeclaredAxes() {
   return out;
 }
 
+
+/**
+ * 🔴 THE DECLARED ANSWER EVIDENCE, AND THE SCOPES THAT DECIDE WHETHER IT MAY BE READ.
+ *
+ * Every declared subject's fact registry is a candidate source of per-value answers. Which tenant
+ * each belongs to is read from the DECLARATIONS through the production resolver — never from the
+ * product's name, its folder, or the shape of its reference.
+ *
+ * 🔴 IT RETURNS THE SCOPES EVEN WHEN THEY REFUSE. A loader that quietly returned nothing on an
+ * undeclared scope would make the refusal invisible, and an invisible refusal reads exactly like an
+ * absence of evidence. The caller is handed the scopes and lets the gate decide.
+ */
+export async function readDeclaredAnswerEvidence({ axisResourceKind, axisResourceRef, env = process.env, resolve = null } = {}) {
+  /* 🔴 THE RESOLVER IS AN INPUT, NAMED AND CORRECTLY TYPED. Building it behind the caller's back
+   * would make the whole tenancy decision an undeclared dependency, and would leave the RESOLVED
+   * check below with no reachable input — on the real declarations the only source that reaches it
+   * already resolves, so the guard could never be driven false. */
+  const resolveScope = resolve ?? createTenantResolver({ env });
+  const axisScope = resolveScope({ resourceKind: axisResourceKind, resourceRef: axisResourceRef });
+
+  const sources = [];
+  const claims = [];
+  let evidenceScope = { state: "UNDECLARED", tenantId: null };
+
+  for (const id of availableSubjects()) {
+    await importSubjectModule(id, "product.mjs");
+    let descriptor;
+    try {
+      descriptor = product(id);
+    } catch {
+      continue;
+    }
+    const root = externalRootContaining(descriptor.factsDir, env);
+    const ref = root === null ? null : factRegistryRef({ factsDir: descriptor.factsDir, rootPath: root.path });
+    if (ref === null) {
+      sources.push({ subject: id, ref: null, state: "UNDECLARED", records: 0 });
+      continue;
+    }
+    const scope = resolveScope(ref);
+    let records = [];
+    try {
+      ({ records } = await loadRegistry(descriptor.factsDir, descriptor.productId));
+    } catch (e) {
+      /* 🔴 AN UNREADABLE SOURCE IS UNKNOWN, NEVER EMPTY. */
+      sources.push({ subject: id, ref: ref.resourceRef, state: "UNAVAILABLE", records: 0, why: e.message });
+      continue;
+    }
+    sources.push({ subject: id, ref: ref.resourceRef, state: scope.state, tenantId: scope.tenantId ?? null, records: records.length });
+    if (scope.state !== "RESOLVED") continue;
+    evidenceScope = { state: scope.state, tenantId: scope.tenantId };
+    for (const r of records) claims.push({ identity: r.id, answer: r.value, verified: r.verificationState === "VERIFIED" });
+  }
+
+  return { claims, axisScope, evidenceScope, sources };
+}
+
 /** Pages in the page rows whose URL carries an axis's pattern: the axis HARD-CODED into the URL space. */
 export function hardCodedIn(pageRows, patterns) {
   return Object.fromEntries(Object.entries(patterns).map(([axis, res]) => {
@@ -97,7 +158,13 @@ export function hardCodedIn(pageRows, patterns) {
   }));
 }
 
-export function row6({ records, crawlRecords, bodies, lexicon, reference, ambiguous, specs, families, patterns, declaredAxes = {} }) {
+/**
+ * 🔴 THE ANSWER EVIDENCE IS OPTIONAL TO SUPPLY AND MANDATORY TO GATE. A caller that owns no answer
+ * evidence passes none and every answer leg stays UNKNOWN, exactly as before. A caller that owns some
+ * must also declare BOTH scopes, and the gate refuses the join unless the production resolver says
+ * they are the same declared tenant — decided before any answer is read.
+ */
+export function row6({ records, crawlRecords, bodies, lexicon, reference, ambiguous, specs, families, patterns, declaredAxes = {}, answerClaims = null, axisScope = null, evidenceScope = null }) {
   const r5 = row5({ records, lexicon, reference, ambiguous });
   const clusterOf = new Map(r5.record.flatMap((c) => c.members.map((m) => [m.original, c.id])));
   const cq = observation(records, COUNTRY_QUERY_OBSERVATION, ":country-query");
@@ -106,6 +173,10 @@ export function row6({ records, crawlRecords, bodies, lexicon, reference, ambigu
   const pairs = siblingPairs({ bodies, crawlRecords, families });
   const declaredBy = {};
   for (const [productId, key] of Object.entries(declaredAxes)) (declaredBy[key] ||= []).push(productId);
+
+  const answers = answerClaims
+    ? answerEvidence({ claims: answerClaims, axisScope, evidenceScope })
+    : { gate: null, byAxis: {}, population: { claims: 0, qualified: 0, verifiedQualified: 0 } };
 
   const results = discoverAxes({
     record: r5.record,
@@ -116,9 +187,12 @@ export function row6({ records, crawlRecords, bodies, lexicon, reference, ambigu
     siblingFamilies: families,
     hardCoded: hardCodedIn(pages.value.rows, patterns),
     declaredBy,
+    answerLegs: answers.byAxis,
+    answerDefault: answers.gate,
   });
   const named = contractAxes();
   return {
+    answerEvidence: answers,
     input: {
       queries: { observationId: r5.input.observationId, rows: r5.input.rowCount, human: r5.population.human.length, operators: r5.population.operators.length },
       countryQuery: { observationId: COUNTRY_QUERY_OBSERVATION, observedAt: cq.observed_at, rows: cq.value.rows.length, human: cqPopulation.human.length, operators: cqPopulation.operators.length, countries: new Set(cqPopulation.human.map((r) => r.country)).size },

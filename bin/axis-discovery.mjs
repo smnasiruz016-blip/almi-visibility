@@ -18,7 +18,7 @@ import { pathToFileURL } from "node:url";
 
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { readBodyArchive } from "../src/evidence/body-archive.mjs";
-import { row6, readDeclaredAxes } from "../src/discovery/row6.mjs";
+import { row6, readDeclaredAxes, readDeclaredAnswerEvidence } from "../src/discovery/row6.mjs";
 import { LEXICON } from "../config/discovery/intent-lexicon.mjs";
 import { INTENT_REFERENCE, AMBIGUOUS } from "../config/discovery/intent-reference.mjs";
 import { AXIS_SPECS, SIBLING_FAMILIES, HARD_CODED_PATTERNS } from "../config/discovery/axis-candidates.mjs";
@@ -32,7 +32,14 @@ const bodies = readBodyArchive(batchFile("bodies-2026-09-12.jsonl.br"));
 // Each declared product's axis — the axis a human chose by hand, read from its own descriptor.
 const declaredAxes = await readDeclaredAxes();
 
-const r = row6({ records, crawlRecords, bodies, lexicon: LEXICON, reference: INTENT_REFERENCE, ambiguous: AMBIGUOUS, specs: AXIS_SPECS, families: SIBLING_FAMILIES, patterns: HARD_CODED_PATTERNS, declaredAxes });
+/* 🔴 THE ANSWER EVIDENCE, AND THE SCOPES THAT GOVERN IT. Supplied whatever they resolve to: the gate
+ * decides, and a refusal is printed rather than hidden. The axis population's reference is the batch
+ * this run actually reads — not a name chosen to make the join succeed. */
+const CRAWL_BATCH_REF = "first-real-crawl-2026-09-12.jsonl";
+const answers = await readDeclaredAnswerEvidence({ axisResourceKind: "CRAWL_BATCH", axisResourceRef: CRAWL_BATCH_REF });
+
+const r = row6({ records, crawlRecords, bodies, lexicon: LEXICON, reference: INTENT_REFERENCE, ambiguous: AMBIGUOUS, specs: AXIS_SPECS, families: SIBLING_FAMILIES, patterns: HARD_CODED_PATTERNS, declaredAxes,
+  answerClaims: answers.claims, axisScope: answers.axisScope, evidenceScope: answers.evidenceScope });
 
 const i = r.input;
 console.log("ROW 6 — AXIS DISCOVERY\n");
@@ -41,6 +48,17 @@ console.log(`[input: country×query ${i.countryQuery.observationId} · observed 
 console.log(`[input: page rows ${i.pageRows.observationId} · observed ${i.pageRows.observedAt} · ${i.pageRows.rows} pages]`);
 console.log(`[input: ${i.archivedBodies} archived page bodies, crawl of 12 September 2026]`);
 console.log(`[declared product axes: ${Object.entries(declaredAxes).map(([p, k]) => `${p} → ${k}`).join(" · ") || "none"}]`);
+console.log(`[answer evidence: ${answers.claims.length} claim(s) from ${answers.sources.filter((s) => s.state === "RESOLVED").length} declared source(s) of ${answers.sources.length}]`);
+for (const s of answers.sources) console.log(`   source ${s.subject} → ${s.ref ?? "no declarable reference"} [${s.state}] ${s.records} record(s)`);
+console.log(`[axis population ${CRAWL_BATCH_REF} → ${r.answerEvidence.gate ? r.answerEvidence.gate.axisTenantId ?? "UNDECLARED" : "declared"}]`);
+if (r.answerEvidence.gate) {
+  console.log(`🔴 ANSWER EVIDENCE REFUSED — ${r.answerEvidence.gate.state} (${r.answerEvidence.gate.reason}): ${r.answerEvidence.gate.basis}`);
+  console.log("   Every answer leg therefore stays UNKNOWN, and no axis can reach BUILD or REJECT. This is a REFUSAL, not an absence of evidence.");
+} else {
+  const decided = Object.entries(r.answerEvidence.byAxis).filter(([, l]) => l.state === "MEASURED");
+  console.log(`[answer legs measured: ${decided.length} of ${Object.keys(r.answerEvidence.byAxis).length} axes carrying evidence]`);
+  for (const [axis, l] of Object.entries(r.answerEvidence.byAxis)) console.log(`   ${axis} → ${l.state} (${l.reason}): ${l.basis}`);
+}
 console.log(`\nTHE CONTRACT NAMES: ${r.contractAxes.join(" · ")}`);
 if (r.row5Errors.length) console.log(`🔴 row 5's record carries ${r.row5Errors.length} error(s) — row 6 reads it anyway and says so`);
 

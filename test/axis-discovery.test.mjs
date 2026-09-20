@@ -21,19 +21,73 @@ import { AXIS_SPECS, SIBLING_FAMILIES, HARD_CODED_PATTERNS } from "../config/dis
 import { batchFile } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
-const R = row6({
+/* The real inputs, built once and reused — the answer-evidence wiring below drives row6() again. */
+const INPUTS = {
   records: createJsonlStore(join(REPO, "runs", "evidence", "evidence.jsonl")).readAll(),
   crawlRecords: createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll(),
   bodies: readBodyArchive(batchFile("bodies-2026-09-12.jsonl.br")),
   lexicon: LEXICON, reference: INTENT_REFERENCE, ambiguous: AMBIGUOUS,
   specs: AXIS_SPECS, families: SIBLING_FAMILIES, patterns: HARD_CODED_PATTERNS,
   declaredAxes: await readDeclaredAxes(),
-});
+};
+const R = row6(INPUTS);
 const NAMED = contractAxes();
 const by = (axis) => R.results.find((r) => r.axis === axis);
 const limbs = (errs) => [...new Set(errs.map((e) => e.limb))];
 const clone = (x) => JSON.parse(JSON.stringify(x));
 const check = (results) => axisErrors({ results, namedAxes: NAMED });
+
+/* ================================================================== *
+ * 🔴 THE ANSWER-EVIDENCE WIRING — row6()'s DUTY TO PASS THE REAL SCOPES.
+ *
+ * The gate itself lives in answer-evidence.mjs and is driven there. What is driven HERE is the one
+ * thing only row6() can get wrong: handing the gate the scopes it was GIVEN, rather than scopes it
+ * made up. A sabotage that replaced them with a matching pair stayed green until this existed.
+ * ================================================================== */
+
+const CLAIMS = [
+  { identity: "ctl-authority.ctl-claim.profession=alpha", answer: "same", verified: true },
+  { identity: "ctl-authority.ctl-claim.profession=beta", answer: "same", verified: true },
+];
+const T1 = "tenant:11111111111111111111111111111111";
+const T2 = "tenant:22222222222222222222222222222222";
+
+test("🔴 WIRING · row6 hands the gate the scopes it was GIVEN — a cross-tenant pair is refused end to end", () => {
+  const r = row6({ ...INPUTS, answerClaims: CLAIMS,
+    axisScope: { state: "RESOLVED", tenantId: T1 }, evidenceScope: { state: "RESOLVED", tenantId: T2 } });
+  assert.equal(r.answerEvidence.gate.state, "INVALID_CROSS_TENANT", "row6 did not pass the real scopes to the gate");
+  assert.deepEqual(r.answerEvidence.byAxis, {});
+  /* 🔴 AND THE AXIS SAYS SO. A refusal must not read on the axis as an ABSENCE of evidence — the
+   * evidence exists and was refused, and the leg carries that reason, not the "none is owned" text. */
+  const leg = r.results.find((x) => x.axis === "profession").distinguishing.answer;
+  assert.equal(leg.state, "INVALID_CROSS_TENANT");
+  assert.doesNotMatch(leg.basis, /no per-value ANSWER evidence is owned/, "a refusal was reported as an absence");
+  assert.notEqual(r.results.find((x) => x.axis === "profession").verdict, "BUILD");
+});
+
+test("🔴 WIRING · an UNDECLARED scope is refused end to end, and the real run's scopes are not invented", () => {
+  const r = row6({ ...INPUTS, answerClaims: CLAIMS, axisScope: null, evidenceScope: null });
+  assert.equal(r.answerEvidence.gate.state, "UNDECLARED_TENANT");
+  assert.deepEqual(r.answerEvidence.byAxis, {});
+});
+
+test("🔴 WIRING · same declared tenant → the evidence reaches the axis and moves its verdict", () => {
+  const r = row6({ ...INPUTS, answerClaims: CLAIMS,
+    axisScope: { state: "RESOLVED", tenantId: T1 }, evidenceScope: { state: "RESOLVED", tenantId: T1 } });
+  assert.equal(r.answerEvidence.gate, null);
+  const leg = r.answerEvidence.byAxis.profession;
+  assert.equal(leg.state, "MEASURED");
+  assert.equal(leg.materiallyChanges, false);
+  /* 🔴 THE WHOLE POINT: the measured leg reaches the real axis result through the real path. */
+  assert.equal(r.results.find((x) => x.axis === "profession").distinguishing.answer.state, "MEASURED");
+});
+
+test("🔴 WIRING · supplying NO answer claims leaves the real run exactly as it was", () => {
+  assert.equal(R.answerEvidence.gate, null);
+  assert.deepEqual(R.answerEvidence.byAxis, {});
+  assert.equal(R.answerEvidence.population.claims, 0);
+  for (const x of R.results) assert.equal(x.distinguishing.answer.state, "UNKNOWN", x.axis);
+});
 
 test("🔴 the axes to test are READ from row 6's frozen EXPECTED clause — six, not retyped", () => {
   assert.deepEqual(NAMED, ["profession", "role", "stage", "origin/destination", "language", "locality"]);

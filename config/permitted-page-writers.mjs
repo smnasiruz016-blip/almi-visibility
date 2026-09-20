@@ -318,4 +318,16 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
     why: "the crawl's record is item 1's evidence — every fetched page's hash and bounds — and the run record is what a later reviewer commits by hand; the ledger entry is item 45's cost of a live run",
     whyKnown: true,
   },
+  {
+    file: "bin/detect.mjs",
+    sites: 4,
+    writes: "the findings output of one detection run — every outcome of every generic detector, with its evidence — plus that output's sha256, and the score when an expectation set is supplied",
+    where: `the directory given by --out; there is no default destination, so a run that names none writes nothing at all; ${CONFINED}`,
+    gatedBy: "write-law LOCAL: the output directory and all three files sit behind permission.mayWrite, which only --confirm grants. With no flag the whole run still executes and prints every count and the output's own hash — the detectors, the serialisation and the digest are identical, and only the write is withheld",
+    gateFlags: ["--confirm"],
+    gateToken: "permission.mayWrite",
+    destinationOverridable: true,
+    why: "row 52's evidence is a findings output that can be hashed and CLOSED before anything holding the expected answers reads it. That ordering is only auditable if the output is a file on disk with its digest beside it, so the score can be shown to have been computed against bytes that were already fixed",
+    whyKnown: true,
+  },
 ]);

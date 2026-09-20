@@ -308,9 +308,9 @@ test("RECORDED: the rendered bodies stay OUT of git with their size stated; the 
   assert.match(install.budget.browserNote, /NOT downloaded by this run/);
 });
 
-test("🔴 NO ROW MOVED: item 10 and item 52 keep their states, and the renderer's code raises no issue and compares no render to its source", () => {
+test("🔴 NO ROW MOVED: item 10 keeps its state; item 52 has since been sat and FAILED (20 Sep 2026), and the renderer's code raises no issue and compares no render to its source", () => {
   assert.equal(classify()[10].state, "BUILT-NOT-PROVED");
-  assert.equal(classify()[52].state, "BLOCKED-UNKNOWN");
+  assert.equal(classify()[52].state, "FAILED");
   const code = ["src/render/renderer.mjs", "src/render/render-state.mjs"].map((f) => readFileSync(`${REPO}${f}`, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "")).join("\n");
   assert.ok(!/makeIssue|verdict|raw_content_sha256\s*[!=]==|[!=]==\s*\w*\.?raw_content_sha256/.test(code), "the renderer judges or compares");
 });

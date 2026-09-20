@@ -86,7 +86,8 @@ test("🔴 RULE 3 — FAILED is its own count in the tally, never folded into an
   // empty cannot be watched.
   // 13 Sep 2026, later: item 50 was REOPENED on a wrong label, and the bucket holds 1 again.
   // 14 Sep 2026: row 5 was run and FAILED on its held-out check — the bucket holds 2.
-  assert.equal(t.FAILED, 2);
+  // 20 Sep 2026: row 52 sat the Case Study once and FAILED — the bucket holds 3.
+  assert.equal(t.FAILED, 3);
   assert.ok("FAILED" in t);
   // 58 frozen rows plus rows 59, 60 and 61, admitted by owner ruling (Amendments 3 and 5, 14 September 2026).
   assert.equal(Object.values(t).reduce((a, b) => a + b, 0), 61);
@@ -252,7 +253,9 @@ test("🔴 moves since Amendment 2: EIGHT by ruling (3–7 → NOT-STARTED by Am
     "42:BLOCKED-UNKNOWN→VERIFIED-PASS", "45:BUILT-NOT-PROVED→FAILED", "45:TESTABLE-NOW→VERIFIED-PASS", "47:NOT-STARTED→VERIFIED-PASS",
     "48:VERIFIED-PASS→FAILED", "48:FAILED→VERIFIED-PASS", "49:BUILT-NOT-PROVED→VERIFIED-PASS",
     "50:BUILT-NOT-PROVED→TESTABLE-NOW", "50:TESTABLE-NOW→FAILED", "50:FAILED→VERIFIED-PASS", "50:VERIFIED-PASS→FAILED",
-    "51:BUILT-NOT-PROVED→TESTABLE-NOW", "51:TESTABLE-NOW→FAILED", "51:FAILED→VERIFIED-PASS", "53:BUILT-NOT-PROVED→VERIFIED-PASS",
+    "51:BUILT-NOT-PROVED→TESTABLE-NOW", "51:TESTABLE-NOW→FAILED", "51:FAILED→VERIFIED-PASS",
+    /* 🔴 Row 52, 20 September 2026: the Case Study was sat ONCE and FAILED. One shot, spent. */
+    "52:BLOCKED-UNKNOWN→TESTABLE-NOW", "52:TESTABLE-NOW→FAILED", "53:BUILT-NOT-PROVED→VERIFIED-PASS",
     "55:BUILT-NOT-PROVED→TESTABLE-NOW", "55:TESTABLE-NOW→FAILED", "55:FAILED→VERIFIED-PASS",
     "56:BLOCKED-UNKNOWN→VERIFIED-PASS",
     // 🔴 Rows 59 and 60, Amendment 3's work half (14 September 2026): 59's test run and passed; 60 built, waiting on the owner's levels.

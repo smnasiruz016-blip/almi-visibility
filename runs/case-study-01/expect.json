@@ -1,0 +1,17 @@
+{
+  "note": "THE MARKING KEY, built from the frozen acceptance contract's own pinned locators AFTER the findings output was written and hashed (2085c5c0d0329c363a1bab608e36b91dfa1942dd04523a8e1ab01ad4fddf28e8). No detector ever received any of this. The ordering is the protection: the output was closed before anything holding the answers was read.",
+  "findingsSha256": "2085c5c0d0329c363a1bab608e36b91dfa1942dd04523a8e1ab01ad4fddf28e8",
+  "requiredReds": [
+    { "id": "RED 1", "detectorKey": "A", "subject": "src/lib/oet/scale.ts" },
+    { "id": "RED 2", "detectorKey": "B", "subject": "src/lib/oet/professions.ts" },
+    { "id": "RED 3", "detectorKey": "C", "subject": "https://almioet.almiworld.com/nursing/from-austria/ca-cannn" },
+    { "id": "RED 4", "detectorKey": "D", "subject": "src/lib/learn/articles.ts" },
+    { "id": "RED 5", "detectorKey": "E", "subject": "scripts/seed/gen/reading_c.ts" },
+    { "id": "RED 6", "detectorKey": "F", "subject": "src/components/GlobalFooter.tsx" }
+  ],
+  "controls": [
+    { "id": "CONTROL 1", "subject": "https://almioet.almiworld.com/nursing/from-india/uk-nmc" },
+    { "id": "CONTROL 2", "subject": "https://almioet.almiworld.com/nursing/from-india/uk-ukvi" },
+    { "id": "CONTROL 3", "subject": "https://almioet.almiworld.com/nursing/from-bhutan/ie-nmbi" }
+  ]
+}

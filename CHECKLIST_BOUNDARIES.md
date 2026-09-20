@@ -66,11 +66,11 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | **BUILT-NOT-PROVED** | 18 | 16 | **5** |
 | **TESTABLE-NOW** | 0 | 3 | **1** |
 | **VERIFIED-PASS** | 3 | 3 | **25** |
-| **FAILED** | 0 | -1 | **2** |
-| **BLOCKED-UNKNOWN** | 6 | 6 | **3** |
+| **FAILED** | 0 | -1 | **3** |
+| **BLOCKED-UNKNOWN** | 6 | 6 | **2** |
 | **DEFERRED** | 28 | 23 | **23** |
 
-### FAILED — counted and named separately: **2**
+### FAILED — counted and named separately: **3**
 
 > 🔴 **FAILED is counted and named separately in every report.** It is never folded into another
 > count and it is **not progress**. It is also **worth more than BUILT-NOT-PROVED**: a FAILED row
@@ -78,6 +78,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 - **item 5 · Intent & Question Clustering** — FAILURE met: identical intents stay split — on the held-out check the EVIDENCE clause names, 12 of 61 held-out queries were left in a new cluster although their intent had in-sample members, each on a word the frozen lexicon never saw
 - **item 50 · OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation** — FAILURE met: a label is wrong: the first product's writing record was labelled VERIFIED on a verdict that confirmed three of the six claims its value makes, with a supplied 'not found' count of 0 — and the guard that should have caught it took that count on trust
+- **item 52 · Case Study Acceptance Test** — FAILURE met: 🔴 THE FIRST LIMB, AND ONLY THE FIRST. The row's frozen FAILURE clause reads: "a required RED is missed, **or any control false-positives — that alone is FAIL**." FIVE of the six required REDs were missed — RED 2, 4, 5 and 6 produced no outcome naming their pinned locator, and RED 3 returned NOT_APPLICABLE — so the first limb is met outright. ⚠️ THE SECOND LIMB WAS NOT MET: no control drew a FINDING from any comparator, so there was no false positive. All three controls nevertheless score UNEVALUATED under Amendment 2, because every comparator returned NOT_APPLICABLE on them and a page on which nothing was positively examined is never unflagged. Both are failures; they are not the same failure, and folding them together would hide that the noise never reached the controls
 - **item 14** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-12 — report.mjs and the chain runner's cache now write only with --confirm; every destination is confined to this repository and refused outside it; all five parts re-tested and each RED-proved
 - **item 45** left FAILED for TESTABLE-NOW by route `OWNER_RULING` on 2026-09-12 — 'A component cannot be failed for a period before it existed.' The boundary's INPUT is a run; the scope is runs from 8c9d68b (2026-09-12T23:03:09Z) onward. The bar is unchanged; the eight earlier runs are recorded as a permanent loss (L-COST-1)
 - **item 48** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — every authorized job that stores a record has now been run twice into one store with zero duplicates on the second run — crawl (replay: 389 unchanged → 0 new, 389 re-sightings), DNS audit (RECORDED resolver answers: 134 → +0), technical, content, verification and supply-label writers — and the census holds every issue writer to appendIfNew; RED when the key takes the clock
@@ -85,7 +86,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 - **item 51** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — priority, confidence and cost each computed from stored evidence and each able to say UNKNOWN — two recommendations ranked by measured impressions, one UNKNOWN; confidence derived on all three; cost UNKNOWN on all three with lower bounds — and all six visible on the real report
 - **item 55** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — the parse is caught and rethrown with nothing from the file; the leak test re-run passed on every credential path, RED when the key or its length is logged; recovery proved by restoring torn stores from git, byte-identical by blob hash
 
-**Rows that have been looked at (VERIFIED-PASS or FAILED): 27 of 58.**
+**Rows that have been looked at (VERIFIED-PASS or FAILED): 28 of 58.**
 
 **Rows that reached VERIFIED-PASS in this PR: 22.**
 
@@ -143,6 +144,8 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 51 | BUILT-NOT-PROVED | TESTABLE-NOW | `undefined` | 2026-09-13 | a real recommendation exists |
 | 51 | TESTABLE-NOW | FAILED | `test/queue-rescan.test.mjs (item 51)` | 2026-09-13 | FAILURE met: priority, confidence and cost are missing on all three, and the real report renders none of the six |
 | 51 | FAILED | VERIFIED-PASS | `node bin/link-recommendation-evidence.mjs · node bin/report.mjs --confirm · test/recommendation-fields.test.mjs` | 2026-09-13 | priority, confidence and cost each computed from stored evidence and each able to say UNKNOWN — two recommendations ranked by measured impressions, one UNKNOWN; confidence derived on all three; cost UNKNOWN on all three with lower bounds — and all six visible on the real report |
+| 52 | BLOCKED-UNKNOWN | TESTABLE-NOW | `undefined` | 2026-09-20 | the row was blocked because nothing discovered subjects for four of the six comparators. That layer now exists and is proved portable across two unrelated synthetic layouts, so the examination could be sat |
+| 52 | TESTABLE-NOW | FAILED | `node bin/detect.mjs --bundle=discover over the frozen corpus and every pinned exhibit · runs/case-study-01/findings.json · runs/case-study-01/score.json` | 2026-09-20 | sat once against the frozen acceptance contract and FAILED: 1 of 6 required classes detected, 0 of 3 controls left clean. The run completed, the output was written and hashed BEFORE anything holding the answers was read, and the result is recorded as it came out |
 | 53 | BUILT-NOT-PROVED | VERIFIED-PASS | `node --test test/portability-neutral-product.test.mjs · node bin/facts.mjs census --product=neutral-test-ferments` | 2026-09-13 | a neutral declared test product run through the generic core with no first-product knowledge (no module or file of the first product loaded or read), and the first product's private records, licence terms and gaps proved not to cross during that same run; both halves RED-proved |
 | 55 | BUILT-NOT-PROVED | TESTABLE-NOW | `undefined` | 2026-09-13 | the input exists; not run, because the executing leak test it needs does not exist yet |
 | 55 | TESTABLE-NOW | FAILED | `test/secret-leak.test.mjs (first honest run, before any fix)` | 2026-09-13 | FAILURE met — any leak: a key file that is not JSON was quoted by the adapter's parse error in-process and printed whole to stderr by the CLI (D-SEC-1) |
@@ -164,14 +167,14 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | **BUILT-NOT-PROVED** | 24 | **5** |
 | **TESTABLE-NOW** | 0 | **1** |
 | **VERIFIED-PASS** | 0 | **25** |
-| **FAILED** | 0 | **2** |
-| **BLOCKED-UNKNOWN** | 1 | **3** |
+| **FAILED** | 0 | **3** |
+| **BLOCKED-UNKNOWN** | 1 | **2** |
 | **DEFERRED** | 0 | **23** |
 | **total** | 58 | **61** |
 
 ### 🔴 THE MOST IMPORTANT LINE IN THIS DOCUMENT
 
-> **27 row(s) changed because work happened.** Listed in (i) below.
+> **28 row(s) changed because work happened.** Listed in (i) below.
 
 #### (i) changed because WORK HAPPENED
 
@@ -201,6 +204,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 49 | Audit Trail & Provenance | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 50 | OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation | BUILT-NOT-PROVED | **FAILED** |
 | 51 | Explainability | BUILT-NOT-PROVED | **VERIFIED-PASS** |
+| 52 | Case Study Acceptance Test | BLOCKED-UNKNOWN | **FAILED** |
 | 53 | Cross-Product Portability | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 55 | Security / Secrets / Recovery | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 56 | Desktop + Mobile Owner Experience | BUILT-NOT-PROVED | **VERIFIED-PASS** |
@@ -212,7 +216,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | NOT-STARTED → DEFERRED | 23 | 2, 18, 19, 20, 21, 22, 23, 24, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39, 40, 41, 43, 44 |
 | BUILT-NOT-PROVED → BLOCKED-UNKNOWN | 2 | 1, 54 |
 
-**Did not move against the 11 September 2026 baseline: 6** — 10, 16, 46, 52, 57, 58
+**Did not move against the 11 September 2026 baseline: 5** — 10, 16, 46, 57, 58
 
 **Not on that baseline — admitted later by owner ruling: 3** — 59, 60, 61. They are not "unmoved"; they did not exist. Any work on them since is a declared move above.
 
@@ -1009,7 +1013,7 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 
 ### 52 · Case Study Acceptance Test
 
-**BLOCKED-UNKNOWN** · class `P` · ruled in `§6`
+**FAILED** · class `P` · ruled in `§6` · was BLOCKED-UNKNOWN (work)
 
 | part | the owner's words |
 |---|---|
@@ -1019,7 +1023,9 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 | **EVIDENCE** | the run, its per-class result, and proof the seal was never opened during construction. |
 | **RULE** | one shot. **NOT RUN = NOT TESTED.** It is run when the syllabus is built, not before. |
 
-**Verdict —** 🔴 NOT RUN = NOT TESTED, and the rendering trigger is unmet. Two of the six RED classes cannot be detected without a renderer, so running the exam today would produce a FAIL that measures our sequencing rather than the engine — and the seal breaks only once
+**Verdict —** 🔴 **SAT ONCE ON 20 SEPTEMBER 2026 AND FAILED — 1 of 6 REQUIRED CLASSES DETECTED, 0 of 3 CONTROLS LEFT CLEAN.** The seal is open and does not close again. **RED 1 DETECTED** — the value-set comparator found the scoring claim at its pinned locator unsupported by the code that produces it. **Every other class failed, and each failed differently, which is the useful part:** RED 2 and RED 5 produced NO OUTCOME NAMING THEIR LOCATOR while the same comparators reported 2,959 and 1,664 findings elsewhere; RED 4 produced no output at all; RED 6's comparator reported one finding, not at its locator; RED 3 returned NOT_APPLICABLE because the leaf route's declaration was never bound to its captured response. **All three controls scored UNEVALUATED** — every comparator returned NOT_APPLICABLE on them, so nothing was positively examined, and an unexamined page is never unflagged. 🔴 **THE DIAGNOSIS IS BINDING, NOT DETECTION.** Discovery found 12,756 candidates and bound 6,892, but it binds by exported identifier and derived route, and the corpus's nine captured pages share almost no such edge with the five pinned repository trees. The comparators then fired 6,640 times on file-path subjects nobody asked about and 0 times on the page subjects that are scored. A detector that reports thousands of findings and misses five of six planted defects is not short of sensitivity; it is short of a way to know WHICH SUBJECT it is talking about. ⚠️ **NO FALSE POSITIVE ON ANY CONTROL** — the three controls drew 0 findings, so the noise, however large, did not reach them. That is the one property the run establishes in the engine's favour. 🔴 **The output was written and hashed (2085c5c0…) BEFORE the marking key was read**, the implementation was frozen at f10e964 before the seal opened, and no executable byte changed afterwards
+
+**The one test that would settle it —** node bin/detect.mjs --bundle=discover over the frozen corpus and every pinned exhibit · runs/case-study-01/findings.json · runs/case-study-01/score.json
 
 ### 53 · Cross-Product Portability
 

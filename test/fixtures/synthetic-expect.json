@@ -1,0 +1,16 @@
+{
+  "note": "The DEVELOPMENT rehearsal expectation set. Synthetic subjects only. This file is never given to a detector — bin/detect.mjs reads it only after the findings output has been written and hashed.",
+  "requiredReds": [
+    { "id": "SYN-A", "detectorKey": "A", "subject": "surface-alpha" },
+    { "id": "SYN-B", "detectorKey": "B", "subject": "authority-claim-beta" },
+    { "id": "SYN-C", "detectorKey": "C", "subject": "route-gamma" },
+    { "id": "SYN-D", "detectorKey": "D", "subject": "https://example.invalid/delta-missing" },
+    { "id": "SYN-E", "detectorKey": "E", "subject": "count-epsilon" },
+    { "id": "SYN-F", "detectorKey": "F", "subject": "page-zeta" }
+  ],
+  "controls": [
+    { "id": "SYN-CTL-1", "subject": "https://example.invalid/control-one" },
+    { "id": "SYN-CTL-2", "subject": "https://example.invalid/control-two" },
+    { "id": "SYN-CTL-3", "subject": "https://example.invalid/control-three" }
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "_provenance": {
     "title": "AlmiVisibility — row 60 consequence sheet",
-    "generatedAt": "2026-09-15T23:13:29.300Z",
+    "generatedAt": "2026-09-20T19:52:37.746Z",
     "generatedBy": "bin/row60-ruling-sheet.mjs",
     "covers": [
       "every finding class present on an issue record in the files listed under `sources`, as config/class-splits.mjs counts it",
@@ -21,6 +21,20 @@
     }
   },
   "sources": [
+    {
+      "file": "observations/crawl-2026-09-12/first-real-crawl-2026-09-12.jsonl",
+      "records": 999,
+      "issueRecords": 0,
+      "stateChanges": 0,
+      "recommendations": 0
+    },
+    {
+      "file": "observations/sitemap-2026-09-12/sitemaps.jsonl",
+      "records": 5,
+      "issueRecords": 0,
+      "stateChanges": 0,
+      "recommendations": 0
+    },
     {
       "file": "runs/audit/content-findings.jsonl",
       "records": 471,
@@ -99,13 +113,6 @@
       "recommendations": 0
     },
     {
-      "file": "runs/crawl/first-real-crawl-2026-09-12.jsonl",
-      "records": 999,
-      "issueRecords": 0,
-      "stateChanges": 0,
-      "recommendations": 0
-    },
-    {
       "file": "runs/evidence/evidence.jsonl",
       "records": 50,
       "issueRecords": 0,
@@ -121,13 +128,6 @@
     },
     {
       "file": "runs/evidence/robots.jsonl",
-      "records": 5,
-      "issueRecords": 0,
-      "stateChanges": 0,
-      "recommendations": 0
-    },
-    {
-      "file": "runs/evidence/sitemaps.jsonl",
       "records": 5,
       "issueRecords": 0,
       "stateChanges": 0,

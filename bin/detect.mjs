@@ -29,23 +29,55 @@ import { runDetectors, serialiseFindings } from "../src/detect/run.mjs";
 import { readTree, readArchivedPages } from "../src/discover/corpus.mjs";
 import { buildBundle } from "../src/discover/bundle.mjs";
 import { readExternalSubject, toBundle } from "../src/adapter/external-subject.mjs";
-import { observedPageSubjects, toBundle as toPageBundle } from "../src/adapter/observed-page-subject.mjs";
+import { observedPageSubjects, toBundle as toPageBundle, bundlesByTenant } from "../src/adapter/observed-page-subject.mjs";
+import { sitemapUrlSubjects, sitemapDetectorInputsByTenant } from "../src/adapter/sitemap-subject.mjs";
 import { productFromArgvOrExit } from "../src/product-cli.mjs";
 import { score } from "../src/detect/score.mjs";
 
 const argv = process.argv.slice(2);
 const flag = (name) => argv.find((a) => a.startsWith(`--${name}=`))?.split("=").slice(1).join("=") ?? null;
 
+/**
+ * Fold several per-tenant runs into one reportable result.
+ *
+ * 🔴 EVERY OUTCOME KEEPS THE SCOPE IT WAS JUDGED IN. The merged result deliberately carries NO
+ * run-level tenant — there isn't one, and writing the largest scope's id there would be a quiet
+ * claim that the others were judged in it. An outcome without its own scope would be exactly the
+ * ambiguity this whole change exists to remove.
+ */
+function mergeRuns(results, runAt) {
+  const byKey = new Map();
+  for (const { tenantId, result } of results) {
+    for (const d of result.detectors) {
+      if (!byKey.has(d.key)) byKey.set(d.key, { key: d.key, name: d.name, outcomes: [] });
+      for (const o of d.outcomes) byKey.get(d.key).outcomes.push({ ...o, tenantId: o.tenantId ?? tenantId });
+    }
+  }
+  return Object.freeze({
+    runAt,
+    tenantId: null,
+    tenantIds: Object.freeze(results.map((r) => r.tenantId)),
+    detectors: Object.freeze([...byKey.values()].map((d) => Object.freeze({ ...d, outcomes: Object.freeze(d.outcomes) }))),
+  });
+}
+
 const bundlePath = flag("bundle");
 const runAt = flag("run-at");
 const outDir = flag("out");
 const expectPath = flag("expect");
-/* 🔴 THE TENANT IS DECLARED, NEVER DEFAULTED (subject binding contract V1). Without it every
- * result binds INVALID and nothing actionable leaves — which is the correct refusal, not a bug. */
-const tenantId = flag("tenant");
+/* 🔴 THERE IS NO --tenant FLAG, AND ITS ABSENCE IS THE POINT.
+ *
+ * This runner used to accept `--tenant=<anything>` and hand that string to the binder as an
+ * isolation scope. An operator's command line is not a declaration: nothing checked the value, and
+ * a typo, a stale copy-paste or a guess would silently become the scope a whole run was judged in.
+ * It also OVERRODE a record's own resolved scope, which is worse than inventing one.
+ *
+ * A scope is now resolved per resource from the external declarations, by the adapter that reads
+ * the resource. There is no input left here to misuse, which is why the flag was removed rather
+ * than validated. */
 
 if (!bundlePath || !runAt) {
-  console.error("usage: node bin/detect.mjs --bundle=<file> --run-at=<iso> [--tenant=<id>] [--expect=<file>] [--out=<dir> --confirm]");
+  console.error("usage: node bin/detect.mjs --bundle=<file> --run-at=<iso> [--expect=<file>] [--out=<dir> --confirm]");
   console.error("🔴 there is no default bundle and no default clock — a runner that picks its own input measures nothing in particular");
   process.exitCode = 2;
 } else {
@@ -138,7 +170,9 @@ if (!bundlePath || !runAt) {
     console.log(`  available   : ${subject.available}`);
     if (!subject.available) console.log(`  reason      : ${subject.reason} — ${subject.detail}`);
     console.log(`  populations : ${JSON.stringify(subject.populations)}`);
-    return { bundle: toBundle(subject), tenant: subject.tenantId };
+    console.log(`  tenant      : ${subject.tenantId ?? "(none resolved)"}`);
+    console.log(`  provenance  : ${JSON.stringify(subject.provenance ?? null)}  — productId is provenance, never a scope`);
+    return { bundle: toBundle(subject), tenantId: subject.tenantId };
   };
 
   /**
@@ -152,29 +186,81 @@ if (!bundlePath || !runAt) {
   const observedPagesBundle = () => {
     const r = observedPageSubjects();
     console.log(`\nOBSERVED PAGE SUBJECTS — read-only, from the external observation batch`);
-    console.log(`  batch   : ${r.batchId} (${r.classificationState})`);
-    console.log(`  tenant  : ${r.tenantId}`);
-    console.log(`  pages   : ${r.population} · ${JSON.stringify(r.counts)}`);
-    console.log(`  reasons : ${JSON.stringify(r.reasons)}`);
+    console.log(`  batch      : ${r.batchId} (${r.classificationState})  — PROVENANCE, never a scope`);
+    console.log(`  resolution : ${JSON.stringify(r.resolution)}`);
+    console.log(`  tenants    : ${r.tenants.length} declared scope(s)`);
+    console.log(`  pages      : ${r.population} · ${JSON.stringify(r.counts)}`);
+    console.log(`  reasons    : ${JSON.stringify(r.reasons)}`);
     const sum = Object.values(r.counts).reduce((a, b) => a + b, 0);
     if (sum !== r.population) throw new Error(`the buckets sum to ${sum} but the population is ${r.population} — a page has gone missing`);
-    return { bundle: toPageBundle(r), tenant: r.tenantId };
+
+    const groups = bundlesByTenant(r);
+    const offered = groups.reduce((n, g) => n + g.bundle.pageSubjects.length, 0);
+    const grouped = groups.reduce((n, g) => n + g.pages.length, 0);
+    console.log(`  runs       : ${groups.length} · offered ${offered} · pages in a scope ${grouped} · without a scope ${r.population - grouped}`);
+    return groups.map((g) => ({ tenantId: g.tenantId, bundle: g.bundle }));
   };
 
-  let tenantForRun = tenantId;
-  let bundle;
+  /**
+   * 🔴 THE REAL SITEMAP JOIN — two independently captured populations, joined only where BOTH the
+   * normalised URL and the DECLARED scope match exactly. Each side resolves its own scope from its
+   * own reference; this runner joins nothing itself.
+   */
+  const sitemapBundles = () => {
+    const pages = observedPageSubjects();
+    const sm = sitemapUrlSubjects({ observedPages: pages });
+    const sum = Object.values(sm.counts).reduce((a, b) => a + b, 0);
+    console.log(`\nSITEMAP URL SUBJECTS — read-only, from the external sitemap collection`);
+    console.log(`  collection : ${sm.batchId} (${sm.provenance.classificationState}) — PROVENANCE, never a scope`);
+    console.log(`  its scope  : ${sm.collectionState} ${sm.collectionTenantId ?? ""}`);
+    console.log(`  documents  : ${sm.documents} · stored URLs ${sm.population}`);
+    console.log(`  counts     : ${JSON.stringify(sm.counts)} · sum ${sum} · remainder ${sm.population - sum}`);
+    console.log(`  reasons    : ${JSON.stringify(sm.reasons)}`);
+    for (const b of sm.bounds.filter((x) => x.bounded)) {
+      console.log(`  ⚠ STORAGE BOUND: ${b.origin} stored ${b.urlsStored} of ${b.urlsTotal} counted URLs — every population above is over what was STORED`);
+    }
+    if (sum !== sm.population) throw new Error(`the buckets sum to ${sum} but the population is ${sm.population} — a sitemap URL has gone missing`);
+
+    const inputs = sitemapDetectorInputsByTenant(sm, pages);
+    console.log(`  runs       : ${inputs.length} · BOUND entries offered ${inputs.reduce((n, g) => n + g.sitemapUrls.length, 0)} of ${sm.population}`);
+    return inputs.map((g) => ({
+      tenantId: g.tenantId,
+      bundle: {
+        sitemapObserved: { sitemapUrls: g.sitemapUrls, observations: g.observations },
+        pageSubjects: g.pageSubjects,
+        subjectBindings: g.subjectBindings,
+      },
+    }));
+  };
+
+  /**
+   * 🔴 ONE RUN PER DECLARED TENANT — AND runDetectors IS UNCHANGED.
+   *
+   * The shared entry point takes ONE scope for a whole run, and bindSubject refuses any candidate
+   * belonging to a different one. That was invisible while every observed page shared a single
+   * capture-batch scope. With real declared site scopes the same population spans eighteen, and a
+   * single run over it rejects every page outside the one scope it was handed — MEASURED AT 345 OF
+   * 495 before this loop existed.
+   *
+   * The answer is a loop here, not a change there. Nothing about the binder, the detectors or the
+   * integration point moves; the runner simply stops pretending a multi-site population is one
+   * scope. Each run is judged exactly as a single-tenant run always was.
+   */
+  let runs;
   if (bundlePath === "observed-pages") {
-    const r = observedPagesBundle();
-    bundle = r.bundle;
-    tenantForRun = tenantId ?? r.tenant;
+    runs = observedPagesBundle();
+  } else if (bundlePath === "sitemap") {
+    runs = sitemapBundles();
   } else if (bundlePath === "subject") {
-    const r = await subjectBundle();
-    bundle = r.bundle;
-    tenantForRun = tenantId ?? r.tenant;
+    runs = [await subjectBundle()];
   } else {
-    bundle = bundlePath === "discover" ? discoverBundle() : await loadBundle(bundlePath);
+    /* A bundle nobody resolved a scope for. It still runs, and every result binds UNBOUND or
+     * INVALID — the correct refusal, and the recorded cost of removing the operator flag. */
+    runs = [{ tenantId: null, bundle: bundlePath === "discover" ? discoverBundle() : await loadBundle(bundlePath) }];
   }
-  const result = runDetectors({ bundle, runAt, tenantId: tenantForRun });
+
+  const results = runs.map((r) => ({ tenantId: r.tenantId, result: runDetectors({ bundle: r.bundle, runAt, tenantId: r.tenantId }) }));
+  const result = results.length === 1 ? results[0].result : mergeRuns(results, runAt);
   const serialised = serialiseFindings(result);
   const digest = createHash("sha256").update(serialised).digest("hex");
 
@@ -189,7 +275,16 @@ if (!bundlePath || !runAt) {
     console.log(`  ${d.key}  ${d.name.padEnd(30)} FINDING ${String(c.FINDING).padStart(3)} · CLEAN ${String(c.CLEAN).padStart(3)} · UNKNOWN ${String(c.UNKNOWN).padStart(3)} · N/A ${String(c.NOT_APPLICABLE).padStart(3)}   (${d.outcomes.length} outcome(s))`);
   }
   console.log(`  TOTAL: FINDING ${counts.FINDING} · CLEAN ${counts.CLEAN} · UNKNOWN ${counts.UNKNOWN} · NOT_APPLICABLE ${counts.NOT_APPLICABLE}`);
-  console.log(`  tenant: ${result.tenantId ?? "(none declared — every result binds INVALID and nothing actionable leaves)"}`);
+  if (results.length > 1) {
+    console.log(`  runs  : ${results.length}, one per declared scope — no run-level tenant, each outcome carries the scope it was judged in`);
+    for (const r of results) {
+      const c = { FINDING: 0, CLEAN: 0, UNKNOWN: 0, NOT_APPLICABLE: 0 };
+      for (const d of r.result.detectors) for (const o of d.outcomes) c[o.outcome] += 1;
+      console.log(`      ${r.tenantId}  FINDING ${c.FINDING} · CLEAN ${c.CLEAN} · UNKNOWN ${c.UNKNOWN} · N/A ${c.NOT_APPLICABLE}`);
+    }
+  } else {
+    console.log(`  tenant: ${result.tenantId ?? "(none resolved — every result binds UNBOUND or INVALID and nothing actionable leaves)"}`);
+  }
   console.log(`  findings sha256: ${digest}`);
 
   /* 🔴 THE OUTPUT IS WRITTEN AND CLOSED BEFORE ANY EXPECTATION IS READ. */

@@ -6,21 +6,29 @@
  * little. This adapter binds the thing the sealed run actually failed at — a real page, on a real
  * host, to the bytes that were really served for it.
  *
- * ── THE TENANT OF AN UNASSIGNED PAGE ───────────────────────────────────────
+ * ── THE TENANT OF AN OBSERVED PAGE — DECLARED, NOT INFERRED ────────────────
  *
- * The batch's manifest says `classificationState: "UNASSIGNED"`, and the move that created it
- * recorded "No product owns these records here." So the tenant cannot be a product without
- * asserting the one thing the material explicitly denies.
+ * 🔴 THIS MODULE USED TO READ THE CAPTURE BATCH'S OWN ID AS THE TENANT, AND THAT WAS WRONG.
  *
- * It does not have to be. A tenant in this contract is an ISOLATION SCOPE, not an owner:
- * subject.mjs requires one because "a subject with no tenant cannot be isolated", and binding.mjs
- * says "Generic engine code is shared freely; a tenant's own subjects and edges never are." The
- * batch is exactly such a scope — a stable identity the capture already assigned, recorded
- * mechanically in the manifest as `batchId`, naming no product.
+ * The reasoning at the time was that a batch is a stable identity naming no product, so it was
+ * safer than a product id. It was safer. It was still a tenant this engine INFERRED from something
+ * the material happened to carry, and the law is not about which value gets picked — it is that a
+ * scope may not be derived at all. A capture batch is PROVENANCE: it says where a record came from,
+ * never who it is isolated from. Two captures of one site are one scope; one capture of eighteen
+ * sites is eighteen.
  *
- * 🔴 AND IT IS SELF-ENFORCING. With the batch as tenant, any edge from one of these pages to a
- * product's subject is INVALID_CROSS_TENANT. "Do not assign product ownership" stops being a promise
- * this module makes and becomes something the binding contract refuses to let it break.
+ * So the tenant now comes from an explicit external declaration, looked up through the generic
+ * resolver by the page's own canonical origin. `batchId` stays on every record as provenance and is
+ * never read as a scope again.
+ *
+ * 🔴 AND IT IS SELF-ENFORCING. Each page carries its declared site scope, so an edge from one site's
+ * page to another site's subject is INVALID_CROSS_TENANT. "Do not assign ownership" stops being a
+ * promise this module makes and becomes something the binding contract refuses to let it break —
+ * and, unlike before, it now holds BETWEEN the observed sites as well as around them.
+ *
+ * 🔴 AN UNDECLARED ORIGIN GETS NO TENANT AND NO BINDING. It does not get the batch's, it does not
+ * get a neighbour's, and it does not get dropped: it stays in the population with its reason. An
+ * absent declaration never means "the usual one".
  *
  * ── WHAT COUNTS AS AMBIGUOUS, AND WHY IT IS NOT "TWO OBSERVATIONS" ─────────
  *
@@ -46,6 +54,7 @@ import { evidenceEdge, bindSubject } from "../detect/binding.mjs";
 import { batchFile, readBatchManifest, BATCH_ID } from "../crawl/observation-batch.mjs";
 import { createJsonlStore } from "../evidence/store.mjs";
 import { readBodyArchive } from "../evidence/body-archive.mjs";
+import { createTenantResolver } from "../tenancy/resolver.mjs";
 
 /** Why a page is not BOUND. Every non-bound page keeps one of these and stays in the output. */
 export const PAGE_REASONS = Object.freeze({
@@ -57,21 +66,23 @@ export const PAGE_REASONS = Object.freeze({
   CONTRADICTORY_IDENTITY: "one canonical URL is claimed by more than one page_id",
   CROSS_HOST_EDGE: "an observation's target is on a different host from the page's canonical URL",
   BODY_HASH_MISMATCH: "the archived body does not hash to the content_sha256 the observation recorded",
+  TENANT_UNDECLARED: "no declaration attaches this page's canonical origin to an isolation scope",
+  TENANT_AMBIGUOUS: "two or more declarations attach this page's canonical origin to different scopes",
+  TENANT_INVALID: "the declaration for this page's canonical origin is malformed or names a scope that is not declared",
+  TENANT_SOURCE_UNKNOWN: "the declaration source could not be read, so this page's scope is unknown rather than absent",
 });
 
-/**
- * The tenant: the batch's own identity. 🔴 No default — a manifest without a batch identity, or one
- * that has been assigned to a product, is not something this adapter may guess its way past.
- */
-export function batchTenantId(manifest) {
-  const id = manifest?.batchId;
-  if (typeof id !== "string" || id.trim() === "") {
-    throw new TypeError("batchTenantId: the manifest carries no batchId — an observation batch with no identity cannot be a tenant, and an absent tenant never means \"the usual one\"");
-  }
-  if (manifest.classificationState !== "UNASSIGNED") {
-    throw new TypeError(`batchTenantId: this batch is ${JSON.stringify(manifest.classificationState)}, not UNASSIGNED — an assigned batch has an owner, and this adapter must not overwrite one`);
-  }
-  return `observation-batch:${id}`;
+/** How a resolution state that is not RESOLVED becomes a page outcome. Nothing here is a default. */
+const TENANT_FAILURE = Object.freeze({
+  UNDECLARED: { state: "UNBOUND", reason: "TENANT_UNDECLARED" },
+  AMBIGUOUS: { state: "AMBIGUOUS", reason: "TENANT_AMBIGUOUS" },
+  INVALID: { state: "INVALID", reason: "TENANT_INVALID" },
+  UNKNOWN: { state: "UNBOUND", reason: "TENANT_SOURCE_UNKNOWN" },
+});
+
+/** The canonical origin of a page URL — the reference its site scope is declared against. */
+export function pageOriginRef(url) {
+  return { resourceKind: "SITE_ORIGIN", resourceRef: new URL(url).origin };
 }
 
 /**
@@ -100,9 +111,9 @@ const sha256 = (s) => createHash("sha256").update(s, "utf8").digest("hex");
  * buckets sum to it with no remainder; a joiner that quietly returns only what it managed to join
  * reports a clean rate over a population it chose.
  */
-export function observedPageSubjects({ batchId = BATCH_ID, env = process.env } = {}) {
+export function observedPageSubjects({ batchId = BATCH_ID, env = process.env, resolveTenant = null } = {}) {
   const manifest = readBatchManifest({ batchId, env });
-  const tenantId = batchTenantId(manifest);
+  const resolve = resolveTenant ?? createTenantResolver({ env });
   const locator = `observations/${manifest.batchId}/first-real-crawl-2026-09-12.jsonl`;
 
   const rows = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl", { batchId, env })).readAll();
@@ -120,7 +131,30 @@ export function observedPageSubjects({ batchId = BATCH_ID, env = process.env } =
     idsByUrl.get(url).add(p.page_id);
   }
 
-  const pages = pageRecords.map((p) => judgeObservedPage({ page: p, tenantId, locator, batchId: manifest.batchId, observations, bodies, idsByUrl }));
+  /* 🔴 EACH PAGE RESOLVES ITS OWN SCOPE, FROM ITS OWN ORIGIN. A page whose origin is not declared
+   * is judged here and never reaches judgeObservedPage — because that function needs a tenant, and
+   * the one thing this adapter may not do is invent one to get past this line. */
+  const resolution = { RESOLVED: 0, UNDECLARED: 0, AMBIGUOUS: 0, INVALID: 0, UNKNOWN: 0 };
+  const pages = pageRecords.map((p) => {
+    let ref = null;
+    try { ref = pageOriginRef(normaliseObservedUrl(p.canonical_url)); } catch { /* judged below as MALFORMED_URL */ }
+    if (ref === null) {
+      return judgeObservedPage({ page: p, tenantId: null, locator, batchId: manifest.batchId, observations, bodies, idsByUrl });
+    }
+    const r = resolve(ref);
+    resolution[r.state] += 1;
+    if (r.state !== "RESOLVED") {
+      const outcome = TENANT_FAILURE[r.state];
+      return {
+        pageId: p.page_id, rawUrl: p.canonical_url, url: normaliseObservedUrl(p.canonical_url),
+        state: outcome.state, reason: outcome.reason, tenantId: null, origin: ref.resourceRef,
+        batchId: manifest.batchId, tenantDetail: r.detail,
+        subject: null, pageSubject: null, candidates: [], bundleCandidates: [], edges: [], bodyIds: [], distinctContents: 0, binding: null,
+      };
+    }
+    const judged = judgeObservedPage({ page: p, tenantId: r.tenantId, locator, batchId: manifest.batchId, observations, bodies, idsByUrl });
+    return { ...judged, tenantId: r.tenantId, origin: ref.resourceRef, batchId: manifest.batchId };
+  });
 
   const counts = { BOUND: 0, AMBIGUOUS: 0, UNBOUND: 0, INVALID: 0 };
   const reasons = {};
@@ -129,7 +163,35 @@ export function observedPageSubjects({ batchId = BATCH_ID, env = process.env } =
     reasons[r.reason] = (reasons[r.reason] ?? 0) + 1;
   }
 
-  return { tenantId, batchId: manifest.batchId, classificationState: manifest.classificationState, pages, counts, reasons, population: pageRecords.length };
+  /* `batchId` and `classificationState` travel with the result as PROVENANCE. Nothing downstream
+   * may read either as a scope; `tenants` below is the only scope information here. */
+  return {
+    batchId: manifest.batchId, classificationState: manifest.classificationState,
+    provenance: { batchId: manifest.batchId, locator },
+    resolution, tenants: [...new Set(pages.map((p) => p.tenantId).filter(Boolean))].sort(),
+    pages, counts, reasons, population: pageRecords.length,
+  };
+}
+
+/**
+ * Group one result into ONE BUNDLE PER DECLARED TENANT.
+ *
+ * 🔴 WHY THE RUNNER MUST LOOP. `runDetectors` takes ONE tenant for a whole run and `bindSubject`
+ * refuses any candidate belonging to a different one. That was invisible while every page shared a
+ * single batch scope; with real declared site scopes a single run over this population would reject
+ * every page outside the one scope it was handed — measured at 345 of 495. The fix is a loop in the
+ * runner, not a change to the binder: the shared integration point stays exactly as it is.
+ */
+export function bundlesByTenant(result) {
+  const byTenant = new Map();
+  for (const p of result.pages) {
+    if (!p.tenantId) continue;
+    if (!byTenant.has(p.tenantId)) byTenant.set(p.tenantId, []);
+    byTenant.get(p.tenantId).push(p);
+  }
+  return [...byTenant.entries()]
+    .sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]))
+    .map(([tenantId, pages]) => ({ tenantId, pages, bundle: toBundle({ pages }) }));
 }
 
 /**
@@ -168,6 +230,12 @@ export function judgeObservedPage({ page, tenantId, locator, batchId, observatio
     return unbound("NO_OBSERVATION");
   }
 
+  /* 🔴 THE FIRST OBSERVATION THIS PAGE NAMES, CARRIED FORWARD WHOLE. A later comparator needs what
+   * was actually recorded — status, final URL, robots state — and must not re-derive any of it.
+   * It travels even on an UNBOUND page, because "robots disallowed it" is exactly the sort of thing
+   * a sitemap comparison needs to know and exactly the page that has no body to read it from. */
+  const primaryObservation = observations.get(known[0]);
+
   /* An observation about another host is a cross-boundary edge, whatever the page record says. */
   for (const id of known) {
     let target = null;
@@ -179,7 +247,7 @@ export function judgeObservedPage({ page, tenantId, locator, batchId, observatio
 
   const withBody = known.filter((id) => bodies.has(id));
   if (withBody.length === 0) {
-    return unbound("NO_BODY");
+    return { ...unbound("NO_BODY"), primaryObservation };
   }
 
   /* Every archived body must be the body its observation recorded. A hash that does not match is a
@@ -227,7 +295,7 @@ export function judgeObservedPage({ page, tenantId, locator, batchId, observatio
     ...base, url, state: binding.state, reason,
     subject: refLabel(pageSubject), pageSubject,
     candidates: bundleCandidates.map(refLabel), bundleCandidates, edges, bodyIds: withBody,
-    distinctContents: byContent.size, binding,
+    distinctContents: byContent.size, binding, primaryObservation,
   };
 }
 

@@ -128,6 +128,7 @@ test("🔴 every runner that needs a product takes it as an ARGUMENT, never as a
 /** module path (repo-relative, forward slashes) → why it has no importer. */
 const ORPHAN_ALLOWLIST = Object.freeze({
   // "src/example.mjs": "reason, dated, and who accepted it",
+
 });
 
 function walkMjs(dir, prefix) {

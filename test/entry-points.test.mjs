@@ -128,6 +128,21 @@ test("🔴 every runner that needs a product takes it as an ARGUMENT, never as a
 /** module path (repo-relative, forward slashes) → why it has no importer. */
 const ORPHAN_ALLOWLIST = Object.freeze({
   // "src/example.mjs": "reason, dated, and who accepted it",
+
+  /* 🔴 UNARMED ON PURPOSE, AND THE REASON IS THE POINT. The residency guard decides whether a file
+   * holds real sitemap observations, so that the engine cannot accumulate captured material again
+   * under a new filename. It can only be switched on in the same change that DELETES the engine's
+   * own copy of that material — arming it while runs/evidence/sitemaps.jsonl is still present would
+   * make it fail on the very file it was written to police.
+   *
+   * That deletion belongs to the tenancy slice, which halted at the client-neutrality census
+   * (E13) with the engine copy deliberately retained so no data was lost. So this module is
+   * complete, tested by nothing, and called by nothing, until that slice resumes. Recorded here
+   * rather than deleted, because the next attempt should start from a written guard rather than
+   * re-derive one, and rather than wired to something harmless, because a guard that is "on" but
+   * policing nothing is worse than one that is honestly off. 20 September 2026. */
+  "src/tenancy/sitemap-residency.mjs":
+    "20 September 2026 — written for the sitemap externalisation guard; cannot be armed until the engine's own copy of the real sitemap evidence is removed, which the halted tenancy slice retained on purpose. Unarmed, uncalled, and not to be reported as a delivered guard.",
 });
 
 function walkMjs(dir, prefix) {

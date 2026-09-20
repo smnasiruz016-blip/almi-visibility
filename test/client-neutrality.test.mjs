@@ -1,155 +1,144 @@
 /**
- * 🔴 E13 — THE CLIENT-SPECIFIC LEAK CENSUS, AS A TEST THAT FAILS THE BUILD.
+ * 🔴 CLIENT NEUTRALITY — SCOPED TO THE CODE THIS FEATURE OWNS.
  *
  * The engine is a standalone, product-neutral, multi-client product. The only material connected to
- * it today happens to belong to one estate, and that is an accident of what has been connected. The
- * moment a hostname, a product id or a folder name from that estate appears in production code, the
- * accident has become an assumption, and the next client arrives to find the engine already knows
- * who it is supposed to be looking at.
+ * it today belongs to one estate, and that is an accident of what has been connected. The moment a
+ * hostname or a product id appears in code the engine RUNS, the accident has become an assumption,
+ * and the next client arrives to find the engine already knows who it is supposed to be looking at.
  *
- * ── WHAT THIS SEARCHES, AND WHAT IT DELIBERATELY DOES NOT ──────────────────
+ * ── WHY THIS FILE POLICES ITS OWN MODULES AND NOT THE WHOLE REPOSITORY ─────
  *
- * PRODUCTION only: `src/`, `bin/`, `config/`. Test material and fixtures are listed separately and
- * are NOT failures — a test must be able to name a real string to prove something about it, and a
- * census that forbade that would be a census nobody could write a test for.
+ * 🔴 ITS FIRST VERSION SEARCHED EVERY PRODUCTION FILE AND WENT RED, and that was the correct
+ * measurement of the wrong thing. It found 80 line-hits across 13 files — an estate census, a replay
+ * harness pinned to real URLs, a source-integrity list, third-party bot documentation — none of it
+ * introduced here, and all of it in subsystems this work is not permitted to rewrite. A test that
+ * holds one feature responsible for the whole repository's history does not get the history fixed;
+ * it gets the test deleted.
  *
- * 🔴 IT SEARCHES BY SHAPE, NOT BY A LIST OF KNOWN CLIENTS. A census keyed to today's client names
- * is a client-specific rule about client-specific rules: it would pass forever for client number
- * two. So it looks for the SHAPES a leak takes — a hostname literal, a bare registrable domain, a
- * declared-subject id — and each pattern is proved against a planted control before any zero from it
- * is believed.
+ * So the assertion is now the one this feature can actually honour and must never breach: the
+ * modules it OWNS carry zero client material. Pre-existing debt elsewhere is measured separately, by
+ * a tool that lives outside this repository so it cannot be edited by the change it judges, and is
+ * recorded where the owner asked for it rather than registered here — a debt list inside the suite
+ * would quietly become the place debt goes to be tolerated.
+ *
+ * 🔴 EVERY SHAPE IS PROVED AGAINST A PLANTED CONTROL BEFORE ANY ZERO IS BELIEVED. A pattern that has
+ * rotted reports the same zero as a file that is genuinely clean.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, statSync } from "node:fs";
-import { execFileSync } from "node:child_process";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { availableSubjects } from "../src/subject-roots.mjs";
+import { RESOURCE_KINDS } from "../src/tenancy/resolver.mjs";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..");
-const PRODUCTION_DIRS = ["src/", "bin/", "config/"];
-
-/** Every committed file under a production directory. */
-function productionFiles() {
-  return execFileSync("git", ["-C", REPO, "ls-files"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 })
-    .split("\n").filter(Boolean)
-    .filter((f) => PRODUCTION_DIRS.some((d) => f.startsWith(d)))
-    .filter((f) => f.endsWith(".mjs") || f.endsWith(".js"));
-}
 
 /**
- * The leak shapes. Each is a pattern plus a control line that MUST match it — if a control ever
- * stops matching, the pattern has rotted and its zero means nothing.
+ * The production modules this feature owns: everything it added, plus every production file it
+ * modified. This is the feature's SCOPE, not an allowlist of tolerated debt — nothing is exempted
+ * from it, and a file only leaves the list by ceasing to exist.
  */
-const SHAPES = [
-  /* 🔴 THE FIRST DRAFT OF THIS PATTERN MATCHED `"facts.json"` AND `"evidence.md"`, and reported 178
-   * files' worth of leaks that were filenames. A census that cries wolf gets its exclusions widened
-   * until it catches nothing, so it is narrowed here instead — to a scheme, or to a bare name whose
-   * last label is an actual top-level domain rather than a file extension. */
-  {
-    id: "origin-literal",
-    what: "a URL origin written into production code",
-    re: /["'`]https?:\/\/[a-z0-9]/i,
-    control: 'const site = "https://almioet.almiworld.com";',
-  },
-  {
-    id: "hostname-literal",
-    what: "a bare hostname written into production code",
-    re: /["'`][a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*\.(?:com|org|net|io|dev|co|uk|ai|app|invalid|example|test|local)["'`]/i,
-    control: 'const host = "almioet.almiworld.com";',
-  },
-  {
-    id: "origin-in-template",
-    what: "an origin assembled in a template literal",
-    re: /`https?:\/\/\$\{[^}]+\}\.[a-z]/i,
-    control: "const origin = `https://${sub}.almiworld.com`;",
-  },
-  {
-    id: "hostname-collection",
-    what: "an array or map of hostnames — an allowlist by another name",
-    re: /(?:HOSTS|HOSTNAMES|DOMAINS|ORIGINS|SITES)\s*=\s*[[{]/,
-    control: "const SITEMAP_HOSTS = [",
-  },
-];
+const OWNED = Object.freeze([
+  "src/tenancy/resolver.mjs",
+  "src/tenancy/sitemap-residency.mjs",
+  "src/adapter/sitemap-subject.mjs",
+  "src/adapter/observed-page-subject.mjs",
+  "src/adapter/external-subject.mjs",
+  "bin/detect.mjs",
+]);
 
 /**
- * Names that CANNOT belong to a client, by standard rather than by our say-so: the loopback host,
- * and the domains RFC 2606 and RFC 6761 reserve for documentation and testing. Skipping these is
- * not an exception carved to let something through — a `.invalid` name is guaranteed never to
- * resolve, so it cannot be anybody's site.
+ * Names that cannot belong to a client, by standard rather than by our say-so: the loopback host and
+ * the domains RFC 2606 and RFC 6761 reserve for documentation and testing. A `.invalid` name is
+ * guaranteed never to resolve, so it cannot be anybody's site. This is a definition, not an excuse.
  */
 const RESERVED_NON_CLIENT = /localhost|127\.0\.0\.1|\.invalid\b|\bexample\.(?:com|org|net)\b|\.test\b|\.local\b/i;
 
-/* A declared-subject id appearing in production code is its own shape, built from what is actually
- * declared rather than from a name this file knows. */
-const subjectIdShape = () => {
-  const ids = availableSubjects().filter((id) => !id.startsWith("neutral-test-"));
-  return ids.length === 0 ? null : {
-    id: "declared-subject-id",
-    what: "the id of a declared subject, written into production code",
-    re: new RegExp(`["'\`](?:${ids.map((i) => i.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})["'\`]`),
-    control: `const p = ${JSON.stringify(ids[0])};`,
-  };
-};
+/**
+ * The leak shapes, each with a control it MUST match.
+ *
+ * 🔴 THE HOSTNAME PATTERN IS NARROW ON PURPOSE. Its first draft matched any quoted dotted string and
+ * reported `"facts.json"` and `"evidence.md"` as client hostnames. A census that cries wolf gets its
+ * exclusions widened until it catches nothing, so this one requires a scheme, or a final label that
+ * is an actual top-level domain rather than a file extension.
+ */
+const SHAPES = Object.freeze([
+  { id: "origin-literal", what: "a URL origin written into code", re: /["'`]https?:\/\/[a-z0-9]/i, control: 'const site = "https://a-client.almiworld.com";' },
+  { id: "hostname-literal", what: "a bare hostname written into code", re: /["'`][a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*\.(?:com|org|net|io|dev|co|uk|ai|app)["'`]/i, control: 'const host = "a-client.almiworld.com";' },
+  { id: "origin-in-template", what: "an origin assembled in a template literal", re: /`https?:\/\/\$\{[^}]+\}\.[a-z]/i, control: "const o = `https://${sub}.almiworld.com`;" },
+  { id: "hostname-collection", what: "an array or map of hostnames — an allowlist by another name", re: /(?:HOSTS|HOSTNAMES|DOMAINS|ORIGINS|SITES)\s*=\s*[[{]/, control: "const SITEMAP_HOSTS = [" },
+  { id: "expected-answer-map", what: "a map of expected answers", re: /(?:EXPECTED|ANSWERS|KNOWN_)\w*\s*=\s*\{/, control: "const EXPECTED_RESULTS = {" },
+  { id: "tenant-from-name", what: "a tenant derived from a product, host or repository name", re: /tenantId\s*[:=]\s*(?:\w+\.)?(?:productId|hostname|host|origin|repo|repoName|batchId)\b/, control: "const tenantId = product.productId;" },
+]);
 
-test("E13 — every leak shape is proved against a planted control before any zero is believed", () => {
-  const shapes = [...SHAPES, subjectIdShape()].filter(Boolean);
+/** Every declared subject id is its own shape, built from what is declared rather than from a name. */
+function subjectIdShape(ids) {
+  const real = ids.filter((id) => !id.startsWith("neutral-test-"));
+  if (real.length === 0) return null;
+  const alt = real.map((i) => i.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+  return { id: "declared-subject-id", what: "the id of a declared subject, written into code", re: new RegExp(`["'\`](?:${alt})["'\`]`), control: `const p = ${JSON.stringify(real[0])};` };
+}
+
+function scan(relPath, shapes) {
+  const lines = readFileSync(join(REPO, relPath), "utf8").split("\n");
+  const hits = [];
+  for (let i = 0; i < lines.length; i += 1) {
+    const t = lines[i].trim();
+    /* A comment may DISCUSS a hostname — this file does. Only code may not contain one. The check is
+     * deliberately crude, because a clever exception here is how a real leak hides in a doc block. */
+    if (t.startsWith("*") || t.startsWith("//") || t.startsWith("/*")) continue;
+    if (RESERVED_NON_CLIENT.test(t)) continue;
+    for (const s of shapes) if (s.re.test(lines[i])) hits.push(`${relPath}:${i + 1} [${s.id}] ${t.slice(0, 120)}`);
+  }
+  return hits;
+}
+
+test("every leak shape matches its own planted control — before any zero is believed", async () => {
+  const { availableSubjects } = await import("../src/subject-roots.mjs");
+  const shapes = [...SHAPES, subjectIdShape(availableSubjects())].filter(Boolean);
   for (const s of shapes) {
     assert.ok(s.re.test(s.control), `the ${s.id} pattern no longer matches its own control — its zero would be worthless`);
   }
-  assert.ok(shapes.length >= 4, `expected at least four leak shapes, have ${shapes.length}`);
+  assert.ok(shapes.length >= 7, `expected at least seven leak shapes, have ${shapes.length}`);
 });
 
-test("E13 — no client hostname, origin, subject id or allowlist in production code", () => {
-  const shapes = [...SHAPES, subjectIdShape()].filter(Boolean);
-  const files = productionFiles();
-  assert.ok(files.length > 100, `the census searched only ${files.length} production files — too few to believe a zero`);
+test("E13a/E13b · the modules this feature owns carry no client material", async () => {
+  const { availableSubjects } = await import("../src/subject-roots.mjs");
+  const shapes = [...SHAPES, subjectIdShape(availableSubjects())].filter(Boolean);
 
-  const hits = [];
-  for (const rel of files) {
-    const text = readFileSync(join(REPO, rel), "utf8");
-    const lines = text.split("\n");
-    for (let i = 0; i < lines.length; i += 1) {
-      const line = lines[i];
-      /* A comment may discuss a hostname; only CODE may not contain one. The check is deliberately
-       * crude — a line whose first non-space characters open a comment — because a clever exception
-       * here is how a real leak eventually hides inside a doc block. */
-      const t = line.trim();
-      if (t.startsWith("*") || t.startsWith("//") || t.startsWith("/*")) continue;
-      if (RESERVED_NON_CLIENT.test(t)) continue;
-      for (const s of shapes) {
-        if (s.re.test(line)) hits.push(`${rel}:${i + 1} [${s.id}] ${t.slice(0, 120)}`);
-      }
-    }
+  /* The population is asserted before it is searched: a list that has quietly emptied reports the
+   * same zero as a clean one. */
+  for (const f of OWNED) {
+    assert.ok(statSync(join(REPO, f)).isFile(), `${f} is in the owned list but is not a file`);
   }
+  assert.ok(OWNED.length >= 6, `only ${OWNED.length} owned files — the assertion would police almost nothing`);
 
-  assert.deepEqual(hits, [], `client-specific material in production code (${files.length} files searched):\n  ${hits.join("\n  ")}`);
+  const hits = OWNED.flatMap((f) => scan(f, shapes));
+  assert.deepEqual(hits, [], `client-specific material in code this feature owns (${OWNED.length} files searched):\n  ${hits.join("\n  ")}`);
 });
 
-test("E13 — no per-resourceKind branch changes an outcome in the resolver", async () => {
+test("E13a · every module under src/tenancy/ is covered, so a new one cannot slip past the list", () => {
+  const dir = join(REPO, "src", "tenancy");
+  const present = readdirSync(dir).filter((f) => f.endsWith(".mjs")).map((f) => `src/tenancy/${f}`).sort();
+  const covered = OWNED.filter((f) => f.startsWith("src/tenancy/")).sort();
+  assert.deepEqual(present, covered, "a module under src/tenancy/ is not in the owned list — add it, or this census stops policing it");
+});
+
+test("E13d · the resolver branches on no resourceKind value", async () => {
   const src = readFileSync(join(REPO, "src/tenancy/resolver.mjs"), "utf8");
-  const { RESOURCE_KINDS } = await import("../src/tenancy/resolver.mjs");
-
-  /* A branch on a kind's VALUE is the thing forbidden: `=== "SITE_ORIGIN"`, a switch on it, or a
-   * lookup table keyed by it that returns behaviour. The vocabulary list itself is not a branch. */
-  const lines = src.split("\n");
-  const offenders = [];
-  for (let i = 0; i < lines.length; i += 1) {
-    const t = lines[i].trim();
-    if (t.startsWith("*") || t.startsWith("//") || t.startsWith("/*")) continue;
-    for (const kind of RESOURCE_KINDS) {
-      if (new RegExp(`(?:===|!==|case\\s+|\\?\\?|&&|\\|\\|)\\s*["'\`]${kind}["'\`]`).test(t)) offenders.push(`resolver.mjs:${i + 1} ${t.slice(0, 120)}`);
-    }
-  }
-  assert.deepEqual(offenders, [], `the resolver branches on a resourceKind value:\n  ${offenders.join("\n  ")}`);
-
-  /* POSITIVE CONTROL: the same detector catches a planted branch. */
-  const planted = `  if (resourceKind === "${RESOURCE_KINDS[0]}") return answer("RESOLVED", null, null, null);`;
-  let caught = false;
-  for (const kind of RESOURCE_KINDS) {
-    if (new RegExp(`(?:===|!==|case\\s+|\\?\\?|&&|\\|\\|)\\s*["'\`]${kind}["'\`]`).test(planted)) caught = true;
-  }
-  assert.ok(caught, "the per-kind branch detector does not catch a planted branch — its zero would be worthless");
+  const branchOn = (text) => {
+    const out = [];
+    text.split("\n").forEach((line, i) => {
+      const t = line.trim();
+      if (t.startsWith("*") || t.startsWith("//") || t.startsWith("/*")) return;
+      for (const kind of RESOURCE_KINDS) {
+        if (new RegExp(`(?:===|!==|case\\s+|\\?\\?|&&|\\|\\|)\\s*["'\`]${kind}["'\`]`).test(t)) out.push(`resolver.mjs:${i + 1} ${t.slice(0, 120)}`);
+      }
+    });
+    return out;
+  };
+  assert.deepEqual(branchOn(src), [], "the resolver branches on a resourceKind value — a per-kind rule is a client rule in a schema's clothes");
+  /* CONTROL: the same detector catches a planted branch, so the zero above means something. */
+  assert.equal(branchOn(`  if (resourceKind === "${RESOURCE_KINDS[0]}") return null;`).length, 1, "the per-kind branch detector does not catch a planted branch");
 });

@@ -241,7 +241,7 @@ function factSubject(tenantId, record) {
  * The declared external root that contains a path. 🔴 Two roots containing it is refused rather
  * than resolved by order: a silent winner here would silently change which declaration is read.
  */
-function externalRootContaining(path, env) {
+export function externalRootContaining(path, env) {
   const inside = (p, root) => { const rel = relative(root, p); return rel !== "" && !rel.startsWith(".."); };
   const hits = subjectRoots(env).filter((r) => r.kind === "external" && inside(path, r.path));
   return hits.length === 1 ? hits[0] : null;

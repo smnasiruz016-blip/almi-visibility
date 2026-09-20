@@ -40,6 +40,10 @@ const REPO = join(dirname(fileURLToPath(import.meta.url)), "..");
  * from it, and a file only leaves the list by ceasing to exist.
  */
 const OWNED = Object.freeze([
+  /* 🔴 The answer-evidence module joins the list it must honour, 20 Sep 2026. It reads one client's
+   * claims to judge another client's axis if anything goes wrong, so it is exactly the module a host,
+   * an authority name or a record id would creep into. It carries none, and now it cannot. */
+  "src/discovery/answer-evidence.mjs",
   /* 🔴 The pre-contract ruling module joins the list it must honour, 20 Sep 2026. It encodes an
    * OWNER RULING about evidence, which is exactly the kind of module a client name creeps into — a
    * checker name, a registry id, a hostname in an example. It carries none, and now it cannot. */

@@ -7,8 +7,9 @@
  *   node bin/row60-ruling-sheet.mjs --confirm    write the sheet from the store (Markdown + JSON), and only when
  *                                                the register already reconciles with the store
  *
- * 🔴 IT READS EVERY `.jsonl` UNDER runs/ — not a sample, not a chosen list — and prints each file with what it held,
- * so a file that was not read cannot pass unnoticed.
+ * 🔴 IT READS EVERY `.jsonl` UNDER runs/ **AND** EVERY DECLARED EXTERNAL OBSERVATION SOURCE — not a sample, not a
+ * chosen list — and prints each file with what it held, so a file that was not read cannot pass unnoticed.
+ * (It read only `runs/` until 20 September 2026, which silently dropped two sources the moment they moved out.)
  *
  * 🔴 A SHEET THAT DISAGREES IS NEVER PRINTED. A number a person rules on must be the store's number.
  */
@@ -16,6 +17,7 @@ import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync, statSy
 import { join, relative, dirname } from "node:path";
 
 import { createJsonlStore } from "../src/evidence/store.mjs";
+import { declaredObservationSources, mergeDeclaredSources } from "../src/crawl/observation-batch.mjs";
 import { buildRulingSheet, reconcileSheet, renderRulingSheet } from "../src/audit/ruling-sheet.mjs";
 import { CONSEQUENCE_REGISTER, UNREACHABLE_RECOMMENDATIONS, SUPERSEDED_ENTRIES } from "../config/consequence-register.mjs";
 import { SEVERITY_SCALE } from "../config/consequence-scale.mjs";
@@ -33,13 +35,39 @@ const walk = (dir) => readdirSync(dir).flatMap((n) => {
   const p = join(dir, n);
   return statSync(p).isDirectory() ? walk(p) : n.endsWith(".jsonl") ? [p] : [];
 });
-const files = walk(join(REPO, "runs")).sort().map((p) => ({ file: relative(REPO, p).split("\\").join("/"), records: createJsonlStore(p).readAll() }));
+
+/**
+ * 🔴 THE POPULATION IS ENGINE-LOCAL SOURCES **PLUS** DECLARED EXTERNAL ONES.
+ *
+ * This used to read only `runs/`, which was the whole population when every record file lived here.
+ * Two of them have since moved to the external data repository, and reading `runs/` alone quietly
+ * dropped both — 999 records of crawl and 5 of sitemap — from a census whose entire purpose is that
+ * "a file that was not read cannot pass unnoticed".
+ *
+ * The external sources are enumerated through the EXISTING external-root mechanism, never by a path
+ * written here: no sibling directory is scanned, no machine path and no client name appears, and an
+ * unreadable root or a file the manifest does not declare RAISES rather than shortening the list.
+ *
+ * 🔴 AND NOTHING IS DE-DUPLICATED, because nothing is duplicated. Each migrated file exists in
+ * exactly one place — its external canonical path — and is counted once under that name. An old
+ * engine path and an external file are never merged on a hash, a filename or a record count; where
+ * both copies existed this would list both, loudly, rather than silently choosing one.
+ */
+const externalSources = declaredObservationSources();
+
+/* The merge rule lives in src/, beside the enumerator, so it is driven by tests rather than sitting
+ * unguarded in a runner. See mergeDeclaredSources. */
+const allLocal = walk(join(REPO, "runs")).sort()
+  .map((p) => ({ file: relative(REPO, p).split("\\").join("/"), records: createJsonlStore(p).readAll() }));
+const { kept: localFiles, dropped } = mergeDeclaredSources({ local: allLocal, external: externalSources });
+const externalFiles = externalSources.map((s) => ({ file: s.canonical, records: createJsonlStore(s.path).readAll() }));
+const files = [...localFiles, ...externalFiles].sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : 0));
 
 const fresh = buildRulingSheet({ files, register: CONSEQUENCE_REGISTER, unreachable: UNREACHABLE_RECOMMENDATIONS, scale: SEVERITY_SCALE, splits: CLASS_SPLITS, superseded: SUPERSEDED_ENTRIES, coverage: COVERAGE_REGISTER, decisions: DECISION_REGISTER, auditTrail: AUDIT_TRAIL, unmeasuredCodes: UNMEASURED_REASON_CODES, generatedAt: new Date().toISOString() });
 const confirmMode = process.argv.includes("--confirm");
 
 console.log("ROW 60 — OWNER RULING SHEET\n");
-console.log(`files read: ${fresh.sources.length} — every .jsonl under runs/`);
+console.log(`files read: ${fresh.sources.length} — ${localFiles.length} under runs/ plus ${externalFiles.length} declared external observation source(s)${dropped.length ? `; ${dropped.length} local copy(ies) superseded by a declared mapping: ${dropped.join(", ")}` : ""}`);
 for (const s of fresh.sources) console.log(`  ${s.file.padEnd(62)} records ${String(s.records).padStart(5)} · issues ${String(s.issueRecords).padStart(5)} · state changes ${String(s.stateChanges).padStart(4)} · recommendations ${s.recommendations}`);
 console.log("");
 

@@ -82,6 +82,22 @@ test("🔴 WIRING · same declared tenant → the evidence reaches the axis and 
   assert.equal(r.results.find((x) => x.axis === "profession").distinguishing.answer.state, "MEASURED");
 });
 
+test("🔴 WIRING · row6 FORWARDS the availability and human-value legs — S16 stayed green until this existed", () => {
+  /* The two legs BUILD also needs are supplied to row6, and must arrive on the real axis result.
+   * Nothing is promoted on the real run: this drives the parameters, not the evidence. */
+  const measured = (basis) => ({ state: "MEASURED", basis });
+  const r = row6({ ...INPUTS,
+    availabilityLegs: { profession: measured("control: supplied through row6") },
+    humanValueLegs: { profession: measured("control: supplied through row6") } });
+  const x = r.results.find((y) => y.axis === "profession");
+  assert.equal(x.evidenceAvailability.state, "MEASURED", "row6 dropped the availability leg");
+  assert.equal(x.humanValue.state, "MEASURED", "row6 dropped the human-value leg");
+  /* and an axis the caller said nothing about is untouched */
+  const other = r.results.find((y) => y.axis === "stage");
+  assert.equal(other.evidenceAvailability.state, "UNKNOWN");
+  assert.equal(other.humanValue.state, "UNKNOWN");
+});
+
 test("🔴 WIRING · supplying NO answer claims leaves the real run exactly as it was", () => {
   assert.equal(R.answerEvidence.gate, null);
   assert.deepEqual(R.answerEvidence.byAxis, {});

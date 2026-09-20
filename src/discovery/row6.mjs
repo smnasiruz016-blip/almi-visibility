@@ -164,7 +164,7 @@ export function hardCodedIn(pageRows, patterns) {
  * must also declare BOTH scopes, and the gate refuses the join unless the production resolver says
  * they are the same declared tenant — decided before any answer is read.
  */
-export function row6({ records, crawlRecords, bodies, lexicon, reference, ambiguous, specs, families, patterns, declaredAxes = {}, answerClaims = null, axisScope = null, evidenceScope = null }) {
+export function row6({ records, crawlRecords, bodies, lexicon, reference, ambiguous, specs, families, patterns, declaredAxes = {}, answerClaims = null, axisScope = null, evidenceScope = null, availabilityLegs = {}, humanValueLegs = {} }) {
   const r5 = row5({ records, lexicon, reference, ambiguous });
   const clusterOf = new Map(r5.record.flatMap((c) => c.members.map((m) => [m.original, c.id])));
   const cq = observation(records, COUNTRY_QUERY_OBSERVATION, ":country-query");
@@ -189,6 +189,8 @@ export function row6({ records, crawlRecords, bodies, lexicon, reference, ambigu
     declaredBy,
     answerLegs: answers.byAxis,
     answerDefault: answers.gate,
+    availabilityLegs,
+    humanValueLegs,
   });
   const named = contractAxes();
   return {

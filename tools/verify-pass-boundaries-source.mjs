@@ -307,6 +307,40 @@ export const EXPECTED_LEDGER_ROWS = 61;
 export const AMENDMENT_5_BODY_SHA256 = "cab59fe7b78f37931ed4461d97f4646d2c23b880b3352c7eca56bfa12938cb11";
 export const AMENDMENT_5_ROW = 61;
 
+/** The recorded sha256 of amendment 7's body — the owner's adaptive Gate A floor for row 61. */
+export const AMENDMENT_7_BODY_SHA256 = "0bc556b90905f54f242737ab94c0725a02cea34a7c2db26d6afadd5b1b8d279b";
+
+/**
+ * 🔴 AMENDMENT 7 — ROW 61's PAGE FLOOR BECOMES ADAPTIVE.
+ *
+ * It supersedes three numeric readings (≥5 facts, ≥350 unique words, automatic rejection above 40%
+ * overlap) and replaces them with rules A–E. It moves EXPECTED, FAILURE and EVIDENCE; INPUT is
+ * carried unchanged, and no other row is touched.
+ */
+export function amendment7(path) {
+  const text = readFileSync(path, "utf8").replace(/\r\n/g, "\n");
+  const idx = text.indexOf(BODY_MARKER);
+  const body = idx === -1 ? text : text.slice(idx + BODY_MARKER.length);
+  const sha = createHash("sha256").update(body, "utf8").digest("hex");
+  const head = /^## 3 · ROW (\d+) · (.+)$/m.exec(body);
+  const section = head ? body.slice(head.index) : "";
+  const contract = {};
+  for (const m of section.matchAll(/^\| \*\*(INPUT|EXPECTED|FAILURE|EVIDENCE)\*\* \| (.+?) \|$/gm)) {
+    contract[m[1].toLowerCase()] = m[2].trim().replace(/\s+/g, " ");
+  }
+  /* The three clauses this amendment actually moves. INPUT is present in the table so the row reads
+   * whole, but it is NOT overlaid — carrying it would let a future edit move it silently. */
+  const moved = ["expected", "failure", "evidence"];
+  return {
+    sha,
+    matches: sha === AMENDMENT_7_BODY_SHA256,
+    row: head ? Number(head[1]) : null,
+    contract,
+    moved,
+    supersedes: Object.freeze(["MIN_FACTS", "MIN_UNIQUE_WORDS", "MAX_SIBLING_OVERLAP_AUTO_REJECT"]),
+  };
+}
+
 export function amendment5(path) {
   const text = readFileSync(path, "utf8").replace(/\r\n/g, "\n");
   const idx = text.indexOf(BODY_MARKER);

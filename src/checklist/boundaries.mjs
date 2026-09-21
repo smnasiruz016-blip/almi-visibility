@@ -30,10 +30,11 @@ import { readFileSync } from "node:fs";
 
 import {
   splitSource, sectionSix, verify, amendmentContracts, amendment2, amendment4, effectiveClasses, amendment3, amendment5,
-  amendment6, applySplitAmendment,
+  amendment6, applySplitAmendment, amendment7,
 } from "../../tools/verify-pass-boundaries-source.mjs";
 
 const AMENDMENT_6 = new URL("../../PASS_BOUNDARIES_AMENDMENT_6.md", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+const AMENDMENT_7 = new URL("../../PASS_BOUNDARIES_AMENDMENT_7.md", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 
 const AMENDMENT_3 = new URL("../../PASS_BOUNDARIES_AMENDMENT_3.md", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const AMENDMENT_5 = new URL("../../PASS_BOUNDARIES_AMENDMENT_5.md", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -312,6 +313,26 @@ export function loadBoundaries() {
       missingParts: CONTRACT_PARTS.filter((p) => !row.contract[p]),
     };
   }
+
+  /* 🔴 AMENDMENT 7 — ROW 61's PAGE FLOOR BECOMES ADAPTIVE (21 September 2026).
+   *
+   * A frozen-threshold census found row 61 — and only row 61 — reaching Gate A's floor by reference,
+   * so three numeric readings could not be superseded by adopting a strategy document. The owner
+   * amended the row instead. This OVERLAYS the three clauses that moved; INPUT is carried from
+   * amendment 5 untouched, and no other row is read or written here.
+   *
+   * 🔴 It REPLACES those clauses rather than merging them: a merged clause would leave the old
+   * numeric reading legible beside the new rule, and a reader could then satisfy either. */
+  const a7 = amendment7(AMENDMENT_7);
+  if (!a7.matches) throw new Error("PASS_BOUNDARIES_AMENDMENT_7.md does not match its recorded hash. Row 61's amended floor would not be the owner's.");
+  if (!out[a7.row]) throw new Error(`amendment 7 amends row ${a7.row}, which does not exist`);
+  for (const part of a7.moved) {
+    if (!a7.contract[part]) throw new Error(`amendment 7 declares it moves ${part} for row ${a7.row} but states no such clause`);
+    out[a7.row][part] = a7.contract[part];
+  }
+  out[a7.row].amendedByA7 = true;
+  out[a7.row].via = `${out[a7.row].via}+A7`;
+  out[a7.row].missingParts = CONTRACT_PARTS.filter((p) => !out[a7.row][p]);
 
   cached = Object.freeze(out);
   return cached;

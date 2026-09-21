@@ -86,11 +86,14 @@ test("🔴 every boundary is present in one of the frozen texts, character for c
   // 🔴 Amendment 6 supplies rows 1 and 54's v0.1-half contracts (the D2 split, 19 September 2026). It is added to
   // the SEARCHED SET, which is how a half-contract has always been admitted — the guard itself is unchanged, and
   // it still refuses any part that is not character-for-character inside one of the owner's own texts.
-  const flat = [SOURCE, AMENDMENT, `${REPO}PASS_BOUNDARIES_AMENDMENT_2.md`, `${REPO}PASS_BOUNDARIES_AMENDMENT_4.md`, `${REPO}PASS_BOUNDARIES_AMENDMENT_3.md`, `${REPO}PASS_BOUNDARIES_AMENDMENT_5.md`, `${REPO}PASS_BOUNDARIES_AMENDMENT_6.md`]
+  const flat = [SOURCE, AMENDMENT, `${REPO}PASS_BOUNDARIES_AMENDMENT_2.md`, `${REPO}PASS_BOUNDARIES_AMENDMENT_4.md`, `${REPO}PASS_BOUNDARIES_AMENDMENT_3.md`, `${REPO}PASS_BOUNDARIES_AMENDMENT_5.md`, `${REPO}PASS_BOUNDARIES_AMENDMENT_6.md`, `${REPO}PASS_BOUNDARIES_AMENDMENT_7.md`]
     .map((p) => splitSource(readFileSync(p, "utf8").replace(/\r\n/g, "\n")).body)
     .join("\n")
     .replace(/\s+/g, " ");
   const b = loadBoundaries();
+  /* 🔴 AMENDMENT 7 joins the frozen texts this census reads: row 61's EXPECTED, FAILURE and
+   * EVIDENCE now come from it, and a census that did not read it would report the owner's own words
+   * as a paraphrase. */
   let checked = 0;
   for (const row of Object.values(b)) {
     for (const part of CONTRACT_PARTS) {
@@ -117,7 +120,7 @@ test("all 61 are parsed — the frozen 58 and three admitted by ruling — and e
   // §6+A6 — rows 1 and 54, split P → S by Amendment 6 (the D2 ruling, 19 September 2026),
   //         each taking its v0.1-half contract from that amendment's body.
   // A3 — rows 59 and 60; A5 — row 61. Neither is among the frozen 58.
-  assert.deepEqual(via, { "§6": 46, "§6+A4": 2, "§6+A6": 2, "§4+A1": 4, "§4+A1+A2": 1, "§6+A1": 1, "§5": 2, A3: 2, A5: 1 });
+  assert.deepEqual(via, { "§6": 46, "§6+A4": 2, "§6+A6": 2, "§4+A1": 4, "§4+A1+A2": 1, "§6+A1": 1, "§5": 2, A3: 2, "A5+A7": 1 });
   assert.equal(Object.values(b).filter((r) => r.amendedByA1).length, 6);
 });
 
@@ -508,25 +511,36 @@ test("🔴 row 61 — CREATED BUILT-NOT-PROVED by a WORK move, then VERIFIED-PAS
   const rows = classify();
   const r = rows[61];
   assert.equal(r.state, "VERIFIED-PASS");
-  assert.equal(r.via, "A5");
+  assert.equal(r.via, "A5+A7", "row 61 carries the amendment that admitted it AND the one that amended it");
   assert.deepEqual(r.missingParts, []);
   const [created, ticked, ...more] = MOVES_AMENDMENT_2[61];
-  assert.deepEqual(more, []);
+  /* 🔴 21 Sep 2026: two further moves, and NEITHER is a tick — amendment 7's ruling moved the
+   * ACCEPTANCE, and the re-sit it forced proved the row against it. The row never left VERIFIED-PASS. */
+  assert.deepEqual(more.map((m) => [m.from, m.to, m.kind, m.route]), [
+    ["VERIFIED-PASS", "VERIFIED-PASS", "ruling", "OWNER_RULING"],
+    ["VERIFIED-PASS", "VERIFIED-PASS", "work", "RETEST_PASSED"],
+  ]);
   assert.deepEqual([created.from, created.to, created.kind], ["NOT-STARTED", "BUILT-NOT-PROVED", "work"]);
   assert.deepEqual([ticked.from, ticked.to, ticked.kind, ticked.route, ticked.date], ["BUILT-NOT-PROVED", "VERIFIED-PASS", "work", "TEST_RUN", "2026-09-15"]);
   assert.match(ticked.reason, /AlmiVisibility_ROW61_OWNER_DECISION_2026-09-15\.md/, "the tick does not cite the owner's decision as its authority");
   assert.match(ticked.test, /runs\/audit\/row61-second-product-red-2026-09-15\.txt/);
   assert.equal(r.missingLeg, undefined, "a VERIFIED-PASS row still carries a missing leg");
   assert.equal(r.blockedOn, undefined, "a VERIFIED-PASS row still says it is blocked");
-  assert.match(r.why, /neutral-test-knots/);
-  assert.match(r.why, /NO REAL PAGE CAN BE ACCEPTED/, "the real-page residue left the row");
-  assert.match(r.why, /WHY_THIS_URL_DESERVES_TO_EXIST/);
-  assert.match(r.why, /THREE rendered specs/);
-  assert.match(r.why, /a test fixture is not a declared product/, "the earlier verdict was not kept");
+  /* 🔴 THE PROOF UNDER THE SUPERSEDED FLOOR IS KEPT, NOT ERASED. Amendment 7 moved the acceptance,
+   * so the row's current note is the re-sit; everything it proved before is preserved beside it and
+   * is still asserted here, word for word. */
+  assert.match(r.whyUnderTheSupersededFloor, /neutral-test-knots/);
+  assert.match(r.whyUnderTheSupersededFloor, /NO REAL PAGE CAN BE ACCEPTED/, "the real-page residue left the row");
+  assert.match(r.whyUnderTheSupersededFloor, /WHY_THIS_URL_DESERVES_TO_EXIST/);
+  assert.match(r.whyUnderTheSupersededFloor, /THREE rendered specs/);
+  /* and the amended note says what it was re-sat against, and what the change cost */
+  assert.match(r.why, /RE-SAT UNDER AMENDMENT 7/);
+  assert.match(r.why, /WHAT THE NUMBERS CAUGHT AND THESE RULES DO NOT/, "the row does not record what the amendment lost");
+  assert.match(r.whyUnderTheSupersededFloor, /a test fixture is not a declared product/, "the earlier verdict was not kept");
   // 🔴 A measured limit of a live detector stays ON THE ROW, not in a sabotage anecdote (owner, 15 Sep 2026).
-  assert.match(r.why, /does not detect a copied fact VALUE that is not a string, or a string shorter than 40 characters/, "the 40-character residue left the row");
-  assert.match(r.why, /18 of 46 could be copied into a spec unseen/);
-  assert.match(r.why, /row61-provenance-anchor-red-2026-09-15\.txt/, "the re-anchored provenance guard's re-proof is not on the row");
+  assert.match(r.whyUnderTheSupersededFloor, /does not detect a copied fact VALUE that is not a string, or a string shorter than 40 characters/, "the 40-character residue left the row");
+  assert.match(r.whyUnderTheSupersededFloor, /18 of 46 could be copied into a spec unseen/);
+  assert.match(r.whyUnderTheSupersededFloor, /row61-provenance-anchor-red-2026-09-15\.txt/, "the re-anchored provenance guard's re-proof is not on the row");
   assert.equal(rows[53].state, "VERIFIED-PASS", "row 53 lost its pass");
   assert.deepEqual(assertTransitions(rows), []);
   assert.deepEqual(assertLawful(rows), []);
@@ -673,7 +687,7 @@ test("🔴 row 61's reservation ENDED when 59 and 60 were admitted — all three
   assert.equal(amendment5(AMENDMENT_5).reserveIfAbsent, true, "Amendment 5's own instruction is unchanged history");
   const b = loadBoundaries();
   for (const id of [59, 60, 61]) assert.ok(b[id], `row ${id} is not in the ledger`);
-  assert.deepEqual([b[59].via, b[60].via, b[61].via], ["A3", "A3", "A5"]);
+  assert.deepEqual([b[59].via, b[60].via, b[61].via], ["A3", "A3", "A5+A7"]);
   const status = readFileSync(`${REPO}CHECKLIST_STATUS.md`, "utf8");
   for (const id of [59, 60, 61]) assert.match(status, new RegExp(`^\\| ${id} \\| `, "m"), `no tracker row ${id}`);
   assert.match(status, /Row 61 is RESERVED, not created/, "the Amendment 5 record is kept, not rewritten");
@@ -778,7 +792,11 @@ test("🔴 VERIFIED-PASS is exactly 26 — items 3, 7, 8, 9, 11, 12, 13, 14, 15,
   assert.equal(MOVES_AMENDMENT_2[9].at(-1).kind, "work", "🔴 row 9 ticked as a RULING move — a ruling never passes a row");
   assert.equal(rows[9].justifiedUnavailable.mark, "⚠", "row 9's unmeasured dimension lost its ⚠");
   assert.equal(MOVES_AMENDMENT_2[7].at(-1).route, "RETEST_PASSED", "row 7's tick did not come from its re-run test");
-  assert.equal(MOVES_AMENDMENT_2[61].at(-1).route, "TEST_RUN", "row 61's tick did not come from its tests");
+  /* 🔴 row 61's TICK came from its tests (the second move); the last two moves are amendment 7's
+   * ruling and the re-sit it forced, neither of which is a tick. */
+  assert.equal(MOVES_AMENDMENT_2[61][1].route, "TEST_RUN", "row 61's tick did not come from its tests");
+  assert.equal(MOVES_AMENDMENT_2[61].at(-1).route, "RETEST_PASSED", "row 61's re-sit under amendment 7 is not recorded");
+  assert.equal(MOVES_AMENDMENT_2[61].at(-1).kind, "work", "the re-sit was recorded as a ruling — a ruling never proves a row");
   assert.equal(MOVES_AMENDMENT_2[36].at(-1).route, "TEST_RUN", "row 36's tick did not come from its tests");
   assert.match(rows[36].why, /NO PRODUCTION WRITE PATH EXISTS/, "row 36's production residue is not on the row");
   assert.equal(MOVES_AMENDMENT_2[3].at(-1).route, "TEST_RUN", "row 3's tick did not come from its test");

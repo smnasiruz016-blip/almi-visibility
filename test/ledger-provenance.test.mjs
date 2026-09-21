@@ -42,7 +42,7 @@ test("the admitted rows say who admitted them, and nothing about a move", () => 
   // The class clause is what this test is about — a row's STATE may move by work; who admitted it may not.
   assert.match(LEDGER, /### 59 · [^\n]*\n\n\*\*[A-Z-]+\*\* · class `P` \(admitted by Amendment 3\) · ruled in `A3`/);
   assert.match(LEDGER, /### 60 · [^\n]*\n\n\*\*[A-Z-]+\*\* · class `P` \(admitted by Amendment 3\) · ruled in `A3`/);
-  assert.match(LEDGER, /### 61 · [^\n]*\n\n\*\*[A-Z-]+\*\* · class `P` \(admitted by Amendment 5\) · ruled in `A5`/);
+  assert.match(LEDGER, /### 61 · [^\n]*\n\n\*\*[A-Z-]+\*\* · class `P` \(admitted by Amendment 5\) · ruled in `A5\+A7`/);
   assert.doesNotMatch(LEDGER, /frozen `null`/);
   const b = loadBoundaries();
   assert.equal(classClause(b[59]), " (admitted by Amendment 3)");
@@ -66,14 +66,14 @@ test("🔴 RED: the old wording — an admitted row that 'was moved', from a fro
 
 test("🔴 RED: a class clause naming one amendment and a ruled-in clause naming another is REFUSED", () => {
   // The sabotage is anchored on the class clause, not the state word: row 61's STATE moved by work on 15 Sep 2026, its authority did not.
-  const bad = once(LEDGER, "class `P` (admitted by Amendment 5) · ruled in `A5`", "class `P` (admitted by Amendment 3) · ruled in `A5`");
+  const bad = once(LEDGER, "class `P` (admitted by Amendment 5) · ruled in `A5+A7`", "class `P` (admitted by Amendment 3) · ruled in `A5+A7`");
   const { errors } = provenanceErrors(bad);
-  assert.deepEqual(errors, ["item 61: its class clause names Amendment 3 but it is ruled in `A5`"]);
+  assert.deepEqual(errors, ["item 61: its class clause names Amendment 3 but it is ruled in `A5+A7`"]);
 });
 
 test("🔴 RED: a row ruled in an admitting amendment whose class clause says nothing of it is REFUSED; so is a moved row the boundaries say was not moved", () => {
-  const silent = once(LEDGER, "class `P` (admitted by Amendment 5) · ruled in `A5`", "class `P` · ruled in `A5`");
-  assert.deepEqual(provenanceErrors(silent).errors, ["item 61: it is ruled in `A5`, an admitting amendment, but its class clause does not say it was admitted"]);
+  const silent = once(LEDGER, "class `P` (admitted by Amendment 5) · ruled in `A5+A7`", "class `P` · ruled in `A5+A7`");
+  assert.deepEqual(provenanceErrors(silent).errors, ["item 61: it is ruled in `A5+A7`, an admitting amendment, but its class clause does not say it was admitted"]);
   const falseMove = onRow(LEDGER, 58, "class `P` · ruled in `§6`", "class `P` (frozen `D`, moved by Amendment 4) · ruled in `§6`");
   assert.ok(provenanceErrors(falseMove, loadBoundaries()).errors.some((e) => /the boundaries say not moved, the ledger's class clause does not agree/.test(e)));
 });

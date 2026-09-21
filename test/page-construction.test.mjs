@@ -95,7 +95,8 @@ test("🟢 GREEN: a family built to clear all four parts is ACCEPTED — and onl
   for (const r of results) {
     assert.equal(r.verdict, ACCEPTED, `${r.slug}: ${JSON.stringify({ gaps: r.dataGaps, rejects: r.rejects, notTested: r.notTested })}`);
     assert.deepEqual(Object.values(r.parts).map((p) => p.state), [PASS, PASS, PASS, PASS]);
-    assert.ok(r.parts.uniqueWords.value >= MIN_UNIQUE_WORDS);
+    assert.equal(r.parts.completeness.state, PASS);
+    assert.ok(r.parts.completeness.supersededUniqueWords >= MIN_UNIQUE_WORDS, "the superseded figure is still measured and reported");
     assert.ok(r.parts.facts.value >= MIN_FACTS);
     assert.ok(r.parts.overlap.value <= MAX_SIBLING_OVERLAP);
     assert.equal(r.parts.overlap.comparedWith, 2, "not measured against EVERY sibling");
@@ -114,22 +115,31 @@ const refusedOn = (r, part, state) => {
   assert.equal(r.parts[part].state, state, `${r.slug}: ${part} is ${r.parts[part].state}, expected ${state}`);
 };
 
-test("🔴 RED: SHORT — below 350 unique words after the shell is REFUSED", () => {
+test("🔴 SUPERSEDED BY AMENDMENT 7 — a SHORT but complete page is now ACCEPTED, and that loss is deliberate", () => {
+  /* Until 21 September 2026 this fixture was REFUSED for falling under 350 unique words. Amendment 7
+   * replaced the floor with completeness, so a page that answers its declared coverage passes however
+   * short it is. The loss is recorded in amendment 7 §4; it is not a side effect, and this test keeps
+   * the fixture so the change stays visible. */
   const f = family();
   f.pageSpecs.alpha.sections[0].framing = wordsFor(0, 60);
   const [r] = judge(f, ["alpha"]);
-  refusedOn(r, "uniqueWords", FAIL);
-  assert.ok(r.parts.uniqueWords.value < MIN_UNIQUE_WORDS);
-  assert.ok(r.rejects.some((x) => x.part === "uniqueWords"));
+  assert.equal(r.verdict, ACCEPTED, JSON.stringify({ gaps: r.dataGaps, rejects: r.rejects, notTested: r.notTested }));
+  /* the superseded measurement is still TAKEN and reported — only its power to reject is gone */
+  assert.ok(r.parts.completeness.supersededUniqueWords < MIN_UNIQUE_WORDS, "the old figure is no longer measured");
+  assert.equal(r.parts.completeness.state, PASS);
 });
 
-test("🔴 RED: FACT-POOR — four VERIFIED facts is a DATA GAP, never padded", () => {
+test("🔴 SUPERSEDED BY AMENDMENT 7 — four SUPPORTED claims is now ACCEPTED, and that loss is deliberate", () => {
+  /* The ≥5 floor refused this fixture. Amendment 7 judges support claim by claim instead: four
+   * claims, all supported, is a supported page. Recorded in amendment 7 §4 as a deliberate loss. */
   const f = family();
   f.pageSpecs.alpha.sections[0].claims = f.pageSpecs.alpha.sections[0].claims.slice(0, MIN_FACTS - 1);
   const [r] = judge(f, ["alpha"]);
-  refusedOn(r, "facts", FAIL);
-  assert.equal(r.parts.facts.value, MIN_FACTS - 1);
-  assert.ok(r.dataGaps.some((x) => x.part === "facts"));
+  assert.equal(r.verdict, ACCEPTED, JSON.stringify({ gaps: r.dataGaps, rejects: r.rejects, notTested: r.notTested }));
+  assert.equal(r.parts.facts.state, PASS);
+  assert.deepEqual(r.parts.facts.unsupported, []);
+  /* and the superseded count is still reported, below the old floor */
+  assert.ok(r.parts.facts.supersededCount < MIN_FACTS, "the old count is no longer reported");
 });
 
 test("🔴 RED: FACT-POOR by STATE — five records cited but one is not VERIFIED; the record count does not count", () => {
@@ -186,10 +196,18 @@ test("🔴 WHY — near-identical is measured, and what is NOT enforced is said"
 
 test("🔴 BLOCKED / NOT TESTED — a two-spec family cannot learn a shell; both parts say so, and the candidate is REFUSED", () => {
   const [r] = judge(family({ pages: ["alpha", "beta"] }), ["alpha"]);
-  refusedOn(r, "uniqueWords", NOT_TESTED);
+  refusedOn(r, "overlap", NOT_TESTED);
   assert.equal(r.parts.overlap.state, NOT_TESTED);
-  assert.match(r.parts.uniqueWords.reason, /shared shell is learned from at least 3/);
-  assert.equal(r.notTested.length, 2);
+  assert.match(r.parts.overlap.reason, /shared shell is learned from at least 3/);
+  /* 🔴 AND COMPLETENESS IS NOW JUDGEABLE WITHOUT A SHELL — amendment 7 reads the spec's declared
+   * coverage, not the rendered word count, so a two-spec family no longer blocks that part. */
+  assert.equal(r.parts.completeness.state, PASS);
+  /* 🔴 ONE blocked part now, not two. Under the superseded floor BOTH the word count and the overlap
+   * needed a learned shell, so a two-spec family blocked them together. Completeness is read from the
+   * spec's declared coverage, so only overlap is still unmeasurable — and the candidate is still
+   * REFUSED on it, which is the part of this test that matters. */
+  assert.equal(r.notTested.length, 1);
+  assert.equal(r.verdict, REFUSED);
 });
 
 test("🔴 BLOCKED / NOT TESTED — a family of one has no sibling: overlap and distinctness are never a pass", () => {
@@ -249,7 +267,7 @@ test("🔴 RUNNER FAILS CLOSED: the real product, every declared spec, --confirm
     assert.equal(r.status, 2, r.stdout + r.stderr);
     assert.match(r.stdout, /ACCEPTED 0 of 2 candidate\(s\)/);
     assert.match(r.stdout, /\[refused\] nothing written for /);
-    assert.match(r.stdout, /DATA GAP {3}facts: 4 of 5 verified sourced facts/);
+    assert.match(r.stdout, /DATA GAP {3}facts: \d+ of \d+ cited claim\(s\) lack a fresh approved source/);
     assert.match(r.stdout, new RegExp(PAGE_ONE.id));
     assert.deepEqual(readdirSync(out), [], "a refused candidate was written");
   } finally {
@@ -323,11 +341,11 @@ test("🔴 61 · RUNNER ON THE SECOND DECLARED PRODUCT — every declared spec R
       assert.match(r.stdout, new RegExp(`🔴 ${slug} — REFUSED`));
       assert.match(r.stdout, new RegExp(`\\[refused\\] nothing written for ${slug}`));
     }
-    assert.equal((r.stdout.match(/DATA GAP {3}facts: 0 of 5 verified sourced facts/g) ?? []).length, slugs.length, "the verified-fact floor did not refuse every spec");
-    assert.equal((r.stdout.match(/BLOCKED \/ NOT TESTED {2}uniqueWords: /g) ?? []).length, slugs.length);
+    assert.equal((r.stdout.match(/DATA GAP {3}facts: /g) ?? []).length, slugs.length, "amendment 7's fact-sufficiency rule did not refuse every spec");
+    assert.match(r.stdout, /lack a fresh approved source|does not declare that it makes no material factual claim/);
     assert.equal((r.stdout.match(/BLOCKED \/ NOT TESTED {2}overlap: /g) ?? []).length, slugs.length);
     assert.equal((r.stdout.match(/§5A fact text copied into the spec: 0/g) ?? []).length, slugs.length);
-    assert.doesNotMatch(r.stdout, /(uniqueWords|overlap|facts) +PASS/, "a part that could not be exercised was reported as a pass");
+    assert.doesNotMatch(r.stdout, /(completeness|overlap|facts) +PASS/, "a part that could not be exercised was reported as a pass");
     assert.deepEqual(readdirSync(out), [], "a refused candidate was written");
   } finally {
     rmSync(out, { recursive: true, force: true });

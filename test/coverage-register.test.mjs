@@ -169,10 +169,20 @@ test("🟢 Gate A part 4 PASSES on both — and both candidates are still REFUSE
   for (const c of res) {
     assert.equal(c.parts.whyThisUrl.state, PASS, `${c.slug}: ${c.parts.whyThisUrl.reason}`);
     assert.equal(c.verdict, REFUSED);
-    assert.deepEqual([c.parts.uniqueWords.state, c.parts.overlap.state], [NOT_TESTED, NOT_TESTED], c.slug);
+    /* 🔴 AMENDMENT 7 (21 Sep 2026): completeness replaced the unique-word floor and is read from the
+     * spec's DECLARED coverage, so it no longer needs a learned shell and no longer blocks here.
+     * Overlap still does — a two-spec family cannot learn one. */
+    assert.equal(c.parts.completeness.state, PASS, c.slug);
+    assert.equal(c.parts.overlap.state, NOT_TESTED, c.slug);
   }
   assert.equal(by.nursing.parts.facts.state, FAIL);
-  assert.equal(by["speech-pathology"].parts.facts.state, PASS);
+  /* 🔴 THIS ONE MOVED, AND STRICTER. Under the superseded ≥5 count this page's facts part PASSED.
+   * Amendment 7 judges support CLAIM BY CLAIM, and 2 of its 9 cited claims lack a fresh approved
+   * source — so a page that cleared the old count fails the new rule. That is the tightening
+   * recorded in amendment 7 §4, measured here on real specs. */
+  assert.equal(by["speech-pathology"].parts.facts.state, FAIL);
+  assert.ok(by["speech-pathology"].parts.facts.unsupported.length > 0, "the refusal must name the unsupported claims");
+  assert.ok(by["speech-pathology"].parts.facts.supersededCount >= 5, "the old ≥5 count would have passed this page — that is the point");
   const score = by.nursing.parts.whyThisUrl.checks.find((x) => x.check === "near-identical");
   assert.ok(score.score <= score.bar, `the two rationales are near-identical: ${score.score}`);
 });

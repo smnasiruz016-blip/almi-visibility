@@ -65,19 +65,23 @@ export function provenanceErrors(markdown, boundaries = null) {
     seen.add(id);
     const moved = /moved by Amendment (\d+)/.exec(note);
     const admitted = /admitted by Amendment (\d+)/.exec(note);
-    const frozen = /frozen `([^`]*)`/.exec(note);
+    const frozen = /frozen \`([^\`]*)\`/.exec(note);
+    /* 🔴 A ROW MAY BE AMENDED AFTER IT IS ADMITTED. `via` then carries both — row 61 is `A5+A7`,
+     * admitted by amendment 5 and amended by amendment 7. The ADMITTING amendment is the first
+     * segment; a clause naming any other one is still a provenance lie and still fails. */
+    const admittingVia = String(via).split("+")[0];
 
     if (frozen && !/^[PSD]$/.test(frozen[1])) {
       errors.push(`item ${id}: its class clause records a frozen class of \`${frozen[1]}\` — a row with no frozen class was admitted, not moved`);
     }
     if (moved && admitted) errors.push(`item ${id}: its class clause says it was both moved and admitted`);
-    if (moved && isAdmissionVia(via)) {
+    if (moved && isAdmissionVia(admittingVia)) {
       errors.push(`item ${id}: its class clause says "moved by Amendment ${moved[1]}" but it is ruled in \`${via}\`, an admitting amendment`);
     }
-    if (admitted && via !== `A${admitted[1]}`) {
+    if (admitted && admittingVia !== `A${admitted[1]}`) {
       errors.push(`item ${id}: its class clause names Amendment ${admitted[1]} but it is ruled in \`${via}\``);
     }
-    if (isAdmissionVia(via) && !admitted) {
+    if (isAdmissionVia(admittingVia) && !admitted) {
       errors.push(`item ${id}: it is ruled in \`${via}\`, an admitting amendment, but its class clause does not say it was admitted`);
     }
 

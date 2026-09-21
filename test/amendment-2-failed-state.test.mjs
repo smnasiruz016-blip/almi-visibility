@@ -215,14 +215,36 @@ test("🔴 RED: a 'ruling' move that is not an owner ruling is refused — the t
 /* 🔴 18 Sep 2026: EIGHT by ruling now. Row 7's reading was ruled (OWNER_RULING_2026-09-18_STATUS_SEMANTICS.md, D)
  * and its exam re-opened to TESTABLE-NOW — the third ruling move to land there, after 14 and 45, and like them it is
  * NOT a tick. The tick that followed is a WORK move, listed separately below. A ruling never passes a row. */
-test("🔴 moves since Amendment 2: EIGHT by ruling (3–7 → NOT-STARTED by Amendment 4; 14, 45 and 7 → TESTABLE-NOW); the work list grows by row 7's re-run — including the first tick ever REMOVED (48) and its return", () => {
+test("🔴 moves since Amendment 2: NINE by ruling (3–7 → NOT-STARTED by Amendment 4; 14, 45 and 7 → TESTABLE-NOW); the work list grows by row 7's re-run — including the first tick ever REMOVED (48) and its return", () => {
   const all = Object.entries(MOVES_AMENDMENT_2).flatMap(([id, chain]) => chain.map((s) => ({ id: Number(id), ...s })));
   assert.deepEqual(all.filter((s) => s.kind === "ruling").map((s) => `${s.id}:${s.from}→${s.to}`), [
     "3:DEFERRED→NOT-STARTED", "4:DEFERRED→NOT-STARTED", "5:DEFERRED→NOT-STARTED", "6:DEFERRED→NOT-STARTED", "7:DEFERRED→NOT-STARTED",
     "7:BUILT-NOT-PROVED→TESTABLE-NOW", "14:BUILT-NOT-PROVED→TESTABLE-NOW", "45:FAILED→TESTABLE-NOW",
+    // 🔴 21 Sep 2026: the NINTH, and the first ruling move that changes nothing about a row state.
+    // Amendment 7 replaced three numeric readings inside row 61 acceptance; the row stayed
+    // VERIFIED-PASS and was then RE-SAT by a separate work move. A ruling is still never a tick.
+    "61:VERIFIED-PASS→VERIFIED-PASS",
   ]);
-  // 🔴 NO RULING MOVE ANYWHERE LANDS ON VERIFIED-PASS. This is the guard that keeps an interpretation from ticking a row.
-  assert.deepEqual(all.filter((s) => s.kind === "ruling" && s.to === "VERIFIED-PASS"), []);
+  /* 🔴 NO RULING MOVE EVER TURNS A ROW INTO A PASS. This is the guard that keeps an interpretation
+   * from ticking a row, and it is unchanged in force.
+   *
+   * It is expressed as a CHANGE rather than a destination because amendment 7 (21 Sep 2026) recorded
+   * a ruling that moved row 61's ACCEPTANCE while the row stayed VERIFIED-PASS throughout. A ruling
+   * that arrives at a pass from anywhere else is still refused, and so now is a ruling that leaves
+   * one — which the destination form never checked at all. */
+  assert.deepEqual(
+    all.filter((s) => s.kind === "ruling" && s.to === "VERIFIED-PASS" && s.from !== "VERIFIED-PASS"),
+    [],
+    "a ruling turned a row into a pass",
+  );
+  assert.deepEqual(
+    all.filter((s) => s.kind === "ruling" && s.from === "VERIFIED-PASS" && s.to !== "VERIFIED-PASS"),
+    [],
+    "a ruling took a pass away",
+  );
+  /* CONTROL: the guard is not vacuous — driven with a ruling that DOES tick a row, it fires. */
+  const planted = [...all, { id: 999, kind: "ruling", from: "TESTABLE-NOW", to: "VERIFIED-PASS" }];
+  assert.equal(planted.filter((s) => s.kind === "ruling" && s.to === "VERIFIED-PASS" && s.from !== "VERIFIED-PASS").length, 1);
   assert.deepEqual(all.filter((s) => s.kind === "work").map((s) => `${s.id}:${s.from}→${s.to}`), [
     // 🔴 Row 3, 15 September 2026: its owned half run against its boundary and PASSED — work, after its ruling move.
     "3:NOT-STARTED→VERIFIED-PASS",
@@ -273,6 +295,9 @@ test("🔴 moves since Amendment 2: EIGHT by ruling (3–7 → NOT-STARTED by Am
     "61:NOT-STARTED→BUILT-NOT-PROVED",
     // 🔴 Row 61, 15 September 2026: the owner decided its blocker; the missing leg ran on a second declared product and ticked by its tests.
     "61:BUILT-NOT-PROVED→VERIFIED-PASS",
+    // 🔴 Row 61, 21 September 2026: amendment 7 moved its ACCEPTANCE, so the tick it already held was
+    // re-sat rather than presumed to survive. The ruling that amended it is a separate move above.
+    "61:VERIFIED-PASS→VERIFIED-PASS",
   ]);
   // 🔴 56 reached its tick by the owner's eye — the only route that may set it.
   assert.equal(MOVES_AMENDMENT_2[56][0].route, "OWNER_VERIFICATION");

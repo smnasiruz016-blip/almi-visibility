@@ -47,7 +47,8 @@ import { claimIdsOf } from "./claim-ids.mjs";
 import { tokensOf } from "../gate-a/tokens.mjs";
 import { shellFor, uniqueWords, residualTokens, MIN_PAGES_FOR_OWN_SHELL } from "../gate-a/shell.mjs";
 import { maxAgainstPopulation } from "../gate-a/overlap.mjs";
-import { countFacts, MIN_FACTS } from "../gate-a/facts.mjs";
+import { countFacts, MIN_FACTS, judgeFact } from "../gate-a/facts.mjs";
+import { judgeFactSufficiency, judgeCompleteness, judgeOverlap } from "../gate-a/adaptive.mjs";
 import { MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../gate-a/run.mjs";
 import { judgeWhy } from "../gate-a/why-this-url.mjs";
 import { toGateAFact } from "../facts/registry.mjs";
@@ -120,17 +121,28 @@ export function constructCandidates({ pageSpecs, variants = [], records = [], re
     const claimIds = claimIdsOf(me.spec);
     const cited = claimIds.map((id) => byId.get(id)).filter(Boolean);
     const verified = cited.filter((r) => r.verificationState === "VERIFIED" && RENDERABLE_STATUSES.includes(r.life?.status));
+    /* 🔴 AMENDMENT 7 · RULE A — support is judged CLAIM BY CLAIM, never by a count. One unsupported
+     * claim now fails a page however many supported ones it carries; a single supported claim passes.
+     * countFacts is still run, but only to REPORT the old figure beside the new verdict — it no
+     * longer decides anything. */
     const counted = countFacts(verified.map(toGateAFact), now);
+    const supported = new Set(verified.filter((r) => judgeFact(toGateAFact(r), now).counts).map((r) => r.id));
+    const unsupported = claimIds.filter((id) => !supported.has(id));
+    const ruleA = judgeFactSufficiency({
+      claimIds,
+      unsupported,
+      declaresNoMaterialFactualClaim: me.spec?.makesNoMaterialFactualClaim === true,
+    });
     parts.facts = {
-      state: counted.passes ? PASS : FAIL,
-      kind: counted.passes ? null : "DATA GAP",
-      value: counted.qualifying,
-      threshold: MIN_FACTS,
-      reason: counted.passes
-        ? null
-        : `${counted.qualifying} of ${MIN_FACTS} verified sourced facts — the spec cites ${claimIds.length} claim(s): ` +
-          `${verified.length} VERIFIED and renderable, ${cited.length - verified.length} not, ` +
-          `${claimIds.length - cited.length} absent from the registry`,
+      state: ruleA.state,
+      kind: ruleA.kind,
+      rule: ruleA.rule,
+      value: supported.size,
+      cited: claimIds.length,
+      unsupported,
+      reason: ruleA.reason,
+      detail: ruleA.detail,
+      supersededCount: counted.qualifying,
       notVerified: cited.filter((r) => !verified.includes(r)).map((r) => `${r.id} (${r.verificationState}, ${r.life?.status})`),
       verifiedButNotCounted: counted.rejected.map((j) => `${j.reasons.join("; ")}`),
     };
@@ -139,12 +151,22 @@ export function constructCandidates({ pageSpecs, variants = [], records = [], re
     const noShell =
       `the template family renders ${rendered.length} of ${family.length} declared page(s); a shared shell is learned from ` +
       `at least ${MIN_PAGES_FOR_OWN_SHELL}, and a constructed page has no existing pages to borrow one from`;
-    if (me.html === null) parts.uniqueWords = { state: NOT_TESTED, reason: `the candidate does not render: ${me.renderError}` };
-    else if (!shell.shell) parts.uniqueWords = { state: NOT_TESTED, reason: noShell };
+    /* 🔴 AMENDMENT 7 · RULE B — completeness replaces the word floor. The spec's own declared
+     * sections ARE the coverage it promises, so a spec declaring none cannot be judged at all and is
+     * NOT TESTED, which refuses. The unique-word count is still measured and reported, because the
+     * figure is worth having; it no longer decides anything. */
+    if (me.html === null) parts.completeness = { state: NOT_TESTED, reason: `the candidate does not render: ${me.renderError}` };
     else {
-      const u = uniqueWords(me.tokens, shell.shell);
-      const ok = u >= MIN_UNIQUE_WORDS;
-      parts.uniqueWords = { state: ok ? PASS : FAIL, kind: ok ? null : "REJECT", value: u, threshold: MIN_UNIQUE_WORDS, reason: ok ? null : `${u} unique words after the shell, below ${MIN_UNIQUE_WORDS}` };
+      const ruleB = judgeCompleteness({ sections: me.spec?.sections });
+      parts.completeness = {
+        state: ruleB.state,
+        kind: ruleB.kind,
+        rule: ruleB.rule,
+        sections: Array.isArray(me.spec?.sections) ? me.spec.sections.length : 0,
+        reason: ruleB.reason,
+        detail: ruleB.detail,
+        supersededUniqueWords: shell.shell ? uniqueWords(me.tokens, shell.shell) : null,
+      };
     }
 
     // ── part 3 · overlap against EVERY sibling ──
@@ -156,8 +178,27 @@ export function constructCandidates({ pageSpecs, variants = [], records = [], re
     else {
       const population = rendered.map((f) => ({ id: f.slug, residual: residualTokens(f.tokens, shell.shell) }));
       const [o] = maxAgainstPopulation([population.find((p) => p.id === slug)], population);
-      const ok = o.maxOverlap <= MAX_SIBLING_OVERLAP;
-      parts.overlap = { state: ok ? PASS : FAIL, kind: ok ? null : "REJECT", value: Number(o.maxOverlap.toFixed(4)), threshold: MAX_SIBLING_OVERLAP, against: o.against, comparedWith: o.comparedWith, reason: ok ? null : `overlap ${o.maxOverlap.toFixed(4)} with ${o.against}, above ${MAX_SIBLING_OVERLAP}` };
+      /* 🔴 AMENDMENT 7 · RULE C — the percentage triggers MANDATORY REVIEW; it no longer rejects on
+       * its own. Above the trigger a candidate passes only on a RECORDED distinct user value. And a
+       * duplicate recorded value now fails at ANY overlap, which the old number could never see. */
+      const ruleC = judgeOverlap({
+        maxOverlap: o.maxOverlap,
+        against: o.against,
+        distinctUserValue: me.spec?.distinctUserValue,
+        siblingDistinctValues: siblings.map((s) => s.spec?.distinctUserValue).filter((v) => typeof v === "string"),
+      });
+      parts.overlap = {
+        state: ruleC.state,
+        kind: ruleC.kind,
+        rule: ruleC.rule,
+        value: Number(o.maxOverlap.toFixed(4)),
+        reviewTrigger: MAX_SIBLING_OVERLAP,
+        reviewRequired: ruleC.reviewRequired,
+        against: o.against,
+        comparedWith: o.comparedWith,
+        reason: ruleC.reason,
+        detail: ruleC.detail,
+      };
     }
 
     // ── part 4 · WHY_THIS_URL_DESERVES_TO_EXIST ──

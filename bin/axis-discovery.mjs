@@ -51,6 +51,9 @@ console.log(`[declared product axes: ${Object.entries(declaredAxes).map(([p, k])
 console.log(`[answer evidence: ${answers.claims.length} claim(s) from ${answers.sources.filter((s) => s.state === "RESOLVED").length} declared source(s) of ${answers.sources.length}]`);
 for (const s of answers.sources) console.log(`   source ${s.subject} → ${s.ref ?? "no declarable reference"} [${s.state}] ${s.records} record(s)`);
 console.log(`[axis population ${CRAWL_BATCH_REF} → ${r.answerEvidence.gate ? r.answerEvidence.gate.axisTenantId ?? "UNDECLARED" : "declared"}]`);
+const ps = r.pageRowScopes.arithmetic;
+console.log(`[page-row input is a MIXED capture: ${ps.total} row(s) = ${ps.attributed} attributed across ${ps.tenants} declared tenant(s) + ${ps.rejected} rejected + ${ps.unreadable} unreadable · remainder ${ps.remainder}]`);
+for (const h of r.pageRowScopes.hosts.filter((x) => x.state === "REJECTED")) console.log(`   🔴 REJECTED ${h.rows} row(s) from ${h.host} — ${h.why}`);
 if (r.answerEvidence.gate) {
   console.log(`🔴 ANSWER EVIDENCE REFUSED — ${r.answerEvidence.gate.state} (${r.answerEvidence.gate.reason}): ${r.answerEvidence.gate.basis}`);
   console.log("   Every answer leg therefore stays UNKNOWN, and no axis can reach BUILD or REJECT. This is a REFUSAL, not an absence of evidence.");

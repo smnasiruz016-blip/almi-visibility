@@ -226,13 +226,15 @@ function verdictBasis(r) {
  *   siblingPairs   axis → [{ a, b, overlap }] measured on archived pages; siblingFamilies axis → families
  *   hardCoded      axis → { pages, impressions, examples } read from the page rows; declaredBy axis → [product ids]
  *   answerLegs     axis → a measured answer leg from src/discovery/answer-evidence.mjs
+ *   availabilityLegs, humanValueLegs
+ *                  axis → a measured leg for the two remaining gates BUILD requires
  *
  * 🔴 answerLegs IS THE WAY IN, AND IT DEFAULTS TO CLOSED. Until this parameter existed the answer
  * leg was the literal UNKNOWN and no input could change it, so BUILD and REJECT were unreachable from
  * this path however much evidence was owned. Supplying nothing still yields that same literal and the
  * same basis, so a caller that does not pass it behaves exactly as it did before.
  */
-export function discoverAxes({ record, specs, countryRows = [], intentOf = () => null, siblingPairs = {}, siblingFamilies = {}, hardCoded = {}, declaredBy = {}, answerLegs = {}, answerDefault = null }) {
+export function discoverAxes({ record, specs, countryRows = [], intentOf = () => null, siblingPairs = {}, siblingFamilies = {}, hardCoded = {}, declaredBy = {}, answerLegs = {}, answerDefault = null, availabilityLegs = {}, humanValueLegs = {} }) {
   const members = record.flatMap((c) => c.members.map((m) => ({ ...m, cluster: c.id })));
   const claimed = new Set(Object.values(specs).flatMap((s) => s.slotTypes || []));
   const discovered = [...new Set(members.flatMap((m) => (m.slots || []).map((s) => s.type)))].filter((t) => !claimed.has(t)).sort();
@@ -273,9 +275,12 @@ export function discoverAxes({ record, specs, countryRows = [], intentOf = () =>
        * the moment evidence exists and is being refused. */
       distinguishing: { answer: answerLegs[axis] ?? answerDefault ?? { state: "UNKNOWN", basis: ANSWER_UNKNOWN }, question },
       demand,
-      evidenceAvailability: { state: "UNKNOWN", basis: AVAILABILITY_UNKNOWN },
+      /* 🔴 BUILD NEEDS THIS LEG TOO, SO IT NEEDS A WAY IN TOO. Unsupplied it is the same literal
+       * and the same basis as before — the supply question it asks is not answered by the evidence
+       * we happen to hold. */
+      evidenceAvailability: availabilityLegs[axis] ?? { state: "UNKNOWN", basis: AVAILABILITY_UNKNOWN },
       siblingCollapse: siblingCollapse(siblingPairs[axis] || [], siblingFamilies[axis] || []),
-      humanValue: { state: "UNKNOWN", basis: HUMAN_VALUE_UNKNOWN },
+      humanValue: humanValueLegs[axis] ?? { state: "UNKNOWN", basis: HUMAN_VALUE_UNKNOWN },
       hardCoded: { pages: hardCoded[axis]?.pages ?? 0, impressions: hardCoded[axis]?.impressions ?? 0, examples: hardCoded[axis]?.examples ?? [], declaredBy: declaredBy[axis] ?? [] },
     };
     r.verdict = verdictOf(r);

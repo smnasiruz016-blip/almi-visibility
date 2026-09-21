@@ -293,3 +293,55 @@ test("🔴 LOADER · the axis population's scope is resolved from the reference 
   const r = await readDeclaredAnswerEvidence({ axisResourceKind: "CRAWL_BATCH", axisResourceRef: "nothing-declares-this" });
   assert.equal(r.axisScope.state, "UNDECLARED", "an undeclared batch reference resolved to something");
 });
+
+/* ================================================================== *
+ * 🔴 FIX 5 — THE TWO LEGS BUILD ALSO NEEDS.
+ *
+ * After the answer leg was connected, REJECT became reachable from the production path and BUILD did
+ * not: verdictOf also requires evidenceAvailability and humanValue MEASURED, and both were still
+ * literals with no way in. That is the same defect the answer leg had, and it would have made a BUILD
+ * impossible by CONSTRUCTION rather than by the evidence.
+ * ================================================================== */
+
+const measured = (basis) => ({ state: "MEASURED", basis });
+
+test("🔴 FIX 5 · BUILD is reachable from the PRODUCTION path once every leg it requires is measured", () => {
+  const legs = answerEvidence({ claims: [claim("auth.q.k=value-0", "one"), claim("auth.q.k=value-1", "two")], ...SAME }).byAxis;
+  const [r] = discoverAxes(axisInput({
+    answerLegs: legs,
+    availabilityLegs: { k: measured("control: per-value evidence was acquired for both values") },
+    humanValueLegs: { k: measured("control: a per-value behavioural difference was measured") },
+  }));
+  assert.equal(r.distinguishing.answer.materiallyChanges, true);
+  assert.equal(r.verdict, "BUILD", "every leg measured and the production path still cannot reach BUILD");
+});
+
+test("🔴 FIX 5 · each remaining leg gates BUILD ON ITS OWN — neither is decoration", () => {
+  const legs = answerEvidence({ claims: [claim("auth.q.k=value-0", "one"), claim("auth.q.k=value-1", "two")], ...SAME }).byAxis;
+  /* availability measured, human value not */
+  const [a] = discoverAxes(axisInput({ answerLegs: legs, availabilityLegs: { k: measured("ctl") } }));
+  assert.equal(a.verdict, "MONITOR", "BUILD fired without human value");
+  /* human value measured, availability not */
+  const [b] = discoverAxes(axisInput({ answerLegs: legs, humanValueLegs: { k: measured("ctl") } }));
+  assert.equal(b.verdict, "MONITOR", "BUILD fired without evidence availability");
+});
+
+test("🔴 FIX 5 · supplying neither leg leaves the run byte-identical — nothing was promoted", () => {
+  const [before] = discoverAxes(axisInput());
+  assert.equal(before.evidenceAvailability.state, "UNKNOWN");
+  assert.equal(before.humanValue.state, "UNKNOWN");
+  assert.match(before.evidenceAvailability.basis, /can be acquired is itself a supply measurement/);
+  assert.match(before.humanValue.basis, /0 clicks/);
+});
+
+test("🔴 FIX 5 · the REAL run measures neither leg — the evidence for them is not owned", async () => {
+  const { ensureSubjectHook, importSubjectModule } = await import("../src/subject-roots.mjs");
+  ensureSubjectHook();
+  await importSubjectModule("almi-oet", "product.mjs");
+  /* Driven through the same module the runner uses, with no legs supplied — which is what the
+   * runner does, because no availability or human-value evidence exists to supply. */
+  const [r] = discoverAxes(axisInput());
+  assert.equal(r.evidenceAvailability.state, "UNKNOWN");
+  assert.equal(r.humanValue.state, "UNKNOWN");
+  assert.notEqual(r.verdict, "BUILD");
+});

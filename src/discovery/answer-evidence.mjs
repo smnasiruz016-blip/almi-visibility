@@ -51,9 +51,50 @@ export const ANSWER_REASONS = Object.freeze({
   NO_VERIFIED_ANSWER: "NO_VERIFIED_ANSWER",
   CONFLICTING_ANSWERS_AT_A_VALUE: "CONFLICTING_ANSWERS_AT_A_VALUE",
   DISJOINT_VALUE_POPULATION: "DISJOINT_VALUE_POPULATION",
+  /* 🔴 §5 — the two refusals that keep a verdict at the level the axis was discovered on. */
+  CONSTANT_AT_DISCOVERED_LEVEL: "CONSTANT_AT_DISCOVERED_LEVEL",
+  INCOMPLETE_LEVEL_MAPPING: "INCOMPLETE_LEVEL_MAPPING",
   ANSWER_CHANGES: "ANSWER_CHANGES",
   ANSWER_CONSTANT: "ANSWER_CONSTANT",
 });
+
+/**
+ * 🔴 PROJECT THE DISCOVERED VALUES THROUGH A LEVEL MAPPING, AND ANSWER AT THEIR LEVEL.
+ *
+ * An axis is discovered on the values people actually used. Answer evidence is often recorded at a
+ * coarser level — classes, regions, "domestic" against "foreign". A mapping from the discovered
+ * value to the level the answer was recorded at joins the two, and that join is lawful.
+ *
+ * What is NOT lawful is letting the join move the verdict. The question an axis must answer is
+ * whether the useful answer changes AS THE DISCOVERED VALUE CHANGES. So each discovered value is
+ * carried through the mapping to the answer that covers it, and the answers are counted THERE. A set
+ * of discovered values that all inherit one identical answer is a CONSTANT at the discovered level,
+ * however many distinct answers exist at the parent level.
+ *
+ * @param {object} a
+ * @param {Iterable<string>} a.discovered  the values the axis was discovered on
+ * @param {Record<string,string>} a.parents  discovered value → the value the answer is recorded at
+ * @param {Map<string,Set<string>>} a.answersAtParent  parent value → its distinct verified answers
+ */
+export function projectToDiscoveredLevel({ discovered, parents, answersAtParent }) {
+  const answerOf = new Map();
+  const unmapped = [];
+  const unanswered = [];
+  for (const d of discovered) {
+    const parent = parents?.[d];
+    if (parent === undefined || parent === null) { unmapped.push(d); continue; }
+    const answers = answersAtParent.get(String(parent));
+    if (!answers || answers.size === 0) { unanswered.push(d); continue; }
+    /* a parent answering itself two ways is caught upstream as CONFLICTING_ANSWERS_AT_A_VALUE */
+    answerOf.set(d, [...answers][0]);
+  }
+  return {
+    answerOf,
+    unmapped: unmapped.sort(),
+    unanswered: unanswered.sort(),
+    distinctAnswers: new Set([...answerOf.values()]),
+  };
+}
 
 /** `<stem>.<axis>=<value>` — structural, never a list of known axis names. */
 export const CLAIM_QUALIFIER = /\.([a-z][a-z0-9-]*)=([^.]+)$/;
@@ -121,7 +162,7 @@ export function tenancyGate(axisScope, evidenceScope) {
  * @param {{state: string, tenantId?: string|null}} args.evidenceScope
  * @returns {{ gate: object|null, byAxis: Record<string, object>, population: object }}
  */
-export function answerEvidence({ claims = [], axisScope, evidenceScope, axisValues = null }) {
+export function answerEvidence({ claims = [], axisScope, evidenceScope, axisValues = null, valueParents = null }) {
   /* 🔴 TENANCY FIRST — before a single answer is read. */
   const gate = tenancyGate(axisScope, evidenceScope);
   const qualified = claims.map((c) => ({ c, q: parseQualifiedClaim(c?.identity) })).filter((x) => x.q);
@@ -150,9 +191,62 @@ export function answerEvidence({ claims = [], axisScope, evidenceScope, axisValu
       const answered = new Set([...byStem.values()].flat().map((r) => String(r.axisValue)));
       const shared = [...answered].filter((v) => discovered.has(v));
       if (discovered.size > 0 && shared.length === 0) {
-        byAxis[axis] = leg("INSUFFICIENT_EVIDENCE", ANSWER_REASONS.DISJOINT_VALUE_POPULATION,
-          `the answer evidence covers ${answered.size} value(s) and the axis was discovered on ${discovered.size}, and they share NONE — one axis name, two value vocabularies. Deciding the axis on answers about values it was never discovered on would measure a different population`,
-          { evidence: [], discoveredValues: discovered.size, answeredValues: answered.size, sharedValues: 0 });
+        const parents = valueParents && Object.prototype.hasOwnProperty.call(valueParents, axis) ? valueParents[axis] : null;
+        if (!parents) {
+          byAxis[axis] = leg("INSUFFICIENT_EVIDENCE", ANSWER_REASONS.DISJOINT_VALUE_POPULATION,
+            `the answer evidence covers ${answered.size} value(s) and the axis was discovered on ${discovered.size}, and they share NONE — one axis name, two value vocabularies. Deciding the axis on answers about values it was never discovered on would measure a different population`,
+            { evidence: [], discoveredValues: discovered.size, answeredValues: answered.size, sharedValues: 0 });
+          continue;
+        }
+
+        /* 🔴 §5 — A MAPPING JOINS THE LEVELS. IT DOES NOT MOVE THE VERDICT TO THE PARENT LEVEL.
+         * Each question is read at the level its answers were recorded at, then every DISCOVERED
+         * value is carried through the mapping to the answer covering it, and the answers are
+         * counted there — because that is the level the axis exists at. */
+        const mapped = [...byStem.entries()].map(([stem, rs]) => {
+          const answersAtParent = new Map();
+          for (const r of rs.filter((x) => x.verified)) {
+            const k = String(r.axisValue);
+            if (!answersAtParent.has(k)) answersAtParent.set(k, new Set());
+            answersAtParent.get(k).add(canonical(r.answer));
+          }
+          return { stem, rs, ...projectToDiscoveredLevel({ discovered, parents, answersAtParent }) };
+        });
+
+        /* A mapping that leaves a discovered value uncovered cannot decide the axis: the values it
+         * dropped are exactly the ones that might have answered differently. */
+        const incomplete = mapped.filter((m) => m.unmapped.length > 0 || m.unanswered.length > 0);
+        if (incomplete.length === mapped.length) {
+          const worst = incomplete[0];
+          byAxis[axis] = leg("INSUFFICIENT_EVIDENCE", ANSWER_REASONS.INCOMPLETE_LEVEL_MAPPING,
+            `the level mapping does not carry every discovered value to an answer — ${worst.unmapped.length} value(s) have no parent and ${worst.unanswered.length} reach a parent nothing answers. The values a mapping drops are the ones that might have answered differently, so it cannot decide`,
+            { evidence: [], unmapped: worst.unmapped, unanswered: worst.unanswered, discoveredValues: discovered.size });
+          continue;
+        }
+
+        const decidableMapped = mapped.filter((m) => m.answerOf.size >= 2);
+        if (decidableMapped.length === 0) {
+          byAxis[axis] = leg("INSUFFICIENT_EVIDENCE", ANSWER_REASONS.ONE_VALUE_ONLY,
+            `no question reaches two or more DISCOVERED values through the mapping, so nothing can be compared at the level the axis was discovered on`,
+            { evidence: [] });
+          continue;
+        }
+
+        const changingMapped = decidableMapped.filter((m) => m.distinctAnswers.size > 1);
+        if (changingMapped.length === 0) {
+          const m = decidableMapped[0];
+          byAxis[axis] = leg("INSUFFICIENT_EVIDENCE", ANSWER_REASONS.CONSTANT_AT_DISCOVERED_LEVEL,
+            `the answers differ at the level they were RECORDED at, but all ${m.answerOf.size} discovered value(s) inherit the SAME one — the answer never changes for anybody who searched. A difference at a level the axis was not discovered on is not a distinction at the level it was`,
+            { materiallyChanges: false, discoveredValues: discovered.size, distinctAnswersAtDiscoveredLevel: 1,
+              evidence: decidableMapped.flatMap((x) => x.rs.filter((r) => r.verified).map((r) => r.identity)).sort() });
+          continue;
+        }
+
+        byAxis[axis] = leg("MEASURED", ANSWER_REASONS.ANSWER_CHANGES,
+          `${changingMapped.length} of ${decidableMapped.length} question(s) give a DIFFERENT verified answer across the DISCOVERED values, carried through the level mapping`,
+          { materiallyChanges: true, questionsCompared: decidableMapped.length,
+            distinctAnswersAtDiscoveredLevel: changingMapped[0].distinctAnswers.size,
+            evidence: changingMapped.flatMap((x) => x.rs.filter((r) => r.verified).map((r) => r.identity)).sort() });
         continue;
       }
     }

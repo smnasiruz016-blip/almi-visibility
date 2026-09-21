@@ -15,7 +15,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  answerEvidence, tenancyGate, parseQualifiedClaim, ANSWER_LEG_STATES, ANSWER_REASONS,
+  answerEvidence, tenancyGate, parseQualifiedClaim, projectToDiscoveredLevel, ANSWER_LEG_STATES, ANSWER_REASONS,
 } from "../src/discovery/answer-evidence.mjs";
 import { discoverAxes, verdictOf } from "../src/discovery/axis-discovery.mjs";
 
@@ -425,4 +425,99 @@ test("🔴 FIX 8 · the axis scope is derived from the rows, and opens only for 
   assert.equal(real.axisScope.tenantId, real.evidenceScope.tenantId, "the join opened across two different tenants");
   assert.ok(real.axisScope.rows > 0);
   assert.equal(real.axisPartition.remainder, 0, "the axis population does not self-account");
+});
+
+/* ================================================================== *
+ * 🔴 §5 — THE LEVEL AT WHICH THE VERDICT IS COMPUTED.
+ *
+ * THE REAL CASE, and the reason this law exists. The `destination` axis was discovered on ten
+ * countries people typed. The only VERIFIED answers are Pakistan's verification fee at
+ * `domestic` and `foreign` — which are not countries, but classes relative to an issuing
+ * jurisdiction. Today that is refused as DISJOINT_VALUE_POPULATION, correctly.
+ *
+ * The obvious fix is a child→parent mapping, and it is a trap. Supply one and the vocabularies
+ * connect, the disjoint refusal lifts, and the axis reads MEASURED · ANSWER_CHANGES — because at
+ * the PARENT level Rs.1,000 and Rs.10,000 really are different answers. But every one of the ten
+ * discovered countries maps to the same parent, so for every person who actually searched, the
+ * answer never changed once.
+ *
+ * A mapping joins the levels. It must not move the verdict to the parent one.
+ * ================================================================== */
+
+/** The ten values the axis was really discovered on, and the fee question as it is really recorded. */
+const TEN_COUNTRIES = ["peru", "spain", "australia", "china", "denmark", "japan", "netherlands", "new_zealand", "philippines", "switzerland"];
+const FEE_CLAIMS = [
+  claim("pk-pnmc.verification-fee.destination=domestic", 1000),
+  claim("pk-pnmc.verification-fee.destination=foreign", 10000),
+];
+/* none of the ten is the issuing jurisdiction, so all ten inherit the one foreign fee */
+const ALL_FOREIGN = Object.fromEntries(TEN_COUNTRIES.map((c) => [c, "foreign"]));
+
+test("🔴 §5 · THE REAL CASE — ten discovered countries all inherit ONE answer, and that is a CONSTANT, not a distinction", () => {
+  const r = answerEvidence({
+    ...SAME, claims: FEE_CLAIMS,
+    axisValues: { destination: TEN_COUNTRIES },
+    valueParents: { destination: ALL_FOREIGN },
+  });
+  const leg = r.byAxis.destination;
+  assert.equal(leg.state, "INSUFFICIENT_EVIDENCE");
+  assert.equal(leg.reason, ANSWER_REASONS.CONSTANT_AT_DISCOVERED_LEVEL,
+    "the mapping was allowed to move the verdict to the parent level, where the answers differ");
+  assert.equal(leg.distinctAnswersAtDiscoveredLevel, 1);
+  assert.match(leg.basis, /never changes for anybody who searched/);
+});
+
+test("🔴 §5 · CONTROL — the SAME evidence DOES decide once a discovered value reaches the other answer", () => {
+  /* one discovered value inside the issuing jurisdiction is all it takes: the answer now changes
+   * across the values people actually used, which is what the axis was always asking. */
+  const withDomestic = { ...ALL_FOREIGN, pakistan: "domestic" };
+  const r = answerEvidence({
+    ...SAME, claims: FEE_CLAIMS,
+    axisValues: { destination: [...TEN_COUNTRIES, "pakistan"] },
+    valueParents: { destination: withDomestic },
+  });
+  const leg = r.byAxis.destination;
+  assert.equal(leg.reason, ANSWER_REASONS.ANSWER_CHANGES, "a real change at the discovered level was refused");
+  assert.equal(leg.materiallyChanges, true);
+  assert.equal(leg.distinctAnswersAtDiscoveredLevel, 2);
+});
+
+test("🔴 §5 · a mapping that drops a discovered value cannot decide — the dropped ones are the ones that might have differed", () => {
+  const partial = { peru: "foreign", spain: "foreign" }; // eight of the ten have no parent
+  const r = answerEvidence({
+    ...SAME, claims: FEE_CLAIMS,
+    axisValues: { destination: TEN_COUNTRIES },
+    valueParents: { destination: partial },
+  });
+  const leg = r.byAxis.destination;
+  assert.equal(leg.reason, ANSWER_REASONS.INCOMPLETE_LEVEL_MAPPING);
+  assert.equal(leg.unmapped.length, 8);
+  assert.ok(leg.unmapped.includes("japan"), "a value with no parent must be named, not quietly dropped");
+});
+
+test("🔴 §5 · a value whose parent nothing answers is INCOMPLETE too — a parent is not an answer", () => {
+  const toUnanswered = Object.fromEntries(TEN_COUNTRIES.map((c) => [c, "transit"])); // no claim at 'transit'
+  const r = answerEvidence({
+    ...SAME, claims: FEE_CLAIMS,
+    axisValues: { destination: TEN_COUNTRIES },
+    valueParents: { destination: toUnanswered },
+  });
+  assert.equal(r.byAxis.destination.reason, ANSWER_REASONS.INCOMPLETE_LEVEL_MAPPING);
+  assert.equal(r.byAxis.destination.unanswered.length, 10);
+});
+
+test("🔴 §5 · WITHOUT a mapping nothing changes — the disjoint refusal still stands, unweakened", () => {
+  const r = answerEvidence({ ...SAME, claims: FEE_CLAIMS, axisValues: { destination: TEN_COUNTRIES } });
+  assert.equal(r.byAxis.destination.reason, ANSWER_REASONS.DISJOINT_VALUE_POPULATION);
+});
+
+test("🔴 §5 · the projection is counted at the DISCOVERED level, and says so directly", () => {
+  const answersAtParent = new Map([["foreign", new Set(["10000"])], ["domestic", new Set(["1000"])]]);
+  const all = projectToDiscoveredLevel({ discovered: TEN_COUNTRIES, parents: ALL_FOREIGN, answersAtParent });
+  assert.equal(all.answerOf.size, 10, "every discovered value must be carried through");
+  assert.equal(all.distinctAnswers.size, 1, "ten values, one answer — the parent level's two are not reachable from here");
+  assert.deepEqual(all.unmapped, []);
+
+  /* and the parent level genuinely holds two, which is exactly why counting there would mislead */
+  assert.equal(answersAtParent.size, 2);
 });

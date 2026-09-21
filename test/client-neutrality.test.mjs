@@ -52,6 +52,12 @@ const OWNED = Object.freeze([
   /* 🔴 Added 21 Sep 2026 by E13a, which refuses to let a new src/tenancy module slip past this census. */
   "src/tenancy/row-partition.mjs",
   "src/tenancy/sitemap-residency.mjs",
+  /* 🔴 Row 25, 21 Sep 2026: the resource-attachment binder, the claim binder and the four-check evaluator join the list
+   * they must honour. They decide which subject a page belongs to and which authority a claim cites — exactly where a
+   * host, an authority name or a record id would creep in. They carry none, and now they cannot. */
+  "src/tenancy/attachment.mjs",
+  "src/gate-a/claim-binding.mjs",
+  "src/gate-a/page-quality.mjs",
   "src/adapter/sitemap-subject.mjs",
   "src/adapter/observed-page-subject.mjs",
   "src/adapter/external-subject.mjs",

@@ -104,6 +104,12 @@ export function measureExistingPages(pages, facts, { now = new Date() } = {}) {
         overlapAgainst: measured ? o.against : null,
         overlapVacuous: overlapState === "VACUOUS",
         overlapPass: measured ? o.maxOverlap <= MAX_SIBLING_OVERLAP : null,
+        /* 🔴 21 Sep 2026: carried, not dropped. overlap.mjs's own D2 rule — "a Jaccard computed over very few residual
+         * words is noise wearing a number's clothes … never [reported] without this count beside it" — was lost here,
+         * so a page with 27 residual words reported a clean overlap PASS. The number and the pass flag are unchanged;
+         * the count and the noise flag now travel with them. */
+        residualWords: measured ? o.residualWords : null,
+        overlapNoisy: measured ? o.noisy : null,
         factsPresent: present.map((f) => f.id),
         factSources: [...new Set(present.map((f) => f.source?.url).filter(Boolean))],
         factsQualifying: counted.qualifying,

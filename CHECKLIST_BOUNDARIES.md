@@ -64,8 +64,8 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 |---|---|---|---|
 | **NOT-STARTED** | 3 | 8 | **2** |
 | **BUILT-NOT-PROVED** | 18 | 16 | **4** |
-| **TESTABLE-NOW** | 0 | 3 | **1** |
-| **VERIFIED-PASS** | 3 | 3 | **27** |
+| **TESTABLE-NOW** | 0 | 3 | **0** |
+| **VERIFIED-PASS** | 3 | 3 | **28** |
 | **FAILED** | 0 | -1 | **2** |
 | **BLOCKED-UNKNOWN** | 6 | 6 | **2** |
 | **DEFERRED** | 28 | 23 | **23** |
@@ -86,9 +86,9 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 - **item 51** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — priority, confidence and cost each computed from stored evidence and each able to say UNKNOWN — two recommendations ranked by measured impressions, one UNKNOWN; confidence derived on all three; cost UNKNOWN on all three with lower bounds — and all six visible on the real report
 - **item 55** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-13 — the parse is caught and rethrown with nothing from the file; the leak test re-run passed on every credential path, RED when the key or its length is logged; recovery proved by restoring torn stores from git, byte-identical by blob hash
 
-**Rows that have been looked at (VERIFIED-PASS or FAILED): 29 of 58.**
+**Rows that have been looked at (VERIFIED-PASS or FAILED): 30 of 58.**
 
-**Rows that reached VERIFIED-PASS in this PR: 24.**
+**Rows that reached VERIFIED-PASS in this PR: 25.**
 
 #### moved ONLY because a RULING changed
 
@@ -127,6 +127,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 17 | BUILT-NOT-PROVED | TESTABLE-NOW | `undefined` | 2026-09-19 | row 17's frozen INPUT is 'a real derived fact with real inputs' and the registry held none — 0 of 46. It now holds one, of 47, and the need it serves was declared in that product's own fact file nine days earlier (engine commit 4b55e5e, 10 September 2026), so the record is not a thing built for the row and then read back as its input |
 | 17 | TESTABLE-NOW | VERIFIED-PASS | `node --test test/derived-fact-registry.test.mjs · node bin/facts.mjs validate --product=<the first product> · runs/audit/row17-derived-activation-2026-09-19.txt` | 2026-09-19 | over the ONE real derived fact — formula and both input ids stored, the value recomputed from the live records, the standing equal to its weakest input (UNKNOWN from two UNKNOWN inputs, the ceiling recomputed by F29 from the records rather than read off the file), and a moved input raising INPUT_CHANGED on the real record in an isolated copy without rewriting it. The over-verified construction is REFUSED by name, and five malformed-derived defects fail closed — each sabotaged alone, landed, RED, restored byte-identically by sha256 |
 | 25 | BUILT-NOT-PROVED | TESTABLE-NOW | `undefined` | 2026-09-13 | the input exists; not run, because its source-integrity leg is a live link check this change may not make |
+| 25 | TESTABLE-NOW | VERIFIED-PASS | `node bin/page-quality.mjs --product=<the declared subject> --check · node --test test/page-quality-row25.test.mjs · runs/audit/row25-four-checks-2026-09-21.txt · runs/audit/row25-sabotage-2026-09-21.txt` | 2026-09-21 | all four in-scope checks measured and reported per page on 391 real pages (389 committed bodies + 2 captured under a published selection rule): 362 INVALID cross-tenant, 27 bound with no bound claim, 2 selected — on both, the stated grade list binds to a VERIFIED fact whose source the page cites, and drifts; source integrity FAILS them, as it must. Each check with a firing fixture and a silent clean control. Deferred pre-publish limbs stay DEFERRED |
 | 26 | BUILT-NOT-PROVED | TESTABLE-NOW | `undefined` | 2026-09-13 | the input exists; run, the two runners' zero-inbound counts over the same bodies disagree (340 vs 341) — EXPECTED missed, FAILURE not met, so it stays here |
 | 26 | TESTABLE-NOW | VERIFIED-PASS | `node bin/edge-graph.mjs · node bin/audit-content.mjs · node bin/audit-technical.mjs · node bin/instrument-disagreement.mjs --close · test/edge-graph.test.mjs · test/queue-rescan.test.mjs` | 2026-09-13 | both runners read one stored graph through one definition and print 335; the 11 disagreement Issues closed on their recorded output; 335 pages with no inbound link, every one UNKNOWN and none 'missing'; the graph in durable storage |
 | 36 | BUILT-NOT-PROVED | VERIFIED-PASS | `node --test test/owner-authorization-gates.test.mjs test/paid-provider-controls.test.mjs test/cost-governor.test.mjs test/product-isolation.test.mjs test/write-confinement.test.mjs test/gate-a.test.mjs · CI run 34927704324 on main (ce43c4b) · runs/audit/gap3-archive-corpus-red-2026-09-15.txt` | 2026-09-15 | destructive (replay-crawl --recover and archive-corpus's overwrite refusal), paid, large-scale, cross-product and production (the permission function — no production write path exists) each have a test that runs the guard and observes the refusal, and all ran green in CI on main; the archive-corpus refusal reached past the full 394-body verification with both evidence files unchanged and was RED-proved alone inside a filesystem fence |
@@ -169,8 +170,8 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 |---|---|---|
 | **NOT-STARTED** | 33 | **2** |
 | **BUILT-NOT-PROVED** | 24 | **4** |
-| **TESTABLE-NOW** | 0 | **1** |
-| **VERIFIED-PASS** | 0 | **27** |
+| **TESTABLE-NOW** | 0 | **0** |
+| **VERIFIED-PASS** | 0 | **28** |
 | **FAILED** | 0 | **2** |
 | **BLOCKED-UNKNOWN** | 1 | **2** |
 | **DEFERRED** | 0 | **23** |
@@ -197,7 +198,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 14 | No Blind Regeneration | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 15 | Verified Fact Supply Engine | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 17 | Derived Fact Provenance | BUILT-NOT-PROVED | **VERIFIED-PASS** |
-| 25 | Page Quality Gate | BUILT-NOT-PROVED | **TESTABLE-NOW** |
+| 25 | Page Quality Gate | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 26 | Internal-Link Intelligence | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 36 | Owner Authorization Gates | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 38 | Indexability Preflight | BUILT-NOT-PROVED | **VERIFIED-PASS** |
@@ -231,14 +232,6 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 🔴 **TESTABLE-NOW IS NOT A PASS.** The input exists; the test has not passed. Each row names
 the single test that would settle it, and (ruling 0B, 13 September 2026) whether it was
 NEVER TRIED or TRIED AND FELL SHORT — with the date and the specific gap when it was.
-
-### 25 · Page Quality Gate
-
-**The one test:** node bin/page-quality.mjs over an existing page set that includes pages known to state registry facts (a bounded capture of such pages needs the owner's green), with node bin/source-integrity.mjs's recorded run folded in per page · node --test test/existing-pages.test.mjs test/source-integrity.test.mjs
-
-**Attempted 1 time(s), last on 2026-09-13. The gap that stopped it:** verified-fact presence finds 0 verified facts on all 389 existing pages, so source integrity — measured on all 15 cited sources, 15 LIVE — can be reported for NO existing page; the only page carrying verified facts is one this engine generated from the registry, which cannot show the check sees facts on a page someone else wrote
-
-**Where it stands:** 🔴 **RUN 13 SEPTEMBER 2026 — ALL FOUR PARTS MEASURED, AND IT DOES NOT TICK, AND IT IS NOT FAILED.** **(1) UNIQUE VALUE — proved:** measured on 383 of the 389 existing pages with a served body (155 at or above 350 unique words after the page's shell, 228 below); 6 sub-site homes are UNMEASURABLE, each the only crawled page on its site, so no shell can be learned; firing fixture and clean control. **(2) SIBLING OVERLAP — proved:** MEASURED on 337 pages (243 within 0.40, 94 above); 52 pages sit alone in their template group (VACUOUS, never a pass). ⚠️ These are the numbers AFTER D-GATEA-1 was fixed on 13 September 2026 — the first attempt reported 122 / 327 / 10 UNMEASURABLE, because a group of one or two pages learned its shell from itself; the recorded first run is kept (runs/audit/item-25-page-quality-run-2026-09-13.txt) beside the re-run. **(3) VERIFIED-FACT PRESENCE — measured, no real positive:** 0 of 389 existing pages carry a verified fact; the rule fires on real registry values on a page this engine GENERATED (14 present), which is a control and never an existing page. **(4) SOURCE INTEGRITY — measured live, per source, not per page:** the owner-authorised link check requested 18 of a hard cap of 40, 1/s, external hosts only, HEAD first — all 15 cited sources LIVE, 0 GONE, 0 UNKNOWN, 0 disagreements with beta-g's 12 September reading (the exam provider's site answered HEAD with 200 where beta-g's fetcher got 403). But with no existing page carrying a fact, no page has a source to report. **EXPECTED** ('each measured and reported per page') is not met for part 4; **FAILURE** ('fixture-only or absent') is not met — every part ran on real data. So: TESTABLE-NOW, attempted once, gap named
 
 ---
 
@@ -635,7 +628,7 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 
 ### 25 · Page Quality Gate
 
-**TESTABLE-NOW** · class `S` · ruled in `§6+A1` · was BUILT-NOT-PROVED (work)
+**VERIFIED-PASS** · class `S` · ruled in `§6+A1` · was BUILT-NOT-PROVED (work)
 
 | part | the owner's words |
 |---|---|
@@ -646,9 +639,9 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 | **v0.1 PASS boundary** | unique value, verified facts, sibling overlap and source integrity measured on existing pages. |
 | **⏭ deferred half** | right-to-exist, cannibalization and technical-readiness **as pre-publish gates** — they need a publish path. |
 
-**Verdict —** 🔴 **RUN 13 SEPTEMBER 2026 — ALL FOUR PARTS MEASURED, AND IT DOES NOT TICK, AND IT IS NOT FAILED.** **(1) UNIQUE VALUE — proved:** measured on 383 of the 389 existing pages with a served body (155 at or above 350 unique words after the page's shell, 228 below); 6 sub-site homes are UNMEASURABLE, each the only crawled page on its site, so no shell can be learned; firing fixture and clean control. **(2) SIBLING OVERLAP — proved:** MEASURED on 337 pages (243 within 0.40, 94 above); 52 pages sit alone in their template group (VACUOUS, never a pass). ⚠️ These are the numbers AFTER D-GATEA-1 was fixed on 13 September 2026 — the first attempt reported 122 / 327 / 10 UNMEASURABLE, because a group of one or two pages learned its shell from itself; the recorded first run is kept (runs/audit/item-25-page-quality-run-2026-09-13.txt) beside the re-run. **(3) VERIFIED-FACT PRESENCE — measured, no real positive:** 0 of 389 existing pages carry a verified fact; the rule fires on real registry values on a page this engine GENERATED (14 present), which is a control and never an existing page. **(4) SOURCE INTEGRITY — measured live, per source, not per page:** the owner-authorised link check requested 18 of a hard cap of 40, 1/s, external hosts only, HEAD first — all 15 cited sources LIVE, 0 GONE, 0 UNKNOWN, 0 disagreements with beta-g's 12 September reading (the exam provider's site answered HEAD with 200 where beta-g's fetcher got 403). But with no existing page carrying a fact, no page has a source to report. **EXPECTED** ('each measured and reported per page') is not met for part 4; **FAILURE** ('fixture-only or absent') is not met — every part ran on real data. So: TESTABLE-NOW, attempted once, gap named
+**Verdict —** 🔴 **VERIFIED-PASS — 21 SEPTEMBER 2026, ON WORK. ALL FOUR IN-SCOPE CHECKS MEASURED AND REPORTED PER PAGE ON THE REAL CORPUS, WITH A FIRING FIXTURE AND A SILENT CLEAN CONTROL EACH — AND THE REAL RESULT IS A FAIL THE GATE CAUGHT.** What the frozen v0.1 half asks (SOURCE:324-328, A1:107-114) is that the four checks be MEASURED AND REPORTED per page, never that pages pass. The 13 September gap was part 4: no existing page carried a claim bound to a VERIFIED fact, so source integrity could be reported for NO page. **TENANCY FIRST** (owner ruling, 21 Sep 2026, tenant/resource attachments): the page's site and the fact registry are separate RESOURCE ATTACHMENTS, bound only when both are explicitly declared to the same subject (src/tenancy/attachment.mjs — BOUND · INVALID_CROSS_TENANT · UNBOUND · AMBIGUOUS · REFUSED · INVALID). The old run handed every page the one registry's facts; now **362 of 391 real pages are INVALID_CROSS_TENANT for checks C and D** — never '0 facts'. **THE CLAIM, BOUND** (src/gate-a/claim-binding.mjs): a claim binds only when the page cites the fact's own source, the fact's declared locale is on the page, and the page states the fact's label→value list, number or text; only a VERIFIED fact can be present. **REAL PAGES:** 389 committed bodies + 2 captured under a selection rule published before any request (7 of 30 requests, spend 0; data captures/row25-2026-09-21, sha256-pinned). **RESULT:** 391 = 362 INVALID + 27 bound with no claim bound to a fact + **2 SELECTED**, remainder 0. On both selected pages (an Irish regulator's register page and one corridor page naming it) the stated four-part grade list — B · B · B · B — binds to the regulator's VERIFIED minimum-grade fact, whose source the page itself cites, and **DRIFTS on one component** (VERIFIED: C+, stated: B). C = ADDRESSED_NOT_PRESENT, **D = FAIL**; A FAIL (27 and 131 unique words); B NOISY (27 residual words) and PASS (0.031). **Controls:** A, B, C and D each fire on a fixture and stay silent on a clean one, run live through the same functions. 🔴 **What this tick does NOT claim:** that any page is good (0 PASS), or that any real page states a VERIFIED fact CORRECTLY — the real positive is a bound claim that drifts; a clean C/D pass is shown only on a fixture. 🔴 **Deferred, machine-readable, never counted:** right-to-exist, cannibalization, technical-readiness AS PRE-PUBLISH GATES (SOURCE:326). 🔴 **Found and fixed on the path:** B reported a clean PASS on a 27-word residual; Gate A's own D2 noise rule now travels with the number (NOISY, never a pass). 🔴 **A product finding, reported not acted on:** the site states that regulator's grade on one component as B where the VERIFIED fact says C+ — on the two pages read, and on every corridor page of that template if they share it (191 in the bounded sitemap store; not read). 14 sabotages, each RED on the test for its branch, restored byte-identically (runs/audit/row25-sabotage-2026-09-21.txt).
 
-**The one test that would settle it —** node bin/page-quality.mjs over an existing page set that includes pages known to state registry facts (a bounded capture of such pages needs the owner's green), with node bin/source-integrity.mjs's recorded run folded in per page · node --test test/existing-pages.test.mjs test/source-integrity.test.mjs
+**The one test that would settle it —** node bin/page-quality.mjs --product=<the declared subject> --check · node --test test/page-quality-row25.test.mjs test/existing-pages.test.mjs · runs/audit/row25-four-checks-2026-09-21.txt · runs/audit/row25-sabotage-2026-09-21.txt · almi-visibility-data captures/row25-2026-09-21 (2 real pages, manifest-pinned) · runs/audit/source-integrity-2026-09-13.json
 
 ### 26 · Internal-Link Intelligence
 

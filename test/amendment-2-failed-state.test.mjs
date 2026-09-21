@@ -273,7 +273,10 @@ test("🔴 moves since Amendment 2: NINE by ruling (3–7 → NOT-STARTED by Ame
     // 🔴 Row 17, 19 September 2026: its INPUT came into existence — one real derived fact in the first product's external
     // store — and then its own test ran over it. The capability had been complete since 12 September; only the input was missing.
     "17:BUILT-NOT-PROVED→TESTABLE-NOW", "17:TESTABLE-NOW→VERIFIED-PASS",
-    "25:BUILT-NOT-PROVED→TESTABLE-NOW", "26:BUILT-NOT-PROVED→TESTABLE-NOW", "26:TESTABLE-NOW→VERIFIED-PASS",
+    "25:BUILT-NOT-PROVED→TESTABLE-NOW",
+    // 🔴 21 Sep 2026: row 25 left TESTABLE-NOW by a declared WORK move (TEST_RUN) — the four checks reached real pages' claims bound to a VERIFIED fact, tenancy first.
+    "25:TESTABLE-NOW→VERIFIED-PASS",
+    "26:BUILT-NOT-PROVED→TESTABLE-NOW", "26:TESTABLE-NOW→VERIFIED-PASS",
     // 🔴 Row 36, 15 September 2026: every guard its frozen boundary names executed, the archive-corpus refusal last.
     "36:BUILT-NOT-PROVED→VERIFIED-PASS",
     "38:BUILT-NOT-PROVED→TESTABLE-NOW", "38:TESTABLE-NOW→VERIFIED-PASS",
@@ -345,10 +348,11 @@ test("before Amendment 2 the ledger was 3 / 18 / 0 / 3 / 0 / 6 / 28", () => {
  * like row 9 what closed it was the measurement the settled reading made readable, not the ruling:
  * the ruling is recorded as data the validator evaluates, and the tick rests on an injection. */
 /* 🔴 21 Sep 2026: row 4 left BUILT-NOT-PROVED by a declared WORK move (TEST_RUN) — local reasoning researched from a primary source, limb (a) measured NOT MET. TWENTY-FOUR. */
-test("🔴 since Amendment 2, TWENTY-FOUR rows hold VERIFIED-PASS (3, 4, 7, 9, 11, 12, 13, 14, 17, 26, 36, 38, 42, 45, 47, 49, 50, 51, 53, 55, 56, 59, 60, 61) — 50 reached it, was REOPENED, and EARNED IT BACK; 48 LOST it and EARNED IT BACK", () => {
+/* 🔴 21 Sep 2026: row 25 left TESTABLE-NOW by a declared WORK move (TEST_RUN) — the four checks reached real pages' claims bound to a VERIFIED fact, tenancy first. TWENTY-FIVE. */
+test("🔴 since Amendment 2, TWENTY-FIVE rows hold VERIFIED-PASS (3, 4, 7, 9, 11, 12, 13, 14, 17, 25, 26, 36, 38, 42, 45, 47, 49, 50, 51, 53, 55, 56, 59, 60, 61) — 50 reached it, was REOPENED, and EARNED IT BACK; 48 LOST it and EARNED IT BACK", () => {
   const rows = classify();
   const newPasses = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS" && BEFORE_AMENDMENT_2[r.id] !== "VERIFIED-PASS");
-  assert.deepEqual(newPasses.map((r) => r.id), [3, 4, 7, 9, 11, 12, 13, 14, 17, 26, 36, 38, 42, 45, 47, 49, 50, 51, 53, 55, 56, 59, 60, 61]);
+  assert.deepEqual(newPasses.map((r) => r.id), [3, 4, 7, 9, 11, 12, 13, 14, 17, 25, 26, 36, 38, 42, 45, 47, 49, 50, 51, 53, 55, 56, 59, 60, 61]);
   const lost = Object.values(rows).filter((r) => BEFORE_AMENDMENT_2[r.id] === "VERIFIED-PASS" && r.state !== "VERIFIED-PASS");
   assert.deepEqual(lost.map((r) => r.id), []);
   // The count hides a round trip — the chain does not.

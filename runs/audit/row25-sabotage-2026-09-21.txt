@@ -1,0 +1,40 @@
+ROW 25 — FOUR CHECKS, TENANCY FIRST · SABOTAGE RECORD · 21 September 2026
+each: one exact single-occurrence change, verified landed, narrowest test run (TAP), RED count and the failing test named, restored in a finally block and verified byte-identical by sha256
+
+S1 · cross-tenant refusal removed (different subjects bind) · src/tenancy/attachment.mjs · landed true · loaded 2 · RED 2 · cause confirmed true · restored true
+    not ok — B · different declared subjects → INVALID_CROSS_TENANT — never UNKNOWN, never a pass
+    not ok — 5 · a cross-tenant fact never reaches the page: C and D are INVALID, not 'no facts'
+S2 · inferred identity no longer refused · src/tenancy/attachment.mjs · landed true · loaded 1 · RED 1 · cause confirmed true · restored true
+    not ok — E · an identity inferred from a hostname or a directory name → REFUSED, before the resolver is even asked
+S3 · fixture and real mixed allowed · src/tenancy/attachment.mjs · landed true · loaded 1 · RED 1 · cause confirmed true · restored true
+    not ok — F · a FIXTURE resource and a REAL resource mixed → INVALID, even when both resolve to one subject
+S4 · authority check removed (any cited source attributes) · src/gate-a/claim-binding.mjs · landed true · loaded 1 · RED 1 · cause confirmed true · restored true
+    not ok — 3 · wrong source → OTHER_AUTHORITY, even when every value matches
+S5 · locale check removed (wrong subject binds) · src/gate-a/claim-binding.mjs · landed true · loaded 1 · RED 1 · cause confirmed true · restored true
+    not ok — 7 · the same value about the wrong subject → LOCALE_ABSENT — a value match is not a claim
+S6 · an UNVERIFIED fact counted as a match · src/gate-a/claim-binding.mjs · landed true · loaded 1 · RED 1 · cause confirmed true · restored true
+    not ok — 4 · an UNVERIFIED fact is ADDRESSED_UNVERIFIED — visible, never present, never a match
+S7 · claim drift read as a match · src/gate-a/claim-binding.mjs · landed true · loaded 2 · RED 2 · cause confirmed true · restored true
+    not ok — 6 · claim drift — same labels, one value different → DRIFT, and source integrity FAILS
+    not ok — 🟢 REAL — 391 pages through the production path: 362 cross-tenant, 27 bound with no bound claim, 2 selected — both FAIL source integrity on a drift the VERIFIED fact exposes
+S8 · numeric token boundary removed (2 matches inside 12) · src/gate-a/claim-binding.mjs · landed true · loaded 1 · RED 1 · cause confirmed true · restored true
+    not ok — 11 · a short and a numeric VERIFIED fact are detected — when authority and locale bind them
+S9 · tenancy gate removed — every page handed the registry · src/gate-a/page-quality.mjs · landed true · loaded 2 · RED 2 · cause confirmed true · restored true
+    not ok — 5 · a cross-tenant fact never reaches the page: C and D are INVALID, not 'no facts'
+    not ok — 🟢 REAL — 391 pages through the production path: 362 cross-tenant, 27 bound with no bound claim, 2 selected — both FAIL source integrity on a drift the VERIFIED fact exposes
+S10 · B's NOISY third state removed · src/gate-a/page-quality.mjs · landed true · loaded 1 · RED 1 · cause confirmed true · restored true
+    not ok — 🔴 B has a third state: a measured overlap over too few residual words is NOISY, never a pass
+S11 · a non-matching bound claim no longer fails D · src/gate-a/page-quality.mjs · landed true · loaded 2 · RED 2 · cause confirmed true · restored true
+    not ok — 🔴 a page carrying an unsourced or drifting claim never passes source integrity; NO_BOUND_CLAIM is never PASS
+    not ok — 🟢 REAL — 391 pages through the production path: 362 cross-tenant, 27 bound with no bound claim, 2 selected — both FAIL source integrity on a drift the VERIFIED fact exposes
+S12 · fixture pages counted as real for the verdict · src/gate-a/page-quality.mjs · landed true · loaded 1 · RED 1 · cause confirmed true · restored true
+    not ok — 14 · fixture-only evidence cannot tick row 25 — and one passing check never hides another
+S13 · an unchecked source reads as PASS · src/gate-a/page-quality.mjs · landed true · loaded 1 · RED 1 · cause confirmed true · restored true
+    not ok — 🔴 a page carrying an unsourced or drifting claim never passes source integrity; NO_BOUND_CLAIM is never PASS
+S14 · capture hash check removed · src/gate-a/page-quality.mjs · landed true · loaded 1 · RED 1 · cause confirmed true · restored true
+    not ok — 🔴 THE CAPTURE REFUSES RATHER THAN SHORTENS — absent, undeclared and tampered files all throw
+
+S15 · the ledger law that refuses a TESTABLE-NOW row naming no test removed — the property the emptied queue test now drives · src/checklist/classification.mjs · landed true · loaded 1 · RED 1 · cause confirmed true (assertion: "a TESTABLE-NOW row with no test was not refused") · restored true
+    not ok — 🔴 the TESTABLE-NOW queue is EMPTY since row 25 ticked — and a TESTABLE-NOW row must still name its test, its attempts and its gap
+
+TOTAL: 15 designed · 15 landed · 15 RED · 15 cause confirmed · 15 restored

@@ -16,7 +16,7 @@ import { canonicalUrl } from "../src/evidence/ids.mjs";
 import { detectCannibalization } from "../src/audit/content-checks.mjs";
 import { loadRegistry, primaryFacts, derivedFacts } from "../src/facts/registry.mjs";
 import { judgeLeavingUnknown } from "../src/evidence/verdict.mjs";
-import { classify } from "../src/checklist/classification.mjs";
+import { classify, assertLawful } from "../src/checklist/classification.mjs";
 import { lifecycleOf } from "../src/evidence/lifecycle.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -96,7 +96,9 @@ test("🔴 ITEM 26 · 1A: the disagreement was RAISED as 11 Issues in the eviden
 
 /* ---- 25 · TESTABLE-NOW, attempted --------------------------------------- */
 
-test("🔴 ITEM 25: all four parts measured — and part 4 has no existing page to report, so it stays TESTABLE-NOW with its gap", () => {
+/* 🔴 21 Sep 2026: row 25 left TESTABLE-NOW by a declared WORK move (TEST_RUN) — the four checks reached real pages' claims bound to a VERIFIED fact, tenancy first. The 13 September record below is still TRUE of that run and is kept; the row's state is what moved, and its
+ * gap is kept on the row as gapBefore, renamed, not erased. */
+test("🔴 ITEM 25: the 13 Sep run measured all four parts with part 4 unreportable — kept as history; on 21 Sep the row left TESTABLE-NOW on work", () => {
   assert.match(PAGE_QUALITY, /measured 389 of 389 · at or above 350: 122/);
   assert.match(PAGE_QUALITY, /MEASURED 327 of 389/);
   assert.match(PAGE_QUALITY, /VACUOUS 52 .* UNMEASURABLE 10/);
@@ -104,9 +106,11 @@ test("🔴 ITEM 25: all four parts measured — and part 4 has no existing page 
   assert.match(PAGE_QUALITY, /LIVE 15 · GONE 0 · UNKNOWN 0/);
   assert.match(PAGE_QUALITY, /NOT an existing page/);
   const r = classify()[25];
-  assert.equal(r.state, "TESTABLE-NOW");
-  assert.equal(r.attemptCount, 1);
-  assert.match(r.gap, /0 verified facts on all 389 existing pages/);
+  assert.equal(r.state, "VERIFIED-PASS");
+  assert.equal(r.attemptCount, 2);
+  assert.equal(r.lastAttempt, "2026-09-21");
+  assert.match(r.gapBefore, /0 verified facts on all 389 existing pages/);
+  assert.match(r.whyTestableNow, /IT DOES NOT TICK, AND IT IS NOT FAILED/);
 });
 
 /* ---- 50, 51 · FAILED (re-scan) ------------------------------------------ */
@@ -157,8 +161,19 @@ test("🔴 ITEMS 1 AND 54: NO learning record exists — and no cost entry names
 
 /* ---- the queue itself ---------------------------------------------------- */
 
-test("🔴 the TESTABLE-NOW queue is exactly item 25 — and it names its test, its attempts and its gap", () => {
+/* 🔴 21 Sep 2026: row 25 left TESTABLE-NOW by a declared WORK move (TEST_RUN) — the four checks reached real pages' claims bound to a VERIFIED fact, tenancy first, and the queue is EMPTY. The loop below still polices any future TESTABLE-NOW row, but over an empty queue
+ * it proves nothing — so the PROPERTY is now proved by driving the ledger's own law (assertLawful) on a moved copy of a
+ * real row: a TESTABLE-NOW row with no test, no attempt count, or an attempt with no date and gap is REFUSED; the same
+ * row carrying all of them is accepted. */
+test("🔴 the TESTABLE-NOW queue is EMPTY since row 25 ticked — and a TESTABLE-NOW row must still name its test, its attempts and its gap", () => {
   const rows = Object.values(classify()).filter((r) => r.state === "TESTABLE-NOW");
-  assert.deepEqual(rows.map((r) => r.id), [25]);
+  assert.deepEqual(rows.map((r) => r.id), []);
   for (const r of rows) assert.ok(r.test.length > 40 && r.gap.length > 40);
+  const base = classify();
+  const moved = (patch) => ({ ...base, 25: { ...base[25], state: "TESTABLE-NOW", ...patch } });
+  const errs = (rows) => assertLawful(rows).filter((e) => e.startsWith("item 25 "));
+  assert.ok(errs(moved({ test: undefined })).some((e) => /names no test/.test(e)), "a TESTABLE-NOW row with no test was not refused");
+  assert.ok(errs(moved({ attemptCount: undefined })).some((e) => /no attemptCount/.test(e)), "a TESTABLE-NOW row with no attemptCount was not refused");
+  assert.ok(errs(moved({ attemptCount: 1, lastAttempt: undefined })).length > 0, "an attempted TESTABLE-NOW row with no date was not refused");
+  assert.deepEqual(errs(moved({ attemptCount: 1, lastAttempt: "2026-09-13", gap: base[25].gapBefore })), [], "control: a complete TESTABLE-NOW row is accepted");
 });

@@ -23,6 +23,13 @@ import { loadRegistry } from "../src/facts/registry.mjs";
 import { productFromArgvOrExit } from "../src/product-cli.mjs";
 import { measureExistingPages } from "../src/gate-a/existing-pages.mjs";
 import { batchFile } from "../src/crawl/observation-batch.mjs";
+import { evaluatePageQuality, tallyPageQuality, row25Verdict, liveControls, readPageCapture } from "../src/gate-a/page-quality.mjs";
+import { sourceKey, labelValueList } from "../src/gate-a/claim-binding.mjs";
+import { createTenantResolver } from "../src/tenancy/resolver.mjs";
+import { factRegistryRef, externalRootContaining } from "../src/adapter/external-subject.mjs";
+
+/** The manifest-pinned capture of real pages this row reads (data repository, captures/). */
+const CAPTURE_ID = "row25-2026-09-21";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const NOW = new Date("2026-09-13T00:00:00Z");
@@ -76,6 +83,44 @@ if (existsSync(GENERATED)) {
     const c = siByUrl.get(u);
     console.log(`    source ${c ? `${c.verdict} (HTTP ${c.finalStatus}, ${c.methodsUsed})` : "NOT CHECKED"}  ${u}`);
   }
+}
+
+/* ---- 🔴 ROW 25 — THE FOUR CHECKS PER PAGE, TENANCY FIRST (21 September 2026) ---------------------------------
+ * The measurement above hands EVERY page the registry's facts, whatever subject the page belongs to. This one does
+ * not: a page is handed the facts only when its site and the registry are declared to the same subject
+ * (owner ruling, 21 Sep 2026, tenant/resource attachments). Real pages are the committed archive plus the
+ * manifest-pinned capture of pages chosen by a selection rule published before any request. */
+const resolve = createTenantResolver();
+const root = externalRootContaining(PRODUCT.factsDir, process.env);
+const registryRef = root ? factRegistryRef({ factsDir: PRODUCT.factsDir, rootPath: root.path }) : null;
+if (!registryRef) {
+  console.log("\n🔴 ROW 25 — the registry has no declared resource reference; no page can be bound to it. NOT MEASURED.");
+} else {
+  const captured = readPageCapture({ captureId: CAPTURE_ID });
+  const population = [
+    ...pages.map((p) => ({ id: p.canonical, html: p.html, origin: new URL(p.canonical).origin, evidenceClass: "REAL" })),
+    ...captured,
+  ];
+  const linkVerdicts = new Map((si?.results ?? []).map((r) => [sourceKey(r.url), r.verdict]));
+  const results = evaluatePageQuality({ pages: population, facts: records, registry: { ...registryRef, evidenceClass: "REAL" }, resolve, linkVerdicts, now: NOW });
+  const t = tallyPageQuality(results);
+  const listFact = records.find((r) => r.verificationState === "VERIFIED" && r.source?.url && r.locale && labelValueList(r.value?.value));
+  const controls = listFact ? liveControls({ fact: listFact }) : null;
+  const verdict = row25Verdict({ results, controls });
+  console.log(`\n=== ROW 25 — FOUR CHECKS PER PAGE · registry ${registryRef.resourceKind} ${registryRef.resourceRef} · capture ${CAPTURE_ID} (${captured.length} page(s)) ===`);
+  console.log(`  population ${t.total} = ${t.real} real + ${t.fixture} fixture · INVALID (cross-tenant) ${t.crossTenantOrInvalid} · UNBOUND ${t.unbound} · bound, no claim bound to a fact ${t.boundNoClaim} · SELECTED ${t.selected}`);
+  console.log(`  outcomes: PASS ${t.PASS} · FAIL ${t.FAIL} · UNKNOWN ${t.UNKNOWN} · INVALID ${t.INVALID} · remainder ${t.remainder}`);
+  for (const r of results.filter((x) => x.tenancy === "BOUND" && x.C.state !== "NO_BOUND_CLAIM")) {
+    console.log(`  ${r.id}`);
+    console.log(`    A unique value ${r.A.state}${r.A.uniqueWords !== null && r.A.uniqueWords !== undefined ? ` (${r.A.uniqueWords} words)` : ""} · B sibling overlap ${r.B.state}${r.B.maxOverlap !== undefined ? ` (${r.B.maxOverlap.toFixed(3)} vs ${r.B.against})` : ""}`);
+    console.log(`    C verified-fact presence ${r.C.state} · D source integrity ${r.D.state} — ${r.D.why}`);
+    for (const b of r.C.bindings) console.log(`      ${b.factId} [${b.verificationState}] ${b.outcome}${b.differing?.length ? ` — stated ${JSON.stringify(b.stated)} · VERIFIED ${JSON.stringify(b.expected)}` : ""}`);
+  }
+  console.log(`  controls (fixture, never counted): ${controls ? Object.entries(controls).map(([k, v]) => `${k} fires ${v.fires} · silent ${v.silent}`).join(" | ") : "NONE — no list-shaped VERIFIED fact to build them from"}`);
+  console.log(`  deferred, never counted: ${verdict.deferred.map((d) => `${d.limb} (${d.state}, ${d.authority})`).join(" · ")}`);
+  console.log(`  ROW 25 VERDICT: ${verdict.verdict}`);
+  for (const r of verdict.reasons) console.log(`    🔴 ${r.code}: ${r.why}`);
+  if (process.argv.includes("--check") && (verdict.verdict !== "PASS" || t.remainder !== 0)) process.exitCode = 1;
 }
 
 console.log("\n🔴 MEASUREMENT ONLY. Nothing here decides that a page should be kept, changed or removed.");

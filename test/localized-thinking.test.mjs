@@ -115,7 +115,7 @@ test("🔴 THE THIN-EVIDENCE LAW — 10 countries above the floor of 5; the othe
 
 test("🔴 COUNTRY→URL CENSUS — no consumer of the localized-thinking module builds a URL-shaped value", () => {
   const c = countryUrlCensus(SOURCES);
-  assert.deepEqual(c.consumers, ["bin/localized-thinking.mjs", "src/discovery/localized-thinking.mjs"]);
+  assert.deepEqual(c.consumers, ["bin/localized-thinking.mjs", "src/discovery/local-reasoning.mjs", "src/discovery/localized-thinking.mjs"]);
   assert.deepEqual(c.breaches, [], c.breaches.map((b) => `${b.file}:${b.line} ${b.shape}`).join("\n"));
   assert.equal(STORED.halfA.buildsFromCountry, false);
 });

@@ -250,6 +250,8 @@ test("🔴 moves since Amendment 2: NINE by ruling (3–7 → NOT-STARTED by Ame
     "3:NOT-STARTED→VERIFIED-PASS",
     // 🔴 Row 4, 15 September 2026: built and run on owned evidence; half (b) of FAILURE needs answers the store lacks — BUILT-NOT-PROVED.
     "4:NOT-STARTED→BUILT-NOT-PROVED",
+    // 🔴 Row 4,  row 4 left BUILT-NOT-PROVED by a declared WORK move (TEST_RUN) — local reasoning researched from a primary source, limb (a) measured NOT MET — work, after its build. The rulings only settled the readings.
+    "4:BUILT-NOT-PROVED→VERIFIED-PASS",
     // 🔴 Row 5, 14 September 2026: run against its boundary and FAILED on its held-out check — work, after its ruling move.
     "5:NOT-STARTED→FAILED",
     // 🔴 Row 6, 14 September 2026: built and run on real evidence; no axis could be accepted or rejected — BUILT-NOT-PROVED.
@@ -342,10 +344,11 @@ test("before Amendment 2 the ledger was 3 / 18 / 0 / 3 / 0 / 6 / 28", () => {
  * wrong label, and has now earned it back a second time. Like row 7 its blocker was a READING, and
  * like row 9 what closed it was the measurement the settled reading made readable, not the ruling:
  * the ruling is recorded as data the validator evaluates, and the tick rests on an injection. */
-test("🔴 since Amendment 2, TWENTY-THREE rows hold VERIFIED-PASS (3, 7, 9, 11, 12, 13, 14, 17, 26, 36, 38, 42, 45, 47, 49, 50, 51, 53, 55, 56, 59, 60, 61) — 50 reached it, was REOPENED, and EARNED IT BACK; 48 LOST it and EARNED IT BACK", () => {
+/* 🔴 21 Sep 2026: row 4 left BUILT-NOT-PROVED by a declared WORK move (TEST_RUN) — local reasoning researched from a primary source, limb (a) measured NOT MET. TWENTY-FOUR. */
+test("🔴 since Amendment 2, TWENTY-FOUR rows hold VERIFIED-PASS (3, 4, 7, 9, 11, 12, 13, 14, 17, 26, 36, 38, 42, 45, 47, 49, 50, 51, 53, 55, 56, 59, 60, 61) — 50 reached it, was REOPENED, and EARNED IT BACK; 48 LOST it and EARNED IT BACK", () => {
   const rows = classify();
   const newPasses = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS" && BEFORE_AMENDMENT_2[r.id] !== "VERIFIED-PASS");
-  assert.deepEqual(newPasses.map((r) => r.id), [3, 7, 9, 11, 12, 13, 14, 17, 26, 36, 38, 42, 45, 47, 49, 50, 51, 53, 55, 56, 59, 60, 61]);
+  assert.deepEqual(newPasses.map((r) => r.id), [3, 4, 7, 9, 11, 12, 13, 14, 17, 26, 36, 38, 42, 45, 47, 49, 50, 51, 53, 55, 56, 59, 60, 61]);
   const lost = Object.values(rows).filter((r) => BEFORE_AMENDMENT_2[r.id] === "VERIFIED-PASS" && r.state !== "VERIFIED-PASS");
   assert.deepEqual(lost.map((r) => r.id), []);
   // The count hides a round trip — the chain does not.

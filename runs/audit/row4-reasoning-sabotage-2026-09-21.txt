@@ -1,0 +1,34 @@
+ROW 4 — LOCAL REASONING · SABOTAGE RECORD · 21 September 2026
+each: one exact single-occurrence change, verified landed, narrowest test run (TAP), RED count and the failing test named, restored in a finally block and verified byte-identical by sha256
+
+S1 · cross-tenant refusal removed · src/discovery/local-reasoning.mjs · landed true · loaded 1 · RED 1 · cause confirmed true · restored true
+    not ok — 6 · cross-tenant evidence → H, INVALID — never UNKNOWN, never a pass
+S2 · unresearched localities no longer stop the group (finding nothing could become A/J) · src/discovery/local-reasoning.mjs · landed true · loaded 2 · RED 2 · cause confirmed true · restored true
+    not ok — 3 · wording differs, reasoning unavailable → D (UNKNOWN), and one locality evidenced is still D, never C
+    not ok — 🔴 SAME WORDING, reasoning UNKNOWN stays K — never A, never J; one locality evidenced is still K
+S3 · conflict detection removed (silent pick) · src/discovery/local-reasoning.mjs · landed true · loaded 1 · RED 1 · cause confirmed true · restored true
+    not ok — 7 · two lawful sources conflict in one locality → I, CONFLICTING — both kept, no silent pick
+S4 · owner clause 4 — plural-only L removed · src/discovery/local-reasoning.mjs · landed true · loaded 1 · RED 1 · cause confirmed true · restored true
+    not ok — 🔴 L: wording that varies WITHIN a locality, and singular/plural alone (owner clause 4), are not local phrasing
+S5 · fixture guard removed — fixtures count as real · src/discovery/local-reasoning.mjs · landed true · loaded 1 · RED 1 · cause confirmed true · restored true
+    not ok — 11 · a fixture-only population is never a real-evidence PASS — and untagged evidence counts as nothing
+S6 · query wording accepted as its own reasoning proposition · src/discovery/local-reasoning.mjs · landed true · loaded 1 · RED 1 · cause confirmed true · restored true
+    not ok — 10 · query wording presented as its own reasoning source → refused (WORDING_AS_REASON)
+S7 · secondary source admitted — tier check removed · src/discovery/local-reasoning.mjs · landed true · loaded 2 · RED 2 · cause confirmed true · restored true
+    not ok — 9 · provenance removed → refused (NO_PROVENANCE), and no PASS
+    not ok — 🔴 MISSING and MALFORMED fields are refused, one refusal each — no default reads a record softer
+S8 · a hang (NOT_READ) reported as a refusal (G) · src/discovery/local-reasoning.mjs · landed true · loaded 1 · RED 1 · cause confirmed true · restored true
+    not ok — 🔴 M IS NOT G: a hang is NOT_READ (M); a refusal is G; neither is ever a finding
+S9 · separate-URL request no longer refused · src/discovery/local-reasoning.mjs · landed true · loaded 1 · RED 1 · cause confirmed true · restored true
+    not ok — 5 · a supported difference justifies different CONTENT (F) — and still NOT a separate URL; a record asking for one is refused
+S10 · manifest hash check removed · src/discovery/local-reasoning.mjs · landed true · loaded 1 · RED 1 · cause confirmed true · restored true
+    not ok — 🔴 THE BATCH REFUSES RATHER THAN SHORTENS — absent, tampered and miscounted batches all throw, by name
+S11 · census drops the reasoning module as a target · tools/country-url-census.mjs · landed true · loaded 2 · RED 2 · cause confirmed true · restored true
+    not ok — 12 · a path that constructs, accepts or recommends by country is caught by the limb (a) guard
+    not ok — 🟢 REAL — limb (a) on row 4's own path is 0 across all three verbs, and the verdict over the real batch is PASS on G13 alone
+S12 · decision-path walk skips src/ as well as tools/ · tools/country-url-census.mjs · landed true · loaded 1 · RED 1 · cause confirmed true · restored true
+    not ok — 12 · a path that constructs, accepts or recommends by country is caught by the limb (a) guard
+S13 · goal tenancy accepts rejected hosts · src/discovery/local-reasoning.mjs · landed true · loaded 1 · RED 1 · cause confirmed true · restored true
+    not ok — 🔴 GOAL TENANCY is resolved by the shared declared-host partition — unmapped, undeclared and ambiguous all refuse
+
+TOTAL: 13 designed · 13 landed · 13 RED · 13 cause confirmed · 13 restored

@@ -13,7 +13,7 @@ import { judgeLeavingUnknown, underDeclarationContract } from "../src/evidence/v
 import { validateRegistry } from "../src/facts/validate.mjs";
 import { DECLARATION_CONTRACT_AFTER } from "../src/facts/schema.mjs";
 import { productFromArgv } from "../src/product-cli.mjs";
-import { loadRegistry } from "../src/facts/registry.mjs";
+import { loadRegistry, verifiedSourceBearingFacts, REGISTRY_VERIFIED_COUNT } from "../src/facts/registry.mjs";
 
 const NA = "NOT_APPLICABLE";
 const UNDER_CONTRACT = "2026-09-14";
@@ -191,7 +191,12 @@ test("🔴 R4 · 10 · UNKNOWN / insufficient evidence stays FAIL-CLOSED — and
   }
 });
 
-test("🔴 R4 · 11 · no regression — a pre-contract verification is judged exactly as before, and the REAL registry is unchanged", async () => {
+/** The only records verified after DECLARATION_CONTRACT_AFTER — the owner's two, on 21 Sep 2026. */
+const OWNER_VERIFIED_2026_09_21 = Object.freeze([
+  "pk-pnmc.verification-fee.destination=domestic", "pk-pnmc.verification-fee.destination=foreign",
+]);
+
+test("🔴 R4 · 11 · no regression — a pre-contract verification is judged exactly as before, and the contract binds ONLY what was verified after it", async () => {
   // the same shape as a 12 September verdict: a qualified claim, no claimDimensions, no sourceRead
   const before = candidate({ ...QUALIFIED, verification: { checkedOn: "2026-09-12", sourceRead: undefined } });
   const j = judge(before);
@@ -203,7 +208,18 @@ test("🔴 R4 · 11 · no regression — a pre-contract verification is judged e
   const v = validateRegistry(records);
   assert.equal(v.valid, true, JSON.stringify(v.registryErrors.concat(v.invalidRecords), null, 1));
   assert.deepEqual([v.guard.judged, v.guard.advanced, v.guard.refused], [36, 25, 11]);
-  assert.deepEqual([...new Set(v.guard.judgements.map((x) => x.contract))], ["PRE_CONTRACT"], "a real record was re-judged under the contract");
-  assert.equal(records.filter((r) => r.verificationState === "VERIFIED").length, 16);
-  assert.equal(records.filter((r) => r.claimDimensions !== undefined).length, 0, "a declaration was manufactured on a real record");
+  /* 🔴 THE REGRESSION THIS GUARDS IS "a record was re-judged under the contract BY SIDE EFFECT" —
+   * not "no record is ever under the contract". Until 21 Sep 2026 no real verification postdated
+   * DECLARATION_CONTRACT_AFTER, so an empty contract population said both things at once. The two
+   * the owner verified are named, and every other record must still be judged as it was. */
+  assert.deepEqual(
+    v.guard.judgements.filter((x) => x.contract !== "PRE_CONTRACT").map((x) => x.id).sort(),
+    [...OWNER_VERIFIED_2026_09_21].sort(),
+    "a real record was re-judged under the contract",
+  );
+  for (const j of v.guard.judgements.filter((x) => !OWNER_VERIFIED_2026_09_21.includes(x.id))) {
+    assert.equal(j.contract, "PRE_CONTRACT", `${j.id}: judged under the contract without being verified after it`);
+  }
+  assert.equal(verifiedSourceBearingFacts(records).length, REGISTRY_VERIFIED_COUNT);
+  assert.deepEqual(records.filter((r) => r.claimDimensions !== undefined).map((r) => r.id).sort(), [...OWNER_VERIFIED_2026_09_21].sort(), "a declaration was manufactured on a real record");
 });

@@ -19,13 +19,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { loadRegistry } from "../src/facts/registry.mjs";
+import { loadRegistry, verifiedSourceBearingFacts, REGISTRY_VERIFIED_COUNT } from "../src/facts/registry.mjs";
 import { createFactCache, freshnessOf } from "../src/facts/lifecycle.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const { records } = await loadRegistry((await (await import("./support/subjects.mjs")).subject("almi-oet")).factsDir, "almi-oet");
 
-const VERIFIED = records.filter((f) => f.verificationState === "VERIFIED");
+/* 🔴 SOURCE-BEARING ONLY. Every leg below asks a verified fact for its source, its tier and its
+ * recheck window — the three things a derived record does not carry (F28). Filtering on the label
+ * alone picked the right population only while the one derived record was UNKNOWN. */
+const VERIFIED = verifiedSourceBearingFacts(records);
 const TODAY = new Date("2026-09-12");
 const ask = (f) => ({ subject: f.claim.subject, predicate: f.claim.predicate, qualifier: f.claim.qualifier, scope: f.scope });
 
@@ -41,12 +44,15 @@ const UK = records.find((f) => f.id === "uk-nmc.oet-minimum-grade.profession=nur
 // 🔴 25 since item 50's whole population was reconciled (13 Sep 2026 morning).
 // 🔴 16 since the 9 ambiguous labels were demoted by beta-g ruling (13 Sep 2026 evening).
 test("🔴 the input is 16 REAL verified facts, each with source, tier, scope, date and window", () => {
-  assert.equal(VERIFIED.length, 16);
+  /* 🔴 AGAINST THE REGISTRY'S OWN DECLARATION, not a number retyped here. 16 until the owner's
+   * verification of 21 Sep 2026 added the two pk-pnmc destination fees. */
+  assert.equal(VERIFIED.length, REGISTRY_VERIFIED_COUNT);
+  assert.ok(VERIFIED.length > 0, "no verified fact at all — the loop would be proving nothing");
   for (const f of VERIFIED) {
     assert.ok(f.source?.url, `${f.id}: no source`);
     assert.ok(typeof f.source?.tier === "number", `${f.id}: no tier`);
     assert.ok(f.scope, `${f.id}: no scope`);
-    assert.ok(["2026-09-12", "2026-09-13"].includes(f.checks.factCheckedOn), `${f.id}: no verification date`);
+    assert.ok(["2026-09-12", "2026-09-13", "2026-09-21"].includes(f.checks.factCheckedOn), `${f.id}: no verification date`);
     assert.ok(f.checks.recheckAfter, `${f.id}: no freshness window — it would never expire`);
   }
 });
@@ -56,7 +62,9 @@ test("the recheck policy that set those dates: 90 days for fees and lists, 180 f
   for (const f of VERIFIED) w[f.verification.recheckWindowDays] = (w[f.verification.recheckWindowDays] ?? 0) + 1;
   // 13 Sep evening demotion took 3 records with 90-day windows (2 pk-pnmc fees + 1 red-list-rule)
   // and 6 with 180-day windows (4 uk-nmc + ie-nmbi + uk-hcpc). {90: 5-3=2, 180: 20-6=14}, total 16.
-  assert.deepEqual(w, { 90: 2, 180: 14 });
+  // 🔴 {90: 4, 180: 14}, total 18, since 21 Sep 2026: the two pk-pnmc fees the owner verified are
+  // fees, so they return on the 90-day side they left — the policy this test names is unchanged.
+  assert.deepEqual(w, { 90: 4, 180: 14 });
   const dates = VERIFIED.map((f) => f.checks.recheckAfter).sort();
   assert.equal(dates[0], "2026-12-11", "the earliest recheck falls due 11 December 2026");
   assert.equal(dates.at(-1), "2027-03-12"); // 2027-03-11 until the two 13 Sep verifications
@@ -104,7 +112,7 @@ test("🔴 LEG (ii): all 16 verified facts are reusable inside their scope and w
     assert.equal(r.hit, true, `${f.id} is verified and in-window but missed: ${r.reason}`);
     assert.equal(r.fact.id, f.id, `${f.id} returned a DIFFERENT fact — ${r.fact.id}`);
   }
-  assert.equal(cache.stats().hits, 16);
+  assert.equal(cache.stats().hits, VERIFIED.length, "every verified fact must be reusable, whatever the count is today");
 });
 
 /* ================================================================== *

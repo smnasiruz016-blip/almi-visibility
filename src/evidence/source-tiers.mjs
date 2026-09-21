@@ -13,6 +13,7 @@
  */
 
 import { makeSource, tierRank, SOURCE_TIERS } from "./records.mjs";
+import { isDerivedFact } from "../facts/registry.mjs";
 
 /** The registry's numeric tier, mapped onto the frozen §623 order (1 = the authority itself). */
 const BY_NUMBER = Object.freeze(["OFFICIAL", "OFFICIAL", "VERIFIED_ALMIWORLD", "REPUTABLE_SECONDARY", "COMPETITOR_COMMUNITY"]);
@@ -37,8 +38,18 @@ export function sourceTierOfFact(f) {
   return "AGENT_INFERENCE";
 }
 
-/** A real Source record for one fact's citation. */
+/**
+ * A real Source record for one fact's citation.
+ *
+ * 🔴 A DERIVED RECORD CITES NO SOURCE — F28. Its standing is inherited from the records it computes
+ * over, so it carries no `source.url` and never will. Asking it for one is a caller that picked the
+ * wrong population, and it is told so by name here rather than dying inside `makeSource` as a
+ * missing string with nothing in the message to say which record or why.
+ */
 export function sourceRecordFromFact(f) {
+  if (isDerivedFact(f)) {
+    throw new TypeError(`${f?.id}: a derived record cites no source — rank the records it computes over, not the record itself (F28)`);
+  }
   return makeSource({
     source_id: `fact-source:${f.id}`,
     source_url: f.verification?.sourceUrl ?? f.source?.url,

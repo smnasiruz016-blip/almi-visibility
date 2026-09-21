@@ -50,6 +50,7 @@ export const ANSWER_REASONS = Object.freeze({
   ONE_VALUE_ONLY: "ONE_VALUE_ONLY",
   NO_VERIFIED_ANSWER: "NO_VERIFIED_ANSWER",
   CONFLICTING_ANSWERS_AT_A_VALUE: "CONFLICTING_ANSWERS_AT_A_VALUE",
+  DISJOINT_VALUE_POPULATION: "DISJOINT_VALUE_POPULATION",
   ANSWER_CHANGES: "ANSWER_CHANGES",
   ANSWER_CONSTANT: "ANSWER_CONSTANT",
 });
@@ -120,7 +121,7 @@ export function tenancyGate(axisScope, evidenceScope) {
  * @param {{state: string, tenantId?: string|null}} args.evidenceScope
  * @returns {{ gate: object|null, byAxis: Record<string, object>, population: object }}
  */
-export function answerEvidence({ claims = [], axisScope, evidenceScope }) {
+export function answerEvidence({ claims = [], axisScope, evidenceScope, axisValues = null }) {
   /* 🔴 TENANCY FIRST — before a single answer is read. */
   const gate = tenancyGate(axisScope, evidenceScope);
   const qualified = claims.map((c) => ({ c, q: parseQualifiedClaim(c?.identity) })).filter((x) => x.q);
@@ -142,6 +143,19 @@ export function answerEvidence({ claims = [], axisScope, evidenceScope }) {
 
   const byAxis = {};
   for (const [axis, byStem] of axes) {
+    /* 🔴 THE VALUES MUST BE THE SAME POPULATION, NOT THE SAME WORD. An axis discovered on one set of
+     * values cannot be decided by answers about a different set that happens to share its name. */
+    if (axisValues && Object.prototype.hasOwnProperty.call(axisValues, axis)) {
+      const discovered = new Set((axisValues[axis] ?? []).map((v) => String(v)));
+      const answered = new Set([...byStem.values()].flat().map((r) => String(r.axisValue)));
+      const shared = [...answered].filter((v) => discovered.has(v));
+      if (discovered.size > 0 && shared.length === 0) {
+        byAxis[axis] = leg("INSUFFICIENT_EVIDENCE", ANSWER_REASONS.DISJOINT_VALUE_POPULATION,
+          `the answer evidence covers ${answered.size} value(s) and the axis was discovered on ${discovered.size}, and they share NONE — one axis name, two value vocabularies. Deciding the axis on answers about values it was never discovered on would measure a different population`,
+          { evidence: [], discoveredValues: discovered.size, answeredValues: answered.size, sharedValues: 0 });
+        continue;
+      }
+    }
     const groups = [];
     for (const [stem, rs] of byStem) {
       const verified = rs.filter((r) => r.verified);

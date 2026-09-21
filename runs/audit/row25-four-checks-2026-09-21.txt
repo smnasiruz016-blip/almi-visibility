@@ -1,0 +1,40 @@
+corpus: C:\Projects\almi-visibility-data\observations\crawl-2026-09-12\bodies-2026-09-12.jsonl.br (committed archive)
+[bound: 389 distinct pages with a served body · 73 template groups · thresholds uniqueWords>=350, siblingOverlap<=0.4, facts>=5, fact value >=8 chars]
+TEMPLATE GROUP = one host, the same first path segment, the same path depth.
+
+SHELL = learned from the template group when it has 3 or more pages; otherwise borrowed from the OTHER pages of the same site (3 or more); otherwise UNMEASURABLE (D-GATEA-1).
+  shells: GROUP 327 · REFERENCE 56 · NONE 6
+
+=== 1 · UNIQUE VALUE (unique words after the page's shell) ===
+  measured 383 of 389 · at or above 350: 155 · below: 228 · UNMEASURABLE 6 (the only crawled page on its site — no shell to learn)
+=== 2 · SIBLING OVERLAP (max body-shingle Jaccard against every sibling in the group) ===
+  MEASURED 337 of 389 · within 0.4: 243 · above: 94
+  VACUOUS 52 (a group of one — no sibling) · UNMEASURABLE 0 (a group of two — on a site with too few other pages to lend a shell). Neither is a pass.
+=== 3 · VERIFIED-FACT PRESENCE (registry VERIFIED values found in the page text) ===
+  measured 389 of 389 · carrying at least one verified fact: 0 · reaching 5: 0
+=== 4 · SOURCE INTEGRITY (the recorded link check of every source a page's facts cite) ===
+  sources checked: 15 [bound: 18 of 40 requests, 1/s] · LIVE 15 · GONE 0 · UNKNOWN 0
+  pages citing a verified source: 0
+
+=== CONTROL — a page this engine GENERATED from the registry (runs/nursing-chain/nursing.html). NOT an existing page ===
+  verified facts present 4, qualifying 4 — the rule can see a fact; it has seen none on the 389 existing pages
+    source LIVE (HTTP 200, HEAD)  https://www.nmbi.ie/Registration/Qualified-outside-the-EU/Application-Process/English-Language-Requirements
+    source LIVE (HTTP 200, HEAD)  https://oet.com/en-us/test/oet-test
+    source LIVE (HTTP 200, HEAD)  https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/accepted-english-language-tests/oet/
+
+=== ROW 25 — FOUR CHECKS PER PAGE · registry FACT_REGISTRY almi-oet/facts · capture row25-2026-09-21 (2 page(s)) ===
+  population 391 = 391 real + 0 fixture · INVALID (cross-tenant) 362 · UNBOUND 0 · bound, no claim bound to a fact 27 · SELECTED 2
+  outcomes: PASS 0 · FAIL 2 · UNKNOWN 27 · INVALID 362 · remainder 0
+  https://almioet.almiworld.com/register/ie-nmbi
+    A unique value FAIL (27 words) · B sibling overlap NOISY (0.000 vs null)
+    C verified-fact presence ADDRESSED_NOT_PRESENT · D source integrity FAIL — ie-nmbi.oet-minimum-grade.profession=nursing: DRIFT (writing)
+      ie-nmbi.oet-minimum-grade.profession=nursing [VERIFIED] DRIFT — stated {"listening":"b","reading":"b","speaking":"b","writing":"b"} · VERIFIED {"listening":"b","reading":"b","speaking":"b","writing":"c+"}
+  https://almioet.almiworld.com/nursing/from-afghanistan/ie-nmbi
+    A unique value FAIL (131 words) · B sibling overlap PASS (0.031 vs https://almioet.almiworld.com/nursing/from-ghana/au-education-centre-of-australia)
+    C verified-fact presence ADDRESSED_NOT_PRESENT · D source integrity FAIL — ie-nmbi.oet-minimum-grade.profession=nursing: DRIFT (writing)
+      ie-nmbi.oet-minimum-grade.profession=nursing [VERIFIED] DRIFT — stated {"listening":"b","reading":"b","speaking":"b","writing":"b"} · VERIFIED {"listening":"b","reading":"b","speaking":"b","writing":"c+"}
+  controls (fixture, never counted): A fires true · silent true | B fires true · silent true | C fires true · silent true | D fires true · silent true
+  deferred, never counted: right-to-exist (DEFERRED, PASS_BOUNDARIES_SOURCE.md:326) · cannibalization (DEFERRED, PASS_BOUNDARIES_SOURCE.md:326) · technical-readiness (DEFERRED, PASS_BOUNDARIES_SOURCE.md:326)
+  ROW 25 VERDICT: PASS
+
+🔴 MEASUREMENT ONLY. Nothing here decides that a page should be kept, changed or removed.

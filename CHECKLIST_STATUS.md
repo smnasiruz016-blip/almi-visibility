@@ -22,12 +22,29 @@ its verdict live in **`CHECKLIST_BOUNDARIES.md`**, generated from the frozen rul
 |---|---|---|
 | **NOT-STARTED** | 33 | **2** |
 | **BUILT-NOT-PROVED** | 24 | **4** |
-| **TESTABLE-NOW** | — | **1** |
-| **VERIFIED-PASS** | 0 | **27** |
+| **TESTABLE-NOW** | — | **0** |
+| **VERIFIED-PASS** | 0 | **28** |
 | **FAILED** | — | **2** |
 | **BLOCKED-UNKNOWN** | 1 | **2** |
 | **DEFERRED** | — | **23** |
 | **total** | 58 | **61** |
+
+> ### 🔴 ROW 25 TICKED — THE FOUR CHECKS REACHED A REAL CLAIM, AND SOURCE INTEGRITY CAUGHT IT DRIFTING — 21 SEPTEMBER 2026 — WORK
+>
+> - **Tenancy first.** Owner ruling, 21 Sep 2026 (`_handoffs/AlmiVisibility_OWNER_RULING_2026-09-21_TENANT_RESOURCE_ATTACHMENTS.md`):
+>   a site and a fact registry are resource attachments, and they bind only when both are declared to one subject. So 362 of
+>   391 real pages are **INVALID_CROSS_TENANT** for the fact checks, not "0 facts".
+> - **The 13 Sep gap is closed on real pages.** Two existing pages were captured under a selection rule published before any
+>   request (7 of 30 requests). On both, the stated OET grade for the Irish nursing regulator binds to a **VERIFIED** fact
+>   whose source the page itself cites — and **drifts on writing** (the page says B; VERIFIED says C+). Source integrity
+>   **FAILS** both, as it must.
+> - 🔴 **What the tick means:** the four checks are MEASURED AND REPORTED per page, with a firing fixture and a silent clean
+>   control each. That is the frozen v0.1 half. It does **not** mean any page passes (0 PASS). It does not mean a real page
+>   states a VERIFIED fact correctly: a clean C/D is shown only on a fixture.
+> - **Deferred, never counted:** right-to-exist, cannibalization and technical-readiness, **as pre-publish gates**
+>   (SOURCE:326).
+> - **Ledger 2 / 4 / 0 / 28 / 2 / 2 / 23 = 61.** Denominator unchanged, so progress is **28 / 38**. 🔴 A progress fraction
+>   is not the DONE contract (row 58).
 
 > ### 🔴 ROW 4 TICKED — LOCAL REASONING RESEARCHED FROM A PRIMARY SOURCE, AND LIMB (a) MEASURED NOT MET ON ALL THREE VERBS — 21 SEPTEMBER 2026 — WORK
 >
@@ -1134,7 +1151,7 @@ actually came from.
 | 22 | Best Answer Architecture | DEFERRED | OUT — v0.1 EXCLUDES l.974 page generation | none | 2026-09-11 | Claude (repo audit) | — | — |
 | 23 | Answer-First Content | DEFERRED | OUT — v0.1 EXCLUDES l.974 page generation | none | 2026-09-11 | Claude (repo audit) | — | — |
 | 24 | Original Information Gain | DEFERRED | OUT — v0.1 EXCLUDES l.974 page generation | Gate A's sibling-overlap measure is a partial instrument for uniqueness, but it does not measure value beyond competitors | 2026-09-11 | Claude (repo audit) | — | — |
-| 25 | Page Quality Gate | TESTABLE-NOW | PARTIAL — Gate A exists as the audit slice's quality instrument; the *publishing* gate is OUT (l.974) | **Attempted once, 13 Sep.** (1) unique value on 389/389 existing pages; (2) sibling overlap MEASURED on 327, with 52 VACUOUS and 10 UNMEASURABLE named (D-GATEA-1); (3) verified-fact presence on 389/389 — **0 carry a verified fact**; (4) source integrity by the owner-authorised live link check — **15/15 sources LIVE**, 0 GONE, 0 disagreements with the 12 Sep baseline, 18/40 requests | 2026-09-13 | Claude (queue run) | **Gap:** with no existing page carrying a verified fact, source integrity is reported for no page. Next: existing pages that state registry facts, which needs a bounded capture and the owner's green | queue run, 13 Sep 2026 |
+| 25 | Page Quality Gate | VERIFIED-PASS | PARTIAL — Gate A exists as the audit slice's quality instrument; the *publishing* gate is OUT (l.974) | `node bin/page-quality.mjs --product=almi-oet --check` · `test/page-quality-row25.test.mjs` (23) · `test/existing-pages.test.mjs` · `runs/audit/row25-four-checks-2026-09-21.txt` · `runs/audit/row25-sabotage-2026-09-21.txt` (14 of 14 RED, restored) · data `captures/row25-2026-09-21` (2 real pages, sha256-pinned) · `runs/audit/source-integrity-2026-09-13.json` | 2026-09-21 | CC (work, TEST_RUN) | **21 Sep 2026: TICKED on work.** Tenancy first: 362 of 391 real pages INVALID_CROSS_TENANT for C/D, 27 bound with no claim bound to a fact, **2 selected**. On both, the Irish nursing regulator grade stated as Writing B binds to a VERIFIED fact (C+) whose source the page cites: C ADDRESSED_NOT_PRESENT, **D FAIL** (drift). A FAIL, B NOISY/PASS. Each check fires on a fixture and stays silent on a clean one. 🔴 0 pages PASS; no real page states a VERIFIED fact correctly. Deferred pre-publish limbs stay DEFERRED. The 13 Sep verdict is kept as whyTestableNow | queue run, 13 Sep 2026 |
 | 26 | Internal-Link Intelligence | VERIFIED-PASS | PARTIAL — link capture rides on the crawler (IN, l.974); opportunity-finding is later | **The 340/341 disagreement raised as 11 Issues, both instruments found wrong** (one counted observations, one ignored other hosts), **one definition** (`src/crawl/inbound.mjs`), **one stored graph** (`runs/crawl/edges-2026-09-12.jsonl.br`), **both runners print 335**, the Issues closed on that evidence. 335 pages with no inbound link, all UNKNOWN, 0 'missing' | 2026-09-13 | Claude (queue run) | Raw HTML only: a JavaScript-injected link is invisible and reads UNKNOWN. No opportunity-finding exists (the later half) | queue run, 13 Sep 2026 |
 | 27 | Entity Intelligence | DEFERRED | OUT — later phase; §62 l.553 | none | 2026-09-11 | Claude (repo audit) | — | — |
 | 28 | International / Local SEO | DEFERRED | OUT — v0.1 EXCLUDES l.974 corridor engine (§6, §15) | none | 2026-09-11 | Claude (repo audit) | — | — |

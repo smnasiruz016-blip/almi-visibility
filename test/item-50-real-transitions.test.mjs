@@ -90,10 +90,18 @@ const RETURNED = Object.freeze({
   "uk-ukvi.english-nationality-exemption.nationality=india": 1,
 });
 /* the 9 VERIFIED labels that rest on a reading the reconciliation cannot settle */
+/* 🔴 SEVEN SINCE 21 SEPTEMBER 2026, NOT NINE. The owner verified the two pk-pnmc destination fees
+ * together against the official source, which settled exactly the ambiguity that had demoted them:
+ * the qualifier now IS a declared element and the verdict names it. The other seven still rest on
+ * the unsettled reading and are unchanged. */
 const AMBIGUOUS = Object.freeze([
-  "ie-nmbi.recognised-english-speaking-countries", "pk-pnmc.verification-fee.destination=domestic", "pk-pnmc.verification-fee.destination=foreign",
+  "ie-nmbi.recognised-english-speaking-countries",
   "uk-code-of-practice.red-list-rule", "uk-hcpc.accepted-english-tests", "uk-nmc.accepted-oet-delivery-modes.profession=nursing",
   "uk-nmc.english-evidence-routes.profession=nursing", "uk-nmc.oet-combining-sittings-floor.profession=nursing", "uk-nmc.oet-minimum-grade.profession=nursing",
+]);
+/** The two the owner verified on 21 September 2026 — kept by name so the change stays visible. */
+const OWNER_VERIFIED_2026_09_21 = Object.freeze([
+  "pk-pnmc.verification-fee.destination=domestic", "pk-pnmc.verification-fee.destination=foreign",
 ]);
 
 /* ---- the four #64 reconciled --------------------------------------------- */
@@ -150,8 +158,16 @@ test("🔴 50 · THE WHOLE GOVERNED POPULATION — 36 real records judged: 25 ad
   // That is exactly the gap the demotion exposes — see PART 4.
   assert.deepEqual([v.guard.judged, v.guard.advanced, v.guard.refused], [36, 25, 11]);
   assert.deepEqual(v.guard.judgements.map((j) => j.id).sort(), [...FOUR, ...THIRTY_TWO].sort());
-  const unguarded = records.filter((r) => r.verificationState === "VERIFIED" && !judgementOf(r.id)).map((r) => r.id);
+  /* 🔴 A DERIVED FACT HAS NO CHECKER BY DESIGN — its standing IS its inputs'. So it is excluded
+   * here and its PROVENANCE is asserted instead, which is stricter than the old census: that one
+   * never looked at a derived record's inputs at all. */
+  const unguarded = records.filter((r) => r.verificationState === "VERIFIED" && r.kind !== "derived" && !judgementOf(r.id)).map((r) => r.id);
   assert.deepEqual(unguarded, [], "a VERIFIED label never passed through the guard");
+  for (const d of records.filter((r) => r.kind === "derived" && r.verificationState === "VERIFIED")) {
+    for (const input of d.derivation.inputs) {
+      assert.ok(judgementOf(input), `${d.id}: its input ${input} never passed the guard, so its inherited standing is unguarded`);
+    }
+  }
   // MEASURED after the 9-record demotion: 25 - 9 = 16 records still declared VERIFIED.
   assert.equal(records.filter((r) => r.verificationState === "VERIFIED").length, 16);
   assert.equal(UNKNOWN_ON_2026_09_12.length, 14);

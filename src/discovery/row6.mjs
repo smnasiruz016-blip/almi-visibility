@@ -13,6 +13,7 @@ import { discoverAxes, axisErrors } from "./axis-discovery.mjs";
 import { answerEvidence } from "./answer-evidence.mjs";
 import { availableSubjects, importSubjectModule } from "../subject-roots.mjs";
 import { createTenantResolver } from "../tenancy/resolver.mjs";
+import { partitionRowsByDeclaredHost } from "../tenancy/row-partition.mjs";
 import { factRegistryRef, externalRootContaining } from "../adapter/external-subject.mjs";
 import { loadRegistry } from "../facts/registry.mjs";
 import { product } from "../product.mjs";
@@ -170,6 +171,11 @@ export function row6({ records, crawlRecords, bodies, lexicon, reference, ambigu
   const cq = observation(records, COUNTRY_QUERY_OBSERVATION, ":country-query");
   const cqPopulation = splitPopulation(cq.value.rows);
   const pages = observation(records, PAGE_ROWS_OBSERVATION, ":page-rows");
+  /* 🔴 THE PAGE-ROW INPUT IS A MIXED CAPTURE, AND THE RUN SAYS SO. One property covers many declared
+   * site tenants; the hard-coded-axis counts below are drawn from all of them. The partition is
+   * reported rather than applied silently, because a count that hides whose pages it came from is
+   * the shape that lets one client's URL space speak for another's. */
+  const pageRowScopes = partitionRowsByDeclaredHost({ rows: pages.value.rows, resolve: createTenantResolver({}) });
   const pairs = siblingPairs({ bodies, crawlRecords, families });
   const declaredBy = {};
   for (const [productId, key] of Object.entries(declaredAxes)) (declaredBy[key] ||= []).push(productId);
@@ -195,6 +201,7 @@ export function row6({ records, crawlRecords, bodies, lexicon, reference, ambigu
   const named = contractAxes();
   return {
     answerEvidence: answers,
+    pageRowScopes,
     input: {
       queries: { observationId: r5.input.observationId, rows: r5.input.rowCount, human: r5.population.human.length, operators: r5.population.operators.length },
       countryQuery: { observationId: COUNTRY_QUERY_OBSERVATION, observedAt: cq.observed_at, rows: cq.value.rows.length, human: cqPopulation.human.length, operators: cqPopulation.operators.length, countries: new Set(cqPopulation.human.map((r) => r.country)).size },

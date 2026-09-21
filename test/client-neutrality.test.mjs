@@ -49,6 +49,8 @@ const OWNED = Object.freeze([
    * checker name, a registry id, a hostname in an example. It carries none, and now it cannot. */
   "src/evidence/pre-contract-grandfathering.mjs",
   "src/tenancy/resolver.mjs",
+  /* 🔴 Added 21 Sep 2026 by E13a, which refuses to let a new src/tenancy module slip past this census. */
+  "src/tenancy/row-partition.mjs",
   "src/tenancy/sitemap-residency.mjs",
   "src/adapter/sitemap-subject.mjs",
   "src/adapter/observed-page-subject.mjs",

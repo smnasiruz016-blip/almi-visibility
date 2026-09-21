@@ -45,9 +45,13 @@ const check = (results) => axisErrors({ results, namedAxes: NAMED });
  * made up. A sabotage that replaced them with a matching pair stayed green until this existed.
  * ================================================================== */
 
+/* 🔴 THE VALUES MUST BE ONES THE AXIS IS ACTUALLY DISCOVERED ON. Since FIX 9 an answer leg may not
+ * decide an axis whose value vocabulary it does not share, so a control using invented values would
+ * be refused — correctly — and would prove nothing about the wiring. The real 'locality' axis is
+ * discovered on searcher countries, so the control uses two of those. */
 const CLAIMS = [
-  { identity: "ctl-authority.ctl-claim.profession=alpha", answer: "same", verified: true },
-  { identity: "ctl-authority.ctl-claim.profession=beta", answer: "same", verified: true },
+  { identity: "ctl-authority.ctl-claim.locality=searcher:gbr", answer: "same", verified: true },
+  { identity: "ctl-authority.ctl-claim.locality=searcher:usa", answer: "same", verified: true },
 ];
 const T1 = "tenant:11111111111111111111111111111111";
 const T2 = "tenant:22222222222222222222222222222222";
@@ -75,11 +79,11 @@ test("🔴 WIRING · same declared tenant → the evidence reaches the axis and 
   const r = row6({ ...INPUTS, answerClaims: CLAIMS,
     axisScope: { state: "RESOLVED", tenantId: T1 }, evidenceScope: { state: "RESOLVED", tenantId: T1 } });
   assert.equal(r.answerEvidence.gate, null);
-  const leg = r.answerEvidence.byAxis.profession;
+  const leg = r.answerEvidence.byAxis.locality;
   assert.equal(leg.state, "MEASURED");
   assert.equal(leg.materiallyChanges, false);
   /* 🔴 THE WHOLE POINT: the measured leg reaches the real axis result through the real path. */
-  assert.equal(r.results.find((x) => x.axis === "profession").distinguishing.answer.state, "MEASURED");
+  assert.equal(r.results.find((x) => x.axis === "locality").distinguishing.answer.state, "MEASURED");
 });
 
 test("🔴 WIRING · row6 FORWARDS the availability and human-value legs — S16 stayed green until this existed", () => {

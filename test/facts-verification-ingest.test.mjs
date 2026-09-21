@@ -16,7 +16,7 @@ import { existsSync } from "node:fs";
 
 import { fact, VERIFICATION_STATES, UNKNOWN_REASONS } from "../src/facts/record.mjs";
 import { detectConflicts, freshnessOf, createFactCache, markForReview } from "../src/facts/lifecycle.mjs";
-import { loadRegistry, primaryFacts, derivedFacts } from "../src/facts/registry.mjs";
+import { loadRegistry, primaryFacts, derivedFacts, REGISTRY_VERIFIED_COUNT } from "../src/facts/registry.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -178,8 +178,10 @@ test("🔴 the ingested recheck date GOVERNS freshness — asked on a day the tw
 // 🔴 25 since item 50's whole population was reconciled (13 Sep 2026 morning): 8 records whose verdicts named only part of their value returned to UNKNOWN.
 // 🔴 16 since the 9 ambiguous labels were demoted by beta-g ruling (13 Sep 2026 evening).
 test("🔴 REAL: all 16 VERIFIED records carry a recheck date, and it is the one freshness uses", () => {
-  const verified = records.filter((f) => f.verificationState === "VERIFIED");
-  assert.equal(verified.length, 16);
+  /* 🔴 SOURCE-BEARING ONLY — a recheck date is a promise to re-read a source, and a derived record
+   * has none to re-read. `checked` is the population this whole file measures. */
+  const verified = checked.filter((f) => f.verificationState === "VERIFIED");
+  assert.equal(verified.length, REGISTRY_VERIFIED_COUNT);
   for (const f of verified) {
     assert.ok(f.verification.recheckAfter, `${f.id}: VERIFIED with no recheck date — it would never expire`);
     assert.equal(f.checks.recheckAfter, f.verification.recheckAfter, `${f.id}: the date did not reach freshnessOf`);
@@ -236,7 +238,8 @@ test("CONTROL: a well-formed UNKNOWN is accepted, so the two tests above are not
 test("🔴 REAL: 46 records — 16 VERIFIED, 30 UNKNOWN, 0 left UNVERIFIED (after the 9 ambiguous labels were demoted 13 Sep evening)", () => {
   const by = {};
   for (const f of checked) by[f.verificationState] = (by[f.verificationState] ?? 0) + 1;
-  assert.deepEqual(by, { VERIFIED: 16, UNKNOWN: 30 });
+  // 🔴 18/28 since 21 Sep 2026: the owner verified the two pk-pnmc destination fees. 16/30 before.
+  assert.deepEqual(by, { VERIFIED: 18, UNKNOWN: 28 });
 });
 
 // 🔴 13 Sep 2026 morning: of the four SOURCE_UNREACHABLE, two were VERIFIED, one is now PARTIAL_EVIDENCE, one stays SOURCE_UNREACHABLE.
@@ -246,15 +249,22 @@ test("🔴 REAL: the 30 UNKNOWNs break down 6 CONFLICT / 4 INCOMPLETE / 19 PARTI
   for (const f of checked.filter((f) => f.verificationState === "UNKNOWN")) {
     by[f.verification.reason] = (by[f.verification.reason] ?? 0) + 1;
   }
-  assert.deepEqual(by, { CONFLICT: 6, INCOMPLETE: 4, PARTIAL_EVIDENCE: 19, SOURCE_UNREACHABLE: 1 });
+  // 🔴 PARTIAL_EVIDENCE 19 → 17 on 21 Sep 2026: the two pk-pnmc fees left this column for VERIFIED
+  // when the owner read the official source and the verdict named their destination element.
+  assert.deepEqual(by, { CONFLICT: 6, INCOMPLETE: 4, PARTIAL_EVIDENCE: 17, SOURCE_UNREACHABLE: 1 });
   for (const r of Object.keys(by)) assert.ok(r in UNKNOWN_REASONS, `${r} is not a declared reason`);
 });
 
 test("🔴 REAL: every one of the 46 records names WHO checked it and WHEN", () => {
-  // 🔴 The four OET records were checked again on 13 Sep 2026 (item 50); the other 42 carry the 12 Sep check.
+  // 🔴 The four OET records were checked again on 13 Sep 2026 (item 50); the other 42 carried the 12 Sep check.
+  // 🔴 And two more on 21 Sep 2026, when the owner verified the pk-pnmc destination fees together
+  // against the official source. 40 + 4 + 2 = 46. The dates are named by record, not by a range,
+  // so a record that drifts onto the wrong day is still caught.
   const rechecked = ["oet.content-licence-permits-stored-quotation", "oet.writing-task-type.profession=nursing", "oet.speaking-roleplay-setting.profession=nursing", "oet.grade-bands-0-500"];
+  const ownerVerified = ["pk-pnmc.verification-fee.destination=domestic", "pk-pnmc.verification-fee.destination=foreign"];
   for (const f of checked) {
-    assert.equal(f.checks.factCheckedOn, rechecked.includes(f.id) ? "2026-09-13" : "2026-09-12", `${f.id}: no check date`);
+    const expected = ownerVerified.includes(f.id) ? "2026-09-21" : rechecked.includes(f.id) ? "2026-09-13" : "2026-09-12";
+    assert.equal(f.checks.factCheckedOn, expected, `${f.id}: no check date`);
     assert.match(f.checks.factCheckedBy, /^human:/, `${f.id}: a fact check must name a person, not a tool`);
   }
 });
@@ -331,10 +341,13 @@ test("🔴 REAL: the honest hit rate is BELOW 100% — a perfect one would mean 
   // 🔴 64/28 on 12 Sep 2026; two records verified through the guard on 13 Sep add 4 hits and remove 4 misses.
   // 68/24 after #63; 66/26 after #64; 50/42 once the whole population was reconciled (8 more records UNKNOWN).
   // 32/60 after the 13 Sep evening demotion of 9 ambiguous labels (each asked twice: 18 hits become 18 more misses).
-  assert.equal(s.hits, 32);
-  assert.equal(s.misses, 60);
+  // 🔴 36/56 since 21 Sep 2026: two records became VERIFIED, and each is asked twice — 4 misses
+  // become 4 hits. 32/60 from the 13 Sep evening demotion.
+  assert.equal(s.hits, 36);
+  assert.equal(s.misses, 56);
   assert.ok(s.hitRate < 1, "🔴 100% means the cache is serving everything, including what it should refuse");
-  assert.deepEqual(s.missReasons, { UNKNOWN_CONFLICT: 12, UNKNOWN_INCOMPLETE: 8, UNKNOWN_PARTIAL_EVIDENCE: 38, UNKNOWN_SOURCE_UNREACHABLE: 2 });
+  // 🔴 PARTIAL_EVIDENCE 38 → 34: the same two records, asked twice each, no longer refused.
+  assert.deepEqual(s.missReasons, { UNKNOWN_CONFLICT: 12, UNKNOWN_INCOMPLETE: 8, UNKNOWN_PARTIAL_EVIDENCE: 34, UNKNOWN_SOURCE_UNREACHABLE: 2 });
 });
 
 /* ================================================================== *

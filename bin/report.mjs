@@ -21,7 +21,7 @@ import { dirname, join } from "node:path";
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { renderPage, summarise, reconcile } from "../src/report/view.mjs";
-import { loadRegistry } from "../src/facts/registry.mjs";
+import { loadRegistry, verifiedSourceBearingFacts } from "../src/facts/registry.mjs";
 import { productFromArgvOrExit } from "../src/product-cli.mjs";
 import { lifecycleOf, walkChain } from "../src/evidence/lifecycle.mjs";
 import { makeSource } from "../src/evidence/records.mjs";
@@ -120,7 +120,9 @@ const sourcesIn = [
     publisher: "AlmiVisibility (drafted, not approved)",
     retrieved_at: r.drafted_at,
   })),
-  ...facts.filter((f) => f.verificationState === "VERIFIED").map(sourceRecordFromFact),
+  /* 🔴 SOURCE-BEARING ONLY. The derived records are reported by the census, apart, where a record
+   * that cites no source belongs — folding them in here crashed this binary on 21 Sep 2026. */
+  ...verifiedSourceBearingFacts(facts).map(sourceRecordFromFact),
 ];
 const sourceTiers = { ranked: rankSources(sourcesIn), census: tierCensus(sourcesIn) };
 

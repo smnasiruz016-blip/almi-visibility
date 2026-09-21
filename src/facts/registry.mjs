@@ -127,6 +127,17 @@ function ageInDays(iso, now) {
 export const isDerivedFact = (r) => r?.kind === "derived";
 /** The source-bearing records — the population every source law governs. */
 export const primaryFacts = (records = []) => records.filter((r) => !isDerivedFact(r));
+/**
+ * The VERIFIED records that carry a source of their own.
+ *
+ * 🔴 NAMED ONCE BECAUSE IT WAS WRITTEN WRONG EVERYWHERE. Six call sites filtered the whole registry
+ * on the VERIFIED label and then asked each record for its source, its tier or its recheck window —
+ * none of which a derived record has (F28). The filter was right only while the single derived
+ * record was UNKNOWN; on 21 Sep 2026 it became VERIFIED and `bin/report.mjs` died inside
+ * `makeSource`. Every caller that means "verified facts that cite something" asks here now.
+ */
+export const verifiedSourceBearingFacts = (records = []) =>
+  primaryFacts(records).filter((r) => r?.verificationState === "VERIFIED");
 /** The computed records — judged by F28 and F29 against the records they cite. */
 export const derivedFacts = (records = []) => records.filter((r) => isDerivedFact(r));
 
@@ -288,11 +299,19 @@ export const REGISTRY_FACT_CHECK_COUNT = 46;
  * 🔴 HOW MANY CHECKS CAME BACK CONFIRMED. The one to quote if anybody asks how
  * many verified facts this registry holds — never REGISTRY_FACT_CHECK_COUNT.
  *
- * The remaining 14 are UNKNOWN: 6 contested by a second official page,
- * 4 true-but-incomplete, 4 whose source could not be read (and by LAW-ABSENT-1
+ * 🔴 IT COUNTS THE CHECKED POPULATION, AND THAT IS THE POINT OF THE PAIR. This is the confirmed
+ * half of the REGISTRY_FACT_CHECK_COUNT checks that RAN, so both count the same records:
+ * 18 confirmed + 28 UNKNOWN = the 46 checked. A derived record is never among them, because no
+ * check ran on one — its standing is inherited from its inputs (F29), and `census().derived`
+ * reports it apart. The whole registry carries 19 VERIFIED labels; the nineteenth is the derived
+ * ratio. Setting this constant to 19 on 21 Sep 2026 made 19 + 28 = 47 and broke four assertions
+ * that had been quietly relying on the arithmetic holding.
+ *
+ * The 28 UNKNOWN break down 17 on partial evidence, 6 contested by a second official page,
+ * 4 true-but-incomplete, 1 whose source could not be read (and by LAW-ABSENT-1
  * that last group is a fact about our reach, not about the claim).
  */
-export const REGISTRY_VERIFIED_COUNT = 16; // MEASURED 13 Sep 2026 evening: 32 on 12 Sep; #63 counted 34; #64 33; 8 of the 32 returned to UNKNOWN on 13 Sep morning; 9 more demoted by beta-g ruling 13 Sep evening (item 50)
+export const REGISTRY_VERIFIED_COUNT = 18; // 🔴 18 since 21 Sep 2026, when the owner verified the two pk-pnmc destination fees together against the official source. 16 before that. (The derived ratio followed its inputs to VERIFIED the same day under F29, which is why the WHOLE registry now shows 19 — see above for why this constant is not that number.) // MEASURED 13 Sep 2026 evening: 32 on 12 Sep; #63 counted 34; #64 33; 8 of the 32 returned to UNKNOWN on 13 Sep morning; 9 more demoted by beta-g ruling 13 Sep evening (item 50)
 
 /**
  * 🔴 GATE A'S OWN `factChecked` COLUMN IS STILL HARD-CODED 0, KNOWINGLY.

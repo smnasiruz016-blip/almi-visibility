@@ -16,7 +16,7 @@ import { execFileSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
 import { productFromArgv } from "../src/product-cli.mjs";
-import { loadRegistry } from "../src/facts/registry.mjs";
+import { loadRegistry, verifiedSourceBearingFacts, derivedFacts } from "../src/facts/registry.mjs";
 import { validateRegistry } from "../src/facts/validate.mjs";
 import { judgeLeavingUnknown, departuresWithoutJudgement, reconcileElements } from "../src/evidence/verdict.mjs";
 import { UNKNOWN_REASONS } from "../src/facts/record.mjs";
@@ -90,10 +90,18 @@ const RETURNED = Object.freeze({
   "uk-ukvi.english-nationality-exemption.nationality=india": 1,
 });
 /* the 9 VERIFIED labels that rest on a reading the reconciliation cannot settle */
+/* 🔴 SEVEN SINCE 21 SEPTEMBER 2026, NOT NINE. The owner verified the two pk-pnmc destination fees
+ * together against the official source, which settled exactly the ambiguity that had demoted them:
+ * the qualifier now IS a declared element and the verdict names it. The other seven still rest on
+ * the unsettled reading and are unchanged. */
 const AMBIGUOUS = Object.freeze([
-  "ie-nmbi.recognised-english-speaking-countries", "pk-pnmc.verification-fee.destination=domestic", "pk-pnmc.verification-fee.destination=foreign",
+  "ie-nmbi.recognised-english-speaking-countries",
   "uk-code-of-practice.red-list-rule", "uk-hcpc.accepted-english-tests", "uk-nmc.accepted-oet-delivery-modes.profession=nursing",
   "uk-nmc.english-evidence-routes.profession=nursing", "uk-nmc.oet-combining-sittings-floor.profession=nursing", "uk-nmc.oet-minimum-grade.profession=nursing",
+]);
+/** The two the owner verified on 21 September 2026 — kept by name so the change stays visible. */
+const OWNER_VERIFIED_2026_09_21 = Object.freeze([
+  "pk-pnmc.verification-fee.destination=domestic", "pk-pnmc.verification-fee.destination=foreign",
 ]);
 
 /* ---- the four #64 reconciled --------------------------------------------- */
@@ -150,10 +158,28 @@ test("🔴 50 · THE WHOLE GOVERNED POPULATION — 36 real records judged: 25 ad
   // That is exactly the gap the demotion exposes — see PART 4.
   assert.deepEqual([v.guard.judged, v.guard.advanced, v.guard.refused], [36, 25, 11]);
   assert.deepEqual(v.guard.judgements.map((j) => j.id).sort(), [...FOUR, ...THIRTY_TWO].sort());
-  const unguarded = records.filter((r) => r.verificationState === "VERIFIED" && !judgementOf(r.id)).map((r) => r.id);
+  /* 🔴 A DERIVED FACT HAS NO CHECKER BY DESIGN — its standing IS its inputs'. So it is excluded
+   * here and its PROVENANCE is asserted instead, which is stricter than the old census: that one
+   * never looked at a derived record's inputs at all. */
+  const unguarded = records.filter((r) => r.verificationState === "VERIFIED" && r.kind !== "derived" && !judgementOf(r.id)).map((r) => r.id);
   assert.deepEqual(unguarded, [], "a VERIFIED label never passed through the guard");
+  for (const d of records.filter((r) => r.kind === "derived" && r.verificationState === "VERIFIED")) {
+    for (const input of d.derivation.inputs) {
+      assert.ok(judgementOf(input), `${d.id}: its input ${input} never passed the guard, so its inherited standing is unguarded`);
+    }
+  }
   // MEASURED after the 9-record demotion: 25 - 9 = 16 records still declared VERIFIED.
-  assert.equal(records.filter((r) => r.verificationState === "VERIFIED").length, 16);
+  // 🔴 18 since 21 Sep 2026, and DERIVED rather than retyped: the records still declared VERIFIED
+  // are exactly the ones the guard advanced, less those the beta-g ruling demoted — and the owner's
+  // two verifications left that demoted list, so the same expression now yields 25 - 7.
+  assert.equal(verifiedSourceBearingFacts(records).length, v.guard.advanced - AMBIGUOUS.length,
+    "the VERIFIED records are no longer the advanced ones that the beta-g ruling did not demote");
+  // 🔴 AND THE DERIVED RECORD IS COUNTED APART, never inside the census above: the whole registry
+  // shows one more VERIFIED label than the source-bearing population, and that one is the ratio.
+  assert.equal(
+    records.filter((r) => r.verificationState === "VERIFIED").length,
+    verifiedSourceBearingFacts(records).length + derivedFacts(records).filter((r) => r.verificationState === "VERIFIED").length,
+  );
   assert.equal(UNKNOWN_ON_2026_09_12.length, 14);
   assert.deepEqual(departuresWithoutJudgement(records, UNKNOWN_ON_2026_09_12), []);
 });
@@ -171,7 +197,9 @@ test("🔴 PART 1/3 · every one of the 32 declares its elements from its own va
   assert.ok(governed.every((r) => Array.isArray(r.claimElements)), "a governed record has no element list");
   assert.deepEqual(lawsOf(records), []);
   // 🔴 counted from the lists, not from a shape heuristic: 23 of the 32 declare more than one element
-  assert.equal(THIRTY_TWO.filter((id) => byId.get(id).claimElements.length > 1).length, 23);
+  // 🔴 25 since 21 Sep 2026: the two pk-pnmc destination fees each gained the destination element
+  // the owner's verdict named, so each declares two where it declared one.
+  assert.equal(THIRTY_TWO.filter((id) => byId.get(id).claimElements.length > 1).length, 25);
 });
 
 test("🔴 PART 2 · the 8 whose verdicts named only part of their value returned to UNKNOWN / PARTIAL_EVIDENCE — their verdict wording UNTOUCHED", () => {
@@ -187,8 +215,10 @@ test("🔴 PART 2 · the 8 whose verdicts named only part of their value returne
   }
   // stillVerified now excludes both RETURNED (8, returned by their notConfirmed > 0 on 13 Sep morning)
   // AND AMBIGUOUS (9, demoted by beta-g ruling on 13 Sep evening); 32 - 8 - 9 = 15.
+  // 🔴 17 since 21 Sep 2026: AMBIGUOUS fell to 7 when the owner settled the two pk-pnmc readings,
+  // so they return here. Derived from the two lists rather than retyped, so it follows them.
   const stillVerified = THIRTY_TWO.filter((id) => !(id in RETURNED) && !AMBIGUOUS.includes(id));
-  assert.equal(stillVerified.length, 15);
+  assert.equal(stillVerified.length, THIRTY_TWO.length - Object.keys(RETURNED).length - AMBIGUOUS.length);
   for (const id of stillVerified) assert.deepEqual([byId.get(id).verificationState, judgementOf(id).elements.notConfirmed], ["VERIFIED", 0], id);
 });
 
@@ -266,9 +296,15 @@ test("🔴 PART 5 · the forbidden transition, proved impossible by INJECTION �
 
 
 test("🔴 R4 · the pre-contract population is EXACTLY the 36 by name — none carries a declaration, and the nine's exemption is still reachable", () => {
+  /* 🔴 THE PRE-CONTRACT POPULATION IS NOW 34, AND THAT IS R4 WORKING. A verification dated after
+   * DECLARATION_CONTRACT_AFTER must declare its dimensions; the owner's two checks are dated
+   * 21 Sep 2026, so they are judged under the contract and leave this population by the rule that
+   * was written for exactly that case. Both sides are named, so neither can quietly absorb a third. */
   const preContract = v.guard.judgements.filter((j) => j.contract === "PRE_CONTRACT").map((j) => j.id).sort();
-  assert.deepEqual(preContract, [...FOUR, ...THIRTY_TWO].sort(), "a record was dated into the pre-contract population, or one left it");
-  assert.equal(records.filter((r) => r.claimDimensions !== undefined).length, 0, "a claimDimensions declaration was manufactured on a real record");
+  assert.deepEqual(preContract, [...FOUR, ...THIRTY_TWO].filter((id) => !OWNER_VERIFIED_2026_09_21.includes(id)).sort(), "a record was dated into the pre-contract population, or one left it");
+  const underContract = v.guard.judgements.filter((j) => j.contract !== "PRE_CONTRACT").map((j) => j.id).sort();
+  assert.deepEqual(underContract, [...OWNER_VERIFIED_2026_09_21].sort(), "a record was judged under the contract that the owner did not verify");
+  assert.deepEqual(records.filter((r) => r.claimDimensions !== undefined).map((r) => r.id).sort(), [...OWNER_VERIFIED_2026_09_21].sort(), "a claimDimensions declaration was manufactured on a real record");
   for (const id of AMBIGUOUS) {
     const j = judgementOf(id);
     assert.deepEqual([j.contract, j.permitted, j.declared, Boolean(byId.get(id).verification.elementAmbiguity)], ["PRE_CONTRACT", "VERIFIED", "UNKNOWN", true], `${id}: re-judged by R4 by side effect`);

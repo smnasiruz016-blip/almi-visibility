@@ -239,11 +239,23 @@ test("🔴 the REAL answer-evidence population, through the real module — and 
   assert.ok(r.population.qualified > 0, "no claim carries a per-value qualifier at all");
   assert.ok(r.population.verifiedQualified > 0, "no qualified claim is verified — the verified filter may be dead");
 
-  /* 🔴 AND NOT ONE AXIS IS DECIDED. Every axis the real evidence carries is non-terminal, because no
-   * question is answered at two or more values by VERIFIED evidence. This is the row's real blocker,
-   * and it is evidence work, not engine work. */
+  /* 🔴 SINCE THE OWNER VERIFIED THE TWO PNMC RECORDS (21 Sep 2026) THE REAL REGISTRY DOES DECIDE
+   * ONE AXIS — read WITHOUT the value-vocabulary check. That is the verification landing, and it is
+   * asserted rather than described, so it cannot quietly stop being true. */
   const terminal = Object.entries(r.byAxis).filter(([, l]) => l.state === "MEASURED");
-  assert.deepEqual(terminal, [], `an axis became decidable on real evidence: ${JSON.stringify(terminal)}`);
+  assert.deepEqual(terminal.map(([a]) => a), ["destination"], `unexpected decidable axes: ${JSON.stringify(terminal.map(([a]) => a))}`);
+  assert.equal(r.byAxis.destination.materiallyChanges, true);
+  assert.deepEqual(r.byAxis.destination.evidence, [
+    "pk-pnmc.verification-fee.destination=domestic",
+    "pk-pnmc.verification-fee.destination=foreign",
+  ]);
+
+  /* 🔴 AND WITH THE VALUE CHECK IT DECIDES NOTHING. The axis was discovered on country names; the
+   * answers are about where a verification is SENT. One name, two vocabularies — so the leg refuses,
+   * and row 6 gains no terminal axis from it. This is the row's real blocker, measured. */
+  const checked = answerEvidence({ claims, ...SAME, axisValues: { destination: ["peru", "spain", "australia"] } });
+  assert.equal(checked.byAxis.destination.state, "INSUFFICIENT_EVIDENCE");
+  assert.equal(checked.byAxis.destination.reason, ANSWER_REASONS.DISJOINT_VALUE_POPULATION);
   for (const [axis, l] of Object.entries(r.byAxis)) {
     assert.ok(ANSWER_LEG_STATES.includes(l.state), `${axis}: ${l.state}`);
     assert.ok(l.basis.length > 20, `${axis} carries no basis`);
@@ -344,4 +356,73 @@ test("🔴 FIX 5 · the REAL run measures neither leg — the evidence for them 
   assert.equal(r.evidenceAvailability.state, "UNKNOWN");
   assert.equal(r.humanValue.state, "UNKNOWN");
   assert.notEqual(r.verdict, "BUILD");
+});
+
+/* ================================================================== *
+ * 🔴 FIX 9 — ONE AXIS NAME, TWO VALUE VOCABULARIES.
+ *
+ * Measured on the real registry: the axis `destination` was DISCOVERED on {peru, spain, australia,
+ * …} and the answer evidence carries {uk-nmc, foreign, domestic}. They share ZERO values. Attaching
+ * the leg by NAME would have decided an axis using answers about a population it was never
+ * discovered on — the same confounding the stem check refuses when the AUTHORITY moves with the
+ * value, arriving by a different door.
+ * ================================================================== */
+
+test("🔴 FIX 9 · disjoint value vocabularies cannot decide an axis, however well verified the answers are", () => {
+  const claims = [claim("auth.q.k=domestic", "1000"), claim("auth.q.k=foreign", "10000")];
+  /* the axis was discovered on entirely different values */
+  const r = answerEvidence({ claims, ...SAME, axisValues: { k: ["peru", "spain", "australia"] } });
+  assert.equal(r.byAxis.k.state, "INSUFFICIENT_EVIDENCE");
+  assert.equal(r.byAxis.k.reason, ANSWER_REASONS.DISJOINT_VALUE_POPULATION);
+  assert.equal(r.byAxis.k.sharedValues, 0);
+  assert.match(r.byAxis.k.basis, /two value vocabularies/);
+
+  /* 🔴 CONTROL: the SAME claims decide when the axis was discovered on the SAME values — so the
+   * refusal is the disjointness talking, not a rule that refuses every pair. */
+  const shared = answerEvidence({ claims, ...SAME, axisValues: { k: ["domestic", "foreign"] } });
+  assert.equal(shared.byAxis.k.state, "MEASURED");
+  assert.equal(shared.byAxis.k.materiallyChanges, true);
+});
+
+test("🔴 FIX 9 · PARTIAL overlap still decides — the guard refuses only a population it shares nothing with", () => {
+  const claims = [claim("auth.q.k=domestic", "1000"), claim("auth.q.k=foreign", "10000")];
+  const r = answerEvidence({ claims, ...SAME, axisValues: { k: ["domestic", "peru", "spain"] } });
+  assert.equal(r.byAxis.k.state, "MEASURED", "one shared value is enough to be the same population");
+});
+
+test("🔴 FIX 9 · an axis whose values were never supplied is judged exactly as before", () => {
+  const claims = [claim("auth.q.k=a", "one"), claim("auth.q.k=b", "two")];
+  assert.equal(answerEvidence({ claims, ...SAME }).byAxis.k.state, "MEASURED");
+  assert.equal(answerEvidence({ claims, ...SAME, axisValues: {} }).byAxis.k.state, "MEASURED");
+  /* and an axis discovered on NO values does not trigger it either — an empty set shares nothing
+   * with everything, and refusing on that would refuse every axis nobody discovered. */
+  assert.equal(answerEvidence({ claims, ...SAME, axisValues: { k: [] } }).byAxis.k.state, "MEASURED");
+});
+
+/* ================================================================== *
+ * 🔴 FIX 8 — THE AXIS POPULATION'S SCOPE COMES FROM ITS OWN ROWS.
+ * ================================================================== */
+
+test("🔴 FIX 8 · the axis scope is derived from the rows, and opens only for a tenant they contain", async () => {
+  const { readDeclaredAnswerEvidence } = await import("../src/discovery/row6.mjs");
+
+  /* a population containing NO row of any declared tenant must not open the join */
+  const none = await readDeclaredAnswerEvidence({
+    axisResourceKind: "CRAWL_BATCH", axisResourceRef: "ctl",
+    axisRows: [{ url: "https://no-such-host.invalid/x" }],
+  });
+  assert.equal(none.axisScope.state, "UNDECLARED", "a population with no declared row opened the join");
+  assert.match(none.axisScope.basis, /contains no row belonging to the tenant/);
+
+  /* 🔴 CONTROL: the REAL population does contain rows for the tenant that holds the evidence, so the
+   * same code opens it — the refusal above is the rows talking, not a scope that never resolves. */
+  const { createJsonlStore } = await import("../src/evidence/store.mjs");
+  const REPO2 = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+  const store = createJsonlStore(`${REPO2}runs/evidence/evidence.jsonl`).readAll();
+  const rows = store.filter((r) => r.record_type === "observation" && Array.isArray(r.value?.rows)).flatMap((o) => o.value.rows);
+  const real = await readDeclaredAnswerEvidence({ axisResourceKind: "CRAWL_BATCH", axisResourceRef: "ctl", axisRows: rows });
+  assert.equal(real.axisScope.state, "RESOLVED");
+  assert.equal(real.axisScope.tenantId, real.evidenceScope.tenantId, "the join opened across two different tenants");
+  assert.ok(real.axisScope.rows > 0);
+  assert.equal(real.axisPartition.remainder, 0, "the axis population does not self-account");
 });

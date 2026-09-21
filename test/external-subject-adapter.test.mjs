@@ -208,7 +208,11 @@ describe("🔴 P6 · nothing of the subject's material is written into this repo
      * a frozen boundary, an acceptance document, a product file or any other evidence under runs/
      * still fails here. The replacement says so directly instead of by prefix, and is stricter about
      * runs/ than the old one was: only these three paths may go, and only as deletions. */
-    const ENGINE_SOURCE = /^(src|test|bin|config|\.github)\//;
+    /* 🔴 `tools/` ADDED 21 SEPTEMBER 2026. It was missing from the day this rule was written, and
+     * nothing revealed it until a census under tools/ had to change. Everything there is engine
+     * tooling — fourteen .mjs censuses and verifiers the tests import — so it belongs on the same
+     * side of this line as src/ and test/, and none of what the rule guards moves by letting it in. */
+    const ENGINE_SOURCE = /^(src|test|bin|config|tools|\.github)\//;
     const ENGINE_FILES = new Set(["package.json"]);
     const LAWFUL_DELETIONS = new Set([
       "runs/crawl/first-real-crawl-2026-09-12.jsonl",

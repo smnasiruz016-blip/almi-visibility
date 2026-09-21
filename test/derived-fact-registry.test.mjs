@@ -186,9 +186,22 @@ test("🔴 REAL: ONE derived fact — its formula, both input ids and its recomp
 
   // NEVER MORE VERIFIED THAN ITS LEAST-VERIFIED INPUT — the ceiling recomputed by the constructor.
   const ceiling = makeDerivedFact({ id: d.id, claim: d.claim, formula: d.derivation.formula, inputs: d.derivation.inputs, inputFacts: inputs }).verificationState;
-  assert.equal(ceiling, "UNKNOWN");
+  // 🔴 BOTH INPUTS WERE UNKNOWN UNTIL 21 SEP 2026, when the owner verified the two pk-pnmc
+  // destination fees together against the official source. The ratio followed them to VERIFIED
+  // under F29 without anyone checking IT — which is what an inherited standing means.
+  assert.deepEqual(inputs.map((i) => i.verificationState), ["VERIFIED", "VERIFIED"]);
+  assert.equal(ceiling, "VERIFIED");
   assert.equal(d.verificationState, ceiling);
-  assert.deepEqual(inputs.map((i) => i.verificationState), ["UNKNOWN", "UNKNOWN"]);
+
+  /* 🔴 AND THE CEILING MUST FALL, OR THE THREE LINES ABOVE ARE THE CONSTRUCTOR AGREEING WITH
+   * ITSELF. Each input is weakened in turn in a copy that exists only in this process — the
+   * registry on disk is not touched — and the derived standing must drop with it. Before this,
+   * "VERIFIED" would have passed just as well if F29 had stopped propagating altogether. */
+  for (const weak of [0, 1]) {
+    const weakened = inputs.map((i, k) => (k === weak ? { ...i, verificationState: "UNKNOWN" } : i));
+    const capped = makeDerivedFact({ id: d.id, claim: d.claim, formula: d.derivation.formula, inputs: d.derivation.inputs, inputFacts: weakened }).verificationState;
+    assert.equal(capped, "UNKNOWN", `input ${weak} was weakened to UNKNOWN and the derived record stayed ${capped} — F29 is not capping`);
+  }
 
   // A derived record's source IS its inputs — it must not be dressed as a primary one.
   assert.equal(d.source ?? null, null, "the derived record carries a source — F28");

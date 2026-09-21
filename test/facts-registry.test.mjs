@@ -491,9 +491,14 @@ describe("🔴 the manual queue's cost", () => {
     );
 
   test("passes per year is exact arithmetic over the window — two per fact at 180 days", () => {
-    const c = manualQueueCost(manual(16));
-    assert.equal(c.facts, 16);
-    assert.equal(c.passesPerYear, 32);
+    /* 🔴 A FIXTURE SIZE, NOT THE REGISTRY'S VERIFIED COUNT. These records are built by `manual(16)`
+     * a few lines above. That the number once matched the count of verified facts in the real
+     * registry was a coincidence; reading it as a dependency is what broke this test on 21 Sep 2026.
+     * Both figures are taken from the fixture handed in, so they cannot drift apart from it again. */
+    const fixture = manual(16);
+    const c = manualQueueCost(fixture);
+    assert.equal(c.facts, fixture.length);
+    assert.equal(c.passesPerYear, 2 * fixture.length, "365 days over a 180-day window is two passes per fact per year");
   });
 
   test("🔴 minutesPerFact has NO DEFAULT and the report says UNKNOWN rather than inventing one", () => {
@@ -613,13 +618,20 @@ describe("🔴 factChecked moved 0 → 46, deliberately, and confirmed is counte
   // 🔴 33/13 since the item-50 reopen (13 Sep 2026); #63 had 34/12.
   // 🔴 25/21 since item 50's whole population was reconciled (13 Sep 2026 morning); #64 had 33/13.
   // 🔴 16/30 since 9 ambiguous labels were demoted by beta-g ruling (13 Sep 2026 evening).
-  test("🔴 46 checks RAN but only 16 CONFIRMED — the two are never one number", async () => {
+  // 🔴 18 CONFIRMED since 21 Sep 2026 (16 before): the owner verified the two pk-pnmc destination fees.
+  test("🔴 46 checks RAN but only 18 CONFIRMED — the two are never one number", async () => {
     const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     const c = census(records, { now: NOW });
-    assert.equal(c.checks.factChecked, 46);
+    /* 🔴 THE POINT IS THAT THE TWO ARE NEVER ONE NUMBER — not what either happens to be today.
+     * Checks RAN on every source-bearing record; only some CONFIRMED. */
+    assert.equal(c.checks.factChecked, REGISTRY_FACT_CHECK_COUNT);
     assert.equal(c.checks.factConfirmed, REGISTRY_VERIFIED_COUNT);
-    assert.equal(c.checks.factConfirmed, 16);
-    assert.equal(c.checks.factUnknown, 30);
+    assert.ok(c.checks.factChecked > c.checks.factConfirmed,
+      `a check that ran is not a check that confirmed: ran ${c.checks.factChecked}, confirmed ${c.checks.factConfirmed}`);
+    // 🔴 28 since 21 Sep 2026 (30 before) — and 18 + 28 is the 46 that were checked, which is the
+    // arithmetic that catches a derived record being folded into a column of checks that ran.
+    assert.equal(c.checks.factUnknown, 28);
+    assert.equal(c.checks.factConfirmed + c.checks.factUnknown, REGISTRY_FACT_CHECK_COUNT, "confirmed and unknown must partition the checked population");
     assert.ok(
       c.checks.factConfirmed < c.checks.factChecked,
       "if these ever coincide, check it is because every check confirmed — not because they were merged",
@@ -629,7 +641,7 @@ describe("🔴 factChecked moved 0 → 46, deliberately, and confirmed is counte
   test("🔴 every record that carries a fact-check date NAMES the person who did it", async () => {
     const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     const dated = records.filter((r) => r.checks.factCheckedOn !== null);
-    assert.equal(dated.length, 46);
+    assert.equal(dated.length, REGISTRY_FACT_CHECK_COUNT);
     for (const r of dated) {
       assert.match(r.checks.factCheckedBy ?? "", /^human:/, `${r.id}: somebody must NAME themselves to move this number`);
     }

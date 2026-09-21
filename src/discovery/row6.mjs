@@ -107,13 +107,21 @@ export async function readDeclaredAxes() {
  * undeclared scope would make the refusal invisible, and an invisible refusal reads exactly like an
  * absence of evidence. The caller is handed the scopes and lets the gate decide.
  */
-export async function readDeclaredAnswerEvidence({ axisResourceKind, axisResourceRef, env = process.env, resolve = null } = {}) {
+export async function readDeclaredAnswerEvidence({ axisResourceKind, axisResourceRef, axisRows = null, env = process.env, resolve = null } = {}) {
   /* 🔴 THE RESOLVER IS AN INPUT, NAMED AND CORRECTLY TYPED. Building it behind the caller's back
    * would make the whole tenancy decision an undeclared dependency, and would leave the RESOLVED
    * check below with no reachable input — on the real declarations the only source that reaches it
    * already resolves, so the guard could never be driven false. */
   const resolveScope = resolve ?? createTenantResolver({ env });
-  const axisScope = resolveScope({ resourceKind: axisResourceKind, resourceRef: axisResourceRef });
+  /* 🔴 THE AXIS POPULATION IS A MIXED CAPTURE, SO ITS SCOPE IS DERIVED FROM ITS OWN ROWS.
+   * Each row carries the host that attaches it, and the tenant comes from the owner's existing
+   * SITE_ORIGIN declaration for that exact host — never from a product name, a file name or a path.
+   * A single resource reference can still be given, and is used when no rows are supplied. */
+  let axisScope = resolveScope({ resourceKind: axisResourceKind, resourceRef: axisResourceRef });
+  let axisPartition = null;
+  if (Array.isArray(axisRows)) {
+    axisPartition = partitionRowsByDeclaredHost({ rows: axisRows, resolve: resolveScope });
+  }
 
   const sources = [];
   const claims = [];
@@ -148,7 +156,17 @@ export async function readDeclaredAnswerEvidence({ axisResourceKind, axisResourc
     for (const r of records) claims.push({ identity: r.id, answer: r.value, verified: r.verificationState === "VERIFIED" });
   }
 
-  return { claims, axisScope, evidenceScope, sources };
+  /* 🔴 THE JOIN OPENS ONLY FOR A TENANT THE AXIS POPULATION ITSELF CONTAINS. A declared registry
+   * whose tenant owns no row here stays UNDECLARED and is still refused — which is the whole point
+   * of the gate, kept intact. */
+  if (axisPartition) {
+    const rowsForEvidenceTenant = axisPartition.byTenant[evidenceScope.tenantId]?.length ?? 0;
+    axisScope = rowsForEvidenceTenant > 0
+      ? { state: "RESOLVED", tenantId: evidenceScope.tenantId, rows: rowsForEvidenceTenant, basis: "the axis population's own rows, attached by their stored host through the declared site origins" }
+      : { state: "UNDECLARED", tenantId: null, rows: 0, basis: "the axis population contains no row belonging to the tenant that holds this evidence" };
+  }
+
+  return { claims, axisScope, evidenceScope, sources, axisPartition: axisPartition?.arithmetic ?? null };
 }
 
 /** Pages in the page rows whose URL carries an axis's pattern: the axis HARD-CODED into the URL space. */
@@ -180,8 +198,19 @@ export function row6({ records, crawlRecords, bodies, lexicon, reference, ambigu
   const declaredBy = {};
   for (const [productId, key] of Object.entries(declaredAxes)) (declaredBy[key] ||= []).push(productId);
 
+  /* 🔴 THE ANSWER LEG IS TOLD WHICH VALUES EACH AXIS WAS DISCOVERED ON, so it can refuse to decide
+   * an axis whose value vocabulary its evidence does not share. The axes are discovered first, with
+   * no answer legs, purely to read their values; the real pass follows. */
+  const discovery = discoverAxes({
+    record: r5.record, specs, countryRows: cqPopulation.human,
+    intentOf: (q) => clusterOf.get(q) ?? null,
+    siblingPairs: pairs, siblingFamilies: families,
+    hardCoded: hardCodedIn(pages.value.rows, patterns), declaredBy,
+  });
+  const axisValues = Object.fromEntries(discovery.map((d) => [d.axis, d.discovery.values.map((v) => v.value)]));
+
   const answers = answerClaims
-    ? answerEvidence({ claims: answerClaims, axisScope, evidenceScope })
+    ? answerEvidence({ claims: answerClaims, axisScope, evidenceScope, axisValues })
     : { gate: null, byAxis: {}, population: { claims: 0, qualified: 0, verifiedQualified: 0 } };
 
   const results = discoverAxes({

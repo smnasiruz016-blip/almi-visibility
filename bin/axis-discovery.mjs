@@ -36,7 +36,10 @@ const declaredAxes = await readDeclaredAxes();
  * decides, and a refusal is printed rather than hidden. The axis population's reference is the batch
  * this run actually reads — not a name chosen to make the join succeed. */
 const CRAWL_BATCH_REF = "first-real-crawl-2026-09-12.jsonl";
-const answers = await readDeclaredAnswerEvidence({ axisResourceKind: "CRAWL_BATCH", axisResourceRef: CRAWL_BATCH_REF });
+/* 🔴 THE AXIS POPULATION IS HANDED OVER AS ROWS, NOT AS ONE IDENTIFIER. It is a mixed capture over
+ * many declared tenants, so its scope is derived from the host each row already stores. */
+const axisRows = records.filter((r) => r.record_type === "observation" && Array.isArray(r.value?.rows)).flatMap((o) => o.value.rows);
+const answers = await readDeclaredAnswerEvidence({ axisResourceKind: "CRAWL_BATCH", axisResourceRef: CRAWL_BATCH_REF, axisRows });
 
 const r = row6({ records, crawlRecords, bodies, lexicon: LEXICON, reference: INTENT_REFERENCE, ambiguous: AMBIGUOUS, specs: AXIS_SPECS, families: SIBLING_FAMILIES, patterns: HARD_CODED_PATTERNS, declaredAxes,
   answerClaims: answers.claims, axisScope: answers.axisScope, evidenceScope: answers.evidenceScope });

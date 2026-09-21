@@ -146,7 +146,8 @@ test("🔴 the split did NOT improve either row — both stay exactly where thei
    * never names. The tally is pinned here so a future split cannot hide a movement inside it. */
   /* 🔴 20 Sep 2026: 26 / 2 — and again NOT because of the split. Row 50 left FAILED under the owner's
    * pre-contract label ruling; rows 1 and 54 are untouched, and the split's own populations did not move. */
-  assert.deepEqual(tally(rows), { "NOT-STARTED": 2, "BUILT-NOT-PROVED": 5, "TESTABLE-NOW": 1, "VERIFIED-PASS": 26, FAILED: 2, "BLOCKED-UNKNOWN": 2, DEFERRED: 23 });
+  /* 🔴 21 Sep 2026: row 4 left BUILT-NOT-PROVED by a declared WORK move (TEST_RUN) — local reasoning researched from a primary source, limb (a) measured NOT MET. 27 / 4 — and NOT because of the split: row 4 was never split (asserted below), and rows 1 and 54 are unmoved. */
+  assert.deepEqual(tally(rows), { "NOT-STARTED": 2, "BUILT-NOT-PROVED": 4, "TESTABLE-NOW": 1, "VERIFIED-PASS": 27, FAILED: 2, "BLOCKED-UNKNOWN": 2, DEFERRED: 23 });
 });
 
 test("🔴 ABSENT DETECTOR, DECLARED: nothing refuses a whole-row DEFERRED on a split row — the `state` field is overloaded", () => {
@@ -274,7 +275,8 @@ test("🔴 rows 1, 4 and 54 hold only what their evidence supports — and row 4
   const rows = classify();
   assert.equal(b[4].class, "P", "row 4 was split — the fit test said it does not fit and the ruling did not authorise it");
   assert.equal(b[4].classByA6, undefined);
-  assert.equal(rows[4].state, "BUILT-NOT-PROVED");
+  // 🔴 21 Sep 2026: row 4 left BUILT-NOT-PROVED by a declared WORK move (TEST_RUN) — local reasoning researched from a primary source, limb (a) measured NOT MET — still class P, still NOT split, and its tick rests on evidence, not on D2.
+  assert.equal(rows[4].state, "VERIFIED-PASS");
   assert.equal(rows[1].state, "BLOCKED-UNKNOWN");
   assert.equal(rows[54].state, "BLOCKED-UNKNOWN");
   assert.deepEqual(assertLawful(rows), []);
@@ -309,17 +311,18 @@ test("🔴 the four inventories stay SEPARATE, and 58/58 stays unreachable insid
   assert.equal(legacy.length, 58);
   // 🔴 23 since row 50 closed (20 Sep 2026). Row 50 is id ≤ 58, so it moves THIS inventory too — which
   // is exactly why the four are counted apart rather than derived from one another.
-  assert.equal(legacyPass, 23, "the legacy 58-row inventory is x / 58 and is reported on its own");
+  // 🔴 24 since 21 Sep 2026: row 4 left BUILT-NOT-PROVED by a declared WORK move (TEST_RUN) — local reasoning researched from a primary source, limb (a) measured NOT MET — row 4 is id ≤ 58.
+  assert.equal(legacyPass, 24, "the legacy 58-row inventory is x / 58 and is reported on its own");
   assert.equal(legacyDeferred, 23);
   // 🔴 THE POINT OF R5: 23 of the 58 are deferred, so the legacy inventory can never reach 58.
   assert.equal(58 - legacyDeferred, 35, "the maximum reachable value of the legacy inventory inside v0.1");
   assert.ok(legacyPass < 58 - legacyDeferred || legacyPass === 35);
   // the other three inventories, each counted separately
   assert.equal(rows.length, 61);
-  assert.equal(rows.filter((r) => r.state === "VERIFIED-PASS").length, 26, "x / 61");
+  assert.equal(rows.filter((r) => r.state === "VERIFIED-PASS").length, 27, "x / 61");
   const inScope = rows.filter((r) => r.state !== "DEFERRED");
   assert.equal(inScope.length, 38);
-  assert.equal(inScope.filter((r) => r.state === "VERIFIED-PASS").length, 26, "x / 38");
+  assert.equal(inScope.filter((r) => r.state === "VERIFIED-PASS").length, 27, "x / 38");
 });
 
 /* ================================================================== *

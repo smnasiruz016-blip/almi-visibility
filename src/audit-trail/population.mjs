@@ -211,7 +211,20 @@ export function familyBCandidates({ declared, acceptances, softwareVersion, corr
           migration: true,
           migrationSource: `fboard-declaration:${row.featureId}:${ev.kind}`,
           migratedAt,
-          metadata: { family: "B", featureId: row.featureId, board: row.board, stateAfter: row.state, occurredAtPrecision: "DAY", population: ev.population ?? "" },
+          /* 🔴 A TRANSITION EVENT NAMES WHAT MOVED THE ROW, BY IDENTITY AND HASH — NEVER BY PAYLOAD.
+           * Where the declared board event carries them, the movement's own references travel with the audit
+           * event: the states it moved between, the pull request, the exact merged SHA, the CI run and its
+           * conclusion, and the sha256 of the governing records. A reader can then reconstruct the movement
+           * without opening anything. Absent fields are recorded as "", never invented. */
+          metadata: {
+            family: "B", featureId: row.featureId, board: row.board, stateAfter: row.state,
+            occurredAtPrecision: "DAY", population: ev.population ?? "",
+            from: ev.from ?? "", to: ev.to ?? "", route: (ev.route ?? "").slice(0, 190), changeKind: ev.changeKind ?? "",
+            pullRequest: ev.pullRequest === undefined ? "" : String(ev.pullRequest),
+            mergedSha: ev.mergedSha ?? "", ciRun: ev.ciRun ?? "", ciConclusion: ev.ciConclusion ?? "",
+            boardAuthoritySha256: ev.boardAuthorityRuling?.sha256 ?? "",
+            evidenceRecordSha256: ev.evidenceRecord?.sha256 ?? "",
+          },
         },
       });
     }

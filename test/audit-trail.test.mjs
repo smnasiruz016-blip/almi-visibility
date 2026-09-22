@@ -634,12 +634,21 @@ test("P32 · no historical 61/38 state produces an F08 pass or affects F-progres
   const boardEvents = events.filter((e) => e.eventType === "BOARD_TRANSITION");
   assert.ok(boardEvents.length > 0);
   for (const e of boardEvents) assert.equal(e.metadata.board, "F_BOARD");
-  // 🔴 IN-PROGRESS, and NEVER VERIFIED-PASS from inside the PR that builds it: a tick needs a merge and a green
-  // main CI run, and neither exists while this test runs. A historical PASS cannot supply either.
-  assert.equal(DECLARED.F08.state, "IN-PROGRESS");
-  assert.notEqual(DECLARED.F08.state, "VERIFIED-PASS");
+  /* 🔴 VERIFIED-PASS SINCE THE BOARD RECONCILIATION — AND THE POINT OF THIS PROOF IS UNCHANGED.
+   * This assertion read IN-PROGRESS while F08's own pull request was open, because a tick needs a merge and a green
+   * main CI run and neither existed then. Both now exist and PREDATE the movement (PR #142, merged 5630617, main CI
+   * 35784138199 green on that exact SHA), so the state moved. What this proof is about never changed: whatever the
+   * state is, NO HISTORICAL ROW MAY HAVE SUPPLIED IT. So the state is asserted exactly, the pass is required to
+   * stand on a verification recorded UNDER F08 over the REAL population, and every historical channel is refused. */
+  assert.equal(DECLARED.F08.state, "VERIFIED-PASS");
   assert.equal(DECLARED.F08.board, "F_BOARD");
   assert.equal(Object.hasOwn(DECLARED.F08, "historicalState"), false);
+  const verified = DECLARED.F08.events.find((e) => e.kind === "VERIFIED");
+  assert.ok(verified, "F08 is VERIFIED-PASS with no verification event");
+  assert.equal(verified.featureId, "F08", "the verification was recorded under another row");
+  assert.equal(verified.population, "REAL", "the verification was not over the real population");
+  assert.equal(verified.mergedSha, "56306175337b44ba51d203fdfa91a4c533d0fc9a");
+  assert.equal(verified.ciConclusion, "success");
 });
 
 test("P33 · a governed state-changing action FAILS CLOSED when the audit append fails", () => {
@@ -748,10 +757,13 @@ test("🔴 F08's acceptance is the one the governance repository committed, and 
    * leaving the pinned hash alone left this test green, because it only checked the literal against itself. The
    * board's own check re-derives; so does this one now. */
   assert.equal(contractSha256(acc), acc.contractSha256, "a frozen clause was altered: the four clauses no longer hash to the contract the ruling froze");
-  // Implementation is recorded AFTER the freeze, never before it — the board refuses the other order by code.
-  assert.deepEqual(DECLARED.F08.events.map((e) => e.kind), ["ACCEPTANCE_FROZEN", "IMPLEMENTATION"]);
+  /* The lawful order, asserted exactly: the acceptance is frozen FIRST, implementation follows it, and the
+   * verification comes last. The board refuses the other orders by code (IMPLEMENTATION_BEFORE_ACCEPTANCE,
+   * PASS_WITHOUT_VERIFICATION); this pins the sequence the row actually carries. */
+  assert.deepEqual(DECLARED.F08.events.map((e) => e.kind), ["ACCEPTANCE_FROZEN", "IMPLEMENTATION", "VERIFIED"]);
   assert.equal(DECLARED.F08.events[1].after, "ACCEPTANCE_FROZEN");
-  assert.equal(DECLARED.F08.events.some((e) => e.kind === "VERIFIED"), false, "a verification is recorded in the PR that builds the feature");
+  assert.equal(DECLARED.F08.events[2].from, "IN-PROGRESS");
+  assert.equal(DECLARED.F08.events[2].to, "VERIFIED-PASS");
   assert.equal(DECLARED.F08.events[0].contractSha256, acc.contractSha256);
 });
 

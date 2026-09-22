@@ -37,21 +37,54 @@ export const DECLARED = Object.freeze({
   F08: Object.freeze({
     featureId: "F08",
     board: "F_BOARD",
-    // 🔴 IN-PROGRESS, AND NO FURTHER — THIS IS A WRITE-ORDER RULE, NOT A MODESTY.
+    // 🔴 VERIFIED-PASS — AND THE ROW IS THE AUTHORITY FOR THAT, BY RULING.
     //
     // The acceptance was committed ALONE in the governance repository (19e6b7b) BEFORE any F08 schema,
     // implementation, migration or test change. Freezing an acceptance and recording a verification are two
-    // different events, and VERIFIED-PASS is only true after the merge and after main CI is green on the exact
-    // merged SHA — neither of which has happened while this file is being written. Writing it here would be writing
-    // a tick before the evidence for it exists. The VERIFIED-PASS record is made in _handoffs under RR-76, after
-    // the merge, citing the merged SHA and the CI run; this row is deliberately left behind it.
-    state: "IN-PROGRESS",
+    // different events, and this row correctly read IN-PROGRESS while F08's own pull request was open: a PR cannot
+    // truthfully write a tick for evidence that does not exist until after it merges.
+    //
+    // That evidence now exists and PREDATES this change: PR #142 merged as 5630617, and main CI run 35784138199
+    // was green on that exact SHA. The row was lagging an already-proved state, not claiming an unproved one.
+    // `_handoffs/AlmiVisibility_OWNER_RULING_2026-09-22_BOARD_AUTHORITY.md` (sha256 ce6aeb06…c256) rules that THIS
+    // FILE is authoritative for active F-product accounting and that an evidence record may never override it.
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-22", ruling: ACCEPTANCES.F08.ruling, contractSha256: ACCEPTANCES.F08.contractSha256 }),
       // Implementation began only after the acceptance was committed: src/audit-trail/{event,store,reader,population,
       // recorder,callers,wiring}.mjs, config/audit-store.mjs, bin/audit-trail.mjs, and the append wired into
       // bin/authority-migrate.mjs ahead of its governed write.
       Object.freeze({ kind: "IMPLEMENTATION", on: "2026-09-22", after: "ACCEPTANCE_FROZEN" }),
+      /* Verified UNDER F08 over the REAL populations — never a fixture, never a historical row's result.
+       *
+       * 🔴 ON `changeKind`. The only DECLARED changeKind vocabulary in this repository is the historical ledger's
+       * (src/checklist/classification.mjs): "work" · "vocabulary" · "none". "work" is recorded because it is true of
+       * why F08's STATUS moved — F08 was built and proved — and not of what the reconciliation pull request did,
+       * which built nothing. It is a vocabulary term, not a status: none of its three values collides with an
+       * F-board state, so it creates none of the two-board ambiguity `fBoardState` refuses. NO HISTORICAL STATE IS
+       * IMPORTED and authorityImported stays false. The ACTIVE board's own movement vocabulary is the event `kind`
+       * set, and "VERIFIED" is not a choice here — `boardErrors` demands it for this state. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F08",
+        population: "REAL",
+        on: "2026-09-22",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> ACCEPTANCE-FROZEN -> IN-PROGRESS -> VERIFIED-PASS",
+        changeKind: "work",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F08.ruling.sha256, contract: ACCEPTANCES.F08.contractSha256 }),
+        boardAuthorityRuling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_RULING_2026-09-22_BOARD_AUTHORITY.md", commit: "91b4121b2cbb51a494092a8f4a28783f5019aabd", sha256: "ce6aeb06f752577858d002c0c90a317cba8e2a7e91e62cd7b6e477470af8c256" }),
+        pullRequest: 142,
+        mergedSha: "56306175337b44ba51d203fdfa91a4c533d0fc9a",
+        ciRun: "35784138199",
+        ciConclusion: "success",
+        evidenceRecord: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F08_VERIFIED_PASS_EVIDENCE_2026-09-22.md", commit: "8395eed757cdc0826b110d47c0b2cb2922d6f050", sha256: "2b84452c769ba4e62b38f2d8648ae029a1c13f44d802441d40145c502559ca64" }),
+        occurredAt: "2026-09-22T21:06:13Z",
+        proofs: "P1–P34: 41 of 41 pass, each with a control shown capable of the other verdict",
+        sabotage: "S1–S22: 22 of 22 RED on the named test for the intended reason, restored byte-identically",
+        populations: "121 real candidate events, remainder 0; committed trail 124 events (97 migrated, 27 native)",
+      }),
     ]),
   }),
   F40: Object.freeze({

@@ -48,7 +48,20 @@ export const DECLARED = Object.freeze({
     // was green on that exact SHA. The row was lagging an already-proved state, not claiming an unproved one.
     // `_handoffs/AlmiVisibility_OWNER_RULING_2026-09-22_BOARD_AUTHORITY.md` (sha256 ce6aeb06…c256) rules that THIS
     // FILE is authoritative for active F-product accounting and that an evidence record may never override it.
-    state: "VERIFIED-PASS",
+    /* 🔴 REOPENED — FAILED, ON CONCRETE CONTRADICTORY EVIDENCE (22 September 2026).
+     *
+     * The route is MEASURED, not invented: FAILED is a declared F-state, it sits inside NEEDS_ACCEPTANCE (so the
+     * frozen acceptance still governs — this is not an un-acceptance) and inside IMPLEMENTABLE (so repair may
+     * proceed from it). `boardErrors` accepts it, and refuses UNASSESSED, which would have been the un-acceptance.
+     *   VERIFIED-PASS → FAILED → IN-PROGRESS → VERIFIED-PASS only on new evidence.
+     *
+     * The contradictory evidence is recorded in the governance repository at ba2ed2e
+     * (sha256 d16ea317…9b06). TWO defects meet clause [F1] of the frozen FAILURE text — "A governed action
+     * produces no audit event": 38 of 40 governed write-gate decisions emit nothing, and 102 of 142 engine
+     * decision sites emit nothing. Two further defects were reproduced and do NOT meet any clause, and are parked.
+     *
+     * 🔴 F-PROGRESS DROPS WHILE THIS STANDS, AND THE DROP IS THE POINT. */
+    state: "FAILED",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-22", ruling: ACCEPTANCES.F08.ruling, contractSha256: ACCEPTANCES.F08.contractSha256 }),
       // Implementation began only after the acceptance was committed: src/audit-trail/{event,store,reader,population,
@@ -84,6 +97,25 @@ export const DECLARED = Object.freeze({
         proofs: "P1–P34: 41 of 41 pass, each with a control shown capable of the other verdict",
         sabotage: "S1–S22: 22 of 22 RED on the named test for the intended reason, restored byte-identically",
         populations: "121 real candidate events, remainder 0; committed trail 124 events (97 migrated, 27 native)",
+      }),
+      /* The verification above is NOT deleted — it happened, and it is immutable history. What follows is the
+       * evidence that contradicted it. The row's STATE is what moved; the record of the past did not. */
+      Object.freeze({
+        kind: "CONTRADICTORY_EVIDENCE_RECORDED",
+        featureId: "F08",
+        on: "2026-09-22",
+        from: "VERIFIED-PASS",
+        to: "FAILED",
+        route: "VERIFIED-PASS -> FAILED -> IN-PROGRESS -> VERIFIED-PASS only on new evidence",
+        changeKind: "work",
+        failureClause: "F1 · a governed action produces no audit event",
+        defects: "B: 102 of 142 engine decision sites emit no event · C: 38 of 40 governed write-gate decisions emit no event",
+        parked: "A (cross-build replay) and D (unenforced ceiling) reproduced; no clause of the frozen FAILURE text covers either",
+        evidenceRecord: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F08_CONTRADICTORY_EVIDENCE_2026-09-22.md", commit: "ba2ed2e885afb7c96b8395afffedaf7cfaf66f60", sha256: "d16ea317068e2f2fc85cafa840e9d8193be78b9d9c924a407e5e3fab57339b06" }),
+        supersedes: Object.freeze([
+          Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F08_VERIFIED_PASS_EVIDENCE_2026-09-22.md", sha256: "2b84452c769ba4e62b38f2d8648ae029a1c13f44d802441d40145c502559ca64" }),
+          Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F08_BOARD_RECONCILIATION_2026-09-22.md", sha256: "86c0f97774187244853b6f90c72f5261ba810c0e40a6c0f1cda1d16a9f5d024f" }),
+        ]),
       }),
     ]),
   }),

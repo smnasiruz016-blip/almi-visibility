@@ -41,25 +41,56 @@ export const STATES_NEEDING_A_TRANSITION_EVENT = Object.freeze(["VERIFIED-PASS"]
  */
 export function consistencyErrors({ board, events }) {
   const errs = [];
-  const transitions = events.filter((e) => e.eventType === "BOARD_TRANSITION" && e.action === "VERIFIED");
+  /* Every event that records a row MOVING — whatever kind of movement. Keying the reverse check on the verification
+   * kind alone was wrong: a reopening is a movement too, and a guard blind to it cannot tell a superseded pass from
+   * a forged one. Verifications are still singled out for the forward check, because only they can justify a pass. */
+  const boardEvents = events.filter((e) => e.eventType === "BOARD_TRANSITION" && e.metadata?.featureId);
+  const movements = boardEvents.filter((e) => e.metadata.to);
+  /* 🔴 A VERIFICATION IS A VERIFICATION EVEN WITHOUT from/to. Events recorded before those fields existed carry
+   * neither, and filtering them out made an already-verified row look unaudited. They still prove the row was
+   * verified; they simply cannot be compared on destination, and the destination check skips them for that reason. */
+  const verifications = boardEvents.filter((e) => e.action === "VERIFIED");
+  const order = new Map(boardEvents.map((e, i) => [e, `${e.occurredAt}|${String(i).padStart(6, "0")}`]));
 
-  // FORWARD — a claimed pass needs exactly one transition event that names it.
+  // FORWARD — a claimed pass must be backed by a verification event, and its LATEST movement must be that pass.
   for (const row of board.filter((r) => STATES_NEEDING_A_TRANSITION_EVENT.includes(r.state))) {
-    const mine = transitions.filter((e) => e.metadata?.featureId === row.featureId);
+    const mine = verifications.filter((e) => e.metadata.featureId === row.featureId);
     if (mine.length === 0) {
-      errs.push({ code: "MOVEMENT_NOT_AUDITED", id: row.featureId, why: `${row.featureId} is ${row.state} and the trail holds no transition event for it — a movement whose audit append failed does not stand` });
+      errs.push({ code: "MOVEMENT_NOT_AUDITED", id: row.featureId, why: `${row.featureId} is ${row.state} and the trail holds no verification event for it — a movement whose audit append failed does not stand` });
       continue;
     }
-    if (mine.length > 1) errs.push({ code: "DUPLICATE_TRANSITION_EVENT", id: row.featureId, why: `${row.featureId} has ${mine.length} transition events; exactly one is lawful` });
+    /* 🔴 A ROW MAY LAWFULLY BE VERIFIED MORE THAN ONCE — reopened on contradictory evidence and verified again.
+     * What is never lawful is the SAME movement recorded twice, so that is what is checked: same row, same from,
+     * same to, same instant. A re-verification after a reopening differs in every one of those. */
+    const seen = new Set();
     for (const e of mine) {
-      if (e.metadata?.to && e.metadata.to !== row.state) {
-        errs.push({ code: "TRANSITION_DESTINATION_MISMATCH", id: row.featureId, why: `${row.featureId}: the event records to=${e.metadata.to}, the board reads ${row.state}` });
-      }
+      const key = `${e.metadata.featureId}|${e.metadata.from}|${e.metadata.to}|${e.occurredAt}`;
+      if (seen.has(key)) errs.push({ code: "DUPLICATE_TRANSITION_EVENT", id: row.featureId, eventId: e.eventId, why: `${row.featureId}: the same movement (${e.metadata.from} -> ${e.metadata.to} at ${e.occurredAt}) is recorded more than once` });
+      seen.add(key);
+    }
+    const latestVerification = mine.reduce((m, e) => (m === null || order.get(e) > order.get(m) ? e : m), null);
+    if (latestVerification.metadata.to && latestVerification.metadata.to !== row.state) {
+      errs.push({ code: "TRANSITION_DESTINATION_MISMATCH", id: row.featureId, why: `${row.featureId}: its latest verification records to=${latestVerification.metadata.to}, the board reads ${row.state}` });
     }
   }
 
-  // REVERSE — an event that names a destination must find the board in it. This is what stops a false record.
-  for (const e of transitions) {
+  /* REVERSE — an event that names a destination must find the board in it. This is what stops a false record.
+   *
+   * 🔴 ONLY THE LATEST TRANSITION PER ROW IS COMPARED, AND THE REOPENING IS WHY.
+   * The first version compared EVERY transition event against the board. The moment F08 moved
+   * VERIFIED-PASS → FAILED on contradictory evidence, the earlier VERIFIED event was reported as a movement that
+   * "did not happen" — but it did happen, and it is immutable history. A guard that cannot tell a SUPERSEDED past
+   * movement from a FALSE one would make every lawful reopening look like a forged record, and would push whoever
+   * hit it toward deleting history to get green. So the row's LATEST transition must match the board; earlier ones
+   * are history and are returned as superseded, not as errors. The guard keeps all of its power: a latest
+   * transition that does not match is still MOVEMENT_NOT_OBSERVED. */
+  const latestPerRow = new Map();
+  for (const e of movements) {
+    const id = e.metadata.featureId;
+    const prev = latestPerRow.get(id);
+    if (!prev || order.get(e) > order.get(prev)) latestPerRow.set(id, e);
+  }
+  for (const e of latestPerRow.values()) {
     const id = e.metadata?.featureId;
     const to = e.metadata?.to;
     if (!to) continue;

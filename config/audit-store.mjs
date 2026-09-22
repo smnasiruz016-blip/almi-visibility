@@ -25,8 +25,19 @@
  *                checkout unchanged on any platform and the stored hashes keep matching.
  *   ATOMICITY    one validated, fully-serialised line per append call (src/audit-trail/store.mjs).
  *   RETENTION    append-only, never pruned. Bounded by ADMISSION, not by deletion: only governed decisions enter, and
- *                read-only diagnostics are excluded by the declared inclusion rule. SIZE_CEILING_BYTES is reported
- *                against on every run, so growth is a number somebody sees rather than a surprise.
+ *                read-only diagnostics are excluded by the declared inclusion rule.
+ *
+ *   🔴 THE CEILING IS REPORTED AND IS **NOT ENFORCED**. CORRECTED 22 September 2026, on measurement.
+ *   `sizeCeilingBytes` is read by `sizeReport()` and printed by the entry point. `append()` NEVER CONSULTS IT.
+ *   Reproduced on a copy of the real store whose declared capacity was already exceeded: `sizeReport()` returned
+ *   `withinCeiling: false` and `append()` accepted the event anyway, leaving a valid chain. **A full store does not
+ *   refuse an append and does not block a governed write.** Measured size at that time: 185,285 bytes, 2.2% of the
+ *   declared 8,388,608.
+ *
+ *   This is a correction to a DECLARATION, not a repair: capacity appears nowhere in F08's frozen acceptance, so
+ *   building enforcement would enlarge what F08 delivers without changing what it promised. Enforcement is PARKED
+ *   as its own row. Until then, nothing here may be read as a guarantee that the store cannot grow unbounded —
+ *   it can, and this line is the warning.
  *
  * 🔴 DERIVED ARTEFACTS. Anything built FROM this store must be regenerable from the store alone and must record the
  * hashes of its inputs. THIS FEATURE COMMITS NONE, deliberately: the §13 censuses (tools/audit-trail-census.mjs) and

@@ -49,10 +49,13 @@ const EVIDENCE_RECORD_SHA = "2b84452c769ba4e62b38f2d8648ae029a1c13f44d802441d401
 const AT_MERGE = Object.freeze({
   f05Block: "98899fa6a5c2fe31f4489ef0f6f9af6cff2600f8dfb48e82d3169f677c44571e",
   f40Block: "13589c31881326aa223800e664de744139b4d5ddb0865d50dfe54bcb292738ce",
-  f08Block: "54e1e6f128a49e1c266e9d000bf9086ca8819f200cac25d2f91315a2fde13ab4",
+  f08Block: "718d01bb755b28307ad3c430508b2a86cb24acb5199aec811a653307e060c3fb",
   classification: "149f936256debdc4b74b7298f707f48371d26ec4380a9f58f74254c6e9d9a65d",
-  states: Object.freeze({ F05: "VERIFIED-PASS", F08: "IN-PROGRESS", F40: "BLOCKED-BY-AUTHORITY" }),
+  states: Object.freeze({ F05: "VERIFIED-PASS", F08: "VERIFIED-PASS", F40: "BLOCKED-BY-AUTHORITY" }),
 });
+/* 🔴 RE-PINNED TO a0ee5e7, THIS BRANCH'S BASE — the commit the reconciliation merged as. F05's row, F40's row and
+ * the historical ledger hash exactly as they did at 5630617, which is the point: they have not moved across either
+ * change. Only F08's block differs, and it is the row that moved. */
 /** The generic production files this branch changes. Named, so the neutrality proof can never become vacuous. */
 const CHANGED_GENERIC = Object.freeze(["config/authority/corpus.mjs", "config/fboard/f-board.mjs", "src/audit-trail/population.mjs", "src/fboard/record-authority.mjs", "tools/board-audit-consistency.mjs"]);
 const sha = (s) => createHash("sha256").update(String(s).split("\r\n").join("\n"), "utf8").digest("hex");
@@ -80,15 +83,24 @@ const NOW = readFileSync(join(REPO_ROOT, "config/fboard/f-board.mjs"), "utf8");
  * P1–P7 · THE BOARD
  * ════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 
-test("P1 · F08 reads VERIFIED-PASS from the engine board, and the board validates", () => {
+/* 🔴 STATE-AGNOSTIC SINCE THE REOPENING, AND DELIBERATELY SO.
+ * This proof read `assert.equal(row.state, "VERIFIED-PASS")`. When F08 was lawfully reopened on contradictory
+ * evidence the assertion failed — not because anything was wrong, but because it had pinned ONE state rather than
+ * the PROPERTY that matters: the board's state must be exactly what F08's latest recorded movement says, and the
+ * board must validate whatever that state is. Pinning the property survives every lawful movement and still fails
+ * the moment the board and the trail disagree. */
+test("P1 · F08's state is exactly what its latest recorded movement says, and the board validates", () => {
   const b = board();
   const row = b.find((r) => r.featureId === "F08");
-  assert.equal(row.state, "VERIFIED-PASS");
   assert.equal(row.board, "F_BOARD");
+  const movements = events().filter((e) => e.eventType === "BOARD_TRANSITION" && e.metadata?.featureId === "F08" && e.metadata?.to);
+  assert.ok(movements.length > 0, "the trail records no movement for F08 at all");
+  const latest = movements[movements.length - 1];
+  assert.equal(row.state, latest.metadata.to, `the board reads ${row.state}; F08's latest recorded movement says ${latest.metadata.to}`);
   assert.deepEqual(boardErrors(b, { capabilities: CAPABILITIES, acceptances: ACCEPTANCES, authority: { records: AUTHORITY_CORPUS, now: CORPUS_PROVENANCE.now } }), []);
-  // CONTROL, PROVED CAPABLE: the SAME validator refuses this state when its verification event is removed.
-  const stripped = b.map((r) => (r.featureId === "F08" ? { ...r, events: r.events.filter((e) => e.kind !== "VERIFIED") } : r));
-  assert.deepEqual(boardErrors(stripped, { capabilities: CAPABILITIES, acceptances: ACCEPTANCES }).map((e) => e.code), ["PASS_WITHOUT_VERIFICATION"]);
+  // CONTROL, PROVED CAPABLE: the SAME validator refuses a PASS whose verification event is removed.
+  const asPass = b.map((r) => (r.featureId === "F08" ? { ...r, state: "VERIFIED-PASS", events: r.events.filter((e) => e.kind !== "VERIFIED") } : r));
+  assert.deepEqual(boardErrors(asPass, { capabilities: CAPABILITIES, acceptances: ACCEPTANCES }).map((e) => e.code), ["PASS_WITHOUT_VERIFICATION"]);
 });
 
 test("P2 · the board's state split sums to 89", () => {
@@ -105,8 +117,11 @@ test("P3 · F-progress is COMPUTED from the board file and equals the counted VE
   const p = progress(b);
   assert.equal(p.passed, counted, "F-progress disagrees with the rows actually on the board");
   assert.equal(p.progress, counted / DENOMINATOR);
-  // CONTROL, PROVED CAPABLE: remove one pass and the computed figure follows it down.
-  const fewer = progress(b.map((r) => (r.featureId === "F08" ? { ...r, state: "IN-PROGRESS" } : r)));
+  /* CONTROL, PROVED CAPABLE: take a pass off WHICHEVER row currently holds one and the computed figure follows it
+   * down. Naming a row here is what broke when F08 was reopened; the property is about counting, not about F08. */
+  const aPassingRow = b.find((r) => r.state === "VERIFIED-PASS");
+  assert.ok(aPassingRow, "no row passes — this control would be vacuous");
+  const fewer = progress(b.map((r) => (r.featureId === aPassingRow.featureId ? { ...r, state: "IN-PROGRESS" } : r)));
   assert.equal(fewer.passed, counted - 1);
 });
 
@@ -128,7 +143,7 @@ test("P6 · every feature other than F08 holds exactly the state it held at the 
     const was = AT_MERGE.states[r.featureId] ?? "UNASSESSED";
     if (was !== r.state) moved.push(`${r.featureId}: ${was} -> ${r.state}`);
   }
-  assert.deepEqual(moved, ["F08: IN-PROGRESS -> VERIFIED-PASS"], "a feature other than F08 moved");
+  assert.deepEqual(moved, ["F08: VERIFIED-PASS -> FAILED"], "a feature other than F08 moved");
   // The set of declared rows itself did not grow: a new row appearing would also be a movement.
   assert.deepEqual(Object.keys(DECLARED).sort(), Object.keys(AT_MERGE.states).sort());
 });
@@ -173,10 +188,13 @@ test("P8 · EXACTLY ONE valid audit event exists for F08's final transition, and
 test("P9 · an audit append failure PREVENTS the movement — a row cannot stand without its transition event", () => {
   const b = board();
   const all = events();
-  // FIRING: the movement happened, the append did not.
-  const without = all.filter((e) => !(e.eventType === "BOARD_TRANSITION" && e.metadata?.featureId === "F08"));
+  /* FIRING: the movement happened, the append did not. The row is whichever one currently claims a pass — naming
+   * F08 here is what broke when F08 was reopened, and the property was never about F08. */
+  const passing = b.find((r) => r.state === "VERIFIED-PASS");
+  assert.ok(passing, "no row claims a pass — this firing case would be vacuous");
+  const without = all.filter((e) => !(e.eventType === "BOARD_TRANSITION" && e.metadata?.featureId === passing.featureId));
   const errs = consistencyErrors({ board: b, events: without });
-  assert.ok(errs.some((e) => e.code === "MOVEMENT_NOT_AUDITED" && e.id === "F08"), `MOVEMENT_NOT_AUDITED was not reported for F08 although its transition event is absent; got [${errs.map((e) => e.code).join(", ")}]`);
+  assert.ok(errs.some((e) => e.code === "MOVEMENT_NOT_AUDITED" && e.id === passing.featureId), `MOVEMENT_NOT_AUDITED was not reported for ${passing.featureId} although its verification event is absent; got [${errs.map((e) => e.code).join(", ")}]`);
   // CONTROL, PROVED CAPABLE: with the event present the SAME check returns nothing.
   assert.deepEqual(consistencyErrors({ board: b, events: all }), []);
   // And the real append path really does throw rather than return — so a caller cannot proceed past it.
@@ -239,11 +257,21 @@ test("P18 · NO audit event exists for a board movement that did not occur", () 
   assert.ok(errs.some((e) => e.code === "MOVEMENT_NOT_OBSERVED" && e.id === "F08"), `MOVEMENT_NOT_OBSERVED was not reported although the board does not show the movement the event describes; got [${errs.map((e) => e.code).join(", ")}]`);
   // CONTROL, PROVED CAPABLE: against the real board the same check is silent.
   assert.deepEqual(consistencyErrors({ board: board(), events: all }), []);
-  // Every transition event in the trail names a destination the board actually holds.
-  for (const e of all.filter((x) => x.eventType === "BOARD_TRANSITION" && x.metadata?.to)) {
-    const row = board().find((r) => r.featureId === e.metadata.featureId);
-    assert.equal(row.state, e.metadata.to, `${e.eventId} describes a movement the board does not show`);
+  /* 🔴 THE LATEST MOVEMENT PER ROW MUST MATCH THE BOARD — NOT EVERY MOVEMENT EVER RECORDED.
+   * This asserted that every transition event's destination equalled the board's state, which held only while no
+   * row had ever moved twice. The moment F08 was lawfully reopened, its earlier VERIFIED event was flagged as a
+   * movement "the board does not show" — but it did happen, and it is immutable history. A proof that cannot tell
+   * a SUPERSEDED past movement from a FALSE one would make every lawful reopening look like forgery. */
+  const latest = new Map();
+  for (const e of all.filter((x) => x.eventType === "BOARD_TRANSITION" && x.metadata?.to)) latest.set(e.metadata.featureId, e);
+  assert.ok(latest.size > 0, "the trail records no movement at all — this proof would be vacuous");
+  for (const [id, e] of latest) {
+    const row = board().find((r) => r.featureId === id);
+    assert.equal(row.state, e.metadata.to, `${e.eventId} is ${id}'s LATEST movement and describes a state the board does not hold`);
   }
+  // And the superseded earlier movements are still in the trail, unedited.
+  assert.ok(all.filter((x) => x.eventType === "BOARD_TRANSITION" && x.metadata?.featureId === "F08" && x.metadata?.to).length >= 2,
+    "F08's superseded movement was removed from the trail — history is immutable");
 });
 
 /* ════════════════════════════════════════════════════════════════════════════════════════════════════════════════
@@ -271,13 +299,16 @@ test("P11 · the acceptance, merge and CI references all resolve", () => {
 test("P12 · BOTH HALVES — a conflicting evidence record is FLAGGED and the engine board WINS; agreement flags nothing", () => {
   const boardState = board().find((r) => r.featureId === "F08").state;
   // FIRING: they disagree.
-  const conflict = compareRecords({ featureId: "F08", boardState, recordState: "IN-PROGRESS", rulingSha256: BOARD_AUTHORITY_RULING_SHA256 });
+  /* The disagreeing state is ANY state the board does not hold — derived from the board rather than named, so the
+   * proof does not quietly stop firing when F08 moves. Naming "IN-PROGRESS" here broke on the reopening. */
+  const somethingElse = F_STATES.find((s) => s !== boardState);
+  const conflict = compareRecords({ featureId: "F08", boardState, recordState: somethingElse, rulingSha256: BOARD_AUTHORITY_RULING_SHA256 });
   assert.equal(conflict.agree, false);
   assert.equal(conflict.flagged, true, "a conflicting record was not flagged");
   assert.equal(conflict.authoritative, AUTHORITATIVE_RECORD);
   assert.equal(conflict.state, boardState, "the evidence record's state won");
   // CLEAN CONTROL, PROVED CAPABLE OF THE OTHER VERDICT: when they agree, nothing is flagged.
-  const agree = compareRecords({ featureId: "F08", boardState, recordState: "VERIFIED-PASS", rulingSha256: BOARD_AUTHORITY_RULING_SHA256 });
+  const agree = compareRecords({ featureId: "F08", boardState, recordState: boardState, rulingSha256: BOARD_AUTHORITY_RULING_SHA256 });
   assert.equal(agree.agree, true);
   assert.equal(agree.flagged, false, "a check that flags agreement proves nothing");
   assert.equal(agree.state, boardState);

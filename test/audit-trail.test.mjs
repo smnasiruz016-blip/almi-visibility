@@ -35,6 +35,7 @@ import { ACCEPTANCES } from "../config/fboard/acceptances.mjs";
 import { contractSha256 } from "../src/fboard/acceptance.mjs";
 import { DECLARED } from "../config/fboard/f-board.mjs";
 import { REPO_ROOT, writePermission, LOCAL, PRODUCTION } from "../src/write-law.mjs";
+import { F_STATES } from "../src/fboard/board.mjs";
 import { createTenantResolver, TENANT_ID_PATTERN } from "../src/tenancy/resolver.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { queryObservation } from "../src/discovery/row5.mjs";
@@ -640,15 +641,25 @@ test("P32 · no historical 61/38 state produces an F08 pass or affects F-progres
    * 35784138199 green on that exact SHA), so the state moved. What this proof is about never changed: whatever the
    * state is, NO HISTORICAL ROW MAY HAVE SUPPLIED IT. So the state is asserted exactly, the pass is required to
    * stand on a verification recorded UNDER F08 over the REAL population, and every historical channel is refused. */
-  assert.equal(DECLARED.F08.state, "VERIFIED-PASS");
+  /* 🔴 THE STATE IS NOT PINNED HERE, AND THAT IS THE REPAIR.
+   * This asserted VERIFIED-PASS, then IN-PROGRESS, then VERIFIED-PASS again, and failed each time F08 lawfully
+   * moved — never because anything was wrong. The property this proof is about never changed: WHATEVER the state
+   * is, no historical row may have supplied it, and a PASS must stand on a verification recorded under F08's own
+   * id over the REAL population. Both are asserted; the state itself is read, not required. */
+  assert.ok(F_STATES.includes(DECLARED.F08.state), `${DECLARED.F08.state} is not an F-board state`);
   assert.equal(DECLARED.F08.board, "F_BOARD");
   assert.equal(Object.hasOwn(DECLARED.F08, "historicalState"), false);
   const verified = DECLARED.F08.events.find((e) => e.kind === "VERIFIED");
-  assert.ok(verified, "F08 is VERIFIED-PASS with no verification event");
-  assert.equal(verified.featureId, "F08", "the verification was recorded under another row");
-  assert.equal(verified.population, "REAL", "the verification was not over the real population");
-  assert.equal(verified.mergedSha, "56306175337b44ba51d203fdfa91a4c533d0fc9a");
-  assert.equal(verified.ciConclusion, "success");
+  if (DECLARED.F08.state === "VERIFIED-PASS") {
+    assert.ok(verified, "F08 is VERIFIED-PASS with no verification event");
+    assert.equal(verified.featureId, "F08", "the verification was recorded under another row");
+    assert.equal(verified.population, "REAL", "the verification was not over the real population");
+  }
+  // Whatever the state, a verification that IS recorded must name the merge and CI run it stood on.
+  if (verified) {
+    assert.equal(verified.mergedSha, "56306175337b44ba51d203fdfa91a4c533d0fc9a");
+    assert.equal(verified.ciConclusion, "success");
+  }
 });
 
 test("P33 · a governed state-changing action FAILS CLOSED when the audit append fails", () => {
@@ -760,10 +771,20 @@ test("🔴 F08's acceptance is the one the governance repository committed, and 
   /* The lawful order, asserted exactly: the acceptance is frozen FIRST, implementation follows it, and the
    * verification comes last. The board refuses the other orders by code (IMPLEMENTATION_BEFORE_ACCEPTANCE,
    * PASS_WITHOUT_VERIFICATION); this pins the sequence the row actually carries. */
-  assert.deepEqual(DECLARED.F08.events.map((e) => e.kind), ["ACCEPTANCE_FROZEN", "IMPLEMENTATION", "VERIFIED"]);
+  /* The ORDER is what is pinned, not the length: acceptance first, then implementation, then a verification, and
+   * after that whatever lawfully followed. A row may be reopened on contradictory evidence and verified again;
+   * what is never lawful is implementation before acceptance, or a pass with no verification — and the board
+   * refuses both by code. Appending a list here is what broke when F08 was reopened. */
+  const kinds = DECLARED.F08.events.map((e) => e.kind);
+  assert.deepEqual(kinds.slice(0, 3), ["ACCEPTANCE_FROZEN", "IMPLEMENTATION", "VERIFIED"]);
   assert.equal(DECLARED.F08.events[1].after, "ACCEPTANCE_FROZEN");
   assert.equal(DECLARED.F08.events[2].from, "IN-PROGRESS");
   assert.equal(DECLARED.F08.events[2].to, "VERIFIED-PASS");
+  // Every later event is a movement that names where it came from and where it went.
+  for (const e of DECLARED.F08.events.slice(3)) {
+    assert.ok(F_STATES.includes(e.from), `${e.kind} records from=${e.from}, which is not an F-board state`);
+    assert.ok(F_STATES.includes(e.to), `${e.kind} records to=${e.to}, which is not an F-board state`);
+  }
   assert.equal(DECLARED.F08.events[0].contractSha256, acc.contractSha256);
 });
 

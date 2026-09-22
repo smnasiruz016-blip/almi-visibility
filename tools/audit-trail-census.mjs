@@ -103,14 +103,20 @@ for (const p of changed) console.log(`  ${p}`);
   }
   const boundary = execFileSync(process.execPath, [join(REPO, "bin", "product-boundary.mjs")], { cwd: REPO, encoding: "utf8" });
   const codeOccurrences = Number(boundary.match(/code lines: (\d+)/)?.[1] ?? "-1");
-  const controlFires = PRODUCT_WORDS.filter((w) => new RegExp(w, "i").test('{"resourceRef":"almi-oet/facts"}')).length;
+  /* 🔴 THE CONTROL IS BUILT FROM THE RULE'S OWN LIST, NOT FROM A LITERAL PRODUCT NAME.
+   * The first version embedded a real product reference in this line, and this very census then reported it — the
+   * law's own file was its first offender, which is precisely the hole tools/sealed-corpus-census.mjs refuses to
+   * cut for itself. Taking the probe from PRODUCT_WORDS keeps the control live and needs no exemption. */
+  const probe = `{"resourceRef":"${PRODUCT_WORDS[3]}-registry/facts"}`;
+  const controlFires = PRODUCT_WORDS.filter((w) => new RegExp(w, "i").test(probe)).length;
   say(
     "13.3 · PRODUCT / CLIENT IDENTIFIER CENSUS",
     `${scope.length} changed generic production file(s) + the audit store and head record, against ${PRODUCT_WORDS.length} product word classes (imported from tools/product-boundary.mjs, never copied)`,
     "code lines of every changed src/bin/tools/config file, and every byte of the audit store",
     hits.length + (codeOccurrences === 0 ? 0 : codeOccurrences),
-    `the same word list fires ${controlFires}x on a line that DOES carry a product reference; and bin/product-boundary.mjs's own control is in its test`,
+    `the same word list fires ${controlFires}x on a probe built from PRODUCT_WORDS itself; and bin/product-boundary.mjs's own control is in its test`,
   );
+  for (const h of hits) console.log(`    🔴 ${h}`);
 }
 
 /* ── 13.4 · TENANT-ISOLATION CENSUS over the committed trail ──────────────────────────────────────────────────── */

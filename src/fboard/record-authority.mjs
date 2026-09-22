@@ -1,10 +1,16 @@
 /**
  * 🔴 WHICH RECORD CARRIES AN ACTIVE F-ROW'S STATE, WHEN TWO RECORDS DISAGREE (22 September 2026).
  *
- * Owner ruling `_handoffs/AlmiVisibility_OWNER_RULING_2026-09-22_BOARD_AUTHORITY.md`
- * (sha256 ce6aeb06f752577858d002c0c90a317cba8e2a7e91e62cd7b6e477470af8c256):
- * the ENGINE F-BOARD is authoritative for active F-product accounting; an evidence record SUPPORTS a movement and
- * may never OVERRIDE one.
+ * The governing act is the owner ruling whose proposition is OWNER_RULING_BOARD_AUTHORITY, committed in the
+ * governance repository and resolvable through the authority register; its bytes hash to
+ * ce6aeb06f752577858d002c0c90a317cba8e2a7e91e62cd7b6e477470af8c256. It rules that the ENGINE F-BOARD is
+ * authoritative for active F-product accounting, and that an evidence record SUPPORTS a movement and may never
+ * OVERRIDE one.
+ *
+ * 🔴 THE RULING IS NAMED BY PROPOSITION AND HASH, NEVER BY REPOSITORY OR FILE NAME. The first draft of this header
+ * wrote the governance repository's name and the platform's name into a module under src/, and the F05 census
+ * caught it: generic production code carries no product or client name, COMMENTS INCLUDED. A hash and a
+ * proposition id say the same thing and name nobody.
  *
  * ── THE TWO HALVES, AND WHY BOTH ARE HERE ──────────────────────────────────
  *

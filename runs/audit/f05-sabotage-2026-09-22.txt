@@ -16,8 +16,10 @@ S14 alter F05 acceptance → P24 · S15 historical state string accepted → P25
 S8 FIRST RUN: RED, but for the WRONG reason — the contract-hash pin fired before the similarity guard it targets. Test reordered so the
 semantic-variant checks run first (the guard under test); re-run alone: RED for the intended reason ("a case variant was called IDENTICAL").
 
-RUN 2 (FINAL) — after F05 moved ACCEPTANCE-FROZEN → IN-PROGRESS (its IMPLEMENTATION event) and the split/progress proofs were
-re-stated from the declared board (MOVED = F05, F40; EARNED = F05 VERIFIED-PASS ? 1 : 0). The whole set re-ran from the start.
+RUN 2 — after F05 moved ACCEPTANCE-FROZEN → IN-PROGRESS: 17 of 17 landed, RED for the intended reason, restored.
+
+RUN 3 (FINAL) — after F05's VERIFIED event was recorded (state VERIFIED-PASS; the P15/P17 firing fixtures now strip F05's own
+verification first, so "a PASS with none" is still built and still refused). The whole set re-ran from the start.
 
 RESULTS
 S1     landed=true ran=1 red=1 cause=true restored=true payloadPrinted=false — prefer the older rule

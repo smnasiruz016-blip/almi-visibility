@@ -314,7 +314,8 @@ test("P15 — NEW and CHANGED require full fresh proof: nothing is waived, and a
   const waived = structuredClone(CROSSWALK);
   waived.entries[4].freshVerificationRequired = false;
   assert.deepEqual(crosswalkErrors(waived).map((e) => e.code), ["FRESH_VERIFICATION_WAIVED"]);
-  const b = board().map((x) => (x.featureId === "F05" ? { ...x, state: "VERIFIED-PASS" } : x));
+  // (the fixture removes F05's own recorded verification first — a PASS with none must be refused)
+  const b = board().map((x) => (x.featureId === "F05" ? { ...x, state: "VERIFIED-PASS", events: x.events.filter((e) => e.kind !== "VERIFIED") } : x));
   assert.deepEqual(boardErrors(b, { capabilities: CAPABILITIES, acceptances: ACCEPTANCES }).map((e) => e.code), ["PASS_WITHOUT_VERIFICATION"]);
 });
 
@@ -338,7 +339,7 @@ test("P17 — IDENTICAL still requires a current real-population rerun UNDER THE
   const cw = buildCrosswalk({ capabilities: CAPABILITIES, acceptances: ACCEPTANCES, mappings: { F05: { contracts: [{ row: 5, ...ACCEPTANCES.F05 }] } } });
   assert.equal(cw.entries[4].acceptanceRelation, "IDENTICAL");
   assert.equal(cw.entries[4].freshVerificationRequired, true);
-  const pass = (ev) => board().map((x) => (x.featureId === "F05" ? { ...x, state: "VERIFIED-PASS", events: [...x.events, ev] } : x));
+  const pass = (ev) => board().map((x) => (x.featureId === "F05" ? { ...x, state: "VERIFIED-PASS", events: [...x.events.filter((e) => e.kind !== "VERIFIED"), ev] } : x));
   for (const ev of [{ kind: "VERIFIED", featureId: "F04", population: "REAL" }, { kind: "VERIFIED", featureId: "F05", population: "FIXTURE" }, { kind: "VERIFIED", row: 5, population: "REAL" }]) {
     assert.deepEqual(boardErrors(pass(ev), { capabilities: CAPABILITIES, acceptances: ACCEPTANCES }).map((e) => e.code), ["PASS_WITHOUT_VERIFICATION"], JSON.stringify(ev));
   }

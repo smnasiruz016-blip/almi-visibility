@@ -28,6 +28,7 @@ import { DECLARED } from "../config/fboard/f-board.mjs";
 import { AUTHORITY_CORPUS, CORPUS_PROVENANCE } from "../config/authority/corpus.mjs";
 import { buildBoard, boardErrors, progress } from "./../src/fboard/board.mjs";
 import { productionAuditStore } from "../src/audit-trail/wiring.mjs";
+import { compareRecords, BOARD_AUTHORITY_RULING_SHA256 } from "../src/fboard/record-authority.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 
@@ -64,8 +65,12 @@ export function consistencyErrors({ board, events }) {
     if (!to) continue;
     const row = board.find((r) => r.featureId === id);
     if (!row) { errs.push({ code: "MOVEMENT_NOT_OBSERVED", id: id ?? "?", eventId: e.eventId, why: `a transition event names ${id}, which is not a row on this board` }); continue; }
-    if (row.state !== to) {
-      errs.push({ code: "MOVEMENT_NOT_OBSERVED", id, eventId: e.eventId, why: `a transition event records ${id} moving to ${to}, but the board reads ${row.state} — the movement the event describes did not happen` });
+    /* 🔴 THE COMPARISON IS MADE BY THE MODULE THAT OWNS THE RULE, not reimplemented here. An audit event is a
+     * record like any other: where it disagrees with the board about an active row, the board governs and the
+     * disagreement is reported. src/fboard/record-authority.mjs applies that ruling and fails closed without it. */
+    const verdict = compareRecords({ featureId: id, boardState: row.state, recordState: to, rulingSha256: BOARD_AUTHORITY_RULING_SHA256 });
+    if (verdict.flagged) {
+      errs.push({ code: "MOVEMENT_NOT_OBSERVED", id, eventId: e.eventId, why: `a transition event records ${id} moving to ${to}, but the board reads ${verdict.state} — the movement the event describes did not happen` });
     }
   }
   return errs;

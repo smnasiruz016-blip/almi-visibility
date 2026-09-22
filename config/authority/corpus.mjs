@@ -1,9 +1,9 @@
 /**
  * 🔴 GENERATED — DO NOT EDIT. bin/authority-migrate.mjs, from COMMITTED bytes only.
- * Governance: _handoffs 58685998b08fafb8bf3d6b1b7da9a2becf3fe004 · engine: bd72bfd26f26f4e04b1988d101734cacd3c618c7 · inclusion rule: config/authority/inclusion.mjs.
+ * Governance: _handoffs 19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb · engine: 31440e8ce6dd1105a28caeda31aa9285b2ac0141 · inclusion rule: config/authority/inclusion.mjs.
  * Paths, structured identity and content hashes only — no governance prose is copied here.
  */
-export const CORPUS_PROVENANCE = Object.freeze({"governanceCommit":"58685998b08fafb8bf3d6b1b7da9a2becf3fe004","engineCommit":"bd72bfd26f26f4e04b1988d101734cacd3c618c7","now":"2026-09-22","governanceListed":726,"engineListed":64});
+export const CORPUS_PROVENANCE = Object.freeze({"governanceCommit":"19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb","engineCommit":"31440e8ce6dd1105a28caeda31aa9285b2ac0141","now":"2026-09-22","governanceListed":730,"engineListed":64});
 export const AUTHORITY_CORPUS = Object.freeze([
   {
     "authorityId": "_handoffs:AlmiVisibility_BETA_G_RULING_9_AMBIGUOUS_2026-09-13_NIGHT.md",
@@ -22,7 +22,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_BETA_G_RULING_9_AMBIGUOUS_2026-09-13_NIGHT.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "a730b4fc64d0c52d70f96cda02142969c2b74673"
     },
     "status": "CURRENT",
@@ -49,7 +49,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_CC_COMMAND_2026-09-19_ERROR_REGISTER_AND_PERSISTENCE.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "3a67832a6d489445500bd8c264da94d17f49d5c9"
     },
     "status": "CURRENT",
@@ -77,7 +77,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_CC_COMMAND_2026-09-19_ROW17_CLOSE_OR_HALT.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "bb78cede782d4a67cf13e461bcd6e540bdb2c8b2"
     },
     "status": "CURRENT",
@@ -105,7 +105,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_CC_COMMAND_2026-09-19_ROW9_CLOSE_OR_HALT.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "5e55652714cd9cdb1c335cc3887b842c1e7107c7"
     },
     "status": "CURRENT",
@@ -132,7 +132,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_CC_COMMAND_2026-09-19_SELECT_AND_CLOSE.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "b184404f48090c51db5689e0b9e036b483934102"
     },
     "status": "CURRENT",
@@ -160,7 +160,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_CC_COMMAND_2026-09-20_ROW6_CLOSE_OR_HALT.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "3e37969f2c1088bbe42c0f9e80ef737e4ec85cd6"
     },
     "status": "CURRENT",
@@ -188,7 +188,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_CC_COMMAND_2026-09-20_ROW6_OWNER_INPUT_AND_CLOSE.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "af536052316bda97abfd549071f1f735ae46202c"
     },
     "status": "CURRENT",
@@ -216,7 +216,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_CC_COMMAND_2026-09-21_AMEND_ROW61_AND_RESUME_ROW6.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "2c44ca5856e83a406f5280720164c2afc4f5b584"
     },
     "status": "CURRENT",
@@ -244,7 +244,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_CC_COMMAND_2026-09-21_ROW25_COMPLETE.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "5f00c6e070e62e217ff5c93b6108cb8888be7511"
     },
     "status": "CURRENT",
@@ -272,7 +272,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_CC_COMMAND_2026-09-21_ROW4_COMPLETE.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "d2b8995bf26c0dff2e1dcf169091751f4dfbdb4c"
     },
     "status": "CURRENT",
@@ -300,7 +300,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_CC_COMMAND_2026-09-21_ROW50_COMPLETE.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "bc60f5a43278da9a5fa1a514662861707b44b3be"
     },
     "status": "CURRENT",
@@ -328,7 +328,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_CC_COMMAND_2026-09-21_ROW50_OWNER_REOPEN_APPLIED.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "bedabae1f9a5e511550dd601a6651b65a0192ba1"
     },
     "status": "CURRENT",
@@ -356,7 +356,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_CC_COMMAND_2026-09-21_ROW6_DEMAND_RESEARCH_AND_CLOSE.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "c90d5c2679af43135c87e4db061e1b6f9758f069"
     },
     "status": "CURRENT",
@@ -384,7 +384,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_CC_COMMAND_2026-09-22_F05_CHAIN_PART3_REMEDIATION.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "d3bea60bcb137386e123d5a269d6a5200dcc82bc"
     },
     "status": "CURRENT",
@@ -412,7 +412,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_CC_COMMAND_2026-09-22_F05_CHAIN_PART4_OWNER_ANSWERS.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "adbad18d0ab37bb81555c1093b71df2a4e0b9a11"
     },
     "status": "CURRENT",
@@ -440,7 +440,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_CC_COMMAND_2026-09-22_F05_CURRENT_AUTHORITY_REGISTER_CHAIN.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "c62dcab4aff74a40c3b119900f1aa4e15f08b7c4"
     },
     "status": "CURRENT",
@@ -448,6 +448,34 @@ export const AUTHORITY_CORPUS = Object.freeze([
     "supersededBy": [],
     "contentHash": "c53d640be28e4ffcced4a7de62a83b64ad41bdc0ea9b28829cae6844bee1a97e",
     "recordedAt": "2026-09-22T04:26:27Z",
+    "inclusionRule": "command-record"
+  },
+  {
+    "authorityId": "_handoffs:AlmiVisibility_CC_COMMAND_2026-09-22_F08_COMPLETE.md",
+    "propositionId": "CC_COMMAND_F08_COMPLETE",
+    "scope": [
+      "ALMIVISIBILITY",
+      "F08"
+    ],
+    "issuer": {
+      "class": "OWNER",
+      "declaredBy": "inclusion rule command-record"
+    },
+    "issuedAt": "2026-09-22",
+    "issuedAtSource": "FILE_NAME",
+    "effectiveFrom": "2026-09-22",
+    "sourceRef": {
+      "kind": "GOVERNANCE_RECORD",
+      "repo": "_handoffs",
+      "path": "AlmiVisibility_CC_COMMAND_2026-09-22_F08_COMPLETE.md",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
+      "blob": "ecaf66f4608849b44e379e5bae94302bc5c62416"
+    },
+    "status": "CURRENT",
+    "supersedes": [],
+    "supersededBy": [],
+    "contentHash": "3a01021d566a0ba04ea27ae644a8cfde4afa809f1cf92addeac8cb6cde6b3c30",
+    "recordedAt": "2026-09-22T19:40:42Z",
     "inclusionRule": "command-record"
   },
   {
@@ -468,7 +496,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_CC_COMMAND_2026-09-22_ROW5_COMPLETE.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "d659b16d358b801c961da31e35fbd03b3e7bfd98"
     },
     "status": "CURRENT",
@@ -495,7 +523,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_DOD_HIT_RESOLVED_STAGED_SET_APPROVED_RULING_2026-09-16.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "a19f46a94b559e40349816ca5b09b7186052f4b9"
     },
     "status": null,
@@ -523,7 +551,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_FEATURE_MASTER_COMMAND_ROW1_2026-09-18.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "e5ebd247d2c72ab08dcd8f0e1e094fb095e9ff50"
     },
     "status": "CURRENT",
@@ -551,7 +579,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_FEATURE_MASTER_COMMAND_ROW5_2026-09-18.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "0c38e6edba7da3afa7ba19cb79b2a2d8aa34ab9c"
     },
     "status": "CURRENT",
@@ -579,7 +607,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_FEATURE_MASTER_COMMAND_ROW9_2026-09-18.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "633ddc258d0230dec2480e19a0835d5edfcc7475"
     },
     "status": "CURRENT",
@@ -606,7 +634,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_GAP_IDS_D_EXIT_1_LINE_RULING_2026-09-16.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "e78b4284ac35d3c1a0586c2b427e55ca54c85fbf"
     },
     "status": null,
@@ -633,7 +661,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_GAP_IDS_RECORD_ONLY_RULING_2026-09-16.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "8f12bbd67e128af402fcde05ef240168aec54338"
     },
     "status": null,
@@ -660,7 +688,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_GAP2_BLOCKER2_EASY_FOUR_RULING_2026-09-17.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "14a3fc830a74169fd24ee931e949efee7edd5258"
     },
     "status": null,
@@ -687,7 +715,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_GAP2_BOUNDED_CENSUS_CORRECTION_RULING_2026-09-16.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "3b4c4a93757a87c05e70ad412e82f25650320fca"
     },
     "status": null,
@@ -714,7 +742,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_GAP2_CONDITIONAL_FLOOR_REBASE_RULING_2026-09-16.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "cd39434c3187bbbce1ffc43ecf86bd225dbc98a6"
     },
     "status": null,
@@ -741,7 +769,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_GAP2_CONFINED_STORE_PATH_SEAM_RULING_2026-09-17.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "1d49ad99814cccbcad5368b2a77433d03c8c0e3a"
     },
     "status": null,
@@ -768,7 +796,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_GAP2_CONTRACT_RECONCILIATION_FINAL_FINISH_RULING_2026-09-17.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "e5d7765fd6c1c439471d2b2e16c7b3853080b88c"
     },
     "status": null,
@@ -795,7 +823,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_GAP2_D_CENSUS_1_SET_PROOF_REPIN_RULING_2026-09-17.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "f9abec8c01e4757c23be28a56c23c0586eb1a89d"
     },
     "status": null,
@@ -822,7 +850,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_GAP2_D_CENSUS_1_UNDER_COUNT_RULING_2026-09-17.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "458c9dfe52552f1006922d499d616a852f8e230b"
     },
     "status": null,
@@ -849,7 +877,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_GAP2_DIFFICULT_FIVE_FEASIBILITY_RULING_2026-09-17.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "58b8076b73914e454e666772ba13b16f1e31c58d"
     },
     "status": null,
@@ -876,7 +904,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_GAP2_EVIDENCE_FIRST_SEAM_ONE_CALLER_RULING_2026-09-17.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "85fcfb38eb3709d6794d1b8a9d017128ab556444"
     },
     "status": null,
@@ -903,7 +931,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_GAP2_FINAL_RULING_GSC_INGEST_THEN_CHECKLIST_2026-09-17.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "077724433130b1ce60f863fb03c449ae2049bf5b"
     },
     "status": null,
@@ -930,7 +958,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_GAP2_LEDGER_SEAM_TWO_CALLERS_RULING_2026-09-17.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "f14642e0c538a1363250ff56a39dd916b9bce7bc"
     },
     "status": null,
@@ -957,7 +985,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_GAP2_MEASURE_CENSUS_BEFORE_FIXING_RULING_2026-09-16.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "c5a46ab75b2afb7b3c6e824fd97d44a76801bdbd"
     },
     "status": null,
@@ -984,7 +1012,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_GAP2_MEASURE_SUPERSEDE_DUPLICATES_RULING_2026-09-17.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "306bf5f5b78d99dc2e5fc69eda0c57a82214363d"
     },
     "status": null,
@@ -1011,7 +1039,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_OPTION_A_MEMORY_FIRST_THEN_GAP2_RULING_2026-09-16.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "0e216ea33947e4160fd65cb166f0d75e88c8dc99"
     },
     "status": null,
@@ -1038,7 +1066,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_OWNER_CLARIFICATION_2026-09-19_PRODUCT_PRIORITY_AND_ISOLATION_BOUNDARY.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "14a6d8e158af003f8a5aecb8aa1942322cfee079"
     },
     "status": "CURRENT",
@@ -1066,7 +1094,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_OWNER_DECISION_2026-09-19_ROW1_CLOSED_BLOCKED_PROVED.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "80e6731ae9c4c7a9811312cd256a895d3f546a3a"
     },
     "status": "CURRENT",
@@ -1094,7 +1122,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_OWNER_DECISION_2026-09-22_ROW50_PRODUCT_BOUNDARY.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "1e5a0277b86b4b6172b8b23c01e078d6058f842e"
     },
     "status": "CURRENT",
@@ -1121,7 +1149,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_OWNER_RULING_2026-09-13_AMENDMENT_4_SCOPE_OPENS.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "81044a3984089f04688cd49061088f7b8fd90c84"
     },
     "status": "CURRENT",
@@ -1148,7 +1176,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_OWNER_RULING_2026-09-13_AMENDMENT_5_PORTABLE_PAGE_CONSTRUCTION.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "426ab0e414a37f3e2766e87015a8f1b1064214c0"
     },
     "status": "CURRENT",
@@ -1175,7 +1203,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_OWNER_RULING_2026-09-19_ARTEFACT_PERSISTENCE.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "771e36b9fb72990c98f4bcadc8b21d61bd61a9f4"
     },
     "status": "CURRENT",
@@ -1202,7 +1230,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_OWNER_RULING_2026-09-19_COMMIT_MECHANISM_SCOPE.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "cdcbdb88898941b6aeb4f74f4e3e5611a628b2c7"
     },
     "status": "CURRENT",
@@ -1229,7 +1257,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_OWNER_RULING_2026-09-19_D2_MIXED_LIMB_SPLIT.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "7dc62deaac162fa2100f0cf7bebb2c35d7c6213e"
     },
     "status": "CURRENT",
@@ -1257,7 +1285,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_OWNER_RULING_2026-09-19_U1_ROW1_COST_ISOLATION_SEMANTICS.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "c964cf7acb99cdd21e197d9af1b23b75abc10819"
     },
     "status": "CURRENT",
@@ -1285,7 +1313,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_OWNER_RULING_2026-09-21_ROW4_CONJUNCTION_AND_REASONING.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "32857aaadc5f6df5865054a041ccfefa6d77bbd8"
     },
     "status": "CURRENT",
@@ -1313,7 +1341,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_OWNER_RULING_2026-09-21_ROW50_LABEL_ON_FACE.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "1befb8d807f0c87513939d4d2e4f52a164d1a552"
     },
     "status": "CURRENT",
@@ -1340,7 +1368,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_OWNER_RULING_2026-09-21_TENANT_RESOURCE_ATTACHMENTS.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "4c793a8a421f2e11668ae8195650f55164230667"
     },
     "status": "CURRENT",
@@ -1368,7 +1396,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_OWNER_RULING_2026-09-22_F05_ACCEPTANCE.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "3c9f60439f61db9cd8c7aac9073684ab952b39fc"
     },
     "status": "CURRENT",
@@ -1376,6 +1404,34 @@ export const AUTHORITY_CORPUS = Object.freeze([
     "supersededBy": [],
     "contentHash": "035ae68d09de3378a18d4935af146308fdeef34ab21f5121dde4db47fb3a1f70",
     "recordedAt": "2026-09-22T05:47:22Z",
+    "inclusionRule": "owner-ruling-decision-clarification"
+  },
+  {
+    "authorityId": "_handoffs:AlmiVisibility_OWNER_RULING_2026-09-22_F08_ACCEPTANCE.md",
+    "propositionId": "OWNER_RULING_F08_ACCEPTANCE",
+    "scope": [
+      "ALMIVISIBILITY",
+      "F08"
+    ],
+    "issuer": {
+      "class": "OWNER",
+      "declaredBy": "inclusion rule owner-ruling-decision-clarification"
+    },
+    "issuedAt": "2026-09-22",
+    "issuedAtSource": "FILE_NAME",
+    "effectiveFrom": "2026-09-22",
+    "sourceRef": {
+      "kind": "GOVERNANCE_RECORD",
+      "repo": "_handoffs",
+      "path": "AlmiVisibility_OWNER_RULING_2026-09-22_F08_ACCEPTANCE.md",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
+      "blob": "570d8a7d948c684bb9da33bb43058e022df9b7b6"
+    },
+    "status": "CURRENT",
+    "supersedes": [],
+    "supersededBy": [],
+    "contentHash": "f6aef3403621f7275b2a2173da4c66cd562a400a9e581fc48c3f13c87981d18a",
+    "recordedAt": "2026-09-22T19:42:43Z",
     "inclusionRule": "owner-ruling-decision-clarification"
   },
   {
@@ -1395,7 +1451,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_OWNER_RULING_2026-09-22_HELDOUT_ROLE_SCOPE.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "b22bc089181f72a13049459d1d51131169b82f50"
     },
     "status": "CURRENT",
@@ -1422,7 +1478,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_OWNER_RULING_2026-09-22_RETIRED_CONTAMINATED_HELDOUT.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "96b8b3b89a376cd6b483a53db5a05495c762252f"
     },
     "status": "CURRENT",
@@ -1449,7 +1505,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_OWNER_RULING_A_2026-09-15_READ_ONLY_DEPLOY_KEY.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "51917ad0f705e022a422e3b24cf1c171e6ba5e57"
     },
     "status": "CURRENT",
@@ -1476,7 +1532,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_OWNER_RULINGS_2026-09-14_ROWS_5_6_STATES.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "a1c6c7678d17455ddcb02bf0cf0f1a8b96ed0d12"
     },
     "status": "CURRENT",
@@ -1503,7 +1559,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_OWNER_STATUS_SEMANTICS_RULING_RECORD_2026-09-18.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "8375a0de96cb62cd85805581124fa63708f7a676"
     },
     "status": "CURRENT",
@@ -1530,7 +1586,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_PUSH_GATE_HIT_RESOLVED_THEN_PUSH_RULING_2026-09-16.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "975c40c900b4cdb0fda84c5e773961d86e445dad"
     },
     "status": null,
@@ -1557,7 +1613,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_PUSH_GATE_REDACTED_HIT_RULING_2026-09-16.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "c714ce87307dce94f6f76d3d692733571a4e3671"
     },
     "status": null,
@@ -1585,7 +1641,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_ROW5_GOVERNING_RECONCILIATION_DECISION_BEFORE_BUILD_2026-09-17.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "1aebc95870c38daf208eb69565effb5fa8229009"
     },
     "status": null,
@@ -1613,7 +1669,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "AlmiVisibility_ROW61_OWNER_DECISION_2026-09-15.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "0d23eafda6f9a7459c7950661275ef043c4d34cb"
     },
     "status": "CURRENT",
@@ -1640,7 +1696,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "CC_COMMAND_2026-09-13_SESSION_SAVE.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "11602b3d57be3d762e4a3aaf2eeb35efb4bf2cbf"
     },
     "status": "CURRENT",
@@ -1667,7 +1723,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "CC_COMMAND_2026-09-14_OPTION_A_SUBJECT_REGISTRY_LEAVES_THE_REPO.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "e738a9ee525ef388d6bb4e8c9de0a2f2c8dd0d83"
     },
     "status": "CURRENT",
@@ -1694,7 +1750,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "CC_COMMAND_2026-09-14_ROWS_5_6_INTENT_CLUSTERING_AXIS_DISCOVERY.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "40dcbe6ee3664d1b4b7ca5a680746b7481b718b9"
     },
     "status": "CURRENT",
@@ -1721,7 +1777,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "CC_COMMAND_2026-09-15_GAP1_UNGATED_WRITERS.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "2a3207787b27db8d826bd41e1a6055a849e28a1f"
     },
     "status": "CURRENT",
@@ -1749,7 +1805,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "CC_COMMAND_2026-09-15_GAP3_ARCHIVE_CORPUS_OUT_ROW36.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "d828831b71fdb0b1a40536f0e60aeaa539fdb7c7"
     },
     "status": "CURRENT",
@@ -1776,7 +1832,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "CC_COMMAND_2026-09-15_RENDERER_LIVE_ONCE_ON_MAIN.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "f4370fef1aa36d774ce1d09960d1e04f5d1db4b5"
     },
     "status": "CURRENT",
@@ -1804,7 +1860,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "CC_COMMAND_2026-09-15_ROW25_PAGE_QUALITY_GATE.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "fb868f7d0d16157042e112a9995993ce21974fff"
     },
     "status": "CURRENT",
@@ -1832,7 +1888,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "CC_COMMAND_2026-09-15_ROW3_SEARCH_LANGUAGE_OWNED_HALF.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "c30a1af63aece282b9591519e3904b82876d9682"
     },
     "status": "CURRENT",
@@ -1860,7 +1916,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "CC_COMMAND_2026-09-15_ROW36_DCRW4_GUARD.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "753acab9e6888f6c2b17062f0a55aba6afb8a45d"
     },
     "status": "CURRENT",
@@ -1888,7 +1944,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "CC_COMMAND_2026-09-15_ROW36_DESTRUCTIVE_GUARDS.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "76d84ad662c91cfaaac20d7edd2507f648aaf9f0"
     },
     "status": "CURRENT",
@@ -1916,7 +1972,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "CC_COMMAND_2026-09-15_ROW4_LOCALIZED_THINKING.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "a98dbf4e5e81ed61f62fc1a13c992f4eb62d56ff"
     },
     "status": "CURRENT",
@@ -1944,7 +2000,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "CC_COMMAND_2026-09-15_ROW7_MARKET_MEASUREMENT_OWNED_HALF.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "ebb1164738c87e220cd3f5ae3e47ebafb85a3b40"
     },
     "status": "CURRENT",
@@ -1971,7 +2027,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "_handoffs",
       "path": "CC_COMMAND_AMENDMENT_3_ROWS_59_60.md",
-      "commit": "58685998b08fafb8bf3d6b1b7da9a2becf3fe004",
+      "commit": "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb",
       "blob": "537d001a222e8ba8f27815fff8c608d60b327ada"
     },
     "status": "CURRENT",
@@ -1998,7 +2054,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "engine",
       "path": "PASS_BOUNDARIES_AMENDMENT_1.md",
-      "commit": "bd72bfd26f26f4e04b1988d101734cacd3c618c7",
+      "commit": "31440e8ce6dd1105a28caeda31aa9285b2ac0141",
       "blob": "b6bde7684cae86ed01d06fc55f1b128e35236004"
     },
     "status": "CURRENT",
@@ -2025,7 +2081,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "engine",
       "path": "PASS_BOUNDARIES_AMENDMENT_2.md",
-      "commit": "bd72bfd26f26f4e04b1988d101734cacd3c618c7",
+      "commit": "31440e8ce6dd1105a28caeda31aa9285b2ac0141",
       "blob": "492576f32516b6336b4ab2e2ec54b022d0fa4eb4"
     },
     "status": "CURRENT",
@@ -2052,7 +2108,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "engine",
       "path": "PASS_BOUNDARIES_AMENDMENT_3.md",
-      "commit": "bd72bfd26f26f4e04b1988d101734cacd3c618c7",
+      "commit": "31440e8ce6dd1105a28caeda31aa9285b2ac0141",
       "blob": "317e3e22b64db3592557638d83360bdf1db9ea21"
     },
     "status": "CURRENT",
@@ -2079,7 +2135,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "engine",
       "path": "PASS_BOUNDARIES_AMENDMENT_4.md",
-      "commit": "bd72bfd26f26f4e04b1988d101734cacd3c618c7",
+      "commit": "31440e8ce6dd1105a28caeda31aa9285b2ac0141",
       "blob": "8cae04935a4510ac0be53ff68e6870a02fe2a429"
     },
     "status": "CURRENT",
@@ -2106,7 +2162,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "engine",
       "path": "PASS_BOUNDARIES_AMENDMENT_5.md",
-      "commit": "bd72bfd26f26f4e04b1988d101734cacd3c618c7",
+      "commit": "31440e8ce6dd1105a28caeda31aa9285b2ac0141",
       "blob": "e13a19e8a05c33c057fe472c4e40abffe29ae2fc"
     },
     "status": "CURRENT",
@@ -2133,7 +2189,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "engine",
       "path": "PASS_BOUNDARIES_AMENDMENT_6.md",
-      "commit": "bd72bfd26f26f4e04b1988d101734cacd3c618c7",
+      "commit": "31440e8ce6dd1105a28caeda31aa9285b2ac0141",
       "blob": "4412472fa672d568bf6da0ab911c2217fe80d2d6"
     },
     "status": "CURRENT",
@@ -2160,7 +2216,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "engine",
       "path": "PASS_BOUNDARIES_AMENDMENT_7.md",
-      "commit": "bd72bfd26f26f4e04b1988d101734cacd3c618c7",
+      "commit": "31440e8ce6dd1105a28caeda31aa9285b2ac0141",
       "blob": "0c62ea01009f9beafcc2111943648eb10e485ad1"
     },
     "status": "CURRENT",
@@ -2187,7 +2243,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "engine",
       "path": "PASS_BOUNDARIES_SOURCE.md",
-      "commit": "bd72bfd26f26f4e04b1988d101734cacd3c618c7",
+      "commit": "31440e8ce6dd1105a28caeda31aa9285b2ac0141",
       "blob": "ceaa49874210403a5cf88d083d5c8d8a850a1fff"
     },
     "status": "CURRENT",

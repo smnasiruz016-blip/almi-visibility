@@ -34,6 +34,17 @@ export const DECLARED = Object.freeze({
       }),
     ]),
   }),
+  F08: Object.freeze({
+    featureId: "F08",
+    board: "F_BOARD",
+    // 🔴 ACCEPTANCE-FROZEN, and no further. The acceptance was committed ALONE in the governance repository (19e6b7b)
+    // BEFORE any F08 schema, implementation, migration or test change. Freezing is not passing: only a recorded
+    // verification over the real population, after a merge whose main CI is green, can move this row again.
+    state: "ACCEPTANCE-FROZEN",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-22", ruling: ACCEPTANCES.F08.ruling, contractSha256: ACCEPTANCES.F08.contractSha256 }),
+    ]),
+  }),
   F40: Object.freeze({
     featureId: "F40",
     board: "F_BOARD",

@@ -34,6 +34,26 @@ export const DECLARED = Object.freeze({
       }),
     ]),
   }),
+  F08: Object.freeze({
+    featureId: "F08",
+    board: "F_BOARD",
+    // 🔴 IN-PROGRESS, AND NO FURTHER — THIS IS A WRITE-ORDER RULE, NOT A MODESTY.
+    //
+    // The acceptance was committed ALONE in the governance repository (19e6b7b) BEFORE any F08 schema,
+    // implementation, migration or test change. Freezing an acceptance and recording a verification are two
+    // different events, and VERIFIED-PASS is only true after the merge and after main CI is green on the exact
+    // merged SHA — neither of which has happened while this file is being written. Writing it here would be writing
+    // a tick before the evidence for it exists. The VERIFIED-PASS record is made in _handoffs under RR-76, after
+    // the merge, citing the merged SHA and the CI run; this row is deliberately left behind it.
+    state: "IN-PROGRESS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-22", ruling: ACCEPTANCES.F08.ruling, contractSha256: ACCEPTANCES.F08.contractSha256 }),
+      // Implementation began only after the acceptance was committed: src/audit-trail/{event,store,reader,population,
+      // recorder,callers,wiring}.mjs, config/audit-store.mjs, bin/audit-trail.mjs, and the append wired into
+      // bin/authority-migrate.mjs ahead of its governed write.
+      Object.freeze({ kind: "IMPLEMENTATION", on: "2026-09-22", after: "ACCEPTANCE_FROZEN" }),
+    ]),
+  }),
   F40: Object.freeze({
     featureId: "F40",
     board: "F_BOARD",

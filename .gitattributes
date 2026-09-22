@@ -37,3 +37,13 @@ runs/owner-verification/** -text
 # test/renderer.test.mjs:266 is the alarm that caught it; test/evidence-eol.test.mjs now
 # holds the whole class, and was seen RED with this line removed.
 runs/** -text
+
+# F08's audit trail (22 September 2026). Same rule, same reason: every event carries an eventHash over its own
+# canonical bytes and the previous event's hash, so a single EOL conversion on checkout would break the chain and
+# the head record at once — and a tamper-evidence record that cannot be checked is worse than none.
+#
+# 🔴 IT IS NOT UNDER runs/ ON PURPOSE. Row 60's ruling sheet enumerates every .jsonl under runs/ as part of the
+# issue and evidence corpus, so a trail kept there became an input to another feature's derived artefact and left it
+# stale on every append. The suite caught that, and the store moved rather than the other feature's artefact being
+# regenerated to absorb it. config/audit-store.mjs records the decision.
+audit-trail/** -text

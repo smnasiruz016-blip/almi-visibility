@@ -21,6 +21,8 @@ import { readUnsealed } from "../src/governance/sealed-paths.mjs";
 import { ruleFor, recordFromFile, census } from "../src/authority/corpus.mjs";
 import { STORED_STATUSES } from "../src/authority/register.mjs";
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { productionAuditStore, softwareVersionOf } from "../src/audit-trail/wiring.mjs";
+import { auditAuthorityMigration } from "../src/audit-trail/callers.mjs";
 
 const ENGINE = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = confineToRepo(join(ENGINE, "config", "authority", "corpus.mjs"), { label: "the generated authority corpus" });
@@ -68,6 +70,26 @@ export const CORPUS_PROVENANCE = Object.freeze(${JSON.stringify({ governanceComm
 export const AUTHORITY_CORPUS = Object.freeze(${JSON.stringify(records, null, 2)}.map((r) => Object.freeze(r)));
 `;
 
+/**
+ * 🔴 F08 · RECORD THIS MIGRATION IN THE AUDIT TRAIL — OR REFUSE TO MIGRATE.
+ *
+ * The appends live in src/audit-trail/callers.mjs, not here: the writer-law census refused three write sites in
+ * this file because a site inside a function body is not enclosed by the `if` at its call site, and a write path
+ * the census cannot READ is a write path nobody is guarding. The module takes its store from this caller and is
+ * reported GATED-AT-CALLER, which is this repository's declared pattern for exactly that shape.
+ */
+function auditMigration({ records, provenance, permission, counts }) {
+  const r = auditAuthorityMigration({
+    store: productionAuditStore({ repo: ENGINE }),
+    records, provenance, permission, counts,
+    softwareVersion: softwareVersionOf(ENGINE),
+    actor: "bin/authority-migrate.mjs",
+    argv: process.argv,
+    env: process.env,
+  });
+  console.log(`[F08] audit trail: migration recorded as ${r.event.eventId} (${r.status}); the corpus write proceeds only because this succeeded`);
+}
+
 console.log(`governance commit ${g} — ${gov.listed} tracked top-level names, ${gov.records.length} included`);
 console.log(`engine commit     ${e} — ${eng.listed} tracked top-level names, ${eng.records.length} included`);
 const byRule = {};
@@ -78,6 +100,17 @@ console.log(`census (now ${NOW}): total ${c.total} · ${Object.entries(c.counts)
 for (const d of c.dispositions.filter((x) => x.disposition !== "CURRENT")) console.log(`  ${d.disposition.padEnd(14)} ${d.authorityId} — ${d.reason}`);
 
 if (permission.mayWrite) {
+  /* 🔴 F08 · THE AUDIT APPEND COMES FIRST, AND IT FAILS CLOSED.
+   *
+   * WHAT THIS CALLER GOVERNS: regenerating the real authority corpus — the data F05's resolver, the F-board's §6A
+   * check and every acceptance pin stand on. WHAT IT RECORDED BEFORE: its own console output, and nothing durable.
+   * WHY IT IS INSIDE F08'S POPULATION: it is a state-changing, production-reachable decision of record with a
+   * declared scope, an actor and a governing authority (inclusion rule R1–R4).
+   *
+   * WHAT HAPPENS IF THE AUDIT APPEND FAILS: the corpus is NOT written. `auditMigration` throws, this script exits
+   * non-zero, and `writeFileSync` below is never reached — the governed action does not proceed. That is the whole
+   * point of putting it on this line rather than the next one. */
+  auditMigration({ records, provenance: { governanceCommit: g, engineCommit: e, now: NOW }, permission, counts: c.counts });
   writeFileSync(OUT, body, "utf8");
   console.log(`wrote ${OUT}`);
 } else {

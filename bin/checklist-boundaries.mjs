@@ -21,7 +21,7 @@ import { existsSync, writeFileSync, readFileSync } from "node:fs";
 import { loadBoundaries, CONTRACT_PARTS } from "../src/checklist/boundaries.mjs";
 import { classClause } from "../src/checklist/provenance.mjs";
 import {
-  classify, assertLawful, assertTransitions, tally, STATES, LOOKED, BEFORE_AMENDMENT_2, MOVES_AMENDMENT_2,
+  classify, assertLawful, assertTransitions, tally, STATES, LOOKED, BEFORE_AMENDMENT_2, MOVES_AMENDMENT_2, LEDGER_STATUS,
 } from "../src/checklist/classification.mjs";
 import {
   verify, EXPECTED_BODY_SHA256, AMENDMENT_2_BODY_SHA256, AMENDMENT_4_BODY_SHA256, AMENDMENT_5_BODY_SHA256, amendment5, AMENDMENT_3_BODY_SHA256,
@@ -64,6 +64,9 @@ const esc = (s) => String(s ?? "").replace(/\|/g, "\\|");
 
 const L = [];
 L.push("# ALMIVISIBILITY — THE PASS BOUNDARIES (58 FROZEN, PLUS ROWS ADMITTED BY RULING) AND THE SEVEN-STATE LEDGER");
+L.push("");
+/* 🔴 22 Sep 2026: the marker is READ from the ledger (LEDGER_STATUS), never retyped here. */
+L.push(`> 🔴 **${LEDGER_STATUS.marker}.** Active completion is measured against F01–F89 only (src/fboard); this ledger is kept for audit, provenance and evidence discovery, transfers no state to an F-row and grants no F-row acceptance authority. Source: ${LEDGER_STATUS.source}.`);
 L.push("");
 L.push("> 🔴 **GENERATED — DO NOT EDIT BY HAND.** `node bin/checklist-boundaries.mjs --confirm` rebuilds it; without `--confirm` the run writes nothing and reports whether this file is stale.");
 L.push("> Every boundary below is read out of `PASS_BOUNDARIES_SOURCE.md`, whose body is verified");

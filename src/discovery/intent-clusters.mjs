@@ -195,9 +195,31 @@ export function clusterIntents(rows, lexicon, { threshold = THRESHOLD } = {}) {
 /** Index a reference placement by the sha256 of each member string (the same identity a cluster member carries). */
 export function referenceIndex(reference, ambiguous = {}) {
   const intentOf = new Map();
-  for (const [id, intent] of Object.entries(reference)) for (const m of intent.members) intentOf.set(sha(m), id);
-  return { intentOf, ambiguous: new Set(Object.keys(ambiguous).map(sha)) };
+  for (const [id, intent] of Object.entries(reference ?? {})) for (const m of intent.members) intentOf.set(sha(m), id);
+  return { intentOf, ambiguous: new Set(Object.keys(ambiguous ?? {}).map(sha)) };
 }
+
+/**
+ * 🔴 NO LAWFUL REFERENCE, NO SCORE — A NAMED REFUSAL, NEVER A SILENT PASS (22 September 2026).
+ *
+ * Scoring compares clusters to a reference placement. With no reference, every comparison is empty, and an empty
+ * comparison reads exactly like a perfect one: 0 merges, 0 splits, every held-out query a HIT because "no in-sample query
+ * has its intent". That is the same defect as an empty population reporting clean. So scoring runs ONLY over a lawful
+ * reference: a plain object holding at least one intent with at least one member. Anything else refuses, by name:
+ *   HELD_OUT_REFERENCE_RETIRED — the reference was retired by an owner ruling (its status says so)
+ *   HELD_OUT_REFERENCE_ABSENT  — no reference was given, or it holds nothing
+ * Clustering itself never reads the reference, so it still runs; only the SCORE is refused.
+ */
+export const REFERENCE_REFUSALS = Object.freeze({
+  HELD_OUT_REFERENCE_RETIRED: "the reference placement was retired by an owner ruling (RETIRED_CONTAMINATED); scoring is unavailable",
+  HELD_OUT_REFERENCE_ABSENT: "no lawful reference placement was given; scoring is unavailable",
+});
+export const isLawfulReference = (reference) =>
+  reference !== null && typeof reference === "object" && !Array.isArray(reference) &&
+  Object.values(reference).some((i) => Array.isArray(i?.members) && i.members.length > 0);
+/** The refusal code when the reference is not lawful, else null. A status naming the retirement wins over ABSENT. */
+export const referenceRefusal = (reference, referenceStatus) =>
+  isLawfulReference(reference) ? null : referenceStatus?.state === "HELD_OUT_REFERENCE_RETIRED" ? "HELD_OUT_REFERENCE_RETIRED" : "HELD_OUT_REFERENCE_ABSENT";
 
 /**
  * Both failure modes, separately. Ambiguous queries are scored in neither direction.
@@ -246,16 +268,19 @@ export function place(query, clusters, lexicon, w, threshold = THRESHOLD) {
  *   MISS — placed in a cluster of a different intent; or NEW although its intent exists in-sample
  *   UNSCORED — the reference marks it ambiguous
  */
-export function heldOutCheck(humanRows, lexicon, reference, ambiguous = {}, { threshold = THRESHOLD } = {}) {
+export function heldOutCheck(humanRows, lexicon, reference, ambiguous = {}, { threshold = THRESHOLD, referenceStatus } = {}) {
   const held = humanRows.filter((r) => isHeldOut(r.query));
   const train = humanRows.filter((r) => !isHeldOut(r.query));
   const clusters = clusterIntents(train, lexicon, { threshold });
   const w = idfOf(train.map((r) => normalise(r.query, lexicon).key));
   const { intentOf, ambiguous: amb } = referenceIndex(reference, ambiguous);
+  const refusal = referenceRefusal(reference, referenceStatus);
   const results = held.map((r) => {
     const p = place(r.query, clusters, lexicon, w, threshold);
     const ref = sha(r.query);
     const base = { original: r.query, ref, placedIn: p.id, similarity: Number(p.avg.toFixed(4)), nearest: p.nearest };
+    // 🔴 no lawful reference: every held-out query is UNSCORED by name — never a HIT because nothing could say it missed
+    if (refusal) return { ...base, referenceIntent: null, verdict: "UNSCORED", why: `${refusal}: ${REFERENCE_REFUSALS[refusal]}` };
     if (amb.has(ref)) return { ...base, referenceIntent: "AMBIGUOUS", verdict: "UNSCORED", why: ambiguous[r.query] };
     const intent = intentOf.get(ref) ?? null;
     const target = clusters.find((c) => c.id === p.id);
@@ -283,6 +308,7 @@ export function heldOutCheck(humanRows, lexicon, reference, ambiguous = {}, { th
     ran: true,
     rule: HOLD_OUT_RULE,
     threshold,
+    scoring: refusal ? { state: "REFUSED", code: refusal, why: REFERENCE_REFUSALS[refusal] } : { state: "SCORED" },
     inSample: train.length,
     heldOut: held.length,
     inSampleClusters: clusters,
@@ -344,8 +370,13 @@ export function lexiconWordsAbsentFrom(lexicon, rows) {
  * own rule that an ambiguous wording is "scored in NEITHER direction". Those members are neither passed nor failed
  * by any limb here; they are reported separately, by name, as UNEVALUATED-BY-RULE.
  */
-export function clusteringErrors({ humanRows, record, heldOut, reference, ambiguous = {}, lexicon }) {
+export function clusteringErrors({ humanRows, record, heldOut, reference, ambiguous = {}, lexicon, referenceStatus }) {
   const errs = [];
+  /* 🔴 THE NAMED REFUSAL COMES FIRST (22 September 2026). With no lawful reference the merge and split limbs below
+   * would compare against nothing and report nothing — which reads as clean. They are not run; the refusal is the
+   * result, and it is an error, so no caller can mistake it for zero defects or a pass. */
+  const refusal = referenceRefusal(reference, referenceStatus);
+  if (refusal) errs.push({ limb: "scoring-refused", code: refusal, why: `${refusal}: ${REFERENCE_REFUSALS[refusal]} — merges and splits were NOT measured, and nothing here is a pass` });
   /* 🔴 EMPTY POPULATION (22 September 2026). Every limb below counts defects in a population; over NO population each
    * finds none, and "0 merges · 0 splits" would read as a pass. Measured before this limb existed: with every human
    * row marked ambiguous — a scored population of 0 — this function returned NO error at all. So the population is
@@ -355,7 +386,7 @@ export function clusteringErrors({ humanRows, record, heldOut, reference, ambigu
   const placedIn = referenceIndex(reference || {}, ambiguous).intentOf;
   const scored = (humanRows || []).filter((r) => placedIn.has(sha(r.query)) && !amb.has(sha(r.query)));
   if (!humanRows || humanRows.length === 0) errs.push({ limb: "empty-population", why: "no human query row was given — there is nothing to cluster, and nothing clustered is not nothing wrong" });
-  else if (scored.length === 0) errs.push({ limb: "empty-population", why: `${humanRows.length} human row(s), but none is both placed by the reference and not ambiguous — the scored population is 0, so no limb can find a defect in it` });
+  else if (!refusal && scored.length === 0) errs.push({ limb: "empty-population", why: `${humanRows.length} human row(s), but none is both placed by the reference and not ambiguous — the scored population is 0, so no limb can find a defect in it` });
   const storeByRef = new Map(humanRows.map((r) => [sha(r.query), r.query]));
   const refs = new Map();
   for (const c of record) for (const m of c.members) refs.set(m.ref, (refs.get(m.ref) || 0) + 1);
@@ -380,15 +411,17 @@ export function clusteringErrors({ humanRows, record, heldOut, reference, ambigu
     }
     if ((h.missed || []).length !== by("MISS")) errs.push({ limb: "held-out-unrun", why: `${by("MISS")} misses in the results, ${(h.missed || []).length} named` });
 
-    const { merged, split } = compareToReference(h.inSampleClusters || [], reference, ambiguous);
-    for (const x of merged) errs.push({ limb: "merged", why: `cluster ${x.cluster} merges ${Object.keys(x.intents).length} distinct intents: ${Object.entries(x.intents).map(([k, v]) => `${k} [${v.join(" · ")}]`).join(" + ")}` });
-    for (const x of split) errs.push({ limb: "split", why: `intent ${x.intent} is split across ${x.clusters.length} clusters: ${x.clusters.map((c) => `[${c.members.join(" · ")}]`).join(" | ")}` });
+    if (!refusal) {
+      const { merged, split } = compareToReference(h.inSampleClusters || [], reference, ambiguous);
+      for (const x of merged) errs.push({ limb: "merged", why: `cluster ${x.cluster} merges ${Object.keys(x.intents).length} distinct intents: ${Object.entries(x.intents).map(([k, v]) => `${k} [${v.join(" · ")}]`).join(" + ")}` });
+      for (const x of split) errs.push({ limb: "split", why: `intent ${x.intent} is split across ${x.clusters.length} clusters: ${x.clusters.map((c) => `[${c.members.join(" · ")}]`).join(" | ")}` });
+    }
   }
 
   /* 🔴 D-HELDOUT-1 — THE SAME COMPARISON, OVER THE WHOLE RECORD. Not a new rule and not a new qualifier: the same
    * `compareToReference`, the same reference, the same two directions — applied to the output the clusterer actually
-   * produced rather than to the training half of it. */
-  const overRecord = compareToReference(record || [], reference, ambiguous);
+   * produced rather than to the training half of it. Not run when scoring is refused. */
+  const overRecord = refusal ? { merged: [], split: [] } : compareToReference(record || [], reference, ambiguous);
   for (const x of overRecord.merged) {
     errs.push({ limb: "record-merged", why: `cluster ${x.cluster} merges ${Object.keys(x.intents).length} distinct intents: ${Object.entries(x.intents).map(([k, v]) => `${k} [${v.join(" · ")}]`).join(" + ")}` });
   }
@@ -431,6 +464,8 @@ export const SPLIT_CAUSES = Object.freeze({
  * reference after clustering is done and changes no cluster.
  */
 export function splitCauses({ humanRows, record, heldOut, reference, ambiguous = {}, lexicon }) {
+  // 🔴 no lawful reference → no split can be named: `null` (UNAVAILABLE), never `[]`, which would read as "no splits"
+  if (!isLawfulReference(reference)) return null;
   const { intentOf, ambiguous: amb } = referenceIndex(reference, ambiguous);
   const declared = declaredTokens(lexicon);
   const inSampleTokens = new Set(humanRows.filter((r) => !isHeldOut(r.query)).flatMap((r) => normalise(r.query, lexicon).key));

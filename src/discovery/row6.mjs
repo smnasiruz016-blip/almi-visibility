@@ -183,8 +183,9 @@ export function hardCodedIn(pageRows, patterns) {
  * must also declare BOTH scopes, and the gate refuses the join unless the production resolver says
  * they are the same declared tenant — decided before any answer is read.
  */
-export function row6({ records, crawlRecords, bodies, lexicon, reference, ambiguous, specs, families, patterns, declaredAxes = {}, answerClaims = null, axisScope = null, evidenceScope = null, availabilityLegs = {}, humanValueLegs = {} }) {
-  const r5 = row5({ records, lexicon, reference, ambiguous });
+export function row6({ records, crawlRecords, bodies, lexicon, reference, ambiguous, referenceStatus, specs, families, patterns, declaredAxes = {}, answerClaims = null, axisScope = null, evidenceScope = null, availabilityLegs = {}, humanValueLegs = {} }) {
+  // 🔴 22 Sep 2026: row 6 consumes row 5's CLUSTERS only; the reference status passes through so a refused score is named
+  const r5 = row5({ records, lexicon, reference, ambiguous, referenceStatus });
   const clusterOf = new Map(r5.record.flatMap((c) => c.members.map((m) => [m.original, c.id])));
   const cq = observation(records, COUNTRY_QUERY_OBSERVATION, ":country-query");
   const cqPopulation = splitPopulation(cq.value.rows);

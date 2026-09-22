@@ -1,3 +1,6 @@
+🔴 LABELS SANITISED 2026-09-22 (same rulings): 18 occurrence(s) of expected labels from the retired reference replaced by [REDACTED — RETIRED_CONTAMINATED EXPECTED LABEL]. Pre-label-sanitisation blob ba13a5ce51234b561d1e9ddeaddaad68bb6ffdf6; the originals remain ONLY in Git history.
+🔴 SANITISED 2026-09-22 under the RETIRED_CONTAMINATED ruling (_handoffs a5452ee, clarified f4367b1): 0 retired held-out string occurrence(s) and 12 held-out fragment occurrence(s) replaced by [REDACTED — RETIRED_CONTAMINATED HELD-OUT PAYLOAD]. Retired set fingerprint 3d4951d6…, population 61. The original bytes remain ONLY in Git history — blob ba13a5ce51234b561d1e9ddeaddaad68bb6ffdf6, introduced in c676a7d; they must not be used as held-out, unseen, marking-key or expected-answer evidence.
+
 ROW 5 — GENERIC-MECHANISM FEASIBILITY — 22 September 2026
 
 FREEZE POINT (§3D): runs/audit/row5-mechanism-spec-frozen-2026-09-22.md, sha256 684b7b2f5435bf5e6e4c875dd4c03e619d47adb88fb9a9dea0d998f33b07c583,
@@ -24,12 +27,12 @@ EACH MECHANISM ALONE:
   B   closed [] · merges 0 · splits 8 · human keys changed 0 · human rows moved 0 · operator rows in clustered population 0 · held-out rows read in fitting 0 · reference ids read in fitting 0 · 84 ms
       influence: No. The family is from the owner's list; its one parameter (join only onto an in-sample token) is a generic principle. It changes 0 rows.
       counterexample: REAL: the corpus holds 5 strings with an apostrophe or hyphen ("celpe-bras 2026", "dipl.-kff. (fh) naima abounzari" among the human ones); B changes none of their keys. CONSTRUCTED: "re-sign" joined onto an in-sample "resign" — two different verbs.
-  C1  closed [cv-no-experience] · merges 0 · splits 7 · human keys changed 1 · human rows moved 12 · operator rows in clustered population 0 · held-out rows read in fitting 0 · reference ids read in fitting 0 · 80 ms
+  C1  closed [[REDACTED — RETIRED_CONTAMINATED EXPECTED LABEL]] · merges 0 · splits 7 · human keys changed 1 · human rows moved 12 · operator rows in clustered population 0 · held-out rows read in fitting 0 · reference ids read in fitting 0 · 80 ms
       influence: YES. On 19 Sep this rule was proposed as the fix for a held-out miss the author had read, and its only real rewrite is that held-out row. INELIGIBLE (§3B).
-      counterexample: REAL: rewrites [["students","student"]]; 0 stems are filler. CONSTRUCTED: "news" → "new", a declared filler word, which erases the word.
-  C2  closed [cv-no-experience] · merges 0 · splits 7 · human keys changed 1 · human rows moved 12 · operator rows in clustered population 0 · held-out rows read in fitting 0 · reference ids read in fitting 0 · 91 ms
+      counterexample: REAL: rewrites [["[REDACTED — RETIRED_CONTAMINATED HELD-OUT PAYLOAD]","student"]]; 0 stems are filler. CONSTRUCTED: "news" → "new", a declared filler word, which erases the word.
+  C2  closed [[REDACTED — RETIRED_CONTAMINATED EXPECTED LABEL]] · merges 0 · splits 7 · human keys changed 1 · human rows moved 12 · operator rows in clustered population 0 · held-out rows read in fitting 0 · reference ids read in fitting 0 · 91 ms
       influence: YES, as for C1: the same rule with a wider anchor, and the same single held-out rewrite. INELIGIBLE (§3B).
-      counterexample: REAL: rewrites [["students","student"]]. CONSTRUCTED: as C1.
+      counterexample: REAL: rewrites [["[REDACTED — RETIRED_CONTAMINATED HELD-OUT PAYLOAD]","student"]]. CONSTRUCTED: as C1.
   D   closed [] · merges 0 · splits 8 · human keys changed 0 · human rows moved 0 · operator rows in clustered population 0 · held-out rows read in fitting 0 · reference ids read in fitting 0 · 66 ms
       influence: No. It is the production state and is measured as a control. It changes 0 rows.
       counterexample: REAL: 0 pairs share a key but differ in reference intent. CONSTRUCTED: "flights london to paris" / "flights paris to london" — order carries meaning, and set keys cannot see it.
@@ -41,17 +44,17 @@ EACH MECHANISM ALONE:
       counterexample: REAL: ["life+style=lifestyle"], which is declared and so exempt. CONSTRUCTED: a word that is two declared words by accident, split into both.
   G   closed [] · merges 0 · splits 8 · human keys changed 0 · human rows moved 0 · operator rows in clustered population 0 · held-out rows read in fitting 0 · reference ids read in fitting 0 · 109 ms
       influence: No. Family from the owner's list; its parameters (length ≥ 6, distance 1, unique) are the most conservative typo rule. It changes 0 rows.
-      counterexample: REAL: edit-1 pairs in the corpus ["change~changes","compare~compared","requirement~requirements","result~results","resume~resumes","student~students","summarise~summarize"]; every one is an inflection, and none is harmful. CONSTRUCTED: "leading" → "reading".
+      counterexample: REAL: edit-1 pairs in the corpus ["change~changes","compare~compared","requirement~requirements","result~results","resume~resumes","student~[REDACTED — RETIRED_CONTAMINATED HELD-OUT PAYLOAD]","summarise~summarize"]; every one is an inflection, and none is harmful. CONSTRUCTED: "leading" → "reading".
   H   closed [] · merges 0 · splits 8 · human keys changed 0 · human rows moved 0 · operator rows in clustered population 0 · held-out rows read in fitting 0 · reference ids read in fitting 0 · 81 ms
       influence: The author knew the held-out misses when writing it, but no parameter reaches one: it joined 0 rows. Ineligible because it closes 0.
       counterexample: REAL: 0 wrong-intent unique rare-core containments (in-sample, leave-one-out). CONSTRUCTED: a query holding a rare course name plus a different ask.
   I   closed [] · merges 0 · splits 8 · human keys changed 0 · human rows moved 0 · operator rows in clustered population 0 · held-out rows read in fitting 0 · reference ids read in fitting 0 · 69 ms
       influence: The author knew the held-out-only pair, and the threshold was kept at 0.5 rather than set to reach it; it joined 0 rows. Ineligible because it closes 0.
       counterexample: REAL: none (0 changes). CONSTRUCTED: a mutual-nearest pair of held-out rows with different asks at similarity ≥ 0.5.
-  J   closed [] · merges 2 [jobs-for-occupation + single:business management netherlands | pte-destination-requirement + pte-in-country] · splits 8 · human keys changed 0 · human rows moved 11 · operator rows in clustered population 0 · held-out rows read in fitting 0 · reference ids read in fitting 0 · 131 ms
+  J   closed [] · merges 2 [[REDACTED — RETIRED_CONTAMINATED EXPECTED LABEL] + [REDACTED — RETIRED_CONTAMINATED EXPECTED LABEL] | [REDACTED — RETIRED_CONTAMINATED EXPECTED LABEL] + [REDACTED — RETIRED_CONTAMINATED EXPECTED LABEL]] · splits 8 · human keys changed 0 · human rows moved 11 · operator rows in clustered population 0 · held-out rows read in fitting 0 · reference ids read in fitting 0 · 131 ms
       influence: No parameter was chosen to reach a held-out row. INELIGIBLE: 2 distinct-intent merges.
       counterexample: REAL: the 2 merges above.
-  K   closed [] · merges 4 [cv-for-country + cv-for-occupation | ielts-free-practice + single:business management netherlands | ielts-student-visa-peru + single:esd visa japan requirements | pte-for-occupation + pte-in-country] · splits 8 · human keys changed 163 · human rows moved 37 · operator rows in clustered population 0 · held-out rows read in fitting 0 · reference ids read in fitting 0 · 77 ms
+  K   closed [] · merges 4 [[REDACTED — RETIRED_CONTAMINATED EXPECTED LABEL] + [REDACTED — RETIRED_CONTAMINATED EXPECTED LABEL] | [REDACTED — RETIRED_CONTAMINATED EXPECTED LABEL] + [REDACTED — RETIRED_CONTAMINATED EXPECTED LABEL] | [REDACTED — RETIRED_CONTAMINATED EXPECTED LABEL] + [REDACTED — RETIRED_CONTAMINATED EXPECTED LABEL] | [REDACTED — RETIRED_CONTAMINATED EXPECTED LABEL] + [REDACTED — RETIRED_CONTAMINATED EXPECTED LABEL]] · splits 8 · human keys changed 163 · human rows moved 37 · operator rows in clustered population 0 · held-out rows read in fitting 0 · reference ids read in fitting 0 · 77 ms
       influence: No. m = 2 is a generic principle, fitted on in-sample rows only. INELIGIBLE: 4 distinct-intent merges.
       counterexample: REAL: the 4 merges above.
   L   closed [] · merges 0 · splits 8 · human keys changed 0 · human rows moved 0 · operator rows in clustered population 0 · held-out rows read in fitting 0 · reference ids read in fitting 0 · 66 ms
@@ -59,9 +62,9 @@ EACH MECHANISM ALONE:
       counterexample: As A.
 
 COMBINED CONFIGURATIONS, EACH MEASURED AS ITS OWN (§5):
-  all individually zero-merge mechanisms: A+B+C1+D+E+F+G+L+H+I · closed [cv-no-experience] · merges 0 · splits 7 · keys changed 2 · rewrites ["H:cv noexperience students→cv noexperience","H:equiv nz pte residency→<country> equiv pte residency"]
-  the 19 Sep combination (C + E): C1+E · closed [cv-no-experience] · merges 0 · splits 7 · keys changed 2 · rewrites ["H:cv noexperience students→cv noexperience","H:equiv nz pte residency→<country> equiv pte residency"]
-  C2 + E + G + H + I: C2+E+G+H+I · closed [cv-no-experience] · merges 0 · splits 7 · keys changed 2 · rewrites ["H:cv noexperience students→cv noexperience","H:equiv nz pte residency→<country> equiv pte residency"]
+  all individually zero-merge mechanisms: A+B+C1+D+E+F+G+L+H+I · closed [[REDACTED — RETIRED_CONTAMINATED EXPECTED LABEL]] · merges 0 · splits 7 · keys changed 2 · rewrites ["H:cv noexperience [REDACTED — RETIRED_CONTAMINATED HELD-OUT PAYLOAD]→cv noexperience","H:equiv nz pte [REDACTED — RETIRED_CONTAMINATED HELD-OUT PAYLOAD]→<country> equiv pte [REDACTED — RETIRED_CONTAMINATED HELD-OUT PAYLOAD]"]
+  the 19 Sep combination (C + E): C1+E · closed [[REDACTED — RETIRED_CONTAMINATED EXPECTED LABEL]] · merges 0 · splits 7 · keys changed 2 · rewrites ["H:cv noexperience [REDACTED — RETIRED_CONTAMINATED HELD-OUT PAYLOAD]→cv noexperience","H:equiv nz pte [REDACTED — RETIRED_CONTAMINATED HELD-OUT PAYLOAD]→<country> equiv pte [REDACTED — RETIRED_CONTAMINATED HELD-OUT PAYLOAD]"]
+  C2 + E + G + H + I: C2+E+G+H+I · closed [[REDACTED — RETIRED_CONTAMINATED EXPECTED LABEL]] · merges 0 · splits 7 · keys changed 2 · rewrites ["H:cv noexperience [REDACTED — RETIRED_CONTAMINATED HELD-OUT PAYLOAD]→cv noexperience","H:equiv nz pte [REDACTED — RETIRED_CONTAMINATED HELD-OUT PAYLOAD]→<country> equiv pte [REDACTED — RETIRED_CONTAMINATED HELD-OUT PAYLOAD]"]
   eligible set (empty) = production: (none) · closed [] · merges 0 · splits 8 · keys changed 0 · rewrites []
 
 ELIGIBLE: NONE.
@@ -69,7 +72,7 @@ ELIGIBLE: NONE.
 - J and K create distinct-intent merges.
 - C1 and C2 close one split each with 0 merges, but held-out wording influenced their design, and their only real rewrite is that held-out row.
 
-THE HELD-OUT-ONLY PAIR (bilingual-licenciatura), by idf basis:
+THE HELD-OUT-ONLY PAIR ([REDACTED — RETIRED_CONTAMINATED EXPECTED LABEL]), by idf basis:
   in-sample keys (268) — the held-out protocol's own idf       0.4895
   all human keys (329)                                         0.4601
   in-sample + the two queries (270)                            0.4586

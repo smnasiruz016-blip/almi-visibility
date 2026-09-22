@@ -1,0 +1,23 @@
+§10 · SUBJECT VOCABULARY IN GENERIC CONFIG — PARKED, MEASURED (22 September 2026)
+
+The owner's command made §10 LAST and SEVERABLE, and allowed it to be parked with a measured note naming its callers.
+It is parked. Nothing in config/discovery/intent-lexicon.mjs moved in this change except the one ruling-text redaction the
+held-out remediation required.
+
+WHAT: config/discovery/intent-lexicon.mjs (117 lines) holds subject vocabulary inside the engine's generic config tree.
+
+CALLERS (measured: every *.mjs file in the engine that names "intent-lexicon", node_modules excluded) — 10 files:
+  bin/axis-discovery.mjs          imports LEXICON (Row 6 axis discovery)
+  bin/intent-clusters.mjs         imports LEXICON (Row 5 clustering runner)
+  bin/search-language.mjs         imports LEXICON, AND asserts src/discovery/search-language.mjs never references it (Row 3 law)
+  tools/country-url-census.mjs    names it in ROW_FIVE_NAMES (a census list, not an import)
+  src/checklist/classification.mjs  names it in historical ledger prose (row 5's recorded result), not an import
+  test/axis-discovery.test.mjs · test/intent-clustering.test.mjs · test/localized-thinking.test.mjs
+  test/row5-guards.test.mjs · test/search-language.test.mjs
+
+WHY PARKED: moving it out of generic config changes the inputs of Rows 3, 5 and 6 and the lexicon laws their tests pin
+(Row 3's "the generic module never references the lexicon" check among them). That is its own feature with its own
+acceptance, not a consequence of F05 — and F05 must not select another feature.
+
+WHAT WOULD CLOSE IT: a frozen acceptance for moving subject vocabulary to a declared subject root (as the external
+research root already is), then the five tests and three runners re-pointed through that root, with the Row 3 law kept.

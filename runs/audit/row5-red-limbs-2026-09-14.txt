@@ -1,71 +1,24 @@
-ROW 5 — RED LIMBS, EACH ALONE IN THE REAL FILES · 2026-09-14T22:24:33.850Z
-runner: node bin/intent-clusters.mjs --check (exit 1 names every failed limb)
+TOMBSTONE — RETIRED_CONTAMINATED HELD-OUT PAYLOAD REMOVED FROM THE WORKING TREE
 
-CLEAN before: exit 0 · failed limbs: (none)
+original path        runs/audit/row5-red-limbs-2026-09-14.txt
+original blob        b5b09c35474a307987eb66f8933820909c4d08bb
+original size        5211 bytes
+introduced in        dd15acfab9d8e89de6b535bd6be22c15e017e40d
+last changed in      dd15acfab9d8e89de6b535bd6be22c15e017e40d
+retired set          fingerprint 3d4951d6… · population 61 · this report held 5 distinct member(s)
+status               RETIRED_CONTAMINATED — DO NOT USE AS HELD-OUT EVIDENCE
+ruling               _handoffs a5452ee (AlmiVisibility_OWNER_RULING_2026-09-22_RETIRED_CONTAMINATED_HELDOUT.md),
+                     clarified by _handoffs f4367b1 (AlmiVisibility_OWNER_RULING_2026-09-22_HELDOUT_ROLE_SCOPE.md)
 
-── limb: merged
-   file: config/discovery/intent-lexicon.mjs
-   sabotage: the word-limit ask removed from the exclusive groups — a task and one fact about it can now merge
-   anchor matches: 1
-   sha256 before feaab8888097e99919beebff7794e3f2f7a3630bc54b622525b6807d03d275f6
-   sha256 sabotaged ac19f54861295022a7f3616ed8e1542a8f2ea09783331ca1d40a0ec55e5653b1 — LANDED
-   exit 1 · failed limbs: merged — RED ON THIS LIMB ALONE
-       🔴 [merged] cluster intent-cd1e5285f8 merges 2 distinct intents: swt-task [pte academic summarize written text · pte summarize written text · pte writing summarize written text · pte writing summary · writing summary in pte · writing summary pte] + swt-word-limit [pte summarize written text word limit · summarise written text word limit · summarize written text pte word limit]
-   restored: sha256 feaab8888097e99919beebff7794e3f2f7a3630bc54b622525b6807d03d275f6 — MATCHES
+REASON
+  This human-readable audit report carried members of the retired Row 5 held-out population, which current
+  mandatory-readable material may not contain.
 
-── limb: split
-   file: config/discovery/intent-lexicon.mjs
-   sabotage: the resume→cv synonym removed — a CV written as 'resume' no longer joins its intent
-   anchor matches: 1
-   sha256 before feaab8888097e99919beebff7794e3f2f7a3630bc54b622525b6807d03d275f6
-   sha256 sabotaged 9a09cf890e73c79f75b4cfdd4f693f8f83caee2f9b528fe68dd6d0366877e649 — LANDED
-   exit 1 · failed limbs: split — RED ON THIS LIMB ALONE
-       🔴 [split] intent cv-for-occupation is split across 3 clusters: [admin assistant cv · animal c v · bank cv · bartender cv · customer assistant cv · cv for hr assistant · cv for restaurant manager · cv network engineer · cv primary school · cv project manager · events coordinator cv · house maid cv · housekeeper cv · kitchen assistant cv · midwife cv sample word · nursery assistant cv · project m
-   restored: sha256 feaab8888097e99919beebff7794e3f2f7a3630bc54b622525b6807d03d275f6 — MATCHES
+THE ORIGINAL
+  The original bytes remain in Git history, unchanged, at the blob above. No Git history was rewritten.
+  The original MUST NOT be used as held-out, unseen, marking-key or expected-answer evidence, nor to earn,
+  preserve, restore or support PASS in any of those roles.
 
-── limb: wording-lost
-   file: src/discovery/intent-clusters.mjs
-   sabotage: every member's original replaced by its normalised surface form
-   anchor matches: 1
-   sha256 before 2799a18112c1840baa05561681cc00c914f0e4bb74b227555249cbb14daa5936
-   sha256 sabotaged b70139cafcfc162dee4570624d7aedd5e3b6541d9fc603aa28abf220be495b4e — LANDED
-   exit 1 · failed limbs: wording-lost — RED ON THIS LIMB ALONE
-       🔴 [wording-lost] member "celpe bras 2026" is stored as "celpe-bras 2026" — its original wording was changed
-       🔴 [wording-lost] member "imkey b v" is stored as "imkey b.v." — its original wording was changed
-       🔴 [wording-lost] member "licenciatura en bilinguismo con enfasis en ingles" is stored as "licenciatura en bilingüismo con énfasis en inglés" — its original wording was changed
-   restored: sha256 2799a18112c1840baa05561681cc00c914f0e4bb74b227555249cbb14daa5936 — MATCHES
-
-── limb: held-out-unrun
-   file: src/discovery/intent-clusters.mjs
-   sabotage: the held-out check places nothing, so it reports 0 misses without having run
-   anchor matches: 1
-   sha256 before 2799a18112c1840baa05561681cc00c914f0e4bb74b227555249cbb14daa5936
-   sha256 sabotaged 65178d8c98dfc83982f2c4bb76a0e7f805af1416d25235947b6401bbc611d815 — LANDED
-   exit 1 · failed limbs: held-out-unrun — RED ON THIS LIMB ALONE
-       🔴 [held-out-unrun] the held-out results cover 0 queries; the held-out population is 61
-       🔴 [held-out-unrun] reported 0 hit · 0 miss · 0 unscored, but its own results say 0 · 0 · 0 of 61
-   restored: sha256 2799a18112c1840baa05561681cc00c914f0e4bb74b227555249cbb14daa5936 — MATCHES
-
-── limb: operator-in-population
-   file: src/discovery/query-population.mjs
-   sabotage: the classifier stops seeing an exact-phrase lookup, so it is counted as a human query
-   anchor matches: 1
-   sha256 before 8c54ab16d4bfe42f172f59f1cd77edb87e2c3aa4e2b0374bb48944c348e7c1cb
-   sha256 sabotaged 92599bb52f73595e047d75fc384538eaedd1f52dd9147348547497dbaa0cb89e — LANDED
-   exit 1 · failed limbs: operator-in-population — RED ON THIS LIMB ALONE
-       🔴 [operator-in-population] ""national accreditation council" "founded in 1908" university" carries search-operator syntax and was counted as a human query
-   restored: sha256 8c54ab16d4bfe42f172f59f1cd77edb87e2c3aa4e2b0374bb48944c348e7c1cb — MATCHES
-
-── limb: lexicon-held-out-word
-   file: config/discovery/intent-lexicon.mjs
-   sabotage: a synonym for a word that occurs only in a held-out query
-   anchor matches: 1
-   sha256 before feaab8888097e99919beebff7794e3f2f7a3630bc54b622525b6807d03d275f6
-   sha256 sabotaged f5afe57d74e722391843370dff1634e7599ae633af2bc7bd068696656f7c2633 — LANDED
-   exit 1 · failed limbs: lexicon-held-out-word — RED ON THIS LIMB ALONE
-       🔴 [lexicon-held-out-word] the lexicon holds 1 word(s) no in-sample query contains: neurologist
-   restored: sha256 feaab8888097e99919beebff7794e3f2f7a3630bc54b622525b6807d03d275f6 — MATCHES
-
-CLEAN after: exit 0 · failed limbs: (none)
-
-✅ 6 limbs, each RED alone on its own limb, each restored byte for byte
+THE COST, STATED PLAINLY (a deliberate accepted cost, not an oversight)
+  HISTORICAL REPORTS THAT DEPEND ON THIS FILE ARE NOW REPRODUCIBLE ONLY FROM GIT HISTORY, NOT FROM THE
+  WORKING TREE.

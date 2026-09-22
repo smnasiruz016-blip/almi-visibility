@@ -62,6 +62,19 @@ const OWNED = Object.freeze([
   "src/adapter/observed-page-subject.mjs",
   "src/adapter/external-subject.mjs",
   "bin/detect.mjs",
+  /* 🔴 22 Sep 2026: the held-out firewall, the evidence-role registry checker and sealed-path containment join the list
+   * they must honour — they judge every subject's artefacts, so a host or client name must never creep into them. */
+  "src/governance/evidence-roles.mjs",
+  "src/governance/sealed-paths.mjs",
+  "tools/heldout-firewall.mjs",
+  "bin/heldout-firewall.mjs",
+  /* 🔴 22 Sep 2026, F05: the authority register, the corpus census and the active F-board join the list they must
+   * honour — they decide which ruling governs and which feature may move, for any product. */
+  "src/authority/register.mjs",
+  "src/authority/corpus.mjs",
+  "src/fboard/board.mjs",
+  "src/fboard/acceptance.mjs",
+  "src/fboard/crosswalk.mjs",
 ]);
 
 /**

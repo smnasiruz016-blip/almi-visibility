@@ -1,3 +1,5 @@
+🔴 SANITISED 2026-09-22 under the RETIRED_CONTAMINATED ruling (_handoffs a5452ee, clarified f4367b1): 1 retired held-out string occurrence(s) replaced by [REDACTED — RETIRED_CONTAMINATED HELD-OUT PAYLOAD]. Retired set fingerprint 3d4951d6…, population 61. The original bytes remain ONLY in Git history — blob 0230de3ba55a6b2b27f9dac445e300e40e1c7760, introduced in 1ba079d; they must not be used as held-out, unseen, marking-key or expected-answer evidence.
+
 corpus: C:/Projects/almi-visibility/runs/crawl/bodies-2026-09-12.jsonl.br (committed archive)
 pages with a fetched body: 394
 
@@ -51,7 +53,7 @@ ITEM 13 — CANNIBALIZATION, MEASUREMENT ONLY. [bound: 337 queries searched · 5
   query: "pte academic equivalent to ielts"  (2 URLs)
      position 73.0 · 1 impression(s) · https://almipte.almiworld.com/learn/pte-ielts-score-conversion
      position 82.0 · 1 impression(s) · https://almipte.almiworld.com/learn/pte-vs-ielts
-  query: "pte and ielts score"  (2 URLs)
+  query: "[REDACTED — RETIRED_CONTAMINATED HELD-OUT PAYLOAD]"  (2 URLs)
      position 64.0 · 1 impression(s) · https://almipte.almiworld.com/learn/pte-ielts-score-conversion
      position 76.0 · 2 impression(s) · https://almipte.almiworld.com/learn/pte-vs-ielts
   query: "pte equivalent to ielts"  (2 URLs)

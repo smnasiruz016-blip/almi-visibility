@@ -307,7 +307,8 @@ test("🟢 REAL — the declared batch is read by its manifest hash, and the pro
   assert.equal(batch.records.length, 6);
   assert.ok(batch.records.every((r) => r.value.evidenceClass === "REAL"));
   const judged = withEvidenceClasses(judgeReasoning({ goals: result.goals, records: batch.records, tenancy }), batch.records);
-  const g13 = judged.groups.find((g) => g.wordings.join() === "celpe bras 2026");
+  // 🔴 22 Sep 2026: G13's wording belongs to a retired held-out population and may not appear in test source — the group is selected by its six localities, never by its wording
+  const g13 = judged.groups.find((g) => JSON.stringify(g.members.map((m) => m.locality)) === JSON.stringify(["gha", "ind", "kor", "nga", "nzl", "usa"]));
   assert.equal(g13.outcome, "J");
   assert.equal(g13.urlAxis, "F");
   assert.equal(g13.separateUrl, "NOT_RECOMMENDED");
@@ -338,5 +339,5 @@ test("🟢 REAL — limb (a) on row 4's own path is 0 across all three verbs, an
   const judged = withEvidenceClasses(judgeReasoning({ goals: result.goals, records: batch.records, tenancy }), batch.records);
   const v = row4Verdict({ judged, limbA: { construction: census.breaches.length, acceptance: decisions.hits.length, recommendation: decisions.hits.length } });
   assert.equal(v.verdict, "PASS", JSON.stringify(v.reasons));
-  assert.deepEqual(v.completeGroups, [judged.groups.find((g) => g.wordings.join() === "celpe bras 2026").goal]);
+  assert.deepEqual(v.completeGroups, [judged.groups.find((g) => JSON.stringify(g.members.map((m) => m.locality)) === JSON.stringify(["gha", "ind", "kor", "nga", "nzl", "usa"])).goal]);
 });

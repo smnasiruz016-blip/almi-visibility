@@ -1,3 +1,4 @@
+// 🔴 SANITISED 2026-09-22 under the RETIRED_CONTAMINATED ruling (_handoffs a5452ee, clarified f4367b1): 1 retired held-out string occurrence(s) replaced by [REDACTED — RETIRED_CONTAMINATED HELD-OUT PAYLOAD]. Retired set fingerprint 3d4951d6…, population 61. The original bytes remain ONLY in Git history — blob 56f1a7e610e4266dfa9de3f11b9bc092878ca173, introduced in dd15acf; they must not be used as held-out, unseen, marking-key or expected-answer evidence.
 /**
  * 🔴 ROW 5 — THE SUBJECT'S WORDS, DECLARED OUTSIDE `src/` SO THE CLUSTERER STAYS GENERIC.
  *
@@ -105,7 +106,7 @@ export const LEXICON = Object.freeze({
     country: { inKey: true, ruling: "SAME INTENT ACROSS VALUES; a country's PRESENCE is part of the question ('cv malta' is not 'cv for an occupation')" },
     demonym: { inKey: true, ruling: "SAME INTENT ACROSS VALUES; a nationality's presence is part of the question and is not a place" },
     city: { inKey: true, ruling: "SAME INTENT ACROSS VALUES; a city's presence is part of the question" },
-    occupation: { inKey: true, ruling: "SAME INTENT ACROSS VALUES — 'bartender cv' and 'neurologist resume' are one question with two occupations; an occupation's presence is part of the question" },
+    occupation: { inKey: true, ruling: "SAME INTENT ACROSS VALUES — 'bartender cv' and '[REDACTED — RETIRED_CONTAMINATED HELD-OUT PAYLOAD]' are one question with two occupations; an occupation's presence is part of the question" },
     field: { inKey: false, ruling: "SAME INTENT ACROSS VALUES, AND OPTIONAL — 'study in philippines' and 'study mit in china' ask the same thing; the field narrows it" },
     variant: { inKey: false, ruling: "SAME INTENT ACROSS VALUES — the test variant (academic, core) narrows the answer, it does not change the ask" },
     audience: { inKey: false, ruling: "SAME INTENT ACROSS VALUES — who asks (a beginner, a student) narrows the answer, it does not change the ask" },

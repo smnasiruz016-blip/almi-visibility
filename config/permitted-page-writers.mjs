@@ -330,4 +330,43 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
     why: "row 52's evidence is a findings output that can be hashed and CLOSED before anything holding the expected answers reads it. That ordering is only auditable if the output is a file on disk with its digest beside it, so the score can be shown to have been computed against bytes that were already fixed",
     whyKnown: true,
   },
+  /* ── 🔴 F05 (22 September 2026) — THREE GENERATORS OF THE ACTIVE F-BOARD AND THE AUTHORITY CORPUS ──────────────
+   * Each rebuilds one GENERATED config file from committed sources and, with no flag, only reports UP TO DATE or
+   * STALE. Found by this census the moment they were tracked; gated the same day rather than declared ungated. */
+  {
+    file: "bin/fboard-derive.mjs",
+    sites: 1,
+    writes: "config/fboard/capabilities.mjs — F01–F89, derived line by line from the committed specification extract, each row pinned to its line's sha256",
+    where: "config/fboard/capabilities.mjs — a fixed path inside this repository, no operator flag; a GENERATED file, not evidence",
+    gatedBy: "write-law LOCAL: permission.mayWrite, which only --confirm grants. Without it the run derives every row and reports whether the committed file is UP TO DATE or STALE",
+    gateFlags: ["--confirm"],
+    gateToken: "permission.mayWrite",
+    destinationOverridable: false,
+    why: "the active completion denominator must be the specification's own 89 rows, never typed: it is re-derived from the committed extract, so it can be rebuilt and never hand-edited",
+    whyKnown: true,
+  },
+  {
+    file: "bin/fboard-crosswalk.mjs",
+    sites: 1,
+    writes: "config/fboard/crosswalk.mjs — one entry per F-row with its acceptance relation, and the historical ledger's rows as provenance only",
+    where: "config/fboard/crosswalk.mjs — a fixed path inside this repository, no operator flag; a GENERATED file, not evidence",
+    gatedBy: "write-law LOCAL: permission.mayWrite, which only --confirm grants. Without it the run builds the crosswalk and reports UP TO DATE or STALE; --check exits 1 when stale",
+    gateFlags: ["--confirm"],
+    gateToken: "permission.mayWrite",
+    destinationOverridable: false,
+    why: "F05 §4: the crosswalk points F-rows to reusable historical work without importing authority; generated so its provenance cannot drift from the ledger it reads",
+    whyKnown: true,
+  },
+  {
+    file: "bin/authority-migrate.mjs",
+    sites: 1,
+    writes: "config/authority/corpus.mjs — the real authority corpus: paths, structured identity and content hashes of committed governance records, never their prose",
+    where: "config/authority/corpus.mjs — a fixed path inside this repository, no operator flag; a GENERATED file, not evidence",
+    gatedBy: "write-law LOCAL: permission.mayWrite, which only --confirm grants. Without it the run migrates in memory, prints the census, and reports UP TO DATE or STALE (exit 1 when stale)",
+    gateFlags: ["--confirm"],
+    gateToken: "permission.mayWrite",
+    destinationOverridable: false,
+    why: "F05 §7: the register resolves over the committed corpus, and the corpus must be read from COMMITTED bytes at a named commit — so it is migrated by a program, never assembled by hand",
+    whyKnown: true,
+  },
 ]);

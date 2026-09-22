@@ -15,7 +15,7 @@ import { join } from "node:path";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { row5 } from "../src/discovery/row5.mjs";
 import { LEXICON } from "../config/discovery/intent-lexicon.mjs";
-import { INTENT_REFERENCE, AMBIGUOUS, AMENDMENTS, REFERENCE_AUTHOR } from "../config/discovery/intent-reference.mjs";
+import { INTENT_REFERENCE, AMBIGUOUS, AMENDMENTS, REFERENCE_AUTHOR, REFERENCE_STATUS } from "../config/discovery/intent-reference.mjs";
 
 /**
  * 🔴 DRAIN BEFORE EXIT — `process.exit()` tears the process down with asynchronous stdout writes
@@ -48,7 +48,7 @@ function exitAfterDrain(code) {
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const records = createJsonlStore(join(REPO, "runs", "evidence", "evidence.jsonl")).readAll();
-const r = row5({ records, lexicon: LEXICON, reference: INTENT_REFERENCE, ambiguous: AMBIGUOUS });
+const r = row5({ records, lexicon: LEXICON, reference: INTENT_REFERENCE, ambiguous: AMBIGUOUS, referenceStatus: REFERENCE_STATUS });
 
 const { population: p, heldOut: h, record } = r;
 console.log("ROW 5 — INTENT & QUESTION CLUSTERING\n");
@@ -62,9 +62,14 @@ const kinds = {};
 for (const o of p.operators) kinds[o.kind] = (kinds[o.kind] || 0) + 1;
 for (const [k, n] of Object.entries(kinds)) console.log(`  ${k}: ${n} — form: ${p.operators.find((o) => o.kind === k).form}; INFERRED: ${p.operators.find((o) => o.kind === k).inference}`);
 
-console.log(`\nREFERENCE — ${Object.keys(INTENT_REFERENCE).length} intents · ${Object.keys(AMBIGUOUS).length} ambiguous (scored in neither direction) · ${AMENDMENTS.length} amendment(s) after the first run`);
-console.log(`  author: ${REFERENCE_AUTHOR}`);
-for (const a of AMENDMENTS) console.log(`  amended: ${a.queries.join(" · ")} — ${a.from} → ${a.to} — broke ${a.brokenRule}`);
+if (r.scoring.state === "REFUSED") {
+  console.log(`\nREFERENCE — 🔴 SCORING REFUSED: ${r.scoring.code} — ${r.scoring.why}`);
+  if (REFERENCE_STATUS) console.log(`  status: ${REFERENCE_STATUS.role} · retired set ${REFERENCE_STATUS.retiredSetFingerprint} (${REFERENCE_STATUS.population}) · original blob ${REFERENCE_STATUS.originalBlob} — Git history only, never evidence`);
+} else {
+  console.log(`\nREFERENCE — ${Object.keys(INTENT_REFERENCE).length} intents · ${Object.keys(AMBIGUOUS ?? {}).length} ambiguous (scored in neither direction) · ${AMENDMENTS.length} amendment(s) after the first run`);
+  console.log(`  author: ${REFERENCE_AUTHOR}`);
+  for (const a of AMENDMENTS) console.log(`  amended: ${a.queries.join(" · ")} — ${a.from} → ${a.to} — broke ${a.brokenRule}`);
+}
 
 console.log(`\nHELD-OUT CHECK — ran: ${h.ran} · rule: ${h.rule}`);
 console.log(`  in-sample ${h.inSample} queries → ${h.inSampleClusters.length} clusters · held out ${h.heldOut} · threshold ${h.threshold}`);
@@ -85,14 +90,16 @@ for (const c of record.filter((x) => x.size > 1)) {
  * without the other. The held-out HIT/MISS line above is the SCORER's observation; this is ACCEPTANCE. */
 const rec = { merged: r.errors.filter((e) => e.limb === "record-merged").length, split: r.errors.filter((e) => e.limb === "record-split").length };
 console.log(`\nFULL-REFERENCE ACCEPTANCE — the whole record against the reference (in-sample clusters + held-out placements)`);
-console.log(`  distinct-intent merges: ${rec.merged} · identical-intent splits: ${rec.split}`);
+if (r.scoring.state === "REFUSED") console.log(`  🔴 NOT MEASURED — ${r.scoring.code}: merges and splits cannot be counted without a lawful reference, and this is not a pass`);
+else console.log(`  distinct-intent merges: ${rec.merged} · identical-intent splits: ${rec.split}`);
 console.log(`  RULE-EXCLUDED — ${r.ruleExcluded.members.length} ${r.ruleExcluded.rule}-AMBIGUOUS member(s), ${r.ruleExcluded.state}: ${r.ruleExcluded.why}`);
 for (const q of r.ruleExcluded.members) console.log(`    · ${JSON.stringify(q)} — neither passed nor failed by any limb`);
 
 /* 🔴 EVERY REMAINING SPLIT, WITH THE REASON CODE ITS STRUCTURE EARNS. An UNKNOWN token is printed as UNKNOWN — this
  * runner never says what a word means. */
-console.log(`\nSPLIT CAUSES — ${r.splitCauses.length} split intent(s), each member standing apart with its named reason code(s)`);
-for (const s of r.splitCauses) {
+if (r.splitCauses === null) console.log(`\nSPLIT CAUSES — 🔴 UNAVAILABLE (${r.scoring.code}): no split can be named without a lawful reference`);
+else console.log(`\nSPLIT CAUSES — ${r.splitCauses.length} split intent(s), each member standing apart with its named reason code(s)`);
+for (const s of r.splitCauses ?? []) {
   console.log(`  ${s.intent} · in-sample ${s.inSample} · held out ${s.heldOut} · ${s.codes.join(" · ")}`);
   for (const a of s.apart) console.log(`    · ${JSON.stringify(a.original)} — ${a.codes.join(" · ")}${a.unknownTokens.length ? ` · UNKNOWN: ${a.unknownTokens.join(", ")}` : ""}${a.bestSimilarity === null ? "" : ` · best ${a.bestSimilarity}`}`);
 }

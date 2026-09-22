@@ -290,6 +290,10 @@ test("🔴 THE DECLARED LOCAL WRITERS — each states writes · where · gatedBy
     "bin/gsc-ingest.mjs",
     "bin/crawl.mjs",
     "bin/detect.mjs",
+    // 🔴 +3 on 22 September 2026 (F05): the F-board and authority-corpus generators, gated when this census found them
+    "bin/fboard-derive.mjs",
+    "bin/fboard-crosswalk.mjs",
+    "bin/authority-migrate.mjs",
   ]);
   for (const e of PERMITTED_LOCAL_WRITERS) {
     for (const k of REQUIRED_FIELDS) assert.ok(typeof e[k] === "string" && e[k].length > 20, `${e.file}: ${k} is too thin to be read by a human`);

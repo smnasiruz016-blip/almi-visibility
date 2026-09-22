@@ -12,6 +12,7 @@
 // only its own test — see src/evidence/verdict.mjs.
 import { judgeSupersession, judgeLeavingUnknown, DIMENSION_DECLARATION_FAULTS } from "../evidence/verdict.mjs";
 import { judgeGrandfathering } from "../evidence/pre-contract-grandfathering.mjs";
+import { labelOnFace } from "../evidence/label-on-face.mjs";
 import {
   factId,
   TIERS,
@@ -518,9 +519,15 @@ export function validateRegistry(records = []) {
        * still advances them and this exception still keeps them lawful. It goes
        * when R5 re-checks the nine under the contract on actual evidence:
        * R5 = WAITING FOR GREEN A / AUTHORIZED EVIDENCE FETCH. */
-      const isAmbiguityDemotion =
-        j.permitted === "VERIFIED" && j.declared === "UNKNOWN" && r?.verification?.elementAmbiguity;
-      if (!isAmbiguityDemotion) {
+      /* 🔴 21 September 2026 (owner ruling, Row 50 label on face, clause 7): `elementAmbiguity` is PROSE and may not
+       * select which records the guard enforces. The hold is now excused STRUCTURALLY — a record that is not labelled
+       * on its face (./../evidence/label-on-face.mjs, judged from its declarations whatever its date) has not earned
+       * VERIFIED under the current requirement, so holding it UNKNOWN is the truthful outcome, not a blocked verdict.
+       * What F24 protects is unchanged: a LABELLED record held back while the guard advances it still fires, and a
+       * record declared past a refusal still fires. */
+      const isHeldUnlabelled =
+        j.permitted === "VERIFIED" && j.declared === "UNKNOWN" && labelOnFace(r).state === "UNLABELLED";
+      if (!isHeldUnlabelled) {
         errors.push({
           law: "F24",
           message:

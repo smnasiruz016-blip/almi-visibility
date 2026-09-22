@@ -14,6 +14,27 @@ import { validateRegistry } from "../src/facts/validate.mjs";
 import { DECLARATION_CONTRACT_AFTER } from "../src/facts/schema.mjs";
 import { productFromArgv } from "../src/product-cli.mjs";
 import { loadRegistry, verifiedSourceBearingFacts, REGISTRY_VERIFIED_COUNT } from "../src/facts/registry.mjs";
+import { adjudicateDimensions } from "../src/evidence/label-on-face.mjs";
+
+/** 🔴 21 Sep 2026: the six records whose every dimension is NOT_APPLICABLE by the schema's own law, declared so by a
+ * mechanical metadata completion (owner ruling, Row 50 label on face, clauses 3–4). Named, so a new one is visible. */
+const MECHANICAL_NOT_APPLICABLE = Object.freeze([
+  "ng-nmcn.issuing-body", "oet.content-licence-permits-stored-quotation", "pk-pnmc.issuing-body",
+  "pk-pnmc.verification-response-time", "uk-code-of-practice.red-list-country-count", "uk-hcpc.certificate-maximum-age",
+]);
+/** 🔴 THE PROTECTION, KEPT AND TIGHTENED: no declaration is MANUFACTURED. A real record may carry claimDimensions only if
+ * a human verified it under the contract, or if every declared dimension is NOT_APPLICABLE AND the schema's own law
+ * makes every dimension inapplicable — a NOT_APPLICABLE the structure contradicts, or any element named without a
+ * human, fails here. */
+const assertNoManufacturedDeclaration = (records, ownerVerified) => {
+  const declared = records.filter((r) => r.claimDimensions !== undefined).map((r) => r.id).sort();
+  assert.deepEqual(declared, [...ownerVerified, ...MECHANICAL_NOT_APPLICABLE].sort(), "a claimDimensions declaration appeared that nobody can account for");
+  for (const r of records.filter((x) => x.claimDimensions !== undefined && !ownerVerified.includes(x.id))) {
+    assert.ok(Object.values(r.claimDimensions).every((d) => d === "NOT_APPLICABLE"), `${r.id}: a declaration naming an element was manufactured`);
+    assert.ok(Object.values(adjudicateDimensions(r)).every((a) => a.mapping === "NOT_APPLICABLE"), `${r.id}: NOT_APPLICABLE declared where the claim's structure makes a dimension real`);
+  }
+};
+
 
 const NA = "NOT_APPLICABLE";
 const UNDER_CONTRACT = "2026-09-14";
@@ -221,5 +242,5 @@ test("🔴 R4 · 11 · no regression — a pre-contract verification is judged e
     assert.equal(j.contract, "PRE_CONTRACT", `${j.id}: judged under the contract without being verified after it`);
   }
   assert.equal(verifiedSourceBearingFacts(records).length, REGISTRY_VERIFIED_COUNT);
-  assert.deepEqual(records.filter((r) => r.claimDimensions !== undefined).map((r) => r.id).sort(), [...OWNER_VERIFIED_2026_09_21].sort(), "a declaration was manufactured on a real record");
+  assertNoManufacturedDeclaration(records, OWNER_VERIFIED_2026_09_21);
 });

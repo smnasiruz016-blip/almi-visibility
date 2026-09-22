@@ -129,7 +129,8 @@ test("🔴 ITEM 50: F23 still has 0 real supersessions to judge — the real pop
   assert.equal(derivedFacts(records).every((r) => judgeLeavingUnknown(r.id, r.verification, r.claimElements, r) === null), true,
     "a derived record entered row 50's pre-contract guard population — it does not belong there");
   assert.equal(records.filter((r) => r.life?.supersedes).length, 0, "a real supersession now exists — re-sit item 50");
-  assert.equal(classify()[50].state, "VERIFIED-PASS"); // 🔴 closed 20 Sep 2026; the 46 and the 0 supersessions above are unchanged by that.
+  // 🔴 21 Sep 2026: row 50 REOPENED by AUTHORITATIVE_REQUIREMENT_CHANGE (owner ruling, label on face) and FAILED by measurement — the 20 Sep tick was lawful when made; the 46 and the 0 supersessions above are unchanged by either move.
+  assert.equal(classify()[50].state, "FAILED");
 });
 
 /* 51 was FAILED by the re-scan; its fields are now computed (test/recommendation-fields.test.mjs). */

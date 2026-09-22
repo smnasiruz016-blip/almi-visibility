@@ -1,0 +1,49 @@
+ROW 50 — LABELLED ON ITS FACE · registry FACT_REGISTRY almi-oet/facts · 47 record(s) loaded
+  considered 37 = governed 36 + derived 1 · LABELLED 8 · UNLABELLED 28 · INVALID 0 · DERIVED 1 · remainder 0
+
+UNLABELLED (28)
+  ie-nmbi.oet-minimum-grade.profession=nursing [VERIFIED] — DIMENSION_UNDECLARED:qualifier, DIMENSION_UNDECLARED:listCompleteness, DIMENSION_UNDECLARED:bindingParty
+  ie-nmbi.oet-version-required.profession=nursing [VERIFIED] — DIMENSION_UNDECLARED:qualifier, DIMENSION_UNDECLARED:listCompleteness, DIMENSION_UNDECLARED:bindingParty
+  ie-nmbi.recognised-english-speaking-countries [UNKNOWN] — DIMENSION_UNDECLARED:qualifier, DIMENSION_UNDECLARED:listCompleteness, DIMENSION_UNDECLARED:bindingParty
+  oet.writing-task-type.profession=nursing [UNKNOWN] — DIMENSION_UNDECLARED:qualifier, DIMENSION_UNDECLARED:listCompleteness, DIMENSION_UNDECLARED:bindingParty
+  oet.speaking-roleplay-setting.profession=nursing [UNKNOWN] — DIMENSION_UNDECLARED:qualifier, DIMENSION_UNDECLARED:listCompleteness, DIMENSION_UNDECLARED:bindingParty
+  oet.subtests-and-which-are-profession-specific [VERIFIED] — DIMENSION_UNDECLARED:qualifier, DIMENSION_UNDECLARED:listCompleteness, DIMENSION_UNDECLARED:bindingParty
+  oet.grade-bands-0-500 [UNKNOWN] — DIMENSION_UNDECLARED:qualifier, DIMENSION_UNDECLARED:listCompleteness, DIMENSION_UNDECLARED:bindingParty
+  uk-code-of-practice.recruitment-list-membership.country=nigeria [UNKNOWN] — DIMENSION_UNDECLARED:qualifier, DIMENSION_UNDECLARED:listCompleteness, DIMENSION_UNDECLARED:bindingParty
+  uk-code-of-practice.recruitment-list-membership.country=pakistan [UNKNOWN] — DIMENSION_UNDECLARED:qualifier, DIMENSION_UNDECLARED:listCompleteness, DIMENSION_UNDECLARED:bindingParty
+  uk-code-of-practice.recruitment-list-membership.country=kenya [UNKNOWN] — DIMENSION_UNDECLARED:qualifier, DIMENSION_UNDECLARED:listCompleteness, DIMENSION_UNDECLARED:bindingParty
+  uk-code-of-practice.red-list-rule [UNKNOWN] — DIMENSION_UNDECLARED:qualifier, DIMENSION_UNDECLARED:listCompleteness, DIMENSION_UNDECLARED:bindingParty
+  uk-code-of-practice.amber-list-rule [UNKNOWN] — DIMENSION_UNDECLARED:qualifier, DIMENSION_UNDECLARED:listCompleteness, DIMENSION_UNDECLARED:bindingParty
+  uk-code-of-practice.amber-list-countries [VERIFIED] — DIMENSION_UNDECLARED:qualifier, DIMENSION_UNDECLARED:listCompleteness, DIMENSION_UNDECLARED:bindingParty
+  uk-hcpc.oet-minimum-score.profession=speech-pathology [VERIFIED] — DIMENSION_UNDECLARED:qualifier, DIMENSION_UNDECLARED:listCompleteness, DIMENSION_UNDECLARED:bindingParty
+  uk-hcpc.oet-score-differs-by-profession [VERIFIED] — DIMENSION_UNDECLARED:qualifier, DIMENSION_UNDECLARED:listCompleteness, DIMENSION_UNDECLARED:bindingParty
+  uk-hcpc.ielts-minimum.profession=speech-pathology [VERIFIED] — DIMENSION_UNDECLARED:qualifier, DIMENSION_UNDECLARED:listCompleteness, DIMENSION_UNDECLARED:bindingParty
+  uk-hcpc.accepted-english-tests [UNKNOWN] — DIMENSION_UNDECLARED:qualifier, DIMENSION_UNDECLARED:listCompleteness, DIMENSION_UNDECLARED:bindingParty
+  uk-hcpc.test-venue-requirement [VERIFIED] — DIMENSION_UNDECLARED:qualifier, DIMENSION_UNDECLARED:listCompleteness, DIMENSION_UNDECLARED:bindingParty
+  uk-hcpc.oet-profession-version.profession=speech-pathology [VERIFIED] — DIMENSION_UNDECLARED:qualifier, DIMENSION_UNDECLARED:listCompleteness, DIMENSION_UNDECLARED:bindingParty
+  uk-nmc.oet-minimum-grade.profession=nursing [UNKNOWN] — DIMENSION_UNDECLARED:qualifier, DIMENSION_UNDECLARED:listCompleteness, DIMENSION_UNDECLARED:bindingParty
+  uk-nmc.oet-combining-sittings.profession=nursing [UNKNOWN] — DIMENSION_UNDECLARED:qualifier, DIMENSION_UNDECLARED:listCompleteness, DIMENSION_UNDECLARED:bindingParty
+  uk-nmc.english-evidence-routes.profession=nursing [UNKNOWN] — DIMENSION_UNDECLARED:qualifier, DIMENSION_UNDECLARED:listCompleteness, DIMENSION_UNDECLARED:bindingParty
+  uk-nmc.qualified-in-english-evidence.profession=nursing [UNKNOWN] — DIMENSION_UNDECLARED:qualifier, DIMENSION_UNDECLARED:listCompleteness, DIMENSION_UNDECLARED:bindingParty
+  uk-nmc.oet-profession-version.profession=nursing [VERIFIED] — DIMENSION_UNDECLARED:qualifier, DIMENSION_UNDECLARED:listCompleteness, DIMENSION_UNDECLARED:bindingParty
+  uk-nmc.oet-combining-sittings-floor.profession=nursing [UNKNOWN] — DIMENSION_UNDECLARED:qualifier, DIMENSION_UNDECLARED:listCompleteness, DIMENSION_UNDECLARED:bindingParty
+  uk-nmc.accepted-oet-delivery-modes.profession=nursing [UNKNOWN] — DIMENSION_UNDECLARED:qualifier, DIMENSION_UNDECLARED:listCompleteness, DIMENSION_UNDECLARED:bindingParty
+  uk-ukvi.majority-english-speaking-countries [UNKNOWN] — DIMENSION_UNDECLARED:qualifier, DIMENSION_UNDECLARED:listCompleteness, DIMENSION_UNDECLARED:bindingParty
+  uk-ukvi.english-nationality-exemption.nationality=india [UNKNOWN] — DIMENSION_UNDECLARED:qualifier, DIMENSION_UNDECLARED:listCompleteness, DIMENSION_UNDECLARED:bindingParty
+
+LABELLED (8)
+  ng-nmcn.issuing-body [VERIFIED]
+  oet.content-licence-permits-stored-quotation [VERIFIED]
+  pk-pnmc.issuing-body [VERIFIED]
+  pk-pnmc.verification-fee.destination=foreign [VERIFIED]
+  pk-pnmc.verification-fee.destination=domestic [VERIFIED]
+  pk-pnmc.verification-response-time [VERIFIED]
+  uk-code-of-practice.red-list-country-count [VERIFIED]
+  uk-hcpc.certificate-maximum-age [VERIFIED]
+
+DERIVED (1)
+  pk-pnmc.verification-fee-foreign-to-domestic-ratio [VERIFIED] — DERIVED_BY_DERIVATION_LAW
+
+REASON CODES: DIMENSION_UNDECLARED 84 · DERIVED_BY_DERIVATION_LAW 1
+ROW 50 VERDICT: FAIL
+  🔴 LABELS_ABSENT_OR_WRONG: 28 governed record(s) are not labelled on their face — Row 50's FAILURE: "a label is absent or wrong"

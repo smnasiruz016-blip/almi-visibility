@@ -1,0 +1,31 @@
+ROW 50 — LABELLED ON ITS FACE · SABOTAGE RECORD · 21 September 2026
+each: one exact single-occurrence change, verified landed, narrowest test run (TAP), RED count and the failing test named, restored in a finally block and verified byte-identical by sha256
+
+S1 · a missing required claimDimension no longer unlabels (UNDECLARED dropped) · src/evidence/label-on-face.mjs · landed true · loaded 3 · RED 3 · cause confirmed true · restored true
+    not ok — B · VERIFIED + a missing applicable declaration → UNLABELLED (DIMENSION_UNDECLARED), and refused under the contract
+    not ok — 🔴 A DATE EXEMPTION STORES, IT DOES NOT LABEL — a pre-contract record with no declarations is UNLABELLED, and the date is never read
+    not ok — 🟢 REAL — the production loader and census: 36 governed, 8 LABELLED, 28 UNLABELLED, 1 derived apart, remainder 0 — Row 50 FAILS on a label that is absent
+S2 · a dimension pointing at the wrong claimElement is accepted · src/evidence/label-on-face.mjs · landed true · loaded 1 · RED 1 · cause confirmed true · restored true
+    not ok — C · VERIFIED + a wrong declaration → UNLABELLED: an element the record does not carry, or NOT_APPLICABLE where the structure requires it
+S3 · an ambiguous (multiple) mapping passes as EXACT · src/evidence/label-on-face.mjs · landed true · loaded 1 · RED 1 · cause confirmed true · restored true
+    not ok — F · G · H · adjudication — one structural candidate is EXACT, two are MULTIPLE, none is ABSENT, an inapplicable dimension is NOT_APPLICABLE
+S4 · UNKNOWN promoted because a declaration exists · src/evidence/verdict.mjs · landed true · loaded 1 · RED 1 · cause confirmed true · restored true
+    not ok — D · UNKNOWN + exact declaration but insufficient evidence → the guard REFUSES and it stays UNKNOWN; its face is labelled
+S5 · the lawful UNKNOWN → VERIFIED transition disabled · src/evidence/verdict.mjs · landed true · loaded 2 · RED 2 · cause confirmed true · restored true
+    not ok — A · VERIFIED + exact declarations + confirmed evidence → LABELLED, and the guard advances it
+    not ok — E · UNKNOWN + genuinely complete evidence → the lawful transition to VERIFIED remains possible
+S6 · `elementAmbiguity` prose used as the F24 selector again · src/facts/validate.mjs · landed true · loaded 1 · RED 1 · cause confirmed true · restored true
+    not ok — J · `elementAmbiguity` removed → the enforcement outcome is UNCHANGED; and prose never excuses a LABELLED record held back
+S7 · a cross-tenant record admitted · src/evidence/label-on-face.mjs · landed true · loaded 1 · RED 1 · cause confirmed true · restored true
+    not ok — K · a cross-tenant record → INVALID, never labelled and never UNKNOWN
+S8 · a derived record forced through the primary-source dimension judge · src/evidence/label-on-face.mjs · landed true · loaded 1 · RED 1 · cause confirmed true · restored true
+    not ok — I · a derived record is governed by its derivation law — DERIVED, never forced into primary-source dimensions
+S9 · a stored date exemption counted as labelled on its face · src/evidence/label-on-face.mjs · landed true (by inserted marker SABOTAGE-S9 — the insertion keeps the anchor text, so the absence check cannot apply; re-run alone: marker present 1, RED 2, restored, residue 0) · loaded 2 · RED 2 · cause confirmed true · restored true
+    not ok — 🔴 A DATE EXEMPTION STORES, IT DOES NOT LABEL — a pre-contract record with no declarations is UNLABELLED, and the date is never read
+    not ok — 🟢 REAL — the production loader and census: 36 governed, 8 LABELLED, 28 UNLABELLED, 1 derived apart, remainder 0 — Row 50 FAILS on a label that is absent
+S10 · the guard run over an empty population passes · src/evidence/label-on-face.mjs · landed true · loaded 1 · RED 1 · cause confirmed true · restored true
+    not ok — L · an empty synthetic population cannot prove Row 50 — and a fixture-only population is never real evidence
+S11 · a fixture-only population accepted as real evidence · src/evidence/label-on-face.mjs · landed true · loaded 1 · RED 1 · cause confirmed true · restored true
+    not ok — L · an empty synthetic population cannot prove Row 50 — and a fixture-only population is never real evidence
+
+TOTAL: 11 designed · 11 landed · 11 RED · 11 cause confirmed · 11 restored · residue 0 (measured)

@@ -148,7 +148,8 @@ test("🔴 the split did NOT improve either row — both stay exactly where thei
    * pre-contract label ruling; rows 1 and 54 are untouched, and the split's own populations did not move. */
   /* 🔴 21 Sep 2026: row 4 left BUILT-NOT-PROVED by a declared WORK move (TEST_RUN) — local reasoning researched from a primary source, limb (a) measured NOT MET. 27 / 4 — and NOT because of the split: row 4 was never split (asserted below), and rows 1 and 54 are unmoved. */
   /* 🔴 21 Sep 2026: row 25 left TESTABLE-NOW by a declared WORK move (TEST_RUN) — the four checks reached real pages' claims bound to a VERIFIED fact, tenancy first. 28 / 0 — not because of the split; rows 1 and 54 are unmoved. */
-  assert.deepEqual(tally(rows), { "NOT-STARTED": 2, "BUILT-NOT-PROVED": 4, "TESTABLE-NOW": 0, "VERIFIED-PASS": 28, FAILED: 2, "BLOCKED-UNKNOWN": 2, DEFERRED: 23 });
+  /* 🔴 21 Sep 2026: row 50 REOPENED by AUTHORITATIVE_REQUIREMENT_CHANGE (owner ruling, label on face) and FAILED by measurement — the 20 Sep tick was lawful when made. 27 / 3 — not because of the split; rows 1 and 54 are unmoved. */
+  assert.deepEqual(tally(rows), { "NOT-STARTED": 2, "BUILT-NOT-PROVED": 4, "TESTABLE-NOW": 0, "VERIFIED-PASS": 27, FAILED: 3, "BLOCKED-UNKNOWN": 2, DEFERRED: 23 });
 });
 
 test("🔴 ABSENT DETECTOR, DECLARED: nothing refuses a whole-row DEFERRED on a split row — the `state` field is overloaded", () => {
@@ -314,17 +315,18 @@ test("🔴 the four inventories stay SEPARATE, and 58/58 stays unreachable insid
   // is exactly why the four are counted apart rather than derived from one another.
   // 🔴 24 since 21 Sep 2026: row 4 left BUILT-NOT-PROVED by a declared WORK move (TEST_RUN) — local reasoning researched from a primary source, limb (a) measured NOT MET — row 4 is id ≤ 58.
   // 🔴 25 since 21 Sep 2026: row 25 left TESTABLE-NOW by a declared WORK move (TEST_RUN) — the four checks reached real pages' claims bound to a VERIFIED fact, tenancy first — row 25 is id ≤ 58.
-  assert.equal(legacyPass, 25, "the legacy 58-row inventory is x / 58 and is reported on its own");
+  // 🔴 24 since 21 Sep 2026: row 50 REOPENED by AUTHORITATIVE_REQUIREMENT_CHANGE (owner ruling, label on face) and FAILED by measurement — the 20 Sep tick was lawful when made — row 50 is id ≤ 58.
+  assert.equal(legacyPass, 24, "the legacy 58-row inventory is x / 58 and is reported on its own");
   assert.equal(legacyDeferred, 23);
   // 🔴 THE POINT OF R5: 23 of the 58 are deferred, so the legacy inventory can never reach 58.
   assert.equal(58 - legacyDeferred, 35, "the maximum reachable value of the legacy inventory inside v0.1");
   assert.ok(legacyPass < 58 - legacyDeferred || legacyPass === 35);
   // the other three inventories, each counted separately
   assert.equal(rows.length, 61);
-  assert.equal(rows.filter((r) => r.state === "VERIFIED-PASS").length, 28, "x / 61");
+  assert.equal(rows.filter((r) => r.state === "VERIFIED-PASS").length, 27, "x / 61");
   const inScope = rows.filter((r) => r.state !== "DEFERRED");
   assert.equal(inScope.length, 38);
-  assert.equal(inScope.filter((r) => r.state === "VERIFIED-PASS").length, 28, "x / 38");
+  assert.equal(inScope.filter((r) => r.state === "VERIFIED-PASS").length, 27, "x / 38");
 });
 
 /* ================================================================== *

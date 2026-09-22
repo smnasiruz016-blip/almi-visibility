@@ -22,6 +22,27 @@ import { judgeLeavingUnknown, departuresWithoutJudgement, reconcileElements } fr
 import { UNKNOWN_REASONS } from "../src/facts/record.mjs";
 import { classify } from "../src/checklist/classification.mjs";
 import { forbiddenTextCensus, FORBIDDEN_PHRASE_HASHES, normaliseWords } from "../tools/forbidden-text-census.mjs";
+import { adjudicateDimensions } from "../src/evidence/label-on-face.mjs";
+
+/** 🔴 21 Sep 2026: the six records whose every dimension is NOT_APPLICABLE by the schema's own law, declared so by a
+ * mechanical metadata completion (owner ruling, Row 50 label on face, clauses 3–4). Named, so a new one is visible. */
+const MECHANICAL_NOT_APPLICABLE = Object.freeze([
+  "ng-nmcn.issuing-body", "oet.content-licence-permits-stored-quotation", "pk-pnmc.issuing-body",
+  "pk-pnmc.verification-response-time", "uk-code-of-practice.red-list-country-count", "uk-hcpc.certificate-maximum-age",
+]);
+/** 🔴 THE PROTECTION, KEPT AND TIGHTENED: no declaration is MANUFACTURED. A real record may carry claimDimensions only if
+ * a human verified it under the contract, or if every declared dimension is NOT_APPLICABLE AND the schema's own law
+ * makes every dimension inapplicable — a NOT_APPLICABLE the structure contradicts, or any element named without a
+ * human, fails here. */
+const assertNoManufacturedDeclaration = (records, ownerVerified) => {
+  const declared = records.filter((r) => r.claimDimensions !== undefined).map((r) => r.id).sort();
+  assert.deepEqual(declared, [...ownerVerified, ...MECHANICAL_NOT_APPLICABLE].sort(), "a claimDimensions declaration appeared that nobody can account for");
+  for (const r of records.filter((x) => x.claimDimensions !== undefined && !ownerVerified.includes(x.id))) {
+    assert.ok(Object.values(r.claimDimensions).every((d) => d === "NOT_APPLICABLE"), `${r.id}: a declaration naming an element was manufactured`);
+    assert.ok(Object.values(adjudicateDimensions(r)).every((a) => a.mapping === "NOT_APPLICABLE"), `${r.id}: NOT_APPLICABLE declared where the claim's structure makes a dimension real`);
+  }
+};
+
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 // The product is registered through the same entry point the CLI uses — its licence terms only exist once it is.
@@ -289,9 +310,12 @@ test("🔴 PART 5 · the forbidden transition, proved impossible by INJECTION �
   }
 
   /* The bound, stated as the row states it. */
+  /* 🔴 21 Sep 2026: row 50 REOPENED by AUTHORITATIVE_REQUIREMENT_CHANGE (owner ruling, label on face) and FAILED by measurement — the 20 Sep tick was lawful when made. The injection above still proves the forbidden transition impossible; the 20 September wording that
+   * states the bound is KEPT on the row as history, and the row is FAILED on a new requirement. */
   const row = classify()[50];
-  assert.equal(row.state, "VERIFIED-PASS");
-  assert.match(row.why, /the SAME defect in a record this system can be handed TODAY is REFUSED/);
+  assert.equal(row.state, "FAILED");
+  assert.match(row.whyPassedUnderGrandfathering, /the SAME defect in a record this system can be handed TODAY is REFUSED/);
+  assert.match(row.why, /LAWFUL WHEN MADE/);
 });
 
 
@@ -304,7 +328,7 @@ test("🔴 R4 · the pre-contract population is EXACTLY the 36 by name — none 
   assert.deepEqual(preContract, [...FOUR, ...THIRTY_TWO].filter((id) => !OWNER_VERIFIED_2026_09_21.includes(id)).sort(), "a record was dated into the pre-contract population, or one left it");
   const underContract = v.guard.judgements.filter((j) => j.contract !== "PRE_CONTRACT").map((j) => j.id).sort();
   assert.deepEqual(underContract, [...OWNER_VERIFIED_2026_09_21].sort(), "a record was judged under the contract that the owner did not verify");
-  assert.deepEqual(records.filter((r) => r.claimDimensions !== undefined).map((r) => r.id).sort(), [...OWNER_VERIFIED_2026_09_21].sort(), "a claimDimensions declaration was manufactured on a real record");
+  assertNoManufacturedDeclaration(records, OWNER_VERIFIED_2026_09_21);
   for (const id of AMBIGUOUS) {
     const j = judgementOf(id);
     assert.deepEqual([j.contract, j.permitted, j.declared, Boolean(byId.get(id).verification.elementAmbiguity)], ["PRE_CONTRACT", "VERIFIED", "UNKNOWN", true], `${id}: re-judged by R4 by side effect`);

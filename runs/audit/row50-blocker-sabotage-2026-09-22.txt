@@ -1,0 +1,16 @@
+ROW 50 — BLOCKER PRODUCT_DATA_JUDGEMENT_DEFERRED_TO_SUBJECT_PHASE — SABOTAGE AUDIT — 22 September 2026
+
+Named test: test/label-on-face.test.mjs "🔴 row 50 stays FAILED with blocker PRODUCT_DATA_JUDGEMENT_DEFERRED_TO_SUBJECT_PHASE — pair 1 answered E, no element added, no denominator moved"
+Harness: each sabotage replaced one exactly-once anchor, ran only the named test (1 test ran each time), and restored the original bytes in a finally block. The restore was checked by sha256.
+
+B1  the blocker code erased from the ledger (src/checklist/classification.mjs)
+    landed yes · RED 1 · cause: "The input did not match the regular expression /^PRODUCT_DATA_JUDGEMENT_DEFERRED_TO_SUBJECT_PHASE — /" · restored yes
+    (the harness's first cause matcher did not recognise this wording; the reason was then read directly, per "RED alone proves nothing")
+B2  the blocker recast as an engine failure (src/checklist/classification.mjs)
+    landed yes · RED 1 · cause: /NOT an engine implementation failure/ did not match · restored yes
+B3  an element invented on pair 1 to obtain a label (almi-visibility-data almi-oet/facts/ie-nmbi.mjs)
+    landed yes · RED 1 · cause: "an element was added to obtain a label" · restored yes
+B4  pair 1 declares a qualifier, i.e. answered A instead of E (almi-visibility-data almi-oet/facts/ie-nmbi.mjs)
+    landed yes · RED 1 · cause: "pair 1 was answered E: nothing is declared" · restored yes
+
+4 designed · 4 landed · 4 RED · 4 cause confirmed · 4 restored byte-identically · residue 0 (marker scan of both files) · the data working tree is clean afterwards (git status: 0 lines)

@@ -65,18 +65,19 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | **NOT-STARTED** | 3 | 8 | **2** |
 | **BUILT-NOT-PROVED** | 18 | 16 | **4** |
 | **TESTABLE-NOW** | 0 | 3 | **0** |
-| **VERIFIED-PASS** | 3 | 3 | **28** |
-| **FAILED** | 0 | -1 | **2** |
+| **VERIFIED-PASS** | 3 | 3 | **27** |
+| **FAILED** | 0 | -1 | **3** |
 | **BLOCKED-UNKNOWN** | 6 | 6 | **2** |
 | **DEFERRED** | 28 | 23 | **23** |
 
-### FAILED — counted and named separately: **2**
+### FAILED — counted and named separately: **3**
 
 > 🔴 **FAILED is counted and named separately in every report.** It is never folded into another
 > count and it is **not progress**. It is also **worth more than BUILT-NOT-PROVED**: a FAILED row
 > is one whose test was run against its own boundary — it means we looked.
 
 - **item 5 · Intent & Question Clustering** — FAILURE met: identical intents stay split — on the held-out check the EVIDENCE clause names, 12 of 61 held-out queries were left in a new cluster although their intent had in-sample members, each on a word the frozen lexicon never saw
+- **item 50 · OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation** — FAILURE met: a label is absent: once 'labelled on its face' requires declared dimensions whatever the verification date (owner ruling, 21 September 2026), 34 of the 36 governed real records declared none at the reopen (102 undeclared dimensions); after the mechanical completion 28 still do (84 undeclared, 34 of them applicable), and no structured field lets one be added without a human judgement
 - **item 52 · Case Study Acceptance Test** — FAILURE met: 🔴 THE FIRST LIMB, AND ONLY THE FIRST. The row's frozen FAILURE clause reads: "a required RED is missed, **or any control false-positives — that alone is FAIL**." FIVE of the six required REDs were missed — RED 2, 4, 5 and 6 produced no outcome naming their pinned locator, and RED 3 returned NOT_APPLICABLE — so the first limb is met outright. ⚠️ THE SECOND LIMB WAS NOT MET: no control drew a FINDING from any comparator, so there was no false positive. All three controls nevertheless score UNEVALUATED under Amendment 2, because every comparator returned NOT_APPLICABLE on them and a page on which nothing was positively examined is never unflagged. Both are failures; they are not the same failure, and folding them together would hide that the noise never reached the controls
 - **item 14** left FAILED for VERIFIED-PASS by route `RETEST_PASSED` on 2026-09-12 — report.mjs and the chain runner's cache now write only with --confirm; every destination is confined to this repository and refused outside it; all five parts re-tested and each RED-proved
 - **item 45** left FAILED for TESTABLE-NOW by route `OWNER_RULING` on 2026-09-12 — 'A component cannot be failed for a period before it existed.' The boundary's INPUT is a run; the scope is runs from 8c9d68b (2026-09-12T23:03:09Z) onward. The bar is unchanged; the eight earlier runs are recorded as a permanent loss (L-COST-1)
@@ -88,7 +89,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 
 **Rows that have been looked at (VERIFIED-PASS or FAILED): 30 of 58.**
 
-**Rows that reached VERIFIED-PASS in this PR: 25.**
+**Rows that reached VERIFIED-PASS in this PR: 24.**
 
 #### moved ONLY because a RULING changed
 
@@ -145,6 +146,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 50 | FAILED | VERIFIED-PASS | `node --test test/item-50-real-transitions.test.mjs · node bin/facts.mjs validate --product=<the first product> · node tools/forbidden-text-census.mjs` | 2026-09-13 | four real records put to the F24 guard leaving UNKNOWN: two with sufficient evidence advanced on a new measurement, two with insufficient evidence were refused and stay UNKNOWN with their reasons; both directions RED-proved |
 | 50 | VERIFIED-PASS | FAILED | `undefined` | 2026-09-13 | a label is absent or wrong — item 50's FAILURE condition — met on a real record the guard had advanced; the record corrected to UNKNOWN and the guard made to reconcile declared elements instead of trusting a count |
 | 50 | FAILED | VERIFIED-PASS | `node --test test/pre-contract-grandfathering.test.mjs test/item-50-real-transitions.test.mjs test/queue-rescan.test.mjs test/facts-registry.test.mjs test/facts-verification-ingest.test.mjs test/issue-transition-guard.test.mjs` | 2026-09-20 | the four labels hold and the guard polices a real population — 36 governed records judged on the real verdict path, 25 advancing and 11 refused, none of them a fixture; and the forbidden transition is proved impossible by injection: each of the nine demoted records, changed in ONE field so its verification falls after the contract's cut-off, is REFUSED 9 of 9 by the real validator with F30 naming the missing declaration, while re-dating it back inside the cut-off restores advancement 9 of 9 — so the refusal is the contract talking and not a judge that refuses everything. 0 verdicts changed, 0 records written |
+| 50 | VERIFIED-PASS | FAILED | `undefined` | 2026-09-21 | a label is absent — Row 50's FAILURE condition, word for word — on 34 of 36 governed real records once 'labelled on its face' requires declared dimensions whatever the verification date |
 | 51 | BUILT-NOT-PROVED | TESTABLE-NOW | `undefined` | 2026-09-13 | a real recommendation exists |
 | 51 | TESTABLE-NOW | FAILED | `test/queue-rescan.test.mjs (item 51)` | 2026-09-13 | FAILURE met: priority, confidence and cost are missing on all three, and the real report renders none of the six |
 | 51 | FAILED | VERIFIED-PASS | `node bin/link-recommendation-evidence.mjs · node bin/report.mjs --confirm · test/recommendation-fields.test.mjs` | 2026-09-13 | priority, confidence and cost each computed from stored evidence and each able to say UNKNOWN — two recommendations ranked by measured impressions, one UNKNOWN; confidence derived on all three; cost UNKNOWN on all three with lower bounds — and all six visible on the real report |
@@ -171,8 +173,8 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | **NOT-STARTED** | 33 | **2** |
 | **BUILT-NOT-PROVED** | 24 | **4** |
 | **TESTABLE-NOW** | 0 | **0** |
-| **VERIFIED-PASS** | 0 | **28** |
-| **FAILED** | 0 | **2** |
+| **VERIFIED-PASS** | 0 | **27** |
+| **FAILED** | 0 | **3** |
 | **BLOCKED-UNKNOWN** | 1 | **2** |
 | **DEFERRED** | 0 | **23** |
 | **total** | 58 | **61** |
@@ -207,7 +209,7 @@ Amendment 2 verified against sha256 `e799fedf5260940bc3835e7a3080cc003a550fb5ef1
 | 47 | Paid Provider Controls | NOT-STARTED | **VERIFIED-PASS** |
 | 48 | Idempotency & Retry Safety | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 49 | Audit Trail & Provenance | BUILT-NOT-PROVED | **VERIFIED-PASS** |
-| 50 | OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation | BUILT-NOT-PROVED | **VERIFIED-PASS** |
+| 50 | OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation | BUILT-NOT-PROVED | **FAILED** |
 | 51 | Explainability | BUILT-NOT-PROVED | **VERIFIED-PASS** |
 | 52 | Case Study Acceptance Test | BLOCKED-UNKNOWN | **FAILED** |
 | 53 | Cross-Product Portability | BUILT-NOT-PROVED | **VERIFIED-PASS** |
@@ -979,7 +981,7 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 
 ### 50 · OBSERVED / INFERRED / RECOMMENDED / UNKNOWN Separation
 
-**VERIFIED-PASS** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (work)
+**FAILED** · class `P` · ruled in `§6` · was BUILT-NOT-PROVED (work)
 
 | part | the owner's words |
 |---|---|
@@ -988,9 +990,9 @@ CC tonight"* and *"in scope becomes 32"* — are corrected in the amendment itse
 | **FAILURE** | a label is absent or wrong, or the guard polices an empty population. |
 | **EVIDENCE** | the guard exercised by real records, not fixtures, and the forbidden transition proved impossible by injection. |
 
-**Verdict —** 🔴 **CLOSED 20 SEPTEMBER 2026 — THE READING WAS THE OWNER'S, THE CLOSURE IS A MEASUREMENT.** This row sat FAILED since 13 September on one unsettled question: may a record that PRE-DATES the declaration contract be labelled on its face without retrospective claimDimensions? The owner has settled it — five CONJUNCTIVE conditions — and the ruling is now DATA the real validator evaluates (src/evidence/pre-contract-grandfathering.mjs, law F31), so each condition can be driven false alone and is named in the refusal it produces. 🔴 **A RULING IS NOT A TICK, AND THIS IS NOT ONE.** What closed the row is the measurement the ruling made readable. **The gap this row was FAILED for is BOUNDED, and the bound is measured, not argued:** the nine demoted labels still advance on the pre-contract formula — 9 of 9, reproduced, and NOT changed by this work — but the SAME defect in a record this system can be handed TODAY is REFUSED. Each of the nine, with ONE field changed so its verification falls after the cut-off and nothing else touched (same value, same verdict wording, same elements, same human signature, same ambiguity flag), is refused 9 of 9 by the real validator, F30 naming the missing declaration; **and the control holds** — re-dated back inside the cut-off all nine advance again, so the refusal is the contract talking and not a judge that refuses everything. Every verification dated after 2026-09-13 is post-contract, so the formula gap survives only on a frozen set that can no longer be added to. **EXPECTED, met:** each of the four kinds is labelled on its face, and no path converts UNKNOWN into PASS — the nine stay UNKNOWN / PARTIAL_EVIDENCE, and the ruling's fifth condition forbids promoting an UNKNOWN, so grandfathering advanced nothing. **FAILURE, not met:** no label is absent or wrong, and the guard does not police an empty population — 36 governed records on the real verdict path, 25 advancing, 11 refused, every one real. **The adjudication has NO REMAINDER:** 47 records = 35 grandfathered + 11 refused-pre-contract + 1 R4-governed; the 11 all fail the same condition (their elements do not reconcile) and were ALREADY refused by the older evidence laws — which is exactly why deleting F31 is invisible on real data, and why its proof drives an input the real registry does not hold. **NOTHING WAS WRITTEN TO CLOSE THIS ROW.** Before-state equals after-state: 36 governed · 25 advancing · 11 refused · 16 VERIFIED · 31 UNKNOWN, validation green, **0 verdicts changed, 0 records amended, 0 retrospective declarations**, the data repository unchanged at 1b0c334. ⚠️ **WHAT THIS DOES NOT CLAIM:** the nine are not verified and were not promoted; the human-signed re-check named in the 15 September block, and the 12 September run's provenance declaration, are still outstanding — neither is a condition of this row's frozen boundary, and neither is closed by this move. The earlier FAILED results and their reasoning are kept on the row, renamed, not erased
+**Verdict —** 🔴 **REOPENED 21 SEPTEMBER 2026 BY AUTHORITATIVE_REQUIREMENT_CHANGE — FAILED BY MEASUREMENT.** **What changed is the law, not the work.** The 20 September tick (PR #130) WAS LAWFUL WHEN MADE under the then-controlling grandfathering reading, and its evidence stays historically valid (kept below as whyPassedUnderGrandfathering). The owner's ruling of 21 September (_handoffs/AlmiVisibility_OWNER_RULING_2026-09-21_ROW50_LABEL_ON_FACE.md) narrowed that reading on one issue: a record declaring no applicable claimDimensions is NOT labelled on its face, and a date exemption may keep it STORED but never makes it Row 50 evidence. **Measured BEFORE the move** (src/evidence/label-on-face.mjs, the production dimension judge applied to every governed record whatever its date, never reading a date or a prose field): 36 governed · 2 LABELLED · 34 UNLABELLED · 0 INVALID · 1 derived apart under its own law · remainder 0 — FAILURE ('a label is absent') met on real records. **Structural adjudication:** 108 governed record×dimension pairs — 36 applicable (qualifier 20, list completeness 5, binding party 11), 2 EXACT, 0 MULTIPLE, 34 ABSENT, 0 UNREPRESENTABLE; 72 NOT_APPLICABLE. 🔴 The 34 ABSENT pairs cannot be declared without a human judgement; no keyword, substring or prose reading manufactures one. 🔴 The 10 VERIFIED governed records among the unlabelled stay STORED under the date exemption and are NOT counted as Row 50 evidence; demoting them is not supported by the current guard and would break another row's evidence — named for the owner, not done here. **After the reopen, the mechanically lawful work:** (1) METADATA COMPLETION — the 6 governed records whose every dimension is NOT_APPLICABLE by the schema's own law were declared so (data main, 24 inserted lines, 0 deletions; the migration's second run a byte-identical no-op); no value, source, quote, checker, date or previous block touched, no signature added. (2) THE PROSE SELECTOR REMOVED — F24's excuse for a held record is now structural (not labelled on its face), no longer the elementAmbiguity field; a labelled record held back still fires F24. **Measured after:** 36 governed · **8 LABELLED · 28 UNLABELLED** · 0 INVALID · 1 derived · remainder 0 (runs/audit/row50-label-on-face-after-2026-09-21.txt); 34 applicable pairs ABSENT across the 28 — every one needs a human judgement of which element proves the dimension. The historical failures and the historical pass are all kept below.
 
-**The one test that would settle it —** node --test test/pre-contract-grandfathering.test.mjs test/item-50-real-transitions.test.mjs test/queue-rescan.test.mjs test/facts-registry.test.mjs test/facts-verification-ingest.test.mjs test/issue-transition-guard.test.mjs
+**The one test that would settle it —** node bin/label-on-face.mjs --product=<the declared subject> --check · node --test test/label-on-face.test.mjs test/item-50-real-transitions.test.mjs test/pre-contract-grandfathering.test.mjs · runs/audit/row50-label-on-face-before-2026-09-21.txt · runs/audit/row50-label-on-face-after-2026-09-21.txt · runs/audit/row50-sabotage-2026-09-21.txt
 
 ### 51 · Explainability
 

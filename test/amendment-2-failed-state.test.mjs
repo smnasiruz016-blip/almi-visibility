@@ -90,7 +90,8 @@ test("🔴 RULE 3 — FAILED is its own count in the tally, never folded into an
   // 20 Sep 2026, later: row 50 left FAILED by rule 1's first route, under the owner's pre-contract
   // label ruling — the bucket holds 2. It has now been refilled and emptied five times over, and it
   // has never vanished at zero.
-  assert.equal(t.FAILED, 2);
+  // 21 Sep 2026: row 50 REOPENED by AUTHORITATIVE_REQUIREMENT_CHANGE (owner ruling, label on face) and FAILED by measurement — the 20 Sep tick was lawful when made — the bucket holds 3.
+  assert.equal(t.FAILED, 3);
   assert.ok("FAILED" in t);
   // 58 frozen rows plus rows 59, 60 and 61, admitted by owner ruling (Amendments 3 and 5, 14 September 2026).
   assert.equal(Object.values(t).reduce((a, b) => a + b, 0), 61);
@@ -287,6 +288,8 @@ test("🔴 moves since Amendment 2: NINE by ruling (3–7 → NOT-STARTED by Ame
     // ruling settled the reading; this move is WORK because what closed the row is the injection the settled
     // reading made readable, not the ruling itself — and the list above confirms no ruling move ever ticks a row.
     "50:FAILED→VERIFIED-PASS",
+    // 🔴 21 Sep 2026: row 50 REOPENED by AUTHORITATIVE_REQUIREMENT_CHANGE (owner ruling, label on face) and FAILED by measurement — the 20 Sep tick was lawful when made. A WORK move with the measurement as its evidence — never a ruling move.
+    "50:VERIFIED-PASS→FAILED",
     "51:BUILT-NOT-PROVED→TESTABLE-NOW", "51:TESTABLE-NOW→FAILED", "51:FAILED→VERIFIED-PASS",
     /* 🔴 Row 52, 20 September 2026: the Case Study was sat ONCE and FAILED. One shot, spent. */
     "52:BLOCKED-UNKNOWN→TESTABLE-NOW", "52:TESTABLE-NOW→FAILED", "53:BUILT-NOT-PROVED→VERIFIED-PASS",
@@ -349,14 +352,17 @@ test("before Amendment 2 the ledger was 3 / 18 / 0 / 3 / 0 / 6 / 28", () => {
  * the ruling is recorded as data the validator evaluates, and the tick rests on an injection. */
 /* 🔴 21 Sep 2026: row 4 left BUILT-NOT-PROVED by a declared WORK move (TEST_RUN) — local reasoning researched from a primary source, limb (a) measured NOT MET. TWENTY-FOUR. */
 /* 🔴 21 Sep 2026: row 25 left TESTABLE-NOW by a declared WORK move (TEST_RUN) — the four checks reached real pages' claims bound to a VERIFIED fact, tenancy first. TWENTY-FIVE. */
-test("🔴 since Amendment 2, TWENTY-FIVE rows hold VERIFIED-PASS (3, 4, 7, 9, 11, 12, 13, 14, 17, 25, 26, 36, 38, 42, 45, 47, 49, 50, 51, 53, 55, 56, 59, 60, 61) — 50 reached it, was REOPENED, and EARNED IT BACK; 48 LOST it and EARNED IT BACK", () => {
+/* 🔴 21 Sep 2026: row 50 REOPENED by AUTHORITATIVE_REQUIREMENT_CHANGE (owner ruling, label on face) and FAILED by measurement — the 20 Sep tick was lawful when made. TWENTY-FOUR — row 50 has reached VERIFIED-PASS twice and been REOPENED twice, and the chain keeps every leg. */
+test("🔴 since Amendment 2, TWENTY-FOUR rows hold VERIFIED-PASS (3, 4, 7, 9, 11, 12, 13, 14, 17, 25, 26, 36, 38, 42, 45, 47, 49, 51, 53, 55, 56, 59, 60, 61) — 50 reached it twice and was REOPENED twice; 48 LOST it and EARNED IT BACK", () => {
   const rows = classify();
   const newPasses = Object.values(rows).filter((r) => r.state === "VERIFIED-PASS" && BEFORE_AMENDMENT_2[r.id] !== "VERIFIED-PASS");
-  assert.deepEqual(newPasses.map((r) => r.id), [3, 4, 7, 9, 11, 12, 13, 14, 17, 25, 26, 36, 38, 42, 45, 47, 49, 50, 51, 53, 55, 56, 59, 60, 61]);
+  assert.deepEqual(newPasses.map((r) => r.id), [3, 4, 7, 9, 11, 12, 13, 14, 17, 25, 26, 36, 38, 42, 45, 47, 49, 51, 53, 55, 56, 59, 60, 61]);
   const lost = Object.values(rows).filter((r) => BEFORE_AMENDMENT_2[r.id] === "VERIFIED-PASS" && r.state !== "VERIFIED-PASS");
   assert.deepEqual(lost.map((r) => r.id), []);
   // The count hides a round trip — the chain does not.
   assert.deepEqual(MOVES_AMENDMENT_2[48].map((s) => s.to), ["FAILED", "VERIFIED-PASS"]);
   // 🔴 Row 50's round trip is longer, and the chain keeps every leg of it.
-  assert.deepEqual(MOVES_AMENDMENT_2[50].map((s) => s.to), ["TESTABLE-NOW", "FAILED", "VERIFIED-PASS", "FAILED", "VERIFIED-PASS"]);
+  assert.deepEqual(MOVES_AMENDMENT_2[50].map((s) => s.to), ["TESTABLE-NOW", "FAILED", "VERIFIED-PASS", "FAILED", "VERIFIED-PASS", "FAILED"]);
+  assert.equal(MOVES_AMENDMENT_2[50].at(-1).reopenReason, "AUTHORITATIVE_REQUIREMENT_CHANGE");
+  assert.match(MOVES_AMENDMENT_2[50].at(-1).lawfulWhenMade, /lawful when made/);
 });

@@ -9,6 +9,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { labelOnFace, adjudicateDimensions, row50Census, isGoverned } from "../src/evidence/label-on-face.mjs";
+import { classify, tally } from "../src/checklist/classification.mjs";
 import { judgeLeavingUnknown } from "../src/evidence/verdict.mjs";
 import { validateRegistry } from "../src/facts/validate.mjs";
 import { productFromArgv } from "../src/product-cli.mjs";
@@ -153,4 +154,23 @@ test("🟢 REAL — the production loader and census: 36 governed, 8 LABELLED, 2
   const n = (m) => pairs.filter((p) => p === m).length;
   assert.deepEqual([pairs.length, n("EXACT"), n("MULTIPLE"), n("ABSENT"), n("NOT_APPLICABLE")], [108, 2, 0, 34, 72]);
   assert.equal(validateRegistry(records).registryErrors.length, 0, "the registry must still satisfy every law");
+});
+
+/* 🔴 22 September 2026 — the owner's product-boundary decision. The row stays FAILED; the blocker is named as product
+ * data judgement deferred to the subject's phase; nothing was authored to make a label appear. */
+test("🔴 row 50 stays FAILED with blocker PRODUCT_DATA_JUDGEMENT_DEFERRED_TO_SUBJECT_PHASE — pair 1 answered E, no element added, no denominator moved", async () => {
+  const row = classify()[50];
+  assert.equal(row.state, "FAILED");
+  assert.match(row.blocker, /^PRODUCT_DATA_JUDGEMENT_DEFERRED_TO_SUBJECT_PHASE — /);
+  assert.match(row.blocker, /NOT an engine implementation failure/);
+  assert.equal(row.ruling, "_handoffs/AlmiVisibility_OWNER_DECISION_2026-09-22_ROW50_PRODUCT_BOUNDARY.md");
+  assert.ok(row.unlockCondition.includes("_handoffs/AlmiVisibility_ROW50_EXIT_C_JUDGEMENT_PACKET_2026-09-22.md"), "the preserved packet is not named");
+  assert.deepEqual(tally(classify()), { "NOT-STARTED": 2, "BUILT-NOT-PROVED": 4, "TESTABLE-NOW": 0, "VERIFIED-PASS": 27, FAILED: 3, "BLOCKED-UNKNOWN": 2, DEFERRED: 23 });
+  const P = await productFromArgv(["--product=almi-oet"]);
+  const { records } = await loadRegistry(P.factsDir, P.productId);
+  const pair1 = records.find((r) => r.id === "ie-nmbi.oet-minimum-grade.profession=nursing");
+  assert.deepEqual(pair1.claimElements, ["listening-grade-b", "reading-grade-b", "speaking-grade-b", "writing-grade-c-plus"], "an element was added to obtain a label");
+  assert.equal(pair1.claimDimensions, undefined, "pair 1 was answered E: nothing is declared");
+  assert.equal(labelOnFace(pair1).state, "UNLABELLED");
+  assert.equal(adjudicateDimensions(pair1).qualifier.mapping, "ABSENT");
 });

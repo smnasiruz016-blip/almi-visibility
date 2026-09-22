@@ -1,0 +1,121 @@
+F05 §7 · THE REAL AUTHORITY CORPUS — MIGRATION AND CENSUS (22 September 2026)
+
+MEASURED — COMMITTED BYTES ONLY (git ls-tree / git show / git log at the named commits; never a working tree):
+  governance repository (_handoffs)  58685998b08fafb8bf3d6b1b7da9a2becf3fe004   726 tracked top-level names
+  engine (post-remediation, commit A) bd72bfd26f26f4e04b1988d101734cacd3c618c7   64 tracked top-level names
+  command: node bin/authority-migrate.mjs --governance-root=<_handoffs> --governance-commit=5868599 --engine-commit=bd72bfd --confirm
+  resolution date: 2026-09-22
+
+INCLUSION RULE — declared in config/authority/inclusion.mjs before selection, REVISED ONCE after the first census's
+near-miss listing (reasons written there). Owner rulings, decisions and clarifications; feature master commands; command
+records; other files whose name declares a ruling or decision (issuer only from a name token, else undeclared); the frozen
+acceptance source and its amendments. EXCLUDED: reports about governance (by document TYPE, never by topic), subject facts,
+product content, market descriptions, held-out payload, sealed material, and the historical ledger's status records.
+
+INCLUDED 80: other-declared-ruling 21 · command-record 29 · feature-master-command 3 · owner-ruling-decision-clarification 19 · amendment 7 · frozen-acceptance-source 1
+  issuedAt from the file name: 71 · from the first commit (marked as such): 9
+EXCLUDED AS REPORTS 4: AlmiVisibility_GAP2_FINAL_CLOSURE_DECISION_ONLY_RESUME_2026-09-17.md · AlmiVisibility_ROW5_OWNER_RULINGS_REGISTER_TWO_FINDINGS_2026-09-17.md · AlmiVisibility_RULING_REGISTER_2026-09-19.md · AlmiVisibility_TEXT_ONLY_RECONCILIATION_DECISION_SHEET_2_2026-09-16.md
+NEAR-MISSES 0 (governance-shaped names no rule took — query: /RULING|DECISION|COMMAND|CLARIF/ over AlmiVisibility_* and CC_COMMAND_* names; its live control: the same pattern, unanchored and before the revision, listed 30 — 5 of them AlmiVisibility governance names the revision then took or excluded, 25 other products' commands, correctly outside the AlmiVisibility prefix)
+
+7A · WHICH STORE EACH RECORD WENT TO
+  authority candidate set (config/authority/corpus.mjs): 80 governance records · 0 historical board records
+  crosswalk provenance (config/fboard/crosswalk.mjs): 61 historical ledger rows (board HISTORICAL_61) · 0 authority
+
+CENSUS — every included record resolved for its OWN proposition and scope; exactly one disposition each
+  total 80 = CURRENT 60 + SUPERSEDED 0 + OPEN_CONFLICT 0 + NOT_APPLICABLE 0 + INVALID 20 · REMAINDER 0
+
+EVERY ZERO, WITH ITS DENOMINATOR, ITS QUERY AND A LIVE POSITIVE CONTROL (same records, same code — test/f05-authority-register.test.mjs §7):
+  SUPERSEDED 0 of 80 — query: census(corpus, 2026-09-22).counts.SUPERSEDED. Control: a newer in-memory clone of the F05 ruling → SUPERSEDED 1.
+    Why zero: no two included records share a proposition — every name is distinct, and supersession is read only from
+    structured identity (no record declares supersedes/supersededBy); no prose was read to invent a supersession.
+  OPEN_CONFLICT 0 of 80 — query: census(...).counts.OPEN_CONFLICT. Control: a same-day disagreeing clone → OPEN_CONFLICT 2.
+  NOT_APPLICABLE 0 of 80 — query: census(...).counts.NOT_APPLICABLE. Control: the same corpus resolved at 2026-01-01 → NOT_APPLICABLE 60.
+
+INVALID 20 — every one ISSUER_UNDECLARED (and so no stored status): a name that declares a ruling or decision but no issuer.
+  They are recorded INVALID, never given an issuer by guess. NONE controls F05: none has the F05 proposition or scope.
+
+CONTROLLING OPEN_CONFLICT FOR F05: none.
+  OWNER_RULING_F05_ACCEPTANCE · [ALMIVISIBILITY / F05] → CURRENT · _handoffs:AlmiVisibility_OWNER_RULING_2026-09-22_F05_ACCEPTANCE.md · content 035ae68d09de3378a18d4935af146308fdeef34ab21f5121dde4db47fb3a1f70
+  (§6A: resolved by the same code, the same fields and the same refusals as every other record — P26.)
+
+ALL RECORDS (id · disposition):
+  CURRENT        _handoffs:AlmiVisibility_BETA_G_RULING_9_AMBIGUOUS_2026-09-13_NIGHT.md
+  CURRENT        _handoffs:AlmiVisibility_CC_COMMAND_2026-09-19_ERROR_REGISTER_AND_PERSISTENCE.md
+  CURRENT        _handoffs:AlmiVisibility_CC_COMMAND_2026-09-19_ROW17_CLOSE_OR_HALT.md
+  CURRENT        _handoffs:AlmiVisibility_CC_COMMAND_2026-09-19_ROW9_CLOSE_OR_HALT.md
+  CURRENT        _handoffs:AlmiVisibility_CC_COMMAND_2026-09-19_SELECT_AND_CLOSE.md
+  CURRENT        _handoffs:AlmiVisibility_CC_COMMAND_2026-09-20_ROW6_CLOSE_OR_HALT.md
+  CURRENT        _handoffs:AlmiVisibility_CC_COMMAND_2026-09-20_ROW6_OWNER_INPUT_AND_CLOSE.md
+  CURRENT        _handoffs:AlmiVisibility_CC_COMMAND_2026-09-21_AMEND_ROW61_AND_RESUME_ROW6.md
+  CURRENT        _handoffs:AlmiVisibility_CC_COMMAND_2026-09-21_ROW25_COMPLETE.md
+  CURRENT        _handoffs:AlmiVisibility_CC_COMMAND_2026-09-21_ROW4_COMPLETE.md
+  CURRENT        _handoffs:AlmiVisibility_CC_COMMAND_2026-09-21_ROW50_COMPLETE.md
+  CURRENT        _handoffs:AlmiVisibility_CC_COMMAND_2026-09-21_ROW50_OWNER_REOPEN_APPLIED.md
+  CURRENT        _handoffs:AlmiVisibility_CC_COMMAND_2026-09-21_ROW6_DEMAND_RESEARCH_AND_CLOSE.md
+  CURRENT        _handoffs:AlmiVisibility_CC_COMMAND_2026-09-22_F05_CHAIN_PART3_REMEDIATION.md
+  CURRENT        _handoffs:AlmiVisibility_CC_COMMAND_2026-09-22_F05_CHAIN_PART4_OWNER_ANSWERS.md
+  CURRENT        _handoffs:AlmiVisibility_CC_COMMAND_2026-09-22_F05_CURRENT_AUTHORITY_REGISTER_CHAIN.md
+  CURRENT        _handoffs:AlmiVisibility_CC_COMMAND_2026-09-22_ROW5_COMPLETE.md
+  INVALID        _handoffs:AlmiVisibility_DOD_HIT_RESOLVED_STAGED_SET_APPROVED_RULING_2026-09-16.md
+  CURRENT        _handoffs:AlmiVisibility_FEATURE_MASTER_COMMAND_ROW1_2026-09-18.md
+  CURRENT        _handoffs:AlmiVisibility_FEATURE_MASTER_COMMAND_ROW5_2026-09-18.md
+  CURRENT        _handoffs:AlmiVisibility_FEATURE_MASTER_COMMAND_ROW9_2026-09-18.md
+  INVALID        _handoffs:AlmiVisibility_GAP_IDS_D_EXIT_1_LINE_RULING_2026-09-16.md
+  INVALID        _handoffs:AlmiVisibility_GAP_IDS_RECORD_ONLY_RULING_2026-09-16.md
+  INVALID        _handoffs:AlmiVisibility_GAP2_BLOCKER2_EASY_FOUR_RULING_2026-09-17.md
+  INVALID        _handoffs:AlmiVisibility_GAP2_BOUNDED_CENSUS_CORRECTION_RULING_2026-09-16.md
+  INVALID        _handoffs:AlmiVisibility_GAP2_CONDITIONAL_FLOOR_REBASE_RULING_2026-09-16.md
+  INVALID        _handoffs:AlmiVisibility_GAP2_CONFINED_STORE_PATH_SEAM_RULING_2026-09-17.md
+  INVALID        _handoffs:AlmiVisibility_GAP2_CONTRACT_RECONCILIATION_FINAL_FINISH_RULING_2026-09-17.md
+  INVALID        _handoffs:AlmiVisibility_GAP2_D_CENSUS_1_SET_PROOF_REPIN_RULING_2026-09-17.md
+  INVALID        _handoffs:AlmiVisibility_GAP2_D_CENSUS_1_UNDER_COUNT_RULING_2026-09-17.md
+  INVALID        _handoffs:AlmiVisibility_GAP2_DIFFICULT_FIVE_FEASIBILITY_RULING_2026-09-17.md
+  INVALID        _handoffs:AlmiVisibility_GAP2_EVIDENCE_FIRST_SEAM_ONE_CALLER_RULING_2026-09-17.md
+  INVALID        _handoffs:AlmiVisibility_GAP2_FINAL_RULING_GSC_INGEST_THEN_CHECKLIST_2026-09-17.md
+  INVALID        _handoffs:AlmiVisibility_GAP2_LEDGER_SEAM_TWO_CALLERS_RULING_2026-09-17.md
+  INVALID        _handoffs:AlmiVisibility_GAP2_MEASURE_CENSUS_BEFORE_FIXING_RULING_2026-09-16.md
+  INVALID        _handoffs:AlmiVisibility_GAP2_MEASURE_SUPERSEDE_DUPLICATES_RULING_2026-09-17.md
+  INVALID        _handoffs:AlmiVisibility_OPTION_A_MEMORY_FIRST_THEN_GAP2_RULING_2026-09-16.md
+  CURRENT        _handoffs:AlmiVisibility_OWNER_CLARIFICATION_2026-09-19_PRODUCT_PRIORITY_AND_ISOLATION_BOUNDARY.md
+  CURRENT        _handoffs:AlmiVisibility_OWNER_DECISION_2026-09-19_ROW1_CLOSED_BLOCKED_PROVED.md
+  CURRENT        _handoffs:AlmiVisibility_OWNER_DECISION_2026-09-22_ROW50_PRODUCT_BOUNDARY.md
+  CURRENT        _handoffs:AlmiVisibility_OWNER_RULING_2026-09-13_AMENDMENT_4_SCOPE_OPENS.md
+  CURRENT        _handoffs:AlmiVisibility_OWNER_RULING_2026-09-13_AMENDMENT_5_PORTABLE_PAGE_CONSTRUCTION.md
+  CURRENT        _handoffs:AlmiVisibility_OWNER_RULING_2026-09-19_ARTEFACT_PERSISTENCE.md
+  CURRENT        _handoffs:AlmiVisibility_OWNER_RULING_2026-09-19_COMMIT_MECHANISM_SCOPE.md
+  CURRENT        _handoffs:AlmiVisibility_OWNER_RULING_2026-09-19_D2_MIXED_LIMB_SPLIT.md
+  CURRENT        _handoffs:AlmiVisibility_OWNER_RULING_2026-09-19_U1_ROW1_COST_ISOLATION_SEMANTICS.md
+  CURRENT        _handoffs:AlmiVisibility_OWNER_RULING_2026-09-21_ROW4_CONJUNCTION_AND_REASONING.md
+  CURRENT        _handoffs:AlmiVisibility_OWNER_RULING_2026-09-21_ROW50_LABEL_ON_FACE.md
+  CURRENT        _handoffs:AlmiVisibility_OWNER_RULING_2026-09-21_TENANT_RESOURCE_ATTACHMENTS.md
+  CURRENT        _handoffs:AlmiVisibility_OWNER_RULING_2026-09-22_F05_ACCEPTANCE.md
+  CURRENT        _handoffs:AlmiVisibility_OWNER_RULING_2026-09-22_HELDOUT_ROLE_SCOPE.md
+  CURRENT        _handoffs:AlmiVisibility_OWNER_RULING_2026-09-22_RETIRED_CONTAMINATED_HELDOUT.md
+  CURRENT        _handoffs:AlmiVisibility_OWNER_RULING_A_2026-09-15_READ_ONLY_DEPLOY_KEY.md
+  CURRENT        _handoffs:AlmiVisibility_OWNER_RULINGS_2026-09-14_ROWS_5_6_STATES.md
+  CURRENT        _handoffs:AlmiVisibility_OWNER_STATUS_SEMANTICS_RULING_RECORD_2026-09-18.md
+  INVALID        _handoffs:AlmiVisibility_PUSH_GATE_HIT_RESOLVED_THEN_PUSH_RULING_2026-09-16.md
+  INVALID        _handoffs:AlmiVisibility_PUSH_GATE_REDACTED_HIT_RULING_2026-09-16.md
+  INVALID        _handoffs:AlmiVisibility_ROW5_GOVERNING_RECONCILIATION_DECISION_BEFORE_BUILD_2026-09-17.md
+  CURRENT        _handoffs:AlmiVisibility_ROW61_OWNER_DECISION_2026-09-15.md
+  CURRENT        _handoffs:CC_COMMAND_2026-09-13_SESSION_SAVE.md
+  CURRENT        _handoffs:CC_COMMAND_2026-09-14_OPTION_A_SUBJECT_REGISTRY_LEAVES_THE_REPO.md
+  CURRENT        _handoffs:CC_COMMAND_2026-09-14_ROWS_5_6_INTENT_CLUSTERING_AXIS_DISCOVERY.md
+  CURRENT        _handoffs:CC_COMMAND_2026-09-15_GAP1_UNGATED_WRITERS.md
+  CURRENT        _handoffs:CC_COMMAND_2026-09-15_GAP3_ARCHIVE_CORPUS_OUT_ROW36.md
+  CURRENT        _handoffs:CC_COMMAND_2026-09-15_RENDERER_LIVE_ONCE_ON_MAIN.md
+  CURRENT        _handoffs:CC_COMMAND_2026-09-15_ROW25_PAGE_QUALITY_GATE.md
+  CURRENT        _handoffs:CC_COMMAND_2026-09-15_ROW3_SEARCH_LANGUAGE_OWNED_HALF.md
+  CURRENT        _handoffs:CC_COMMAND_2026-09-15_ROW36_DCRW4_GUARD.md
+  CURRENT        _handoffs:CC_COMMAND_2026-09-15_ROW36_DESTRUCTIVE_GUARDS.md
+  CURRENT        _handoffs:CC_COMMAND_2026-09-15_ROW4_LOCALIZED_THINKING.md
+  CURRENT        _handoffs:CC_COMMAND_2026-09-15_ROW7_MARKET_MEASUREMENT_OWNED_HALF.md
+  CURRENT        _handoffs:CC_COMMAND_AMENDMENT_3_ROWS_59_60.md
+  CURRENT        engine:PASS_BOUNDARIES_AMENDMENT_1.md
+  CURRENT        engine:PASS_BOUNDARIES_AMENDMENT_2.md
+  CURRENT        engine:PASS_BOUNDARIES_AMENDMENT_3.md
+  CURRENT        engine:PASS_BOUNDARIES_AMENDMENT_4.md
+  CURRENT        engine:PASS_BOUNDARIES_AMENDMENT_5.md
+  CURRENT        engine:PASS_BOUNDARIES_AMENDMENT_6.md
+  CURRENT        engine:PASS_BOUNDARIES_AMENDMENT_7.md
+  CURRENT        engine:PASS_BOUNDARIES_SOURCE.md

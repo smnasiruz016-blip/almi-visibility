@@ -12,6 +12,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { createHash } from "node:crypto";
+
+/** A content fingerprint: the first 16 hex of sha256 over the JSON of a whole structure — strict, and reveals no wording. */
+const fingerprint = (x) => createHash("sha256").update(JSON.stringify(x)).digest("hex").slice(0, 16);
 
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { localizedThinking, localizedThinkingErrors, rowThreeRelations, COUNTRY_FLOOR, HALF_B, ROW3_STORED, ROW6_ORIGIN, INPUT_OBSERVATIONS } from "../src/discovery/localized-thinking.mjs";
@@ -44,10 +48,13 @@ test("🟢 MEASURED — the input, every number re-derived: 388 rows = 379 human
   assert.equal(p.multiCountryOperator.length, 1);
   assert.match(p.multiCountryOperator[0].original, /^"mastercard foundation" -site:/);
   assert.deepEqual(p.multiCountryOperator[0].countries, ["arg", "bra"]);
-  assert.deepEqual(p.widestSpread, { countries: 6, queries: [
-    { original: "celpe bras 2026", countries: ["gha", "ind", "kor", "nga", "nzl", "usa"] },
-    { original: "daily habits", countries: ["can", "gbr", "hkg", "ind", "qat", "usa"] },
-  ] });
+  /* 🔴 22 Sep 2026: one of the two widest-spread wordings belongs to a retired held-out population and may not appear in
+   * test source. The pair is pinned by what can be said without it — the spread, each query's country list, the other
+   * wording — and by a CONTENT FINGERPRINT of the whole structure, which is exactly as strict and reveals no wording. */
+  assert.equal(p.widestSpread.countries, 6);
+  assert.deepEqual(p.widestSpread.queries.map((q) => q.countries), [["gha", "ind", "kor", "nga", "nzl", "usa"], ["can", "gbr", "hkg", "ind", "qat", "usa"]]);
+  assert.equal(p.widestSpread.queries[1].original, "daily habits");
+  assert.equal(fingerprint(p.widestSpread), "4fe2e08c00148021");
   // 49 countries over all rows, 48 once the operator rows are out — arg is seen only through an operator string
   assert.deepEqual(p.countriesAllRows, { countries: 49, atOrAboveFloor: 10, exactlyOne: 19 });
   assert.deepEqual(p.countriesHumanRows, { countries: 48, atOrAboveFloor: 10, exactlyOne: 19 });
@@ -81,20 +88,11 @@ test("🟢 GROUPING — on row 3's links only: 19 SYNONYM · 1 ABBREVIATION · 1
   assert.deepEqual(rowThreeRelations(ROW3).refused, STORED.abbreviationPairsRefused);
   assert.deepEqual(STORED.counts, { goals: 37, DIFFERENT_WORDING: 12, SAME_WORDING: 25, countriesAboveFloor: 10, countriesUnknown: 38 });
   const different = STORED.goals.filter((g) => g.kind === "DIFFERENT_WORDING").map((g) => `${g.wordings.map((w) => w.original).join(" | ")} :: ${g.countries.join(",")}`);
-  assert.deepEqual(different, [
-    "daily habits | life habits :: can,gbr,hkg,ind,qat,usa",
-    "best daily habits | best life habits | good daily habits :: aus,can,gbr,ind,usa",
-    "personal habit | personal habits :: ind,npl,usa",
-    "pte result | pte results :: aus,can,gbr",
-    "best business ideas for beginners | good business ideas for beginners :: rus,usa",
-    "ielts pte conversion | ielts pte equivalent | ielts pte score :: aus,usa",
-    "pte and ielts conversion | pte and ielts equivalent | pte and ielts score :: aus,bgd",
-    "pte equivalent to ielts score | pte score to ielts band | pte score to ielts bands | pte score to ielts score | pte scores to ielts bands :: aus,gbr",
-    "pte exam result | pte exam results :: gbr,usa",
-    "pte ielts equivalent | pte ielts score :: aus,usa",
-    "pte result check | pte results check :: can,ind",
-    "pte to ielts band | pte to ielts conversion | pte to ielts score :: aus,usa",
-  ]);
+  /* 🔴 22 Sep 2026: seven of these twelve goals name a wording from a retired held-out population, which may not appear
+   * in test source. The list is pinned by its count and by a CONTENT FINGERPRINT of the whole list — any change to any
+   * wording, order or country list turns it red, and no wording is revealed. */
+  assert.equal(different.length, 12);
+  assert.equal(fingerprint(different), "3054dfc6e130d9e8");
   // 🔴 the four "habits" wordings a person would group are NOT one goal on row 3's evidence — said, not smoothed over
   const daily = goalOf(STORED, "daily habits");
   for (const w of ["daily lifestyle", "good daily habits", "personal habits"]) assert.ok(!daily.wordings.some((x) => x.original === w), `${w} was joined to "daily habits" without row 3's evidence`);

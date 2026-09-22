@@ -1,208 +1,24 @@
-ROW 4 — LOCALIZED HUMAN THINKING · OWNED EVIDENCE ONLY
+TOMBSTONE — RETIRED_CONTAMINATED HELD-OUT PAYLOAD REMOVED FROM THE WORKING TREE
 
-[input: country×query 9bf50cfb134a0d7d · gsc.searchAnalytics.query:country-query · ingested 2026-09-12T23:25:04.608Z · 388 rows]
-[input: page rows     9f8cbf772d1cd434 · gsc.searchAnalytics.query:page-rows · ingested 2026-09-12T22:06:43.410Z · 1525 pages]
-[input: row 3's stored records · runs/discovery/search-language-2026-09-15.json · 329 records]
+original path        runs/audit/row4-reasoning-2026-09-21.txt
+original blob        ebb9eb11e99c813ec0d84135134f0e26712886f7
+original size        18539 bytes
+introduced in        97a183c11784ef3b621464222f62e5f010a760cc
+last changed in      97a183c11784ef3b621464222f62e5f010a760cc
+retired set          fingerprint 3d4951d6… · population 61 · this report held 12 distinct member(s)
+status               RETIRED_CONTAMINATED — DO NOT USE AS HELD-OUT EVIDENCE
+ruling               _handoffs a5452ee (AlmiVisibility_OWNER_RULING_2026-09-22_RETIRED_CONTAMINATED_HELDOUT.md),
+                     clarified by _handoffs f4367b1 (AlmiVisibility_OWNER_RULING_2026-09-22_HELDOUT_ROLE_SCOPE.md)
 
-DEPENDENCY — built on row 3 — Keyword & Search-Language Discovery (VERIFIED-PASS): its discovered wording relations, reused from its stored records
-  NOT built on row 5 — Intent & Question Clustering (FAILED): its clusters are not read, and a test fails the build if this module's import closure reaches row 5's clusterer, lexicon or reference, or row 6's modules that import them
-  import closure of the module: src/discovery/localized-thinking.mjs, src/discovery/query-population.mjs, src/discovery/search-language.mjs · row-5 references: 0 · unread: 0
+REASON
+  This human-readable audit report carried members of the retired Row 5 held-out population, which current
+  mandatory-readable material may not contain.
 
-POPULATION: 388 rows = 379 human + 9 operator · 337 distinct query strings
-  seen from two or more countries: 33 — 32 human, and 1 operator string(s), kept out and counted:
-    "\"mastercard foundation\" -site:reddit.com -site:twitter.com -site:x.com -site:wykop.pl -site:tripadvisor.com -site:youtube.com -site:yelp.com -site:booking.com -site:facebook.com -site:instagram.com -site:tiktok.com" — arg, bra
-  widest spread: 6 countries — "celpe bras 2026" (gha,ind,kor,nga,nzl,usa) and "daily habits" (can,gbr,hkg,ind,qat,usa)
-  countries over ALL rows: 49 · with ≥ 5 rows 10 · with exactly one 19
-  countries over HUMAN rows: 48 · with ≥ 5 rows 10 · with exactly one 19 · seen only in operator rows: arg
-  human country×query wordings that are not row 3 records: 0 (seen from two or more countries: 0)
+THE ORIGINAL
+  The original bytes remain in Git history, unchanged, at the blob above. No Git history was rewritten.
+  The original MUST NOT be used as held-out, unseen, marking-key or expected-answer evidence, nor to earn,
+  preserve, restore or support PASS in any of those roles.
 
-THE THIN-EVIDENCE LAW — a country says something about local phrasing only with at least 5 human country×query rows — the floor row 6 set for locality. Below it the country is UNKNOWN: never "no local difference", and UNKNOWN never defaults to anything (LAW-ABSENT-1)
-  above the floor (10): aus 148 · usa 62 · gbr 32 · ind 23 · can 14 · rus 7 · nzl 5 · pak 5 · phl 5 · qat 5
-  🔴 UNKNOWN (38): are 4 · esp 4 · nld 4 · npl 4 · per 4 · tur 4 · cmr 3 · col 3 · ita 3 · mar 3 · bgd 2 · dnk 2 · fra 2 · idn 2 · irn 2 · mys 2 · sau 2 · sgp 2 · tha 2 · bhr 1 · bra 1 · cri 1 · deu 1 · dza 1 · eth 1 · fji 1 · gha 1 · hkg 1 · isl 1 · kor 1 · kwt 1 · mex 1 · mli 1 · mlt 1 · nga 1 · pol 1 · ukr 1 · vnm 1
-
-GROUPING — two wordings express the same goal only when ROW 3's discovered evidence links them — a SYNONYM or ABBREVIATION pair row 3 recorded on a shared landing page, or a VARIANT form (a plural, a one-letter spelling, punctuation) found by row 3's own rule and checked against row 3's counts — joined transitively. Nothing is grouped by hand, and row 5's clusters are not read
-  row 3 relations used as links: SYNONYM 19 · ABBREVIATION 1 · VARIANT 10
-  row 3 ABBREVIATION pairs REFUSED as links, not the same frame: 13
-    "cv with no experience" · "how to write a curriculum vitae with no experience" [cv=curriculum vitae]
-    "how many pte score required for new zealand student visa" · "pte score for nz residency" [nz=new zealand]
-    "how to make a cv for students with no experience" · "how to write a curriculum vitae with no experience" [cv=curriculum vitae]
-    "how to make a cv when u have zero experience" · "how to write a curriculum vitae with no experience" [cv=curriculum vitae]
-    "how to make a cv with no experience" · "how to write a curriculum vitae with no experience" [cv=curriculum vitae]
-    "how to write a curriculum vitae with no experience" · "how to write a cv when you have no experience" [cv=curriculum vitae]
-    "how to write a curriculum vitae with no experience" · "i don t have a cv" [cv=curriculum vitae]
-    "how to write a curriculum vitae with no experience" · "what to put in a cv with no experience" [cv=curriculum vitae]
-    "how to write a curriculum vitae with no experience" · "what to put on a cv with no experience" [cv=curriculum vitae]
-    "how to write a curriculum vitae with no experience" · "what to put on cv with no experience" [cv=curriculum vitae]
-    "how to write a curriculum vitae with no experience" · "what to write in cv with no experience" [cv=curriculum vitae]
-    "how to write a curriculum vitae with no experience" · "write a cv with no experience" [cv=curriculum vitae]
-    "pearson test of english" · "pte academic" [pte=pearson test of english]
-
-GOALS EXPRESSED FROM TWO OR MORE COUNTRIES: 37 — worded differently 12 · the same wording in several countries 25
-  G01 DIFFERENT_WORDING · 6 countries · above the floor: can,gbr,ind,qat,usa · UNKNOWN: hkg
-      "daily habits" — can,gbr,hkg,ind,qat,usa
-      "life habits" — usa
-      linked: "daily habits" ↔ "life habits" [SYNONYM daily↔life]
-  G02 DIFFERENT_WORDING · 5 countries · above the floor: aus,can,gbr,ind,usa · UNKNOWN: none
-      "best daily habits" — ind
-      "best life habits" — usa
-      "good daily habits" — aus,can,gbr
-      linked: "best daily habits" ↔ "best life habits" [SYNONYM daily↔life]
-      linked: "best daily habits" ↔ "good daily habits" [SYNONYM best↔good]
-  G03 DIFFERENT_WORDING · 3 countries · above the floor: ind,usa · UNKNOWN: npl
-      "personal habit" — usa
-      "personal habits" — ind,npl,usa
-      linked: "personal habit" ↔ "personal habits" [VARIANT habit↔habits · plural]
-  G04 DIFFERENT_WORDING · 3 countries · above the floor: aus,can,gbr · UNKNOWN: none
-      "pte result" — aus,can
-      "pte results" — aus,gbr
-      linked: "pte result" ↔ "pte results" [VARIANT result↔results · plural]
-  G05 DIFFERENT_WORDING · 2 countries · above the floor: rus,usa · UNKNOWN: none
-      "best business ideas for beginners" — rus
-      "good business ideas for beginners" — usa
-      linked: "best business ideas for beginners" ↔ "good business ideas for beginners" [SYNONYM best↔good]
-  G06 DIFFERENT_WORDING · 2 countries · above the floor: aus,usa · UNKNOWN: none
-      "ielts pte conversion" — aus
-      "ielts pte equivalent" — aus
-      "ielts pte score" — usa
-      linked: "ielts pte conversion" ↔ "ielts pte equivalent" [SYNONYM conversion↔equivalent]
-      linked: "ielts pte conversion" ↔ "ielts pte score" [SYNONYM conversion↔score]
-      linked: "ielts pte equivalent" ↔ "ielts pte score" [SYNONYM equivalent↔score]
-  G07 DIFFERENT_WORDING · 2 countries · above the floor: aus · UNKNOWN: bgd
-      "pte and ielts conversion" — aus
-      "pte and ielts equivalent" — aus
-      "pte and ielts score" — aus,bgd
-      linked: "pte and ielts conversion" ↔ "pte and ielts equivalent" [SYNONYM conversion↔equivalent]
-      linked: "pte and ielts conversion" ↔ "pte and ielts score" [SYNONYM conversion↔score]
-      linked: "pte and ielts equivalent" ↔ "pte and ielts score" [SYNONYM equivalent↔score]
-  G08 DIFFERENT_WORDING · 2 countries · above the floor: aus,gbr · UNKNOWN: none
-      "pte equivalent to ielts score" — aus
-      "pte score to ielts band" — gbr
-      "pte score to ielts bands" — aus
-      "pte score to ielts score" — aus
-      "pte scores to ielts bands" — aus
-      linked: "pte equivalent to ielts score" ↔ "pte score to ielts score" [SYNONYM equivalent↔score]
-      linked: "pte score to ielts band" ↔ "pte score to ielts bands" [VARIANT band↔bands · plural]
-      linked: "pte score to ielts band" ↔ "pte score to ielts score" [SYNONYM band↔score]
-      linked: "pte score to ielts bands" ↔ "pte scores to ielts bands" [VARIANT score↔scores · plural]
-  G09 DIFFERENT_WORDING · 2 countries · above the floor: gbr,usa · UNKNOWN: none
-      "pte exam result" — usa
-      "pte exam results" — gbr
-      linked: "pte exam result" ↔ "pte exam results" [VARIANT result↔results · plural]
-  G10 DIFFERENT_WORDING · 2 countries · above the floor: aus,usa · UNKNOWN: none
-      "pte ielts equivalent" — aus
-      "pte ielts score" — aus,usa
-      linked: "pte ielts equivalent" ↔ "pte ielts score" [SYNONYM equivalent↔score]
-  G11 DIFFERENT_WORDING · 2 countries · above the floor: can,ind · UNKNOWN: none
-      "pte result check" — ind
-      "pte results check" — can
-      linked: "pte result check" ↔ "pte results check" [VARIANT result↔results · plural]
-  G12 DIFFERENT_WORDING · 2 countries · above the floor: aus,usa · UNKNOWN: none
-      "pte to ielts band" — aus
-      "pte to ielts conversion" — aus
-      "pte to ielts score" — usa
-      linked: "pte to ielts band" ↔ "pte to ielts conversion" [SYNONYM band↔conversion]
-      linked: "pte to ielts band" ↔ "pte to ielts score" [SYNONYM band↔score]
-      linked: "pte to ielts conversion" ↔ "pte to ielts score" [SYNONYM conversion↔score]
-  G13 SAME_WORDING · 6 countries · above the floor: ind,nzl,usa · UNKNOWN: gha,kor,nga
-      "celpe bras 2026" — gha,ind,kor,nga,nzl,usa
-  G14 SAME_WORDING · 5 countries · above the floor: aus · UNKNOWN: are,esp,fra,sgp
-      "daily lifestyle" — are,aus,esp,fra,sgp
-  G15 SAME_WORDING · 5 countries · above the floor: aus,ind,pak,phl · UNKNOWN: are
-      "pte academic" — are,aus,ind,pak,phl
-  G16 SAME_WORDING · 3 countries · above the floor: aus,ind · UNKNOWN: nld
-      "business ideas for beginners" — aus,ind,nld
-  G17 SAME_WORDING · 3 countries · above the floor: none · UNKNOWN: are,bra,sau
-      "quant cv" — are,bra,sau
-  G18 SAME_WORDING · 2 countries · above the floor: can,ind · UNKNOWN: none
-      "almi jobs" — can,ind
-  G19 SAME_WORDING · 2 countries · above the floor: ind · UNKNOWN: tha
-      "almitest" — ind,tha
-  G20 SAME_WORDING · 2 countries · above the floor: aus,gbr · UNKNOWN: none
-      "basic business ideas" — aus,gbr
-  G21 SAME_WORDING · 2 countries · above the floor: usa · UNKNOWN: nld
-      "celpe-bras 2026" — nld,usa
-  G22 SAME_WORDING · 2 countries · above the floor: phl,usa · UNKNOWN: none
-      "cv with no experience" — phl,usa
-  G23 SAME_WORDING · 2 countries · above the floor: aus,usa · UNKNOWN: none
-      "daily habits to improve life" — aus,usa
-  G24 SAME_WORDING · 2 countries · above the floor: ind,usa · UNKNOWN: none
-      "daily life style" — ind,usa
-  G25 SAME_WORDING · 2 countries · above the floor: none · UNKNOWN: fra,mli
-      "fasocourses" — fra,mli
-  G26 SAME_WORDING · 2 countries · above the floor: ind · UNKNOWN: dnk
-      "how to check pte result" — dnk,ind
-  G27 SAME_WORDING · 2 countries · above the floor: gbr,usa · UNKNOWN: none
-      "how to make a cv with no experience" — gbr,usa
-  G28 SAME_WORDING · 2 countries · above the floor: aus,gbr · UNKNOWN: none
-      "idutch" — aus,gbr
-  G29 SAME_WORDING · 2 countries · above the floor: none · UNKNOWN: tur,vnm
-      "iuav venezia fashion design" — tur,vnm
-  G30 SAME_WORDING · 2 countries · above the floor: pak · UNKNOWN: npl
-      "my pte" — npl,pak
-  G31 SAME_WORDING · 2 countries · above the floor: gbr,usa · UNKNOWN: none
-      "pearson pte academic" — gbr,usa
-  G32 SAME_WORDING · 2 countries · above the floor: aus · UNKNOWN: fji
-      "pte doctor" — aus,fji
-  G33 SAME_WORDING · 2 countries · above the floor: aus · UNKNOWN: irn
-      "pte for iranian" — aus,irn
-  G34 SAME_WORDING · 2 countries · above the floor: aus,can · UNKNOWN: none
-      "pte test result" — aus,can
-  G35 SAME_WORDING · 2 countries · above the floor: qat · UNKNOWN: bhr
-      "small business ideas" — bhr,qat
-  G36 SAME_WORDING · 2 countries · above the floor: ind · UNKNOWN: npl
-      "switzerland pte score requirement" — ind,npl
-  G37 SAME_WORDING · 2 countries · above the floor: ind,usa · UNKNOWN: none
-      "writing summary in pte" — ind,usa
-  a wording not seen from a country is UNKNOWN for that country, never "not used there": Search Console withholds rare queries, and each country×query pair is ONE row (LAW-ABSENT-1)
-
-REASONING — NOT OBSERVABLE IN OWNED EVIDENCE: a query row carries the words a person typed and the country Search Console places them in — not why they typed them. Local PHRASING is researched here; local REASONING is not in the store
-
-FAILURE (a) "a country multiplies URLs" — TESTED — by the country→URL census over src/ and bin/, within its stated limits
-  COUNTRY→URL CENSUS: consumers bin/localized-thinking.mjs, src/discovery/local-reasoning.mjs, src/discovery/localized-thinking.mjs · URL-shaped constructions in them: 0
-FAILURE (b) "without evidence of materially different useful content" — 🔴 BLOCKED — NOT TESTED
-  why: whether the useful content differs by country needs the ANSWER at each country, and the store holds questions, not answers. A different question mix is not a different answer: row 6 measured that the question mix differs in all 10 countries with five or more rows, and that is NOT evidence for this half
-  unblocked by: per-value answer evidence — for each country compared, the useful answer from a source that is not our own page (row 7 SUPPLY or row 2, both deferred) — which is the owner's pending decision. With it authorised and captured, this half is run; until then it is never PASS
-
-🔴 WHAT THE CENSUS CANNOT SEE:
-  · it reads this repository's code under src/ and bin/: it cannot see a page written by hand, countries or wording copied out of the records, a consumer outside src/ and bin/, a computed import, or a path held only as text and run by another module
-  · 🔴 it cannot see the connected products' OWN pages — and that is where a country-like axis ALREADY multiplies pages without evidence: the estate measurement below counts the pages in the page rows whose address hard-codes an origin. This census proves this engine builds no such path; it proves nothing about the pages the estate already has
-  · THE ESTATE, measured from the page rows 9f8cbf772d1cd434: 775 of 1525 pages hard-code an origin (1179 impressions) — e.g. https://almiitalian.almiworld.com/exam/cils-due-b2/from/pakistan
-    on 2 supporting queries, with our pages differing only by origin overlapping at median 0.806 (23 pairs) — cited from row 6 — runs/audit/row6-census-2026-09-14.txt, pinned by row 6's own test
-    a country-like axis ALREADY multiplying the connected products' pages without evidence — in their pages, not in this engine's code, so no census of src/ and bin/ can see it
-
-LIMITS:
-  · every country×query pair is ONE row: a country's use of a wording is one observation, however many impressions it carries
-  · the grouping inherits row 3's limits: a SYNONYM is interchangeable use in the same query frame for the same page, not proof of the same meaning (daily↔life among them), and transitive joins can chain wordings no single pair connects
-  · row 3's relations are sparse, so a goal a person would recognise is NOT joined unless row 3's evidence joins it — "daily lifestyle" and "personal habits" stay apart from "daily habits" here, however alike they read
-  · Search Console's country is where the searcher was, as Google reports it — not their nationality and not their language
-  · local REASONING is not observable in query rows; only local PHRASING is researched
-  · a row-3 ABBREVIATION pair joins two wordings only in the same frame; the grouping rule gained that constraint after its first run, when a pair sharing only a landing page joined "i don t have a cv" to "how to write a curriculum vitae with no experience"
-  · row 3's VARIANT spelling rule is an edit distance of one, so in↔on is read as one word written two ways
-
-LOCAL REASONING — public-source readings · research/local-reasoning-2026-09-21/records.jsonl · sha256 f5225889d6c1806672e202dc5b5d878e833ae03b2e989c69d3eebd3aa0e2ba49 · 6 record(s)
-  FAILURE is read as the conjunction written (owner ruling eb05a3c): limb (a) on this engine's own behaviour — construction 0 · acceptance and recommendation reachable from row 4's path 0 (closure 14 files)
-  GROUPS 37: D 2 · J 1 · K 24 · L 10 · remainder 0
-  MEMBERS 95: EVALUATED 6 · UNKNOWN 63 · NOT_APPLICABLE 26 · INVALID 0 · remainder 0
-  URL axis: E 0 · F 1 — a supported difference justifies CONTENT; every group carries separateUrl NOT_RECOMMENDED
-  G02 DIFFERENT_WORDING → D (DIFFERENT WORDING · REASON UNKNOWN) · REASONING_NOT_EVIDENCED_IN_EVERY_LOCALITY · tenancy RESOLVED
-      aus · 1 row(s) · 1 impression(s) · UNKNOWN
-      can · 1 row(s) · 1 impression(s) · UNKNOWN
-      gbr · 1 row(s) · 1 impression(s) · UNKNOWN
-      ind · 1 row(s) · 1 impression(s) · UNKNOWN
-      usa · 1 row(s) · 1 impression(s) · UNKNOWN
-  G05 DIFFERENT_WORDING → D (DIFFERENT WORDING · REASON UNKNOWN) · REASONING_NOT_EVIDENCED_IN_EVERY_LOCALITY · tenancy RESOLVED
-      rus · 1 row(s) · 1 impression(s) · UNKNOWN
-      usa · 1 row(s) · 1 impression(s) · UNKNOWN
-  G13 SAME_WORDING → J (SAME WORDING · DIFFERENT SUPPORTED REASON) · DIFFERENT_REASON_EVIDENCED · tenancy RESOLVED · URL axis F
-      gha · 1 row(s) · 1 impression(s) · EVALUATED · DOES NOT HOLD: the authority's register of Celpe-Bras test posts abroad lists a post in this locality
-      ind · 1 row(s) · 1 impression(s) · EVALUATED · DOES NOT HOLD: the authority's register of Celpe-Bras test posts abroad lists a post in this locality
-      kor · 1 row(s) · 1 impression(s) · EVALUATED · HOLDS: the authority's register of Celpe-Bras test posts abroad lists a post in this locality
-      nga · 1 row(s) · 1 impression(s) · EVALUATED · DOES NOT HOLD: the authority's register of Celpe-Bras test posts abroad lists a post in this locality
-      nzl · 1 row(s) · 2 impression(s) · EVALUATED · DOES NOT HOLD: the authority's register of Celpe-Bras test posts abroad lists a post in this locality
-      usa · 1 row(s) · 1 impression(s) · EVALUATED · HOLDS: the authority's register of Celpe-Bras test posts abroad lists a post in this locality
-  K and L groups: G01 L · G03 L · G04 L · G06 L · G07 L · G08 L · G09 L · G10 L · G11 L · G12 L · G14 K · G15 K · G16 K · G17 K · G18 K · G19 K · G20 K · G21 K · G22 K · G23 K · G24 K · G25 K · G26 K · G27 K · G28 K · G29 K · G30 K · G31 K · G32 K · G33 K · G34 K · G35 K · G36 K · G37 K
-  refused records: 0 · orphan records: 0
-
-ROW 4 VERDICT: PASS — complete real group(s): G13
-
-ERRORS: 0
+THE COST, STATED PLAINLY (a deliberate accepted cost, not an oversight)
+  HISTORICAL REPORTS THAT DEPEND ON THIS FILE ARE NOW REPRODUCIBLE ONLY FROM GIT HISTORY, NOT FROM THE
+  WORKING TREE.

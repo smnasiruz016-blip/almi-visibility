@@ -14,8 +14,9 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import { createJsonlStore } from "../src/evidence/store.mjs";
-import { discoverSearchLanguage, searchLanguageErrors, heldOutRecheck, INPUT_OBSERVATIONS } from "../src/discovery/search-language.mjs";
+import { discoverSearchLanguage, searchLanguageErrors, heldOutRecheck, isHeldOut, INPUT_OBSERVATIONS } from "../src/discovery/search-language.mjs";
 import { keywordUrlCensus, forbiddenReferences } from "../tools/keyword-url-census.mjs";
+import { syntheticCorpus } from "./support/synthetic-queries.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const STORE_PATH = join(REPO, "runs", "evidence", "evidence.jsonl");
@@ -77,12 +78,26 @@ test("🔴 NO-LEXICON LAW — the discovery module names neither the row-5 lexic
 test("🔴 RED: wording normalised so the original cannot be recovered is refused, alone", () => {
   // Lower-casing — the obvious sabotage — cannot land here: no owned query string holds a single uppercase letter.
   assert.equal(STORED.records.filter((r) => /[A-Z]/.test(r.original)).length, 0);
+  /* 🔴 SYNTHETIC — NOT REAL EVIDENCE (22 September 2026). The real record this test once named belongs to a retired held-out
+   * population and may not appear in test source. The same MECHANISM is proved on a GENERATED wording:
+   *   RULE — syntheticCorpus({ seed: 5301 }).lexicon.filler[0] (test/support/synthetic-queries.mjs), its first vowel
+   *   replaced by the precomposed acute form (a→á e→é i→í o→ó u→ú), so NFKD + mark-stripping changes it. SEED 5301.
+   * It is written into a CLONE of the store at every row the FIRST stored record refers to (chosen by position, never by
+   * wording), and into that record. The store on disk is never touched. It proves the limb fires; it proves nothing about
+   * real wording. */
   const records = clone(STORED.records);
-  const r = records.find((x) => x.original === "licenciatura en bilingüismo");
+  const store = clone(STORE);
+  const synthetic = syntheticCorpus({ seed: 5301 }).lexicon.filler[0].replace(/[aeiou]/, (v) => ({ a: "á", e: "é", i: "í", o: "ó", u: "ú" })[v]);
+  assert.notEqual(synthetic, synthetic.normalize("NFKD").replace(/[̀-ͯ]/g, ""), "the generated wording must change under NFKD");
+  const r = records[0];
+  for (const s of r.sources) store.find((o) => o.observation_id === s.observation_id).value.rows[s.row].query = synthetic;
+  r.original = synthetic;
+  r.heldOut = isHeldOut(synthetic);
+  assert.deepEqual(limbs(searchLanguageErrors({ records, storeRecords: store })), [], "the clean synthetic case must stay clean");
   r.original = r.original.normalize("NFKD").replace(/[̀-ͯ]/g, "");
-  const errs = searchLanguageErrors({ records, storeRecords: STORE });
+  const errs = searchLanguageErrors({ records, storeRecords: store });
   assert.deepEqual(limbs(errs), ["wording-normalised"]);
-  assert.match(errs[0].why, /is stored as "licenciatura en bilingüismo"/);
+  assert.ok(errs[0].why.includes(`is stored as "${synthetic}"`), errs[0].why);
 });
 
 test("🔴 RED: a record pointing at an observation the store does not hold is refused, alone", () => {

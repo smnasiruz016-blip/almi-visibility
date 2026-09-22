@@ -20,7 +20,7 @@ import { createJsonlStore } from "../src/evidence/store.mjs";
 import { readBodyArchive } from "../src/evidence/body-archive.mjs";
 import { row6, readDeclaredAxes, readDeclaredAnswerEvidence } from "../src/discovery/row6.mjs";
 import { LEXICON } from "../config/discovery/intent-lexicon.mjs";
-import { INTENT_REFERENCE, AMBIGUOUS } from "../config/discovery/intent-reference.mjs";
+import { INTENT_REFERENCE, AMBIGUOUS, REFERENCE_STATUS } from "../config/discovery/intent-reference.mjs";
 import { AXIS_SPECS, SIBLING_FAMILIES, HARD_CODED_PATTERNS } from "../config/discovery/axis-candidates.mjs";
 import { batchFile } from "../src/crawl/observation-batch.mjs";
 
@@ -41,7 +41,7 @@ const CRAWL_BATCH_REF = "first-real-crawl-2026-09-12.jsonl";
 const axisRows = records.filter((r) => r.record_type === "observation" && Array.isArray(r.value?.rows)).flatMap((o) => o.value.rows);
 const answers = await readDeclaredAnswerEvidence({ axisResourceKind: "CRAWL_BATCH", axisResourceRef: CRAWL_BATCH_REF, axisRows });
 
-const r = row6({ records, crawlRecords, bodies, lexicon: LEXICON, reference: INTENT_REFERENCE, ambiguous: AMBIGUOUS, specs: AXIS_SPECS, families: SIBLING_FAMILIES, patterns: HARD_CODED_PATTERNS, declaredAxes,
+const r = row6({ records, crawlRecords, bodies, lexicon: LEXICON, reference: INTENT_REFERENCE, ambiguous: AMBIGUOUS, referenceStatus: REFERENCE_STATUS, specs: AXIS_SPECS, families: SIBLING_FAMILIES, patterns: HARD_CODED_PATTERNS, declaredAxes,
   answerClaims: answers.claims, axisScope: answers.axisScope, evidenceScope: answers.evidenceScope });
 
 const i = r.input;

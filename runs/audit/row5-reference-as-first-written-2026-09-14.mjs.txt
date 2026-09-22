@@ -1,169 +1,24 @@
-/**
- * 🔴 ROW 5 — THE REFERENCE PLACEMENT: WHERE A READER PUTS EACH HUMAN QUERY, WRITTEN BEFORE ANY CLUSTERER EXISTED.
- *
- * WHO WROTE IT. CC, 14 September 2026, reading the 329 human queries of the Search Console ingest of
- * 2026-09-12T23:25Z one by one. **It is a model's judgement standing in for a human's — it is not a human's, and
- * no owner has verified it.** Every merge and split the clusterer is refused for is measured against THIS file, so
- * the clusterer can never be more right than this file is.
- *
- * WHEN. Before `src/discovery/intent-clusters.mjs` was written or run. Its bytes are pinned by sha256 in
- * test/intent-clustering.test.mjs; any later edit must be recorded in AMENDMENTS below with its reason, so a
- * reference quietly moved to agree with the clusterer cannot pass for the original.
- *
- * THE RULES I JUDGED BY — the same rules for every query:
- *   R1  One intent = the same question with the same ask. Wordings that differ only in word order, inflection,
- *       spelling, filler words or a synonym are one intent.
- *   R2  🔴 A VALUE INSIDE THE QUESTION IS A SLOT, NOT A NEW INTENT, when the rest of the question is the same:
- *       "47 pte score in ielts" and "65 pte to ielts" are one intent (score equivalence) whose score slot differs;
- *       "bartender cv" and "neurologist resume" are one intent (a CV for an occupation) whose occupation slot differs.
- *       The number or the occupation SELECTS a part of the answer; it does not change the question. Whether it
- *       changes the ANSWER materially is row 6's question, not this row's.
- *   R3  The ASK is part of the intent: a booking fee, a reschedule fee, a cancellation policy and a rescore fee are
- *       four intents; "summarize written text" (how to do the task) and its "word limit" (one fact) are two.
- *   R4  The OBJECT compared is part of the intent: PTE-vs-IELTS and PTE-vs-TOEFL are two intents; score
- *       equivalence ("pte 65 to ielts") and test choice ("pte vs ielts", "difference between") are two.
- *   R5  A query made only of names, with no word saying what the person wants, is about its most specific named
- *       entity; two different entities are two intents ("dams bari" and "mediazione linguistica bari" name two
- *       courses), and the same entity narrowed is one ("licenciatura en bilingüismo [con énfasis en inglés]").
- *   R6  🔴 AMBIGUOUS is kept as an answer. Where the wording cannot tell a reader which intent a query has, it is
- *       listed here and scored in NEITHER direction — a reference that cannot say where a query belongs is not a
- *       reference for it, and forcing one would manufacture a merge or a split.
- *
- * `doubt` records a placement another careful reader could reasonably make differently.
- */
+TOMBSTONE — RETIRED_CONTAMINATED HELD-OUT PAYLOAD REMOVED FROM THE WORKING TREE
 
-export const REFERENCE_AUTHOR = "CC (model judgement standing in for a human reader; not owner-verified)";
-export const REFERENCE_DATE = "2026-09-14";
-export const REFERENCE_SOURCE = "runs/evidence/evidence.jsonl · gsc.searchAnalytics.query:query · observed 2026-09-12T23:25:03.868Z";
+original path        runs/audit/row5-reference-as-first-written-2026-09-14.mjs.txt
+original blob        5c2e3bd4423d6e1ef5f60ff4e47948169aa83b2f
+original size        17356 bytes
+introduced in        dd15acfab9d8e89de6b535bd6be22c15e017e40d
+last changed in      dd15acfab9d8e89de6b535bd6be22c15e017e40d
+retired set          fingerprint 3d4951d6… · population 61 · this report held 61 distinct member(s)
+status               RETIRED_CONTAMINATED — DO NOT USE AS HELD-OUT EVIDENCE
+ruling               _handoffs a5452ee (AlmiVisibility_OWNER_RULING_2026-09-22_RETIRED_CONTAMINATED_HELDOUT.md),
+                     clarified by _handoffs f4367b1 (AlmiVisibility_OWNER_RULING_2026-09-22_HELDOUT_ROLE_SCOPE.md)
 
-export const AMENDMENTS = Object.freeze([]);
+REASON
+  This human-readable audit report carried members of the retired Row 5 held-out population, which current
+  mandatory-readable material may not contain.
 
-const I = (rule, members, doubt = null) => Object.freeze({ rule, members: Object.freeze(members), doubt });
+THE ORIGINAL
+  The original bytes remain in Git history, unchanged, at the blob above. No Git history was rewritten.
+  The original MUST NOT be used as held-out, unseen, marking-key or expected-answer evidence, nor to earn,
+  preserve, restore or support PASS in any of those roles.
 
-export const INTENT_REFERENCE = Object.freeze({
-  "score-equivalence": I("R1+R2: what a score on one of the two tests equals on the other; the score and the direction are slots", [
-    "47 pte score in ielts", "49 pte to ielts", "50 pte to ielts", "50 score in pte equal to ielts", "52 pte to ielts", "56 pte to ielts",
-    "58 pte to ielts", "6.5 band in pte", "6.5 ielts to pte", "62 pte to ielts", "64 pte to ielts", "65 in pte equivalent to ielts",
-    "65 pte to ielts", "66 pte to ielts", "67 pte to ielts", "69 pte to ielts", "7 ielts to pte", "75 pte to ielts",
-    "79 in pte equivalent to ielts", "79 pte to ielts",
-    "compare pte score with ielts", "convert pte score to ielts", "convert pte to ielts",
-    "ielts 5.5 to pte", "ielts 6 band equal to pte", "ielts 6 equivalent to pte", "ielts 6 in pte", "ielts 6.5 equivalent pte",
-    "ielts 6.5 in pte", "ielts 6.5 to pte", "ielts 7 equal to pte", "ielts 7 in pte", "ielts 8 to pte",
-    "ielts and pte academic score comparison", "ielts equal to pte", "ielts equivalent to pte", "ielts pte conversion", "ielts pte equivalent",
-    "ielts pte score", "ielts score compare to pte", "ielts score to pte", "ielts score vs pte", "ielts to pte", "ielts to pte score",
-    "ielts to pte score conversion",
-    "pte 43 equal to ielts", "pte 44 equal to ielts", "pte 45 equal to ielts", "pte 46 equal to ielts", "pte 47 equal to ielts",
-    "pte 49 equal to ielts", "pte 50 equivalent to ielts", "pte 50 to ielts", "pte 51 equal to ielts", "pte 52 equal to ielts",
-    "pte 53 to ielts", "pte 54 equal to ielts", "pte 54 to ielts", "pte 55 equal to ielts", "pte 55 to ielts", "pte 56 to ielts",
-    "pte 57 equal to ielts", "pte 58 to ielts", "pte 60 equal to ielts", "pte 61 to ielts", "pte 62 equal to ielts", "pte 63 to ielts",
-    "pte 65 equal to ielts", "pte 66 to ielts", "pte 68 to ielts", "pte 70 equal to ielts", "pte 72 to ielts", "pte 74 to ielts",
-    "pte 77 to ielts", "pte 79 equivalent to ielts", "pte 79 to ielts", "pte 80 equivalent to ielts",
-    "pte academic equivalent to ielts", "pte and ielts conversion", "pte and ielts equivalent", "pte and ielts score", "pte band chart",
-    "pte band score chart", "pte band to ielts", "pte conversion to ielts", "pte core score chart with ielts", "pte equivalent to ielts",
-    "pte equivalent to ielts 8", "pte equivalent to ielts score", "pte ielts equivalent", "pte ielts score", "pte ielts score chart",
-    "pte points to ielts", "pte score chart ielts", "pte score chart to ielts", "pte score chart vs ielts", "pte score chart with band",
-    "pte score compared to ielts", "pte score into ielts", "pte score to ielts band", "pte score to ielts bands", "pte score to ielts score",
-    "pte scores to ielts bands", "pte test score vs ielts", "pte to ielts", "pte to ielts band", "pte to ielts conversion",
-    "pte to ielts conversion table", "pte to ielts converter", "pte to ielts score", "pte to ielts score converter", "pte vs ielts score chart",
-    "pte vs ielts scores",
-  ], "'pte band chart', 'pte band score chart' and 'pte score chart with band' name no second test; placed here because 'band' is the other test's scale"),
-  "test-choice": I("R4: how the two tests differ, or which to take — not what a score equals; a stated purpose or place is a slot", [
-    "pte academic vs ielts", "pte vs ielts", "what is difference between ielts and pte", "what is difference between pte and ielts",
-    "ielts or pte for pr in australia in peru", "ielts vs pte for migration in peru",
-  ], "the two 'in peru' queries carry a purpose and a place; R2 keeps them here"),
-  "pte-vs-toefl": I("R4: a different pair of tests is a different question", ["pte vs toefl"]),
-  "pte-result": I("R1: how to see or check a result; the test variant is a slot", [
-    "how to check pte result", "my pte result", "pte academic result", "pte core result check", "pte exam result", "pte exam results",
-    "pte result", "pte result check", "pte results", "pte results check", "pte test result", "pte test result check",
-  ]),
-  "mypte-account": I("R5: the name of the candidate account itself — a navigation, not a result question", ["my pte", "mypte"], "could be a result check reached by the account name"),
-  "pte-booking-fee": I("R3: the price of booking", ["pte booking fee", "pte test booking fee"]),
-  "pte-reschedule-fee": I("R3: the price of moving a booking", ["pte reschedule fee"]),
-  "pte-cancellation-refund": I("R3: what happens to the money on cancelling", ["pte cancellation policy", "pte exam cancellation policy", "pte exam refund policy"]),
-  "pte-rescore-fee": I("R3: the price of a rescore", ["pte rescore fee"]),
-  "pte-ukvi": I("R3+R4: the UK visa variant of the test — its booking and its price", ["pte academic ukvi booking", "pte academic ukvi price"], "booking and price are two asks under R3; kept together because both name the variant as the subject"),
-  "ielts-retake": I("R1: retaking the test, including the one-skill retake", ["can i retake ielts", "ielts retake", "ielts single module retake", "ielts improvement exam"], "'ielts improvement exam' is read as the one-skill retake"),
-  "swt-task": I("R1: how to do the summarize-written-text task", [
-    "pte academic summarize written text", "pte summarize written text", "pte writing summarize written text", "pte writing summary",
-    "summarize written text pte", "writing summary in pte", "writing summary pte",
-  ]),
-  "swt-word-limit": I("R3: one fact about that task — its word limit", [
-    "pte summarize written text word limit", "summarise written text word limit", "summarize written text pte word limit",
-    "summarize written text word limit", "summarize written text word limit pte",
-  ]),
-  "sst-word-limit": I("R4: the word limit of a DIFFERENT task (spoken text)", ["summarize spoken text pte word limit"]),
-  "rts-template": I("R1: a template for the respond-to-a-situation task; the variant is a slot", ["respond to a situation pte template", "respond to situation pte core template"]),
-  "pte-format": I("R1: the test's format; the year is a slot", ["pte academic test format 2026"]),
-  "what-is-pte": I("R5: the test named, with no ask — what it is", ["pte academic", "pearson pte academic", "pearson test of english"]),
-  "pte-destination-requirement": I("R2: what a destination requires or accepts; the destination is a slot", [
-    "how many pte score required for new zealand student visa", "pte requirements for australia", "pte score for nz residency",
-    "spain pte score requirement", "switzerland pte score requirement", "is pte accepted in denmark",
-  ], "'is it accepted' and 'what score' are close asks; R3 could split them"),
-  "pte-in-country": I("R2: the test in a country (where it is sat); the country is a slot", ["pte exam in qatar", "pte exam iran", "pte saudi arabia"], "'pte saudi arabia' could be a destination requirement"),
-  "pte-for-nationality": I("R2: the test for nationals of a country; the nationality is a slot", ["pte for iranian", "pte iranian"], "close to pte-in-country; kept apart because a nationality is not a place of sitting"),
-  "pte-for-occupation": I("R2+R5: the test for an occupation or field; the occupation is a slot", ["pte doctor", "pte engineer", "pte architecture"]),
-  "pte-love": I("R5: no ask", ["i love pte"]),
-  "pte-company": I("R5: who runs the test", ["pte company"]),
-  "ielts-free-practice": I("R2: free practice material for the test; the skill and the place are slots", [
-    "free ielts academic speaking on paper mock test in cameroon", "free trial ielts test in cameroon", "reading ielts sample in cameroon",
-  ], "'reading ielts sample' does not say 'free'"),
-  "ielts-universities-peru": I("R3: which universities accept the test in a place", ["ielts accepting universities in peru"]),
-  "ielts-student-visa-peru": I("R3: which score a student visa needs", ["which ielts is required for student visa in peru"]),
-  "toefl-changes": I("R1: what changed in the test", ["toefl change", "toefl changes"]),
-  "cv-no-experience": I("R1: writing a CV with no experience; the writer (a student) is a slot", [
-    "cv with no experience", "how to make a cv for students with no experience", "how to make a cv when u have zero experience",
-    "how to make a cv with no experience", "how to write a curriculum vitae with no experience", "how to write a cv when you have no experience",
-    "how to write a cv with no experience", "what to put in a cv with no experience", "what to put on a cv with no experience",
-    "what to put on cv with no experience", "what to write in cv with no experience", "write a cv with no experience",
-  ]),
-  "cv-for-occupation": I("R2: a CV for a named occupation; the occupation is a slot", [
-    "admin assistant cv", "animal c v", "bank cv", "bartender cv", "business intelligence cv", "cardiology cv", "customer assistant cv",
-    "cv for hr assistant", "cv for restaurant manager", "cv it manager", "cv network engineer", "cv primary school", "cv project manager",
-    "events coordinator cv", "house maid cv", "housekeeper cv", "kitchen assistant cv", "midwife cv sample word", "neurologist resume",
-    "nursery assistant cv", "producer resumes", "project management cv", "psychologist cv", "quant cv", "researcher cv", "social worker cv",
-    "trade cv", "tutor resume", "web developer cv",
-  ], "'bank', 'animal', 'trade' and 'primary school' name a sector, not an occupation; read as the occupation slot"),
-  "cv-for-country": I("R4: a CV for a COUNTRY's conventions is not a CV for an occupation", ["cv malta"]),
-  "daily-habits": I("R1: habits (a routine) that improve a life; 'best', 'good', 'daily', 'personal' are filler", [
-    "best daily habits", "best habits", "best habits to build", "best habits to have", "best life habits", "build life habits", "daily habits",
-    "daily habits for better life", "daily habits for healthy life", "daily habits to improve life", "essential daily habits", "everyday habits",
-    "good daily habits", "good daily habits to develop", "good daily habits to have", "habits in life", "habits to better yourself",
-    "habits to improve your life", "life habits", "living habits", "personal habit", "personal habits", "personal habits that are important to you",
-    "practical habits", "best routine for daily life",
-  ], "'personal habits that are important to you' reads like an essay prompt; 'best routine for daily life' uses routine for habits"),
-  "daily-lifestyle": I("R3: a lifestyle described, not habits to adopt", ["daily life style", "daily lifestyle"], "could be the same as daily-habits"),
-  "daily-life-article": I("R3: a text ABOUT daily life is asked for, not advice", ["article about daily life"]),
-  "business-ideas": I("R1+R2: ideas for a business to start; beginner and budget are slots", [
-    "basic business ideas", "best business ideas for beginners", "business for newbies", "business ideas beginners", "business ideas for beginners",
-    "business ideas in low budget", "business ideas on a budget", "businesses for beginners", "easy business to start", "easy starting business ideas",
-    "good business ideas for beginners", "new business ideas", "self employment ideas with low start", "small budget business",
-    "small business ideas", "small business ideas for beginners", "start low budget business",
-  ], "beginner and budget are two constraints; R2 reads them as slots of one ask"),
-  "celpe-bras-2026": I("R1: the exam's 2026 sitting", ["celpe bras 2026", "celpe bras 2026 2", "celpe-bras 2026"]),
-  "italian-citizenship-b1": I("R3: the language level for citizenship", ["b1 cittadinanza"]),
-  "italian-citizenship-descent": I("R3: citizenship by descent — a different route", ["italian citizenship by descent jure sanguinis requirements 2026"]),
-  "study-field-in-country": I("R2: studying a field in a country; field and country are slots", ["study mathematics in netherlands", "study mit in china"], "'mit' may be the university, not a field"),
-  "jobs-for-occupation": I("R2: jobs in an occupation; the place is a slot", ["truck driving job in iraq", "technical writer jobs"]),
-  "imkey": I("R1: one company name, two spellings", ["imkey b.v.", "imkey bv"]),
-  "bilingual-licenciatura": I("R5: one degree, narrowed", ["licenciatura en bilingüismo", "licenciatura en bilingüismo con énfasis en inglés"]),
-  ...Object.fromEntries([
-    "administración de las tecnologias de la informacion", "almi jobs", "almid", "almitest", "best nursing school in st. kitts and nevis",
-    "business management netherlands", "ceils", "celips bari", "cils torino", "cloud computing valencia", "dams bari",
-    "design of sustainable tourism systems", "dipl.-kff. (fh) naima abounzari", "esd visa japan requirements", "fasocourses",
-    "guatemala medical school", "hsg st gall", "iac chubut", "idutch", "iuav venezia fashion design", "licenciatura en español e inglés",
-    "lingue e culture per il turismo", "maestria en recursos hidraulicos unal", "master inteligencia artificial valencia",
-    "mediazione linguistica bari", "ml operations", "nmbi to ahpra", "nursing and clinical in chelsea",
-    "progettazione del turismo sostenibile culturale e naturalistico", "retell ai funding 2026", "security guards braga",
-    "student visa spain", "study in philippines 2026", "software development in croatia",
-  ].map((q) => [`single:${q}`, I("R5: its own named subject; no second wording in the evidence", [q])])),
-});
-
-/** R6 — the wording cannot tell a reader where these belong. Scored in neither direction; listed, not hidden. */
-export const AMBIGUOUS = Object.freeze({
-  "ielts pte": "two test names and no ask: score equivalence or test choice",
-  "pte and ielts": "two test names and no ask: score equivalence or test choice",
-  "pte ielts exam": "two test names and 'exam': test choice, or which to sit",
-  "pte 6.5": "6.5 is not a score on the first test; equivalence of the other test's 6.5, or a typing slip",
-  "pte full form in ielts": "the full form of the name, or equivalence — the words point both ways",
-  "i don t have a cv": "no CV yet: how to write one with no experience, or something else",
-});
+THE COST, STATED PLAINLY (a deliberate accepted cost, not an oversight)
+  HISTORICAL REPORTS THAT DEPEND ON THIS FILE ARE NOW REPRODUCIBLE ONLY FROM GIT HISTORY, NOT FROM THE
+  WORKING TREE.

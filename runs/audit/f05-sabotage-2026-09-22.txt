@@ -1,0 +1,43 @@
+F05 SABOTAGES S1–S15 (+ S9b) AND S-R13 — 22 September 2026
+
+Harness: a scratch script (never committed) that, for each sabotage, (1) replaces ONE anchor that occurs exactly once, or inserts a
+marked line, and verifies the mutation LANDED; (2) runs ONLY the named test (node --test --test-reporter=tap --test-name-pattern=<P-id>
+test/f05-authority-register.test.mjs); (3) requires RED and matches the INTENDED REASON in the failure block; (4) restores the original bytes
+and checks their sha256; (5) at the end measures residue in every target file. S13 plants a retired member derived at runtime; the
+output is measured for it (payloadPrinted) and it is never written here.
+
+Targets: src/authority/register.mjs · src/fboard/board.mjs · src/fboard/acceptance.mjs · config/fboard/f-board.mjs · config/fboard/acceptances.mjs
+
+S1 prefer the older rule → P1 · S2 widen narrow scope → P4 · S3 ABSENT→CURRENT → P8 · S4 OPEN_CONFLICT→CURRENT → P6 · S5 file order as tiebreak → P11
+S6 delete superseded audit content → P3 · S7 import historical PASS → P13 · S8 similar acceptance IDENTICAL → P16 · S9/S9b implement UNASSESSED → P18
+S10 remove F40 blocker → P19 · S11 denominator 88 → P22 · S12 product name in generic code → P21 · S13 planted held-out payload in governance text → P20
+S14 alter F05 acceptance → P24 · S15 historical state string accepted → P25 · S-R13 transfer historical Row 4 PASS to an F-row → P-R26
+
+S8 FIRST RUN: RED, but for the WRONG reason — the contract-hash pin fired before the similarity guard it targets. Test reordered so the
+semantic-variant checks run first (the guard under test); re-run alone: RED for the intended reason ("a case variant was called IDENTICAL").
+
+RUN 2 — after F05 moved ACCEPTANCE-FROZEN → IN-PROGRESS: 17 of 17 landed, RED for the intended reason, restored.
+
+RUN 3 (FINAL) — after F05's VERIFIED event was recorded (state VERIFIED-PASS; the P15/P17 firing fixtures now strip F05's own
+verification first, so "a PASS with none" is still built and still refused). The whole set re-ran from the start.
+
+RESULTS
+S1     landed=true ran=1 red=1 cause=true restored=true payloadPrinted=false — prefer the older rule
+S2     landed=true ran=1 red=1 cause=true restored=true payloadPrinted=false — widen narrow scope
+S3     landed=true ran=1 red=1 cause=true restored=true payloadPrinted=false — turn ABSENT into CURRENT
+S4     landed=true ran=1 red=1 cause=true restored=true payloadPrinted=false — turn OPEN_CONFLICT into CURRENT
+S5     landed=true ran=1 red=1 cause=true restored=true payloadPrinted=false — use file order as tiebreak
+S6     landed=true ran=1 red=1 cause=true restored=true payloadPrinted=false — delete superseded audit content
+S7     landed=true ran=1 red=1 cause=true restored=true payloadPrinted=false — import historical PASS
+S8     landed=true ran=1 red=1 cause=true restored=true payloadPrinted=false — call semantically similar acceptance IDENTICAL
+S9     landed=true ran=1 red=1 cause=true restored=true payloadPrinted=false — implement an UNASSESSED feature (the board's guard)
+S9b    landed=true ran=1 red=1 cause=true restored=true payloadPrinted=false — implement an UNASSESSED feature (the permission)
+S10    landed=true ran=1 red=1 cause=true restored=true payloadPrinted=false — remove F40's blocker
+S11    landed=true ran=1 red=1 cause=true restored=true payloadPrinted=false — change the denominator from 89
+S12    landed=true ran=1 red=1 cause=true restored=true payloadPrinted=false — inject a product or client name into generic code
+S13    landed=true ran=1 red=1 cause=true restored=true payloadPrinted=false — inject a planted held-out-style payload into mandatory governance text
+S14    landed=true ran=1 red=1 cause=true restored=true payloadPrinted=false — alter F05 acceptance after implementation begins
+S15    landed=true ran=1 red=1 cause=true restored=true payloadPrinted=false — accept a historical state string on the F-board
+S-R13  landed=true ran=1 red=1 cause=true restored=true payloadPrinted=false — transfer historical Row 4 PASS to an F-row
+residue: [] · payload left in tree: 0 · every target sha256 re-verified OK against the pre-sabotage snapshot
+17 of 17 landed · 17 of 17 RED on the named test · 17 of 17 cause confirmed · 17 of 17 restored byte-identically · payloadPrinted false throughout

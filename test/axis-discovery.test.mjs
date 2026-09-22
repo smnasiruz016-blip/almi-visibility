@@ -16,7 +16,8 @@ import { readBodyArchive } from "../src/evidence/body-archive.mjs";
 import { row6, readDeclaredAxes, contractAxes } from "../src/discovery/row6.mjs";
 import { axisErrors, verdictOf, demandDistribution, MIN_ROWS_PER_COUNTRY } from "../src/discovery/axis-discovery.mjs";
 import { LEXICON } from "../config/discovery/intent-lexicon.mjs";
-import { INTENT_REFERENCE, AMBIGUOUS } from "../config/discovery/intent-reference.mjs";
+import { INTENT_REFERENCE, AMBIGUOUS, REFERENCE_STATUS } from "../config/discovery/intent-reference.mjs";
+import { syntheticCorpus } from "./support/synthetic-queries.mjs";
 import { AXIS_SPECS, SIBLING_FAMILIES, HARD_CODED_PATTERNS } from "../config/discovery/axis-candidates.mjs";
 import { batchFile } from "../src/crawl/observation-batch.mjs";
 
@@ -26,7 +27,7 @@ const INPUTS = {
   records: createJsonlStore(join(REPO, "runs", "evidence", "evidence.jsonl")).readAll(),
   crawlRecords: createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll(),
   bodies: readBodyArchive(batchFile("bodies-2026-09-12.jsonl.br")),
-  lexicon: LEXICON, reference: INTENT_REFERENCE, ambiguous: AMBIGUOUS,
+  lexicon: LEXICON, reference: INTENT_REFERENCE, ambiguous: AMBIGUOUS, referenceStatus: REFERENCE_STATUS,
   specs: AXIS_SPECS, families: SIBLING_FAMILIES, patterns: HARD_CODED_PATTERNS,
   declaredAxes: await readDeclaredAxes(),
 };
@@ -122,16 +123,25 @@ test("🟢 MEASURED — the input: 379 human country×query rows in 48 countries
   assert.equal(R.input.archivedBodies, 394);
 });
 
-test("🟢 GREEN: every row-6 limb holds on the real evidence — and row 5's record under it carries exactly its known acceptance failure", () => {
+test("🟢 GREEN: every row-6 limb holds on the real evidence — and row 5's record under it carries exactly its known acceptance state", () => {
   assert.deepEqual(R.errors, []);
-  /* 🔴 CORRECTED 17 SEPTEMBER 2026 (D-HELDOUT-1). This once asserted `R.row5Errors` was EMPTY — which was true only
-   * because row 5's acceptance then judged the training half of its output alone. Row 5 is FAILED, and its record
-   * is NOT error-free: acceptance reports 8 identical-intent splits over the whole record. Row 6's own verdict does
-   * not depend on that — `row5Errors` is carried through for reporting (src/discovery/row6.mjs:129) while row 6's
-   * limbs come from axisErrors — so row 6 is unaffected, and this assertion now says what is true rather than what
-   * was convenient. It goes red if row 5's acceptance failure changes shape, which is when it should be re-read. */
-  assert.deepEqual([...new Set(R.row5Errors.map((e) => e.limb))], ["record-split"]);
-  assert.equal(R.row5Errors.length, 8);
+  /* 🔴 CORRECTED 17 SEPTEMBER 2026 (D-HELDOUT-1), and AGAIN 22 SEPTEMBER 2026. `row5Errors` is carried through for
+   * reporting only (src/discovery/row6.mjs) while row 6's limbs come from axisErrors. On 17 September row 5's record
+   * reported 8 identical-intent splits. On 22 September the reference that measured them was retired (owner rulings
+   * _handoffs a5452ee, f4367b1), so row 5 now REFUSES to score, by name — one error, and it is not a pass. Row 6 is
+   * unaffected (proved below). It goes red if row 5's state changes shape, which is when it should be re-read. */
+  assert.deepEqual([...new Set(R.row5Errors.map((e) => e.limb))], ["scoring-refused"]);
+  assert.equal(R.row5Errors.length, 1);
+  assert.equal(R.row5Errors[0].code, "HELD_OUT_REFERENCE_RETIRED");
+});
+
+test("🔴 ROW 6 CONSUMES ROW 5's CLUSTERS ONLY — its whole result is identical under the retired (null) reference and a synthetic lawful one", () => {
+  /* SYNTHETIC reference — NOT REAL EVIDENCE — from syntheticCorpus({ seed: 7601 }) (test/support/synthetic-queries.mjs):
+   * lawful in shape, naming none of the real rows. If row 6 read the reference, its result would move; it must not. */
+  const withSynthetic = row6({ ...INPUTS, reference: syntheticCorpus({ seed: 7601 }).reference, referenceStatus: undefined });
+  const strip = ({ row5Errors, ...rest }) => JSON.stringify(rest);
+  assert.equal(strip(withSynthetic), strip(R));
+  assert.notDeepEqual(withSynthetic.row5Errors, R.row5Errors, "the control must actually change what row 5 reports");
 });
 
 test("🟢 MEASURED — 14 candidates (7 named, 7 discovered): 7 MONITOR · 7 UNKNOWN · 0 BUILD · 0 REJECT", () => {

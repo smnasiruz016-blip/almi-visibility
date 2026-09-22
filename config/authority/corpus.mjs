@@ -1,9 +1,9 @@
 /**
  * 🔴 GENERATED — DO NOT EDIT. bin/authority-migrate.mjs, from COMMITTED bytes only.
- * Governance: _handoffs 58685998b08fafb8bf3d6b1b7da9a2becf3fe004 · engine: 2761c529ca2b7a9f3961f79c9878d6190b0f39f1 · inclusion rule: config/authority/inclusion.mjs.
+ * Governance: _handoffs 58685998b08fafb8bf3d6b1b7da9a2becf3fe004 · engine: bd72bfd26f26f4e04b1988d101734cacd3c618c7 · inclusion rule: config/authority/inclusion.mjs.
  * Paths, structured identity and content hashes only — no governance prose is copied here.
  */
-export const CORPUS_PROVENANCE = Object.freeze({"governanceCommit":"58685998b08fafb8bf3d6b1b7da9a2becf3fe004","engineCommit":"2761c529ca2b7a9f3961f79c9878d6190b0f39f1","now":"2026-09-22","governanceListed":726,"engineListed":64});
+export const CORPUS_PROVENANCE = Object.freeze({"governanceCommit":"58685998b08fafb8bf3d6b1b7da9a2becf3fe004","engineCommit":"bd72bfd26f26f4e04b1988d101734cacd3c618c7","now":"2026-09-22","governanceListed":726,"engineListed":64});
 export const AUTHORITY_CORPUS = Object.freeze([
   {
     "authorityId": "_handoffs:AlmiVisibility_BETA_G_RULING_9_AMBIGUOUS_2026-09-13_NIGHT.md",
@@ -1998,7 +1998,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "engine",
       "path": "PASS_BOUNDARIES_AMENDMENT_1.md",
-      "commit": "2761c529ca2b7a9f3961f79c9878d6190b0f39f1",
+      "commit": "bd72bfd26f26f4e04b1988d101734cacd3c618c7",
       "blob": "b6bde7684cae86ed01d06fc55f1b128e35236004"
     },
     "status": "CURRENT",
@@ -2025,7 +2025,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "engine",
       "path": "PASS_BOUNDARIES_AMENDMENT_2.md",
-      "commit": "2761c529ca2b7a9f3961f79c9878d6190b0f39f1",
+      "commit": "bd72bfd26f26f4e04b1988d101734cacd3c618c7",
       "blob": "492576f32516b6336b4ab2e2ec54b022d0fa4eb4"
     },
     "status": "CURRENT",
@@ -2052,7 +2052,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "engine",
       "path": "PASS_BOUNDARIES_AMENDMENT_3.md",
-      "commit": "2761c529ca2b7a9f3961f79c9878d6190b0f39f1",
+      "commit": "bd72bfd26f26f4e04b1988d101734cacd3c618c7",
       "blob": "317e3e22b64db3592557638d83360bdf1db9ea21"
     },
     "status": "CURRENT",
@@ -2079,7 +2079,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "engine",
       "path": "PASS_BOUNDARIES_AMENDMENT_4.md",
-      "commit": "2761c529ca2b7a9f3961f79c9878d6190b0f39f1",
+      "commit": "bd72bfd26f26f4e04b1988d101734cacd3c618c7",
       "blob": "8cae04935a4510ac0be53ff68e6870a02fe2a429"
     },
     "status": "CURRENT",
@@ -2106,7 +2106,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "engine",
       "path": "PASS_BOUNDARIES_AMENDMENT_5.md",
-      "commit": "2761c529ca2b7a9f3961f79c9878d6190b0f39f1",
+      "commit": "bd72bfd26f26f4e04b1988d101734cacd3c618c7",
       "blob": "e13a19e8a05c33c057fe472c4e40abffe29ae2fc"
     },
     "status": "CURRENT",
@@ -2133,7 +2133,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "engine",
       "path": "PASS_BOUNDARIES_AMENDMENT_6.md",
-      "commit": "2761c529ca2b7a9f3961f79c9878d6190b0f39f1",
+      "commit": "bd72bfd26f26f4e04b1988d101734cacd3c618c7",
       "blob": "4412472fa672d568bf6da0ab911c2217fe80d2d6"
     },
     "status": "CURRENT",
@@ -2160,7 +2160,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "engine",
       "path": "PASS_BOUNDARIES_AMENDMENT_7.md",
-      "commit": "2761c529ca2b7a9f3961f79c9878d6190b0f39f1",
+      "commit": "bd72bfd26f26f4e04b1988d101734cacd3c618c7",
       "blob": "0c62ea01009f9beafcc2111943648eb10e485ad1"
     },
     "status": "CURRENT",
@@ -2187,7 +2187,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "engine",
       "path": "PASS_BOUNDARIES_SOURCE.md",
-      "commit": "2761c529ca2b7a9f3961f79c9878d6190b0f39f1",
+      "commit": "bd72bfd26f26f4e04b1988d101734cacd3c618c7",
       "blob": "ceaa49874210403a5cf88d083d5c8d8a850a1fff"
     },
     "status": "CURRENT",

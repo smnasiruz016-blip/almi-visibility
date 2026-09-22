@@ -5,7 +5,7 @@
  * this row was proved on. The observation id, its timestamp and its row count are printed with every result.
  */
 import { splitPopulation, populationErrors } from "./query-population.mjs";
-import { heldOutCheck, buildRecord, clusteringErrors, THRESHOLD, LIMIT, HOLD_OUT_RULE } from "./intent-clusters.mjs";
+import { heldOutCheck, buildRecord, clusteringErrors, splitCauses, THRESHOLD, LIMIT, HOLD_OUT_RULE } from "./intent-clusters.mjs";
 
 /** The Search Console `query` pull of 2026-09-12T23:25:03.868Z — the input Amendment 4 measured. */
 export const QUERY_OBSERVATION = "45ce21253a3fc58c";
@@ -37,6 +37,9 @@ export function row5({ records, lexicon, reference, ambiguous, observationId = Q
      * no report can quietly count them as evaluated. This turn does not adjudicate them. */
     ruleExcluded: { rule: "R6", state: "UNEVALUATED-BY-RULE", why: "the reference cannot say which intent the wording has; scored in neither direction", members: Object.keys(ambiguous ?? {}) },
     errors,
+    /* 🔴 WHY EACH REMAINING SPLIT IS ONE — named reason codes, computed after clustering from the record the errors
+     * judged. It changes no cluster and no verdict; it makes every remaining split visible with what caused it. */
+    splitCauses: splitCauses({ humanRows: population.human, record, heldOut, reference, ambiguous, lexicon }),
     threshold,
     limit: LIMIT,
     holdOutRule: HOLD_OUT_RULE,

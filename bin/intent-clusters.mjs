@@ -89,6 +89,14 @@ console.log(`  distinct-intent merges: ${rec.merged} · identical-intent splits:
 console.log(`  RULE-EXCLUDED — ${r.ruleExcluded.members.length} ${r.ruleExcluded.rule}-AMBIGUOUS member(s), ${r.ruleExcluded.state}: ${r.ruleExcluded.why}`);
 for (const q of r.ruleExcluded.members) console.log(`    · ${JSON.stringify(q)} — neither passed nor failed by any limb`);
 
+/* 🔴 EVERY REMAINING SPLIT, WITH THE REASON CODE ITS STRUCTURE EARNS. An UNKNOWN token is printed as UNKNOWN — this
+ * runner never says what a word means. */
+console.log(`\nSPLIT CAUSES — ${r.splitCauses.length} split intent(s), each member standing apart with its named reason code(s)`);
+for (const s of r.splitCauses) {
+  console.log(`  ${s.intent} · in-sample ${s.inSample} · held out ${s.heldOut} · ${s.codes.join(" · ")}`);
+  for (const a of s.apart) console.log(`    · ${JSON.stringify(a.original)} — ${a.codes.join(" · ")}${a.unknownTokens.length ? ` · UNKNOWN: ${a.unknownTokens.join(", ")}` : ""}${a.bestSimilarity === null ? "" : ` · best ${a.bestSimilarity}`}`);
+}
+
 console.log(`\n🔴 LIMIT: ${r.limit}`);
 console.log(`\nERRORS: ${r.errors.length}`);
 for (const e of r.errors) console.log(`  🔴 [${e.limb}] ${e.why}`);

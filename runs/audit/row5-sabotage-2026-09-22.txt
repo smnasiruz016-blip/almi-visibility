@@ -1,0 +1,76 @@
+ROW 5 — §9 SABOTAGES — 22 September 2026
+
+Harness: each sabotage replaced one exactly-once anchor in a PRODUCTION file and ran only the named test. It confirmed
+that the failure came from the branch removed (the failing assertion's own message), then restored the original bytes in a
+finally block and checked them by sha256. Insertions (S4, S8, S10) confirm their landing by marker. Residue is
+measured by scanning the three files for every sabotage marker and shape.
+
+Sabotage 1 of the command ('disable each new eligible mechanism') has NO target: no mechanism was eligible
+(row5-feasibility-2026-09-22.txt). S1a–S1d disable instead each NEW GUARD this change adds.
+
+S1a  new guard disabled: the scored-population-0 branch of empty-population
+     file src/discovery/intent-clusters.mjs · test test/row5-guards.test.mjs · landed yes · ran 1 · RED 1 · cause confirmed · restored yes
+     failing assertion: 🔴 a scored population of 0 — every row ambiguous — is refused, where 
+     its reason: Expected values to be strictly deep-equal:
+S1b  new guard disabled: the no-human-row branch of empty-population
+     file src/discovery/intent-clusters.mjs · test test/row5-guards.test.mjs · landed yes · ran 1 · RED 1 · cause confirmed · restored yes
+     failing assertion: 🔴 an empty human population is refused, even with no lexicon to trip 
+     its reason: The input did not match the regular expression /^no human query row was given/. Input:
+S1c  new guard disabled: the SPLIT_UNKNOWN_TOKEN code
+     file src/discovery/intent-clusters.mjs · test test/row5-guards.test.mjs · landed yes · ran 1 · RED 1 · cause confirmed · restored yes
+     failing assertion: 🔴 REAL — every remaining split carries a named reason code; an unknow
+     its reason: Expected values to be strictly deep-equal:
+S1d  new guard disabled: the SPLIT_NO_IN_SAMPLE_MEMBER code
+     file src/discovery/intent-clusters.mjs · test test/row5-guards.test.mjs · landed yes · ran 1 · RED 1 · cause confirmed · restored yes
+     failing assertion: 🔴 REAL — every remaining split carries a named reason code; an unknow
+     its reason: Expected values to be strictly deep-equal:
+S2  a known wrong-intent merge allowed: the exclusive-entity rule removed from similarity
+     file src/discovery/intent-clusters.mjs · test test/row5-guards.test.mjs · landed yes · ran 1 · RED 1 · cause confirmed · restored yes
+     failing assertion: 🔴 the causes change nothing: the record, the errors and the held-out 
+     its reason: Expected values to be strictly deep-equal:
+S3  held-out membership read during fitting: the held-out rows are clustered with the in-sample ones
+     file src/discovery/intent-clusters.mjs · test test/row5-guards.test.mjs · landed yes · ran 1 · RED 1 · cause confirmed · restored yes
+     failing assertion: 🔴 HELD-OUT INTEGRITY — the in-sample clusters are the same with the h
+     its reason: Expected values to be strictly equal:
+S4  reference intent ids read during fitting: each held-out query is placed in the cluster holding its reference intent
+     file src/discovery/intent-clusters.mjs · test test/row5-guards.test.mjs · landed yes · ran 1 · RED 1 · cause confirmed · restored yes
+     failing assertion: 🔴 REFERENCE-LEAK CENSUS — the clusterer's module imports no reference
+     its reason: clustering or placement moved when the reference was removed — the reference is read during fitting
+S5  ambiguity joins automatically: a placement below the threshold joins its nearest cluster
+     file src/discovery/intent-clusters.mjs · test test/row5-guards.test.mjs · landed yes · ran 1 · RED 1 · cause confirmed · restored yes
+     failing assertion: FIXTURE · world C — no structural relation → UNKNOWN: NO JOIN (placed 
+     its reason: Expected values to be strictly equal:
+S6  output depends on input order: the held-out results sort removed
+     file src/discovery/intent-clusters.mjs · test test/row5-guards.test.mjs · landed yes · ran 1 · RED 1 · cause confirmed · restored yes
+     failing assertion: 🔴 the production path twice, over the store's order and over two reor
+     its reason: reversed input changed the output
+S7  local wording erased: a member's original replaced by its normalised surface
+     file src/discovery/intent-clusters.mjs · test test/intent-clustering.test.mjs · landed yes · ran 1 · RED 1 · cause confirmed · restored yes
+     failing assertion: 🟢 local wording PRESERVED: every record member's original equals its 
+     its reason: Expected values to be strictly equal:
+S8  product-specific vocabulary admitted into generic code
+     file src/discovery/intent-clusters.mjs · test test/product-boundary.test.mjs · landed yes · ran 1 · RED 1 · cause confirmed · restored yes
+     failing assertion: 🔴 src/ NAMES NO PRODUCT IN CODE — AlmiVisibility is the system, not A
+     its reason: src/ names a product in CODE on 1 lines (1 occurrences).
+S9  an empty scored population reports zero defects (the whole empty-population limb removed)
+     file src/discovery/intent-clusters.mjs · test test/row5-guards.test.mjs · landed yes · ran 1 · RED 1 · cause confirmed · restored yes
+     failing assertion: 🔴 a scored population of 0 — every row ambiguous — is refused, where 
+     its reason: Expected values to be strictly deep-equal:
+S10  the production entry point bypassed: the runner reports the in-sample half as if it were the record
+     file bin/intent-clusters.mjs · test test/row5-guards.test.mjs · landed yes · ran 1 · RED 1 · cause confirmed · restored yes
+     failing assertion: 🔴 the runner prints every remaining split with its code, from the pro
+     its reason: Expected values to be strictly equal:
+S11  the ledger's blocker code erased
+     file src/checklist/classification.mjs · test test/row5-guards.test.mjs · landed yes · ran 1 · RED 1 · cause confirmed · restored yes
+     failing assertion: 🔴 row 5 stays FAILED, its blocker named and its unlock condition chec
+     its reason: The input did not match the regular expression /^ENGINE_CAPABILITY_GAP \+ SUBJECT_VOCABULARY_DEFERRED_TO_SUBJECT_PHASE — /. Input:
+
+FIRST RUN — TWO LANDED SABOTAGES STAYED GREEN, EACH EXPOSING AN UNTESTED GUARD. The missing tests were added before continuing:
+- S4 (reference ids read during fitting): the leak census compared fitting under a reference whose members were ROTATED
+  between intent names. That keeps every grouping intact, so a leak comparing two rows' intents is invisible through it.
+  The test now compares against NO reference and a ONE-INTENT reference, both of which change the partition.
+- S5 (ambiguity joins automatically): world C used a query sharing no word with any cluster. Its best score is 0, so it is
+  NEW with or without the guard. The test now adds a query sharing one word (0 < similarity < 0.5), and asserts it is ambiguous
+  before asserting it stays NEW.
+
+14 designed · 14 landed · 14 RED · 14 cause confirmed · 14 restored byte-identically · residue 0

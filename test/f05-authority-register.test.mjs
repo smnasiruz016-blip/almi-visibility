@@ -69,7 +69,17 @@ const REAL_AUTH = { records: AUTHORITY_CORPUS, now: NOW };
  * the list is still exact, and a row moving without appearing here still fails. */
 const MOVED = ["F05", "F08", "F40"];
 const UNASSESSED_ROWS = 89 - MOVED.length;
-const EARNED = DECLARED.F05.state === "VERIFIED-PASS" ? 1 : 0;
+/* 🔴 EVERY PASS ON THE BOARD THAT WAS ACTUALLY EARNED — counted, not assumed.
+ * This read `DECLARED.F05.state === "VERIFIED-PASS" ? 1 : 0`, which silently assumed F05 was the only row that
+ * could ever pass. F08 passed on 22 September 2026 and the constant was simply wrong, not the board. Counting it
+ * this way is STRICTER, not looser: a pass counts only when the row carries its own frozen acceptance AND a
+ * verification recorded UNDER ITS OWN ID over the REAL population, so `progress().passed === EARNED` now fails for
+ * ANY row that reaches VERIFIED-PASS without earning it — not just for F05. */
+const EARNED = Object.values(DECLARED).filter(
+  (r) => r.state === "VERIFIED-PASS"
+    && ACCEPTANCES[r.featureId]
+    && (r.events ?? []).some((e) => e.kind === "VERIFIED" && e.featureId === r.featureId && e.population === "REAL"),
+).length;
 
 /* ═════════ §7 — THE REAL CORPUS ═════════ */
 
@@ -509,9 +519,13 @@ test("P-R26 — historical Row 4 status does not transfer to any F-row", () => {
   const prov = CROSSWALK.provenance.find((p) => p.row === 4);
   assert.deepEqual({ ...prov }, { board: HISTORICAL_BOARD, row: 4, state: row4.state, role: "PROVENANCE_REFERENCE", authorityImported: false });
   assert.ok(CROSSWALK.entries.every((e) => !e.historicalRows.includes(4)), "a crosswalk entry maps Row 4");
-  // a PASS on an F-row is lawful only as that row's own — its frozen acceptance and a verification under its id; F05 alone may carry one
+  /* A PASS on an F-row is lawful only as THAT ROW'S OWN: its frozen acceptance, and a verification recorded under
+   * its own id over the real population. This used to name F05 as the only row allowed to carry one, which stopped
+   * being true when F08 passed. Naming the row was never the guard — OWNERSHIP was, and ownership is what is
+   * checked here, for every row that passes. */
   const passes = board().filter((x) => x.state === "VERIFIED-PASS").map((x) => x.featureId);
-  assert.ok(board().every((x) => x.board === F_BOARD && !Object.hasOwn(x, "historicalState")) && passes.every((id) => id === "F05" && ACCEPTANCES[id]), `an F-row carries Row 4's status: ${passes.join(", ")}`);
+  const ownItsPass = (id) => Boolean(ACCEPTANCES[id]) && (DECLARED[id]?.events ?? []).some((e) => e.kind === "VERIFIED" && e.featureId === id && e.population === "REAL");
+  assert.ok(board().every((x) => x.board === F_BOARD && !Object.hasOwn(x, "historicalState")) && passes.every(ownItsPass), `an F-row carries a status it did not earn under its own id: ${passes.filter((id) => !ownItsPass(id)).join(", ") || passes.join(", ")}`);
   assert.equal(progress(board()).passed, EARNED);
   // firing: an F-row given Row 4's state, as a historical record, is refused
   const moved = board().map((x) => (x.featureId === "F04" ? { ...x, board: row4.board, state: row4.state } : x));

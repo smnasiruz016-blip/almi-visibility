@@ -194,21 +194,29 @@ for (const p of changed) console.log(`  ${p}`);
 
 /* ── 13.7 · CHANGED-ASSERTION CENSUS ──────────────────────────────────────────────────────────────────────────── */
 {
-  const existingTests = changed.filter((p) => p.startsWith("test/") && p !== "test/audit-trail.test.mjs");
+  /* 🔴 A FILE THAT IS NEW ON THE BRANCH HAS NO VERSION AT THE BASE, AND ASKING GIT FOR ONE IS A CRASH, NOT A ZERO.
+   * The first version of this census assumed every changed test file existed at the base and threw on the first
+   * genuinely new one — a census that dies is not a census that passed. A new file is counted as 0 -> N ADDED,
+   * which is what it is, and only a FALL in an existing file's count is a finding. */
+  const countAsserts = (text) => text.split("\n").filter((l) => /assert\./.test(l)).length;
+  const at = (ref, p) => { try { return countAsserts(git("show", `${ref}:${p}`)); } catch { return null; } };
+  const changedTests = changed.filter((p) => p.startsWith("test/"));
   let removed = 0;
-  for (const p of existingTests) {
-    const before = git("show", `${BASE}:${p}`).split("\n").filter((l) => /assert\./.test(l)).length;
-    const after = existsSync(join(REPO, p)) ? readFileSync(join(REPO, p), "utf8").split("\n").filter((l) => /assert\./.test(l)).length : 0;
+  let addedLines = 0;
+  for (const p of changedTests) {
+    const before = at(BASE, p);
+    const after = existsSync(join(REPO, p)) ? countAsserts(readFileSync(join(REPO, p), "utf8")) : 0;
+    if (before === null) { addedLines += after; console.log(`    ${p}: NEW on this branch — ${after} assertion lines added`); continue; }
     if (after < before) removed += before - after;
-    console.log(`    ${p}: ${before} -> ${after} assertion lines`);
+    addedLines += Math.max(0, after - before);
+    console.log(`    ${p}: ${before} -> ${after} assertion lines${after < before ? "  🔴 FELL" : ""}`);
   }
-  const added = readFileSync(join(REPO, "test/audit-trail.test.mjs"), "utf8").split("\n").filter((l) => /assert\./.test(l)).length;
   say(
     "13.7 · CHANGED-ASSERTION CENSUS",
-    `${existingTests.length} EXISTING test file(s) changed on this branch; ${added} assertion lines added in the new F08 test file`,
-    `every path under test/ in git diff ${BASE}...HEAD`,
+    `${changedTests.length} test file(s) changed on this branch · ${addedLines} assertion line(s) added · finding counts only assertion lines REMOVED from a file that already existed`,
+    `every path under test/ in git diff ${BASE}...HEAD, each compared against its own version at the base`,
     removed,
-    "the same comparison would report a positive number for any file whose assertion count fell; it is applied to every changed test file, and none was weakened, deleted or loosened",
+    "the same comparison reports a positive number the moment any existing file's assertion count falls; it is applied to every changed test file, and none was weakened, deleted or loosened",
   );
 }
 

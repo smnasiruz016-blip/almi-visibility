@@ -76,6 +76,13 @@ const DECLARED = Object.freeze({
   "bin/source-integrity.mjs": "ledger.append — the ledger's own dedupe by entry_id; its status observations go through appendIfNew",
   "bin/instrument-disagreement.mjs": "appends CLOSED state changes built only from OPEN instrument-disagreement issues, so a re-run closes none; the issues themselves go through appendIfNew",
   "bin/supersede-duplicates.mjs": "writes only for copies with no note yet; its re-run appends 0",
+  // 🔴 F08 (22 September 2026) — dedupe lives INSIDE this primitive, exactly as it does for the cost ledger's
+  // entry_id. createAuditStore.append derives a stable eventId from the event's declared identity, returns
+  // IDEMPOTENT_RETRY without writing when that id is already held with the same content fingerprint, and REFUSES a
+  // conflicting duplicate rather than merging or overwriting it. Both halves of that claim are checked below.
+  "src/audit-trail/store.mjs": "the audit store's own primitive — createAuditStore.append is built on it, and the eventId lookup that dedupes sits above it, in the same file",
+  "src/audit-trail/recorder.mjs": "store.append — the audit store's own dedupe by eventId (IDEMPOTENT_RETRY) and its refusal of a conflicting duplicate (EVENT_ID_CONFLICT)",
+  "src/audit-trail/callers.mjs": "store.append — the same audit-store primitive; the caller records a decision once per run and a re-run of the same decision returns IDEMPOTENT_RETRY",
 });
 
 test("🔴 CENSUS (source): every record writer is guarded or declared with a checked reason — ZERO unexplained bare appends", () => {
@@ -89,6 +96,12 @@ test("🔴 CENSUS (source): every record writer is guarded or declared with a ch
   }
   // The crawl's claim, checked: run_id is derived from the start time.
   assert.match(readFileSync(`${REPO}src/crawl/crawler.mjs`, "utf8"), /const run_id = sha256Hex\(`\$\{started_at\}\|/);
+  // 🔴 F08's claim, checked the same way — and not from its comment. The primitive really does look the id up, really
+  // does return the retry without appending, and really does refuse a conflicting duplicate.
+  const auditStore = readFileSync(`${REPO}src/audit-trail/store.mjs`, "utf8");
+  assert.match(auditStore, /const existing = events\.find\(\(e\) => e\.eventId === event\.eventId\);/);
+  assert.match(auditStore, /return \{ status: "IDEMPOTENT_RETRY", event: existing, appended: false \};/);
+  assert.match(auditStore, /EVENT_ID_CONFLICT/);
 });
 
 test("🔴 CONTROL: the source census FIRES on a bare append, and a directory check is NOT mistaken for a guard", () => {

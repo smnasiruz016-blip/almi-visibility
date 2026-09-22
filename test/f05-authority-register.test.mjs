@@ -64,7 +64,11 @@ const clone = (o) => ({ ...REAL_F05, authorityId: "planted:clone", ...o });
 const board = () => buildBoard(CAPABILITIES, DECLARED);
 const REAL_AUTH = { records: AUTHORITY_CORPUS, now: NOW };
 /* The only F-rows that may have moved: F05 (its own lawful path) and F40 (its blocker). F-progress counts F05 only once it is VERIFIED-PASS. */
-const MOVED = ["F05", "F40"];
+/* 🔴 EVERY ROW THAT HAS LEFT UNASSESSED, EXACTLY. +F08 on 22 September 2026, when its acceptance was frozen in the
+ * governance repository (_handoffs 19e6b7b) — a CORRECT CONSEQUENCE of a second row being frozen, not a loosening:
+ * the list is still exact, and a row moving without appearing here still fails. */
+const MOVED = ["F05", "F08", "F40"];
+const UNASSESSED_ROWS = 89 - MOVED.length;
 const EARNED = DECLARED.F05.state === "VERIFIED-PASS" ? 1 : 0;
 
 /* ═════════ §7 — THE REAL CORPUS ═════════ */
@@ -350,7 +354,7 @@ test("P17 — IDENTICAL still requires a current real-population rerun UNDER THE
 test("P18 — UNASSESSED cannot enter implementation", () => {
   const b = board();
   const unassessed = b.filter((x) => x.state === "UNASSESSED");
-  assert.equal(unassessed.length, 87);
+  assert.equal(unassessed.length, UNASSESSED_ROWS);
   for (const x of unassessed) assert.equal(mayImplement(b, x.featureId, ACCEPTANCES), false, x.featureId);
   const impl = b.map((x) => (x.featureId === "F01" ? { ...x, events: [{ kind: "IMPLEMENTATION", on: NOW }] } : x));
   assert.deepEqual(boardErrors(impl, { capabilities: CAPABILITIES, acceptances: ACCEPTANCES }).map((e) => e.code).sort(), ["IMPLEMENTATION_BEFORE_ACCEPTANCE", "UNASSESSED_IMPLEMENTED"]);
@@ -434,8 +438,8 @@ test("P23 — historical 61/38 results remain reproducible, and do not affect F-
   assert.equal(LEDGER_STATUS.grantsAcceptanceAuthority, false);
   const p = progress(board());
   assert.equal(p.passed, EARNED, "27 historical PASSes moved F-progress");
-  assert.deepEqual(board().filter((x) => x.state !== "UNASSESSED").map((x) => x.featureId), MOVED, "a feature other than F05 and F40 moved");
-  assert.equal(p.split.UNASSESSED, 87);
+  assert.deepEqual(board().filter((x) => x.state !== "UNASSESSED").map((x) => x.featureId), MOVED, `a feature outside ${MOVED.join(", ")} moved`);
+  assert.equal(p.split.UNASSESSED, UNASSESSED_ROWS);
   assert.ok(["IN-PROGRESS", "VERIFIED-PASS"].includes(DECLARED.F05.state), DECLARED.F05.state);
 });
 
@@ -444,7 +448,21 @@ test("P24 — the committed F05 ruling hash is the acceptance used by code and t
   assert.equal(ACCEPTANCES.F05.contractSha256, F05_CONTRACT_SHA);
   assert.equal(contractSha256(ACCEPTANCES.F05), F05_CONTRACT_SHA);
   assert.equal(REAL_F05.contentHash, F05_RULING_SHA, "the migrated corpus hashed different bytes");
-  assert.equal(REAL_F05.sourceRef.commit, ACCEPTANCES.F05.ruling.commit);
+  /* 🔴 CORRECTED 22 September 2026, and it is a STRENGTHENING, not a relaxation.
+   *
+   * This line used to read `REAL_F05.sourceRef.commit === ACCEPTANCES.F05.ruling.commit`, and it passed only because
+   * F05's ruling happened to be the NEWEST governance commit when the corpus was migrated. Those are two different
+   * facts: the acceptance pins the commit that introduced the RULING, while sourceRef.commit names the SNAPSHOT the
+   * corpus was migrated from. The moment any later governance commit exists — F08's, here — they diverge, and the
+   * assertion would fail without anything being wrong.
+   *
+   * The end-to-end claim that actually matters is byte identity, and it is asserted above and unchanged. What is
+   * added here is the invariant the old line was reaching for: EVERY record names the same migration snapshot, so a
+   * corpus assembled from mixed commits is still caught. */
+  assert.equal(REAL_F05.sourceRef.commit, CORPUS_PROVENANCE.governanceCommit, "the F05 record does not name the corpus's own migration snapshot");
+  for (const r of AUTHORITY_CORPUS.filter((x) => x.sourceRef.repo === "_handoffs")) {
+    assert.equal(r.sourceRef.commit, CORPUS_PROVENANCE.governanceCommit, `${r.authorityId} was migrated from a different commit`);
+  }
   const ev = DECLARED.F05.events.find((e) => e.kind === "ACCEPTANCE_FROZEN");
   assert.equal(ev.ruling.sha256, F05_RULING_SHA);
   assert.equal(ev.contractSha256, F05_CONTRACT_SHA);

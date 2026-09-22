@@ -634,8 +634,12 @@ test("P32 · no historical 61/38 state produces an F08 pass or affects F-progres
   const boardEvents = events.filter((e) => e.eventType === "BOARD_TRANSITION");
   assert.ok(boardEvents.length > 0);
   for (const e of boardEvents) assert.equal(e.metadata.board, "F_BOARD");
-  assert.equal(DECLARED.F08.state, "ACCEPTANCE-FROZEN");
+  // 🔴 IN-PROGRESS, and NEVER VERIFIED-PASS from inside the PR that builds it: a tick needs a merge and a green
+  // main CI run, and neither exists while this test runs. A historical PASS cannot supply either.
+  assert.equal(DECLARED.F08.state, "IN-PROGRESS");
+  assert.notEqual(DECLARED.F08.state, "VERIFIED-PASS");
   assert.equal(DECLARED.F08.board, "F_BOARD");
+  assert.equal(Object.hasOwn(DECLARED.F08, "historicalState"), false);
 });
 
 test("P33 · a governed state-changing action FAILS CLOSED when the audit append fails", () => {
@@ -744,7 +748,10 @@ test("🔴 F08's acceptance is the one the governance repository committed, and 
    * leaving the pinned hash alone left this test green, because it only checked the literal against itself. The
    * board's own check re-derives; so does this one now. */
   assert.equal(contractSha256(acc), acc.contractSha256, "a frozen clause was altered: the four clauses no longer hash to the contract the ruling froze");
-  assert.deepEqual(DECLARED.F08.events.map((e) => e.kind), ["ACCEPTANCE_FROZEN"]);
+  // Implementation is recorded AFTER the freeze, never before it — the board refuses the other order by code.
+  assert.deepEqual(DECLARED.F08.events.map((e) => e.kind), ["ACCEPTANCE_FROZEN", "IMPLEMENTATION"]);
+  assert.equal(DECLARED.F08.events[1].after, "ACCEPTANCE_FROZEN");
+  assert.equal(DECLARED.F08.events.some((e) => e.kind === "VERIFIED"), false, "a verification is recorded in the PR that builds the feature");
   assert.equal(DECLARED.F08.events[0].contractSha256, acc.contractSha256);
 });
 

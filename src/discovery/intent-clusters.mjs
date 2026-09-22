@@ -274,6 +274,10 @@ export function heldOutCheck(humanRows, lexicon, reference, ambiguous = {}, { th
     }
     return { ...base, referenceIntent: intent, verdict, why };
   });
+  /* 🔴 ORDER IS NOT EVIDENCE (22 September 2026). The results followed the order the store happened to list the rows in,
+   * so the same population reordered gave a different output while every verdict was the same. Sorted by `ref` — the
+   * sha256 identity fixed at intake — the output is byte-identical under any reordering of the input. */
+  results.sort((x, y) => (x.ref < y.ref ? -1 : x.ref > y.ref ? 1 : 0));
   const count = (v) => results.filter((x) => x.verdict === v).length;
   return {
     ran: true,
@@ -342,6 +346,16 @@ export function lexiconWordsAbsentFrom(lexicon, rows) {
  */
 export function clusteringErrors({ humanRows, record, heldOut, reference, ambiguous = {}, lexicon }) {
   const errs = [];
+  /* 🔴 EMPTY POPULATION (22 September 2026). Every limb below counts defects in a population; over NO population each
+   * finds none, and "0 merges · 0 splits" would read as a pass. Measured before this limb existed: with every human
+   * row marked ambiguous — a scored population of 0 — this function returned NO error at all. So the population is
+   * counted first: no human row, or no human row the reference places and does not mark ambiguous, is itself a
+   * failure. A population that cannot be scored is not a population that passed. */
+  const amb = referenceIndex(reference || {}, ambiguous).ambiguous;
+  const placedIn = referenceIndex(reference || {}, ambiguous).intentOf;
+  const scored = (humanRows || []).filter((r) => placedIn.has(sha(r.query)) && !amb.has(sha(r.query)));
+  if (!humanRows || humanRows.length === 0) errs.push({ limb: "empty-population", why: "no human query row was given — there is nothing to cluster, and nothing clustered is not nothing wrong" });
+  else if (scored.length === 0) errs.push({ limb: "empty-population", why: `${humanRows.length} human row(s), but none is both placed by the reference and not ambiguous — the scored population is 0, so no limb can find a defect in it` });
   const storeByRef = new Map(humanRows.map((r) => [sha(r.query), r.query]));
   const refs = new Map();
   for (const c of record) for (const m of c.members) refs.set(m.ref, (refs.get(m.ref) || 0) + 1);
@@ -387,4 +401,57 @@ export function clusteringErrors({ humanRows, record, heldOut, reference, ambigu
     if (absent.length) errs.push({ limb: "lexicon-held-out-word", why: `the lexicon holds ${absent.length} word(s) no in-sample query contains: ${absent.join(", ")}` });
   }
   return errs;
+}
+
+/** Every token a lexicon DECLARES: its phrase words and targets, synonym keys and targets, filler, slot values, intent words and exclusive entities. */
+export function declaredTokens(lexicon) {
+  const s = new Set();
+  for (const [from, to] of lexicon.phrases || []) for (const w of `${from} ${to}`.split(" ")) s.add(w);
+  for (const [k, v] of Object.entries(lexicon.synonyms || {})) [k, ...[].concat(v)].forEach((w) => s.add(w));
+  [...(lexicon.filler || []), ...Object.values(lexicon.slotTypes || {}).flat(), ...(lexicon.intentWords || []), ...(lexicon.exclusive || []).flat()].forEach((w) => s.add(w));
+  s.delete("");
+  return s;
+}
+
+/** 🔴 THE NAMED REASON CODES A REMAINING SPLIT CAN CARRY. A code states what the structure shows — never what a word means. */
+export const SPLIT_CAUSES = Object.freeze({
+  SPLIT_UNKNOWN_TOKEN: "the member's key holds a token no in-sample key holds and the lexicon does not declare — the token is UNKNOWN; what it means is not for this code to say",
+  SPLIT_NO_IN_SAMPLE_MEMBER: "the member's intent has no in-sample member, so the held-out protocol has nothing of its own to place it with",
+  SPLIT_BELOW_THRESHOLD: "every token of the member's key is known, and its best placement is below the threshold — a pure threshold effect",
+  SPLIT_IN_SAMPLE: "the intent's in-sample members themselves sit in more than one cluster",
+});
+
+/**
+ * 🔴 WHY EACH REMAINING SPLIT IS A SPLIT — VISIBLE, WITH A NAMED REASON CODE (22 September 2026).
+ *
+ * For every intent the record splits, the members standing apart from the cluster(s) holding its in-sample members,
+ * each with the codes its structure earns. An UNKNOWN token is listed and left UNKNOWN: this function never says a
+ * word is an occupation, a place, a skill or a function word — that needs declared subject data or a human, and
+ * missing vocabulary stays visible as SPLIT_UNKNOWN_TOKEN rather than being guessed. Evaluation only: it reads the
+ * reference after clustering is done and changes no cluster.
+ */
+export function splitCauses({ humanRows, record, heldOut, reference, ambiguous = {}, lexicon }) {
+  const { intentOf, ambiguous: amb } = referenceIndex(reference, ambiguous);
+  const declared = declaredTokens(lexicon);
+  const inSampleTokens = new Set(humanRows.filter((r) => !isHeldOut(r.query)).flatMap((r) => normalise(r.query, lexicon).key));
+  const resultOf = new Map((heldOut?.results || []).map((r) => [r.ref, r]));
+  const { split } = compareToReference(record, reference, ambiguous);
+  return split.map(({ intent }) => {
+    const homes = new Set();
+    for (const c of record) if (c.members.some((m) => !m.heldOut && !amb.has(m.ref) && intentOf.get(m.ref) === intent)) homes.add(c.id);
+    const members = record.flatMap((c) => c.members.filter((m) => !amb.has(m.ref) && intentOf.get(m.ref) === intent).map((m) => ({ m, cluster: c.id })));
+    const apart = [];
+    for (const { m, cluster } of members) {
+      if (homes.has(cluster) && !(homes.size > 1 && !m.heldOut)) continue;
+      const codes = [];
+      if (!m.heldOut) codes.push("SPLIT_IN_SAMPLE");
+      if (homes.size === 0) codes.push("SPLIT_NO_IN_SAMPLE_MEMBER");
+      const unknown = m.key.filter((t) => !t.startsWith("<") && !inSampleTokens.has(t) && !declared.has(t));
+      if (unknown.length) codes.push("SPLIT_UNKNOWN_TOKEN");
+      if (m.heldOut && homes.size > 0 && unknown.length === 0) codes.push("SPLIT_BELOW_THRESHOLD");
+      apart.push({ original: m.original, heldOut: m.heldOut, codes, unknownTokens: unknown, bestSimilarity: resultOf.get(m.ref)?.similarity ?? null });
+    }
+    apart.sort((a, b) => a.original.localeCompare(b.original));
+    return { intent, inSample: members.filter((x) => !x.m.heldOut).length, heldOut: members.filter((x) => x.m.heldOut).length, codes: [...new Set(apart.flatMap((a) => a.codes))].sort(), apart };
+  }).sort((a, b) => a.intent.localeCompare(b.intent));
 }

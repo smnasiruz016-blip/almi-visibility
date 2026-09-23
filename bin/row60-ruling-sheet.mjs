@@ -26,6 +26,9 @@ import { COVERAGE_REGISTER } from "../config/coverage-register.mjs";
 import { DECISION_REGISTER } from "../config/decision-register.mjs";
 import { AUDIT_TRAIL } from "../config/audit-trail.mjs";
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../src/governance/governed-run.mjs";
+import { isoSeconds } from "../src/audit-trail/store.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const JSON_OUT = confineToRepo(join(REPO, "runs", "export", "row60-ruling-sheet.json"), { label: "sheet (json)" });
@@ -73,6 +76,8 @@ console.log("");
 
 if (confirmMode) {
   const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
+const RUN_INSTANT = isoSeconds(Date.now());
+const RUN_CORRELATION = `run:row60-ruling-sheet:${RUN_INSTANT}`;
   // The register must already agree with the store: a sheet is never written over a disagreement.
   const pre = reconcileSheet({ sheet: fresh, fresh, register: CONSEQUENCE_REGISTER, unreachable: UNREACHABLE_RECOMMENDATIONS, scale: SEVERITY_SCALE, superseded: SUPERSEDED_ENTRIES, coverage: COVERAGE_REGISTER, decisions: DECISION_REGISTER, auditTrail: AUDIT_TRAIL });
   if (!pre.ok) {
@@ -80,13 +85,26 @@ if (confirmMode) {
     for (const e of pre.errors) console.error(`   [${e.limb}] ${e.class ?? ""} ${e.why}`);
     process.exit(1);
   }
-  if (permission.mayWrite) {
-    if (!existsSync(dirname(JSON_OUT))) mkdirSync(dirname(JSON_OUT), { recursive: true });
-    writeFileSync(JSON_OUT, `${JSON.stringify(fresh, null, 2)}\n`, "utf8");
-    writeFileSync(MD_OUT, renderRulingSheet(fresh), "utf8");
-    console.log(`wrote ${relative(REPO, JSON_OUT)} and ${relative(REPO, MD_OUT)}`);
+  /* Two targets, two governed occurrences. The refusal is audited rather than silently skipped, which is what the
+   * bare `if (permission.mayWrite)` did before. */
+  let sheetFailed = false;
+  let sheetRefused = false;
+  for (const [target, body, what] of [
+    [JSON_OUT, `${JSON.stringify(fresh, null, 2)}\n`, "WRITE_RULING_SHEET_JSON"],
+    [MD_OUT, renderRulingSheet(fresh), "WRITE_RULING_SHEET_MARKDOWN"],
+  ]) {
+    const governed = executeGovernedWrite(governedFileWrite({
+      repo: REPO, permission, target, targetClass: "GENERATED_CONFIG", bytes: body,
+      action: what, occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
+    }));
+    if (governed.outcome === "REFUSED") sheetRefused = true;
+    else if (governed.outcome !== "COMMITTED" && governed.outcome !== "ALREADY_COMMITTED") {
+      console.error(`🔴 ${governed.outcome} — ${relative(REPO, target)} was not written; the governed attempt is on the audit trail`);
+      sheetFailed = true;
+    }
   }
-  process.exit(0);
+  if (!sheetRefused && !sheetFailed) console.log(`wrote ${relative(REPO, JSON_OUT)} and ${relative(REPO, MD_OUT)}`);
+  process.exit(sheetFailed ? 1 : 0);
 }
 
 if (!existsSync(JSON_OUT)) {

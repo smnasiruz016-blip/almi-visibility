@@ -19,6 +19,9 @@ import { writeFileSync, mkdirSync, existsSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../src/governance/governed-run.mjs";
+import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { renderPage, summarise, reconcile } from "../src/report/view.mjs";
 import { loadRegistry, verifiedSourceBearingFacts } from "../src/facts/registry.mjs";
@@ -56,6 +59,8 @@ const crawlDir = arg("crawl-dir", null);
 // repository is refused while nothing has happened yet.
 const out = confineToRepo(arg("out", `${REPO}runs/report/index.html`), { label: "--out" });
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
+const RUN_INSTANT = isoSeconds(Date.now());
+const RUN_CORRELATION = `run:report:${RUN_INSTANT}`;
 
 const read = (p) => (existsSync(p) ? createJsonlStore(p).readAll() : []);
 
@@ -167,12 +172,15 @@ const recommendationFields = computeRecommendationFields({
 const generatedAt = new Date().toISOString();
 const html = renderPage({ crawlRecords, evidenceRecords, facts, generatedAt, chainWalk, sourceTiers, ledger: ledgerView, recommendations: recommendationFields, decisions });
 
-if (!permission.mayWrite) {
-  console.log(`[dry-run] would have written ${out}  (${(Buffer.byteLength(html, "utf8") / 1024).toFixed(1)} KiB) — add --confirm`);
-} else {
-  if (!existsSync(dirname(out))) mkdirSync(dirname(out), { recursive: true });
-  writeFileSync(out, html, "utf8");
-  console.log(`written: ${out}  (${(Buffer.byteLength(html, "utf8") / 1024).toFixed(1)} KiB)`);
+{
+  const size = `(${(Buffer.byteLength(html, "utf8") / 1024).toFixed(1)} KiB)`;
+  const governed = executeGovernedWrite(governedFileWrite({
+    repo: REPO, permission, target: out, targetClass: "GENERATED_CONFIG", bytes: html,
+    action: "WRITE_ESTATE_REPORT", occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
+  }));
+  if (governed.outcome === "REFUSED") console.log(`[dry-run] would have written ${out}  ${size} — add --confirm`);
+  else if (governed.outcome === "COMMITTED" || governed.outcome === "ALREADY_COMMITTED") console.log(`written: ${out}  ${size} [${governed.outcome}]`);
+  else { console.error(`🔴 ${governed.outcome} — ${out} was not written; the governed attempt is on the audit trail`); process.exitCode = 1; }
 }
 
 const s = summarise({ crawlRecords, evidenceRecords, facts });

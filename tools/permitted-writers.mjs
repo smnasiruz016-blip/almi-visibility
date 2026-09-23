@@ -497,7 +497,22 @@ export function analyseWriters({ repo = REPO, sources = null, register = PERMITT
   const byFile = new Map(register.map((e) => [e.file, e]));
 
   const undeclared = [...sitesByFile.keys()].filter((f) => !byFile.has(f)).sort();
-  const stale = register.map((e) => e.file).filter((f) => !sitesByFile.has(f)).sort();
+
+  /* 🔴 A ROUTED WRITER IS NOT A STALE ONE — AND THE CLAIM IS CHECKED, NOT BELIEVED.
+   *
+   * This census equated "register entry with no write site" with "stale entry": a name left behind after the code
+   * stopped writing. Routing a writer through the governed-write boundary produces exactly that shape for the
+   * opposite reason — the write did not stop, it moved inside the boundary, which audits the attempt and the
+   * outcome. Treating those as stale would have pushed every routed writer OUT of the register, which is where
+   * its gate, its destination rule and its reason are recorded.
+   *
+   * So `routed: true` excuses the missing site only when the file really does reach the boundary. An entry that
+   * claims it and does not is reported separately and fails — declaring is not doing. */
+  const reachesBoundary = (file) => /executeGovernedWrite\(/.test(read(file));
+  const routedEntries = register.filter((e) => e.routed === true);
+  const routedNotReaching = routedEntries.filter((e) => !reachesBoundary(e.file)).map((e) => e.file).sort();
+  const routedFiles = new Set(routedEntries.filter((e) => reachesBoundary(e.file)).map((e) => e.file));
+  const stale = register.map((e) => e.file).filter((f) => !sitesByFile.has(f) && !routedFiles.has(f)).sort();
   const siteMismatch = register
     .filter((e) => sitesByFile.has(e.file) && sitesByFile.get(e.file).length !== e.sites)
     .map((e) => ({ file: e.file, declared: e.sites, found: sitesByFile.get(e.file).length }));
@@ -528,6 +543,8 @@ export function analyseWriters({ repo = REPO, sources = null, register = PERMITT
     register,
     undeclared,
     stale,
+    routed: [...routedFiles].sort(),
+    routedNotReaching,
     siteMismatch,
     incomplete,
     destinationMismatch,

@@ -29,6 +29,9 @@ import { readFileSync, existsSync, readdirSync, writeFileSync, mkdirSync } from 
 import { join } from "node:path";
 
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../src/governance/governed-run.mjs";
+import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { loadRegistry, toGateAFact } from "../src/facts/registry.mjs";
 import { placeClaims, isSharedAcrossVariants } from "../src/page/claim-placement.mjs";
 import { renderPage, findCopiedFacts } from "../src/page/render.mjs";
@@ -64,6 +67,9 @@ if (!base) {
 }
 
 const permission = writePermission({ target: LOCAL, argv, env: process.env });
+const REPO_ROOT_FOR_GOVERNANCE = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+const RUN_INSTANT = governedInstant(Date.now());
+const RUN_CORRELATION = `run:profession-chain:${RUN_INSTANT}`;
 if (outDir) announceWritePermission(permission);
 
 const line = (ch = "─") => console.log(ch.repeat(78));
@@ -163,11 +169,24 @@ const report = {
 };
 
 if (outDir) {
-  if (!permission.mayWrite) console.log(`\n[dry-run] would have written ${outDir} — ${permission.reason}`);
-  else {
-    mkdirSync(outDir, { recursive: true });
-    writeFileSync(join(outDir, `${which}.html`), html, "utf8");
-    writeFileSync(join(outDir, `${which}-chain.json`), JSON.stringify(report, null, 2) + "\n", "utf8");
-    console.log(`\nwrote ${outDir}/${which}.html`);
+  let chainRefused = false;
+  let chainFailed = false;
+  for (const [name, body, what] of [
+    [`${which}.html`, html, "WRITE_PROFESSION_CHAIN_PAGE"],
+    [`${which}-chain.json`, JSON.stringify(report, null, 2) + "\n", "WRITE_PROFESSION_CHAIN_REPORT"],
+  ]) {
+    const governed = executeGovernedWrite(governedFileWrite({
+      repo: REPO_ROOT_FOR_GOVERNANCE, permission, target: join(outDir, name),
+      targetClass: "RUN_EVIDENCE", bytes: body,
+      action: what, occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
+    }));
+    if (governed.outcome === "REFUSED") chainRefused = true;
+    else if (governed.outcome !== "COMMITTED" && governed.outcome !== "ALREADY_COMMITTED") {
+      console.error(`🔴 ${governed.outcome} — ${join(outDir, name)} was not written; the governed attempt is on the audit trail`);
+      chainFailed = true;
+    }
   }
+  if (chainRefused) console.log(`\n[dry-run] would have written ${outDir} — ${permission.reason}`);
+  else if (!chainFailed) console.log(`\nwrote ${outDir}/${which}.html`);
+  if (chainFailed) process.exitCode = 1;
 }

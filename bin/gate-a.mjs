@@ -29,7 +29,10 @@
  */
 import { readdirSync, readFileSync, statSync, mkdirSync, writeFileSync, existsSync } from "node:fs";
 import { join, basename, extname } from "node:path";
-import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
+import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../src/governance/governed-run.mjs";
+import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { runGateA } from "../src/gate-a/run.mjs";
 
 const argv = process.argv.slice(2);
@@ -45,6 +48,9 @@ const shellDefinition = flag("--shell", "B");
 // The write law is announced BEFORE anything else happens, so a run that is
 // about to change something never looks like a run that is about to report.
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv, env: process.env }));
+const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+const RUN_INSTANT = isoSeconds(Date.now());
+const RUN_CORRELATION = `run:gate-a:${RUN_INSTANT}`;
 
 if (!corpusDir) {
   console.error("\nusage: node bin/gate-a.mjs --corpus <dir> [--out <dir>] [--shell A|B] [--confirm]");
@@ -181,29 +187,43 @@ for (const g of groups) {
 
 // ── output ──────────────────────────────────────────────────────────────────
 if (outDir) {
-  if (!permission.mayWrite) {
-    console.log(`\n[dry-run] --out ${outDir} was given but nothing was written. Add --confirm.`);
-  } else {
-    mkdirSync(outDir, { recursive: true });
-    writeFileSync(join(outDir, "gate-a.json"), JSON.stringify(report, null, 2), "utf8");
-    const rows = [
-      "group,id,verdict,rejectedAt,totalWords,uniqueWords,qualifyingFacts,residualWords,maxOverlap,overlapAgainst",
-    ];
-    for (const g of report.groups) {
-      for (const r of g.results ?? []) {
-        rows.push(
-          [
-            g.group, r.id, r.verdict, r.rejectedAt ?? "",
-            r.totalWords, r.uniqueWords,
-            r.facts ? r.facts.qualifying : "",
-            r.residualWords ?? "", r.maxOverlap ?? "", r.overlapAgainst ?? "",
-          ].join(","),
-        );
-      }
+  /* The CSV is built whether or not the write is permitted, so a dry run reports the same two targets a permitted
+   * run would produce. 🔴 CONFINED, WHICH IT WAS NOT BEFORE — a deliberate tightening, recorded. */
+  const rows = [
+    "group,id,verdict,rejectedAt,totalWords,uniqueWords,qualifyingFacts,residualWords,maxOverlap,overlapAgainst",
+  ];
+  for (const g of report.groups) {
+    for (const r of g.results ?? []) {
+      rows.push(
+        [
+          g.group, r.id, r.verdict, r.rejectedAt ?? "",
+          r.totalWords, r.uniqueWords,
+          r.facts ? r.facts.qualifying : "",
+          r.residualWords ?? "", r.maxOverlap ?? "", r.overlapAgainst ?? "",
+        ].join(","),
+      );
     }
-    writeFileSync(join(outDir, "gate-a.csv"), rows.join("\n"), "utf8");
-    console.log(`\nwrote ${join(outDir, "gate-a.json")} and gate-a.csv`);
   }
+  const dir = confineToRepo(outDir, { label: "--out" });
+  let refused = false;
+  let failed = false;
+  for (const [name, body, what] of [
+    ["gate-a.json", JSON.stringify(report, null, 2), "WRITE_GATE_A_REPORT"],
+    ["gate-a.csv", rows.join("\n"), "WRITE_GATE_A_CSV"],
+  ]) {
+    const governed = executeGovernedWrite(governedFileWrite({
+      repo: REPO, permission, target: join(dir, name), targetClass: "OPERATOR_CHOSEN_OUTPUT", bytes: body,
+      action: what, occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
+    }));
+    if (governed.outcome === "REFUSED") refused = true;
+    else if (governed.outcome !== "COMMITTED" && governed.outcome !== "ALREADY_COMMITTED") {
+      console.error(`🔴 ${governed.outcome} — ${join(dir, name)} was not written; the governed attempt is on the audit trail`);
+      failed = true;
+    }
+  }
+  if (refused) console.log(`\n[dry-run] --out ${outDir} was given but nothing was written. Add --confirm.`);
+  else if (!failed) console.log(`\nwrote ${join(dir, "gate-a.json")} and gate-a.csv`);
+  if (failed) process.exitCode = 1;
 }
 
 console.log("");

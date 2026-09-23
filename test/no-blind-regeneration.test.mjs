@@ -144,9 +144,13 @@ test("🔴 CONTROL: a COMMENT describing a generator is not a generator", () => 
  *
  * Pinned so the count cannot move without somebody reading why.
  */
-test("🔴 EIGHT page-write sites in SEVEN files — pinned, and reconciled against the register elsewhere", () => {
+test("🔴 SIX page-write sites in FIVE files — pinned, and reconciled against the register elsewhere", () => {
   const found = census().hits.PAGE_WRITE;
-  assert.equal(found.length, 8, "the number of page-write sites changed — update the register and re-read item 14");
+  /* 🔴 THE REVIEWED CHANGE, 23 September 2026: eight sites in seven files became six in five, because
+   * bin/profession-chain.mjs and bin/report.mjs were ROUTED through the governed-write boundary. Their writes did
+   * not stop — they moved inside the boundary, which audits the attempt and the outcome. Both remain in the page
+   * register, declared routed, so neither left the place where its gate and destination rule are recorded. */
+  assert.equal(found.length, 6, "the number of page-write sites changed — update the register and re-read item 14");
   const files = [...new Set(found.map((h) => h.file))].sort();
   assert.deepEqual(files, [
     "bin/build-corpus.mjs",
@@ -154,8 +158,6 @@ test("🔴 EIGHT page-write sites in SEVEN files — pinned, and reconciled agai
     "bin/crawl.mjs",
     "bin/nursing-chain.mjs",
     "bin/placement-measure.mjs",
-    "bin/profession-chain.mjs",
-    "bin/report.mjs",
   ]);
 });
 

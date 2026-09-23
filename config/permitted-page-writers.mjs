@@ -107,7 +107,10 @@ export const PERMITTED_PAGE_WRITERS = Object.freeze([
   },
   {
     file: "bin/profession-chain.mjs",
-    sites: 1,
+    /* 🔴 ROUTED through the shared governed-write boundary (23 September 2026): two targets, two governed
+     * occurrences, each audited allowed or refused. No direct page-write site remains. */
+    routed: true,
+    sites: 0,
     writes: "one candidate page for the named profession, rendered from the registry, plus a chain report",
     where: `the directory given by --out; without --out nothing is written; ${CONFINED}`,
     gatedBy: "write-law LOCAL: permission.mayWrite, which only --confirm grants",
@@ -119,7 +122,10 @@ export const PERMITTED_PAGE_WRITERS = Object.freeze([
   },
   {
     file: "bin/report.mjs",
-    sites: 1,
+    /* 🔴 ROUTED through the shared governed-write boundary (23 September 2026). No direct page-write site
+     * remains; the refusal is now recorded rather than only printed. */
+    routed: true,
+    sites: 0,
     writes: "the owner's report view — one HTML page summarising the evidence store, the crawl and the facts",
     where: `runs/report/index.html by default, or the file given by --out; ${CONFINED}`,
     gatedBy: "write-law LOCAL: permission.mayWrite, which only --confirm grants. 🔴 Until 12 September 2026 it had NO gate and wrote on every run",

@@ -40,9 +40,19 @@ test("(d) every entry declares the number of write sites the census finds in it"
   assert.equal(declared, real.census.hits.PAGE_WRITE.length, "the register's site total and the census disagree");
 });
 
-test("(d) 🔴 SEVEN writers, EIGHT sites — the count is declared, and changing it is a reviewed change", () => {
-  assert.equal(PERMITTED_PAGE_WRITERS.length, 7);
-  assert.equal(real.census.hits.PAGE_WRITE.length, 8);
+test("(d) 🔴 SEVEN writers, SIX remaining page sites — TWO are routed, and changing this is a reviewed change", () => {
+  assert.equal(PERMITTED_PAGE_WRITERS.length, 7, "a page writer left or joined the register");
+  /* 🔴 THE REVIEWED CHANGE, 23 September 2026: eight sites became six because bin/profession-chain.mjs and
+   * bin/report.mjs were ROUTED through the governed-write boundary. Their writes did not disappear — they moved
+   * inside the boundary, which audits the attempt and the outcome. Both stay in the register, declared routed with
+   * zero sites, so a writer cannot leave this register merely by being routed. */
+  const routed = PERMITTED_PAGE_WRITERS.filter((e) => e.routed);
+  assert.deepEqual(routed.map((e) => e.file).sort(), ["bin/profession-chain.mjs", "bin/report.mjs"]);
+  for (const e of routed) {
+    assert.equal(e.sites, 0, `${e.file}: declared routed but still declares write sites`);
+    assert.match(readFileSync(`${REPO}${e.file}`, "utf8"), /executeGovernedWrite\(/, `${e.file}: declared routed but never reaches the boundary`);
+  }
+  assert.equal(real.census.hits.PAGE_WRITE.length, 6);
   assert.equal(real.reconciles, true);
 });
 
@@ -134,7 +144,7 @@ test("🔴 RED: a new write site inside an already-registered writer fails recon
 test("CONTROL: the real sources injected unchanged reconcile exactly — the seam adds nothing", () => {
   const r = analyseWriters({ sources: realSources() });
   assert.equal(r.reconciles, true);
-  assert.equal(r.sites.length, 8);
+  assert.equal(r.sites.length, 6);
 });
 
 /* ================================================================== *
@@ -151,9 +161,13 @@ test("(d) 🔴 ZERO write sites DEFAULT TO WRITING — every one is dry-run by d
   assert.deepEqual(real.defaultsToWriting.map((s) => `${s.file}:${s.line} :: ${s.text}`), []);
 });
 
-test("(d) all EIGHT sites sit behind their declared gate", () => {
+test("(d) all SIX remaining sites sit behind their declared gate — the other two are routed", () => {
   const gated = real.sites.filter((s) => s.gated);
-  assert.equal(gated.length, 8);
+  assert.equal(gated.length, 6);
+  /* 🔴 AND A ROUTED WRITER MUST REALLY REACH THE BOUNDARY. Declaring `routed` is not doing it, so an entry that
+   * claims it without calling executeGovernedWrite is reported here and fails — the gate did not simply vanish. */
+  assert.deepEqual(real.routedNotReaching, [], "a writer declares itself routed but never reaches the boundary");
+  assert.deepEqual(real.routed, ["bin/profession-chain.mjs", "bin/report.mjs"]);
   for (const s of gated) assert.ok(s.by, `${s.file}:${s.line} is gated by nothing it can name`);
 });
 

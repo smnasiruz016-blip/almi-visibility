@@ -30,13 +30,17 @@ test("🔴 every issue writer found in the code persists through appendIfNew —
  * The population is FOUND, and pinned here only so that a NEW writer is seen by
  * a human: a writer not in this list still has to pass the test above.
  */
-test("🔴 the population is found from the code, not listed — and today it is SIX writers", () => {
+test("🔴 the population is found from the code, not listed — and today it is SEVEN writers", () => {
   assert.ok(real.scanned > 80, `only ${real.scanned} modules scanned`);
-  // bin/audit.mjs's writing moved into src/audit/run-audit.mjs (injectable
-  // resolver, 13 Sep 2026) — the census followed it there by construction.
+  /* bin/audit.mjs's writing moved into src/audit/run-audit.mjs (injectable resolver, 13 Sep 2026) and the census
+   * followed it there by construction. 🔴 ROUTING BROUGHT THE COMMIT BACK, 23 September 2026: the bin now makes
+   * the governed decision about committing what the run collected, so the census sees BOTH — which is right, and
+   * is why the population is seven rather than six. It is found, not listed: all seven pass the wiring test
+   * above, and a new writer that did not would fail there regardless of this list. */
   assert.deepEqual(real.population.map((p) => p.file), [
     "bin/audit-content.mjs",
     "bin/audit-technical.mjs",
+    "bin/audit.mjs",
     "bin/supersede-noindex.mjs",
     "bin/supply-labels.mjs",
     "bin/verification-issues.mjs",

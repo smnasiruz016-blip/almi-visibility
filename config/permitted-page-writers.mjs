@@ -261,7 +261,11 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
    */
   {
     file: "bin/audit.mjs",
-    sites: 1,
+    /* 🔴 ROUTED (23 September 2026). The dry-run store is now always the collector — it already kept every record
+     * and returned the real appended-versus-resighted answer — so the audit runs and reports identically either
+     * way, and the run makes ONE governed decision about committing what it collected. */
+    routed: true,
+    sites: 0,
     writes: "the robots-scope and DNS-family findings, and one DNS observation per estate host — written inside runRobotsAndDnsAudit, through the store this bin hands it",
     where: `runs/audit/findings.jsonl by default, or the file given by --out; ${CONFINED}`,
     gatedBy: "write-law LOCAL: the directory sits behind permission.mayWrite, and without it the store handed to the audit is createDryRunStore — the same interface, writing nothing and counting what it would have stored. 🔴 Until 16 September 2026 it had NO gate and appended on every run",

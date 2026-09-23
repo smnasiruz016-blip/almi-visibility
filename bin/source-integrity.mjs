@@ -17,6 +17,9 @@
 import { existsSync, writeFileSync } from "node:fs";
 
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedFileWrite, governedStoreAppend } from "../src/governance/governed-run.mjs";
+import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { makeObservation } from "../src/evidence/records.mjs";
 import { sha256Hex } from "../src/evidence/ids.mjs";
@@ -112,22 +115,42 @@ if (existsSync(EVIDENCE)) {
   console.error(`🔴 REFUSED — ${EVIDENCE} already exists. Recorded evidence is not re-recorded over itself.`);
   process.exit(2);
 }
+/* Routed. THREE genuinely different targets, so three governed occurrences: the observations (re-sighting
+ * preserved), the cost entry (the ledger SKIPS a duplicate entry_id and writes nothing), and the evidence file
+ * (TEXT, measured). Each is one decision per run, not one per record. */
 const store = createJsonlStore(STORE);
-for (const r of run.results) {
-  const value = { url: r.url, methodsUsed: r.methodsUsed, hops: r.hops, finalStatus: r.finalStatus, error: r.error, verdict: r.verdict, reason: r.reason, baseline: r.baseline, agreesWithBaseline: r.agrees, note: r.note };
-  store.appendIfNew(
-    makeObservation({
-      observed_at: finishedAt,
-      method: "source.link-check",
-      target: { kind: "url", ref: r.url },
-      content_sha256: sha256Hex(JSON.stringify({ finalStatus: r.finalStatus, error: r.error, verdict: r.verdict, hops: r.hops })),
-      value,
-      collector: "bin/source-integrity.mjs",
-      collector_version: "1",
-    }),
-    { seenAt: finishedAt },
-  );
+const observations = run.results.map((r) => makeObservation({
+  observed_at: finishedAt,
+  method: "source.link-check",
+  target: { kind: "url", ref: r.url },
+  content_sha256: sha256Hex(JSON.stringify({ finalStatus: r.finalStatus, error: r.error, verdict: r.verdict, hops: r.hops })),
+  value: { url: r.url, methodsUsed: r.methodsUsed, hops: r.hops, finalStatus: r.finalStatus, error: r.error, verdict: r.verdict, reason: r.reason, baseline: r.baseline, agreesWithBaseline: r.agrees, note: r.note },
+  collector: "bin/source-integrity.mjs",
+  collector_version: "1",
+}));
+const SI_INSTANT = governedInstant(Date.now());
+const SI_CORRELATION = `run:source-integrity:${SI_INSTANT}`;
+const ledger = createCostLedger(confineToRepo(`${REPO}runs/cost/ledger.jsonl`, { label: "the cost ledger" }));
+const siOutcomes = [
+  executeGovernedWrite(governedStoreAppend({
+    repo: REPO, permission, store, records: observations, targetClass: "RUN_EVIDENCE",
+    action: "APPEND_SOURCE_INTEGRITY_OBSERVATIONS", occurredAt: SI_INSTANT, correlationId: SI_CORRELATION,
+    discipline: "APPEND_IF_NEW", seenAt: finishedAt,
+  })),
+  executeGovernedWrite(governedStoreAppend({
+    repo: REPO, permission, store: ledger, records: [entry], targetClass: "RUN_EVIDENCE",
+    action: "APPEND_SOURCE_INTEGRITY_COST_ENTRY", occurredAt: SI_INSTANT, correlationId: SI_CORRELATION,
+    discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null,
+  })),
+  executeGovernedWrite(governedFileWrite({
+    repo: REPO, permission, target: EVIDENCE, targetClass: "GENERATED_CONFIG",
+    bytes: JSON.stringify({ startedAt, finishedAt, requests: run.requests, maxRequests: run.maxRequests, intervalMs: INTERVAL_MS, plan, counts, results: run.results, ledgerEntry: entry.entry_id }, null, 2) + "\n",
+    action: "WRITE_SOURCE_INTEGRITY_EVIDENCE", occurredAt: SI_INSTANT, correlationId: SI_CORRELATION,
+  })),
+];
+const siBad = siOutcomes.find((o) => o.outcome !== "REFUSED" && o.outcome !== "COMMITTED" && o.outcome !== "ALREADY_COMMITTED");
+if (siBad) {
+  console.error(`🔴 ${siBad.outcome} — the run was not recorded; the governed attempt is on the audit trail`);
+  process.exit(1);
 }
-createCostLedger(confineToRepo(`${REPO}runs/cost/ledger.jsonl`, { label: "the cost ledger" })).append(entry);
-writeFileSync(EVIDENCE, JSON.stringify({ startedAt, finishedAt, requests: run.requests, maxRequests: run.maxRequests, intervalMs: INTERVAL_MS, plan, counts, results: run.results, ledgerEntry: entry.entry_id }, null, 2) + "\n", "utf8");
 console.log(`recorded: ${STORE}, ${EVIDENCE}, and the cost entry`);

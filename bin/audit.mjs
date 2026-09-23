@@ -20,6 +20,9 @@ import { dirname } from "node:path";
 
 import { createJsonlStore, createDryRunStore } from "../src/evidence/store.mjs";
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedStoreAppend } from "../src/governance/governed-run.mjs";
+import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { familiesFor } from "../src/audit/dns-family.mjs";
 import { runRobotsAndDnsAudit } from "../src/audit/run-audit.mjs";
 /**
@@ -55,8 +58,15 @@ const robotsRecords = load(`${REPO}runs/evidence/robots.jsonl`);
 const evidence = load(`${REPO}runs/evidence/evidence.jsonl`);
 const crawl = load(batchFile("first-real-crawl-2026-09-12.jsonl"));
 
-if (permission.mayWrite && !existsSync(dirname(out))) mkdirSync(dirname(out), { recursive: true });
-const store = permission.mayWrite ? createJsonlStore(out) : createDryRunStore(out);
+/* 🔴 THE DRY-RUN STORE IS NOW ALWAYS THE COLLECTOR, AND THAT LOSES NOTHING.
+ *
+ * It already keeps every record it is handed and returns the SAME appended-versus-resighted answer the real store
+ * would, which is why runRobotsAndDnsAudit could count against it. Handing it to the library unconditionally
+ * means the audit runs and reports identically either way, and the run then makes ONE governed decision about
+ * committing what it collected — which is what the write law decides, once per run and not once per finding.
+ *
+ * The bare mkdir is gone: the boundary's prepare step creates the directory it writes into. */
+const store = createDryRunStore(out);
 
 const r = await runRobotsAndDnsAudit({
   store, robotsRecords, evidence, crawl,
@@ -64,6 +74,18 @@ const r = await runRobotsAndDnsAudit({
   familiesFor: (host) => familiesFor(host), // 🔴 LIVE resolver
   openedAt,
 });
+
+const AUDIT_INSTANT = governedInstant(Date.now());
+const auditGoverned = executeGovernedWrite(governedStoreAppend({
+  repo: REPO, permission, store: createJsonlStore(out), records: store.wouldWrite(),
+  targetClass: "RUN_EVIDENCE", action: "APPEND_ROBOTS_AND_DNS_FINDINGS",
+  occurredAt: AUDIT_INSTANT, correlationId: `run:audit:${AUDIT_INSTANT}`,
+  discipline: "APPEND_IF_NEW", seenAt: openedAt,
+}));
+if (auditGoverned.outcome !== "REFUSED" && auditGoverned.outcome !== "COMMITTED" && auditGoverned.outcome !== "ALREADY_COMMITTED") {
+  console.error(`🔴 ${auditGoverned.outcome} — the findings were not written; the governed attempt is on the audit trail`);
+  process.exitCode = 1;
+}
 
 console.log("=== CHECK 1 · robots scope — is a blocked URL blocked for GOOGLEBOT? ===\n");
 for (const [host, h] of r.perHost) {

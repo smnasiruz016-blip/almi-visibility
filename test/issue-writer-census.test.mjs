@@ -48,7 +48,11 @@ test("the one declared non-issue write is checked against its own file, not trus
   const sn = real.population.find((p) => p.file === "bin/supersede-noindex.mjs");
   assert.equal(sn.otherWrites.length, 1);
   assert.equal(sn.otherWrites[0].declared, true);
-  assert.match(sn.otherWrites[0].text, /appendAllWithoutDedupe\(changes\)/);
+  /* 🔴 ROUTING CHANGED HOW IT IS SPELLED, NOT WHAT IT IS. The state-change append used to read
+   * `store.appendAllWithoutDedupe(changes)` directly; it now names the discipline and the boundary performs it.
+   * The exemption still describes a real non-issue write and is still checked against this file's own source —
+   * the control below still fails it the moment the thing it relies on is removed. */
+  assert.match(sn.otherWrites[0].text, /appendAllWithoutDedupe\(changes\)|APPEND_ALL_WITHOUT_DEDUPE/);
 });
 
 /* ---- CONTROLS: the census must be able to fail -------------------------- */

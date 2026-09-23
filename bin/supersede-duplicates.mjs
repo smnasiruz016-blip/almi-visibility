@@ -23,6 +23,9 @@ import { readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedStoreAppend } from "../src/governance/governed-run.mjs";
+import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { duplicateCensus, DUPLICATE_SUPERSEDED_TYPE } from "../src/evidence/lifecycle.mjs";
 
@@ -30,6 +33,8 @@ const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, 
 const AUDIT = confineToRepo(`${REPO}runs/audit`, { label: "the audit stores" });
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
 const now = new Date().toISOString();
+const RUN_INSTANT = isoSeconds(Date.now());
+const RUN_CORRELATION = `run:supersede-duplicates:${RUN_INSTANT}`;
 
 console.log("ITEM 48 — SUPERSEDE DUPLICATE ISSUE COPIES");
 let totalNotes = 0;
@@ -63,7 +68,21 @@ for (const f of readdirSync(AUDIT).filter((x) => x.endsWith(".jsonl")).sort()) {
       actor: "Claude (repo audit), on the owner's brief of 12 Sep 2026",
     });
   }
-  const after = notes.length && permission.mayWrite ? (store.appendAllWithoutDedupe(notes), duplicateCensus(store.readAll())) : null;
+  /* Routed. Supersession notes carry no dedupe key and are written once per copy, so the bulk discipline is
+   * preserved; the boundary measures the delta over the target rather than by key. */
+  let after = null;
+  if (notes.length) {
+    const governed = executeGovernedWrite(governedStoreAppend({
+      repo: REPO, permission, store, records: notes, targetClass: "RUN_EVIDENCE",
+      action: "APPEND_DUPLICATE_SUPERSESSION_NOTES", occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
+      discipline: "APPEND_ALL_WITHOUT_DEDUPE",
+    }));
+    if (governed.outcome === "COMMITTED" || governed.outcome === "ALREADY_COMMITTED") after = duplicateCensus(store.readAll());
+    else if (governed.outcome !== "REFUSED") {
+      console.error(`🔴 ${governed.outcome} — notes were not written for ${f}; the governed attempt is on the audit trail`);
+      process.exitCode = 1;
+    }
+  }
   totalNotes += notes.length;
   console.log(
     `  ${f.padEnd(32)} [bound: ${records.length} records] issue records=${before.physicalIssueRecords} logical=${before.logicalIssues} ` +

@@ -38,6 +38,9 @@ import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedStoreAppend } from "../src/governance/governed-run.mjs";
+import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { makeIssue } from "../src/evidence/records.mjs";
 import { makeIssueStateChange, lifecycleOf, STATE_CHANGE_TYPE } from "../src/evidence/lifecycle.mjs";
@@ -140,18 +143,41 @@ console.log(`  to supersede now                              : ${pending.length}
 console.log(`  records to append                             : ${records.length} (${replacements.length} replacements + ${changes.filter((r) => r.record_type === STATE_CHANGE_TYPE).length} state changes)`);
 console.log("  🔴 nothing is edited or deleted; no other issue class is touched — the robots issues stay OPEN");
 
-if (!permission.mayWrite) {
-  console.log(`\n[dry-run] would have appended ${records.length} records — add --confirm`);
-} else if (records.length) {
+if (records.length) {
   const store = createJsonlStore(TARGET);
-  // 🔴 Issues through the dedupe entry point; state changes are not issues and
-  // are made idempotent by the OPEN-only filter above.
-  for (const issue of replacements) store.appendIfNew(issue, { seenAt: now });
-  store.appendAllWithoutDedupe(changes);
+  const RUN_INSTANT = isoSeconds(Date.now());
+  const CORRELATION = `run:supersede-noindex:${RUN_INSTANT}`;
+  /* 🔴 TWO DISCIPLINES, TWO GOVERNED OCCURRENCES — because they are genuinely different writes, not because the
+   * boundary wants two. Issues go through the dedupe entry point, which records a RE-SIGHTING for one already
+   * present; state changes are NOT issues, carry no dedupe key, and are made idempotent by the OPEN-only filter
+   * above. Routing preserves both exactly. */
+  const outcomes = [
+    executeGovernedWrite(governedStoreAppend({
+      repo: REPO, permission, store, records: replacements, targetClass: "RUN_EVIDENCE",
+      action: "APPEND_NOINDEX_REPLACEMENT_ISSUES", occurredAt: RUN_INSTANT, correlationId: CORRELATION,
+      discipline: "APPEND_IF_NEW", seenAt: now,
+    })),
+    executeGovernedWrite(governedStoreAppend({
+      repo: REPO, permission, store, records: changes, targetClass: "RUN_EVIDENCE",
+      action: "APPEND_NOINDEX_STATE_CHANGES", occurredAt: RUN_INSTANT, correlationId: CORRELATION,
+      discipline: "APPEND_ALL_WITHOUT_DEDUPE",
+    })),
+  ];
+  const bad = outcomes.find((o) => o.outcome !== "REFUSED" && o.outcome !== "COMMITTED" && o.outcome !== "ALREADY_COMMITTED");
+  if (bad) {
+    console.error(`🔴 ${bad.outcome} — the supersession was not written; the governed attempt is on the audit trail`);
+    process.exit(1);
+  }
+  if (outcomes.every((o) => o.outcome === "REFUSED")) {
+    console.log(`\n[dry-run] would have appended ${records.length} records — add --confirm`);
+  } else {
   const after = lifecycleOf(store.readAll());
   console.log(`\nappended ${records.length} records. lifecycle errors: ${after.errors.length}. states now: ${JSON.stringify(after.census)}`);
   if (after.errors.length) {
     for (const e of after.errors) console.error(`  🔴 ${e}`);
     process.exit(1);
   }
+  }
+} else if (!permission.mayWrite) {
+  console.log(`\n[dry-run] would have appended ${records.length} records — add --confirm`);
 }

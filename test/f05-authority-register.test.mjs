@@ -87,7 +87,10 @@ test("§7 REAL — the committed corpus is non-empty, names the commits it measu
   assert.match(CORPUS_PROVENANCE.governanceCommit, /^[0-9a-f]{40}$/);
   assert.match(CORPUS_PROVENANCE.engineCommit, /^[0-9a-f]{40}$/);
   assert.ok(AUTHORITY_CORPUS.length >= 50, `only ${AUTHORITY_CORPUS.length} records`);
-  const c = census(AUTHORITY_CORPUS, NOW);
+  /* The REAL corpus is judged on the day it was measured (CORPUS_PROVENANCE.now), because its stored statuses were
+   * resolved on that day. Since the F07 migration (23 Sep) that day is later than the fixed synthetic NOW, and one real
+   * record is lawfully SUPERSEDED on it — the 22 Sep F08 command, by the 23 Sep one. */
+  const c = census(AUTHORITY_CORPUS, CORPUS_PROVENANCE.now);
   assert.equal(c.remainder, 0);
   assert.equal(Object.values(c.counts).reduce((a, b) => a + b, 0), c.total);
   assert.equal(c.total, AUTHORITY_CORPUS.length);
@@ -99,13 +102,18 @@ test("§7 REAL — the committed corpus is non-empty, names the commits it measu
 });
 
 test("§7 REAL — every ZERO in the census has a LIVE POSITIVE CONTROL over the same records and the same code", () => {
-  const c = census(AUTHORITY_CORPUS, NOW);
-  // SUPERSEDED 0 → a newer clone of a real record makes the original SUPERSEDED
-  const s = census([...AUTHORITY_CORPUS, clone({ issuedAt: "2026-09-23", effectiveFrom: "2026-09-23", contentHash: H("newer") })], "2026-09-23");
-  assert.equal(c.counts.SUPERSEDED, 0);
-  assert.equal(s.counts.SUPERSEDED, 1);
+  /* Resolved on the corpus's OWN measuring day. On the fixed synthetic NOW (22 Sep) the 23 Sep records are simply not
+   * yet in effect — a date artefact, not a finding. */
+  const DAY = CORPUS_PROVENANCE.now;
+  const c = census(AUTHORITY_CORPUS, DAY);
+  /* SUPERSEDED → a newer clone of a real record makes exactly ONE MORE record SUPERSEDED, measured from the real
+   * baseline on the same day. (It was "0 → 1" until the real corpus held a real supersession — 23 Sep, F07 migration.) */
+  const base = census(AUTHORITY_CORPUS, "2026-09-24").counts.SUPERSEDED;
+  const s = census([...AUTHORITY_CORPUS, clone({ issuedAt: "2026-09-24", effectiveFrom: "2026-09-24", contentHash: H("newer") })], "2026-09-24");
+  assert.equal(c.counts.SUPERSEDED, base, "the real supersession count moved between the measuring day and the next");
+  assert.equal(s.counts.SUPERSEDED, base + 1);
   // OPEN_CONFLICT 0 → a same-day clone that disagrees makes both OPEN_CONFLICT
-  const o = census([...AUTHORITY_CORPUS, clone({ contentHash: H("disagrees") })], NOW);
+  const o = census([...AUTHORITY_CORPUS, clone({ contentHash: H("disagrees") })], DAY);
   assert.equal(c.counts.OPEN_CONFLICT, 0);
   assert.equal(o.counts.OPEN_CONFLICT, 2);
   // NOT_APPLICABLE 0 → the same corpus resolved before its records were effective

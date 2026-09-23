@@ -5,7 +5,7 @@
  * acceptance source the F-board pins, and the configuration the board and the authority loaders read. Checked by
  * src/governance/mandatory-reading.mjs against the loaders in BOTH directions — a missing required source and a
  * sealed or protected entry each turn the check RED. Generated from the loaders at corpus governance commit
- * 91b4121b2cbb (now 2026-09-22); regenerate after every corpus migration — the
+ * cd149aea074f (now 2026-09-23); regenerate after every corpus migration — the
  * check fails loudly until you do, which is the point.
  *
  * Paths only. No content of any listed file is copied here.
@@ -43,8 +43,11 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-09-22_F05_CHAIN_PART3_REMEDIATION.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-09-22_F05_CHAIN_PART4_OWNER_ANSWERS.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-09-22_F05_CURRENT_AUTHORITY_REGISTER_CHAIN.md", loader: "authority register (CURRENT record)" }),
-  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-09-22_F08_COMPLETE.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-09-22_F08_CONTRADICTORY_EVIDENCE.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-09-22_ROW5_COMPLETE.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-09-23_F07_COMPLETE.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-09-23_F08_COMPLETE.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F07_FROZEN_ACCEPTANCE_2026-09-23.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_FEATURE_MASTER_COMMAND_ROW1_2026-09-18.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_FEATURE_MASTER_COMMAND_ROW5_2026-09-18.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_FEATURE_MASTER_COMMAND_ROW9_2026-09-18.md", loader: "authority register (CURRENT record)" }),
@@ -63,8 +66,10 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_RULING_2026-09-22_BOARD_AUTHORITY.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_RULING_2026-09-22_F05_ACCEPTANCE.md", loader: "F-board acceptance F05" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_RULING_2026-09-22_F08_ACCEPTANCE.md", loader: "F-board acceptance F08" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_RULING_2026-09-22_F08_GOVERNED_WRITE_BOUNDARY.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_RULING_2026-09-22_HELDOUT_ROLE_SCOPE.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_RULING_2026-09-22_RETIRED_CONTAMINATED_HELDOUT.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_RULING_2026-09-23_F08_TARGET_AWARE_DURABILITY.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_RULING_A_2026-09-15_READ_ONLY_DEPLOY_KEY.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_RULINGS_2026-09-14_ROWS_5_6_STATES.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_STATUS_SEMANTICS_RULING_RECORD_2026-09-18.md", loader: "authority register (CURRENT record)" }),

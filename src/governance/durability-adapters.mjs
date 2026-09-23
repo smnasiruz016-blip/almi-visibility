@@ -9,9 +9,21 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync, appendFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 
-/** The repository's content-hash rule: sha256 over UTF-8 with CRLF normalised, so a checkout style never moves it. */
+/** The repository's content-hash rule for TEXT: sha256 over UTF-8 with CRLF normalised, so a checkout style
+ * never moves it. */
 export const contentHash = (bytes) =>
   createHash("sha256").update(Buffer.from(Buffer.from(bytes).toString("utf8").replace(/\r\n/g, "\n"), "utf8")).digest("hex");
+
+/** Raw bytes, hashed as they are. */
+export const byteHash = (bytes) => createHash("sha256").update(Buffer.from(bytes)).digest("hex");
+
+/**
+ * 🔴 BINARY CONTENT IS NEVER NORMALISED. The text rule decodes to UTF-8 and collapses CRLF, which is right for a
+ * generated document and WRONG for a compressed archive: a brotli payload really does contain 0x0D 0x0A pairs that
+ * mean nothing of the sort, and normalising them silently changes the hash of bytes that never changed. Two of the
+ * governed callers write brotli buffers, so the rule is chosen by what the caller actually supplies.
+ */
+export const hashRuleFor = (bytes) => (Buffer.isBuffer(bytes) ? byteHash : contentHash);
 
 /** Our own temporary files, and no others. The suffix is what makes "ours" a measurable claim rather than a hope. */
 export const TEMP_MARKER = ".governed-staged-";
@@ -29,7 +41,8 @@ const isOurTemp = (target, name) => name.startsWith(`${basename(target)}${TEMP_M
  */
 export function stagedReplaceAdapter({ repo, repoRelativeTarget, targetClass, bytes }) {
   const absolute = resolve(join(repo, repoRelativeTarget));
-  const intended = contentHash(bytes ?? "");
+  const hashOf = hashRuleFor(bytes ?? "");
+  const intended = hashOf(bytes ?? "");
 
   return {
     profile: "STAGED_REPLACE",
@@ -47,7 +60,7 @@ export function stagedReplaceAdapter({ repo, repoRelativeTarget, targetClass, by
     /** The target already holds exactly this occurrence's bytes, or it does not. Nothing in between. */
     inspect() {
       if (!existsSync(absolute)) return { state: "ABSENT" };
-      return contentHash(readFileSync(absolute)) === intended ? { state: "COMMITTED" } : { state: "ABSENT" };
+      return hashOf(readFileSync(absolute)) === intended ? { state: "COMMITTED" } : { state: "ABSENT" };
     },
 
     /**
@@ -67,13 +80,15 @@ export function stagedReplaceAdapter({ repo, repoRelativeTarget, targetClass, by
       const dir = dirname(absolute);
       mkdirSync(dir, { recursive: true });
       const tmp = join(dir, tempNameFor(absolute));
-      writeFileSync(tmp, bytes, "utf8");
+      /* A Buffer is written as-is; an encoding would be ignored for one anyway, and saying "utf8" here invited the
+       * reader to believe binary content was being decoded. */
+      if (Buffer.isBuffer(bytes)) writeFileSync(tmp, bytes); else writeFileSync(tmp, bytes, "utf8");
       return tmp;
     },
 
     verifyPrepared(tmp) {
       if (!tmp || !existsSync(tmp)) return [{ code: "PREPARED_ABSENT", why: "the prepared temporary is not on disk" }];
-      return contentHash(readFileSync(tmp)) === intended ? [] : [{ code: "PREPARED_BYTES_DIFFER", why: "the prepared bytes are not the bytes this occurrence declared" }];
+      return hashOf(readFileSync(tmp)) === intended ? [] : [{ code: "PREPARED_BYTES_DIFFER", why: "the prepared bytes are not the bytes this occurrence declared" }];
     },
 
     /** The commit itself: one atomic replace. Before this call the target is untouched; after it, it is the new one. */
@@ -83,7 +98,7 @@ export function stagedReplaceAdapter({ repo, repoRelativeTarget, targetClass, by
 
     verify() {
       if (!existsSync(absolute)) return [{ code: "TARGET_ABSENT_AFTER_COMMIT", why: "the target does not exist after a successful rename" }];
-      return contentHash(readFileSync(absolute)) === intended ? [] : [{ code: "TARGET_BYTES_DIFFER", why: "the target does not carry this occurrence's bytes after commit" }];
+      return hashOf(readFileSync(absolute)) === intended ? [] : [{ code: "TARGET_BYTES_DIFFER", why: "the target does not carry this occurrence's bytes after commit" }];
     },
 
     recover() {

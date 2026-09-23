@@ -20,9 +20,18 @@ import { createJsonlStore } from "../src/evidence/store.mjs";
 import { readBodyArchive } from "../src/evidence/body-archive.mjs";
 import { pagesFromRun, deriveEdges, inboundOf, packGraph, ZERO_INBOUND_DEFINITION } from "../src/crawl/inbound.mjs";
 import { batchFile } from "../src/crawl/observation-batch.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../src/governance/governed-run.mjs";
+import { isoSeconds } from "../src/audit-trail/store.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv.slice(2), env: process.env }));
+const RUN_INSTANT = isoSeconds(Date.now());
+const RUN_CORRELATION = `run:edge-graph:${RUN_INSTANT}`;
+const governedEdgeGraph = (target) => governedFileWrite({
+  repo: REPO, permission, target, targetClass: "RUN_EVIDENCE", bytes: packed,
+  action: "WRITE_EDGE_GRAPH", occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
+});
 /* 🔴 NO DEFAULT DESTINATION, SINCE 20 SEPTEMBER 2026. The canonical edge graph lives in the external
  * observation batch, where it is immutable evidence. Re-deriving it into THIS repository would put
  * back exactly the artifact the migration removed, so a destination must now be named explicitly.
@@ -43,6 +52,9 @@ console.log(`pages with no inbound links inside the crawled set: ${zero.length} 
 console.log(`packed: ${packed.length} bytes`);
 
 if (!permission.mayWrite) {
+  /* The refusal is AUDITED when there is a target to key it on. A dry run with no destination is not a governed
+   * write attempt at all, so it keeps its original message and its exit code unchanged. */
+  if (OUT !== null) executeGovernedWrite(governedEdgeGraph(OUT));
   console.log("[dry-run] nothing written — add --confirm");
   process.exit(0);
 }
@@ -54,7 +66,12 @@ if (existsSync(OUT)) {
   console.error(`🔴 REFUSED — ${OUT} already exists. Recorded evidence is not re-recorded over itself.`);
   process.exit(2);
 }
-const tmp = `${OUT}.tmp-${process.pid}`;
-writeFileSync(tmp, packed);
-renameSync(tmp, OUT);
-console.log(`written: ${OUT}`);
+/* The temporary-then-rename this file already performed is exactly STAGED_REPLACE, so the boundary now owns it
+ * — including discarding its own abandoned temporary and verifying the target after the rename. `packed` is a
+ * brotli Buffer and is hashed as raw bytes, never decoded. */
+const governed = executeGovernedWrite(governedEdgeGraph(OUT));
+if (governed.outcome !== "COMMITTED" && governed.outcome !== "ALREADY_COMMITTED") {
+  console.error(`🔴 ${governed.outcome} — ${OUT} was not written; the governed attempt is on the audit trail`);
+  process.exit(1);
+}
+console.log(`written: ${OUT} [${governed.outcome}]`);

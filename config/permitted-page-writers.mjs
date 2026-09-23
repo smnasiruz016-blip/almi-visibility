@@ -203,7 +203,11 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
   },
   {
     file: "bin/export.mjs",
-    sites: 2,
+    /* 🔴 ROUTED through the shared governed-write boundary (23 September 2026): three targets, three governed
+     * occurrences, each audited allowed or refused. The direct write site and the bare mkdir are GONE rather than
+     * gated — the boundary's own prepare step creates the directory — so the declared count is 0. */
+    routed: true,
+    sites: 0,
     writes: "the three exports of the evidence store — evidence.md, evidence.json and estate.csv — each carrying the states and bounds of what it summarises",
     where: `runs/export/ by default — three tracked EVIDENCE files (.gitattributes runs/**) — or the directory given by --out; ${CONFINED}`,
     gatedBy: "write-law LOCAL: the directory and all three files sit behind permission.mayWrite, which only --confirm grants. With no flag it still builds all three and prints each one's size, the states and the bounds. 🔴 Until 15 September 2026 it wrote on every run — the same shape as the writer that fired on 14 September. `npm run export` is therefore a dry run; `npm run export -- --confirm` writes",

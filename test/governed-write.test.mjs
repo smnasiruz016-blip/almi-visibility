@@ -19,7 +19,7 @@ import {
   GovernedWriteRefused, PROFILES, RETURNED_OUTCOMES, DISCOVERED_STATES, DECLARED_UNREACHABLE,
   TERMINAL_EVENT_FOR, OUTCOME_FOR_PHASE, SAGA, AUDIT_STORE_EXEMPTION,
 } from "../src/governance/governed-write.mjs";
-import { stagedReplaceAdapter, jsonlAppendAdapter, TEMP_MARKER, contentHash } from "../src/governance/durability-adapters.mjs";
+import { stagedReplaceAdapter, jsonlAppendAdapter, TEMP_MARKER, contentHash, byteHash } from "../src/governance/durability-adapters.mjs";
 import {
   resolveAuditStoreLocation, inVerifiedTestContext, AuditStoreOverrideForbidden,
   AUDIT_STORE_OVERRIDE_ENV, AUDIT_RUN_ENV, TEST_SCRATCH_AUDIT_ROOT, SYNTHETIC_LABEL, isRealEvidence,
@@ -274,6 +274,28 @@ test("P16 · preparation happens INSIDE the target's own confined directory", ()
     executeGovernedWrite({ permission: ALLOWED, audit: ctx(dir), adapter: a, action: act("t", a.occurrenceFingerprint) });
     assert.equal(dirname(preparedAt), join(dir, "nested"), "the temporary was prepared outside the target's directory");
     assert.ok(preparedAt.includes(TEMP_MARKER));
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("🔴 BINARY content is hashed RAW — a buffer holding CRLF bytes is not normalised into a different occurrence", () => {
+  const dir = scratch();
+  try {
+    const audit = ctx(dir);
+    /* Two governed callers write brotli buffers. A brotli payload really does contain 0x0D 0x0A pairs that mean
+     * nothing of the sort, so applying the text rule to them would change the hash of bytes that never changed. */
+    const binary = Buffer.from([0x1f, 0x0d, 0x0a, 0x42, 0x0d, 0x0a, 0x00, 0xff]);
+    const a = stagedReplaceAdapter({ repo: REPO, repoRelativeTarget: rel(join(dir, "b.bin")), targetClass: "RUN_EVIDENCE", bytes: binary });
+    assert.equal(executeGovernedWrite({ permission: ALLOWED, audit, adapter: a, action: act("bin", a.occurrenceFingerprint) }).outcome, "COMMITTED");
+    // the bytes on disk are EXACTLY the bytes offered — nothing was decoded, replaced or collapsed
+    assert.deepEqual(readFileSync(join(dir, "b.bin")), binary);
+    const again = stagedReplaceAdapter({ repo: REPO, repoRelativeTarget: rel(join(dir, "b.bin")), targetClass: "RUN_EVIDENCE", bytes: binary });
+    assert.equal(executeGovernedWrite({ permission: ALLOWED, audit, adapter: again, action: act("bin", again.occurrenceFingerprint) }).outcome, "ALREADY_COMMITTED");
+
+    /* 🔴 CONTROL, SHOWING THE HAZARD IS REAL: under the TEXT rule these two DIFFERENT buffers collapse to the same
+     * digest. That is precisely why the rule is chosen by what the caller supplies instead of applied to all. */
+    const other = Buffer.from([0x1f, 0x0a, 0x42, 0x0a, 0x00, 0xff]);
+    assert.equal(contentHash(binary), contentHash(other), "the text rule no longer collapses CRLF — this control has stopped demonstrating the hazard");
+    assert.notEqual(byteHash(binary), byteHash(other), "the byte rule collapsed two different buffers");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

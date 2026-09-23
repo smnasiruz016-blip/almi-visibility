@@ -337,7 +337,22 @@ test("🔴 CONTROL: the check FIRES on facts-lifecycle as it stood on 14 Septemb
 
 test("🔴 GAP 2 · the census covers EVERY write path, and a HELPER-reached write is a site", () => {
   const w = writeSiteCensus();
-  assert.ok(w.sites.length > 90, `only ${w.sites.length} write sites — the population is not the widened one`);
+  /* 🔴 RE-BASED FOR ROUTING — A RE-BASE, NOT A RELAXATION.
+   *
+   * The floor of 90 caught the census NARROWING: a write path silently dropping out of the population. Routing
+   * removes sites for the OPPOSITE reason — the write moved inside the shared boundary, which audits it — so a
+   * fixed floor would now have to be edited on every batch, and a number edited to stay green stops being
+   * evidence. The claim is therefore made DIRECTLY, and it is harder to satisfy than a count: every declared
+   * writer that is NOT routed must still be seen by the census, so a path cannot leave the population unless its
+   * caller really reached the boundary. */
+  assert.ok(w.sites.length > 0, "the census sees no write sites at all");
+  const seen = new Set(w.sites.map((s) => s.file));
+  for (const e of PERMITTED_LOCAL_WRITERS.filter((x) => !x.routed)) {
+    assert.ok(seen.has(e.file), `${e.file} is an UNROUTED declared writer and the census sees no write site in it`);
+  }
+  for (const e of PERMITTED_LOCAL_WRITERS.filter((x) => x.routed)) {
+    assert.ok(!seen.has(e.file), `${e.file} is declared routed yet the census still sees a direct write site in it`);
+  }
   // 🔴 THE FIGURE THAT SAID "FOUR" MISSED EXACTLY THESE: a write reached through appendIfNew or
   // ledger.append is invisible to a primitive-name scan, and they are more than a third of all sites.
   /* 🔴 RE-BASED 16/17 SEPTEMBER 2026 (owner ruling) — A RE-BASE, NOT A RELAXATION.

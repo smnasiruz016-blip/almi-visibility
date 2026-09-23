@@ -281,7 +281,11 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
   },
   {
     file: "bin/audit-technical.mjs",
-    sites: 3,
+    /* 🔴 ROUTED (23 September 2026). Sitemap observations and findings are collected and committed as two
+     * governed decisions. The bare mkdir is gone rather than gated, and the store still decides
+     * appended-versus-re-sighted so the run reports its answer unchanged. */
+    routed: true,
+    sites: 0,
     writes: "the technical findings (status, https, canonical, noindex, head elements, broken links, query parameters, indexability preflight) and, with --sitemaps, one observation per host's sitemap collection",
     where: `runs/audit/technical-findings.jsonl by default, or the file given by --out; the sitemap observations at runs/evidence/sitemaps.jsonl; ${CONFINED}`,
     gatedBy: "write-law LOCAL: the directory, the findings and the sitemap observations each sit behind permission.mayWrite. 🔴 Until 16 September 2026 it had NO gate — and it is the writer that once stored 868 issues twice",

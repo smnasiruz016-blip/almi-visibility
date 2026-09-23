@@ -12,6 +12,9 @@ import { dirname, join } from "node:path";
 
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedStoreAppend } from "../src/governance/governed-run.mjs";
+import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { makeObservation } from "../src/evidence/records.mjs";
 import { sha256Hex, canonicalUrl, targetPageId } from "../src/evidence/ids.mjs";
 import { extractLinks } from "../src/crawl/seeds.mjs";
@@ -30,6 +33,11 @@ const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, 
 /* 🔴 GAP 2 (16 September 2026) — DRY-RUN BY DEFAULT, for the findings AND for the sitemap
  * observations. Until now both appended on every run with no flag and no gate. */
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
+const RUN_INSTANT = isoSeconds(Date.now());
+const RUN_CORRELATION = `run:audit-technical:${RUN_INSTANT}`;
+/* Routed: the sitemap observations and the findings are COLLECTED and committed as two governed decisions. */
+const pendingSitemapObservations = [];
+const pendingFindings = [];
 const wouldWrite = { findings: 0, sitemapObservations: 0 };
 const arg = (n, d) => {
   const hit = process.argv.find((a) => a.startsWith(`--${n}=`));
@@ -143,8 +151,8 @@ if (doSitemaps) {
       },
       collector: "bin/audit-technical.mjs", collector_version: "1",
     });
-    if (permission.mayWrite) sitemapStore.appendIfNew(obs);
-    else wouldWrite.sitemapObservations += 1;
+    pendingSitemapObservations.push(obs);
+    if (!permission.mayWrite) wouldWrite.sitemapObservations += 1;
     r.observationId = obs.observation_id;
     console.log(
       `  ${host.padEnd(30)} urls=${String(r.urls.length).padStart(6)}  children ${r.childrenFetched}/${r.childrenTotal ?? "?"}` +
@@ -169,7 +177,7 @@ for (const r of evidence) {
 }
 
 /* ---- run every check ---------------------------------------------------- */
-if (permission.mayWrite && !existsSync(dirname(out))) mkdirSync(dirname(out), { recursive: true });
+/* The bare mkdir is gone rather than gated — the boundary's prepare step creates the directory it writes into. */
 const store = createJsonlStore(out);
 const writes = { appended: 0, resighted: 0 };
 const tally = {};
@@ -226,10 +234,31 @@ for (const p of pages) {
     }
     // 🔴 appendIfNew, not append: this job run twice stored 868 issues twice
     // (12 Sep 2026). The same finding is now one record plus a re-sighting.
-    const w = permission.mayWrite ? store.appendIfNew(f, { seenAt: openedAt }) : null;
-    if (w) writes[w.appended ? "appended" : "resighted"] += 1;
-    else wouldWrite.findings += 1;
+    pendingFindings.push(f);
+    if (!permission.mayWrite) wouldWrite.findings += 1;
     bump(check.id, f.verdict);
+  }
+}
+
+/* ---- the two governed writes, before anything is reported ---------------- */
+
+for (const [target, records, action] of [
+  [sitemapStore, pendingSitemapObservations, "APPEND_SITEMAP_OBSERVATIONS"],
+  [store, pendingFindings, "APPEND_TECHNICAL_AUDIT_FINDINGS"],
+]) {
+  const args = governedStoreAppend({
+    repo: REPO, permission, store: target, records, targetClass: "RUN_EVIDENCE",
+    action, occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
+    discipline: "APPEND_IF_NEW", seenAt: openedAt,
+  });
+  const governed = executeGovernedWrite(args);
+  if (governed.outcome !== "REFUSED" && governed.outcome !== "COMMITTED" && governed.outcome !== "ALREADY_COMMITTED") {
+    console.error(`🔴 ${governed.outcome} — ${action} was not written; the governed attempt is on the audit trail`);
+    process.exitCode = 1;
+  }
+  /* The store still decides appended-versus-re-sighted, and the run still reports its answer. */
+  if (action === "APPEND_TECHNICAL_AUDIT_FINDINGS") {
+    for (const w of args.adapter.result ?? []) writes[w?.appended ? "appended" : "resighted"] += 1;
   }
 }
 

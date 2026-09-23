@@ -70,12 +70,19 @@ function shapeOf(text) {
   return "UNCONDITIONAL_TOP_LEVEL";
 }
 
-export function census() {
-  const bins = git("ls-files", "bin").trim().split("\n").filter((p) => p.endsWith(".mjs"));
+/**
+ * @param {{sources?: {file: string, text: string}[]}} [opts] a FIXED INPUT, used by the planted-bypass control.
+ *   Injecting the population in memory lets that control plant a synthetic bypass and remove it without writing a
+ *   byte into bin/ and without touching the git index — which is the difference between a control and an incident.
+ */
+export function census({ sources = null } = {}) {
+  const bins = sources
+    ? sources.map((s) => s.file)
+    : git("ls-files", "bin").trim().split("\n").filter((p) => p.endsWith(".mjs"));
   const tests = git("ls-files", "test").trim().split("\n").filter((p) => p.endsWith(".mjs"));
   const testText = new Map(tests.map((f) => [f, readFileSync(join(REPO, f), "utf8")]));
   return bins.map((file) => {
-    const text = readFileSync(join(REPO, file), "utf8");
+    const text = sources ? sources.find((s) => s.file === file).text : readFileSync(join(REPO, file), "utf8");
     const sites = writeSitesOf(text);
     const asksWriteLaw = /writePermission\(/.test(text);
     const usesBoundary = BOUNDARY_CALL.test(text);

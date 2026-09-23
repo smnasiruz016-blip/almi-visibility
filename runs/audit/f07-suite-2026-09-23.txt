@@ -1,0 +1,24 @@
+§9 · engine HEAD 20141a0c27a9fa8120fa1d82374312e0708323ef · node v24.15.0 · started 2026-09-23T22:42:54.368Z
+command: node --test test/*.test.mjs (124 files, glob expanded in sorted order)
+RUN 1: exit 0 · tests 1928 · pass 1928 · fail 0 · skipped 0 · cancelled 0 · todo 0 · 490s
+   production events.jsonl 40b40a312756fab7b173bb213a9d24ae0b24e3214ad947edfb122b525f9dae5d -> 40b40a312756fab7b173bb213a9d24ae0b24e3214ad947edfb122b525f9dae5d IDENTICAL (252 -> 252 events)
+   production head.json    0d702edfb3fcdbb4a1fbd49929ee2c143bf74fd89b704fc73f97d96a0cb44d4f -> 0d702edfb3fcdbb4a1fbd49929ee2c143bf74fd89b704fc73f97d96a0cb44d4f IDENTICAL
+   .test-scratch/audit run directories 684 -> 684 · .test-scratch entries 994 -> 997
+   tracked working tree unchanged: true
+RUN 2: exit 0 · tests 1928 · pass 1928 · fail 0 · skipped 0 · cancelled 0 · todo 0 · 494s
+   production events.jsonl 40b40a312756fab7b173bb213a9d24ae0b24e3214ad947edfb122b525f9dae5d -> 40b40a312756fab7b173bb213a9d24ae0b24e3214ad947edfb122b525f9dae5d IDENTICAL (252 -> 252 events)
+   production head.json    0d702edfb3fcdbb4a1fbd49929ee2c143bf74fd89b704fc73f97d96a0cb44d4f -> 0d702edfb3fcdbb4a1fbd49929ee2c143bf74fd89b704fc73f97d96a0cb44d4f IDENTICAL
+   .test-scratch/audit run directories 684 -> 684 · .test-scratch entries 997 -> 1000
+   tracked working tree unchanged: true
+RUNS AGREE: true
+PLANTED: exit 1 · tests 1929 · pass 1928 · fail 1 · skipped 0 · cancelled 0 · todo 0 · 486s
+   ✖ F07 FINAL COUNTING CONTROL — THIS FAILURE MUST BE NAMED
+   production events.jsonl 40b40a312756fab7b173bb213a9d24ae0b24e3214ad947edfb122b525f9dae5d -> 40b40a312756fab7b173bb213a9d24ae0b24e3214ad947edfb122b525f9dae5d IDENTICAL (252 -> 252 events)
+   production head.json    0d702edfb3fcdbb4a1fbd49929ee2c143bf74fd89b704fc73f97d96a0cb44d4f -> 0d702edfb3fcdbb4a1fbd49929ee2c143bf74fd89b704fc73f97d96a0cb44d4f IDENTICAL
+   .test-scratch/audit run directories 684 -> 684 · .test-scratch entries 1000 -> 1003
+   tracked working tree unchanged: true
+   loaded +1: true · failed +1: true · planted test NAMED: true · no unrelated failure: true
+   plant removed: true · test/ listing byte-identical to before the plant: true · git status identical: true
+finished 2026-09-23T23:07:24.283Z
+
+The runs measured tree 20141a0. This file is the only change after it: a text record under runs/audit, read by no test.

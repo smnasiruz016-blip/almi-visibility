@@ -133,10 +133,18 @@ export function retainedRunDirs({ repo }) {
 }
 
 /** The bounded cleanup for retained evidence: removes ONLY RETAINED-marked run directories beneath the scratch root. */
-export function removeRetainedRunDirs({ repo }) {
+/*
+ * 🔴 `only` — a test passes the ONE directory it owns and nothing else is touched. Without it this removes EVERY
+ * retained directory, which is an OPERATOR's act (test/helpers/retained-audit-clean.mjs --confirm), never a test's:
+ * measured 23 September, a hygiene test that swept the whole root deleted a directory another failed run had
+ * retained as evidence (647 -> 646 across one suite).
+ */
+export function removeRetainedRunDirs({ repo, only = null }) {
   const realRoot = realpathSync(join(repo, TEST_SCRATCH_AUDIT_ROOT));
+  const allowed = only ? new Set(only.map((d) => resolve(d))) : null;
   const removed = [];
   for (const { dir } of retainedRunDirs({ repo })) {
+    if (allowed && !allowed.has(resolve(dir))) continue;
     if (!isBeneath(realRoot, realpathSync(dir))) continue;
     rmSync(dir, { recursive: true, force: true });
     removed.push(dir);

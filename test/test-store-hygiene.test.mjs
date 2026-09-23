@@ -63,6 +63,7 @@ test("H1 · a PASSING run removes the run directory it minted — which provably
 test("H2 · a FAILED run KEEPS its store, names it RETAINED, and the bounded cleanup removes exactly those — never an unmarked directory", () => {
   const { r, seen, work } = runChild({ fail: true });
   const unowned = join(AUDIT_ROOT, `run-zz-hygiene-unmarked-${process.pid}`);
+  const otherRetained = join(AUDIT_ROOT, `run-zz-hygiene-other-retained-${process.pid}`);
   try {
     assert.notEqual(r.status, 0, "the planted failure did not fail the child");
     assert.equal(seen.existed, true);
@@ -70,14 +71,20 @@ test("H2 · a FAILED run KEEPS its store, names it RETAINED, and the bounded cle
     assert.match(readFileSync(join(seen.runDir, RETAINED_MARKER), "utf8"), /^exitCode=[1-9]\d* pid=\d+/);
     assert.ok(retainedRunDirs({ repo: REPO }).some((x) => x.dir === seen.runDir), "the retained directory is not listed");
     mkdirSync(join(unowned, "worker-1"), { recursive: true }); // an UNMARKED run directory nobody retained
-    const removed = removeRetainedRunDirs({ repo: REPO });
-    assert.ok(removed.includes(seen.runDir), "the bounded cleanup did not remove the retained directory");
+    /* 🔴 ANOTHER run's RETAINED evidence — marked exactly like ours. A test removes only what it owns: this must
+     * survive. (An earlier version swept the whole root and deleted a real failed run's retained directory.) */
+    mkdirSync(join(otherRetained, "worker-1"), { recursive: true });
+    writeFileSync(join(otherRetained, RETAINED_MARKER), "exitCode=1 pid=0\n");
+    const removed = removeRetainedRunDirs({ repo: REPO, only: [seen.runDir] });
+    assert.deepEqual(removed, [seen.runDir], "the bounded cleanup removed something other than the one directory it was given");
     assert.equal(existsSync(seen.runDir), false);
     assert.equal(existsSync(unowned), true, "the bounded cleanup removed an UNMARKED directory");
-    assert.ok(!removed.includes(unowned));
+    assert.equal(existsSync(otherRetained), true, "the bounded cleanup removed ANOTHER run's retained evidence");
+    assert.ok(retainedRunDirs({ repo: REPO }).some((x) => x.dir === otherRetained), "control: the other run's directory IS retained-marked");
   } finally {
     rmSync(work, { recursive: true, force: true });
     rmSync(unowned, { recursive: true, force: true });
+    rmSync(otherRetained, { recursive: true, force: true });
     if (seen?.runDir) rmSync(seen.runDir, { recursive: true, force: true });
   }
 });

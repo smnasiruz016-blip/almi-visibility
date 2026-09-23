@@ -210,6 +210,11 @@ export const SABOTAGES = [
     to: "    void 0;",
     expect: /the owner left its run directory behind/ },
 
+  { id: "S-H4", what: "hygiene: a test's bounded cleanup sweeps OTHER runs' retained evidence", file: RUN, test: TH, named: "H2 ·",
+    from: "    if (allowed && !allowed.has(resolve(dir))) continue;\n",
+    to: "",
+    expect: /removed something other than the one directory|ANOTHER run's retained evidence/ },
+
   { id: "S-X1", what: "acceptance: one changed word in F08's carried EXPECTED clause", file: ACC, test: TC, named: "F-ACC ·",
     from: "Every governed event is recorded in an append-only, product-neutral",
     to: "Every governed event is recorded in an append-only, product-specific",

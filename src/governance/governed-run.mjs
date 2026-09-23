@@ -99,6 +99,9 @@ const MINTED_HERE = new Set();
 const OWNED_RUN_DIRS = new Map(); // absolute run dir -> scratch root it must lie beneath
 export const RETAINED_MARKER = "RETAINED";
 
+/** Is this process a node:test FILE (the runner executes each file as its own main module)? */
+export const isTestFileProcess = (argv = process.argv) => /\.test\.mjs$/.test(String(argv[1] ?? "").split("\\").join("/"));
+
 function ownRunDir(runDir, scratchRoot) {
   if (OWNED_RUN_DIRS.size === 0) process.on("exit", (code) => releaseOwnedRunDirs({ exitCode: code }));
   OWNED_RUN_DIRS.set(runDir, scratchRoot);
@@ -112,7 +115,11 @@ export function releaseOwnedRunDirs({ exitCode = process.exitCode ?? 0 } = {}) {
     const realRoot = existsSync(root) ? realpathSync(root) : null;
     const realDir = realpathSync(dir);
     if (!realRoot || !isBeneath(realRoot, realDir)) { out.push({ dir, action: "REFUSED_OUTSIDE_SCRATCH_ROOT" }); continue; }
-    if (exitCode !== 0) {
+    /* 🔴 ONLY A FAILED TEST RUN RETAINS. A governed BINARY spawned by a test mints its own nonce too, and its
+     * non-zero exit is its CLI contract (exit 2 is a lawful refusal), not a failed test: measured 23 September, the
+     * refusal proofs left one RETAINED directory per suite run that nobody could ever read — the spawning test does
+     * not know the child's nonce, and it has already captured the output it asserts on. */
+    if (exitCode !== 0 && isTestFileProcess()) {
       writeFileSync(join(dir, RETAINED_MARKER), `exitCode=${exitCode} pid=${process.pid}\n`, "utf8");
       out.push({ dir, action: "RETAINED" });
       continue;

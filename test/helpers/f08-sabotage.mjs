@@ -196,8 +196,8 @@ export const SABOTAGES = [
     expect: /the boundary is called inside the permission branch|the governed write does not come AFTER/ },
 
   { id: "S-H1", what: "hygiene: a FAILED run's store is deleted instead of retained", file: RUN, test: TH, named: "H2 ·",
-    from: "    if (exitCode !== 0) {\n      writeFileSync(join(dir, RETAINED_MARKER)",
-    to: "    if (false && exitCode !== 0) {\n      writeFileSync(join(dir, RETAINED_MARKER)",
+    from: "    if (exitCode !== 0 && isTestFileProcess()) {\n      writeFileSync(join(dir, RETAINED_MARKER)",
+    to: "    if (false && exitCode !== 0 && isTestFileProcess()) {\n      writeFileSync(join(dir, RETAINED_MARKER)",
     expect: /a failed run's evidence was deleted/ },
 
   { id: "S-H2", what: "hygiene: a process removes a run directory whose nonce it only INHERITED", file: RUN, test: TH, named: "H3 ·",
@@ -214,6 +214,11 @@ export const SABOTAGES = [
     from: "    if (allowed && !allowed.has(resolve(dir))) continue;\n",
     to: "",
     expect: /removed something other than the one directory|ANOTHER run's retained evidence/ },
+
+  { id: "S-H5", what: "hygiene: ANY non-zero exit retains — a binary's lawful refusal leaks an unreadable store", file: RUN, test: TH, named: "H4 ·",
+    from: "    if (exitCode !== 0 && isTestFileProcess()) {",
+    to: "    if (exitCode !== 0) {",
+    expect: /left a RETAINED store nobody can read/ },
 
   { id: "S-X1", what: "acceptance: one changed word in F08's carried EXPECTED clause", file: ACC, test: TC, named: "F-ACC ·",
     from: "Every governed event is recorded in an append-only, product-neutral",

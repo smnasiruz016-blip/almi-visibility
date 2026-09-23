@@ -89,6 +89,33 @@ test("H2 · a FAILED run KEEPS its store, names it RETAINED, and the bounded cle
   }
 });
 
+test("H4 · a governed BINARY that exits non-zero on purpose (exit 2 — a lawful refusal) removes its store: only a failed TEST retains", () => {
+  mkdirSync(join(REPO, ".test-scratch"), { recursive: true });
+  const work = mkdtempSync(join(REPO, ".test-scratch", "hyg-"));
+  const out = join(work, "seen.json");
+  writeFileSync(join(work, "binary-like.mjs"), [
+    'import { existsSync, writeFileSync } from "node:fs";',
+    'import { dirname } from "node:path";',
+    `import { governedAuditContext, resolveAuditStoreLocation, isTestFileProcess } from ${JSON.stringify(RUN_MOD)};`,
+    `governedAuditContext({ repo: ${JSON.stringify(REPO)} });`,
+    `const loc = resolveAuditStoreLocation({ repo: ${JSON.stringify(REPO)} });`,
+    `writeFileSync(${JSON.stringify(out)}, JSON.stringify({ runDir: dirname(dirname(loc.eventsPath)), existed: existsSync(dirname(loc.eventsPath)), synthetic: loc.synthetic, testFile: isTestFileProcess() }));`,
+    "process.exit(2);",
+    "",
+  ].join("\n"));
+  const env = { ...process.env, NODE_TEST_CONTEXT: "child-v8", NODE_TEST_WORKER_ID: "7" };
+  delete env[AUDIT_RUN_ENV];
+  try {
+    const r = spawnSync(process.execPath, [join(work, "binary-like.mjs")], { cwd: REPO, env, encoding: "utf8", timeout: 120_000 });
+    assert.equal(r.status, 2, r.stderr);
+    const seen = JSON.parse(readFileSync(out, "utf8"));
+    assert.equal(seen.synthetic, true, "the child was not in a verified test context");
+    assert.equal(seen.testFile, false);
+    assert.equal(seen.existed, true, "the store never existed — a clean zero here would prove nothing");
+    assert.equal(existsSync(seen.runDir), false, "a non-test process's non-zero exit left a RETAINED store nobody can read");
+  } finally { rmSync(work, { recursive: true, force: true }); }
+});
+
 test("H3 · a process that INHERITS a nonce never removes that run's directory — it belongs to whoever set it", () => {
   const nonce = `hyg${process.pid}x${Date.now()}`;
   const runDir = join(AUDIT_ROOT, `run-${nonce}`);

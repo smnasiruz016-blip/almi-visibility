@@ -341,7 +341,12 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
   },
   {
     file: "bin/gsc-ingest.mjs",
-    sites: 2,
+    /* 🔴 ROUTED (23 September 2026). The dry-run store is always the collector, so the ingest runs and reports
+     * identically either way; the observations and the cost entry are then two governed decisions. The rule that
+     * a SYNTHETIC source is NEVER written to the ledger is intact — where it applies there is no governed write
+     * at all, so the boundary is not called. */
+    routed: true,
+    sites: 0,
     writes: "the Search Console measurements — written inside runIngest through the store this bin hands it — and one cost-ledger entry per run",
     where: `runs/evidence/evidence.jsonl by default, or the file given by --store; the ledger at runs/cost/ledger.jsonl; ${CONFINED}`,
     gatedBy: "write-law LOCAL: both ledger appends sit behind permission.mayWrite, and without it the store handed to runIngest is createDryRunStore — so a run queries, reports every row count, bound and cost, and stores nothing. 🔴 Until 16 September 2026 it had NO gate",

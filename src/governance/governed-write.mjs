@@ -36,7 +36,32 @@
  */
 import { createHash } from "node:crypto";
 
-export const PROFILES = Object.freeze(["STAGED_REPLACE", "VALIDATED_APPEND"]);
+/**
+ * 🔴 THE THIRD PROFILE — STAGED_DIRECTORY_REPLACE (23 September 2026), MEASURED BEFORE IT WAS WRITTEN.
+ *
+ * One governed caller (the replay's `--recover`) replaces a WHOLE DIRECTORY that an external tool fills. Neither
+ * ruled profile describes that: STAGED_REPLACE renames one file over another, and a directory cannot be renamed over
+ * an existing one — measured on 23 September on the owner's host (win32, Node 24.15): `renameSync(dir, existingDir)`
+ * throws EPERM whether the existing directory is empty or not, and succeeds only onto an ABSENT path. (POSIX rename(2)
+ * replaces only an empty directory; that was not measured here and nothing below depends on it.) So the replace is
+ * TWO atomic renames — the live copy aside, then the staged copy onto the now-absent path — which is NOT one atomic
+ * step, and this profile says so rather than borrowing STAGED_REPLACE's promise:
+ *
+ *   · preparation is OBSERVABLE — the tool fills a staging directory beside the target, which is validated before
+ *     anything live is touched, so a failed or partial download never becomes the target;
+ *   · a failed second rename is ROLLED BACK by renaming the live copy back — the target is then unchanged and the
+ *     outcome is FAILED_BEFORE_COMMIT;
+ *   · a failed ROLLBACK leaves the target absent — that is RECOVERY_REQUIRED, returned, never called FAILED;
+ *   · ALREADY_COMMITTED is DECLARED-UNREACHABLE: the intended bytes exist only after the tool has run, so no
+ *     inspection before preparation can know the target already holds them.
+ *
+ * The ruling of 23 September governs the other two profiles unchanged; this one is added under the command that
+ * required it (§4, "the smallest truthful target-aware profile"), not read into that ruling.
+ */
+export const PROFILES = Object.freeze(["STAGED_REPLACE", "VALIDATED_APPEND", "STAGED_DIRECTORY_REPLACE"]);
+/** The two profiles the owner ruling of 23 September itemises and totals (9 · 2 · 1 = 12). */
+export const RULED_PROFILES = Object.freeze(["STAGED_REPLACE", "VALIDATED_APPEND"]);
+const STAGED = new Set(["STAGED_REPLACE", "STAGED_DIRECTORY_REPLACE"]);
 
 /** Target classes a governed write may declare. A target whose class cannot be derived is refused, never defaulted. */
 export const TARGET_CLASSES = Object.freeze([
@@ -47,6 +72,7 @@ export const TARGET_CLASSES = Object.freeze([
 export const RETURNED_OUTCOMES = Object.freeze({
   STAGED_REPLACE: Object.freeze(["REFUSED", "COMMITTED", "FAILED_BEFORE_COMMIT", "ALREADY_COMMITTED", "RECOVERY_REQUIRED"]),
   VALIDATED_APPEND: Object.freeze(["REFUSED", "COMMITTED", "FAILED_BEFORE_COMMIT", "ALREADY_COMMITTED"]),
+  STAGED_DIRECTORY_REPLACE: Object.freeze(["REFUSED", "COMMITTED", "FAILED_BEFORE_COMMIT", "RECOVERY_REQUIRED"]),
 });
 
 /** VOCABULARY 2 — what a later inspection finds. 🔴 EVERY ENTRY NAMES AN OWNER. A state with no owner is a leak. */
@@ -65,6 +91,23 @@ export const DISCOVERED_STATES = Object.freeze({
       how: "readAll() reports MALFORMED_TAIL and append() refuses to extend a damaged chain. 🔴 THE OWNER BLOCKS; IT DOES NOT REPAIR — there is no recovery law in this repository and none is invented here. The condition halts the store rather than accumulating silently.",
     }),
   ]),
+  STAGED_DIRECTORY_REPLACE: Object.freeze([
+    Object.freeze({
+      state: "PREPARED",
+      owner: "NEXT_GOVERNED_WRITE_TO_SAME_TARGET",
+      how: "a staging directory that outlived its process (the tool was killed mid-download). Before preparing, the next write lists the target's parent and discards ITS OWN staging directories by name. It never adopts one — a directory the tool may not have finished is never made the target.",
+    }),
+    Object.freeze({
+      state: "RETIRED",
+      owner: "NEXT_GOVERNED_WRITE_TO_SAME_TARGET",
+      how: "the previous live copy, set aside by the first rename, left behind when the process died before its removal. The next write discards it by name. It is never restored automatically: whether it is complete is not recorded anywhere, so restoring it would adopt bytes nothing vouches for.",
+    }),
+    Object.freeze({
+      state: "TARGET_ABSENT",
+      owner: "NEXT_GOVERNED_WRITE_TO_SAME_TARGET",
+      how: "the process died between the two renames, or a rollback failed (returned as RECOVERY_REQUIRED). Every reader of the target refuses an absent directory rather than reading nothing as a clean zero, and the next governed write re-prepares a fresh, validated copy. 🔴 NO REPAIR IS INVENTED: there is no recovery law, so the owner re-runs the write.",
+    }),
+  ]),
 });
 
 /**
@@ -79,6 +122,15 @@ export const DECLARED_UNREACHABLE = Object.freeze([
       "appendFileSync is SYNCHRONOUS: it returns or it throws, and the target is re-readable in the same tick. " +
       "Every return path is therefore resolvable by inspection, so the CALL can never hand back an unknown status; " +
       "and a process that dies mid-call leaves nothing alive to return one.",
+  }),
+  Object.freeze({
+    profile: "STAGED_DIRECTORY_REPLACE",
+    outcome: "ALREADY_COMMITTED",
+    measurement:
+      "the intended content is produced by an EXTERNAL tool during preparation, so it does not exist when the boundary " +
+      "inspects the target — which it must do before any attempt is recorded. No inspection at that point can establish " +
+      "that the target already holds bytes nobody has fetched yet. A retry therefore re-prepares and re-validates; it " +
+      "never adopts or duplicates, and a partial result is never committed.",
   }),
 ]);
 
@@ -172,8 +224,8 @@ function requireAdapter(adapter) {
   for (const m of REQUIRED_ADAPTER_METHODS) {
     if (typeof adapter[m] !== "function") throw new GovernedWriteRefused("ADAPTER_INCOMPLETE", `the adapter does not implement ${m}()`);
   }
-  if (adapter.profile === "STAGED_REPLACE" && typeof adapter.prepare !== "function") {
-    throw new GovernedWriteRefused("ADAPTER_INCOMPLETE", "a STAGED_REPLACE adapter must implement prepare()");
+  if (STAGED.has(adapter.profile) && typeof adapter.prepare !== "function") {
+    throw new GovernedWriteRefused("ADAPTER_INCOMPLETE", `a ${adapter.profile} adapter must implement prepare()`);
   }
   return adapter;
 }
@@ -366,13 +418,16 @@ export function executeGovernedWrite({ permission, audit, adapter, action, idemp
   };
 
   let prepared = null;
-  if (profile === "STAGED_REPLACE") {
+  if (STAGED.has(profile)) {
     /* Discard OUR OWN abandoned temporaries — the named owner of the PREPARED discovered state. Never an
      * unrelated file, and never by adoption: a temporary of unknown provenance is deleted, not committed. */
     if (typeof adapter.discardAbandoned === "function") adapter.discardAbandoned();
     try {
       prepared = adapter.prepare();
     } catch (err) {
+      /* A directory the external tool half-filled is discarded at once: it can never become the target, and leaving
+       * it for the next write would only hold disk hostage to a download that is known to have failed. */
+      if (profile === "STAGED_DIRECTORY_REPLACE" && typeof adapter.discardAbandoned === "function") adapter.discardAbandoned();
       return fail("GOVERNED_WRITE_PREPARE_FAILED", [{ code: "PREPARE_FAILED", why: String(err?.code ?? err?.name ?? "ERROR") }], { errorCode: String(err?.code ?? err?.name ?? "ERROR") });
     }
     const preparedFaults = typeof adapter.verifyPrepared === "function" ? (adapter.verifyPrepared(prepared) ?? []) : [];
@@ -408,7 +463,19 @@ export function executeGovernedWrite({ permission, audit, adapter, action, idemp
     );
   }
 
-  // STAGED_REPLACE
+  // STAGED_REPLACE · STAGED_DIRECTORY_REPLACE
+  if (commitThrew && commitThrew.governedTargetState === "TARGET_ABSENT") {
+    /* 🔴 THE ROLLBACK FAILED. The live copy was moved aside, the staged copy did not take its place, and moving the
+     * live copy back also failed — so the target is ABSENT. That is not FAILED_BEFORE_COMMIT (the target DID change)
+     * and it is not COMMITTED. It is returned as what it is, and nothing is discarded: the retired copy stays on disk
+     * as a DISCOVERED state for its named owner. */
+    const t = appendPhase({
+      audit, action, profile, target, key, phase: SAGA.RECOVERY_REQUIRED,
+      reasonCode: "GOVERNED_WRITE_TARGET_ABSENT_AFTER_FAILED_ROLLBACK", parentEventId: attemptedEventId,
+      extraMetadata: { errorCode: String(commitThrew?.code ?? commitThrew?.name ?? "ERROR") },
+    });
+    return { ...withAttempt, outcome: "RECOVERY_REQUIRED", terminalEventId: t.event.eventId, faults: [{ code: "TARGET_ABSENT_AFTER_FAILED_ROLLBACK" }] };
+  }
   if (commitThrew) {
     if (typeof adapter.discardAbandoned === "function") adapter.discardAbandoned();
     return fail("GOVERNED_WRITE_COMMIT_FAILED", [{ code: "COMMIT_FAILED", why: String(commitThrew?.code ?? commitThrew?.name ?? "ERROR") }], { errorCode: String(commitThrew?.code ?? commitThrew?.name ?? "ERROR") });

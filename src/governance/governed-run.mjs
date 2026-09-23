@@ -17,7 +17,7 @@ import { AUTHORITY_CORPUS } from "../../config/authority/corpus.mjs";
 import { resolve as resolveAuthority, permits } from "../authority/register.mjs";
 import { productionAuditStore } from "../audit-trail/wiring.mjs";
 import { softwareVersionOf } from "../audit-trail/wiring.mjs";
-import { stagedReplaceAdapter, jsonlAppendAdapter, storeAppendAdapter, APPEND_DISCIPLINES } from "./durability-adapters.mjs";
+import { stagedReplaceAdapter, stagedDirectoryReplaceAdapter, jsonlAppendAdapter, storeAppendAdapter, APPEND_DISCIPLINES } from "./durability-adapters.mjs";
 
 export const AUDIT_STORE_OVERRIDE_ENV = "ALMIVISIBILITY_AUDIT_STORE";
 
@@ -295,6 +295,21 @@ export function governedStoreAppend({ repo, permission, store, records, targetCl
     audit: governedContext({ repo, env, correlationId, now: dayOf(occurredAt) }),
     adapter,
     action: { name: action, scopeType, tenantId, subjectId, occurredAt, occurrenceFingerprint: adapter.occurrenceFingerprint, evidenceRefs },
+  };
+}
+
+/**
+ * A whole directory filled by an external step, through STAGED_DIRECTORY_REPLACE. `occurrenceFingerprint` is the
+ * caller's DECLARED content identity of what it fetches (e.g. the hash of an artifact's name and run), because the
+ * bytes do not exist until `populate` has run; it is validated as a sha256, never trusted as anything more.
+ */
+export function governedDirectoryReplace({ repo, permission, target, targetClass, populate, validate, occurrenceFingerprint, action, occurredAt, correlationId, env = process.env, scopeType = "GLOBAL_PRODUCT", tenantId = null, subjectId = null, evidenceRefs = [] }) {
+  const adapter = stagedDirectoryReplaceAdapter({ repo, repoRelativeTarget: repoRelative(repo, target), targetClass, occurrenceFingerprint, populate, validate });
+  return {
+    permission,
+    audit: governedContext({ repo, env, correlationId, now: dayOf(occurredAt) }),
+    adapter,
+    action: { name: action, scopeType, tenantId, subjectId, occurredAt, occurrenceFingerprint, evidenceRefs },
   };
 }
 

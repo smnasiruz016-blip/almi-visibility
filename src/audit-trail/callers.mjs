@@ -22,21 +22,41 @@ import { isoSeconds } from "./store.mjs";
 export const MIGRATION_AUTHORITY = Object.freeze({ propositionId: "CC_COMMAND_F05_CURRENT_AUTHORITY_REGISTER_CHAIN", scope: Object.freeze(["ALMIVISIBILITY", "F05"]) });
 
 /**
- * Record an authority-corpus migration: the write-gate decision that authorised it (local and production), and the
- * migration action itself. Returns the migration event; throws if any of it cannot be recorded honestly.
+ * The migration's governing authority, resolved over the corpus THIS RUN derived. Throws unless it is CURRENT.
+ * 🔴 CALLED BEFORE THE CORPUS WRITE, so an unresolved authority stops the write rather than being noticed after it.
+ */
+export function migrationAuthority({ records, now }) {
+  const res = resolveAuthority({ records, propositionId: MIGRATION_AUTHORITY.propositionId, scope: [...MIGRATION_AUTHORITY.scope], now });
+  if (!permits(res)) throw new Error(`AUDIT_REFUSED: the migration's governing authority resolves ${res.outcome}, not CURRENT — the governed write does not proceed`);
+  return { authorityRef: { ...MIGRATION_AUTHORITY, scope: [...MIGRATION_AUTHORITY.scope] }, authorityHash: res.authority.contentHash };
+}
+
+/**
+ * Record an authority-corpus migration AFTER its corpus write committed: the production write-gate decision (the
+ * write beyond this machine that was, or was not, permitted) and the migration action itself, linked to the governed
+ * write's terminal event. Returns the migration event; throws if any of it cannot be recorded honestly.
+ *
+ * 🔴 ONE DECISION, ONE RECORD (23 September 2026). This function used to append a LOCAL write-gate decision as well —
+ * "the write law allowed writing the corpus here" — and the governed-write boundary then recorded the same decision
+ * again as its ATTEMPTED event. Two records of one decision. The boundary's saga is now the only record of the local
+ * decision, including its REFUSED form on a dry run, which this function never recorded at all.
+ *
+ * 🔴 AND IT IS NO LONGER WRITTEN BEFORE THE WRITE. It said APPLIED before the corpus write was attempted, so a write
+ * that then failed left the trail claiming a migration that never happened. It is now appended only after the
+ * boundary returns COMMITTED, and it names that terminal event as its parent.
  *
  * @param {object} o
  * @param {object} o.store         the audit store, handed in by the caller — this module never chooses one
  * @param {readonly object[]} o.records  the corpus THIS RUN derived; the authority is resolved over it
+ * @param {string|null} [o.parentEventId]  the governed write's terminal (COMMITTED) event
  */
-export function auditAuthorityMigration({ store, records, provenance, permission, counts, softwareVersion, actor, argv = [], env = {} }) {
-  const res = resolveAuthority({ records, propositionId: MIGRATION_AUTHORITY.propositionId, scope: [...MIGRATION_AUTHORITY.scope], now: provenance.now });
-  if (!permits(res)) throw new Error(`AUDIT_REFUSED: the migration's governing authority resolves ${res.outcome}, not CURRENT — the governed write does not proceed`);
+export function auditAuthorityMigration({ store, records, provenance, permission, counts, softwareVersion, actor, argv = [], env = {}, parentEventId = null }) {
+  void permission;
+  const { authorityRef, authorityHash } = migrationAuthority({ records, now: provenance.now });
   const occurredAt = isoSeconds(Date.now());
   const correlationId = `run:authority-migrate:${occurredAt}`;
-  const common = { softwareVersion, correlationId, occurredAt, authorityRef: { ...MIGRATION_AUTHORITY, scope: [...MIGRATION_AUTHORITY.scope] }, authorityHash: res.authority.contentHash, actor };
+  const common = { softwareVersion, correlationId, occurredAt, authorityRef, authorityHash, actor };
 
-  store.append(writeGateEvent({ ...common, permission, target: "local", action: "WRITE_AUTHORITY_CORPUS" }));
   store.append(writeGateEvent({ ...common, permission: writePermission({ target: PRODUCTION, argv, env }), target: "production", action: "WRITE_BEYOND_THIS_MACHINE" }));
   return store.append({
     eventType: "AUTHORITY_MIGRATION",
@@ -49,12 +69,12 @@ export function auditAuthorityMigration({ store, records, provenance, permission
     scopeType: "GLOBAL_PRODUCT",
     tenantId: null,
     subjectId: null,
-    authorityRef: { ...MIGRATION_AUTHORITY, scope: [...MIGRATION_AUTHORITY.scope] },
-    authorityHash: res.authority.contentHash,
+    authorityRef,
+    authorityHash,
     softwareVersion,
     evidenceRefs: [],
     correlationId,
-    parentEventId: null,
+    parentEventId,
     migration: false,
     migrationSource: null,
     migratedAt: null,

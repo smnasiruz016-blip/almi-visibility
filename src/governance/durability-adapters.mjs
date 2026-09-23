@@ -7,7 +7,7 @@
  */
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync, appendFileSync } from "node:fs";
-import { basename, dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve, sep } from "node:path";
 
 /** The repository's content-hash rule for TEXT: sha256 over UTF-8 with CRLF normalised, so a checkout style
  * never moves it. */
@@ -150,6 +150,135 @@ export function stagedReplaceAdapter({ repo, repoRelativeTarget, targetClass, by
     recover() {
       return this.inspect();
     },
+  };
+}
+
+/**
+ * PROFILE 3 · STAGED_DIRECTORY_REPLACE — an EXTERNAL tool fills a staging directory beside the target; the staged
+ * tree is validated and fingerprinted; the live directory is renamed aside, the staged one renamed into its place,
+ * and the retired copy removed. See `PROFILES` in governed-write.mjs for why this is two renames and not one.
+ *
+ * @param {(dir: string) => void} populate  the external step. It is handed an EMPTY staging directory and must fill
+ *   it; it never sees the live target. 🔴 It is the only place the tool runs, so a tool that dies mid-way leaves a
+ *   staging directory — a DISCOVERED state with a named owner — and never a half-written target.
+ * @param {(dir: string) => object[]} validate  faults of the staged tree; [] means it may become the target.
+ * @param {string} occurrenceFingerprint  the declared content-identity of what is being fetched (a sha256), because
+ *   the bytes themselves do not exist until the tool has run.
+ * @param {(from: string, to: string) => void} [rename]  the rename primitive — injectable ONLY so a proof can make one
+ *   rename fail on demand; production passes nothing and gets renameSync.
+ */
+export function stagedDirectoryReplaceAdapter({ repo, repoRelativeTarget, targetClass, occurrenceFingerprint, populate, validate = () => [], rename = renameSync }) {
+  const absolute = resolve(join(repo, repoRelativeTarget));
+  const parent = dirname(absolute);
+  const base = basename(absolute);
+  const STAGE = `${base}${TEMP_MARKER}dir-`;
+  const RETIRE = `${base}.governed-retired-`;
+  const ours = (n) => n.startsWith(STAGE) || n.startsWith(RETIRE);
+  let intendedManifest = null;
+
+  /** The tree's identity: every relative file name with the sha256 of its RAW bytes, sorted. Never normalised. */
+  const manifestOf = (dir) => {
+    const out = [];
+    const walk = (d, prefix) => {
+      for (const n of readdirSync(d, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+        const rel = prefix ? `${prefix}/${n.name}` : n.name;
+        if (n.isDirectory()) walk(join(d, n.name), rel);
+        else out.push(`${rel}\u0000${byteHash(readFileSync(join(d, n.name)))}`);
+      }
+    };
+    walk(dir, "");
+    return { files: out.length, hash: createHash("sha256").update(out.join("\n"), "utf8").digest("hex") };
+  };
+
+  return {
+    profile: "STAGED_DIRECTORY_REPLACE",
+    occurrenceFingerprint,
+    retiredPath: null,
+    cleanupFault: null,
+
+    describeTarget: () => ({ targetClass, repoRelativeTarget }),
+
+    prevalidate() {
+      const faults = [];
+      if (typeof populate !== "function") faults.push({ code: "POPULATE_ABSENT", why: "a directory replace needs the step that fills it" });
+      /* Strictly BENEATH the repository: the repository root itself is never a directory this profile may replace. */
+      if (!absolute.startsWith(resolve(repo) + sep)) faults.push({ code: "TARGET_OUTSIDE_REPOSITORY", why: "a governed target is confined beneath the repository" });
+      return faults;
+    },
+
+    /* DECLARED-UNREACHABLE for this profile: the intended bytes do not exist before preparation. */
+    inspect: () => ({ state: "ABSENT" }),
+
+    /** The named owner of PREPARED and RETIRED: ours by name only; an unrelated sibling is never touched. */
+    discardAbandoned() {
+      if (!existsSync(parent)) return [];
+      const found = readdirSync(parent).filter(ours);
+      for (const n of found) rmSync(join(parent, n), { recursive: true, force: true });
+      return found;
+    },
+
+    prepare() {
+      mkdirSync(parent, { recursive: true });
+      const staging = join(parent, `${STAGE}${process.pid}-${Math.random().toString(36).slice(2, 10)}`);
+      mkdirSync(staging);
+      populate(staging);
+      return staging;
+    },
+
+    verifyPrepared(staging) {
+      if (!staging || !existsSync(staging)) return [{ code: "PREPARED_ABSENT", why: "the staging directory is not on disk" }];
+      const faults = [...(validate(staging) ?? [])];
+      const m = manifestOf(staging);
+      if (m.files === 0) faults.push({ code: "PREPARED_EMPTY", why: "the tool produced no files — an empty directory is not a recovered one" });
+      if (faults.length === 0) intendedManifest = m;
+      return faults;
+    },
+
+    /**
+     * Rename the live copy aside, then the staged copy in. If the second rename fails, rename the live copy BACK;
+     * the target is then unchanged and the throw is an ordinary failure. If that rollback ALSO fails, the throw
+     * carries governedTargetState "TARGET_ABSENT", which the boundary returns as RECOVERY_REQUIRED.
+     */
+    commit(staging) {
+      let retired = null;
+      if (existsSync(absolute)) {
+        retired = join(parent, `${RETIRE}${process.pid}-${Math.random().toString(36).slice(2, 10)}`);
+        rename(absolute, retired);
+      }
+      try {
+        rename(staging, absolute);
+      } catch (err) {
+        if (retired) {
+          try { rename(retired, absolute); } catch (rollbackErr) {
+            this.retiredPath = retired;
+            const e = new Error(`the staged directory could not be moved in (${err?.code ?? err?.name}) and the live copy could not be moved back (${rollbackErr?.code ?? rollbackErr?.name})`);
+            e.code = rollbackErr?.code ?? "ROLLBACK_FAILED";
+            e.governedTargetState = "TARGET_ABSENT";
+            throw e;
+          }
+        }
+        throw err;
+      }
+      /* The new target is in place. Removing the retired copy is housekeeping: if it fails, the copy is a RETIRED
+       * discovered state for the next write — the commit itself is not undone by it. */
+      if (retired) {
+        try { rmSync(retired, { recursive: true, force: true }); } catch (e) { this.cleanupFault = String(e?.code ?? e?.name); this.retiredPath = retired; }
+      }
+    },
+
+    verify() {
+      if (!existsSync(absolute)) return [{ code: "TARGET_ABSENT_AFTER_COMMIT", why: "the target does not exist after the rename" }];
+      const m = manifestOf(absolute);
+      return intendedManifest && m.hash === intendedManifest.hash && m.files === intendedManifest.files
+        ? []
+        : [{ code: "TARGET_TREE_DIFFERS", why: "the target's files are not the validated staged files" }];
+    },
+
+    recover() {
+      return existsSync(absolute) && intendedManifest && manifestOf(absolute).hash === intendedManifest.hash ? { state: "COMMITTED" } : { state: "ABSENT" };
+    },
+
+    manifest: () => intendedManifest,
   };
 }
 

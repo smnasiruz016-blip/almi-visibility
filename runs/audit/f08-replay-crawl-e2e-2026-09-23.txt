@@ -1,0 +1,95 @@
+F08 §4 — bin/replay-crawl.mjs: MEASURED DURABILITY MODEL, AND THE ROUTED CALLER RUN END TO END — 23 September 2026
+
+WHERE IT RAN. A disposable git worktree at C:\Projects\almi-visibility-f08-e2e (detached at engine d4c4283, with this
+change applied as a patch), beside the real data repository so the observation batch resolved. NOT in the engine tree:
+a --confirm run writes runs/replay/, runs/cost/ledger.jsonl and the audit trail, and those writes landed in the
+worktree's own copies, which were then removed with the worktree. The engine's production trail was not touched
+(its hashes are recorded in the sabotage and suite records).
+
+────────────────────────────────────────────────────────────────
+1 · WHAT THE CALLER MUTATED BEFORE ROUTING (read from bin/replay-crawl.mjs at d4c4283)
+────────────────────────────────────────────────────────────────
+M1  --recover --confirm   rmSync(runs/crawl/corpus) · mkdirSync(it) · `gh run download` INTO it.
+    Interruption at any point after rmSync left the corpus absent, empty or half-filled. Nothing recorded the attempt.
+M2  --confirm             the crawl store and the DNS-audit store WERE the recorded files under runs/replay/, appended
+                          line by line while the passes ran (runReplayPass / runRobotsAndDnsAudit). A run that died
+                          half-way left a half-written recorded store. runReplayPass was not in the caller census's
+                          hand-written vocabulary, so these writes were invisible to it.
+M3  --confirm             two ledger.append calls on runs/cost/ledger.jsonl.
+M4  --confirm             writeFileSync of the evidence JSON.
+    Dry run               wrote only into an OS temp directory it created and removed.
+
+────────────────────────────────────────────────────────────────
+2 · THE MEASUREMENTS THE THIRD PROFILE STANDS ON
+────────────────────────────────────────────────────────────────
+- External tool: `gh run download <run> -n <artifact> -D <dir>` — fills the directory it is given. Preparation is
+  therefore OBSERVABLE if it is given a staging directory instead of the live one.
+- Directory rename on the owner's host (win32, Node v24.15.0), probe run 23 Sep:
+      rename(dir -> existing NON-EMPTY dir)  THROWS EPERM
+      rename(dir -> existing EMPTY dir)      THROWS EPERM
+      rename(dir -> ABSENT path)             succeeds
+  So a whole-directory replace is TWO atomic renames (live aside, staged in), not one. POSIX was not measured here and
+  nothing depends on it.
+- fsync law: none in this repository (unchanged). COMMITTED means the renames returned and the target re-read.
+- Recovery law: none (unchanged). A discovered state is discarded or re-prepared by its named owner, never repaired.
+
+────────────────────────────────────────────────────────────────
+3 · THE PROFILE — STAGED_DIRECTORY_REPLACE (src/governance/governed-write.mjs, durability-adapters.mjs)
+────────────────────────────────────────────────────────────────
+RETURNED   REFUSED · COMMITTED · FAILED_BEFORE_COMMIT · RECOVERY_REQUIRED                              (4)
+DISCOVERED PREPARED (abandoned staging) · RETIRED (abandoned live copy) · TARGET_ABSENT — each owned by
+           NEXT_GOVERNED_WRITE_TO_SAME_TARGET, which discards its own by name and re-prepares       (3)
+UNREACHABLE ALREADY_COMMITTED — the intended bytes do not exist until the tool runs, and the boundary must
+           inspect before any attempt is recorded                                                     (1)
+           8 accounted, remainder 0. Kept apart from the owner ruling's 9 · 2 · 1 = 12 (RULED_PROFILES).
+
+Stage by stage — what is left if it stops there:
+  before ATTEMPTED          nothing changed
+  populate (tool) fails     staging discarded at once; live target unchanged      -> FAILED_BEFORE_COMMIT
+  validate refuses          staging discarded; live target unchanged              -> FAILED_BEFORE_COMMIT
+  process killed in tool    staging left = PREPARED; live unchanged; next write discards it
+  aside ok, in fails        rollback renames live back; target unchanged          -> FAILED_BEFORE_COMMIT
+  rollback also fails       target ABSENT; retired copy on disk                    -> RECOVERY_REQUIRED
+  killed between renames    target ABSENT = TARGET_ABSENT; every reader refuses an absent corpus ("no bodies");
+                            the next --recover re-prepares
+  renames ok, cleanup fails retired copy left = RETIRED; commit stands; next write discards it
+  verify after commit fails target moved, unconfirmed                             -> RECOVERY_REQUIRED
+Validation of the staged corpus is the replay's own integrity rule: every body must hash to its observation's
+content_sha256, none missing, at least one present.
+
+────────────────────────────────────────────────────────────────
+4 · END-TO-END RUNS IN THE WORKTREE (commands exactly as run)
+────────────────────────────────────────────────────────────────
+A  node bin/replay-crawl.mjs --label=f08-e2e                                  (dry run)
+   exit 0 · "every assertion held" · egress 822 requests, 0 non-local
+   trail 179 -> 183: 4 × GOVERNED_WRITE REFUSED (crawl store, audit store, cost entries, evidence),
+   reason GOVERNED_WRITE_REFUSED_BY_WRITE_LAW · nothing recorded under runs/replay
+
+B  node bin/replay-crawl.mjs --label=f08-e2e --confirm
+   exit 0 · ledger 22 -> 23 lines · trail 183 -> 191, 4 sagas ATTEMPTED -> COMMITTED
+   (3 × STAGED_REPLACE, 1 × VALIDATED_APPEND) · chain VERIFIES at 191
+   recorded bytes vs the 13 September recording made by the old in-place appends:
+     crawl store      788 lines = 788 · observation 399 · resighting 389 — identical by record type
+     DNS-audit store  268 lines = 268 · issue 107 · observation 27 · resighting 134 — identical
+     0 CR bytes, final LF; 0 staging files left under runs/replay
+
+C  node bin/replay-crawl.mjs --recover --confirm --label=f08-e2e-r1          (REAL gh download, corpus absent)
+   exit 0 · recovered 394 files, 39,921,127 bytes · validated · renamed in · 2 ledger entries
+
+D  (a stale marker file planted in the live corpus: 395 files)
+   node bin/replay-crawl.mjs --recover --confirm --label=f08-e2e-r2          (REAL gh download, corpus present)
+   exit 0 · corpus now 394 files, marker gone (the live copy was replaced, not merged) · runs/crawl holds only
+   `corpus` (no staging, no retired) · 4 REPLACE_RECOVERED_CRAWL_CORPUS events across C and D · chain VERIFIES at 211
+
+The refusal: `--recover` without --confirm still exits 2 with its unchanged message and deletes nothing
+(test/owner-authorization-gates.test.mjs, green); it is now an audited REFUSED decision, and the tool never runs.
+
+────────────────────────────────────────────────────────────────
+5 · DECLARED LIMITS — NOT CLAIMED
+────────────────────────────────────────────────────────────────
+- No power-loss durability: no fsync law exists.
+- The replace is two atomic renames, not one: a process killed between them leaves the target ABSENT. That state is
+  owned (the next --recover), reported by every reader, and never read as an empty corpus — but it is reachable.
+- A failed rollback is not repaired: RECOVERY_REQUIRED is returned and the retired copy is left for the owner.
+- The killed-mid-download and failed-rename cases were driven with stand-ins (test/governed-directory-replace.test.mjs
+  P-D3 · P-D5 · P-D6 · P-D7), because a real EPERM or a real kill cannot be summoned on demand.

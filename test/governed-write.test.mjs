@@ -17,7 +17,7 @@ import { tmpdir } from "node:os";
 import {
   executeGovernedWrite, recoverGovernedWrite, deriveIdempotencyKey, incompleteSagas,
   GovernedWriteRefused, PROFILES, RETURNED_OUTCOMES, DISCOVERED_STATES, DECLARED_UNREACHABLE,
-  TERMINAL_EVENT_FOR, OUTCOME_FOR_PHASE, SAGA, AUDIT_STORE_EXEMPTION,
+  TERMINAL_EVENT_FOR, OUTCOME_FOR_PHASE, SAGA, AUDIT_STORE_EXEMPTION, RULED_PROFILES,
 } from "../src/governance/governed-write.mjs";
 import { stagedReplaceAdapter, jsonlAppendAdapter, storeAppendAdapter, APPEND_DISCIPLINES, TEMP_MARKER, contentHash, byteHash } from "../src/governance/durability-adapters.mjs";
 import { createJsonlStore, RESIGHTING_TYPE } from "../src/evidence/store.mjs";
@@ -57,13 +57,17 @@ const logAdapter = (dir, name, record) =>
  * ══════════════════════════════════════════════════════════════════════════ */
 
 test("P49 · every outcome the ruling declares is either a returned outcome or a named discovered state — and the totals reconcile", () => {
-  assert.deepEqual([...PROFILES], ["STAGED_REPLACE", "VALIDATED_APPEND"]);
-  const returned = PROFILES.flatMap((p) => RETURNED_OUTCOMES[p]);
-  const discovered = PROFILES.flatMap((p) => DISCOVERED_STATES[p]);
+  /* The ruling of 23 September itemises TWO profiles and totals them 9 · 2 · 1 = 12. Those totals stay exact over
+   * exactly those two. The third profile (added under §4 of the completion command) is accounted separately in P49c,
+   * so it can never be read as a change to the ruling's own figures. */
+  assert.deepEqual([...RULED_PROFILES], ["STAGED_REPLACE", "VALIDATED_APPEND"]);
+  const returned = RULED_PROFILES.flatMap((p) => RETURNED_OUTCOMES[p]);
+  const discovered = RULED_PROFILES.flatMap((p) => DISCOVERED_STATES[p]);
+  const unreachable = DECLARED_UNREACHABLE.filter((u) => RULED_PROFILES.includes(u.profile));
   assert.equal(returned.length, 9, "the ruling measured 9 reachable-as-returned outcomes");
   assert.equal(discovered.length, 2, "the ruling measured 2 reachable-as-discovered states");
-  assert.equal(DECLARED_UNREACHABLE.length, 1);
-  assert.equal(returned.length + discovered.length + DECLARED_UNREACHABLE.length, 12, "12 accounted, remainder 0");
+  assert.equal(unreachable.length, 1);
+  assert.equal(returned.length + discovered.length + unreachable.length, 12, "12 accounted, remainder 0");
 
   // 🔴 EVERY DISCOVERED STATE NAMES AN OWNER. A state with no owner is a leak, not a state.
   for (const d of discovered) {

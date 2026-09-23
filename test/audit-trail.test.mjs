@@ -695,33 +695,41 @@ test("P33 · a governed state-changing action FAILS CLOSED when the audit append
     softwareVersion: SW, actor: "test", argv: ["--confirm"], env: {},
   });
   assert.equal(r.status, "APPENDED");
-  assert.equal(working.readAll().events.length, 3);
-  // The write-gate decision was recorded once, with the REAL answer the write law gave — including its refusal.
+  /* 🔴 TWO events, not three (23 September 2026). The LOCAL write decision is now recorded ONCE, by the governed-write
+   * boundary's saga around the corpus write; recording it here as well was two records of one decision. What remains
+   * is the PRODUCTION write-gate decision — with the REAL answer the write law gave, a refusal — and the migration. */
+  assert.equal(working.readAll().events.length, 2);
   const gates = working.readAll().events.filter((e) => e.eventType === "WRITE_GATE_DECISION");
-  assert.deepEqual(gates.map((e) => e.outcome), ["ALLOWED", "REFUSED"]);
+  assert.deepEqual(gates.map((e) => [e.action, e.outcome]), [["WRITE_BEYOND_THIS_MACHINE", "REFUSED"]]);
   assert.equal(writePermission({ target: PRODUCTION, argv: ["--confirm"], env: {} }).mayWrite, false);
 });
 
-test("P33b · the audited caller FAILS CLOSED BY CONSTRUCTION — the append is called before the governed write, and nothing catches it", () => {
+test("P33b · the audited caller FAILS CLOSED BY CONSTRUCTION — authority first, the boundary in BOTH branches, the migration only after COMMITTED, nothing catches", () => {
+  /* 🔴 THE ORDER CHANGED ON 23 SEPTEMBER, AND THIS PROOF CHANGED WITH IT — for a stated reason, not to go green.
+   * It used to assert the migration record came BEFORE the governed write. That record says APPLIED; written first,
+   * a write that then failed left the trail claiming a migration that never happened. The fail-closed property it
+   * stood for is now the boundary's: ATTEMPTED is appended before the mutation and throws if the trail refuses it
+   * (test/governed-write.test.mjs P7·P8), so a failed audit append still means no corpus. What this proves now:
+   *   (1) the migration's authority is resolved BEFORE the write;
+   *   (2) the boundary is called OUTSIDE the permission branch, so a dry run is an audited REFUSED;
+   *   (3) the migration record is appended only inside `governed.outcome === "COMMITTED"`, after the write;
+   *   (4) no bare corpus write, and nothing catches. */
   const text = readFileSync(join(REPO_ROOT, "bin/authority-migrate.mjs"), "utf8").replace(/\r\n/g, "\n");
   const lines = text.split("\n");
-  const open = lines.findIndex((l) => l.startsWith("if (permission.mayWrite) {"));
-  const close = lines.findIndex((l, i) => i > open && l === "} else {");
-  assert.ok(open >= 0 && close > open, "the write law's granted branch could not be found in the audited caller");
-  const block = lines.slice(open, close);
-  const auditAt = block.findIndex((l) => /^\s*auditMigration\(/.test(l));
-  /* 🔴 THE GOVERNED WRITE IS NOW THE BOUNDARY CALL — AND THIS ROUTING IS WHAT MADE THE OLD ANCHOR WRONG.
-   * The corpus write used to be a bare `writeFileSync(OUT, ...)` on the next line; it now goes through the shared
-   * boundary, which audits the MUTATION that nothing audited before. The property this proof is about is
-   * unchanged and is still asserted: the audit append comes FIRST, the governed write comes after it, and nothing
-   * catches in between — so a failed append still means no corpus. */
-  const writeAt = block.findIndex((l) => /^\s*(const governed = )?executeGovernedWrite\(/.test(l));
-  assert.ok(auditAt >= 0, "the granted branch does not record the decision at all");
-  assert.ok(writeAt >= 0, "the granted branch performs no governed write at all");
-  assert.ok(writeAt > auditAt, "the governed write does not come AFTER the audit append");
-  assert.equal(block.some((l) => /^\s*writeFileSync\(OUT/.test(l)), false, "a bare corpus write survives beside the routed one");
+  const code = (i) => !/^\s*(\*|\/\/|\/\*)/.test(lines[i]);
+  const at = (re) => lines.findIndex((l, i) => code(i) && re.test(l));
+  const authorityAt = at(/^if \(permission\.mayWrite\) migrationAuthority\(/);
+  const boundaryAt = at(/^const governed = executeGovernedWrite\(/);
+  const branchAt = at(/^if \(permission\.mayWrite\) \{$/);
+  const committedAt = at(/^\s+if \(governed\.outcome === "COMMITTED"\) \{$/);
+  const migratedAt = at(/^\s+const migrated = auditAuthorityMigration\(/);
+  assert.ok(authorityAt >= 0, "the migration's authority is not resolved before the write");
+  assert.ok(boundaryAt > authorityAt, "the governed write does not come AFTER the authority resolution");
+  assert.ok(branchAt > boundaryAt, "the boundary is called inside the permission branch — a dry run would record nothing");
+  assert.ok(committedAt > branchAt && migratedAt > committedAt, "the migration record is not appended only after COMMITTED");
+  assert.equal(lines.some((l, i) => code(i) && /^\s*writeFileSync\(OUT/.test(l)), false, "a bare corpus write survives beside the routed one");
   // 🔴 NOTHING CATCHES. A try/catch here would let the corpus be written after the trail refused it.
-  assert.equal(block.some((l) => /\b(try|catch)\b/.test(l) && !/^\s*(\*|\/\/)/.test(l)), false, "the granted branch catches — the write could proceed after a failed append");
+  assert.equal(lines.slice(authorityAt).some((l, i) => code(authorityAt + i) && /\b(try|catch)\b/.test(l)), false, "the caller catches — the write could proceed after a failed append");
 });
 
 test("P34 · the declared store location and format are product-neutral, and the store is where it says it is", () => {

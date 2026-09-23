@@ -1,0 +1,51 @@
+F07 + F08 FROZEN ACCEPTANCE, RE-RUN ON THEIR REAL POPULATIONS AFTER THE SINK REPAIR · HEAD 65f088b · 2026-09-23T23:44:04Z
+
+── acceptance test files (F07 P1-P34 + closure; F08 §9 matrix files; this repair) ──
+ℹ tests 208
+ℹ pass 208
+ℹ fail 0
+ℹ skipped 0
+
+── F07 held-out access census (every decision exit emits exactly one event) ──
+  ok   score · population not accounted           emitted 1 · POPULATION_NOT_ACCOUNTED
+  ok   score · complete population                emitted 1 · RETURNED
+  decision exits 18 · reached their branch AND emitted exactly one event: 18 · FAILED 0
+
+── F07 population census ──
+F07 §4 · REAL POPULATIONS (counts and hashes only)
+
+A · sealed paths      denominator 681 tracked · SEALED 61 · not sealed 620 · untracked under a prefix 0 · ignored under a prefix 0
+                      1 registry entr(y/ies) · by prefix 57 + 4 · commitment a03c8ee02dfa6dd3… · control fires: true
+B · mandatory reading required 75 · declared 75 · errors 0 · remainder 0 · control (planted sealed → RED, removed source → RED): true
+C · access paths      29 sites · DUPLICATE_OBSERVATION_OF_SAME_DECISION 11 · LIVE_AUDITED 4 · NOT_GOVERNED_WITH_REASON 13 · NO_RUNTIME_MUTATION_ENTRY_POINT 1 · DEFECT 0 · unknown 0
+D · access log        writers 10 · readers 6
+E · no-payload rule   681 tracked · scanned 620 · excluded 61 (sealed — excluded UNREAD, counted) · remainder 0
+F · freeze records    0 · access decisions 0 (allowed 0 · refused 0)
+
+── F08 governed-caller census ──
+  REMAINDER                0
+  routed + exempt + non-mutating + bypassing = 41 (must equal 41)
+  caller classes: BOUNDARY_ROUTED 39 · DIRECT_DURABLE_WRITE 0 · COLLECTOR_OR_LIBRARY_WRITE 0 · CHECKED_AUDIT_STORE_EXEMPTION 2 · READ_ONLY 0 · PARTIALLY_ROUTED 0 · UNKNOWN 0
+  write-shaped sites 22: BOUNDARY_ROUTED 7 · READ_ONLY 2 · COLLECTOR_OR_LIBRARY_WRITE 7 · SCRATCH_OUTSIDE_REPOSITORY 1 · CHECKED_AUDIT_STORE_EXEMPTION 5 · DIRECT_DURABLE_WRITE 0 · UNKNOWN 0
+  entry points with NO named test coverage: 20
+
+── F08 decision-site census ──
+
+  LIVE_AUDITED                             46
+  NO_RUNTIME_MUTATION_ENTRY_POINT          7
+  DUPLICATE_OBSERVATION_OF_SAME_DECISION   13
+  NOT_GOVERNED_WITH_REASON                 14
+  DEFECT                                   0
+  REMAINDER                                0
+
+── board ──
+F-board: 89 rows · UNASSESSED 85 · BLOCKED-BY-AUTHORITY 1 · VERIFIED-PASS 3 · sum 89
+F-progress: 3/89
+  F05 VERIFIED-PASS
+  F07 VERIFIED-PASS
+  F08 VERIFIED-PASS
+  F40 BLOCKED-BY-AUTHORITY — UNIVERSAL_350_WORD_FLOOR_STILL_APPLICABLE
+
+── sabotage re-runs on this tree ──
+16 sabotage(s) · EXECUTED 16 of 16 · 16 proved · 0 NOT proved · residue 0 · production untouched true
+34 sabotage(s) · 34 proved · 0 NOT proved · residue 0 · production untouched true

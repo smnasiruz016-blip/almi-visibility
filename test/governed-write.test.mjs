@@ -19,7 +19,7 @@ import {
   GovernedWriteRefused, PROFILES, RETURNED_OUTCOMES, DISCOVERED_STATES, DECLARED_UNREACHABLE,
   TERMINAL_EVENT_FOR, OUTCOME_FOR_PHASE, SAGA, AUDIT_STORE_EXEMPTION,
 } from "../src/governance/governed-write.mjs";
-import { stagedReplaceAdapter, jsonlAppendAdapter, storeAppendAdapter, TEMP_MARKER, contentHash, byteHash } from "../src/governance/durability-adapters.mjs";
+import { stagedReplaceAdapter, jsonlAppendAdapter, storeAppendAdapter, APPEND_DISCIPLINES, TEMP_MARKER, contentHash, byteHash } from "../src/governance/durability-adapters.mjs";
 import { createJsonlStore, RESIGHTING_TYPE } from "../src/evidence/store.mjs";
 import {
   resolveAuditStoreLocation, inVerifiedTestContext, AuditStoreOverrideForbidden,
@@ -481,6 +481,60 @@ test("🔴 a RE-SIGHTING is not suppressed — on the shared store the occurrenc
     assert.equal(all.length, 2, "the re-sighting was suppressed");
     assert.equal(all[1].record_type, RESIGHTING_TYPE, `the second record is ${all[1].record_type}, not a re-sighting`);
     assert.equal(all[1].issue_id, "i-1", "the re-sighting points at a different record");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("🔴 THREE disciplines, THREE different repeat behaviours — each states its own, and none is assumed", () => {
+  /* Measured from the stores' own source, not inferred: appendIfNew appends a RE-SIGHTING, the without-dedupe pair
+   * append again with no check at all, and the cost ledger SKIPS a duplicate entry_id and writes nothing. */
+  assert.equal(APPEND_DISCIPLINES.APPEND_IF_NEW.linesWritten({ appended: false }), 1, "a re-sighting still writes a line");
+  assert.equal(APPEND_DISCIPLINES.APPEND_WITHOUT_DEDUPE.linesWritten({}), 1);
+  assert.equal(APPEND_DISCIPLINES.APPEND_ALL_WITHOUT_DEDUPE.linesWritten({}), 1);
+  assert.equal(APPEND_DISCIPLINES.LEDGER_APPEND.linesWritten({ appended: true }), 1);
+  assert.equal(APPEND_DISCIPLINES.LEDGER_APPEND.linesWritten({ appended: false }), 0, "a skipped duplicate wrote nothing");
+  for (const [name, d] of Object.entries(APPEND_DISCIPLINES)) {
+    assert.ok(typeof d.onRepeat === "string" && d.onRepeat.length > 20, `${name} does not say what it does on a repeat`);
+    assert.equal(typeof d.apply, "function", `${name} has no apply`);
+  }
+});
+
+test("🔴 a target that SKIPS a duplicate still verifies — the expected delta is ASKED of the discipline", () => {
+  const dir = scratch();
+  try {
+    const audit = ctx(dir);
+    const path = join(dir, "ledger.jsonl");
+    const rows = [];
+    /* A stand-in with the cost ledger's measured behaviour: a duplicate entry_id returns { appended: false } and
+     * writes NOTHING. A real ledger is not used here because building a valid cost entry is not what is under
+     * test — the delta rule is. */
+    const skipping = {
+      path,
+      readAll: () => [...rows],
+      append: (e) => (rows.some((r) => r.entry_id === e.entry_id)
+        ? { appended: false, entry_id: e.entry_id }
+        : (rows.push(e), { appended: true, entry_id: e.entry_id })),
+    };
+    const entry = { record_type: "cost_entry", entry_id: "e-1" };
+    const mk = (scope) => storeAppendAdapter({
+      repo: REPO, repoRelativeTarget: rel(path), targetClass: "RUN_EVIDENCE",
+      store: skipping, records: [entry], keyOf: (r) => r.entry_id ?? null,
+      append: (s, r) => APPEND_DISCIPLINES.LEDGER_APPEND.apply(s, r, {}),
+      linesWritten: APPEND_DISCIPLINES.LEDGER_APPEND.linesWritten,
+      occurrenceScope: scope,
+    });
+
+    const a = mk("run:A");
+    assert.equal(executeGovernedWrite({ permission: ALLOWED, audit, adapter: a, action: act("ledger", a.occurrenceFingerprint) }).outcome, "COMMITTED");
+    assert.equal(rows.length, 1);
+
+    /* 🔴 THE SECOND RUN: the target correctly SKIPS and writes nothing. Under a rule of "one line per record"
+     * this would have been reported as a failed write. It is not a failure — it is the target's own decision. */
+    const b = mk("run:B");
+    const second = executeGovernedWrite({ permission: ALLOWED, audit, adapter: b, action: act("ledger", b.occurrenceFingerprint) });
+    assert.equal(second.outcome, "COMMITTED", "a correct skip was reported as a failed write");
+    assert.deepEqual(second.faults, []);
+    assert.equal(rows.length, 1, "the target wrote a duplicate");
+    assert.equal(b.result[0].appended, false, "the target's own answer was lost");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

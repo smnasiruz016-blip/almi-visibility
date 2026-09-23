@@ -37,8 +37,38 @@ export const hashRuleFor = (bytes) => (Buffer.isBuffer(bytes) ? byteHash : conte
  * reason — and leaves the caller declaring WHAT it wants without performing it. No census had to be weakened.
  */
 export const APPEND_DISCIPLINES = Object.freeze({
-  APPEND_IF_NEW: (store, record, { seenAt }) => (seenAt ? store.appendIfNew(record, { seenAt }) : store.appendIfNew(record)),
-  APPEND_WITHOUT_DEDUPE: (store, record) => store.appendWithoutDedupe(record),
+  APPEND_IF_NEW: Object.freeze({
+    apply: (store, record, { seenAt }) => (seenAt ? store.appendIfNew(record, { seenAt }) : store.appendIfNew(record)),
+    onRepeat: "appends a RE-SIGHTING — the record that we looked again — so one line lands either way",
+    linesWritten: () => 1,
+    /* The store itself THROWS on a record with no dedupe key, so demanding one here fails earlier and says why. */
+    requiresKey: true,
+  }),
+  APPEND_WITHOUT_DEDUPE: Object.freeze({
+    apply: (store, record) => store.appendWithoutDedupe(record),
+    onRepeat: "appends again; there is NO duplicate check at all — 'the name is the warning'",
+    linesWritten: () => 1,
+    /* 🔴 NO KEY IS REQUIRED, AND THAT IS NOT A GAP. These disciplines exist precisely for records that are unique
+     * by construction — a run record whose id carries its start time, a supersession note written once per copy —
+     * and issue_state_change records carry no dedupe key BY DESIGN. Demanding one would refuse a lawful write. */
+    requiresKey: false,
+  }),
+  APPEND_ALL_WITHOUT_DEDUPE: Object.freeze({
+    apply: (store, record) => store.appendAllWithoutDedupe([record]),
+    onRepeat: "appends again; no duplicate check",
+    linesWritten: () => 1,
+    requiresKey: false,
+  }),
+  LEDGER_APPEND: Object.freeze({
+    apply: (ledger, entry) => ledger.append(entry),
+    /* 🔴 A THIRD REPEAT BEHAVIOUR, AND IT IS NOT THE OTHER TWO. The cost ledger SKIPS a duplicate entry_id and
+     * writes NOTHING, returning { appended: false }. A verify that demanded one line per record would call a
+     * correct skip a failure — which is exactly why the expected delta is asked of the discipline rather than
+     * assumed to be the record count. */
+    onRepeat: "SKIPS — a duplicate entry_id writes nothing at all",
+    linesWritten: (result) => (result?.appended ? 1 : 0),
+    requiresKey: true,
+  }),
 });
 
 /** Our own temporary files, and no others. The suffix is what makes "ours" a measurable claim rather than a hope. */
@@ -216,7 +246,7 @@ export function jsonlAppendAdapter({ repo, repoRelativeTarget, targetClass, reco
  * writer census already declares. `CONFLICTING` is not producible here: the store's key is content-derived, so two
  * records sharing a key share their content, and there is no same-key-different-content state to find.
  */
-export function storeAppendAdapter({ repo, repoRelativeTarget, targetClass, store, records, keyOf, append, occurrenceScope }) {
+export function storeAppendAdapter({ repo, repoRelativeTarget, targetClass, store, records, keyOf, append, linesWritten = () => 1, requiresKey = true, occurrenceScope }) {
   void repo;
   /* 🔴 THE OCCURRENCE IS THE BATCH, NOT THE RECORD — AND THAT IS NOT ONLY AN OPTIMISATION.
    *
@@ -228,7 +258,9 @@ export function storeAppendAdapter({ repo, repoRelativeTarget, targetClass, stor
   const list = Array.isArray(records) ? records : [records];
   const keys = list.map((r) => keyOf(r));
   const keySet = new Set(keys.filter((k) => k !== null && k !== undefined && k !== ""));
-  const countFor = () => store.readAll().filter((r) => keySet.has(keyOf(r))).length;
+  /* Unkeyed records cannot be found again by key, so the delta is measured over the whole target instead. The
+   * proof "exactly as many lines landed as the discipline wrote" survives either way; only the denominator moves. */
+  const countFor = () => (keySet.size > 0 ? store.readAll().filter((r) => keySet.has(keyOf(r))).length : store.readAll().length);
   let before = null;
   let committed = false;
 
@@ -244,7 +276,7 @@ export function storeAppendAdapter({ repo, repoRelativeTarget, targetClass, stor
         faults.push({ code: "RECORD_ABSENT", why: "a validated append needs the complete records before it appends anything" });
         return faults;
       }
-      const missing = keys.findIndex((k) => k === null || k === undefined || k === "");
+      const missing = requiresKey ? keys.findIndex((k) => k === null || k === undefined || k === "") : -1;
       if (missing !== -1) {
         faults.push({ code: "OCCURRENCE_KEY_ABSENT", why: `record ${missing} carries no key this store can identify it by, so nothing can say whether it has been seen before` });
       }
@@ -263,13 +295,16 @@ export function storeAppendAdapter({ repo, repoRelativeTarget, targetClass, stor
       committed = true;
     },
 
-    /* EXACTLY AS MANY RECORDS AS WERE OFFERED must have landed — new ones or re-sightings. Counting the DELTA
-     * rather than the total is what makes that provable on a store that already held records for these keys. */
+    /* EXACTLY AS MANY LINES AS THE DISCIPLINE SAYS IT WROTE must have landed. The expected number is asked of the
+     * discipline, because the three of them differ: appendIfNew always writes one (new or re-sighting), the
+     * without-dedupe pair always write one, and the cost ledger writes NONE for a duplicate entry_id. Counting the
+     * DELTA rather than the total is what makes this provable on a store that already held these keys. */
     verify() {
+      const expected = (this.result ?? []).reduce((n, r) => n + linesWritten(r), 0);
       const after = countFor();
-      if (after === before + list.length) return [];
-      if (after === before) return [{ code: "OCCURRENCE_NOT_FOUND_AFTER_COMMIT", why: "the append did not land" }];
-      return [{ code: "OCCURRENCE_COUNT_WRONG", why: `${after - before} records landed for ${list.length} offered` }];
+      if (after === before + expected) return [];
+      if (after === before && expected > 0) return [{ code: "OCCURRENCE_NOT_FOUND_AFTER_COMMIT", why: "the append did not land" }];
+      return [{ code: "OCCURRENCE_COUNT_WRONG", why: `${after - before} line(s) landed where the discipline wrote ${expected}` }];
     },
 
     recover() { return this.inspect(); },

@@ -269,14 +269,23 @@ export function governedFileWrite({ repo, permission, target, targetClass, bytes
 export function governedStoreAppend({ repo, permission, store, records, targetClass = "RUN_EVIDENCE", action, occurredAt, correlationId, env = process.env, scopeType = "GLOBAL_PRODUCT", tenantId = null, subjectId = null, evidenceRefs = [], keyOf = null, discipline = "APPEND_IF_NEW", seenAt = null }) {
   const chosen = APPEND_DISCIPLINES[discipline];
   if (!chosen) throw new Error(`UNKNOWN_APPEND_DISCIPLINE: ${discipline} is not one of ${Object.keys(APPEND_DISCIPLINES).join(", ")}`);
+  /* Not every governed target is the evidence store: the cost ledger identifies an entry by entry_id and exposes
+   * no dedupeKeyOf. A caller writing to such a target must SAY what identifies a record there; guessing would be
+   * this module inventing an identity rule for a store it does not own. */
+  const identity = keyOf ?? store.dedupeKeyOf;
+  if (chosen.requiresKey && typeof identity !== "function") {
+    throw new Error("GOVERNED_STORE_APPEND_NEEDS_A_KEY: this target exposes no dedupeKeyOf, so the caller must supply keyOf");
+  }
   const adapter = storeAppendAdapter({
     repo,
     repoRelativeTarget: repoRelative(repo, store.path),
     targetClass,
     store,
     records,
-    keyOf: keyOf ?? store.dedupeKeyOf,
-    append: (s, r) => chosen(s, r, { seenAt }),
+    keyOf: identity ?? (() => null),
+    append: (s, r) => chosen.apply(s, r, { seenAt }),
+    linesWritten: chosen.linesWritten,
+    requiresKey: chosen.requiresKey,
     /* The run is part of the occurrence: a later run's observation of the same finding is a NEW occurrence, which
      * is what lets the store record the re-check instead of the boundary suppressing it. */
     occurrenceScope: correlationId,

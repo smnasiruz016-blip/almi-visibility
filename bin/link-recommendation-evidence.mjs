@@ -18,6 +18,9 @@
 import { existsSync } from "node:fs";
 
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedStoreAppend } from "../src/governance/governed-run.mjs";
+import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -91,16 +94,27 @@ for (const l of LINKS) {
   });
 }
 
-if (!permission.mayWrite) {
+/* Routed. The caller's OWN rule — one link per recommendation, an existing link is never re-written — still
+ * decides the record set; it is applied before the governed call rather than inside the write loop, so the
+ * decision is made once and audited once. Reading the store on a dry run mutates nothing. */
+const store = createJsonlStore(REC_STORE);
+const existing = store.readAll();
+const toWrite = out.filter(
+  (rec) => !existing.some((r) => r.record_type === "recommendation_evidence" && r.recommendation_id === rec.recommendation_id),
+);
+const RUN_INSTANT = isoSeconds(Date.now());
+const governed = executeGovernedWrite(governedStoreAppend({
+  repo: REPO, permission, store, records: toWrite, targetClass: "RUN_EVIDENCE",
+  action: "LINK_RECOMMENDATION_EVIDENCE", occurredAt: RUN_INSTANT,
+  correlationId: `run:link-recommendation-evidence:${RUN_INSTANT}`,
+  discipline: "APPEND_WITHOUT_DEDUPE", keyOf: (r) => r.recommendation_id ?? null,
+}));
+if (governed.outcome === "REFUSED") {
   console.log("[dry-run] nothing written — add --confirm");
   process.exit(0);
 }
-const store = createJsonlStore(REC_STORE);
-let written = 0;
-for (const rec of out) {
-  // Declared: one link per recommendation; an existing link for the same recommendation is never re-written.
-  if (store.readAll().some((r) => r.record_type === "recommendation_evidence" && r.recommendation_id === rec.recommendation_id)) continue;
-  store.appendWithoutDedupe(rec);
-  written += 1;
+if (governed.outcome !== "COMMITTED" && governed.outcome !== "ALREADY_COMMITTED") {
+  console.error(`🔴 ${governed.outcome} — nothing was linked; the governed attempt is on the audit trail`);
+  process.exit(1);
 }
-console.log(`linked ${written} recommendation(s) in ${REC_STORE}`);
+console.log(`linked ${toWrite.length} recommendation(s) in ${REC_STORE}`);

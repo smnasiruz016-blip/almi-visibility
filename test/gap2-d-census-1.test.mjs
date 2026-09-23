@@ -42,8 +42,19 @@ const assertExcluded = (file, n, shape, what) => {
   assert.equal(excludedAt(file, n)?.shape, shape, `${file}:${n} (${what}) is not excluded as "${shape}"`);
 };
 
-test("🔴 POSITIVE · the three bin calls of the store's bulk verb are write sites, and each is GATED", () => {
+test("🔴 POSITIVE · every bin call of the store's bulk verb is a GATED write site — or its caller is ROUTED", () => {
   for (const file of ["bin/instrument-disagreement.mjs", "bin/supersede-noindex.mjs", "bin/supersede-duplicates.mjs"]) {
+    const text = sources.find((s) => s.file === file).text;
+    if (/executeGovernedWrite\(/.test(text)) {
+      /* 🔴 STRICTER, AND THIS ROUTING IS WHAT MADE THE OLD FORM WRONG. A routed caller performs the bulk verb
+       * NOWHERE: it names the discipline and the boundary performs it in src/. So the demand becomes no call site
+       * at all, PLUS a real boundary call naming this very verb — neither of which a gate can satisfy. The
+       * under-count this file exists to prevent is still impossible: a caller that stopped naming the verb
+       * without routing would fail the else branch below. */
+      assert.deepEqual(find(file, (t) => t.includes(`store.${VERB}(`)), [], `${file}: routed, yet still calls store.${VERB}( directly`);
+      assert.match(text, /discipline: "APPEND_ALL_WITHOUT_DEDUPE"/, `${file}: routed but does not name the bulk discipline`);
+      continue;
+    }
     const n = one(file, (t) => t.includes(`store.${VERB}(`), `store.${VERB}( call`);
     const s = siteAt(file, n);
     assert.ok(s, `${file}:${n} calls store.${VERB}( and is not a write site`);

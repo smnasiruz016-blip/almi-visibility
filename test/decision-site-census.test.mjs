@@ -67,7 +67,8 @@ test("🔴 every DUPLICATE_OBSERVATION is traceable to a NAMED shared guard", ()
 
 test("🔴 THE TOTAL IS MEASURED, AND IT IS NOT 102 — the 102 added files to rows to sites", () => {
   const byFamily = real.sites.reduce((m, s) => ((m[s.family] = (m[s.family] ?? 0) + 1), m), {});
-  assert.equal(real.total, byFamily.WRITE_GATE + byFamily.SEALED + byFamily.ROLE);
+  /* F07 added a FOURTH family, HELDOUT (held-out access decisions, classified by execution). */
+  assert.equal(real.total, byFamily.WRITE_GATE + byFamily.SEALED + byFamily.ROLE + byFamily.HELDOUT);
   /* The DATA populations, reported as data — this is where 60 and 4 came from, and neither is a count of sites. */
   const sealedRows = EVIDENCE_ROLE_REGISTRY.filter((e) => e.sealed).length;
   assert.equal(sealedRows, 1, "the 61 sealed FILES are governed by one registry row, not sixty");

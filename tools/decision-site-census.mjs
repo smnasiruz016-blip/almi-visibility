@@ -36,6 +36,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { census as callerCensus } from "./governed-caller-census.mjs";
+import { heldoutAccessCensus } from "./heldout-access-census.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 
@@ -51,9 +52,15 @@ export const CLASSES = Object.freeze([
 export const SHARED_GUARDS = Object.freeze({
   SEALED: "src/governance/sealed-paths.mjs",
   ROLE: "src/governance/evidence-roles.mjs",
+  HELDOUT: "src/heldout/lifecycle.mjs",
 });
 
-const SEALED_SHAPES = [["readUnsealed", /\breadUnsealed\(/], ["isSealed", /\bisSealed\(/], ["sealedEntryFor", /\bsealedEntryFor\(/], ["makeSealedLookup", /\bmakeSealedLookup\(/]];
+/* F07: `classifySealed` is where a sealed decision is now MADE (readUnsealed delegates to it), so it is a shape of the
+ * SEALED family — without it the family lost a site the moment the decision moved, a denominator that moved without a
+ * measurement. HELDOUT is F07's own decision family: held-out access, item reads and scoring. */
+const HELDOUT_SHAPES = [["requestHeldOutAccess", /\brequestHeldOutAccess\(/], ["readHeldOutItem", /\breadHeldOutItem\(/], ["scoreHeldOutEvaluation", /\bscoreHeldOutEvaluation\(/]];
+const HELDOUT_DECIDER = SHARED_GUARDS.HELDOUT;
+const SEALED_SHAPES = [["classifySealed", /\bclassifySealed\(/], ["readUnsealed", /\breadUnsealed\(/], ["isSealed", /\bisSealed\(/], ["sealedEntryFor", /\bsealedEntryFor\(/], ["makeSealedLookup", /\bmakeSealedLookup\(/]];
 const ROLE_SHAPES = [["entryFor", /\bentryFor\(/], ["observedDataExemption", /\bobservedDataExemption\(/], ["makeEvidenceLookup", /\bmakeEvidenceLookup\(/], ["registryErrors", /\bregistryErrors\(/]];
 
 const isCode = (l) => !/^\s*(\/\/|\*|\/\*)/.test(l) && !/^\s*import\b/.test(l);
@@ -89,7 +96,7 @@ export function guardEmitsOnEveryDecision(file, fn, { text = null } = {}) {
   const body = src.slice(start, next < 0 ? src.length : start + 1 + next);
   const lines = body.split("\n").filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l));
   const req = lines.findIndex((l) => /\brequireGuardSink\(/.test(l));
-  const decideAt = lines.findIndex((l, i) => i > 0 && /\b(sealedEntryFor|entryFor)\(/.test(l));
+  const decideAt = lines.findIndex((l, i) => i > 0 && /\b(classifySealed|sealedEntryFor|entryFor)\(/.test(l));
   if (req < 0) return { ok: false, why: "no requireGuardSink( — the guard can decide without a sink" };
   if (decideAt >= 0 && decideAt < req) return { ok: false, why: "the decision is made before the sink is required" };
   const throws = lines.map((l, i) => [l, i]).filter(([l]) => /\bthrow new\b/.test(l));
@@ -158,6 +165,21 @@ export function decisionSiteCensus() {
           ? { cls: "LIVE_AUDITED", why: `audit-store internal write: its WRITE_GATE_DECISION is emitted live by the recorder at line ${r.exemption.gateLine}, before the mutation at ${r.exemption.firstMutation}` }
           : { cls: "DEFECT", why: "decides whether to mutate durable state and does not audit that decision — repaired by routing" }),
     });
+  }
+
+  /* FAMILY HELDOUT (F07) — classified BY EXECUTION: the deciding module is LIVE_AUDITED only when every one of its
+   * decision exits, RUN on a counting in-memory store, reaches its named branch and emits exactly one event
+   * (tools/heldout-access-census.mjs). A call site elsewhere asks the question the module decides and records. */
+  const heldout = heldoutAccessCensus();
+  for (const s of shapeSites(HELDOUT_SHAPES)) {
+    const c = s.file === HELDOUT_DECIDER
+      ? (heldout.total > 0 && heldout.unrecorded.length === 0
+        ? { cls: "LIVE_AUDITED", why: `decided and recorded here — ${heldout.recorded} of ${heldout.total} decision exits, run, each emitted exactly one event on its named branch` }
+        : { cls: "DEFECT", why: `${heldout.unrecorded.length} decision exit(s) did not record exactly one event on their named branch` })
+      : s.file.startsWith("tools/")
+        ? { cls: "NOT_GOVERNED_WITH_REASON", why: "the census's own execution probe, on an in-memory store; it records nothing durable" }
+        : { cls: "DUPLICATE_OBSERVATION_OF_SAME_DECISION", why: `asks the question ${HELDOUT_DECIDER} decides and records; traceable to it` };
+    sites.push({ family: "HELDOUT", ...s, ...c });
   }
 
   for (const [family, shapes] of [["SEALED", SEALED_SHAPES], ["ROLE", ROLE_SHAPES]]) {

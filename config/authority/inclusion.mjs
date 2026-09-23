@@ -18,6 +18,14 @@ export const GOVERNANCE_RULES = Object.freeze([
   Object.freeze({ id: "owner-ruling-decision-clarification", re: /^AlmiVisibility_([A-Z0-9]+_)*OWNER_[A-Z0-9_]*?(RULING|RULINGS|DECISION|CLARIFICATION)[A-Za-z0-9_-]*\.md$/, issuer: "OWNER" }),
   Object.freeze({ id: "feature-master-command", re: /^AlmiVisibility_FEATURE_MASTER_COMMAND_[A-Za-z0-9_-]+\.md$/, issuer: "OWNER" }),
   Object.freeze({ id: "command-record", re: /^(AlmiVisibility_)?CC_COMMAND_[A-Za-z0-9_-]+\.md$/, issuer: "OWNER" }),
+  /* 🔴 F07 (23 September 2026) — A FROZEN F-ROW ACCEPTANCE, BY THE NAME AN OWNER COMMAND GAVE IT. The F07 command
+   * (§2) orders exactly `AlmiVisibility_F07_FROZEN_ACCEPTANCE_2026-09-23.md` and states that the authority to freeze it
+   * comes directly from that owner-issued command. No earlier rule took that name (it carries no RULING/DECISION/OWNER
+   * token), so the board could never have resolved it CURRENT — F07 would have been refused
+   * ACCEPTANCE_NOT_CURRENT_AUTHORITY the moment it left UNASSESSED. The issuer is assigned BY PATTERN, exactly as the
+   * command-record rule above assigns it: the file exists only as the verbatim act of an owner command. Narrow on
+   * purpose: one F-row id, the fixed words, one date. */
+  Object.freeze({ id: "frozen-f-row-acceptance", re: /^AlmiVisibility_F\d{2}_FROZEN_ACCEPTANCE_\d{4}-\d{2}-\d{2}\.md$/, issuer: "OWNER" }),
   Object.freeze({ id: "other-declared-ruling", re: /^AlmiVisibility_[A-Za-z0-9_-]*(RULING|DECISION)[A-Za-z0-9_-]*\.md$/, issuer: null, issuerTokens: Object.freeze({ BETA_G: "BETA_G", OWNER: "OWNER" }) }),
 ]);
 /**

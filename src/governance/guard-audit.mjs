@@ -105,9 +105,12 @@ function checkDecision(decision) {
  */
 export function durableGuardSink({ store, actor, softwareVersion, correlationId, authorityRef, authorityHash, clock = () => isoSeconds(Date.now()) }) {
   if (!store || typeof store.append !== "function") throw new GuardAuditAbsent("durableGuardSink");
+  /* The events this run appended, kept so a caller can REPORT what it recorded (F07: the firewall counts them). */
+  const events = [];
   return {
     durable: true,
     emitted: 0,
+    events,
     emit(decision) {
       checkDecision(decision);
       const draft = guardEventDraft(decision, { actor, softwareVersion, correlationId, authorityRef, authorityHash, occurredAt: clock() });
@@ -120,6 +123,7 @@ export function durableGuardSink({ store, actor, softwareVersion, correlationId,
       const identity = { eventType: draft.eventType, action: draft.action, occurredAt: draft.occurredAt, correlationId, guardDecisionSeq: this.emitted + 1 };
       const r = store.append(draft, { identity });
       this.emitted += 1;
+      events.push(r.event);
       return r;
     },
   };

@@ -74,7 +74,10 @@ test("🔴 IT STAYS VISIBLE — the exemption never shrinks the denominator", ()
   assert.equal(routed + exempt + bypass, governed.length, "routed + exempt + bypassing does not sum to the governed population");
   assert.ok(exempt >= 1);
   /* Named, not merely counted: a reader can see WHICH caller carries it. */
-  assert.deepEqual(auditStoreExempt(real).map((r) => r.file), ["bin/audit-trail.mjs"]);
+  /* Two since 23 September: F07's bin/heldout-evaluation.mjs writes ONLY audit events (access decisions, freezes,
+   * its own write-gate decisions) and earns the exemption by the same two derived conditions — never by a list. */
+  assert.deepEqual(auditStoreExempt(real).map((r) => r.file), ["bin/audit-trail.mjs", "bin/heldout-evaluation.mjs"]);
+  for (const r of auditStoreExempt(real)) assert.ok(r.exemption.conditionA && r.exemption.conditionB, `${r.file} is exempt without BOTH derived conditions`);
 });
 
 test("🔴 CONTROL · condition A removed — a caller that writes ANY non-audit target cannot claim it", () => {
@@ -106,7 +109,8 @@ test("🔴 CONTROL · condition B inverted — the write-gate event AFTER the mu
 });
 
 test("🔴 CONTROL · an ORDINARY governed writer cannot claim it — checked against every real caller", () => {
-  for (const r of real.filter((x) => x.cls === "GOVERNED_STATE_CHANGE" && x.file !== "bin/audit-trail.mjs")) {
+  const AUDIT_ONLY = new Set(["bin/audit-trail.mjs", "bin/heldout-evaluation.mjs"]);
+  for (const r of real.filter((x) => x.cls === "GOVERNED_STATE_CHANGE" && !AUDIT_ONLY.has(x.file))) {
     assert.equal(r.auditStoreExempt, false, `${r.file} claims the audit-store exemption and is not the audit store`);
   }
   /* And the derivation really can say yes, so the loop above is not a check that cannot fail. */

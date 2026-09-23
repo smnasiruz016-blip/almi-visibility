@@ -398,7 +398,11 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
   },
   {
     file: "bin/authority-migrate.mjs",
-    sites: 1,
+    /* 🔴 ROUTED (23 September 2026) — the CORPUS write. This caller's write-gate DECISION was already emitted
+     * live by auditAuthorityMigration before the boundary existed; what was unaudited was the mutation, and that
+     * is what now goes through the boundary. The audit append still comes first and still gates it. */
+    routed: true,
+    sites: 0,
     writes: "config/authority/corpus.mjs — the real authority corpus: paths, structured identity and content hashes of committed governance records, never their prose",
     where: "config/authority/corpus.mjs — a fixed path inside this repository, no operator flag; a GENERATED file, not evidence",
     gatedBy: "write-law LOCAL: permission.mayWrite, which only --confirm grants. Without it the run migrates in memory, prints the census, and reports UP TO DATE or STALE (exit 1 when stale)",

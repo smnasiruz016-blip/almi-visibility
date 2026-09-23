@@ -710,9 +710,16 @@ test("P33b · the audited caller FAILS CLOSED BY CONSTRUCTION — the append is 
   assert.ok(open >= 0 && close > open, "the write law's granted branch could not be found in the audited caller");
   const block = lines.slice(open, close);
   const auditAt = block.findIndex((l) => /^\s*auditMigration\(/.test(l));
-  const writeAt = block.findIndex((l) => /^\s*writeFileSync\(OUT/.test(l));
+  /* 🔴 THE GOVERNED WRITE IS NOW THE BOUNDARY CALL — AND THIS ROUTING IS WHAT MADE THE OLD ANCHOR WRONG.
+   * The corpus write used to be a bare `writeFileSync(OUT, ...)` on the next line; it now goes through the shared
+   * boundary, which audits the MUTATION that nothing audited before. The property this proof is about is
+   * unchanged and is still asserted: the audit append comes FIRST, the governed write comes after it, and nothing
+   * catches in between — so a failed append still means no corpus. */
+  const writeAt = block.findIndex((l) => /^\s*(const governed = )?executeGovernedWrite\(/.test(l));
   assert.ok(auditAt >= 0, "the granted branch does not record the decision at all");
+  assert.ok(writeAt >= 0, "the granted branch performs no governed write at all");
   assert.ok(writeAt > auditAt, "the governed write does not come AFTER the audit append");
+  assert.equal(block.some((l) => /^\s*writeFileSync\(OUT/.test(l)), false, "a bare corpus write survives beside the routed one");
   // 🔴 NOTHING CATCHES. A try/catch here would let the corpus be written after the trail refused it.
   assert.equal(block.some((l) => /\b(try|catch)\b/.test(l) && !/^\s*(\*|\/\/)/.test(l)), false, "the granted branch catches — the write could proceed after a failed append");
 });

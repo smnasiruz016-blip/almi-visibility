@@ -21,6 +21,9 @@ import { readUnsealed } from "../src/governance/sealed-paths.mjs";
 import { ruleFor, recordFromFile, census } from "../src/authority/corpus.mjs";
 import { STORED_STATUSES } from "../src/authority/register.mjs";
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../src/governance/governed-run.mjs";
+import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { productionAuditStore, softwareVersionOf } from "../src/audit-trail/wiring.mjs";
 import { auditAuthorityMigration } from "../src/audit-trail/callers.mjs";
 
@@ -110,8 +113,23 @@ if (permission.mayWrite) {
    * WHAT HAPPENS IF THE AUDIT APPEND FAILS: the corpus is NOT written. `auditMigration` throws, this script exits
    * non-zero, and `writeFileSync` below is never reached — the governed action does not proceed. That is the whole
    * point of putting it on this line rather than the next one. */
+  /* 🔴 THE ORDER IS THE POINT, AND ROUTING KEEPS IT. auditMigration throws if the audit append fails, so the
+   * corpus write below is never reached — the governed action does not proceed. That was already true and is
+   * unchanged; what is new is that the corpus write itself now goes through the shared boundary.
+   *
+   * This caller's write-gate DECISION was already emitted live, by auditAuthorityMigration, before the boundary
+   * existed. Routing the corpus write does not replace that emission; it audits the MUTATION, which nothing did. */
   auditMigration({ records, provenance: { governanceCommit: g, engineCommit: e, now: NOW }, permission, counts: c.counts });
-  writeFileSync(OUT, body, "utf8");
+  const CORPUS_INSTANT = governedInstant(Date.now());
+  const governed = executeGovernedWrite(governedFileWrite({
+    repo: ENGINE, permission, target: OUT, targetClass: "GENERATED_CONFIG", bytes: body,
+    action: "WRITE_AUTHORITY_CORPUS", occurredAt: CORPUS_INSTANT,
+    correlationId: `run:authority-migrate:${CORPUS_INSTANT}`,
+  }));
+  if (governed.outcome !== "COMMITTED" && governed.outcome !== "ALREADY_COMMITTED") {
+    console.error(`🔴 ${governed.outcome} — ${OUT} was not written; the governed attempt is on the audit trail`);
+    process.exit(1);
+  }
   console.log(`wrote ${OUT}`);
 } else {
   const cur = existsSync(OUT) ? readFileSync(OUT, "utf8").replace(/\r\n/g, "\n") : "";

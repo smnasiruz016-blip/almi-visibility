@@ -10,7 +10,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { decisionSiteCensus, CLASSES, SHARED_GUARDS } from "../tools/decision-site-census.mjs";
-import { census as callerCensus } from "../tools/governed-caller-census.mjs";
+import { census as callerCensus, auditStoreExempt } from "../tools/governed-caller-census.mjs";
 import { EVIDENCE_ROLE_REGISTRY } from "../config/evidence-roles.mjs";
 
 const real = decisionSiteCensus();
@@ -34,14 +34,23 @@ test("🔴 the write-gate family IS the governed-caller population — not a sec
 
 test("🔴 LIVE_AUDITED means routed — and a later recorder observation is NOT live emission", () => {
   const governed = callerCensus().filter((c) => c.cls === "GOVERNED_STATE_CHANGE");
-  const routed = governed.filter((c) => c.routed).map((c) => c.file).sort();
+  const routed = governed.filter((c) => c.routed).map((c) => c.file);
+  /* 🔴 LIVE_AUDITED IS NOW TWO EARNED THINGS, AND NEITHER IS A LABEL. A routed caller is audited BY the boundary.
+   * The audit-store caller is audited by the RECORDER — its WRITE_GATE_DECISION is emitted live, before the
+   * mutation it carries — and it cannot be routed because auditing that mutation would call the store being
+   * written. It earns its class from source, both conditions proved, and it stays in the denominator. */
+  const exempt = auditStoreExempt(governed).map((c) => c.file);
   const live = real.sites.filter((s) => s.family === "WRITE_GATE" && s.cls === "LIVE_AUDITED").map((s) => s.file).sort();
-  assert.deepEqual(live, routed, "a caller is counted LIVE_AUDITED without reaching the boundary");
+  assert.deepEqual(live, [...routed, ...exempt].sort(), "a caller is counted LIVE_AUDITED without either reaching the boundary or earning the exemption");
+  for (const f of exempt) {
+    const why = real.sites.find((s) => s.file === f).why;
+    assert.match(why, /WRITE_GATE_DECISION is emitted live/, `${f}: its LIVE_AUDITED class does not say how it is audited`);
+  }
 
   /* 🔴 THE COUNT IS NOT PINNED TO A NUMBER, because routing moves it every batch. What is pinned is the
    * RELATIONSHIP: every unrouted governed caller is a DEFECT, and so is each shared guard that decides without
    * emitting. Pinning 22 here would have to be edited on every batch, and an edited number stops being evidence. */
-  const unrouted = governed.filter((c) => !c.routed).length;
+  const unrouted = governed.filter((c) => !c.routed && !c.auditStoreExempt).length;
   const guardDefects = real.sites.filter((s) => s.family !== "WRITE_GATE" && s.cls === "DEFECT").length;
   assert.equal(real.byClass.DEFECT, unrouted + guardDefects);
 });

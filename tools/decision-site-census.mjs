@@ -111,7 +111,13 @@ export function decisionSiteCensus() {
       family: "WRITE_GATE", file: r.file, line: null, shape: "writePermission",
       ...(r.routed
         ? { cls: "LIVE_AUDITED", why: "routed through the governed-write boundary, which audits the attempt and the outcome" }
-        : { cls: "DEFECT", why: "decides whether to mutate durable state and does not audit that decision — repaired by routing" }),
+        /* 🔴 THE CHECKED AUDIT-STORE EXEMPTION IS STILL LIVE AUDIT. This caller's decision IS emitted live — by the
+         * recorder, as a WRITE_GATE_DECISION, before the mutation it carries. What is exempt is routing the
+         * MUTATION through a boundary that audits by calling the very store being written. The class is earned
+         * from source, condition A and condition B both proved, never declared. */
+        : r.auditStoreExempt
+          ? { cls: "LIVE_AUDITED", why: `audit-store internal write: its WRITE_GATE_DECISION is emitted live by the recorder at line ${r.exemption.gateLine}, before the mutation at ${r.exemption.firstMutation}` }
+          : { cls: "DEFECT", why: "decides whether to mutate durable state and does not audit that decision — repaired by routing" }),
     });
   }
 

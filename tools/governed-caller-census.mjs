@@ -44,6 +44,42 @@ export const FS_WRITE = /\b(writeFileSync|appendFileSync|mkdirSync|rmSync|rename
  * earlier passes — `appendAllWithoutDedupe` and `recordCandidates` — and each miss produced a false UNKNOWN. */
 export const STORE_WRITE = /\.append\(|\.appendIfNew\(|\.appendAllWithoutDedupe\(|\.appendWithoutDedupe\(|persistCrawlObservations\(|createCostLedger\(|recordCandidates\(|runIngest\(|runRobotsAndDnsAudit\(|auditAuthorityMigration\(/;
 export const BOUNDARY_CALL = /executeGovernedWrite\(/;
+
+/* ── 🔴 THE CHECKED AUDIT-STORE EXEMPTION ──────────────────────────────────
+ *
+ * One entry point cannot be routed through the boundary: the one whose mutation IS the audit store. Routing it
+ * would make the audit system recursively audit its own persistence, and it would hit the boundary's own
+ * AUDIT_STORE_TARGET_FORBIDDEN fence.
+ *
+ * 🔴 THIS IS A DERIVED CLASS, NOT A DECLARED ONE. There is no list to add a file to and no flag a caller can set
+ * on itself — the owner ruling's exemption is BY NAME, and "infrastructure" is not a word any future write may
+ * claim for itself. A caller earns this class only by satisfying BOTH conditions, read from its own source:
+ *
+ *   A · every mutation it makes targets the declared audit-store implementation, and nothing else;
+ *   B · it emits its WRITE_GATE_DECISION through the live recorder BEFORE that mutation.
+ *
+ * It fails closed on every other shape: one non-audit target, a missing or later write-gate event, no resolvable
+ * target, or an ordinary governed writer that merely looks similar. */
+export const AUDIT_STORE_REACHING = /recordCandidates\(|auditAuthorityMigration\(/;
+export const AUDIT_STORE_CONSTRUCTOR = /productionAuditStore\(/;
+export const LIVE_WRITE_GATE_EVENT = /writeGateEvent\(/;
+
+/** Both conditions, each reported separately so a failure says WHICH one was missing. */
+export function auditStoreInternalWrite(text, sites) {
+  const lines = text.split("\n");
+  const targetsOnlyAuditStore = sites.length > 0 && sites.every((s) => AUDIT_STORE_REACHING.test(s.text));
+  const constructsAuditStore = AUDIT_STORE_CONSTRUCTOR.test(text);
+  const conditionA = targetsOnlyAuditStore && constructsAuditStore;
+
+  const gateLine = lines.findIndex((l) => isCode(l) && LIVE_WRITE_GATE_EVENT.test(l)) + 1;
+  const firstMutation = sites.length ? Math.min(...sites.map((s) => s.line)) : 0;
+  const conditionB = gateLine > 0 && firstMutation > 0 && gateLine < firstMutation;
+
+  return {
+    conditionA, conditionB, exempt: conditionA && conditionB,
+    targetsOnlyAuditStore, constructsAuditStore, gateLine, firstMutation,
+  };
+}
 export const CLASSES = Object.freeze(["GOVERNED_STATE_CHANGE", "READ_ONLY_DIAGNOSTIC", "TEST_ONLY", "DEAD_OR_ORPHANED", "UNKNOWN"]);
 
 const isCode = (l) => !/^\s*(\/\/|\*|\/\*)/.test(l) && !/^\s*import\b/.test(l);
@@ -87,6 +123,8 @@ export function census({ sources = null } = {}) {
     const asksWriteLaw = /writePermission\(/.test(text);
     const usesBoundary = BOUNDARY_CALL.test(text);
     const cls = sites.length > 0 || usesBoundary ? "GOVERNED_STATE_CHANGE" : asksWriteLaw ? "UNKNOWN" : "READ_ONLY_DIAGNOSTIC";
+    /* Derived, never declared — see AUDIT_STORE_REACHING above. A routed caller is never also exempt. */
+    const internal = usesBoundary ? { exempt: false, conditionA: false, conditionB: false } : auditStoreInternalWrite(text, sites);
     const coverage = tests.filter((t) => testText.get(t).includes(file));
     return {
       file,
@@ -98,6 +136,8 @@ export function census({ sources = null } = {}) {
       shape: shapeOf(text),
       auditRequired: cls === "GOVERNED_STATE_CHANGE",
       routed: usesBoundary,
+      auditStoreExempt: internal.exempt,
+      exemption: internal,
       sites: sites.length,
       coverage,
       cls,
@@ -105,8 +145,15 @@ export function census({ sources = null } = {}) {
   });
 }
 
-/** 🔴 THE BYPASS CENSUS: a governed site that writes without reaching the boundary. Must be empty. */
-export const bypasses = (rows) => rows.filter((r) => r.cls === "GOVERNED_STATE_CHANGE" && !r.routed);
+/**
+ * 🔴 THE BYPASS CENSUS: a governed site that mutates without reaching the boundary. Must be empty.
+ *
+ * A caller carrying the CHECKED audit-store exemption is not a bypass — but it is not hidden either. It stays in
+ * the GOVERNED_STATE_CHANGE denominator and is named by its class, so routed + exempt + bypass always sums to the
+ * governed population. Removing it from the denominator would be the one move that makes a zero meaningless.
+ */
+export const bypasses = (rows) => rows.filter((r) => r.cls === "GOVERNED_STATE_CHANGE" && !r.routed && !r.auditStoreExempt);
+export const auditStoreExempt = (rows) => rows.filter((r) => r.cls === "GOVERNED_STATE_CHANGE" && r.auditStoreExempt);
 
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("\\").join("/").split("/").pop())) {
   const rows = census();
@@ -117,7 +164,10 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("\\").join
   console.log(`  ${"REMAINDER".padEnd(24)} ${rows.length - accounted}`);
   const governed = rows.filter((r) => r.cls === "GOVERNED_STATE_CHANGE");
   const missed = bypasses(rows);
-  console.log(`\n  GOVERNED_STATE_CHANGE ${governed.length} · routed through the boundary ${governed.length - missed.length} · BYPASSING ${missed.length}`);
+  const exempt = auditStoreExempt(rows);
+  console.log(`\n  GOVERNED_STATE_CHANGE ${governed.length} · routed ${governed.filter((r) => r.routed).length} · audit-store exempt ${exempt.length} · BYPASSING ${missed.length}`);
+  console.log(`  routed + exempt + bypassing = ${governed.filter((r) => r.routed).length + exempt.length + missed.length} (must equal ${governed.length})`);
+  for (const r of exempt) console.log(`  EXEMPT ${r.file} — audit-store internal write (A: only audit-store targets · B: live write-gate event at line ${r.exemption.gateLine}, before the mutation at ${r.exemption.firstMutation})`);
   console.log(`  entry points with NO named test coverage: ${rows.filter((r) => r.coverage.length === 0).length}`);
   if (process.argv.includes("--table")) {
     console.log("\n  path · shape · target · sites · routed · tests");

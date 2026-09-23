@@ -42,13 +42,22 @@
 import { appendFileSync, readFileSync, existsSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
-/** The verbs a store may expose. C2's test compares against this exact list. */
+/**
+ * The verbs a store may expose. C2's test compares against this exact list.
+ *
+ * 🔴 `dedupeKeyOf` ADDED 23 September 2026, and deliberately, because this list is a pin and moving it silently is
+ * the failure it exists to prevent. It is a PURE READ — it derives a record's identity and mutates nothing — and
+ * it is exposed so the governed-write boundary can ask THIS store what makes two records the same thing instead of
+ * carrying its own copy of the rule. C2's property is untouched: there is still no update, delete, remove, set,
+ * patch, put, truncate, clear or drop, and the instance is still frozen.
+ */
 export const STORE_INTERFACE = Object.freeze([
   "appendWithoutDedupe",
   "appendIfNew",
   "appendAllWithoutDedupe",
   "readAll",
   "count",
+  "dedupeKeyOf",
   "path",
 ]);
 

@@ -10,6 +10,7 @@
  * scratch root, checked lexically AND through realpath so a symlink cannot walk out.
  */
 import { existsSync, mkdirSync, realpathSync } from "node:fs";
+import { randomBytes } from "node:crypto";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { AUDIT_STORE } from "../../config/audit-store.mjs";
 import { AUTHORITY_CORPUS } from "../../config/authority/corpus.mjs";
@@ -19,6 +20,9 @@ import { softwareVersionOf } from "../audit-trail/wiring.mjs";
 import { stagedReplaceAdapter, jsonlAppendAdapter } from "./durability-adapters.mjs";
 
 export const AUDIT_STORE_OVERRIDE_ENV = "ALMIVISIBILITY_AUDIT_STORE";
+
+/** The nonce that scopes a confined store to ONE suite invocation. A harness may set it; otherwise it is minted. */
+export const AUDIT_RUN_ENV = "ALMIVISIBILITY_AUDIT_RUN";
 
 /** The ONE declared root a confined test store may live beneath. Repository-relative, and never outside it. */
 export const TEST_SCRATCH_AUDIT_ROOT = ".test-scratch/audit";
@@ -43,6 +47,32 @@ export class AuditStoreOverrideForbidden extends Error {
  */
 export function inVerifiedTestContext(env = process.env) {
   return env.NODE_TEST_CONTEXT === "child-v8" && typeof env.NODE_TEST_WORKER_ID === "string" && env.NODE_TEST_WORKER_ID !== "";
+}
+
+/**
+ * 🔴 ONE RUN, ONE STORE — AND A LATER RUN NEVER INHERITS AN EARLIER ONE'S EVENTS.
+ *
+ * Confining by worker id alone was not enough: `worker-3` means the same directory in every invocation, so events
+ * ACCUMULATED across suite runs (measured: a store grew 6 -> 7 -> 8 lines over three consecutive runs). A test that
+ * reads a store it did not fill is a test whose result depends on how many times the suite has been run before,
+ * which is exactly the kind of evidence that cannot be reproduced.
+ *
+ * The nonce is minted ONCE per process and written back into the environment, so anything this process SPAWNS
+ * inherits it — a binary spawned by a test shares that test's store, while an unrelated test and every later run
+ * get their own. A harness that sets the variable itself owns the whole run's directory and can remove exactly it.
+ */
+export function auditRunScope(env = process.env) {
+  let nonce = env[AUDIT_RUN_ENV];
+  if (!nonce) {
+    nonce = `${process.pid}-${randomBytes(4).toString("hex")}`;
+    env[AUDIT_RUN_ENV] = nonce;
+  }
+  /* It becomes a PATH SEGMENT, so it is validated rather than trusted: a separator or `..` here would walk the
+   * confined store straight out of its root. */
+  if (!/^[A-Za-z0-9_.-]{1,64}$/.test(nonce) || nonce.includes("..")) {
+    throw new AuditStoreOverrideForbidden(`${AUDIT_RUN_ENV} is not a safe path segment`);
+  }
+  return `run-${nonce}`;
 }
 
 /** Lexical containment that cannot be fooled by `..`, plus the separator so `/a/bc` is not "inside" `/a/b`. */
@@ -90,7 +120,7 @@ export function resolveAuditStoreLocation({ repo, env = process.env } = {}) {
    * never enables production writing, which is the direction that could do harm.
    */
   if ((override === undefined || override === "") && inVerifiedTestContext(env)) {
-    const dir = join(repo, TEST_SCRATCH_AUDIT_ROOT, `worker-${env.NODE_TEST_WORKER_ID}`);
+    const dir = join(repo, TEST_SCRATCH_AUDIT_ROOT, auditRunScope(env), `worker-${env.NODE_TEST_WORKER_ID}`);
     return { eventsPath: join(dir, "events.jsonl"), headPath: join(dir, "head.json"), synthetic: true };
   }
   if (override === undefined || override === "") return production;
@@ -122,8 +152,9 @@ export function resolveAuditStoreLocation({ repo, env = process.env } = {}) {
     throw new AuditStoreOverrideForbidden("the resolved store location escapes the scratch root — a symlinked path is refused");
   }
 
-  /* Unique per worker BY CONSTRUCTION, not by test discipline: two workers cannot be handed the same file. */
-  const dir = join(requested, `worker-${env.NODE_TEST_WORKER_ID}`);
+  /* Unique per RUN and per WORKER by construction, not by test discipline: two workers cannot be handed the same
+   * file, and a later invocation cannot be handed an earlier one's. */
+  const dir = join(requested, auditRunScope(env), `worker-${env.NODE_TEST_WORKER_ID}`);
   return { eventsPath: join(dir, "events.jsonl"), headPath: join(dir, "head.json"), synthetic: true };
 }
 

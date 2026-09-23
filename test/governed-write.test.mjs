@@ -10,8 +10,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync, appendFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync, appendFileSync, symlinkSync } from "node:fs";
 import { join, dirname } from "node:path";
+import { tmpdir } from "node:os";
 
 import {
   executeGovernedWrite, recoverGovernedWrite, deriveIdempotencyKey, incompleteSagas,
@@ -21,7 +22,7 @@ import {
 import { stagedReplaceAdapter, jsonlAppendAdapter, TEMP_MARKER, contentHash } from "../src/governance/durability-adapters.mjs";
 import {
   resolveAuditStoreLocation, inVerifiedTestContext, AuditStoreOverrideForbidden,
-  AUDIT_STORE_OVERRIDE_ENV, TEST_SCRATCH_AUDIT_ROOT, SYNTHETIC_LABEL, isRealEvidence,
+  AUDIT_STORE_OVERRIDE_ENV, AUDIT_RUN_ENV, TEST_SCRATCH_AUDIT_ROOT, SYNTHETIC_LABEL, isRealEvidence,
 } from "../src/governance/governed-run.mjs";
 import { createAuditStore, isoSeconds } from "../src/audit-trail/store.mjs";
 import { RECORDER_EXECUTION_FIELDS, contentFingerprint } from "../src/audit-trail/event.mjs";
@@ -465,15 +466,61 @@ test("P26 · P51 · the audit store's own persistence is exempt BY NAME, and the
 
 const testEnv = (extra = {}) => ({ NODE_TEST_CONTEXT: "child-v8", NODE_TEST_WORKER_ID: "7", ...extra });
 
-test("P32 · P39 · inside a verified test context the store is confined and unique per worker", () => {
+test("P32 · P39 · inside a verified test context the store is confined, and unique per worker AND per run", () => {
   assert.equal(inVerifiedTestContext(testEnv()), true);
-  const a = resolveAuditStoreLocation({ repo: REPO, env: testEnv() });
-  const b = resolveAuditStoreLocation({ repo: REPO, env: testEnv({ NODE_TEST_WORKER_ID: "8" }) });
-  assert.equal(a.synthetic, true);
-  assert.ok(a.eventsPath.includes(join(TEST_SCRATCH_AUDIT_ROOT.split("/")[0], "audit", "worker-7")));
-  assert.notEqual(a.eventsPath, b.eventsPath, "two workers were handed the same store");
+  const RUN_A = "aaaa1111";
+  const w7 = resolveAuditStoreLocation({ repo: REPO, env: testEnv({ [AUDIT_RUN_ENV]: RUN_A }) });
+  const w8 = resolveAuditStoreLocation({ repo: REPO, env: testEnv({ NODE_TEST_WORKER_ID: "8", [AUDIT_RUN_ENV]: RUN_A }) });
+  assert.equal(w7.synthetic, true);
+  assert.ok(w7.eventsPath.includes(join("audit", `run-${RUN_A}`, "worker-7")), w7.eventsPath);
+  assert.notEqual(w7.eventsPath, w8.eventsPath, "two workers in one run were handed the same store");
+
+  /* 🔴 AND A LATER RUN NEVER INHERITS AN EARLIER ONE'S. This assertion previously required only `worker-7`, and
+   * THAT WAS THE DEFECT: confining by worker id alone meant `worker-3` was the same directory in every invocation,
+   * so events accumulated across suite runs — measured growing 6 -> 7 -> 8 lines over three consecutive runs. A
+   * test could then read a store it had not filled. The run scope is what made the old assertion wrong. */
+  const laterRun = resolveAuditStoreLocation({ repo: REPO, env: testEnv({ [AUDIT_RUN_ENV]: "bbbb2222" }) });
+  assert.notEqual(w7.eventsPath, laterRun.eventsPath, "a later run reused an earlier run's store");
+
+  /* The minted nonce is written back into the environment, so anything this process SPAWNS inherits it — that is
+   * what lets a binary spawned by a test share that test's store while unrelated tests do not. */
+  const env = testEnv();
+  assert.equal(env[AUDIT_RUN_ENV], undefined);
+  resolveAuditStoreLocation({ repo: REPO, env });
+  assert.match(String(env[AUDIT_RUN_ENV]), /^\d+-[0-9a-f]{8}$/, "the minted run nonce was not exported for spawned children");
+
+  // 🔴 THE NONCE BECOMES A PATH SEGMENT, SO IT IS VALIDATED, NOT TRUSTED.
+  assert.throws(() => resolveAuditStoreLocation({ repo: REPO, env: testEnv({ [AUDIT_RUN_ENV]: "../../escape" }) }), AuditStoreOverrideForbidden);
+
   // and this very process is running under one
   assert.equal(resolveAuditStoreLocation({ repo: REPO }).synthetic, true, "the test suite itself is not confined");
+});
+
+test("P38 · a SYMLINKED store location that escapes the scratch root is refused, by realpath not by spelling", () => {
+  const outside = mkdtempSync(join(tmpdir(), "gw-outside-"));
+  const link = join(REPO, TEST_SCRATCH_AUDIT_ROOT, `escape-${process.pid}`);
+  const real = join(REPO, TEST_SCRATCH_AUDIT_ROOT, `real-${process.pid}`);
+  mkdirSync(dirname(link), { recursive: true });
+  let made = null;
+  try { symlinkSync(outside, link, "junction"); made = true; } catch (err) { made = err.code ?? String(err); }
+  try {
+    /* 🔴 IF THE LINK CANNOT BE CREATED THIS PROOF IS NOT RUN, AND SAYS SO. It is never reported as passed on the
+     * strength of an exception that never had the chance to fire. */
+    assert.equal(made, true, `a junction could not be created (${made}) — P38 is NOT RUN on this machine`);
+    /* The path is LEXICALLY inside the scratch root; only realpath reveals that it leaves the repository. */
+    assert.throws(
+      () => resolveAuditStoreLocation({ repo: REPO, env: testEnv({ [AUDIT_STORE_OVERRIDE_ENV]: link }) }),
+      AuditStoreOverrideForbidden,
+      "a symlinked escape was accepted as a confined store",
+    );
+    // CONTROL, PROVED CAPABLE: a REAL directory in the very same place is accepted.
+    mkdirSync(real, { recursive: true });
+    assert.equal(resolveAuditStoreLocation({ repo: REPO, env: testEnv({ [AUDIT_STORE_OVERRIDE_ENV]: real }) }).synthetic, true);
+  } finally {
+    try { rmSync(link, { recursive: true, force: true }); } catch { /* the junction may already be gone */ }
+    rmSync(real, { recursive: true, force: true });
+    rmSync(outside, { recursive: true, force: true });
+  }
 });
 
 test("P33 · both of Node's own test signals survive the real spawn shape", () => {

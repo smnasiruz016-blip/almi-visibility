@@ -1,0 +1,157 @@
+F07/F08 SINK REPAIR §5 · THE EVENT_ID_CONFLICT POPULATION — measured, classified, and the fix · 23 September 2026
+
+METHOD
+  The real recorder (node bin/audit-trail.mjs record --confirm) run in a throwaway detached git worktree, with the
+  store instrumented IN THAT WORKTREE ONLY to log, per append, NEW / IDEMPOTENT / CONFLICT and the fields that differ.
+  The production trail was never written. The worktrees were discarded afterwards.
+
+THE REPORTED "6 -> 22" WAS NEVER THE POPULATION
+  Both figures were read off TRUNCATED output. The recorder prints one INVALID line per refused candidate followed by
+  a 3-line summary; F07's report piped it through `tail -25`, which shows 22 INVALID lines + 3 = 25. The real counts:
+    F08's closing run (code 4f5dd27, trail as at 4f5dd27^, 179 events):   98 conflicts  (82 A · 8 B · 8 C)
+    F07's recording run (code 20141a0, trail as at 20141a0^, 218 events): 101 conflicts (83 A · 10 B · 8 C)
+    main c49bd50 today (trail 252):                                        101 conflicts (83 A · 10 B · 8 C)
+  98 -> 101 is exactly the 3 events F08's own run recorded under its migration pass (91b4121b2cbb): 1 A and F08's two
+  23-September board movements. Every one conflicts once the pass moves on (to cd149aea074f).
+  (The reproduction of F08's run appended 6 events where the real run appended 26: its per-run native families differ.
+  The migrated-candidate population, which is what conflicts, is the same.)
+
+THE CAUSE
+  MIGRATION_CORRELATION = `migration:<governance commit the corpus was migrated from>`. It changes with every corpus
+  re-migration. correlationId sits in the content fingerprint but not in the eventId identity, so re-offering an
+  already-recorded occurrence gave the same eventId and a different fingerprint, which the store reads as a
+  conflicting duplicate. 113 of 113 migrated events carry this shape; 0 native events do.
+
+THE F05 "ASYMMETRY" — EXPLAINED: THERE IS NONE
+  F05's events DO conflict: its three board movements (C2 below) and its authority records (inside the 82 A). The
+  belief that F05 was unaffected came from the same truncated view: F05's lines were above the 25 that were shown. The
+  rule is uniform: a migrated event stored under a pass other than the current one conflicts; one stored under the
+  current pass (cd149aea074f) is an IDEMPOTENT retry (10 of them today).
+
+CLASSIFICATION OF ALL 101 (current main, trail 252)
+  C1_CORRELATION_ONLY               93  (82 A · 3 B · 8 C)  only correlationId differs — the migration pass
+  C2_SCHEMA_ADDITION                 4  F05 ×3, F40 ×1      + family-B metadata keys added after these were recorded (absent -> "")
+  C3_STATE_AFTER_DRIFT               3  F08 ×3              + metadata.stateAfter is the row's CURRENT state, which moved
+  C4_AUTHORITY_DISPOSITION_CHANGED   1  the 22-Sep F08 command record: ALLOWED/CURRENT -> REFUSED/SUPERSEDED
+  total                            101
+
+THE FIX (src/audit-trail/event.mjs) AND WHY ONLY C1
+  For a MIGRATED event only, correlationId is left out of the content fingerprint: it names the migration pass, not
+  the occurrence, and the identity already names the source record. Native events keep correlationId in the
+  fingerprint (the parked F08 caution — excluding it globally could merge distinct native events — is respected).
+  C2, C3 and C4 are real content differences between the stored record and today's re-draft. Refusing them IS genuine
+  conflict detection, and it is kept. No stored event was changed, merged, discarded or relabelled.
+
+AFTER THE FIX (same worktree method, main's trail 252, the branch's event.mjs)
+  real candidate events 115 = migrated 4 + already audited 103 + not migratable 0 + invalid 8 + excluded 0, remainder 0
+  the 8 invalid are exactly C2 (4) + C3 (3) + C4 (1) below; the 93 C1 are now already audited.
+
+PARKED, NOT REPAIRED (content, not identity; each needs a decision, not a fingerprint change)
+  C3: a family-B draft records `stateAfter` = the row's state WHEN RECORDED, so every older movement of a row conflicts
+      once the row moves again.
+  C4: an authority record becoming SUPERSEDED is not recorded as its own event; its original ADMIT event is re-offered
+      and refused. The supersession is therefore visible in the corpus but not in the trail.
+  C2: schema growth of family-B metadata after the first records.
+
+EVERY CONFLICT, BY NAME (class · family · source · the pass it was stored under)
+C1_CORRELATION_ONLY                A engine:PASS_BOUNDARIES_SOURCE.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A engine:PASS_BOUNDARIES_AMENDMENT_1.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A engine:PASS_BOUNDARIES_AMENDMENT_2.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_OWNER_RULING_2026-09-13_AMENDMENT_4_SCOPE_OPENS.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A engine:PASS_BOUNDARIES_AMENDMENT_4.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_OWNER_RULING_2026-09-13_AMENDMENT_5_PORTABLE_PAGE_CONSTRUCTION.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A engine:PASS_BOUNDARIES_AMENDMENT_5.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:CC_COMMAND_AMENDMENT_3_ROWS_59_60.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A engine:PASS_BOUNDARIES_AMENDMENT_3.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_OWNER_RULINGS_2026-09-14_ROWS_5_6_STATES.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:CC_COMMAND_2026-09-14_ROWS_5_6_INTENT_CLUSTERING_AXIS_DISCOVERY.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:CC_COMMAND_2026-09-14_OPTION_A_SUBJECT_REGISTRY_LEAVES_THE_REPO.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_OWNER_RULING_A_2026-09-15_READ_ONLY_DEPLOY_KEY.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:CC_COMMAND_2026-09-15_RENDERER_LIVE_ONCE_ON_MAIN.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:CC_COMMAND_2026-09-15_ROW36_DESTRUCTIVE_GUARDS.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:CC_COMMAND_2026-09-15_ROW36_DCRW4_GUARD.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:CC_COMMAND_2026-09-15_ROW3_SEARCH_LANGUAGE_OWNED_HALF.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:CC_COMMAND_2026-09-15_ROW4_LOCALIZED_THINKING.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:CC_COMMAND_2026-09-15_ROW7_MARKET_MEASUREMENT_OWNED_HALF.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:CC_COMMAND_2026-09-15_GAP1_UNGATED_WRITERS.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:CC_COMMAND_2026-09-15_GAP3_ARCHIVE_CORPUS_OUT_ROW36.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:CC_COMMAND_2026-09-15_ROW25_PAGE_QUALITY_GATE.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_ROW61_OWNER_DECISION_2026-09-15.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_GAP_IDS_RECORD_ONLY_RULING_2026-09-16.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_GAP_IDS_D_EXIT_1_LINE_RULING_2026-09-16.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_PUSH_GATE_REDACTED_HIT_RULING_2026-09-16.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_PUSH_GATE_HIT_RESOLVED_THEN_PUSH_RULING_2026-09-16.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_OPTION_A_MEMORY_FIRST_THEN_GAP2_RULING_2026-09-16.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_DOD_HIT_RESOLVED_STAGED_SET_APPROVED_RULING_2026-09-16.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_BETA_G_RULING_9_AMBIGUOUS_2026-09-13_NIGHT.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:CC_COMMAND_2026-09-13_SESSION_SAVE.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_GAP2_MEASURE_CENSUS_BEFORE_FIXING_RULING_2026-09-16.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_GAP2_BOUNDED_CENSUS_CORRECTION_RULING_2026-09-16.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_GAP2_CONDITIONAL_FLOOR_REBASE_RULING_2026-09-16.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_GAP2_BLOCKER2_EASY_FOUR_RULING_2026-09-17.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_GAP2_CONFINED_STORE_PATH_SEAM_RULING_2026-09-17.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_GAP2_DIFFICULT_FIVE_FEASIBILITY_RULING_2026-09-17.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_GAP2_D_CENSUS_1_UNDER_COUNT_RULING_2026-09-17.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_GAP2_D_CENSUS_1_SET_PROOF_REPIN_RULING_2026-09-17.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_GAP2_MEASURE_SUPERSEDE_DUPLICATES_RULING_2026-09-17.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_GAP2_LEDGER_SEAM_TWO_CALLERS_RULING_2026-09-17.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_GAP2_EVIDENCE_FIRST_SEAM_ONE_CALLER_RULING_2026-09-17.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_GAP2_FINAL_RULING_GSC_INGEST_THEN_CHECKLIST_2026-09-17.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_GAP2_CONTRACT_RECONCILIATION_FINAL_FINISH_RULING_2026-09-17.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_ROW5_GOVERNING_RECONCILIATION_DECISION_BEFORE_BUILD_2026-09-17.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_OWNER_STATUS_SEMANTICS_RULING_RECORD_2026-09-18.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_FEATURE_MASTER_COMMAND_ROW9_2026-09-18.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_FEATURE_MASTER_COMMAND_ROW5_2026-09-18.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_FEATURE_MASTER_COMMAND_ROW1_2026-09-18.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_OWNER_RULING_2026-09-19_D2_MIXED_LIMB_SPLIT.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A engine:PASS_BOUNDARIES_AMENDMENT_6.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_OWNER_RULING_2026-09-19_U1_ROW1_COST_ISOLATION_SEMANTICS.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_OWNER_DECISION_2026-09-19_ROW1_CLOSED_BLOCKED_PROVED.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_OWNER_CLARIFICATION_2026-09-19_PRODUCT_PRIORITY_AND_ISOLATION_BOUNDARY.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_OWNER_RULING_2026-09-19_COMMIT_MECHANISM_SCOPE.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_CC_COMMAND_2026-09-19_ERROR_REGISTER_AND_PERSISTENCE.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_OWNER_RULING_2026-09-19_ARTEFACT_PERSISTENCE.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_CC_COMMAND_2026-09-19_SELECT_AND_CLOSE.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_CC_COMMAND_2026-09-19_ROW9_CLOSE_OR_HALT.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_CC_COMMAND_2026-09-19_ROW17_CLOSE_OR_HALT.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_CC_COMMAND_2026-09-20_ROW6_CLOSE_OR_HALT.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_CC_COMMAND_2026-09-20_ROW6_OWNER_INPUT_AND_CLOSE.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_CC_COMMAND_2026-09-21_ROW6_DEMAND_RESEARCH_AND_CLOSE.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_CC_COMMAND_2026-09-21_AMEND_ROW61_AND_RESUME_ROW6.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A engine:PASS_BOUNDARIES_AMENDMENT_7.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_CC_COMMAND_2026-09-21_ROW4_COMPLETE.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_OWNER_RULING_2026-09-21_ROW4_CONJUNCTION_AND_REASONING.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_CC_COMMAND_2026-09-21_ROW25_COMPLETE.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_OWNER_RULING_2026-09-21_TENANT_RESOURCE_ATTACHMENTS.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_CC_COMMAND_2026-09-21_ROW50_COMPLETE.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_OWNER_RULING_2026-09-21_ROW50_LABEL_ON_FACE.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_CC_COMMAND_2026-09-21_ROW50_OWNER_REOPEN_APPLIED.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_OWNER_DECISION_2026-09-22_ROW50_PRODUCT_BOUNDARY.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_CC_COMMAND_2026-09-22_ROW5_COMPLETE.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_CC_COMMAND_2026-09-22_F05_CURRENT_AUTHORITY_REGISTER_CHAIN.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_OWNER_RULING_2026-09-22_RETIRED_CONTAMINATED_HELDOUT.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_CC_COMMAND_2026-09-22_F05_CHAIN_PART3_REMEDIATION.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_OWNER_RULING_2026-09-22_HELDOUT_ROLE_SCOPE.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_CC_COMMAND_2026-09-22_F05_CHAIN_PART4_OWNER_ANSWERS.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_OWNER_RULING_2026-09-22_F05_ACCEPTANCE.md  (stored under migration:19e6b7b6aa4a)
+C4_AUTHORITY_DISPOSITION_CHANGED   A _handoffs:AlmiVisibility_CC_COMMAND_2026-09-22_F08_COMPLETE.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_OWNER_RULING_2026-09-22_F08_ACCEPTANCE.md  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                A _handoffs:AlmiVisibility_OWNER_RULING_2026-09-22_BOARD_AUTHORITY.md  (stored under migration:91b4121b2cbb)
+C2_SCHEMA_ADDITION                 B F05:ACCEPTANCE_FROZEN:2026-09-22  (stored under migration:19e6b7b6aa4a)
+C2_SCHEMA_ADDITION                 B F05:IMPLEMENTATION:2026-09-22  (stored under migration:19e6b7b6aa4a)
+C2_SCHEMA_ADDITION                 B F05:VERIFIED:2026-09-22  (stored under migration:19e6b7b6aa4a)
+C3_STATE_AFTER_DRIFT(+schema)      B F08:ACCEPTANCE_FROZEN:2026-09-22  (stored under migration:19e6b7b6aa4a)
+C3_STATE_AFTER_DRIFT(+schema)      B F08:IMPLEMENTATION:2026-09-22  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                B F08:VERIFIED:2026-09-22  (stored under migration:19e6b7b6aa4a)
+C3_STATE_AFTER_DRIFT(+schema)      B F08:CONTRADICTORY_EVIDENCE_RECORDED:2026-09-22  (stored under migration:91b4121b2cbb)
+C2_SCHEMA_ADDITION                 B F40:BLOCKER_RECORDED:2026-09-22  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                B F08:IMPLEMENTATION:2026-09-23  (stored under migration:91b4121b2cbb)
+C1_CORRELATION_ONLY                B F08:VERIFIED:2026-09-23  (stored under migration:91b4121b2cbb)
+C1_CORRELATION_ONLY                C observed:search-console-store  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                C observed:search-language-output  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                C observed:localized-thinking-output  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                C observed:localized-reasoning-output  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                C observed:local-reasoning-batch  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                C retired:held-out-set-3d4951d6673301bc  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                C sealed:case-study-row52  (stored under migration:19e6b7b6aa4a)
+C1_CORRELATION_ONLY                C synthetic:query-fixture-generator  (stored under migration:19e6b7b6aa4a)

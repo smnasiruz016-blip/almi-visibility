@@ -73,8 +73,8 @@ test("(a)(b)(d) · ONE SINK: a clean classification appends 0, a real sealed ref
     const clean = scan({ registry, root: "syn", base: dir, files: ["obs.jsonl", "ordinary.md", "vault/item.txt"], members: [MEMBER], fragments: [], audit: sink });
     assert.equal(clean.failures.length, 0);
     assert.equal(clean.sealedExcluded, 1, "the sealed path was not excluded unread");
-    assert.deepEqual([sink.classified, sink.emitted], [1, 0]);
     assert.equal(count() - start, 0, "a clean classification reached the durable trail");
+    assert.deepEqual([sink.classified, sink.emitted], [1, 0]);
 
     // (b) REFUSED ACCESS — the SAME sink: code asks the loader for the sealed file.
     let readerCalls = 0;
@@ -174,12 +174,12 @@ test("CONFLICT FIX · a migrated event's MIGRATION PASS no longer decides samene
   // Every migrated event carries the migration pass as its correlation (the premise the fix rests on).
   for (const e of migrated) assert.match(e.correlationId, /^migration:[0-9a-f]{12}$/, e.eventId);
   // Re-offered under another migration pass: the SAME occurrence (the 93 correlation-only conflicts).
-  for (const e of migrated) assert.equal(contentFingerprint({ ...e, correlationId: "migration:000000000000" }), contentFingerprint(e), e.eventId);
+  for (const e of migrated) assert.equal(contentFingerprint({ ...e, correlationId: "migration:000000000000" }), contentFingerprint(e), `MIGRATION_PASS_DECIDES_SAMENESS ${e.eventId}: a re-migrated occurrence reads as a different event`);
   // GENUINE detection is unchanged: a migrated event whose content differs is still different …
   for (const e of migrated) assert.notEqual(contentFingerprint({ ...e, outcome: `${e.outcome}-X` }), contentFingerprint(e), e.eventId);
   for (const e of migrated.filter((x) => x.metadata?.family === "B")) assert.notEqual(contentFingerprint({ ...e, metadata: { ...e.metadata, stateAfter: "X" } }), contentFingerprint(e), e.eventId);
   // … and a NATIVE event's correlation is still part of what happened.
-  for (const e of native) assert.notEqual(contentFingerprint({ ...e, correlationId: `${e.correlationId}-other` }), contentFingerprint(e), e.eventId);
+  for (const e of native) assert.notEqual(contentFingerprint({ ...e, correlationId: `${e.correlationId}-other` }), contentFingerprint(e), `NATIVE_CORRELATION_IGNORED ${e.eventId}: two native runs would read as one occurrence`);
 });
 
 test("(g) · the production trail verifies, every eventId is distinct, and nothing in this file touched it", () => {

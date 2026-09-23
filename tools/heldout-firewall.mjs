@@ -26,6 +26,7 @@ import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { registryErrors, observedDataExemption, entryFor } from "../src/governance/evidence-roles.mjs";
 import { isSealed } from "../src/governance/sealed-paths.mjs";
+import { diagnosticGuardSink } from "../src/governance/guard-audit.mjs";
 
 /** The held-out evaluators: modules that SCORE generalisation against expected answers. Row 3's traceability sample is not one. */
 export const HELD_OUT_EVALUATORS = Object.freeze(["src/discovery/intent-clusters.mjs"]);
@@ -80,7 +81,10 @@ export function countIn(text, members, fragments) {
  * THE SCAN. `files` are repository-relative paths in `root` at `base`. Returns rows of { path, category, full, frag,
  * disposition } and the failures — never any matched text.
  */
-export function scan({ registry, root, base, files, members, fragments, evaluatorSources = [], read = (f) => readFileSync(f) }) {
+/* 🔴 F08 §6.2 — every role decision this READ-ONLY scan makes is emitted by the guard into a DIAGNOSTIC sink the scan
+ * owns: checked metadata-only, kept by this run and returned as `guardEvents`, and NOT persisted — a read-only
+ * diagnostic may not mutate the durable trail (src/governance/guard-audit.mjs says why). */
+export function scan({ registry, root, base, files, members, fragments, evaluatorSources = [], read = (f) => readFileSync(f), audit = diagnosticGuardSink({ actor: "tools/heldout-firewall.mjs" }) }) {
   const rows = [];
   let sealedExcluded = 0;
   for (const path of files) {
@@ -102,7 +106,7 @@ export function scan({ registry, root, base, files, members, fragments, evaluato
     let disposition;
     if (category === "DATA") {
       if (!full) continue;
-      const ex = observedDataExemption({ registry, root, path, read: () => read(file), evaluatorSources });
+      const ex = observedDataExemption({ registry, root, path, read: () => read(file), evaluatorSources, audit });
       disposition = ex.exempt ? "EXEMPT_REGISTERED_OBSERVED_DATA" : `FAIL_${ex.code}`;
     } else if (full && FAILING_CATEGORIES.includes(category)) disposition = "FAIL_RETIRED_PAYLOAD";
     else if (fragmentFails) disposition = "FAIL_HELD_OUT_FRAGMENT";
@@ -111,7 +115,7 @@ export function scan({ registry, root, base, files, members, fragments, evaluato
     rows.push({ path, category, full, frag, disposition });
   }
   const failures = rows.filter((r) => r.disposition.startsWith("FAIL"));
-  return { rows, failures, sealedExcluded };
+  return { rows, failures, sealedExcluded, guardEvents: audit.events ?? [], guardDurable: audit.durable === true };
 }
 
 /** Every registered engine artefact must still match its hash — changed without re-registration fails closed. */

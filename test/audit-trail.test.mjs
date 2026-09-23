@@ -662,11 +662,15 @@ test("P32 · no historical 61/38 state produces an F08 pass or affects F-progres
   }
 });
 
-test("P33 · a governed state-changing action FAILS CLOSED when the audit append fails", () => {
+test("P33 · a governed state-changing action FAILS CLOSED when the audit append fails", (t) => {
   // The real integrated caller, with a store that refuses everything. Nothing is returned; it throws.
+  /* F08 §7 — these two directories were created and never removed (84 had accumulated by 23 September). They are
+   * removed when this test ends, however it ends. */
+  const fcDirs = [mkdtempSync(join(REPO_ROOT, ".test-scratch", "f08-fc-")), mkdtempSync(join(REPO_ROOT, ".test-scratch", "f08-fc-"))];
+  t.after(() => { for (const d of fcDirs) rmSync(d, { recursive: true, force: true }); });
   const refusing = createAuditStore({
-    eventsPath: join(mkdtempSync(join(REPO_ROOT, ".test-scratch", "f08-fc-")), "events.jsonl"),
-    headPath: join(mkdtempSync(join(REPO_ROOT, ".test-scratch", "f08-fc-")), "head.json"),
+    eventsPath: join(fcDirs[0], "events.jsonl"),
+    headPath: join(fcDirs[1], "head.json"),
     evidenceEntryFor, isSealedRef,
     appendLine: () => { throw new Error("the audit store is unavailable"); },
   });

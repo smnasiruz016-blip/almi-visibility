@@ -45,6 +45,10 @@ for (const entry of registry.filter((e) => e.role === "RETIRED_CONTAMINATED")) {
   console.log(`RETIRED SET ${entry.id} · ${pop.members.length} member(s) · fingerprint re-derived and matched · ${fragments.length} distinctive fragment(s)`);
   const engine = scan({ registry, root: "engine", base: REPO, files, members: pop.members, fragments, evaluatorSources });
   console.log(`\nENGINE — ${files.length} tracked file(s) · ${engine.sealedExcluded} sealed path(s) excluded unread`);
+  /* F08 §6.2 — the role guard emitted one metadata-only event per decision into this run's diagnostic sink. Counted
+   * here, never persisted: a read-only check may not change the durable trail. */
+  const traced = (o) => engine.guardEvents.filter((e) => e.outcome === o).length;
+  console.log(`  role decisions traced by the guard: ${engine.guardEvents.length} (ALLOWED ${traced("ALLOWED")} · REFUSED ${traced("REFUSED")}) — diagnostic sink, ${engine.guardDurable ? "DURABLE" : "not persisted"}`);
   for (const r of engine.rows) console.log(`  ${r.disposition.padEnd(34)} ${r.category.padEnd(22)} full ${String(r.full).padStart(3)} · fragments ${String(r.frag).padStart(2)} · ${r.path}`);
   for (const f of engine.failures) failures.push(`${f.disposition} ${f.path}`);
   const extra = process.argv.find((a) => a.startsWith("--extra-root="))?.slice("--extra-root=".length);

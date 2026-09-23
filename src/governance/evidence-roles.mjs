@@ -11,6 +11,7 @@
  */
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { requireGuardSink, resourceRef } from "./guard-audit.mjs";
 
 export const ROLES = Object.freeze([
   "OBSERVED_DATA", "TRAINING_DATA", "DEVELOPMENT_FIXTURE", "SYNTHETIC_TEST_FIXTURE", "HELD_OUT_EVIDENCE", "MARKING_KEY",
@@ -62,19 +63,31 @@ export const entryFor = (registry, root, path) => (registry || []).find((e) => e
  * six, checked one by one, each failure named. `read` returns the artefact's bytes; `evaluatorSources` are the
  * sources of the held-out evaluators (checked for the artefact's path by exact substring of the path, never a guess).
  */
-export function observedDataExemption({ registry, root, path, read, evaluatorSources = [] }) {
+export function observedDataExemption({ registry, root, path, read, evaluatorSources = [], audit }) {
+  /* 🔴 F08 §6.2 — EVERY DECISION, ALLOWED OR REFUSED, IS AUDITED HERE, ONCE, AS IT IS MADE. The sink is required and
+   * checked before anything is read. Every outcome below leaves through `decided`, which emits exactly one
+   * metadata-only event — the entry id, its role, the root and a digest of the artefact's path; never its bytes and
+   * never the path — and then returns. A failed emission throws: an unaudited decision is not a decision. */
+  requireGuardSink(audit, "observedDataExemption");
+  const decided = (result, entry = null) => {
+    audit.emit({
+      eventType: "EVIDENCE_ROLE_DECISION", action: "EXEMPT_AS_OBSERVED_DATA", outcome: result.exempt ? "ALLOWED" : "REFUSED", reasonCode: result.code,
+      metadata: { guard: "observedDataExemption", classification: result.exempt ? "OBSERVED_DATA_EXEMPT" : "NOT_EXEMPT", ruleEntry: entry ? String(entry.id) : "UNREGISTERED", role: entry ? String(entry.role) : "UNREGISTERED", root: String(root), resourceRef: resourceRef(root, path) },
+    });
+    return result;
+  };
   const e = entryFor(registry, root, path);
-  if (!e) return { exempt: false, code: "UNREGISTERED", why: `${root}:${path} is not registered — an unregistered match fails closed` };
-  if (e.role !== "OBSERVED_DATA") return { exempt: false, code: "NOT_OBSERVED_DATA", why: `${e.id} is registered as ${e.role}, not OBSERVED_DATA` };
+  if (!e) return decided({ exempt: false, code: "UNREGISTERED", why: `${root}:${path} is not registered — an unregistered match fails closed` });
+  if (e.role !== "OBSERVED_DATA") return decided({ exempt: false, code: "NOT_OBSERVED_DATA", why: `${e.id} is registered as ${e.role}, not OBSERVED_DATA` }, e);
   const actual = contentHashOf(read());
-  if (actual !== e.contentHash) return { exempt: false, code: "HASH_MISMATCH", why: `${e.id}: the registered hash does not match the artefact's content — changed without re-registration` };
-  if (e.maySupplyExpectedAnswer !== false) return { exempt: false, code: "MAY_SUPPLY_EXPECTED_ANSWER", why: `${e.id} may supply an expected answer` };
-  if (e.mandatoryReadable !== false) return { exempt: false, code: "MANDATORY_READING", why: `${e.id} is mandatory reading` };
-  if (evaluatorSources.some((s) => s.includes(path))) return { exempt: false, code: "IMPORTED_BY_HELD_OUT_EVALUATOR", why: `${e.id} is read by a held-out evaluator` };
+  if (actual !== e.contentHash) return decided({ exempt: false, code: "HASH_MISMATCH", why: `${e.id}: the registered hash does not match the artefact's content — changed without re-registration` }, e);
+  if (e.maySupplyExpectedAnswer !== false) return decided({ exempt: false, code: "MAY_SUPPLY_EXPECTED_ANSWER", why: `${e.id} may supply an expected answer` }, e);
+  if (e.mandatoryReadable !== false) return decided({ exempt: false, code: "MANDATORY_READING", why: `${e.id} is mandatory reading` }, e);
+  if (evaluatorSources.some((s) => s.includes(path))) return decided({ exempt: false, code: "IMPORTED_BY_HELD_OUT_EVALUATOR", why: `${e.id} is read by a held-out evaluator` }, e);
   const dir = path.includes("/") ? path.slice(0, path.lastIndexOf("/") + 1) : "";
   const labels = (registry || []).filter((x) => ["MARKING_KEY", "HELD_OUT_EVIDENCE"].includes(x.role) && x.resource?.root === root && (x.resource?.path ?? "").startsWith(dir));
-  if (labels.length) return { exempt: false, code: "EXPECTED_LABEL_ALONGSIDE", why: `${e.id} sits beside expected-label material (${labels.map((x) => x.id).join(", ")})` };
-  return { exempt: true, code: "REGISTERED_OBSERVED_DATA", entry: e.id };
+  if (labels.length) return decided({ exempt: false, code: "EXPECTED_LABEL_ALONGSIDE", why: `${e.id} sits beside expected-label material (${labels.map((x) => x.id).join(", ")})` }, e);
+  return decided({ exempt: true, code: "REGISTERED_OBSERVED_DATA", entry: e.id }, e);
 }
 
 /** Read a file's bytes (for `observedDataExemption`). */

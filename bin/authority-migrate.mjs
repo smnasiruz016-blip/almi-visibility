@@ -22,7 +22,7 @@ import { ruleFor, recordFromFile, census } from "../src/authority/corpus.mjs";
 import { STORED_STATUSES } from "../src/authority/register.mjs";
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
-import { governedFileWrite } from "../src/governance/governed-run.mjs";
+import { governedFileWrite, governedGuardSink } from "../src/governance/governed-run.mjs";
 import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { softwareVersionOf } from "../src/audit-trail/wiring.mjs";
 import { auditAuthorityMigration, migrationAuthority } from "../src/audit-trail/callers.mjs";
@@ -35,6 +35,11 @@ const permission = announceWritePermission(writePermission({ target: LOCAL, argv
 const NOW = arg("now") ?? "2026-09-22";
 if (!govRoot || !govCommit || !engCommit) { console.error("usage: --governance-root=<dir> --governance-commit=<sha> --engine-commit=<sha> [--confirm]"); process.exit(2); }
 
+/* F08 §6.1 — this governed run's sealed-path refusals are audited by the guard itself, into the governed store
+ * (the confined one inside a verified test context). A permitted read emits nothing. */
+const GUARD_INSTANT = governedInstant(Date.now());
+const GUARD_SINK = governedGuardSink({ repo: ENGINE, correlationId: `run:authority-migrate:read:${GUARD_INSTANT}`, now: GUARD_INSTANT.slice(0, 10), actor: "bin/authority-migrate.mjs" });
+
 const git = (cwd, ...a) => execFileSync("git", a, { cwd, encoding: "utf8", maxBuffer: 1 << 28 });
 const full = (cwd, c) => git(cwd, "rev-parse", "--verify", `${c}^{commit}`).trim();
 
@@ -45,7 +50,7 @@ function collect({ repo, cwd, commit, rules, prefix, root, dir = "" }) {
     const name = path.split("/").pop();
     const rule = ruleFor(rules, name, EXCLUDE);
     if (!rule) continue;
-    const text = readUnsealed({ registry: EVIDENCE_ROLE_REGISTRY, root, base: "", path, read: (p) => git(cwd, "show", `${commit}:${p.replace(/\\/g, "/")}`) });
+    const text = readUnsealed({ registry: EVIDENCE_ROLE_REGISTRY, root, base: "", path, audit: GUARD_SINK, read: (p) => git(cwd, "show", `${commit}:${p.replace(/\\/g, "/")}`) });
     const blob = git(cwd, "rev-parse", `${commit}:${path}`).trim();
     const firstCommitAt = git(cwd, "log", "--diff-filter=A", "--follow", "--format=%aI", commit, "--", path).trim().split("\n").pop() || null;
     out.push(recordFromFile({ rule, repo, path, name, prefix, commit, blob, text, firstCommitAt, root: SCOPE_ROOT }));

@@ -73,6 +73,42 @@ function shapeSites(shapes) {
 }
 
 /**
+ * 🔴 DOES THE GUARD EMIT ON EVERY DECISION? Read from its source, by three conditions, each named when it fails:
+ *   1 · the audit sink is REQUIRED (`requireGuardSink(`) before anything is decided;
+ *   2 · for a guard that decides by THROWING a refusal: every `throw new` in its body is preceded, inside the same
+ *       branch, by `audit.emit(`;
+ *   3 · for a guard that decides by RETURNING a verdict: every top-level `return` in its body goes through the one
+ *       emitting exit (`return decided(`) — a single bare `return {` is a decision that emits nothing.
+ * The behavioural proofs (test/shared-guard-audit.test.mjs) drive every branch; this is the census's own reading.
+ */
+export function guardEmitsOnEveryDecision(file, fn, { text = null } = {}) {
+  const src = (text ?? readFileSync(join(REPO, file), "utf8")).replace(/\r\n/g, "\n");
+  const start = src.search(new RegExp(`export function ${fn}\\s*\\(`));
+  if (start < 0) return { ok: false, why: `${fn} not found` };
+  const next = src.slice(start + 1).search(/\n(export )?(async )?function |\nexport const /);
+  const body = src.slice(start, next < 0 ? src.length : start + 1 + next);
+  const lines = body.split("\n").filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l));
+  const req = lines.findIndex((l) => /\brequireGuardSink\(/.test(l));
+  const decideAt = lines.findIndex((l, i) => i > 0 && /\b(sealedEntryFor|entryFor)\(/.test(l));
+  if (req < 0) return { ok: false, why: "no requireGuardSink( — the guard can decide without a sink" };
+  if (decideAt >= 0 && decideAt < req) return { ok: false, why: "the decision is made before the sink is required" };
+  const throws = lines.map((l, i) => [l, i]).filter(([l]) => /\bthrow new\b/.test(l));
+  for (const [, i] of throws) {
+    const branch = lines.slice(Math.max(0, i - 6), i).join("\n");
+    if (!/\baudit\.emit\(/.test(branch)) return { ok: false, why: `a refusal is thrown at body line ${i + 1} with no audit.emit( before it` };
+  }
+  const topReturns = lines.filter((l) => /^ {2}(if \(.*\) )?return\b/.test(l));
+  if (throws.length === 0) {
+    if (topReturns.length === 0) return { ok: false, why: "no decision exit found" };
+    const bare = topReturns.filter((l) => !/return decided\(/.test(l));
+    if (bare.length) return { ok: false, why: `${bare.length} decision exit(s) bypass the emitting exit` };
+    if (!/const decided = [\s\S]*?audit\.emit\(/.test(body)) return { ok: false, why: "the emitting exit does not emit" };
+    return { ok: true, why: `sink required first; all ${topReturns.length} exits go through decided(), which emits` };
+  }
+  return { ok: true, why: `sink required first; ${throws.length} refusal(s), each emitted before it is thrown` };
+}
+
+/**
  * The rule that assigns a class. It reads only the site's family, its file and its shape — never a list of
  * file names, so a new site is classified the same way an old one is.
  */
@@ -89,9 +125,12 @@ function classify(site, family) {
   if (site.file === guard) {
     /* Inside the shared guard, the one shape that REFUSES is the decision; its helpers express the same one. */
     const decides = family === "SEALED" ? site.shape === "readUnsealed" : site.shape === "observedDataExemption";
-    return decides
-      ? { cls: "DEFECT", why: `${family} is decided here and the refusal is not audited as it is made` }
-      : { cls: "DUPLICATE_OBSERVATION_OF_SAME_DECISION", why: `a helper of the same decision, in ${guard}` };
+    if (!decides) return { cls: "DUPLICATE_OBSERVATION_OF_SAME_DECISION", why: `a helper of the same decision, in ${guard}` };
+    /* 🔴 LIVE_AUDITED IS READ OUT OF THE GUARD'S SOURCE, NEVER DECLARED (F08 §6). */
+    const proof = guardEmitsOnEveryDecision(site.file, site.shape);
+    return proof.ok
+      ? { cls: "LIVE_AUDITED", why: `${family} is decided here and every decision is emitted as it is made — ${proof.why}` }
+      : { cls: "DEFECT", why: `${family} is decided here and the decision is not audited as it is made — ${proof.why}` };
   }
   if (site.file.startsWith("tools/")) {
     return { cls: "NOT_GOVERNED_WITH_REASON", why: "a read-only census; it reports the rule and applies it to no mutation" };

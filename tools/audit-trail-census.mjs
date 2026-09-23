@@ -25,6 +25,7 @@ import { DECLARED } from "../config/fboard/f-board.mjs";
 import { contractSha256 } from "../src/fboard/acceptance.mjs";
 import { buildBoard, boardErrors, progress } from "../src/fboard/board.mjs";
 import { isSealed, readUnsealed, SealedPathRefused } from "../src/governance/sealed-paths.mjs";
+import { diagnosticGuardSink } from "../src/governance/guard-audit.mjs";
 import { createTenantResolver, TENANT_ID_PATTERN } from "../src/tenancy/resolver.mjs";
 import { PRODUCT_WORDS } from "./product-boundary.mjs";
 import { productionAuditStore } from "../src/audit-trail/wiring.mjs";
@@ -71,8 +72,11 @@ for (const p of changed) console.log(`  ${p}`);
   const sealedPaths = tracked.filter((p) => isSealed(EVIDENCE_ROLE_REGISTRY, "engine", p));
   let opened = 0;
   let refusedAll = true;
+  /* F08 §6.1 — this READ-ONLY census's probes are refused by the guard, which emits one event per refusal into a
+   * diagnostic sink this run owns (never persisted). The count must equal the number of sealed paths probed. */
+  const guard = diagnosticGuardSink({ actor: "tools/audit-trail-census.mjs" });
   for (const p of sealedPaths) {
-    try { readUnsealed({ registry: EVIDENCE_ROLE_REGISTRY, root: "engine", base: REPO, path: p, read: () => { opened += 1; return ""; } }); refusedAll = false; }
+    try { readUnsealed({ registry: EVIDENCE_ROLE_REGISTRY, root: "engine", base: REPO, path: p, audit: guard, read: () => { opened += 1; return ""; } }); refusedAll = false; }
     catch (e) { if (!(e instanceof SealedPathRefused)) refusedAll = false; }
   }
   // The audit trail names sealed material and never expands it: no sealed PREFIX content, only the prefix identity.
@@ -80,13 +84,14 @@ for (const p of changed) console.log(`  ${p}`);
   const sealedRefs = store.readAll().events.flatMap((e) => e.evidenceRefs).filter((r) => isSealed(EVIDENCE_ROLE_REGISTRY, r.root, r.ref));
   const sealedWithHash = sealedRefs.filter((r) => r.contentHash !== null).length;
   let controlOpened = 0;
-  readUnsealed({ registry: EVIDENCE_ROLE_REGISTRY, root: "engine", base: REPO, path: "package.json", read: () => { controlOpened += 1; return "{}"; } });
+  const refusalsTraced = guard.emitted;
+  readUnsealed({ registry: EVIDENCE_ROLE_REGISTRY, root: "engine", base: REPO, path: "package.json", audit: guard, read: () => { controlOpened += 1; return "{}"; } });
   say(
     "13.2 · ROW 52 SEALED-PATH DENIAL",
-    `${sealedPaths.length} tracked paths under a declared sealed prefix; ${sealedRefs.length} sealed reference(s) in the audit trail`,
+    `${sealedPaths.length} tracked paths under a declared sealed prefix; ${sealedRefs.length} sealed reference(s) in the audit trail; ${refusalsTraced} refusal event(s) traced by the guard (diagnostic, not persisted)`,
     "every tracked engine path, asked for through the ordinary loader; and every evidence reference in the store",
-    (refusedAll ? 0 : 1) + opened + sealedWithHash,
-    `the SAME loader read an unsealed path in this run (package.json, ${controlOpened} read) — so the refusal is not "it refuses everything"`,
+    (refusedAll ? 0 : 1) + opened + sealedWithHash + (refusalsTraced === sealedPaths.length ? 0 : 1) + (guard.emitted === refusalsTraced ? 0 : 1),
+    `the SAME loader read an unsealed path in this run (package.json, ${controlOpened} read) and traced ${guard.emitted - refusalsTraced} event(s) for it — so the refusal is not "it refuses everything", and a permitted read is not audited as a refusal`,
   );
 }
 

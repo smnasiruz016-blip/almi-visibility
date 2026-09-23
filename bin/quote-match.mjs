@@ -43,7 +43,10 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
-import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
+import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../src/governance/governed-run.mjs";
+import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { runQuoteMatch } from "../src/facts/quote-match.mjs";
 
@@ -64,6 +67,7 @@ const argv = process.argv.slice(2);
 const out = argv.find((a) => a.startsWith("--out="))?.split("=").slice(1).join("=") ?? null;
 
 const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
+const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const permission = writePermission({ target: LOCAL, argv, env: process.env });
 if (out) announceWritePermission(permission);
 
@@ -103,12 +107,20 @@ if (report.inconclusive.length) {
 }
 
 if (out) {
-  if (!permission.mayWrite) {
-    console.log(`\n[dry-run] would have written ${out} — ${permission.reason}`);
-  } else {
-    mkdirSync(dirname(out), { recursive: true });
-    writeFileSync(out, JSON.stringify(report, null, 2) + "\n", "utf8");
-    console.log(`\nwrote ${out}`);
+  /* Routed by a BYTE-PRESERVING edit: this file holds 115 CRLF lines and one bare LF, and every ordinary patch
+   * mechanism here normalises before matching and restores one style on write — which would have rewritten 116
+   * lines to change four. The bare LF is untouched. TEXT, measured: the body is a JSON.stringify. */
+  const QM_INSTANT = governedInstant(Date.now());
+  const governed = executeGovernedWrite(governedFileWrite({
+    repo: REPO, permission, target: out, targetClass: "RUN_EVIDENCE",
+    bytes: JSON.stringify(report, null, 2) + "\n",
+    action: "WRITE_QUOTE_MATCH_REPORT", occurredAt: QM_INSTANT, correlationId: `run:quote-match:${QM_INSTANT}`,
+  }));
+  if (governed.outcome === "REFUSED") console.log(`\n[dry-run] would have written ${out} — ${permission.reason}`);
+  else if (governed.outcome === "COMMITTED" || governed.outcome === "ALREADY_COMMITTED") console.log(`\nwrote ${out}`);
+  else {
+    console.error(`🔴 ${governed.outcome} — ${out} was not written; the governed attempt is on the audit trail`);
+    process.exitCode = 1;
   }
 }
 

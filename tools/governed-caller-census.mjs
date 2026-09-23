@@ -122,9 +122,18 @@ export function census({ sources = null } = {}) {
     const sites = writeSitesOf(text);
     const asksWriteLaw = /writePermission\(/.test(text);
     const usesBoundary = BOUNDARY_CALL.test(text);
+    /* 🔴 ROUTED MEANS THE WRITE MOVED, NOT THAT A BOUNDARY CALL APPEARS SOMEWHERE IN THE FILE.
+     *
+     * `routed` used to mean only "this file mentions executeGovernedWrite". A caller with three writes, one of
+     * them routed, would then have counted as fully routed and dropped out of the bypass census — a false zero
+     * produced by doing MOST of the work. It now requires both: the boundary is reached AND no direct write site
+     * remains. A file with both is PARTIALLY routed, and a partial routing is still a bypass. */
+    const fullyRouted = usesBoundary && sites.length === 0;
+    const partiallyRouted = usesBoundary && sites.length > 0;
     const cls = sites.length > 0 || usesBoundary ? "GOVERNED_STATE_CHANGE" : asksWriteLaw ? "UNKNOWN" : "READ_ONLY_DIAGNOSTIC";
     /* Derived, never declared — see AUDIT_STORE_REACHING above. A routed caller is never also exempt. */
     const internal = usesBoundary ? { exempt: false, conditionA: false, conditionB: false } : auditStoreInternalWrite(text, sites);
+    void partiallyRouted;
     const coverage = tests.filter((t) => testText.get(t).includes(file));
     return {
       file,
@@ -135,7 +144,9 @@ export function census({ sources = null } = {}) {
       scope: "GLOBAL_PRODUCT",
       shape: shapeOf(text),
       auditRequired: cls === "GOVERNED_STATE_CHANGE",
-      routed: usesBoundary,
+      routed: fullyRouted,
+      partiallyRouted,
+      reachesBoundary: usesBoundary,
       auditStoreExempt: internal.exempt,
       exemption: internal,
       sites: sites.length,
@@ -174,6 +185,8 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("\\").join
     for (const r of rows) console.log(`  ${r.file.padEnd(36)} ${r.cls.padEnd(22)} ${r.shape.padEnd(24)} ${r.targetClass.padEnd(22)} ${String(r.sites).padStart(2)} ${r.routed ? "ROUTED" : "-     "} ${r.coverage.length}`);
   }
   for (const r of rows.filter((x) => x.cls === "UNKNOWN")) console.log(`  🔴 UNKNOWN ${r.file} — blocks implementation until resolved by measurement`);
-  for (const r of missed) console.log(`  🔴 BYPASS ${r.file} — a governed write outside the shared boundary`);
+  for (const r of missed) {
+    console.log(`  🔴 BYPASS ${r.file} — ${r.partiallyRouted ? `PARTIALLY routed: it reaches the boundary AND still holds ${r.sites} direct write site(s)` : "a governed write outside the shared boundary"}`);
+  }
   if (process.argv.includes("--check") && (missed.length || (by.UNKNOWN ?? 0) || rows.length !== accounted)) process.exit(1);
 }

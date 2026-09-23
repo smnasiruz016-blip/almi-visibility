@@ -53,11 +53,18 @@ export function derivedForbiddenSubstrings(repo, registry = EVIDENCE_ROLE_REGIST
   return out;
 }
 
-/** The production store, at the declared path, wired to the production registry. */
-export function productionAuditStore({ repo, clock, forbiddenSubstrings = null, registry = EVIDENCE_ROLE_REGISTRY }) {
+/**
+ * The production store, at the declared path, wired to the production registry.
+ *
+ * `at` relocates ONLY the two file paths — never the validation. A confined test store is built here, through the
+ * same evidence-role lookup, sealed-path lookup and protected-payload refusal as the production one, so a test can
+ * choose a different FILE but never a weaker RULE. Deciding whether a relocation is permitted is not this module's
+ * job and is not done here; it is decided before this is called, and refused there.
+ */
+export function productionAuditStore({ repo, clock, forbiddenSubstrings = null, registry = EVIDENCE_ROLE_REGISTRY, at = null }) {
   return createAuditStore({
-    eventsPath: join(repo, AUDIT_STORE.eventsPath),
-    headPath: join(repo, AUDIT_STORE.headPath),
+    eventsPath: at?.eventsPath ?? join(repo, AUDIT_STORE.eventsPath),
+    headPath: at?.headPath ?? join(repo, AUDIT_STORE.headPath),
     clock,
     evidenceEntryFor: makeEvidenceLookup(registry),
     isSealedRef: makeSealedLookup(registry),

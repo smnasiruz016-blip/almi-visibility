@@ -83,6 +83,12 @@ const DECLARED = Object.freeze({
   "src/audit-trail/store.mjs": "the audit store's own primitive — createAuditStore.append is built on it, and the eventId lookup that dedupes sits above it, in the same file",
   "src/audit-trail/recorder.mjs": "store.append — the audit store's own dedupe by eventId (IDEMPOTENT_RETRY) and its refusal of a conflicting duplicate (EVENT_ID_CONFLICT)",
   "src/audit-trail/callers.mjs": "store.append — the same audit-store primitive; the caller records a decision once per run and a re-run of the same decision returns IDEMPOTENT_RETRY",
+  /* 🔴 F08 (23 September 2026) — THE GOVERNED-WRITE BOUNDARY. These are declarations of a dedupe that EXISTS,
+   * not exemptions: each claim below is checked in test/governed-write.test.mjs, and a writer that merely said
+   * one of these sentences without doing it would fail there. */
+  "src/governance/governed-write.mjs": "store.append — the audit store's own dedupe by eventId. A saga event's identity is its idempotency key, its phase and its run, so a retry within a run recomputes the SAME id and appends nothing (IDEMPOTENT_RETRY); a conflicting duplicate is REFUSED rather than merged",
+  "src/governance/durability-adapters.mjs": "the two durability profiles are the ONE place a governed mutation touches the filesystem, and the boundary dedupes BEFORE either of them runs: inspect(idempotencyKey) returns ALREADY_COMMITTED and the adapter is never invoked, so a retry performs no second append and no second rename",
+  "src/governance/governed-run.mjs": "store.append — the same audit-store primitive, wrapped only to label a confined test store's events SYNTHETIC_TEST_FIXTURE. It opens no write path of its own and adds no record the wrapped store would not have written",
 });
 
 test("🔴 CENSUS (source): every record writer is guarded or declared with a checked reason — ZERO unexplained bare appends", () => {

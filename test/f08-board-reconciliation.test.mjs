@@ -210,7 +210,7 @@ test("P9 · an audit append failure PREVENTS the movement — a row cannot stand
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("P10 · a retry creates NO duplicate event — within a build it is recognised, across builds it is REFUSED", () => {
+test("P10 · a retry creates NO duplicate event — within a build AND across builds, while a GENUINE conflict still refuses", () => {
   const e = transitionsFor("F08")[0];
   mkdirSync(join(REPO_ROOT, ".test-scratch"), { recursive: true });
   const dir = mkdtempSync(join(REPO_ROOT, ".test-scratch", "f08r-retry-"));
@@ -228,11 +228,33 @@ test("P10 · a retry creates NO duplicate event — within a build it is recogni
     assert.equal(again.appended, false);
     assert.equal(store.readAll().events.length, 1, "a retry duplicated the transition");
 
-    /* 🔴 THE SAME EVENT OFFERED FROM A DIFFERENT ENGINE BUILD. `softwareVersion` is covered by the content
-     * fingerprint but NOT by the derived eventId, so the pair is a CONFLICT and the store REFUSES it. That is a
-     * measured defect of F08's identity rule — recorded, parked, and NOT repaired here — but the property this
-     * proof is about still holds in both worlds: NO DUPLICATE IS EVER CREATED. */
-    assert.throws(() => store.append({ ...draft, softwareVersion: "engine:some-other-build" }), /EVENT_ID_CONFLICT/);
+    /* 🔴 THE SAME EVENT OFFERED FROM A DIFFERENT ENGINE BUILD — THE PARKED DEFECT, REPAIRED 23 SEPTEMBER 2026.
+     *
+     * This assertion used to require EVENT_ID_CONFLICT, and said so while naming the defect it was pinning. The
+     * repair excludes `softwareVersion` from the occurrence fingerprint (RECORDER_EXECUTION_FIELDS), because a
+     * build change is not a content change. THIS REPAIR IS WHAT MADE THE OLD ASSERTION WRONG, so it is corrected
+     * here rather than deleted — and the property the proof is actually about, NO DUPLICATE IS EVER CREATED,
+     * holds in both worlds and is still asserted below. */
+    const crossBuild = store.append({ ...draft, softwareVersion: "engine:some-other-build" });
+    assert.equal(crossBuild.status, "IDEMPOTENT_RETRY", "the same occurrence from a later build was not recognised");
+    assert.equal(crossBuild.appended, false);
+    assert.equal(store.readAll().events.length, 1, "a cross-build replay duplicated the transition");
+    assert.equal(
+      store.readAll().events[0].softwareVersion, draft.softwareVersion,
+      "the replay overwrote the version recorded AT THE EVENT — existing bytes must be left exactly as committed",
+    );
+    /* 🔴 CONTROL, PROVED CAPABLE OF THE OTHER VERDICT. A repair that made everything match would be worse than
+     * the defect, so a GENUINE immutable disagreement must still be refused.
+     *
+     * It changes `outcome` and not `action`: `action` is part of the DERIVED EVENT ID, so changing it produces a
+     * different event rather than a conflicting one — a control built on it would append a second event and prove
+     * nothing. `outcome` sits inside the fingerprint but outside the identity, which is exactly the shape of a
+     * genuine disagreement: the same decision, claimed to have come out differently. */
+    assert.throws(
+      () => store.append({ ...draft, outcome: draft.outcome === "RECORDED" ? "APPLIED" : "RECORDED" }),
+      /EVENT_ID_CONFLICT/,
+      "the same event with a DIFFERENT outcome was not refused — the conflict guard is dead",
+    );
     assert.equal(store.readAll().events.length, 1);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });

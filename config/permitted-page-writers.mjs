@@ -215,7 +215,11 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
   },
   {
     file: "bin/checklist-boundaries.mjs",
-    sites: 1,
+    /* 🔴 ROUTED through the shared governed-write boundary (23 September 2026). The direct write site is GONE,
+     * not merely gated: the mutation happens inside the boundary, which audits the attempt and the outcome. The
+     * declared count is therefore 0, and the STRICTER routed rule in the census applies. */
+    routed: true,
+    sites: 0,
     writes: "CHECKLIST_BOUNDARIES.md — every row's four-part boundary quoted verbatim from the hash-verified frozen sources, beside its seven-state verdict",
     where: `CHECKLIST_BOUNDARIES.md at the repository root — a fixed path, no operator flag; a GENERATED document, not evidence; ${CONFINED}`,
     gatedBy: "write-law LOCAL: permission.mayWrite, which only --confirm grants. Without it the run still builds the document and reports whether the committed one is UP TO DATE, STALE or MISSING. Judged on 15 September 2026: routine regeneration makes the flag a daily keystroke, and the write law already names --confirm as the right price for a local write",

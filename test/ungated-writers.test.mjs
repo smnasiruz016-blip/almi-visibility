@@ -304,7 +304,15 @@ test("🔴 THE DECLARED LOCAL WRITERS — each states writes · where · gatedBy
     const lines = text.split(/\r?\n/);
     const sites = writeSitesOf(text);
     assert.equal(sites.length, e.sites, `${e.file}: ${sites.length} write site(s) in the source, ${e.sites} declared`);
-    for (const s of sites) assert.equal(gateOf(lines, s.line, e.gateToken).gated, true, `${e.file}:${s.line} DEFAULTS TO WRITING — ${s.text}`);
+    if (e.routed) {
+      /* 🔴 STRICTER, NOT LOOSER — and this repair is what made the old form wrong. A routed writer has no direct
+       * write site to gate, because the mutation moved inside the shared boundary. So it must have ZERO sites AND
+       * actually reach the boundary. Declaring `routed` without calling it is precisely the hole this closes. */
+      assert.equal(sites.length, 0, `${e.file}: declared routed but still holds ${sites.length} direct write site(s)`);
+      assert.match(text, /executeGovernedWrite\(/, `${e.file}: declared routed but never reaches the shared boundary`);
+    } else {
+      for (const s of sites) assert.equal(gateOf(lines, s.line, e.gateToken).gated, true, `${e.file}:${s.line} DEFAULTS TO WRITING — ${s.text}`);
+    }
     assert.equal(destinationFlagIn(text), e.destinationOverridable, `${e.file}: the destination flag is declared wrongly`);
   }
 });

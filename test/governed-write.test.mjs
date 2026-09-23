@@ -19,7 +19,8 @@ import {
   GovernedWriteRefused, PROFILES, RETURNED_OUTCOMES, DISCOVERED_STATES, DECLARED_UNREACHABLE,
   TERMINAL_EVENT_FOR, OUTCOME_FOR_PHASE, SAGA, AUDIT_STORE_EXEMPTION,
 } from "../src/governance/governed-write.mjs";
-import { stagedReplaceAdapter, jsonlAppendAdapter, TEMP_MARKER, contentHash, byteHash } from "../src/governance/durability-adapters.mjs";
+import { stagedReplaceAdapter, jsonlAppendAdapter, storeAppendAdapter, TEMP_MARKER, contentHash, byteHash } from "../src/governance/durability-adapters.mjs";
+import { createJsonlStore, RESIGHTING_TYPE } from "../src/evidence/store.mjs";
 import {
   resolveAuditStoreLocation, inVerifiedTestContext, AuditStoreOverrideForbidden,
   AUDIT_STORE_OVERRIDE_ENV, AUDIT_RUN_ENV, TEST_SCRATCH_AUDIT_ROOT, SYNTHETIC_LABEL, isRealEvidence,
@@ -445,6 +446,41 @@ test("P24 · P25 · a partial tail is DETECTED, the append is refused, and no va
       const c = logAdapter(clean, "log.jsonl", { id: "r-3", value: 3 });
       assert.equal(executeGovernedWrite({ permission: ALLOWED, audit: ctx(clean), adapter: c, action: act("append", c.occurrenceFingerprint) }).outcome, "COMMITTED");
     } finally { rmSync(clean, { recursive: true, force: true }); }
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("🔴 a RE-SIGHTING is not suppressed — on the shared store the occurrence is one RUN's observation", () => {
+  const dir = scratch();
+  try {
+    const audit = ctx(dir);
+    const store = createJsonlStore(join(dir, "ev.jsonl"));
+    const record = { record_type: "issue", issue_id: "i-1", detail: "x" };
+    const mk = (scope) => storeAppendAdapter({
+      repo: REPO, repoRelativeTarget: rel(join(dir, "ev.jsonl")), targetClass: "RUN_EVIDENCE",
+      store, records: [record], keyOf: store.dedupeKeyOf,
+      append: (s, r) => s.appendIfNew(r, { seenAt: OCCURRED }),
+      occurrenceScope: scope,
+    });
+
+    const runA = mk("run:A");
+    assert.equal(executeGovernedWrite({ permission: ALLOWED, audit, adapter: runA, action: act("append", runA.occurrenceFingerprint) }).outcome, "COMMITTED");
+    assert.equal(store.readAll().length, 1);
+
+    // a RETRY inside the same run commits nothing further
+    assert.equal(executeGovernedWrite({ permission: ALLOWED, audit, adapter: runA, action: act("append", runA.occurrenceFingerprint) }).outcome, "ALREADY_COMMITTED");
+    assert.equal(store.readAll().length, 1, "a retry within one run appended twice");
+
+    /* 🔴 A LATER RUN IS A NEW OBSERVATION. appendIfNew does not skip a repeat — it appends a RE-SIGHTING, which is
+     * the record that we looked again. A boundary that answered ALREADY_COMMITTED here would delete the evidence of
+     * every re-check in the name of idempotency, which is why the occurrence is keyed by the run. */
+    const runB = mk("run:B");
+    assert.notEqual(runB.occurrenceFingerprint, runA.occurrenceFingerprint, "two runs derived the same occurrence");
+    assert.equal(executeGovernedWrite({ permission: ALLOWED, audit, adapter: runB, action: act("append", runB.occurrenceFingerprint) }).outcome, "COMMITTED");
+
+    const all = store.readAll();
+    assert.equal(all.length, 2, "the re-sighting was suppressed");
+    assert.equal(all[1].record_type, RESIGHTING_TYPE, `the second record is ${all[1].record_type}, not a re-sighting`);
+    assert.equal(all[1].issue_id, "i-1", "the re-sighting points at a different record");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

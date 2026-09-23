@@ -262,5 +262,7 @@ export function createJsonlStore(filePath) {
 
   // 🔴 Frozen so a caller cannot bolt an `update` onto the instance at runtime
   // and defeat C2 from the outside.
-  return Object.freeze({ appendWithoutDedupe, appendIfNew, appendAllWithoutDedupe, readAll, count, path: filePath });
+  /* `dedupeKeyOf` is exposed so the governed-write boundary can ask THIS store what identifies a record, rather
+   * than carrying its own copy of the rule. A copy is a second rule, and two rules drift. */
+  return Object.freeze({ appendWithoutDedupe, appendIfNew, appendAllWithoutDedupe, readAll, count, dedupeKeyOf, path: filePath });
 }

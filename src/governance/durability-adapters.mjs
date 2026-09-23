@@ -25,6 +25,22 @@ export const byteHash = (bytes) => createHash("sha256").update(Buffer.from(bytes
  */
 export const hashRuleFor = (bytes) => (Buffer.isBuffer(bytes) ? byteHash : contentHash);
 
+/**
+ * 🔴 THE APPEND DISCIPLINES, BY NAME — SO A ROUTED CALLER HOLDS NO WRITE-SHAPED TEXT AT ALL.
+ *
+ * Which discipline a caller uses is part of that caller's meaning, so the caller must still choose it. But passing
+ * a lambda like `(s, r) => s.appendIfNew(r, ...)` left the words `.appendIfNew(` sitting in bin/, where the
+ * ungated-writer censuses correctly read them as a write site that no gate encloses. Two censuses failed on
+ * exactly that, and they were right to: a reader cannot tell an argument from a statement by looking.
+ *
+ * Naming the discipline moves the call into this file — which the writer census already covers with a declared
+ * reason — and leaves the caller declaring WHAT it wants without performing it. No census had to be weakened.
+ */
+export const APPEND_DISCIPLINES = Object.freeze({
+  APPEND_IF_NEW: (store, record, { seenAt }) => (seenAt ? store.appendIfNew(record, { seenAt }) : store.appendIfNew(record)),
+  APPEND_WITHOUT_DEDUPE: (store, record) => store.appendWithoutDedupe(record),
+});
+
 /** Our own temporary files, and no others. The suffix is what makes "ours" a measurable claim rather than a hope. */
 export const TEMP_MARKER = ".governed-staged-";
 const tempNameFor = (target) => `${basename(target)}${TEMP_MARKER}${process.pid}-${Math.random().toString(36).slice(2, 10)}.tmp`;
@@ -178,6 +194,85 @@ export function jsonlAppendAdapter({ repo, repoRelativeTarget, targetClass, reco
     recover() {
       return this.inspect();
     },
+  };
+}
+
+/**
+ * PROFILE 2, over the shared evidence store.
+ *
+ * 🔴 IDENTITY IS THE STORE'S OWN DEDUPE KEY, ASKED FOR — NOT REIMPLEMENTED HERE. The store decides what makes two
+ * records the same thing (`measurement_key`, or `issue:<issue_id>`), and a second copy of that rule living in this
+ * file would be a second rule that drifts from the first.
+ *
+ * 🔴 THE OCCURRENCE IS THIS RUN'S OBSERVATION, NOT "THE RECORD EXISTS" — AND THAT IS NOT A CONVENIENCE.
+ *
+ * `appendIfNew` does NOT skip a repeat. On a second sighting it appends a RE-SIGHTING: a pointer to the original
+ * record plus the date we looked. The fact that we re-checked is information this store exists to keep. So a
+ * boundary that inspected "is this key already present?" and returned ALREADY_COMMITTED would stop the re-sighting
+ * from ever being written — silently destroying the record of every re-check, in the name of idempotency.
+ *
+ * The occurrence is therefore keyed by the record AND the run. Within a run a retry commits once; a later run is a
+ * genuinely new observation and the STORE decides what to write for it, which is exactly the division of labour the
+ * writer census already declares. `CONFLICTING` is not producible here: the store's key is content-derived, so two
+ * records sharing a key share their content, and there is no same-key-different-content state to find.
+ */
+export function storeAppendAdapter({ repo, repoRelativeTarget, targetClass, store, records, keyOf, append, occurrenceScope }) {
+  void repo;
+  /* 🔴 THE OCCURRENCE IS THE BATCH, NOT THE RECORD — AND THAT IS NOT ONLY AN OPTIMISATION.
+   *
+   * Routing per record made every finding its own governed decision. A dry run of one audit binary then appended
+   * one REFUSED event per finding, and each append re-read the growing trail: the run hung and was killed at 120
+   * seconds, and its own incident test caught it. It was also wrong in principle — the write law decides ONCE per
+   * run whether this store may be written, so that is one decision and one saga, however many records it covers.
+   * A trail that grew by thousands of events per audit run would drown the decisions it exists to record. */
+  const list = Array.isArray(records) ? records : [records];
+  const keys = list.map((r) => keyOf(r));
+  const keySet = new Set(keys.filter((k) => k !== null && k !== undefined && k !== ""));
+  const countFor = () => store.readAll().filter((r) => keySet.has(keyOf(r))).length;
+  let before = null;
+  let committed = false;
+
+  return {
+    profile: "VALIDATED_APPEND",
+    occurrenceFingerprint: createHash("sha256").update(`${keys.join("\u0001")}\u0000${occurrenceScope ?? ""}`, "utf8").digest("hex"),
+
+    describeTarget: () => ({ targetClass, repoRelativeTarget }),
+
+    prevalidate() {
+      const faults = [];
+      if (!Array.isArray(records) && (!records || typeof records !== "object")) {
+        faults.push({ code: "RECORD_ABSENT", why: "a validated append needs the complete records before it appends anything" });
+        return faults;
+      }
+      const missing = keys.findIndex((k) => k === null || k === undefined || k === "");
+      if (missing !== -1) {
+        faults.push({ code: "OCCURRENCE_KEY_ABSENT", why: `record ${missing} carries no key this store can identify it by, so nothing can say whether it has been seen before` });
+      }
+      return faults;
+    },
+
+    /* Within this run: has THIS attempt already committed? Across runs the answer is ABSENT by design — see above. */
+    inspect: () => (committed ? { state: "COMMITTED", count: list.length } : { state: "ABSENT" }),
+
+    /* `result` holds the STORE'S OWN return for each record, so a caller can still report honestly what happened —
+     * appended, or a re-sighting. Routing must not cost a caller information it was already telling the operator. */
+    result: null,
+    commit() {
+      before = countFor();
+      this.result = list.map((r) => append(store, r));
+      committed = true;
+    },
+
+    /* EXACTLY AS MANY RECORDS AS WERE OFFERED must have landed — new ones or re-sightings. Counting the DELTA
+     * rather than the total is what makes that provable on a store that already held records for these keys. */
+    verify() {
+      const after = countFor();
+      if (after === before + list.length) return [];
+      if (after === before) return [{ code: "OCCURRENCE_NOT_FOUND_AFTER_COMMIT", why: "the append did not land" }];
+      return [{ code: "OCCURRENCE_COUNT_WRONG", why: `${after - before} records landed for ${list.length} offered` }];
+    },
+
+    recover() { return this.inspect(); },
   };
 }
 

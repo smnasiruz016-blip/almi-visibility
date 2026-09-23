@@ -256,7 +256,11 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
   },
   {
     file: "bin/audit-content.mjs",
-    sites: 2,
+    /* 🔴 ROUTED (23 September 2026). Zero direct writes; the one remaining site is the append discipline handed
+     * to the boundary by NAME, so no write-shaped text is left here at all. The bare mkdir is gone rather than
+     * gated — the boundary's prepare step creates the directory. */
+    routed: true,
+    sites: 0,
     writes: "the content findings — exact duplicate, thin content, near duplicate, template dominance and the orphan check — over the archived corpus",
     where: `runs/audit/content-findings.jsonl by default, or the file given by --out; ${CONFINED}`,
     gatedBy: "write-law LOCAL: the directory and every append sit behind permission.mayWrite, which only --confirm grants. With no flag it runs every check and prints how many findings it WOULD store. 🔴 Until 16 September 2026 it had NO gate",
@@ -280,7 +284,11 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
   },
   {
     file: "bin/supply-labels.mjs",
-    sites: 1,
+    /* 🔴 ROUTED (23 September 2026). Zero direct writes; the one site is the append discipline the boundary
+     * invokes, named rather than written out, and the store still decides appended-versus-re-sighting so the run
+     * reports it exactly as before. */
+    routed: true,
+    sites: 0,
     writes: "the HEAVY / THIN / EMPTY supply labels as findings, over the unpacked crawl corpus",
     where: `runs/audit/supply-labels.jsonl by default, or the file given by --out; ${CONFINED}`,
     gatedBy: "write-law LOCAL: the append sits behind permission.mayWrite, which only --confirm grants. With no flag it labels the whole corpus and prints how many findings it WOULD store. 🔴 Until 16 September 2026 it had NO gate",

@@ -69,6 +69,16 @@ const BUILDS_ISSUES = [
   /from\s+["'](?:[^"']*\/src\/audit\/|\.\/)[^"'/]*check[^"'/]*\.mjs["']/,
 ];
 const OPENS_STORE = new RegExp(["create", "JsonlStore\\("].join(""));
+/* 🔴 ROUTED PERSISTENCE COUNTS, AND THIS CENSUS WENT BLIND WITHOUT IT.
+ *
+ * A caller routed through the governed-write boundary no longer contains the words `.appendIfNew(` — it names the
+ * discipline and the boundary performs it. The moment two writers were routed they dropped straight out of this
+ * population, which is exactly the failure the sibling test warns about: "if a writer stopped calling appendIfNew
+ * tomorrow, the file would still say zero duplicates." Losing them silently would have been worse than a red test.
+ *
+ * Built from parts, like the patterns above, so this file does not read itself as a writer. */
+const ROUTED_PERSIST = new RegExp(["governed", "StoreAppend\\("].join(""));
+const ROUTED_IF_NEW = new RegExp(["discipline:\\s*[\"']APPEND", "_IF_NEW[\"']"].join(""));
 
 /**
  * 🔴 DECLARED NON-ISSUE WRITES — each with a claim CHECKED in the same file.
@@ -101,11 +111,12 @@ export function issueWriterCensus({ repo = REPO, sources = null } = {}) {
     const lines = text.split(/\r?\n/);
     const code = lines.map((l, i) => ({ l, n: i + 1 })).filter(({ l }) => !isComment(l));
     const builds = BUILDS_ISSUES.some((re) => code.some(({ l }) => re.test(l)));
-    const writes = code.some(({ l }) => !isImport(l) && (OPENS_STORE.test(l) || FS_WRITE.test(l) || BARE_APPEND.test(l) || IF_NEW_CALL.test(l)));
-    const persists = code.some(({ l }) => !isImport(l) && (FS_WRITE.test(l) || BARE_APPEND.test(l) || IF_NEW_CALL.test(l)));
+    const writes = code.some(({ l }) => !isImport(l) && (OPENS_STORE.test(l) || FS_WRITE.test(l) || BARE_APPEND.test(l) || IF_NEW_CALL.test(l) || ROUTED_PERSIST.test(l)));
+    const persists = code.some(({ l }) => !isImport(l) && (FS_WRITE.test(l) || BARE_APPEND.test(l) || IF_NEW_CALL.test(l) || ROUTED_PERSIST.test(l)));
     if (!builds || !writes || !persists) continue;
 
-    const callsIfNew = code.some(({ l }) => !isImport(l) && IF_NEW_CALL.test(l) && !/^\s*["'`]/.test(l.trim()));
+    /* Still wired to appendIfNew — either by calling it, or by naming it as the discipline the boundary performs. */
+    const callsIfNew = code.some(({ l }) => !isImport(l) && (IF_NEW_CALL.test(l) || ROUTED_IF_NEW.test(l)) && !/^\s*["'`]/.test(l.trim()));
     const other = code
       .filter(({ l }) => !isImport(l) && !IF_NEW_CALL.test(l) && (BARE_APPEND.test(l) || FS_WRITE.test(l)))
       .map(({ l, n }) => {

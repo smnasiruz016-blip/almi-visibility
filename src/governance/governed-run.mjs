@@ -17,7 +17,7 @@ import { AUTHORITY_CORPUS } from "../../config/authority/corpus.mjs";
 import { resolve as resolveAuthority, permits } from "../authority/register.mjs";
 import { productionAuditStore } from "../audit-trail/wiring.mjs";
 import { softwareVersionOf } from "../audit-trail/wiring.mjs";
-import { stagedReplaceAdapter, jsonlAppendAdapter } from "./durability-adapters.mjs";
+import { stagedReplaceAdapter, jsonlAppendAdapter, storeAppendAdapter, APPEND_DISCIPLINES } from "./durability-adapters.mjs";
 
 export const AUDIT_STORE_OVERRIDE_ENV = "ALMIVISIBILITY_AUDIT_STORE";
 
@@ -251,6 +251,36 @@ const dayOf = (iso) => String(iso).slice(0, 10);
 /** A whole-file replacement, through STAGED_REPLACE. */
 export function governedFileWrite({ repo, permission, target, targetClass, bytes, action, occurredAt, correlationId, env = process.env, scopeType = "GLOBAL_PRODUCT", tenantId = null, subjectId = null, evidenceRefs = [] }) {
   const adapter = stagedReplaceAdapter({ repo, repoRelativeTarget: repoRelative(repo, target), targetClass, bytes });
+  return {
+    permission,
+    audit: governedContext({ repo, env, correlationId, now: dayOf(occurredAt) }),
+    adapter,
+    action: { name: action, scopeType, tenantId, subjectId, occurredAt, occurrenceFingerprint: adapter.occurrenceFingerprint, evidenceRefs },
+  };
+}
+
+/**
+ * One record onto the shared evidence store, through VALIDATED_APPEND.
+ *
+ * `append` is supplied by the caller because the stores offer several append disciplines — `appendIfNew` with a
+ * `seenAt`, `appendWithoutDedupe`, `appendAllWithoutDedupe` — and which one a caller uses is part of that caller's
+ * meaning, not something this helper may choose for it.
+ */
+export function governedStoreAppend({ repo, permission, store, records, targetClass = "RUN_EVIDENCE", action, occurredAt, correlationId, env = process.env, scopeType = "GLOBAL_PRODUCT", tenantId = null, subjectId = null, evidenceRefs = [], keyOf = null, discipline = "APPEND_IF_NEW", seenAt = null }) {
+  const chosen = APPEND_DISCIPLINES[discipline];
+  if (!chosen) throw new Error(`UNKNOWN_APPEND_DISCIPLINE: ${discipline} is not one of ${Object.keys(APPEND_DISCIPLINES).join(", ")}`);
+  const adapter = storeAppendAdapter({
+    repo,
+    repoRelativeTarget: repoRelative(repo, store.path),
+    targetClass,
+    store,
+    records,
+    keyOf: keyOf ?? store.dedupeKeyOf,
+    append: (s, r) => chosen(s, r, { seenAt }),
+    /* The run is part of the occurrence: a later run's observation of the same finding is a NEW occurrence, which
+     * is what lets the store record the re-check instead of the boundary suppressing it. */
+    occurrenceScope: correlationId,
+  });
   return {
     permission,
     audit: governedContext({ repo, env, correlationId, now: dayOf(occurredAt) }),

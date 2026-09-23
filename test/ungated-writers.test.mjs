@@ -375,14 +375,22 @@ test("🔴 GAP 2 · the census covers EVERY write path, and a HELPER-reached wri
   assert.match(w.cannotSee.join(" "), /gated at its CALLER/);
 });
 
-test("🔴 GAP 2 · the six that had NO gate at all are gated at every site, and confined before the first write", () => {
+test("🔴 GAP 2 · the six that had NO gate at all are gated at every site — or ROUTED through the boundary", () => {
   const w = writeSiteCensus();
   const six = ["bin/audit.mjs", "bin/audit-content.mjs", "bin/audit-technical.mjs", "bin/supply-labels.mjs", "bin/verification-issues.mjs", "bin/gsc-ingest.mjs"];
   for (const file of six) {
     const sites = w.sites.filter((s) => s.file === file);
-    assert.ok(sites.length > 0, `${file}: no write site found — the census stopped seeing this writer`);
-    for (const s of sites) assert.equal(s.gated, true, `${file}:${s.line} DEFAULTS TO WRITING — ${s.text}`);
     const text = readFileSync(join(REPO_ROOT, file), "utf8");
+    if (/executeGovernedWrite\(/.test(text)) {
+      /* 🔴 STRICTER, AND THIS ROUTING IS WHAT MADE THE OLD FORM WRONG. The original required at least one write
+       * site, to catch the census going blind. A ROUTED writer has none — the write moved inside the shared
+       * boundary — so for it the demand becomes ZERO direct sites and a real call to that boundary, which is a
+       * harder thing to satisfy than a gated site, not an easier one. */
+      assert.deepEqual(sites.map((s) => `${s.file}:${s.line}`), [], `${file}: routed, yet the census still sees a direct write site`);
+    } else {
+      assert.ok(sites.length > 0, `${file}: no write site found — the census stopped seeing this writer`);
+      for (const s of sites) assert.equal(s.gated, true, `${file}:${s.line} DEFAULTS TO WRITING — ${s.text}`);
+    }
     assert.match(text, /writePermission\(\{ target: LOCAL/, `${file} does not ask the write law`);
     assert.equal(confinementOf(text).confinedBeforeFirstWrite, true, `${file} does not confine before its first write`);
   }

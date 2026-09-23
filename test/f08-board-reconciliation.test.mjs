@@ -135,13 +135,27 @@ test("P5 · F40's board entry is BYTE-IDENTICAL to its state at the merged SHA",
   assert.notEqual(sha(rowBlock(NOW, "F08")), AT_MERGE.f08Block);
 });
 
-test("P6 · every feature other than F08 holds exactly the state it held at the merged SHA", () => {
+/* 🔴 ROWS THAT MOVED AFTER THE MERGED SHA, EACH UNDER ITS OWN FROZEN ACCEPTANCE (named, never inferred). F07 moved
+ * UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS on 23 September 2026 in its own pull request. It is admitted here only
+ * because it EARNED the movement — its own acceptance, a REAL verification under its own id, and the transition in the
+ * production trail. Any other row that moves still fires this proof. */
+const MOVED_SINCE = Object.freeze({ F07: "VERIFIED-PASS" });
+
+test("P6 · every feature other than F08 holds exactly the state it held at the merged SHA, save rows that EARNED a later movement", () => {
   const now = board();
   // Every row declared at the merge, compared one by one; and every row NOT declared then must still be UNASSESSED.
   const moved = [];
   for (const r of now) {
     const was = AT_MERGE.states[r.featureId] ?? "UNASSESSED";
-    if (was !== r.state) moved.push(`${r.featureId}: ${was} -> ${r.state}`);
+    if (was === r.state) continue;
+    if (MOVED_SINCE[r.featureId] === r.state) {
+      const d = DECLARED[r.featureId];
+      assert.ok(ACCEPTANCES[r.featureId], `${r.featureId} moved with no frozen acceptance`);
+      assert.ok(d.events.some((e) => e.kind === "VERIFIED" && e.featureId === r.featureId && e.population === "REAL"), `${r.featureId} moved with no REAL verification under its own id`);
+      assert.ok(events().some((e) => e.eventType === "BOARD_TRANSITION" && e.action === "VERIFIED" && e.metadata?.featureId === r.featureId), `${r.featureId}'s movement is not in the audit trail`);
+      continue;
+    }
+    moved.push(`${r.featureId}: ${was} -> ${r.state}`);
   }
   /* 🔴 EMPTY SINCE 23 SEPTEMBER, FOR A STATED REASON. F08 went VERIFIED-PASS -> FAILED (the reopening) and back to
    * VERIFIED-PASS by its own recorded route on new evidence, so against the merged SHA NOTHING differs in state. What
@@ -150,7 +164,7 @@ test("P6 · every feature other than F08 holds exactly the state it held at the 
   assert.deepEqual(moved, [], "a feature moved away from its state at the merged SHA");
   assert.ok(DECLARED.F08.events.some((e) => e.kind === "CONTRADICTORY_EVIDENCE_RECORDED"), "F08's reopening was erased rather than superseded");
   // The set of declared rows itself did not grow: a new row appearing would also be a movement.
-  assert.deepEqual(Object.keys(DECLARED).sort(), Object.keys(AT_MERGE.states).sort());
+  assert.deepEqual(Object.keys(DECLARED).sort(), [...Object.keys(AT_MERGE.states), ...Object.keys(MOVED_SINCE)].sort());
 });
 
 test("P7 · the historical 61/38 ledger is BYTE-IDENTICAL to its state at the merged SHA", () => {

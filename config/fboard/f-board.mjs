@@ -34,6 +34,45 @@ export const DECLARED = Object.freeze({
       }),
     ]),
   }),
+  F07: Object.freeze({
+    featureId: "F07",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      // The acceptance was committed ALONE in the governance repository (cd149ae) before any F07 engine change.
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-23", ruling: ACCEPTANCES.F07.ruling, contractSha256: ACCEPTANCES.F07.contractSha256 }),
+      /* Implementation began only after that commit: src/governance/sealed-paths.mjs (classification before read),
+       * src/heldout/lifecycle.mjs (freeze, access, scoring), src/governance/mandatory-reading.mjs and its manifest,
+       * bin/heldout-evaluation.mjs. Movements carry a `reason`, never the historical changeKind vocabulary. */
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F07",
+        on: "2026-09-23",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        reason: "FROZEN_ACCEPTANCE_COMMITTED_BEFORE_ENGINE_CHANGE",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-23_F07_COMPLETE.md", commit: "5474dc4051bf268570ce261935be205d009f75a0", sha256: "e607364b50d87374e0f83a52cb4dfa2ced3388b2e4e45daa1d7280a00932b6a1" }),
+      }),
+      /* Verified UNDER F07 over the REAL populations — the real evidence-role registry, the real 61-path sealed
+       * population (never opened), the real manifest and the real authority corpus. Lifecycle proofs are synthetic by
+       * design, and say so. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F07",
+        population: "REAL",
+        on: "2026-09-23",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        reason: "EVERY_FAILURE_CLAUSE_UNMET_ON_REAL_POPULATIONS",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F07.ruling.sha256, contract: ACCEPTANCES.F07.contractSha256 }),
+        populations: "runs/audit/f07-populations-2026-09-23.txt — sealed paths, manifest, access paths, access log, payload, freeze; decision-site census HELDOUT family LIVE_AUDITED with 0 unrecorded exits",
+        proofs: "P1–P34 in test/f07-heldout-firewall.test.mjs, each with a control able to give the other verdict",
+        sabotage: "16 of 16 EXECUTED and RED on the named proof for the intended reason, restored by raw-byte hash, production trail untouched (runs/audit/f07-sabotage-2026-09-23.txt)",
+        fullSuite: "two full runs and the named counting control on the final tree (runs/audit/f07-suite-2026-09-23.txt)",
+        afterMerge: "main CI green on the exact merged SHA — verified after merge and reported in _handoffs/AlmiVisibility_F07_VERIFIED_PASS_EVIDENCE_2026-09-23.md; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
   F08: Object.freeze({
     featureId: "F08",
     board: "F_BOARD",

@@ -62,12 +62,16 @@ const disp = (res, id) => res.candidates.find((c) => c.authorityId === id)?.disp
 const REAL_F05 = AUTHORITY_CORPUS.find((r) => r.propositionId === F05_PROP);
 const clone = (o) => ({ ...REAL_F05, authorityId: "planted:clone", ...o });
 const board = () => buildBoard(CAPABILITIES, DECLARED);
-const REAL_AUTH = { records: AUTHORITY_CORPUS, now: NOW };
+/* A WHOLE-BOARD judgement over the REAL corpus is made on the day the corpus was measured: on NOW (22 Sep) a later
+ * row's acceptance (F07, effective 23 Sep) does not exist yet and would read ABSENT — true, and not what these probe. */
+const REAL_DAY = CORPUS_PROVENANCE.now;
+const REAL_AUTH = { records: AUTHORITY_CORPUS, now: REAL_DAY };
 /* The only F-rows that may have moved: F05 (its own lawful path) and F40 (its blocker). F-progress counts F05 only once it is VERIFIED-PASS. */
 /* 🔴 EVERY ROW THAT HAS LEFT UNASSESSED, EXACTLY. +F08 on 22 September 2026, when its acceptance was frozen in the
  * governance repository (_handoffs 19e6b7b) — a CORRECT CONSEQUENCE of a second row being frozen, not a loosening:
  * the list is still exact, and a row moving without appearing here still fails. */
-const MOVED = ["F05", "F08", "F40"];
+// F07 joined on 23 September 2026 under its own frozen acceptance (config/fboard/f-board.mjs).
+const MOVED = ["F05", "F07", "F08", "F40"];
 const UNASSESSED_ROWS = 89 - MOVED.length;
 /* 🔴 EVERY PASS ON THE BOARD THAT WAS ACTUALLY EARNED — counted, not assumed.
  * This read `DECLARED.F05.state === "VERIFIED-PASS" ? 1 : 0`, which silently assumed F05 was the only row that
@@ -87,7 +91,10 @@ test("§7 REAL — the committed corpus is non-empty, names the commits it measu
   assert.match(CORPUS_PROVENANCE.governanceCommit, /^[0-9a-f]{40}$/);
   assert.match(CORPUS_PROVENANCE.engineCommit, /^[0-9a-f]{40}$/);
   assert.ok(AUTHORITY_CORPUS.length >= 50, `only ${AUTHORITY_CORPUS.length} records`);
-  const c = census(AUTHORITY_CORPUS, NOW);
+  /* The REAL corpus is judged on the day it was measured (CORPUS_PROVENANCE.now), because its stored statuses were
+   * resolved on that day. Since the F07 migration (23 Sep) that day is later than the fixed synthetic NOW, and one real
+   * record is lawfully SUPERSEDED on it — the 22 Sep F08 command, by the 23 Sep one. */
+  const c = census(AUTHORITY_CORPUS, CORPUS_PROVENANCE.now);
   assert.equal(c.remainder, 0);
   assert.equal(Object.values(c.counts).reduce((a, b) => a + b, 0), c.total);
   assert.equal(c.total, AUTHORITY_CORPUS.length);
@@ -99,13 +106,18 @@ test("§7 REAL — the committed corpus is non-empty, names the commits it measu
 });
 
 test("§7 REAL — every ZERO in the census has a LIVE POSITIVE CONTROL over the same records and the same code", () => {
-  const c = census(AUTHORITY_CORPUS, NOW);
-  // SUPERSEDED 0 → a newer clone of a real record makes the original SUPERSEDED
-  const s = census([...AUTHORITY_CORPUS, clone({ issuedAt: "2026-09-23", effectiveFrom: "2026-09-23", contentHash: H("newer") })], "2026-09-23");
-  assert.equal(c.counts.SUPERSEDED, 0);
-  assert.equal(s.counts.SUPERSEDED, 1);
+  /* Resolved on the corpus's OWN measuring day. On the fixed synthetic NOW (22 Sep) the 23 Sep records are simply not
+   * yet in effect — a date artefact, not a finding. */
+  const DAY = CORPUS_PROVENANCE.now;
+  const c = census(AUTHORITY_CORPUS, DAY);
+  /* SUPERSEDED → a newer clone of a real record makes exactly ONE MORE record SUPERSEDED, measured from the real
+   * baseline on the same day. (It was "0 → 1" until the real corpus held a real supersession — 23 Sep, F07 migration.) */
+  const base = census(AUTHORITY_CORPUS, "2026-09-24").counts.SUPERSEDED;
+  const s = census([...AUTHORITY_CORPUS, clone({ issuedAt: "2026-09-24", effectiveFrom: "2026-09-24", contentHash: H("newer") })], "2026-09-24");
+  assert.equal(c.counts.SUPERSEDED, base, "the real supersession count moved between the measuring day and the next");
+  assert.equal(s.counts.SUPERSEDED, base + 1);
   // OPEN_CONFLICT 0 → a same-day clone that disagrees makes both OPEN_CONFLICT
-  const o = census([...AUTHORITY_CORPUS, clone({ contentHash: H("disagrees") })], NOW);
+  const o = census([...AUTHORITY_CORPUS, clone({ contentHash: H("disagrees") })], DAY);
   assert.equal(c.counts.OPEN_CONFLICT, 0);
   assert.equal(o.counts.OPEN_CONFLICT, 2);
   // NOT_APPLICABLE 0 → the same corpus resolved before its records were effective
@@ -226,7 +238,7 @@ test("P8 — ABSENT cannot produce permission, a default or a PASS", () => {
   assert.equal(permits(r), false);
   assert.throws(() => requireCurrent(r), /NO_CURRENT_AUTHORITY: ABSENT/);
   // production: a board whose acceptance ruling is ABSENT from the authority corpus is refused
-  const errs = boardErrors(board(), { capabilities: CAPABILITIES, acceptances: ACCEPTANCES, authority: { records: AUTHORITY_CORPUS.filter((x) => x.propositionId !== F05_PROP), now: NOW } });
+  const errs = boardErrors(board(), { capabilities: CAPABILITIES, acceptances: ACCEPTANCES, authority: { records: AUTHORITY_CORPUS.filter((x) => x.propositionId !== F05_PROP), now: REAL_DAY } });
   assert.deepEqual(errs.map((e) => `${e.code} ${e.id}`), ["ACCEPTANCE_NOT_CURRENT_AUTHORITY F05"]);
   assert.match(errs[0].why, /ABSENT/);
   // silent control: the real corpus
@@ -240,7 +252,7 @@ test("P9 — OPEN_CONFLICT cannot produce permission, a default or a PASS — an
   assert.equal(permits(r), false);
   assert.equal(disp(r, "syn:older"), "SUPERSEDED");
   assert.throws(() => requireCurrent(r), /NO_CURRENT_AUTHORITY: OPEN_CONFLICT/);
-  const errs = boardErrors(board(), { capabilities: CAPABILITIES, acceptances: ACCEPTANCES, authority: { records: [...AUTHORITY_CORPUS, clone({ contentHash: H("x") })], now: NOW } });
+  const errs = boardErrors(board(), { capabilities: CAPABILITIES, acceptances: ACCEPTANCES, authority: { records: [...AUTHORITY_CORPUS, clone({ contentHash: H("x") })], now: REAL_DAY } });
   assert.deepEqual(errs.map((e) => `${e.code} ${e.id}`), ["ACCEPTANCE_NOT_CURRENT_AUTHORITY F05"]);
   assert.match(errs[0].why, /OPEN_CONFLICT/);
 });
@@ -480,7 +492,7 @@ test("P24 — the committed F05 ruling hash is the acceptance used by code and t
   const tampered = { ...ACCEPTANCES, F05: { ...ACCEPTANCES.F05, expected: `${ACCEPTANCES.F05.expected} (loosened)` } };
   assert.deepEqual(boardErrors(board(), { capabilities: CAPABILITIES, acceptances: tampered }).map((e) => e.code), ["ACCEPTANCE_TAMPERED"]);
   const other = AUTHORITY_CORPUS.map((r) => (r === REAL_F05 ? { ...r, contentHash: H("other bytes") } : r));
-  assert.deepEqual(boardErrors(board(), { capabilities: CAPABILITIES, acceptances: ACCEPTANCES, authority: { records: other, now: NOW } }).map((e) => e.code), ["ACCEPTANCE_NOT_THE_CURRENT_RULING"]);
+  assert.deepEqual(boardErrors(board(), { capabilities: CAPABILITIES, acceptances: ACCEPTANCES, authority: { records: other, now: REAL_DAY } }).map((e) => e.code), ["ACCEPTANCE_NOT_THE_CURRENT_RULING"]);
   // production: the board's own entry point checks it, clean
   const cli = node("bin/fboard-status.mjs", "--check");
   assert.equal(cli.status, 0, cli.stdout);

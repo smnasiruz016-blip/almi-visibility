@@ -135,6 +135,10 @@ test("🔴 REAL — governance loading reads the CURRENT tree only: no loader or
 /* ═════════ SYNTHETIC — THE DETECTOR FIRES, THEN FALLS SILENT (seed 7701) ═════════ */
 
 const G = syntheticCorpus({ seed: 7701 }).lexicon.filler;
+/* F07 §5.1 — an EMPTY registry is unavailable seal metadata and now FAILS CLOSED (it used to read as "nothing is
+ * sealed", which permitted every read). These detector proofs register nothing in root "t", so they are given one sealed
+ * entry for an unrelated root: the metadata is available, and nothing in "t" is sealed — exactly what [] used to mean. */
+const SEALED_ELSEWHERE = [{ id: "synthetic:sealed-elsewhere", role: "SEALED", resource: { root: "synthetic-elsewhere", pathPrefixes: ["nowhere/"] } }];
 const SENTINEL = `${G[0]} ${G[1]} ${G[2]}`; // a generated, non-sensitive stand-in for a retired member
 const CLASSES = {
   "CHECKLIST_NOTES.md": "MANDATORY_GOVERNANCE",
@@ -156,7 +160,7 @@ test(`SYNTHETIC · seed 7701 · ${EVIDENCE_CLASS} — a planted sentinel is caug
   const base = tree(true);
   try {
     for (const [p, c] of Object.entries(CLASSES)) assert.equal(categoryOf(p), c, p);
-    const r = scan({ registry: [], root: "t", base, files: Object.keys(CLASSES), members: [SENTINEL.toLowerCase()], fragments: [] });
+    const r = scan({ registry: SEALED_ELSEWHERE, root: "t", base, files: Object.keys(CLASSES), members: [SENTINEL.toLowerCase()], fragments: [] });
     assert.deepEqual(r.failures.map((f) => [f.path, f.category]).sort(), Object.entries(CLASSES).sort());
     assert.equal(r.failures.find((f) => f.category === "DATA").disposition, "FAIL_UNREGISTERED", "an unregistered observed file is refused");
   } finally { rmSync(base, { recursive: true, force: true }); }
@@ -165,7 +169,7 @@ test(`SYNTHETIC · seed 7701 · ${EVIDENCE_CLASS} — a planted sentinel is caug
 test("SYNTHETIC · seed 7701 — with each sentinel removed, the same detector is SILENT", () => {
   const base = tree(false);
   try {
-    const r = scan({ registry: [], root: "t", base, files: Object.keys(CLASSES), members: [SENTINEL.toLowerCase()], fragments: [] });
+    const r = scan({ registry: SEALED_ELSEWHERE, root: "t", base, files: Object.keys(CLASSES), members: [SENTINEL.toLowerCase()], fragments: [] });
     assert.deepEqual(r.failures, []);
     assert.deepEqual(r.rows, []);
   } finally { rmSync(base, { recursive: true, force: true }); }
@@ -174,7 +178,7 @@ test("SYNTHETIC · seed 7701 — with each sentinel removed, the same detector i
 test("SYNTHETIC · seed 7701 — the detector's output never carries the matched text, and the real runner's never carries a retired member", () => {
   const base = tree(true);
   try {
-    const r = scan({ registry: [], root: "t", base, files: Object.keys(CLASSES), members: [SENTINEL.toLowerCase()], fragments: [] });
+    const r = scan({ registry: SEALED_ELSEWHERE, root: "t", base, files: Object.keys(CLASSES), members: [SENTINEL.toLowerCase()], fragments: [] });
     assert.equal(JSON.stringify(r).toLowerCase().includes(SENTINEL.toLowerCase()), false);
     for (const g of G) assert.equal(JSON.stringify(r).includes(g), false);
   } finally { rmSync(base, { recursive: true, force: true }); }

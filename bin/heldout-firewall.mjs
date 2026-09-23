@@ -17,10 +17,23 @@ import { splitPopulation } from "../src/discovery/query-population.mjs";
 import { isHeldOut } from "../src/discovery/intent-clusters.mjs";
 import { contentHashOf } from "../src/governance/evidence-roles.mjs";
 import { EVIDENCE_ROLE_REGISTRY } from "../config/evidence-roles.mjs";
+import { governedGuardSink } from "../src/governance/governed-run.mjs";
+import { requiredSources, manifestErrors } from "../src/governance/mandatory-reading.mjs";
+import { MANDATORY_READING, BOARD_AND_AUTHORITY_CONFIG } from "../config/governance/mandatory-reading.mjs";
+import { AUTHORITY_CORPUS, CORPUS_PROVENANCE } from "../config/authority/corpus.mjs";
+import { ACCEPTANCES } from "../config/fboard/acceptances.mjs";
+import { census as authorityCensus } from "../src/authority/corpus.mjs";
+import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { scan, derivePopulation, distinctiveFragments, registeredHashErrors, registryErrors, trackedFiles, HELD_OUT_EVALUATORS } from "../tools/heldout-firewall.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const registry = EVIDENCE_ROLE_REGISTRY;
+/* 🔴 F07 §5.3 — THE ROLE DECISIONS ARE NOW DURABLE. They were traced into a diagnostic sink and not persisted; every
+ * attempted and authorised access must be RECORDED. This run's decisions go through F08's shipped boundary: the
+ * production audit trail, or the confined store in a verified test context. A local run therefore appends its
+ * decisions to the committed trail, exactly as every governed dry run already appends its REFUSED decision. */
+const RUN_AT = isoSeconds(Date.now());
+const AUDIT = governedGuardSink({ repo: REPO, correlationId: `run:heldout-firewall:${RUN_AT}`, now: RUN_AT.slice(0, 10), actor: "bin/heldout-firewall.mjs" });
 const failures = [];
 const regErrs = registryErrors(registry);
 for (const e of regErrs) failures.push(`REGISTRY ${e.code} ${e.id ?? ""}`);
@@ -43,20 +56,20 @@ for (const entry of registry.filter((e) => e.role === "RETIRED_CONTAMINATED")) {
   if (!pop.ok) { failures.push(`${pop.code} ${entry.id}`); console.log(`  🔴 ${pop.code}: ${pop.why}`); continue; }
   const fragments = distinctiveFragments(pop.members, pop.others, productionTexts);
   console.log(`RETIRED SET ${entry.id} · ${pop.members.length} member(s) · fingerprint re-derived and matched · ${fragments.length} distinctive fragment(s)`);
-  const engine = scan({ registry, root: "engine", base: REPO, files, members: pop.members, fragments, evaluatorSources });
+  const engine = scan({ registry, root: "engine", base: REPO, files, members: pop.members, fragments, evaluatorSources, audit: AUDIT });
   console.log(`\nENGINE — ${files.length} tracked file(s) · ${engine.sealedExcluded} sealed path(s) excluded unread`);
   /* F08 §6.2 — the role guard emitted one metadata-only event per decision into this run's diagnostic sink. Counted
    * here, never persisted: a read-only check may not change the durable trail. */
   const traced = (o) => engine.guardEvents.filter((e) => e.outcome === o).length;
-  console.log(`  role decisions traced by the guard: ${engine.guardEvents.length} (ALLOWED ${traced("ALLOWED")} · REFUSED ${traced("REFUSED")}) — diagnostic sink, ${engine.guardDurable ? "DURABLE" : "not persisted"}`);
+  console.log(`  role decisions traced by the guard: ${engine.guardEvents.length} (ALLOWED ${traced("ALLOWED")} · REFUSED ${traced("REFUSED")}) — ${engine.guardDurable ? "DURABLE — recorded through the F08 audit boundary" : "diagnostic sink, not persisted"}`);
   for (const r of engine.rows) console.log(`  ${r.disposition.padEnd(34)} ${r.category.padEnd(22)} full ${String(r.full).padStart(3)} · fragments ${String(r.frag).padStart(2)} · ${r.path}`);
   for (const f of engine.failures) failures.push(`${f.disposition} ${f.path}`);
   const extra = process.argv.find((a) => a.startsWith("--extra-root="))?.slice("--extra-root=".length);
   if (extra) {
     const xf = trackedFiles(extra);
     const drafts = xf.filter((p) => /_learn_batch/.test(p));
-    const x = scan({ registry, root: "extra", base: extra, files: xf.filter((p) => !/_learn_batch/.test(p)), members: pop.members, fragments, evaluatorSources });
-    const xd = scan({ registry, root: "extra", base: extra, files: drafts, members: pop.members, fragments, evaluatorSources });
+    const x = scan({ registry, root: "extra", base: extra, files: xf.filter((p) => !/_learn_batch/.test(p)), members: pop.members, fragments, evaluatorSources, audit: AUDIT });
+    const xd = scan({ registry, root: "extra", base: extra, files: drafts, members: pop.members, fragments, evaluatorSources, audit: AUDIT });
     console.log(`\nEXTRA ROOT — ${xf.length} tracked file(s) · ${drafts.length} product-content draft(s) reported, not judged`);
     for (const r of x.rows) console.log(`  ${r.disposition.padEnd(34)} ${r.category.padEnd(22)} full ${String(r.full).padStart(3)} · fragments ${String(r.frag).padStart(2)} · ${r.path}`);
     for (const r of xd.rows) console.log(`  REPORTED_PRODUCT_CONTENT_DRAFT     ${r.category.padEnd(22)} full ${String(r.full).padStart(3)} · fragments ${String(r.frag).padStart(2)} · ${r.path}`);
@@ -64,6 +77,15 @@ for (const entry of registry.filter((e) => e.role === "RETIRED_CONTAMINATED")) {
   }
 }
 for (const e of registeredHashErrors({ registry, root: "engine", base: REPO, hashOf: contentHashOf })) failures.push(`${e.code} ${e.id}`);
+
+/* 🔴 F07 §5.6 — THE MANDATORY-READING MANIFEST, checked against what the loaders ACTUALLY read, in both directions:
+ * a required source missing from it, or a sealed / protected entry in it, is a failure of this firewall. */
+{
+  const required = requiredSources({ corpus: AUTHORITY_CORPUS, dispositions: authorityCensus(AUTHORITY_CORPUS, CORPUS_PROVENANCE.now).dispositions, acceptances: ACCEPTANCES, boardConfig: BOARD_AND_AUTHORITY_CONFIG });
+  const errs = manifestErrors({ manifest: MANDATORY_READING, required, registry });
+  console.log(`\nMANDATORY READING — ${MANDATORY_READING.length} declared · ${required.length} required by the loaders · sealed or protected in it: ${errs.filter((e) => e.code !== "REQUIRED_SOURCE_MISSING").length} · required but missing: ${errs.filter((e) => e.code === "REQUIRED_SOURCE_MISSING").length}`);
+  for (const e of errs) failures.push(`MANIFEST ${e.code} ${e.source ?? `entry ${e.at}`}`);
+}
 console.log(`\nFAILURES: ${failures.length}`);
 for (const f of failures) console.log(`  🔴 ${f}`);
 if (process.argv.includes("--check") && failures.length) process.exit(1);

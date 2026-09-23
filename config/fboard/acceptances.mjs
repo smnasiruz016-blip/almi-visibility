@@ -20,6 +20,20 @@ export const ACCEPTANCES = Object.freeze({
     evidence: "The resolver exercised over the real committed authority corpus, with every\napplicable authority accounted for, plus firing and clean controls for\nnewer-over-older, narrow-scope containment, equal-authority conflict,\nabsence, historical-only input and malformed provenance.",
     contractSha256: "942308f9d58f5c2960a49f6b4abe00b1a1899ebee813cadb715b6e881e4cf68d",
   }),
+  F07: Object.freeze({
+    featureId: "F07",
+    ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F07_FROZEN_ACCEPTANCE_2026-09-23.md", commit: "cd149aea074f1e1b4b1f13fbeac26e6fdcaff047", sha256: "a9fbccdd040cc20d3962635372f318c49308086de6a8613842f8d957eb8b1112" }),
+    // 🔴 §6A — resolved through the register like any other record (inclusion rule frozen-f-row-acceptance); the board
+    // accepts this acceptance only while that resolution is CURRENT and names these exact bytes.
+    authority: Object.freeze({ propositionId: "F07_FROZEN_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F07"]) }),
+    frozenOn: "2026-09-23",
+    feature: "F07 · Held-out Evidence Firewall",
+    input: "A declared held-out evaluation set; its sealed-store identity,\nconfidentiality boundary, access rule, population-accounting method\nand scoring protocol; a mechanism that must be assessed without its\nbuilders or mandatory governance readers seeing the held-out payload.",
+    expected: "Mandatory governance and implementation reading exposes only the\nevidence shape and protocol—not held-out queries, URLs, fact values,\nlabels, defect locations, expected answers or marking keys. The sealed\npayload remains inaccessible until the assessed mechanism is frozen.\nEvery attempted and authorised access is recorded. Evaluation accounts\nfor the complete declared population without leaking payload into\nshared code, governance, logs, reports or future acceptance text.",
+    failure: "Any mandatory reader can obtain, quote, paraphrase or infer a held-out\npayload item or expected answer before mechanism freeze; an\nunauthorised read reaches the filesystem; access is unrecorded; the\nevaluated denominator silently shrinks; a hidden item enters generic\ncode, fixtures, logs, governance or reports; or a mechanism is changed\nafter held-out access and still presented as an untouched held-out\nevaluation.",
+    evidence: "A real sealed-store population refused before filesystem read, with\ncomplete path accounting; live controls proving the same loader can\nread an authorised ordinary file; a synthetic end-to-end held-out\nlifecycle proving freeze-before-access, recorded access, complete\nscoring and post-access contamination refusal; governance and content\nleak censuses with firing controls; and adversarial mutations proving\neach failure limb turns RED.",
+    contractSha256: "263ebb5cd23aaf2e98c95b66b307a25308da8b6f35e4c0e25b654a524f80b0a5",
+  }),
   F08: Object.freeze({
     featureId: "F08",
     ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_RULING_2026-09-22_F08_ACCEPTANCE.md", commit: "19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb", sha256: "f6aef3403621f7275b2a2173da4c66cd562a400a9e581fc48c3f13c87981d18a" }),

@@ -39,8 +39,10 @@ test("F-BOARD · F08 is VERIFIED-PASS by FAILED → IN-PROGRESS → VERIFIED-PAS
   const b = board();
   assert.deepEqual(boardErrors(b, { capabilities: CAPABILITIES, acceptances: ACCEPTANCES, authority: { records: AUTHORITY_CORPUS, now: "2026-09-23" } }), []);
   const p = progress(b);
-  assert.deepEqual(p.split, { UNASSESSED: 86, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 0, "BLOCKED-BY-AUTHORITY": 1, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 2 });
-  assert.equal(p.passed, 2);
+  /* Read 2/89 at F08's closure. F07 then moved to VERIFIED-PASS under its own acceptance (23 September 2026), so the
+   * board reads 3/89; F08's own assertions below are unchanged. test/f07-closure.test.mjs owns F07's movement. */
+  assert.deepEqual(p.split, { UNASSESSED: 85, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 0, "BLOCKED-BY-AUTHORITY": 1, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 3 });
+  assert.equal(p.passed, 3);
   assert.equal(p.total, 89);
   assert.equal(DECLARED.F05.state, "VERIFIED-PASS");
   assert.equal(DECLARED.F40.state, "BLOCKED-BY-AUTHORITY");

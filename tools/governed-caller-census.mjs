@@ -95,8 +95,12 @@ export const BOUNDARY_CALL = /executeGovernedWrite\(/;
  *
  * It fails closed on every other shape: one non-audit target, a missing or later write-gate event, no resolvable
  * target, or an ordinary governed writer that merely looks similar. */
-export const AUDIT_STORE_REACHING = /recordCandidates\(|auditAuthorityMigration\(/;
-export const AUDIT_STORE_CONSTRUCTOR = /productionAuditStore\(/;
+/* F07 (23 Sep 2026): the held-out lifecycle's writers join the audit-store writers. Each appends ONLY to the audit
+ * store it is handed — test/f07-heldout-firewall.test.mjs proves their module holds no filesystem write primitive at
+ * all, so there is nothing else they could reach. `governedAuditContext` constructs the audit store (production, or
+ * confined in a test context) exactly as `productionAuditStore` does. */
+export const AUDIT_STORE_REACHING = /\b(recordCandidates|auditAuthorityMigration|recordGateDecisions|freezeMechanism|requestHeldOutAccess|scoreHeldOutEvaluation|readHeldOutItem)\(/;
+export const AUDIT_STORE_CONSTRUCTOR = /\b(productionAuditStore|governedAuditContext)\(/;
 export const LIVE_WRITE_GATE_EVENT = /writeGateEvent\(/;
 
 /** Both conditions, each reported separately so a failure says WHICH one was missing. */
@@ -162,7 +166,7 @@ const NON_MUTATING_SITE = new Set(["BOUNDARY_ROUTED", "READ_ONLY", "COLLECTOR_OR
 const GOVERNED_HELPER = /\b(governedStoreAppend|governedFileWrite|governedRecordAppend|governedDirectoryReplace)\(/;
 const COLLECTOR_CONSTRUCTOR = /\bcreateDryRunStore\(/;
 const SCRATCH_DIR = /\bmkdtempSync\(\s*join\(\s*tmpdir\(\)/;
-const AUDIT_STORE_WRITER = /\b(recordCandidates|auditAuthorityMigration)\(/;
+const AUDIT_STORE_WRITER = AUDIT_STORE_REACHING;
 const AUDIT_STORE_VALUE = /\b(productionAuditStore|governedAuditContext)\(/;
 
 /** `const X = <expr>` → the expression text (to the end of the statement), or null. First binding wins. */
@@ -267,7 +271,8 @@ export function classifySite(text, site) {
   /* 2 · An audit-store writer. It is the checked exemption only when the store it is handed IS the audit store. */
   if (AUDIT_STORE_WRITER.test(l)) {
     const call = callText(lines, i);
-    const storeArg = call.match(/\bstore\s*:\s*([^,\n}]+)/) ?? (/[{,]\s*store\s*[,}]/.test(call) ? [null, "store"] : null);
+    /* The store it writes through: a `store:` argument, or an `audit:` context carrying one (the held-out lifecycle). */
+    const storeArg = call.match(/\bstore\s*:\s*([^,\n}]+)/) ?? call.match(/\baudit\s*:\s*(\w+)/) ?? (/[{,]\s*store\s*[,}]/.test(call) ? [null, "store"] : null);
     if (!storeArg) return { cls: "UNKNOWN", why: "an audit-store writer whose store argument cannot be read" };
     const v = storeArg[1].trim();
     /* `<x>.audit.store` is the audit store ONLY when <x> is bound to a governed-write helper, whose `audit` is the

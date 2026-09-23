@@ -1,0 +1,53 @@
+F07 §4 — THE REAL POPULATIONS, MEASURED WITHOUT OPENING SEALED PAYLOAD (23 September 2026)
+
+Engine tree e560864 plus this change. Counts and hashes only: no sealed path, no held-out member, no file content.
+
+── node tools/heldout-population-census.mjs ──
+F07 §4 · REAL POPULATIONS (counts and hashes only)
+
+A · sealed paths      denominator 673 tracked · SEALED 61 · not sealed 612 · untracked under a prefix 0 · ignored under a prefix 0
+                      1 registry entr(y/ies) · by prefix 57 + 4 · commitment a03c8ee02dfa6dd3… · control fires: true
+B · mandatory reading required 75 · declared 75 · errors 0 · remainder 0 · control (planted sealed → RED, removed source → RED): true
+C · access paths      29 sites · DUPLICATE_OBSERVATION_OF_SAME_DECISION 11 · LIVE_AUDITED 4 · NOT_GOVERNED_WITH_REASON 13 · NO_RUNTIME_MUTATION_ENTRY_POINT 1 · DEFECT 0 · unknown 0
+D · access log        writers 9 · readers 5
+E · no-payload rule   673 tracked · scanned 612 · excluded 61 (sealed — excluded UNREAD, counted) · remainder 0
+F · freeze records    0 · access decisions 0 (allowed 0 · refused 0)
+
+── THE "61 = 61?" QUESTION — a scratch probe (derives the retired members exactly as bin/heldout-firewall.mjs does, from
+   registered OBSERVED data; compares the two populations only by sha256 of each lower-cased element) ──
+SEALED registry entries: 1 · prefixes per entry: 2 · root(s): engine
+A · tracked engine files 673 · under a sealed prefix 61 · untracked under a prefix 0 · ignored under a prefix 0
+  split by prefix (named by index, not text): prefix#1: 57 · prefix#2: 4
+  set commitment (sha256 of sorted sealed paths joined by LF): a03c8ee02dfa6dd3…
+  control: synthetic path under prefix#1 classified sealed = true; package.json sealed = false
+
+RETIRED SET retired:held-out-set-3d4951d6673301bc: derived ok=true · members 61 · declared population 61
+  INTERSECTION of the two populations (by sha256 of lower-cased element): 0
+  members shaped like a file path: 0 of 61 · sealed paths containing any member's text: 0 of 61
+
+VERDICT: two DIFFERENT populations. 61 tracked engine FILES under one SEALED registry entry's two prefixes (57 + 4),
+versus 61 QUERY STRINGS derived at run time for the RETIRED held-out set. Intersection 0; no member is shaped like a
+path; no sealed path contains any member's text. The equal count is a coincidence. The comparator's own control
+(the sealed set against itself) returns 61 — test/f07-heldout-firewall.test.mjs P1b.
+
+── node tools/heldout-access-census.mjs (access decisions, by EXECUTION) ──
+HELD-OUT ACCESS DECISIONS — by execution, on a counting in-memory store and a synthetic registry
+  ok   request · incomplete declaration           emitted 1 · FREEZE_DECLARATION_INCOMPLETE
+  ok   request · undeclared set                   emitted 1 · SET_UNDECLARED
+  ok   request · retired set                      emitted 1 · SET_RETIRED_CONTAMINATED
+  ok   request · commitment mismatch              emitted 1 · POPULATION_COMMITMENT_MISMATCH
+  ok   request · authority not current            emitted 1 · EVALUATOR_AUTHORITY_NOT_CURRENT
+  ok   request · mechanism never frozen           emitted 1 · MECHANISM_NOT_FROZEN
+  ok   request · only another hash frozen         emitted 1 · MECHANISM_HASH_NOT_FROZEN
+  ok   request · frozen AFTER the request         emitted 1 · MECHANISM_FROZEN_AFTER_REQUEST
+  ok   request · first access                     emitted 1 · ACCESS_FIRST_ACCESS
+  ok   request · rerun (same mechanism)           emitted 1 · ACCESS_RERUN
+  ok   request · after a mechanism change         emitted 1 · ACCESS_AFTER_MECHANISM_CHANGE
+  ok   read · no grant                            emitted 1 · NO_ACCESS_GRANT
+  ok   read · mechanism changed (first attempt)   emitted 1 · MECHANISM_CHANGED_AFTER_ACCESS
+  ok   read · mechanism changed (repeat attempt)  emitted 1 · MECHANISM_CHANGED_AFTER_ACCESS
+  ok   read · item outside the granted set        emitted 1 · ITEM_OUTSIDE_GRANTED_SET
+  ok   score · mechanism changed                  emitted 1 · MECHANISM_CHANGED_AFTER_ACCESS
+  ok   score · population not accounted           emitted 1 · POPULATION_NOT_ACCOUNTED
+  ok   score · complete population                emitted 1 · RETURNED
+  decision exits 18 · reached their branch AND emitted exactly one event: 18 · FAILED 0

@@ -165,7 +165,12 @@ test("🔴 the page-write sites are exactly the UNROUTED page writers — no mag
     assert.equal(e.sites, 0, `${e.file}: declared routed but still declares page-write sites`);
     assert.match(readFileSync(join(REPO_ROOT, e.file), "utf8"), /executeGovernedWrite\(/, `${e.file}: declared routed but never reaches the boundary`);
   }
-  assert.ok(routed.length > 0 && unrouted.length > 0, "one side of this comparison is empty, so it proves nothing");
+  assert.ok(routed.length > 0, "no page writer is routed, so the routed half of this proves nothing");
+  /* 🔴 EVERY PAGE WRITER IS NOW ROUTED, so `found` is legitimately empty — and an empty result is exactly what a
+   * census that had stopped looking would also return. The capability is therefore proved separately, on an
+   * injected stand-in: the census must still SEE a page write when one exists. */
+  const standIn = census({ sources: [{ file: "bin/zz-page-stand-in.mjs", text: 'const permission = writePermission({ target: LOCAL, argv, env });\nif (permission.mayWrite) writeFileSync(join(outDir, "page.html"), html, "utf8");\n' }] });
+  assert.ok(standIn.hits.PAGE_WRITE.length >= 1, "the census no longer sees a page write even when one is put in front of it");
 });
 
 test("(d) ✅ NO write names a literal path outside this repository", () => {

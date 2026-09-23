@@ -266,7 +266,19 @@ export function storeAppendAdapter({ repo, repoRelativeTarget, targetClass, stor
 
   return {
     profile: "VALIDATED_APPEND",
-    occurrenceFingerprint: createHash("sha256").update(`${keys.join("\u0001")}\u0000${occurrenceScope ?? ""}`, "utf8").digest("hex"),
+    /* 🔴 THE CONTENT IS IN THE FINGERPRINT, AND LEAVING IT OUT WAS A REAL COLLISION.
+     *
+     * Keying only on the records' dedupe keys made two genuinely different governed writes identical whenever
+     * neither had keys: an EMPTY batch joined to "", and a batch of UNKEYED records joined to "" as well. In
+     * bin/crawl.mjs that is exactly what happens — a dry run has no observations, and the run record carries no
+     * dedupe key by design — so both writes derived the same idempotency key, the same saga eventId, and the
+     * store correctly refused the second as EVENT_ID_CONFLICT. The crawl dry-run test caught it.
+     *
+     * The count and the canonical content distinguish them. Two IDENTICAL batches in one run still collide, which
+     * is right: that is the same occurrence, and it is what makes a retry append nothing. */
+    occurrenceFingerprint: createHash("sha256")
+      .update(`${keys.join("\u0001")}\u0000${list.length}\u0000${JSON.stringify(list)}\u0000${occurrenceScope ?? ""}`, "utf8")
+      .digest("hex"),
 
     describeTarget: () => ({ targetClass, repoRelativeTarget }),
 

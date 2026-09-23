@@ -76,7 +76,13 @@ export const PERMITTED_PAGE_WRITERS = Object.freeze([
   },
   {
     file: "bin/crawl.mjs",
-    sites: 1,
+    /* 🔴 ROUTED (23 September 2026). Four targets: the observations (re-sighting preserved), each crawl body (one
+     * body is one target), the run record (unique by construction, so the without-dedupe discipline and no key),
+     * and the cost entry (ledger skip). Its OWN gate is preserved, not replaced — this binary records when EITHER
+     * --live or --confirm is given, which is wider than the write law alone, and the boundary is handed that
+     * decision rather than the narrower one. */
+    routed: true,
+    sites: 0,
     writes: "the raw HTML bodies of pages FETCHED by a live crawl, one file per observation",
     where: `runs/crawl/corpus/ by default, or the directory given by --corpus (and the run record at --out); ${CONFINED}`,
     gatedBy: "D-CRW-4: bodies are written only on a --live run, and --live is refused without --i-have-the-owners-green — two explicit flags, the second deliberately awkward to type. It does not use write-law's --confirm",
@@ -362,7 +368,11 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
   },
   {
     file: "bin/crawl.mjs",
-    sites: 6,
+    /* 🔴 ROUTED (23 September 2026) — the same routing as its page-writer entry above; this entry records the
+     * local side of it. Its OWN gate is preserved, not replaced: mayRecord is a LIVE run OR write-law
+     * permission, which is wider than the write law alone, and the boundary is handed that decision. */
+    routed: true,
+    sites: 0,
     writes: "the crawl record — its observations and one run record — and, on a LIVE run, the raw bodies (also declared above as a page writer) and a cost-ledger entry",
     where: `runs/crawl/crawl.jsonl by default (not tracked; uploaded as a CI artifact), or the file given by --out; bodies under --corpus; the ledger at runs/cost/ledger.jsonl; ${CONFINED}`,
     gatedBy: "mayRecord = a LIVE run OR write-law LOCAL permission.mayWrite. A DRY run records nothing unless --confirm; a LIVE run has already passed D-CRW-4's --live AND --i-have-the-owners-green and records what it fetched and spent, because a billable run that kept no record would be the worse failure. 🔴 Until 15 September 2026 every DRY run appended a run record: the D-CRW-4 gate was on the network, not on these local writes",

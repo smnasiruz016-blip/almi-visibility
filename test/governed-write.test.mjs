@@ -484,6 +484,38 @@ test("🔴 a RE-SIGHTING is not suppressed — on the shared store the occurrenc
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+test("🔴 an EMPTY batch and a batch of UNKEYED records are DIFFERENT occurrences to the same target", () => {
+  const dir = scratch();
+  try {
+    const audit = ctx(dir);
+    const store = createJsonlStore(join(dir, "log.jsonl"));
+    const unkeyed = { record_type: "crawl_run", run_id: "r-1" };
+    const mk = (records) => storeAppendAdapter({
+      repo: REPO, repoRelativeTarget: rel(join(dir, "log.jsonl")), targetClass: "RUN_EVIDENCE",
+      store, records, keyOf: store.dedupeKeyOf,
+      append: (s, r) => APPEND_DISCIPLINES.APPEND_WITHOUT_DEDUPE.apply(s, r, {}),
+      linesWritten: APPEND_DISCIPLINES.APPEND_WITHOUT_DEDUPE.linesWritten,
+      requiresKey: false, occurrenceScope: "run:one",
+    });
+
+    /* 🔴 THE DEFECT THIS PINS. Keying only on dedupe keys made these two identical: an empty batch joins to "",
+     * and a batch of records that carry NO dedupe key joins to "" as well. bin/crawl.mjs does exactly both in one
+     * run — a dry run has no observations, and the run record carries no key by design — so both writes derived
+     * the same idempotency key and the same saga eventId, and the store refused the second as EVENT_ID_CONFLICT. */
+    const empty = mk([]);
+    const withUnkeyed = mk([unkeyed]);
+    assert.notEqual(empty.occurrenceFingerprint, withUnkeyed.occurrenceFingerprint, "an empty batch and an unkeyed batch are the same occurrence");
+
+    assert.equal(executeGovernedWrite({ permission: ALLOWED, audit, adapter: empty, action: act("empty", empty.occurrenceFingerprint) }).outcome, "COMMITTED");
+    assert.equal(executeGovernedWrite({ permission: ALLOWED, audit, adapter: withUnkeyed, action: act("run-record", withUnkeyed.occurrenceFingerprint) }).outcome, "COMMITTED");
+    assert.equal(store.readAll().length, 1, "the unkeyed record did not land, or landed twice");
+
+    /* CONTROL, PROVED CAPABLE OF THE OTHER VERDICT: two IDENTICAL batches in one run ARE the same occurrence —
+     * which is what makes a retry append nothing. */
+    assert.equal(mk([unkeyed]).occurrenceFingerprint, withUnkeyed.occurrenceFingerprint);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 test("🔴 THREE disciplines, THREE different repeat behaviours — each states its own, and none is assumed", () => {
   /* Measured from the stores' own source, not inferred: appendIfNew appends a RE-SIGHTING, the without-dedupe pair
    * append again with no check at all, and the cost ledger SKIPS a duplicate entry_id and writes nothing. */

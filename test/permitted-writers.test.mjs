@@ -47,7 +47,7 @@ test("(d) 🔴 SEVEN writers — each either routed with zero sites, or unrouted
    * rule and reason are recorded. */
   const routed = PERMITTED_PAGE_WRITERS.filter((e) => e.routed);
   const unrouted = PERMITTED_PAGE_WRITERS.filter((e) => !e.routed);
-  assert.ok(routed.length > 0 && unrouted.length > 0, "one side of this comparison is empty, so it proves nothing");
+  assert.ok(routed.length > 0, "no page writer is routed, so the routed half of this proves nothing");
   for (const e of routed) {
     assert.equal(e.sites, 0, `${e.file}: declared routed but still declares write sites`);
     assert.match(readFileSync(`${REPO}${e.file}`, "utf8"), /executeGovernedWrite\(/, `${e.file}: declared routed but never reaches the boundary`);
@@ -167,7 +167,10 @@ test("(d) 🔴 ZERO write sites DEFAULT TO WRITING — every one is dry-run by d
 test("(d) every remaining site sits behind its declared gate — the routed writers have none left to gate", () => {
   const gated = real.sites.filter((s) => s.gated);
   assert.equal(gated.length, real.sites.length, "a remaining page-write site is not behind its declared gate");
-  assert.ok(real.sites.length > 0, "there are no sites at all, so this proves nothing");
+  /* 🔴 EVERY PAGE WRITER IS ROUTED, so there is no site left to gate and this loop is vacuous. The gate detector's
+   * own capability is proved by its dedicated controls in this file (it FIRES on an ungated write and on a write
+   * in the wrong branch), so the vacuity here is a fact about the estate, not a hole in the check. */
+  assert.equal(real.sites.length, PERMITTED_PAGE_WRITERS.filter((e) => !e.routed).reduce((n, e) => n + e.sites, 0));
   /* 🔴 AND A ROUTED WRITER MUST REALLY REACH THE BOUNDARY. Declaring `routed` is not doing it, so an entry that
    * claims it without calling executeGovernedWrite is reported here and fails — the gate did not simply vanish. */
   assert.deepEqual(real.routedNotReaching, [], "a writer declares itself routed but never reaches the boundary");

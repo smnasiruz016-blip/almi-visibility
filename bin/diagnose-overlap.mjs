@@ -38,7 +38,10 @@ import { tokensOf } from "../src/gate-a/tokens.mjs";
 import { computeShells, uniqueWords, residualTokens } from "../src/gate-a/shell.mjs";
 import { shingles, jaccard, SHINGLE_N, NOISY_RESIDUAL_WORDS } from "../src/gate-a/overlap.mjs";
 import { MIN_UNIQUE_WORDS } from "../src/gate-a/run.mjs";
-import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
+import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../src/governance/governed-run.mjs";
+import { isoSeconds } from "../src/audit-trail/store.mjs";
 
 const argv = process.argv.slice(2);
 const flag = (n, d = null) => {
@@ -49,6 +52,9 @@ const corpusDir = flag("--corpus");
 const groupName = flag("--group", "profession-origin");
 const outFile = flag("--out");
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv, env: process.env }));
+const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+const RUN_INSTANT = isoSeconds(Date.now());
+const RUN_CORRELATION = `run:diagnose-overlap:${RUN_INSTANT}`;
 
 if (!corpusDir || !existsSync(join(corpusDir, groupName))) {
   console.error("usage: node bin/diagnose-overlap.mjs --corpus <dir> --group <name> [--out file.json] [--confirm]");
@@ -166,7 +172,14 @@ report.nearestNeighbourSameProfession = sameProf;
 report.residualWords = rs;
 
 if (outFile) {
-  if (!permission.mayWrite) console.log(`\n[dry-run] --out ${outFile} given, nothing written. Add --confirm.`);
-  else { writeFileSync(outFile, JSON.stringify(report, null, 2), "utf8"); console.log(`\nwrote ${outFile}`); }
+  /* 🔴 CONFINED, WHICH IT WAS NOT BEFORE — see bin/acceptance-test.mjs. A deliberate tightening, not a slip. */
+  const governed = executeGovernedWrite(governedFileWrite({
+    repo: REPO, permission, target: confineToRepo(outFile, { label: "--out" }),
+    targetClass: "OPERATOR_CHOSEN_OUTPUT", bytes: JSON.stringify(report, null, 2),
+    action: "WRITE_OVERLAP_DIAGNOSTIC", occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
+  }));
+  if (governed.outcome === "REFUSED") console.log(`\n[dry-run] --out ${outFile} given, nothing written. Add --confirm.`);
+  else if (governed.outcome === "COMMITTED" || governed.outcome === "ALREADY_COMMITTED") console.log(`\nwrote ${outFile} [${governed.outcome}]`);
+  else { console.error(`🔴 ${governed.outcome} — ${outFile} was not written; the governed attempt is on the audit trail`); process.exitCode = 1; }
 }
 console.log("");

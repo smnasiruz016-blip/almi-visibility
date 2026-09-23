@@ -54,10 +54,16 @@ export const FIELD_ORDER = Object.freeze([
 export const EVENT_TYPES = Object.freeze([
   "AUTHORITY_RESOLUTION", "AUTHORITY_MIGRATION", "BOARD_TRANSITION", "EVIDENCE_ROLE_DECISION", "WRITE_GATE_DECISION",
   "SCOPE_RESOLUTION", "REFUSAL", "EVALUATION",
+  /* Added for the governed-write boundary: one audited saga per governed mutation. Additive — it widens a
+   * validation allowlist and changes no stored byte, because these allowlists are never serialised into an event. */
+  "GOVERNED_WRITE",
 ]);
 export const ACTOR_TYPES = Object.freeze(["HUMAN", "ENGINE", "CI", "EXTERNAL_SYSTEM"]);
 export const SCOPE_TYPES = Object.freeze(["GLOBAL_PRODUCT", "TENANT", "SUBJECT"]);
-export const OUTCOMES = Object.freeze(["ALLOWED", "REFUSED", "RECORDED", "APPLIED", "PASS", "FAIL", "INVALID"]);
+/* INDETERMINATE was added for one measured state no existing value describes truthfully: a target whose mutation
+ * COMMITTED but could not be confirmed afterwards. Calling that APPLIED claims a confirmation never obtained;
+ * calling it FAIL denies a mutation that really landed. */
+export const OUTCOMES = Object.freeze(["ALLOWED", "REFUSED", "RECORDED", "APPLIED", "PASS", "FAIL", "INVALID", "INDETERMINATE"]);
 
 /**
  * 🔴 THE GENESIS PIN. The first event's `previousEventHash` must be exactly this. An ABSENT previousEventHash is
@@ -122,14 +128,33 @@ export const hashEvent = (event) =>
   createHash("sha256").update(canonicalWithoutHash(event) + "\n" + String(event.previousEventHash), "utf8").digest("hex");
 
 /**
- * The event's IDENTITY fingerprint — everything except the fields the STORE decides (recordedAt, chain links,
- * migratedAt) and except the store-set anomaly flag. Two records that share an eventId are the SAME event only when
- * this matches; otherwise they are a conflicting duplicate and the second is REFUSED, never merged, never overwritten.
+ * 🔴 RECORDER-EXECUTION METADATA — DESCRIBES THE RECORDING, NOT THE OCCURRENCE.
+ *
+ * `recordedAt`, the chain links and `migratedAt` are decided by the STORE. `softwareVersion` is decided by the
+ * BUILD that happened to be running. None of them is part of what happened.
+ *
+ * `softwareVersion` was excluded on 23 September 2026, and the reason is worth keeping: while it was included,
+ * re-offering an ALREADY-COMMITTED occurrence from a different build produced the same eventId but a different
+ * fingerprint, so the store correctly read it as a conflicting duplicate and refused it. A build change is not a
+ * content change. The event still RECORDS `softwareVersion` — it is stored, hashed into `eventHash` and read back
+ * unchanged as the version at the event; it simply no longer decides whether two records are the same occurrence.
+ */
+export const RECORDER_EXECUTION_FIELDS = Object.freeze([
+  "recordedAt", "previousEventHash", "eventHash", "migratedAt", "softwareVersion",
+]);
+
+/**
+ * The event's OCCURRENCE fingerprint — everything except the recorder-execution fields above and the store-set
+ * anomaly flag. Two records that share an eventId are the SAME occurrence only when this matches; otherwise they
+ * are a conflicting duplicate and the second is REFUSED, never merged, never overwritten.
+ *
+ * It is computed from stored bytes at read time, so the exclusion applies identically to events committed before
+ * it and after it. No committed line is rewritten to obtain it.
  */
 export function contentFingerprint(event) {
   const body = {};
   for (const k of FIELD_ORDER) {
-    if (["recordedAt", "previousEventHash", "eventHash", "migratedAt"].includes(k)) continue;
+    if (RECORDER_EXECUTION_FIELDS.includes(k)) continue;
     body[k] = k === "metadata" ? stripStoreFlags(event.metadata) : (event[k] ?? null);
   }
   return createHash("sha256").update(canonicalJson(body), "utf8").digest("hex");

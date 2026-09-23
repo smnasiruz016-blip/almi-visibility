@@ -69,6 +69,20 @@ const BUILDS_ISSUES = [
   /from\s+["'](?:[^"']*\/src\/audit\/|\.\/)[^"'/]*check[^"'/]*\.mjs["']/,
 ];
 const OPENS_STORE = new RegExp(["create", "JsonlStore\\("].join(""));
+/* 🔴 ROUTED PERSISTENCE COUNTS, AND THIS CENSUS WENT BLIND WITHOUT IT.
+ *
+ * A caller routed through the governed-write boundary no longer contains the words `.appendIfNew(` — it names the
+ * discipline and the boundary performs it. The moment two writers were routed they dropped straight out of this
+ * population, which is exactly the failure the sibling test warns about: "if a writer stopped calling appendIfNew
+ * tomorrow, the file would still say zero duplicates." Losing them silently would have been worse than a red test.
+ *
+ * Built from parts, like the patterns above, so this file does not read itself as a writer. */
+const ROUTED_PERSIST = new RegExp(["governed", "StoreAppend\\("].join(""));
+const ROUTED_IF_NEW = new RegExp(["discipline:\\s*[\"']APPEND", "_IF_NEW[\"']"].join(""));
+/* A routed BULK append is still a non-issue write that must be declared — routing changed how it is SPELLED, not
+ * what it is. Without this the exemption below would simply stop applying to anything, which is a hole that stays
+ * open long after the reason for it is forgotten. */
+const ROUTED_BULK = new RegExp(["discipline:\\s*[\"']APPEND", "_ALL_WITHOUT_DEDUPE[\"']"].join(""));
 
 /**
  * 🔴 DECLARED NON-ISSUE WRITES — each with a claim CHECKED in the same file.
@@ -79,7 +93,8 @@ export const DECLARED = Object.freeze([
     file: "bin/supersede-noindex.mjs",
     // Built from parts: written as a literal, the duplicate-writer census read
     // this very line as a bare append — this file reporting itself.
-    line: new RegExp(["store\\.app", "end(All)?(Without", "Dedupe)?\\(changes\\)"].join("")),
+    /* Either spelling: the direct call, or the routed discipline the boundary performs. */
+    line: new RegExp(["store\\.app", "end(All)?(Without", "Dedupe)?\\(changes\\)", "|discipline:\\s*[\"']APPEND", "_ALL_WITHOUT_DEDUPE[\"']"].join("")),
     why: "appends issue_state_change records, not issues; built only from pending OPEN issues, so a re-run appends none",
     proof: /changes\.push\(\s*makeIssueStateChange\(/,
   },
@@ -101,13 +116,14 @@ export function issueWriterCensus({ repo = REPO, sources = null } = {}) {
     const lines = text.split(/\r?\n/);
     const code = lines.map((l, i) => ({ l, n: i + 1 })).filter(({ l }) => !isComment(l));
     const builds = BUILDS_ISSUES.some((re) => code.some(({ l }) => re.test(l)));
-    const writes = code.some(({ l }) => !isImport(l) && (OPENS_STORE.test(l) || FS_WRITE.test(l) || BARE_APPEND.test(l) || IF_NEW_CALL.test(l)));
-    const persists = code.some(({ l }) => !isImport(l) && (FS_WRITE.test(l) || BARE_APPEND.test(l) || IF_NEW_CALL.test(l)));
+    const writes = code.some(({ l }) => !isImport(l) && (OPENS_STORE.test(l) || FS_WRITE.test(l) || BARE_APPEND.test(l) || IF_NEW_CALL.test(l) || ROUTED_PERSIST.test(l)));
+    const persists = code.some(({ l }) => !isImport(l) && (FS_WRITE.test(l) || BARE_APPEND.test(l) || IF_NEW_CALL.test(l) || ROUTED_PERSIST.test(l)));
     if (!builds || !writes || !persists) continue;
 
-    const callsIfNew = code.some(({ l }) => !isImport(l) && IF_NEW_CALL.test(l) && !/^\s*["'`]/.test(l.trim()));
+    /* Still wired to appendIfNew — either by calling it, or by naming it as the discipline the boundary performs. */
+    const callsIfNew = code.some(({ l }) => !isImport(l) && (IF_NEW_CALL.test(l) || ROUTED_IF_NEW.test(l)) && !/^\s*["'`]/.test(l.trim()));
     const other = code
-      .filter(({ l }) => !isImport(l) && !IF_NEW_CALL.test(l) && (BARE_APPEND.test(l) || FS_WRITE.test(l)))
+      .filter(({ l }) => !isImport(l) && !IF_NEW_CALL.test(l) && !ROUTED_IF_NEW.test(l) && (BARE_APPEND.test(l) || FS_WRITE.test(l) || ROUTED_BULK.test(l)))
       .map(({ l, n }) => {
         const d = DECLARED.find((x) => x.file === file && x.line.test(l));
         return { line: n, text: l.trim().slice(0, 110), declared: Boolean(d && d.proof.test(text)), why: d?.why ?? null };

@@ -15,6 +15,9 @@
 import { existsSync, readFileSync } from "node:fs";
 
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedStoreAppend } from "../src/governance/governed-run.mjs";
+import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { readBodyArchive } from "../src/evidence/body-archive.mjs";
 import { pagesFromRun, inboundOf, unpackGraph } from "../src/crawl/inbound.mjs";
@@ -44,13 +47,26 @@ if (!argv.includes("--close")) {
   console.log(`the two instruments, reproduced from the stored graph: ${Object.entries(counts).map(([k, v]) => `${k} → ${v}`).join(" · ")}`);
   console.log(`issues: ${issues.length} — one per page they treat differently`);
   for (const i of issues) console.log(`  ${i.issue_id}  ${i.summary}`);
-  if (!permission.mayWrite) {
+  /* Routed. appendIfNew records a RE-SIGHTING for an issue already present — that is deliberate and is preserved:
+   * the store still decides, and its answer still drives the raised/re-sighted report. */
+  const store = createJsonlStore(STORE);
+  const RAISE_INSTANT = isoSeconds(Date.now());
+  const raiseArgs = governedStoreAppend({
+    repo: REPO, permission, store, records: issues, targetClass: "RUN_EVIDENCE",
+    action: "RAISE_INSTRUMENT_DISAGREEMENT_ISSUES", occurredAt: RAISE_INSTANT,
+    correlationId: `run:instrument-disagreement:raise:${RAISE_INSTANT}`,
+    discipline: "APPEND_IF_NEW", seenAt: now,
+  });
+  const raiseGoverned = executeGovernedWrite(raiseArgs);
+  if (raiseGoverned.outcome === "REFUSED") {
     console.log("[dry-run] nothing raised — add --confirm");
     process.exit(0);
   }
-  const store = createJsonlStore(STORE);
-  let raised = 0;
-  for (const i of issues) if (store.appendIfNew(i, { seenAt: now }).appended) raised += 1;
+  if (raiseGoverned.outcome !== "COMMITTED" && raiseGoverned.outcome !== "ALREADY_COMMITTED") {
+    console.error(`🔴 ${raiseGoverned.outcome} — nothing was raised; the governed attempt is on the audit trail`);
+    process.exit(1);
+  }
+  const raised = (raiseArgs.adapter.result ?? []).filter((r) => r?.appended).length;
   console.log(`raised ${raised} new issue(s), ${issues.length - raised} re-sighted, in ${STORE}`);
   process.exit(0);
 }
@@ -83,10 +99,22 @@ for (const e of open) {
   );
 }
 console.log(`OPEN ${ISSUE_CLASS} issues to close: ${changes.length}`);
-if (!permission.mayWrite) {
+/* Routed. Declared: state changes are not issues and carry NO dedupe key; they are built only from OPEN issues,
+ * so a re-run closes none. The boundary therefore does not demand a key for this discipline — demanding one would
+ * refuse a lawful write — and measures the delta over the target instead. */
+const CLOSE_INSTANT = isoSeconds(Date.now());
+const closeGoverned = executeGovernedWrite(governedStoreAppend({
+  repo: REPO, permission, store, records: changes, targetClass: "RUN_EVIDENCE",
+  action: "CLOSE_INSTRUMENT_DISAGREEMENT_ISSUES", occurredAt: CLOSE_INSTANT,
+  correlationId: `run:instrument-disagreement:close:${CLOSE_INSTANT}`,
+  discipline: "APPEND_ALL_WITHOUT_DEDUPE",
+}));
+if (closeGoverned.outcome === "REFUSED") {
   console.log("[dry-run] nothing closed — add --confirm");
   process.exit(0);
 }
-// Declared: state changes are not issues and carry no dedupe key; built only from OPEN issues, so a re-run closes none.
-store.appendAllWithoutDedupe(changes);
+if (closeGoverned.outcome !== "COMMITTED" && closeGoverned.outcome !== "ALREADY_COMMITTED") {
+  console.error(`🔴 ${closeGoverned.outcome} — nothing was closed; the governed attempt is on the audit trail`);
+  process.exit(1);
+}
 console.log(`closed ${changes.length} issue(s)`);

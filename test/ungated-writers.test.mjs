@@ -304,7 +304,15 @@ test("🔴 THE DECLARED LOCAL WRITERS — each states writes · where · gatedBy
     const lines = text.split(/\r?\n/);
     const sites = writeSitesOf(text);
     assert.equal(sites.length, e.sites, `${e.file}: ${sites.length} write site(s) in the source, ${e.sites} declared`);
-    for (const s of sites) assert.equal(gateOf(lines, s.line, e.gateToken).gated, true, `${e.file}:${s.line} DEFAULTS TO WRITING — ${s.text}`);
+    if (e.routed) {
+      /* 🔴 STRICTER, NOT LOOSER — and this repair is what made the old form wrong. A routed writer has no direct
+       * write site to gate, because the mutation moved inside the shared boundary. So it must have ZERO sites AND
+       * actually reach the boundary. Declaring `routed` without calling it is precisely the hole this closes. */
+      assert.equal(sites.length, 0, `${e.file}: declared routed but still holds ${sites.length} direct write site(s)`);
+      assert.match(text, /executeGovernedWrite\(/, `${e.file}: declared routed but never reaches the shared boundary`);
+    } else {
+      for (const s of sites) assert.equal(gateOf(lines, s.line, e.gateToken).gated, true, `${e.file}:${s.line} DEFAULTS TO WRITING — ${s.text}`);
+    }
     assert.equal(destinationFlagIn(text), e.destinationOverridable, `${e.file}: the destination flag is declared wrongly`);
   }
 });
@@ -329,7 +337,22 @@ test("🔴 CONTROL: the check FIRES on facts-lifecycle as it stood on 14 Septemb
 
 test("🔴 GAP 2 · the census covers EVERY write path, and a HELPER-reached write is a site", () => {
   const w = writeSiteCensus();
-  assert.ok(w.sites.length > 90, `only ${w.sites.length} write sites — the population is not the widened one`);
+  /* 🔴 RE-BASED FOR ROUTING — A RE-BASE, NOT A RELAXATION.
+   *
+   * The floor of 90 caught the census NARROWING: a write path silently dropping out of the population. Routing
+   * removes sites for the OPPOSITE reason — the write moved inside the shared boundary, which audits it — so a
+   * fixed floor would now have to be edited on every batch, and a number edited to stay green stops being
+   * evidence. The claim is therefore made DIRECTLY, and it is harder to satisfy than a count: every declared
+   * writer that is NOT routed must still be seen by the census, so a path cannot leave the population unless its
+   * caller really reached the boundary. */
+  assert.ok(w.sites.length > 0, "the census sees no write sites at all");
+  const seen = new Set(w.sites.map((s) => s.file));
+  for (const e of PERMITTED_LOCAL_WRITERS.filter((x) => !x.routed)) {
+    assert.ok(seen.has(e.file), `${e.file} is an UNROUTED declared writer and the census sees no write site in it`);
+  }
+  for (const e of PERMITTED_LOCAL_WRITERS.filter((x) => x.routed)) {
+    assert.ok(!seen.has(e.file), `${e.file} is declared routed yet the census still sees a direct write site in it`);
+  }
   // 🔴 THE FIGURE THAT SAID "FOUR" MISSED EXACTLY THESE: a write reached through appendIfNew or
   // ledger.append is invisible to a primitive-name scan, and they are more than a third of all sites.
   /* 🔴 RE-BASED 16/17 SEPTEMBER 2026 (owner ruling) — A RE-BASE, NOT A RELAXATION.
@@ -356,7 +379,21 @@ test("🔴 GAP 2 · the census covers EVERY write path, and a HELPER-reached wri
    * exactly {store.mjs:196} and lost nothing, with the population held fixed and only the census implementation
    * swapped (runs/audit/gap2-close-decision-2026-09-16.txt). The floor above is unchanged; the helper-reached
    * count is now 33. */
-  assert.ok(w.viaHelper >= 30, `only ${w.viaHelper} helper-reached sites — the census is counting primitives again`);
+  /* 🔴 RE-BASED FOR ROUTING — A RE-BASE, NOT A RELAXATION.
+   *
+   * This floor existed because a census that counted only filesystem primitives missed every write reached through
+   * appendIfNew or ledger.append — more than a third of all sites. Routing legitimately moves helper-reached
+   * writes out of bin/, so the floor would now need editing on every batch, and a number edited to stay green
+   * stops being evidence. The CAPABILITY is asserted directly instead, and on a stand-in that contains no
+   * filesystem primitive at all: if the census ever went back to counting primitives, it would see nothing here. */
+  assert.ok(w.viaHelper > 0, "the census sees no helper-reached write anywhere — it is counting primitives again");
+  const helperOnly = writeSiteCensus({
+    sources: [{
+      file: "bin/zz-helper-only.mjs",
+      text: "const store = createJsonlStore(out);\nif (permission.mayWrite) store.appendIfNew(record, { seenAt: now });\n",
+    }],
+  });
+  assert.ok(helperOnly.viaHelper >= 1, "a write reached ONLY through a helper is not counted as a site");
   assert.equal(w.excludedNonWrites.length, 9, `the census excluded ${w.excludedNonWrites.length} lines as non-writes, not the 9 proved: ${w.excludedNonWrites.map((e) => `${e.file}:${e.line} ${e.shape}`).join(" · ")}`);
   const excludedPerFile = w.excludedNonWrites.reduce((m, e) => ({ ...m, [e.file]: (m[e.file] ?? 0) + 1 }), {});
   assert.deepEqual(excludedPerFile, { "src/crawl/persist.mjs": 1, "src/evidence/store.mjs": 8 }, "the proved non-writes are 8 in the store and 1 in persist.mjs");
@@ -367,14 +404,22 @@ test("🔴 GAP 2 · the census covers EVERY write path, and a HELPER-reached wri
   assert.match(w.cannotSee.join(" "), /gated at its CALLER/);
 });
 
-test("🔴 GAP 2 · the six that had NO gate at all are gated at every site, and confined before the first write", () => {
+test("🔴 GAP 2 · the six that had NO gate at all are gated at every site — or ROUTED through the boundary", () => {
   const w = writeSiteCensus();
   const six = ["bin/audit.mjs", "bin/audit-content.mjs", "bin/audit-technical.mjs", "bin/supply-labels.mjs", "bin/verification-issues.mjs", "bin/gsc-ingest.mjs"];
   for (const file of six) {
     const sites = w.sites.filter((s) => s.file === file);
-    assert.ok(sites.length > 0, `${file}: no write site found — the census stopped seeing this writer`);
-    for (const s of sites) assert.equal(s.gated, true, `${file}:${s.line} DEFAULTS TO WRITING — ${s.text}`);
     const text = readFileSync(join(REPO_ROOT, file), "utf8");
+    if (/executeGovernedWrite\(/.test(text)) {
+      /* 🔴 STRICTER, AND THIS ROUTING IS WHAT MADE THE OLD FORM WRONG. The original required at least one write
+       * site, to catch the census going blind. A ROUTED writer has none — the write moved inside the shared
+       * boundary — so for it the demand becomes ZERO direct sites and a real call to that boundary, which is a
+       * harder thing to satisfy than a gated site, not an easier one. */
+      assert.deepEqual(sites.map((s) => `${s.file}:${s.line}`), [], `${file}: routed, yet the census still sees a direct write site`);
+    } else {
+      assert.ok(sites.length > 0, `${file}: no write site found — the census stopped seeing this writer`);
+      for (const s of sites) assert.equal(s.gated, true, `${file}:${s.line} DEFAULTS TO WRITING — ${s.text}`);
+    }
     assert.match(text, /writePermission\(\{ target: LOCAL/, `${file} does not ask the write law`);
     assert.equal(confinementOf(text).confinedBeforeFirstWrite, true, `${file} does not confine before its first write`);
   }

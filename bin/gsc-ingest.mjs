@@ -32,6 +32,9 @@ import { createGoogleSearchConsoleProvider } from "../src/search/google-search-c
 import { runIngest } from "../src/search/ingest.mjs";
 import { createJsonlStore, createDryRunStore } from "../src/evidence/store.mjs";
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedStoreAppend } from "../src/governance/governed-run.mjs";
+import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { formatBoundedResult } from "../src/report/bounded.mjs";
 import { ESTATE_HOSTNAME_LIST, KNOWN_UNKNOWNS } from "../config/estate-hostnames.mjs";
 import { createCostGovernor } from "../src/cost/governor.mjs";
@@ -120,7 +123,23 @@ function syntheticProvider(file, governor) {
 const startedAt = new Date().toISOString();
 const governor = createCostGovernor({ label: "google-search-console ingest run" });
 const provider = SOURCE === null ? createGoogleSearchConsoleProvider({ governor }) : syntheticProvider(SOURCE, governor);
-const store = permission.mayWrite ? createJsonlStore(storePath) : createDryRunStore(storePath);
+/* 🔴 THE DRY-RUN STORE IS NOW ALWAYS THE COLLECTOR. It already keeps every record and returns the same
+ * appended-versus-resighted answer the real store would — which is why runIngest could count against it — so the
+ * ingest runs and reports identically either way, and the run then makes ONE governed decision about committing
+ * what it collected. */
+const store = createDryRunStore(storePath);
+const GSC_INSTANT = governedInstant(Date.now());
+const GSC_CORRELATION = `run:gsc-ingest:${GSC_INSTANT}`;
+/* Returns the boundary's outcome AND the args, so the LEDGER'S OWN answer — appended, or already present — is
+ * still what the run reports. Routing may not cost a caller information it was already giving the operator. */
+const governedLedgerAppend = (entry, action) => {
+  const args = governedStoreAppend({
+    repo: REPO, permission, store: ledger, records: [entry], targetClass: "RUN_EVIDENCE",
+    action, occurredAt: GSC_INSTANT, correlationId: GSC_CORRELATION,
+    discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null,
+  });
+  return { governed: executeGovernedWrite(args), args };
+};
 const ledger = createCostLedger(confineToRepo(`${REPO}runs/cost/ledger.jsonl`, { label: "the cost ledger" }));
 
 let r;
@@ -137,7 +156,9 @@ try {
   if (err?.hardStop) {
     console.error(`\n${err.message}`);
     const stoppedEntry = entryFromLiveIngest({ startedAt, finishedAt: new Date().toISOString(), governor, pulls: [], basis: "Search Console API is free; no billing account attached to almiworld-hq-502102" });
-    if (permission.mayWrite && SOURCE === null) ledger.append(stoppedEntry);
+    /* A SYNTHETIC source NEVER writes the ledger — that rule is preserved exactly, and where it applies there is
+     * no governed write to audit, so the boundary is not called at all. */
+    if (SOURCE === null) governedLedgerAppend(stoppedEntry, "APPEND_INGEST_STOPPED_COST_ENTRY");
     console.error(`ledger${permission.mayWrite ? "" : " [dry-run, not written]"}: ${formatLedgerLine(stoppedEntry)}`);
     process.exit(4);
   }
@@ -227,14 +248,41 @@ if (r.control.httpStatus === 403) {
 /* 🔴 IDEMPOTENCY, REPORTED RATHER THAN ASSUMED. A second run over unchanged
  * data appends re-sightings and no new measurements — and says which happened. */
 console.log("");
-console.log(`evidence: ${r.appended} NEW measurement(s), ${r.resighted} re-sighting(s)   total records in store: ${store.count()}`);
+const evidenceGoverned = executeGovernedWrite(governedStoreAppend({
+  repo: REPO, permission, store: createJsonlStore(storePath), records: store.wouldWrite(),
+  targetClass: "GENERATED_CONFIG", action: "APPEND_SEARCH_CONSOLE_OBSERVATIONS",
+  occurredAt: GSC_INSTANT, correlationId: GSC_CORRELATION, discipline: "APPEND_IF_NEW",
+}));
+if (evidenceGoverned.outcome !== "REFUSED" && evidenceGoverned.outcome !== "COMMITTED" && evidenceGoverned.outcome !== "ALREADY_COMMITTED") {
+  console.error(`🔴 ${evidenceGoverned.outcome} — the observations were not written; the governed attempt is on the audit trail`);
+  process.exit(1);
+}
+/* The same number as before: what the store HOLDS after this run's decision — the file's contents when the write
+ * was committed, and its untouched contents when it was refused. */
+const totalRecords = evidenceGoverned.outcome === "REFUSED" ? store.count() : createJsonlStore(storePath).readAll().length;
+console.log(`evidence: ${r.appended} NEW measurement(s), ${r.resighted} re-sighting(s)   total records in store: ${totalRecords}`);
 if (r.appended === 0 && r.resighted > 0) {
   console.log("  ↳ nothing changed since the last run. Re-sightings recorded; no duplicate payload written.");
 }
 
 const pullsForLedger = [r.agg, r.pages, ...Object.values(r.queryPulls).map((p) => p.res), ...Object.values(r.countryPulls).map((p) => p.res), r.control];
 const costEntry = entryFromLiveIngest({ startedAt, finishedAt, governor, pulls: pullsForLedger, basis: r.agg.cost.basis });
-const ledgerWrite = SOURCE !== null ? { appended: false, synthetic: true } : permission.mayWrite ? ledger.append(costEntry) : { appended: false, dryRun: true };
+/* Routed, with the synthetic rule intact: a synthetic source is NEVER written to the ledger, so no governed
+ * write exists for it and the boundary is not called. */
+let ledgerWrite;
+if (SOURCE !== null) {
+  ledgerWrite = { appended: false, synthetic: true };
+} else {
+  const { governed: costGoverned, args: costArgs } = governedLedgerAppend(costEntry, "APPEND_INGEST_COST_ENTRY");
+  if (costGoverned.outcome === "REFUSED") {
+    ledgerWrite = { appended: false, dryRun: true };
+  } else if (costGoverned.outcome === "COMMITTED" || costGoverned.outcome === "ALREADY_COMMITTED") {
+    ledgerWrite = { appended: Boolean((costArgs.adapter.result ?? [])[0]?.appended) };
+  } else {
+    console.error(`🔴 ${costGoverned.outcome} — the cost entry was not written; the governed attempt is on the audit trail`);
+    process.exit(1);
+  }
+}
 console.log(`\ncost ledger (${ledgerWrite.synthetic ? "synthetic source, NEVER written" : ledgerWrite.dryRun ? "dry-run, NOT written" : ledgerWrite.appended ? "appended" : "already present"}): ${formatLedgerLine(costEntry)}`);
 /* 🔴 THE REACH LINES. Both are printed only here: after runIngest has returned — so every observation has already
  * been handed to store.appendIfNew, the one write call — and after the ledger decision. A run that dies before its

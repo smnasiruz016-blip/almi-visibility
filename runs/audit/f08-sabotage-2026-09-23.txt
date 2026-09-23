@@ -1,0 +1,201 @@
+F08 SABOTAGE EVIDENCE — the established set re-run, and the completion set (§10)
+
+Engine tree: 44ff8b3600cc201b6ad0506fed25f2a534b88f94. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
+runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
+requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
+No sabotage aims at the production audit trail; every firing case writes to a stand-in or a confined store.
+
+RESULTS
+S3       landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — mutate the target before ATTEMPTED is durable
+         target src/governance/governed-write.mjs · named test "P7 · P8 ·…" in test/governed-write.test.mjs
+         sha256 before 8277080934f2d5ae9fa13a504b1d0160d8d64d3339f80fb8d064bef865116bd4 · after 8277080934f2d5ae9fa13a504b1d0160d8d64d3339f80fb8d064bef865116bd4
+         failing tests: P7 · P8 · an allowed action appends ATTEMPTED BEFORE the mutation, then exactly one terminal outcome | P11 · an ATTEMPTED with no terminal is EXPOSED as an incomplete saga, not hidden
+         verdict: RED, named test, intended reason
+S19      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — suppress a permission-refusal audit
+         target src/governance/governed-write.mjs · named test "P9 ·…" in test/governed-write.test.mjs
+         sha256 before 8277080934f2d5ae9fa13a504b1d0160d8d64d3339f80fb8d064bef865116bd4 · after 8277080934f2d5ae9fa13a504b1d0160d8d64d3339f80fb8d064bef865116bd4
+         failing tests: P9 · a refused action is audited REFUSED, executes no adapter and writes nothing
+         verdict: RED, named test, intended reason
+S7+S8    landed=true red=true failed=3 namedTestFailed=true reason=true restored=true — duplicate the target and the occurrence event on retry
+         target src/governance/governed-write.mjs · named test "P13 · P14 · P21 ·…" in test/governed-write.test.mjs
+         sha256 before 8277080934f2d5ae9fa13a504b1d0160d8d64d3339f80fb8d064bef865116bd4 · after 8277080934f2d5ae9fa13a504b1d0160d8d64d3339f80fb8d064bef865116bd4
+         failing tests: P13 · P14 · P21 · a retry creates ONE target and ONE occurrence event, and returns ALREADY_COMMITTED | 🔴 BINARY content is hashed RAW — a buffer holding CRLF bytes is not normalised into a different occurrence | 🔴 a RE-SIGHTING is not suppressed — on the shared store the occurrence is one RUN's observation
+         verdict: RED, named test, intended reason
+S9       landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — accept a conflicting idempotency key
+         target src/governance/governed-write.mjs · named test "P15 · a supplied idempotency key…" in test/governed-write.test.mjs
+         sha256 before 8277080934f2d5ae9fa13a504b1d0160d8d64d3339f80fb8d064bef865116bd4 · after 8277080934f2d5ae9fa13a504b1d0160d8d64d3339f80fb8d064bef865116bd4
+         failing tests: P15 · a supplied idempotency key that the action does not derive is REFUSED, never trusted
+         verdict: RED, named test, intended reason
+S29      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — widen the audit-store exemption to cover a governed write
+         target src/governance/governed-write.mjs · named test "P26 · P51 ·…" in test/governed-write.test.mjs
+         sha256 before 8277080934f2d5ae9fa13a504b1d0160d8d64d3339f80fb8d064bef865116bd4 · after 8277080934f2d5ae9fa13a504b1d0160d8d64d3339f80fb8d064bef865116bd4
+         failing tests: P26 · P51 · the audit store's own persistence is exempt BY NAME, and the fence refuses anything else claiming it
+         verdict: RED, named test, intended reason
+S13      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — declare a discovered state with no owner
+         target src/governance/governed-write.mjs · named test "P49 ·…" in test/governed-write.test.mjs
+         sha256 before 8277080934f2d5ae9fa13a504b1d0160d8d64d3339f80fb8d064bef865116bd4 · after 8277080934f2d5ae9fa13a504b1d0160d8d64d3339f80fb8d064bef865116bd4
+         failing tests: P49 · every outcome the ruling declares is either a returned outcome or a named discovered state — and the totals reconcile
+         verdict: RED, named test, intended reason
+S32      landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — report a DECLARED-UNREACHABLE outcome as proved
+         target src/governance/governed-write.mjs · named test "P49 ·…" in test/governed-write.test.mjs
+         sha256 before 8277080934f2d5ae9fa13a504b1d0160d8d64d3339f80fb8d064bef865116bd4 · after 8277080934f2d5ae9fa13a504b1d0160d8d64d3339f80fb8d064bef865116bd4
+         failing tests: P49 · every outcome the ruling declares is either a returned outcome or a named discovered state — and the totals reconcile | P23 · COMMIT_STATUS_UNKNOWN is DECLARED-UNREACHABLE with its measurement — and is not implemented
+         verdict: RED, named test, intended reason
+S16      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — ignore a malformed tail (and so allow a valid tail to be truncated)
+         target src/governance/durability-adapters.mjs · named test "P24 · P25 ·…" in test/governed-write.test.mjs
+         sha256 before e08e5f23c5cf745abb9da1fdcec160bc3fcb4ee0146300fb4f1e3cf960493e46 · after e08e5f23c5cf745abb9da1fdcec160bc3fcb4ee0146300fb4f1e3cf960493e46
+         failing tests: P24 · P25 · a partial tail is DETECTED, the append is refused, and no valid record is truncated
+         verdict: RED, named test, intended reason
+S22      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — honour the store override OUTSIDE a test context
+         target src/governance/governed-run.mjs · named test "P34 ·…" in test/governed-write.test.mjs
+         sha256 before 0caba1d87cd9780466a429f814280c105595fb3bb13565f2d2cc82d9e70014ca · after 0caba1d87cd9780466a429f814280c105595fb3bb13565f2d2cc82d9e70014ca
+         failing tests: P34 · outside a verified test context a present override is REFUSED and no governed write happens
+         verdict: RED, named test, intended reason
+S27      landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — let the recorder version create a false cross-build conflict
+         target src/audit-trail/event.mjs · named test "P43 · P46 ·…" in test/governed-write.test.mjs
+         sha256 before 4ed4fef4b9d4260d84c0ae2432498f90cf32a25d435c163d4fc6de34ef0f325d · after 4ed4fef4b9d4260d84c0ae2432498f90cf32a25d435c163d4fc6de34ef0f325d
+         failing tests: P43 · P46 · the same occurrence under a later build is recognised, and existing bytes are untouched | P44 · cross-build false conflicts are ZERO for the ALREADY-COMMITTED production population — with a live control
+         verdict: RED, named test, intended reason
+S-LEAK   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — carry a disagreeing VALUE into a conflict's audit event
+         target src/governance/durability-adapters.mjs + src/governance/governed-write.mjs · named test "P15 · P22 ·…" in test/governed-write.test.mjs
+         sha256 before e08e5f23c5cf745abb9da1fdcec160bc3fcb4ee0146300fb4f1e3cf960493e46,8277080934f2d5ae9fa13a504b1d0160d8d64d3339f80fb8d064bef865116bd4 · after e08e5f23c5cf745abb9da1fdcec160bc3fcb4ee0146300fb4f1e3cf960493e46,8277080934f2d5ae9fa13a504b1d0160d8d64d3339f80fb8d064bef865116bd4
+         failing tests: P15 · P22 · a CONFLICTING occurrence is refused and never overwrites the committed one
+         verdict: RED, named test, intended reason
+S-D1     landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — directory profile: drop the ROLLBACK after a failed second rename
+         target src/governance/durability-adapters.mjs · named test "P-D5 ·…" in test/governed-directory-replace.test.mjs
+         sha256 before e08e5f23c5cf745abb9da1fdcec160bc3fcb4ee0146300fb4f1e3cf960493e46 · after e08e5f23c5cf745abb9da1fdcec160bc3fcb4ee0146300fb4f1e3cf960493e46
+         failing tests: P-D5 · the second rename fails and the ROLLBACK succeeds: FAILED_BEFORE_COMMIT, and the old target is back byte-identical | P-D6 · the ROLLBACK ALSO fails: RECOVERY_REQUIRED — never FAILED, never COMMITTED — and the next write is its owner
+         verdict: RED, named test, intended reason
+S-D2     landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — directory profile: report a failed rollback as an ordinary FAILED
+         target src/governance/governed-write.mjs · named test "P-D6 ·…" in test/governed-directory-replace.test.mjs
+         sha256 before 8277080934f2d5ae9fa13a504b1d0160d8d64d3339f80fb8d064bef865116bd4 · after 8277080934f2d5ae9fa13a504b1d0160d8d64d3339f80fb8d064bef865116bd4
+         failing tests: P-D6 · the ROLLBACK ALSO fails: RECOVERY_REQUIRED — never FAILED, never COMMITTED — and the next write is its owner
+         verdict: RED, named test, intended reason
+S-D3     landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — directory profile: ignore the validator's faults
+         target src/governance/durability-adapters.mjs · named test "P-D4 ·…" in test/governed-directory-replace.test.mjs
+         sha256 before e08e5f23c5cf745abb9da1fdcec160bc3fcb4ee0146300fb4f1e3cf960493e46 · after e08e5f23c5cf745abb9da1fdcec160bc3fcb4ee0146300fb4f1e3cf960493e46
+         failing tests: P-D4 · validation REFUSES the staged tree (and an EMPTY one): FAILED_BEFORE_COMMIT, the live target never touched
+         verdict: RED, named test, intended reason
+S-D4     landed=true red=true failed=8 namedTestFailed=true reason=true restored=true — directory profile: let the external tool fill the LIVE target
+         target src/governance/durability-adapters.mjs · named test "P-D3 ·…" in test/governed-directory-replace.test.mjs
+         sha256 before e08e5f23c5cf745abb9da1fdcec160bc3fcb4ee0146300fb4f1e3cf960493e46 · after e08e5f23c5cf745abb9da1fdcec160bc3fcb4ee0146300fb4f1e3cf960493e46
+         failing tests: P-D1 · a successful replace: ATTEMPTED before the tool runs, then exactly ONE terminal COMMITTED, and the target is the staged tree | P-D3 · the tool FAILS mid-way: FAILED_BEFORE_COMMIT, the old target byte-identical, the half-filled staging discarded | P-D4 · validation REFUSES the staged tree (and an EMPTY one): FAILED_BEFORE_COMMIT, the live target never touched | P-D5 · the second rename fails and the ROLLBACK succeeds: FAILED_BEFORE_COMMIT, and the old target is back byte-identical | P-D6 · the ROLLBACK ALSO fails: RECOVERY_REQUIRED — never FAILED, never COMMITTED — and the next write is its owner | P-D7 · an ABANDONED staging directory (a crashed download) is discarded by name — never adopted as the target | P-D8 · BINARY bytes survive the replace exactly — CR, LF and NUL are never normalised | P-D10 · ALREADY_COMMITTED is DECLARED-UNREACHABLE here: a repeat of a committed replace RE-PREPARES and re-validates — it never claims it
+         verdict: RED, named test, intended reason
+S-G1     landed=true red=true failed=5 namedTestFailed=true reason=true restored=true — sealed guard: refuse without emitting
+         target src/governance/sealed-paths.mjs · named test "G2 ·…" in test/shared-guard-audit.test.mjs
+         sha256 before 005912c1e9094ad9fa80963b04660c6249696f1cb5a391fddeb25054a1a51d86 · after 005912c1e9094ad9fa80963b04660c6249696f1cb5a391fddeb25054a1a51d86
+         failing tests: G2 · P19 · a SEALED refusal emits EXACTLY ONE metadata-only event, reads nothing, and carries no path, name or payload | G4 · a failed emission FAILS CLOSED — the refusal still stands and the sealed resource is still never read | G9 · DURABLE inside a governed run: the refusal is appended to the CONFINED store, validated by it, and the production trail is untouched | G9b · TWO decisions in the SAME second are TWO durable events — the store's default identity would have merged or refused them | G11 · the decision-site census READS the emission out of each guard's source — and each mutation of it turns the reading false
+         verdict: RED, named test, intended reason
+S-G2     landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — sealed guard: decide without requiring a sink
+         target src/governance/sealed-paths.mjs · named test "G1 ·…" in test/shared-guard-audit.test.mjs
+         sha256 before 005912c1e9094ad9fa80963b04660c6249696f1cb5a391fddeb25054a1a51d86 · after 005912c1e9094ad9fa80963b04660c6249696f1cb5a391fddeb25054a1a51d86
+         failing tests: G1 · no sink, no decision — BOTH guards refuse before anything is read (GUARD_AUDIT_SINK_ABSENT) | G11 · the decision-site census READS the emission out of each guard's source — and each mutation of it turns the reading false
+         verdict: RED, named test, intended reason
+S-G3     landed=true red=true failed=3 namedTestFailed=true reason=true restored=true — role guard: one refusal leaves without emitting
+         target src/governance/evidence-roles.mjs · named test "G5 · P20 ·…" in test/shared-guard-audit.test.mjs
+         sha256 before 44cf0774262ab1f88042101c0cca709e9908b6ae904aee588e68ec574dbb5808 · after 44cf0774262ab1f88042101c0cca709e9908b6ae904aee588e68ec574dbb5808
+         failing tests: G5 · P20 · every role decision — the ALLOWED one and all SEVEN refusals — emits exactly one event, and no payload or path | G9b · TWO decisions in the SAME second are TWO durable events — the store's default identity would have merged or refused them | G11 · the decision-site census READS the emission out of each guard's source — and each mutation of it turns the reading false
+         verdict: RED, named test, intended reason
+S-G4     landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — role guard: the artefact's PATH enters the event (and the metadata-only rule is disabled)
+         target src/governance/evidence-roles.mjs + src/governance/guard-audit.mjs · named test "G5 · P20 ·…" in test/shared-guard-audit.test.mjs
+         sha256 before 44cf0774262ab1f88042101c0cca709e9908b6ae904aee588e68ec574dbb5808,69d7925445500aa4a4b335b34ba4530993108a771d0fdab5463b5a3e341bdffc · after 44cf0774262ab1f88042101c0cca709e9908b6ae904aee588e68ec574dbb5808,69d7925445500aa4a4b335b34ba4530993108a771d0fdab5463b5a3e341bdffc
+         failing tests: G5 · P20 · every role decision — the ALLOWED one and all SEVEN refusals — emits exactly one event, and no payload or path | G7 · the metadata-only rule is ENFORCED by the sink — a decision carrying a path or a body is refused, and emits nothing
+         verdict: RED, named test, intended reason
+S-G5     landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — decision-site census: read a guard as audited without its sink being required
+         target tools/decision-site-census.mjs · named test "G11 ·…" in test/shared-guard-audit.test.mjs
+         sha256 before d2f33e44a66a5ab43cfc3235b37723ae18439464487a5edf19d16b1e70cb92b0 · after d2f33e44a66a5ab43cfc3235b37723ae18439464487a5edf19d16b1e70cb92b0
+         failing tests: G11 · the decision-site census READS the emission out of each guard's source — and each mutation of it turns the reading false
+         verdict: RED, named test, intended reason
+S-C1     landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — caller census: count a PARTIALLY routed caller as routed
+         target tools/governed-caller-census.mjs · named test "V4 ·…" in test/governed-caller-vocabulary.test.mjs
+         sha256 before 196d9ffa94cd9875df539c1cd8599318b422b4cb9ac59623f08d2ea2680b2286 · after 196d9ffa94cd9875df539c1cd8599318b422b4cb9ac59623f08d2ea2680b2286
+         failing tests: V4 · §3 CONTROL 2 — a PARTIALLY routed caller is NAMED: one boundary call cannot hide a surviving direct write | V5 · §3 CONTROL 3 — a NON-audit caller that claims the audit-store exemption is REJECTED, in every shape
+         verdict: RED, named test, intended reason
+S-C2     landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — caller census: let ANY `.store` claim the audit-store exemption (an allowlist)
+         target tools/governed-caller-census.mjs · named test "V5 ·…" in test/governed-caller-vocabulary.test.mjs
+         sha256 before 196d9ffa94cd9875df539c1cd8599318b422b4cb9ac59623f08d2ea2680b2286 · after 196d9ffa94cd9875df539c1cd8599318b422b4cb9ac59623f08d2ea2680b2286
+         failing tests: V5 · §3 CONTROL 3 — a NON-audit caller that claims the audit-store exemption is REJECTED, in every shape
+         verdict: RED, named test, intended reason
+S-C3     landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — caller census: UNKNOWN no longer fails closed
+         target tools/governed-caller-census.mjs · named test "V6 ·…" in test/governed-caller-vocabulary.test.mjs
+         sha256 before 196d9ffa94cd9875df539c1cd8599318b422b4cb9ac59623f08d2ea2680b2286 · after 196d9ffa94cd9875df539c1cd8599318b422b4cb9ac59623f08d2ea2680b2286
+         failing tests: V6 · the SITE rule, both directions, on fixed inputs — constructor, collector, scratch, unknown, and a string that only NAMES a writer
+         verdict: RED, named test, intended reason
+S-C4     landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — caller census: read a writer NAMED inside a string as a use of it
+         target tools/governed-caller-census.mjs · named test "V6 ·…" in test/governed-caller-vocabulary.test.mjs
+         sha256 before 196d9ffa94cd9875df539c1cd8599318b422b4cb9ac59623f08d2ea2680b2286 · after 196d9ffa94cd9875df539c1cd8599318b422b4cb9ac59623f08d2ea2680b2286
+         failing tests: V6 · the SITE rule, both directions, on fixed inputs — constructor, collector, scratch, unknown, and a string that only NAMES a writer | V7 · the REAL population: 40 governed = 39 routed + 1 checked exemption + 0 non-mutating + 0 bypass, remainder 0 — every collector's caller commits through the boundary
+         verdict: RED, named test, intended reason
+S-C5     landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — caller census: forget runReplayPass — derive nothing, list by hand again
+         target tools/governed-caller-census.mjs · named test "V2 ·…" in test/governed-caller-vocabulary.test.mjs
+         sha256 before 196d9ffa94cd9875df539c1cd8599318b422b4cb9ac59623f08d2ea2680b2286 · after 196d9ffa94cd9875df539c1cd8599318b422b4cb9ac59623f08d2ea2680b2286
+         failing tests: V2 · the writer vocabulary is DERIVED from src/ — it holds the two writers the hand-written list missed, and it finds a planted one | V6 · the SITE rule, both directions, on fixed inputs — constructor, collector, scratch, unknown, and a string that only NAMES a writer
+         verdict: RED, named test, intended reason
+S-R1     landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — replay-crawl: a bare evidence write survives beside the routed ones
+         target bin/replay-crawl.mjs · named test "V7 ·…" in test/governed-caller-vocabulary.test.mjs
+         sha256 before f722cde2ae106604562d3b1eb2205942e453b1863121485755c2e8cdb5aae00c · after f722cde2ae106604562d3b1eb2205942e453b1863121485755c2e8cdb5aae00c
+         failing tests: V7 · the REAL population: 40 governed = 39 routed + 1 checked exemption + 0 non-mutating + 0 bypass, remainder 0 — every collector's caller commits through the boundary | V8 · the plants never touched the repository — bin/ holds no planted file, and the census's real sources are unchanged
+         verdict: RED, named test, intended reason
+S-A1     landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — authority-migrate: call the boundary only inside the permission branch (the dry run records nothing)
+         target bin/authority-migrate.mjs · named test "P33b ·…" in test/audit-trail.test.mjs
+         sha256 before af2aa982b0da98fc91d0418f1ee6ce95ff3f615c8c1a2e4966cba5a187234895 · after af2aa982b0da98fc91d0418f1ee6ce95ff3f615c8c1a2e4966cba5a187234895
+         failing tests: P33b · the audited caller FAILS CLOSED BY CONSTRUCTION — authority first, the boundary in BOTH branches, the migration only after COMMITTED, nothing catches
+         verdict: RED, named test, intended reason
+S-H1     landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — hygiene: a FAILED run's store is deleted instead of retained
+         target src/governance/governed-run.mjs · named test "H2 ·…" in test/test-store-hygiene.test.mjs
+         sha256 before 0caba1d87cd9780466a429f814280c105595fb3bb13565f2d2cc82d9e70014ca · after 0caba1d87cd9780466a429f814280c105595fb3bb13565f2d2cc82d9e70014ca
+         failing tests: H2 · a FAILED run KEEPS its store, names it RETAINED, and the bounded cleanup removes exactly those — never an unmarked directory
+         verdict: RED, named test, intended reason
+S-H2     landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — hygiene: a process removes a run directory whose nonce it only INHERITED
+         target src/governance/governed-run.mjs · named test "H3 ·…" in test/test-store-hygiene.test.mjs
+         sha256 before 0caba1d87cd9780466a429f814280c105595fb3bb13565f2d2cc82d9e70014ca · after 0caba1d87cd9780466a429f814280c105595fb3bb13565f2d2cc82d9e70014ca
+         failing tests: H3 · a process that INHERITS a nonce never removes that run's directory — it belongs to whoever set it
+         verdict: RED, named test, intended reason
+S-H3     landed=true red=true failed=3 namedTestFailed=true reason=true restored=true — hygiene: nobody removes a passing run's store (the 40-per-run leak returns)
+         target src/governance/governed-run.mjs · named test "H1 ·…" in test/test-store-hygiene.test.mjs
+         sha256 before 0caba1d87cd9780466a429f814280c105595fb3bb13565f2d2cc82d9e70014ca · after 0caba1d87cd9780466a429f814280c105595fb3bb13565f2d2cc82d9e70014ca
+         failing tests: H1 · a PASSING run removes the run directory it minted — which provably existed while it ran | H2 · a FAILED run KEEPS its store, names it RETAINED, and the bounded cleanup removes exactly those — never an unmarked directory | H4 · a governed BINARY that exits non-zero on purpose (exit 2 — a lawful refusal) removes its store: only a failed TEST retains
+         verdict: RED, named test, intended reason
+S-H4     landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — hygiene: a test's bounded cleanup sweeps OTHER runs' retained evidence
+         target src/governance/governed-run.mjs · named test "H2 ·…" in test/test-store-hygiene.test.mjs
+         sha256 before 0caba1d87cd9780466a429f814280c105595fb3bb13565f2d2cc82d9e70014ca · after 0caba1d87cd9780466a429f814280c105595fb3bb13565f2d2cc82d9e70014ca
+         failing tests: H2 · a FAILED run KEEPS its store, names it RETAINED, and the bounded cleanup removes exactly those — never an unmarked directory
+         verdict: RED, named test, intended reason
+S-H5     landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — hygiene: ANY non-zero exit retains — a binary's lawful refusal leaks an unreadable store
+         target src/governance/governed-run.mjs · named test "H4 ·…" in test/test-store-hygiene.test.mjs
+         sha256 before 0caba1d87cd9780466a429f814280c105595fb3bb13565f2d2cc82d9e70014ca · after 0caba1d87cd9780466a429f814280c105595fb3bb13565f2d2cc82d9e70014ca
+         failing tests: H4 · a governed BINARY that exits non-zero on purpose (exit 2 — a lawful refusal) removes its store: only a failed TEST retains
+         verdict: RED, named test, intended reason
+S-X1     landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — acceptance: one changed word in F08's carried EXPECTED clause
+         target config/fboard/acceptances.mjs · named test "F-ACC ·…" in test/f08-acceptance-pin.test.mjs
+         sha256 before ed14df5beb583d17328472e2140c858d479b1c00d70318c904e9d31f0274e717 · after ed14df5beb583d17328472e2140c858d479b1c00d70318c904e9d31f0274e717
+         failing tests: F-ACC · P28 · P29 · F08's carried acceptance hashes to its pinned contract, and ONE changed word is ACCEPTANCE_TAMPERED
+         verdict: RED, named test, intended reason
+S-G6     landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — guard sink: fall back to the store's default identity (two decisions in one second merge)
+         target src/governance/guard-audit.mjs · named test "G9b ·…" in test/shared-guard-audit.test.mjs
+         sha256 before 69d7925445500aa4a4b335b34ba4530993108a771d0fdab5463b5a3e341bdffc · after 69d7925445500aa4a4b335b34ba4530993108a771d0fdab5463b5a3e341bdffc
+         failing tests: G9b · TWO decisions in the SAME second are TWO durable events — the store's default identity would have merged or refused them
+         verdict: RED, named test, intended reason
+
+TOTAL 34 · PROVED 34 · NOT PROVED 0
+residue in sabotaged files after restore: 0
+tracked modifications after restore (excluding this evidence file): 0
+
+PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
+  audit-trail/events.jsonl  before 26d2241e1cf8e8ee5096d3992b6e62c7e485a5de4995b33acbf3b400401ac6d9  after 26d2241e1cf8e8ee5096d3992b6e62c7e485a5de4995b33acbf3b400401ac6d9
+  audit-trail/head.json  before 17cd7a1c02059626d06d996121ecc61c229777ef4983c808b7e0415211ce4ae4  after 17cd7a1c02059626d06d996121ecc61c229777ef4983c808b7e0415211ce4ae4
+  untouched: true
+
+HOW THIS SET GOT HERE — every sabotage that was not proved on a first try, and every repair a sabotage or suite run
+forced, each re-run inside the command:
+  S13   NOT RUN: its anchor occurred 4 times once three new discovered states shared its owner text, and the harness
+        printed nothing for a sabotage that did not run. The harness now prints NOT RUN; S13 is re-anchored.
+  S-C2  LANDED BUT GREEN, for a real reason: with no boundary call, file-level condition A refuses the claim anyway.
+        The widening opens a hole only in a caller that ALSO reaches the boundary; V5 gained that plant.
+  S-H4  added after a suite run measured .test-scratch/audit 647 -> 646: H2 swept every retained directory, deleting
+        another failed run's evidence. Repaired (removeRetainedRunDirs `only`).
+  S-H5  added after the next suite run measured +1 per run: a spawned BINARY's lawful exit 2 retained a store nobody
+        could read. Repaired (only a node:test file process retains); H4 proves it; S-H1 re-anchored.
+  P15 · P22 (before the first record): failed about 1 run in 6 on a clean tree — a leak check firing on hex
+        coincidence ("999" inside a hash). Repaired; 60 of 60 clean runs; S-LEAK proves it fires on a real leak.

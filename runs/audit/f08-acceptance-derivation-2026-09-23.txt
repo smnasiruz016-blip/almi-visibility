@@ -1,0 +1,26 @@
+F08 §0.3 — FRESH ACCEPTANCE DERIVATION, RECORDED RUN (23 September 2026)
+
+Command: node tools/f08-acceptance-derivation.mjs --governance-root=C:/Projects/_handoffs
+Governance repository HEAD at the time of the run: 42324318358e20dcba0e95b3383f1cd1b67f62e9. The ruling is read at its own pinned commit, not at HEAD.
+Engine tree: d4371b29467eb3b7149d8e6ed7b55a872f0b5d9a plus this change. CI does not check out the governance repository, so this run cannot be repeated there;
+the engine-side pins and the one-word control run in the suite (test/f08-acceptance-pin.test.mjs).
+
+F08 ACCEPTANCE — FRESH DERIVATION FROM COMMITTED BYTES
+  source          _handoffs:AlmiVisibility_OWNER_RULING_2026-09-22_F08_ACCEPTANCE.md at 19e6b7b6aa4ad4757ac1c797d674754a4b92f1bb
+  bytes           4865 · sha256 f6aef3403621f7275b2a2173da4c66cd562a400a9e581fc48c3f13c87981d18a
+  blocks at lines FEATURE 13 · INPUT 16 · EXPECTED 22 · FAILURE 31 · EVIDENCE 42
+  hashed          the four clauses INPUT, EXPECTED, FAILURE, EVIDENCE, each normalised (CRLF→LF, whitespace runs→one space, trim), joined by \n
+  derived         92d20a631da004bf6de5accd4df87df933ca99d0c9661bc49f8d9b8361b2a826
+  engine pin      92d20a631da004bf6de5accd4df87df933ca99d0c9661bc49f8d9b8361b2a826
+  control         81592185050c3fe101b8cbe197c97321231e46570ba88cbfa65f5d39d7ddac2d (EXPECTED: "product-neutral" → "product-specific")
+  ok   ruling bytes sha256 == engine ruling pin
+  ok   derived contract sha256 == engine contract pin
+  ok   parsed INPUT == engine carried copy
+  ok   parsed EXPECTED == engine carried copy
+  ok   parsed FAILURE == engine carried copy
+  ok   parsed EVIDENCE == engine carried copy
+  ok   CONTROL: one changed word changes the derived hash
+exit 0
+
+What this settles: 92d20a63…a826 is NOT a value written in the ruling (the handoff's §2.2 measured that correctly) — it is the
+sha256 OF the ruling's four clauses under the engine's declared normalisation, and it re-derives from the committed bytes.

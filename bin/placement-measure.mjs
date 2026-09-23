@@ -27,6 +27,9 @@ import { readFileSync, existsSync, readdirSync, writeFileSync, mkdirSync } from 
 import { join } from "node:path";
 
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../src/governance/governed-run.mjs";
+import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { loadRegistry, toGateAFact } from "../src/facts/registry.mjs";
 import { placeClaims } from "../src/page/claim-placement.mjs";
 import { renderPage } from "../src/page/render.mjs";
@@ -300,27 +303,36 @@ console.log(`  Keeping them costs ${f4(premiseRemovedToo.bestCaseA)} → ${f4(af
 console.log(`  and it is BETTER FOR THE READER. Repetition here is measured-cheap.`);
 
 if (outDir) {
-  if (!permission.mayWrite) console.log(`\n[dry-run] would have written ${outDir} — ${permission.reason}`);
-  else {
-    mkdirSync(outDir, { recursive: true });
-    writeFileSync(
-      join(outDir, "placement-report.json"),
-      JSON.stringify(
-        {
-          asBuilt: before,
-          placedByScope: after,
-          universalsRemovedToo: premiseRemovedToo,
-          universalClaims: PRODUCT.placement.universal,
-          awaitingALayer: PRODUCT.placement.awaiting,
-          removed: split.removedClaims,
-          sharedPage: null,
-        },
-        null,
-        2,
-      ) + "\n",
-      "utf8",
-    );
-    writeFileSync(join(outDir, "nursing-placed.html"), renderPage(split, records).html, "utf8");
+  /* Routed. Both bodies are TEXT, measured — a JSON.stringify and a rendered page — so the text hash rule applies
+   * and neither is normalised without proof. The bare mkdir is gone: the boundary's prepare step makes it. */
+  const PLACE_INSTANT = governedInstant(Date.now());
+  const report = JSON.stringify(
+    {
+      asBuilt: before,
+      placedByScope: after,
+      universalsRemovedToo: premiseRemovedToo,
+      universalClaims: PRODUCT.placement.universal,
+      awaitingALayer: PRODUCT.placement.awaiting,
+      removed: split.removedClaims,
+      sharedPage: null,
+    },
+    null,
+    2,
+  ) + "\n";
+  const outcomes = [
+    ["placement-report.json", report, "WRITE_PLACEMENT_REPORT"],
+    ["nursing-placed.html", renderPage(split, records).html, "WRITE_PLACEMENT_PAGE"],
+  ].map(([name, body, what]) => executeGovernedWrite(governedFileWrite({
+    repo: REPO, permission, target: join(outDir, name), targetClass: "RUN_EVIDENCE", bytes: body,
+    action: what, occurredAt: PLACE_INSTANT, correlationId: `run:placement-measure:${PLACE_INSTANT}`,
+  })));
+  const bad = outcomes.find((o) => o.outcome !== "REFUSED" && o.outcome !== "COMMITTED" && o.outcome !== "ALREADY_COMMITTED");
+  if (bad) {
+    console.error(`🔴 ${bad.outcome} — ${outDir} was not written; the governed attempt is on the audit trail`);
+    process.exitCode = 1;
+  } else if (outcomes.every((o) => o.outcome === "REFUSED")) {
+    console.log(`\n[dry-run] would have written ${outDir} — ${permission.reason}`);
+  } else {
     console.log(`\nwrote ${outDir}/`);
   }
 }

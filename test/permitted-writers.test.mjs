@@ -40,9 +40,19 @@ test("(d) every entry declares the number of write sites the census finds in it"
   assert.equal(declared, real.census.hits.PAGE_WRITE.length, "the register's site total and the census disagree");
 });
 
-test("(d) 🔴 SEVEN writers, EIGHT sites — the count is declared, and changing it is a reviewed change", () => {
-  assert.equal(PERMITTED_PAGE_WRITERS.length, 7);
-  assert.equal(real.census.hits.PAGE_WRITE.length, 8);
+test("(d) 🔴 SEVEN writers — each either routed with zero sites, or unrouted and seen by the census", () => {
+  assert.equal(PERMITTED_PAGE_WRITERS.length, 7, "a page writer left or joined the register");
+  /* 🔴 THE COUNT IS NO LONGER PINNED — see no-blind-regeneration for why. A writer cannot leave this register
+   * merely by being routed: it stays here, declared routed with zero sites, which is where its gate, destination
+   * rule and reason are recorded. */
+  const routed = PERMITTED_PAGE_WRITERS.filter((e) => e.routed);
+  const unrouted = PERMITTED_PAGE_WRITERS.filter((e) => !e.routed);
+  assert.ok(routed.length > 0, "no page writer is routed, so the routed half of this proves nothing");
+  for (const e of routed) {
+    assert.equal(e.sites, 0, `${e.file}: declared routed but still declares write sites`);
+    assert.match(readFileSync(`${REPO}${e.file}`, "utf8"), /executeGovernedWrite\(/, `${e.file}: declared routed but never reaches the boundary`);
+  }
+  assert.equal(real.census.hits.PAGE_WRITE.length, unrouted.reduce((n, e) => n + e.sites, 0));
   assert.equal(real.reconciles, true);
 });
 
@@ -127,14 +137,17 @@ test("🔴 RED: a new write site inside an already-registered writer fails recon
   const i = sources.findIndex((s) => s.file === "bin/build-page.mjs");
   sources[i] = { ...sources[i], text: `${sources[i].text}\nwriteFileSync(join(outDir, "second.html"), html, "utf8");\n` };
   const r = analyseWriters({ sources });
-  assert.deepEqual(r.siteMismatch, [{ file: "bin/build-page.mjs", declared: 1, found: 2 }]);
+  /* Derived from the register rather than restated: the control is that ONE extra site breaks reconciliation,
+   * whatever the entry currently declares. */
+  const declared = PERMITTED_PAGE_WRITERS.find((e) => e.file === "bin/build-page.mjs").sites;
+  assert.deepEqual(r.siteMismatch, [{ file: "bin/build-page.mjs", declared, found: declared + 1 }]);
   assert.equal(r.reconciles, false);
 });
 
 test("CONTROL: the real sources injected unchanged reconcile exactly — the seam adds nothing", () => {
   const r = analyseWriters({ sources: realSources() });
   assert.equal(r.reconciles, true);
-  assert.equal(r.sites.length, 8);
+  assert.equal(r.sites.length, real.census.hits.PAGE_WRITE.length, "the injected seam and the live census disagree");
 });
 
 /* ================================================================== *
@@ -151,9 +164,20 @@ test("(d) 🔴 ZERO write sites DEFAULT TO WRITING — every one is dry-run by d
   assert.deepEqual(real.defaultsToWriting.map((s) => `${s.file}:${s.line} :: ${s.text}`), []);
 });
 
-test("(d) all EIGHT sites sit behind their declared gate", () => {
+test("(d) every remaining site sits behind its declared gate — the routed writers have none left to gate", () => {
   const gated = real.sites.filter((s) => s.gated);
-  assert.equal(gated.length, 8);
+  assert.equal(gated.length, real.sites.length, "a remaining page-write site is not behind its declared gate");
+  /* 🔴 EVERY PAGE WRITER IS ROUTED, so there is no site left to gate and this loop is vacuous. The gate detector's
+   * own capability is proved by its dedicated controls in this file (it FIRES on an ungated write and on a write
+   * in the wrong branch), so the vacuity here is a fact about the estate, not a hole in the check. */
+  assert.equal(real.sites.length, PERMITTED_PAGE_WRITERS.filter((e) => !e.routed).reduce((n, e) => n + e.sites, 0));
+  /* 🔴 AND A ROUTED WRITER MUST REALLY REACH THE BOUNDARY. Declaring `routed` is not doing it, so an entry that
+   * claims it without calling executeGovernedWrite is reported here and fails — the gate did not simply vanish. */
+  assert.deepEqual(real.routedNotReaching, [], "a writer declares itself routed but never reaches the boundary");
+  /* 🔴 THE ROUTED SET IS NOT PINNED BY NAME — it grows on every batch, and a list edited to stay green stops
+   * being evidence. What is pinned is that the census's routed set is EXACTLY the register's, so a writer cannot
+   * be routed in one place and not the other. */
+  assert.deepEqual(real.routed, PERMITTED_PAGE_WRITERS.filter((e) => e.routed).map((e) => e.file).sort());
   for (const s of gated) assert.ok(s.by, `${s.file}:${s.line} is gated by nothing it can name`);
 });
 

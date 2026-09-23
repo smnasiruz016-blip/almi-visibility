@@ -20,6 +20,9 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
 import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../src/governance/governed-run.mjs";
+import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { loadRegistry, census, REGISTRY_FACT_CHECK_COUNT } from "../src/facts/registry.mjs";
 import { queueReason } from "../src/facts/queues.mjs";
 
@@ -216,12 +219,19 @@ async function main() {
   }
 
   if (out) {
-    if (!permission.mayWrite) {
-      console.log(`\n[dry-run] would have written ${out} — ${permission.reason}`);
-    } else {
-      mkdirSync(dirname(out), { recursive: true });
-      writeFileSync(out, JSON.stringify(c, null, 2) + "\n", "utf8");
-      console.log(`\nwrote ${out}`);
+    /* Routed. TEXT, measured: the body is JSON.stringify of the census. The bare mkdir is gone rather than gated —
+     * the boundary's prepare step creates the directory it writes into. */
+    const RUN_INSTANT = isoSeconds(Date.now());
+    const governed = executeGovernedWrite(governedFileWrite({
+      repo: REPO, permission, target: out, targetClass: "RUN_EVIDENCE",
+      bytes: JSON.stringify(c, null, 2) + "\n",
+      action: "WRITE_FACTS_CENSUS", occurredAt: RUN_INSTANT, correlationId: `run:facts:${RUN_INSTANT}`,
+    }));
+    if (governed.outcome === "REFUSED") console.log(`\n[dry-run] would have written ${out} — ${permission.reason}`);
+    else if (governed.outcome === "COMMITTED" || governed.outcome === "ALREADY_COMMITTED") console.log(`\nwrote ${out}`);
+    else {
+      console.error(`🔴 ${governed.outcome} — ${out} was not written; the governed attempt is on the audit trail`);
+      process.exitCode = 1;
     }
   }
 

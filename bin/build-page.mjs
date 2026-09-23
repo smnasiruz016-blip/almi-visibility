@@ -27,6 +27,9 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../src/governance/governed-run.mjs";
+import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { selectCandidates, constructCandidates, ACCEPTED, NOT_TESTED } from "../src/page/construct.mjs";
 import { productFromArgvOrExit } from "../src/product-cli.mjs";
@@ -129,13 +132,26 @@ if (outDir) {
   for (const c of results) {
     if (c.html === null) {
       console.log(`[refused] nothing written for ${c.slug}`);
-    } else if (!permission.mayWrite) {
-      console.log(`[dry-run] would have written ${join(outDir, `${c.slug}.html`)} — ${permission.reason}`);
     } else {
-      mkdirSync(outDir, { recursive: true });
-      writeFileSync(join(outDir, `${c.slug}.html`), c.html, "utf8");
-      writeFileSync(join(outDir, `${c.slug}.trace.json`), JSON.stringify(c.trace, null, 2) + "\n", "utf8");
-      console.log(`wrote ${join(outDir, `${c.slug}.html`)} and its trace`);
+      /* Routed. Two targets per candidate, two governed occurrences — a whole-file replacement is its own target,
+       * so this is per-TARGET, not per-record. The bare mkdir is gone: the boundary's prepare step makes it. */
+      const PAGE_INSTANT = governedInstant(Date.now());
+      const outcomes = [
+        [`${c.slug}.html`, c.html, "WRITE_CANDIDATE_PAGE"],
+        [`${c.slug}.trace.json`, JSON.stringify(c.trace, null, 2) + "\n", "WRITE_CANDIDATE_TRACE"],
+      ].map(([name, body, what]) => executeGovernedWrite(governedFileWrite({
+        repo: REPO, permission, target: join(outDir, name), targetClass: "OPERATOR_CHOSEN_OUTPUT", bytes: body,
+        action: what, occurredAt: PAGE_INSTANT, correlationId: `run:build-page:${PAGE_INSTANT}`,
+      })));
+      const bad = outcomes.find((o) => o.outcome !== "REFUSED" && o.outcome !== "COMMITTED" && o.outcome !== "ALREADY_COMMITTED");
+      if (bad) {
+        console.error(`🔴 ${bad.outcome} — ${c.slug} was not written; the governed attempt is on the audit trail`);
+        process.exitCode = 1;
+      } else if (outcomes.every((o) => o.outcome === "REFUSED")) {
+        console.log(`[dry-run] would have written ${join(outDir, `${c.slug}.html`)} — ${permission.reason}`);
+      } else {
+        console.log(`wrote ${join(outDir, `${c.slug}.html`)} and its trace`);
+      }
     }
   }
 }

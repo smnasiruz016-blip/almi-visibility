@@ -25,6 +25,9 @@ import { createHash } from "node:crypto";
 import { pathToFileURL } from "node:url";
 
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../src/governance/governed-run.mjs";
+import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { runDetectors, serialiseFindings } from "../src/detect/run.mjs";
 import { readTree, readArchivedPages } from "../src/discover/corpus.mjs";
 import { buildBundle } from "../src/discover/bundle.mjs";
@@ -289,13 +292,26 @@ if (!bundlePath || !runAt) {
 
   /* 🔴 THE OUTPUT IS WRITTEN AND CLOSED BEFORE ANY EXPECTATION IS READ. */
   if (outDir) {
-    if (!permission.mayWrite) {
+    /* Routed. Both bodies are TEXT, MEASURED — serialiseFindings returns a JSON string, and the digest line is a
+     * template literal — so the absence of an encoding argument at the old call sites did not make them binary.
+     * The bare mkdir is gone: the boundary's prepare step creates the directory. */
+    const DETECT_INSTANT = governedInstant(Date.now());
+    const dest = confineToRepo(join(outDir, "findings.json"));
+    const sha = confineToRepo(join(outDir, "findings.sha256"));
+    const detectOutcomes = [
+      [dest, serialised, "WRITE_DETECT_FINDINGS"],
+      [sha, `${digest}  findings.json\n`, "WRITE_DETECT_FINDINGS_DIGEST"],
+    ].map(([target, body, what]) => executeGovernedWrite(governedFileWrite({
+      repo: REPO, permission, target, targetClass: "OPERATOR_CHOSEN_OUTPUT", bytes: body,
+      action: what, occurredAt: DETECT_INSTANT, correlationId: `run:detect:${DETECT_INSTANT}`,
+    })));
+    const bad = detectOutcomes.find((o) => o.outcome !== "REFUSED" && o.outcome !== "COMMITTED" && o.outcome !== "ALREADY_COMMITTED");
+    if (bad) {
+      console.error(`🔴 ${bad.outcome} — findings were not written; the governed attempt is on the audit trail`);
+      process.exitCode = 1;
+    } else if (detectOutcomes.every((o) => o.outcome === "REFUSED")) {
       console.log(`\n[dry-run] would write findings to ${outDir} — pass --confirm to write`);
     } else {
-      const dest = confineToRepo(join(outDir, "findings.json"));
-      mkdirSync(dirname(dest), { recursive: true });
-      writeFileSync(dest, serialised);
-      writeFileSync(confineToRepo(join(outDir, "findings.sha256")), `${digest}  findings.json\n`);
       console.log(`\nwrote ${dest}`);
       console.log(`wrote ${join(outDir, "findings.sha256")}`);
     }
@@ -310,9 +326,20 @@ if (!bundlePath || !runAt) {
     for (const c of s.controls) console.log(`  ${c.id.padEnd(6)} ${c.result.padEnd(22)} ${c.evidence}`);
     console.log(`\n  detected ${s.detected}/${s.redTotal} · unflagged ${s.unflagged}/${s.controlTotal} · false positives ${s.falsePositives} · unevaluated ${s.unevaluated}`);
     console.log(`  RESULT: ${s.pass ? "PASS" : "FAIL"}`);
-    if (outDir && permission.mayWrite) {
-      writeFileSync(confineToRepo(join(outDir, "score.json")), JSON.stringify({ findingsSha256: digest, ...s }, null, 2) + "\n");
-      console.log(`  wrote ${join(outDir, "score.json")}`);
+    if (outDir) {
+      const SCORE_INSTANT = governedInstant(Date.now());
+      const scoreGoverned = executeGovernedWrite(governedFileWrite({
+        repo: REPO, permission, target: confineToRepo(join(outDir, "score.json")),
+        targetClass: "OPERATOR_CHOSEN_OUTPUT",
+        bytes: JSON.stringify({ findingsSha256: digest, ...s }, null, 2) + "\n",
+        action: "WRITE_DETECT_SCORE", occurredAt: SCORE_INSTANT, correlationId: `run:detect:${SCORE_INSTANT}`,
+      }));
+      if (scoreGoverned.outcome === "COMMITTED" || scoreGoverned.outcome === "ALREADY_COMMITTED") {
+        console.log(`  wrote ${join(outDir, "score.json")}`);
+      } else if (scoreGoverned.outcome !== "REFUSED") {
+        console.error(`🔴 ${scoreGoverned.outcome} — the score was not written; the governed attempt is on the audit trail`);
+        process.exitCode = 1;
+      }
     }
     process.exitCode = s.pass ? 0 : 1;
   }

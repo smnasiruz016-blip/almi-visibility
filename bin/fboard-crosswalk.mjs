@@ -18,6 +18,9 @@ import { ACCEPTANCES } from "../config/fboard/acceptances.mjs";
 import { classify } from "../src/checklist/classification.mjs";
 import { buildCrosswalk, crosswalkErrors } from "../src/fboard/crosswalk.mjs";
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../src/governance/governed-run.mjs";
+import { isoSeconds } from "../src/audit-trail/store.mjs";
 
 export const MAPPINGS = Object.freeze({});
 
@@ -44,11 +47,20 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   // write-law LOCAL: only --confirm grants the write; without it the run builds, compares and reports
   const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
   const cur = existsSync(OUT) ? readFileSync(OUT, "utf8").replace(/\r\n/g, "\n") : "";
-  if (permission.mayWrite) {
-    writeFileSync(OUT, text, "utf8");
+  /* Routed. TEXT, measured: `text` comes from renderCrosswalk(). The --check exit code is preserved exactly. */
+  const RUN_INSTANT = isoSeconds(Date.now());
+  const governed = executeGovernedWrite(governedFileWrite({
+    repo: new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"),
+    permission, target: OUT, targetClass: "GENERATED_CONFIG", bytes: text,
+    action: "GENERATE_FBOARD_CROSSWALK", occurredAt: RUN_INSTANT, correlationId: `run:fboard-crosswalk:${RUN_INSTANT}`,
+  }));
+  if (governed.outcome === "COMMITTED" || governed.outcome === "ALREADY_COMMITTED") {
     console.log(`wrote ${OUT}`);
-  } else {
+  } else if (governed.outcome === "REFUSED") {
     console.log(cur === text ? "crosswalk UP TO DATE" : "crosswalk STALE — run node bin/fboard-crosswalk.mjs --confirm");
     if (process.argv.includes("--check") && cur !== text) process.exit(1);
+  } else {
+    console.error(`🔴 ${governed.outcome} — ${OUT} was not written; the governed attempt is on the audit trail`);
+    process.exit(1);
   }
 }

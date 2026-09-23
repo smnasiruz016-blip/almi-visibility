@@ -34,7 +34,10 @@ import { computeShells, uniqueWords, residualTokens } from "../src/gate-a/shell.
 import { shingles, jaccard } from "../src/gate-a/overlap.mjs";
 import { countFacts } from "../src/gate-a/facts.mjs";
 import { MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../src/gate-a/run.mjs";
-import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
+import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../src/governance/governed-run.mjs";
+import { isoSeconds } from "../src/audit-trail/store.mjs";
 
 const argv = process.argv.slice(2);
 const flag = (n, d = null) => {
@@ -47,6 +50,9 @@ const pageId = flag("--page", "nursing__from-india");
 const factsDir = flag("--facts", "acceptance/nursing-from-india");
 const outFile = flag("--out");
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv, env: process.env }));
+const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+const RUN_INSTANT = isoSeconds(Date.now());
+const RUN_CORRELATION = `run:acceptance-test:${RUN_INSTANT}`;
 if (!corpusDir || !existsSync(join(corpusDir, group))) {
   console.error("usage: node bin/acceptance-test.mjs --corpus <dir> [--group g] [--page id] [--facts dir] [--out f] [--confirm]");
   process.exit(2);
@@ -224,6 +230,17 @@ const passed = stages.every(([, ok]) => ok);
 console.log(`\n  ${passed ? "KEEP" : "REJECT"} — and a FAIL here is a result, not a setback.\n`);
 
 if (outFile) {
-  if (!permission.mayWrite) console.log(`[dry-run] --out ${outFile} given, nothing written. Add --confirm.`);
-  else { writeFileSync(outFile, JSON.stringify({ page: pageId, group, before, after, stages }, null, 2), "utf8"); console.log(`wrote ${outFile}`); }
+  /* 🔴 CONFINED, WHICH IT WAS NOT BEFORE. This binary wrote an operator-chosen path with no confinement at all,
+   * so `--out` could name anywhere on the machine. Routing it puts it under the same law as every other governed
+   * output. That is a deliberate tightening, recorded rather than slipped in: an outside-repository destination
+   * is now refused instead of written. */
+  const governed = executeGovernedWrite(governedFileWrite({
+    repo: REPO, permission, target: confineToRepo(outFile, { label: "--out" }),
+    targetClass: "OPERATOR_CHOSEN_OUTPUT",
+    bytes: JSON.stringify({ page: pageId, group, before, after, stages }, null, 2),
+    action: "WRITE_ACCEPTANCE_TEST_REPORT", occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
+  }));
+  if (governed.outcome === "REFUSED") console.log(`[dry-run] --out ${outFile} given, nothing written. Add --confirm.`);
+  else if (governed.outcome === "COMMITTED" || governed.outcome === "ALREADY_COMMITTED") console.log(`wrote ${outFile} [${governed.outcome}]`);
+  else { console.error(`🔴 ${governed.outcome} — ${outFile} was not written; the governed attempt is on the audit trail`); process.exitCode = 1; }
 }

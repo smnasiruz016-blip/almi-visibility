@@ -143,7 +143,12 @@ test("P6 · every feature other than F08 holds exactly the state it held at the 
     const was = AT_MERGE.states[r.featureId] ?? "UNASSESSED";
     if (was !== r.state) moved.push(`${r.featureId}: ${was} -> ${r.state}`);
   }
-  assert.deepEqual(moved, ["F08: VERIFIED-PASS -> FAILED"], "a feature other than F08 moved");
+  /* 🔴 EMPTY SINCE 23 SEPTEMBER, FOR A STATED REASON. F08 went VERIFIED-PASS -> FAILED (the reopening) and back to
+   * VERIFIED-PASS by its own recorded route on new evidence, so against the merged SHA NOTHING differs in state. What
+   * this proof protects is unchanged: no feature OTHER than F08 moved. F08's own movement is proved by its events
+   * (test/f08-closure.test.mjs) and its row block still differs from the merge (P5's control). */
+  assert.deepEqual(moved, [], "a feature moved away from its state at the merged SHA");
+  assert.ok(DECLARED.F08.events.some((e) => e.kind === "CONTRADICTORY_EVIDENCE_RECORDED"), "F08's reopening was erased rather than superseded");
   // The set of declared rows itself did not grow: a new row appearing would also be a movement.
   assert.deepEqual(Object.keys(DECLARED).sort(), Object.keys(AT_MERGE.states).sort());
 });
@@ -161,9 +166,11 @@ test("P7 · the historical 61/38 ledger is BYTE-IDENTICAL to its state at the me
  * P8–P10, P15, P18 · THE TRANSITION EVENT, AND THE PAIR THAT CANNOT BE HALF-WRITTEN
  * ════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 
-test("P8 · EXACTLY ONE valid audit event exists for F08's final transition, and it names what moved it", () => {
+test("P8 · EXACTLY ONE valid audit event exists for EACH of F08's verifications, and each names what moved it", () => {
+  /* 🔴 TWO VERIFICATIONS SINCE 23 SEPTEMBER — one per verification DAY, never two for one. The 22 September one is
+   * pinned here exactly as before; the 23 September reclosure is proved in test/f08-closure.test.mjs. */
   const mine = transitionsFor("F08");
-  assert.equal(mine.length, 1, `${mine.length} transition events for F08`);
+  assert.deepEqual(mine.map((x) => x.occurredAt.slice(0, 10)), ["2026-09-22", "2026-09-23"], `${mine.length} transition events for F08`);
   const e = mine[0];
   assert.equal(e.scopeType, "GLOBAL_PRODUCT");
   assert.equal(e.tenantId, null);
@@ -210,7 +217,7 @@ test("P9 · an audit append failure PREVENTS the movement — a row cannot stand
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("P10 · a retry creates NO duplicate event — within a build it is recognised, across builds it is REFUSED", () => {
+test("P10 · a retry creates NO duplicate event — within a build AND across builds, while a GENUINE conflict still refuses", () => {
   const e = transitionsFor("F08")[0];
   mkdirSync(join(REPO_ROOT, ".test-scratch"), { recursive: true });
   const dir = mkdtempSync(join(REPO_ROOT, ".test-scratch", "f08r-retry-"));
@@ -228,11 +235,33 @@ test("P10 · a retry creates NO duplicate event — within a build it is recogni
     assert.equal(again.appended, false);
     assert.equal(store.readAll().events.length, 1, "a retry duplicated the transition");
 
-    /* 🔴 THE SAME EVENT OFFERED FROM A DIFFERENT ENGINE BUILD. `softwareVersion` is covered by the content
-     * fingerprint but NOT by the derived eventId, so the pair is a CONFLICT and the store REFUSES it. That is a
-     * measured defect of F08's identity rule — recorded, parked, and NOT repaired here — but the property this
-     * proof is about still holds in both worlds: NO DUPLICATE IS EVER CREATED. */
-    assert.throws(() => store.append({ ...draft, softwareVersion: "engine:some-other-build" }), /EVENT_ID_CONFLICT/);
+    /* 🔴 THE SAME EVENT OFFERED FROM A DIFFERENT ENGINE BUILD — THE PARKED DEFECT, REPAIRED 23 SEPTEMBER 2026.
+     *
+     * This assertion used to require EVENT_ID_CONFLICT, and said so while naming the defect it was pinning. The
+     * repair excludes `softwareVersion` from the occurrence fingerprint (RECORDER_EXECUTION_FIELDS), because a
+     * build change is not a content change. THIS REPAIR IS WHAT MADE THE OLD ASSERTION WRONG, so it is corrected
+     * here rather than deleted — and the property the proof is actually about, NO DUPLICATE IS EVER CREATED,
+     * holds in both worlds and is still asserted below. */
+    const crossBuild = store.append({ ...draft, softwareVersion: "engine:some-other-build" });
+    assert.equal(crossBuild.status, "IDEMPOTENT_RETRY", "the same occurrence from a later build was not recognised");
+    assert.equal(crossBuild.appended, false);
+    assert.equal(store.readAll().events.length, 1, "a cross-build replay duplicated the transition");
+    assert.equal(
+      store.readAll().events[0].softwareVersion, draft.softwareVersion,
+      "the replay overwrote the version recorded AT THE EVENT — existing bytes must be left exactly as committed",
+    );
+    /* 🔴 CONTROL, PROVED CAPABLE OF THE OTHER VERDICT. A repair that made everything match would be worse than
+     * the defect, so a GENUINE immutable disagreement must still be refused.
+     *
+     * It changes `outcome` and not `action`: `action` is part of the DERIVED EVENT ID, so changing it produces a
+     * different event rather than a conflicting one — a control built on it would append a second event and prove
+     * nothing. `outcome` sits inside the fingerprint but outside the identity, which is exactly the shape of a
+     * genuine disagreement: the same decision, claimed to have come out differently. */
+    assert.throws(
+      () => store.append({ ...draft, outcome: draft.outcome === "RECORDED" ? "APPLIED" : "RECORDED" }),
+      /EVENT_ID_CONFLICT/,
+      "the same event with a DIFFERENT outcome was not refused — the conflict guard is dead",
+    );
     assert.equal(store.readAll().events.length, 1);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });

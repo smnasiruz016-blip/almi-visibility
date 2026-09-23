@@ -14,6 +14,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
+import { join } from "node:path";
+import { REPO_ROOT } from "../src/write-law.mjs";
+import { PERMITTED_PAGE_WRITERS } from "../config/permitted-page-writers.mjs";
 import { census, CATEGORIES } from "../tools/no-generation-census.mjs";
 import { targetPageId, canonicalUrl } from "../src/evidence/ids.mjs";
 import { buildInventory } from "../src/crawl/inventory.mjs";
@@ -144,19 +147,30 @@ test("🔴 CONTROL: a COMMENT describing a generator is not a generator", () => 
  *
  * Pinned so the count cannot move without somebody reading why.
  */
-test("🔴 EIGHT page-write sites in SEVEN files — pinned, and reconciled against the register elsewhere", () => {
+test("🔴 the page-write sites are exactly the UNROUTED page writers — no magic number", () => {
   const found = census().hits.PAGE_WRITE;
-  assert.equal(found.length, 8, "the number of page-write sites changed — update the register and re-read item 14");
+  /* 🔴 THE PIN IS NOW A RELATIONSHIP, AND THAT IS A RE-BASE NOT A RELAXATION.
+   *
+   * This asserted eight sites, then six, and would have asserted three today and zero tomorrow — a number edited
+   * on every routing batch stops being evidence of anything. What the pin was ever for is that a page write
+   * cannot VANISH unnoticed, and that claim is made directly here: the files the census sees must be exactly the
+   * page writers that are not routed, and every routed one must really reach the boundary. A site that
+   * disappeared without its caller being routed still fails. */
+  const routed = PERMITTED_PAGE_WRITERS.filter((e) => e.routed);
+  const unrouted = PERMITTED_PAGE_WRITERS.filter((e) => !e.routed);
   const files = [...new Set(found.map((h) => h.file))].sort();
-  assert.deepEqual(files, [
-    "bin/build-corpus.mjs",
-    "bin/build-page.mjs",
-    "bin/crawl.mjs",
-    "bin/nursing-chain.mjs",
-    "bin/placement-measure.mjs",
-    "bin/profession-chain.mjs",
-    "bin/report.mjs",
-  ]);
+  assert.deepEqual(files, unrouted.map((e) => e.file).sort(), "the census's page writers are not exactly the unrouted ones");
+  assert.equal(found.length, unrouted.reduce((n, e) => n + e.sites, 0), "the sites found and the sites declared disagree");
+  for (const e of routed) {
+    assert.equal(e.sites, 0, `${e.file}: declared routed but still declares page-write sites`);
+    assert.match(readFileSync(join(REPO_ROOT, e.file), "utf8"), /executeGovernedWrite\(/, `${e.file}: declared routed but never reaches the boundary`);
+  }
+  assert.ok(routed.length > 0, "no page writer is routed, so the routed half of this proves nothing");
+  /* 🔴 EVERY PAGE WRITER IS NOW ROUTED, so `found` is legitimately empty — and an empty result is exactly what a
+   * census that had stopped looking would also return. The capability is therefore proved separately, on an
+   * injected stand-in: the census must still SEE a page write when one exists. */
+  const standIn = census({ sources: [{ file: "bin/zz-page-stand-in.mjs", text: 'const permission = writePermission({ target: LOCAL, argv, env });\nif (permission.mayWrite) writeFileSync(join(outDir, "page.html"), html, "utf8");\n' }] });
+  assert.ok(standIn.hits.PAGE_WRITE.length >= 1, "the census no longer sees a page write even when one is put in front of it");
 });
 
 test("(d) ✅ NO write names a literal path outside this repository", () => {

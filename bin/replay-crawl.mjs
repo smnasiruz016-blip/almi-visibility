@@ -33,12 +33,15 @@
  * kind of change this is so nobody later mistakes one for the other.
  */
 
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
 
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedDirectoryReplace, governedFileWrite, governedStoreAppend } from "../src/governance/governed-run.mjs";
+import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { sha256Hex, canonicalUrl } from "../src/evidence/ids.mjs";
 import { replayEntriesFrom, runReplayPass, comparePasses } from "../src/crawl/replay.mjs";
@@ -126,20 +129,52 @@ const must = (cond, msg) => {
   if (!cond) failures.push(msg);
 };
 
+/* The crawl records are read first: the recovery below validates a downloaded corpus AGAINST them before it may
+ * replace anything, and the replay reads them after. */
+const crawlRecords = readJsonl(batchFile("first-real-crawl-2026-09-12.jsonl"));
+
 /* ================================================================== *
- * 1A — RECOVER THE ARTIFACT (optional, timed, confined).
+ * 1A — RECOVER THE ARTIFACT (optional, timed, confined) — F08 ROUTED.
+ *
+ * 🔴 MEASURED, THEN ROUTED (23 September 2026). This used to delete the corpus directory, recreate it empty and
+ * let `gh run download` fill it in place — so a download that died half-way left a half-filled corpus where the
+ * old one had been, and nothing recorded that a replacement had been attempted. It now goes through the shared
+ * boundary under STAGED_DIRECTORY_REPLACE: the tool fills a STAGING directory beside the corpus; that directory is
+ * validated against the crawl's own content hashes BEFORE the live corpus is touched; only then is the live copy
+ * renamed aside and the staged copy renamed in. A failed download or a failed validation leaves the old corpus
+ * exactly as it was. The refusal without --confirm is now AUDITED as a REFUSED decision; its exit code (2) and its
+ * message are unchanged, and it still deletes nothing.
  * ================================================================== */
 
 let recovery = { recoveredThisRun: false };
 if (argv.includes("--recover")) {
-  if (!permission.mayWrite) {
+  const t0 = new Date().toISOString();
+  const RECOVER_INSTANT = governedInstant(Date.now());
+  const recovered = executeGovernedWrite(governedDirectoryReplace({
+    repo: REPO, permission, target: CORPUS,
+    targetClass: arg("corpus") === null ? "RUN_EVIDENCE" : "OPERATOR_CHOSEN_OUTPUT",
+    /* The only place the external tool runs, and it writes only into the staging directory it is handed. */
+    populate: (dir) => execFileSync("gh", ["run", "download", RUN_ID, "-n", ARTIFACT, "-D", dir], { cwd: REPO, stdio: "inherit" }),
+    /* A corpus that does not reproduce the crawl's content hashes is refused before it can replace anything. */
+    validate: (dir) => {
+      const staged = replayEntriesFrom({ crawlRecords, corpusDir: dir });
+      const wrong = [...staged.entries.values()].filter((e) => !e.shaMatches).length;
+      return staged.missing > 0 || wrong > 0 || staged.entries.size === 0
+        ? [{ code: "RECOVERED_BODIES_NOT_THE_RUNS", why: `${staged.entries.size} bodies, ${staged.missing} missing, ${wrong} not hashing to their observation` }]
+        : [];
+    },
+    /* The declared identity of what is fetched: this run's named artifact. The bytes do not exist until it is. */
+    occurrenceFingerprint: sha256Hex(`github-actions-artifact\n${RUN_ID}\n${ARTIFACT}`),
+    action: "REPLACE_RECOVERED_CRAWL_CORPUS", occurredAt: RECOVER_INSTANT, correlationId: `run:replay-crawl:recover:${RECOVER_INSTANT}`,
+  }));
+  if (recovered.outcome === "REFUSED") {
     console.error("🔴 REFUSED — --recover replaces the local corpus directory and needs --confirm");
     process.exit(2);
   }
-  const t0 = new Date().toISOString();
-  if (existsSync(CORPUS)) rmSync(CORPUS, { recursive: true, force: true });
-  mkdirSync(CORPUS, { recursive: true });
-  execFileSync("gh", ["run", "download", RUN_ID, "-n", ARTIFACT, "-D", CORPUS], { cwd: REPO, stdio: "inherit" });
+  if (recovered.outcome !== "COMMITTED") {
+    console.error(`🔴 ${recovered.outcome} — the corpus was not replaced${recovered.outcome === "RECOVERY_REQUIRED" ? " and is now ABSENT; re-run --recover --confirm" : "; the previous corpus is unchanged"}. The governed attempt is on the audit trail (${(recovered.faults ?? []).map((f) => f.code).join(", ")}).`);
+    process.exit(1);
+  }
   const t1 = new Date().toISOString();
   const files = readdirSync(CORPUS);
   const bytes = files.reduce((n, f) => n + statSync(join(CORPUS, f)).size, 0);
@@ -151,7 +186,6 @@ if (argv.includes("--recover")) {
  * 1B — THE REPLAY SET, VERIFIED BYTE FOR BYTE.
  * ================================================================== */
 
-const crawlRecords = readJsonl(batchFile("first-real-crawl-2026-09-12.jsonl"));
 const BODY_SOURCE = CORPUS ?? ARCHIVE;
 if (!existsSync(BODY_SOURCE)) {
   console.error(`🔴 REFUSED — no bodies at ${BODY_SOURCE}. A replay with no bodies would report a clean zero.`);
@@ -181,8 +215,13 @@ globalThis.fetch = (u, init) => {
   return realFetch(u, init);
 };
 
-/* stores: recorded files with --confirm, a temp directory otherwise */
-let tmp = null;
+/* 🔴 F08 · THE PASSES WRITE INTO SCRATCH, ALWAYS — AND THE RECORDED FILES ARE COMMITTED THROUGH THE BOUNDARY.
+ *
+ * With --confirm the two stores used to be the RECORDED files themselves, appended line by line while the passes
+ * ran — so a replay that died half-way left a half-written crawl store under runs/replay/, and nothing audited that
+ * it had been written at all. The passes now write into this process's own OS scratch directory in BOTH modes (the
+ * dry run always did), and the finished stores are committed as whole files, through STAGED_REPLACE, at the end.
+ * The recorded bytes are exactly the bytes the store wrote: the same records, in the same order, one per line. */
 if (permission.mayWrite) {
   for (const p of [EVIDENCE, CRAWL_STORE, AUDIT_STORE]) {
     if (existsSync(p)) {
@@ -190,12 +229,10 @@ if (permission.mayWrite) {
       process.exit(2);
     }
   }
-  mkdirSync(dirname(EVIDENCE), { recursive: true });
-} else {
-  tmp = mkdtempSync(join(tmpdir(), "almivis-replay-"));
 }
-const crawlStore = createJsonlStore(tmp ? join(tmp, "crawl.jsonl") : CRAWL_STORE);
-const auditStore = createJsonlStore(tmp ? join(tmp, "audit.jsonl") : AUDIT_STORE);
+const tmp = mkdtempSync(join(tmpdir(), "almivis-replay-"));
+const crawlStore = createJsonlStore(join(tmp, "crawl.jsonl"));
+const auditStore = createJsonlStore(join(tmp, "audit.jsonl"));
 
 /* ================================================================== *
  * 2A — TWO PASSES, WITH FIVE NAMED CHANGES BETWEEN THEM.
@@ -339,14 +376,37 @@ console.log(`egress: ${egress.length} requests, ${nonLocal.length} not to 127.0.
 console.log(`ledger: ${formatLedgerLine(replayEntry)}`);
 if (recovery.recoveredThisRun) console.log(`ledger: ${formatLedgerLine(recovery.entry)}`);
 
-if (permission.mayWrite) {
-  const ledger = createCostLedger(LEDGER);
-  if (recovery.recoveredThisRun) ledger.append(recovery.entry);
-  ledger.append(replayEntry);
-  writeFileSync(EVIDENCE, JSON.stringify(evidence, null, 2) + "\n", "utf8");
+/* 🔴 F08 · FOUR GOVERNED WRITES, IN ORDER, EACH AUDITED — AND THE FIRST THAT DOES NOT LAND STOPS THE REST.
+ *
+ * The two stores, then the cost entries, then the evidence file that describes them all. Without --confirm each is
+ * a REFUSED decision on the audit trail and nothing is written — the dry run's substance is unchanged. With it, a
+ * write that does not commit halts the run before the next: the evidence file never claims stores or ledger entries
+ * that are not there. */
+const REPLAY_INSTANT = governedInstant(Date.now());
+const correlationId = `run:replay-crawl:${REPLAY_INSTANT}`;
+const scratchBytes = (name) => (existsSync(join(tmp, name)) ? readFileSync(join(tmp, name), "utf8") : "");
+const steps = [
+  ["crawl store", () => governedFileWrite({ repo: REPO, permission, target: CRAWL_STORE, targetClass: "RUN_EVIDENCE", bytes: scratchBytes("crawl.jsonl"), action: "RECORD_REPLAY_CRAWL_STORE", occurredAt: REPLAY_INSTANT, correlationId })],
+  ["audit store", () => governedFileWrite({ repo: REPO, permission, target: AUDIT_STORE, targetClass: "RUN_EVIDENCE", bytes: scratchBytes("audit.jsonl"), action: "RECORD_REPLAY_AUDIT_STORE", occurredAt: REPLAY_INSTANT, correlationId })],
+  ["cost ledger", () => governedStoreAppend({
+    repo: REPO, permission, store: createCostLedger(LEDGER), records: [...(recovery.recoveredThisRun ? [recovery.entry] : []), replayEntry],
+    targetClass: "RUN_EVIDENCE", action: "APPEND_REPLAY_COST_ENTRIES", occurredAt: REPLAY_INSTANT, correlationId,
+    discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null,
+  })],
+  ["evidence", () => governedFileWrite({ repo: REPO, permission, target: EVIDENCE, targetClass: "RUN_EVIDENCE", bytes: JSON.stringify(evidence, null, 2) + "\n", action: "RECORD_REPLAY_EVIDENCE", occurredAt: REPLAY_INSTANT, correlationId })],
+];
+let halted = null;
+for (const [name, args] of steps) {
+  const g = executeGovernedWrite(args());
+  if (!["REFUSED", "COMMITTED", "ALREADY_COMMITTED"].includes(g.outcome)) { halted = { name, outcome: g.outcome }; break; }
+}
+rmSync(tmp, { recursive: true, force: true });
+if (halted) {
+  console.error(`\n🔴 ${halted.name}: ${halted.outcome} — not written, and nothing after it was attempted. The governed attempt is on the audit trail.`);
+  failures.push(`governed write ${halted.name}: ${halted.outcome}`);
+} else if (permission.mayWrite) {
   console.log(`\nrecorded: ${EVIDENCE}, ${CRAWL_STORE}, ${AUDIT_STORE}, and ${evidence.ledger.length} ledger entr${evidence.ledger.length === 1 ? "y" : "ies"}`);
 } else {
-  rmSync(tmp, { recursive: true, force: true });
   console.log("\n[dry-run] nothing recorded — add --confirm");
 }
 

@@ -27,6 +27,9 @@ import {
   verify, EXPECTED_BODY_SHA256, AMENDMENT_2_BODY_SHA256, AMENDMENT_4_BODY_SHA256, AMENDMENT_5_BODY_SHA256, amendment5, AMENDMENT_3_BODY_SHA256,
 } from "../tools/verify-pass-boundaries-source.mjs";
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../src/governance/governed-run.mjs";
+import { isoSeconds } from "../src/audit-trail/store.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 /* 🔴 GAP 1 (15 September 2026) — DRY-RUN BY DEFAULT, LIKE EVERY OTHER WRITE PATH. Regenerating this document is routine,
@@ -35,6 +38,8 @@ const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, 
  * says whether the committed one is UP TO DATE, STALE or MISSING, so a run made only to look is a check, not a write. */
 const OUT = confineToRepo(`${REPO}CHECKLIST_BOUNDARIES.md`, { label: "the generated boundaries document" });
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
+const RUN_INSTANT = isoSeconds(Date.now());
+const RUN_CORRELATION = `run:checklist-boundaries:${RUN_INSTANT}`;
 
 
 
@@ -328,11 +333,19 @@ for (const id of Object.keys(boundaries).map(Number).sort((a, b) => a - b)) {
 const generated = L.join("\n") + "\n";
 const onDisk = existsSync(OUT) ? readFileSync(OUT, "utf8").replace(/\r\n/g, "\n") : null;
 const freshness = onDisk === null ? "MISSING" : onDisk === generated ? "UP TO DATE" : "STALE";
-if (permission.mayWrite) {
-  writeFileSync(OUT, generated, "utf8");
-  console.log(`wrote ${OUT} (it was ${freshness})`);
-} else {
+/* 🔴 ROUTED THROUGH THE SHARED BOUNDARY. The `if` is gone deliberately: the boundary AUDITS the refusal, and a
+ * refusal that is not recorded is a decision nobody can review. The dry-run message is preserved exactly. */
+const governed = executeGovernedWrite(governedFileWrite({
+  repo: REPO, permission, target: OUT, targetClass: "REPOSITORY_FILE", bytes: generated,
+  action: "GENERATE_CHECKLIST_BOUNDARIES", occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
+}));
+if (governed.outcome === "COMMITTED" || governed.outcome === "ALREADY_COMMITTED") {
+  console.log(`wrote ${OUT} (it was ${freshness}) [${governed.outcome}]`);
+} else if (governed.outcome === "REFUSED") {
   console.log(`[dry-run] ${OUT} is ${freshness}${freshness === "UP TO DATE" ? " — nothing to write" : " — run with --confirm to rebuild it"}`);
+} else {
+  console.error(`🔴 ${governed.outcome} — ${OUT} was not written; the governed attempt is on the audit trail`);
+  process.exitCode = 1;
 }
 console.log(`  frozen source verified: ${check.matches}`);
 console.log(`  states: ${STATES.map((s) => `${s}=${after[s]}`).join("  ")}`);

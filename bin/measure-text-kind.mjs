@@ -17,7 +17,10 @@ import { join, basename, extname } from "node:path";
 import { tokensWithKind, uniqueWordsByKind, KINDS } from "../src/gate-a/text-kind.mjs";
 import { computeShells } from "../src/gate-a/shell.mjs";
 import { MIN_UNIQUE_WORDS } from "../src/gate-a/run.mjs";
-import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
+import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../src/governance/governed-run.mjs";
+import { isoSeconds } from "../src/audit-trail/store.mjs";
 
 const argv = process.argv.slice(2);
 const flag = (n, d = null) => {
@@ -27,6 +30,9 @@ const flag = (n, d = null) => {
 const corpusDir = flag("--corpus");
 const outFile = flag("--out");
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv, env: process.env }));
+const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+const RUN_INSTANT = isoSeconds(Date.now());
+const RUN_CORRELATION = `run:measure-text-kind:${RUN_INSTANT}`;
 if (!corpusDir || !existsSync(corpusDir)) {
   console.error("usage: node bin/measure-text-kind.mjs --corpus <dir> [--out file.json] [--confirm]");
   process.exit(2);
@@ -96,6 +102,14 @@ for (const g of readdirSync(corpusDir).filter((n) => statSync(join(corpusDir, n)
 }
 
 if (outFile) {
-  if (!permission.mayWrite) console.log(`[dry-run] --out ${outFile} given, nothing written. Add --confirm.`);
-  else { writeFileSync(outFile, JSON.stringify(report, null, 2), "utf8"); console.log(`wrote ${outFile}`); }
+  /* 🔴 CONFINED, WHICH IT WAS NOT BEFORE — the fourth governed writer found writing an unconfined operator path.
+   * A deliberate tightening, recorded: an outside-repository --out is now refused instead of written. */
+  const governed = executeGovernedWrite(governedFileWrite({
+    repo: REPO, permission, target: confineToRepo(outFile, { label: "--out" }),
+    targetClass: "OPERATOR_CHOSEN_OUTPUT", bytes: JSON.stringify(report, null, 2),
+    action: "WRITE_TEXT_KIND_REPORT", occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
+  }));
+  if (governed.outcome === "REFUSED") console.log(`[dry-run] --out ${outFile} given, nothing written. Add --confirm.`);
+  else if (governed.outcome === "COMMITTED" || governed.outcome === "ALREADY_COMMITTED") console.log(`wrote ${outFile} [${governed.outcome}]`);
+  else { console.error(`🔴 ${governed.outcome} — ${outFile} was not written; the governed attempt is on the audit trail`); process.exitCode = 1; }
 }

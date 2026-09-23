@@ -33,6 +33,9 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSy
 import { dirname, join } from "node:path";
 
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedFileWrite, governedStoreAppend } from "../src/governance/governed-run.mjs";
+import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { sha256Hex } from "../src/evidence/ids.mjs";
 import { readBodyArchive, verifyBodiesAgainstRun, packBodies } from "../src/evidence/body-archive.mjs";
@@ -252,23 +255,50 @@ const evidence = {
   failures, ok: failures.length === 0,
 };
 
-if (failures.length === 0 && permission.mayWrite) {
-  mkdirSync(dirname(RENDER_STORE), { recursive: true });
+/* Routed. FOUR targets, four governed occurrences: the observations (re-sighting preserved), the rendered-body
+ * archive (BINARY — packBodies returns a brotli buffer, hashed as raw bytes and never decoded), the evidence file
+ * (TEXT), and the cost entries (the ledger SKIPS a duplicate entry_id). `failures.length === 0` stays a business
+ * condition: a run whose assertions failed records nothing, permission or not. */
+if (failures.length === 0) {
+  const RA_INSTANT = governedInstant(Date.now());
+  const RA_CORRELATION = `run:render-archive:${RA_INSTANT}`;
   const store = createJsonlStore(RENDER_STORE);
-  let appended = 0;
-  let resighted = 0;
-  for (const o of observations) {
-    const w = store.appendIfNew(o, { seenAt: finishedAt });
-    if (w.appended) appended += 1;
-    else resighted += 1;
+  const obsArgs = governedStoreAppend({
+    repo: REPO, permission, store, records: observations, targetClass: "RUN_EVIDENCE",
+    action: "APPEND_RENDER_OBSERVATIONS", occurredAt: RA_INSTANT, correlationId: RA_CORRELATION,
+    discipline: "APPEND_IF_NEW", seenAt: finishedAt,
+  });
+  const obsGoverned = executeGovernedWrite(obsArgs);
+  const appended = (obsArgs.adapter.result ?? []).filter((w) => w?.appended).length;
+  const resighted = (obsArgs.adapter.result ?? []).length - appended;
+  const raOutcomes = [
+    obsGoverned,
+    executeGovernedWrite(governedFileWrite({
+      repo: REPO, permission, target: RENDER_ARCHIVE, targetClass: "RUN_EVIDENCE", bytes: renderArchive,
+      action: "WRITE_RENDERED_BODY_ARCHIVE", occurredAt: RA_INSTANT, correlationId: RA_CORRELATION,
+    })),
+    executeGovernedWrite(governedFileWrite({
+      repo: REPO, permission, target: EVIDENCE, targetClass: "RUN_EVIDENCE",
+      bytes: JSON.stringify({ ...evidence, writes: { appended, resighted } }, null, 2) + "\n",
+      action: "WRITE_RENDER_EVIDENCE", occurredAt: RA_INSTANT, correlationId: RA_CORRELATION,
+    })),
+    executeGovernedWrite(governedStoreAppend({
+      repo: REPO, permission, store: createCostLedger(LEDGER),
+      records: [installEntry, renderEntry].filter(Boolean), targetClass: "RUN_EVIDENCE",
+      action: "APPEND_RENDER_COST_ENTRIES", occurredAt: RA_INSTANT, correlationId: RA_CORRELATION,
+      discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null,
+    })),
+  ];
+  const raBad = raOutcomes.find((o) => o.outcome !== "REFUSED" && o.outcome !== "COMMITTED" && o.outcome !== "ALREADY_COMMITTED");
+  if (raBad) {
+    console.error(`🔴 ${raBad.outcome} — the run was not recorded; the governed attempt is on the audit trail`);
+    process.exit(1);
   }
-  writeFileSync(RENDER_ARCHIVE, renderArchive);
-  writeFileSync(EVIDENCE, JSON.stringify({ ...evidence, writes: { appended, resighted } }, null, 2) + "\n", "utf8");
-  const ledger = createCostLedger(LEDGER);
-  for (const entry of [installEntry, renderEntry].filter(Boolean)) {
-    if (!ledger.readAll().some((e) => e.entry_id === entry.entry_id)) ledger.append(entry);
+  if (raOutcomes.every((o) => o.outcome === "REFUSED")) {
+    console.log("\n[dry-run] nothing recorded — add --confirm");
+  } else {
+    console.log(`\nrecorded: ${RENDER_STORE.replace(REPO, "")} (${appended} new / ${resighted} re-sighted), ${EVIDENCE.replace(REPO, "")}, the local archive, and ${evidence.ledger.length} ledger entr${evidence.ledger.length === 1 ? "y" : "ies"}`);
   }
-  console.log(`\nrecorded: ${RENDER_STORE.replace(REPO, "")} (${appended} new / ${resighted} re-sighted), ${EVIDENCE.replace(REPO, "")}, the local archive, and ${evidence.ledger.length} ledger entr${evidence.ledger.length === 1 ? "y" : "ies"}`);
 } else if (!permission.mayWrite) {
   console.log("\n[dry-run] nothing recorded — add --confirm");
 }

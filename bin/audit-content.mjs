@@ -14,6 +14,9 @@ import { dirname, join } from "node:path";
 
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedStoreAppend } from "../src/governance/governed-run.mjs";
+import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { measure, shingles, SHELL_DEFINITION, THIN_UNIQUE_WORD_FLOOR } from "../src/audit/shell.mjs";
 import { EXACT_DUPLICATE, THIN_CONTENT, NEAR_DUPLICATE, TEMPLATE_DOMINANCE, ORPHAN_LINK, detectCannibalization, reportCannibalization } from "../src/audit/content-checks.mjs";
 import { registeredChecks } from "../src/audit/check.mjs";
@@ -26,6 +29,8 @@ const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, 
  * run with no flag and no gate: the shape that rewrote committed evidence on 14 September when a
  * writer was run only to read a number. The destination is confined before anything is read. */
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
+const RUN_INSTANT = isoSeconds(Date.now());
+const RUN_CORRELATION = `run:audit-content:${RUN_INSTANT}`;
 const arg = (n, d) => {
   const hit = process.argv.find((a) => a.startsWith(`--${n}=`));
   return hit ? hit.slice(n.length + 3) : d;
@@ -90,10 +95,12 @@ for (const p of pages) {
 
 /* ---- run every check ---------------------------------------------------- */
 /* 🔴 GAP 2 — DRY-RUN BY DEFAULT. The directory and every append sit behind permission.mayWrite. */
-if (permission.mayWrite && !existsSync(dirname(out))) mkdirSync(dirname(out), { recursive: true });
 const store = createJsonlStore(out);
 const wouldWrite = { findings: 0 };
-const put = (finding) => (permission.mayWrite ? store.appendIfNew(finding, { seenAt: openedAt }) : (wouldWrite.findings += 1));
+/* Routed: the findings are COLLECTED here and committed as ONE governed decision below. The bare mkdir is gone
+ * rather than gated — the boundary's own prepare step creates the directory it writes into. */
+const pending = [];
+const put = (finding) => { pending.push(finding); };
 
 const tally = {};
 const bump = (id, verdict) => {
@@ -130,6 +137,19 @@ for (const dp of distinctPages) {
   }
   put(finding);
   bump(ORPHAN_LINK.id, finding.verdict);
+}
+if (pending.length) {
+  const args = governedStoreAppend({
+    repo: REPO, permission, store, records: pending, targetClass: "RUN_EVIDENCE",
+    action: "APPEND_CONTENT_AUDIT_FINDINGS", occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
+    discipline: "APPEND_IF_NEW", seenAt: openedAt,
+  });
+  const governed = executeGovernedWrite(args);
+  if (governed.outcome === "REFUSED") wouldWrite.findings = pending.length;
+  else if (governed.outcome !== "COMMITTED" && governed.outcome !== "ALREADY_COMMITTED") {
+    console.error(`🔴 ${governed.outcome} — the findings were not written; the governed attempt is on the audit trail`);
+    process.exitCode = 1;
+  }
 }
 if (!permission.mayWrite) console.log(`[dry-run] would have written ${wouldWrite.findings} finding(s) → ${out} — nothing written, --confirm to write`);
 

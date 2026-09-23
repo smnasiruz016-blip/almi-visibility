@@ -24,11 +24,16 @@ import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { packBodies, unpackBodies, verifyBodiesAgainstRun } from "../src/evidence/body-archive.mjs";
 import { batchFile } from "../src/crawl/observation-batch.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../src/governance/governed-run.mjs";
+import { isoSeconds } from "../src/audit-trail/store.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const argv = process.argv.slice(2);
 const arg = (n) => argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3) ?? null;
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv, env: process.env }));
+const RUN_INSTANT = isoSeconds(Date.now());
+const RUN_CORRELATION = `run:archive-corpus:${RUN_INSTANT}`;
 
 const corpusArg = arg("corpus");
 if (!corpusArg) {
@@ -65,6 +70,13 @@ if (check.matches !== check.expected || check.missing.length || check.mismatched
   process.exit(1);
 }
 if (!permission.mayWrite) {
+  /* Audited when there is a target to key it on; a dry run with no destination keeps its message and exit code. */
+  if (OUT !== null) {
+    executeGovernedWrite(governedFileWrite({
+      repo: REPO, permission, target: OUT, targetClass: "RUN_EVIDENCE", bytes: packed,
+      action: "WRITE_BODY_ARCHIVE", occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
+    }));
+  }
   console.log(`[dry-run] nothing written — add --confirm (destination: ${OUT ?? "none — --out= is required"})`);
   process.exit(0);
 }
@@ -76,7 +88,14 @@ if (existsSync(OUT)) {
   console.error(`🔴 REFUSED — ${OUT} already exists. Recorded evidence is not re-recorded over itself.`);
   process.exit(2);
 }
-const tmp = `${OUT}.tmp-${process.pid}`;
-writeFileSync(tmp, packed);
-renameSync(tmp, OUT);
-console.log(`written: ${OUT} (${packed.length} bytes)`);
+/* Already a temporary-then-rename, which is STAGED_REPLACE; the boundary now owns it. `packed` is a brotli
+ * Buffer and is hashed as raw bytes rather than decoded as text. */
+const governed = executeGovernedWrite(governedFileWrite({
+  repo: REPO, permission, target: OUT, targetClass: "RUN_EVIDENCE", bytes: packed,
+  action: "WRITE_BODY_ARCHIVE", occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
+}));
+if (governed.outcome !== "COMMITTED" && governed.outcome !== "ALREADY_COMMITTED") {
+  console.error(`🔴 ${governed.outcome} — ${OUT} was not written; the governed attempt is on the audit trail`);
+  process.exit(1);
+}
+console.log(`written: ${OUT} (${packed.length} bytes) [${governed.outcome}]`);

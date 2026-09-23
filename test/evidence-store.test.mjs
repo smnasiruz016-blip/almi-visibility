@@ -102,6 +102,13 @@ test("🔴 C2: the store exposes NO update and NO delete — asserted by enumera
     for (const forbidden of ["update", "delete", "remove", "set", "patch", "put", "truncate", "clear", "drop"]) {
       assert.equal(store[forbidden], undefined, `the store must not expose ${forbidden}()`);
     }
+    /* 🔴 THE ONE READ-ONLY VERB ON THE LIST IS PROVED READ-ONLY. `dedupeKeyOf` was added so the governed-write
+     * boundary could ask this store for its own identity rule; calling it must leave the store untouched, or the
+     * enumeration above would have been widened by something that writes. */
+    const beforeKeys = store.readAll().length;
+    assert.equal(store.dedupeKeyOf({ measurement_key: "k" }), "k");
+    assert.equal(store.dedupeKeyOf({}), null);
+    assert.equal(store.readAll().length, beforeKeys, "dedupeKeyOf changed the store");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

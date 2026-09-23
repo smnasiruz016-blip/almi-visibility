@@ -27,6 +27,9 @@ import { productFromArgvOrExit } from "../src/product-cli.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { detectConflicts, freshnessOf, markForReview, createFactCache, reviewChangedInputs } from "../src/facts/lifecycle.mjs";
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../src/governance/governed-run.mjs";
+import { isoSeconds } from "../src/audit-trail/store.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n, d) => {
@@ -101,9 +104,18 @@ const header = [
 ].join("\n");
 
 const csv = [header, COLUMNS.join(","), ...rows.map((r) => COLUMNS.map((c) => esc(r[c])).join(","))].join("\n") + "\n";
-if (permission.mayWrite) {
-  if (!existsSync(dirname(out))) mkdirSync(dirname(out), { recursive: true });
-  writeFileSync(out, csv, "utf8");
+/* Routed. TEXT, measured: `csv` is built by joining strings, so the text hash rule applies. The bare mkdir is
+ * gone rather than gated — the boundary's prepare step creates the directory. */
+{
+  const governed = executeGovernedWrite(governedFileWrite({
+    repo: REPO, permission, target: out, targetClass: "RUN_EVIDENCE", bytes: csv,
+    action: "EXPORT_FACTS_FOR_VERIFICATION", occurredAt: isoSeconds(Date.now()),
+    correlationId: `run:facts-lifecycle:${isoSeconds(Date.now())}`,
+  }));
+  if (governed.outcome !== "REFUSED" && governed.outcome !== "COMMITTED" && governed.outcome !== "ALREADY_COMMITTED") {
+    console.error(`🔴 ${governed.outcome} — ${out} was not written; the governed attempt is on the audit trail`);
+    process.exitCode = 1;
+  }
 }
 
 const unknownVerify = rows.filter((r) => r.what_would_verify_it === "UNKNOWN").length;

@@ -29,6 +29,9 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../src/governance/governed-run.mjs";
+import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { loadRegistry, toGateAFact } from "../src/facts/registry.mjs";
 import { claimIdsOf } from "../src/page/claim-ids.mjs";
 import { renderPage } from "../src/page/render.mjs";
@@ -84,7 +87,9 @@ console.log(`  ${trace.length} facts from ${new Set(trace.map((t) => t.subject))
 // 🔴 UNTIL 12 SEPTEMBER 2026 THE CACHE WAS WRITTEN WITH NO FLAG. Item 14 was
 // FAILED on it. The pages are still fetched (a read, which the scope law
 // permits) and still measured; they are only KEPT with --confirm.
-if (permission.mayWrite) mkdirSync(cacheDir, { recursive: true });
+/* The bare mkdir is gone: each governed write's prepare step creates the directory it writes into. */
+const CHAIN_INSTANT = governedInstant(Date.now());
+const CHAIN_CORRELATION = `run:nursing-chain:${CHAIN_INSTANT}`;
 const siblings = [];
 for (const p of PRODUCT.variants) {
   if (p === "nursing") continue;
@@ -98,8 +103,17 @@ for (const p of PRODUCT.variants) {
     console.log(`  🔴 ${p}: ${res.detail}`);
     continue;
   }
-  if (permission.mayWrite) writeFileSync(cached, res.body, "utf8");
-  else console.log(`  [dry-run] ${p}: fetched and measured, NOT cached — add --confirm to keep it`);
+  /* Routed. One cached page is one target, so this is per-TARGET and not per-record. The page is still FETCHED
+   * and MEASURED either way — a read, which the scope law permits — and only KEPT when the write is allowed. */
+  const cacheGoverned = executeGovernedWrite(governedFileWrite({
+    repo: REPO, permission, target: cached, targetClass: "RUN_EVIDENCE", bytes: res.body,
+    action: "WRITE_SIBLING_PAGE_CACHE", occurredAt: CHAIN_INSTANT, correlationId: CHAIN_CORRELATION,
+  }));
+  if (cacheGoverned.outcome === "REFUSED") console.log(`  [dry-run] ${p}: fetched and measured, NOT cached — add --confirm to keep it`);
+  else if (cacheGoverned.outcome !== "COMMITTED" && cacheGoverned.outcome !== "ALREADY_COMMITTED") {
+    console.error(`🔴 ${cacheGoverned.outcome} — ${p} was not cached; the governed attempt is on the audit trail`);
+    process.exitCode = 1;
+  }
   siblings.push({ id: p, html: res.body });
 }
 console.log(`\nSTEP 2 · THE PUBLISHED POPULATION`);
@@ -316,12 +330,20 @@ const report = {
 };
 
 if (outDir) {
-  if (!permission.mayWrite) {
+  const chainOutcomes = [
+    ["nursing.html", candidateHtml, "WRITE_CHAIN_CANDIDATE_PAGE"],
+    ["chain-report.json", JSON.stringify(report, null, 2) + "\n", "WRITE_CHAIN_REPORT"],
+  ].map(([name, body, what]) => executeGovernedWrite(governedFileWrite({
+    repo: REPO, permission, target: join(outDir, name), targetClass: "RUN_EVIDENCE", bytes: body,
+    action: what, occurredAt: CHAIN_INSTANT, correlationId: CHAIN_CORRELATION,
+  })));
+  const bad = chainOutcomes.find((o) => o.outcome !== "REFUSED" && o.outcome !== "COMMITTED" && o.outcome !== "ALREADY_COMMITTED");
+  if (bad) {
+    console.error(`🔴 ${bad.outcome} — ${outDir} was not written; the governed attempt is on the audit trail`);
+    process.exitCode = 1;
+  } else if (chainOutcomes.every((o) => o.outcome === "REFUSED")) {
     console.log(`\n[dry-run] would have written ${outDir} — ${permission.reason}`);
   } else {
-    mkdirSync(outDir, { recursive: true });
-    writeFileSync(join(outDir, "nursing.html"), candidateHtml, "utf8");
-    writeFileSync(join(outDir, "chain-report.json"), JSON.stringify(report, null, 2) + "\n", "utf8");
     console.log(`\nwrote ${outDir}/nursing.html and chain-report.json`);
   }
 }

@@ -46,7 +46,10 @@ const CONFINED = "confined by confineToRepo: a path outside this repository is R
 export const PERMITTED_PAGE_WRITERS = Object.freeze([
   {
     file: "bin/build-corpus.mjs",
-    sites: 1,
+    /* 🔴 ROUTED (23 September 2026). One fetched page is one target, so each is its own governed occurrence; the
+     * manifest is another. The bare mkdir is gone — each write's prepare step creates its directory. */
+    routed: true,
+    sites: 0,
     writes: "copies of pages FETCHED from a live sitemap (their HTML, as served), plus a corpus manifest",
     where: `the directory given by --out (required, no default); ${CONFINED}`,
     gatedBy: "write-law LOCAL: every write sits behind permission.mayWrite, which only --confirm grants",
@@ -58,7 +61,10 @@ export const PERMITTED_PAGE_WRITERS = Object.freeze([
   },
   {
     file: "bin/build-page.mjs",
-    sites: 1,
+    /* 🔴 ROUTED (23 September 2026). Two targets per candidate — the page and its trace — each a governed
+     * occurrence, because a whole-file replacement is its own target. */
+    routed: true,
+    sites: 0,
     writes: "one candidate page rendered from the fact registry, plus its claim trace (JSON)",
     where: `the directory given by --out; without --out nothing is written; ${CONFINED}`,
     gatedBy: "write-law LOCAL: permission.mayWrite, which only --confirm grants",
@@ -70,7 +76,13 @@ export const PERMITTED_PAGE_WRITERS = Object.freeze([
   },
   {
     file: "bin/crawl.mjs",
-    sites: 1,
+    /* 🔴 ROUTED (23 September 2026). Four targets: the observations (re-sighting preserved), each crawl body (one
+     * body is one target), the run record (unique by construction, so the without-dedupe discipline and no key),
+     * and the cost entry (ledger skip). Its OWN gate is preserved, not replaced — this binary records when EITHER
+     * --live or --confirm is given, which is wider than the write law alone, and the boundary is handed that
+     * decision rather than the narrower one. */
+    routed: true,
+    sites: 0,
     writes: "the raw HTML bodies of pages FETCHED by a live crawl, one file per observation",
     where: `runs/crawl/corpus/ by default, or the directory given by --corpus (and the run record at --out); ${CONFINED}`,
     gatedBy: "D-CRW-4: bodies are written only on a --live run, and --live is refused without --i-have-the-owners-green — two explicit flags, the second deliberately awkward to type. It does not use write-law's --confirm",
@@ -83,7 +95,11 @@ export const PERMITTED_PAGE_WRITERS = Object.freeze([
   },
   {
     file: "bin/nursing-chain.mjs",
-    sites: 2,
+    /* 🔴 ROUTED (23 September 2026). One cached sibling page is one target; the candidate page and its chain
+     * report are two more. The pages are still FETCHED and MEASURED either way — a read, which the scope law
+     * permits — and only KEPT when the write is allowed, exactly as before. */
+    routed: true,
+    sites: 0,
     writes: "(1) a CACHE of the eleven sibling pages it FETCHES from the product site; (2) the candidate page rendered from the registry, plus a chain report",
     where: `(1) runs/_profession-cache/ — fixed, gitignored; (2) the directory given by --out; ${CONFINED}`,
     gatedBy: "write-law LOCAL: both writes, and the cache directory itself, sit behind permission.mayWrite, which only --confirm grants. Without it the siblings are fetched and measured but not kept",
@@ -95,7 +111,9 @@ export const PERMITTED_PAGE_WRITERS = Object.freeze([
   },
   {
     file: "bin/placement-measure.mjs",
-    sites: 1,
+    /* 🔴 ROUTED (23 September 2026). Both bodies are TEXT, measured, so nothing is normalised without proof. */
+    routed: true,
+    sites: 0,
     writes: "one candidate page with the shared block placed off-page, plus a placement report",
     where: `the directory given by --out; without --out nothing is written; ${CONFINED}`,
     gatedBy: "write-law LOCAL: permission.mayWrite, which only --confirm grants",
@@ -107,7 +125,10 @@ export const PERMITTED_PAGE_WRITERS = Object.freeze([
   },
   {
     file: "bin/profession-chain.mjs",
-    sites: 1,
+    /* 🔴 ROUTED through the shared governed-write boundary (23 September 2026): two targets, two governed
+     * occurrences, each audited allowed or refused. No direct page-write site remains. */
+    routed: true,
+    sites: 0,
     writes: "one candidate page for the named profession, rendered from the registry, plus a chain report",
     where: `the directory given by --out; without --out nothing is written; ${CONFINED}`,
     gatedBy: "write-law LOCAL: permission.mayWrite, which only --confirm grants",
@@ -119,7 +140,10 @@ export const PERMITTED_PAGE_WRITERS = Object.freeze([
   },
   {
     file: "bin/report.mjs",
-    sites: 1,
+    /* 🔴 ROUTED through the shared governed-write boundary (23 September 2026). No direct page-write site
+     * remains; the refusal is now recorded rather than only printed. */
+    routed: true,
+    sites: 0,
     writes: "the owner's report view — one HTML page summarising the evidence store, the crawl and the facts",
     where: `runs/report/index.html by default, or the file given by --out; ${CONFINED}`,
     gatedBy: "write-law LOCAL: permission.mayWrite, which only --confirm grants. 🔴 Until 12 September 2026 it had NO gate and wrote on every run",
@@ -191,7 +215,10 @@ export const KNOWN_UNGATED_WRITERS = Object.freeze([]);
 export const PERMITTED_LOCAL_WRITERS = Object.freeze([
   {
     file: "bin/facts-lifecycle.mjs",
-    sites: 2,
+    /* 🔴 ROUTED (23 September 2026). TEXT content, measured. The bare mkdir is gone rather than gated — the
+     * boundary's prepare step creates the directory it writes into. */
+    routed: true,
+    sites: 0,
     writes: "the fact registry exported for VERIFICATION as one CSV — the list of questions a verifier must answer, never the answers",
     where: `runs/export/facts-for-verification.csv by default — a tracked EVIDENCE file (.gitattributes runs/**) — or the file given by --out; ${CONFINED}`,
     gatedBy: "write-law LOCAL: the directory and the file sit behind permission.mayWrite, which only --confirm grants. Every figure — conflict, freshness, the dependency walk, changed inputs, the cache — prints with no flag. 🔴 Until 15 September 2026 it wrote on EVERY run, and on 14 September a run made to read one number rewrote committed evidence",
@@ -203,7 +230,11 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
   },
   {
     file: "bin/export.mjs",
-    sites: 2,
+    /* 🔴 ROUTED through the shared governed-write boundary (23 September 2026): three targets, three governed
+     * occurrences, each audited allowed or refused. The direct write site and the bare mkdir are GONE rather than
+     * gated — the boundary's own prepare step creates the directory — so the declared count is 0. */
+    routed: true,
+    sites: 0,
     writes: "the three exports of the evidence store — evidence.md, evidence.json and estate.csv — each carrying the states and bounds of what it summarises",
     where: `runs/export/ by default — three tracked EVIDENCE files (.gitattributes runs/**) — or the directory given by --out; ${CONFINED}`,
     gatedBy: "write-law LOCAL: the directory and all three files sit behind permission.mayWrite, which only --confirm grants. With no flag it still builds all three and prints each one's size, the states and the bounds. 🔴 Until 15 September 2026 it wrote on every run — the same shape as the writer that fired on 14 September. `npm run export` is therefore a dry run; `npm run export -- --confirm` writes",
@@ -215,7 +246,11 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
   },
   {
     file: "bin/checklist-boundaries.mjs",
-    sites: 1,
+    /* 🔴 ROUTED through the shared governed-write boundary (23 September 2026). The direct write site is GONE,
+     * not merely gated: the mutation happens inside the boundary, which audits the attempt and the outcome. The
+     * declared count is therefore 0, and the STRICTER routed rule in the census applies. */
+    routed: true,
+    sites: 0,
     writes: "CHECKLIST_BOUNDARIES.md — every row's four-part boundary quoted verbatim from the hash-verified frozen sources, beside its seven-state verdict",
     where: `CHECKLIST_BOUNDARIES.md at the repository root — a fixed path, no operator flag; a GENERATED document, not evidence; ${CONFINED}`,
     gatedBy: "write-law LOCAL: permission.mayWrite, which only --confirm grants. Without it the run still builds the document and reports whether the committed one is UP TO DATE, STALE or MISSING. Judged on 15 September 2026: routine regeneration makes the flag a daily keystroke, and the write law already names --confirm as the right price for a local write",
@@ -236,7 +271,11 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
    */
   {
     file: "bin/audit.mjs",
-    sites: 1,
+    /* 🔴 ROUTED (23 September 2026). The dry-run store is now always the collector — it already kept every record
+     * and returned the real appended-versus-resighted answer — so the audit runs and reports identically either
+     * way, and the run makes ONE governed decision about committing what it collected. */
+    routed: true,
+    sites: 0,
     writes: "the robots-scope and DNS-family findings, and one DNS observation per estate host — written inside runRobotsAndDnsAudit, through the store this bin hands it",
     where: `runs/audit/findings.jsonl by default, or the file given by --out; ${CONFINED}`,
     gatedBy: "write-law LOCAL: the directory sits behind permission.mayWrite, and without it the store handed to the audit is createDryRunStore — the same interface, writing nothing and counting what it would have stored. 🔴 Until 16 September 2026 it had NO gate and appended on every run",
@@ -248,7 +287,11 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
   },
   {
     file: "bin/audit-content.mjs",
-    sites: 2,
+    /* 🔴 ROUTED (23 September 2026). Zero direct writes; the one remaining site is the append discipline handed
+     * to the boundary by NAME, so no write-shaped text is left here at all. The bare mkdir is gone rather than
+     * gated — the boundary's prepare step creates the directory. */
+    routed: true,
+    sites: 0,
     writes: "the content findings — exact duplicate, thin content, near duplicate, template dominance and the orphan check — over the archived corpus",
     where: `runs/audit/content-findings.jsonl by default, or the file given by --out; ${CONFINED}`,
     gatedBy: "write-law LOCAL: the directory and every append sit behind permission.mayWrite, which only --confirm grants. With no flag it runs every check and prints how many findings it WOULD store. 🔴 Until 16 September 2026 it had NO gate",
@@ -260,7 +303,11 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
   },
   {
     file: "bin/audit-technical.mjs",
-    sites: 3,
+    /* 🔴 ROUTED (23 September 2026). Sitemap observations and findings are collected and committed as two
+     * governed decisions. The bare mkdir is gone rather than gated, and the store still decides
+     * appended-versus-re-sighted so the run reports its answer unchanged. */
+    routed: true,
+    sites: 0,
     writes: "the technical findings (status, https, canonical, noindex, head elements, broken links, query parameters, indexability preflight) and, with --sitemaps, one observation per host's sitemap collection",
     where: `runs/audit/technical-findings.jsonl by default, or the file given by --out; the sitemap observations at runs/evidence/sitemaps.jsonl; ${CONFINED}`,
     gatedBy: "write-law LOCAL: the directory, the findings and the sitemap observations each sit behind permission.mayWrite. 🔴 Until 16 September 2026 it had NO gate — and it is the writer that once stored 868 issues twice",
@@ -272,7 +319,11 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
   },
   {
     file: "bin/supply-labels.mjs",
-    sites: 1,
+    /* 🔴 ROUTED (23 September 2026). Zero direct writes; the one site is the append discipline the boundary
+     * invokes, named rather than written out, and the store still decides appended-versus-re-sighting so the run
+     * reports it exactly as before. */
+    routed: true,
+    sites: 0,
     writes: "the HEAVY / THIN / EMPTY supply labels as findings, over the unpacked crawl corpus",
     where: `runs/audit/supply-labels.jsonl by default, or the file given by --out; ${CONFINED}`,
     gatedBy: "write-law LOCAL: the append sits behind permission.mayWrite, which only --confirm grants. With no flag it labels the whole corpus and prints how many findings it WOULD store. 🔴 Until 16 September 2026 it had NO gate",
@@ -284,7 +335,11 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
   },
   {
     file: "bin/verification-issues.mjs",
-    sites: 1,
+    /* 🔴 ROUTED (23 September 2026). Observations and issues are collected and committed as two governed
+     * decisions — one per kind, because they are genuinely different writes. The store still decides
+     * appended-versus-re-sighted, and the report still prints its answer. */
+    routed: true,
+    sites: 0,
     writes: "the issues a human verification returned, each citing an observation of the VERDICT ROW we hold — never of a page we did not fetch",
     where: `runs/audit/verification-issues.jsonl by default, or the file given by --out; ${CONFINED}`,
     gatedBy: "write-law LOCAL: the append sits behind permission.mayWrite, which only --confirm grants. With no flag it prints every issue it would record, marked already-present or new. 🔴 Until 16 September 2026 it had NO gate",
@@ -296,7 +351,12 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
   },
   {
     file: "bin/gsc-ingest.mjs",
-    sites: 2,
+    /* 🔴 ROUTED (23 September 2026). The dry-run store is always the collector, so the ingest runs and reports
+     * identically either way; the observations and the cost entry are then two governed decisions. The rule that
+     * a SYNTHETIC source is NEVER written to the ledger is intact — where it applies there is no governed write
+     * at all, so the boundary is not called. */
+    routed: true,
+    sites: 0,
     writes: "the Search Console measurements — written inside runIngest through the store this bin hands it — and one cost-ledger entry per run",
     where: `runs/evidence/evidence.jsonl by default, or the file given by --store; the ledger at runs/cost/ledger.jsonl; ${CONFINED}`,
     gatedBy: "write-law LOCAL: both ledger appends sit behind permission.mayWrite, and without it the store handed to runIngest is createDryRunStore — so a run queries, reports every row count, bound and cost, and stores nothing. 🔴 Until 16 September 2026 it had NO gate",
@@ -308,7 +368,11 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
   },
   {
     file: "bin/crawl.mjs",
-    sites: 6,
+    /* 🔴 ROUTED (23 September 2026) — the same routing as its page-writer entry above; this entry records the
+     * local side of it. Its OWN gate is preserved, not replaced: mayRecord is a LIVE run OR write-law
+     * permission, which is wider than the write law alone, and the boundary is handed that decision. */
+    routed: true,
+    sites: 0,
     writes: "the crawl record — its observations and one run record — and, on a LIVE run, the raw bodies (also declared above as a page writer) and a cost-ledger entry",
     where: `runs/crawl/crawl.jsonl by default (not tracked; uploaded as a CI artifact), or the file given by --out; bodies under --corpus; the ledger at runs/cost/ledger.jsonl; ${CONFINED}`,
     gatedBy: "mayRecord = a LIVE run OR write-law LOCAL permission.mayWrite. A DRY run records nothing unless --confirm; a LIVE run has already passed D-CRW-4's --live AND --i-have-the-owners-green and records what it fetched and spent, because a billable run that kept no record would be the worse failure. 🔴 Until 15 September 2026 every DRY run appended a run record: the D-CRW-4 gate was on the network, not on these local writes",
@@ -320,7 +384,11 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
   },
   {
     file: "bin/detect.mjs",
-    sites: 4,
+    /* 🔴 ROUTED (23 September 2026). Three targets — findings, their digest, and the score. All TEXT, MEASURED:
+     * serialiseFindings returns a JSON string, so the missing encoding argument at the old call sites never made
+     * them binary. The output is still written and closed before any expectation is read. */
+    routed: true,
+    sites: 0,
     writes: "the findings output of one detection run — every outcome of every generic detector, with its evidence — plus that output's sha256, and the score when an expectation set is supplied",
     where: `the directory given by --out; there is no default destination, so a run that names none writes nothing at all; ${CONFINED}`,
     gatedBy: "write-law LOCAL: the output directory and all three files sit behind permission.mayWrite, which only --confirm grants. With no flag the whole run still executes and prints every count and the output's own hash — the detectors, the serialisation and the digest are identical, and only the write is withheld",
@@ -335,7 +403,11 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
    * STALE. Found by this census the moment they were tracked; gated the same day rather than declared ungated. */
   {
     file: "bin/fboard-derive.mjs",
-    sites: 1,
+    /* 🔴 ROUTED (23 September 2026). Its `!fresh` short-circuit is now the boundary's own: when the target already
+     * carries these exact bytes, inspect() returns ALREADY_COMMITTED and no rename happens — the same decision,
+     * recorded instead of silent. */
+    routed: true,
+    sites: 0,
     writes: "config/fboard/capabilities.mjs — F01–F89, derived line by line from the committed specification extract, each row pinned to its line's sha256",
     where: "config/fboard/capabilities.mjs — a fixed path inside this repository, no operator flag; a GENERATED file, not evidence",
     gatedBy: "write-law LOCAL: permission.mayWrite, which only --confirm grants. Without it the run derives every row and reports whether the committed file is UP TO DATE or STALE",
@@ -347,7 +419,9 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
   },
   {
     file: "bin/fboard-crosswalk.mjs",
-    sites: 1,
+    /* 🔴 ROUTED (23 September 2026). The --check exit code is preserved exactly. */
+    routed: true,
+    sites: 0,
     writes: "config/fboard/crosswalk.mjs — one entry per F-row with its acceptance relation, and the historical ledger's rows as provenance only",
     where: "config/fboard/crosswalk.mjs — a fixed path inside this repository, no operator flag; a GENERATED file, not evidence",
     gatedBy: "write-law LOCAL: permission.mayWrite, which only --confirm grants. Without it the run builds the crosswalk and reports UP TO DATE or STALE; --check exits 1 when stale",
@@ -359,7 +433,11 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
   },
   {
     file: "bin/authority-migrate.mjs",
-    sites: 1,
+    /* 🔴 ROUTED (23 September 2026) — the CORPUS write. This caller's write-gate DECISION was already emitted
+     * live by auditAuthorityMigration before the boundary existed; what was unaudited was the mutation, and that
+     * is what now goes through the boundary. The audit append still comes first and still gates it. */
+    routed: true,
+    sites: 0,
     writes: "config/authority/corpus.mjs — the real authority corpus: paths, structured identity and content hashes of committed governance records, never their prose",
     where: "config/authority/corpus.mjs — a fixed path inside this repository, no operator flag; a GENERATED file, not evidence",
     gatedBy: "write-law LOCAL: permission.mayWrite, which only --confirm grants. Without it the run migrates in memory, prints the census, and reports UP TO DATE or STALE (exit 1 when stale)",

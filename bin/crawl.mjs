@@ -28,6 +28,9 @@ import { selectSeeds, renderSelection, SELECTION_RULE } from "../src/crawl/seed-
 import { measureIpv6Egress, addressFamilies, reachabilityState } from "../src/crawl/ipv6.mjs";
 import { ESTATE_HOSTNAME_LIST } from "../config/estate-hostnames.mjs";
 import { confineToRepo, writePermission, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedFileWrite, governedStoreAppend } from "../src/governance/governed-run.mjs";
+import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { createCostLedger, entryFromCrawlRun, formatLedgerLine } from "../src/cost/ledger.mjs";
 import { persistCrawlObservations } from "../src/crawl/persist.mjs";
 
@@ -53,6 +56,10 @@ const corpusDir = confineToRepo(arg("corpus", `${REPO}runs/crawl/corpus`), { lab
  * the worse failure. */
 const permission = writePermission({ target: LOCAL, argv: process.argv, env: process.env });
 const mayRecord = live || permission.mayWrite;
+/* 🔴 THE CALLER'S OWN GATE IS PRESERVED, NOT REPLACED. This binary records when EITHER --live or --confirm is
+ * given, which is a wider rule than the write law alone; handing the boundary `permission` would have silently
+ * narrowed it. The boundary is given the decision this caller actually makes, and audits both outcomes of it. */
+const recordPermission = { ...permission, mayWrite: mayRecord, reason: mayRecord ? permission.reason : "no --live and no --confirm" };
 
 if (!seedsFile && !sitemapFile && !fromEvidence) {
   console.error(
@@ -206,16 +213,23 @@ if (pages.length) {
 console.log("\n🔴 A FETCHED URL IS NOT AN INDEXED URL. A CRAWLED INVENTORY IS NOT THE SITE.");
 console.log(`   coverageState=${run.coverageState} — this run saw what its seeds named, up to its bounds.`);
 
-let store = null;
-if (mayRecord) {
-  if (!existsSync(dirname(out))) mkdirSync(dirname(out), { recursive: true });
-  store = createJsonlStore(out);
-  // 🔴 appendIfNew, not appendAll: a measurement_key carries no clock, so the
-  // same page read twice with the same bytes is ONE observation plus a re-sighting.
-  // The run record below is not deduplicated — its run_id includes the start
-  // time, so a second run is a genuinely new record of a second run.
-  // Through the shared write path — the replay (bin/replay-crawl.mjs) uses the same one.
-  persistCrawlObservations(store, result.observations);
+/* Routed. The bare mkdir is gone: each governed write's prepare step creates the directory it writes into.
+ *
+ * 🔴 appendIfNew, not appendAll: a measurement_key carries no clock, so the same page read twice with the same
+ * bytes is ONE observation plus a RE-SIGHTING — that repeat behaviour is deliberate and is preserved. The run
+ * record below is NOT deduplicated, because its run_id carries the start time and a second run is genuinely a
+ * second run. */
+const CRAWL_INSTANT = governedInstant(Date.now());
+const CRAWL_CORRELATION = `run:crawl:${CRAWL_INSTANT}`;
+const store = createJsonlStore(out);
+const observationsGoverned = executeGovernedWrite(governedStoreAppend({
+  repo: REPO, permission: recordPermission, store, records: result.observations,
+  targetClass: "GENERATED_CONFIG", action: "APPEND_CRAWL_OBSERVATIONS",
+  occurredAt: CRAWL_INSTANT, correlationId: CRAWL_CORRELATION, discipline: "APPEND_IF_NEW",
+}));
+if (observationsGoverned.outcome !== "REFUSED" && observationsGoverned.outcome !== "COMMITTED" && observationsGoverned.outcome !== "ALREADY_COMMITTED") {
+  console.error(`🔴 ${observationsGoverned.outcome} — the observations were not written; the governed attempt is on the audit trail`);
+  process.exit(1);
 }
 
 /**
@@ -232,10 +246,18 @@ let corpusFiles = 0;
 let corpusBytes = 0;
 if (mayRecord) {
   if (live && result.bodies?.size) {
-    if (!existsSync(corpusDir)) mkdirSync(corpusDir, { recursive: true });
     for (const [observationId, body] of result.bodies) {
-      const file = join(corpusDir, `${observationId}.html`);
-      writeFileSync(file, body, "utf8");
+      /* One body is one target, so this is per-TARGET and not per-record. */
+      const bodyGoverned = executeGovernedWrite(governedFileWrite({
+        repo: REPO, permission: recordPermission, target: join(corpusDir, `${observationId}.html`),
+        targetClass: "GENERATED_CONFIG", bytes: body,
+        action: "WRITE_CRAWL_BODY", occurredAt: CRAWL_INSTANT, correlationId: CRAWL_CORRELATION,
+      }));
+      if (bodyGoverned.outcome !== "COMMITTED" && bodyGoverned.outcome !== "ALREADY_COMMITTED") {
+        console.error(`🔴 ${bodyGoverned.outcome} — a crawl body was not written; the governed attempt is on the audit trail`);
+        process.exitCode = 1;
+        continue;
+      }
       corpusFiles += 1;
       corpusBytes += Buffer.byteLength(body, "utf8");
     }
@@ -262,19 +284,40 @@ const runRecord = {
     githubRunId: process.env.GITHUB_RUN_ID ?? null,
   },
 };
-if (mayRecord) {
-  // Declared: the RUN record is unique by construction — run_id carries the start time.
-  store.appendWithoutDedupe(runRecord);
+/* Declared: the RUN record is unique by construction — run_id carries the start time — so it uses the
+ * without-dedupe discipline and needs no key. */
+const runGoverned = executeGovernedWrite(governedStoreAppend({
+  repo: REPO, permission: recordPermission, store, records: [runRecord],
+  targetClass: "GENERATED_CONFIG", action: "APPEND_CRAWL_RUN_RECORD",
+  occurredAt: CRAWL_INSTANT, correlationId: CRAWL_CORRELATION, discipline: "APPEND_WITHOUT_DEDUPE",
+}));
+if (runGoverned.outcome === "COMMITTED" || runGoverned.outcome === "ALREADY_COMMITTED") {
   console.log(`\nwritten: ${out}  (${result.observations.length} observations + 1 run)`);
-} else {
+} else if (runGoverned.outcome === "REFUSED") {
   console.log(`\n[dry-run] the crawl record was NOT written to ${out} — a dry run records nothing unless --confirm`);
+} else {
+  console.error(`🔴 ${runGoverned.outcome} — the run record was not written; the governed attempt is on the audit trail`);
+  process.exit(1);
 }
 
 /* 🔴 ITEM 45 — a live run is costed in the ledger as it happens. A dry run
  * issues no request and spends nothing, so it writes no cost entry. */
-if (mayRecord && live) {
+if (live) {
+  /* A dry run issues no request and spends nothing, so it writes no cost entry — that rule is preserved by the
+   * `live` condition. The ledger SKIPS a duplicate entry_id and writes nothing, so the expected line count is
+   * asked of that discipline. */
   const costEntry = entryFromCrawlRun(runRecord, { recordedAt: new Date().toISOString() });
   const ledgerPath = confineToRepo(`${REPO}runs/cost/ledger.jsonl`, { label: "the cost ledger" });
-  createCostLedger(ledgerPath).append(costEntry);
-  console.log(`cost ledger: ${formatLedgerLine(costEntry)}`);
+  const costGoverned = executeGovernedWrite(governedStoreAppend({
+    repo: REPO, permission: recordPermission, store: createCostLedger(ledgerPath), records: [costEntry],
+    targetClass: "RUN_EVIDENCE", action: "APPEND_CRAWL_COST_ENTRY",
+    occurredAt: CRAWL_INSTANT, correlationId: CRAWL_CORRELATION,
+    discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null,
+  }));
+  if (costGoverned.outcome === "COMMITTED" || costGoverned.outcome === "ALREADY_COMMITTED") {
+    console.log(`cost ledger: ${formatLedgerLine(costEntry)}`);
+  } else if (costGoverned.outcome !== "REFUSED") {
+    console.error(`🔴 ${costGoverned.outcome} — the cost entry was not written; the governed attempt is on the audit trail`);
+    process.exitCode = 1;
+  }
 }

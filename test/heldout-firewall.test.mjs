@@ -24,6 +24,9 @@ import { EVIDENCE_ROLE_REGISTRY } from "../config/evidence-roles.mjs";
 import { INTENT_REFERENCE } from "../config/discovery/intent-reference.mjs";
 import { scan, derivePopulation, distinctiveFragments, registeredHashErrors, trackedFiles, categoryOf, HELD_OUT_EVALUATORS } from "../tools/heldout-firewall.mjs";
 import { syntheticCorpus, EVIDENCE_CLASS } from "./support/synthetic-queries.mjs";
+import { diagnosticGuardSink } from "../src/governance/guard-audit.mjs";
+/* F08 §6 — the guards decide only with an audit sink; these proofs use a diagnostic one (never persisted). */
+const SINK = () => diagnosticGuardSink({ actor: "test/heldout-firewall.test.mjs" });
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const REG = EVIDENCE_ROLE_REGISTRY;
@@ -186,13 +189,13 @@ test("SYNTHETIC · seed 7701 — a registered observed file is exempt only while
   try {
     const p = "runs/data/observed.json";
     const entry = { ...REG.find((e) => e.id === "observed:search-console-store"), id: "synthetic:observed", resource: { root: "t", path: p }, contentHash: contentHashOf(readFileSync(join(base, p))) };
-    assert.equal(observedDataExemption({ registry: [entry], root: "t", path: p, read: () => readFileSync(join(base, p)) }).code, "REGISTERED_OBSERVED_DATA");
+    assert.equal(observedDataExemption({ audit: SINK(), registry: [entry], root: "t", path: p, read: () => readFileSync(join(base, p)) }).code, "REGISTERED_OBSERVED_DATA");
     writeFileSync(join(base, p), `${readFileSync(join(base, p), "utf8")}changed\n`);
-    assert.equal(observedDataExemption({ registry: [entry], root: "t", path: p, read: () => readFileSync(join(base, p)) }).code, "HASH_MISMATCH");
+    assert.equal(observedDataExemption({ audit: SINK(), registry: [entry], root: "t", path: p, read: () => readFileSync(join(base, p)) }).code, "HASH_MISMATCH");
     assert.deepEqual(registeredHashErrors({ registry: [entry], root: "t", base, hashOf: contentHashOf }).map((e) => e.code), ["HASH_MISMATCH"]);
     // every other exemption condition, each refused by name
     const read = () => readFileSync(join(base, p));
-    const refused = (over, code, extra = {}) => assert.equal(observedDataExemption({ registry: [{ ...entry, contentHash: contentHashOf(read()), ...over }], root: "t", path: p, read, ...extra }).code, code);
+    const refused = (over, code, extra = {}) => assert.equal(observedDataExemption({ audit: SINK(), registry: [{ ...entry, contentHash: contentHashOf(read()), ...over }], root: "t", path: p, read, ...extra }).code, code);
     refused({ maySupplyExpectedAnswer: true }, "MAY_SUPPLY_EXPECTED_ANSWER");
     refused({ mandatoryReadable: true }, "MANDATORY_READING");
     refused({ role: "TRAINING_DATA" }, "NOT_OBSERVED_DATA");
@@ -252,9 +255,9 @@ test("SYNTHETIC · seed 7702 — an ordinary loader refuses a sealed path WITHOU
   const registry = [{ id: "synthetic:sealed", role: "SEALED", resource: { root: "t", pathPrefixes: [`${g[0]}/`] } }];
   let reads = 0;
   const read = () => { reads += 1; return "should never be read"; };
-  assert.throws(() => readUnsealed({ registry, root: "t", base: "/nowhere", path: `${g[0]}/${g[1]}.json`, read }), (e) => e instanceof SealedPathRefused && e.code === "SEALED_PATH_REFUSED");
+  assert.throws(() => readUnsealed({ audit: SINK(), registry, root: "t", base: "/nowhere", path: `${g[0]}/${g[1]}.json`, read }), (e) => e instanceof SealedPathRefused && e.code === "SEALED_PATH_REFUSED");
   assert.equal(reads, 0, "the sealed path was read before it was refused");
-  assert.equal(readUnsealed({ registry, root: "t", base: "/nowhere", path: `${g[1]}/${g[2]}.json`, read }), "should never be read");
+  assert.equal(readUnsealed({ audit: SINK(), registry, root: "t", base: "/nowhere", path: `${g[1]}/${g[2]}.json`, read }), "should never be read");
   assert.equal(reads, 1, "an unsealed path is read normally");
   // the detector excludes it the same way: counted, never opened
   const r = scan({ registry, root: "t", base: "/nowhere", files: [`${g[0]}/${g[1]}.json`], members: ["x"], fragments: [], read });
@@ -266,5 +269,5 @@ test("REAL — the sealed case-study paths are refused by prefix, by path-presen
   assert.equal(sealed.contentHash, null, "sealed content is never hashed");
   const present = FILES.filter((p) => isSealed(REG, "engine", p));
   assert.ok(present.length > 0);
-  for (const p of present) assert.throws(() => readUnsealed({ registry: REG, root: "engine", base: REPO, path: p, read: () => { throw new Error("READ"); } }), SealedPathRefused);
+  for (const p of present) assert.throws(() => readUnsealed({ audit: SINK(), registry: REG, root: "engine", base: REPO, path: p, read: () => { throw new Error("READ"); } }), SealedPathRefused);
 });

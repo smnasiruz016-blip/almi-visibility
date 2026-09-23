@@ -1,0 +1,75 @@
+/**
+ * 🔴 F08 · CLOSURE PROOFS — the acceptance pin, the board movement, and the audit of that movement (23 September 2026).
+ *
+ * What only this closure can prove, each with a control shown able to go the other way (the acceptance pin and its
+ * one-word control are test/f08-acceptance-pin.test.mjs):
+ *   · F-TEXT  a routed text caller kept its mixed line endings byte for byte;
+ *   · F-BOARD the board reads 2/89 with F08 VERIFIED-PASS by its own lawful route, F05 and F40 unchanged, history kept;
+ *   · F-TRAIL both movements are in the production audit trail as BOARD_TRANSITION events — a row that moved with no
+ *             audit event would be F08's own FAILURE clause, committed by F08.
+ */
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { join } from "node:path";
+
+import { ACCEPTANCES } from "../config/fboard/acceptances.mjs";
+import { CAPABILITIES } from "../config/fboard/capabilities.mjs";
+import { DECLARED } from "../config/fboard/f-board.mjs";
+import { AUTHORITY_CORPUS } from "../config/authority/corpus.mjs";
+import { buildBoard, boardErrors, progress } from "../src/fboard/board.mjs";
+import { productionAuditStore } from "../src/audit-trail/wiring.mjs";
+
+const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+const board = () => buildBoard(CAPABILITIES, DECLARED);
+
+test("F-TEXT · P9 · a routed text caller kept its MIXED line endings byte for byte — the one bare LF survives beside the CRLF lines", () => {
+  /* bin/quote-match.mjs held 115 CRLF lines and ONE bare LF before it was routed (origin/main 2c7e6e1). A normalising
+   * edit would have rewritten every line; the byte-preserving edit touched only its anchors. Measured on the file. */
+  // The committed BLOB, not the checkout: a checkout's line endings depend on the machine, the blob's do not.
+  const b = execFileSync("git", ["-C", REPO, "show", "HEAD:bin/quote-match.mjs"]);
+  let crlf = 0, bare = 0;
+  for (let i = 0; i < b.length; i += 1) if (b[i] === 10) { if (i > 0 && b[i - 1] === 13) crlf += 1; else bare += 1; }
+  assert.equal(bare, 1, `the file now holds ${bare} bare LF line(s) — its line endings were normalised`);
+  assert.ok(crlf >= 115, `only ${crlf} CRLF lines remain`);
+});
+
+test("F-BOARD · F08 is VERIFIED-PASS by FAILED → IN-PROGRESS → VERIFIED-PASS; the board reads 2/89; F05, F40 and F08's history are unchanged", () => {
+  const b = board();
+  assert.deepEqual(boardErrors(b, { capabilities: CAPABILITIES, acceptances: ACCEPTANCES, authority: { records: AUTHORITY_CORPUS, now: "2026-09-23" } }), []);
+  const p = progress(b);
+  assert.deepEqual(p.split, { UNASSESSED: 86, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 0, "BLOCKED-BY-AUTHORITY": 1, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 2 });
+  assert.equal(p.passed, 2);
+  assert.equal(p.total, 89);
+  assert.equal(DECLARED.F05.state, "VERIFIED-PASS");
+  assert.equal(DECLARED.F40.state, "BLOCKED-BY-AUTHORITY");
+  const f08 = DECLARED.F08;
+  assert.equal(f08.state, "VERIFIED-PASS");
+  const kinds = f08.events.map((e) => `${e.kind}@${e.on}`);
+  // History is immutable: the first verification and the contradiction that reopened it are still there, in order.
+  assert.deepEqual(kinds.slice(0, 4), ["ACCEPTANCE_FROZEN@2026-09-22", "IMPLEMENTATION@2026-09-22", "VERIFIED@2026-09-22", "CONTRADICTORY_EVIDENCE_RECORDED@2026-09-22"]);
+  const [repair, verified] = f08.events.slice(4);
+  assert.deepEqual([repair.kind, repair.from, repair.to, repair.on], ["IMPLEMENTATION", "FAILED", "IN-PROGRESS", "2026-09-23"]);
+  assert.deepEqual([verified.kind, verified.from, verified.to, verified.on, verified.featureId, verified.population], ["VERIFIED", "IN-PROGRESS", "VERIFIED-PASS", "2026-09-23", "F08", "REAL"]);
+  assert.equal(f08.events.length, 6);
+  // 🔴 The target-aware ruling (§12): the historical changeKind vocabulary is NOT used by the new movements.
+  for (const e of [repair, verified]) assert.ok(!Object.hasOwn(e, "changeKind"), `${e.kind} carries the historical changeKind vocabulary`);
+  assert.ok(repair.reason && verified.reason, "a movement without a stated reason");
+  assert.deepEqual(verified.acceptanceUnchanged, { ruling: ACCEPTANCES.F08.ruling.sha256, contract: ACCEPTANCES.F08.contractSha256 });
+});
+
+test("F-TRAIL · both 23 September movements are BOARD_TRANSITION events in the production trail — and the chain verifies", () => {
+  const events = readFileSync(join(REPO, "audit-trail/events.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
+  const moved = events.filter((e) => e.eventType === "BOARD_TRANSITION" && e.metadata?.featureId === "F08" && e.occurredAt.startsWith("2026-09-23"));
+  assert.deepEqual(moved.map((e) => [e.action, e.metadata.from, e.metadata.to]).sort(), [["IMPLEMENTATION", "FAILED", "IN-PROGRESS"], ["VERIFIED", "IN-PROGRESS", "VERIFIED-PASS"]]);
+  for (const e of moved) {
+    assert.equal(e.authorityRef.propositionId, ACCEPTANCES.F08.authority.propositionId);
+    assert.equal(e.migration, true, "a declared board event is recorded as migrated, never as natively observed");
+    assert.equal(e.metadata.changeKind, "", "the historical changeKind vocabulary reached the trail");
+  }
+  const v = productionAuditStore({ repo: REPO, forbiddenSubstrings: [] }).verify();
+  assert.equal(v.ok, true, `the production chain does not verify: ${JSON.stringify(v.findings)}`);
+  // CONTROL — the same filter does find the 22 September movements, so an empty result above could not pass.
+  assert.ok(events.some((e) => e.eventType === "BOARD_TRANSITION" && e.metadata?.featureId === "F08" && e.action === "CONTRADICTORY_EVIDENCE_RECORDED"));
+});

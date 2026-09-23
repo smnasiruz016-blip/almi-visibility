@@ -30,6 +30,9 @@ import { join } from "node:path";
 
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedStoreAppend } from "../src/governance/governed-run.mjs";
+import { isoSeconds } from "../src/audit-trail/store.mjs";
 
 import { EXACT_DUPLICATE, THIN_CONTENT, NEAR_DUPLICATE, TEMPLATE_DOMINANCE, RECOMMENDATION_FIELDS } from "../src/audit/content-checks.mjs";
 import { measure, SHELL_DEFINITION, THIN_UNIQUE_WORD_FLOOR } from "../src/audit/shell.mjs";
@@ -47,6 +50,8 @@ const CRAWL = arg("crawl", batchFile("first-real-crawl-2026-09-12.jsonl"));
  * evidence on 14 September when a writer was run only to read a number. */
 const OUT = confineToRepo(arg("out", `${REPO}runs/audit/supply-labels.jsonl`), { label: "--out" });
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
+const RUN_INSTANT = isoSeconds(Date.now());
+const RUN_CORRELATION = `run:supply-labels:${RUN_INSTANT}`;
 
 /* ---- the corpus ---------------------------------------------------------- */
 
@@ -180,10 +185,23 @@ for (const f of findings) {
  * A re-run now adds a re-sighting per finding it has already stored. */
 const store = createJsonlStore(OUT);
 const writes = { appended: 0, resighted: 0, wouldWrite: 0 };
-for (const f of findings) {
-  const w = permission.mayWrite ? store.appendIfNew(f, { seenAt: openedAt }) : null;
-  if (w) writes[w.appended ? "appended" : "resighted"] += 1;
-  else writes.wouldWrite += 1;
+/* ONE governed decision for the whole set: the write law decides once per run whether this store may be written.
+ * The store still decides appended-versus-re-sighting per finding, and its answer is still reported — routing may
+ * not cost the operator information the run was already giving them. */
+if (findings.length) {
+  const args = governedStoreAppend({
+    repo: REPO, permission, store, records: findings, targetClass: "RUN_EVIDENCE",
+    action: "APPEND_SUPPLY_LABEL_FINDINGS", occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
+    discipline: "APPEND_IF_NEW", seenAt: openedAt,
+  });
+  const governed = executeGovernedWrite(args);
+  if (governed.outcome === "REFUSED") writes.wouldWrite = findings.length;
+  else if (governed.outcome === "COMMITTED" || governed.outcome === "ALREADY_COMMITTED") {
+    for (const w of args.adapter.result ?? []) writes[w?.appended ? "appended" : "resighted"] += 1;
+  } else {
+    console.error(`🔴 ${governed.outcome} — the findings were not written; the governed attempt is on the audit trail`);
+    process.exitCode = 1;
+  }
 }
 if (!permission.mayWrite) console.log(`[dry-run] would have written ${writes.wouldWrite} finding(s) → ${OUT} — nothing written, --confirm to write`);
 

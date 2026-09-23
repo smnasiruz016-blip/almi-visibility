@@ -22,6 +22,9 @@ import { join } from "node:path";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { collect, buildMarkdown, buildJson, buildCsv } from "../src/export/build.mjs";
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../src/governance/governed-run.mjs";
+import { isoSeconds } from "../src/audit-trail/store.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n, d) => {
@@ -33,6 +36,8 @@ const storePath = arg("store", `${REPO}runs/evidence/evidence.jsonl`);
 // 🔴 Confined BEFORE the store is read: a destination outside this repository is refused while nothing has happened.
 const outDir = confineToRepo(arg("out", `${REPO}runs/export`), { label: "--out" });
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
+const RUN_INSTANT = isoSeconds(Date.now());
+const RUN_CORRELATION = `run:export:${RUN_INSTANT}`;
 
 if (!existsSync(storePath)) {
   console.error(`no evidence store at ${storePath} — run bin/gsc-ingest.mjs first`);
@@ -47,14 +52,19 @@ const files = [
   ["evidence.json", buildJson(c)],
   ["estate.csv", buildCsv(c)],
 ];
-if (permission.mayWrite) {
-  if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
-  for (const [name, body] of files) {
-    writeFileSync(join(outDir, name), body, "utf8");
-    console.log(`written: ${join(outDir, name)}  (${Buffer.byteLength(body, "utf8")} bytes)`);
-  }
-} else {
-  for (const [name, body] of files) console.log(`[dry-run] would have written: ${join(outDir, name)}  (${Buffer.byteLength(body, "utf8")} bytes) — nothing written, --confirm to write`);
+/* Three targets, three governed occurrences — one decision each, allowed or refused, each on the trail. The
+ * directory is created by the boundary's own prepare step, so the bare mkdir site is gone rather than gated. */
+for (const [name, body] of files) {
+  const where = join(outDir, name);
+  const size = `(${Buffer.byteLength(body, "utf8")} bytes)`;
+  const governed = executeGovernedWrite(governedFileWrite({
+    repo: REPO, permission, target: where, targetClass: "RUN_EVIDENCE", bytes: body,
+    action: `EXPORT_${name.replace(/[^A-Za-z0-9]+/g, "_").toUpperCase()}`,
+    occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
+  }));
+  if (governed.outcome === "REFUSED") console.log(`[dry-run] would have written: ${where}  ${size} — nothing written, --confirm to write`);
+  else if (governed.outcome === "COMMITTED" || governed.outcome === "ALREADY_COMMITTED") console.log(`written: ${where}  ${size} [${governed.outcome}]`);
+  else { console.error(`🔴 ${governed.outcome} — ${where} was not written; the governed attempt is on the audit trail`); process.exitCode = 1; }
 }
 
 console.log("");

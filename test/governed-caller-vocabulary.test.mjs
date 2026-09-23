@@ -100,6 +100,10 @@ test("V5 · §3 CONTROL 3 — a NON-audit caller that claims the audit-store exe
     "an audit-store writer handed an ordinary store": 'import { recordCandidates, writeGateEvent } from "../src/audit-trail/recorder.mjs";\nimport { createJsonlStore } from "../src/evidence/store.mjs";\nconst ev = writeGateEvent({});\nrecordCandidates({ store: createJsonlStore("runs/x.jsonl"), candidates: [] });\n',
     "a real audit store PLUS a durable write": 'import { writeFileSync } from "node:fs";\nimport { recordCandidates, writeGateEvent } from "../src/audit-trail/recorder.mjs";\nimport { productionAuditStore } from "../src/audit-trail/wiring.mjs";\nconst ev = writeGateEvent({});\nrecordCandidates({ store: productionAuditStore({ repo: "." }), candidates: [] });\nwriteFileSync("runs/x.json", "{}");\n',
     "an exemption DECLARED in a comment": '// CHECKED_AUDIT_STORE_EXEMPTION — audit-store internal write\nimport { writeFileSync } from "node:fs";\nwriteFileSync("runs/x.json", "{}");\n',
+    /* The dangerous one: a caller that ALSO reaches the boundary needs no file-level condition A for an audit-store
+     * site, so only the site rule stands between an arbitrary `.store` and a routed verdict. */
+    "a ROUTED caller whose audit-store writer is handed an arbitrary `.store`": 'import { executeGovernedWrite } from "../src/governance/governed-write.mjs";\nimport { recordCandidates } from "../src/audit-trail/recorder.mjs";\nexecuteGovernedWrite(x);\nrecordCandidates({ store: other.store, candidates: [] });\n',
+    "an arbitrary `.store` property handed in as the audit store": 'import { recordCandidates, writeGateEvent } from "../src/audit-trail/recorder.mjs";\nconst ev = writeGateEvent({});\nrecordCandidates({ store: other.store, candidates: [] });\n',
     "<x>.audit.store where <x> is not a governed helper": 'import { recordCandidates, writeGateEvent } from "../src/audit-trail/recorder.mjs";\nconst ctx = somethingElse();\nconst ev = writeGateEvent({});\nrecordCandidates({ store: ctx.audit.store, candidates: [] });\n',
     "the write-gate event AFTER the mutation": 'import { recordCandidates, writeGateEvent } from "../src/audit-trail/recorder.mjs";\nimport { productionAuditStore } from "../src/audit-trail/wiring.mjs";\nrecordCandidates({ store: productionAuditStore({ repo: "." }), candidates: [] });\nconst ev = writeGateEvent({});\n',
   };
@@ -133,6 +137,10 @@ test("V6 · the SITE rule, both directions, on fixed inputs — constructor, col
     const got = sites.map((s) => classifySite(text, s).cls);
     assert.ok(got.includes(want), `${label}: expected ${want}, got ${got.join(", ")}`);
   }
+  // 🔴 UNKNOWN FAILS CLOSED: a caller holding an unsettled site is counted as a bypass, never as routed or quiet.
+  const unknown = row(plant("unknown", 'import { executeGovernedWrite } from "../src/governance/governed-write.mjs";\nexecuteGovernedWrite(x);\nconst L = createCostLedger("runs/cost/l.jsonl");\nmystery(L);\n'));
+  assert.equal(unknown.callerClass, "UNKNOWN");
+  assert.equal(bypasses([unknown]).length, 1, "an UNKNOWN caller was not counted as a bypass");
   // A writer NAMED inside a string is not a use of the ledger: the census once read `ledger${…}` as one.
   const text = HEAD + 'import { executeGovernedWrite } from "../src/governance/governed-write.mjs";\nconst ledger = createCostLedger("runs/cost/l.jsonl");\nconsole.log(`ledger${permission.mayWrite ? "" : " [dry-run]"}`);\nexecuteGovernedWrite(governedStoreAppend({\n  repo: ".", permission, store: ledger, records: [],\n}));\n';
   const s = writeSitesOf(text).find((x) => /createCostLedger/.test(x.text));

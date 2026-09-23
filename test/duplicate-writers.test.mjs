@@ -89,6 +89,8 @@ const DECLARED = Object.freeze({
   "src/governance/governed-write.mjs": "store.append — the audit store's own dedupe by eventId. A saga event's identity is its idempotency key, its phase and its run, so a retry within a run recomputes the SAME id and appends nothing (IDEMPOTENT_RETRY); a conflicting duplicate is REFUSED rather than merged",
   "src/governance/durability-adapters.mjs": "the two durability profiles are the ONE place a governed mutation touches the filesystem, and the boundary dedupes BEFORE either of them runs: inspect(idempotencyKey) returns ALREADY_COMMITTED and the adapter is never invoked, so a retry performs no second append and no second rename",
   "src/governance/governed-run.mjs": "store.append — the same audit-store primitive, wrapped only to label a confined test store's events SYNTHETIC_TEST_FIXTURE. It opens no write path of its own and adds no record the wrapped store would not have written",
+  /* 🔴 F08 §6 (23 September 2026) — the shared guards' durable sink. One event per DECISION, never per retry. */
+  "src/governance/guard-audit.mjs": "store.append — the audit store's own dedupe by eventId, over an identity of this run, this instant and the sink's decision SEQUENCE: two decisions are two events, and a replayed append of the same decision returns IDEMPOTENT_RETRY",
 });
 
 test("🔴 CENSUS (source): every record writer is guarded or declared with a checked reason — ZERO unexplained bare appends", () => {
@@ -108,6 +110,8 @@ test("🔴 CENSUS (source): every record writer is guarded or declared with a ch
   assert.match(auditStore, /const existing = events\.find\(\(e\) => e\.eventId === event\.eventId\);/);
   assert.match(auditStore, /return \{ status: "IDEMPOTENT_RETRY", event: existing, appended: false \};/);
   assert.match(auditStore, /EVENT_ID_CONFLICT/);
+  // The guard sink's claim, checked: it appends with an explicit identity carrying the decision sequence.
+  assert.match(readFileSync(`${REPO}src/governance/guard-audit.mjs`, "utf8"), /const identity = \{[^}]*guardDecisionSeq: this\.emitted \+ 1 \};\n\s*const r = store\.append\(draft, \{ identity \}\);/);
 });
 
 test("🔴 CONTROL: the source census FIRES on a bare append, and a directory check is NOT mistaken for a guard", () => {

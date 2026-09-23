@@ -15,7 +15,7 @@ import { join } from "node:path";
 import { readUnsealed, SealedPathRefused } from "../src/governance/sealed-paths.mjs";
 import { observedDataExemption, contentHashOf } from "../src/governance/evidence-roles.mjs";
 import { diagnosticGuardSink, durableGuardSink, guardAuthority, requireGuardSink, resourceRef, GUARD_METADATA_KEYS, GUARD_AUTHORITY } from "../src/governance/guard-audit.mjs";
-import { governedGuardSink, resolveAuditStoreLocation } from "../src/governance/governed-run.mjs";
+import { governedGuardSink, governedAuditContext, resolveAuditStoreLocation } from "../src/governance/governed-run.mjs";
 import { guardEmitsOnEveryDecision } from "../tools/decision-site-census.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
 
@@ -160,6 +160,21 @@ test("G9 · DURABLE inside a governed run: the refusal is appended to the CONFIN
   assert.equal(ev.metadata.evidenceClass, "SYNTHETIC_TEST_FIXTURE", "a test's guard event could be counted as real evidence");
   assert.deepEqual(leaks([ev], SEALED_PATH, "secret-name-7c1f"), []);
   assert.deepEqual(prodHashes(), PROD_BEFORE, "the production trail changed");
+});
+
+test("G9b · TWO decisions in the SAME second are TWO durable events — the store's default identity would have merged or refused them", () => {
+  const loc = resolveAuditStoreLocation({ repo: REPO });
+  const fixed = () => "2026-09-23T12:00:00Z";
+  const events = () => (existsSync(loc.eventsPath) ? readFileSync(loc.eventsPath, "utf8").trim().split("\n").filter(Boolean).length : 0);
+  assert.equal(loc.synthetic, true, "not a verified test context — this would write production");
+  const auth = guardAuthority({ now: "2026-09-23" });
+  const sink = durableGuardSink({ store: governedAuditContext({ repo: REPO }).store, actor: "t", softwareVersion: "engine:test", correlationId: `run:g9b:${process.pid}:${Date.now()}`, ...auth, clock: fixed });
+  const before = events();
+  for (const p of [SEALED_PATH, `${SEALED_PREFIX}other.json`]) assert.throws(() => readUnsealed({ registry: REG, root: "t", base: "/b", path: p, read: () => "", audit: sink }), (e) => e instanceof SealedPathRefused);
+  observedDataExemption({ registry: REG, root: "t", path: "data/observed.jsonl", read: () => PAYLOAD, audit: sink });
+  observedDataExemption({ registry: REG, root: "t", path: "data/unregistered.jsonl", read: () => PAYLOAD, audit: sink });
+  assert.equal(events() - before, 4, "decisions made in the same second were merged or lost");
+  assert.equal(sink.emitted, 4);
 });
 
 test("G10 · the guards' authority resolves LIVE and fails closed — an unknown proposition is refused, not defaulted", () => {

@@ -110,7 +110,15 @@ export function durableGuardSink({ store, actor, softwareVersion, correlationId,
     emitted: 0,
     emit(decision) {
       checkDecision(decision);
-      const r = store.append(guardEventDraft(decision, { actor, softwareVersion, correlationId, authorityRef, authorityHash, occurredAt: clock() }));
+      const draft = guardEventDraft(decision, { actor, softwareVersion, correlationId, authorityRef, authorityHash, occurredAt: clock() });
+      /* 🔴 ONE EVENT PER DECISION — SO EACH DECISION GETS ITS OWN IDENTITY (found 23 September, before it shipped).
+       * The store's default identity ignores metadata and resolves time to the second. Two sealed refusals in one
+       * second would have derived the SAME eventId: identical content returns IDEMPOTENT_RETRY and the second decision
+       * vanishes; different content (two artefacts) is EVENT_ID_CONFLICT and the guard fails. The identity is this
+       * run, this instant and this sink's decision sequence — so two decisions are two events, while a replayed
+       * append of the SAME decision still dedupes by eventId in the store. */
+      const identity = { eventType: draft.eventType, action: draft.action, occurredAt: draft.occurredAt, correlationId, guardDecisionSeq: this.emitted + 1 };
+      const r = store.append(draft, { identity });
       this.emitted += 1;
       return r;
     },

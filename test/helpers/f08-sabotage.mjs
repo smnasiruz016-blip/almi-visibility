@@ -336,7 +336,7 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("\\").join
   console.log(`\n${run.results.length} sabotage(s) · ${run.results.length - bad} proved · ${bad} NOT proved · residue ${run.residue.length} · production untouched ${run.productionUntouched}`);
   if (outArg) {
     const head = execFileSync("git", ["-C", REPO, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-    writeFileSync(join(REPO, outArg), renderEvidence(run, { title: "F08 SABOTAGE EVIDENCE — the established set, re-run (§10)", head }));
+    writeFileSync(join(REPO, outArg), renderEvidence(run, { title: "F08 SABOTAGE EVIDENCE — the established set re-run, and the completion set (§10)", head }));
     console.log(`evidence written: ${outArg}`);
   }
   process.exit(bad === 0 && run.residue.length === 0 && run.productionUntouched ? 0 : 1);

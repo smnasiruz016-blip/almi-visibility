@@ -13,6 +13,9 @@
  */
 
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedStoreAppend } from "../src/governance/governed-run.mjs";
+import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { createCostLedger, formatLedgerLine } from "../src/cost/ledger.mjs";
 import { createPaidProviderGate, createKillSwitch, createFakePaidProvider, PaidCallRefused, REFUSAL_CODES } from "../src/cost/paid-provider-gate.mjs";
 
@@ -26,9 +29,35 @@ const ledgerArg = argv.find((a) => a.startsWith("--ledger="))?.slice("--ledger="
 const LEDGER = confineToRepo(ledgerArg ?? `${REPO}runs/cost/ledger.jsonl`, { label: ledgerArg === undefined ? "the cost ledger" : "--ledger" });
 const LEDGER_SHOWN = ledgerArg === undefined ? "runs/cost/ledger.jsonl" : LEDGER;
 
-/* Dry run: an in-memory ledger with the same two verbs. --confirm: the real one. */
+/* 🔴 ROUTED, AND THE GATE STILL SEES A LEDGER. The paid-provider gate appends one refusal entry per refusal, as
+ * it goes, and reads the ledger back to enforce caps and budgets. So the gate keeps a ledger-shaped object that
+ * COLLECTS; the run then makes ONE governed decision about writing the collected entries to the real file, which
+ * is what the write law actually decides — once per run, not once per refusal.
+ *
+ * The dry run is unchanged in substance: nothing is written, and the real file is not even READ, so `traced` below
+ * still counts against the in-memory entries exactly as before. */
 const memory = [];
-const ledger = permission.mayWrite ? createCostLedger(LEDGER) : { append: (e) => memory.push(e), readAll: () => [...memory] };
+const realLedger = createCostLedger(LEDGER);
+const ledger = {
+  path: LEDGER,
+  append: (e) => { memory.push(e); return { appended: true, entry_id: e.entry_id }; },
+  /* 🔴 DEDUPED BY entry_id, AND THAT IS NOT TIDINESS. Once the governed write commits, an entry is in BOTH the
+   * real ledger and this run's collected list, and a plain concatenation counted every refusal twice — the run's
+   * own trace check reported "10 of 5" and correctly failed. Before the commit, only the collected list has them,
+   * so the same expression is right on both sides of the write. */
+  readAll: () => {
+    const seen = new Set();
+    const out = [];
+    for (const e of [...(permission.mayWrite ? realLedger.readAll() : []), ...memory]) {
+      if (e?.entry_id !== undefined) {
+        if (seen.has(e.entry_id)) continue;
+        seen.add(e.entry_id);
+      }
+      out.push(e);
+    }
+    return out;
+  },
+};
 
 const NAME = "fake-paid-provider";
 const fake = createFakePaidProvider({ name: NAME, pricePerCall: { amount: 0.4, currency: "USD" } });
@@ -60,6 +89,20 @@ await attempt("4b · first call, inside a budget of 0.5 USD", budgeted);
 await attempt("4b · second call, past the budget of 0.5 USD", budgeted);
 killSwitch.flip({ by: "owner (fake provider exercise)", reason: "item 47 — the kill switch exercised", at: new Date().toISOString() });
 await attempt("3 · a fully authorized call after the kill switch was flipped", gateWith([authorization()]));
+
+/* ONE governed decision for the run's refusal entries. The cost ledger SKIPS a duplicate entry_id and writes
+ * nothing, so the expected line count is asked of that discipline rather than assumed to be the entry count. */
+const LEDGER_INSTANT = isoSeconds(Date.now());
+const ledgerGoverned = executeGovernedWrite(governedStoreAppend({
+  repo: REPO, permission, store: realLedger, records: memory, targetClass: "RUN_EVIDENCE",
+  action: "APPEND_PAID_PROVIDER_REFUSAL_ENTRIES", occurredAt: LEDGER_INSTANT,
+  correlationId: `run:paid-provider-controls:${LEDGER_INSTANT}`,
+  discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null,
+}));
+if (ledgerGoverned.outcome !== "REFUSED" && ledgerGoverned.outcome !== "COMMITTED" && ledgerGoverned.outcome !== "ALREADY_COMMITTED") {
+  console.error(`🔴 ${ledgerGoverned.outcome} — the refusal entries were not written; the governed attempt is on the audit trail`);
+  process.exit(1);
+}
 
 for (const r of results) console.log(`  ${r.label}\n     → ${r.outcome}`);
 const refused = results.filter((r) => r.entry);

@@ -25,6 +25,9 @@ import { readFileSync } from "node:fs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { makeObservation, makeIssue } from "../src/evidence/records.mjs";
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedStoreAppend } from "../src/governance/governed-run.mjs";
+import { isoSeconds } from "../src/audit-trail/store.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n, d) => {
@@ -72,13 +75,16 @@ for (const line of text.split(/\r?\n/)) {
 }
 
 const store = createJsonlStore(OUT);
+/* Routed: observations and issues are COLLECTED here and committed as two governed decisions below — one per
+ * kind, because they are genuinely different writes, not because the boundary wants two. */
+const pendingObservations = [];
+const pendingIssues = [];
 
 function observe(factId) {
   const line = rawLine.get(factId);
   if (!line) throw new Error(`no verdict row for ${factId} — refusing to invent one`);
   if (!permission.mayWrite) wouldWrite.observations += 1;
-  return (permission.mayWrite ? store.appendIfNew : (r) => ({ observation_id: r.observation_id }))(
-    makeObservation({
+  const observation = makeObservation({
       observed_at: `${CHECKED_ON}T00:00:00.000Z`,
       /* 🔴 The method names the chain of custody. Not "fetch": nothing was
        * fetched. A later reader must be able to tell these apart. */
@@ -88,8 +94,10 @@ function observe(factId) {
       value: { fact_id: factId, verdict: byId.get(factId).verdict, note: byId.get(factId).note, verifier: VERIFIER },
       collector: "verification-issues",
       collector_version: "1",
-    }),
-  ).observation_id;
+  });
+  pendingObservations.push(observation);
+  /* The same value this returned before: the id of the observation this run stands on. */
+  return observation.observation_id;
 }
 
 /**
@@ -106,7 +114,11 @@ function appendIssueIfNew(issue) {
    * gate the run, but `tools/permitted-writers.mjs` reads the enclosing condition of each site —
    * a gate it cannot see is the shape this slot exists to close, so the site names the gate. */
   if (!permission.mayWrite) wouldWrite.issues += 1;
-  return permission.mayWrite ? store.appendIfNew(issue, { seenAt: `${CHECKED_ON}T00:00:00.000Z` }) : { appended: false, issue_id: issue.issue_id, dryRun: true };
+  /* The slot is returned NOW and filled at the flush below, so the report still reads the store's own answer —
+   * appended, or already present and re-sighted — without this file deciding it for itself. */
+  const slot = { appended: false, issue_id: issue.issue_id, ...(permission.mayWrite ? {} : { dryRun: true }) };
+  pendingIssues.push({ issue, slot });
+  return slot;
 }
 
 /* ================================================================== *
@@ -174,6 +186,27 @@ const issue2 = makeIssue({
   detector_version: "1",
 });
 const r2 = appendIssueIfNew(issue2);
+
+/* ---- the two governed writes, before anything is reported ---------------- */
+
+const RUN_INSTANT = isoSeconds(Date.now());
+const RUN_CORRELATION = `run:verification-issues:${RUN_INSTANT}`;
+const SEEN_AT = `${CHECKED_ON}T00:00:00.000Z`;
+for (const [records, action] of [[pendingObservations, "APPEND_VERIFICATION_OBSERVATIONS"], [pendingIssues.map((p) => p.issue), "APPEND_VERIFICATION_ISSUES"]]) {
+  const args = governedStoreAppend({
+    repo: REPO, permission, store, records, targetClass: "RUN_EVIDENCE",
+    action, occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
+    discipline: "APPEND_IF_NEW", seenAt: SEEN_AT,
+  });
+  const governed = executeGovernedWrite(args);
+  if (governed.outcome !== "REFUSED" && governed.outcome !== "COMMITTED" && governed.outcome !== "ALREADY_COMMITTED") {
+    console.error(`🔴 ${governed.outcome} — ${action} was not written; the governed attempt is on the audit trail`);
+    process.exit(1);
+  }
+  if (action === "APPEND_VERIFICATION_ISSUES") {
+    (args.adapter.result ?? []).forEach((r, i) => { pendingIssues[i].slot.appended = Boolean(r?.appended); });
+  }
+}
 
 /* ---- report -------------------------------------------------------------- */
 

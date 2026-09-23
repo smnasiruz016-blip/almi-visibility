@@ -309,7 +309,11 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
   },
   {
     file: "bin/verification-issues.mjs",
-    sites: 1,
+    /* 🔴 ROUTED (23 September 2026). Observations and issues are collected and committed as two governed
+     * decisions — one per kind, because they are genuinely different writes. The store still decides
+     * appended-versus-re-sighted, and the report still prints its answer. */
+    routed: true,
+    sites: 0,
     writes: "the issues a human verification returned, each citing an observation of the VERDICT ROW we hold — never of a page we did not fetch",
     where: `runs/audit/verification-issues.jsonl by default, or the file given by --out; ${CONFINED}`,
     gatedBy: "write-law LOCAL: the append sits behind permission.mayWrite, which only --confirm grants. With no flag it prints every issue it would record, marked already-present or new. 🔴 Until 16 September 2026 it had NO gate",

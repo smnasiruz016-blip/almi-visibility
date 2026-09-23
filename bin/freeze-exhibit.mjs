@@ -28,6 +28,9 @@ import { join, dirname } from "node:path";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../src/governance/governed-run.mjs";
+import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 
 const argv = process.argv.slice(2);
 const flag = (n, d = null) => {
@@ -37,6 +40,21 @@ const flag = (n, d = null) => {
 const specPath = flag("--spec", "case-study-01/exhibits/spec.json");
 const outRoot = flag("--out", "case-study-01/exhibits");
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv, env: process.env }));
+const FREEZE_INSTANT = governedInstant(Date.now());
+const FREEZE_CORRELATION = `run:freeze-exhibit:${FREEZE_INSTANT}`;
+/* One governed write per target. The bare mkdirs are gone: each write's prepare step creates its directory. A
+ * Buffer is hashed RAW and a string by the text rule — the rule is chosen by what is handed in, never assumed. */
+const freezeWrite = (target, bytes, action) => {
+  const governed = executeGovernedWrite(governedFileWrite({
+    repo: REPO, permission, target, targetClass: "OPERATOR_CHOSEN_OUTPUT", bytes,
+    action, occurredAt: FREEZE_INSTANT, correlationId: FREEZE_CORRELATION,
+  }));
+  if (governed.outcome !== "REFUSED" && governed.outcome !== "COMMITTED" && governed.outcome !== "ALREADY_COMMITTED") {
+    console.error(`🔴 ${governed.outcome} — ${target} was not written; the governed attempt is on the audit trail`);
+    process.exitCode = 1;
+  }
+  return governed.outcome;
+};
 
 if (!existsSync(specPath)) {
   console.error(`spec not found: ${specPath}`);
@@ -94,10 +112,9 @@ for (const ex of spec.exhibits) {
   for (const path of ex.files) {
     const buf = showFile(ex.repoPath, ex.commit, path);
     const target = join(dir, "files", path);
-    if (permission.mayWrite) {
-      mkdirSync(dirname(target), { recursive: true });
-      writeFileSync(target, buf);
-    }
+    /* Routed. 🔴 BINARY — `buf` is the file's bytes as git holds them, so it is hashed RAW and never decoded;
+     * applying the text rule to an exhibit would change the hash of bytes that never changed. */
+    freezeWrite(target, buf, "WRITE_EXHIBIT_FILE");
     provenance.files.push({ path, bytes: buf.length, sha256: sha256(buf) });
     console.log(`  ${String(buf.length).padStart(9)} B  ${sha256(buf).slice(0, 16)}  ${path}`);
   }
@@ -109,10 +126,7 @@ for (const ex of spec.exhibits) {
     const entries = listDir(ex.repoPath, ex.commit, d);
     const text = entries.join("\n") + "\n";
     const target = join(dir, "listings", `${d.replace(/[\\/]/g, "_")}.txt`);
-    if (permission.mayWrite) {
-      mkdirSync(dirname(target), { recursive: true });
-      writeFileSync(target, text, "utf8");
-    }
+    freezeWrite(target, text, "WRITE_EXHIBIT_LISTING");
     provenance.directoryListings.push({ directory: d, entries: entries.length, sha256: sha256(Buffer.from(text, "utf8")) });
     console.log(`  listing: ${d} — ${entries.length} entr${entries.length === 1 ? "y" : "ies"}`);
   }
@@ -139,10 +153,7 @@ for (const ex of spec.exhibits) {
     }
   }
 
-  if (permission.mayWrite) {
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, "provenance.json"), JSON.stringify(provenance, null, 2), "utf8");
-  }
+  freezeWrite(join(dir, "provenance.json"), JSON.stringify(provenance, null, 2), "WRITE_EXHIBIT_PROVENANCE");
   index.exhibits.push({
     id: ex.id, red: ex.red, repository: ex.repo, commit: provenance.commitShort,
     files: provenance.files.length, listings: provenance.directoryListings.length,
@@ -151,9 +162,8 @@ for (const ex of spec.exhibits) {
   if (!provenance.artefactComplete) console.log(`  🔴 ARTEFACT INCOMPLETE — ${provenance.artefactNote}`);
 }
 
-if (permission.mayWrite) {
-  writeFileSync(join(outRoot, "index.json"), JSON.stringify(index, null, 2), "utf8");
-  console.log(`\nwrote ${join(outRoot, "index.json")}`);
-} else {
-  console.log("\n[dry-run] nothing written. Add --confirm.");
+{
+  const indexOutcome = freezeWrite(join(outRoot, "index.json"), JSON.stringify(index, null, 2), "WRITE_EXHIBIT_INDEX");
+  if (indexOutcome === "REFUSED") console.log("\n[dry-run] nothing written. Add --confirm.");
+  else console.log(`\nwrote ${join(outRoot, "index.json")}`);
 }

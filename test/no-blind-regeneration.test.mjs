@@ -14,6 +14,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
+import { join } from "node:path";
+import { REPO_ROOT } from "../src/write-law.mjs";
+import { PERMITTED_PAGE_WRITERS } from "../config/permitted-page-writers.mjs";
 import { census, CATEGORIES } from "../tools/no-generation-census.mjs";
 import { targetPageId, canonicalUrl } from "../src/evidence/ids.mjs";
 import { buildInventory } from "../src/crawl/inventory.mjs";
@@ -144,21 +147,25 @@ test("🔴 CONTROL: a COMMENT describing a generator is not a generator", () => 
  *
  * Pinned so the count cannot move without somebody reading why.
  */
-test("🔴 SIX page-write sites in FIVE files — pinned, and reconciled against the register elsewhere", () => {
+test("🔴 the page-write sites are exactly the UNROUTED page writers — no magic number", () => {
   const found = census().hits.PAGE_WRITE;
-  /* 🔴 THE REVIEWED CHANGE, 23 September 2026: eight sites in seven files became six in five, because
-   * bin/profession-chain.mjs and bin/report.mjs were ROUTED through the governed-write boundary. Their writes did
-   * not stop — they moved inside the boundary, which audits the attempt and the outcome. Both remain in the page
-   * register, declared routed, so neither left the place where its gate and destination rule are recorded. */
-  assert.equal(found.length, 6, "the number of page-write sites changed — update the register and re-read item 14");
+  /* 🔴 THE PIN IS NOW A RELATIONSHIP, AND THAT IS A RE-BASE NOT A RELAXATION.
+   *
+   * This asserted eight sites, then six, and would have asserted three today and zero tomorrow — a number edited
+   * on every routing batch stops being evidence of anything. What the pin was ever for is that a page write
+   * cannot VANISH unnoticed, and that claim is made directly here: the files the census sees must be exactly the
+   * page writers that are not routed, and every routed one must really reach the boundary. A site that
+   * disappeared without its caller being routed still fails. */
+  const routed = PERMITTED_PAGE_WRITERS.filter((e) => e.routed);
+  const unrouted = PERMITTED_PAGE_WRITERS.filter((e) => !e.routed);
   const files = [...new Set(found.map((h) => h.file))].sort();
-  assert.deepEqual(files, [
-    "bin/build-corpus.mjs",
-    "bin/build-page.mjs",
-    "bin/crawl.mjs",
-    "bin/nursing-chain.mjs",
-    "bin/placement-measure.mjs",
-  ]);
+  assert.deepEqual(files, unrouted.map((e) => e.file).sort(), "the census's page writers are not exactly the unrouted ones");
+  assert.equal(found.length, unrouted.reduce((n, e) => n + e.sites, 0), "the sites found and the sites declared disagree");
+  for (const e of routed) {
+    assert.equal(e.sites, 0, `${e.file}: declared routed but still declares page-write sites`);
+    assert.match(readFileSync(join(REPO_ROOT, e.file), "utf8"), /executeGovernedWrite\(/, `${e.file}: declared routed but never reaches the boundary`);
+  }
+  assert.ok(routed.length > 0 && unrouted.length > 0, "one side of this comparison is empty, so it proves nothing");
 });
 
 test("(d) ✅ NO write names a literal path outside this repository", () => {

@@ -46,7 +46,10 @@ const CONFINED = "confined by confineToRepo: a path outside this repository is R
 export const PERMITTED_PAGE_WRITERS = Object.freeze([
   {
     file: "bin/build-corpus.mjs",
-    sites: 1,
+    /* 🔴 ROUTED (23 September 2026). One fetched page is one target, so each is its own governed occurrence; the
+     * manifest is another. The bare mkdir is gone — each write's prepare step creates its directory. */
+    routed: true,
+    sites: 0,
     writes: "copies of pages FETCHED from a live sitemap (their HTML, as served), plus a corpus manifest",
     where: `the directory given by --out (required, no default); ${CONFINED}`,
     gatedBy: "write-law LOCAL: every write sits behind permission.mayWrite, which only --confirm grants",
@@ -58,7 +61,10 @@ export const PERMITTED_PAGE_WRITERS = Object.freeze([
   },
   {
     file: "bin/build-page.mjs",
-    sites: 1,
+    /* 🔴 ROUTED (23 September 2026). Two targets per candidate — the page and its trace — each a governed
+     * occurrence, because a whole-file replacement is its own target. */
+    routed: true,
+    sites: 0,
     writes: "one candidate page rendered from the fact registry, plus its claim trace (JSON)",
     where: `the directory given by --out; without --out nothing is written; ${CONFINED}`,
     gatedBy: "write-law LOCAL: permission.mayWrite, which only --confirm grants",
@@ -95,7 +101,9 @@ export const PERMITTED_PAGE_WRITERS = Object.freeze([
   },
   {
     file: "bin/placement-measure.mjs",
-    sites: 1,
+    /* 🔴 ROUTED (23 September 2026). Both bodies are TEXT, measured, so nothing is normalised without proof. */
+    routed: true,
+    sites: 0,
     writes: "one candidate page with the shared block placed off-page, plus a placement report",
     where: `the directory given by --out; without --out nothing is written; ${CONFINED}`,
     gatedBy: "write-law LOCAL: permission.mayWrite, which only --confirm grants",

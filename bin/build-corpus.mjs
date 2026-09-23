@@ -33,6 +33,9 @@
 import { mkdirSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../src/governance/governed-run.mjs";
+import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 
 const argv = process.argv.slice(2);
 const flag = (n, d = null) => {
@@ -50,6 +53,8 @@ const MIN_SPACING_MS = Number(flag("--spacing-ms", "120"));
 const UA = "AlmiVisibility-GateA-corpus/1.0 (read-only audit of our own site)";
 
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv, env: process.env }));
+const CORPUS_INSTANT = governedInstant(Date.now());
+const CORPUS_CORRELATION = `run:build-corpus:${CORPUS_INSTANT}`;
 if (!OUT) {
   console.error("usage: node bin/build-corpus.mjs --site <url> --out <dir> --confirm [--leaf-sample 500] [--seed N]");
   process.exit(2);
@@ -137,7 +142,7 @@ let failed = 0;
 
 async function fetchGroup(name, urls) {
   const dir = join(OUT, name);
-  if (permission.mayWrite) mkdirSync(dir, { recursive: true });
+  /* The bare mkdir is gone: each governed write's prepare step creates the directory it writes into. */
   let next = 0;
   const workers = Array.from({ length: CONCURRENCY }, async () => {
     while (true) {
@@ -149,7 +154,16 @@ async function fetchGroup(name, urls) {
         const r = await get(u);
         if (r.status === 200) {
           const id = new URL(u).pathname.replace(/^\//, "").replace(/\/$/, "").split("/").join("__") || "root";
-          if (permission.mayWrite) writeFileSync(join(dir, `${id}.html`), r.body, "utf8");
+          /* Routed. One fetched page is one target, so this is per-TARGET and not per-record. */
+          const pageGoverned = executeGovernedWrite(governedFileWrite({
+            repo: REPO, permission, target: join(dir, `${id}.html`), targetClass: "OPERATOR_CHOSEN_OUTPUT",
+            bytes: r.body, action: "WRITE_CORPUS_PAGE", occurredAt: CORPUS_INSTANT,
+            correlationId: CORPUS_CORRELATION,
+          }));
+          if (pageGoverned.outcome !== "REFUSED" && pageGoverned.outcome !== "COMMITTED" && pageGoverned.outcome !== "ALREADY_COMMITTED") {
+            console.error(`🔴 ${pageGoverned.outcome} — ${id}.html was not written; the governed attempt is on the audit trail`);
+            process.exitCode = 1;
+          }
           fetched++;
         } else {
           failed++;
@@ -187,7 +201,17 @@ const manifest = {
   wallClockSeconds: Number(seconds.toFixed(1)),
   concurrency: CONCURRENCY, minSpacingMs: MIN_SPACING_MS,
 };
-if (permission.mayWrite) writeFileSync(join(OUT, "corpus-manifest.json"), JSON.stringify(manifest, null, 2), "utf8");
+{
+  const manifestGoverned = executeGovernedWrite(governedFileWrite({
+    repo: REPO, permission, target: join(OUT, "corpus-manifest.json"), targetClass: "OPERATOR_CHOSEN_OUTPUT",
+    bytes: JSON.stringify(manifest, null, 2), action: "WRITE_CORPUS_MANIFEST",
+    occurredAt: CORPUS_INSTANT, correlationId: CORPUS_CORRELATION,
+  }));
+  if (manifestGoverned.outcome !== "REFUSED" && manifestGoverned.outcome !== "COMMITTED" && manifestGoverned.outcome !== "ALREADY_COMMITTED") {
+    console.error(`🔴 ${manifestGoverned.outcome} — the corpus manifest was not written; the governed attempt is on the audit trail`);
+    process.exitCode = 1;
+  }
+}
 
 console.log(
   `\n[corpus] done — ${fetched.toLocaleString("en-US")} pages fetched, ${failed} failed, ` +

@@ -410,7 +410,11 @@ test("P15 · P22 · a CONFLICTING occurrence is refused and never overwrites the
     assert.equal(executeGovernedWrite({ permission: ALLOWED, audit, adapter: a, action: act("append", a.occurrenceFingerprint) }).outcome, "COMMITTED");
     const committed = readFileSync(join(dir, "log.jsonl"), "utf8");
 
-    const b = logAdapter(dir, "log.jsonl", { id: "r-1", value: 999 });
+    /* 🔴 THE DISAGREEING VALUE IS A SENTINEL THAT NO HASH OR TIMESTAMP CAN CONTAIN. It was the number 999, and the
+     * event is full of 64-hex hashes: "999" occurs in a random one about 1.5% of the time, so this leak check failed
+     * on a clean tree roughly one run in six — a leak detector that fires on coincidence (measured 23 Sep 2026). */
+    const SENTINEL = "DISAGREEING-VALUE-SENTINEL";
+    const b = logAdapter(dir, "log.jsonl", { id: "r-1", value: SENTINEL });
     const r = executeGovernedWrite({ permission: ALLOWED, audit, adapter: b, action: act("append", b.occurrenceFingerprint) });
     assert.equal(r.outcome, "FAILED_BEFORE_COMMIT");
     assert.equal(readFileSync(join(dir, "log.jsonl"), "utf8"), committed, "a conflicting occurrence overwrote or appended");
@@ -418,7 +422,7 @@ test("P15 · P22 · a CONFLICTING occurrence is refused and never overwrites the
     assert.equal(terminal.reasonCode, "GOVERNED_WRITE_OCCURRENCE_CONFLICT");
     // 🔴 FIELD IDENTIFIERS ONLY — a conflict report never carries the values that disagree.
     assert.equal(terminal.metadata.conflictingFields, "value");
-    assert.ok(!JSON.stringify(terminal).includes("999"), "the conflict report leaked a disagreeing VALUE");
+    assert.ok(!JSON.stringify(terminal).includes(SENTINEL), "the conflict report leaked a disagreeing VALUE");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

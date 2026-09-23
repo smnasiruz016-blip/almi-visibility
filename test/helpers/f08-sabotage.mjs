@@ -84,6 +84,15 @@ export const SABOTAGES = [
     from: '  "recordedAt", "previousEventHash", "eventHash", "migratedAt", "softwareVersion",',
     to: '  "recordedAt", "previousEventHash", "eventHash", "migratedAt",',
     expect: /still conflict across builds|the recorder's build is still part of occurrence identity|conflicting duplicate/ },
+
+  /* Added 23 Sep 2026 with the repair of P15·P22's leak check, which fired on hex coincidence. A leak check that
+   * cannot fire on a REAL leak is worth nothing, so this carries the disagreeing value into the event. */
+  { id: "S-LEAK", what: "carry a disagreeing VALUE into a conflict's audit event", test: T, named: "P15 · P22 ·",
+    edits: [
+      { file: ADAPTERS, from: '      return { state: "CONFLICTING", fields: fields.join(",") };', to: '      return { state: "CONFLICTING", fields: fields.join(","), offered: fields.map((k) => String(record[k])).join(",") };' },
+      { file: BOUNDARY, from: '      extraMetadata: { conflictingFields: String(found.fields ?? "UNNAMED") },', to: '      extraMetadata: { conflictingFields: String(found.fields ?? "UNNAMED"), offeredValues: String(found.offered ?? "") },' },
+    ],
+    expect: /the conflict report leaked a disagreeing VALUE/ },
 ];
 
 /** The artefact LAW 1 protects. Hashed as raw bytes. */
@@ -94,8 +103,10 @@ const productionHashes = () => Object.fromEntries(PRODUCTION.map((p) => [p, exis
 export const failingNames = (tap) => [...tap.matchAll(/^not ok \d+ - (.+?)(?: # .*)?$/gm)].map((m) => m[1]);
 
 export function runSabotages(list, { log = console.log } = {}) {
+  /* A sabotage is ONE edit ({file, from, to}) or several ({edits: [...]}) that together make one defect. */
+  const editsOf = (s) => s.edits ?? [{ file: s.file, from: s.from, to: s.to }];
   const originals = new Map();
-  for (const f of new Set(list.map((x) => x.file))) originals.set(f, readFileSync(join(REPO, f)));
+  for (const f of new Set(list.flatMap((x) => editsOf(x).map((e) => e.file)))) originals.set(f, readFileSync(join(REPO, f)));
   let restored = false;
   const restore = () => {
     if (restored) return;
@@ -109,16 +120,22 @@ export function runSabotages(list, { log = console.log } = {}) {
   const prodBefore = productionHashes();
   const results = [];
   for (const s of list) {
-    const path = join(REPO, s.file);
-    const original = originals.get(s.file);
-    const before = shaBytes(original);
-    const text = original.toString("utf8");
-    const count = text.split(s.from).length - 1;
-    if (count !== 1) { results.push({ ...s, verdict: `NOT RUN — the anchor occurs ${count} time(s)`, before }); continue; }
+    const edits = editsOf(s);
+    const files = [...new Set(edits.map((e) => e.file))];
+    const before = files.map((f) => shaBytes(originals.get(f))).join(",");
+    /* Apply the edits in order to an in-memory copy per file; every anchor must occur exactly once when applied. */
+    const texts = new Map(files.map((f) => [f, originals.get(f).toString("utf8")]));
+    const badAnchor = edits.map((e) => ({ e, n: texts.get(e.file).split(e.from).length - 1 })).find(({ e, n }) => {
+      if (n === 1) texts.set(e.file, texts.get(e.file).split(e.from).join(e.to));
+      return n !== 1;
+    });
+    if (badAnchor) { results.push({ ...s, file: files.join(" + "), verdict: `NOT RUN — an anchor in ${badAnchor.e.file} occurs ${badAnchor.n} time(s)`, before }); continue; }
 
-    writeFileSync(path, Buffer.from(text.split(s.from).join(s.to), "utf8"));
-    const landedBytes = readFileSync(path);
-    const landed = shaBytes(landedBytes) !== before && landedBytes.toString("utf8").includes(s.to);
+    for (const f of files) writeFileSync(join(REPO, f), Buffer.from(texts.get(f), "utf8"));
+    const landed = edits.every((e) => {
+      const now = readFileSync(join(REPO, e.file));
+      return shaBytes(now) !== shaBytes(originals.get(e.file)) && now.toString("utf8").includes(e.to);
+    });
 
     let output = "";
     try {
@@ -129,15 +146,15 @@ export function runSabotages(list, { log = console.log } = {}) {
     const namedFailed = failing.some((n) => n.startsWith(s.named));
     const reason = s.expect.test(output);
 
-    writeFileSync(path, original);
-    const after = shaBytes(readFileSync(path));
+    for (const f of files) writeFileSync(join(REPO, f), originals.get(f));
+    const after = files.map((f) => shaBytes(readFileSync(join(REPO, f)))).join(",");
     const restoredClean = after === before;
     const verdict = !landed ? "SABOTAGE DID NOT LAND"
       : failed === 0 ? "LANDED BUT GREEN — the guard is dead"
       : !namedFailed ? "RED, BUT NOT ON THE NAMED TEST"
       : !reason ? "RED ON THE NAMED TEST, FOR THE WRONG REASON"
       : "RED, named test, intended reason";
-    results.push({ ...s, landed, failed, failing, namedFailed, reason, before, after, restoredClean, verdict });
+    results.push({ ...s, file: files.join(" + "), landed, failed, failing, namedFailed, reason, before, after, restoredClean, verdict });
     log(`  ${verdict.startsWith("RED, named") && restoredClean ? "ok  " : "🔴  "} ${s.id.padEnd(7)} failed=${String(failed).padStart(2)} ${verdict}`);
   }
   restore();

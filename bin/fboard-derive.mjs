@@ -13,6 +13,9 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../src/governance/governed-run.mjs";
+import { isoSeconds } from "../src/audit-trail/store.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const OUT = confineToRepo(`${REPO}config/fboard/capabilities.mjs`, { label: "the generated capability rows" });
@@ -59,8 +62,19 @@ if (process.argv[1] && process.argv[1].replace(/\\/g, "/").endsWith("bin/fboard-
   console.log(`derived ${rows.length} capability row(s), ${new Set(rows.map((r) => r.id)).size} unique — ${OUT} is ${fresh ? "UP TO DATE" : "STALE"}`);
   // write-law LOCAL: only --confirm grants the write; without it the run derives, compares and reports
   const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
-  if (permission.mayWrite) {
-    if (!fresh) writeFileSync(OUT, text, "utf8");
-    console.log(fresh ? "nothing to write" : "written");
+  /* Routed. TEXT, measured: `text` comes from render(rows). The freshness short-circuit is preserved by the
+   * boundary itself: when the target already carries these exact bytes, inspect() returns ALREADY_COMMITTED and no
+   * rename happens — which is the same decision `!fresh` was making, now recorded rather than silent. */
+  const RUN_INSTANT = isoSeconds(Date.now());
+  const governed = executeGovernedWrite(governedFileWrite({
+    repo: new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"),
+    permission, target: OUT, targetClass: "GENERATED_CONFIG", bytes: text,
+    action: "GENERATE_FBOARD_CAPABILITIES", occurredAt: RUN_INSTANT, correlationId: `run:fboard-derive:${RUN_INSTANT}`,
+  }));
+  if (governed.outcome === "COMMITTED") console.log("written");
+  else if (governed.outcome === "ALREADY_COMMITTED") console.log("nothing to write");
+  else if (governed.outcome !== "REFUSED") {
+    console.error(`🔴 ${governed.outcome} — ${OUT} was not written; the governed attempt is on the audit trail`);
+    process.exit(1);
   }
 }

@@ -197,7 +197,10 @@ export const KNOWN_UNGATED_WRITERS = Object.freeze([]);
 export const PERMITTED_LOCAL_WRITERS = Object.freeze([
   {
     file: "bin/facts-lifecycle.mjs",
-    sites: 2,
+    /* 🔴 ROUTED (23 September 2026). TEXT content, measured. The bare mkdir is gone rather than gated — the
+     * boundary's prepare step creates the directory it writes into. */
+    routed: true,
+    sites: 0,
     writes: "the fact registry exported for VERIFICATION as one CSV — the list of questions a verifier must answer, never the answers",
     where: `runs/export/facts-for-verification.csv by default — a tracked EVIDENCE file (.gitattributes runs/**) — or the file given by --out; ${CONFINED}`,
     gatedBy: "write-law LOCAL: the directory and the file sit behind permission.mayWrite, which only --confirm grants. Every figure — conflict, freshness, the dependency walk, changed inputs, the cache — prints with no flag. 🔴 Until 15 September 2026 it wrote on EVERY run, and on 14 September a run made to read one number rewrote committed evidence",
@@ -357,7 +360,11 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
    * STALE. Found by this census the moment they were tracked; gated the same day rather than declared ungated. */
   {
     file: "bin/fboard-derive.mjs",
-    sites: 1,
+    /* 🔴 ROUTED (23 September 2026). Its `!fresh` short-circuit is now the boundary's own: when the target already
+     * carries these exact bytes, inspect() returns ALREADY_COMMITTED and no rename happens — the same decision,
+     * recorded instead of silent. */
+    routed: true,
+    sites: 0,
     writes: "config/fboard/capabilities.mjs — F01–F89, derived line by line from the committed specification extract, each row pinned to its line's sha256",
     where: "config/fboard/capabilities.mjs — a fixed path inside this repository, no operator flag; a GENERATED file, not evidence",
     gatedBy: "write-law LOCAL: permission.mayWrite, which only --confirm grants. Without it the run derives every row and reports whether the committed file is UP TO DATE or STALE",
@@ -369,7 +376,9 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
   },
   {
     file: "bin/fboard-crosswalk.mjs",
-    sites: 1,
+    /* 🔴 ROUTED (23 September 2026). The --check exit code is preserved exactly. */
+    routed: true,
+    sites: 0,
     writes: "config/fboard/crosswalk.mjs — one entry per F-row with its acceptance relation, and the historical ledger's rows as provenance only",
     where: "config/fboard/crosswalk.mjs — a fixed path inside this repository, no operator flag; a GENERATED file, not evidence",
     gatedBy: "write-law LOCAL: permission.mayWrite, which only --confirm grants. Without it the run builds the crosswalk and reports UP TO DATE or STALE; --check exits 1 when stale",

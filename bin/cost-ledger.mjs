@@ -21,6 +21,9 @@ import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
+import { governedStoreAppend } from "../src/governance/governed-run.mjs";
+import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { makeObservation } from "../src/evidence/records.mjs";
 import { sha256Hex } from "../src/evidence/ids.mjs";
@@ -78,8 +81,22 @@ if (cmd === "capture-actions") {
     collector_version: "1",
   });
   console.log(`[bound: one Actions run, ${runId}] run_duration_ms=${value.run_duration_ms} billable=${JSON.stringify(value.billable)} job ${value.job.started_at} → ${value.job.completed_at}`);
-  if (!permission.mayWrite) console.log("[dry-run] not stored — add --confirm");
-  else console.log(JSON.stringify(createJsonlStore(ACTIONS).appendIfNew(obs)));
+  /* Routed. One observation, one governed decision; the store still decides appended-versus-re-sighting and the
+   * run still prints its answer. */
+  const TIMING_INSTANT = governedInstant(Date.now());
+  const timingArgs = governedStoreAppend({
+    repo: REPO, permission, store: createJsonlStore(ACTIONS), records: [obs], targetClass: "RUN_EVIDENCE",
+    action: "APPEND_ACTIONS_TIMING_OBSERVATION", occurredAt: TIMING_INSTANT,
+    correlationId: `run:cost-ledger:timing:${TIMING_INSTANT}`, discipline: "APPEND_IF_NEW",
+  });
+  const timingGoverned = executeGovernedWrite(timingArgs);
+  if (timingGoverned.outcome === "REFUSED") console.log("[dry-run] not stored — add --confirm");
+  else if (timingGoverned.outcome === "COMMITTED" || timingGoverned.outcome === "ALREADY_COMMITTED") {
+    console.log(JSON.stringify((timingArgs.adapter.result ?? [])[0]));
+  } else {
+    console.error(`🔴 ${timingGoverned.outcome} — the observation was not stored; the governed attempt is on the audit trail`);
+    process.exit(1);
+  }
   process.exit(0);
 }
 
@@ -101,12 +118,25 @@ if (cmd === "backfill") {
 
   console.log(`[bound: ${crawl.filter((r) => r.record_type === "crawl_run").length} stored crawl runs (live only are costed), ${evidence.length} evidence records, ${timings.length} Actions timing observation(s)]`);
   for (const e of entries) console.log(`  ${formatLedgerLine(e)}`);
-  if (!permission.mayWrite) {
+  /* Routed. ONE governed decision for the whole backfill — the write law decides once per run. The cost ledger
+   * SKIPS a duplicate entry_id and writes nothing, so the expected line count is asked of that discipline, and
+   * the run still reports the ledger's own appended-versus-already-present answer. */
+  const BACKFILL_INSTANT = governedInstant(Date.now());
+  const backfillArgs = governedStoreAppend({
+    repo: REPO, permission, store: createCostLedger(LEDGER), records: entries, targetClass: "RUN_EVIDENCE",
+    action: "APPEND_COST_LEDGER_BACKFILL", occurredAt: BACKFILL_INSTANT,
+    correlationId: `run:cost-ledger:backfill:${BACKFILL_INSTANT}`,
+    discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null,
+  });
+  const backfillGoverned = executeGovernedWrite(backfillArgs);
+  if (backfillGoverned.outcome === "REFUSED") {
     console.log(`\n[dry-run] ${entries.length} entries not written — add --confirm`);
+  } else if (backfillGoverned.outcome === "COMMITTED" || backfillGoverned.outcome === "ALREADY_COMMITTED") {
+    const results = backfillArgs.adapter.result ?? [];
+    console.log(`\nappended ${results.filter((r) => r?.appended).length}, already present ${results.filter((r) => !r?.appended).length}`);
   } else {
-    const ledger = createCostLedger(LEDGER);
-    const results = entries.map((e) => ledger.append(e));
-    console.log(`\nappended ${results.filter((r) => r.appended).length}, already present ${results.filter((r) => !r.appended).length}`);
+    console.error(`🔴 ${backfillGoverned.outcome} — the backfill was not written; the governed attempt is on the audit trail`);
+    process.exit(1);
   }
   process.exit(0);
 }

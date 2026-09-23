@@ -1,0 +1,73 @@
+F08 SABOTAGE EVIDENCE — the established set, re-run (§10)
+
+Engine tree: f61d2e8a1d92ddb4e7a0f3a6f01919e821016081. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
+runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
+requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
+No sabotage aims at the production audit trail; every firing case writes to a stand-in or a confined store.
+
+RESULTS
+S3       landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — mutate the target before ATTEMPTED is durable
+         target src/governance/governed-write.mjs · named test "P7 · P8 ·…" in test/governed-write.test.mjs
+         sha256 before a7942be411807031b484bad420afc1686519f25c931e4ce328fdac77a102ac84 · after a7942be411807031b484bad420afc1686519f25c931e4ce328fdac77a102ac84
+         failing tests: P7 · P8 · an allowed action appends ATTEMPTED BEFORE the mutation, then exactly one terminal outcome | P11 · an ATTEMPTED with no terminal is EXPOSED as an incomplete saga, not hidden
+         verdict: RED, named test, intended reason
+S19      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — suppress a permission-refusal audit
+         target src/governance/governed-write.mjs · named test "P9 ·…" in test/governed-write.test.mjs
+         sha256 before a7942be411807031b484bad420afc1686519f25c931e4ce328fdac77a102ac84 · after a7942be411807031b484bad420afc1686519f25c931e4ce328fdac77a102ac84
+         failing tests: P9 · a refused action is audited REFUSED, executes no adapter and writes nothing
+         verdict: RED, named test, intended reason
+S7+S8    landed=true red=true failed=3 namedTestFailed=true reason=true restored=true — duplicate the target and the occurrence event on retry
+         target src/governance/governed-write.mjs · named test "P13 · P14 · P21 ·…" in test/governed-write.test.mjs
+         sha256 before a7942be411807031b484bad420afc1686519f25c931e4ce328fdac77a102ac84 · after a7942be411807031b484bad420afc1686519f25c931e4ce328fdac77a102ac84
+         failing tests: P13 · P14 · P21 · a retry creates ONE target and ONE occurrence event, and returns ALREADY_COMMITTED | 🔴 BINARY content is hashed RAW — a buffer holding CRLF bytes is not normalised into a different occurrence | 🔴 a RE-SIGHTING is not suppressed — on the shared store the occurrence is one RUN's observation
+         verdict: RED, named test, intended reason
+S9       landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — accept a conflicting idempotency key
+         target src/governance/governed-write.mjs · named test "P15 · a supplied idempotency key…" in test/governed-write.test.mjs
+         sha256 before a7942be411807031b484bad420afc1686519f25c931e4ce328fdac77a102ac84 · after a7942be411807031b484bad420afc1686519f25c931e4ce328fdac77a102ac84
+         failing tests: P15 · a supplied idempotency key that the action does not derive is REFUSED, never trusted
+         verdict: RED, named test, intended reason
+S29      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — widen the audit-store exemption to cover a governed write
+         target src/governance/governed-write.mjs · named test "P26 · P51 ·…" in test/governed-write.test.mjs
+         sha256 before a7942be411807031b484bad420afc1686519f25c931e4ce328fdac77a102ac84 · after a7942be411807031b484bad420afc1686519f25c931e4ce328fdac77a102ac84
+         failing tests: P26 · P51 · the audit store's own persistence is exempt BY NAME, and the fence refuses anything else claiming it
+         verdict: RED, named test, intended reason
+S13      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — declare a discovered state with no owner
+         target src/governance/governed-write.mjs · named test "P49 ·…" in test/governed-write.test.mjs
+         sha256 before a7942be411807031b484bad420afc1686519f25c931e4ce328fdac77a102ac84 · after a7942be411807031b484bad420afc1686519f25c931e4ce328fdac77a102ac84
+         failing tests: P49 · every outcome the ruling declares is either a returned outcome or a named discovered state — and the totals reconcile
+         verdict: RED, named test, intended reason
+S32      landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — report a DECLARED-UNREACHABLE outcome as proved
+         target src/governance/governed-write.mjs · named test "P49 ·…" in test/governed-write.test.mjs
+         sha256 before a7942be411807031b484bad420afc1686519f25c931e4ce328fdac77a102ac84 · after a7942be411807031b484bad420afc1686519f25c931e4ce328fdac77a102ac84
+         failing tests: P49 · every outcome the ruling declares is either a returned outcome or a named discovered state — and the totals reconcile | P23 · COMMIT_STATUS_UNKNOWN is DECLARED-UNREACHABLE with its measurement — and is not implemented
+         verdict: RED, named test, intended reason
+S16      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — ignore a malformed tail (and so allow a valid tail to be truncated)
+         target src/governance/durability-adapters.mjs · named test "P24 · P25 ·…" in test/governed-write.test.mjs
+         sha256 before 589b06604600c2f0bdad6bdb3ec1ba4fc2e72adaa87adeda822c1d150020595d · after 589b06604600c2f0bdad6bdb3ec1ba4fc2e72adaa87adeda822c1d150020595d
+         failing tests: P24 · P25 · a partial tail is DETECTED, the append is refused, and no valid record is truncated
+         verdict: RED, named test, intended reason
+S22      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — honour the store override OUTSIDE a test context
+         target src/governance/governed-run.mjs · named test "P34 ·…" in test/governed-write.test.mjs
+         sha256 before 124b0f699c615d1a2a9ef38b707dd50e7b2f2d5335feaf41debbef5769af6d81 · after 124b0f699c615d1a2a9ef38b707dd50e7b2f2d5335feaf41debbef5769af6d81
+         failing tests: P34 · outside a verified test context a present override is REFUSED and no governed write happens
+         verdict: RED, named test, intended reason
+S27      landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — let the recorder version create a false cross-build conflict
+         target src/audit-trail/event.mjs · named test "P43 · P46 ·…" in test/governed-write.test.mjs
+         sha256 before 4ed4fef4b9d4260d84c0ae2432498f90cf32a25d435c163d4fc6de34ef0f325d · after 4ed4fef4b9d4260d84c0ae2432498f90cf32a25d435c163d4fc6de34ef0f325d
+         failing tests: P43 · P46 · the same occurrence under a later build is recognised, and existing bytes are untouched | P44 · cross-build false conflicts are ZERO for the ALREADY-COMMITTED production population — with a live control
+         verdict: RED, named test, intended reason
+S-LEAK   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — carry a disagreeing VALUE into a conflict's audit event
+         target src/governance/durability-adapters.mjs + src/governance/governed-write.mjs · named test "P15 · P22 ·…" in test/governed-write.test.mjs
+         sha256 before 589b06604600c2f0bdad6bdb3ec1ba4fc2e72adaa87adeda822c1d150020595d,a7942be411807031b484bad420afc1686519f25c931e4ce328fdac77a102ac84 · after 589b06604600c2f0bdad6bdb3ec1ba4fc2e72adaa87adeda822c1d150020595d,a7942be411807031b484bad420afc1686519f25c931e4ce328fdac77a102ac84
+         failing tests: P15 · P22 · a CONFLICTING occurrence is refused and never overwrites the committed one
+         verdict: RED, named test, intended reason
+
+TOTAL 11 · PROVED 11 · NOT PROVED 0
+residue in sabotaged files after restore: 0
+tracked modifications after restore (excluding this evidence file): 0
+
+PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
+  audit-trail/events.jsonl  before 26d2241e1cf8e8ee5096d3992b6e62c7e485a5de4995b33acbf3b400401ac6d9  after 26d2241e1cf8e8ee5096d3992b6e62c7e485a5de4995b33acbf3b400401ac6d9
+  audit-trail/head.json  before 17cd7a1c02059626d06d996121ecc61c229777ef4983c808b7e0415211ce4ae4  after 17cd7a1c02059626d06d996121ecc61c229777ef4983c808b7e0415211ce4ae4
+  untouched: true

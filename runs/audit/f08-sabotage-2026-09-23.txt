@@ -1,6 +1,6 @@
 F08 SABOTAGE EVIDENCE — the established set re-run, and the completion set (§10)
 
-Engine tree: 30a36a3db79e5d55093b7bf2b47ec5f93bbe749d. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Engine tree: 44ff8b3600cc201b6ad0506fed25f2a534b88f94. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
 Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
 runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
 requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
@@ -49,7 +49,7 @@ S16      landed=true red=true failed=1 namedTestFailed=true reason=true restored
          verdict: RED, named test, intended reason
 S22      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — honour the store override OUTSIDE a test context
          target src/governance/governed-run.mjs · named test "P34 ·…" in test/governed-write.test.mjs
-         sha256 before 60b459067d35c9916a5cf39c8c17b0fa010f473f7b27e0cb0d9e3234dbdeb1e8 · after 60b459067d35c9916a5cf39c8c17b0fa010f473f7b27e0cb0d9e3234dbdeb1e8
+         sha256 before 0caba1d87cd9780466a429f814280c105595fb3bb13565f2d2cc82d9e70014ca · after 0caba1d87cd9780466a429f814280c105595fb3bb13565f2d2cc82d9e70014ca
          failing tests: P34 · outside a verified test context a present override is REFUSED and no governed write happens
          verdict: RED, named test, intended reason
 S27      landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — let the recorder version create a false cross-build conflict
@@ -144,23 +144,28 @@ S-A1     landed=true red=true failed=1 namedTestFailed=true reason=true restored
          verdict: RED, named test, intended reason
 S-H1     landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — hygiene: a FAILED run's store is deleted instead of retained
          target src/governance/governed-run.mjs · named test "H2 ·…" in test/test-store-hygiene.test.mjs
-         sha256 before 60b459067d35c9916a5cf39c8c17b0fa010f473f7b27e0cb0d9e3234dbdeb1e8 · after 60b459067d35c9916a5cf39c8c17b0fa010f473f7b27e0cb0d9e3234dbdeb1e8
+         sha256 before 0caba1d87cd9780466a429f814280c105595fb3bb13565f2d2cc82d9e70014ca · after 0caba1d87cd9780466a429f814280c105595fb3bb13565f2d2cc82d9e70014ca
          failing tests: H2 · a FAILED run KEEPS its store, names it RETAINED, and the bounded cleanup removes exactly those — never an unmarked directory
          verdict: RED, named test, intended reason
 S-H2     landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — hygiene: a process removes a run directory whose nonce it only INHERITED
          target src/governance/governed-run.mjs · named test "H3 ·…" in test/test-store-hygiene.test.mjs
-         sha256 before 60b459067d35c9916a5cf39c8c17b0fa010f473f7b27e0cb0d9e3234dbdeb1e8 · after 60b459067d35c9916a5cf39c8c17b0fa010f473f7b27e0cb0d9e3234dbdeb1e8
+         sha256 before 0caba1d87cd9780466a429f814280c105595fb3bb13565f2d2cc82d9e70014ca · after 0caba1d87cd9780466a429f814280c105595fb3bb13565f2d2cc82d9e70014ca
          failing tests: H3 · a process that INHERITS a nonce never removes that run's directory — it belongs to whoever set it
          verdict: RED, named test, intended reason
-S-H3     landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — hygiene: nobody removes a passing run's store (the 40-per-run leak returns)
+S-H3     landed=true red=true failed=3 namedTestFailed=true reason=true restored=true — hygiene: nobody removes a passing run's store (the 40-per-run leak returns)
          target src/governance/governed-run.mjs · named test "H1 ·…" in test/test-store-hygiene.test.mjs
-         sha256 before 60b459067d35c9916a5cf39c8c17b0fa010f473f7b27e0cb0d9e3234dbdeb1e8 · after 60b459067d35c9916a5cf39c8c17b0fa010f473f7b27e0cb0d9e3234dbdeb1e8
-         failing tests: H1 · a PASSING run removes the run directory it minted — which provably existed while it ran | H2 · a FAILED run KEEPS its store, names it RETAINED, and the bounded cleanup removes exactly those — never an unmarked directory
+         sha256 before 0caba1d87cd9780466a429f814280c105595fb3bb13565f2d2cc82d9e70014ca · after 0caba1d87cd9780466a429f814280c105595fb3bb13565f2d2cc82d9e70014ca
+         failing tests: H1 · a PASSING run removes the run directory it minted — which provably existed while it ran | H2 · a FAILED run KEEPS its store, names it RETAINED, and the bounded cleanup removes exactly those — never an unmarked directory | H4 · a governed BINARY that exits non-zero on purpose (exit 2 — a lawful refusal) removes its store: only a failed TEST retains
          verdict: RED, named test, intended reason
 S-H4     landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — hygiene: a test's bounded cleanup sweeps OTHER runs' retained evidence
          target src/governance/governed-run.mjs · named test "H2 ·…" in test/test-store-hygiene.test.mjs
-         sha256 before 60b459067d35c9916a5cf39c8c17b0fa010f473f7b27e0cb0d9e3234dbdeb1e8 · after 60b459067d35c9916a5cf39c8c17b0fa010f473f7b27e0cb0d9e3234dbdeb1e8
+         sha256 before 0caba1d87cd9780466a429f814280c105595fb3bb13565f2d2cc82d9e70014ca · after 0caba1d87cd9780466a429f814280c105595fb3bb13565f2d2cc82d9e70014ca
          failing tests: H2 · a FAILED run KEEPS its store, names it RETAINED, and the bounded cleanup removes exactly those — never an unmarked directory
+         verdict: RED, named test, intended reason
+S-H5     landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — hygiene: ANY non-zero exit retains — a binary's lawful refusal leaks an unreadable store
+         target src/governance/governed-run.mjs · named test "H4 ·…" in test/test-store-hygiene.test.mjs
+         sha256 before 0caba1d87cd9780466a429f814280c105595fb3bb13565f2d2cc82d9e70014ca · after 0caba1d87cd9780466a429f814280c105595fb3bb13565f2d2cc82d9e70014ca
+         failing tests: H4 · a governed BINARY that exits non-zero on purpose (exit 2 — a lawful refusal) removes its store: only a failed TEST retains
          verdict: RED, named test, intended reason
 S-X1     landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — acceptance: one changed word in F08's carried EXPECTED clause
          target config/fboard/acceptances.mjs · named test "F-ACC ·…" in test/f08-acceptance-pin.test.mjs
@@ -173,7 +178,7 @@ S-G6     landed=true red=true failed=1 namedTestFailed=true reason=true restored
          failing tests: G9b · TWO decisions in the SAME second are TWO durable events — the store's default identity would have merged or refused them
          verdict: RED, named test, intended reason
 
-TOTAL 33 · PROVED 33 · NOT PROVED 0
+TOTAL 34 · PROVED 34 · NOT PROVED 0
 residue in sabotaged files after restore: 0
 tracked modifications after restore (excluding this evidence file): 0
 
@@ -182,12 +187,15 @@ PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
   audit-trail/head.json  before 17cd7a1c02059626d06d996121ecc61c229777ef4983c808b7e0415211ce4ae4  after 17cd7a1c02059626d06d996121ecc61c229777ef4983c808b7e0415211ce4ae4
   untouched: true
 
-HOW THIS SET GOT HERE — every sabotage that was not proved on a first try, and its repair, re-run inside the command:
+HOW THIS SET GOT HERE — every sabotage that was not proved on a first try, and every repair a sabotage or suite run
+forced, each re-run inside the command:
   S13   NOT RUN: its anchor occurred 4 times once three new discovered states shared its owner text, and the harness
         printed nothing for a sabotage that did not run. The harness now prints NOT RUN; S13 is re-anchored.
   S-C2  LANDED BUT GREEN, for a real reason: with no boundary call, file-level condition A refuses the claim anyway.
         The widening opens a hole only in a caller that ALSO reaches the boundary; V5 gained that plant.
-  S-H4  added after §11 RUN 1 measured .test-scratch/audit 647 -> 646: H2 swept every retained directory, deleting
-        another failed run's evidence. Repaired (removeRetainedRunDirs `only`); S-H4 proves the repair.
+  S-H4  added after a suite run measured .test-scratch/audit 647 -> 646: H2 swept every retained directory, deleting
+        another failed run's evidence. Repaired (removeRetainedRunDirs `only`).
+  S-H5  added after the next suite run measured +1 per run: a spawned BINARY's lawful exit 2 retained a store nobody
+        could read. Repaired (only a node:test file process retains); H4 proves it; S-H1 re-anchored.
   P15 · P22 (before the first record): failed about 1 run in 6 on a clean tree — a leak check firing on hex
         coincidence ("999" inside a hash). Repaired; 60 of 60 clean runs; S-LEAK proves it fires on a real leak.

@@ -25,7 +25,8 @@ import { DECLARED } from "../config/fboard/f-board.mjs";
 import { contractSha256 } from "../src/fboard/acceptance.mjs";
 import { buildBoard, boardErrors, progress } from "../src/fboard/board.mjs";
 import { isSealed, readUnsealed, SealedPathRefused } from "../src/governance/sealed-paths.mjs";
-import { governedGuardSink } from "../src/governance/governed-run.mjs";
+import { durableGuardSink, guardAuthority } from "../src/governance/guard-audit.mjs";
+import { countingStore } from "./heldout-access-census.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { createTenantResolver, TENANT_ID_PATTERN } from "../src/tenancy/resolver.mjs";
 import { PRODUCT_WORDS } from "./product-boundary.mjs";
@@ -73,11 +74,14 @@ for (const p of changed) console.log(`  ${p}`);
   const sealedPaths = tracked.filter((p) => isSealed(EVIDENCE_ROLE_REGISTRY, "engine", p));
   let opened = 0;
   let refusedAll = true;
-  /* F07 §5.3 — every probe is an ATTEMPTED access, and every attempted access is RECORDED: the guard's refusals go
-   * through F08's durable boundary (the production trail, or the confined store under a test). The count must equal
-   * the number of sealed paths probed. (F08 had routed these to a non-persisted diagnostic sink.) */
+  /* F07 §5.3 — each probe asks the ordinary loader for a sealed path, and the guard's refusal must DERIVE durable (an
+   * ACCESS): the count appended must equal the number of sealed paths probed. 🔴 SINK REPAIR (owner ruling, 23 Sep
+   * 2026): a census is a read-only diagnostic and must not append to the production trail. Its probe is a SELF-TEST —
+   * the reader is a stub that returns nothing — so it runs through the SAME durable sink code, handed a confined
+   * counting store, never the production trail. Run as written it would have appended 61 refusals per run. */
   const PROBE_AT = isoSeconds(Date.now());
-  const guard = governedGuardSink({ repo: REPO, correlationId: `run:audit-trail-census:${PROBE_AT}`, now: PROBE_AT.slice(0, 10), actor: "tools/audit-trail-census.mjs" });
+  const probeStore = countingStore();
+  const guard = durableGuardSink({ store: probeStore, actor: "tools/audit-trail-census.mjs", softwareVersion: "census-probe", correlationId: `run:audit-trail-census:${PROBE_AT}`, ...guardAuthority({ now: PROBE_AT.slice(0, 10) }) });
   for (const p of sealedPaths) {
     try { readUnsealed({ registry: EVIDENCE_ROLE_REGISTRY, root: "engine", base: REPO, path: p, audit: guard, read: () => { opened += 1; return ""; } }); refusedAll = false; }
     catch (e) { if (!(e instanceof SealedPathRefused)) refusedAll = false; }
@@ -91,9 +95,9 @@ for (const p of changed) console.log(`  ${p}`);
   readUnsealed({ registry: EVIDENCE_ROLE_REGISTRY, root: "engine", base: REPO, path: "package.json", audit: guard, read: () => { controlOpened += 1; return "{}"; } });
   say(
     "13.2 · ROW 52 SEALED-PATH DENIAL",
-    `${sealedPaths.length} tracked paths under a declared sealed prefix; ${sealedRefs.length} sealed reference(s) in the audit trail; ${refusalsTraced} refusal event(s) RECORDED by the guard through the F08 boundary`,
+    `${sealedPaths.length} tracked paths under a declared sealed prefix; ${sealedRefs.length} sealed reference(s) in the audit trail; ${refusalsTraced} refusal event(s) derived durable and appended by the guard to the confined probe store (${probeStore.events.length} held; production trail untouched)`,
     "every tracked engine path, asked for through the ordinary loader; and every evidence reference in the store",
-    (refusedAll ? 0 : 1) + opened + sealedWithHash + (refusalsTraced === sealedPaths.length ? 0 : 1) + (guard.emitted === refusalsTraced ? 0 : 1),
+    (refusedAll ? 0 : 1) + opened + sealedWithHash + (refusalsTraced === sealedPaths.length ? 0 : 1) + (guard.emitted === refusalsTraced ? 0 : 1) + (probeStore.events.length === refusalsTraced ? 0 : 1),
     `the SAME loader read an unsealed path in this run (package.json, ${controlOpened} read) and traced ${guard.emitted - refusalsTraced} event(s) for it — so the refusal is not "it refuses everything", and a permitted read is not audited as a refusal`,
   );
 }

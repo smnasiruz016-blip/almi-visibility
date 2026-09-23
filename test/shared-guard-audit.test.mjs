@@ -173,8 +173,11 @@ test("G9b · TWO decisions in the SAME second are TWO durable events — the sto
   for (const p of [SEALED_PATH, `${SEALED_PREFIX}other.json`]) assert.throws(() => readUnsealed({ registry: REG, root: "t", base: "/b", path: p, read: () => "", audit: sink }), (e) => e instanceof SealedPathRefused);
   observedDataExemption({ registry: REG, root: "t", path: "data/observed.jsonl", read: () => PAYLOAD, audit: sink });
   observedDataExemption({ registry: REG, root: "t", path: "data/unregistered.jsonl", read: () => PAYLOAD, audit: sink });
-  assert.equal(events() - before, 4, "decisions made in the same second were merged or lost");
-  assert.equal(sink.emitted, 4);
+  /* Four decisions in one second. Since the owner's ruling of 23 September 2026 (option b) the registered observed-data
+   * exemption (ALLOWED) is a CLASSIFICATION and is kept by the run, not appended; the other three — two refusals and an
+   * unregistered match — are durable, and in the same second they are still THREE events, which is what this proves. */
+  assert.equal(events() - before, 3, "durable decisions made in the same second were merged or lost");
+  assert.deepEqual([sink.emitted, sink.classified, sink.events.length], [3, 1, 4]);
 });
 
 test("G10 · the guards' authority resolves LIVE and fails closed — an unknown proposition is refused, not defaulted", () => {

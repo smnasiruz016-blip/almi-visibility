@@ -1,0 +1,89 @@
+F08 §11 — TWO FULL SUITES AND THE NAMED COUNTING CONTROL, ON THE FINAL IMPLEMENTATION TREE (23 September 2026)
+
+Driver: a scratch script (not committed) that runs the repository's exact suite command, node --test test/*.test.mjs
+(package.json "test"), with the glob expanded in sorted order, three times: RUN 1, RUN 2, then with ONE planted failing
+test named exactly "F08 FINAL COUNTING CONTROL — THIS FAILURE MUST BE NAMED", which it then removes. Around every run it
+hashes the production audit trail (raw bytes), counts .test-scratch/audit run directories and .test-scratch entries, and
+compares git status. Environment: the owner's Windows host, Node v24.15.0. CI (Linux) is a separate environment and
+is reported separately.
+
+═══ THE RUN THAT COUNTS — tree c065982 ═══
+§11 · engine HEAD c065982a1fe35b42090f0afb859bbf0746461a34 · node v24.15.0 · started 2026-09-23T21:17:13.410Z
+command: node --test test/*.test.mjs (121 files, glob expanded in sorted order)
+RUN 1: exit 0 · tests 1895 · pass 1895 · fail 0 · skipped 0 · cancelled 0 · todo 0 · 512s
+   production events.jsonl 26d2241e1cf8e8ee5096d3992b6e62c7e485a5de4995b33acbf3b400401ac6d9 -> 26d2241e1cf8e8ee5096d3992b6e62c7e485a5de4995b33acbf3b400401ac6d9 IDENTICAL (179 -> 179 events)
+   production head.json    17cd7a1c02059626d06d996121ecc61c229777ef4983c808b7e0415211ce4ae4 -> 17cd7a1c02059626d06d996121ecc61c229777ef4983c808b7e0415211ce4ae4 IDENTICAL
+   .test-scratch/audit run directories 652 -> 652 · .test-scratch entries 985 -> 988
+   tracked working tree unchanged: true
+RUN 2: exit 0 · tests 1895 · pass 1895 · fail 0 · skipped 0 · cancelled 0 · todo 0 · 501s
+   production events.jsonl 26d2241e1cf8e8ee5096d3992b6e62c7e485a5de4995b33acbf3b400401ac6d9 -> 26d2241e1cf8e8ee5096d3992b6e62c7e485a5de4995b33acbf3b400401ac6d9 IDENTICAL (179 -> 179 events)
+   production head.json    17cd7a1c02059626d06d996121ecc61c229777ef4983c808b7e0415211ce4ae4 -> 17cd7a1c02059626d06d996121ecc61c229777ef4983c808b7e0415211ce4ae4 IDENTICAL
+   .test-scratch/audit run directories 652 -> 652 · .test-scratch entries 988 -> 991
+   tracked working tree unchanged: true
+RUNS AGREE: true
+PLANTED: exit 1 · tests 1896 · pass 1895 · fail 1 · skipped 0 · cancelled 0 · todo 0 · 495s
+   ✖ F08 FINAL COUNTING CONTROL — THIS FAILURE MUST BE NAMED
+   production events.jsonl 26d2241e1cf8e8ee5096d3992b6e62c7e485a5de4995b33acbf3b400401ac6d9 -> 26d2241e1cf8e8ee5096d3992b6e62c7e485a5de4995b33acbf3b400401ac6d9 IDENTICAL (179 -> 179 events)
+   production head.json    17cd7a1c02059626d06d996121ecc61c229777ef4983c808b7e0415211ce4ae4 -> 17cd7a1c02059626d06d996121ecc61c229777ef4983c808b7e0415211ce4ae4 IDENTICAL
+   .test-scratch/audit run directories 652 -> 652 · .test-scratch entries 991 -> 994
+   tracked working tree unchanged: true
+   loaded +1: true · failed +1: true · planted test NAMED: true · no unrelated failure: true
+   plant removed: true · test/ listing byte-identical to before the plant: true · git status identical: true
+finished 2026-09-23T21:42:21.438Z
+
+═══ HISTORY: TWO EARLIER §11 RUNS, EACH SUPERSEDED BY A DEFECT IT EXPOSED ═══
+
+--- tree 0b97c8f ---
+§11 · engine HEAD 0b97c8f66c10d3c75c9cc7ce551588c5eb82f41d · node v24.15.0 · started 2026-09-23T20:23:53.175Z
+command: node --test test/*.test.mjs (121 files, glob expanded in sorted order)
+RUN 1: exit 0 · tests 1894 · pass 1894 · fail 0 · skipped 0 · cancelled 0 · todo 0 · 468s
+   production events.jsonl 26d2241e1cf8e8ee5096d3992b6e62c7e485a5de4995b33acbf3b400401ac6d9 -> 26d2241e1cf8e8ee5096d3992b6e62c7e485a5de4995b33acbf3b400401ac6d9 IDENTICAL (179 -> 179 events)
+   production head.json    17cd7a1c02059626d06d996121ecc61c229777ef4983c808b7e0415211ce4ae4 -> 17cd7a1c02059626d06d996121ecc61c229777ef4983c808b7e0415211ce4ae4 IDENTICAL
+   .test-scratch/audit run directories 647 -> 646 · .test-scratch entries 925 -> 928
+   tracked working tree unchanged: true
+RUN 2: exit 0 · tests 1894 · pass 1894 · fail 0 · skipped 0 · cancelled 0 · todo 0 · 473s
+   production events.jsonl 26d2241e1cf8e8ee5096d3992b6e62c7e485a5de4995b33acbf3b400401ac6d9 -> 26d2241e1cf8e8ee5096d3992b6e62c7e485a5de4995b33acbf3b400401ac6d9 IDENTICAL (179 -> 179 events)
+   production head.json    17cd7a1c02059626d06d996121ecc61c229777ef4983c808b7e0415211ce4ae4 -> 17cd7a1c02059626d06d996121ecc61c229777ef4983c808b7e0415211ce4ae4 IDENTICAL
+   .test-scratch/audit run directories 646 -> 646 · .test-scratch entries 928 -> 931
+   tracked working tree unchanged: true
+RUNS AGREE: true
+PLANTED: exit 1 · tests 1895 · pass 1894 · fail 1 · skipped 0 · cancelled 0 · todo 0 · 468s
+   ✖ F08 FINAL COUNTING CONTROL — THIS FAILURE MUST BE NAMED
+   production events.jsonl 26d2241e1cf8e8ee5096d3992b6e62c7e485a5de4995b33acbf3b400401ac6d9 -> 26d2241e1cf8e8ee5096d3992b6e62c7e485a5de4995b33acbf3b400401ac6d9 IDENTICAL (179 -> 179 events)
+   production head.json    17cd7a1c02059626d06d996121ecc61c229777ef4983c808b7e0415211ce4ae4 -> 17cd7a1c02059626d06d996121ecc61c229777ef4983c808b7e0415211ce4ae4 IDENTICAL
+   .test-scratch/audit run directories 646 -> 646 · .test-scratch entries 931 -> 934
+   tracked working tree unchanged: true
+   loaded +1: true · failed +1: true · planted test NAMED: true · no unrelated failure: true
+   plant removed: true · test/ listing byte-identical to before the plant: true · git status identical: true
+finished 2026-09-23T20:47:22.787Z
+  -> superseded: RUN 1 measured .test-scratch/audit 647 -> 646. A hygiene test (H2) swept every RETAINED directory,
+     deleting another run's evidence. Repaired in 30a36a3.
+
+--- tree 28ece3c ---
+§11 · engine HEAD 28ece3cd8a48d373f10368cb6b6622760eda7d12 · node v24.15.0 · started 2026-09-23T20:49:28.300Z
+command: node --test test/*.test.mjs (121 files, glob expanded in sorted order)
+RUN 1: exit 0 · tests 1894 · pass 1894 · fail 0 · skipped 0 · cancelled 0 · todo 0 · 497s
+   production events.jsonl 26d2241e1cf8e8ee5096d3992b6e62c7e485a5de4995b33acbf3b400401ac6d9 -> 26d2241e1cf8e8ee5096d3992b6e62c7e485a5de4995b33acbf3b400401ac6d9 IDENTICAL (179 -> 179 events)
+   production head.json    17cd7a1c02059626d06d996121ecc61c229777ef4983c808b7e0415211ce4ae4 -> 17cd7a1c02059626d06d996121ecc61c229777ef4983c808b7e0415211ce4ae4 IDENTICAL
+   .test-scratch/audit run directories 649 -> 650 · .test-scratch entries 955 -> 958
+   tracked working tree unchanged: true
+RUN 2: exit 0 · tests 1894 · pass 1894 · fail 0 · skipped 0 · cancelled 0 · todo 0 · 522s
+   production events.jsonl 26d2241e1cf8e8ee5096d3992b6e62c7e485a5de4995b33acbf3b400401ac6d9 -> 26d2241e1cf8e8ee5096d3992b6e62c7e485a5de4995b33acbf3b400401ac6d9 IDENTICAL (179 -> 179 events)
+   production head.json    17cd7a1c02059626d06d996121ecc61c229777ef4983c808b7e0415211ce4ae4 -> 17cd7a1c02059626d06d996121ecc61c229777ef4983c808b7e0415211ce4ae4 IDENTICAL
+   .test-scratch/audit run directories 650 -> 651 · .test-scratch entries 958 -> 961
+   tracked working tree unchanged: true
+RUNS AGREE: true
+PLANTED: exit 1 · tests 1895 · pass 1894 · fail 1 · skipped 0 · cancelled 0 · todo 0 · 514s
+   ✖ F08 FINAL COUNTING CONTROL — THIS FAILURE MUST BE NAMED
+   production events.jsonl 26d2241e1cf8e8ee5096d3992b6e62c7e485a5de4995b33acbf3b400401ac6d9 -> 26d2241e1cf8e8ee5096d3992b6e62c7e485a5de4995b33acbf3b400401ac6d9 IDENTICAL (179 -> 179 events)
+   production head.json    17cd7a1c02059626d06d996121ecc61c229777ef4983c808b7e0415211ce4ae4 -> 17cd7a1c02059626d06d996121ecc61c229777ef4983c808b7e0415211ce4ae4 IDENTICAL
+   .test-scratch/audit run directories 651 -> 652 · .test-scratch entries 961 -> 964
+   tracked working tree unchanged: true
+   loaded +1: true · failed +1: true · planted test NAMED: true · no unrelated failure: true
+   plant removed: true · test/ listing byte-identical to before the plant: true · git status identical: true
+finished 2026-09-23T21:15:01.982Z
+  -> superseded: .test-scratch/audit grew +1 per run. A spawned binary's lawful exit 2 retained a store nobody could
+     read (the old sweep had been hiding it). Repaired in 44ff8b3; sabotage record regenerated (34 of 34) in c065982.
+
+PARKED OUTSIDE F08 (measured, not repaired): every suite run adds 3 entries to .test-scratch outside the audit root —
+one each of corpus-*, gsc-incident-* and verdicts-*, created by other features' tests. They are not F08 test stores.

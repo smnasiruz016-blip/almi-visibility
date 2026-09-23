@@ -89,7 +89,11 @@ export const PERMITTED_PAGE_WRITERS = Object.freeze([
   },
   {
     file: "bin/nursing-chain.mjs",
-    sites: 2,
+    /* 🔴 ROUTED (23 September 2026). One cached sibling page is one target; the candidate page and its chain
+     * report are two more. The pages are still FETCHED and MEASURED either way — a read, which the scope law
+     * permits — and only KEPT when the write is allowed, exactly as before. */
+    routed: true,
+    sites: 0,
     writes: "(1) a CACHE of the eleven sibling pages it FETCHES from the product site; (2) the candidate page rendered from the registry, plus a chain report",
     where: `(1) runs/_profession-cache/ — fixed, gitignored; (2) the directory given by --out; ${CONFINED}`,
     gatedBy: "write-law LOCAL: both writes, and the cache directory itself, sit behind permission.mayWrite, which only --confirm grants. Without it the siblings are fetched and measured but not kept",
@@ -370,7 +374,11 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
   },
   {
     file: "bin/detect.mjs",
-    sites: 4,
+    /* 🔴 ROUTED (23 September 2026). Three targets — findings, their digest, and the score. All TEXT, MEASURED:
+     * serialiseFindings returns a JSON string, so the missing encoding argument at the old call sites never made
+     * them binary. The output is still written and closed before any expectation is read. */
+    routed: true,
+    sites: 0,
     writes: "the findings output of one detection run — every outcome of every generic detector, with its evidence — plus that output's sha256, and the score when an expectation set is supplied",
     where: `the directory given by --out; there is no default destination, so a run that names none writes nothing at all; ${CONFINED}`,
     gatedBy: "write-law LOCAL: the output directory and all three files sit behind permission.mayWrite, which only --confirm grants. With no flag the whole run still executes and prints every count and the output's own hash — the detectors, the serialisation and the digest are identical, and only the write is withheld",

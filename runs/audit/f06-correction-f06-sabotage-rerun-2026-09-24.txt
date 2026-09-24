@@ -1,0 +1,117 @@
+F06 EVIDENCE STATE MODEL — SABOTAGE EVIDENCE (§11)
+
+Engine tree: 3b71be42ed7c331ee3f8698ef192167b8c471559. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
+runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
+requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
+No sabotage aims at the production audit trail; every firing case writes to a stand-in or a confined store.
+
+RESULTS
+E1       landed=true red=true failed=4 namedTestFailed=true reason=true restored=true — a missing / undeclared state DEFAULTS to OBSERVED
+         target src/evidence/evidence-state-adapters.mjs · named test "P35…" in test/f06-evidence-state.test.mjs
+         sha256 before 644d314cac6fec8d2c4b53612d125369414126fa58136f78df05bccbec683917 · after 644d314cac6fec8d2c4b53612d125369414126fa58136f78df05bccbec683917
+         failing tests: P18 · an unavailable measurement never silently disappears — counted, labelled, and refused at the write | P32 · read-only diagnostics emit NO production event — the census and the report run, the trail is byte-identical | P35 · no canonical state defaults silently — every entry point without proof returns UNMAPPED or refuses | P38 · every REAL governed population accounts to ZERO remainder — five states reached on real material
+         verdict: RED, named test, intended reason
+E2       landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — UNKNOWN converted to PASS on the page
+         target src/evidence/evidence-state.mjs · named test "P16…" in test/f06-evidence-state.test.mjs
+         sha256 before af5aaf12a6e2447430d69a2ced48d4fc1f212081252d523fc3923cff8be09290 · after af5aaf12a6e2447430d69a2ced48d4fc1f212081252d523fc3923cff8be09290
+         failing tests: P16 · UNKNOWN never becomes PASS — no state carries a PASS, no display word reads PASS | P34 · report output distinguishes UNKNOWN / NOT MEASURED / NOT APPLICABLE — none reads as 0, PASS, clean or absent
+         verdict: RED, named test, intended reason
+E3       landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — NOT_MEASURED allowed to carry a zero
+         target src/evidence/evidence-state.mjs · named test "P17…" in test/f06-evidence-state.test.mjs
+         sha256 before af5aaf12a6e2447430d69a2ced48d4fc1f212081252d523fc3923cff8be09290 · after af5aaf12a6e2447430d69a2ced48d4fc1f212081252d523fc3923cff8be09290
+         failing tests: P16 · UNKNOWN never becomes PASS — no state carries a PASS, no display word reads PASS | P17 · NOT_MEASURED never becomes zero — it carries no value at all, and reads as words
+         verdict: RED, named test, intended reason
+E4       landed=true red=true failed=6 namedTestFailed=true reason=true restored=true — NOT_APPLICABLE allowed without a reason
+         target src/evidence/evidence-state.mjs · named test "P6–P11…" in test/f06-evidence-state.test.mjs
+         sha256 before af5aaf12a6e2447430d69a2ced48d4fc1f212081252d523fc3923cff8be09290 · after af5aaf12a6e2447430d69a2ced48d4fc1f212081252d523fc3923cff8be09290
+         failing tests: P1 · exactly six canonical states exist, closed and frozen | P6–P11 · the module's required metadata is exactly what the acceptance requires | P11 · NOT_APPLICABLE requires checkId, scope, applicabilityReason — each one, alone | P19 · NOT_APPLICABLE never passes without a declared scope and reason — and is never inferred from an empty value | P29 · a state transition records its rule, software, time, actor and authority — and refuses any one missing | P36 · stable serialisation round-trips, and key order cannot change it
+         verdict: RED, named test, intended reason
+E5       landed=true red=true failed=18 namedTestFailed=true reason=true restored=true — the inference METHOD no longer required
+         target src/evidence/evidence-state.mjs · named test "P6–P11…" in test/f06-evidence-state.test.mjs
+         sha256 before af5aaf12a6e2447430d69a2ced48d4fc1f212081252d523fc3923cff8be09290 · after af5aaf12a6e2447430d69a2ced48d4fc1f212081252d523fc3923cff8be09290
+         failing tests: P1 · exactly six canonical states exist, closed and frozen | P3 · MULTIPLE states are refused | P6–P11 · the module's required metadata is exactly what the acceptance requires | P7 · INFERRED requires inputRefs, method, computedAt — each one, alone | P12b · the SAME verdict yields different states, and different verdicts can share one — the two dimensions are independent | P14b · VERIFIED does not decide OBSERVED: a VERIFIED derivation is INFERRED, and a VERIFIED fact without its check is UNMAPPED | P18 · an unavailable measurement never silently disappears — counted, labelled, and refused at the write | P20 · an inference never presents as an observation | P23 · a MISSING legacy label returns UNMAPPED — never a default | P25 · the EXACT legacy mappings succeed — each by the structure its producer declares, and ZERO_BY_TARIFF is preserved | P27 · a derived conclusion retains its input lineage | P29 · a state transition records its rule, software, time, actor and authority — and refuses any one missing | P30 · a cross-TENANT evidence reference is refused | P31 · a cross-SUBJECT reference is refused where isolation requires it | P32 · read-only diagnostics emit NO production event — the census and the report run, the trail is byte-identical | P33 · a governed transition emits EXACTLY ONE event — and a replay emits none | P36 · stable serialisation round-trips, and key order cannot change it | P38 · every REAL governed population accounts to ZERO remainder — five states reached on real material
+         verdict: RED, named test, intended reason
+E6       landed=true red=true failed=17 namedTestFailed=true reason=true restored=true — the observation SOURCE reference no longer required
+         target src/evidence/evidence-state.mjs · named test "P6–P11…" in test/f06-evidence-state.test.mjs
+         sha256 before af5aaf12a6e2447430d69a2ced48d4fc1f212081252d523fc3923cff8be09290 · after af5aaf12a6e2447430d69a2ced48d4fc1f212081252d523fc3923cff8be09290
+         failing tests: P1 · exactly six canonical states exist, closed and frozen | P2 · an ABSENT state is refused — there is no default | P6–P11 · the module's required metadata is exactly what the acceptance requires | P6 · OBSERVED requires evidenceRef, sourceId, observedAt — each one, alone | P12 · verdict stays INDEPENDENT — it can never live inside an evidence state, and does not decide one | P13 · confidence stays INDEPENDENT — it can never live inside an evidence state, and does not decide one | P14 · verificationState stays INDEPENDENT — it can never live inside an evidence state, and does not decide one | P15 · boardState stays INDEPENDENT — it can never live inside an evidence state, and does not decide one | P14b · VERIFIED does not decide OBSERVED: a VERIFIED derivation is INFERRED, and a VERIFIED fact without its check is UNMAPPED | P20 · an inference never presents as an observation | P22 · a recommendation never presents as an implementation — approved or applied, it stays RECOMMENDED; RECOMMENDED never becomes OBSERVED | P26 · a direct observation retains its provenance — reference, source and time from the record itself | P29 · a state transition records its rule, software, time, actor and authority — and refuses any one missing | P30 · a cross-TENANT evidence reference is refused | P32 · read-only diagnostics emit NO production event — the census and the report run, the trail is byte-identical | P36 · stable serialisation round-trips, and key order cannot change it | P38 · every REAL governed population accounts to ZERO remainder — five states reached on real material
+         verdict: RED, named test, intended reason
+E7       landed=true red=true failed=5 namedTestFailed=true reason=true restored=true — a recommendation presented as EVIDENCE (placed OBSERVED)
+         target src/evidence/evidence-state-adapters.mjs · named test "P21…" in test/f06-evidence-state.test.mjs
+         sha256 before 644d314cac6fec8d2c4b53612d125369414126fa58136f78df05bccbec683917 · after 644d314cac6fec8d2c4b53612d125369414126fa58136f78df05bccbec683917
+         failing tests: P21 · a recommendation never presents as evidence — only RECOMMENDED, and only on linked evidence | P22 · a recommendation never presents as an implementation — approved or applied, it stays RECOMMENDED; RECOMMENDED never becomes OBSERVED | P28 · a recommendation retains its supporting evidence | P32 · read-only diagnostics emit NO production event — the census and the report run, the trail is byte-identical | P38 · every REAL governed population accounts to ZERO remainder — five states reached on real material
+         verdict: RED, named test, intended reason
+E8       landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the evidence state MERGED with the verdict (verdict no longer a separate dimension)
+         target src/evidence/evidence-state.mjs · named test "P12…" in test/f06-evidence-state.test.mjs
+         sha256 before af5aaf12a6e2447430d69a2ced48d4fc1f212081252d523fc3923cff8be09290 · after af5aaf12a6e2447430d69a2ced48d4fc1f212081252d523fc3923cff8be09290
+         failing tests: P12 · verdict stays INDEPENDENT — it can never live inside an evidence state, and does not decide one
+         verdict: RED, named test, intended reason
+E9       landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — an ambiguous legacy label GUESSED (a reason-less UNKNOWN from any detector placed UNKNOWN)
+         target src/evidence/evidence-state-adapters.mjs · named test "P24…" in test/f06-evidence-state.test.mjs
+         sha256 before 644d314cac6fec8d2c4b53612d125369414126fa58136f78df05bccbec683917 · after 644d314cac6fec8d2c4b53612d125369414126fa58136f78df05bccbec683917
+         failing tests: P24 · an AMBIGUOUS legacy label returns UNMAPPED — by structure, never by its English word
+         verdict: RED, named test, intended reason
+E10      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a cross-TENANT evidence reference allowed
+         target src/evidence/evidence-state.mjs · named test "P30…" in test/f06-evidence-state.test.mjs
+         sha256 before af5aaf12a6e2447430d69a2ced48d4fc1f212081252d523fc3923cff8be09290 · after af5aaf12a6e2447430d69a2ced48d4fc1f212081252d523fc3923cff8be09290
+         failing tests: P30 · a cross-TENANT evidence reference is refused
+         verdict: RED, named test, intended reason
+E11      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the F08 transition event SUPPRESSED
+         target src/evidence/evidence-state.mjs · named test "P33…" in test/f06-evidence-state.test.mjs
+         sha256 before af5aaf12a6e2447430d69a2ced48d4fc1f212081252d523fc3923cff8be09290 · after af5aaf12a6e2447430d69a2ced48d4fc1f212081252d523fc3923cff8be09290
+         failing tests: P33 · a governed transition emits EXACTLY ONE event — and a replay emits none
+         verdict: RED, named test, intended reason
+E12      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the F08 transition event DOUBLE-EMITTED
+         target src/evidence/evidence-state.mjs · named test "P33…" in test/f06-evidence-state.test.mjs
+         sha256 before af5aaf12a6e2447430d69a2ced48d4fc1f212081252d523fc3923cff8be09290 · after af5aaf12a6e2447430d69a2ced48d4fc1f212081252d523fc3923cff8be09290
+         failing tests: P33 · a governed transition emits EXACTLY ONE event — and a replay emits none
+         verdict: RED, named test, intended reason
+E13      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — production caller wiring REMOVED — the governed write no longer places records
+         target src/governance/governed-run.mjs · named test "P18…" in test/f06-evidence-state.test.mjs
+         sha256 before 51a7e97a1d09a29b657aaa9d861843aba255860c0c6308d657e3d85cb9db8544 · after 51a7e97a1d09a29b657aaa9d861843aba255860c0c6308d657e3d85cb9db8544
+         failing tests: P18 · an unavailable measurement never silently disappears — counted, labelled, and refused at the write
+         verdict: RED, named test, intended reason
+E14      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a product / client word inserted into generic F06 code
+         target src/evidence/evidence-state-adapters.mjs · named test "P39…" in test/f06-evidence-state.test.mjs
+         sha256 before 644d314cac6fec8d2c4b53612d125369414126fa58136f78df05bccbec683917 · after 644d314cac6fec8d2c4b53612d125369414126fa58136f78df05bccbec683917
+         failing tests: P39 · no product or client vocabulary enters the generic F06 code
+         verdict: RED, named test, intended reason
+E15      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a SUPERSEDED authority selected (the register picks the oldest applicable ruling)
+         target src/authority/register.mjs · named test "P40b…" in test/f06-evidence-state.test.mjs
+         sha256 before 76869a686160ad1eab91b12d71d6e299782345e28d2fe326ec66a7a2441d7d5f · after 76869a686160ad1eab91b12d71d6e299782345e28d2fe326ec66a7a2441d7d5f
+         failing tests: P40b · the transition authority is the CURRENT ruling — a superseded one is never applied
+         verdict: RED, named test, intended reason
+E16      landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — ONE WORD of the frozen F06 acceptance changed in the engine's pin
+         target config/fboard/acceptances.mjs · named test "P42…" in test/f06-evidence-state.test.mjs
+         sha256 before a68ac539a7ea7519360de3e11221247c110c2c82ec64f98482c7576bc89a235d · after a68ac539a7ea7519360de3e11221247c110c2c82ec64f98482c7576bc89a235d
+         failing tests: P40 · F05, F07 and F08 remain satisfied — their acceptances pin, resolve CURRENT and validate on the board | P42 · the COMPLETE F06 acceptance: pinned, CURRENT, and one changed word is ACCEPTANCE_TAMPERED
+         verdict: RED, named test, intended reason
+
+TOTAL 16 · PROVED 16 · NOT PROVED 0
+residue in sabotaged files after restore: 0
+tracked modifications after restore (excluding this evidence file): 0
+
+PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
+  audit-trail/events.jsonl  before 482d1fb75f1cc6eef50ec54fdbaa48178565d1b7e8893e69b24e9943ebd54641  after 482d1fb75f1cc6eef50ec54fdbaa48178565d1b7e8893e69b24e9943ebd54641
+  audit-trail/head.json  before 329b26fd4d7b8e7420ef910be313aecba99626cffd0e478e4840c4d8542f3328  after 329b26fd4d7b8e7420ef910be313aecba99626cffd0e478e4840c4d8542f3328
+  untouched: true
+
+PROBE CONTROL (clean tree): 16 of 16 probes report no defect.
+  E1  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — a missing / undeclared state DEFAULTS to OBSERVED
+  E2  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — UNKNOWN converted to PASS on the page
+  E3  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — NOT_MEASURED allowed to carry a zero
+  E4  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — NOT_APPLICABLE allowed without a reason
+  E5  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — the inference METHOD no longer required
+  E6  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — the observation SOURCE reference no longer required
+  E7  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — a recommendation presented as EVIDENCE (placed OBSERVED)
+  E8  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — the evidence state MERGED with the verdict (verdict no longer a separate dimension)
+  E9  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — an ambiguous legacy label GUESSED (a reason-less UNKNOWN from any detector placed UNKNOWN)
+  E10  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — a cross-TENANT evidence reference allowed
+  E11  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — the F08 transition event SUPPRESSED
+  E12  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — the F08 transition event DOUBLE-EMITTED
+  E13  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — production caller wiring REMOVED — the governed write no longer places records
+  E14  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — a product / client word inserted into generic F06 code
+  E15  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — a SUPERSEDED authority selected (the register picks the oldest applicable ruling)
+  E16  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — ONE WORD of the frozen F06 acceptance changed in the engine's pin
+RAN 16 of 16 · LANDED 16 of 16 · PROVED 16 of 16

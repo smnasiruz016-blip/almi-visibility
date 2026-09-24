@@ -73,6 +73,58 @@ export const DECLARED = Object.freeze({
         fullSuite: "two full runs and the named counting control on the final tree (runs/audit/f06-suite-2026-09-24.txt)",
         afterMerge: "main CI green on the exact merged SHA — verified after merge and reported in _handoffs/AlmiVisibility_F06_VERIFIED_PASS_EVIDENCE_2026-09-24.md; a red main run means this record is wrong and must be reverted",
       }),
+      /* 🔴 24 SEPTEMBER 2026 — A BOUNDED CORRECTION OF F06, RECORDED AS TWO LAWFUL MOVEMENTS. NOT ROUTINE MAINTENANCE.
+       *
+       * WHAT CONTRADICTED F06, IN PRODUCTION AT ITS CLOSURE (main e11d143):
+       *   · Row 7's market-measurement writer checks every label against LABELS, which F06 made the canonical states,
+       *     and wrote UNKNOWN for three dimensions it never measured (SUPPLY, AUDIENCE/NEED, WORTHINESS). Under F06
+       *     that is NOT_MEASURED. The byte-pinned 15 September artefact carries the same UNKNOWN (sha256 34bcac07…).
+       *     F06's own evidence record called this writer "classified H and never consumed as a canonical state" —
+       *     that was false: it is a canonical-state writer.
+       *   · OUTCOME_ALIASES collapsed "not-applicable" and "could-not-check" into UNKNOWN, so NOT_APPLICABLE and
+       *     NOT_MEASURED could not be told from UNKNOWN on any fact check outcome.
+       * FOUND on 24 September 2026: F06's own evidence record named both at closure (§8, "new findings") and put them
+       * outside F06; the owner ruled the same day that they must be corrected.
+       * §A — OUTSIDE F06's declared populations, by execution at e11d143: the census read no runs/discovery path, never
+       * loaded market-measurement.mjs, and never called the OUTCOME_ALIASES path (every sabotage landed; a call-sabotage
+       * on the adapter the census does call turned it red). F06's §5 asked for "check results" and "applicability
+       * decisions" to be inspected, and the declared denominator left them out: it was INCOMPLETE, so the movement is
+       * corrective, not FAILED (runs/audit/f06-correction-section-a-2026-09-24.txt).
+       * The frozen F06 acceptance is unchanged; this is F06 applied to populations it should have counted.
+       * Each movement carries its OWN kind: the audit identity includes (kind, day), and F06's IMPLEMENTATION and
+       * VERIFIED are already recorded for this day, so reusing either would be refused as a conflict, never merged.
+       * F06's first VERIFIED stays as history and still satisfies the board's pass rule; test/f06-closure.test.mjs
+       * requires the correction's verification to be the row's LATEST movement, in the board and in the trail. */
+      Object.freeze({
+        kind: "CORRECTION_OPENED",
+        featureId: "F06",
+        on: "2026-09-24",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (bounded correction; the declared population was incomplete)",
+        reason: "DECLARED_POPULATION_INCOMPLETE_CONTRADICTION_OUTSIDE_IT",
+        contradiction: "Row 7's canonical-state writer wrote UNKNOWN for three never-measured dimensions (15 September bytes sha256 34bcac0714db248e16a342a0a57f2b72bc97be9e41fffff71eb3f67fd152d2bd); OUTCOME_ALIASES collapsed not-applicable and could-not-check into UNKNOWN",
+        sectionA: "OUTSIDE — by execution at e11d1437271aac333838b584bf23258282e2f92b (runs/audit/f06-correction-section-a-2026-09-24.txt)",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-24_F06_CORRECTION.md", commit: "911b39c1bfe9bdd678fca3706b7ac991b3015e8f", sha256: "aad7f8a391f1b122936cc420d9d171f5a6d6df179766bed46d653c60f54954f2" }),
+      }),
+      Object.freeze({
+        kind: "CORRECTION_VERIFIED",
+        featureId: "F06",
+        population: "REAL",
+        on: "2026-09-24",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (bounded correction; the declared population was incomplete)",
+        reason: "CORRECTION_PROVED_ON_REAL_POPULATIONS",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F06.ruling.sha256, contract: ACCEPTANCES.F06.contractSha256 }),
+        repaired: "the live Row 7 writer (NOT_MEASURED for what it did not measure); a lossless, byte-bound compatibility reading of the 15 September artefact (3 NOT_MEASURED by declared measured:false, 6 UNMAPPED); OUTCOME_ALIASES' four branches placed by structure; the census widened to every runs/discovery artefact and every fact check outcome",
+        populations: "runs/audit/f06-correction-census-2026-09-24.txt — 159 correction items: legacy 9 (NOT_MEASURED 3, UNMAPPED 6), current writer 9, check outcomes 141 (PASS 92, NOT_APPLICABLE 26, NOT_MEASURED 3, UNKNOWN 0, UNMAPPED 20); zeros 0/0/0/0, each control firing; the 24 governed lines byte-identical to F06's",
+        proofs: "K1–K12 and K4b in test/f06-correction.test.mjs, each able to give the other verdict",
+        sabotage: "X1–X16: 16 RAN, 16 LANDED (bytes and behaviour), 16 RED on the named proof for the intended reason (runs/audit/f06-correction-sabotage-2026-09-24.txt); F06's E1–E16 re-run 16/16 (runs/audit/f06-correction-f06-sabotage-rerun-2026-09-24.txt)",
+        acceptanceRerun: "F05, F07, F08 re-run on the correction tree: 240/240; sabotage 16/16, 34/34, 10/10 (runs/audit/f06-correction-acceptance-rerun-2026-09-24.txt)",
+        parked: "localized-reasoning memberState (class H) holds 63 UNKNOWN members with no read attempt recorded; VERIFICATION_OUTCOME maps UNVERIFIED to UNKNOWN as judgeLeavingUnknown's population predicate only; 19 fingerprint and 1 quote outcome stay UNMAPPED for want of a positive marker",
+        afterMerge: "main CI green on the exact merged SHA — verified after merge and reported in _handoffs/AlmiVisibility_F06_CORRECTION_EVIDENCE_2026-09-24.md; a red main run means this record is wrong and must be reverted",
+      }),
     ]),
   }),
   F07: Object.freeze({

@@ -3,7 +3,9 @@
  *
  *   · F6-BOARD  the board reads 4/89 (84 · 0 · 1 · 4) with F06 VERIFIED-PASS by UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS
  *               after its acceptance froze; F05, F07, F08 and F40 unchanged.
- *   · F6-TRAIL  each of F06's three declared events is in the production trail exactly once as a BOARD_TRANSITION, under
+ *   · F6-CORRECTION  the bounded correction (24 September 2026): VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS, its
+ *               verification the latest movement, the acceptance unchanged.
+ *   · F6-TRAIL  each of F06's declared events (three, then the correction's two) is in the production trail exactly once as a BOARD_TRANSITION, under
  *               F06's own frozen acceptance.
  * Each carries a control able to give the other verdict.
  */
@@ -34,7 +36,7 @@ test("F6-BOARD · F06 is VERIFIED-PASS by UNASSESSED → IN-PROGRESS → VERIFIE
   assert.deepEqual(["F05", "F07", "F08", "F40"].map((f) => DECLARED[f].state), ["VERIFIED-PASS", "VERIFIED-PASS", "VERIFIED-PASS", "BLOCKED-BY-AUTHORITY"]);
   const f06 = DECLARED.F06;
   assert.equal(f06.state, "VERIFIED-PASS");
-  assert.deepEqual(f06.events.map((e) => `${e.kind}@${e.on}`), ["ACCEPTANCE_FROZEN@2026-09-24", "IMPLEMENTATION@2026-09-24", "VERIFIED@2026-09-24"]);
+  assert.deepEqual(f06.events.map((e) => `${e.kind}@${e.on}`), ["ACCEPTANCE_FROZEN@2026-09-24", "IMPLEMENTATION@2026-09-24", "VERIFIED@2026-09-24", "CORRECTION_OPENED@2026-09-24", "CORRECTION_VERIFIED@2026-09-24"]);
   const [frozen, impl, verified] = f06.events;
   assert.equal(frozen.ruling, ACCEPTANCES.F06.ruling);
   assert.equal(frozen.contractSha256, ACCEPTANCES.F06.contractSha256);
@@ -48,6 +50,26 @@ test("F6-BOARD · F06 is VERIFIED-PASS by UNASSESSED → IN-PROGRESS → VERIFIE
   assert.match(verified.afterMerge, /exact merged SHA/);
 });
 
+test("F6-CORRECTION · the bounded correction is VERIFIED-PASS → IN-PROGRESS → VERIFIED-PASS, its verification is the LATEST movement, and the acceptance is unchanged", () => {
+  const [, , , opened, reverified] = DECLARED.F06.events;
+  assert.deepEqual([opened.from, opened.to, opened.reason], ["VERIFIED-PASS", "IN-PROGRESS", "DECLARED_POPULATION_INCOMPLETE_CONTRADICTION_OUTSIDE_IT"]);
+  assert.match(opened.sectionA, /^OUTSIDE/);
+  assert.match(opened.contradiction, /34bcac0714db248e16a342a0a57f2b72bc97be9e41fffff71eb3f67fd152d2bd/);
+  assert.deepEqual(opened.command, { repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-24_F06_CORRECTION.md", commit: "911b39c1bfe9bdd678fca3706b7ac991b3015e8f", sha256: "aad7f8a391f1b122936cc420d9d171f5a6d6df179766bed46d653c60f54954f2" });
+  assert.deepEqual([reverified.from, reverified.to, reverified.featureId, reverified.population], ["IN-PROGRESS", "VERIFIED-PASS", "F06", "REAL"]);
+  assert.deepEqual(reverified.acceptanceUnchanged, { ruling: ACCEPTANCES.F06.ruling.sha256, contract: ACCEPTANCES.F06.contractSha256 });
+  for (const e of [opened, reverified]) {
+    assert.ok(!Object.hasOwn(e, "changeKind"), `${e.kind} carries the historical changeKind vocabulary`);
+    assert.ok(e.reason, `${e.kind} moved with no stated reason`);
+  }
+  // the chain is continuous and ends where the row stands
+  const moves = DECLARED.F06.events.filter((e) => e.to);
+  for (let i = 1; i < moves.length; i += 1) assert.equal(moves[i].from, moves[i - 1].to, `${moves[i].kind} does not start where ${moves[i - 1].kind} ended`);
+  assert.equal(moves.at(-1).to, DECLARED.F06.state);
+  // CONTROL — stop the chain at CORRECTION_OPENED and it no longer ends where the row stands
+  assert.notEqual(moves.slice(0, -1).at(-1).to, DECLARED.F06.state);
+});
+
 test("F6-BOARD · CONTROL — without F06's REAL verification, or with implementation before the freeze, the board is refused", () => {
   const without = board().map((r) => (r.featureId === "F06" ? { ...r, events: r.events.filter((e) => e.kind !== "VERIFIED") } : r));
   assert.deepEqual(boardErrors(without, ctx).map((e) => `${e.code}:${e.id}`), ["PASS_WITHOUT_VERIFICATION:F06"]);
@@ -57,9 +79,11 @@ test("F6-BOARD · CONTROL — without F06's REAL verification, or with implement
 
 test("F6-TRAIL · each F06 movement is in the production trail EXACTLY ONCE, under F06's own frozen acceptance", () => {
   const mine = trail().filter((e) => e.eventType === "BOARD_TRANSITION" && e.metadata?.featureId === "F06");
-  assert.deepEqual(mine.map((e) => e.action), ["ACCEPTANCE_FROZEN", "IMPLEMENTATION", "VERIFIED"], `${mine.length} transition event(s) for F06`);
+  assert.deepEqual(mine.map((e) => e.action), ["ACCEPTANCE_FROZEN", "IMPLEMENTATION", "VERIFIED", "CORRECTION_OPENED", "CORRECTION_VERIFIED"], `${mine.length} transition event(s) for F06`);
   for (const e of mine) assert.deepEqual(e.authorityRef, { propositionId: "F06_FROZEN_ACCEPTANCE", scope: ["ALMIVISIBILITY", "F06"] });
   assert.deepEqual([mine[2].metadata.from, mine[2].metadata.to, mine[2].metadata.population], ["IN-PROGRESS", "VERIFIED-PASS", "REAL"]);
+  assert.deepEqual([mine[3].metadata.from, mine[3].metadata.to], ["VERIFIED-PASS", "IN-PROGRESS"]);
+  assert.deepEqual([mine[4].metadata.from, mine[4].metadata.to, mine[4].metadata.population], ["IN-PROGRESS", "VERIFIED-PASS", "REAL"]);
   assert.ok(trail().filter((e) => e.eventType === "BOARD_TRANSITION" && e.metadata?.featureId === "F07").length === 3, "CONTROL: the same filter finds F07's three");
 });
 

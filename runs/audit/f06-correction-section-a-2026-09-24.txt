@@ -1,0 +1,58 @@
+F06 CORRECTION · §A — WERE OUTCOME_ALIASES AND THE ROW 7 WRITER INSIDE F06's DECLARED POPULATIONS AT CLOSURE?
+engine: main e11d1437271aac333838b584bf23258282e2f92b (the F06 merge), a plain checkout · node v24.15.0 · 2026-09-24
+proof: test/helpers/f06-correction-section-a.mjs with test/helpers/module-file-trace.mjs (run from scratch copies on
+that checkout; the committed copies differ only in repository-relative paths and in the corrected header comment)
+
+DETERMINATION: OUTSIDE — by execution, not recollection. The declared denominator was INCOMPLETE; the transition is
+corrective (VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS), not FAILED.
+
+1 · THE COMMITTED §5 RECORD
+  runs/audit/f06-populations-and-censuses-2026-09-24.txt declares 24 populations. None is under runs/discovery, and none
+  places a fact's check outcomes (each fact is ONE item, placed by its verificationState). The census source at e11d143
+  (tools/evidence-state-census.mjs) filters `git ls-files runs` to .jsonl only.
+  _handoffs/AlmiVisibility_F06_VERIFIED_PASS_EVIDENCE_2026-09-24.md §8 recorded BOTH defects at closure as "new
+  findings" outside F06: Row 7's UNKNOWN for never-measured dimensions (called "classified H and never consumed as a
+  canonical state" — FALSE: the writer checks every label against LABELS = EVIDENCE_STATES), and OUTCOME_ALIASES
+  collapsing could-not-check and not-applicable into UNKNOWN.
+  The F06 command's §5 asked, at minimum, for "technical observations and check results", "unavailable or refused
+  measurements" and "applicability decisions" to be inspected. The declared populations left fact check outcomes and
+  the Row 7 artefact out: that is the incompleteness.
+
+2 · BY EXECUTION (verbatim output of the proof run)
+engine HEAD e11d1437271aac333838b584bf23258282e2f92b
+restored src/evidence/verdict.mjs: sha256 IDENTICAL
+restored src/discovery/market-measurement.mjs: sha256 IDENTICAL
+restored src/evidence/evidence-state-adapters.mjs: sha256 IDENTICAL
+git status on both files after restore: clean
+
+positive control — every sabotage LANDED on a direct call: toCheckOutcome=true · judgeSupersession=true · promoteOutcome=true · marketModule=true · judgeLeavingUnknown=true · evidenceStateOf=true
+[clean] exit 0 · stdout 4783 bytes · modules 58 · file paths 103
+[clean]   tracer positive control — known reads seen: runs/audit/findings.jsonl=true · runs/cost/ledger.jsonl=true
+[clean]   verdict.mjs loaded true · market-measurement.mjs loaded false · runs/discovery paths read 0
+[sabotageA] exit 0 · stdout 4783 bytes · modules 58 · file paths 103
+[sabotageA]   tracer positive control — known reads seen: runs/audit/findings.jsonl=true · runs/cost/ledger.jsonl=true
+[sabotageA]   verdict.mjs loaded true · market-measurement.mjs loaded false · runs/discovery paths read 0
+[controlB] exit 0 · stdout 4783 bytes · modules 58 · file paths 103
+[controlB]   tracer positive control — known reads seen: runs/audit/findings.jsonl=true · runs/cost/ledger.jsonl=true
+[controlB]   verdict.mjs loaded true · market-measurement.mjs loaded false · runs/discovery paths read 0
+[controlC] exit 1 · stdout 0 bytes · modules 58 · file paths 103
+[controlC]   tracer positive control — known reads seen: runs/audit/findings.jsonl=true · runs/cost/ledger.jsonl=true
+[controlC]   verdict.mjs loaded true · market-measurement.mjs loaded false · runs/discovery paths read 0
+[controlC]   stderr: Error: F06 CORRECTION SECTION A CONTROL-C - evidenceStateOf CALLED
+
+sabotageA vs clean: exit identical true · stdout byte-identical true
+controlB vs clean:  exit identical true · stdout byte-identical true  (judgeLeavingUnknown is not on the census call path)
+controlC vs clean:  exit identical false · stdout byte-identical false  (must DIFFER — the firing control for the call-sabotage method)
+population lines: clean 24 · committed 24 · identical true · naming discovery/market: 0/0
+
+3 · READING IT
+  · verdict.mjs is LOADED (the facts registry imports the validator, which imports it) but no function on the
+    OUTCOME_ALIASES path is CALLED: making all three throw when called changed nothing, byte for byte.
+  · market-measurement.mjs is never loaded, and no runs/discovery path is touched (the tracer did see the known reads).
+  · The method can see a reached path: the same call-sabotage on evidenceStateOf, which the census does call, failed it.
+  · controlB is a FINDING, not a control: the facts validator (F23/F24) runs only in the registry's own census(), so a
+    throw in judgeLeavingUnknown does not reach this census either.
+  · The clean run's 24 population lines equal the committed F06 file's: the proof ran on the closure's population.
+  Three earlier attempts in this session were discarded, not cited: throw-on-LOAD of verdict.mjs (too coarse — the
+  file is loaded through an import chain), a file tracer that failed its own positive control (named ESM imports of
+  node:fs bound the unpatched functions), and controlB, which could not fire.

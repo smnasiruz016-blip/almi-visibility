@@ -95,6 +95,8 @@ const DECLARED = Object.freeze({
   "src/heldout/lifecycle.mjs": "store.append — the audit store's own dedupe by eventId, over an identity of the run, the instant, the action and a SEQUENCE over what the trail already holds for that action: one decision is one event, and a replay of the same append returns IDEMPOTENT_RETRY; write-gate drafts carry the store's default identity",
   /* 🔴 F06 (24 September 2026) — an evidence-state transition is appended ONLY to the audit store it is handed. */
   "src/evidence/evidence-state.mjs": "store.append — the audit store's own dedupe by eventId, over an identity of the event type and the PAIR of reference hashes (fromRef, toRef): one supersession is one event, and a replay of the same transition returns IDEMPOTENT_RETRY",
+  /* 🔴 F01 (24 September 2026) — a declaration decision is appended ONLY to the audit store it is handed. */
+  "src/intake/intake.mjs": "store.append — the audit store's own dedupe by eventId, over an identity of the event type, the run, the declaration and the movement (from, to): one decision is one event, and a replay of the same append returns IDEMPOTENT_RETRY; an identical re-submission decides nothing and appends nothing",
 });
 
 test("🔴 CENSUS (source): every record writer is guarded or declared with a checked reason — ZERO unexplained bare appends", () => {
@@ -120,6 +122,11 @@ test("🔴 CENSUS (source): every record writer is guarded or declared with a ch
   assert.match(readFileSync(`${REPO}src/governance/guard-audit.mjs`, "utf8"), /const identity = \{[^}]*guardDecisionSeq: this\.emitted \+ 1 \};\n\s*const r = store\.append\(draft, \{ identity \}\);/);
   // The evidence-state writer's claim, checked: the identity is the event type and the pair of reference hashes.
   assert.match(readFileSync(`${REPO}src/evidence/evidence-state.mjs`, "utf8"), /audit\.store\.append\(d, \{ identity: \{ eventType: d\.eventType, fromRef: d\.metadata\.fromRef, toRef: d\.metadata\.toRef \} \}\)/);
+  // The declaration recorder's claim, checked: every append carries the declared identity, and that identity names the
+  // event type, the run, the declaration and the movement.
+  const intake = readFileSync(`${REPO}src/intake/intake.mjs`, "utf8");
+  assert.match(intake, /audit\.store\.append\(d, \{ identity: decisionIdentity\(d\) \}\)/);
+  assert.match(intake, /eventType: draft\.eventType, correlationId: draft\.correlationId, declarationId: draft\.metadata\.declarationId, from: draft\.metadata\.from, to: draft\.metadata\.to,/);
 });
 
 test("🔴 CONTROL: the source census FIRES on a bare append, and a directory check is NOT mistaken for a guard", () => {

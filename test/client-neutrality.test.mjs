@@ -75,6 +75,15 @@ const OWNED = Object.freeze([
   "src/fboard/board.mjs",
   "src/fboard/acceptance.mjs",
   "src/fboard/crosswalk.mjs",
+  /* 🔴 24 Sep 2026, F01: project declaration intake joins the list it must honour — it holds every client's words and
+   * origins as DATA, so its code is exactly where one could creep in as law. It carries none, and now it cannot. */
+  "src/intake/contract.mjs",
+  "src/intake/secrets.mjs",
+  "src/intake/origin.mjs",
+  "src/intake/store.mjs",
+  "src/intake/intake.mjs",
+  "src/intake/legacy.mjs",
+  "bin/project-intake.mjs",
 ]);
 
 /**

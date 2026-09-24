@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "declarationId": "decl_3c1a9e0d5b7f4a2e8c6d0b1f9e7a5c30",
+  "projectId": "proj_7e2b4d6f8a0c1e3b5d7f9a1c3e5b7d90",
+  "tenantId": "tenant:3a7c9e1b5d0f2a4c6e8b0d2f4a6c8e01",
+  "displayName": "Quillmoor Bell Foundry Society — restoration register",
+  "submittedBy": { "actorType": "HUMAN", "actorRef": "society archivist (declared in writing)" },
+  "submittedAt": "2026-09-24T09:15:00Z",
+  "properties": [
+    {
+      "propertyId": "register-site",
+      "kind": "WEB_ORIGIN",
+      "origin": "HTTPS://Bells.Quillmoor.example:443/",
+      "environmentId": "public-register",
+      "scope": { "pathPrefixes": ["/towers", "/founders"] },
+      "authority": { "claimedRelationship": "OPERATOR" },
+      "label": "the society's public tower register"
+    },
+    {
+      "propertyId": "rehearsal-copy",
+      "kind": "WEB_ORIGIN",
+      "origin": "https://rehearsal.bells.quillmoor.example:8443",
+      "environmentId": "rehearsal-copy",
+      "authority": { "claimedRelationship": "OPERATOR" }
+    }
+  ],
+  "environments": [
+    { "environmentId": "public-register", "label": "Tower register (what visitors read)", "visibility": "PUBLIC", "allowedOperations": ["RESEARCH_PUBLIC_PROPERTY", "CRAWL_PUBLIC_PROPERTY"], "constraintIds": ["quiet-hours"] },
+    { "environmentId": "rehearsal-copy", "label": "Rehearsal copy kept by the archivist", "visibility": "NON_PUBLIC", "allowedOperations": [] }
+  ],
+  "goals": [
+    { "goalId": "towers-findable", "wording": "Ringers looking for a tower's bell weights should find our register first — and trust it.", "category": "VISIBILITY", "priority": "HIGH", "successMeasure": "Register pages appear for tower-name searches" },
+    { "goalId": "founders-credit", "wording": "Give the old founders their due, with sources.", "priority": "LOW" }
+  ],
+  "permissions": [
+    { "permission": "RESEARCH_PUBLIC_PROPERTY", "requestedState": "REQUESTED", "scope": "the public tower register only" },
+    { "permission": "CRAWL_PUBLIC_PROPERTY", "requestedState": "REQUESTED", "scope": "/towers and /founders", "effectiveFrom": "2026-10-01T00:00:00Z", "expiresAt": "2027-03-31T23:59:59Z" },
+    { "permission": "PUBLISH_OR_MODIFY_PROPERTY", "requestedState": "NOT_REQUESTED" }
+  ],
+  "constraints": [
+    { "constraintId": "quiet-hours", "type": "RATE", "statement": "No automated visits during Sunday service ringing.", "bounds": { "day": "Sunday", "fromHour": 8, "toHour": 13 } },
+    { "constraintId": "no-spend", "type": "BUDGET", "statement": "The society has no budget for paid tools this year.", "bounds": { "currency": "none", "amount": 0 } },
+    { "constraintId": "welsh-too", "type": "LANGUAGE", "statement": "Tower names stay as the parish spells them, Welsh included." }
+  ],
+  "connectors": [
+    { "connectorId": "register-analytics", "kind": "site-analytics", "intent": "Read visit counts for the register, when the society later allows it.", "configRef": { "mechanism": "ENV_REFERENCE", "name": "QUILLMOOR_ANALYTICS_READ_TOKEN" } }
+  ],
+  "declarationState": "SUBMITTED",
+  "supersedes": null
+}

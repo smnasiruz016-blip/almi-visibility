@@ -64,8 +64,13 @@ export const EXCLUSIONS = Object.freeze([
   Object.freeze({
     fn: "derivedForbiddenSubstrings", module: "src/audit-trail/wiring.mjs",
     why: "GLOBAL_PRODUCT protection: it re-derives the protected held-out payload so the audit store can REFUSE it. Its only output is a refusal list; it joins no tenant and informs no tenant decision",
-    control: "test/f02-tenant-scope.test.mjs ASP-free control F02-EXCL-1: the substrings only ever narrow what an append accepts",
+    control: "test/f02-tenant-scope.test.mjs F02-EXCL-1: the substrings only ever narrow what an append accepts",
   }),
+  ...["memberOrigins", "batchPageUrls", "sitemapListedUrls"].map((fn) => Object.freeze({
+    fn, module: "src/tenancy/scoped-run.mjs",
+    why: "the gate itself: it reads a container's member IDENTITY fields (a page's canonical URL, a listed URL) — never a body — so the one decision can refuse a container whose members are declared to another tenant",
+    control: "test/f02-tenant-scope.test.mjs F02-EXCL-3: the member read returns origins only, and the decision it feeds refuses the real batch as AMBIGUOUS",
+  })),
 ]);
 
 /**

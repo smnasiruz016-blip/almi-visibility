@@ -41,6 +41,7 @@ import { createCostGovernor } from "../src/cost/governor.mjs";
 import { createCostLedger, entryFromLiveIngest, formatLedgerLine } from "../src/cost/ledger.mjs";
 import { readFileSync } from "node:fs";
 import { isAbsolute, join, relative } from "node:path";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (name, fallback = null) => {
@@ -50,6 +51,8 @@ const arg = (name, fallback = null) => {
 
 const propertyId = arg("property");
 const days = Number(arg("days", "28"));
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/gsc-ingest.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.runArtefacts("--spec and --store")] });
 /* 🔴 GAP 2 (16 September 2026) — the evidence store and the cost ledger are both confined before the
  * first request, and the run is DRY BY DEFAULT: without --confirm it queries, reports every number,
  * and stores nothing. The observations are written inside `runIngest`, so the gate is WHICH STORE it
@@ -133,7 +136,7 @@ const GSC_CORRELATION = `run:gsc-ingest:${GSC_INSTANT}`;
 /* Returns the boundary's outcome AND the args, so the LEDGER'S OWN answer — appended, or already present — is
  * still what the run reports. Routing may not cost a caller information it was already giving the operator. */
 const governedLedgerAppend = (entry, action) => {
-  const args = governedStoreAppend({
+  const args = governedStoreAppend({ ...SCOPE.writeScope,
     repo: REPO, permission, store: ledger, records: [entry], targetClass: "RUN_EVIDENCE",
     action, occurredAt: GSC_INSTANT, correlationId: GSC_CORRELATION,
     discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null,
@@ -248,7 +251,7 @@ if (r.control.httpStatus === 403) {
 /* 🔴 IDEMPOTENCY, REPORTED RATHER THAN ASSUMED. A second run over unchanged
  * data appends re-sightings and no new measurements — and says which happened. */
 console.log("");
-const evidenceGoverned = executeGovernedWrite(governedStoreAppend({
+const evidenceGoverned = executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,
   repo: REPO, permission, store: createJsonlStore(storePath), records: store.wouldWrite(),
   targetClass: "GENERATED_CONFIG", action: "APPEND_SEARCH_CONSOLE_OBSERVATIONS",
   occurredAt: GSC_INSTANT, correlationId: GSC_CORRELATION, discipline: "APPEND_IF_NEW",

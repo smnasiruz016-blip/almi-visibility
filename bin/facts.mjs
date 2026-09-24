@@ -27,6 +27,7 @@ import { loadRegistry, census, REGISTRY_FACT_CHECK_COUNT } from "../src/facts/re
 import { queueReason } from "../src/facts/queues.mjs";
 
 import { productFromArgvOrExit } from "../src/product-cli.mjs";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 /**
  * 🔴 THE PRODUCT ARRIVES AS AN ARGUMENT, NOT AS AN IMPORT.
@@ -38,6 +39,8 @@ import { productFromArgvOrExit } from "../src/product-cli.mjs";
  * There is no default: a runner with no `--product=<id>` stops and says so.
  */
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/facts.mjs <census|validate> --product=<id>" });
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/facts.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.factRegistryAt(PRODUCT.factsDir)] });
 
 const argv = process.argv.slice(2);
 const command = argv[0] ?? "census";
@@ -222,7 +225,7 @@ async function main() {
     /* Routed. TEXT, measured: the body is JSON.stringify of the census. The bare mkdir is gone rather than gated —
      * the boundary's prepare step creates the directory it writes into. */
     const RUN_INSTANT = isoSeconds(Date.now());
-    const governed = executeGovernedWrite(governedFileWrite({
+    const governed = executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
       repo: REPO, permission, target: out, targetClass: "RUN_EVIDENCE",
       bytes: JSON.stringify(c, null, 2) + "\n",
       action: "WRITE_FACTS_CENSUS", occurredAt: RUN_INSTANT, correlationId: `run:facts:${RUN_INSTANT}`,

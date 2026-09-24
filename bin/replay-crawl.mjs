@@ -50,11 +50,15 @@ import { runRobotsAndDnsAudit } from "../src/audit/run-audit.mjs";
 import { createCostLedger, entryFromReplay, entryFromArtifactRecovery, formatLedgerLine } from "../src/cost/ledger.mjs";
 import { ESTATE_HOSTNAME_LIST } from "../config/estate-hostnames.mjs";
 import { batchFile } from "../src/crawl/observation-batch.mjs";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const argv = process.argv.slice(2);
 const arg = (n) => argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3) ?? null;
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv, env: process.env }));
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/replay-crawl.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.cache("robots cache"), RESOURCES.runArtefacts("replay corpus")] });
 
 const RUN_ID = "34662527129";
 const ARTIFACT = `crawl-corpus-${RUN_ID}`;
@@ -150,7 +154,7 @@ let recovery = { recoveredThisRun: false };
 if (argv.includes("--recover")) {
   const t0 = new Date().toISOString();
   const RECOVER_INSTANT = governedInstant(Date.now());
-  const recovered = executeGovernedWrite(governedDirectoryReplace({
+  const recovered = executeGovernedWrite(governedDirectoryReplace({ ...SCOPE.writeScope,
     repo: REPO, permission, target: CORPUS,
     targetClass: arg("corpus") === null ? "RUN_EVIDENCE" : "OPERATOR_CHOSEN_OUTPUT",
     /* The only place the external tool runs, and it writes only into the staging directory it is handed. */
@@ -386,14 +390,14 @@ const REPLAY_INSTANT = governedInstant(Date.now());
 const correlationId = `run:replay-crawl:${REPLAY_INSTANT}`;
 const scratchBytes = (name) => (existsSync(join(tmp, name)) ? readFileSync(join(tmp, name), "utf8") : "");
 const steps = [
-  ["crawl store", () => governedFileWrite({ repo: REPO, permission, target: CRAWL_STORE, targetClass: "RUN_EVIDENCE", bytes: scratchBytes("crawl.jsonl"), action: "RECORD_REPLAY_CRAWL_STORE", occurredAt: REPLAY_INSTANT, correlationId })],
-  ["audit store", () => governedFileWrite({ repo: REPO, permission, target: AUDIT_STORE, targetClass: "RUN_EVIDENCE", bytes: scratchBytes("audit.jsonl"), action: "RECORD_REPLAY_AUDIT_STORE", occurredAt: REPLAY_INSTANT, correlationId })],
-  ["cost ledger", () => governedStoreAppend({
+  ["crawl store", () => governedFileWrite({ ...SCOPE.writeScope, repo: REPO, permission, target: CRAWL_STORE, targetClass: "RUN_EVIDENCE", bytes: scratchBytes("crawl.jsonl"), action: "RECORD_REPLAY_CRAWL_STORE", occurredAt: REPLAY_INSTANT, correlationId })],
+  ["audit store", () => governedFileWrite({ ...SCOPE.writeScope, repo: REPO, permission, target: AUDIT_STORE, targetClass: "RUN_EVIDENCE", bytes: scratchBytes("audit.jsonl"), action: "RECORD_REPLAY_AUDIT_STORE", occurredAt: REPLAY_INSTANT, correlationId })],
+  ["cost ledger", () => governedStoreAppend({ ...SCOPE.writeScope,
     repo: REPO, permission, store: createCostLedger(LEDGER), records: [...(recovery.recoveredThisRun ? [recovery.entry] : []), replayEntry],
     targetClass: "RUN_EVIDENCE", action: "APPEND_REPLAY_COST_ENTRIES", occurredAt: REPLAY_INSTANT, correlationId,
     discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null,
   })],
-  ["evidence", () => governedFileWrite({ repo: REPO, permission, target: EVIDENCE, targetClass: "RUN_EVIDENCE", bytes: JSON.stringify(evidence, null, 2) + "\n", action: "RECORD_REPLAY_EVIDENCE", occurredAt: REPLAY_INSTANT, correlationId })],
+  ["evidence", () => governedFileWrite({ ...SCOPE.writeScope, repo: REPO, permission, target: EVIDENCE, targetClass: "RUN_EVIDENCE", bytes: JSON.stringify(evidence, null, 2) + "\n", action: "RECORD_REPLAY_EVIDENCE", occurredAt: REPLAY_INSTANT, correlationId })],
 ];
 let halted = null;
 for (const [name, args] of steps) {

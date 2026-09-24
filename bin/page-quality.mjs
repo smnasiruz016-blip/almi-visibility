@@ -27,12 +27,17 @@ import { evaluatePageQuality, tallyPageQuality, row25Verdict, liveControls, read
 import { sourceKey, labelValueList } from "../src/gate-a/claim-binding.mjs";
 import { createTenantResolver } from "../src/tenancy/resolver.mjs";
 import { factRegistryRef, externalRootContaining } from "../src/adapter/external-subject.mjs";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
+import { everySubjectRegistry } from "../src/tenancy/scoped-run.mjs";
 
 /** The manifest-pinned capture of real pages this row reads (data repository, captures/). */
 const CAPTURE_ID = "row25-2026-09-21";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const NOW = new Date("2026-09-13T00:00:00Z");
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/page-quality.mjs", governed: false, repoUrl: import.meta.url, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.captures(), RESOURCES.runArtefacts("stored source-integrity result"), ...(await everySubjectRegistry())] });
 
 const crawlRecords = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll();
 const pages = pagesFromRun({ crawlRecords, bodies: readBodyArchive(batchFile("bodies-2026-09-12.jsonl.br")) }).filter((p) => p.html !== null);

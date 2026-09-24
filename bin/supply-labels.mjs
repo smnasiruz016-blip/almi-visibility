@@ -37,8 +37,12 @@ import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { EXACT_DUPLICATE, THIN_CONTENT, NEAR_DUPLICATE, TEMPLATE_DOMINANCE, RECOMMENDATION_FIELDS } from "../src/audit/content-checks.mjs";
 import { measure, SHELL_DEFINITION, THIN_UNIQUE_WORD_FLOOR } from "../src/audit/shell.mjs";
 import { batchFile } from "../src/crawl/observation-batch.mjs";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/supply-labels.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.operatorDirectory("--corpus")] });
 const arg = (n, d) => {
   const hit = process.argv.find((a) => a.startsWith(`--${n}=`));
   return hit ? hit.slice(n.length + 3) : d;
@@ -189,7 +193,7 @@ const writes = { appended: 0, resighted: 0, wouldWrite: 0 };
  * The store still decides appended-versus-re-sighting per finding, and its answer is still reported — routing may
  * not cost the operator information the run was already giving them. */
 if (findings.length) {
-  const args = governedStoreAppend({
+  const args = governedStoreAppend({ ...SCOPE.writeScope,
     repo: REPO, permission, store, records: findings, targetClass: "RUN_EVIDENCE",
     action: "APPEND_SUPPLY_LABEL_FINDINGS", occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
     discipline: "APPEND_IF_NEW", seenAt: openedAt,

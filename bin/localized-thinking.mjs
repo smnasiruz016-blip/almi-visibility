@@ -19,9 +19,12 @@ import { countryUrlCensus, reachesRowFive, reachesDecisionPaths, CENSUS_LIMITS }
 import { HARD_CODED_PATTERNS } from "../config/discovery/axis-candidates.mjs";
 import { readReasoningBatch, goalTenancy, judgeReasoning, withEvidenceClasses, row4Verdict, tallyReasoning, OUTCOMES } from "../src/discovery/local-reasoning.mjs";
 import { createTenantResolver } from "../src/tenancy/resolver.mjs";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 // the repository root from this file's own path — no URL is constructed in a consumer of the localized-thinking module
 const REPO = dirname(dirname(fileURLToPath(import.meta.url)));
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/localized-thinking.mjs", governed: false, repoUrl: import.meta.url, resources: [RESOURCES.evidenceStore(), RESOURCES.runArtefacts("stored discovery results")] });
 const storeRecords = createJsonlStore(join(REPO, "runs", "evidence", "evidence.jsonl")).readAll();
 const row3 = JSON.parse(readFileSync(join(REPO, ...ROW3_STORED.split("/")), "utf8"));
 const result = localizedThinking({ storeRecords, row3, estatePatterns: HARD_CODED_PATTERNS });

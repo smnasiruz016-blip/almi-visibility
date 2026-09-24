@@ -28,6 +28,7 @@ import { productFromArgvOrExit } from "../src/product-cli.mjs";
 import { checkSources, assertExternal, MAX_REQUESTS, INTERVAL_MS, HEAD_REFUSED, USER_AGENT } from "../src/audit/source-integrity.mjs";
 import { createCostLedger, entryFromLinkCheck, formatLedgerLine } from "../src/cost/ledger.mjs";
 import { ESTATE_HOSTNAME_LIST } from "../config/estate-hostnames.mjs";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const argv = process.argv.slice(2);
@@ -42,6 +43,8 @@ const ESTATE = [...new Set([...ESTATE_HOSTNAME_LIST, "almiworld.com"])];
 /* ---- the plan: every distinct source URL cited by the fact registry ------ */
 // 🔴 The product is an ARGUMENT, never a folder written here (owner ruling, 14 September 2026): no default.
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/source-integrity.mjs --product=<id> [--live [--confirm]]" });
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/source-integrity.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.factRegistryAt(PRODUCT.factsDir), RESOURCES.costLedger(), RESOURCES.runArtefacts("source-integrity stores")] });
 const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
 const byUrl = new Map();
 for (const r of records) {
@@ -132,17 +135,17 @@ const SI_INSTANT = governedInstant(Date.now());
 const SI_CORRELATION = `run:source-integrity:${SI_INSTANT}`;
 const ledger = createCostLedger(confineToRepo(`${REPO}runs/cost/ledger.jsonl`, { label: "the cost ledger" }));
 const siOutcomes = [
-  executeGovernedWrite(governedStoreAppend({
+  executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,
     repo: REPO, permission, store, records: observations, targetClass: "RUN_EVIDENCE",
     action: "APPEND_SOURCE_INTEGRITY_OBSERVATIONS", occurredAt: SI_INSTANT, correlationId: SI_CORRELATION,
     discipline: "APPEND_IF_NEW", seenAt: finishedAt,
   })),
-  executeGovernedWrite(governedStoreAppend({
+  executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,
     repo: REPO, permission, store: ledger, records: [entry], targetClass: "RUN_EVIDENCE",
     action: "APPEND_SOURCE_INTEGRITY_COST_ENTRY", occurredAt: SI_INSTANT, correlationId: SI_CORRELATION,
     discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null,
   })),
-  executeGovernedWrite(governedFileWrite({
+  executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
     repo: REPO, permission, target: EVIDENCE, targetClass: "GENERATED_CONFIG",
     bytes: JSON.stringify({ startedAt, finishedAt, requests: run.requests, maxRequests: run.maxRequests, intervalMs: INTERVAL_MS, plan, counts, results: run.results, ledgerEntry: entry.entry_id }, null, 2) + "\n",
     action: "WRITE_SOURCE_INTEGRITY_EVIDENCE", occurredAt: SI_INSTANT, correlationId: SI_CORRELATION,

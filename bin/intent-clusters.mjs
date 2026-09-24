@@ -16,6 +16,7 @@ import { createJsonlStore } from "../src/evidence/store.mjs";
 import { row5 } from "../src/discovery/row5.mjs";
 import { LEXICON } from "../config/discovery/intent-lexicon.mjs";
 import { INTENT_REFERENCE, AMBIGUOUS, AMENDMENTS, REFERENCE_AUTHOR, REFERENCE_STATUS } from "../config/discovery/intent-reference.mjs";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 /**
  * 🔴 DRAIN BEFORE EXIT — `process.exit()` tears the process down with asynchronous stdout writes
@@ -47,6 +48,8 @@ function exitAfterDrain(code) {
 }
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/intent-clusters.mjs", governed: false, repoUrl: import.meta.url, resources: [RESOURCES.evidenceStore()] });
 const records = createJsonlStore(join(REPO, "runs", "evidence", "evidence.jsonl")).readAll();
 const r = row5({ records, lexicon: LEXICON, reference: INTENT_REFERENCE, ambiguous: AMBIGUOUS, referenceStatus: REFERENCE_STATUS });
 

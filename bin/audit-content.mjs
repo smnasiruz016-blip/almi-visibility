@@ -23,6 +23,8 @@ import { registeredChecks } from "../src/audit/check.mjs";
 import { canonicalUrl, targetPageId } from "../src/evidence/ids.mjs";
 import { pagesFromRun, deriveEdges, inboundOf, unpackGraph, ZERO_INBOUND_DEFINITION } from "../src/crawl/inbound.mjs";
 import { batchFile } from "../src/crawl/observation-batch.mjs";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 /* 🔴 GAP 2 (16 September 2026) — DRY-RUN BY DEFAULT. Until now this appended its findings on every
@@ -39,6 +41,8 @@ const arg = (n, d) => {
 const corpusDir = arg("corpus", null);
 const out = confineToRepo(arg("out", `${REPO}runs/audit/content-findings.jsonl`), { label: "--out" });
 const openedAt = new Date().toISOString();
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/audit-content.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.evidenceStore(), RESOURCES.operatorDirectory("--corpus")] });
 
 const crawl = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll();
 const observations = crawl.filter((r) => r.record_type === "observation" && !r.value?.skipped);
@@ -139,7 +143,7 @@ for (const dp of distinctPages) {
   bump(ORPHAN_LINK.id, finding.verdict);
 }
 if (pending.length) {
-  const args = governedStoreAppend({
+  const args = governedStoreAppend({ ...SCOPE.writeScope,
     repo: REPO, permission, store, records: pending, targetClass: "RUN_EVIDENCE",
     action: "APPEND_CONTENT_AUDIT_FINDINGS", occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
     discipline: "APPEND_IF_NEW", seenAt: openedAt,

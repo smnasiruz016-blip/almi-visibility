@@ -19,6 +19,11 @@
  */
 import { createTenantResolver } from "./resolver.mjs";
 import { decideForTenant, scopeRefusalEvent } from "./scope.mjs";
+import { diagnosticGuardSink } from "../governance/guard-audit.mjs";
+import { governedGuardSink } from "../governance/governed-run.mjs";
+import { isoSeconds } from "../audit-trail/store.mjs";
+import { subjectRoots, availableSubjects, importSubjectModule } from "../subject-roots.mjs";
+import { factRegistryRef } from "../adapter/external-subject.mjs";
 
 export const TENANT_ARG = "tenant";
 /** The exit code of a run refused on tenant scope — distinct from a check failure (1) and a usage error (2). */
@@ -36,15 +41,35 @@ export const RESOURCES = Object.freeze({
   factRegistry: (ref) => ({ label: "fact registry", resourceKind: ref ? "FACT_REGISTRY" : null, resourceRef: ref?.resourceRef ?? "unresolvable-registry", scopeClass: "TENANT" }),
   crawlBatch: (batchId) => ({ label: "observation batch", resourceKind: "CRAWL_BATCH", resourceRef: batchId, scopeClass: "TENANT" }),
   sitemapCollection: (batchId) => ({ label: "sitemap collection", resourceKind: "SITEMAP_COLLECTION", resourceRef: batchId, scopeClass: "TENANT" }),
-  evidenceStore: (name = "runs/evidence") => ({ label: "evidence store", resourceKind: null, resourceRef: name, scopeClass: "TENANT" }),
-  costLedger: (name = "runs/cost") => ({ label: "cost ledger", resourceKind: null, resourceRef: name, scopeClass: "TENANT" }),
+  evidenceStore: (name = "evidence-store") => ({ label: "evidence store", resourceKind: null, resourceRef: name, scopeClass: "TENANT" }),
+  costLedger: (name = "cost-ledger") => ({ label: "cost ledger", resourceKind: null, resourceRef: name, scopeClass: "TENANT" }),
   cache: (name) => ({ label: "cache", resourceKind: null, resourceRef: name, scopeClass: "TENANT" }),
-  captures: (name = "captures") => ({ label: "page captures", resourceKind: null, resourceRef: name, scopeClass: "TENANT" }),
-  research: (name = "research") => ({ label: "research batch", resourceKind: null, resourceRef: name, scopeClass: "TENANT" }),
+  captures: (name = "page-capture-set") => ({ label: "page captures", resourceKind: null, resourceRef: name, scopeClass: "TENANT" }),
+  research: (name = "research-batch-set") => ({ label: "research batch", resourceKind: null, resourceRef: name, scopeClass: "TENANT" }),
   operatorDirectory: (name = "operator-chosen directory") => ({ label: "operator-chosen directory", resourceKind: null, resourceRef: name, scopeClass: "TENANT" }),
   productDescriptor: (name) => ({ label: "product descriptor", resourceKind: null, resourceRef: name, scopeClass: "TENANT" }),
-  runArtefacts: (name = "runs") => ({ label: "run artefacts", resourceKind: null, resourceRef: name, scopeClass: "TENANT" }),
+  runArtefacts: (name = "run-artefact-set") => ({ label: "run artefacts", resourceKind: null, resourceRef: name, scopeClass: "TENANT" }),
+  /** A store partitioned BY the declared tenant id (F01's declaration store): its partition key is the declaration. */
+  tenantPartition: (tenantId, name = "declaration store") => ({ label: `${name} partition`, resourceKind: "TENANT_PARTITION", resourceRef: tenantId, scopeClass: "TENANT" }),
+  /** A fact registry located from its directory under the external root that holds it (factRegistryRef's rule). */
+  factRegistryAt: (factsDir, { env = process.env } = {}) => {
+    const root = typeof factsDir === "string" ? subjectRoots(env).filter((r) => r.kind === "external").find((r) => factsDir.startsWith(r.path)) : null;
+    const ref = root ? factRegistryRef({ factsDir, rootPath: root.path }) : null;
+    return { label: "fact registry", resourceKind: ref ? "FACT_REGISTRY" : null, resourceRef: ref?.resourceRef ?? "registry-outside-every-declared-root", scopeClass: "TENANT" };
+  },
 });
+
+/** Every declared subject's fact registry, each located by its descriptor's factsDir (for runs that read them all). */
+export async function everySubjectRegistry({ env = process.env } = {}) {
+  const out = [];
+  const roots = subjectRoots(env);
+  for (const id of availableSubjects({ roots })) {
+    let factsDir = null;
+    try { factsDir = (await importSubjectModule(id, "product.mjs", { roots }))?.PRODUCT?.factsDir ?? null; } catch { factsDir = null; }
+    out.push(RESOURCES.factRegistryAt(factsDir, { env }));
+  }
+  return out.length ? out : [RESOURCES.factRegistry(null)];
+}
 
 /**
  * Decide every resource of a run against the requested tenant, emit each refusal to the sink, and report.
@@ -70,4 +95,25 @@ export function requireScopedRun(o) {
   const run = decideScopedRun(o);
   if (!run.allowed) process.exit(SCOPE_REFUSED_EXIT);
   return run;
+}
+
+/**
+ * The one line an entry point adds, FIRST, before it reads anything tenant-governed:
+ *
+ *   const SCOPE = scopedEntryPoint({ entry: "bin/x.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.…] });
+ *
+ * `governed` entry points record refusals durably (F08's governed guard sink — confined in a verified test context);
+ * read-only diagnostics report them and append nothing. On success it returns `writeScope`: the scope every governed
+ * write of this run must carry, so a run's OUTPUT belongs to the tenant its inputs did.
+ */
+export function scopedEntryPoint({ entry, governed, repoUrl, resources, argv = process.argv, env = process.env, resolve = createTenantResolver({ env }) }) {
+  const sink = governed ? governedSinkFor({ entry, repoUrl, env }) : diagnosticGuardSink({ actor: entry });
+  const run = requireScopedRun({ argv, resolve, resources, sink });
+  return { ...run, writeScope: Object.freeze({ scopeType: "TENANT", tenantId: run.tenantId }) };
+}
+
+function governedSinkFor({ entry, repoUrl, env }) {
+  const repo = new URL("../", repoUrl).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+  const now = isoSeconds(Date.now()).slice(0, 10);
+  return governedGuardSink({ repo, env, correlationId: `run:${entry}:tenant-scope:${isoSeconds(Date.now())}`, now, actor: entry });
 }

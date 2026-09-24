@@ -9,8 +9,11 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 const GEN = "C:/Projects/almi-oet/scripts/seed/gen";
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/clinical-layer-census.mjs", governed: false, repoUrl: import.meta.url, resources: [RESOURCES.operatorDirectory("a connected product's repository files")] });
 const PROFESSIONS = [
   "dentistry", "dietetics", "medicine", "nursing", "occupational_therapy", "optometry",
   "pharmacy", "physiotherapy", "podiatry", "radiography", "speech_pathology", "veterinary_science",

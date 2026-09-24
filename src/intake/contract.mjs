@@ -95,10 +95,12 @@ const isObj = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
  *   tenants   the ACTIVE tenant ids in force (from the production resolver), or null when the registry could not be
  *             read — then every declaration is REFUSED: "I could not look" never passes for "it is declared"
  *   attachedTo(origin) → the tenantId a SITE_ORIGIN attachment names, or null (optional; from the same registry)
+ *   relation(origin, tenantId) → the F02 scope decision for that property against the declaration's tenant (optional;
+ *             when given it REPLACES attachedTo, so the production path decides through src/tenancy/scope.mjs)
  *
  * Returns { ok, refusals: [{ code, path }], normalised }. A refusal carries a code and a JSON path, never a value.
  */
-export function validateDeclaration(doc, { tenants, attachedTo = () => null } = {}) {
+export function validateDeclaration(doc, { tenants, attachedTo = () => null, relation = null } = {}) {
   const refusals = [];
   const no = (code, path) => refusals.push(Object.freeze({ code, path }));
 
@@ -183,8 +185,18 @@ export function validateDeclaration(doc, { tenants, attachedTo = () => null } = 
     if (!o.ok) return no(o.code, `${p}.origin`);
     if (origins.has(o.origin)) no("DUPLICATE_ORIGIN", `${p}.origin`);
     origins.add(o.origin);
-    const attached = attachedTo(o.origin);
-    if (attached && typeof doc.tenantId === "string" && attached !== doc.tenantId) no("PROPERTY_ATTACHED_TO_ANOTHER_TENANT", `${p}.origin`);
+    /* 🔴 F02 (24 Sep 2026): when the caller hands in `relation`, the property's attachment is decided by the ONE tenant-
+     * scope decision (src/tenancy/scope.mjs), not compared here. An AMBIGUOUS, INVALID or unreadable attachment used to
+     * come back from `attachedTo` as null and pass as "unattached"; each now refuses by name. An UNDECLARED origin is a
+     * claim over a property nobody has attached yet — it moves no data and stays UNVERIFIED, as F01 froze it. */
+    if (typeof relation === "function") {
+      const d = relation(o.origin, doc.tenantId);
+      const code = { CROSS_TENANT_REFUSED: "PROPERTY_ATTACHED_TO_ANOTHER_TENANT", AMBIGUOUS_REFUSED: "PROPERTY_ATTACHMENT_AMBIGUOUS", INVALID_REFUSED: "PROPERTY_ATTACHMENT_INVALID", UNKNOWN_REFUSED: "PROPERTY_ATTACHMENT_UNREADABLE", SCOPE_MISMATCH_REFUSED: "PROPERTY_ATTACHMENT_INVALID" }[d?.outcome];
+      if (code && !(d.outcome === "INVALID_REFUSED" && d.source?.state === "INVALID")) no(code, `${p}.origin`);
+    } else {
+      const attached = attachedTo(o.origin);
+      if (attached && typeof doc.tenantId === "string" && attached !== doc.tenantId) no("PROPERTY_ATTACHED_TO_ANOTHER_TENANT", `${p}.origin`);
+    }
     normalisedProperties.push({ ...pr, origin: o.origin, authority: { claimedRelationship: pr.authority?.claimedRelationship, verificationState: "UNVERIFIED" } });
   });
 

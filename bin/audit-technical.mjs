@@ -28,6 +28,8 @@ import {
 import { SITEMAP_VS_ROBOTS, collectSitemapUrls, contradictions, MAX_CHILD_SITEMAPS } from "../src/audit/sitemap-check.mjs";
 import { parseGroups, selectGroup, decide } from "../src/audit/robots-scope.mjs";
 import { batchFile } from "../src/crawl/observation-batch.mjs";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 /* 🔴 GAP 2 (16 September 2026) — DRY-RUN BY DEFAULT, for the findings AND for the sitemap
@@ -49,6 +51,8 @@ const corpusDir = arg("corpus", null);
 const doSitemaps = flag("sitemaps");
 const out = confineToRepo(arg("out", `${REPO}runs/audit/technical-findings.jsonl`), { label: "--out" });
 const openedAt = new Date().toISOString();
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/audit-technical.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.evidenceStore(), RESOURCES.operatorDirectory("--corpus")] });
 
 const crawl = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll();
 const evidence = createJsonlStore(`${REPO}runs/evidence/evidence.jsonl`).readAll();
@@ -246,7 +250,7 @@ for (const [target, records, action] of [
   [sitemapStore, pendingSitemapObservations, "APPEND_SITEMAP_OBSERVATIONS"],
   [store, pendingFindings, "APPEND_TECHNICAL_AUDIT_FINDINGS"],
 ]) {
-  const args = governedStoreAppend({
+  const args = governedStoreAppend({ ...SCOPE.writeScope,
     repo: REPO, permission, store: target, records, targetClass: "RUN_EVIDENCE",
     action, occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
     discipline: "APPEND_IF_NEW", seenAt: openedAt,

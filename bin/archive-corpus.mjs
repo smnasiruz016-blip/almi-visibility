@@ -27,6 +27,8 @@ import { batchFile } from "../src/crawl/observation-batch.mjs";
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedFileWrite } from "../src/governance/governed-run.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const argv = process.argv.slice(2);
@@ -52,6 +54,8 @@ const CORPUS = confineToRepo(corpusArg, { label: "--corpus" });
  * the engine never writes into the data one — and the verification below is unchanged. */
 const outArg = arg("out");
 const OUT = outArg === null ? null : confineToRepo(outArg, { label: "--out" });
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/archive-corpus.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.operatorDirectory("--corpus")] });
 
 const crawlRecords = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll();
 const files = existsSync(CORPUS) ? readdirSync(CORPUS).filter((f) => f.endsWith(".html")) : [];
@@ -72,7 +76,7 @@ if (check.matches !== check.expected || check.missing.length || check.mismatched
 if (!permission.mayWrite) {
   /* Audited when there is a target to key it on; a dry run with no destination keeps its message and exit code. */
   if (OUT !== null) {
-    executeGovernedWrite(governedFileWrite({
+    executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
       repo: REPO, permission, target: OUT, targetClass: "RUN_EVIDENCE", bytes: packed,
       action: "WRITE_BODY_ARCHIVE", occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
     }));
@@ -90,7 +94,7 @@ if (existsSync(OUT)) {
 }
 /* Already a temporary-then-rename, which is STAGED_REPLACE; the boundary now owns it. `packed` is a brotli
  * Buffer and is hashed as raw bytes rather than decoded as text. */
-const governed = executeGovernedWrite(governedFileWrite({
+const governed = executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
   repo: REPO, permission, target: OUT, targetClass: "RUN_EVIDENCE", bytes: packed,
   action: "WRITE_BODY_ARCHIVE", occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
 }));

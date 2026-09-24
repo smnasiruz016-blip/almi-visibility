@@ -44,6 +44,7 @@ import { loadRegistry } from "../src/facts/registry.mjs";
 import { isPerVariant } from "../src/page/claim-placement.mjs";
 
 import { productFromArgvOrExit } from "../src/product-cli.mjs";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 /**
  * 🔴 THE PRODUCT ARRIVES AS AN ARGUMENT, NOT AS AN IMPORT.
@@ -56,6 +57,8 @@ import { productFromArgvOrExit } from "../src/product-cli.mjs";
  */
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/distinguishing-census.mjs --product=<id>" });
 
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/distinguishing-census.mjs", governed: false, repoUrl: import.meta.url, resources: [RESOURCES.factRegistryAt(PRODUCT.factsDir)] });
 const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
 
 const professionOf = (r) => {

@@ -24,6 +24,8 @@ import { pagesFromRun, inboundOf, unpackGraph } from "../src/crawl/inbound.mjs";
 import { disagreementIssues, ISSUE_CLASS } from "../src/audit/instrument-agreement.mjs";
 import { lifecycleOf, makeIssueStateChange } from "../src/evidence/lifecycle.mjs";
 import { batchFile } from "../src/crawl/observation-batch.mjs";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const argv = process.argv.slice(2);
@@ -35,6 +37,8 @@ const storeArg = argv.find((a) => a.startsWith("--store="))?.slice("--store=".le
 const STORE = confineToRepo(storeArg ?? `${REPO}runs/audit/instrument-findings.jsonl`, { label: storeArg === undefined ? "the instrument findings store" : "--store" });
 const CONTENT_RUN = `${REPO}runs/audit/item-13-26-content-run-2026-09-13.txt`;
 const TECHNICAL_RUN = `${REPO}runs/audit/item-26-technical-run-2026-09-13.txt`;
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/instrument-disagreement.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.runArtefacts("instrument findings")] });
 
 const crawlRecords = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll();
 const pages = pagesFromRun({ crawlRecords, bodies: readBodyArchive(batchFile("bodies-2026-09-12.jsonl.br")) });
@@ -51,7 +55,7 @@ if (!argv.includes("--close")) {
    * the store still decides, and its answer still drives the raised/re-sighted report. */
   const store = createJsonlStore(STORE);
   const RAISE_INSTANT = isoSeconds(Date.now());
-  const raiseArgs = governedStoreAppend({
+  const raiseArgs = governedStoreAppend({ ...SCOPE.writeScope,
     repo: REPO, permission, store, records: issues, targetClass: "RUN_EVIDENCE",
     action: "RAISE_INSTRUMENT_DISAGREEMENT_ISSUES", occurredAt: RAISE_INSTANT,
     correlationId: `run:instrument-disagreement:raise:${RAISE_INSTANT}`,
@@ -103,7 +107,7 @@ console.log(`OPEN ${ISSUE_CLASS} issues to close: ${changes.length}`);
  * so a re-run closes none. The boundary therefore does not demand a key for this discipline — demanding one would
  * refuse a lawful write — and measures the delta over the target instead. */
 const CLOSE_INSTANT = isoSeconds(Date.now());
-const closeGoverned = executeGovernedWrite(governedStoreAppend({
+const closeGoverned = executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,
   repo: REPO, permission, store, records: changes, targetClass: "RUN_EVIDENCE",
   action: "CLOSE_INSTRUMENT_DISAGREEMENT_ISSUES", occurredAt: CLOSE_INSTANT,
   correlationId: `run:instrument-disagreement:close:${CLOSE_INSTANT}`,

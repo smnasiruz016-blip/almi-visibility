@@ -30,6 +30,7 @@ import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedFileWrite } from "../src/governance/governed-run.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n, d) => {
@@ -42,6 +43,8 @@ const permission = announceWritePermission(writePermission({ target: LOCAL, argv
 
 // 🔴 The product is an ARGUMENT, never a folder written here (owner ruling, 14 September 2026): no default.
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/facts-lifecycle.mjs --product=<id> [--confirm] [--out=<file>]" });
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/facts-lifecycle.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.factRegistryAt(PRODUCT.factsDir), RESOURCES.cache("fact cache"), RESOURCES.runArtefacts("audit findings")] });
 const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
 console.log(`records: ${records.length}`);
 
@@ -107,7 +110,7 @@ const csv = [header, COLUMNS.join(","), ...rows.map((r) => COLUMNS.map((c) => es
 /* Routed. TEXT, measured: `csv` is built by joining strings, so the text hash rule applies. The bare mkdir is
  * gone rather than gated — the boundary's prepare step creates the directory. */
 {
-  const governed = executeGovernedWrite(governedFileWrite({
+  const governed = executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
     repo: REPO, permission, target: out, targetClass: "RUN_EVIDENCE", bytes: csv,
     action: "EXPORT_FACTS_FOR_VERIFICATION", occurredAt: isoSeconds(Date.now()),
     correlationId: `run:facts-lifecycle:${isoSeconds(Date.now())}`,

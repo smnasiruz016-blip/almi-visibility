@@ -28,6 +28,7 @@ import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedStoreAppend } from "../src/governance/governed-run.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n, d) => {
@@ -40,6 +41,8 @@ const CSV = arg("csv", "C:/Users/Lenovo/OneDrive/Desktop/AlmiWorld project/Claud
 const OUT = confineToRepo(arg("out", `${REPO}runs/audit/verification-issues.jsonl`), { label: "--out" });
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
 const wouldWrite = { observations: 0, issues: 0 };
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/verification-issues.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.operatorDirectory("--csv"), RESOURCES.runArtefacts("verification issue store")] });
 const CHECKED_ON = "2026-09-12";
 const VERIFIER = "human:beta-g (Cowork)";
 
@@ -193,7 +196,7 @@ const RUN_INSTANT = isoSeconds(Date.now());
 const RUN_CORRELATION = `run:verification-issues:${RUN_INSTANT}`;
 const SEEN_AT = `${CHECKED_ON}T00:00:00.000Z`;
 for (const [records, action] of [[pendingObservations, "APPEND_VERIFICATION_OBSERVATIONS"], [pendingIssues.map((p) => p.issue), "APPEND_VERIFICATION_ISSUES"]]) {
-  const args = governedStoreAppend({
+  const args = governedStoreAppend({ ...SCOPE.writeScope,
     repo: REPO, permission, store, records, targetClass: "RUN_EVIDENCE",
     action, occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
     discipline: "APPEND_IF_NEW", seenAt: SEEN_AT,

@@ -34,6 +34,7 @@ import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedFileWrite } from "../src/governance/governed-run.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { runGateA } from "../src/gate-a/run.mjs";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 const argv = process.argv.slice(2);
 function flag(name, fallback = null) {
@@ -51,6 +52,8 @@ const permission = announceWritePermission(writePermission({ target: LOCAL, argv
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const RUN_INSTANT = isoSeconds(Date.now());
 const RUN_CORRELATION = `run:gate-a:${RUN_INSTANT}`;
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/gate-a.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.operatorDirectory("--corpus")] });
 
 if (!corpusDir) {
   console.error("\nusage: node bin/gate-a.mjs --corpus <dir> [--out <dir>] [--shell A|B] [--confirm]");
@@ -211,7 +214,7 @@ if (outDir) {
     ["gate-a.json", JSON.stringify(report, null, 2), "WRITE_GATE_A_REPORT"],
     ["gate-a.csv", rows.join("\n"), "WRITE_GATE_A_CSV"],
   ]) {
-    const governed = executeGovernedWrite(governedFileWrite({
+    const governed = executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
       repo: REPO, permission, target: join(dir, name), targetClass: "OPERATOR_CHOSEN_OUTPUT", bytes: body,
       action: what, occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
     }));

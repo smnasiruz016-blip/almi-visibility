@@ -41,8 +41,12 @@ import { splitView } from "../src/audit/class-split.mjs";
 import { fourWay, impressionsForClass } from "../src/audit/populations.mjs";
 import { statSync } from "node:fs";
 import { batchJsonlFiles } from "../src/crawl/observation-batch.mjs";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/report.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.crawlBatch(BATCH_ID), RESOURCES.runArtefacts("run stores"), RESOURCES.factRegistryAt((await productFromArgvOrExit(process.argv, { usage: "node bin/report.mjs --product=<id> --tenant=<declared tenant>" })).factsDir)] });
 const arg = (n, d) => {
   const hit = process.argv.find((a) => a.startsWith(`--${n}=`));
   return hit ? hit.slice(n.length + 3) : d;
@@ -174,7 +178,7 @@ const html = renderPage({ crawlRecords, evidenceRecords, facts, generatedAt, cha
 
 {
   const size = `(${(Buffer.byteLength(html, "utf8") / 1024).toFixed(1)} KiB)`;
-  const governed = executeGovernedWrite(governedFileWrite({
+  const governed = executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
     repo: REPO, permission, target: out, targetClass: "GENERATED_CONFIG", bytes: html,
     action: "WRITE_ESTATE_REPORT", occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
   }));

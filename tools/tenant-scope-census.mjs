@@ -28,15 +28,17 @@ const git = (...a) => execFileSync("git", ["-C", REPO, ...a], { encoding: "utf8"
 
 /** The families, and what LOADS each — a primitive call or a store's location. */
 export const FAMILIES = Object.freeze({
-  FACTS: { resource: "factRegistry", re: /\bloadRegistry\(/ },
+  FACTS: { resource: "factRegistry|factRegistryAt", re: /\bloadRegistry\(/ },
   OBSERVATIONS: { resource: "crawlBatch", re: /\b(batchFile|readBodyArchive|batchJsonlFiles|declaredObservationSources|declaredObservationBatches|readBatchManifest)\(/ },
   SITEMAPS: { resource: "sitemapCollection", re: /["']sitemaps\.jsonl["']|\bsitemapCollectionRef\(/ },
   /* A store's location counts only as a WHOLE path literal or joined path segments — prose that mentions a path is not a
    * load (bin/checklist-boundaries.mjs quotes "runs/evidence" in a sentence of its generated text). */
   EVIDENCE: { resource: "evidenceStore", re: /["']evidence\.jsonl["']|["']robots\.jsonl["']|["']runs["']\s*,\s*["']evidence["']|["'`](\$\{\w+\})?\.?\/?runs\/evidence[^"'`\s]*["'`]/ },
   COST: { resource: "costLedger", re: /\bcreateCostLedger\(|["']ledger\.jsonl["']|["']actions-runs\.jsonl["']|["']runs["']\s*,\s*["']cost["']|["'`](\$\{\w+\})?\.?\/?runs\/cost[^"'`\s]*["'`]/ },
-  READS: { resource: "runArtefacts|operatorDirectory", re: /(?!)/ },
+  READS: { resource: "runArtefacts|operatorDirectory|siteOrigin", re: /(?!)/ },
   CACHE: { resource: "cache", re: /_profession-cache|\bcreateFactCache\(|\bcreateRobotsCache\(/ },
+  /* F01's declaration store: every reader joins DECLARATIONS_DIR (src/intake/store.mjs). */
+  DECLARATIONS: { resource: "tenantPartition", re: /\bDECLARATIONS_DIR\b|\btenantsDir\(/ },
   CAPTURES: { resource: "captures", re: /["']captures["']/ },
   RESEARCH: { resource: "research", re: /["']research["']/ },
 });
@@ -52,7 +54,7 @@ export const FAMILIES = Object.freeze({
  * named resource (runArtefacts / operatorDirectory) like any other.
  */
 export const READ_PRIMITIVE = /\b(readFileSync|readdirSync|createJsonlStore|fetch|readTree|readArchivedPages|readBodyArchive|statSync)\(/;
-export const GLOBAL_TARGET = /config\/|["']config["']|AUTHORITY_CORPUS|CORPUS_PROVENANCE|_handoffs|governance-?[Rr]oot|govRoot|audit-trail|AUDIT_STORE|["'](bin|src|test|tools)["']|\bREPO\s*,\s*["'](bin|src|test|tools)|import\.meta\.url|package\.json|\.github|CHECKLIST_|PASS_BOUNDARIES|KEY_FEATURE_CHECKLIST|\bgit\(|execFileSync\(\s*["']git/;
+export const GLOBAL_TARGET = /\.mjs["'`]\)|endsWith\(["']\.mjs["']\)|config\/|["']config["']|AUTHORITY_CORPUS|CORPUS_PROVENANCE|_handoffs|governance-?[Rr]oot|govRoot|audit-trail|AUDIT_STORE|["'](bin|src|test|tools)["']|\bREPO\s*,\s*["'](bin|src|test|tools)|import\.meta\.url|package\.json|\.github|CHECKLIST_|PASS_BOUNDARIES|KEY_FEATURE_CHECKLIST|\bgit\(|execFileSync\(\s*["']git/;
 
 /**
  * 🔴 EXCLUSIONS — FUNCTIONS, NOT ENTRY POINTS, EACH WITH ITS REASON AND ITS CONTROL.
@@ -88,6 +90,16 @@ export const EXCLUDED_ENTRY_POINTS = Object.freeze({
   "bin/heldout-evaluation.mjs": "the held-out lifecycle (F07): the evidence-role registry in config and the audit trail",
 });
 
+/**
+ * 🔴 SUBMISSION INPUTS — the one read that may come BEFORE a gate, because it is the thing the gate decides about.
+ * A submitted declaration carries its own tenant claim; that claim is decided (the declared partition, and the F01
+ * contract through the one scope decision) before any governed store is read. Only this entry point's READS are
+ * affected; its DECLARATIONS family is enforced like any other. Control: F02-EXCL-2.
+ */
+export const SUBMISSION_INPUTS = Object.freeze({
+  "bin/project-intake.mjs": "the declaration submitted for decision (--file); its tenant is decided before the declaration store is read",
+});
+
 const isCode = (l) => !/^\s*(\/\/|\*|\/\*)/.test(l);
 const codeLines = (text) => text.split("\n").map((l, i) => ({ line: i + 1, text: l })).filter((r) => isCode(r.text) && !/^\s*import\b/.test(r.text));
 
@@ -98,8 +110,10 @@ export function derivedFamilyReaders({ files = null, read = null } = {}) {
   const fns = [];
   for (const file of list) {
     const t = readText(file).replace(/\r\n/g, "\n");
-    const hits = [...t.matchAll(/^(export )?(async )?function (\w+)\s*\(/gm)];
-    hits.forEach((m, i) => fns.push({ file, name: m[3], exported: Boolean(m[1]), body: t.slice(m.index, i + 1 < hits.length ? hits[i + 1].index : t.length) }));
+    /* `function name(` AND `const name = (…) =>` — a store reader written as an arrow constant (src/intake/store.mjs's
+     * `tenantsDir`) was invisible to the first version of this derivation. */
+    const hits = [...t.matchAll(/^(export )?(?:(?:async )?function (\w+)\s*\(|const (\w+)\s*=\s*(?:async\s*)?(?:\([^)]*\)|\w+)\s*=>)/gm)];
+    hits.forEach((m, i) => fns.push({ file, name: m[2] ?? m[3], exported: Boolean(m[1]), body: t.slice(m.index, i + 1 < hits.length ? hits[i + 1].index : t.length) }));
   }
   const excluded = new Set(EXCLUSIONS.map((e) => e.fn));
   const reach = new Map();
@@ -133,29 +147,50 @@ export function derivedFamilyReaders({ files = null, read = null } = {}) {
 }
 
 const READERS = derivedFamilyReaders();
-export const GATE = /\b(requireScopedRun|decideScopedRun)\(/;
+export const GATE = /\b(scopedEntryPoint|requireScopedRun|decideScopedRun)\(/;
+/** A governed write helper; in a SCOPED entry point each must carry the run's write scope, so its output is the tenant's. */
+const GOVERNED_WRITE_HELPER = /\b(governedFileWrite|governedStoreAppend|governedRecordAppend|governedDirectoryReplace)\(/;
 
 /** One entry point, classified. */
 export function classifyEntryPoint(file, text, readers = READERS) {
   const lines = codeLines(text.replace(/\r\n/g, "\n"));
   const loads = [];
+  /* A constant bound on a family line (`const STORE = join(REPO, "runs", "evidence", …)`) carries that family to every
+   * read made through it — so a read of STORE is the evidence store, not an unknown READS. */
+  const boundFamily = new Map();
   for (const r of lines) {
     const before = loads.length;
     for (const [fam, def] of Object.entries(FAMILIES)) if (def.re.test(r.text)) loads.push({ line: r.line, family: fam, via: "primitive" });
     for (const [name, fams] of readers) if (new RegExp(`\\b${name}\\(`).test(r.text)) for (const fam of fams) loads.push({ line: r.line, family: fam, via: name });
-    if (loads.length === before && READ_PRIMITIVE.test(r.text) && !GLOBAL_TARGET.test(r.text)) loads.push({ line: r.line, family: "READS", via: r.text.match(READ_PRIMITIVE)[1] });
+    const bound = r.text.match(/^\s*(?:const|let)\s+(\w+)\s*=/);
+    if (bound && loads.length > before) boundFamily.set(bound[1], loads[loads.length - 1].family);
+    if (loads.length === before && READ_PRIMITIVE.test(r.text) && !GLOBAL_TARGET.test(r.text)) {
+      const through = [...boundFamily].find(([id]) => new RegExp(`\\b${id}\\b`).test(r.text));
+      loads.push({ line: r.line, family: through ? through[1] : "READS", via: through ? `read through ${through[0]}` : r.text.match(READ_PRIMITIVE)[1] });
+    }
   }
+  if (Object.hasOwn(SUBMISSION_INPUTS, file)) for (let k = loads.length - 1; k >= 0; k -= 1) if (loads[k].family === "READS") loads.splice(k, 1);
   const families = [...new Set(loads.map((l) => l.family))].sort();
   const gateAt = lines.find((r) => GATE.test(r.text))?.line ?? 0;
   const firstLoad = loads.length ? Math.min(...loads.map((l) => l.line)) : 0;
   const gateText = gateAt ? text.replace(/\r\n/g, "\n").split("\n").slice(gateAt - 1, gateAt + 40).join("\n") : "";
-  const named = families.filter((f) => new RegExp(`RESOURCES\\.(${FAMILIES[f].resource})\\(`).test(gateText) || new RegExp(`RESOURCES\\.(${FAMILIES[f].resource})\\(`).test(text));
+  /* `everySubjectRegistry()` names each subject's registry by its declared location (src/tenancy/scoped-run.mjs). */
+  const namesFamily = (f, t) => new RegExp(`RESOURCES\\.(${FAMILIES[f].resource})\\(`).test(t) || (f === "FACTS" && /\beverySubjectRegistry\(/.test(t));
+  const named = families.filter((f) => namesFamily(f, gateText) || namesFamily(f, text));
   const missing = families.filter((f) => !named.includes(f));
   if (Object.hasOwn(EXCLUDED_ENTRY_POINTS, file)) return { file, cls: "EXCLUDED", families, loads, gateAt, firstLoad, missing, why: EXCLUDED_ENTRY_POINTS[file] };
   if (families.length === 0) return { file, cls: "NOT_TENANT_GOVERNED", families, loads, gateAt, firstLoad, missing, why: "it loads no tenant-governed family" };
   if (!gateAt) return { file, cls: "UNSCOPED", families, loads, gateAt, firstLoad, missing, why: "family loads with no scoped-run gate" };
   if (gateAt > firstLoad) return { file, cls: "UNSCOPED", families, loads, gateAt, firstLoad, missing, why: `the gate (line ${gateAt}) comes after the first load (line ${firstLoad})` };
   if (missing.length) return { file, cls: "UNSCOPED", families, loads, gateAt, firstLoad, missing, why: `no resource named for ${missing.join(", ")}` };
+  /* Every governed write of a scoped run carries its write scope — the call's text, to where its parentheses balance. */
+  const all = text.replace(/\r\n/g, "\n");
+  const unscopedWrites = [...all.matchAll(new RegExp(GOVERNED_WRITE_HELPER.source, "g"))].filter((m) => {
+    let depth = 0; let end = m.index;
+    for (let j = m.index; j < all.length; j += 1) { if (all[j] === "(") depth += 1; else if (all[j] === ")") { depth -= 1; if (depth === 0) { end = j; break; } } }
+    return !/\.\.\.\s*\w+\.writeScope\b|scopeType:\s*["']TENANT["']/.test(all.slice(m.index, end));
+  }).length;
+  if (unscopedWrites) return { file, cls: "UNSCOPED", families, loads, gateAt, firstLoad, missing, why: `${unscopedWrites} governed write(s) do not carry the run's tenant write scope` };
   return { file, cls: "SCOPED", families, loads, gateAt, firstLoad, missing, why: "every family named, gate first" };
 }
 

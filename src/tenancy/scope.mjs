@@ -42,6 +42,9 @@ export function resolveSide(resolve, resource) {
   if (!SCOPE_CLASSES.includes(scopeClass)) return { ...side, state: "INVALID", reason: "UNDECLARED_SCOPE_CLASS", tenantId: null };
   if (scopeClass !== "TENANT") return { ...side, state: "NOT_TENANT", reason: `${scopeClass}_IS_NOT_A_TENANT_RESOURCE`, tenantId: null };
   if (resource?.resourceKind === null || resource?.resourceKind === undefined) return { ...side, state: "UNDECLARED", reason: "NO_DECLARED_RESOURCE_KIND", tenantId: null };
+  /* A store partitioned BY the declared tenant id: its key is a declaration, so it resolves exactly as a requested tenant
+   * does — to that id when it is ACTIVE, and never otherwise. No name, host or path takes part. */
+  if (resource.resourceKind === "TENANT_PARTITION") { const p = requestSide(resolve, resource.resourceRef); return { ...side, state: p.state, reason: p.reason === "EXPLICIT_DECLARED_TENANT" ? "PARTITION_KEY_IS_A_DECLARED_TENANT" : p.reason, tenantId: p.tenantId }; }
   const a = resolve({ resourceKind: resource.resourceKind, resourceRef: resource.resourceRef });
   return { ...side, state: a?.state ?? "UNKNOWN", reason: a?.reason ?? "NO_ANSWER", tenantId: a?.state === "RESOLVED" ? a.tenantId : null };
 }

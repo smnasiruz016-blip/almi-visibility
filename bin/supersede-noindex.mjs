@@ -49,6 +49,8 @@ import { governedAuditContext } from "../src/governance/governed-run.mjs";
 import { softwareVersionOf } from "../src/audit-trail/wiring.mjs";
 import { checkTransition, recordEvidenceStateTransitions } from "../src/evidence/evidence-state.mjs";
 import { evidenceStateOf, evidenceStateAuthority } from "../src/evidence/evidence-state-adapters.mjs";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 /* 🔴 GAP 2 · TESTABILITY SEAM (17 September 2026): `--store=` names a different findings store, CONFINED to this
@@ -57,6 +59,8 @@ const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, 
 const storeArg = process.argv.find((a) => a.startsWith("--store="))?.slice("--store=".length);
 const TARGET = confineToRepo(storeArg ?? `${REPO}runs/audit/technical-findings.jsonl`, { label: storeArg === undefined ? "the technical findings store" : "--store" });
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/supersede-noindex.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.runArtefacts("technical findings store")] });
 
 export const ORIGIN_OBSERVATION = "8b90879f2f7c290b";
 export const GUIDANCE_OBSERVATION = "841c7b897287e0d3";
@@ -171,12 +175,12 @@ if (records.length) {
    * present; state changes are NOT issues, carry no dedupe key, and are made idempotent by the OPEN-only filter
    * above. Routing preserves both exactly. */
   const outcomes = [
-    executeGovernedWrite(governedStoreAppend({
+    executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,
       repo: REPO, permission, store, records: replacements, targetClass: "RUN_EVIDENCE",
       action: "APPEND_NOINDEX_REPLACEMENT_ISSUES", occurredAt: RUN_INSTANT, correlationId: CORRELATION,
       discipline: "APPEND_IF_NEW", seenAt: now,
     })),
-    executeGovernedWrite(governedStoreAppend({
+    executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,
       repo: REPO, permission, store, records: changes, targetClass: "RUN_EVIDENCE",
       action: "APPEND_NOINDEX_STATE_CHANGES", occurredAt: RUN_INSTANT, correlationId: CORRELATION,
       discipline: "APPEND_ALL_WITHOUT_DEDUPE",

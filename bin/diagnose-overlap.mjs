@@ -42,6 +42,7 @@ import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedFileWrite } from "../src/governance/governed-run.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 const argv = process.argv.slice(2);
 const flag = (n, d = null) => {
@@ -55,6 +56,8 @@ const permission = announceWritePermission(writePermission({ target: LOCAL, argv
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const RUN_INSTANT = isoSeconds(Date.now());
 const RUN_CORRELATION = `run:diagnose-overlap:${RUN_INSTANT}`;
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/diagnose-overlap.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.operatorDirectory("--corpus")] });
 
 if (!corpusDir || !existsSync(join(corpusDir, groupName))) {
   console.error("usage: node bin/diagnose-overlap.mjs --corpus <dir> --group <name> [--out file.json] [--confirm]");
@@ -173,7 +176,7 @@ report.residualWords = rs;
 
 if (outFile) {
   /* 🔴 CONFINED, WHICH IT WAS NOT BEFORE — see bin/acceptance-test.mjs. A deliberate tightening, not a slip. */
-  const governed = executeGovernedWrite(governedFileWrite({
+  const governed = executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
     repo: REPO, permission, target: confineToRepo(outFile, { label: "--out" }),
     targetClass: "OPERATOR_CHOSEN_OUTPUT", bytes: JSON.stringify(report, null, 2),
     action: "WRITE_OVERLAP_DIAGNOSTIC", occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,

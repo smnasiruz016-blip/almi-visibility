@@ -17,9 +17,12 @@ import { createJsonlStore } from "../src/evidence/store.mjs";
 import { discoverSearchLanguage, searchLanguageErrors, heldOutRecheck, LIMITS } from "../src/discovery/search-language.mjs";
 import { keywordUrlCensus, forbiddenReferences } from "../tools/keyword-url-census.mjs";
 import { LEXICON } from "../config/discovery/intent-lexicon.mjs";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 // the repository root from this file's own path — no URL is constructed in a consumer of the search-language module
 const REPO = dirname(dirname(fileURLToPath(import.meta.url)));
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/search-language.mjs", governed: false, repoUrl: import.meta.url, resources: [RESOURCES.evidenceStore()] });
 const STORE = join(REPO, "runs", "evidence", "evidence.jsonl");
 const storeRecords = createJsonlStore(STORE).readAll();
 const result = discoverSearchLanguage(storeRecords);

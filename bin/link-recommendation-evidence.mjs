@@ -22,6 +22,7 @@ import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedStoreAppend } from "../src/governance/governed-run.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv.slice(2), env: process.env }));
@@ -31,6 +32,8 @@ const permission = announceWritePermission(writePermission({ target: LOCAL, argv
  * needs --confirm. Without it, the default store, exactly as before. */
 const storeArg = process.argv.slice(2).find((a) => a.startsWith("--store="))?.slice("--store=".length);
 const REC_STORE = confineToRepo(storeArg ?? `${REPO}runs/audit/recommendations.jsonl`, { label: storeArg === undefined ? "the recommendations store" : "--store" });
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/link-recommendation-evidence.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.runArtefacts("recommendation and finding stores")] });
 const read = (p) => (existsSync(`${REPO}${p}`) ? createJsonlStore(`${REPO}${p}`).readAll() : []);
 
 const recRecords = existsSync(REC_STORE) ? createJsonlStore(REC_STORE).readAll() : [];
@@ -103,7 +106,7 @@ const toWrite = out.filter(
   (rec) => !existing.some((r) => r.record_type === "recommendation_evidence" && r.recommendation_id === rec.recommendation_id),
 );
 const RUN_INSTANT = isoSeconds(Date.now());
-const governed = executeGovernedWrite(governedStoreAppend({
+const governed = executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,
   repo: REPO, permission, store, records: toWrite, targetClass: "RUN_EVIDENCE",
   action: "LINK_RECOMMENDATION_EVIDENCE", occurredAt: RUN_INSTANT,
   correlationId: `run:link-recommendation-evidence:${RUN_INSTANT}`,

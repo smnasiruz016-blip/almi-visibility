@@ -36,6 +36,10 @@ import { observedPageSubjects, toBundle as toPageBundle, bundlesByTenant } from 
 import { sitemapUrlSubjects, sitemapDetectorInputsByTenant } from "../src/adapter/sitemap-subject.mjs";
 import { productFromArgvOrExit } from "../src/product-cli.mjs";
 import { score } from "../src/detect/score.mjs";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
+import { SITEMAP_BATCH_ID } from "../src/adapter/sitemap-subject.mjs";
+import { everySubjectRegistry } from "../src/tenancy/scoped-run.mjs";
 
 const argv = process.argv.slice(2);
 const flag = (name) => argv.find((a) => a.startsWith(`--${name}=`))?.split("=").slice(1).join("=") ?? null;
@@ -68,6 +72,8 @@ const bundlePath = flag("bundle");
 const runAt = flag("run-at");
 const outDir = flag("out");
 const expectPath = flag("expect");
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/detect.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.operatorDirectory("--bundle"), RESOURCES.crawlBatch(BATCH_ID), RESOURCES.sitemapCollection(SITEMAP_BATCH_ID), ...(await everySubjectRegistry())] });
 /* 🔴 THERE IS NO --tenant FLAG, AND ITS ABSENCE IS THE POINT.
  *
  * This runner used to accept `--tenant=<anything>` and hand that string to the binder as an
@@ -301,7 +307,7 @@ if (!bundlePath || !runAt) {
     const detectOutcomes = [
       [dest, serialised, "WRITE_DETECT_FINDINGS"],
       [sha, `${digest}  findings.json\n`, "WRITE_DETECT_FINDINGS_DIGEST"],
-    ].map(([target, body, what]) => executeGovernedWrite(governedFileWrite({
+    ].map(([target, body, what]) => executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
       repo: REPO, permission, target, targetClass: "OPERATOR_CHOSEN_OUTPUT", bytes: body,
       action: what, occurredAt: DETECT_INSTANT, correlationId: `run:detect:${DETECT_INSTANT}`,
     })));
@@ -328,7 +334,7 @@ if (!bundlePath || !runAt) {
     console.log(`  RESULT: ${s.pass ? "PASS" : "FAIL"}`);
     if (outDir) {
       const SCORE_INSTANT = governedInstant(Date.now());
-      const scoreGoverned = executeGovernedWrite(governedFileWrite({
+      const scoreGoverned = executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
         repo: REPO, permission, target: confineToRepo(join(outDir, "score.json")),
         targetClass: "OPERATOR_CHOSEN_OUTPUT",
         bytes: JSON.stringify({ findingsSha256: digest, ...s }, null, 2) + "\n",

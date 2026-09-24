@@ -13,8 +13,11 @@ import { productFromArgvOrExit } from "../src/product-cli.mjs";
 import { row50Census } from "../src/evidence/label-on-face.mjs";
 import { createTenantResolver } from "../src/tenancy/resolver.mjs";
 import { factRegistryRef, externalRootContaining } from "../src/adapter/external-subject.mjs";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/label-on-face.mjs --product=<id> [--check]" });
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/label-on-face.mjs", governed: false, repoUrl: import.meta.url, resources: [RESOURCES.factRegistryAt(PRODUCT.factsDir)] });
 const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
 const root = externalRootContaining(PRODUCT.factsDir, process.env);
 const ref = root ? factRegistryRef({ factsDir: PRODUCT.factsDir, rootPath: root.path }) : null;

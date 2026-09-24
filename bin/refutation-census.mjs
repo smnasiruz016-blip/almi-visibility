@@ -16,8 +16,11 @@ import { join } from "node:path";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { refutationCensus } from "../src/audit/falsifiability.mjs";
 import { REFUTATION_REGISTER } from "../config/refutation-register.mjs";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/refutation-census.mjs", governed: false, repoUrl: import.meta.url, resources: [RESOURCES.runArtefacts("audit finding stores")] });
 const AUDIT = join(REPO, "runs", "audit");
 const records = readdirSync(AUDIT).filter((f) => f.endsWith(".jsonl")).flatMap((f) => createJsonlStore(join(AUDIT, f)).readAll());
 const runners = readdirSync(join(REPO, "bin")).filter((f) => f.endsWith(".mjs")).map((f) => `bin/${f}`);

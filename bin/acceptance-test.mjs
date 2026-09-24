@@ -38,6 +38,7 @@ import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedFileWrite } from "../src/governance/governed-run.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 const argv = process.argv.slice(2);
 const flag = (n, d = null) => {
@@ -53,6 +54,8 @@ const permission = announceWritePermission(writePermission({ target: LOCAL, argv
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const RUN_INSTANT = isoSeconds(Date.now());
 const RUN_CORRELATION = `run:acceptance-test:${RUN_INSTANT}`;
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/acceptance-test.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.operatorDirectory("--corpus"), RESOURCES.operatorDirectory("--facts")] });
 if (!corpusDir || !existsSync(join(corpusDir, group))) {
   console.error("usage: node bin/acceptance-test.mjs --corpus <dir> [--group g] [--page id] [--facts dir] [--out f] [--confirm]");
   process.exit(2);
@@ -234,7 +237,7 @@ if (outFile) {
    * so `--out` could name anywhere on the machine. Routing it puts it under the same law as every other governed
    * output. That is a deliberate tightening, recorded rather than slipped in: an outside-repository destination
    * is now refused instead of written. */
-  const governed = executeGovernedWrite(governedFileWrite({
+  const governed = executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
     repo: REPO, permission, target: confineToRepo(outFile, { label: "--out" }),
     targetClass: "OPERATOR_CHOSEN_OUTPUT",
     bytes: JSON.stringify({ page: pageId, group, before, after, stages }, null, 2),

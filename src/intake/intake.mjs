@@ -36,8 +36,8 @@ export function intakeAuthority({ now, records = AUTHORITY_CORPUS }) {
  * Decide one submission against the store and the tenant registry.
  * Returns { outcome: "REFUSED"|"ACCEPT"|"REPLAY", stage, refusals, normalised, writes, transitions }.
  */
-export function decideSubmission({ doc, root, tenants, attachedTo, acceptedAt }) {
-  const v = validateDeclaration(doc, { tenants, attachedTo });
+export function decideSubmission({ doc, root, tenants, attachedTo, relation = null, acceptedAt }) {
+  const v = validateDeclaration(doc, { tenants, attachedTo, relation });
   if (!v.ok) {
     return Object.freeze({ outcome: "REFUSED", stage: "CONTRACT", refusals: v.refusals, normalised: null, writes: [], transitions: [t("SUBMITTED", "REFUSED", doc)] });
   }

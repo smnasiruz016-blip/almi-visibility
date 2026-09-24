@@ -25,8 +25,11 @@ import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedFileWrite } from "../src/governance/governed-run.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/export.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.evidenceStore(), RESOURCES.runArtefacts("--store")] });
 const arg = (n, d) => {
   const hit = process.argv.find((a) => a.startsWith(`--${n}=`));
   return hit ? hit.slice(n.length + 3) : d;
@@ -57,7 +60,7 @@ const files = [
 for (const [name, body] of files) {
   const where = join(outDir, name);
   const size = `(${Buffer.byteLength(body, "utf8")} bytes)`;
-  const governed = executeGovernedWrite(governedFileWrite({
+  const governed = executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
     repo: REPO, permission, target: where, targetClass: "RUN_EVIDENCE", bytes: body,
     action: `EXPORT_${name.replace(/[^A-Za-z0-9]+/g, "_").toUpperCase()}`,
     occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,

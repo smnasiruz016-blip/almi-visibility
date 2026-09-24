@@ -46,11 +46,14 @@ import {
 import { RENDER_STATES } from "../src/render/render-state.mjs";
 import { createCostLedger, entryFromRender, entryFromToolInstall, formatLedgerLine } from "../src/cost/ledger.mjs";
 import { batchFile, BATCH_ID } from "../src/crawl/observation-batch.mjs";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const argv = process.argv.slice(2);
 const arg = (n) => argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3) ?? null;
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv, env: process.env }));
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/render-archive.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.costLedger(), RESOURCES.runArtefacts("render store")] });
 
 const LABEL = "2026-09-13";
 const RAW_STORE = batchFile("first-real-crawl-2026-09-12.jsonl");
@@ -263,7 +266,7 @@ if (failures.length === 0) {
   const RA_INSTANT = governedInstant(Date.now());
   const RA_CORRELATION = `run:render-archive:${RA_INSTANT}`;
   const store = createJsonlStore(RENDER_STORE);
-  const obsArgs = governedStoreAppend({
+  const obsArgs = governedStoreAppend({ ...SCOPE.writeScope,
     repo: REPO, permission, store, records: observations, targetClass: "RUN_EVIDENCE",
     action: "APPEND_RENDER_OBSERVATIONS", occurredAt: RA_INSTANT, correlationId: RA_CORRELATION,
     discipline: "APPEND_IF_NEW", seenAt: finishedAt,
@@ -273,16 +276,16 @@ if (failures.length === 0) {
   const resighted = (obsArgs.adapter.result ?? []).length - appended;
   const raOutcomes = [
     obsGoverned,
-    executeGovernedWrite(governedFileWrite({
+    executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
       repo: REPO, permission, target: RENDER_ARCHIVE, targetClass: "RUN_EVIDENCE", bytes: renderArchive,
       action: "WRITE_RENDERED_BODY_ARCHIVE", occurredAt: RA_INSTANT, correlationId: RA_CORRELATION,
     })),
-    executeGovernedWrite(governedFileWrite({
+    executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
       repo: REPO, permission, target: EVIDENCE, targetClass: "RUN_EVIDENCE",
       bytes: JSON.stringify({ ...evidence, writes: { appended, resighted } }, null, 2) + "\n",
       action: "WRITE_RENDER_EVIDENCE", occurredAt: RA_INSTANT, correlationId: RA_CORRELATION,
     })),
-    executeGovernedWrite(governedStoreAppend({
+    executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,
       repo: REPO, permission, store: createCostLedger(LEDGER),
       records: [installEntry, renderEntry].filter(Boolean), targetClass: "RUN_EVIDENCE",
       action: "APPEND_RENDER_COST_ENTRIES", occurredAt: RA_INSTANT, correlationId: RA_CORRELATION,

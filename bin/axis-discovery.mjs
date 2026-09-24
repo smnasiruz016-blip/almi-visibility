@@ -23,8 +23,13 @@ import { LEXICON } from "../config/discovery/intent-lexicon.mjs";
 import { INTENT_REFERENCE, AMBIGUOUS, REFERENCE_STATUS } from "../config/discovery/intent-reference.mjs";
 import { AXIS_SPECS, SIBLING_FAMILIES, HARD_CODED_PATTERNS } from "../config/discovery/axis-candidates.mjs";
 import { batchFile } from "../src/crawl/observation-batch.mjs";
+import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
+import { everySubjectRegistry } from "../src/tenancy/scoped-run.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/axis-discovery.mjs", governed: false, repoUrl: import.meta.url, resources: [RESOURCES.evidenceStore(), RESOURCES.crawlBatch(BATCH_ID), ...(await everySubjectRegistry())] });
 const records = createJsonlStore(join(REPO, "runs", "evidence", "evidence.jsonl")).readAll();
 const crawlRecords = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll();
 const bodies = readBodyArchive(batchFile("bodies-2026-09-12.jsonl.br"));

@@ -26,7 +26,7 @@ test("F1-BOARD · F01 is VERIFIED-PASS by UNASSESSED → IN-PROGRESS → VERIFIE
   const b = board();
   assert.deepEqual(boardErrors(b, ctx), []);
   const p = progress(b);
-  assert.deepEqual(p.split, { UNASSESSED: 83, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 0, "BLOCKED-BY-AUTHORITY": 1, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 5 });
+  assert.deepEqual(p.split, { UNASSESSED: 82, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 1, "BLOCKED-BY-AUTHORITY": 1, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 5 });
   assert.equal(p.passed, 5);
   assert.deepEqual(["F05", "F06", "F07", "F08", "F40"].map((f) => DECLARED[f].state), ["VERIFIED-PASS", "VERIFIED-PASS", "VERIFIED-PASS", "VERIFIED-PASS", "BLOCKED-BY-AUTHORITY"]);
   const f01 = DECLARED.F01;

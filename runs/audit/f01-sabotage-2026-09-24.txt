@@ -1,0 +1,141 @@
+F01 PRODUCT DECLARATION AND INTAKE — SABOTAGE EVIDENCE (§12)
+
+Engine tree: d44270dc59c657b0c1dfd47773c25f9c9537a639. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
+runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
+requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
+No sabotage aims at the production audit trail; every firing case writes to a stand-in or a confined store.
+
+RESULTS
+S1       landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — an absent tenant DEFAULTS to a usual tenant
+         target src/intake/contract.mjs · named test "P5 ·…" in test/f01-intake.test.mjs
+         sha256 before 3aa3af49ecc3cac180258f8b6b6d3c8595f6970e1cf47c15c0eb0d2df0421657 · after 3aa3af49ecc3cac180258f8b6b6d3c8595f6970e1cf47c15c0eb0d2df0421657
+         failing tests: P5 · an absent tenant is refused — never defaulted to a usual one
+         verdict: RED, named test, intended reason
+S2       landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — one project allowed to cross tenants
+         target src/intake/intake.mjs · named test "P7 ·…" in test/f01-intake.test.mjs
+         sha256 before f8efad91bc221ac7ee7782d9f050dfbd5d8ede53df77d4d7ca935e0fcc72df80 · after f8efad91bc221ac7ee7782d9f050dfbd5d8ede53df77d4d7ca935e0fcc72df80
+         failing tests: P7 · one project cannot cross tenants — CONTROL: the same project in its own tenant moves on | P33 · a refusal leaves the accepted store byte-identical — CONTROL: a lawful supersession changes it
+         verdict: RED, named test, intended reason
+S3       landed=true red=true failed=3 namedTestFailed=true reason=true restored=true — an absent permission GRANTED
+         target src/intake/contract.mjs · named test "P23 ·…" in test/f01-intake.test.mjs
+         sha256 before 3aa3af49ecc3cac180258f8b6b6d3c8595f6970e1cf47c15c0eb0d2df0421657 · after 3aa3af49ecc3cac180258f8b6b6d3c8595f6970e1cf47c15c0eb0d2df0421657
+         failing tests: P23 · an absent permission is DENIED, never allowed — all ten kinds are present, none GRANTED | P24 · a requested permission is not a granted one, and a submitter cannot write a grant | P25 · publish/modify is its own permission: crawling does not imply it, and there is no umbrella
+         verdict: RED, named test, intended reason
+S4       landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the environment INFERRED from the hostname
+         target src/intake/contract.mjs · named test "P20 ·…" in test/f01-intake.test.mjs
+         sha256 before 3aa3af49ecc3cac180258f8b6b6d3c8595f6970e1cf47c15c0eb0d2df0421657 · after 3aa3af49ecc3cac180258f8b6b6d3c8595f6970e1cf47c15c0eb0d2df0421657
+         failing tests: P20 · an environment is NEVER guessed from a hostname — a property must reference a declared one
+         verdict: RED, named test, intended reason
+S5       landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — embedded credentials ACCEPTED in an origin
+         target src/intake/origin.mjs · named test "P17 ·…" in test/f01-intake.test.mjs
+         sha256 before f5fed7b93ed6620e00b4944999ab7ef1ef17c445f86aa1fe8eefb49177bc0bbe · after f5fed7b93ed6620e00b4944999ab7ef1ef17c445f86aa1fe8eefb49177bc0bbe
+         failing tests: P17 · embedded credentials are refused — and the firewall names the shape, not the value
+         verdict: RED, named test, intended reason
+S6       landed=true red=true failed=4 namedTestFailed=true reason=true restored=true — a value-shaped secret ACCEPTED
+         target src/intake/contract.mjs · named test "P28 ·…" in test/f01-intake.test.mjs
+         sha256 before 3aa3af49ecc3cac180258f8b6b6d3c8595f6970e1cf47c15c0eb0d2df0421657 · after 3aa3af49ecc3cac180258f8b6b6d3c8595f6970e1cf47c15c0eb0d2df0421657
+         failing tests: P17 · embedded credentials are refused — and the firewall names the shape, not the value | P27 · a connector stores intent and a REFERENCE only — a value field or a secret value is refused | P28 · a value-shaped secret is refused and REDACTED everywhere — output, audit and store never carry it | P29 · a harmless label that merely MENTIONS a token passes — shape, not vocabulary
+         verdict: RED, named test, intended reason
+S7       landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the rejected secret value PRINTED (carried into the finding)
+         target src/intake/secrets.mjs · named test "P28 ·…" in test/f01-intake.test.mjs
+         sha256 before 41a8d959e47d8a8c96604acf03b22ffe20da0150c698cef8613b87b267936271 · after 41a8d959e47d8a8c96604acf03b22ffe20da0150c698cef8613b87b267936271
+         failing tests: P28 · a value-shaped secret is refused and REDACTED everywhere — output, audit and store never carry it
+         verdict: RED, named test, intended reason
+S8       landed=true red=true failed=4 namedTestFailed=true reason=true restored=true — an unknown schema version IGNORED
+         target src/intake/contract.mjs · named test "P3 ·…" in test/f01-intake.test.mjs
+         sha256 before 3aa3af49ecc3cac180258f8b6b6d3c8595f6970e1cf47c15c0eb0d2df0421657 · after 3aa3af49ecc3cac180258f8b6b6d3c8595f6970e1cf47c15c0eb0d2df0421657
+         failing tests: P1 · a supported schema version passes — CONTROL: the same document at version 2 does not | P3 · an unknown schema version is refused, whatever its shape | P30 · validate-only writes nothing and records nothing — CONTROL: the SAME file through --submit --confirm writes and records | P39 · F08 records each governed declaration transition EXACTLY once — and a replay records none
+         verdict: RED, named test, intended reason
+S9       landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — an unknown top-level field IGNORED
+         target src/intake/contract.mjs · named test "P4 ·…" in test/f01-intake.test.mjs
+         sha256 before 3aa3af49ecc3cac180258f8b6b6d3c8595f6970e1cf47c15c0eb0d2df0421657 · after 3aa3af49ecc3cac180258f8b6b6d3c8595f6970e1cf47c15c0eb0d2df0421657
+         failing tests: P4 · an unknown top-level field is REFUSED, never ignored — and nested unknown fields too
+         verdict: RED, named test, intended reason
+S10      landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — an ACCEPTED declaration MUTATED (same id, new bytes, written over it)
+         target src/intake/intake.mjs · named test "P10 ·…" in test/f01-intake.test.mjs
+         sha256 before f8efad91bc221ac7ee7782d9f050dfbd5d8ede53df77d4d7ca935e0fcc72df80 · after f8efad91bc221ac7ee7782d9f050dfbd5d8ede53df77d4d7ca935e0fcc72df80
+         failing tests: P10 · the same declaration id with changed content is a conflict — CONTROL: identical content is a replay | P33 · a refusal leaves the accepted store byte-identical — CONTROL: a lawful supersession changes it
+         verdict: RED, named test, intended reason
+S11      landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — an update OVERWRITES the current view instead of superseding
+         target src/intake/intake.mjs · named test "P12 ·…" in test/f01-intake.test.mjs
+         sha256 before f8efad91bc221ac7ee7782d9f050dfbd5d8ede53df77d4d7ca935e0fcc72df80 · after f8efad91bc221ac7ee7782d9f050dfbd5d8ede53df77d4d7ca935e0fcc72df80
+         failing tests: P12 · supersession creates new history: both remain readable, old SUPERSEDED, new ACCEPTED | P33 · a refusal leaves the accepted store byte-identical — CONTROL: a lawful supersession changes it
+         verdict: RED, named test, intended reason
+S12      landed=true red=true failed=3 namedTestFailed=true reason=true restored=true — an idempotent replay DUPLICATED (written and recorded again)
+         target src/intake/intake.mjs · named test "P9 ·…" in test/f01-intake.test.mjs
+         sha256 before f8efad91bc221ac7ee7782d9f050dfbd5d8ede53df77d4d7ca935e0fcc72df80 · after f8efad91bc221ac7ee7782d9f050dfbd5d8ede53df77d4d7ca935e0fcc72df80
+         failing tests: P9 · an identical replay is idempotent: no second write, no second project, no new event | P10 · the same declaration id with changed content is a conflict — CONTROL: identical content is a replay | P39 · F08 records each governed declaration transition EXACTLY once — and a replay records none
+         verdict: RED, named test, intended reason
+S13      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — inspection PERMITTED across tenants
+         target src/intake/store.mjs · named test "P37 ·…" in test/f01-intake.test.mjs
+         sha256 before a691e74a8f4cfc4d0f3c1a4f53eabce7b63a34e9e7bf09a7b1a75d26bd5639f5 · after a691e74a8f4cfc4d0f3c1a4f53eabce7b63a34e9e7bf09a7b1a75d26bd5639f5
+         failing tests: P37 · inspecting across tenants learns nothing: another tenant's id answers exactly like an unknown one
+         verdict: RED, named test, intended reason
+S14      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — validate-only PERFORMS A WRITE
+         target bin/project-intake.mjs · named test "P30 ·…" in test/f01-intake.test.mjs
+         sha256 before 98504eedc98306af7a217dbe18b330776e1919bba12536eaaed6b17147fbc9df · after 98504eedc98306af7a217dbe18b330776e1919bba12536eaaed6b17147fbc9df
+         failing tests: P30 · validate-only writes nothing and records nothing — CONTROL: the SAME file through --submit --confirm writes and records
+         verdict: RED, named test, intended reason
+S15      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the F08 governed-write boundary BYPASSED (a direct filesystem write)
+         target bin/project-intake.mjs · named test "P32 ·…" in test/f01-intake.test.mjs
+         sha256 before 98504eedc98306af7a217dbe18b330776e1919bba12536eaaed6b17147fbc9df · after 98504eedc98306af7a217dbe18b330776e1919bba12536eaaed6b17147fbc9df
+         failing tests: P32 · a confirmed lawful submission writes EXACTLY once: two files, each committed once through the boundary
+         verdict: RED, named test, intended reason
+S16      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — an audit transition DOUBLE-EMITTED
+         target src/intake/intake.mjs · named test "P39 ·…" in test/f01-intake.test.mjs
+         sha256 before f8efad91bc221ac7ee7782d9f050dfbd5d8ede53df77d4d7ca935e0fcc72df80 · after f8efad91bc221ac7ee7782d9f050dfbd5d8ede53df77d4d7ca935e0fcc72df80
+         failing tests: P39 · F08 records each governed declaration transition EXACTLY once — and a replay records none
+         verdict: RED, named test, intended reason
+S17      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the production adapter ORPHANED (the entry point no longer reaches it)
+         target bin/project-intake.mjs · named test "P43 ·…" in test/f01-intake.test.mjs
+         sha256 before 98504eedc98306af7a217dbe18b330776e1919bba12536eaaed6b17147fbc9df · after 98504eedc98306af7a217dbe18b330776e1919bba12536eaaed6b17147fbc9df
+         failing tests: P43 · no production intake module is orphaned: every one is reachable from the production entry point
+         verdict: RED, named test, intended reason
+S18      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — client / product vocabulary INSERTED into generic intake code
+         target src/intake/contract.mjs · named test "P42 ·…" in test/f01-intake.test.mjs
+         sha256 before 3aa3af49ecc3cac180258f8b6b6d3c8595f6970e1cf47c15c0eb0d2df0421657 · after 3aa3af49ecc3cac180258f8b6b6d3c8595f6970e1cf47c15c0eb0d2df0421657
+         failing tests: P42 · the generic intake source contains no client, product, host or fixture vocabulary
+         verdict: RED, named test, intended reason
+S19      landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — a SUPERSEDED authority selected (the register picks the oldest applicable ruling)
+         target src/authority/register.mjs · named test "P48b ·…" in test/f01-intake.test.mjs
+         sha256 before 76869a686160ad1eab91b12d71d6e299782345e28d2fe326ec66a7a2441d7d5f · after 76869a686160ad1eab91b12d71d6e299782345e28d2fe326ec66a7a2441d7d5f
+         failing tests: P41 · F07's firewall stays intact: the held-out firewall passes on this tree and appends nothing | P48b · a declaration decision is taken under the CURRENT ruling — a superseded one is never applied
+         verdict: RED, named test, intended reason
+S20      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — ONE WORD of the frozen F01 acceptance changed in the engine's pin
+         target config/fboard/acceptances.mjs · named test "P48 ·…" in test/f01-intake.test.mjs
+         sha256 before 2dd50e72c863605be1930518cad74eaa9ebcc7b88b2df5bec5915611e15c94f4 · after 2dd50e72c863605be1930518cad74eaa9ebcc7b88b2df5bec5915611e15c94f4
+         failing tests: P48 · the COMPLETE F01 acceptance: pinned, CURRENT, re-derived — and one changed word is ACCEPTANCE_TAMPERED
+         verdict: RED, named test, intended reason
+
+TOTAL 20 · PROVED 20 · NOT PROVED 0
+residue in sabotaged files after restore: 0
+tracked modifications after restore (excluding this evidence file): 0
+
+PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
+  audit-trail/events.jsonl  before cc650b62659f8c922e17fd93b91b7390787723fa0bef6c4d5a9955880e226603  after cc650b62659f8c922e17fd93b91b7390787723fa0bef6c4d5a9955880e226603
+  audit-trail/head.json  before 1345ff8e311fece8dfc780d788adc4f2cb091f7d41c5af38657f0f7744129879  after 1345ff8e311fece8dfc780d788adc4f2cb091f7d41c5af38657f0f7744129879
+  untouched: true
+
+PROBE CONTROL (clean tree): 20 of 20 probes report no defect.
+  S1  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — an absent tenant DEFAULTS to a usual tenant
+  S2  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — one project allowed to cross tenants
+  S3  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — an absent permission GRANTED
+  S4  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — the environment INFERRED from the hostname
+  S5  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — embedded credentials ACCEPTED in an origin
+  S6  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — a value-shaped secret ACCEPTED
+  S7  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — the rejected secret value PRINTED (carried into the finding)
+  S8  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — an unknown schema version IGNORED
+  S9  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — an unknown top-level field IGNORED
+  S10  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — an ACCEPTED declaration MUTATED (same id, new bytes, written over it)
+  S11  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — an update OVERWRITES the current view instead of superseding
+  S12  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — an idempotent replay DUPLICATED (written and recorded again)
+  S13  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — inspection PERMITTED across tenants
+  S14  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — validate-only PERFORMS A WRITE
+  S15  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — the F08 governed-write boundary BYPASSED (a direct filesystem write)
+  S16  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — an audit transition DOUBLE-EMITTED
+  S17  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — the production adapter ORPHANED (the entry point no longer reaches it)
+  S18  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — client / product vocabulary INSERTED into generic intake code
+  S19  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — a SUPERSEDED authority selected (the register picks the oldest applicable ruling)
+  S20  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — ONE WORD of the frozen F01 acceptance changed in the engine's pin
+RAN 20 of 20 · LANDED 20 of 20 · COULD-FAIL 20 of 20 · PROVED 20 of 20

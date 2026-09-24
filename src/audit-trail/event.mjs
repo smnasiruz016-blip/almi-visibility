@@ -59,6 +59,9 @@ export const EVENT_TYPES = Object.freeze([
   "GOVERNED_WRITE",
   /* F06 (24 September 2026): one checked evidence-state supersession, recorded as it is written. Additive, as above. */
   "EVIDENCE_STATE_TRANSITION",
+  /* F01 (24 September 2026): one project-declaration workflow decision — validated, accepted, refused or superseded.
+   * Additive, as above. */
+  "DECLARATION_DECISION",
 ]);
 export const ACTOR_TYPES = Object.freeze(["HUMAN", "ENGINE", "CI", "EXTERNAL_SYSTEM"]);
 export const SCOPE_TYPES = Object.freeze(["GLOBAL_PRODUCT", "TENANT", "SUBJECT"]);

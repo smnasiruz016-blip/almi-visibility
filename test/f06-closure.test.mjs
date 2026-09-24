@@ -30,8 +30,9 @@ test("F6-BOARD · F06 is VERIFIED-PASS by UNASSESSED → IN-PROGRESS → VERIFIE
   const b = board();
   assert.deepEqual(boardErrors(b, ctx), []);
   const p = progress(b);
-  assert.deepEqual(p.split, { UNASSESSED: 84, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 0, "BLOCKED-BY-AUTHORITY": 1, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 4 });
-  assert.equal(p.passed, 4);
+  // 4/89 at F06's closure; F01 then moved under its own acceptance (24 Sep 2026) — test/f01-closure.test.mjs owns it.
+  assert.deepEqual(p.split, { UNASSESSED: 83, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 0, "BLOCKED-BY-AUTHORITY": 1, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 5 });
+  assert.equal(p.passed, 5);
   assert.equal(p.total, 89);
   assert.deepEqual(["F05", "F07", "F08", "F40"].map((f) => DECLARED[f].state), ["VERIFIED-PASS", "VERIFIED-PASS", "VERIFIED-PASS", "BLOCKED-BY-AUTHORITY"]);
   const f06 = DECLARED.F06;
@@ -89,7 +90,7 @@ test("F6-TRAIL · each F06 movement is in the production trail EXACTLY ONCE, und
 
 test("F6-TRAIL · the board ↔ audit consistency check is clean and names F06", () => {
   const r = spawnSync(process.execPath, [join(REPO, "tools/board-audit-consistency.mjs")], { cwd: REPO, encoding: "utf8" });
-  assert.match(r.stdout, /rows needing a transition event: F05, F06, F07, F08/);
+  assert.match(r.stdout, /rows needing a transition event: F01, F05, F06, F07, F08/); // F01 joined on 24 September 2026
   assert.match(r.stdout, /consistency errors\s*: 0/);
-  assert.match(r.stdout, /F-progress \(computed from the board file\): 4\/89/);
+  assert.match(r.stdout, /F-progress \(computed from the board file\): 5\/89/); // 4/89 at F06's closure; F01 moved on 24 Sep
 });

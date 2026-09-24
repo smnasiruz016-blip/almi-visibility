@@ -1,0 +1,26 @@
+P46 · F05, F06 (with its correction), F07 AND F08 — THEIR OWN FROZEN ACCEPTANCE, RE-RUN ON THEIR REAL POPULATIONS, ON THE F01 TREE · HEAD d44270dc59c657b0c1dfd47773c25f9c9537a639 · 2026-09-24T05:31:39Z
+
+test files (23): test/f05-authority-register.test.mjs test/f06-evidence-state.test.mjs test/f06-closure.test.mjs test/f06-correction.test.mjs test/market-measurement.test.mjs test/audit-store-exemption.test.mjs test/audit-trail.test.mjs test/bypass-control.test.mjs test/decision-site-census.test.mjs test/duplicate-writers.test.mjs test/entry-points.test.mjs test/f05-authority-register.test.mjs test/f07-closure.test.mjs test/f07-heldout-firewall.test.mjs test/f07-sink-repair.test.mjs test/f08-acceptance-pin.test.mjs test/f08-board-reconciliation.test.mjs test/f08-closure.test.mjs test/governed-caller-vocabulary.test.mjs test/governed-write.test.mjs test/heldout-firewall.test.mjs test/shared-guard-audit.test.mjs test/test-store-hygiene.test.mjs
+exit 0
+ℹ tests 325
+ℹ pass 325
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+
+F06 evidence-state census (real governed + correction populations): exit 0 ·   TOTAL 159 items · zeros {"unknownForUnmeasured":0,"notApplicableCollapsedIntoUnknown":0,"ambiguousAutomaticMappings":0,"remainder":0}
+F06 sabotage E1-E16      16 sabotage(s) · RAN 16 of 16 · LANDED 16 of 16 (bytes and behaviour) · PROVED 16 · residue 0 · production untouched true · exit 0
+F06 correction X1-X16    16 sabotage(s) · RAN 16 of 16 · LANDED 16 of 16 (bytes and behaviour) · PROVED 16 · residue 0 · production untouched true · exit 0
+F07 sabotage             16 sabotage(s) · EXECUTED 16 of 16 · 16 proved · 0 NOT proved · residue 0 · production untouched true · exit 0
+F08 sabotage             34 sabotage(s) · 34 proved · 0 NOT proved · residue 0 · production untouched true · exit 0
+F07 sink repair          10 sabotage(s) · RAN 10 of 10 · LANDED 10 of 10 (bytes and behaviour) · PROVED 10 · residue 0 · production untouched true · exit 0
+
+F-board: 89 rows · UNASSESSED 84 · BLOCKED-BY-AUTHORITY 1 · VERIFIED-PASS 4 · sum 89
+F-progress: 4/89
+  F05 VERIFIED-PASS
+  F06 VERIFIED-PASS
+  F07 VERIFIED-PASS
+  F08 VERIFIED-PASS
+  F40 BLOCKED-BY-AUTHORITY — UNIVERSAL_350_WORD_FLOOR_STILL_APPLICABLE
+
+tracked working tree after all runs: unchanged

@@ -99,7 +99,9 @@ export const BOUNDARY_CALL = /executeGovernedWrite\(/;
  * store it is handed — test/f07-heldout-firewall.test.mjs proves their module holds no filesystem write primitive at
  * all, so there is nothing else they could reach. `governedAuditContext` constructs the audit store (production, or
  * confined in a test context) exactly as `productionAuditStore` does. */
-export const AUDIT_STORE_REACHING = /\b(recordCandidates|auditAuthorityMigration|recordGateDecisions|freezeMechanism|requestHeldOutAccess|scoreHeldOutEvaluation|readHeldOutItem|recordEvidenceStateTransitions)\(/;
+/* F01 (24 Sep 2026): the project-intake decision recorder joins them on the same terms — it appends ONLY to the audit
+ * store it is handed, and test/f01-intake.test.mjs proves src/intake/intake.mjs holds no filesystem write primitive. */
+export const AUDIT_STORE_REACHING = /\b(recordCandidates|auditAuthorityMigration|recordGateDecisions|freezeMechanism|requestHeldOutAccess|scoreHeldOutEvaluation|readHeldOutItem|recordEvidenceStateTransitions|recordDeclarationDecisions)\(/;
 export const AUDIT_STORE_CONSTRUCTOR = /\b(productionAuditStore|governedAuditContext)\(/;
 export const LIVE_WRITE_GATE_EVENT = /writeGateEvent\(/;
 

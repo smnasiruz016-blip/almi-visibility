@@ -40,9 +40,9 @@ test("F-BOARD · F08 is VERIFIED-PASS by FAILED → IN-PROGRESS → VERIFIED-PAS
   assert.deepEqual(boardErrors(b, { capabilities: CAPABILITIES, acceptances: ACCEPTANCES, authority: { records: AUTHORITY_CORPUS, now: CORPUS_PROVENANCE.now } }), []); // the corpus's measuring day (F06, 24 Sep, did not exist on the 23rd)
   const p = progress(b);
   /* Read 2/89 at F08's closure. F07 then moved to VERIFIED-PASS under its own acceptance (23 September 2026), so the
-   * board reads 3/89, and after F06 (24 September 2026) 4/89; F08's own assertions below are unchanged. test/f07-closure.test.mjs owns F07's movement. */
-  assert.deepEqual(p.split, { UNASSESSED: 84, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 0, "BLOCKED-BY-AUTHORITY": 1, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 4 });
-  assert.equal(p.passed, 4);
+   * board reads 3/89, and after F06 (24 September 2026) 4/89, and after F01 (the same day) 5/89; F08's own assertions below are unchanged. test/f07-closure.test.mjs owns F07's movement. */
+  assert.deepEqual(p.split, { UNASSESSED: 83, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 0, "BLOCKED-BY-AUTHORITY": 1, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 5 });
+  assert.equal(p.passed, 5);
   assert.equal(p.total, 89);
   assert.equal(DECLARED.F05.state, "VERIFIED-PASS");
   assert.equal(DECLARED.F40.state, "BLOCKED-BY-AUTHORITY");

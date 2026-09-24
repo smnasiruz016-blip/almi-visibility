@@ -6,6 +6,20 @@
  * writes an acceptance: a change to any clause here without a new committed ruling turns the pins red.
  */
 export const ACCEPTANCES = Object.freeze({
+  F01: Object.freeze({
+    featureId: "F01",
+    ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F01_FROZEN_ACCEPTANCE_2026-09-24.md", commit: "1429928b48135603e417a17a4f17c81da7dfda25", sha256: "eb445a1e4c856519bdcb0380b5d152633b40d1e52911344a981915afbb3749de" }),
+    // Resolved through the register like any other record (inclusion rule frozen-f-row-acceptance); the board accepts
+    // this acceptance only while that resolution is CURRENT and names these exact bytes.
+    authority: Object.freeze({ propositionId: "F01_FROZEN_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F01"]) }),
+    frozenOn: "2026-09-24",
+    feature: "F01 · Product declaration and intake",
+    input: "A versioned project declaration submitted by an identified actor for\none declared tenant. It may name public properties, environments,\ngoals, permissions, constraints and connector intentions, but contains\nno secret credential and grants no authority merely by being submitted.",
+    expected: "Visibility validates the declaration through a product-neutral,\nversioned contract; assigns or validates stable project identity;\nbinds it to exactly one declared tenant; normalises each public property\nwithout guessing ownership; records environments, goals, permissions\nand constraints separately; refuses ambiguous, unsafe, secret-bearing\nor cross-tenant input; stores accepted declarations through a declared\nportable root; preserves the submitter's wording as isolated data; and\nrecords validation, acceptance, refusal and supersession decisions\nthrough the audit trail.",
+    failure: "Shared code contains client knowledge; a declaration silently creates\nownership or permission; an absent tenant defaults to a usual tenant;\none project crosses tenants; credentials or secret values are accepted;\nprivate/local/credentialed targets are treated as public properties;\nenvironment is guessed from hostname; goals are converted into facts;\npermissions default to allowed; constraints disappear; unknown schema\nfields or versions are silently ignored; a duplicate or replay creates\nanother project; an update overwrites history; or a refused declaration\nmutates the accepted store.",
+    evidence: "The contract exercised through a real non-empty declaration population\nand a new unrelated neutral declaration; accepted, refused, duplicate,\nsuperseded and unavailable-storage worlds; complete field and population\narithmetic; tenant isolation, secret exclusion, portability, audit,\nidempotency and orphan proofs; independent sabotage for every failure\nclass; two agreeing full suites; named counting control; one green PR,\nmerge and exact-main CI.",
+    contractSha256: "5d7ddb4c6d37a3d96cbc8ce65797eb20f3119816a20084c9176aa089b5d80ccb",
+  }),
   F05: Object.freeze({
     featureId: "F05",
     ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_RULING_2026-09-22_F05_ACCEPTANCE.md", commit: "58685998b08fafb8bf3d6b1b7da9a2becf3fe004", sha256: "035ae68d09de3378a18d4935af146308fdeef34ab21f5121dde4db47fb3a1f70" }),

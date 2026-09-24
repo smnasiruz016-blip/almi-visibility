@@ -1,0 +1,24 @@
+F01 §14 · engine HEAD 61209c0da49b31afa4bd3741cd3356dbd716aa3e · node v24.15.0 · started 2026-09-24T05:37:37.328Z
+command: node --test test/*.test.mjs (130 files, glob expanded in sorted order)
+RUN 1: exit 0 · tests 2056 · pass 2056 · fail 0 · skipped 0 · cancelled 0 · todo 0 · 496s
+   production events.jsonl b478b396a030c736e2f2f485c9a8dcb5b33a5a6424f92f142eca4cfbfc5ee303 -> b478b396a030c736e2f2f485c9a8dcb5b33a5a6424f92f142eca4cfbfc5ee303 IDENTICAL (359 -> 359 events)
+   production head.json    f6558f6a4b3bfffcc4a2cfe511fad7638820028c54e83fc851ba644f8a570e0d -> f6558f6a4b3bfffcc4a2cfe511fad7638820028c54e83fc851ba644f8a570e0d IDENTICAL
+   .test-scratch/audit run directories 673 -> 673 · .test-scratch entries 1144 -> 1147
+   tracked working tree unchanged: true
+RUN 2: exit 0 · tests 2056 · pass 2056 · fail 0 · skipped 0 · cancelled 0 · todo 0 · 510s
+   production events.jsonl b478b396a030c736e2f2f485c9a8dcb5b33a5a6424f92f142eca4cfbfc5ee303 -> b478b396a030c736e2f2f485c9a8dcb5b33a5a6424f92f142eca4cfbfc5ee303 IDENTICAL (359 -> 359 events)
+   production head.json    f6558f6a4b3bfffcc4a2cfe511fad7638820028c54e83fc851ba644f8a570e0d -> f6558f6a4b3bfffcc4a2cfe511fad7638820028c54e83fc851ba644f8a570e0d IDENTICAL
+   .test-scratch/audit run directories 673 -> 673 · .test-scratch entries 1147 -> 1150
+   tracked working tree unchanged: true
+RUNS AGREE: true
+PLANTED: exit 1 · tests 2057 · pass 2056 · fail 1 · skipped 0 · cancelled 0 · todo 0 · 502s
+   ✖ F01 FINAL COUNTING CONTROL — THIS FAILURE MUST BE NAMED
+   production events.jsonl b478b396a030c736e2f2f485c9a8dcb5b33a5a6424f92f142eca4cfbfc5ee303 -> b478b396a030c736e2f2f485c9a8dcb5b33a5a6424f92f142eca4cfbfc5ee303 IDENTICAL (359 -> 359 events)
+   production head.json    f6558f6a4b3bfffcc4a2cfe511fad7638820028c54e83fc851ba644f8a570e0d -> f6558f6a4b3bfffcc4a2cfe511fad7638820028c54e83fc851ba644f8a570e0d IDENTICAL
+   .test-scratch/audit run directories 673 -> 673 · .test-scratch entries 1150 -> 1153
+   tracked working tree unchanged: true
+   loaded +1: true · failed +1: true · planted test NAMED: true · no unrelated failure: true
+   plant removed: true · test/ listing byte-identical to before the plant: true · git status identical: true
+finished 2026-09-24T06:02:45.995Z
+
+The runs measured tree 61209c0. This file is the only change after it: a text record under runs/audit, read by no test. The .test-scratch +3 per run is the pre-existing residue of other features' tests (named in the F01 command §14), not F01's.

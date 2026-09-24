@@ -9,6 +9,47 @@
 import { ACCEPTANCES } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
+  F01: Object.freeze({
+    featureId: "F01",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      // The acceptance was committed ALONE in the governance repository (1429928) before any F01 engine change.
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-24", ruling: ACCEPTANCES.F01.ruling, contractSha256: ACCEPTANCES.F01.contractSha256 }),
+      /* Implementation began only after that commit: the corpus re-migration and acceptance pin (e49826f), then
+       * src/intake/ (contract, secret firewall, origin normalisation, store, decision, legacy adapter) and
+       * bin/project-intake.mjs, with the declaration root declared in the data repository (PR #10, 47cc35d). */
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F01",
+        on: "2026-09-24",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        reason: "FROZEN_ACCEPTANCE_COMMITTED_BEFORE_ENGINE_CHANGE",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-24_F01_COMPLETE.md", commit: "dc8e50e679242c8e621af0b51e364dcd45b555db", sha256: "0bc1c1ff2797ce39c540eabd21d95d0aa158a6766eec80a81dc997c39d03410d" }),
+      }),
+      /* Verified UNDER F01 over the REAL population — the 21 declared tenants and 21 attachments of the tenancy
+       * registry, read through the contract (21 refused with every absent field named, none fabricated), the real
+       * declaration root (resolved, 0 accepted projects — stated, not hidden) — and a NEW unrelated neutral declaration
+       * accepted through the production path with no source change. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F01",
+        population: "REAL",
+        on: "2026-09-24",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        reason: "EVERY_FAILURE_CLAUSE_UNMET_ON_REAL_POPULATIONS",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F01.ruling.sha256, contract: ACCEPTANCES.F01.contractSha256 }),
+        populations: "runs/audit/f01-census-2026-09-24.txt — tenancy 21 tenants = 21 active, 21 attachments = 18 public origins + 3 excluded by declared kind, remainder 0; 21 candidates REFUSED, 0 adapted, 0 unmapped; real declaration root 0 accepted; neutral world 1 project, 2 submissions; every zero with a firing control",
+        proofs: "P1–P48 with P11b, P43b and P48b in test/f01-intake.test.mjs, each with a control able to give the other verdict; P46 re-run separately",
+        sabotage: "S1–S20: 20 RAN, 20 LANDED (bytes and behaviour), 20 COULD-FAIL, 20 RED on the named proof for the intended reason, restored, production trail untouched (runs/audit/f01-sabotage-2026-09-24.txt)",
+        acceptanceRerun: "F05, F06 (with its correction), F07, F08 re-run on the F01 tree (runs/audit/f01-acceptance-rerun-2026-09-24.txt)",
+        fullSuite: "two full runs and the named counting control on the final tree (runs/audit/f01-suite-2026-09-24.txt)",
+        afterMerge: "main CI green on the exact merged SHA — verified after merge and reported in _handoffs/AlmiVisibility_F01_VERIFIED_PASS_EVIDENCE_2026-09-24.md; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
   F05: Object.freeze({
     featureId: "F05",
     board: "F_BOARD",

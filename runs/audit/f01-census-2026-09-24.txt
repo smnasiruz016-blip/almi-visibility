@@ -1,0 +1,51 @@
+F01 §13 · INTAKE CENSUSES · engine HEAD d44270dc59c657b0c1dfd47773c25f9c9537a639 · 2026-09-24T05:31:17Z
+
+REAL declaration root: resolved (almi-visibility-data)
+  files 2 = submissions 0 + current views 0 + root files 2 + stray 0 · remainder 0
+  accepted projects 0 · zeros {"tenantlessAccepted":0,"crossTenantProjects":0,"duplicateCurrent":0,"danglingCurrent":0,"unknownFields":0,"unsafeTargets":0,"secretShaped":0,"implicitGrants":0,"inferredEnvironments":0,"lostConstraints":0,"missingSupersessionHistory":0,"overwrittenHistory":0,"unrecordedAcceptances":0,"unknownVersions":0}
+  🔴 the REAL accepted population is EMPTY: no project has yet been declared through intake. Every zero below that matters is therefore also measured on the NEUTRAL world, which is not empty.
+
+REAL TENANCY (the existing declarations, through the contract): readable
+  tenant records 21 = active 21 + inactive/invalid 0 · remainder 0
+  attachment records 21 = public-origin properties 18 + EXCLUDED by declared resourceKind 3 ({"FACT_REGISTRY":1,"CRAWL_BATCH":1,"SITEMAP_COLLECTION":1}) + naming no active tenant 0 · remainder 0
+  the exclusion is DERIVED: an attachment is a public property only when its declared resourceKind is SITE_ORIGIN; the resolver's own vocabulary names the other three kinds as resource attachments (fact registry, crawl batch, sitemap collection)
+  tenants with no attachment at all: 1 · public origins that fail structural normalisation: 0 of 18
+  candidates 21: ADAPTED 0 · REFUSED 21 · UNMAPPED 0 · remainder 0
+  refusal codes (candidates carrying each): {"FIELD_ABSENT":21,"PROPERTY_SHAPE_INVALID":18,"SCHEMA_VERSION_ABSENT":21}
+  fields ABSENT from the legacy records (candidates missing each): {"schemaVersion":21,"declarationId":21,"projectId":21,"submittedBy":21,"submittedAt":21,"environments":21,"goals":21,"permissions":21,"constraints":21,"connectors":21,"declarationState":21,"supersedes":21}
+  explicitly declared there: environments 0 · goals 0 · permissions 0 · constraints 0 · connectors 0 (the registry declares none of them; none was derived)
+
+SUBJECT DESCRIPTORS (products/<id>/product.mjs in the declared roots): 3 — 2 in the engine's FIXTURES root, 1 in the external root
+  EXCLUDED from the declaration population by derivation: a descriptor registers axis, variants, facts, page specs and gaps (src/product.mjs registerProduct) — it declares no tenantId, no property, no goal and no permission; fixtures-root entries are declared test material (config/subject-roots.mjs kind "fixtures")
+
+NEUTRAL world (production decision path, outside every repository): projects 1 · submissions 2 · current views 1 · remainder 0
+  schema versions {"1":2} · zeros {"tenantlessAccepted":0,"crossTenantProjects":0,"duplicateCurrent":0,"danglingCurrent":0,"unknownFields":0,"unsafeTargets":0,"secretShaped":0,"implicitGrants":0,"inferredEnvironments":0,"lostConstraints":0,"missingSupersessionHistory":0,"overwrittenHistory":0,"unrecordedAcceptances":0,"unknownVersions":0}
+
+FIRING CONTROLS — the same counting function on a copy with ONE planted defect:
+  fires  tenantlessAccepted           tenantlessAccepted 1
+  fires  unknownFields                unknownFields 1
+  fires  unsafeTargets                unsafeTargets 1
+  fires  secretShaped                 secretShaped 2
+  fires  implicitGrants               implicitGrants 1
+  fires  inferredEnvironments         inferredEnvironments 1
+  fires  lostConstraints              lostConstraints 1
+  fires  unknownVersions              unknownVersions 1
+  fires  missingSupersessionHistory   missingSupersessionHistory 1
+  fires  crossTenantProjects          crossTenantProjects 1
+  fires  danglingCurrent              danglingCurrent 1
+  fires  duplicateCurrent             duplicateCurrent 1
+  fires  unrecordedAcceptances        unrecordedAcceptances 1
+  fires  overwrittenHistory           overwrittenHistory 1
+  fires  stray                        stray 1
+
+CLIENT VOCABULARY in generic intake code: 0 hit(s) over 7 files · vocabulary from the REAL registry: 36 host/label terms · control fires true
+
+PRODUCTION ORPHANS: 0 of 6 intake modules unreachable from bin/project-intake.mjs · control fires true
+F08 GOVERNED DECISIONS: GOVERNED_STATE_CHANGE 42 · routed 40 · audit-store exempt 2 · non-mutating 0 · BYPASSING 0 · decision sites DEFECT 0
+F06 STATE SEPARATION: declaration states ∩ evidence states = 0 · control fires true
+F07 SEALED ACCESS: a real --inventory run touched 36 path(s); sealed (Row 52 included) read: 0 · tracer control (saw the tenancy registry): true
+
+CHANGED HISTORICAL ASSERTIONS (tests modified, not added, since 46a548c): test/client-neutrality.test.mjs, test/duplicate-writers.test.mjs, test/governed-caller-vocabulary.test.mjs
+  tests added: test/f01-intake.test.mjs, test/fixtures/intake/neutral-third-declaration.json, test/helpers/f01-sabotage.mjs
+
+FAILURES: 0

@@ -20,6 +20,20 @@ export const ACCEPTANCES = Object.freeze({
     evidence: "The resolver exercised over the real committed authority corpus, with every\napplicable authority accounted for, plus firing and clean controls for\nnewer-over-older, narrow-scope containment, equal-authority conflict,\nabsence, historical-only input and malformed provenance.",
     contractSha256: "942308f9d58f5c2960a49f6b4abe00b1a1899ebee813cadb715b6e881e4cf68d",
   }),
+  F06: Object.freeze({
+    featureId: "F06",
+    ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F06_FROZEN_ACCEPTANCE_2026-09-24.md", commit: "a0c94ceb481e763c344025dfa7f2d1245b6af83f", sha256: "7453b6bfe2b327a6e45ddb0d748a5e08c2d9dfd708fbb139a9dd81c38cc47b67" }),
+    // Resolved through the register like any other record (inclusion rule frozen-f-row-acceptance); the board accepts
+    // this acceptance only while that resolution is CURRENT and names these exact bytes.
+    authority: Object.freeze({ propositionId: "F06_FROZEN_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F06"]) }),
+    frozenOn: "2026-09-24",
+    feature: "F06 · Evidence State Model",
+    input: "A real engine record, finding, check result, claim, recommendation or\nderived conclusion whose epistemic status affects how Visibility may\nreport, compare, prioritise or act on it.",
+    expected: "Every governed item exposes exactly one canonical evidence state:\nOBSERVED\nDirectly measured, retrieved or witnessed evidence, with source,\ntime and traceable evidence reference.\nINFERRED\nA conclusion derived from identified inputs by a named rule, formula\nor method. It is never presented as directly observed.\nRECOMMENDED\nA proposed action or judgement based on identified evidence. It is\nnot itself proof that the underlying condition is true or that the\naction was implemented.\nUNKNOWN\nThe relevant question was reached, but available evidence does not\nlawfully establish an answer.\nNOT_MEASURED\nThe relevant check was not performed or did not produce a measurement.\nIt is distinct from zero, PASS, FAIL and UNKNOWN.\nNOT_APPLICABLE\nThe check is outside the item's declared scope, with a specific,\nreviewable applicability reason.\nThe evidence state remains separate from verdict, confidence, workflow\nstatus, verification state, board state and action state. Every\nconversion or transition names its evidence, rule, software version,\nactor and time. Missing or ambiguous legacy labels fail closed and\ncannot silently become OBSERVED, PASS or zero.",
+    failure: "A governed item has no state or more than one canonical state; an\ninference is reported as an observation; a recommendation is reported\nas evidence or implementation; UNKNOWN, NOT_MEASURED or unavailable is\nconverted into zero, PASS or absence; NOT_APPLICABLE lacks a declared\nreason; a legacy label is guessed into a canonical state; or the\nevidence state is silently coupled to a verdict, confidence value,\nworkflow state, fact-verification label or board status.",
+    evidence: "The canonical model and production adapters exercised over every real\ngoverned population; exact population and migration arithmetic with\nzero remainder; each of the six states reached on real material where\na lawful real population exists and otherwise through a firing\nsynthetic control; forbidden conversions proved RED independently;\nproduct-neutrality, isolation, audit, orphan and transition censuses;\ntwo agreeing full suites; a named counting control; one green PR,\nmerge and exact-main CI.",
+    contractSha256: "b1c791d4f734652a84f88b170dfd020434625e9859fa97e7dde7ce560670337a",
+  }),
   F07: Object.freeze({
     featureId: "F07",
     ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F07_FROZEN_ACCEPTANCE_2026-09-23.md", commit: "cd149aea074f1e1b4b1f13fbeac26e6fdcaff047", sha256: "a9fbccdd040cc20d3962635372f318c49308086de6a8613842f8d957eb8b1112" }),

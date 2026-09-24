@@ -1,0 +1,117 @@
+F06 CORRECTION — SABOTAGE EVIDENCE (legacy market measurement · OUTCOME_ALIASES · census)
+
+Engine tree: 3b71be42ed7c331ee3f8698ef192167b8c471559. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
+runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
+requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
+No sabotage aims at the production audit trail; every firing case writes to a stand-in or a confined store.
+
+RESULTS
+X1       landed=true red=true failed=4 namedTestFailed=true reason=true restored=true — the live Row 7 writer regresses to UNKNOWN for a dimension it never measured
+         target src/discovery/market-measurement.mjs · named test "K4 ·…" in test/f06-correction.test.mjs
+         sha256 before ebeafed10bc4e8302e2a8ce0a418eacdc711e40f2b6c80d9e088736a1aa23545 · after ebeafed10bc4e8302e2a8ce0a418eacdc711e40f2b6c80d9e088736a1aa23545
+         failing tests: K3 · the reading is bound to the exact 15 September bytes by full sha256 — other bytes are refused, never read as it | K4 · the live Row 7 writer: NOT performed → NOT_MEASURED; REACHED but not establishable → UNKNOWN, kept | K4b · Row 7's law reads the CANONICAL state: a current result reading UNKNOWN for an unmeasured dimension is refused | K9 · the four zeros hold on the corrected reading, and each FIRES on the pre-correction reading (same counter)
+         verdict: RED, named test, intended reason
+X2       landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the adapter decides from the OLD LABEL alone (a deferred UNKNOWN placed NOT_MEASURED with no measured:false)
+         target src/evidence/legacy-artefacts.mjs · named test "K2 ·…" in test/f06-correction.test.mjs
+         sha256 before 87092cf9ce2a00a5bcf38ddd0562b91f1a03080b475215191ae7d9b8dd7b81fa · after 87092cf9ce2a00a5bcf38ddd0562b91f1a03080b475215191ae7d9b8dd7b81fa
+         failing tests: K2 · §B — an empty or absent field is NOT proof: only the declared boolean measured:false places NOT_MEASURED; the old label never does
+         verdict: RED, named test, intended reason
+X3       landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the adapter treats an ABSENT field as proof (a missing measured reads as not performed)
+         target src/evidence/legacy-artefacts.mjs · named test "K2 ·…" in test/f06-correction.test.mjs
+         sha256 before 87092cf9ce2a00a5bcf38ddd0562b91f1a03080b475215191ae7d9b8dd7b81fa · after 87092cf9ce2a00a5bcf38ddd0562b91f1a03080b475215191ae7d9b8dd7b81fa
+         failing tests: K2 · §B — an empty or absent field is NOT proof: only the declared boolean measured:false places NOT_MEASURED; the old label never does
+         verdict: RED, named test, intended reason
+X4       landed=true red=true failed=3 namedTestFailed=true reason=true restored=true — the adapter is LOSSY — the stored literal is dropped from originalState
+         target src/evidence/legacy-artefacts.mjs · named test "K1 ·…" in test/f06-correction.test.mjs
+         sha256 before 87092cf9ce2a00a5bcf38ddd0562b91f1a03080b475215191ae7d9b8dd7b81fa · after 87092cf9ce2a00a5bcf38ddd0562b91f1a03080b475215191ae7d9b8dd7b81fa
+         failing tests: K1 · the compatibility adapter is LOSSLESS — nine labelled elements, each keeping its stored literal as originalState | K2 · §B — an empty or absent field is NOT proof: only the declared boolean measured:false places NOT_MEASURED; the old label never does | K9 · the four zeros hold on the corrected reading, and each FIRES on the pre-correction reading (same counter)
+         verdict: RED, named test, intended reason
+X5       landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — the byte pin dropped — any bytes are read as the 15 September artefact
+         target src/evidence/legacy-artefacts.mjs · named test "K3 ·…" in test/f06-correction.test.mjs
+         sha256 before 87092cf9ce2a00a5bcf38ddd0562b91f1a03080b475215191ae7d9b8dd7b81fa · after 87092cf9ce2a00a5bcf38ddd0562b91f1a03080b475215191ae7d9b8dd7b81fa
+         failing tests: K3 · the reading is bound to the exact 15 September bytes by full sha256 — other bytes are refused, never read as it | K4b · Row 7's law reads the CANONICAL state: a current result reading UNKNOWN for an unmeasured dimension is refused
+         verdict: RED, named test, intended reason
+X6       landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — OUTCOME_ALIASES collapses not-applicable into UNKNOWN again
+         target src/evidence/verdict.mjs · named test "K5 ·…" in test/f06-correction.test.mjs
+         sha256 before ce0effe2de2e48a393bea50545e608dd05d5ab8ca26c5a5c848b9ebea2bd6e86 · after ce0effe2de2e48a393bea50545e608dd05d5ab8ca26c5a5c848b9ebea2bd6e86
+         failing tests: K5 · OUTCOME_ALIASES branch 1 — not-applicable → NOT_APPLICABLE with scope and reason, only on a DECLARED rule | K9 · the four zeros hold on the corrected reading, and each FIRES on the pre-correction reading (same counter)
+         verdict: RED, named test, intended reason
+X7       landed=true red=true failed=4 namedTestFailed=true reason=true restored=true — an ambiguous could-not-check GUESSED as UNKNOWN from the literal alone
+         target src/evidence/verdict.mjs · named test "K8 ·…" in test/f06-correction.test.mjs
+         sha256 before ce0effe2de2e48a393bea50545e608dd05d5ab8ca26c5a5c848b9ebea2bd6e86 · after ce0effe2de2e48a393bea50545e608dd05d5ab8ca26c5a5c848b9ebea2bd6e86
+         failing tests: K6 · OUTCOME_ALIASES branch 2 — could-not-check → UNKNOWN ONLY if this check was reached for this record | K7 · OUTCOME_ALIASES branch 3 — not performed → NOT_MEASURED, only where the structure proves it (a declared derived fact) | K8 · OUTCOME_ALIASES branch 4 — ambiguous → UNMAPPED: a could-not-check with no baseline and no attempt marker is not guessed | K9 · the four zeros hold on the corrected reading, and each FIRES on the pre-correction reading (same counter)
+         verdict: RED, named test, intended reason
+X8       landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — "reached" accepted from an attempt for ANOTHER record or check
+         target src/evidence/verdict.mjs · named test "K6 ·…" in test/f06-correction.test.mjs
+         sha256 before ce0effe2de2e48a393bea50545e608dd05d5ab8ca26c5a5c848b9ebea2bd6e86 · after ce0effe2de2e48a393bea50545e608dd05d5ab8ca26c5a5c848b9ebea2bd6e86
+         failing tests: K6 · OUTCOME_ALIASES branch 2 — could-not-check → UNKNOWN ONLY if this check was reached for this record
+         verdict: RED, named test, intended reason
+X9       landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — NOT_MEASURED placed on HALF a derived fact (the kind word alone, with a source)
+         target src/evidence/verdict.mjs · named test "K7 ·…" in test/f06-correction.test.mjs
+         sha256 before ce0effe2de2e48a393bea50545e608dd05d5ab8ca26c5a5c848b9ebea2bd6e86 · after ce0effe2de2e48a393bea50545e608dd05d5ab8ca26c5a5c848b9ebea2bd6e86
+         failing tests: K7 · OUTCOME_ALIASES branch 3 — not performed → NOT_MEASURED, only where the structure proves it (a declared derived fact)
+         verdict: RED, named test, intended reason
+X10      landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — an absence promoted to PASS (NOT_MEASURED given PASS's edges)
+         target src/evidence/verdict.mjs · named test "K11 ·…" in test/f06-correction.test.mjs
+         sha256 before ce0effe2de2e48a393bea50545e608dd05d5ab8ca26c5a5c848b9ebea2bd6e86 · after ce0effe2de2e48a393bea50545e608dd05d5ab8ca26c5a5c848b9ebea2bd6e86
+         failing tests: K11 · no absence becomes PASS: UNKNOWN, NOT_MEASURED and NOT_APPLICABLE all refuse → PASS; PASS may still fall back to any of them | K12 · the edge law's strength is UNCHANGED: on every placeable pair of the four literals, the verdict equals the pre-correction table's
+         verdict: RED, named test, intended reason
+X11      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a tracked runs/discovery artefact dropped from the census's declaration (the denominator reopens)
+         target tools/evidence-state-census.mjs · named test "K10 ·…" in test/f06-correction.test.mjs
+         sha256 before 5e3e53b37df9b21898679394079379b1a16bf70b1b3228a8ea48b8a5e5ebeb84 · after 5e3e53b37df9b21898679394079379b1a16bf70b1b3228a8ea48b8a5e5ebeb84
+         failing tests: K10 · every tracked runs/discovery artefact is DECLARED to the census — the denominator F06 missed cannot silently reopen
+         verdict: RED, named test, intended reason
+X12      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the UNKNOWN-for-unmeasured zero made blind
+         target tools/evidence-state-census.mjs · named test "K9 ·…" in test/f06-correction.test.mjs
+         sha256 before 5e3e53b37df9b21898679394079379b1a16bf70b1b3228a8ea48b8a5e5ebeb84 · after 5e3e53b37df9b21898679394079379b1a16bf70b1b3228a8ea48b8a5e5ebeb84
+         failing tests: K9 · the four zeros hold on the corrected reading, and each FIRES on the pre-correction reading (same counter)
+         verdict: RED, named test, intended reason
+X13      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — Row 7's law tolerates UNKNOWN on a CURRENT result (the old label read as NOT_MEASURED)
+         target src/discovery/market-measurement.mjs · named test "K4b ·…" in test/f06-correction.test.mjs
+         sha256 before ebeafed10bc4e8302e2a8ce0a418eacdc711e40f2b6c80d9e088736a1aa23545 · after ebeafed10bc4e8302e2a8ce0a418eacdc711e40f2b6c80d9e088736a1aa23545
+         failing tests: K4b · Row 7's law reads the CANONICAL state: a current result reading UNKNOWN for an unmeasured dimension is refused
+         verdict: RED, named test, intended reason
+X14      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the NOT_APPLICABLE-collapse zero made blind
+         target tools/evidence-state-census.mjs · named test "K9 ·…" in test/f06-correction.test.mjs
+         sha256 before 5e3e53b37df9b21898679394079379b1a16bf70b1b3228a8ea48b8a5e5ebeb84 · after 5e3e53b37df9b21898679394079379b1a16bf70b1b3228a8ea48b8a5e5ebeb84
+         failing tests: K9 · the four zeros hold on the corrected reading, and each FIRES on the pre-correction reading (same counter)
+         verdict: RED, named test, intended reason
+X15      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the ambiguous-mapping zero made blind
+         target tools/evidence-state-census.mjs · named test "K9 ·…" in test/f06-correction.test.mjs
+         sha256 before 5e3e53b37df9b21898679394079379b1a16bf70b1b3228a8ea48b8a5e5ebeb84 · after 5e3e53b37df9b21898679394079379b1a16bf70b1b3228a8ea48b8a5e5ebeb84
+         failing tests: K9 · the four zeros hold on the corrected reading, and each FIRES on the pre-correction reading (same counter)
+         verdict: RED, named test, intended reason
+X16      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the remainder zero made blind
+         target tools/evidence-state-census.mjs · named test "K9 ·…" in test/f06-correction.test.mjs
+         sha256 before 5e3e53b37df9b21898679394079379b1a16bf70b1b3228a8ea48b8a5e5ebeb84 · after 5e3e53b37df9b21898679394079379b1a16bf70b1b3228a8ea48b8a5e5ebeb84
+         failing tests: K9 · the four zeros hold on the corrected reading, and each FIRES on the pre-correction reading (same counter)
+         verdict: RED, named test, intended reason
+
+TOTAL 16 · PROVED 16 · NOT PROVED 0
+residue in sabotaged files after restore: 0
+tracked modifications after restore (excluding this evidence file): 0
+
+PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
+  audit-trail/events.jsonl  before 482d1fb75f1cc6eef50ec54fdbaa48178565d1b7e8893e69b24e9943ebd54641  after 482d1fb75f1cc6eef50ec54fdbaa48178565d1b7e8893e69b24e9943ebd54641
+  audit-trail/head.json  before 329b26fd4d7b8e7420ef910be313aecba99626cffd0e478e4840c4d8542f3328  after 329b26fd4d7b8e7420ef910be313aecba99626cffd0e478e4840c4d8542f3328
+  untouched: true
+
+PROBE CONTROL (clean tree): 16 of 16 probes report no defect.
+  X1  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — the live Row 7 writer regresses to UNKNOWN for a dimension it never measured
+  X2  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — the adapter decides from the OLD LABEL alone (a deferred UNKNOWN placed NOT_MEASURED with no measured:false)
+  X3  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — the adapter treats an ABSENT field as proof (a missing measured reads as not performed)
+  X4  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — the adapter is LOSSY — the stored literal is dropped from originalState
+  X5  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — the byte pin dropped — any bytes are read as the 15 September artefact
+  X6  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — OUTCOME_ALIASES collapses not-applicable into UNKNOWN again
+  X7  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — an ambiguous could-not-check GUESSED as UNKNOWN from the literal alone
+  X8  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — "reached" accepted from an attempt for ANOTHER record or check
+  X9  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — NOT_MEASURED placed on HALF a derived fact (the kind word alone, with a source)
+  X10  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — an absence promoted to PASS (NOT_MEASURED given PASS's edges)
+  X11  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — a tracked runs/discovery artefact dropped from the census's declaration (the denominator reopens)
+  X12  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — the UNKNOWN-for-unmeasured zero made blind
+  X13  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — Row 7's law tolerates UNKNOWN on a CURRENT result (the old label read as NOT_MEASURED)
+  X14  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — the NOT_APPLICABLE-collapse zero made blind
+  X15  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — the ambiguous-mapping zero made blind
+  X16  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — the remainder zero made blind
+RAN 16 of 16 · LANDED 16 of 16 · PROVED 16 of 16

@@ -15,40 +15,72 @@
  * registry is judged through `transition()` — so the law now governs real
  * records rather than a table nobody reads.
  *
- * ── 🔴 AND WHY 'not-applicable' MAPS TO UNKNOWN, NOT PASS ───────────────────
+ * ── 🔴 AND WHY 'not-applicable' NEVER MAPS TO PASS ──────────────────────────
  *
  * "This check does not apply" is not "this check passed". A record whose source
  * may not be quoted has `quoteMatchOutcome: "not-applicable"` — lawful, and
  * carrying no evidence whatsoever about the claim. Mapping it to PASS would let
  * an inapplicable check promote a fact, which is exactly the failure item 50
- * forbids: turning an absence of evidence into a pass.
+ * forbids: turning an absence of evidence into a pass. Since the F06 correction
+ * (24 September 2026) it is NOT_APPLICABLE, not UNKNOWN, and shares UNKNOWN's edges:
+ * it never becomes PASS.
  */
 
 import { transition, canTransition, CHECK_OUTCOMES } from "./transitions.mjs";
 import { CLAIM_DIMENSIONS, DIMENSION_NOT_APPLICABLE, DIMENSION_REQUIRED_BY, DECLARATION_CONTRACT_AFTER } from "../facts/schema.mjs";
 
 /**
- * The registry's vocabulary → the three outcomes.
+ * The registry's vocabulary → an outcome.
  *
  * 🔴 Frozen and total. An unmapped value THROWS rather than defaulting, because
  * a default here would silently decide the very thing this module governs.
+ *
+ * ── 🔴 F06 CORRECTION (owner ruling, 24 September 2026) — FOUR BRANCHES, AND TWO OF THEM ARE DECIDED BY STRUCTURE ──
+ *
+ * This table used to collapse both inconclusive literals into UNKNOWN. That erased two F06 distinctions:
+ *   "not-applicable"  a check that is not lawful or not meaningful for the record — NOT_APPLICABLE, never UNKNOWN;
+ *   "could-not-check" is written by the record constructor as a DEFAULT (src/facts/record.mjs) and by every checker
+ *                     path that did not reach a result. A check that was reached and could not establish is UNKNOWN;
+ *                     one that was never performed is NOT_MEASURED; the literal alone cannot tell them apart.
+ * So only the two conclusive literals decide here. The other two name the rule that decides, and `placeCheckOutcome`
+ * applies it to the record's own POSITIVE structure. Where no positive structure decides, the answer is UNMAPPED:
+ * an empty or absent field is never proof.
  */
 export const OUTCOME_ALIASES = Object.freeze({
-  pass: "PASS",
-  fail: "FAIL",
-  "could-not-check": "UNKNOWN",
-  "not-applicable": "UNKNOWN",
+  pass: Object.freeze({ state: "PASS", decidedBy: "LITERAL" }),
+  fail: Object.freeze({ state: "FAIL", decidedBy: "LITERAL" }),
+  "not-applicable": Object.freeze({ state: "NOT_APPLICABLE", decidedBy: "STRUCTURE", requires: "a declared scope and reason, else UNMAPPED" }),
+  "could-not-check": Object.freeze({ state: null, decidedBy: "STRUCTURE", requires: "a positive record that the check was reached (UNKNOWN) or was not performed (NOT_MEASURED), else UNMAPPED" }),
 });
 
-export function toCheckOutcome(raw) {
-  const mapped = OUTCOME_ALIASES[String(raw)];
-  if (!mapped) {
+/** The display word for an outcome that no rule may place. */
+export const UNMAPPED_OUTCOME = "UNMAPPED";
+
+/** The placed outcomes a supersession is judged over. The three absences share UNKNOWN's edges: none becomes PASS. */
+export const PLACED_OUTCOMES = Object.freeze(["PASS", "FAIL", "UNKNOWN", "NOT_MEASURED", "NOT_APPLICABLE"]);
+const EDGE_CLASS = Object.freeze({ PASS: "PASS", FAIL: "FAIL", UNKNOWN: "UNKNOWN", NOT_MEASURED: "UNKNOWN", NOT_APPLICABLE: "UNKNOWN" });
+
+function aliasOf(raw) {
+  const alias = Object.prototype.hasOwnProperty.call(OUTCOME_ALIASES, String(raw)) ? OUTCOME_ALIASES[String(raw)] : null;
+  if (!alias) {
     throw new TypeError(
       `unknown check outcome ${JSON.stringify(raw)} — add it to OUTCOME_ALIASES deliberately, ` +
         "do not let it default",
     );
   }
-  return mapped;
+  return alias;
+}
+
+/**
+ * The literal alone — ONLY for the two literals that decide by themselves.
+ * The inconclusive two THROW: "never decide from the old label alone" (owner ruling, 24 September 2026).
+ */
+export function toCheckOutcome(raw) {
+  const alias = aliasOf(raw);
+  if (alias.decidedBy !== "LITERAL") {
+    throw new TypeError(`check outcome ${JSON.stringify(raw)} is not decided by its literal — place it from the record's structure (placeCheckOutcome)`);
+  }
+  return alias.state;
 }
 
 /** Every outcome field a fact record carries, in one place. */
@@ -58,26 +90,90 @@ export const CHECK_FIELDS = Object.freeze([
   "fingerprintOutcome",
 ]);
 
+/** The fields a derived fact cannot have performed: it has no source document (F28 forbids one). */
+const isDeclaredDerived = (r) =>
+  r?.kind === "derived" && Array.isArray(r?.derivation?.inputs) && r.derivation.inputs.length > 0 && (r.source === undefined || r.source === null);
+
 /**
- * Judge one supersession: old record → new record, field by field.
+ * 🔴 PLACE ONE CHECK OUTCOME from the record's own structure.
+ *
+ *   pass / fail          PASS / FAIL — the check ran, and the literal says how it ended
+ *   not-applicable       NOT_APPLICABLE with scope and reason — only where a declared rule makes the check inapplicable:
+ *                        quoteMatch on a record whose DECLARED `sourceQuotable` is false or "unknown" (F6, F9: the licence
+ *                        does not permit, or has not been shown to permit, a stored quote — nothing is attempted)
+ *   could-not-check      UNKNOWN only on a positive record that THIS check was REACHED for THIS record (`attempt`, a
+ *                        checker's own result: { recordId, field, reached: true, outcome: "could-not-check" });
+ *                        NOT_MEASURED only where the structure proves it was not performed — a declared derived fact
+ *                        (kind "derived", a cited derivation, no source) has no source document to check
+ *   anything else        UNMAPPED, with the reason — never a guess
+ */
+export function placeCheckOutcome({ record, field, attempt = null }) {
+  if (!CHECK_FIELDS.includes(field)) throw new TypeError(`${JSON.stringify(field)} is not a check field (${CHECK_FIELDS.join(", ")})`);
+  const originalOutcome = record?.checks?.[field];
+  const alias = aliasOf(originalOutcome);
+  const base = { field, originalOutcome };
+  const unmapped = (why) => Object.freeze({ ...base, state: UNMAPPED_OUTCOME, unmapped: true, why });
+  if (alias.decidedBy === "LITERAL") return Object.freeze({ ...base, state: alias.state, basis: "CHECK_RAN" });
+
+  if (originalOutcome === "not-applicable") {
+    const q = record?.sourceQuotable;
+    if (field === "quoteMatchOutcome" && (q === false || q === "unknown")) {
+      return Object.freeze({
+        ...base,
+        state: "NOT_APPLICABLE",
+        basis: "DECLARED_SOURCE_QUOTABLE",
+        scope: `quote match · records whose declared sourceQuotable is ${JSON.stringify(q)}`,
+        applicabilityReason: q === false ? "LICENCE_DOES_NOT_PERMIT_STORED_QUOTE" : "LICENCE_PERMISSION_NOT_ESTABLISHED",
+      });
+    }
+    return unmapped(
+      field === "quoteMatchOutcome"
+        ? `not-applicable, but the declared sourceQuotable reads ${JSON.stringify(q)} — no declared rule makes a quote match inapplicable here`
+        : `not-applicable on ${field}, and no declared rule makes this check inapplicable`,
+    );
+  }
+
+  // could-not-check
+  if (attempt && attempt.reached === true && attempt.recordId === record?.id && attempt.field === field && attempt.outcome === "could-not-check") {
+    return Object.freeze({ ...base, state: "UNKNOWN", basis: "CHECK_REACHED", checkId: field, insufficiency: "CHECK_REACHED_RESULT_NOT_ESTABLISHABLE" });
+  }
+  if (isDeclaredDerived(record)) {
+    return Object.freeze({ ...base, state: "NOT_MEASURED", basis: "DECLARED_DERIVED_FACT", checkId: field, noMeasurementReason: "DERIVED_FACT_HAS_NO_SOURCE_DOCUMENT" });
+  }
+  return unmapped("could-not-check with no positive record of whether the check was reached or never performed — the record constructor writes this literal as a default, and an absent date or baseline is not proof");
+}
+
+/**
+ * Judge one supersession: old record → new record, field by field, each side PLACED from its own structure.
  *
  * Returns a list of violations rather than throwing, because the registry
  * validator reports every breach in one pass instead of stopping at the first.
+ * An UNMAPPED side is a violation: an outcome nobody can place cannot be judged lawful.
  */
-export function judgeSupersession({ previous, next }) {
+export function judgeSupersession({ previous, next, attempts = [] }) {
   const violations = [];
+  const attemptFor = (record, field) => attempts.find((a) => a?.recordId === record?.id && a?.field === field) ?? null;
   for (const field of CHECK_FIELDS) {
-    const from = toCheckOutcome(previous?.checks?.[field]);
-    const to = toCheckOutcome(next?.checks?.[field]);
-    if (!canTransition(from, to)) {
+    const from = placeCheckOutcome({ record: previous, field, attempt: attemptFor(previous, field) });
+    const to = placeCheckOutcome({ record: next, field, attempt: attemptFor(next, field) });
+    if (from.unmapped || to.unmapped) {
       violations.push({
         field,
-        from,
-        to,
+        from: from.state,
+        to: to.state,
+        message: `${field}: ${from.state} → ${to.state} cannot be judged — ${(from.unmapped ? from : to).why}`,
+      });
+      continue;
+    }
+    if (!canTransition(EDGE_CLASS[from.state], EDGE_CLASS[to.state])) {
+      violations.push({
+        field,
+        from: from.state,
+        to: to.state,
         message:
-          `${field}: ${from} → ${to} is forbidden. ` +
-          (from === "UNKNOWN" && to === "PASS"
-            ? "UNKNOWN never becomes PASS (DoD §170) — take a new measurement and date it, do not promote an absence."
+          `${field}: ${from.state} → ${to.state} is forbidden. ` +
+          (EDGE_CLASS[from.state] === "UNKNOWN" && to.state === "PASS"
+            ? `${from.state} never becomes PASS (DoD §170) — take a new measurement and date it, do not promote an absence.`
             : "add it to TRANSITIONS deliberately if it is legal."),
       });
     }
@@ -88,11 +184,17 @@ export function judgeSupersession({ previous, next }) {
 /**
  * Apply a transition on a single field. Throws on a forbidden edge.
  *
- * This is the callable other code should reach for; `transition()` stays the
- * arbiter underneath so there is exactly one table.
+ * Each side is a PLACED outcome — one of PLACED_OUTCOMES, as `placeCheckOutcome` returns it — or a literal that
+ * decides alone ("pass", "fail"). `transition()` stays the arbiter underneath so there is exactly one table.
  */
-export function promoteOutcome(fromRaw, toRaw) {
-  return transition(toCheckOutcome(fromRaw), toCheckOutcome(toRaw));
+export function promoteOutcome(from, to) {
+  const placed = (x) => (PLACED_OUTCOMES.includes(x) ? x : toCheckOutcome(x));
+  const [a, b] = [placed(from), placed(to)];
+  if (EDGE_CLASS[a] === "UNKNOWN" && b === "PASS") {
+    throw new Error(`${a} never becomes PASS (DoD §170) — take a new measurement and date it, do not promote an absence.`);
+  }
+  transition(EDGE_CLASS[a], EDGE_CLASS[b]);
+  return b;
 }
 
 /* ================================================================== *

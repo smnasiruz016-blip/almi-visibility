@@ -1,0 +1,19 @@
+F06 CORRECTION SUITE · engine HEAD cefa7650469598f5198ec253b481eace195075a1 · node v24.15.0 · started 2026-09-24T03:42:58.313Z
+command: node --test test/*.test.mjs (128 files, glob expanded in sorted order)
+RUN 1: exit 0 · tests 2003 · pass 2003 · fail 0 · skipped 0 · cancelled 0 · todo 0 · 500s
+   production events.jsonl 71900e433b375cc1ca24b6d265b051ef8afd5c87eb851f369de8e8bbda1a3e42 -> 71900e433b375cc1ca24b6d265b051ef8afd5c87eb851f369de8e8bbda1a3e42 IDENTICAL (320 -> 320 events)
+   production head.json    45a5ac3f7c4986c9841924f6da22a9f2808e25813a990bf19b2b773472acf5a6 -> 45a5ac3f7c4986c9841924f6da22a9f2808e25813a990bf19b2b773472acf5a6 IDENTICAL
+   .test-scratch/audit run directories 670 -> 670 · .test-scratch entries 1117 -> 1120
+   tracked working tree unchanged: true
+ONE full run, by the command; the planted run is compared against it.
+PLANTED: exit 1 · tests 2004 · pass 2003 · fail 1 · skipped 0 · cancelled 0 · todo 0 · 500s
+   ✖ F06 CORRECTION COUNTING CONTROL — THIS FAILURE MUST BE NAMED
+   production events.jsonl 71900e433b375cc1ca24b6d265b051ef8afd5c87eb851f369de8e8bbda1a3e42 -> 71900e433b375cc1ca24b6d265b051ef8afd5c87eb851f369de8e8bbda1a3e42 IDENTICAL (320 -> 320 events)
+   production head.json    45a5ac3f7c4986c9841924f6da22a9f2808e25813a990bf19b2b773472acf5a6 -> 45a5ac3f7c4986c9841924f6da22a9f2808e25813a990bf19b2b773472acf5a6 IDENTICAL
+   .test-scratch/audit run directories 670 -> 670 · .test-scratch entries 1120 -> 1123
+   tracked working tree unchanged: true
+   loaded +1: true · failed +1: true · planted test NAMED: true · no unrelated failure: true
+   plant removed: true · test/ listing byte-identical to before the plant: true · git status identical: true
+finished 2026-09-24T03:59:38.720Z
+
+The runs measured tree cefa765. This file is the only change after it: a text record under runs/audit, read by no test.

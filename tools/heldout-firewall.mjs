@@ -83,8 +83,11 @@ export function countIn(text, members, fragments) {
  */
 /* 🔴 F08 §6.2, as repaired on 23 September 2026 — every decision this scan makes is emitted into the sink it is handed
  * (by default a DIAGNOSTIC sink the scan owns, which persists nothing). Handed the durable sink (bin/heldout-firewall.mjs),
- * the sink derives what the trail keeps: a clean classification is kept by the run only; a violation is appended. */
-export function scan({ registry, root, base, files, members, fragments, evaluatorSources = [], read = (f) => readFileSync(f), audit = diagnosticGuardSink({ actor: "tools/heldout-firewall.mjs" }) }) {
+ * the sink derives what the trail keeps: a clean classification is kept by the run only; a violation is appended.
+ * `judge: false` is the firewall's existing REPORT-ONLY scan (product-content drafts under --extra-root are "reported,
+ * not judged"): its rows are returned for printing, it returns no failures, and so it decides — and emits — nothing.
+ * Found 24 September 2026: the first repair emitted a violation for every FAIL row, including 17 report-only rows. */
+export function scan({ registry, root, base, files, members, fragments, evaluatorSources = [], read = (f) => readFileSync(f), audit = diagnosticGuardSink({ actor: "tools/heldout-firewall.mjs" }), judge = true }) {
   const rows = [];
   let sealedExcluded = 0;
   for (const path of files) {
@@ -106,7 +109,7 @@ export function scan({ registry, root, base, files, members, fragments, evaluato
     let disposition;
     if (category === "DATA") {
       if (!full) continue;
-      const ex = observedDataExemption({ registry, root, path, read: () => read(file), evaluatorSources, audit });
+      const ex = judge ? observedDataExemption({ registry, root, path, read: () => read(file), evaluatorSources, audit }) : { exempt: false, code: "NOT_JUDGED" };
       disposition = ex.exempt ? "EXEMPT_REGISTERED_OBSERVED_DATA" : `FAIL_${ex.code}`;
     } else if (full && FAILING_CATEGORIES.includes(category)) disposition = "FAIL_RETIRED_PAYLOAD";
     else if (fragmentFails) disposition = "FAIL_HELD_OUT_FRAGMENT";
@@ -117,7 +120,7 @@ export function scan({ registry, root, base, files, members, fragments, evaluato
      * and reached no trail at all (found by the sink repair's proof (d)). It now leaves through the same sink as one
      * metadata-only REFUSED decision — the disposition and a digest of the path, never the path or the match — which
      * the sink derives VIOLATION and appends. */
-    if (category !== "DATA" && disposition.startsWith("FAIL")) {
+    if (judge && category !== "DATA" && disposition.startsWith("FAIL")) {
       audit.emit({
         eventType: "EVIDENCE_ROLE_DECISION", action: "HELD_OUT_PAYLOAD_FOUND", outcome: "REFUSED", reasonCode: disposition,
         metadata: { guard: "heldoutFirewallScan", classification: category, ruleEntry: "NONE", root: String(root), resourceRef: resourceRef(root, path) },
@@ -125,7 +128,7 @@ export function scan({ registry, root, base, files, members, fragments, evaluato
     }
     rows.push({ path, category, full, frag, disposition });
   }
-  const failures = rows.filter((r) => r.disposition.startsWith("FAIL"));
+  const failures = judge ? rows.filter((r) => r.disposition.startsWith("FAIL")) : [];
   return { rows, failures, sealedExcluded, guardEvents: audit.events ?? [], guardDurable: audit.durable === true };
 }
 

@@ -146,7 +146,7 @@ test("P14b · VERIFIED does not decide OBSERVED: a VERIFIED derivation is INFERR
 test("P16 · UNKNOWN never becomes PASS — no state carries a PASS, no display word reads PASS", () => {
   assert.ok(refusedWith(() => mk("UNKNOWN", { value: "PASS" }), "EVIDENCE_STATE_VALUE_FORBIDDEN"));
   assert.ok(refusedWith(() => mk("UNKNOWN", { pass: true }), "EVIDENCE_STATE_COUPLED"));
-  for (const s of EVIDENCE_STATES) assert.notEqual(displayOf(s), "PASS");
+  for (const s of EVIDENCE_STATES) assert.notEqual(displayOf(s), "PASS", `UNKNOWN_READS_PASS: ${s} is displayed as PASS`);
   assert.ok(!TRANSITION_RULES["UNKNOWN->PASS"]);
   // CONTROL: the census's own detector DOES fire on an UNKNOWN item beside a PASS.
   assert.equal(controls().passFires, true);
@@ -207,7 +207,7 @@ test("P21 · a recommendation never presents as evidence — only RECOMMENDED, a
   const link = { record_type: "recommendation_evidence", recommendation_id: "R1", linked_at: "2026-09-24", issues: ["i1"], observations: ["o1"], sources: [] };
   assert.equal(evidenceStateOf(draft).unmapped, true, "no linked evidence — not RECOMMENDED");
   const s = evidenceStateOf(draft, adapterContext([draft, link]));
-  assert.equal(s.state, "RECOMMENDED");
+  assert.equal(s.state, "RECOMMENDED", "RECOMMENDATION_AS_EVIDENCE: a drafted recommendation was placed as something else");
   assert.ok(refusedWith(() => mk("RECOMMENDED", { supportingRefs: [] }), "EVIDENCE_STATE_METADATA_MISSING"));
   assert.equal(controls().recommendationFires, true, "CONTROL: the census detector fires on a draft placed as anything else");
 });
@@ -345,7 +345,7 @@ test("P34 · report output distinguishes UNKNOWN / NOT MEASURED / NOT APPLICABLE
 test("P35 · no canonical state defaults silently — every entry point without proof returns UNMAPPED or refuses", () => {
   assert.equal(evidenceStateOf({}).unmapped, true);
   assert.equal(evidenceStateOf(null).unmapped, true);
-  assert.equal(labelFor({ record_type: "x" }).label, UNMAPPED);
+  assert.equal(labelFor({ record_type: "x" }).label, UNMAPPED, "SILENT_DEFAULT: an undeclared record was given a canonical state");
   assert.ok(refusedWith(() => makeEvidenceState(undefined, {}), "EVIDENCE_STATE_ABSENT"));
   assert.ok(refusedWith(() => requireEvidenceState({ meta: GOOD.OBSERVED }), "EVIDENCE_STATE_ABSENT"));
   assert.equal(controls().unmappedFires, true, "CONTROL");
@@ -408,6 +408,16 @@ test("P40 · F05, F07 and F08 remain satisfied — their acceptances pin, resolv
   assert.deepEqual(boardErrors(board, { capabilities: CAPABILITIES, acceptances: ACCEPTANCES, authority: { records: AUTHORITY_CORPUS, now: CORPUS_PROVENANCE.now } }), []);
   for (const f of ["F05", "F07", "F08"]) assert.equal(contractSha256(ACCEPTANCES[f]), ACCEPTANCES[f].contractSha256, f);
   // Their own acceptance suites are re-run in full outside this file (runs/audit/f06-acceptance-rerun-2026-09-24.txt).
+});
+
+test("P40b · the transition authority is the CURRENT ruling — a superseded one is never applied", () => {
+  /* Found by the sabotage run: with the register made to pick the OLDEST applicable ruling, nothing above went red,
+   * because today no proposition F06 relies on has two applicable rulings. So the case is built: a synthetic NEWER ruling
+   * for F06's own proposition must govern, and the frozen acceptance it supersedes must not. */
+  const real = AUTHORITY_CORPUS.find((r) => r.propositionId === "F06_FROZEN_ACCEPTANCE");
+  const newer = { ...real, authorityId: "synthetic:f06-newer-ruling", issuedAt: "2026-09-25", effectiveFrom: "2026-09-25", contentHash: "f".repeat(64), recordedAt: "2026-09-25T00:00:00Z" };
+  assert.equal(evidenceStateAuthority({ now: "2026-09-26", records: [...AUTHORITY_CORPUS, newer] }).authorityHash, "f".repeat(64), "SUPERSEDED_AUTHORITY_APPLIED: the older ruling governed a transition");
+  assert.equal(evidenceStateAuthority({ now: "2026-09-24" }).authorityHash, real.contentHash, "CONTROL: today the frozen acceptance governs");
 });
 
 test("P41 · the historical 61/38 ledger is untouched", () => {

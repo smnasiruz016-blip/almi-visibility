@@ -30,14 +30,17 @@ const git = (...a) => execFileSync("git", ["-C", REPO, ...a], { encoding: "utf8"
 /** The families, and what LOADS each — a primitive call or a store's location. */
 export const FAMILIES = Object.freeze({
   FACTS: { resource: "factRegistry|factRegistryAt", re: /\bloadRegistry\(/ },
-  OBSERVATIONS: { resource: "crawlBatch", re: /\b(batchFile|readBodyArchive|batchJsonlFiles|declaredObservationSources|declaredObservationBatches|readBatchManifest)\(/ },
-  SITEMAPS: { resource: "sitemapCollection", re: /["']sitemaps\.jsonl["']|\bsitemapCollectionRef\(/ },
+  OBSERVATIONS: { resource: "crawlBatch|collectionPartition", re: /\b(batchFile|readBodyArchive|batchJsonlFiles|declaredObservationSources|declaredObservationBatches|readBatchManifest|readTenantPartition|readPartitionBodies)\(/ },
+  SITEMAPS: { resource: "sitemapCollection|collectionPartition", re: /["']sitemaps\.jsonl["']|\bsitemapCollectionRef\(/ },
   /* A store's location counts only as a WHOLE path literal or joined path segments — prose that mentions a path is not a
    * load (bin/checklist-boundaries.mjs quotes "runs/evidence" in a sentence of its generated text). */
   EVIDENCE: { resource: "evidenceStore", re: /["']evidence\.jsonl["']|["']robots\.jsonl["']|["']runs["']\s*,\s*["']evidence["']|["'`](\$\{\w+\})?\.?\/?runs\/evidence[^"'`\s]*["'`]/ },
   COST: { resource: "costLedger", re: /\bcreateCostLedger\(|["']ledger\.jsonl["']|["']actions-runs\.jsonl["']|["']runs["']\s*,\s*["']cost["']|["'`](\$\{\w+\})?\.?\/?runs\/cost[^"'`\s]*["'`]/ },
   READS: { resource: "runArtefacts|inputPath|siteOrigin", re: /(?!)/ },
-  CACHE: { resource: "cache", re: /\/_[a-z-]*-cache\b|\bcreateFactCache\(|\bcreateRobotsCache\(/ },
+  /* A STORED cache directory only (F02 post-merge, 24 Sep 2026). The fact cache is built in memory from the records the run
+   * already loaded through its gated registry, and the robots cache in memory from live fetches the READS family governs:
+   * neither is a store, and naming them as gated resources made three entry points refuse on a resource that does not exist. */
+  CACHE: { resource: "cache", re: /\/_[a-z-]*-cache\b/ },
   /* F01's declaration store: every reader joins DECLARATIONS_DIR (src/intake/store.mjs). */
   DECLARATIONS: { resource: "tenantPartition", re: /\bDECLARATIONS_DIR\b|\btenantsDir\(/ },
   CAPTURES: { resource: "captures", re: /["']captures["']/ },
@@ -66,6 +69,11 @@ export const EXCLUSIONS = Object.freeze([
     fn: "derivedForbiddenSubstrings", module: "src/audit-trail/wiring.mjs",
     why: "GLOBAL_PRODUCT protection: it re-derives the protected held-out payload so the audit store can REFUSE it. Its only output is a refusal list; it joins no tenant and informs no tenant decision",
     control: "test/f02-tenant-scope.test.mjs F02-EXCL-1: the substrings only ever narrow what an append accepts",
+  }),
+  Object.freeze({
+    fn: "captureSetMembers", module: "src/tenancy/attachment-declaration.mjs",
+    why: "the attachment proof itself: it reads ONLY a capture manifest's recorded page URL and origin — never a page body — so each identity can be decided against the requested tenant by the one decision before any attachment is written",
+    control: "test/f02-real-prerequisites.test.mjs: a capture whose members resolve to another tenant, or to none, is refused",
   }),
   ...["memberOrigins", "batchPageUrls", "sitemapListedUrls"].map((fn) => Object.freeze({
     fn, module: "src/tenancy/scoped-run.mjs",

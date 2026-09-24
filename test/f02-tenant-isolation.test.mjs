@@ -48,8 +48,9 @@ const REAL = DECL.readable ? DECL.attachments.map((a) => {
   if (a.resourceKind === "SITEMAP_COLLECTION") return RESOURCES.sitemapCollection(a.resourceRef);
   return { label: a.resourceKind, resourceKind: a.resourceKind, resourceRef: a.resourceRef, scopeClass: "TENANT" };
 }) : [];
-/** Real stores the entry points read that no real declaration attaches. */
-const REAL_UNDECLARED = [RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.captures(), RESOURCES.runArtefacts("run stores"), RESOURCES.cache("fact cache"), RESOURCES.inputPath("runs/evidence/evidence.jsonl", "--store")];
+/** Real stores the entry points read that no real declaration attaches (post-merge: the capture set is DECLARABLE under the
+ * owner ruling and left this list; the in-memory fact cache is not a store). */
+const REAL_UNDECLARED = [RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.cache("sibling-page cache"), RESOURCES.runArtefacts("run stores"), RESOURCES.runArtefacts("technical findings store"), RESOURCES.inputPath("runs/evidence/evidence.jsonl", "--store")];
 
 /** A refusal leaks if its event carries any declared tenant id or the raw reference of the resource it refused. */
 const leaks = (ev, rawRefs) => { const s = JSON.stringify(ev); return ACTIVE.some((id) => s.includes(id)) || rawRefs.some((r) => typeof r === "string" && r.length > 3 && s.includes(r)); };

@@ -16,6 +16,7 @@ import { decideRunResources, requestedTenant, RESOURCES, SCOPE_REFUSED_EXIT } fr
 import { diagnosticGuardSink } from "./guard-audit.mjs";
 import { governedGuardSink } from "./governed-run.mjs";
 import { isoSeconds } from "../audit-trail/store.mjs";
+import { partitionRefusalEvent } from "../tenancy/partition.mjs";
 
 /* The engine's own root, from this module's fixed place (src/governance/) — never from the caller's location, which a
  * subject-owned tool three levels down would get wrong (F02 relocation, 24 Sep 2026). */
@@ -53,5 +54,8 @@ export function scopedEntryPoint({ entry, governed, resources, argv = process.ar
     ? governedGuardSink({ repo: ENGINE_ROOT, env, correlationId: `run:${entry}:tenant-scope:${isoSeconds(Date.now())}`, now: isoSeconds(Date.now()).slice(0, 10), actor: entry })
     : diagnosticGuardSink({ actor: entry });
   const run = requireScopedRun({ argv, resolve, resources, sink });
-  return { ...run, writeScope: Object.freeze({ scopeType: "TENANT", tenantId: run.tenantId }) };
+  /* A partition's quarantine is a refusal: recorded through the SAME guard sink as the run's scope decision — counts and
+   * digests only. A partition that quarantined nothing records nothing. */
+  const recordPartition = (partition, { collectionKind, collectionRef }) => { const ev = partitionRefusalEvent(partition, { collectionKind, collectionRef }); if (ev) sink.emit(ev); return ev; };
+  return { ...run, writeScope: Object.freeze({ scopeType: "TENANT", tenantId: run.tenantId }), recordPartition };
 }

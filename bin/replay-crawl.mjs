@@ -59,7 +59,7 @@ const argv = process.argv.slice(2);
 const arg = (n) => argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3) ?? null;
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv, env: process.env }));
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/replay-crawl.mjs", governed: true, resources: [RESOURCES.inputPath(arg("corpus"), "--corpus"), RESOURCES.crawlBatch(BATCH_ID), RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.cache("robots cache"), RESOURCES.runArtefacts("replay corpus")] });
+const SCOPE = scopedEntryPoint({ entry: "bin/replay-crawl.mjs", governed: true, resources: [RESOURCES.inputPath(arg("corpus"), "--corpus"), RESOURCES.crawlBatch(BATCH_ID), RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.runArtefacts("replay corpus")] });
 /* F02: this run's hosts are the site origins DECLARED to its tenant — no estate list in shared code (relocated, 24 Sep 2026). */
 const DECLARED_HOSTS = declaredSiteHosts({ tenantId: SCOPE.tenantId });
 

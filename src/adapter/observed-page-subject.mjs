@@ -111,13 +111,16 @@ const sha256 = (s) => createHash("sha256").update(s, "utf8").digest("hex");
  * buckets sum to it with no remainder; a joiner that quietly returns only what it managed to join
  * reports a clean rate over a population it chose.
  */
-export function observedPageSubjects({ batchId = BATCH_ID, env = process.env, resolveTenant = null } = {}) {
+export function observedPageSubjects({ batchId = BATCH_ID, env = process.env, resolveTenant = null, partition = null } = {}) {
   const manifest = readBatchManifest({ batchId, env });
   const resolve = resolveTenant ?? createTenantResolver({ env });
   const locator = `observations/${manifest.batchId}/first-real-crawl-2026-09-12.jsonl`;
 
-  const rows = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl", { batchId, env })).readAll();
-  const bodies = readBodyArchive(batchFile("bodies-2026-09-12.jsonl.br", { batchId, env }));
+  /* F02 (partition): a tenant-scoped run hands in ITS partition of the batch — the records whose own identities resolve to
+   * its tenant, and only their bodies (src/crawl/batch-partition.mjs). Without one, the whole batch is read, as the
+   * adapter's own tests do; a production entry point never calls it that way (bin/detect.mjs passes its partition). */
+  const rows = partition ? partition.records : createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl", { batchId, env })).readAll();
+  const bodies = partition ? partition.bodies : readBodyArchive(batchFile("bodies-2026-09-12.jsonl.br", { batchId, env }));
   const observations = new Map(rows.filter((r) => r.record_type === "observation").map((o) => [o.observation_id, o]));
   const pageRecords = rows.filter((r) => r.record_type === "page");
 

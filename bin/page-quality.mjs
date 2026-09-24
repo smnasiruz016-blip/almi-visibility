@@ -38,7 +38,7 @@ const CAPTURE_ID = "row25-2026-09-21";
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const NOW = new Date("2026-09-13T00:00:00Z");
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/page-quality.mjs", governed: false, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.captures(), RESOURCES.runArtefacts("stored source-integrity result"), ...(await everySubjectRegistry())] });
+const SCOPE = scopedEntryPoint({ entry: "bin/page-quality.mjs", governed: false, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.captures(CAPTURE_ID), RESOURCES.runArtefacts("stored source-integrity result"), ...(await everySubjectRegistry())] });
 
 const crawlRecords = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll();
 const pages = pagesFromRun({ crawlRecords, bodies: readBodyArchive(batchFile("bodies-2026-09-12.jsonl.br")) }).filter((p) => p.html !== null);

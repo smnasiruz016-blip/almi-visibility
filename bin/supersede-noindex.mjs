@@ -45,6 +45,10 @@ import { createJsonlStore } from "../src/evidence/store.mjs";
 import { makeIssue } from "../src/evidence/records.mjs";
 import { makeIssueStateChange, lifecycleOf, STATE_CHANGE_TYPE } from "../src/evidence/lifecycle.mjs";
 import { batchJsonlFiles } from "../src/crawl/observation-batch.mjs";
+import { governedAuditContext } from "../src/governance/governed-run.mjs";
+import { softwareVersionOf } from "../src/audit-trail/wiring.mjs";
+import { checkTransition, recordEvidenceStateTransitions } from "../src/evidence/evidence-state.mjs";
+import { evidenceStateOf, evidenceStateAuthority } from "../src/evidence/evidence-state-adapters.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 /* 🔴 GAP 2 · TESTABILITY SEAM (17 September 2026): `--store=` names a different findings store, CONFINED to this
@@ -135,6 +139,21 @@ for (const e of pending) {
   );
 }
 
+/* 🔴 F06 — EACH SUPERSESSION CHANGES WHAT AN ITEM MAY BE REPORTED AS. The old finding is INFERRED (a detector's
+ * conclusion); its replacement is UNKNOWN (a question reached, its premise not established). Each pair is checked
+ * against the evidence-state transition law BEFORE anything is written — an unlawful or unplaceable pair refuses the
+ * run here — and is recorded through F08, exactly one event per supersession, only once the replacement is committed. */
+const TRANSITION_AT = isoSeconds(Date.now());
+const TRANSITION_CORRELATION = `run:supersede-noindex:transitions:${TRANSITION_AT}`;
+const transitionCtx = { actor: "bin/supersede-noindex.mjs", at: TRANSITION_AT, rule: "SUPERSEDE_NOINDEX_ON_ORIGIN_REVIEW", softwareVersion: softwareVersionOf(REPO), correlationId: TRANSITION_CORRELATION, ...evidenceStateAuthority({ now: TRANSITION_AT.slice(0, 10) }) };
+const transitionDrafts = pending.map((e, i) => checkTransition({
+  from: evidenceStateOf(e.issue),
+  to: evidenceStateOf(replacements[i]),
+  fromRef: `issue:${e.issue.issue_id}`,
+  toRef: `issue:${replacements[i].issue_id}`,
+  newEvidenceRefs: [ORIGIN_OBSERVATION, GUIDANCE_OBSERVATION],
+}, transitionCtx));
+
 console.log("ITEM 49 — SUPERSEDE THE cv-guide NOINDEX ISSUES");
 console.log(`[bound: ${technical.filter((r) => r.record_type === "issue").length} issue records in ${TARGET}; pattern ${CV_GUIDE}]`);
 console.log(`  noindex issues on cv-guide role×country pages : ${candidates.length} distinct (the store holds each issue_id ${candidates[0]?.copies ?? 0} time(s))`);
@@ -171,6 +190,13 @@ if (records.length) {
   if (outcomes.every((o) => o.outcome === "REFUSED")) {
     console.log(`\n[dry-run] would have appended ${records.length} records — add --confirm`);
   } else {
+  /* The replacements are committed: record their evidence-state transitions. A replay of this run appends nothing
+   * (the identity is the pair of references), and a run that superseded nothing records nothing. */
+  if (outcomes[0].outcome === "COMMITTED" && transitionDrafts.length) {
+    const transitionAudit = governedAuditContext({ repo: REPO, correlationId: TRANSITION_CORRELATION });
+    const recorded = recordEvidenceStateTransitions({ audit: transitionAudit, drafts: transitionDrafts });
+    console.log(`[F08] evidence-state transitions recorded: ${recorded.filter((r) => r.status === "APPENDED").length} of ${transitionDrafts.length}`);
+  }
   const after = lifecycleOf(store.readAll());
   console.log(`\nappended ${records.length} records. lifecycle errors: ${after.errors.length}. states now: ${JSON.stringify(after.census)}`);
   if (after.errors.length) {

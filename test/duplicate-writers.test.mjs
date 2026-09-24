@@ -93,6 +93,8 @@ const DECLARED = Object.freeze({
   "src/governance/guard-audit.mjs": "store.append — the audit store's own dedupe by eventId, over an identity of this run, this instant and the sink's decision SEQUENCE: two decisions are two events, and a replayed append of the same decision returns IDEMPOTENT_RETRY",
   /* 🔴 F07 (23 September 2026) — the held-out lifecycle appends ONLY audit events, through the store it is handed. */
   "src/heldout/lifecycle.mjs": "store.append — the audit store's own dedupe by eventId, over an identity of the run, the instant, the action and a SEQUENCE over what the trail already holds for that action: one decision is one event, and a replay of the same append returns IDEMPOTENT_RETRY; write-gate drafts carry the store's default identity",
+  /* 🔴 F06 (24 September 2026) — an evidence-state transition is appended ONLY to the audit store it is handed. */
+  "src/evidence/evidence-state.mjs": "store.append — the audit store's own dedupe by eventId, over an identity of the event type and the PAIR of reference hashes (fromRef, toRef): one supersession is one event, and a replay of the same transition returns IDEMPOTENT_RETRY",
 });
 
 test("🔴 CENSUS (source): every record writer is guarded or declared with a checked reason — ZERO unexplained bare appends", () => {
@@ -116,6 +118,8 @@ test("🔴 CENSUS (source): every record writer is guarded or declared with a ch
   assert.match(readFileSync(`${REPO}src/heldout/lifecycle.mjs`, "utf8"), /const seq = eventsOf\(audit\)\.filter\(\(e\) => e\.action === action\)\.length \+ 1;\n\s*return audit\.store\.append\(draft, \{ identity: \{ action, occurredAt, correlationId: audit\.correlationId, seq/);
   // The guard sink's claim, checked: it appends with an explicit identity carrying the decision sequence.
   assert.match(readFileSync(`${REPO}src/governance/guard-audit.mjs`, "utf8"), /const identity = \{[^}]*guardDecisionSeq: this\.emitted \+ 1 \};\n\s*const r = store\.append\(draft, \{ identity \}\);/);
+  // The evidence-state writer's claim, checked: the identity is the event type and the pair of reference hashes.
+  assert.match(readFileSync(`${REPO}src/evidence/evidence-state.mjs`, "utf8"), /audit\.store\.append\(d, \{ identity: \{ eventType: d\.eventType, fromRef: d\.metadata\.fromRef, toRef: d\.metadata\.toRef \} \}\)/);
 });
 
 test("🔴 CONTROL: the source census FIRES on a bare append, and a directory check is NOT mistaken for a guard", () => {

@@ -18,7 +18,9 @@
  * a screen looks authoritative.
  */
 
-import { labelFor, labelCensus, LABELS } from "./provenance-label.mjs";
+import { labelFor, labelCensus, LABELS, adapterContext } from "./provenance-label.mjs";
+import { displayOf, UNMAPPED } from "../evidence/evidence-state.mjs";
+import { moneyState } from "../evidence/evidence-state-adapters.mjs";
 
 const esc = (s) =>
   String(s ?? "")
@@ -105,11 +107,11 @@ export function reconcile(crawlRecords) {
   };
 }
 
-function labelBadge(record) {
-  const { label, why } = labelFor(record);
+function labelBadge(record, ctx = {}) {
+  const { label, display, why } = labelFor(record, ctx);
   // 🔴 ON ITS FACE. The title attribute carries the REASON, but the LABEL ITSELF
   // is rendered text — a tooltip is not "visible where the value is".
-  return `<span class="lbl lbl-${label}" title="${esc(why)}">${label}</span>`;
+  return `<span class="lbl lbl-${label}" title="${esc(why)}">${esc(display)}</span>`;
 }
 
 export function renderHeader(s) {
@@ -173,12 +175,12 @@ export function renderReconciliation(rec) {
 </section>`;
 }
 
-export function renderRecords(records, { title, limit = 50 }) {
+export function renderRecords(records, { title, limit = 50, ctx = adapterContext(records) }) {
   const shown = records.slice(0, limit);
   const rows = shown
     .map(
       (r) => `<tr>
-      <td>${labelBadge(r)}</td>
+      <td>${labelBadge(r, ctx)}</td>
       <td><code>${esc(r.record_type)}</code></td>
       <td class="wrap">${esc(r.method ?? r.canonical_url ?? r.run_id ?? r.id ?? "")}</td>
       <td><code>${esc(r.observation_id ?? r.page_id ?? r.run_id ?? "")}</code></td>
@@ -198,11 +200,11 @@ export function renderRecords(records, { title, limit = 50 }) {
 </section>`;
 }
 
-export function renderFacts(facts) {
+export function renderFacts(facts, ctx = adapterContext(facts)) {
   const rows = facts
     .map(
       (f) => `<tr>
-      <td>${labelBadge(f)}</td>
+      <td>${labelBadge(f, ctx)}</td>
       <td class="wrap"><code>${esc(f.id)}</code></td>
       <td><strong class="vs vs-${esc(f.verificationState)}">${esc(f.verificationState)}</strong></td>
       <td>${cell(f.checks?.factCheckedOn)}</td>
@@ -231,7 +233,7 @@ export function renderFacts(facts) {
  * outright: an empty section with no explanation reads as "this feature is
  * missing", and a bare claim with no chain would be worse.
  */
-export function renderIssues(issues, allRecords) {
+export function renderIssues(issues, allRecords, ctx = adapterContext(allRecords)) {
   if (issues.length === 0) {
     return `
 <section id="issues">
@@ -247,7 +249,7 @@ export function renderIssues(issues, allRecords) {
       const chain = (i.evidence ?? []).map((id) => (byId.has(id) ? `<code>${esc(id)}</code>` : `<span class="bad">🔴 ${esc(id)} — NOT IN THIS STORE</span>`));
       const broken = (i.evidence ?? []).some((id) => !byId.has(id));
       return `<tr>
-        <td>${labelBadge(i)}</td>
+        <td>${labelBadge(i, ctx)}</td>
         <td><code>${esc(i.issue_id)}</code></td>
         <td>${esc(i.verdict)}</td>
         <td class="wrap">${chain.length ? chain.join("<br>") : '<span class="bad">🔴 NO EVIDENCE — this claim cannot show its chain</span>'}
@@ -309,7 +311,7 @@ export function renderLedger(lines, failures) {
 <section id="ledger">
   <h2>Cost ledger — ${lines.length} entries</h2>
   <pre class="wrap">${lines.map(esc).join("\n")}</pre>
-  <p class="${failures.length ? "sum bad" : "sum ok"}">UNKNOWN although measurable: <strong>${failures.length}</strong>${failures.length ? ` — ${failures.map((f) => `${esc(f.entry_id)} · ${esc(f.part)}`).join("; ")}` : ""}</p>
+  <p class="${failures.length ? "sum bad" : "sum ok"}">NOT MEASURED although measurable: <strong>${failures.length}</strong>${failures.length ? ` — ${failures.map((f) => `${esc(f.entry_id)} · ${esc(f.part)}`).join("; ")}` : ""}</p>
 </section>`;
 }
 
@@ -374,6 +376,14 @@ export function renderRecommendations(fields) {
 </section>`;
 }
 
+/** The crawl run's money, with its canonical evidence state on its face (F06) — never a fixed UNKNOWN colour. */
+function costBadge(run) {
+  if (!run?.cost) return `<span class="lbl lbl-${UNMAPPED}">${UNMAPPED}</span>`;
+  const st = moneyState(run.cost, { ref: `run:${run.run_id}`, at: run.finished_at });
+  const label = st.unmapped ? UNMAPPED : st.state;
+  return `<span class="lbl lbl-${label}" title="${esc(st.unmapped ? st.why : st.meta.assignedBy)}">${esc(displayOf(label))}</span>`;
+}
+
 export function renderRunCost(s) {
   const run = s.liveRun;
   return `
@@ -381,7 +391,7 @@ export function renderRunCost(s) {
   <h2>Cost, and the work a repeat run does</h2>
   <table class="bounds"><tbody>
     <tr><th>crawl requests issued</th><td>${cell(run?.requestsIssued)} — <strong>billable traffic on our own account</strong></td></tr>
-    <tr><th>crawl cost</th><td>${cell(run?.cost?.amount)} <span class="lbl lbl-UNKNOWN">${cell(run?.cost?.amountState)}</span></td></tr>
+    <tr><th>crawl cost</th><td>${cell(run?.cost?.amount)} ${costBadge(run)} <span class="bound">${cell(run?.cost?.amountState)}</span></td></tr>
     <tr><th>cost basis</th><td class="wrap">${cell(run?.cost?.basis)}</td></tr>
     <tr><th>evidence: new measurements</th><td>${cell(s.evidenceObservations)}</td></tr>
     <tr><th>evidence: re-sightings</th><td>${cell(s.evidenceResightings)}</td></tr>
@@ -422,6 +432,9 @@ code{font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-
 .lbl-INFERRED{background:#0b4a8a;color:#fff}
 .lbl-RECOMMENDED{background:#7a4b00;color:#fff}
 .lbl-UNKNOWN{background:#555;color:#fff}
+.lbl-NOT_MEASURED{background:#8a1c1c;color:#fff}
+.lbl-NOT_APPLICABLE{background:#6b6b00;color:#fff}
+.lbl-UNMAPPED{background:#fff;color:#8a1c1c;border:1px dashed #8a1c1c}
 .vs-UNVERIFIED{color:var(--warn)}
 .vs-VERIFIED{color:var(--ok)}
 .legend span{margin-right:.5rem}
@@ -474,7 +487,8 @@ export function renderPage({ crawlRecords, evidenceRecords, facts, generatedAt, 
   const rec = reconcile(crawlRecords);
   const issues = [...crawlRecords, ...evidenceRecords].filter((r) => r.record_type === "issue");
 
-  const legend = LABELS.map((l) => `<span class="lbl lbl-${l}">${l}</span>`).join("");
+  const ctx = adapterContext([...crawlRecords, ...evidenceRecords, ...facts]);
+  const legend = [...LABELS, UNMAPPED].map((l) => `<span class="lbl lbl-${l}">${esc(displayOf(l))}</span>`).join("");
 
   return `<!doctype html>
 <html lang="en">
@@ -491,18 +505,18 @@ ${decisions ? renderDecisions(decisions) : ""}
 <p class="legend">Every record below carries one of: ${legend}</p>
 <p class="bound">Label census across all ${
     crawlRecords.length + evidenceRecords.length + facts.length
-  } records: ${LABELS.map((l) => `${l}=${s.labelCensus[l]}`).join(" · ")}</p>
+  } records: ${[...LABELS, UNMAPPED].map((l) => `${displayOf(l)}=${s.labelCensus[l]}`).join(" · ")}</p>
 
 ${renderReconciliation(rec)}
 ${renderRunCost(s)}
 ${ledger ? renderLedger(ledger.lines, ledger.failures) : ""}
 ${chainWalk === undefined ? "" : renderChainWalk(chainWalk)}
 ${recommendations ? renderRecommendations(recommendations) : ""}
-${renderIssues(issues, [...crawlRecords, ...evidenceRecords])}
+${renderIssues(issues, [...crawlRecords, ...evidenceRecords], ctx)}
 ${sourceTiers ? renderSourceTiers(sourceTiers.ranked, sourceTiers.census) : ""}
-${renderFacts(facts)}
-${renderRecords(evidenceRecords, { title: "Search Console evidence store", limit: 50 })}
-${renderRecords(crawlRecords.filter((r) => r.record_type !== "page"), { title: "Crawl records", limit: 50 })}
+${renderFacts(facts, ctx)}
+${renderRecords(evidenceRecords, { title: "Search Console evidence store", limit: 50, ctx })}
+${renderRecords(crawlRecords.filter((r) => r.record_type !== "page"), { title: "Crawl records", limit: 50, ctx })}
 
 <footer>
   <p>Generated ${esc(generatedAt)} from the evidence store.</p>

@@ -57,6 +57,8 @@ export const EVENT_TYPES = Object.freeze([
   /* Added for the governed-write boundary: one audited saga per governed mutation. Additive — it widens a
    * validation allowlist and changes no stored byte, because these allowlists are never serialised into an event. */
   "GOVERNED_WRITE",
+  /* F06 (24 September 2026): one checked evidence-state supersession, recorded as it is written. Additive, as above. */
+  "EVIDENCE_STATE_TRANSITION",
 ]);
 export const ACTOR_TYPES = Object.freeze(["HUMAN", "ENGINE", "CI", "EXTERNAL_SYSTEM"]);
 export const SCOPE_TYPES = Object.freeze(["GLOBAL_PRODUCT", "TENANT", "SUBJECT"]);

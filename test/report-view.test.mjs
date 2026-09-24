@@ -26,7 +26,7 @@ const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, 
 const CRAWL = [
   {
     record_type: "observation", observation_id: "o1", measurement_key: "m1",
-    method: "crawl.fetch", observed_at: "2026-09-12T00:00:00.000Z",
+    method: "crawl.fetch", observed_at: "2026-09-12T00:00:00.000Z", content_sha256: "a".repeat(64), collector: "crawler", collector_version: "1",
     value: { requested_url: "https://a.example.com/x", final_url: "https://a.example.com/x", skipped: false },
   },
   {
@@ -36,7 +36,7 @@ const CRAWL = [
   },
   {
     record_type: "crawl_run", run_id: "r1", urlsRequested: 2, urlsFetched: 1, requestsIssued: 1,
-    capReached: false, coverageState: "COMPLETE", seedPoolSize: 10,
+    capReached: false, coverageState: "COMPLETE", seedPoolSize: 10, started_at: "2026-09-12T00:00:00.000Z", finished_at: "2026-09-12T00:10:00.000Z",
     maxUrlsPerRun: 500, maxRequestsPerHost: 200, maxResponseBytes: 2097152,
     selectionRule: "sort by impressions DESC, tie-break by URL ASC, take the first 500; per-host cap 150",
     cost: { amount: null, amountState: "UNKNOWN", basis: "unmeasured" },
@@ -46,13 +46,13 @@ const CRAWL = [
     recorded_value: "COMPLETE", corrected_value: "PARTIAL", corrected_at: "2026-09-12T01:00:00.000Z",
     because: "500 of 1497",
   },
-  { record_type: "page", page_id: "p1", canonical_url: "https://a.example.com/x", observations: ["o1", "o2"], outbound_edges: [], inbound_edges: [] },
+  { record_type: "page", page_id: "p1", canonical_url: "https://a.example.com/x", observations: ["o1", "o2"], outbound_edges: [], inbound_edges: [], first_seen: "2026-09-12T00:00:00.000Z", last_seen: "2026-09-12T00:00:01.000Z" },
 ];
 
 const EVIDENCE = [
   {
     record_type: "observation", observation_id: "e1", measurement_key: "k1",
-    method: "gsc.searchAnalytics.query:by-page", observed_at: "2026-09-12T00:00:00.000Z",
+    method: "gsc.searchAnalytics.query:by-page", observed_at: "2026-09-12T00:00:00.000Z", content_sha256: "b".repeat(64), collector: "gsc", collector_version: "1",
     value: { rowCount: 1497, dataState: "COMPLETE", rowLimitPerRequest: 25000 },
   },
   { record_type: "resighting", observation_id: "e1", measurement_key: "k1", seen_at: "2026-09-12T06:00:00.000Z" },
@@ -111,40 +111,51 @@ test("a truncated list SAYS it is truncated, with its bound", () => {
  * A2a — 🔴 EVERY RECORD CARRIES ITS LABEL, ON ITS FACE.
  * ================================================================== */
 
-test("🔴 EVERY rendered record row carries an OBSERVED/INFERRED/RECOMMENDED/UNKNOWN label", () => {
+/* F06 (24 September 2026): the labels are the six canonical evidence states, placed by STRUCTURE. A record no rule
+ * can place is UNMAPPED — still labelled on its face, never omitted, never given a state it did not earn. */
+const ANY_LABEL = /class="lbl lbl-(OBSERVED|INFERRED|RECOMMENDED|UNKNOWN|NOT_MEASURED|NOT_APPLICABLE|UNMAPPED)"/g;
+
+test("🔴 EVERY rendered record row carries a label — a canonical state, or a visible UNMAPPED", () => {
   const html = renderRecords([...CRAWL, ...EVIDENCE], { title: "All", limit: 100 });
   const rowCount = (html.match(/<tr>\s*<td>/g) ?? []).length;
-  const labelCount = (html.match(/class="lbl lbl-(OBSERVED|INFERRED|RECOMMENDED|UNKNOWN)"/g) ?? []).length;
+  const labelCount = (html.match(ANY_LABEL) ?? []).length;
   assert.ok(rowCount > 0, "no rows rendered — this law would be vacuous");
   assert.equal(labelCount, rowCount, `${rowCount} rows but ${labelCount} labels — a record rendered unlabelled`);
+  // The fixtures are structurally complete, so none of them needed UNMAPPED.
+  assert.equal((html.match(/lbl-UNMAPPED/g) ?? []).length, 0, "a complete fixture record fell to UNMAPPED");
 });
 
-test("🔴 the label is RENDERED TEXT, not only a tooltip", () => {
-  const html = renderRecords([CRAWL[0]], { title: "T", limit: 1 });
+test("🔴 the label is RENDERED TEXT, not only a tooltip — and NOT MEASURED reads as words", () => {
+  const html = renderRecords([CRAWL[0], CRAWL[1]], { title: "T", limit: 2 });
   // The label must appear as element content, i.e. between > and <.
   assert.match(html, />OBSERVED</, "the label must be visible where the value is, not only in a title attribute");
+  assert.match(html, />NOT MEASURED</, "a skipped fetch reads NOT MEASURED on its face");
 });
 
-test("🔴 an UNRECOGNISED record type is shown as UNKNOWN, never omitted", () => {
+test("🔴 an UNRECOGNISED record type is shown as UNMAPPED — never omitted, never a canonical state by default", () => {
   const weird = { record_type: "something_new", observation_id: "w1" };
   const l = labelFor(weird);
-  assert.equal(l.label, "UNKNOWN");
-  assert.match(l.why, /no declared label — shown rather than hidden/);
+  assert.equal(l.label, "UNMAPPED");
+  assert.match(l.why, /no rule places this item/);
   const html = renderRecords([weird], { title: "T", limit: 10 });
   assert.match(html, /something_new/, "the record must still appear");
-  assert.match(html, />UNKNOWN</);
+  assert.match(html, />UNMAPPED</);
 });
 
-test("🔴 a SUMMARY is INFERRED, not OBSERVED — a derivation is not a measurement", () => {
-  assert.equal(labelFor({ record_type: "crawl_run" }).label, "INFERRED");
-  assert.equal(labelFor({ record_type: "page" }).label, "INFERRED");
-  assert.equal(labelFor({ record_type: "observation" }).label, "OBSERVED");
+test("🔴 a SUMMARY is INFERRED, not OBSERVED — a derivation is not a measurement; and a bare name proves nothing", () => {
+  assert.equal(labelFor(CRAWL[2]).label, "INFERRED");
+  assert.equal(labelFor(CRAWL[4]).label, "INFERRED");
+  assert.equal(labelFor(CRAWL[0]).label, "OBSERVED");
+  // The same types WITHOUT the structure that proves them are not placed by their name alone.
+  for (const t of ["crawl_run", "page", "observation"]) assert.equal(labelFor({ record_type: t }).label, "UNMAPPED", t);
 });
 
-test("every declared label is reachable, and the table is frozen", () => {
-  const produced = new Set(Object.values(LABEL_BY_TYPE).map((v) => v.label));
-  produced.add(labelFor({ record_type: "nope" }).label);
-  assert.deepEqual([...produced].sort(), [...LABELS].sort(), "a declared label is unreachable — dead state");
+test("every declared state is canonical, the table is frozen, and NOT_APPLICABLE is declared by no stored type", () => {
+  const produced = new Set(Object.values(LABEL_BY_TYPE).flatMap((v) => v.states));
+  for (const s of produced) assert.ok(LABELS.includes(s), `${s} is not a canonical state`);
+  /* No stored record declares a scope, so no stored type may be placed NOT_APPLICABLE by a rule (§7: never inferred from
+   * an empty value). It is reached by the model's synthetic controls, not by any real record. */
+  assert.deepEqual(LABELS.filter((s) => !produced.has(s)), ["NOT_APPLICABLE"]);
   assert.throws(() => { LABEL_BY_TYPE.observation = "x"; }, TypeError);
 });
 
@@ -160,9 +171,13 @@ test("🔴 every fact row shows its verificationState, and UNVERIFIED is said ou
   assert.match(html, /2 of 2<\/strong> are <strong>UNVERIFIED/);
 });
 
-test("an UNVERIFIED fact is labelled UNKNOWN — not verified is not observed", () => {
-  assert.equal(labelFor({ verificationState: "UNVERIFIED" }).label, "UNKNOWN");
-  assert.equal(labelFor({ verificationState: "VERIFIED", checks: {} }).label, "OBSERVED");
+test("an UNVERIFIED fact is NOT MEASURED — not verified is not observed, and not UNKNOWN either (F06)", () => {
+  // src/facts/record.mjs: UNVERIFIED is "nobody has looked. No check has happened" — no measurement, not a question reached.
+  assert.equal(labelFor({ id: "f1", verificationState: "UNVERIFIED" }).label, "NOT_MEASURED");
+  // VERIFIED is never OBSERVED on its label alone: with empty checks it is UNMAPPED …
+  assert.equal(labelFor({ id: "f2", verificationState: "VERIFIED", checks: {} }).label, "UNMAPPED");
+  // … and OBSERVED only with its check date, checker and source reference.
+  assert.equal(labelFor({ id: "f3", verificationState: "VERIFIED", verification: { checkedOn: "2026-09-12", checkedBy: "checker", sourceUrl: "https://a.example.com/s" } }).label, "OBSERVED");
 });
 
 /* ================================================================== *

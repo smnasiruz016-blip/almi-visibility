@@ -174,7 +174,7 @@ test("P9 · an identical replay is idempotent: no second write, no second projec
   assert.equal(run(w, "--submit", "--file", p, "--confirm").json.outcome, "ACCEPTED");
   const before = { store: storeSnapshot(w), events: auditLines().length };
   const again = run(w, "--submit", "--file", p, "--confirm");
-  assert.deepEqual([again.json.outcome, again.json.written], ["ALREADY_ACCEPTED", 0]);
+  assert.deepEqual([again.json.outcome, again.json.written], ["ALREADY_ACCEPTED", 0], "an identical replay was written again");
   assert.deepEqual(storeSnapshot(w), before.store);
   assert.equal(auditLines().length, before.events);
   // CONTROL: a different declaration of the same project does write

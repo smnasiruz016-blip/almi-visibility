@@ -123,7 +123,7 @@ export const F01_SABOTAGES = [
       { file: INTAKE, from: "  if (current) {\n    if (n.supersedes === null)", to: "  if (current && current.record.declarationId !== n.declarationId) {\n    if (n.supersedes === null)" },
     ],
     probe: probe(`const d = world(); const p = put(d, fresh()); bin(d, "--submit", "--file", p, "--confirm"); say(bin(d, "--submit", "--file", p, "--confirm").j?.outcome === "ACCEPTED");`),
-    expect: /\+\s+'ACCEPTED',\s*\n\s*-\s+'ALREADY_ACCEPTED'/ },
+    expect: /an identical replay was written again/ },
 
   { id: "S13", what: "inspection PERMITTED across tenants", file: STORE, test: T, named: "P37 ·",
     from: "  return listTenant(root, tenantId).find((h) => h.record.declarationId === declarationId) ?? null;",

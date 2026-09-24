@@ -109,6 +109,8 @@ export function auditClassOf(decision) {
   if (eventType === "REFUSAL") return "ACCESS";
   if (eventType === "EVIDENCE_ROLE_DECISION") return outcome === "ALLOWED" ? "CLASSIFICATION" : "VIOLATION";
   if (eventType === "EVALUATION") return action === "HELDOUT_ACCESS" ? "ACCESS" : "GOVERNED_CHANGE";
+  /* F06: a checked evidence-state supersession changes what an item may be reported as — a governed change. */
+  if (eventType === "EVIDENCE_STATE_TRANSITION") return "GOVERNED_CHANGE";
   return "UNDERIVED";
 }
 export const isDurableDecision = (decision) => auditClassOf(decision) !== "CLASSIFICATION";

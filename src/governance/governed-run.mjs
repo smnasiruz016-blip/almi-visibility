@@ -19,6 +19,8 @@ import { productionAuditStore } from "../audit-trail/wiring.mjs";
 import { softwareVersionOf } from "../audit-trail/wiring.mjs";
 import { stagedReplaceAdapter, stagedDirectoryReplaceAdapter, jsonlAppendAdapter, storeAppendAdapter, APPEND_DISCIPLINES } from "./durability-adapters.mjs";
 import { durableGuardSink, guardAuthority } from "./guard-audit.mjs";
+import { evidenceStateOf, adapterContext } from "../evidence/evidence-state-adapters.mjs";
+import { EvidenceStateRefused } from "../evidence/evidence-state.mjs";
 
 export const AUDIT_STORE_OVERRIDE_ENV = "ALMIVISIBILITY_AUDIT_STORE";
 
@@ -374,6 +376,15 @@ export function governedStoreAppend({ repo, permission, store, records, targetCl
   const identity = keyOf ?? store.dedupeKeyOf;
   if (chosen.requiresKey && typeof identity !== "function") {
     throw new Error("GOVERNED_STORE_APPEND_NEEDS_A_KEY: this target exposes no dedupeKeyOf, so the caller must supply keyOf");
+  }
+  /* 🔴 F06 — EVERY RECORD IS PLACED IN ONE CANONICAL EVIDENCE STATE BEFORE IT IS ACCEPTED, NEVER AFTER. A record no
+   * rule can place (src/evidence/evidence-state-adapters.mjs) refuses the whole write here, before the boundary runs:
+   * once a record is in the store, its state could only be assigned afterwards, which the acceptance forbids. The context
+   * is the store as it stands plus this batch, so a recommendation and the evidence it is linked to may arrive together. */
+  const placementCtx = adapterContext([...(typeof store.readAll === "function" ? store.readAll() : []), ...records]);
+  const unplaceable = records.map((r) => evidenceStateOf(r, placementCtx)).filter((s) => s.unmapped);
+  if (unplaceable.length) {
+    throw new EvidenceStateRefused("EVIDENCE_STATE_UNPLACEABLE", `${unplaceable.length} of ${records.length} record(s) have no lawful evidence state — ${unplaceable[0].why}`);
   }
   const adapter = storeAppendAdapter({
     repo,

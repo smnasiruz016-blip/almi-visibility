@@ -1,0 +1,38 @@
+F06 · REAL GOVERNED POPULATIONS AND CENSUSES · engine HEAD a7d2bb0 · data 46e451d · 2026-09-24T02:20:51Z
+
+F06 · EVIDENCE-STATE CENSUS — every governed population, placed by the production adapter
+
+  engine:runs/audit/content-findings.jsonl                           471 · OBSERVED=0 INFERRED=125 RECOMMENDED=0 UNKNOWN=0 NOT_MEASURED=346 NOT_APPLICABLE=0 UNMAPPED=0 · remainder 0
+  engine:runs/audit/crawler-classification.jsonl                      32 · OBSERVED=32 INFERRED=0 RECOMMENDED=0 UNKNOWN=0 NOT_MEASURED=0 NOT_APPLICABLE=0 UNMAPPED=0 · remainder 0
+  engine:runs/audit/findings.jsonl                                   134 · OBSERVED=27 INFERRED=107 RECOMMENDED=0 UNKNOWN=0 NOT_MEASURED=0 NOT_APPLICABLE=0 UNMAPPED=0 · remainder 0
+  engine:runs/audit/instrument-findings.jsonl                         22 · OBSERVED=0 INFERRED=22 RECOMMENDED=0 UNKNOWN=0 NOT_MEASURED=0 NOT_APPLICABLE=0 UNMAPPED=0 · remainder 0
+  engine:runs/audit/recommendations.jsonl                             10 · OBSERVED=4 INFERRED=3 RECOMMENDED=3 UNKNOWN=0 NOT_MEASURED=0 NOT_APPLICABLE=0 UNMAPPED=0 · remainder 0
+  engine:runs/audit/source-integrity.jsonl                            15 · OBSERVED=15 INFERRED=0 RECOMMENDED=0 UNKNOWN=0 NOT_MEASURED=0 NOT_APPLICABLE=0 UNMAPPED=0 · remainder 0
+  engine:runs/audit/supply-labels.jsonl                              550 · OBSERVED=0 INFERRED=226 RECOMMENDED=0 UNKNOWN=0 NOT_MEASURED=324 NOT_APPLICABLE=0 UNMAPPED=0 · remainder 0
+  engine:runs/audit/technical-findings.jsonl                        2888 · OBSERVED=0 INFERRED=1634 RECOMMENDED=0 UNKNOWN=134 NOT_MEASURED=1120 NOT_APPLICABLE=0 UNMAPPED=0 · remainder 0
+  engine:runs/audit/verification-issues.jsonl                         15 · OBSERVED=13 INFERRED=0 RECOMMENDED=0 UNKNOWN=2 NOT_MEASURED=0 NOT_APPLICABLE=0 UNMAPPED=0 · remainder 0
+  engine:runs/cost/actions-runs.jsonl                                  1 · OBSERVED=1 INFERRED=0 RECOMMENDED=0 UNKNOWN=0 NOT_MEASURED=0 NOT_APPLICABLE=0 UNMAPPED=0 · remainder 0
+  engine:runs/cost/ledger.jsonl                                       22 · OBSERVED=0 INFERRED=22 RECOMMENDED=0 UNKNOWN=0 NOT_MEASURED=0 NOT_APPLICABLE=0 UNMAPPED=0 · remainder 0
+  engine:runs/evidence/evidence.jsonl                                 50 · OBSERVED=45 INFERRED=0 RECOMMENDED=0 UNKNOWN=0 NOT_MEASURED=5 NOT_APPLICABLE=0 UNMAPPED=0 · remainder 0
+  engine:runs/evidence/external-observations-2026-09-15.jsonl          9 · OBSERVED=8 INFERRED=0 RECOMMENDED=0 UNKNOWN=0 NOT_MEASURED=1 NOT_APPLICABLE=0 UNMAPPED=0 · remainder 0
+  engine:runs/evidence/robots.jsonl                                    5 · OBSERVED=5 INFERRED=0 RECOMMENDED=0 UNKNOWN=0 NOT_MEASURED=0 NOT_APPLICABLE=0 UNMAPPED=0 · remainder 0
+  engine:runs/render/rendered-2026-09-13.jsonl                       394 · OBSERVED=394 INFERRED=0 RECOMMENDED=0 UNKNOWN=0 NOT_MEASURED=0 NOT_APPLICABLE=0 UNMAPPED=0 · remainder 0
+  engine:runs/replay/replay-audit-dns-2026-09-13-journey-key.jsonl   268 · OBSERVED=54 INFERRED=214 RECOMMENDED=0 UNKNOWN=0 NOT_MEASURED=0 NOT_APPLICABLE=0 UNMAPPED=0 · remainder 0
+  engine:runs/replay/replay-audit-dns-2026-09-13.jsonl               268 · OBSERVED=54 INFERRED=214 RECOMMENDED=0 UNKNOWN=0 NOT_MEASURED=0 NOT_APPLICABLE=0 UNMAPPED=0 · remainder 0
+  engine:runs/replay/replay-crawl-2026-09-13-journey-key.jsonl       788 · OBSERVED=788 INFERRED=0 RECOMMENDED=0 UNKNOWN=0 NOT_MEASURED=0 NOT_APPLICABLE=0 UNMAPPED=0 · remainder 0
+  engine:runs/replay/replay-crawl-2026-09-13.jsonl                   788 · OBSERVED=788 INFERRED=0 RECOMMENDED=0 UNKNOWN=0 NOT_MEASURED=0 NOT_APPLICABLE=0 UNMAPPED=0 · remainder 0
+  batch:observations/crawl-2026-09-12/first-real-crawl-2026-09-12.jsonl   999 · OBSERVED=394 INFERRED=499 RECOMMENDED=0 UNKNOWN=0 NOT_MEASURED=106 NOT_APPLICABLE=0 UNMAPPED=0 · remainder 0
+  batch:observations/sitemap-2026-09-12/sitemaps.jsonl                 5 · OBSERVED=5 INFERRED=0 RECOMMENDED=0 UNKNOWN=0 NOT_MEASURED=0 NOT_APPLICABLE=0 UNMAPPED=0 · remainder 0
+  research:research/local-reasoning-2026-09-21/records.jsonl           6 · OBSERVED=6 INFERRED=0 RECOMMENDED=0 UNKNOWN=0 NOT_MEASURED=0 NOT_APPLICABLE=0 UNMAPPED=0 · remainder 0
+  facts:product-1                                                     47 · OBSERVED=18 INFERRED=1 RECOMMENDED=0 UNKNOWN=27 NOT_MEASURED=1 NOT_APPLICABLE=0 UNMAPPED=0 · remainder 0
+  costParts:runs/cost/ledger.jsonl                                    66 · OBSERVED=32 INFERRED=19 RECOMMENDED=0 UNKNOWN=0 NOT_MEASURED=15 NOT_APPLICABLE=0 UNMAPPED=0 · remainder 0
+
+  sealed paths excluded unread: 0
+
+  TOTAL 7853 = OBSERVED 2683 + INFERRED 3086 + RECOMMENDED 3 + UNKNOWN 163 + NOT_MEASURED 1918 + NOT_APPLICABLE 0 + UNMAPPED 0 · remainder 0
+  forbidden conversions: 0 {}
+  controls (each must fire): {"unmappedFires":true,"zeroFires":true,"passFires":true,"inferenceFires":true,"recommendationFires":true,"reasonlessNaFires":true}
+
+F06 §4 · STATE VOCABULARY — 40 distinct *State names in tracked src/bin/tools/config · 40 registered
+  by class: A=6 B=0 C=9 D=0 E=6 F=0 G=0 H=7 I=12 · unregistered 0 · stale 0 · bad class 0 · remainder 0
+  control: a planted unregistered name is reported true; with only it present, 40 registered names read stale

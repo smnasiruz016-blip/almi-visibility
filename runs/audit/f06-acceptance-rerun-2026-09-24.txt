@@ -1,0 +1,18 @@
+P40 · F05, F07 and F08 FROZEN ACCEPTANCE RE-RUN ON THEIR REAL POPULATIONS, ON THE F06 TREE · HEAD a7d2bb0 · 2026-09-24T02:20:51Z
+
+test files: test/audit-store-exemption.test.mjs test/audit-trail.test.mjs test/bypass-control.test.mjs test/decision-site-census.test.mjs test/duplicate-writers.test.mjs test/entry-points.test.mjs test/f05-authority-register.test.mjs test/f07-closure.test.mjs test/f07-heldout-firewall.test.mjs test/f07-sink-repair.test.mjs test/f08-acceptance-pin.test.mjs test/f08-board-reconciliation.test.mjs test/f08-closure.test.mjs test/governed-caller-vocabulary.test.mjs test/governed-write.test.mjs test/heldout-firewall.test.mjs test/shared-guard-audit.test.mjs test/test-store-hygiene.test.mjs 
+ℹ tests 240
+ℹ pass 240
+ℹ fail 0
+ℹ skipped 0
+
+F07 sabotage:  16 sabotage(s) · EXECUTED 16 of 16 · 16 proved · 0 NOT proved · residue 0 · production untouched true
+F08 sabotage:  34 sabotage(s) · 34 proved · 0 NOT proved · residue 0 · production untouched true
+sink repair:   10 sabotage(s) · RAN 10 of 10 · LANDED 10 of 10 (bytes and behaviour) · PROVED 10 · residue 0 · production untouched true
+
+F-board: 89 rows · UNASSESSED 85 · BLOCKED-BY-AUTHORITY 1 · VERIFIED-PASS 3 · sum 89
+F-progress: 3/89
+  F05 VERIFIED-PASS
+  F07 VERIFIED-PASS
+  F08 VERIFIED-PASS
+  F40 BLOCKED-BY-AUTHORITY — UNIVERSAL_350_WORD_FLOOR_STILL_APPLICABLE

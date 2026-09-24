@@ -32,6 +32,8 @@
 
 import { createJsonlStore } from "../evidence/store.mjs";
 import { MAX_URLS_PER_RUN, MAX_REQUESTS_PER_HOST } from "../crawl/frontier.mjs";
+import { costPartStates } from "../evidence/evidence-state-adapters.mjs";
+import { displayOf } from "../evidence/evidence-state.mjs";
 
 export const COST_ENTRY_TYPE = "cost_entry";
 export const MONEY_STATES = Object.freeze(["MEASURED", "ZERO_BY_TARIFF", "UNKNOWN"]);
@@ -120,10 +122,15 @@ export function coverageFailures(entries) {
 }
 
 /** One ledger line, with its bound beside it (LAW-BOUND-1). */
+/* F06 (24 September 2026): each part is printed with its CANONICAL evidence state (src/evidence/evidence-state-adapters.mjs
+ * costPartStates) beside its own domain value — an amount no tool measured reads NOT MEASURED, never UNKNOWN; a free
+ * tariff's zero reads INFERRED, never a bare 0. An unplaceable part reads UNMAPPED. */
 export function formatLedgerLine(e) {
-  const money = e.money.amountState === "UNKNOWN" ? `money=UNKNOWN(${e.money.unknownKind})` : `money=${e.money.amount} ${e.money.currency ?? ""} [${e.money.amountState}]`.replace("  ", " ");
-  const calls = e.providerCalls.state === "MEASURED" ? `calls=${e.providerCalls.total}` : `calls=UNKNOWN(${e.providerCalls.unknownKind})`;
-  const time = e.founderTime.state === "MEASURED" ? `time=${e.founderTime.seconds}s` : `time=UNKNOWN(${e.founderTime.unknownKind})`;
+  const st = costPartStates(e);
+  const word = (s) => (s.unmapped ? "UNMAPPED" : displayOf(s.state));
+  const money = e.money.amountState === "UNKNOWN" ? `money=${word(st.money)}(${e.money.unknownKind})` : `money=${e.money.amount} ${e.money.currency ?? ""} [${e.money.amountState} · ${word(st.money)}]`.replace("  ", " ");
+  const calls = e.providerCalls.state === "MEASURED" ? `calls=${e.providerCalls.total} [${word(st.providerCalls)}]` : `calls=${word(st.providerCalls)}(${e.providerCalls.unknownKind})`;
+  const time = e.founderTime.state === "MEASURED" ? `time=${e.founderTime.seconds}s [${word(st.founderTime)}]` : `time=${word(st.founderTime)}(${e.founderTime.unknownKind})`;
   const used = Object.entries(e.budget.used ?? {}).map(([k, v]) => `${k}=${v}`).join(" ");
   const bounds = Object.entries(e.budget.bounds).map(([k, v]) => `${k}=${v}`).join(" ");
   const outcome = e.outcome ? `${e.outcome}(${e.refusal?.code ?? "?"})  ` : "";

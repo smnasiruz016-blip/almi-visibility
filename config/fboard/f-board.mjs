@@ -34,6 +34,47 @@ export const DECLARED = Object.freeze({
       }),
     ]),
   }),
+  F06: Object.freeze({
+    featureId: "F06",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      // The acceptance was committed ALONE in the governance repository (a0c94ce) before any F06 engine change.
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-24", ruling: ACCEPTANCES.F06.ruling, contractSha256: ACCEPTANCES.F06.contractSha256 }),
+      /* Implementation began only after that commit: src/evidence/evidence-state.mjs (the canonical model),
+       * src/evidence/evidence-state-adapters.mjs (the lossless adapters), and their wiring into the report labels, the
+       * ledger, the governed store append and the one production supersession writer. */
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F06",
+        on: "2026-09-24",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        reason: "FROZEN_ACCEPTANCE_COMMITTED_BEFORE_ENGINE_CHANGE",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-24_F06_COMPLETE.md", commit: "f9110f9fe194a59eb56acc7bab0645c893449188", sha256: "832d4090276a8cd20341c0a51a222dfb8cb3bbfba4b0201a041688b583dd76f9" }),
+      }),
+      /* Verified UNDER F06 over the REAL governed populations: every record the engine reports — engine stores, the
+       * external observation batches, the reasoning batch, the product fact registries and the cost-ledger parts —
+       * placed by structure, 7,853 items, remainder 0, UNMAPPED 0. NOT_APPLICABLE has no real population (no stored
+       * record declares a scope) and is proved by synthetic control only, as the acceptance allows. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F06",
+        population: "REAL",
+        on: "2026-09-24",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        reason: "EVERY_FAILURE_CLAUSE_UNMET_ON_REAL_POPULATIONS",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F06.ruling.sha256, contract: ACCEPTANCES.F06.contractSha256 }),
+        populations: "runs/audit/f06-populations-and-censuses-2026-09-24.txt — 7,853 real items, remainder 0, UNMAPPED 0, forbidden conversions 0; 40 *State names registered, remainder 0",
+        proofs: "P1–P42 and P40b in test/f06-evidence-state.test.mjs, each with a control able to give the other verdict",
+        sabotage: "16 of 16 RAN, 16 LANDED (bytes and behaviour), 16 RED on the named proof for the intended reason, restored, production trail untouched (runs/audit/f06-sabotage-2026-09-24.txt)",
+        acceptanceRerun: "F05, F07, F08 re-run on their real populations on the F06 tree: 240/240; sabotage 16/16, 34/34, 10/10 (runs/audit/f06-acceptance-rerun-2026-09-24.txt)",
+        fullSuite: "two full runs and the named counting control on the final tree (runs/audit/f06-suite-2026-09-24.txt)",
+        afterMerge: "main CI green on the exact merged SHA — verified after merge and reported in _handoffs/AlmiVisibility_F06_VERIFIED_PASS_EVIDENCE_2026-09-24.md; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
   F07: Object.freeze({
     featureId: "F07",
     board: "F_BOARD",

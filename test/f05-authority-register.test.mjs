@@ -71,7 +71,7 @@ const REAL_AUTH = { records: AUTHORITY_CORPUS, now: REAL_DAY };
  * governance repository (_handoffs 19e6b7b) — a CORRECT CONSEQUENCE of a second row being frozen, not a loosening:
  * the list is still exact, and a row moving without appearing here still fails. */
 // F07 joined on 23 September 2026 under its own frozen acceptance (config/fboard/f-board.mjs).
-const MOVED = ["F05", "F07", "F08", "F40"];
+const MOVED = ["F05", "F06", "F07", "F08", "F40"]; // F06 joined on 24 September 2026 under its own frozen acceptance.
 const UNASSESSED_ROWS = 89 - MOVED.length;
 /* 🔴 EVERY PASS ON THE BOARD THAT WAS ACTUALLY EARNED — counted, not assumed.
  * This read `DECLARED.F05.state === "VERIFIED-PASS" ? 1 : 0`, which silently assumed F05 was the only row that

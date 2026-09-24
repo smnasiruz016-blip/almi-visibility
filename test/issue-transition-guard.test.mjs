@@ -20,7 +20,7 @@ import { readdirSync } from "node:fs";
 import { lifecycleOf, makeIssueStateChange } from "../src/evidence/lifecycle.mjs";
 import { makeIssue } from "../src/evidence/records.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
-import { LABEL_BY_TYPE, labelFor } from "../src/report/provenance-label.mjs";
+import { LABEL_BY_TYPE, labelFor, adapterContext } from "../src/report/provenance-label.mjs";
 import { batchJsonlFiles } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -80,5 +80,9 @@ test("🔴 REAL: every record type in every committed store has a DECLARED label
   assert.ok(types.size >= 12);
   const undeclared = [...types].filter((t) => !(t in LABEL_BY_TYPE));
   assert.deepEqual(undeclared, [], "a stored record type has no declared label and would render UNKNOWN by default");
-  assert.equal(labelFor({ record_type: "draft_recommendation" }).label, "RECOMMENDED");
+  /* F06: a drafted recommendation is RECOMMENDED only on the evidence linked to it — alone, it is UNMAPPED. */
+  const draft = { record_type: "draft_recommendation", recommendation_id: "REC-X", drafted_at: "2026-09-13T00:00:00Z" };
+  assert.equal(labelFor(draft).label, "UNMAPPED");
+  const link = { record_type: "recommendation_evidence", recommendation_id: "REC-X", linked_at: "2026-09-13T00:00:00Z", issues: ["i1"], observations: [], sources: [] };
+  assert.equal(labelFor(draft, adapterContext([draft, link])).label, "RECOMMENDED");
 });

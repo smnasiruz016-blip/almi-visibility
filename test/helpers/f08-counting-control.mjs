@@ -8,7 +8,8 @@ import { join } from "node:path";
 
 const REPO = new URL("../../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const PROBE = join(REPO, "test", "zz-counting-control.test.mjs");
-const NAME = "ZZ_COUNTING_CONTROL_PLANTED_FAILURE";
+/* `--name=` plants a failure under the name a command requires (24 Sep 2026: "AUDIT STORE PRIMITIVES COUNTING CONTROL"). */
+const NAME = (process.argv.find((a) => a.startsWith("--name=")) ?? "").slice(7) || "ZZ_COUNTING_CONTROL_PLANTED_FAILURE";
 
 const cleanup = () => { if (existsSync(PROBE)) rmSync(PROBE, { force: true }); };
 process.on("exit", cleanup);

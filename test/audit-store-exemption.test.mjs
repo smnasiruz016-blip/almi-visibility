@@ -32,8 +32,17 @@ const standIn = ({ gateBeforeMutation = true, auditTargetOnly = true, extraWrite
    * stand-in was unrealistic, not the rule wrong. */
   const gate = "  const drafts = [{ family: \"D\", draft: writeGateEvent({ permission, target: \"local\", action: \"WRITE_AUDIT_TRAIL_STORE\" }) }];";
   const mutation = "  const result = recordCandidates({ store, candidates, corpus: CORPUS });";
+  /* 24 Sep 2026 (owner ruling on audit-store-only primitives): the call site must now PROVE what it calls and what it
+   * hands in — the primitive imported from its registered module, and the store constructed from this entry point's
+   * own root. The stand-in carries both, as every real caller does; without them it would earn nothing, and every
+   * negative control below would pass for the wrong reason. */
   const body = [
+    "import { dirname, join } from \"node:path\";",
+    "import { fileURLToPath } from \"node:url\";",
+    "import { recordCandidates, writeGateEvent } from \"../src/audit-trail/recorder.mjs\";",
+    "import { productionAuditStore } from \"../src/audit-trail/wiring.mjs\";",
     "import { writePermission, announceWritePermission, LOCAL } from \"../src/write-law.mjs\";",
+    "const REPO = join(dirname(fileURLToPath(import.meta.url)), \"..\");",
     "const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));",
     "const store = productionAuditStore({ repo: REPO });",
     ...(gateBeforeMutation ? [gate] : []),

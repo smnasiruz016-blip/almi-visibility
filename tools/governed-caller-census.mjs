@@ -30,7 +30,8 @@
  */
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, posix } from "node:path";
+import { AUDIT_STORE_ONLY_PRIMITIVES, verifyRegistry, verifiedPrimitives, splitTopLevel } from "./audit-store-primitives.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const git = (...a) => execFileSync("git", ["-C", REPO, ...a], { encoding: "utf8", maxBuffer: 1 << 28 });
@@ -49,7 +50,11 @@ export const FS_WRITE = /\b(writeFileSync|appendFileSync|mkdirSync|rmSync|rename
  * boundary's own modules (src/governance/) are excluded BY NAME OF DIRECTORY: they ARE the boundary, and a call to
  * them is classified as routed, never as a bypass. */
 export const BOUNDARY_MODULE_DIR = "src/governance/";
-const APPEND_ON_STORE = /\b(store|ledger|s|target)\??\.(append|appendIfNew|appendWithoutDedupe|appendAllWithoutDedupe)\(/;
+/* 🔴 ANY RECEIVER, not only one NAMED like a store (24 Sep 2026). It used to be `(store|ledger|s|target)`, so a recorder
+ * written `const t = audit.store; t.append(d)` was not a writer at all and its callers were invisible here — an
+ * unregistered recorder that turned nothing red. Widening it changed no measured writer: every one of the 21 append
+ * sites in src/ already sat on one of those four names. */
+const APPEND_ON_STORE = /\b[\w$]+\??\.(append|appendIfNew|appendWithoutDedupe|appendAllWithoutDedupe)\(/;
 
 export function derivedWriterExports({ files = null, read = null } = {}) {
   const list = files ?? execFileSync("git", ["-C", REPO, "ls-files", "src"], { encoding: "utf8" }).split("\n").filter((f) => f.endsWith(".mjs"));
@@ -95,20 +100,34 @@ export const BOUNDARY_CALL = /executeGovernedWrite\(/;
  *
  * It fails closed on every other shape: one non-audit target, a missing or later write-gate event, no resolvable
  * target, or an ordinary governed writer that merely looks similar. */
-/* F07 (23 Sep 2026): the held-out lifecycle's writers join the audit-store writers. Each appends ONLY to the audit
- * store it is handed — test/f07-heldout-firewall.test.mjs proves their module holds no filesystem write primitive at
- * all, so there is nothing else they could reach. `governedAuditContext` constructs the audit store (production, or
- * confined in a test context) exactly as `productionAuditStore` does. */
-/* F01 (24 Sep 2026): the project-intake decision recorder joins them on the same terms — it appends ONLY to the audit
- * store it is handed, and test/f01-intake.test.mjs proves src/intake/intake.mjs holds no filesystem write primitive. */
-export const AUDIT_STORE_REACHING = /\b(recordCandidates|auditAuthorityMigration|recordGateDecisions|freezeMechanism|requestHeldOutAccess|scoreHeldOutEvaluation|readHeldOutItem|recordEvidenceStateTransitions|recordDeclarationDecisions)\(/;
+/* 🔴 THE REGISTERED PRIMITIVES ARE VERIFIED, NOT NAMED (owner ruling, 24 Sep 2026 —
+ * _handoffs/AlmiVisibility_OWNER_RULING_2026-09-24_AUDIT_STORE_ONLY_PRIMITIVES.md).
+ *
+ * This used to be a hand-written regex of nine names, and two comments here said F07's and F01's tests proved those
+ * modules held no filesystem write. F01's test did (for src/intake/ only); F07's never did — the sentence cited a proof
+ * that did not exist. Nothing read the functions behind the names: registering a mixed writer, or changing a
+ * registered primitive to write another target, left this census green (measured on 987cda6).
+ *
+ * Now: the registry is `AUDIT_STORE_ONLY_PRIMITIVES` in tools/audit-store-primitives.mjs, entries are { name, module },
+ * and an entry is registered ONLY while `verifyAuditStorePrimitive` proves from source that everything it can reach
+ * writes nothing but the audit store its caller hands in. `AUDIT_STORE_REACHING` below is DERIVED from the verified
+ * entries; an unverified entry is not in it, and `--check` exits 1 while one exists. */
+function registryContext(verification) {
+  const registered = verifiedPrimitives(verification);
+  const names = registered.map((r) => r.name);
+  return { verification, registered, reaching: names.length ? new RegExp(`\\b(${names.join("|")})\\(`) : /(?!)/ };
+}
+export const PRIMITIVE_VERIFICATION = Object.freeze(verifyRegistry());
+const DEFAULT_REGISTRY = registryContext(PRIMITIVE_VERIFICATION);
+export const AUDIT_STORE_REACHING = DEFAULT_REGISTRY.reaching;
 export const AUDIT_STORE_CONSTRUCTOR = /\b(productionAuditStore|governedAuditContext)\(/;
 export const LIVE_WRITE_GATE_EVENT = /writeGateEvent\(/;
 
-/** Both conditions, each reported separately so a failure says WHICH one was missing. */
-export function auditStoreInternalWrite(text, sites) {
+/** Both conditions, each reported separately so a failure says WHICH one was missing.
+ *  A reads the SITE RULE's verdict, not the line's names: a registered name on a line proves nothing by itself. */
+export function auditStoreInternalWrite(text, sites, opts = {}) {
   const lines = text.split("\n");
-  const targetsOnlyAuditStore = sites.length > 0 && sites.every((s) => AUDIT_STORE_REACHING.test(s.text));
+  const targetsOnlyAuditStore = sites.length > 0 && sites.every((s) => classifySite(text, s, opts).cls === "CHECKED_AUDIT_STORE_EXEMPTION");
   const constructsAuditStore = AUDIT_STORE_CONSTRUCTOR.test(text);
   const conditionA = targetsOnlyAuditStore && constructsAuditStore;
 
@@ -168,8 +187,141 @@ const NON_MUTATING_SITE = new Set(["BOUNDARY_ROUTED", "READ_ONLY", "COLLECTOR_OR
 const GOVERNED_HELPER = /\b(governedStoreAppend|governedFileWrite|governedRecordAppend|governedDirectoryReplace)\(/;
 const COLLECTOR_CONSTRUCTOR = /\bcreateDryRunStore\(/;
 const SCRATCH_DIR = /\bmkdtempSync\(\s*join\(\s*tmpdir\(\)/;
-const AUDIT_STORE_WRITER = AUDIT_STORE_REACHING;
-const AUDIT_STORE_VALUE = /\b(productionAuditStore|governedAuditContext)\(/;
+
+/* ── 🔴 THE CALL-SITE HALF OF THE RULING (24 Sep 2026) ─────────────────────────────────────────────────────────────
+ * A verified primitive writes only to the store it is HANDED. So the site must prove what it hands in, and must not
+ * smuggle anything else past the classification. Each rule below closes a hole measured on 987cda6:
+ *   IDENTITY    the called name is imported, unaliased, from the registered module (a same-named function elsewhere
+ *               was exempt);
+ *   ONE WRITE   nothing else write-shaped shares the primitive's line (a product append after it on the line was exempt);
+ *   THE STORE   the store argument is read from the primitive's OWN first argument (an inner call's `store:` was read
+ *               instead), and its value is EXACTLY the entry point's own production audit store: a constructor call and
+ *               nothing else — no ternary, no Object.assign, no key overriding `store` — with `repo` bound to this
+ *               entry point's own root (import.meta.url), `env` only process.env, and no caller-chosen location (`at`).
+ *               A relocated or alternate-root store, or one whose `append` was replaced, was exempt. */
+const OWN_AUDIT_KEYS = Object.freeze({
+  productionAuditStore: new Set(["repo", "clock"]),
+  governedAuditContext: new Set(["repo", "env", "correlationId", "authorityRef", "authorityHash", "clock"]),
+});
+
+/** Import clauses of an entry point: named (with any alias) and namespace, each with its specifier and line. */
+export function importsOf(text) {
+  const out = [];
+  for (const m of text.matchAll(/^import\s+([\s\S]*?)\s+from\s+["']([^"']+)["'];?/gm)) {
+    const line = text.slice(0, m.index).split("\n").length;
+    const clause = m[1].trim();
+    const ns = clause.match(/\*\s+as\s+([\w$]+)/);
+    if (ns) out.push({ local: ns[1], exported: "*", spec: m[2], line, namespace: true });
+    const named = clause.match(/\{([\s\S]*)\}/);
+    if (named) for (const part of splitTopLevel(named[1])) {
+      const a = part.match(/^([\w$]+)(?:\s+as\s+([\w$]+))?$/);
+      if (a) out.push({ local: a[2] ?? a[1], exported: a[1], spec: m[2], line, namespace: false, aliased: Boolean(a[2]) });
+    }
+  }
+  return out;
+}
+const resolveFrom = (file, spec) => (spec.startsWith(".") ? posix.normalize(posix.join(posix.dirname(file), spec)) : spec);
+
+/** The value of the NEAREST `const name = …` before line `before`, as one expression (across lines, balanced). */
+function constValueBefore(lines, name, before) {
+  for (let i = Math.min(before, lines.length) - 1; i >= 0; i -= 1) {
+    if (!isCode(lines[i])) continue;
+    const m = lines[i].match(new RegExp(`^\\s*(const|let|var)\\s+${name}\\s*=\\s*`));
+    if (!m) continue;
+    if (m[1] !== "const") return { kind: "REASSIGNABLE" };
+    const text = [lines[i].slice(m[0].length), ...lines.slice(i + 1, i + 40)].join("\n");
+    let depth = 0; let out = "";
+    for (let j = 0; j < text.length; j += 1) {
+      const c = text[j];
+      if (c === '"' || c === "'" || c === "`") { let k = j + 1; for (; k < text.length && text[k] !== c; k += 1) if (text[k] === "\\") k += 1; out += text.slice(j, k + 1); j = k; continue; }
+      if ("([{".includes(c)) depth += 1;
+      if (")]}".includes(c)) depth -= 1;
+      if (depth === 0 && (c === ";" || (c === "\n" && out.trim() !== ""))) break;
+      out += c;
+    }
+    return { kind: "CONST", value: out.trim(), line: i + 1 };
+  }
+  return { kind: "UNBOUND" };
+}
+
+/** `fn({ … })` exactly — the whole expression is the one call — → its object literal's top-level entries, else null. */
+function exactCallArgs(expr, fnPattern) {
+  const m = expr.match(new RegExp(`^(${fnPattern})\\(\\s*\\{`));
+  if (!m) return null;
+  let depth = 0; let end = -1;
+  for (let j = m[1].length; j < expr.length; j += 1) {
+    const c = expr[j];
+    if (c === '"' || c === "'" || c === "`") { let k = j + 1; for (; k < expr.length && expr[k] !== c; k += 1) if (expr[k] === "\\") k += 1; j = k; continue; }
+    if (c === "(") depth += 1;
+    if (c === ")") { depth -= 1; if (depth === 0) { end = j; break; } }
+  }
+  if (end < 0 || expr.slice(end + 1).trim() !== "") return null;
+  const obj = expr.slice(m[1].length + 1, end).trim();
+  if (!obj.startsWith("{") || !obj.endsWith("}")) return null;
+  return { fn: m[1], entries: splitTopLevel(obj.slice(1, -1)) };
+}
+const entryKey = (e) => (e.startsWith("...") ? "..." : (e.match(/^([\w$]+)\s*(?::|$)/) ?? [])[1] ?? null);
+const entryValue = (e) => (e.includes(":") ? e.slice(e.indexOf(":") + 1).trim() : e.trim());
+
+/** Is `id` bound (nearest const before `before`) to this entry point's own repository root? */
+function isOwnRoot(lines, id, before) {
+  if (!/^[\w$]+$/.test(id)) return false;
+  const b = constValueBefore(lines, id, before);
+  return b.kind === "CONST" && /\bimport\.meta\.url\b/.test(b.value);
+}
+
+/** A constructor call of the entry point's own production audit store, with nothing a caller can redirect. */
+function ownAuditConstructor(lines, expr, before) {
+  const call = exactCallArgs(expr, "productionAuditStore|governedAuditContext");
+  if (!call) return { ok: false, why: "not exactly one audit-store constructor call" };
+  const allowed = OWN_AUDIT_KEYS[call.fn];
+  let repo = false;
+  for (const e of call.entries) {
+    const k = entryKey(e);
+    if (k === null || k === "...") return { ok: false, why: `${call.fn} is handed a spread or an unreadable argument` };
+    if (!allowed.has(k)) return { ok: false, why: `${call.fn} is handed \`${k}\` — a caller-chosen location or rule` };
+    if (k === "repo") { if (!isOwnRoot(lines, entryValue(e), before)) return { ok: false, why: `${call.fn}'s repo is not this entry point's own root` }; repo = true; }
+    if (k === "env" && entryValue(e) !== "process.env") return { ok: false, why: `${call.fn} is handed an env that is not process.env` };
+  }
+  return repo ? { ok: true } : { ok: false, why: `${call.fn} names no repo` };
+}
+
+/**
+ * THE STORE A PRIMITIVE IS HANDED, proved to be the entry point's own production audit store — or the reason not.
+ * @returns {{ok: boolean, why: string}}
+ */
+function provedOwnAuditStore(lines, value, before) {
+  const v = value.trim();
+  const viaHelper = v.match(/^([\w$]+)\.audit\.store$/);
+  if (viaHelper) {
+    const b = constValueBefore(lines, viaHelper[1], before);
+    if (b.kind !== "CONST") return { ok: false, why: `${viaHelper[1]} is ${b.kind.toLowerCase()}` };
+    const call = exactCallArgs(b.value, "governedStoreAppend|governedFileWrite|governedRecordAppend|governedDirectoryReplace");
+    if (!call) return { ok: false, why: `${viaHelper[1]} is not exactly a governed-write helper call` };
+    const repo = call.entries.find((e) => entryKey(e) === "repo");
+    if (!repo || !isOwnRoot(lines, entryValue(repo), b.line)) return { ok: false, why: "the helper's repo is not this entry point's own root" };
+    const env = call.entries.find((e) => entryKey(e) === "env");
+    if (env && entryValue(env) !== "process.env") return { ok: false, why: "the helper is handed an env that is not process.env" };
+    if (call.entries.some((e) => entryKey(e) === "...")) return { ok: false, why: "the helper is handed a spread" };
+    return { ok: true, why: "the governed-write helper's own audit context" };
+  }
+  if (!/^[\w$]+$/.test(v)) return { ok: false, why: `\`${v}\` is an expression, not a bound audit store` };
+  const b = constValueBefore(lines, v, before);
+  if (b.kind !== "CONST") return { ok: false, why: `${v} is ${b.kind.toLowerCase()}` };
+  const direct = ownAuditConstructor(lines, b.value, b.line);
+  if (direct.ok) return direct;
+  /* `{ ...governedAuditContext({…}), actor: … }` — the context spread once, and no key that replaces its store. */
+  if (b.value.startsWith("{") && b.value.endsWith("}")) {
+    const entries = splitTopLevel(b.value.slice(1, -1));
+    const spreads = entries.filter((e) => e.startsWith("..."));
+    if (spreads.length !== 1 || !entries[0].startsWith("...")) return { ok: false, why: `${v} is an object that is not one spread audit context` };
+    if (entries.some((e) => entryKey(e) === "store")) return { ok: false, why: `${v} overrides the audit context's store` };
+    const inner = ownAuditConstructor(lines, spreads[0].slice(3).trim(), b.line);
+    return inner.ok ? { ok: true, why: "a spread of the entry point's own audit context" } : inner;
+  }
+  return direct;
+}
+
 
 /** `const X = <expr>` → the expression text (to the end of the statement), or null. First binding wins. */
 function bindingOf(lines, name) {
@@ -257,7 +409,7 @@ function blockText(lines, at, maxLines = 80) {
  * THE SITE RULE. Reads the site line, its enclosing call and the bindings it names. Never a list of file names.
  * @returns {{cls: string, why: string}}
  */
-export function classifySite(text, site) {
+export function classifySite(text, site, { file = "bin/_.mjs", registry = DEFAULT_REGISTRY } = {}) {
   const lines = text.split("\n");
   const i = site.line - 1;
   const l = lines[i];
@@ -270,20 +422,37 @@ export function classifySite(text, site) {
     return { cls: "DIRECT_DURABLE_WRITE", why: `${fs[1]} on durable state, outside the boundary` };
   }
 
-  /* 2 · An audit-store writer. It is the checked exemption only when the store it is handed IS the audit store. */
-  if (AUDIT_STORE_WRITER.test(l)) {
+  /* 2 · A VERIFIED audit-store-only primitive. The checked exemption only when the site proves all three call-site
+   *     rules above; each failure says which. A registered name alone never exempts anything. */
+  const hit = l.match(registry.reaching);
+  if (hit) {
+    const entry = registry.registered.find((e) => e.name === hit[1]);
+    const imports = importsOf(text);
+    const nsCall = l.match(new RegExp(`\\b([\\w$]+)\\s*\\.\\s*${entry.name}\\(`));
+    const named = imports.find((x) => !x.namespace && x.local === entry.name);
+    const identity = nsCall
+      ? imports.some((x) => x.namespace && x.local === nsCall[1] && resolveFrom(file, x.spec) === entry.module)
+      : Boolean(named && named.exported === entry.name && resolveFrom(file, named.spec) === entry.module);
+    if (!identity) return { cls: "UNKNOWN", why: `${entry.name}( is not the registered ${entry.module} export — identity is the name AND the module` };
+
+    const at = l.indexOf(hit[0]);
+    const rest = l.slice(0, at) + l.slice(at + hit[0].length);
+    if (FS_WRITE.test(rest) || STORE_WRITE.test(rest)) return { cls: "DIRECT_DURABLE_WRITE", why: `another write shares ${entry.name}'s line — registration never exempts a caller's own write` };
+
+    /* The store argument of THIS call: the top-level `store` or `audit` entry of its first argument object. */
     const call = callText(lines, i);
-    /* The store it writes through: a `store:` argument, or an `audit:` context carrying one (the held-out lifecycle). */
-    const storeArg = call.match(/\bstore\s*:\s*([^,\n}]+)/) ?? call.match(/\baudit\s*:\s*(\w+)/) ?? (/[{,]\s*store\s*[,}]/.test(call) ? [null, "store"] : null);
-    if (!storeArg) return { cls: "UNKNOWN", why: "an audit-store writer whose store argument cannot be read" };
-    const v = storeArg[1].trim();
-    /* `<x>.audit.store` is the audit store ONLY when <x> is bound to a governed-write helper, whose `audit` is the
-     * governed audit context by construction. Any other `.store` is not — a bare `.store` would be an allowlist. */
-    const viaHelper = v.match(/^(\w+)\.audit\.store$/);
-    const resolved = viaHelper ? (GOVERNED_HELPER.test(bindingOf(lines, viaHelper[1]) ?? "") ? "governedAuditContext(" : "") : /^\w+$/.test(v) ? (bindingOf(lines, v) ?? "") : v;
-    return AUDIT_STORE_VALUE.test(resolved)
-      ? { cls: "CHECKED_AUDIT_STORE_EXEMPTION", why: "an audit event appended to the audit store itself — the emission is the audit" }
-      : { cls: "DIRECT_DURABLE_WRITE", why: "an audit-store writer handed something that is not the audit store" };
+    const open = call.indexOf(hit[0]) + hit[0].length - 1;
+    let depth = 0; let close = -1;
+    for (let j = open; j < call.length; j += 1) { if (call[j] === "(") depth += 1; else if (call[j] === ")") { depth -= 1; if (depth === 0) { close = j; break; } } }
+    const args = close > 0 ? splitTopLevel(call.slice(open + 1, close)) : [];
+    const first = args[0] ?? "";
+    if (!first.startsWith("{") || !first.endsWith("}")) return { cls: "UNKNOWN", why: `${entry.name} is not called with an argument object this rule can read` };
+    const carriers = splitTopLevel(first.slice(1, -1)).filter((e) => ["store", "audit"].includes(entryKey(e)));
+    if (carriers.length !== 1) return { cls: "UNKNOWN", why: `${entry.name} is handed ${carriers.length} store carriers (store/audit) — ambiguous` };
+    const proved = provedOwnAuditStore(lines, entryValue(carriers[0]), i + 1);
+    return proved.ok
+      ? { cls: "CHECKED_AUDIT_STORE_EXEMPTION", why: `an audit event appended to the audit store itself — the emission is the audit (${proved.why ?? "own audit store"})` }
+      : { cls: "DIRECT_DURABLE_WRITE", why: `${entry.name} is handed something not proved to be this entry point's own audit store: ${proved.why}` };
   }
 
   /* 3 · A constructed durable writer (the only constructor among the derived writers is the cost ledger's). */
@@ -357,7 +526,31 @@ function shapeOf(text) {
  *   Injecting the population in memory lets that control plant a synthetic bypass and remove it without writing a
  *   byte into bin/ and without touching the git index — which is the difference between a control and an incident.
  */
-export function census({ sources = null } = {}) {
+/**
+ * 🔴 A WRITER IMPORTED UNDER ANOTHER NAME IS INVISIBLE TO A NAME-READING CENSUS — so it is refused, never read past.
+ * `import { recordCandidates as rc }` made a real write to any store vanish: the entry point read as a diagnostic
+ * (measured on 987cda6). Every static alias, and every renaming destructure of a dynamic import, of a derived writer or
+ * of any DECLARED primitive, becomes an UNKNOWN site — a bypass until the alias is removed.
+ */
+export function aliasedWriterImports(text) {
+  const names = new Set([...WRITER_NAMES, ...AUDIT_STORE_ONLY_PRIMITIVES.map((e) => e.name)]);
+  const out = [];
+  for (const x of importsOf(text)) if (x.aliased && names.has(x.exported)) out.push({ line: x.line, text: `import { ${x.exported} as ${x.local} }` });
+  text.split("\n").forEach((l, i) => {
+    for (const m of l.matchAll(/\{([^}]*)\}\s*=\s*(?:await\s+)?import\(/g)) {
+      for (const part of splitTopLevel(m[1])) {
+        const a = part.match(/^([\w$]+)\s*:\s*([\w$]+)$/);
+        if (a && names.has(a[1])) out.push({ line: i + 1, text: `{ ${a[1]}: ${a[2]} } = import(…)` });
+      }
+    }
+  });
+  return out;
+}
+
+export function census({ sources = null, primitiveRead = null } = {}) {
+  /* `primitiveRead` re-verifies the registry over stand-in module text, so a proof can change a primitive's body and
+   * watch the census react — without writing a byte into src/. */
+  const registry = primitiveRead ? registryContext(verifyRegistry({ read: primitiveRead })) : DEFAULT_REGISTRY;
   const bins = sources
     ? sources.map((s) => s.file)
     : git("ls-files", "bin").trim().split("\n").filter((p) => p.endsWith(".mjs"));
@@ -365,16 +558,20 @@ export function census({ sources = null } = {}) {
   const testText = new Map(tests.map((f) => [f, readFileSync(join(REPO, f), "utf8")]));
   return bins.map((file) => {
     const text = (sources ? sources.find((s) => s.file === file).text : readFileSync(join(REPO, file), "utf8")).replace(/\r\n/g, "\n");
-    const rawSites = writeSitesOf(text);
+    const aliasSites = aliasedWriterImports(text);
+    const rawSites = [...writeSitesOf(text), ...aliasSites].sort((a, b) => a.line - b.line);
     const asksWriteLaw = /writePermission\(/.test(text);
     const usesBoundary = BOUNDARY_CALL.test(text);
     /* The POPULATION rule is unchanged from 22 September — a raw write-shaped site or a boundary call makes an entry
      * point GOVERNED_STATE_CHANGE — so the denominator (40) is measured exactly as before. Only the ROUTING verdict
      * reads the site vocabulary below. */
     const cls = rawSites.length > 0 || usesBoundary ? "GOVERNED_STATE_CHANGE" : asksWriteLaw ? "UNKNOWN" : "READ_ONLY_DIAGNOSTIC";
-    const siteDetail = rawSites.map((s) => ({ ...s, ...classifySite(text, s) }));
+    const opts = { file, registry };
+    const siteDetail = rawSites.map((s) => (aliasSites.includes(s)
+      ? { ...s, cls: "UNKNOWN", why: "a writer imported under an alias — invisible by name, so refused" }
+      : { ...s, ...classifySite(text, s, opts) }));
     /* Derived, never declared — see AUDIT_STORE_REACHING above. A routed caller is never also exempt. */
-    const internal = usesBoundary ? { exempt: false, conditionA: false, conditionB: false } : auditStoreInternalWrite(text, rawSites);
+    const internal = usesBoundary ? { exempt: false, conditionA: false, conditionB: false } : auditStoreInternalWrite(text, rawSites, opts);
     /* 🔴 ROUTED MEANS THE WRITE MOVED, NOT THAT A BOUNDARY CALL APPEARS SOMEWHERE IN THE FILE (LAW 3).
      *
      * `routed` once meant only "this file mentions executeGovernedWrite", and a caller with three writes, one routed,
@@ -424,6 +621,19 @@ export const auditStoreExempt = (rows) => rows.filter((r) => r.cls === "GOVERNED
 /** Governed callers that legitimately mutate nothing durable (a collector-only or read-only verdict). Named, never hidden. */
 export const nonMutating = (rows) => rows.filter((r) => r.cls === "GOVERNED_STATE_CHANGE" && (r.callerClass === "COLLECTOR_OR_LIBRARY_WRITE" || r.callerClass === "READ_ONLY"));
 
+/**
+ * WHY `--check` FAILS, as data — the one decision the CLI exits on, so a proof can drive it with a stand-in registry.
+ * Empty means green.
+ */
+export function checkVerdict(rows, verification = PRIMITIVE_VERIFICATION) {
+  const why = [];
+  for (const r of bypasses(rows)) why.push(`BYPASS ${r.file}`);
+  for (const r of rows.filter((x) => x.cls === "UNKNOWN")) why.push(`UNKNOWN ${r.file}`);
+  if (rows.some((r) => !CLASSES.includes(r.cls))) why.push("REMAINDER");
+  for (const v of verification.filter((x) => !x.verified)) why.push(`UNVERIFIED_PRIMITIVE ${v.name}`);
+  return why;
+}
+
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("\\").join("/").split("/").pop())) {
   const rows = census();
   const by = rows.reduce((m, r) => ((m[r.cls] = (m[r.cls] ?? 0) + 1), m), {});
@@ -449,10 +659,13 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("\\").join
     console.log("\n  path · shape · target · sites · routed · tests");
     for (const r of rows) console.log(`  ${r.file.padEnd(36)} ${r.cls.padEnd(22)} ${r.shape.padEnd(24)} ${r.targetClass.padEnd(22)} ${String(r.sites).padStart(2)} ${r.routed ? "ROUTED" : "-     "} ${r.coverage.length}`);
   }
+  const unverified = PRIMITIVE_VERIFICATION.filter((v) => !v.verified);
+  console.log(`  AUDIT_STORE_ONLY_PRIMITIVES declared ${PRIMITIVE_VERIFICATION.length} · verified ${PRIMITIVE_VERIFICATION.length - unverified.length} · UNVERIFIED ${unverified.length}`);
+  for (const v of unverified) console.log(`  🔴 UNVERIFIED PRIMITIVE ${v.name} (${v.module}) — not registered: ${v.faults.join(" | ")}`);
   for (const r of rows.filter((x) => x.cls === "UNKNOWN")) console.log(`  🔴 UNKNOWN ${r.file} — blocks implementation until resolved by measurement`);
   for (const r of missed) {
     console.log(`  🔴 BYPASS ${r.file} — ${r.callerClass}${r.partiallyRouted ? `: it reaches the boundary AND still holds ${r.directSites} direct write site(s)` : ": a governed write outside the shared boundary"}`);
     for (const s of r.siteDetail.filter((x) => x.cls === "DIRECT_DURABLE_WRITE" || x.cls === "UNKNOWN")) console.log(`       ${r.file}:${s.line} ${s.cls} — ${s.why}`);
   }
-  if (process.argv.includes("--check") && (missed.length || (by.UNKNOWN ?? 0) || rows.length !== accounted)) process.exit(1);
+  if (process.argv.includes("--check") && checkVerdict(rows).length) process.exit(1);
 }

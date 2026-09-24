@@ -166,8 +166,10 @@ export const SABOTAGES = [
     expect: /PARTIALLY_ROUTED/ },
 
   { id: "S-C2", what: "caller census: let ANY `.store` claim the audit-store exemption (an allowlist)", file: CENSUS, test: TV, named: "V5 ·",
-    from: "const AUDIT_STORE_VALUE = /\\b(productionAuditStore|governedAuditContext)\\(/;",
-    to: "const AUDIT_STORE_VALUE = /\\b(productionAuditStore|governedAuditContext)\\(|\\.store\\b/;",
+    /* Re-anchored 24 Sep 2026: the audit-store value is now PROVED by `provedOwnAuditStore` (owner ruling on
+     * audit-store-only primitives); the old AUDIT_STORE_VALUE regex no longer exists. Same defect, new site. */
+    from: "  const v = value.trim();\n  const viaHelper = v.match(/^([\\w$]+)\\.audit\\.store$/);",
+    to: "  const v = value.trim();\n  if (/\\.store$/.test(v)) return { ok: true, why: \"any .store\" };\n  const viaHelper = v.match(/^([\\w$]+)\\.audit\\.store$/);",
     expect: /not counted as a bypass|the exemption was granted/ },
 
   { id: "S-C3", what: "caller census: UNKNOWN no longer fails closed", file: CENSUS, test: TV, named: "V6 ·",

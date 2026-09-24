@@ -10,7 +10,8 @@
  * "there is nothing there".
  */
 import { execFileSync } from "node:child_process";
-import { join } from "node:path";
+import { existsSync, realpathSync } from "node:fs";
+import { dirname, join, relative, resolve } from "node:path";
 import { AUDIT_STORE } from "../../config/audit-store.mjs";
 import { EVIDENCE_ROLE_REGISTRY } from "../../config/evidence-roles.mjs";
 import { createJsonlStore } from "../evidence/store.mjs";
@@ -70,7 +71,34 @@ export function productionAuditStore({ repo, clock, forbiddenSubstrings = null, 
     isSealedRef: makeSealedLookup(registry),
     forbiddenSubstrings: forbiddenSubstrings ?? derivedForbiddenSubstrings(repo, registry),
     sizeCeilingBytes: AUDIT_STORE.sizeCeilingBytes,
+    /* A relocated (`at`) store was confined before it got here (resolveAuditStoreLocation refuses symlinks, traversal
+     * and any root but the scratch root). The PRODUCTION path is checked on every append, where a write would happen. */
+    assertLocation: at ? () => {} : () => assertDeclaredAuditLocation(repo),
   });
+}
+
+export class AuditStoreLocationRefused extends Error {
+  constructor(why) { super(`AUDIT_STORE_LOCATION_REFUSED: ${why}`); this.name = "AuditStoreLocationRefused"; }
+}
+
+/**
+ * 🔴 THE PRODUCTION STORE IS WRITTEN AT ITS DECLARED PLACE OR NOT AT ALL (owner ruling, 24 Sep 2026, §4: "symlink,
+ * traversal, alternate root and ambiguous root fail closed"). The nearest EXISTING ancestor of the store's directory
+ * must resolve to exactly its lexical place under the real repository root. A symlinked or junctioned `audit-trail/`
+ * would otherwise carry every audit append into whatever it points at — a product store included.
+ */
+export function assertDeclaredAuditLocation(repo) {
+  const same = (a, b) => (process.platform === "win32" ? a.toLowerCase() === b.toLowerCase() : a === b);
+  const root = resolve(repo);
+  if (!existsSync(root)) throw new AuditStoreLocationRefused("the repository root does not exist");
+  const realRoot = realpathSync.native(root);
+  let cur = resolve(root, dirname(AUDIT_STORE.eventsPath));
+  while (!existsSync(cur)) cur = resolve(cur, "..");
+  const rel = relative(root, cur);
+  if (rel.startsWith("..")) throw new AuditStoreLocationRefused("the store's nearest existing ancestor lies outside the repository");
+  const lexical = resolve(realRoot, rel);
+  const real = realpathSync.native(cur);
+  if (!same(real, lexical)) throw new AuditStoreLocationRefused("the store's location resolves elsewhere — a symlinked or junctioned path is refused");
 }
 
 /** The production reader over that store, with F05's real corpus for the three authority values. */

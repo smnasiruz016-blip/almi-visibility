@@ -93,6 +93,7 @@ export const systemClock = () => isoSeconds(Date.now());
 export function createAuditStore({
   eventsPath, headPath, clock = systemClock, evidenceEntryFor = () => null, isSealedRef = () => false,
   forbiddenSubstrings = [], appendLine = defaultAppendLine, sizeCeilingBytes = 8 * 1024 * 1024,
+  assertLocation = () => {},
 }) {
   if (typeof eventsPath !== "string" || eventsPath.trim() === "") throw new TypeError("the audit store needs an events path — it never chooses one for itself");
   if (typeof headPath !== "string" || headPath.trim() === "") throw new TypeError("the audit store needs a head-record path");
@@ -136,6 +137,8 @@ export function createAuditStore({
    *   · any fault throws AuditRefused before a byte is written, so a governed caller FAILS CLOSED by construction.
    */
   function append(draft, { identity = null } = {}) {
+    /* The wiring's location check (production path only): it throws before anything is read or written. */
+    assertLocation();
     const { events, malformedTail } = readAll();
     if (malformedTail) throw new AuditRefused([{ code: "MALFORMED_TAIL", why: "the store's final line is truncated — nothing is appended onto a damaged chain" }]);
 

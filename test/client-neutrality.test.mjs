@@ -58,6 +58,11 @@ const OWNED = Object.freeze([
   "src/tenancy/scoped-run.mjs",
   "src/tenancy/refs.mjs",
   "src/governance/scoped-entry.mjs",
+  /* 🔴 F02 post-merge, 24 Sep 2026: the one partition mechanism, its collection reader and the structural attachment proof
+   * join the list — they decide which tenant a member or a resource belongs to. */
+  "src/tenancy/partition.mjs",
+  "src/tenancy/attachment-declaration.mjs",
+  "src/crawl/batch-partition.mjs",
   /* 🔴 Row 25, 21 Sep 2026: the resource-attachment binder, the claim binder and the four-check evaluator join the list
    * they must honour. They decide which subject a page belongs to and which authority a claim cites — exactly where a
    * host, an authority name or a record id would creep in. They carry none, and now they cannot. */

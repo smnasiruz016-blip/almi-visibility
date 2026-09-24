@@ -39,6 +39,7 @@
  */
 
 import { existsSync, readFileSync } from "node:fs";
+import { decideResolvedTenants } from "../tenancy/scope.mjs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 
@@ -226,7 +227,7 @@ const pluralOnly = (goal) => (goal.links ?? []).length > 0 && goal.links.every((
  * EVALUATED (a READ, lawful record) · UNKNOWN (no record, or unread) · NOT_APPLICABLE (the group is L) · INVALID
  * (refused, cross-tenant or conflicting).
  */
-export function judgeReasoning({ goals, records, tenancy }) {
+export function judgeReasoning({ goals, records, tenancy, researchTenantId = null }) {
   const wordingsSeen = new Set(goals.flatMap((g) => g.wordings.map((w) => w.original.toLowerCase())));
   const refused = [];
   const lawful = [];
@@ -283,7 +284,14 @@ export function judgeReasoning({ goals, records, tenancy }) {
 
     // 1 · tenancy — a group whose own scope is not declared cannot be judged; cross-tenant evidence is INVALID
     if (t.state !== "RESOLVED") return verdict("H", `GOAL_TENANCY_${t.state}`, () => "INVALID");
-    if (recs.some((r) => r.value.tenantId !== t.tenantId)) return verdict("H", "INVALID_CROSS_TENANT", () => "INVALID");
+    /* 🔴 F02: a research record's OWN value.tenantId is a claim the record makes about itself, not a declaration, and it
+     * used to be compared as if it were authority. The research batch is a RESOURCE (kind RESEARCH_BATCH): its tenant is
+     * the one its declaration resolves (researchTenantId, from the production resolver), decided against the goal's by the
+     * ONE decision. Undeclared evidence joins nothing. */
+    if (recs.length) {
+      const d = decideResolvedTenants(t.tenantId, researchTenantId);
+      if (!d.allowed) return verdict("H", d.outcome === "CROSS_TENANT_REFUSED" ? "INVALID_CROSS_TENANT" : `RESEARCH_BATCH_${d.outcome}`, () => "INVALID");
+    }
 
     // 2 · wording that varies within a locality is not local phrasing
     if (g.kind === "DIFFERENT_WORDING" && (members.some((m) => m.wordings.length > 1) || pluralOnly(g))) {

@@ -33,6 +33,7 @@ import { subjectRef } from "../detect/subject.mjs";
 import { evidenceEdge } from "../detect/binding.mjs";
 import { loadRegistry } from "../facts/registry.mjs";
 import { createTenantResolver } from "../tenancy/resolver.mjs";
+import { factRegistryRef } from "../tenancy/refs.mjs";
 import { subjectRoots } from "../subject-roots.mjs";
 
 /** Why an external subject could not be read. An unavailable root is never a clean run. */
@@ -51,22 +52,8 @@ const TENANT_FAILURE = Object.freeze({
   INVALID: "TENANT_INVALID", UNKNOWN: "TENANT_SOURCE_UNKNOWN",
 });
 
-/**
- * The declared reference for a subject's fact registry: its directory RELATIVE TO the external root
- * that resolves it. 🔴 A relative reference, not an absolute path — an absolute one carries a drive
- * letter and a checkout location, so the same registry would need a different declaration on every
- * machine and CI would resolve nothing.
- *
- * 🔴 AND IT IS A LOOKUP KEY, NOT A DERIVATION. The scope is whatever the declaration says it is;
- * this function only says WHICH declaration to read. Nothing about the path contributes to the
- * identifier, which is why the identifier is opaque and assigned once elsewhere.
- */
-export function factRegistryRef({ factsDir, rootPath }) {
-  if (typeof factsDir !== "string" || factsDir === "" || typeof rootPath !== "string" || rootPath === "") return null;
-  const rel = relative(rootPath, factsDir);
-  if (rel === "" || rel.startsWith("..")) return null;
-  return { resourceKind: "FACT_REGISTRY", resourceRef: rel.split(sep).join("/") };
-}
+/** The declared reference for a subject's fact registry — defined in src/tenancy/refs.mjs (F02), re-exported unchanged. */
+export { factRegistryRef };
 
 /**
  * Read one external subject and derive its lawful bindings.

@@ -46,7 +46,18 @@ export function resolveSide(resolve, resource) {
    * does — to that id when it is ACTIVE, and never otherwise. No name, host or path takes part. */
   if (resource.resourceKind === "TENANT_PARTITION") { const p = requestSide(resolve, resource.resourceRef); return { ...side, state: p.state, reason: p.reason === "EXPLICIT_DECLARED_TENANT" ? "PARTITION_KEY_IS_A_DECLARED_TENANT" : p.reason, tenantId: p.tenantId }; }
   const a = resolve({ resourceKind: resource.resourceKind, resourceRef: resource.resourceRef });
-  return { ...side, state: a?.state ?? "UNKNOWN", reason: a?.reason ?? "NO_ANSWER", tenantId: a?.state === "RESOLVED" ? a.tenantId : null };
+  const own = { ...side, state: a?.state ?? "UNKNOWN", reason: a?.reason ?? "NO_ANSWER", tenantId: a?.state === "RESOLVED" ? a.tenantId : null };
+  if (own.state !== "RESOLVED" || !Array.isArray(resource.members)) return own;
+  /* 🔴 A CONTAINER'S MEMBERS CARRY THEIR OWN IDENTITY (a crawled page is its site's page). A member whose identity is
+   * declared to ANOTHER tenant gives that item two declared scopes — the container's and its own — and an item with two
+   * scopes has no one scope: the container is AMBIGUOUS. A member nobody declared makes no competing claim. */
+  for (const m of resource.members) {
+    const r = resolve({ resourceKind: m.resourceKind, resourceRef: m.resourceRef });
+    if (r?.state === "RESOLVED" && r.tenantId !== own.tenantId) return { ...own, state: "AMBIGUOUS", reason: "MEMBER_DECLARED_TO_ANOTHER_TENANT", tenantId: null };
+    if (r?.state === "AMBIGUOUS") return { ...own, state: "AMBIGUOUS", reason: "MEMBER_ATTACHMENTS_CONFLICT", tenantId: null };
+    if (r?.state === "INVALID" || r?.state === "UNKNOWN") return { ...own, state: r.state, reason: `MEMBER_${r.reason}`, tenantId: null };
+  }
+  return own;
 }
 
 const publicSide = ({ tenantId, ...rest }) => Object.freeze(rest);
@@ -58,11 +69,28 @@ export function decideSides(a, b) {
   const states = [a.state, b.state];
   if (states.includes("UNKNOWN")) return decision("UNKNOWN_REFUSED", "DECLARATION_SOURCE_NOT_READ", a, b);
   if (states.includes("INVALID")) return decision("INVALID_REFUSED", [a, b].find((s) => s.state === "INVALID").reason, a, b);
-  if (states.includes("AMBIGUOUS")) return decision("AMBIGUOUS_REFUSED", "CONFLICTING_ATTACHMENTS", a, b);
+  if (states.includes("AMBIGUOUS")) return decision("AMBIGUOUS_REFUSED", [a, b].find((s) => s.state === "AMBIGUOUS").reason, a, b);
   if (states.some((s) => s !== "RESOLVED")) return decision("UNDECLARED_REFUSED", [a, b].find((s) => s.state !== "RESOLVED").reason, a, b);
   if (typeof a.tenantId !== "string" || typeof b.tenantId !== "string") return decision("INVALID_REFUSED", "RESOLVED_WITHOUT_TENANT", a, b);
   if (a.tenantId !== b.tenantId) return decision("CROSS_TENANT_REFUSED", "DECLARED_TO_DIFFERENT_TENANTS", a, b);
   return decision("SAME_TENANT_ALLOWED", "DECLARED_TO_THE_SAME_TENANT", a, b);
+}
+
+/**
+ * Two tenant ids that the production resolver ALREADY answered upstream (each object carries the id its own resolution
+ * returned, or null) — decided by the same decision, so a module holding resolved answers never compares them itself.
+ * A missing id is UNDECLARED; an id of the wrong shape is INVALID.
+ */
+export function decideResolvedTenants(aTenantId, bTenantId, { sourceKind = "RESOLVED_UPSTREAM", targetKind = "RESOLVED_UPSTREAM" } = {}) {
+  const side = (t, k) => {
+    const base = { resourceKind: k, resourceRefDigest: digest(k, t), scopeClass: "TENANT" };
+    if (t === null || t === undefined || t === "") return { ...base, state: "UNDECLARED", reason: "NO_RESOLVED_TENANT", tenantId: null };
+    /* The SHAPE of a tenant id is the resolver's to enforce (TENANT_ID_PATTERN, upstream): every id reaching here came from
+     * a resolution. What this decides is presence and sameness. A non-string is never an id. */
+    if (typeof t !== "string") return { ...base, state: "INVALID", reason: "NOT_A_TENANT_ID", tenantId: null };
+    return { ...base, state: "RESOLVED", reason: "RESOLVED_UPSTREAM", tenantId: t };
+  };
+  return decideSides(side(aTenantId, sourceKind), side(bTenantId, targetKind));
 }
 
 /** A relationship between two resources: BOTH resolved, then decided. */

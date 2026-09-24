@@ -18,6 +18,7 @@
  * Generic engine code is shared freely; a tenant's own subjects and edges never are.
  */
 import { BINDING_STATES, sameSubject, refLabel } from "./subject.mjs";
+import { decideResolvedTenants } from "../tenancy/scope.mjs";
 
 /**
  * The edge types V1 admits. Each names a relationship something else already recorded — a tenant
@@ -75,7 +76,8 @@ export function edgeFault(edge) {
   if (!edge || typeof edge !== "object") return "INVALID_EDGE_SHAPE";
   if (!EDGE_TYPES.includes(edge.edgeType)) return "INVALID_EDGE_SHAPE";
   if (!filled(edge.tenantId) || !filled(edge.from?.tenantId) || !filled(edge.to?.tenantId)) return "INVALID_NO_TENANT";
-  if (edge.from.tenantId !== edge.tenantId || edge.to.tenantId !== edge.tenantId) return "INVALID_CROSS_TENANT";
+  /* F02: both endpoints are decided against the edge tenant by the ONE decision (src/tenancy/scope.mjs), never compared here. */
+  if (!decideResolvedTenants(edge.tenantId, edge.from.tenantId).allowed || !decideResolvedTenants(edge.tenantId, edge.to.tenantId).allowed) return "INVALID_CROSS_TENANT";
   if (!filled(edge.method) || !filled(edge.artifact) || !filled(edge.reason)) return "INVALID_EDGE_SHAPE";
   return null;
 }
@@ -102,7 +104,7 @@ export function bindSubject({ tenantId, candidates, edges } = {}) {
       return Object.freeze({ state: "INVALID", reason: fault, subject: null, edges: [], candidates: cands.map(refLabel), detail: `edge ${e?.edgeType ?? "(malformed)"}: ${BINDING_REASONS[fault]}` });
     }
   }
-  const foreign = cands.filter((c) => c?.tenantId !== tenantId);
+  const foreign = cands.filter((c) => !decideResolvedTenants(tenantId, c?.tenantId).allowed);
   if (foreign.length > 0) {
     return Object.freeze({ state: "INVALID", reason: "INVALID_CROSS_TENANT", subject: null, edges: [], candidates: cands.map(refLabel), detail: `candidate(s) from another tenant: ${foreign.map(refLabel).join(", ")}` });
   }

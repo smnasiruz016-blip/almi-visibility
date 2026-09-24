@@ -23,7 +23,9 @@ import { diagnosticGuardSink } from "../governance/guard-audit.mjs";
 import { governedGuardSink } from "../governance/governed-run.mjs";
 import { isoSeconds } from "../audit-trail/store.mjs";
 import { subjectRoots, availableSubjects, importSubjectModule } from "../subject-roots.mjs";
-import { factRegistryRef } from "../adapter/external-subject.mjs";
+import { factRegistryRef } from "./refs.mjs";
+import { batchJsonlFiles } from "../crawl/observation-batch.mjs";
+import { createJsonlStore } from "../evidence/store.mjs";
 
 export const TENANT_ARG = "tenant";
 /** The exit code of a run refused on tenant scope — distinct from a check failure (1) and a usage error (2). */
@@ -39,13 +41,15 @@ export function requestedTenant(argv = process.argv) {
 export const RESOURCES = Object.freeze({
   siteOrigin: (origin) => ({ label: "site origin", resourceKind: "SITE_ORIGIN", resourceRef: origin, scopeClass: "TENANT" }),
   factRegistry: (ref) => ({ label: "fact registry", resourceKind: ref ? "FACT_REGISTRY" : null, resourceRef: ref?.resourceRef ?? "unresolvable-registry", scopeClass: "TENANT" }),
-  crawlBatch: (batchId) => ({ label: "observation batch", resourceKind: "CRAWL_BATCH", resourceRef: batchId, scopeClass: "TENANT" }),
-  sitemapCollection: (batchId) => ({ label: "sitemap collection", resourceKind: "SITEMAP_COLLECTION", resourceRef: batchId, scopeClass: "TENANT" }),
-  evidenceStore: (name = "evidence-store") => ({ label: "evidence store", resourceKind: null, resourceRef: name, scopeClass: "TENANT" }),
-  costLedger: (name = "cost-ledger") => ({ label: "cost ledger", resourceKind: null, resourceRef: name, scopeClass: "TENANT" }),
-  cache: (name) => ({ label: "cache", resourceKind: null, resourceRef: name, scopeClass: "TENANT" }),
-  captures: (name = "page-capture-set") => ({ label: "page captures", resourceKind: null, resourceRef: name, scopeClass: "TENANT" }),
-  research: (name = "research-batch-set") => ({ label: "research batch", resourceKind: null, resourceRef: name, scopeClass: "TENANT" }),
+  /* A container names its MEMBERS' identities (a page's origin, a listed URL's origin), read from stored identity fields
+   * only — never a body — so the one decision can see an item that is declared to another tenant (src/tenancy/scope.mjs). */
+  crawlBatch: (batchId, { env = process.env } = {}) => ({ label: "observation batch", resourceKind: "CRAWL_BATCH", resourceRef: batchId, scopeClass: "TENANT", members: memberOrigins(() => batchPageUrls(batchId, env)) }),
+  sitemapCollection: (batchId, { env = process.env } = {}) => ({ label: "sitemap collection", resourceKind: "SITEMAP_COLLECTION", resourceRef: batchId, scopeClass: "TENANT", members: memberOrigins(() => sitemapListedUrls(batchId, env)) }),
+  evidenceStore: (name = "evidence-store") => ({ label: "evidence store", resourceKind: "EVIDENCE_STORE", resourceRef: name, scopeClass: "TENANT" }),
+  costLedger: (name = "cost-ledger") => ({ label: "cost ledger", resourceKind: "COST_LEDGER", resourceRef: name, scopeClass: "TENANT" }),
+  cache: (name) => ({ label: "cache", resourceKind: "CACHE_STORE", resourceRef: name, scopeClass: "TENANT" }),
+  captures: (name = "page-capture-set") => ({ label: "page captures", resourceKind: "CAPTURE_SET", resourceRef: name, scopeClass: "TENANT" }),
+  research: (name = "research-batch-set") => ({ label: "research batch", resourceKind: "RESEARCH_BATCH", resourceRef: name, scopeClass: "TENANT" }),
   operatorDirectory: (name = "operator-chosen directory") => ({ label: "operator-chosen directory", resourceKind: null, resourceRef: name, scopeClass: "TENANT" }),
   productDescriptor: (name) => ({ label: "product descriptor", resourceKind: null, resourceRef: name, scopeClass: "TENANT" }),
   runArtefacts: (name = "run-artefact-set") => ({ label: "run artefacts", resourceKind: null, resourceRef: name, scopeClass: "TENANT" }),
@@ -58,6 +62,17 @@ export const RESOURCES = Object.freeze({
     return { label: "fact registry", resourceKind: ref ? "FACT_REGISTRY" : null, resourceRef: ref?.resourceRef ?? "registry-outside-every-declared-root", scopeClass: "TENANT" };
   },
 });
+
+/** Distinct SITE_ORIGIN members from identity URLs. An unreadable container yields one UNKNOWN-making member, never []. */
+function memberOrigins(urlsOf) {
+  let urls;
+  try { urls = urlsOf(); } catch { return [{ resourceKind: "SITE_ORIGIN", resourceRef: "\u0000container-members-unreadable" }]; }
+  const origins = new Set();
+  for (const u of urls) { try { origins.add(new URL(u).origin); } catch { /* an unparseable identity is not an origin claim */ } }
+  return [...origins].sort().map((o) => ({ resourceKind: "SITE_ORIGIN", resourceRef: o }));
+}
+const batchPageUrls = (batchId, env) => batchJsonlFiles({ batchId, env }).flatMap((f) => createJsonlStore(f.path ?? f).readAll()).filter((r) => r.record_type === "page").map((r) => r.canonical_url);
+const sitemapListedUrls = (batchId, env) => batchJsonlFiles({ batchId, env }).flatMap((f) => createJsonlStore(f.path ?? f).readAll()).flatMap((r) => r.value?.urls ?? []);
 
 /** Every declared subject's fact registry, each located by its descriptor's factsDir (for runs that read them all). */
 export async function everySubjectRegistry({ env = process.env } = {}) {

@@ -16,8 +16,9 @@ import { evidenceEdge, bindSubject, effectiveOutcome, edgeFault, EDGE_TYPES } fr
 import { runDetectors, DETECTORS } from "../src/detect/run.mjs";
 import { finding, clean, unknown, notApplicable } from "../src/detect/outcome.mjs";
 
-const ALPHA = "tenant-alpha";
-const BETA = "tenant-beta";
+/* F02: a tenant id is a DECLARED id of fixed shape — the one decision refuses any other shape as INVALID. */
+const ALPHA = `tenant:${"a1".repeat(16)}`;
+const BETA = `tenant:${"b2".repeat(16)}`;
 const RUN_AT = "2026-09-20T00:00:00.000Z";
 
 const page = (tenant, id) => subjectRef({ type: "PAGE", tenantId: tenant, identityKind: "CANONICAL_URL", identity: id, locator: id });

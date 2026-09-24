@@ -29,6 +29,8 @@
  * Only BOUND carries a subject, and it names no product.
  */
 
+import { resolveSide, decideSides } from "./scope.mjs";
+
 export const BINDINGS = Object.freeze(["BOUND", "INVALID_CROSS_TENANT", "UNBOUND", "AMBIGUOUS", "REFUSED", "INVALID", "UNKNOWN"]);
 
 /** The bases a reference may NOT rest on. A reference is read from a stored field, never derived from a name. */
@@ -60,14 +62,20 @@ export function bindResources(resolve, a, b) {
   if (a.evidenceClass !== b.evidenceClass) {
     return result("INVALID", null, `a ${a.evidenceClass} resource and a ${b.evidenceClass} resource are mixed — a fixture never exchanges evidence with a real subject`);
   }
-  const ra = resolve({ resourceKind: a.resourceKind, resourceRef: a.resourceRef });
-  const rb = resolve({ resourceKind: b.resourceKind, resourceRef: b.resourceRef });
-  const states = [ra?.state, rb?.state];
-  if (states.includes("UNKNOWN")) return result("UNKNOWN", null, "the declaration source could not be read — could not look is not unbound", ra, rb);
-  if (states.includes("INVALID")) return result("INVALID", null, "a declaration is malformed or attaches a resource to a scope that is not declared", ra, rb);
-  if (states.includes("AMBIGUOUS")) return result("AMBIGUOUS", null, "a resource is attached to more than one subject — never resolved by order or recency", ra, rb);
-  if (states.includes("UNDECLARED") || states.some((s) => s !== "RESOLVED")) return result("UNBOUND", null, "a resource has no declaration attaching it to a subject", ra, rb);
-  if (typeof ra.tenantId !== "string" || typeof rb.tenantId !== "string") return result("INVALID", null, "a RESOLVED answer carried no subject", ra, rb);
-  if (ra.tenantId !== rb.tenantId) return result("INVALID_CROSS_TENANT", null, "the two resources are declared to different subjects — cross-tenant evidence is INVALID, never UNKNOWN and never a pass", ra, rb);
-  return result("BOUND", ra.tenantId, "both resources are explicitly declared to the same subject", ra, rb);
+  /* 🔴 F02 (24 Sep 2026): the tenancy decision is the ONE decision in ./scope.mjs — this function no longer compares
+   * tenants itself. It maps that decision's outcome onto this module's vocabulary and keeps the two checks above, which
+   * are about the INPUT (an inferred identity; a fixture mixed with a real resource), not about tenancy. */
+  const sa = resolveSide(resolve, { ...a, scopeClass: "TENANT" });
+  const sb = resolveSide(resolve, { ...b, scopeClass: "TENANT" });
+  const d = decideSides(sa, sb);
+  const [pa, pb] = [d.source, d.target];
+  switch (d.outcome) {
+    case "UNKNOWN_REFUSED": return result("UNKNOWN", null, "the declaration source could not be read — could not look is not unbound", pa, pb);
+    case "INVALID_REFUSED": return result("INVALID", null, "a declaration is malformed or attaches a resource to a scope that is not declared", pa, pb);
+    case "AMBIGUOUS_REFUSED": return result("AMBIGUOUS", null, "a resource is attached to more than one subject — never resolved by order or recency", pa, pb);
+    case "UNDECLARED_REFUSED": return result("UNBOUND", null, "a resource has no declaration attaching it to a subject", pa, pb);
+    case "CROSS_TENANT_REFUSED": return result("INVALID_CROSS_TENANT", null, "the two resources are declared to different subjects — cross-tenant evidence is INVALID, never UNKNOWN and never a pass", pa, pb);
+    case "SAME_TENANT_ALLOWED": return result("BOUND", sa.tenantId, "both resources are explicitly declared to the same subject", pa, pb);
+    default: return result("INVALID", null, `the scope decision returned ${d.outcome} — never read as bound`, pa, pb);
+  }
 }

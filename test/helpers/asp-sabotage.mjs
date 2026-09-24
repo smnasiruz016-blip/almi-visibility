@@ -44,7 +44,9 @@ export const ASP_SABOTAGES = [
 
   { id: "S2", what: "the proof accepts a call to a caller-supplied function", file: VER, test: T, named: "ASP-C6 · every real non-audit writer",
     from: "      if (params.includes(callee)) { faults.push(`CALLS_CALLER_SUPPLIED_FUNCTION",
-    to: "      if (false) { faults.push(`CALLS_CALLER_SUPPLIED_FUNCTION",
+    /* The defect must ACCEPT the callback, not merely stop naming it: with the rule only switched off, the call still
+     * fails as UNRESOLVED_CALL and nothing changes (the first design of this sabotage, 24 Sep 2026 — it did not land). */
+    to: "      if (params.includes(callee)) continue; if (false) { faults.push(`CALLS_CALLER_SUPPLIED_FUNCTION",
     probe: probe(`say(V.verifyAuditStorePrimitive({ name: "readHeldOutItem", module: LIFE }).verified);`),
     expect: /(readHeldOutItem|createPaidProviderGate) passed the audit-store-only proof/ },
 

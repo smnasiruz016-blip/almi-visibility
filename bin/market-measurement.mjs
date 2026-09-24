@@ -11,11 +11,12 @@ import { fileURLToPath } from "node:url";
 
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { measureMarket, marketErrors, DEFERRED } from "../src/discovery/market-measurement.mjs";
-import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 const REPO = dirname(dirname(fileURLToPath(import.meta.url)));
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/market-measurement.mjs", governed: false, repoUrl: import.meta.url, resources: [RESOURCES.evidenceStore()] });
+const SCOPE = scopedEntryPoint({ entry: "bin/market-measurement.mjs", governed: false, resources: [RESOURCES.evidenceStore()] });
 const storeRecords = createJsonlStore(join(REPO, "runs", "evidence", "evidence.jsonl")).readAll();
 const result = measureMarket(storeRecords);
 

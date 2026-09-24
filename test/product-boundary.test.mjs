@@ -4,7 +4,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 
-import { PRODUCT_WORDS, commentMask, scanSource, distinctLines } from "../tools/product-boundary.mjs";
+import { PRODUCT_WORDS, commentMask, scanSource, distinctLines, neutralityCensus, SHARED_SCOPE, PINNED_HISTORICAL_LINES } from "../tools/product-boundary.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const SRC_DIR = join(REPO, "src");
@@ -100,69 +100,51 @@ test("scanner: case is ignored — NMCN and AHPRA are the same breach as nmc and
 
 /* ------------------------------------------------------------------ *
  * PART TWO — THE POPULATION. A LAW OVER AN EMPTY SET IS NOT A LAW.
+ *
+ * 🔴 F02 (24 Sep 2026): the population is the SHARED ENGINE — src/, bin/ AND config/. It used to be src/ alone, and that
+ * is how one client's hosts, regulators and private paths sat in bin/ and config/ where nothing looked.
  * ------------------------------------------------------------------ */
 
-test("population: every tracked file under src/ is scanned — nothing is skipped", () => {
-  const tracked = execFileSync("git", ["ls-files", "src"], { cwd: REPO, encoding: "utf8" })
-    .split("\n")
-    .filter((p) => p.endsWith(".mjs"))
-    .sort();
+test("population: every tracked file under src/, bin/ and config/ is scanned — nothing is skipped", async () => {
+  const tracked = execFileSync("git", ["ls-files", ...SHARED_SCOPE], { cwd: REPO, encoding: "utf8" }).split("\n").filter((p) => p.endsWith(".mjs")).sort();
   assert.ok(tracked.length > 0, "git reported no tracked sources — the control itself is broken");
+  for (const d of SHARED_SCOPE) assert.ok(tracked.some((f) => f.startsWith(`${d}/`)), `the population holds nothing under ${d}/ — the law would not reach it`);
+  const r = await neutralityCensus({ repo: REPO });
+  assert.deepEqual(r.files, tracked);
+  /* the walk of src/ still agrees with git for the directory that had it */
+  const scanned = sourceFiles(SRC_DIR).map((f) => "src/" + f.replace(/\\/g, "/").split("/src/")[1]).sort();
+  assert.deepEqual(scanned, tracked.filter((f) => f.startsWith("src/")));
+});
 
-  const scanned = sourceFiles(SRC_DIR)
-    .map((f) => "src/" + f.replace(/\\/g, "/").split("/src/")[1])
-    .sort();
-
-  // 🔴 git is an INDEPENDENT census of the population. If the walk ever grows a
-  // skip list, an ignore rule or a silent try/catch, these two disagree here
-  // rather than quietly shrinking the set the law is enforced over.
-  assert.deepEqual(scanned, tracked);
+test("population: the vocabulary is DECLARED by subject packages, and is not empty", () => {
+  assert.ok(PRODUCT_WORDS.length > 0, "no subject package declares a vocabulary — every scan would pass vacuously");
 });
 
 /* ------------------------------------------------------------------ *
  * PART THREE — THE LAW.
  * ------------------------------------------------------------------ */
 
-test("🔴 src/ NAMES NO PRODUCT IN CODE — AlmiVisibility is the system, not AlmiOET", () => {
-  const files = sourceFiles(SRC_DIR);
-  assert.ok(files.length > 0, "found no source files to check — the law would be vacuous");
+test("🔴 THE SHARED ENGINE NAMES NO CLIENT IN CODE — src/, bin/ and config/, one pinned historical line", async () => {
+  const r = await neutralityCensus({ repo: REPO });
+  assert.ok(r.files.length > 0, "found no source files to check — the law would be vacuous");
+  assert.deepEqual(r.stale.map((s) => s.file), [], "a pinned historical line no longer matches — the pin outlived its reason");
+  assert.deepEqual(r.pinned.map((x) => x.file), PINNED_HISTORICAL_LINES.map((x) => x.file));
+  if (r.breaches.length === 0) return;
+  assert.fail([
+    "",
+    `the shared engine names a client in CODE on ${r.breaches.length} line(s).`,
+    `Comments naming a client: ${r.commentLines} lines — those are DOCUMENTATION and are allowed.`,
+    "Subject knowledge belongs in its subject package (subjects/<id>/), handed to the engine through a declaration.",
+    "",
+    ...r.breaches.slice(0, 20).map((b) => `  ${b.file}:${b.line} [${b.word}] ${b.text.slice(0, 96)}`),
+    "",
+  ].join("\n"));
+});
 
-  const breaches = [];
-  let commentLines = 0;
-  for (const file of files) {
-    const src = readFileSync(file, "utf8");
-    const { code, comment } = scanSource(src);
-    commentLines += distinctLines(comment);
-    if (code.length > 0) breaches.push({ file, code });
-  }
-
-  if (breaches.length === 0) return;
-
-  const total = breaches.reduce((n, b) => n + b.code.length, 0);
-  const lines = breaches.reduce((n, b) => n + distinctLines(b.code), 0);
-  const report = breaches
-    .map((b) => {
-      const rel = b.file.replace(/\\/g, "/").split("/src/")[1];
-      const byLine = new Map();
-      for (const o of b.code) if (!byLine.has(o.line)) byLine.set(o.line, o.text);
-      const rows = [...byLine.entries()];
-      const shown = rows.slice(0, 6).map(([line, text]) => `      ${line}: ${text.slice(0, 96)}`);
-      const more = rows.length > 6 ? [`      … and ${rows.length - 6} more lines`] : [];
-      return [`  src/${rel} — ${distinctLines(b.code)} code lines`, ...shown, ...more].join("\n");
-    })
-    .join("\n");
-
-  assert.fail(
-    [
-      "",
-      `src/ names a product in CODE on ${lines} lines (${total} occurrences).`,
-      `Comments naming a product: ${commentLines} lines — those are DOCUMENTATION and are allowed.`,
-      "",
-      "The system may not know which product it is serving. Move the knowledge into",
-      "products/<product>/ and hand it to the engine as a descriptor.",
-      "",
-      report,
-      "",
-    ].join("\n"),
-  );
+test("🔴 CONTROL — the same census SEES a client host planted in a real shared file, and an edit to the pinned line", async () => {
+  const real = (f) => readFileSync(join(REPO, f), "utf8");
+  const planted = await neutralityCensus({ repo: REPO, read: (f) => (f === "bin/facts.mjs" ? `${real(f)}\nconst h = "x.${PRODUCT_WORDS.find((w) => w.includes(".")) ?? PRODUCT_WORDS[0]}";\n` : real(f)) });
+  assert.equal(planted.breaches.length, 1, "a planted client term in bin/ was not seen");
+  const edited = await neutralityCensus({ repo: REPO, read: (f) => (f === PINNED_HISTORICAL_LINES[0].file ? real(f).replace("node bin/gsc-dimensions.mjs", "node bin/gsc-dimensions.mjs --edited") : real(f)) });
+  assert.deepEqual([edited.breaches.length, edited.stale.length], [1, 1], "editing the pinned line did not un-pin it");
 });

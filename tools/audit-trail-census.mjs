@@ -242,7 +242,7 @@ for (const p of changed) console.log(`  ${p}`);
   if (acc.contractSha256 !== RECORDED_CONTRACT_SHA) faults.push("CONTRACT_SHA_MOVED");
   if (contractSha256(acc) !== RECORDED_CONTRACT_SHA) faults.push("ACCEPTANCE_TAMPERED");
   const govBytes = (() => {
-    try { return execFileSync("git", ["-C", "C:/Projects/_handoffs", "show", `${acc.ruling.commit}:${acc.ruling.path}`], { encoding: "utf8", maxBuffer: 1 << 28 }); }
+    try { return execFileSync("git", ["-C", join(REPO, "..", "_handoffs"), "show", `${acc.ruling.commit}:${acc.ruling.path}`], { encoding: "utf8", maxBuffer: 1 << 28 }); }
     catch { return null; }
   })();
   if (govBytes === null) faults.push("GOVERNANCE_BYTES_UNREADABLE");

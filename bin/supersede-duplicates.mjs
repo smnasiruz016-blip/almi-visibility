@@ -28,7 +28,8 @@ import { governedStoreAppend } from "../src/governance/governed-run.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { duplicateCensus, DUPLICATE_SUPERSEDED_TYPE } from "../src/evidence/lifecycle.mjs";
-import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const AUDIT = confineToRepo(`${REPO}runs/audit`, { label: "the audit stores" });
@@ -37,7 +38,7 @@ const now = new Date().toISOString();
 const RUN_INSTANT = isoSeconds(Date.now());
 const RUN_CORRELATION = `run:supersede-duplicates:${RUN_INSTANT}`;
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/supersede-duplicates.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.runArtefacts("audit finding stores")] });
+const SCOPE = scopedEntryPoint({ entry: "bin/supersede-duplicates.mjs", governed: true, resources: [RESOURCES.runArtefacts("audit finding stores")] });
 
 console.log("ITEM 48 — SUPERSEDE DUPLICATE ISSUE COPIES");
 let totalNotes = 0;

@@ -31,7 +31,8 @@ import { writePermission, announceWritePermission, LOCAL } from "../src/write-la
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedFileWrite } from "../src/governance/governed-run.mjs";
 import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
-import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 const argv = process.argv.slice(2);
 const flag = (n, d = null) => {
@@ -44,7 +45,7 @@ const permission = announceWritePermission(writePermission({ target: LOCAL, argv
 const FREEZE_INSTANT = governedInstant(Date.now());
 const FREEZE_CORRELATION = `run:freeze-exhibit:${FREEZE_INSTANT}`;
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/freeze-exhibit.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.operatorDirectory("--spec")] });
+const SCOPE = scopedEntryPoint({ entry: "bin/freeze-exhibit.mjs", governed: true, resources: [RESOURCES.operatorDirectory("--spec")] });
 /* One governed write per target. The bare mkdirs are gone: each write's prepare step creates its directory. A
  * Buffer is hashed RAW and a string by the text rule — the rule is chosen by what is handed in, never assumed. */
 const freezeWrite = (target, bytes, action) => {

@@ -22,15 +22,16 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
-import { createJsonlStore } from "../src/evidence/store.mjs";
-import { makeObservation, makeIssue } from "../src/evidence/records.mjs";
-import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
-import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
-import { governedStoreAppend } from "../src/governance/governed-run.mjs";
-import { isoSeconds } from "../src/audit-trail/store.mjs";
-import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { createJsonlStore } from "../../../src/evidence/store.mjs";
+import { makeObservation, makeIssue } from "../../../src/evidence/records.mjs";
+import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../../../src/write-law.mjs";
+import { executeGovernedWrite } from "../../../src/governance/governed-write.mjs";
+import { governedStoreAppend } from "../../../src/governance/governed-run.mjs";
+import { isoSeconds } from "../../../src/audit-trail/store.mjs";
+import { scopedEntryPoint } from "../../../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../../../src/tenancy/scoped-run.mjs";
 
-const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+const REPO = new URL("../../../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n, d) => {
   const hit = process.argv.find((a) => a.startsWith(`--${n}=`));
   return hit ? hit.slice(n.length + 3) : d;
@@ -42,7 +43,7 @@ const OUT = confineToRepo(arg("out", `${REPO}runs/audit/verification-issues.json
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
 const wouldWrite = { observations: 0, issues: 0 };
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/verification-issues.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.operatorDirectory("--csv"), RESOURCES.runArtefacts("verification issue store")] });
+const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/verification-issues.mjs", governed: true, resources: [RESOURCES.operatorDirectory("--csv"), RESOURCES.runArtefacts("verification issue store")] });
 const CHECKED_ON = "2026-09-12";
 const VERIFIER = "human:beta-g (Cowork)";
 

@@ -32,11 +32,12 @@
  */
 import { mkdirSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
-import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
-import { governedFileWrite } from "../src/governance/governed-run.mjs";
-import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
-import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../../../src/write-law.mjs";
+import { executeGovernedWrite } from "../../../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../../../src/governance/governed-run.mjs";
+import { isoSeconds as governedInstant } from "../../../src/audit-trail/store.mjs";
+import { scopedEntryPoint } from "../../../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../../../src/tenancy/scoped-run.mjs";
 
 const argv = process.argv.slice(2);
 const flag = (n, d = null) => {
@@ -57,7 +58,7 @@ const permission = announceWritePermission(writePermission({ target: LOCAL, argv
 const CORPUS_INSTANT = governedInstant(Date.now());
 const CORPUS_CORRELATION = `run:build-corpus:${CORPUS_INSTANT}`;
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/build-corpus.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.siteOrigin(SITE)] });
+const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/build-corpus.mjs", governed: true, resources: [RESOURCES.siteOrigin(SITE)] });
 if (!OUT) {
   console.error("usage: node bin/build-corpus.mjs --site <url> --out <dir> --confirm [--leaf-sample 500] [--seed N]");
   process.exit(2);
@@ -199,6 +200,7 @@ const manifest = {
   groups: Object.fromEntries(Object.entries(groups).map(([k, v]) => [k, v.length])),
   leafStrata: strata.size,
   leafSampled: leafSample.length,
+  leafGroup: "profession-origin-org",
   sampledUrls: leafSample,
   fetched, failed, requests,
   wallClockSeconds: Number(seconds.toFixed(1)),

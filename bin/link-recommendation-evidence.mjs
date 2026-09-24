@@ -22,7 +22,8 @@ import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedStoreAppend } from "../src/governance/governed-run.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
-import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv.slice(2), env: process.env }));
@@ -33,7 +34,7 @@ const permission = announceWritePermission(writePermission({ target: LOCAL, argv
 const storeArg = process.argv.slice(2).find((a) => a.startsWith("--store="))?.slice("--store=".length);
 const REC_STORE = confineToRepo(storeArg ?? `${REPO}runs/audit/recommendations.jsonl`, { label: storeArg === undefined ? "the recommendations store" : "--store" });
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/link-recommendation-evidence.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.runArtefacts("recommendation and finding stores")] });
+const SCOPE = scopedEntryPoint({ entry: "bin/link-recommendation-evidence.mjs", governed: true, resources: [RESOURCES.runArtefacts("recommendation and finding stores")] });
 const read = (p) => (existsSync(`${REPO}${p}`) ? createJsonlStore(`${REPO}${p}`).readAll() : []);
 
 const recRecords = existsSync(REC_STORE) ? createJsonlStore(REC_STORE).readAll() : [];

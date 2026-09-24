@@ -75,6 +75,6 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1].rep
   const r = forbiddenTextCensus();
   console.log(`FORBIDDEN-TEXT CENSUS [bound: ${r.scanned} tracked text files · ${r.phrases} phrases held as hashes only]`);
   for (const h of r.hits) console.log(`  🔴 ${h.file} at word ${h.wordIndex} — ${h.what}`);
-  console.log(r.hits.length ? `\n🔴 ${r.hits.length} occurrence(s) of stored OET wording` : "\n✅ no occurrence of the OET wording this repository had quoted");
+  console.log(r.hits.length ? `\n🔴 ${r.hits.length} occurrence(s) of stored subject wording` : "\n✅ no occurrence of the subject wording this repository had quoted");
   process.exit(r.hits.length ? 1 : 0);
 }

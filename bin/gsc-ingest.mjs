@@ -36,12 +36,12 @@ import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedStoreAppend } from "../src/governance/governed-run.mjs";
 import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { formatBoundedResult } from "../src/report/bounded.mjs";
-import { ESTATE_HOSTNAME_LIST, KNOWN_UNKNOWNS } from "../config/estate-hostnames.mjs";
 import { createCostGovernor } from "../src/cost/governor.mjs";
 import { createCostLedger, entryFromLiveIngest, formatLedgerLine } from "../src/cost/ledger.mjs";
 import { readFileSync } from "node:fs";
 import { isAbsolute, join, relative } from "node:path";
-import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES, declaredSiteHosts } from "../src/tenancy/scoped-run.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (name, fallback = null) => {
@@ -52,7 +52,9 @@ const arg = (name, fallback = null) => {
 const propertyId = arg("property");
 const days = Number(arg("days", "28"));
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/gsc-ingest.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.runArtefacts("--spec and --store")] });
+const SCOPE = scopedEntryPoint({ entry: "bin/gsc-ingest.mjs", governed: true, resources: [RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.runArtefacts("--spec and --store")] });
+/* F02: this run's hosts are the site origins DECLARED to its tenant — no estate list in shared code (relocated, 24 Sep 2026). */
+const DECLARED_HOSTS = declaredSiteHosts({ tenantId: SCOPE.tenantId });
 /* 🔴 GAP 2 (16 September 2026) — the evidence store and the cost ledger are both confined before the
  * first request, and the run is DRY BY DEFAULT: without --confirm it queries, reports every number,
  * and stores nothing. The observations are written inside `runIngest`, so the gate is WHICH STORE it
@@ -151,7 +153,7 @@ try {
     provider,
     store,
     propertyId,
-    estateHostnames: ESTATE_HOSTNAME_LIST,
+    estateHostnames: DECLARED_HOSTS,
     days,
     controlProperty,
   });
@@ -296,7 +298,7 @@ if (!permission.mayWrite) {
   console.log(`[synthetic source] wrote ${r.appended} evidence record(s) → ${storePath} — the cost ledger was not written`);
 }
 
-console.log("\n⚠️ KNOWN UNKNOWNS — the census denominator is not proven total:");
-for (const u of KNOWN_UNKNOWNS) console.log(`  · ${u}`);
+/* The estate-specific KNOWN UNKNOWNS moved with the estate's host inventory to its subject package (F02 relocation). */
+console.log("\n⚠️ KNOWN UNKNOWNS — the census denominator is the declared site origins of this tenant, not proven total: an undeclared host is outside it.");
 
 process.exit(r.control.httpStatus === 403 ? 0 : 1);

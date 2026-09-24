@@ -381,7 +381,7 @@ export function importsOf(file, text) {
 export function writeSiteCensus({ repo = REPO, sources = null, register = [...PERMITTED_PAGE_WRITERS, ...PERMITTED_LOCAL_WRITERS], knownUngated = KNOWN_UNGATED_WRITERS } = {}) {
   const files = sources
     ? sources.map((s) => s.file)
-    : [...new Set(execFileSync("git", ["ls-files", "src", "bin", "tools"], { cwd: repo, encoding: "utf8" }).split("\n").filter((p) => p.endsWith(".mjs")))].sort();
+    : [...new Set(execFileSync("git", ["ls-files", "src", "bin", "tools", "subjects"], { cwd: repo, encoding: "utf8" }).split("\n").filter((p) => p.endsWith(".mjs")))].sort();
   const textOf = (f) => (sources ? sources.find((s) => s.file === f)?.text ?? "" : readFileSync(repo + f, "utf8"));
   const texts = new Map(files.map((f) => [f, textOf(f)]));
 

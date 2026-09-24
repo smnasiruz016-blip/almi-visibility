@@ -48,9 +48,10 @@ import { replayEntriesFrom, runReplayPass, comparePasses } from "../src/crawl/re
 import { retestChange, headFacts, titleCountsOf } from "../src/audit/retest.mjs";
 import { runRobotsAndDnsAudit } from "../src/audit/run-audit.mjs";
 import { createCostLedger, entryFromReplay, entryFromArtifactRecovery, formatLedgerLine } from "../src/cost/ledger.mjs";
-import { ESTATE_HOSTNAME_LIST } from "../config/estate-hostnames.mjs";
 import { batchFile } from "../src/crawl/observation-batch.mjs";
-import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES, declaredSiteHosts } from "../src/tenancy/scoped-run.mjs";
+import { loadSubjectPackage } from "../src/subject-package.mjs";
 import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -58,7 +59,11 @@ const argv = process.argv.slice(2);
 const arg = (n) => argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3) ?? null;
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv, env: process.env }));
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/replay-crawl.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.cache("robots cache"), RESOURCES.runArtefacts("replay corpus")] });
+const SCOPE = scopedEntryPoint({ entry: "bin/replay-crawl.mjs", governed: true, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.cache("robots cache"), RESOURCES.runArtefacts("replay corpus")] });
+/* F02 relocation: the real pages the five named changes are applied to belong to a declared subject package (--subject). */
+const { REPLAY_TARGETS } = (await loadSubjectPackage(process.argv.find((a) => a.startsWith("--subject="))?.slice("--subject=".length))).module;
+/* F02: this run's hosts are the site origins DECLARED to its tenant — no estate list in shared code (relocated, 24 Sep 2026). */
+const DECLARED_HOSTS = declaredSiteHosts({ tenantId: SCOPE.tenantId });
 
 const RUN_ID = "34662527129";
 const ARTIFACT = `crawl-corpus-${RUN_ID}`;
@@ -88,35 +93,35 @@ const readJsonl = (p) => (existsSync(p) ? createJsonlStore(p).readAll() : []);
 const CHANGES = [
   {
     id: "C1", kind: "NOINDEX_REMOVED",
-    url: "https://almicv.almiworld.com/cv-guide/andorra/housekeeper", observation_id: "7694a4810a7658a2",
+    ...REPLAY_TARGETS.C1,
     transform: (h) => h.replace(/(<meta\b[^>]*name\s*=\s*["']robots["'][^>]*content\s*=\s*["'])([^"']*)/gi, (m, a, c) => a + c.split(",").map((s) => s.trim()).filter((t) => t.toLowerCase() !== "noindex").join(", ")),
     validate: (b, a) => b.noindexed === true && a.noindexed === false,
     checks: [{ check: "noindex", expectBefore: "FAIL", expectAfter: "PASS" }],
   },
   {
     id: "C2", kind: "NOINDEX_ADDED",
-    url: "https://almicv.almiworld.com/cv-guide/ghana/audiologist", observation_id: "47fb3ad24283313c",
+    ...REPLAY_TARGETS.C2,
     transform: (h) => h.replace(/<head([^>]*)>/i, '<head$1><meta name="robots" content="noindex">'),
     validate: (b, a) => b.noindexed === false && a.noindexed === true,
     checks: [{ check: "noindex", expectBefore: "PASS", expectAfter: "FAIL" }],
   },
   {
     id: "C3", kind: "CANONICAL_REMOVED",
-    url: "https://almicv.almiworld.com/cv-guide/india/internal-medicine-doctor", observation_id: "99eaea6e9c6d1d3a",
+    ...REPLAY_TARGETS.C3,
     transform: (h) => h.replace(/<link\b[^>]*rel\s*=\s*["']canonical["'][^>]*>/gi, ""),
     validate: (b, a) => Boolean(b.canonical) && !a.canonical,
     checks: [{ check: "canonical", expectBefore: "PASS", expectAfter: "FAIL", expectSummaryIncludes: "no rel=canonical" }],
   },
   {
     id: "C4", kind: "TITLE_REMOVED",
-    url: "https://almicv.almiworld.com/cv-guide/india/primary-school-teacher", observation_id: "63eeeafa8bf8cf34",
+    ...REPLAY_TARGETS.C4,
     transform: (h) => h.replace(/<title[^>]*>[\s\S]*?<\/title>/i, ""),
     validate: (b, a) => Boolean(b.title) && !a.title,
     checks: [{ check: "head-elements", expectAfter: "FAIL", expectSummaryIncludes: "no <title>" }],
   },
   {
     id: "C5", kind: "BODY_TEXT_ONLY_ON_A_REDIRECTED_PAGE",
-    url: "https://almiworld.com/ielts-band-6-vs-band-7-what-actually-changes", observation_id: "2e2ad6fe30837206",
+    ...REPLAY_TARGETS.C5,
     transform: (h) => h.replace(/<\/body>/i, '<p data-replay-change="C5">local replay change — body text only</p></body>'),
     validate: (b, a) => b.noindexed === a.noindexed && b.canonical === a.canonical && b.title === a.title,
     checks: [
@@ -324,7 +329,7 @@ const recordedFamiliesFor = async (host) => {
   if (!v) throw new Error(`no RECORDED resolver answer for ${host} — refusing to invent one`);
   return v;
 };
-const auditInputs = { robotsRecords, evidence: readJsonl(`${REPO}runs/evidence/evidence.jsonl`), crawl: crawlRecords, hosts: ESTATE_HOSTNAME_LIST, familiesFor: recordedFamiliesFor };
+const auditInputs = { robotsRecords, evidence: readJsonl(`${REPO}runs/evidence/evidence.jsonl`), crawl: crawlRecords, hosts: DECLARED_HOSTS, familiesFor: recordedFamiliesFor };
 const audit1 = await runRobotsAndDnsAudit({ store: auditStore, ...auditInputs, openedAt: new Date().toISOString() });
 const audit2 = await runRobotsAndDnsAudit({ store: auditStore, ...auditInputs, openedAt: new Date().toISOString() });
 must(audit1.writes.appended > 0, "the recorded-DNS audit wrote nothing on its first run — the double run would be vacuous");

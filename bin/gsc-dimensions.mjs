@@ -20,12 +20,13 @@ import { existsSync } from "node:fs";
 
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { dimensionCensus, item9Verdict, PASS_DIMENSIONS } from "../src/search/dimensions.mjs";
-import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n, d) => process.argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3) ?? d;
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/gsc-dimensions.mjs", governed: false, repoUrl: import.meta.url, resources: [RESOURCES.evidenceStore(), RESOURCES.runArtefacts("--store")] });
+const SCOPE = scopedEntryPoint({ entry: "bin/gsc-dimensions.mjs", governed: false, resources: [RESOURCES.evidenceStore(), RESOURCES.runArtefacts("--store")] });
 const storePath = arg("store", `${REPO}runs/evidence/evidence.jsonl`);
 
 if (!existsSync(storePath)) {

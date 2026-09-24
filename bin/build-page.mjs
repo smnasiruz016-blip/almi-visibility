@@ -33,7 +33,8 @@ import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { selectCandidates, constructCandidates, ACCEPTED, NOT_TESTED } from "../src/page/construct.mjs";
 import { productFromArgvOrExit } from "../src/product-cli.mjs";
-import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 /**
  * 🔴 THE ONE AUTHORISED EXIT — EVERY EXIT FROM THIS MODULE DRAINS FIRST.
@@ -77,7 +78,7 @@ function exitAfterDrain(code) {
 const USAGE = "node bin/build-page.mjs --product=<id> (--slug=<slug> | --all-slugs) [--out=<dir> --confirm]";
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: USAGE });
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/build-page.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.factRegistryAt(PRODUCT.factsDir)] });
+const SCOPE = scopedEntryPoint({ entry: "bin/build-page.mjs", governed: true, resources: [RESOURCES.factRegistryAt(PRODUCT.factsDir)] });
 
 const argv = process.argv.slice(2);
 const flag = (name) => argv.find((a) => a.startsWith(`--${name}=`))?.split("=").slice(1).join("=") ?? null;

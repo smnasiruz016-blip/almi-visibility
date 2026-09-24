@@ -16,13 +16,18 @@ import { fileURLToPath } from "node:url";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { discoverSearchLanguage, searchLanguageErrors, heldOutRecheck, LIMITS } from "../src/discovery/search-language.mjs";
 import { keywordUrlCensus, forbiddenReferences } from "../tools/keyword-url-census.mjs";
-import { LEXICON } from "../config/discovery/intent-lexicon.mjs";
-import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { loadSubjectPackage } from "../src/subject-package.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 // the repository root from this file's own path — no URL is constructed in a consumer of the search-language module
 const REPO = dirname(dirname(fileURLToPath(import.meta.url)));
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/search-language.mjs", governed: false, repoUrl: import.meta.url, resources: [RESOURCES.evidenceStore()] });
+const SCOPE = scopedEntryPoint({ entry: "bin/search-language.mjs", governed: false, resources: [RESOURCES.evidenceStore()] });
+/* F02 relocation: the discovery configuration belongs to a declared SUBJECT PACKAGE, named by --subject (no default).
+ * The package is located, never trusted for scope: the gate above already decided every resource this run reads. */
+const SUBJECT = await loadSubjectPackage(process.argv.find((a) => a.startsWith("--subject="))?.slice("--subject=".length));
+const { LEXICON } = SUBJECT.module.INTENT_LEXICON;
 const STORE = join(REPO, "runs", "evidence", "evidence.jsonl");
 const storeRecords = createJsonlStore(STORE).readAll();
 const result = discoverSearchLanguage(storeRecords);

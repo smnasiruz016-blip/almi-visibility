@@ -41,12 +41,13 @@ import { splitView } from "../src/audit/class-split.mjs";
 import { fourWay, impressionsForClass } from "../src/audit/populations.mjs";
 import { statSync } from "node:fs";
 import { batchJsonlFiles } from "../src/crawl/observation-batch.mjs";
-import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/report.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.crawlBatch(BATCH_ID), RESOURCES.runArtefacts("run stores"), RESOURCES.factRegistryAt((await productFromArgvOrExit(process.argv, { usage: "node bin/report.mjs --product=<id> --tenant=<declared tenant>" })).factsDir)] });
+const SCOPE = scopedEntryPoint({ entry: "bin/report.mjs", governed: true, resources: [RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.crawlBatch(BATCH_ID), RESOURCES.runArtefacts("run stores"), RESOURCES.factRegistryAt((await productFromArgvOrExit(process.argv, { usage: "node bin/report.mjs --product=<id> --tenant=<declared tenant>" })).factsDir)] });
 const arg = (n, d) => {
   const hit = process.argv.find((a) => a.startsWith(`--${n}=`));
   return hit ? hit.slice(n.length + 3) : d;
@@ -112,11 +113,17 @@ const chainWalk = moved ? walkChain(moved.issue.issue_id, chainRecords) : null;
 
 /* §623 — the tier layer ordering real sources: the verified facts' citations,
  * the Search Console property this engine reads, and a drafted recommendation. */
+/** The DOMAIN-type property in the latest gsc.sites.list observation, or a named absence. */
+const recordedDomainProperty = (records) => {
+  const latest = records.filter((r) => r.method === "gsc.sites.list").sort((a, b) => String(a.observed_at).localeCompare(String(b.observed_at))).at(-1);
+  return latest?.value?.properties?.find((p) => p.propertyType === "DOMAIN")?.propertyId ?? "UNRECORDED_DOMAIN_PROPERTY";
+};
 const sourcesIn = [
   ...(evidenceRecords.some((r) => r.method === "gsc.sites.list")
     ? [makeSource({
-        source_id: "gsc-property:sc-domain:almiworld.com",
-        source_url: "sc-domain:almiworld.com",
+        /* F02: the DOMAIN property the latest recorded sites.list observation names — read from evidence, never hard-coded. */
+        source_id: `gsc-property:${recordedDomainProperty(evidenceRecords)}`,
+        source_url: recordedDomainProperty(evidenceRecords),
         source_tier: "OWNED_GSC_ANALYTICS",
         publisher: "Google Search Console (our own property)",
         retrieved_at: evidenceRecords.filter((r) => r.method === "gsc.sites.list").map((r) => r.observed_at).sort().at(-1),

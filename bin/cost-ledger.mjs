@@ -31,7 +31,8 @@ import { batchJsonlFiles } from "../src/crawl/observation-batch.mjs";
 import {
   createCostLedger, entryFromCrawlRun, ingestRunsOf, entryFromIngestRun, formatLedgerLine, coverageFailures,
 } from "../src/cost/ledger.mjs";
-import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -41,7 +42,7 @@ const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, 
  * Without it, the default ledger, exactly as before. */
 const storeArg = process.argv.slice(2).find((a) => a.startsWith("--store="))?.slice("--store=".length);
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/cost-ledger.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.costLedger(), RESOURCES.evidenceStore(), RESOURCES.crawlBatch(BATCH_ID), RESOURCES.runArtefacts("Actions run timings")] });
+const SCOPE = scopedEntryPoint({ entry: "bin/cost-ledger.mjs", governed: true, resources: [RESOURCES.costLedger(), RESOURCES.evidenceStore(), RESOURCES.crawlBatch(BATCH_ID), RESOURCES.runArtefacts("Actions run timings")] });
 const LEDGER = confineToRepo(storeArg ?? `${REPO}runs/cost/ledger.jsonl`, { label: storeArg === undefined ? "the cost ledger" : "--store" });
 const ACTIONS = confineToRepo(`${REPO}runs/cost/actions-runs.jsonl`, { label: "the Actions timing store" });
 const argv = process.argv.slice(2);

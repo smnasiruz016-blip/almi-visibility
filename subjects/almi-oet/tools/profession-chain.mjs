@@ -28,21 +28,22 @@
 import { readFileSync, existsSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
-import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
-import { governedFileWrite } from "../src/governance/governed-run.mjs";
-import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
-import { loadRegistry, toGateAFact } from "../src/facts/registry.mjs";
-import { placeClaims, isSharedAcrossVariants } from "../src/page/claim-placement.mjs";
-import { renderPage, findCopiedFacts } from "../src/page/render.mjs";
-import { runGateA, MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../src/gate-a/run.mjs";
-import { tokensWithKind } from "../src/gate-a/text-kind.mjs";
-import { tokensOf } from "../src/gate-a/tokens.mjs";
-import { shingles } from "../src/gate-a/overlap.mjs";
-import { uniqueWords } from "../src/gate-a/shell.mjs";
+import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../../../src/write-law.mjs";
+import { executeGovernedWrite } from "../../../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../../../src/governance/governed-run.mjs";
+import { isoSeconds as governedInstant } from "../../../src/audit-trail/store.mjs";
+import { loadRegistry, toGateAFact } from "../../../src/facts/registry.mjs";
+import { placeClaims, isSharedAcrossVariants } from "../../../src/page/claim-placement.mjs";
+import { renderPage, findCopiedFacts } from "../../../src/page/render.mjs";
+import { runGateA, MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../../../src/gate-a/run.mjs";
+import { tokensWithKind } from "../../../src/gate-a/text-kind.mjs";
+import { tokensOf } from "../../../src/gate-a/tokens.mjs";
+import { shingles } from "../../../src/gate-a/overlap.mjs";
+import { uniqueWords } from "../../../src/gate-a/shell.mjs";
 
-import { productFromArgvOrExit } from "../src/product-cli.mjs";
-import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { productFromArgvOrExit } from "../../../src/product-cli.mjs";
+import { scopedEntryPoint } from "../../../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../../../src/tenancy/scoped-run.mjs";
 
 /**
  * 🔴 THE PRODUCT ARRIVES AS AN ARGUMENT, NOT AS AN IMPORT.
@@ -55,7 +56,7 @@ import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
  */
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/profession-chain.mjs --product=<id> --page=<slug>" });
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/profession-chain.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.factRegistryAt(PRODUCT.factsDir), RESOURCES.cache("sibling-page cache"), RESOURCES.runArtefacts("sibling pages read from the cache directory")] });
+const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/profession-chain.mjs", governed: true, resources: [RESOURCES.factRegistryAt(PRODUCT.factsDir), RESOURCES.cache("sibling-page cache"), RESOURCES.runArtefacts("sibling pages read from the cache directory")] });
 
 const argv = process.argv.slice(2);
 const flag = (n) => argv.find((a) => a.startsWith(`--${n}=`))?.split("=").slice(1).join("=") ?? null;
@@ -70,7 +71,7 @@ if (!base) {
 }
 
 const permission = writePermission({ target: LOCAL, argv, env: process.env });
-const REPO_ROOT_FOR_GOVERNANCE = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+const REPO_ROOT_FOR_GOVERNANCE = new URL("../../../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const RUN_INSTANT = governedInstant(Date.now());
 const RUN_CORRELATION = `run:profession-chain:${RUN_INSTANT}`;
 if (outDir) announceWritePermission(permission);

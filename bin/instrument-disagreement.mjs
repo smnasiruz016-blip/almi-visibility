@@ -24,7 +24,8 @@ import { pagesFromRun, inboundOf, unpackGraph } from "../src/crawl/inbound.mjs";
 import { disagreementIssues, ISSUE_CLASS } from "../src/audit/instrument-agreement.mjs";
 import { lifecycleOf, makeIssueStateChange } from "../src/evidence/lifecycle.mjs";
 import { batchFile } from "../src/crawl/observation-batch.mjs";
-import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -38,7 +39,7 @@ const STORE = confineToRepo(storeArg ?? `${REPO}runs/audit/instrument-findings.j
 const CONTENT_RUN = `${REPO}runs/audit/item-13-26-content-run-2026-09-13.txt`;
 const TECHNICAL_RUN = `${REPO}runs/audit/item-26-technical-run-2026-09-13.txt`;
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/instrument-disagreement.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.runArtefacts("instrument findings")] });
+const SCOPE = scopedEntryPoint({ entry: "bin/instrument-disagreement.mjs", governed: true, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.runArtefacts("instrument findings")] });
 
 const crawlRecords = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll();
 const pages = pagesFromRun({ crawlRecords, bodies: readBodyArchive(batchFile("bodies-2026-09-12.jsonl.br")) });

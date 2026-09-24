@@ -19,9 +19,6 @@
  */
 import { createTenantResolver } from "./resolver.mjs";
 import { decideForTenant, scopeRefusalEvent } from "./scope.mjs";
-import { diagnosticGuardSink } from "../governance/guard-audit.mjs";
-import { governedGuardSink } from "../governance/governed-run.mjs";
-import { isoSeconds } from "../audit-trail/store.mjs";
 import { subjectRoots, availableSubjects, importSubjectModule } from "../subject-roots.mjs";
 import { factRegistryRef } from "./refs.mjs";
 import { batchJsonlFiles } from "../crawl/observation-batch.mjs";
@@ -74,6 +71,22 @@ function memberOrigins(urlsOf) {
 const batchPageUrls = (batchId, env) => batchJsonlFiles({ batchId, env }).flatMap((f) => createJsonlStore(f.path ?? f).readAll()).filter((r) => r.record_type === "page").map((r) => r.canonical_url);
 const sitemapListedUrls = (batchId, env) => batchJsonlFiles({ batchId, env }).flatMap((f) => createJsonlStore(f.path ?? f).readAll()).flatMap((r) => r.value?.urls ?? []);
 
+/**
+ * The hosts a run may touch: the SITE_ORIGIN attachments DECLARED to the tenant it runs for, each decided by the one
+ * decision. This replaced a hand-written list of one estate's hostnames (relocated to its subject package, F02 24 Sep
+ * 2026): a run's reach is what its tenant's declarations say, never a list in shared code. No tenant, no host.
+ */
+export function declaredSiteHosts({ tenantId, resolve = createTenantResolver() } = {}) {
+  if (typeof tenantId !== "string" || !resolve.declarations?.readable) return [];
+  const hosts = new Set();
+  for (const a of resolve.declarations.attachments) {
+    if (a?.resourceKind !== "SITE_ORIGIN" || typeof a.resourceRef !== "string") continue;
+    if (!decideForTenant(resolve, tenantId, RESOURCES.siteOrigin(a.resourceRef)).allowed) continue;
+    try { hosts.add(new URL(a.resourceRef).hostname); } catch { /* a malformed origin is no host */ }
+  }
+  return [...hosts].sort();
+}
+
 /** Every declared subject's fact registry, each located by its descriptor's factsDir (for runs that read them all). */
 export async function everySubjectRegistry({ env = process.env } = {}) {
   const out = [];
@@ -87,48 +100,16 @@ export async function everySubjectRegistry({ env = process.env } = {}) {
 }
 
 /**
- * Decide every resource of a run against the requested tenant, emit each refusal to the sink, and report.
- * @param {{ argv?: string[], resolve?: Function, resources: object[], sink: {emit: Function}, log?: Function }} o
- * @returns {{ allowed: boolean, tenantId: string|null, decisions: object[], refused: object[] }}
+ * Decide every resource of a run against the requested tenant. PURE: it records nothing. The refusal EVENTS are returned
+ * for the caller's guard sink — which lives in src/governance/scoped-entry.mjs (decideScopedRun, requireScopedRun,
+ * scopedEntryPoint), because emitting a guard decision to the audit store is a governed write.
+ * @param {{ argv?: string[], resolve?: Function, resources: object[] }} o
+ * @returns {{ allowed: boolean, tenantId: string|null, decisions: object[], refused: object[], refusalEvents: object[] }}
  */
-export function decideScopedRun({ argv = process.argv, resolve = createTenantResolver(), resources, sink, log = console.error }) {
-  if (!sink || typeof sink.emit !== "function") throw new TypeError("a scoped run records its refusals — it needs a guard sink");
+export function decideRunResources({ argv = process.argv, resolve = createTenantResolver(), resources }) {
   if (!Array.isArray(resources) || resources.length === 0) throw new TypeError("a scoped run names the resources it will read — an empty list decides nothing");
   const tenantId = requestedTenant(argv);
   const decisions = resources.map((r) => ({ label: r.label, decision: decideForTenant(resolve, tenantId, r) }));
   const refused = decisions.filter((d) => !d.decision.allowed);
-  for (const d of refused) sink.emit(scopeRefusalEvent(d.decision));
-  if (refused.length) {
-    log(`🔴 TENANT SCOPE REFUSED — ${refused.length} of ${decisions.length} resource(s) do not belong to the requested tenant; nothing was read`);
-    for (const d of refused) log(`   ${d.label.padEnd(26)} ${d.decision.outcome} (${d.decision.reason}) · ref ${d.decision.target.resourceRefDigest}`);
-  }
-  return { allowed: refused.length === 0, tenantId: refused.length ? null : tenantId, decisions, refused };
-}
-
-/** For an entry point: decide, and end the process with SCOPE_REFUSED_EXIT on any refusal. Returns the run on success. */
-export function requireScopedRun(o) {
-  const run = decideScopedRun(o);
-  if (!run.allowed) process.exit(SCOPE_REFUSED_EXIT);
-  return run;
-}
-
-/**
- * The one line an entry point adds, FIRST, before it reads anything tenant-governed:
- *
- *   const SCOPE = scopedEntryPoint({ entry: "bin/x.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.…] });
- *
- * `governed` entry points record refusals durably (F08's governed guard sink — confined in a verified test context);
- * read-only diagnostics report them and append nothing. On success it returns `writeScope`: the scope every governed
- * write of this run must carry, so a run's OUTPUT belongs to the tenant its inputs did.
- */
-export function scopedEntryPoint({ entry, governed, repoUrl, resources, argv = process.argv, env = process.env, resolve = createTenantResolver({ env }) }) {
-  const sink = governed ? governedSinkFor({ entry, repoUrl, env }) : diagnosticGuardSink({ actor: entry });
-  const run = requireScopedRun({ argv, resolve, resources, sink });
-  return { ...run, writeScope: Object.freeze({ scopeType: "TENANT", tenantId: run.tenantId }) };
-}
-
-function governedSinkFor({ entry, repoUrl, env }) {
-  const repo = new URL("../", repoUrl).pathname.replace(/^\/([A-Za-z]:)/, "$1");
-  const now = isoSeconds(Date.now()).slice(0, 10);
-  return governedGuardSink({ repo, env, correlationId: `run:${entry}:tenant-scope:${isoSeconds(Date.now())}`, now, actor: entry });
+  return { allowed: refused.length === 0, tenantId: refused.length ? null : tenantId, decisions, refused, refusalEvents: refused.map((d) => scopeRefusalEvent(d.decision)) };
 }

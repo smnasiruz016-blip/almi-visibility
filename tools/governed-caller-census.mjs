@@ -31,6 +31,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join, posix } from "node:path";
+import { productionEntryPoints } from "../src/entry-points.mjs";
 import { AUDIT_STORE_ONLY_PRIMITIVES, verifyRegistry, verifiedPrimitives, splitTopLevel } from "./audit-store-primitives.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -553,7 +554,7 @@ export function census({ sources = null, primitiveRead = null } = {}) {
   const registry = primitiveRead ? registryContext(verifyRegistry({ read: primitiveRead })) : DEFAULT_REGISTRY;
   const bins = sources
     ? sources.map((s) => s.file)
-    : git("ls-files", "bin").trim().split("\n").filter((p) => p.endsWith(".mjs"));
+    : productionEntryPoints({ repo: REPO }); /* F02 relocation: production entry points are bin/ AND every declared subject package's tools (src/entry-points.mjs). */
   const tests = git("ls-files", "test").trim().split("\n").filter((p) => p.endsWith(".mjs"));
   const testText = new Map(tests.map((f) => [f, readFileSync(join(REPO, f), "utf8")]));
   return bins.map((file) => {

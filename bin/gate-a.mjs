@@ -34,7 +34,8 @@ import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedFileWrite } from "../src/governance/governed-run.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { runGateA } from "../src/gate-a/run.mjs";
-import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 const argv = process.argv.slice(2);
 function flag(name, fallback = null) {
@@ -53,7 +54,7 @@ const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, 
 const RUN_INSTANT = isoSeconds(Date.now());
 const RUN_CORRELATION = `run:gate-a:${RUN_INSTANT}`;
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/gate-a.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.operatorDirectory("--corpus")] });
+const SCOPE = scopedEntryPoint({ entry: "bin/gate-a.mjs", governed: true, resources: [RESOURCES.operatorDirectory("--corpus")] });
 
 if (!corpusDir) {
   console.error("\nusage: node bin/gate-a.mjs --corpus <dir> [--out <dir>] [--shell A|B] [--confirm]");
@@ -102,8 +103,12 @@ if (groups.length === 0) {
 const manifestPath = join(corpusDir, "corpus-manifest.json");
 const corpusManifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, "utf8")) : null;
 const sampledGroups = new Set();
-if (corpusManifest && corpusManifest.leafSampled && corpusManifest.leafSampled < (corpusManifest.groups?.["profession-origin-org"] ?? Infinity)) {
-  sampledGroups.add("profession-origin-org");
+/* F02 relocation: the corpus manifest NAMES its sampled group (leafGroup) — this runner used to know one subject's group
+ * name. A sampled manifest that names none marks EVERY group a sample: overlap stays inapplicable rather than wrongly shown. */
+if (corpusManifest && corpusManifest.leafSampled) {
+  const leaf = corpusManifest.leafGroup;
+  if (typeof leaf === "string") { if (corpusManifest.leafSampled < (corpusManifest.groups?.[leaf] ?? Infinity)) sampledGroups.add(leaf); }
+  else for (const g of Object.keys(corpusManifest.groups ?? {})) sampledGroups.add(g);
 }
 
 /** min / median / max, plus the two ends of the distribution that matter. */

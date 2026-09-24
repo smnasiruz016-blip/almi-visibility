@@ -21,7 +21,8 @@ import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedFileWrite } from "../src/governance/governed-run.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
-import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 const argv = process.argv.slice(2);
 const flag = (n, d = null) => {
@@ -35,7 +36,7 @@ const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, 
 const RUN_INSTANT = isoSeconds(Date.now());
 const RUN_CORRELATION = `run:measure-text-kind:${RUN_INSTANT}`;
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/measure-text-kind.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.operatorDirectory("--corpus")] });
+const SCOPE = scopedEntryPoint({ entry: "bin/measure-text-kind.mjs", governed: true, resources: [RESOURCES.operatorDirectory("--corpus")] });
 if (!corpusDir || !existsSync(corpusDir)) {
   console.error("usage: node bin/measure-text-kind.mjs --corpus <dir> [--out file.json] [--confirm]");
   process.exit(2);

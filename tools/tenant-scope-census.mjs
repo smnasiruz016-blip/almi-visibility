@@ -8,7 +8,7 @@
  * governed store's location, or a call of a src/ function that itself reaches one — derived to a fixed point over src/,
  * never listed from memory (the F08 writer derivation's rule, applied to reads).
  *
- *   SCOPED              it calls requireScopedRun/decideScopedRun (src/tenancy/scoped-run.mjs) on a line BEFORE its
+ *   SCOPED              it calls scopedEntryPoint/requireScopedRun/decideScopedRun (src/governance/scoped-entry.mjs) on a line BEFORE its
  *                       first family load, and names a resource for EVERY family it loads
  *   UNSCOPED            a family load with no gate, a gate after the first load, or a family with no named resource
  *                       — 🔴 a BYPASS; --check exits 1
@@ -22,6 +22,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { productionEntryPoints } from "../src/entry-points.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const git = (...a) => execFileSync("git", ["-C", REPO, ...a], { encoding: "utf8", maxBuffer: 1 << 28 });
@@ -36,7 +37,7 @@ export const FAMILIES = Object.freeze({
   EVIDENCE: { resource: "evidenceStore", re: /["']evidence\.jsonl["']|["']robots\.jsonl["']|["']runs["']\s*,\s*["']evidence["']|["'`](\$\{\w+\})?\.?\/?runs\/evidence[^"'`\s]*["'`]/ },
   COST: { resource: "costLedger", re: /\bcreateCostLedger\(|["']ledger\.jsonl["']|["']actions-runs\.jsonl["']|["']runs["']\s*,\s*["']cost["']|["'`](\$\{\w+\})?\.?\/?runs\/cost[^"'`\s]*["'`]/ },
   READS: { resource: "runArtefacts|operatorDirectory|siteOrigin", re: /(?!)/ },
-  CACHE: { resource: "cache", re: /_profession-cache|\bcreateFactCache\(|\bcreateRobotsCache\(/ },
+  CACHE: { resource: "cache", re: /\/_[a-z-]*-cache\b|\bcreateFactCache\(|\bcreateRobotsCache\(/ },
   /* F01's declaration store: every reader joins DECLARATIONS_DIR (src/intake/store.mjs). */
   DECLARATIONS: { resource: "tenantPartition", re: /\bDECLARATIONS_DIR\b|\btenantsDir\(/ },
   CAPTURES: { resource: "captures", re: /["']captures["']/ },
@@ -202,14 +203,15 @@ export function classifyEntryPoint(file, text, readers = READERS) {
 export const CLASSES = Object.freeze(["SCOPED", "UNSCOPED", "NOT_TENANT_GOVERNED", "EXCLUDED"]);
 
 export function census({ sources = null } = {}) {
-  const bins = sources ? sources.map((s) => s.file) : git("ls-files", "bin").split("\n").filter((f) => f.endsWith(".mjs"));
+  /* F02 relocation: production entry points are bin/ AND every declared subject package's tools (src/entry-points.mjs). */
+  const bins = sources ? sources.map((s) => s.file) : productionEntryPoints({ repo: REPO });
   return bins.map((file) => classifyEntryPoint(file, sources ? sources.find((s) => s.file === file).text : readFileSync(join(REPO, file), "utf8")));
 }
 
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("\\").join("/").split("/").pop())) {
   const rows = census();
   const by = Object.fromEntries(CLASSES.map((c) => [c, rows.filter((r) => r.cls === c).length]));
-  console.log(`TENANT SCOPE CENSUS — ${rows.length} production entry point(s) under bin/ · derived family readers in src/: ${READERS.size}`);
+  console.log(`TENANT SCOPE CENSUS — ${rows.length} production entry point(s) (bin/ and subject packages) · derived family readers in src/: ${READERS.size}`);
   for (const c of CLASSES) console.log(`  ${c.padEnd(20)} ${by[c]}`);
   console.log(`  ${"REMAINDER".padEnd(20)} ${rows.length - CLASSES.reduce((n, c) => n + by[c], 0)}`);
   for (const e of EXCLUSIONS) console.log(`  EXCLUDED FUNCTION ${e.module}#${e.fn} — ${e.why}`);

@@ -36,7 +36,8 @@ import { observedPageSubjects, toBundle as toPageBundle, bundlesByTenant } from 
 import { sitemapUrlSubjects, sitemapDetectorInputsByTenant } from "../src/adapter/sitemap-subject.mjs";
 import { productFromArgvOrExit } from "../src/product-cli.mjs";
 import { score } from "../src/detect/score.mjs";
-import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 import { SITEMAP_BATCH_ID } from "../src/adapter/sitemap-subject.mjs";
 import { everySubjectRegistry } from "../src/tenancy/scoped-run.mjs";
@@ -73,7 +74,7 @@ const runAt = flag("run-at");
 const outDir = flag("out");
 const expectPath = flag("expect");
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/detect.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.operatorDirectory("--bundle"), RESOURCES.crawlBatch(BATCH_ID), RESOURCES.sitemapCollection(SITEMAP_BATCH_ID), ...(await everySubjectRegistry())] });
+const SCOPE = scopedEntryPoint({ entry: "bin/detect.mjs", governed: true, resources: [RESOURCES.operatorDirectory("--bundle"), RESOURCES.crawlBatch(BATCH_ID), RESOURCES.sitemapCollection(SITEMAP_BATCH_ID), ...(await everySubjectRegistry())] });
 /* 🔴 THERE IS NO --tenant FLAG, AND ITS ABSENCE IS THE POINT.
  *
  * This runner used to accept `--tenant=<anything>` and hand that string to the binder as an

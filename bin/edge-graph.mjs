@@ -23,12 +23,13 @@ import { batchFile } from "../src/crawl/observation-batch.mjs";
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedFileWrite } from "../src/governance/governed-run.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
-import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/edge-graph.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.crawlBatch(BATCH_ID)] });
+const SCOPE = scopedEntryPoint({ entry: "bin/edge-graph.mjs", governed: true, resources: [RESOURCES.crawlBatch(BATCH_ID)] });
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv.slice(2), env: process.env }));
 const RUN_INSTANT = isoSeconds(Date.now());
 const RUN_CORRELATION = `run:edge-graph:${RUN_INSTANT}`;

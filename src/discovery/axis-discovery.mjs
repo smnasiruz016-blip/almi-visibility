@@ -1,7 +1,7 @@
 /**
  * 🔴 ROW 6 — AXIS DISCOVERY. AN AXIS IS A HYPOTHESIS UNTIL ITS DISTINGUISHING POWER IS MEASURED.
  *
- * Generic: the axis names, their words and their URL families arrive as a spec (config/discovery/axis-candidates.mjs).
+ * Generic: the axis names, their words and their URL families arrive as a spec, from a declared subject package's configuration (subjects/<id>/, F02 relocation).
  * For every candidate — each one the frozen contract names, and each slot type the evidence carries that none of
  * them claims — seven legs are recorded, each with a STATE and the BASIS for it:
  *

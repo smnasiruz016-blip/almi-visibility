@@ -15,10 +15,11 @@
  * none at all).
  */
 import { readFileSync } from "node:fs";
-import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { scopedEntryPoint } from "../../../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../../../src/tenancy/scoped-run.mjs";
 
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/profession-census.mjs", governed: false, repoUrl: import.meta.url, resources: [RESOURCES.operatorDirectory("a connected product's repository files")] });
+const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/profession-census.mjs", governed: false, resources: [RESOURCES.operatorDirectory("a connected product's repository files")] });
 
 const d = JSON.parse(readFileSync("C:/Projects/almi-oet/src/lib/oet-seo/organisations.json", "utf8"));
 const orgs = d.organisations;

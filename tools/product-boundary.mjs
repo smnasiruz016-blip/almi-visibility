@@ -53,20 +53,20 @@
  * Substrings, not whole words: `nmc` must catch `NMCN`, `pharmac` must catch
  * both `pharmacy` and `pharmacist`, `midwif` both `midwife` and `midwifery`.
  */
-export const PRODUCT_WORDS = [
-  "profession",
-  "nursing",
-  "nurse",
-  "oet",
-  "hcpc",
-  "ahpra",
-  "nmc",
-  "podiatr",
-  "pharmac",
-  "midwif",
-];
+/* 🔴 F02 (24 Sep 2026): THE LIST NOW LIVES WITH EACH SUBJECT. It used to be written here, which made this shared file
+ * hold one client's vocabulary. Each subject package (subjects/<id>/package.mjs) declares the words shared code must
+ * never contain; the law is the union of them, plus the private-path shapes below, which name no client. An EMPTY union
+ * would make every scan vacuous, so it throws. */
+const { loadAllSubjectPackages } = await import("../src/subject-package.mjs");
+const PACKAGES = await loadAllSubjectPackages();
+/** Shapes of a private location — a machine's own paths are never shared engine material. */
+export const PRIVATE_PATH_FRAGMENTS = Object.freeze(["C:/Users/", "C:/Projects/", "OneDrive"]);
+export const PRODUCT_WORDS = Object.freeze([...new Set(PACKAGES.flatMap((p) => p.vocabulary ?? []))]);
+if (PRODUCT_WORDS.length === 0) throw new Error("NEUTRALITY_VOCABULARY_EMPTY: no subject package declares a vocabulary — every scan would pass vacuously");
+export const NEUTRALITY_TERMS = Object.freeze([...PRODUCT_WORDS, ...PRIVATE_PATH_FRAGMENTS]);
 
-const PRODUCT_WORD_RE = new RegExp(PRODUCT_WORDS.join("|"), "gi");
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
+const PRODUCT_WORD_RE = new RegExp(NEUTRALITY_TERMS.map(escapeRe).join("|"), "gi");
 
 /** Keywords after which a `/` opens a regular expression rather than dividing. */
 const REGEX_PRECEDING_KEYWORDS = new Set([
@@ -288,4 +288,47 @@ export function scanSource(source) {
 /** Distinct line numbers among a list of occurrences. */
 export function distinctLines(occurrences) {
   return new Set(occurrences.map((o) => o.line)).size;
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+ * 🔴 THE SHARED ENGINE — src/, bin/ AND config/ (F02, 24 Sep 2026). The law used to cover src/ alone, and that blind spot
+ * is how one client's hosts, regulators and private paths sat in bin/ and config/ unseen. Subject packages
+ * (subjects/<id>/) are outside it by construction: they are where that material belongs.
+ * ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+export const SHARED_SCOPE = Object.freeze(["src", "bin", "config"]);
+
+/**
+ * ONE PINNED LINE, matched by the sha256 of its exact text — never by file, never by pattern. It is the historical 61-row
+ * ledger (src/checklist/classification.mjs), which the F02 command orders NOT to be altered: a row's `test` field records
+ * the command it was run with. Any edit to that line, or any other hit anywhere, is a breach; a pin that no longer matches
+ * a line is itself a breach, so it cannot outlive its reason.
+ */
+export const PINNED_HISTORICAL_LINES = Object.freeze([
+  Object.freeze({ file: "src/checklist/classification.mjs", sha256: "945c24967dd7f9cc4a784ac06b215b4b2828353200458f22d0a643c79995f51d", why: "the historical ledger (frozen; F02 command §3: do not alter the historical 61/38 ledger)" }),
+]);
+
+/** The shared engine, scanned. Returns every breach, every pin used, and every stale pin. Reads only. */
+export async function neutralityCensus({ repo, read = null, pins = PINNED_HISTORICAL_LINES } = {}) {
+  const { execFileSync } = await import("node:child_process");
+  const { readFileSync } = await import("node:fs");
+  const { createHash } = await import("node:crypto");
+  const { join } = await import("node:path");
+  const files = execFileSync("git", ["-C", repo, "ls-files", ...SHARED_SCOPE], { encoding: "utf8" }).split("\n").filter((f) => f.endsWith(".mjs")).sort();
+  const text = read ?? ((f) => readFileSync(join(repo, f), "utf8"));
+  const breaches = []; const pinned = []; let commentLines = 0;
+  for (const file of files) {
+    const s = text(file);
+    const r = scanSource(s);
+    commentLines += distinctLines(r.comment);
+    const seen = new Set();
+    for (const o of r.code) {
+      if (seen.has(o.line)) continue;
+      seen.add(o.line);
+      const h = createHash("sha256").update(o.text).digest("hex");
+      const pin = pins.find((x) => x.file === file && x.sha256 === h);
+      (pin ? pinned : breaches).push({ file, line: o.line, word: o.word, text: o.text, ...(pin ? { why: pin.why } : {}) });
+    }
+  }
+  const stale = pins.filter((x) => !pinned.some((p) => p.file === x.file));
+  return { files, breaches, pinned, stale, commentLines };
 }

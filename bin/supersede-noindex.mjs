@@ -49,7 +49,8 @@ import { governedAuditContext } from "../src/governance/governed-run.mjs";
 import { softwareVersionOf } from "../src/audit-trail/wiring.mjs";
 import { checkTransition, recordEvidenceStateTransitions } from "../src/evidence/evidence-state.mjs";
 import { evidenceStateOf, evidenceStateAuthority } from "../src/evidence/evidence-state-adapters.mjs";
-import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -60,7 +61,7 @@ const storeArg = process.argv.find((a) => a.startsWith("--store="))?.slice("--st
 const TARGET = confineToRepo(storeArg ?? `${REPO}runs/audit/technical-findings.jsonl`, { label: storeArg === undefined ? "the technical findings store" : "--store" });
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/supersede-noindex.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.runArtefacts("technical findings store")] });
+const SCOPE = scopedEntryPoint({ entry: "bin/supersede-noindex.mjs", governed: true, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.runArtefacts("technical findings store")] });
 
 export const ORIGIN_OBSERVATION = "8b90879f2f7c290b";
 export const GUIDANCE_OBSERVATION = "841c7b897287e0d3";

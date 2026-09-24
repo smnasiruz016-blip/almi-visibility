@@ -31,7 +31,8 @@ import { resolveDeclarationRoot, declarationWrite, findDeclaration, listTenant, 
 import { decideSubmission, decisionDraft, recordDeclarationDecisions, intakeAuthority, intakeCorrelationId } from "../src/intake/intake.mjs";
 import { legacyTenancyCandidates } from "../src/intake/legacy.mjs";
 import { TENANT_ID_PATTERN } from "../src/tenancy/resolver.mjs";
-import { scopedEntryPoint, decideScopedRun, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { scopedEntryPoint, decideScopedRun } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 import { decideForTenant } from "../src/tenancy/scope.mjs";
 import { diagnosticGuardSink } from "../src/governance/guard-audit.mjs";
 
@@ -133,7 +134,7 @@ if (MODE === "--inventory") {
 if (MODE === "--show" || MODE === "--list" || MODE === "--current") {
   const tenantId = tenantArg();
   /* 🔴 F02 — the partition read below is decided FIRST: the requested tenant must be an ACTIVE declaration, or nothing is read. */
-  scopedEntryPoint({ entry: "bin/project-intake.mjs", governed: false, repoUrl: import.meta.url, argv: [`--tenant=${tenantId}`], resources: [RESOURCES.tenantPartition(tenantId)] });
+  scopedEntryPoint({ entry: "bin/project-intake.mjs", governed: false, argv: [`--tenant=${tenantId}`], resources: [RESOURCES.tenantPartition(tenantId)] });
   const root = rootOrExit();
   if (MODE === "--list") {
     const all = listTenant(root, tenantId);

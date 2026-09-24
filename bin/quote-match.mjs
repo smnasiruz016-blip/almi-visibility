@@ -46,12 +46,13 @@ import { dirname } from "node:path";
 import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedFileWrite } from "../src/governance/governed-run.mjs";
-import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
+import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
-import { runQuoteMatch } from "../src/facts/quote-match.mjs";
+import { runQuoteMatch } from "../src/facts/quote-match.mjs";
 
 import { productFromArgvOrExit } from "../src/product-cli.mjs";
-import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 /**
  * 🔴 THE PRODUCT ARRIVES AS AN ARGUMENT, NOT AS AN IMPORT.
@@ -65,7 +66,7 @@ import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/quote-match.mjs --product=<id>" });
 
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/quote-match.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.factRegistryAt(PRODUCT.factsDir)] });
+const SCOPE = scopedEntryPoint({ entry: "bin/quote-match.mjs", governed: true, resources: [RESOURCES.factRegistryAt(PRODUCT.factsDir)] });
 const argv = process.argv.slice(2);
 const out = argv.find((a) => a.startsWith("--out="))?.split("=").slice(1).join("=") ?? null;
 

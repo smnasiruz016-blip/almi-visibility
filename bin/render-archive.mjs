@@ -46,14 +46,15 @@ import {
 import { RENDER_STATES } from "../src/render/render-state.mjs";
 import { createCostLedger, entryFromRender, entryFromToolInstall, formatLedgerLine } from "../src/cost/ledger.mjs";
 import { batchFile, BATCH_ID } from "../src/crawl/observation-batch.mjs";
-import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const argv = process.argv.slice(2);
 const arg = (n) => argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3) ?? null;
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv, env: process.env }));
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/render-archive.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.costLedger(), RESOURCES.runArtefacts("render store")] });
+const SCOPE = scopedEntryPoint({ entry: "bin/render-archive.mjs", governed: true, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.costLedger(), RESOURCES.runArtefacts("render store")] });
 
 const LABEL = "2026-09-13";
 const RAW_STORE = batchFile("first-real-crawl-2026-09-12.jsonl");

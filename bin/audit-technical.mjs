@@ -28,7 +28,8 @@ import {
 import { SITEMAP_VS_ROBOTS, collectSitemapUrls, contradictions, MAX_CHILD_SITEMAPS } from "../src/audit/sitemap-check.mjs";
 import { parseGroups, selectGroup, decide } from "../src/audit/robots-scope.mjs";
 import { batchFile } from "../src/crawl/observation-batch.mjs";
-import { scopedEntryPoint, RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES, declaredSiteHosts } from "../src/tenancy/scoped-run.mjs";
 import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -52,7 +53,7 @@ const doSitemaps = flag("sitemaps");
 const out = confineToRepo(arg("out", `${REPO}runs/audit/technical-findings.jsonl`), { label: "--out" });
 const openedAt = new Date().toISOString();
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/audit-technical.mjs", governed: true, repoUrl: import.meta.url, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.evidenceStore(), RESOURCES.operatorDirectory("--corpus")] });
+const SCOPE = scopedEntryPoint({ entry: "bin/audit-technical.mjs", governed: true, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.evidenceStore(), RESOURCES.operatorDirectory("--corpus")] });
 
 const crawl = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll();
 const evidence = createJsonlStore(`${REPO}runs/evidence/evidence.jsonl`).readAll();
@@ -120,10 +121,8 @@ console.log(`0B — EDGES: ${graphEdges.length} links in served HTML (${existsSy
 console.log(`     pages with no inbound links inside the crawled set: ${zero.length}\n`);
 
 /* ---- PART 2 — sitemaps, bounded ---------------------------------------- */
-const SITEMAP_HOSTS = [
-  "almiitalian.almiworld.com", "almidutch.almiworld.com",
-  "almiportuguese.almiworld.com", "almiicelandic.almiworld.com", "almioet.almiworld.com",
-];
+/* F02 relocation: the hosts are the site origins DECLARED to this run's tenant — never a list of one estate's hosts. */
+const SITEMAP_HOSTS = declaredSiteHosts({ tenantId: SCOPE.tenantId });
 const sitemapByHost = new Map();
 const sitemapStore = createJsonlStore(`${REPO}runs/evidence/sitemaps.jsonl`);
 if (doSitemaps) {

@@ -22,7 +22,35 @@ import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedFileWrite } from "../src/governance/governed-run.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
 
-export const MAPPINGS = Object.freeze({});
+/* F02 (24 Sep 2026): the two historical rows whose contracts concern isolation, in their LATEST applicable wording —
+ * PASS_BOUNDARIES_AMENDMENT_6.md §3 "v0.1 half" (commit c317e9a, sha256 cb510255…), which supersedes the source's row 1
+ * and row 54 text. Compared clause by clause; nothing is imported (authorityImported stays false, fresh verification
+ * stays required). Non-mappings, with reasons, are in _handoffs/AlmiVisibility_F02_EVIDENCE_2026-09-24.md. */
+export const MAPPINGS = Object.freeze({
+  F02: Object.freeze({
+    historicalRows: Object.freeze([1, 54]),
+    historicalCommits: Object.freeze(["c317e9a34257cfdfee5db55e8d36aab9332dd52a"]),
+    reusableModules: Object.freeze(["src/tenancy/resolver.mjs", "src/tenancy/attachment.mjs", "src/tenancy/row-partition.mjs", "src/tenancy/sitemap-residency.mjs"]),
+    reusableTests: Object.freeze([]),
+    contracts: Object.freeze([
+      Object.freeze({
+        row: "HISTORICAL_61:1 (amendment 6, v0.1 half)",
+        input: "two declared products, and an accessor from each reaching for the other's data, evidence and cost records.",
+        expected: "each of the three applicable record classes is reachable only from its own product.",
+        failure: "any cross-product read succeeds, or an applicable class does not exist to be isolated.",
+        evidence: "adversarial accessor tests over non-empty populations of all three applicable classes.",
+      }),
+      Object.freeze({
+        row: "HISTORICAL_61:54 (amendment 6, v0.1 half)",
+        input: "two declared products, each holding private evidence, facts and costs.",
+        expected: "neither can see any of the other's three applicable classes.",
+        failure: "any cross read succeeds, or an applicable class does not exist to be tested.",
+        evidence: "adversarial tests over non-empty populations of all three applicable.",
+      }),
+    ]),
+    notes: "CHANGED against both: F02 governs declared tenant scope over relationships (undeclared, ambiguous and scope-mismatch refusals, non-leakage) and names learning items and outputs; rows 1 and 54 isolate products over three record classes with learning deferred. No historical result transfers.",
+  }),
+});
 
 export function renderCrosswalk() {
   const rows = classify();

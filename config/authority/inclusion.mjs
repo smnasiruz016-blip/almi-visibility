@@ -26,6 +26,12 @@ export const GOVERNANCE_RULES = Object.freeze([
    * command-record rule above assigns it: the file exists only as the verbatim act of an owner command. Narrow on
    * purpose: one F-row id, the fixed words, one date. */
   Object.freeze({ id: "frozen-f-row-acceptance", re: /^AlmiVisibility_F\d{2}_FROZEN_ACCEPTANCE_\d{4}-\d{2}-\d{2}\.md$/, issuer: "OWNER" }),
+  /* 🔴 F02 (24 September 2026) — THE SAME ACT UNDER THE NAME THE F02 COMMAND GAVE IT. §2 of that command orders exactly
+   * `AlmiVisibility_F02_ACCEPTANCE_2026-09-24.md` (no FROZEN token), so the rule above could not take it and F02's
+   * acceptance resolved ABSENT (`node bin/authority-resolve.mjs --proposition=F02_ACCEPTANCE --scope=ALMIVISIBILITY/F02`,
+   * measured before this line). Same terms as F07's: issuer by pattern, one F-row id, the fixed word, one date. On the day
+   * it was added it matched exactly one committed file. */
+  Object.freeze({ id: "f-row-acceptance", re: /^AlmiVisibility_F\d{2}_ACCEPTANCE_\d{4}-\d{2}-\d{2}\.md$/, issuer: "OWNER" }),
   Object.freeze({ id: "other-declared-ruling", re: /^AlmiVisibility_[A-Za-z0-9_-]*(RULING|DECISION)[A-Za-z0-9_-]*\.md$/, issuer: null, issuerTokens: Object.freeze({ BETA_G: "BETA_G", OWNER: "OWNER" }) }),
 ]);
 /**

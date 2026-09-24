@@ -207,6 +207,19 @@ test("P11 · an accepted declaration is immutable: superseding it never rewrites
   assert.notEqual(after[curKey], snap[curKey], "CONTROL: the current view should have moved");
 });
 
+test("P11b · the ACCEPTED decision records the sha256 of the accepted bytes — a later rewrite no longer matches the trail", () => {
+  const w = world();
+  const d = decl();
+  const before = auditLines().length;
+  run(w, "--submit", "--file", file(w, d), "--confirm");
+  const accepted = auditLines().slice(before).find((e) => e.eventType === "DECLARATION_DECISION" && e.metadata.to === "ACCEPTED");
+  const key = Object.keys(storeSnapshot(w)).find((k) => k.endsWith(`${d.declarationId}.json`));
+  const path = join(w, key);
+  assert.equal(accepted.metadata.submissionSha256, sha(readFileSync(path)), "the trail does not carry the accepted bytes' hash");
+  writeFileSync(path, readFileSync(path, "utf8").replace("Quillmoor", "Quillmoor (rewritten)"));
+  assert.notEqual(accepted.metadata.submissionSha256, sha(readFileSync(path)), "CONTROL: a rewrite is visible against the trail");
+});
+
 test("P12 · supersession creates new history: both remain readable, old SUPERSEDED, new ACCEPTED", () => {
   const w = world();
   const d1 = decl();

@@ -12,7 +12,7 @@
  * 🔴 PURE. It reads the store and returns what must happen — the writes, in order, and the audit decisions. The entry
  * point performs them through F08's boundary. A refusal therefore cannot touch the accepted store: it has no writes.
  */
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 
 import { validateDeclaration } from "./contract.mjs";
 import {
@@ -71,7 +71,10 @@ export function decideSubmission({ doc, root, tenants, attachedTo, acceptedAt })
   }
 
   const pointer = serialise({ schemaVersion: 1, tenantId: n.tenantId, projectId: n.projectId, declarationId: n.declarationId, acceptedAt });
-  const transitions = [t("SUBMITTED", "VALIDATED", n), t("VALIDATED", "ACCEPTED", n)];
+  /* 🔴 The ACCEPTED decision carries the sha256 of the exact bytes accepted — the store's tamper evidence, kept in the
+   * hash-chained trail. Only ACCEPTED bytes are ever hashed: the secret firewall has already refused anything shaped
+   * like a credential, so no secret can reach this hash. */
+  const transitions = [t("SUBMITTED", "VALIDATED", n), { ...t("VALIDATED", "ACCEPTED", n), submissionSha256: createHash("sha256").update(bytes, "utf8").digest("hex") }];
   if (current) transitions.push(t("ACCEPTED", "SUPERSEDED", current.record, n.declarationId));
   return Object.freeze({
     outcome: "ACCEPT",
@@ -123,6 +126,7 @@ export function decisionDraft({ transition, refusals = [], ctx, occurredAt }) {
       declarationId: transition.declarationId ?? "INVALID",
       projectId: transition.projectId ?? "INVALID",
       supersededBy: transition.supersededBy ?? "",
+      submissionSha256: transition.submissionSha256 ?? "",
       refusalCodes: codes.slice(0, 190),
     },
   };

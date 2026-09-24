@@ -36,8 +36,10 @@ import { runRobotsAndDnsAudit } from "../src/audit/run-audit.mjs";
  * A registry nothing runs is the same defect as a law nothing calls.
  */
 import { registeredChecks } from "../src/audit/check.mjs";
-import { ESTATE_HOSTNAME_LIST } from "../config/estate-hostnames.mjs";
 import { batchFile } from "../src/crawl/observation-batch.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES, declaredSiteHosts } from "../src/tenancy/scoped-run.mjs";
+import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n, d) => {
@@ -52,6 +54,10 @@ const arg = (n, d) => {
 const out = confineToRepo(arg("out", `${REPO}runs/audit/findings.jsonl`), { label: "--out" });
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
 const openedAt = new Date().toISOString();
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/audit.mjs", governed: true, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.evidenceStore(), RESOURCES.runArtefacts("crawl store")] });
+/* F02: this run's hosts are the site origins DECLARED to its tenant — no estate list in shared code (relocated, 24 Sep 2026). */
+const DECLARED_HOSTS = declaredSiteHosts({ tenantId: SCOPE.tenantId });
 
 const load = (p) => (existsSync(p) ? createJsonlStore(p).readAll() : []);
 const robotsRecords = load(`${REPO}runs/evidence/robots.jsonl`);
@@ -70,13 +76,13 @@ const store = createDryRunStore(out);
 
 const r = await runRobotsAndDnsAudit({
   store, robotsRecords, evidence, crawl,
-  hosts: ESTATE_HOSTNAME_LIST,
+  hosts: DECLARED_HOSTS,
   familiesFor: (host) => familiesFor(host), // 🔴 LIVE resolver
   openedAt,
 });
 
 const AUDIT_INSTANT = governedInstant(Date.now());
-const auditGoverned = executeGovernedWrite(governedStoreAppend({
+const auditGoverned = executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,
   repo: REPO, permission, store: createJsonlStore(out), records: store.wouldWrite(),
   targetClass: "RUN_EVIDENCE", action: "APPEND_ROBOTS_AND_DNS_FINDINGS",
   occurredAt: AUDIT_INSTANT, correlationId: `run:audit:${AUDIT_INSTANT}`,

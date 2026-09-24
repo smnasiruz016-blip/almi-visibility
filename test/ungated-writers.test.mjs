@@ -10,6 +10,10 @@
  * failing run changed them, so a RED never leaves damaged evidence behind.
  */
 import test from "node:test";
+import { declaredWorld } from "./helpers/declared-world.mjs";
+/* F02: every entry point decides its tenant first — the runs below go through a DECLARED FIXTURE WORLD (never the real population). */
+const WORLD = declaredWorld();
+process.on("exit", () => WORLD.cleanup());
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
@@ -34,7 +38,7 @@ export function writeSitesOf(text) {
   return text.split(/\r?\n/).flatMap((l, i) => (codeLine(l) && (ANY_WRITE_PATTERN.test(l) || STORE_WRITE.test(l)) ? [{ line: i + 1, text: l.trim() }] : []));
 }
 
-const run = (args) => spawnSync(process.execPath, args, { cwd: REPO_ROOT, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 120_000 });
+const run = (args) => spawnSync(process.execPath, WORLD.argv(args), { cwd: REPO_ROOT, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 120_000, env: WORLD.envWith() });
 const scratch = () => {
   mkdirSync(join(REPO_ROOT, ".test-scratch"), { recursive: true });
   return mkdtempSync(join(REPO_ROOT, ".test-scratch", "gap1-"));
@@ -286,7 +290,6 @@ test("🔴 THE DECLARED LOCAL WRITERS — each states writes · where · gatedBy
     "bin/audit-content.mjs",
     "bin/audit-technical.mjs",
     "bin/supply-labels.mjs",
-    "bin/verification-issues.mjs",
     "bin/gsc-ingest.mjs",
     "bin/crawl.mjs",
     "bin/detect.mjs",
@@ -294,6 +297,9 @@ test("🔴 THE DECLARED LOCAL WRITERS — each states writes · where · gatedBy
     "bin/fboard-derive.mjs",
     "bin/fboard-crosswalk.mjs",
     "bin/authority-migrate.mjs",
+    // 🔴 F02 relocation (24 Sep 2026): a subject package's writers follow the shared ones — the package declares them and
+    // config/permitted-page-writers.mjs merges them in, so the census reads them where they now live.
+    "subjects/almi-oet/tools/verification-issues.mjs",
   ]);
   for (const e of PERMITTED_LOCAL_WRITERS) {
     for (const k of REQUIRED_FIELDS) assert.ok(typeof e[k] === "string" && e[k].length > 20, `${e.file}: ${k} is too thin to be read by a human`);
@@ -406,7 +412,7 @@ test("🔴 GAP 2 · the census covers EVERY write path, and a HELPER-reached wri
 
 test("🔴 GAP 2 · the six that had NO gate at all are gated at every site — or ROUTED through the boundary", () => {
   const w = writeSiteCensus();
-  const six = ["bin/audit.mjs", "bin/audit-content.mjs", "bin/audit-technical.mjs", "bin/supply-labels.mjs", "bin/verification-issues.mjs", "bin/gsc-ingest.mjs"];
+  const six = ["bin/audit.mjs", "bin/audit-content.mjs", "bin/audit-technical.mjs", "bin/supply-labels.mjs", "subjects/almi-oet/tools/verification-issues.mjs", "bin/gsc-ingest.mjs"];
   for (const file of six) {
     const sites = w.sites.filter((s) => s.file === file);
     const text = readFileSync(join(REPO_ROOT, file), "utf8");
@@ -553,7 +559,7 @@ for (const [bin, args, dirs, expect] of [
   ["bin/audit-content.mjs", [], [AUDIT_DIR], /\[dry-run\] would have written \d+ finding\(s\)/],
   ["bin/audit-technical.mjs", [], [AUDIT_DIR, EVIDENCE_DIR], /\[dry-run\] would have written \d+ finding\(s\)/],
   // 🔴 REACH, NOT THE BANNER: given its input, and required to print the line that follows both write decisions.
-  ["bin/verification-issues.mjs", [`--csv=${scratchVerdictCsv()}`], [AUDIT_DIR], /\[bound: 6 verdict rows read from /],
+  ["subjects/almi-oet/tools/verification-issues.mjs", [`--csv=${scratchVerdictCsv()}`], [AUDIT_DIR], /\[bound: 6 verdict rows read from /],
   /* 🔴 GAP 2 · BLOCKER 2 (17 September 2026) — REACH, NOT THE BANNER. With no flag the bin rebuilds the 11
    * disagreement issues from the COMMITTED graph and stops in its refusal branch, immediately before the
    * write block. With --confirm every one of those 11 goes through appendIfNew, which always writes (a new

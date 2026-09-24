@@ -33,6 +33,8 @@ import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { selectCandidates, constructCandidates, ACCEPTED, NOT_TESTED } from "../src/page/construct.mjs";
 import { productFromArgvOrExit } from "../src/product-cli.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 /**
  * 🔴 THE ONE AUTHORISED EXIT — EVERY EXIT FROM THIS MODULE DRAINS FIRST.
@@ -75,6 +77,8 @@ function exitAfterDrain(code) {
 
 const USAGE = "node bin/build-page.mjs --product=<id> (--slug=<slug> | --all-slugs) [--out=<dir> --confirm]";
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: USAGE });
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/build-page.mjs", governed: true, resources: [RESOURCES.factRegistryAt(PRODUCT.factsDir)] });
 
 const argv = process.argv.slice(2);
 const flag = (name) => argv.find((a) => a.startsWith(`--${name}=`))?.split("=").slice(1).join("=") ?? null;
@@ -139,7 +143,7 @@ if (outDir) {
       const outcomes = [
         [`${c.slug}.html`, c.html, "WRITE_CANDIDATE_PAGE"],
         [`${c.slug}.trace.json`, JSON.stringify(c.trace, null, 2) + "\n", "WRITE_CANDIDATE_TRACE"],
-      ].map(([name, body, what]) => executeGovernedWrite(governedFileWrite({
+      ].map(([name, body, what]) => executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
         repo: REPO, permission, target: join(outDir, name), targetClass: "OPERATOR_CHOSEN_OUTPUT", bytes: body,
         action: what, occurredAt: PAGE_INSTANT, correlationId: `run:build-page:${PAGE_INSTANT}`,
       })));

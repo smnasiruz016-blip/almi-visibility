@@ -28,16 +28,18 @@
  */
 import { readdirSync, readFileSync, existsSync, writeFileSync } from "node:fs";
 import { join, basename, extname } from "node:path";
-import { tokensOf } from "../src/gate-a/tokens.mjs";
-import { tokensWithKind, uniqueWordsByKind } from "../src/gate-a/text-kind.mjs";
-import { computeShells, uniqueWords, residualTokens } from "../src/gate-a/shell.mjs";
-import { shingles, jaccard } from "../src/gate-a/overlap.mjs";
-import { countFacts } from "../src/gate-a/facts.mjs";
-import { MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../src/gate-a/run.mjs";
-import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
-import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
-import { governedFileWrite } from "../src/governance/governed-run.mjs";
-import { isoSeconds } from "../src/audit-trail/store.mjs";
+import { tokensOf } from "../../../src/gate-a/tokens.mjs";
+import { tokensWithKind, uniqueWordsByKind } from "../../../src/gate-a/text-kind.mjs";
+import { computeShells, uniqueWords, residualTokens } from "../../../src/gate-a/shell.mjs";
+import { shingles, jaccard } from "../../../src/gate-a/overlap.mjs";
+import { countFacts } from "../../../src/gate-a/facts.mjs";
+import { MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../../../src/gate-a/run.mjs";
+import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../../../src/write-law.mjs";
+import { executeGovernedWrite } from "../../../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../../../src/governance/governed-run.mjs";
+import { isoSeconds } from "../../../src/audit-trail/store.mjs";
+import { scopedEntryPoint } from "../../../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../../../src/tenancy/scoped-run.mjs";
 
 const argv = process.argv.slice(2);
 const flag = (n, d = null) => {
@@ -50,9 +52,11 @@ const pageId = flag("--page", "nursing__from-india");
 const factsDir = flag("--facts", "acceptance/nursing-from-india");
 const outFile = flag("--out");
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv, env: process.env }));
-const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+const REPO = new URL("../../../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const RUN_INSTANT = isoSeconds(Date.now());
 const RUN_CORRELATION = `run:acceptance-test:${RUN_INSTANT}`;
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/acceptance-test.mjs", governed: true, resources: [RESOURCES.inputPath(corpusDir, "--corpus"), RESOURCES.inputPath(factsDir, "--facts")] });
 if (!corpusDir || !existsSync(join(corpusDir, group))) {
   console.error("usage: node bin/acceptance-test.mjs --corpus <dir> [--group g] [--page id] [--facts dir] [--out f] [--confirm]");
   process.exit(2);
@@ -234,7 +238,7 @@ if (outFile) {
    * so `--out` could name anywhere on the machine. Routing it puts it under the same law as every other governed
    * output. That is a deliberate tightening, recorded rather than slipped in: an outside-repository destination
    * is now refused instead of written. */
-  const governed = executeGovernedWrite(governedFileWrite({
+  const governed = executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
     repo: REPO, permission, target: confineToRepo(outFile, { label: "--out" }),
     targetClass: "OPERATOR_CHOSEN_OUTPUT",
     bytes: JSON.stringify({ page: pageId, group, before, after, stages }, null, 2),

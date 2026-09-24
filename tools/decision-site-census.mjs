@@ -65,7 +65,7 @@ const ROLE_SHAPES = [["entryFor", /\bentryFor\(/], ["observedDataExemption", /\b
 
 const isCode = (l) => !/^\s*(\/\/|\*|\/\*)/.test(l) && !/^\s*import\b/.test(l);
 const trackedMjs = () =>
-  execFileSync("git", ["-C", REPO, "ls-files", "src", "bin", "tools", "config"], { encoding: "utf8" })
+  execFileSync("git", ["-C", REPO, "ls-files", "src", "bin", "tools", "config", "subjects"], { encoding: "utf8" })
     .split("\n").filter((f) => f.endsWith(".mjs"));
 
 function shapeSites(shapes) {

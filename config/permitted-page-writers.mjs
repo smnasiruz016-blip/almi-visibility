@@ -43,22 +43,13 @@
 
 const CONFINED = "confined by confineToRepo: a path outside this repository is REFUSED before anything is written";
 
-export const PERMITTED_PAGE_WRITERS = Object.freeze([
-  {
-    file: "bin/build-corpus.mjs",
-    /* 🔴 ROUTED (23 September 2026). One fetched page is one target, so each is its own governed occurrence; the
-     * manifest is another. The bare mkdir is gone — each write's prepare step creates its directory. */
-    routed: true,
-    sites: 0,
-    writes: "copies of pages FETCHED from a live sitemap (their HTML, as served), plus a corpus manifest",
-    where: `the directory given by --out (required, no default); ${CONFINED}`,
-    gatedBy: "write-law LOCAL: every write sits behind permission.mayWrite, which only --confirm grants",
-    gateFlags: ["--confirm"],
-    gateToken: "permission.mayWrite",
-    destinationOverridable: true,
-    why: "builds the corpus Gate A was first calibrated on (runs/2026-09-10-almioet/GATE_A_RUN_01.md). It stores pages that already exist; it generates none",
-    whyKnown: true,
-  },
+/* 🔴 F02 relocation (24 Sep 2026): entries for subject-owned writers live in their subject package (subjects/<id>/package.mjs,
+ * `permittedPageWriters`) and are merged in here, so a relocated writer stays registered — and this shared file carries no
+ * subject's words. */
+const { loadAllSubjectPackages } = await import("../src/subject-package.mjs");
+const SUBJECT_PAGE_WRITERS = (await loadAllSubjectPackages()).flatMap((p) => p.permittedPageWriters ?? []);
+
+const SHARED_PAGE_WRITERS = [
   {
     file: "bin/build-page.mjs",
     /* 🔴 ROUTED (23 September 2026). Two targets per candidate — the page and its trace — each a governed
@@ -94,51 +85,6 @@ export const PERMITTED_PAGE_WRITERS = Object.freeze([
     whyKnown: true,
   },
   {
-    file: "bin/nursing-chain.mjs",
-    /* 🔴 ROUTED (23 September 2026). One cached sibling page is one target; the candidate page and its chain
-     * report are two more. The pages are still FETCHED and MEASURED either way — a read, which the scope law
-     * permits — and only KEPT when the write is allowed, exactly as before. */
-    routed: true,
-    sites: 0,
-    writes: "(1) a CACHE of the eleven sibling pages it FETCHES from the product site; (2) the candidate page rendered from the registry, plus a chain report",
-    where: `(1) runs/_profession-cache/ — fixed, gitignored; (2) the directory given by --out; ${CONFINED}`,
-    gatedBy: "write-law LOCAL: both writes, and the cache directory itself, sit behind permission.mayWrite, which only --confirm grants. Without it the siblings are fetched and measured but not kept",
-    gateFlags: ["--confirm"],
-    gateToken: "permission.mayWrite",
-    destinationOverridable: true,
-    why: "it is the ONLY writer of runs/_profession-cache, and bin/profession-chain.mjs and bin/placement-measure.mjs both refuse to run without that cache ('this script does not fetch'). Its CHAIN half is superseded — see NURSING_CHAIN_SUPERSESSION.md — but its FETCH half is not, so it cannot be removed as it stands",
-    whyKnown: true,
-  },
-  {
-    file: "bin/placement-measure.mjs",
-    /* 🔴 ROUTED (23 September 2026). Both bodies are TEXT, measured, so nothing is normalised without proof. */
-    routed: true,
-    sites: 0,
-    writes: "one candidate page with the shared block placed off-page, plus a placement report",
-    where: `the directory given by --out; without --out nothing is written; ${CONFINED}`,
-    gatedBy: "write-law LOCAL: permission.mayWrite, which only --confirm grants",
-    gateFlags: ["--confirm"],
-    gateToken: "permission.mayWrite",
-    destinationOverridable: true,
-    why: "the shared-block extraction measurement (SHARED_BLOCK_EXTRACTION.md): the page is written so a reader can see what the placement did to the page, beside the arithmetic",
-    whyKnown: true,
-  },
-  {
-    file: "bin/profession-chain.mjs",
-    /* 🔴 ROUTED through the shared governed-write boundary (23 September 2026): two targets, two governed
-     * occurrences, each audited allowed or refused. No direct page-write site remains. */
-    routed: true,
-    sites: 0,
-    writes: "one candidate page for the named profession, rendered from the registry, plus a chain report",
-    where: `the directory given by --out; without --out nothing is written; ${CONFINED}`,
-    gatedBy: "write-law LOCAL: permission.mayWrite, which only --confirm grants",
-    gateFlags: ["--confirm"],
-    gateToken: "permission.mayWrite",
-    destinationOverridable: true,
-    why: "runs the registry → page → Gate A → rollout chain on ANY profession through identical code, so two professions can be compared without the runner differing",
-    whyKnown: true,
-  },
-  {
     file: "bin/report.mjs",
     /* 🔴 ROUTED through the shared governed-write boundary (23 September 2026). No direct page-write site
      * remains; the refusal is now recorded rather than only printed. */
@@ -153,7 +99,8 @@ export const PERMITTED_PAGE_WRITERS = Object.freeze([
     why: "the one owner-facing surface v0.1 has (items 51 and 56 inspect it). It is a report about evidence, not a product page",
     whyKnown: true,
   },
-]);
+];
+export const PERMITTED_PAGE_WRITERS = Object.freeze([...SHARED_PAGE_WRITERS, ...SUBJECT_PAGE_WRITERS]);
 
 /**
  * 🔴 GAP 1 (15 September 2026) — THE LOCAL WRITERS THAT WRITE NO PAGE, DECLARED BESIDE THE PAGE WRITERS.
@@ -212,7 +159,7 @@ export const PERMITTED_PAGE_WRITERS = Object.freeze([
  */
 export const KNOWN_UNGATED_WRITERS = Object.freeze([]);
 
-export const PERMITTED_LOCAL_WRITERS = Object.freeze([
+const SHARED_LOCAL_WRITERS = [
   {
     file: "bin/facts-lifecycle.mjs",
     /* 🔴 ROUTED (23 September 2026). TEXT content, measured. The bare mkdir is gone rather than gated — the
@@ -334,22 +281,6 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
     whyKnown: true,
   },
   {
-    file: "bin/verification-issues.mjs",
-    /* 🔴 ROUTED (23 September 2026). Observations and issues are collected and committed as two governed
-     * decisions — one per kind, because they are genuinely different writes. The store still decides
-     * appended-versus-re-sighted, and the report still prints its answer. */
-    routed: true,
-    sites: 0,
-    writes: "the issues a human verification returned, each citing an observation of the VERDICT ROW we hold — never of a page we did not fetch",
-    where: `runs/audit/verification-issues.jsonl by default, or the file given by --out; ${CONFINED}`,
-    gatedBy: "write-law LOCAL: the append sits behind permission.mayWrite, which only --confirm grants. With no flag it prints every issue it would record, marked already-present or new. 🔴 Until 16 September 2026 it had NO gate",
-    gateFlags: ["--confirm"],
-    gateToken: "permission.mayWrite",
-    destinationOverridable: true,
-    why: "item 15, part 4: what the 12 September verification turned up, recorded as issues with an honest chain of custody",
-    whyKnown: true,
-  },
-  {
     file: "bin/gsc-ingest.mjs",
     /* 🔴 ROUTED (23 September 2026). The dry-run store is always the collector, so the ingest runs and reports
      * identically either way; the observations and the cost entry are then two governed decisions. The rule that
@@ -447,4 +378,6 @@ export const PERMITTED_LOCAL_WRITERS = Object.freeze([
     why: "F05 §7: the register resolves over the committed corpus, and the corpus must be read from COMMITTED bytes at a named commit — so it is migrated by a program, never assembled by hand",
     whyKnown: true,
   },
-]);
+];
+/* Subject-owned local writers are declared by their package (`permittedLocalWriters`) and merged here (F02 relocation). */
+export const PERMITTED_LOCAL_WRITERS = Object.freeze([...SHARED_LOCAL_WRITERS, ...(await loadAllSubjectPackages()).flatMap((p) => p.permittedLocalWriters ?? [])]);

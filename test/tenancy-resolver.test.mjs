@@ -259,7 +259,13 @@ test("A4 · the exception is FALSE against the declarations actually in force", 
   for (const k of r.declaredKinds) assert.ok(RESOURCE_KINDS.includes(k), `${k} is declared but not in the known vocabulary`);
 });
 
-test("the resolver's own vocabulary is the four states and four kinds, unchanged", () => {
+/* 🔴 F02 (24 Sep 2026) EXTENDED the kind vocabulary — deliberately, and named here rather than absorbed. The four F01 kinds
+ * are unchanged and first; F02 added seven, because a resource with NO declarable kind could never be declared even in
+ * a fixture world, and so every entry point that read one was refused for ever: EVIDENCE_STORE, COST_LEDGER, CAPTURE_SET,
+ * RESEARCH_BATCH, CACHE_STORE, RUN_STORE, INPUT_PATH. The states are unchanged. The lookup is still ONE lookup for every
+ * kind (E13d): a new kind adds no branch, and the real declarations still name only the four. */
+test("the resolver's own vocabulary: the states unchanged; the four F01 kinds unchanged and first, then the seven F02 added", () => {
   assert.deepEqual([...RESOLUTION_STATES], ["RESOLVED", "UNDECLARED", "AMBIGUOUS", "INVALID", "UNKNOWN"]);
-  assert.deepEqual([...RESOURCE_KINDS], ["SITE_ORIGIN", "FACT_REGISTRY", "SITEMAP_COLLECTION", "CRAWL_BATCH"]);
+  assert.deepEqual([...RESOURCE_KINDS].slice(0, 4), ["SITE_ORIGIN", "FACT_REGISTRY", "SITEMAP_COLLECTION", "CRAWL_BATCH"]);
+  assert.deepEqual([...RESOURCE_KINDS].slice(4), ["EVIDENCE_STORE", "COST_LEDGER", "CAPTURE_SET", "RESEARCH_BATCH", "CACHE_STORE", "RUN_STORE", "INPUT_PATH"]);
 });

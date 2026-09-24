@@ -41,6 +41,7 @@ import { evidenceEdge, bindSubject } from "../detect/binding.mjs";
 import { batchFile, readBatchManifest } from "../crawl/observation-batch.mjs";
 import { createJsonlStore } from "../evidence/store.mjs";
 import { createTenantResolver } from "../tenancy/resolver.mjs";
+import { decideResolvedTenants } from "../tenancy/scope.mjs";
 import { normaliseObservedUrl } from "./observed-page-subject.mjs";
 
 /** The collection this engine currently reads. A collection id is a capture, never a scope. */
@@ -153,8 +154,9 @@ export function judgeSitemapUrl({ raw, rec, locator, batchId, resolve, pageByUrl
    * cross-scope match REPORTABLE: without it a page in another scope is indistinguishable from no
    * page at all, and the difference between those two is the whole point of declared tenancy. */
   const atUrl = pageByUrl.get(url) ?? [];
-  const sameScope = atUrl.filter((p) => p.tenantId === tenantId);
-  const otherScope = atUrl.filter((p) => p.tenantId && p.tenantId !== tenantId);
+  /* F02: the entry's and each page's resolved tenants are decided by the ONE decision (src/tenancy/scope.mjs), never compared here. */
+  const sameScope = atUrl.filter((p) => decideResolvedTenants(tenantId, p.tenantId).allowed);
+  const otherScope = atUrl.filter((p) => decideResolvedTenants(tenantId, p.tenantId).outcome === "CROSS_TENANT_REFUSED");
 
   if (sameScope.length === 0) {
     if (otherScope.length > 0) {

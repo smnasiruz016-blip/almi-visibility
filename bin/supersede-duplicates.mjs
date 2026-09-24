@@ -28,6 +28,8 @@ import { governedStoreAppend } from "../src/governance/governed-run.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { duplicateCensus, DUPLICATE_SUPERSEDED_TYPE } from "../src/evidence/lifecycle.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const AUDIT = confineToRepo(`${REPO}runs/audit`, { label: "the audit stores" });
@@ -35,6 +37,8 @@ const permission = announceWritePermission(writePermission({ target: LOCAL, argv
 const now = new Date().toISOString();
 const RUN_INSTANT = isoSeconds(Date.now());
 const RUN_CORRELATION = `run:supersede-duplicates:${RUN_INSTANT}`;
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/supersede-duplicates.mjs", governed: true, resources: [RESOURCES.runArtefacts("audit finding stores")] });
 
 console.log("ITEM 48 — SUPERSEDE DUPLICATE ISSUE COPIES");
 let totalNotes = 0;
@@ -72,7 +76,7 @@ for (const f of readdirSync(AUDIT).filter((x) => x.endsWith(".jsonl")).sort()) {
    * preserved; the boundary measures the delta over the target rather than by key. */
   let after = null;
   if (notes.length) {
-    const governed = executeGovernedWrite(governedStoreAppend({
+    const governed = executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,
       repo: REPO, permission, store, records: notes, targetClass: "RUN_EVIDENCE",
       action: "APPEND_DUPLICATE_SUPERSESSION_NOTES", occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
       discipline: "APPEND_ALL_WITHOUT_DEDUPE",

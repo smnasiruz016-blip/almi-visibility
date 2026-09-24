@@ -13,6 +13,10 @@
  *          7501 (reference-leak census).
  */
 import test from "node:test";
+import { declaredWorld } from "./helpers/declared-world.mjs";
+/* F02: every entry point decides its tenant first — the runs below go through a DECLARED FIXTURE WORLD (never the real population). */
+const WORLD = declaredWorld();
+process.on("exit", () => WORLD.cleanup());
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -22,7 +26,7 @@ import { classify } from "../src/checklist/classification.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { row5, QUERY_OBSERVATION } from "../src/discovery/row5.mjs";
 import { clusterIntents, clusteringErrors, heldOutCheck, buildRecord, splitCauses, place, idfOf, normalise, isHeldOut, sha, SPLIT_CAUSES } from "../src/discovery/intent-clusters.mjs";
-import { LEXICON } from "../config/discovery/intent-lexicon.mjs";
+import { LEXICON } from "../subjects/almiworld-estate/config/intent-lexicon.mjs";
 import { INTENT_REFERENCE, AMBIGUOUS, REFERENCE_STATUS } from "../config/discovery/intent-reference.mjs";
 import { syntheticCorpus, mulberry32, EVIDENCE_CLASS, RULE } from "./support/synthetic-queries.mjs";
 
@@ -88,7 +92,7 @@ test("REAL — no lawful reference: the split causes are UNAVAILABLE (null), nev
 });
 
 test("REAL — the runner says the causes are unavailable, from the production path", () => {
-  const out = spawnSync(process.execPath, [join(REPO, "bin", "intent-clusters.mjs"), "--check"], { encoding: "utf8" });
+  const out = spawnSync(process.execPath, WORLD.argv([join(REPO, "bin", "intent-clusters.mjs"), "--check", "--subject=almiworld-estate"]), { encoding: "utf8", env: WORLD.envWith() });
   assert.equal(out.status, 1);
   assert.match(out.stdout, /SPLIT CAUSES — 🔴 UNAVAILABLE \(HELD_OUT_REFERENCE_RETIRED\)/);
 });

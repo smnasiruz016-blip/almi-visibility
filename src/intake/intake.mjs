@@ -22,6 +22,7 @@ import { resolve as resolveAuthority, permits } from "../authority/register.mjs"
 import { AUTHORITY_CORPUS } from "../../config/authority/corpus.mjs";
 import { ACCEPTANCES } from "../../config/fboard/acceptances.mjs";
 import { isDurableDecision } from "../governance/guard-audit.mjs";
+import { decideResolvedTenants } from "../tenancy/scope.mjs";
 
 /** The authority a declaration decision is taken under: F01's frozen acceptance, resolved LIVE. Fails closed. */
 export function intakeAuthority({ now, records = AUTHORITY_CORPUS }) {
@@ -36,8 +37,8 @@ export function intakeAuthority({ now, records = AUTHORITY_CORPUS }) {
  * Decide one submission against the store and the tenant registry.
  * Returns { outcome: "REFUSED"|"ACCEPT"|"REPLAY", stage, refusals, normalised, writes, transitions }.
  */
-export function decideSubmission({ doc, root, tenants, attachedTo, acceptedAt }) {
-  const v = validateDeclaration(doc, { tenants, attachedTo });
+export function decideSubmission({ doc, root, tenants, attachedTo, relation = null, acceptedAt }) {
+  const v = validateDeclaration(doc, { tenants, attachedTo, relation });
   if (!v.ok) {
     return Object.freeze({ outcome: "REFUSED", stage: "CONTRACT", refusals: v.refusals, normalised: null, writes: [], transitions: [t("SUBMITTED", "REFUSED", doc)] });
   }
@@ -50,13 +51,14 @@ export function decideSubmission({ doc, root, tenants, attachedTo, acceptedAt })
 
   // 🔴 One project, one tenant — for ever. A project id already held by ANOTHER tenant is refused, whatever else is true.
   const holders = tenantHoldingProject(root, n.projectId) ?? [];
-  if (holders.some((h) => h !== n.tenantId)) return refuseStore("PROJECT_BELONGS_TO_ANOTHER_TENANT", "$.projectId");
+  /* F02: decided by the ONE tenant decision (src/tenancy/scope.mjs) — this module no longer compares tenants itself. */
+  if (holders.some((h) => !decideResolvedTenants(n.tenantId, h).allowed)) return refuseStore("PROJECT_BELONGS_TO_ANOTHER_TENANT", "$.projectId");
 
   // 🔴 An id names ONE submission. The same id with other bytes is a conflict; the same bytes again is a replay.
   const held = declarationIdHolder(root, n.declarationId);
   const current = currentDeclaration(root, n.tenantId, n.projectId);
   if (held) {
-    if (held.tenantId !== n.tenantId || held.projectId !== n.projectId || held.bytes !== bytes) return refuseStore("DECLARATION_ID_CONFLICT", "$.declarationId");
+    if (!decideResolvedTenants(n.tenantId, held.tenantId).allowed || held.projectId !== n.projectId || held.bytes !== bytes) return refuseStore("DECLARATION_ID_CONFLICT", "$.declarationId");
     if (current?.record.declarationId === n.declarationId || currentPointer(root, n.tenantId, n.projectId)?.declarationId === n.declarationId) {
       return Object.freeze({ outcome: "REPLAY", stage: "STORE", refusals: Object.freeze([]), normalised: n, writes: [], transitions: [] });
     }

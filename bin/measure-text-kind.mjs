@@ -21,6 +21,8 @@ import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedFileWrite } from "../src/governance/governed-run.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 const argv = process.argv.slice(2);
 const flag = (n, d = null) => {
@@ -33,6 +35,8 @@ const permission = announceWritePermission(writePermission({ target: LOCAL, argv
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const RUN_INSTANT = isoSeconds(Date.now());
 const RUN_CORRELATION = `run:measure-text-kind:${RUN_INSTANT}`;
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/measure-text-kind.mjs", governed: true, resources: [RESOURCES.inputPath(corpusDir, "--corpus")] });
 if (!corpusDir || !existsSync(corpusDir)) {
   console.error("usage: node bin/measure-text-kind.mjs --corpus <dir> [--out file.json] [--confirm]");
   process.exit(2);
@@ -104,7 +108,7 @@ for (const g of readdirSync(corpusDir).filter((n) => statSync(join(corpusDir, n)
 if (outFile) {
   /* 🔴 CONFINED, WHICH IT WAS NOT BEFORE — the fourth governed writer found writing an unconfined operator path.
    * A deliberate tightening, recorded: an outside-repository --out is now refused instead of written. */
-  const governed = executeGovernedWrite(governedFileWrite({
+  const governed = executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
     repo: REPO, permission, target: confineToRepo(outFile, { label: "--out" }),
     targetClass: "OPERATOR_CHOSEN_OUTPUT", bytes: JSON.stringify(report, null, 2),
     action: "WRITE_TEXT_KIND_REPORT", occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,

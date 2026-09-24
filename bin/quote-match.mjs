@@ -46,11 +46,13 @@ import { dirname } from "node:path";
 import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedFileWrite } from "../src/governance/governed-run.mjs";
-import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
+import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
-import { runQuoteMatch } from "../src/facts/quote-match.mjs";
+import { runQuoteMatch } from "../src/facts/quote-match.mjs";
 
 import { productFromArgvOrExit } from "../src/product-cli.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 /**
  * 🔴 THE PRODUCT ARRIVES AS AN ARGUMENT, NOT AS AN IMPORT.
@@ -63,6 +65,8 @@ import { productFromArgvOrExit } from "../src/product-cli.mjs";
  */
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/quote-match.mjs --product=<id>" });
 
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/quote-match.mjs", governed: true, resources: [RESOURCES.factRegistryAt(PRODUCT.factsDir)] });
 const argv = process.argv.slice(2);
 const out = argv.find((a) => a.startsWith("--out="))?.split("=").slice(1).join("=") ?? null;
 
@@ -111,7 +115,7 @@ if (out) {
    * mechanism here normalises before matching and restores one style on write — which would have rewritten 116
    * lines to change four. The bare LF is untouched. TEXT, measured: the body is a JSON.stringify. */
   const QM_INSTANT = governedInstant(Date.now());
-  const governed = executeGovernedWrite(governedFileWrite({
+  const governed = executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
     repo: REPO, permission, target: out, targetClass: "RUN_EVIDENCE",
     bytes: JSON.stringify(report, null, 2) + "\n",
     action: "WRITE_QUOTE_MATCH_REPORT", occurredAt: QM_INSTANT, correlationId: `run:quote-match:${QM_INSTANT}`,

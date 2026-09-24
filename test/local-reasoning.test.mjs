@@ -20,7 +20,7 @@ import {
   OUTCOMES, SEPARATE_URL, READ_METHOD, REFUSALS,
 } from "../src/discovery/local-reasoning.mjs";
 import { createTenantResolver } from "../src/tenancy/resolver.mjs";
-import { HARD_CODED_PATTERNS } from "../config/discovery/axis-candidates.mjs";
+import { HARD_CODED_PATTERNS } from "../subjects/almiworld-estate/config/axis-candidates.mjs";
 import { countryUrlCensus, reachesDecisionPaths } from "../tools/country-url-census.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -66,7 +66,11 @@ function rec({ wordings, locality, holds = true, claim = "the declared authority
   }
   return r;
 }
-const judge = (goals, records, tenancy = tenancyOf(goals)) => withEvidenceClasses(judgeReasoning({ goals, records, tenancy }), records);
+/* F02 (24 Sep 2026): the research batch is a declared RESOURCE, and its tenant is the one its declaration resolves — a
+ * record's own tenantId is no longer authority. A synthetic world DECLARES its batch to the one tenant its records name;
+ * a world whose records name several declares none (so it resolves to no tenant). */
+const declaredBatchTenant = (records) => { const ts = new Set(records.map((r) => r?.value?.tenantId)); return ts.size === 1 ? [...ts][0] ?? null : null; };
+const judge = (goals, records, tenancy = tenancyOf(goals)) => withEvidenceClasses(judgeReasoning({ goals, records, tenancy, researchTenantId: declaredBatchTenant(records) }), records);
 const outcomeOf = (j, goal) => j.groups.find((g) => g.goal === goal).outcome;
 
 /* ═════════ THE THREE-WORLD PROOFS ═════════ */
@@ -295,7 +299,11 @@ test("🔴 THE BATCH REFUSES RATHER THAN SHORTENS — absent, tampered and misco
 
 /* ═════════ THE REAL EVIDENCE — the declared external batch, through the production path ═════════ */
 
-test("🟢 REAL — the declared batch is read by its manifest hash, and the production path judges G13 J on six READ primary-source records", () => {
+/* 🔴 F02 (24 Sep 2026): the real research batch carries NO declaration (resolver: RESEARCH_BATCH → UNDECLARED), so its six
+ * records may not join any goal. G13 was J while a record's own tenantId was read as authority; on the production path it
+ * is now H, and nothing else moves (measured: D 2 · H 1 · K 24 · L 10 = 37). The J judgement is recoverable only by a
+ * declaration attaching the batch — a finding about the data, never about the guard. */
+test("🟢 REAL — the declared batch is read by its manifest hash, and the production path refuses G13's research join: the batch is UNDECLARED (F02)", () => {
   const store = createJsonlStore(join(REPO, "runs", "evidence", "evidence.jsonl")).readAll();
   const row3 = JSON.parse(readFileSync(join(REPO, ...ROW3_STORED.split("/")), "utf8"));
   const result = localizedThinking({ storeRecords: store, row3, estatePatterns: HARD_CODED_PATTERNS });
@@ -306,24 +314,24 @@ test("🟢 REAL — the declared batch is read by its manifest hash, and the pro
   assert.equal(batch.sha256, batch.manifest.files[0].sha256);
   assert.equal(batch.records.length, 6);
   assert.ok(batch.records.every((r) => r.value.evidenceClass === "REAL"));
-  const judged = withEvidenceClasses(judgeReasoning({ goals: result.goals, records: batch.records, tenancy }), batch.records);
+  const scope = createTenantResolver()({ resourceKind: "RESEARCH_BATCH", resourceRef: batch.batchId });
+  assert.equal(scope.state, "UNDECLARED", "the real research batch now carries a declaration — re-measure G13 before changing this line");
+  const judged = withEvidenceClasses(judgeReasoning({ goals: result.goals, records: batch.records, tenancy, researchTenantId: null }), batch.records);
   // 🔴 22 Sep 2026: G13's wording belongs to a retired held-out population and may not appear in test source — the group is selected by its six localities, never by its wording
   const g13 = judged.groups.find((g) => JSON.stringify(g.members.map((m) => m.locality)) === JSON.stringify(["gha", "ind", "kor", "nga", "nzl", "usa"]));
-  assert.equal(g13.outcome, "J");
-  assert.equal(g13.urlAxis, "F");
-  assert.equal(g13.separateUrl, "NOT_RECOMMENDED");
-  assert.deepEqual(g13.members.map((m) => [m.locality, m.rows, m.impressions, m.state]), [["gha", 1, 1, "EVALUATED"], ["ind", 1, 1, "EVALUATED"], ["kor", 1, 1, "EVALUATED"], ["nga", 1, 1, "EVALUATED"], ["nzl", 1, 2, "EVALUATED"], ["usa", 1, 1, "EVALUATED"]]);
-  assert.deepEqual(g13.members.map((m) => m.reasoning[0].holds), [false, false, true, false, false, true]);
+  assert.equal(g13.outcome, "H");
+  assert.equal(g13.reasonCode, "RESEARCH_BATCH_UNDECLARED_REFUSED");
+  assert.ok(g13.members.every((m) => m.state === "INVALID"));
   const t = tallyReasoning(judged);
-  assert.deepEqual([t.groups, t.letters.D, t.letters.J, t.letters.K, t.letters.L, t.groupRemainder], [37, 2, 1, 24, 10, 0]);
-  assert.deepEqual([t.memberTotal, t.members.EVALUATED, t.members.UNKNOWN, t.members.NOT_APPLICABLE, t.members.INVALID, t.memberRemainder], [95, 6, 63, 26, 0, 0]);
+  assert.deepEqual([t.groups, t.letters.D, t.letters.H, t.letters.J, t.letters.K, t.letters.L, t.groupRemainder], [37, 2, 1, 0, 24, 10, 0]);
+  assert.deepEqual([t.memberTotal, t.members.EVALUATED, t.members.UNKNOWN, t.members.NOT_APPLICABLE, t.members.INVALID, t.memberRemainder], [95, 0, 63, 26, 6, 0]);
   assert.deepEqual([judged.refused.length, judged.orphans.length], [0, 0]);
 });
 
-test("🟢 REAL — limb (a) on row 4's own path is 0 across all three verbs, and the verdict over the real batch is PASS on G13 alone", () => {
+test("🟢 REAL — limb (a) on row 4's own path is 0 across all three verbs, and the verdict over the real batch is NOT_PASS: G13's only evidence is undeclared (F02)", () => {
   const walk = (dir, rel) => readdirSync(dir).flatMap((n) => (statSync(join(dir, n)).isDirectory() ? walk(join(dir, n), `${rel}${n}/`) : n.endsWith(".mjs") ? [`${rel}${n}`] : []));
   const read = (files) => files.map((f) => [f, readFileSync(join(REPO, f), "utf8")]);
-  const SOURCES = new Map(read([...walk(join(REPO, "src"), "src/"), ...walk(join(REPO, "bin"), "bin/")]));
+  const SOURCES = new Map(read([...walk(join(REPO, "src"), "src/"), ...walk(join(REPO, "bin"), "bin/"), ...walk(join(REPO, "subjects"), "subjects/")]));
   const GRAPH = new Map([...SOURCES, ...read(walk(join(REPO, "config"), "config/")), ...read(walk(join(REPO, "tools"), "tools/"))]);
   const census = countryUrlCensus(SOURCES);
   assert.deepEqual(census.consumers, ["bin/localized-thinking.mjs", "src/discovery/local-reasoning.mjs", "src/discovery/localized-thinking.mjs"]);
@@ -336,8 +344,8 @@ test("🟢 REAL — limb (a) on row 4's own path is 0 across all three verbs, an
   const result = localizedThinking({ storeRecords: store, row3, estatePatterns: HARD_CODED_PATTERNS });
   const tenancy = goalTenancy({ goals: result.goals, queryPageRows: store.find((o) => o.observation_id === "c97334fdd102df8e").value.rows, resolve: createTenantResolver() });
   const batch = readReasoningBatch();
-  const judged = withEvidenceClasses(judgeReasoning({ goals: result.goals, records: batch.records, tenancy }), batch.records);
+  const judged = withEvidenceClasses(judgeReasoning({ goals: result.goals, records: batch.records, tenancy, researchTenantId: null }), batch.records);
   const v = row4Verdict({ judged, limbA: { construction: census.breaches.length, acceptance: decisions.hits.length, recommendation: decisions.hits.length } });
-  assert.equal(v.verdict, "PASS", JSON.stringify(v.reasons));
-  assert.deepEqual(v.completeGroups, [judged.groups.find((g) => JSON.stringify(g.members.map((m) => m.locality)) === JSON.stringify(["gha", "ind", "kor", "nga", "nzl", "usa"])).goal]);
+  assert.equal(v.verdict, "NOT_PASS", JSON.stringify(v.reasons));
+  assert.deepEqual(v.completeGroups, []);
 });

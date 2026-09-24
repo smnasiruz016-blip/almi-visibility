@@ -14,8 +14,10 @@ import { join } from "node:path";
 
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { row5 } from "../src/discovery/row5.mjs";
-import { LEXICON } from "../config/discovery/intent-lexicon.mjs";
+import { loadSubjectPackage } from "../src/subject-package.mjs";
 import { INTENT_REFERENCE, AMBIGUOUS, AMENDMENTS, REFERENCE_AUTHOR, REFERENCE_STATUS } from "../config/discovery/intent-reference.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 /**
  * 🔴 DRAIN BEFORE EXIT — `process.exit()` tears the process down with asynchronous stdout writes
@@ -47,6 +49,12 @@ function exitAfterDrain(code) {
 }
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/intent-clusters.mjs", governed: false, resources: [RESOURCES.evidenceStore()] });
+/* F02 relocation: the discovery configuration belongs to a declared SUBJECT PACKAGE, named by --subject (no default).
+ * The package is located, never trusted for scope: the gate above already decided every resource this run reads. */
+const SUBJECT = await loadSubjectPackage(process.argv.find((a) => a.startsWith("--subject="))?.slice("--subject=".length));
+const { LEXICON } = SUBJECT.module.INTENT_LEXICON;
 const records = createJsonlStore(join(REPO, "runs", "evidence", "evidence.jsonl")).readAll();
 const r = row5({ records, lexicon: LEXICON, reference: INTENT_REFERENCE, ambiguous: AMBIGUOUS, referenceStatus: REFERENCE_STATUS });
 

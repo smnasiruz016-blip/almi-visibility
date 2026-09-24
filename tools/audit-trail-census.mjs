@@ -31,6 +31,7 @@ import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { createTenantResolver, TENANT_ID_PATTERN } from "../src/tenancy/resolver.mjs";
 import { PRODUCT_WORDS } from "./product-boundary.mjs";
 import { productionAuditStore } from "../src/audit-trail/wiring.mjs";
+import { isEntryPoint } from "../src/entry-points.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const BASE = process.argv.find((a) => a.startsWith("--base="))?.slice(7) ?? "origin/main";
@@ -104,7 +105,7 @@ for (const p of changed) console.log(`  ${p}`);
 
 /* ── 13.3 · PRODUCT / CLIENT IDENTIFIER CENSUS over generic production changes and all audit output ───────────── */
 {
-  const scope = changedExisting.filter((p) => /^(src|bin|tools|config)\//.test(p));
+  const scope = changedExisting.filter((p) => /^(src|bin|tools|config|subjects)\//.test(p));
   const hits = [];
   for (const p of [...scope, AUDIT_STORE.eventsPath, AUDIT_STORE.headPath]) {
     if (!existsSync(join(REPO, p))) continue;
@@ -161,7 +162,7 @@ for (const p of changed) console.log(`  ${p}`);
 
 /* ── 13.5 · ORPHAN AND PRODUCTION-ENTRY-POINT CENSUS ──────────────────────────────────────────────────────────── */
 {
-  const files = git("ls-files", "src", "bin", "tools").trim().split("\n").filter((p) => p.endsWith(".mjs"));
+  const files = git("ls-files", "src", "bin", "tools", "subjects").trim().split("\n").filter((p) => p.endsWith(".mjs"));
   const text = new Map(files.map((f) => [f, readFileSync(join(REPO, f), "utf8")]));
   const importsOf = (f, t) => [...t.matchAll(/from\s+"([^"]+)"/g)].map((m) => m[1]).filter((s) => s.startsWith(".")).map((s) => {
     const parts = f.split("/").slice(0, -1).concat(s.split("/"));
@@ -171,11 +172,11 @@ for (const p of changed) console.log(`  ${p}`);
   });
   const reached = new Set();
   const walk = (f) => { if (reached.has(f) || !text.has(f)) return; reached.add(f); for (const n of importsOf(f, text.get(f))) walk(n); };
-  for (const b of files.filter((f) => f.startsWith("bin/"))) walk(b);
+  for (const b of files.filter(isEntryPoint)) walk(b);
   for (const t of files.filter((f) => f.startsWith("test/"))) walk(t);
   const newModules = changed.filter((p) => p.startsWith("src/audit-trail/"));
   const orphans = newModules.filter((m) => !reached.has(m));
-  const entryPoints = files.filter((f) => f.startsWith("bin/"));
+  const entryPoints = files.filter(isEntryPoint);
   say(
     "13.5 · ORPHAN AND PRODUCTION-ENTRY-POINT CENSUS",
     `${newModules.length} new module(s) under src/audit-trail/, against ${entryPoints.length} production entry points and ${files.length} tracked source files`,
@@ -242,7 +243,7 @@ for (const p of changed) console.log(`  ${p}`);
   if (acc.contractSha256 !== RECORDED_CONTRACT_SHA) faults.push("CONTRACT_SHA_MOVED");
   if (contractSha256(acc) !== RECORDED_CONTRACT_SHA) faults.push("ACCEPTANCE_TAMPERED");
   const govBytes = (() => {
-    try { return execFileSync("git", ["-C", "C:/Projects/_handoffs", "show", `${acc.ruling.commit}:${acc.ruling.path}`], { encoding: "utf8", maxBuffer: 1 << 28 }); }
+    try { return execFileSync("git", ["-C", join(REPO, "..", "_handoffs"), "show", `${acc.ruling.commit}:${acc.ruling.path}`], { encoding: "utf8", maxBuffer: 1 << 28 }); }
     catch { return null; }
   })();
   if (govBytes === null) faults.push("GOVERNANCE_BYTES_UNREADABLE");

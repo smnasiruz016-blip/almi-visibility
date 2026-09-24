@@ -51,7 +51,11 @@ export const ATTACHMENTS_FILE = "attachments.json";
  * resolves through the same lookup and still answers UNDECLARED; the list exists so a declaration
  * FILE carrying a typo can be rejected at read time rather than silently never matching.
  */
-export const RESOURCE_KINDS = Object.freeze(["SITE_ORIGIN", "FACT_REGISTRY", "SITEMAP_COLLECTION", "CRAWL_BATCH"]);
+/* F02 (24 Sep 2026): the stores a governed run reads can now be DECLARED — an evidence store, a cost ledger, a capture
+ * set, a research batch, a cache store. Before, they had no kind, so no declaration could ever attach them and every run
+ * reading one was refused forever, whatever the owner declared. The vocabulary widens; the rule does not: with no
+ * attachment each still resolves UNDECLARED and refuses. */
+export const RESOURCE_KINDS = Object.freeze(["SITE_ORIGIN", "FACT_REGISTRY", "SITEMAP_COLLECTION", "CRAWL_BATCH", "EVIDENCE_STORE", "COST_LEDGER", "CAPTURE_SET", "RESEARCH_BATCH", "CACHE_STORE", "RUN_STORE", "INPUT_PATH"]);
 
 export const RESOLUTION_STATES = Object.freeze(["RESOLVED", "UNDECLARED", "AMBIGUOUS", "INVALID", "UNKNOWN"]);
 

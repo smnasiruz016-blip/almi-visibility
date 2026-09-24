@@ -32,6 +32,10 @@
  * both streams whole.
  */
 import test from "node:test";
+import { declaredWorld } from "./helpers/declared-world.mjs";
+/* F02: every entry point decides its tenant first — the runs below go through a DECLARED FIXTURE WORLD (never the real population). */
+const WORLD = declaredWorld();
+process.on("exit", () => WORLD.cleanup());
 import assert from "node:assert/strict";
 import { generateKeyPairSync, createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, writeFileSync, rmSync, readFileSync, existsSync } from "node:fs";
@@ -231,10 +235,10 @@ test("🔴 THE CLI, in a child process: a planted non-JSON key and a planted bro
        * only the destination moves, and the case still drives the CLI into the key-handling path. */
       mkdirSync(join(REPO, ".test-scratch"), { recursive: true });
       const storeDir = mkdtempSync(join(REPO, ".test-scratch", "leak-"));
-      const r = spawnSync(process.execPath, ["--import", pathToFileURL(stub).href, "bin/gsc-ingest.mjs", "--property=sc-domain:example.com", `--store=${join(storeDir, "e.jsonl")}`], {
+      const r = spawnSync(process.execPath, WORLD.argv(["--import", pathToFileURL(stub).href, "bin/gsc-ingest.mjs", "--property=sc-domain:example.com", `--store=${join(storeDir, "e.jsonl")}`]), {
         cwd: REPO,
         encoding: "utf8",
-        env: { ...process.env, GSC_SERVICE_ACCOUNT_KEY_FILE: key.path },
+        env: WORLD.envWith({ ...process.env, GSC_SERVICE_ACCOUNT_KEY_FILE: key.path }),
       });
       rmSync(storeDir, { recursive: true, force: true });
       const output = `${r.stdout}\n${r.stderr}`;

@@ -32,10 +32,12 @@
  */
 import { mkdirSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
-import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
-import { governedFileWrite } from "../src/governance/governed-run.mjs";
-import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
+import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../../../src/write-law.mjs";
+import { executeGovernedWrite } from "../../../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../../../src/governance/governed-run.mjs";
+import { isoSeconds as governedInstant } from "../../../src/audit-trail/store.mjs";
+import { scopedEntryPoint } from "../../../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../../../src/tenancy/scoped-run.mjs";
 
 const argv = process.argv.slice(2);
 const flag = (n, d = null) => {
@@ -55,6 +57,8 @@ const UA = "AlmiVisibility-GateA-corpus/1.0 (read-only audit of our own site)";
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv, env: process.env }));
 const CORPUS_INSTANT = governedInstant(Date.now());
 const CORPUS_CORRELATION = `run:build-corpus:${CORPUS_INSTANT}`;
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/build-corpus.mjs", governed: true, resources: [RESOURCES.siteOrigin(SITE)] });
 if (!OUT) {
   console.error("usage: node bin/build-corpus.mjs --site <url> --out <dir> --confirm [--leaf-sample 500] [--seed N]");
   process.exit(2);
@@ -155,7 +159,7 @@ async function fetchGroup(name, urls) {
         if (r.status === 200) {
           const id = new URL(u).pathname.replace(/^\//, "").replace(/\/$/, "").split("/").join("__") || "root";
           /* Routed. One fetched page is one target, so this is per-TARGET and not per-record. */
-          const pageGoverned = executeGovernedWrite(governedFileWrite({
+          const pageGoverned = executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
             repo: REPO, permission, target: join(dir, `${id}.html`), targetClass: "OPERATOR_CHOSEN_OUTPUT",
             bytes: r.body, action: "WRITE_CORPUS_PAGE", occurredAt: CORPUS_INSTANT,
             correlationId: CORPUS_CORRELATION,
@@ -196,13 +200,14 @@ const manifest = {
   groups: Object.fromEntries(Object.entries(groups).map(([k, v]) => [k, v.length])),
   leafStrata: strata.size,
   leafSampled: leafSample.length,
+  leafGroup: "profession-origin-org",
   sampledUrls: leafSample,
   fetched, failed, requests,
   wallClockSeconds: Number(seconds.toFixed(1)),
   concurrency: CONCURRENCY, minSpacingMs: MIN_SPACING_MS,
 };
 {
-  const manifestGoverned = executeGovernedWrite(governedFileWrite({
+  const manifestGoverned = executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
     repo: REPO, permission, target: join(OUT, "corpus-manifest.json"), targetClass: "OPERATOR_CHOSEN_OUTPUT",
     bytes: JSON.stringify(manifest, null, 2), action: "WRITE_CORPUS_MANIFEST",
     occurredAt: CORPUS_INSTANT, correlationId: CORPUS_CORRELATION,

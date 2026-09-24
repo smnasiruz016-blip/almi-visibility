@@ -16,10 +16,18 @@ import { fileURLToPath } from "node:url";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { discoverSearchLanguage, searchLanguageErrors, heldOutRecheck, LIMITS } from "../src/discovery/search-language.mjs";
 import { keywordUrlCensus, forbiddenReferences } from "../tools/keyword-url-census.mjs";
-import { LEXICON } from "../config/discovery/intent-lexicon.mjs";
+import { loadSubjectPackage } from "../src/subject-package.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 // the repository root from this file's own path — no URL is constructed in a consumer of the search-language module
 const REPO = dirname(dirname(fileURLToPath(import.meta.url)));
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/search-language.mjs", governed: false, resources: [RESOURCES.evidenceStore()] });
+/* F02 relocation: the discovery configuration belongs to a declared SUBJECT PACKAGE, named by --subject (no default).
+ * The package is located, never trusted for scope: the gate above already decided every resource this run reads. */
+const SUBJECT = await loadSubjectPackage(process.argv.find((a) => a.startsWith("--subject="))?.slice("--subject=".length));
+const { LEXICON } = SUBJECT.module.INTENT_LEXICON;
 const STORE = join(REPO, "runs", "evidence", "evidence.jsonl");
 const storeRecords = createJsonlStore(STORE).readAll();
 const result = discoverSearchLanguage(storeRecords);
@@ -30,7 +38,7 @@ if (process.argv.includes("--json")) {
 }
 
 const walk = (dir, rel) => readdirSync(dir).flatMap((n) => (statSync(join(dir, n)).isDirectory() ? walk(join(dir, n), `${rel}${n}/`) : n.endsWith(".mjs") ? [`${rel}${n}`] : []));
-const sources = new Map([...walk(join(REPO, "src"), "src/"), ...walk(join(REPO, "bin"), "bin/")].map((f) => [f, readFileSync(join(REPO, f), "utf8")]));
+const sources = new Map([...walk(join(REPO, "src"), "src/"), ...walk(join(REPO, "bin"), "bin/"), ...walk(join(REPO, "subjects"), "subjects/")].map((f) => [f, readFileSync(join(REPO, f), "utf8")]));
 const census = keywordUrlCensus(sources);
 const lexiconRefs = forbiddenReferences(sources.get("src/discovery/search-language.mjs"), ["intent-lexicon", "intent-reference"]);
 const errors = searchLanguageErrors({ records: result.records, storeRecords });

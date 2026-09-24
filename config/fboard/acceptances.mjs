@@ -20,6 +20,20 @@ export const ACCEPTANCES = Object.freeze({
     evidence: "The contract exercised through a real non-empty declaration population\nand a new unrelated neutral declaration; accepted, refused, duplicate,\nsuperseded and unavailable-storage worlds; complete field and population\narithmetic; tenant isolation, secret exclusion, portability, audit,\nidempotency and orphan proofs; independent sabotage for every failure\nclass; two agreeing full suites; named counting control; one green PR,\nmerge and exact-main CI.",
     contractSha256: "5d7ddb4c6d37a3d96cbc8ce65797eb20f3119816a20084c9176aa089b5d80ccb",
   }),
+  F02: Object.freeze({
+    featureId: "F02",
+    ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F02_ACCEPTANCE_2026-09-24.md", commit: "3ea6fdac909bc76b4ba8137ef0c07147f7525143", sha256: "e468526e1257fd6ac16505a5018398fb8701165da0f711edc44b1395673e79e5" }),
+    // Resolved through the register (inclusion rule f-row-acceptance, the name the F02 command gave the file); the board
+    // accepts this acceptance only while that resolution is CURRENT and names these exact bytes.
+    authority: Object.freeze({ propositionId: "F02_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F02"]) }),
+    frozenOn: "2026-09-24",
+    feature: "F02 · Tenant and evidence isolation",
+    input: "A declared tenant and two or more tenant-scoped resources or records,\nincluding at least one real attempted relationship between resources.",
+    expected: "Every governed resource, evidence item, cost item, learning item and output\nresolves to one declared tenant scope before use; same-tenant relationships\nmay proceed, while cross-tenant, undeclared, ambiguous and mismatched\nrelationships fail closed with a reason that identifies the failed scope\nrelationship without exposing another tenant's protected content.",
+    failure: "A governed item is accepted without one unambiguous tenant scope; a\ncross-tenant relationship proceeds; tenant identity is inferred from a name,\nhost, path, client-specific vocabulary or content rather than a declaration;\none tenant's evidence, costs, learning or outputs can affect another tenant's\ndecision; or the guard is proved only by fixtures or an empty population.",
+    evidence: "The production resolver and every production join or decision path exercised\nover a real non-empty population, with same-tenant success, cross-tenant\nrefusal, undeclared refusal, ambiguous refusal, mismatched-scope refusal,\nnon-leakage checks and independently firing clean controls.",
+    contractSha256: "9b6273d6fdb92f7fa8f2d542a40cdb1a210cce6ad34b430bc3d7c7e0d2b03471",
+  }),
   F05: Object.freeze({
     featureId: "F05",
     ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_RULING_2026-09-22_F05_ACCEPTANCE.md", commit: "58685998b08fafb8bf3d6b1b7da9a2becf3fe004", sha256: "035ae68d09de3378a18d4935af146308fdeef34ab21f5121dde4db47fb3a1f70" }),

@@ -29,6 +29,10 @@
  * (D-SWEEP-1, recorded and not fixed here).
  */
 import { test } from "node:test";
+import { declaredWorld } from "./helpers/declared-world.mjs";
+/* F02: every entry point decides its tenant first — the runs below go through a DECLARED FIXTURE WORLD (never the real population). */
+const WORLD = declaredWorld();
+process.on("exit", () => WORLD.cleanup());
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -57,7 +61,7 @@ const AUTHORIZATION = /every refusal left a trace: 5 of 5 in the dry-run ledger 
 const WRITE = /every refusal left a trace: 5 of 5 in the REAL ledger \(([^\n]*)\)/;
 const REACHED = /calls that reached the fake provider: 2/;
 
-const run = (args) => spawnSync(process.execPath, [BIN, ...args], { cwd: REPO, encoding: "utf8", timeout: 60_000 });
+const run = (args) => spawnSync(process.execPath, WORLD.argv([BIN, ...args]), { cwd: REPO, encoding: "utf8", timeout: 60_000, env: WORLD.envWith() });
 function gateFired(r) {
   const seen = [CONFINEMENT.test(r.stderr) && "CONFINEMENT", AUTHORIZATION.test(r.stdout) && "AUTHORIZATION", WRITE.test(r.stdout) && "WRITE"].filter(Boolean);
   assert.ok(seen.length <= 1, `more than one gate outcome printed (${seen.join(", ")})`);

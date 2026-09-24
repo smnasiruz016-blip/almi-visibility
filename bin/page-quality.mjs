@@ -27,12 +27,18 @@ import { evaluatePageQuality, tallyPageQuality, row25Verdict, liveControls, read
 import { sourceKey, labelValueList } from "../src/gate-a/claim-binding.mjs";
 import { createTenantResolver } from "../src/tenancy/resolver.mjs";
 import { factRegistryRef, externalRootContaining } from "../src/adapter/external-subject.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
+import { everySubjectRegistry } from "../src/tenancy/scoped-run.mjs";
 
 /** The manifest-pinned capture of real pages this row reads (data repository, captures/). */
 const CAPTURE_ID = "row25-2026-09-21";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const NOW = new Date("2026-09-13T00:00:00Z");
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/page-quality.mjs", governed: false, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.captures(), RESOURCES.runArtefacts("stored source-integrity result"), ...(await everySubjectRegistry())] });
 
 const crawlRecords = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll();
 const pages = pagesFromRun({ crawlRecords, bodies: readBodyArchive(batchFile("bodies-2026-09-12.jsonl.br")) }).filter((p) => p.html !== null);
@@ -74,10 +80,12 @@ if (si) {
  * verified facts because we placed them there, so it shows the value-match rule
  * fires on real registry values — and it says NOTHING about whether existing
  * pages written by someone else carry them. It is never counted as one. */
-const GENERATED = `${REPO}runs/nursing-chain/nursing.html`;
-if (existsSync(GENERATED)) {
-  const [r] = measureExistingPages([{ id: "https://generated.invalid/nursing", html: readFileSync(GENERATED, "utf8") }], records, { now: NOW }).results;
-  console.log("\n=== CONTROL — a page this engine GENERATED from the registry (runs/nursing-chain/nursing.html). NOT an existing page ===");
+/* F02 relocation: the control page is NAMED (--generated=<file>) — it was one subject tool's output path. Absent: said so. */
+const GENERATED = process.argv.find((a) => a.startsWith("--generated="))?.slice("--generated=".length) ?? null;
+if (GENERATED === null) console.log("\n=== CONTROL — no generated page named (--generated=<file>); the value-match control was not run ===");
+if (GENERATED !== null && existsSync(GENERATED)) {
+  const [r] = measureExistingPages([{ id: "https://generated.invalid/control", html: readFileSync(GENERATED, "utf8") }], records, { now: NOW }).results;
+  console.log(`\n=== CONTROL — a page this engine GENERATED from the registry (${GENERATED}). NOT an existing page ===`);
   console.log(`  verified facts present ${r.factsPresent.length}, qualifying ${r.factsQualifying} — the rule can see a fact; it has seen none on the 389 existing pages`);
   for (const u of r.factSources) {
     const c = siByUrl.get(u);

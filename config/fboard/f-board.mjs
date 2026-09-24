@@ -50,6 +50,26 @@ export const DECLARED = Object.freeze({
       }),
     ]),
   }),
+  F02: Object.freeze({
+    featureId: "F02",
+    board: "F_BOARD",
+    state: "IN-PROGRESS",
+    events: Object.freeze([
+      // The acceptance was committed ALONE in the governance repository (3ea6fda) before any F02 engine change.
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-24", ruling: ACCEPTANCES.F02.ruling, contractSha256: ACCEPTANCES.F02.contractSha256 }),
+      /* Implementation began only after that commit: first the dependency repair that lets the acceptance resolve at all
+       * (inclusion rule f-row-acceptance, corpus re-migrated at 3ea6fda), then the crosswalk entry and the census. */
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F02",
+        on: "2026-09-24",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        reason: "FROZEN_ACCEPTANCE_COMMITTED_BEFORE_ENGINE_CHANGE",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-24_F02_TENANT_ISOLATION.md", commit: "6b7422ae8e906f0e87f2df01afe0a7d410b2ede7", sha256: "9646e2f91170e71618925f0538d05260caf5821c6dd3151f4344f85afd03ecf1" }),
+      }),
+    ]),
+  }),
   F05: Object.freeze({
     featureId: "F05",
     board: "F_BOARD",

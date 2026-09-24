@@ -40,7 +40,7 @@ export function categoryOf(path) {
   if (/^test\//.test(path)) return "ACTIVE_TEST";
   if (/^config\/discovery\//.test(path)) return "EXPECTED_ANSWER_CONFIG";
   if (/^config\//.test(path)) return "CONFIGURATION";
-  if (/^(src|bin|tools)\//.test(path)) return "PRODUCTION_SOURCE";
+  if (/^(src|bin|tools|subjects)\//.test(path)) return "PRODUCTION_SOURCE";
   if (path === "CHECKLIST_BOUNDARIES.md" || /^runs\/.*\.(txt|md|html)$/i.test(path)) return "GENERATED_DOCUMENT";
   if (/\.md$/i.test(path)) return "MANDATORY_GOVERNANCE";
   return "DATA";

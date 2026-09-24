@@ -141,6 +141,11 @@ test("P5 · F40's board entry is BYTE-IDENTICAL to its state at the merged SHA",
  * production trail. Any other row that moves still fires this proof. */
 const MOVED_SINCE = Object.freeze({ F01: "VERIFIED-PASS", F06: "VERIFIED-PASS", F07: "VERIFIED-PASS" }); // F06 moved on 24 September 2026 under its own acceptance, and F01 the same day under its own; each is admitted by the same earned-movement check.
 
+/* 🔴 A ROW THAT STARTED, UNDER ITS OWN FROZEN ACCEPTANCE, is admitted too — and only by the same three facts: the
+ * acceptance exists, the row's own IMPLEMENTATION event records UNASSESSED -> IN-PROGRESS, and that transition is in the
+ * production trail. F02 started on 24 September 2026 (acceptance 3ea6fda, committed alone before any engine change). */
+const STARTED_SINCE = Object.freeze({ F02: "IN-PROGRESS" });
+
 test("P6 · every feature other than F08 holds exactly the state it held at the merged SHA, save rows that EARNED a later movement", () => {
   const now = board();
   // Every row declared at the merge, compared one by one; and every row NOT declared then must still be UNASSESSED.
@@ -155,6 +160,13 @@ test("P6 · every feature other than F08 holds exactly the state it held at the 
       assert.ok(events().some((e) => e.eventType === "BOARD_TRANSITION" && e.action === "VERIFIED" && e.metadata?.featureId === r.featureId), `${r.featureId}'s movement is not in the audit trail`);
       continue;
     }
+    if (STARTED_SINCE[r.featureId] === r.state && was === "UNASSESSED") {
+      const d = DECLARED[r.featureId];
+      assert.ok(ACCEPTANCES[r.featureId], `${r.featureId} started with no frozen acceptance`);
+      assert.ok(d.events.some((e) => e.kind === "IMPLEMENTATION" && e.featureId === r.featureId && e.from === "UNASSESSED" && e.to === "IN-PROGRESS"), `${r.featureId} started with no IMPLEMENTATION event of its own`);
+      assert.ok(events().some((e) => e.eventType === "BOARD_TRANSITION" && e.action === "IMPLEMENTATION" && e.metadata?.featureId === r.featureId && e.metadata?.to === "IN-PROGRESS"), `${r.featureId}'s start is not in the audit trail`);
+      continue;
+    }
     moved.push(`${r.featureId}: ${was} -> ${r.state}`);
   }
   /* 🔴 EMPTY SINCE 23 SEPTEMBER, FOR A STATED REASON. F08 went VERIFIED-PASS -> FAILED (the reopening) and back to
@@ -164,7 +176,7 @@ test("P6 · every feature other than F08 holds exactly the state it held at the 
   assert.deepEqual(moved, [], "a feature moved away from its state at the merged SHA");
   assert.ok(DECLARED.F08.events.some((e) => e.kind === "CONTRADICTORY_EVIDENCE_RECORDED"), "F08's reopening was erased rather than superseded");
   // The set of declared rows itself did not grow: a new row appearing would also be a movement.
-  assert.deepEqual(Object.keys(DECLARED).sort(), [...Object.keys(AT_MERGE.states), ...Object.keys(MOVED_SINCE)].sort());
+  assert.deepEqual(Object.keys(DECLARED).sort(), [...Object.keys(AT_MERGE.states), ...Object.keys(MOVED_SINCE), ...Object.keys(STARTED_SINCE)].sort());
 });
 
 test("P7 · the historical 61/38 ledger is BYTE-IDENTICAL to its state at the merged SHA", () => {

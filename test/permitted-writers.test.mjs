@@ -94,12 +94,12 @@ test("(d) every entry states all four things — writes · where · gatedBy · w
 test("🔴 no reason is UNKNOWN now — and the one that was is backed by its written determination", () => {
   assert.deepEqual(PERMITTED_PAGE_WRITERS.filter((e) => !e.whyKnown).map((e) => e.file), []);
   for (const e of PERMITTED_PAGE_WRITERS) assert.doesNotMatch(e.why, /^UNKNOWN\b/);
-  const nc = PERMITTED_PAGE_WRITERS.find((e) => e.file === "bin/nursing-chain.mjs");
+  const nc = PERMITTED_PAGE_WRITERS.find((e) => e.file === "subjects/almi-oet/tools/nursing-chain.mjs");
   assert.match(nc.why, /NURSING_CHAIN_SUPERSESSION\.md/);
   const doc = readFileSync(`${REPO}NURSING_CHAIN_SUPERSESSION.md`, "utf8");
   assert.match(doc, /Nothing was removed/);
   // The load-bearing claim, checked against the source rather than the prose:
-  for (const reader of ["bin/profession-chain.mjs", "bin/placement-measure.mjs"]) {
+  for (const reader of ["subjects/almi-oet/tools/profession-chain.mjs", "subjects/almi-oet/tools/placement-measure.mjs"]) {
     assert.match(readFileSync(`${REPO}${reader}`, "utf8"), /runs\/_profession-cache/, `${reader} no longer reads the cache — re-read the determination`);
   }
 });

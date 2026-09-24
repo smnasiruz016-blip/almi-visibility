@@ -28,20 +28,22 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
-import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
-import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
-import { governedFileWrite } from "../src/governance/governed-run.mjs";
-import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
-import { loadRegistry, toGateAFact } from "../src/facts/registry.mjs";
-import { claimIdsOf } from "../src/page/claim-ids.mjs";
-import { renderPage } from "../src/page/render.mjs";
-import { runGateA, MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../src/gate-a/run.mjs";
-import { tokensWithKind } from "../src/gate-a/text-kind.mjs";
-import { tokensOf } from "../src/gate-a/tokens.mjs";
-import { shingles, jaccard } from "../src/gate-a/overlap.mjs";
-import { fetchForMatch } from "../src/facts/quote-match.mjs";
+import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../../../src/write-law.mjs";
+import { executeGovernedWrite } from "../../../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../../../src/governance/governed-run.mjs";
+import { isoSeconds as governedInstant } from "../../../src/audit-trail/store.mjs";
+import { loadRegistry, toGateAFact } from "../../../src/facts/registry.mjs";
+import { claimIdsOf } from "../../../src/page/claim-ids.mjs";
+import { renderPage } from "../../../src/page/render.mjs";
+import { runGateA, MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../../../src/gate-a/run.mjs";
+import { tokensWithKind } from "../../../src/gate-a/text-kind.mjs";
+import { tokensOf } from "../../../src/gate-a/tokens.mjs";
+import { shingles, jaccard } from "../../../src/gate-a/overlap.mjs";
+import { fetchForMatch } from "../../../src/facts/quote-match.mjs";
 
-import { productFromArgvOrExit } from "../src/product-cli.mjs";
+import { productFromArgvOrExit } from "../../../src/product-cli.mjs";
+import { scopedEntryPoint } from "../../../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../../../src/tenancy/scoped-run.mjs";
 
 /**
  * 🔴 THE PRODUCT ARRIVES AS AN ARGUMENT, NOT AS AN IMPORT.
@@ -53,6 +55,8 @@ import { productFromArgvOrExit } from "../src/product-cli.mjs";
  * There is no default: a runner with no `--product=<id>` stops and says so.
  */
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/nursing-chain.mjs --product=<id>" });
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/nursing-chain.mjs", governed: true, resources: [RESOURCES.factRegistryAt(PRODUCT.factsDir), RESOURCES.cache("sibling-page cache"), RESOURCES.runArtefacts("live sibling pages")] });
 
 const argv = process.argv.slice(2);
 // 🔴 Both destinations are confined to this repository before anything runs.
@@ -105,7 +109,7 @@ for (const p of PRODUCT.variants) {
   }
   /* Routed. One cached page is one target, so this is per-TARGET and not per-record. The page is still FETCHED
    * and MEASURED either way — a read, which the scope law permits — and only KEPT when the write is allowed. */
-  const cacheGoverned = executeGovernedWrite(governedFileWrite({
+  const cacheGoverned = executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
     repo: REPO, permission, target: cached, targetClass: "RUN_EVIDENCE", bytes: res.body,
     action: "WRITE_SIBLING_PAGE_CACHE", occurredAt: CHAIN_INSTANT, correlationId: CHAIN_CORRELATION,
   }));
@@ -333,7 +337,7 @@ if (outDir) {
   const chainOutcomes = [
     ["nursing.html", candidateHtml, "WRITE_CHAIN_CANDIDATE_PAGE"],
     ["chain-report.json", JSON.stringify(report, null, 2) + "\n", "WRITE_CHAIN_REPORT"],
-  ].map(([name, body, what]) => executeGovernedWrite(governedFileWrite({
+  ].map(([name, body, what]) => executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
     repo: REPO, permission, target: join(outDir, name), targetClass: "RUN_EVIDENCE", bytes: body,
     action: what, occurredAt: CHAIN_INSTANT, correlationId: CHAIN_CORRELATION,
   })));

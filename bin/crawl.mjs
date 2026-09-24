@@ -26,13 +26,14 @@ import { createJsonlStore } from "../src/evidence/store.mjs";
 import { parseSitemap } from "../src/crawl/seeds.mjs";
 import { selectSeeds, renderSelection, SELECTION_RULE } from "../src/crawl/seed-selection.mjs";
 import { measureIpv6Egress, addressFamilies, reachabilityState } from "../src/crawl/ipv6.mjs";
-import { ESTATE_HOSTNAME_LIST } from "../config/estate-hostnames.mjs";
 import { confineToRepo, writePermission, LOCAL } from "../src/write-law.mjs";
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedFileWrite, governedStoreAppend } from "../src/governance/governed-run.mjs";
 import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { createCostLedger, entryFromCrawlRun, formatLedgerLine } from "../src/cost/ledger.mjs";
 import { persistCrawlObservations } from "../src/crawl/persist.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES, declaredSiteHosts } from "../src/tenancy/scoped-run.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n, d = null) => {
@@ -50,6 +51,10 @@ const green = flag("i-have-the-owners-green");
 // destination outside this repository is refused before any network activity.
 const out = confineToRepo(arg("out", `${REPO}runs/crawl/crawl.jsonl`), { label: "--out" });
 const corpusDir = confineToRepo(arg("corpus", `${REPO}runs/crawl/corpus`), { label: "--corpus" });
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/crawl.mjs", governed: true, resources: [RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.cache("robots cache"), RESOURCES.runArtefacts("crawl store and seed inputs"), RESOURCES.inputPath(seedsFile, "--seeds"), RESOURCES.inputPath(sitemapFile, "--sitemap"), RESOURCES.inputPath(fromEvidence, "--seeds-from-evidence")] });
+/* F02: this run's hosts are the site origins DECLARED to its tenant — no estate list in shared code (relocated, 24 Sep 2026). */
+const DECLARED_HOSTS = declaredSiteHosts({ tenantId: SCOPE.tenantId });
 /* 🔴 GAP 1 (15 September 2026) — THE LOCAL RECORD. D-CRW-4's two flags gate the NETWORK and the bodies; until today
  * every DRY run still appended a run record to --out. A dry run now records nothing unless --confirm. A LIVE run has
  * already passed D-CRW-4's two flags and records what it fetched and spent: a billable run that kept no record would be
@@ -97,7 +102,7 @@ console.log(`IPv6 EGRESS     : ${egress.state} — ${egress.detail} (${egress.el
 
 const unreachable = new Map();
 const dnsUnknown = [];
-for (const host of ESTATE_HOSTNAME_LIST) {
+for (const host of DECLARED_HOSTS) {
   const families = await addressFamilies(host);
   if (families.hasA === true) continue; // the ordinary case; nothing to say
   const verdict = reachabilityState({ families, egress });
@@ -222,7 +227,7 @@ console.log(`   coverageState=${run.coverageState} — this run saw what its see
 const CRAWL_INSTANT = governedInstant(Date.now());
 const CRAWL_CORRELATION = `run:crawl:${CRAWL_INSTANT}`;
 const store = createJsonlStore(out);
-const observationsGoverned = executeGovernedWrite(governedStoreAppend({
+const observationsGoverned = executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,
   repo: REPO, permission: recordPermission, store, records: result.observations,
   targetClass: "GENERATED_CONFIG", action: "APPEND_CRAWL_OBSERVATIONS",
   occurredAt: CRAWL_INSTANT, correlationId: CRAWL_CORRELATION, discipline: "APPEND_IF_NEW",
@@ -248,7 +253,7 @@ if (mayRecord) {
   if (live && result.bodies?.size) {
     for (const [observationId, body] of result.bodies) {
       /* One body is one target, so this is per-TARGET and not per-record. */
-      const bodyGoverned = executeGovernedWrite(governedFileWrite({
+      const bodyGoverned = executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
         repo: REPO, permission: recordPermission, target: join(corpusDir, `${observationId}.html`),
         targetClass: "GENERATED_CONFIG", bytes: body,
         action: "WRITE_CRAWL_BODY", occurredAt: CRAWL_INSTANT, correlationId: CRAWL_CORRELATION,
@@ -286,7 +291,7 @@ const runRecord = {
 };
 /* Declared: the RUN record is unique by construction — run_id carries the start time — so it uses the
  * without-dedupe discipline and needs no key. */
-const runGoverned = executeGovernedWrite(governedStoreAppend({
+const runGoverned = executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,
   repo: REPO, permission: recordPermission, store, records: [runRecord],
   targetClass: "GENERATED_CONFIG", action: "APPEND_CRAWL_RUN_RECORD",
   occurredAt: CRAWL_INSTANT, correlationId: CRAWL_CORRELATION, discipline: "APPEND_WITHOUT_DEDUPE",
@@ -308,7 +313,7 @@ if (live) {
    * asked of that discipline. */
   const costEntry = entryFromCrawlRun(runRecord, { recordedAt: new Date().toISOString() });
   const ledgerPath = confineToRepo(`${REPO}runs/cost/ledger.jsonl`, { label: "the cost ledger" });
-  const costGoverned = executeGovernedWrite(governedStoreAppend({
+  const costGoverned = executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,
     repo: REPO, permission: recordPermission, store: createCostLedger(ledgerPath), records: [costEntry],
     targetClass: "RUN_EVIDENCE", action: "APPEND_CRAWL_COST_ENTRY",
     occurredAt: CRAWL_INSTANT, correlationId: CRAWL_CORRELATION,

@@ -41,9 +41,11 @@
  * a refactor that changed a finding.
  */
 import { loadRegistry } from "../src/facts/registry.mjs";
-import { isPerVariant } from "../src/page/claim-placement.mjs";
+import { isPerVariant } from "../src/page/claim-placement.mjs";
 
 import { productFromArgvOrExit } from "../src/product-cli.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 /**
  * 🔴 THE PRODUCT ARRIVES AS AN ARGUMENT, NOT AS AN IMPORT.
@@ -56,9 +58,11 @@ import { productFromArgvOrExit } from "../src/product-cli.mjs";
  */
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/distinguishing-census.mjs --product=<id>" });
 
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/distinguishing-census.mjs", governed: false, resources: [RESOURCES.factRegistryAt(PRODUCT.factsDir)] });
 const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
 
-const professionOf = (r) => {
+const variantOf = (r) => {
   const m = new RegExp(`${PRODUCT.axis.key}=([a-z-]+)`).exec(r.claim.qualifier ?? "");
   return m ? m[1] : null;
 };
@@ -77,23 +81,23 @@ const norm = (v) => JSON.stringify(v?.value ?? v).toLowerCase().replace(/\s+/g, 
 
 const status = new Map(); // predicateKey -> "distinguishing" | "shared" | "uncomparable"
 for (const [k, rs] of groups) {
-  const byProf = new Map();
-  for (const r of rs) byProf.set(professionOf(r), norm(r.value));
-  if (byProf.size < 2) status.set(k, "uncomparable");
-  else status.set(k, new Set(byProf.values()).size > 1 ? "distinguishing" : "shared");
+  const byVariant = new Map();
+  for (const r of rs) byVariant.set(variantOf(r), norm(r.value));
+  if (byVariant.size < 2) status.set(k, "uncomparable");
+  else status.set(k, new Set(byVariant.values()).size > 1 ? "distinguishing" : "shared");
 }
 
 const line = (ch = "─") => console.log(ch.repeat(84));
-console.log("\nDISTINGUISHING CLAIMS PER PROFESSION — registry only, no fetch");
+console.log(`\nDISTINGUISHING CLAIMS PER ${PRODUCT.axis.key.toUpperCase()} — registry only, no fetch`);
 line("═");
-console.log(`registry: ${records.length} records · ${groups.size} profession-qualified predicates`);
+console.log(`registry: ${records.length} records · ${groups.size} ${PRODUCT.axis.key}-qualified predicates`);
 console.log("");
-console.log("profession".padEnd(24) + "total".padStart(8) + "per-prof".padStart(10) + "DISTINGUISHING".padStart(16) + "uncomparable".padStart(14) + "ratio".padStart(8));
+console.log(PRODUCT.axis.key.padEnd(24) + "total".padStart(8) + "per-var".padStart(10) + "DISTINGUISHING".padStart(16) + "uncomparable".padStart(14) + "ratio".padStart(8));
 line();
 
 const rows = PRODUCT.variants.map((p) => {
-  const mine = records.filter((r) => professionOf(r) === p);
-  const total = records.filter((r) => professionOf(r) === p || !isPerVariant(r, PRODUCT.axis.key)).length;
+  const mine = records.filter((r) => variantOf(r) === p);
+  const total = records.filter((r) => variantOf(r) === p || !isPerVariant(r, PRODUCT.axis.key)).length;
   const dist = mine.filter((r) => status.get(predicateKey(r)) === "distinguishing").length;
   const unc = mine.filter((r) => status.get(predicateKey(r)) === "uncomparable").length;
   return { p, total, perProf: mine.length, dist, unc, ratio: mine.length ? dist / mine.length : 0 };
@@ -110,9 +114,9 @@ line();
 console.log("\nBY PREDICATE — what each one actually is");
 line();
 for (const [k, s] of [...status].sort((a, b) => a[1].localeCompare(b[1]) || a[0].localeCompare(b[0]))) {
-  const profs = groups.get(k).map(professionOf).sort();
+  const variantsHolding = groups.get(k).map(variantOf).sort();
   const mark = s === "distinguishing" ? "🔴 DISTINGUISHING" : s === "shared" ? "   shared        " : "⚠️  uncomparable  ";
-  console.log(`  ${mark}  ${k.padEnd(46)} ${profs.length} profession(s)`);
+  console.log(`  ${mark}  ${k.padEnd(46)} ${variantsHolding.length} ${PRODUCT.axis.key}(s)`);
 }
 
 const d = [...status.values()].filter((x) => x === "distinguishing").length;
@@ -123,10 +127,10 @@ console.log(`\n🔴 THE HONEST STATE OF THIS CENSUS`);
 line();
 console.log(`  distinguishing predicates  ${d}`);
 console.log(`  shared predicates          ${sh}`);
-console.log(`  ⚠️  UNCOMPARABLE            ${u}   ← only ONE profession holds them`);
+console.log(`  ⚠️  UNCOMPARABLE            ${u}   ← only ONE ${PRODUCT.axis.key} holds them`);
 console.log("");
-console.log(`  The registry holds claims for ${rows.filter((r) => r.perProf > 0).length} of ${PRODUCT.variants.length} professions.`);
+console.log(`  The registry holds claims for ${rows.filter((r) => r.perProf > 0).length} of ${PRODUCT.variants.length} ${PRODUCT.axis.key} values.`);
 console.log(`  ${u} of ${status.size} predicates cannot be judged at all, because a value can only be`);
 console.log(`  called distinguishing by COMPARING it — and there is nothing to compare it to.`);
 console.log(`  🔴 THIS CENSUS CANNOT SIZE THE COHORT YET. It can only say what is missing,`);
-console.log(`     and what is missing is claims for the other ten professions.`);
+console.log(`     and what is missing is claims for the other ${PRODUCT.variants.length - 1} ${PRODUCT.axis.key} values.`);

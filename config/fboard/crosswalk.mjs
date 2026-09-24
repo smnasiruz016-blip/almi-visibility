@@ -18,15 +18,25 @@ export const CROSSWALK = Object.freeze({
     },
     {
       "featureId": "F02",
-      "historicalRows": [],
-      "historicalCommits": [],
-      "reusableModules": [],
+      "historicalRows": [
+        1,
+        54
+      ],
+      "historicalCommits": [
+        "c317e9a34257cfdfee5db55e8d36aab9332dd52a"
+      ],
+      "reusableModules": [
+        "src/tenancy/resolver.mjs",
+        "src/tenancy/attachment.mjs",
+        "src/tenancy/row-partition.mjs",
+        "src/tenancy/sitemap-residency.mjs"
+      ],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "CHANGED",
+      "relationEvidence": "HISTORICAL_61:1 (amendment 6, v0.1 half): input, expected, failure, evidence differ; HISTORICAL_61:54 (amendment 6, v0.1 half): input, expected, failure, evidence differ",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": "CHANGED against both: F02 governs declared tenant scope over relationships (undeclared, ambiguous and scope-mismatch refusals, non-leakage) and names learning items and outputs; rows 1 and 54 isolate products over three record classes with learning deferred. No historical result transfers."
     },
     {
       "featureId": "F03",

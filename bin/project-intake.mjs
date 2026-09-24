@@ -31,6 +31,10 @@ import { resolveDeclarationRoot, declarationWrite, findDeclaration, listTenant, 
 import { decideSubmission, decisionDraft, recordDeclarationDecisions, intakeAuthority, intakeCorrelationId } from "../src/intake/intake.mjs";
 import { legacyTenancyCandidates } from "../src/intake/legacy.mjs";
 import { TENANT_ID_PATTERN } from "../src/tenancy/resolver.mjs";
+import { scopedEntryPoint, decideScopedRun } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { decideForTenant } from "../src/tenancy/scope.mjs";
+import { diagnosticGuardSink } from "../src/governance/guard-audit.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 
@@ -90,7 +94,9 @@ function tenancy() {
     const r = resolve({ resourceKind: "SITE_ORIGIN", resourceRef: origin });
     return r.state === "RESOLVED" ? r.tenantId : null;
   };
-  return { tenants, attachedTo, declarations: d };
+  /* F02: a property's attachment is decided by the ONE tenant-scope decision, never compared here. */
+  const relation = (origin, tenantId) => decideForTenant(resolve, tenantId, RESOURCES.siteOrigin(origin));
+  return { tenants, attachedTo, relation, declarations: d, resolve };
 }
 
 function tenantArg() {
@@ -98,11 +104,6 @@ function tenantArg() {
   if (!t) exitWith(2, { outcome: "USAGE_REFUSED", reason: "--tenant is required — nothing is read across tenants" });
   if (!TENANT_ID_PATTERN.test(t)) exitWith(2, { outcome: "REFUSED", refusals: [{ code: "TENANT_ID_INVALID", path: "--tenant" }] });
   return t;
-}
-function rootOrExit() {
-  const root = resolveDeclarationRoot({ env: process.env });
-  if (!root.ok) exitWith(1, { outcome: "REFUSED", refusals: [{ code: root.code, path: "declaration root" }] }, [`🔴 ${root.code} — ${root.detail}`]);
-  return root;
 }
 const view = (h) => (h ? { state: h.state, declaration: h.record } : null);
 
@@ -114,8 +115,8 @@ if (MODE === "--mint-id") {
 }
 if (MODE === "--validate") {
   const doc = readDocument();
-  const { tenants, attachedTo } = tenancy();
-  const v = validateDeclaration(doc, { tenants, attachedTo });
+  const { tenants, attachedTo, relation } = tenancy();
+  const v = validateDeclaration(doc, { tenants, attachedTo, relation });
   if (!v.ok) exitWith(1, { outcome: "REFUSED", stage: "CONTRACT", refusals: v.refusals }, ["🔴 REFUSED by the contract (nothing was written, nothing recorded):", ...refusalLines(v.refusals)]);
   exitWith(0, { outcome: "VALID", declarationId: v.normalised.declarationId, projectId: v.normalised.projectId, tenantId: v.normalised.tenantId }, ["VALID — nothing was written, nothing recorded (--validate never writes)"]);
 }
@@ -132,6 +133,8 @@ if (MODE === "--inventory") {
 }
 if (MODE === "--show" || MODE === "--list" || MODE === "--current") {
   const tenantId = tenantArg();
+  /* 🔴 F02 — the partition read below is decided FIRST: the requested tenant must be an ACTIVE declaration, or nothing is read. */
+  scopedEntryPoint({ entry: "bin/project-intake.mjs", governed: false, argv: [`--tenant=${tenantId}`], resources: [RESOURCES.tenantPartition(tenantId)] });
   const root = rootOrExit();
   if (MODE === "--list") {
     const all = listTenant(root, tenantId);
@@ -152,10 +155,15 @@ if (MODE === "--show" || MODE === "--list" || MODE === "--current") {
 
 /* ── SUBMIT — decided first, then written only with --confirm, through the boundary ─────────────────────── */
 const doc = readDocument();
-const { tenants, attachedTo } = tenancy();
+const { tenants, attachedTo, relation, resolve: tenantResolve } = tenancy();
+/* 🔴 F02 — the declared tenant partition this submission would read is decided BEFORE the store is touched. A refusal here
+ * does not end the run: the F01 contract refuses the same undeclared tenant by its own code and records that decision, and
+ * the store is never read for it. The two must agree — a contract that accepts what the scope decision refused is a defect. */
+const partition = decideScopedRun({ argv: [`--tenant=${doc?.tenantId ?? ""}`], resolve: tenantResolve, resources: [RESOURCES.tenantPartition(doc?.tenantId ?? null)], sink: diagnosticGuardSink({ actor: "bin/project-intake.mjs" }), log: () => {} });
 const root = rootOrExit();
 const instant = isoSeconds(Date.now());
-const decision = decideSubmission({ doc, root, tenants, attachedTo, acceptedAt: instant });
+const decision = decideSubmission({ doc, root: partition.allowed ? root : null, tenants, attachedTo, relation, acceptedAt: instant });
+if (!partition.allowed && decision.outcome !== "REFUSED") throw new Error("F02_SCOPE_CONTRACT_DISAGREEMENT: the contract accepted a submission whose tenant partition the scope decision refused");
 const permission = writePermission({ target: LOCAL, argv: process.argv, env: process.env });
 const correlationId = intakeCorrelationId(instant);
 
@@ -202,3 +210,10 @@ for (const w of decision.writes) {
 for (const tr of after) record(tr);
 exitWith(0, { outcome: "ACCEPTED", declarationId: decision.normalised.declarationId, projectId: decision.normalised.projectId, tenantId: decision.normalised.tenantId, supersedes: decision.normalised.supersedes, written },
   [`ACCEPTED — ${decision.normalised.declarationId} is now the current declaration of ${decision.normalised.projectId}`]);
+
+/* Hoisted: defined here so it reads, in text as in execution, only AFTER the F02 partition decision above (F02 census). */
+function rootOrExit() {
+  const root = resolveDeclarationRoot({ env: process.env });
+  if (!root.ok) exitWith(1, { outcome: "REFUSED", refusals: [{ code: root.code, path: "declaration root" }] }, [`🔴 ${root.code} — ${root.detail}`]);
+  return root;
+}

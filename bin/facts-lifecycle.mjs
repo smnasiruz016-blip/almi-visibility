@@ -24,12 +24,15 @@ import { dirname } from "node:path";
 
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { productFromArgvOrExit } from "../src/product-cli.mjs";
+import { loadSubjectPackage } from "../src/subject-package.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { detectConflicts, freshnessOf, markForReview, createFactCache, reviewChangedInputs } from "../src/facts/lifecycle.mjs";
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedFileWrite } from "../src/governance/governed-run.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n, d) => {
@@ -42,6 +45,10 @@ const permission = announceWritePermission(writePermission({ target: LOCAL, argv
 
 // 🔴 The product is an ARGUMENT, never a folder written here (owner ruling, 14 September 2026): no default.
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/facts-lifecycle.mjs --product=<id> [--confirm] [--out=<file>]" });
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/facts-lifecycle.mjs", governed: true, resources: [RESOURCES.factRegistryAt(PRODUCT.factsDir), RESOURCES.cache("fact cache"), RESOURCES.runArtefacts("audit findings")] });
+/* The package is LOCATED by the declared product's id — it grants nothing: the gate above already decided scope. */
+const SUBJECT_GUIDE = (await loadSubjectPackage(PRODUCT.productId)).module.whatWouldVerify ?? null;
 const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
 console.log(`records: ${records.length}`);
 
@@ -51,17 +58,10 @@ console.log(`records: ${records.length}`);
  * What a verifier must go and READ. My judgement of the KIND of authority —
  * never a guessed URL, and UNKNOWN where I do not know.
  */
+/* F02 relocation: WHICH authority a verifier must read is subject knowledge — the subject package declares it
+ * (`whatWouldVerify`). A package that declares none gets the honest answer, never a guess. */
 function whatWouldVerify(f) {
-  const s = f.claim?.subject ?? "";
-  const p = f.claim?.predicate ?? "";
-  if (/nmc|nmbi|nmcn|pnmc|hcpc/.test(s)) {
-    return `the regulator's own current registration/English-language requirements page for ${s.toUpperCase()}, read on the day`;
-  }
-  if (s === "oet") return "OET's own official published score/format documentation";
-  if (/ukvi|immigration/.test(s)) return "the government department's own current immigration guidance page";
-  if (/code-of-practice/.test(s)) return "the published code of practice document itself, at its current revision";
-  if (/fee|cost/.test(p)) return "the issuing body's own current fee schedule — fees change without notice";
-  return "UNKNOWN";
+  return typeof SUBJECT_GUIDE === "function" ? SUBJECT_GUIDE(f) : "UNKNOWN — the subject package declares no verification guide";
 }
 
 function whyItMatters(f) {
@@ -87,7 +87,7 @@ const rows = records.map((f) => ({
   claim: `${f.claim?.subject} ${f.claim?.predicate}${f.claim?.qualifier ? " (" + f.claim.qualifier + ")" : ""}`,
   value: typeof f.value?.value === "string" ? f.value.value : JSON.stringify(f.value?.value),
   entity: f.claim?.subject ?? "UNKNOWN",
-  scope_jurisdiction: [f.scope, f.locale?.destination, f.locale?.profession].filter(Boolean).join(" / ") || "UNKNOWN",
+  scope_jurisdiction: [f.scope, f.locale?.destination, f.locale?.[PRODUCT.axis.key]].filter(Boolean).join(" / ") || "UNKNOWN",
   current_source: f.source?.url ?? "UNKNOWN",
   verificationState: f.verificationState,
   why_it_matters: whyItMatters(f),
@@ -107,7 +107,7 @@ const csv = [header, COLUMNS.join(","), ...rows.map((r) => COLUMNS.map((c) => es
 /* Routed. TEXT, measured: `csv` is built by joining strings, so the text hash rule applies. The bare mkdir is
  * gone rather than gated — the boundary's prepare step creates the directory. */
 {
-  const governed = executeGovernedWrite(governedFileWrite({
+  const governed = executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
     repo: REPO, permission, target: out, targetClass: "RUN_EVIDENCE", bytes: csv,
     action: "EXPORT_FACTS_FOR_VERIFICATION", occurredAt: isoSeconds(Date.now()),
     correlationId: `run:facts-lifecycle:${isoSeconds(Date.now())}`,

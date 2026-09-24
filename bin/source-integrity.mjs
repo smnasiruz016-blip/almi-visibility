@@ -25,9 +25,11 @@ import { makeObservation } from "../src/evidence/records.mjs";
 import { sha256Hex } from "../src/evidence/ids.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { productFromArgvOrExit } from "../src/product-cli.mjs";
+import { loadSubjectPackage } from "../src/subject-package.mjs";
 import { checkSources, assertExternal, MAX_REQUESTS, INTERVAL_MS, HEAD_REFUSED, USER_AGENT } from "../src/audit/source-integrity.mjs";
 import { createCostLedger, entryFromLinkCheck, formatLedgerLine } from "../src/cost/ledger.mjs";
-import { ESTATE_HOSTNAME_LIST } from "../config/estate-hostnames.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES, declaredSiteHosts } from "../src/tenancy/scoped-run.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const argv = process.argv.slice(2);
@@ -37,11 +39,15 @@ const STORE = confineToRepo(`${REPO}runs/audit/source-integrity.jsonl`, { label:
 const EVIDENCE = confineToRepo(`${REPO}runs/audit/source-integrity-2026-09-13.json`, { label: "the source-integrity evidence" });
 
 /* The estate the check must never touch: every registered hostname AND the apex under which they live. */
-const ESTATE = [...new Set([...ESTATE_HOSTNAME_LIST, "almiworld.com"])];
 
 /* ---- the plan: every distinct source URL cited by the fact registry ------ */
 // 🔴 The product is an ARGUMENT, never a folder written here (owner ruling, 14 September 2026): no default.
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/source-integrity.mjs --product=<id> [--live [--confirm]]" });
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/source-integrity.mjs", governed: true, resources: [RESOURCES.factRegistryAt(PRODUCT.factsDir), RESOURCES.costLedger(), RESOURCES.runArtefacts("source-integrity stores")] });
+/* F02: this run's hosts are the site origins DECLARED to its tenant — no estate list in shared code (relocated, 24 Sep 2026). */
+const DECLARED_HOSTS = declaredSiteHosts({ tenantId: SCOPE.tenantId });
+const ESTATE = DECLARED_HOSTS;
 const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
 const byUrl = new Map();
 for (const r of records) {
@@ -54,23 +60,11 @@ for (const r of records) {
 }
 const plan = [...byUrl.values()].sort((a, b) => a.url.localeCompare(b.url));
 
-/* ---- the control: what beta-g fetched and read on 12 September 2026 ----- */
-const READ_BY_BETA_G = new Set([
-  "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/",
-  "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/accepted-english-language-tests/oet/",
-  "https://www.nmc.org.uk/registration/joining-the-register/english-language-requirements/qualified-in-english/",
-  "https://www.hcpc-uk.org/registration/getting-on-the-register/international-applications/documents/certificate-of-english-language-proficiency/",
-  "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england",
-  "https://www.nmbi.ie/Registration/Qualified-outside-the-EU/Application-Process/English-Language-Requirements",
-  "https://www.gov.uk/guidance/immigration-rules/immigration-rules-appendix-english-language",
-  "https://nmcn.gov.ng/verify.html",
-  "https://pnmc.gov.pk/verification-registration-2/",
-  "https://www.immigration.govt.nz/about-us/news-centre/update-on-english-language-testing-for-immigration-applications/",
-]);
-const baselineFor = (url) => {
-  if (new URL(url).hostname === "oet.com") return { expected: "HTTP 403" };
-  return READ_BY_BETA_G.has(url) ? { expected: "CONTENT" } : null;
-};
+/* ---- the control: the subject's own human-read baseline ------------------ */
+/* F02 relocation: which sources a person read, and which host answers 403 by design, are THIS SUBJECT's expected results
+ * — declared by its package (`sourceBaselineFor`), located by the declared product id. None declared: no baseline. */
+const SUBJECT_BASELINE = (await loadSubjectPackage(PRODUCT.productId)).module.sourceBaselineFor ?? null;
+const baselineFor = (url) => (typeof SUBJECT_BASELINE === "function" ? SUBJECT_BASELINE(url) : null);
 
 /* ---- 🔴 THE PLAN IS PRINTED BEFORE ANY REQUEST --------------------------- */
 assertExternal(plan.map((p) => p.url), ESTATE);
@@ -132,17 +126,17 @@ const SI_INSTANT = governedInstant(Date.now());
 const SI_CORRELATION = `run:source-integrity:${SI_INSTANT}`;
 const ledger = createCostLedger(confineToRepo(`${REPO}runs/cost/ledger.jsonl`, { label: "the cost ledger" }));
 const siOutcomes = [
-  executeGovernedWrite(governedStoreAppend({
+  executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,
     repo: REPO, permission, store, records: observations, targetClass: "RUN_EVIDENCE",
     action: "APPEND_SOURCE_INTEGRITY_OBSERVATIONS", occurredAt: SI_INSTANT, correlationId: SI_CORRELATION,
     discipline: "APPEND_IF_NEW", seenAt: finishedAt,
   })),
-  executeGovernedWrite(governedStoreAppend({
+  executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,
     repo: REPO, permission, store: ledger, records: [entry], targetClass: "RUN_EVIDENCE",
     action: "APPEND_SOURCE_INTEGRITY_COST_ENTRY", occurredAt: SI_INSTANT, correlationId: SI_CORRELATION,
     discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null,
   })),
-  executeGovernedWrite(governedFileWrite({
+  executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
     repo: REPO, permission, target: EVIDENCE, targetClass: "GENERATED_CONFIG",
     bytes: JSON.stringify({ startedAt, finishedAt, requests: run.requests, maxRequests: run.maxRequests, intervalMs: INTERVAL_MS, plan, counts, results: run.results, ledgerEntry: entry.entry_id }, null, 2) + "\n",
     action: "WRITE_SOURCE_INTEGRITY_EVIDENCE", occurredAt: SI_INSTANT, correlationId: SI_CORRELATION,

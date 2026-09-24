@@ -34,14 +34,16 @@
  */
 import { readdirSync, readFileSync, existsSync, writeFileSync } from "node:fs";
 import { join, basename, extname } from "node:path";
-import { tokensOf } from "../src/gate-a/tokens.mjs";
-import { computeShells, uniqueWords, residualTokens } from "../src/gate-a/shell.mjs";
-import { shingles, jaccard, SHINGLE_N, NOISY_RESIDUAL_WORDS } from "../src/gate-a/overlap.mjs";
-import { MIN_UNIQUE_WORDS } from "../src/gate-a/run.mjs";
-import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
-import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
-import { governedFileWrite } from "../src/governance/governed-run.mjs";
-import { isoSeconds } from "../src/audit-trail/store.mjs";
+import { tokensOf } from "../../../src/gate-a/tokens.mjs";
+import { computeShells, uniqueWords, residualTokens } from "../../../src/gate-a/shell.mjs";
+import { shingles, jaccard, SHINGLE_N, NOISY_RESIDUAL_WORDS } from "../../../src/gate-a/overlap.mjs";
+import { MIN_UNIQUE_WORDS } from "../../../src/gate-a/run.mjs";
+import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../../../src/write-law.mjs";
+import { executeGovernedWrite } from "../../../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../../../src/governance/governed-run.mjs";
+import { isoSeconds } from "../../../src/audit-trail/store.mjs";
+import { scopedEntryPoint } from "../../../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../../../src/tenancy/scoped-run.mjs";
 
 const argv = process.argv.slice(2);
 const flag = (n, d = null) => {
@@ -52,9 +54,11 @@ const corpusDir = flag("--corpus");
 const groupName = flag("--group", "profession-origin");
 const outFile = flag("--out");
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv, env: process.env }));
-const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+const REPO = new URL("../../../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const RUN_INSTANT = isoSeconds(Date.now());
 const RUN_CORRELATION = `run:diagnose-overlap:${RUN_INSTANT}`;
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/diagnose-overlap.mjs", governed: true, resources: [RESOURCES.inputPath(corpusDir, "--corpus")] });
 
 if (!corpusDir || !existsSync(join(corpusDir, groupName))) {
   console.error("usage: node bin/diagnose-overlap.mjs --corpus <dir> --group <name> [--out file.json] [--confirm]");
@@ -173,7 +177,7 @@ report.residualWords = rs;
 
 if (outFile) {
   /* 🔴 CONFINED, WHICH IT WAS NOT BEFORE — see bin/acceptance-test.mjs. A deliberate tightening, not a slip. */
-  const governed = executeGovernedWrite(governedFileWrite({
+  const governed = executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
     repo: REPO, permission, target: confineToRepo(outFile, { label: "--out" }),
     targetClass: "OPERATOR_CHOSEN_OUTPUT", bytes: JSON.stringify(report, null, 2),
     action: "WRITE_OVERLAP_DIAGNOSTIC", occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,

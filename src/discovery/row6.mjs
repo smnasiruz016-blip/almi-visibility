@@ -16,6 +16,7 @@ import { createTenantResolver } from "../tenancy/resolver.mjs";
 import { partitionRowsByDeclaredHost } from "../tenancy/row-partition.mjs";
 import { factRegistryRef, externalRootContaining } from "../adapter/external-subject.mjs";
 import { loadRegistry } from "../facts/registry.mjs";
+import { decideResolvedTenants } from "../tenancy/scope.mjs";
 import { product } from "../product.mjs";
 
 /** The Search Console country×query pull of 2026-09-12T23:25:04.608Z. */
@@ -125,7 +126,7 @@ export async function readDeclaredAnswerEvidence({ axisResourceKind, axisResourc
 
   const sources = [];
   const claims = [];
-  let evidenceScope = { state: "UNDECLARED", tenantId: null };
+  const resolvedRegistries = [];
 
   for (const id of availableSubjects()) {
     await importSubjectModule(id, "product.mjs");
@@ -152,18 +153,30 @@ export async function readDeclaredAnswerEvidence({ axisResourceKind, axisResourc
     }
     sources.push({ subject: id, ref: ref.resourceRef, state: scope.state, tenantId: scope.tenantId ?? null, records: records.length });
     if (scope.state !== "RESOLVED") continue;
-    evidenceScope = { state: scope.state, tenantId: scope.tenantId };
-    for (const r of records) claims.push({ identity: r.id, answer: r.value, verified: r.verificationState === "VERIFIED" });
+    resolvedRegistries.push({ tenantId: scope.tenantId, records });
   }
+
+  /* 🔴 F02 (24 Sep 2026): ONE EVIDENCE SCOPE OR NONE. Claims used to be merged from EVERY resolved registry, whatever
+   * tenant each belonged to, with the scope taken from whichever registry came last. Now every resolved registry is
+   * decided against the first by the ONE decision; any disagreement makes the evidence AMBIGUOUS and no claim joins. */
+  const agree = resolvedRegistries.every((r) => decideResolvedTenants(resolvedRegistries[0].tenantId, r.tenantId).allowed);
+  const evidenceScope = resolvedRegistries.length === 0 ? { state: "UNDECLARED", tenantId: null }
+    : agree ? { state: "RESOLVED", tenantId: resolvedRegistries[0].tenantId }
+    : { state: "AMBIGUOUS", tenantId: null, basis: "resolved registries belong to different tenants — their claims are never merged" };
+  if (evidenceScope.state === "RESOLVED") for (const reg of resolvedRegistries) for (const r of reg.records) claims.push({ identity: r.id, answer: r.value, verified: r.verificationState === "VERIFIED" });
 
   /* 🔴 THE JOIN OPENS ONLY FOR A TENANT THE AXIS POPULATION ITSELF CONTAINS. A declared registry
    * whose tenant owns no row here stays UNDECLARED and is still refused — which is the whole point
    * of the gate, kept intact. */
-  if (axisPartition) {
-    const rowsForEvidenceTenant = axisPartition.byTenant[evidenceScope.tenantId]?.length ?? 0;
-    axisScope = rowsForEvidenceTenant > 0
-      ? { state: "RESOLVED", tenantId: evidenceScope.tenantId, rows: rowsForEvidenceTenant, basis: "the axis population's own rows, attached by their stored host through the declared site origins" }
-      : { state: "UNDECLARED", tenantId: null, rows: 0, basis: "the axis population contains no row belonging to the tenant that holds this evidence" };
+  /* 🔴 F02 (24 Sep 2026): A CONTAINER'S SCOPE IS ITS DECLARATION, NEVER A SUBSET OF ITS ROWS. The axis scope used to be
+   * re-derived by keeping only the rows of the evidence's tenant — a container re-scoped by filtering. Now the container
+   * keeps the scope its own declaration resolves, and rows declared (by their stored host) to any OTHER tenant give those
+   * rows two scopes: the container is AMBIGUOUS, decided by the one decision. */
+  if (axisPartition && axisScope.state === "RESOLVED") {
+    const rowTenants = Object.keys(axisPartition.byTenant ?? {}).filter((k) => typeof k === "string" && k.startsWith("tenant:"));
+    if (rowTenants.some((rt) => !decideResolvedTenants(axisScope.tenantId, rt).allowed)) {
+      axisScope = { state: "AMBIGUOUS", tenantId: null, basis: "the axis container's rows are declared to other tenants — each such row has two scopes" };
+    }
   }
 
   return { claims, axisScope, evidenceScope, sources, axisPartition: axisPartition?.arithmetic ?? null };

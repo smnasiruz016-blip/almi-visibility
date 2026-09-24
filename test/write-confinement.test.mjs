@@ -11,6 +11,10 @@
  * without creating anything.
  */
 import test from "node:test";
+import { declaredWorld } from "./helpers/declared-world.mjs";
+/* F02: every entry point decides its tenant first — the runs below go through a DECLARED FIXTURE WORLD (never the real population). */
+const WORLD = declaredWorld();
+process.on("exit", () => WORLD.cleanup());
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, mkdirSync, rmSync, readFileSync } from "node:fs";
@@ -80,7 +84,7 @@ test("🔴 RED, REAL: bin/report.mjs --confirm --out=<outside> REFUSES, exits no
   const dir = mkdtempSync(join(tmpdir(), "almivis-confine-"));
   const target = join(dir, "nested", "index.html");
   try {
-    const r = spawnSync(process.execPath, ["bin/report.mjs", `--out=${target}`, "--confirm"], { cwd: REPO_ROOT, encoding: "utf8" });
+    const r = spawnSync(process.execPath, WORLD.argv(["bin/report.mjs", `--out=${target}`, "--confirm"]), { cwd: REPO_ROOT, encoding: "utf8", env: WORLD.envWith() });
     assert.notEqual(r.status, 0, "the writer exited 0 while pointed outside the repository");
     assert.match(r.stderr, /REFUSED — --out .* OUTSIDE this repository/);
     assert.equal(existsSync(join(dir, "nested")), false, "a directory was created outside the repository before the refusal");
@@ -101,7 +105,7 @@ test("🔴 REAL: bin/report.mjs with NO flags writes nothing — dry-run is the 
     // `--product` is not a write flag. Since 14 September 2026 the runner has NO default product (owner ruling,
     // Option A) and refuses without one, so the product is named here; the law under test — no --confirm, no write —
     // is unchanged.
-    const r = spawnSync(process.execPath, ["bin/report.mjs", "--product=almi-oet", `--out=${target}`], { cwd: REPO_ROOT, encoding: "utf8" });
+    const r = spawnSync(process.execPath, WORLD.argv(["bin/report.mjs", "--product=almi-oet", `--out=${target}`]), { cwd: REPO_ROOT, encoding: "utf8", env: WORLD.envWith() });
     assert.equal(r.status, 0, r.stderr);
     assert.match(r.stdout, /\[dry-run\] would have written/);
     assert.equal(existsSync(target), false, "the report writer wrote without --confirm");

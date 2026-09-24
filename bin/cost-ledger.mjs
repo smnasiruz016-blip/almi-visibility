@@ -31,6 +31,9 @@ import { batchJsonlFiles } from "../src/crawl/observation-batch.mjs";
 import {
   createCostLedger, entryFromCrawlRun, ingestRunsOf, entryFromIngestRun, formatLedgerLine, coverageFailures,
 } from "../src/cost/ledger.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 /* 🔴 GAP 2 · TESTABILITY SEAM (17 September 2026): `--store=` names a different COST LEDGER — only the ledger;
@@ -38,6 +41,8 @@ const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, 
  * refusing before anything is read or written. It chooses WHERE, never WHETHER: the write still needs --confirm.
  * Without it, the default ledger, exactly as before. */
 const storeArg = process.argv.slice(2).find((a) => a.startsWith("--store="))?.slice("--store=".length);
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/cost-ledger.mjs", governed: true, resources: [RESOURCES.costLedger(), RESOURCES.evidenceStore(), RESOURCES.crawlBatch(BATCH_ID), RESOURCES.runArtefacts("Actions run timings")] });
 const LEDGER = confineToRepo(storeArg ?? `${REPO}runs/cost/ledger.jsonl`, { label: storeArg === undefined ? "the cost ledger" : "--store" });
 const ACTIONS = confineToRepo(`${REPO}runs/cost/actions-runs.jsonl`, { label: "the Actions timing store" });
 const argv = process.argv.slice(2);
@@ -84,7 +89,7 @@ if (cmd === "capture-actions") {
   /* Routed. One observation, one governed decision; the store still decides appended-versus-re-sighting and the
    * run still prints its answer. */
   const TIMING_INSTANT = governedInstant(Date.now());
-  const timingArgs = governedStoreAppend({
+  const timingArgs = governedStoreAppend({ ...SCOPE.writeScope,
     repo: REPO, permission, store: createJsonlStore(ACTIONS), records: [obs], targetClass: "RUN_EVIDENCE",
     action: "APPEND_ACTIONS_TIMING_OBSERVATION", occurredAt: TIMING_INSTANT,
     correlationId: `run:cost-ledger:timing:${TIMING_INSTANT}`, discipline: "APPEND_IF_NEW",
@@ -122,7 +127,7 @@ if (cmd === "backfill") {
    * SKIPS a duplicate entry_id and writes nothing, so the expected line count is asked of that discipline, and
    * the run still reports the ledger's own appended-versus-already-present answer. */
   const BACKFILL_INSTANT = governedInstant(Date.now());
-  const backfillArgs = governedStoreAppend({
+  const backfillArgs = governedStoreAppend({ ...SCOPE.writeScope,
     repo: REPO, permission, store: createCostLedger(LEDGER), records: entries, targetClass: "RUN_EVIDENCE",
     action: "APPEND_COST_LEDGER_BACKFILL", occurredAt: BACKFILL_INSTANT,
     correlationId: `run:cost-ledger:backfill:${BACKFILL_INSTANT}`,

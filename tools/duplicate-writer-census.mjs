@@ -43,7 +43,7 @@ const GUARD_NEAR = /(\balready\b|\bexisting\b|\.some\(|\.find\(|\.has\()/;
 export function sourceCensus({ repo = REPO, sources = null } = {}) {
   const files = sources
     ? sources.map((s) => s.file)
-    : execFileSync("git", ["ls-files", "bin", "src", "tools"], { cwd: repo, encoding: "utf8" }).split("\n").filter((f) => f.endsWith(".mjs"));
+    : execFileSync("git", ["ls-files", "bin", "src", "tools", "subjects"], { cwd: repo, encoding: "utf8" }).split("\n").filter((f) => f.endsWith(".mjs"));
   const text = (f) => (sources ? sources.find((s) => s.file === f).text : readFileSync(join(repo, f), "utf8"));
   const sites = [];
   for (const file of files) {

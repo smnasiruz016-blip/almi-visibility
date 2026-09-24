@@ -33,6 +33,10 @@
  * when this file loads, and re-checked before the copy, after it, and after EVERY spawned run.
  */
 import test, { after } from "node:test";
+import { declaredWorld } from "./helpers/declared-world.mjs";
+/* F02: every entry point decides its tenant first — the runs below go through a DECLARED FIXTURE WORLD (never the real population). */
+const WORLD = declaredWorld();
+process.on("exit", () => WORLD.cleanup());
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -59,7 +63,7 @@ test("🔴 DESTRUCTIVE · bin/replay-crawl.mjs --recover WITHOUT --confirm is RE
     const before = snapshot(corpus);
     assert.equal(Object.keys(before).length, 2, "the scratch corpus was not populated — a no-delete check over an empty directory proves nothing");
 
-    const r = spawnSync(process.execPath, ["bin/replay-crawl.mjs", "--recover", `--corpus=${corpus}`], { cwd: REPO, encoding: "utf8", timeout: 60_000 });
+    const r = spawnSync(process.execPath, WORLD.argv(["bin/replay-crawl.mjs", "--recover", `--corpus=${corpus}`]), { cwd: REPO, encoding: "utf8", timeout: 60_000, env: WORLD.envWith() });
 
     // THE CLAIM FIRST: nothing was deleted, nothing was replaced, nothing was added. A broken guard fails HERE.
     assert.equal(existsSync(corpus), true, "the corpus directory was deleted");
@@ -113,7 +117,7 @@ test("🔴 NETWORK · D-CRW-4 · bin/crawl.mjs --live WITHOUT --i-have-the-owner
     const crawlBefore = fileState(crawlDir);
     const ledgerBefore = existsSync(ledger) ? sha(readFileSync(ledger)) : null;
 
-    const r = spawnSync(process.execPath, ["bin/crawl.mjs", `--seeds=${seeds}`, `--out=${out}`, `--corpus=${corpus}`, "--live"], { cwd: REPO, encoding: "utf8", timeout: 20_000 });
+    const r = spawnSync(process.execPath, WORLD.argv(["bin/crawl.mjs", `--seeds=${seeds}`, `--out=${out}`, `--corpus=${corpus}`, "--live"]), { cwd: REPO, encoding: "utf8", timeout: 20_000, env: WORLD.envWith() });
 
     // THE CLAIM FIRST: it did nothing
     assert.equal(existsSync(out), false, "the refused run wrote its crawl records");
@@ -173,7 +177,7 @@ after(() => {
   if (FIXTURE) rmSync(FIXTURE.root, { recursive: true, force: true });
 });
 
-const archiveRun = (args) => spawnSync(process.execPath, ["bin/archive-corpus.mjs", ...args], { cwd: REPO, encoding: "utf8", timeout: 180_000, maxBuffer: 32 * 1024 * 1024 });
+const archiveRun = (args) => spawnSync(process.execPath, WORLD.argv(["bin/archive-corpus.mjs", ...args]), { cwd: REPO, encoding: "utf8", timeout: 180_000, maxBuffer: 32 * 1024 * 1024, env: WORLD.envWith() });
 const tmpLeftovers = (dir) => readdirSync(dir).filter((n) => n.includes(".tmp-"));
 const VERIFIED_394 = /verify: expected 394, present 394, hash matches 394, missing 0, mismatched 0, extra 0/;
 

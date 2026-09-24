@@ -18,10 +18,14 @@ import { governedStoreAppend } from "../src/governance/governed-run.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { createCostLedger, formatLedgerLine } from "../src/cost/ledger.mjs";
 import { createPaidProviderGate, createKillSwitch, createFakePaidProvider, PaidCallRefused, REFUSAL_CODES } from "../src/cost/paid-provider-gate.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const argv = process.argv.slice(2);
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv, env: process.env }));
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/paid-provider-controls.mjs", governed: true, resources: [RESOURCES.costLedger()] });
 /* --ledger=<path>: the testability seam (gap 2) — the ledger this run appends its refusals to, CONFINED to this
  * repository by the same confineToRepo as the default, which it refuses before the ledger is opened. It chooses
  * WHERE, never WHETHER: without --confirm the refusals still go to the in-memory ledger and the file is not opened. */
@@ -93,7 +97,7 @@ await attempt("3 · a fully authorized call after the kill switch was flipped", 
 /* ONE governed decision for the run's refusal entries. The cost ledger SKIPS a duplicate entry_id and writes
  * nothing, so the expected line count is asked of that discipline rather than assumed to be the entry count. */
 const LEDGER_INSTANT = isoSeconds(Date.now());
-const ledgerGoverned = executeGovernedWrite(governedStoreAppend({
+const ledgerGoverned = executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,
   repo: REPO, permission, store: realLedger, records: memory, targetClass: "RUN_EVIDENCE",
   action: "APPEND_PAID_PROVIDER_REFUSAL_ENTRIES", occurredAt: LEDGER_INSTANT,
   correlationId: `run:paid-provider-controls:${LEDGER_INSTANT}`,

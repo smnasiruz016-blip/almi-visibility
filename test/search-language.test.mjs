@@ -27,7 +27,7 @@ const STORED = JSON.parse(STORED_TEXT);
 const limbs = (errs) => [...new Set(errs.map((e) => e.limb))];
 const clone = (x) => JSON.parse(JSON.stringify(x));
 const walk = (dir, rel) => readdirSync(dir).flatMap((n) => (statSync(join(dir, n)).isDirectory() ? walk(join(dir, n), `${rel}${n}/`) : n.endsWith(".mjs") ? [`${rel}${n}`] : []));
-const SOURCES = new Map([...walk(join(REPO, "src"), "src/"), ...walk(join(REPO, "bin"), "bin/")].map((f) => [f, readFileSync(join(REPO, f), "utf8")]));
+const SOURCES = new Map([...walk(join(REPO, "src"), "src/"), ...walk(join(REPO, "bin"), "bin/"), ...walk(join(REPO, "subjects"), "subjects/")].map((f) => [f, readFileSync(join(REPO, f), "utf8")]));
 const FORBIDDEN = ["intent-lexicon", "intent-reference"];
 
 test("🟢 MEASURED — the input: three owned pulls, their ids, ingest dates and row counts; 8 operator strings kept out of people's wording", () => {

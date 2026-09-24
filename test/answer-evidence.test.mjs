@@ -400,31 +400,36 @@ test("🔴 FIX 9 · an axis whose values were never supplied is judged exactly a
 });
 
 /* ================================================================== *
- * 🔴 FIX 8 — THE AXIS POPULATION'S SCOPE COMES FROM ITS OWN ROWS.
+ * 🔴 FIX 8 — THE AXIS POPULATION'S SCOPE IS ITS CONTAINER'S DECLARATION (F02, 24 Sep 2026).
+ *
+ * It used to be derived from its own rows: a mixed capture was given the scope of whichever tenant held the evidence, by
+ * keeping only that tenant's rows — a container re-scoped by filtering. F02 forbids it: an item has ONE declared scope.
+ * The container keeps the scope its declaration resolves, and rows declared to another tenant make it AMBIGUOUS.
  * ================================================================== */
 
-test("🔴 FIX 8 · the axis scope is derived from the rows, and opens only for a tenant they contain", async () => {
+test("🔴 FIX 8 · the axis scope is the container's own declaration — never re-derived from a subset of its rows (F02)", async () => {
   const { readDeclaredAnswerEvidence } = await import("../src/discovery/row6.mjs");
-
-  /* a population containing NO row of any declared tenant must not open the join */
-  const none = await readDeclaredAnswerEvidence({
-    axisResourceKind: "CRAWL_BATCH", axisResourceRef: "ctl",
-    axisRows: [{ url: "https://no-such-host.invalid/x" }],
-  });
-  assert.equal(none.axisScope.state, "UNDECLARED", "a population with no declared row opened the join");
-  assert.match(none.axisScope.basis, /contains no row belonging to the tenant/);
-
-  /* 🔴 CONTROL: the REAL population does contain rows for the tenant that holds the evidence, so the
-   * same code opens it — the refusal above is the rows talking, not a scope that never resolves. */
   const { createJsonlStore } = await import("../src/evidence/store.mjs");
+  const { BATCH_ID } = await import("../src/crawl/observation-batch.mjs");
   const REPO2 = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
-  const store = createJsonlStore(`${REPO2}runs/evidence/evidence.jsonl`).readAll();
-  const rows = store.filter((r) => r.record_type === "observation" && Array.isArray(r.value?.rows)).flatMap((o) => o.value.rows);
-  const real = await readDeclaredAnswerEvidence({ axisResourceKind: "CRAWL_BATCH", axisResourceRef: "ctl", axisRows: rows });
-  assert.equal(real.axisScope.state, "RESOLVED");
-  assert.equal(real.axisScope.tenantId, real.evidenceScope.tenantId, "the join opened across two different tenants");
-  assert.ok(real.axisScope.rows > 0);
+  const rows = createJsonlStore(`${REPO2}runs/evidence/evidence.jsonl`).readAll().filter((r) => r.record_type === "observation" && Array.isArray(r.value?.rows)).flatMap((o) => o.value.rows);
+  assert.ok(rows.length > 0, "the real axis population is empty — nothing below would be measured");
+
+  /* 1 · an UNDECLARED container stays UNDECLARED, however many of its rows resolve */
+  const undeclared = await readDeclaredAnswerEvidence({ axisResourceKind: "CRAWL_BATCH", axisResourceRef: "ctl", axisRows: rows });
+  assert.equal(undeclared.axisScope.state, "UNDECLARED", "an undeclared container was scoped from its rows");
+
+  /* 2 · REAL: the declared batch's rows are declared to other tenants — two scopes per row — so it is AMBIGUOUS */
+  const real = await readDeclaredAnswerEvidence({ axisResourceKind: "CRAWL_BATCH", axisResourceRef: BATCH_ID, axisRows: rows });
+  assert.equal(real.axisScope.state, "AMBIGUOUS", "a container whose rows are declared elsewhere was treated as one scope");
   assert.equal(real.axisPartition.remainder, 0, "the axis population does not self-account");
+
+  /* 3 · CONTROL, opposite verdict: a stand-in declaration world where the container, every row and the registry share ONE
+   * tenant — the same code opens the join, so the refusals above are the declarations talking, not a gate that never opens. */
+  const ONE = `tenant:${"c3".repeat(16)}`;
+  const standIn = () => ({ state: "RESOLVED", tenantId: ONE, reason: "EXPLICIT_DECLARED_ATTACHMENT", detail: null });
+  const opened = await readDeclaredAnswerEvidence({ axisResourceKind: "CRAWL_BATCH", axisResourceRef: BATCH_ID, axisRows: rows, resolve: standIn });
+  assert.deepEqual([opened.axisScope.state, opened.evidenceScope.state, opened.axisScope.tenantId === opened.evidenceScope.tenantId], ["RESOLVED", "RESOLVED", true]);
 });
 
 /* ================================================================== *

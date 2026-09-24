@@ -41,12 +41,24 @@ import { splitView } from "../src/audit/class-split.mjs";
 import { fourWay, impressionsForClass } from "../src/audit/populations.mjs";
 import { statSync } from "node:fs";
 import { batchJsonlFiles } from "../src/crawl/observation-batch.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n, d) => {
   const hit = process.argv.find((a) => a.startsWith(`--${n}=`));
   return hit ? hit.slice(n.length + 3) : d;
 };
+
+// 🔴 Confined BEFORE anything is read or rendered: a destination outside this
+// repository is refused while nothing has happened yet.
+const out = confineToRepo(arg("out", `${REPO}runs/report/index.html`), { label: "--out" });
+// 🔴 The product is an ARGUMENT, never a folder written here (owner ruling, 14 September 2026): no default.
+const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/report.mjs --product=<id> --tenant=<declared tenant> [--evidence=<path>] [--crawl=<path>] [--out=<file>] [--confirm]" });
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. The
+ * destination is confined first (that reads nothing); every path an operator hands the run is decided as an INPUT_PATH. */
+const SCOPE = scopedEntryPoint({ entry: "bin/report.mjs", governed: true, resources: [RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.crawlBatch(BATCH_ID), RESOURCES.runArtefacts("run stores"), RESOURCES.factRegistryAt(PRODUCT.factsDir), RESOURCES.inputPath(arg("evidence", null), "--evidence"), RESOURCES.inputPath(arg("robots", null), "--robots"), RESOURCES.inputPath(arg("audit", null), "--audit"), RESOURCES.inputPath(arg("crawl-dir", null), "--crawl-dir")] });
 
 const evidencePath = arg("evidence", `${REPO}runs/evidence/evidence.jsonl`);
 const robotsPath = arg("robots", `${REPO}runs/evidence/robots.jsonl`);
@@ -55,9 +67,6 @@ const auditPath = arg("audit", `${REPO}runs/audit/findings.jsonl`);
  * data repository. --crawl-dir still overrides, for a local corpus; with no override the batch is
  * resolved, and an unreadable batch REFUSES rather than reporting over an empty population. */
 const crawlDir = arg("crawl-dir", null);
-// 🔴 Confined BEFORE anything is read or rendered: a destination outside this
-// repository is refused while nothing has happened yet.
-const out = confineToRepo(arg("out", `${REPO}runs/report/index.html`), { label: "--out" });
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
 const RUN_INSTANT = isoSeconds(Date.now());
 const RUN_CORRELATION = `run:report:${RUN_INSTANT}`;
@@ -80,8 +89,6 @@ const crawlRecords = crawlDir === null
         .flatMap((f) => read(join(crawlDir, f)))
     : [];
 
-// 🔴 The product is an ARGUMENT, never a folder written here (owner ruling, 14 September 2026): no default.
-const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/report.mjs --product=<id> [--evidence=<path>] [--crawl=<path>] [--out=<file>] [--confirm]" });
 let facts = [];
 try {
   ({ records: facts } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId));
@@ -108,11 +115,17 @@ const chainWalk = moved ? walkChain(moved.issue.issue_id, chainRecords) : null;
 
 /* §623 — the tier layer ordering real sources: the verified facts' citations,
  * the Search Console property this engine reads, and a drafted recommendation. */
+/** The DOMAIN-type property in the latest gsc.sites.list observation, or a named absence. */
+const recordedDomainProperty = (records) => {
+  const latest = records.filter((r) => r.method === "gsc.sites.list").sort((a, b) => String(a.observed_at).localeCompare(String(b.observed_at))).at(-1);
+  return latest?.value?.properties?.find((p) => p.propertyType === "DOMAIN")?.propertyId ?? "UNRECORDED_DOMAIN_PROPERTY";
+};
 const sourcesIn = [
   ...(evidenceRecords.some((r) => r.method === "gsc.sites.list")
     ? [makeSource({
-        source_id: "gsc-property:sc-domain:almiworld.com",
-        source_url: "sc-domain:almiworld.com",
+        /* F02: the DOMAIN property the latest recorded sites.list observation names — read from evidence, never hard-coded. */
+        source_id: `gsc-property:${recordedDomainProperty(evidenceRecords)}`,
+        source_url: recordedDomainProperty(evidenceRecords),
         source_tier: "OWNED_GSC_ANALYTICS",
         publisher: "Google Search Console (our own property)",
         retrieved_at: evidenceRecords.filter((r) => r.method === "gsc.sites.list").map((r) => r.observed_at).sort().at(-1),
@@ -174,7 +187,7 @@ const html = renderPage({ crawlRecords, evidenceRecords, facts, generatedAt, cha
 
 {
   const size = `(${(Buffer.byteLength(html, "utf8") / 1024).toFixed(1)} KiB)`;
-  const governed = executeGovernedWrite(governedFileWrite({
+  const governed = executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
     repo: REPO, permission, target: out, targetClass: "GENERATED_CONFIG", bytes: html,
     action: "WRITE_ESTATE_REPORT", occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
   }));

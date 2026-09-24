@@ -36,6 +36,10 @@
  * OS temp directory.
  */
 import { test } from "node:test";
+import { declaredWorld } from "./helpers/declared-world.mjs";
+/* F02: every entry point decides its tenant first — the runs below go through a DECLARED FIXTURE WORLD (never the real population). */
+const WORLD = declaredWorld();
+process.on("exit", () => WORLD.cleanup());
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -75,9 +79,9 @@ const REFUSED = /REFUSED — --source: /;
 const AUTHORIZATION = /\[dry-run\] would have written (\d+) evidence record\(s\) → ([^\n]*?) \(synthetic source: never the cost ledger\)/;
 const WRITE = /\[synthetic source\] wrote (\d+) evidence record\(s\) → ([^\n]*?) — the cost ledger was not written/;
 
-const run = (args, { preload = true } = {}) => spawnSync(process.execPath, [...(preload ? ["--import", NO_NETWORK] : []), BIN, ...args], {
+const run = (args, { preload = true } = {}) => spawnSync(process.execPath, WORLD.argv([...(preload ? ["--import", NO_NETWORK] : []), BIN, ...args]), {
   cwd: REPO, encoding: "utf8", timeout: 60_000, maxBuffer: 64 * 1024 * 1024,
-  env: { ...process.env, GSC_SERVICE_ACCOUNT_KEY_FILE: "" },
+  env: WORLD.envWith({ ...process.env, GSC_SERVICE_ACCOUNT_KEY_FILE: "" }),
 });
 function gateFired(r) {
   const seen = [

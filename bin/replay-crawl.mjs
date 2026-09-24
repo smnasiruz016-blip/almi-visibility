@@ -48,13 +48,20 @@ import { replayEntriesFrom, runReplayPass, comparePasses } from "../src/crawl/re
 import { retestChange, headFacts, titleCountsOf } from "../src/audit/retest.mjs";
 import { runRobotsAndDnsAudit } from "../src/audit/run-audit.mjs";
 import { createCostLedger, entryFromReplay, entryFromArtifactRecovery, formatLedgerLine } from "../src/cost/ledger.mjs";
-import { ESTATE_HOSTNAME_LIST } from "../config/estate-hostnames.mjs";
 import { batchFile } from "../src/crawl/observation-batch.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES, declaredSiteHosts } from "../src/tenancy/scoped-run.mjs";
+import { loadSubjectPackage } from "../src/subject-package.mjs";
+import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const argv = process.argv.slice(2);
 const arg = (n) => argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3) ?? null;
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv, env: process.env }));
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/replay-crawl.mjs", governed: true, resources: [RESOURCES.inputPath(arg("corpus"), "--corpus"), RESOURCES.crawlBatch(BATCH_ID), RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.cache("robots cache"), RESOURCES.runArtefacts("replay corpus")] });
+/* F02: this run's hosts are the site origins DECLARED to its tenant — no estate list in shared code (relocated, 24 Sep 2026). */
+const DECLARED_HOSTS = declaredSiteHosts({ tenantId: SCOPE.tenantId });
 
 const RUN_ID = "34662527129";
 const ARTIFACT = `crawl-corpus-${RUN_ID}`;
@@ -77,51 +84,6 @@ const LOCAL_HOSTS = ["127.0.0.1", "localhost"];
 
 const readJsonl = (p) => (existsSync(p) ? createJsonlStore(p).readAll() : []);
 
-/* ================================================================== *
- * THE NAMED CHANGES — five in-memory copies, everything else byte-identical.
- * ================================================================== */
-
-const CHANGES = [
-  {
-    id: "C1", kind: "NOINDEX_REMOVED",
-    url: "https://almicv.almiworld.com/cv-guide/andorra/housekeeper", observation_id: "7694a4810a7658a2",
-    transform: (h) => h.replace(/(<meta\b[^>]*name\s*=\s*["']robots["'][^>]*content\s*=\s*["'])([^"']*)/gi, (m, a, c) => a + c.split(",").map((s) => s.trim()).filter((t) => t.toLowerCase() !== "noindex").join(", ")),
-    validate: (b, a) => b.noindexed === true && a.noindexed === false,
-    checks: [{ check: "noindex", expectBefore: "FAIL", expectAfter: "PASS" }],
-  },
-  {
-    id: "C2", kind: "NOINDEX_ADDED",
-    url: "https://almicv.almiworld.com/cv-guide/ghana/audiologist", observation_id: "47fb3ad24283313c",
-    transform: (h) => h.replace(/<head([^>]*)>/i, '<head$1><meta name="robots" content="noindex">'),
-    validate: (b, a) => b.noindexed === false && a.noindexed === true,
-    checks: [{ check: "noindex", expectBefore: "PASS", expectAfter: "FAIL" }],
-  },
-  {
-    id: "C3", kind: "CANONICAL_REMOVED",
-    url: "https://almicv.almiworld.com/cv-guide/india/internal-medicine-doctor", observation_id: "99eaea6e9c6d1d3a",
-    transform: (h) => h.replace(/<link\b[^>]*rel\s*=\s*["']canonical["'][^>]*>/gi, ""),
-    validate: (b, a) => Boolean(b.canonical) && !a.canonical,
-    checks: [{ check: "canonical", expectBefore: "PASS", expectAfter: "FAIL", expectSummaryIncludes: "no rel=canonical" }],
-  },
-  {
-    id: "C4", kind: "TITLE_REMOVED",
-    url: "https://almicv.almiworld.com/cv-guide/india/primary-school-teacher", observation_id: "63eeeafa8bf8cf34",
-    transform: (h) => h.replace(/<title[^>]*>[\s\S]*?<\/title>/i, ""),
-    validate: (b, a) => Boolean(b.title) && !a.title,
-    checks: [{ check: "head-elements", expectAfter: "FAIL", expectSummaryIncludes: "no <title>" }],
-  },
-  {
-    id: "C5", kind: "BODY_TEXT_ONLY_ON_A_REDIRECTED_PAGE",
-    url: "https://almiworld.com/ielts-band-6-vs-band-7-what-actually-changes", observation_id: "2e2ad6fe30837206",
-    transform: (h) => h.replace(/<\/body>/i, '<p data-replay-change="C5">local replay change — body text only</p></body>'),
-    validate: (b, a) => b.noindexed === a.noindexed && b.canonical === a.canonical && b.title === a.title,
-    checks: [
-      { check: "noindex", expectAfter: "SAME" },
-      { check: "canonical", expectAfter: "SAME" },
-      { check: "head-elements", expectAfter: "SAME" },
-    ],
-  },
-];
 
 const startedAt = new Date().toISOString();
 const failures = [];
@@ -150,7 +112,7 @@ let recovery = { recoveredThisRun: false };
 if (argv.includes("--recover")) {
   const t0 = new Date().toISOString();
   const RECOVER_INSTANT = governedInstant(Date.now());
-  const recovered = executeGovernedWrite(governedDirectoryReplace({
+  const recovered = executeGovernedWrite(governedDirectoryReplace({ ...SCOPE.writeScope,
     repo: REPO, permission, target: CORPUS,
     targetClass: arg("corpus") === null ? "RUN_EVIDENCE" : "OPERATOR_CHOSEN_OUTPUT",
     /* The only place the external tool runs, and it writes only into the staging directory it is handed. */
@@ -202,6 +164,62 @@ if (missing > 0 || shaMatches !== entries.size) {
   console.error("🔴 REFUSED — the recovered bodies are not the run's bodies. A replay of the wrong bytes proves nothing.");
   process.exit(1);
 }
+
+/* F02 relocation: the real pages the five named changes are applied to belong to a declared subject package, named by
+ * --subject. Read only once the corpus is verified, so every refusal above (--recover without --confirm, a wrong corpus)
+ * still fires first, exactly as before the relocation. */
+const SUBJECT_ID = process.argv.find((a) => a.startsWith("--subject="))?.slice("--subject=".length) ?? null;
+if (SUBJECT_ID === null) {
+  console.error("🔴 REFUSED — --subject=<declared subject package> names whose real pages the five named changes are applied to; there is no default");
+  process.exit(2);
+}
+const { REPLAY_TARGETS } = (await loadSubjectPackage(SUBJECT_ID)).module;
+
+/* ================================================================== *
+ * THE NAMED CHANGES — five in-memory copies, everything else byte-identical.
+ * ================================================================== */
+
+const CHANGES = [
+  {
+    id: "C1", kind: "NOINDEX_REMOVED",
+    ...REPLAY_TARGETS.C1,
+    transform: (h) => h.replace(/(<meta\b[^>]*name\s*=\s*["']robots["'][^>]*content\s*=\s*["'])([^"']*)/gi, (m, a, c) => a + c.split(",").map((s) => s.trim()).filter((t) => t.toLowerCase() !== "noindex").join(", ")),
+    validate: (b, a) => b.noindexed === true && a.noindexed === false,
+    checks: [{ check: "noindex", expectBefore: "FAIL", expectAfter: "PASS" }],
+  },
+  {
+    id: "C2", kind: "NOINDEX_ADDED",
+    ...REPLAY_TARGETS.C2,
+    transform: (h) => h.replace(/<head([^>]*)>/i, '<head$1><meta name="robots" content="noindex">'),
+    validate: (b, a) => b.noindexed === false && a.noindexed === true,
+    checks: [{ check: "noindex", expectBefore: "PASS", expectAfter: "FAIL" }],
+  },
+  {
+    id: "C3", kind: "CANONICAL_REMOVED",
+    ...REPLAY_TARGETS.C3,
+    transform: (h) => h.replace(/<link\b[^>]*rel\s*=\s*["']canonical["'][^>]*>/gi, ""),
+    validate: (b, a) => Boolean(b.canonical) && !a.canonical,
+    checks: [{ check: "canonical", expectBefore: "PASS", expectAfter: "FAIL", expectSummaryIncludes: "no rel=canonical" }],
+  },
+  {
+    id: "C4", kind: "TITLE_REMOVED",
+    ...REPLAY_TARGETS.C4,
+    transform: (h) => h.replace(/<title[^>]*>[\s\S]*?<\/title>/i, ""),
+    validate: (b, a) => Boolean(b.title) && !a.title,
+    checks: [{ check: "head-elements", expectAfter: "FAIL", expectSummaryIncludes: "no <title>" }],
+  },
+  {
+    id: "C5", kind: "BODY_TEXT_ONLY_ON_A_REDIRECTED_PAGE",
+    ...REPLAY_TARGETS.C5,
+    transform: (h) => h.replace(/<\/body>/i, '<p data-replay-change="C5">local replay change — body text only</p></body>'),
+    validate: (b, a) => b.noindexed === a.noindexed && b.canonical === a.canonical && b.title === a.title,
+    checks: [
+      { check: "noindex", expectAfter: "SAME" },
+      { check: "canonical", expectAfter: "SAME" },
+      { check: "head-elements", expectAfter: "SAME" },
+    ],
+  },
+];
 
 const robotsRecords = readJsonl(`${REPO}runs/evidence/robots.jsonl`);
 const robotsByHost = new Map(robotsRecords.filter((r) => r.record_type === "observation").map((r) => [r.value.host, r]));
@@ -320,7 +338,7 @@ const recordedFamiliesFor = async (host) => {
   if (!v) throw new Error(`no RECORDED resolver answer for ${host} — refusing to invent one`);
   return v;
 };
-const auditInputs = { robotsRecords, evidence: readJsonl(`${REPO}runs/evidence/evidence.jsonl`), crawl: crawlRecords, hosts: ESTATE_HOSTNAME_LIST, familiesFor: recordedFamiliesFor };
+const auditInputs = { robotsRecords, evidence: readJsonl(`${REPO}runs/evidence/evidence.jsonl`), crawl: crawlRecords, hosts: DECLARED_HOSTS, familiesFor: recordedFamiliesFor };
 const audit1 = await runRobotsAndDnsAudit({ store: auditStore, ...auditInputs, openedAt: new Date().toISOString() });
 const audit2 = await runRobotsAndDnsAudit({ store: auditStore, ...auditInputs, openedAt: new Date().toISOString() });
 must(audit1.writes.appended > 0, "the recorded-DNS audit wrote nothing on its first run — the double run would be vacuous");
@@ -386,14 +404,14 @@ const REPLAY_INSTANT = governedInstant(Date.now());
 const correlationId = `run:replay-crawl:${REPLAY_INSTANT}`;
 const scratchBytes = (name) => (existsSync(join(tmp, name)) ? readFileSync(join(tmp, name), "utf8") : "");
 const steps = [
-  ["crawl store", () => governedFileWrite({ repo: REPO, permission, target: CRAWL_STORE, targetClass: "RUN_EVIDENCE", bytes: scratchBytes("crawl.jsonl"), action: "RECORD_REPLAY_CRAWL_STORE", occurredAt: REPLAY_INSTANT, correlationId })],
-  ["audit store", () => governedFileWrite({ repo: REPO, permission, target: AUDIT_STORE, targetClass: "RUN_EVIDENCE", bytes: scratchBytes("audit.jsonl"), action: "RECORD_REPLAY_AUDIT_STORE", occurredAt: REPLAY_INSTANT, correlationId })],
-  ["cost ledger", () => governedStoreAppend({
+  ["crawl store", () => governedFileWrite({ ...SCOPE.writeScope, repo: REPO, permission, target: CRAWL_STORE, targetClass: "RUN_EVIDENCE", bytes: scratchBytes("crawl.jsonl"), action: "RECORD_REPLAY_CRAWL_STORE", occurredAt: REPLAY_INSTANT, correlationId })],
+  ["audit store", () => governedFileWrite({ ...SCOPE.writeScope, repo: REPO, permission, target: AUDIT_STORE, targetClass: "RUN_EVIDENCE", bytes: scratchBytes("audit.jsonl"), action: "RECORD_REPLAY_AUDIT_STORE", occurredAt: REPLAY_INSTANT, correlationId })],
+  ["cost ledger", () => governedStoreAppend({ ...SCOPE.writeScope,
     repo: REPO, permission, store: createCostLedger(LEDGER), records: [...(recovery.recoveredThisRun ? [recovery.entry] : []), replayEntry],
     targetClass: "RUN_EVIDENCE", action: "APPEND_REPLAY_COST_ENTRIES", occurredAt: REPLAY_INSTANT, correlationId,
     discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null,
   })],
-  ["evidence", () => governedFileWrite({ repo: REPO, permission, target: EVIDENCE, targetClass: "RUN_EVIDENCE", bytes: JSON.stringify(evidence, null, 2) + "\n", action: "RECORD_REPLAY_EVIDENCE", occurredAt: REPLAY_INSTANT, correlationId })],
+  ["evidence", () => governedFileWrite({ ...SCOPE.writeScope, repo: REPO, permission, target: EVIDENCE, targetClass: "RUN_EVIDENCE", bytes: JSON.stringify(evidence, null, 2) + "\n", action: "RECORD_REPLAY_EVIDENCE", occurredAt: REPLAY_INSTANT, correlationId })],
 ];
 let halted = null;
 for (const [name, args] of steps) {

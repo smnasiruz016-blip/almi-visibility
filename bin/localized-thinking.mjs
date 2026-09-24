@@ -16,12 +16,20 @@ import { fileURLToPath } from "node:url";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { localizedThinking, localizedThinkingErrors, ROW3_STORED } from "../src/discovery/localized-thinking.mjs";
 import { countryUrlCensus, reachesRowFive, reachesDecisionPaths, CENSUS_LIMITS } from "../tools/country-url-census.mjs";
-import { HARD_CODED_PATTERNS } from "../config/discovery/axis-candidates.mjs";
+import { loadSubjectPackage } from "../src/subject-package.mjs";
 import { readReasoningBatch, goalTenancy, judgeReasoning, withEvidenceClasses, row4Verdict, tallyReasoning, OUTCOMES } from "../src/discovery/local-reasoning.mjs";
 import { createTenantResolver } from "../src/tenancy/resolver.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 // the repository root from this file's own path — no URL is constructed in a consumer of the localized-thinking module
 const REPO = dirname(dirname(fileURLToPath(import.meta.url)));
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/localized-thinking.mjs", governed: false, resources: [RESOURCES.evidenceStore(), RESOURCES.runArtefacts("stored discovery results")] });
+/* F02 relocation: the discovery configuration belongs to a declared SUBJECT PACKAGE, named by --subject (no default).
+ * The package is located, never trusted for scope: the gate above already decided every resource this run reads. */
+const SUBJECT = await loadSubjectPackage(process.argv.find((a) => a.startsWith("--subject="))?.slice("--subject=".length));
+const { HARD_CODED_PATTERNS } = SUBJECT.module.AXIS_CANDIDATES;
 const storeRecords = createJsonlStore(join(REPO, "runs", "evidence", "evidence.jsonl")).readAll();
 const row3 = JSON.parse(readFileSync(join(REPO, ...ROW3_STORED.split("/")), "utf8"));
 const result = localizedThinking({ storeRecords, row3, estatePatterns: HARD_CODED_PATTERNS });
@@ -44,7 +52,7 @@ if (process.argv.includes("--json")) {
 
 const walk = (dir, rel) => readdirSync(dir).flatMap((n) => (statSync(join(dir, n)).isDirectory() ? walk(join(dir, n), `${rel}${n}/`) : n.endsWith(".mjs") ? [`${rel}${n}`] : []));
 const read = (files) => files.map((f) => [f, readFileSync(join(REPO, f), "utf8")]);
-const code = new Map(read([...walk(join(REPO, "src"), "src/"), ...walk(join(REPO, "bin"), "bin/")]));
+const code = new Map(read([...walk(join(REPO, "src"), "src/"), ...walk(join(REPO, "bin"), "bin/"), ...walk(join(REPO, "subjects"), "subjects/")]));
 const graph = new Map([...code, ...read(walk(join(REPO, "config"), "config/")), ...read(walk(join(REPO, "tools"), "tools/"))]);
 const census = countryUrlCensus(code);
 const rowFive = reachesRowFive(graph, "src/discovery/localized-thinking.mjs");

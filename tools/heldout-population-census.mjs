@@ -92,7 +92,7 @@ export function accessPathPopulation() {
 
 /** D · access-log writers and readers: production modules that EMIT guard/evaluation events or READ them back. */
 export function accessLogPopulation() {
-  const files = lines(git("ls-files", "src", "bin", "tools")).filter((f) => f.endsWith(".mjs"));
+  const files = lines(git("ls-files", "src", "bin", "tools", "subjects")).filter((f) => f.endsWith(".mjs"));
   const text = (f) => readFileSync(join(REPO, f), "utf8");
   const writers = files.filter((f) => /\baudit\.emit\(|\bemit\(audit,|durableGuardSink\(|governedGuardSink\(/.test(text(f)));
   const readers = files.filter((f) => /eventType === "EVALUATION"|metadata\?\.family === "H"|\.filter\(H\)|guardEvents/.test(text(f)));

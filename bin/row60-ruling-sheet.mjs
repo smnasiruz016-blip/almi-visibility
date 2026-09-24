@@ -29,10 +29,15 @@ import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedFileWrite } from "../src/governance/governed-run.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const JSON_OUT = confineToRepo(join(REPO, "runs", "export", "row60-ruling-sheet.json"), { label: "sheet (json)" });
 const MD_OUT = confineToRepo(join(REPO, "runs", "export", "row60-ruling-sheet.md"), { label: "sheet (markdown)" });
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/row60-ruling-sheet.mjs", governed: true, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.runArtefacts("run stores")] });
 
 const walk = (dir) => readdirSync(dir).flatMap((n) => {
   const p = join(dir, n);
@@ -93,7 +98,7 @@ const RUN_CORRELATION = `run:row60-ruling-sheet:${RUN_INSTANT}`;
     [JSON_OUT, `${JSON.stringify(fresh, null, 2)}\n`, "WRITE_RULING_SHEET_JSON"],
     [MD_OUT, renderRulingSheet(fresh), "WRITE_RULING_SHEET_MARKDOWN"],
   ]) {
-    const governed = executeGovernedWrite(governedFileWrite({
+    const governed = executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
       repo: REPO, permission, target, targetClass: "GENERATED_CONFIG", bytes: body,
       action: what, occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
     }));

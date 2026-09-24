@@ -35,6 +35,8 @@
  */
 
 /** Every state this leg can report. INSUFFICIENT_EVIDENCE and the two refusals are never terminal. */
+import { decideResolvedTenants } from "../tenancy/scope.mjs";
+
 export const ANSWER_LEG_STATES = Object.freeze([
   "MEASURED",
   "INSUFFICIENT_EVIDENCE",
@@ -141,7 +143,8 @@ export function tenancyGate(axisScope, evidenceScope) {
         { axisTenantId: a.tenantId ?? null, evidenceTenantId: e.tenantId ?? null }),
     };
   }
-  if (a.tenantId !== e.tenantId) {
+  /* F02: the two resolved tenants are decided by the ONE decision (src/tenancy/scope.mjs), never compared here. */
+  if (!decideResolvedTenants(a.tenantId, e.tenantId).allowed) {
     return {
       ok: false,
       leg: leg("INVALID_CROSS_TENANT", ANSWER_REASONS.TENANT_CROSS,

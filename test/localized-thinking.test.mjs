@@ -21,7 +21,7 @@ import { createJsonlStore } from "../src/evidence/store.mjs";
 import { localizedThinking, localizedThinkingErrors, rowThreeRelations, COUNTRY_FLOOR, HALF_B, ROW3_STORED, ROW6_ORIGIN, INPUT_OBSERVATIONS } from "../src/discovery/localized-thinking.mjs";
 import { MIN_ROWS_PER_COUNTRY } from "../src/discovery/axis-discovery.mjs";
 import { hardCodedIn } from "../src/discovery/row6.mjs";
-import { HARD_CODED_PATTERNS } from "../config/discovery/axis-candidates.mjs";
+import { HARD_CODED_PATTERNS } from "../subjects/almiworld-estate/config/axis-candidates.mjs";
 import { countryUrlCensus, reachesRowFive } from "../tools/country-url-census.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -35,7 +35,7 @@ const clone = (x) => JSON.parse(JSON.stringify(x));
 const errorsOf = (result) => localizedThinkingErrors({ result, storeRecords: STORE, row3: ROW3 });
 const walk = (dir, rel) => readdirSync(dir).flatMap((n) => (statSync(join(dir, n)).isDirectory() ? walk(join(dir, n), `${rel}${n}/`) : n.endsWith(".mjs") ? [`${rel}${n}`] : []));
 const read = (files) => files.map((f) => [f, readFileSync(join(REPO, f), "utf8")]);
-const SOURCES = new Map(read([...walk(join(REPO, "src"), "src/"), ...walk(join(REPO, "bin"), "bin/")]));
+const SOURCES = new Map(read([...walk(join(REPO, "src"), "src/"), ...walk(join(REPO, "bin"), "bin/"), ...walk(join(REPO, "subjects"), "subjects/")]));
 const GRAPH = new Map([...SOURCES, ...read(walk(join(REPO, "config"), "config/"))]);
 const MODULE = "src/discovery/localized-thinking.mjs";
 const goalOf = (r, wording) => r.goals.find((g) => g.wordings.some((w) => w.original === wording));

@@ -26,20 +26,22 @@
 import { readFileSync, existsSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
-import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
-import { governedFileWrite } from "../src/governance/governed-run.mjs";
-import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
-import { loadRegistry, toGateAFact } from "../src/facts/registry.mjs";
-import { placeClaims } from "../src/page/claim-placement.mjs";
-import { renderPage } from "../src/page/render.mjs";
-import { runGateA, MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../src/gate-a/run.mjs";
-import { tokensWithKind } from "../src/gate-a/text-kind.mjs";
-import { tokensOf } from "../src/gate-a/tokens.mjs";
-import { shingles, jaccard } from "../src/gate-a/overlap.mjs";
-import { uniqueWords } from "../src/gate-a/shell.mjs";
+import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../../../src/write-law.mjs";
+import { executeGovernedWrite } from "../../../src/governance/governed-write.mjs";
+import { governedFileWrite } from "../../../src/governance/governed-run.mjs";
+import { isoSeconds as governedInstant } from "../../../src/audit-trail/store.mjs";
+import { loadRegistry, toGateAFact } from "../../../src/facts/registry.mjs";
+import { placeClaims } from "../../../src/page/claim-placement.mjs";
+import { renderPage } from "../../../src/page/render.mjs";
+import { runGateA, MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../../../src/gate-a/run.mjs";
+import { tokensWithKind } from "../../../src/gate-a/text-kind.mjs";
+import { tokensOf } from "../../../src/gate-a/tokens.mjs";
+import { shingles, jaccard } from "../../../src/gate-a/overlap.mjs";
+import { uniqueWords } from "../../../src/gate-a/shell.mjs";
 
-import { productFromArgvOrExit } from "../src/product-cli.mjs";
+import { productFromArgvOrExit } from "../../../src/product-cli.mjs";
+import { scopedEntryPoint } from "../../../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../../../src/tenancy/scoped-run.mjs";
 
 /**
  * 🔴 THE PRODUCT ARRIVES AS AN ARGUMENT, NOT AS AN IMPORT.
@@ -51,6 +53,8 @@ import { productFromArgvOrExit } from "../src/product-cli.mjs";
  * There is no default: a runner with no `--product=<id>` stops and says so.
  */
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/placement-measure.mjs --product=<id>" });
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/placement-measure.mjs", governed: true, resources: [RESOURCES.factRegistryAt(PRODUCT.factsDir), RESOURCES.cache("sibling-page cache"), RESOURCES.runArtefacts("sibling pages read from the cache directory")] });
 
 const argv = process.argv.slice(2);
 const outDir = confineToRepo(argv.find((a) => a.startsWith("--out="))?.split("=").slice(1).join("=") ?? null, { label: "--out" });
@@ -322,7 +326,7 @@ if (outDir) {
   const outcomes = [
     ["placement-report.json", report, "WRITE_PLACEMENT_REPORT"],
     ["nursing-placed.html", renderPage(split, records).html, "WRITE_PLACEMENT_PAGE"],
-  ].map(([name, body, what]) => executeGovernedWrite(governedFileWrite({
+  ].map(([name, body, what]) => executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
     repo: REPO, permission, target: join(outDir, name), targetClass: "RUN_EVIDENCE", bytes: body,
     action: what, occurredAt: PLACE_INSTANT, correlationId: `run:placement-measure:${PLACE_INSTANT}`,
   })));

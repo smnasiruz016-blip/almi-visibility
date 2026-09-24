@@ -33,6 +33,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
 import { census, ANY_WRITE_PATTERN } from "./no-generation-census.mjs";
+import { isEntryPoint } from "../src/entry-points.mjs";
 import { PERMITTED_PAGE_WRITERS, PERMITTED_LOCAL_WRITERS, KNOWN_UNGATED_WRITERS } from "../config/permitted-page-writers.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -381,14 +382,14 @@ export function importsOf(file, text) {
 export function writeSiteCensus({ repo = REPO, sources = null, register = [...PERMITTED_PAGE_WRITERS, ...PERMITTED_LOCAL_WRITERS], knownUngated = KNOWN_UNGATED_WRITERS } = {}) {
   const files = sources
     ? sources.map((s) => s.file)
-    : [...new Set(execFileSync("git", ["ls-files", "src", "bin", "tools"], { cwd: repo, encoding: "utf8" }).split("\n").filter((p) => p.endsWith(".mjs")))].sort();
+    : [...new Set(execFileSync("git", ["ls-files", "src", "bin", "tools", "subjects"], { cwd: repo, encoding: "utf8" }).split("\n").filter((p) => p.endsWith(".mjs")))].sort();
   const textOf = (f) => (sources ? sources.find((s) => s.file === f)?.text ?? "" : readFileSync(repo + f, "utf8"));
   const texts = new Map(files.map((f) => [f, textOf(f)]));
 
   // Which binaries reach each module, transitively, through static imports.
   const graph = new Map([...texts].map(([f, t]) => [f, importsOf(f, t).filter((i) => texts.has(i))]));
   const reachedBy = new Map(files.map((f) => [f, new Set()]));
-  for (const bin of files.filter((f) => f.startsWith("bin/"))) {
+  for (const bin of files.filter(isEntryPoint)) {
     const seen = new Set();
     const walk = (f) => {
       if (seen.has(f)) return;
@@ -417,7 +418,7 @@ export function writeSiteCensus({ repo = REPO, sources = null, register = [...PE
       const token = entry?.gateToken ?? "permission.mayWrite";
       const g = gateOf(lines, i + 1, token);
       // A module that takes its store from a caller cannot be judged here — say so, never assume.
-      const gatedAtCaller = !g.gated && !file.startsWith("bin/") && /\bstore\b|\bledger\b/.test(line);
+      const gatedAtCaller = !g.gated && !isEntryPoint(file) && /\bstore\b|\bledger\b/.test(line);
       sites.push({
         file,
         line: i + 1,
@@ -443,7 +444,7 @@ export function writeSiteCensus({ repo = REPO, sources = null, register = [...PE
    * difference is the whole defect: `!gated` swept every shape the detector could not read into
    * the defect list, which is how eleven binaries came to be declared as defects that do not exist.
    * A site this census cannot read is counted below, in its own column, and is NOT a finding. */
-  const ungatedBins = sites.filter((s) => s.file.startsWith("bin/") && s.state === "UNGATED");
+  const ungatedBins = sites.filter((s) => isEntryPoint(s.file) && s.state === "UNGATED");
   const cannotDetermine = sites.filter((s) => s.state === "CANNOT_DETERMINE");
   /* 🔴 DECLARED IS NOT FIXED. Widening the census found eleven more ungated binaries than the six
    * this slot gates. A census that failed on all of them would fail the build on day one and be
@@ -472,7 +473,7 @@ export function writeSiteCensus({ repo = REPO, sources = null, register = [...PE
      * summed into a clean total. An unreadable site MAY be hiding a real ungated writer — that is
      * LAW-ABSENT-1, and "we could not tell" is not "there is nothing there". */
     cannotDetermine,
-    cannotDetermineBins: cannotDetermine.filter((s) => s.file.startsWith("bin/")),
+    cannotDetermineBins: cannotDetermine.filter((s) => isEntryPoint(s.file)),
     gatedAtCaller: sites.filter((s) => s.gatedAtCaller),
     cannotSee: [
       "a computed import, or a module reached through a variable",

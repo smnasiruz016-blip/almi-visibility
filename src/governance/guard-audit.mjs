@@ -90,6 +90,29 @@ export function guardEventDraft(decision, { actor, softwareVersion, correlationI
   };
 }
 
+/**
+ * 🔴 THE DURABLE / DIAGNOSTIC LINE — DERIVED FROM WHAT HAPPENED (owner ruling, 23 September 2026, option b).
+ *
+ *   Nobody requested the material                        -> CLASSIFICATION  -> kept by the run, NOT persisted
+ *   Something tried to obtain it, and was granted or refused -> ACCESS       -> durable, always
+ *   A contamination / firewall finding                   -> VIOLATION       -> durable
+ *   A governed change to seal, access rule, freeze or evaluation state -> GOVERNED_CHANGE -> durable
+ *
+ * The class is read from the decision's OWN eventType, action and outcome — never from who emitted it, which sink
+ * it reached, or any flag it carries. There is no list of "diagnostic callers": a firewall run that meets a real
+ * sealed refusal records it durably, and a clean sweep that only classified records nothing. What this cannot place
+ * is durable (UNDERIVED): an unknown kind of decision fails closed into the trail, never out of it.
+ */
+export const AUDIT_CLASSES = Object.freeze(["ACCESS", "VIOLATION", "GOVERNED_CHANGE", "CLASSIFICATION", "UNDERIVED"]);
+export function auditClassOf(decision) {
+  const { eventType, action, outcome } = decision ?? {};
+  if (eventType === "REFUSAL") return "ACCESS";
+  if (eventType === "EVIDENCE_ROLE_DECISION") return outcome === "ALLOWED" ? "CLASSIFICATION" : "VIOLATION";
+  if (eventType === "EVALUATION") return action === "HELDOUT_ACCESS" ? "ACCESS" : "GOVERNED_CHANGE";
+  return "UNDERIVED";
+}
+export const isDurableDecision = (decision) => auditClassOf(decision) !== "CLASSIFICATION";
+
 /** A decision may carry only these metadata keys. Anything else — a path, a body, a value — is refused before emission. */
 export const GUARD_METADATA_KEYS = Object.freeze(["guard", "classification", "ruleEntry", "role", "root", "resourceRef"]);
 function checkDecision(decision) {
@@ -105,15 +128,24 @@ function checkDecision(decision) {
  */
 export function durableGuardSink({ store, actor, softwareVersion, correlationId, authorityRef, authorityHash, clock = () => isoSeconds(Date.now()) }) {
   if (!store || typeof store.append !== "function") throw new GuardAuditAbsent("durableGuardSink");
-  /* The events this run appended, kept so a caller can REPORT what it recorded (F07: the firewall counts them). */
+  /* Every decision this run made, kept so a caller can REPORT it (F07: the firewall counts them) — appended or not. */
   const events = [];
   return {
     durable: true,
     emitted: 0,
+    classified: 0,
     events,
     emit(decision) {
       checkDecision(decision);
       const draft = guardEventDraft(decision, { actor, softwareVersion, correlationId, authorityRef, authorityHash, occurredAt: clock() });
+      /* THE LINE, applied at the one place every guard decision passes: a CLASSIFICATION is kept by the run and not
+       * appended; everything else goes to the store exactly as before. */
+      const auditClass = auditClassOf(draft);
+      if (auditClass === "CLASSIFICATION") {
+        this.classified += 1;
+        events.push(draft);
+        return { event: draft, appended: false, durable: false, auditClass };
+      }
       /* 🔴 ONE EVENT PER DECISION — SO EACH DECISION GETS ITS OWN IDENTITY (found 23 September, before it shipped).
        * The store's default identity ignores metadata and resolves time to the second. Two sealed refusals in one
        * second would have derived the SAME eventId: identical content returns IDEMPOTENT_RETRY and the second decision

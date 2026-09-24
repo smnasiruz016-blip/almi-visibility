@@ -1,0 +1,75 @@
+F07/F08 SINK REPAIR — SABOTAGE EVIDENCE (§4)
+
+Engine tree: 65f088b9acaeb0e294489467b9aad62a9ee64093. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
+runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
+requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
+No sabotage aims at the production audit trail; every firing case writes to a stand-in or a confined store.
+
+RESULTS
+K1       landed=true red=true failed=3 namedTestFailed=true reason=true restored=true — diagnostic classification made durable again
+         target src/governance/guard-audit.mjs · named test "(a)(b)(d)…" in test/f07-sink-repair.test.mjs
+         sha256 before c1a6229d22483f7932ddbe2bc3c5f092e9e735fdec400eebcaea4a40dfaf9e70 · after c1a6229d22483f7932ddbe2bc3c5f092e9e735fdec400eebcaea4a40dfaf9e70
+         failing tests: (a)(b)(d) · ONE SINK: a clean classification appends 0, a real sealed refusal appends exactly 1, a real violation appends exactly 1 | (a)(f) · the REAL firewall binary, twice, on the real tree: 0 appended each run — reported by the same sink's own counters | DERIVATION, NOT DECLARATION · the class comes from the decision itself — a caller's flag or name cannot move it
+         verdict: RED, named test, intended reason
+K2       landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — a real refusal made non-durable (the derivation calls it a classification)
+         target src/governance/guard-audit.mjs · named test "(a)(b)(d)…" in test/f07-sink-repair.test.mjs
+         sha256 before c1a6229d22483f7932ddbe2bc3c5f092e9e735fdec400eebcaea4a40dfaf9e70 · after c1a6229d22483f7932ddbe2bc3c5f092e9e735fdec400eebcaea4a40dfaf9e70
+         failing tests: (a)(b)(d) · ONE SINK: a clean classification appends 0, a real sealed refusal appends exactly 1, a real violation appends exactly 1 | DERIVATION, NOT DECLARATION · the class comes from the decision itself — a caller's flag or name cannot move it
+         verdict: RED, named test, intended reason
+K3       landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the derivation replaced by a CALLER-SUPPLIED LABEL
+         target src/governance/guard-audit.mjs · named test "DERIVATION, NOT DECLARATION…" in test/f07-sink-repair.test.mjs
+         sha256 before c1a6229d22483f7932ddbe2bc3c5f092e9e735fdec400eebcaea4a40dfaf9e70 · after c1a6229d22483f7932ddbe2bc3c5f092e9e735fdec400eebcaea4a40dfaf9e70
+         failing tests: DERIVATION, NOT DECLARATION · the class comes from the decision itself — a caller's flag or name cannot move it
+         verdict: RED, named test, intended reason
+K4       landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — the derivation replaced by an ALLOWLIST of diagnostic callers
+         target src/governance/guard-audit.mjs · named test "(a)(b)(d)…" in test/f07-sink-repair.test.mjs
+         sha256 before c1a6229d22483f7932ddbe2bc3c5f092e9e735fdec400eebcaea4a40dfaf9e70 · after c1a6229d22483f7932ddbe2bc3c5f092e9e735fdec400eebcaea4a40dfaf9e70
+         failing tests: (a)(b)(d) · ONE SINK: a clean classification appends 0, a real sealed refusal appends exactly 1, a real violation appends exactly 1 | DERIVATION, NOT DECLARATION · the class comes from the decision itself — a caller's flag or name cannot move it
+         verdict: RED, named test, intended reason
+K5       landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — an authorised access SILENTLY unrecorded (the lifecycle skips its append and reports success)
+         target src/heldout/lifecycle.mjs · named test "(c)…" in test/f07-sink-repair.test.mjs
+         sha256 before 4657edba928a30dc035fe4f98b2fac44f13d08850e1175156af5bd53a8989d11 · after 4657edba928a30dc035fe4f98b2fac44f13d08850e1175156af5bd53a8989d11
+         failing tests: (c) · an AUTHORISED synthetic held-out access appends exactly 1 event, derived ACCESS, on the confined F08 store
+         verdict: RED, named test, intended reason
+K6       landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — an authorised access derived a classification — the lifecycle must REFUSE, never drop
+         target src/governance/guard-audit.mjs · named test "(c)…" in test/f07-sink-repair.test.mjs
+         sha256 before c1a6229d22483f7932ddbe2bc3c5f092e9e735fdec400eebcaea4a40dfaf9e70 · after c1a6229d22483f7932ddbe2bc3c5f092e9e735fdec400eebcaea4a40dfaf9e70
+         failing tests: (c) · an AUTHORISED synthetic held-out access appends exactly 1 event, derived ACCESS, on the confined F08 store | DERIVATION, NOT DECLARATION · the class comes from the decision itself — a caller's flag or name cannot move it
+         verdict: RED, named test, intended reason
+K7       landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a firewall violation outside DATA no longer recorded
+         target tools/heldout-firewall.mjs · named test "(a)(b)(d)…" in test/f07-sink-repair.test.mjs
+         sha256 before 6f14f2e65dddad2db734165dc0569519398983d96682c9817182beb607688a5b · after 6f14f2e65dddad2db734165dc0569519398983d96682c9817182beb607688a5b
+         failing tests: (a)(b)(d) · ONE SINK: a clean classification appends 0, a real sealed refusal appends exactly 1, a real violation appends exactly 1
+         verdict: RED, named test, intended reason
+K8       landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the conflict fix WIDENED to every event — a native event's correlation stops deciding sameness
+         target src/audit-trail/event.mjs · named test "CONFLICT FIX…" in test/f07-sink-repair.test.mjs
+         sha256 before 70d3f8e32d13425de4a91d908653f2d137d0346d0827b8562c806000a428bafa · after 70d3f8e32d13425de4a91d908653f2d137d0346d0827b8562c806000a428bafa
+         failing tests: CONFLICT FIX · a migrated event's MIGRATION PASS no longer decides sameness — a native event's correlation still does
+         verdict: RED, named test, intended reason
+K9       landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the conflict fix REMOVED — the migration pass decides sameness again
+         target src/audit-trail/event.mjs · named test "CONFLICT FIX…" in test/f07-sink-repair.test.mjs
+         sha256 before 70d3f8e32d13425de4a91d908653f2d137d0346d0827b8562c806000a428bafa · after 70d3f8e32d13425de4a91d908653f2d137d0346d0827b8562c806000a428bafa
+         failing tests: CONFLICT FIX · a migrated event's MIGRATION PASS no longer decides sameness — a native event's correlation still does
+         verdict: RED, named test, intended reason
+
+TOTAL 9 · PROVED 9 · NOT PROVED 0
+residue in sabotaged files after restore: 0
+tracked modifications after restore (excluding this evidence file): 0
+
+PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
+  audit-trail/events.jsonl  before 40b40a312756fab7b173bb213a9d24ae0b24e3214ad947edfb122b525f9dae5d  after 40b40a312756fab7b173bb213a9d24ae0b24e3214ad947edfb122b525f9dae5d
+  audit-trail/head.json  before 0d702edfb3fcdbb4a1fbd49929ee2c143bf74fd89b704fc73f97d96a0cb44d4f  after 0d702edfb3fcdbb4a1fbd49929ee2c143bf74fd89b704fc73f97d96a0cb44d4f
+  untouched: true
+
+PROBE CONTROL (clean tree): 9 of 9 probes report no defect.
+  K1  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — diagnostic classification made durable again
+  K2  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — a real refusal made non-durable (the derivation calls it a classification)
+  K3  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — the derivation replaced by a CALLER-SUPPLIED LABEL
+  K4  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — the derivation replaced by an ALLOWLIST of diagnostic callers
+  K5  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — an authorised access SILENTLY unrecorded (the lifecycle skips its append and reports success)
+  K6  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — an authorised access derived a classification — the lifecycle must REFUSE, never drop
+  K7  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — a firewall violation outside DATA no longer recorded
+  K8  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — the conflict fix WIDENED to every event — a native event's correlation stops deciding sameness
+  K9  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — the conflict fix REMOVED — the migration pass decides sameness again
+RAN 9 of 9 · LANDED 9 of 9 · PROVED 9 of 9

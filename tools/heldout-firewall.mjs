@@ -26,7 +26,7 @@ import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { registryErrors, observedDataExemption, entryFor } from "../src/governance/evidence-roles.mjs";
 import { isSealed } from "../src/governance/sealed-paths.mjs";
-import { diagnosticGuardSink } from "../src/governance/guard-audit.mjs";
+import { diagnosticGuardSink, resourceRef } from "../src/governance/guard-audit.mjs";
 
 /** The held-out evaluators: modules that SCORE generalisation against expected answers. Row 3's traceability sample is not one. */
 export const HELD_OUT_EVALUATORS = Object.freeze(["src/discovery/intent-clusters.mjs"]);
@@ -81,9 +81,9 @@ export function countIn(text, members, fragments) {
  * THE SCAN. `files` are repository-relative paths in `root` at `base`. Returns rows of { path, category, full, frag,
  * disposition } and the failures — never any matched text.
  */
-/* 🔴 F08 §6.2 — every role decision this READ-ONLY scan makes is emitted by the guard into a DIAGNOSTIC sink the scan
- * owns: checked metadata-only, kept by this run and returned as `guardEvents`, and NOT persisted — a read-only
- * diagnostic may not mutate the durable trail (src/governance/guard-audit.mjs says why). */
+/* 🔴 F08 §6.2, as repaired on 23 September 2026 — every decision this scan makes is emitted into the sink it is handed
+ * (by default a DIAGNOSTIC sink the scan owns, which persists nothing). Handed the durable sink (bin/heldout-firewall.mjs),
+ * the sink derives what the trail keeps: a clean classification is kept by the run only; a violation is appended. */
 export function scan({ registry, root, base, files, members, fragments, evaluatorSources = [], read = (f) => readFileSync(f), audit = diagnosticGuardSink({ actor: "tools/heldout-firewall.mjs" }) }) {
   const rows = [];
   let sealedExcluded = 0;
@@ -112,6 +112,17 @@ export function scan({ registry, root, base, files, members, fragments, evaluato
     else if (fragmentFails) disposition = "FAIL_HELD_OUT_FRAGMENT";
     else if (full) disposition = `FAIL_UNCATEGORISED_${category}`;
     else disposition = "FRAGMENT_OUTSIDE_HELD_OUT_CONTEXT";
+    /* 🔴 A FIREWALL VIOLATION IS A DURABLE AUDIT EVENT (owner ruling, 23 September 2026). A DATA artefact is decided by
+     * the observed-data guard, which emits its own decision; every OTHER failure was only a row in this run's output
+     * and reached no trail at all (found by the sink repair's proof (d)). It now leaves through the same sink as one
+     * metadata-only REFUSED decision — the disposition and a digest of the path, never the path or the match — which
+     * the sink derives VIOLATION and appends. */
+    if (category !== "DATA" && disposition.startsWith("FAIL")) {
+      audit.emit({
+        eventType: "EVIDENCE_ROLE_DECISION", action: "HELD_OUT_PAYLOAD_FOUND", outcome: "REFUSED", reasonCode: disposition,
+        metadata: { guard: "heldoutFirewallScan", classification: category, ruleEntry: "NONE", root: String(root), resourceRef: resourceRef(root, path) },
+      });
+    }
     rows.push({ path, category, full, frag, disposition });
   }
   const failures = rows.filter((r) => r.disposition.startsWith("FAIL"));

@@ -30,6 +30,7 @@ import { classifySealed } from "../governance/sealed-paths.mjs";
 import { resolve as resolveAuthority, permits } from "../authority/register.mjs";
 import { isoSeconds } from "../audit-trail/store.mjs";
 import { metadataFaults } from "../audit-trail/event.mjs";
+import { auditClassOf, isDurableDecision } from "../governance/guard-audit.mjs";
 
 export const EVALUATION_ACTIONS = Object.freeze({
   FROZEN: "HELDOUT_MECHANISM_FROZEN",
@@ -72,6 +73,10 @@ function emit(audit, { action, outcome, reasonCode, metadata, occurredAt, identi
     evidenceRefs: [], correlationId: audit.correlationId, parentEventId: null,
     migration: false, migrationSource: null, migratedAt: null, metadata: md,
   };
+  /* The SAME derivation the guard sink applies (guard-audit.mjs `auditClassOf`). Every lifecycle step is an ACCESS or a
+   * GOVERNED_CHANGE, so each is durable; should the derivation ever call one a classification, this refuses rather
+   * than let an access pass unrecorded. */
+  if (!isDurableDecision(draft)) throw new HeldOutRefused("EVALUATION_EVENT_NOT_DURABLE", `${action} was derived ${auditClassOf(draft)} — an access or governed change is never kept off the trail`);
   /* One decision, one event: the identity carries the run, the instant, the action and a sequence over what the trail
    * already holds for this action — so two decisions in one second are two events (the F08 guard lesson). */
   const seq = eventsOf(audit).filter((e) => e.action === action).length + 1;

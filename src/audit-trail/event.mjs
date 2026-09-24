@@ -151,10 +151,24 @@ export const RECORDER_EXECUTION_FIELDS = Object.freeze([
  * It is computed from stored bytes at read time, so the exclusion applies identically to events committed before
  * it and after it. No committed line is rewritten to obtain it.
  */
+/**
+ * 🔴 FOR A MIGRATED EVENT, `correlationId` NAMES THE MIGRATION PASS, NOT THE OCCURRENCE (measured 23 September 2026).
+ *
+ * Every migrated event carries `migration:<governance commit the corpus was migrated from>` (113 of 113 in the trail).
+ * Each re-migration moves that commit, so re-offering an ALREADY-recorded occurrence produced the same eventId and a
+ * different fingerprint, and the store refused it as EVENT_ID_CONFLICT: 98 such refusals in F08's closing recorder run
+ * and 101 in F07's, 93 of them differing in nothing else. The identity (which names the source record) already says
+ * which occurrence it is. This is excluded ONLY when `migration === true`: for a native event the correlation is the
+ * run that performed the action, and it stays part of what happened. The field is still stored and hashed into
+ * `eventHash`; genuine content differences still conflict.
+ */
+export const MIGRATION_PASS_FIELDS = Object.freeze(["correlationId"]);
+
 export function contentFingerprint(event) {
   const body = {};
   for (const k of FIELD_ORDER) {
     if (RECORDER_EXECUTION_FIELDS.includes(k)) continue;
+    if (event.migration === true && MIGRATION_PASS_FIELDS.includes(k)) continue;
     body[k] = k === "metadata" ? stripStoreFlags(event.metadata) : (event[k] ?? null);
   }
   return createHash("sha256").update(canonicalJson(body), "utf8").digest("hex");

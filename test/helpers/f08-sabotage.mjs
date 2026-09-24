@@ -278,6 +278,15 @@ export function runSabotages(list, { log = console.log } = {}) {
       const now = readFileSync(join(REPO, e.file));
       return shaBytes(now) !== shaBytes(originals.get(e.file)) && now.toString("utf8").includes(e.to);
     });
+    /* 🔴 LANDED IN THE BYTES IS NOT LANDED IN THE BEHAVIOUR (F07's first traversal sabotage changed the bytes and not
+     * the behaviour, and showed a false green). A sabotage may carry a `probe`: an ES module run WHILE the defect is
+     * applied, exercising the mechanism directly, that prints DEFECT_TOOK_EFFECT:true or :false. Optional; a sabotage
+     * without one is judged exactly as before. */
+    let tookEffect = null;
+    if (s.probe) {
+      try { tookEffect = /DEFECT_TOOK_EFFECT:true/.test(execFileSync(process.execPath, ["--input-type=module", "-e", s.probe], { cwd: REPO, encoding: "utf8" })); }
+      catch { tookEffect = false; }
+    }
 
     let output = "";
     try {
@@ -292,11 +301,12 @@ export function runSabotages(list, { log = console.log } = {}) {
     const after = files.map((f) => shaBytes(readFileSync(join(REPO, f)))).join(",");
     const restoredClean = after === before;
     const verdict = !landed ? "SABOTAGE DID NOT LAND"
+      : tookEffect === false ? "BYTES LANDED, DEFECT DID NOT TAKE EFFECT"
       : failed === 0 ? "LANDED BUT GREEN — the guard is dead"
       : !namedFailed ? "RED, BUT NOT ON THE NAMED TEST"
       : !reason ? "RED ON THE NAMED TEST, FOR THE WRONG REASON"
       : "RED, named test, intended reason";
-    results.push({ ...s, file: files.join(" + "), landed, failed, failing, namedFailed, reason, before, after, restoredClean, verdict });
+    results.push({ ...s, file: files.join(" + "), landed, tookEffect, failed, failing, namedFailed, reason, before, after, restoredClean, verdict });
     log(`  ${verdict.startsWith("RED, named") && restoredClean ? "ok  " : "🔴  "} ${s.id.padEnd(7)} failed=${String(failed).padStart(2)} ${verdict}`);
   }
   restore();

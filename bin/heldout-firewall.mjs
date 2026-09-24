@@ -28,10 +28,11 @@ import { scan, derivePopulation, distinctiveFragments, registeredHashErrors, reg
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const registry = EVIDENCE_ROLE_REGISTRY;
-/* 🔴 F07 §5.3 — THE ROLE DECISIONS ARE NOW DURABLE. They were traced into a diagnostic sink and not persisted; every
- * attempted and authorised access must be RECORDED. This run's decisions go through F08's shipped boundary: the
- * production audit trail, or the confined store in a verified test context. A local run therefore appends its
- * decisions to the committed trail, exactly as every governed dry run already appends its REFUSED decision. */
+/* 🔴 F07 §5.3, as repaired by the owner's ruling of 23 September 2026 (option b). This run's decisions go through F08's
+ * shipped boundary — the production trail, or the confined store in a verified test context — and the sink DERIVES
+ * which of them the trail keeps (guard-audit.mjs `auditClassOf`): a clean sweep only CLASSIFIES (a registered
+ * observed-data file judged lawful; a sealed path excluded unread) and appends NOTHING; a real refusal or a
+ * contamination finding in the same run is an access or a violation and IS appended. */
 const RUN_AT = isoSeconds(Date.now());
 const AUDIT = governedGuardSink({ repo: REPO, correlationId: `run:heldout-firewall:${RUN_AT}`, now: RUN_AT.slice(0, 10), actor: "bin/heldout-firewall.mjs" });
 const failures = [];
@@ -61,7 +62,7 @@ for (const entry of registry.filter((e) => e.role === "RETIRED_CONTAMINATED")) {
   /* F08 §6.2 — the role guard emitted one metadata-only event per decision into this run's diagnostic sink. Counted
    * here, never persisted: a read-only check may not change the durable trail. */
   const traced = (o) => engine.guardEvents.filter((e) => e.outcome === o).length;
-  console.log(`  role decisions traced by the guard: ${engine.guardEvents.length} (ALLOWED ${traced("ALLOWED")} · REFUSED ${traced("REFUSED")}) — ${engine.guardDurable ? "DURABLE — recorded through the F08 audit boundary" : "diagnostic sink, not persisted"}`);
+  console.log(`  role decisions traced by the guard: ${engine.guardEvents.length} (ALLOWED ${traced("ALLOWED")} · REFUSED ${traced("REFUSED")}) — appended to the audit trail: ${AUDIT.emitted} (access or violation) · classification only, not appended: ${AUDIT.classified}`);
   for (const r of engine.rows) console.log(`  ${r.disposition.padEnd(34)} ${r.category.padEnd(22)} full ${String(r.full).padStart(3)} · fragments ${String(r.frag).padStart(2)} · ${r.path}`);
   for (const f of engine.failures) failures.push(`${f.disposition} ${f.path}`);
   const extra = process.argv.find((a) => a.startsWith("--extra-root="))?.slice("--extra-root=".length);

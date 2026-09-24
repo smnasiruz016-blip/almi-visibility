@@ -1,0 +1,111 @@
+AUDIT-STORE-ONLY PRIMITIVES — SABOTAGE EVIDENCE (owner ruling 24 Sep 2026)
+
+Engine tree: 56dfd373e3b9640c26c8c0cf158e2410dbf6add4. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
+runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
+requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
+No sabotage aims at the production audit trail; every firing case writes to a stand-in or a confined store.
+
+RESULTS
+S1       landed=true red=true failed=4 namedTestFailed=true reason=true restored=true — the proof accepts a write on ANY receiver (not only the handed audit store)
+         target tools/audit-store-primitives.mjs · named test "ASP-C6 · every real non-audit writer…" in test/audit-store-only-primitives.test.mjs
+         sha256 before 771a9468327f757d0550b59b9d69f126a02f14cc0ee75a1e58739bde0b2d0773 · after 771a9468327f757d0550b59b9d69f126a02f14cc0ee75a1e58739bde0b2d0773
+         failing tests: ASP-C1b · STATIC · the proof reads every reachable function and refuses a write to anything but the handed audit store | ASP-C2 · a primitive handed a decision's METADATA records it and performs NONE of the decision's product mutation | ASP-C6 · every real non-audit writer, registered, FAILS the proof — and the census's --check verdict goes RED | ASP-C7 · a registered primitive CHANGED to write elsewhere: the real census over the real bin/ goes RED
+         verdict: RED, named test, intended reason
+S2       landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — the proof accepts a call to a caller-supplied function
+         target tools/audit-store-primitives.mjs · named test "ASP-C6 · every real non-audit writer…" in test/audit-store-only-primitives.test.mjs
+         sha256 before 771a9468327f757d0550b59b9d69f126a02f14cc0ee75a1e58739bde0b2d0773 · after 771a9468327f757d0550b59b9d69f126a02f14cc0ee75a1e58739bde0b2d0773
+         failing tests: ASP-C6 · every real non-audit writer, registered, FAILS the proof — and the census's --check verdict goes RED | ASP-C7 · a registered primitive CHANGED to write elsewhere: the real census over the real bin/ goes RED
+         verdict: RED, named test, intended reason
+S3       landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the code scan no longer fails closed on an unterminated string
+         target tools/audit-store-primitives.mjs · named test "ASP-SCAN…" in test/audit-store-only-primitives.test.mjs
+         sha256 before 771a9468327f757d0550b59b9d69f126a02f14cc0ee75a1e58739bde0b2d0773 · after 771a9468327f757d0550b59b9d69f126a02f14cc0ee75a1e58739bde0b2d0773
+         failing tests: ASP-SCAN · prose is blanked, code is kept — and a scan that cannot end cleanly fails closed
+         verdict: RED, named test, intended reason
+S4       landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — identity is the NAME again (the import's module is not checked)
+         target tools/governed-caller-census.mjs · named test "ASP-C6 · a registered NAME imported from another module…" in test/audit-store-only-primitives.test.mjs
+         sha256 before cb2e3d3365d6e15a61b836aac788e558d1067768cf8ee11f19e9a840e3d9f0a9 · after cb2e3d3365d6e15a61b836aac788e558d1067768cf8ee11f19e9a840e3d9f0a9
+         failing tests: ASP-C6 · a registered NAME imported from another module is not the primitive — refused at the call site
+         verdict: RED, named test, intended reason
+S5       landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a product write on the primitive's own line is no longer seen
+         target tools/governed-caller-census.mjs · named test "ASP-C8 · a caller's own product write…" in test/audit-store-only-primitives.test.mjs
+         sha256 before cb2e3d3365d6e15a61b836aac788e558d1067768cf8ee11f19e9a840e3d9f0a9 · after cb2e3d3365d6e15a61b836aac788e558d1067768cf8ee11f19e9a840e3d9f0a9
+         failing tests: ASP-C8 · a caller's own product write is a bypass wherever it sits — its own line, the primitive's line, or inside the primitive's arguments
+         verdict: RED, named test, intended reason
+S6       landed=true red=true failed=3 namedTestFailed=true reason=true restored=true — the store a primitive is handed is no longer proved (any value is 'the audit store')
+         target tools/governed-caller-census.mjs · named test "ASP-C1c…" in test/audit-store-only-primitives.test.mjs
+         sha256 before cb2e3d3365d6e15a61b836aac788e558d1067768cf8ee11f19e9a840e3d9f0a9 · after cb2e3d3365d6e15a61b836aac788e558d1067768cf8ee11f19e9a840e3d9f0a9
+         failing tests: ASP-C1c · CALL SITE · a caller-chosen location, an alternate root or a spread cannot make a primitive's store 'the audit store' | ASP-C3 · CONTROLS · an emission path that is replaced, chosen or merely NAMED is not the governed audit-store path | ASP-C4 · CONTROLS · a caller that renames a primitive or a writer is refused, never read past as a diagnostic
+         verdict: RED, named test, intended reason
+S7       landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a caller-chosen location (`at`) is allowed on the production store constructor
+         target tools/governed-caller-census.mjs · named test "ASP-C1c…" in test/audit-store-only-primitives.test.mjs
+         sha256 before cb2e3d3365d6e15a61b836aac788e558d1067768cf8ee11f19e9a840e3d9f0a9 · after cb2e3d3365d6e15a61b836aac788e558d1067768cf8ee11f19e9a840e3d9f0a9
+         failing tests: ASP-C1c · CALL SITE · a caller-chosen location, an alternate root or a spread cannot make a primitive's store 'the audit store'
+         verdict: RED, named test, intended reason
+S8       landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — any binding counts as the entry point's own root
+         target tools/governed-caller-census.mjs · named test "ASP-C1c…" in test/audit-store-only-primitives.test.mjs
+         sha256 before cb2e3d3365d6e15a61b836aac788e558d1067768cf8ee11f19e9a840e3d9f0a9 · after cb2e3d3365d6e15a61b836aac788e558d1067768cf8ee11f19e9a840e3d9f0a9
+         failing tests: ASP-C1c · CALL SITE · a caller-chosen location, an alternate root or a spread cannot make a primitive's store 'the audit store'
+         verdict: RED, named test, intended reason
+S9       landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a spread audit context may override its own store
+         target tools/governed-caller-census.mjs · named test "ASP-C3 · CONTROLS…" in test/audit-store-only-primitives.test.mjs
+         sha256 before cb2e3d3365d6e15a61b836aac788e558d1067768cf8ee11f19e9a840e3d9f0a9 · after cb2e3d3365d6e15a61b836aac788e558d1067768cf8ee11f19e9a840e3d9f0a9
+         failing tests: ASP-C3 · CONTROLS · an emission path that is replaced, chosen or merely NAMED is not the governed audit-store path
+         verdict: RED, named test, intended reason
+S10      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a writer imported under an alias is read past again
+         target tools/governed-caller-census.mjs · named test "ASP-C4 · CONTROLS…" in test/audit-store-only-primitives.test.mjs
+         sha256 before cb2e3d3365d6e15a61b836aac788e558d1067768cf8ee11f19e9a840e3d9f0a9 · after cb2e3d3365d6e15a61b836aac788e558d1067768cf8ee11f19e9a840e3d9f0a9
+         failing tests: ASP-C4 · CONTROLS · a caller that renames a primitive or a writer is refused, never read past as a diagnostic
+         verdict: RED, named test, intended reason
+S11      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — an UNVERIFIED entry stays registered
+         target tools/governed-caller-census.mjs · named test "ASP-C7…" in test/audit-store-only-primitives.test.mjs
+         sha256 before cb2e3d3365d6e15a61b836aac788e558d1067768cf8ee11f19e9a840e3d9f0a9 · after cb2e3d3365d6e15a61b836aac788e558d1067768cf8ee11f19e9a840e3d9f0a9
+         failing tests: ASP-C7 · a registered primitive CHANGED to write elsewhere: the real census over the real bin/ goes RED
+         verdict: RED, named test, intended reason
+S12      landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — --check ignores an unverified primitive
+         target tools/governed-caller-census.mjs · named test "ASP-C6 · every real non-audit writer…" in test/audit-store-only-primitives.test.mjs
+         sha256 before cb2e3d3365d6e15a61b836aac788e558d1067768cf8ee11f19e9a840e3d9f0a9 · after cb2e3d3365d6e15a61b836aac788e558d1067768cf8ee11f19e9a840e3d9f0a9
+         failing tests: ASP-C6 · every real non-audit writer, registered, FAILS the proof — and the census's --check verdict goes RED | ASP-C7 · a registered primitive CHANGED to write elsewhere: the real census over the real bin/ goes RED
+         verdict: RED, named test, intended reason
+S13      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the writer derivation reads only receivers NAMED like a store again
+         target tools/governed-caller-census.mjs · named test "ASP-C5 · a NEW recorder…" in test/audit-store-only-primitives.test.mjs
+         sha256 before cb2e3d3365d6e15a61b836aac788e558d1067768cf8ee11f19e9a840e3d9f0a9 · after cb2e3d3365d6e15a61b836aac788e558d1067768cf8ee11f19e9a840e3d9f0a9
+         failing tests: ASP-C5 · a NEW recorder is a writer however its receiver is named — so its caller cannot stay invisible
+         verdict: RED, named test, intended reason
+S14      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — condition A reads the registered NAME again, not the site's verdict
+         target tools/governed-caller-census.mjs · named test "ASP-C8 · a caller's own product write…" in test/audit-store-only-primitives.test.mjs
+         sha256 before cb2e3d3365d6e15a61b836aac788e558d1067768cf8ee11f19e9a840e3d9f0a9 · after cb2e3d3365d6e15a61b836aac788e558d1067768cf8ee11f19e9a840e3d9f0a9
+         failing tests: ASP-C8 · a caller's own product write is a bypass wherever it sits — its own line, the primitive's line, or inside the primitive's arguments
+         verdict: RED, named test, intended reason
+S15      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the production store's location check is not wired to append
+         target src/audit-trail/wiring.mjs · named test "ASP-C1d…" in test/audit-store-only-primitives.test.mjs
+         sha256 before 8173623ab35b3a3f70034a0ae15eec2716e6514ac379c7c02f3fe9898b35eeff · after 8173623ab35b3a3f70034a0ae15eec2716e6514ac379c7c02f3fe9898b35eeff
+         failing tests: ASP-C1d · RUNTIME · the production store refuses to append through a symlinked or junctioned audit-trail directory
+         verdict: RED, named test, intended reason
+
+TOTAL 15 · PROVED 15 · NOT PROVED 0
+residue in sabotaged files after restore: 0
+tracked modifications after restore (excluding this evidence file): 0
+
+PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
+  audit-trail/events.jsonl  before b478b396a030c736e2f2f485c9a8dcb5b33a5a6424f92f142eca4cfbfc5ee303  after b478b396a030c736e2f2f485c9a8dcb5b33a5a6424f92f142eca4cfbfc5ee303
+  audit-trail/head.json  before f6558f6a4b3bfffcc4a2cfe511fad7638820028c54e83fc851ba644f8a570e0d  after f6558f6a4b3bfffcc4a2cfe511fad7638820028c54e83fc851ba644f8a570e0d
+  untouched: true
+
+PROBE CONTROL (clean tree): 15 of 15 probes report no defect.
+  S1  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — the proof accepts a write on ANY receiver (not only the handed audit store)
+  S2  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — the proof accepts a call to a caller-supplied function
+  S3  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — the code scan no longer fails closed on an unterminated string
+  S4  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — identity is the NAME again (the import's module is not checked)
+  S5  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — a product write on the primitive's own line is no longer seen
+  S6  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — the store a primitive is handed is no longer proved (any value is 'the audit store')
+  S7  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — a caller-chosen location (`at`) is allowed on the production store constructor
+  S8  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — any binding counts as the entry point's own root
+  S9  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — a spread audit context may override its own store
+  S10  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — a writer imported under an alias is read past again
+  S11  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — an UNVERIFIED entry stays registered
+  S12  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — --check ignores an unverified primitive
+  S13  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — the writer derivation reads only receivers NAMED like a store again
+  S14  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — condition A reads the registered NAME again, not the site's verdict
+  S15  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — the production store's location check is not wired to append
+RAN 15 of 15 · LANDED 15 of 15 · COULD-FAIL 15 of 15 · PROVED 15 of 15

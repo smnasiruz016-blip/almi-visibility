@@ -31,6 +31,7 @@ import { DECLARED } from "../config/fboard/f-board.mjs";
 import { AUTHORITY_CORPUS } from "../config/authority/corpus.mjs";
 import { buildBoard, boardErrors } from "../src/fboard/board.mjs";
 import { contractSha256 } from "../src/fboard/acceptance.mjs";
+import { intakeAuthority } from "../src/intake/intake.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const BIN = join(REPO, "bin", "project-intake.mjs");
@@ -107,7 +108,7 @@ test("P2 · an absent schema version is refused — CONTROL: present, it passes"
 });
 
 test("P3 · an unknown schema version is refused, whatever its shape", () => {
-  for (const v of [0, 2, "1", 1.5, null]) assert.ok(codes(validate(decl(TENANT_N, { schemaVersion: v }))).includes("SCHEMA_VERSION_UNSUPPORTED"), JSON.stringify(v));
+  for (const v of [0, 2, "1", 1.5, null]) assert.ok(codes(validate(decl(TENANT_N, { schemaVersion: v }))).includes("SCHEMA_VERSION_UNSUPPORTED"), `schema version ${JSON.stringify(v)} was not refused`);
   assert.equal(validate(decl(TENANT_N, { schemaVersion: 1 })).ok, true, "CONTROL");
 });
 
@@ -125,7 +126,7 @@ test("P5 · an absent tenant is refused — never defaulted to a usual one", () 
   for (const t of [undefined, null, ""]) {
     const d = decl(); if (t === undefined) delete d.tenantId; else d.tenantId = t;
     const c = codes(validate(d));
-    assert.ok(c.includes("TENANT_ABSENT") || c.includes("FIELD_ABSENT"), JSON.stringify(t));
+    assert.ok(c.includes("TENANT_ABSENT") || c.includes("FIELD_ABSENT"), `absent tenant ${JSON.stringify(t)} was not refused — a usual tenant was supplied`);
   }
   assert.equal(validate(decl()).ok, true, "CONTROL");
 });
@@ -148,7 +149,7 @@ test("P7 · one project cannot cross tenants — CONTROL: the same project in it
   assert.equal(run(w, "--submit", "--file", file(w, first), "--confirm").json.outcome, "ACCEPTED");
   const intruder = decl(TENANT_B, { projectId: first.projectId });
   const r = run(w, "--submit", "--file", file(w, intruder), "--confirm");
-  assert.equal(r.json.outcome, "REFUSED");
+  assert.equal(r.json.outcome, "REFUSED", "a project crossed tenants");
   assert.deepEqual(r.json.refusals.map((x) => x.code), ["PROJECT_BELONGS_TO_ANOTHER_TENANT"]);
   const lawful = decl(TENANT_A, { projectId: first.projectId, supersedes: first.declarationId });
   assert.equal(run(w, "--submit", "--file", file(w, lawful), "--confirm").json.outcome, "ACCEPTED");
@@ -188,6 +189,7 @@ test("P10 · the same declaration id with changed content is a conflict — CONT
   run(w, "--submit", "--file", file(w, d), "--confirm");
   const changed = { ...clone(d), displayName: "a different name, same id" };
   const r = run(w, "--submit", "--file", file(w, changed), "--confirm");
+  assert.equal(r.json.outcome, "REFUSED", "the same id with new bytes was accepted — an accepted declaration was rewritten");
   assert.deepEqual(r.json.refusals.map((x) => x.code), ["DECLARATION_ID_CONFLICT"]);
   assert.equal(run(w, "--submit", "--file", file(w, d), "--confirm").json.outcome, "ALREADY_ACCEPTED");
 });
@@ -217,7 +219,9 @@ test("P12 · supersession creates new history: both remain readable, old SUPERSE
   assert.equal(run(w, "--show", d1.declarationId, "--tenant", TENANT_N).json.state, "SUPERSEDED");
   // CONTROL: an update WITHOUT naming what it supersedes is refused, not merged
   const d3 = decl();
-  assert.deepEqual(run(w, "--submit", "--file", file(w, d3), "--confirm").json.refusals.map((x) => x.code), ["SUPERSESSION_REQUIRED"]);
+  const r3 = run(w, "--submit", "--file", file(w, d3), "--confirm").json;
+  assert.equal(r3.outcome, "REFUSED", "an update naming nothing it supersedes was accepted — history was overwritten");
+  assert.deepEqual(r3.refusals.map((x) => x.code), ["SUPERSESSION_REQUIRED"]);
   assert.deepEqual(run(w, "--submit", "--file", file(w, decl(TENANT_N, { supersedes: d1.declarationId })), "--confirm").json.refusals.map((x) => x.code), ["SUPERSEDES_NOT_CURRENT"]);
 });
 
@@ -261,7 +265,7 @@ test("P16 · an unsupported scheme is refused", () => {
 });
 
 test("P17 · embedded credentials are refused — and the firewall names the shape, not the value", () => {
-  assert.ok(originCode("https://ringer@bells.quillmoor.example").includes("ORIGIN_EMBEDDED_CREDENTIALS"));
+  assert.ok(originCode("https://ringer@bells.quillmoor.example").includes("ORIGIN_EMBEDDED_CREDENTIALS"), "an origin carrying a user was not refused");
   const c = originCode("https://ringer:belfry-f01-plant@bells.quillmoor.example");
   assert.ok(c.includes("ORIGIN_EMBEDDED_CREDENTIALS"));
   assert.ok(c.includes("SECRET_SHAPED_VALUE:URL_WITH_CREDENTIALS"));
@@ -323,7 +327,7 @@ test("P23 · an absent permission is DENIED, never allowed — all ten kinds are
   const d = decl(); d.permissions = [];
   const v = validate(d);
   assert.deepEqual(v.normalised.permissions.map((p) => p.permission), [...PERMISSION_KINDS]);
-  assert.ok(v.normalised.permissions.every((p) => p.grantState === "DENIED" && p.grantingAuthority === null));
+  assert.ok(v.normalised.permissions.every((p) => p.grantState === "DENIED" && p.grantingAuthority === null), "an absent permission was not DENIED — it was allowed");
   const asked = validate(decl()).normalised.permissions.find((p) => p.permission === "RESEARCH_PUBLIC_PROPERTY");
   assert.equal(asked.grantState, "PENDING", "CONTROL: a requested permission reads PENDING, not DENIED");
 });
@@ -383,9 +387,9 @@ test("P28 · a value-shaped secret is refused and REDACTED everywhere — output
   const before = auditText();
   for (const mode of [["--validate", "--file", p], ["--submit", "--file", p], ["--submit", "--file", p, "--confirm"]]) {
     const r = run(w, ...mode);
-    assert.equal(r.json.outcome.endsWith("REFUSED"), true, mode.join(" "));
-    assert.ok(r.json.refusals.some((x) => x.code === "SECRET_SHAPED_VALUE:PROVIDER_KEY_PREFIX" && x.path === "$.goals[1].wording"));
     assert.ok(!r.out.includes(PLANTED) && !r.out.includes(PLANTED.slice(3, 20)), `${mode.join(" ")} printed the secret or a fragment of it`);
+    assert.equal(r.json.outcome.endsWith("REFUSED"), true, `${mode.join(" ")}: a secret-shaped value was accepted`);
+    assert.ok(r.json.refusals.some((x) => x.code === "SECRET_SHAPED_VALUE:PROVIDER_KEY_PREFIX" && x.path === "$.goals[1].wording"));
   }
   assert.ok(!auditText().slice(before.length).includes(PLANTED.slice(3, 20)), "the audit trail carries the secret");
   assert.ok(!JSON.stringify(storeSnapshot(w)).length || Object.keys(storeSnapshot(w)).every((k) => !readFileSync(join(w, k), "utf8").includes(PLANTED.slice(3, 20))));
@@ -412,7 +416,7 @@ test("P30 · validate-only writes nothing and records nothing — CONTROL: the S
   const before = { store: storeSnapshot(w), events: auditLines().length };
   const r = run(w, "--validate", "--file", p);
   assert.equal(r.json.outcome, "VALID");
-  assert.deepEqual([storeSnapshot(w), auditLines().length], [before.store, before.events]);
+  assert.deepEqual([storeSnapshot(w), auditLines().length], [before.store, before.events], "validate-only wrote or recorded something");
   // the SAME validator decides both: an invalid document is refused identically by --validate and --submit
   const bad = file(w, decl(TENANT_N, { schemaVersion: 9 }));
   assert.deepEqual(run(w, "--validate", "--file", bad).json.refusals, run(w, "--submit", "--file", bad).json.refusals);
@@ -497,8 +501,8 @@ test("P37 · inspecting across tenants learns nothing: another tenant's id answe
   run(w, "--submit", "--file", file(w, a), "--confirm");
   const cross = run(w, "--show", a.declarationId, "--tenant", TENANT_B).json;
   const unknown = run(w, "--show", `decl_${"0".repeat(32)}`, "--tenant", TENANT_B).json;
+  assert.equal(cross.outcome, "NOT_FOUND_IN_TENANT", "a cross-tenant inspection returned another tenant's declaration");
   assert.deepEqual(cross, unknown);
-  assert.equal(cross.outcome, "NOT_FOUND_IN_TENANT");
   assert.equal(run(w, "--current", a.projectId, "--tenant", TENANT_B).json.outcome, "NO_CURRENT_DECLARATION_IN_TENANT");
   assert.equal(run(w, "--show", a.declarationId, "--tenant", TENANT_A).json.outcome, "FOUND", "CONTROL");
 });
@@ -520,7 +524,7 @@ test("P39 · F08 records each governed declaration transition EXACTLY once — a
   const t0 = auditLines().length;
   run(w, "--submit", "--file", file(w, d1), "--confirm");
   const moves = (from) => auditLines().slice(from).filter((e) => e.eventType === "DECLARATION_DECISION").map((e) => `${e.metadata.from}>${e.metadata.to}:${e.metadata.declarationId === d1.declarationId ? "d1" : "d2"}`);
-  assert.deepEqual(moves(t0), ["SUBMITTED>VALIDATED:d1", "VALIDATED>ACCEPTED:d1"]);
+  assert.deepEqual(moves(t0), ["SUBMITTED>VALIDATED:d1", "VALIDATED>ACCEPTED:d1"], "a transition was recorded other than exactly once");
   const t1 = auditLines().length;
   run(w, "--submit", "--file", file(w, d1), "--confirm");
   assert.deepEqual(moves(t1), [], "a replay recorded a transition");
@@ -655,4 +659,11 @@ test("P48 · the COMPLETE F01 acceptance: pinned, CURRENT, re-derived — and on
   const board = buildBoard(CAPABILITIES, DECLARED).map((r) => (r.featureId === "F01" ? { ...r, state: "ACCEPTANCE-FROZEN", events: [{ kind: "ACCEPTANCE_FROZEN", on: "2026-09-24", ruling: acc.ruling, contractSha256: acc.contractSha256 }] } : r));
   assert.ok(boardErrors(board, { capabilities: CAPABILITIES, acceptances: tampered }).some((e) => e.code === "ACCEPTANCE_TAMPERED" && e.id === "F01"));
   assert.deepEqual(boardErrors(board, { capabilities: CAPABILITIES, acceptances: ACCEPTANCES }).filter((e) => e.id === "F01"), [], "CONTROL: the untampered acceptance validates");
+});
+
+test("P48b · a declaration decision is taken under the CURRENT ruling — a superseded one is never applied", () => {
+  const real = AUTHORITY_CORPUS.find((r) => r.propositionId === "F01_FROZEN_ACCEPTANCE");
+  const newer = { ...real, authorityId: "synthetic:f01-newer-ruling", issuedAt: "2026-09-25", effectiveFrom: "2026-09-25", contentHash: "e".repeat(64), recordedAt: "2026-09-25T00:00:00Z" };
+  assert.equal(intakeAuthority({ now: "2026-09-26", records: [...AUTHORITY_CORPUS, newer] }).authorityHash, "e".repeat(64), "SUPERSEDED_AUTHORITY_APPLIED: the older ruling governed a declaration decision");
+  assert.equal(intakeAuthority({ now: "2026-09-24" }).authorityHash, real.contentHash, "CONTROL: today the frozen acceptance governs");
 });

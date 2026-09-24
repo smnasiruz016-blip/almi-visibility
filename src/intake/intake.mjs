@@ -24,10 +24,10 @@ import { ACCEPTANCES } from "../../config/fboard/acceptances.mjs";
 import { isDurableDecision } from "../governance/guard-audit.mjs";
 
 /** The authority a declaration decision is taken under: F01's frozen acceptance, resolved LIVE. Fails closed. */
-export function intakeAuthority({ now }) {
+export function intakeAuthority({ now, records = AUTHORITY_CORPUS }) {
   const acc = ACCEPTANCES.F01?.authority;
   if (!acc) throw new Error("INTAKE_AUTHORITY_UNRESOLVED: no frozen F01 acceptance is pinned");
-  const res = resolveAuthority({ records: AUTHORITY_CORPUS, propositionId: acc.propositionId, scope: [...acc.scope], now });
+  const res = resolveAuthority({ records, propositionId: acc.propositionId, scope: [...acc.scope], now });
   if (!permits(res)) throw new Error(`INTAKE_AUTHORITY_UNRESOLVED: ${res.outcome} — no declaration is decided under an authority that does not currently resolve`);
   return { authorityRef: { propositionId: acc.propositionId, scope: [...acc.scope] }, authorityHash: res.authority.contentHash };
 }

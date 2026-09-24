@@ -31,8 +31,8 @@ const present = (v) => v !== undefined && v !== null && v !== "";
  *   noindex.origin-review  bin/supersede-noindex.mjs: "UNKNOWN from our evidence: the premise it cites is not confirmed
  *                          by our similarity measurement" — reached, measured, not established. config/class-splits.mjs
  *                          declares the same half "noindex-declared-deliberate", a decision, not a check that never ran.
- *   human-verification     bin/verification-issues.mjs: "UNKNOWN, NOT FAIL … we cannot know which of the regulator's two
- *                          pages is current … the question is open" — reached, evidence in conflict.
+ *   human-verification     bin/verification-issues.mjs: UNKNOWN, not FAIL, because the source's two official pages
+ *                          disagree and which is current cannot be known — the question is open: reached, evidence in conflict.
  */
 export const REASONLESS_UNKNOWN_DETECTORS = Object.freeze({
   "noindex.origin-review": "PREMISE_NOT_ESTABLISHED_BY_MEASUREMENT",

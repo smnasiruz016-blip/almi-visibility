@@ -76,6 +76,9 @@ export function evidenceStateFaults(candidate) {
     if (COUPLED_DIMENSIONS.includes(k)) bad("EVIDENCE_STATE_COUPLED", `${k} is a separate dimension and may not live inside an evidence state`);
     else if (!allowed.has(k)) bad("EVIDENCE_STATE_MALFORMED", `${s} does not carry ${k}`);
   }
+  /* A value belongs only to a state that HAS one. NOT_MEASURED carrying "0", UNKNOWN carrying "PASS", RECOMMENDED
+   * carrying a result — each is the conversion the acceptance forbids, refused here rather than trusted to a caller. */
+  if (!["OBSERVED", "INFERRED"].includes(s)) for (const k of ["value", "valueUnit"]) if (Object.hasOwn(meta, k)) bad("EVIDENCE_STATE_VALUE_FORBIDDEN", `${s} carries no value — ${k} is refused`);
   for (const k of TIME_FIELDS) if (meta[k] !== undefined && meta[k] !== null && !(typeof meta[k] === "string" && ISO.test(meta[k]))) bad("EVIDENCE_STATE_MALFORMED", `${k} is not an ISO date or instant`);
   for (const k of ARRAY_FIELDS) if (meta[k] !== undefined && (!Array.isArray(meta[k]) || meta[k].some((r) => typeof r !== "string" || r === ""))) bad("EVIDENCE_STATE_MALFORMED", `${k} must be an array of non-empty reference strings`);
   for (const k of ["insufficiency", "noMeasurementReason", "applicabilityReason"]) if (meta[k] !== undefined && !(typeof meta[k] === "string" && CODE.test(meta[k]))) bad("EVIDENCE_STATE_MALFORMED", `${k} must be a reason CODE, not free text`);
@@ -134,7 +137,6 @@ export function parseEvidenceState(text) {
   const o = JSON.parse(text);
   return makeEvidenceState(o?.state, o?.meta ?? null);
 }
-export const evidenceStateHash = (es) => createHash("sha256").update(serializeEvidenceState(es), "utf8").digest("hex");
 
 /* ── REPORTING — the words a reader sees. None of them reads as 0, PASS, clean or absent. ─────────────────────── */
 

@@ -110,12 +110,31 @@ test("(a)(f) · the REAL firewall binary, twice, on the real tree: 0 appended ea
     assert.ok(m, `run ${run}: the sink's counters were not reported`);
     assert.equal(Number(m[1]), 0, `run ${run}: a clean firewall run appended`);
     assert.ok(Number(m[2]) >= 1, `run ${run}: the run classified nothing — the zero would be vacuous`);
+    assert.match(r.stdout, /AUDIT \(whole run\) — appended to the audit trail: 0 · /, `run ${run}: the whole-run audit line is missing or not 0`);
     assert.equal(count() - before, 0, `run ${run}: the store grew`);
   }
   // The binary builds its sink through the same constructor, and hands that sink to every scan.
   const src = fs.readFileSync(join(REPO, "bin/heldout-firewall.mjs"), "utf8");
   assert.match(src, /const AUDIT = governedGuardSink\(/);
-  assert.equal((src.match(/scan\(\{[^}]*audit: AUDIT \}\)/g) ?? []).length, 3);
+  assert.equal((src.match(/scan\(\{[^}]*audit: AUDIT(, judge: false)? \}\)/g) ?? []).length, 3);
+});
+
+test("(a′) · REPORT-ONLY is not a judgement: the same payload, on the SAME sink, appends 1 when judged and 0 when only reported", () => {
+  const { dir, registry } = syntheticTree();
+  try {
+    const sink = firewallSink("report");
+    const start = count();
+    const reported = scan({ registry, root: "syn", base: dir, files: ["leak.md"], members: [MEMBER], fragments: [], audit: sink, judge: false });
+    assert.equal(count() - start, 0, "a report-only scan appended a violation — the rows it reports are not judged");
+    assert.deepEqual([reported.rows.length, reported.failures.length], [1, 0], "the report-only scan lost its row, or judged it");
+    const judged = scan({ registry, root: "syn", base: dir, files: ["leak.md"], members: [MEMBER], fragments: [], audit: sink });
+    assert.equal(count() - start, 1, "the SAME payload, judged, did not append exactly one violation");
+    assert.equal(judged.failures.length, 1);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  // The binary reports only one scan: the product-content drafts under --extra-root, and nothing else.
+  const lines = fs.readFileSync(join(REPO, "bin/heldout-firewall.mjs"), "utf8").split("\n").filter((l) => /judge: false/.test(l));
+  assert.equal(lines.length, 1);
+  assert.match(lines[0], /const xd = scan\(\{[^}]*files: drafts,/);
 });
 
 test("(c) · an AUTHORISED synthetic held-out access appends exactly 1 event, derived ACCESS, on the confined F08 store", () => {

@@ -89,7 +89,7 @@ export const SINK_SABOTAGES = [
     expect: /EVALUATION_EVENT_NOT_DURABLE/ },
 
   { id: "K7", what: "a firewall violation outside DATA no longer recorded", file: SCAN, test: T, named: "(a)(b)(d)",
-    from: '    if (category !== "DATA" && disposition.startsWith("FAIL")) {', to: '    if (false && category !== "DATA" && disposition.startsWith("FAIL")) {',
+    from: '    if (judge && category !== "DATA" && disposition.startsWith("FAIL")) {', to: '    if (false && judge && category !== "DATA" && disposition.startsWith("FAIL")) {',
     probe: probe(`
 const fs = await import("node:fs"); const { join } = await import("node:path");
 const { scan } = await import(u("tools/heldout-firewall.mjs"));
@@ -101,6 +101,20 @@ try {
   say(r.failures.length === 1 && store.events.length === 0);
 } finally { fs.rmSync(dir, { recursive: true, force: true }); }`),
     expect: /a real violation did not append exactly one event/ },
+
+  { id: "K10", what: "a REPORT-ONLY scan judges again — the 24 September defect: 17 unjudged draft rows recorded as violations", file: SCAN, test: T, named: "(a′)",
+    from: '    if (judge && category !== "DATA" && disposition.startsWith("FAIL")) {', to: '    if (category !== "DATA" && disposition.startsWith("FAIL")) {',
+    probe: probe(`
+const fs = await import("node:fs"); const { join } = await import("node:path");
+const { scan } = await import(u("tools/heldout-firewall.mjs"));
+const dir = fs.mkdtempSync(join(process.cwd(), ".test-scratch", "probe-k10-"));
+try {
+  fs.writeFileSync(join(dir, "leak.md"), "probe phrase ten here\\n");
+  const { store, sink } = sinkFor();
+  scan({ registry: [{ id: "x", role: "SEALED", resource: { root: "elsewhere", pathPrefixes: ["nowhere/"] } }], root: "syn", base: dir, files: ["leak.md"], members: ["probe phrase ten"], fragments: [], audit: sink, judge: false });
+  say(store.events.length === 1);
+} finally { fs.rmSync(dir, { recursive: true, force: true }); }`),
+    expect: /a report-only scan appended a violation/ },
 
   { id: "K8", what: "the conflict fix WIDENED to every event — a native event's correlation stops deciding sameness", file: EVENT, test: T, named: "CONFLICT FIX",
     from: "    if (event.migration === true && MIGRATION_PASS_FIELDS.includes(k)) continue;", to: "    if (MIGRATION_PASS_FIELDS.includes(k)) continue;",

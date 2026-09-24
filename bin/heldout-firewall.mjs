@@ -70,7 +70,7 @@ for (const entry of registry.filter((e) => e.role === "RETIRED_CONTAMINATED")) {
     const xf = trackedFiles(extra);
     const drafts = xf.filter((p) => /_learn_batch/.test(p));
     const x = scan({ registry, root: "extra", base: extra, files: xf.filter((p) => !/_learn_batch/.test(p)), members: pop.members, fragments, evaluatorSources, audit: AUDIT });
-    const xd = scan({ registry, root: "extra", base: extra, files: drafts, members: pop.members, fragments, evaluatorSources, audit: AUDIT });
+    const xd = scan({ registry, root: "extra", base: extra, files: drafts, members: pop.members, fragments, evaluatorSources, audit: AUDIT, judge: false });
     console.log(`\nEXTRA ROOT — ${xf.length} tracked file(s) · ${drafts.length} product-content draft(s) reported, not judged`);
     for (const r of x.rows) console.log(`  ${r.disposition.padEnd(34)} ${r.category.padEnd(22)} full ${String(r.full).padStart(3)} · fragments ${String(r.frag).padStart(2)} · ${r.path}`);
     for (const r of xd.rows) console.log(`  REPORTED_PRODUCT_CONTENT_DRAFT     ${r.category.padEnd(22)} full ${String(r.full).padStart(3)} · fragments ${String(r.frag).padStart(2)} · ${r.path}`);
@@ -87,6 +87,9 @@ for (const e of registeredHashErrors({ registry, root: "engine", base: REPO, has
   console.log(`\nMANDATORY READING — ${MANDATORY_READING.length} declared · ${required.length} required by the loaders · sealed or protected in it: ${errs.filter((e) => e.code !== "REQUIRED_SOURCE_MISSING").length} · required but missing: ${errs.filter((e) => e.code === "REQUIRED_SOURCE_MISSING").length}`);
   for (const e of errs) failures.push(`MANIFEST ${e.code} ${e.source ?? `entry ${e.at}`}`);
 }
+/* The whole run's audit, AFTER every root was scanned. The per-engine line above is printed before the extra root is
+ * scanned; on 24 September 2026 it read "appended 0" while the extra root's draft scan appended 17. */
+console.log(`\nAUDIT (whole run) — appended to the audit trail: ${AUDIT.emitted} · classification only, not appended: ${AUDIT.classified}`);
 console.log(`\nFAILURES: ${failures.length}`);
 for (const f of failures) console.log(`  🔴 ${f}`);
 if (process.argv.includes("--check") && failures.length) process.exit(1);

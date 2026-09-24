@@ -16,21 +16,21 @@ import { join } from "node:path";
 import { ACCEPTANCES } from "../config/fboard/acceptances.mjs";
 import { CAPABILITIES } from "../config/fboard/capabilities.mjs";
 import { DECLARED } from "../config/fboard/f-board.mjs";
-import { AUTHORITY_CORPUS } from "../config/authority/corpus.mjs";
+import { AUTHORITY_CORPUS, CORPUS_PROVENANCE } from "../config/authority/corpus.mjs";
 import { buildBoard, boardErrors, progress } from "../src/fboard/board.mjs";
 import { productionAuditStore } from "../src/audit-trail/wiring.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const board = () => buildBoard(CAPABILITIES, DECLARED);
-const ctx = { capabilities: CAPABILITIES, acceptances: ACCEPTANCES, authority: { records: AUTHORITY_CORPUS, now: "2026-09-23" } };
+const ctx = { capabilities: CAPABILITIES, acceptances: ACCEPTANCES, authority: { records: AUTHORITY_CORPUS, now: CORPUS_PROVENANCE.now } }; // the corpus's measuring day: on 23 Sep, F06's 24 Sep acceptance does not exist yet
 const trail = () => productionAuditStore({ repo: REPO, forbiddenSubstrings: [] }).readAll().events;
 
 test("F7-BOARD · F07 is VERIFIED-PASS by UNASSESSED → IN-PROGRESS → VERIFIED-PASS; the board reads 3/89; F05, F08, F40 unchanged", () => {
   const b = board();
   assert.deepEqual(boardErrors(b, ctx), []);
   const p = progress(b);
-  assert.deepEqual(p.split, { UNASSESSED: 85, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 0, "BLOCKED-BY-AUTHORITY": 1, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 3 });
-  assert.equal(p.passed, 3);
+  assert.deepEqual(p.split, { UNASSESSED: 84, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 0, "BLOCKED-BY-AUTHORITY": 1, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 4 });
+  assert.equal(p.passed, 4); // 3/89 at F07's closure; F06 then moved under its own acceptance (24 Sep 2026) — test/f06-closure.test.mjs owns it.
   assert.equal(p.total, 89);
   assert.deepEqual(["F05", "F08", "F40"].map((f) => DECLARED[f].state), ["VERIFIED-PASS", "VERIFIED-PASS", "BLOCKED-BY-AUTHORITY"]);
 
@@ -74,7 +74,7 @@ test("F7-TRAIL · each F07 movement is in the production trail EXACTLY ONCE, und
 
 test("F7-TRAIL · the board ↔ audit consistency check is clean, and names F07 among the rows that needed a transition", () => {
   const r = spawnSync(process.execPath, [join(REPO, "tools/board-audit-consistency.mjs")], { cwd: REPO, encoding: "utf8" });
-  assert.match(r.stdout, /rows needing a transition event: F05, F07, F08/);
+  assert.match(r.stdout, /rows needing a transition event: F05, F06, F07, F08/); // F06 joined on 24 September 2026
   assert.match(r.stdout, /consistency errors\s*: 0/);
-  assert.match(r.stdout, /F-progress \(computed from the board file\): 3\/89/);
+  assert.match(r.stdout, /F-progress \(computed from the board file\): 4\/89/); // 3/89 at F07's closure; F06 moved on 24 Sep
 });

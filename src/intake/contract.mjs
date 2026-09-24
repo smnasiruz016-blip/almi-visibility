@@ -25,6 +25,7 @@ import { findSecrets } from "./secrets.mjs";
 import { normaliseOrigin } from "./origin.mjs";
 import { makeEvidenceState } from "../evidence/evidence-state.mjs";
 import { TENANT_ID_PATTERN } from "../tenancy/resolver.mjs";
+import { decideResolvedTenants } from "../tenancy/scope.mjs";
 
 export const SCHEMA_VERSION = 1;
 export const CONTRACT_ID = "project-declaration/1";
@@ -195,7 +196,8 @@ export function validateDeclaration(doc, { tenants, attachedTo = () => null, rel
       if (code && !(d.outcome === "INVALID_REFUSED" && d.source?.state === "INVALID")) no(code, `${p}.origin`);
     } else {
       const attached = attachedTo(o.origin);
-      if (attached && typeof doc.tenantId === "string" && attached !== doc.tenantId) no("PROPERTY_ATTACHED_TO_ANOTHER_TENANT", `${p}.origin`);
+      /* F02: decided by the ONE tenant decision (src/tenancy/scope.mjs) — this module no longer compares tenants itself. */
+      if (attached && typeof doc.tenantId === "string" && !decideResolvedTenants(doc.tenantId, attached).allowed) no("PROPERTY_ATTACHED_TO_ANOTHER_TENANT", `${p}.origin`);
     }
     normalisedProperties.push({ ...pr, origin: o.origin, authority: { claimedRelationship: pr.authority?.claimedRelationship, verificationState: "UNVERIFIED" } });
   });

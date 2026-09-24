@@ -40,6 +40,7 @@
  */
 import { createHash } from "node:crypto";
 import { TENANT_ID_PATTERN } from "../tenancy/resolver.mjs";
+import { decideResolvedTenants } from "../tenancy/scope.mjs";
 
 export const AUDIT_VERSION = 1;
 
@@ -281,7 +282,8 @@ export function eventFaults(event, { evidenceEntryFor = () => null, isSealedRef 
     if (entry.role === "RETIRED_CONTAMINATED" && event.outcome === "PASS") {
       bad("EVIDENCE_RETIRED_CANNOT_PASS", `${at} is RETIRED_CONTAMINATED and may not support a passing evaluation`);
     }
-    if (nonEmpty(ref.tenantId) && event.scopeType !== "GLOBAL_PRODUCT" && ref.tenantId !== event.tenantId) {
+    /* F02: decided by the ONE tenant decision (src/tenancy/scope.mjs) — this module no longer compares tenants itself. */
+    if (nonEmpty(ref.tenantId) && event.scopeType !== "GLOBAL_PRODUCT" && !decideResolvedTenants(event.tenantId, ref.tenantId).allowed) {
       bad("EVIDENCE_CROSS_TENANT", `${at} belongs to another declared tenant — cross-tenant evidence is never joined`);
     }
     if (nonEmpty(ref.tenantId) && event.scopeType === "GLOBAL_PRODUCT") {

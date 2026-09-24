@@ -23,6 +23,7 @@
  * Product-neutral: it knows states, reason codes and references — never a client, host, subject word or value.
  */
 import { createHash } from "node:crypto";
+import { decideResolvedTenants } from "../tenancy/scope.mjs";
 
 export const EVIDENCE_STATES = Object.freeze(["OBSERVED", "INFERRED", "RECOMMENDED", "UNKNOWN", "NOT_MEASURED", "NOT_APPLICABLE"]);
 /** The version of the model and its adapters' rules. It travels with every state as `ruleVersion`. */
@@ -114,7 +115,8 @@ export function isolationFaults(es) {
   const refs = [es?.meta?.evidenceRef, ...(es?.meta?.inputRefs ?? []), ...(es?.meta?.supportingRefs ?? [])].filter(Boolean);
   for (const r of refs) {
     const t = /(?:^|\/)tenant:([^/]+)/.exec(r)?.[1];
-    if (t && es.meta.tenantId && t !== es.meta.tenantId) f.push({ code: "EVIDENCE_REF_CROSS_TENANT", why: `a reference belongs to tenant ${t}, not ${es.meta.tenantId}` });
+    /* F02: decided by the ONE tenant decision (src/tenancy/scope.mjs) — this module no longer compares tenants itself. */
+    if (t && es.meta.tenantId && !decideResolvedTenants(es.meta.tenantId, t).allowed) f.push({ code: "EVIDENCE_REF_CROSS_TENANT", why: `a reference belongs to tenant ${t}, not ${es.meta.tenantId}` });
     if (t && !es.meta.tenantId) f.push({ code: "EVIDENCE_REF_CROSS_TENANT", why: "a tenant-scoped reference is cited by a state that declares no tenant" });
     const s = /(?:^|\/)subject:([^/]+)/.exec(r)?.[1];
     if (s && es.meta.subjectId && s !== es.meta.subjectId) f.push({ code: "EVIDENCE_REF_CROSS_SUBJECT", why: "a reference belongs to another subject" });
@@ -191,7 +193,8 @@ export function checkTransition({ from, to, fromRef, toRef, newEvidenceRefs = []
   if (!ISO.test(ctx.at)) refuse("at is not an ISO instant");
   if (typeof fromRef !== "string" || !fromRef || typeof toRef !== "string" || !toRef || fromRef === toRef) refuse("a transition is a NEW item superseding an old one — two distinct references");
   if (!Array.isArray(newEvidenceRefs) || newEvidenceRefs.length === 0) refuse("no new evidence is cited");
-  if (from.meta.tenantId && to.meta.tenantId && from.meta.tenantId !== to.meta.tenantId) throw new EvidenceStateRefused("EVIDENCE_REF_CROSS_TENANT", "a transition crosses tenants");
+  /* F02: decided by the ONE tenant decision (src/tenancy/scope.mjs) — this module no longer compares tenants itself. */
+  if (from.meta.tenantId && to.meta.tenantId && !decideResolvedTenants(from.meta.tenantId, to.meta.tenantId).allowed) throw new EvidenceStateRefused("EVIDENCE_REF_CROSS_TENANT", "a transition crosses tenants");
   if (from.meta.subjectId && to.meta.subjectId && from.meta.subjectId !== to.meta.subjectId) throw new EvidenceStateRefused("EVIDENCE_REF_CROSS_SUBJECT", "a transition crosses subjects");
   if (key === "OBSERVED->INFERRED" && !to.meta.inputRefs.includes(from.meta.evidenceRef)) refuse("the derived item does not keep the observation among its inputs");
   if (from.state === "NOT_APPLICABLE" && !(typeof scopeChange === "string" && CODE.test(scopeChange))) refuse("leaving NOT_APPLICABLE needs an explicit scope-change code");

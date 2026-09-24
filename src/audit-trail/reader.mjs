@@ -29,6 +29,7 @@
  */
 import { resolve as resolveAuthority, permits } from "../authority/register.mjs";
 import { TENANT_ID_PATTERN } from "../tenancy/resolver.mjs";
+import { decideResolvedTenants } from "../tenancy/scope.mjs";
 import { DETECTION_BOUNDARY } from "./store.mjs";
 
 export const READ_STATES = Object.freeze(["OK", "INVALID", "UNAVAILABLE"]);
@@ -132,7 +133,8 @@ export function createAuditReader({ store, authorityRecords = [], now, evidenceE
     if (typeof tenantId !== "string" || !TENANT_ID_PATTERN.test(tenantId)) {
       return invalid("TENANT_ID_NOT_OPAQUE", "a tenant filter takes a declared opaque tenant identifier — never a host, product, path or name");
     }
-    const events = store.readAll().events.filter((e) => e.scopeType !== "GLOBAL_PRODUCT" && e.tenantId === tenantId);
+    /* F02: decided by the ONE tenant decision (src/tenancy/scope.mjs) — this module no longer compares tenants itself. */
+    const events = store.readAll().events.filter((e) => e.scopeType !== "GLOBAL_PRODUCT" && decideResolvedTenants(tenantId, e.tenantId).allowed);
     return ok({ tenantId, events: events.map(view), count: events.length });
   }
 

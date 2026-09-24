@@ -12,14 +12,21 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { createHash } from "node:crypto";
 
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { measureMarket, marketErrors, DEFERRED } from "../src/discovery/market-measurement.mjs";
+import { LEGACY_MARKET_MEASUREMENT, marketMeasurementCompat } from "../src/evidence/legacy-artefacts.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const STORE = createJsonlStore(join(REPO, "runs", "evidence", "evidence.jsonl")).readAll();
 const STORED_TEXT = readFileSync(join(REPO, "runs", "discovery", "market-measurement-2026-09-15.json"), "utf8").replace(/\r\n/g, "\n");
 const STORED = JSON.parse(STORED_TEXT);
+/* The measurement the code produces now. Each RED limb below damages THIS, not the 15 September bytes: a damaged
+ * copy of the pinned artefact is no longer the pinned artefact, and is judged as a current result. */
+const FRESH = measureMarket(STORE);
+/* 🔴 F06 CORRECTION (24 September 2026) — the ONLY difference the fix may make, declared path by path. */
+const SUPERSESSION_DELTA = Object.freeze(DEFERRED.map((k) => Object.freeze({ path: ["dimensions", k, "state"], from: "UNKNOWN", to: "NOT_MEASURED" })));
 const limbs = (errs) => [...new Set(errs.map((e) => e.limb))];
 const say = (errs) => errs.slice(0, 4).map((e) => `[${e.limb}] ${e.why}`).join("\n");
 const clone = (x) => JSON.parse(JSON.stringify(x));
@@ -42,11 +49,22 @@ test("🟢 MEASURED — five cuts and the property total, re-derived from the ro
   for (const k of ["aggregate", "country", "query", "queryPage", "countryQuery"]) assert.deepEqual([STORED.input[k].exhausted, STORED.input[k].truncationReason], [true, null], k);
 });
 
-test("🔴 THE STORED MEASUREMENT IS EXACTLY WHAT THE STORE YIELDS — a fresh run reproduces the committed file byte for byte", () => {
-  assert.equal(`${JSON.stringify(measureMarket(STORE), null, 2)}\n`, STORED_TEXT);
+test("🔴 THE STORED MEASUREMENT IS EXACTLY WHAT THE STORE YIELDS — a fresh run reproduces the committed file byte for byte, except EXACTLY the declared F06 supersession delta", () => {
+  // The 15 September bytes are pinned by their full hash: never edited, regenerated, replaced or re-dated.
+  assert.equal(createHash("sha256").update(STORED_TEXT).digest("hex"), "34bcac0714db248e16a342a0a57f2b72bc97be9e41fffff71eb3f67fd152d2bd");
+  assert.equal(LEGACY_MARKET_MEASUREMENT.sha256, "34bcac0714db248e16a342a0a57f2b72bc97be9e41fffff71eb3f67fd152d2bd");
+  // Apply the declared delta to the stored bytes, and ONLY it: the result is the fresh run, byte for byte.
+  const superseded = clone(STORED);
+  for (const { path, from, to } of SUPERSESSION_DELTA) {
+    const parent = path.slice(0, -1).reduce((o, k) => o[k], superseded);
+    assert.equal(parent[path.at(-1)], from, path.join("."));
+    parent[path.at(-1)] = to;
+  }
+  assert.equal(`${JSON.stringify(FRESH, null, 2)}\n`, `${JSON.stringify(superseded, null, 2)}\n`);
+  assert.notEqual(`${JSON.stringify(FRESH, null, 2)}\n`, STORED_TEXT, "the fix changed nothing — the delta is not real");
 });
 
-test("🔴 STORED MEASUREMENT — every limb holds: two separate measurements, no impressions as demand, three dimensions UNKNOWN, quoted, limited, no inference promoted", () => {
+test("🔴 STORED MEASUREMENT — every limb holds: two separate measurements, no impressions as demand, three dimensions NOT_MEASURED (read through the compatibility adapter), quoted, limited, no inference promoted", () => {
   const errs = errorsOf(STORED);
   assert.deepEqual(limbs(errs), [], say(errs));
 });
@@ -119,12 +137,27 @@ test("🔴 THE LIMITS ON THEIR FACES — query truncation stated as coverage and
   }
 });
 
-test("🔴 THE THREE DEFERRED DIMENSIONS — present, UNKNOWN, unmeasured, valueless: never measured, never low", () => {
+test("🔴 THE THREE DEFERRED DIMENSIONS — present, NOT_MEASURED, unmeasured, valueless: never measured, never low; the 15 September UNKNOWN kept, and superseded canonically", () => {
   assert.deepEqual(DEFERRED, ["SUPPLY", "AUDIENCE_NEED", "WORTHINESS"]);
+  const compat = marketMeasurementCompat(STORED);
   for (const k of DEFERRED) {
     const x = STORED.dimensions[k];
     assert.deepEqual([x.state, x.measured, x.value, x.method], ["UNKNOWN", false, null, null], k);
+    const e = compat.find((c) => c.path === `$.dimensions.${k}.state`);
+    assert.deepEqual([e.originalState, e.canonicalEvidenceState, e.basis], ["UNKNOWN", "NOT_MEASURED", "DECLARED_MEASURED_FALSE"], k);
+    const f = FRESH.dimensions[k];
+    assert.deepEqual([f.state, f.measured, f.value, f.method], ["NOT_MEASURED", false, null, null], k);
   }
+});
+
+test("🔴 F06 CORRECTION — a CURRENT result whose deferred dimension reads UNKNOWN is refused: the old label is tolerated only on the pinned bytes", () => {
+  const r = clone(FRESH);
+  r.dimensions.SUPPLY.state = "UNKNOWN";
+  const errs = errorsOf(r);
+  assert.deepEqual(limbs(errs), ["third-dimension-filled"], say(errs));
+  assert.match(errs[0].why, /^SUPPLY reads state "UNKNOWN", measured false/);
+  // and the SAME literal on the pinned bytes holds, because their declared measured:false proves NOT_MEASURED
+  assert.deepEqual(limbs(errorsOf(STORED)), []);
 });
 
 test("🔴 THE BACKWARDS FINDING — rows 3, 5 and 6 stand on 22.8% of impressions and 0 of 20 clicks; reported, no row changed", () => {
@@ -137,7 +170,7 @@ test("🔴 THE BACKWARDS FINDING — rows 3, 5 and 6 stand on 22.8% of impressio
 /* ---------- each limb RED, alone ---------- */
 
 test("🔴 RED: SUPPLY filled from an unmeasured source — our own page count — is refused, alone", () => {
-  const r = clone(STORED);
+  const r = clone(FRESH);
   Object.assign(r.dimensions.SUPPLY, { state: "MEASURED", measured: true, value: 1525, method: { name: "pages-in-the-estate", fields: ["url"] } });
   const errs = errorsOf(r);
   assert.deepEqual(limbs(errs), ["third-dimension-filled"], say(errs));
@@ -145,63 +178,63 @@ test("🔴 RED: SUPPLY filled from an unmeasured source — our own page count �
 });
 
 test("🔴 RED: AUDIENCE/NEED filled from the searcher-country mix is refused, alone", () => {
-  const r = clone(STORED);
+  const r = clone(FRESH);
   Object.assign(r.dimensions.AUDIENCE_NEED, { state: "MEASURED", measured: true, value: "aus", method: { name: "searcher-country-mix", fields: ["country"] } });
   const errs = errorsOf(r);
   assert.deepEqual(limbs(errs), ["third-dimension-filled"], say(errs));
   assert.match(errs[0].why, /^AUDIENCE\/NEED reads/);
 });
 
-test("🔴 RED: WORTHINESS defaulted to LOW while still reading UNKNOWN is refused, alone — indistinguishable is the failure", () => {
-  const r = clone(STORED);
+test("🔴 RED: WORTHINESS defaulted to LOW while still reading NOT_MEASURED is refused, alone — indistinguishable is the failure", () => {
+  const r = clone(FRESH);
   r.dimensions.WORTHINESS.value = "LOW";
   const errs = errorsOf(r);
   assert.deepEqual(limbs(errs), ["third-dimension-filled"], say(errs));
-  assert.match(errs[0].why, /^WORTHINESS reads state "UNKNOWN", measured false, value "LOW"/);
-  const dropped = clone(STORED);
+  assert.match(errs[0].why, /^WORTHINESS reads state "NOT_MEASURED", measured false, value "LOW"/);
+  const dropped = clone(FRESH);
   delete dropped.dimensions.WORTHINESS;
   assert.deepEqual(limbs(errorsOf(dropped)), ["third-dimension-filled"]);
 });
 
 test("🔴 RED: impressions reported as demand is refused, alone", () => {
-  const r = clone(STORED);
+  const r = clone(FRESH);
   r.dimensions.DEMAND.value.magnitude = "541 impressions — the searches for these needs";
   const errs = errorsOf(r);
   assert.deepEqual(limbs(errs), ["impressions-as-demand"], say(errs));
 });
 
 test("🔴 RED: DEMAND and VISIBILITY conflated — one method under two names, or one shared field — is refused", () => {
-  const r = clone(STORED);
+  const r = clone(FRESH);
   r.dimensions.DEMAND.method.name = r.dimensions.VISIBILITY_REACH.method.name;
   assert.deepEqual(limbs(errorsOf(r)), ["conflated"]);
-  const shared = clone(STORED);
+  const shared = clone(FRESH);
   shared.dimensions.VISIBILITY_REACH.method.fields.push("query");
   assert.deepEqual(limbs(errorsOf(shared)), ["conflated"]);
 });
 
 test("🔴 RED: a range or a total that is not the stored observation's own is refused, alone", () => {
-  const r = clone(STORED);
+  const r = clone(FRESH);
   r.dimensions.DEMAND.source.endDate = "2026-09-14";
   assert.deepEqual(limbs(errorsOf(r)), ["not-quoted-from-store"]);
-  const v = clone(STORED);
+  const v = clone(FRESH);
   v.dimensions.VISIBILITY_REACH.value.byPage.impressions = 3290;
   assert.deepEqual(limbs(errorsOf(v)), ["not-quoted-from-store"]);
 });
 
 test("🔴 RED: a measurement without data lag on its face — or a truncation limit that omits the coverage — is refused, alone", () => {
-  const r = clone(STORED);
+  const r = clone(FRESH);
   delete r.dimensions.DEMAND.limits.dataLag;
   assert.deepEqual(limbs(errorsOf(r)), ["limit-missing"]);
-  const t = clone(STORED);
+  const t = clone(FRESH);
   t.dimensions.VISIBILITY_REACH.limits.queryTruncation = "QUERY TRUNCATION: truncationReason null — not truncated";
   assert.deepEqual(limbs(errorsOf(t)), ["limit-missing"]);
 });
 
 test("🔴 RED: an inference promoted to OBSERVED — the anonymisation reading, or the counting explanation — is refused, alone", () => {
-  const r = clone(STORED);
+  const r = clone(FRESH);
   r.coverage.explanation.label = "OBSERVED";
   assert.deepEqual(limbs(errorsOf(r)), ["inference-promoted"]);
-  const d = clone(STORED);
+  const d = clone(FRESH);
   d.discrepancy.explanation.label = "OBSERVED";
   assert.deepEqual(limbs(errorsOf(d)), ["inference-promoted"]);
 });

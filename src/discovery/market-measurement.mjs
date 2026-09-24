@@ -4,7 +4,7 @@
  * The frozen contract: INPUT the owned rows for the segment — impressions, clicks, CTR, position, by query, page and
  * country — with their date range and dataState · EXPECTED DEMAND and VISIBILITY/REACH measured and reported
  * SEPARATELY, each naming its own method and date range; each carrying the store's own limits (query truncation, data
- * lag, dataState) on its face; the other three dimensions read UNKNOWN · FAILURE DEMAND and VISIBILITY conflated in one
+ * lag, dataState) on its face; the other three dimensions read UNKNOWN (NOT_MEASURED since the F06 correction — see below) · FAILURE DEMAND and VISIBILITY conflated in one
  * number; OR impressions reported as demand; OR SUPPLY, AUDIENCE/NEED or WORTHINESS rendered as measured, left
  * indistinguishable from a measured value, or defaulted to low (LAW-ABSENT-1).
  *
@@ -19,9 +19,19 @@
  *
  * What the store says is OBSERVED. An explanation the store is consistent with but does not contain is INFERRED. An
  * explanation the store cannot support is UNKNOWN — however likely it is.
+ *
+ * ── 🔴 F06 CORRECTION (owner ruling, 24 September 2026) — NOT PERFORMED IS NOT_MEASURED ──
+ *
+ * `label()` checks every word against LABELS, which F06 made the canonical evidence states, so this writer emits
+ * canonical states. The 15 September writer labelled the three deferred dimensions UNKNOWN although it never measured
+ * them. Under F06, UNKNOWN is a check that was REACHED and could not be established, as with the anonymisation
+ * explanation and the data-lag finality below, where the store was read and holds no answer. A dimension nobody
+ * measured is NOT_MEASURED. The 15 September artefact keeps its bytes, and is read canonically only through
+ * src/evidence/legacy-artefacts.mjs.
  */
 import { splitPopulation } from "./query-population.mjs";
 import { LABELS } from "../report/provenance-label.mjs";
+import { isLegacyMarketArtefact, marketMeasurementCompat } from "../evidence/legacy-artefacts.mjs";
 
 const label = (x) => {
   if (!LABELS.includes(x)) throw new Error(`${x} is not one of row 50's labels`);
@@ -30,6 +40,7 @@ const label = (x) => {
 const OBSERVED = label("OBSERVED");
 const INFERRED = label("INFERRED");
 const UNKNOWN = label("UNKNOWN");
+const NOT_MEASURED = label("NOT_MEASURED");
 
 /** The newest owned pull of each cut, all over the same range. */
 export const INPUT_OBSERVATIONS = Object.freeze({
@@ -58,8 +69,8 @@ export const VISIBILITY_RULE =
   "where and how prominently the property was shown, and what that reach earned: impressions, position, clicks and CTR, for the property, by country and by page, each quoted from its own observation. " +
   "The property and country cuts are never added to the page cut";
 
-/** A deferred dimension: present, UNKNOWN, unmeasured, valueless — and so never readable as measured or as low. */
-const unmeasured = (dimension, why) => Object.freeze({ dimension, state: UNKNOWN, measured: false, value: null, method: null, why });
+/** A deferred dimension: present, NOT_MEASURED, unmeasured, valueless — and so never readable as measured or as low. */
+const unmeasured = (dimension, why) => Object.freeze({ dimension, state: NOT_MEASURED, measured: false, value: null, method: null, why });
 
 function observation(storeRecords, id, suffix) {
   const o = storeRecords.find((r) => r.record_type === "observation" && r.observation_id === id);
@@ -261,7 +272,11 @@ export function measureMarket(storeRecords, ids = INPUT_OBSERVATIONS) {
 
 /**
  * 🔴 ROW 7's LAW. Returns [] when every limb holds; each error names its limb.
- *   third-dimension-filled  — SUPPLY, AUDIENCE/NEED or WORTHINESS missing, or anything but UNKNOWN, unmeasured and valueless
+ *   third-dimension-filled  — SUPPLY, AUDIENCE/NEED or WORTHINESS missing, or anything but NOT_MEASURED, unmeasured and
+ *                             valueless. 🔴 The canonical state is read, never the old label: a fresh result must carry
+ *                             NOT_MEASURED itself; only the pinned 15 September bytes (legacy-artefacts.mjs, by full
+ *                             sha256) are read through the compatibility adapter, which proves NOT_MEASURED from their
+ *                             declared `measured: false`. Any other result reading UNKNOWN here is refused.
  *   conflated               — DEMAND and VISIBILITY/REACH not both present, or sharing a method or a stored field
  *   impressions-as-demand   — DEMAND reading impressions, or stating its value in impressions
  *   not-quoted-from-store   — a range, dataState or number that is not the stored observation's own
@@ -271,15 +286,17 @@ export function measureMarket(storeRecords, ids = INPUT_OBSERVATIONS) {
 export function marketErrors({ result, storeRecords }) {
   const errs = [];
   const d = result.dimensions ?? {};
+  const legacy = isLegacyMarketArtefact(result) ? marketMeasurementCompat(result) : null;
+  const canonicalOf = (key, x) => (legacy ? legacy.find((e) => e.path === `$.dimensions.${key}.state`)?.canonicalEvidenceState : x.state);
   for (const key of DEFERRED) {
     const x = d[key];
     if (!x) {
-      errs.push({ limb: "third-dimension-filled", why: `${key} is missing — a deferred dimension is present and reads UNKNOWN, never left out` });
+      errs.push({ limb: "third-dimension-filled", why: `${key} is missing — a deferred dimension is present and reads NOT_MEASURED, never left out` });
       continue;
     }
     const extra = Object.keys(x).filter((k) => !UNMEASURED_KEYS.includes(k));
-    if (x.state !== UNKNOWN || x.measured !== false || x.value !== null || x.method !== null || extra.length) {
-      errs.push({ limb: "third-dimension-filled", why: `${x.dimension ?? key} reads state ${JSON.stringify(x.state)}, measured ${JSON.stringify(x.measured)}, value ${JSON.stringify(x.value)}, method ${JSON.stringify(x.method?.name ?? x.method)}${extra.length ? `, and carries ${extra.join(", ")}` : ""} — the deferred half is UNKNOWN: never measured, never valued, never defaulted to low` });
+    if (canonicalOf(key, x) !== NOT_MEASURED || x.measured !== false || x.value !== null || x.method !== null || extra.length) {
+      errs.push({ limb: "third-dimension-filled", why: `${x.dimension ?? key} reads state ${JSON.stringify(x.state)}, measured ${JSON.stringify(x.measured)}, value ${JSON.stringify(x.value)}, method ${JSON.stringify(x.method?.name ?? x.method)}${extra.length ? `, and carries ${extra.join(", ")}` : ""} — the deferred half is NOT_MEASURED: never measured, never valued, never defaulted to low` });
     }
   }
 

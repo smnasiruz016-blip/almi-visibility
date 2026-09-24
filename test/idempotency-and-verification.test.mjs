@@ -167,36 +167,51 @@ test("A1: appendIfNew refuses a record with no measurement_key", () => {
  * A2 — 🔴 THE VERDICT PATH IS REAL NOW.
  * ================================================================== */
 
-test("🔴 A2: the verdict layer maps the registry vocabulary — and 'not-applicable' is UNKNOWN, not PASS", () => {
+test("🔴 A2: the verdict layer maps the registry vocabulary — only the conclusive literals decide alone; the inconclusive two are placed by structure (F06 correction)", () => {
   assert.equal(toCheckOutcome("pass"), "PASS");
   assert.equal(toCheckOutcome("fail"), "FAIL");
-  assert.equal(toCheckOutcome("could-not-check"), "UNKNOWN");
-  // 🔴 "does not apply" carries no evidence about the claim. Mapping it to PASS
-  // would let an inapplicable check promote a fact.
-  assert.equal(toCheckOutcome("not-applicable"), "UNKNOWN");
+  // 🔴 "never decide from the old label alone" (owner ruling, 24 September 2026)
+  assert.throws(() => toCheckOutcome("could-not-check"), /not decided by its literal/);
+  assert.throws(() => toCheckOutcome("not-applicable"), /not decided by its literal/);
   assert.throws(() => toCheckOutcome("probably-fine"), /add it to OUTCOME_ALIASES/);
 });
 
-test("🔴 A2: a supersession that promotes could-not-check → pass is a violation", () => {
+const REACHED = (recordId, field) => ({ recordId, field, reached: true, outcome: "could-not-check" });
+
+test("🔴 A2: a supersession that promotes a REACHED could-not-check (UNKNOWN) → pass is a violation", () => {
   const v = judgeSupersession({
-    previous: { checks: { linkCheckOutcome: "could-not-check", quoteMatchOutcome: "pass", fingerprintOutcome: "pass" } },
-    next: { checks: { linkCheckOutcome: "pass", quoteMatchOutcome: "pass", fingerprintOutcome: "pass" } },
+    previous: { id: "p", checks: { linkCheckOutcome: "could-not-check", quoteMatchOutcome: "pass", fingerprintOutcome: "pass" } },
+    next: { id: "n", checks: { linkCheckOutcome: "pass", quoteMatchOutcome: "pass", fingerprintOutcome: "pass" } },
+    attempts: [REACHED("p", "linkCheckOutcome")],
   });
   assert.equal(v.length, 1);
   assert.equal(v[0].field, "linkCheckOutcome");
   assert.match(v[0].message, /UNKNOWN never becomes PASS/);
 });
 
+test("🔴 A2: an unplaceable could-not-check cannot be judged — the supersession is a violation, never a silent pass", () => {
+  const v = judgeSupersession({
+    previous: { id: "p", checks: { linkCheckOutcome: "could-not-check", quoteMatchOutcome: "pass", fingerprintOutcome: "pass" } },
+    next: { id: "n", checks: { linkCheckOutcome: "pass", quoteMatchOutcome: "pass", fingerprintOutcome: "pass" } },
+  });
+  assert.equal(v.length, 1);
+  assert.match(v[0].message, /UNMAPPED → PASS cannot be judged/);
+});
+
 test("A2: a lawful supersession reports nothing, and fail → pass is lawful", () => {
   assert.deepEqual(
     judgeSupersession({
-      previous: { checks: { linkCheckOutcome: "fail", quoteMatchOutcome: "pass", fingerprintOutcome: "could-not-check" } },
-      next: { checks: { linkCheckOutcome: "pass", quoteMatchOutcome: "pass", fingerprintOutcome: "could-not-check" } },
+      previous: { id: "p", checks: { linkCheckOutcome: "fail", quoteMatchOutcome: "pass", fingerprintOutcome: "could-not-check" } },
+      next: { id: "n", checks: { linkCheckOutcome: "pass", quoteMatchOutcome: "pass", fingerprintOutcome: "could-not-check" } },
+      attempts: [REACHED("p", "fingerprintOutcome"), REACHED("n", "fingerprintOutcome")],
     }),
     [],
   );
   assert.equal(promoteOutcome("fail", "pass"), "PASS");
-  assert.throws(() => promoteOutcome("could-not-check", "pass"), /UNKNOWN never becomes PASS/);
+  assert.throws(() => promoteOutcome("UNKNOWN", "pass"), /UNKNOWN never becomes PASS/);
+  assert.throws(() => promoteOutcome("NOT_MEASURED", "pass"), /NOT_MEASURED never becomes PASS/);
+  assert.throws(() => promoteOutcome("NOT_APPLICABLE", "pass"), /NOT_APPLICABLE never becomes PASS/);
+  assert.throws(() => promoteOutcome("could-not-check", "pass"), /not decided by its literal/);
 });
 
 /* ================================================================== *

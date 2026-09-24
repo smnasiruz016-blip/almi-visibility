@@ -59,9 +59,7 @@ const argv = process.argv.slice(2);
 const arg = (n) => argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3) ?? null;
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv, env: process.env }));
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/replay-crawl.mjs", governed: true, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.cache("robots cache"), RESOURCES.runArtefacts("replay corpus")] });
-/* F02 relocation: the real pages the five named changes are applied to belong to a declared subject package (--subject). */
-const { REPLAY_TARGETS } = (await loadSubjectPackage(process.argv.find((a) => a.startsWith("--subject="))?.slice("--subject=".length))).module;
+const SCOPE = scopedEntryPoint({ entry: "bin/replay-crawl.mjs", governed: true, resources: [RESOURCES.inputPath(arg("corpus"), "--corpus"), RESOURCES.crawlBatch(BATCH_ID), RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.cache("robots cache"), RESOURCES.runArtefacts("replay corpus")] });
 /* F02: this run's hosts are the site origins DECLARED to its tenant — no estate list in shared code (relocated, 24 Sep 2026). */
 const DECLARED_HOSTS = declaredSiteHosts({ tenantId: SCOPE.tenantId });
 
@@ -86,51 +84,6 @@ const LOCAL_HOSTS = ["127.0.0.1", "localhost"];
 
 const readJsonl = (p) => (existsSync(p) ? createJsonlStore(p).readAll() : []);
 
-/* ================================================================== *
- * THE NAMED CHANGES — five in-memory copies, everything else byte-identical.
- * ================================================================== */
-
-const CHANGES = [
-  {
-    id: "C1", kind: "NOINDEX_REMOVED",
-    ...REPLAY_TARGETS.C1,
-    transform: (h) => h.replace(/(<meta\b[^>]*name\s*=\s*["']robots["'][^>]*content\s*=\s*["'])([^"']*)/gi, (m, a, c) => a + c.split(",").map((s) => s.trim()).filter((t) => t.toLowerCase() !== "noindex").join(", ")),
-    validate: (b, a) => b.noindexed === true && a.noindexed === false,
-    checks: [{ check: "noindex", expectBefore: "FAIL", expectAfter: "PASS" }],
-  },
-  {
-    id: "C2", kind: "NOINDEX_ADDED",
-    ...REPLAY_TARGETS.C2,
-    transform: (h) => h.replace(/<head([^>]*)>/i, '<head$1><meta name="robots" content="noindex">'),
-    validate: (b, a) => b.noindexed === false && a.noindexed === true,
-    checks: [{ check: "noindex", expectBefore: "PASS", expectAfter: "FAIL" }],
-  },
-  {
-    id: "C3", kind: "CANONICAL_REMOVED",
-    ...REPLAY_TARGETS.C3,
-    transform: (h) => h.replace(/<link\b[^>]*rel\s*=\s*["']canonical["'][^>]*>/gi, ""),
-    validate: (b, a) => Boolean(b.canonical) && !a.canonical,
-    checks: [{ check: "canonical", expectBefore: "PASS", expectAfter: "FAIL", expectSummaryIncludes: "no rel=canonical" }],
-  },
-  {
-    id: "C4", kind: "TITLE_REMOVED",
-    ...REPLAY_TARGETS.C4,
-    transform: (h) => h.replace(/<title[^>]*>[\s\S]*?<\/title>/i, ""),
-    validate: (b, a) => Boolean(b.title) && !a.title,
-    checks: [{ check: "head-elements", expectAfter: "FAIL", expectSummaryIncludes: "no <title>" }],
-  },
-  {
-    id: "C5", kind: "BODY_TEXT_ONLY_ON_A_REDIRECTED_PAGE",
-    ...REPLAY_TARGETS.C5,
-    transform: (h) => h.replace(/<\/body>/i, '<p data-replay-change="C5">local replay change — body text only</p></body>'),
-    validate: (b, a) => b.noindexed === a.noindexed && b.canonical === a.canonical && b.title === a.title,
-    checks: [
-      { check: "noindex", expectAfter: "SAME" },
-      { check: "canonical", expectAfter: "SAME" },
-      { check: "head-elements", expectAfter: "SAME" },
-    ],
-  },
-];
 
 const startedAt = new Date().toISOString();
 const failures = [];
@@ -211,6 +164,62 @@ if (missing > 0 || shaMatches !== entries.size) {
   console.error("🔴 REFUSED — the recovered bodies are not the run's bodies. A replay of the wrong bytes proves nothing.");
   process.exit(1);
 }
+
+/* F02 relocation: the real pages the five named changes are applied to belong to a declared subject package, named by
+ * --subject. Read only once the corpus is verified, so every refusal above (--recover without --confirm, a wrong corpus)
+ * still fires first, exactly as before the relocation. */
+const SUBJECT_ID = process.argv.find((a) => a.startsWith("--subject="))?.slice("--subject=".length) ?? null;
+if (SUBJECT_ID === null) {
+  console.error("🔴 REFUSED — --subject=<declared subject package> names whose real pages the five named changes are applied to; there is no default");
+  process.exit(2);
+}
+const { REPLAY_TARGETS } = (await loadSubjectPackage(SUBJECT_ID)).module;
+
+/* ================================================================== *
+ * THE NAMED CHANGES — five in-memory copies, everything else byte-identical.
+ * ================================================================== */
+
+const CHANGES = [
+  {
+    id: "C1", kind: "NOINDEX_REMOVED",
+    ...REPLAY_TARGETS.C1,
+    transform: (h) => h.replace(/(<meta\b[^>]*name\s*=\s*["']robots["'][^>]*content\s*=\s*["'])([^"']*)/gi, (m, a, c) => a + c.split(",").map((s) => s.trim()).filter((t) => t.toLowerCase() !== "noindex").join(", ")),
+    validate: (b, a) => b.noindexed === true && a.noindexed === false,
+    checks: [{ check: "noindex", expectBefore: "FAIL", expectAfter: "PASS" }],
+  },
+  {
+    id: "C2", kind: "NOINDEX_ADDED",
+    ...REPLAY_TARGETS.C2,
+    transform: (h) => h.replace(/<head([^>]*)>/i, '<head$1><meta name="robots" content="noindex">'),
+    validate: (b, a) => b.noindexed === false && a.noindexed === true,
+    checks: [{ check: "noindex", expectBefore: "PASS", expectAfter: "FAIL" }],
+  },
+  {
+    id: "C3", kind: "CANONICAL_REMOVED",
+    ...REPLAY_TARGETS.C3,
+    transform: (h) => h.replace(/<link\b[^>]*rel\s*=\s*["']canonical["'][^>]*>/gi, ""),
+    validate: (b, a) => Boolean(b.canonical) && !a.canonical,
+    checks: [{ check: "canonical", expectBefore: "PASS", expectAfter: "FAIL", expectSummaryIncludes: "no rel=canonical" }],
+  },
+  {
+    id: "C4", kind: "TITLE_REMOVED",
+    ...REPLAY_TARGETS.C4,
+    transform: (h) => h.replace(/<title[^>]*>[\s\S]*?<\/title>/i, ""),
+    validate: (b, a) => Boolean(b.title) && !a.title,
+    checks: [{ check: "head-elements", expectAfter: "FAIL", expectSummaryIncludes: "no <title>" }],
+  },
+  {
+    id: "C5", kind: "BODY_TEXT_ONLY_ON_A_REDIRECTED_PAGE",
+    ...REPLAY_TARGETS.C5,
+    transform: (h) => h.replace(/<\/body>/i, '<p data-replay-change="C5">local replay change — body text only</p></body>'),
+    validate: (b, a) => b.noindexed === a.noindexed && b.canonical === a.canonical && b.title === a.title,
+    checks: [
+      { check: "noindex", expectAfter: "SAME" },
+      { check: "canonical", expectAfter: "SAME" },
+      { check: "head-elements", expectAfter: "SAME" },
+    ],
+  },
+];
 
 const robotsRecords = readJsonl(`${REPO}runs/evidence/robots.jsonl`);
 const robotsByHost = new Map(robotsRecords.filter((r) => r.record_type === "observation").map((r) => [r.value.host, r]));

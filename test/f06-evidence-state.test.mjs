@@ -362,7 +362,7 @@ test("P36 · stable serialisation round-trips, and key order cannot change it", 
 });
 
 test("P37 · every exported production function has a PRODUCTION caller — no orphan adapter", () => {
-  const prodFiles = execFileSync("git", ["-C", REPO, "ls-files", "src", "bin", "tools"], { encoding: "utf8" }).trim().split("\n").filter((p) => p.endsWith(".mjs"));
+  const prodFiles = execFileSync("git", ["-C", REPO, "ls-files", "src", "bin", "tools", "subjects"], { encoding: "utf8" }).trim().split("\n").filter((p) => p.endsWith(".mjs"));
   const texts = prodFiles.map((p) => [p, fs.readFileSync(join(REPO, p), "utf8")]);
   const orphans = [];
   for (const mod of ["src/evidence/evidence-state.mjs", "src/evidence/evidence-state-adapters.mjs"]) {

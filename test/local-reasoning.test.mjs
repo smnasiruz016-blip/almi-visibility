@@ -20,7 +20,7 @@ import {
   OUTCOMES, SEPARATE_URL, READ_METHOD, REFUSALS,
 } from "../src/discovery/local-reasoning.mjs";
 import { createTenantResolver } from "../src/tenancy/resolver.mjs";
-import { HARD_CODED_PATTERNS } from "../config/discovery/axis-candidates.mjs";
+import { HARD_CODED_PATTERNS } from "../subjects/almiworld-estate/config/axis-candidates.mjs";
 import { countryUrlCensus, reachesDecisionPaths } from "../tools/country-url-census.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -331,7 +331,7 @@ test("🟢 REAL — the declared batch is read by its manifest hash, and the pro
 test("🟢 REAL — limb (a) on row 4's own path is 0 across all three verbs, and the verdict over the real batch is NOT_PASS: G13's only evidence is undeclared (F02)", () => {
   const walk = (dir, rel) => readdirSync(dir).flatMap((n) => (statSync(join(dir, n)).isDirectory() ? walk(join(dir, n), `${rel}${n}/`) : n.endsWith(".mjs") ? [`${rel}${n}`] : []));
   const read = (files) => files.map((f) => [f, readFileSync(join(REPO, f), "utf8")]);
-  const SOURCES = new Map(read([...walk(join(REPO, "src"), "src/"), ...walk(join(REPO, "bin"), "bin/")]));
+  const SOURCES = new Map(read([...walk(join(REPO, "src"), "src/"), ...walk(join(REPO, "bin"), "bin/"), ...walk(join(REPO, "subjects"), "subjects/")]));
   const GRAPH = new Map([...SOURCES, ...read(walk(join(REPO, "config"), "config/")), ...read(walk(join(REPO, "tools"), "tools/"))]);
   const census = countryUrlCensus(SOURCES);
   assert.deepEqual(census.consumers, ["bin/localized-thinking.mjs", "src/discovery/local-reasoning.mjs", "src/discovery/localized-thinking.mjs"]);

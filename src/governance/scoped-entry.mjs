@@ -12,7 +12,7 @@
  * the tenant its inputs did. On any refusal the process ends with SCOPE_REFUSED_EXIT (3).
  */
 import { createTenantResolver } from "../tenancy/resolver.mjs";
-import { decideRunResources, SCOPE_REFUSED_EXIT } from "../tenancy/scoped-run.mjs";
+import { decideRunResources, requestedTenant, RESOURCES, SCOPE_REFUSED_EXIT } from "../tenancy/scoped-run.mjs";
 import { diagnosticGuardSink } from "./guard-audit.mjs";
 import { governedGuardSink } from "./governed-run.mjs";
 import { isoSeconds } from "../audit-trail/store.mjs";
@@ -27,7 +27,12 @@ const ENGINE_ROOT = new URL("../../", import.meta.url).pathname.replace(/^\/([A-
  */
 export function decideScopedRun({ argv = process.argv, resolve = createTenantResolver(), resources, sink, log = console.error }) {
   if (!sink || typeof sink.emit !== "function") throw new TypeError("a scoped run records its refusals — it needs a guard sink");
-  const run = decideRunResources({ argv, resolve, resources });
+  /* A resource that is absent (an input path not given) is read by no one and decided by no one. A run that, this time,
+   * names nothing is STILL decided — for its requested tenant's own partition — so no entry point runs without a declared
+   * ACTIVE tenant, whatever it was asked to read. */
+  const named = Array.isArray(resources) ? resources.filter(Boolean) : resources;
+  const list = Array.isArray(named) && named.length === 0 && resources.length > 0 ? [RESOURCES.tenantPartition(requestedTenant(argv), "requested tenant")] : named;
+  const run = decideRunResources({ argv, resolve, resources: list });
   for (const e of run.refusalEvents) sink.emit(e);
   if (run.refused.length) {
     log(`🔴 TENANT SCOPE REFUSED — ${run.refused.length} of ${run.decisions.length} resource(s) do not belong to the requested tenant; nothing was read`);

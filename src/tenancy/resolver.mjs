@@ -55,7 +55,7 @@ export const ATTACHMENTS_FILE = "attachments.json";
  * set, a research batch, a cache store. Before, they had no kind, so no declaration could ever attach them and every run
  * reading one was refused forever, whatever the owner declared. The vocabulary widens; the rule does not: with no
  * attachment each still resolves UNDECLARED and refuses. */
-export const RESOURCE_KINDS = Object.freeze(["SITE_ORIGIN", "FACT_REGISTRY", "SITEMAP_COLLECTION", "CRAWL_BATCH", "EVIDENCE_STORE", "COST_LEDGER", "CAPTURE_SET", "RESEARCH_BATCH", "CACHE_STORE"]);
+export const RESOURCE_KINDS = Object.freeze(["SITE_ORIGIN", "FACT_REGISTRY", "SITEMAP_COLLECTION", "CRAWL_BATCH", "EVIDENCE_STORE", "COST_LEDGER", "CAPTURE_SET", "RESEARCH_BATCH", "CACHE_STORE", "RUN_STORE", "INPUT_PATH"]);
 
 export const RESOLUTION_STATES = Object.freeze(["RESOLVED", "UNDECLARED", "AMBIGUOUS", "INVALID", "UNKNOWN"]);
 

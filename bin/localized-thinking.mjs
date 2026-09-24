@@ -52,7 +52,7 @@ if (process.argv.includes("--json")) {
 
 const walk = (dir, rel) => readdirSync(dir).flatMap((n) => (statSync(join(dir, n)).isDirectory() ? walk(join(dir, n), `${rel}${n}/`) : n.endsWith(".mjs") ? [`${rel}${n}`] : []));
 const read = (files) => files.map((f) => [f, readFileSync(join(REPO, f), "utf8")]);
-const code = new Map(read([...walk(join(REPO, "src"), "src/"), ...walk(join(REPO, "bin"), "bin/")]));
+const code = new Map(read([...walk(join(REPO, "src"), "src/"), ...walk(join(REPO, "bin"), "bin/"), ...walk(join(REPO, "subjects"), "subjects/")]));
 const graph = new Map([...code, ...read(walk(join(REPO, "config"), "config/")), ...read(walk(join(REPO, "tools"), "tools/"))]);
 const census = countryUrlCensus(code);
 const rowFive = reachesRowFive(graph, "src/discovery/localized-thinking.mjs");

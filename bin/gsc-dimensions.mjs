@@ -26,7 +26,7 @@ import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n, d) => process.argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3) ?? d;
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/gsc-dimensions.mjs", governed: false, resources: [RESOURCES.evidenceStore(), RESOURCES.runArtefacts("--store")] });
+const SCOPE = scopedEntryPoint({ entry: "bin/gsc-dimensions.mjs", governed: false, resources: [RESOURCES.evidenceStore(), RESOURCES.inputPath(arg("store", null), "--store")] });
 const storePath = arg("store", `${REPO}runs/evidence/evidence.jsonl`);
 
 if (!existsSync(storePath)) {

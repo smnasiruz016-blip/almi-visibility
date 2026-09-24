@@ -48,7 +48,7 @@ const derive = (observationId) => {
   return { members, others: rows.map((r) => r.query).filter((q) => !memberSet.has(String(q).toLowerCase())) };
 };
 const files = trackedFiles(REPO);
-const productionTexts = files.filter((p) => /^(src|bin|tools|config)\/.*\.mjs$/.test(p)).map((p) => readFileSync(join(REPO, p), "utf8"));
+const productionTexts = files.filter((p) => /^(src|bin|tools|config|subjects)\/.*\.mjs$/.test(p)).map((p) => readFileSync(join(REPO, p), "utf8"));
 const evaluatorSources = HELD_OUT_EVALUATORS.map((p) => readFileSync(join(REPO, p), "utf8"));
 
 console.log("HELD-OUT FIREWALL — role and exposure; counts only\n");

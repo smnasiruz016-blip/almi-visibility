@@ -52,6 +52,12 @@ const OWNED = Object.freeze([
   /* 🔴 Added 21 Sep 2026 by E13a, which refuses to let a new src/tenancy module slip past this census. */
   "src/tenancy/row-partition.mjs",
   "src/tenancy/sitemap-residency.mjs",
+  /* 🔴 F02, 24 Sep 2026: the one tenant decision, the scoped run and the reference rule join the list — E13a refused them
+   * until they did. They decide whose resource a run may read: exactly where a host or a client name would creep in. */
+  "src/tenancy/scope.mjs",
+  "src/tenancy/scoped-run.mjs",
+  "src/tenancy/refs.mjs",
+  "src/governance/scoped-entry.mjs",
   /* 🔴 Row 25, 21 Sep 2026: the resource-attachment binder, the claim binder and the four-check evaluator join the list
    * they must honour. They decide which subject a page belongs to and which authority a claim cites — exactly where a
    * host, an authority name or a record id would creep in. They carry none, and now they cannot. */

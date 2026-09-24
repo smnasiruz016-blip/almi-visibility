@@ -23,6 +23,10 @@
  * (D-SWEEP-1, recorded and not fixed here). The binaries, their store and their write law run for real.
  */
 import { test } from "node:test";
+import { declaredWorld } from "./helpers/declared-world.mjs";
+/* F02: every entry point decides its tenant first — the runs below go through a DECLARED FIXTURE WORLD (never the real population). */
+const WORLD = declaredWorld();
+process.on("exit", () => WORLD.cleanup());
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -94,7 +98,7 @@ const PATHS = [
   },
 ];
 
-const run = (p, args) => spawnSync(process.execPath, [p.bin, ...p.pre, ...args], { cwd: REPO, encoding: "utf8", timeout: 180_000 });
+const run = (p, args) => spawnSync(process.execPath, WORLD.argv([p.bin, ...p.pre, ...args]), { cwd: REPO, encoding: "utf8", timeout: 180_000, env: WORLD.envWith() });
 function gateFired(p, r) {
   const seen = [
     CONFINEMENT.test(r.stderr) && "CONFINEMENT",

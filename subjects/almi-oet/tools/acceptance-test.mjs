@@ -56,7 +56,7 @@ const REPO = new URL("../../../", import.meta.url).pathname.replace(/^\/([A-Za-z
 const RUN_INSTANT = isoSeconds(Date.now());
 const RUN_CORRELATION = `run:acceptance-test:${RUN_INSTANT}`;
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/acceptance-test.mjs", governed: true, resources: [RESOURCES.operatorDirectory("--corpus"), RESOURCES.operatorDirectory("--facts")] });
+const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/acceptance-test.mjs", governed: true, resources: [RESOURCES.inputPath(corpusDir, "--corpus"), RESOURCES.inputPath(factsDir, "--facts")] });
 if (!corpusDir || !existsSync(join(corpusDir, group))) {
   console.error("usage: node bin/acceptance-test.mjs --corpus <dir> [--group g] [--page id] [--facts dir] [--out f] [--confirm]");
   process.exit(2);

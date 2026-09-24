@@ -43,7 +43,7 @@ const OUT = confineToRepo(arg("out", `${REPO}runs/audit/verification-issues.json
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
 const wouldWrite = { observations: 0, issues: 0 };
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/verification-issues.mjs", governed: true, resources: [RESOURCES.operatorDirectory("--csv"), RESOURCES.runArtefacts("verification issue store")] });
+const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/verification-issues.mjs", governed: true, resources: [RESOURCES.inputPath(CSV, "--csv"), RESOURCES.runArtefacts("verification issue store")] });
 const CHECKED_ON = "2026-09-12";
 const VERIFIER = "human:beta-g (Cowork)";
 

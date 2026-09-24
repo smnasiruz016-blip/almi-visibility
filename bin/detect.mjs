@@ -74,7 +74,7 @@ const runAt = flag("run-at");
 const outDir = flag("out");
 const expectPath = flag("expect");
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/detect.mjs", governed: true, resources: [RESOURCES.operatorDirectory("--bundle"), RESOURCES.crawlBatch(BATCH_ID), RESOURCES.sitemapCollection(SITEMAP_BATCH_ID), ...(await everySubjectRegistry())] });
+const SCOPE = scopedEntryPoint({ entry: "bin/detect.mjs", governed: true, resources: [RESOURCES.inputPath(expectPath, "--expect"), RESOURCES.inputPath(flag("registry"), "--registry"), RESOURCES.inputPath(["discover", "subject", "observed-pages", "sitemap"].includes(bundlePath) ? null : bundlePath, "--bundle"), RESOURCES.crawlBatch(BATCH_ID), RESOURCES.sitemapCollection(SITEMAP_BATCH_ID), ...(await everySubjectRegistry())] });
 /* 🔴 THERE IS NO --tenant FLAG, AND ITS ABSENCE IS THE POINT.
  *
  * This runner used to accept `--tenant=<anything>` and hand that string to the binder as an

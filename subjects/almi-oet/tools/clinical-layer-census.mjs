@@ -14,7 +14,7 @@ import { RESOURCES } from "../../../src/tenancy/scoped-run.mjs";
 
 const GEN = "C:/Projects/almi-oet/scripts/seed/gen";
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/clinical-layer-census.mjs", governed: false, resources: [RESOURCES.operatorDirectory("a connected product's repository files")] });
+const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/clinical-layer-census.mjs", governed: false, resources: [RESOURCES.inputPath(GEN, "a connected product's seed generator directory")] });
 const PROFESSIONS = [
   "dentistry", "dietetics", "medicine", "nursing", "occupational_therapy", "optometry",
   "pharmacy", "physiotherapy", "podiatry", "radiography", "speech_pathology", "veterinary_science",

@@ -27,7 +27,7 @@ export function stateNamesIn(texts) {
 
 /** The tracked sources the census reads. The register file itself is excluded: it NAMES every entry by construction. */
 export function trackedSources() {
-  return execFileSync("git", ["-C", REPO, "ls-files", "src", "bin", "tools", "config"], { encoding: "utf8" }).trim().split("\n")
+  return execFileSync("git", ["-C", REPO, "ls-files", "src", "bin", "tools", "config", "subjects"], { encoding: "utf8" }).trim().split("\n")
     .filter((p) => /\.mjs$/.test(p) && p !== "config/evidence-state-vocabulary.mjs" && p !== "tools/evidence-state-vocabulary.mjs");
 }
 

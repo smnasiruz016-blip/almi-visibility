@@ -46,12 +46,19 @@ import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
-/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/report.mjs", governed: true, resources: [RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.crawlBatch(BATCH_ID), RESOURCES.runArtefacts("run stores"), RESOURCES.factRegistryAt((await productFromArgvOrExit(process.argv, { usage: "node bin/report.mjs --product=<id> --tenant=<declared tenant>" })).factsDir)] });
 const arg = (n, d) => {
   const hit = process.argv.find((a) => a.startsWith(`--${n}=`));
   return hit ? hit.slice(n.length + 3) : d;
 };
+
+// 🔴 Confined BEFORE anything is read or rendered: a destination outside this
+// repository is refused while nothing has happened yet.
+const out = confineToRepo(arg("out", `${REPO}runs/report/index.html`), { label: "--out" });
+// 🔴 The product is an ARGUMENT, never a folder written here (owner ruling, 14 September 2026): no default.
+const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/report.mjs --product=<id> --tenant=<declared tenant> [--evidence=<path>] [--crawl=<path>] [--out=<file>] [--confirm]" });
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. The
+ * destination is confined first (that reads nothing); every path an operator hands the run is decided as an INPUT_PATH. */
+const SCOPE = scopedEntryPoint({ entry: "bin/report.mjs", governed: true, resources: [RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.crawlBatch(BATCH_ID), RESOURCES.runArtefacts("run stores"), RESOURCES.factRegistryAt(PRODUCT.factsDir), RESOURCES.inputPath(arg("evidence", null), "--evidence"), RESOURCES.inputPath(arg("robots", null), "--robots"), RESOURCES.inputPath(arg("audit", null), "--audit"), RESOURCES.inputPath(arg("crawl-dir", null), "--crawl-dir")] });
 
 const evidencePath = arg("evidence", `${REPO}runs/evidence/evidence.jsonl`);
 const robotsPath = arg("robots", `${REPO}runs/evidence/robots.jsonl`);
@@ -60,9 +67,6 @@ const auditPath = arg("audit", `${REPO}runs/audit/findings.jsonl`);
  * data repository. --crawl-dir still overrides, for a local corpus; with no override the batch is
  * resolved, and an unreadable batch REFUSES rather than reporting over an empty population. */
 const crawlDir = arg("crawl-dir", null);
-// 🔴 Confined BEFORE anything is read or rendered: a destination outside this
-// repository is refused while nothing has happened yet.
-const out = confineToRepo(arg("out", `${REPO}runs/report/index.html`), { label: "--out" });
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
 const RUN_INSTANT = isoSeconds(Date.now());
 const RUN_CORRELATION = `run:report:${RUN_INSTANT}`;
@@ -85,8 +89,6 @@ const crawlRecords = crawlDir === null
         .flatMap((f) => read(join(crawlDir, f)))
     : [];
 
-// 🔴 The product is an ARGUMENT, never a folder written here (owner ruling, 14 September 2026): no default.
-const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/report.mjs --product=<id> [--evidence=<path>] [--crawl=<path>] [--out=<file>] [--confirm]" });
 let facts = [];
 try {
   ({ records: facts } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId));

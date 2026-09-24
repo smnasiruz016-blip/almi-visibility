@@ -188,7 +188,7 @@ export function census({ repo = REPO, sources = null } = {}) {
   const tracked = sources
     ? sources.map((s) => s.file)
     : [...new Set(
-        execFileSync("git", ["ls-files", "src", "bin", "tools"], { cwd: repo, encoding: "utf8" })
+        execFileSync("git", ["ls-files", "src", "bin", "tools", "subjects"], { cwd: repo, encoding: "utf8" })
           .split("\n")
           .filter((p) => p.endsWith(".mjs")),
       )].sort();

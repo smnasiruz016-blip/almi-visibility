@@ -29,12 +29,12 @@ import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
-/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/export.mjs", governed: true, resources: [RESOURCES.evidenceStore(), RESOURCES.runArtefacts("--store")] });
 const arg = (n, d) => {
   const hit = process.argv.find((a) => a.startsWith(`--${n}=`));
   return hit ? hit.slice(n.length + 3) : d;
 };
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/export.mjs", governed: true, resources: [RESOURCES.evidenceStore(), RESOURCES.inputPath(arg("store", null), "--store")] });
 
 const storePath = arg("store", `${REPO}runs/evidence/evidence.jsonl`);
 // 🔴 Confined BEFORE the store is read: a destination outside this repository is refused while nothing has happened.

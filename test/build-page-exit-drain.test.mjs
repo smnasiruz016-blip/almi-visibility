@@ -19,6 +19,10 @@
  * anywhere outside that helper? No analysis, no blind spots.
  */
 import test from "node:test";
+import { declaredWorld } from "./helpers/declared-world.mjs";
+/* F02: every entry point decides its tenant first — the runs below go through a DECLARED FIXTURE WORLD (never the real population). */
+const WORLD = declaredWorld();
+process.on("exit", () => WORLD.cleanup());
 import assert from "node:assert/strict";
 import { readFileSync, mkdtempSync, mkdirSync, rmSync, readdirSync } from "node:fs";
 import { join } from "node:path";
@@ -160,8 +164,8 @@ test("🔴 BOUNDED EXIT: over a PIPE the runner terminates and does not hang (a)
   const started = Date.now();
   try {
     // stdio defaults to "pipe" — the shape spawnSync gives and the shape CI uses.
-    r = spawnSync(process.execPath, ["bin/build-page.mjs", "--product=almi-oet", "--all-slugs", `--out=${out}`, "--confirm"], {
-      cwd: REPO, encoding: "utf8", timeout: BOUND_MS,
+    r = spawnSync(process.execPath, WORLD.argv(["bin/build-page.mjs", "--product=almi-oet", "--all-slugs", `--out=${out}`, "--confirm"]), {
+      cwd: REPO, encoding: "utf8", timeout: BOUND_MS, env: WORLD.envWith(),
     });
   } finally {
     rmSync(out, { recursive: true, force: true });

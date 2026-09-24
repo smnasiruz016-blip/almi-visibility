@@ -7,9 +7,15 @@
  * would be a statement about an empty room.
  */
 import test from "node:test";
+import { declaredWorld } from "./helpers/declared-world.mjs";
+/* F02: every entry point decides its tenant first — the runs below go through a DECLARED FIXTURE WORLD (never the real population). */
+const WORLD = declaredWorld();
+process.on("exit", () => WORLD.cleanup());
 import assert from "node:assert/strict";
 import { spawnSync, execFileSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 
 import { productFromArgv, availableProducts } from "../src/product-cli.mjs";
 import { subjectModule, subjectDir } from "./support/subjects.mjs";
@@ -111,7 +117,7 @@ test("🔴 53 · COSTS AND LEARNING — neither class exists tied to a product, 
 
 test("🔴 53 · THE SAME RUN THROUGH THE REAL ENTRY POINT — bin/facts.mjs loads no module of the first product and reads none of its files", () => {
   const probe = pathToFileURL(`${REPO}test/support/access-probe.mjs`).href;
-  const r = spawnSync(process.execPath, ["--import", probe, "bin/facts.mjs", "census", `--product=${NEUTRAL}`], { cwd: REPO, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
+  const r = spawnSync(process.execPath, WORLD.argv(["--import", probe, "bin/facts.mjs", "census", `--product=${NEUTRAL}`]), { cwd: REPO, encoding: "utf8", maxBuffer: 32 * 1024 * 1024, env: WORLD.envWith() });
   assert.equal(r.status, 0, `the census of the neutral product exited ${r.status}:\n${r.stdout.slice(-2000)}\n${r.stderr.split("\n").filter((l) => !l.startsWith("[probe:")).join("\n").slice(-2000)}`);
   assert.match(r.stdout, /loaded 4 records from 2 files: drink-ferments\.mjs, vegetable-ferments\.mjs/);
   const lines = r.stderr.split(/\r?\n/);
@@ -123,14 +129,19 @@ test("🔴 53 · THE SAME RUN THROUGH THE REAL ENTRY POINT — bin/facts.mjs loa
   const slash = (p) => p.replace(/\\/g, "/");
   const NEUTRAL_DIR = slash(subjectDir(NEUTRAL));
   const FIRST_DIR = slash(subjectDir(FIRST));
+  /* F02: the run goes through a DECLARED FIXTURE WORLD, whose root holds its own copy of the first product. Watch BOTH
+   * places — the probe checking only the real one would be silent about the copy, and prove nothing. */
+  const WORLD_FIRST_DIR = slash(join(WORLD.root, FIRST));
+  assert.ok(existsSync(WORLD_FIRST_DIR), `the fixture world holds no copy of the first product at ${WORLD_FIRST_DIR} — the probe would watch nothing`);
+  const FIRST_DIRS = [FIRST_DIR, WORLD_FIRST_DIR];
   assert.ok(!FIRST_DIR.startsWith(slash(REPO)), `the first product still resolves inside this repository: ${FIRST_DIR}`);
   assert.ok(modules.some((u) => u.includes(`${NEUTRAL_DIR}/facts/vegetable-ferments.mjs`)), "the probe did not see the neutral product's own facts load");
   assert.ok(touched.some((t) => t.path.includes(NEUTRAL_DIR)), "the probe did not see the neutral product's own files touched");
-  assert.deepEqual(modules.filter((u) => u.includes(`${FIRST_DIR}/`)), [], "the run LOADED a module of the first product");
+  assert.deepEqual(modules.filter((u) => FIRST_DIRS.some((d) => u.includes(`${d}/`))), [], "the run LOADED a module of the first product");
   // ⚠️ Discovering which products exist lists every subject root and checks each folder has a product.mjs —
   // names only. Anything that READS inside the first product's folder is a leak.
-  const namesOnly = (t) => ["existsSync", "statSync"].includes(t.call) && (t.path.endsWith(FIRST_DIR) || t.path.endsWith(`${FIRST_DIR}/product.mjs`));
-  assert.deepEqual(touched.filter((t) => t.path.includes(FIRST_DIR) && !namesOnly(t)), [], "the run READ a file of the first product");
+  const namesOnly = (t) => ["existsSync", "statSync"].includes(t.call) && FIRST_DIRS.some((d) => t.path.endsWith(d) || t.path.endsWith(`${d}/product.mjs`));
+  assert.deepEqual(touched.filter((t) => FIRST_DIRS.some((d) => t.path.includes(d)) && !namesOnly(t)), [], "the run READ a file of the first product");
   for (const key of firstPrivateLicences) assert.ok(!r.stdout.includes(key), `the census printed first-product licence ${key}`);
   for (const id of firstIds) assert.ok(!r.stdout.includes(id), `the census printed first-product record ${id}`);
 });

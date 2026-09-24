@@ -43,8 +43,8 @@ test("🔴 the population is found from the code, not listed — and today it is
     "bin/audit.mjs",
     "bin/supersede-noindex.mjs",
     "bin/supply-labels.mjs",
-    "bin/verification-issues.mjs",
     "src/audit/run-audit.mjs",
+    "subjects/almi-oet/tools/verification-issues.mjs",
   ]);
 });
 

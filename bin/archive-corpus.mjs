@@ -56,7 +56,7 @@ const CORPUS = confineToRepo(corpusArg, { label: "--corpus" });
 const outArg = arg("out");
 const OUT = outArg === null ? null : confineToRepo(outArg, { label: "--out" });
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/archive-corpus.mjs", governed: true, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.operatorDirectory("--corpus")] });
+const SCOPE = scopedEntryPoint({ entry: "bin/archive-corpus.mjs", governed: true, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.inputPath(CORPUS, "--corpus")] });
 
 const crawlRecords = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll();
 const files = existsSync(CORPUS) ? readdirSync(CORPUS).filter((f) => f.endsWith(".html")) : [];

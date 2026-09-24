@@ -10,8 +10,12 @@
  * Then the real runner, on the real products: it must refuse, exit non-zero and write nothing.
  */
 import test from "node:test";
+import { declaredWorld } from "./helpers/declared-world.mjs";
+/* F02: every entry point decides its tenant first — the runs below go through a DECLARED FIXTURE WORLD (never the real population). */
+const WORLD = declaredWorld();
+process.on("exit", () => WORLD.cleanup());
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, readdirSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
@@ -247,7 +251,7 @@ test("🔴 PORTABILITY: the neutral declared test product walks the same path an
 
 /* ---- the real runner ------------------------------------------------------ */
 
-const runner = (...args) => spawnSync(process.execPath, ["bin/build-page.mjs", ...args], { cwd: REPO, encoding: "utf8" });
+const runner = (...args) => spawnSync(process.execPath, WORLD.argv(["bin/build-page.mjs", ...args]), { cwd: REPO, encoding: "utf8", env: WORLD.envWith() });
 
 test("🔴 RUNNER: no slug stops with exit 1 and names the declared specs", () => {
   const r = runner("--product=almi-oet");
@@ -384,7 +388,7 @@ test("🔴 61 · findCopiedFacts is clean on EVERY spec of EVERY declared produc
 
 test("🔴 61 · THE SAME RUN THROUGH THE REAL RUNNER — bin/build-page.mjs on the second product loads no module of the first product, reads none of its files, and prints none of its records", async () => {
   const probe = pathToFileURL(`${REPO}test/support/access-probe.mjs`).href;
-  const r = spawnSync(process.execPath, ["--import", probe, "bin/build-page.mjs", `--product=${SECOND}`, "--all-slugs"], { cwd: REPO, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
+  const r = spawnSync(process.execPath, WORLD.argv(["--import", probe, "bin/build-page.mjs", `--product=${SECOND}`, "--all-slugs"]), { cwd: REPO, encoding: "utf8", maxBuffer: 32 * 1024 * 1024, env: WORLD.envWith() });
   assert.equal(r.status, 2, `${r.stdout.slice(-2000)}\n${r.stderr.split("\n").filter((l) => !l.startsWith("[probe:")).join("\n").slice(-2000)}`);
   const lines = r.stderr.split(/\r?\n/);
   const modules = lines.filter((l) => l.startsWith("[probe:module] ")).map((l) => l.slice("[probe:module] ".length).replace(/\\/g, "/"));
@@ -392,12 +396,17 @@ test("🔴 61 · THE SAME RUN THROUGH THE REAL RUNNER — bin/build-page.mjs on 
   const slash = (p) => p.replace(/\\/g, "/");
   const SECOND_DIR = slash(subjectDir(SECOND));
   const FIRST_DIR = slash(subjectDir(FIRST));
+  /* F02: the run goes through a DECLARED FIXTURE WORLD, whose root holds its own copy of the first product. Watch BOTH
+   * places — the probe checking only the real one would be silent about the copy, and prove nothing. */
+  const WORLD_FIRST_DIR = slash(join(WORLD.root, FIRST));
+  assert.ok(existsSync(WORLD_FIRST_DIR), `the fixture world holds no copy of the first product at ${WORLD_FIRST_DIR} — the probe would watch nothing`);
+  const FIRST_DIRS = [FIRST_DIR, WORLD_FIRST_DIR];
   // the probe must be SEEING — or its silence proves nothing
   assert.ok(modules.some((u) => u.includes(`${SECOND_DIR}/facts/knots.mjs`)), "the probe did not see the second product's own facts load");
   assert.ok(modules.some((u) => u.includes("/src/page/construct.mjs")), "the probe did not see the construction path load");
-  assert.deepEqual(modules.filter((u) => u.includes(`${FIRST_DIR}/`)), [], "the runner LOADED a module of the first product");
-  const namesOnly = (t) => ["existsSync", "statSync"].includes(t.call) && (t.path.endsWith(FIRST_DIR) || t.path.endsWith(`${FIRST_DIR}/product.mjs`));
-  assert.deepEqual(touched.filter((t) => t.path.includes(FIRST_DIR) && !namesOnly(t)), [], "the runner READ a file of the first product");
+  assert.deepEqual(modules.filter((u) => FIRST_DIRS.some((d) => u.includes(`${d}/`))), [], "the runner LOADED a module of the first product");
+  const namesOnly = (t) => ["existsSync", "statSync"].includes(t.call) && FIRST_DIRS.some((d) => t.path.endsWith(d) || t.path.endsWith(`${d}/product.mjs`));
+  assert.deepEqual(touched.filter((t) => FIRST_DIRS.some((d) => t.path.includes(d)) && !namesOnly(t)), [], "the runner READ a file of the first product");
   const first = await subject(FIRST);
   const { records } = await loadRegistry(first.factsDir, first.productId);
   for (const rec of records) assert.ok(!r.stdout.includes(rec.id), `the runner printed first-product record ${rec.id}`);

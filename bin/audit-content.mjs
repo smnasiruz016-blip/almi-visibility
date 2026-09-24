@@ -43,7 +43,7 @@ const corpusDir = arg("corpus", null);
 const out = confineToRepo(arg("out", `${REPO}runs/audit/content-findings.jsonl`), { label: "--out" });
 const openedAt = new Date().toISOString();
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/audit-content.mjs", governed: true, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.evidenceStore(), RESOURCES.operatorDirectory("--corpus")] });
+const SCOPE = scopedEntryPoint({ entry: "bin/audit-content.mjs", governed: true, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.evidenceStore(), RESOURCES.inputPath(corpusDir, "--corpus")] });
 
 const crawl = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll();
 const observations = crawl.filter((r) => r.record_type === "observation" && !r.value?.skipped);

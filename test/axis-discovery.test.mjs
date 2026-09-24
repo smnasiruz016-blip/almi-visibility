@@ -15,10 +15,10 @@ import { createJsonlStore } from "../src/evidence/store.mjs";
 import { readBodyArchive } from "../src/evidence/body-archive.mjs";
 import { row6, readDeclaredAxes, contractAxes } from "../src/discovery/row6.mjs";
 import { axisErrors, verdictOf, demandDistribution, MIN_ROWS_PER_COUNTRY } from "../src/discovery/axis-discovery.mjs";
-import { LEXICON } from "../config/discovery/intent-lexicon.mjs";
+import { LEXICON } from "../subjects/almiworld-estate/config/intent-lexicon.mjs";
 import { INTENT_REFERENCE, AMBIGUOUS, REFERENCE_STATUS } from "../config/discovery/intent-reference.mjs";
 import { syntheticCorpus } from "./support/synthetic-queries.mjs";
-import { AXIS_SPECS, SIBLING_FAMILIES, HARD_CODED_PATTERNS } from "../config/discovery/axis-candidates.mjs";
+import { AXIS_SPECS, SIBLING_FAMILIES, HARD_CODED_PATTERNS } from "../subjects/almiworld-estate/config/axis-candidates.mjs";
 import { batchFile } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");

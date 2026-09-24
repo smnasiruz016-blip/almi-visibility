@@ -22,7 +22,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { productionEntryPoints } from "../src/entry-points.mjs";
+import { productionEntryPoints, isLibraryModule } from "../src/entry-points.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const git = (...a) => execFileSync("git", ["-C", REPO, ...a], { encoding: "utf8", maxBuffer: 1 << 28 });
@@ -36,7 +36,7 @@ export const FAMILIES = Object.freeze({
    * load (bin/checklist-boundaries.mjs quotes "runs/evidence" in a sentence of its generated text). */
   EVIDENCE: { resource: "evidenceStore", re: /["']evidence\.jsonl["']|["']robots\.jsonl["']|["']runs["']\s*,\s*["']evidence["']|["'`](\$\{\w+\})?\.?\/?runs\/evidence[^"'`\s]*["'`]/ },
   COST: { resource: "costLedger", re: /\bcreateCostLedger\(|["']ledger\.jsonl["']|["']actions-runs\.jsonl["']|["']runs["']\s*,\s*["']cost["']|["'`](\$\{\w+\})?\.?\/?runs\/cost[^"'`\s]*["'`]/ },
-  READS: { resource: "runArtefacts|operatorDirectory|siteOrigin", re: /(?!)/ },
+  READS: { resource: "runArtefacts|inputPath|siteOrigin", re: /(?!)/ },
   CACHE: { resource: "cache", re: /\/_[a-z-]*-cache\b|\bcreateFactCache\(|\bcreateRobotsCache\(/ },
   /* F01's declaration store: every reader joins DECLARATIONS_DIR (src/intake/store.mjs). */
   DECLARATIONS: { resource: "tenantPartition", re: /\bDECLARATIONS_DIR\b|\btenantsDir\(/ },
@@ -52,7 +52,7 @@ export const FAMILIES = Object.freeze({
  * NOT_TENANT_GOVERNED. So a read is now any call of a read primitive, and it is GLOBAL only when its line names a
  * GLOBAL target: engine configuration, the engine's own source, governance records, the audit trail, or git objects.
  * Everything else — run artefacts, external roots, operator paths, the network — is the READS family, and needs a
- * named resource (runArtefacts / operatorDirectory) like any other.
+ * named resource (runArtefacts / inputPath) like any other.
  */
 export const READ_PRIMITIVE = /\b(readFileSync|readdirSync|createJsonlStore|fetch|readTree|readArchivedPages|readBodyArchive|statSync)\(/;
 export const GLOBAL_TARGET = /\.mjs["'`]\)|endsWith\(["']\.mjs["']\)|config\/|["']config["']|AUTHORITY_CORPUS|CORPUS_PROVENANCE|_handoffs|governance-?[Rr]oot|govRoot|audit-trail|AUDIT_STORE|["'](bin|src|test|tools)["']|\bREPO\s*,\s*["'](bin|src|test|tools)|import\.meta\.url|package\.json|\.github|CHECKLIST_|PASS_BOUNDARIES|KEY_FEATURE_CHECKLIST|\bgit\(|execFileSync\(\s*["']git/;
@@ -111,7 +111,7 @@ const codeLines = (text) => text.split("\n").map((l, i) => ({ line: i + 1, text:
 
 /** src/ functions that reach a family, to a fixed point. Returns name → Set(family). */
 export function derivedFamilyReaders({ files = null, read = null } = {}) {
-  const list = files ?? git("ls-files", "src").split("\n").filter((f) => f.endsWith(".mjs"));
+  const list = files ?? git("ls-files", "src", "subjects").split("\n").filter(isLibraryModule);
   const readText = read ?? ((f) => readFileSync(join(REPO, f), "utf8"));
   const fns = [];
   for (const file of list) {

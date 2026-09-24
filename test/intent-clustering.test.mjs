@@ -14,6 +14,10 @@
  *          (lexicon law), 7104 (operator forms). A synthetic test proves a mechanism, never real-world effectiveness.
  */
 import test from "node:test";
+import { declaredWorld } from "./helpers/declared-world.mjs";
+/* F02: every entry point decides its tenant first — the runs below go through a DECLARED FIXTURE WORLD (never the real population). */
+const WORLD = declaredWorld();
+process.on("exit", () => WORLD.cleanup());
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -24,7 +28,7 @@ import { createJsonlStore } from "../src/evidence/store.mjs";
 import { row5, QUERY_OBSERVATION } from "../src/discovery/row5.mjs";
 import { splitPopulation, populationErrors, operatorKind, hasOperatorSyntax } from "../src/discovery/query-population.mjs";
 import { clusteringErrors, heldOutCheck, buildRecord, isHeldOut, lexiconWordsAbsentFrom, normalise, sha, REFERENCE_REFUSALS } from "../src/discovery/intent-clusters.mjs";
-import { LEXICON } from "../config/discovery/intent-lexicon.mjs";
+import { LEXICON } from "../subjects/almiworld-estate/config/intent-lexicon.mjs";
 import { INTENT_REFERENCE, AMBIGUOUS, REFERENCE_STATUS } from "../config/discovery/intent-reference.mjs";
 import { syntheticCorpus, EVIDENCE_CLASS } from "./support/synthetic-queries.mjs";
 
@@ -90,7 +94,7 @@ test("🔴 REAL — the retired reference holds no expected answer; its first-wr
 });
 
 test("🔴 REAL — the acceptance command exits non-zero and names the refusal, from the production path", () => {
-  const run = spawnSync(process.execPath, [join(REPO, "bin", "intent-clusters.mjs"), "--check"], { encoding: "utf8" });
+  const run = spawnSync(process.execPath, WORLD.argv([join(REPO, "bin", "intent-clusters.mjs"), "--check", "--subject=almiworld-estate"]), { encoding: "utf8", env: WORLD.envWith() });
   assert.equal(run.status, 1);
   assert.match(run.stdout, /SCORING REFUSED: HELD_OUT_REFERENCE_RETIRED/);
   assert.match(run.stdout, /NOT MEASURED — HELD_OUT_REFERENCE_RETIRED/);

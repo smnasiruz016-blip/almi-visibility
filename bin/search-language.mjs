@@ -38,7 +38,7 @@ if (process.argv.includes("--json")) {
 }
 
 const walk = (dir, rel) => readdirSync(dir).flatMap((n) => (statSync(join(dir, n)).isDirectory() ? walk(join(dir, n), `${rel}${n}/`) : n.endsWith(".mjs") ? [`${rel}${n}`] : []));
-const sources = new Map([...walk(join(REPO, "src"), "src/"), ...walk(join(REPO, "bin"), "bin/")].map((f) => [f, readFileSync(join(REPO, f), "utf8")]));
+const sources = new Map([...walk(join(REPO, "src"), "src/"), ...walk(join(REPO, "bin"), "bin/"), ...walk(join(REPO, "subjects"), "subjects/")].map((f) => [f, readFileSync(join(REPO, f), "utf8")]));
 const census = keywordUrlCensus(sources);
 const lexiconRefs = forbiddenReferences(sources.get("src/discovery/search-language.mjs"), ["intent-lexicon", "intent-reference"]);
 const errors = searchLanguageErrors({ records: result.records, storeRecords });

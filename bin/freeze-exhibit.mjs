@@ -45,7 +45,7 @@ const permission = announceWritePermission(writePermission({ target: LOCAL, argv
 const FREEZE_INSTANT = governedInstant(Date.now());
 const FREEZE_CORRELATION = `run:freeze-exhibit:${FREEZE_INSTANT}`;
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/freeze-exhibit.mjs", governed: true, resources: [RESOURCES.operatorDirectory("--spec")] });
+const SCOPE = scopedEntryPoint({ entry: "bin/freeze-exhibit.mjs", governed: true, resources: [RESOURCES.inputPath(specPath, "--spec")] });
 /* One governed write per target. The bare mkdirs are gone: each write's prepare step creates its directory. A
  * Buffer is hashed RAW and a string by the text rule — the rule is chosen by what is handed in, never assumed. */
 const freezeWrite = (target, bytes, action) => {

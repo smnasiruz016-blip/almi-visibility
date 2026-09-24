@@ -31,7 +31,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join, posix } from "node:path";
-import { productionEntryPoints } from "../src/entry-points.mjs";
+import { productionEntryPoints, isLibraryModule } from "../src/entry-points.mjs";
 import { AUDIT_STORE_ONLY_PRIMITIVES, verifyRegistry, verifiedPrimitives, splitTopLevel } from "./audit-store-primitives.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -58,7 +58,7 @@ export const BOUNDARY_MODULE_DIR = "src/governance/";
 const APPEND_ON_STORE = /\b[\w$]+\??\.(append|appendIfNew|appendWithoutDedupe|appendAllWithoutDedupe)\(/;
 
 export function derivedWriterExports({ files = null, read = null } = {}) {
-  const list = files ?? execFileSync("git", ["-C", REPO, "ls-files", "src"], { encoding: "utf8" }).split("\n").filter((f) => f.endsWith(".mjs"));
+  const list = files ?? execFileSync("git", ["-C", REPO, "ls-files", "src", "subjects"], { encoding: "utf8" }).split("\n").filter(isLibraryModule);
   const readText = read ?? ((f) => readFileSync(join(REPO, f), "utf8"));
   const fns = [];
   for (const file of list) {

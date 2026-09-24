@@ -125,13 +125,13 @@ export const REFUTATION_REGISTER = Object.freeze({
     "official-source-contradicts-itself": r(
       "a dated re-read of the official source records that its statements agree, or that one of them was withdrawn",
       "human-verification",
-      "a named person re-reads the source; bin/verification-issues.mjs records the reading",
+      "a named person re-reads the source; the subject package's verification-issues tool records the reading",
       "void when a dated re-read records agreement or withdrawal",
     ),
     "commencement-date-ambiguous-against-source": r(
       "a dated re-read of the source records one unambiguous commencement date",
       "human-verification",
-      "a named person re-reads the source; bin/verification-issues.mjs records the reading",
+      "a named person re-reads the source; the subject package's verification-issues tool records the reading",
       "void when a dated re-read records a single date",
     ),
   }),

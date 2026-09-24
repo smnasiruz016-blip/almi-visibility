@@ -36,7 +36,7 @@ const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, 
 const RUN_INSTANT = isoSeconds(Date.now());
 const RUN_CORRELATION = `run:measure-text-kind:${RUN_INSTANT}`;
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/measure-text-kind.mjs", governed: true, resources: [RESOURCES.operatorDirectory("--corpus")] });
+const SCOPE = scopedEntryPoint({ entry: "bin/measure-text-kind.mjs", governed: true, resources: [RESOURCES.inputPath(corpusDir, "--corpus")] });
 if (!corpusDir || !existsSync(corpusDir)) {
   console.error("usage: node bin/measure-text-kind.mjs --corpus <dir> [--out file.json] [--confirm]");
   process.exit(2);

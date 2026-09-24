@@ -23,6 +23,8 @@ import { subjectRoots, availableSubjects, importSubjectModule } from "../subject
 import { factRegistryRef } from "./refs.mjs";
 import { batchJsonlFiles } from "../crawl/observation-batch.mjs";
 import { createJsonlStore } from "../evidence/store.mjs";
+import { relative, resolve as resolvePath, sep, isAbsolute } from "node:path";
+import { ENGINE } from "../subject-roots.mjs";
 
 export const TENANT_ARG = "tenant";
 /** The exit code of a run refused on tenant scope — distinct from a check failure (1) and a usage error (2). */
@@ -46,19 +48,36 @@ export const RESOURCES = Object.freeze({
   costLedger: (name = "cost-ledger") => ({ label: "cost ledger", resourceKind: "COST_LEDGER", resourceRef: name, scopeClass: "TENANT" }),
   cache: (name) => ({ label: "cache", resourceKind: "CACHE_STORE", resourceRef: name, scopeClass: "TENANT" }),
   captures: (name = "page-capture-set") => ({ label: "page captures", resourceKind: "CAPTURE_SET", resourceRef: name, scopeClass: "TENANT" }),
-  research: (name = "research-batch-set") => ({ label: "research batch", resourceKind: "RESEARCH_BATCH", resourceRef: name, scopeClass: "TENANT" }),
-  operatorDirectory: (name = "operator-chosen directory") => ({ label: "operator-chosen directory", resourceKind: null, resourceRef: name, scopeClass: "TENANT" }),
-  productDescriptor: (name) => ({ label: "product descriptor", resourceKind: null, resourceRef: name, scopeClass: "TENANT" }),
-  runArtefacts: (name = "run-artefact-set") => ({ label: "run artefacts", resourceKind: null, resourceRef: name, scopeClass: "TENANT" }),
+  /** A named set of run stores an entry point reads (its findings, results, corpora): declared by that name. */
+  runArtefacts: (name) => ({ label: "run artefacts", resourceKind: "RUN_STORE", resourceRef: name, scopeClass: "TENANT" }),
+  /**
+   * A path an operator ASKED the run to read (--corpus, --spec, --store …). 🔴 Its ref is the PATH ITSELF — engine-relative
+   * with "/", or absolute — never the flag's name: a declaration of "--corpus" would cover any corpus anyone passed, which
+   * is an operator-chosen scope. A declaration must attach this exact path. No path given: nothing is read from it, and
+   * the resource is absent (null) — the run is still decided for its requested tenant (src/governance/scoped-entry.mjs).
+   */
+  inputPath: (path, label) => (typeof path === "string" && path !== "" ? { label: `input path ${label}`, resourceKind: "INPUT_PATH", resourceRef: inputPathRef(path), scopeClass: "TENANT" } : null),
   /** A store partitioned BY the declared tenant id (F01's declaration store): its partition key is the declaration. */
   tenantPartition: (tenantId, name = "declaration store") => ({ label: `${name} partition`, resourceKind: "TENANT_PARTITION", resourceRef: tenantId, scopeClass: "TENANT" }),
-  /** A fact registry located from its directory under the external root that holds it (factRegistryRef's rule). */
+  /**
+   * A fact registry located from its directory under the root that holds it (factRegistryRef's rule). A registry in the
+   * engine's own FIXTURES root (the neutral declared test products) is named with that root's id as a prefix —
+   * "engine-fixtures:<id>/facts" — so it can never be mistaken for an external registry of the same relative path.
+   */
   factRegistryAt: (factsDir, { env = process.env } = {}) => {
-    const root = typeof factsDir === "string" ? subjectRoots(env).filter((r) => r.kind === "external").find((r) => factsDir.startsWith(r.path)) : null;
+    const root = typeof factsDir === "string" ? subjectRoots(env).find((r) => factRegistryRef({ factsDir, rootPath: r.path })) : null;
     const ref = root ? factRegistryRef({ factsDir, rootPath: root.path }) : null;
-    return { label: "fact registry", resourceKind: ref ? "FACT_REGISTRY" : null, resourceRef: ref?.resourceRef ?? "registry-outside-every-declared-root", scopeClass: "TENANT" };
+    const resourceRef = ref ? (root.kind === "fixtures" ? `${root.id}:${ref.resourceRef}` : ref.resourceRef) : "registry-outside-every-declared-root";
+    return { label: "fact registry", resourceKind: ref ? "FACT_REGISTRY" : null, resourceRef, scopeClass: "TENANT" };
   },
 });
+
+/** An INPUT_PATH ref: engine-relative with "/" when inside the engine, else the absolute path with "/". */
+export function inputPathRef(p) {
+  const abs = resolvePath(p);
+  const rel = relative(ENGINE, abs);
+  return (rel !== "" && !rel.startsWith("..") && !isAbsolute(rel) ? rel : abs).split(sep).join("/");
+}
 
 /** Distinct SITE_ORIGIN members from identity URLs. An unreadable container yields one UNKNOWN-making member, never []. */
 function memberOrigins(urlsOf) {

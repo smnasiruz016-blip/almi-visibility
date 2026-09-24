@@ -13,6 +13,17 @@ import { execFileSync } from "node:child_process";
 
 const ENGINE_ROOT = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 export const SUBJECT_TOOL = /^subjects\/[a-z0-9]+(?:-[a-z0-9]+)*\/tools\/[^/]+\.mjs$/;
+/** Is this repository-relative path a production entry point? The one predicate every census uses. */
+export const isEntryPoint = (path) => typeof path === "string" && (/^bin\/[^/]+\.mjs$/.test(path) || SUBJECT_TOOL.test(path));
+/**
+ * The LIBRARY modules a census derives functions from: src/ and each subject package's modules — never an entry point.
+ * An entry point is a script: its local helpers are callable by nothing else, and a name-keyed derivation that read them
+ * would lend a script's `must` or `words` to every src/ function that happens to share the name (measured 24 Sep 2026:
+ * 13 src/ functions became "readers" that way). bin/ was never in these populations for the same reason.
+ */
+export const isLibraryModule = (path) => typeof path === "string" && path.endsWith(".mjs") && (path.startsWith("src/") || (/^subjects\/[^/]+\//.test(path) && !SUBJECT_TOOL.test(path)));
+/** The engine's own code, where a census means "production source": the shared engine plus the subject packages. */
+export const ENGINE_CODE_DIRS = Object.freeze(["src", "bin", "tools", "config", "subjects"]);
 
 /** @returns {string[]} repository-relative paths, sorted: bin/ first, then subject tools. */
 export function productionEntryPoints({ repo = ENGINE_ROOT } = {}) {

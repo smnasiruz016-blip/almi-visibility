@@ -42,13 +42,13 @@ import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
-/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/supply-labels.mjs", governed: true, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.operatorDirectory("--corpus")] });
 const arg = (n, d) => {
   const hit = process.argv.find((a) => a.startsWith(`--${n}=`));
   return hit ? hit.slice(n.length + 3) : d;
 };
 const CORPUS = arg("corpus", null);
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/supply-labels.mjs", governed: true, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.inputPath(CORPUS, "--corpus"), RESOURCES.inputPath(arg("crawl", null), "--crawl")] });
 const CRAWL = arg("crawl", batchFile("first-real-crawl-2026-09-12.jsonl"));
 /* 🔴 GAP 2 — confined BEFORE anything is read, and DRY-RUN BY DEFAULT. Until 16 September 2026 this
  * appended its findings on every run, with no flag and no gate: the shape that rewrote committed

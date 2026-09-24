@@ -39,7 +39,7 @@ const derive = (id) => {
 };
 const RETIRED = REG.find((e) => e.role === "RETIRED_CONTAMINATED");
 const FILES = trackedFiles(REPO);
-const PROD = FILES.filter((p) => /^(src|bin|tools|config)\/.*\.mjs$/.test(p)).map((p) => readFileSync(join(REPO, p), "utf8"));
+const PROD = FILES.filter((p) => /^(src|bin|tools|config|subjects)\/.*\.mjs$/.test(p)).map((p) => readFileSync(join(REPO, p), "utf8"));
 const EVAL = HELD_OUT_EVALUATORS.map((p) => readFileSync(join(REPO, p), "utf8"));
 
 /* ═════════ REAL — THE TREE IS CLEAN ═════════ */
@@ -238,7 +238,7 @@ test("REAL — the synthetic fixture generator is registered SYNTHETIC_TEST_FIXT
   const IMPORTS_FIXTURE = /(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)["'`][^"'`]*support\/synthetic-queries(?:\.mjs)?["'`]/;
   assert.ok(IMPORTS_FIXTURE.test('import { syntheticCorpus } from "../test/support/synthetic-queries.mjs";') && IMPORTS_FIXTURE.test('await import("../test/support/synthetic-queries.mjs")'), "control: the import shape fires");
   assert.equal(IMPORTS_FIXTURE.test('resource: { root: "engine", path: "test/support/synthetic-queries.mjs" }'), false, "control: a declared path is not an import");
-  const prodFiles = FILES.filter((x) => /^(src|bin|tools|config)\/.*\.mjs$/.test(x));
+  const prodFiles = FILES.filter((x) => /^(src|bin|tools|config|subjects)\/.*\.mjs$/.test(x));
   assert.ok(prodFiles.length > 100, `only ${prodFiles.length} production modules`);
   for (const p of prodFiles) assert.equal(IMPORTS_FIXTURE.test(readFileSync(join(REPO, p), "utf8")), false, p);
 });

@@ -176,6 +176,8 @@ for (const [job, file] of [
   ["bin/audit-technical.mjs", "idempotency-double-run-technical-2026-09-12.json"],
   ["bin/audit-content.mjs", "idempotency-double-run-content-2026-09-12.json"],
   // 13 Sep 2026 — the two remaining issue writers, run twice offline into one store.
+  // 🔴 RECORDED EVIDENCE IS IMMUTABLE: this run was recorded on 13 Sep under the tool's path of that day. The tool now lives
+  // in its subject package (F02 relocation, 24 Sep 2026); the evidence is not rewritten to follow it.
   ["bin/verification-issues.mjs", "idempotency-double-run-verification-2026-09-13.json"],
   ["bin/supply-labels.mjs", "idempotency-double-run-supply-labels-2026-09-13.json"],
 ]) {

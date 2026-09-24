@@ -18,10 +18,12 @@ import { readFileSync } from "node:fs";
 import { scopedEntryPoint } from "../../../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../../../src/tenancy/scoped-run.mjs";
 
-/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/profession-census.mjs", governed: false, resources: [RESOURCES.operatorDirectory("a connected product's repository files")] });
+const ORGANISATIONS = "C:/Projects/almi-oet/src/lib/oet-seo/organisations.json";
 
-const d = JSON.parse(readFileSync("C:/Projects/almi-oet/src/lib/oet-seo/organisations.json", "utf8"));
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/profession-census.mjs", governed: false, resources: [RESOURCES.inputPath(ORGANISATIONS, "a connected product's organisations file")] });
+
+const d = JSON.parse(readFileSync(ORGANISATIONS, "utf8"));
 const orgs = d.organisations;
 
 const types = {};

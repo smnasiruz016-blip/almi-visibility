@@ -33,7 +33,7 @@ test("F6-BOARD · F06 is VERIFIED-PASS by UNASSESSED → IN-PROGRESS → VERIFIE
   // 4/89 at F06's closure; F01 then moved under its own acceptance (24 Sep 2026) — test/f01-closure.test.mjs owns it.
   /* F04 VERIFIED-PASS on 25 Sep 2026 (movement 2 under Amendment 1, owner command 89e8664 §7) — the board reads 8/89. */
   assert.deepEqual(p.split, { UNASSESSED: 80, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 0, "BLOCKED-BY-AUTHORITY": 1, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 8 });
-  assert.equal(p.passed, 7); // F02 moved to VERIFIED-PASS on 25 Sep 2026 under its own Amendment 1 (test/f02-disposition.test.mjs owns that movement). F03 moved to VERIFIED-PASS on 25 Sep 2026 on merged main, in two movements (test/f03-closure.test.mjs owns that movement).
+  assert.equal(p.passed, 8); // F02 moved to VERIFIED-PASS on 25 Sep 2026 under its own Amendment 1 (test/f02-disposition.test.mjs owns that movement). F03 moved to VERIFIED-PASS on 25 Sep 2026 on merged main, in two movements (test/f03-closure.test.mjs owns that movement). F04 moved to VERIFIED-PASS on 25 Sep 2026 under its Amendment 1 (test/f04-amendment-zero-population.test.mjs owns that movement).
   assert.equal(p.total, 89);
   assert.deepEqual(["F05", "F07", "F08", "F40"].map((f) => DECLARED[f].state), ["VERIFIED-PASS", "VERIFIED-PASS", "VERIFIED-PASS", "BLOCKED-BY-AUTHORITY"]);
   const f06 = DECLARED.F06;
@@ -91,7 +91,7 @@ test("F6-TRAIL · each F06 movement is in the production trail EXACTLY ONCE, und
 
 test("F6-TRAIL · the board ↔ audit consistency check is clean and names F06", () => {
   const r = spawnSync(process.execPath, [join(REPO, "tools/board-audit-consistency.mjs")], { cwd: REPO, encoding: "utf8" });
-  assert.match(r.stdout, /rows needing a transition event: F01, F02, F03, F05, F06, F07, F08/); // F01 joined on 24 September 2026; F03 on 25 September 2026
+  assert.match(r.stdout, /rows needing a transition event: F01, F02, F03, F04, F05, F06, F07, F08/); // F01 joined on 24 September 2026; F03 on 25 September 2026; F04 on 25 September 2026
   assert.match(r.stdout, /consistency errors\s*: 0/);
-  assert.match(r.stdout, /F-progress \(computed from the board file\): 7\/89/); // 4/89 at F06's closure; F01 moved on 24 Sep; F02 and F03 on 25 Sep (measured 7/89 on the F03 closure tree)
+  assert.match(r.stdout, /F-progress \(computed from the board file\): 8\/89/); // 4/89 at F06's closure; F01 moved on 24 Sep; F02 and F03 on 25 Sep (measured 7/89 on the F03 closure tree); F04 on 25 Sep (8/89)
 });

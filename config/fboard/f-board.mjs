@@ -53,7 +53,7 @@ export const DECLARED = Object.freeze({
   F02: Object.freeze({
     featureId: "F02",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       // The acceptance was committed ALONE in the governance repository (3ea6fda) before any F02 engine change.
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-24", ruling: F02_ORIGINAL.ruling, contractSha256: F02_ORIGINAL.contractSha256 }),
@@ -71,6 +71,22 @@ export const DECLARED = Object.freeze({
       /* Amendment 1, committed ALONE (ad14a64) under the owner's disposition ruling (1145012, Decision 3): the learning
        * population is deferred to F79. It names, by both hashes, the freeze it amends. */
       Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F02", on: "2026-09-25", ruling: ACCEPTANCES.F02.ruling, contractSha256: ACCEPTANCES.F02.contractSha256, amends: ACCEPTANCES.F02.amends }),
+      /* Earned under Amendment 1 on the REAL populations (test/f02-disposition.test.mjs and the F02 proofs before it). The
+       * two learning rows are DEFERRED-TO-F79, not proved; the whole-collection retirement is the data precondition, and
+       * test D8 turns red while any shared collection is still attached whole in the current declarations. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F02",
+        population: "REAL",
+        on: "2026-09-25",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        reason: "EVERY_CURRENT_CLAUSE_PROVED_ON_REAL_POPULATIONS_UNDER_AMENDMENT_1",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F02.ruling.sha256, contract: ACCEPTANCES.F02.contractSha256 }),
+        deferredToF79: Object.freeze(["real learning write evidence", "real learning reuse evidence"]),
+        dataPrecondition: "almi-visibility-data: the whole crawl-batch and sitemap-collection attachments retired (owner ruling 1145012, Decision 2)",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-25_F02_DISPOSITION.md", commit: "ab2dfd80b6c9b0fd1ab6c290924dcd25827e86dc" }),
+      }),
     ]),
   }),
   F05: Object.freeze({

@@ -139,12 +139,12 @@ test("P5 · F40's board entry is BYTE-IDENTICAL to its state at the merged SHA",
  * UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS on 23 September 2026 in its own pull request. It is admitted here only
  * because it EARNED the movement — its own acceptance, a REAL verification under its own id, and the transition in the
  * production trail. Any other row that moves still fires this proof. */
-const MOVED_SINCE = Object.freeze({ F01: "VERIFIED-PASS", F06: "VERIFIED-PASS", F07: "VERIFIED-PASS" }); // F06 moved on 24 September 2026 under its own acceptance, and F01 the same day under its own; each is admitted by the same earned-movement check.
+const MOVED_SINCE = Object.freeze({ F01: "VERIFIED-PASS", F02: "VERIFIED-PASS", F06: "VERIFIED-PASS", F07: "VERIFIED-PASS" }); // F02 moved on 25 September 2026 under its own Amendment 1; // F06 moved on 24 September 2026 under its own acceptance, and F01 the same day under its own; each is admitted by the same earned-movement check.
 
 /* 🔴 A ROW THAT STARTED, UNDER ITS OWN FROZEN ACCEPTANCE, is admitted too — and only by the same three facts: the
  * acceptance exists, the row's own IMPLEMENTATION event records UNASSESSED -> IN-PROGRESS, and that transition is in the
  * production trail. F02 started on 24 September 2026 (acceptance 3ea6fda, committed alone before any engine change). */
-const STARTED_SINCE = Object.freeze({ F02: "IN-PROGRESS" });
+const STARTED_SINCE = Object.freeze({}); // F02 started here on 24 Sep and then EARNED VERIFIED-PASS on 25 Sep — see MOVED_SINCE.
 
 test("P6 · every feature other than F08 holds exactly the state it held at the merged SHA, save rows that EARNED a later movement", () => {
   const now = board();

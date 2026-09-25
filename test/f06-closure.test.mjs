@@ -31,8 +31,8 @@ test("F6-BOARD · F06 is VERIFIED-PASS by UNASSESSED → IN-PROGRESS → VERIFIE
   assert.deepEqual(boardErrors(b, ctx), []);
   const p = progress(b);
   // 4/89 at F06's closure; F01 then moved under its own acceptance (24 Sep 2026) — test/f01-closure.test.mjs owns it.
-  assert.deepEqual(p.split, { UNASSESSED: 82, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 1, "BLOCKED-BY-AUTHORITY": 1, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 5 });
-  assert.equal(p.passed, 5);
+  assert.deepEqual(p.split, { UNASSESSED: 82, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 0, "BLOCKED-BY-AUTHORITY": 1, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 6 });
+  assert.equal(p.passed, 6); // F02 moved to VERIFIED-PASS on 25 Sep 2026 under its own Amendment 1 (test/f02-disposition.test.mjs owns that movement).
   assert.equal(p.total, 89);
   assert.deepEqual(["F05", "F07", "F08", "F40"].map((f) => DECLARED[f].state), ["VERIFIED-PASS", "VERIFIED-PASS", "VERIFIED-PASS", "BLOCKED-BY-AUTHORITY"]);
   const f06 = DECLARED.F06;

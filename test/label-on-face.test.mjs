@@ -142,7 +142,7 @@ test("🔴 A DATE EXEMPTION STORES, IT DOES NOT LABEL — a pre-contract record 
 /* ═════════ THE REAL REGISTRY ═════════ */
 
 test("🟢 REAL — the production loader and census: 36 governed, 8 LABELLED, 28 UNLABELLED, 1 derived apart, remainder 0 — Row 50 FAILS on a label that is absent", async () => {
-  const product = await productFromArgv(["--product=almi-oet"]);
+  const product = await productFromArgv(["--product=almi-oet"], { scope: (await import("./support/subjects.mjs")).subjectScope("almi-oet") });
   const { records } = await loadRegistry(product.factsDir, product.productId);
   const root = externalRootContaining(product.factsDir, process.env);
   const subject = { ...factRegistryRef({ factsDir: product.factsDir, rootPath: root.path }), evidenceClass: "REAL" };
@@ -166,7 +166,7 @@ test("🔴 row 50 stays FAILED with blocker PRODUCT_DATA_JUDGEMENT_DEFERRED_TO_S
   assert.equal(row.ruling, "_handoffs/AlmiVisibility_OWNER_DECISION_2026-09-22_ROW50_PRODUCT_BOUNDARY.md");
   assert.ok(row.unlockCondition.includes("_handoffs/AlmiVisibility_ROW50_EXIT_C_JUDGEMENT_PACKET_2026-09-22.md"), "the preserved packet is not named");
   assert.deepEqual(tally(classify()), { "NOT-STARTED": 2, "BUILT-NOT-PROVED": 4, "TESTABLE-NOW": 0, "VERIFIED-PASS": 27, FAILED: 3, "BLOCKED-UNKNOWN": 2, DEFERRED: 23 });
-  const P = await productFromArgv(["--product=almi-oet"]);
+  const P = await productFromArgv(["--product=almi-oet"], { scope: (await import("./support/subjects.mjs")).subjectScope("almi-oet") });
   const { records } = await loadRegistry(P.factsDir, P.productId);
   const pair1 = records.find((r) => r.id === "ie-nmbi.oet-minimum-grade.profession=nursing");
   assert.deepEqual(pair1.claimElements, ["listening-grade-b", "reading-grade-b", "speaking-grade-b", "writing-grade-c-plus"], "an element was added to obtain a label");

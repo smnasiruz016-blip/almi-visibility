@@ -280,6 +280,10 @@ test("🔴 THE BATCH REFUSES RATHER THAN SHORTENS — absent, tampered and misco
   try {
     const env = { [SUBJECT_ROOTS_ENV]: root };
     assert.throws(() => readReasoningBatch({ batchId: "capture-0001", env }), /REASONING_BATCH_UNAVAILABLE/);
+    /* F03: a root that DECLARES no research store is refused (above); declared, but without the batch, still UNAVAILABLE */
+    mkdirSync(join(root, "research"), { recursive: true });
+    (await import("./helpers/root-registry.mjs")).declareRoot(root, { stores: { RESEARCH: "research" } });
+    assert.throws(() => readReasoningBatch({ batchId: "capture-0001", env }), /REASONING_BATCH_UNAVAILABLE: 'capture-0001' is not in the declared RESEARCH store/);
     const dir = join(root, "research", "capture-0001");
     mkdirSync(dir, { recursive: true });
     const text = `${JSON.stringify({ record_type: "observation", observation_id: "a" })}\n`;

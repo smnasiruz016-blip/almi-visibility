@@ -31,7 +31,8 @@ import { createHash } from "node:crypto";
 import { measureExistingPages } from "./existing-pages.mjs";
 import { bindClaim, sourceKey } from "./claim-binding.mjs";
 import { bindResources } from "../tenancy/attachment.mjs";
-import { subjectRoots } from "../subject-roots.mjs";
+import { rootIndexFor } from "../tenancy/resolver.mjs";
+import { lookupStore } from "../tenancy/root-registry.mjs";
 
 export const DEFERRED_LIMBS = Object.freeze([
   Object.freeze({ limb: "right-to-exist", state: "DEFERRED", authority: "PASS_BOUNDARIES_SOURCE.md:326", as: "pre-publish gate — needs a publish path" }),
@@ -161,13 +162,17 @@ export function liveControls({ fact }) {
 }
 
 /**
- * Read a manifest-pinned capture of real pages from the declared external roots. It refuses rather than shortens: a
- * capture in no root or two roots, a file the manifest does not declare, or a byte that disagrees with its sha256 throws.
+ * Read a manifest-pinned capture of real pages from the declared CAPTURES store. It refuses rather than shortens: a
+ * store that is undeclared, declared twice or unreadable, a capture absent from it, a file the manifest does not declare,
+ * or a byte that disagrees with its sha256 throws.
+ * 🔴 F03: the store is the CAPTURES store a root registry declares — the engine no longer probes roots for `captures/`.
  */
 export function readPageCapture({ captureId, env = process.env }) {
-  const found = subjectRoots(env).filter((r) => r.kind === "external").map((r) => join(r.path, "captures", captureId)).filter((d) => existsSync(d));
-  if (found.length !== 1) throw new Error(`PAGE_CAPTURE_${found.length === 0 ? "UNAVAILABLE" : "AMBIGUOUS"}: '${captureId}' found in ${found.length} declared roots`);
-  const dir = found[0];
+  const store = lookupStore(rootIndexFor(env), "CAPTURES");
+  if (store.state !== "DECLARED") throw new Error(`PAGE_CAPTURE_${store.state === "AMBIGUOUS" ? "AMBIGUOUS" : "UNAVAILABLE"}: the CAPTURES store is ${store.state} (${store.reason})`);
+  if (typeof captureId !== "string" || !/^[a-z0-9][a-z0-9-]*$/.test(captureId)) throw new Error("PAGE_CAPTURE_INVALID: a capture id is lowercase letters, digits and hyphens only");
+  const dir = join(store.dir, captureId);
+  if (!existsSync(dir)) throw new Error(`PAGE_CAPTURE_UNAVAILABLE: '${captureId}' is not in the declared CAPTURES store`);
   const manifest = JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8"));
   const declared = new Map((manifest.pages ?? []).map((p) => [p.file, p]));
   const onDisk = readdirSync(dir).filter((f) => f !== "manifest.json");

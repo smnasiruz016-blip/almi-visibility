@@ -224,7 +224,7 @@ test("🔴 R4 · 11 · no regression — a pre-contract verification is judged e
   assert.deepEqual([j.decision, j.contract, j.dimensions, [...j.reasons]], ["ADVANCED_ON_NEW_MEASUREMENT", "PRE_CONTRACT", null, []]);
   assert.deepEqual(lawsOf(before), []);
 
-  const product = await productFromArgv(["--product=almi-oet"]);
+  const product = await productFromArgv(["--product=almi-oet"], { scope: (await import("./support/subjects.mjs")).subjectScope("almi-oet") });
   const { records } = await loadRegistry(product.factsDir, product.productId);
   const v = validateRegistry(records);
   assert.equal(v.valid, true, JSON.stringify(v.registryErrors.concat(v.invalidRecords), null, 1));

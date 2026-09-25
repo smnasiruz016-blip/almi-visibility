@@ -130,7 +130,9 @@ function countOccurrences(haystack, needle) {
  * a source that declines automated access has declined it, and the answer is to
  * record the cost rather than route around the refusal.
  */
-export async function fetchForMatch(url, { timeoutMs = 20_000, fetchImpl = fetch } = {}) {
+export async function fetchForMatch(url, { timeoutMs = 20_000, fetchImpl } = {}) {
+  /* 🔴 F03: no default — the caller hands in an opened connector's fetch. */
+  if (typeof fetchImpl !== "function") throw new TypeError("a fetchImpl is required — an external connection is made only through a connector opened on the run's decision (src/tenancy/connectors.mjs)");
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -244,7 +246,9 @@ export function scanForThirdPartyRights(body, span = null, isOwnPublisher = (n) 
  * Run the job over a set of records. Groups by URL so one page is fetched once
  * however many claims it carries — the NMC OET page alone carries two.
  */
-export async function runQuoteMatch(records = [], { fetchImpl = fetch, now = new Date() } = {}) {
+export async function runQuoteMatch(records = [], { fetchImpl, now = new Date() } = {}) {
+  /* 🔴 F03: no default — the caller hands in an opened connector's fetch. */
+  if (typeof fetchImpl !== "function") throw new TypeError("a fetchImpl is required — an external connection is made only through a connector opened on the run's decision (src/tenancy/connectors.mjs)");
   // 🔴 EVERY MACHINE-READABLE RECORD IS NOW WATCHED, not only the quotable ones.
   // A record we may fetch and may not quote gets a FINGERPRINT check instead of
   // a quote match — same job, same four outcomes, weaker evidence, and it stores

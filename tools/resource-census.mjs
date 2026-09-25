@@ -147,7 +147,13 @@ export function gateCoverage(rows) {
         : builder === "cache" ? ids.has(`CACHE_STORE:${lit}`)
         : builder === "runArtefacts" ? ids.has(`RUN_STORE:${lit}`)
         : builder === "inputPath" ? ids.has("INPUT_PATH:(per run)")
-        : builder === "tenantPartition" ? ids.has("TENANT_PARTITION:(F01 declaration store)")
+        : builder === "tenantPartition" || builder === "declarationStore" ? ids.has("TENANT_PARTITION:(F01 declaration store)")
+        /* F03 (25 Sep 2026): a SUBJECT_ROOT resolves only through the fact registries it declares as members, and a CONNECTOR
+         * only through the resources it declares it reaches — so each is covered by those resource rows, never by a row of
+         * its own: neither is a resource a declaration can attach to a tenant. */
+        : builder === "subject" ? rows.some((r) => r.kind === "FACT_REGISTRY")
+        : builder === "connector" ? rows.some((r) => r.kind === "SITE_ORIGIN") && rows.some((r) => r.kind === "FACT_REGISTRY")
+        : builder === "researchBatch" ? ids.has("RESEARCH_BATCH:local-reasoning-2026-09-21")
         : false;
       if (covered) out.mapped += 1; else out.unmapped.push(`${file}: ${builder}(${raw})`);
     }

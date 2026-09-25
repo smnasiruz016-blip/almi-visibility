@@ -43,7 +43,7 @@
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { isPerVariant } from "../src/page/claim-placement.mjs";
 
-import { productFromArgvOrExit } from "../src/product-cli.mjs";
+import { productFromArgvOrExit, productIdOrExit } from "../src/product-cli.mjs";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
@@ -56,10 +56,12 @@ import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
  *
  * There is no default: a runner with no `--product=<id>` stops and says so.
  */
-const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/distinguishing-census.mjs --product=<id>" });
+/* 🔴 F03 — the subject's data root is decided (RESOURCES.subject) BEFORE its descriptor or any of its files is read. */
+const PRODUCT_ID = productIdOrExit(process.argv, { usage: "node bin/distinguishing-census.mjs --product=<id>" });
 
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/distinguishing-census.mjs", governed: false, resources: [RESOURCES.factRegistryAt(PRODUCT.factsDir)] });
+const SCOPE = scopedEntryPoint({ entry: "bin/distinguishing-census.mjs", governed: false, resources: [RESOURCES.subject(PRODUCT_ID)] });
+const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/distinguishing-census.mjs --product=<id>", scope: SCOPE });
 const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
 
 const variantOf = (r) => {

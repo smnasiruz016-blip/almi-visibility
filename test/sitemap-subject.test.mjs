@@ -30,6 +30,7 @@ import { judgeObservedPage, normaliseObservedUrl } from "../src/adapter/observed
 import { createTenantResolver, TENANT_ID_PATTERN } from "../src/tenancy/resolver.mjs";
 import { detectSitemapVsObserved } from "../src/detect/sitemap-observed.mjs";
 import { SUBJECT_ROOTS_ENV } from "../src/subject-roots.mjs";
+import { declareRoot } from "./helpers/root-registry.mjs";
 
 const SITE_A = "https://harbourline-registry.invalid";
 const SITE_B = "https://beacon-survey.invalid";
@@ -54,6 +55,8 @@ function syntheticRoot({ urls, attachments }) {
 
   const batchDir = join(dir, "observations", BATCH);
   mkdirSync(batchDir, { recursive: true });
+  /* F03: the synthetic root DECLARES its observations store, as the real data root does. */
+  declareRoot(dir, { stores: { OBSERVATIONS: "observations" } });
   const record = {
     record_type: "observation", observation_id: "synthetic-collection-0001",
     method: "sitemap.collect", observed_at: "2026-09-20T00:00:00.000Z",

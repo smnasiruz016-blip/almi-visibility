@@ -235,7 +235,8 @@ test("🔴 THE CLI, in a child process: a planted non-JSON key and a planted bro
        * only the destination moves, and the case still drives the CLI into the key-handling path. */
       mkdirSync(join(REPO, ".test-scratch"), { recursive: true });
       const storeDir = mkdtempSync(join(REPO, ".test-scratch", "leak-"));
-      const r = spawnSync(process.execPath, WORLD.argv(["--import", pathToFileURL(stub).href, "bin/gsc-ingest.mjs", "--property=sc-domain:example.com", `--store=${join(storeDir, "e.jsonl")}`]), {
+      /* F03: the live ingest names its subject, so it opens the SEARCH_CONSOLE_API connector whose declaration names the key variable. */
+      const r = spawnSync(process.execPath, WORLD.argv(["--import", pathToFileURL(stub).href, "bin/gsc-ingest.mjs", "--property=sc-domain:example.com", `--store=${join(storeDir, "e.jsonl")}`, WORLD.subjectArg]), {
         cwd: REPO,
         encoding: "utf8",
         env: WORLD.envWith({ ...process.env, GSC_SERVICE_ACCOUNT_KEY_FILE: key.path }),

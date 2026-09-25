@@ -40,8 +40,9 @@ import { tokensWithKind } from "../../../src/gate-a/text-kind.mjs";
 import { tokensOf } from "../../../src/gate-a/tokens.mjs";
 import { shingles, jaccard } from "../../../src/gate-a/overlap.mjs";
 import { fetchForMatch } from "../../../src/facts/quote-match.mjs";
+import { openConnector } from "../../../src/tenancy/connectors.mjs";
 
-import { productFromArgvOrExit } from "../../../src/product-cli.mjs";
+import { productFromArgvOrExit, productIdOrExit } from "../../../src/product-cli.mjs";
 import { scopedEntryPoint } from "../../../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../../../src/tenancy/scoped-run.mjs";
 
@@ -54,9 +55,11 @@ import { RESOURCES } from "../../../src/tenancy/scoped-run.mjs";
  *
  * There is no default: a runner with no `--product=<id>` stops and says so.
  */
-const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/nursing-chain.mjs --product=<id>" });
+/* 🔴 F03 — the subject's data root is decided (RESOURCES.subject) BEFORE its descriptor or any of its files is read. */
+const PRODUCT_ID = productIdOrExit(process.argv, { usage: "node bin/nursing-chain.mjs --product=<id>" });
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/nursing-chain.mjs", governed: true, resources: [RESOURCES.factRegistryAt(PRODUCT.factsDir), RESOURCES.cache("sibling-page cache"), RESOURCES.runArtefacts("live sibling pages")] });
+const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/nursing-chain.mjs", governed: true, resources: [RESOURCES.subject(PRODUCT_ID), RESOURCES.connector(PRODUCT_ID, "PUBLIC_SITE"), RESOURCES.cache("sibling-page cache"), RESOURCES.runArtefacts("live sibling pages")] });
+const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/nursing-chain.mjs --product=<id>", scope: SCOPE });
 
 const argv = process.argv.slice(2);
 // 🔴 Both destinations are confined to this repository before anything runs.
@@ -102,7 +105,8 @@ for (const p of PRODUCT.variants) {
     siblings.push({ id: p, html: readFileSync(cached, "utf8") });
     continue;
   }
-  const res = await fetchForMatch(`${SITE}/${p}`);
+  /* 🔴 F03 — a live sibling page is fetched only through the subject's PUBLIC_SITE connector. */
+  const res = await fetchForMatch(`${SITE}/${p}`, { fetchImpl: openConnector({ scope: SCOPE, subjectId: PRODUCT_ID, kind: "PUBLIC_SITE" }).fetch });
   if (!res.ok) {
     console.log(`  🔴 ${p}: ${res.detail}`);
     continue;

@@ -114,6 +114,8 @@ export function auditClassOf(decision) {
   /* F01: a decision on a SUBMITTED declaration changes what a project is on record as declaring — a governed change.
    * A validate-only check is not a submission, reaches no store, and makes no decision of this type at all. */
   if (eventType === "DECLARATION_DECISION") return "GOVERNED_CHANGE";
+  /* F03: a subject's root or a connector obtained for a run, and GRANTED — "tried to obtain it, and was granted" is ACCESS. */
+  if (eventType === "SCOPE_RESOLUTION" && (action === "RESOLVE_SUBJECT_ROOT" || action === "RESOLVE_CONNECTOR")) return "ACCESS";
   return "UNDERIVED";
 }
 export const isDurableDecision = (decision) => auditClassOf(decision) !== "CLASSIFICATION";

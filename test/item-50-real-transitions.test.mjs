@@ -46,7 +46,7 @@ const assertNoManufacturedDeclaration = (records, ownerVerified) => {
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 // The product is registered through the same entry point the CLI uses — its licence terms only exist once it is.
-const product = await productFromArgv(["--product=almi-oet"]);
+const product = await productFromArgv(["--product=almi-oet"], { scope: (await import("./support/subjects.mjs")).subjectScope("almi-oet") });
 const { records } = await loadRegistry(product.factsDir, product.productId);
 const { UNKNOWN_ON_2026_09_12 } = await (await import("./support/subjects.mjs")).subjectModule("almi-oet", "facts/_verification-baseline-2026-09-12.mjs");
 const v = validateRegistry(records);

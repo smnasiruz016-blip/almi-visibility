@@ -3,8 +3,9 @@
  *
  * ── 🔴 SECRETS: THE STANDING OWNER RULING, UNCHANGED ────────────────────────
  *
- * The key file is named by the env var GSC_SERVICE_ACCOUNT_KEY_FILE and is read
- * straight into the signer. NOTHING derived from it is printed, logged, hashed
+ * The key file's PATH is handed in by the caller, which read it from the one
+ * environment variable the connector's declaration NAMES (F03, src/tenancy/connectors.mjs:
+ * a declaration names its credential and never holds it). The file is read straight into the signer. NOTHING derived from it is printed, logged, hashed
  * or LENGTH-MEASURED — a length is a measurement of a secret and this file takes
  * none. The only identifiers that may appear in a log are the project id and the
  * property id, both of which the owner has published to us in plain text.
@@ -102,17 +103,21 @@ export function propertyCovers(propertyId, hostname) {
 
 export function createGoogleSearchConsoleProvider({
   keyFilePath,
-  fetchImpl = fetch,
+  /* 🔴 F03: no default — an opened connector's fetch, or a test's fake. */
+  fetchImpl,
   now = () => new Date(),
   // 🔴 ITEM 45 — every call this adapter issues is charged to the run's
   // governor BEFORE it is issued. The default bounds a run at
   // DEFAULT_MAX_API_CALLS_PER_RUN calls and DEFAULT_MAX_WALL_CLOCK_MS.
   governor = createCostGovernor({ label: "google-search-console ingest run" }),
 } = {}) {
-  const path = keyFilePath ?? process.env.GSC_SERVICE_ACCOUNT_KEY_FILE;
+  if (typeof fetchImpl !== "function") throw new TypeError("a fetchImpl is required — an external connection is made only through a connector opened on the run's decision (src/tenancy/connectors.mjs)");
+  /* 🔴 F03: the path comes ONLY from the caller, which read the variable its connector declaration names — this module
+   * reads no environment variable of its own and names none. */
+  const path = keyFilePath;
   if (!path) {
     throw new Error(
-      "GSC_SERVICE_ACCOUNT_KEY_FILE is not set. The adapter takes a PATH, never a key value — " +
+      "the connector's declared credential variable is not set. The adapter takes a PATH, never a key value — " +
         "a credential passed as a string ends up in shell history and process listings.",
     );
   }
@@ -135,7 +140,7 @@ export function createGoogleSearchConsoleProvider({
         try {
           key = JSON.parse(raw);
         } catch {
-          throw new Error("GSC_SERVICE_ACCOUNT_KEY_FILE does not contain valid JSON. Nothing from the file is shown: a parse error quotes the text it failed on, and that text is a secret.");
+          throw new Error("the key file named by the connector's credential does not contain valid JSON. Nothing from the file is shown: a parse error quotes the text it failed on, and that text is a secret.");
         }
         governor.charge();
         apiCalls += 1;

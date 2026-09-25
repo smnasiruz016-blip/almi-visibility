@@ -11,7 +11,8 @@ import { row5 } from "./row5.mjs";
 import { splitPopulation } from "./query-population.mjs";
 import { discoverAxes, axisErrors } from "./axis-discovery.mjs";
 import { answerEvidence } from "./answer-evidence.mjs";
-import { availableSubjects, importSubjectModule } from "../subject-roots.mjs";
+import { availableSubjects, importSubjectModule, allowsSubject } from "../subject-roots.mjs";
+import { censusSubjectScope } from "../tenancy/scoped-run.mjs";
 import { createTenantResolver } from "../tenancy/resolver.mjs";
 import { partitionRowsByDeclaredHost } from "../tenancy/row-partition.mjs";
 import { factRegistryRef, externalRootContaining } from "../adapter/external-subject.mjs";
@@ -82,14 +83,22 @@ export function siblingPairs({ bodies, crawlRecords, families }) {
 }
 
 /**
- * Every declared product's axis, read from its own descriptor (`<root>/<id>/product.mjs`, over every subject root) —
- * the axis a human chose by hand before anything ran. The engine names no product: it lists the roots and reads what
- * each declares.
+ * 🔴 F03 · the decision that lets a subject's descriptor be read: the run's own (`scope`, from its scoped entry point) when
+ * a run is given; otherwise — a read-only caller measuring every subject — the subject decided for the one tenant its own
+ * members resolve to (censusSubjectScope). Never an undecided import.
  */
-export async function readDeclaredAxes() {
+const subjectDecision = (id, scope, resolve) => ((scope ?? censusSubjectScope(id, { resolve: resolve ?? undefined })).decisions ?? []).map((d) => d?.decision).find((d) => allowsSubject(d, id)) ?? null;
+
+/**
+ * Every declared product's axis, read from its own descriptor — the axis a human chose by hand before anything ran. The
+ * engine names no product: it reads what each DECLARED subject (F03 root registries) declares, each only after a decision.
+ */
+export async function readDeclaredAxes({ scope = null, resolve = null } = {}) {
   const out = {};
   for (const id of availableSubjects()) {
-    const mod = await importSubjectModule(id, "product.mjs");
+    const decision = subjectDecision(id, scope, resolve);
+    if (!decision) continue;
+    const mod = await importSubjectModule(id, "product.mjs", { decision });
     const descriptor = Object.values(mod).find((v) => v && typeof v === "object" && v.axis?.key);
     if (descriptor) out[id] = descriptor.axis.key;
   }
@@ -108,7 +117,7 @@ export async function readDeclaredAxes() {
  * undeclared scope would make the refusal invisible, and an invisible refusal reads exactly like an
  * absence of evidence. The caller is handed the scopes and lets the gate decide.
  */
-export async function readDeclaredAnswerEvidence({ axisResourceKind, axisResourceRef, axisRows = null, env = process.env, resolve = null } = {}) {
+export async function readDeclaredAnswerEvidence({ axisResourceKind, axisResourceRef, axisRows = null, env = process.env, resolve = null, scope: runScope = null } = {}) {
   /* 🔴 THE RESOLVER IS AN INPUT, NAMED AND CORRECTLY TYPED. Building it behind the caller's back
    * would make the whole tenancy decision an undeclared dependency, and would leave the RESOLVED
    * check below with no reachable input — on the real declarations the only source that reaches it
@@ -129,7 +138,10 @@ export async function readDeclaredAnswerEvidence({ axisResourceKind, axisResourc
   const resolvedRegistries = [];
 
   for (const id of availableSubjects()) {
-    await importSubjectModule(id, "product.mjs");
+    /* 🔴 F03: a subject whose root no decision allows is not read — and says so, rather than vanishing. */
+    const decision = subjectDecision(id, runScope, resolveScope);
+    if (!decision) { sources.push({ subject: id, ref: null, state: "SUBJECT_ROOT_NOT_RESOLVED", records: 0 }); continue; }
+    await importSubjectModule(id, "product.mjs", { decision });
     let descriptor;
     try {
       descriptor = product(id);

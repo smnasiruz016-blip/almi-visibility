@@ -177,7 +177,7 @@ if (!bundlePath || !runAt) {
   const subjectBundle = async () => {
     const id = flag("subject");
     if (!id) throw new Error('--bundle=subject needs --subject=<declared product id>; there is no default subject, because a runner that picks its own measures nothing in particular');
-    const product = await productFromArgvOrExit(["node", "x", `--product=${id}`], { usage: "node bin/detect.mjs --bundle=subject --subject=<id>" });
+    const product = await productFromArgvOrExit(["node", "x", `--product=${id}`], { usage: "node bin/detect.mjs --bundle=subject --subject=<id>", scope: SCOPE });
     const subject = await readExternalSubject({ product });
     console.log(`\nEXTERNAL SUBJECT — read-only, through the declared root`);
     console.log(`  available   : ${subject.available}`);

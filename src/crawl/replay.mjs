@@ -31,6 +31,9 @@ import { buildInventory } from "./inventory.mjs";
 import { persistCrawlObservations } from "./persist.mjs";
 import { sha256Hex } from "../evidence/ids.mjs";
 
+/** The only hosts a replay may fetch from: this machine (the replay server binds 127.0.0.1). */
+const LOCAL_HOSTS = Object.freeze(["127.0.0.1"]);
+
 /**
  * The replay set: every FETCHED observation of the recorded run whose body is
  * in `corpusDir`, keyed by requested URL, with an integrity verdict per body.
@@ -104,6 +107,9 @@ export async function startReplayServer({ entries, robotsByHost, bodies }) {
  * page that redirected in the real run redirects in the replay.
  */
 export function makeReplayFetch({ origin, entries, egress, realFetch = globalThis.fetch }) {
+  /* 🔴 F03: LOCAL ONLY, ENFORCED — the replay server's own origin, never another host. Every request below is rewritten to
+   * this origin, so a non-local origin would make the replay an undeclared external connection: it is refused here. */
+  if (!LOCAL_HOSTS.includes(new URL(origin).hostname)) throw new Error("REPLAY_ORIGIN_NOT_LOCAL: a replay fetches only from this machine");
   return async (url, init = {}) => {
     const u = new URL(url);
     const local = u.pathname === "/robots.txt"

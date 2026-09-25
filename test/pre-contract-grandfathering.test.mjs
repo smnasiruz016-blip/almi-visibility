@@ -138,7 +138,7 @@ test("the five are CONJUNCTIVE — two false is still exactly one refusal, namin
 
 test("🔴 the REAL registry adjudicates with no remainder, and every regime is non-empty where it should be", async () => {
   ensureSubjectHook();
-  await importSubjectModule("almi-oet", "product.mjs");
+  await (await import("./support/subjects.mjs")).subjectModule("almi-oet", "product.mjs");
   const { product } = await import("../src/product.mjs");
   const p = product("almi-oet");
   const { records } = await loadRegistry(p.factsDir, p.productId);
@@ -157,7 +157,7 @@ test("🔴 the REAL registry adjudicates with no remainder, and every regime is 
 
 test("🔴 P9 · F31 governs the REAL production validator — proved by an input the real registry lacks", async () => {
   ensureSubjectHook();
-  await importSubjectModule("almi-oet", "product.mjs");
+  await (await import("./support/subjects.mjs")).subjectModule("almi-oet", "product.mjs");
   const { product } = await import("../src/product.mjs");
   const { validateRegistry } = await import("../src/facts/validate.mjs");
   const p = product("almi-oet");

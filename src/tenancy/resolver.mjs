@@ -39,6 +39,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { subjectRoots } from "../subject-roots.mjs";
+import { readRootIndex } from "./root-registry.mjs";
 
 /** The declaration directory inside an external root, and the two files it holds. */
 export const TENANCY_DIR = "tenancy";
@@ -145,11 +146,15 @@ export function readDeclarations({ env = process.env } = {}) {
  */
 export function createTenantResolver({ env = process.env } = {}) {
   const declarations = readDeclarations({ env });
+  /* F03: the root registries of the SAME declared roots, read in the same resolution — so a scope decision about a subject,
+   * a store or a connector (src/tenancy/scope.mjs) reads its location from the resolver it reads its tenancy from. */
+  const roots = rootIndexFor(env);
 
   if (!declarations.readable) {
     const unreadable = () => answer("UNKNOWN", null, declarations.reason, declarations.detail);
     unreadable.declarations = declarations;
     unreadable.declaredKinds = [];
+    unreadable.roots = roots;
     return unreadable;
   }
 
@@ -194,5 +199,9 @@ export function createTenantResolver({ env = process.env } = {}) {
   resolve.declarations = declarations;
   resolve.declaredKinds = [...declaredKinds].sort();
   resolve.activeTenantCount = active.size;
+  resolve.roots = roots;
   return resolve;
 }
+
+/** F03: the root index over the declared roots in force (src/tenancy/root-registry.mjs). Never throws. */
+export const rootIndexFor = (env = process.env) => readRootIndex({ roots: subjectRoots(env), resourceKinds: RESOURCE_KINDS });

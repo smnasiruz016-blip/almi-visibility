@@ -26,7 +26,7 @@ import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { loadRegistry, census, REGISTRY_FACT_CHECK_COUNT } from "../src/facts/registry.mjs";
 import { queueReason } from "../src/facts/queues.mjs";
 
-import { productFromArgvOrExit } from "../src/product-cli.mjs";
+import { productFromArgvOrExit, productIdOrExit } from "../src/product-cli.mjs";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
@@ -39,9 +39,11 @@ import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
  *
  * There is no default: a runner with no `--product=<id>` stops and says so.
  */
-const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/facts.mjs <census|validate> --product=<id>" });
+/* 🔴 F03 — the subject's data root is decided (RESOURCES.subject) BEFORE its descriptor or any of its files is read. */
+const PRODUCT_ID = productIdOrExit(process.argv, { usage: "node bin/facts.mjs <census|validate> --product=<id>" });
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/facts.mjs", governed: true, resources: [RESOURCES.factRegistryAt(PRODUCT.factsDir)] });
+const SCOPE = scopedEntryPoint({ entry: "bin/facts.mjs", governed: true, resources: [RESOURCES.subject(PRODUCT_ID)] });
+const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/facts.mjs <census|validate> --product=<id>", scope: SCOPE });
 
 const argv = process.argv.slice(2);
 const command = argv[0] ?? "census";

@@ -58,7 +58,13 @@ function world({ tenants = [TENANT_N, TENANT_A, TENANT_B], attachments = [{ kind
   mkdirSync(join(dir, "tenancy"), { recursive: true });
   writeFileSync(join(dir, "tenancy", "tenants.json"), JSON.stringify({ schemaVersion: 1, tenants: tenants.map((tenantId) => ({ schemaVersion: 1, tenantId, status: "ACTIVE", declaredOn: "2026-09-24", declarationBasis: "TEST_WORLD", label: "neutral test scope" })) }));
   writeFileSync(join(dir, "tenancy", "attachments.json"), JSON.stringify({ schemaVersion: 1, attachments: attachments.map((a) => ({ schemaVersion: 1, resourceKind: a.kind, resourceRef: a.ref, tenantId: a.tenant, declaredOn: "2026-09-24", declarationBasis: "TEST_WORLD" })) }));
-  if (root) { mkdirSync(join(dir, "declarations"), { recursive: true }); writeFileSync(join(dir, "declarations", "ROOT.json"), JSON.stringify({ schemaVersion: 1, kind: "PROJECT_DECLARATION_ROOT" })); }
+  if (root) {
+    mkdirSync(join(dir, "declarations"), { recursive: true });
+    writeFileSync(join(dir, "declarations", "ROOT.json"), JSON.stringify({ schemaVersion: 1, kind: "PROJECT_DECLARATION_ROOT" }));
+    /* F03 (25 Sep 2026): the declaration store is LOCATED by the root registry's declaration (src/tenancy/root-registry.mjs);
+     * the marker now only confirms it. A world "with a declaration root" declares it, as the real data root does. */
+    writeFileSync(join(dir, "roots.json"), JSON.stringify({ schemaVersion: 1, kind: "ROOT_REGISTRY", stores: [{ store: "PROJECT_DECLARATIONS", path: "declarations" }], subjects: [] }));
+  }
   return dir;
 }
 /** Run the production binary against one or more roots. Returns the parsed --json result, exit status and raw output. */

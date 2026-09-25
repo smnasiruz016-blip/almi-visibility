@@ -29,6 +29,7 @@ import { SITEMAP_VS_ROBOTS, collectSitemapUrls, contradictions, MAX_CHILD_SITEMA
 import { parseGroups, selectGroup, decide } from "../src/audit/robots-scope.mjs";
 import { batchFile } from "../src/crawl/observation-batch.mjs";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { openConnector } from "../src/tenancy/connectors.mjs";
 import { RESOURCES, declaredSiteHosts } from "../src/tenancy/scoped-run.mjs";
 import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
@@ -53,7 +54,9 @@ const doSitemaps = flag("sitemaps");
 const out = confineToRepo(arg("out", `${REPO}runs/audit/technical-findings.jsonl`), { label: "--out" });
 const openedAt = new Date().toISOString();
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/audit-technical.mjs", governed: true, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.evidenceStore(), RESOURCES.inputPath(corpusDir, "--corpus")] });
+/* 🔴 F03 — the sitemap pass reaches the web through the PUBLIC_SITE connector of the subject it runs for (--subject=<id>). */
+const SUBJECT = arg("subject");
+const SCOPE = scopedEntryPoint({ entry: "bin/audit-technical.mjs", governed: true, resources: [...(doSitemaps ? [RESOURCES.connector(SUBJECT, "PUBLIC_SITE")] : []), RESOURCES.crawlBatch(BATCH_ID), RESOURCES.evidenceStore(), RESOURCES.inputPath(corpusDir, "--corpus")] });
 
 const crawl = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll();
 const evidence = createJsonlStore(`${REPO}runs/evidence/evidence.jsonl`).readAll();
@@ -128,8 +131,9 @@ const sitemapStore = createJsonlStore(`${REPO}runs/evidence/sitemaps.jsonl`);
 if (doSitemaps) {
   let totalRequests = 0;
   console.log(`PART 2 — SITEMAPS  [bound: maxChildren=${MAX_CHILD_SITEMAPS}/host, 1 request/second]`);
+  const SITEMAP_CONNECTOR = openConnector({ scope: SCOPE, subjectId: SUBJECT, kind: "PUBLIC_SITE" });
   for (const host of SITEMAP_HOSTS) {
-    const r = await collectSitemapUrls({ origin: `https://${host}`, fetchImpl: fetch });
+    const r = await collectSitemapUrls({ origin: `https://${host}`, fetchImpl: SITEMAP_CONNECTOR.fetch });
     totalRequests += r.requests;
     sitemapByHost.set(host, r);
     const obs = makeObservation({

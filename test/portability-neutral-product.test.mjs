@@ -18,7 +18,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 import { productFromArgv, availableProducts } from "../src/product-cli.mjs";
-import { subjectModule, subjectDir } from "./support/subjects.mjs";
+import { subjectModule, subjectDir, subjectScope } from "./support/subjects.mjs";
 import { registeredProducts, coverage } from "../src/product.mjs";
 import { loadRegistry, census } from "../src/facts/registry.mjs";
 import { licencesVisibleTo, engineLicences, quotabilityState, licenceClause } from "../src/facts/licences.mjs";
@@ -31,7 +31,7 @@ const NEUTRAL = "neutral-test-ferments";
 const FIRST = "almi-oet";
 
 /* ---- the first product, present and populated ---------------------------- */
-const first = await productFromArgv([`--product=${FIRST}`]);
+const first = await productFromArgv([`--product=${FIRST}`], { scope: subjectScope(FIRST) });
 const firstRegistry = await loadRegistry(first.factsDir, first.productId);
 const firstPrivateLicences = Object.keys(licencesVisibleTo(FIRST)).filter((k) => !(k in engineLicences()));
 const firstGaps = declaredGaps(FIRST);
@@ -42,7 +42,7 @@ const firstHosts = new Set(firstRegistry.records.map((r) => { try { return new U
 let run = null;
 let runError = null;
 try {
-  const p = await productFromArgv([`--product=${NEUTRAL}`]);
+  const p = await productFromArgv([`--product=${NEUTRAL}`], { scope: subjectScope(NEUTRAL) });
   const reg = await loadRegistry(p.factsDir, p.productId);
   const c = census(reg.records, { productId: p.productId, now: new Date("2026-09-13T12:00:00Z") });
   run = { p, reg, c, cov: coverage(p.productId), gaps: declaredGaps(p.productId), visible: licencesVisibleTo(p.productId), output: JSON.stringify(c) };

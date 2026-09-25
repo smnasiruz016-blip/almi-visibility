@@ -22,6 +22,7 @@ import { createJsonlStore } from "../src/evidence/store.mjs";
 import { declaredObservationSources } from "../src/crawl/observation-batch.mjs";
 import { readReasoningBatch } from "../src/discovery/local-reasoning.mjs";
 import { productFromArgv } from "../src/product-cli.mjs";
+import { censusSubjectScope } from "../src/tenancy/scoped-run.mjs";
 import { subjectIndex } from "../src/subject-roots.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { readFileSync } from "node:fs";
@@ -57,7 +58,7 @@ export async function governedPopulations({ env = process.env } = {}) {
   try { index = subjectIndex(); } catch (e) { unavailable.push({ name: "facts:*", why: e.message.slice(0, 120) }); }
   for (const [id, { root }] of index) {
     if (root.kind !== "external") { fixtureProducts.push(id); continue; }
-    try { const P = await productFromArgv(["node", "census", `--product=${id}`]); const { records } = await loadRegistry(P.factsDir, P.productId); pops.push({ name: `facts:product-${pops.filter((x) => x.name.startsWith("facts:")).length + 1}`, kind: "records", records }); }
+    try { const P = await productFromArgv(["node", "census", `--product=${id}`], { scope: censusSubjectScope(id) }); const { records } = await loadRegistry(P.factsDir, P.productId); pops.push({ name: `facts:product-${pops.filter((x) => x.name.startsWith("facts:")).length + 1}`, kind: "records", records }); }
     catch (e) { unavailable.push({ name: `facts:${id.length}-char-id`, why: e.message.slice(0, 80) }); }
   }
   const ledger = pops.find((x) => x.name === "engine:runs/cost/ledger.jsonl");
@@ -271,7 +272,7 @@ export async function correctionPopulations({ env = process.env } = {}) {
   for (const [id, { root }] of index) {
     if (root.kind !== "external") continue;
     n += 1;
-    try { const P = await productFromArgv(["node", "census", `--product=${id}`]); const { records } = await loadRegistry(P.factsDir, P.productId); pops.push({ name: `checks:product-${n}`, items: checkOutcomeItems(records), records }); }
+    try { const P = await productFromArgv(["node", "census", `--product=${id}`], { scope: censusSubjectScope(id) }); const { records } = await loadRegistry(P.factsDir, P.productId); pops.push({ name: `checks:product-${n}`, items: checkOutcomeItems(records), records }); }
     catch (e) { unavailable.push({ name: `checks:product-${n}`, why: e.message.slice(0, 80) }); }
   }
   return { pops, undeclared, domain, unavailable, tracked: tracked.length };

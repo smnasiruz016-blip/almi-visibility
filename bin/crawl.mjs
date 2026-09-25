@@ -33,6 +33,7 @@ import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { createCostLedger, entryFromCrawlRun, formatLedgerLine } from "../src/cost/ledger.mjs";
 import { persistCrawlObservations } from "../src/crawl/persist.mjs";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { openConnector, NO_REQUEST_FETCH } from "../src/tenancy/connectors.mjs";
 import { RESOURCES, declaredSiteHosts } from "../src/tenancy/scoped-run.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -52,7 +53,11 @@ const green = flag("i-have-the-owners-green");
 const out = confineToRepo(arg("out", `${REPO}runs/crawl/crawl.jsonl`), { label: "--out" });
 const corpusDir = confineToRepo(arg("corpus", `${REPO}runs/crawl/corpus`), { label: "--corpus" });
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/crawl.mjs", governed: true, resources: [RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.runArtefacts("crawl store and seed inputs"), RESOURCES.inputPath(seedsFile, "--seeds"), RESOURCES.inputPath(sitemapFile, "--sitemap"), RESOURCES.inputPath(fromEvidence, "--seeds-from-evidence")] });
+/* 🔴 F03 — a LIVE crawl reaches the web only through the PUBLIC_SITE connector of the subject it runs for
+ * (--subject=<declared id>), decided here with everything else. A dry run opens no connector and is handed a fetch that
+ * refuses every request, so it needs no connector decision and can reach nothing. */
+const SUBJECT = arg("subject");
+const SCOPE = scopedEntryPoint({ entry: "bin/crawl.mjs", governed: true, resources: [...(live ? [RESOURCES.connector(SUBJECT, "PUBLIC_SITE")] : []), RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.runArtefacts("crawl store and seed inputs"), RESOURCES.inputPath(seedsFile, "--seeds"), RESOURCES.inputPath(sitemapFile, "--sitemap"), RESOURCES.inputPath(fromEvidence, "--seeds-from-evidence")] });
 /* F02: this run's hosts are the site origins DECLARED to its tenant — no estate list in shared code (relocated, 24 Sep 2026). */
 const DECLARED_HOSTS = declaredSiteHosts({ tenantId: SCOPE.tenantId });
 /* 🔴 GAP 1 (15 September 2026) — THE LOCAL RECORD. D-CRW-4's two flags gate the NETWORK and the bodies; until today
@@ -165,7 +170,7 @@ const result = await crawl({
   seeds,
   seedSource,
   seedPoolSize: selection?.seedPoolSize ?? seeds.length,
-  fetchImpl: fetch,
+  fetchImpl: live ? openConnector({ scope: SCOPE, subjectId: SUBJECT, kind: "PUBLIC_SITE" }).fetch : NO_REQUEST_FETCH,
   live,
   onPlan: (plan) => {
     console.log(renderPlan(plan, { live }));

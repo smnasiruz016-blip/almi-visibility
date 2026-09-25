@@ -226,7 +226,7 @@ test("🔴 the REAL answer-evidence population, through the real module — and 
   const { ensureSubjectHook, importSubjectModule } = await import("../src/subject-roots.mjs");
   const { loadRegistry } = await import("../src/facts/registry.mjs");
   ensureSubjectHook();
-  await importSubjectModule("almi-oet", "product.mjs");
+  await (await import("./support/subjects.mjs")).subjectModule("almi-oet", "product.mjs");
   const { product } = await import("../src/product.mjs");
   const p = product("almi-oet");
   const { records } = await loadRegistry(p.factsDir, p.productId);
@@ -274,9 +274,18 @@ test("🔴 the REAL answer-evidence population, through the real module — and 
 /** A resolver that declares nothing — every reference comes back UNDECLARED. */
 const REFUSES_EVERYTHING = () => ({ state: "UNDECLARED", tenantId: null, reason: "CONTROL", detail: null });
 
+/* 🔴 F03: a subject's descriptor is read only on a genuine decision. These LOADER tests are about the REGISTRY scope, so the
+ * subjects are decided for real (test/support/subjects.mjs) and handed in as the run's scope — otherwise the stand-in
+ * resolver would refuse the SUBJECT first and the registry branch these tests name would never be reached. */
+const SUBJECTS_DECIDED = async () => {
+  const { availableSubjects } = await import("../src/subject-roots.mjs");
+  const { subjectScope } = await import("./support/subjects.mjs");
+  return { decisions: availableSubjects().flatMap((id) => subjectScope(id).decisions) };
+};
+
 test("🔴 LOADER · every source is REPORTED, including one whose scope does not resolve", async () => {
   const { readDeclaredAnswerEvidence } = await import("../src/discovery/row6.mjs");
-  const r = await readDeclaredAnswerEvidence({ axisResourceKind: "CRAWL_BATCH", axisResourceRef: "ctl", resolve: REFUSES_EVERYTHING });
+  const r = await readDeclaredAnswerEvidence({ axisResourceKind: "CRAWL_BATCH", axisResourceRef: "ctl", resolve: REFUSES_EVERYTHING, scope: await SUBJECTS_DECIDED() });
   assert.ok(r.sources.length > 0, "no source was reported at all");
   /* 🔴 THE ONE THAT MATTERS: a source with a REAL declarable reference whose scope does not
    * resolve. A source with no reference at all is reported by a different branch, so asserting only
@@ -289,7 +298,7 @@ test("🔴 LOADER · every source is REPORTED, including one whose scope does no
 
 test("🔴 LOADER · a source whose scope does NOT resolve contributes no claims", async () => {
   const { readDeclaredAnswerEvidence } = await import("../src/discovery/row6.mjs");
-  const r = await readDeclaredAnswerEvidence({ axisResourceKind: "CRAWL_BATCH", axisResourceRef: "ctl", resolve: REFUSES_EVERYTHING });
+  const r = await readDeclaredAnswerEvidence({ axisResourceKind: "CRAWL_BATCH", axisResourceRef: "ctl", resolve: REFUSES_EVERYTHING, scope: await SUBJECTS_DECIDED() });
   assert.equal(r.claims.length, 0, "claims were admitted from a scope that does not resolve");
   assert.equal(r.evidenceScope.state, "UNDECLARED");
 
@@ -349,7 +358,7 @@ test("🔴 FIX 5 · supplying neither leg leaves the run byte-identical — noth
 test("🔴 FIX 5 · the REAL run measures neither leg — the evidence for them is not owned", async () => {
   const { ensureSubjectHook, importSubjectModule } = await import("../src/subject-roots.mjs");
   ensureSubjectHook();
-  await importSubjectModule("almi-oet", "product.mjs");
+  await (await import("./support/subjects.mjs")).subjectModule("almi-oet", "product.mjs");
   /* Driven through the same module the runner uses, with no legs supplied — which is what the
    * runner does, because no availability or human-value evidence exists to supply. */
   const [r] = discoverAxes(axisInput());
@@ -431,7 +440,7 @@ test("🔴 FIX 8 · the axis scope is the container's own declaration — never 
    * tenant — the same code opens the join, so the refusals above are the declarations talking, not a gate that never opens. */
   const ONE = `tenant:${"c3".repeat(16)}`;
   const standIn = () => ({ state: "RESOLVED", tenantId: ONE, reason: "EXPLICIT_DECLARED_ATTACHMENT", detail: null });
-  const opened = await readDeclaredAnswerEvidence({ axisResourceKind: "CRAWL_BATCH", axisResourceRef: BATCH_ID, axisRows: rows, resolve: standIn });
+  const opened = await readDeclaredAnswerEvidence({ axisResourceKind: "CRAWL_BATCH", axisResourceRef: BATCH_ID, axisRows: rows, resolve: standIn, scope: await SUBJECTS_DECIDED() });
   assert.deepEqual([opened.axisScope.state, opened.evidenceScope.state, opened.axisScope.tenantId === opened.evidenceScope.tenantId], ["RESOLVED", "RESOLVED", true]);
 });
 

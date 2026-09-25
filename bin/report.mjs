@@ -25,7 +25,7 @@ import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { renderPage, summarise, reconcile } from "../src/report/view.mjs";
 import { loadRegistry, verifiedSourceBearingFacts } from "../src/facts/registry.mjs";
-import { productFromArgvOrExit } from "../src/product-cli.mjs";
+import { productFromArgvOrExit, productIdOrExit } from "../src/product-cli.mjs";
 import { lifecycleOf, walkChain } from "../src/evidence/lifecycle.mjs";
 import { makeSource } from "../src/evidence/records.mjs";
 import { sourceRecordFromFact, rankSources, tierCensus } from "../src/evidence/source-tiers.mjs";
@@ -55,10 +55,12 @@ const arg = (n, d) => {
 // repository is refused while nothing has happened yet.
 const out = confineToRepo(arg("out", `${REPO}runs/report/index.html`), { label: "--out" });
 // 🔴 The product is an ARGUMENT, never a folder written here (owner ruling, 14 September 2026): no default.
-const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/report.mjs --product=<id> --tenant=<declared tenant> [--evidence=<path>] [--crawl=<path>] [--out=<file>] [--confirm]" });
+/* 🔴 F03 — the subject's data root is decided (RESOURCES.subject) BEFORE its descriptor or any of its files is read. */
+const PRODUCT_ID = productIdOrExit(process.argv, { usage: "node bin/report.mjs --product=<id> --tenant=<declared tenant> [--evidence=<path>] [--crawl=<path>] [--out=<file>] [--confirm]" });
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. The
  * destination is confined first (that reads nothing); every path an operator hands the run is decided as an INPUT_PATH. */
-const SCOPE = scopedEntryPoint({ entry: "bin/report.mjs", governed: true, resources: [RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.crawlBatch(BATCH_ID), RESOURCES.runArtefacts("run stores"), RESOURCES.factRegistryAt(PRODUCT.factsDir), RESOURCES.inputPath(arg("evidence", null), "--evidence"), RESOURCES.inputPath(arg("robots", null), "--robots"), RESOURCES.inputPath(arg("audit", null), "--audit"), RESOURCES.inputPath(arg("crawl-dir", null), "--crawl-dir")] });
+const SCOPE = scopedEntryPoint({ entry: "bin/report.mjs", governed: true, resources: [RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.crawlBatch(BATCH_ID), RESOURCES.runArtefacts("run stores"), RESOURCES.subject(PRODUCT_ID), RESOURCES.inputPath(arg("evidence", null), "--evidence"), RESOURCES.inputPath(arg("robots", null), "--robots"), RESOURCES.inputPath(arg("audit", null), "--audit"), RESOURCES.inputPath(arg("crawl-dir", null), "--crawl-dir")] });
+const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/report.mjs --product=<id> --tenant=<declared tenant> [--evidence=<path>] [--crawl=<path>] [--out=<file>] [--confirm]", scope: SCOPE });
 
 const evidencePath = arg("evidence", `${REPO}runs/evidence/evidence.jsonl`);
 const robotsPath = arg("robots", `${REPO}runs/evidence/robots.jsonl`);

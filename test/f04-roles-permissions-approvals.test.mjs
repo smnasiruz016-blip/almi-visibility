@@ -34,7 +34,7 @@ import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 import { createPaidProviderGate, createKillSwitch, createFakePaidProvider, PaidCallRefused, paidProviderRef } from "../src/cost/paid-provider-gate.mjs";
 import { createCostLedger } from "../src/cost/ledger.mjs";
 import { AUTHORITY_CORPUS } from "../config/authority/corpus.mjs";
-import { ACCEPTANCES } from "../config/fboard/acceptances.mjs";
+import { ACCEPTANCES, F04_ORIGINAL } from "../config/fboard/acceptances.mjs";
 import { authorisationCensus, actionSitesOf, unfalsifiablePatterns, routeOf } from "../tools/authorisation-census.mjs";
 import { declaredWorld } from "./helpers/declared-world.mjs";
 
@@ -478,7 +478,10 @@ test("CENSUS CONTROLS · an unknown action, an unresolved site, a HIDDEN ALIASED
 });
 
 test("ACCEPTANCE · F04 is pinned from its committed blob, CURRENT in the register, and the contract hash is the frozen one", () => {
-  const acc = ACCEPTANCES.F04;
+  /* The ORIGINAL frozen acceptance (b439309) is kept byte-immutable as F04_ORIGINAL; Amendment 1 (68bd208) is the current
+   * contract and names it by both hashes (test/f04-amendment-zero-population.test.mjs A10). */
+  const acc = F04_ORIGINAL;
+  assert.equal(ACCEPTANCES.F04.amends.contractSha256, acc.contractSha256);
   assert.equal(acc.contractSha256, "2a2a98bfb8eb88071102de18a6e3ff727f682948830c58aeb03ba90eaacda12e");
   assert.equal(acc.ruling.sha256, "8d50f03fc5c72399344e3e368e342d2ed849f0b9201333028ce5111086c347b7");
   const rec = AUTHORITY_CORPUS.find((r) => r.propositionId === "F04_ACCEPTANCE");

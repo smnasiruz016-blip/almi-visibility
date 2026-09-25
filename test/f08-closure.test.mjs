@@ -41,9 +41,9 @@ test("F-BOARD · F08 is VERIFIED-PASS by FAILED → IN-PROGRESS → VERIFIED-PAS
   const p = progress(b);
   /* Read 2/89 at F08's closure. F07 then moved to VERIFIED-PASS under its own acceptance (23 September 2026), so the
    * board reads 3/89, and after F06 (24 September 2026) 4/89, and after F01 (the same day) 5/89; F08's own assertions below are unchanged. test/f07-closure.test.mjs owns F07's movement. */
-  /* F04 started on 25 Sep 2026 (movement 1 only: UNASSESSED -> IN-PROGRESS, owner command 94acbb7 §15) — VERIFIED-PASS unchanged. */
-  assert.deepEqual(p.split, { UNASSESSED: 80, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 1, "BLOCKED-BY-AUTHORITY": 1, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 7 });
-  assert.equal(p.passed, 7); // F02 moved to VERIFIED-PASS on 25 Sep 2026 under its own Amendment 1 (test/f02-disposition.test.mjs owns that movement). F03 moved to VERIFIED-PASS on 25 Sep 2026 on merged main, in two movements (test/f03-closure.test.mjs owns that movement).
+  /* F04 VERIFIED-PASS on 25 Sep 2026 (movement 2 under Amendment 1, owner command 89e8664 §7) — the board reads 8/89. */
+  assert.deepEqual(p.split, { UNASSESSED: 80, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 0, "BLOCKED-BY-AUTHORITY": 1, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 8 });
+  assert.equal(p.passed, 8); // F02 moved to VERIFIED-PASS on 25 Sep 2026 under its own Amendment 1 (test/f02-disposition.test.mjs owns that movement). F03 moved to VERIFIED-PASS on 25 Sep 2026 on merged main, in two movements (test/f03-closure.test.mjs owns that movement). F04 moved to VERIFIED-PASS on 25 Sep 2026 under its Amendment 1 (test/f04-amendment-zero-population.test.mjs owns that movement).
   assert.equal(p.total, 89);
   assert.equal(DECLARED.F05.state, "VERIFIED-PASS");
   assert.equal(DECLARED.F40.state, "BLOCKED-BY-AUTHORITY");

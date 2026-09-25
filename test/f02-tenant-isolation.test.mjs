@@ -30,7 +30,7 @@ import { productionEntryPoints, isEntryPoint } from "../src/entry-points.mjs";
 import { census as tenantScopeCensus } from "../tools/tenant-scope-census.mjs";
 import { census as relationshipCensus } from "../tools/tenant-relationship-census.mjs";
 import { neutralityCensus } from "../tools/product-boundary.mjs";
-import { ACCEPTANCES } from "../config/fboard/acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL } from "../config/fboard/acceptances.mjs";
 import { DECLARED } from "../config/fboard/f-board.mjs";
 import { contractSha256 } from "../src/fboard/acceptance.mjs";
 import { declaredWorld } from "./helpers/declared-world.mjs";
@@ -67,7 +67,8 @@ test("R1 · the real declaration source is readable and non-empty — the popula
   assert.equal(DECL.readable, true, `the real declaration source is not readable: ${DECL.reason}`);
   assert.ok(ACTIVE.length >= 2, `only ${ACTIVE.length} ACTIVE tenant(s) — a cross-tenant refusal needs two`);
   assert.ok(REAL.length >= 2, `only ${REAL.length} real declared resource(s)`);
-  assert.ok(REAL.some((r) => Array.isArray(r.members) && r.members.length > 1), "no real container with members — AMBIGUOUS would be untested on real data");
+  // The real shared collections exist with members spanning tenants, whether or not an (unlawful) whole attachment still stands.
+  assert.ok([RESOURCES.crawlBatch("crawl-2026-09-12"), RESOURCES.sitemapCollection("sitemap-2026-09-12")].every((c) => new Set(c.members.map((m) => resolve(m).tenantId).filter(Boolean)).size > 1), "no real shared collection with members in several tenants");
 });
 
 test("R2 · EVERY real declared resource × EVERY active tenant, through decideForTenant: same-tenant allowed, cross-tenant and ambiguous refused — denominator and remainder printed", () => {
@@ -77,7 +78,12 @@ test("R2 · EVERY real declared resource × EVERY active tenant, through decideF
   assert.equal(counted, n, "a decision fell outside the outcome vocabulary");
   assert.ok(MATRIX.by.SAME_TENANT_ALLOWED > 0, "no real same-tenant success — the refusals below would be indistinguishable from a guard that refuses everything");
   assert.ok(MATRIX.by.CROSS_TENANT_REFUSED > 0, "no real cross-tenant refusal");
-  assert.ok(MATRIX.by.AMBIGUOUS_REFUSED > 0, "no real ambiguous refusal");
+  /* The NATURAL real AMBIGUOUS refusals came only from the two unlawful whole-collection attachments (42 = 2 × 21). Once they
+   * are retired (owner ruling 1145012, Decision 2) the natural count is 0, and AMBIGUOUS is proved by a stand-in member
+   * (f02-real-prerequisites Q4, A3) — reported, never hidden. Before the retirement merges, it is 42. */
+  const whole = DECL.attachments.filter((a) => a.resourceKind === "CRAWL_BATCH" || a.resourceKind === "SITEMAP_COLLECTION").length;
+  assert.equal(MATRIX.by.AMBIGUOUS_REFUSED, whole * ACTIVE.length, "an AMBIGUOUS refusal came from somewhere other than a whole shared collection");
+  console.log(`  [F02 ambiguous] natural real AMBIGUOUS refusals: ${MATRIX.by.AMBIGUOUS_REFUSED} (whole-collection attachments still current: ${whole})`);
   // Each non-container resource is allowed for exactly ONE tenant — its own — and refused for every other.
   for (const r of REAL.filter((x) => !x.members)) {
     const mine = MATRIX.rows.filter((x) => x.r === r);
@@ -260,13 +266,14 @@ test("L4 · lawful subject execution still works: a relocated tool, given a DECL
   } finally { WORLD.cleanup(); }
 });
 
-test("L5 · the frozen F02 acceptance did not move: bytes e468526e…, contract 9b6273d6…", () => {
-  assert.equal(ACCEPTANCES.F02.contractSha256, "9b6273d6fdb92f7fa8f2d542a40cdb1a210cce6ad34b430bc3d7c7e0d2b03471");
-  assert.equal(contractSha256(ACCEPTANCES.F02), ACCEPTANCES.F02.contractSha256, "the clauses no longer hash to the frozen contract");
+test("L5 · the frozen F02 acceptance did not move: bytes e468526e…, contract 9b6273d6… (amended — not replaced — by Amendment 1)", () => {
+  assert.equal(F02_ORIGINAL.contractSha256, "9b6273d6fdb92f7fa8f2d542a40cdb1a210cce6ad34b430bc3d7c7e0d2b03471");
+  assert.equal(contractSha256(F02_ORIGINAL), F02_ORIGINAL.contractSha256, "the original clauses no longer hash to the frozen contract");
+  assert.equal(ACCEPTANCES.F02.amends.contractSha256, F02_ORIGINAL.contractSha256);
   const frozen = DECLARED.F02.events.find((e) => e.kind === "ACCEPTANCE_FROZEN");
   assert.equal(frozen.ruling.sha256, "e468526e1257fd6ac16505a5018398fb8701165da0f711edc44b1395673e79e5");
-  assert.equal(frozen.contractSha256, ACCEPTANCES.F02.contractSha256);
-  assert.equal(DECLARED.F02.state, "IN-PROGRESS", "F02 moved without the evidence that would earn it");
+  assert.equal(frozen.contractSha256, F02_ORIGINAL.contractSha256);
+  if (DECLARED.F02.state !== "IN-PROGRESS") assert.ok(DECLARED.F02.state === "VERIFIED-PASS" && DECLARED.F02.events.some((e) => e.kind === "VERIFIED" && e.population === "REAL"), "F02 moved without the evidence that would earn it");
 });
 
 /* ─────────────────────────────── THE VERDICTS — one per clause and invariant ─────────────────────────────── */

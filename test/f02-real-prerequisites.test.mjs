@@ -104,8 +104,9 @@ test("Q5 · the one decision: a collection PARTITION belongs to the requested AC
   for (const t of ACTIVE) assert.equal(decideForTenant(resolve, t, RESOURCES.collectionPartition("CRAWL_BATCH", "crawl-2026-09-12")).outcome, "SAME_TENANT_ALLOWED");
   assert.equal(decideForTenant(resolve, undefined, RESOURCES.collectionPartition("CRAWL_BATCH", "crawl-2026-09-12")).outcome, "UNDECLARED_REFUSED");
   assert.equal(decideForTenant(resolve, "tenant:ffffffffffffffffffffffffffffffff", RESOURCES.collectionPartition("CRAWL_BATCH", "crawl-2026-09-12")).outcome, "INVALID_REFUSED");
-  // CONTROL: the whole batch, attached to one tenant by its own declaration, is still refused for EVERY tenant.
-  assert.ok(ACTIVE.every((t) => decideForTenant(resolve, t, RESOURCES.crawlBatch("crawl-2026-09-12")).outcome === "AMBIGUOUS_REFUSED"));
+  // CONTROL: the WHOLE batch is refused for EVERY tenant — AMBIGUOUS while an unlawful whole attachment stands, UNDECLARED
+  // once it is retired (owner ruling 1145012, Decision 2). Never allowed.
+  assert.ok(ACTIVE.every((t) => ["AMBIGUOUS_REFUSED", "UNDECLARED_REFUSED"].includes(decideForTenant(resolve, t, RESOURCES.crawlBatch("crawl-2026-09-12")).outcome)));
   // Sitemap membership grants no access to another store.
   assert.ok(ACTIVE.every((t) => !decideForTenant(resolve, t, RESOURCES.evidenceStore()).allowed));
 });

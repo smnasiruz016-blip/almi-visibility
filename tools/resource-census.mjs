@@ -73,12 +73,17 @@ export function census({ resolve = createTenantResolver() } = {}) {
   /* 1 · the current declarations themselves (rule 5), and the two shared collections (partitioned, never attached whole) */
   for (const a of decl.readable ? decl.attachments : []) {
     if (a.resourceKind === "CAPTURE_SET") continue; // its own row below, measured by its members, declared or not
-    if (a.resourceKind === "CRAWL_BATCH" || a.resourceKind === "SITEMAP_COLLECTION") {
-      const p = partitionOf(collectionMembers({ batchId: a.resourceRef }).map(({ memberId, identities }) => ({ memberId, identities })));
-      add({ id: `${a.resourceKind}:${a.resourceRef}`, kind: a.resourceKind, locator: `data:observations/${a.resourceRef}/`, owner: "none — a capture of many site origins", declared: "attached WHOLE to one tenant (declarationBasis OWNER_AUTHORISED_ATTACHMENT) — the ruling's NOT-ALLOWED case; the partition ignores it", evidence: "rule 3 per member", payload: true, members: p, verdict: "MUST_PARTITION", attachment: "none — members go to their own tenant's partition (src/tenancy/partition.mjs)" });
-    } else {
+    if (a.resourceKind === "CRAWL_BATCH" || a.resourceKind === "SITEMAP_COLLECTION") continue; // their own rows below, attached or not
+    {
       add({ id: `${a.resourceKind}:${a.resourceRef}`, kind: a.resourceKind, locator: a.resourceKind === "FACT_REGISTRY" ? `data:${a.resourceRef}/` : a.resourceRef, owner: a.resourceKind === "FACT_REGISTRY" ? "the subject descriptor that exports this factsDir (rule 1)" : "the declaration", declared: "one current attachment", evidence: a.resourceKind === "FACT_REGISTRY" ? "rules 1 and 5" : "rule 5", payload: true, members: null, verdict: "DECLARABLE", attachment: "already declared — unchanged" });
     }
+  }
+  /* 1b · the two shared collections — rows whether or not a declaration attaches them (a retired attachment must not shrink
+   * the population). Their members go to their own tenant's partition (src/tenancy/partition.mjs). */
+  for (const [kind, id] of [["CRAWL_BATCH", "crawl-2026-09-12"], ["SITEMAP_COLLECTION", "sitemap-2026-09-12"]]) {
+    const p = partitionOf(collectionMembers({ batchId: id }).map(({ memberId, identities }) => ({ memberId, identities })));
+    const whole = decl.readable ? decl.attachments.find((a) => a.resourceKind === kind && a.resourceRef === id) : null;
+    add({ id: `${kind}:${id}`, kind, locator: `data:observations/${id}/`, owner: "none — a capture of many site origins", declared: whole ? "attached WHOLE to one tenant — the ruling's NOT-ALLOWED case (retirement: owner ruling 1145012, Decision 2)" : "not tenant-authorised (whole attachment retired)", evidence: "rule 3 per member", payload: true, members: p, verdict: "MUST_PARTITION", attachment: "none — members go to their own tenant's partition" });
   }
   /* 2 · the engine's own neutral test products: fixtures, never a real tenant's resource */
   for (const id of ["neutral-test-knots", "neutral-test-ferments"]) add({ id: `FACT_REGISTRY:engine-fixtures:${id}/facts`, kind: "FACT_REGISTRY", locator: `products/${id}/facts`, owner: "the engine's own test material", declared: "none (real)", evidence: "fixtures root (config/subject-roots.mjs)", payload: false, members: null, verdict: "NOT_GOVERNED", attachment: "none — a fixture is never the real population" });

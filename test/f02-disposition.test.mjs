@@ -204,7 +204,7 @@ test("B · the board: F02 holds the state its evidence earned, and no other row 
   assert.ok(["IN-PROGRESS", "VERIFIED-PASS"].includes(f02.state));
   if (f02.state === "VERIFIED-PASS") {
     assert.ok(DECLARED.F02.events.some((e) => e.kind === "VERIFIED" && e.featureId === "F02" && e.population === "REAL"));
-    assert.equal(p.passed, 6);
+    assert.equal(p.passed, 7); // F03 moved to VERIFIED-PASS on 25 Sep 2026 on merged main, in two movements (test/f03-closure.test.mjs owns that movement).
   } else assert.equal(p.passed, 5);
   for (const id of ["F01", "F05", "F06", "F07", "F08"]) assert.equal(board().find((r) => r.featureId === id).state, "VERIFIED-PASS");
   assert.equal(board().find((r) => r.featureId === "F40").state, "BLOCKED-BY-AUTHORITY");

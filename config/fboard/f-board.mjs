@@ -89,6 +89,63 @@ export const DECLARED = Object.freeze({
       }),
     ]),
   }),
+  /* 🔴 F03 · SUBJECT ROOT AND CONNECTOR REGISTRY — closed on MERGED MAIN (owner command _handoffs 62347c6), in TWO lawful
+   * movements, never one jump. The acceptance was frozen ALONE (f9d1888) before any engine change; the build merged as
+   * #157 (04912681…) with data #13 (997cc99f…) and #11 (f321b2b…); exact-SHA main CI 36102818055 succeeded on attempt 1.
+   * Each movement carries the F-board's own event `kind` and an explicit `reason` code, never the historical ledger's
+   * changeKind vocabulary (owner ruling 29ef6d74…, §12). Both reach the trail as BOARD_TRANSITION events through the
+   * production recorder (bin/audit-trail.mjs record --confirm); test/f03-closure.test.mjs requires them there. */
+  F03: Object.freeze({
+    featureId: "F03",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      // The freeze record: the acceptance was committed ALONE in the governance repository (f9d1888) before any F03 engine change.
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-25", ruling: ACCEPTANCES.F03.ruling, contractSha256: ACCEPTANCES.F03.contractSha256 }),
+      /* MOVEMENT 1 · UNASSESSED → IN-PROGRESS: the frozen acceptance, and the implementation measured against it (PR #157). */
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F03",
+        on: "2026-09-25",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_IMPLEMENTATION_MEASURED",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F03.ruling.sha256, contract: ACCEPTANCES.F03.contractSha256 }),
+        pullRequest: 157,
+        mergedSha: "04912681a009d37e48621637356c5bd2383c6416",
+        dataMergedShas: Object.freeze(["997cc99fdf0d3f7ceff1702682cc18a96b200a82", "f321b2b133355a9e5f4c88f007713e199f62b646"]),
+        ciRun: "36102818055",
+        ciConclusion: "success",
+        governingRuling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_RULING_2026-09-23_F08_TARGET_AWARE_DURABILITY.md", commit: "47dc66c1ca9e39e7f19adc4ac630081ca090328b", sha256: "29ef6d74fc85944f7cf69f33c39fd0946e5eab77e8317fa5893fa086cfff4f0d" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-25_F03_SUBJECT_ROOT_AND_CONNECTOR_REGISTRY.md", commit: "b445d25bbd35ea5f81acf05fa2ebde63b20150ec", sha256: "2681310a049505515e7a0f7aa6e6b507891d622164398f37d7dd9da15f81aa4c" }),
+      }),
+      /* MOVEMENT 2 · IN-PROGRESS → VERIFIED-PASS: every frozen clause re-sat and PROVED on merged main — portability by the
+       * exact-SHA main CI run (linux) against the local and a relocated real root (win32): one registry blob, one outcome
+       * digest over 105 rows. Sabotage route (b): 18 of 18 on merged main. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F03",
+        population: "REAL",
+        on: "2026-09-25",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "RETEST_PASSED_ON_MERGED_MAIN",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F03.ruling.sha256, contract: ACCEPTANCES.F03.contractSha256 }),
+        pullRequest: 157,
+        mergedSha: "04912681a009d37e48621637356c5bd2383c6416",
+        dataMergedShas: Object.freeze(["997cc99fdf0d3f7ceff1702682cc18a96b200a82", "f321b2b133355a9e5f4c88f007713e199f62b646"]),
+        ciRun: "36102818055",
+        ciConclusion: "success",
+        evidenceRecord: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F03_VERIFIED_PASS_EVIDENCE_2026-09-25.md", commit: "511d8084c4fce75d16dcffd6d2e35b544b4e9c12", sha256: "8774d8b85c94054882cd90d3853150010f5e2fc21db3f7260dacff62764426ba" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-25_F03_CLOSE.md", commit: "62347c68a50a3ea2c3fefa20aee2f1929013dbf8", sha256: "447f182189dc95992093235605bbf8fe8b7a3626a2cd580d2576fa8dd8d99e0b" }),
+        proofs: "C1a–C9 + P: 27 of 27 on merged main (local, relocated real root, and exact-SHA CI), each with a control that fired",
+        sabotage: "F3-S1–F3-S18: 18 of 18 RED on the named test for the intended reason on merged main, restored byte-identically",
+        populations: "stores 4 · subjects 3 (1 external + 2 fixtures) · connectors 2 · subject×tenant 63, remainder 0 · outcome rows 105",
+      }),
+    ]),
+  }),
   F05: Object.freeze({
     featureId: "F05",
     board: "F_BOARD",

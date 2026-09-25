@@ -83,6 +83,7 @@ test("F09 · INPUT · the subject is REAL and not a fixture: declared in an EXTE
 /* ═══ EXPECTED · onboarded, resolved and processed through the same boundaries; confined to its own tenant ═════════════ */
 
 test("F09 · EXPECTED · the research batch is attached by STRUCTURAL PROOF rule 2: the subject's descriptor declares it and the subject resolves to exactly that tenant — CONTROL: another tenant is refused", () => {
+  one(); /* an EMPTY population must be RED here, never a vacuous loop that passes (CI caught this on #161, data main without the subject) */
   for (const s of UNDER_PROOF) {
     const side = resolveSide(R, RESOURCES.subject(s.id));
     assert.deepEqual(tenantOf("RESEARCH_BATCH", s.batch), [side.tenantId], "the batch is not attached to exactly the subject's tenant");
@@ -93,6 +94,7 @@ test("F09 · EXPECTED · the research batch is attached by STRUCTURAL PROOF rule
 });
 
 test("F09 · EXPECTED · every stored observation belongs to the batch's tenant (structural proof rule 3) and is OBSERVED evidence (F06) — CONTROL: a planted foreign-origin observation is caught", () => {
+  one(); /* an EMPTY population must be RED here, never a vacuous loop that passes (CI caught this on #161, data main without the subject) */
   for (const s of UNDER_PROOF) {
     const side = resolveSide(R, RESOURCES.subject(s.id));
     const recs = readFileSync(join(lookupStore(R.roots, "RESEARCH").dir, s.batch, "crawl.jsonl"), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
@@ -107,6 +109,7 @@ test("F09 · EXPECTED · every stored observation belongs to the batch's tenant 
 });
 
 test("F09 · EXPECTED · the stored records carry STRUCTURE ONLY — no body, title, text, e-mail or phone shape (personal-data guard)", () => {
+  one(); /* an EMPTY population must be RED here, never a vacuous loop that passes (CI caught this on #161, data main without the subject) */
   for (const s of UNDER_PROOF) {
     const text = readFileSync(join(lookupStore(R.roots, "RESEARCH").dir, s.batch, "crawl.jsonl"), "utf8");
     assert.doesNotMatch(text, /<html|<body|"title"|"text"|"body"\s*:|mailto:|tel:|@[a-z0-9-]+\.[a-z]{2,}/i, "a stored record carries content or a contact shape");

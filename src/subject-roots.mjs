@@ -88,6 +88,17 @@ export function subjectIndex({ roots = subjectRoots() } = {}) {
 /** Every declared subject id across every root, sorted. */
 export const availableSubjects = (opts) => [...subjectIndex(opts).keys()].sort();
 
+/**
+ * 🔴 F09 (25 Sep 2026) · A PRODUCT IS A DECLARED SUBJECT WHOSE ROOT CARRIES A PRODUCT MODULE — stated before it was built.
+ * A subject is what F03 declares (its members, stores, connectors); a PRODUCT is the subset that also carries a product module
+ * (product.mjs: licences, facts, axis, specs). They used to be treated as one, so every "every product" loop imported
+ * product.mjs from EVERY declared subject — and the first declared subject that is not a fact-registry product (a site-only
+ * subject) made those loops throw for EVERY other subject too: one client's presence broke another's run. The rule is
+ * structural and names no subject: presence of the declared module in the declared root, nothing else.
+ */
+export const PRODUCT_MODULE = "product.mjs";
+export const availableProductSubjects = (opts) => [...subjectIndex(opts).entries()].filter(([, v]) => existsSync(join(v.dir, PRODUCT_MODULE))).map(([id]) => id).sort();
+
 /** The folder of one subject, by id — validated, DECLARED in exactly one root registry. */
 export function resolveSubject(id, opts = {}) {
   if (typeof id !== "string" || !ID_PATTERN.test(id)) throw new SubjectRootRefused("SUBJECT_ID_INVALID", "a subject id is lowercase letters, digits and hyphens only");

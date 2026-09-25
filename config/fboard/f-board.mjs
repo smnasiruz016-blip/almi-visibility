@@ -203,6 +203,35 @@ export const DECLARED = Object.freeze({
       }),
     ]),
   }),
+  /* 🔴 F09 · CROSS-CLIENT PORTABILITY PROOF — MOVEMENT 1 (owner commands _handoffs e5f5fd4 and 474d27a, §14). The acceptance
+   * was frozen ALONE (cf10494) before any measurement; the owner supplied a real external subject (Option A); the re-census and
+   * ranked list were published before onboarding (e81665b); onboarding began on branch f09-cross-client-portability cut from
+   * main f8b4a13 (exact-SHA main CI 36142248760, success). Movement 2 only if every frozen clause is PROVED on merged main. */
+  F09: Object.freeze({
+    featureId: "F09",
+    board: "F_BOARD",
+    state: "IN-PROGRESS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-25", ruling: ACCEPTANCES.F09.ruling, contractSha256: ACCEPTANCES.F09.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F09",
+        on: "2026-09-25",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_ONBOARDING_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F09.ruling.sha256, contract: ACCEPTANCES.F09.contractSha256 }),
+        branch: "f09-cross-client-portability",
+        baseSha: "f8b4a1387ffcc18c9f5d9483b295d53891b45062",
+        baseCiRun: "36142248760",
+        baseCiConclusion: "success",
+        rankedListPublished: Object.freeze({ repo: "_handoffs", commit: "e81665b8dc2b8f96d4018afceab8b6e38fd32977" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-25_F09_CROSS_CLIENT_PORTABILITY.md", commit: "e5f5fd40562bb241d0ba04522a08c7e3f703ea82", sha256: "77fde27bc0741a9b9b5cbca3df95184a53315292f5ebefa882c60550e35caf00" }),
+        continuation: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-25_F09_OPTION_A_EXTERNAL_SUBJECT.md", commit: "474d27a2672257fb9754f848de45a377c8a8c903", sha256: "bcece6bfaaa3199cce41055984473642bd1bb14f4e218fa191064a05b52e3e15" }),
+      }),
+    ]),
+  }),
   F05: Object.freeze({
     featureId: "F05",
     board: "F_BOARD",

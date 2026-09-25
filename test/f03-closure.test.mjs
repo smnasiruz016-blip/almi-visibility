@@ -19,6 +19,7 @@ import { buildBoard, boardErrors, progress } from "../src/fboard/board.mjs";
 import { productionAuditStore } from "../src/audit-trail/wiring.mjs";
 import { createTenantResolver } from "../src/tenancy/resolver.mjs";
 import { declaredSubjectIds, lookupSubject } from "../src/tenancy/root-registry.mjs";
+import { availableProductSubjects } from "../src/subject-roots.mjs";
 import { decideForTenant } from "../src/tenancy/scope.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
@@ -83,9 +84,18 @@ test("F03 · CLOSE · 3 · the board validates clean, and every other named row 
 
 test("F03 · CLOSE · R7 rows · every portability outcome row, printed, reproduces the digest exact-SHA main CI recorded", (t) => {
   const r = createTenantResolver();
-  const tenants = r.declarations.tenants.filter((x) => x.status === "ACTIVE").map((x) => x.tenantId);
+  /* 🔴 F09 (25 Sep 2026) added one tenant and one site-only subject. This pin records what exact-SHA main CI measured for the
+   * F03-ERA population, so it is still computed over exactly that population — selected STRUCTURALLY, never by name: the
+   * tenants declared before 25 September, and the subjects that carry a product module. It must reproduce the CI digest
+   * unchanged: F09's onboarding changed none of the existing outcomes. The whole current population is reported beside it. */
+  const allTenants = r.declarations.tenants.filter((x) => x.status === "ACTIVE");
+  const tenants = allTenants.filter((x) => String(x.declaredOn) < "2026-09-25").map((x) => x.tenantId);
+  const productSubjects = new Set(availableProductSubjects());
   const rows = [];
-  for (const id of declaredSubjectIds(r.roots)) {
+  let wholeRows = 0;
+  for (const id of declaredSubjectIds(r.roots)) wholeRows += allTenants.length * (1 + lookupSubject(r.roots, id).entry.connectors.length);
+  t.diagnostic(`F03-R7-WHOLE-POPULATION rows ${wholeRows} · subjects ${declaredSubjectIds(r.roots).length} · tenants ${allTenants.length}`);
+  for (const id of declaredSubjectIds(r.roots).filter((x) => productSubjects.has(x))) {
     for (const tn of tenants) rows.push(`${id}|${tn}|SUBJECT|${decideForTenant(r, tn, RESOURCES.subject(id)).outcome}`);
     for (const c of lookupSubject(r.roots, id).entry.connectors) for (const tn of tenants) rows.push(`${id}|${tn}|${c.kind}|${decideForTenant(r, tn, RESOURCES.connector(id, c.kind)).outcome}`);
   }

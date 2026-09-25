@@ -159,4 +159,19 @@ export const ACCEPTANCES = Object.freeze({
     amends: Object.freeze({ ruling: F04_ORIGINAL.ruling, contractSha256: F04_ORIGINAL.contractSha256 }),
     zeroApprovedFamilies: Object.freeze(["SPEND", "EXPORT", "VERIFICATION", "PUBLISH", "CONNECTED_PROPERTY_CHANGE"]),
   }),
+  /* 🔴 F09 · FROZEN 25 Sep 2026, committed ALONE in the governance repository (cf10494) before any F09 measurement or engine
+   * change (owner command §5.2, L2). Pinned from the committed blob by src/fboard/acceptance.mjs parseContract. Its 19
+   * clarifications are frozen in the same bytes (sha256 below). acceptanceRelation NEW. */
+  F09: Object.freeze({
+    featureId: "F09",
+    ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F09_ACCEPTANCE_2026-09-25.md", commit: "cf104942dbcaba52aeeca4719306a7131b133540", sha256: "5b85d04ef632bd0fc24e14bac39d24bacfe3cf85d40ce0fc32e18c7130468f74" }),
+    authority: Object.freeze({ propositionId: "F09_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F09"]) }),
+    frozenOn: "2026-09-25",
+    feature: "F09 · Cross-client portability proof",
+    input: "An independently existing client or project that is materially unrelated to the clients or\nsubjects previously exercised by the product, together with its authorised declaration, public or\nowner-provided resources and bounded goal.",
+    expected: "The client is onboarded, resolved and processed through the same current product-neutral\ndeclaration, isolation, connector, authorisation, evidence and audit boundaries without adding its\nname, host, vocabulary, expected answer or client-specific branch to shared engine logic; changing\nonly declarations or subject-owned material is sufficient, and the resulting outcomes remain\nconfined to that client's tenant and subject scope.",
+    failure: "Shared engine code, generic configuration or generic tests gain the client's name, host,\nvocabulary, data value, expected result or special-case branch; an existing client's declaration is\nreused or widened; tenant, subject, connector, role or evidence boundaries are bypassed; the new\nclient affects another client's evidence, costs, learning, outputs or decisions; onboarding works\nonly from the original machine location; or the proof uses a fixture, synthetic client, empty\npopulation or data authored by the onboarding command.",
+    evidence: "One independently existing unrelated client processed through production entry points, with\ndeclaration-only or subject-owned integration, portable resolution in two environments, authorised\nand refused worlds, zero shared engine specialisation, tenant and subject isolation, unchanged\nexisting-client outcomes, audit events and clean controls.",
+    contractSha256: "d0c8bd96fcba46e712955379fa06e39cbd84186c7af8340adad90aa6fa535027",
+  }),
 });

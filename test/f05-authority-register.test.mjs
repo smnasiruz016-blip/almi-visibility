@@ -71,7 +71,7 @@ const REAL_AUTH = { records: AUTHORITY_CORPUS, now: REAL_DAY };
  * governance repository (_handoffs 19e6b7b) — a CORRECT CONSEQUENCE of a second row being frozen, not a loosening:
  * the list is still exact, and a row moving without appearing here still fails. */
 // F07 joined on 23 September 2026 under its own frozen acceptance (config/fboard/f-board.mjs).
-const MOVED = ["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08", "F40"]; // F04 joined on 25 September 2026: IN-PROGRESS by movement 1 only (test/f04-roles-permissions-approvals.test.mjs). // F03 joined on 25 September 2026: VERIFIED-PASS on merged main, in two movements (test/f03-closure.test.mjs). // F02 STARTED (IN-PROGRESS) on 24 September 2026 under its own frozen acceptance (3ea6fda) — it earned no PASS. // F06 joined on 24 September 2026 under its own frozen acceptance; F01 the same day, under its own (test/f01-closure.test.mjs).
+const MOVED = ["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08", "F09", "F40"]; // F09 joined on 25 September 2026: IN-PROGRESS by movement 1 (test/f09-cross-client-portability.test.mjs). // F04 joined on 25 September 2026: IN-PROGRESS by movement 1 only (test/f04-roles-permissions-approvals.test.mjs). // F03 joined on 25 September 2026: VERIFIED-PASS on merged main, in two movements (test/f03-closure.test.mjs). // F02 STARTED (IN-PROGRESS) on 24 September 2026 under its own frozen acceptance (3ea6fda) — it earned no PASS. // F06 joined on 24 September 2026 under its own frozen acceptance; F01 the same day, under its own (test/f01-closure.test.mjs).
 const UNASSESSED_ROWS = 89 - MOVED.length;
 /* 🔴 EVERY PASS ON THE BOARD THAT WAS ACTUALLY EARNED — counted, not assumed.
  * This read `DECLARED.F05.state === "VERIFIED-PASS" ? 1 : 0`, which silently assumed F05 was the only row that
@@ -378,8 +378,8 @@ test("P18 — UNASSESSED cannot enter implementation", () => {
   const unassessed = b.filter((x) => x.state === "UNASSESSED");
   assert.equal(unassessed.length, UNASSESSED_ROWS);
   for (const x of unassessed) assert.equal(mayImplement(b, x.featureId, ACCEPTANCES), false, x.featureId);
-  // F09: an UNASSESSED row (F01, F02, F03, then F04, were this example until each moved under its own acceptance; F04 on 25 September 2026).
-  const impl = b.map((x) => (x.featureId === "F09" ? { ...x, events: [{ kind: "IMPLEMENTATION", on: NOW }] } : x));
+  // F10: an UNASSESSED row (F01, F02, F03, F04, then F09, were this example until each moved under its own acceptance; F09 on 25 September 2026).
+  const impl = b.map((x) => (x.featureId === "F10" ? { ...x, events: [{ kind: "IMPLEMENTATION", on: NOW }] } : x));
   assert.deepEqual(boardErrors(impl, { capabilities: CAPABILITIES, acceptances: ACCEPTANCES }).map((e) => e.code).sort(), ["IMPLEMENTATION_BEFORE_ACCEPTANCE", "UNASSESSED_IMPLEMENTED"]);
   // silent control: F05, with its frozen acceptance, may
   assert.equal(mayImplement(b, "F05", ACCEPTANCES), true);

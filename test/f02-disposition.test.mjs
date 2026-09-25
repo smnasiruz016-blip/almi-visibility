@@ -136,9 +136,26 @@ test("D8 · CONDITION 2 · a shared collection holds NO whole-collection attachm
 });
 
 /* ─────────────────────────── THE TWELVE ─────────────────────────── */
-test("D9 · the twelve UNRESOLVED_OWNER resources are listed individually, stay UNDECLARED for every tenant, and the seven entry points blocked solely by them refuse (exit 3)", () => {
+test("D9 · the UNRESOLVED_OWNER resources (the packet's fourteen) are listed individually, stay UNDECLARED for every tenant, and the seven entry points blocked solely by them refuse (exit 3)", () => {
   const rows = resourceCensus({ resolve }).filter((r) => r.verdict === "UNRESOLVED_OWNER");
-  assert.equal(rows.length, 12, "the twelve changed — the packet must be re-issued");
+  /* Pinned by IDENTITY to the owner packet (_handoffs 744a240, re-issued: twelve → fourteen, because the first census was
+   * environment-dependent). A change in membership, not only in count, fails here and requires a re-issued packet. */
+  assert.deepEqual(rows.map((r) => r.id).sort(), [
+    "CACHE_STORE:sibling-page cache",
+    "INPUT_PATH:(per run)",
+    "INPUT_PATH:a connected product's organisations file",
+    "INPUT_PATH:a connected product's seed generator directory",
+    "INPUT_PATH:a private export outside every repository",
+    "INPUT_PATH:acceptance/nursing-from-india",
+    "INPUT_PATH:case-study-01/exhibits/spec.json",
+    "RUN_STORE:crawl store",
+    "RUN_STORE:crawl store and seed inputs",
+    "RUN_STORE:live sibling pages",
+    "RUN_STORE:replay corpus",
+    "RUN_STORE:sibling pages read from the cache directory",
+    "RUN_STORE:stored discovery results",
+    "RUN_STORE:stored source-integrity result",
+  ], "the unresolved resources changed — the owner packet must be re-issued");
   const asResource = (r) => {
     const [kind, name] = [r.kind, r.id.slice(r.kind.length + 1)];
     if (kind === "CACHE_STORE") return RESOURCES.cache(name);

@@ -206,11 +206,11 @@ export const DECLARED = Object.freeze({
   /* 🔴 F09 · CROSS-CLIENT PORTABILITY PROOF — MOVEMENT 1 (owner commands _handoffs e5f5fd4 and 474d27a, §14). The acceptance
    * was frozen ALONE (cf10494) before any measurement; the owner supplied a real external subject (Option A); the re-census and
    * ranked list were published before onboarding (e81665b); onboarding began on branch f09-cross-client-portability cut from
-   * main f8b4a13 (exact-SHA main CI 36142248760, success). Movement 2 only if every frozen clause is PROVED on merged main. */
+   * main f8b4a13 (exact-SHA main CI 36142248760, success). Movement 2 recorded under the close-out command (2601cb3) — see the VERIFIED event. */
   F09: Object.freeze({
     featureId: "F09",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-25", ruling: ACCEPTANCES.F09.ruling, contractSha256: ACCEPTANCES.F09.contractSha256 }),
       Object.freeze({
@@ -229,6 +229,30 @@ export const DECLARED = Object.freeze({
         rankedListPublished: Object.freeze({ repo: "_handoffs", commit: "e81665b8dc2b8f96d4018afceab8b6e38fd32977" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-25_F09_CROSS_CLIENT_PORTABILITY.md", commit: "e5f5fd40562bb241d0ba04522a08c7e3f703ea82", sha256: "77fde27bc0741a9b9b5cbca3df95184a53315292f5ebefa882c60550e35caf00" }),
         continuation: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-25_F09_OPTION_A_EXTERNAL_SUBJECT.md", commit: "474d27a2672257fb9754f848de45a377c8a8c903", sha256: "bcece6bfaaa3199cce41055984473642bd1bb14f4e218fa191064a05b52e3e15" }),
+      }),
+      /* MOVEMENT 2 · IN-PROGRESS → VERIFIED-PASS: every frozen clause re-proved on merged main — engine 81e62ae (#161) with data
+       * 11138ea (#14). Portable resolution in TWO environments: win32 local and linux CI (exact-SHA main run 36181029216, success,
+       * data 11138ea checked out) resolve the same identity fingerprint, with a sensitivity control (a changed declaration or a
+       * changed identity set moves the digest) and an invariance control (a relocated root does not). The unrelated-dimension
+       * margin is EXACTLY THREE — the floor: if any one of those three measurements is later found wrong, F09 falls. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F09",
+        population: "REAL",
+        on: "2026-09-25",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "REAL_UNRELATED_SUBJECT_PROOF_CLOSED_EVERY_CLAUSE",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F09.ruling.sha256, contract: ACCEPTANCES.F09.contractSha256 }),
+        pullRequest: 161,
+        mergedSha: "81e62ae2d75aa85f084cc129559e8f357599028f",
+        dataPullRequest: 14,
+        dataMergedSha: "11138eac11c2a3f9388e769bcc84f67959efa5ee",
+        ciRun: "36181029216",
+        ciConclusion: "success",
+        unrelatedDimensionMargin: 3,
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-25_F09_CLOSE_OUT.md", commit: "2601cb335fb692a2422154344b5ad8cd1bd46c46", sha256: "42a73486fe2043fdbf08d87ab7bb86c3c046881a1030d852592f32f77317ba7c" }),
       }),
     ]),
   }),

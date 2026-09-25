@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { spawnSync, execFileSync } from "node:child_process";
-import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -77,6 +77,7 @@ test("F09 · INPUT · the subject is REAL and not a fixture: declared in an EXTE
   const crawl = readFileSync(join(lookupStore(R.roots, "RESEARCH").dir, s.batch, "crawl.jsonl"), "utf8").split("\n").filter(Boolean).map((l2) => JSON.parse(l2));
   const pages = crawl.filter((r) => r.record_type === "observation" && r.value?.status === 200);
   assert.ok(pages.length >= 1, "the real population is EMPTY");
+  console.log(`F09-POPULATION ${JSON.stringify({ platform: process.platform, subjectsUnderProof: UNDER_PROOF.length, observations: crawl.filter((r) => r.record_type === "observation").length, http200: pages.length, runRecords: crawl.filter((r) => r.record_type === "crawl_run").length })}`);
   assert.ok(crawl.some((r) => r.record_type === "crawl_run" || r.run_id), "no production crawl run record — the population was not produced by the production crawler");
 });
 
@@ -122,16 +123,27 @@ test("F09 · EXPECTED · the crawler REFUSES the engine's shared stores for any 
   const tenant = resolveSide(R, RESOURCES.subject(s.id)).tenantId;
   const run = (args) => spawnSync(process.execPath, ["bin/crawl.mjs", ...args, "--actor=actor:cc"], { cwd: REPO, encoding: "utf8", timeout: 120_000 });
   const shared = run([`--tenant=${tenant}`, `--subject=${s.id}`, "--seeds=" + join(lookupStore(R.roots, "RESEARCH").dir, s.batch, "seeds.txt")]);
-  assert.equal(shared.status, 3, "the shared stores were NOT refused for the new tenant");
+  /* An exit code alone proves nothing (any refusal exits 3): pin the REASON — the tenant-scope refusal, with each engine shared
+   * store refused for having NO ATTACHMENT to any tenant. */
+  const sharedRefused = (r, who) => {
+    assert.equal(r.status, 3, `the shared stores were NOT refused for ${who}`);
+    const out = `${r.stdout}\n${r.stderr}`;
+    assert.match(out, /TENANT SCOPE REFUSED/, `${who}: exit 3 for a reason other than the tenant-scope refusal`);
+    for (const store of ["evidence store", "cost ledger", "run artefacts"]) assert.match(out, new RegExp(`${store}\\s+UNDECLARED_REFUSED \\(NO_ATTACHMENT\\)`), `${who}: the ${store} was not refused for want of an attachment`);
+  };
+  sharedRefused(shared, "the new tenant");
   const existing = declaredSubjectIds(R.roots).find((id) => id !== s.id && lookupSubject(R.roots, id).rootKind === "external");
-  const existingTenant = resolveSide(R, RESOURCES.subject(existing))?.tenantId ?? attachments.find((a) => a.resourceKind === "SITE_ORIGIN" && a.tenantId !== tenant).tenantId;
+  assert.ok(existing, "CONTROL: no existing external subject — the existing client's need has no population");
+  const existingSide = resolveSide(R, RESOURCES.subject(existing));
+  assert.equal(existingSide.state, "RESOLVED", "the existing subject does not resolve to a tenant");
+  const existingTenant = existingSide.tenantId;
   const existingShared = run([`--tenant=${existingTenant}`, "--seeds=" + join(lookupStore(R.roots, "RESEARCH").dir, s.batch, "seeds.txt")]);
-  assert.equal(existingShared.status, 3, "the EXISTING subject's crawl is not refused on the shared stores — then the capability would not be needed by it");
+  sharedRefused(existingShared, "the EXISTING subject's tenant (then the capability would not be needed by it)");
   const own = run([`--tenant=${tenant}`, `--subject=${s.id}`, `--research-batch=${s.batch}`]);
   assert.equal(own.status, 0, `the declared research batch did not run: ${own.stderr.slice(-300)}`);
   const cross = run([`--tenant=${existingTenant}`, `--research-batch=${s.batch}`]);
   assert.equal(cross.status, 3, "another tenant ran on this subject's research batch");
-  assert.match(cross.stderr, /CROSS_TENANT_REFUSED/);
+  assert.match(`${cross.stdout}\n${cross.stderr}`, /research batch\s+CROSS_TENANT_REFUSED/, "another tenant was refused the batch for a reason other than the cross-tenant rule");
 });
 
 test("F09 · EXPECTED · a tenant run writes ONLY into its own research batch, found through a RELOCATED root — the engine's shared stores and the original root are untouched (no network: a dry run with --confirm records its run)", () => {
@@ -200,7 +212,39 @@ test("F09 · EVIDENCE · the subject resolves to the SAME stable identities from
     assert.ok(String(movedDir).replace(/\\/g, "/").startsWith(copy.replace(/\\/g, "/")), "the relocated declaration was not what resolved — onboarding worked only from the original location");
     const there = identityRows(moved, subjectsUnderProof(moved).find((x) => x.id === s.id) ?? s);
     assert.deepEqual(there, here, "the relocated root resolved different identities");
-    console.log(`F09-PORTABILITY-FINGERPRINT ${JSON.stringify({ platform: process.platform, rows: here.length, digest: sha(here.join("\n")).slice(0, 16), relocated: true })}`);
+    /* SENSITIVITY — a match proves nothing unless the fingerprint CAN differ. Two relocated copies, each with ONE declaration
+     * edited, must each resolve to a different digest: (1) the research batch re-attached to another active tenant (the
+     * declaration changed); (2) the subject's connectors removed (the set of resolved identities changed). */
+    const digest = (rows) => sha(rows.join("\n")).slice(0, 16);
+    const edited = (edit) => {
+      const c = mkdtempSync(join(tmpdir(), "f09-sensitivity-"));
+      try {
+        cpSync(external.path, c, { recursive: true, filter: (p) => !/[\\/]\.git([\\/]|$)/.test(p) });
+        edit(c);
+        const r2 = createTenantResolver({ env: { ...process.env, [SUBJECT_ROOTS_ENV]: c } });
+        assert.ok(String(lookupSubject(r2.roots, s.id).dir).replace(/\\/g, "/").startsWith(c.replace(/\\/g, "/")), "CONTROL: the edited copy was not what resolved");
+        return identityRows(r2, subjectsUnderProof(r2).find((x) => x.id === s.id) ?? s);
+      } finally { rmSync(c, { recursive: true, force: true }); }
+    };
+    const rewrite = (file, fn) => { const j = JSON.parse(readFileSync(file, "utf8")); fn(j); writeFileSync(file, JSON.stringify(j, null, 2)); };
+    const tenantNow = resolveSide(R, RESOURCES.subject(s.id)).tenantId;
+    const otherTenant = R.declarations.tenants.find((t) => t.status === "ACTIVE" && t.tenantId !== tenantNow).tenantId;
+    const batchMoved = edited((c) => rewrite(join(c, "tenancy", "attachments.json"), (j) => {
+      const hit = j.attachments.filter((a) => a.resourceKind === "RESEARCH_BATCH" && a.resourceRef === s.batch);
+      assert.equal(hit.length, 1, "CONTROL: the batch attachment to edit was not found exactly once");
+      hit[0].tenantId = otherTenant;
+    }));
+    const connectorsGone = edited((c) => rewrite(join(c, "roots.json"), (j) => {
+      const hit = j.subjects.filter((x) => x.subjectId === s.id || x.id === s.id);
+      assert.equal(hit.length, 1, "CONTROL: the subject's roots entry to edit was not found exactly once");
+      assert.ok((hit[0].connectors ?? []).length >= 1, "CONTROL: the subject declares no connector to remove");
+      hit[0].connectors = [];
+    }));
+    assert.notEqual(digest(batchMoved), digest(here), "SENSITIVITY: re-attaching the batch to another tenant did not change the fingerprint — a constant dressed as a measurement");
+    assert.notEqual(digest(connectorsGone), digest(here), "SENSITIVITY: removing the subject's connectors did not change the fingerprint — a constant dressed as a measurement");
+    assert.equal(batchMoved.length, here.length, "the batch control must change an OUTCOME, not the row count");
+    assert.ok(connectorsGone.length < here.length, "the connector control must shrink the resolved identity set");
+    console.log(`F09-PORTABILITY-FINGERPRINT ${JSON.stringify({ platform: process.platform, rows: here.length, digest: digest(here), relocated: true, sensitivity: { batchReattached: digest(batchMoved), connectorsRemoved: digest(connectorsGone), rowsAfterConnectorsRemoved: connectorsGone.length } })}`);
   } finally { rmSync(copy, { recursive: true, force: true }); }
 });
 
@@ -217,8 +261,13 @@ test("F09 · EVIDENCE · zero shared-engine specialisation: the subject's declar
   assert.deepEqual(real.breaches.filter((x) => words.some((w) => String(x.word).toLowerCase().includes(w))).map((x) => `${x.file}:${x.line}`), [], "shared engine code names the subject");
   // generic tests — clarification 10 names them too; the production census does not scan them, so this does
   const tests = execFileSync("git", ["-C", REPO, "ls-files", "test"], { encoding: "utf8" }).split("\n").filter((p) => p && !p.startsWith("test/fixtures/"));
-  const inTests = tests.filter((p) => { const x = readFileSync(join(REPO, p), "utf8").toLowerCase(); return words.some((w) => x.includes(w)); });
+  assert.ok(tests.length >= 100, `the generic-test population is ${tests.length} — an empty scan cannot prove absence`);
+  const namesSubject = (x) => words.some((w) => x.toLowerCase().includes(w));
+  const inTests = tests.filter((p) => namesSubject(readFileSync(join(REPO, p), "utf8")));
   assert.deepEqual(inTests, [], "a generic test names the subject");
+  assert.ok(namesSubject(`${readFileSync(join(REPO, tests[0]), "utf8")}
+// ${pkg.vocabulary[0]}
+`), "CONTROL: the generic-test scan did not see the subject's word planted in a test");
   // CONTROL: the same census SEES the subject's word planted in a real shared file
   const planted = await neutralityCensus({ repo: REPO, read: (p) => (p === "bin/crawl.mjs" ? `${readFileSync(join(REPO, p), "utf8")}\nconst h = "x.${pkg.vocabulary[0]}.example";\n` : readFileSync(join(REPO, p), "utf8")) });
   assert.ok(planted.breaches.some((x) => x.file === "bin/crawl.mjs" && words.some((w) => String(x.word).toLowerCase().includes(w))), "CONTROL: a planted breach was not seen");

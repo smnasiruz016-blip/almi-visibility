@@ -148,7 +148,7 @@ test("V6 · the SITE rule, both directions, on fixed inputs — constructor, col
   assert.equal(classifySite(text.replace("console.log(`ledger${", "record(ledger, `${"), s).cls, "UNKNOWN", "control: a real use beside it must not be ignored");
 });
 
-test("V7 · the REAL population: 44 governed = 42 routed + 2 checked exemptions + 0 non-mutating + 0 bypass, remainder 0 — every collector's caller commits through the boundary", () => {
+test("V7 · the REAL population: 45 governed = 43 routed + 2 checked exemptions + 0 non-mutating + 0 bypass, remainder 0 — every collector's caller commits through the boundary", () => {
   const rows = census();
   const governed = rows.filter((r) => r.cls === "GOVERNED_STATE_CHANGE");
   /* 58/40 → 59/41 on 23 September, for a MEASURED reason: F07 added one production entry point,
@@ -162,12 +162,14 @@ test("V7 · the REAL population: 44 governed = 42 routed + 2 checked exemptions 
    * (BOUNDARY_ROUTED). No existing caller moved class.
    * 61/43 → 62/44 on 25 September (F02 disposition), for a MEASURED reason: one production entry point,
    * bin/retire-attachment.mjs, which retires an attachment proved unlawful only through the boundary (BOUNDARY_ROUTED).
-   * No existing caller moved class. */
-  assert.equal(rows.length, 62);
-  assert.equal(governed.length, 44);
+   * No existing caller moved class.
+   * 62/44 → 63/45 on 25 September (F04), for a MEASURED reason: one production entry point, bin/approval.mjs, which
+   * records an approval event only through the boundary (BOUNDARY_ROUTED). No existing caller moved class. */
+  assert.equal(rows.length, 63);
+  assert.equal(governed.length, 45);
   assert.equal(rows.filter((r) => r.cls === "READ_ONLY_DIAGNOSTIC").length, 18);
   const by = Object.fromEntries(CALLER_CLASSES.map((c) => [c, governed.filter((r) => r.callerClass === c).length]));
-  assert.deepEqual(by, { BOUNDARY_ROUTED: 42, DIRECT_DURABLE_WRITE: 0, COLLECTOR_OR_LIBRARY_WRITE: 0, CHECKED_AUDIT_STORE_EXEMPTION: 2, READ_ONLY: 0, PARTIALLY_ROUTED: 0, UNKNOWN: 0 });
+  assert.deepEqual(by, { BOUNDARY_ROUTED: 43, DIRECT_DURABLE_WRITE: 0, COLLECTOR_OR_LIBRARY_WRITE: 0, CHECKED_AUDIT_STORE_EXEMPTION: 2, READ_ONLY: 0, PARTIALLY_ROUTED: 0, UNKNOWN: 0 });
   assert.equal(bypasses(rows).length, 0);
   assert.equal(governed.filter((r) => r.routed).length + auditStoreExempt(rows).length + nonMutating(rows).length + bypasses(rows).length, governed.length);
   const sites = governed.flatMap((r) => r.siteDetail.map((s) => ({ ...s, file: r.file, reaches: r.reachesBoundary })));

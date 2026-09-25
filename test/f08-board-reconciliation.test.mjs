@@ -144,7 +144,7 @@ const MOVED_SINCE = Object.freeze({ F01: "VERIFIED-PASS", F02: "VERIFIED-PASS", 
 /* 🔴 A ROW THAT STARTED, UNDER ITS OWN FROZEN ACCEPTANCE, is admitted too — and only by the same three facts: the
  * acceptance exists, the row's own IMPLEMENTATION event records UNASSESSED -> IN-PROGRESS, and that transition is in the
  * production trail. F02 started on 24 September 2026 (acceptance 3ea6fda, committed alone before any engine change). */
-const STARTED_SINCE = Object.freeze({}); // F04 started on 25 Sep 2026 (movement 1, owner command 94acbb7 §15) and EARNED VERIFIED-PASS the same day under Amendment 1 (89e8664) — see MOVED_SINCE. F02 started here on 24 Sep and then EARNED VERIFIED-PASS on 25 Sep — see MOVED_SINCE.
+const STARTED_SINCE = Object.freeze({ F09: "IN-PROGRESS" }); // F09 started on 25 Sep 2026 (movement 1, owner commands e5f5fd4 / 474d27a). // F04 started on 25 Sep 2026 (movement 1, owner command 94acbb7 §15) and EARNED VERIFIED-PASS the same day under Amendment 1 (89e8664) — see MOVED_SINCE. F02 started here on 24 Sep and then EARNED VERIFIED-PASS on 25 Sep — see MOVED_SINCE.
 
 test("P6 · every feature other than F08 holds exactly the state it held at the merged SHA, save rows that EARNED a later movement", () => {
   const now = board();

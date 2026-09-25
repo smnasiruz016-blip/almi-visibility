@@ -11,7 +11,7 @@ import { row5 } from "./row5.mjs";
 import { splitPopulation } from "./query-population.mjs";
 import { discoverAxes, axisErrors } from "./axis-discovery.mjs";
 import { answerEvidence } from "./answer-evidence.mjs";
-import { availableSubjects, importSubjectModule, allowsSubject } from "../subject-roots.mjs";
+import { availableProductSubjects, importSubjectModule, allowsSubject } from "../subject-roots.mjs";
 import { censusSubjectScope } from "../tenancy/scoped-run.mjs";
 import { createTenantResolver } from "../tenancy/resolver.mjs";
 import { partitionRowsByDeclaredHost } from "../tenancy/row-partition.mjs";
@@ -95,7 +95,7 @@ const subjectDecision = (id, scope, resolve) => ((scope ?? censusSubjectScope(id
  */
 export async function readDeclaredAxes({ scope = null, resolve = null } = {}) {
   const out = {};
-  for (const id of availableSubjects()) {
+  for (const id of availableProductSubjects()) {
     const decision = subjectDecision(id, scope, resolve);
     if (!decision) continue;
     const mod = await importSubjectModule(id, "product.mjs", { decision });
@@ -137,7 +137,7 @@ export async function readDeclaredAnswerEvidence({ axisResourceKind, axisResourc
   const claims = [];
   const resolvedRegistries = [];
 
-  for (const id of availableSubjects()) {
+  for (const id of availableProductSubjects()) {
     /* 🔴 F03: a subject whose root no decision allows is not read — and says so, rather than vanishing. */
     const decision = subjectDecision(id, runScope, resolveScope);
     if (!decision) { sources.push({ subject: id, ref: null, state: "SUBJECT_ROOT_NOT_RESOLVED", records: 0 }); continue; }

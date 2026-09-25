@@ -42,7 +42,7 @@
  * product's name in the engine**, and the boundary law would have failed this
  * very file. Caught while writing it.
  */
-import { availableSubjects, allowsSubject, importSubjectModule, SubjectRootRefused } from "./subject-roots.mjs";
+import { availableProductSubjects, allowsSubject, importSubjectModule, SubjectRootRefused } from "./subject-roots.mjs";
 import { rootIndexFor } from "./tenancy/resolver.mjs";
 import { lookupSubject } from "./tenancy/root-registry.mjs";
 import { RESOURCES } from "./tenancy/scoped-run.mjs";
@@ -52,7 +52,8 @@ const FLAG = "--product=";
 /** Every product a root registry declares. A missing root or a duplicate id is refused, not hidden. (Never echoed in a
  * refusal: listing every declared subject back to an operator would tell one tenant's run about another's subjects.) */
 export function availableProducts() {
-  return availableSubjects();
+  /* F09: products only — a declared subject without a product module is a subject, not a product. */
+  return availableProductSubjects();
 }
 
 /** The id given on the command line, or null. */

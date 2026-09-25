@@ -22,6 +22,7 @@
  *   a fixture counted as the real client                          → F9-S11
  *   the F09 acceptance pin                                        → F9-S12
  *   a governed caller behind an alias                             → F9-S13
+ *   one client's presence breaks another's run (subject ≠ product)→ F9-S15
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -106,6 +107,11 @@ export async function f09Sabotages() {
       from: `import { governedFileWrite, governedStoreAppend } from "../src/governance/governed-run.mjs";`,
       to: `import { governedFileWrite, governedStoreAppend, governedStoreAppend as gsaHidden } from "../src/governance/governed-run.mjs";\nif (process.env.F09_NEVER) executeGovernedWrite(gsaHidden({ repo: REPO, permission: {}, store: null, records: [], action: "WRITE_F09_HIDDEN_UNREGISTERED" }));`,
       expect: /UNKNOWN_ACTION/ },
+
+    { id: "F9-S15", what: "products are every declared subject again — one site-only subject breaks every other subject's product loaders", file: "src/subject-roots.mjs", test: T, named: "F09 · EXPECTED · the generic contract 'a PRODUCT is a declared subject",
+      from: `export const availableProductSubjects = (opts) => [...subjectIndex(opts).entries()].filter(([, v]) => existsSync(join(v.dir, PRODUCT_MODULE))).map(([id]) => id).sort();`,
+      to: `export const availableProductSubjects = (opts) => [...subjectIndex(opts).keys()].sort();`,
+      expect: /a subject without a product module was listed as a product/ },
 
     { id: "F9-S14", what: "A PATTERN THAT CANNOT FAIL — the neutrality scanner's pattern matches nothing", file: "tools/product-boundary.mjs", test: T, named: "F09 · EVIDENCE · zero shared-engine specialisation",
       from: `const PRODUCT_WORD_RE = new RegExp(NEUTRALITY_TERMS.map(escapeRe).join("|"), "gi");`,

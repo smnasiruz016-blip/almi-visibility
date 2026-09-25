@@ -161,6 +161,26 @@ test("F09 · EXPECTED · the real run's authorisation decisions are on the audit
   assert.equal(authorise({ actorRef: "actor:model", action: "OPEN_CONNECTOR_PUBLIC_SITE", scope: { scopeType: "TENANT", tenantId: tenant }, resourceRef: `${s.id}#PUBLIC_SITE`, now: "2026-09-25T12:00:00Z" }).outcome, "DENIED_BY_RULE");
 });
 
+test("F09 · EXPECTED · the generic contract 'a PRODUCT is a declared subject that carries a product module': the existing product stays a product, the site-only subject is a subject but not a product, and the production loaders no longer break for anyone (opposite verdicts, both subjects)", async () => {
+  const { availableSubjects, availableProductSubjects } = await import("../src/subject-roots.mjs");
+  const { availableProducts } = await import("../src/product-cli.mjs");
+  const { readDeclaredAxes } = await import("../src/discovery/row6.mjs");
+  const s = one();
+  const subjects = availableSubjects();
+  const products = availableProducts();
+  assert.ok(subjects.includes(s.id), "the new subject is not a declared subject");
+  assert.ok(!products.includes(s.id), "a subject without a product module was listed as a product");
+  const existing = products.find((id) => lookupSubject(R.roots, id).rootKind === "external");
+  assert.ok(existing, "CONTROL: no existing external PRODUCT — the opposite verdict has no population");
+  assert.deepEqual(products, availableProductSubjects());
+  assert.ok(products.length === subjects.filter((id) => existsSync(join(lookupSubject(R.roots, id).dir, "product.mjs"))).length, "the product list is not exactly the subjects carrying a product module");
+  /* the production loader that broke for EVERY subject once a site-only subject was declared now reads every product */
+  const scope = { decisions: products.flatMap((id) => { const d = decideForTenant(R, resolveSide(R, RESOURCES.subject(id)).tenantId, RESOURCES.subject(id)); return [{ label: id, decision: d }]; }) };
+  const axes = await readDeclaredAxes({ scope, resolve: R });
+  assert.ok(Object.keys(axes).length >= 1, "the existing products' axes were not read");
+  assert.ok(!Object.hasOwn(axes, s.id), "the site-only subject was read as a product");
+});
+
 /* ═══ EVIDENCE · portable resolution in two environments; zero shared specialisation ════════════════════════════════════ */
 
 test("F09 · EVIDENCE · the subject resolves to the SAME stable identities from a RELOCATED copy of its root — a declaration move only, no shared-code edit — and prints the fingerprint for the second environment", () => {

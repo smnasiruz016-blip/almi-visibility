@@ -18,7 +18,7 @@
  *
  * Writes: a directory under the OS temp dir (removed by cleanup). Nothing in either repository.
  */
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
+import { cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve, relative, sep, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -31,6 +31,28 @@ export const FIXTURE_TENANT = "tenant:00000000000000000000000000000f02";
 export const SECOND_FIXTURE_TENANT = "tenant:00000000000000000000000000000f03";
 export const SUBJECT_ROOTS_ENV = "ALMIVISIBILITY_SUBJECT_ROOTS";
 const BASIS = "F02_DECLARED_FIXTURE_WORLD_NOT_THE_REAL_POPULATION";
+
+/**
+ * 🔴 F03 · THE FIXTURE WORLD'S ROOT REGISTRY — one NEUTRAL fixture subject whose connectors reach only fixture resources, so
+ * a safety proof on a LIVE path (a crawl, a Search Console ingest) can run past the connector decision to the gate it is
+ * about. Its credential is NAMED, never held — the variable a test plants a key-file path in. The world's registry keeps
+ * the copied data root's own subjects and stores (when it declares them) and declares the four stores the root holds.
+ */
+export const FIXTURE_SUBJECT = "fixture-world-subject";
+export const FIXTURE_SUBJECT_ORIGIN = "https://fixture-world.invalid";
+export const FIXTURE_SUBJECT_REGISTRY = `${FIXTURE_SUBJECT}/facts`;
+export const FIXTURE_CREDENTIAL_NAME = "GSC_SERVICE_ACCOUNT_KEY_FILE";
+const WORLD_STORES = Object.freeze([["PROJECT_DECLARATIONS", "declarations"], ["OBSERVATIONS", "observations"], ["CAPTURES", "captures"], ["RESEARCH", "research"]]);
+const FIXTURE_SUBJECT_ENTRY = Object.freeze({
+  subjectId: FIXTURE_SUBJECT,
+  path: FIXTURE_SUBJECT,
+  members: [{ resourceKind: "FACT_REGISTRY", resourceRef: FIXTURE_SUBJECT_REGISTRY }],
+  connectors: [
+    { connectorId: "site", kind: "PUBLIC_SITE", credential: null, reaches: [{ resourceKind: "SITE_ORIGIN", resourceRef: FIXTURE_SUBJECT_ORIGIN }] },
+    { connectorId: "sources", kind: "CITED_SOURCES", credential: null, reaches: [{ resourceKind: "FACT_REGISTRY", resourceRef: FIXTURE_SUBJECT_REGISTRY }] },
+    { connectorId: "search", kind: "SEARCH_CONSOLE_API", credential: { mechanism: "ENV_REFERENCE", name: FIXTURE_CREDENTIAL_NAME }, reaches: [{ resourceKind: "SITE_ORIGIN", resourceRef: FIXTURE_SUBJECT_ORIGIN }] },
+  ],
+});
 
 /** Every store-set, ledger, cache and capture an entry point names (src/tenancy/scoped-run.mjs RESOURCES), by ref. */
 export const FIXTURE_ATTACHMENTS = Object.freeze([
@@ -53,6 +75,9 @@ export const FIXTURE_ATTACHMENTS = Object.freeze([
   /* the engine's own neutral test products (engine-fixtures root) */
   ["FACT_REGISTRY", "engine-fixtures:neutral-test-knots/facts"],
   ["FACT_REGISTRY", "engine-fixtures:neutral-test-ferments/facts"],
+  /* F03: the fixture world's neutral subject — its member and the one origin its connectors reach */
+  ["FACT_REGISTRY", "fixture-world-subject/facts"],
+  ["SITE_ORIGIN", "https://fixture-world.invalid"],
 ]);
 
 /** The operator flags whose value is a path the run reads (the RESOURCES.inputPath call sites). */
@@ -71,6 +96,17 @@ export function declaredWorld({ inputPaths = [], extra = [], secondTenantOrigins
   if (!existsSync(join(DATA_ROOT, "tenancy", "attachments.json"))) throw new Error(`declaredWorld: no data root at ${DATA_ROOT}`);
   const root = mkdtempSync(join(tmpdir(), "almi-f02-world-"));
   cpSync(DATA_ROOT, root, { recursive: true, filter: (src) => !src.split(sep).includes(".git") });
+  /* F03: the world's root registry (see FIXTURE_SUBJECT above) */
+  const regPath = join(root, "roots.json");
+  const realReg = existsSync(regPath) ? JSON.parse(readFileSync(regPath, "utf8")) : null;
+  for (const [, dir] of WORLD_STORES) mkdirSync(join(root, dir), { recursive: true });
+  mkdirSync(join(root, FIXTURE_SUBJECT, "facts"), { recursive: true });
+  writeFileSync(regPath, JSON.stringify({
+    schemaVersion: 1,
+    kind: "ROOT_REGISTRY",
+    stores: realReg?.stores ?? WORLD_STORES.map(([store, path]) => ({ store, path })),
+    subjects: [...(realReg?.subjects ?? []), FIXTURE_SUBJECT_ENTRY],
+  }, null, 2) + "\n");
   const real = JSON.parse(readFileSync(join(DATA_ROOT, "tenancy", "attachments.json"), "utf8")).attachments;
   const pairs = [];
   const seen = new Set();
@@ -86,6 +122,9 @@ export function declaredWorld({ inputPaths = [], extra = [], secondTenantOrigins
     root,
     tenantId: FIXTURE_TENANT,
     tenantArg: `--tenant=${FIXTURE_TENANT}`,
+    /** F03: the neutral fixture subject a live-path proof names (--subject=…) so it can run past the connector decision. */
+    subject: FIXTURE_SUBJECT,
+    subjectArg: `--subject=${FIXTURE_SUBJECT}`,
     /** Declare, to the fixture tenant, every input path THESE args hand the run; return the args with the tenant added. */
     argv(args = []) {
       let grew = false;

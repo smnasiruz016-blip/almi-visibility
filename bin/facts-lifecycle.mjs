@@ -23,7 +23,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
 import { loadRegistry } from "../src/facts/registry.mjs";
-import { productFromArgvOrExit } from "../src/product-cli.mjs";
+import { productFromArgvOrExit, productIdOrExit } from "../src/product-cli.mjs";
 import { loadSubjectPackage } from "../src/subject-package.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { detectConflicts, freshnessOf, markForReview, createFactCache, reviewChangedInputs } from "../src/facts/lifecycle.mjs";
@@ -44,9 +44,11 @@ const out = confineToRepo(arg("out", `${REPO}runs/export/facts-for-verification.
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
 
 // 🔴 The product is an ARGUMENT, never a folder written here (owner ruling, 14 September 2026): no default.
-const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/facts-lifecycle.mjs --product=<id> [--confirm] [--out=<file>]" });
+/* 🔴 F03 — the subject's data root is decided (RESOURCES.subject) BEFORE its descriptor or any of its files is read. */
+const PRODUCT_ID = productIdOrExit(process.argv, { usage: "node bin/facts-lifecycle.mjs --product=<id> [--confirm] [--out=<file>]" });
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/facts-lifecycle.mjs", governed: true, resources: [RESOURCES.factRegistryAt(PRODUCT.factsDir), RESOURCES.runArtefacts("audit findings")] });
+const SCOPE = scopedEntryPoint({ entry: "bin/facts-lifecycle.mjs", governed: true, resources: [RESOURCES.subject(PRODUCT_ID), RESOURCES.runArtefacts("audit findings")] });
+const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/facts-lifecycle.mjs --product=<id> [--confirm] [--out=<file>]", scope: SCOPE });
 /* The package is LOCATED by the declared product's id — it grants nothing: the gate above already decided scope. */
 const SUBJECT_GUIDE = (await loadSubjectPackage(PRODUCT.productId)).module.whatWouldVerify ?? null;
 const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);

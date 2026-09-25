@@ -26,12 +26,16 @@ import { join } from "node:path";
 
 import { declaredObservationBatches, declaredObservationSources, mergeDeclaredSources, ObservationBatchFault, BATCH_FAULTS } from "../src/crawl/observation-batch.mjs";
 import { SUBJECT_ROOTS_ENV } from "../src/subject-roots.mjs";
+import { declareRoot } from "./helpers/root-registry.mjs";
 
 const RECORD = (i) => JSON.stringify({ record_type: "observation", observation_id: `synthetic-${i}`, method: "synthetic.collect", value: {} });
 
 /** A synthetic external root — an invented client, sharing nothing with any connected material. */
 function root({ batches }) {
   const dir = mkdtempSync(join(tmpdir(), "almivis-batches-"));
+  /* F03: the root DECLARES its observations store, as the real data root does (roots.json). */
+  mkdirSync(join(dir, "observations"), { recursive: true });
+  declareRoot(dir, { stores: { OBSERVATIONS: "observations" } });
   for (const b of batches) {
     const bd = join(dir, "observations", b.batchId);
     mkdirSync(bd, { recursive: true });
@@ -106,12 +110,20 @@ test("🔴 an external source that is MISSING fails loudly — never an empty su
     assert.throws(() => declaredObservationSources({ env: env(join(empty, "does-not-exist")) }), (e) => e instanceof ObservationBatchFault);
   } finally { rmSync(empty, { recursive: true, force: true }); }
 
-  /* A root with no observations directory yields no batches — and that is reported as zero sources,
-   * not as a crash; the refusal above is for a root that cannot be resolved at all. */
+  /* 🔴 F03: a root that DECLARES no observations store is refused too — an undeclared store is not "no batches". A
+   * directory the root merely holds declares nothing either. */
   const bare = mkdtempSync(join(tmpdir(), "almivis-bare-"));
   try {
-    assert.deepEqual(declaredObservationSources({ env: env(bare) }), []);
+    mkdirSync(join(bare, "observations"), { recursive: true });
+    assert.throws(() => declaredObservationSources({ env: env(bare) }), (e) => e instanceof ObservationBatchFault && e.fault === BATCH_FAULTS.UNAVAILABLE && /UNDECLARED/.test(e.message));
   } finally { rmSync(bare, { recursive: true, force: true }); }
+
+  /* CONTROL: a root that DECLARES an empty observations store yields zero sources — a real answer about a declared store,
+   * not a crash. */
+  const declared = root({ batches: [] });
+  try {
+    assert.deepEqual(declaredObservationSources({ env: env(declared) }), []);
+  } finally { rmSync(declared, { recursive: true, force: true }); }
 });
 
 test("🔴 a record file the manifest does not declare is INVALID — an unaccounted file is not a bonus source", () => {

@@ -50,8 +50,9 @@ import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { runQuoteMatch } from "../src/facts/quote-match.mjs";
 
-import { productFromArgvOrExit } from "../src/product-cli.mjs";
+import { productFromArgvOrExit, productIdOrExit } from "../src/product-cli.mjs";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { openConnector } from "../src/tenancy/connectors.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 /**
@@ -63,10 +64,12 @@ import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
  *
  * There is no default: a runner with no `--product=<id>` stops and says so.
  */
-const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/quote-match.mjs --product=<id>" });
+/* 🔴 F03 — the subject's data root is decided (RESOURCES.subject) BEFORE its descriptor or any of its files is read. */
+const PRODUCT_ID = productIdOrExit(process.argv, { usage: "node bin/quote-match.mjs --product=<id>" });
 
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/quote-match.mjs", governed: true, resources: [RESOURCES.factRegistryAt(PRODUCT.factsDir)] });
+const SCOPE = scopedEntryPoint({ entry: "bin/quote-match.mjs", governed: true, resources: [RESOURCES.subject(PRODUCT_ID), RESOURCES.connector(PRODUCT_ID, "CITED_SOURCES")] });
+const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/quote-match.mjs --product=<id>", scope: SCOPE });
 const argv = process.argv.slice(2);
 const out = argv.find((a) => a.startsWith("--out="))?.split("=").slice(1).join("=") ?? null;
 
@@ -78,7 +81,9 @@ if (out) announceWritePermission(permission);
 console.log(`\nNIGHTLY QUOTE MATCH — ${records.length} records in the registry`);
 console.log("─".repeat(78));
 
-const report = await runQuoteMatch(records);
+/* 🔴 F03 — the sources are fetched only through the CITED_SOURCES connector the run's decision allowed. */
+const CONNECTOR = openConnector({ scope: SCOPE, subjectId: PRODUCT_ID, kind: "CITED_SOURCES" });
+const report = await runQuoteMatch(records, { fetchImpl: CONNECTOR.fetch });
 
 console.log(`fetched ${report.urlsFetched} distinct URLs\n`);
 for (const r of report.results.sort((a, b) => a.id.localeCompare(b.id))) {

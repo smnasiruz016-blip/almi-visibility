@@ -189,6 +189,10 @@ test("🔴 THE CAPTURE REFUSES RATHER THAN SHORTENS — absent, undeclared and t
   try {
     const env = { [SUBJECT_ROOTS_ENV]: root };
     assert.throws(() => readPageCapture({ captureId: "capture-0001", env }), /PAGE_CAPTURE_UNAVAILABLE/);
+    /* F03: a root that DECLARES no captures store is refused (above); declared, but without the capture, still UNAVAILABLE */
+    mkdirSync(join(root, "captures"), { recursive: true });
+    (await import("./helpers/root-registry.mjs")).declareRoot(root, { stores: { CAPTURES: "captures" } });
+    assert.throws(() => readPageCapture({ captureId: "capture-0001", env }), /PAGE_CAPTURE_UNAVAILABLE: 'capture-0001' is not in the declared CAPTURES store/);
     const dir = join(root, "captures", "capture-0001");
     mkdirSync(dir, { recursive: true });
     const body = "<html><body>a page</body></html>";
@@ -209,7 +213,7 @@ test("🔴 THE CAPTURE REFUSES RATHER THAN SHORTENS — absent, undeclared and t
 /* ═════════ THE REAL EVIDENCE ═════════ */
 
 test("🟢 REAL — 391 pages through the production path: 362 cross-tenant, 27 bound with no bound claim, 2 selected — both FAIL source integrity on a drift the VERIFIED fact exposes", async () => {
-  await importSubjectModule("almi-oet", "product.mjs");
+  await (await import("./support/subjects.mjs")).subjectModule("almi-oet", "product.mjs");
   const P = product("almi-oet");
   const { records } = await loadRegistry(P.factsDir, "almi-oet");
   const root = externalRootContaining(P.factsDir, process.env);

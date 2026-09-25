@@ -4,11 +4,12 @@
  * ── WHERE ────────────────────────────────────────────────────────────────────
  * Accepted declarations are client data, so they live where the owner's ruling of 14 September 2026 puts client data:
  * in a declared EXTERNAL subject root (config/subject-roots.mjs, overridable by ALMIVISIBILITY_SUBJECT_ROOTS), never
- * in this engine. The root is the directory `declarations/` inside it, and it exists only when it carries the marker
- * file ROOT.json declaring it. Exactly one external root may carry it:
- *   none        DECLARATION_ROOT_MISSING — fail closed; there is nowhere lawful to write
+ * in this engine. 🔴 F03 (25 Sep 2026): the root is the PROJECT_DECLARATIONS store a root registry DECLARES
+ * (src/tenancy/root-registry.mjs) — no longer the directory that happens to carry a marker file. The marker ROOT.json
+ * must still be there and must agree; it confirms the declaration and can no longer create one:
+ *   undeclared  DECLARATION_ROOT_MISSING — fail closed; there is nowhere lawful to write
  *   two or more DECLARATION_ROOT_AMBIGUOUS — fail closed; a silent choice is how a write lands in the wrong place
- *   unreadable  DECLARATION_ROOT_UNREADABLE — fail closed
+ *   unreadable, absent, or a marker that does not agree  DECLARATION_ROOT_UNREADABLE — fail closed
  * No absolute developer path is stored anywhere: every location is resolved at run time from the declared roots.
  *
  * ── LAYOUT ───────────────────────────────────────────────────────────────────
@@ -22,7 +23,8 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { subjectRoots } from "../subject-roots.mjs";
+import { rootIndexFor } from "../tenancy/resolver.mjs";
+import { lookupStore } from "../tenancy/root-registry.mjs";
 import { canonicalJson } from "../audit-trail/event.mjs";
 import { stagedReplaceAdapter } from "../governance/durability-adapters.mjs";
 import { DECLARATION_ID, PROJECT_ID } from "./contract.mjs";
@@ -44,19 +46,20 @@ export const tenantDir = (tenantId) => {
 
 /** Resolve the one declared declaration root, or say exactly why there is none. Never throws, never guesses. */
 export function resolveDeclarationRoot({ env = process.env } = {}) {
-  let roots;
-  try { roots = subjectRoots(env).filter((r) => r.kind === "external"); } catch (e) { return fail("DECLARATION_ROOT_UNREADABLE", e.message); }
-  const marked = roots.filter((r) => existsSync(join(r.path, DECLARATIONS_DIR, ROOT_MARKER)));
-  if (marked.length === 0) return fail("DECLARATION_ROOT_MISSING", `no declared external root holds ${DECLARATIONS_DIR}/${ROOT_MARKER}`);
-  if (marked.length > 1) return fail("DECLARATION_ROOT_AMBIGUOUS", `${marked.length} declared external roots hold ${DECLARATIONS_DIR}/${ROOT_MARKER}`);
-  const base = marked[0].path;
+  const store = lookupStore(rootIndexFor(env), "PROJECT_DECLARATIONS");
+  if (store.state === "UNDECLARED") return fail("DECLARATION_ROOT_MISSING", "no root registry declares a PROJECT_DECLARATIONS store");
+  if (store.state === "AMBIGUOUS") return fail("DECLARATION_ROOT_AMBIGUOUS", "more than one root registry declares a PROJECT_DECLARATIONS store");
+  if (store.state !== "DECLARED") return fail("DECLARATION_ROOT_UNREADABLE", `the PROJECT_DECLARATIONS store is ${store.state} (${store.reason})`);
+  /* The store must sit directly inside its root, where the layout below and the write adapter (confined to root.base) put
+   * it: `declarations/…` relative to the root. A store declared anywhere else is not this layout, and is refused. */
+  if (store.entry.path !== DECLARATIONS_DIR) return fail("DECLARATION_ROOT_UNREADABLE", "the declared PROJECT_DECLARATIONS store is not at this contract's layout");
   try {
-    const marker = JSON.parse(readFileSync(join(base, DECLARATIONS_DIR, ROOT_MARKER), "utf8"));
-    if (marker?.schemaVersion !== ROOT_MARKER_CONTENT.schemaVersion || marker?.kind !== ROOT_MARKER_CONTENT.kind) return fail("DECLARATION_ROOT_UNREADABLE", "the root marker does not declare a project declaration root");
-  } catch (e) {
+    const marker = JSON.parse(readFileSync(join(store.dir, ROOT_MARKER), "utf8"));
+    if (marker?.schemaVersion !== ROOT_MARKER_CONTENT.schemaVersion || marker?.kind !== ROOT_MARKER_CONTENT.kind) return fail("DECLARATION_ROOT_UNREADABLE", "the root marker does not agree with the declaration");
+  } catch {
     return fail("DECLARATION_ROOT_UNREADABLE", "the root marker could not be read as JSON");
   }
-  return Object.freeze({ ok: true, base, dir: join(base, DECLARATIONS_DIR), rootId: marked[0].id });
+  return Object.freeze({ ok: true, base: store.rootPath, dir: store.dir, rootId: store.rootId });
 }
 const fail = (code, detail) => Object.freeze({ ok: false, code, detail });
 

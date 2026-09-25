@@ -26,6 +26,8 @@
  */
 import { createHash } from "node:crypto";
 
+import { lookupSubject, lookupStore, lookupConnector } from "./root-registry.mjs";
+
 export const SCOPE_CLASSES = Object.freeze(["GLOBAL_PRODUCT", "TENANT", "SUBJECT"]);
 export const SCOPE_OUTCOMES = Object.freeze([
   "SAME_TENANT_ALLOWED", "CROSS_TENANT_REFUSED", "UNDECLARED_REFUSED", "AMBIGUOUS_REFUSED",
@@ -33,6 +35,53 @@ export const SCOPE_OUTCOMES = Object.freeze([
 ]);
 
 const digest = (kind, ref) => createHash("sha256").update(`${kind ?? "NO_KIND"}\u0000${ref ?? ""}`, "utf8").digest("hex").slice(0, 16);
+/** The 16-hex digest a decision carries for a (kind, ref) — so a holder of a decision can check WHAT it decided. */
+export const refDigest = digest;
+
+/* ── F03 · ROOTS AND CONNECTORS, INSIDE THIS ONE DECISION ─────────────────────────────────────────────────────────────
+ * A subject's data root, a store and a connector are LOCATED by the root registry the resolver read
+ * (src/tenancy/root-registry.mjs) and DECIDED here, from F02's attachments only:
+ *   · a STORE a resource lives in must be declared (exactly once) before the resource is decided at all;
+ *   · a SUBJECT_ROOT resolves to a tenant only when EVERY member it declares resolves, through the attachments, to one and
+ *     the same tenant — the registry names no tenant, so the subject can never disagree with F02;
+ *   · a CONNECTOR resolves only when its subject does and EVERY resource it declares it reaches resolves to that same tenant.
+ * Every tenant comparison goes through decideSides — nothing here compares two tenant ids itself. */
+const LOOKUP_SIDE = Object.freeze({ UNDECLARED: "UNDECLARED", AMBIGUOUS: "AMBIGUOUS", INVALID: "INVALID", UNKNOWN: "UNKNOWN" });
+const lookupSide = (side, l, prefix) => ({ ...side, state: LOOKUP_SIDE[l.state] ?? "UNKNOWN", reason: `${prefix}_${l.reason}`, tenantId: null });
+
+function storeSide(resolve, resource, side) {
+  if (resource?.store === undefined || resource?.store === null) return null;
+  const l = lookupStore(resolve.roots, resource.store);
+  return l.state === "DECLARED" ? null : lookupSide(side, l, "STORE");
+}
+
+/** The ONE tenant a set of resources resolves to, or the side that says why there is none. */
+function oneTenantOf(resolve, resources, side, { prefix, empty }) {
+  if (!Array.isArray(resources) || resources.length === 0) return { ...side, state: "UNDECLARED", reason: empty, tenantId: null };
+  const sides = resources.map((r) => resolveSide(resolve, { ...r, scopeClass: "TENANT" }));
+  const bad = sides.find((s) => s.state !== "RESOLVED");
+  if (bad) return { ...side, state: bad.state, reason: `${prefix}_${bad.reason}`, tenantId: null };
+  for (const s of sides.slice(1)) if (!decideSides(sides[0], s).allowed) return { ...side, state: "AMBIGUOUS", reason: `${prefix}S_DECLARED_TO_DIFFERENT_TENANTS`, tenantId: null };
+  return { ...side, state: "RESOLVED", reason: `EVERY_DECLARED_${prefix}_RESOLVES_TO_ONE_TENANT`, tenantId: sides[0].tenantId };
+}
+
+function subjectSide(resolve, subjectId, side) {
+  const l = lookupSubject(resolve.roots, subjectId);
+  if (l.state !== "DECLARED") return lookupSide(side, l, "SUBJECT");
+  return oneTenantOf(resolve, l.entry.members, side, { prefix: "MEMBER", empty: "SUBJECT_DECLARES_NO_MEMBER" });
+}
+
+function connectorSide(resolve, resource, side) {
+  const subject = subjectSide(resolve, resource.subjectId, side);
+  if (subject.state !== "RESOLVED") return subject;
+  const l = lookupConnector(resolve.roots, resource.subjectId, resource.connectorKind);
+  if (l.state !== "DECLARED") return lookupSide(side, l, "CONNECTOR");
+  const reach = oneTenantOf(resolve, l.connector.reaches, side, { prefix: "REACH", empty: "CONNECTOR_DECLARES_NO_REACH" });
+  if (reach.state !== "RESOLVED") return reach;
+  /* the connector's reach and its subject are two resolved answers: the one decision says whether they are one tenant */
+  if (!decideSides(subject, reach).allowed) return { ...side, state: "AMBIGUOUS", reason: "REACH_AND_SUBJECT_DECLARED_TO_DIFFERENT_TENANTS", tenantId: null };
+  return { ...side, state: "RESOLVED", reason: "CONNECTOR_AND_EVERY_REACH_RESOLVE_TO_THE_SUBJECTS_TENANT", tenantId: subject.tenantId };
+}
 
 /** One side, resolved — never compared to anything before this returns. */
 export function resolveSide(resolve, resource) {
@@ -42,6 +91,10 @@ export function resolveSide(resolve, resource) {
   if (!SCOPE_CLASSES.includes(scopeClass)) return { ...side, state: "INVALID", reason: "UNDECLARED_SCOPE_CLASS", tenantId: null };
   if (scopeClass !== "TENANT") return { ...side, state: "NOT_TENANT", reason: `${scopeClass}_IS_NOT_A_TENANT_RESOURCE`, tenantId: null };
   if (resource?.resourceKind === null || resource?.resourceKind === undefined) return { ...side, state: "UNDECLARED", reason: "NO_DECLARED_RESOURCE_KIND", tenantId: null };
+  const store = storeSide(resolve, resource, side);
+  if (store) return store;
+  if (resource.resourceKind === "SUBJECT_ROOT") return subjectSide(resolve, resource.resourceRef, side);
+  if (resource.resourceKind === "CONNECTOR") return connectorSide(resolve, resource, side);
   /* A tenant's PARTITION of a shared collection (src/tenancy/partition.mjs) has no tenant of its own to look up: it is
    * decided only against a REQUESTED tenant (decideForTenant). Anywhere else it resolves to nothing. */
   if (resource.resourceKind === "COLLECTION_PARTITION") return { ...side, state: "UNDECLARED", reason: "A_PARTITION_IS_DECIDED_FOR_A_REQUESTED_TENANT", tenantId: null };
@@ -64,7 +117,13 @@ export function resolveSide(resolve, resource) {
 }
 
 const publicSide = ({ tenantId, ...rest }) => Object.freeze(rest);
-const decision = (outcome, reason, a, b) => Object.freeze({ outcome, allowed: outcome === "SAME_TENANT_ALLOWED", reason, source: publicSide(a), target: publicSide(b) });
+/* F03: every decision this module makes is remembered by identity, so a holder can prove a decision object was MADE HERE
+ * (isGenuineDecision) — a subject module is imported, or a connector constructed, only on a decision this module made,
+ * never on an object literal that merely looks like one. */
+const GENUINE = new WeakSet();
+const decision = (outcome, reason, a, b) => { const d = Object.freeze({ outcome, allowed: outcome === "SAME_TENANT_ALLOWED", reason, source: publicSide(a), target: publicSide(b) }); GENUINE.add(d); return d; };
+/** True only for a decision object this module produced. */
+export const isGenuineDecision = (d) => d !== null && typeof d === "object" && GENUINE.has(d);
 
 /** The outcome of two resolved sides. Pure: it never resolves, never reads, never falls back. */
 export function decideSides(a, b) {
@@ -110,6 +169,9 @@ export function decideForTenant(resolve, requestedTenantId, resource) {
    * (src/tenancy/partition.mjs). The collection's own attachment decides nothing: a shared collection is never one
    * tenant's resource (owner ruling, 24 Sep 2026). A missing or unknown request refuses, exactly as for any resource. */
   if (resource?.resourceKind === "COLLECTION_PARTITION" && (resource.scopeClass ?? "TENANT") === "TENANT") {
+    /* F03: the collection's store must be declared before its partition is decided */
+    const store = storeSide(resolve, resource, { resourceKind: "COLLECTION_PARTITION", resourceRefDigest: digest("COLLECTION_PARTITION", resource.resourceRef), scopeClass: "TENANT" });
+    if (store) return decideSides(requested, store);
     const part = { resourceKind: "COLLECTION_PARTITION", resourceRefDigest: digest("COLLECTION_PARTITION", resource.resourceRef), scopeClass: "TENANT", state: requested.state, reason: requested.state === "RESOLVED" ? "PARTITION_OF_THE_REQUESTED_TENANT" : requested.reason, tenantId: requested.tenantId };
     return decideSides(requested, part);
   }
@@ -123,6 +185,33 @@ function requestSide(resolve, tenantId) {
   if (typeof tenantId !== "string" || tenantId === "") return { ...side, state: "UNDECLARED", reason: "NO_TENANT_REQUESTED", tenantId: null };
   if (!active.includes(tenantId)) return { ...side, state: "INVALID", reason: "REQUESTED_TENANT_NOT_ACTIVE_DECLARED", tenantId: null };
   return { ...side, state: "RESOLVED", reason: "EXPLICIT_DECLARED_TENANT", tenantId };
+}
+
+/** 🔴 F03 · the kinds whose ALLOWED decision is itself recorded: a subject's root or a connector was OBTAINED for a run. */
+export const RECORDED_RESOLUTION_KINDS = Object.freeze({ SUBJECT_ROOT: "RESOLVE_SUBJECT_ROOT", CONNECTOR: "RESOLVE_CONNECTOR" });
+
+/**
+ * 🔴 F03 · The guard-sink decision for an ALLOWED root or connector resolution. Under the owner's line (23 Sep 2026,
+ * src/governance/guard-audit.mjs) something that obtained material and was GRANTED is ACCESS — durable in a governed run,
+ * exactly as its refusal would be. Payload-free: the outcome, the reason code and the reference's digest; no tenant id,
+ * no path, no host, no credential name.
+ */
+export function scopeResolutionEvent(d) {
+  const action = RECORDED_RESOLUTION_KINDS[d?.target?.resourceKind];
+  if (!action || !d.allowed) throw new TypeError("a resolution event records an ALLOWED subject-root or connector decision");
+  return {
+    eventType: "SCOPE_RESOLUTION",
+    action,
+    outcome: "ALLOWED",
+    reasonCode: d.outcome,
+    metadata: {
+      guard: "tenant-scope",
+      classification: d.outcome,
+      ruleEntry: String(d.reason).slice(0, 120),
+      role: `${d.source.scopeClass}>${d.target.scopeClass}`,
+      resourceRef: d.target.resourceRefDigest,
+    },
+  };
 }
 
 /** The guard-sink decision for a refusal (F08: a REFUSAL is ACCESS, durable in a governed run). Payload-free. */

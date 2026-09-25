@@ -17,6 +17,7 @@ import { diagnosticGuardSink } from "./guard-audit.mjs";
 import { governedGuardSink } from "./governed-run.mjs";
 import { isoSeconds } from "../audit-trail/store.mjs";
 import { partitionRefusalEvent } from "../tenancy/partition.mjs";
+import { scopeResolutionEvent, RECORDED_RESOLUTION_KINDS } from "../tenancy/scope.mjs";
 
 /* The engine's own root, from this module's fixed place (src/governance/) — never from the caller's location, which a
  * subject-owned tool three levels down would get wrong (F02 relocation, 24 Sep 2026). */
@@ -35,6 +36,9 @@ export function decideScopedRun({ argv = process.argv, resolve = createTenantRes
   const list = Array.isArray(named) && named.length === 0 && resources.length > 0 ? [RESOURCES.tenantPartition(requestedTenant(argv), "requested tenant")] : named;
   const run = decideRunResources({ argv, resolve, resources: list });
   for (const e of run.refusalEvents) sink.emit(e);
+  /* 🔴 F03: when the run proceeds, each subject root and connector it OBTAINED is recorded through the same guard sink — an
+   * access that was granted (owner's line, 23 Sep 2026). A refused run obtains nothing and records only its refusals. */
+  if (run.allowed) for (const d of run.decisions) if (RECORDED_RESOLUTION_KINDS[d.decision.target?.resourceKind]) sink.emit(scopeResolutionEvent(d.decision));
   if (run.refused.length) {
     log(`🔴 TENANT SCOPE REFUSED — ${run.refused.length} of ${run.decisions.length} resource(s) do not belong to the requested tenant; nothing was read`);
     for (const d of run.refused) log(`   ${d.label.padEnd(26)} ${d.decision.outcome} (${d.decision.reason}) · ref ${d.decision.target.resourceRefDigest}`);

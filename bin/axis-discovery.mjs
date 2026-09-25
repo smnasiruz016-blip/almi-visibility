@@ -40,7 +40,7 @@ const crawlRecords = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jso
 const bodies = readBodyArchive(batchFile("bodies-2026-09-12.jsonl.br"));
 
 // Each declared product's axis — the axis a human chose by hand, read from its own descriptor.
-const declaredAxes = await readDeclaredAxes();
+const declaredAxes = await readDeclaredAxes({ scope: SCOPE });
 
 /* 🔴 THE ANSWER EVIDENCE, AND THE SCOPES THAT GOVERN IT. Supplied whatever they resolve to: the gate
  * decides, and a refusal is printed rather than hidden. The axis population's reference is the batch
@@ -49,7 +49,7 @@ const CRAWL_BATCH_REF = "first-real-crawl-2026-09-12.jsonl";
 /* 🔴 THE AXIS POPULATION IS HANDED OVER AS ROWS, NOT AS ONE IDENTIFIER. It is a mixed capture over
  * many declared tenants, so its scope is derived from the host each row already stores. */
 const axisRows = records.filter((r) => r.record_type === "observation" && Array.isArray(r.value?.rows)).flatMap((o) => o.value.rows);
-const answers = await readDeclaredAnswerEvidence({ axisResourceKind: "CRAWL_BATCH", axisResourceRef: CRAWL_BATCH_REF, axisRows });
+const answers = await readDeclaredAnswerEvidence({ axisResourceKind: "CRAWL_BATCH", axisResourceRef: CRAWL_BATCH_REF, axisRows, scope: SCOPE });
 
 const r = row6({ records, crawlRecords, bodies, lexicon: LEXICON, reference: INTENT_REFERENCE, ambiguous: AMBIGUOUS, referenceStatus: REFERENCE_STATUS, specs: AXIS_SPECS, families: SIBLING_FAMILIES, patterns: HARD_CODED_PATTERNS, declaredAxes,
   answerClaims: answers.claims, axisScope: answers.axisScope, evidenceScope: answers.evidenceScope });

@@ -33,7 +33,7 @@ const EXTERNAL_ID = availableProducts().find((id) => externalRoots.some((root) =
   try { return existsSync(`${root}/${id}/product.mjs`); } catch { return false; }
 }));
 
-const PRODUCT = EXTERNAL_ID ? await productFromArgvOrExit(["node", "x", `--product=${EXTERNAL_ID}`], { usage: "adapter" }) : null;
+const PRODUCT = EXTERNAL_ID ? await productFromArgvOrExit(["node", "x", `--product=${EXTERNAL_ID}`], { usage: "adapter", scope: (await import("./support/subjects.mjs")).subjectScope(EXTERNAL_ID) }) : null;
 const SUBJECT = PRODUCT ? await readExternalSubject({ product: PRODUCT }) : null;
 
 describe("the external subject resolves through the declared root, and is real", () => {
@@ -212,8 +212,15 @@ describe("🔴 P6 · nothing of the subject's material is written into this repo
      * nothing revealed it until a census under tools/ had to change. Everything there is engine
      * tooling — fourteen .mjs censuses and verifiers the tests import — so it belongs on the same
      * side of this line as src/ and test/, and none of what the rule guards moves by letting it in. */
-    const ENGINE_SOURCE = /^(src|test|bin|config|tools|\.github)\//;
-    const ENGINE_FILES = new Set(["package.json"]);
+    /* 🔴 F03 (25 Sep 2026): subject-package CODE (the owner's 24 Sep relocation put engine tooling at subjects/<id>/tools/ and
+     * each package's declaration at subjects/<id>/package.mjs) is engine source like tools/ — code, never content. And the
+     * fixtures root's REGISTRY (products/roots.json) is the one declaration F03 adds beside the neutral test products; it is
+     * named exactly, so every product FILE under products/ stays guarded as before. */
+    const ENGINE_SOURCE = /^(src|test|bin|config|tools|\.github)\/|^subjects\/[a-z0-9-]+\/(tools\/[^/]+\.mjs|package\.mjs)$/;
+    /* F03: and the engine's own AUDIT TRAIL — appended only through the governed audit store, whose hash chain its own
+     * verification tests check. Every governed write (a corpus migration, a crosswalk regeneration) appends to it, so a
+     * pre-commit suite run on any such work saw it modified; it is engine state, never external content. */
+    const ENGINE_FILES = new Set(["package.json", "products/roots.json", "audit-trail/events.jsonl", "audit-trail/head.json"]);
     const LAWFUL_DELETIONS = new Set([
       "runs/crawl/first-real-crawl-2026-09-12.jsonl",
       "runs/crawl/bodies-2026-09-12.jsonl.br",

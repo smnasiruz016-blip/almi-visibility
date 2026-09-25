@@ -23,6 +23,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { brotliCompressSync } from "node:zlib";
+import { declareRoot } from "./helpers/root-registry.mjs";
 
 import {
   batchAvailability, batchDir, batchFile, batchJsonlFiles, readBatchManifest,
@@ -135,12 +136,15 @@ test("🔴 THE SAME BATCH IN TWO ROOTS is AMBIGUOUS — never resolved by preced
   const a = mkdtempSync(join(tmpdir(), "almivis-root-a-"));
   const b = mkdtempSync(join(tmpdir(), "almivis-root-b-"));
   try {
-    for (const r of [a, b]) mkdirSync(join(r, "observations", BATCH_ID), { recursive: true });
+    /* F03: two roots that each DECLARE an observations store holding the batch — the store itself is AMBIGUOUS. */
+    for (const r of [a, b]) { mkdirSync(join(r, "observations", BATCH_ID), { recursive: true }); declareRoot(r, { stores: { OBSERVATIONS: "observations" } }); }
     const env = { ALMIVISIBILITY_SUBJECT_ROOTS: [a, b].join(process.platform === "win32" ? ";" : ":") };
     const av = batchAvailability({ env });
     assert.equal(av.available, false);
     assert.equal(av.fault, BATCH_FAULTS.AMBIGUOUS);
-    assert.match(av.detail, /in 2 roots at once/);
+    assert.match(av.detail, /declared in more than one root registry/);
+    /* and no filesystem path leaks into the refusal (F03 R3) */
+    assert.ok(!av.detail.includes(a) && !av.detail.includes(b), "the refusal carries a private path");
     assert.throws(() => batchDir({ env }), (e) => e.fault === BATCH_FAULTS.AMBIGUOUS);
   } finally {
     rmSync(a, { recursive: true, force: true });
@@ -153,6 +157,7 @@ test("🔴 TAMPERING: a single flipped byte makes the batch INVALID, not merely 
   try {
     const dest = join(root, "observations", BATCH_ID);
     mkdirSync(dest, { recursive: true });
+    declareRoot(root, { stores: { OBSERVATIONS: "observations" } });
     cpSync(batchDir(), dest, { recursive: true });
     const env = withRoot(root);
     /* Unmodified, the copy verifies. */
@@ -177,6 +182,7 @@ test("🔴 A MANIFEST THAT DECLARES A FILE THE BATCH DOES NOT HOLD is INVALID", 
   try {
     const dest = join(root, "observations", BATCH_ID);
     mkdirSync(dest, { recursive: true });
+    declareRoot(root, { stores: { OBSERVATIONS: "observations" } });
     cpSync(batchDir(), dest, { recursive: true });
     rmSync(join(dest, "edges-2026-09-12.jsonl.br"));
     assert.throws(() => verifyBatchIntegrity({ env: withRoot(root) }), (e) => e.fault === BATCH_FAULTS.INVALID);
@@ -221,7 +227,8 @@ test("🔴 GUARD CASE 4: missing external data is UNKNOWN, never a clean-looking
   const a = batchAvailability({ env: withRoot(join(REPO, ".test-scratch", "absent")) });
   assert.equal(a.available, false);
   assert.equal(a.fault, BATCH_FAULTS.UNAVAILABLE);
-  assert.ok(a.detail.includes("external roots") || a.detail.includes("none of the declared"), a.detail);
+  /* F03: an absent root makes the root index UNKNOWN, so the declared store cannot be located — named, never empty */
+  assert.match(a.detail, /OBSERVATIONS store is UNKNOWN \(ROOT_MISSING\)/, a.detail);
 });
 
 test("🔴 GUARD CASE 5: RENAMING AND COMPRESSING DOES NOT LAUNDER IT — filename is not consulted", () => {

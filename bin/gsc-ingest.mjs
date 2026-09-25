@@ -41,6 +41,7 @@ import { createCostLedger, entryFromLiveIngest, formatLedgerLine } from "../src/
 import { readFileSync } from "node:fs";
 import { isAbsolute, join, relative } from "node:path";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { openConnector } from "../src/tenancy/connectors.mjs";
 import { RESOURCES, declaredSiteHosts } from "../src/tenancy/scoped-run.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -52,7 +53,11 @@ const arg = (name, fallback = null) => {
 const propertyId = arg("property");
 const days = Number(arg("days", "28"));
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/gsc-ingest.mjs", governed: true, resources: [RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.inputPath(arg("store"), "--store"), RESOURCES.inputPath(arg("source"), "--source")] });
+/* 🔴 F03 — a live ingest reaches Search Console through the SEARCH_CONSOLE_API connector of the subject it runs for
+ * (--subject=<declared id>); its key file's path is read from the ONE variable that declaration names. The synthetic seam
+ * (--source) makes no request and constructs no connector. */
+const SUBJECT = arg("subject");
+const SCOPE = scopedEntryPoint({ entry: "bin/gsc-ingest.mjs", governed: true, resources: [...(arg("source") === null ? [RESOURCES.connector(SUBJECT, "SEARCH_CONSOLE_API")] : []), RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.inputPath(arg("store"), "--store"), RESOURCES.inputPath(arg("source"), "--source")] });
 /* F02: this run's hosts are the site origins DECLARED to its tenant — no estate list in shared code (relocated, 24 Sep 2026). */
 const DECLARED_HOSTS = declaredSiteHosts({ tenantId: SCOPE.tenantId });
 /* 🔴 GAP 2 (16 September 2026) — the evidence store and the cost ledger are both confined before the
@@ -87,6 +92,17 @@ if (SOURCE !== null && permission.mayWrite) {
   if (!inRuns.startsWith("..") && !isAbsolute(inRuns)) {
     refuseSource(`a synthetic run may not write into committed state, and the store ${storePath} is under runs/ — give --store=<a disposable store>`);
   }
+}
+
+/** The live provider, through the run's SEARCH_CONSOLE_API connector: its fetch, and the key-file path read from the one
+ * variable the declaration names — read here, at construction, and handed straight in; never printed or kept. */
+function liveProvider(governor) {
+  const connector = openConnector({ scope: SCOPE, subjectId: SUBJECT, kind: "SEARCH_CONSOLE_API" });
+  if (!connector.credentialName) {
+    console.error("REFUSED — the SEARCH_CONSOLE_API connector declares no credential. Nothing was requested.");
+    process.exit(2);
+  }
+  return createGoogleSearchConsoleProvider({ governor, fetchImpl: connector.fetch, keyFilePath: process.env[connector.credentialName] });
 }
 
 /** The synthetic stand-in: the provider interface the pipeline takes, answered from the source file. No request. */
@@ -127,7 +143,7 @@ function syntheticProvider(file, governor) {
  * wall-clock is UNKNOWN for ever; this one is not. */
 const startedAt = new Date().toISOString();
 const governor = createCostGovernor({ label: "google-search-console ingest run" });
-const provider = SOURCE === null ? createGoogleSearchConsoleProvider({ governor }) : syntheticProvider(SOURCE, governor);
+const provider = SOURCE === null ? liveProvider(governor) : syntheticProvider(SOURCE, governor);
 /* 🔴 THE DRY-RUN STORE IS NOW ALWAYS THE COLLECTOR. It already keeps every record and returns the same
  * appended-versus-resighted answer the real store would — which is why runIngest could count against it — so the
  * ingest runs and reports identically either way, and the run then makes ONE governed decision about committing

@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "kind": "ROOT_REGISTRY",
+  "stores": [],
+  "subjects": [
+    {
+      "subjectId": "neutral-test-ferments",
+      "path": "neutral-test-ferments",
+      "members": [
+        { "resourceKind": "FACT_REGISTRY", "resourceRef": "engine-fixtures:neutral-test-ferments/facts" }
+      ],
+      "connectors": []
+    },
+    {
+      "subjectId": "neutral-test-knots",
+      "path": "neutral-test-knots",
+      "members": [
+        { "resourceKind": "FACT_REGISTRY", "resourceRef": "engine-fixtures:neutral-test-knots/facts" }
+      ],
+      "connectors": []
+    }
+  ]
+}

@@ -43,7 +43,7 @@ const SCOPE = scopedEntryPoint({ entry: "bin/page-quality.mjs", governed: false,
 const crawlRecords = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll();
 const pages = pagesFromRun({ crawlRecords, bodies: readBodyArchive(batchFile("bodies-2026-09-12.jsonl.br")) }).filter((p) => p.html !== null);
 // 🔴 The product is an ARGUMENT, never a folder written here (owner ruling, 14 September 2026): no default.
-const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/page-quality.mjs --product=<id>" });
+const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/page-quality.mjs --product=<id>", scope: SCOPE });
 const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
 const m = measureExistingPages(pages.map((p) => ({ id: p.canonical, html: p.html })), records, { now: NOW });
 

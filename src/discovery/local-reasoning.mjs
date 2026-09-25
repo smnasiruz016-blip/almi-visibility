@@ -43,7 +43,8 @@ import { decideResolvedTenants } from "../tenancy/scope.mjs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 
-import { subjectRoots } from "../subject-roots.mjs";
+import { rootIndexFor } from "../tenancy/resolver.mjs";
+import { lookupStore } from "../tenancy/root-registry.mjs";
 import { partitionRowsByDeclaredHost } from "../tenancy/row-partition.mjs";
 
 /** Where public-source readings live in an external root. Deliberately NOT `observations/`: those are the estate's own captures. */
@@ -52,17 +53,20 @@ export const REASONING_BATCH_ID = "local-reasoning-2026-09-21";
 export const REASONING_FILE = "records.jsonl";
 
 /**
- * Read one reasoning batch from the declared external roots. 🔴 IT REFUSES RATHER THAN SHORTENS: a batch in no root, in
- * two roots, with no manifest, or whose bytes do not match the manifest's sha256 throws — an empty list would read as
- * "nothing was researched", which is the one answer this row may not guess.
+ * Read one reasoning batch from the declared RESEARCH store. 🔴 IT REFUSES RATHER THAN SHORTENS: a store that is
+ * undeclared, declared twice or unreadable, a batch absent from it, a batch with no manifest, or bytes that do not match
+ * the manifest's sha256 throws — an empty list would read as "nothing was researched", which is the one answer this row
+ * may not guess. 🔴 F03: the store is the RESEARCH store a root registry declares — roots are no longer probed.
  */
 export function readReasoningBatch({ batchId = REASONING_BATCH_ID, env = process.env } = {}) {
-  const found = subjectRoots(env).filter((r) => r.kind === "external").map((r) => join(r.path, RESEARCH_DIR, batchId)).filter((d) => existsSync(d));
-  if (found.length === 0) throw new Error(`REASONING_BATCH_UNAVAILABLE: '${batchId}' is in no declared external root`);
-  if (found.length > 1) throw new Error(`REASONING_BATCH_AMBIGUOUS: '${batchId}' is in ${found.length} roots at once: ${found.join(" and ")}`);
-  const dir = found[0];
+  const store = lookupStore(rootIndexFor(env), "RESEARCH");
+  if (store.state === "AMBIGUOUS") throw new Error(`REASONING_BATCH_AMBIGUOUS: the RESEARCH store is declared in more than one root registry`);
+  if (store.state !== "DECLARED") throw new Error(`REASONING_BATCH_UNAVAILABLE: the RESEARCH store is ${store.state} (${store.reason})`);
+  if (typeof batchId !== "string" || !/^[a-z0-9][a-z0-9-]*$/.test(batchId)) throw new Error("REASONING_BATCH_INVALID: a batch id is lowercase letters, digits and hyphens only");
+  const dir = join(store.dir, batchId);
+  if (!existsSync(dir)) throw new Error(`REASONING_BATCH_UNAVAILABLE: '${batchId}' is not in the declared RESEARCH store`);
   let manifest;
-  try { manifest = JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8")); } catch (e) { throw new Error(`REASONING_BATCH_INVALID: manifest.json at ${dir} is not readable JSON: ${e.message}`); }
+  try { manifest = JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8")); } catch { throw new Error("REASONING_BATCH_INVALID: the batch's manifest.json is not readable JSON"); }
   const declared = (manifest.files ?? []).find((f) => f.name === REASONING_FILE);
   if (!declared) throw new Error(`REASONING_BATCH_INVALID: the manifest does not declare ${REASONING_FILE}`);
   const text = readFileSync(join(dir, REASONING_FILE), "utf8");
@@ -70,7 +74,7 @@ export function readReasoningBatch({ batchId = REASONING_BATCH_ID, env = process
   if (got !== declared.sha256) throw new Error(`REASONING_BATCH_INVALID: ${REASONING_FILE} hashes ${got}; the manifest declares ${declared.sha256}`);
   const records = text.split("\n").filter((l) => l.trim() !== "").map((l) => JSON.parse(l));
   if (records.length !== manifest.recordCounts?.[REASONING_FILE]) throw new Error(`REASONING_BATCH_INVALID: ${records.length} records; the manifest declares ${manifest.recordCounts?.[REASONING_FILE]}`);
-  return { batchId, locator: [RESEARCH_DIR, batchId, REASONING_FILE].join("/"), sha256: got, manifest, records };
+  return { batchId, locator: [store.entry.path, batchId, REASONING_FILE].join("/"), sha256: got, manifest, records };
 }
 
 /** The owner's outcome vocabulary. Letters are never renumbered or redefined. */

@@ -24,11 +24,12 @@ import { createJsonlStore } from "../src/evidence/store.mjs";
 import { makeObservation } from "../src/evidence/records.mjs";
 import { sha256Hex } from "../src/evidence/ids.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
-import { productFromArgvOrExit } from "../src/product-cli.mjs";
+import { productFromArgvOrExit, productIdOrExit } from "../src/product-cli.mjs";
 import { loadSubjectPackage } from "../src/subject-package.mjs";
 import { checkSources, assertExternal, MAX_REQUESTS, INTERVAL_MS, HEAD_REFUSED, USER_AGENT } from "../src/audit/source-integrity.mjs";
 import { createCostLedger, entryFromLinkCheck, formatLedgerLine } from "../src/cost/ledger.mjs";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { openConnector } from "../src/tenancy/connectors.mjs";
 import { RESOURCES, declaredSiteHosts } from "../src/tenancy/scoped-run.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -42,9 +43,11 @@ const EVIDENCE = confineToRepo(`${REPO}runs/audit/source-integrity-2026-09-13.js
 
 /* ---- the plan: every distinct source URL cited by the fact registry ------ */
 // 🔴 The product is an ARGUMENT, never a folder written here (owner ruling, 14 September 2026): no default.
-const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/source-integrity.mjs --product=<id> [--live [--confirm]]" });
+/* 🔴 F03 — the subject's data root is decided (RESOURCES.subject) BEFORE its descriptor or any of its files is read. */
+const PRODUCT_ID = productIdOrExit(process.argv, { usage: "node bin/source-integrity.mjs --product=<id> [--live [--confirm]]" });
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/source-integrity.mjs", governed: true, resources: [RESOURCES.factRegistryAt(PRODUCT.factsDir), RESOURCES.costLedger(), RESOURCES.runArtefacts("source-integrity stores")] });
+const SCOPE = scopedEntryPoint({ entry: "bin/source-integrity.mjs", governed: true, resources: [RESOURCES.subject(PRODUCT_ID), RESOURCES.costLedger(), RESOURCES.runArtefacts("source-integrity stores"), ...(live ? [RESOURCES.connector(PRODUCT_ID, "CITED_SOURCES")] : [])] });
+const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/source-integrity.mjs --product=<id> [--live [--confirm]]", scope: SCOPE });
 /* F02: this run's hosts are the site origins DECLARED to its tenant — no estate list in shared code (relocated, 24 Sep 2026). */
 const DECLARED_HOSTS = declaredSiteHosts({ tenantId: SCOPE.tenantId });
 const ESTATE = DECLARED_HOSTS;
@@ -84,7 +87,8 @@ const run = await checkSources({
   urls: plan.map((p) => p.url),
   estateHostnames: ESTATE,
   baselineFor,
-  fetchImpl: fetch,
+  /* 🔴 F03 — a live check fetches only through the CITED_SOURCES connector the run's decision allowed. */
+  fetchImpl: openConnector({ scope: SCOPE, subjectId: PRODUCT_ID, kind: "CITED_SOURCES" }).fetch,
   sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
 });
 const finishedAt = new Date().toISOString();

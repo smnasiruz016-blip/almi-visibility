@@ -9,16 +9,18 @@
  * (owner ruling, 21 September 2026). A date exemption keeps a record stored; it never makes it Row 50 evidence.
  */
 import { loadRegistry } from "../src/facts/registry.mjs";
-import { productFromArgvOrExit } from "../src/product-cli.mjs";
+import { productFromArgvOrExit, productIdOrExit } from "../src/product-cli.mjs";
 import { row50Census } from "../src/evidence/label-on-face.mjs";
 import { createTenantResolver } from "../src/tenancy/resolver.mjs";
 import { factRegistryRef, externalRootContaining } from "../src/adapter/external-subject.mjs";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
-const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/label-on-face.mjs --product=<id> [--check]" });
+/* 🔴 F03 — the subject's data root is decided (RESOURCES.subject) BEFORE its descriptor or any of its files is read. */
+const PRODUCT_ID = productIdOrExit(process.argv, { usage: "node bin/label-on-face.mjs --product=<id> [--check]" });
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/label-on-face.mjs", governed: false, resources: [RESOURCES.factRegistryAt(PRODUCT.factsDir)] });
+const SCOPE = scopedEntryPoint({ entry: "bin/label-on-face.mjs", governed: false, resources: [RESOURCES.subject(PRODUCT_ID)] });
+const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/label-on-face.mjs --product=<id> [--check]", scope: SCOPE });
 const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
 const root = externalRootContaining(PRODUCT.factsDir, process.env);
 const ref = root ? factRegistryRef({ factsDir: PRODUCT.factsDir, rootPath: root.path }) : null;

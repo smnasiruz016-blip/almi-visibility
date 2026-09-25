@@ -117,7 +117,8 @@ test("🔴 NETWORK · D-CRW-4 · bin/crawl.mjs --live WITHOUT --i-have-the-owner
     const crawlBefore = fileState(crawlDir);
     const ledgerBefore = existsSync(ledger) ? sha(readFileSync(ledger)) : null;
 
-    const r = spawnSync(process.execPath, WORLD.argv(["bin/crawl.mjs", `--seeds=${seeds}`, `--out=${out}`, `--corpus=${corpus}`, "--live"]), { cwd: REPO, encoding: "utf8", timeout: 20_000, env: WORLD.envWith() });
+    /* F03: a live crawl names its subject, so it passes the connector decision and meets the owner's-green gate. */
+    const r = spawnSync(process.execPath, WORLD.argv(["bin/crawl.mjs", `--seeds=${seeds}`, `--out=${out}`, `--corpus=${corpus}`, "--live", WORLD.subjectArg]), { cwd: REPO, encoding: "utf8", timeout: 20_000, env: WORLD.envWith() });
 
     // THE CLAIM FIRST: it did nothing
     assert.equal(existsSync(out), false, "the refused run wrote its crawl records");

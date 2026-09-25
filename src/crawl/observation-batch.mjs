@@ -29,7 +29,8 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 
-import { subjectRoots } from "../subject-roots.mjs";
+import { rootIndexFor } from "../tenancy/resolver.mjs";
+import { lookupStore } from "../tenancy/root-registry.mjs";
 
 /** The directory that holds every observation batch inside a root. */
 export const OBSERVATIONS_DIR = "observations";
@@ -55,45 +56,32 @@ export class ObservationBatchFault extends Error {
   }
 }
 
-const externalRoots = (env) => subjectRoots(env).filter((r) => r.kind === "external");
+const BATCH_ID_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
 
 /**
- * Every root that actually holds this batch. Zero is not an error here — the callers below decide
- * whether to refuse or to report UNKNOWN — but two always is, because a silent winner is how a stale
- * copy gets read for a week.
+ * 🔴 F03 · THE OBSERVATIONS STORE IS DECLARED, NOT FOUND. Its location is the OBSERVATIONS store a root registry declares
+ * (src/tenancy/root-registry.mjs); the engine no longer probes every root for an `observations/` directory. A store
+ * declared in two roots is AMBIGUOUS — a silent winner is how a stale copy gets read for a week — and an undeclared or
+ * unreadable one is UNAVAILABLE, never "no batches". A batch is then located INSIDE that one store by its id.
  */
 export function batchLocations({ batchId = BATCH_ID, env = process.env } = {}) {
-  return externalRoots(env)
-    .map((r) => ({ root: r, dir: join(r.path, OBSERVATIONS_DIR, batchId) }))
-    .filter((c) => existsSync(c.dir));
+  const store = lookupStore(rootIndexFor(env), "OBSERVATIONS");
+  if (store.state !== "DECLARED" || typeof batchId !== "string" || !BATCH_ID_PATTERN.test(batchId)) return [];
+  const dir = join(store.dir, batchId);
+  return existsSync(dir) ? [{ rootId: store.rootId, dir }] : [];
 }
 
 /**
  * A non-throwing probe. This is what a caller uses when "I could not look" is a legitimate answer it
- * intends to report as UNKNOWN, rather than an error it intends to crash on.
+ * intends to report as UNKNOWN, rather than an error it intends to crash on. Its detail carries no filesystem path.
  */
 export function batchAvailability({ batchId = BATCH_ID, env = process.env } = {}) {
-  const roots = externalRoots(env);
-  if (roots.length === 0) {
-    return { available: false, fault: BATCH_FAULTS.UNAVAILABLE, detail: "no external subject root is declared", dir: null };
-  }
+  if (typeof batchId !== "string" || !BATCH_ID_PATTERN.test(batchId)) return { available: false, fault: BATCH_FAULTS.INVALID, detail: "a batch id is lowercase letters, digits and hyphens only", dir: null };
+  const store = lookupStore(rootIndexFor(env), "OBSERVATIONS");
+  if (store.state === "AMBIGUOUS") return { available: false, fault: BATCH_FAULTS.AMBIGUOUS, detail: `the OBSERVATIONS store is declared in more than one root registry (${store.reason})`, dir: null };
+  if (store.state !== "DECLARED") return { available: false, fault: BATCH_FAULTS.UNAVAILABLE, detail: `the OBSERVATIONS store is ${store.state} (${store.reason})`, dir: null };
   const found = batchLocations({ batchId, env });
-  if (found.length === 0) {
-    return {
-      available: false,
-      fault: BATCH_FAULTS.UNAVAILABLE,
-      detail: `observation batch '${batchId}' is in none of the declared external roots: ${roots.map((r) => r.path).join(", ")}`,
-      dir: null,
-    };
-  }
-  if (found.length > 1) {
-    return {
-      available: false,
-      fault: BATCH_FAULTS.AMBIGUOUS,
-      detail: `observation batch '${batchId}' is in ${found.length} roots at once: ${found.map((f) => f.dir).join(" and ")}`,
-      dir: null,
-    };
-  }
+  if (found.length === 0) return { available: false, fault: BATCH_FAULTS.UNAVAILABLE, detail: `observation batch '${batchId}' is not in the declared OBSERVATIONS store`, dir: null };
   return { available: true, fault: null, detail: null, dir: found[0].dir };
 }
 
@@ -109,7 +97,7 @@ export function batchFile(name, opts = {}) {
   const dir = batchDir(opts);
   const path = join(dir, name);
   if (!existsSync(path)) {
-    throw new ObservationBatchFault(BATCH_FAULTS.UNAVAILABLE, `'${name}' is not in the observation batch at ${dir}`);
+    throw new ObservationBatchFault(BATCH_FAULTS.UNAVAILABLE, `'${name}' is not in the observation batch`);
   }
   return path;
 }
@@ -119,7 +107,7 @@ export function readBatchManifest(opts = {}) {
   try {
     return JSON.parse(readFileSync(path, "utf8"));
   } catch (e) {
-    throw new ObservationBatchFault(BATCH_FAULTS.INVALID, `${MANIFEST} at ${path} is not readable JSON: ${e.message}`);
+    throw new ObservationBatchFault(BATCH_FAULTS.INVALID, `${MANIFEST} of the observation batch is not readable JSON`);
   }
 }
 
@@ -132,7 +120,7 @@ export function batchJsonlFiles(opts = {}) {
   const dir = batchDir(opts);
   const files = readdirSync(dir).filter((f) => f.endsWith(".jsonl")).sort();
   if (files.length === 0) {
-    throw new ObservationBatchFault(BATCH_FAULTS.UNAVAILABLE, `the observation batch at ${dir} holds no .jsonl record file`);
+    throw new ObservationBatchFault(BATCH_FAULTS.UNAVAILABLE, `the observation batch holds no .jsonl record file`);
   }
   return files.map((f) => join(dir, f));
 }
@@ -145,9 +133,9 @@ export function batchJsonlFiles(opts = {}) {
  * population missing everything in the other. That is exactly how a source disappears from a census
  * without anything going red.
  *
- * So this enumerates the batch directories present in the declared external roots and returns each
- * one's record files under a CANONICAL EXTERNAL PATH — `observations/<batchId>/<file>`, relative to
- * the root that holds it. Relative, because an absolute path carries a drive letter and a checkout
+ * So this enumerates the batch directories inside the ONE declared OBSERVATIONS store (F03: declared by a root registry,
+ * never found by probing roots) and returns each one's record files under a CANONICAL EXTERNAL PATH —
+ * `<the store's declared path>/<batchId>/<file>`, relative to the root that declares it. Relative, because an absolute path carries a drive letter and a checkout
  * location, and the same source would then be named differently on every machine and in CI.
  *
  * 🔴 IT REFUSES RATHER THAN SHORTENS. A root that cannot be read, a batch whose manifest will not
@@ -155,31 +143,15 @@ export function batchJsonlFiles(opts = {}) {
  * indistinguishable from "nothing is declared", which is the one answer a census may not guess.
  */
 export function declaredObservationBatches({ env = process.env } = {}) {
-  const roots = externalRoots(env);
-  if (roots.length === 0) {
-    throw new ObservationBatchFault(BATCH_FAULTS.UNAVAILABLE, "no external subject root is declared, so no observation batch can be enumerated");
-  }
-  const seen = new Map();
-  for (const root of roots) {
-    /* 🔴 A DECLARED ROOT THAT IS NOT THERE IS A REFUSAL, NOT ZERO BATCHES. Skipping it would turn a
-     * wrong path, an unmounted drive or a missing checkout into "this estate declares no
-     * observations" — the shape a caller cannot tell apart from a genuinely empty one. */
-    if (!existsSync(root.path)) {
-      throw new ObservationBatchFault(BATCH_FAULTS.UNAVAILABLE, `declared external root '${root.id}' is missing: ${root.path} — no observation batch there can be enumerated`);
-    }
-    const dir = join(root.path, OBSERVATIONS_DIR);
-    /* A root that exists and simply holds no observations directory declares no batches. That is a
-     * real answer about a real root, not a guess about an absent one. */
-    if (!existsSync(dir)) continue;
-    for (const batchId of readdirSync(dir).sort()) {
-      if (!existsSync(join(dir, batchId, MANIFEST))) continue;
-      if (seen.has(batchId)) {
-        throw new ObservationBatchFault(BATCH_FAULTS.AMBIGUOUS, `observation batch '${batchId}' is declared in two roots at once: ${seen.get(batchId).dir} and ${join(dir, batchId)}`);
-      }
-      seen.set(batchId, { batchId, dir: join(dir, batchId), root });
-    }
-  }
-  return [...seen.values()];
+  /* 🔴 A STORE THAT IS NOT DECLARED, IS DECLARED TWICE, OR CANNOT BE READ IS A REFUSAL, NOT ZERO BATCHES. Answering [] would
+   * turn a missing checkout or a missing declaration into "this estate declares no observations" — the shape a caller
+   * cannot tell apart from a genuinely empty one. (A declared path that is absent is INVALID in the root registry.) */
+  const store = lookupStore(rootIndexFor(env), "OBSERVATIONS");
+  if (store.state === "AMBIGUOUS") throw new ObservationBatchFault(BATCH_FAULTS.AMBIGUOUS, "the OBSERVATIONS store is declared in more than one root registry, so no observation batch can be enumerated");
+  if (store.state !== "DECLARED") throw new ObservationBatchFault(BATCH_FAULTS.UNAVAILABLE, `the OBSERVATIONS store is ${store.state} (${store.reason}), so no observation batch can be enumerated`);
+  return readdirSync(store.dir).sort()
+    .filter((batchId) => BATCH_ID_PATTERN.test(batchId) && existsSync(join(store.dir, batchId, MANIFEST)))
+    .map((batchId) => ({ batchId, dir: join(store.dir, batchId), rootId: store.rootId, storePath: store.entry.path }));
 }
 
 /**
@@ -189,7 +161,7 @@ export function declaredObservationBatches({ env = process.env } = {}) {
  * that identifies the source wherever the repository is checked out.
  */
 export function declaredObservationSources({ env = process.env } = {}) {
-  return declaredObservationBatches({ env }).flatMap(({ batchId, dir }) => {
+  return declaredObservationBatches({ env }).flatMap(({ batchId, dir, storePath }) => {
     const manifest = readBatchManifest({ batchId, env });
     const declared = new Set((Array.isArray(manifest?.files) ? manifest.files : []).map((f) => f.name));
     return readdirSync(dir)
@@ -199,7 +171,7 @@ export function declaredObservationSources({ env = process.env } = {}) {
         /* 🔴 A RECORD FILE THE MANIFEST DOES NOT DECLARE IS A FAULT, not a bonus source. The manifest
          * travelled with the bytes; a file beside it that it never mentioned is unaccounted for. */
         if (!declared.has(name)) {
-          throw new ObservationBatchFault(BATCH_FAULTS.INVALID, `'${name}' is in the observation batch at ${dir} but ${MANIFEST} does not declare it`);
+          throw new ObservationBatchFault(BATCH_FAULTS.INVALID, `'${name}' is in observation batch '${batchId}' but ${MANIFEST} does not declare it`);
         }
         /* 🔴 THE DECLARED MIGRATION MAPPING, WHEN THE MANIFEST CARRIES ONE — and only then.
          *
@@ -212,7 +184,7 @@ export function declaredObservationSources({ env = process.env } = {}) {
         const replaces = typeof declaredFile?.sourceFile === "string" && declaredFile.sourceFile.trim() !== ""
           ? { path: declaredFile.sourceFile, repository: declaredFile.sourceRepository ?? null }
           : null;
-        return { batchId, name, path: join(dir, name), canonical: `${OBSERVATIONS_DIR}/${batchId}/${name}`, replaces };
+        return { batchId, name, path: join(dir, name), canonical: `${storePath}/${batchId}/${name}`, replaces };
       });
   });
 }
@@ -248,13 +220,13 @@ export function verifyBatchIntegrity(opts = {}) {
   const manifest = readBatchManifest(opts);
   const declared = Array.isArray(manifest?.files) ? manifest.files : null;
   if (!declared || declared.length === 0) {
-    throw new ObservationBatchFault(BATCH_FAULTS.INVALID, `${MANIFEST} at ${dir} declares no files, so nothing can be verified`);
+    throw new ObservationBatchFault(BATCH_FAULTS.INVALID, `${MANIFEST} declares no files, so nothing can be verified`);
   }
   const checked = [];
   for (const f of declared) {
     const path = join(dir, f.name);
     if (!existsSync(path)) {
-      throw new ObservationBatchFault(BATCH_FAULTS.INVALID, `${MANIFEST} declares '${f.name}', which is not in the batch at ${dir}`);
+      throw new ObservationBatchFault(BATCH_FAULTS.INVALID, `${MANIFEST} declares '${f.name}', which is not in the batch`);
     }
     const bytes = readFileSync(path);
     const sha256 = createHash("sha256").update(bytes).digest("hex");

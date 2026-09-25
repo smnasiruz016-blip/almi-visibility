@@ -17,9 +17,10 @@
  * Refusals go to the F08 guard sink: durable (appended) in a governed run, reported and not appended in a read-only
  * diagnostic, exactly as every other guard decision. An ALLOWED decision is a classification and is not appended.
  */
-import { createTenantResolver } from "./resolver.mjs";
-import { decideForTenant, scopeRefusalEvent } from "./scope.mjs";
-import { subjectRoots, availableSubjects, importSubjectModule } from "../subject-roots.mjs";
+import { createTenantResolver, rootIndexFor } from "./resolver.mjs";
+import { decideForTenant, resolveSide, scopeRefusalEvent } from "./scope.mjs";
+import { subjectRoots } from "../subject-roots.mjs";
+import { declaredSubjectIds, lookupSubject } from "./root-registry.mjs";
 import { factRegistryRef } from "./refs.mjs";
 import { batchJsonlFiles } from "../crawl/observation-batch.mjs";
 import { createJsonlStore } from "../evidence/store.mjs";
@@ -42,12 +43,26 @@ export const RESOURCES = Object.freeze({
   factRegistry: (ref) => ({ label: "fact registry", resourceKind: ref ? "FACT_REGISTRY" : null, resourceRef: ref?.resourceRef ?? "unresolvable-registry", scopeClass: "TENANT" }),
   /* A container names its MEMBERS' identities (a page's origin, a listed URL's origin), read from stored identity fields
    * only — never a body — so the one decision can see an item that is declared to another tenant (src/tenancy/scope.mjs). */
-  crawlBatch: (batchId, { env = process.env } = {}) => ({ label: "observation batch", resourceKind: "CRAWL_BATCH", resourceRef: batchId, scopeClass: "TENANT", members: memberOrigins(() => batchPageUrls(batchId, env)) }),
-  sitemapCollection: (batchId, { env = process.env } = {}) => ({ label: "sitemap collection", resourceKind: "SITEMAP_COLLECTION", resourceRef: batchId, scopeClass: "TENANT", members: memberOrigins(() => sitemapListedUrls(batchId, env)) }),
+  crawlBatch: (batchId, { env = process.env } = {}) => ({ label: "observation batch", resourceKind: "CRAWL_BATCH", resourceRef: batchId, scopeClass: "TENANT", store: "OBSERVATIONS", members: memberOrigins(() => batchPageUrls(batchId, env)) }),
+  sitemapCollection: (batchId, { env = process.env } = {}) => ({ label: "sitemap collection", resourceKind: "SITEMAP_COLLECTION", resourceRef: batchId, scopeClass: "TENANT", store: "OBSERVATIONS", members: memberOrigins(() => sitemapListedUrls(batchId, env)) }),
   evidenceStore: (name = "evidence-store") => ({ label: "evidence store", resourceKind: "EVIDENCE_STORE", resourceRef: name, scopeClass: "TENANT" }),
   costLedger: (name = "cost-ledger") => ({ label: "cost ledger", resourceKind: "COST_LEDGER", resourceRef: name, scopeClass: "TENANT" }),
   cache: (name) => ({ label: "cache", resourceKind: "CACHE_STORE", resourceRef: name, scopeClass: "TENANT" }),
-  captures: (name) => ({ label: "page captures", resourceKind: "CAPTURE_SET", resourceRef: name, scopeClass: "TENANT" }),
+  captures: (name) => ({ label: "page captures", resourceKind: "CAPTURE_SET", resourceRef: name, scopeClass: "TENANT", store: "CAPTURES" }),
+  /**
+   * 🔴 F03 · A SUBJECT'S DATA ROOT. Decided BEFORE any of the subject's files is read: it resolves only when the subject is
+   * declared in a root registry AND every member it declares resolves, through the F02 attachments, to the requested tenant
+   * (src/tenancy/scope.mjs). The descriptor, licences, facts — every file under the root — are read only after this.
+   */
+  subject: (subjectId) => ({ label: "subject data root", resourceKind: "SUBJECT_ROOT", resourceRef: typeof subjectId === "string" && subjectId !== "" ? subjectId : "\u0000no-subject-named", scopeClass: "TENANT" }),
+  /**
+   * 🔴 F03 · A CONNECTOR, by the KIND the entry point constructs (named in its own code) for the subject it runs for. Decided
+   * BEFORE the connector is constructed: its subject must resolve, it must be the one connector of that kind the subject
+   * declares, and everything it declares it reaches must resolve to the same tenant (src/tenancy/scope.mjs).
+   */
+  connector: (subjectId, connectorKind) => ({ label: `connector ${connectorKind}`, resourceKind: "CONNECTOR", resourceRef: `${typeof subjectId === "string" && subjectId !== "" ? subjectId : "\u0000no-subject-named"}#${connectorKind}`, subjectId: typeof subjectId === "string" && subjectId !== "" ? subjectId : null, connectorKind, scopeClass: "TENANT" }),
+  /** 🔴 F03 · a research batch, inside the declared research store. */
+  researchBatch: (batchId) => ({ label: "research batch", resourceKind: "RESEARCH_BATCH", resourceRef: batchId, scopeClass: "TENANT", store: "RESEARCH" }),
   /** A named set of run stores an entry point reads (its findings, results, corpora): declared by that name. */
   runArtefacts: (name) => ({ label: "run artefacts", resourceKind: "RUN_STORE", resourceRef: name, scopeClass: "TENANT" }),
   /**
@@ -62,9 +77,12 @@ export const RESOURCES = Object.freeze({
    * the requested tenant before anything is read; the consumer then reads only members whose own identities resolve to
    * that tenant (src/crawl/batch-partition.mjs readTenantPartition). The whole collection is never read.
    */
-  collectionPartition: (collectionKind, collectionRef) => ({ label: `${String(collectionKind).toLowerCase().replace(/_/g, " ")} partition`, resourceKind: "COLLECTION_PARTITION", resourceRef: `${collectionKind}:${collectionRef}`, scopeClass: "TENANT" }),
-  /** A store partitioned BY the declared tenant id (F01's declaration store): its partition key is the declaration. */
-  tenantPartition: (tenantId, name = "declaration store") => ({ label: `${name} partition`, resourceKind: "TENANT_PARTITION", resourceRef: tenantId, scopeClass: "TENANT" }),
+  collectionPartition: (collectionKind, collectionRef) => ({ label: `${String(collectionKind).toLowerCase().replace(/_/g, " ")} partition`, resourceKind: "COLLECTION_PARTITION", resourceRef: `${collectionKind}:${collectionRef}`, scopeClass: "TENANT", store: "OBSERVATIONS" }),
+  /** A store partitioned BY the declared tenant id: its partition key is the declaration. The requested tenant's own
+   * partition (scoped-entry's fallback) lives in no store; F01's declaration store is `declarationStore` below. */
+  tenantPartition: (tenantId, name = "requested tenant") => ({ label: `${name} partition`, resourceKind: "TENANT_PARTITION", resourceRef: tenantId, scopeClass: "TENANT" }),
+  /** 🔴 F03 · F01's declaration store, partitioned by tenant — inside the declared PROJECT_DECLARATIONS store. */
+  declarationStore: (tenantId) => ({ label: "declaration store partition", resourceKind: "TENANT_PARTITION", resourceRef: tenantId, scopeClass: "TENANT", store: "PROJECT_DECLARATIONS" }),
   /**
    * A fact registry located from its directory under the root that holds it (factRegistryRef's rule). A registry in the
    * engine's own FIXTURES root (the neutral declared test products) is named with that root's id as a prefix —
@@ -112,16 +130,32 @@ export function declaredSiteHosts({ tenantId, resolve = createTenantResolver() }
   return [...hosts].sort();
 }
 
-/** Every declared subject's fact registry, each located by its descriptor's factsDir (for runs that read them all). */
+/**
+ * Every declared subject — its data root and each fact registry it DECLARES as a member (for runs that read them all).
+ * 🔴 F03: read from the root registries, never by importing each subject's descriptor: importing a descriptor is reading
+ * subject data, and it used to happen here BEFORE the decision this list feeds. An unreadable index names nothing, so the
+ * run is refused (an unresolvable registry), never run over an empty list.
+ */
 export async function everySubjectRegistry({ env = process.env } = {}) {
+  const index = rootIndexFor(env);
   const out = [];
-  const roots = subjectRoots(env);
-  for (const id of availableSubjects({ roots })) {
-    let factsDir = null;
-    try { factsDir = (await importSubjectModule(id, "product.mjs", { roots }))?.PRODUCT?.factsDir ?? null; } catch { factsDir = null; }
-    out.push(RESOURCES.factRegistryAt(factsDir, { env }));
+  for (const id of declaredSubjectIds(index)) {
+    out.push(RESOURCES.subject(id));
+    for (const m of lookupSubject(index, id).entry?.members ?? []) if (m.resourceKind === "FACT_REGISTRY") out.push(RESOURCES.factRegistry({ resourceRef: m.resourceRef }));
   }
   return out.length ? out : [RESOURCES.factRegistry(null)];
+}
+
+/**
+ * 🔴 F03 · FOR A READ-ONLY CENSUS THAT MEASURES EVERY TENANT'S POPULATION — never for a run. The subject is decided, by the
+ * one decision, for the one tenant its OWN declared members resolve to (resolveSide), exactly as a run for that tenant
+ * would be. Nothing is requested on the subject's behalf and nothing is widened: a subject whose members resolve to no
+ * single tenant is refused here too. Returns the shape a scoped run returns, for productFromArgv's `scope`.
+ */
+export function censusSubjectScope(subjectId, { resolve = createTenantResolver() } = {}) {
+  const resource = RESOURCES.subject(subjectId);
+  const own = resolveSide(resolve, resource);
+  return Object.freeze({ decisions: [{ label: resource.label, decision: decideForTenant(resolve, own.state === "RESOLVED" ? own.tenantId : null, resource) }] });
 }
 
 /**

@@ -63,6 +63,10 @@ const OWNED = Object.freeze([
   "src/tenancy/partition.mjs",
   "src/tenancy/attachment-declaration.mjs",
   "src/crawl/batch-partition.mjs",
+  /* 🔴 F03, 25 Sep 2026: the root registry and the connector opener join the list — they locate every subject root, store
+   * and connector, exactly where a host, a private path or a credential name would creep in. They carry none. */
+  "src/tenancy/root-registry.mjs",
+  "src/tenancy/connectors.mjs",
   /* 🔴 Row 25, 21 Sep 2026: the resource-attachment binder, the claim binder and the four-check evaluator join the list
    * they must honour. They decide which subject a page belongs to and which authority a claim cites — exactly where a
    * host, an authority name or a record id would creep in. They carry none, and now they cannot. */

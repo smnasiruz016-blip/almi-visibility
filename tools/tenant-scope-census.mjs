@@ -29,7 +29,9 @@ const git = (...a) => execFileSync("git", ["-C", REPO, ...a], { encoding: "utf8"
 
 /** The families, and what LOADS each — a primitive call or a store's location. */
 export const FAMILIES = Object.freeze({
-  FACTS: { resource: "factRegistry|factRegistryAt", re: /\bloadRegistry\(/ },
+  /* F03 (25 Sep 2026): a SUBJECT decision names the facts family too — it resolves only when every fact registry the subject
+   * declares as a member resolves to the run's tenant, and the descriptor may then claim no other (src/product-cli.mjs). */
+  FACTS: { resource: "factRegistry|factRegistryAt|subject", re: /\bloadRegistry\(/ },
   OBSERVATIONS: { resource: "crawlBatch|collectionPartition", re: /\b(batchFile|readBodyArchive|batchJsonlFiles|declaredObservationSources|declaredObservationBatches|readBatchManifest|readTenantPartition|readPartitionBodies)\(/ },
   SITEMAPS: { resource: "sitemapCollection|collectionPartition", re: /["']sitemaps\.jsonl["']|\bsitemapCollectionRef\(/ },
   /* A store's location counts only as a WHOLE path literal or joined path segments — prose that mentions a path is not a
@@ -42,9 +44,13 @@ export const FAMILIES = Object.freeze({
    * neither is a store, and naming them as gated resources made three entry points refuse on a resource that does not exist. */
   CACHE: { resource: "cache", re: /\/_[a-z-]*-cache\b/ },
   /* F01's declaration store: every reader joins DECLARATIONS_DIR (src/intake/store.mjs). */
-  DECLARATIONS: { resource: "tenantPartition", re: /\bDECLARATIONS_DIR\b|\btenantsDir\(/ },
-  CAPTURES: { resource: "captures", re: /["']captures["']/ },
-  RESEARCH: { resource: "research", re: /["']research["']/ },
+  /* F03: F01's store is named by RESOURCES.declarationStore (its partition, inside the declared PROJECT_DECLARATIONS store). */
+  DECLARATIONS: { resource: "tenantPartition|declarationStore", re: /\bDECLARATIONS_DIR\b|\btenantsDir\(/ },
+  /* F03 (25 Sep 2026): a store is now LOCATED through its root-registry declaration — lookupStore(index, "<STORE>") — and a
+   * reader that does so loads that family exactly as a literal directory name did. Without the second alternative the
+   * captures reader dropped out of this population (28 → 27), and the research reader had never been in it. */
+  CAPTURES: { resource: "captures", re: /["']captures["']|\blookupStore\([^;\n]*["']CAPTURES["']/ },
+  RESEARCH: { resource: "research|researchBatch", re: /["']research["']|\blookupStore\([^;\n]*["']RESEARCH["']/ },
 });
 
 /**

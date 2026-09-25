@@ -94,7 +94,9 @@ test("R2 · EVERY real declared resource × EVERY active tenant, through decideF
    * declared to others is AMBIGUOUS. No real container is attached whole any more (owner ruling 1145012, Decision 2), so a
    * STAND-IN declaration fires it — over the REAL members of the real batch. Natural real count: reported above. */
   const [holder] = ACTIVE;
-  const standIn = Object.assign((ref) => (ref.resourceKind === "CRAWL_BATCH" ? { state: "RESOLVED", tenantId: holder, reason: "STAND_IN" } : resolve(ref)), { declarations: DECL });
+  /* F03: the stand-in carries the real resolver's root index too, as the resolver does — the batch's OBSERVATIONS store is
+   * located through it before the container is decided. */
+  const standIn = Object.assign((ref) => (ref.resourceKind === "CRAWL_BATCH" ? { state: "RESOLVED", tenantId: holder, reason: "STAND_IN" } : resolve(ref)), { declarations: DECL, roots: resolve.roots });
   const realBatch = RESOURCES.crawlBatch("crawl-2026-09-12");
   assert.ok(new Set(realBatch.members.map((m) => resolve(m).tenantId).filter(Boolean)).size > 1);
   assert.equal(decideForTenant(standIn, holder, realBatch).outcome, "AMBIGUOUS_REFUSED", "a stand-in whole container spanning tenants was not refused AMBIGUOUS");

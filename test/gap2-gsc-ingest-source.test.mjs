@@ -99,16 +99,20 @@ const synthetic = (extra) => [`--property=${SYNTHETIC_PROPERTY}`, ...extra];
 
 test("DEFAULT · without --source the bin still builds the real Search Console provider", () => {
   const src = readFileSync(join(REPO, BIN), "utf8");
-  assert.match(src, /const provider = SOURCE === null \? createGoogleSearchConsoleProvider\(\{ governor \}\) : syntheticProvider\(SOURCE, governor\);/);
+  assert.match(src, /const provider = SOURCE === null \? liveProvider\(governor\) : syntheticProvider\(SOURCE, governor\);/);
+  /* F03: the live provider is the real one, built only through the run's SEARCH_CONSOLE_API connector — its fetch, and the
+   * key-file path read from the ONE variable that connector's declaration names. */
+  assert.match(src, /return createGoogleSearchConsoleProvider\(\{ governor, fetchImpl: connector\.fetch, keyFilePath: process\.env\[connector\.credentialName\] \}\);/);
   assert.match(src, /const SOURCE = sourceArg === null \? null : confineToRepo\(sourceArg, \{ label: "--source" \}\);/);
 });
 
 test("🔴 THIRD STATE · with no --source and no key, the run dies BEFORE its write decision: the banner is there, no gate outcome is — the old assertion passed on exactly this", () => {
   const before = [fingerprint(EVIDENCE), fingerprint(LEDGER)];
-  const r = run(["--property=sc-domain:example.invalid"]);
+  /* F03: the live path names its subject so the run passes the connector decision and reaches the provider. */
+  const r = run(["--property=sc-domain:example.invalid", WORLD.subjectArg]);
   assert.notEqual(r.status, 0, show(r));
   assert.match(r.stdout, /\[dry-run\] no writes will happen/, "the banner the old incident case asserted");
-  assert.match(r.stderr, /GSC_SERVICE_ACCOUNT_KEY_FILE is not set/, "the real provider was not the one that stopped this run");
+  assert.match(r.stderr, /the connector's declared credential variable is not set/, "the real provider was not the one that stopped this run");
   assert.equal(gateFired(r), "NEITHER", show(r));
   assert.deepEqual([fingerprint(EVIDENCE), fingerprint(LEDGER)], before);
 });

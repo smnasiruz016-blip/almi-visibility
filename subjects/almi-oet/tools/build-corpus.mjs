@@ -38,6 +38,8 @@ import { governedFileWrite } from "../../../src/governance/governed-run.mjs";
 import { isoSeconds as governedInstant } from "../../../src/audit-trail/store.mjs";
 import { scopedEntryPoint } from "../../../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../../../src/tenancy/scoped-run.mjs";
+import { openConnector } from "../../../src/tenancy/connectors.mjs";
+import { SUBJECT_PACKAGE } from "../package.mjs";
 
 const argv = process.argv.slice(2);
 const flag = (n, d = null) => {
@@ -58,7 +60,9 @@ const permission = announceWritePermission(writePermission({ target: LOCAL, argv
 const CORPUS_INSTANT = governedInstant(Date.now());
 const CORPUS_CORRELATION = `run:build-corpus:${CORPUS_INSTANT}`;
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/build-corpus.mjs", governed: true, resources: [RESOURCES.siteOrigin(SITE)] });
+/* 🔴 F03 — pages are fetched only through this package's subject's PUBLIC_SITE connector, decided here with the site. */
+const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/build-corpus.mjs", governed: true, resources: [RESOURCES.siteOrigin(SITE), RESOURCES.connector(SUBJECT_PACKAGE.subjectId, "PUBLIC_SITE")] });
+const CONNECTOR = openConnector({ scope: SCOPE, subjectId: SUBJECT_PACKAGE.subjectId, kind: "PUBLIC_SITE" });
 if (!OUT) {
   console.error("usage: node bin/build-corpus.mjs --site <url> --out <dir> --confirm [--leaf-sample 500] [--seed N]");
   process.exit(2);
@@ -77,7 +81,7 @@ function mulberry32(a) {
 let requests = 0;
 async function get(url) {
   requests++;
-  const res = await fetch(url, { headers: { "user-agent": UA }, signal: AbortSignal.timeout(30_000) });
+  const res = await CONNECTOR.fetch(url, { headers: { "user-agent": UA }, signal: AbortSignal.timeout(30_000) });
   return { status: res.status, body: res.status === 200 ? await res.text() : "" };
 }
 

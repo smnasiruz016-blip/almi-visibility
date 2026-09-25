@@ -134,7 +134,7 @@ if (MODE === "--inventory") {
 if (MODE === "--show" || MODE === "--list" || MODE === "--current") {
   const tenantId = tenantArg();
   /* 🔴 F02 — the partition read below is decided FIRST: the requested tenant must be an ACTIVE declaration, or nothing is read. */
-  scopedEntryPoint({ entry: "bin/project-intake.mjs", governed: false, argv: [`--tenant=${tenantId}`], resources: [RESOURCES.tenantPartition(tenantId)] });
+  scopedEntryPoint({ entry: "bin/project-intake.mjs", governed: false, argv: [`--tenant=${tenantId}`], resources: [RESOURCES.declarationStore(tenantId)] });
   const root = rootOrExit();
   if (MODE === "--list") {
     const all = listTenant(root, tenantId);
@@ -159,7 +159,7 @@ const { tenants, attachedTo, relation, resolve: tenantResolve } = tenancy();
 /* 🔴 F02 — the declared tenant partition this submission would read is decided BEFORE the store is touched. A refusal here
  * does not end the run: the F01 contract refuses the same undeclared tenant by its own code and records that decision, and
  * the store is never read for it. The two must agree — a contract that accepts what the scope decision refused is a defect. */
-const partition = decideScopedRun({ argv: [`--tenant=${doc?.tenantId ?? ""}`], resolve: tenantResolve, resources: [RESOURCES.tenantPartition(doc?.tenantId ?? null)], sink: diagnosticGuardSink({ actor: "bin/project-intake.mjs" }), log: () => {} });
+const partition = decideScopedRun({ argv: [`--tenant=${doc?.tenantId ?? ""}`], resolve: tenantResolve, resources: [RESOURCES.declarationStore(doc?.tenantId ?? null)], sink: diagnosticGuardSink({ actor: "bin/project-intake.mjs" }), log: () => {} });
 const root = rootOrExit();
 const instant = isoSeconds(Date.now());
 const decision = decideSubmission({ doc, root: partition.allowed ? root : null, tenants, attachedTo, relation, acceptedAt: instant });

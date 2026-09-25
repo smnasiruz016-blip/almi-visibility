@@ -90,6 +90,16 @@ test("R2 · EVERY real declared resource × EVERY active tenant, through decideF
     assert.equal(mine.filter((x) => x.d.allowed).length, 1, `${r.resourceKind} is allowed for ${mine.filter((x) => x.d.allowed).length} tenants, not exactly its own`);
     assert.equal(mine.filter((x) => x.d.outcome === "CROSS_TENANT_REFUSED").length, ACTIVE.length - 1);
   }
+  /* The ONE decision's own container rule (src/tenancy/scope.mjs): a container attached WHOLE to one tenant whose members are
+   * declared to others is AMBIGUOUS. No real container is attached whole any more (owner ruling 1145012, Decision 2), so a
+   * STAND-IN declaration fires it — over the REAL members of the real batch. Natural real count: reported above. */
+  const [holder] = ACTIVE;
+  const standIn = Object.assign((ref) => (ref.resourceKind === "CRAWL_BATCH" ? { state: "RESOLVED", tenantId: holder, reason: "STAND_IN" } : resolve(ref)), { declarations: DECL });
+  const realBatch = RESOURCES.crawlBatch("crawl-2026-09-12");
+  assert.ok(new Set(realBatch.members.map((m) => resolve(m).tenantId).filter(Boolean)).size > 1);
+  assert.equal(decideForTenant(standIn, holder, realBatch).outcome, "AMBIGUOUS_REFUSED", "a stand-in whole container spanning tenants was not refused AMBIGUOUS");
+  // CONTROL: the same stand-in with NO members is resolved by its attachment — the refusal above is the members speaking.
+  assert.equal(decideForTenant(standIn, holder, { ...realBatch, members: [] }).outcome, "SAME_TENANT_ALLOWED");
   // A container whose real members are declared to more than one tenant is refused for EVERY tenant — never resolved by order.
   for (const r of REAL.filter((x) => x.members)) {
     const memberTenants = new Set(r.members.map((m) => resolve(m).tenantId).filter(Boolean));
@@ -103,7 +113,7 @@ test("R3 · real stores no declaration attaches are UNDECLARED for every tenant;
   assert.equal(out.length, ACTIVE.length * REAL_UNDECLARED.length);
   assert.ok(out.every((d) => d.outcome === "UNDECLARED_REFUSED"), JSON.stringify(out.filter((d) => d.outcome !== "UNDECLARED_REFUSED").map((d) => d.outcome)));
   const none = decideRunResources({ argv: [], resolve, resources: REAL });
-  assert.equal(none.allowed, false);
+  assert.equal(none.allowed, false, "a resource was allowed with no tenant requested — a tenant was inferred");
   assert.equal(none.refused.length, REAL.length, "a resource was allowed with no tenant requested");
   // A plain resource is refused for the missing tenant itself; a container whose members span tenants is refused AMBIGUOUS first.
   for (const x of none.refused) assert.ok(["NO_TENANT_REQUESTED", "MEMBER_DECLARED_TO_ANOTHER_TENANT"].includes(x.decision.reason), x.decision.reason);

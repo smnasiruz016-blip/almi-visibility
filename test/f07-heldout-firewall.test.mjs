@@ -360,7 +360,8 @@ test("P23 · P24 · SYNTHETIC · governance may DESCRIBE evidence shape — and 
 
 test("P25 · SYNTHETIC · the real entry point's output and records stay payload-free — a real request to the RETIRED set is refused, exit 3, and recorded", () => {
   const retired = EVIDENCE_ROLE_REGISTRY.find((e) => e.role === "RETIRED_CONTAMINATED");
-  const r = spawnSync(process.execPath, ["bin/heldout-evaluation.mjs", "request", "--mechanism-id=synthetic-cli", `--mechanism-hash=${MECH_V1}`, `--set=${retired.id}`, `--commitment=${"0".repeat(64)}`, "--protocol=synthetic", "--purpose=assessment", "--authority=OWNER_RULING_HELDOUT_ROLE_SCOPE"], { cwd: REPO, encoding: "utf8", env: process.env, timeout: 120_000 });
+  /* F04: the run names the declared automation actor, so exit 3 below is the RETIRED set's refusal, not a missing identity. */
+  const r = spawnSync(process.execPath, ["bin/heldout-evaluation.mjs", "request", "--actor=actor:cc", "--mechanism-id=synthetic-cli", `--mechanism-hash=${MECH_V1}`, `--set=${retired.id}`, `--commitment=${"0".repeat(64)}`, "--protocol=synthetic", "--purpose=assessment", "--authority=OWNER_RULING_HELDOUT_ROLE_SCOPE"], { cwd: REPO, encoding: "utf8", env: process.env, timeout: 120_000 });
   assert.equal(r.status, 3, r.stderr);
   assert.match(r.stdout, /REFUSED SET_RETIRED_CONTAMINATED · recorded as [0-9a-f]{32}/);
   for (const p of REAL.paths) assert.ok(!r.stdout.includes(p) && !r.stderr.includes(p));

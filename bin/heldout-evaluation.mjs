@@ -24,6 +24,8 @@ import { guardAuthority } from "../src/governance/guard-audit.mjs";
 import { writeGateEvent } from "../src/audit-trail/recorder.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { freezeMechanism, requestHeldOutAccess, recordGateDecisions, EVALUATION_ACTIONS } from "../src/heldout/lifecycle.mjs";
+import { authorise, authorisationEvent, namedActor, AUTHORISATION_REFUSED_EXIT } from "../src/governance/authorisation.mjs";
+import { durableGuardSink } from "../src/governance/guard-audit.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const argv = process.argv.slice(2);
@@ -57,6 +59,15 @@ const gates = [
   writeGateEvent({ permission: writePermission({ target: PRODUCTION, argv, env: process.env }), target: "production", action: "WRITE_BEYOND_THIS_MACHINE", actor: ctx.actor, softwareVersion: ctx.softwareVersion, correlationId, occurredAt: NOW, authorityRef, authorityHash }),
 ];
 recordGateDecisions({ audit: ctx, drafts: gates });
+
+/* 🔴 F04: recording an evaluation event (a freeze, an access decision) is an EVALUATION action the named actor must be
+ * AUTHORISED for — decided once, recorded through the same governed store, before the freeze or the request. A dry freeze
+ * records nothing, so it is not decided. */
+if (cmd !== "freeze" || permission.mayWrite) {
+  const decision = authorise({ actorRef: namedActor(argv), action: "RECORD_HELDOUT_EVALUATION", scope: { scopeType: "GLOBAL_PRODUCT" }, resourceRef: `heldout-evaluation:${cmd}`, now: NOW });
+  durableGuardSink({ store: ctx.store, actor: ctx.actor, softwareVersion: ctx.softwareVersion, correlationId: `${correlationId}:authorisation`, authorityRef: ctx.authorityRef ?? authorityRef, authorityHash: ctx.authorityHash ?? authorityHash }).emit(authorisationEvent(decision));
+  if (!decision.allowed) { console.error(`🔴 AUTHORISATION REFUSED — RECORD_HELDOUT_EVALUATION: ${decision.outcome} (${decision.reason}); nothing was recorded`); process.exit(AUTHORISATION_REFUSED_EXIT); }
+}
 
 if (cmd === "freeze") {
   if (!permission.mayWrite) { console.log("[dry-run] the freeze is not recorded — add --confirm"); process.exit(0); }

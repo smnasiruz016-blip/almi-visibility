@@ -144,7 +144,8 @@ test("R5 · THE PRODUCTION ENTRY POINT over the real registry: same tenant runs,
   assert.ok(reg, "no real FACT_REGISTRY declaration");
   const other = ACTIVE.find((t) => t !== reg.tenantId);
   const before = trailHash();
-  const run = (extra) => spawnSync(process.execPath, ["bin/label-on-face.mjs", "--product=almi-oet", ...extra], { cwd: REPO, encoding: "utf8", timeout: 120_000 });
+  /* F04: every run names the declared actor, so each exit below is F02's scope decision and not a missing identity. */
+  const run = (extra) => spawnSync(process.execPath, ["bin/label-on-face.mjs", "--product=almi-oet", "--actor=actor:cc", ...extra], { cwd: REPO, encoding: "utf8", timeout: 120_000 });
   const same = run([`--tenant=${reg.tenantId}`]);
   const cross = run([`--tenant=${other}`]);
   const none = run([]);

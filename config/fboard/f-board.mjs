@@ -146,6 +146,37 @@ export const DECLARED = Object.freeze({
       }),
     ]),
   }),
+  /* 🔴 F04 · ROLES, PERMISSIONS AND APPROVALS — MOVEMENT 1 ONLY (owner command _handoffs 94acbb7, §15). The acceptance was
+   * frozen ALONE (b439309) before any engine change; the implementation began on branch f04-roles-permissions-approvals cut
+   * from main 8d5214e (exact-SHA main CI 36110352941, success). Movement 2 (→ VERIFIED-PASS) is lawful only when EVERY frozen
+   * clause is PROVED on merged main; it is not written here. Reason codes, never the historical changeKind vocabulary
+   * (owner ruling 29ef6d74…, §12). Recorded as BOARD_TRANSITION events by bin/audit-trail.mjs record --confirm. */
+  F04: Object.freeze({
+    featureId: "F04",
+    board: "F_BOARD",
+    state: "IN-PROGRESS",
+    events: Object.freeze([
+      // The freeze record: the acceptance was committed ALONE in the governance repository (b439309) before any F04 engine change.
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-25", ruling: ACCEPTANCES.F04.ruling, contractSha256: ACCEPTANCES.F04.contractSha256 }),
+      /* MOVEMENT 1 · UNASSESSED → IN-PROGRESS: the frozen acceptance, and the implementation begun against it. */
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F04",
+        on: "2026-09-25",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_IMPLEMENTATION_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F04.ruling.sha256, contract: ACCEPTANCES.F04.contractSha256 }),
+        branch: "f04-roles-permissions-approvals",
+        baseSha: "8d5214e5d003b778c1f32135f4ecf08140f3e542",
+        baseCiRun: "36110352941",
+        baseCiConclusion: "success",
+        governingRuling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_RULING_2026-09-23_F08_TARGET_AWARE_DURABILITY.md", commit: "47dc66c1ca9e39e7f19adc4ac630081ca090328b", sha256: "29ef6d74fc85944f7cf69f33c39fd0946e5eab77e8317fa5893fa086cfff4f0d" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-25_F04_ROLES_PERMISSIONS_APPROVALS.md", commit: "94acbb73822eb6448ed4c065b49ca3e758e192dd", sha256: "5911b5544cc1df160fb8f9fb469b998f33780d4f2775bd8ee1dcb620dba9c56c" }),
+      }),
+    ]),
+  }),
   F05: Object.freeze({
     featureId: "F05",
     board: "F_BOARD",

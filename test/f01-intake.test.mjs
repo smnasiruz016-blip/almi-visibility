@@ -69,7 +69,8 @@ function world({ tenants = [TENANT_N, TENANT_A, TENANT_B], attachments = [{ kind
 }
 /** Run the production binary against one or more roots. Returns the parsed --json result, exit status and raw output. */
 function run(roots, ...args) {
-  const r = spawnSync(process.execPath, [BIN, ...args, "--json"], { cwd: REPO, encoding: "utf8", env: { ...process.env, ALMIVISIBILITY_SUBJECT_ROOTS: [roots].flat().join(process.platform === "win32" ? ";" : ":") } });
+  /* F04: every run names the declared automation actor, after the caller's own args so no USAGE position moves. */
+  const r = spawnSync(process.execPath, [BIN, ...args, "--json", "--actor=actor:cc"], { cwd: REPO, encoding: "utf8", env: { ...process.env, ALMIVISIBILITY_SUBJECT_ROOTS: [roots].flat().join(process.platform === "win32" ? ";" : ":") } });
   const last = (r.stdout ?? "").trim().split("\n").pop();
   let json = null;
   try { json = JSON.parse(last); } catch { /* reported below */ }

@@ -127,4 +127,19 @@ export const ACCEPTANCES = Object.freeze({
     evidence: "Shape only, under the F07 firewall: no real host, real path, real\ncredential name, real subject answer or expected value appears in this\ncontract. The real current declarations resolved with complete population\narithmetic and shown byte-identical to their committed form; every\nroot-locating and connection-constructing entry point shown to resolve\nfirst, by a census whose zero has a firing control; refused worlds for\nundeclared, ambiguous, scope-mismatched and unreadable declarations, each\nwith its reason and without payload; secret exclusion across the\nregistry, logs, errors, audit events and evidence; resolutions and\nrefusals audited through the governed write path; one declaration\nresolved in two genuinely different environments, where two directories\nmade by a test on one machine do not count; independent sabotage for\nevery failure class; two agreeing full suites; named counting control;\none PR, merge and exact-main CI.",
     contractSha256: "4a65924af01d7532b634b2d25f5acd0e3480a19aa34b93609cd8cf66d5957198",
   }),
+  /* 🔴 F04 · FROZEN 25 Sep 2026, committed ALONE in the governance repository (b439309) before any F04 engine change
+   * (owner command §6, L2). Pinned here from the committed blob, derived by src/fboard/acceptance.mjs parseContract. The
+   * clarifications and the evidence-payload law are frozen in the same bytes (sha256 below). acceptanceRelation NEW. */
+  F04: Object.freeze({
+    featureId: "F04",
+    ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F04_ACCEPTANCE_2026-09-25.md", commit: "b439309bfc7e704821bbbd2a59433b65713c0f5d", sha256: "8d50f03fc5c72399344e3e368e342d2ed849f0b9201333028ce5111086c347b7" }),
+    authority: Object.freeze({ propositionId: "F04_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F04"]) }),
+    frozenOn: "2026-09-25",
+    feature: "F04 · Roles permissions and approvals",
+    input: "A declared actor, a governed action, the resource and scope affected by that action, and any\napproval or separation-of-duty requirement applicable to it.",
+    expected: "Before a governed action executes, one product-neutral decision establishes the actor's current\nidentity class, role, tenant and subject scope, permissions, required approvals and\nseparation-of-duty status; only a fully authorised action proceeds, while missing identity, missing\nrole, insufficient scope, missing approval, expired approval, conflicting duty and unsupported\naction fail closed before protected data is read, state changes, remote work begins, money is\ncommitted or content is published.",
+    failure: "A governed action proceeds without a declared actor or current permission; a role silently widens\ntenant or subject scope; a model, tool, process or commit author is treated as a human verifier or\napprover; an actor supplies, approves or verifies their own restricted decision where separation is\nrequired; a stale or unrelated approval is reused; publishing, payment, export or\nconnected-property change occurs without its required authority; a caller-specific allowlist\nbypasses the shared decision; or the mechanism is proved only by fixtures or an empty population.",
+    evidence: "The production authorisation boundary and every governed action family exercised over a real\nnon-empty population, including authorised and refused research, verification, approval,\npublishing, spending, exporting and connected-property-change decisions where those families\nexist, with scope isolation, separation-of-duty checks, expiry, non-leakage, audit events and clean\nopposite-verdict controls.",
+    contractSha256: "2a2a98bfb8eb88071102de18a6e3ff727f682948830c58aeb03ba90eaacda12e",
+  }),
 });

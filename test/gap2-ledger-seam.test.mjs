@@ -57,8 +57,11 @@ function scratchDir() {
 const outsideDir = () => mkdtempSync(join(tmpdir(), "ledger-seam-outside-"));
 
 const CONFINEMENT = /REFUSED — --ledger "[^\n]*" resolves to [^\n]*, which is OUTSIDE this repository/;
-const AUTHORIZATION = /every refusal left a trace: 5 of 5 in the dry-run ledger \(in memory\)/;
-const WRITE = /every refusal left a trace: 5 of 5 in the REAL ledger \(([^\n]*)\)/;
+/* F04 (25 Sep 2026): SIX refusals now, not five — step 0 of the exercise is the run's own actor under the RECORDED approval
+ * registry, refused NOT_AUTHORISED_BY_F04 (no owner SPEND approval exists), and on the ledger like every other refusal. */
+const REFUSALS = REFUSAL_CODES.length;
+const AUTHORIZATION = new RegExp(`every refusal left a trace: ${REFUSALS} of ${REFUSALS} in the dry-run ledger \\(in memory\\)`);
+const WRITE = new RegExp(`every refusal left a trace: ${REFUSALS} of ${REFUSALS} in the REAL ledger \\(([^\\n]*)\\)`);
 const REACHED = /calls that reached the fake provider: 2/;
 
 const run = (args) => spawnSync(process.execPath, WORLD.argv([BIN, ...args]), { cwd: REPO, encoding: "utf8", timeout: 60_000, env: WORLD.envWith() });
@@ -69,9 +72,9 @@ function gateFired(r) {
 }
 const show = (r) => `\nstatus: ${r.status}\nstdout: ${r.stdout}\nstderr: ${r.stderr}`;
 
-/** The five refusal entries a run appends: one per code, every one against the FAKE provider. */
+/** The refusal entries a run appends: one per code (six since F04), every one against the FAKE provider. */
 function assertFiveFakeRefusals(entries) {
-  assert.equal(entries.length, 5, `expected 5 ledger entries, got ${entries.length}`);
+  assert.equal(entries.length, REFUSALS, `expected ${REFUSALS} ledger entries, got ${entries.length}`);
   assert.ok(entries.every((e) => e.run_kind === "paid-provider-call" && e.outcome === "REFUSED"), "an appended entry is not a paid-provider refusal");
   assert.ok(entries.every((e) => e.refusal.fake === true), "an appended refusal is not against the fake provider");
   assert.deepEqual(entries.map((e) => e.refusal.code).sort(), [...REFUSAL_CODES].sort());
@@ -83,7 +86,7 @@ test("DEFAULT · no --ledger: the dry run is unchanged — five refusals, two fa
   assert.equal(r.status, 0, show(r));
   assert.equal(gateFired(r), "AUTHORIZATION", show(r));
   assert.match(r.stdout, /\[dry-run\] no writes will happen — no --confirm/);
-  assert.match(r.stdout, /refusals: 5 · codes: /);
+  assert.match(r.stdout, new RegExp(`refusals: ${REFUSALS} · codes: `));
   assert.match(r.stdout, REACHED);
   assert.match(r.stdout, /no real paid provider was called and no account exists/);
   assert.equal(fingerprint(DEFAULT_LEDGER), before, "the default run changed the real ledger");
@@ -150,9 +153,9 @@ test("CONTROL · a ledger INSIDE the repository, with --confirm: the five refusa
     const r2 = run([`--ledger=${ledger}`, "--confirm"]);
     assert.equal(gateFired(r2), "WRITE", show(r2));
     const second = lines(ledger);
-    assert.equal(second.length, 10);
-    assert.deepEqual(second.slice(0, 5), first, "the second run changed the entries the first one wrote");
-    assertFiveFakeRefusals(second.slice(5).map((l) => JSON.parse(l)));
+    assert.equal(second.length, 2 * REFUSALS);
+    assert.deepEqual(second.slice(0, REFUSALS), first, "the second run changed the entries the first one wrote");
+    assertFiveFakeRefusals(second.slice(REFUSALS).map((l) => JSON.parse(l)));
 
     assert.deepEqual(readdirSync(dir), ["ledger.jsonl"], "the run wrote something beside its ledger");
     assert.equal(fingerprint(DEFAULT_LEDGER), before, "the run wrote to the real ledger");

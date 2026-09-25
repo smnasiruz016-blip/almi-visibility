@@ -178,8 +178,9 @@ if (outDir) {
   let chainRefused = false;
   let chainFailed = false;
   for (const [name, body, what] of [
-    [`${which}.html`, html, "WRITE_PROFESSION_CHAIN_PAGE"],
-    [`${which}-chain.json`, JSON.stringify(report, null, 2) + "\n", "WRITE_PROFESSION_CHAIN_REPORT"],
+    /* F04: the action is a label the shared engine's registry declares, so it names no subject word (neutrality census). */
+    [`${which}.html`, html, "WRITE_VARIANT_CHAIN_PAGE"],
+    [`${which}-chain.json`, JSON.stringify(report, null, 2) + "\n", "WRITE_VARIANT_CHAIN_REPORT"],
   ]) {
     const governed = executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
       repo: REPO_ROOT_FOR_GOVERNANCE, permission, target: join(outDir, name),

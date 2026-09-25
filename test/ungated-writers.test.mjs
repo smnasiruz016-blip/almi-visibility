@@ -135,14 +135,21 @@ test("🔴 RED, REAL: facts-lifecycle --confirm --out=<outside the repository> R
   }
 });
 
-test("CONTROL: facts-lifecycle --confirm --out=<inside> DOES write — the gate opens, so its staying shut means something", () => {
+test("CONTROL: facts-lifecycle --confirm --out=<inside> passes the confinement and the write gate OPENS — and F04 then refuses the unapproved export", () => {
+  /* 🔴 F04 (25 Sep 2026): EXPORT is an approval-gated family (config/governance/authorisation.mjs FAMILY_RULES) and the
+   * owner has issued NO export approval — so no run may write an export, and this control no longer can. What it still
+   * proves is what it was for: the confinement does NOT refuse an inside path. The write gate OPENS ([write:local]) and
+   * the run reaches the NEXT gate, the authorisation decision, which refuses APPROVAL_MISSING with exit 5 and writes
+   * nothing. The RED above is the confinement ("OUTSIDE this repository", before anything); this is not that refusal. */
   const dir = scratch();
   const target = join(dir, "facts.csv");
   try {
     const r = run(["bin/facts-lifecycle.mjs", "--product=almi-oet", "--confirm", `--out=${target}`]);
-    assert.equal(r.status, 0, r.stderr);
     assert.match(r.stdout, /\[write:local\] --confirm given/);
-    assert.match(readFileSync(target, "utf8"), /^# AlmiVisibility — the 46 fact records, exported for VERIFICATION\./);
+    assert.doesNotMatch(r.stderr, /OUTSIDE this repository/, "the confinement refused an inside path");
+    assert.match(r.stderr, /AUTHORISATION REFUSED — EXPORT_FACTS_FOR_VERIFICATION: APPROVAL_MISSING/);
+    assert.equal(r.status, 5, r.stderr);
+    assert.equal(existsSync(target), false, "an unapproved export was written");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -182,12 +189,21 @@ test("🔴 RED, REAL: export --confirm --out=<outside the repository> REFUSES, e
   }
 });
 
-test("CONTROL: export --confirm --out=<inside> DOES write all three — the gate opens", () => {
+test("CONTROL: export --confirm --out=<inside> passes the confinement and the write gate OPENS — and F04 then refuses all three unapproved exports", () => {
+  /* 🔴 F04 (25 Sep 2026): EXPORT is an approval-gated family (config/governance/authorisation.mjs FAMILY_RULES) and the
+   * owner has issued NO export approval — so no run may write an export, and this control no longer can. What it still
+   * proves is what it was for: the confinement does NOT refuse an inside path. The write gate OPENS ([write:local]) and
+   * the run reaches the NEXT gate, the authorisation decision, which refuses APPROVAL_MISSING with exit 5 and writes
+   * nothing. The RED above is the confinement ("OUTSIDE this repository", before anything); this is not that refusal. */
   const dir = scratch();
   try {
     const r = run(["bin/export.mjs", "--confirm", `--out=${dir}`]);
-    assert.equal(r.status, 0, r.stderr);
-    for (const name of ["evidence.md", "evidence.json", "estate.csv"]) assert.equal(existsSync(join(dir, name)), true, `${name} was not written with --confirm`);
+    assert.doesNotMatch(r.stderr, /OUTSIDE this repository/, "the confinement refused an inside path");
+    assert.equal(r.status, 5, r.stderr);
+    for (const name of ["evidence.md", "evidence.json", "estate.csv"]) {
+      assert.match(r.stdout, new RegExp(`\\[refused\\] .*${name.replace(".", "\\.")} .* authorisation APPROVAL_MISSING`));
+      assert.equal(existsSync(join(dir, name)), false, `${name} was written without an export approval`);
+    }
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

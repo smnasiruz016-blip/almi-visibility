@@ -20,6 +20,7 @@
 import { isGenuineDecision, refDigest } from "./scope.mjs";
 import { lookupConnector } from "./root-registry.mjs";
 import { createTenantResolver } from "./resolver.mjs";
+import { isGenuineAuthorisation, authorisationRefDigest } from "../governance/authorisation.mjs";
 
 /** A connector refusal: a reason code; no host, path, payload or value. */
 export class ConnectorRefused extends Error {
@@ -35,6 +36,9 @@ export const NO_REQUEST_FETCH = Object.freeze(async () => { throw new ConnectorR
 /** The ref a CONNECTOR decision is about — exactly as RESOURCES.connector forms it. */
 const connectorRef = (subjectId, kind) => `${subjectId}#${kind}`;
 
+/** F04: true only for a genuine AUTHORISED decision to open exactly this subject's connector of this kind. */
+export const authorisesConnector = (d, subjectId, kind) => isGenuineAuthorisation(d) && d.allowed === true && d.action === `OPEN_CONNECTOR_${kind}` && d.resourceRefDigest === authorisationRefDigest(connectorRef(subjectId, kind));
+
 /** True only for a genuine, allowed decision about exactly this subject's connector of this kind. */
 export const allowsConnector = (decision, subjectId, kind) => isGenuineDecision(decision) && decision.allowed === true && decision.target?.resourceKind === "CONNECTOR" && decision.target?.resourceRefDigest === refDigest("CONNECTOR", connectorRef(subjectId, kind));
 
@@ -46,6 +50,8 @@ export const allowsConnector = (decision, subjectId, kind) => isGenuineDecision(
 export function openConnector({ scope, subjectId, kind, resolve = null }) {
   const decision = (scope?.decisions ?? []).map((d) => d?.decision).find((d) => allowsConnector(d, subjectId, kind));
   if (!decision) throw new ConnectorRefused("CONNECTOR_NOT_RESOLVED");
+  /* 🔴 F04: scope is not permission — the run's actor must be AUTHORISED to open this connector (decided at entry). */
+  if (!(scope?.authorisations ?? []).some((d) => authorisesConnector(d, subjectId, kind))) throw new ConnectorRefused("CONNECTOR_NOT_AUTHORISED");
   const index = (resolve ?? createTenantResolver()).roots;
   const l = lookupConnector(index, subjectId, kind);
   /* The declarations were read again: a declaration that changed between the decision and here is refused, not used. */

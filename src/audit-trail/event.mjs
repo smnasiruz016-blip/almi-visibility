@@ -63,6 +63,9 @@ export const EVENT_TYPES = Object.freeze([
   /* F01 (24 September 2026): one project-declaration workflow decision — validated, accepted, refused or superseded.
    * Additive, as above. */
   "DECLARATION_DECISION",
+  /* F04 (25 September 2026): one authorisation decision — allowed or refused — made before a governed action's effect.
+   * Additive, as above. */
+  "AUTHORISATION_DECISION",
 ]);
 export const ACTOR_TYPES = Object.freeze(["HUMAN", "ENGINE", "CI", "EXTERNAL_SYSTEM"]);
 export const SCOPE_TYPES = Object.freeze(["GLOBAL_PRODUCT", "TENANT", "SUBJECT"]);

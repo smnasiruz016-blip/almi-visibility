@@ -32,6 +32,8 @@ import {
 import { recordCandidates, refusalEvent, writeGateEvent, MIGRATION_PROVES } from "../src/audit-trail/recorder.mjs";
 import { productionAuditStore, productionAuditReader, softwareVersionOf } from "../src/audit-trail/wiring.mjs";
 import { DETECTION_BOUNDARY } from "../src/audit-trail/store.mjs";
+import { authorise, authorisationEvent, namedActor, AUTHORISATION_REFUSED_EXIT } from "../src/governance/authorisation.mjs";
+import { durableGuardSink } from "../src/governance/guard-audit.mjs";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..");
 const arg = (k) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? null;
@@ -219,6 +221,12 @@ function doRecord() {
   // 🔴 THE WRITE SITS INSIDE THE GATE, not after an early return: a guard the census can READ is a guard.
   if (permission.mayWrite) {
     const store = productionAuditStore({ repo: REPO });
+    /* 🔴 F04: --confirm is intent. Writing the audit trail is an AUDIT_RECORD action the named actor must be AUTHORISED for,
+     * decided by the one decision and recorded — allowed or refused — in the very store it would write, before any
+     * candidate is appended. A refusal appends nothing else and exits 5. */
+    const decision = authorise({ actorRef: namedActor(process.argv), action: "WRITE_AUDIT_TRAIL_STORE", scope: { scopeType: "GLOBAL_PRODUCT" }, resourceRef: AUDIT_STORE.eventsPath, now: RUN_INSTANT });
+    durableGuardSink({ store, actor: "bin/audit-trail.mjs", softwareVersion, correlationId: `run:audit-trail:record:${RUN_INSTANT}:authorisation`, authorityRef: { propositionId: F08_AUTHORITY.propositionId, scope: [...F08_AUTHORITY.scope] }, authorityHash: f08.contentHash }).emit(authorisationEvent(decision));
+    if (!decision.allowed) { console.error(`🔴 AUTHORISATION REFUSED — WRITE_AUDIT_TRAIL_STORE: ${decision.outcome} (${decision.reason}); nothing was recorded`); process.exit(AUTHORISATION_REFUSED_EXIT); }
     const result = recordCandidates({ store, candidates, corpus: AUTHORITY_CORPUS });
     console.log("\nREAL MIGRATION ARITHMETIC");
     console.log(`  real candidate events ${result.counts.realCandidateEvents} = migrated ${result.counts.migrated} + already audited ${result.counts.alreadyAudited} + not migratable ${result.counts.notMigratable} + invalid ${result.counts.invalid} + excluded ${result.counts.excluded}`);

@@ -47,7 +47,7 @@ export const RESOURCES = Object.freeze({
   evidenceStore: (name = "evidence-store") => ({ label: "evidence store", resourceKind: "EVIDENCE_STORE", resourceRef: name, scopeClass: "TENANT" }),
   costLedger: (name = "cost-ledger") => ({ label: "cost ledger", resourceKind: "COST_LEDGER", resourceRef: name, scopeClass: "TENANT" }),
   cache: (name) => ({ label: "cache", resourceKind: "CACHE_STORE", resourceRef: name, scopeClass: "TENANT" }),
-  captures: (name = "page-capture-set") => ({ label: "page captures", resourceKind: "CAPTURE_SET", resourceRef: name, scopeClass: "TENANT" }),
+  captures: (name) => ({ label: "page captures", resourceKind: "CAPTURE_SET", resourceRef: name, scopeClass: "TENANT" }),
   /** A named set of run stores an entry point reads (its findings, results, corpora): declared by that name. */
   runArtefacts: (name) => ({ label: "run artefacts", resourceKind: "RUN_STORE", resourceRef: name, scopeClass: "TENANT" }),
   /**
@@ -57,6 +57,12 @@ export const RESOURCES = Object.freeze({
    * the resource is absent (null) — the run is still decided for its requested tenant (src/governance/scoped-entry.mjs).
    */
   inputPath: (path, label) => (typeof path === "string" && path !== "" ? { label: `input path ${label}`, resourceKind: "INPUT_PATH", resourceRef: inputPathRef(path), scopeClass: "TENANT" } : null),
+  /**
+   * The requested tenant's PARTITION of a shared collection (the observation batch, the sitemap collection): decided for
+   * the requested tenant before anything is read; the consumer then reads only members whose own identities resolve to
+   * that tenant (src/crawl/batch-partition.mjs readTenantPartition). The whole collection is never read.
+   */
+  collectionPartition: (collectionKind, collectionRef) => ({ label: `${String(collectionKind).toLowerCase().replace(/_/g, " ")} partition`, resourceKind: "COLLECTION_PARTITION", resourceRef: `${collectionKind}:${collectionRef}`, scopeClass: "TENANT" }),
   /** A store partitioned BY the declared tenant id (F01's declaration store): its partition key is the declaration. */
   tenantPartition: (tenantId, name = "declaration store") => ({ label: `${name} partition`, resourceKind: "TENANT_PARTITION", resourceRef: tenantId, scopeClass: "TENANT" }),
   /**

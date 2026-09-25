@@ -26,6 +26,9 @@ import { fileURLToPath } from "node:url";
 export const ENGINE = resolve(fileURLToPath(new URL("../../", import.meta.url)));
 export const DATA_ROOT = resolve(ENGINE, "..", "almi-visibility-data");
 export const FIXTURE_TENANT = "tenant:00000000000000000000000000000f02";
+/** A SECOND fixture tenant, only when a test asks for one (secondTenantOrigins) — to prove a failure branch a one-tenant
+ * world cannot tell apart (e.g. a run that reads or runs more than its own tenant). Never the real population. */
+export const SECOND_FIXTURE_TENANT = "tenant:00000000000000000000000000000f03";
 export const SUBJECT_ROOTS_ENV = "ALMIVISIBILITY_SUBJECT_ROOTS";
 const BASIS = "F02_DECLARED_FIXTURE_WORLD_NOT_THE_REAL_POPULATION";
 
@@ -33,7 +36,7 @@ const BASIS = "F02_DECLARED_FIXTURE_WORLD_NOT_THE_REAL_POPULATION";
 export const FIXTURE_ATTACHMENTS = Object.freeze([
   ["EVIDENCE_STORE", "evidence-store"],
   ["COST_LEDGER", "cost-ledger"],
-  ["CAPTURE_SET", "page-capture-set"],
+  ["CAPTURE_SET", "row25-2026-09-21"],
   ["CACHE_STORE", "sibling-page cache"],
   ["CACHE_STORE", "robots cache"],
   ["CACHE_STORE", "fact cache"],
@@ -59,7 +62,8 @@ export function inputPathRef(p) {
   return (rel !== "" && !rel.startsWith("..") && !isAbsolute(rel) ? rel : abs).split(sep).join("/");
 }
 
-export function declaredWorld({ inputPaths = [], extra = [] } = {}) {
+export function declaredWorld({ inputPaths = [], extra = [], secondTenantOrigins = [] } = {}) {
+  const second = new Set(secondTenantOrigins);
   if (!existsSync(join(DATA_ROOT, "tenancy", "attachments.json"))) throw new Error(`declaredWorld: no data root at ${DATA_ROOT}`);
   const root = mkdtempSync(join(tmpdir(), "almi-f02-world-"));
   cpSync(DATA_ROOT, root, { recursive: true, filter: (src) => !src.split(sep).includes(".git") });
@@ -70,9 +74,9 @@ export function declaredWorld({ inputPaths = [], extra = [] } = {}) {
   for (const [k, r] of [...real.map((a) => [a.resourceKind, a.resourceRef]), ...FIXTURE_ATTACHMENTS, ...inputPaths.map((p) => ["INPUT_PATH", inputPathRef(p)]), ...extra]) add(k, r);
   const write = () => writeFileSync(join(root, "tenancy", "attachments.json"), JSON.stringify({
     schemaVersion: 1,
-    attachments: pairs.map(([resourceKind, resourceRef]) => ({ schemaVersion: 1, resourceKind, resourceRef, tenantId: FIXTURE_TENANT, declaredOn: "2026-09-24", declarationBasis: BASIS })),
+    attachments: pairs.map(([resourceKind, resourceRef]) => ({ schemaVersion: 1, resourceKind, resourceRef, tenantId: resourceKind === "SITE_ORIGIN" && second.has(resourceRef) ? SECOND_FIXTURE_TENANT : FIXTURE_TENANT, declaredOn: "2026-09-24", declarationBasis: BASIS })),
   }, null, 2) + "\n");
-  writeFileSync(join(root, "tenancy", "tenants.json"), JSON.stringify({ schemaVersion: 1, tenants: [{ schemaVersion: 1, tenantId: FIXTURE_TENANT, status: "ACTIVE", declaredOn: "2026-09-24", declarationBasis: BASIS, label: "F02 fixture world — every fixture resource, one tenant" }] }, null, 2) + "\n");
+  writeFileSync(join(root, "tenancy", "tenants.json"), JSON.stringify({ schemaVersion: 1, tenants: [{ schemaVersion: 1, tenantId: FIXTURE_TENANT, status: "ACTIVE", declaredOn: "2026-09-24", declarationBasis: BASIS, label: "F02 fixture world — every fixture resource, one tenant" }, ...(second.size ? [{ schemaVersion: 1, tenantId: SECOND_FIXTURE_TENANT, status: "ACTIVE", declaredOn: "2026-09-24", declarationBasis: BASIS, label: "F02 fixture world — a second tenant, for a failure branch" }] : [])] }, null, 2) + "\n");
   write();
   return Object.freeze({
     root,

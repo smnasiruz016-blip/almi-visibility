@@ -87,9 +87,12 @@ export function readSitemapCollection({ batchId = SITEMAP_BATCH_ID, env = proces
  * @param observedPages the result of `observedPageSubjects()` — each page already carrying the scope
  *                      IT resolved independently. This module never resolves a page's scope for it.
  */
-export function sitemapUrlSubjects({ batchId = SITEMAP_BATCH_ID, env = process.env, resolveTenant = null, observedPages } = {}) {
+export function sitemapUrlSubjects({ batchId = SITEMAP_BATCH_ID, env = process.env, resolveTenant = null, observedPages, partition = null } = {}) {
   const resolve = resolveTenant ?? createTenantResolver({ env });
-  const { manifest, records } = readSitemapCollection({ batchId, env });
+  /* F02 (partition): a tenant-scoped run hands in ITS partition of the collection (src/crawl/batch-partition.mjs). */
+  const read = readSitemapCollection({ batchId, env });
+  const manifest = read.manifest;
+  const records = partition ? partition.records : read.records;
   const locator = `observations/${batchId}/${SITEMAP_FILE}`;
 
   /* The collection is a resource too, and it has its own scope. It spans many origins, so it is

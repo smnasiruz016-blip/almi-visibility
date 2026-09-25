@@ -16,10 +16,9 @@
 import { existsSync, renameSync, writeFileSync } from "node:fs";
 
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
-import { createJsonlStore } from "../src/evidence/store.mjs";
-import { readBodyArchive } from "../src/evidence/body-archive.mjs";
 import { pagesFromRun, deriveEdges, inboundOf, packGraph, ZERO_INBOUND_DEFINITION } from "../src/crawl/inbound.mjs";
-import { batchFile } from "../src/crawl/observation-batch.mjs";
+import { readTenantPartition, readPartitionBodies } from "../src/crawl/batch-partition.mjs";
+import { createTenantResolver } from "../src/tenancy/resolver.mjs";
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedFileWrite } from "../src/governance/governed-run.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
@@ -29,7 +28,9 @@ import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/edge-graph.mjs", governed: true, resources: [RESOURCES.crawlBatch(BATCH_ID)] });
+/* F02 (partition): the observation batch is SHARED, so this run reads only the requested tenant's partition of it —
+ * the pages whose own identities resolve to that tenant — and derives their links. Another tenant's page is never read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/edge-graph.mjs", governed: true, resources: [RESOURCES.collectionPartition("CRAWL_BATCH", BATCH_ID)] });
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv.slice(2), env: process.env }));
 const RUN_INSTANT = isoSeconds(Date.now());
 const RUN_CORRELATION = `run:edge-graph:${RUN_INSTANT}`;
@@ -44,8 +45,12 @@ const governedEdgeGraph = (target) => governedFileWrite({ ...SCOPE.writeScope,
 const outArg = process.argv.find((a) => a.startsWith("--out="))?.slice("--out=".length) ?? null;
 const OUT = outArg === null ? null : confineToRepo(outArg, { label: "--out" });
 
-const crawlRecords = createJsonlStore(batchFile("first-real-crawl-2026-09-12.jsonl")).readAll();
-const pages = pagesFromRun({ crawlRecords, bodies: readBodyArchive(batchFile("bodies-2026-09-12.jsonl.br")) });
+const PART = readTenantPartition({ batchId: BATCH_ID, tenantId: SCOPE.tenantId, resolve: createTenantResolver() });
+SCOPE.recordPartition(PART.partition, { collectionKind: "CRAWL_BATCH", collectionRef: BATCH_ID });
+const a = PART.partition.arithmetic;
+console.log(`[partition: ${PART.records.length} of ${a.population} batch records are this tenant's · batch = ${a.inPartitions} in ${a.partitions} tenant partitions + ${a.undeclared} UNDECLARED + ${a.ambiguous} AMBIGUOUS · remainder ${a.remainder}]`);
+const crawlRecords = PART.records;
+const pages = pagesFromRun({ crawlRecords, bodies: readPartitionBodies({ batchId: BATCH_ID, observationIds: PART.observationIds }) });
 const edges = deriveEdges(pages);
 const { zero } = inboundOf({ pages, edges });
 const packed = packGraph(edges);

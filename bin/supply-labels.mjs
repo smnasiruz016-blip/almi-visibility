@@ -38,6 +38,8 @@ import { EXACT_DUPLICATE, THIN_CONTENT, NEAR_DUPLICATE, TEMPLATE_DOMINANCE, RECO
 import { measure, SHELL_DEFINITION, THIN_UNIQUE_WORD_FLOOR } from "../src/audit/shell.mjs";
 import { batchFile } from "../src/crawl/observation-batch.mjs";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { partitionRecords } from "../src/crawl/batch-partition.mjs";
+import { createTenantResolver } from "../src/tenancy/resolver.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
@@ -48,7 +50,7 @@ const arg = (n, d) => {
 };
 const CORPUS = arg("corpus", null);
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/supply-labels.mjs", governed: true, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.inputPath(CORPUS, "--corpus"), RESOURCES.inputPath(arg("crawl", null), "--crawl")] });
+const SCOPE = scopedEntryPoint({ entry: "bin/supply-labels.mjs", governed: true, resources: [RESOURCES.collectionPartition("CRAWL_BATCH", BATCH_ID), RESOURCES.inputPath(CORPUS, "--corpus"), RESOURCES.inputPath(arg("crawl", null), "--crawl")] });
 const CRAWL = arg("crawl", batchFile("first-real-crawl-2026-09-12.jsonl"));
 /* 🔴 GAP 2 — confined BEFORE anything is read, and DRY-RUN BY DEFAULT. Until 16 September 2026 this
  * appended its findings on every run, with no flag and no gate: the shape that rewrote committed
@@ -68,7 +70,12 @@ if (!CORPUS || !existsSync(CORPUS)) {
   process.exit(2);
 }
 
-const records = readFileSync(CRAWL, "utf8").trim().split("\n").map((l) => JSON.parse(l));
+/* F02 (partition): the crawl records are SHARED — the batch's, or an operator's --crawl file — so only the requested
+ * tenant's partition is used, and only its observations' bodies are read from the corpus. */
+const PART = partitionRecords({ records: readFileSync(CRAWL, "utf8").trim().split("\n").map((l) => JSON.parse(l)), fileName: CRAWL.split(/[\\/]/).pop(), tenantId: SCOPE.tenantId, resolve: createTenantResolver() });
+SCOPE.recordPartition(PART.partition, { collectionKind: "CRAWL_BATCH", collectionRef: BATCH_ID });
+console.log(`[partition: ${PART.records.length} of ${PART.partition.arithmetic.population} crawl records are this tenant's · remainder ${PART.partition.arithmetic.remainder}]`);
+const records = PART.records;
 const pages = records.filter((r) => r.record_type === "page");
 const obsById = new Map(records.filter((r) => r.record_type === "observation").map((o) => [o.observation_id, o]));
 
@@ -86,7 +93,7 @@ const obsById = new Map(records.filter((r) => r.record_type === "observation").m
  * real reason rather than a lookup bug.
  */
 const bodies = new Map();
-for (const f of readdirSync(CORPUS).filter((f) => f.endsWith(".html"))) {
+for (const f of readdirSync(CORPUS).filter((f) => f.endsWith(".html") && PART.observationIds.has(f.replace(/\.html$/, "")))) {
   bodies.set(f.replace(/\.html$/, ""), readFileSync(join(CORPUS, f), "utf8"));
 }
 const bodyFor = (observations) => {

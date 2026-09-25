@@ -41,6 +41,9 @@ import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 import { SITEMAP_BATCH_ID } from "../src/adapter/sitemap-subject.mjs";
 import { everySubjectRegistry } from "../src/tenancy/scoped-run.mjs";
+import { readTenantPartition, readPartitionBodies } from "../src/crawl/batch-partition.mjs";
+import { createTenantResolver } from "../src/tenancy/resolver.mjs";
+import { decideResolvedTenants } from "../src/tenancy/scope.mjs";
 
 const argv = process.argv.slice(2);
 const flag = (name) => argv.find((a) => a.startsWith(`--${name}=`))?.split("=").slice(1).join("=") ?? null;
@@ -74,7 +77,7 @@ const runAt = flag("run-at");
 const outDir = flag("out");
 const expectPath = flag("expect");
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/detect.mjs", governed: true, resources: [RESOURCES.inputPath(expectPath, "--expect"), RESOURCES.inputPath(flag("registry"), "--registry"), RESOURCES.inputPath(["discover", "subject", "observed-pages", "sitemap"].includes(bundlePath) ? null : bundlePath, "--bundle"), RESOURCES.crawlBatch(BATCH_ID), RESOURCES.sitemapCollection(SITEMAP_BATCH_ID), ...(await everySubjectRegistry())] });
+const SCOPE = scopedEntryPoint({ entry: "bin/detect.mjs", governed: true, resources: [RESOURCES.inputPath(expectPath, "--expect"), RESOURCES.inputPath(flag("registry"), "--registry"), RESOURCES.inputPath(["discover", "subject", "observed-pages", "sitemap"].includes(bundlePath) ? null : bundlePath, "--bundle"), RESOURCES.collectionPartition("CRAWL_BATCH", BATCH_ID), RESOURCES.collectionPartition("SITEMAP_COLLECTION", SITEMAP_BATCH_ID), ...(await everySubjectRegistry())] });
 /* 🔴 THERE IS NO --tenant FLAG, AND ITS ABSENCE IS THE POINT.
  *
  * This runner used to accept `--tenant=<anything>` and hand that string to the binder as an
@@ -193,8 +196,21 @@ if (!bundlePath || !runAt) {
    * a rule this runner has to remember. Unbound pages are printed with their reason, because a page
    * that drops out of the population is how a joiner reports a clean rate over what it chose.
    */
+  /* 🔴 F02 (partition): the batch and the sitemap collection are SHARED. This run reads only its decided tenant's
+   * partition of each, and runs only that tenant — it used to build and run a bundle for EVERY tenant in the batch
+   * inside one tenant-scoped run (latent: the gate refused the whole batch as AMBIGUOUS). */
+  const tenantPartition = (batchId, collectionKind) => {
+    const part = readTenantPartition({ batchId, tenantId: SCOPE.tenantId, resolve: createTenantResolver() });
+    SCOPE.recordPartition(part.partition, { collectionKind, collectionRef: batchId });
+    const a = part.partition.arithmetic;
+    console.log(`  partition  : ${collectionKind} ${part.records.length} of ${a.population} record(s) are this tenant's · ${a.inPartitions} in ${a.partitions} partitions + ${a.undeclared} UNDECLARED + ${a.ambiguous} AMBIGUOUS · remainder ${a.remainder}`);
+    return part;
+  };
+  const crawlPartition = () => { const part = tenantPartition(BATCH_ID, "CRAWL_BATCH"); return { records: part.records, bodies: readPartitionBodies({ batchId: BATCH_ID, observationIds: part.observationIds }) }; };
+  const onlyThisTenant = (g) => decideResolvedTenants(SCOPE.tenantId, g.tenantId).allowed;
+
   const observedPagesBundle = () => {
-    const r = observedPageSubjects();
+    const r = observedPageSubjects({ partition: crawlPartition() });
     console.log(`\nOBSERVED PAGE SUBJECTS — read-only, from the external observation batch`);
     console.log(`  batch      : ${r.batchId} (${r.classificationState})  — PROVENANCE, never a scope`);
     console.log(`  resolution : ${JSON.stringify(r.resolution)}`);
@@ -208,7 +224,7 @@ if (!bundlePath || !runAt) {
     const offered = groups.reduce((n, g) => n + g.bundle.pageSubjects.length, 0);
     const grouped = groups.reduce((n, g) => n + g.pages.length, 0);
     console.log(`  runs       : ${groups.length} · offered ${offered} · pages in a scope ${grouped} · without a scope ${r.population - grouped}`);
-    return groups.map((g) => ({ tenantId: g.tenantId, bundle: g.bundle }));
+    return groups.filter(onlyThisTenant).map((g) => ({ tenantId: g.tenantId, bundle: g.bundle }));
   };
 
   /**
@@ -217,8 +233,8 @@ if (!bundlePath || !runAt) {
    * own reference; this runner joins nothing itself.
    */
   const sitemapBundles = () => {
-    const pages = observedPageSubjects();
-    const sm = sitemapUrlSubjects({ observedPages: pages });
+    const pages = observedPageSubjects({ partition: crawlPartition() });
+    const sm = sitemapUrlSubjects({ observedPages: pages, partition: { records: tenantPartition(SITEMAP_BATCH_ID, "SITEMAP_COLLECTION").records } });
     const sum = Object.values(sm.counts).reduce((a, b) => a + b, 0);
     console.log(`\nSITEMAP URL SUBJECTS — read-only, from the external sitemap collection`);
     console.log(`  collection : ${sm.batchId} (${sm.provenance.classificationState}) — PROVENANCE, never a scope`);
@@ -233,7 +249,7 @@ if (!bundlePath || !runAt) {
 
     const inputs = sitemapDetectorInputsByTenant(sm, pages);
     console.log(`  runs       : ${inputs.length} · BOUND entries offered ${inputs.reduce((n, g) => n + g.sitemapUrls.length, 0)} of ${sm.population}`);
-    return inputs.map((g) => ({
+    return inputs.filter(onlyThisTenant).map((g) => ({
       tenantId: g.tenantId,
       bundle: {
         sitemapObserved: { sitemapUrls: g.sitemapUrls, observations: g.observations },

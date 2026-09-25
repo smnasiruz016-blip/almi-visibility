@@ -42,6 +42,9 @@ export function resolveSide(resolve, resource) {
   if (!SCOPE_CLASSES.includes(scopeClass)) return { ...side, state: "INVALID", reason: "UNDECLARED_SCOPE_CLASS", tenantId: null };
   if (scopeClass !== "TENANT") return { ...side, state: "NOT_TENANT", reason: `${scopeClass}_IS_NOT_A_TENANT_RESOURCE`, tenantId: null };
   if (resource?.resourceKind === null || resource?.resourceKind === undefined) return { ...side, state: "UNDECLARED", reason: "NO_DECLARED_RESOURCE_KIND", tenantId: null };
+  /* A tenant's PARTITION of a shared collection (src/tenancy/partition.mjs) has no tenant of its own to look up: it is
+   * decided only against a REQUESTED tenant (decideForTenant). Anywhere else it resolves to nothing. */
+  if (resource.resourceKind === "COLLECTION_PARTITION") return { ...side, state: "UNDECLARED", reason: "A_PARTITION_IS_DECIDED_FOR_A_REQUESTED_TENANT", tenantId: null };
   /* A store partitioned BY the declared tenant id: its key is a declaration, so it resolves exactly as a requested tenant
    * does — to that id when it is ACTIVE, and never otherwise. No name, host or path takes part. */
   if (resource.resourceKind === "TENANT_PARTITION") { const p = requestSide(resolve, resource.resourceRef); return { ...side, state: p.state, reason: p.reason === "EXPLICIT_DECLARED_TENANT" ? "PARTITION_KEY_IS_A_DECLARED_TENANT" : p.reason, tenantId: p.tenantId }; }
@@ -102,6 +105,14 @@ export const decideRelationship = (resolve, source, target) => decideSides(resol
  */
 export function decideForTenant(resolve, requestedTenantId, resource) {
   const requested = requestSide(resolve, requestedTenantId);
+  /* 🔴 A SHARED COLLECTION IS READ ONLY AS THE REQUESTED TENANT'S PARTITION. The partition belongs to the requested tenant
+   * exactly when that tenant is an ACTIVE declaration — and then holds only members whose OWN identities resolve to it
+   * (src/tenancy/partition.mjs). The collection's own attachment decides nothing: a shared collection is never one
+   * tenant's resource (owner ruling, 24 Sep 2026). A missing or unknown request refuses, exactly as for any resource. */
+  if (resource?.resourceKind === "COLLECTION_PARTITION" && (resource.scopeClass ?? "TENANT") === "TENANT") {
+    const part = { resourceKind: "COLLECTION_PARTITION", resourceRefDigest: digest("COLLECTION_PARTITION", resource.resourceRef), scopeClass: "TENANT", state: requested.state, reason: requested.state === "RESOLVED" ? "PARTITION_OF_THE_REQUESTED_TENANT" : requested.reason, tenantId: requested.tenantId };
+    return decideSides(requested, part);
+  }
   return decideSides(requested, resolveSide(resolve, resource));
 }
 

@@ -10,6 +10,12 @@
  *
  * On success it returns `writeScope`: the scope every governed write of this run must carry, so a run's OUTPUT belongs to
  * the tenant its inputs did. On any refusal the process ends with SCOPE_REFUSED_EXIT (3).
+ *
+ * 🔴 F04 (25 Sep 2026): SCOPE IS NOT PERMISSION. Once F02 has decided WHERE the run may read, F04 decides WHO may: the actor
+ * the run names (`--actor=`) is authorised for READ_PROTECTED_TENANT_DATA over the tenant F02 resolved, and for
+ * OPEN_CONNECTOR_<kind> over each connector the run declared — through the one decision (src/governance/authorisation.mjs),
+ * recorded through the SAME guard sink, BEFORE anything is read or constructed. A refusal ends the process with
+ * AUTHORISATION_REFUSED_EXIT (5). The genuine decisions are returned as `authorisations`; openConnector requires one.
  */
 import { createTenantResolver } from "../tenancy/resolver.mjs";
 import { decideRunResources, requestedTenant, RESOURCES, SCOPE_REFUSED_EXIT } from "../tenancy/scoped-run.mjs";
@@ -18,6 +24,7 @@ import { governedGuardSink } from "./governed-run.mjs";
 import { isoSeconds } from "../audit-trail/store.mjs";
 import { partitionRefusalEvent } from "../tenancy/partition.mjs";
 import { scopeResolutionEvent, RECORDED_RESOLUTION_KINDS } from "../tenancy/scope.mjs";
+import { authorise, authorisationEvent, namedActor, AUTHORISATION_REFUSED_EXIT } from "./authorisation.mjs";
 
 /* The engine's own root, from this module's fixed place (src/governance/) — never from the caller's location, which a
  * subject-owned tool three levels down would get wrong (F02 relocation, 24 Sep 2026). */
@@ -53,13 +60,40 @@ export function requireScopedRun(o) {
   return run;
 }
 
-export function scopedEntryPoint({ entry, governed, resources, argv = process.argv, env = process.env, resolve = createTenantResolver({ env }) }) {
+/**
+ * F04: the authorisation requests a scoped run makes once F02 allowed it — research over the resolved tenant, and one
+ * OPEN_CONNECTOR_<kind> per declared connector. Pure; exported so the census and the tests read the same list.
+ */
+export function runAuthorisationRequests({ tenantId, resources }) {
+  const requests = [{ action: "READ_PROTECTED_TENANT_DATA", resourceRef: `tenant-partition:${tenantId}` }];
+  for (const r of (Array.isArray(resources) ? resources : []).filter(Boolean)) {
+    if (r.resourceKind === "CONNECTOR") requests.push({ action: `OPEN_CONNECTOR_${r.connectorKind}`, resourceRef: r.resourceRef });
+  }
+  return requests;
+}
+
+/** Decide every request for the named actor, record each decision through the sink, and report. Never exits. */
+export function authoriseScopedRun({ actorRef, tenantId, resources, sink, now = isoSeconds(Date.now()), log = console.error }) {
+  const authorisations = runAuthorisationRequests({ tenantId, resources }).map((q) =>
+    authorise({ actorRef, action: q.action, scope: { scopeType: "TENANT", tenantId }, resourceRef: q.resourceRef, now }));
+  for (const d of authorisations) sink.emit(authorisationEvent(d));
+  const refused = authorisations.filter((d) => !d.allowed);
+  for (const d of refused) log(`🔴 AUTHORISATION REFUSED — ${d.action}: ${d.outcome} (${d.reason}); nothing was read`);
+  return { allowed: refused.length === 0, authorisations, refused };
+}
+
+export function scopedEntryPoint({ entry, governed, resources, argv = process.argv, env = process.env, resolve = createTenantResolver({ env }), actorRef = namedActor(argv) }) {
   const sink = governed
     ? governedGuardSink({ repo: ENGINE_ROOT, env, correlationId: `run:${entry}:tenant-scope:${isoSeconds(Date.now())}`, now: isoSeconds(Date.now()).slice(0, 10), actor: entry })
     : diagnosticGuardSink({ actor: entry });
   const run = requireScopedRun({ argv, resolve, resources, sink });
+  /* 🔴 F04 — after F02 allowed, before any read: the named actor must be AUTHORISED for what this run will do. */
+  const auth = authoriseScopedRun({ actorRef, tenantId: run.tenantId, resources, sink });
+  if (!auth.allowed) process.exit(AUTHORISATION_REFUSED_EXIT);
   /* A partition's quarantine is a refusal: recorded through the SAME guard sink as the run's scope decision — counts and
    * digests only. A partition that quarantined nothing records nothing. */
   const recordPartition = (partition, { collectionKind, collectionRef }) => { const ev = partitionRefusalEvent(partition, { collectionKind, collectionRef }); if (ev) sink.emit(ev); return ev; };
-  return { ...run, writeScope: Object.freeze({ scopeType: "TENANT", tenantId: run.tenantId }), recordPartition };
+  /* F04: a decision the run makes later (a paid call, an approval check) is recorded through this run's SAME guard sink. */
+  const recordDecision = (decision) => sink.emit(decision);
+  return { ...run, authorisations: auth.authorisations, recordDecision, writeScope: Object.freeze({ scopeType: "TENANT", tenantId: run.tenantId }), recordPartition };
 }

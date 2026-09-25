@@ -116,6 +116,8 @@ export function auditClassOf(decision) {
   if (eventType === "DECLARATION_DECISION") return "GOVERNED_CHANGE";
   /* F03: a subject's root or a connector obtained for a run, and GRANTED — "tried to obtain it, and was granted" is ACCESS. */
   if (eventType === "SCOPE_RESOLUTION" && (action === "RESOLVE_SUBJECT_ROOT" || action === "RESOLVE_CONNECTOR")) return "ACCESS";
+  /* F04: an actor asked to perform a governed action and was granted or refused — ACCESS, durable either way. */
+  if (eventType === "AUTHORISATION_DECISION") return "ACCESS";
   return "UNDERIVED";
 }
 export const isDurableDecision = (decision) => auditClassOf(decision) !== "CLASSIFICATION";

@@ -116,13 +116,14 @@ test("Q6 · REAL ENTRY POINT · bin/edge-graph.mjs, for every tenant, reads only
   const p = partitionMembers({ members: bare(CRAWL), resolve });
   let pages = 0;
   for (const t of p.partitions.keys()) {
-    const r = spawnSync(process.execPath, ["bin/edge-graph.mjs", `--tenant=${t}`], { cwd: REPO, encoding: "utf8", timeout: 120_000 });
+    /* F04: a run names its declared actor; the tenant is still F02's decision (exit 3 below is the scope, not the actor). */
+    const r = spawnSync(process.execPath, ["bin/edge-graph.mjs", `--tenant=${t}`, "--actor=actor:cc"], { cwd: REPO, encoding: "utf8", timeout: 120_000 });
     assert.equal(r.status, 0, r.stderr.slice(-300));
     assert.equal(Number(/\[partition: (\d+) of/.exec(r.stdout)?.[1]), p.partitions.get(t).length, "the run read more or less than its partition");
     pages += Number(/\[bound: (\d+) distinct pages/.exec(r.stdout)?.[1]);
   }
   assert.equal(pages, pagesFromRun({ crawlRecords: CRAWL.map((m) => m.record), bodies: new Map() }).length);
-  const none = spawnSync(process.execPath, ["bin/edge-graph.mjs"], { cwd: REPO, encoding: "utf8", timeout: 120_000 });
+  const none = spawnSync(process.execPath, ["bin/edge-graph.mjs", "--actor=actor:cc"], { cwd: REPO, encoding: "utf8", timeout: 120_000 });
   assert.equal(none.status, 3);
   assert.equal(trailHash(), before);
 });

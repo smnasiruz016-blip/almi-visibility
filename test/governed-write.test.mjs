@@ -43,8 +43,12 @@ const ctx = (d) => ({
   correlationId: "run:governed-write-test", authorityRef: { propositionId: "P-TEST", scope: ["TEST"] },
   authorityHash: "d".repeat(64),
 });
-const act = (name, fingerprint) => ({ name, scopeType: "GLOBAL_PRODUCT", occurredAt: OCCURRED, occurrenceFingerprint: fingerprint, evidenceRefs: [] });
-const ALLOWED = { mayWrite: true, reason: "TEST" };
+/* F04 (25 Sep 2026): the boundary now AUTHORISES before it acts. These mechanics tests perform a REGISTERED action
+ * (config/governance/authorisation.mjs) as the declared automation actor — the executor CC is in every real run — so the
+ * saga under test is reached; an unregistered name would be refused as ACTION_UNSUPPORTED, which F04's own tests prove. */
+const REGISTERED = "WRITE_FACTS_CENSUS";
+const act = (name, fingerprint) => ({ name: REGISTERED, label: name, scopeType: "GLOBAL_PRODUCT", occurredAt: OCCURRED, occurrenceFingerprint: fingerprint, evidenceRefs: [] });
+const ALLOWED = { mayWrite: true, reason: "TEST", actorRef: "actor:cc" };
 const REFUSED = { mayWrite: false, reason: "DRY_RUN" };
 
 const fileAdapter = (dir, name, bytes) =>
@@ -159,15 +163,17 @@ test("P7 · P8 · an allowed action appends ATTEMPTED BEFORE the mutation, then 
      * from inside commit(). A claim that it happens "first" is worth nothing unless something looks. */
     let attemptedWasDurable = null;
     const realCommit = a.commit.bind(a);
-    a.commit = (tmp) => { attemptedWasDurable = storeAt(dir).readAll().events.map((e) => e.metadata.governedWritePhase); realCommit(tmp); };
+    a.commit = (tmp) => { attemptedWasDurable = storeAt(dir).readAll().events.filter((e) => e.eventType === "GOVERNED_WRITE").map((e) => e.metadata.governedWritePhase); realCommit(tmp); };
 
     const r = executeGovernedWrite({ permission: ALLOWED, audit, adapter: a, action: act("write", a.occurrenceFingerprint) });
     assert.equal(r.outcome, "COMMITTED");
     assert.deepEqual(attemptedWasDurable, ["ATTEMPTED"], "the mutation began before ATTEMPTED was durable");
     assert.equal(readFileSync(join(dir, "out.txt"), "utf8"), bytes);
 
-    const phases = storeAt(dir).readAll().events.map((e) => e.metadata.governedWritePhase);
+    /* F04: the authorisation decision is recorded before the saga; the saga's own phases are what this asserts. */
+    const phases = storeAt(dir).readAll().events.filter((e) => e.eventType === "GOVERNED_WRITE").map((e) => e.metadata.governedWritePhase);
     assert.deepEqual(phases, ["ATTEMPTED", "COMMITTED"], "a saga must be ATTEMPTED then EXACTLY ONE terminal");
+    assert.deepEqual(storeAt(dir).readAll().events.map((e) => e.eventType), ["AUTHORISATION_DECISION", "GOVERNED_WRITE", "GOVERNED_WRITE"], "the authorisation decision precedes the saga");
     assert.equal(incompleteSagas(storeAt(dir).readAll().events).length, 0);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
@@ -224,13 +230,14 @@ test("P11 · an ATTEMPTED with no terminal is EXPOSED as an incomplete saga, not
     a.commit = () => { throw Object.assign(new Error("killed"), { code: "SIGKILL", fatal: true }); };
     const realAppend = audit.store.append;
     let appends = 0;
-    audit.store.append = (d, o) => { appends += 1; if (appends === 2) throw new Error("the process died here"); return realAppend(d, o); };
+    /* F04: append 1 is the authorisation decision, 2 is ATTEMPTED — the process dies at 3, the terminal. */
+    audit.store.append = (d, o) => { appends += 1; if (appends === 3) throw new Error("the process died here"); return realAppend(d, o); };
     assert.throws(() => executeGovernedWrite({ permission: ALLOWED, audit, adapter: a, action: act("t", a.occurrenceFingerprint) }), /died here/);
 
     const events = storeAt(dir).readAll().events;
     const incomplete = incompleteSagas(events);
     assert.equal(incomplete.length, 1, "a dangling ATTEMPTED was not exposed");
-    assert.equal(incomplete[0].action, "t");
+    assert.equal(incomplete[0].action, REGISTERED);
     // CONTROL, PROVED CAPABLE OF THE OTHER VERDICT: a complete saga reports nothing.
     const clean = scratch();
     try {

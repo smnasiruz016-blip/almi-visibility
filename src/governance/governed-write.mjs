@@ -36,6 +36,27 @@
  */
 import { createHash } from "node:crypto";
 
+import { authorise, authorisationEvent, AUTHORISATION_REFUSED_EXIT } from "./authorisation.mjs";
+
+/** F04: how a governed run makes an authorisation refusal impossible to mistake for a dry run — stderr and exit code 5. */
+export function signalAuthorisationRefused(d) {
+  process.stderr.write(`🔴 AUTHORISATION REFUSED — ${d.action}: ${d.outcome} (${d.reason}); nothing was written\n`);
+  process.exitCode = AUTHORISATION_REFUSED_EXIT;
+}
+import { durableGuardSink } from "./guard-audit.mjs";
+
+/**
+ * F04: one authorisation decision onto the run's governed audit store (the confined one inside a test context).
+ * 🔴 KEYED BY THE WRITE (found 25 Sep by the F04 proofs): a run that makes two governed writes in one second — every
+ * multi-file writer — would give both decisions one identity and the second append is EVENT_ID_CONFLICT. The write's
+ * own idempotency key is in the identity, so each write's decision is its own event and a replayed write's decision
+ * dedupes as the store's idempotent retry.
+ */
+function appendAuthorisation(audit, decision, key) {
+  const sink = durableGuardSink({ store: audit.store, actor: audit.actor, softwareVersion: audit.softwareVersion, correlationId: `${audit.correlationId}:authorisation:${key}`, authorityRef: audit.authorityRef ?? null, authorityHash: audit.authorityHash ?? null });
+  return sink.emit(authorisationEvent(decision));
+}
+
 /**
  * 🔴 THE THIRD PROFILE — STAGED_DIRECTORY_REPLACE (23 September 2026), MEASURED BEFORE IT WAS WRITTEN.
  *
@@ -344,7 +365,7 @@ function appendPhase({ audit, action, profile, target, key, phase, reasonCode, p
  * @returns {{outcome: string, idempotencyKey: string, profile: string, target: object,
  *            attemptedEventId: string|null, terminalEventId: string|null, faults: object[]}}
  */
-export function executeGovernedWrite({ permission, audit, adapter, action, idempotencyKey = null }) {
+export function executeGovernedWrite({ permission, audit, adapter, action, idempotencyKey = null, onAuthorisationRefused = signalAuthorisationRefused }) {
   requireAuditContext(audit);
   requireAdapter(adapter);
   requireAction(action);
@@ -375,6 +396,33 @@ export function executeGovernedWrite({ permission, audit, adapter, action, idemp
       extraMetadata: { permissionReason: String(permission?.reason ?? "NO_PERMISSION") },
     });
     return { ...base, outcome: "REFUSED", attemptedEventId: null, terminalEventId: refused.event.eventId, faults: [] };
+  }
+
+  // ── 1b · 🔴 F04 · THE AUTHORISATION DECISION, BEFORE ANYTHING IS INSPECTED, ATTEMPTED OR MUTATED ────────────────
+  /* `mayWrite` above is the operator's INTENT (--confirm). Authority is decided HERE, by the one decision
+   * (src/governance/authorisation.mjs), for the actor the run NAMED, this action, its F02 scope and its target — and
+   * recorded, allowed or refused, through the same governed audit store before the mutation can begin. */
+  const authorisation = authorise({
+    actorRef: permission.actorRef ?? null,
+    approvalRef: permission.approvalRef ?? null,
+    action: action.name,
+    scope: { scopeType: action.scopeType, tenantId: action.tenantId ?? null },
+    resourceRef: String(target.repoRelativeTarget ?? ""),
+    now: action.occurredAt,
+  });
+  appendAuthorisation(audit, authorisation, key);
+  if (!authorisation.allowed) {
+    const refused = appendPhase({
+      audit, action, profile, target, key, phase: SAGA.REFUSED,
+      reasonCode: "GOVERNED_WRITE_REFUSED_BY_AUTHORISATION",
+      extraMetadata: { authorisation: authorisation.outcome },
+    });
+    /* 🔴 A REFUSAL THAT READS AS A DRY RUN IS A SILENT REFUSAL (found 25 Sep, in the suite: a confirmed export printed
+     * "would have written" and exited 0). Every caller reads REFUSED as "no --confirm"; the returned vocabulary is frozen
+     * (RETURNED_OUTCOMES), so the refusal is SIGNALLED here, once, where no caller can forget it: loudly, and as the
+     * process's exit code. An in-process test that drives a refusal hands its own signal. */
+    onAuthorisationRefused(authorisation);
+    return { ...base, outcome: "REFUSED", authorisation: authorisation.outcome, attemptedEventId: null, terminalEventId: refused.event.eventId, faults: [] };
   }
 
   // ── 2 · INSPECT BEFORE MUTATING. A retry neither duplicates nor overwrites. ──

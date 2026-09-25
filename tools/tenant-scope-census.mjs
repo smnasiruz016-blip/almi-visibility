@@ -108,6 +108,7 @@ export const EXCLUDED_ENTRY_POINTS = Object.freeze({
   "bin/observation-guard.mjs": "the observation guard: git's own index of committed paths, so no real observation is committed to the engine",
   "bin/heldout-firewall.mjs": "the held-out firewall (F07): engine source plus the evidence store, read ONLY to derive the protected held-out payload it refuses",
   "bin/heldout-evaluation.mjs": "the held-out lifecycle (F07): the evidence-role registry in config and the audit trail",
+  "bin/approval.mjs": "the F04 approval registry: config/governance/approvals.jsonl and the committed authority corpus; it records an owner-issued approval and reads, joins or decides nothing about a tenant",
   "bin/retire-attachment.mjs": "the declaration source (F02, owner ruling 25 Sep): it removes one attachment PROVED unlawful by its own members' identity fields; it joins nothing, reads no body, and its write is F08-governed",
 });
 

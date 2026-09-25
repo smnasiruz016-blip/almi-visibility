@@ -17,8 +17,9 @@ import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedStoreAppend } from "../src/governance/governed-run.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { createCostLedger, formatLedgerLine } from "../src/cost/ledger.mjs";
-import { createPaidProviderGate, createKillSwitch, createFakePaidProvider, PaidCallRefused, REFUSAL_CODES } from "../src/cost/paid-provider-gate.mjs";
+import { createPaidProviderGate, createKillSwitch, createFakePaidProvider, PaidCallRefused, REFUSAL_CODES, paidProviderRef } from "../src/cost/paid-provider-gate.mjs";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { namedActor, namedApproval } from "../src/governance/authorisation.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -78,11 +79,28 @@ async function attempt(label, gate) {
     results.push({ label, outcome: `REFUSED ${e.code} — ${e.reason}`, entry: e.entry });
   }
 }
-const gateWith = (authorizations) => createPaidProviderGate({ providers: { [NAME]: fake }, authorizations, killSwitch, ledger });
+/* 🔴 F04 · STEP 0 IS THE ONE AUTHORISATION DECISION. Two authorities, and they are never confused:
+ *   REAL     the actor this run names, its F02 scope and the approval it names (--approval=), decided against the RECORDED
+ *            approval registry and recorded durably through the run's guard sink. No owner SPEND approval exists, so this
+ *            call is refused NOT_AUTHORISED_BY_F04 — a real refused spending decision.
+ *   EXERCISE an in-memory TEST DOUBLE of the registry, so the gate's own limits (steps 1-4) can be exercised past step 0.
+ *            The gate accepts a handed-in registry only when every provider is a declared fake; nothing of it is written,
+ *            and its decisions are not recorded as real ones (F04 clarification 14: a fixture proves a branch, never a
+ *            real population). */
+const REAL_AUTHORITY = { actorRef: namedActor(process.argv), approvalRef: namedApproval(process.argv), scope: SCOPE.writeScope, sink: { emit: SCOPE.recordDecision } };
+const EXERCISE_APPROVAL = "approval:item47-fake-provider-exercise-double";
+const EXERCISE_REGISTRY = { readable: true, events: 1, approvals: new Map([[EXERCISE_APPROVAL, {
+  approvalId: EXERCISE_APPROVAL, approverRef: "actor:owner", approverClass: "HUMAN", executorRef: "actor:cc", executorClass: "AUTOMATION",
+  action: "CALL_PAID_PROVIDER", resource: { resourceClass: "PAID_PROVIDER", resourceRef: paidProviderRef(NAME) }, scope: SCOPE.writeScope,
+  decision: "APPROVED", oneUse: false, expiresAt: null, revoked: false, consumed: false,
+}]]) };
+const EXERCISE_AUTHORITY = { actorRef: "actor:cc", approvalRef: EXERCISE_APPROVAL, scope: SCOPE.writeScope, approvals: EXERCISE_REGISTRY };
+const gateWith = (authorizations, spendAuthority = EXERCISE_AUTHORITY) => createPaidProviderGate({ providers: { [NAME]: fake }, authorizations, killSwitch, ledger, spendAuthority });
 
 console.log("ITEM 47 — PAID PROVIDER CONTROLS, AGAINST A FAKE PROVIDER");
-console.log("[bound: 1 fake provider · price 0.4 USD per call · 7 attempts · no network]\n");
+console.log("[bound: 1 fake provider · price 0.4 USD per call · 8 attempts · no network]\n");
 
+await attempt("0 · the run's own actor, under the RECORDED approval registry (F04)", gateWith([authorization()], REAL_AUTHORITY));
 await attempt("1 · no authorization at all", gateWith([]));
 await attempt("2 · an authorization with no date", gateWith([authorization({ date: "" })]));
 const capped = gateWith([authorization({ cap: { maxCalls: 1 } })]);

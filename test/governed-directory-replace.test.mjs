@@ -25,8 +25,12 @@ const OCCURRED = isoSeconds(Date.now());
 const FP = sha("declared artifact identity");
 const storeAt = (d) => createAuditStore({ eventsPath: join(d, "e.jsonl"), headPath: join(d, "h.json") });
 const ctx = (d) => ({ store: storeAt(d), actor: "engine", actorType: "ENGINE", softwareVersion: "engine:test", correlationId: "run:gdr-test", authorityRef: { propositionId: "P-TEST", scope: ["TEST"] }, authorityHash: "d".repeat(64) });
-const act = () => ({ name: "replace-dir", scopeType: "GLOBAL_PRODUCT", occurredAt: OCCURRED, occurrenceFingerprint: FP, evidenceRefs: [] });
-const ALLOWED = { mayWrite: true, reason: "TEST" };
+/* F04 (25 Sep 2026): the boundary now AUTHORISES before it acts. These mechanics tests perform a REGISTERED action
+ * (config/governance/authorisation.mjs) as the declared automation actor — the executor CC is in every real run — so the
+ * saga under test is reached; an unregistered name would be refused as ACTION_UNSUPPORTED, which F04's own tests prove. */
+const REGISTERED = "WRITE_FACTS_CENSUS";
+const act = () => ({ name: REGISTERED, scopeType: "GLOBAL_PRODUCT", occurredAt: OCCURRED, occurrenceFingerprint: FP, evidenceRefs: [] });
+const ALLOWED = { mayWrite: true, reason: "TEST", actorRef: "actor:cc" };
 const tree = (dir) => Object.fromEntries(readdirSync(dir).sort().map((n) => [n, sha(readFileSync(join(dir, n)))]));
 
 /** A live target holding OLD content, and an adapter that would replace it with NEW content. */
@@ -42,7 +46,10 @@ function setup({ populate, validate, rename } = {}) {
   });
   return { dir, target, adapter, audit: ctx(dir) };
 }
-const events = (dir) => storeAt(dir).readAll().events;
+/* F04: the boundary records its AUTHORISATION_DECISION before the saga begins. These tests assert the saga's own
+ * events; P-D1 separately asserts the decision precedes it. */
+const allEvents = (dir) => storeAt(dir).readAll().events;
+const events = (dir) => allEvents(dir).filter((e) => e.eventType === "GOVERNED_WRITE");
 const siblings = (dir) => readdirSync(dir).filter((n) => n !== "e.jsonl" && n !== "h.json" && n !== "corpus");
 
 test("P49c · the THIRD profile is accounted on its own — 4 returned · 3 discovered · 1 unreachable — and never folded into the ruling's 12", () => {
@@ -69,6 +76,7 @@ test("P-D1 · a successful replace: ATTEMPTED before the tool runs, then exactly
     assert.deepEqual(order, ["populate after 1 event(s)"], "the external tool ran before ATTEMPTED was durable");
     const ev = events(dir);
     assert.deepEqual(ev.map((e) => e.metadata.governedWritePhase), ["ATTEMPTED", "COMMITTED"]);
+    assert.deepEqual(allEvents(dir).map((e) => e.eventType), ["AUTHORISATION_DECISION", "GOVERNED_WRITE", "GOVERNED_WRITE"], "the authorisation decision precedes the saga");
     assert.equal(ev[1].parentEventId, ev[0].eventId);
     assert.deepEqual(Object.keys(tree(target)), ["a.html"], "the old tree survived beside the new one");
     assert.deepEqual(siblings(dir), [], "a staging or retired directory was left behind after a clean commit");

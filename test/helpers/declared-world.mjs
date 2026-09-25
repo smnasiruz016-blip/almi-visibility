@@ -26,6 +26,8 @@ import { fileURLToPath } from "node:url";
 export const ENGINE = resolve(fileURLToPath(new URL("../../", import.meta.url)));
 export const DATA_ROOT = resolve(ENGINE, "..", "almi-visibility-data");
 export const FIXTURE_TENANT = "tenant:00000000000000000000000000000f02";
+/** F04: the declared automation actor (config/governance/authorisation.mjs) — the executor of every real run. */
+export const FIXTURE_ACTOR = "actor:cc";
 /** A SECOND fixture tenant, only when a test asks for one (secondTenantOrigins) — to prove a failure branch a one-tenant
  * world cannot tell apart (e.g. a run that reads or runs more than its own tenant). Never the real population. */
 export const SECOND_FIXTURE_TENANT = "tenant:00000000000000000000000000000f03";
@@ -125,7 +127,11 @@ export function declaredWorld({ inputPaths = [], extra = [], secondTenantOrigins
     /** F03: the neutral fixture subject a live-path proof names (--subject=…) so it can run past the connector decision. */
     subject: FIXTURE_SUBJECT,
     subjectArg: `--subject=${FIXTURE_SUBJECT}`,
-    /** Declare, to the fixture tenant, every input path THESE args hand the run; return the args with the tenant added. */
+    /** F04: the declared actor a governed run names. The executor of every real run is the automation actor; a test that
+     * proves a refusal names another (or none) itself. Naming it grants nothing — the decision does (clarification 16). */
+    actor: FIXTURE_ACTOR,
+    actorArg: `--actor=${FIXTURE_ACTOR}`,
+    /** Declare, to the fixture tenant, every input path THESE args hand the run; return the args with the tenant and actor added. */
     argv(args = []) {
       let grew = false;
       for (const a of args) {
@@ -133,7 +139,7 @@ export function declaredWorld({ inputPaths = [], extra = [], secondTenantOrigins
         if (m && INPUT_FLAGS.includes(m[1]) && !(m[1] === "bundle" && KEYWORD_BUNDLES.has(m[2]))) grew = add("INPUT_PATH", inputPathRef(m[2])) || grew;
       }
       if (grew) write();
-      return [...args, `--tenant=${FIXTURE_TENANT}`];
+      return [...args, `--tenant=${FIXTURE_TENANT}`, ...(args.some((a) => typeof a === "string" && a.startsWith("--actor=")) ? [] : [`--actor=${FIXTURE_ACTOR}`])];
     },
     envWith(base = process.env) { return { ...base, [SUBJECT_ROOTS_ENV]: root }; },
     declared: () => pairs.map(([k, r]) => `${k} ${r}`),

@@ -32,6 +32,7 @@ import { governedGuardSink, resolveAuditStoreLocation } from "../src/governance/
 import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { censusOf, productionFiles } from "../tools/root-connector-census.mjs";
 import { declaredWorld } from "./helpers/declared-world.mjs";
+import { authorise } from "../src/governance/authorisation.mjs";
 import { subjectScope } from "./support/subjects.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -66,7 +67,9 @@ function world({ tenants = [TA, TB], attachments = [], registry = null, dirs = [
 }
 const subjectEntry = (subjectId, members, connectors = []) => ({ subjectId, path: subjectId, members: members.map(([resourceKind, resourceRef]) => ({ resourceKind, resourceRef })), connectors });
 const connectorEntry = (connectorId, kind, reaches, credential = null) => ({ connectorId, kind, credential, reaches: reaches.map(([resourceKind, resourceRef]) => ({ resourceKind, resourceRef })) });
-const run = (decisions) => ({ decisions: decisions.map((decision) => ({ label: "t", decision })) });
+const run = (decisions, authorisations = []) => ({ decisions: decisions.map((decision) => ({ label: "t", decision })), authorisations });
+/* F04: the genuine decision to open one connector, for the declared automation actor, over the tenant F02 resolved. */
+const openAuth = (tenantId, subjectId, kind) => authorise({ actorRef: "actor:cc", action: `OPEN_CONNECTOR_${kind}`, scope: { scopeType: "TENANT", tenantId }, resourceRef: `${subjectId}#${kind}` });
 
 /* ═══ C1 · AUTHORITY ONLY FROM A COMMITTED DECLARATION — nothing else creates a root or a connector ═══ */
 
@@ -192,9 +195,11 @@ test("F03 · C2b · a connector is constructed only on a genuine decision; a dry
   const refused = decideForTenant(REAL, ACTIVE.find((x) => x !== t), RESOURCES.connector(id, "CITED_SOURCES"));
   assert.throws(() => openConnector({ scope: run([refused]), subjectId: id, kind: "CITED_SOURCES" }), (e) => e.code === "CONNECTOR_NOT_RESOLVED");
   await assert.rejects(() => NO_REQUEST_FETCH("https://c2b.invalid/"), (e) => e.code === "A_DRY_RUN_ISSUES_NO_REQUEST");
-  // CONTROL
+  // F04: F02's allow alone is not permission — without the actor's authorisation the connector is refused
   const ok = decideForTenant(REAL, t, RESOURCES.connector(id, "CITED_SOURCES"));
-  const c = openConnector({ scope: run([ok]), subjectId: id, kind: "CITED_SOURCES" });
+  assert.throws(() => openConnector({ scope: run([ok]), subjectId: id, kind: "CITED_SOURCES" }), (e) => e.code === "CONNECTOR_NOT_AUTHORISED");
+  // CONTROL
+  const c = openConnector({ scope: run([ok], [openAuth(t, id, "CITED_SOURCES")]), subjectId: id, kind: "CITED_SOURCES" });
   assert.equal(c.kind, "CITED_SOURCES");
   assert.equal(typeof c.fetch, "function");
 });
@@ -223,11 +228,12 @@ test("F03 · C2d · an entry point refused on its subject exits 3 and reads noth
   const [id] = EXTERNAL;
   const t = ownTenant(REAL, id);
   const other = ACTIVE.find((x) => x !== t);
-  const refused = spawnSync(process.execPath, ["bin/facts.mjs", "census", `--product=${id}`, `--tenant=${other}`], { cwd: REPO, encoding: "utf8", timeout: 60_000 });
+  /* F04: both runs name the declared actor, so exit 3 is the subject's scope and exit 0 is a fully decided run. */
+  const refused = spawnSync(process.execPath, ["bin/facts.mjs", "census", `--product=${id}`, `--tenant=${other}`, "--actor=actor:cc"], { cwd: REPO, encoding: "utf8", timeout: 60_000 });
   assert.equal(refused.status, 3, refused.stderr);
   assert.match(refused.stderr, /subject data root\s+CROSS_TENANT_REFUSED/);
   assert.doesNotMatch(refused.stdout, /records|census/i, "the refused run printed subject data");
-  const ok = spawnSync(process.execPath, ["bin/facts.mjs", "census", `--product=${id}`, `--tenant=${t}`], { cwd: REPO, encoding: "utf8", timeout: 60_000 });
+  const ok = spawnSync(process.execPath, ["bin/facts.mjs", "census", `--product=${id}`, `--tenant=${t}`, "--actor=actor:cc"], { cwd: REPO, encoding: "utf8", timeout: 60_000 });
   assert.equal(ok.status, 0, ok.stderr);
 });
 
@@ -388,7 +394,7 @@ test("F03 · C5b · an opened connector carries the credential's NAME only — n
   try {
     const r = createTenantResolver({ env: w.envWith() });
     const d = decideForTenant(r, w.tenantId, RESOURCES.connector(w.subject, "SEARCH_CONSOLE_API"));
-    const c = openConnector({ scope: run([d]), subjectId: w.subject, kind: "SEARCH_CONSOLE_API", resolve: r });
+    const c = openConnector({ scope: run([d], [openAuth(w.tenantId, w.subject, "SEARCH_CONSOLE_API")]), subjectId: w.subject, kind: "SEARCH_CONSOLE_API", resolve: r });
     assert.equal(c.credentialName, name, "CONTROL: the connector does not name its credential");
     assert.ok(!JSON.stringify(c).includes(sentinel) && !Object.values(c).some((v) => v === sentinel), "the connector carried the credential's value");
     assert.ok(!JSON.stringify(scopeResolutionEvent(d)).includes(name), "the resolution event carried the credential name");

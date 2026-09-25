@@ -50,6 +50,8 @@
 
 import { resolve, relative, isAbsolute, sep } from "node:path";
 
+import { namedActor, namedApproval } from "./governance/authorisation.mjs";
+
 export const CONFIRM_FLAG = "--confirm";
 
 /** This repository's root, resolved from this file's own location — never from the caller's cwd. */
@@ -105,9 +107,20 @@ export const PRODUCTION = "production";
  *
  * @param {{ target?: "local" | "production", argv?: readonly string[],
  *           env?: Record<string, string | undefined> }} input
- * @returns {{ mayWrite: boolean, mode: "DRY-RUN" | "WRITE", target: string, reason: string }}
+ * @returns {{ mayWrite: boolean, mode: "DRY-RUN" | "WRITE", target: string, reason: string, actorRef: string|null, approvalRef: string|null }}
+ *
+ * 🔴 F04 (25 September 2026): THIS IS INTENT, NOT AUTHORITY. `mayWrite` says the operator ASKED for a write (--confirm,
+ * and ALLOW_PROD_WRITE=1 for production); it grants nothing by itself (F04 clarification 16). The shared boundary
+ * (src/governance/governed-write.mjs) writes only when src/governance/authorisation.mjs AUTHORISES the named actor
+ * (`--actor=`) for the action, its scope and resource — with the named approval (`--approval=`) where one is required.
+ * The two references are carried here as named, never inferred.
  */
 export function writePermission({ target = PRODUCTION, argv = [], env = {} } = {}) {
+  const intent = writeIntent({ target, argv, env });
+  return { ...intent, actorRef: namedActor(argv), approvalRef: namedApproval(argv) };
+}
+
+function writeIntent({ target = PRODUCTION, argv = [], env = {} } = {}) {
   const confirmed = argv.includes(CONFIRM_FLAG);
   const allowed = env[ALLOW_ENV] === "1";
 

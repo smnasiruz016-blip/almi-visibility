@@ -31,6 +31,7 @@ import { resolveDeclarationRoot, declarationWrite, findDeclaration, listTenant, 
 import { decideSubmission, decisionDraft, recordDeclarationDecisions, intakeAuthority, intakeCorrelationId } from "../src/intake/intake.mjs";
 import { legacyTenancyCandidates } from "../src/intake/legacy.mjs";
 import { TENANT_ID_PATTERN } from "../src/tenancy/resolver.mjs";
+import { namedActor } from "../src/governance/authorisation.mjs";
 import { scopedEntryPoint, decideScopedRun } from "../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 import { decideForTenant } from "../src/tenancy/scope.mjs";
@@ -40,7 +41,8 @@ const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, 
 
 /* ── ARGUMENTS: every flag is declared; anything else is refused before anything runs ─────────────────────── */
 const MODES = ["--validate", "--submit", "--show", "--list", "--current", "--inventory", "--mint-id"];
-const VALUED = new Set(["--file", "--show", "--current", "--tenant", "--mint-id"]);
+/* F04: --actor names the declared actor the run is decided for; it is a claim, never a grant (clarification 16). */
+const VALUED = new Set(["--file", "--show", "--current", "--tenant", "--mint-id", "--actor"]);
 const BOOLEAN = new Set(["--validate", "--submit", "--list", "--inventory", "--confirm", "--json"]);
 const JSON_OUT = process.argv.slice(2).includes("--json");
 const args = {};
@@ -134,7 +136,7 @@ if (MODE === "--inventory") {
 if (MODE === "--show" || MODE === "--list" || MODE === "--current") {
   const tenantId = tenantArg();
   /* 🔴 F02 — the partition read below is decided FIRST: the requested tenant must be an ACTIVE declaration, or nothing is read. */
-  scopedEntryPoint({ entry: "bin/project-intake.mjs", governed: false, argv: [`--tenant=${tenantId}`], resources: [RESOURCES.declarationStore(tenantId)] });
+  scopedEntryPoint({ entry: "bin/project-intake.mjs", governed: false, argv: [`--tenant=${tenantId}`], actorRef: namedActor(process.argv), resources: [RESOURCES.declarationStore(tenantId)] });
   const root = rootOrExit();
   if (MODE === "--list") {
     const all = listTenant(root, tenantId);

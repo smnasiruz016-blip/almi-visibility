@@ -66,7 +66,9 @@ for (const [name, body] of files) {
     action: `EXPORT_${name.replace(/[^A-Za-z0-9]+/g, "_").toUpperCase()}`,
     occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
   }));
-  if (governed.outcome === "REFUSED") console.log(`[dry-run] would have written: ${where}  ${size} — nothing written, --confirm to write`);
+  /* F04: a write REFUSED by authorisation is not a dry run — the boundary has already said so on stderr, exit 5. */
+  if (governed.authorisation) console.log(`[refused] ${where}  ${size} — not written: authorisation ${governed.authorisation}`);
+  else if (governed.outcome === "REFUSED") console.log(`[dry-run] would have written: ${where}  ${size} — nothing written, --confirm to write`);
   else if (governed.outcome === "COMMITTED" || governed.outcome === "ALREADY_COMMITTED") console.log(`written: ${where}  ${size} [${governed.outcome}]`);
   else { console.error(`🔴 ${governed.outcome} — ${where} was not written; the governed attempt is on the audit trail`); process.exitCode = 1; }
 }

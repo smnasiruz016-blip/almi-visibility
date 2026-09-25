@@ -46,6 +46,10 @@ export const FIXTURE_ATTACHMENTS = Object.freeze([
     "replay corpus", "render store", "recommendation and finding stores", "live sibling pages", "instrument findings",
     "crawl store", "crawl store and seed inputs", "audit findings", "Actions run timings",
   ].map((r) => ["RUN_STORE", r]),
+  /* the two shared collections — in a ONE-tenant fixture world every member resolves to the fixture tenant (rule 3 holds
+   * inside the fixture); the real declarations no longer attach them whole (owner ruling 1145012, Decision 2) */
+  ["CRAWL_BATCH", "crawl-2026-09-12"],
+  ["SITEMAP_COLLECTION", "sitemap-2026-09-12"],
   /* the engine's own neutral test products (engine-fixtures root) */
   ["FACT_REGISTRY", "engine-fixtures:neutral-test-knots/facts"],
   ["FACT_REGISTRY", "engine-fixtures:neutral-test-ferments/facts"],

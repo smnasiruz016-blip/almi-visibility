@@ -419,9 +419,12 @@ test("🔴 FIX 8 · the axis scope is the container's own declaration — never 
   const undeclared = await readDeclaredAnswerEvidence({ axisResourceKind: "CRAWL_BATCH", axisResourceRef: "ctl", axisRows: rows });
   assert.equal(undeclared.axisScope.state, "UNDECLARED", "an undeclared container was scoped from its rows");
 
-  /* 2 · REAL: the declared batch's rows are declared to other tenants — two scopes per row — so it is AMBIGUOUS */
+  /* 2 · REAL: while the batch is attached WHOLE to one tenant, its rows declared to other tenants make it AMBIGUOUS; once that
+   * unlawful whole attachment is retired (owner ruling 1145012, Decision 2) the container is UNDECLARED. Never one scope. */
+  const { createTenantResolver } = await import("../src/tenancy/resolver.mjs");
+  const wholeAttached = createTenantResolver().declarations.attachments.some((a) => a.resourceKind === "CRAWL_BATCH" && a.resourceRef === BATCH_ID);
   const real = await readDeclaredAnswerEvidence({ axisResourceKind: "CRAWL_BATCH", axisResourceRef: BATCH_ID, axisRows: rows });
-  assert.equal(real.axisScope.state, "AMBIGUOUS", "a container whose rows are declared elsewhere was treated as one scope");
+  assert.equal(real.axisScope.state, wholeAttached ? "AMBIGUOUS" : "UNDECLARED", "a container whose rows are declared elsewhere was treated as one scope");
   assert.equal(real.axisPartition.remainder, 0, "the axis population does not self-account");
 
   /* 3 · CONTROL, opposite verdict: a stand-in declaration world where the container, every row and the registry share ONE

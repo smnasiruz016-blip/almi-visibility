@@ -13,21 +13,21 @@ import assert from "node:assert/strict";
 import { ACCEPTANCES } from "../config/fboard/acceptances.mjs";
 import { CAPABILITIES } from "../config/fboard/capabilities.mjs";
 import { DECLARED } from "../config/fboard/f-board.mjs";
-import { AUTHORITY_CORPUS } from "../config/authority/corpus.mjs";
+import { AUTHORITY_CORPUS, CORPUS_PROVENANCE } from "../config/authority/corpus.mjs";
 import { buildBoard, boardErrors, progress } from "../src/fboard/board.mjs";
 import { productionAuditStore } from "../src/audit-trail/wiring.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const board = () => buildBoard(CAPABILITIES, DECLARED);
-const ctx = { capabilities: CAPABILITIES, acceptances: ACCEPTANCES, authority: { records: AUTHORITY_CORPUS, now: "2026-09-24" } };
+const ctx = { capabilities: CAPABILITIES, acceptances: ACCEPTANCES, authority: { records: AUTHORITY_CORPUS, now: CORPUS_PROVENANCE.now } }; // the corpus's measuring day: a later ruling (e.g. F02's Amendment 1, 25 Sep) is judged in force
 const trail = () => productionAuditStore({ repo: REPO, forbiddenSubstrings: [] }).readAll().events;
 
 test("F1-BOARD · F01 is VERIFIED-PASS by UNASSESSED → IN-PROGRESS → VERIFIED-PASS; the board reads 5/89; F05–F08 and F40 unchanged", () => {
   const b = board();
   assert.deepEqual(boardErrors(b, ctx), []);
   const p = progress(b);
-  assert.deepEqual(p.split, { UNASSESSED: 82, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 1, "BLOCKED-BY-AUTHORITY": 1, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 5 });
-  assert.equal(p.passed, 5);
+  assert.deepEqual(p.split, { UNASSESSED: 82, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 0, "BLOCKED-BY-AUTHORITY": 1, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 6 });
+  assert.equal(p.passed, 6); // F02 moved to VERIFIED-PASS on 25 Sep 2026 under its own Amendment 1 (test/f02-disposition.test.mjs owns that movement).
   assert.deepEqual(["F05", "F06", "F07", "F08", "F40"].map((f) => DECLARED[f].state), ["VERIFIED-PASS", "VERIFIED-PASS", "VERIFIED-PASS", "VERIFIED-PASS", "BLOCKED-BY-AUTHORITY"]);
   const f01 = DECLARED.F01;
   assert.equal(f01.state, "VERIFIED-PASS");

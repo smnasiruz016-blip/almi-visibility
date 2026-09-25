@@ -73,12 +73,17 @@ export function census({ resolve = createTenantResolver() } = {}) {
   /* 1 · the current declarations themselves (rule 5), and the two shared collections (partitioned, never attached whole) */
   for (const a of decl.readable ? decl.attachments : []) {
     if (a.resourceKind === "CAPTURE_SET") continue; // its own row below, measured by its members, declared or not
-    if (a.resourceKind === "CRAWL_BATCH" || a.resourceKind === "SITEMAP_COLLECTION") {
-      const p = partitionOf(collectionMembers({ batchId: a.resourceRef }).map(({ memberId, identities }) => ({ memberId, identities })));
-      add({ id: `${a.resourceKind}:${a.resourceRef}`, kind: a.resourceKind, locator: `data:observations/${a.resourceRef}/`, owner: "none — a capture of many site origins", declared: "attached WHOLE to one tenant (declarationBasis OWNER_AUTHORISED_ATTACHMENT) — the ruling's NOT-ALLOWED case; the partition ignores it", evidence: "rule 3 per member", payload: true, members: p, verdict: "MUST_PARTITION", attachment: "none — members go to their own tenant's partition (src/tenancy/partition.mjs)" });
-    } else {
+    if (a.resourceKind === "CRAWL_BATCH" || a.resourceKind === "SITEMAP_COLLECTION") continue; // their own rows below, attached or not
+    {
       add({ id: `${a.resourceKind}:${a.resourceRef}`, kind: a.resourceKind, locator: a.resourceKind === "FACT_REGISTRY" ? `data:${a.resourceRef}/` : a.resourceRef, owner: a.resourceKind === "FACT_REGISTRY" ? "the subject descriptor that exports this factsDir (rule 1)" : "the declaration", declared: "one current attachment", evidence: a.resourceKind === "FACT_REGISTRY" ? "rules 1 and 5" : "rule 5", payload: true, members: null, verdict: "DECLARABLE", attachment: "already declared — unchanged" });
     }
+  }
+  /* 1b · the two shared collections — rows whether or not a declaration attaches them (a retired attachment must not shrink
+   * the population). Their members go to their own tenant's partition (src/tenancy/partition.mjs). */
+  for (const [kind, id] of [["CRAWL_BATCH", "crawl-2026-09-12"], ["SITEMAP_COLLECTION", "sitemap-2026-09-12"]]) {
+    const p = partitionOf(collectionMembers({ batchId: id }).map(({ memberId, identities }) => ({ memberId, identities })));
+    const whole = decl.readable ? decl.attachments.find((a) => a.resourceKind === kind && a.resourceRef === id) : null;
+    add({ id: `${kind}:${id}`, kind, locator: `data:observations/${id}/`, owner: "none — a capture of many site origins", declared: whole ? "attached WHOLE to one tenant — the ruling's NOT-ALLOWED case (retirement: owner ruling 1145012, Decision 2)" : "not tenant-authorised (whole attachment retired)", evidence: "rule 3 per member", payload: true, members: p, verdict: "MUST_PARTITION", attachment: "none — members go to their own tenant's partition" });
   }
   /* 2 · the engine's own neutral test products: fixtures, never a real tenant's resource */
   for (const id of ["neutral-test-knots", "neutral-test-ferments"]) add({ id: `FACT_REGISTRY:engine-fixtures:${id}/facts`, kind: "FACT_REGISTRY", locator: `products/${id}/facts`, owner: "the engine's own test material", declared: "none (real)", evidence: "fixtures root (config/subject-roots.mjs)", payload: false, members: null, verdict: "NOT_GOVERNED", attachment: "none — a fixture is never the real population" });
@@ -100,11 +105,14 @@ export function census({ resolve = createTenantResolver() } = {}) {
   /* 7 · every named run store */
   for (const [name, locs] of Object.entries(RUN_STORES)) {
     const m = partitionOf(storeMembers(locs));
-    const absent = locs.length > 0 && locs.every((l) => !existsSync(join(REPO, l)));
+    /* 🔴 ENVIRONMENT-INDEPENDENT (corrected 25 Sep 2026): a runtime store a production writer creates is governed whether or not
+     * its files happen to exist on the machine running this census. The first version called a gitignored store absent in CI
+     * and present here "NOT_GOVERNED" in one place and "UNRESOLVED_OWNER" in the other — a published count that moved with
+     * the environment. Presence is now only a note. Members are measured from TRACKED files only, which are the same everywhere. */
     const tracked = locs.some((l) => execFileSync("git", ["-C", REPO, "ls-files", l], { encoding: "utf8" }).trim() !== "");
-    const verdict = absent ? "NOT_GOVERNED" : name === "live sibling pages" ? "UNRESOLVED_OWNER" : m ? byMembers(m) : "UNRESOLVED_OWNER";
-    const owner = absent ? "— it does not exist in the real population" : m ? "per member" : tracked ? "none recorded — documents, no member identity the partition reads" : "none recorded — this machine only (untracked)";
-    add({ id: `RUN_STORE:${name}`, kind: "RUN_STORE", locator: locs.join(", ") || "the network (live page reads)", owner, declared: "none", evidence: m ? "rule 3 per member" : "no member identity recorded", payload: absent ? null : true, members: m, verdict, attachment: "none" });
+    const verdict = name === "live sibling pages" ? "UNRESOLVED_OWNER" : m && tracked ? byMembers(m) : "UNRESOLVED_OWNER";
+    const owner = m && tracked ? "per member" : tracked ? "none recorded — documents, no member identity the partition reads" : "none recorded — a machine-local runtime store (gitignored), governed whether or not present";
+    add({ id: `RUN_STORE:${name}`, kind: "RUN_STORE", locator: locs.join(", ") || "the network (live page reads)", owner, declared: "none", evidence: m && tracked ? "rule 3 per member" : "no member identity recorded", payload: true, members: m && tracked ? m : null, verdict, attachment: "none" });
   }
   /* 8 · standing operator input paths (a default a gate names when the flag is absent) */
   for (const [id, where] of [["acceptance/nursing-from-india", "subjects/almi-oet/tools/acceptance-test.mjs --facts default"], ["case-study-01/exhibits/spec.json", "bin/freeze-exhibit.mjs --spec default (not opened)"], ["a private export outside every repository", "subjects/almi-oet/tools/verification-issues.mjs --csv default"], ["a connected product's organisations file", "subjects/almi-oet/tools/profession-census.mjs (DEAD)"], ["a connected product's seed generator directory", "subjects/almi-oet/tools/clinical-layer-census.mjs (DEAD)"]]) {

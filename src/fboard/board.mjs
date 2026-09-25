@@ -20,6 +20,8 @@
  */
 import { contractSha256 } from "./acceptance.mjs";
 import { resolve, permits } from "../authority/register.mjs";
+import { ROW_CONSTRAINTS } from "../../config/fboard/row-constraints.mjs";
+import { CLAUSES } from "./acceptance.mjs";
 
 export const F_BOARD = "F_BOARD";
 export const HISTORICAL_BOARDS = Object.freeze(["HISTORICAL_61", "HISTORICAL_38"]);
@@ -52,7 +54,7 @@ export function buildBoard(capabilities, declared = {}) {
  * With `authority` ({ records, now }), every frozen acceptance must ALSO be the CURRENT authority for its declared
  * proposition and scope, naming the very bytes the engine pinned — resolved by the register, no exemption (§6A).
  */
-export function boardErrors(board, { capabilities, acceptances = {}, authority = null }) {
+export function boardErrors(board, { capabilities, acceptances = {}, authority = null, constraints = ROW_CONSTRAINTS }) {
   const errs = [];
   const ids = board.map((r) => r.featureId);
   const expected = Array.from({ length: DENOMINATOR }, (_, i) => `F${String(i + 1).padStart(2, "0")}`);
@@ -63,7 +65,15 @@ export function boardErrors(board, { capabilities, acceptances = {}, authority =
     try { fBoardState(r); } catch (e) { errs.push({ code: e.code, id: at, why: e.message }); continue; }
     if (Object.hasOwn(r, "historicalState") || (r.events || []).some((e) => /^HISTORICAL/.test(e.kind))) errs.push({ code: "HISTORICAL_STATE_IMPORTED", id: at, why: `${at} carries historical state — historical state never transfers to an F-row` });
     const acc = acceptances[at];
-    const frozen = (r.events || []).find((e) => e.kind === "ACCEPTANCE_FROZEN");
+    /* 🔴 The GOVERNING freeze is the latest ACCEPTANCE_FROZEN or ACCEPTANCE_AMENDED. An amendment is lawful only when it
+     * names, by BOTH hashes, the freeze it amends — the chain is checked link by link, and the original stays as history. */
+    const freezes = (r.events || []).filter((e) => e.kind === "ACCEPTANCE_FROZEN" || e.kind === "ACCEPTANCE_AMENDED");
+    const frozen = freezes.length && freezes[0].kind === "ACCEPTANCE_FROZEN" ? freezes[freezes.length - 1] : undefined;
+    for (let i = 1; i < freezes.length; i += 1) {
+      const [prev, next] = [freezes[i - 1], freezes[i]];
+      if (next.kind !== "ACCEPTANCE_AMENDED" || next.amends?.contractSha256 !== prev.contractSha256 || next.amends?.ruling?.sha256 !== prev.ruling?.sha256) errs.push({ code: "ACCEPTANCE_CHAIN_BROKEN", id: at, why: `${at}'s ${next.kind} does not name, by both hashes, the freeze it amends` });
+    }
+    if (acc?.amends && freezes.length > 1 && (acc.amends.contractSha256 !== freezes[freezes.length - 2].contractSha256 || acc.amends.ruling?.sha256 !== freezes[freezes.length - 2].ruling?.sha256)) errs.push({ code: "ACCEPTANCE_CHAIN_BROKEN", id: at, why: `${at}'s acceptance amends a contract other than the freeze before it` });
     if (NEEDS_ACCEPTANCE.has(r.state)) {
       if (!acc || !frozen) errs.push({ code: "NO_FROZEN_ACCEPTANCE", id: at, why: `${at} is ${r.state} with no frozen, committed acceptance` });
       else {
@@ -84,6 +94,19 @@ export function boardErrors(board, { capabilities, acceptances = {}, authority =
     // historical row's result, and never implied by an IDENTICAL crosswalk relation.
     if (r.state === "VERIFIED-PASS" && !(r.events || []).some((e) => e.kind === "VERIFIED" && e.featureId === at && e.population === "REAL")) errs.push({ code: "PASS_WITHOUT_VERIFICATION", id: at, why: `${at} is VERIFIED-PASS with no verification recorded under ${at} over the real population` });
     if (/^BLOCKED-BY-/.test(r.state) && !(typeof r.blocker === "string" && r.blocker.trim())) errs.push({ code: "BLOCKER_UNNAMED", id: at, why: `${at} is ${r.state} and names no blocker` });
+  }
+  /* 🔴 CONSTRAINTS ON FUTURE ROWS (config/fboard/row-constraints.mjs): an acceptance frozen for a constrained row must carry
+   * the named precondition in one of its four clauses — or the freeze is refused. Each constraint's ruling must be CURRENT. */
+  for (const c of constraints) {
+    const acc = acceptances[c.featureId];
+    const frozenHere = board.some((r) => r.featureId === c.featureId && (r.events || []).some((e) => e.kind === "ACCEPTANCE_FROZEN"));
+    if ((acc || frozenHere) && !(acc && CLAUSES.some((k) => String(acc[k] ?? "").replace(/\s+/g, " ").toLowerCase().includes(c.requires.toLowerCase())))) {
+      errs.push({ code: "ROW_CONSTRAINT_UNMET", id: c.featureId, why: `${c.featureId}'s acceptance cannot be frozen without "${c.requires}" as an explicit precondition in its four-part contract (${c.ruling.path})` });
+    }
+    if (authority) {
+      const res = resolve({ records: authority.records, propositionId: c.authority.propositionId, scope: c.authority.scope, now: authority.now });
+      if (!permits(res)) errs.push({ code: "ROW_CONSTRAINT_WITHOUT_AUTHORITY", id: c.featureId, why: `the constraint on ${c.featureId} is backed by ${c.authority.propositionId}, which resolves ${res.outcome}, not CURRENT` });
+    }
   }
   return errs;
 }

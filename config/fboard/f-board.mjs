@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -154,10 +154,10 @@ export const DECLARED = Object.freeze({
   F04: Object.freeze({
     featureId: "F04",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       // The freeze record: the acceptance was committed ALONE in the governance repository (b439309) before any F04 engine change.
-      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-25", ruling: ACCEPTANCES.F04.ruling, contractSha256: ACCEPTANCES.F04.contractSha256 }),
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-25", ruling: F04_ORIGINAL.ruling, contractSha256: F04_ORIGINAL.contractSha256 }),
       /* MOVEMENT 1 · UNASSESSED → IN-PROGRESS: the frozen acceptance, and the implementation begun against it. */
       Object.freeze({
         kind: "IMPLEMENTATION",
@@ -167,13 +167,39 @@ export const DECLARED = Object.freeze({
         to: "IN-PROGRESS",
         route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
         reason: "ACCEPTANCE_FROZEN_AND_IMPLEMENTATION_BEGUN",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F04.ruling.sha256, contract: ACCEPTANCES.F04.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F04_ORIGINAL.ruling.sha256, contract: F04_ORIGINAL.contractSha256 }),
         branch: "f04-roles-permissions-approvals",
         baseSha: "8d5214e5d003b778c1f32135f4ecf08140f3e542",
         baseCiRun: "36110352941",
         baseCiConclusion: "success",
         governingRuling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_RULING_2026-09-23_F08_TARGET_AWARE_DURABILITY.md", commit: "47dc66c1ca9e39e7f19adc4ac630081ca090328b", sha256: "29ef6d74fc85944f7cf69f33c39fd0946e5eab77e8317fa5893fa086cfff4f0d" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-25_F04_ROLES_PERMISSIONS_APPROVALS.md", commit: "94acbb73822eb6448ed4c065b49ca3e758e192dd", sha256: "5911b5544cc1df160fb8f9fb469b998f33780d4f2775bd8ee1dcb620dba9c56c" }),
+      }),
+      /* Amendment 1, committed ALONE (68bd208) under the owner's ruling (4bf7b1d, decision c): the EVIDENCE interpretation for
+       * a high-risk family with zero current owner-approved real actions. It names, by both hashes, the freeze it amends. */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F04", on: "2026-09-25", ruling: ACCEPTANCES.F04.ruling, contractSha256: ACCEPTANCES.F04.contractSha256, amends: ACCEPTANCES.F04.amends }),
+      /* MOVEMENT 2 · IN-PROGRESS → VERIFIED-PASS: F04 re-sat under the CURRENT acceptance (Amendment 1) on merged main
+       * 41513bd (#159; exact-SHA main CI 36134428770 success). Research, Approval and Merge keep their real authorised and
+       * refused populations; SPEND, EXPORT, VERIFICATION, PUBLISH and CONNECTED_PROPERTY_CHANGE are measured ZERO-APPROVED
+       * (tools/zero-population-census.mjs): real refusals before effect, the authorised branch reached only by confined
+       * controls excluded from the real population, fail-closed, and REOPEN_F04 on the first approved real action. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F04",
+        population: "REAL",
+        on: "2026-09-25",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "RETEST_PASSED_UNDER_CURRENT_ACCEPTANCE",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F04.ruling.sha256, contract: ACCEPTANCES.F04.contractSha256 }),
+        pullRequest: 159,
+        mergedSha: "41513bd21ce8e5f3d12ce706bcd009481885ec73",
+        ciRun: "36134428770",
+        ciConclusion: "success",
+        zeroApprovedFamilies: ACCEPTANCES.F04.zeroApprovedFamilies,
+        ownerRuling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_RULING_2026-09-25_F04_ZERO_APPROVED_ACTION_POPULATION.md", commit: "4bf7b1d754854e4074307ff7cee116e0ac7db23a", sha256: "52e8343892f6a8ae921ba748c3a00a3e9befdfe1767ef32a92bbdc39f1a62cbf" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-25_F04_POST_MERGE_CLOSE.md", commit: "89e86640362622eda3ce2c5a31bc1ae102930e56", sha256: "7d5a05e57b50a599f240c08c6a3fcad01675d70be19e359e25506aedb79e03f3" }),
       }),
     ]),
   }),

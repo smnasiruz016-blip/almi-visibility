@@ -74,7 +74,7 @@ test("F7-TRAIL · each F07 movement is in the production trail EXACTLY ONCE, und
 
 test("F7-TRAIL · the board ↔ audit consistency check is clean, and names F07 among the rows that needed a transition", () => {
   const r = spawnSync(process.execPath, [join(REPO, "tools/board-audit-consistency.mjs")], { cwd: REPO, encoding: "utf8" });
-  assert.match(r.stdout, /rows needing a transition event: F01, F05, F06, F07, F08/); // F06 and F01 joined on 24 September 2026
+  assert.match(r.stdout, /rows needing a transition event: F01, F02, F05, F06, F07, F08/); // F06 and F01 joined on 24 September 2026
   assert.match(r.stdout, /consistency errors\s*: 0/);
-  assert.match(r.stdout, /F-progress \(computed from the board file\): 5\/89/); // 3/89 at F07's closure; F06 and F01 moved on 24 Sep
+  assert.match(r.stdout, /F-progress \(computed from the board file\): 6\/89/); // 3/89 at F07's closure; F06 and F01 moved on 24 Sep
 });

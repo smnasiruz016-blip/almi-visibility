@@ -21,6 +21,22 @@ export const F02_ORIGINAL = Object.freeze({
     contractSha256: "9b6273d6fdb92f7fa8f2d542a40cdb1a210cce6ad34b430bc3d7c7e0d2b03471",
   });
 
+/** 🔴 The ORIGINAL frozen F07 acceptance (cd149ae) — byte-immutable, amended (not replaced) by Amendment 1 (a0b7e4b). */
+export const F07_ORIGINAL = Object.freeze({
+    featureId: "F07",
+    ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F07_FROZEN_ACCEPTANCE_2026-09-23.md", commit: "cd149aea074f1e1b4b1f13fbeac26e6fdcaff047", sha256: "a9fbccdd040cc20d3962635372f318c49308086de6a8613842f8d957eb8b1112" }),
+    // 🔴 §6A — resolved through the register like any other record (inclusion rule frozen-f-row-acceptance); the board
+    // accepts this acceptance only while that resolution is CURRENT and names these exact bytes.
+    authority: Object.freeze({ propositionId: "F07_FROZEN_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F07"]) }),
+    frozenOn: "2026-09-23",
+    feature: "F07 · Held-out Evidence Firewall",
+    input: "A declared held-out evaluation set; its sealed-store identity,\nconfidentiality boundary, access rule, population-accounting method\nand scoring protocol; a mechanism that must be assessed without its\nbuilders or mandatory governance readers seeing the held-out payload.",
+    expected: "Mandatory governance and implementation reading exposes only the\nevidence shape and protocol—not held-out queries, URLs, fact values,\nlabels, defect locations, expected answers or marking keys. The sealed\npayload remains inaccessible until the assessed mechanism is frozen.\nEvery attempted and authorised access is recorded. Evaluation accounts\nfor the complete declared population without leaking payload into\nshared code, governance, logs, reports or future acceptance text.",
+    failure: "Any mandatory reader can obtain, quote, paraphrase or infer a held-out\npayload item or expected answer before mechanism freeze; an\nunauthorised read reaches the filesystem; access is unrecorded; the\nevaluated denominator silently shrinks; a hidden item enters generic\ncode, fixtures, logs, governance or reports; or a mechanism is changed\nafter held-out access and still presented as an untouched held-out\nevaluation.",
+    evidence: "A real sealed-store population refused before filesystem read, with\ncomplete path accounting; live controls proving the same loader can\nread an authorised ordinary file; a synthetic end-to-end held-out\nlifecycle proving freeze-before-access, recorded access, complete\nscoring and post-access contamination refusal; governance and content\nleak censuses with firing controls; and adversarial mutations proving\neach failure limb turns RED.",
+    contractSha256: "263ebb5cd23aaf2e98c95b66b307a25308da8b6f35e4c0e25b654a524f80b0a5",
+  });
+
 /** 🔴 The ORIGINAL frozen F04 acceptance (b439309) — byte-immutable, amended (not replaced) by Amendment 1 below. */
 export const F04_ORIGINAL = Object.freeze({
     featureId: "F04",
@@ -98,19 +114,23 @@ export const ACCEPTANCES = Object.freeze({
     evidence: "The canonical model and production adapters exercised over every real\ngoverned population; exact population and migration arithmetic with\nzero remainder; each of the six states reached on real material where\na lawful real population exists and otherwise through a firing\nsynthetic control; forbidden conversions proved RED independently;\nproduct-neutrality, isolation, audit, orphan and transition censuses;\ntwo agreeing full suites; a named counting control; one green PR,\nmerge and exact-main CI.",
     contractSha256: "b1c791d4f734652a84f88b170dfd020434625e9859fa97e7dde7ce560670337a",
   }),
+  /* 🔴 F07 · AMENDMENT 1 (25 Sep 2026), frozen ALONE in the governance repository (a0b7e4b) before any implementation of it:
+   * the leak census over EVERY registered sealed HELD_OUT_EVIDENCE and MARKING_KEY entry, which the original frozen text
+   * already claimed (INPUT line 19, EXPECTED lines 26–27, EVIDENCE line 48) while the shipped entry point enumerated only
+   * RETIRED_CONTAMINATED. Owner rulings D8 and R-A2; variant WITHOUT a reopen trigger (R-F1). It raises the bar: every original
+   * limb is kept. The original stays frozen, exported as F07_ORIGINAL, and is named by `amends` (both hashes, src/fboard/board.mjs). */
   F07: Object.freeze({
     featureId: "F07",
-    ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F07_FROZEN_ACCEPTANCE_2026-09-23.md", commit: "cd149aea074f1e1b4b1f13fbeac26e6fdcaff047", sha256: "a9fbccdd040cc20d3962635372f318c49308086de6a8613842f8d957eb8b1112" }),
-    // 🔴 §6A — resolved through the register like any other record (inclusion rule frozen-f-row-acceptance); the board
-    // accepts this acceptance only while that resolution is CURRENT and names these exact bytes.
-    authority: Object.freeze({ propositionId: "F07_FROZEN_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F07"]) }),
-    frozenOn: "2026-09-23",
+    ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F07_ACCEPTANCE_AMENDMENT_1_2026-09-25.md", commit: "a0b7e4beba459ca3c86c8a674cb200f8f155670c", sha256: "80a5e650db7000d2787975ab8b87b77602775184f4eaf3b858b5a98da3a86a21" }),
+    authority: Object.freeze({ propositionId: "F07_ACCEPTANCE_AMENDMENT_1", scope: Object.freeze(["ALMIVISIBILITY", "F07"]) }),
+    frozenOn: "2026-09-25",
     feature: "F07 · Held-out Evidence Firewall",
-    input: "A declared held-out evaluation set; its sealed-store identity,\nconfidentiality boundary, access rule, population-accounting method\nand scoring protocol; a mechanism that must be assessed without its\nbuilders or mandatory governance readers seeing the held-out payload.",
-    expected: "Mandatory governance and implementation reading exposes only the\nevidence shape and protocol—not held-out queries, URLs, fact values,\nlabels, defect locations, expected answers or marking keys. The sealed\npayload remains inaccessible until the assessed mechanism is frozen.\nEvery attempted and authorised access is recorded. Evaluation accounts\nfor the complete declared population without leaking payload into\nshared code, governance, logs, reports or future acceptance text.",
-    failure: "Any mandatory reader can obtain, quote, paraphrase or infer a held-out\npayload item or expected answer before mechanism freeze; an\nunauthorised read reaches the filesystem; access is unrecorded; the\nevaluated denominator silently shrinks; a hidden item enters generic\ncode, fixtures, logs, governance or reports; or a mechanism is changed\nafter held-out access and still presented as an untouched held-out\nevaluation.",
-    evidence: "A real sealed-store population refused before filesystem read, with\ncomplete path accounting; live controls proving the same loader can\nread an authorised ordinary file; a synthetic end-to-end held-out\nlifecycle proving freeze-before-access, recorded access, complete\nscoring and post-access contamination refusal; governance and content\nleak censuses with firing controls; and adversarial mutations proving\neach failure limb turns RED.",
-    contractSha256: "263ebb5cd23aaf2e98c95b66b307a25308da8b6f35e4c0e25b654a524f80b0a5",
+    input: "Every registered sealed held-out role: each HELD_OUT_EVIDENCE entry, each MARKING_KEY entry, and each\nRETIRED_CONTAMINATED population, each with its registered identity, derivation or sealed path, content hash,\naccess rule and population accounting; the existing declared held-out evaluation set and protocol inputs,\nunchanged; a mechanism that must be assessed without its builders or mandatory governance readers seeing the\nheld-out payload or its labels.",
+    expected: "Every existing F07 behaviour holds unchanged: refusal before filesystem read of every sealed path, recorded\naccess, freeze before access, complete scoring accounting, post-access contamination refusal, and the retired-\npopulation census. In addition, the governance and content leak census enumerates EVERY registered sealed\nHELD_OUT_EVIDENCE and MARKING_KEY entry, not only retired populations, and scans governance text, commands,\ntests, fixtures, logs and reports for any member of a held-out set and for any label or marking-key content.\nThe marking-key store is a role distinct from the held-out set; the implementer's role never reads it; the\ndetector for it runs inside the sealed boundary and reports only that a leak exists, its category and its\nlocation, never what leaked.",
+    failure: "Any existing F07 failure limb; a registered HELD_OUT_EVIDENCE or MARKING_KEY entry is not enumerated by the\nleak census; a leak of a held-out member or of a label into governance, commands, tests, fixtures, logs or\nreports is not detected; the detector prints, stores or returns leaked content; the implementer's role reads a\nmarking key; a planted leak of a new sealed role does not turn its named test red; or an existing F07 proof or\nsabotage is inherited instead of re-run.",
+    evidence: "All existing F07 proofs and sabotages re-run on the amended tree; the production leak census proved against\nthe real production evidence-role registry and its real sealed-role structures, with the population of\nregistered sealed HELD_OUT_EVIDENCE and MARKING_KEY entries stated by count, including zero; planted leaks of\neach new role, registered as synthetic non-sensitive stand-ins, turning named tests red for the intended reason\nwhile the detector's output contains no leaked content; a control proving the census reports zero on a clean\ntree and non-zero on a planted leak; and adversarial mutations proving each new failure limb turns red.\nExisting F07 evidence remains historically valid; at this amendment the population of registered sealed\nHELD_OUT_EVIDENCE and MARKING_KEY entries is zero; the reopen of F07 is caused by this newly frozen wider\nrequirement, not by concealed contradictory evidence.",
+    contractSha256: "9917f41712400d538442fec5496b85a664a336cc67557e4b548932dc5e7ba9b1",
+    amends: Object.freeze({ ruling: F07_ORIGINAL.ruling, contractSha256: F07_ORIGINAL.contractSha256 }),
   }),
   F08: Object.freeze({
     featureId: "F08",

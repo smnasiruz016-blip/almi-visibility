@@ -14,6 +14,15 @@
  * Usage:
  *   node bin/crawl.mjs --seeds=<file>                  # dry run, the default
  *   node bin/crawl.mjs --seeds=<file> --live --i-have-the-owners-green
+ *   node bin/crawl.mjs --research-batch=<declared id> --tenant=<t> --subject=<s> [--live --i-have-the-owners-green]
+ *
+ * 🔴 A TENANT'S RUN STORE (F09, 25 Sep 2026 — generic, needed by every tenant). Without --research-batch the crawl scopes
+ * the engine's SHARED evidence store, cost ledger and run store. Those hold more than one tenant's records, so no tenant can
+ * lawfully be attached to them, and every tenant's production crawl is refused at F02. With --research-batch=<id>, the run
+ * scopes ONE resource instead: that RESEARCH_BATCH, declared in the data root's RESEARCH store (F03) and attached to the
+ * run's tenant (F02). Its seeds are read from the batch (seeds.txt), and its observations, run record and cost entry are
+ * written INTO the batch through the governed boundary. The shared stores are never touched. Bodies still go only to
+ * --corpus and are never committed. Nothing here names a subject.
  */
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
@@ -34,6 +43,8 @@ import { createCostLedger, entryFromCrawlRun, formatLedgerLine } from "../src/co
 import { persistCrawlObservations } from "../src/crawl/persist.mjs";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { openConnector, NO_REQUEST_FETCH } from "../src/tenancy/connectors.mjs";
+import { lookupStore } from "../src/tenancy/root-registry.mjs";
+import { rootIndexFor } from "../src/tenancy/resolver.mjs";
 import { RESOURCES, declaredSiteHosts } from "../src/tenancy/scoped-run.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -43,6 +54,11 @@ const arg = (n, d = null) => {
 };
 const flag = (n) => process.argv.includes(`--${n}`);
 
+const researchBatch = arg("research-batch");
+if (researchBatch !== null && !/^[a-z0-9][a-z0-9-]*$/.test(researchBatch)) {
+  console.error("🔴 USAGE REFUSED: --research-batch is a declared id — lowercase letters, digits and hyphens only");
+  process.exit(2);
+}
 const seedsFile = arg("seeds");
 const sitemapFile = arg("sitemap");
 const fromEvidence = arg("seeds-from-evidence");
@@ -50,16 +66,32 @@ const live = flag("live");
 const green = flag("i-have-the-owners-green");
 // 🔴 Confined here, BEFORE the egress measurement and DNS lookups below: a
 // destination outside this repository is refused before any network activity.
-const out = confineToRepo(arg("out", `${REPO}runs/crawl/crawl.jsonl`), { label: "--out" });
+let out = researchBatch ? null : confineToRepo(arg("out", `${REPO}runs/crawl/crawl.jsonl`), { label: "--out" });
 const corpusDir = confineToRepo(arg("corpus", `${REPO}runs/crawl/corpus`), { label: "--corpus" });
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
 /* 🔴 F03 — a LIVE crawl reaches the web only through the PUBLIC_SITE connector of the subject it runs for
  * (--subject=<declared id>), decided here with everything else. A dry run opens no connector and is handed a fetch that
  * refuses every request, so it needs no connector decision and can reach nothing. */
 const SUBJECT = arg("subject");
-const SCOPE = scopedEntryPoint({ entry: "bin/crawl.mjs", governed: true, resources: [...(live ? [RESOURCES.connector(SUBJECT, "PUBLIC_SITE")] : []), RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.runArtefacts("crawl store and seed inputs"), RESOURCES.inputPath(seedsFile, "--seeds"), RESOURCES.inputPath(sitemapFile, "--sitemap"), RESOURCES.inputPath(fromEvidence, "--seeds-from-evidence")] });
+const STORES = researchBatch ? [RESOURCES.researchBatch(researchBatch)] : [RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.runArtefacts("crawl store and seed inputs")];
+const SCOPE = scopedEntryPoint({ entry: "bin/crawl.mjs", governed: true, resources: [...(live ? [RESOURCES.connector(SUBJECT, "PUBLIC_SITE")] : []), ...STORES, RESOURCES.inputPath(seedsFile, "--seeds"), RESOURCES.inputPath(sitemapFile, "--sitemap"), RESOURCES.inputPath(fromEvidence, "--seeds-from-evidence")] });
 /* F02: this run's hosts are the site origins DECLARED to its tenant — no estate list in shared code (relocated, 24 Sep 2026). */
 const DECLARED_HOSTS = declaredSiteHosts({ tenantId: SCOPE.tenantId });
+/* The run store, located only AFTER F02 decided it belongs to this run's tenant. Its root is where every write of this run
+ * lands; its seeds file is this run's input. */
+let WRITE_ROOT = REPO;
+let batchSeeds = null;
+let ledgerFile = null;
+if (researchBatch) {
+  const store = lookupStore(rootIndexFor(process.env), "RESEARCH");
+  if (store.state !== "DECLARED") { console.error(`🔴 REFUSED — the RESEARCH store is ${store.state} (${store.reason})`); process.exit(3); }
+  const batchDir = join(store.dir, researchBatch);
+  if (!existsSync(batchDir)) { console.error("🔴 REFUSED — RESEARCH_BATCH_ABSENT: the declared research batch has no directory in the RESEARCH store"); process.exit(3); }
+  WRITE_ROOT = store.rootPath;
+  out = join(batchDir, "crawl.jsonl");
+  ledgerFile = join(batchDir, "ledger.jsonl");
+  batchSeeds = join(batchDir, "seeds.txt");
+}
 /* 🔴 GAP 1 (15 September 2026) — THE LOCAL RECORD. D-CRW-4's two flags gate the NETWORK and the bodies; until today
  * every DRY run still appended a run record to --out. A dry run now records nothing unless --confirm. A LIVE run has
  * already passed D-CRW-4's two flags and records what it fetched and spent: a billable run that kept no record would be
@@ -71,7 +103,7 @@ const mayRecord = live || permission.mayWrite;
  * narrowed it. The boundary is given the decision this caller actually makes, and audits both outcomes of it. */
 const recordPermission = { ...permission, mayWrite: mayRecord, reason: mayRecord ? permission.reason : "no --live and no --confirm" };
 
-if (!seedsFile && !sitemapFile && !fromEvidence) {
+if (!seedsFile && !sitemapFile && !fromEvidence && !batchSeeds) {
   console.error(
     "usage: node bin/crawl.mjs (--seeds=<file.txt> | --sitemap=<file.xml> | --seeds-from-evidence=<evidence.jsonl>)\n" +
       "                         [--live --i-have-the-owners-green]",
@@ -155,8 +187,8 @@ if (fromEvidence) {
   seeds = selection.selected;
   console.log(renderSelection(selection));
   console.log("");
-} else if (seedsFile) {
-  seeds = readFileSync(seedsFile, "utf8").split(/\r?\n/).map((s) => s.trim()).filter((s) => s !== "" && !s.startsWith("#"));
+} else if (seedsFile || batchSeeds) {
+  seeds = readFileSync(seedsFile ?? batchSeeds, "utf8").split(/\r?\n/).map((s) => s.trim()).filter((s) => s !== "" && !s.startsWith("#"));
 } else {
   seedSource = "SITEMAP";
   const parsed = parseSitemap(readFileSync(sitemapFile, "utf8"));
@@ -233,7 +265,7 @@ const CRAWL_INSTANT = governedInstant(Date.now());
 const CRAWL_CORRELATION = `run:crawl:${CRAWL_INSTANT}`;
 const store = createJsonlStore(out);
 const observationsGoverned = executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,
-  repo: REPO, permission: recordPermission, store, records: result.observations,
+  repo: WRITE_ROOT, auditRepo: REPO, permission: recordPermission, store, records: result.observations,
   targetClass: "GENERATED_CONFIG", action: "APPEND_CRAWL_OBSERVATIONS",
   occurredAt: CRAWL_INSTANT, correlationId: CRAWL_CORRELATION, discipline: "APPEND_IF_NEW",
 }));
@@ -297,7 +329,7 @@ const runRecord = {
 /* Declared: the RUN record is unique by construction — run_id carries the start time — so it uses the
  * without-dedupe discipline and needs no key. */
 const runGoverned = executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,
-  repo: REPO, permission: recordPermission, store, records: [runRecord],
+  repo: WRITE_ROOT, auditRepo: REPO, permission: recordPermission, store, records: [runRecord],
   targetClass: "GENERATED_CONFIG", action: "APPEND_CRAWL_RUN_RECORD",
   occurredAt: CRAWL_INSTANT, correlationId: CRAWL_CORRELATION, discipline: "APPEND_WITHOUT_DEDUPE",
 }));
@@ -317,9 +349,9 @@ if (live) {
    * `live` condition. The ledger SKIPS a duplicate entry_id and writes nothing, so the expected line count is
    * asked of that discipline. */
   const costEntry = entryFromCrawlRun(runRecord, { recordedAt: new Date().toISOString() });
-  const ledgerPath = confineToRepo(`${REPO}runs/cost/ledger.jsonl`, { label: "the cost ledger" });
+  const ledgerPath = ledgerFile ?? confineToRepo(`${REPO}runs/cost/ledger.jsonl`, { label: "the cost ledger" });
   const costGoverned = executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,
-    repo: REPO, permission: recordPermission, store: createCostLedger(ledgerPath), records: [costEntry],
+    repo: WRITE_ROOT, auditRepo: REPO, permission: recordPermission, store: createCostLedger(ledgerPath), records: [costEntry],
     targetClass: "RUN_EVIDENCE", action: "APPEND_CRAWL_COST_ENTRY",
     occurredAt: CRAWL_INSTANT, correlationId: CRAWL_CORRELATION,
     discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null,

@@ -367,7 +367,10 @@ export function governedFileWrite({ repo, permission, target, targetClass, bytes
  * `seenAt`, `appendWithoutDedupe`, `appendAllWithoutDedupe` — and which one a caller uses is part of that caller's
  * meaning, not something this helper may choose for it.
  */
-export function governedStoreAppend({ repo, permission, store, records, targetClass = "RUN_EVIDENCE", action, occurredAt, correlationId, env = process.env, scopeType = "GLOBAL_PRODUCT", tenantId = null, subjectId = null, evidenceRefs = [], keyOf = null, discipline = "APPEND_IF_NEW", seenAt = null }) {
+/* F09 (25 Sep 2026): `auditRepo` — the repository whose AUDIT TRAIL records this write. It defaults to `repo`, so every
+ * existing caller is unchanged. A write whose TARGET lives in an external data root (a tenant's declared research batch)
+ * still records on the ENGINE's trail: the target's root is where the bytes land, never where the audit lives. */
+export function governedStoreAppend({ repo, auditRepo = null, permission, store, records, targetClass = "RUN_EVIDENCE", action, occurredAt, correlationId, env = process.env, scopeType = "GLOBAL_PRODUCT", tenantId = null, subjectId = null, evidenceRefs = [], keyOf = null, discipline = "APPEND_IF_NEW", seenAt = null }) {
   const chosen = APPEND_DISCIPLINES[discipline];
   if (!chosen) throw new Error(`UNKNOWN_APPEND_DISCIPLINE: ${discipline} is not one of ${Object.keys(APPEND_DISCIPLINES).join(", ")}`);
   /* Not every governed target is the evidence store: the cost ledger identifies an entry by entry_id and exposes
@@ -402,7 +405,7 @@ export function governedStoreAppend({ repo, permission, store, records, targetCl
   });
   return {
     permission,
-    audit: governedContext({ repo, env, correlationId, now: dayOf(occurredAt) }),
+    audit: governedContext({ repo: auditRepo ?? repo, env, correlationId, now: dayOf(occurredAt) }),
     adapter,
     action: { name: action, scopeType, tenantId, subjectId, occurredAt, occurrenceFingerprint: adapter.occurrenceFingerprint, evidenceRefs },
   };

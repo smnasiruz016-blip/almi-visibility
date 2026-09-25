@@ -32,6 +32,11 @@ export const GOVERNANCE_RULES = Object.freeze([
    * measured before this line). Same terms as F07's: issuer by pattern, one F-row id, the fixed word, one date. On the day
    * it was added it matched exactly one committed file. */
   Object.freeze({ id: "f-row-acceptance", re: /^AlmiVisibility_F\d{2}_ACCEPTANCE_\d{4}-\d{2}-\d{2}\.md$/, issuer: "OWNER" }),
+  /* 🔴 F02 (25 September 2026) — an AMENDMENT of an F-row acceptance, under the name the owner's disposition command gave it
+   * (AlmiVisibility_F02_ACCEPTANCE_AMENDMENT_1_2026-09-25.md). Same terms: issuer by pattern, one F-row id, the fixed words, an
+   * amendment number, one date. Its proposition is its own (F02_ACCEPTANCE_AMENDMENT_1); the F-board row names it, and the
+   * board requires it to name, by both hashes, the freeze it amends. On the day it was added it matched exactly one file. */
+  Object.freeze({ id: "f-row-acceptance-amendment", re: /^AlmiVisibility_F\d{2}_ACCEPTANCE_AMENDMENT_\d+_\d{4}-\d{2}-\d{2}\.md$/, issuer: "OWNER" }),
   Object.freeze({ id: "other-declared-ruling", re: /^AlmiVisibility_[A-Za-z0-9_-]*(RULING|DECISION)[A-Za-z0-9_-]*\.md$/, issuer: null, issuerTokens: Object.freeze({ BETA_G: "BETA_G", OWNER: "OWNER" }) }),
 ]);
 /**

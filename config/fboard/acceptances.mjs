@@ -5,6 +5,22 @@
  * pinned to BOTH the ruling's sha256 and the contract's own sha256 under the declared normalisation. The engine never
  * writes an acceptance: a change to any clause here without a new committed ruling turns the pins red.
  */
+/** 🔴 The ORIGINAL frozen F02 acceptance (3ea6fda) — byte-immutable, amended (not replaced) by Amendment 1 above. */
+export const F02_ORIGINAL = Object.freeze({
+    featureId: "F02",
+    ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F02_ACCEPTANCE_2026-09-24.md", commit: "3ea6fdac909bc76b4ba8137ef0c07147f7525143", sha256: "e468526e1257fd6ac16505a5018398fb8701165da0f711edc44b1395673e79e5" }),
+    // Resolved through the register (inclusion rule f-row-acceptance, the name the F02 command gave the file); the board
+    // accepts this acceptance only while that resolution is CURRENT and names these exact bytes.
+    authority: Object.freeze({ propositionId: "F02_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F02"]) }),
+    frozenOn: "2026-09-24",
+    feature: "F02 · Tenant and evidence isolation",
+    input: "A declared tenant and two or more tenant-scoped resources or records,\nincluding at least one real attempted relationship between resources.",
+    expected: "Every governed resource, evidence item, cost item, learning item and output\nresolves to one declared tenant scope before use; same-tenant relationships\nmay proceed, while cross-tenant, undeclared, ambiguous and mismatched\nrelationships fail closed with a reason that identifies the failed scope\nrelationship without exposing another tenant's protected content.",
+    failure: "A governed item is accepted without one unambiguous tenant scope; a\ncross-tenant relationship proceeds; tenant identity is inferred from a name,\nhost, path, client-specific vocabulary or content rather than a declaration;\none tenant's evidence, costs, learning or outputs can affect another tenant's\ndecision; or the guard is proved only by fixtures or an empty population.",
+    evidence: "The production resolver and every production join or decision path exercised\nover a real non-empty population, with same-tenant success, cross-tenant\nrefusal, undeclared refusal, ambiguous refusal, mismatched-scope refusal,\nnon-leakage checks and independently firing clean controls.",
+    contractSha256: "9b6273d6fdb92f7fa8f2d542a40cdb1a210cce6ad34b430bc3d7c7e0d2b03471",
+  });
+
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -20,19 +36,25 @@ export const ACCEPTANCES = Object.freeze({
     evidence: "The contract exercised through a real non-empty declaration population\nand a new unrelated neutral declaration; accepted, refused, duplicate,\nsuperseded and unavailable-storage worlds; complete field and population\narithmetic; tenant isolation, secret exclusion, portability, audit,\nidempotency and orphan proofs; independent sabotage for every failure\nclass; two agreeing full suites; named counting control; one green PR,\nmerge and exact-main CI.",
     contractSha256: "5d7ddb4c6d37a3d96cbc8ce65797eb20f3119816a20084c9176aa089b5d80ccb",
   }),
+  /* 🔴 F02 · AMENDMENT 1 (25 Sep 2026) is the CURRENT contract. It changes ONLY the treatment of the non-existent learning
+   * population (deferred to F79 · Evidence Cache Before Re-Research); no isolation rule is weakened and no existing population
+   * leaves F02. The original acceptance stays frozen, exported as F02_ORIGINAL, and is named by `amends`: the board refuses an
+   * amendment that does not name, by both hashes, the freeze it amends (src/fboard/board.mjs). */
   F02: Object.freeze({
     featureId: "F02",
-    ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F02_ACCEPTANCE_2026-09-24.md", commit: "3ea6fdac909bc76b4ba8137ef0c07147f7525143", sha256: "e468526e1257fd6ac16505a5018398fb8701165da0f711edc44b1395673e79e5" }),
-    // Resolved through the register (inclusion rule f-row-acceptance, the name the F02 command gave the file); the board
-    // accepts this acceptance only while that resolution is CURRENT and names these exact bytes.
-    authority: Object.freeze({ propositionId: "F02_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F02"]) }),
-    frozenOn: "2026-09-24",
+    ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F02_ACCEPTANCE_AMENDMENT_1_2026-09-25.md", commit: "ad14a64e8853e26a49fdac994dc5d00b6a65e29b", sha256: "19764797de24261a02725caa6786ec19d0c29e4f207a2db2b0dbbae6fc684db5" }),
+    // Resolved through the register (inclusion rule f-row-acceptance-amendment); the board accepts it only while that
+    // resolution is CURRENT and names these exact bytes.
+    authority: Object.freeze({ propositionId: "F02_ACCEPTANCE_AMENDMENT_1", scope: Object.freeze(["ALMIVISIBILITY", "F02"]) }),
+    frozenOn: "2026-09-25",
     feature: "F02 · Tenant and evidence isolation",
-    input: "A declared tenant and two or more tenant-scoped resources or records,\nincluding at least one real attempted relationship between resources.",
-    expected: "Every governed resource, evidence item, cost item, learning item and output\nresolves to one declared tenant scope before use; same-tenant relationships\nmay proceed, while cross-tenant, undeclared, ambiguous and mismatched\nrelationships fail closed with a reason that identifies the failed scope\nrelationship without exposing another tenant's protected content.",
-    failure: "A governed item is accepted without one unambiguous tenant scope; a\ncross-tenant relationship proceeds; tenant identity is inferred from a name,\nhost, path, client-specific vocabulary or content rather than a declaration;\none tenant's evidence, costs, learning or outputs can affect another tenant's\ndecision; or the guard is proved only by fixtures or an empty population.",
-    evidence: "The production resolver and every production join or decision path exercised\nover a real non-empty population, with same-tenant success, cross-tenant\nrefusal, undeclared refusal, ambiguous refusal, mismatched-scope refusal,\nnon-leakage checks and independently firing clean controls.",
-    contractSha256: "9b6273d6fdb92f7fa8f2d542a40cdb1a210cce6ad34b430bc3d7c7e0d2b03471",
+    input: "F02 is judged over every tenant-governed resource population that presently\nexists in production. A future learning population enters F02 automatically\nwhen F79 creates it.",
+    expected: "All existing evidence, costs, caches, research inputs and outputs remain\ntenant-isolated. Any future F79 learning or evidence-cache path must use the\nsame F02 boundary before F79 may pass.",
+    failure: "An existing population crosses tenants; an undeclared learning resource is\naccepted; F79 later introduces learning without F02 isolation; or the absence\nof a learning population is disguised by fixtures or fabricated records.",
+    evidence: "Real non-empty existing populations prove their isolation NOW. The\nundeclared-learning refusal is proved with a firing control NOW. Real\nlearning write and reuse evidence is deferred to F79 and becomes mandatory\nwhen that population exists.",
+    contractSha256: "4b153869c05b3563d313a9941fca874aef789732e842169671df80ccb48dbd3d",
+    amends: Object.freeze({ ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F02_ACCEPTANCE_2026-09-24.md", commit: "3ea6fdac909bc76b4ba8137ef0c07147f7525143", sha256: "e468526e1257fd6ac16505a5018398fb8701165da0f711edc44b1395673e79e5" }), contractSha256: "9b6273d6fdb92f7fa8f2d542a40cdb1a210cce6ad34b430bc3d7c7e0d2b03471", supersededOnlyAs: "the demand for a presently non-empty real learning population" }),
+    dependsOn: Object.freeze({ featureId: "F79", name: "Evidence Cache Before Re-Research", state: "UNASSESSED", constraint: "config/fboard/row-constraints.mjs" }),
   }),
   F05: Object.freeze({
     featureId: "F05",

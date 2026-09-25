@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -56,7 +56,7 @@ export const DECLARED = Object.freeze({
     state: "IN-PROGRESS",
     events: Object.freeze([
       // The acceptance was committed ALONE in the governance repository (3ea6fda) before any F02 engine change.
-      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-24", ruling: ACCEPTANCES.F02.ruling, contractSha256: ACCEPTANCES.F02.contractSha256 }),
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-24", ruling: F02_ORIGINAL.ruling, contractSha256: F02_ORIGINAL.contractSha256 }),
       /* Implementation began only after that commit: first the dependency repair that lets the acceptance resolve at all
        * (inclusion rule f-row-acceptance, corpus re-migrated at 3ea6fda), then the crosswalk entry and the census. */
       Object.freeze({
@@ -68,6 +68,9 @@ export const DECLARED = Object.freeze({
         reason: "FROZEN_ACCEPTANCE_COMMITTED_BEFORE_ENGINE_CHANGE",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-24_F02_TENANT_ISOLATION.md", commit: "6b7422ae8e906f0e87f2df01afe0a7d410b2ede7", sha256: "9646e2f91170e71618925f0538d05260caf5821c6dd3151f4344f85afd03ecf1" }),
       }),
+      /* Amendment 1, committed ALONE (ad14a64) under the owner's disposition ruling (1145012, Decision 3): the learning
+       * population is deferred to F79. It names, by both hashes, the freeze it amends. */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F02", on: "2026-09-25", ruling: ACCEPTANCES.F02.ruling, contractSha256: ACCEPTANCES.F02.contractSha256, amends: ACCEPTANCES.F02.amends }),
     ]),
   }),
   F05: Object.freeze({

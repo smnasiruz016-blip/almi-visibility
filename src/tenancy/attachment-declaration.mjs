@@ -67,6 +67,31 @@ export function appendAttachment({ fileText, record }) {
   return `${JSON.stringify({ ...doc, attachments: [...doc.attachments, record] }, null, 2)}\n`;
 }
 
+/**
+ * 🔴 RETIRING AN UNLAWFUL WHOLE-COLLECTION ATTACHMENT (owner ruling 25 Sep 2026, Decision 2). A collection whose members
+ * resolve to more than one tenant, or whose members include any that resolve to none or several, is SHARED — attaching it
+ * whole to one tenant is the ruling's NOT-ALLOWED case. Proved from the members' own recorded identities, never assumed.
+ */
+export function proveSharedCollection({ resolve, members }) {
+  if (!Array.isArray(members) || members.length === 0) return { shared: false, code: "NO_MEMBERS" };
+  const p = partitionMembers({ members, resolve });
+  const shared = p.partitions.size > 1 || p.arithmetic.undeclared > 0 || p.arithmetic.ambiguous > 0;
+  return { shared, code: shared ? "MEMBERS_SPAN_MORE_THAN_ONE_SCOPE" : "SINGLE_TENANT_COLLECTION", arithmetic: p.arithmetic, partitions: p.partitions.size };
+}
+
+/**
+ * The declaration file with EXACTLY ONE (kind, ref) record removed — current authority withdrawn, every other record
+ * byte-identical, the file's own layout kept. The removed record stays in git history and in the F08 event that removed it.
+ */
+export function removeAttachment({ fileText, resourceKind, resourceRef }) {
+  const doc = JSON.parse(fileText);
+  if (!Array.isArray(doc.attachments)) throw new TypeError("the declaration file holds no attachments array");
+  if (fileText !== `${JSON.stringify(doc, null, 2)}\n`) throw new TypeError("the declaration file is not in its canonical layout — refusing to rewrite it");
+  const hits = doc.attachments.filter((a) => a?.resourceKind === resourceKind && a?.resourceRef === resourceRef);
+  if (hits.length !== 1) throw new TypeError(`expected exactly one ${resourceKind} ${resourceRef} attachment, found ${hits.length}`);
+  return { removed: hits[0], text: `${JSON.stringify({ ...doc, attachments: doc.attachments.filter((a) => a !== hits[0]) }, null, 2)}\n` };
+}
+
 export function attachmentRecord({ resourceKind, resourceRef, tenantId, declaredOn, proof }) {
   return {
     schemaVersion: 1, resourceKind, resourceRef, tenantId, declaredOn,

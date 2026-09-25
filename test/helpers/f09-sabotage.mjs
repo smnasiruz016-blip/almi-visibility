@@ -11,6 +11,8 @@
  * invariant (frozen acceptance)                                   → sabotage
  *   shared code gains the client's name / host / vocabulary       → F9-S1
  *   a check whose pattern cannot fail (neutrality scanner blinded)→ F9-S14
+ *   the portability fingerprint degraded to a constant             → F9-S16
+ *   a refusal accepted on its exit code, whatever its reason       → F9-S17
  *   authority from a name instead of the declaration (F02)        → F9-S2
  *   an existing declaration reused or widened (F02)               → F9-S10
  *   connector boundary bypassed (F03)                             → F9-S4
@@ -112,6 +114,16 @@ export async function f09Sabotages() {
       from: `export const availableProductSubjects = (opts) => [...subjectIndex(opts).entries()].filter(([, v]) => existsSync(join(v.dir, PRODUCT_MODULE))).map(([id]) => id).sort();`,
       to: `export const availableProductSubjects = (opts) => [...subjectIndex(opts).keys()].sort();`,
       expect: /a subject without a product module was listed as a product/ },
+
+    { id: "F9-S16", what: "THE FINGERPRINT IS A CONSTANT — the batch identity row stops carrying the resolved decision, so a changed declaration cannot move the digest", file: "test/f09-cross-client-portability.test.mjs", test: T, named: "F09 · EVIDENCE · the subject resolves to the SAME stable identities from a RELOCATED copy",
+      from: "  rows.push(`BATCH|${s.batch}|${decideForTenant(resolve, side.tenantId, RESOURCES.researchBatch(s.batch)).outcome}`);",
+      to: "  rows.push(`BATCH|${s.batch}|-`);",
+      expect: /SENSITIVITY: re-attaching the batch to another tenant did not change the fingerprint/ },
+
+    { id: "F9-S17", what: "the crawler stops scoping the engine's evidence store — the run still exits 3 on the other stores, so an exit-code-only check stays GREEN", file: "bin/crawl.mjs", test: T, named: "F09 · EXPECTED · the crawler REFUSES the engine's shared stores",
+      from: "const STORES = researchBatch ? [RESOURCES.researchBatch(researchBatch)] : [RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.runArtefacts(\"crawl store and seed inputs\")];",
+      to: "const STORES = researchBatch ? [RESOURCES.researchBatch(researchBatch)] : [RESOURCES.costLedger(), RESOURCES.runArtefacts(\"crawl store and seed inputs\")];",
+      expect: /the evidence store was not refused for want of an attachment/ },
 
     { id: "F9-S14", what: "A PATTERN THAT CANNOT FAIL — the neutrality scanner's pattern matches nothing", file: "tools/product-boundary.mjs", test: T, named: "F09 · EVIDENCE · zero shared-engine specialisation",
       from: `const PRODUCT_WORD_RE = new RegExp(NEUTRALITY_TERMS.map(escapeRe).join("|"), "gi");`,

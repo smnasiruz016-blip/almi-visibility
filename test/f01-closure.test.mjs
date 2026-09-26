@@ -60,5 +60,6 @@ test("F1-TRAIL · each F01 movement is in the production trail EXACTLY ONCE, und
   assert.deepEqual(mine.map((e) => e.action), ["ACCEPTANCE_FROZEN", "IMPLEMENTATION", "VERIFIED"], `${mine.length} transition event(s) for F01`);
   for (const e of mine) assert.deepEqual(e.authorityRef, { propositionId: "F01_FROZEN_ACCEPTANCE", scope: ["ALMIVISIBILITY", "F01"] });
   assert.deepEqual([mine[2].metadata.from, mine[2].metadata.to, mine[2].metadata.population], ["IN-PROGRESS", "VERIFIED-PASS", "REAL"]);
-  assert.ok(trail().filter((e) => e.eventType === "BOARD_TRANSITION" && e.metadata?.featureId === "F07").length === 3, "CONTROL: the same filter finds F07's three");
+  // CONTROL: the same filter finds F07's three movements under its ORIGINAL acceptance (F07 Amendment 1 added three more under its own).
+  assert.ok(trail().filter((e) => e.eventType === "BOARD_TRANSITION" && e.metadata?.featureId === "F07" && e.authorityRef?.propositionId === "F07_FROZEN_ACCEPTANCE").length === 3, "CONTROL: the same filter finds F07's three");
 });

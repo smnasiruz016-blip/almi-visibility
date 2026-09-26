@@ -301,7 +301,10 @@ test("ASP-C5 · a NEW recorder is a writer however its receiver is named — so 
     assert.ok(derivedWriterExports({ files, read: () => text }).some((w) => w.name === "recordThings"), `${label}: not derived as a writer`);
   }
   assert.equal(derivedWriterExports({ files, read: () => "export function readThings({ audit }) {\n  return audit.store.readAll();\n}\n" }).length, 0, "CONTROL: a reader is derived as a writer — the rule cannot say no");
-  assert.equal(WRITER_NAMES.length, 15, "the widened rule changed the real writer population");
+  /* F07 Amendment 2 (governance 051feb9) added two real writers to the lifecycle — readHeldOutDerivation and scoreClassification —
+   * each recording to the audit store it is handed AND reading sealed material or running a caller-supplied function, so each is
+   * a MIXED writer, named below in C6 and proved to FAIL the audit-store-only proof. The population is measured, 15 -> 17. */
+  assert.equal(WRITER_NAMES.length, 17, "the widened rule changed the real writer population");
 });
 
 /* ═══ C6 · registering a function that also performs a non-audit write turns the proof RED ═══════════════════════ */
@@ -315,6 +318,9 @@ test("ASP-C6 · every real non-audit writer, registered, FAILS the proof — and
     { name: "createPaidProviderGate", module: "src/cost/paid-provider-gate.mjs" },
     { name: "runRobotsAndDnsAudit", module: "src/audit/run-audit.mjs" },
     { name: "readHeldOutItem", module: LIFE },
+    // F07 Amendment 2 (governance 051feb9): the evaluator's derived-set reader and the aggregate scorer — mixed writers too.
+    { name: "readHeldOutDerivation", module: LIFE },
+    { name: "scoreClassification", module: LIFE },
   ];
   /* The population: every derived writer that is not declared, plus the de-registered name. Nothing sampled. */
   const declared = new Set(AUDIT_STORE_ONLY_PRIMITIVES.map((e) => e.name));

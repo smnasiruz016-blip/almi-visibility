@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
-import { ACCEPTANCES, F07_ORIGINAL } from "../config/fboard/acceptances.mjs";
+import { ACCEPTANCES, F07_ORIGINAL, F07_AMENDMENT_1 } from "../config/fboard/acceptances.mjs";
 import { CAPABILITIES } from "../config/fboard/capabilities.mjs";
 import { DECLARED } from "../config/fboard/f-board.mjs";
 import { AUTHORITY_CORPUS, CORPUS_PROVENANCE } from "../config/authority/corpus.mjs";
@@ -41,23 +41,34 @@ test("F7-BOARD · F07 is VERIFIED-PASS by UNASSESSED → IN-PROGRESS → VERIFIE
   assert.equal(f07.state, "VERIFIED-PASS");
   /* F07 Amendment 1 (25 Sep 2026, governance a0b7e4b): reopened on AUTHORITATIVE_REQUIREMENT_CHANGE and re-verified under the
    * amended contract. The first three events are history, frozen under the ORIGINAL acceptance (F07_ORIGINAL). */
-  assert.deepEqual(f07.events.map((e) => `${e.kind}@${e.on}`), ["ACCEPTANCE_FROZEN@2026-09-23", "IMPLEMENTATION@2026-09-23", "VERIFIED@2026-09-23", "ACCEPTANCE_AMENDED@2026-09-25", "REOPENED@2026-09-25", "VERIFIED@2026-09-25"]);
-  const [frozen, impl, verified, amended, reopened, reverified] = f07.events;
+  /* F07 Amendment 2 (26 Sep 2026, governance 051feb9): reopened again on AUTHORITATIVE_REQUIREMENT_CHANGE and re-verified under the
+   * Amendment 2 contract. Amendment 1's three events are history, frozen under F07_AMENDMENT_1. */
+  assert.deepEqual(f07.events.map((e) => `${e.kind}@${e.on}`), ["ACCEPTANCE_FROZEN@2026-09-23", "IMPLEMENTATION@2026-09-23", "VERIFIED@2026-09-23", "ACCEPTANCE_AMENDED@2026-09-25", "REOPENED@2026-09-25", "VERIFIED@2026-09-25", "ACCEPTANCE_AMENDED@2026-09-26", "REOPENED@2026-09-26", "VERIFIED@2026-09-26"]);
+  const [frozen, impl, verified, amended, reopened, reverified, amended2, reopened2, reverified2] = f07.events;
   assert.equal(frozen.ruling, F07_ORIGINAL.ruling);
   assert.equal(frozen.contractSha256, F07_ORIGINAL.contractSha256);
-  assert.equal(amended.contractSha256, ACCEPTANCES.F07.contractSha256);
+  assert.equal(amended.contractSha256, F07_AMENDMENT_1.contractSha256);
   assert.deepEqual(amended.amends, { ruling: F07_ORIGINAL.ruling, contractSha256: F07_ORIGINAL.contractSha256 });
   assert.deepEqual([reopened.from, reopened.to, reopened.reason], ["VERIFIED-PASS", "IN-PROGRESS", "AUTHORITATIVE_REQUIREMENT_CHANGE"]);
   assert.match(reopened.rationale, /existing F07 evidence remains historically valid/);
   assert.match(reopened.rationale, /not by concealed contradictory evidence/);
   assert.deepEqual([reverified.from, reverified.to, reverified.featureId, reverified.population], ["IN-PROGRESS", "VERIFIED-PASS", "F07", "REAL"]);
-  assert.deepEqual(reverified.acceptanceUnchanged, { ruling: ACCEPTANCES.F07.ruling.sha256, contract: ACCEPTANCES.F07.contractSha256 });
+  assert.deepEqual(reverified.acceptanceUnchanged, { ruling: F07_AMENDMENT_1.ruling.sha256, contract: F07_AMENDMENT_1.contractSha256 });
+  assert.equal(amended2.contractSha256, ACCEPTANCES.F07.contractSha256);
+  assert.deepEqual(amended2.amends, { ruling: F07_AMENDMENT_1.ruling, contractSha256: F07_AMENDMENT_1.contractSha256 });
+  assert.deepEqual([reopened2.from, reopened2.to, reopened2.reason], ["VERIFIED-PASS", "IN-PROGRESS", "AUTHORITATIVE_REQUIREMENT_CHANGE"]);
+  assert.match(reopened2.rationale, /Amendment 1's evidence remains historically valid for what it measured/);
+  assert.match(reopened2.rationale, /live MARKING_KEY entries number zero/);
+  assert.deepEqual([reverified2.from, reverified2.to, reverified2.featureId, reverified2.population], ["IN-PROGRESS", "VERIFIED-PASS", "F07", "REAL"]);
+  assert.deepEqual(reverified2.acceptanceUnchanged, { ruling: ACCEPTANCES.F07.ruling.sha256, contract: ACCEPTANCES.F07.contractSha256 });
+  assert.match(reverified2.realPopulationNewLimbs, /^NOT_MEASURED/, "the added limbs' zero real population is not recorded as NOT_MEASURED");
+  assert.match(reverified2.afterMerge, /exact merged SHA/);
   assert.match(reverified.realPopulationNewLimbs, /^NOT_MEASURED/, "the new limbs' zero real population is not recorded as NOT_MEASURED");
   assert.match(reverified.afterMerge, /exact merged SHA/);
   assert.deepEqual([impl.from, impl.to], ["UNASSESSED", "IN-PROGRESS"]);
   assert.deepEqual([verified.from, verified.to, verified.featureId, verified.population], ["IN-PROGRESS", "VERIFIED-PASS", "F07", "REAL"]);
   assert.deepEqual(verified.acceptanceUnchanged, { ruling: F07_ORIGINAL.ruling.sha256, contract: F07_ORIGINAL.contractSha256 });
-  for (const e of [impl, verified, reopened, reverified]) {
+  for (const e of [impl, verified, reopened, reverified, reopened2, reverified2]) {
     assert.ok(!Object.hasOwn(e, "changeKind"), `${e.kind} carries the historical changeKind vocabulary`);
     assert.ok(e.reason, `${e.kind} moved with no stated reason`);
   }
@@ -75,15 +86,21 @@ test("F7-BOARD · CONTROL — the same board without F07's REAL verification, or
 
 test("F7-TRAIL · each F07 movement is in the production trail EXACTLY ONCE, under the acceptance that governed it, naming its states", () => {
   const mine = trail().filter((e) => e.eventType === "BOARD_TRANSITION" && e.metadata?.featureId === "F07");
-  assert.deepEqual(mine.map((e) => e.action), ["ACCEPTANCE_FROZEN", "IMPLEMENTATION", "VERIFIED", "ACCEPTANCE_AMENDED", "REOPENED", "VERIFIED"], `${mine.length} transition event(s) for F07`);
+  assert.deepEqual(mine.map((e) => e.action), ["ACCEPTANCE_FROZEN", "IMPLEMENTATION", "VERIFIED", "ACCEPTANCE_AMENDED", "REOPENED", "VERIFIED", "ACCEPTANCE_AMENDED", "REOPENED", "VERIFIED"], `${mine.length} transition event(s) for F07`);
   for (const e of mine.slice(0, 3)) {
     assert.deepEqual(e.authorityRef, { propositionId: "F07_FROZEN_ACCEPTANCE", scope: ["ALMIVISIBILITY", "F07"] });
     assert.equal(e.occurredAt.slice(0, 10), "2026-09-23");
   }
-  for (const e of mine.slice(3)) {
+  for (const e of mine.slice(3, 6)) {
     assert.deepEqual(e.authorityRef, { propositionId: "F07_ACCEPTANCE_AMENDMENT_1", scope: ["ALMIVISIBILITY", "F07"] });
     assert.equal(e.occurredAt.slice(0, 10), "2026-09-25");
   }
+  for (const e of mine.slice(6)) {
+    assert.deepEqual(e.authorityRef, { propositionId: "F07_ACCEPTANCE_AMENDMENT_2", scope: ["ALMIVISIBILITY", "F07"] });
+    assert.equal(e.occurredAt.slice(0, 10), "2026-09-26");
+  }
+  assert.deepEqual([mine[7].metadata.from, mine[7].metadata.to], ["VERIFIED-PASS", "IN-PROGRESS"]);
+  assert.deepEqual([mine[8].metadata.from, mine[8].metadata.to, mine[8].metadata.population], ["IN-PROGRESS", "VERIFIED-PASS", "REAL"]);
   assert.deepEqual([mine[4].metadata.from, mine[4].metadata.to], ["VERIFIED-PASS", "IN-PROGRESS"]);
   assert.deepEqual([mine[5].metadata.from, mine[5].metadata.to, mine[5].metadata.population], ["IN-PROGRESS", "VERIFIED-PASS", "REAL"]);
   assert.deepEqual([mine[1].metadata.from, mine[1].metadata.to], ["UNASSESSED", "IN-PROGRESS"]);

@@ -52,6 +52,35 @@ export function registryErrors(registry) {
     forbid(e.role !== "RETIRED_CONTAMINATED" && e.retiredReason !== null, "only a retired population carries a retiredReason");
     forbid(e.role === "SYNTHETIC_TEST_FIXTURE" && (e.mayEvaluate || e.maySupplyExpectedAnswer), "a synthetic fixture is never real evidence");
   }
+  errs.push(...linkedPairErrors(registry));
+  return errs;
+}
+
+/* ═══ F07 AMENDMENT 2 (governance 051feb9) — THE LINKED PAIR ═══════════════════════════════════════════════════════════════
+ * A MARKING_KEY names, by id, the ONE registered HELD_OUT_EVIDENCE set it marks (`linkedSet`); both declare the tenant scope
+ * they cover (`tenantScope`, a list of tenant ids or the one word GLOBAL_PRODUCT); a key may declare the protocol's own label
+ * vocabulary (`labelVocabulary`), which is public protocol text and never a leak by itself. The pair must be two distinct
+ * artefacts (DUAL_ROLE above), each set carries at most one key, and the pair never spans different tenant scopes. */
+export const TENANT_SCOPE_GLOBAL = "GLOBAL_PRODUCT";
+const scopeOf = (e) => (Array.isArray(e?.tenantScope) && e.tenantScope.length && e.tenantScope.every((t) => typeof t === "string" && t.trim()) ? [...new Set(e.tenantScope)].sort() : null);
+export const sameTenantScope = (a, b) => { const x = scopeOf(a), y = scopeOf(b); return Boolean(x && y && x.length === y.length && x.every((t, i) => t === y[i])); };
+
+export function linkedPairErrors(registry) {
+  const errs = [];
+  const list = Array.isArray(registry) ? registry : [];
+  for (const e of list.filter((x) => ["HELD_OUT_EVIDENCE", "MARKING_KEY"].includes(x?.role))) {
+    const at = e.id ?? "?";
+    if (!scopeOf(e)) errs.push({ code: "TENANT_SCOPE_UNDECLARED", id: at, why: `${at} (${e.role}) declares no tenant scope — a held-out role is never tenant-blind` });
+    if (e.role !== "MARKING_KEY") continue;
+    if (Object.hasOwn(e, "labelVocabulary") && !(Array.isArray(e.labelVocabulary) && e.labelVocabulary.every((v) => typeof v === "string" && v.trim()))) errs.push({ code: "LABEL_VOCABULARY_MALFORMED", id: at, why: `${at}: labelVocabulary is not a list of non-empty strings` });
+    if (!(typeof e.linkedSet === "string" && e.linkedSet.trim())) { errs.push({ code: "MARKING_KEY_LINK_MISSING", id: at, why: `${at} names no linked HELD_OUT_EVIDENCE set` }); continue; }
+    const set = list.find((x) => x?.id === e.linkedSet);
+    if (!set || set.role !== "HELD_OUT_EVIDENCE") { errs.push({ code: "MARKING_KEY_LINK_UNRESOLVED", id: at, why: `${at} links to an id that is not a registered HELD_OUT_EVIDENCE set` }); continue; }
+    if (scopeOf(e) && scopeOf(set) && !sameTenantScope(e, set)) errs.push({ code: "PAIR_CROSSES_TENANTS", id: at, why: `${at} and its set ${set.id} declare different tenant scopes` });
+  }
+  const keysBySet = new Map();
+  for (const k of list.filter((x) => x?.role === "MARKING_KEY" && typeof x.linkedSet === "string")) keysBySet.set(k.linkedSet, [...(keysBySet.get(k.linkedSet) ?? []), k.id]);
+  for (const [set, keys] of keysBySet) if (keys.length > 1) errs.push({ code: "SET_HAS_MORE_THAN_ONE_KEY", id: set, why: `${set} is linked by ${keys.length} marking keys — a grant must bind exactly one` });
   return errs;
 }
 

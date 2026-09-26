@@ -6,6 +6,8 @@
  *   node bin/heldout-evaluation.mjs request --mechanism-id=<id> --mechanism-hash=<sha256> --set=<sealed-set id>
  *                                   --commitment=<sha256> --protocol=<id> --purpose=<id> --authority=<propositionId>
  *   node bin/heldout-evaluation.mjs freeze --mechanism-id=<id> --mechanism-hash=<sha256> [--confirm]
+ *   request … --key-set=<marking-key id> --key-commitment=<sha256> --scorer-id=<id> --scorer-hash=<sha256>
+ *                                   a LINKED grant (F07 Amendment 2): one set, its one linked key, a frozen scorer
  *
  * `status` is read-only: the declared sets by role, and — from the audit trail — the freezes and accesses recorded.
  * `request` asks for held-out access and ALWAYS records the decision (an access attempt that is not recorded is F07's
@@ -84,6 +86,9 @@ const g = requestHeldOutAccess({
     populationCommitment: arg("commitment"), protocolId: arg("protocol"), purpose: arg("purpose"),
     evaluatorAuthority: arg("authority") ? { propositionId: arg("authority"), scope: ["ALMIVISIBILITY"] } : null,
     at: NOW, role: "evaluator",
+    /* F07 Amendment 2: naming a marking key asks for a LINKED grant — then the key, its commitment and the frozen scorer
+     * are all required, and a missing one is refused and recorded (src/heldout/lifecycle.mjs LINKED_REQUEST_FIELDS). */
+    ...(arg("key-set") || arg("key-commitment") || arg("scorer-id") || arg("scorer-hash") ? { keySetId: arg("key-set"), keyCommitment: arg("key-commitment"), scorerId: arg("scorer-id"), scorerHash: arg("scorer-hash") } : {}),
   },
 });
 console.log(`${g.allowed ? "ALLOWED" : "REFUSED"} ${g.code}${g.allowed ? ` · status ${g.status} · untouched ${g.untouched}` : ""} · recorded as ${g.eventId}`);

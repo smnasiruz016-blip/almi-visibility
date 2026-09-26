@@ -24,9 +24,10 @@ const REGISTER = "src/authority/register.mjs";
 const T = "test/f07-heldout-firewall.test.mjs";
 
 export const F07_SABOTAGES = [
+  /* F7-S1 re-anchored for F07 Amendment 2 (the line gained the foreign-store pass-through); intent unchanged. */
   { id: "F7-S1", what: "denial moved AFTER the read", file: SEALED, test: T, named: "P2 ·",
-    from: "  const verdict = classifySealed({ registry, root, base, path, ...(realpath ? { realpath } : {}) });",
-    to: "  const early = read(join(base, path), encoding); void early;\n  const verdict = classifySealed({ registry, root, base, path, ...(realpath ? { realpath } : {}) });",
+    from: "  const verdict = classifySealed({ registry, root, base, path, ...(realpath ? { realpath } : {}), ...(foreignRoots ? { foreignRoots } : {}) });",
+    to: "  const early = read(join(base, path), encoding); void early;\n  const verdict = classifySealed({ registry, root, base, path, ...(realpath ? { realpath } : {}), ...(foreignRoots ? { foreignRoots } : {}) });",
     expect: /the loader's reader was called for a sealed path/ },
 
   /* 🔴 BOTH collapses go. A first draft removed only the leading normalize: the return line normalised again, `..`

@@ -26,6 +26,8 @@ import { census as authorityCensus } from "../src/authority/corpus.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { scan, derivePopulation, distinctiveFragments, registeredHashErrors, registryErrors, trackedFiles, HELD_OUT_EVALUATORS, censusEntries, censusNewRoles } from "../tools/heldout-firewall.mjs";
 import { populationCommitment } from "../src/heldout/lifecycle.mjs";
+import { sealedManifest } from "../tools/heldout-firewall.mjs";
+import { resolveSealedStoreRoots, storeFiles } from "../src/governance/sealed-store-roots.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const registry = EVIDENCE_ROLE_REGISTRY;
@@ -87,8 +89,20 @@ for (const entry of ofRole("RETIRED_CONTAMINATED")) {
 /* 🔴 F07 AMENDMENT 1 — every registered HELD_OUT_EVIDENCE and MARKING_KEY entry: its members obtained inside the boundary
  * (a registered derivation, or the files under its sealed prefix — that read recorded as a durable ACCESS), then the same
  * scan, the finding named by role. An entry that cannot be read or verified FAILS the census; it is never skipped. */
+/* 🔴 F07 AMENDMENT 2 (governance 051feb9): a sealed role may also live in a GOVERNED SEALED STORE outside any git tree,
+ * located by an environment reference declared in config/evidence-roles.mjs. Each located store is a root this census reads;
+ * a declared store that cannot be located is NOT an empty store — its entries fail closed below (SEALED_ROLE_ROOT_NOT_SCANNED). */
+const STORES = resolveSealedStoreRoots();
+const located = Object.fromEntries(Object.entries(STORES.roots).filter(([, d]) => d));
+const ROOTS = { engine: REPO, ...located };
+const FILES_OF = (r) => (r === "engine" ? files : located[r] ? storeFiles(located[r]) : []);
 {
-  const nr = censusNewRoles({ registry, root: "engine", base: REPO, files, roots: { engine: REPO }, filesOf: (r) => (r === "engine" ? files : []), derivers: { HOLD_OUT_RULE: derive }, commitment: populationCommitment, productionTexts, evaluatorSources, audit: AUDIT });
+  const manifest = sealedManifest(registry, { roots: ROOTS, filesOf: FILES_OF, storeCodes: STORES.codes });
+  console.log(`SEALED-ROLE MANIFEST — ${manifest.length} registered HELD_OUT_EVIDENCE / MARKING_KEY entr${manifest.length === 1 ? "y" : "ies"} · governed sealed stores declared ${Object.keys(STORES.roots).length}, located ${Object.keys(located).length}`);
+  for (const m of manifest) console.log(`  ${m.role.padEnd(17)} ${m.id} · link ${m.linkedSet ?? "—"} · tenant scope ${m.tenantScope} · ${m.shape} (${m.root}) · ${m.location}${m.files === null ? "" : ` · ${m.files} file(s)`} · commitment ${m.commitment}…`);
+}
+{
+  const nr = censusNewRoles({ registry, root: "engine", base: REPO, files, roots: ROOTS, filesOf: FILES_OF, derivers: { HOLD_OUT_RULE: derive }, commitment: populationCommitment, productionTexts, evaluatorSources, audit: AUDIT });
   for (const x of nr.results) {
     if (!x.ok) { console.log(`  🔴 ${x.code}: ${x.why}`); continue; }
     console.log(`${x.role} ${x.id} · ${x.members} member(s) · source ${x.source}${x.files ? ` (${x.files} file(s) under its sealed prefix)` : ""} · ${x.fragments} distinctive fragment(s)`);

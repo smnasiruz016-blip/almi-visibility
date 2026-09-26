@@ -20,6 +20,9 @@ import { recordCandidates } from "../src/audit-trail/recorder.mjs";
 import { AUTHORITY_CORPUS } from "../config/authority/corpus.mjs";
 import { DECLARED } from "../config/fboard/f-board.mjs";
 import * as ACCEPTANCE_MODULE from "../config/fboard/acceptances.mjs";
+import { CAPABILITIES } from "../config/fboard/capabilities.mjs";
+import { buildBoard } from "../src/fboard/board.mjs";
+import { consistencyErrors } from "../tools/board-audit-consistency.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const sha = (b) => createHash("sha256").update(b).digest("hex");
@@ -154,6 +157,32 @@ test("D-RECORDER-1 · the derivation refuses to run without every acceptance ver
   assert.throws(() => familyBCandidates({ declared: rowWith(history, "IN-PROGRESS"), versions: SYN_VERSIONS }), /needs every acceptance version/);
   const unknown = familyBCandidates({ declared: rowWith([amended(ver(9, "F07_ACCEPTANCE_AMENDMENT_2"))], "IN-PROGRESS"), versions: SYN_VERSIONS, recorded: [], softwareVersion: "t", correlationId: "c", migratedAt: "2026-09-26T00:00:00Z", blockerAuthority: {} });
   assert.match(unknown[0].notMigratable, /GOVERNING_ACCEPTANCE_UNRESOLVED/, "an unpinned ruling was attributed to some acceptance");
+});
+
+/* ═══ THE GUARD'S HALF — tools/board-audit-consistency.mjs keyed a movement on (row, from, to, instant), and board movements
+ * are dated to the DAY: F07's Amendment 2 and Amendment 3 re-verifications, both on 26 Sep 2026, each under its own acceptance,
+ * were reported as ONE movement recorded twice. ═══ */
+test("D-RECORDER-1 · CONSISTENCY · two same-day re-verifications under DIFFERENT acceptances are two movements — CONTROL: the same movement written twice (same authority, same or absent identitySubject) is still DUPLICATE_TRANSITION_EVENT", () => {
+  const board = [{ featureId: "F07", state: "VERIFIED-PASS" }];
+  const at = "2026-09-26T00:00:00Z";
+  const v = (n, propositionId, identitySubject) => ({ eventId: String(n).padStart(32, "0"), eventType: "BOARD_TRANSITION", action: "VERIFIED", occurredAt: at, authorityRef: { propositionId, scope: ["ALMIVISIBILITY", "F07"] }, metadata: { featureId: "F07", from: "IN-PROGRESS", to: "VERIFIED-PASS", ...(identitySubject ? { identitySubject } : {}) } });
+  const dup = (events) => consistencyErrors({ board, events }).filter((e) => e.code === "DUPLICATE_TRANSITION_EVENT");
+  // the REAL shape: A2's VERIFIED is legacy (no identitySubject), A3's carries one
+  assert.deepEqual(dup([v(1, "F07_ACCEPTANCE_AMENDMENT_2"), v(2, "F07_ACCEPTANCE_AMENDMENT_3", "a".repeat(32))]), [], "two lawful same-day re-verifications under different acceptances were called one duplicated movement");
+  // same acceptance, twice on one day, each counted by the repaired recorder (different identitySubject)
+  assert.deepEqual(dup([v(1, "F07_ACCEPTANCE_AMENDMENT_3", "a".repeat(32)), v(2, "F07_ACCEPTANCE_AMENDMENT_3", "b".repeat(32))]), [], "two counted same-day movements under one acceptance were called a duplicate");
+  // CONTROLS — the guard can still fail
+  assert.equal(dup([v(1, "F07_ACCEPTANCE_AMENDMENT_2"), v(2, "F07_ACCEPTANCE_AMENDMENT_2")]).length, 1, "CONTROL: the same legacy movement written twice was not reported");
+  assert.equal(dup([v(1, "F07_ACCEPTANCE_AMENDMENT_3", "a".repeat(32)), v(2, "F07_ACCEPTANCE_AMENDMENT_3", "a".repeat(32))]).length, 1, "CONTROL: the same keyed movement written twice was not reported");
+  assert.equal(dup([v(1, "F07_ACCEPTANCE_AMENDMENT_3"), v(2, "F07_ACCEPTANCE_AMENDMENT_3", "a".repeat(32))]).length, 1, "CONTROL: a keyed copy of a legacy movement under the same authority was not reported");
+});
+
+test("D-RECORDER-1 · CONSISTENCY · REAL · the production board and trail are coherent: 0 consistency errors, with F07's two same-day re-verifications both on the trail", () => {
+  const events = productionAuditStore({ repo: REPO, forbiddenSubstrings: [] }).readAll().events;
+  const f07v = events.filter((e) => e.eventType === "BOARD_TRANSITION" && e.action === "VERIFIED" && e.metadata?.featureId === "F07" && e.occurredAt.startsWith("2026-09-26"));
+  assert.ok(f07v.length >= 2, "CONTROL: the real same-day pair is not on the trail — the proof would be vacuous");
+  const board = buildBoard(CAPABILITIES, DECLARED);
+  assert.deepEqual(consistencyErrors({ board, events }), [], "the real board and trail are not coherent");
 });
 
 test("D-RECORDER-1 · the production audit trail is byte-identical after every proof in this file", () => {

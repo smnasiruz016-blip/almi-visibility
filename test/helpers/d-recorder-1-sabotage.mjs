@@ -12,6 +12,9 @@
  *   DR1-S4  a legacy event may be matched more than once — a later identical movement hides behind it
  *   DR1-S5  legacy events are not recognised — every earlier real movement is re-emitted (B2)
  *   DR1-S6  the recorder drops the already-audited accounting — the arithmetic no longer reconciles
+ *   DR1-S7  the consistency guard keys a movement on (row, from, to, instant) again — lawful same-day re-verifications collide
+ *   DR1-S8  the guard ignores the identitySubject — the same keyed movement written twice passes
+ *   DR1-S9  the guard forgives a keyed copy of a LEGACY movement under the same authority
  */
 import { runSabotages } from "./f08-sabotage.mjs";
 
@@ -22,6 +25,8 @@ const SAME_DAY = "D-RECORDER-1 · two same-day amendments on one row";
 const TWICE = "D-RECORDER-1 · two same-kind movements on one day under ONE acceptance";
 const LEGACY = "D-RECORDER-1 · LEGACY events";
 const REAL = "D-RECORDER-1 · REAL · the production derivation";
+const GUARD = "D-RECORDER-1 · CONSISTENCY · two same-day re-verifications";
+const CONS = "tools/board-audit-consistency.mjs";
 
 export function dRecorder1Sabotages() {
   return [
@@ -44,6 +49,15 @@ export function dRecorder1Sabotages() {
     { id: "DR1-S6", what: "the recorder drops the already-audited accounting", file: REC, test: T, named: REAL,
       from: "alreadyAudited: prepared.filter((c) => c.alreadyAudited).map(", to: "alreadyAudited: [].filter((c) => c.alreadyAudited).map(",
       expect: /a real movement was refused or unresolvable/ },
+    { id: "DR1-S7", what: "the consistency guard keys a movement on (row, from, to, instant) — the pre-repair key", file: CONS, test: T, named: GUARD,
+      from: "|${e.occurredAt}|${e.authorityRef?.propositionId ?? \"NONE\"}`;", to: "|${e.occurredAt}`;",
+      expect: /two lawful same-day re-verifications under different acceptances were called one duplicated movement/ },
+    { id: "DR1-S8", what: "the guard ignores the identitySubject — the same keyed movement twice passes", file: CONS, test: T, named: GUARD,
+      from: "earlier.some((s) => s === null || subject === null || s === subject)", to: "earlier.some((s) => s === null || subject === null)",
+      expect: /the same keyed movement written twice was not reported/ },
+    { id: "DR1-S9", what: "the guard forgives a keyed copy of a legacy movement under the same authority", file: CONS, test: T, named: GUARD,
+      from: "earlier.some((s) => s === null || subject === null || s === subject)", to: "earlier.some((s) => s === subject)",
+      expect: /a keyed copy of a legacy movement under the same authority was not reported/ },
   ];
 }
 

@@ -54,10 +54,13 @@ test("F-BOARD · F08 is VERIFIED-PASS by FAILED → IN-PROGRESS → VERIFIED-PAS
   const kinds = f08.events.map((e) => `${e.kind}@${e.on}`);
   // History is immutable: the first verification and the contradiction that reopened it are still there, in order.
   assert.deepEqual(kinds.slice(0, 4), ["ACCEPTANCE_FROZEN@2026-09-22", "IMPLEMENTATION@2026-09-22", "VERIFIED@2026-09-22", "CONTRADICTORY_EVIDENCE_RECORDED@2026-09-22"]);
-  const [repair, verified] = f08.events.slice(4);
+  const [repair, verified] = f08.events.slice(4, 6);
   assert.deepEqual([repair.kind, repair.from, repair.to, repair.on], ["IMPLEMENTATION", "FAILED", "IN-PROGRESS", "2026-09-23"]);
   assert.deepEqual([verified.kind, verified.from, verified.to, verified.on, verified.featureId, verified.population], ["VERIFIED", "IN-PROGRESS", "VERIFIED-PASS", "2026-09-23", "F08", "REAL"]);
-  assert.equal(f08.events.length, 6);
+  /* 8 since 26 Sep 2026: F08 was REOPENED on CONCRETE_CONTRADICTORY_EVIDENCE (D-RECORDER-1, _handoffs 99f0732) and re-VERIFIED under
+   * its UNCHANGED acceptance after the recorder repair. The six events above are unchanged, in order. */
+  assert.equal(f08.events.length, 8);
+  assert.deepEqual(f08.events.slice(6).map((e) => [e.kind, e.from, e.to, e.on, e.reason]), [["REOPENED", "VERIFIED-PASS", "IN-PROGRESS", "2026-09-26", "CONCRETE_CONTRADICTORY_EVIDENCE"], ["VERIFIED", "IN-PROGRESS", "VERIFIED-PASS", "2026-09-26", "FAILURE_CLAUSES_NO_LONGER_MET_AFTER_RECORDER_REPAIR"]]);
   // 🔴 The target-aware ruling (§12): the historical changeKind vocabulary is NOT used by the new movements.
   for (const e of [repair, verified]) assert.ok(!Object.hasOwn(e, "changeKind"), `${e.kind} carries the historical changeKind vocabulary`);
   assert.ok(repair.reason && verified.reason, "a movement without a stated reason");

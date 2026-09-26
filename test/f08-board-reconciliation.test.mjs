@@ -196,7 +196,9 @@ test("P8 · EXACTLY ONE valid audit event exists for EACH of F08's verifications
   /* 🔴 TWO VERIFICATIONS SINCE 23 SEPTEMBER — one per verification DAY, never two for one. The 22 September one is
    * pinned here exactly as before; the 23 September reclosure is proved in test/f08-closure.test.mjs. */
   const mine = transitionsFor("F08");
-  assert.deepEqual(mine.map((x) => x.occurredAt.slice(0, 10)), ["2026-09-22", "2026-09-23"], `${mine.length} transition events for F08`);
+  /* THREE since 26 Sep 2026: the re-verification after the D-RECORDER-1 repair (F08 reopened on CONCRETE_CONTRADICTORY_EVIDENCE).
+   * Still one per verification DAY, never two for one. */
+  assert.deepEqual(mine.map((x) => x.occurredAt.slice(0, 10)), ["2026-09-22", "2026-09-23", "2026-09-26"], `${mine.length} transition events for F08`);
   const e = mine[0];
   assert.equal(e.scopeType, "GLOBAL_PRODUCT");
   assert.equal(e.tenantId, null);

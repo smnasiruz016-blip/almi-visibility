@@ -87,7 +87,9 @@ export function countIn(text, members, fragments) {
  * `judge: false` is the firewall's existing REPORT-ONLY scan (product-content drafts under --extra-root are "reported,
  * not judged"): its rows are returned for printing, it returns no failures, and so it decides — and emits — nothing.
  * Found 24 September 2026: the first repair emitted a violation for every FAIL row, including 17 report-only rows. */
-export function scan({ registry, root, base, files, members, fragments, evaluatorSources = [], read = (f) => readFileSync(f), audit = diagnosticGuardSink({ actor: "tools/heldout-firewall.mjs" }), judge = true }) {
+/* F07 Amendment 1: `payloadDisposition` names WHICH sealed role's content was found. Its default is the retired role's own
+ * disposition, so every existing caller — and every existing retired-population result — is byte-for-byte unchanged. */
+export function scan({ registry, root, base, files, members, fragments, evaluatorSources = [], read = (f) => readFileSync(f), audit = diagnosticGuardSink({ actor: "tools/heldout-firewall.mjs" }), judge = true, payloadDisposition = "FAIL_RETIRED_PAYLOAD" }) {
   const rows = [];
   let sealedExcluded = 0;
   for (const path of files) {
@@ -111,7 +113,7 @@ export function scan({ registry, root, base, files, members, fragments, evaluato
       if (!full) continue;
       const ex = judge ? observedDataExemption({ registry, root, path, read: () => read(file), evaluatorSources, audit }) : { exempt: false, code: "NOT_JUDGED" };
       disposition = ex.exempt ? "EXEMPT_REGISTERED_OBSERVED_DATA" : `FAIL_${ex.code}`;
-    } else if (full && FAILING_CATEGORIES.includes(category)) disposition = "FAIL_RETIRED_PAYLOAD";
+    } else if (full && FAILING_CATEGORIES.includes(category)) disposition = payloadDisposition;
     else if (fragmentFails) disposition = "FAIL_HELD_OUT_FRAGMENT";
     else if (full) disposition = `FAIL_UNCATEGORISED_${category}`;
     else disposition = "FRAGMENT_OUTSIDE_HELD_OUT_CONTEXT";
@@ -145,5 +147,107 @@ export function registeredHashErrors({ registry, root, base, read = (f) => readF
 
 /** Tracked files of a git work tree (the declared population). */
 export const trackedFiles = (base) => execFileSync("git", ["-C", base, "ls-files"], { encoding: "utf8" }).trim().split("\n").filter(Boolean);
+
+/* ═══ F07 AMENDMENT 1 (governance a0b7e4b) — THE LEAK CENSUS ENUMERATES EVERY REGISTERED SEALED HELD-OUT ROLE ══════════
+ *
+ * The frozen F07 text always claimed a leak census over ANY declared held-out set and its labels; the production entry
+ * point enumerated only RETIRED_CONTAMINATED. `censusEntries` is now the one enumeration, and a registered HELD_OUT_EVIDENCE
+ * or MARKING_KEY entry the census cannot read or verify FAILS the census — it is never skipped, and a failed read is never
+ * treated as an empty population.
+ *
+ * WHERE A NEW ROLE'S MEMBERS COME FROM, INSIDE THE BOUNDARY:
+ *   derived   `resource.derivation` { observationId, rule } — members from a registered deriver, verified against the
+ *             entry's contentHash by the lifecycle's own commitment rule (populationCommitment). An unregistered rule fails.
+ *   sealed    `resource.pathPrefixes` in a scanned root — every tracked file under the prefixes is read HERE, and only here;
+ *             the read is recorded as a durable ACCESS (action HELDOUT_CENSUS_READ, never the evaluator's HELDOUT_ACCESS, so
+ *             the lifecycle cannot mistake it for an evaluation access). Zero files under a declared prefix fails closed.
+ *   A bare `resource.path` is refused: sealed-path refusal is by prefix (src/governance/sealed-paths.mjs), so a single
+ *   path is not refused to ordinary loaders, and a census may not treat unprotected material as sealed.
+ *
+ * Members are the item text: each non-empty line, or — for a line that is JSON — each string it carries, at least
+ * MIN_MEMBER_LENGTH characters, lower-cased. The detector reports path, category and counts; never a member. */
+export const SEALED_CENSUS_ROLES = Object.freeze(["RETIRED_CONTAMINATED", "HELD_OUT_EVIDENCE", "MARKING_KEY"]);
+export const NEW_SEALED_ROLES = Object.freeze(["HELD_OUT_EVIDENCE", "MARKING_KEY"]);
+export const ROLE_DISPOSITION = Object.freeze({ RETIRED_CONTAMINATED: "FAIL_RETIRED_PAYLOAD", HELD_OUT_EVIDENCE: "FAIL_HELD_OUT_PAYLOAD", MARKING_KEY: "FAIL_MARKING_KEY_CONTENT" });
+export const MIN_MEMBER_LENGTH = 8;
+export const CENSUS_READ_ACTION = "HELDOUT_CENSUS_READ";
+
+/** Every registered entry the leak census must cover. */
+export const censusEntries = (registry) => (registry || []).filter((e) => SEALED_CENSUS_ROLES.includes(e?.role));
+
+/** The members an item text carries (see above). */
+export function extractMembers(text) {
+  const out = new Set();
+  const strings = (v) => (typeof v === "string" ? [v] : Array.isArray(v) ? v.flatMap(strings) : v && typeof v === "object" ? Object.values(v).flatMap(strings) : []);
+  for (const raw of String(text).split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line) continue;
+    let parsed = null;
+    if (/^[{[]/.test(line)) { try { parsed = JSON.parse(line); } catch { parsed = null; } }
+    for (const s of parsed === null ? [line] : strings(parsed)) { const m = s.trim().toLowerCase(); if (m.length >= MIN_MEMBER_LENGTH) out.add(m); }
+  }
+  return [...out];
+}
+
+/**
+ * The population of one registered HELD_OUT_EVIDENCE or MARKING_KEY entry, read inside the boundary.
+ *   roots      { rootName: absolute base } — the roots this census can read; an entry in any other root fails closed
+ *   filesOf    (rootName) → tracked repository-relative paths of that root
+ *   derivers   { ruleName: (observationId) → { members, others } }
+ *   commitment the lifecycle's populationCommitment (injected, so the census uses the evaluator's own rule)
+ * Returns { ok: true, members, others, source, files } or { ok: false, code, why } — never a member in `why`.
+ */
+export function sealedRolePopulation(entry, { roots = {}, filesOf, read = (f) => readFileSync(f), derivers = {}, commitment, audit = diagnosticGuardSink({ actor: "tools/heldout-firewall.mjs" }) } = {}) {
+  const fail = (code, why) => ({ ok: false, code, why: `${entry?.id ?? "?"}: ${why}` });
+  if (!NEW_SEALED_ROLES.includes(entry?.role)) return fail("NOT_A_NEW_SEALED_ROLE", `role ${entry?.role} is not HELD_OUT_EVIDENCE or MARKING_KEY`);
+  if (entry.sealed !== true) return fail("SEALED_ROLE_NOT_SEALED", "a held-out or marking-key entry must be registered sealed");
+  const r = entry.resource ?? {};
+  if (r.derivation) {
+    const d = derivers[r.derivation.rule];
+    if (typeof d !== "function") return fail("UNREGISTERED_DERIVATION", `derivation rule "${String(r.derivation.rule)}" has no registered deriver`);
+    const got = d(r.derivation.observationId) ?? {};
+    const members = [...new Set((got.members ?? []).map((m) => String(m).toLowerCase()))];
+    if (!members.length) return fail("DERIVED_POPULATION_EMPTY", "the derivation yields no member — an empty population is never a clean census");
+    if (typeof commitment !== "function" || commitment(members) !== entry.contentHash) return fail("DERIVATION_MISMATCH", "the derivation does not reproduce the registered commitment");
+    return { ok: true, members, others: got.others ?? [], source: "DERIVED", files: 0 };
+  }
+  if (r.path && !r.pathPrefixes) return fail("SEALED_ROLE_NOT_BEHIND_A_PREFIX", "a bare path is not refused to ordinary loaders; a sealed role must be declared by path prefix");
+  const prefixes = Array.isArray(r.pathPrefixes) ? r.pathPrefixes.filter((p) => typeof p === "string" && p.trim()) : [];
+  if (!prefixes.length) return fail("SEALED_ROLE_LOCATION_UNDECLARED", "the entry declares neither a derivation nor a sealed path prefix");
+  const base = roots[r.root];
+  if (!base || typeof filesOf !== "function") return fail("SEALED_ROLE_ROOT_NOT_SCANNED", `root "${String(r.root)}" is not one this census reads`);
+  const norm = (p) => String(p).replace(/\\/g, "/").replace(/\/?$/, "/");
+  const inside = filesOf(r.root).filter((p) => prefixes.some((pre) => p.replace(/\\/g, "/").startsWith(norm(pre))));
+  if (!inside.length) return fail("SEALED_CONTENT_UNREADABLE", "no tracked file under the declared prefix — a failed read is never an empty population");
+  audit.emit({
+    eventType: "EVALUATION", action: CENSUS_READ_ACTION, outcome: "ALLOWED", reasonCode: "LEAK_CENSUS_IN_BOUNDARY_READ",
+    metadata: { guard: "heldoutFirewallCensus", classification: entry.role, ruleEntry: String(entry.id), role: entry.role, root: String(r.root), resourceRef: resourceRef(r.root, prefixes.join("|")) },
+  });
+  const members = [...new Set(inside.flatMap((p) => extractMembers(read(join(base, p)).toString("utf8"))))];
+  if (!members.length) return fail("SEALED_CONTENT_CARRIES_NO_MEMBER", `${inside.length} file(s) under the prefix carry no member of at least ${MIN_MEMBER_LENGTH} characters`);
+  return { ok: true, members, others: [], source: "SEALED_PREFIX", files: inside.length };
+}
+
+/**
+ * THE NEW-ROLE CENSUS — the production entry point calls this, and so do the proofs: one code path, never a copy.
+ * For every registered HELD_OUT_EVIDENCE and MARKING_KEY entry: its population inside the boundary, then the same scan with
+ * the finding named by role. Returns counts and per-entry results (ids, codes, counts, rows of path/category/counts) and
+ * the failures. It returns no member, ever.
+ */
+export function censusNewRoles({ registry, root, base, files, roots, filesOf, derivers, commitment, productionTexts = [], evaluatorSources = [], read = (f) => readFileSync(f), audit = diagnosticGuardSink({ actor: "tools/heldout-firewall.mjs" }) }) {
+  const entries = censusEntries(registry);
+  const counts = Object.fromEntries(SEALED_CENSUS_ROLES.map((r) => [r, entries.filter((e) => e.role === r).length]));
+  const results = [];
+  const failures = [];
+  for (const entry of entries.filter((e) => NEW_SEALED_ROLES.includes(e.role))) {
+    const pop = sealedRolePopulation(entry, { roots, filesOf, read, derivers, commitment, audit });
+    if (!pop.ok) { results.push({ id: entry.id, role: entry.role, ok: false, code: pop.code, why: pop.why }); failures.push(`${pop.code} ${entry.id}`); continue; }
+    const fragments = pop.others.length ? distinctiveFragments(pop.members, pop.others, productionTexts) : [];
+    const s = scan({ registry, root, base, files, members: pop.members, fragments, evaluatorSources, read, audit, payloadDisposition: ROLE_DISPOSITION[entry.role] });
+    results.push({ id: entry.id, role: entry.role, ok: true, members: pop.members.length, source: pop.source, files: pop.files, fragments: fragments.length, rows: s.rows });
+    for (const f of s.failures) failures.push(`${f.disposition} ${f.path}`);
+  }
+  return { counts, results, failures };
+}
 
 export { registryErrors, entryFor };

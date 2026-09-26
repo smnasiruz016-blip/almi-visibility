@@ -256,6 +256,35 @@ export const DECLARED = Object.freeze({
       }),
     ]),
   }),
+  /* 🔴 F10 · HUMAN QUESTION DISCOVERY — MOVEMENT 1 (owner command _handoffs 991eb9e, §3 B1). The acceptance was frozen ALONE
+   * (504dbb9) after the storage ruling S (84abe3d), the scorer-route and missing-output resolutions (3adb716), the allocation
+   * adoption (f45a33c) and the A2 determinations (fd1e1bf); implementation begins on branch f10-human-question-discovery cut
+   * from main 59060fa (exact-SHA main CI 36223662080, success). By the owner's ruling 1.6 the follow-up limb (C7) is
+   * NOT_MEASURED until real sequence evidence exists, and capturing it belongs to no row of the 89 — so F10 stays IN-PROGRESS,
+   * open-ended. That is the owner's choice, not a defect. No VERIFIED movement is made or implied here. */
+  F10: Object.freeze({
+    featureId: "F10",
+    board: "F_BOARD",
+    state: "IN-PROGRESS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-26", ruling: ACCEPTANCES.F10.ruling, contractSha256: ACCEPTANCES.F10.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F10",
+        on: "2026-09-26",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS; VERIFIED-PASS is unavailable while clause C7 (follow-up questions) is NOT_MEASURED",
+        reason: "FROZEN_ACCEPTANCE_COMMITTED_BEFORE_ENGINE_CHANGE",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F10.ruling.sha256, contract: ACCEPTANCES.F10.contractSha256 }),
+        branch: "f10-human-question-discovery",
+        baseSha: "59060fa5393585ab1afb347316fec5ea3a813ead",
+        baseCiRun: "36223662080",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-26_F10_RESUME_EXTERNAL_SEALED_KEY.md", commit: "991eb9e1c0548c50cacefe9f7ae626c462c0f4c7", sha256: "f60f875adb344e28403e88e3d92599c25429f6f380fde4897910441fde06567e" }),
+      }),
+    ]),
+  }),
   F05: Object.freeze({
     featureId: "F05",
     board: "F_BOARD",

@@ -148,7 +148,14 @@ export const EVIDENCE_ROLE_REGISTRY = Object.freeze([
  * registry stays portable and no location is committed. An undeclared, unset or absent store is not an empty store: the
  * census and the evaluator FAIL CLOSED on it (src/governance/sealed-store-roots.mjs).
  *
- * EMPTY until the owner chooses this shape for a real marking key: the choice between a git-tracked sealed path and a
- * store declared here is the owner's (governance c4f55d7, Step 1), and the engine supports and proves both.
+ * The choice between a git-tracked sealed path and a store declared here was the owner's (governance c4f55d7, Step 1). For
+ * F10's real marking key the owner chose THIS shape (ruling S, _handoffs 84abe3d): the key lives OUTSIDE every repository,
+ * and no real label, copy of the key or recoverable encoding of either is ever committed. Each entry is an F03 storage
+ * descriptor (src/tenancy/root-registry.mjs sealedStoreDescriptorRefusal): a store name and an environment reference BY
+ * NAME. The store below is DECLARED and, until a MARKING_KEY entry is registered in it, NOT REQUIRED. From the moment one is,
+ * a machine where the reference does not locate it — CI included — FAILS the census: the accepted cost of S, and the signal
+ * working (src/governance/sealed-store-roots.mjs sealedStoreStatus). CI proves the same path with a synthetic store only.
  */
-export const SEALED_STORE_ROOTS = Object.freeze({});
+export const SEALED_STORE_ROOTS = Object.freeze({
+  "f10-marking-key": Object.freeze({ mechanism: "ENV_REFERENCE", name: "ALMIVISIBILITY_SEALED_STORE_F10_KEY" }),
+});

@@ -41,6 +41,21 @@ export const CONNECTOR_KINDS = Object.freeze(["PUBLIC_SITE", "CITED_SOURCES", "S
 /** How a credential may be named. The only mechanism is a reference to an environment variable BY ITS NAME. */
 export const CREDENTIAL_MECHANISMS = Object.freeze(["ENV_REFERENCE"]);
 
+/**
+ * 🔴 F10 (owner ruling S, _handoffs 84abe3d) · THE SEALED-STORE STORAGE DESCRIPTOR. A governed sealed store OUTSIDE every git
+ * repository is declared by ONE descriptor: its store name, and its location as an environment reference BY NAME — the same
+ * mechanism a connector's credential uses, so no location is ever committed. It is validated HERE, by F03's own vocabulary
+ * (store names are LOCAL_ID, reference names ENV_NAME, the secret firewall over both), and located at run time by
+ * src/governance/sealed-store-roots.mjs. A descriptor names a place; it never holds a path, a value or a secret.
+ * Returns the refusal code, or null when the descriptor is lawful.
+ */
+export function sealedStoreDescriptorRefusal(name, ref, { reserved = [] } = {}) {
+  if (typeof name !== "string" || !LOCAL_ID.test(name) || reserved.includes(name)) return "SEALED_STORE_NAME_INVALID";
+  if (!exact(ref, FIELDS.credential) || !CREDENTIAL_MECHANISMS.includes(ref.mechanism) || typeof ref.name !== "string" || !ENV_NAME.test(ref.name)) return "SEALED_STORE_REFERENCE_INVALID";
+  if (findSecrets({ name, ref }).length) return "SEALED_STORE_REFERENCE_INVALID";
+  return null;
+}
+
 /** The answers a lookup can give. Only DECLARED carries a location. */
 export const LOOKUP_STATES = Object.freeze(["DECLARED", "UNDECLARED", "AMBIGUOUS", "INVALID", "UNKNOWN"]);
 

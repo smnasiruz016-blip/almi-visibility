@@ -148,7 +148,7 @@ test("V6 · the SITE rule, both directions, on fixed inputs — constructor, col
   assert.equal(classifySite(text.replace("console.log(`ledger${", "record(ledger, `${"), s).cls, "UNKNOWN", "control: a real use beside it must not be ignored");
 });
 
-test("V7 · the REAL population: 45 governed = 43 routed + 2 checked exemptions + 0 non-mutating + 0 bypass, remainder 0 — every collector's caller commits through the boundary", () => {
+test("V7 · the REAL population: 45 governed = 44 routed + 1 checked exemption + 0 non-mutating + 0 bypass, remainder 0 — every collector's caller commits through the boundary", () => {
   const rows = census();
   const governed = rows.filter((r) => r.cls === "GOVERNED_STATE_CHANGE");
   /* 58/40 → 59/41 on 23 September, for a MEASURED reason: F07 added one production entry point,
@@ -169,7 +169,9 @@ test("V7 · the REAL population: 45 governed = 43 routed + 2 checked exemptions 
   assert.equal(governed.length, 45);
   assert.equal(rows.filter((r) => r.cls === "READ_ONLY_DIAGNOSTIC").length, 18);
   const by = Object.fromEntries(CALLER_CLASSES.map((c) => [c, governed.filter((r) => r.callerClass === c).length]));
-  assert.deepEqual(by, { BOUNDARY_ROUTED: 43, DIRECT_DURABLE_WRITE: 0, COLLECTOR_OR_LIBRARY_WRITE: 0, CHECKED_AUDIT_STORE_EXEMPTION: 2, READ_ONLY: 0, PARTIALLY_ROUTED: 0, UNKNOWN: 0 });
+  /* 43/2 → 44/1 on 26 September (F10), for a MEASURED reason: bin/heldout-evaluation.mjs now routes its scoring run through the
+   * boundary (BOUNDARY_ROUTED); no entry point was added and no other caller moved class. */
+  assert.deepEqual(by, { BOUNDARY_ROUTED: 44, DIRECT_DURABLE_WRITE: 0, COLLECTOR_OR_LIBRARY_WRITE: 0, CHECKED_AUDIT_STORE_EXEMPTION: 1, READ_ONLY: 0, PARTIALLY_ROUTED: 0, UNKNOWN: 0 });
   assert.equal(bypasses(rows).length, 0);
   assert.equal(governed.filter((r) => r.routed).length + auditStoreExempt(rows).length + nonMutating(rows).length + bypasses(rows).length, governed.length);
   const sites = governed.flatMap((r) => r.siteDetail.map((s) => ({ ...s, file: r.file, reaches: r.reachesBoundary })));

@@ -365,7 +365,11 @@ test("ASP-C7 · a registered primitive CHANGED to write elsewhere: the real cens
   /* CONTROL: the same path handed the UNCHANGED text gives the real, green census. */
   const same = census({ primitiveRead: readWith(LIFE, lifeWith(GATE_BODY)) });
   assert.deepEqual(bypasses(same).map((r) => r.file), []);
-  assert.equal(same.find((r) => r.file === "bin/heldout-evaluation.mjs").auditStoreExempt, true);
+  /* Since F10 (26 Sep 2026) the evaluator also routes one write through the boundary (the scoring run), so the clean caller is
+   * BOUNDARY_ROUTED — and every primitive site in it is still a CHECKED audit-store site. The fired half above is unchanged. */
+  const hc = same.find((r) => r.file === "bin/heldout-evaluation.mjs");
+  assert.equal(hc.callerClass, "BOUNDARY_ROUTED");
+  assert.ok(hc.siteDetail.length === 3 && hc.siteDetail.every((s) => s.cls === "CHECKED_AUDIT_STORE_EXEMPTION"), "a primitive site in the clean evaluator is not a checked audit-store site");
 });
 
 /* ═══ C8 · a caller that invokes the primitive still cannot bypass its own governed mutation boundary ═════════════ */
@@ -390,11 +394,12 @@ test("ASP-C8 · a caller's own product write is a bypass wherever it sits — it
   assert.deepEqual([rowOf(WELL_FORMED()).bypass, rowOf(WELL_FORMED()).row.auditStoreExempt], [0, true]);
 });
 
-test("ASP-C8 · REAL · the 5 production callers of a primitive: 3 route every product write through the boundary, 2 write nothing but the audit store", () => {
+test("ASP-C8 · REAL · the 5 production callers of a primitive: 4 route every product write through the boundary, 1 writes nothing but the audit store", () => {
   const callers = ["bin/audit-trail.mjs", "bin/authority-migrate.mjs", "bin/heldout-evaluation.mjs", "bin/project-intake.mjs", "bin/supersede-noindex.mjs"].map((f) => REAL.find((r) => r.file === f));
   const routed = callers.filter((r) => r.callerClass === "BOUNDARY_ROUTED");
   const exempt = callers.filter((r) => r.callerClass === "CHECKED_AUDIT_STORE_EXEMPTION");
-  assert.deepEqual([routed.length, exempt.length, callers.length - routed.length - exempt.length], [3, 2, 0]);
+  /* 3/2 → 4/1 on 26 Sep 2026 (F10): bin/heldout-evaluation.mjs now also routes its scoring run through the boundary. */
+  assert.deepEqual([routed.length, exempt.length, callers.length - routed.length - exempt.length], [4, 1, 0]);
   for (const r of callers) assert.deepEqual(r.siteDetail.filter((s) => s.cls === "DIRECT_DURABLE_WRITE" || s.cls === "UNKNOWN").map((s) => s.line), [], `${r.file} keeps a direct write`);
   for (const r of exempt) assert.ok(r.siteDetail.every((s) => s.cls === "CHECKED_AUDIT_STORE_EXEMPTION"), `${r.file} is exempt with a non-audit site`);
 });

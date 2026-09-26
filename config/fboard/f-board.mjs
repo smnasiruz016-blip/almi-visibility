@@ -390,7 +390,10 @@ export const DECLARED = Object.freeze({
      * and adds the evaluator limb the frozen text always implied (linked grant, governed read, aggregate score, complete
      * census in both marking-key location shapes). Amendment 1's evidence remains historically valid for what it measured;
      * live MARKING_KEY entries number zero; the reopen is caused by the newly frozen wider requirement. */
-    state: "IN-PROGRESS",
+    /* 🔴 VERIFIED-PASS AGAIN — under Amendment 2, by the route the reopening recorded, EARNED only when main CI is green on
+     * the exact merged SHA (afterMerge). The four added limbs' REAL population is zero (NOT_MEASURED): the event says what
+     * they are, and are not yet, proved against. */
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       // The acceptance was committed ALONE in the governance repository (cd149ae) before any F07 engine change.
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-23", ruling: F07_ORIGINAL.ruling, contractSha256: F07_ORIGINAL.contractSha256 }),
@@ -470,6 +473,23 @@ export const DECLARED = Object.freeze({
         amendment: Object.freeze({ ruling: ACCEPTANCES.F07.ruling, contractSha256: ACCEPTANCES.F07.contractSha256 }),
         ownerRulings: Object.freeze({ repo: "_handoffs", optionA: "c4f55d79e3c49122cb5eff2be2b9424a43852036", rA2: "1faafaeab846dd9d782f9993557da82021b6a458" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-26_F07_AMENDMENT_2_MARKING_KEY_EVALUATOR.md", commit: "c4f55d79e3c49122cb5eff2be2b9424a43852036", sha256: "7db208549f2c592a819b7e293ffcc411a57ba0c7ac35ec88b96af55901c99d17" }),
+      }),
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F07",
+        population: "REAL",
+        on: "2026-09-26",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: Amendment 2)",
+        reason: "AMENDED_CONTRACT_PROVED_EXISTING_LIMBS_ON_REAL_POPULATIONS",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F07.ruling.sha256, contract: ACCEPTANCES.F07.contractSha256 }),
+        realPopulationNewLimbs: "NOT_MEASURED (F06) — 0 registered HELD_OUT_EVIDENCE, 0 registered MARKING_KEY and 0 declared governed sealed stores in the real registry; zero is not a pass, and the amended EVIDENCE clause requires the count stated, including zero",
+        provedAgainst: "the existing limbs on the real registry, the real sealed paths (never opened), the real manifest and the real authority corpus, with the production firewall and evaluator entry points run confined; the four added limbs (linked grant, governed read, aggregate score, complete census) on constructed, non-sensitive stand-ins in scratch trees, an OS temporary store and in-memory audit stores, in BOTH marking-key location shapes — hand-worked tables reproduced exactly, every refusal named and recorded, every read recorded before use, one valid run per frozen combination",
+        notYetProvedAgainst: "a REAL registered HELD_OUT_EVIDENCE set, MARKING_KEY or governed sealed store — none exists; the first real registration is the first real population for these limbs; activity outside the governed paths (an independent git show, a direct file read) is not observable by F07 and is not claimed",
+        proofs: "test/f07-amendment2-marking-key.test.mjs (17), with F07's existing proofs re-run: test/f07-heldout-firewall.test.mjs, test/heldout-firewall.test.mjs, test/f07-sink-repair.test.mjs, test/f07-closure.test.mjs, test/f07-amendment-leak-census.test.mjs",
+        sabotage: "F7B-S1–S21 (new) · F7-S1–S16, K1–K10 and F7A-S1–S11 (existing, re-run; F7-S1 re-anchored to the changed readUnsealed line, intent unchanged)",
+        afterMerge: "main CI green on the exact merged SHA — verified after merge and reported in _handoffs; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

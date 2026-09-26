@@ -19,6 +19,7 @@ export const STATE_VOCABULARY = Object.freeze({
   boardState: { class: "E", where: "src/fboard/record-authority.mjs:48", reason: "F-board row state" },
   byQuotabilityState: { class: "I", where: "src/facts/registry.mjs:213", reason: "an aggregate count object, not a field with states" },
   canonicalEvidenceState: { class: "A", where: "src/evidence/legacy-artefacts.mjs", reason: "F06 correction (24 September 2026): the canonical state the compatibility adapter reads from a historical artefact's STRUCTURE — NOT_MEASURED only on a declared measured:false, otherwise UNMAPPED" },
+  evidenceState: { class: "A", where: "src/heldout/lifecycle.mjs (scoreClassification)", reason: "F07 Amendment 2 (26 September 2026): the canonical F06 state of a released aggregate score — OBSERVED when counted over a non-empty denominator, NOT_MEASURED when the denominator is empty; assigned by structure, never by a word" },
   byState: { class: "I", where: "bin/facts-lifecycle.mjs:139 · bin/label-on-face.mjs:32", reason: "a local tally variable" },
   classificationState: { class: "C", where: "src/crawl/observation-batch.mjs:269", reason: "a batch's subject-assignment marker, carried as provenance only" },
   collectionState: { class: "C", where: "src/tenancy/resolver.mjs:56", unknownMeans: "the tenancy declaration source could not be read", reason: "a tenancy-resolution dimension" },

@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1 } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F10_ORIGINAL } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -267,7 +267,7 @@ export const DECLARED = Object.freeze({
     board: "F_BOARD",
     state: "IN-PROGRESS",
     events: Object.freeze([
-      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-26", ruling: ACCEPTANCES.F10.ruling, contractSha256: ACCEPTANCES.F10.contractSha256 }),
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-26", ruling: F10_ORIGINAL.ruling, contractSha256: F10_ORIGINAL.contractSha256 }),
       Object.freeze({
         kind: "IMPLEMENTATION",
         featureId: "F10",
@@ -276,13 +276,16 @@ export const DECLARED = Object.freeze({
         to: "IN-PROGRESS",
         route: "UNASSESSED -> IN-PROGRESS; VERIFIED-PASS is unavailable while clause C7 (follow-up questions) is NOT_MEASURED",
         reason: "FROZEN_ACCEPTANCE_COMMITTED_BEFORE_ENGINE_CHANGE",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F10.ruling.sha256, contract: ACCEPTANCES.F10.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F10_ORIGINAL.ruling.sha256, contract: F10_ORIGINAL.contractSha256 }),
         branch: "f10-human-question-discovery",
         baseSha: "59060fa5393585ab1afb347316fec5ea3a813ead",
         baseCiRun: "36223662080",
         baseCiConclusion: "success",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-26_F10_RESUME_EXTERNAL_SEALED_KEY.md", commit: "991eb9e1c0548c50cacefe9f7ae626c462c0f4c7", sha256: "f60f875adb344e28403e88e3d92599c25429f6f380fde4897910441fde06567e" }),
       }),
+      /* Amendment 1 (2ee6c2a, committed ALONE): C7 only, after the owner approved its nine pre-run values without alteration
+       * (ed85493). It names the original by both hashes. NO state change: F10 stays IN-PROGRESS and C7 NOT_MEASURED. */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F10", on: "2026-09-26", ruling: ACCEPTANCES.F10.ruling, contractSha256: ACCEPTANCES.F10.contractSha256, amends: ACCEPTANCES.F10.amends }),
     ]),
   }),
   F05: Object.freeze({

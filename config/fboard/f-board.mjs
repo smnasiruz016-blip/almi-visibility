@@ -562,7 +562,7 @@ export const DECLARED = Object.freeze({
      * audit event" or "superseded authority is reported as the authority at the event". The shipped recorder re-attributed
      * historical board movements to a later amendment's authority and refused a real reopen (census _handoffs 99f0732). The
      * requirement did not change; the shipped code never met it. No amendment is frozen. */
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-22", ruling: ACCEPTANCES.F08.ruling, contractSha256: ACCEPTANCES.F08.contractSha256 }),
       // Implementation began only after the acceptance was committed: src/audit-trail/{event,store,reader,population,
@@ -670,6 +670,23 @@ export const DECLARED = Object.freeze({
         acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F08.ruling.sha256, contract: ACCEPTANCES.F08.contractSha256 }),
         census: Object.freeze({ repo: "_handoffs", commit: "99f073295fcb2af13e50b70477160c318b1049c8" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-26_REPAIR_D_RECORDER_1_THEN_RESUME.md", commit: "d861f470453fc9ccdb3dcd4f8b2fa66a077c6c33", sha256: "fdb091be5a53a8dc3a071fd9f9e13e62f251c1765e77f00af6bc9f1442cc42b1" }),
+      }),
+      /* Verified UNDER F08's UNCHANGED acceptance after the recorder repair (dc60844): every board movement now binds to the
+       * acceptance that governed it and the state after it; this very movement was recorded THROUGH the repaired recorder. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F08",
+        population: "REAL",
+        on: "2026-09-26",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (concrete contradictory evidence D-RECORDER-1, repaired)",
+        reason: "FAILURE_CLAUSES_NO_LONGER_MET_AFTER_RECORDER_REPAIR",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F08.ruling.sha256, contract: ACCEPTANCES.F08.contractSha256 }),
+        populations: "real board: 45 declared movements before this one, 45 already audited, 0 re-emitted, 0 NOT_MIGRATABLE, 0 INVALID (test/d-recorder-1.test.mjs REAL, on a copy of the trail)",
+        proofs: "test/d-recorder-1.test.mjs 9/9: two same-day amendments on one row; two same-kind movements under one acceptance; legacy events consumed once; idempotent re-derivation; old VERIFIED then new REOPENED; collision refusal; the real board; no default",
+        sabotage: "D-RECORDER-1 6/6 RED on the named test for the intended reason, restored; F08 34/34; ASP 15/15; production trail untouched",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

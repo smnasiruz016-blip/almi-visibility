@@ -557,6 +557,11 @@ export const DECLARED = Object.freeze({
      * Everything above stays as written — the first verification and the contradiction that reopened it are history,
      * not errors. The PASS is EARNED only when main CI is green on the exact merged SHA; the VERIFIED event says so
      * (afterMerge), and a red main run means this movement must be reverted. */
+    /* 🔴 REOPENED 26 Sep 2026 — CONCRETE_CONTRADICTORY_EVIDENCE (D-RECORDER-1). F08's own frozen text requires every governed
+     * event recorded "under which authority as it stood at the time of the event", and fails when "a governed action produces no
+     * audit event" or "superseded authority is reported as the authority at the event". The shipped recorder re-attributed
+     * historical board movements to a later amendment's authority and refused a real reopen (census _handoffs 99f0732). The
+     * requirement did not change; the shipped code never met it. No amendment is frozen. */
     state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-22", ruling: ACCEPTANCES.F08.ruling, contractSha256: ACCEPTANCES.F08.contractSha256 }),
@@ -651,6 +656,37 @@ export const DECLARED = Object.freeze({
         replay: "bin/replay-crawl.mjs end to end under STAGED_DIRECTORY_REPLACE, two real artifact downloads (runs/audit/f08-replay-crawl-e2e-2026-09-23.txt)",
         acceptanceDerivation: "92d20a63… re-derived from the ruling's committed bytes (runs/audit/f08-acceptance-derivation-2026-09-23.txt)",
         afterMerge: "main CI green on the exact merged SHA — verified after merge and reported in _handoffs/AlmiVisibility_F08_VERIFIED_PASS_EVIDENCE_2026-09-23.md; a red main run means this record is wrong and must be reverted",
+      }),
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F08",
+        on: "2026-09-26",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (concrete contradictory evidence: D-RECORDER-1)",
+        reason: "CONCRETE_CONTRADICTORY_EVIDENCE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "the recorder gives every historical board movement the row's CURRENT acceptance authority and CURRENT state (src/audit-trail/population.mjs familyBCandidates), so an amendment re-attributes earlier movements, re-emits an old VERIFIED after a new REOPENED, and refuses a real same-day reopen as EVENT_ID_CONFLICT — F08's EXPECTED and FAILURE clauses already forbid this",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F08.ruling.sha256, contract: ACCEPTANCES.F08.contractSha256 }),
+        census: Object.freeze({ repo: "_handoffs", commit: "99f073295fcb2af13e50b70477160c318b1049c8" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-26_REPAIR_D_RECORDER_1_THEN_RESUME.md", commit: "d861f470453fc9ccdb3dcd4f8b2fa66a077c6c33", sha256: "fdb091be5a53a8dc3a071fd9f9e13e62f251c1765e77f00af6bc9f1442cc42b1" }),
+      }),
+      /* Verified UNDER F08's UNCHANGED acceptance after the recorder repair (dc60844): every board movement now binds to the
+       * acceptance that governed it and the state after it; this very movement was recorded THROUGH the repaired recorder. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F08",
+        population: "REAL",
+        on: "2026-09-26",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (concrete contradictory evidence D-RECORDER-1, repaired)",
+        reason: "FAILURE_CLAUSES_NO_LONGER_MET_AFTER_RECORDER_REPAIR",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F08.ruling.sha256, contract: ACCEPTANCES.F08.contractSha256 }),
+        populations: "real board: 45 declared movements before this one, 45 already audited, 0 re-emitted, 0 NOT_MIGRATABLE, 0 INVALID (test/d-recorder-1.test.mjs REAL, on a copy of the trail)",
+        proofs: "test/d-recorder-1.test.mjs 9/9: two same-day amendments on one row; two same-kind movements under one acceptance; legacy events consumed once; idempotent re-derivation; old VERIFIED then new REOPENED; collision refusal; the real board; no default",
+        sabotage: "D-RECORDER-1 6/6 RED on the named test for the intended reason, restored; F08 34/34; ASP 15/15; production trail untouched",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

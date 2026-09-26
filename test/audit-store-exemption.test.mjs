@@ -85,7 +85,9 @@ test("🔴 IT STAYS VISIBLE — the exemption never shrinks the denominator", ()
   /* Named, not merely counted: a reader can see WHICH caller carries it. */
   /* Two since 23 September: F07's bin/heldout-evaluation.mjs writes ONLY audit events (access decisions, freezes,
    * its own write-gate decisions) and earns the exemption by the same two derived conditions — never by a list. */
-  assert.deepEqual(auditStoreExempt(real).map((r) => r.file), ["bin/audit-trail.mjs", "bin/heldout-evaluation.mjs"]);
+  /* One since 26 September: F10 routed bin/heldout-evaluation.mjs's scoring run through the boundary, so it is BOUNDARY_ROUTED
+   * (its primitive sites remain checked audit-store sites) and no longer carries the caller exemption. */
+  assert.deepEqual(auditStoreExempt(real).map((r) => r.file), ["bin/audit-trail.mjs"]);
   for (const r of auditStoreExempt(real)) assert.ok(r.exemption.conditionA && r.exemption.conditionB, `${r.file} is exempt without BOTH derived conditions`);
 });
 

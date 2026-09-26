@@ -179,7 +179,7 @@ test("CLOSURE · F04 is VERIFIED-PASS by UNASSESSED → IN-PROGRESS → VERIFIED
   assert.deepEqual([v.acceptanceUnchanged.contract, v.acceptanceUnchanged.ruling], [ACCEPTANCES.F04.contractSha256, ACCEPTANCES.F04.ruling.sha256], "verified under a contract other than the current one");
   assert.deepEqual(r.events.map((e) => e.kind), ["ACCEPTANCE_FROZEN", "IMPLEMENTATION", "ACCEPTANCE_AMENDED", "VERIFIED"]);
   const p = progress(buildBoard(CAPABILITIES, DECLARED));
-  assert.deepEqual([p.passed, p.split.UNASSESSED, p.split["BLOCKED-BY-AUTHORITY"], p.split["IN-PROGRESS"]], [9, 79, 1, 0]); // F09 VERIFIED-PASS on 25 Sep (movement 2, close-out 2601cb3)
+  assert.deepEqual([p.passed, p.split.UNASSESSED, p.split["BLOCKED-BY-AUTHORITY"], p.split["IN-PROGRESS"]], [9, 78, 1, 1]); // F09 VERIFIED-PASS on 25 Sep (movement 2, close-out 2601cb3); F10 IN-PROGRESS on 26 Sep (movement 1, acceptance 504dbb9)
   assert.ok(trail().some((e) => e.eventType === "BOARD_TRANSITION" && e.action === "VERIFIED" && e.metadata?.featureId === "F04"), "F04's movement is not on the trail");
 });
 

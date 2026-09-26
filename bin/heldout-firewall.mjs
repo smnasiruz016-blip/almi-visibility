@@ -16,7 +16,8 @@ import { queryObservation } from "../src/discovery/row5.mjs";
 import { splitPopulation } from "../src/discovery/query-population.mjs";
 import { isHeldOut } from "../src/discovery/intent-clusters.mjs";
 import { contentHashOf } from "../src/governance/evidence-roles.mjs";
-import { EVIDENCE_ROLE_REGISTRY } from "../config/evidence-roles.mjs";
+import { EVIDENCE_ROLE_REGISTRY, SEALED_STORE_ROOTS } from "../config/evidence-roles.mjs";
+import { withSyntheticSealedFixture } from "../src/governance/synthetic-sealed-fixture.mjs";
 import { governedGuardSink } from "../src/governance/governed-run.mjs";
 import { requiredSources, manifestErrors } from "../src/governance/mandatory-reading.mjs";
 import { MANDATORY_READING, BOARD_AND_AUTHORITY_CONFIG } from "../config/governance/mandatory-reading.mjs";
@@ -27,10 +28,13 @@ import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { scan, derivePopulation, distinctiveFragments, registeredHashErrors, registryErrors, trackedFiles, HELD_OUT_EVALUATORS, censusEntries, censusNewRoles } from "../tools/heldout-firewall.mjs";
 import { populationCommitment } from "../src/heldout/lifecycle.mjs";
 import { sealedManifest } from "../tools/heldout-firewall.mjs";
-import { resolveSealedStoreRoots, storeFiles } from "../src/governance/sealed-store-roots.mjs";
+import { resolveSealedStoreRoots, storeFiles, sealedStoreStatus } from "../src/governance/sealed-store-roots.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
-const registry = EVIDENCE_ROLE_REGISTRY;
+/* F10 (ruling S): the real registry and store descriptors, plus — ONLY in a verified test context, additive only — an isolated
+ * synthetic sealed fixture (src/governance/synthetic-sealed-fixture.mjs). Outside a test context naming one refuses the run. */
+const EFFECTIVE = withSyntheticSealedFixture({ registry: EVIDENCE_ROLE_REGISTRY, declared: SEALED_STORE_ROOTS });
+const registry = EFFECTIVE.registry;
 /* 🔴 F07 §5.3, as repaired by the owner's ruling of 23 September 2026 (option b). This run's decisions go through F08's
  * shipped boundary — the production trail, or the confined store in a verified test context — and the sink DERIVES
  * which of them the trail keeps (guard-audit.mjs `auditClassOf`): a clean sweep only CLASSIFIES (a registered
@@ -92,7 +96,8 @@ for (const entry of ofRole("RETIRED_CONTAMINATED")) {
 /* 🔴 F07 AMENDMENT 2 (governance 051feb9): a sealed role may also live in a GOVERNED SEALED STORE outside any git tree,
  * located by an environment reference declared in config/evidence-roles.mjs. Each located store is a root this census reads;
  * a declared store that cannot be located is NOT an empty store — its entries fail closed below (SEALED_ROLE_ROOT_NOT_SCANNED). */
-const STORES = resolveSealedStoreRoots();
+const STORES = resolveSealedStoreRoots({ declared: EFFECTIVE.declared });
+if (EFFECTIVE.synthetic) console.log(`SYNTHETIC SEALED FIXTURE APPLIED (verified test context only) — +${EFFECTIVE.synthetic.entries} entr${EFFECTIVE.synthetic.entries === 1 ? "y" : "ies"} · +${EFFECTIVE.synthetic.stores} store(s)`);
 const located = Object.fromEntries(Object.entries(STORES.roots).filter(([, d]) => d));
 const ROOTS = { engine: REPO, ...located };
 const FILES_OF = (r) => (r === "engine" ? files : located[r] ? storeFiles(located[r]) : []);
@@ -100,6 +105,13 @@ const FILES_OF = (r) => (r === "engine" ? files : located[r] ? storeFiles(locate
   const manifest = sealedManifest(registry, { roots: ROOTS, filesOf: FILES_OF, storeCodes: STORES.codes });
   console.log(`SEALED-ROLE MANIFEST — ${manifest.length} registered HELD_OUT_EVIDENCE / MARKING_KEY entr${manifest.length === 1 ? "y" : "ies"} · governed sealed stores declared ${Object.keys(STORES.roots).length}, located ${Object.keys(located).length}`);
   for (const m of manifest) console.log(`  ${m.role.padEnd(17)} ${m.id} · link ${m.linkedSet ?? "—"} · tenant scope ${m.tenantScope} · ${m.shape} (${m.root}) · ${m.location}${m.files === null ? "" : ` · ${m.files} file(s)`} · commitment ${m.commitment}…`);
+  /* 🔴 F10 (owner ruling S, _handoffs 84abe3d): every declared or required store, with its status. A store a registered entry
+   * REQUIRES that cannot be located FAILS here, by name and reason — never skipped, never read as empty, and never
+   * conditional on the machine this runs on. A declared store no entry requires is reported, not failed. */
+  for (const s of sealedStoreStatus({ registry, declared: EFFECTIVE.declared, resolution: STORES })) {
+    console.log(`  SEALED STORE ${s.store} · required by ${s.requiredBy} registered entr${s.requiredBy === 1 ? "y" : "ies"} · ${s.status}`);
+    if (s.fails) failures.push(`SEALED_STORE_${s.status.split(" ")[0]} ${s.store} ${s.code}`);
+  }
 }
 {
   const nr = censusNewRoles({ registry, root: "engine", base: REPO, files, roots: ROOTS, filesOf: FILES_OF, derivers: { HOLD_OUT_RULE: derive }, commitment: populationCommitment, productionTexts, evaluatorSources, audit: AUDIT });

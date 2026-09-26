@@ -101,7 +101,10 @@ export const ASP_SABOTAGES = [
   { id: "S11", what: "an UNVERIFIED entry stays registered", file: CEN, test: T, named: "ASP-C7",
     from: "  const registered = verifiedPrimitives(verification);",
     to: "  const registered = verification.map(({ name, module }) => ({ name, module }));",
-    probe: probe(`const changed = lifeText.replace(GATE, GATE.replace("audit.store.append(d)", "PRODUCT_STORE.append(d)")); const rows = C.census({ primitiveRead: (f) => f === LIFE ? changed : fs.readFileSync(f, "utf8") }); say(rows.find((r) => r.file === "bin/heldout-evaluation.mjs").auditStoreExempt);`),
+    probe: probe(`const changed = lifeText.replace(GATE, GATE.replace("audit.store.append(d)", "PRODUCT_STORE.append(d)")); const rows = C.census({ primitiveRead: (f) => f === LIFE ? changed : fs.readFileSync(f, "utf8") }); say(!C.bypasses(rows).some((r) => r.file === "bin/heldout-evaluation.mjs"));`),
+    /* F10 (26 Sep 2026): the evaluator also routes its scoring run through the boundary, so its CALLER class is BOUNDARY_ROUTED
+     * and caller-level auditStoreExempt is false by construction — the old probe could no longer see this defect. The defect's
+     * effect is that the caller of a changed primitive is NOT a bypass; that is what the probe now reads. */
     expect: /(bin\/heldout-evaluation\.mjs is not a bypass|the changed primitive's caller is still exempt)/ },
 
   { id: "S12", what: "--check ignores an unverified primitive", file: CEN, test: T, named: "ASP-C6 · every real non-audit writer",

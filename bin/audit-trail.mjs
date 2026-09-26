@@ -19,7 +19,11 @@ import { fileURLToPath } from "node:url";
 import { AUDIT_STORE } from "../config/audit-store.mjs";
 import { AUTHORITY_CORPUS, CORPUS_PROVENANCE } from "../config/authority/corpus.mjs";
 import { EVIDENCE_ROLE_REGISTRY } from "../config/evidence-roles.mjs";
-import { ACCEPTANCES } from "../config/fboard/acceptances.mjs";
+import * as ACCEPTANCE_MODULE from "../config/fboard/acceptances.mjs";
+const { ACCEPTANCES } = ACCEPTANCE_MODULE;
+/* D-RECORDER-1: EVERY pinned acceptance version — originals and amendments — so each historical movement binds to the one that
+ * governed it, never to the row's current acceptance. */
+const ACCEPTANCE_VERSIONS = [...new Set([...Object.values(ACCEPTANCES), ...Object.values(ACCEPTANCE_MODULE)].filter((v) => v && typeof v === "object" && v.ruling?.sha256 && v.authority?.propositionId && v.contractSha256))];
 import { DECLARED } from "../config/fboard/f-board.mjs";
 import { census as authorityCensus } from "../src/authority/corpus.mjs";
 import { isSealed } from "../src/governance/sealed-paths.mjs";
@@ -83,10 +87,12 @@ function registeredAtOf(entryId) {
 }
 
 function migratedCandidates(softwareVersion, migratedAt) {
+  /* The movements already on the trail — read, never written — so an earlier movement is recognised and never re-emitted. */
+  const recorded = productionAuditStore({ repo: REPO, forbiddenSubstrings: [] }).readAll().events;
   const dispositions = authorityCensus(AUTHORITY_CORPUS, NOW_DAY).dispositions;
   return [
     ...familyACandidates({ corpus: AUTHORITY_CORPUS, dispositions, provenance: CORPUS_PROVENANCE, softwareVersion, correlationId: MIGRATION_CORRELATION, migratedAt }),
-    ...familyBCandidates({ declared: DECLARED, acceptances: ACCEPTANCES, softwareVersion, correlationId: MIGRATION_CORRELATION, migratedAt, blockerAuthority: BLOCKER_AUTHORITY }),
+    ...familyBCandidates({ declared: DECLARED, versions: ACCEPTANCE_VERSIONS, recorded, softwareVersion, correlationId: MIGRATION_CORRELATION, migratedAt, blockerAuthority: BLOCKER_AUTHORITY }),
     ...familyCCandidates({ registry: EVIDENCE_ROLE_REGISTRY, softwareVersion, correlationId: MIGRATION_CORRELATION, migratedAt, roleAuthority, registeredAtOf }),
   ];
 }

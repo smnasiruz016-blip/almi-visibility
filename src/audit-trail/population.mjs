@@ -29,6 +29,7 @@
  *
  * Generic: no subject, product, client, host or regulator is named anywhere in this file.
  */
+import { createHash } from "node:crypto";
 import { resolve as resolveAuthority, permits } from "../authority/register.mjs";
 
 export const FAMILIES = Object.freeze({
@@ -177,16 +178,53 @@ export function familyACandidates({ corpus, dispositions, provenance, softwareVe
   return out;
 }
 
-/** FAMILY B — one event per DECLARED F-board event. The engine recorded the transition; no person is named as actor. */
-export function familyBCandidates({ declared, acceptances, softwareVersion, correlationId, migratedAt, blockerAuthority }) {
+/**
+ * FAMILY B — one event per DECLARED F-board event. The engine recorded the transition; no person is named as actor.
+ *
+ * 🔴 D-RECORDER-1, REPAIRED AT ITS CAUSE (F08 reopened on CONCRETE_CONTRADICTORY_EVIDENCE, _handoffs 99f0732). Every declared
+ * movement is bound to what was true FOR THAT MOVEMENT, never to the row as it stands today:
+ *   · its AUTHORITY is the acceptance that GOVERNED it — the last ACCEPTANCE_FROZEN or ACCEPTANCE_AMENDED ruling before it in the
+ *     row's declared history, resolved to its acceptance version (`versions`, every pinned version: originals and amendments);
+ *     the row's CURRENT acceptance is never used for a historical event (it re-attributed history — B1, B2);
+ *   · its `stateAfter` is the state immediately AFTER it, walked from the declared transitions — never the row's current state
+ *     (it made the same identity carry different content — B3a);
+ *   · its IDENTITY is fixed by a key over the declared event it records (`identitySubject`), so two same-kind, same-day
+ *     movements of one row are two events, not a collision (B3b);
+ *   · a movement ALREADY on the trail — written under the old rule, whose bytes are never touched — is recognised from its
+ *     stored fields (row, action, day, governing authority, from, to) and returned as already audited: it is never re-emitted.
+ * `versions` and `recorded` are REQUIRED: a default here would silently restore the defect.
+ */
+export function familyBCandidates({ declared, versions, recorded, softwareVersion, correlationId, migratedAt, blockerAuthority }) {
+  if (!Array.isArray(versions) || !Array.isArray(recorded)) throw new TypeError("familyBCandidates needs every acceptance version and the events already recorded — a default would re-attribute history");
   const out = [];
+  const versionOf = (ruling) => versions.find((v) => v?.ruling?.sha256 && v.ruling.sha256 === ruling?.sha256) ?? null;
+  const refOf = (v) => ({ propositionId: v.authority.propositionId, scope: [...v.authority.scope] });
+  const onTrail = recorded.filter((e) => e?.eventType === "BOARD_TRANSITION" && e.metadata?.family === "B");
+  const consumed = new Set();
   for (const row of Object.values(declared)) {
+    let governing = null;
+    let state = "UNASSESSED";
     for (const ev of row.events ?? []) {
       const day = ev.on;
       if (!DAY.test(day ?? "")) { out.push({ family: "B", sourceId: `${row.featureId}:${ev.kind}`, notMigratable: "NO_COMMITTED_DAY: the declared event carries no lawful date" }); continue; }
-      const acc = acceptances[row.featureId] ?? null;
-      const authorityRef = acc?.authority ? { propositionId: acc.authority.propositionId, scope: [...acc.authority.scope] } : blockerAuthority?.[row.featureId] ?? null;
-      if (!authorityRef) { out.push({ family: "B", sourceId: `${row.featureId}:${ev.kind}`, notMigratable: "NO_GOVERNING_AUTHORITY: the row declares no acceptance authority and no recorded blocker source" }); continue; }
+      if (ev.kind === "ACCEPTANCE_FROZEN" || ev.kind === "ACCEPTANCE_AMENDED") {
+        governing = versionOf(ev.ruling);
+        if (!governing?.authority) { out.push({ family: "B", sourceId: `${row.featureId}:${ev.kind}:${day}`, notMigratable: "GOVERNING_ACCEPTANCE_UNRESOLVED: the declared ruling matches no pinned acceptance version" }); continue; }
+      }
+      if (typeof ev.to === "string" && ev.to) state = ev.to;
+      const authorityRef = governing ? refOf(governing) : blockerAuthority?.[row.featureId] ?? null;
+      if (!authorityRef) { out.push({ family: "B", sourceId: `${row.featureId}:${ev.kind}`, notMigratable: "NO_GOVERNING_AUTHORITY: no acceptance governs this event and the row records no blocker source" }); continue; }
+      const occurredAt = dayToInstant(day);
+      /* The declared event's position among the row's events of the same kind and day makes two genuinely distinct movements with
+       * otherwise identical fields (a row reopened twice in one day under one acceptance) two keys, never one. */
+      const ordinal = (row.events ?? []).slice(0, (row.events ?? []).indexOf(ev)).filter((x) => x.kind === ev.kind && x.on === day).length;
+      const identitySubject = createHash("sha256").update(JSON.stringify([row.featureId, ev.kind, day, ordinal, ev.from ?? "", ev.to ?? "", ev.reason ?? "", governing?.contractSha256 ?? authorityRef.propositionId]), "utf8").digest("hex").slice(0, 32);
+      /* Already on the trail? A NEW-rule event by its write-time key; a LEGACY event (written before the key existed) by its stored
+       * fields, each legacy event consumed ONCE — so a duplicate declared movement can never hide behind one stored event. */
+      const prior = onTrail.find((e) => e.metadata.identitySubject === identitySubject)
+        ?? onTrail.find((e) => !e.metadata.identitySubject && !consumed.has(e.eventId) && e.metadata.featureId === row.featureId && e.action === ev.kind && e.occurredAt === occurredAt
+          && e.authorityRef?.propositionId === authorityRef.propositionId && (e.metadata.from ?? "") === (ev.from ?? "") && (e.metadata.to ?? "") === (ev.to ?? ""));
+      if (prior) { consumed.add(prior.eventId); out.push({ family: "B", sourceId: `${row.featureId}:${ev.kind}:${day}`, alreadyAudited: prior.eventId }); continue; }
       out.push({
         family: "B",
         sourceId: `${row.featureId}:${ev.kind}:${day}`,
@@ -217,7 +255,7 @@ export function familyBCandidates({ declared, acceptances, softwareVersion, corr
            * conclusion, and the sha256 of the governing records. A reader can then reconstruct the movement
            * without opening anything. Absent fields are recorded as "", never invented. */
           metadata: {
-            family: "B", featureId: row.featureId, board: row.board, stateAfter: row.state,
+            family: "B", featureId: row.featureId, board: row.board, stateAfter: state, identitySubject,
             occurredAtPrecision: "DAY", population: ev.population ?? "",
             from: ev.from ?? "", to: ev.to ?? "", route: (ev.route ?? "").slice(0, 190), changeKind: ev.changeKind ?? "",
             pullRequest: ev.pullRequest === undefined ? "" : String(ev.pullRequest),

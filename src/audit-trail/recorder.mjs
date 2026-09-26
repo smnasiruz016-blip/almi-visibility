@@ -41,7 +41,9 @@ export function withAuthority(candidate, { corpus }) {
 export function recordCandidates({ store, candidates, corpus, excluded = [] }) {
   const prepared = candidates.map((c) => (c.draft ? withAuthority(c, { corpus }) : c));
   const appendable = prepared.filter((c) => c.draft).sort((a, b) => String(a.draft.occurredAt).localeCompare(String(b.draft.occurredAt)));
-  const results = { migrated: [], alreadyAudited: [], notMigratable: prepared.filter((c) => c.notMigratable), invalid: [], excluded };
+  /* D-RECORDER-1: a candidate the population derivation already found ON THE TRAIL is accounted as already audited and never
+   * handed to the store — an earlier movement is never re-emitted. */
+  const results = { migrated: [], alreadyAudited: prepared.filter((c) => c.alreadyAudited).map((c) => ({ sourceId: c.sourceId, family: c.family, eventId: c.alreadyAudited })), notMigratable: prepared.filter((c) => c.notMigratable), invalid: [], excluded };
 
   for (const c of appendable) {
     try {

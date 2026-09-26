@@ -138,3 +138,17 @@ export const EVIDENCE_ROLE_REGISTRY = Object.freeze([
     retiredReason: null,
   }),
 ]);
+
+/**
+ * 🔴 F07 AMENDMENT 2 (governance 051feb9) — GOVERNED SEALED STORES OUTSIDE ANY GIT TREE.
+ *
+ * A registered HELD_OUT_EVIDENCE or MARKING_KEY entry whose `resource.root` is not "engine" (and not a derivation) names
+ * one of these stores. Each is located at run time by an ENVIRONMENT REFERENCE, BY NAME — never a path in this file, so the
+ * declared shape is { mechanism: "ENV_REFERENCE", name: "<ENVIRONMENT_VARIABLE_NAME>" }, and the
+ * registry stays portable and no location is committed. An undeclared, unset or absent store is not an empty store: the
+ * census and the evaluator FAIL CLOSED on it (src/governance/sealed-store-roots.mjs).
+ *
+ * EMPTY until the owner chooses this shape for a real marking key: the choice between a git-tracked sealed path and a
+ * store declared here is the owner's (governance c4f55d7, Step 1), and the engine supports and proves both.
+ */
+export const SEALED_STORE_ROOTS = Object.freeze({});

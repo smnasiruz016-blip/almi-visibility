@@ -223,7 +223,11 @@ export function sealedRolePopulation(entry, { roots = {}, filesOf, read = (f) =>
     eventType: "EVALUATION", action: CENSUS_READ_ACTION, outcome: "ALLOWED", reasonCode: "LEAK_CENSUS_IN_BOUNDARY_READ",
     metadata: { guard: "heldoutFirewallCensus", classification: entry.role, ruleEntry: String(entry.id), role: entry.role, root: String(r.root), resourceRef: resourceRef(r.root, prefixes.join("|")) },
   });
-  const members = [...new Set(inside.flatMap((p) => extractMembers(read(join(base, p)).toString("utf8"))))];
+  /* F07 Amendment 2: a marking key's declared label VOCABULARY (the protocol's own class and exclusion words) is public
+   * protocol text, not a leak — without this, every document that used such a word would be reported as marking-key
+   * content and the census could never be clean. Everything else in the key (its item identities, above all) stays a member. */
+  const vocabulary = new Set((entry.role === "MARKING_KEY" && Array.isArray(entry.labelVocabulary) ? entry.labelVocabulary : []).map((v) => String(v).trim().toLowerCase()));
+  const members = [...new Set(inside.flatMap((p) => extractMembers(read(join(base, p)).toString("utf8"))))].filter((m) => !vocabulary.has(m));
   if (!members.length) return fail("SEALED_CONTENT_CARRIES_NO_MEMBER", `${inside.length} file(s) under the prefix carry no member of at least ${MIN_MEMBER_LENGTH} characters`);
   return { ok: true, members, others: [], source: "SEALED_PREFIX", files: inside.length };
 }
@@ -248,6 +252,30 @@ export function censusNewRoles({ registry, root, base, files, roots, filesOf, de
     for (const f of s.failures) failures.push(`${f.disposition} ${f.path}`);
   }
   return { counts, results, failures };
+}
+
+/**
+ * 🔴 F07 AMENDMENT 2 — THE DISCOVERABLE MANIFEST. One row per registered HELD_OUT_EVIDENCE and MARKING_KEY entry: its id,
+ * role, link, tenant-scope size, location SHAPE, whether that location can be read, how many files it holds, and the
+ * registered commitment. Names, codes, counts and hashes only — never a member, a label, a path inside a store or its
+ * directory. A location that cannot be read is reported as such; it is never a zero-file store.
+ *   shape  DERIVED · GIT_TRACKED_PREFIX (a root listed from git — `trackedRoots`, by default the engine) · SEALED_STORE (a
+ *          declared store outside any git tree)
+ */
+export function sealedManifest(registry, { roots = {}, filesOf, storeCodes = {}, trackedRoots = ["engine"] } = {}) {
+  return censusEntries(registry).filter((e) => NEW_SEALED_ROLES.includes(e.role)).map((e) => {
+    const r = e.resource ?? {};
+    const shape = r.derivation ? "DERIVED" : trackedRoots.includes(r.root) ? "GIT_TRACKED_PREFIX" : "SEALED_STORE";
+    const pre = (r.pathPrefixes ?? []).map((p) => String(p).replace(/\\/g, "/").replace(/\/?$/, "/"));
+    const readable = shape === "DERIVED" ? true : Boolean(roots[r.root]) && typeof filesOf === "function";
+    const files = shape === "DERIVED" || !readable ? null : filesOf(r.root).filter((p) => pre.some((x) => p.startsWith(x))).length;
+    return Object.freeze({
+      id: String(e.id), role: e.role, linkedSet: e.role === "MARKING_KEY" ? String(e.linkedSet ?? "NONE") : null,
+      tenantScope: Array.isArray(e.tenantScope) ? e.tenantScope.length : 0, shape, root: String(r.root ?? "?"),
+      location: shape === "DERIVED" ? "DERIVED_AT_RUNTIME" : readable ? "READABLE" : `UNREADABLE (${storeCodes[r.root] ?? "ROOT_NOT_LOCATED"})`,
+      files, commitment: String(e.contentHash ?? "").slice(0, 16),
+    });
+  });
 }
 
 export { registryErrors, entryFor };

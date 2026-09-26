@@ -108,6 +108,8 @@ export function auditClassOf(decision) {
   const { eventType, action, outcome } = decision ?? {};
   if (eventType === "REFUSAL") return "ACCESS";
   if (eventType === "EVIDENCE_ROLE_DECISION") return outcome === "ALLOWED" ? "CLASSIFICATION" : "VIOLATION";
+  // F07 Amendment 2 (governance 051feb9): the evaluator's read of one side of a granted pair is an ACCESS, recorded before use.
+  if (eventType === "EVALUATION" && action === "HELDOUT_ITEM_READ") return "ACCESS";
   /* F07 Amendment 1: the leak census reading a sealed role's content inside the boundary is an ACCESS too — durable. */
   if (eventType === "EVALUATION") return action === "HELDOUT_ACCESS" || action === "HELDOUT_CENSUS_READ" ? "ACCESS" : "GOVERNED_CHANGE";
   /* F06: a checked evidence-state supersession changes what an item may be reported as — a governed change. */

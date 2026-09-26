@@ -54,9 +54,13 @@ const HO_ENTRY = Object.freeze({
   id: "synthetic:f07a-heldout", role: "HELD_OUT_EVIDENCE", resource: Object.freeze({ root: "t", pathPrefixes: Object.freeze(["vault-heldout/"]) }),
   scope: "constructed stand-in", source: "test", provenance: "test", capturedAt: "2026-09-25", contentHash: populationCommitment(["item-1"]),
   mandatoryReadable: false, mayTrain: false, mayEvaluate: true, maySupplyExpectedAnswer: false, sealed: true, retiredReason: null,
+  // F07 Amendment 2 (051feb9): every held-out role declares its tenant scope — the stricter registry law, intent unchanged.
+  tenantScope: Object.freeze(["GLOBAL_PRODUCT"]),
 });
 const MK_ENTRY = Object.freeze({
   ...HO_ENTRY, id: "synthetic:f07a-key", role: "MARKING_KEY", resource: Object.freeze({ root: "t", pathPrefixes: Object.freeze(["vault-key/"]) }), maySupplyExpectedAnswer: true,
+  // F07 Amendment 2 (051feb9): a marking key names the one set it marks.
+  linkedSet: "synthetic:f07a-heldout",
 });
 const run = (registry, t, audit = diagnosticGuardSink({ actor: "test" })) =>
   censusNewRoles({ registry, root: "t", base: t.dir, files: t.files(), roots: { t: t.dir }, filesOf: () => t.files(), derivers: {}, commitment: populationCommitment, audit });

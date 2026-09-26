@@ -31,6 +31,7 @@ import { resolve as resolveAuthority, permits } from "../authority/register.mjs"
 import { isoSeconds } from "../audit-trail/store.mjs";
 import { metadataFaults } from "../audit-trail/event.mjs";
 import { auditClassOf, isDurableDecision } from "../governance/guard-audit.mjs";
+import { contentHashOf, sameTenantScope } from "../governance/evidence-roles.mjs";
 
 export const EVALUATION_ACTIONS = Object.freeze({
   FROZEN: "HELDOUT_MECHANISM_FROZEN",
@@ -112,6 +113,9 @@ function evaluationSet(registry, sealedSetId) {
 export function requestHeldOutAccess({ audit, registry, request, authorityRecords = AUTHORITY_CORPUS }) {
   const r = request ?? {};
   const at = typeof r.at === "string" && !Number.isNaN(Date.parse(r.at)) ? isoSeconds(Date.parse(r.at)) : isoSeconds(Date.now());
+  /* F07 Amendment 2: a request that names a marking key asks for a LINKED grant — every linked field is then required, and
+   * all of them are bound into the grant's own recorded event. A request naming no key is exactly what it always was. */
+  const linked = LINKED_REQUEST_FIELDS.some((k) => r[k] !== undefined);
   const base = {
     mechanismId: SAFE_ID.test(String(r.mechanismId ?? "")) ? r.mechanismId : "INVALID",
     mechanismHash: HEX64.test(String(r.mechanismHash ?? "")) ? r.mechanismHash : "INVALID",
@@ -119,6 +123,13 @@ export function requestHeldOutAccess({ audit, registry, request, authorityRecord
     protocolId: SAFE_ID.test(String(r.protocolId ?? "")) ? r.protocolId : "INVALID",
     purpose: SAFE_ID.test(String(r.purpose ?? "")) ? r.purpose : "INVALID",
     role: SAFE_ID.test(String(r.role ?? "")) ? r.role : "evaluator",
+    ...(linked ? {
+      keySetId: SAFE_ID.test(String(r.keySetId ?? "")) ? r.keySetId : "INVALID",
+      keyCommitment: HEX64.test(String(r.keyCommitment ?? "")) ? r.keyCommitment : "INVALID",
+      scorerId: SAFE_ID.test(String(r.scorerId ?? "")) ? r.scorerId : "INVALID",
+      scorerHash: HEX64.test(String(r.scorerHash ?? "")) ? r.scorerHash : "INVALID",
+      evaluatorAuthority: SAFE_ID.test(String(r.evaluatorAuthority?.propositionId ?? "")) ? r.evaluatorAuthority.propositionId : "INVALID",
+    } : {}),
   };
   const refuse = (code) => {
     const ev = emit(audit, { action: EVALUATION_ACTIONS.ACCESS, outcome: "REFUSED", reasonCode: code, occurredAt: at, metadata: { ...base, accessStatus: "REFUSED", untouched: "false" } });
@@ -132,6 +143,11 @@ export function requestHeldOutAccess({ audit, registry, request, authorityRecord
   const set = evaluationSet(registry, r.sealedSetId);
   if (set.refuse) return refuse(set.refuse);
   if (set.entry.contentHash !== r.populationCommitment) return refuse("POPULATION_COMMITMENT_MISMATCH");
+  if (linked) {
+    const why = linkedPairRefusal(registry, set.entry, r);
+    if (why) return refuse(why);
+    base.scopeDigest = scopeDigestOf(set.entry);
+  }
 
   const res = resolveAuthority({ records: authorityRecords, propositionId: r.evaluatorAuthority.propositionId, scope: r.evaluatorAuthority.scope ?? [], now: at.slice(0, 10) });
   if (!permits(res)) return refuse("EVALUATOR_AUTHORITY_NOT_CURRENT");
@@ -144,6 +160,8 @@ export function requestHeldOutAccess({ audit, registry, request, authorityRecord
     const sameHash = frozen.filter((e) => e.metadata.mechanismHash === r.mechanismHash);
     return refuse(frozen.length === 0 ? "MECHANISM_NOT_FROZEN" : sameHash.length ? "MECHANISM_FROZEN_AFTER_REQUEST" : "MECHANISM_HASH_NOT_FROZEN");
   }
+  /* F07 Amendment 2: a linked grant also binds a FROZEN scorer — the same freeze record, under the scorer's own id. */
+  if (linked && !trail.some((e) => e.action === EVALUATION_ACTIONS.FROZEN && e.metadata.mechanismId === r.scorerId && e.metadata.mechanismHash === r.scorerHash && e.occurredAt <= at)) return refuse("SCORER_NOT_FROZEN");
 
   const prior = trail.filter((e) => e.action === EVALUATION_ACTIONS.ACCESS && e.outcome === "ALLOWED" && e.metadata.sealedSetId === r.sealedSetId);
   const status = prior.length === 0 ? "FIRST_ACCESS"
@@ -214,7 +232,7 @@ function refuseChangedMechanism(audit, grant, at, meta) {
  * unless: the grant is an allowed, recorded access; the mechanism has not changed since it; and the path lies inside the
  * GRANTED set (classified by the same classifier the ordinary loader uses). Ordinary loaders keep refusing these paths.
  */
-export function readHeldOutItem({ audit, grant, currentMechanismHash, registry, root, base, path, read = readFileSync }) {
+export function readHeldOutItem({ audit, grant, currentMechanismHash, registry, root, base, path, read = readFileSync, foreignRoots }) {
   const at = isoSeconds(Date.now());
   const meta = { mechanismId: grant?.request?.mechanismId ?? "NONE", mechanismHash: grant?.request?.mechanismHash ?? "NONE", sealedSetId: grant?.request?.sealedSetId ?? "NONE" };
   const refuse = (code) => {
@@ -223,8 +241,13 @@ export function readHeldOutItem({ audit, grant, currentMechanismHash, registry, 
   };
   if (!grant?.allowed) refuse("NO_ACCESS_GRANT");
   if (currentMechanismHash !== grant.request.mechanismHash) refuseChangedMechanism(audit, grant, at, meta);
-  const v = classifySealed({ registry, root, base, path });
-  if (!(v.refuse && v.code === "SEALED_PATH_REFUSED" && v.entryId === grant.request.sealedSetId)) refuse("ITEM_OUTSIDE_GRANTED_SET");
+  const v = classifySealed({ registry, root, base, path, ...(foreignRoots ? { foreignRoots } : {}) });
+  /* F07 Amendment 2: a LINKED grant covers its two sides — the set and its bound marking key — and nothing else. */
+  const sides = [grant.request.sealedSetId, grant.request.keySetId].filter((s) => typeof s === "string" && s !== "INVALID");
+  if (!(v.refuse && v.code === "SEALED_PATH_REFUSED" && sides.includes(v.entryId))) refuse("ITEM_OUTSIDE_GRANTED_SET");
+  /* 🔴 F07 Amendment 2 · GOVERNED READ: the read is recorded as a durable ACCESS BEFORE the value exists in memory. If the
+   * record cannot be made, `emit` throws and the file is never opened. */
+  emit(audit, { action: LINKED_ACTIONS.ITEM_READ, outcome: "ALLOWED", reasonCode: v.entryId === grant.request.keySetId ? "KEY_ITEM_READ" : "SET_ITEM_READ", occurredAt: at, metadata: { ...meta, side: v.entryId === grant.request.keySetId ? "MARKING_KEY" : "HELD_OUT_EVIDENCE", readOf: String(v.entryId), grantEventId: String(grant.eventId) } });
   return read(join(base, path));
 }
 
@@ -232,4 +255,185 @@ export function readHeldOutItem({ audit, grant, currentMechanismHash, registry, 
 export function presentAsUntouched(report) {
   if (report?.untouched !== true) throw new HeldOutRefused("NOT_AN_UNTOUCHED_EVALUATION", `this evaluation is ${report?.accessStatus ?? "unknown"} — it may not be presented as untouched`);
   return report;
+}
+
+/* ═══ F07 AMENDMENT 2 (governance 051feb9) — THE MARKING-KEY EVALUATOR ═════════════════════════════════════════════════════
+ *
+ *   LINKED GRANT     requestHeldOutAccess with keySetId + keyCommitment + scorerId + scorerHash binds ONE set to its ONE
+ *                    linked, distinct marking key, their commitments, the tenant scope, the evaluator authority and a frozen
+ *                    scorer, in the grant's own recorded event (above).
+ *   GOVERNED READ    readHeldOutItem (either side, recorded before use) and readHeldOutDerivation (a derived set).
+ *   AGGREGATE SCORE  scoreClassification: claims its (set · mechanism · scorer · key) combination on the trail FIRST, reads
+ *                    both sides through the two readers above, fails closed on any missing, partial, duplicate, unreadable
+ *                    or inconsistent input, and releases count-only per-class TP/FP/FN/TN tables — nothing tied to an item.
+ *
+ * Generic: the classes and exclusion codes are the protocol's, handed in; nothing here names a subject, class or client.
+ */
+export const LINKED_ACTIONS = Object.freeze({ ITEM_READ: "HELDOUT_ITEM_READ", CLAIMED: "HELDOUT_SCORING_CLAIMED" });
+export const LINKED_REQUEST_FIELDS = Object.freeze(["keySetId", "keyCommitment", "scorerId", "scorerHash"]);
+/** The declared ceiling on a protocol: the release must fit one metadata-only audit event (24 keys, src/audit-trail/event.mjs). */
+export const MAX_PROTOCOL_TOKENS = 10;
+const TOKEN = /^[A-Z][A-Z0-9_]{0,31}$/;
+const sha256 = (s) => createHash("sha256").update(s, "utf8").digest("hex");
+
+/** A marking key's commitment: sha256 over its files' names and CRLF-normalised content hashes, sorted. Content never leaves. */
+export function keyCommitment(files) {
+  return sha256(Object.entries(files).map(([name, bytes]) => `${name}\u0000${contentHashOf(bytes)}`).sort().join("\n"));
+}
+/** A fingerprint of the tenant scope a grant binds: FNV-1a 64 over the sorted tenant ids. It is a BINDING fingerprint, not a
+ * secret, and it makes no crypto call on purpose — requestHeldOutAccess is a registered audit-store-only primitive, and the
+ * verifier (tools/audit-store-primitives.mjs) refuses any write-shaped call it can reach, a hash's `.update(` included. */
+export function scopeDigestOf(entry) {
+  let h = 0xcbf29ce484222325n;
+  for (const byte of Buffer.from([...new Set(entry?.tenantScope ?? [])].sort().join("\n"), "utf8")) { h ^= BigInt(byte); h = (h * 0x100000001b3n) & 0xffffffffffffffffn; }
+  return h.toString(16).padStart(16, "0");
+}
+
+/** Why a requested key may not be bound to this set, or null. Each refusal is named; none is inferred from a name. */
+export function linkedPairRefusal(registry, setEntry, r) {
+  const k = (registry ?? []).find((x) => x?.id === r.keySetId);
+  if (!k) return "MARKING_KEY_UNDECLARED";
+  if (k.role !== "MARKING_KEY" || k.sealed !== true) return "MARKING_KEY_NOT_A_KEY";
+  if (k.linkedSet !== setEntry.id) return "MARKING_KEY_NOT_LINKED";
+  if (JSON.stringify(k.resource) === JSON.stringify(setEntry.resource)) return "MARKING_KEY_NOT_DISTINCT";
+  if (!Array.isArray(k.tenantScope) || !Array.isArray(setEntry.tenantScope)) return "TENANT_SCOPE_UNDECLARED";
+  if (!sameTenantScope(k, setEntry)) return "PAIR_CROSSES_TENANTS";
+  if ((registry ?? []).filter((x) => x?.role === "MARKING_KEY" && x.linkedSet === setEntry.id).length !== 1) return "SET_KEY_AMBIGUOUS";
+  if (k.contentHash !== r.keyCommitment) return "MARKING_KEY_COMMITMENT_MISMATCH";
+  return null;
+}
+
+/**
+ * Read a DERIVED held-out set's item identities for a granted evaluation — its registered deriver run inside the boundary,
+ * the read recorded BEFORE the deriver runs, and the result checked against the registered commitment.
+ */
+export function readHeldOutDerivation({ audit, grant, currentMechanismHash, registry, derivers = {}, commitment = populationCommitment }) {
+  const at = isoSeconds(Date.now());
+  const meta = { mechanismId: grant?.request?.mechanismId ?? "NONE", mechanismHash: grant?.request?.mechanismHash ?? "NONE", sealedSetId: grant?.request?.sealedSetId ?? "NONE" };
+  const refuse = (code) => {
+    emit(audit, { action: EVALUATION_ACTIONS.ACCESS, outcome: "REFUSED", reasonCode: code, occurredAt: at, metadata: { ...meta, accessStatus: "DERIVATION_READ_REFUSED", untouched: "false" } });
+    throw new HeldOutRefused(code, "the derived held-out set was not read");
+  };
+  if (!grant?.allowed) refuse("NO_ACCESS_GRANT");
+  if (currentMechanismHash !== grant.request.mechanismHash) refuseChangedMechanism(audit, grant, at, meta);
+  const entry = (registry ?? []).find((x) => x?.id === grant.request.sealedSetId);
+  const d = entry?.resource?.derivation;
+  if (!d) refuse("SET_NOT_DERIVED");
+  if (typeof derivers[d.rule] !== "function") refuse("UNREGISTERED_DERIVATION");
+  emit(audit, { action: LINKED_ACTIONS.ITEM_READ, outcome: "ALLOWED", reasonCode: "SET_DERIVATION_READ", occurredAt: at, metadata: { ...meta, side: "HELD_OUT_EVIDENCE", readOf: String(entry.id), grantEventId: String(grant.eventId) } });
+  const got = derivers[d.rule](d.observationId) ?? {};
+  const items = [...new Set((got.items ?? got.members ?? []).map(String))];
+  if (!items.length || commitment(items) !== entry.contentHash) throw new HeldOutRefused("DERIVATION_MISMATCH", "the derivation does not reproduce the registered commitment");
+  return items;
+}
+
+/**
+ * Parse marking-key rows: one JSON object per non-empty line — { item, classes: [...] } or { item, exclusion: CODE }.
+ * Returns { rows: Map item → { classes } | { exclusion } } or { fault: CODE }. Never returns or echoes a row's content.
+ */
+export function parseKeyRows(texts, { classes, exclusions }) {
+  const rows = new Map();
+  for (const text of texts) {
+    for (const raw of String(text).split(/\r?\n/)) {
+      const line = raw.trim();
+      if (!line) continue;
+      let o;
+      try { o = JSON.parse(line); } catch { return { fault: "INPUT_UNREADABLE" }; }
+      if (!o || typeof o !== "object" || Array.isArray(o) || typeof o.item !== "string" || !o.item) return { fault: "INPUT_UNREADABLE" };
+      if (rows.has(o.item)) return { fault: "INPUT_DUPLICATE" };
+      const hasC = Object.hasOwn(o, "classes"), hasX = Object.hasOwn(o, "exclusion");
+      if (hasC === hasX) return { fault: "INPUT_INCONSISTENT" };
+      if (hasX && !exclusions.includes(o.exclusion)) return { fault: "INPUT_INCONSISTENT" };
+      if (hasC && !(Array.isArray(o.classes) && o.classes.every((c) => classes.includes(c)) && new Set(o.classes).size === o.classes.length)) return { fault: "INPUT_INCONSISTENT" };
+      rows.set(o.item, hasX ? { exclusion: o.exclusion } : { classes: [...o.classes] });
+    }
+  }
+  return { rows };
+}
+
+/**
+ * 🔴 THE AGGREGATE SCORE. One valid run per frozen (set · mechanism · scorer · key) combination, CLAIMED on the trail before
+ * anything is read or compared. `outputs` is the frozen mechanism's answer for EVERY declared item: Map item → { classes }
+ * (an empty list is an explicit abstention). Both sides are read here, through the recorded readers — never handed in.
+ * Returns — and records — only counts. Throws, with the run recorded INVALID, on any input fault: the claim is spent.
+ */
+export function scoreClassification({ audit, grant, currentMechanismHash, registry, roots = {}, filesOf, derivers = {}, outputs, protocol, foreignRoots }) {
+  const at = isoSeconds(Date.now());
+  const req = grant?.request ?? {};
+  const meta = { mechanismId: req.mechanismId ?? "NONE", mechanismHash: req.mechanismHash ?? "NONE", sealedSetId: req.sealedSetId ?? "NONE", scorerId: req.scorerId ?? "NONE", scorerHash: req.scorerHash ?? "NONE", keySetId: req.keySetId ?? "NONE" };
+  const stop = (outcome, code, extra = {}) => {
+    emit(audit, { action: EVALUATION_ACTIONS.SCORED, outcome, reasonCode: code, occurredAt: at, metadata: { ...meta, ...extra } });
+    throw new HeldOutRefused(code, `the scoring run was ${outcome === "INVALID" ? "invalidated" : "refused"}; no result was released`);
+  };
+  if (!grant?.allowed) stop("REFUSED", "NO_ACCESS_GRANT");
+  if (typeof req.keySetId !== "string" || req.keySetId === "INVALID" || !HEX64.test(String(req.keyCommitment ?? ""))) stop("REFUSED", "NO_LINKED_GRANT");
+  if (currentMechanismHash !== req.mechanismHash) refuseChangedMechanism(audit, grant, at, meta);
+  const classes = protocol?.classes ?? [], exclusions = protocol?.exclusions ?? [];
+  if (!classes.length || [...classes, ...exclusions].some((t) => !TOKEN.test(String(t))) || new Set([...classes, ...exclusions]).size !== classes.length + exclusions.length || classes.length + exclusions.length > MAX_PROTOCOL_TOKENS) stop("REFUSED", "PROTOCOL_INVALID");
+
+  // ── ONE VALID RUN: the combination is claimed BEFORE any read or comparison; a claim that exists is never made again ──
+  const combination = sha256([req.sealedSetId, req.mechanismHash, req.scorerHash, req.keyCommitment].join("\n"));
+  if (eventsOf(audit).some((e) => e.action === LINKED_ACTIONS.CLAIMED && e.metadata.combination === combination)) stop("REFUSED", "SCORING_ALREADY_CLAIMED", { combination });
+  const claim = emit(audit, { action: LINKED_ACTIONS.CLAIMED, outcome: "RECORDED", reasonCode: "SCORING_RUN_CLAIMED", occurredAt: at, metadata: { ...meta, combination, grantEventId: String(grant.eventId) } });
+  const invalid = (code) => stop("INVALID", code, { combination, claimEventId: String(claim.event.eventId) });
+
+  // ── BOTH SIDES, READ THROUGH THE LIFECYCLE ONLY ──
+  const underPrefix = (entry) => {
+    const pre = (entry?.resource?.pathPrefixes ?? []).map((p) => String(p).replace(/\\/g, "/").replace(/\/?$/, "/"));
+    const root = entry?.resource?.root;
+    return { root, base: roots[root], files: typeof filesOf === "function" && pre.length ? filesOf(root).filter((p) => pre.some((x) => p.startsWith(x))) : [] };
+  };
+  const setEntry = (registry ?? []).find((x) => x?.id === req.sealedSetId);
+  const keyEntry = (registry ?? []).find((x) => x?.id === req.keySetId);
+  if (!setEntry || !keyEntry) invalid("INPUT_UNREGISTERED");
+  let items;
+  try {
+    if (setEntry.resource?.derivation) items = readHeldOutDerivation({ audit, grant, currentMechanismHash, registry, derivers });
+    else {
+      const s = underPrefix(setEntry);
+      if (!s.base || !s.files.length) invalid("INPUT_UNREADABLE");
+      items = [...new Set(s.files.flatMap((p) => String(readHeldOutItem({ audit, grant, currentMechanismHash, registry, root: s.root, base: s.base, path: p, foreignRoots })).split(/\r?\n/).map((l) => l.trim()).filter(Boolean)))];
+    }
+  } catch (e) { if (e instanceof HeldOutRefused && e.message.includes("no result was released")) throw e; invalid("INPUT_UNREADABLE"); }
+  if (populationCommitment(items) !== setEntry.contentHash) invalid("SET_CHANGED_SINCE_REGISTRATION");
+  const k = underPrefix(keyEntry);
+  if (!k.base || !k.files.length) invalid("INPUT_UNREADABLE");
+  const keyBytes = {};
+  try { for (const p of k.files) keyBytes[p] = readHeldOutItem({ audit, grant, currentMechanismHash, registry, root: k.root, base: k.base, path: p, foreignRoots }); } catch { invalid("INPUT_UNREADABLE"); }
+  if (keyCommitment(keyBytes) !== req.keyCommitment) invalid("KEY_CHANGED_SINCE_GRANT");
+
+  // ── EVERY INPUT CHECKED BEFORE ANY COUNT ──
+  const parsed = parseKeyRows(Object.values(keyBytes).map((b) => Buffer.from(b).toString("utf8")), { classes, exclusions });
+  if (parsed.fault) invalid(parsed.fault);
+  const itemSet = new Set(items);
+  if ([...parsed.rows.keys()].some((i) => !itemSet.has(i))) invalid("INPUT_INCONSISTENT");
+  if (items.some((i) => !parsed.rows.has(i))) invalid("INPUT_MISSING");
+  if (!(outputs instanceof Map)) invalid("INPUT_UNREADABLE");
+  if ([...outputs.keys()].some((i) => !itemSet.has(i))) invalid("INPUT_INCONSISTENT");
+  if (items.some((i) => !outputs.has(i))) invalid("INPUT_MISSING");
+  if ([...outputs.values()].some((o) => !(Array.isArray(o?.classes) && o.classes.every((c) => classes.includes(c)) && new Set(o.classes).size === o.classes.length))) invalid("INPUT_INCONSISTENT");
+
+  // ── THE TABLES: counts only, over the items the labeller did not exclude ──
+  const excluded = Object.fromEntries(exclusions.map((x) => [x, 0]));
+  const tables = Object.fromEntries(classes.map((c) => [c, { tp: 0, fp: 0, fn: 0, tn: 0 }]));
+  let denominator = 0;
+  for (const i of items) {
+    const row = parsed.rows.get(i);
+    if (row.exclusion) { excluded[row.exclusion] += 1; continue; }
+    denominator += 1;
+    const said = new Set(outputs.get(i).classes);
+    for (const c of classes) {
+      const truth = row.classes.includes(c), guess = said.has(c);
+      tables[c][truth ? (guess ? "tp" : "fn") : (guess ? "fp" : "tn")] += 1;
+    }
+  }
+  const evidenceState = denominator > 0 ? "OBSERVED" : "NOT_MEASURED";
+  const release = {
+    ...meta, combination, claimEventId: String(claim.event.eventId), grantEventId: String(grant.eventId),
+    declared: String(items.length), denominator: String(denominator), evidenceState, untouched: String(grant.untouched),
+    ...Object.fromEntries(classes.map((c) => [`c_${c}`, `tp${tables[c].tp}-fp${tables[c].fp}-fn${tables[c].fn}-tn${tables[c].tn}`])),
+    ...Object.fromEntries(exclusions.map((x) => [`x_${x}`, String(excluded[x])])),
+  };
+  emit(audit, { action: EVALUATION_ACTIONS.SCORED, outcome: "RECORDED", reasonCode: grant.untouched ? "CLASS_TABLES_SCORED_UNTOUCHED" : "CLASS_TABLES_SCORED_NOT_UNTOUCHED", occurredAt: at, metadata: release });
+  return Object.freeze({ ...release, tables: Object.freeze(Object.fromEntries(classes.map((c) => [c, Object.freeze({ ...tables[c] })]))), excluded: Object.freeze(excluded), declared: items.length, denominator });
 }

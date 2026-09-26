@@ -30,6 +30,7 @@
 import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, posix, relative, resolve } from "node:path";
 import { requireGuardSink } from "./guard-audit.mjs";
+import { resolveSealedStoreRoots } from "./sealed-store-roots.mjs";
 
 export const SEAL_REFUSALS = Object.freeze(["SEALED_PATH_REFUSED", "SEAL_METADATA_UNAVAILABLE", "SEAL_PATH_UNRESOLVABLE"]);
 
@@ -79,7 +80,7 @@ const matchPrefix = (prefixes, rel) => prefixes.find(({ prefix }) => rel === pre
  * `base` is the directory repository-relative paths are resolved against; "" means a VIRTUAL read (bytes supplied by
  * the caller's own reader, not a filesystem path), which is classified lexically only because nothing can be resolved.
  */
-export function classifySealed({ registry, root, base = "", path, realpath = realpathSync.native }) {
+export function classifySealed({ registry, root, base = "", path, realpath = realpathSync.native, foreignRoots = null }) {
   const got = sealedPrefixes(registry, root);
   if (got.unavailable) return { refuse: true, code: "SEAL_METADATA_UNAVAILABLE", entryId: null, classification: "SEAL_METADATA_UNAVAILABLE" };
   if (typeof path !== "string" || path === "" || UNRESOLVABLE(path)) return { refuse: true, code: "SEAL_PATH_UNRESOLVABLE", entryId: null, classification: "UNRESOLVABLE_PATH_FORM" };
@@ -93,20 +94,37 @@ export function classifySealed({ registry, root, base = "", path, realpath = rea
 
   // 2 · REAL — only when there is a real directory to resolve against.
   if (!baseAbs || !existsSync(baseAbs)) return { refuse: false };
-  let realRel;
+  let realRel, realTarget;
   try {
     const target = resolve(baseAbs, path);
     let anc = target;
     const tail = [];
     for (let i = 0; i < 256 && !existsSync(anc); i += 1) { tail.unshift(basename(anc)); anc = dirname(anc); }
     const realAnc = realpath(anc);
-    realRel = canonical(relative(realpath(baseAbs), join(realAnc, ...tail)));
+    realTarget = join(realAnc, ...tail);
+    realRel = canonical(relative(realpath(baseAbs), realTarget));
   } catch {
     /* Metadata that cannot be resolved is not permission. */
     return { refuse: true, code: "SEAL_PATH_UNRESOLVABLE", entryId: null, classification: "UNRESOLVABLE_PATH_FORM" };
   }
   const real = matchPrefix(prefixes, realRel);
   if (real) return { refuse: true, code: "SEALED_PATH_REFUSED", entryId: String(real.id), classification: "SEALED" };
+
+  /* 3 · FOREIGN SEALED STORE — F07 Amendment 2 (governance 051feb9). A governed sealed store lives OUTSIDE the reader's own
+   * root, so neither reading above can see it: a loader of the engine root handed a path that climbs out of its base would
+   * otherwise read a marking key unrefused and unrecorded. Every located store's sealed prefixes are checked against the
+   * target's REAL location, whichever root the reader was given. A store that cannot be located has nothing to match. */
+  const stores = foreignRoots ?? resolveSealedStoreRoots().roots;
+  for (const [storeRoot, dir] of Object.entries(stores ?? {})) {
+    if (!dir || storeRoot === root) continue;
+    const pre = sealedPrefixes(registry, storeRoot);
+    if (pre.unavailable) return { refuse: true, code: "SEAL_METADATA_UNAVAILABLE", entryId: null, classification: "SEAL_METADATA_UNAVAILABLE" };
+    let storeRel;
+    try { storeRel = canonical(relative(realpath(dir), realTarget)); } catch { return { refuse: true, code: "SEAL_PATH_UNRESOLVABLE", entryId: null, classification: "UNRESOLVABLE_PATH_FORM" }; }
+    if (storeRel.startsWith("..") || isAbsolute(storeRel)) continue;
+    const hit = matchPrefix(pre.prefixes, storeRel);
+    if (hit) return { refuse: true, code: "SEALED_PATH_REFUSED", entryId: String(hit.id), classification: "SEALED" };
+  }
   return { refuse: false };
 }
 
@@ -131,9 +149,9 @@ export const isSealed = (registry, root, path) => sealedEntryFor(registry, root,
  * that sealed it and the root; never the path) and only then throws. The target is never opened, whether or not the
  * emission succeeds. A permitted read emits nothing and behaves exactly as before.
  */
-export function readUnsealed({ registry, root, base, path, encoding = "utf8", read = readFileSync, audit, realpath }) {
+export function readUnsealed({ registry, root, base, path, encoding = "utf8", read = readFileSync, audit, realpath, foreignRoots }) {
   requireGuardSink(audit, "readUnsealed");
-  const verdict = classifySealed({ registry, root, base, path, ...(realpath ? { realpath } : {}) });
+  const verdict = classifySealed({ registry, root, base, path, ...(realpath ? { realpath } : {}), ...(foreignRoots ? { foreignRoots } : {}) });
   if (verdict.refuse) {
     audit.emit({
       eventType: "REFUSAL", action: "READ_SEALED_PATH", outcome: "REFUSED", reasonCode: verdict.code,

@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F10_ORIGINAL } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -425,7 +425,11 @@ export const DECLARED = Object.freeze({
     /* 🔴 VERIFIED-PASS AGAIN — under Amendment 2, by the route the reopening recorded, EARNED only when main CI is green on
      * the exact merged SHA (afterMerge). The four added limbs' REAL population is zero (NOT_MEASURED): the event says what
      * they are, and are not yet, proved against. */
-    state: "VERIFIED-PASS",
+    /* 🔴 REOPENED a third time, 26 Sep 2026 — AUTHORITATIVE_REQUIREMENT_CHANGE, by the same route: Amendment 3 was frozen ALONE
+     * (264c680) after the limb census (4fc5656). It adds the paired release F10's C7 needs (three count-only aggregates, a
+     * real ABSTAIN, set/key preflight before the claim). Amendments 1 and 2 remain historically valid for what they measured; live
+     * HELD_OUT_EVIDENCE and MARKING_KEY entries number zero; the reopen is caused by the newly frozen wider requirement. */
+    state: "IN-PROGRESS",
     events: Object.freeze([
       // The acceptance was committed ALONE in the governance repository (cd149ae) before any F07 engine change.
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-23", ruling: F07_ORIGINAL.ruling, contractSha256: F07_ORIGINAL.contractSha256 }),
@@ -491,7 +495,7 @@ export const DECLARED = Object.freeze({
         sabotage: "F7A-S1–S11 (new) · F7-S1–S16 and K1–K10 (existing, re-run; K6 re-anchored to the changed classification line, intent unchanged)",
         afterMerge: "main CI green on the exact merged SHA — verified after merge and reported in _handoffs/AlmiVisibility_F07_AMENDMENT_1_EVIDENCE_2026-09-25.md; a red main run means this record is wrong and must be reverted",
       }),
-      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F07", on: "2026-09-26", ruling: ACCEPTANCES.F07.ruling, contractSha256: ACCEPTANCES.F07.contractSha256, amends: ACCEPTANCES.F07.amends }),
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F07", on: "2026-09-26", ruling: F07_AMENDMENT_2.ruling, contractSha256: F07_AMENDMENT_2.contractSha256, amends: F07_AMENDMENT_2.amends }),
       Object.freeze({
         kind: "REOPENED",
         featureId: "F07",
@@ -502,7 +506,7 @@ export const DECLARED = Object.freeze({
         reason: "AUTHORITATIVE_REQUIREMENT_CHANGE",
         reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
         rationale: "Amendment 1's evidence remains historically valid for what it measured; live MARKING_KEY entries number zero; the reopen is caused by the newly frozen wider requirement (the evaluator limb), not by concealed contradictory evidence",
-        amendment: Object.freeze({ ruling: ACCEPTANCES.F07.ruling, contractSha256: ACCEPTANCES.F07.contractSha256 }),
+        amendment: Object.freeze({ ruling: F07_AMENDMENT_2.ruling, contractSha256: F07_AMENDMENT_2.contractSha256 }),
         ownerRulings: Object.freeze({ repo: "_handoffs", optionA: "c4f55d79e3c49122cb5eff2be2b9424a43852036", rA2: "1faafaeab846dd9d782f9993557da82021b6a458" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-26_F07_AMENDMENT_2_MARKING_KEY_EVALUATOR.md", commit: "c4f55d79e3c49122cb5eff2be2b9424a43852036", sha256: "7db208549f2c592a819b7e293ffcc411a57ba0c7ac35ec88b96af55901c99d17" }),
       }),
@@ -515,13 +519,28 @@ export const DECLARED = Object.freeze({
         to: "VERIFIED-PASS",
         route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: Amendment 2)",
         reason: "AMENDED_CONTRACT_PROVED_EXISTING_LIMBS_ON_REAL_POPULATIONS",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F07.ruling.sha256, contract: ACCEPTANCES.F07.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F07_AMENDMENT_2.ruling.sha256, contract: F07_AMENDMENT_2.contractSha256 }),
         realPopulationNewLimbs: "NOT_MEASURED (F06) — 0 registered HELD_OUT_EVIDENCE, 0 registered MARKING_KEY and 0 declared governed sealed stores in the real registry; zero is not a pass, and the amended EVIDENCE clause requires the count stated, including zero",
         provedAgainst: "the existing limbs on the real registry, the real sealed paths (never opened), the real manifest and the real authority corpus, with the production firewall and evaluator entry points run confined; the four added limbs (linked grant, governed read, aggregate score, complete census) on constructed, non-sensitive stand-ins in scratch trees, an OS temporary store and in-memory audit stores, in BOTH marking-key location shapes — hand-worked tables reproduced exactly, every refusal named and recorded, every read recorded before use, one valid run per frozen combination",
         notYetProvedAgainst: "a REAL registered HELD_OUT_EVIDENCE set, MARKING_KEY or governed sealed store — none exists; the first real registration is the first real population for these limbs; activity outside the governed paths (an independent git show, a direct file read) is not observable by F07 and is not claimed",
         proofs: "test/f07-amendment2-marking-key.test.mjs (17), with F07's existing proofs re-run: test/f07-heldout-firewall.test.mjs, test/heldout-firewall.test.mjs, test/f07-sink-repair.test.mjs, test/f07-closure.test.mjs, test/f07-amendment-leak-census.test.mjs",
         sabotage: "F7B-S1–S21 (new) · F7-S1–S16, K1–K10 and F7A-S1–S11 (existing, re-run; F7-S1 re-anchored to the changed readUnsealed line, intent unchanged)",
         afterMerge: "main CI green on the exact merged SHA — verified after merge and reported in _handoffs; a red main run means this record is wrong and must be reverted",
+      }),
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F07", on: "2026-09-26", ruling: ACCEPTANCES.F07.ruling, contractSha256: ACCEPTANCES.F07.contractSha256, amends: ACCEPTANCES.F07.amends }),
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F07",
+        on: "2026-09-26",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: Amendment 3)",
+        reason: "AUTHORITATIVE_REQUIREMENT_CHANGE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "Amendments 1 and 2 remain historically valid for what they measured; live HELD_OUT_EVIDENCE and MARKING_KEY entries number zero; the reopen is caused by the newly frozen wider requirement (the paired release F10 C7 needs), not by concealed contradictory evidence",
+        amendment: Object.freeze({ ruling: ACCEPTANCES.F07.ruling, contractSha256: ACCEPTANCES.F07.contractSha256 }),
+        limbCensus: Object.freeze({ repo: "_handoffs", commit: "4fc565696b769c0dba6396c9993757aee57e12d6" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-26_F10_C7_COMPLETION_PATH.md", commit: "148d48f94dfca10123580d8cf9b279c056d03e5d", sha256: "5bdd8100f025a8fd7850e57b3c009acf1e7503fa36840a0747be68ac6f10e69e" }),
       }),
     ]),
   }),

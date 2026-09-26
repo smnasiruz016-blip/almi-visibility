@@ -24,7 +24,8 @@ import { AUTHORITY_CORPUS, CORPUS_PROVENANCE } from "../config/authority/corpus.
 import { ACCEPTANCES } from "../config/fboard/acceptances.mjs";
 import { census as authorityCensus } from "../src/authority/corpus.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
-import { scan, derivePopulation, distinctiveFragments, registeredHashErrors, registryErrors, trackedFiles, HELD_OUT_EVALUATORS } from "../tools/heldout-firewall.mjs";
+import { scan, derivePopulation, distinctiveFragments, registeredHashErrors, registryErrors, trackedFiles, HELD_OUT_EVALUATORS, censusEntries, censusNewRoles } from "../tools/heldout-firewall.mjs";
+import { populationCommitment } from "../src/heldout/lifecycle.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const registry = EVIDENCE_ROLE_REGISTRY;
@@ -52,7 +53,13 @@ const productionTexts = files.filter((p) => /^(src|bin|tools|config|subjects)\/.
 const evaluatorSources = HELD_OUT_EVALUATORS.map((p) => readFileSync(join(REPO, p), "utf8"));
 
 console.log("HELD-OUT FIREWALL — role and exposure; counts only\n");
-for (const entry of registry.filter((e) => e.role === "RETIRED_CONTAMINATED")) {
+/* 🔴 F07 AMENDMENT 1 (governance a0b7e4b): the census enumerates EVERY registered sealed held-out role, with each role's
+ * population stated — including zero. A zero is reported as NOT_MEASURED (F06), never as a clean real result. */
+const CENSUS = censusEntries(registry);
+const ofRole = (role) => CENSUS.filter((e) => e.role === role);
+console.log(`SEALED ROLES ENUMERATED — RETIRED_CONTAMINATED ${ofRole("RETIRED_CONTAMINATED").length} · HELD_OUT_EVIDENCE ${ofRole("HELD_OUT_EVIDENCE").length} · MARKING_KEY ${ofRole("MARKING_KEY").length}`);
+if (!ofRole("HELD_OUT_EVIDENCE").length && !ofRole("MARKING_KEY").length) console.log("  HELD_OUT_EVIDENCE and MARKING_KEY — 0 registered: the real population is NOT_MEASURED (F06); nothing real to scan, and zero is not a pass\n");
+for (const entry of ofRole("RETIRED_CONTAMINATED")) {
   const pop = derivePopulation(entry, derive);
   if (!pop.ok) { failures.push(`${pop.code} ${entry.id}`); console.log(`  🔴 ${pop.code}: ${pop.why}`); continue; }
   const fragments = distinctiveFragments(pop.members, pop.others, productionTexts);
@@ -76,6 +83,18 @@ for (const entry of registry.filter((e) => e.role === "RETIRED_CONTAMINATED")) {
     for (const r of xd.rows) console.log(`  REPORTED_PRODUCT_CONTENT_DRAFT     ${r.category.padEnd(22)} full ${String(r.full).padStart(3)} · fragments ${String(r.frag).padStart(2)} · ${r.path}`);
     for (const f of x.failures) failures.push(`EXTRA ${f.disposition} ${f.path}`);
   }
+}
+/* 🔴 F07 AMENDMENT 1 — every registered HELD_OUT_EVIDENCE and MARKING_KEY entry: its members obtained inside the boundary
+ * (a registered derivation, or the files under its sealed prefix — that read recorded as a durable ACCESS), then the same
+ * scan, the finding named by role. An entry that cannot be read or verified FAILS the census; it is never skipped. */
+{
+  const nr = censusNewRoles({ registry, root: "engine", base: REPO, files, roots: { engine: REPO }, filesOf: (r) => (r === "engine" ? files : []), derivers: { HOLD_OUT_RULE: derive }, commitment: populationCommitment, productionTexts, evaluatorSources, audit: AUDIT });
+  for (const x of nr.results) {
+    if (!x.ok) { console.log(`  🔴 ${x.code}: ${x.why}`); continue; }
+    console.log(`${x.role} ${x.id} · ${x.members} member(s) · source ${x.source}${x.files ? ` (${x.files} file(s) under its sealed prefix)` : ""} · ${x.fragments} distinctive fragment(s)`);
+    for (const row of x.rows) console.log(`  ${row.disposition.padEnd(34)} ${row.category.padEnd(22)} full ${String(row.full).padStart(3)} · fragments ${String(row.frag).padStart(2)} · ${row.path}`);
+  }
+  failures.push(...nr.failures);
 }
 for (const e of registeredHashErrors({ registry, root: "engine", base: REPO, hashOf: contentHashOf })) failures.push(`${e.code} ${e.id}`);
 

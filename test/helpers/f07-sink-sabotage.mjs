@@ -84,7 +84,9 @@ export const SINK_SABOTAGES = [
     expect: /an authorised access did not append exactly one event/ },
 
   { id: "K6", what: "an authorised access derived a classification — the lifecycle must REFUSE, never drop", file: GUARD, test: T, named: "(c)",
-    from: '  if (eventType === "EVALUATION") return action === "HELDOUT_ACCESS" ? "ACCESS" : "GOVERNED_CHANGE";', to: '  if (eventType === "EVALUATION") return action === "HELDOUT_ACCESS" ? "CLASSIFICATION" : "GOVERNED_CHANGE";',
+    /* Re-anchored 25 Sep 2026 (F07 Amendment 1): the classified line now also names the census's in-boundary read. The
+     * sabotage is unchanged in intent — the evaluator's own HELDOUT_ACCESS is derived a classification. */
+    from: '  if (eventType === "EVALUATION") return action === "HELDOUT_ACCESS" || action === "HELDOUT_CENSUS_READ" ? "ACCESS" : "GOVERNED_CHANGE";', to: '  if (eventType === "EVALUATION") return action === "HELDOUT_ACCESS" ? "CLASSIFICATION" : action === "HELDOUT_CENSUS_READ" ? "ACCESS" : "GOVERNED_CHANGE";',
     probe: LIFE_PROBE,
     expect: /EVALUATION_EVENT_NOT_DURABLE/ },
 

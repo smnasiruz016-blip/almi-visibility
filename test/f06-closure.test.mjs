@@ -88,7 +88,8 @@ test("F6-TRAIL · each F06 movement is in the production trail EXACTLY ONCE, und
   assert.deepEqual([mine[2].metadata.from, mine[2].metadata.to, mine[2].metadata.population], ["IN-PROGRESS", "VERIFIED-PASS", "REAL"]);
   assert.deepEqual([mine[3].metadata.from, mine[3].metadata.to], ["VERIFIED-PASS", "IN-PROGRESS"]);
   assert.deepEqual([mine[4].metadata.from, mine[4].metadata.to, mine[4].metadata.population], ["IN-PROGRESS", "VERIFIED-PASS", "REAL"]);
-  assert.ok(trail().filter((e) => e.eventType === "BOARD_TRANSITION" && e.metadata?.featureId === "F07").length === 3, "CONTROL: the same filter finds F07's three");
+  // CONTROL: the same filter finds F07's three movements under its ORIGINAL acceptance (F07 Amendment 1 added three more under its own).
+  assert.ok(trail().filter((e) => e.eventType === "BOARD_TRANSITION" && e.metadata?.featureId === "F07" && e.authorityRef?.propositionId === "F07_FROZEN_ACCEPTANCE").length === 3, "CONTROL: the same filter finds F07's three");
 });
 
 test("F6-TRAIL · the board ↔ audit consistency check is clean and names F06", () => {

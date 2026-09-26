@@ -361,7 +361,9 @@ function scoringWorld(label, { keyRows: keyFn = null, outputsFor: outFn = null, 
 }
 const actionsOf = (events) => events.map((e) => e.action);
 
-test("F10 · C4 · one synthetic run through the governed route: authorised, attempted, claimed, read, released, committed — in that order — with an aggregate-only release", () => {
+/* Re-sat to F07 Amendment 3 (governance 264c680): the key is read and checked in the PREFLIGHT, before the claim; the claim still
+ * precedes every comparison and the release. */
+test("F10 · C4 · one synthetic run through the governed route: authorised, attempted, key read (preflight), claimed, released, committed — in that order — with an aggregate-only release", () => {
   const s = scoringWorld("happy");
   try {
     assert.equal(s.grant.allowed, true, `CONTROL: the synthetic linked grant was refused: ${s.grant.code}`);
@@ -372,8 +374,8 @@ test("F10 · C4 · one synthetic run through the governed route: authorised, att
     const order = [
       at((e) => e.eventType === "AUTHORISATION_DECISION" && e.outcome === "ALLOWED"),
       at((e) => e.eventType === "GOVERNED_WRITE" && e.metadata?.governedWritePhase === "ATTEMPTED"),
-      at((e) => e.action === LINKED_ACTIONS.CLAIMED),
       at((e) => e.action === LINKED_ACTIONS.ITEM_READ && e.reasonCode === "KEY_ITEM_READ"),
+      at((e) => e.action === LINKED_ACTIONS.CLAIMED),
       at((e) => e.action === EVALUATION_ACTIONS.SCORED && e.outcome === "RECORDED"),
       at((e) => e.eventType === "GOVERNED_WRITE" && e.metadata?.governedWritePhase === "COMMITTED"),
     ];
@@ -407,7 +409,7 @@ test("F10 · C4 · a required store that cannot be located refuses BEFORE any at
   try { assert.equal(ok.run().outcome, "COMMITTED", "CONTROL: the located store did not proceed"); } finally { ok.cleanup(); }
 });
 
-test("F10 · C4 · a wrong key yields no result: a substituted commitment is refused at the grant, and a key changed after the grant INVALIDATES the run", () => {
+test("F10 · C4 · a wrong key yields no result: a substituted commitment is refused at the grant, and a key changed after the grant is REFUSED before the claim — the run unspent (F07 Amendment 3)", () => {
   const s = scoringWorld("wrong-commitment", { request: { keyCommitment: "f".repeat(64) } });
   try {
     assert.equal(s.grant.code, "MARKING_KEY_COMMITMENT_MISMATCH", "a substituted key commitment was granted");
@@ -423,7 +425,8 @@ test("F10 · C4 · a wrong key yields no result: a substituted commitment is ref
     assert.notEqual(fs.readFileSync(keyPath, "utf8"), t.w.keyText, "CONTROL: the key was not changed");
     const r = t.run();
     assert.equal(r.outcome, "FAILED_BEFORE_COMMIT", "a changed key yielded a result");
-    assert.ok(t.trail().some((e) => e.action === EVALUATION_ACTIONS.SCORED && e.outcome === "INVALID" && e.reasonCode === "KEY_CHANGED_SINCE_GRANT"), "a changed key was not recorded INVALID");
+    assert.ok(t.trail().some((e) => e.action === EVALUATION_ACTIONS.SCORED && e.outcome === "REFUSED" && e.reasonCode === "KEY_CHANGED_SINCE_GRANT"), "a changed key was not recorded REFUSED");
+    assert.equal(t.trail().filter((e) => e.action === LINKED_ACTIONS.CLAIMED).length, 0, "a changed key SPENT the once-only run");
     assert.ok(!fs.existsSync(join(t.release, "evaluation-releases/classification-releases.jsonl")), "a changed key released a result");
   } finally { t.cleanup(); }
 });

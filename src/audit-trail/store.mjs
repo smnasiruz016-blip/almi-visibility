@@ -37,6 +37,11 @@
  *                                     CONSISTENTLY WITH the events file — both rewritten together — the two agree and
  *                                     nothing here notices. Two files kept in step is exactly what an author with
  *                                     write access to both can do. That is the boundary; it is not claimed away.
+ *
+ * 🔴 27 Sep 2026: `git checkout` of the trail files IS that consistent rewrite, and it removed 65 governed events
+ * before anyone noticed (_handoffs 5fd0435). The store's own boundary above is unchanged and still true of the store
+ * alone. The PRODUCTION store now also carries an out-of-tree witness (witness.mjs, wired in wiring.mjs), which detects
+ * that case and refuses to append past it. Its own limit is declared there.
  */
 import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
@@ -45,6 +50,7 @@ import {
   AUDIT_VERSION, FIELD_ORDER, GENESIS_PREVIOUS_HASH, canonicalWithoutHash, canonicalJson, contentFingerprint,
   deriveEventId, eventFaults, hashEvent,
 } from "./event.mjs";
+import { linesOf } from "./witness.mjs";
 
 export class AuditRefused extends Error {
   constructor(faults, why) {
@@ -94,6 +100,9 @@ export function createAuditStore({
   eventsPath, headPath, clock = systemClock, evidenceEntryFor = () => null, isSealedRef = () => false,
   forbiddenSubstrings = [], appendLine = defaultAppendLine, sizeCeilingBytes = 8 * 1024 * 1024,
   assertLocation = () => {},
+  /* 🔴 The production trail's out-of-tree witness (witness.mjs). null for every confined store. When present, an append
+   * onto a trail the witness shows was shortened or altered is REFUSED, and verify reports it. */
+  witness = null,
 }) {
   if (typeof eventsPath !== "string" || eventsPath.trim() === "") throw new TypeError("the audit store needs an events path — it never chooses one for itself");
   if (typeof headPath !== "string" || headPath.trim() === "") throw new TypeError("the audit store needs a head-record path");
@@ -114,6 +123,9 @@ export function createAuditStore({
     const malformedTail = (!hadFinalNewline && lines.length > 0) || malformedLines.includes(lines.length);
     return { events, lines: lines.length, malformedTail, malformedLines };
   }
+
+  /** The stored lines as text, CRLF-normalised — what the witness compares, byte for byte. */
+  const rawLines = () => (existsSync(eventsPath) ? linesOf(readFileSync(eventsPath, "utf8")) : []);
 
   function readHead() {
     if (!existsSync(headPath)) return null;
@@ -141,6 +153,8 @@ export function createAuditStore({
     assertLocation();
     const { events, malformedTail } = readAll();
     if (malformedTail) throw new AuditRefused([{ code: "MALFORMED_TAIL", why: "the store's final line is truncated — nothing is appended onto a damaged chain" }]);
+    /* Throws AuditWitnessRefused when the witness holds lines the trail lost, or disagrees with it — before a byte is written. */
+    if (witness) witness.beforeAppend(rawLines());
 
     const recordedAt = clock();
     const previousEventHash = events.length === 0 ? GENESIS_PREVIOUS_HASH : events[events.length - 1].eventHash;
@@ -185,6 +199,9 @@ export function createAuditStore({
     mkdirSync(dirname(eventsPath), { recursive: true });
     appendLine(eventsPath, line);
     writeHead(events.length + 1, event.eventHash);
+    /* Trail first, witness second: a crash between them leaves the TRAIL ahead, which the next append heals (catch-up).
+     * The reverse order would leave the witness ahead of an event the trail never held — a false loss. */
+    if (witness) witness.afterAppend(line);
     return { status: "APPENDED", event, appended: true };
   }
 
@@ -216,7 +233,11 @@ export function createAuditStore({
       const storedHead = events.length ? events[events.length - 1].eventHash : GENESIS_PREVIOUS_HASH;
       if (head.headHash !== storedHead) findings.push({ code: "HEAD_HASH_MISMATCH", at: null });
     }
-    return { ok: findings.length === 0, events: events.length, findings, boundary: DETECTION_BOUNDARY };
+    /* The consistent truncation this store alone cannot see, seen from outside the working tree. */
+    const witnessStatus = witness ? witness.status(rawLines()) : null;
+    if (witnessStatus?.relation === "WITNESS_AHEAD") findings.push({ code: "TRAIL_BEHIND_WITNESS", at: witnessStatus.trail + 1, missing: witnessStatus.witness - witnessStatus.trail });
+    if (witnessStatus?.relation === "DIVERGED") findings.push({ code: "TRAIL_DIVERGES_FROM_WITNESS", at: witnessStatus.common + 1 });
+    return { ok: findings.length === 0, events: events.length, findings, boundary: DETECTION_BOUNDARY, witness: witnessStatus };
   }
 
   function sizeReport() {

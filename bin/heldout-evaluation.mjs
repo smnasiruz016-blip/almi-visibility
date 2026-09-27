@@ -35,12 +35,24 @@ import { authorise, authorisationEvent, namedActor, AUTHORISATION_REFUSED_EXIT }
 import { durableGuardSink } from "../src/governance/guard-audit.mjs";
 import { execFileSync } from "node:child_process";
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
-import { governedScoring, versionHash, SCORER_FILES } from "../src/governance/governed-scoring.mjs";
+import { governedScoring, versionHash, SCORER_FILES, SCORER_ID } from "../src/governance/governed-scoring.mjs";
 import { resolveSealedStoreRoots } from "../src/governance/sealed-store-roots.mjs";
 import { createTenantResolver } from "../src/tenancy/resolver.mjs";
 import { pinnedObservationRows, decidePartition, readTenantPartition } from "../src/discovery/search-console-partition.mjs";
-import { runMechanism, MECHANISM_FILES } from "../src/discovery/human-questions.mjs";
+import { runMechanism, MECHANISM_FILES, MECHANISM_ID } from "../src/discovery/human-questions.mjs";
 import { PROTOCOL, SCORING_RULE } from "../config/human-questions.mjs";
+import * as FU from "../src/discovery/follow-up-questions.mjs";
+import { followUpVerdict, FOLLOW_UP_SCORER_ID, FOLLOW_UP_SCORER_FILES } from "../src/heldout/follow-up-rule.mjs";
+import { C7_PROTOCOL, C7_BAR, C7_RELEASE_STORE } from "../config/follow-up-questions.mjs";
+
+/** The four F10 versions, each an id and the files whose bytes ARE it. A frozen version is a CLAIM ABOUT CODE: when those files
+ * move, the claim EXPIRES — even if behaviour is identical — and the version must be frozen again before it may run. */
+const F10_VERSIONS = Object.freeze([
+  { role: "C6 mechanism", id: MECHANISM_ID, files: MECHANISM_FILES },
+  { role: "C6 scorer", id: SCORER_ID, files: SCORER_FILES },
+  { role: "C7 mechanism", id: FU.MECHANISM_ID, files: FU.MECHANISM_FILES },
+  { role: "C7 scorer", id: FOLLOW_UP_SCORER_ID, files: FOLLOW_UP_SCORER_FILES },
+]);
 
 /* F10 (ruling S): the real registry and store descriptors, plus — ONLY in a verified test context, additive only — an
  * isolated synthetic sealed fixture (src/governance/synthetic-sealed-fixture.mjs). Outside one, naming a fixture refuses. */
@@ -67,6 +79,11 @@ if (cmd === "status") {
   console.log(`  registry entries by role: ${Object.entries(byRole).map(([k, v]) => `${k} ${v}`).join(" · ")}`);
   console.log(`  evaluation sets (HELD_OUT_EVIDENCE, evaluable): ${EVIDENCE_ROLE_REGISTRY.filter((e) => e.role === "HELD_OUT_EVIDENCE" && e.mayEvaluate === true && e.sealed === true).length}`);
   const ev = ctx.store.readAll().events.filter(H);
+  for (const v of F10_VERSIONS) {
+    const now = versionHash(REPO, v.files);
+    const frozen = ev.filter((e) => e.action === EVALUATION_ACTIONS.FROZEN && e.metadata?.mechanismId === v.id);
+    console.log(`  version ${v.role.padEnd(13)} ${v.id.padEnd(28)} code ${now.slice(0, 12)}… · ${frozen.some((e) => e.metadata.mechanismHash === now) ? "FROZEN at this code" : frozen.length ? "EXPIRED — frozen only at other code; re-freeze before it may run" : "NOT FROZEN"}`);
+  }
   for (const a of Object.values(EVALUATION_ACTIONS)) console.log(`  ${a.padEnd(34)} ${ev.filter((e) => e.action === a).length} (allowed ${ev.filter((e) => e.action === a && e.outcome === "ALLOWED").length} · refused ${ev.filter((e) => e.action === a && e.outcome === "REFUSED").length})`);
   process.exit(0);
 }
@@ -121,7 +138,13 @@ if (cmd !== "score" || !g.allowed) process.exit(g.allowed ? 0 : 3);
 const stores = resolveSealedStoreRoots({ declared: EFFECTIVE.declared });
 if (EFFECTIVE.synthetic) console.log(`SYNTHETIC SEALED FIXTURE APPLIED (verified test context only) — +${EFFECTIVE.synthetic.entries} entries · +${EFFECTIVE.synthetic.stores} store(s)`);
 const setEntry = EVIDENCE_ROLE_REGISTRY.find((e) => e.id === arg("set"));
-const outputsFor = (itemIds) => {
+/* --route: ABSENT or "classification" is C6, exactly as before; "follow-up" is C7 — its OWN run, its own set (the pair set), its
+ * own key, mechanism, scorer, protocol, verdict and release store. Anything else is refused: a route is never guessed. */
+const route = arg("route") ?? "classification";
+if (!["classification", "follow-up"].includes(route)) { console.error(`🔴 UNKNOWN ROUTE ${route} — nothing was scored`); process.exit(2); }
+const C7 = route === "follow-up";
+/** Each item's wording, read ONLY from its own tenant's partition (F02); an item no partition holds has none. */
+const wordingOf = () => {
   const rows = pinnedObservationRows({ repo: REPO });
   const resolve = createTenantResolver();
   const wording = new Map();
@@ -129,17 +152,32 @@ const outputsFor = (itemIds) => {
     const part = readTenantPartition({ decision: decidePartition(resolve, tenantId), tenantId, resolve, rows });
     for (const it of part.items) wording.set(it.itemId, it.query);
   }
+  return wording;
+};
+const outputsFor = (itemIds) => {
+  const wording = wordingOf();
   const present = itemIds.filter((id) => wording.has(id)).map((id) => ({ itemId: id, query: wording.get(id), sourceRowIds: [id] }));
   return new Map([...runMechanism(present)].map(([id, o]) => [id, { classes: [...o.classes] }]));
 };
+/* C7: each pair id names its need and candidate (the lifecycle grammar); a pair whose side has no wording gets NO entry, so the
+ * run is INVALID (ruling 1.3) — never filled in. */
+const followUpOutputsFor = (pairIds) => {
+  const wording = wordingOf();
+  const sides = (id) => { const [pair] = String(id).split("|"); const [need, cand] = pair.split(">"); return { id, need, cand }; };
+  const pairs = pairIds.map(sides).filter((p) => wording.has(p.need) && wording.has(p.cand));
+  const items = new Map([...new Set(pairs.flatMap((p) => [p.need, p.cand]))].map((id) => [id, { query: wording.get(id), sourceRowIds: [id] }]));
+  return FU.asScoredAnswers(FU.runFollowUpMechanism(pairs, items), C7_PROTOCOL.paired.cls);
+};
 const scoring = governedScoring({
   repo: REPO, permission: { ...permission, actorRef: namedActor(argv) }, audit: ctx, grant: g, registry: EVIDENCE_ROLE_REGISTRY, stores,
-  currentMechanismHash: versionHash(REPO, MECHANISM_FILES), currentScorerHash: versionHash(REPO, SCORER_FILES), outputsFor,
-  protocol: PROTOCOL, rule: SCORING_RULE, occurredAt: NOW, trackedFiles: () => execFileSync("git", ["-C", REPO, "ls-files"], { encoding: "utf8" }).split("\n").filter(Boolean),
+  currentMechanismHash: versionHash(REPO, C7 ? FU.MECHANISM_FILES : MECHANISM_FILES), currentScorerHash: versionHash(REPO, C7 ? FOLLOW_UP_SCORER_FILES : SCORER_FILES),
+  outputsFor: C7 ? followUpOutputsFor : outputsFor,
+  protocol: C7 ? C7_PROTOCOL : PROTOCOL, rule: C7 ? C7_BAR : SCORING_RULE, occurredAt: NOW, trackedFiles: () => execFileSync("git", ["-C", REPO, "ls-files"], { encoding: "utf8" }).split("\n").filter(Boolean),
+  ...(C7 ? { releaseStore: C7_RELEASE_STORE, verdictOf: (scored) => followUpVerdict(scored, { bar: C7_BAR, protocol: C7_PROTOCOL }) } : {}),
 });
 let run;
 try { run = executeGovernedWrite({ ...scoring, action: { ...scoring.action, name: "RECORD_HELDOUT_EVALUATION" } }); } catch (e) { console.error(`🔴 SCORING RUN STOPPED — ${e.code ?? e.name}: no result was released`); process.exit(4); }
 const rel = scoring.release();
 console.log(`SCORING ${run.outcome}${run.faults.length ? ` · ${run.faults.map((f) => f.code + (f.why ? `(${f.why})` : "")).join(", ")}` : ""}`);
-if (rel) console.log(`  release ${rel.combination.slice(0, 16)}… · declared ${rel.declared} · D ${rel.denominator} · verdict ${rel.verdict.result}${rel.verdict.reason ? ` (${rel.verdict.reason})` : ""} · ${Object.entries(rel.tables).map(([c, t]) => `${c} tp${t.tp}-fp${t.fp}-fn${t.fn}-tn${t.tn}`).join(" · ")}`);
+if (rel) console.log(`  release ${rel.combination.slice(0, 16)}… · declared ${rel.declared} · D ${rel.denominator} · verdict ${rel.verdict.result}${rel.verdict.reason ? ` (${rel.verdict.reason})` : ""} · ${Object.entries(rel.tables).map(([c, t]) => `${c} tp${t.tp}-fp${t.fp}-fn${t.fn}-tn${t.tn}`).join(" · ")}${rel.discordantPairs !== undefined ? ` · abstentions ${rel.abstentions} · discordant ${rel.discordantPairs} · both-correct ${rel.discordantBothCorrect}` : ""}`);
 process.exit(run.outcome === "COMMITTED" || run.outcome === "ALREADY_COMMITTED" ? 0 : run.outcome === "REFUSED" ? 5 : 4);

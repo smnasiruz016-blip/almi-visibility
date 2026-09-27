@@ -35,24 +35,19 @@ import { authorise, authorisationEvent, namedActor, AUTHORISATION_REFUSED_EXIT }
 import { durableGuardSink } from "../src/governance/guard-audit.mjs";
 import { execFileSync } from "node:child_process";
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
-import { governedScoring, versionHash, SCORER_FILES, SCORER_ID } from "../src/governance/governed-scoring.mjs";
+import { governedScoring, versionHash, SCORER_FILES } from "../src/governance/governed-scoring.mjs";
 import { resolveSealedStoreRoots } from "../src/governance/sealed-store-roots.mjs";
 import { createTenantResolver } from "../src/tenancy/resolver.mjs";
 import { pinnedObservationRows, decidePartition, readTenantPartition } from "../src/discovery/search-console-partition.mjs";
-import { runMechanism, MECHANISM_FILES, MECHANISM_ID } from "../src/discovery/human-questions.mjs";
+import { runMechanism, MECHANISM_FILES } from "../src/discovery/human-questions.mjs";
 import { PROTOCOL, SCORING_RULE } from "../config/human-questions.mjs";
 import * as FU from "../src/discovery/follow-up-questions.mjs";
-import { followUpVerdict, FOLLOW_UP_SCORER_ID, FOLLOW_UP_SCORER_FILES } from "../src/heldout/follow-up-rule.mjs";
+import { followUpVerdict, FOLLOW_UP_SCORER_FILES } from "../src/heldout/follow-up-rule.mjs";
 import { C7_PROTOCOL, C7_BAR, C7_RELEASE_STORE } from "../config/follow-up-questions.mjs";
 
-/** The four F10 versions, each an id and the files whose bytes ARE it. A frozen version is a CLAIM ABOUT CODE: when those files
- * move, the claim EXPIRES — even if behaviour is identical — and the version must be frozen again before it may run. */
-const F10_VERSIONS = Object.freeze([
-  { role: "C6 mechanism", id: MECHANISM_ID, files: MECHANISM_FILES },
-  { role: "C6 scorer", id: SCORER_ID, files: SCORER_FILES },
-  { role: "C7 mechanism", id: FU.MECHANISM_ID, files: FU.MECHANISM_FILES },
-  { role: "C7 scorer", id: FOLLOW_UP_SCORER_ID, files: FOLLOW_UP_SCORER_FILES },
-]);
+/* The four F10 versions and their states (src/discovery/f10-versions.mjs): a frozen version is a CLAIM ABOUT CODE — when its files
+ * move the claim EXPIRES, even if behaviour is identical, and it must be frozen again before it may run (_handoffs ec3bbaf §3.3). */
+import { versionStates } from "../src/discovery/f10-versions.mjs";
 
 /* F10 (ruling S): the real registry and store descriptors, plus — ONLY in a verified test context, additive only — an
  * isolated synthetic sealed fixture (src/governance/synthetic-sealed-fixture.mjs). Outside one, naming a fixture refuses. */
@@ -79,11 +74,7 @@ if (cmd === "status") {
   console.log(`  registry entries by role: ${Object.entries(byRole).map(([k, v]) => `${k} ${v}`).join(" · ")}`);
   console.log(`  evaluation sets (HELD_OUT_EVIDENCE, evaluable): ${EVIDENCE_ROLE_REGISTRY.filter((e) => e.role === "HELD_OUT_EVIDENCE" && e.mayEvaluate === true && e.sealed === true).length}`);
   const ev = ctx.store.readAll().events.filter(H);
-  for (const v of F10_VERSIONS) {
-    const now = versionHash(REPO, v.files);
-    const frozen = ev.filter((e) => e.action === EVALUATION_ACTIONS.FROZEN && e.metadata?.mechanismId === v.id);
-    console.log(`  version ${v.role.padEnd(13)} ${v.id.padEnd(28)} code ${now.slice(0, 12)}… · ${frozen.some((e) => e.metadata.mechanismHash === now) ? "FROZEN at this code" : frozen.length ? "EXPIRED — frozen only at other code; re-freeze before it may run" : "NOT FROZEN"}`);
-  }
+  for (const v of versionStates(REPO, ev)) console.log(`  version ${v.role.padEnd(13)} ${v.id.padEnd(28)} code ${v.codeHash.slice(0, 12)}… · ${v.state === "FROZEN" ? "FROZEN at this code" : v.state === "EXPIRED" ? "EXPIRED — frozen only at other code; re-freeze before it may run" : "NOT FROZEN"}`);
   for (const a of Object.values(EVALUATION_ACTIONS)) console.log(`  ${a.padEnd(34)} ${ev.filter((e) => e.action === a).length} (allowed ${ev.filter((e) => e.action === a && e.outcome === "ALLOWED").length} · refused ${ev.filter((e) => e.action === a && e.outcome === "REFUSED").length})`);
   process.exit(0);
 }

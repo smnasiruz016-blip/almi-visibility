@@ -575,6 +575,8 @@ const F10_FILES = [
   "src/governance/synthetic-sealed-fixture.mjs", "tools/human-question-census.mjs", "tools/scorer-caller-census.mjs", "test/f10-human-question-discovery.test.mjs",
   // C7 (27 Sep 2026): the follow-up parameters, pair rule, mechanism, verdict and proofs
   "config/follow-up-questions.mjs", "src/discovery/follow-up-pairs.mjs", "src/discovery/follow-up-questions.mjs", "src/heldout/follow-up-rule.mjs", "test/f10-c7-follow-up.test.mjs",
+  // the one selection and the owner's packet (27 Sep 2026)
+  "src/discovery/f10-versions.mjs", "src/discovery/f10-selection.mjs", "src/discovery/f10-labelling.mjs", "bin/f10-select.mjs", "bin/f10-label.mjs", "test/f10-selection-packet.test.mjs",
 ];
 async function forbiddenTerms() {
   const d = RESOLVE.declarations;

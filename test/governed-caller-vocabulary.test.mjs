@@ -148,7 +148,7 @@ test("V6 · the SITE rule, both directions, on fixed inputs — constructor, col
   assert.equal(classifySite(text.replace("console.log(`ledger${", "record(ledger, `${"), s).cls, "UNKNOWN", "control: a real use beside it must not be ignored");
 });
 
-test("V7 · the REAL population: 45 governed = 44 routed + 1 checked exemption + 0 non-mutating + 0 bypass, remainder 0 — every collector's caller commits through the boundary", () => {
+test("V7 · the REAL population: 46 governed = 45 routed + 1 checked exemption + 0 non-mutating + 0 bypass, remainder 0 — every collector's caller commits through the boundary", () => {
   const rows = census();
   const governed = rows.filter((r) => r.cls === "GOVERNED_STATE_CHANGE");
   /* 58/40 → 59/41 on 23 September, for a MEASURED reason: F07 added one production entry point,
@@ -164,14 +164,19 @@ test("V7 · the REAL population: 45 governed = 44 routed + 1 checked exemption +
    * bin/retire-attachment.mjs, which retires an attachment proved unlawful only through the boundary (BOUNDARY_ROUTED).
    * No existing caller moved class.
    * 62/44 → 63/45 on 25 September (F04), for a MEASURED reason: one production entry point, bin/approval.mjs, which
-   * records an approval event only through the boundary (BOUNDARY_ROUTED). No existing caller moved class. */
-  assert.equal(rows.length, 63);
-  assert.equal(governed.length, 45);
-  assert.equal(rows.filter((r) => r.cls === "READ_ONLY_DIAGNOSTIC").length, 18);
+   * records an approval event only through the boundary (BOUNDARY_ROUTED). No existing caller moved class.
+   * 63/45 → 65/46 on 27 September (F10 selection and packet), for a MEASURED reason: two production entry points.
+   * bin/f10-select.mjs seals the one selection only through the boundary (BOUNDARY_ROUTED). bin/f10-label.mjs is
+   * READ_ONLY_DIAGNOSTIC: it writes only the owner's own progress into storage S — never a governed engine store and never
+   * the audit trail, so a label never enters the trail. No existing caller moved class. */
+  assert.equal(rows.length, 65);
+  assert.equal(governed.length, 46);
+  assert.equal(rows.filter((r) => r.cls === "READ_ONLY_DIAGNOSTIC").length, 19);
   const by = Object.fromEntries(CALLER_CLASSES.map((c) => [c, governed.filter((r) => r.callerClass === c).length]));
   /* 43/2 → 44/1 on 26 September (F10), for a MEASURED reason: bin/heldout-evaluation.mjs now routes its scoring run through the
    * boundary (BOUNDARY_ROUTED); no entry point was added and no other caller moved class. */
-  assert.deepEqual(by, { BOUNDARY_ROUTED: 44, DIRECT_DURABLE_WRITE: 0, COLLECTOR_OR_LIBRARY_WRITE: 0, CHECKED_AUDIT_STORE_EXEMPTION: 1, READ_ONLY: 0, PARTIALLY_ROUTED: 0, UNKNOWN: 0 });
+  /* 44/1 → 45/1 on 27 September: bin/f10-select.mjs (BOUNDARY_ROUTED) joined; no other caller moved class. */
+  assert.deepEqual(by, { BOUNDARY_ROUTED: 45, DIRECT_DURABLE_WRITE: 0, COLLECTOR_OR_LIBRARY_WRITE: 0, CHECKED_AUDIT_STORE_EXEMPTION: 1, READ_ONLY: 0, PARTIALLY_ROUTED: 0, UNKNOWN: 0 });
   assert.equal(bypasses(rows).length, 0);
   assert.equal(governed.filter((r) => r.routed).length + auditStoreExempt(rows).length + nonMutating(rows).length + bypasses(rows).length, governed.length);
   const sites = governed.flatMap((r) => r.siteDetail.map((s) => ({ ...s, file: r.file, reaches: r.reachesBoundary })));

@@ -90,6 +90,10 @@ const DECLARED = Object.freeze({
   "src/governance/durability-adapters.mjs": "the two durability profiles are the ONE place a governed mutation touches the filesystem, and the boundary dedupes BEFORE either of them runs: inspect(idempotencyKey) returns ALREADY_COMMITTED and the adapter is never invoked, so a retry performs no second append and no second rename",
   "src/governance/governed-run.mjs": "store.append — the same audit-store primitive, wrapped only to label a confined test store's events SYNTHETIC_TEST_FIXTURE. It opens no write path of its own and adds no record the wrapped store would not have written",
   /* 🔴 F08 §6 (23 September 2026) — the shared guards' durable sink. One event per DECISION, never per retry. */
+  /* F10 (27 Sep 2026) — the owner's labelling progress in storage S is a CORRECTION LOG, not a record store: readProgress keeps the
+   * LATEST answer per item, so an appended repeat replaces the earlier answer and is never a second count (checked in
+   * test/f10-selection-packet.test.mjs, "a changed answer replaces the old", and turned red by SL-S10). */
+  "src/discovery/f10-labelling.mjs": "appendFileSync of the owner's answer to the progress log in storage S — the latest answer per item wins (readProgress), so a repeat is a correction, never a double count; proved and sabotaged (SL-S10)",
   "src/governance/guard-audit.mjs": "store.append — the audit store's own dedupe by eventId, over an identity of this run, this instant and the sink's decision SEQUENCE: two decisions are two events, and a replayed append of the same decision returns IDEMPOTENT_RETRY",
   /* 🔴 F07 (23 September 2026) — the held-out lifecycle appends ONLY audit events, through the store it is handed. */
   "src/heldout/lifecycle.mjs": "store.append — the audit store's own dedupe by eventId, over an identity of the run, the instant, the action and a SEQUENCE over what the trail already holds for that action: one decision is one event, and a replay of the same append returns IDEMPOTENT_RETRY; write-gate drafts carry the store's default identity",

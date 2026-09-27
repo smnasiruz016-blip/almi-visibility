@@ -221,13 +221,15 @@ test("ASP-C2 · a primitive handed a decision's METADATA records it and performs
 
 /* ═══ C3 · it emits through the governed audit-store path ═════════════════════════════════════════════════════════ */
 
-test("ASP-C3 · REAL · every production primitive site hands in the entry point's OWN audit store: 7 sites = 7 proved + 0 other, remainder 0", () => {
+test("ASP-C3 · REAL · every production primitive site hands in the entry point's OWN audit store: 8 sites = 8 proved + 0 other, remainder 0", () => {
   const sites = GOVERNED.flatMap((r) => r.siteDetail.filter((s) => AUDIT_STORE_REACHING.test(s.text)).map((s) => ({ file: r.file, ...s })));
-  assert.equal(sites.length, 7);
+  /* 7 → 8 sites, 5 → 6 files on 27 Sep 2026 (F10), for a MEASURED reason: bin/f10-select.mjs records its write-gate decisions through
+   * the same primitive, on the entry point's OWN audit context, exactly as bin/heldout-evaluation.mjs does. */
+  assert.equal(sites.length, 8);
   const proved = sites.filter((s) => s.cls === "CHECKED_AUDIT_STORE_EXEMPTION");
   assert.equal(proved.length + sites.filter((s) => s.cls !== "CHECKED_AUDIT_STORE_EXEMPTION").length, sites.length);
   assert.deepEqual(sites.filter((s) => s.cls !== "CHECKED_AUDIT_STORE_EXEMPTION").map((s) => `${s.file}:${s.line} ${s.cls} ${s.why}`), []);
-  assert.deepEqual([...new Set(sites.map((s) => s.file))].sort(), ["bin/audit-trail.mjs", "bin/authority-migrate.mjs", "bin/heldout-evaluation.mjs", "bin/project-intake.mjs", "bin/supersede-noindex.mjs"]);
+  assert.deepEqual([...new Set(sites.map((s) => s.file))].sort(), ["bin/audit-trail.mjs", "bin/authority-migrate.mjs", "bin/f10-select.mjs", "bin/heldout-evaluation.mjs", "bin/project-intake.mjs", "bin/supersede-noindex.mjs"]);
 });
 
 test("ASP-C3 · CONTROLS · an emission path that is replaced, chosen or merely NAMED is not the governed audit-store path", () => {
@@ -248,11 +250,13 @@ test("ASP-C3 · CONTROLS · an emission path that is replaced, chosen or merely 
 
 /* ═══ C4 · every production caller remains visible to the caller census ═══════════════════════════════════════════ */
 
-test("ASP-C4 · REAL · every production file that names a declared primitive is a GOVERNED census row, one site per call — 5 files, 7 calls, remainder 0", () => {
+test("ASP-C4 · REAL · every production file that names a declared primitive is a GOVERNED census row, one site per call — 6 files, 8 calls, remainder 0", () => {
   const names = AUDIT_STORE_ONLY_PRIMITIVES.map((e) => e.name);
   const grep = (dir) => execFileSync("git", ["-C", REPO, "grep", "-nE", `\\b(${names.join("|")})\\(`, "--", dir], { encoding: "utf8" }).split("\n").filter(Boolean);
   const binCalls = grep("bin").filter((l) => !/^\S+:\d+:\s*(\/\/|\*)/.test(l));
-  assert.equal(binCalls.length, 7);
+  /* 7 → 8 sites, 5 → 6 files on 27 Sep 2026 (F10), for a MEASURED reason: bin/f10-select.mjs records its write-gate decisions through
+   * the same primitive, on the entry point's OWN audit context, exactly as bin/heldout-evaluation.mjs does. */
+  assert.equal(binCalls.length, 8);
   for (const l of binCalls) {
     const [file, line] = l.split(":");
     const row = REAL.find((r) => r.file === file);
@@ -394,12 +398,13 @@ test("ASP-C8 · a caller's own product write is a bypass wherever it sits — it
   assert.deepEqual([rowOf(WELL_FORMED()).bypass, rowOf(WELL_FORMED()).row.auditStoreExempt], [0, true]);
 });
 
-test("ASP-C8 · REAL · the 5 production callers of a primitive: 4 route every product write through the boundary, 1 writes nothing but the audit store", () => {
-  const callers = ["bin/audit-trail.mjs", "bin/authority-migrate.mjs", "bin/heldout-evaluation.mjs", "bin/project-intake.mjs", "bin/supersede-noindex.mjs"].map((f) => REAL.find((r) => r.file === f));
+test("ASP-C8 · REAL · the 6 production callers of a primitive: 5 route every product write through the boundary, 1 writes nothing but the audit store", () => {
+  const callers = ["bin/audit-trail.mjs", "bin/authority-migrate.mjs", "bin/f10-select.mjs", "bin/heldout-evaluation.mjs", "bin/project-intake.mjs", "bin/supersede-noindex.mjs"].map((f) => REAL.find((r) => r.file === f));
   const routed = callers.filter((r) => r.callerClass === "BOUNDARY_ROUTED");
   const exempt = callers.filter((r) => r.callerClass === "CHECKED_AUDIT_STORE_EXEMPTION");
   /* 3/2 → 4/1 on 26 Sep 2026 (F10): bin/heldout-evaluation.mjs now also routes its scoring run through the boundary. */
-  assert.deepEqual([routed.length, exempt.length, callers.length - routed.length - exempt.length], [4, 1, 0]);
+  /* 4/1 → 5/1 on 27 Sep 2026 (F10): bin/f10-select.mjs seals the one selection only through the boundary. */
+  assert.deepEqual([routed.length, exempt.length, callers.length - routed.length - exempt.length], [5, 1, 0]);
   for (const r of callers) assert.deepEqual(r.siteDetail.filter((s) => s.cls === "DIRECT_DURABLE_WRITE" || s.cls === "UNKNOWN").map((s) => s.line), [], `${r.file} keeps a direct write`);
   for (const r of exempt) assert.ok(r.siteDetail.every((s) => s.cls === "CHECKED_AUDIT_STORE_EXEMPTION"), `${r.file} is exempt with a non-audit site`);
 });

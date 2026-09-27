@@ -33,7 +33,17 @@ import { storeFiles } from "./sealed-store-roots.mjs";
 import { scoreClassification, readHeldOutItem, readHeldOutDerivation, mechanismHash } from "../heldout/lifecycle.mjs";
 import { classificationVerdict } from "../heldout/classification-rule.mjs";
 
-export const SCORER_ID = "human-question-scorer-v1";
+/*
+ * 🔴 v2 IS v1's BEHAVIOUR, UNCHANGED (27 Sep 2026). human-question-scorer-v1 was frozen at 51dd9c3a… (trail event 880). The code
+ * it covers then MOVED:
+ *   · src/heldout/lifecycle.mjs, for F07 Amendment 3 (264c680): a set/key preflight before the claim and a paired release. An
+ *     UNPAIRED release — C6's — is proved byte-for-byte Amendment 2's (test/f07-amendment3-paired.test.mjs).
+ *   · this file, for the separate C7 route: an optional verdict function. When it is ABSENT — C6 — the record is exactly the one
+ *     C6 always wrote (test/f10-c7-follow-up.test.mjs).
+ * A frozen version is a CLAIM ABOUT CODE: when the code it covers moves, the claim EXPIRES, even when behaviour is identical
+ * (standing law, _handoffs ec3bbaf §3.3). So the scorer is re-frozen under a NEW id. The new id does NOT mean C6 changed.
+ */
+export const SCORER_ID = "human-question-scorer-v2";
 /** The files whose bytes ARE the scorer: the governed route, the aggregate scorer it calls, the rule and the rule's parameters. */
 export const SCORER_FILES = Object.freeze(["src/governance/governed-scoring.mjs", "src/heldout/lifecycle.mjs", "src/heldout/classification-rule.mjs", "config/human-questions.mjs"]);
 /** The release store: its own top-level directory, never under runs/ (a store under runs/ becomes another feature's input). */
@@ -61,12 +71,16 @@ export function versionHash(repo, files, read = (p) => readFileSync(p)) {
  *   stores           { roots: { name: dir|null }, codes: { name: code } } — resolveSealedStoreRoots()
  *   currentMechanismHash   the mechanism's hash over its files NOW
  *   currentScorerHash      the scorer's hash over its files NOW
- *   outputsFor       (itemIds) → Map itemId → { classes } — the frozen mechanism, run inside the boundary
+ *   outputsFor       (itemIds) → Map itemId → { classes } — the frozen mechanism, run inside the boundary; for a PAIRED
+ *                    protocol (F07 Amendment 3) an entry may be the explicit ABSTAIN { abstain: true }
  *   protocol, rule   the frozen protocol and scoring rule
  *   occurredAt       the run's declared instant
  *   role             the grant's role; only "evaluator" may score
+ *   releaseStore     the run's own release store (C6's by default; C7 has its own, config/follow-up-questions.mjs)
+ *   verdictOf        (scored) → verdict — a frozen verdict over the released aggregates; ABSENT means C6's classification
+ *                    verdict, byte-for-byte the record C6 always wrote. C7 hands in followUpVerdict (src/heldout/follow-up-rule.mjs).
  */
-export function governedScoring({ repo, permission, audit, grant, registry, stores, currentMechanismHash, currentScorerHash, outputsFor, protocol, rule, occurredAt, derivers = {}, role = "evaluator", releaseStore = RELEASE_STORE, trackedFiles = null }) {
+export function governedScoring({ repo, permission, audit, grant, registry, stores, currentMechanismHash, currentScorerHash, outputsFor, protocol, rule, occurredAt, derivers = {}, role = "evaluator", releaseStore = RELEASE_STORE, trackedFiles = null, verdictOf = null }) {
   const req = grant?.request ?? {};
   const combination = combinationOf(req);
   const key = deriveIdempotencyKey({ profile: PROFILE, targetClass: TARGET_CLASS, repoRelativeTarget: releaseStore, occurrenceFingerprint: combination });
@@ -111,14 +125,17 @@ export function governedScoring({ repo, permission, audit, grant, registry, stor
       }
       const outputs = outputsFor(items);
       const scored = scoreClassification({ audit, grant, currentMechanismHash, registry, roots, filesOf, derivers, outputs, protocol, foreignRoots: located });
-      const verdict = classificationVerdict({ tables: scored.tables, declared: scored.declared, excluded: scored.excluded }, { rule, protocol });
+      /* C6 (the default) is unchanged. C7 hands in its own frozen verdict over the paired release (F07 Amendment 3). */
+      const verdict = verdictOf ? verdictOf(scored) : classificationVerdict({ tables: scored.tables, declared: scored.declared, excluded: scored.excluded }, { rule, protocol });
       const record = {
         governedWriteKey: key, combination, claimEventId: scored.claimEventId, grantEventId: scored.grantEventId,
         sealedSetId: req.sealedSetId, keySetId: req.keySetId, mechanismId: req.mechanismId, mechanismHash: req.mechanismHash, scorerId: req.scorerId, scorerHash: req.scorerHash,
         declared: scored.declared, denominator: scored.denominator, excluded: { ...scored.excluded },
         tables: Object.fromEntries(Object.entries(scored.tables).map(([c, t]) => [c, { ...t }])),
         evidenceState: scored.evidenceState, untouched: scored.untouched,
-        verdict: { result: verdict.result, reason: verdict.reason ?? null, denominator: verdict.denominator ?? null, assessable: verdict.assessable ?? null, classes: verdict.classes ? Object.fromEntries(Object.entries(verdict.classes).map(([c, v]) => [c, { ...v }])) : null },
+        verdict: { result: verdict.result, reason: verdict.reason ?? null, denominator: verdict.denominator ?? null, assessable: verdict.assessable ?? null, classes: verdict.classes ? Object.fromEntries(Object.entries(verdict.classes).map(([c, v]) => [c, { ...v }])) : null,
+          ...(verdictOf ? { failing: verdict.failing ?? null, kappa: verdict.kappa ?? null, precision: verdict.precision ?? null, coverage: verdict.coverage ?? null, needSensitivity: verdict.needSensitivity ?? null } : {}) },
+        ...(scored.discordantPairs !== undefined ? { abstentions: scored.abstentions, discordantPairs: scored.discordantPairs, discordantBothCorrect: scored.discordantBothCorrect } : {}),
         actor: String(permission?.actorRef ?? "UNNAMED"), role, occurredAt, softwareVersion: audit.softwareVersion,
       };
       /* One release per key, checked against the records already present — never a second copy of the same run. */

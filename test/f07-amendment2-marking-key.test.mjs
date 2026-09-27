@@ -267,7 +267,9 @@ test("F07A2 · C3 · the frozen scorer releases EXACTLY the hand-worked per-clas
   assert.equal(released[0], released[1], "the two key shapes scored differently");
 });
 
-test("F07A2 · C3 · missing, partial, duplicate, unreadable and inconsistent inputs FAIL CLOSED — the run is recorded INVALID and no result is released", () => {
+/* Re-sat to F07 Amendment 3 (governance 264c680): a SET- or KEY-side fault is refused BEFORE the claim — the once-only run stays
+ * UNSPENT — while a missing or invalid mechanism OUTPUT still INVALIDATES the claimed run. Every fault still yields no result. */
+test("F07A2 · C3 · missing, partial, duplicate, unreadable and inconsistent inputs FAIL CLOSED — a set/key fault is REFUSED before the claim (run unspent), an output fault is recorded INVALID — and no result is released", () => {
   const row = (r) => JSON.stringify(r);
   const cases = [
     ["a key row missing", { keyText: KEY_ROWS.slice(0, 5).map(row).join("\n") }, {}, "INPUT_MISSING"],
@@ -288,7 +290,9 @@ test("F07A2 · C3 · missing, partial, duplicate, unreadable and inconsistent in
       assert.equal(g.allowed, true, `${why}: the grant itself was refused (${g.code})`);
       assert.throws(() => score(a, w, g, over), (e) => e.code === code, `${why}: expected ${code}`);
       assert.equal(events(a, EVALUATION_ACTIONS.SCORED).filter((e) => e.outcome === "RECORDED").length, 0, `${why}: a result was released`);
-      assert.equal(events(a, EVALUATION_ACTIONS.SCORED).filter((e) => e.outcome === "INVALID" && e.reasonCode === code).length, 1, `${why}: the invalid run was not recorded`);
+      const outcome = over.outputs ? "INVALID" : "REFUSED";
+      assert.equal(events(a, EVALUATION_ACTIONS.SCORED).filter((e) => e.outcome === outcome && e.reasonCode === code).length, 1, `${why}: the ${outcome} run was not recorded`);
+      assert.equal(events(a, LINKED_ACTIONS.CLAIMED).length, outcome === "INVALID" ? 1 : 0, `${why}: ${outcome === "INVALID" ? "an output fault did not spend the claimed run" : "a set/key fault SPENT the once-only run"}`);
     } finally { w.cleanup(); }
   }
   // the key changed AFTER the grant: the bytes read no longer match the commitment the grant bound
@@ -298,6 +302,7 @@ test("F07A2 · C3 · missing, partial, duplicate, unreadable and inconsistent in
     const g = grantFor(a, w);
     fs.writeFileSync(join(w.tree, w.keyRel), KEY_TEXT.replace('"ALPHA"]}', '"BETA"]}'));
     assert.throws(() => score(a, w, g), { code: "KEY_CHANGED_SINCE_GRANT" }, "a key changed after the grant was scored");
+    assert.deepEqual([events(a, LINKED_ACTIONS.CLAIMED).length, events(a, EVALUATION_ACTIONS.SCORED).filter((e) => e.outcome === "REFUSED").length], [0, 1], "a key changed after the grant spent the run, or was not refused");
   } finally { w.cleanup(); }
 });
 

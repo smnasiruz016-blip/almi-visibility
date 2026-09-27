@@ -273,6 +273,8 @@ export const LINKED_ACTIONS = Object.freeze({ ITEM_READ: "HELDOUT_ITEM_READ", CL
 export const LINKED_REQUEST_FIELDS = Object.freeze(["keySetId", "keyCommitment", "scorerId", "scorerHash"]);
 /** The declared ceiling on a protocol: the release must fit one metadata-only audit event (24 keys, src/audit-trail/event.mjs). */
 export const MAX_PROTOCOL_TOKENS = 10;
+/** Amendment 3 (governance 264c680): a PAIRED protocol releases three more aggregates, so it carries at most SEVEN tokens. */
+export const MAX_PAIRED_PROTOCOL_TOKENS = 7;
 const TOKEN = /^[A-Z][A-Z0-9_]{0,31}$/;
 const sha256 = (s) => createHash("sha256").update(s, "utf8").digest("hex");
 
@@ -352,10 +354,47 @@ export function parseKeyRows(texts, { classes, exclusions }) {
 }
 
 /**
+ * Amendment 3 — the PAIR STRUCTURE of a paired set, parsed inside the boundary only and never returned out of it. Every item id
+ * is `need>candidate` (a matched pair) or `need>candidate|partnerNeed>candidate` (a re-pair of the SAME candidate with a
+ * DIFFERENT need, naming the matched pair it was drawn from). Returns { links: [[rePair, matched], …] } or { fault: CODE }.
+ * Faults are codes only — never an id.
+ */
+const PAIR_ID = /^([^>|]+)>([^>|]+)(?:\|([^>|]+)>([^>|]+))?$/;
+export function parsePairStructure(items) {
+  const seen = new Set(), parsed = [];
+  for (const id of items) {
+    const m = PAIR_ID.exec(String(id));
+    if (!m) return { fault: "PAIR_STRUCTURE_MALFORMED" };
+    const pair = `${m[1]}>${m[2]}`;
+    if (seen.has(pair)) return { fault: "PAIR_DUPLICATE" };
+    seen.add(pair);
+    parsed.push({ id: String(id), need: m[1], candidate: m[2], partnerNeed: m[3], partnerCandidate: m[4] });
+  }
+  const matched = new Set(parsed.filter((p) => p.partnerNeed === undefined).map((p) => p.id));
+  const links = [];
+  for (const p of parsed) {
+    if (p.partnerNeed === undefined) continue;
+    if (p.partnerCandidate !== p.candidate || p.partnerNeed === p.need) return { fault: "PAIR_STRUCTURE_MALFORMED" };
+    const partner = `${p.partnerNeed}>${p.partnerCandidate}`;
+    if (!matched.has(partner)) return { fault: "PAIR_DANGLING" };
+    links.push([p.id, partner]);
+  }
+  return { links };
+}
+
+/** One mechanism answer: { classes: [...] } — or, for a PAIRED protocol only, the explicit ABSTAIN { abstain: true }. Never both. */
+const isAbstain = (o) => o?.abstain === true && Object.keys(o).length === 1;
+const validAnswer = (o, classes, paired) => (paired && isAbstain(o)) || (!Object.hasOwn(o ?? {}, "abstain") && Array.isArray(o?.classes) && o.classes.every((c) => classes.includes(c)) && new Set(o.classes).size === o.classes.length);
+
+/**
  * 🔴 THE AGGREGATE SCORE. One valid run per frozen (set · mechanism · scorer · key) combination, CLAIMED on the trail before
- * anything is read or compared. `outputs` is the frozen mechanism's answer for EVERY declared item: Map item → { classes }
- * (an empty list is an explicit abstention). Both sides are read here, through the recorded readers — never handed in.
- * Returns — and records — only counts. Throws, with the run recorded INVALID, on any input fault: the claim is spent.
+ * anything is compared. `outputs` is the frozen mechanism's answer for EVERY declared item: Map item → { classes } (an empty
+ * list claims no class); for a PAIRED protocol only, { abstain: true } is an explicit ABSTAIN — scored not-positive in every
+ * table, counted as an abstention, never as a negative answer. Both sides are read here, through the recorded readers — never
+ * handed in. Returns — and records — only counts.
+ *
+ * Amendment 3 PREFLIGHT: every set-side and key-side input is read and checked BEFORE the claim; a fault is REFUSED and the
+ * once-only run stays unspent. A missing or invalid mechanism OUTPUT is checked after the claim: the run is recorded INVALID.
  */
 export function scoreClassification({ audit, grant, currentMechanismHash, registry, roots = {}, filesOf, derivers = {}, outputs, protocol, foreignRoots }) {
   const at = isoSeconds(Date.now());
@@ -370,14 +409,16 @@ export function scoreClassification({ audit, grant, currentMechanismHash, regist
   if (currentMechanismHash !== req.mechanismHash) refuseChangedMechanism(audit, grant, at, meta);
   const classes = protocol?.classes ?? [], exclusions = protocol?.exclusions ?? [];
   if (!classes.length || [...classes, ...exclusions].some((t) => !TOKEN.test(String(t))) || new Set([...classes, ...exclusions]).size !== classes.length + exclusions.length || classes.length + exclusions.length > MAX_PROTOCOL_TOKENS) stop("REFUSED", "PROTOCOL_INVALID");
+  const paired = protocol?.paired === undefined ? null : protocol.paired;
+  if (paired !== null && !(paired && typeof paired === "object" && !Array.isArray(paired) && Object.keys(paired).length === 1 && classes.includes(paired.cls))) stop("REFUSED", "PROTOCOL_INVALID");
+  if (paired && classes.length + exclusions.length > MAX_PAIRED_PROTOCOL_TOKENS) stop("REFUSED", "PROTOCOL_INVALID");
 
-  // ── ONE VALID RUN: the combination is claimed BEFORE any read or comparison; a claim that exists is never made again ──
+  // ── ONE VALID RUN: the combination is claimed BEFORE any comparison; a claim that exists is never made again ──
   const combination = sha256([req.sealedSetId, req.mechanismHash, req.scorerHash, req.keyCommitment].join("\n"));
   if (eventsOf(audit).some((e) => e.action === LINKED_ACTIONS.CLAIMED && e.metadata.combination === combination)) stop("REFUSED", "SCORING_ALREADY_CLAIMED", { combination });
-  const claim = emit(audit, { action: LINKED_ACTIONS.CLAIMED, outcome: "RECORDED", reasonCode: "SCORING_RUN_CLAIMED", occurredAt: at, metadata: { ...meta, combination, grantEventId: String(grant.eventId) } });
-  const invalid = (code) => stop("INVALID", code, { combination, claimEventId: String(claim.event.eventId) });
+  const refuse = (code) => stop("REFUSED", code, { combination });
 
-  // ── BOTH SIDES, READ THROUGH THE LIFECYCLE ONLY ──
+  // ── PREFLIGHT (Amendment 3): BOTH SIDES, READ THROUGH THE LIFECYCLE ONLY, AND CHECKED — BEFORE THE CLAIM ──
   const underPrefix = (entry) => {
     const pre = (entry?.resource?.pathPrefixes ?? []).map((p) => String(p).replace(/\\/g, "/").replace(/\/?$/, "/"));
     const root = entry?.resource?.root;
@@ -385,47 +426,65 @@ export function scoreClassification({ audit, grant, currentMechanismHash, regist
   };
   const setEntry = (registry ?? []).find((x) => x?.id === req.sealedSetId);
   const keyEntry = (registry ?? []).find((x) => x?.id === req.keySetId);
-  if (!setEntry || !keyEntry) invalid("INPUT_UNREGISTERED");
+  if (!setEntry || !keyEntry) refuse("INPUT_UNREGISTERED");
   let items;
   try {
     if (setEntry.resource?.derivation) items = readHeldOutDerivation({ audit, grant, currentMechanismHash, registry, derivers });
     else {
       const s = underPrefix(setEntry);
-      if (!s.base || !s.files.length) invalid("INPUT_UNREADABLE");
+      if (!s.base || !s.files.length) refuse("INPUT_UNREADABLE");
       items = [...new Set(s.files.flatMap((p) => String(readHeldOutItem({ audit, grant, currentMechanismHash, registry, root: s.root, base: s.base, path: p, foreignRoots })).split(/\r?\n/).map((l) => l.trim()).filter(Boolean)))];
     }
-  } catch (e) { if (e instanceof HeldOutRefused && e.message.includes("no result was released")) throw e; invalid("INPUT_UNREADABLE"); }
-  if (populationCommitment(items) !== setEntry.contentHash) invalid("SET_CHANGED_SINCE_REGISTRATION");
+  } catch (e) { if (e instanceof HeldOutRefused && e.message.includes("no result was released")) throw e; refuse("INPUT_UNREADABLE"); }
+  if (populationCommitment(items) !== setEntry.contentHash) refuse("SET_CHANGED_SINCE_REGISTRATION");
   const k = underPrefix(keyEntry);
-  if (!k.base || !k.files.length) invalid("INPUT_UNREADABLE");
+  if (!k.base || !k.files.length) refuse("INPUT_UNREADABLE");
   const keyBytes = {};
-  try { for (const p of k.files) keyBytes[p] = readHeldOutItem({ audit, grant, currentMechanismHash, registry, root: k.root, base: k.base, path: p, foreignRoots }); } catch { invalid("INPUT_UNREADABLE"); }
-  if (keyCommitment(keyBytes) !== req.keyCommitment) invalid("KEY_CHANGED_SINCE_GRANT");
-
-  // ── EVERY INPUT CHECKED BEFORE ANY COUNT ──
+  try { for (const p of k.files) keyBytes[p] = readHeldOutItem({ audit, grant, currentMechanismHash, registry, root: k.root, base: k.base, path: p, foreignRoots }); } catch { refuse("INPUT_UNREADABLE"); }
+  if (keyCommitment(keyBytes) !== req.keyCommitment) refuse("KEY_CHANGED_SINCE_GRANT");
   const parsed = parseKeyRows(Object.values(keyBytes).map((b) => Buffer.from(b).toString("utf8")), { classes, exclusions });
-  if (parsed.fault) invalid(parsed.fault);
+  if (parsed.fault) refuse(parsed.fault);
   const itemSet = new Set(items);
-  if ([...parsed.rows.keys()].some((i) => !itemSet.has(i))) invalid("INPUT_INCONSISTENT");
-  if (items.some((i) => !parsed.rows.has(i))) invalid("INPUT_MISSING");
+  if ([...parsed.rows.keys()].some((i) => !itemSet.has(i))) refuse("INPUT_INCONSISTENT");
+  if (items.some((i) => !parsed.rows.has(i))) refuse("INPUT_MISSING");
+  const pairs = paired ? parsePairStructure(items) : null;
+  if (pairs?.fault) refuse(pairs.fault);
+
+  // ── THE CLAIM: only a complete, consistent set and key reach it ──
+  const claim = emit(audit, { action: LINKED_ACTIONS.CLAIMED, outcome: "RECORDED", reasonCode: "SCORING_RUN_CLAIMED", occurredAt: at, metadata: { ...meta, combination, grantEventId: String(grant.eventId) } });
+  const invalid = (code) => stop("INVALID", code, { combination, claimEventId: String(claim.event.eventId) });
+
+  // ── THE MECHANISM'S OUTPUTS, CHECKED BEFORE ANY COUNT: a missing or invalid output INVALIDATES the claimed run ──
   if (!(outputs instanceof Map)) invalid("INPUT_UNREADABLE");
   if ([...outputs.keys()].some((i) => !itemSet.has(i))) invalid("INPUT_INCONSISTENT");
   if (items.some((i) => !outputs.has(i))) invalid("INPUT_MISSING");
-  if ([...outputs.values()].some((o) => !(Array.isArray(o?.classes) && o.classes.every((c) => classes.includes(c)) && new Set(o.classes).size === o.classes.length))) invalid("INPUT_INCONSISTENT");
+  if ([...outputs.values()].some((o) => !validAnswer(o, classes, paired))) invalid("INPUT_INCONSISTENT");
 
-  // ── THE TABLES: counts only, over the items the labeller did not exclude ──
+  // ── THE TABLES: counts only, over the items the labeller did not exclude; an ABSTAIN is not-positive and counted apart ──
   const excluded = Object.fromEntries(exclusions.map((x) => [x, 0]));
   const tables = Object.fromEntries(classes.map((c) => [c, { tp: 0, fp: 0, fn: 0, tn: 0 }]));
-  let denominator = 0;
+  let denominator = 0, abstentions = 0;
+  const positive = (i, c) => !isAbstain(outputs.get(i)) && outputs.get(i).classes.includes(c);
   for (const i of items) {
     const row = parsed.rows.get(i);
     if (row.exclusion) { excluded[row.exclusion] += 1; continue; }
     denominator += 1;
-    const said = new Set(outputs.get(i).classes);
+    if (isAbstain(outputs.get(i))) abstentions += 1;
     for (const c of classes) {
-      const truth = row.classes.includes(c), guess = said.has(c);
+      const truth = row.classes.includes(c), guess = positive(i, c);
       tables[c][truth ? (guess ? "tp" : "fn") : (guess ? "fp" : "tn")] += 1;
     }
+  }
+  // ── Amendment 3, PAIRED only: a discordant unit is a re-pair and its matched pair, both not excluded, judged differently on
+  //    the protocol's class; it is correct both ways when the mechanism's positive equals the judgement on BOTH sides ──
+  let discordantPairs = 0, discordantBothCorrect = 0;
+  for (const [rePair, matched] of pairs?.links ?? []) {
+    const a = parsed.rows.get(matched), b = parsed.rows.get(rePair);
+    if (a.exclusion || b.exclusion) continue;
+    const ta = a.classes.includes(paired.cls), tb = b.classes.includes(paired.cls);
+    if (ta === tb) continue;
+    discordantPairs += 1;
+    if (positive(matched, paired.cls) === ta && positive(rePair, paired.cls) === tb) discordantBothCorrect += 1;
   }
   const evidenceState = denominator > 0 ? "OBSERVED" : "NOT_MEASURED";
   const release = {
@@ -433,7 +492,8 @@ export function scoreClassification({ audit, grant, currentMechanismHash, regist
     declared: String(items.length), denominator: String(denominator), evidenceState, untouched: String(grant.untouched),
     ...Object.fromEntries(classes.map((c) => [`c_${c}`, `tp${tables[c].tp}-fp${tables[c].fp}-fn${tables[c].fn}-tn${tables[c].tn}`])),
     ...Object.fromEntries(exclusions.map((x) => [`x_${x}`, String(excluded[x])])),
+    ...(paired ? { abstentions: String(abstentions), discordantPairs: String(discordantPairs), discordantBothCorrect: String(discordantBothCorrect) } : {}),
   };
   emit(audit, { action: EVALUATION_ACTIONS.SCORED, outcome: "RECORDED", reasonCode: grant.untouched ? "CLASS_TABLES_SCORED_UNTOUCHED" : "CLASS_TABLES_SCORED_NOT_UNTOUCHED", occurredAt: at, metadata: release });
-  return Object.freeze({ ...release, tables: Object.freeze(Object.fromEntries(classes.map((c) => [c, Object.freeze({ ...tables[c] })]))), excluded: Object.freeze(excluded), declared: items.length, denominator });
+  return Object.freeze({ ...release, tables: Object.freeze(Object.fromEntries(classes.map((c) => [c, Object.freeze({ ...tables[c] })]))), excluded: Object.freeze(excluded), declared: items.length, denominator, ...(paired ? { abstentions, discordantPairs, discordantBothCorrect } : {}) });
 }

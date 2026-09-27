@@ -62,11 +62,18 @@ export function consistencyErrors({ board, events }) {
     /* 🔴 A ROW MAY LAWFULLY BE VERIFIED MORE THAN ONCE — reopened on contradictory evidence and verified again.
      * What is never lawful is the SAME movement recorded twice, so that is what is checked: same row, same from,
      * same to, same instant. A re-verification after a reopening differs in every one of those. */
-    const seen = new Set();
+    /* 🔴 D-RECORDER-1, the guard's half (26 Sep 2026): board movements are dated to the DAY, so two lawful re-verifications
+     * on one day — each under its OWN governing acceptance (F07 Amendments 2 and 3) — share row, from, to and instant. The
+     * movement's identity therefore also carries the authority that governed it, and, where the repaired recorder wrote one,
+     * its identitySubject (which counts same-day movements). Same authority and the same identitySubject — or a legacy event
+     * without one — is still the same movement recorded twice. */
+    const seen = new Map();
     for (const e of mine) {
-      const key = `${e.metadata.featureId}|${e.metadata.from}|${e.metadata.to}|${e.occurredAt}`;
-      if (seen.has(key)) errs.push({ code: "DUPLICATE_TRANSITION_EVENT", id: row.featureId, eventId: e.eventId, why: `${row.featureId}: the same movement (${e.metadata.from} -> ${e.metadata.to} at ${e.occurredAt}) is recorded more than once` });
-      seen.add(key);
+      const key = `${e.metadata.featureId}|${e.metadata.from}|${e.metadata.to}|${e.occurredAt}|${e.authorityRef?.propositionId ?? "NONE"}`;
+      const subject = e.metadata.identitySubject ?? null;
+      const earlier = seen.get(key) ?? [];
+      if (earlier.some((s) => s === null || subject === null || s === subject)) errs.push({ code: "DUPLICATE_TRANSITION_EVENT", id: row.featureId, eventId: e.eventId, why: `${row.featureId}: the same movement (${e.metadata.from} -> ${e.metadata.to} at ${e.occurredAt}) is recorded more than once` });
+      seen.set(key, [...earlier, subject]);
     }
     const latestVerification = mine.reduce((m, e) => (m === null || order.get(e) > order.get(m) ? e : m), null);
     if (latestVerification.metadata.to && latestVerification.metadata.to !== row.state) {

@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -285,7 +285,9 @@ export const DECLARED = Object.freeze({
       }),
       /* Amendment 1 (2ee6c2a, committed ALONE): C7 only, after the owner approved its nine pre-run values without alteration
        * (ed85493). It names the original by both hashes. NO state change: F10 stays IN-PROGRESS and C7 NOT_MEASURED. */
-      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F10", on: "2026-09-26", ruling: ACCEPTANCES.F10.ruling, contractSha256: ACCEPTANCES.F10.contractSha256, amends: ACCEPTANCES.F10.amends }),
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F10", on: "2026-09-26", ruling: F10_AMENDMENT_1.ruling, contractSha256: F10_AMENDMENT_1.contractSha256, amends: F10_AMENDMENT_1.amends }),
+      /* F10 Amendment 2 (27 Sep 2026, 370a3b3): C3's CI clause only. NO board movement — F10 stays IN-PROGRESS. */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F10", on: "2026-09-27", ruling: ACCEPTANCES.F10.ruling, contractSha256: ACCEPTANCES.F10.contractSha256, amends: ACCEPTANCES.F10.amends }),
     ]),
   }),
   F05: Object.freeze({

@@ -431,7 +431,12 @@ export const DECLARED = Object.freeze({
      * (264c680) after the limb census (4fc5656). It adds the paired release F10's C7 needs (three count-only aggregates, a
      * real ABSTAIN, set/key preflight before the claim). Amendments 1 and 2 remain historically valid for what they measured; live
      * HELD_OUT_EVIDENCE and MARKING_KEY entries number zero; the reopen is caused by the newly frozen wider requirement. */
-    state: "VERIFIED-PASS",
+    /* 🔴 REOPENED 27 Sep 2026 — CONCRETE_CONTRADICTORY_EVIDENCE, NOT a requirement change. GOVERNED READ requires every read to
+     * "record a durable ACCESS event before the value is used". Two real production sealed reads (the census at 04:13:57Z) did
+     * append their ACCESS events, and `git checkout` then destroyed both. The production trail lived in a git working tree,
+     * so for those two reads the durable ACCESS record does not exist, and the requirement was NOT met. The requirement
+     * did not change; the world failed to meet it. Timeline and blast radius: _handoffs 5fd0435. */
+    state: "IN-PROGRESS",
     events: Object.freeze([
       // The acceptance was committed ALONE in the governance repository (cd149ae) before any F07 engine change.
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-23", ruling: F07_ORIGINAL.ruling, contractSha256: F07_ORIGINAL.contractSha256 }),
@@ -561,6 +566,20 @@ export const DECLARED = Object.freeze({
         sabotage: "F7C-S1–S16 (new) · F7B-S1–S21, F7-S1–S16, K1–K10 and F7A-S1–S11 (existing, re-run; F7B-S10 and S17 re-anchored to the preflight's refuse, intent unchanged)",
         afterMerge: "main CI green on the exact merged SHA — verified after merge and reported in _handoffs; a red main run means this record is wrong and must be reverted",
       }),
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F07",
+        on: "2026-09-27",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (concrete contradictory evidence: two ACCESS records destroyed by a source-control operation)",
+        reason: "CONCRETE_CONTRADICTORY_EVIDENCE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "GOVERNED READ requires every read of either side to record a durable ACCESS event before the value is used; two real production sealed reads appended their ACCESS events (trail 1131 -> 1133) and a git checkout in the same command removed both, so no durable ACCESS record of those two reads exists — the requirement did not change, the store that holds the record was deletable by an ordinary git operation",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F07.ruling.sha256, contract: ACCEPTANCES.F07.contractSha256 }),
+        evidenceRecord: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_PR171_AUDIT_INCIDENT_TIMELINE_AND_BLAST_RADIUS_2026-09-27.md", commit: "5fd0435127540d9879c7b573e7a33bf859d0a59c", sha256: "a67dedd4faa0ff5c707371cab647078463e98ff60506556427ab5643999697ca" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-27_PR171_AUDIT_INCIDENT_RECONCILE.md", commit: "788919908338c3ddb39217a7d60c62733eb29381", sha256: "4e56ffae5818346437381347ecd73c2b912f687215e18151e2a8b277cd69559d" }),
+      }),
     ]),
   }),
   F08: Object.freeze({
@@ -600,7 +619,14 @@ export const DECLARED = Object.freeze({
      * audit event" or "superseded authority is reported as the authority at the event". The shipped recorder re-attributed
      * historical board movements to a later amendment's authority and refused a real reopen (census _handoffs 99f0732). The
      * requirement did not change; the shipped code never met it. No amendment is frozen. */
-    state: "VERIFIED-PASS",
+    /* 🔴 REOPENED 27 Sep 2026 — CONCRETE_CONTRADICTORY_EVIDENCE. EXPECTED: "Every governed event is recorded in an append-only
+     * … audit trail". 65 governed events, appended through the production path in four separate runs, were removed by
+     * ordinary git operations (checkout of the trail files); two of them were ACCESS events of real sealed reads
+     * (_handoffs 5fd0435). A store that a routine source-control operation can shorten is not append-only as operated. The
+     * FAILURE limb on deletion is bounded "within the declared detection boundary", and a consistent truncation of events
+     * and head together is this store's DECLARED undetected case. This reopen does not claim that limb was met. It rests
+     * on EXPECTED, which the world contradicted 65 times. The requirement did not change. */
+    state: "IN-PROGRESS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-22", ruling: ACCEPTANCES.F08.ruling, contractSha256: ACCEPTANCES.F08.contractSha256 }),
       // Implementation began only after the acceptance was committed: src/audit-trail/{event,store,reader,population,
@@ -725,6 +751,20 @@ export const DECLARED = Object.freeze({
         proofs: "test/d-recorder-1.test.mjs 9/9: two same-day amendments on one row; two same-kind movements under one acceptance; legacy events consumed once; idempotent re-derivation; old VERIFIED then new REOPENED; collision refusal; the real board; no default",
         sabotage: "D-RECORDER-1 6/6 RED on the named test for the intended reason, restored; F08 34/34; ASP 15/15; production trail untouched",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F08",
+        on: "2026-09-27",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (concrete contradictory evidence: governed events removed from the trail by source-control operations)",
+        reason: "CONCRETE_CONTRADICTORY_EVIDENCE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "EXPECTED requires every governed event recorded in an append-only audit trail; 65 governed events appended through the production path in four runs were removed by git checkout of the trail files (2 of them ACCESS events of real sealed reads), because the only copy of the trail lived in a git working tree — the deletion limb is bounded by the declared detection boundary and is not claimed met; EXPECTED is what the world contradicted",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F08.ruling.sha256, contract: ACCEPTANCES.F08.contractSha256 }),
+        evidenceRecord: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_PR171_AUDIT_INCIDENT_TIMELINE_AND_BLAST_RADIUS_2026-09-27.md", commit: "5fd0435127540d9879c7b573e7a33bf859d0a59c", sha256: "a67dedd4faa0ff5c707371cab647078463e98ff60506556427ab5643999697ca" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-27_PR171_AUDIT_INCIDENT_RECONCILE.md", commit: "788919908338c3ddb39217a7d60c62733eb29381", sha256: "4e56ffae5818346437381347ecd73c2b912f687215e18151e2a8b277cd69559d" }),
       }),
     ]),
   }),

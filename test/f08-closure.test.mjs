@@ -59,8 +59,11 @@ test("F-BOARD · F08 is VERIFIED-PASS by FAILED → IN-PROGRESS → VERIFIED-PAS
   assert.deepEqual([verified.kind, verified.from, verified.to, verified.on, verified.featureId, verified.population], ["VERIFIED", "IN-PROGRESS", "VERIFIED-PASS", "2026-09-23", "F08", "REAL"]);
   /* 8 since 26 Sep 2026: F08 was REOPENED on CONCRETE_CONTRADICTORY_EVIDENCE (D-RECORDER-1, _handoffs 99f0732) and re-VERIFIED under
    * its UNCHANGED acceptance after the recorder repair. The six events above are unchanged, in order. */
-  assert.equal(f08.events.length, 8);
-  assert.deepEqual(f08.events.slice(6).map((e) => [e.kind, e.from, e.to, e.on, e.reason]), [["REOPENED", "VERIFIED-PASS", "IN-PROGRESS", "2026-09-26", "CONCRETE_CONTRADICTORY_EVIDENCE"], ["VERIFIED", "IN-PROGRESS", "VERIFIED-PASS", "2026-09-26", "FAILURE_CLAUSES_NO_LONGER_MET_AFTER_RECORDER_REPAIR"]]);
+  /* 10 since 27 Sep 2026: REOPENED again on CONCRETE_CONTRADICTORY_EVIDENCE (65 governed events removed by git checkout of the
+   * trail, _handoffs 5fd0435) and re-VERIFIED after the out-of-tree witness repair, under the UNCHANGED acceptance. */
+  assert.equal(f08.events.length, 10);
+  assert.deepEqual(f08.events.slice(8).map((e) => [e.kind, e.from, e.to, e.on, e.reason]), [["REOPENED", "VERIFIED-PASS", "IN-PROGRESS", "2026-09-27", "CONCRETE_CONTRADICTORY_EVIDENCE"], ["VERIFIED", "IN-PROGRESS", "VERIFIED-PASS", "2026-09-27", "APPEND_ONLY_HELD_AGAINST_SOURCE_CONTROL_OPERATIONS_GAP_RECORDED"]]);
+  assert.deepEqual(f08.events.slice(6, 8).map((e) => [e.kind, e.from, e.to, e.on, e.reason]), [["REOPENED", "VERIFIED-PASS", "IN-PROGRESS", "2026-09-26", "CONCRETE_CONTRADICTORY_EVIDENCE"], ["VERIFIED", "IN-PROGRESS", "VERIFIED-PASS", "2026-09-26", "FAILURE_CLAUSES_NO_LONGER_MET_AFTER_RECORDER_REPAIR"]]);
   // 🔴 The target-aware ruling (§12): the historical changeKind vocabulary is NOT used by the new movements.
   for (const e of [repair, verified]) assert.ok(!Object.hasOwn(e, "changeKind"), `${e.kind} carries the historical changeKind vocabulary`);
   assert.ok(repair.reason && verified.reason, "a movement without a stated reason");

@@ -221,11 +221,13 @@ test("ASP-C2 · a primitive handed a decision's METADATA records it and performs
 
 /* ═══ C3 · it emits through the governed audit-store path ═════════════════════════════════════════════════════════ */
 
-test("ASP-C3 · REAL · every production primitive site hands in the entry point's OWN audit store: 8 sites = 8 proved + 0 other, remainder 0", () => {
+test("ASP-C3 · REAL · every production primitive site hands in the entry point's OWN audit store: 9 sites = 9 proved + 0 other, remainder 0", () => {
   const sites = GOVERNED.flatMap((r) => r.siteDetail.filter((s) => AUDIT_STORE_REACHING.test(s.text)).map((s) => ({ file: r.file, ...s })));
   /* 7 → 8 sites, 5 → 6 files on 27 Sep 2026 (F10), for a MEASURED reason: bin/f10-select.mjs records its write-gate decisions through
-   * the same primitive, on the entry point's OWN audit context, exactly as bin/heldout-evaluation.mjs does. */
-  assert.equal(sites.length, 8);
+   * the same primitive, on the entry point's OWN audit context, exactly as bin/heldout-evaluation.mjs does.
+   * 8 → 9 sites, files unchanged, on 27 Sep 2026 (F08 incident): bin/audit-trail.mjs gap records its AUDIT_CORRECTION through recordCandidates,
+   * on its OWN production audit store, exactly as its record subcommand does (the direct store.append it first had was a BYPASS). */
+  assert.equal(sites.length, 9);
   const proved = sites.filter((s) => s.cls === "CHECKED_AUDIT_STORE_EXEMPTION");
   assert.equal(proved.length + sites.filter((s) => s.cls !== "CHECKED_AUDIT_STORE_EXEMPTION").length, sites.length);
   assert.deepEqual(sites.filter((s) => s.cls !== "CHECKED_AUDIT_STORE_EXEMPTION").map((s) => `${s.file}:${s.line} ${s.cls} ${s.why}`), []);
@@ -250,13 +252,14 @@ test("ASP-C3 · CONTROLS · an emission path that is replaced, chosen or merely 
 
 /* ═══ C4 · every production caller remains visible to the caller census ═══════════════════════════════════════════ */
 
-test("ASP-C4 · REAL · every production file that names a declared primitive is a GOVERNED census row, one site per call — 6 files, 8 calls, remainder 0", () => {
+test("ASP-C4 · REAL · every production file that names a declared primitive is a GOVERNED census row, one site per call — 6 files, 9 calls, remainder 0", () => {
   const names = AUDIT_STORE_ONLY_PRIMITIVES.map((e) => e.name);
   const grep = (dir) => execFileSync("git", ["-C", REPO, "grep", "-nE", `\\b(${names.join("|")})\\(`, "--", dir], { encoding: "utf8" }).split("\n").filter(Boolean);
   const binCalls = grep("bin").filter((l) => !/^\S+:\d+:\s*(\/\/|\*)/.test(l));
   /* 7 → 8 sites, 5 → 6 files on 27 Sep 2026 (F10), for a MEASURED reason: bin/f10-select.mjs records its write-gate decisions through
-   * the same primitive, on the entry point's OWN audit context, exactly as bin/heldout-evaluation.mjs does. */
-  assert.equal(binCalls.length, 8);
+   * the same primitive, on the entry point's OWN audit context, exactly as bin/heldout-evaluation.mjs does.
+   * 8 → 9 calls on 27 Sep 2026: bin/audit-trail.mjs gap (see ASP-C3). */
+  assert.equal(binCalls.length, 9);
   for (const l of binCalls) {
     const [file, line] = l.split(":");
     const row = REAL.find((r) => r.file === file);

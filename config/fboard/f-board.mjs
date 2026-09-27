@@ -436,7 +436,12 @@ export const DECLARED = Object.freeze({
      * append their ACCESS events, and `git checkout` then destroyed both. The production trail lived in a git working tree,
      * so for those two reads the durable ACCESS record does not exist, and the requirement was NOT met. The requirement
      * did not change; the world failed to meet it. Timeline and blast radius: _handoffs 5fd0435. */
-    state: "IN-PROGRESS",
+    /* 🔴 VERIFIED-PASS AGAIN — 27 Sep 2026, by the route the reopening recorded, under the UNCHANGED Amendment 3. The history is
+     * represented, not repaired: AUDIT_CORRECTION fc623f98… records that those two reads' ACCESS records were destroyed and
+     * are UNRECOVERABLE, and that the later census is a different pair of reads. What is proved is the mechanism: an ACCESS
+     * event appended through the production path now survives checkout/restore/reset/stash (out-of-tree witness), and a
+     * shortened trail refuses further appends. EARNED only when main CI is green on the exact merged SHA (afterMerge). */
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       // The acceptance was committed ALONE in the governance repository (cd149ae) before any F07 engine change.
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-23", ruling: F07_ORIGINAL.ruling, contractSha256: F07_ORIGINAL.contractSha256 }),
@@ -580,6 +585,23 @@ export const DECLARED = Object.freeze({
         evidenceRecord: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_PR171_AUDIT_INCIDENT_TIMELINE_AND_BLAST_RADIUS_2026-09-27.md", commit: "5fd0435127540d9879c7b573e7a33bf859d0a59c", sha256: "a67dedd4faa0ff5c707371cab647078463e98ff60506556427ab5643999697ca" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-27_PR171_AUDIT_INCIDENT_RECONCILE.md", commit: "788919908338c3ddb39217a7d60c62733eb29381", sha256: "4e56ffae5818346437381347ecd73c2b912f687215e18151e2a8b277cd69559d" }),
       }),
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F07",
+        population: "REAL",
+        on: "2026-09-27",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (concrete contradictory evidence: two ACCESS records destroyed by a source-control operation)",
+        reason: "GOVERNED_READ_DURABILITY_REPAIRED_HISTORY_RECORDED_AS_A_GAP",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F07.ruling.sha256, contract: ACCEPTANCES.F07.contractSha256 }),
+        historyRepresented: "AUDIT_CORRECTION fc623f98b8a3b3bd31d790b2279e3ef6 (GAP-2026-09-27-A): the two lost ACCESS records do not exist, their bytes and ids are UNRECOVERABLE, and the later census (70af1508…, 6075a9c3…) is a different pair of reads — no lost event is recreated or claimed",
+        provedAgainst: "the REAL registration on the owner machine: a fresh PRODUCTION census after the repair, FAILURES 0, HELD_OUT_EVIDENCE 2 read in the boundary, two durable ACCESS events 7ef97808… and 7b23adfc… appended before use and mirrored to the out-of-tree witness (EQUAL); durability against checkout, restore, reset --hard and stash proved with real git on the production store path (test/f08-witness.test.mjs W2), each with a control",
+        notYetProvedAgainst: "a loss that also removes the witness, or occurs where no witness exists (a fresh clone before its first append, CI) — the witness's declared limit; activity outside the governed paths is not observable by F07 and is not claimed",
+        proofs: "test/f08-witness.test.mjs (12), test/f08-audit-gap.test.mjs (3), with every existing F07 proof re-run: f07-amendment3-paired, f07-amendment2-marking-key, f07-heldout-firewall, heldout-firewall, f07-sink-repair, f07-closure, f07-amendment-leak-census, f10-storage-s-registration",
+        sabotage: "WS-S1–S9 and GP-S1–S4 (new, 13/13) · F7C 16/16, F7B 21/21, F7A 11/11, F7 16/16, F07 sink 10/10, SL 17/17, C7 24/24, F10 23/23 (existing, re-run), residue 0, production trail untouched",
+        afterMerge: "main CI green on the exact merged SHA — verified after merge and reported in _handoffs; a red main run means this record is wrong and must be reverted",
+      }),
     ]),
   }),
   F08: Object.freeze({
@@ -626,7 +648,12 @@ export const DECLARED = Object.freeze({
      * FAILURE limb on deletion is bounded "within the declared detection boundary", and a consistent truncation of events
      * and head together is this store's DECLARED undetected case. This reopen does not claim that limb was met. It rests
      * on EXPECTED, which the world contradicted 65 times. The requirement did not change. */
-    state: "IN-PROGRESS",
+    /* 🔴 VERIFIED-PASS AGAIN — 27 Sep 2026, under F08's UNCHANGED acceptance. The production store now has an out-of-tree
+     * witness (src/audit-trail/witness.mjs), so the consistent truncation a git checkout performs is DETECTED by verify
+     * and REFUSES further appends; the 65 lost events are recorded as one AUDIT_CORRECTION gap (fc623f98…), never
+     * recreated. The witness's own limit is declared (WITNESS_BOUNDARY). EARNED only when main CI is green on the exact
+     * merged SHA (afterMerge). */
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-22", ruling: ACCEPTANCES.F08.ruling, contractSha256: ACCEPTANCES.F08.contractSha256 }),
       // Implementation began only after the acceptance was committed: src/audit-trail/{event,store,reader,population,
@@ -765,6 +792,23 @@ export const DECLARED = Object.freeze({
         acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F08.ruling.sha256, contract: ACCEPTANCES.F08.contractSha256 }),
         evidenceRecord: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_PR171_AUDIT_INCIDENT_TIMELINE_AND_BLAST_RADIUS_2026-09-27.md", commit: "5fd0435127540d9879c7b573e7a33bf859d0a59c", sha256: "a67dedd4faa0ff5c707371cab647078463e98ff60506556427ab5643999697ca" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-27_PR171_AUDIT_INCIDENT_RECONCILE.md", commit: "788919908338c3ddb39217a7d60c62733eb29381", sha256: "4e56ffae5818346437381347ecd73c2b912f687215e18151e2a8b277cd69559d" }),
+      }),
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F08",
+        population: "REAL",
+        on: "2026-09-27",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (concrete contradictory evidence: governed events removed from the trail by source-control operations)",
+        reason: "APPEND_ONLY_HELD_AGAINST_SOURCE_CONTROL_OPERATIONS_GAP_RECORDED",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F08.ruling.sha256, contract: ACCEPTANCES.F08.contractSha256 }),
+        historyRepresented: "AUDIT_CORRECTION fc623f98b8a3b3bd31d790b2279e3ef6 (GAP-2026-09-27-A) points to the 65 removed events (L1 25 · L2 1 · L3 37 · L4 2) and their evidence (_handoffs 5fd0435); none is recreated",
+        populations: "the REAL production trail: 1166 events, chain verifies, witness EQUAL 1166; the earlier prefixes byte-identical (9a7565c: 1133 lines; origin/main: 1084 lines)",
+        proofs: "test/f08-witness.test.mjs 12/12 — write -> checkout / restore / reset --hard / stash -> TRAIL_BEHIND_WITNESS and AUDIT_WITNESS_REFUSED on the production store with real git, a control reaching the other verdict, divergence refused, seed and catch-up lawful, confined stores and worktrees separate; test/f08-audit-gap.test.mjs 3/3 — a gap claiming recovered records, ids, bytes or a replacing census is refused",
+        sabotage: "WS-S1–S9 and GP-S1–S4 13/13 (new); F08 34/34, D-RECORDER-1 9/9, ASP 15/15 (re-run), residue 0, production trail untouched; the governed-caller census caught a direct append in the first gap command (c4f3954) and it was routed through recordCandidates (73bd9d4)",
+        declaredLimit: "a loss that also removes the witness, or that occurs where no witness exists (a fresh clone before its first append, CI), is NOT DETECTED; the witness is a second copy under the same user's control, not a remote notary",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

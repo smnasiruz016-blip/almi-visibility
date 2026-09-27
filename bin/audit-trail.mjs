@@ -38,7 +38,7 @@ import { recordCandidates, refusalEvent, writeGateEvent, MIGRATION_PROVES } from
 import { productionAuditStore, productionAuditReader, softwareVersionOf } from "../src/audit-trail/wiring.mjs";
 import { DETECTION_BOUNDARY } from "../src/audit-trail/store.mjs";
 import { WITNESS_BOUNDARY } from "../src/audit-trail/witness.mjs";
-import { GAP_EVENT, gapEventDraft, gapFaults, gapsNotOnTrail } from "../src/audit-trail/gap.mjs";
+import { GAP_EVENT, gapEventDraft, gapFaults, gapsNotOnTrail } from "../src/audit-trail/gap.mjs"; // appended only via recordCandidates
 import { AUDIT_GAPS } from "../config/audit-gaps.mjs";
 import { authorise, authorisationEvent, namedActor, AUTHORISATION_REFUSED_EXIT } from "../src/governance/authorisation.mjs";
 import { durableGuardSink } from "../src/governance/guard-audit.mjs";
@@ -272,16 +272,21 @@ function doGap() {
   for (const { g, f } of faulty) console.log(`  🔴 ${g.gapId}: ${f.map((x) => `${x.code}(${x.field})`).join(", ")}`);
   if (faulty.length) process.exit(1);
   if (!permission.mayWrite) { console.log("nothing is appended without --confirm"); return; }
+  /* Nothing to record is not a write: no authorisation is asked for and nothing reaches the trail. */
+  if (pending.length === 0) { console.log("every declared gap is already on the trail — nothing is appended"); return; }
   const store = productionAuditStore({ repo: REPO });
   const decision = authorise({ actorRef: namedActor(process.argv), action: "WRITE_AUDIT_TRAIL_STORE", scope: { scopeType: "GLOBAL_PRODUCT" }, resourceRef: AUDIT_STORE.eventsPath, now: RUN_INSTANT });
   durableGuardSink({ store, actor: "bin/audit-trail.mjs", softwareVersion, correlationId: `run:audit-trail:gap:${RUN_INSTANT}:authorisation`, authorityRef: { propositionId: F08_AUTHORITY.propositionId, scope: [...F08_AUTHORITY.scope] }, authorityHash: f08.contentHash }).emit(authorisationEvent(decision));
   if (!decision.allowed) { console.error(`🔴 AUTHORISATION REFUSED — WRITE_AUDIT_TRAIL_STORE: ${decision.outcome} (${decision.reason}); nothing was recorded`); process.exit(AUTHORISATION_REFUSED_EXIT); }
-  for (const gap of pending) {
-    const draft = gapEventDraft({ gap, occurredAt: RUN_INSTANT, softwareVersion, authorityRef: { propositionId: F08_AUTHORITY.propositionId, scope: [...F08_AUTHORITY.scope] }, authorityHash: f08.contentHash, correlationId: `run:audit-trail:gap:${RUN_INSTANT}` });
-    const r = store.append(draft, { identity: { eventType: GAP_EVENT.eventType, action: GAP_EVENT.action, gapId: gap.gapId } });
-    console.log(`  ${gap.gapId} → ${r.event.eventId} (${r.status}) · lost ${gap.lostEvents} · of them ACCESS ${gap.lostAccessEvents} · original records exist: ${gap.originalRecordsExist}`);
-  }
+  /* Appended through the recorder's audit-store-only primitive, as `record` does — never a direct store.append here. */
+  const candidates = pending.map((gap) => ({ family: GAP_EVENT.eventType, sourceId: gap.gapId, draft: gapEventDraft({ gap, occurredAt: RUN_INSTANT, softwareVersion, authorityRef: { propositionId: F08_AUTHORITY.propositionId, scope: [...F08_AUTHORITY.scope] }, authorityHash: f08.contentHash, correlationId: `run:audit-trail:gap:${RUN_INSTANT}` }) }));
+  const result = recordCandidates({ store, candidates, corpus: AUTHORITY_CORPUS });
+  for (const m of result.migrated) console.log(`  ${m.sourceId} → ${m.eventId} (APPENDED)`);
+  for (const i of result.invalid) console.log(`  🔴 ${i.sourceId} INVALID — ${i.codes.join(", ")}`);
+  for (const n of result.notMigratable) console.log(`  🔴 ${n.sourceId} NOT_MIGRATABLE — ${n.notMigratable}`);
+  console.log(`  gaps offered ${result.total} · appended ${result.counts.migrated} · already audited ${result.counts.alreadyAudited} · invalid ${result.counts.invalid} · not migratable ${result.counts.notMigratable} · remainder ${result.remainder}`);
   console.log(`  store sha256 ${store.storeHash()}`);
+  if (result.remainder !== 0 || result.counts.invalid || result.counts.notMigratable) process.exit(1);
 }
 
 function doVerify() {

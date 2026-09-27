@@ -19,6 +19,7 @@ import { queryObservation } from "../discovery/row5.mjs";
 import { splitPopulation } from "../discovery/query-population.mjs";
 import { isHeldOut } from "../discovery/intent-clusters.mjs";
 import { createAuditStore } from "./store.mjs";
+import { createWitness, gitDirWitnessLocator } from "./witness.mjs";
 import { createAuditReader } from "./reader.mjs";
 import { makeEvidenceLookup, makeSealedLookup } from "./population.mjs";
 
@@ -74,6 +75,8 @@ export function productionAuditStore({ repo, clock, forbiddenSubstrings = null, 
     /* A relocated (`at`) store was confined before it got here (resolveAuditStoreLocation refuses symlinks, traversal
      * and any root but the scratch root). The PRODUCTION path is checked on every append, where a write would happen. */
     assertLocation: at ? () => {} : () => assertDeclaredAuditLocation(repo),
+    /* 🔴 The production trail's durable second copy, outside the working tree (witness.mjs). A confined store has none. */
+    witness: at ? null : createWitness({ locate: gitDirWitnessLocator(repo) }),
   });
 }
 

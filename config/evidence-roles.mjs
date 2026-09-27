@@ -137,6 +137,48 @@ export const EVIDENCE_ROLE_REGISTRY = Object.freeze([
     sealed: false,
     retiredReason: null,
   }),
+  /* 🔴 F10 (27 Sep 2026) — REGISTERED at the one governed selection (seal record 69eb8440e63a…, engine cecf880). It lives in
+   * storage S, OUTSIDE every repository: a machine that cannot locate that store FAILS the census CLOSED — CI included (C3, ruling S).
+   * Its members are never printed; only this commitment is committed. */
+  Object.freeze({
+    id: "sealed:f10-c3-selection",
+    resource: Object.freeze({ root: "f10-marking-key", pathPrefixes: Object.freeze(["set/"]) }),
+    role: "HELD_OUT_EVIDENCE",
+    scope: "F10 C3: the ONE sealed N=100 selection (37·22·16·12·5·2·2·2·2 across 9 tenants); held out for the one C6 run",
+    subject: null,
+    source: "the governed F10 selection over the pinned query-page observation",
+    provenance: "selected once by the frozen D5b rule over the reconciled eligible population, after every F10 version was frozen; sealed through the governed-write boundary",
+    capturedAt: "2026-09-27",
+    contentHash: "cebcea248fad779fd147de1c8c819693baeb2246037b185fe7f43dab0f932e31",
+    mandatoryReadable: false,
+    mayTrain: false,
+    mayEvaluate: true,
+    maySupplyExpectedAnswer: false,
+    sealed: true,
+    retiredReason: null,
+    tenantScope: Object.freeze(["tenant:13ec7b6533bc91c941e5b4582d7206d4","tenant:270a5ffe93e3e7c0a59492ccf3887ee3","tenant:69e50ac3f2e7db1d511545fce97255b7","tenant:91fa5a6a6c69f0de306c0469772721d5","tenant:ab9ab847a1b1c69cd87ae4c118573f8a","tenant:b57dbeaac39e41ece16fd5c9dcf66f44","tenant:b6025f17e9bff2624b222a239a987034","tenant:d2ec01bbdadacf1a3a98a5ea299e3652","tenant:edcdf7759b02a677cf126fa35212f9af"]),
+  }),
+  /* 🔴 F10 (27 Sep 2026) — REGISTERED at the one governed selection (seal record 69eb8440e63a…, engine cecf880). It lives in
+   * storage S, OUTSIDE every repository: a machine that cannot locate that store FAILS the census CLOSED — CI included (C3, ruling S).
+   * Its members are never printed; only this commitment is committed. */
+  Object.freeze({
+    id: "sealed:f10-c7-pairs",
+    resource: Object.freeze({ root: "f10-marking-key", pathPrefixes: Object.freeze(["pairs/"]) }),
+    role: "HELD_OUT_EVIDENCE",
+    scope: "F10 C7: the sealed pair set over the N=100 selection by the frozen pair rule (N7 = 370 = 192 matched + 178 re-paired); held out for the one C7 run",
+    subject: null,
+    source: "the frozen C7 pair rule over the sealed selection",
+    provenance: "selected once by the frozen D5b rule over the reconciled eligible population, after every F10 version was frozen; sealed through the governed-write boundary",
+    capturedAt: "2026-09-27",
+    contentHash: "14023fc21ab7b05de403b97540801e98968168d81a15d57369cb38ae9aa32712",
+    mandatoryReadable: false,
+    mayTrain: false,
+    mayEvaluate: true,
+    maySupplyExpectedAnswer: false,
+    sealed: true,
+    retiredReason: null,
+    tenantScope: Object.freeze(["tenant:13ec7b6533bc91c941e5b4582d7206d4","tenant:270a5ffe93e3e7c0a59492ccf3887ee3","tenant:69e50ac3f2e7db1d511545fce97255b7","tenant:91fa5a6a6c69f0de306c0469772721d5","tenant:ab9ab847a1b1c69cd87ae4c118573f8a","tenant:b57dbeaac39e41ece16fd5c9dcf66f44","tenant:b6025f17e9bff2624b222a239a987034","tenant:d2ec01bbdadacf1a3a98a5ea299e3652","tenant:edcdf7759b02a677cf126fa35212f9af"]),
+  }),
 ]);
 
 /**

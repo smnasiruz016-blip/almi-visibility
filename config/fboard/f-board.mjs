@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -285,7 +285,9 @@ export const DECLARED = Object.freeze({
       }),
       /* Amendment 1 (2ee6c2a, committed ALONE): C7 only, after the owner approved its nine pre-run values without alteration
        * (ed85493). It names the original by both hashes. NO state change: F10 stays IN-PROGRESS and C7 NOT_MEASURED. */
-      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F10", on: "2026-09-26", ruling: ACCEPTANCES.F10.ruling, contractSha256: ACCEPTANCES.F10.contractSha256, amends: ACCEPTANCES.F10.amends }),
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F10", on: "2026-09-26", ruling: F10_AMENDMENT_1.ruling, contractSha256: F10_AMENDMENT_1.contractSha256, amends: F10_AMENDMENT_1.amends }),
+      /* F10 Amendment 2 (27 Sep 2026, 370a3b3): C3's CI clause only. NO board movement — F10 stays IN-PROGRESS. */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F10", on: "2026-09-27", ruling: ACCEPTANCES.F10.ruling, contractSha256: ACCEPTANCES.F10.contractSha256, amends: ACCEPTANCES.F10.amends }),
     ]),
   }),
   F05: Object.freeze({
@@ -429,6 +431,16 @@ export const DECLARED = Object.freeze({
      * (264c680) after the limb census (4fc5656). It adds the paired release F10's C7 needs (three count-only aggregates, a
      * real ABSTAIN, set/key preflight before the claim). Amendments 1 and 2 remain historically valid for what they measured; live
      * HELD_OUT_EVIDENCE and MARKING_KEY entries number zero; the reopen is caused by the newly frozen wider requirement. */
+    /* 🔴 REOPENED 27 Sep 2026 — CONCRETE_CONTRADICTORY_EVIDENCE, NOT a requirement change. GOVERNED READ requires every read to
+     * "record a durable ACCESS event before the value is used". Two real production sealed reads (the census at 04:13:57Z) did
+     * append their ACCESS events, and `git checkout` then destroyed both. The production trail lived in a git working tree,
+     * so for those two reads the durable ACCESS record does not exist, and the requirement was NOT met. The requirement
+     * did not change; the world failed to meet it. Timeline and blast radius: _handoffs 5fd0435. */
+    /* 🔴 VERIFIED-PASS AGAIN — 27 Sep 2026, by the route the reopening recorded, under the UNCHANGED Amendment 3. The history is
+     * represented, not repaired: AUDIT_CORRECTION fc623f98… records that those two reads' ACCESS records were destroyed and
+     * are UNRECOVERABLE, and that the later census is a different pair of reads. What is proved is the mechanism: an ACCESS
+     * event appended through the production path now survives checkout/restore/reset/stash (out-of-tree witness), and a
+     * shortened trail refuses further appends. EARNED only when main CI is green on the exact merged SHA (afterMerge). */
     state: "VERIFIED-PASS",
     events: Object.freeze([
       // The acceptance was committed ALONE in the governance repository (cd149ae) before any F07 engine change.
@@ -559,6 +571,37 @@ export const DECLARED = Object.freeze({
         sabotage: "F7C-S1–S16 (new) · F7B-S1–S21, F7-S1–S16, K1–K10 and F7A-S1–S11 (existing, re-run; F7B-S10 and S17 re-anchored to the preflight's refuse, intent unchanged)",
         afterMerge: "main CI green on the exact merged SHA — verified after merge and reported in _handoffs; a red main run means this record is wrong and must be reverted",
       }),
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F07",
+        on: "2026-09-27",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (concrete contradictory evidence: two ACCESS records destroyed by a source-control operation)",
+        reason: "CONCRETE_CONTRADICTORY_EVIDENCE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "GOVERNED READ requires every read of either side to record a durable ACCESS event before the value is used; two real production sealed reads appended their ACCESS events (trail 1131 -> 1133) and a git checkout in the same command removed both, so no durable ACCESS record of those two reads exists — the requirement did not change, the store that holds the record was deletable by an ordinary git operation",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F07.ruling.sha256, contract: ACCEPTANCES.F07.contractSha256 }),
+        evidenceRecord: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_PR171_AUDIT_INCIDENT_TIMELINE_AND_BLAST_RADIUS_2026-09-27.md", commit: "5fd0435127540d9879c7b573e7a33bf859d0a59c", sha256: "a67dedd4faa0ff5c707371cab647078463e98ff60506556427ab5643999697ca" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-27_PR171_AUDIT_INCIDENT_RECONCILE.md", commit: "788919908338c3ddb39217a7d60c62733eb29381", sha256: "4e56ffae5818346437381347ecd73c2b912f687215e18151e2a8b277cd69559d" }),
+      }),
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F07",
+        population: "REAL",
+        on: "2026-09-27",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (concrete contradictory evidence: two ACCESS records destroyed by a source-control operation)",
+        reason: "GOVERNED_READ_DURABILITY_REPAIRED_HISTORY_RECORDED_AS_A_GAP",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F07.ruling.sha256, contract: ACCEPTANCES.F07.contractSha256 }),
+        historyRepresented: "AUDIT_CORRECTION fc623f98b8a3b3bd31d790b2279e3ef6 (GAP-2026-09-27-A): the two lost ACCESS records do not exist, their bytes and ids are UNRECOVERABLE, and the later census (70af1508…, 6075a9c3…) is a different pair of reads — no lost event is recreated or claimed",
+        provedAgainst: "the REAL registration on the owner machine: a fresh PRODUCTION census after the repair, FAILURES 0, HELD_OUT_EVIDENCE 2 read in the boundary, two durable ACCESS events 7ef97808… and 7b23adfc… appended before use and mirrored to the out-of-tree witness (EQUAL); durability against checkout, restore, reset --hard and stash proved with real git on the production store path (test/f08-witness.test.mjs W2), each with a control",
+        notYetProvedAgainst: "a loss that also removes the witness, or occurs where no witness exists (a fresh clone before its first append, CI) — the witness's declared limit; activity outside the governed paths is not observable by F07 and is not claimed",
+        proofs: "test/f08-witness.test.mjs (12), test/f08-audit-gap.test.mjs (3), with every existing F07 proof re-run: f07-amendment3-paired, f07-amendment2-marking-key, f07-heldout-firewall, heldout-firewall, f07-sink-repair, f07-closure, f07-amendment-leak-census, f10-storage-s-registration",
+        sabotage: "WS-S1–S9 and GP-S1–S4 (new, 13/13) · F7C 16/16, F7B 21/21, F7A 11/11, F7 16/16, F07 sink 10/10, SL 17/17, C7 24/24, F10 23/23 (existing, re-run), residue 0, production trail untouched",
+        afterMerge: "main CI green on the exact merged SHA — verified after merge and reported in _handoffs; a red main run means this record is wrong and must be reverted",
+      }),
     ]),
   }),
   F08: Object.freeze({
@@ -598,6 +641,18 @@ export const DECLARED = Object.freeze({
      * audit event" or "superseded authority is reported as the authority at the event". The shipped recorder re-attributed
      * historical board movements to a later amendment's authority and refused a real reopen (census _handoffs 99f0732). The
      * requirement did not change; the shipped code never met it. No amendment is frozen. */
+    /* 🔴 REOPENED 27 Sep 2026 — CONCRETE_CONTRADICTORY_EVIDENCE. EXPECTED: "Every governed event is recorded in an append-only
+     * … audit trail". 65 governed events, appended through the production path in four separate runs, were removed by
+     * ordinary git operations (checkout of the trail files); two of them were ACCESS events of real sealed reads
+     * (_handoffs 5fd0435). A store that a routine source-control operation can shorten is not append-only as operated. The
+     * FAILURE limb on deletion is bounded "within the declared detection boundary", and a consistent truncation of events
+     * and head together is this store's DECLARED undetected case. This reopen does not claim that limb was met. It rests
+     * on EXPECTED, which the world contradicted 65 times. The requirement did not change. */
+    /* 🔴 VERIFIED-PASS AGAIN — 27 Sep 2026, under F08's UNCHANGED acceptance. The production store now has an out-of-tree
+     * witness (src/audit-trail/witness.mjs), so the consistent truncation a git checkout performs is DETECTED by verify
+     * and REFUSES further appends; the 65 lost events are recorded as one AUDIT_CORRECTION gap (fc623f98…), never
+     * recreated. The witness's own limit is declared (WITNESS_BOUNDARY). EARNED only when main CI is green on the exact
+     * merged SHA (afterMerge). */
     state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-22", ruling: ACCEPTANCES.F08.ruling, contractSha256: ACCEPTANCES.F08.contractSha256 }),
@@ -722,6 +777,37 @@ export const DECLARED = Object.freeze({
         populations: "real board: 45 declared movements before this one, 45 already audited, 0 re-emitted, 0 NOT_MIGRATABLE, 0 INVALID (test/d-recorder-1.test.mjs REAL, on a copy of the trail)",
         proofs: "test/d-recorder-1.test.mjs 9/9: two same-day amendments on one row; two same-kind movements under one acceptance; legacy events consumed once; idempotent re-derivation; old VERIFIED then new REOPENED; collision refusal; the real board; no default",
         sabotage: "D-RECORDER-1 6/6 RED on the named test for the intended reason, restored; F08 34/34; ASP 15/15; production trail untouched",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F08",
+        on: "2026-09-27",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (concrete contradictory evidence: governed events removed from the trail by source-control operations)",
+        reason: "CONCRETE_CONTRADICTORY_EVIDENCE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "EXPECTED requires every governed event recorded in an append-only audit trail; 65 governed events appended through the production path in four runs were removed by git checkout of the trail files (2 of them ACCESS events of real sealed reads), because the only copy of the trail lived in a git working tree — the deletion limb is bounded by the declared detection boundary and is not claimed met; EXPECTED is what the world contradicted",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F08.ruling.sha256, contract: ACCEPTANCES.F08.contractSha256 }),
+        evidenceRecord: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_PR171_AUDIT_INCIDENT_TIMELINE_AND_BLAST_RADIUS_2026-09-27.md", commit: "5fd0435127540d9879c7b573e7a33bf859d0a59c", sha256: "a67dedd4faa0ff5c707371cab647078463e98ff60506556427ab5643999697ca" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-27_PR171_AUDIT_INCIDENT_RECONCILE.md", commit: "788919908338c3ddb39217a7d60c62733eb29381", sha256: "4e56ffae5818346437381347ecd73c2b912f687215e18151e2a8b277cd69559d" }),
+      }),
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F08",
+        population: "REAL",
+        on: "2026-09-27",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (concrete contradictory evidence: governed events removed from the trail by source-control operations)",
+        reason: "APPEND_ONLY_HELD_AGAINST_SOURCE_CONTROL_OPERATIONS_GAP_RECORDED",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F08.ruling.sha256, contract: ACCEPTANCES.F08.contractSha256 }),
+        historyRepresented: "AUDIT_CORRECTION fc623f98b8a3b3bd31d790b2279e3ef6 (GAP-2026-09-27-A) points to the 65 removed events (L1 25 · L2 1 · L3 37 · L4 2) and their evidence (_handoffs 5fd0435); none is recreated",
+        populations: "the REAL production trail: 1166 events, chain verifies, witness EQUAL 1166; the earlier prefixes byte-identical (9a7565c: 1133 lines; origin/main: 1084 lines)",
+        proofs: "test/f08-witness.test.mjs 12/12 — write -> checkout / restore / reset --hard / stash -> TRAIL_BEHIND_WITNESS and AUDIT_WITNESS_REFUSED on the production store with real git, a control reaching the other verdict, divergence refused, seed and catch-up lawful, confined stores and worktrees separate; test/f08-audit-gap.test.mjs 3/3 — a gap claiming recovered records, ids, bytes or a replacing census is refused",
+        sabotage: "WS-S1–S9 and GP-S1–S4 13/13 (new); F08 34/34, D-RECORDER-1 9/9, ASP 15/15 (re-run), residue 0, production trail untouched; the governed-caller census caught a direct append in the first gap command (c4f3954) and it was routed through recordCandidates (73bd9d4)",
+        declaredLimit: "a loss that also removes the witness, or that occurs where no witness exists (a fresh clone before its first append, CI), is NOT DETECTED; the witness is a second copy under the same user's control, not a remote notary",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),

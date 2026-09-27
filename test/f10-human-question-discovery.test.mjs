@@ -243,7 +243,7 @@ test("F10 · C6 · LIMIT (b) travels with a near-bar kappa; kappa with pe = 1 is
 
 /* ═══ C3 · STORAGE S — THE PRODUCTION DESCRIPTOR, AND THE PRODUCTION CENSUS OVER AN ISOLATED SYNTHETIC STORE ══════════════ */
 
-test("F10 · C3 · REAL · the key store's production descriptor is a lawful F03 storage descriptor, declared and NOT REQUIRED — 0 HELD_OUT_EVIDENCE and 0 MARKING_KEY are registered", () => {
+test("F10 · C3 · REAL · the key store's production descriptor is a lawful F03 storage descriptor, declared and REQUIRED by the 2 registered sealed sets — 0 MARKING_KEY yet", () => {
   const entries = Object.entries(SEALED_STORE_ROOTS);
   assert.equal(entries.length, 1);
   for (const [name, ref] of entries) {
@@ -252,9 +252,12 @@ test("F10 · C3 · REAL · the key store's production descriptor is a lawful F03
   }
   assert.equal(sealedStoreDescriptorRefusal("f10-marking-key", { mechanism: "PATH", name: "X_Y_Z" }), "SEALED_STORE_REFERENCE_INVALID", "CONTROL: a path mechanism was accepted");
   assert.equal(sealedStoreDescriptorRefusal("engine", { mechanism: "ENV_REFERENCE", name: "X_Y_Z" }, { reserved: RESERVED_ROOTS }), "SEALED_STORE_NAME_INVALID", "CONTROL: a reserved root was accepted");
-  assert.deepEqual(["HELD_OUT_EVIDENCE", "MARKING_KEY"].map((r) => EVIDENCE_ROLE_REGISTRY.filter((e) => e.role === r).length), [0, 0]);
+  /* 0/0 → 2/0 since 27 Sep 2026: F10's two sealed sets are registered in this store, which they now REQUIRE — so where its reference
+   * is unset (this in-process resolution, and CI) the store FAILS CLOSED, by name and reason. That is C3's law, asserted here in every
+   * environment; it is never softened into "declared, not required". */
+  assert.deepEqual(["HELD_OUT_EVIDENCE", "MARKING_KEY"].map((r) => EVIDENCE_ROLE_REGISTRY.filter((e) => e.role === r).length), [2, 0]);
   const st = sealedStoreStatus({ registry: EVIDENCE_ROLE_REGISTRY, resolution: resolveSealedStoreRoots({ env: {} }) });
-  assert.deepEqual(st.map((s) => [s.status, s.fails]), [["DECLARED_NOT_REQUIRED (SEALED_STORE_REFERENCE_UNSET)", false]], "the declared, unrequired store was failed or hidden");
+  assert.deepEqual(st.map((s) => [s.store, s.requiredBy, s.status, s.fails]), [["f10-marking-key", 2, "REQUIRED_BUT_UNLOCATED (SEALED_STORE_REFERENCE_UNSET)", true]], "a required but unlocated store was not failed by name");
 });
 
 /** A synthetic sealed world in the PRODUCTION-declared key store: a scratch directory OUTSIDE git, a linked pair registered by a
@@ -268,32 +271,49 @@ function syntheticWorld({ items, keyRows, tenants = [...PARTS.keys()].filter((t)
   const keyText = keyRows.map((r) => JSON.stringify(r)).join("\n") + "\n";
   fs.writeFileSync(join(store, "key", "labels.jsonl"), keyText);
   const base = { scope: "constructed stand-in", source: "test", provenance: "test", capturedAt: "2026-09-26", mandatoryReadable: false, mayTrain: false, retiredReason: null, sealed: true, tenantScope: tenants };
-  const SET = { ...base, id: "synthetic:f10-set", role: "HELD_OUT_EVIDENCE", resource: { root: "f10-marking-key", pathPrefixes: ["set/"] }, contentHash: populationCommitment(items), mayEvaluate: true, maySupplyExpectedAnswer: false };
-  const KEY = { ...base, id: "synthetic:f10-key", role: "MARKING_KEY", resource: { root: "f10-marking-key", pathPrefixes: ["key/"] }, contentHash: keyCommitment({ "key/labels.jsonl": Buffer.from(keyText) }), mayEvaluate: false, maySupplyExpectedAnswer: true, linkedSet: SET.id, labelVocabulary: [...PROTOCOL.classes, ...PROTOCOL.exclusions] };
+  const SET = { ...base, id: "synthetic:f10-set", role: "HELD_OUT_EVIDENCE", resource: { root: SYN_STORE, pathPrefixes: ["set/"] }, contentHash: populationCommitment(items), mayEvaluate: true, maySupplyExpectedAnswer: false };
+  const KEY = { ...base, id: "synthetic:f10-key", role: "MARKING_KEY", resource: { root: SYN_STORE, pathPrefixes: ["key/"] }, contentHash: keyCommitment({ "key/labels.jsonl": Buffer.from(keyText) }), mayEvaluate: false, maySupplyExpectedAnswer: true, linkedSet: SET.id, labelVocabulary: [...PROTOCOL.classes, ...PROTOCOL.exclusions] };
   const fixture = join(fixDir, "fixture.json");
-  fs.writeFileSync(fixture, JSON.stringify({ entries: [SET, KEY] }));
+  fs.writeFileSync(fixture, JSON.stringify({ entries: [SET, KEY], stores: { [SYN_STORE]: { mechanism: "ENV_REFERENCE", name: SYN_REF } } }));
   const cleanup = () => { fs.rmSync(store, { recursive: true, force: true }); fs.rmSync(fixDir, { recursive: true, force: true }); };
   return { store, fixture, SET, KEY, keyText, registry: [...EVIDENCE_ROLE_REGISTRY, SET, KEY], cleanup };
 }
 const ENV_REF = SEALED_STORE_ROOTS["f10-marking-key"].name;
+/* 🔴 THE SYNTHETIC STORE IS ISOLATED (27 Sep 2026). Since the real F10 sets were registered in the real store "f10-marking-key", a
+ * synthetic entry lives ONLY in its own synthetic store, declared by its own fixture and located by its own reference — the SAME
+ * descriptor code path (C3: "an isolated synthetic store"). The real store's reference is never pointed at a scratch directory:
+ * that would be a synthetic store SUBSTITUTED for the real one (src/governance/synthetic-sealed-fixture.mjs, law 4). */
+const SYN_STORE = "synthetic-f10-store";
+const SYN_REF = "ALMIVISIBILITY_SYNTHETIC_F10_STORE";
+const SYN_DECLARED = Object.freeze({ ...SEALED_STORE_ROOTS, [SYN_STORE]: Object.freeze({ mechanism: "ENV_REFERENCE", name: SYN_REF }) });
+/** The census's failure lines, split into those the SYNTHETIC store or its entries caused and those the REAL store caused. */
+const failureLines = (stdout) => stdout.split("\n").filter((l) => /^\s+🔴 /.test(l)).map((l) => l.trim());
+const realStoreCaused = (l) => /f10-marking-key|sealed:f10-/.test(l);
+const realStoreLocated = (stdout) => /SEALED STORE f10-marking-key · required by \d+ registered entr(y|ies) · LOCATED/.test(stdout);
 
 test("F10 · C3 · the PRODUCTION census over an isolated synthetic store: located → scanned and clean; required but unlocated or absent → FAILS by name — the census is never weakened", () => {
   const before = prodHashes();
   const ct = tag();
   const w = syntheticWorld({ items: [`${ct}-01`, `${ct}-02`], keyRows: [{ item: `${ct}-01`, classes: ["GOAL"] }, { item: `${ct}-02`, classes: [] }] });
   try {
-    const run = (extra) => spawnSync(process.execPath, ["bin/heldout-firewall.mjs", "--check"], { cwd: REPO, encoding: "utf8", env: { ...CONFINED_ENV, [SYNTHETIC_SEALED_FIXTURE_ENV]: w.fixture, ...extra }, timeout: 180_000 });
-    const located = run({ [ENV_REF]: w.store });
+    const run = (extra) => spawnSync(process.execPath, ["bin/heldout-firewall.mjs", "--check", "--scope=synthetic"], { cwd: REPO, encoding: "utf8", env: { ...CONFINED_ENV, [SYNTHETIC_SEALED_FIXTURE_ENV]: w.fixture, ...extra }, timeout: 180_000 });
+    const located = run({ [SYN_REF]: w.store });
+    /* The SYNTHETIC scope (F10 Amendment 2): the same governed census paths over this fixture's OWN store; the real sealed-store roles
+     * are named as not measured and the real store is never resolved. */
     assert.equal(located.status, 0, `the located synthetic store was not scanned clean: ${located.stdout.slice(-600)}`);
-    assert.match(located.stdout, /SYNTHETIC SEALED FIXTURE APPLIED \(verified test context only\) — \+2 entries/);
-    assert.match(located.stdout, /SEALED STORE f10-marking-key · required by 2 registered entries · LOCATED/, "the located store's status was not reported");
-    assert.match(located.stdout, /MARKING_KEY\s+synthetic:f10-key .* SEALED_STORE \(f10-marking-key\) · READABLE · 1 file/, "the synthetic key was not enumerated in the manifest");
-    const unset = run({ [ENV_REF]: "" });
+    assert.deepEqual(failureLines(located.stdout), []);
+    assert.match(located.stdout, /FAILURES: 0 · SCOPE SYNTHETIC · REAL REGISTERED POPULATION NOT MEASURED IN CI/);
+    assert.doesNotMatch(located.stdout, /SEALED STORE f10-marking-key/, "the SYNTHETIC scope resolved the real store");
+    assert.equal(realStoreLocated(located.stdout), false);
+    assert.match(located.stdout, /SYNTHETIC SEALED FIXTURE APPLIED \(verified test context only\) — \+2 entries · \+1 store/);
+    assert.match(located.stdout, /SEALED STORE synthetic-f10-store · required by 2 registered entries · LOCATED/, "the located store's status was not reported");
+    assert.match(located.stdout, /MARKING_KEY\s+synthetic:f10-key .* SEALED_STORE \(synthetic-f10-store\) · READABLE · 1 file/, "the synthetic key was not enumerated in the manifest");
+    const unset = run({ [SYN_REF]: "" });
     assert.equal(unset.status, 1, "a required but unlocated store did not fail the census");
-    assert.match(unset.stdout, /SEALED_STORE_REQUIRED_BUT_UNLOCATED f10-marking-key SEALED_STORE_REFERENCE_UNSET/, "a required but unlocated store did not fail the census by name");
+    assert.match(unset.stdout, /SEALED_STORE_REQUIRED_BUT_UNLOCATED synthetic-f10-store SEALED_STORE_REFERENCE_UNSET/, "a required but unlocated store did not fail the census by name");
     assert.match(unset.stdout, /SEALED_ROLE_ROOT_NOT_SCANNED synthetic:f10-key/, "the entry in the unlocated store was not failed");
-    const absent = run({ [ENV_REF]: join(w.store, "does-not-exist") });
-    assert.match(absent.stdout, /SEALED_STORE_REQUIRED_BUT_UNLOCATED f10-marking-key SEALED_STORE_ABSENT/, "an absent store read as present or empty");
+    const absent = run({ [SYN_REF]: join(w.store, "does-not-exist") });
+    assert.match(absent.stdout, /SEALED_STORE_REQUIRED_BUT_UNLOCATED synthetic-f10-store SEALED_STORE_ABSENT/, "an absent store read as present or empty");
     for (const r of [located, unset, absent]) assert.ok(!r.stdout.includes(w.store) && !r.stdout.includes(`${ct}-01`), "the census printed a store location or a member");
   } finally { w.cleanup(); }
   assert.deepEqual(prodHashes(), before, "a confined census run changed the production trail");
@@ -352,7 +372,7 @@ function scoringWorld(label, { keyRows: keyFn = null, outputsFor: outFn = null, 
     mechanismId: MECHANISM_ID, mechanismHash: MECH, sealedSetId: w.SET.id, populationCommitment: w.SET.contentHash, protocolId: PROTOCOL.id,
     evaluatorAuthority: { propositionId: "SYNTHETIC_F10_EVALUATOR", scope: ["ALMIVISIBILITY"] }, purpose: "assessment", at: "2026-09-26T11:00:00Z", role: "evaluator",
     keySetId: w.KEY.id, keyCommitment: w.KEY.contentHash, scorerId: SCORER_ID, scorerHash, ...request } });
-  const stores = resolveSealedStoreRoots({ env: env ?? { [ENV_REF]: storeFor ?? w.store } });
+  const stores = resolveSealedStoreRoots({ declared: SYN_DECLARED, env: env ?? { [SYN_REF]: storeFor ?? w.store } });
   const args = (au = audit) => governedScoring({ repo: release, permission: { mayWrite: true, actorRef: "actor:cc", reason: "test" }, audit: au, grant, registry: w.registry, stores,
     currentMechanismHash: MECH, currentScorerHash, outputsFor, protocol: PROTOCOL, rule: RULE_SMALL, occurredAt: "2026-09-26T12:00:00Z" });
   const run = (a = args()) => executeGovernedWrite({ ...a, onAuthorisationRefused: () => {} });
@@ -400,7 +420,7 @@ test("F10 · C4 · a required store that cannot be located refuses BEFORE any at
   try {
     const r = s.run();
     assert.equal(r.outcome, "FAILED_BEFORE_COMMIT");
-    assert.ok(r.faults.some((f) => f.code === "SEALED_STORE_REQUIRED_BUT_UNLOCATED" && f.why === "f10-marking-key:SEALED_STORE_REFERENCE_UNSET"), `a missing store was not refused by name: ${JSON.stringify(r.faults)}`);
+    assert.ok(r.faults.some((f) => f.code === "SEALED_STORE_REQUIRED_BUT_UNLOCATED" && f.why === "synthetic-f10-store:SEALED_STORE_REFERENCE_UNSET"), `a missing store was not refused by name: ${JSON.stringify(r.faults)}`);
     const ev = s.trail();
     assert.equal(ev.filter((e) => e.action === LINKED_ACTIONS.CLAIMED).length, 0, "a missing store spent the run");
     assert.equal(ev.filter((e) => e.metadata?.governedWritePhase === "ATTEMPTED").length, 0, "a missing store was attempted");
@@ -514,11 +534,12 @@ test("F10 · C4 · REAL entry point · the production scoring route through bin/
   const et = tag(), eItems = items24(et);
   const w = syntheticWorld({ items: eItems, keyRows: key24(eItems) });
   const releaseFile = join(REPO, "evaluation-releases", "classification-releases.jsonl");
-  /* Bounded cleanup: only a release directory THIS test created (it must never exist beforehand) is removed afterwards. */
-  const releaseDirExisted = fs.existsSync(join(REPO, "evaluation-releases"));
-  assert.equal(releaseDirExisted, false, "a release directory already exists in the repository — refusing to run over it");
+  /* Bounded cleanup: only a classification release FILE this test created (it must never exist beforehand) is removed afterwards.
+   * The directory itself holds the one F10 seal record since 27 Sep 2026 and is never touched here. */
+  const releaseFileExisted = fs.existsSync(releaseFile);
+  assert.equal(releaseFileExisted, false, "a classification release already exists in the repository — refusing to run over it");
   const nonce = `f10-e2e-${process.pid}-${Math.random().toString(16).slice(2, 8)}`;
-  const env = { ...CONFINED_ENV, ALMIVISIBILITY_AUDIT_RUN: nonce, [SYNTHETIC_SEALED_FIXTURE_ENV]: w.fixture, [ENV_REF]: w.store };
+  const env = { ...CONFINED_ENV, ALMIVISIBILITY_AUDIT_RUN: nonce, [SYNTHETIC_SEALED_FIXTURE_ENV]: w.fixture, [SYN_REF]: w.store };
   /* D-EVAL-SAME-SECOND (found here, F08 recorder family, D-RECORDER-1): two runs of this entry point inside ONE second collide on
    * the write-gate event identity and the second is refused EVENT_ID_CONFLICT before it acts. Each run starts in a fresh second. */
   const nextSecond = () => { const s = Math.floor(Date.now() / 1000); while (Math.floor(Date.now() / 1000) === s) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25); };
@@ -531,8 +552,8 @@ test("F10 · C4 · REAL entry point · the production scoring route through bin/
     const fm = bin(["freeze", `--mechanism-id=${MECHANISM_ID}`, `--mechanism-hash=${MECH}`, "--confirm"]);
     assert.equal(fm.status, 0, `CONTROL: the mechanism freeze failed: ${fm.stdout.slice(-300)} ${fm.stderr.slice(-500)}`);
     assert.equal(bin(["freeze", `--mechanism-id=${SCORER_ID}`, `--mechanism-hash=${SCORER}`, "--confirm"]).status, 0, "CONTROL: the scorer freeze failed");
-    const unlocated = bin(["score", ...scoreArgs, "--confirm"], { [ENV_REF]: "" });
-    assert.match(unlocated.stdout, /SCORING FAILED_BEFORE_COMMIT · SEALED_STORE_REQUIRED_BUT_UNLOCATED\(f10-marking-key:SEALED_STORE_REFERENCE_UNSET\)/, `an unlocated store did not refuse the production run: ${unlocated.stdout.slice(-500)}${unlocated.stderr.slice(-300)}`);
+    const unlocated = bin(["score", ...scoreArgs, "--confirm"], { [SYN_REF]: "" });
+    assert.match(unlocated.stdout, /SCORING FAILED_BEFORE_COMMIT · SEALED_STORE_REQUIRED_BUT_UNLOCATED\(synthetic-f10-store:SEALED_STORE_REFERENCE_UNSET\)/, `an unlocated store did not refuse the production run: ${unlocated.stdout.slice(-500)}${unlocated.stderr.slice(-300)}`);
     const run = bin(["score", ...scoreArgs, "--confirm"]);
     assert.match(run.stdout, /ALLOWED ACCESS_/, `the production grant was not allowed: ${run.stdout.slice(-500)}`);
     assert.match(run.stdout, /SCORING FAILED_BEFORE_COMMIT/, "items no partition holds yielded a result");
@@ -549,7 +570,7 @@ test("F10 · C4 · REAL entry point · the production scoring route through bin/
   } finally {
     w.cleanup();
     fs.rmSync(join(REPO, ".test-scratch", "audit", `run-${nonce}`), { recursive: true, force: true });
-    if (!releaseDirExisted) fs.rmSync(join(REPO, "evaluation-releases"), { recursive: true, force: true });
+    if (!releaseFileExisted) fs.rmSync(releaseFile, { force: true });
   }
   assert.deepEqual(prodHashes(), before, "a confined evaluator run changed the production trail");
 });
@@ -616,7 +637,8 @@ test("F10 · C8 · the files F10 adds or changes carry no host, tenant id, regis
 test("F10 · residue: every scratch store, fixture and release directory is removed", () => {
   const left = fs.readdirSync(os.tmpdir()).filter((n) => /^f10-(store|fixture|release)-/.test(n));
   assert.deepEqual(left, [], "a constructed world was left behind");
-  assert.ok(!fs.existsSync(join(REPO, "evaluation-releases")), "a release store was created inside the repository");
+  /* The directory holds the one F10 seal record since 27 Sep 2026; what this suite must never leave is a classification RELEASE. */
+  assert.ok(!fs.existsSync(join(REPO, "evaluation-releases", "classification-releases.jsonl")), "a classification release was created inside the repository");
 });
 
 test("F10 · the production audit trail is byte-identical after every proof in this file", () => {

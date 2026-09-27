@@ -573,11 +573,13 @@ test("P40 · clean read-only inspection emits no durable event — CONTROL: a su
   assert.notEqual(auditText(), before);
 });
 
-test("P41 · F07's firewall stays intact: the held-out firewall passes on this tree and appends nothing", () => {
-  const r = spawnSync(process.execPath, [join(REPO, "bin", "heldout-firewall.mjs"), "--check"], { cwd: REPO, encoding: "utf8" });
+test("P41 · F07's firewall stays intact: in the SYNTHETIC scope the held-out firewall passes on this tree, appends nothing, and NAMES what it did not measure", () => {
+  /* F10 Amendment 2 (governance 370a3b3): a test is CI evidence, so it runs the census in the declared SYNTHETIC scope; the REAL registration is proved by the recorded owner-machine PRODUCTION census, never by a test. */
+  const r = spawnSync(process.execPath, [join(REPO, "bin", "heldout-firewall.mjs"), "--check", "--scope=synthetic"], { cwd: REPO, encoding: "utf8" });
   assert.equal(r.status, 0, r.stdout.split("\n").filter((l) => l.includes("🔴")).join("\n"));
+  assert.match(r.stdout, /^CENSUS SCOPE: SYNTHETIC/m, "the result does not carry its scope");
   assert.match(r.stdout, /AUDIT \(whole run\) — appended to the audit trail: 0 /);
-  assert.match(r.stdout, /FAILURES: 0/);
+  assert.match(r.stdout, /FAILURES: 0 · SCOPE SYNTHETIC · REAL REGISTERED POPULATION NOT MEASURED IN CI/);
 });
 
 /* ═══ NEUTRALITY, ORPHANS, POPULATIONS ═════════════════════════════════════════ */

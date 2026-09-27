@@ -4,6 +4,7 @@
  *
  *   node bin/audit-trail.mjs census                      the inclusion rule, every family's counts, the exclusions
  *   node bin/audit-trail.mjs record [--confirm]          append every lawful candidate; dry-run is the default
+ *   node bin/audit-trail.mjs gap [--confirm]             record each declared audit gap (config/audit-gaps.mjs) once
  *   node bin/audit-trail.mjs verify [--check]            verify the chain and print the detection boundary
  *   node bin/audit-trail.mjs read --all | --event=<id> | --tenant=<id> | --correlation=<id> | --parents=<id>
  *
@@ -36,6 +37,9 @@ import {
 import { recordCandidates, refusalEvent, writeGateEvent, MIGRATION_PROVES } from "../src/audit-trail/recorder.mjs";
 import { productionAuditStore, productionAuditReader, softwareVersionOf } from "../src/audit-trail/wiring.mjs";
 import { DETECTION_BOUNDARY } from "../src/audit-trail/store.mjs";
+import { WITNESS_BOUNDARY } from "../src/audit-trail/witness.mjs";
+import { GAP_EVENT, gapEventDraft, gapFaults, gapsNotOnTrail } from "../src/audit-trail/gap.mjs"; // appended only via recordCandidates
+import { AUDIT_GAPS } from "../config/audit-gaps.mjs";
 import { authorise, authorisationEvent, namedActor, AUTHORISATION_REFUSED_EXIT } from "../src/governance/authorisation.mjs";
 import { durableGuardSink } from "../src/governance/guard-audit.mjs";
 
@@ -249,6 +253,42 @@ function doRecord() {
   }
 }
 
+/**
+ * 🔴 RECORD EACH DECLARED AUDIT GAP (config/audit-gaps.mjs) — ONE AUDIT_CORRECTION EVENT PER GAP, EVER. It points to
+ * the gap and its evidence and recreates nothing (src/audit-trail/gap.mjs). Same write law and the same authorisation
+ * as `record`; dry-run is the default.
+ */
+function doGap() {
+  const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
+  confineToRepo(join(REPO, AUDIT_STORE.eventsPath), { label: "the audit trail store" });
+  confineToRepo(join(REPO, AUDIT_STORE.headPath), { label: "the audit trail head record" });
+  const softwareVersion = softwareVersionOf(REPO);
+  const f08 = AUTHORITY_CORPUS.find((r) => r.propositionId === F08_AUTHORITY.propositionId);
+  if (!f08) { console.log("NO CURRENT AUTHORITY for F08 — nothing is recorded"); process.exit(1); }
+  const onTrail = productionAuditStore({ repo: REPO, forbiddenSubstrings: [] }).readAll().events;
+  const pending = gapsNotOnTrail(AUDIT_GAPS, onTrail);
+  console.log(`AUDIT GAPS · declared ${AUDIT_GAPS.length} · already on the trail ${AUDIT_GAPS.length - pending.length} · to record ${pending.length}`);
+  const faulty = pending.map((g) => ({ g, f: gapFaults(g) })).filter((x) => x.f.length);
+  for (const { g, f } of faulty) console.log(`  🔴 ${g.gapId}: ${f.map((x) => `${x.code}(${x.field})`).join(", ")}`);
+  if (faulty.length) process.exit(1);
+  if (!permission.mayWrite) { console.log("nothing is appended without --confirm"); return; }
+  /* Nothing to record is not a write: no authorisation is asked for and nothing reaches the trail. */
+  if (pending.length === 0) { console.log("every declared gap is already on the trail — nothing is appended"); return; }
+  const store = productionAuditStore({ repo: REPO });
+  const decision = authorise({ actorRef: namedActor(process.argv), action: "WRITE_AUDIT_TRAIL_STORE", scope: { scopeType: "GLOBAL_PRODUCT" }, resourceRef: AUDIT_STORE.eventsPath, now: RUN_INSTANT });
+  durableGuardSink({ store, actor: "bin/audit-trail.mjs", softwareVersion, correlationId: `run:audit-trail:gap:${RUN_INSTANT}:authorisation`, authorityRef: { propositionId: F08_AUTHORITY.propositionId, scope: [...F08_AUTHORITY.scope] }, authorityHash: f08.contentHash }).emit(authorisationEvent(decision));
+  if (!decision.allowed) { console.error(`🔴 AUTHORISATION REFUSED — WRITE_AUDIT_TRAIL_STORE: ${decision.outcome} (${decision.reason}); nothing was recorded`); process.exit(AUTHORISATION_REFUSED_EXIT); }
+  /* Appended through the recorder's audit-store-only primitive, as `record` does — never a direct store.append here. */
+  const candidates = pending.map((gap) => ({ family: GAP_EVENT.eventType, sourceId: gap.gapId, draft: gapEventDraft({ gap, occurredAt: RUN_INSTANT, softwareVersion, authorityRef: { propositionId: F08_AUTHORITY.propositionId, scope: [...F08_AUTHORITY.scope] }, authorityHash: f08.contentHash, correlationId: `run:audit-trail:gap:${RUN_INSTANT}` }) }));
+  const result = recordCandidates({ store, candidates, corpus: AUTHORITY_CORPUS });
+  for (const m of result.migrated) console.log(`  ${m.sourceId} → ${m.eventId} (APPENDED)`);
+  for (const i of result.invalid) console.log(`  🔴 ${i.sourceId} INVALID — ${i.codes.join(", ")}`);
+  for (const n of result.notMigratable) console.log(`  🔴 ${n.sourceId} NOT_MIGRATABLE — ${n.notMigratable}`);
+  console.log(`  gaps offered ${result.total} · appended ${result.counts.migrated} · already audited ${result.counts.alreadyAudited} · invalid ${result.counts.invalid} · not migratable ${result.counts.notMigratable} · remainder ${result.remainder}`);
+  console.log(`  store sha256 ${store.storeHash()}`);
+  if (result.remainder !== 0 || result.counts.invalid || result.counts.notMigratable) process.exit(1);
+}
+
 function doVerify() {
   const store = productionAuditStore({ repo: REPO, forbiddenSubstrings: [] });
   const v = store.verify();
@@ -257,6 +297,9 @@ function doVerify() {
   console.log(`  store sha256 ${store.storeHash()}`);
   console.log("  DETECTION BOUNDARY, as declared:");
   for (const [k, val] of Object.entries(DETECTION_BOUNDARY)) console.log(`    ${k.padEnd(20)} ${val}`);
+  const w = v.witness;
+  console.log(`  WITNESS (out of the working tree): ${w.relation} · trail ${w.trail} · witness ${w.witness} · agreeing prefix ${w.common}${w.relation === "WITNESS_ABSENT" || w.relation === "WITNESS_UNLOCATABLE" ? " — NOT MEASURED here (no witness on this checkout)" : ""}`);
+  for (const [k, val] of Object.entries(WITNESS_BOUNDARY)) console.log(`    ${k.padEnd(24)} ${val}`);
   for (const f of v.findings) console.log(`  🔴 ${f.code}${f.at ? ` at line ${f.at}` : ""}${f.eventId ? ` (${f.eventId})` : ""}`);
   if (process.argv.includes("--check") && !v.ok) process.exit(1);
 }
@@ -279,6 +322,6 @@ function doRead() {
   }
 }
 
-const RUNNERS = { census: printCensus, record: doRecord, verify: doVerify, read: doRead };
-if (!RUNNERS[sub]) { console.error(`unknown subcommand ${JSON.stringify(sub)} — census | record | verify | read`); process.exit(2); }
+const RUNNERS = { census: printCensus, record: doRecord, gap: doGap, verify: doVerify, read: doRead };
+if (!RUNNERS[sub]) { console.error(`unknown subcommand ${JSON.stringify(sub)} — census | record | gap | verify | read`); process.exit(2); }
 RUNNERS[sub]();

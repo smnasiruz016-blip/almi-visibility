@@ -91,8 +91,11 @@ test("🔴 REAL — the observed-data carriers are registered OBSERVED_DATA: not
   assert.equal(INTENT_REFERENCE, null);
 });
 
-test("🔴 REAL — no replacement held-out set, marking key or expected-answer map was created", () => {
-  assert.deepEqual(REG.filter((e) => ["HELD_OUT_EVIDENCE", "MARKING_KEY"].includes(e.role)), []);
+test("🔴 REAL — no replacement held-out set, marking key or expected-answer map was created for the RETIRED set", () => {
+  /* since 27 Sep 2026 (F10's one selection, sealed and registered in storage S — engine cecf880 and its registration commit): two HELD_OUT_EVIDENCE entries exist — F10's OWN sealed sets, a new selection under F10's frozen acceptance, NOT a
+   * replacement for the retired reference (which stays retired). No marking key and no expected-answer map exists. */
+  assert.deepEqual(REG.filter((e) => ["HELD_OUT_EVIDENCE", "MARKING_KEY"].includes(e.role)).map((e) => e.id), ["sealed:f10-c3-selection", "sealed:f10-c7-pairs"]);
+  assert.equal(REG.filter((e) => e.role === "MARKING_KEY").length, 0);
   assert.equal(INTENT_REFERENCE, null);
 });
 
@@ -182,7 +185,7 @@ test("SYNTHETIC · seed 7701 — the detector's output never carries the matched
     assert.equal(JSON.stringify(r).toLowerCase().includes(SENTINEL.toLowerCase()), false);
     for (const g of G) assert.equal(JSON.stringify(r).includes(g), false);
   } finally { rmSync(base, { recursive: true, force: true }); }
-  const out = spawnSync(process.execPath, [join(REPO, "bin", "heldout-firewall.mjs"), "--check"], { encoding: "utf8" });
+  const out = spawnSync(process.execPath, [join(REPO, "bin", "heldout-firewall.mjs"), "--check", "--scope=synthetic"], { encoding: "utf8" }); // F10 Amendment 2 (governance 370a3b3): a test is CI evidence, so it runs the census in the declared SYNTHETIC scope; the REAL registration is proved by the recorded owner-machine PRODUCTION census, never by a test
   assert.equal(out.status, 0, out.stdout.slice(-600));
   const low = out.stdout.toLowerCase();
   for (const m of derive(RETIRED.resource.derivation.observationId).members) assert.equal(low.includes(m.toLowerCase()), false, "the runner printed a retired member");

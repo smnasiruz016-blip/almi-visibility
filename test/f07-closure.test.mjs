@@ -43,7 +43,7 @@ test("F7-BOARD · F07 is VERIFIED-PASS by UNASSESSED → IN-PROGRESS → VERIFIE
    * amended contract. The first three events are history, frozen under the ORIGINAL acceptance (F07_ORIGINAL). */
   /* F07 Amendment 2 (26 Sep 2026, governance 051feb9): reopened again on AUTHORITATIVE_REQUIREMENT_CHANGE and re-verified under the
    * Amendment 2 contract. Amendment 1's three events are history, frozen under F07_AMENDMENT_1. */
-  assert.deepEqual(f07.events.map((e) => `${e.kind}@${e.on}`), ["ACCEPTANCE_FROZEN@2026-09-23", "IMPLEMENTATION@2026-09-23", "VERIFIED@2026-09-23", "ACCEPTANCE_AMENDED@2026-09-25", "REOPENED@2026-09-25", "VERIFIED@2026-09-25", "ACCEPTANCE_AMENDED@2026-09-26", "REOPENED@2026-09-26", "VERIFIED@2026-09-26", "ACCEPTANCE_AMENDED@2026-09-26", "REOPENED@2026-09-26", "VERIFIED@2026-09-26"]);
+  assert.deepEqual(f07.events.map((e) => `${e.kind}@${e.on}`), ["ACCEPTANCE_FROZEN@2026-09-23", "IMPLEMENTATION@2026-09-23", "VERIFIED@2026-09-23", "ACCEPTANCE_AMENDED@2026-09-25", "REOPENED@2026-09-25", "VERIFIED@2026-09-25", "ACCEPTANCE_AMENDED@2026-09-26", "REOPENED@2026-09-26", "VERIFIED@2026-09-26", "ACCEPTANCE_AMENDED@2026-09-26", "REOPENED@2026-09-26", "VERIFIED@2026-09-26", "REOPENED@2026-09-27", "VERIFIED@2026-09-27"]);
   /* F07 Amendment 3 (26 Sep 2026, governance 264c680): reopened a third time on AUTHORITATIVE_REQUIREMENT_CHANGE and re-verified
    * under the Amendment 3 contract, the same day as Amendment 2. Amendment 2's three events are history, frozen under F07_AMENDMENT_2. */
   const [frozen, impl, verified, amended, reopened, reverified, amended2, reopened2, reverified2, amended3, reopened3, reverified3] = f07.events;
@@ -96,7 +96,7 @@ test("F7-BOARD · CONTROL — the same board without F07's REAL verification, or
 
 test("F7-TRAIL · each F07 movement is in the production trail EXACTLY ONCE, under the acceptance that governed it, naming its states", () => {
   const mine = trail().filter((e) => e.eventType === "BOARD_TRANSITION" && e.metadata?.featureId === "F07");
-  assert.deepEqual(mine.map((e) => e.action), ["ACCEPTANCE_FROZEN", "IMPLEMENTATION", "VERIFIED", "ACCEPTANCE_AMENDED", "REOPENED", "VERIFIED", "ACCEPTANCE_AMENDED", "REOPENED", "VERIFIED", "ACCEPTANCE_AMENDED", "REOPENED", "VERIFIED"], `${mine.length} transition event(s) for F07`);
+  assert.deepEqual(mine.map((e) => e.action), ["ACCEPTANCE_FROZEN", "IMPLEMENTATION", "VERIFIED", "ACCEPTANCE_AMENDED", "REOPENED", "VERIFIED", "ACCEPTANCE_AMENDED", "REOPENED", "VERIFIED", "ACCEPTANCE_AMENDED", "REOPENED", "VERIFIED", "REOPENED", "VERIFIED"], `${mine.length} transition event(s) for F07`);
   for (const e of mine.slice(0, 3)) {
     assert.deepEqual(e.authorityRef, { propositionId: "F07_FROZEN_ACCEPTANCE", scope: ["ALMIVISIBILITY", "F07"] });
     assert.equal(e.occurredAt.slice(0, 10), "2026-09-23");
@@ -110,10 +110,18 @@ test("F7-TRAIL · each F07 movement is in the production trail EXACTLY ONCE, und
     assert.equal(e.occurredAt.slice(0, 10), "2026-09-26");
   }
   // Amendment 3 (264c680): the same day as Amendment 2 — the repaired recorder (D-RECORDER-1) keeps both, each under its own authority
-  for (const e of mine.slice(9)) {
+  for (const e of mine.slice(9, 12)) {
     assert.deepEqual(e.authorityRef, { propositionId: "F07_ACCEPTANCE_AMENDMENT_3", scope: ["ALMIVISIBILITY", "F07"] });
     assert.equal(e.occurredAt.slice(0, 10), "2026-09-26");
   }
+  /* 27 Sep 2026: REOPENED on CONCRETE_CONTRADICTORY_EVIDENCE (two ACCESS records destroyed by git checkout, _handoffs 5fd0435) and
+   * re-VERIFIED after the out-of-tree witness repair — both under the UNCHANGED Amendment 3, no new amendment. */
+  for (const e of mine.slice(12)) {
+    assert.deepEqual(e.authorityRef, { propositionId: "F07_ACCEPTANCE_AMENDMENT_3", scope: ["ALMIVISIBILITY", "F07"] });
+    assert.equal(e.occurredAt.slice(0, 10), "2026-09-27");
+  }
+  assert.deepEqual([mine[12].metadata.from, mine[12].metadata.to], ["VERIFIED-PASS", "IN-PROGRESS"]);
+  assert.deepEqual([mine[13].metadata.from, mine[13].metadata.to, mine[13].metadata.population], ["IN-PROGRESS", "VERIFIED-PASS", "REAL"]);
   assert.deepEqual(mine.slice(6, 9).map((e) => e.eventId.slice(0, 8)), ["e97c2be7", "833037a7", "955d8571"], "an Amendment 2 event lost its original identity");
   assert.deepEqual([mine[10].metadata.from, mine[10].metadata.to], ["VERIFIED-PASS", "IN-PROGRESS"]);
   assert.deepEqual([mine[11].metadata.from, mine[11].metadata.to, mine[11].metadata.population], ["IN-PROGRESS", "VERIFIED-PASS", "REAL"]);

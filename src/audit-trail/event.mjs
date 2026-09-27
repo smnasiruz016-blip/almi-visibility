@@ -66,6 +66,9 @@ export const EVENT_TYPES = Object.freeze([
   /* F04 (25 September 2026): one authorisation decision — allowed or refused — made before a governed action's effect.
    * Additive, as above. */
   "AUTHORISATION_DECISION",
+  /* F08 incident (27 September 2026): one recorded GAP — events that were appended and later removed, pointed to and
+   * counted, never recreated (src/audit-trail/gap.mjs). Additive, as above. */
+  "AUDIT_CORRECTION",
 ]);
 export const ACTOR_TYPES = Object.freeze(["HUMAN", "ENGINE", "CI", "EXTERNAL_SYSTEM"]);
 export const SCOPE_TYPES = Object.freeze(["GLOBAL_PRODUCT", "TENANT", "SUBJECT"]);

@@ -60,6 +60,9 @@ export function f10SelectionSabotages() {
         { file: SEL, from: '  if (readdirSync(store).length !== 0) throw new SelectionRefused("ALREADY_SEALED"', to: '  if (false) throw new SelectionRefused("ALREADY_SEALED"' },
       ],
       expect: /a sealed store was sealed again/ },
+    { id: "SL-S12", what: "a synthetic entry is admitted into the REAL store (fixture law 4 dropped) — cross-scope", file: "src/governance/synthetic-sealed-fixture.mjs", test: "test/f10-storage-s-registration.test.mjs", named: "F10 · S · CONTROL · CROSS-SCOPE",
+      from: "    if (typeof root === \"string\" && Object.hasOwn(declared ?? {}, root)) throw", to: "    if (false) throw",
+      expect: /a synthetic entry was admitted into the real store/ },
   ];
 }
 

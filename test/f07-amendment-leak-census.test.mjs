@@ -68,29 +68,32 @@ const confinedCount = () => governedAuditContext({ repo: REPO, correlationId: `r
 
 /* ═══ THE REAL POPULATION — stated, and NOT_MEASURED ═════════════════════════════════════════════════════════════════════ */
 
-test("F07A · REAL · the census enumerates every sealed role of the REAL registry: RETIRED 1, HELD_OUT_EVIDENCE 0, MARKING_KEY 0 — the new roles' real population is NOT_MEASURED — CONTROL: the same enumeration counts a constructed HELD_OUT_EVIDENCE and MARKING_KEY added to a copy of the real registry, and that copy is a VALID registry", () => {
+test("F07A · REAL · the census enumerates every sealed role of the REAL registry: RETIRED 1, HELD_OUT_EVIDENCE 2, MARKING_KEY 0 — the new roles' real population is OBSERVED (F10's two sealed sets) — CONTROL: the same enumeration counts a constructed HELD_OUT_EVIDENCE and MARKING_KEY added to a copy of the real registry, and that copy is a VALID registry", () => {
   assert.ok(EVIDENCE_ROLE_REGISTRY.length > 0, "the real registry is empty — nothing can be enumerated");
   const real = censusEntries(EVIDENCE_ROLE_REGISTRY);
   const count = (list, role) => list.filter((e) => e.role === role).length;
   assert.deepEqual(SEALED_CENSUS_ROLES, ["RETIRED_CONTAMINATED", "HELD_OUT_EVIDENCE", "MARKING_KEY"]);
-  assert.deepEqual([count(real, "RETIRED_CONTAMINATED"), count(real, "HELD_OUT_EVIDENCE"), count(real, "MARKING_KEY")], [1, 0, 0]);
+  /* 0 → 2 HELD_OUT_EVIDENCE since 27 Sep 2026 (F10's one selection, sealed and registered in storage S — engine cecf880 and its registration commit): the real population is no longer zero. At F07's verifications (A1–A3) it WAS zero, and those
+   * records stay true for what they measured. No MARKING_KEY exists until the owner's keys are complete. */
+  assert.deepEqual([count(real, "RETIRED_CONTAMINATED"), count(real, "HELD_OUT_EVIDENCE"), count(real, "MARKING_KEY")], [1, 2, 0], "a registered held-out set or marking key was not enumerated");
   const realNewRolePopulation = count(real, "HELD_OUT_EVIDENCE") + count(real, "MARKING_KEY");
   const state = realNewRolePopulation === 0 ? "NOT_MEASURED" : "OBSERVED";
   assert.ok(EVIDENCE_STATES.includes(state));
-  assert.equal(state, "NOT_MEASURED", "the new limbs' real population is zero — it is NOT_MEASURED, never a clean real result");
+  assert.equal(state, "OBSERVED", "the registered sets were not enumerated as a real population");
   // CONTROL — the same enumeration is capable of a non-zero answer on real registry structure
   const copy = [...EVIDENCE_ROLE_REGISTRY, HO_ENTRY, MK_ENTRY];
   assert.deepEqual(registryErrors(copy), [], "the constructed entries are not lawful registry structure");
   const widened = censusEntries(copy);
-  assert.deepEqual([count(widened, "RETIRED_CONTAMINATED"), count(widened, "HELD_OUT_EVIDENCE"), count(widened, "MARKING_KEY")], [1, 1, 1], "CONTROL: a registered held-out set and marking key were not enumerated");
+  assert.deepEqual([count(widened, "RETIRED_CONTAMINATED"), count(widened, "HELD_OUT_EVIDENCE"), count(widened, "MARKING_KEY")], [1, 3, 1], "CONTROL: a registered held-out set and marking key were not enumerated");
 });
 
-test("F07A · REAL · the production entry point prints every sealed role's population, including the zeros, as NOT_MEASURED — confined run, production trail unchanged", () => {
+test("F07A · REAL · the production entry point prints every sealed role's population — RETIRED 1, HELD_OUT_EVIDENCE 2, MARKING_KEY 0 — confined run, production trail unchanged", () => {
   const before = prodHashes();
   const r = spawnSync(process.execPath, ["bin/heldout-firewall.mjs", "--check"], { cwd: REPO, encoding: "utf8", env: { ...process.env, NODE_TEST_CONTEXT: "child-v8", NODE_TEST_WORKER_ID: "1" }, timeout: 120_000 });
   assert.equal(r.status, 0, r.stdout.slice(-400));
-  assert.match(r.stdout, /SEALED ROLES ENUMERATED — RETIRED_CONTAMINATED 1 · HELD_OUT_EVIDENCE 0 · MARKING_KEY 0/, "the production entry point does not enumerate the new sealed roles");
-  assert.match(r.stdout, /0 registered: the real population is NOT_MEASURED/, "a zero was not reported as NOT_MEASURED");
+  assert.match(r.stdout, /SEALED ROLES ENUMERATED — RETIRED_CONTAMINATED 1 · HELD_OUT_EVIDENCE 2 · MARKING_KEY 0/, "the production entry point does not enumerate the registered sealed roles");
+  assert.match(r.stdout, /MARKING_KEY — 0 registered: its real population is NOT_MEASURED/, "a zero was not reported as NOT_MEASURED");
+  assert.doesNotMatch(r.stdout, /HELD_OUT_EVIDENCE — 0 registered/, "a registered population was reported as zero");
   assert.match(r.stdout, /RETIRED SET retired:held-out-set-3d4951d6673301bc · 61 member\(s\)/, "the retired census changed");
   assert.deepEqual(prodHashes(), before, "the confined run changed the production trail");
 });

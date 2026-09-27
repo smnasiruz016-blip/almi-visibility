@@ -71,7 +71,9 @@ test("🔴 THE TOTAL IS MEASURED, AND IT IS NOT 102 — the 102 added files to r
   assert.equal(real.total, byFamily.WRITE_GATE + byFamily.SEALED + byFamily.ROLE + byFamily.HELDOUT);
   /* The DATA populations, reported as data — this is where 60 and 4 came from, and neither is a count of sites. */
   const sealedRows = EVIDENCE_ROLE_REGISTRY.filter((e) => e.sealed).length;
-  assert.equal(sealedRows, 1, "the 61 sealed FILES are governed by one registry row, not sixty");
+  /* 1 → 3 since 27 Sep 2026 (F10's one selection, sealed and registered in storage S — engine cecf880 and its registration commit): the 61 sealed case-study FILES are still ONE row; the two new rows are F10's sealed sets in storage S. */
+  assert.equal(sealedRows, 3, "the sealed rows are not the case-study row plus F10's two sealed sets");
+  assert.equal(EVIDENCE_ROLE_REGISTRY.filter((e) => e.sealed && e.resource?.root === "engine").length, 1, "the 61 sealed FILES are governed by one registry row, not sixty");
   assert.ok(byFamily.SEALED > sealedRows, "the sealed rule is enforced at more sites than it has rows");
   assert.notEqual(real.total, 102);
 });

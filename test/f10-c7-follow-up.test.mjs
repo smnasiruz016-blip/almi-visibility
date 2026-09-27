@@ -41,11 +41,16 @@ const prodHashes = () => PROD.map((p) => sha(fs.readFileSync(p)));
 const PROD_BEFORE = prodHashes();
 const CONFINED_ENV = { ...process.env, NODE_TEST_CONTEXT: "child-v8", NODE_TEST_WORKER_ID: process.env.NODE_TEST_WORKER_ID || "1" };
 const ENV_REF = SEALED_STORE_ROOTS["f10-marking-key"].name;
+/* The synthetic C7 store is ISOLATED: its own store and its own reference, never the real store (fixture law 4, 27 Sep 2026). */
+const SYN_STORE = "synthetic-f10c7-store", SYN_REF = "ALMIVISIBILITY_SYNTHETIC_F10C7_STORE";
+const SYN_DECLARED = Object.freeze({ ...SEALED_STORE_ROOTS, [SYN_STORE]: Object.freeze({ mechanism: "ENV_REFERENCE", name: SYN_REF }) });
 const frac = (s) => parseInt(sha(s).slice(0, 8), 16) / 0xffffffff;
 const CLS = C7_PROTOCOL.paired.cls;
 
 /* ── A constructed population: three synthetic tenants, 12 · 10 · 8 sealed items, ids COMPUTED (never literal in this file) ── */
-const RUN = Math.random().toString(36).slice(2, 8);
+/* A FIXED seed (27 Sep 2026): with a random one the constructed population varied per run, and on some seeds the 40% abstainer
+ * reached the coverage bar — the vacuity guard fired, correctly, as a flake. Ids stay COMPUTED from the seed, never literal. */
+const RUN = "c7-fixed-seed-1";
 const idOf = (t, k) => `c7${sha(`c7-fixture|${RUN}|${t}|${k}`).slice(0, 10)}`;
 const TENANTS = ["tenant:" + "c7".repeat(16), "tenant:" + "d8".repeat(16), "tenant:" + "e9".repeat(16)];
 const MEMBERS = new Map(TENANTS.map((t, n) => [t, Array.from({ length: [12, 10, 8][n] }, (_, k) => idOf(n, k))]));
@@ -88,8 +93,8 @@ function store({ items = ITEMS, rows = keyRows(), keyTenants = TENANTS } = {}) {
   const keyText = rows.map((r) => JSON.stringify(r)).join("\n") + "\n";
   fs.writeFileSync(join(dir, "pairs-key", "judgements.jsonl"), keyText);
   const base = { scope: "constructed stand-in", source: "test", provenance: "test", capturedAt: "2026-09-27", mandatoryReadable: false, mayTrain: false, retiredReason: null, sealed: true, tenantScope: TENANTS };
-  const SET = { ...base, id: "synthetic:f10c7-pairs", role: "HELD_OUT_EVIDENCE", resource: { root: "f10-marking-key", pathPrefixes: ["pairs/"] }, contentHash: populationCommitment(items), mayEvaluate: true, maySupplyExpectedAnswer: false };
-  const KEY = { ...base, id: "synthetic:f10c7-judgements", role: "MARKING_KEY", resource: { root: "f10-marking-key", pathPrefixes: ["pairs-key/"] }, contentHash: keyCommitment({ "pairs-key/judgements.jsonl": Buffer.from(keyText) }), mayEvaluate: false, maySupplyExpectedAnswer: true, linkedSet: SET.id, tenantScope: keyTenants, labelVocabulary: [...C7_PROTOCOL.classes, ...C7_PROTOCOL.exclusions] };
+  const SET = { ...base, id: "synthetic:f10c7-pairs", role: "HELD_OUT_EVIDENCE", resource: { root: SYN_STORE, pathPrefixes: ["pairs/"] }, contentHash: populationCommitment(items), mayEvaluate: true, maySupplyExpectedAnswer: false };
+  const KEY = { ...base, id: "synthetic:f10c7-judgements", role: "MARKING_KEY", resource: { root: SYN_STORE, pathPrefixes: ["pairs-key/"] }, contentHash: keyCommitment({ "pairs-key/judgements.jsonl": Buffer.from(keyText) }), mayEvaluate: false, maySupplyExpectedAnswer: true, linkedSet: SET.id, tenantScope: keyTenants, labelVocabulary: [...C7_PROTOCOL.classes, ...C7_PROTOCOL.exclusions] };
   return { dir, SET, KEY, keyText, registry: [...EVIDENCE_ROLE_REGISTRY, SET, KEY], cleanup: () => fs.rmSync(dir, { recursive: true, force: true }) };
 }
 const requestFor = (s, over = {}) => ({
@@ -109,8 +114,8 @@ function scoreMem(outputs, opts = {}) {
     const a = memAudit();
     const grant = requestHeldOutAccess({ audit: a, registry: s.registry, authorityRecords: AUTH, request: requestFor(s) });
     assert.equal(grant.allowed, true, `CONTROL: the synthetic C7 grant was refused (${grant.code})`);
-    const roots = { "f10-marking-key": s.dir };
-    const filesOf = (r) => (r === "f10-marking-key" ? fs.readdirSync(s.dir, { recursive: true }).map(String).map((p) => p.replace(/\\/g, "/")).filter((p) => fs.statSync(join(s.dir, p)).isFile()) : []);
+    const roots = { [SYN_STORE]: s.dir };
+    const filesOf = (r) => (r === SYN_STORE ? fs.readdirSync(s.dir, { recursive: true }).map(String).map((p) => p.replace(/\\/g, "/")).filter((p) => fs.statSync(join(s.dir, p)).isFile()) : []);
     const scored = scoreClassification({ audit: a, grant, currentMechanismHash: MECH, registry: s.registry, roots, filesOf, outputs, protocol: C7_PROTOCOL, foreignRoots: roots });
     return { scored, verdict: followUpVerdict(scored, { bar: C7_BAR, protocol: C7_PROTOCOL }), audit: a };
   } finally { s.cleanup(); }
@@ -287,7 +292,7 @@ function routeWorldIn({ s, nonce, release, outputs, currentScorerHash, cleanup }
   freezeMechanism({ audit, mechanismId: FOLLOW_UP_SCORER_ID, mechanismHash: SCORER, frozenAt: "2026-09-26T10:00:00Z" });
   const grant = requestHeldOutAccess({ audit, registry: s.registry, authorityRecords: AUTH, request: requestFor(s) });
   const args = () => governedScoring({ repo: release, permission: { mayWrite: true, actorRef: "actor:cc", reason: "test" }, audit, grant, registry: s.registry,
-    stores: resolveSealedStoreRoots({ env: { [ENV_REF]: s.dir } }), currentMechanismHash: MECH, currentScorerHash, outputsFor: () => outputs, protocol: C7_PROTOCOL, rule: C7_BAR,
+    stores: resolveSealedStoreRoots({ declared: SYN_DECLARED, env: { [SYN_REF]: s.dir } }), currentMechanismHash: MECH, currentScorerHash, outputsFor: () => outputs, protocol: C7_PROTOCOL, rule: C7_BAR,
     occurredAt: "2026-09-26T12:00:00Z", releaseStore: C7_RELEASE_STORE, verdictOf: (scored) => followUpVerdict(scored, { bar: C7_BAR, protocol: C7_PROTOCOL }) });
   const run = () => executeGovernedWrite({ ...args(), onAuthorisationRefused: () => {} });
   const releases = () => { const f = join(release, C7_RELEASE_STORE); return fs.existsSync(f) ? fs.readFileSync(f, "utf8").trim().split("\n").map((l) => JSON.parse(l)) : []; };

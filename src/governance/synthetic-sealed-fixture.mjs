@@ -14,8 +14,12 @@
  *       fixture can therefore ADD a required store, never remove one: it cannot turn a real missing store green.
  *   3 · LABELLED — the entry points print that a synthetic fixture was applied, and how many entries it added.
  *
- * A synthetic entry MAY live in a REAL declared store (so CI proves the production descriptor itself), located only by the
- * test setting that descriptor's environment reference to a scratch directory. Generic: no subject, client or host.
+ *   4 · ISOLATED (27 Sep 2026) — a synthetic entry lives ONLY in a synthetic store the fixture itself declares, NEVER in a real
+ *       declared store. Before any real entry was registered, a synthetic entry could share the real store; once the real F10
+ *       sets were registered there it resolved to the REAL entries (ITEM_OUTSIDE_GRANTED_SET), and pointing the real store's
+ *       reference at a scratch directory is a synthetic store SUBSTITUTED for the real one. A synthetic store is resolved by the
+ *       very same descriptor code (ENV_REFERENCE, sealedStoreDescriptorRefusal, sealedStoreStatus) — the same external-store
+ *       path C3 requires CI to exercise, on an ISOLATED store. Generic: no subject, client or host.
  */
 import { readFileSync } from "node:fs";
 import { inVerifiedTestContext } from "./governed-run.mjs";
@@ -42,6 +46,10 @@ export function withSyntheticSealedFixture({ registry, declared, env = process.e
   for (const e of entries) {
     if (typeof e?.id !== "string" || !e.id.startsWith("synthetic:")) throw new SyntheticFixtureRefused("SYNTHETIC_ENTRY_NOT_LABELLED", "every synthetic entry id starts with synthetic:");
     if (realIds.has(e.id)) throw new SyntheticFixtureRefused("SYNTHETIC_ENTRY_OVERRIDES_REAL", "a synthetic entry may never replace a real one");
+  }
+  for (const e of entries) {
+    const root = e?.resource?.root;
+    if (typeof root === "string" && Object.hasOwn(declared ?? {}, root)) throw new SyntheticFixtureRefused("SYNTHETIC_ENTRY_IN_REAL_STORE", "a synthetic entry lives only in a synthetic store its fixture declares — never in a real one");
   }
   for (const name of Object.keys(stores)) {
     if (!name.startsWith("synthetic-")) throw new SyntheticFixtureRefused("SYNTHETIC_STORE_NOT_LABELLED", "every synthetic store name starts with synthetic-");

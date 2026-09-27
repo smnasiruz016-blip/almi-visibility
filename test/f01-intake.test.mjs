@@ -573,10 +573,10 @@ test("P40 · clean read-only inspection emits no durable event — CONTROL: a su
   assert.notEqual(auditText(), before);
 });
 
-test("P41 · F07's firewall stays intact: the held-out firewall passes on this tree and appends nothing", () => {
+test("P41 · F07's firewall stays intact: the held-out firewall passes on this tree and appends only the two sealed-set reads", () => {
   const r = spawnSync(process.execPath, [join(REPO, "bin", "heldout-firewall.mjs"), "--check"], { cwd: REPO, encoding: "utf8" });
   assert.equal(r.status, 0, r.stdout.split("\n").filter((l) => l.includes("🔴")).join("\n"));
-  assert.match(r.stdout, /AUDIT \(whole run\) — appended to the audit trail: 0 /);
+  assert.match(r.stdout, /AUDIT \(whole run\) — appended to the audit trail: 2 /); // 0 → 2 since 27 Sep 2026 (F10's one selection, sealed and registered in storage S — engine cecf880 and its registration commit): one durable ACCESS per registered sealed set read (F07 GOVERNED READ)
   assert.match(r.stdout, /FAILURES: 0/);
 });
 

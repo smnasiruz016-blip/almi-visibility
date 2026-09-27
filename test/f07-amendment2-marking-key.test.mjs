@@ -111,16 +111,15 @@ const events = (a, action) => a.store.events.filter((e) => e.action === action);
 
 /* ═══ REAL — the population, stated, and NOT_MEASURED ═══════════════════════════════════════════════════════════════════ */
 
-test("F07A2 · REAL · the real registry holds 0 HELD_OUT_EVIDENCE and 0 MARKING_KEY; the one declared governed sealed store is required by no entry — the new limbs' real population is NOT_MEASURED — CONTROL: a constructed linked pair added to a copy is lawful and enumerated", () => {
+test("F07A2 · REAL · the real registry holds 2 HELD_OUT_EVIDENCE and 0 MARKING_KEY, both in the one declared governed sealed store, which they now REQUIRE — CONTROL: a constructed linked pair added to a copy is lawful and enumerated", () => {
   const count = (reg, role) => reg.filter((e) => e.role === role).length;
-  assert.deepEqual([count(EVIDENCE_ROLE_REGISTRY, "HELD_OUT_EVIDENCE"), count(EVIDENCE_ROLE_REGISTRY, "MARKING_KEY"), Object.keys(SEALED_STORE_ROOTS).length], [0, 0, 1]);
-  /* F10 (owner ruling S, _handoffs 84abe3d) declared the key store's descriptor on 26 Sep 2026; no entry lives in it yet, so it is
-   * NOT REQUIRED and the real population of the new limbs is still NOT_MEASURED. */
-  assert.ok(Object.keys(SEALED_STORE_ROOTS).every((s) => !EVIDENCE_ROLE_REGISTRY.some((e) => e.resource?.root === s)), "a registered entry lives in a declared store — the real population is no longer zero");
+  /* 0/0 → 2/0 since 27 Sep 2026 (F10's one selection, sealed and registered in storage S — engine cecf880 and its registration commit). At F07 Amendment 2's verification the population WAS zero; that record stays true for what it measured. */
+  assert.deepEqual([count(EVIDENCE_ROLE_REGISTRY, "HELD_OUT_EVIDENCE"), count(EVIDENCE_ROLE_REGISTRY, "MARKING_KEY"), Object.keys(SEALED_STORE_ROOTS).length], [2, 0, 1]);
+  assert.deepEqual(EVIDENCE_ROLE_REGISTRY.filter((e) => e.resource?.root === "f10-marking-key").map((e) => e.id), ["sealed:f10-c3-selection", "sealed:f10-c7-pairs"], "the declared store holds other than the two registered F10 sets");
   const w = world("S");
   try {
     assert.deepEqual(registryErrors([...EVIDENCE_ROLE_REGISTRY, ...w.registry]), [], "CONTROL: the constructed linked pair is not lawful registry structure");
-    assert.equal(sealedManifest([...EVIDENCE_ROLE_REGISTRY, ...w.registry], { roots: w.roots, filesOf: w.filesOf }).length, 2, "CONTROL: the constructed pair was not enumerated");
+    assert.equal(sealedManifest([...EVIDENCE_ROLE_REGISTRY, ...w.registry], { roots: w.roots, filesOf: w.filesOf }).length, 4, "CONTROL: the constructed pair was not enumerated beside the two real sets");
   } finally { w.cleanup(); }
 });
 
@@ -403,13 +402,15 @@ test("F07A2 · C4 · registration yields a discoverable manifest — ids, roles,
 
 /* ═══ PRODUCTION ENTRY POINTS — confined runs, the production trail unchanged ═══════════════════════════════════════════ */
 
-test("F07A2 · REAL · the production firewall prints the sealed-role manifest (0 entries, 1 store declared and not required) and still passes; the production evaluator refuses an INCOMPLETE linked request, recorded — CONTROL: without key flags the same request reaches the set check", () => {
+test("F07A2 · REAL · the production firewall prints the sealed-role manifest (2 entries, 1 store declared, REQUIRED and LOCATED) and passes; the production evaluator refuses an INCOMPLETE linked request, recorded — CONTROL: without key flags the same request reaches the set check", () => {
   const before = prodHashes();
   const env = { ...process.env, NODE_TEST_CONTEXT: "child-v8", NODE_TEST_WORKER_ID: "1" };
   const f = spawnSync(process.execPath, ["bin/heldout-firewall.mjs", "--check"], { cwd: REPO, encoding: "utf8", env, timeout: 120_000 });
   assert.equal(f.status, 0, f.stdout.slice(-400));
-  assert.match(f.stdout, /SEALED-ROLE MANIFEST — 0 registered HELD_OUT_EVIDENCE \/ MARKING_KEY entries · governed sealed stores declared 1, located 0/);
-  assert.match(f.stdout, /SEALED STORE f10-marking-key · required by 0 registered entries · DECLARED_NOT_REQUIRED \(SEALED_STORE_REFERENCE_UNSET\)/);
+  /* since 27 Sep 2026 (F10's one selection, sealed and registered in storage S — engine cecf880 and its registration commit): the manifest lists the two sealed sets and the store they REQUIRE. Where the owner's store is not located (CI), this
+   * production census FAILS CLOSED instead — C3's pinned red, recorded exactly in _handoffs, never absorbed. */
+  assert.match(f.stdout, /SEALED-ROLE MANIFEST — 2 registered HELD_OUT_EVIDENCE \/ MARKING_KEY entries · governed sealed stores declared 1, located 1/);
+  assert.match(f.stdout, /SEALED STORE f10-marking-key · required by 2 registered entries · LOCATED/);
   const h = (c) => c.repeat(64);
   const base = ["bin/heldout-evaluation.mjs", "request", "--mechanism-id=syn-mech", `--mechanism-hash=${h("a")}`, "--set=synthetic:none", `--commitment=${h("b")}`, "--protocol=p1", "--purpose=assessment", "--authority=SYNTHETIC_X", "--actor=actor:cc"];
   const linked = spawnSync(process.execPath, [...base, "--key-set=syn-key", `--key-commitment=${h("c")}`], { cwd: REPO, encoding: "utf8", env, timeout: 120_000 });

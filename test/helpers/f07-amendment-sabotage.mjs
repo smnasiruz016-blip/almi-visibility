@@ -35,7 +35,7 @@ export function f07AmendmentSabotages() {
     { id: "F7A-S1", what: "the census enumerates only retired populations — a registered HELD_OUT_EVIDENCE / MARKING_KEY entry is skipped", file: TOOL, test: T, named: "F07A · REAL · the census enumerates every sealed role",
       from: "export const censusEntries = (registry) => (registry || []).filter((e) => SEALED_CENSUS_ROLES.includes(e?.role));",
       to: "export const censusEntries = (registry) => (registry || []).filter((e) => e?.role === \"RETIRED_CONTAMINATED\");",
-      expect: /CONTROL: a registered held-out set and marking key were not enumerated/ },
+      expect: /a registered held-out set (and marking key were|or marking key was) not enumerated/ },
 
     { id: "F7A-S2", what: "a new role's finding is named as a retired finding — the role of what leaked is lost", file: TOOL, test: T, named: "F07A · FIRE · a planted leak of a registered HELD_OUT_EVIDENCE member",
       from: "    } else if (full && FAILING_CATEGORIES.includes(category)) disposition = payloadDisposition;",
@@ -77,9 +77,9 @@ export function f07AmendmentSabotages() {
       to: "    if (false) { sealedExcluded += 1; continue; } // never opened",
       expect: /a clean tree reported a leak|the planted held-out leak was not found|the sealed store itself was scanned/ },
 
-    { id: "F7A-S10", what: "the production entry point stops reporting the new roles' zero population as NOT_MEASURED", file: "bin/heldout-firewall.mjs", test: T, named: "F07A · REAL · the production entry point prints every sealed role",
-      from: "if (!ofRole(\"HELD_OUT_EVIDENCE\").length && !ofRole(\"MARKING_KEY\").length) console.log(\"  HELD_OUT_EVIDENCE and MARKING_KEY — 0 registered: the real population is NOT_MEASURED (F06); nothing real to scan, and zero is not a pass\\n\");",
-      to: "if (false) console.log(\"\");",
+    { id: "F7A-S10", what: "the production entry point stops reporting a role's zero population as NOT_MEASURED", file: "bin/heldout-firewall.mjs", test: T, named: "F07A · REAL · the production entry point prints every sealed role",
+      from: "for (const role of [\"HELD_OUT_EVIDENCE\", \"MARKING_KEY\"]) if (!ofRole(role).length) console.log(",
+      to: "for (const role of []) if (!ofRole(role).length) console.log(",
       expect: /a zero was not reported as NOT_MEASURED/ },
 
     { id: "F7A-S11", what: "a governed caller behind an ALIAS — censusNewRoles obtains a new role's population through a local alias that reads the sealed files without recording", file: TOOL, test: T, named: "F07A · ACCESS",

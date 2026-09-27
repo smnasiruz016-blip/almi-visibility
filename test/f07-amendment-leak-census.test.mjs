@@ -87,13 +87,15 @@ test("F07A · REAL · the census enumerates every sealed role of the REAL regist
   assert.deepEqual([count(widened, "RETIRED_CONTAMINATED"), count(widened, "HELD_OUT_EVIDENCE"), count(widened, "MARKING_KEY")], [1, 3, 1], "CONTROL: a registered held-out set and marking key were not enumerated");
 });
 
-test("F07A · REAL · the production entry point prints every sealed role's population — RETIRED 1, HELD_OUT_EVIDENCE 2, MARKING_KEY 0 — confined run, production trail unchanged", () => {
+test("F07A · REAL · the production entry point enumerates every sealed role — RETIRED 1, HELD_OUT_EVIDENCE 2, MARKING_KEY 0 — in the SYNTHETIC scope, naming the two real sealed-store roles it does NOT measure — confined run, production trail unchanged", () => {
   const before = prodHashes();
-  const r = spawnSync(process.execPath, ["bin/heldout-firewall.mjs", "--check"], { cwd: REPO, encoding: "utf8", env: { ...process.env, NODE_TEST_CONTEXT: "child-v8", NODE_TEST_WORKER_ID: "1" }, timeout: 120_000 });
+  /* F10 Amendment 2 (governance 370a3b3): a test is CI evidence, so it runs the census in the declared SYNTHETIC scope; the REAL registration is proved by the recorded owner-machine PRODUCTION census, never by a test. Enumeration is of EVERY registered role in every scope — a role is never omitted silently. */
+  const r = spawnSync(process.execPath, ["bin/heldout-firewall.mjs", "--check", "--scope=synthetic"], { cwd: REPO, encoding: "utf8", env: { ...process.env, NODE_TEST_CONTEXT: "child-v8", NODE_TEST_WORKER_ID: "1" }, timeout: 120_000 });
   assert.equal(r.status, 0, r.stdout.slice(-400));
   assert.match(r.stdout, /SEALED ROLES ENUMERATED — RETIRED_CONTAMINATED 1 · HELD_OUT_EVIDENCE 2 · MARKING_KEY 0/, "the production entry point does not enumerate the registered sealed roles");
   assert.match(r.stdout, /MARKING_KEY — 0 registered: its real population is NOT_MEASURED/, "a zero was not reported as NOT_MEASURED");
   assert.doesNotMatch(r.stdout, /HELD_OUT_EVIDENCE — 0 registered/, "a registered population was reported as zero");
+  for (const id of ["sealed:f10-c3-selection", "sealed:f10-c7-pairs"]) assert.match(r.stdout, new RegExp(`NOT MEASURED IN THIS SCOPE \\(SYNTHETIC\\) — ${id}`), `${id} was omitted instead of named as not measured`);
   assert.match(r.stdout, /RETIRED SET retired:held-out-set-3d4951d6673301bc · 61 member\(s\)/, "the retired census changed");
   assert.deepEqual(prodHashes(), before, "the confined run changed the production trail");
 });

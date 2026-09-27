@@ -185,7 +185,7 @@ test("SYNTHETIC · seed 7701 — the detector's output never carries the matched
     assert.equal(JSON.stringify(r).toLowerCase().includes(SENTINEL.toLowerCase()), false);
     for (const g of G) assert.equal(JSON.stringify(r).includes(g), false);
   } finally { rmSync(base, { recursive: true, force: true }); }
-  const out = spawnSync(process.execPath, [join(REPO, "bin", "heldout-firewall.mjs"), "--check"], { encoding: "utf8" });
+  const out = spawnSync(process.execPath, [join(REPO, "bin", "heldout-firewall.mjs"), "--check", "--scope=synthetic"], { encoding: "utf8" }); // F10 Amendment 2 (governance 370a3b3): a test is CI evidence, so it runs the census in the declared SYNTHETIC scope; the REAL registration is proved by the recorded owner-machine PRODUCTION census, never by a test
   assert.equal(out.status, 0, out.stdout.slice(-600));
   const low = out.stdout.toLowerCase();
   for (const m of derive(RETIRED.resource.derivation.observationId).members) assert.equal(low.includes(m.toLowerCase()), false, "the runner printed a retired member");

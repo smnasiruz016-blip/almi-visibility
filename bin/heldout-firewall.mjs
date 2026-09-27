@@ -4,6 +4,8 @@
  *
  *   node bin/heldout-firewall.mjs                       report only — reads, prints counts, writes nothing
  *   node bin/heldout-firewall.mjs --check               the same, and exit 1 on any failure
+ *   node bin/heldout-firewall.mjs --scope=synthetic     F10 Amendment 2: the SYNTHETIC scope (CI, verified test context only).
+ *                                                       ABSENT, the scope is PRODUCTION — every real registered sealed role.
  *   node bin/heldout-firewall.mjs --extra-root=<dir>    also scan another tracked governance tree (a local check; its
  *                                                       *_learn_batch* product-content drafts are reported, not judged)
  *
@@ -29,12 +31,19 @@ import { scan, derivePopulation, distinctiveFragments, registeredHashErrors, reg
 import { populationCommitment } from "../src/heldout/lifecycle.mjs";
 import { sealedManifest } from "../tools/heldout-firewall.mjs";
 import { resolveSealedStoreRoots, storeFiles, sealedStoreStatus } from "../src/governance/sealed-store-roots.mjs";
+import { censusScopeOf, applyCensusScope, CensusScopeRefused, NOT_MEASURED_IN_CI } from "../src/governance/census-scope.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 /* F10 (ruling S): the real registry and store descriptors, plus — ONLY in a verified test context, additive only — an isolated
  * synthetic sealed fixture (src/governance/synthetic-sealed-fixture.mjs). Outside a test context naming one refuses the run. */
 const EFFECTIVE = withSyntheticSealedFixture({ registry: EVIDENCE_ROLE_REGISTRY, declared: SEALED_STORE_ROOTS });
-const registry = EFFECTIVE.registry;
+/* 🔴 F10 AMENDMENT 2 (governance 370a3b3): the census runs in ONE DECLARED SCOPE, and the scope travels with the result — the first line
+ * and the verdict line name it. PRODUCTION (the default) scans every real registered sealed role and never applies a fixture; SYNTHETIC
+ * (CI) scans the fixture's own stores and NAMES the real sealed-store roles it does not measure (src/governance/census-scope.mjs). */
+let SCOPED;
+try { SCOPED = applyCensusScope({ scope: censusScopeOf(process.argv.slice(2)), realDeclared: SEALED_STORE_ROOTS, effective: EFFECTIVE }); }
+catch (e) { if (!(e instanceof CensusScopeRefused)) throw e; console.error(`🔴 CENSUS REFUSED — ${e.code}: nothing was censused`); process.exit(2); }
+const registry = SCOPED.registry;
 /* 🔴 F07 §5.3, as repaired by the owner's ruling of 23 September 2026 (option b). This run's decisions go through F08's
  * shipped boundary — the production trail, or the confined store in a verified test context — and the sink DERIVES
  * which of them the trail keeps (guard-audit.mjs `auditClassOf`): a clean sweep only CLASSIFIES (a registered
@@ -43,7 +52,7 @@ const registry = EFFECTIVE.registry;
 const RUN_AT = isoSeconds(Date.now());
 const AUDIT = governedGuardSink({ repo: REPO, correlationId: `run:heldout-firewall:${RUN_AT}`, now: RUN_AT.slice(0, 10), actor: "bin/heldout-firewall.mjs" });
 const failures = [];
-const regErrs = registryErrors(registry);
+const regErrs = registryErrors(EFFECTIVE.registry);
 for (const e of regErrs) failures.push(`REGISTRY ${e.code} ${e.id ?? ""}`);
 
 const store = createJsonlStore(join(REPO, "runs", "evidence", "evidence.jsonl")).readAll();
@@ -58,12 +67,16 @@ const files = trackedFiles(REPO);
 const productionTexts = files.filter((p) => /^(src|bin|tools|config|subjects)\/.*\.mjs$/.test(p)).map((p) => readFileSync(join(REPO, p), "utf8"));
 const evaluatorSources = HELD_OUT_EVALUATORS.map((p) => readFileSync(join(REPO, p), "utf8"));
 
+console.log(SCOPED.scope === "PRODUCTION"
+  ? "CENSUS SCOPE: PRODUCTION — every real registered sealed role, on this machine; the proof of the REAL registration"
+  : `CENSUS SCOPE: SYNTHETIC — the declared synthetic store(s) only · ${NOT_MEASURED_IN_CI}: ${SCOPED.notMeasured.length} real sealed-store role(s) not scanned`);
 console.log("HELD-OUT FIREWALL — role and exposure; counts only\n");
 /* 🔴 F07 AMENDMENT 1 (governance a0b7e4b): the census enumerates EVERY registered sealed held-out role, with each role's
  * population stated — including zero. A zero is reported as NOT_MEASURED (F06), never as a clean real result. */
-const CENSUS = censusEntries(registry);
+const CENSUS = censusEntries(EFFECTIVE.registry); // ENUMERATION is of every registered role, in every scope — a role is never omitted silently
 const ofRole = (role) => CENSUS.filter((e) => e.role === role);
 console.log(`SEALED ROLES ENUMERATED — RETIRED_CONTAMINATED ${ofRole("RETIRED_CONTAMINATED").length} · HELD_OUT_EVIDENCE ${ofRole("HELD_OUT_EVIDENCE").length} · MARKING_KEY ${ofRole("MARKING_KEY").length}`);
+for (const id of SCOPED.notMeasured) console.log(`  NOT MEASURED IN THIS SCOPE (SYNTHETIC) — ${id}: a real sealed-store role; only the PRODUCTION census scans it`);
 /* Each role's zero is stated on its own (27 Sep 2026): once HELD_OUT_EVIDENCE was registered, a note printed only when BOTH were zero
  * fell silent while MARKING_KEY was still zero — and that zero is still NOT_MEASURED on real material. */
 for (const role of ["HELD_OUT_EVIDENCE", "MARKING_KEY"]) if (!ofRole(role).length) console.log(`  ${role} — 0 registered: its real population is NOT_MEASURED (F06); nothing real to scan, and zero is not a pass`);
@@ -98,7 +111,7 @@ for (const entry of ofRole("RETIRED_CONTAMINATED")) {
 /* 🔴 F07 AMENDMENT 2 (governance 051feb9): a sealed role may also live in a GOVERNED SEALED STORE outside any git tree,
  * located by an environment reference declared in config/evidence-roles.mjs. Each located store is a root this census reads;
  * a declared store that cannot be located is NOT an empty store — its entries fail closed below (SEALED_ROLE_ROOT_NOT_SCANNED). */
-const STORES = resolveSealedStoreRoots({ declared: EFFECTIVE.declared });
+const STORES = resolveSealedStoreRoots({ declared: SCOPED.declared });
 if (EFFECTIVE.synthetic) console.log(`SYNTHETIC SEALED FIXTURE APPLIED (verified test context only) — +${EFFECTIVE.synthetic.entries} entr${EFFECTIVE.synthetic.entries === 1 ? "y" : "ies"} · +${EFFECTIVE.synthetic.stores} store(s)`);
 const located = Object.fromEntries(Object.entries(STORES.roots).filter(([, d]) => d));
 const ROOTS = { engine: REPO, ...located };
@@ -110,7 +123,7 @@ const FILES_OF = (r) => (r === "engine" ? files : located[r] ? storeFiles(locate
   /* 🔴 F10 (owner ruling S, _handoffs 84abe3d): every declared or required store, with its status. A store a registered entry
    * REQUIRES that cannot be located FAILS here, by name and reason — never skipped, never read as empty, and never
    * conditional on the machine this runs on. A declared store no entry requires is reported, not failed. */
-  for (const s of sealedStoreStatus({ registry, declared: EFFECTIVE.declared, resolution: STORES })) {
+  for (const s of sealedStoreStatus({ registry, declared: SCOPED.declared, resolution: STORES })) {
     console.log(`  SEALED STORE ${s.store} · required by ${s.requiredBy} registered entr${s.requiredBy === 1 ? "y" : "ies"} · ${s.status}`);
     if (s.fails) failures.push(`SEALED_STORE_${s.status.split(" ")[0]} ${s.store} ${s.code}`);
   }
@@ -137,6 +150,6 @@ for (const e of registeredHashErrors({ registry, root: "engine", base: REPO, has
 /* The whole run's audit, AFTER every root was scanned. The per-engine line above is printed before the extra root is
  * scanned; on 24 September 2026 it read "appended 0" while the extra root's draft scan appended 17. */
 console.log(`\nAUDIT (whole run) — appended to the audit trail: ${AUDIT.emitted} · classification only, not appended: ${AUDIT.classified}`);
-console.log(`\nFAILURES: ${failures.length}`);
+console.log(`\nFAILURES: ${failures.length} · SCOPE ${SCOPED.scope}${SCOPED.scope === "SYNTHETIC" ? ` · ${NOT_MEASURED_IN_CI} (the owner's store is proved only by the PRODUCTION census)` : ""}`);
 for (const f of failures) console.log(`  🔴 ${f}`);
 if (process.argv.includes("--check") && failures.length) process.exit(1);

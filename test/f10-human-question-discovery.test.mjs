@@ -296,14 +296,15 @@ test("F10 · C3 · the PRODUCTION census over an isolated synthetic store: locat
   const ct = tag();
   const w = syntheticWorld({ items: [`${ct}-01`, `${ct}-02`], keyRows: [{ item: `${ct}-01`, classes: ["GOAL"] }, { item: `${ct}-02`, classes: [] }] });
   try {
-    const run = (extra) => spawnSync(process.execPath, ["bin/heldout-firewall.mjs", "--check"], { cwd: REPO, encoding: "utf8", env: { ...CONFINED_ENV, [SYNTHETIC_SEALED_FIXTURE_ENV]: w.fixture, ...extra }, timeout: 180_000 });
+    const run = (extra) => spawnSync(process.execPath, ["bin/heldout-firewall.mjs", "--check", "--scope=synthetic"], { cwd: REPO, encoding: "utf8", env: { ...CONFINED_ENV, [SYNTHETIC_SEALED_FIXTURE_ENV]: w.fixture, ...extra }, timeout: 180_000 });
     const located = run({ [SYN_REF]: w.store });
-    /* The PRODUCTION census still censuses the REAL registry here: where the real store is not located (CI), its fail-closed lines
-     * stand — and are ASSERTED below, never absorbed. What this test proves is the synthetic store's OWN behaviour: the synthetic
-     * store and its entries cause NO failure when located. */
-    assert.deepEqual(failureLines(located.stdout).filter((l) => !realStoreCaused(l)), [], `the located synthetic store was not scanned clean: ${located.stdout.slice(-600)}`);
-    assert.equal(failureLines(located.stdout).some(realStoreCaused), !realStoreLocated(located.stdout), "the REAL store's fail-closed lines do not match whether the real store is located");
-    assert.equal(located.status, failureLines(located.stdout).length ? 1 : 0, "the census exit does not match its failure lines");
+    /* The SYNTHETIC scope (F10 Amendment 2): the same governed census paths over this fixture's OWN store; the real sealed-store roles
+     * are named as not measured and the real store is never resolved. */
+    assert.equal(located.status, 0, `the located synthetic store was not scanned clean: ${located.stdout.slice(-600)}`);
+    assert.deepEqual(failureLines(located.stdout), []);
+    assert.match(located.stdout, /FAILURES: 0 · SCOPE SYNTHETIC · REAL REGISTERED POPULATION NOT MEASURED IN CI/);
+    assert.doesNotMatch(located.stdout, /SEALED STORE f10-marking-key/, "the SYNTHETIC scope resolved the real store");
+    assert.equal(realStoreLocated(located.stdout), false);
     assert.match(located.stdout, /SYNTHETIC SEALED FIXTURE APPLIED \(verified test context only\) — \+2 entries · \+1 store/);
     assert.match(located.stdout, /SEALED STORE synthetic-f10-store · required by 2 registered entries · LOCATED/, "the located store's status was not reported");
     assert.match(located.stdout, /MARKING_KEY\s+synthetic:f10-key .* SEALED_STORE \(synthetic-f10-store\) · READABLE · 1 file/, "the synthetic key was not enumerated in the manifest");

@@ -77,7 +77,7 @@ export function f07AmendmentSabotages() {
       to: "    if (false) { sealedExcluded += 1; continue; } // never opened",
       expect: /a clean tree reported a leak|the planted held-out leak was not found|the sealed store itself was scanned/ },
 
-    { id: "F7A-S10", what: "the production entry point stops reporting a role's zero population as NOT_MEASURED", file: "bin/heldout-firewall.mjs", test: T, named: "F07A · REAL · the production entry point prints every sealed role",
+    { id: "F7A-S10", what: "the production entry point stops reporting a role's zero population as NOT_MEASURED", file: "bin/heldout-firewall.mjs", test: T, named: "F07A · REAL · the production entry point enumerates every sealed role",
       from: "for (const role of [\"HELD_OUT_EVIDENCE\", \"MARKING_KEY\"]) if (!ofRole(role).length) console.log(",
       to: "for (const role of []) if (!ofRole(role).length) console.log(",
       expect: /a zero was not reported as NOT_MEASURED/ },

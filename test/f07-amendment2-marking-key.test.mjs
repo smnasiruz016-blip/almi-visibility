@@ -402,15 +402,16 @@ test("F07A2 · C4 · registration yields a discoverable manifest — ids, roles,
 
 /* ═══ PRODUCTION ENTRY POINTS — confined runs, the production trail unchanged ═══════════════════════════════════════════ */
 
-test("F07A2 · REAL · the production firewall prints the sealed-role manifest (2 entries, 1 store declared, REQUIRED and LOCATED) and passes; the production evaluator refuses an INCOMPLETE linked request, recorded — CONTROL: without key flags the same request reaches the set check", () => {
+test("F07A2 · REAL · the production firewall, in the SYNTHETIC scope, prints an in-scope manifest with no real store and passes; the production evaluator refuses an INCOMPLETE linked request, recorded — CONTROL: without key flags the same request reaches the set check", () => {
   const before = prodHashes();
   const env = { ...process.env, NODE_TEST_CONTEXT: "child-v8", NODE_TEST_WORKER_ID: "1" };
-  const f = spawnSync(process.execPath, ["bin/heldout-firewall.mjs", "--check"], { cwd: REPO, encoding: "utf8", env, timeout: 120_000 });
+  const f = spawnSync(process.execPath, ["bin/heldout-firewall.mjs", "--check", "--scope=synthetic"], { cwd: REPO, encoding: "utf8", env, timeout: 120_000 });
   assert.equal(f.status, 0, f.stdout.slice(-400));
-  /* since 27 Sep 2026 (F10's one selection, sealed and registered in storage S — engine cecf880 and its registration commit): the manifest lists the two sealed sets and the store they REQUIRE. Where the owner's store is not located (CI), this
-   * production census FAILS CLOSED instead — C3's pinned red, recorded exactly in _handoffs, never absorbed. */
-  assert.match(f.stdout, /SEALED-ROLE MANIFEST — 2 registered HELD_OUT_EVIDENCE \/ MARKING_KEY entries · governed sealed stores declared 1, located 1/);
-  assert.match(f.stdout, /SEALED STORE f10-marking-key · required by 2 registered entries · LOCATED/);
+  /* F10 Amendment 2 (governance 370a3b3): a test is CI evidence, so it runs the census in the declared SYNTHETIC scope; the REAL registration is proved by the recorded owner-machine PRODUCTION census, never by a test: in scope, the manifest holds no real sealed-store role and resolves no real store; the two real sets are NAMED as not
+   * measured. (Before 27 Sep there were 0 real entries; since the registration, their census is the owner-machine PRODUCTION run.) */
+  assert.match(f.stdout, /SEALED-ROLE MANIFEST — 0 registered HELD_OUT_EVIDENCE \/ MARKING_KEY entries · governed sealed stores declared 0, located 0/);
+  assert.doesNotMatch(f.stdout, /SEALED STORE f10-marking-key/, "the SYNTHETIC scope resolved the real store");
+  assert.match(f.stdout, /FAILURES: 0 · SCOPE SYNTHETIC · REAL REGISTERED POPULATION NOT MEASURED IN CI/);
   const h = (c) => c.repeat(64);
   const base = ["bin/heldout-evaluation.mjs", "request", "--mechanism-id=syn-mech", `--mechanism-hash=${h("a")}`, "--set=synthetic:none", `--commitment=${h("b")}`, "--protocol=p1", "--purpose=assessment", "--authority=SYNTHETIC_X", "--actor=actor:cc"];
   const linked = spawnSync(process.execPath, [...base, "--key-set=syn-key", `--key-commitment=${h("c")}`], { cwd: REPO, encoding: "utf8", env, timeout: 120_000 });

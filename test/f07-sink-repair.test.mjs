@@ -101,10 +101,12 @@ test("(a)(b)(d) · ONE SINK: a clean classification appends 0, a real sealed ref
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("(a)(f) · the REAL firewall binary, twice, on the real tree: EXACTLY one durable ACCESS per registered sealed set read, and nothing else, each run — reported by the same sink's own counters", () => {
+test("(a)(f) · the REAL firewall binary, twice, on the real tree, in the SYNTHETIC scope: 0 appended each run — reported by the same sink's own counters", () => {
   const before = count();
   for (let run = 1; run <= 2; run += 1) {
-    const r = spawnSync(process.execPath, ["bin/heldout-firewall.mjs", "--check"], { cwd: REPO, encoding: "utf8", env: process.env, timeout: 300_000 });
+    /* F10 Amendment 2 (governance 370a3b3): a test is CI evidence, so it runs the census in the declared SYNTHETIC scope; the REAL registration is proved by the recorded owner-machine PRODUCTION census, never by a test. In that scope no real sealed set is read, so a clean run appends NOTHING. (In the PRODUCTION scope it appends exactly one
+     * durable ACCESS per registered sealed set read — measured and recorded with each owner-machine run.) */
+    const r = spawnSync(process.execPath, ["bin/heldout-firewall.mjs", "--check", "--scope=synthetic"], { cwd: REPO, encoding: "utf8", env: process.env, timeout: 300_000 });
     assert.equal(r.status, 0, r.stdout + r.stderr);
     const m = r.stdout.match(/appended to the audit trail: (\d+) \(access or violation\) · classification only, not appended: (\d+)/);
     assert.ok(m, `run ${run}: the sink's counters were not reported`);
@@ -113,8 +115,8 @@ test("(a)(f) · the REAL firewall binary, twice, on the real tree: EXACTLY one d
      * classification-only (the next line of output). Anything more is a real finding. */
     assert.equal(Number(m[1]), 0, `run ${run}: the ENGINE scan appended — a clean scan only classifies`);
     assert.ok(Number(m[2]) >= 1, `run ${run}: the run classified nothing — the zero would be vacuous`);
-    assert.match(r.stdout, /AUDIT \(whole run\) — appended to the audit trail: 2 · /, `run ${run}: the whole-run audit is not exactly the two sealed-set reads`);
-    assert.equal(count() - before, 2 * run, `run ${run}: the store grew by other than two ACCESS events per run`);
+    assert.match(r.stdout, /AUDIT \(whole run\) — appended to the audit trail: 0 · /, `run ${run}: the whole-run audit line is missing or not 0`);
+    assert.equal(count() - before, 0, `run ${run}: the store grew`);
   }
   // The binary builds its sink through the same constructor, and hands that sink to every scan.
   const src = fs.readFileSync(join(REPO, "bin/heldout-firewall.mjs"), "utf8");

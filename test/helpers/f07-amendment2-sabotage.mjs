@@ -99,7 +99,7 @@ export function f07Amendment2Sabotages() {
       from: '  emit(audit, { action: LINKED_ACTIONS.ITEM_READ, outcome: "ALLOWED", reasonCode: "SET_DERIVATION_READ"',
       to: '  (() => {})({ action: LINKED_ACTIONS.ITEM_READ, outcome: "ALLOWED", reasonCode: "SET_DERIVATION_READ"',
       expect: /the deriver ran before its read was recorded/ },
-    { id: "F7B-S21", what: "the production evaluator ignores the linked fields — an incomplete linked request is treated as an unlinked one", file: "bin/heldout-evaluation.mjs", test: T, named: "F07A2 · REAL · the production firewall prints",
+    { id: "F7B-S21", what: "the production evaluator ignores the linked fields — an incomplete linked request is treated as an unlinked one", file: "bin/heldout-evaluation.mjs", test: T, named: "F07A2 · REAL · the production firewall, in the SYNTHETIC scope",
       from: '    ...(arg("key-set") || arg("key-commitment") || arg("scorer-id") || arg("scorer-hash") ? {', to: "    ...(false ? {",
       expect: /an incomplete linked request was not refused/ },
   ];

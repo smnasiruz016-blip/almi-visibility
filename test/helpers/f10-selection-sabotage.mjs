@@ -53,6 +53,13 @@ export function f10SelectionSabotages() {
       from: "export const readProgress = (store, task) => new Map(lines(join(store, TASKS[task].progress)).map((r) => [r.id, r.answer]));",
       to: "export const readProgress = (store, task) => new Map(lines(join(store, TASKS[task].progress)).reverse().map((r) => [r.id, r.answer]));",
       expect: /a corrected answer did not replace the old one/ },
+    { id: "SL-S11", what: "the boundary's door guards are dropped — a sealed store is sealed again through the governed route", test: T, named: "F10 · SEAL · THROUGH THE BOUNDARY",
+      edits: [
+        { file: SEL, from: '      if (readdirSync(store).length !== 0) return [{ code: "ALREADY_SEALED" }];', to: "      // sabotaged: a sealed store is not refused" },
+        { file: SEL, from: '      if (records().length !== 0) return [{ code: "ALREADY_SEALED" }];', to: "      // sabotaged: an existing seal record is not refused" },
+        { file: SEL, from: '  if (readdirSync(store).length !== 0) throw new SelectionRefused("ALREADY_SEALED"', to: '  if (false) throw new SelectionRefused("ALREADY_SEALED"' },
+      ],
+      expect: /a sealed store was sealed again/ },
   ];
 }
 

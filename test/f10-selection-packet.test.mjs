@@ -80,7 +80,7 @@ test("F10 · SELECT · within a tenant its seats go to the LOWEST identity hashe
     const unchosen = all.filter((x) => !chosen.includes(x) && !chosen.some((c) => c.itemId === x.itemId));
     assert.ok(unchosen.every((x) => parseInt(sha(x.itemId).slice(0, 12), 16) > worst), "a row with a lower identity hash was passed over");
   }
-  const t0 = [...a.selected.keys()][0];
+  const t0 = [...a.selected.keys()].sort((x, y) => account().eligibleItems.get(y).length - account().eligibleItems.get(x).length)[0]; // the largest tenant: seats < rows, so "first rows" is a real alternative
   assert.notDeepEqual(a.selected.get(t0).map((x) => x.itemId), account().eligibleItems.get(t0).slice(0, a.selected.get(t0).length).map((x) => x.itemId), "CONTROL: the lowest hashes happen to be the first rows — the control would be vacuous");
 });
 
@@ -121,6 +121,39 @@ test("F10 · SEAL · the packet is written into S ONCE — a second seal is ALRE
     }
     assert.match(fs.readFileSync(join(S, SEALED_LAYOUT.readme), "utf8"), /node bin\/f10-label\.mjs c6/);
   } finally { fs.rmSync(S, { recursive: true, force: true }); }
+});
+
+test("F10 · SEAL · THROUGH THE BOUNDARY: authorised, ATTEMPTED, sealed once with ONE count-only record, COMMITTED; a retry runs nothing; a refused plan and a sealed store are refused before any attempt, writing nothing", async () => {
+  const { governedSealing, SEAL_RECORD_STORE } = await import("../src/discovery/f10-selection.mjs");
+  const { executeGovernedWrite } = await import("../src/governance/governed-write.mjs");
+  const { governedAuditContext } = await import("../src/governance/governed-run.mjs");
+  const S = tmpStore(), repo = fs.mkdtempSync(join(os.tmpdir(), "f10sel-repo-"));
+  const nonce = `f10sel-route-${Math.random().toString(16).slice(2, 8)}`;
+  try {
+    const a = governedAuditContext({ repo: REPO, env: { ...CONFINED_ENV, ALMIVISIBILITY_AUDIT_RUN: nonce }, correlationId: `run:f10sel:${nonce}`, authorityRef: { propositionId: "OWNER_RULING_HELDOUT_ROLE_SCOPE", scope: ["ALMIVISIBILITY"] }, authorityHash: "d".repeat(64) });
+    assert.equal(a.synthetic, true, "the audit context is not confined — refusing to touch the production trail");
+    const audit = { ...a, actor: "test/f10sel" };
+    const permission = { mayWrite: true, actorRef: "actor:cc", reason: "test" };
+    const run = (over) => executeGovernedWrite({ ...governedSealing({ repo, permission, audit, store: S, plan: plan(), ownerReadme: OWNER_README, occurredAt: "2026-09-26T12:00:00Z", ...over }), onAuthorisationRefused: () => {} });
+    const refusedPlan = run({ plan: null, planFault: new SelectionRefused("VERSION_NOT_FROZEN_AT_THIS_CODE", "x") });
+    assert.equal(refusedPlan.outcome, "FAILED_BEFORE_COMMIT", "a refused plan was attempted");
+    assert.ok(refusedPlan.faults.some((f) => f.code === "VERSION_NOT_FROZEN_AT_THIS_CODE"));
+    assert.deepEqual(fs.readdirSync(S), [], "a refused plan wrote into S");
+    assert.equal(run().outcome, "COMMITTED", "the lawful seal did not commit");
+    const recs = fs.readFileSync(join(repo, SEAL_RECORD_STORE), "utf8").trim().split("\n").map((l) => JSON.parse(l));
+    assert.equal(recs.length, 1);
+    assert.deepEqual([recs[0].selected, recs[0].remainder, recs[0].tenantsConsumedToCapacity], [100, 0, 6]);
+    assert.match(recs[0].oneWayDoor, /SEALING IS IRREVERSIBLE/);
+    const text = JSON.stringify(recs) + JSON.stringify(audit.store.readAll().events);
+    for (const x of [...plan().selected.values()].flat().slice(0, 30)) assert.ok(!text.includes(x.itemId) && !text.includes(x.query), "an identity or a wording crossed out of S");
+    assert.equal(run().outcome, "ALREADY_COMMITTED", "a retry of the seal ran again");
+    fs.rmSync(join(repo, SEAL_RECORD_STORE));
+    const again = run();
+    assert.ok(again.faults.some((f) => f.code === "ALREADY_SEALED"), "a sealed store was sealed again");
+  } finally {
+    fs.rmSync(S, { recursive: true, force: true }); fs.rmSync(repo, { recursive: true, force: true });
+    fs.rmSync(join(REPO, ".test-scratch", "audit", `run-${nonce}`), { recursive: true, force: true });
+  }
 });
 
 /* ═══ THE LABELLING — staged, durable, and a preflight that refuses an incomplete key ════════════════════════════════════ */

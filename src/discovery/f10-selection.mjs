@@ -20,8 +20,9 @@
  * Returns and prints COUNTS, the two commitments and the one-way-door statement. Never an identity, a wording or a label.
  */
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, writeFileSync, readdirSync, openSync, fsyncSync, closeSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, writeFileSync, readdirSync, openSync, fsyncSync, closeSync, appendFileSync, readFileSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { deriveIdempotencyKey } from "../governance/governed-write.mjs";
 import { allocate } from "./seat-allocation.mjs";
 import { followUpPairs, pairFeasibility } from "./follow-up-pairs.mjs";
 import { reconcileWithCommitted } from "./human-question-population.mjs";
@@ -179,3 +180,58 @@ When everything is answered, it writes the key and says KEY WRITTEN.
 
 Then tell Claude Code: "C6 key written" or "C7 key written". The one scoring run happens only after that.
 `;
+
+/* ═══ THE SEAL, THROUGH THE GOVERNED-WRITE BOUNDARY (src/governance/governed-write.mjs executeGovernedWrite) ═══════════════
+ * The seal is a governed state change, so it is never a direct write: the boundary AUTHORISES the named actor (F04), runs the
+ * PREVALIDATION below, records ATTEMPTED, commits (the packet into S, then ONE count-only seal record), verifies by inspection and
+ * records COMMITTED. The seal record — counts, commitments and the one-way-door statement, never an identity — is the boundary's
+ * target, in its own top-level store. Its idempotency key is derived from the set's commitment: the door opens once.
+ */
+export const SEAL_RECORD_STORE = "evaluation-releases/selection-seals.jsonl";
+const PROFILE = "VALIDATED_APPEND";
+const TARGET_CLASS = "RUN_EVIDENCE";
+
+export function governedSealing({ repo, permission, audit, store, plan, planFault = null, ownerReadme, occurredAt, versions = [] }) {
+  const fingerprint = plan ? plan.commitments.set : h(`refused:${planFault?.code ?? "NO_PLAN"}:${occurredAt}`);
+  const key = deriveIdempotencyKey({ profile: PROFILE, targetClass: TARGET_CLASS, repoRelativeTarget: SEAL_RECORD_STORE, occurrenceFingerprint: fingerprint });
+  const recordPath = join(repo, SEAL_RECORD_STORE);
+  const records = () => (existsSync(recordPath) ? readFileSync(recordPath, "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l)) : []);
+  let last = null;
+  const adapter = {
+    profile: PROFILE,
+    describeTarget: () => ({ targetClass: TARGET_CLASS, repoRelativeTarget: SEAL_RECORD_STORE }),
+    inspect: (k) => {
+      const hit = records().filter((r) => r.governedWriteKey === k);
+      return hit.length === 0 ? { state: "ABSENT" } : hit.length === 1 ? { state: "COMMITTED" } : { state: "CONFLICTING", fields: "DUPLICATE_SEAL" };
+    },
+    prevalidate: () => {
+      if (planFault) return [{ code: planFault.code }];
+      if (typeof store !== "string" || !existsSync(store)) return [{ code: "SEALED_STORE_UNLOCATED" }];
+      if (readdirSync(store).length !== 0) return [{ code: "ALREADY_SEALED" }];
+      if (records().length !== 0) return [{ code: "ALREADY_SEALED" }];
+      return [];
+    },
+    commit: () => {
+      sealSelection({ store, plan, ownerReadme });
+      const c = plan.counts;
+      const record = {
+        governedWriteKey: key, occurredAt, actor: String(permission?.actorRef ?? "UNNAMED"),
+        eligible: c.eligible, tenants: c.tenants, selected: c.selected, remainder: c.remainder,
+        seatsDescending: c.seatsDescending, capacitiesDescending: c.capacitiesDescending,
+        pairs: c.pairs, matched: c.matched, repaired: c.repaired, estimatedPairs: c.estimatedPairs,
+        tenantsConsumedToCapacity: c.tenantsConsumedToCapacity,
+        setCommitment: plan.commitments.set, pairsCommitment: plan.commitments.pairs,
+        versions: versions.map((v) => ({ id: v.id, codeHash: v.codeHash, frozenAt: v.frozenAt })),
+        oneWayDoor: `SEALING IS IRREVERSIBLE: this selection is never re-drawn, and ${c.tenantsConsumedToCapacity} of ${c.tenants} tenants are consumed to their full eligible capacity — they hold ZERO unsealed eligible rows, permanently. Accepted knowingly by the owner (148d48f §5.4).`,
+      };
+      /* One seal record per key, checked against the records already present — never a second copy of the one seal. */
+      if (records().some((r) => r.governedWriteKey === key)) throw Object.assign(new Error("a seal record for this selection already exists"), { code: "SEAL_ALREADY_RECORDED" });
+      mkdirSync(dirname(recordPath), { recursive: true });
+      appendFileSync(recordPath, `${JSON.stringify(record)}\n`);
+      last = record;
+    },
+    verify: (k) => (adapter.inspect(k).state === "COMMITTED" ? [] : [{ code: "SEAL_RECORD_ABSENT" }]),
+  };
+  const action = { name: "RECORD_HELDOUT_EVALUATION", scopeType: "GLOBAL_PRODUCT", occurredAt, occurrenceFingerprint: fingerprint, evidenceRefs: [] };
+  return Object.freeze({ permission, audit, adapter, action, idempotencyKey: key, record: () => last ?? records().find((r) => r.governedWriteKey === key) ?? null });
+}

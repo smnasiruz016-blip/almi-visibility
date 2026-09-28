@@ -21,6 +21,9 @@
 import { contractSha256 } from "./acceptance.mjs";
 import { resolve, permits } from "../authority/register.mjs";
 import { ROW_CONSTRAINTS } from "../../config/fboard/row-constraints.mjs";
+import { DISCLOSED_SEALS } from "../../config/fboard/disclosed-seals.mjs";
+import { EVIDENCE_ROLE_REGISTRY } from "../../config/evidence-roles.mjs";
+import { disclosureOf } from "../heldout/disclosed-seal.mjs";
 import { CLAUSES } from "./acceptance.mjs";
 
 export const F_BOARD = "F_BOARD";
@@ -54,7 +57,7 @@ export function buildBoard(capabilities, declared = {}) {
  * With `authority` ({ records, now }), every frozen acceptance must ALSO be the CURRENT authority for its declared
  * proposition and scope, naming the very bytes the engine pinned — resolved by the register, no exemption (§6A).
  */
-export function boardErrors(board, { capabilities, acceptances = {}, authority = null, constraints = ROW_CONSTRAINTS }) {
+export function boardErrors(board, { capabilities, acceptances = {}, authority = null, constraints = ROW_CONSTRAINTS, disclosedSeals = DISCLOSED_SEALS, registry = EVIDENCE_ROLE_REGISTRY }) {
   const errs = [];
   const ids = board.map((r) => r.featureId);
   const expected = Array.from({ length: DENOMINATOR }, (_, i) => `F${String(i + 1).padStart(2, "0")}`);
@@ -94,6 +97,14 @@ export function boardErrors(board, { capabilities, acceptances = {}, authority =
     // historical row's result, and never implied by an IDENTICAL crosswalk relation.
     if (r.state === "VERIFIED-PASS" && !(r.events || []).some((e) => e.kind === "VERIFIED" && e.featureId === at && e.population === "REAL")) errs.push({ code: "PASS_WITHOUT_VERIFICATION", id: at, why: `${at} is VERIFIED-PASS with no verification recorded under ${at} over the real population` });
     if (/^BLOCKED-BY-/.test(r.state) && !(typeof r.blocker === "string" && r.blocker.trim())) errs.push({ code: "BLOCKER_UNNAMED", id: at, why: `${at} is ${r.state} and names no blocker` });
+  }
+  /* 🔴 A DISCLOSED SEAL CLOSES NOTHING (config/fboard/disclosed-seals.mjs; F10 Acceptance Amendment 3). While a row's registered
+   * sealed set is a disclosed seal — its id AND commitment still registered — the row can never be VERIFIED-PASS: every result on
+   * that seal is DISCLOSED_POPULATION_AGREEMENT, a weaker class that satisfies no clause requiring a real sealed evaluation. */
+  for (const d of disclosedSeals) {
+    const row = board.find((r) => r.featureId === d.featureId);
+    const live = (registry ?? []).some((e) => disclosureOf(e, [d]));
+    if (row && live && row.state === "VERIFIED-PASS") errs.push({ code: "VERIFIED_ON_DISCLOSED_SEAL", id: d.featureId, why: `${d.featureId} is VERIFIED-PASS while its registered sealed set is a DISCLOSED seal (${d.authority.path}); a ${d.evidenceClass} result closes nothing` });
   }
   /* 🔴 CONSTRAINTS ON FUTURE ROWS (config/fboard/row-constraints.mjs): an acceptance frozen for a constrained row must carry
    * the named precondition in one of its four clauses — or the freeze is refused. Each constraint's ruling must be CURRENT. */

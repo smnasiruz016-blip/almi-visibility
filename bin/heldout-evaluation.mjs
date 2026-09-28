@@ -35,7 +35,9 @@ import { authorise, authorisationEvent, namedActor, AUTHORISATION_REFUSED_EXIT }
 import { durableGuardSink } from "../src/governance/guard-audit.mjs";
 import { execFileSync } from "node:child_process";
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
-import { governedScoring, versionHash, SCORER_FILES } from "../src/governance/governed-scoring.mjs";
+import { governedScoring, versionHash, SCORER_FILES, RELEASE_STORE } from "../src/governance/governed-scoring.mjs";
+import { DISCLOSED_SEALS, DISCLOSED_POPULATION_AGREEMENT } from "../config/fboard/disclosed-seals.mjs";
+import { disclosureOf, releaseStoreFor, classStatement } from "../src/heldout/disclosed-seal.mjs";
 import { resolveSealedStoreRoots } from "../src/governance/sealed-store-roots.mjs";
 import { createTenantResolver } from "../src/tenancy/resolver.mjs";
 import { pinnedObservationRows, decidePartition, readTenantPartition } from "../src/discovery/search-console-partition.mjs";
@@ -67,6 +69,14 @@ const correlationId = `run:heldout-evaluation:${cmd}:${NOW}`;
 const { authorityRef, authorityHash } = guardAuthority({ now: NOW.slice(0, 10) });
 const ctx = { ...governedAuditContext({ repo: REPO, correlationId, authorityRef, authorityHash }), actor: "bin/heldout-evaluation.mjs" };
 const H = (e) => e.eventType === "EVALUATION" && e.metadata?.family === "H";
+
+/* 🔴 F10 ACCEPTANCE AMENDMENT 3 — A DISCLOSED SEAL'S CLASS TRAVELS WITH EVERY STATEMENT. The class is decided from the named set's
+ * REGISTERED id and commitment (config/fboard/disclosed-seals.mjs), stated BEFORE anything is requested or scored, and a result is
+ * stored only in the class-named release store (src/heldout/disclosed-seal.mjs). A synthetic set may be marked disclosed ONLY inside
+ * a verified test context (the synthetic fixture is refused anywhere else), so the real route can be proved without the real seal. */
+const SEALS = [...DISCLOSED_SEALS, ...(EFFECTIVE.synthetic ? EVIDENCE_ROLE_REGISTRY.filter((e) => e.disclosedSeal === true && String(e.id).startsWith("synthetic:")).map((e) => ({ featureId: "SYNTHETIC", evidenceClass: DISCLOSED_POPULATION_AGREEMENT, meaning: "a SYNTHETIC disclosed seal (verified test context only)", sets: [{ id: e.id, contentHash: e.contentHash }] })) : [])];
+const DISCLOSURE = cmd === "request" || cmd === "score" ? disclosureOf(EVIDENCE_ROLE_REGISTRY.find((e) => e.id === arg("set")), SEALS) : null;
+if (DISCLOSURE) console.log(classStatement(DISCLOSURE));
 
 if (cmd === "status") {
   const byRole = EVIDENCE_ROLE_REGISTRY.reduce((m, e) => ((m[e.role] = (m[e.role] ?? 0) + 1), m), {});
@@ -164,11 +174,12 @@ const scoring = governedScoring({
   currentMechanismHash: versionHash(REPO, C7 ? FU.MECHANISM_FILES : MECHANISM_FILES), currentScorerHash: versionHash(REPO, C7 ? FOLLOW_UP_SCORER_FILES : SCORER_FILES),
   outputsFor: C7 ? followUpOutputsFor : outputsFor,
   protocol: C7 ? C7_PROTOCOL : PROTOCOL, rule: C7 ? C7_BAR : SCORING_RULE, occurredAt: NOW, trackedFiles: () => execFileSync("git", ["-C", REPO, "ls-files"], { encoding: "utf8" }).split("\n").filter(Boolean),
-  ...(C7 ? { releaseStore: C7_RELEASE_STORE, verdictOf: (scored) => followUpVerdict(scored, { bar: C7_BAR, protocol: C7_PROTOCOL }) } : {}),
+  releaseStore: releaseStoreFor(C7 ? C7_RELEASE_STORE : RELEASE_STORE, DISCLOSURE),
+  ...(C7 ? { verdictOf: (scored) => followUpVerdict(scored, { bar: C7_BAR, protocol: C7_PROTOCOL }) } : {}),
 });
 let run;
 try { run = executeGovernedWrite({ ...scoring, action: { ...scoring.action, name: "RECORD_HELDOUT_EVALUATION" } }); } catch (e) { console.error(`🔴 SCORING RUN STOPPED — ${e.code ?? e.name}: no result was released`); process.exit(4); }
 const rel = scoring.release();
 console.log(`SCORING ${run.outcome}${run.faults.length ? ` · ${run.faults.map((f) => f.code + (f.why ? `(${f.why})` : "")).join(", ")}` : ""}`);
-if (rel) console.log(`  release ${rel.combination.slice(0, 16)}… · declared ${rel.declared} · D ${rel.denominator} · verdict ${rel.verdict.result}${rel.verdict.reason ? ` (${rel.verdict.reason})` : ""} · ${Object.entries(rel.tables).map(([c, t]) => `${c} tp${t.tp}-fp${t.fp}-fn${t.fn}-tn${t.tn}`).join(" · ")}${rel.discordantPairs !== undefined ? ` · abstentions ${rel.abstentions} · discordant ${rel.discordantPairs} · both-correct ${rel.discordantBothCorrect}` : ""}`);
+if (rel) console.log(`  ${DISCLOSURE ? `[${DISCLOSURE.evidenceClass}] ` : ""}release ${rel.combination.slice(0, 16)}… · declared ${rel.declared} · D ${rel.denominator} · verdict ${rel.verdict.result}${rel.verdict.reason ? ` (${rel.verdict.reason})` : ""} · ${Object.entries(rel.tables).map(([c, t]) => `${c} tp${t.tp}-fp${t.fp}-fn${t.fn}-tn${t.tn}`).join(" · ")}${rel.discordantPairs !== undefined ? ` · abstentions ${rel.abstentions} · discordant ${rel.discordantPairs} · both-correct ${rel.discordantBothCorrect}` : ""}`);
 process.exit(run.outcome === "COMMITTED" || run.outcome === "ALREADY_COMMITTED" ? 0 : run.outcome === "REFUSED" ? 5 : 4);

@@ -83,9 +83,6 @@ function connectorSide(resolve, resource, side) {
   return { ...side, state: "RESOLVED", reason: "CONNECTOR_AND_EVERY_REACH_RESOLVE_TO_THE_SUBJECTS_TENANT", tenantId: subject.tenantId };
 }
 
-/** Store kinds whose content spans tenants by nature: never one tenant's population when attached whole (Part E). */
-export const SHARED_STORE_KINDS = Object.freeze(["EVIDENCE_STORE"]);
-
 /** One side, resolved — never compared to anything before this returns. */
 export function resolveSide(resolve, resource) {
   if (typeof resolve !== "function") throw new TypeError("a tenant-scope decision needs the production resolver — a scope is declared, never assumed");
@@ -106,12 +103,6 @@ export function resolveSide(resolve, resource) {
   if (resource.resourceKind === "TENANT_PARTITION") { const p = requestSide(resolve, resource.resourceRef); return { ...side, state: p.state, reason: p.reason === "EXPLICIT_DECLARED_TENANT" ? "PARTITION_KEY_IS_A_DECLARED_TENANT" : p.reason, tenantId: p.tenantId }; }
   const a = resolve({ resourceKind: resource.resourceKind, resourceRef: resource.resourceRef });
   const own = { ...side, state: a?.state ?? "UNKNOWN", reason: a?.reason ?? "NO_ANSWER", tenantId: a?.state === "RESOLVED" ? a.tenantId : null };
-  /* 🔴 D-WHOLE-STORE-ATTACHMENT (28 Sep 2026, command af4e9c8 Part E). A SHARED store — one whose content spans tenants by its
-   * nature — attached WHOLE to one tenant would let every whole-store reader take other tenants' rows as that tenant's population.
-   * Such a store resolves to one tenant ONLY when its members are listed, non-empty, and every one resolves to that tenant (the
-   * member check below); attached whole, with no members or an empty list, it is AMBIGUOUS — refused. Per-tenant reading stays
-   * lawful through the partition route (COLLECTION_PARTITION, decided for a requested tenant). */
-  if (own.state === "RESOLVED" && SHARED_STORE_KINDS.includes(resource.resourceKind) && !(Array.isArray(resource.members) && resource.members.length > 0)) return { ...own, state: "AMBIGUOUS", reason: "A_SHARED_STORE_ATTACHED_WHOLE_IS_NEVER_ONE_TENANTS", tenantId: null };
   if (own.state !== "RESOLVED" || !Array.isArray(resource.members)) return own;
   /* 🔴 A CONTAINER'S MEMBERS CARRY THEIR OWN IDENTITY (a crawled page is its site's page). A member whose identity is
    * declared to ANOTHER tenant gives that item two declared scopes — the container's and its own — and an item with two

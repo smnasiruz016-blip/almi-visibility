@@ -72,6 +72,27 @@ export function appendAttachment({ fileText, record }) {
  * resolve to more than one tenant, or whose members include any that resolve to none or several, is SHARED — attaching it
  * whole to one tenant is the ruling's NOT-ALLOWED case. Proved from the members' own recorded identities, never assumed.
  */
+/**
+ * 🔴 D-WHOLE-STORE-ATTACHMENT (28 Sep 2026; F02's crawl-batch precedent, D6–D8). A store whose content can span tenants — the
+ * evidence store — is never attachable through the governed intake (PROVABLE_KINDS holds only CAPTURE_SET), so the only way it
+ * could be attached WHOLE to one tenant is a hand edit of the declaration source. This guard is that edit's check: for every
+ * whole attachment of such a store in the given declarations, the store's OWN member identities are proved by
+ * proveSharedCollection — shared ⇒ a fault naming the attachment. A store whose members are all one tenant's is NOT shared, and
+ * its attachment is lawful: the verdict is by PROOF, never by kind. `membersOf(attachment)` returns that store's members
+ * ({ memberId, identities }), or null when they cannot be read — which is itself a fault (an unproved store is not cleared).
+ */
+export const SHARED_STORE_KINDS = Object.freeze(["EVIDENCE_STORE"]);
+export function sharedStoreAttachmentFaults({ declarations, resolve, membersOf }) {
+  const faults = [];
+  for (const a of (declarations?.attachments ?? []).filter((x) => SHARED_STORE_KINDS.includes(x?.resourceKind))) {
+    const members = membersOf(a);
+    if (!Array.isArray(members) || members.length === 0) { faults.push({ code: "SHARED_STORE_MEMBERS_UNPROVED", resourceKind: a.resourceKind, resourceRef: a.resourceRef }); continue; }
+    const p = proveSharedCollection({ resolve, members });
+    if (p.shared) faults.push({ code: "SHARED_STORE_ATTACHED_WHOLE", resourceKind: a.resourceKind, resourceRef: a.resourceRef, partitions: p.partitions, arithmetic: p.arithmetic });
+  }
+  return faults;
+}
+
 export function proveSharedCollection({ resolve, members }) {
   if (!Array.isArray(members) || members.length === 0) return { shared: false, code: "NO_MEMBERS" };
   const p = partitionMembers({ members, resolve });

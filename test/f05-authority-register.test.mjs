@@ -72,7 +72,7 @@ const REAL_AUTH = { records: AUTHORITY_CORPUS, now: REAL_DAY };
  * the list is still exact, and a row moving without appearing here still fails. */
 // F07 joined on 23 September 2026 under its own frozen acceptance (config/fboard/f-board.mjs).
 const MOVED = ["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08", "F09", "F10", "F40"]; // F10 joined on 26 September 2026: IN-PROGRESS by movement 1 under its own frozen acceptance (504dbb9; test/f10-human-question-discovery.test.mjs) — no PASS. // F09 joined on 25 September 2026: IN-PROGRESS by movement 1 (test/f09-cross-client-portability.test.mjs). // F04 joined on 25 September 2026: IN-PROGRESS by movement 1 only (test/f04-roles-permissions-approvals.test.mjs). // F03 joined on 25 September 2026: VERIFIED-PASS on merged main, in two movements (test/f03-closure.test.mjs). // F02 STARTED (IN-PROGRESS) on 24 September 2026 under its own frozen acceptance (3ea6fda) — it earned no PASS. // F06 joined on 24 September 2026 under its own frozen acceptance; F01 the same day, under its own (test/f01-closure.test.mjs).
-const UNASSESSED_ROWS = 89 - MOVED.length;
+const UNASSESSED_ROWS = 90 - MOVED.length; // 89 -> 90: Specification Amendment 1, owner ruling _handoffs a3a777b: F90 appended
 /* 🔴 EVERY PASS ON THE BOARD THAT WAS ACTUALLY EARNED — counted, not assumed.
  * This read `DECLARED.F05.state === "VERIFIED-PASS" ? 1 : 0`, which silently assumed F05 was the only row that
  * could ever pass. F08 passed on 22 September 2026 and the constant was simply wrong, not the board. Counting it
@@ -437,16 +437,32 @@ test("P21 — the generic F05 production code carries no product or client name 
   assert.ok(PRODUCT.test("// the AlmiVisibility ruling") && PRODUCT.test("OET"), "control: the pattern fires on a planted name");
 });
 
-test("P22 — F01–F89 each exist once, in the specification's order, and the denominator is 89", () => {
-  assert.equal(DENOMINATOR, 89);
-  assert.deepEqual(CAPABILITIES.map((c) => c.id), Array.from({ length: 89 }, (_, i) => `F${String(i + 1).padStart(2, "0")}`));
+test("P22 — F01–F90 each exist once, in the specification's order, and the denominator is 90 (Specification Amendment 1)", () => {
+  assert.equal(DENOMINATOR, 90);
+  assert.deepEqual(CAPABILITIES.map((c) => c.id), Array.from({ length: 90 }, (_, i) => `F${String(i + 1).padStart(2, "0")}`));
   const s = progress(board());
-  assert.equal(s.total, 89);
-  assert.equal(Object.values(s.split).reduce((a, b) => a + b, 0), 89);
+  assert.equal(s.total, 90);
+  assert.equal(Object.values(s.split).reduce((a, b) => a + b, 0), 90);
   assert.deepEqual(boardErrors(board(), { capabilities: CAPABILITIES, acceptances: ACCEPTANCES }), []);
-  assert.ok(boardErrors(board().slice(0, 88), { capabilities: CAPABILITIES, acceptances: ACCEPTANCES }).some((e) => e.code === "DENOMINATOR"));
-  const dup = board(); dup[88] = { ...dup[0] };
+  assert.ok(boardErrors(board().slice(0, DENOMINATOR - 1), { capabilities: CAPABILITIES, acceptances: ACCEPTANCES }).some((e) => e.code === "DENOMINATOR"));
+  const dup = board(); dup[DENOMINATOR - 1] = { ...dup[0] };
   assert.ok(boardErrors(dup, { capabilities: CAPABILITIES, acceptances: ACCEPTANCES }).some((e) => e.code === "DENOMINATOR"));
+});
+
+test("P22b — F90 is the owner ruling's row, byte for byte, starts UNASSESSED; F00 and F91 do not exist (Specification Amendment 1)", () => {
+  /* The ruling's fenced line (_handoffs a3a777b), carried here as TEXT and hashed here — CI has no _handoffs checkout,
+   * and a pin compared to itself proves nothing, so the expected hash is re-derived, never copied from capabilities.mjs. */
+  const RULING_F90 = "F90 | Assurance | Falsifiability of findings | Every finding presented as actionable carries a structured refutation — what observation, from a method the product actually holds, would overturn it, and the threshold at which it is void — proved by a census over the real findings.";
+  const f90 = CAPABILITIES.find((c) => c.id === "F90");
+  assert.ok(f90, "F90 exists");
+  assert.equal(f90.lineSha256, createHash("sha256").update(RULING_F90).digest("hex"));
+  assert.equal(f90.name, "Falsifiability of findings");
+  const row = board().find((r) => r.featureId === "F90");
+  assert.equal(row.state, "UNASSESSED"); assert.deepEqual(row.events, []);
+  for (const absent of ["F00", "F91"]) assert.equal(CAPABILITIES.some((c) => c.id === absent), false, `${absent} must not exist`);
+  /* negative control: renaming the 90th row F91 is a board error, so the check above can fail */
+  const renamed = board(); renamed[DENOMINATOR - 1] = { ...renamed[DENOMINATOR - 1], featureId: "F91" };
+  assert.notDeepEqual(boardErrors(renamed, { capabilities: CAPABILITIES, acceptances: ACCEPTANCES }), []);
 });
 
 test("P23 — historical 61/38 results remain reproducible, and do not affect F-progress", () => {
@@ -498,9 +514,9 @@ test("P24 — the committed F05 ruling hash is the acceptance used by code and t
   const cli = node("bin/fboard-status.mjs", "--check");
   assert.equal(cli.status, 0, cli.stdout);
   const split = progress(board()).split;
-  const line = `F-board: 89 rows · ${Object.entries(split).filter(([, v]) => v).map(([k, v]) => `${k} ${v}`).join(" · ")} · sum 89`;
+  const line = `F-board: 90 rows · ${Object.entries(split).filter(([, v]) => v).map(([k, v]) => `${k} ${v}`).join(" · ")} · sum 90`;
   assert.ok(cli.stdout.includes(line), `${line}\n${cli.stdout}`);
-  assert.ok(cli.stdout.includes(`F-progress: ${EARNED}/89`), cli.stdout);
+  assert.ok(cli.stdout.includes(`F-progress: ${EARNED}/90`), cli.stdout);
 });
 
 test("P25 — a bare state string without board identity is REFUSED", () => {

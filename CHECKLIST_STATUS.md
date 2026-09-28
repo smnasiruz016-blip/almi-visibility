@@ -1,6 +1,6 @@
 # ALMIVISIBILITY — KEY FEATURE CHECKLIST · STATUS
 
-> 🔴 **HISTORICAL — SUPERSEDED FOR ACTIVE PRODUCT ACCOUNTING — DO NOT APPLY AS F-ROW AUTHORITY** (22 September 2026, the owner’s F05 command §0.4). Active completion is measured against F01–F89 only (`src/fboard`, `config/fboard`). Nothing below is deleted, renumbered or rewritten; it remains available for audit, provenance and evidence discovery; it transfers no state to an F-row and grants no F-row acceptance authority.
+> 🔴 **HISTORICAL — SUPERSEDED FOR ACTIVE PRODUCT ACCOUNTING — DO NOT APPLY AS F-ROW AUTHORITY** (22 September 2026, the owner’s F05 command §0.4). Active completion is measured against F01–F90 only (`src/fboard`, `config/fboard`). Nothing below is deleted, renumbered or rewritten; it remains available for audit, provenance and evidence discovery; it transfers no state to an F-row and grants no F-row acceptance authority.
 
 > 🔴 LABELS SANITISED 2026-09-22 (same rulings): 17 occurrence(s) of expected labels from the retired reference replaced by [REDACTED — RETIRED_CONTAMINATED EXPECTED LABEL]. Pre-label-sanitisation blob b46749560b7f6c1da466f28740919da96939e0f1; the originals remain ONLY in Git history.
 

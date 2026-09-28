@@ -1,10 +1,10 @@
 /**
  * 🔴 GENERATED — DO NOT EDIT BY HAND. `node bin/fboard-derive.mjs --extract=<extract> --confirm` rebuilds it.
  *
- * The active F-board's capabilities, F01–F89, derived from the committed specification extract named below. Each
+ * The active F-board's capabilities, F01–F90, derived from the committed specification extract named below. Each
  * row carries the sha256 of its exact extract line, so a hand edit is visible and the list re-derives byte for byte.
  */
-export const EXTRACT_PROVENANCE = Object.freeze({"repo":"_handoffs","path":"AlmiVisibility_Standalone_Product_Feature_Specification_v1.extract.txt","commit":"f68861551136bb64a9551311f6fe0474d1833f2b","sha256":"6a8c0ba2dd13213b853cf0949387b8fc09372194552859f7d9d699c624f22c47"});
+export const EXTRACT_PROVENANCE = Object.freeze({"repo":"_handoffs","path":"AlmiVisibility_Standalone_Product_Feature_Specification_v1.amended_1.extract.txt","commit":"3738b251f051e5d1cafa6f02efb91cede3d0e309","sha256":"56e2575a70a617afafc31cef4275f64430d56dec04d827d535af728726a5af45"});
 export const CAPABILITIES = Object.freeze([
   Object.freeze({"id":"F01","domain":"Foundation","name":"Product declaration and intake","lineSha256":"1748b770c0bddb60dcd68ad09d2a95769928b5fe2a7eccf4240d3cfbaf36c06f"}),
   Object.freeze({"id":"F02","domain":"Foundation","name":"Tenant and evidence isolation","lineSha256":"9d3bc31f9c5ed63a19c207a7e5c99d339d0becb0ef31706e5fc82368f4173155"}),
@@ -95,4 +95,5 @@ export const CAPABILITIES = Object.freeze([
   Object.freeze({"id":"F87","domain":"Assurance","name":"Operational monitoring alerts and recovery","lineSha256":"499094137be90e7ddfde1e4a5bbf4b8f7428ce008c11717aedc7814730531a82"}),
   Object.freeze({"id":"F88","domain":"Assurance","name":"Desktop mobile and accessibility of owner workflows","lineSha256":"7dd81393cf9c9c493249a9413f73b31f89a9528329672a0daba3e7832528bad4"}),
   Object.freeze({"id":"F89","domain":"Assurance","name":"Final independent audit and done declaration","lineSha256":"535e1d46041e87ccb8d533639858ece3f903853583198f9f4e133b05fc95c75e"}),
+  Object.freeze({"id":"F90","domain":"Assurance","name":"Falsifiability of findings","lineSha256":"38a78a7e03509bcedfba9e28386e0273057c1ff83b041e9bd685b528ffb9a38c"}),
 ]);

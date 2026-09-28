@@ -117,7 +117,7 @@ export function unlinkedWithinCrawledSet(pages) {
  */
 export function summariseRun({
   run_id, started_at, finished_at, seedSource,
-  urlsRequested, urlsFetched, requestsIssued, perHostRequests, robotsRequestsIssued = null,
+  urlsRequested, urlsFetched, requestsIssued, perHostRequests, robotsRequestsIssued = null, truncations = null, refusals = null,
   capReached, maxUrlsPerRun, maxRequestsPerHost, maxResponseBytes,
   capacity = null, maxDepth = null, requestIntervalMs = null, requestIntervalScope = null, requestTimeoutMs = null,
   robotsUnknownHosts = [], cost, dryRun = false, seedPoolSize = null,
@@ -164,6 +164,9 @@ export function summariseRun({
     record_type: "crawl_run",
     run_id, started_at, finished_at, seedSource,
     urlsRequested, urlsFetched, requestsIssued, robotsRequestsIssued,
+    // F19 (28 Sep 2026): the frozen record clause names five counts — seeds, requests, pages, TRUNCATIONS, REFUSALS. The
+    // first live run carried three; these two were derivable only from the observations, which is not the record.
+    truncations, refusals,
     perHostRequests: Object.freeze({ ...perHostRequests }),
     capReached,
     // 🔴 LAW-BOUND-1 — the bounds travel with the result. `seedPoolSize` is one

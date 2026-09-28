@@ -161,7 +161,7 @@ export async function crawl({
       plan,
       run: summariseRun({
         run_id, started_at, finished_at: now().toISOString(), seedSource,
-        urlsRequested: plan.urlsQueued, urlsFetched: 0, requestsIssued: 0, robotsRequestsIssued: 0, perHostRequests: {},
+        urlsRequested: plan.urlsQueued, urlsFetched: 0, requestsIssued: 0, robotsRequestsIssued: 0, truncations: 0, refusals: 0, perHostRequests: {},
         capReached: plan.capReached,
         ...declaredBounds,
         robotsUnknownHosts: [], seedPoolSize,
@@ -230,11 +230,16 @@ export async function crawl({
       run_id, started_at, finished_at: now().toISOString(), seedSource,
       urlsRequested: plan.urlsQueued, urlsFetched, requestsIssued: fetcher.requestsIssued(),
       robotsRequestsIssued: robots.requestsIssued(),
+      /* counted from what this run observed: a truncated body, and a page NOT fetched because robots refused it or could not
+       * be read (a refusal is a cost of the run, recorded as such — never routed around) */
+      truncations: observations.filter((o) => o.value.truncated).length,
+      refusals: observations.filter((o) => o.value.skipped).length,
       perHostRequests,
       capReached: plan.capReached,
       ...declaredBounds,
       robotsUnknownHosts: [...robotsUnknownHosts], seedPoolSize,
-      cost: crawlCost(fetcher.requestsIssued()),
+      /* every request this run issued — robots.txt included — is a call */
+      cost: crawlCost(fetcher.requestsIssued() + robots.requestsIssued()),
     }),
     observations, edges, bodies,
     dryRun: false,

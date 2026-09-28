@@ -165,13 +165,23 @@ export function entryFromCrawlRun(run, { correction = null, actionsTiming = null
         ", but the account's plan, its per-minute price and its free allowance are NOT (U-COST-1) — so no minute is converted to money, and a reported 0 billable ms is not read as $0. " +
         `(2) our own hosting: each of ${run.requestsIssued} requests may invoke a function or an ISR regeneration on our own account, and that has never been measured (U-COST-5)`,
     },
-    providerCalls: {
-      state: "MEASURED",
-      total: run.requestsIssued,
-      perProvider: { "self-operated-crawler": run.requestsIssued },
-      perHost: run.perHostRequests,
-      note: "requestsIssued as recorded by the run; the record does not state whether robots.txt fetches are included",
-    },
+    /* A record that states its robots.txt requests (F19, 28 Sep 2026) is counted whole; an older record that does not state
+     * them keeps its page count and says so — no robots figure is invented for it. */
+    providerCalls: Number.isInteger(run.robotsRequestsIssued)
+      ? {
+        state: "MEASURED",
+        total: run.requestsIssued + run.robotsRequestsIssued,
+        perProvider: { "self-operated-crawler": run.requestsIssued + run.robotsRequestsIssued },
+        perHost: run.perHostRequests,
+        note: `${run.requestsIssued} page request(s) + ${run.robotsRequestsIssued} robots.txt request(s), both as recorded by the run`,
+      }
+      : {
+        state: "MEASURED",
+        total: run.requestsIssued,
+        perProvider: { "self-operated-crawler": run.requestsIssued },
+        perHost: run.perHostRequests,
+        note: "requestsIssued as recorded by the run; the record does not state whether robots.txt fetches are included",
+      },
     budget: {
       kind: "crawl",
       used: {
@@ -180,7 +190,11 @@ export function entryFromCrawlRun(run, { correction = null, actionsTiming = null
         requestsIssued: run.requestsIssued,
         ...(correction?.evidence?.disallowedByRobots !== undefined ? { disallowedByRobots: correction.evidence.disallowedByRobots } : {}),
       },
-      bounds: { maxUrlsPerRun: run.maxUrlsPerRun, maxRequestsPerHost: run.maxRequestsPerHost, maxResponseBytes: run.maxResponseBytes, seedPoolSize: run.seedPoolSize },
+      bounds: {
+        maxUrlsPerRun: run.maxUrlsPerRun, maxRequestsPerHost: run.maxRequestsPerHost, maxResponseBytes: run.maxResponseBytes, seedPoolSize: run.seedPoolSize,
+        /* the bounds F19 made the record declare — carried only when the record declares them */
+        ...Object.fromEntries(["capacity", "maxDepth", "requestIntervalMs", "requestTimeoutMs"].filter((k) => run[k] !== undefined && run[k] !== null).map((k) => [k, run[k]])),
+      },
       capReached: run.capReached,
     },
     founderTime: {

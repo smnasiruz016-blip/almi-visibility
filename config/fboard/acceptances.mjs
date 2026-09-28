@@ -169,6 +169,21 @@ export const F77_AMENDMENT_1 = Object.freeze({
   amends: Object.freeze({ ruling: F77_ORIGINAL.ruling, contractSha256: F77_ORIGINAL.contractSha256 }),
 });
 
+/* 🔴 F34 · FROZEN 28 Sep 2026 (_handoffs 53f74b4, RR-83 §2), committed ALONE before any F34 code was read. Pinned from the committed
+ * blob by parseContract (derivation re-run with a firing control inside the contract: "unreadable" → "readable"). */
+export const F34_ORIGINAL = Object.freeze({
+  featureId: "F34",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F34_ACCEPTANCE_2026-09-28.md", commit: "53f74b435029204c79561c134f2613ffbaffc00c", sha256: "7416e6fc41ffbe3226a1a459d685f8659d2b34fcb4b201008e5320f41e55bcc3" }),
+  authority: Object.freeze({ propositionId: "F34_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F34"]) }),
+  frozenOn: "2026-09-28",
+  feature: "F34 · No blind regeneration",
+  input: "Every code path in the engine's real tree that can propose, draft, construct, write, replace or remove a page, a page draft or a proposed URL for a declared subject; driven with research outputs (questions, queries, search-language phrases, clusters or topics) for a tenant's declared subject, together with that same tenant's existing-page population, where some research outputs are served by an existing page — including under different wording — some are not, some are uncertain, and the existing-page population is sometimes missing or unreadable.",
+  expected: "[C1 · EXISTING-PAGE CHECK FIRST] Before any page-producing path acts on a research output, it consults the SAME tenant's existing-page population for that intent. A missing, unreadable or unknown existing-page population refuses the action; it is never treated as empty. Another tenant's pages are never consulted and never decide the outcome.\n[C2 · NO RECREATION] A research output whose intent an existing page already serves never yields a new page, a new draft or a new URL for that intent. The outcome names the existing page and is one of KEEP, IMPROVE, ADD SECTION, MERGE or MONITOR — never CREATE. A differently worded output with the same intent is treated the same way. When whether an existing page serves the intent is uncertain, the outcome is MONITOR, never CREATE.\n[C3 · NO OVERWRITE] Rediscovery never replaces, regenerates from scratch, removes or silently re-identifies an existing page. A change to an existing page is only a targeted IMPROVE or ADD SECTION proposal, while the existing page stays unchanged until the owner approves. MERGE and NOINDEX require owner approval. Nothing is deleted automatically.\n[C4 · UNKNOWN QUALITY IS PROTECTED] An existing page is protected unless a recorded measurement names a defect in it. Unmeasured, unknown or unreadable quality never licenses recreating or overwriting it. A page with a recorded defect is repaired through IMPROVE, ADD SECTION or MERGE, not regenerated because its topic was rediscovered.\n[C5 · CENSUS] Every page-producing path in the real tree is enumerated. Each is either routed through C1–C4 or refused before it acts. The population and the bound are printed beside the result. An unclassified path fails the census.\n[C6 · RECORDED] Every decision taken on a rediscovered intent — the outcome, the existing page it names and the reason — and every refusal is recorded through the audit trail exactly once.",
+  failure: "[C1] A page-producing path acts without consulting the existing-page population; a missing, unreadable or unknown population is treated as empty or passes; or another tenant's pages are consulted or decide the outcome.\n[C2] A research output served by an existing page — in the same or different wording — yields a new page, a new draft, a new URL or a CREATE; the outcome does not name the existing page; or an uncertain match yields CREATE.\n[C3] Rediscovery replaces, regenerates, removes or re-identifies an existing page; an existing page is changed before owner approval; MERGE or NOINDEX proceeds without owner approval; or anything is deleted automatically.\n[C4] Unmeasured, unknown or unreadable quality is treated as a defect that licenses recreation or overwrite; or a page with a recorded defect is regenerated instead of repaired.\n[C5] A page-producing path is missing from the census, unclassified, or classified without its routing or refusal; or the census prints a figure without its population and bound.\n[C6] A decision or refusal goes unrecorded, is recorded twice, or is recorded without naming the existing page and the reason.\nFor any clause, it also fails when:\n- it is proved only on an empty population;\n- it is proved only by exact-string matching where different wording is required;\n- it is proved only by a control that cannot fire;\n- its test writes to the production audit trail.",
+  evidence: "- For each clause:",
+  contractSha256: "de94eb8b3946e09ab501a0efe70b6c981a7c2cb287803a25c3fe17ac9b799130",
+});
+
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -328,5 +343,6 @@ export const ACCEPTANCES = Object.freeze({
     contractSha256: "fe38acfe8d3fa9faaf49ebe6643324a35e3e1156e9a479a25a4dd7ca421f244b",
     amends: Object.freeze({ ruling: F10_AMENDMENT_2.ruling, contractSha256: F10_AMENDMENT_2.contractSha256 }),
   }),
+  F34: F34_ORIGINAL,
   F77: F77_AMENDMENT_1,
 });

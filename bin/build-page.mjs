@@ -35,6 +35,10 @@ import { selectCandidates, constructCandidates, ACCEPTED, NOT_TESTED } from "../
 import { productFromArgvOrExit, productIdOrExit } from "../src/product-cli.mjs";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { createTenantResolver } from "../src/tenancy/resolver.mjs";
+import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
+import { readExistingPagePopulation } from "../src/page/existing-page-population.mjs";
+import { existingPageDecisionEvent } from "../src/page/existing-page-first.mjs";
 
 /**
  * 🔴 THE ONE AUTHORISED EXIT — EVERY EXIT FROM THIS MODULE DRAINS FIRST.
@@ -79,7 +83,8 @@ const USAGE = "node bin/build-page.mjs --product=<id> (--slug=<slug> | --all-slu
 /* 🔴 F03 — the subject's data root is decided (RESOURCES.subject) BEFORE its descriptor or any of its files is read. */
 const PRODUCT_ID = productIdOrExit(process.argv, { usage: USAGE });
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/build-page.mjs", governed: true, resources: [RESOURCES.subject(PRODUCT_ID)] });
+/* F34 — the existing-page check reads this tenant's partition of the stored observation batch, declared here like every read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/build-page.mjs", governed: true, resources: [RESOURCES.subject(PRODUCT_ID), RESOURCES.collectionPartition("CRAWL_BATCH", BATCH_ID)] });
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: USAGE, scope: SCOPE });
 
 const argv = process.argv.slice(2);
@@ -110,7 +115,18 @@ if (requested.length === 0) {
   exitAfterDrain(2);
 }
 
-const results = constructCandidates({ pageSpecs: PRODUCT.pageSpecs, variants: PRODUCT.variants, records, requested });
+/* 🔴 F34 — THE SAME TENANT'S EXISTING PAGES, BEFORE ANY CANDIDATE IS JUDGED. An unreadable population is handed on as null, so
+ * every candidate is REFUSED rather than built as though the site were empty. */
+const existing = readExistingPagePopulation({ scope: SCOPE, resolve: createTenantResolver() });
+const ep = existing.population;
+console.log(`existing pages        ${ep ? `${ep.pages.length} of this tenant (coverage ${ep.coverageState}) · bound: one stored observation batch, this tenant's partition` : `UNAVAILABLE (${existing.fault}) — every candidate is refused`}`);
+
+const results = constructCandidates({ pageSpecs: PRODUCT.pageSpecs, variants: PRODUCT.variants, records, requested, tenantId: SCOPE.tenantId, existingPages: ep });
+/* C6 — one recorded decision per candidate the check stopped, through this run's own guard sink. */
+for (const c of results) {
+  const ev = existingPageDecisionEvent(c.parts.existingPage.decision, { entry: "bin/build-page.mjs" });
+  if (ev) SCOPE.recordDecision(ev);
+}
 
 for (const c of results) {
   console.log(`\n${c.verdict === ACCEPTED ? "✅" : "🔴"} ${c.slug} — ${c.verdict}`);
@@ -118,6 +134,10 @@ for (const c of results) {
   console.log(`  template family: ${c.family.rendered} of ${c.family.declared} declared spec(s) rendered · shell ${c.family.shellSource} (${c.family.shellPages} page(s))`);
   if (c.renderedWords !== null) console.log(`  rendered words ${c.renderedWords}`);
   for (const [part, p] of Object.entries(c.parts)) {
+    if (part === "existingPage") {
+      console.log(`  ${part.padEnd(12)} ${p.outcome} — ${p.considered ?? p.value} existing page(s) considered, ${p.matched} naming this intent, coverage ${p.coverageState ?? "NONE"}${p.decision.mayProduce ? "" : ` — ${p.decision.reason}`}`);
+      continue;
+    }
     const measured = p.value === undefined ? "" : ` ${p.value}${p.threshold === undefined ? "" : ` (bar ${p.threshold})`}`;
     console.log(`  ${part.padEnd(12)} ${p.state}${measured}${p.reason ? ` — ${p.reason}` : ""}`);
   }

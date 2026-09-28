@@ -97,8 +97,12 @@ function family({
   return { pageSpecs, records };
 }
 
+/* F34: the synthetic family's tenant is DECLARED to have no existing page (a COMPLETE, empty population), so these tests judge
+ * the adaptive rules alone; the existing-page check itself is proved in test/f34-no-blind-regeneration.test.mjs. */
+const FIXTURE_TENANT = "tenant:gate-a-fixture";
+const NO_EXISTING_PAGE = Object.freeze({ tenantId: FIXTURE_TENANT, coverageState: "COMPLETE", pages: [] });
 const judge = ({ pageSpecs, records }, slug = "alpha") =>
-  constructCandidates({ pageSpecs, variants: VARIANTS, records, requested: [slug], now: NOW })[0];
+  constructCandidates({ pageSpecs, variants: VARIANTS, records, requested: [slug], tenantId: FIXTURE_TENANT, existingPages: NO_EXISTING_PAGE, now: NOW })[0];
 
 test("🔴 the adaptive rules speak the CONSTRUCTION PATH's state vocabulary — they drifted once", () => {
   /* An invented NOT_TESTED once failed to match "BLOCKED / NOT TESTED", and a rule-B refusal would

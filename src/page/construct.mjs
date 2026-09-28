@@ -22,6 +22,10 @@
  * ACCEPTED requires all four to PASS. FAIL and BLOCKED / NOT TESTED both refuse: a part that could not be
  * exercised is never a pass.
  *
+ * 🔴 F34 adds a fifth, ahead of every other in meaning though not in order: the existing-page check
+ * (./existing-page-first.mjs). A candidate whose intent an existing page of the same tenant serves, or may serve,
+ * is never ACCEPTED, however well it clears Gate A.
+ *
  * ⚠️ DECLARED: unlike runGateA, all four parts are measured without stopping at the first failure, so the
  * DATA GAP list is complete. runGateA stops early (D2-A) because its population can be a whole estate;
  * here the population is one product's declared specs and there is no generate-all.
@@ -53,6 +57,7 @@ import { MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../gate-a/run.mjs";
 import { judgeWhy } from "../gate-a/why-this-url.mjs";
 import { toGateAFact } from "../facts/registry.mjs";
 import { RENDERABLE_STATUSES } from "../facts/schema.mjs";
+import { existingPageFirst, EXISTING_PAGE_OUTCOMES } from "./existing-page-first.mjs";
 
 export const PASS = "PASS";
 export const FAIL = "FAIL";
@@ -96,9 +101,15 @@ export function selectCandidates(pageSpecs, { slug = null, allSlugs = false } = 
  * @param {string[]} input.variants                 the product's declared variants
  * @param {object[]} input.records                  that product's registry
  * @param {string[]} input.requested                slugs to judge (from selectCandidates)
+ * @param {string|null} input.tenantId              the run's DECIDED tenant
+ * @param {object|null} input.existingPages         that tenant's existing-page population (src/page/existing-page-population.mjs)
  * @param {Date}     [input.now]
+ *
+ * 🔴 F34 (_handoffs 53f74b4) — THE EXISTING-PAGE CHECK IS A PART, AND ACCEPTED NEEDS IT TO PASS. There is no default for
+ * `existingPages`: a caller that does not hand one in gets REFUSED for every candidate, never "no existing page". Only
+ * NO_EXISTING_PAGE passes; MONITOR and IMPROVE name the existing page(s) and produce nothing.
  */
-export function constructCandidates({ pageSpecs, variants = [], records = [], requested = [], now = new Date() }) {
+export function constructCandidates({ pageSpecs, variants = [], records = [], requested = [], tenantId = null, existingPages = null, now = new Date() }) {
   const byId = new Map(records.map((r) => [r.id, r]));
   const family = Object.entries(pageSpecs ?? {}).map(([slug, spec]) => {
     try {
@@ -203,6 +214,20 @@ export function constructCandidates({ pageSpecs, variants = [], records = [], re
 
     // ── part 4 · WHY_THIS_URL_DESERVES_TO_EXIST ──
     parts.whyThisUrl = judgeWhy(slug, me.spec, siblings.map((s) => ({ slug: s.slug, spec: s.spec })), variants);
+
+    // ── part 5 · F34 · the existing-page check, BEFORE anything is produced ──
+    const existing = existingPageFirst({ candidate: { slug, intent: me.spec?.variant }, tenantId, population: existingPages });
+    parts.existingPage = {
+      state: existing.mayProduce ? PASS : existing.outcome === EXISTING_PAGE_OUTCOMES.REFUSED ? NOT_TESTED : FAIL,
+      kind: existing.mayProduce ? null : "REJECT",
+      outcome: existing.outcome,
+      value: existing.considered,
+      matched: existing.matched,
+      coverageState: existing.coverageState,
+      existingPages: existing.existingPages,
+      reason: existing.mayProduce ? null : `${existing.outcome} — ${existing.reason}`,
+      decision: existing,
+    };
 
     /* 🔴 THE COPY CHECK NOW ACCOUNTS FOR EVERY VALUE IT READS, AND ITS THIRD STATE IS NOT A REJECT.
      *

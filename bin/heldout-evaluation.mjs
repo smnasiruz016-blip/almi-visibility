@@ -38,6 +38,9 @@ import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedScoring, versionHash, SCORER_FILES, RELEASE_STORE } from "../src/governance/governed-scoring.mjs";
 import { DISCLOSED_SEALS, DISCLOSED_POPULATION_AGREEMENT } from "../config/fboard/disclosed-seals.mjs";
 import { disclosureOf, releaseStoreFor, classStatement } from "../src/heldout/disclosed-seal.mjs";
+import { measureKey, KeyRegistrationRefused } from "../src/heldout/key-registration.mjs";
+import { createWitness, gitDirWitnessLocator, linesOf } from "../src/audit-trail/witness.mjs";
+import { readFileSync } from "node:fs";
 import { resolveSealedStoreRoots } from "../src/governance/sealed-store-roots.mjs";
 import { createTenantResolver } from "../src/tenancy/resolver.mjs";
 import { pinnedObservationRows, decidePartition, readTenantPartition } from "../src/discovery/search-console-partition.mjs";
@@ -113,6 +116,31 @@ if (cmd === "freeze") {
   const f = freezeMechanism({ audit: ctx, mechanismId: arg("mechanism-id"), mechanismHash: arg("mechanism-hash"), frozenAt: NOW });
   console.log(`FROZEN ${f.mechanismId} ${f.mechanismHash.slice(0, 12)}… as ${f.eventId}`);
   process.exit(0);
+}
+
+/* 🔴 PART D1 · THE KEY PREFLIGHT RUNS BEFORE THE GRANT (src/heldout/key-registration.mjs). An unregistered, changed, incomplete,
+ * inconsistent or wider-than-its-set key is REFUSED here — recorded, before any grant is requested — so it can never reach a claim or
+ * the once-only run, and never turns the set's FIRST_ACCESS into a re-run. Its read is a durable ACCESS, witness-checked EQUAL before
+ * any key byte is read. A confined (test-context) store has no witness, so there the preflight is NOT RUN and says so: the production
+ * route always runs it, and its guards are proved against a real store and a real witness in test/f10-key-registration.test.mjs. */
+if (cmd === "score" && arg("key-set")) {
+  if (ctx.synthetic) console.log("KEY PREFLIGHT NOT RUN — a confined test-context store has no witness (guard G1 needs one); the production route always runs it");
+  else {
+    const keyEntry = EVIDENCE_ROLE_REGISTRY.find((e) => e.id === arg("key-set"));
+    const proto = (arg("route") ?? "classification") === "follow-up" ? C7_PROTOCOL : PROTOCOL;
+    try {
+      const r = measureKey({
+        audit: ctx, witness: createWitness({ locate: gitDirWitnessLocator(REPO) }), trailLines: () => linesOf(readFileSync(ctx.store.eventsPath, "utf8")),
+        registry: EVIDENCE_ROLE_REGISTRY, stores: resolveSealedStoreRoots({ declared: EFFECTIVE.declared }), mode: "VERIFY",
+        spec: { keyId: arg("key-set"), root: keyEntry?.resource?.root ?? null, prefix: keyEntry?.resource?.pathPrefixes?.[0] ?? null, linkedSetId: keyEntry?.linkedSet ?? arg("set"), classes: proto.classes, exclusions: proto.exclusions },
+      });
+      console.log(`KEY PREFLIGHT PASSED · rows ${r.rows}`);
+    } catch (e) {
+      if (!(e instanceof KeyRegistrationRefused)) throw e;
+      console.error(`🔴 KEY PREFLIGHT REFUSED — ${e.code}: no grant was requested and no run was claimed`);
+      process.exit(5);
+    }
+  }
 }
 
 const g = requestHeldOutAccess({

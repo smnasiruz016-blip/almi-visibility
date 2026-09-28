@@ -1,0 +1,95 @@
+F19 SABOTAGE EVIDENCE — one defect per limb of the frozen acceptance
+
+Engine tree: ddadc56a2aa060f881bf9e524fb66af92bf2fa66. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
+runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
+requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
+No sabotage aims at the production audit trail; every firing case writes to a stand-in or a confined store.
+
+RESULTS
+F19-S1   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the page cap is not enforced in offer()
+         target src/crawl/frontier.mjs · named test "F19 · B1 ·…" in test/f19-crawler-bounds.test.mjs
+         sha256 before d30ae777a95a8f57af60c538ed6cce42fb22653c09792cdaebb5ec8acf0dd20e · after d30ae777a95a8f57af60c538ed6cce42fb22653c09792cdaebb5ec8acf0dd20e
+         failing tests: F19 · B1 · PAGES: capacity 3 over 5 seeds on TWO hosts fetches exactly 3 pages, and the record declares capacity 3
+         verdict: RED, named test, intended reason
+F19-S2   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the per-host cap is not enforced
+         target src/crawl/frontier.mjs · named test "F19 · B2 ·…" in test/f19-crawler-bounds.test.mjs
+         sha256 before d30ae777a95a8f57af60c538ed6cce42fb22653c09792cdaebb5ec8acf0dd20e · after d30ae777a95a8f57af60c538ed6cce42fb22653c09792cdaebb5ec8acf0dd20e
+         failing tests: F19 · B2 · PER HOST: maxPerHost 2 over 5 seeds on one host fetches exactly 2, and the record declares 2
+         verdict: RED, named test, intended reason
+F19-S3   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a found link is offered to the frontier (depth 1)
+         target src/crawl/crawler.mjs · named test "F19 · B3 ·…" in test/f19-crawler-bounds.test.mjs
+         sha256 before 804dd1c6e3aa7d7404d05c9fe2821dc06bba1cead4b9b0ead93b29ef2abd899f · after 804dd1c6e3aa7d7404d05c9fe2821dc06bba1cead4b9b0ead93b29ef2abd899f
+         failing tests: F19 · B3 · DEPTH: at the declared depth 0, a seed's links are recorded as edges and never fetched
+         verdict: RED, named test, intended reason
+F19-S4   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the size ceiling is not applied to a streamed body
+         target src/crawl/fetcher.mjs · named test "F19 · B4 ·…" in test/f19-crawler-bounds.test.mjs
+         sha256 before 63b29b6d228e629ca0dc03eab216587244bb354c2893ab819172a132d6d128f3 · after 63b29b6d228e629ca0dc03eab216587244bb354c2893ab819172a132d6d128f3
+         failing tests: F19 · B4 · RESPONSE SIZE: at a declared 1000-byte cap, 1001 bytes are truncated to 1000 and marked; 999 are whole
+         verdict: RED, named test, intended reason
+F19-S5   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the pacer does not wait between page requests
+         target src/crawl/fetcher.mjs · named test "F19 · B5 ·…" in test/f19-crawler-bounds.test.mjs
+         sha256 before 63b29b6d228e629ca0dc03eab216587244bb354c2893ab819172a132d6d128f3 · after 63b29b6d228e629ca0dc03eab216587244bb354c2893ab819172a132d6d128f3
+         failing tests: F19 · B5 · RATE: every request to the host, robots.txt included, is at least the declared interval after the last
+         verdict: RED, named test, intended reason
+F19-S6   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — robots.txt is fetched outside the pacer (the defect the measurement found)
+         target src/crawl/robots.mjs · named test "F19 · B5 ·…" in test/f19-crawler-bounds.test.mjs
+         sha256 before c7887f9261ba17dce9534472cba154600fd29a3dd6d48458b9b071b86b14307c · after c7887f9261ba17dce9534472cba154600fd29a3dd6d48458b9b071b86b14307c
+         failing tests: F19 · B5 · RATE: every request to the host, robots.txt included, is at least the declared interval after the last
+         verdict: RED, named test, intended reason
+F19-S7   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the per-request abort timer does not abort
+         target src/crawl/fetcher.mjs · named test "F19 · B6 ·…" in test/f19-crawler-bounds.test.mjs
+         sha256 before 63b29b6d228e629ca0dc03eab216587244bb354c2893ab819172a132d6d128f3 · after 63b29b6d228e629ca0dc03eab216587244bb354c2893ab819172a132d6d128f3
+         failing tests: F19 · B6 · TIMEOUT: a page slower than the declared timeout is aborted (one retry), recorded as timeout
+         verdict: RED, named test, intended reason
+F19-S8   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — robots.txt falls back to its own 10 s timeout instead of the declared one
+         target src/crawl/crawler.mjs · named test "F19 · B7 ·…" in test/f19-crawler-bounds.test.mjs
+         sha256 before 804dd1c6e3aa7d7404d05c9fe2821dc06bba1cead4b9b0ead93b29ef2abd899f · after 804dd1c6e3aa7d7404d05c9fe2821dc06bba1cead4b9b0ead93b29ef2abd899f
+         failing tests: F19 · B7 · TIMEOUT: robots.txt obeys the SAME declared timeout; a slow robots host is UNKNOWN and not crawled
+         verdict: RED, named test, intended reason
+F19-S9   landed=true red=true failed=4 namedTestFailed=true reason=true restored=true — the record does not declare depth
+         target src/crawl/crawler.mjs · named test "F19 · D ·…" in test/f19-crawler-bounds.test.mjs
+         sha256 before 804dd1c6e3aa7d7404d05c9fe2821dc06bba1cead4b9b0ead93b29ef2abd899f · after 804dd1c6e3aa7d7404d05c9fe2821dc06bba1cead4b9b0ead93b29ef2abd899f
+         failing tests: F19 · B3 · DEPTH: at the declared depth 0, a seed's links are recorded as edges and never fetched | F19 · L · COST: the cost entry counts EVERY request, robots.txt included, and carries the declared bounds; an older record without a robots count keeps its page count | F19 · D · DECLARED: plan, printed plan and record all carry the five controls with the values enforced | F19 · D2 · DECLARED on the DRY RUN too, with the production defaults, and nothing issued
+         verdict: RED, named test, intended reason
+F19-S10  landed=true red=true failed=4 namedTestFailed=true reason=true restored=true — the record does not declare the request interval
+         target src/crawl/crawler.mjs · named test "F19 · D ·…" in test/f19-crawler-bounds.test.mjs
+         sha256 before 804dd1c6e3aa7d7404d05c9fe2821dc06bba1cead4b9b0ead93b29ef2abd899f · after 804dd1c6e3aa7d7404d05c9fe2821dc06bba1cead4b9b0ead93b29ef2abd899f
+         failing tests: F19 · B5 · RATE: every request to the host, robots.txt included, is at least the declared interval after the last | F19 · L · COST: the cost entry counts EVERY request, robots.txt included, and carries the declared bounds; an older record without a robots count keeps its page count | F19 · D · DECLARED: plan, printed plan and record all carry the five controls with the values enforced | F19 · D2 · DECLARED on the DRY RUN too, with the production defaults, and nothing issued
+         verdict: RED, named test, intended reason
+F19-S11  landed=true red=true failed=4 namedTestFailed=true reason=true restored=true — the record does not declare the request timeout
+         target src/crawl/crawler.mjs · named test "F19 · D ·…" in test/f19-crawler-bounds.test.mjs
+         sha256 before 804dd1c6e3aa7d7404d05c9fe2821dc06bba1cead4b9b0ead93b29ef2abd899f · after 804dd1c6e3aa7d7404d05c9fe2821dc06bba1cead4b9b0ead93b29ef2abd899f
+         failing tests: F19 · B6 · TIMEOUT: a page slower than the declared timeout is aborted (one retry), recorded as timeout | F19 · L · COST: the cost entry counts EVERY request, robots.txt included, and carries the declared bounds; an older record without a robots count keeps its page count | F19 · D · DECLARED: plan, printed plan and record all carry the five controls with the values enforced | F19 · D2 · DECLARED on the DRY RUN too, with the production defaults, and nothing issued
+         verdict: RED, named test, intended reason
+F19-S12  landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — the run record does not count truncations
+         target src/crawl/crawler.mjs · named test "F19 · B4 ·…" in test/f19-crawler-bounds.test.mjs
+         sha256 before 804dd1c6e3aa7d7404d05c9fe2821dc06bba1cead4b9b0ead93b29ef2abd899f · after 804dd1c6e3aa7d7404d05c9fe2821dc06bba1cead4b9b0ead93b29ef2abd899f
+         failing tests: F19 · B4 · RESPONSE SIZE: at a declared 1000-byte cap, 1001 bytes are truncated to 1000 and marked; 999 are whole | F19 · B8 · REFUSALS: a robots-disallowed page is not fetched, and the run record COUNTS the refusal
+         verdict: RED, named test, intended reason
+F19-S13  landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — the run record does not count refusals
+         target src/crawl/crawler.mjs · named test "F19 · B8 ·…" in test/f19-crawler-bounds.test.mjs
+         sha256 before 804dd1c6e3aa7d7404d05c9fe2821dc06bba1cead4b9b0ead93b29ef2abd899f · after 804dd1c6e3aa7d7404d05c9fe2821dc06bba1cead4b9b0ead93b29ef2abd899f
+         failing tests: F19 · B7 · TIMEOUT: robots.txt obeys the SAME declared timeout; a slow robots host is UNKNOWN and not crawled | F19 · B8 · REFUSALS: a robots-disallowed page is not fetched, and the run record COUNTS the refusal
+         verdict: RED, named test, intended reason
+F19-S14  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the run's cost counts page requests only (robots.txt left out)
+         target src/crawl/crawler.mjs · named test "F19 · L ·…" in test/f19-crawler-bounds.test.mjs
+         sha256 before 804dd1c6e3aa7d7404d05c9fe2821dc06bba1cead4b9b0ead93b29ef2abd899f · after 804dd1c6e3aa7d7404d05c9fe2821dc06bba1cead4b9b0ead93b29ef2abd899f
+         failing tests: F19 · L · COST: the cost entry counts EVERY request, robots.txt included, and carries the declared bounds; an older record without a robots count keeps its page count
+         verdict: RED, named test, intended reason
+F19-S15  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the ledger ignores a record's robots.txt count
+         target src/cost/ledger.mjs · named test "F19 · L ·…" in test/f19-crawler-bounds.test.mjs
+         sha256 before 53b823bd1ef72360c163006348a0874411a554e7da6cebced467832a53c42520 · after 53b823bd1ef72360c163006348a0874411a554e7da6cebced467832a53c42520
+         failing tests: F19 · L · COST: the cost entry counts EVERY request, robots.txt included, and carries the declared bounds; an older record without a robots count keeps its page count
+         verdict: RED, named test, intended reason
+
+TOTAL 15 · PROVED 15 · NOT PROVED 0
+residue in sabotaged files after restore: 0
+tracked modifications after restore (excluding this evidence file): 0
+
+PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
+  audit-trail/events.jsonl  before 6ca518f086ccd6fc2834ef20ce8e804b18928106191ddeb18d05930579c9af19  after 6ca518f086ccd6fc2834ef20ce8e804b18928106191ddeb18d05930579c9af19
+  audit-trail/head.json  before fd98b85967a8464a5c3decc46c160ed9871c8ae10629e49ace472d1222fc6eab  after fd98b85967a8464a5c3decc46c160ed9871c8ae10629e49ace472d1222fc6eab
+  untouched: true
+
+EXECUTION ASSERTION: 15 of 15 sabotages executed.

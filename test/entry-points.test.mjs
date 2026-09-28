@@ -129,7 +129,7 @@ test("🔴 every runner that needs a product takes it as an ARGUMENT, never as a
 const ORPHAN_ALLOWLIST = Object.freeze({
   // "src/example.mjs": "reason, dated, and who accepted it",
   "src/facts/question-fit.mjs":
-    "Built AHEAD of its consumer by the owner's order, RR-80 §3 (_handoffs 9e60c53, 28 Sep 2026): 'Build the verification and readback path BEFORE any ADDRESSES / PARTIALLY ADDRESSES / DOES NOT ADDRESS verdict is reported.' Its consumer is F50's question-and-answer inventory, which does not exist yet. Remove this entry in the change that makes that inventory import the gate. Accepted by: the owner's RR-80 §3 order; recorded by CC and disclosed in the RR-80 report.",
+    "TEMPORARY. Built AHEAD of its consumer by the owner's order, RR-80 §3 (_handoffs 9e60c53, 28 Sep 2026): 'Build the verification and readback path BEFORE any ADDRESSES / PARTIALLY ADDRESSES / DOES NOT ADDRESS verdict is reported.' It is NOT a completed capability, counts toward no row and moves no row. Accepted as TEMPORARY only by the owner, RR-81 §2.1 (_handoffs 4eb9d8f). REMOVAL TRIGGER: the change that makes F50's question-and-answer inventory import this gate — and that same change deletes this entry (enforced below: an allowlisted module with a production consumer fails the census).",
 });
 
 function walkMjs(dir, prefix) {
@@ -160,6 +160,7 @@ test("🔴 ORPHAN CENSUS: no module under src/ is imported ONLY by its own test"
   const sources = new Map(consumers.map((rel) => [rel, readFileSync(resolve(REPO, rel), "utf8")]));
 
   const orphans = [];
+  const staleExemptions = [];
   for (const mod of modules) {
     const base = mod.split("/").pop();
     let importers = 0;
@@ -174,8 +175,12 @@ test("🔴 ORPHAN CENSUS: no module under src/ is imported ONLY by its own test"
       }
     }
     if (importers === 0 && !(mod in ORPHAN_ALLOWLIST)) orphans.push(mod);
+    /* 🔴 RR-81 §2.1 (owner): an allowlist entry is TEMPORARY and is removed in the SAME change that gives its module a consumer.
+     * So an allowlisted module that now HAS a production importer fails here until its entry is deleted. */
+    if (importers > 0 && mod in ORPHAN_ALLOWLIST) staleExemptions.push(mod);
   }
 
+  assert.deepEqual(staleExemptions, [], `\n  These allowlisted modules now have a production consumer — remove their ORPHAN_ALLOWLIST entry in this same change:\n  ${staleExemptions.join("\n  ")}\n`);
   assert.deepEqual(
     orphans,
     [],

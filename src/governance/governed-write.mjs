@@ -44,6 +44,7 @@ export function signalAuthorisationRefused(d) {
   process.exitCode = AUTHORISATION_REFUSED_EXIT;
 }
 import { durableGuardSink } from "./guard-audit.mjs";
+import { withExclusiveLock } from "./process-lock.mjs";
 
 /**
  * F04: one authorisation decision onto the run's governed audit store (the confined one inside a test context).
@@ -52,8 +53,13 @@ import { durableGuardSink } from "./guard-audit.mjs";
  * own idempotency key is in the identity, so each write's decision is its own event and a replayed write's decision
  * dedupes as the store's idempotent retry.
  */
-function appendAuthorisation(audit, decision, key) {
-  const sink = durableGuardSink({ store: audit.store, actor: audit.actor, softwareVersion: audit.softwareVersion, correlationId: `${audit.correlationId}:authorisation:${key}`, authorityRef: audit.authorityRef ?? null, authorityHash: audit.authorityHash ?? null });
+function appendAuthorisation(audit, decision, key, decidedAt) {
+  /* 🔴 F77 M1 (RR-81; limb map _handoffs 84f26b9): the decision is recorded AT THE TIME IT WAS MADE — the action's occurredAt,
+   * which `authorise` receives as `now` — never at the emission clock. With the emission clock, the SAME logical decision
+   * took a new identity whenever a retry landed in a later second (the store resolves time to the second), and a retry
+   * that correctly returned ALREADY_COMMITTED still appended a second AUTHORISATION_DECISION: reproduced 5 of 72 parallel
+   * runs, every one across a second boundary. */
+  const sink = durableGuardSink({ store: audit.store, actor: audit.actor, softwareVersion: audit.softwareVersion, correlationId: `${audit.correlationId}:authorisation:${key}`, authorityRef: audit.authorityRef ?? null, authorityHash: audit.authorityHash ?? null, clock: () => decidedAt });
   return sink.emit(authorisationEvent(decision));
 }
 
@@ -365,7 +371,31 @@ function appendPhase({ audit, action, profile, target, key, phase, reasonCode, p
  * @returns {{outcome: string, idempotencyKey: string, profile: string, target: object,
  *            attemptedEventId: string|null, terminalEventId: string|null, faults: object[]}}
  */
-export function executeGovernedWrite({ permission, audit, adapter, action, idempotencyKey = null, onAuthorisationRefused = signalAuthorisationRefused }) {
+/**
+ * 🔴 F77 M2 — ONE GOVERNED WRITE PER IDEMPOTENCY KEY AT A TIME, ACROSS PROCESSES. The key is derived exactly as the saga derives
+ * it, and the whole saga runs under that key's lock beside the audit store. A concurrent repeat of the same logical write waits,
+ * then inspects, then returns ALREADY_COMMITTED. Measured before: two processes both returned COMMITTED.
+ */
+export const sagaLockPath = (store, key) => {
+  if (typeof store?.eventsPath !== "string" || store.eventsPath === "") throw new GovernedWriteRefused("AUDIT_STORE_UNLOCATED", "a governed write is serialised beside its audit store, and this store names no location");
+  /* a FILE beside the store, removed on release — never a directory, which would outlive the write as debris beside a target */
+  return `${store.eventsPath}.lock.${key}`;
+};
+
+function lockedKey(audit, adapter, action) {
+  requireAuditContext(audit);
+  requireAdapter(adapter);
+  requireAction(action);
+  const described = adapter.describeTarget() ?? {};
+  return deriveIdempotencyKey({ profile: adapter.profile, targetClass: described.targetClass, repoRelativeTarget: described.repoRelativeTarget, occurrenceFingerprint: action.occurrenceFingerprint });
+}
+
+export function executeGovernedWrite(args) {
+  const key = lockedKey(args?.audit, args?.adapter, args?.action);
+  return withExclusiveLock(sagaLockPath(args.audit.store, key), () => executeGovernedWriteUnlocked(args));
+}
+
+function executeGovernedWriteUnlocked({ permission, audit, adapter, action, idempotencyKey = null, onAuthorisationRefused = signalAuthorisationRefused }) {
   requireAuditContext(audit);
   requireAdapter(adapter);
   requireAction(action);
@@ -410,7 +440,7 @@ export function executeGovernedWrite({ permission, audit, adapter, action, idemp
     resourceRef: String(target.repoRelativeTarget ?? ""),
     now: action.occurredAt,
   });
-  appendAuthorisation(audit, authorisation, key);
+  appendAuthorisation(audit, authorisation, key, action.occurredAt);
   if (!authorisation.allowed) {
     const refused = appendPhase({
       audit, action, profile, target, key, phase: SAGA.REFUSED,
@@ -549,7 +579,13 @@ export function executeGovernedWrite({ permission, audit, adapter, action, idemp
  * 🔴 IT APPENDS A RECOVERY OUTCOME. IT NEVER REWRITES A PRIOR EVENT — history is not edited to manufacture
  * atomicity, and a recovery that cannot be settled says so rather than assuming success.
  */
-export function recoverGovernedWrite({ audit, adapter, action, idempotencyKey }) {
+export function recoverGovernedWrite(args) {
+  requireAuditContext(args?.audit);
+  if (!HEX64.test(String(args?.idempotencyKey ?? ""))) throw new GovernedWriteRefused("IDEMPOTENCY_KEY_INVALID", "recovery is by idempotency key; it never guesses one");
+  return withExclusiveLock(sagaLockPath(args.audit.store, args.idempotencyKey), () => recoverGovernedWriteUnlocked(args));
+}
+
+function recoverGovernedWriteUnlocked({ audit, adapter, action, idempotencyKey }) {
   requireAuditContext(audit);
   requireAdapter(adapter);
   requireAction(action);

@@ -51,6 +51,7 @@ import {
   deriveEventId, eventFaults, hashEvent,
 } from "./event.mjs";
 import { linesOf } from "./witness.mjs";
+import { withExclusiveLock } from "../governance/process-lock.mjs";
 
 export class AuditRefused extends Error {
   constructor(faults, why) {
@@ -148,7 +149,13 @@ export function createAuditStore({
    *   · a CONFLICTING duplicate (same eventId, different content) is REFUSED — never merged, never overwritten;
    *   · any fault throws AuditRefused before a byte is written, so a governed caller FAILS CLOSED by construction.
    */
-  function append(draft, { identity = null } = {}) {
+  /* 🔴 F77 M2 — the whole read-check-append runs under ONE cross-process lock beside the store, so no second process can
+   * append between this one's read and its append (measured: that gap duplicated event ids and broke the chain). */
+  function append(draft, options = {}) {
+    return withExclusiveLock(`${eventsPath}.lock`, () => appendUnlocked(draft, options));
+  }
+
+  function appendUnlocked(draft, { identity = null } = {}) {
     /* The wiring's location check (production path only): it throws before anything is read or written. */
     assertLocation();
     const { events, malformedTail } = readAll();

@@ -107,6 +107,8 @@ and hash-verified at `KEY_FEATURE_CHECKLIST_SOURCE.md`.
 | its first law | **"TICK LAW: A feature is not complete because code exists. Tick it only when real evidence proves it works."** |
 | the standing tracker | `CHECKLIST_STATUS.md` — one row per item, all 58, in the checklist's own §4 format |
 
+> **Correction, 28 Sep 2026 (D-STALE-58-COMMENTS; the frozen words above are kept as they stood on 12 Sep):** "all 58" was true when this register was frozen. Rows 59–60 were admitted by Amendment 3 and row 61 by Amendment 5, so the tracker now carries **61** rows (58 from the frozen source + 3 by ruling). Measured in `_handoffs/AlmiVisibility_RECONCILIATION_61_89_2026-09-28/ledger-census.json`. The ledger is HISTORICAL since the F05 command (ed61c0c).
+
 ⚠️ **First measured status, 11 September 2026: ☑ 0 · ◐ 16 · ☐ 41 · ⚠ 1.** Of the 41 ☐, **32 are
 `v0.1 SCOPE = OUT`** — excluded by V5.1's own boundary, which is the cost gate working, not a
 failure.

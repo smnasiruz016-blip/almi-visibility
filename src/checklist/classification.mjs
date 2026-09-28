@@ -1,7 +1,7 @@
 // 🔴 LABELS SANITISED 2026-09-22 (same rulings): 8 occurrence(s) of expected labels from the retired reference replaced by [REDACTED — RETIRED_CONTAMINATED EXPECTED LABEL]. Pre-label-sanitisation blob f4ac5987a2e1017ff0345ce798d478e26a397b34; the originals remain ONLY in Git history.
 // 🔴 SANITISED 2026-09-22 under the RETIRED_CONTAMINATED ruling (_handoffs a5452ee, clarified f4367b1): 3 retired held-out string occurrence(s), 1 held-out miss-word list(s) replaced by [REDACTED — RETIRED_CONTAMINATED HELD-OUT PAYLOAD]. Retired set fingerprint 3d4951d6…, population 61. The original bytes remain ONLY in Git history — blob f4ac5987a2e1017ff0345ce798d478e26a397b34, introduced in 9b57f71; they must not be used as held-out, unseen, marking-key or expected-answer evidence.
 /**
- * THE SIX-STATE CLASSIFICATION OF ALL 61 FEATURES (58 in the frozen source + 3 admitted by ruling).
+ * THE SIX-STATE CLASSIFICATION OF ALL 58 FEATURES.
  *
  * ── 🔴 WHAT THE SIXTH STATE IS FOR, AND THE TRAP IN IT ──────────────────────
  *

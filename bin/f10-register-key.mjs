@@ -21,7 +21,8 @@ import { authorise, authorisationEvent, namedActor, AUTHORISATION_REFUSED_EXIT }
 import { writePermission, announceWritePermission, LOCAL } from "../src/write-law.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { createWitness, gitDirWitnessLocator, linesOf } from "../src/audit-trail/witness.mjs";
-import { measureKey, KeyRegistrationRefused } from "../src/heldout/key-registration.mjs";
+import { governedKeyMeasurement } from "../src/governance/governed-key-measurement.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 
 /** The two F10 keys: where the owner's `finish` wrote each (src/discovery/f10-labelling.mjs TASKS) and the set each is linked to. */
 export const F10_KEYS = Object.freeze({
@@ -48,15 +49,14 @@ if (!decision.allowed) { console.error(`🔴 AUTHORISATION REFUSED — ${decisio
 const EFFECTIVE = withSyntheticSealedFixture({ registry: REAL_REGISTRY, declared: SEALED_STORE_ROOTS });
 /* The production store's witness; a confined (test-context) store has none, so G1 refuses there — by design, not by accident. */
 const witness = ctx.synthetic ? null : createWitness({ locate: gitDirWitnessLocator(REPO) });
-try {
-  const r = measureKey({
-    audit: ctx, witness, trailLines: () => linesOf(readFileSync(ctx.store.eventsPath, "utf8")),
-    registry: EFFECTIVE.registry, stores: resolveSealedStoreRoots({ declared: EFFECTIVE.declared }), spec: F10_KEYS[task], mode: MODE,
-  });
-  console.log(`KEY ${task.toUpperCase()} ${MODE} PASSED · rows ${r.rows} · commitment ${r.commitment}`);
-  process.exit(0);
-} catch (e) {
-  if (!(e instanceof KeyRegistrationRefused)) throw e;
-  console.error(`🔴 KEY ${task.toUpperCase()} ${MODE} REFUSED — ${e.code}`);
-  process.exit(5);
-}
+/* A MIXED writer (a sealed read + audit events), reached ONLY through the governed boundary (src/heldout/key-registration.mjs). */
+const m = governedKeyMeasurement({
+  repo: REPO, permission: { ...permission, actorRef: namedActor(argv) }, audit: ctx, witness, trailLines: () => linesOf(readFileSync(ctx.store.eventsPath, "utf8")),
+  registry: EFFECTIVE.registry, stores: resolveSealedStoreRoots({ declared: EFFECTIVE.declared }), spec: F10_KEYS[task], mode: MODE, occurredAt: NOW,
+});
+let run;
+try { run = executeGovernedWrite({ ...m, action: { ...m.action, name: "RECORD_HELDOUT_EVALUATION" } }); } catch (e) { console.error(`🔴 KEY ${task.toUpperCase()} ${MODE} STOPPED — ${e.code ?? e.name}: nothing was recorded as a measurement`); process.exit(4); }
+const r = m.result();
+if (run.outcome !== "COMMITTED" || !r) { console.error(`🔴 KEY ${task.toUpperCase()} ${MODE} REFUSED — ${run.outcome}${run.faults?.length ? ` · ${run.faults.map((f) => f.code).join(", ")}` : ""}`); process.exit(5); }
+console.log(`KEY ${task.toUpperCase()} ${MODE} PASSED · rows ${r.rows} · commitment ${r.commitment}`);
+process.exit(0);

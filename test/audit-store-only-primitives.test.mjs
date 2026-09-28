@@ -311,7 +311,10 @@ test("ASP-C5 · a NEW recorder is a writer however its receiver is named — so 
   /* F07 Amendment 2 (governance 051feb9) added two real writers to the lifecycle — readHeldOutDerivation and scoreClassification —
    * each recording to the audit store it is handed AND reading sealed material or running a caller-supplied function, so each is
    * a MIXED writer, named below in C6 and proved to FAIL the audit-store-only proof. The population is measured, 15 -> 17. */
-  assert.equal(WRITER_NAMES.length, 17, "the widened rule changed the real writer population");
+  /* Part D1 (28 Sep 2026): the governed key reader measureKey (src/heldout/key-registration.mjs) records to the audit store it is
+   * handed AND reads a sealed store — a MIXED writer, named in C6 and proved to FAIL the audit-store-only proof. Its governed route
+   * (src/governance/governed-key-measurement.mjs) sits in the boundary module directory, like governed-scoring. Measured 17 -> 18. */
+  assert.equal(WRITER_NAMES.length, 18, "the widened rule changed the real writer population");
 });
 
 /* ═══ C6 · registering a function that also performs a non-audit write turns the proof RED ═══════════════════════ */
@@ -328,6 +331,8 @@ test("ASP-C6 · every real non-audit writer, registered, FAILS the proof — and
     // F07 Amendment 2 (governance 051feb9): the evaluator's derived-set reader and the aggregate scorer — mixed writers too.
     { name: "readHeldOutDerivation", module: LIFE },
     { name: "scoreClassification", module: LIFE },
+    // Part D1 (28 Sep 2026): the governed key reader — a sealed read plus audit events — a mixed writer too.
+    { name: "measureKey", module: "src/heldout/key-registration.mjs" },
   ];
   /* The population: every derived writer that is not declared, plus the de-registered name. Nothing sampled. */
   const declared = new Set(AUDIT_STORE_ONLY_PRIMITIVES.map((e) => e.name));

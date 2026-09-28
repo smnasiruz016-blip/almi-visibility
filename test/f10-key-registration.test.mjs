@@ -142,7 +142,8 @@ test("K6 · REAL entry point, confined: with no witness it refuses BEFORE readin
     assert.match(dry.stdout, /\[dry-run\] nothing is recorded and no key byte is read/);
     const r = spawnSync(process.execPath, ["bin/f10-register-key.mjs", "measure", "c6", "--actor=actor:cc", "--confirm"], { cwd: REPO, encoding: "utf8", env, timeout: 120_000 });
     assert.equal(r.status, 5, `expected a refusal: ${r.stdout.slice(-300)} ${r.stderr.slice(-300)}`);
-    assert.match(r.stderr, /KEY C6 MEASURE REFUSED — (SEALED_STORE_UNLOCATED|WITNESS_UNAVAILABLE)/, "the confined run did not refuse before reading");
+    assert.match(r.stderr, /KEY C6 MEASURE REFUSED — (FAILED_BEFORE_COMMIT · SEALED_STORE_REQUIRED_BUT_UNLOCATED|.*WITNESS_UNAVAILABLE)/, "the confined run did not refuse before reading");
+    assert.ok(!fs.existsSync(join(REPO, "evaluation-releases", "key-measurements.jsonl")), "a refused measurement wrote a measurement record");
   } finally { fs.rmSync(join(REPO, ".test-scratch", "audit", `run-${nonce}`), { recursive: true, force: true }); }
   assert.deepEqual(PROD(), before, "a confined key-registration run changed the production trail");
 });

@@ -38,7 +38,7 @@ import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedScoring, versionHash, SCORER_FILES, RELEASE_STORE } from "../src/governance/governed-scoring.mjs";
 import { DISCLOSED_SEALS, DISCLOSED_POPULATION_AGREEMENT } from "../config/fboard/disclosed-seals.mjs";
 import { disclosureOf, releaseStoreFor, classStatement } from "../src/heldout/disclosed-seal.mjs";
-import { measureKey, KeyRegistrationRefused } from "../src/heldout/key-registration.mjs";
+import { governedKeyMeasurement } from "../src/governance/governed-key-measurement.mjs";
 import { createWitness, gitDirWitnessLocator, linesOf } from "../src/audit-trail/witness.mjs";
 import { readFileSync } from "node:fs";
 import { resolveSealedStoreRoots } from "../src/governance/sealed-store-roots.mjs";
@@ -128,18 +128,16 @@ if (cmd === "score" && arg("key-set")) {
   else {
     const keyEntry = EVIDENCE_ROLE_REGISTRY.find((e) => e.id === arg("key-set"));
     const proto = (arg("route") ?? "classification") === "follow-up" ? C7_PROTOCOL : PROTOCOL;
-    try {
-      const r = measureKey({
-        audit: ctx, witness: createWitness({ locate: gitDirWitnessLocator(REPO) }), trailLines: () => linesOf(readFileSync(ctx.store.eventsPath, "utf8")),
-        registry: EVIDENCE_ROLE_REGISTRY, stores: resolveSealedStoreRoots({ declared: EFFECTIVE.declared }), mode: "VERIFY",
-        spec: { keyId: arg("key-set"), root: keyEntry?.resource?.root ?? null, prefix: keyEntry?.resource?.pathPrefixes?.[0] ?? null, linkedSetId: keyEntry?.linkedSet ?? arg("set"), classes: proto.classes, exclusions: proto.exclusions },
-      });
-      console.log(`KEY PREFLIGHT PASSED · rows ${r.rows}`);
-    } catch (e) {
-      if (!(e instanceof KeyRegistrationRefused)) throw e;
-      console.error(`🔴 KEY PREFLIGHT REFUSED — ${e.code}: no grant was requested and no run was claimed`);
-      process.exit(5);
-    }
+    /* A MIXED writer, reached ONLY through the governed boundary, like the scoring run below. */
+    const pre = governedKeyMeasurement({
+      repo: REPO, permission: { ...permission, actorRef: namedActor(argv) }, audit: ctx, witness: createWitness({ locate: gitDirWitnessLocator(REPO) }), trailLines: () => linesOf(readFileSync(ctx.store.eventsPath, "utf8")),
+      registry: EVIDENCE_ROLE_REGISTRY, stores: resolveSealedStoreRoots({ declared: EFFECTIVE.declared }), mode: "VERIFY", occurredAt: NOW,
+      spec: { keyId: arg("key-set"), root: keyEntry?.resource?.root ?? null, prefix: keyEntry?.resource?.pathPrefixes?.[0] ?? null, linkedSetId: keyEntry?.linkedSet ?? arg("set"), classes: proto.classes, exclusions: proto.exclusions },
+    });
+    let preRun;
+    try { preRun = executeGovernedWrite({ ...pre, action: { ...pre.action, name: "RECORD_HELDOUT_EVALUATION" } }); } catch (e) { console.error(`🔴 KEY PREFLIGHT STOPPED — ${e.code ?? e.name}: no grant was requested and no run was claimed`); process.exit(5); }
+    if (preRun.outcome !== "COMMITTED" || !pre.result()) { console.error(`🔴 KEY PREFLIGHT REFUSED — ${preRun.outcome}${preRun.faults?.length ? ` · ${preRun.faults.map((f) => f.code).join(", ")}` : ""}: no grant was requested and no run was claimed`); process.exit(5); }
+    console.log(`KEY PREFLIGHT PASSED · rows ${pre.result().rows}`);
   }
 }
 

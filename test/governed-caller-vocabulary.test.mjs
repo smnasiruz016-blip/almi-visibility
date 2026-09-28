@@ -169,14 +169,17 @@ test("V7 · the REAL population: 46 governed = 45 routed + 1 checked exemption +
    * bin/f10-select.mjs seals the one selection only through the boundary (BOUNDARY_ROUTED). bin/f10-label.mjs is
    * READ_ONLY_DIAGNOSTIC: it writes only the owner's own progress into storage S — never a governed engine store and never
    * the audit trail, so a label never enters the trail. No existing caller moved class. */
-  assert.equal(rows.length, 65);
-  assert.equal(governed.length, 46);
+  /* 65/46 → 66/47 on 28 September (Part D1), for a MEASURED reason: one production entry point, bin/f10-register-key.mjs, whose
+   * one write (the governed key measurement) goes only through the boundary (BOUNDARY_ROUTED). No existing caller moved class. */
+  assert.equal(rows.length, 66);
+  assert.equal(governed.length, 47);
   assert.equal(rows.filter((r) => r.cls === "READ_ONLY_DIAGNOSTIC").length, 19);
   const by = Object.fromEntries(CALLER_CLASSES.map((c) => [c, governed.filter((r) => r.callerClass === c).length]));
   /* 43/2 → 44/1 on 26 September (F10), for a MEASURED reason: bin/heldout-evaluation.mjs now routes its scoring run through the
    * boundary (BOUNDARY_ROUTED); no entry point was added and no other caller moved class. */
   /* 44/1 → 45/1 on 27 September: bin/f10-select.mjs (BOUNDARY_ROUTED) joined; no other caller moved class. */
-  assert.deepEqual(by, { BOUNDARY_ROUTED: 45, DIRECT_DURABLE_WRITE: 0, COLLECTOR_OR_LIBRARY_WRITE: 0, CHECKED_AUDIT_STORE_EXEMPTION: 1, READ_ONLY: 0, PARTIALLY_ROUTED: 0, UNKNOWN: 0 });
+  /* 45/1 → 46/1 on 28 September: bin/f10-register-key.mjs (BOUNDARY_ROUTED) joined; bin/heldout-evaluation.mjs stays BOUNDARY_ROUTED. */
+  assert.deepEqual(by, { BOUNDARY_ROUTED: 46, DIRECT_DURABLE_WRITE: 0, COLLECTOR_OR_LIBRARY_WRITE: 0, CHECKED_AUDIT_STORE_EXEMPTION: 1, READ_ONLY: 0, PARTIALLY_ROUTED: 0, UNKNOWN: 0 });
   assert.equal(bypasses(rows).length, 0);
   assert.equal(governed.filter((r) => r.routed).length + auditStoreExempt(rows).length + nonMutating(rows).length + bypasses(rows).length, governed.length);
   const sites = governed.flatMap((r) => r.siteDetail.map((s) => ({ ...s, file: r.file, reaches: r.reachesBoundary })));

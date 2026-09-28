@@ -1,0 +1,15 @@
+F77 sabotage run · 2026-09-28T21:28:07.636Z
+population: 9 sabotages over test/f77-idempotency-retry-recovery.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 240 s
+production trail sha256 before: 88e403a31ed677b47a34ff976e62cb0c533152fb9ba16f1bf88caf78c0f90356
+
+S1 M1 decision at the action's time src/governance/governed-write.mjs: landed true · named test "M1 ·" red true · failing 1 · restored by sha256 true · PROVED
+S2 M2 store lock src/audit-trail/store.mjs: landed true · named test "M2 · R3" red true · failing 1 · restored by sha256 true · PROVED
+S3 M2 saga lock src/governance/governed-write.mjs: landed true · named test "M2 · R1b" red true · failing 1 · restored by sha256 true · PROVED
+S4 M2 lock bound honoured src/governance/process-lock.mjs: landed true · named test "M2 · the lock is BOUNDED" red true · failing 1 · restored by sha256 true · PROVED
+S5 M2 dead holder cleared src/governance/process-lock.mjs: landed true · named test "M2 · the lock is BOUNDED" red true · failing 1 · restored by sha256 true · PROVED
+S6 M4 raw egress classified tools/paid-metered-call-census.mjs: landed true · named test "M4 ·" red true · failing 1 · restored by sha256 true · PROVED
+S7 M4 real paid provider seen tools/paid-metered-call-census.mjs: landed true · named test "M4 ·" red true · failing 1 · restored by sha256 true · PROVED
+S8 M4 connector kinds classified tools/paid-metered-call-census.mjs: landed true · named test "M4 ·" red true · failing 1 · restored by sha256 true · PROVED
+S9 M5 recovery identity has no time src/governance/governed-write.mjs: landed true · named test "M5 ·" red true · failing 1 · restored by sha256 true · PROVED
+
+proved 9 of 9 · residue 0 · production trail sha256 after: 88e403a31ed677b47a34ff976e62cb0c533152fb9ba16f1bf88caf78c0f90356 · unchanged true

@@ -63,3 +63,7 @@ oet-corpus/
 # also FREEZE a population that is supposed to be measured as SERVED.
 # runs/nursing-chain/chain-report.json records what was fetched and when.
 runs/_profession-cache/
+
+# F77 M2 (RR-81): transient cross-process locks beside an audit store — held only during one append or one governed write.
+*.jsonl.lock
+*.jsonl.lock.*

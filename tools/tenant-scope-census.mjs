@@ -112,6 +112,10 @@ export const EXCLUDED_ENTRY_POINTS = Object.freeze({
    * one partition decision for THAT tenant (decidePartition → readTenantPartition), the C1 route bin/heldout-evaluation.mjs's
    * `score` already uses, and it selects within each tenant separately. Its control: test/f10-selection-packet.test.mjs. */
   "bin/f10-select.mjs": "the ONE governed F10 selection (C1/C3): each ACTIVE tenant's rows read only through F02's partition decision for that tenant, selected within that tenant alone, never joined across tenants; it writes only into storage S and one count-only seal record, through the governed-write boundary",
+  /* Part D1 (28 Sep 2026). It reads the evidence-role registry, the audit trail and ONE marking key in storage S — a GLOBAL_PRODUCT
+   * sealed role, not a tenant resource — after a durable, witness-checked ACCESS; it releases only a row count and a commitment, and
+   * joins, reports on or decides nothing about any tenant. Its control: test/f10-key-registration.test.mjs. */
+  "bin/f10-register-key.mjs": "the governed F10 key registration / pre-scoring key preflight (Part D1): the registry, the audit trail and one marking key in storage S read only after a durable witness-checked ACCESS; it releases a row count and a commitment and decides nothing about a tenant",
   "bin/approval.mjs": "the F04 approval registry: config/governance/approvals.jsonl and the committed authority corpus; it records an owner-issued approval and reads, joins or decides nothing about a tenant",
   "bin/retire-attachment.mjs": "the declaration source (F02, owner ruling 25 Sep): it removes one attachment PROVED unlawful by its own members' identity fields; it joins nothing, reads no body, and its write is F08-governed",
 });

@@ -1,5 +1,5 @@
-F77 sabotage run · 2026-09-28T21:28:07.636Z
-population: 9 sabotages over test/f77-idempotency-retry-recovery.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 240 s
+F77 sabotage run · 2026-09-28T22:12:06.486Z
+population: 17 sabotages over test/f77-idempotency-retry-recovery.test.mjs, test/f77-metered-retry.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 240 s
 production trail sha256 before: 88e403a31ed677b47a34ff976e62cb0c533152fb9ba16f1bf88caf78c0f90356
 
 S1 M1 decision at the action's time src/governance/governed-write.mjs: landed true · named test "M1 ·" red true · failing 1 · restored by sha256 true · PROVED
@@ -10,6 +10,14 @@ S5 M2 dead holder cleared src/governance/process-lock.mjs: landed true · named 
 S6 M4 raw egress classified tools/paid-metered-call-census.mjs: landed true · named test "M4 ·" red true · failing 1 · restored by sha256 true · PROVED
 S7 M4 real paid provider seen tools/paid-metered-call-census.mjs: landed true · named test "M4 ·" red true · failing 1 · restored by sha256 true · PROVED
 S8 M4 connector kinds classified tools/paid-metered-call-census.mjs: landed true · named test "M4 ·" red true · failing 1 · restored by sha256 true · PROVED
+S10 R2 retry replays answered calls src/search/ingest-operation.mjs: landed true · named test "R2 · RETRY after an INTERRUPTION" red true · failing 3 · restored by sha256 true · PROVED
+S11 R2 uncertain call refused src/search/ingest-operation.mjs: landed true · named test "R2 · RETRY after an UNCERTAIN" red true · failing 1 · restored by sha256 true · PROVED
+S12 R2 retry saves nothing twice src/evidence/store.mjs: landed true · named test "R2 · RETRY after the evidence was committed" red true · failing 1 · restored by sha256 true · PROVED
+S13 R2 retry reuses the operation instant src/search/ingest-operation.mjs: landed true · named test "R2 · RETRY after the evidence was committed" red true · failing 1 · restored by sha256 true · PROVED
+S14 R2 fresh collection records a sighting src/evidence/store.mjs: landed true · named test "R2 · a FRESH collection" red true · failing 2 · restored by sha256 true · PROVED
+S15 R2 every metered call counted src/search/ingest-operation.mjs: landed true · named test "R2 · the REAL metered call sequence" red true · failing 3 · restored by sha256 true · PROVED
+S16 R2 committed operation short-circuits bin/gsc-ingest.mjs: landed true · named test "R2 · END TO END" red true · failing 1 · restored by sha256 true · PROVED
+S17 R2P reopening trigger tools/paid-metered-call-census.mjs: landed true · named test "R2P ·" red true · failing 1 · restored by sha256 true · PROVED
 S9 M5 recovery identity has no time src/governance/governed-write.mjs: landed true · named test "M5 ·" red true · failing 1 · restored by sha256 true · PROVED
 
-proved 9 of 9 · residue 0 · production trail sha256 after: 88e403a31ed677b47a34ff976e62cb0c533152fb9ba16f1bf88caf78c0f90356 · unchanged true
+proved 17 of 17 · residue 0 · production trail sha256 after: 88e403a31ed677b47a34ff976e62cb0c533152fb9ba16f1bf88caf78c0f90356 · unchanged true

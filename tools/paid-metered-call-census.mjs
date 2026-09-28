@@ -23,6 +23,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { CONNECTOR_KINDS } from "../src/tenancy/root-registry.mjs";
+import { DEFERRED_LIMBS } from "../config/fboard/deferred-limbs.mjs";
 
 export const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const FILE_BOUND = 2000;
@@ -77,6 +78,17 @@ export function censusOf(files, { connectorKinds = CONNECTOR_KINDS } = {}) {
   };
 }
 
+/**
+ * 🔴 RR-82 §2.2 · THE REOPENING TRIGGER, CHECKABLE. A limb deferred as NOT MEASURED until a real paid provider exists (config/fboard/
+ * deferred-limbs.mjs) FAILS here the moment the census sees one: the row must be reopened and the paid path proved before any
+ * PASS claim about that provider.
+ */
+export function deferredLimbFaults(census, deferred = DEFERRED_LIMBS) {
+  return deferred
+    .filter((d) => d.reopensWhen === "REAL_PAID_PROVIDER_DECLARED" && d.state === "NOT_MEASURED" && census.realPaidProviders > 0)
+    .map((d) => ({ code: "DEFERRED_LIMB_REOPEN_REQUIRED", featureId: d.featureId, limb: d.limb, why: `${census.realPaidProviders} real paid provider(s) declared while ${d.featureId} ${d.limb} stands NOT MEASURED — reopen ${d.featureId} and prove the paid path before any PASS claim about it` }));
+}
+
 /** The production population: every committed .mjs under src/ and bin/. */
 export function productionFiles() {
   const list = execFileSync("git", ["-C", REPO, "ls-files", "src", "bin"], { encoding: "utf8" }).split("\n").filter((p) => p.endsWith(".mjs"));
@@ -90,5 +102,8 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   console.log(`  connector kinds ${c.connectorKinds}: METERED ${c.meteredKinds.length} · UNMETERED_PUBLIC ${c.unmeteredKinds.length} · unclassified ${c.unclassifiedKinds.length} · stale ${c.staleKinds.length}`);
   console.log(`  paid-provider gate sites ${c.paidGateSites.length} · REAL paid providers ${c.realPaidProviders} (a fake provider is an exercise, not a paid path)`);
   for (const u of c.unclassifiedEgress) console.log(`  🔴 UNCLASSIFIED EGRESS ${u}`);
-  if (process.argv.includes("--check") && !c.ok) process.exit(1);
+  const deferredFaults = deferredLimbFaults(c);
+  for (const d of DEFERRED_LIMBS) console.log(`  deferred limb ${d.featureId} ${d.limb} (${d.name}): ${d.state} — ${d.scopeSentence}`);
+  for (const f of deferredFaults) console.log(`  🔴 ${f.code} ${f.featureId} ${f.limb}: ${f.why}`);
+  if (process.argv.includes("--check") && (!c.ok || deferredFaults.length > 0)) process.exit(1);
 }

@@ -15,6 +15,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const IO = "src/search/ingest-operation.mjs", ES = "src/evidence/store.mjs", BIN = "bin/gsc-ingest.mjs", T_R2 = "test/f77-metered-retry.test.mjs";
 const GW = "src/governance/governed-write.mjs", ST = "src/audit-trail/store.mjs", LK = "src/governance/process-lock.mjs", CE = "tools/paid-metered-call-census.mjs";
 const TEST = "test/f77-idempotency-retry-recovery.test.mjs";
 const TRAIL = "audit-trail/events.jsonl";
@@ -30,6 +31,14 @@ const SABOTAGES = [
   ["S6", "M4 raw egress classified", CE, "if (RAW_EGRESS.test(line)) (Object.hasOwn(DECLARED_EGRESS, p) ? egress : unclassified).push(`${p}:${i + 1}`);", "if (RAW_EGRESS.test(line)) egress.push(`${p}:${i + 1}`);", "M4 ·"],
   ["S7", "M4 real paid provider seen", CE, `const paid = gates.map((g) => ({ site: g.site, provider: FAKE.test(String(files[g.file])) ? "FAKE_EXERCISE" : "REAL_OR_UNKNOWN" }));`, `const paid = gates.map((g) => ({ site: g.site, provider: "FAKE_EXERCISE" }));`, "M4 ·"],
   ["S8", "M4 connector kinds classified", CE, "const unclassifiedKinds = kinds.filter((k) => !Object.hasOwn(CONNECTOR_CALL_CLASS, k));", "const unclassifiedKinds = kinds.filter(() => false);", "M4 ·"],
+  ["S10", "R2 retry replays answered calls", IO, "if (held?.state === CALL_STATES.ANSWERED) {", "if (false) {", "R2 · RETRY after an INTERRUPTION", T_R2],
+  ["S11", "R2 uncertain call refused", IO, "if (held?.state === CALL_STATES.ISSUED) {", "if (false) {", "R2 · RETRY after an UNCERTAIN", T_R2],
+  ["S12", "R2 retry saves nothing twice", ES, `if (mode === "RETRY" && (`, "if (false && (", "R2 · RETRY after the evidence was committed", T_R2],
+  ["S13", "R2 retry reuses the operation instant", IO, "export const operationClock = (operation) => () => new Date(operation.startedAt);", "export const operationClock = (operation) => () => new Date();", "R2 · RETRY after the evidence was committed", T_R2],
+  ["S14", "R2 fresh collection records a sighting", ES, "const commitInput = () => [...wouldWrite, ...resighted];", "const commitInput = () => [...wouldWrite];", "R2 · a FRESH collection", T_R2],
+  ["S15", "R2 every metered call counted", IO, "    counters.issued += 1;", "", "R2 · the REAL metered call sequence", T_R2],
+  ["S16", "R2 committed operation short-circuits", BIN, "if (operation.committed) {", "if (false) {", "R2 · END TO END", T_R2],
+  ["S17", "R2P reopening trigger", CE, "census.realPaidProviders > 0)", "census.realPaidProviders > 1000)", "R2P ·", T_R2],
   ["S9", "M5 recovery identity has no time", GW, "const identity = { governedWriteKey: key, governedWritePhase: phase, correlationId: audit.correlationId };", "const identity = { governedWriteKey: key, governedWritePhase: phase, correlationId: audit.correlationId, nonce: `${Date.now()}${Math.random()}` };", "M5 ·"],
 ];
 
@@ -40,9 +49,9 @@ process.on("exit", restoreAll);
 for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => { restoreAll(); process.exit(130); });
 
 const trailBefore = sha(read(TRAIL));
-const lines = [`F77 sabotage run · ${new Date().toISOString()}`, `population: ${SABOTAGES.length} sabotages over ${TEST} · bound: one span per sabotage, applied ALONE; each run killed after 240 s`, `production trail sha256 before: ${trailBefore}`, ""];
+const lines = [`F77 sabotage run · ${new Date().toISOString()}`, `population: ${SABOTAGES.length} sabotages over ${[...new Set(SABOTAGES.map((s) => s[6] ?? TEST))].join(", ")} · bound: one span per sabotage, applied ALONE; each run killed after 240 s`, `production trail sha256 before: ${trailBefore}`, ""];
 let proved = 0;
-for (const [id, limb, file, from, to, expect] of SABOTAGES) {
+for (const [id, limb, file, from, to, expect, testFile = TEST] of SABOTAGES) {
   const orig = originals.get(file);
   const text = orig.toString("utf8");
   const at = text.indexOf(from);
@@ -51,7 +60,7 @@ for (const [id, limb, file, from, to, expect] of SABOTAGES) {
   const landed = sha(read(file)) !== sha(orig);
   let failing = [];
   try {
-    const r = spawnSync(process.execPath, ["--test", TEST], { cwd: REPO, encoding: "utf8", timeout: 240000 });
+    const r = spawnSync(process.execPath, ["--test", testFile], { cwd: REPO, encoding: "utf8", timeout: 240000 });
     failing = [...`${r.stdout}${r.stderr}`.matchAll(/✖ (.+?) \(\d/g)].map((m) => m[1]);
   } finally {
     writeFileSync(join(REPO, file), orig);

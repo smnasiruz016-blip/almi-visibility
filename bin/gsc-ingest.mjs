@@ -33,12 +33,13 @@ import { runIngest } from "../src/search/ingest.mjs";
 import { createJsonlStore, createDryRunStore } from "../src/evidence/store.mjs";
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
-import { governedStoreAppend } from "../src/governance/governed-run.mjs";
+import { governedStoreAppend, governedFileWrite } from "../src/governance/governed-run.mjs";
+import { openOperation, parseJournal, journaledProvider, markCommitted, operationClock, OperationRefused } from "../src/search/ingest-operation.mjs";
 import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { formatBoundedResult } from "../src/report/bounded.mjs";
 import { createCostGovernor } from "../src/cost/governor.mjs";
 import { createCostLedger, entryFromLiveIngest, formatLedgerLine } from "../src/cost/ledger.mjs";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { isAbsolute, join, relative } from "node:path";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { openConnector } from "../src/tenancy/connectors.mjs";
@@ -57,7 +58,7 @@ const days = Number(arg("days", "28"));
  * (--subject=<declared id>); its key file's path is read from the ONE variable that declaration names. The synthetic seam
  * (--source) makes no request and constructs no connector. */
 const SUBJECT = arg("subject");
-const SCOPE = scopedEntryPoint({ entry: "bin/gsc-ingest.mjs", governed: true, resources: [...(arg("source") === null ? [RESOURCES.connector(SUBJECT, "SEARCH_CONSOLE_API")] : []), RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.inputPath(arg("store"), "--store"), RESOURCES.inputPath(arg("source"), "--source")] });
+const SCOPE = scopedEntryPoint({ entry: "bin/gsc-ingest.mjs", governed: true, resources: [...(arg("source") === null ? [RESOURCES.connector(SUBJECT, "SEARCH_CONSOLE_API")] : []), RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.inputPath(arg("store"), "--store"), RESOURCES.inputPath(arg("source"), "--source"), RESOURCES.inputPath(arg("journal-dir"), "--journal-dir")] });
 /* F02: this run's hosts are the site origins DECLARED to its tenant — no estate list in shared code (relocated, 24 Sep 2026). */
 const DECLARED_HOSTS = declaredSiteHosts({ tenantId: SCOPE.tenantId });
 /* 🔴 GAP 2 (16 September 2026) — the evidence store and the cost ledger are both confined before the
@@ -65,6 +66,9 @@ const DECLARED_HOSTS = declaredSiteHosts({ tenantId: SCOPE.tenantId });
  * and stores nothing. The observations are written inside `runIngest`, so the gate is WHICH STORE it
  * is handed — the dry-run implementation of the same interface when the write is not permitted. */
 const storePath = confineToRepo(arg("store", `${REPO}runs/evidence/evidence.jsonl`), { label: "--store" });
+/* F77 R2: one journal per ingest operation, BESIDE the store it collects for — so a disposable store takes its journals with it.
+ * Never committed (.gitignore): a journal holds the metered responses. */
+const JOURNAL_DIR = confineToRepo(arg("journal-dir", `${storePath}.operations`), { label: "--journal-dir" });
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
 const controlProperty = arg("control", "https://example.com/");
 /* 🔴 GAP 2 (17 September 2026) — --source=<path>: the testability seam. A SYNTHETIC source file, CONFINED to this
@@ -143,14 +147,43 @@ function syntheticProvider(file, governor) {
  * wall-clock is UNKNOWN for ever; this one is not. */
 const startedAt = new Date().toISOString();
 const governor = createCostGovernor({ label: "google-search-console ingest run" });
-const provider = SOURCE === null ? liveProvider(governor) : syntheticProvider(SOURCE, governor);
+/* 🔴 F77 R2 (owner ruling RR-82 §2.1; F77 Amendment 1) — THE OPERATION AND ITS IDENTITY.
+ *   --operation=<id>   a journal for <id> exists → a RETRY of that operation: every answered metered call is replayed from the
+ *                      journal, only never-issued calls are issued, nothing already saved is saved again, and a call issued but
+ *                      never answered is REFUSED (it may already have counted against the quota);
+ *                      no journal → a FRESH collection under <id>.
+ *   (absent)           a FRESH collection under a new id: every call is issued and charged, and it records a new sighting.
+ * The journal is written through the governed boundary only when the run may write; a dry run keeps it in memory. */
+const operationId = arg("operation") ?? `gsc-${Date.now()}`;
+const journalPath = join(JOURNAL_DIR, `${operationId}.json`);
+let operation;
+try {
+  operation = openOperation({ operationId, existing: existsSync(journalPath) ? parseJournal(readFileSync(journalPath, "utf8")) : null });
+} catch (e) {
+  console.error(`REFUSED — ${e.message}. Nothing was requested and nothing was written.`);
+  process.exit(2);
+}
+if (operation.committed) {
+  console.log(`operation ${operationId}: ALREADY COMMITTED — a retry issues no metered query and saves nothing.`);
+  process.exit(0);
+}
+const GSC_INSTANT = governedInstant(Date.parse(operation.startedAt));
+const GSC_CORRELATION = `run:gsc-ingest:${operationId}`;
+const persistJournal = (bytes) => {
+  if (!permission.mayWrite) return;
+  const g = executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
+    repo: REPO, permission, target: journalPath, targetClass: "RUN_EVIDENCE", bytes,
+    action: "WRITE_INGEST_OPERATION_JOURNAL", occurredAt: GSC_INSTANT, correlationId: GSC_CORRELATION,
+  }));
+  if (g.outcome !== "COMMITTED" && g.outcome !== "ALREADY_COMMITTED") throw new OperationRefused("JOURNAL_NOT_WRITTEN", `the operation journal was not written (${g.outcome}); nothing further is issued`);
+};
+const baseProvider = SOURCE === null ? liveProvider(governor) : syntheticProvider(SOURCE, governor);
+const { provider, counters: meteredCalls } = journaledProvider({ provider: baseProvider, operation, persist: persistJournal });
 /* 🔴 THE DRY-RUN STORE IS NOW ALWAYS THE COLLECTOR. It already keeps every record and returns the same
  * appended-versus-resighted answer the real store would — which is why runIngest could count against it — so the
  * ingest runs and reports identically either way, and the run then makes ONE governed decision about committing
- * what it collected. */
-const store = createDryRunStore(storePath);
-const GSC_INSTANT = governedInstant(Date.now());
-const GSC_CORRELATION = `run:gsc-ingest:${GSC_INSTANT}`;
+ * what it collected. F77: in a RETRY it also recognises what this operation already saved, and saves it nothing twice. */
+const store = createDryRunStore(storePath, { mode: operation.mode });
 /* Returns the boundary's outcome AND the args, so the LEDGER'S OWN answer — appended, or already present — is
  * still what the run reports. Routing may not cost a caller information it was already giving the operator. */
 const governedLedgerAppend = (entry, action) => {
@@ -172,8 +205,15 @@ try {
     estateHostnames: DECLARED_HOSTS,
     days,
     controlProperty,
+    /* the operation's own start instant: a retry rebuilds byte-identical records */
+    now: operationClock(operation),
   });
 } catch (err) {
+  if (err instanceof OperationRefused) {
+    console.error(`\n🔴 ${err.message}`);
+    console.error(`metered calls this run: issued ${meteredCalls.issued} · replayed from the journal ${meteredCalls.replayed}`);
+    process.exit(2);
+  }
   if (err?.hardStop) {
     console.error(`\n${err.message}`);
     const stoppedEntry = entryFromLiveIngest({ startedAt, finishedAt: new Date().toISOString(), governor, pulls: [], basis: "Search Console API is free; no billing account attached to almiworld-hq-502102" });
@@ -269,15 +309,23 @@ if (r.control.httpStatus === 403) {
 /* 🔴 IDEMPOTENCY, REPORTED RATHER THAN ASSUMED. A second run over unchanged
  * data appends re-sightings and no new measurements — and says which happened. */
 console.log("");
-const evidenceGoverned = executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,
-  repo: REPO, permission, store: createJsonlStore(storePath), records: store.wouldWrite(),
-  targetClass: "GENERATED_CONFIG", action: "APPEND_SEARCH_CONSOLE_OBSERVATIONS",
-  occurredAt: GSC_INSTANT, correlationId: GSC_CORRELATION, discipline: "APPEND_IF_NEW",
-}));
-if (evidenceGoverned.outcome !== "REFUSED" && evidenceGoverned.outcome !== "COMMITTED" && evidenceGoverned.outcome !== "ALREADY_COMMITTED") {
+/* F77 R2: the commit hands the store the new records AND the re-sighted ones (a fresh collection records its new sighting),
+ * keyed by the OPERATION, so a retry's commit is the same occurrence; a retry leaves out what this operation already saved, and
+ * when that is everything there is nothing to save. */
+const toCommit = store.commitInput();
+const evidenceGoverned = toCommit.length === 0
+  ? { outcome: "NOTHING_TO_SAVE" }
+  : executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,
+    repo: REPO, permission, store: createJsonlStore(storePath), records: toCommit,
+    targetClass: "GENERATED_CONFIG", action: "APPEND_SEARCH_CONSOLE_OBSERVATIONS",
+    occurredAt: GSC_INSTANT, correlationId: GSC_CORRELATION, discipline: "APPEND_IF_NEW", seenAt: operation.startedAt,
+  }));
+if (!["REFUSED", "COMMITTED", "ALREADY_COMMITTED", "NOTHING_TO_SAVE"].includes(evidenceGoverned.outcome)) {
   console.error(`🔴 ${evidenceGoverned.outcome} — the observations were not written; the governed attempt is on the audit trail`);
   process.exit(1);
 }
+if (evidenceGoverned.outcome !== "REFUSED") markCommitted(operation, persistJournal);
+console.log(`operation ${operationId} (${operation.mode}): metered calls issued ${meteredCalls.issued} · replayed from the journal ${meteredCalls.replayed} · already saved by this operation ${r.alreadySaved} · evidence ${evidenceGoverned.outcome}`);
 /* The same number as before: what the store HOLDS after this run's decision — the file's contents when the write
  * was committed, and its untouched contents when it was refused. */
 const totalRecords = evidenceGoverned.outcome === "REFUSED" ? store.count() : createJsonlStore(storePath).readAll().length;

@@ -94,10 +94,18 @@ export const RESIGHTING_TYPE = "resighting";
  * dry run report zero writes — a lie in the safe-looking direction. Every record it is handed is
  * kept in memory and counted, so the caller can print exactly what the run would have stored.
  */
-export function createDryRunStore(filePath) {
+export function createDryRunStore(filePath, { mode = "FRESH" } = {}) {
   if (typeof filePath !== "string" || filePath === "") throw new TypeError("createDryRunStore: a path is required");
+  if (mode !== "FRESH" && mode !== "RETRY") throw new TypeError(`createDryRunStore: mode is FRESH or RETRY, not ${mode}`);
   const existing = existsSync(filePath) ? createJsonlStore(filePath).readAll() : [];
   const wouldWrite = [];
+  /* 🔴 F77 R2 (RR-82 §2.1) — a FRESH collection RECORDS A NEW SIGHTING: a record that already exists is handed to the commit so the
+   * real store appends its re-sighting (measured 28 Sep: since this collector was introduced, a re-sighting was counted and never
+   * saved). A RETRY of the same operation saves nothing twice: a record this operation already saved — the same observation id, or
+   * a re-sighting at the same instant — is recognised and left out. */
+  const resighted = [];
+  const savedObservationIds = new Set(existing.filter((r) => r?.record_type !== RESIGHTING_TYPE && typeof r?.observation_id === "string").map((r) => r.observation_id));
+  const savedResightings = new Set(existing.filter((r) => r?.record_type === RESIGHTING_TYPE).map((r) => `${r.measurement_key}|${r.seen_at}`));
   const keyOf = (r) => {
     if (typeof r?.measurement_key === "string" && r.measurement_key !== "") return r.measurement_key;
     if (r?.record_type === "issue" && typeof r.issue_id === "string" && r.issue_id !== "") return `issue:${r.issue_id}`;
@@ -119,12 +127,21 @@ export function createDryRunStore(filePath) {
           "or a content-identified issue can be deduplicated — use appendWithoutDedupe() for anything else, and declare why.",
       );
     }
+    if (mode === "RETRY" && ((typeof record.observation_id === "string" && savedObservationIds.has(record.observation_id)) || savedResightings.has(`${keyOf(record)}|${seenAt}`))) {
+      return { appended: false, observation_id: record.observation_id, issue_id: record.issue_id, resighting: false, alreadySaved: true };
+    }
     const k = indexKey(record);
-    if (seen.has(k)) return { appended: false, observation_id: record.observation_id, issue_id: record.issue_id, resighting: true };
+    if (seen.has(k)) {
+      resighted.push(record);
+      return { appended: false, observation_id: record.observation_id, issue_id: record.issue_id, resighting: true };
+    }
     seen.add(k);
     wouldWrite.push(record);
     return { appended: true, observation_id: record.observation_id, issue_id: record.issue_id, resighting: false, seenAt };
   }
+  /** What the governed commit hands the real store's appendIfNew: the new records AND the re-sighted ones (the store appends a
+   * re-sighting for each of those). `wouldWrite` stays the new records only, for the dry-run report. */
+  const commitInput = () => [...wouldWrite, ...resighted];
   const appendAllWithoutDedupe = (records) => {
     for (const r of records) appendWithoutDedupe(r);
     return records.length;
@@ -142,6 +159,9 @@ export function createDryRunStore(filePath) {
     path: filePath,
     /** 🔴 NOT part of STORE_INTERFACE — the dry run's own report, so a caller can print what it would have stored. */
     wouldWrite: () => [...wouldWrite],
+    /** 🔴 NOT part of STORE_INTERFACE — what the governed commit hands the real store (F77 R2). */
+    commitInput,
+    mode,
   });
 }
 

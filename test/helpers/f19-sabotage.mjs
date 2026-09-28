@@ -14,6 +14,7 @@
  *   a request running past its timeout (a page; robots.txt) ...................................... F19-S7, F19-S8
  *   a control undeclared in the run's record (depth, interval, timeout: the three the measurement
  *   found missing) ............................................................................... F19-S9, F19-S10, F19-S11
+ *   the run record lacks a truncation or refusal count; the cost undercounts requests ............. F19-S12 … F19-S15
  */
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -79,6 +80,24 @@ export const F19_SABOTAGES = [
     from: `    maxDepth: MAX_DEPTH, requestIntervalMs: intervalMs, requestIntervalScope: INTERVAL_SCOPE, requestTimeoutMs: timeoutMs,`,
     to: `    maxDepth: MAX_DEPTH, requestIntervalMs: intervalMs, requestIntervalScope: INTERVAL_SCOPE,`,
     expect: /F19-RECORD-UNDECLARED: the run record lacks requestTimeoutMs=700/ },
+
+  /* After RR-76's live run (28 Sep 2026): the frozen record clause names TRUNCATIONS and REFUSALS counts, and the cost must
+   * count every request. The real record lacked both counts; the cost entry counted 3 of 4 requests. */
+  { id: "F19-S12", what: "the run record does not count truncations", file: CRAWLER, test: T, named: "F19 · B4 ·",
+    from: `      truncations: observations.filter((o) => o.value.truncated).length,`, to: `      truncations: null,`,
+    expect: /F19-RECORD-TRUNCATIONS/ },
+
+  { id: "F19-S13", what: "the run record does not count refusals", file: CRAWLER, test: T, named: "F19 · B8 ·",
+    from: `      refusals: observations.filter((o) => o.value.skipped).length,`, to: `      refusals: null,`,
+    expect: /F19-RECORD-REFUSALS/ },
+
+  { id: "F19-S14", what: "the run's cost counts page requests only (robots.txt left out)", file: CRAWLER, test: T, named: "F19 · L ·",
+    from: `      cost: crawlCost(fetcher.requestsIssued() + robots.requestsIssued()),`, to: `      cost: crawlCost(fetcher.requestsIssued()),`,
+    expect: /F19-COST-UNDERCOUNT/ },
+
+  { id: "F19-S15", what: "the ledger ignores a record's robots.txt count", file: "src/cost/ledger.mjs", test: T, named: "F19 · L ·",
+    from: `    providerCalls: Number.isInteger(run.robotsRequestsIssued)`, to: `    providerCalls: false`,
+    expect: /F19-LEDGER-UNDERCOUNT/ },
 ];
 
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("\\").join("/").split("/").pop())) {

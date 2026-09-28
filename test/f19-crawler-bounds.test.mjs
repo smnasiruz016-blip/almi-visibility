@@ -15,6 +15,7 @@ import { createServer } from "node:http";
 
 import { crawl, renderPlan, MAX_DEPTH } from "../src/crawl/crawler.mjs";
 import { REQUEST_INTERVAL_MS, REQUEST_TIMEOUT_MS, MAX_RESPONSE_BYTES } from "../src/crawl/fetcher.mjs";
+import { entryFromCrawlRun } from "../src/cost/ledger.mjs";
 
 const EGRESS = [];
 const CALLS = []; // { path, at } — client-side call instants, on the pacer's own clock (Date.now)
@@ -102,6 +103,7 @@ test("F19 · B4 · RESPONSE SIZE: at a declared 1000-byte cap, 1001 bytes are tr
   assert.equal(byPath["/under"].value.truncated, false);
   assert.equal(byPath["/under"].value.bytes, 999);
   assert.equal(run.maxResponseBytes, 1000, "F19-SIZE-UNDECLARED: the record does not declare the cap the fetcher enforced");
+  assert.equal(run.truncations, 1, "F19-RECORD-TRUNCATIONS: the run record does not count its one truncated body");
 });
 
 test("F19 · B5 · RATE: every request to the host, robots.txt included, is at least the declared interval after the last", async () => {
@@ -144,6 +146,29 @@ test("F19 · B7 · TIMEOUT: robots.txt obeys the SAME declared timeout; a slow r
   assert.equal(hits.get("/q1") ?? 0, 0, "a host whose robots state is unknown is not crawled");
   assert.equal(observations[0].value.robotsState, "UNKNOWN");
   assert.equal(run.coverageState, "UNKNOWN");
+  assert.equal(run.refusals, 1, "F19-RECORD-REFUSALS: the run record does not count the page robots could not clear");
+});
+
+test("F19 · B8 · REFUSALS: a robots-disallowed page is not fetched, and the run record COUNTS the refusal", async () => {
+  reset();
+  const { run } = await live([`${origin}/private`, `${origin}/open`], { fetcherOptions: { intervalMs: 0 } });
+  assert.equal(hits.get("/private") ?? 0, 0, "a robots-disallowed path was fetched");
+  assert.equal(run.urlsFetched, 1);
+  assert.equal(run.refusals, 1, "F19-RECORD-REFUSALS: the run record does not count the robots refusal");
+  assert.equal(run.truncations, 0);
+});
+
+test("F19 · L · COST: the cost entry counts EVERY request, robots.txt included, and carries the declared bounds; an older record without a robots count keeps its page count", async () => {
+  reset();
+  const { run } = await live(pages(3, "/c"), { fetcherOptions: { intervalMs: 0 } });
+  assert.equal(CALLS.length, 4, "the population: robots.txt + 3 pages");
+  assert.equal(run.cost.apiCalls, 4, "F19-COST-UNDERCOUNT: the run cost does not count every request issued");
+  const e = entryFromCrawlRun(run, { recordedAt: "t" });
+  assert.equal(e.providerCalls.total, 4, "F19-LEDGER-UNDERCOUNT: the ledger does not count the robots.txt request");
+  for (const k of ["capacity", "maxDepth", "requestIntervalMs", "requestTimeoutMs"]) assert.equal(e.budget.bounds[k], run[k], `F19-LEDGER-BOUND-UNDECLARED: ${k}`);
+  const older = { ...run, robotsRequestsIssued: undefined };
+  assert.equal(entryFromCrawlRun(older, { recordedAt: "t" }).providerCalls.total, 3, "an older record was given a robots count it never stated");
+  assert.equal(e.money.amount, null); assert.equal(e.money.amountState, "UNKNOWN");
 });
 
 test("F19 · D · DECLARED: plan, printed plan and record all carry the five controls with the values enforced", async () => {

@@ -230,6 +230,8 @@ console.log(
       urlsFetched: run.urlsFetched,
       requestsIssued: run.requestsIssued,
       robotsRequestsIssued: run.robotsRequestsIssued,
+      truncations: run.truncations,
+      refusals: run.refusals,
       capReached: run.capReached,
       coverageState: run.coverageState,
     },

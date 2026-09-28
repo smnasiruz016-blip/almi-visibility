@@ -444,7 +444,14 @@ export const DECLARED = Object.freeze({
      * are UNRECOVERABLE, and that the later census is a different pair of reads. What is proved is the mechanism: an ACCESS
      * event appended through the production path now survives checkout/restore/reset/stash (out-of-tree witness), and a
      * shortened trail refuses further appends. EARNED only when main CI is green on the exact merged SHA (afterMerge). */
-    state: "VERIFIED-PASS",
+    /* 🔴 REOPENED 28 Sep 2026 — CONCRETE_CONTRADICTORY_EVIDENCE, NOT a requirement change. Eight reads of storage S, by CC's own
+     * scratch scripts and one run of the owner's tool, between the seal (27 Sep 02:19:02Z) and the owner's labelling, read the set side
+     * — both registered HELD_OUT_EVIDENCE sets, and the packet queues with wording — WITHOUT a durable ACCESS event and through a
+     * path other than the sealed lifecycle. F07's FAILURE limbs "a read of either side reaches its value without a durable ACCESS
+     * recorded first, or through any path other than the sealed lifecycle" and "a payload item … or an item-level result crosses out
+     * of the boundary" are MET by those events; THE LIMIT disclaims OBSERVATION, it does not remove the limbs. No label and no key was
+     * read. The requirement did not change; no amendment. Classification: _handoffs be583fa. */
+    state: "IN-PROGRESS",
     events: Object.freeze([
       // The acceptance was committed ALONE in the governance repository (cd149ae) before any F07 engine change.
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-23", ruling: F07_ORIGINAL.ruling, contractSha256: F07_ORIGINAL.contractSha256 }),
@@ -604,6 +611,20 @@ export const DECLARED = Object.freeze({
         proofs: "test/f08-witness.test.mjs (12), test/f08-audit-gap.test.mjs (3), with every existing F07 proof re-run: f07-amendment3-paired, f07-amendment2-marking-key, f07-heldout-firewall, heldout-firewall, f07-sink-repair, f07-closure, f07-amendment-leak-census, f10-storage-s-registration",
         sabotage: "WS-S1–S9 and GP-S1–S4 (new, 13/13) · F7C 16/16, F7B 21/21, F7A 11/11, F7 16/16, F07 sink 10/10, SL 17/17, C7 24/24, F10 23/23 (existing, re-run), residue 0, production trail untouched",
         afterMerge: "main CI green on the exact merged SHA — verified after merge and reported in _handoffs; a red main run means this record is wrong and must be reverted",
+      }),
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F07",
+        on: "2026-09-28",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS (concrete contradictory evidence: eight out-of-band reads of the set side of storage S, no ACCESS recorded)",
+        reason: "CONCRETE_CONTRADICTORY_EVIDENCE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "between the seal (2026-09-27T02:19:02Z) and the owner's labelling, eight reads of storage S read both registered HELD_OUT_EVIDENCE sets' members and the packet queues' wording without a durable ACCESS event and outside the sealed lifecycle; F07 FAILURE 'a read of either side reaches its value without a durable ACCESS recorded first, or through any path other than the sealed lifecycle' and 'a payload item … or an item-level result crosses out of the boundary' are met; no label and no marking key was read; THE LIMIT disclaims observation and does not remove the limbs",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F07.ruling.sha256, contract: ACCEPTANCES.F07.contractSha256 }),
+        evidenceRecord: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F10_C3_INCIDENT_CLASSIFICATION_2026-09-28.md", commit: "be583fa523427593debe259da1134cd6ca6a62cb", sha256: "63c6c54b9c564984f1f7d2c3ecf53cfd57acfbe7098d1d787ce0475d023a4f21" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-27_CORRECT_V3_ADOPTION_AND_RECOVER_F10.md", commit: "af4e9c89a8cd1d5216696858bc4c5dae67eb3120", sha256: "3c6144c0beadacd28724a27aa991fe384aed60791e737c0a1defdf8d7d8aab72" }),
       }),
     ]),
   }),

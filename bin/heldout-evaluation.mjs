@@ -35,7 +35,12 @@ import { authorise, authorisationEvent, namedActor, AUTHORISATION_REFUSED_EXIT }
 import { durableGuardSink } from "../src/governance/guard-audit.mjs";
 import { execFileSync } from "node:child_process";
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
-import { governedScoring, versionHash, SCORER_FILES } from "../src/governance/governed-scoring.mjs";
+import { governedScoring, versionHash, SCORER_FILES, RELEASE_STORE } from "../src/governance/governed-scoring.mjs";
+import { DISCLOSED_SEALS, DISCLOSED_POPULATION_AGREEMENT } from "../config/fboard/disclosed-seals.mjs";
+import { disclosureOf, releaseStoreFor, classStatement } from "../src/heldout/disclosed-seal.mjs";
+import { governedKeyMeasurement } from "../src/governance/governed-key-measurement.mjs";
+import { createWitness, gitDirWitnessLocator, linesOf } from "../src/audit-trail/witness.mjs";
+import { readFileSync } from "node:fs";
 import { resolveSealedStoreRoots } from "../src/governance/sealed-store-roots.mjs";
 import { createTenantResolver } from "../src/tenancy/resolver.mjs";
 import { pinnedObservationRows, decidePartition, readTenantPartition } from "../src/discovery/search-console-partition.mjs";
@@ -67,6 +72,14 @@ const correlationId = `run:heldout-evaluation:${cmd}:${NOW}`;
 const { authorityRef, authorityHash } = guardAuthority({ now: NOW.slice(0, 10) });
 const ctx = { ...governedAuditContext({ repo: REPO, correlationId, authorityRef, authorityHash }), actor: "bin/heldout-evaluation.mjs" };
 const H = (e) => e.eventType === "EVALUATION" && e.metadata?.family === "H";
+
+/* 🔴 F10 ACCEPTANCE AMENDMENT 3 — A DISCLOSED SEAL'S CLASS TRAVELS WITH EVERY STATEMENT. The class is decided from the named set's
+ * REGISTERED id and commitment (config/fboard/disclosed-seals.mjs), stated BEFORE anything is requested or scored, and a result is
+ * stored only in the class-named release store (src/heldout/disclosed-seal.mjs). A synthetic set may be marked disclosed ONLY inside
+ * a verified test context (the synthetic fixture is refused anywhere else), so the real route can be proved without the real seal. */
+const SEALS = [...DISCLOSED_SEALS, ...(EFFECTIVE.synthetic ? EVIDENCE_ROLE_REGISTRY.filter((e) => e.disclosedSeal === true && String(e.id).startsWith("synthetic:")).map((e) => ({ featureId: "SYNTHETIC", evidenceClass: DISCLOSED_POPULATION_AGREEMENT, meaning: "a SYNTHETIC disclosed seal (verified test context only)", sets: [{ id: e.id, contentHash: e.contentHash }] })) : [])];
+const DISCLOSURE = cmd === "request" || cmd === "score" ? disclosureOf(EVIDENCE_ROLE_REGISTRY.find((e) => e.id === arg("set")), SEALS) : null;
+if (DISCLOSURE) console.log(classStatement(DISCLOSURE));
 
 if (cmd === "status") {
   const byRole = EVIDENCE_ROLE_REGISTRY.reduce((m, e) => ((m[e.role] = (m[e.role] ?? 0) + 1), m), {});
@@ -103,6 +116,29 @@ if (cmd === "freeze") {
   const f = freezeMechanism({ audit: ctx, mechanismId: arg("mechanism-id"), mechanismHash: arg("mechanism-hash"), frozenAt: NOW });
   console.log(`FROZEN ${f.mechanismId} ${f.mechanismHash.slice(0, 12)}… as ${f.eventId}`);
   process.exit(0);
+}
+
+/* 🔴 PART D1 · THE KEY PREFLIGHT RUNS BEFORE THE GRANT (src/heldout/key-registration.mjs). An unregistered, changed, incomplete,
+ * inconsistent or wider-than-its-set key is REFUSED here — recorded, before any grant is requested — so it can never reach a claim or
+ * the once-only run, and never turns the set's FIRST_ACCESS into a re-run. Its read is a durable ACCESS, witness-checked EQUAL before
+ * any key byte is read. A confined (test-context) store has no witness, so there the preflight is NOT RUN and says so: the production
+ * route always runs it, and its guards are proved against a real store and a real witness in test/f10-key-registration.test.mjs. */
+if (cmd === "score" && arg("key-set")) {
+  if (ctx.synthetic) console.log("KEY PREFLIGHT NOT RUN — a confined test-context store has no witness (guard G1 needs one); the production route always runs it");
+  else {
+    const keyEntry = EVIDENCE_ROLE_REGISTRY.find((e) => e.id === arg("key-set"));
+    const proto = (arg("route") ?? "classification") === "follow-up" ? C7_PROTOCOL : PROTOCOL;
+    /* A MIXED writer, reached ONLY through the governed boundary, like the scoring run below. */
+    const pre = governedKeyMeasurement({
+      repo: REPO, permission: { ...permission, actorRef: namedActor(argv) }, audit: ctx, witness: createWitness({ locate: gitDirWitnessLocator(REPO) }), trailLines: () => linesOf(readFileSync(ctx.store.eventsPath, "utf8")),
+      registry: EVIDENCE_ROLE_REGISTRY, stores: resolveSealedStoreRoots({ declared: EFFECTIVE.declared }), mode: "VERIFY", occurredAt: NOW,
+      spec: { keyId: arg("key-set"), root: keyEntry?.resource?.root ?? null, prefix: keyEntry?.resource?.pathPrefixes?.[0] ?? null, linkedSetId: keyEntry?.linkedSet ?? arg("set"), classes: proto.classes, exclusions: proto.exclusions },
+    });
+    let preRun;
+    try { preRun = executeGovernedWrite({ ...pre, action: { ...pre.action, name: "RECORD_HELDOUT_EVALUATION" } }); } catch (e) { console.error(`🔴 KEY PREFLIGHT STOPPED — ${e.code ?? e.name}: no grant was requested and no run was claimed`); process.exit(5); }
+    if (preRun.outcome !== "COMMITTED" || !pre.result()) { console.error(`🔴 KEY PREFLIGHT REFUSED — ${preRun.outcome}${preRun.faults?.length ? ` · ${preRun.faults.map((f) => f.code).join(", ")}` : ""}: no grant was requested and no run was claimed`); process.exit(5); }
+    console.log(`KEY PREFLIGHT PASSED · rows ${pre.result().rows}`);
+  }
 }
 
 const g = requestHeldOutAccess({
@@ -164,11 +200,12 @@ const scoring = governedScoring({
   currentMechanismHash: versionHash(REPO, C7 ? FU.MECHANISM_FILES : MECHANISM_FILES), currentScorerHash: versionHash(REPO, C7 ? FOLLOW_UP_SCORER_FILES : SCORER_FILES),
   outputsFor: C7 ? followUpOutputsFor : outputsFor,
   protocol: C7 ? C7_PROTOCOL : PROTOCOL, rule: C7 ? C7_BAR : SCORING_RULE, occurredAt: NOW, trackedFiles: () => execFileSync("git", ["-C", REPO, "ls-files"], { encoding: "utf8" }).split("\n").filter(Boolean),
-  ...(C7 ? { releaseStore: C7_RELEASE_STORE, verdictOf: (scored) => followUpVerdict(scored, { bar: C7_BAR, protocol: C7_PROTOCOL }) } : {}),
+  releaseStore: releaseStoreFor(C7 ? C7_RELEASE_STORE : RELEASE_STORE, DISCLOSURE),
+  ...(C7 ? { verdictOf: (scored) => followUpVerdict(scored, { bar: C7_BAR, protocol: C7_PROTOCOL }) } : {}),
 });
 let run;
 try { run = executeGovernedWrite({ ...scoring, action: { ...scoring.action, name: "RECORD_HELDOUT_EVALUATION" } }); } catch (e) { console.error(`🔴 SCORING RUN STOPPED — ${e.code ?? e.name}: no result was released`); process.exit(4); }
 const rel = scoring.release();
 console.log(`SCORING ${run.outcome}${run.faults.length ? ` · ${run.faults.map((f) => f.code + (f.why ? `(${f.why})` : "")).join(", ")}` : ""}`);
-if (rel) console.log(`  release ${rel.combination.slice(0, 16)}… · declared ${rel.declared} · D ${rel.denominator} · verdict ${rel.verdict.result}${rel.verdict.reason ? ` (${rel.verdict.reason})` : ""} · ${Object.entries(rel.tables).map(([c, t]) => `${c} tp${t.tp}-fp${t.fp}-fn${t.fn}-tn${t.tn}`).join(" · ")}${rel.discordantPairs !== undefined ? ` · abstentions ${rel.abstentions} · discordant ${rel.discordantPairs} · both-correct ${rel.discordantBothCorrect}` : ""}`);
+if (rel) console.log(`  ${DISCLOSURE ? `[${DISCLOSURE.evidenceClass}] ` : ""}release ${rel.combination.slice(0, 16)}… · declared ${rel.declared} · D ${rel.denominator} · verdict ${rel.verdict.result}${rel.verdict.reason ? ` (${rel.verdict.reason})` : ""} · ${Object.entries(rel.tables).map(([c, t]) => `${c} tp${t.tp}-fp${t.fp}-fn${t.fn}-tn${t.tn}`).join(" · ")}${rel.discordantPairs !== undefined ? ` · abstentions ${rel.abstentions} · discordant ${rel.discordantPairs} · both-correct ${rel.discordantBothCorrect}` : ""}`);
 process.exit(run.outcome === "COMMITTED" || run.outcome === "ALREADY_COMMITTED" ? 0 : run.outcome === "REFUSED" ? 5 : 4);

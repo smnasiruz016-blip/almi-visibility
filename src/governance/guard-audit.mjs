@@ -111,7 +111,8 @@ export function auditClassOf(decision) {
   // F07 Amendment 2 (governance 051feb9): the evaluator's read of one side of a granted pair is an ACCESS, recorded before use.
   if (eventType === "EVALUATION" && action === "HELDOUT_ITEM_READ") return "ACCESS";
   /* F07 Amendment 1: the leak census reading a sealed role's content inside the boundary is an ACCESS too — durable. */
-  if (eventType === "EVALUATION") return action === "HELDOUT_ACCESS" || action === "HELDOUT_CENSUS_READ" ? "ACCESS" : "GOVERNED_CHANGE";
+  /* Part D1 (28 Sep 2026): the governed key-registration read (src/heldout/key-registration.mjs) is an ACCESS, recorded before use. */
+  if (eventType === "EVALUATION") return action === "HELDOUT_ACCESS" || action === "HELDOUT_CENSUS_READ" || action === "HELDOUT_KEY_ACCESS" ? "ACCESS" : "GOVERNED_CHANGE";
   /* F06: a checked evidence-state supersession changes what an item may be reported as — a governed change. */
   if (eventType === "EVIDENCE_STATE_TRANSITION") return "GOVERNED_CHANGE";
   /* F01: a decision on a SUBMITTED declaration changes what a project is on record as declaring — a governed change.

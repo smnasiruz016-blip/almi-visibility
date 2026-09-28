@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Generate `CHECKLIST_BOUNDARIES.md` — all 58 features with their four-part
+ * Generate `CHECKLIST_BOUNDARIES.md` — all 61 features (58 frozen + 3 admitted by ruling) with their four-part
  * PASS boundary VERBATIM, and their six-state classification.
  *
  * ── 🔴 WHY THIS IS GENERATED AND `CHECKLIST_STATUS.md` IS NOT ───────────────

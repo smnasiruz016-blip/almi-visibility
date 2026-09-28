@@ -32,18 +32,26 @@ test("F7-BOARD · F07 is VERIFIED-PASS by UNASSESSED → IN-PROGRESS → VERIFIE
   /* F04 VERIFIED-PASS on 25 Sep 2026 (movement 2 under Amendment 1, owner command 89e8664 §7) — the board reads 8/89. */
   /* F09 started on 25 Sep 2026 (movement 1 only: UNASSESSED -> IN-PROGRESS, owner commands e5f5fd4 / 474d27a) — VERIFIED-PASS unchanged. */
   /* F09 VERIFIED-PASS on 25 Sep 2026 (movement 2, close-out command 2601cb3 §10) — the board reads 9/89, measured on the closure tree. */
-  assert.deepEqual(p.split, { UNASSESSED: 78, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 1, "BLOCKED-BY-AUTHORITY": 1, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 9 }); // F10 IN-PROGRESS on 26 Sep (movement 1, acceptance 504dbb9); VERIFIED-PASS still 9/89
-  assert.equal(p.passed, 9); // F09 moved to VERIFIED-PASS on 25 Sep 2026 (close-out 2601cb3), measured on its closure tree. F02 moved to VERIFIED-PASS on 25 Sep 2026 under its own Amendment 1 (test/f02-disposition.test.mjs owns that movement). F03 moved to VERIFIED-PASS on 25 Sep 2026 on merged main, in two movements (test/f03-closure.test.mjs owns that movement). // 3/89 at F07's closure; F06 then moved under its own acceptance (24 Sep 2026) — test/f06-closure.test.mjs owns it; F01 the same day — test/f01-closure.test.mjs. F04 moved to VERIFIED-PASS on 25 Sep 2026 under its Amendment 1 (test/f04-amendment-zero-population.test.mjs owns that movement).
+  /* F07 REOPENED 28 Sep 2026 (CONCRETE_CONTRADICTORY_EVIDENCE, eight out-of-band reads, _handoffs be583fa) — the board reads 8/89; test/f07-closure.test.mjs owns that movement. */
+  assert.deepEqual(p.split, { UNASSESSED: 78, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 2, "BLOCKED-BY-AUTHORITY": 1, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 8 }); // F10 IN-PROGRESS on 26 Sep (movement 1, acceptance 504dbb9); VERIFIED-PASS still 9/89
+  assert.equal(p.passed, 8); // F07 REOPENED 28 Sep 2026 (CONCRETE_CONTRADICTORY_EVIDENCE, eight out-of-band reads, _handoffs be583fa) — the board reads 8/89. F09 moved to VERIFIED-PASS on 25 Sep 2026 (close-out 2601cb3), measured on its closure tree. F02 moved to VERIFIED-PASS on 25 Sep 2026 under its own Amendment 1 (test/f02-disposition.test.mjs owns that movement). F03 moved to VERIFIED-PASS on 25 Sep 2026 on merged main, in two movements (test/f03-closure.test.mjs owns that movement). // 3/89 at F07's closure; F06 then moved under its own acceptance (24 Sep 2026) — test/f06-closure.test.mjs owns it; F01 the same day — test/f01-closure.test.mjs. F04 moved to VERIFIED-PASS on 25 Sep 2026 under its Amendment 1 (test/f04-amendment-zero-population.test.mjs owns that movement).
   assert.equal(p.total, 89);
   assert.deepEqual(["F05", "F08", "F40"].map((f) => DECLARED[f].state), ["VERIFIED-PASS", "VERIFIED-PASS", "BLOCKED-BY-AUTHORITY"]);
 
   const f07 = DECLARED.F07;
-  assert.equal(f07.state, "VERIFIED-PASS");
+  /* 🔴 28 Sep 2026: REOPENED on CONCRETE_CONTRADICTORY_EVIDENCE — eight out-of-band reads of storage S's set side, no ACCESS recorded
+   * (_handoffs be583fa). Requirement UNCHANGED (Amendment 3); no re-verification in the same command — F07 stays IN-PROGRESS. */
+  assert.equal(f07.state, "IN-PROGRESS");
+  const reopened4 = f07.events[f07.events.length - 1];
+  assert.deepEqual([reopened4.kind, reopened4.on, reopened4.from, reopened4.to, reopened4.reason], ["REOPENED", "2026-09-28", "VERIFIED-PASS", "IN-PROGRESS", "CONCRETE_CONTRADICTORY_EVIDENCE"]);
+  assert.deepEqual(reopened4.acceptanceUnchanged, { ruling: ACCEPTANCES.F07.ruling.sha256, contract: ACCEPTANCES.F07.contractSha256 }, "the reopen changed the requirement");
+  assert.deepEqual([reopened4.evidenceRecord.commit, reopened4.evidenceRecord.sha256], ["be583fa523427593debe259da1134cd6ca6a62cb", "63c6c54b9c564984f1f7d2c3ecf53cfd57acfbe7098d1d787ce0475d023a4f21"]);
+  assert.match(reopened4.rationale, /no label and no marking key was read/);
   /* F07 Amendment 1 (25 Sep 2026, governance a0b7e4b): reopened on AUTHORITATIVE_REQUIREMENT_CHANGE and re-verified under the
    * amended contract. The first three events are history, frozen under the ORIGINAL acceptance (F07_ORIGINAL). */
   /* F07 Amendment 2 (26 Sep 2026, governance 051feb9): reopened again on AUTHORITATIVE_REQUIREMENT_CHANGE and re-verified under the
    * Amendment 2 contract. Amendment 1's three events are history, frozen under F07_AMENDMENT_1. */
-  assert.deepEqual(f07.events.map((e) => `${e.kind}@${e.on}`), ["ACCEPTANCE_FROZEN@2026-09-23", "IMPLEMENTATION@2026-09-23", "VERIFIED@2026-09-23", "ACCEPTANCE_AMENDED@2026-09-25", "REOPENED@2026-09-25", "VERIFIED@2026-09-25", "ACCEPTANCE_AMENDED@2026-09-26", "REOPENED@2026-09-26", "VERIFIED@2026-09-26", "ACCEPTANCE_AMENDED@2026-09-26", "REOPENED@2026-09-26", "VERIFIED@2026-09-26", "REOPENED@2026-09-27", "VERIFIED@2026-09-27"]);
+  assert.deepEqual(f07.events.map((e) => `${e.kind}@${e.on}`), ["ACCEPTANCE_FROZEN@2026-09-23", "IMPLEMENTATION@2026-09-23", "VERIFIED@2026-09-23", "ACCEPTANCE_AMENDED@2026-09-25", "REOPENED@2026-09-25", "VERIFIED@2026-09-25", "ACCEPTANCE_AMENDED@2026-09-26", "REOPENED@2026-09-26", "VERIFIED@2026-09-26", "ACCEPTANCE_AMENDED@2026-09-26", "REOPENED@2026-09-26", "VERIFIED@2026-09-26", "REOPENED@2026-09-27", "VERIFIED@2026-09-27", "REOPENED@2026-09-28"]);
   /* F07 Amendment 3 (26 Sep 2026, governance 264c680): reopened a third time on AUTHORITATIVE_REQUIREMENT_CHANGE and re-verified
    * under the Amendment 3 contract, the same day as Amendment 2. Amendment 2's three events are history, frozen under F07_AMENDMENT_2. */
   const [frozen, impl, verified, amended, reopened, reverified, amended2, reopened2, reverified2, amended3, reopened3, reverified3] = f07.events;
@@ -86,9 +94,11 @@ test("F7-BOARD · F07 is VERIFIED-PASS by UNASSESSED → IN-PROGRESS → VERIFIE
 });
 
 test("F7-BOARD · CONTROL — the same board without F07's REAL verification, or with implementation before the freeze, is refused", () => {
-  const without = board().map((r) => (r.featureId === "F07" ? { ...r, events: r.events.filter((e) => e.kind !== "VERIFIED") } : r));
+  const claimed = (r) => ({ ...r, state: "VERIFIED-PASS" }); // F07 is IN-PROGRESS since 28 Sep: the control CLAIMS the pass, then removes its support
+  assert.deepEqual(boardErrors(board(), ctx), [], "CONTROL: the real reopened board is clean");
+  const without = board().map((r) => (r.featureId === "F07" ? claimed({ ...r, events: r.events.filter((e) => e.kind !== "VERIFIED") }) : r));
   assert.deepEqual(boardErrors(without, ctx).map((e) => `${e.code}:${e.id}`), ["PASS_WITHOUT_VERIFICATION:F07"]);
-  const fixture = board().map((r) => (r.featureId === "F07" ? { ...r, events: r.events.map((e) => (e.kind === "VERIFIED" ? { ...e, population: "FIXTURE" } : e)) } : r));
+  const fixture = board().map((r) => (r.featureId === "F07" ? claimed({ ...r, events: r.events.map((e) => (e.kind === "VERIFIED" ? { ...e, population: "FIXTURE" } : e)) }) : r));
   assert.deepEqual(boardErrors(fixture, ctx).map((e) => `${e.code}:${e.id}`), ["PASS_WITHOUT_VERIFICATION:F07"]);
   const early = board().map((r) => (r.featureId === "F07" ? { ...r, events: [r.events[1], r.events[0], r.events[2]] } : r));
   assert.ok(boardErrors(early, ctx).some((e) => e.code === "IMPLEMENTATION_BEFORE_ACCEPTANCE" && e.id === "F07"));
@@ -96,7 +106,7 @@ test("F7-BOARD · CONTROL — the same board without F07's REAL verification, or
 
 test("F7-TRAIL · each F07 movement is in the production trail EXACTLY ONCE, under the acceptance that governed it, naming its states", () => {
   const mine = trail().filter((e) => e.eventType === "BOARD_TRANSITION" && e.metadata?.featureId === "F07");
-  assert.deepEqual(mine.map((e) => e.action), ["ACCEPTANCE_FROZEN", "IMPLEMENTATION", "VERIFIED", "ACCEPTANCE_AMENDED", "REOPENED", "VERIFIED", "ACCEPTANCE_AMENDED", "REOPENED", "VERIFIED", "ACCEPTANCE_AMENDED", "REOPENED", "VERIFIED", "REOPENED", "VERIFIED"], `${mine.length} transition event(s) for F07`);
+  assert.deepEqual(mine.map((e) => e.action), ["ACCEPTANCE_FROZEN", "IMPLEMENTATION", "VERIFIED", "ACCEPTANCE_AMENDED", "REOPENED", "VERIFIED", "ACCEPTANCE_AMENDED", "REOPENED", "VERIFIED", "ACCEPTANCE_AMENDED", "REOPENED", "VERIFIED", "REOPENED", "VERIFIED", "REOPENED"], `${mine.length} transition event(s) for F07`);
   for (const e of mine.slice(0, 3)) {
     assert.deepEqual(e.authorityRef, { propositionId: "F07_FROZEN_ACCEPTANCE", scope: ["ALMIVISIBILITY", "F07"] });
     assert.equal(e.occurredAt.slice(0, 10), "2026-09-23");
@@ -116,10 +126,13 @@ test("F7-TRAIL · each F07 movement is in the production trail EXACTLY ONCE, und
   }
   /* 27 Sep 2026: REOPENED on CONCRETE_CONTRADICTORY_EVIDENCE (two ACCESS records destroyed by git checkout, _handoffs 5fd0435) and
    * re-VERIFIED after the out-of-tree witness repair — both under the UNCHANGED Amendment 3, no new amendment. */
-  for (const e of mine.slice(12)) {
+  for (const e of mine.slice(12, 14)) {
     assert.deepEqual(e.authorityRef, { propositionId: "F07_ACCEPTANCE_AMENDMENT_3", scope: ["ALMIVISIBILITY", "F07"] });
     assert.equal(e.occurredAt.slice(0, 10), "2026-09-27");
   }
+  /* 28 Sep 2026: REOPENED on CONCRETE_CONTRADICTORY_EVIDENCE (eight out-of-band reads, _handoffs be583fa), under the UNCHANGED Amendment 3. */
+  assert.deepEqual(mine[14].authorityRef, { propositionId: "F07_ACCEPTANCE_AMENDMENT_3", scope: ["ALMIVISIBILITY", "F07"] });
+  assert.deepEqual([mine[14].occurredAt.slice(0, 10), mine[14].metadata.from, mine[14].metadata.to, mine[14].eventId], ["2026-09-28", "VERIFIED-PASS", "IN-PROGRESS", "8c2df937603f7a525920eeef573183f1"]);
   assert.deepEqual([mine[12].metadata.from, mine[12].metadata.to], ["VERIFIED-PASS", "IN-PROGRESS"]);
   assert.deepEqual([mine[13].metadata.from, mine[13].metadata.to, mine[13].metadata.population], ["IN-PROGRESS", "VERIFIED-PASS", "REAL"]);
   assert.deepEqual(mine.slice(6, 9).map((e) => e.eventId.slice(0, 8)), ["e97c2be7", "833037a7", "955d8571"], "an Amendment 2 event lost its original identity");
@@ -137,7 +150,7 @@ test("F7-TRAIL · each F07 movement is in the production trail EXACTLY ONCE, und
 
 test("F7-TRAIL · the board ↔ audit consistency check is clean, and names F07 among the rows that needed a transition", () => {
   const r = spawnSync(process.execPath, [join(REPO, "tools/board-audit-consistency.mjs")], { cwd: REPO, encoding: "utf8" });
-  assert.match(r.stdout, /rows needing a transition event: F01, F02, F03, F04, F05, F06, F07, F08/); // F06 and F01 joined on 24 September 2026; F03 on 25 September 2026; F04 on 25 September 2026
+  assert.match(r.stdout, /rows needing a transition event: F01, F02, F03, F04, F05, F06, F08, F09/); // F07 left the list on 28 Sep (reopened, IN-PROGRESS). F06 and F01 joined on 24 September 2026; F03 on 25 September 2026; F04 on 25 September 2026
   assert.match(r.stdout, /consistency errors\s*: 0/);
-  assert.match(r.stdout, /F-progress \(computed from the board file\): 9\/89/); // F09 moved on 25 Sep (close-out 2601cb3), measured 9/89 on the closure tree; 3/89 at F07's closure; F06 and F01 moved on 24 Sep; F02 and F03 on 25 Sep (measured 7/89 on the F03 closure tree); F04 on 25 Sep (8/89)
+  assert.match(r.stdout, /F-progress \(computed from the board file\): 8\/89/); // F07 REOPENED 28 Sep 2026 (CONCRETE_CONTRADICTORY_EVIDENCE, eight out-of-band reads, _handoffs be583fa) — the board reads 8/89. F09 moved on 25 Sep (close-out 2601cb3), measured 9/89 on the closure tree; 3/89 at F07's closure; F06 and F01 moved on 24 Sep; F02 and F03 on 25 Sep (measured 7/89 on the F03 closure tree); F04 on 25 Sep (8/89)
 });

@@ -74,12 +74,13 @@ test("F03 · CLOSE · 3 · the board validates clean, and every other named row 
   const b = buildBoard(CAPABILITIES, DECLARED);
   assert.deepEqual(boardErrors(b, { capabilities: CAPABILITIES, acceptances: ACCEPTANCES, authority: { records: AUTHORITY_CORPUS, now: CORPUS_PROVENANCE.now } }), []);
   const state = (id) => b.find((r) => r.featureId === id).state;
-  for (const id of ["F01", "F02", "F03", "F05", "F06", "F07", "F08"]) assert.equal(state(id), "VERIFIED-PASS", id);
+  for (const id of ["F01", "F02", "F03", "F05", "F06", "F08"]) assert.equal(state(id), "VERIFIED-PASS", id);
+  assert.equal(state("F07"), "IN-PROGRESS", "F07 reopened 28 Sep (test/f07-closure.test.mjs owns it)");
   assert.equal(state("F40"), "BLOCKED-BY-AUTHORITY");
   assert.equal(state("F79"), "UNASSESSED");
   const p = progress(b);
   assert.equal(p.passed, b.filter((r) => r.state === "VERIFIED-PASS").length);
-  assert.equal(p.passed, 9); // F09 moved to VERIFIED-PASS on 25 Sep 2026 (close-out 2601cb3), measured on its closure tree. measured on the closure tree after the two movements were written — never predicted. F04 moved to VERIFIED-PASS on 25 Sep 2026 under its Amendment 1 (test/f04-amendment-zero-population.test.mjs owns that movement).
+  assert.equal(p.passed, 8); // F07 REOPENED 28 Sep 2026 (CONCRETE_CONTRADICTORY_EVIDENCE, _handoffs be583fa) - the board reads 8/89. F09 moved to VERIFIED-PASS on 25 Sep 2026 (close-out 2601cb3), measured on its closure tree. measured on the closure tree after the two movements were written — never predicted. F04 moved to VERIFIED-PASS on 25 Sep 2026 under its Amendment 1 (test/f04-amendment-zero-population.test.mjs owns that movement).
 });
 
 test("F03 · CLOSE · R7 rows · every portability outcome row, printed, reproduces the digest exact-SHA main CI recorded", (t) => {

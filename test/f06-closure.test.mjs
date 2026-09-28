@@ -34,10 +34,11 @@ test("F6-BOARD · F06 is VERIFIED-PASS by UNASSESSED → IN-PROGRESS → VERIFIE
   /* F04 VERIFIED-PASS on 25 Sep 2026 (movement 2 under Amendment 1, owner command 89e8664 §7) — the board reads 8/89. */
   /* F09 started on 25 Sep 2026 (movement 1 only: UNASSESSED -> IN-PROGRESS, owner commands e5f5fd4 / 474d27a) — VERIFIED-PASS unchanged. */
   /* F09 VERIFIED-PASS on 25 Sep 2026 (movement 2, close-out command 2601cb3 §10) — the board reads 9/89, measured on the closure tree. */
-  assert.deepEqual(p.split, { UNASSESSED: 78, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 1, "BLOCKED-BY-AUTHORITY": 1, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 9 }); // F10 IN-PROGRESS on 26 Sep (movement 1, acceptance 504dbb9); VERIFIED-PASS still 9/89
-  assert.equal(p.passed, 9); // F09 moved to VERIFIED-PASS on 25 Sep 2026 (close-out 2601cb3), measured on its closure tree. F02 moved to VERIFIED-PASS on 25 Sep 2026 under its own Amendment 1 (test/f02-disposition.test.mjs owns that movement). F03 moved to VERIFIED-PASS on 25 Sep 2026 on merged main, in two movements (test/f03-closure.test.mjs owns that movement). F04 moved to VERIFIED-PASS on 25 Sep 2026 under its Amendment 1 (test/f04-amendment-zero-population.test.mjs owns that movement).
+  /* F07 REOPENED 28 Sep 2026 (CONCRETE_CONTRADICTORY_EVIDENCE, eight out-of-band reads, _handoffs be583fa) — the board reads 8/89; test/f07-closure.test.mjs owns that movement. */
+  assert.deepEqual(p.split, { UNASSESSED: 78, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 2, "BLOCKED-BY-AUTHORITY": 1, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 8 }); // F10 IN-PROGRESS on 26 Sep (movement 1, acceptance 504dbb9); VERIFIED-PASS still 9/89
+  assert.equal(p.passed, 8); // F07 REOPENED 28 Sep 2026 (CONCRETE_CONTRADICTORY_EVIDENCE, eight out-of-band reads, _handoffs be583fa) — the board reads 8/89. F09 moved to VERIFIED-PASS on 25 Sep 2026 (close-out 2601cb3), measured on its closure tree. F02 moved to VERIFIED-PASS on 25 Sep 2026 under its own Amendment 1 (test/f02-disposition.test.mjs owns that movement). F03 moved to VERIFIED-PASS on 25 Sep 2026 on merged main, in two movements (test/f03-closure.test.mjs owns that movement). F04 moved to VERIFIED-PASS on 25 Sep 2026 under its Amendment 1 (test/f04-amendment-zero-population.test.mjs owns that movement).
   assert.equal(p.total, 89);
-  assert.deepEqual(["F05", "F07", "F08", "F40"].map((f) => DECLARED[f].state), ["VERIFIED-PASS", "VERIFIED-PASS", "VERIFIED-PASS", "BLOCKED-BY-AUTHORITY"]);
+  assert.deepEqual(["F05", "F07", "F08", "F40"].map((f) => DECLARED[f].state), ["VERIFIED-PASS", "IN-PROGRESS", "VERIFIED-PASS", "BLOCKED-BY-AUTHORITY"]); // F07 reopened 28 Sep
   const f06 = DECLARED.F06;
   assert.equal(f06.state, "VERIFIED-PASS");
   assert.deepEqual(f06.events.map((e) => `${e.kind}@${e.on}`), ["ACCEPTANCE_FROZEN@2026-09-24", "IMPLEMENTATION@2026-09-24", "VERIFIED@2026-09-24", "CORRECTION_OPENED@2026-09-24", "CORRECTION_VERIFIED@2026-09-24"]);
@@ -94,7 +95,7 @@ test("F6-TRAIL · each F06 movement is in the production trail EXACTLY ONCE, und
 
 test("F6-TRAIL · the board ↔ audit consistency check is clean and names F06", () => {
   const r = spawnSync(process.execPath, [join(REPO, "tools/board-audit-consistency.mjs")], { cwd: REPO, encoding: "utf8" });
-  assert.match(r.stdout, /rows needing a transition event: F01, F02, F03, F04, F05, F06, F07, F08/); // F01 joined on 24 September 2026; F03 on 25 September 2026; F04 on 25 September 2026
+  assert.match(r.stdout, /rows needing a transition event: F01, F02, F03, F04, F05, F06, F08, F09/); // F07 left the list on 28 Sep (reopened, IN-PROGRESS); F09 is VERIFIED-PASS since 25 Sep. F01 joined on 24 September 2026; F03 on 25 September 2026; F04 on 25 September 2026
   assert.match(r.stdout, /consistency errors\s*: 0/);
-  assert.match(r.stdout, /F-progress \(computed from the board file\): 9\/89/); // F09 moved on 25 Sep (close-out 2601cb3), measured 9/89 on the closure tree; 4/89 at F06's closure; F01 moved on 24 Sep; F02 and F03 on 25 Sep (measured 7/89 on the F03 closure tree); F04 on 25 Sep (8/89)
+  assert.match(r.stdout, /F-progress \(computed from the board file\): 8\/89/); // F07 REOPENED 28 Sep 2026 (CONCRETE_CONTRADICTORY_EVIDENCE, eight out-of-band reads, _handoffs be583fa) — the board reads 8/89. F09 moved on 25 Sep (close-out 2601cb3), measured 9/89 on the closure tree; 4/89 at F06's closure; F01 moved on 24 Sep; F02 and F03 on 25 Sep (measured 7/89 on the F03 closure tree); F04 on 25 Sep (8/89)
 });

@@ -1,5 +1,5 @@
 /**
- * 🔴 F05 · DECLARED CLAUSE-LEVEL SUPERSESSION (28 September 2026, command _handoffs af4e9c8 Part B3).
+ * 🔴 F05 · DECLARED CLAUSE-LEVEL SUPERSESSION (28 September 2026, governance command af4e9c8, Part B3).
  *
  * The register resolves authority per EXACT proposition (./register.mjs rules 3–7). A later record that supersedes some
  * CLAUSES of a record with a DIFFERENT proposition — Amendment 7 superseding three thresholds of Amendment 5 — could not be

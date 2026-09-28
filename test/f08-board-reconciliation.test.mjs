@@ -146,6 +146,11 @@ const MOVED_SINCE = Object.freeze({ F01: "VERIFIED-PASS", F02: "VERIFIED-PASS", 
  * production trail. F02 started on 24 September 2026 (acceptance 3ea6fda, committed alone before any engine change). */
 const STARTED_SINCE = Object.freeze({ F10: "IN-PROGRESS" }); // F10 started on 26 Sep 2026 (movement 1, acceptance 504dbb9 committed alone, owner command 991eb9e) — admitted only by the three facts below. // F09 started on 25 Sep 2026 (movement 1, owner commands e5f5fd4 / 474d27a) and EARNED VERIFIED-PASS the same day (close-out 2601cb3) — see MOVED_SINCE. // F04 started on 25 Sep 2026 (movement 1, owner command 94acbb7 §15) and EARNED VERIFIED-PASS the same day under Amendment 1 (89e8664) — see MOVED_SINCE. F02 started here on 24 Sep and then EARNED VERIFIED-PASS on 25 Sep — see MOVED_SINCE.
 
+/* 🔴 A ROW THAT EARNED VERIFIED-PASS AND WAS THEN REOPENED on concrete contradictory evidence is admitted — only by its own facts: it is
+ * in MOVED_SINCE (it earned the pass), its LAST event is REOPENED VERIFIED-PASS -> IN-PROGRESS on CONCRETE_CONTRADICTORY_EVIDENCE, and
+ * that REOPENED transition is in the production trail. F07 reopened on 28 Sep 2026 (_handoffs be583fa). */
+const REOPENED_SINCE = Object.freeze({ F07: "IN-PROGRESS" });
+
 test("P6 · every feature other than F08 holds exactly the state it held at the merged SHA, save rows that EARNED a later movement", () => {
   const now = board();
   // Every row declared at the merge, compared one by one; and every row NOT declared then must still be UNASSESSED.
@@ -165,6 +170,12 @@ test("P6 · every feature other than F08 holds exactly the state it held at the 
       assert.ok(ACCEPTANCES[r.featureId], `${r.featureId} started with no frozen acceptance`);
       assert.ok(d.events.some((e) => e.kind === "IMPLEMENTATION" && e.featureId === r.featureId && e.from === "UNASSESSED" && e.to === "IN-PROGRESS"), `${r.featureId} started with no IMPLEMENTATION event of its own`);
       assert.ok(events().some((e) => e.eventType === "BOARD_TRANSITION" && e.action === "IMPLEMENTATION" && e.metadata?.featureId === r.featureId && e.metadata?.to === "IN-PROGRESS"), `${r.featureId}'s start is not in the audit trail`);
+      continue;
+    }
+    if (REOPENED_SINCE[r.featureId] === r.state && MOVED_SINCE[r.featureId] === "VERIFIED-PASS") {
+      const last = DECLARED[r.featureId].events.at(-1);
+      assert.deepEqual([last.kind, last.from, last.to, last.reason], ["REOPENED", "VERIFIED-PASS", "IN-PROGRESS", "CONCRETE_CONTRADICTORY_EVIDENCE"], `${r.featureId} is IN-PROGRESS without its reopening as the last event`);
+      assert.ok(events().some((e) => e.eventType === "BOARD_TRANSITION" && e.action === "REOPENED" && e.metadata?.featureId === r.featureId && e.occurredAt.slice(0, 10) === last.on), `${r.featureId}'s reopening is not in the audit trail`);
       continue;
     }
     moved.push(`${r.featureId}: ${was} -> ${r.state}`);

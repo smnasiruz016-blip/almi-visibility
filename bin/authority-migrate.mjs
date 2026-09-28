@@ -19,6 +19,7 @@ import { GOVERNANCE_RULES, ENGINE_RULES, EXCLUDE, SCOPE_ROOT } from "../config/a
 import { EVIDENCE_ROLE_REGISTRY } from "../config/evidence-roles.mjs";
 import { readUnsealed } from "../src/governance/sealed-paths.mjs";
 import { ruleFor, recordFromFile, census } from "../src/authority/corpus.mjs";
+import { declaredSupersessions, linkSupersessions } from "../src/authority/supersession.mjs";
 import { STORED_STATUSES } from "../src/authority/register.mjs";
 import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
@@ -53,15 +54,19 @@ function collect({ repo, cwd, commit, rules, prefix, root, dir = "" }) {
     const text = readUnsealed({ registry: EVIDENCE_ROLE_REGISTRY, root, base: "", path, audit: GUARD_SINK, read: (p) => git(cwd, "show", `${commit}:${p.replace(/\\/g, "/")}`) });
     const blob = git(cwd, "rev-parse", `${commit}:${path}`).trim();
     const firstCommitAt = git(cwd, "log", "--diff-filter=A", "--follow", "--format=%aI", commit, "--", path).trim().split("\n").pop() || null;
-    out.push(recordFromFile({ rule, repo, path, name, prefix, commit, blob, text, firstCommitAt, root: SCOPE_ROOT }));
+    const rec = recordFromFile({ rule, repo, path, name, prefix, commit, blob, text, firstCommitAt, root: SCOPE_ROOT });
+    out.push(rec);
+    /* F05 Part B3 (28 Sep 2026): a committed record may DECLARE clause-level supersession; read from the same committed bytes. */
+    for (const d of declaredSupersessions(text)) declarations.push({ declarer: rec.authorityId, ...d });
   }
   return { listed: names.length, records: out };
 }
 
+const declarations = [];
 const g = full(govRoot, govCommit), e = full(ENGINE, engCommit);
 const gov = collect({ repo: "_handoffs", cwd: govRoot, commit: g, rules: GOVERNANCE_RULES, prefix: "(AlmiVisibility_)?", root: "governance" });
 const eng = collect({ repo: "engine", cwd: ENGINE, commit: e, rules: ENGINE_RULES, prefix: "", root: "engine" });
-const drafted = [...gov.records, ...eng.records].sort((a, b) => a.authorityId.localeCompare(b.authorityId));
+const drafted = linkSupersessions([...gov.records, ...eng.records], declarations).sort((a, b) => a.authorityId.localeCompare(b.authorityId));
 // The STORED status is what resolution finds for the record's own proposition and scope — never a claim. An INVALID
 // record can store no status at all (null), so it stays INVALID on every later resolution.
 const first = census(drafted, NOW);
@@ -84,6 +89,7 @@ const byRule = {};
 for (const r of records) byRule[r.inclusionRule] = (byRule[r.inclusionRule] ?? 0) + 1;
 console.log("by inclusion rule:", JSON.stringify(byRule));
 console.log("issuedAt source:", JSON.stringify(records.reduce((m, r) => ((m[r.issuedAtSource] = (m[r.issuedAtSource] ?? 0) + 1), m), {})));
+console.log(`declared clause-level supersessions: ${declarations.length} block entr${declarations.length === 1 ? "y" : "ies"} · ${declarations.reduce((a, d) => a + d.clauses.length, 0)} clause link(s)`);
 console.log(`census (now ${NOW}): total ${c.total} · ${Object.entries(c.counts).map(([k, v]) => `${k} ${v}`).join(" · ")} · remainder ${c.remainder}`);
 for (const d of c.dispositions.filter((x) => x.disposition !== "CURRENT")) console.log(`  ${d.disposition.padEnd(14)} ${d.authorityId} — ${d.reason}`);
 

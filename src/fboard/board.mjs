@@ -1,7 +1,7 @@
 /**
- * 🔴 THE ACTIVE F-BOARD — F01–F89, ITS EIGHT STATES, AND THE RULES THAT MAKE IT TRUTHFUL (22 September 2026).
+ * 🔴 THE ACTIVE F-BOARD — F01–F90, ITS EIGHT STATES, AND THE RULES THAT MAKE IT TRUTHFUL (22 September 2026).
  *
- * Active completion is measured against F01–F89 only. The historical 61-row ledger (and its 38-row release view) is
+ * Active completion is measured against F01–F90 only. The historical 61-row ledger (and its 38-row release view) is
  * HISTORICAL — SUPERSEDED FOR ACTIVE PRODUCT ACCOUNTING — DO NOT APPLY AS F-ROW AUTHORITY. It transfers no state and no
  * acceptance authority here.
  *
@@ -29,7 +29,8 @@ import { CLAUSES } from "./acceptance.mjs";
 export const F_BOARD = "F_BOARD";
 export const HISTORICAL_BOARDS = Object.freeze(["HISTORICAL_61", "HISTORICAL_38"]);
 export const F_STATES = Object.freeze(["UNASSESSED", "ACCEPTANCE-FROZEN", "READY", "IN-PROGRESS", "BLOCKED-BY-AUTHORITY", "BLOCKED-BY-EVIDENCE", "FAILED", "VERIFIED-PASS"]);
-export const DENOMINATOR = 89;
+/* 89 → 90 on 28 Sep 2026 (Specification Amendment 1, owner ruling a3a777b in the governance repository: F90 appended; the v1 specification's 89 rows are unchanged). */
+export const DENOMINATOR = 90;
 const NEEDS_ACCEPTANCE = new Set(["ACCEPTANCE-FROZEN", "READY", "IN-PROGRESS", "FAILED", "VERIFIED-PASS"]);
 const IMPLEMENTABLE = new Set(["ACCEPTANCE-FROZEN", "READY", "IN-PROGRESS", "FAILED", "VERIFIED-PASS"]);
 
@@ -61,7 +62,7 @@ export function boardErrors(board, { capabilities, acceptances = {}, authority =
   const errs = [];
   const ids = board.map((r) => r.featureId);
   const expected = Array.from({ length: DENOMINATOR }, (_, i) => `F${String(i + 1).padStart(2, "0")}`);
-  if (board.length !== DENOMINATOR || new Set(ids).size !== DENOMINATOR || expected.some((x) => !ids.includes(x))) errs.push({ code: "DENOMINATOR", why: `the board holds ${board.length} row(s), ${new Set(ids).size} unique; F01–F89 (${DENOMINATOR}) is the only denominator` });
+  if (board.length !== DENOMINATOR || new Set(ids).size !== DENOMINATOR || expected.some((x) => !ids.includes(x))) errs.push({ code: "DENOMINATOR", why: `the board holds ${board.length} row(s), ${new Set(ids).size} unique; F01–F90 (${DENOMINATOR}) is the only denominator` });
   if (capabilities && (capabilities.length !== DENOMINATOR || capabilities.some((c, i) => c.id !== ids[i]))) errs.push({ code: "NOT_THE_SPECIFICATION", why: "the board's rows are not the specification's capabilities, in order" });
   for (const r of board) {
     const at = r.featureId;
@@ -129,7 +130,7 @@ export function mayImplement(board, featureId, acceptances = {}) {
   return IMPLEMENTABLE.has(fBoardState(r)) && Boolean(acceptances[featureId]);
 }
 
-/** The state split (summing to 89) and progress = VERIFIED-PASS / 89. Only F-board records count. */
+/** The state split (summing to DENOMINATOR, 90) and progress = VERIFIED-PASS / DENOMINATOR. Only F-board records count. */
 export function progress(board) {
   const split = Object.fromEntries(F_STATES.map((s) => [s, 0]));
   for (const r of board) split[fBoardState(r)] += 1;

@@ -21,9 +21,11 @@ const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, 
 const OUT = confineToRepo(`${REPO}config/fboard/capabilities.mjs`, { label: "the generated capability rows" });
 export const EXTRACT_PROVENANCE = Object.freeze({
   repo: "_handoffs",
-  path: "AlmiVisibility_Standalone_Product_Feature_Specification_v1.extract.txt",
-  commit: "f68861551136bb64a9551311f6fe0474d1833f2b",
-  sha256: "6a8c0ba2dd13213b853cf0949387b8fc09372194552859f7d9d699c624f22c47",
+  /* Specification Amendment 1 (owner ruling _handoffs a3a777b): the v1 extract (f688615, sha256 6a8c0ba2…) plus F90, applied
+   * mechanically by the committed apply script. The .docx and the v1 extract stay byte-immutable. */
+  path: "AlmiVisibility_Standalone_Product_Feature_Specification_v1.amended_1.extract.txt",
+  commit: "3738b251f051e5d1cafa6f02efb91cede3d0e309",
+  sha256: "56e2575a70a617afafc31cef4275f64430d56dec04d827d535af728726a5af45",
 });
 const sha = (s) => createHash("sha256").update(s, "utf8").digest("hex");
 
@@ -41,7 +43,7 @@ export function render(rows) {
     "/**",
     " * 🔴 GENERATED — DO NOT EDIT BY HAND. `node bin/fboard-derive.mjs --extract=<extract> --confirm` rebuilds it.",
     " *",
-    " * The active F-board's capabilities, F01–F89, derived from the committed specification extract named below. Each",
+    " * The active F-board's capabilities, F01–F90, derived from the committed specification extract named below. Each",
     " * row carries the sha256 of its exact extract line, so a hand edit is visible and the list re-derives byte for byte.",
     " */",
     `export const EXTRACT_PROVENANCE = Object.freeze(${JSON.stringify(EXTRACT_PROVENANCE)});`,

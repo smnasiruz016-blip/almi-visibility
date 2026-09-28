@@ -103,7 +103,7 @@ test("P1 · F08's state is exactly what its latest recorded movement says, and t
   assert.deepEqual(boardErrors(asPass, { capabilities: CAPABILITIES, acceptances: ACCEPTANCES }).map((e) => e.code), ["PASS_WITHOUT_VERIFICATION"]);
 });
 
-test("P2 · the board's state split sums to 89", () => {
+test("P2 · the board's state split sums to DENOMINATOR (90 since Specification Amendment 1)", () => {
   const p = progress(board());
   assert.equal(Object.values(p.split).reduce((a, b) => a + b, 0), DENOMINATOR);
   assert.equal(p.total, DENOMINATOR);

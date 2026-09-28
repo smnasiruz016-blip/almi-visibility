@@ -122,7 +122,9 @@ export function createFetcher({
     }
   }
 
-  return { fetchUrl, requestsIssued: () => requestsIssued, maxResponseBytes, intervalMs, timeoutMs };
+  /* `pace` is exposed so robots.txt requests share this ONE pacer: an unpaced robots fetch followed at once by the first
+   * page fetch was two requests to one host closer than the declared interval (F19 measurement, 28 Sep 2026). */
+  return { fetchUrl, pace, requestsIssued: () => requestsIssued, maxResponseBytes, intervalMs, timeoutMs };
 }
 
 /** Read a response body, stopping at `limit` bytes. */

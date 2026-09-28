@@ -117,8 +117,9 @@ export function unlinkedWithinCrawledSet(pages) {
  */
 export function summariseRun({
   run_id, started_at, finished_at, seedSource,
-  urlsRequested, urlsFetched, requestsIssued, perHostRequests,
+  urlsRequested, urlsFetched, requestsIssued, perHostRequests, robotsRequestsIssued = null,
   capReached, maxUrlsPerRun, maxRequestsPerHost, maxResponseBytes,
+  capacity = null, maxDepth = null, requestIntervalMs = null, requestIntervalScope = null, requestTimeoutMs = null,
   robotsUnknownHosts = [], cost, dryRun = false, seedPoolSize = null,
 }) {
   /**
@@ -162,12 +163,14 @@ export function summariseRun({
   return Object.freeze({
     record_type: "crawl_run",
     run_id, started_at, finished_at, seedSource,
-    urlsRequested, urlsFetched, requestsIssued,
+    urlsRequested, urlsFetched, requestsIssued, robotsRequestsIssued,
     perHostRequests: Object.freeze({ ...perHostRequests }),
     capReached,
     // 🔴 LAW-BOUND-1 — the bounds travel with the result. `seedPoolSize` is one
     // of them: 500 fetched means nothing without the pool it was drawn from.
     maxUrlsPerRun, maxRequestsPerHost, maxResponseBytes, seedPoolSize,
+    // F19 (28 Sep 2026): the three bounds that were enforced but declared nowhere, and the page cap actually enforced.
+    capacity, maxDepth, requestIntervalMs, requestIntervalScope, requestTimeoutMs,
     coverageBasis: Object.freeze({ capReached, selectionExcluded, fetchShortfall, robotsUnknown: robotsUnknownHosts.length > 0 }),
     coverageState,
     robotsUnknownHosts: Object.freeze([...robotsUnknownHosts]),

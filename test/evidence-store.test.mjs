@@ -261,9 +261,11 @@ test("C4: the same observation built twice has the same id — re-running the in
  * ================================================================== */
 
 test("the source tier order is frozen and ranked, most authoritative first", () => {
+  /* 🔴 RR-80 §3 (acceptance _handoffs 00f20db): the first-party tier moved below every independent source tier. This is the
+   * one assertion of the old order, updated to the owner's ruling; the names are unchanged. */
   assert.deepEqual(
     [...SOURCE_TIERS],
-    ["OFFICIAL", "OWNED_GSC_ANALYTICS", "VERIFIED_ALMIWORLD", "REPUTABLE_SECONDARY", "COMPETITOR_COMMUNITY", "AGENT_INFERENCE"],
+    ["OFFICIAL", "OWNED_GSC_ANALYTICS", "REPUTABLE_SECONDARY", "COMPETITOR_COMMUNITY", "VERIFIED_ALMIWORLD", "AGENT_INFERENCE"],
   );
   assert.ok(tierRank("OFFICIAL") < tierRank("AGENT_INFERENCE"));
   assert.throws(() => tierRank("MADE_UP"), /unknown source tier/);

@@ -1513,3 +1513,5 @@ export const CROSSWALK = Object.freeze({
     }
   ]
 });
+/* Where the row-by-row 61↔89 judgement lives — a pointer, never a mapping (bin/fboard-crosswalk.mjs RECONCILIATION_ARTIFACT). */
+export const RECONCILIATION_ARTIFACT = Object.freeze({"repo":"_handoffs","commit":"c09aa81c3344ec50ea987fea7486616dd8e892fb","dir":"AlmiVisibility_RECONCILIATION_61_89_2026-09-28","files":{"old_to_new.jsonl":"dc53268b280b671165ff8a34257f1e618d8b5390e624630da5d6f8c81877e1f2","new_to_old.jsonl":"7bfc2e4bde344ae29a5073bf5f6f64285e4c9a505d12acc5df5ba5407670ccb5","REPORT.md":"b83d6473ace00816239b098b960431204b5923d9bf2380a907a68cde44e83a7b"},"labelsHeldThere":["SAME","CHANGED","SPLIT","MERGED","PARTIAL","NO MATCH"],"openDisputes":["F03","F04","F06","F08","F09"]});

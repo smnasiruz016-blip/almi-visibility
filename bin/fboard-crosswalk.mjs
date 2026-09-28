@@ -52,6 +52,22 @@ export const MAPPINGS = Object.freeze({
   }),
 });
 
+/* 🔴 THE 61↔89 RECONCILIATION (command 65d05e2 §2.4). A POINTER, NOT A MAPPING: the row-by-row judgement (SAME · CHANGED · SPLIT ·
+ * MERGED · PARTIAL · NO MATCH) lives in the committed artifact below, because this crosswalk's vocabulary (NEW · IDENTICAL · CHANGED ·
+ * UNASSESSED) cannot hold it and flattening it would be a false record. Nothing here moves a row, maps a row or transfers a status:
+ * MAPPINGS above stay the only asserted mappings, and only a frozen acceptance may add one. Disputed (D-CROSSWALK-DISPUTE-5): F03,
+ * F04, F06, F08, F09 — the artifact proposes old counterparts, this crosswalk records them NEW; unresolved, so NOT overwritten. */
+export const RECONCILIATION_ARTIFACT = Object.freeze({
+  repo: "_handoffs", commit: "c09aa81c3344ec50ea987fea7486616dd8e892fb", dir: "AlmiVisibility_RECONCILIATION_61_89_2026-09-28",
+  files: Object.freeze({
+    "old_to_new.jsonl": "dc53268b280b671165ff8a34257f1e618d8b5390e624630da5d6f8c81877e1f2",
+    "new_to_old.jsonl": "7bfc2e4bde344ae29a5073bf5f6f64285e4c9a505d12acc5df5ba5407670ccb5",
+    "REPORT.md": "b83d6473ace00816239b098b960431204b5923d9bf2380a907a68cde44e83a7b",
+  }),
+  labelsHeldThere: Object.freeze(["SAME", "CHANGED", "SPLIT", "MERGED", "PARTIAL", "NO MATCH"]),
+  openDisputes: Object.freeze(["F03", "F04", "F06", "F08", "F09"]),
+});
+
 export function renderCrosswalk() {
   const rows = classify();
   const historicalRows = Object.keys(rows).sort((a, b) => a - b).map((id) => ({ board: rows[id].board, id: Number(id), state: rows[id].state }));
@@ -62,6 +78,8 @@ export function renderCrosswalk() {
  * One entry per F-row; the historical ledger's rows are PROVENANCE ONLY — no state, no acceptance, no authority transfers.
  */
 export const CROSSWALK = Object.freeze(${JSON.stringify(cw, null, 2)});
+/* Where the row-by-row 61↔89 judgement lives — a pointer, never a mapping (bin/fboard-crosswalk.mjs RECONCILIATION_ARTIFACT). */
+export const RECONCILIATION_ARTIFACT = Object.freeze(${JSON.stringify(RECONCILIATION_ARTIFACT)});
 `;
   return { cw, errors, text };
 }

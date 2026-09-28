@@ -14,6 +14,7 @@
 
 import { makeSource, tierRank, SOURCE_TIERS } from "./records.mjs";
 import { isDerivedFact } from "../facts/registry.mjs";
+import { isCapabilityClaim, INDEPENDENT } from "../facts/capability-claims.mjs";
 
 /** The registry's numeric tier, mapped onto the frozen §623 order (1 = the authority itself). */
 const BY_NUMBER = Object.freeze(["OFFICIAL", "OFFICIAL", "VERIFIED_ALMIWORLD", "REPUTABLE_SECONDARY", "COMPETITOR_COMMUNITY"]);
@@ -24,6 +25,11 @@ const BY_NUMBER = Object.freeze(["OFFICIAL", "OFFICIAL", "VERIFIED_ALMIWORLD", "
  * because a tier silently read as OFFICIAL would outrank everything.
  */
 export function sourceTierOfFact(f) {
+  /* 🔴 F44 CAPABILITY PRECONDITION P2 — a first-party claim about its own product holds NO tier: not OFFICIAL, not any other.
+   * Checked before the named or numeric tier is read, so the demotion never depends on the tier the record declares. */
+  if (isCapabilityClaim(f) && f?.source?.class !== INDEPENDENT) {
+    throw new TypeError(`${f?.capabilityId ?? f?.id}: a ${f?.source?.class ?? "unclassified"} capability claim holds no evidence tier (F44 capability precondition P2)`);
+  }
   const named = f?.verification?.sourceTier;
   if (typeof named === "string") {
     tierRank(named);

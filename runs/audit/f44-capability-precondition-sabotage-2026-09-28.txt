@@ -1,0 +1,20 @@
+F44 capability-claim precondition · sabotage run · 2026-09-28T19:43:23.667Z
+population: 14 sabotages over test/f44-capability-claim-precondition.test.mjs · bound: one span per sabotage, applied ALONE
+production trail sha256 before: 5569b685ab4c07b05d8fe64c722a6319a999800e46b1dacefc7ccc8db6f4e3f3
+
+S1 P1 src/facts/capability-claims.mjs: landed true · named test P1a red true · failing [P1a,P1b,P1d,P1e,P2a,P2b,P2c] · restored by sha256 true · PROVED
+S2 P1 src/facts/capability-claims.mjs: landed true · named test P1a red true · failing [P1a,P1d,P2b,P2c,P3b] · restored by sha256 true · PROVED
+S3 P1 src/facts/capability-claims.mjs: landed true · named test P1d red true · failing [P1d] · restored by sha256 true · PROVED
+S4 P1 src/facts/capability-claims.mjs: landed true · named test P1e red true · failing [P1e] · restored by sha256 true · PROVED
+S5 P1 src/facts/capability-claims.mjs: landed true · named test P1c red true · failing [P1c] · restored by sha256 true · PROVED
+S6 P2 src/facts/capability-claims.mjs: landed true · named test P2a red true · failing [P2a] · restored by sha256 true · PROVED
+S7 P2 src/evidence/source-tiers.mjs: landed true · named test P2b red true · failing [P2b] · restored by sha256 true · PROVED
+S8 P2 src/facts/capability-claims.mjs: landed true · named test P2c red true · failing [P2c] · restored by sha256 true · PROVED
+S9 P3 src/facts/capability-claims.mjs: landed true · named test P3a red true · failing [P3a] · restored by sha256 true · PROVED
+S10 P3 src/facts/capability-claims.mjs: landed true · named test P3b red true · failing [P3b] · restored by sha256 true · PROVED
+S11 P3 src/facts/capability-claims.mjs: landed true · named test P3b red true · failing [P3b] · restored by sha256 true · PROVED
+S12 P4 src/facts/capability-claims.mjs: landed true · named test P4a red true · failing [P1d,P4a] · restored by sha256 true · PROVED
+S13 P4 src/facts/capability-claims.mjs: landed true · named test P4b red true · failing [P4b] · restored by sha256 true · PROVED
+S14 P4 src/facts/capability-claims.mjs: landed true · named test P4c red true · failing [P4c] · restored by sha256 true · PROVED
+
+proved 14 of 14 · residue 0 · production trail sha256 after: 5569b685ab4c07b05d8fe64c722a6319a999800e46b1dacefc7ccc8db6f4e3f3 · unchanged true

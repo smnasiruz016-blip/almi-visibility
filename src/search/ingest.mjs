@@ -42,7 +42,8 @@ export async function runIngest({
   now = () => new Date(),
 }) {
   const { startDate, endDate } = windowFor(days, () => now().getTime());
-  const results = { appended: 0, resighted: 0, records: [] };
+  /* F77 R2: a RETRY counts what this operation had ALREADY saved apart from new and re-sighted records. */
+  const results = { appended: 0, resighted: 0, alreadySaved: 0, records: [] };
 
   const record = (target, method, value) => {
     const obs = makeObservation({
@@ -56,6 +57,7 @@ export async function runIngest({
     });
     const outcome = store.appendIfNew(obs, { seenAt: now().toISOString() });
     if (outcome.appended) results.appended += 1;
+    else if (outcome.alreadySaved) results.alreadySaved += 1;
     else results.resighted += 1;
     results.records.push({ method, ...outcome });
     return obs;

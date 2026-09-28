@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2 } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -832,6 +832,53 @@ export const DECLARED = Object.freeze({
         proofs: "test/f08-witness.test.mjs 12/12 — write -> checkout / restore / reset --hard / stash -> TRAIL_BEHIND_WITNESS and AUDIT_WITNESS_REFUSED on the production store with real git, a control reaching the other verdict, divergence refused, seed and catch-up lawful, confined stores and worktrees separate; test/f08-audit-gap.test.mjs 3/3 — a gap claiming recovered records, ids, bytes or a replacing census is refused",
         sabotage: "WS-S1–S9 and GP-S1–S4 13/13 (new); F08 34/34, D-RECORDER-1 9/9, ASP 15/15 (re-run), residue 0, production trail untouched; the governed-caller census caught a direct append in the first gap command (c4f3954) and it was routed through recordCandidates (73bd9d4)",
         declaredLimit: "a loss that also removes the witness, or that occurs where no witness exists (a fresh clone before its first append, CI), is NOT DETECTED; the witness is a second copy under the same user's control, not a remote notary",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
+  /* 🔴 F77 · Idempotency retry and rollback safety. Frozen 28 Sep (_handoffs 7042c77, RR-81) BEFORE its code was read; the first
+   * verdict FAILED under that contract (limb map 84f26b9, outcomes 7ee7799, RR-81 result 4b0accd) and stays on the record as it is.
+   * Amended by the owner's ruling RR-82 §2 (a726cc3 → Amendment 1, b443e5e): a retry is the same operation identity; a fresh
+   * authorised collection is a new operation; the PAID call paths leave the current scope and stand NOT MEASURED, with a checkable
+   * reopening trigger (config/fboard/deferred-limbs.mjs). Scope narrowed, bar unchanged. */
+  F77: Object.freeze({
+    featureId: "F77",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-28", ruling: F77_ORIGINAL.ruling, contractSha256: F77_ORIGINAL.contractSha256 }),
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F77", on: "2026-09-28", ruling: ACCEPTANCES.F77.ruling, contractSha256: ACCEPTANCES.F77.contractSha256, amends: ACCEPTANCES.F77.amends }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F77",
+        on: "2026-09-28",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F77.ruling.sha256, contract: ACCEPTANCES.F77.contractSha256 }),
+        branch: "rr82-f77-amendment-1",
+        baseSha: "76a443609d66d7f7b7ede40bf870e70aa01e5a92",
+        baseCiRun: "36488822047",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-28_RR-82_F77_POST_MERGE_CLOSEOUT.md", commit: "f81e3b4c13440d8bebe5ad15f42c0f4a030f7612", sha256: "aa3f5d752ff74420d81d7c04ed5f5b56f721da805b6690f20727394da4da5f93" }),
+      }),
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F77",
+        population: "REAL",
+        on: "2026-09-28",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_LIMB_OF_THE_AMENDED_CURRENT_SCOPE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F77.ruling.sha256, contract: ACCEPTANCES.F77.contractSha256 }),
+        scope: "the existing governed writes and the real metered Search Console path. Today's F77 verdict does not cover any paid provider or any paid call path: that limb is NOT MEASURED, and no F77 verdict is proof about a paid provider.",
+        populations: "REAL: every governed writer routes through the one boundary (governed-caller census: 66 entry points, 47 state-changing, 46 routed, 1 audit-store exemption, 0 bypassing); the production ingest's metered call sequence (8 calls per operation); the paid and metered call-path census over 249 committed production files (bound 2000): 1 egress, 1 metered kind, 0 real paid providers",
+        proofs: "R1b/R3 test/f77-idempotency-retry-recovery.test.mjs — 8 parallel identical governed writes: 1 COMMITTED + 7 ALREADY_COMMITTED, chain whole; 8 distinct appends all land, 8 identical land once; R6 a retry in a later second appends nothing; R4 recovery 1,0,0; R5 census. R2 test/f77-metered-retry.test.mjs — interrupted 3 + retry 5 = 8 (no reissue), uncertain call refused, retry after commit 0 asked 0 saved, fresh collection 8 asked 9 new sightings, end to end through the entry point's synthetic seam; R2P trigger fails on a planted real paid provider",
+        sabotage: "runs/audit/f77-sabotage-2026-09-28.txt: 17 of 17 proved (M1, M2 ×4, M4 ×3, M5, R2 ×7, R2P), residue 0, production trail untouched",
+        earlierVerdict: "FAILED under the original contract (_handoffs 7ee7799) — preserved as it is",
+        declaredLimit: "paid call paths NOT MEASURED (reopened by the first real paid provider, checked by tools/paid-metered-call-census.mjs); the cross-process lock bound is 30000 ms and fails closed; a retry refuses an uncertain metered call rather than reissue it; live Search Console never called in any proof",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),

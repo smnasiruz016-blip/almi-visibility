@@ -67,3 +67,6 @@ runs/_profession-cache/
 # F77 M2 (RR-81): transient cross-process locks beside an audit store — held only during one append or one governed write.
 *.jsonl.lock
 *.jsonl.lock.*
+
+# F77 R2 (RR-82): ingest operation journals, beside their store, hold metered responses (query data) — local only, never committed.
+*.operations/

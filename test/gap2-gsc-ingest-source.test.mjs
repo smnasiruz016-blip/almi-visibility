@@ -99,7 +99,9 @@ const synthetic = (extra) => [`--property=${SYNTHETIC_PROPERTY}`, ...extra];
 
 test("DEFAULT · without --source the bin still builds the real Search Console provider", () => {
   const src = readFileSync(join(REPO, BIN), "utf8");
-  assert.match(src, /const provider = SOURCE === null \? liveProvider\(governor\) : syntheticProvider\(SOURCE, governor\);/);
+  /* F77 R2 (RR-82): the provider is built exactly as before and then JOURNALED for its operation — the real one without --source. */
+  assert.match(src, /const baseProvider = SOURCE === null \? liveProvider\(governor\) : syntheticProvider\(SOURCE, governor\);/);
+  assert.match(src, /const \{ provider, counters: meteredCalls \} = journaledProvider\(\{ provider: baseProvider, operation, persist: persistJournal \}\);/);
   /* F03: the live provider is the real one, built only through the run's SEARCH_CONSOLE_API connector — its fetch, and the
    * key-file path read from the ONE variable that connector's declaration names. */
   assert.match(src, /return createGoogleSearchConsoleProvider\(\{ governor, fetchImpl: connector\.fetch, keyFilePath: process\.env\[connector\.credentialName\] \}\);/);
@@ -155,7 +157,14 @@ test("CONTROL · synthetic source, --confirm, a disposable --store: the same pat
     assert.equal(records.filter((x) => x.record_type === "observation").length, SYNTHETIC_RECORDS);
     assert.equal(markedRecords(store), lines(store).length, "a record written from the synthetic source does not carry the marker");
     assert.ok(records.some((x) => JSON.stringify(x.value ?? {}).includes(SYNTHETIC_PAGE)), "the source's page rows were not stored");
-    assert.deepEqual(readdirSync(out.dir).sort(), ["source.json", "store.jsonl"], "the run wrote something beside its store");
+    /* F77 R2 (RR-82): beside the store the run writes ONE thing more — its operation journal, in the declared journal directory,
+     * governed, and marked committed once the evidence is. Anything else beside the store is still a failure. */
+    assert.deepEqual(readdirSync(out.dir).sort(), ["source.json", "store.jsonl", "store.jsonl.operations"], "the run wrote something beside its store");
+    const journals = readdirSync(join(out.dir, "store.jsonl.operations"));
+    assert.equal(journals.length, 1, "one operation, one journal");
+    const journal = JSON.parse(readFileSync(join(out.dir, "store.jsonl.operations", journals[0]), "utf8"));
+    assert.equal(journal.committed, true, "the journal was not marked committed after the evidence was");
+    assert.equal(Object.values(journal.calls).every((c) => c.state === "ANSWERED"), true);
     assert.deepEqual([fingerprint(EVIDENCE), fingerprint(LEDGER)], before, "the run wrote committed state");
   } finally {
     rmSync(s.dir, { recursive: true, force: true });

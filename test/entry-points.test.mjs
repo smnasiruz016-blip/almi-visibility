@@ -128,7 +128,8 @@ test("🔴 every runner that needs a product takes it as an ARGUMENT, never as a
 /** module path (repo-relative, forward slashes) → why it has no importer. */
 const ORPHAN_ALLOWLIST = Object.freeze({
   // "src/example.mjs": "reason, dated, and who accepted it",
-
+  "src/facts/question-fit.mjs":
+    "Built AHEAD of its consumer by the owner's order, RR-80 §3 (_handoffs 9e60c53, 28 Sep 2026): 'Build the verification and readback path BEFORE any ADDRESSES / PARTIALLY ADDRESSES / DOES NOT ADDRESS verdict is reported.' Its consumer is F50's question-and-answer inventory, which does not exist yet. Remove this entry in the change that makes that inventory import the gate. Accepted by: the owner's RR-80 §3 order; recorded by CC and disclosed in the RR-80 report.",
 });
 
 function walkMjs(dir, prefix) {

@@ -1,0 +1,27 @@
+RR-80 sabotage run · 2026-09-28T20:22:00.889Z
+population: 21 sabotages over 4 test files · bound: one span per sabotage, applied ALONE
+production trail sha256 before: 88e403a31ed677b47a34ff976e62cb0c533152fb9ba16f1bf88caf78c0f90356
+
+D1 E1 src/evidence/records.mjs: landed true · named test "E1 ·" red true · failing 1 · restored by sha256 true · PROVED
+D2 E2 src/evidence/records.mjs: landed true · named test "E2 ·" red true · failing 1 · restored by sha256 true · PROVED
+D3 E2 src/evidence/source-tiers.mjs: landed true · named test "E2 ·" red true · failing 1 · restored by sha256 true · PROVED
+D4 E4 src/evidence/source-tiers.mjs: landed true · named test "E4 ·" red true · failing 1 · restored by sha256 true · PROVED
+G1 G1 src/facts/question-fit.mjs: landed true · named test "G1 ·" red true · failing 1 · restored by sha256 true · PROVED
+G2a G2 src/facts/question-fit.mjs: landed true · named test "G2 ·" red true · failing 2 · restored by sha256 true · PROVED
+G2b G2 src/facts/question-fit.mjs: landed true · named test "G2 ·" red true · failing 1 · restored by sha256 true · PROVED
+G2c G2 src/facts/question-fit.mjs: landed true · named test "G2 ·" red true · failing 1 · restored by sha256 true · PROVED
+G2d G2 src/facts/question-fit.mjs: landed true · named test "G2 ·" red true · failing 1 · restored by sha256 true · PROVED
+G2e G2 (redundant: admission already refuses a VERIFIED self-sourced claim) src/facts/question-fit.mjs: landed true · named test "G2 ·" red false · failing 0 · restored by sha256 true · NOT PROVED
+G3 G3 src/facts/question-fit.mjs: landed true · named test "G3 ·" red true · failing 1 · restored by sha256 true · PROVED
+G5 G5 src/facts/question-fit.mjs: landed true · named test "G5 ·" red true · failing 1 · restored by sha256 true · PROVED
+G7 G7 src/facts/question-fit.mjs: landed true · named test "G7 ·" red true · failing 1 · restored by sha256 true · PROVED
+K1 guard LOCATION tools/sealed-store-read-guard.mjs: landed true · named test "LOCATION ·" red true · failing 3 · restored by sha256 true · PROVED
+K2 guard slash styles tools/sealed-store-read-guard.mjs: landed true · named test "LOCATION ·" red true · failing 1 · restored by sha256 true · PROVED
+K3 guard DEREFERENCE tools/sealed-store-read-guard.mjs: landed true · named test "ENV_REFERENCE_DEREFERENCE ·" red true · failing 2 · restored by sha256 true · PROVED
+K4 guard RESOLVER tools/sealed-store-read-guard.mjs: landed true · named test "RESOLVER_OUTSIDE_ENGINE ·" red true · failing 1 · restored by sha256 true · PROVED
+K5 guard never names a location tools/sealed-store-read-guard.mjs: landed true · named test "a refusal names" red true · failing 2 · restored by sha256 true · PROVED
+K6 guard entry refuses tools/sealed-store-read-guard.mjs: landed true · named test "THE PRODUCTION ENTRY" red true · failing 1 · restored by sha256 true · PROVED
+A1 amended row pinned config/fboard/capabilities.mjs: landed true · named test "A2·1" red true · failing 1 · restored by sha256 true · PROVED
+A2 F62 class config/fboard/capabilities.mjs: landed true · named test "A2·4" red true · failing 2 · restored by sha256 true · PROVED
+
+proved 20 of 21 · residue 0 · production trail sha256 after: 88e403a31ed677b47a34ff976e62cb0c533152fb9ba16f1bf88caf78c0f90356 · unchanged true

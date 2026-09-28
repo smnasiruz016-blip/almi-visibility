@@ -21,15 +21,35 @@ import { observationId, issueId, targetPageId, measurementKey } from "./ids.mjs"
 /**
  * 🔴 ORDER IS MEANING HERE. Index 0 outranks index 1. The array is the ranking,
  * so there is no second copy of the order to drift away from it.
+ *
+ * 🔴 FIRST-PARTY DEMOTION (RR-80 §3; acceptance _handoffs 00f20db). The owner: "an observation made by us, about our own
+ * product, is first-party evidence and may never outrank an independent source or corroborate itself." The tier given to
+ * the operator's own observations (VERIFIED_ALMIWORLD) used to rank third, above two independent tiers. It now ranks below
+ * EVERY independent source tier. The NAMES are unchanged — records already written with them stay readable; only the rank
+ * and the independence classification below changed. OWNED_GSC_ANALYTICS is owned-property behaviour measured and reported
+ * by the search engine, not an observation made by the operator, and keeps its place.
  */
 export const SOURCE_TIERS = Object.freeze([
   "OFFICIAL",
   "OWNED_GSC_ANALYTICS",
-  "VERIFIED_ALMIWORLD",
   "REPUTABLE_SECONDARY",
   "COMPETITOR_COMMUNITY",
+  "VERIFIED_ALMIWORLD",
   "AGENT_INFERENCE",
 ]);
+
+/** The tiers given to observations the operator makes about its own product or properties. Declared ONCE; every
+ * ranking and classification reads it here. */
+export const FIRST_PARTY_TIERS = Object.freeze(["VERIFIED_ALMIWORLD"]);
+
+/** The independent source tiers — the only tiers that may count as independent support or corroboration. */
+export const INDEPENDENT_SOURCE_TIERS = Object.freeze(["OFFICIAL", "REPUTABLE_SECONDARY", "COMPETITOR_COMMUNITY"]);
+
+/** Is this tier independent support? A first-party tier never is. Throws on an unknown tier. */
+export function isIndependentSourceTier(tier) {
+  tierRank(tier);
+  return INDEPENDENT_SOURCE_TIERS.includes(tier) && !FIRST_PARTY_TIERS.includes(tier);
+}
 
 /** Lower rank number = more authoritative. Throws on an unknown tier. */
 export function tierRank(tier) {

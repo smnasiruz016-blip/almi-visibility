@@ -21,11 +21,12 @@ const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, 
 const OUT = confineToRepo(`${REPO}config/fboard/capabilities.mjs`, { label: "the generated capability rows" });
 export const EXTRACT_PROVENANCE = Object.freeze({
   repo: "_handoffs",
-  /* Specification Amendment 1 (owner ruling _handoffs a3a777b): the v1 extract (f688615, sha256 6a8c0ba2…) plus F90, applied
-   * mechanically by the committed apply script. The .docx and the v1 extract stay byte-immutable. */
-  path: "AlmiVisibility_Standalone_Product_Feature_Specification_v1.amended_1.extract.txt",
-  commit: "3738b251f051e5d1cafa6f02efb91cede3d0e309",
-  sha256: "56e2575a70a617afafc31cef4275f64430d56dec04d827d535af728726a5af45",
+  /* Specification Amendment 2 (RR-80 §2; _handoffs 388ae02, applied 3f86fbf): the amended_1 extract with ten rows’ required
+   * outcomes amended in place (F10 F14 F15 F16 F37 F38 F42 F44 F50 F62; F62 class to Core). 90 rows, ids unchanged. Amendment 1
+   * (owner ruling a3a777b, amended_1 at 3738b25, sha256 56e2575a…) stays in history. The .docx and the v1 extract stay byte-immutable. */
+  path: "AlmiVisibility_Standalone_Product_Feature_Specification_v1.amended_2.extract.txt",
+  commit: "3f86fbfd33386dcfb7092d04dc2e735a52463ada",
+  sha256: "a5b6b8e35568f10a15c9a83e25a24ee61543b8dbf1a78017a7f8b4778e5e5ea7",
 });
 const sha = (s) => createHash("sha256").update(s, "utf8").digest("hex");
 

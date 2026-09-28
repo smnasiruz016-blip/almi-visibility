@@ -12,12 +12,15 @@
  * that can disagree with itself, so both now read it from here.
  */
 
-import { makeSource, tierRank, SOURCE_TIERS } from "./records.mjs";
+import { makeSource, tierRank, SOURCE_TIERS, FIRST_PARTY_TIERS, isIndependentSourceTier } from "./records.mjs";
 import { isDerivedFact } from "../facts/registry.mjs";
 import { isCapabilityClaim, INDEPENDENT } from "../facts/capability-claims.mjs";
 
-/** The registry's numeric tier, mapped onto the frozen §623 order (1 = the authority itself). */
-const BY_NUMBER = Object.freeze(["OFFICIAL", "OFFICIAL", "VERIFIED_ALMIWORLD", "REPUTABLE_SECONDARY", "COMPETITOR_COMMUNITY"]);
+/** The registry's numeric tier, mapped onto the §623 order (1 = the authority itself).
+ * 🔴 RR-80 §3: tier 2 ("official secondary — another official body restating it") used to map onto VERIFIED_ALMIWORLD, the
+ * operator's own first-party tier — an independent official source filed under our own name. It maps onto the independent
+ * secondary tier now. Measured before the change: 0 real source-bearing facts carried numeric tier 2 (46 tier 1, 7 tier 3). */
+const BY_NUMBER = Object.freeze(["OFFICIAL", "OFFICIAL", "REPUTABLE_SECONDARY", "REPUTABLE_SECONDARY", "COMPETITOR_COMMUNITY"]);
 
 /**
  * A fact's tier. The human verification pass names it in words; that wins over
@@ -83,5 +86,24 @@ export function rankSources(sources) {
 export function tierCensus(sources) {
   const out = Object.fromEntries(SOURCE_TIERS.map((t) => [t, 0]));
   for (const s of sources) out[s.source_tier] += 1;
+  return out;
+}
+
+/** LAW-BOUND-1: the bound on the population an independence census walks, printed beside its result. */
+export const INDEPENDENCE_CENSUS_BOUND = 100000;
+
+/**
+ * 🔴 RR-80 §3 · first-party evidence is counted APART from independent evidence, never folded into it. Every source lands in
+ * exactly one of the three columns; the population and the bound travel with the result.
+ */
+export function tierIndependenceCensus(sources) {
+  if (!Array.isArray(sources)) throw new TypeError("a source population must be an array");
+  if (sources.length > INDEPENDENCE_CENSUS_BOUND) throw new RangeError(`POPULATION_OVER_BOUND: ${sources.length} sources exceed ${INDEPENDENCE_CENSUS_BOUND}`);
+  const out = { independent: 0, firstParty: 0, other: 0, population: sources.length, bound: INDEPENDENCE_CENSUS_BOUND };
+  for (const s of sources) {
+    if (FIRST_PARTY_TIERS.includes(s.source_tier)) out.firstParty += 1;
+    else if (isIndependentSourceTier(s.source_tier)) out.independent += 1;
+    else out.other += 1;
+  }
   return out;
 }

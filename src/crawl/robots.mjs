@@ -104,14 +104,18 @@ export function isAllowedByRules(rules, url) {
  * `fetchImpl` is injected so the whole thing is testable against a local
  * fixture server with no network egress.
  */
-export function createRobotsCache({ fetchImpl, userAgent = USER_AGENT, timeoutMs = 10000 }) {
+export function createRobotsCache({ fetchImpl, userAgent = USER_AGENT, timeoutMs = 10000, beforeRequest = async () => {} }) {
   const cache = new Map();
+  let requestsIssued = 0;
 
   async function forHost(origin) {
     if (cache.has(origin)) return cache.get(origin);
 
     let entry;
     try {
+      /* 🔴 A robots.txt request is a request to the host like any other: it waits for the caller's pacer. */
+      await beforeRequest();
+      requestsIssued += 1;
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
       let res;
@@ -166,5 +170,5 @@ export function createRobotsCache({ fetchImpl, userAgent = USER_AGENT, timeoutMs
     return { allowed, state: allowed ? "ALLOWED" : "DISALLOWED", reason: entry.reason };
   }
 
-  return { check, forHost, hostsFetched: () => [...cache.keys()] };
+  return { check, forHost, hostsFetched: () => [...cache.keys()], requestsIssued: () => requestsIssued, timeoutMs };
 }

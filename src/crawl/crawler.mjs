@@ -17,7 +17,7 @@
 
 import { BoundedFrontier, MAX_URLS_PER_RUN, MAX_REQUESTS_PER_HOST } from "./frontier.mjs";
 import { createRobotsCache, USER_AGENT } from "./robots.mjs";
-import { createFetcher, MAX_RESPONSE_BYTES } from "./fetcher.mjs";
+import { createFetcher, MAX_RESPONSE_BYTES, REQUEST_INTERVAL_MS, REQUEST_TIMEOUT_MS } from "./fetcher.mjs";
 import { extractLinks } from "./seeds.mjs";
 import { summariseRun } from "./inventory.mjs";
 import { makeObservation } from "../evidence/records.mjs";
@@ -28,12 +28,22 @@ const COLLECTOR = "src/crawl/crawler.mjs";
 const COLLECTOR_VERSION = "0.1";
 
 /**
+ * 🔴 THE DEPTH BOUND: 0 — the seeds only. Links are recorded as edges and never offered to the frontier (see the loop
+ * below). It was always enforced and, until F19's measurement (28 Sep 2026), declared nowhere: a bound nobody wrote down
+ * is a bound nobody can check a run against, so it now travels in the plan and the run record beside the other four.
+ */
+export const MAX_DEPTH = 0;
+
+/** How the request interval is applied: ONE pacer for the whole run, so it is stricter than a per-host minimum. */
+const INTERVAL_SCOPE = "RUN_WIDE";
+
+/**
  * Build the plan a run WOULD execute. Pure: issues no requests.
  *
  * 🔴 THE PLAN IS PRINTED BEFORE THE FIRST REQUEST, LIVE OR NOT. A run whose
  * shape is only visible afterwards is a run nobody could have stopped.
  */
-export function planRun({ seeds, capacity = MAX_URLS_PER_RUN, maxPerHost = MAX_REQUESTS_PER_HOST }) {
+export function planRun({ seeds, capacity = MAX_URLS_PER_RUN, maxPerHost = MAX_REQUESTS_PER_HOST, intervalMs = REQUEST_INTERVAL_MS, timeoutMs = REQUEST_TIMEOUT_MS, maxResponseBytes = MAX_RESPONSE_BYTES }) {
   const frontier = new BoundedFrontier({ capacity, maxPerHost });
   for (const url of seeds) frontier.offer(url);
   const perHost = frontier.perHostCounts();
@@ -46,8 +56,12 @@ export function planRun({ seeds, capacity = MAX_URLS_PER_RUN, maxPerHost = MAX_R
     perHost,
     maxUrlsPerRun: MAX_URLS_PER_RUN,
     capacity,
-    maxRequestsPerHost: maxPerHost,
-    maxResponseBytes: MAX_RESPONSE_BYTES,
+    maxRequestsPerHost: frontier.maxPerHost, // the ENFORCED value: the frontier clamps it to capacity
+    maxResponseBytes,
+    maxDepth: MAX_DEPTH,
+    requestIntervalMs: intervalMs,
+    requestIntervalScope: INTERVAL_SCOPE,
+    requestTimeoutMs: timeoutMs,
     // robots.txt costs one request per host, on top of the page fetches.
     estimatedRequests: frontier.size + Object.keys(perHost).length,
     frontier,
@@ -68,7 +82,8 @@ export function renderPlan(plan, { live }) {
     `rejected by bounds : ${plan.urlsRejected}   capReached=${plan.capReached}`,
     `hosts              : ${plan.hosts.length}`,
     `estimated requests : ${plan.estimatedRequests}  (${plan.urlsQueued} pages + ${plan.hosts.length} robots.txt)`,
-    `per-request bounds : maxRequestsPerHost=${plan.maxRequestsPerHost} maxResponseBytes=${plan.maxResponseBytes}`,
+    `per-request bounds : maxRequestsPerHost=${plan.maxRequestsPerHost} maxResponseBytes=${plan.maxResponseBytes} requestTimeoutMs=${plan.requestTimeoutMs}`,
+    `depth and rate     : maxDepth=${plan.maxDepth} (seeds only) requestIntervalMs=${plan.requestIntervalMs} (${plan.requestIntervalScope}, robots.txt included)`,
     "",
   ];
   /**
@@ -112,7 +127,15 @@ export async function crawl({
   const started_at = now().toISOString();
   const run_id = sha256Hex(`${started_at}|${seedSource}|${seeds.length}`).slice(0, 16);
 
-  const plan = planRun({ seeds, capacity, maxPerHost });
+  /* The bounds the fetcher will ENFORCE are resolved once, here, and the same values are declared in the plan and record. */
+  const intervalMs = fetcherOptions.intervalMs ?? REQUEST_INTERVAL_MS;
+  const timeoutMs = fetcherOptions.timeoutMs ?? REQUEST_TIMEOUT_MS;
+  const maxResponseBytes = fetcherOptions.maxResponseBytes ?? MAX_RESPONSE_BYTES;
+  const plan = planRun({ seeds, capacity, maxPerHost, intervalMs, timeoutMs, maxResponseBytes });
+  const declaredBounds = {
+    maxUrlsPerRun: MAX_URLS_PER_RUN, capacity, maxRequestsPerHost: plan.frontier.maxPerHost, maxResponseBytes,
+    maxDepth: MAX_DEPTH, requestIntervalMs: intervalMs, requestIntervalScope: INTERVAL_SCOPE, requestTimeoutMs: timeoutMs,
+  };
   onPlan(plan);
 
   const observations = [];
@@ -138,9 +161,9 @@ export async function crawl({
       plan,
       run: summariseRun({
         run_id, started_at, finished_at: now().toISOString(), seedSource,
-        urlsRequested: plan.urlsQueued, urlsFetched: 0, requestsIssued: 0, perHostRequests: {},
+        urlsRequested: plan.urlsQueued, urlsFetched: 0, requestsIssued: 0, robotsRequestsIssued: 0, perHostRequests: {},
         capReached: plan.capReached,
-        maxUrlsPerRun: MAX_URLS_PER_RUN, maxRequestsPerHost: maxPerHost, maxResponseBytes: MAX_RESPONSE_BYTES,
+        ...declaredBounds,
         robotsUnknownHosts: [], seedPoolSize,
         cost: crawlCost(0),
         dryRun: true,
@@ -150,8 +173,9 @@ export async function crawl({
     };
   }
 
-  const fetcher = createFetcher({ fetchImpl, ...fetcherOptions });
-  const robots = createRobotsCache({ fetchImpl, ...(fetcherOptions.timeoutMs ? { timeoutMs: fetcherOptions.timeoutMs } : {}) });
+  const fetcher = createFetcher({ fetchImpl, ...fetcherOptions, intervalMs, timeoutMs, maxResponseBytes });
+  /* robots.txt shares the fetcher's pacer and its declared timeout: one interval, one timeout, for every request. */
+  const robots = createRobotsCache({ fetchImpl, timeoutMs, beforeRequest: fetcher.pace });
 
   for (;;) {
     const url = plan.frontier.shift();
@@ -205,9 +229,10 @@ export async function crawl({
     run: summariseRun({
       run_id, started_at, finished_at: now().toISOString(), seedSource,
       urlsRequested: plan.urlsQueued, urlsFetched, requestsIssued: fetcher.requestsIssued(),
+      robotsRequestsIssued: robots.requestsIssued(),
       perHostRequests,
       capReached: plan.capReached,
-      maxUrlsPerRun: MAX_URLS_PER_RUN, maxRequestsPerHost: maxPerHost, maxResponseBytes: MAX_RESPONSE_BYTES,
+      ...declaredBounds,
       robotsUnknownHosts: [...robotsUnknownHosts], seedPoolSize,
       cost: crawlCost(fetcher.requestsIssued()),
     }),
@@ -288,4 +313,4 @@ function pageObservation({
   });
 }
 
-export { USER_AGENT, MAX_URLS_PER_RUN, MAX_REQUESTS_PER_HOST, MAX_RESPONSE_BYTES };
+export { USER_AGENT, MAX_URLS_PER_RUN, MAX_REQUESTS_PER_HOST, MAX_RESPONSE_BYTES, REQUEST_INTERVAL_MS, REQUEST_TIMEOUT_MS };

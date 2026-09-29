@@ -839,6 +839,15 @@ export const DECLARED = Object.freeze({
   /* 🔴 F35 · Action decision engine. Frozen 29 Sep (_handoffs da659bd, RR-88 §2) ALONE. The PAGE DECISION cluster's second row.
    * Historical row 20 was DEFERRED (class D) with no code and never proved; its wording ("exactly one primary action", no REMOVE) is
    * CHANGED. The verified rows F31, F33, F34, F36 and F21 supply every input; nothing is collected. */
+  /* 🔴 REOPENED 29 Sep 2026 — CONCRETE_CONTRADICTORY_EVIDENCE, NOT a requirement change (RR-89 §3). On the real data F35 chose MERGE
+   * for 17 pages while printing that whether they duplicate one intent was NOT MEASURED — the only evidence was a shared broad need
+   * (F33 headline coverage). MERGE's authority is V3 §8 "Multiple pages split or duplicate one intent"; C2's FAILURE limb "Missing or
+   * insufficient evidence yields an action instead of CANNOT DECIDE" is MET. The fault is CC's: the preamble resolved MERGE's rule
+   * more loosely than its authority, and tests and record accepted it. Classification: _handoffs 2f010f3. The board count FALLS
+   * while this stands, because a wrong PASS was corrected. */
+  /* 🔴 VERIFIED-PASS AGAIN — 29 Sep 2026, by the route the reopening recorded, under the UNCHANGED acceptance (da659bd). MERGE and
+   * REDIRECT now need a RECORDED semantic review finding one intent duplicated or split; a shared need or similarity alone is CANNOT
+   * DECIDE naming that review. EARNED only when main CI is green on the exact merged SHA (afterMerge). */
   F35: Object.freeze({
     featureId: "F35",
     board: "F_BOARD",
@@ -875,6 +884,37 @@ export const DECLARED = Object.freeze({
         sabotage: "runs/audit/f35-sabotage-2026-09-29.txt: 25 of 25 proved, every span pre-flighted once; F31 22/22 re-run on the changed inventory module",
         historicalReuse: "historical row 20 was DEFERRED with no code — nothing proved to reuse; the verified F31 population and completeness, F33 coverage, F34 existing-page check, F36 right-to-exist and F21 signals, and the fact registry's freshness rule, are reused unchanged as the decision's inputs",
         declaredLimit: "CREATE is unreachable on real data: no row issues a recorded V3 §5 demand outcome (missing fact: demand evidence — F14 has no public-evidence path). KEEP is unreachable: no authoritative quality measurement (F40 blocked). LINK is unreachable: the inventory is INCOMPLETE (F19 crawl on hold; freshness rule UNSET). MERGE's need is F33's headline-level need — whether the pages duplicate one intent in substance is NOT MEASURED and every MERGE says so.",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F35",
+        on: "2026-09-29",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS (concrete contradictory evidence: 17 real MERGE recommendations with their defining condition NOT MEASURED)",
+        reason: "CONCRETE_CONTRADICTORY_EVIDENCE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "F35's real result chose MERGE for 17 existing pages on a shared registered value alone (F33 headline coverage), each carrying F35's own caveat that whether the pages duplicate one intent was NOT MEASURED; no semantic review was recorded (F32: 0 reviews, 351 pairs NOT_JUDGED). MERGE's authority (V3 §8) is 'Multiple pages split or duplicate one intent'; the frozen FAILURE limb [C2] 'Missing or insufficient evidence yields an action instead of CANNOT DECIDE' is met. Similarity, and a shared broad need, is a review trigger, never proof that two pages should be merged (F32, V3 G15).",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F35.ruling.sha256, contract: ACCEPTANCES.F35.contractSha256 }),
+        evidenceRecord: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F35_MERGE_CONTRADICTION_2026-09-29.md", commit: "2f010f39a98f9ab88f3b9dd2ccaf5c9e2df3773b", sha256: "1784950ea38921e45f6441312513fab59c1992a798cbba4f31c8d92195a2fddc" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-29_RR-89_OWNER_DIRECTION_THEN_REPAIR_F35_MERGE.md", commit: "2d82434fcae2005a08df855e3f76fbb781a2ab49", sha256: "911761164cfc7961b83bce69d0ef10489bb3824cbe5d097132e6848a68c1578e" }),
+      }),
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F35",
+        population: "REAL",
+        on: "2026-09-29",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (reopened on concrete contradictory evidence; returned on the corrected behaviour)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F35.ruling.sha256, contract: ACCEPTANCES.F35.contractSha256 }),
+        populations: "REAL (count-only; bound: recorded data only · 2 proposed needs · 27 existing pages · inventory INCOMPLETE · 47 registry facts · demand NOT RECORDED · semantic reviews recorded 0): proposed needs CHOSEN 0, CANNOT_DECIDE 2; existing pages CHOSEN 0, CANNOT_DECIDE 27 — MERGE 0 (was 17): the 17 pages that share a registered need with another page now name the missing semantic review. Positive control on the REAL structures: one real same-need pair given a test-only review (all six aspects compared, one intent duplicated) is MERGE for exactly those two pages, owner approval required, the review carried as evidence.",
+        proofs: "test/f35-action-decision.test.mjs — RR-89 FIRING CONTROL: an unreviewed shared need is CANNOT DECIDE with the review named, never MERGE or REDIRECT (a not-served page keeps FIX on its own evidence); one reviewed peer among two gives MERGE with that peer and its review only; a review counts only with all six aspects compared and one intent duplicated or split (a DISTINCT or partial review is no successor); the reader keeps only qualifying reviews and refuses a defaulted review list; REAL, both controls: no review → MERGE 0 and 17 pages name the review, one reviewed real pair → MERGE 2 — plus every earlier F35 proof (C1–C7), hand-written expectations, production trail byte-identical",
+        sabotage: "runs/audit/f35-sabotage-2026-09-29.txt: 31 of 31 proved, every span pre-flighted once — incl. S21 (an unreviewed shared need turned into MERGE) and S10 (a reviewed MERGE suppressed), S26–S31 on the review rule; re-run on the changed code: F32 23/23, F36 12/12, F34 19/19, F33 18/18, F31 22/22, production trail untouched",
+        historicalReuse: "the first verification's evidence stays valid for every action but MERGE and REDIRECT; F32's semantic-review shape (six aspects, V3 §14.2) is reused as MERGE's evidence rule",
+        declaredLimit: "MERGE and REDIRECT are unreachable on real data until a semantic review is recorded (missing fact: a recorded semantic review — none exists, none may be bought, no new owner labels). CREATE (no recorded demand outcome), KEEP (no authoritative quality measurement; F40 blocked) and LINK (inventory INCOMPLETE; F19 on hold, freshness rule unset) stay unreachable as before.",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),

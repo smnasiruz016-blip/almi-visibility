@@ -12,8 +12,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync, execFileSync } from "node:child_process";
 
-import { decideForNeed, decideForPage, DECISION as D, OWNER_APPROVAL, STANDING, MERGE_NOT_MEASURED } from "../src/page/action-decision.mjs";
-import { readClientActionEvidence } from "../src/page/action-evidence.mjs";
+import { decideForNeed, decideForPage, DECISION as D, OWNER_APPROVAL, STANDING, REVIEW_MISSING, reviewShowsOneIntent } from "../src/page/action-decision.mjs";
+import { readClientActionEvidence, sameNeedPeers, sameIntentPeers } from "../src/page/action-evidence.mjs";
+import { readExistingPagePopulation } from "../src/page/existing-page-population.mjs";
 import { rightToExist } from "../src/page/right-to-exist.mjs";
 import { existingPageFirst } from "../src/page/existing-page-first.mjs";
 import { decisionCallPaths } from "../tools/need-coverage-call-paths.mjs";
@@ -92,7 +93,7 @@ test("C5 · the existing-page rules: FIX, MERGE, REDIRECT, LINK, REFRESH, KEEP, 
   const cases = [
     ["a recorded contradiction", page({ signals: { state: "CONTRADICTED", classes: ["K1"], sources: ["s1"] } }), ["FIX"]],
     ["recorded not served, no successor", page({ servedState: { state: "OBSERVED", status: 404, evidence: ["o9"] } }), ["FIX"]],
-    ["two pages cover one need", page({ sameNeedPeers: ["p2"] }), ["MERGE"]],
+    ["a recorded review finds one intent duplicated", page({ sameNeedPeers: ["p2"], sameIntentPeers: [{ pageId: "p2", reviewRef: "rev:1" }] }), ["MERGE"]],
     ["no inbound link, COMPLETE inventory", page({ inboundLinks: 0, completeness: "COMPLETE" }), ["LINK"]],
     ["a stale fact on the page", page({ staleFacts: ["f1"] }), ["REFRESH"]],
     ["recorded quality satisfies the intent", page({ quality: { satisfiesIntent: true, ref: "q1" } }), ["KEEP"]],
@@ -121,7 +122,7 @@ test("C2 · contradicting actions are CANNOT DECIDE, never both returned: KEEP +
   assert.equal(keepAndFix.decision, D.CANNOT_DECIDE);
   assert.deepEqual(keepAndFix.actions, []);
   assert.match(keepAndFix.missing[0], /contradicting actions: FIX \+ KEEP|contradicting actions: KEEP \+ FIX/);
-  const restoreOrRedirect = decideForPage(page({ servedState: { state: "OBSERVED", status: 404, evidence: ["o"] }, sameNeedPeers: ["p2"] }));
+  const restoreOrRedirect = decideForPage(page({ servedState: { state: "OBSERVED", status: 404, evidence: ["o"] }, sameNeedPeers: ["p2"], sameIntentPeers: [{ pageId: "p2", reviewRef: "rev:1" }] }));
   assert.equal(restoreOrRedirect.decision, D.CANNOT_DECIDE, "FIX and REDIRECT were both returned");
   const none = need("beta", { coverageState: "PARTIAL" });
   assert.equal(none.decision, D.CANNOT_DECIDE);
@@ -134,7 +135,7 @@ test("C2 · contradicting actions are CANNOT DECIDE, never both returned: KEEP +
 test("C1/C6 · every chosen action carries its rule and evidence, is a RECOMMENDATION, and the four owner-approval actions say so", () => {
   const all = [
     need("alpha", { demand: STRONG }), need("alpha", { pages: [{ pageId: "c1", tenantId: T, html: "<h1>Alpha</h1>", recordedDefect: "d" }] }),
-    decideForPage(page({ sameNeedPeers: ["p2"] })), decideForPage(page({ servedState: { state: "OBSERVED", status: 410 }, removal: { notServed: true, noSuccessor: true, noDemand: true, ref: "r" } })),
+    decideForPage(page({ sameNeedPeers: ["p2"], sameIntentPeers: [{ pageId: "p2", reviewRef: "rev:1" }] })), decideForPage(page({ servedState: { state: "OBSERVED", status: 410 }, removal: { notServed: true, noSuccessor: true, noDemand: true, ref: "r" } })),
     decideForPage(page({ postPublication: { weakResult: true, ownerApprovalPath: true, ref: "pp" } })), decideForPage(page({ signals: { state: "CONTRADICTED", classes: ["K2"], sources: ["s"] } })),
   ];
   for (const d of all) for (const a of d.actions) {
@@ -143,8 +144,65 @@ test("C1/C6 · every chosen action carries its rule and evidence, is a RECOMMEND
     assert.equal(a.standing, "RECOMMENDATION", `${a.action} is presented as more than a recommendation`);
     assert.equal(a.ownerApprovalRequired, ["MERGE", "NOINDEX", "REMOVE", "REDIRECT"].includes(a.action), `${a.action}: owner-approval label wrong`);
   }
-  const merge = decideForPage(page({ sameNeedPeers: ["p2"] })).actions[0];
-  assert.equal(merge.notMeasured, MERGE_NOT_MEASURED, "a MERGE lost its unmeasured caveat");
+  const merge = decideForPage(page({ sameNeedPeers: ["p2"], sameIntentPeers: [{ pageId: "p2", reviewRef: "rev:1" }] })).actions[0];
+  assert.deepEqual(merge.evidence, ["p2", "rev:1"], "a MERGE does not carry the review that justifies it");
+});
+
+/* ================= RR-89 — similarity or a shared need is a review trigger, never proof of MERGE ================= */
+
+const SIX = ["intent", "answer", "facts", "architecture", "examples", "userValue"]; // V3 §14.2, written by hand
+
+test("RR-89 · FIRING CONTROL: an UNREVIEWED shared need is CANNOT DECIDE with the missing review named — never MERGE, never REDIRECT", () => {
+  const unreviewed = decideForPage(page({ sameNeedPeers: ["p2", "p3"] }));
+  assert.equal(unreviewed.decision, D.CANNOT_DECIDE, "an unreviewed shared need became an action");
+  assert.ok(!acts(unreviewed).includes("MERGE"), "an unreviewed pair was turned into MERGE");
+  assert.ok(unreviewed.missing.some((m) => m.includes(REVIEW_MISSING) && /2 other page\(s\) share this page's registered need, none reviewed/.test(m)), "the missing review is not named");
+  /* a not-served page whose only peer is unreviewed: FIX on its own evidence, no REDIRECT, and the review named */
+  const notServed = decideForPage(page({ servedState: { state: "OBSERVED", status: 404, evidence: ["o9"] }, sameNeedPeers: ["p2"] }));
+  assert.deepEqual(acts(notServed), ["FIX"], "REDIRECT was chosen to an unreviewed page");
+  assert.ok(notServed.missing.some((m) => /MERGE and REDIRECT need a recorded semantic review/.test(m)));
+  /* one reviewed peer among two: MERGE with that peer only, carrying its review */
+  const partly = decideForPage(page({ sameNeedPeers: ["p2", "p3"], sameIntentPeers: [{ pageId: "p3", reviewRef: "rev:3" }] }));
+  assert.deepEqual(acts(partly), ["MERGE"]);
+  assert.deepEqual(partly.actions[0].evidence, ["p3", "rev:3"], "MERGE named an unreviewed peer");
+});
+
+test("RR-89 · what a review must show: every aspect compared AND one intent duplicated or split — a DISTINCT or partial review is no successor", () => {
+  assert.equal(reviewShowsOneIntent({ compared: SIX, duplicate: true, ref: "r" }), true);
+  assert.equal(reviewShowsOneIntent({ compared: SIX, duplicate: false, splitsOneIntent: true, ref: "r" }), true, "V3 §8 'split … one intent' was not accepted");
+  assert.equal(reviewShowsOneIntent({ compared: SIX, duplicate: false, ref: "r" }), false, "a DISTINCT review became a MERGE successor");
+  assert.equal(reviewShowsOneIntent({ compared: SIX.filter((a) => a !== "examples"), duplicate: true, ref: "r" }), false, "a review missing an aspect counted");
+  assert.equal(reviewShowsOneIntent(null), false);
+  /* the evidence reader keeps only the peers a qualifying review names, in either pair order */
+  const reviews = [{ pair: ["a", "b"], compared: SIX, duplicate: false, ref: "distinct" }, { pair: ["c", "a"], compared: SIX, duplicate: true, ref: "dup" }];
+  assert.deepEqual(sameIntentPeers("a", new Set(["b", "c", "d"]), reviews), [{ pageId: "c", reviewRef: "dup" }]);
+  assert.throws(() => readClientActionEvidence({ tenantId: "tenant:x", product: {}, resolve: () => null }), /passed explicitly/, "missing reviews were silently defaulted");
+});
+
+test("RR-89 · REAL, both controls: with no review recorded no real page is MERGE and each shared-need page names the review; one real pair given a (test-only) review IS MERGE", async () => {
+  const resolve = createTenantResolver();
+  const tenantId = resolveSide(resolve, RESOURCES.subject("almi-oet")).tenantId;
+  const product = await subject("almi-oet");
+  const { records } = await loadRegistry(product.factsDir, product.productId);
+  const bare = readClientActionEvidence({ tenantId, product, records, resolve, reviews: [] });
+  assert.equal(bare.summary.pages.byAction.MERGE, 0, "an unreviewed real pair was turned into MERGE");
+  const named = bare.pages.filter((d) => d.missing.some((m) => m.includes(REVIEW_MISSING)));
+  assert.ok(named.length > 0, "EMPTY: no real page shares a need — the control would prove nothing");
+  /* a real same-need pair, from the production peer function over the real population */
+  const { population } = readExistingPagePopulation({ scope: { tenantId }, resolve, env: process.env, now: new Date() });
+  const peers = sameNeedPeers(population.pages, product.variants ?? []);
+  const [a, set] = [...peers.entries()].find(([, s]) => s.size > 0);
+  const b = [...set][0];
+  const review = { pair: [a, b], compared: SIX, duplicate: true, ref: "test-review:f35-rr89" };
+  const reviewed = readClientActionEvidence({ tenantId, product, records, resolve, reviews: [review] });
+  const merged = reviewed.pages.filter((d) => d.actions.some((x) => x.action === "MERGE"));
+  assert.deepEqual(merged.map((d) => d.subject.pageId).sort(), [a, b].sort(), "a properly evidenced real MERGE was suppressed, or spread to unreviewed pages");
+  for (const d of merged) {
+    const m = d.actions.find((x) => x.action === "MERGE");
+    assert.ok(m.evidence.includes("test-review:f35-rr89"), "the real MERGE does not carry its review");
+    assert.equal(m.ownerApprovalRequired, true, "a MERGE lost its owner-approval requirement");
+  }
+  console.log(`  REAL RR-89 (count-only): no review → MERGE 0, ${named.length} page(s) name the missing review · one reviewed real pair → MERGE ${merged.length} · bound: ${bare.bound}`);
 });
 
 /* ================= REAL — count-only, with the missing facts ================= */
@@ -154,13 +212,12 @@ test("REAL · the client's recorded structures, as they are — no CREATE, every
   const tenantId = resolveSide(resolve, RESOURCES.subject("almi-oet")).tenantId;
   const product = await subject("almi-oet");
   const { records } = await loadRegistry(product.factsDir, product.productId);
-  const r = readClientActionEvidence({ tenantId, product, records, resolve });
+  const r = readClientActionEvidence({ tenantId, product, records, resolve, reviews: [] });
   assert.ok(r.pages.length > 0 && r.needs.length > 0, "EMPTY real population");
   assert.equal(r.summary.needs.byAction.CREATE, 0, "a real proposed need became a new page");
   for (const d of [...r.needs, ...r.pages]) {
     if (d.decision === D.CANNOT_DECIDE) assert.ok(d.missing.length > 0, "a real CANNOT DECIDE names no missing fact");
     for (const a of d.actions) assert.equal(a.standing, "RECOMMENDATION");
-    for (const a of d.actions.filter((x) => x.action === "MERGE")) assert.equal(a.notMeasured, MERGE_NOT_MEASURED);
   }
   const s = r.summary;
   console.log(`  REAL (count-only): proposed needs ${s.needs.population} · CHOSEN ${s.needs.chosen} · CANNOT_DECIDE ${s.needs.cannotDecide} | existing pages ${s.pages.population} · CHOSEN ${s.pages.chosen} · CANNOT_DECIDE ${s.pages.cannotDecide} · ${Object.entries(s.pages.byAction).filter(([, n]) => n).map(([a, n]) => `${a} ${n}`).join(" · ")} · bound: ${r.bound}`);

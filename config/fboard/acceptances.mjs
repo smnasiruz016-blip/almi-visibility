@@ -410,6 +410,20 @@ export const F79_AMENDMENT_1 = Object.freeze({
   contractSha256: "6dc3fe945a5bc2056a411810767f5bec3758f3b08b57dfad5398de6bf92a621e",
   amends: Object.freeze({ ruling: F79_ORIGINAL.ruling, contractSha256: F79_ORIGINAL.contractSha256 }),
 });
+/* 🔴 F55 · FROZEN 29 Sep 2026 (_handoffs 7323446, RR-93 continuous build), committed ALONE before any F55 code was written. Pinned from the committed
+ * blob by parseContract (derivation re-run with a firing control inside the contract: "longest" → "lengthy"). */
+export const F55_ORIGINAL = Object.freeze({
+  featureId: "F55",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F55_ACCEPTANCE_2026-09-29.md", commit: "7323446353174d40e373002c375530b5579c0b4b", sha256: "6d4268071d99d053caa68bea1847ed0add869d7269e9f640fc9e3a4a0ab9286c" }),
+  authority: Object.freeze({ propositionId: "F55_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F55"]) }),
+  frozenOn: "2026-09-29",
+  feature: "F55 · AI crawler access audit",
+  input: "For each declared client: the declared list of supported AI crawlers with their user-agent tokens; the client's own recorded robots.txt observation (status and body) and its inventory pages with their recorded bodies, from its own partition; and any recorded retrieval by those crawlers — driven over the real recorded structures of the client, count-only, with nothing fetched.",
+  expected: "[C1 · POLICY PER CRAWLER AND PAGE] For every declared crawler and every inventory page, the robots policy is exactly one of ALLOWED, DISALLOWED or NOT MEASURED, decided by the most specific matching group (else the wildcard group) and the longest matching rule with allow winning a tie, with the deciding group and rule recorded; an unavailable robots.txt (4xx) is ALLOWED, an unreachable one (5xx or fetch failure) is DISALLOWED, and no recorded robots.txt is NOT MEASURED.\n[C2 · POLICY IS NOT RETRIEVAL] Observed retrieval is reported separately and only from a recorded retrieval by that crawler, dated; where none is recorded it is NOT MEASURED — never inferred from policy, never zero — and no output calls a crawler's access \"observed\" on policy alone.\n[C3 · PAGE DIRECTIVES BESIDE, NOT MERGED] A recorded page-level robots directive addressed to the crawler or to all robots is reported beside the reach policy, with its source; it never changes the reach verdict.\n[C4 · DECLARED CRAWLERS ONLY] Only the declared supported crawlers are audited, each by its declared token; an absent or empty declared list is COULD-NOT-PROVE, and no crawler is added, dropped or renamed by the audit.\n[C5 · CLIENTS STAY SEPARATE] Robots records and pages are read only from the client's own partition; another client's robots.txt never decides this client's policy.\n[C6 · RECORDED DATA ONLY] Nothing is fetched and no network, process, connector, paid or metered call is made; the output is count-only with its population and bound.",
+  failure: "[C1] A crawler-page pair has no policy or two; the wrong group or rule decides; a tie goes to disallow; a 4xx robots.txt reads DISALLOWED or a 5xx reads ALLOWED; a missing robots.txt reads ALLOWED or DISALLOWED. [C2] Retrieval is inferred from policy, reported as zero, or reported without a recorded retrieval; policy is called observed. [C3] A page directive changes the reach verdict or is dropped. [C4] A crawler outside the declared list is audited, one is dropped or matched by another token, or an empty list passes. [C5] Another client's robots record or page decides this client's result. [C6] Anything is fetched or called, or a figure is printed without its population and bound. And for any clause: it is proved only on an empty population, or only by a control that cannot fire.",
+  evidence: "For each clause: a test driving the production path; a firing control; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched. C1 proved on RFC 9309's own cases (a specific group over the wildcard, longest match, an allow-wins tie, 4xx, 5xx, none) and on the client's real recorded robots.txt against its real inventory. C2 proved with a firing control in which a policy of ALLOWED must still report retrieval NOT MEASURED. C5 proved with a second real client's robots record present in the shared store. The real result, count-only, with its bound. The full suite as CI runs it, and exact-SHA CI on the PR head before any merge, then on the merge commit. F55 moves only through the production validator and the audit trail, and only when every clause is PROVED.",
+  contractSha256: "f8f2ff2be1b7fdcd17fd71d42ae23d3d0c09d1452b3a775e2955e80789b6d387",
+});
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -580,6 +594,7 @@ export const ACCEPTANCES = Object.freeze({
   F41: F41_ORIGINAL,
   F43: F43_ORIGINAL,
   F48: F48_AMENDMENT_1,
+  F55: F55_ORIGINAL,
   F77: F77_AMENDMENT_1,
   F78: F78_ORIGINAL,
   F79: F79_AMENDMENT_1,

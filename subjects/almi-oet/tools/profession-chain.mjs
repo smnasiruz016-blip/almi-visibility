@@ -44,6 +44,8 @@ import { uniqueWords } from "../../../src/gate-a/shell.mjs";
 import { productFromArgvOrExit, productIdOrExit } from "../../../src/product-cli.mjs";
 import { scopedEntryPoint } from "../../../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../../../src/tenancy/scoped-run.mjs";
+import { BATCH_ID } from "../../../src/crawl/observation-batch.mjs";
+import { existingPageGate } from "../../../src/page/existing-page-population.mjs";
 
 /**
  * 🔴 THE PRODUCT ARRIVES AS AN ARGUMENT, NOT AS AN IMPORT.
@@ -57,7 +59,7 @@ import { RESOURCES } from "../../../src/tenancy/scoped-run.mjs";
 /* 🔴 F03 — the subject's data root is decided (RESOURCES.subject) BEFORE its descriptor or any of its files is read. */
 const PRODUCT_ID = productIdOrExit(process.argv, { usage: "node bin/profession-chain.mjs --product=<id> --page=<slug>" });
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/profession-chain.mjs", governed: true, resources: [RESOURCES.subject(PRODUCT_ID), RESOURCES.cache("sibling-page cache"), RESOURCES.runArtefacts("sibling pages read from the cache directory")] });
+const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/profession-chain.mjs", governed: true, resources: [RESOURCES.subject(PRODUCT_ID), RESOURCES.cache("sibling-page cache"), RESOURCES.runArtefacts("sibling pages read from the cache directory"), RESOURCES.collectionPartition("CRAWL_BATCH", BATCH_ID)] });
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/profession-chain.mjs --product=<id> --page=<slug>", scope: SCOPE });
 
 const argv = process.argv.slice(2);
@@ -177,9 +179,11 @@ const report = {
 if (outDir) {
   let chainRefused = false;
   let chainFailed = false;
+  /* 🔴 F34 — the candidate page is written only when no existing page of this tenant serves, or may serve, its intent. */
+  const existingPage = existingPageGate({ scope: SCOPE, entry: "subjects/almi-oet/tools/profession-chain.mjs", candidate: { slug: which, intent: spec?.variant } });
   for (const [name, body, what] of [
     /* F04: the action is a label the shared engine's registry declares, so it names no subject word (neutrality census). */
-    [`${which}.html`, html, "WRITE_VARIANT_CHAIN_PAGE"],
+    ...(existingPage.mayProduce ? [[`${which}.html`, html, "WRITE_VARIANT_CHAIN_PAGE"]] : []),
     [`${which}-chain.json`, JSON.stringify(report, null, 2) + "\n", "WRITE_VARIANT_CHAIN_REPORT"],
   ]) {
     const governed = executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
@@ -194,6 +198,6 @@ if (outDir) {
     }
   }
   if (chainRefused) console.log(`\n[dry-run] would have written ${outDir} — ${permission.reason}`);
-  else if (!chainFailed) console.log(`\nwrote ${outDir}/${which}.html`);
+  else if (!chainFailed) console.log(`\nwrote ${outDir}/${existingPage.mayProduce ? `${which}.html` : `${which}-chain.json`}`);
   if (chainFailed) process.exitCode = 1;
 }

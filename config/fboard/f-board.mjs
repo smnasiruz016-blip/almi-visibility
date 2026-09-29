@@ -836,6 +836,50 @@ export const DECLARED = Object.freeze({
       }),
     ]),
   }),
+  /* 🔴 F34 · No blind regeneration. Frozen 28 Sep (_handoffs 53f74b4, RR-83 §2) ALONE, before any F34 code was read. Matched to
+   * historical row 14 ("No Blind Regeneration", historically VERIFIED-PASS) only AFTER the freeze: that row proved no product-repo
+   * write, no publish, no bulk generation, registered writers and a stable page_id — and DEFERRED exactly F34's core ("an unchanged
+   * existing page rediscovered → KEEP; automatic recreate or overwrite forbidden"). The historical PASS imports nothing. */
+  F34: Object.freeze({
+    featureId: "F34",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-28", ruling: ACCEPTANCES.F34.ruling, contractSha256: ACCEPTANCES.F34.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F34",
+        on: "2026-09-28",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F34.ruling.sha256, contract: ACCEPTANCES.F34.contractSha256 }),
+        branch: "rr83-f34-no-blind-regeneration",
+        baseSha: "2f15c5bd475b87c9b115b89d4cb2ae18faf94dc5",
+        baseCiRun: "36494244386",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-28_RR-83_F34_REUSE_AND_COMPLETE.md", commit: "6104f677695bd83e4dd4c61e0e140cc004667542", sha256: "d4449a8161ddda3d675c08b21f7a0354512d5231d8402fed6caa4ca5711a8286" }),
+      }),
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F34",
+        population: "REAL",
+        on: "2026-09-28",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F34.ruling.sha256, contract: ACCEPTANCES.F34.contractSha256 }),
+        populations: "REAL: the subject that declares page specs resolves lawfully to one tenant, whose partition of the stored observation batch holds 27 existing pages (coverage UNKNOWN — the batch's run records are not in the tenant's partition, and the run's COMPLETE was corrected to PARTIAL); both real declared page specs are stopped (MONITOR), each naming existing pages. The page-producing census over 338 committed modules outside test/ plus the 7-entry page-writer register: 8 paths — 1 CHECKS, 4 ROUTED, 3 NOT_PAGE_PRODUCTION, 0 unclassified, 0 faults.",
+        proofs: "C1/C2/C4 through constructCandidates on a family Gate A otherwise ACCEPTS (test/page-construction.test.mjs, F34 ·); C1–C6 in test/f34-no-blind-regeneration.test.mjs — missing, malformed and foreign populations REFUSED; same need in different words MONITOR naming the page; empty COMPLETE the only way through (control); unknown quality protected, recorded defect → IMPROVE; the real runner end to end in a declared world on a confined store: 2 candidates, 2 recorded decisions, nothing written; census with firing controls; no product-repository write, publish or bulk path, with firing controls; real population count-only; production trail byte-identical across every suite run",
+        sabotage: "runs/audit/f34-sabotage-2026-09-28.txt: 19 of 19 proved (C1 ×4, C2 ×3, C3 ×3, C4, C5 ×3, C6 ×4, coverage correction), residue 0, production trail untouched",
+        historicalReuse: "historical row 14 (No Blind Regeneration) re-run fresh for C3 — no product-repository write, no publish, no bulk generation, a rediscovered URL keeps its page_id; its deferred half (KEEP; no recreate or overwrite) was never built and is F34's new code",
+        declaredLimit: "same-need detection in other words is F33's and does not exist: while any existing page of the tenant exists, a candidate is never produced (MONITOR naming every existing page), so different wording can change what is named first, never whether a page is produced; no page-quality measurement is authoritative (F40 BLOCKED), so no existing page is presumed bad; the census is a source check and cannot see a dynamic import or a renderer copied rather than imported; no live fetch or metered call in any proof",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
   /* 🔴 F77 · Idempotency retry and rollback safety. Frozen 28 Sep (_handoffs 7042c77, RR-81) BEFORE its code was read; the first
    * verdict FAILED under that contract (limb map 84f26b9, outcomes 7ee7799, RR-81 result 4b0accd) and stays on the record as it is.
    * Amended by the owner's ruling RR-82 §2 (a726cc3 → Amendment 1, b443e5e): a retry is the same operation identity; a fresh

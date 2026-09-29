@@ -89,8 +89,61 @@ function family({ pages = VARIANTS, words = 420, claims = MIN_FACTS } = {}) {
   return { pageSpecs, records };
 }
 
+/* F34: the synthetic family's tenant is DECLARED to have no existing page (a COMPLETE, empty population), so these tests judge
+ * Gate A alone; the existing-page check itself is proved in test/f34-no-blind-regeneration.test.mjs. */
+const FIXTURE_TENANT = "tenant:gate-a-fixture";
+const NO_EXISTING_PAGE = Object.freeze({ tenantId: FIXTURE_TENANT, coverageState: "COMPLETE", pages: [] });
 const judge = ({ pageSpecs, records }, requested = Object.keys(pageSpecs)) =>
-  constructCandidates({ pageSpecs, variants: VARIANTS, records, requested, now: NOW });
+  constructCandidates({ pageSpecs, variants: VARIANTS, records, requested, tenantId: FIXTURE_TENANT, existingPages: NO_EXISTING_PAGE, now: NOW });
+
+/* ---- F34 · the existing-page check, on the SAME family that is otherwise ACCEPTED ---------------------------------------
+ * The GREEN family below clears every Gate A part. So each refusal here is the existing-page check's, and nothing else's. */
+const existingPage = (pageId, html, extra = {}) => ({ pageId, tenantId: FIXTURE_TENANT, html, ...extra });
+
+test("F34 · C1 · construction with NO existing-page population refuses every candidate — never built as though the site were empty", () => {
+  const { pageSpecs, records } = family();
+  const results = constructCandidates({ pageSpecs, variants: VARIANTS, records, requested: Object.keys(pageSpecs), tenantId: FIXTURE_TENANT, now: NOW });
+  assert.equal(results.length, 3);
+  for (const r of results) {
+    assert.equal(r.verdict, REFUSED, r.slug);
+    assert.equal(r.html, null, `${r.slug}: a candidate was produced without an existing-page check`);
+    assert.equal(r.parts.existingPage.outcome, "REFUSED");
+    assert.match(r.parts.existingPage.reason, /EXISTING_PAGE_POPULATION_UNAVAILABLE/);
+  }
+  const other = constructCandidates({ pageSpecs, variants: VARIANTS, records, requested: ["alpha"], tenantId: FIXTURE_TENANT, existingPages: { tenantId: "tenant:someone-else", coverageState: "COMPLETE", pages: [] }, now: NOW });
+  assert.equal(other[0].verdict, REFUSED, "another tenant's population decided this tenant's candidate");
+  assert.match(other[0].parts.existingPage.reason, /OF_ANOTHER_TENANT/);
+});
+
+test("F34 · C2 · a candidate whose intent an existing page serves is never ACCEPTED — the outcome names that page", () => {
+  const { pageSpecs, records } = family();
+  const pop = { tenantId: FIXTURE_TENANT, coverageState: "COMPLETE", pages: [existingPage("aaaaaaaaaaaaaaaa", "<h1>All about alpha</h1><p>An existing page.</p>")] };
+  const [alpha, beta] = constructCandidates({ pageSpecs, variants: VARIANTS, records, requested: ["alpha", "beta"], tenantId: FIXTURE_TENANT, existingPages: pop, now: NOW });
+  assert.equal(alpha.verdict, REFUSED);
+  assert.equal(alpha.html, null, "a new page was produced for an intent an existing page serves");
+  assert.equal(alpha.parts.existingPage.outcome, "MONITOR");
+  assert.equal(alpha.parts.existingPage.matched, 1);
+  assert.deepEqual(alpha.parts.existingPage.existingPages, ["aaaaaaaaaaaaaaaa"]);
+  /* 🔴 beta is NOT named by that page — and is still not produced: an existing page may serve it in other words. */
+  assert.equal(beta.verdict, REFUSED);
+  assert.equal(beta.html, null, "a candidate was produced while an existing page of the tenant might serve it");
+  assert.equal(beta.parts.existingPage.outcome, "MONITOR");
+  assert.match(beta.parts.existingPage.reason, /MAY_SERVE/);
+  assert.deepEqual(beta.parts.existingPage.existingPages, ["aaaaaaaaaaaaaaaa"], "the uncertain outcome must still name the existing page");
+});
+
+test("F34 · C4 · an existing page of unknown quality is protected; one with a recorded defect is routed to IMPROVE, never regenerated", () => {
+  const { pageSpecs, records } = family();
+  const unknown = { tenantId: FIXTURE_TENANT, coverageState: "COMPLETE", pages: [existingPage("bbbbbbbbbbbbbbbb", "<p>gamma</p>")] };
+  const [u] = constructCandidates({ pageSpecs, variants: VARIANTS, records, requested: ["gamma"], tenantId: FIXTURE_TENANT, existingPages: unknown, now: NOW });
+  assert.equal(u.html, null, "an unmeasured existing page was treated as bad and recreated");
+  assert.equal(u.parts.existingPage.outcome, "MONITOR");
+  const defect = { tenantId: FIXTURE_TENANT, coverageState: "COMPLETE", pages: [existingPage("cccccccccccccccc", "<p>other</p>"), existingPage("bbbbbbbbbbbbbbbb", "<p>gamma</p>", { recordedDefect: "a recorded measurement names a stale fact" })] };
+  const [d] = constructCandidates({ pageSpecs, variants: VARIANTS, records, requested: ["gamma"], tenantId: FIXTURE_TENANT, existingPages: defect, now: NOW });
+  assert.equal(d.html, null, "a page with a recorded defect was regenerated instead of repaired");
+  assert.equal(d.parts.existingPage.outcome, "IMPROVE");
+  assert.equal(d.parts.existingPage.existingPages[0], "bbbbbbbbbbbbbbbb", "IMPROVE must name the defective existing page first");
+});
 
 /* ---- GREEN ---------------------------------------------------------------- */
 
@@ -98,7 +151,9 @@ test("🟢 GREEN: a family built to clear all four parts is ACCEPTED — and onl
   const results = judge(family());
   for (const r of results) {
     assert.equal(r.verdict, ACCEPTED, `${r.slug}: ${JSON.stringify({ gaps: r.dataGaps, rejects: r.rejects, notTested: r.notTested })}`);
-    assert.deepEqual(Object.values(r.parts).map((p) => p.state), [PASS, PASS, PASS, PASS]);
+    /* F34 added a fifth part — the existing-page check — which passes here only because the fixture tenant is declared empty. */
+    assert.deepEqual(Object.values(r.parts).map((p) => p.state), [PASS, PASS, PASS, PASS, PASS]);
+    assert.equal(r.parts.existingPage.outcome, "NO_EXISTING_PAGE");
     assert.equal(r.parts.completeness.state, PASS);
     assert.ok(r.parts.completeness.supersededUniqueWords >= MIN_UNIQUE_WORDS, "the superseded figure is still measured and reported");
     assert.ok(r.parts.facts.value >= MIN_FACTS);

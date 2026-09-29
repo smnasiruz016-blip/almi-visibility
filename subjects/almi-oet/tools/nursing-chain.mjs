@@ -45,6 +45,8 @@ import { openConnector } from "../../../src/tenancy/connectors.mjs";
 import { productFromArgvOrExit, productIdOrExit } from "../../../src/product-cli.mjs";
 import { scopedEntryPoint } from "../../../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../../../src/tenancy/scoped-run.mjs";
+import { BATCH_ID } from "../../../src/crawl/observation-batch.mjs";
+import { existingPageGate } from "../../../src/page/existing-page-population.mjs";
 
 /**
  * 🔴 THE PRODUCT ARRIVES AS AN ARGUMENT, NOT AS AN IMPORT.
@@ -58,7 +60,7 @@ import { RESOURCES } from "../../../src/tenancy/scoped-run.mjs";
 /* 🔴 F03 — the subject's data root is decided (RESOURCES.subject) BEFORE its descriptor or any of its files is read. */
 const PRODUCT_ID = productIdOrExit(process.argv, { usage: "node bin/nursing-chain.mjs --product=<id>" });
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/nursing-chain.mjs", governed: true, resources: [RESOURCES.subject(PRODUCT_ID), RESOURCES.connector(PRODUCT_ID, "PUBLIC_SITE"), RESOURCES.cache("sibling-page cache"), RESOURCES.runArtefacts("live sibling pages")] });
+const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/nursing-chain.mjs", governed: true, resources: [RESOURCES.subject(PRODUCT_ID), RESOURCES.connector(PRODUCT_ID, "PUBLIC_SITE"), RESOURCES.cache("sibling-page cache"), RESOURCES.runArtefacts("live sibling pages"), RESOURCES.collectionPartition("CRAWL_BATCH", BATCH_ID)] });
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/nursing-chain.mjs --product=<id>", scope: SCOPE });
 
 const argv = process.argv.slice(2);
@@ -338,8 +340,10 @@ const report = {
 };
 
 if (outDir) {
+  /* 🔴 F34 — the candidate page is written only when no existing page of this tenant serves, or may serve, its intent. */
+  const existingPage = existingPageGate({ scope: SCOPE, entry: "subjects/almi-oet/tools/nursing-chain.mjs", candidate: { slug: "nursing", intent: PRODUCT.pageSpecs.nursing?.variant } });
   const chainOutcomes = [
-    ["nursing.html", candidateHtml, "WRITE_CHAIN_CANDIDATE_PAGE"],
+    ...(existingPage.mayProduce ? [["nursing.html", candidateHtml, "WRITE_CHAIN_CANDIDATE_PAGE"]] : []),
     ["chain-report.json", JSON.stringify(report, null, 2) + "\n", "WRITE_CHAIN_REPORT"],
   ].map(([name, body, what]) => executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
     repo: REPO, permission, target: join(outDir, name), targetClass: "RUN_EVIDENCE", bytes: body,
@@ -352,6 +356,6 @@ if (outDir) {
   } else if (chainOutcomes.every((o) => o.outcome === "REFUSED")) {
     console.log(`\n[dry-run] would have written ${outDir} — ${permission.reason}`);
   } else {
-    console.log(`\nwrote ${outDir}/nursing.html and chain-report.json`);
+    console.log(`\nwrote ${existingPage.mayProduce ? `${outDir}/nursing.html and ` : `${outDir}/`}chain-report.json`);
   }
 }

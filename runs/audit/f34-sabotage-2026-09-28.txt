@@ -1,0 +1,25 @@
+F34 sabotage run · 2026-09-28T23:44:12.421Z
+population: 19 sabotages over test/f34-no-blind-regeneration.test.mjs, test/page-construction.test.mjs, test/no-blind-regeneration.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+production trail sha256 before: 84424e86011a7012db0b3d506c18d34031fc0513f923f80e5beba8e699c851fd
+
+S1 C1 missing population refused src/page/existing-page-first.mjs: landed true · named test "C1 · a missing" red true · failing 2 · restored by sha256 true · PROVED
+S2 C1 another tenant refused src/page/existing-page-first.mjs: landed true · named test "C1 · a missing" red true · failing 1 · restored by sha256 true · PROVED
+S3 C2 empty but not COMPLETE is MONITOR src/page/existing-page-first.mjs: landed true · named test "C2 · with NO existing page" red true · failing 1 · restored by sha256 true · PROVED
+S4 C2 different wording never produced src/page/existing-page-first.mjs: landed true · named test "C2 · the SAME need in DIFFERENT WORDS" red true · failing 3 · restored by sha256 true · PROVED
+S5 C2 a page naming the intent is matched src/page/existing-page-first.mjs: landed true · named test "C2 · an existing page that names the intent" red true · failing 2 · restored by sha256 true · PROVED
+S6 C4 recorded defect routes to IMPROVE src/page/existing-page-first.mjs: landed true · named test "C4 ·" red true · failing 1 · restored by sha256 true · PROVED
+S7 C6 a stopped candidate owes a decision src/page/existing-page-first.mjs: landed true · named test "C6 · a stopped candidate" red true · failing 3 · restored by sha256 true · PROVED
+S8 C1/C2 construction needs the check to PASS src/page/construct.mjs: landed true · named test "F34 · C1 · construction" red true · failing 3 · restored by sha256 true · PROVED
+S9 C6 the runner records each stopped candidate bin/build-page.mjs: landed true · named test "C6 · END TO END" red true · failing 3 · restored by sha256 true · PROVED
+S10 C1 the runner hands in the real population bin/build-page.mjs: landed true · named test "C6 · END TO END" red true · failing 3 · restored by sha256 true · PROVED
+S11 population applies the coverage correction src/page/existing-page-population.mjs: landed true · named test "population ·" red true · failing 1 · restored by sha256 true · PROVED
+S12 C1 an unreadable batch is not a population src/page/existing-page-population.mjs: landed true · named test "C6 · the shared gate" red true · failing 1 · restored by sha256 true · PROVED
+S13 C6 the shared gate records src/page/existing-page-population.mjs: landed true · named test "C6 · the shared gate" red true · failing 1 · restored by sha256 true · PROVED
+S14 C5 a subject tool writes only through the gate subjects/almi-oet/tools/nursing-chain.mjs: landed true · named test "C5 · the real tree" red true · failing 2 · restored by sha256 true · PROVED
+S15 C5 an unclassified path is a fault tools/existing-page-first-census.mjs: landed true · named test "C5 · FIRING CONTROLS" red true · failing 1 · restored by sha256 true · PROVED
+S16 C5 a routed path must hold its marks tools/existing-page-first-census.mjs: landed true · named test "C5 · FIRING CONTROLS" red true · failing 1 · restored by sha256 true · PROVED
+S17 C3 a product-repository write is seen tools/no-generation-census.mjs: landed true · named test "C3 ·" red true · failing 1 · restored by sha256 true · PROVED
+S18 C3 a publish is seen tools/no-generation-census.mjs: landed true · named test "C3 ·" red true · failing 1 · restored by sha256 true · PROVED
+S19 C3 a rediscovered URL keeps its existing page_id src/evidence/ids.mjs: landed true · named test "🔴 a rediscovered URL resolves to its EXISTING page_id" red true · failing 3 · restored by sha256 true · PROVED
+
+proved 19 of 19 · residue 0 · production trail sha256 after: 84424e86011a7012db0b3d506c18d34031fc0513f923f80e5beba8e699c851fd · unchanged true

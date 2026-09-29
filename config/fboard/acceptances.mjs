@@ -319,6 +319,21 @@ export const F43_ORIGINAL = Object.freeze({
   contractSha256: "b106e683ed50c605bbcf8cde91097e6d863f3798341485ce4f50e238ca6e90b7",
 });
 
+/* 🔴 F82 · FROZEN 29 Sep 2026 (_handoffs 25c7f49, RR-92 §3.1), committed ALONE before F82 code was re-read. Pinned from the committed
+ * blob by parseContract (derivation re-run with a firing control inside the contract: "driven" → "steered"). */
+export const F82_ORIGINAL = Object.freeze({
+  featureId: "F82",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F82_ACCEPTANCE_2026-09-29.md", commit: "25c7f49a255f0dd6f2ed1c4bac7ea2c7cf5b25d1", sha256: "d24aecfe5480b3689de7458ac69a0f81ca1100775436163fe4a81437f5b04156" }),
+  authority: Object.freeze({ propositionId: "F82_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F82"]) }),
+  frozenOn: "2026-09-29",
+  feature: "F82 · Real indexation learning",
+  input: "For one declared client: its inventory pages (F31) and their F21 indexability, and the RECORDED owned Search Console observations — page rows and query-page rows with their window dates — attributed to the client by declared host and by its own pages, plus any recorded owned inspection or coverage observation — driven over the real recorded structures of the client, count-only.",
+  expected: "[C1 · INDEX STATE FROM OBSERVED OWNED EVIDENCE] Each page carries exactly one index state — OBSERVED_INDEXED only with at least one recorded impression in an owned window, OBSERVED_NOT_INDEXED only from a recorded owned inspection or coverage observation, and UNKNOWN otherwise with the missing fact named.\n[C2 · INDEXABLE IS NOT INDEXED] F21's indexability is reported beside the index state and never as it; an indexable page with no observation is UNKNOWN; absence or zero impressions never becomes \"not indexed\"; every shown state carries INDEXABLE ≠ INDEXED.\n[C3 · DATED, NEVER PROMISED] Every observed state carries its window dates and source observation; no state is carried beyond its window; no output predicts or promises future indexing.\n[C4 · OWNED IS NOT PUBLIC] Every observation is labelled owned Search Console evidence of the client's own pages; it is never counted as public research, demand or an independent category; queries observed are counted per page, count-only.\n[C5 · IT SUPPLIES THE MISSING INDEXING FACT] An OBSERVED_INDEXED page yields F43 a recorded indexing check CLEAR for its window; OBSERVED_NOT_INDEXED yields BLOCKED; UNKNOWN yields nothing.\n[C6 · SAME CLIENT, RECORDED DATA ONLY, BOUND PRINTED] Only rows attributed to the client by declared host and mapping to its own pages are read; the result prints its population and bound, count-only; no live, paid or metered call (no inspection request) and no new data gathering is made.\n[C7 · MISSING STAYS VISIBLY MISSING] Every UNKNOWN names the missing fact and what it would decide; no unobserved page is presented as indexed, not indexed or passed.",
+  failure: "[C1] A page lacks an index state or has more than one; OBSERVED_INDEXED is given without a recorded impression, or OBSERVED_NOT_INDEXED without a recorded inspection or coverage observation.\n[C2] Indexability is reported as indexation, an unobserved page is given an index state other than UNKNOWN, or absence or zero impressions becomes \"not indexed\".\n[C3] An observed state lacks its window dates or source, is carried beyond its window, or any output predicts or promises indexing.\n[C4] Owned Search Console evidence is counted as public research, demand or an independent category, or is read for another client or product.\n[C5] F43 receives CLEAR for a page not OBSERVED_INDEXED, or BLOCKED without a recorded not-indexed observation.\n[C6] A row not attributed to the client, or not mapping to its pages, is read; a result is printed without its population and bound; a live, paid or metered call or new data gathering is made.\n[C7] An UNKNOWN names no missing fact, or an unobserved page is presented as indexed, not indexed or passed.\nFor any clause, it also fails when:\n- it is proved only on an empty population, or only on constructed data when real recorded structures exist;\n- it is proved only by a control that cannot fire, or by a test that computes its expected answer with the logic it checks;\n- its test writes to the production audit trail.",
+  evidence: "- For each clause:",
+  contractSha256: "8af82addf8cd88b69bd833498a7349f33008940056bb8e131e8d4af3e74030d8",
+});
+
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -489,4 +504,5 @@ export const ACCEPTANCES = Object.freeze({
   F41: F41_ORIGINAL,
   F43: F43_ORIGINAL,
   F77: F77_AMENDMENT_1,
+  F82: F82_ORIGINAL,
 });

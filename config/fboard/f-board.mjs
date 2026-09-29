@@ -1361,6 +1361,50 @@ export const DECLARED = Object.freeze({
       }),
     ]),
   }),
+  /* 🔴 F82 · Real indexation learning. Frozen 29 Sep (_handoffs 25c7f49, RR-92 §3.1) ALONE, before any F82 code existed. CHOSEN by a
+   * count-only measurement of held facts (_handoffs 16a0db8): it supplies, from OWNED Search Console evidence already recorded for all
+   * 27 pages, the discovered-and-crawled fact V3 §17.1 requires and F43 lacked. Historical row 39 (DEFERRED) is provenance only; row 38
+   * (Indexability Preflight) survives as F21, which F82 reports beside — never as — the index state. */
+  F82: Object.freeze({
+    featureId: "F82",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: ACCEPTANCES.F82.ruling, contractSha256: ACCEPTANCES.F82.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F82",
+        on: "2026-09-29",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F82.ruling.sha256, contract: ACCEPTANCES.F82.contractSha256 }),
+        branch: "rr92-f82-indexation",
+        baseSha: "805de675900f35c836032bd1e7d72dd2944ecdd1",
+        baseCiRun: "36610858772",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-29_RR-92_CONTINUE_THE_STANDALONE_PRODUCT.md", commit: "6bbfdd2f1d2decdd2796678908b2e0287304cca3", sha256: "6af57fae16dbc67e4420507a7cd7c0b28dda360a6eaa0def07ea00fe94f18230" }),
+      }),
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F82",
+        population: "REAL",
+        on: "2026-09-29",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F82.ruling.sha256, contract: ACCEPTANCES.F82.contractSha256 }),
+        populations: "REAL (count-only; bound: recorded data only · OWNED Search Console evidence · 27 pages · window 2026-08-15..2026-09-12 · inspections 0 · no inspection request, no live call): OBSERVED_INDEXED 27 (each dated to the window, each with its source observation), OBSERVED_NOT_INDEXED 0 (no inspection recorded), UNKNOWN 0; indexability (F21) NOT_MEASURED 27, reported beside and never as the index state; queries NOT_OBSERVED 27 (no recorded owned query-page row maps to these pages — never zero). Supplied to F43: 27 indexing checks; F43's missing technical fact goes from 27 pages to 0, and its missing age (no publication date recorded) stays visible on all 27.",
+        proofs: "test/f82-indexation.test.mjs — one state per page (OBSERVED_INDEXED only with a recorded impression, OBSERVED_NOT_INDEXED only from a recorded inspection with a ref, the most recent dated observation decides); C2 FIRING CONTROL: absence or zero impressions is UNKNOWN, never 'not indexed', and an indexable page with no observation is UNKNOWN, never indexed; INDEXABLE ≠ INDEXED on every state; every observed state dated, no prediction or promise; OWNED_SEARCH_CONSOLE label, no demand/public/category field, unrecorded queries NOT OBSERVED never zero; CLEAR only for OBSERVED_INDEXED, BLOCKED only for OBSERVED_NOT_INDEXED, nothing for UNKNOWN; REAL, including F43 before/after; the entry point prints counts, its bound and the notice and writes nothing; inspections passed explicitly; no network, process, connector or paid call (firing control). Hand-written expectations; production trail byte-identical",
+        sabotage: "runs/audit/f82-sabotage-2026-09-29.txt: 16 of 16 proved, every span pre-flighted once. Re-run on the changed entry points: F43, F35 and F41 in full. Not sabotaged (parked): the declared-host partition — another client's rows never map to this client's pages",
+        historicalReuse: "historical row 39 was DEFERRED with no code — its words are provenance only; row 38's indexability survives as F21, re-proved under its own acceptance. Reused unchanged: F43's owned Search Console page-row reader (declared host, then own pages), F21's reader, F31's inventory",
+        declaredLimit: "the index state holds only for the recorded window (2026-08-15..2026-09-12); nothing is carried beyond it. No inspection or coverage record exists, so OBSERVED_NOT_INDEXED has no real input. Queries per page are NOT OBSERVED in the recorded rows. The publication date F43 needs is not obtainable from held data — its gate is recorded in _handoffs 16a0db8 (a bounded re-fetch of 27 pages' headers or the client's sitemap with lastmod), not run.",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
   F40: Object.freeze({
     featureId: "F40",
     board: "F_BOARD",

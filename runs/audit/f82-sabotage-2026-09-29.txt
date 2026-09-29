@@ -1,0 +1,23 @@
+F82 sabotage run · 2026-09-29T18:51:57.539Z
+population: 16 sabotages over test/f82-indexation.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 · all exactly once: true
+production trail sha256 before: 829f6a120db57e46fc7a3ca9f1a2515a3cbb919c65fe13f20c5737d4c68d1edb
+
+S1 C2 indexed needs at least one impression src/page/indexation.mjs: landed true · named test "C2 ·" red true · failing 1 · restored by sha256 true · PROVED
+S2 C3 an observed state is dated src/page/indexation.mjs: landed true · named test "C3 ·" red true · failing 1 · restored by sha256 true · PROVED
+S3 C1 the most recent dated observation decides src/page/indexation.mjs: landed true · named test "C1 ·" red true · failing 1 · restored by sha256 true · PROVED
+S4 C1 an inspection is recorded evidence (has a ref) src/page/indexation.mjs: landed true · named test "C1 ·" red true · failing 1 · restored by sha256 true · PROVED
+S5 C2 absence is UNKNOWN, never not-indexed src/page/indexation.mjs: landed true · named test "C2 ·" red true · failing 4 · restored by sha256 true · PROVED
+S6 C2 UNKNOWN names its missing fact src/page/indexation.mjs: landed true · named test "C2 ·" red true · failing 1 · restored by sha256 true · PROVED
+S7 C2 INDEXABLE ≠ INDEXED is printed src/page/indexation.mjs: landed true · named test "C2 ·" red true · failing 2 · restored by sha256 true · PROVED
+S8 C2 indexability travels beside, never as, the state src/page/indexation.mjs: landed true · named test "C2 ·" red true · failing 1 · restored by sha256 true · PROVED
+S9 C4 an unrecorded query count is never zero src/page/indexation-evidence.mjs: landed true · named test "REAL ·" red true · failing 1 · restored by sha256 true · PROVED
+S10 C4 owned is labelled owned src/page/indexation.mjs: landed true · named test "C4 ·" red true · failing 1 · restored by sha256 true · PROVED
+S11 C5 CLEAR only for an observed-indexed page src/page/indexation.mjs: landed true · named test "C5 ·" red true · failing 1 · restored by sha256 true · PROVED
+S12 C5 a recorded not-indexed page is BLOCKED src/page/indexation.mjs: landed true · named test "C5 ·" red true · failing 1 · restored by sha256 true · PROVED
+S13 C6 inspections are passed, never defaulted src/page/indexation-evidence.mjs: landed true · named test "C6 · THE ENTRY POINT" red true · failing 1 · restored by sha256 true · PROVED
+S14 C6 the entry point prints its bound bin/page-indexation.mjs: landed true · named test "C6 · THE ENTRY POINT" red true · failing 1 · restored by sha256 true · PROVED
+S15 C6 a network call is seen tools/need-coverage-call-paths.mjs: landed true · named test "C6 · the state" red true · failing 1 · restored by sha256 true · PROVED
+S16 C5 the real reader supplies the checks src/page/indexation-evidence.mjs: landed true · named test "REAL ·" red true · failing 1 · restored by sha256 true · PROVED
+
+proved 16 of 16 · residue 0 · production trail sha256 after: 829f6a120db57e46fc7a3ca9f1a2515a3cbb919c65fe13f20c5737d4c68d1edb · unchanged true

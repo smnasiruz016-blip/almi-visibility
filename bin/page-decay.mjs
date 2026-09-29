@@ -15,10 +15,13 @@ import { createTenantResolver } from "../src/tenancy/resolver.mjs";
 import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 import { SITEMAP_BATCH_ID } from "../src/adapter/sitemap-subject.mjs";
 import { readClientDecay, NO_RECORDED_DECAY_EVIDENCE } from "../src/page/content-decay-evidence.mjs";
+import { readClientIndexation } from "../src/page/indexation-evidence.mjs";
 
 const SCOPE = scopedEntryPoint({ entry: "bin/page-decay.mjs", governed: false, resources: [RESOURCES.collectionPartition("CRAWL_BATCH", BATCH_ID), RESOURCES.collectionPartition("SITEMAP_COLLECTION", SITEMAP_BATCH_ID), RESOURCES.evidenceStore()] });
 
-const r = readClientDecay({ tenantId: SCOPE.tenantId, resolve: createTenantResolver(), decayEvidence: NO_RECORDED_DECAY_EVIDENCE });
+/* F82 (RR-92): the recorded indexing checks from owned search evidence — the discovered-and-crawled fact V3 §17.1 requires */
+const INDEXING = readClientIndexation({ tenantId: SCOPE.tenantId, resolve: createTenantResolver(), inspections: [] }).indexingChecks ?? [];
+const r = readClientDecay({ tenantId: SCOPE.tenantId, resolve: createTenantResolver(), decayEvidence: { ...NO_RECORDED_DECAY_EVIDENCE, indexing: INDEXING } });
 const fmt = (o) => Object.entries(o).map(([k, n]) => `${k} ${n}`).join(" · ") || "none";
 console.log("F43 · CONTENT DECAY, REFRESH AND PRUNING — evidence for F35 only, count-only");
 console.log(`  bound            ${r.bound}`);

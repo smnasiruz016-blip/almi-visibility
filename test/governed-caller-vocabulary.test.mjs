@@ -171,9 +171,12 @@ test("V7 · the REAL population: 46 governed = 45 routed + 1 checked exemption +
    * the audit trail, so a label never enters the trail. No existing caller moved class. */
   /* 65/46 → 66/47 on 28 September (Part D1), for a MEASURED reason: one production entry point, bin/f10-register-key.mjs, whose
    * one write (the governed key measurement) goes only through the boundary (BOUNDARY_ROUTED). No existing caller moved class. */
-  assert.equal(rows.length, 66);
+  /* 66/47 → 67/47 on 29 September (F21, RR-86), for a MEASURED reason: one production entry point, bin/indexability-audit.mjs,
+   * READ_ONLY_DIAGNOSTIC — it reads one client's partitions and prints counts; it writes nothing and records nothing. No existing
+   * caller moved class. */
+  assert.equal(rows.length, 67);
   assert.equal(governed.length, 47);
-  assert.equal(rows.filter((r) => r.cls === "READ_ONLY_DIAGNOSTIC").length, 19);
+  assert.equal(rows.filter((r) => r.cls === "READ_ONLY_DIAGNOSTIC").length, 20);
   const by = Object.fromEntries(CALLER_CLASSES.map((c) => [c, governed.filter((r) => r.callerClass === c).length]));
   /* 43/2 → 44/1 on 26 September (F10), for a MEASURED reason: bin/heldout-evaluation.mjs now routes its scoring run through the
    * boundary (BOUNDARY_ROUTED); no entry point was added and no other caller moved class. */

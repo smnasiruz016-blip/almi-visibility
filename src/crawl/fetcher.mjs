@@ -33,7 +33,9 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
  * Headers worth keeping. A whole header bag is somebody else's data we have no
  * reason to store, and `set-cookie` in particular must never land in evidence.
  */
-const HEADER_SUBSET = ["content-type", "x-robots-tag", "cache-control", "last-modified", "etag"];
+/* Exported (F21, RR-86): an audit reading recorded headers must know which headers were COLLECTED, so an absent
+ * x-robots-tag reads as absent while an uncollected header (`link`) reads as not recorded. */
+export const HEADER_SUBSET = Object.freeze(["content-type", "x-robots-tag", "cache-control", "last-modified", "etag"]);
 
 export function createFetcher({
   fetchImpl,

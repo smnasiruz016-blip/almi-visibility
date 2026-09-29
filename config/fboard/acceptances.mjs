@@ -289,6 +289,21 @@ export const F39_ORIGINAL = Object.freeze({
   contractSha256: "63078005a69ad7135b8b026cace3602d9597efe3e866448e079997e34bc58666",
 });
 
+/* 🔴 F41 · FROZEN 29 Sep 2026 (_handoffs 454396e, RR-87 continuous build), committed ALONE before F41 code was re-read. Pinned from the committed
+ * blob by parseContract (derivation re-run with a firing control inside the contract: "traceable" → "followable"). */
+export const F41_ORIGINAL = Object.freeze({
+  featureId: "F41",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F41_ACCEPTANCE_2026-09-29.md", commit: "454396eb677b53194d54ec3a449e630ee8715d57", sha256: "8666b6292f89adff14aeccec21c08c69f99e4e3363da2f5d0b26a1f1fb058f37" }),
+  authority: Object.freeze({ propositionId: "F41_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F41"]) }),
+  frozenOn: "2026-09-29",
+  feature: "F41 · Content brief engine",
+  input: "For one declared client: F35's chosen actions (recommendations) with any recorded owner approval of them, and the recorded evidence each required section reads — the need and its registered value, recorded questions, the fact registry with sources and freshness, recorded information-gain records, the client's inventory and links, and any other recorded section evidence — driven over the real recorded structures of the client, count-only.",
+  expected: "[C1 · ONLY FOR AN APPROVED ACTION] A brief is issued only for an action with a recorded owner approval; a recommendation without one is NOT ISSUED with the missing approval named; no approval is assumed or requested.\n[C2 · EVERY SECTION FROM MEASURED EVIDENCE] Each of the eleven required sections is FILLED only from recorded evidence, carrying its evidence identities and the rule that filled it, or is MISSING with its missing fact named; no section is invented or filled by default.\n[C3 · NO FACT WITHOUT A SOURCE] Every fact placed in a brief is a registry fact with its source and a freshness state that is not STALE; an unsourced, stale or unverified fact is excluded and named.\n[C4 · READY ONLY WHEN COMPLETE] A brief is READY only when every required section is FILLED; otherwise it is INCOMPLETE with every missing section named; never READY by default.\n[C5 · REVIEWABLE, AND NOT A DRAFT] Every filled section is traceable to its evidence and rule; F41 writes no page, publishes nothing and sets no word-count target.\n[C6 · COMPETITOR EVIDENCE IS INPUT, NOT A PRESCRIPTION] Competitor evidence enters a brief only as a recorded diagnostic input and never as a word-count or length prescription or as a fact.\n[C7 · SAME CLIENT, RECORDED DATA ONLY, BOUND PRINTED] Only the client's own recorded data is read; the result prints its population and bound, count-only; no live, paid or metered call and no new data gathering is made.",
+  failure: "[C1] A brief is issued for an action with no recorded approval, an approval is assumed or requested, or NOT ISSUED names no missing approval.\n[C2] A section is filled without recorded evidence or without its evidence identities and rule, or a MISSING section names no missing fact, or a section is invented or defaulted.\n[C3] A fact without a source, or with a STALE freshness state, is placed in a brief, or an excluded fact is not named.\n[C4] A brief with any MISSING section is READY, or an INCOMPLETE brief does not name every missing section.\n[C5] A filled section cannot be traced to its evidence, or F41 writes a page, publishes, or sets a word-count target.\n[C6] Competitor evidence becomes a length prescription or a fact.\n[C7] Another client's data is read; a result is printed without its population and bound; a live, paid or metered call or new data gathering is made.\nFor any clause, it also fails when:\n- it is proved only on an empty population, or only on constructed data when real recorded structures exist;\n- it is proved only by a control that cannot fire, or by a test that computes its expected answer with the logic it checks;\n- its test writes to the production audit trail.",
+  evidence: "- For each clause:",
+  contractSha256: "3a0fff72325c656f998860bda32e38c5c63ba26b8f8071626ed272e464c381ee",
+});
+
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -456,5 +471,6 @@ export const ACCEPTANCES = Object.freeze({
   F35: F35_ORIGINAL,
   F36: F36_ORIGINAL,
   F39: F39_ORIGINAL,
+  F41: F41_ORIGINAL,
   F77: F77_AMENDMENT_1,
 });

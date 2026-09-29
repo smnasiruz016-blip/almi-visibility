@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -1473,6 +1473,51 @@ export const DECLARED = Object.freeze({
         baseCiRun: "36625336427",
         baseCiConclusion: "success",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-29_RR-93_CONTINUE_AFTER_21_90.md", commit: "a5f9fa2b4caa6853fae718ddb657d38f27fcb680", sha256: "6c518951641b3f7d4f01227071d3e80cea12c12461b6dfb4ae99405e7da3e98d" }),
+      }),
+    ]),
+  }),
+  /* 🔴 F79 · Evidence cache before re-research. Frozen 29 Sep (_handoffs f34f3af, RR-93 continuous build) ALONE, before any F79 code;
+   * AMENDED alone (60dee9b) before any code: raw_ref is null on 31 of 31 real observations, so "recorded raw bytes" is the inline content
+   * when no raw file is recorded. CHOSEN by measured inputs: 19 recorded repeat requests (resightings) in the held store. Carries F02
+   * tenant-isolation conformance (row constraint, ruling 1145012). Historical rows 15 and 46 (the fact cache) are provenance only. */
+  F79: Object.freeze({
+    featureId: "F79",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: F79_ORIGINAL.ruling, contractSha256: F79_ORIGINAL.contractSha256 }),
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F79", on: "2026-09-29", ruling: ACCEPTANCES.F79.ruling, contractSha256: ACCEPTANCES.F79.contractSha256, amends: ACCEPTANCES.F79.amends }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F79",
+        on: "2026-09-29",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F79.ruling.sha256, contract: ACCEPTANCES.F79.contractSha256 }),
+        branch: "rr93-f79-evidence-cache",
+        baseSha: "74e39e713abd5b789d0952739e66292bb13aade8",
+        baseCiRun: "36639871167",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-29_RR-93_CONTINUE_AFTER_21_90.md", commit: "a5f9fa2b4caa6853fae718ddb657d38f27fcb680", sha256: "6c518951641b3f7d4f01227071d3e80cea12c12461b6dfb4ae99405e7da3e98d" }),
+      }),
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F79",
+        population: "REAL",
+        on: "2026-09-29",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F79.ruling.sha256, contract: ACCEPTANCES.F79.contractSha256 }),
+        populations: "REAL (count-only; bound: recorded data only · 50 held records · 19 recorded repeat requests · freshness rule NONE DECLARED · source-change signals 0 · no re-research run, no call made): for the client and for every one of the 19 declared tenants, 0 of 19 repeats served — all OUTSIDE SCOPE under F02 (a domain property spanning 18 tenants 11, a URL-prefix property whose origin is undeclared 4, no property 4). Integrity: 31 of 31 held observations re-hash to their recorded hash (inline content). The same REAL records in a confined declared world where one tenant owns the properties: 11 of 19 served (9 metered requests recorded on them; 2 served records carry no request count, counted as unrecorded, never zero), 4 FRESHNESS NOT DECLARED (unwindowed), 4 OUTSIDE SCOPE; with one covered origin moved to a second tenant, every domain-property repeat is refused to both.",
+        proofs: "test/f79-evidence-cache.test.mjs — one lookup one answer (most recent valid record; NOT_HELD; source changes passed explicitly); C2 FIRING CONTROL: another tenant's record, a domain property spanning tenants, an undeclared origin and no property are never served, and a domain property owned by one tenant is served to it and to no other; C3 own window only, undeclared age NOT MEASURED, declared rule both ways (EXPIRED), later source change forces a miss; C4 FIRING CONTROL on confined copies: tampered inline content, missing content, an altered and a missing raw file are misses; REAL over the recorded store for the client and every declared tenant; C5/C2 on REAL records in declared worlds (served with their recorded request counts; spanning two tenants refused to both); the entry point prints its own tenant's answers and bound and writes nothing; no network, process, connector or paid call (firing control). Hand-written expectations; production trail byte-identical",
+        sabotage: "runs/audit/f79-sabotage-2026-09-29.txt: 18 of 18 proved, every span pre-flighted once, production trail unchanged. Not sabotaged (parked): the fail-closed refusal of a declared freshness rule of an unread shape — no such rule exists and no test drives it",
+        historicalReuse: "historical rows 15 (SPLIT) and 46 (MERGED) are the FACT cache (src/facts/lifecycle.mjs createFactCache) — read after the freeze, provenance only; F79's evidence cache is new code. Reused unchanged: the F02 decision (decideResolvedTenants), the evidence store reader, the declarations, the declared world",
+        declaredLimit: "no freshness rule is declared for any tenant, so an unwindowed record's age is NOT MEASURED and never served; no source-change store exists (0 signals, passed explicitly); two miss reasons are named beyond the frozen list — NOT_HELD (no record of the measurement at all) and EXPIRED (past a declared rule) — each names its failed test; neither occurs in the real population. A declared freshness rule of a shape F79 does not read fails closed (a guard not yet driven by a test — no such rule exists).",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

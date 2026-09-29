@@ -54,7 +54,7 @@ import { maxAgainstPopulation } from "../gate-a/overlap.mjs";
 import { countFacts, MIN_FACTS, judgeFact } from "../gate-a/facts.mjs";
 import { judgeFactSufficiency, judgeCompleteness, judgeOverlap } from "../gate-a/adaptive.mjs";
 import { MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../gate-a/run.mjs";
-import { judgeWhy } from "../gate-a/why-this-url.mjs";
+import { rightToExist } from "./right-to-exist.mjs";
 import { toGateAFact } from "../facts/registry.mjs";
 import { RENDERABLE_STATUSES } from "../facts/schema.mjs";
 import { existingPageFirst, EXISTING_PAGE_OUTCOMES } from "./existing-page-first.mjs";
@@ -212,8 +212,8 @@ export function constructCandidates({ pageSpecs, variants = [], records = [], re
       };
     }
 
-    // ── part 4 · WHY_THIS_URL_DESERVES_TO_EXIST ──
-    parts.whyThisUrl = judgeWhy(slug, me.spec, siblings.map((s) => ({ slug: s.slug, spec: s.spec })), variants);
+    // ── part 4 · WHY_THIS_URL_DESERVES_TO_EXIST — filled below by F36's one right-to-exist function (the key keeps its place) ──
+    parts.whyThisUrl = null;
 
     // ── part 5 · F34 · the existing-page check, BEFORE anything is produced ──
     const existing = existingPageFirst({ candidate: { slug, intent: me.spec?.variant, structure: { values: variants } }, tenantId, population: existingPages });
@@ -227,6 +227,21 @@ export function constructCandidates({ pageSpecs, variants = [], records = [], re
       existingPages: existing.existingPages,
       reason: existing.mayProduce ? null : `${existing.outcome} — ${existing.reason}`,
       decision: existing,
+    };
+
+    /* 🔴 F36 (_handoffs 2635153) — the ONE right-to-exist function decides here. Part 4 keeps Gate A's own meaning — the reason's
+     * SPECIFICITY — read from that function; part 5 above is the need not already served. ACCEPTED needs both parts to PASS, which is
+     * exactly the outcome ESTABLISHED (test/f36-right-to-exist.test.mjs proves the equivalence). The outcome travels on the part. */
+    const rte = rightToExist({ slug, spec: me.spec, siblings: siblings.map((s) => ({ slug: s.slug, spec: s.spec })), variants, existingPageDecision: existing });
+    const specific = rte.parts.specific;
+    const partFour = specific.state === "PASS" ? PASS : specific.state === "FAIL" ? FAIL : NOT_TESTED;
+    parts.whyThisUrl = {
+      state: partFour,
+      kind: partFour === FAIL ? specific.kind ?? "REJECT" : null,
+      reason: specific.reason ?? null,
+      checks: rte.checks,
+      notEnforced: rte.notMeasured,
+      rightToExist: rte,
     };
 
     /* 🔴 THE COPY CHECK NOW ACCOUNTS FOR EVERY VALUE IT READS, AND ITS THIRD STATE IS NOT A REJECT.

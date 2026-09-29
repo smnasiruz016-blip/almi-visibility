@@ -21,7 +21,7 @@
  * This list is a classification, not the population: a path missing from it is found by the census, never excused by it.
  */
 const SHARED = {
-  "src/page/construct.mjs": Object.freeze({ class: "CHECKS", marks: Object.freeze(["existingPageFirst(", "state: existing.mayProduce ? PASS"]), why: "part 5 of every candidate: ACCEPTED needs the existing-page check to pass" }),
+  "src/page/construct.mjs": Object.freeze({ class: "CHECKS", marks: Object.freeze(["existingPageFirst(", "state: existing.mayProduce ? PASS", "rightToExist({"]), why: "part 5 of every candidate: ACCEPTED needs the existing-page check to pass" }),
   "bin/build-page.mjs": Object.freeze({ class: "ROUTED", marks: Object.freeze(["existingPages: ep", "if (ev) SCOPE.recordDecision(ev)"]), why: "hands the same tenant's population to constructCandidates and records each stopped candidate" }),
   "bin/crawl.mjs": Object.freeze({ class: "NOT_PAGE_PRODUCTION", why: "stores the bodies of pages a crawl FETCHED, as served — evidence of an existing page, never a new one" }),
   "bin/report.mjs": Object.freeze({ class: "NOT_PAGE_PRODUCTION", why: "the owner's report view about the evidence store — not a page of any subject" }),

@@ -836,6 +836,48 @@ export const DECLARED = Object.freeze({
       }),
     ]),
   }),
+  /* 🔴 F36 · URL right-to-exist test. Frozen 29 Sep (_handoffs 2635153, RR-87 §4.1) ALONE. The PAGE DECISION cluster's first row.
+   * Historical row 21 was DEFERRED and never proved; Gate A's part-4 reason check (judgeWhy) is reused inside the one function. */
+  F36: Object.freeze({
+    featureId: "F36",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: ACCEPTANCES.F36.ruling, contractSha256: ACCEPTANCES.F36.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F36",
+        on: "2026-09-29",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F36.ruling.sha256, contract: ACCEPTANCES.F36.contractSha256 }),
+        branch: "rr87-f36-right-to-exist",
+        baseSha: "f2944ff5622eecf2c9d3bae6bec0b1dfaefc78eb",
+        baseCiRun: "36513899797",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-29_RR-87_CONTINUOUS_BUILD.md", commit: "7239df5ffdfb41fea3c082a74a4169c63117a062", sha256: "28b8dc8b9b44b8c48767b0d32b5ee45182dd9f95b214ad56118fda1a002f2567" }),
+      }),
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F36",
+        population: "REAL",
+        on: "2026-09-29",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F36.ruling.sha256, contract: ACCEPTANCES.F36.contractSha256 }),
+        populations: "REAL: the subject's 2 declared candidates — both declare a specific reason (Gate A part-4 checks PASS) and both are REFUSED because an existing page of the tenant already covers their need (F33 COVERED); ESTABLISHED 0 · REFUSED 2 · CANNOT_DECIDE 0. NOT MEASURED on every outcome: whether the need is real and the value distinct in substance — no demand evidence is recorded. The page-producing census: 8 paths, ROUTED 4 through the right-to-exist gate or construction, 0 faults.",
+        proofs: "test/f36-right-to-exist.test.mjs and 'F36 ·' in page-construction — ESTABLISHED only for a specific reason AND an unserved need; no / variable-only / templated / near-identical reasons REFUSED with the failure named; a missing sibling reason or no sibling CANNOT DECIDE; COVERED and IMPROVE refuse creation, F33 CANNOT DECIDE and refused information CANNOT DECIDE; a named failure outranks a missing judgement; the unmeasured residue on every outcome; the tools' gate refuses even when the existing-page check allows; construction reaches the one function and ACCEPTED holds exactly when the outcome is ESTABLISHED (part 4 keeps Gate A's specificity meaning); census firing controls; hand-written expectations; production trail byte-identical",
+        sabotage: "runs/audit/f36-sabotage-2026-09-29.txt: 12 of 12 proved, every span pre-flighted once; F31 22/22, F33 18/18, F34 19/19 re-run on the changed code (F34 S8 had stopped biting once part 4 also refused — F34's test now asserts its own part's state)",
+        historicalReuse: "historical row 21 was DEFERRED; Gate A's part-4 reason check (judgeWhy) is reused unchanged inside the one right-to-exist function",
+        declaredLimit: "whether the named need is real and the value distinct in substance is NOT MEASURED (missing fact: demand evidence — F14 has no public-evidence path); a candidate can only be ESTABLISHED where F33 can decide NOT COVERED, which needs a COMPLETE inventory (F31: the real one is INCOMPLETE)",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
   /* 🔴 F21 · Robots sitemap canonical and noindex audit. Frozen 29 Sep (_handoffs 804ebd1, RR-86 §3) ALONE, before any F21 code
    * was read. Matched to historical rows 38 (Indexability Preflight, historically VERIFIED-PASS: one state per page from the same
    * signals) and 10 (never proved) only AFTER the freeze. Neither compared signals with each other — F21's core. */

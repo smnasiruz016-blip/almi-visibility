@@ -22,6 +22,7 @@ import { decideResolvedTenants } from "../tenancy/scope.mjs";
 import { SITEMAP_BATCH_ID } from "../adapter/sitemap-subject.mjs";
 import { scopeCompleteness, coverageForConsumers } from "../crawl/scope-completeness.mjs";
 import { scopeInventory } from "../crawl/scope-inventory.mjs";
+import { rightToExist, mayProduceCandidate } from "./right-to-exist.mjs";
 import { existingPageFirst, existingPageDecisionEvent } from "./existing-page-first.mjs";
 
 const WEAKEST = ["UNKNOWN", "PARTIAL", "COMPLETE"];
@@ -117,6 +118,18 @@ export function readExistingPagePopulation({ scope, batchId = BATCH_ID, sitemapB
  * it stops production, prints one count-only line, and returns the decision. The caller writes the page ONLY when
  * `decision.mayProduce` is true — the entry points that render a candidate outside constructCandidates route through here.
  */
+/**
+ * 🔴 F36 (RR-87) — THE ONE GATE A PAGE-PRODUCING TOOL CALLS: F34's existing-page check, then F36's right-to-exist outcome over it.
+ * The candidate may be produced only when BOTH let it — `mayProduce` is the conjunction, and `rightToExist` carries the outcome.
+ */
+export function rightToExistGate({ scope, entry, candidate, spec, siblings = [], variants = [], env = process.env, gate = existingPageGate }) {
+  /* `gate` is the existing-page check (F34), a DECLARED dependency so a test can hand it a decision that lets the page through. */
+  const decision = gate({ scope, entry, candidate, env });
+  const rte = rightToExist({ slug: candidate?.slug, spec, siblings, variants, existingPageDecision: decision });
+  console.log(`right-to-exist        ${rte.outcome}${rte.failed.length ? ` — failed: ${rte.failed.join(", ")}` : ""}${rte.undecided.length ? ` — undecided: ${rte.undecided.join(", ")}` : ""} · NOT MEASURED: whether the need is real and the value distinct in substance`);
+  return Object.freeze({ ...decision, mayProduce: mayProduceCandidate(decision, rte), rightToExist: rte });
+}
+
 const loaded = new WeakMap();
 export function existingPageGate({ scope, entry, candidate, env = process.env }) {
   if (!loaded.has(scope)) loaded.set(scope, readExistingPagePopulation({ scope, env, resolve: createTenantResolver({ env }) }));

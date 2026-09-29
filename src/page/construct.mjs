@@ -216,7 +216,7 @@ export function constructCandidates({ pageSpecs, variants = [], records = [], re
     parts.whyThisUrl = judgeWhy(slug, me.spec, siblings.map((s) => ({ slug: s.slug, spec: s.spec })), variants);
 
     // ── part 5 · F34 · the existing-page check, BEFORE anything is produced ──
-    const existing = existingPageFirst({ candidate: { slug, intent: me.spec?.variant }, tenantId, population: existingPages });
+    const existing = existingPageFirst({ candidate: { slug, intent: me.spec?.variant, structure: { values: variants } }, tenantId, population: existingPages });
     parts.existingPage = {
       state: existing.mayProduce ? PASS : existing.outcome === EXISTING_PAGE_OUTCOMES.REFUSED ? NOT_TESTED : FAIL,
       kind: existing.mayProduce ? null : "REJECT",

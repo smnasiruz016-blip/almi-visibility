@@ -124,21 +124,20 @@ test("F34 · C2 · a candidate whose intent an existing page serves is never ACC
   assert.equal(alpha.parts.existingPage.outcome, "MONITOR");
   assert.equal(alpha.parts.existingPage.matched, 1);
   assert.deepEqual(alpha.parts.existingPage.existingPages, ["aaaaaaaaaaaaaaaa"]);
-  /* 🔴 beta is NOT named by that page — and is still not produced: an existing page may serve it in other words. */
-  assert.equal(beta.verdict, REFUSED);
-  assert.equal(beta.html, null, "a candidate was produced while an existing page of the tenant might serve it");
-  assert.equal(beta.parts.existingPage.outcome, "MONITOR");
-  assert.match(beta.parts.existingPage.reason, /MAY_SERVE/);
-  assert.deepEqual(beta.parts.existingPage.existingPages, ["aaaaaaaaaaaaaaaa"], "the uncertain outcome must still name the existing page");
+  /* 🔴 F33 (RR-84 §4.2): that page's headline names a DIFFERENT registered need, the population is COMPLETE — so it does NOT block
+   * beta, which goes on to Gate A and is ACCEPTED. Until F33 this was F34's broad hold (MONITOR). */
+  assert.equal(beta.parts.existingPage.outcome, "NOT_COVERED");
+  assert.equal(beta.verdict, ACCEPTED, "an unrelated existing page blocked a genuinely new page merely because the tenant owns pages");
+  assert.deepEqual(beta.parts.existingPage.existingPages, ["aaaaaaaaaaaaaaaa"], "the decision must name the page it judged");
 });
 
 test("F34 · C4 · an existing page of unknown quality is protected; one with a recorded defect is routed to IMPROVE, never regenerated", () => {
   const { pageSpecs, records } = family();
-  const unknown = { tenantId: FIXTURE_TENANT, coverageState: "COMPLETE", pages: [existingPage("bbbbbbbbbbbbbbbb", "<p>gamma</p>")] };
+  const unknown = { tenantId: FIXTURE_TENANT, coverageState: "COMPLETE", pages: [existingPage("bbbbbbbbbbbbbbbb", "<h1>gamma</h1>")] };
   const [u] = constructCandidates({ pageSpecs, variants: VARIANTS, records, requested: ["gamma"], tenantId: FIXTURE_TENANT, existingPages: unknown, now: NOW });
   assert.equal(u.html, null, "an unmeasured existing page was treated as bad and recreated");
   assert.equal(u.parts.existingPage.outcome, "MONITOR");
-  const defect = { tenantId: FIXTURE_TENANT, coverageState: "COMPLETE", pages: [existingPage("cccccccccccccccc", "<p>other</p>"), existingPage("bbbbbbbbbbbbbbbb", "<p>gamma</p>", { recordedDefect: "a recorded measurement names a stale fact" })] };
+  const defect = { tenantId: FIXTURE_TENANT, coverageState: "COMPLETE", pages: [existingPage("cccccccccccccccc", "<h1>alpha</h1>"), existingPage("bbbbbbbbbbbbbbbb", "<h1>gamma</h1>", { recordedDefect: "a recorded measurement names a stale fact" })] };
   const [d] = constructCandidates({ pageSpecs, variants: VARIANTS, records, requested: ["gamma"], tenantId: FIXTURE_TENANT, existingPages: defect, now: NOW });
   assert.equal(d.html, null, "a page with a recorded defect was regenerated instead of repaired");
   assert.equal(d.parts.existingPage.outcome, "IMPROVE");

@@ -328,7 +328,7 @@ if (outDir) {
     2,
   ) + "\n";
   /* 🔴 F34 — the placed candidate page is written only when no existing page of this tenant serves, or may serve, its intent. */
-  const existingPage = existingPageGate({ scope: SCOPE, entry: "subjects/almi-oet/tools/placement-measure.mjs", candidate: { slug: "nursing-placed", intent: split?.variant } });
+  const existingPage = existingPageGate({ scope: SCOPE, entry: "subjects/almi-oet/tools/placement-measure.mjs", candidate: { slug: "nursing-placed", intent: split?.variant, structure: { values: PRODUCT.variants } } });
   const outcomes = [
     ["placement-report.json", report, "WRITE_PLACEMENT_REPORT"],
     ...(existingPage.mayProduce ? [["nursing-placed.html", renderPage(split, records).html, "WRITE_PLACEMENT_PAGE"]] : []),

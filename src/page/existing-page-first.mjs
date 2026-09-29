@@ -39,12 +39,15 @@
  */
 import { createHash } from "node:crypto";
 
-import { tokenise, textOf } from "../gate-a/tokens.mjs";
+import { tokenise } from "../gate-a/tokens.mjs";
 import { COVERAGE_STATES } from "../crawl/inventory.mjs";
 import { decideResolvedTenants } from "../tenancy/scope.mjs";
+import { decideNeedCoverage, evidenceSummary, NEED_OUTCOMES } from "./need-coverage.mjs";
 
 export const EXISTING_PAGE_OUTCOMES = Object.freeze({
   NO_EXISTING_PAGE: "NO_EXISTING_PAGE",
+  /* F33: existing pages exist, and positive evidence shows every one serves a different need — they do not block. */
+  NOT_COVERED: "NOT_COVERED",
   MONITOR: "MONITOR",
   IMPROVE: "IMPROVE",
   REFUSED: "REFUSED",
@@ -74,20 +77,6 @@ export function intentForms(intent) {
   return [...new Set([s, s.replace(/[-_]+/g, " ")])].map((f) => tokenise(f)).filter((t) => t.length > 0);
 }
 
-const containsRun = (hay, run) => {
-  outer: for (let i = 0; i + run.length <= hay.length; i += 1) {
-    for (let j = 0; j < run.length; j += 1) if (hay[i + j] !== run[j]) continue outer;
-    return true;
-  }
-  return false;
-};
-
-/** Whether an existing page's served text names the intent, as a whole-token run. */
-export function namesIntent(page, forms) {
-  const tokens = tokenise(textOf(String(page?.html ?? "")));
-  return forms.some((run) => containsRun(tokens, run));
-}
-
 /**
  * @param {object} input
  * @param {{ slug: string, intent: string }} input.candidate   the page that would be produced, and the intent it declares
@@ -98,7 +87,7 @@ export function existingPageFirst({ candidate, tenantId, population }) {
   const O = EXISTING_PAGE_OUTCOMES;
   const R = EXISTING_PAGE_REASONS;
   const base = { slug: candidate?.slug ?? null, tenantId: tenantId ?? null, coverageState: null, considered: 0, matched: 0, existingPages: [] };
-  const out = (outcome, reason, extra = {}) => Object.freeze({ ...base, ...extra, outcome, reason, mayProduce: outcome === O.NO_EXISTING_PAGE });
+  const out = (outcome, reason, extra = {}) => Object.freeze({ ...base, ...extra, outcome, reason, mayProduce: outcome === O.NO_EXISTING_PAGE || outcome === O.NOT_COVERED });
 
   if (typeof tenantId !== "string" || tenantId === "") return out(O.REFUSED, R.NO_TENANT);
   if (population === null || typeof population !== "object" || !Array.isArray(population.pages) || !COVERAGE_STATES.includes(population.coverageState)) {
@@ -117,17 +106,22 @@ export function existingPageFirst({ candidate, tenantId, population }) {
     return population.coverageState === "COMPLETE" ? out(O.NO_EXISTING_PAGE, R.NONE, seen) : out(O.MONITOR, R.NOT_COMPLETE, seen);
   }
 
-  const forms = intentForms(candidate?.intent);
-  const byId = (a, b) => a.pageId.localeCompare(b.pageId);
-  const matched = forms.length ? pages.filter((p) => namesIntent(p, forms)).sort(byId) : [];
-  const rest = pages.filter((p) => !matched.includes(p)).sort(byId);
-  const named = [...matched, ...rest].map((p) => p.pageId);
-  const found = { ...seen, matched: matched.length, existingPages: named };
+  /* 🔴 F33 (_handoffs 9dc9bc2) — the judgement F34 lacked: does an existing page of this tenant already cover the SAME need?
+   * Its three outcomes replace F34's broad hold; F34's refusals above run first and are never weakened. */
+  const need = decideNeedCoverage({ need: candidate?.intent, structure: candidate?.structure, population });
+  const order = { COVERS: 0, UNDECIDED: 1, DIFFERENT: 2 };
+  /* When F33 could judge no page (no registered structure, or a need that is not a registered value), every existing page is still
+   * named — F34 C2: an uncertain outcome names the page(s) that may serve it. */
+  const named = need.pages.length
+    ? [...need.pages].sort((a, b) => order[a.verdict] - order[b.verdict]).map((p) => p.pageId)
+    : pages.map((p) => p.pageId).sort();
+  const found = { ...seen, matched: need.covering.length, existingPages: named, needCoverage: need };
 
-  if (matched.length === 0) return out(O.MONITOR, forms.length ? R.UNCERTAIN : R.NO_INTENT, found);
-  const defective = matched.filter((p) => typeof p.recordedDefect === "string" && p.recordedDefect.trim() !== "");
+  if (need.outcome === NEED_OUTCOMES.NOT_COVERED) return out(O.NOT_COVERED, need.reason, found);
+  if (need.outcome === NEED_OUTCOMES.CANNOT_DECIDE) return out(O.MONITOR, need.reason, found);
+  const defective = pages.filter((p) => need.covering.includes(p.pageId) && typeof p.recordedDefect === "string" && p.recordedDefect.trim() !== "");
   if (defective.length) {
-    const first = defective.map((p) => p.pageId);
+    const first = defective.map((p) => p.pageId).sort();
     return out(O.IMPROVE, R.SERVED_WITH_DEFECT, { ...found, existingPages: [...first, ...named.filter((id) => !first.includes(id))] });
   }
   return out(O.MONITOR, R.SERVED, found);
@@ -139,21 +133,21 @@ export function existingPageFirst({ candidate, tenantId, population }) {
  * lets production go on is not a decision on a rediscovered intent and records nothing here.
  */
 export function existingPageDecisionEvent(decision, { entry }) {
-  if (!decision || decision.mayProduce) return null;
+  if (!decision || decision.outcome === EXISTING_PAGE_OUTCOMES.NO_EXISTING_PAGE) return null;
   const ids = decision.existingPages;
   const shown = ids.slice(0, NAMED_IN_EVENT);
   const more = ids.length - shown.length;
-  return {
-    eventType: "REFUSAL",
-    action: "REFUSE_PAGE_PRODUCTION_EXISTING_PAGE_FIRST",
-    outcome: "REFUSED",
-    reasonCode: decision.reason,
-    metadata: {
-      guard: "existing-page-first",
-      classification: `outcome=${decision.outcome} considered=${decision.considered} matched=${decision.matched} coverage=${decision.coverageState ?? "NONE"} candidate=${digest(decision.slug)} all=${digest(ids.join(","))}`,
-      ruleEntry: "F34: never overwrite or recreate an existing page because research rediscovered its topic",
-      role: `${entry}>EXISTING_PAGE_FIRST`,
-      resourceRef: shown.length ? `existing-pages:${shown.join(",")}${more > 0 ? `+${more}` : ""}` : "existing-pages:none",
-    },
+  const need = decision.needCoverage;
+  /* F33 C5 — the recorded reason: the per-page evidence counts that made the decision, beside F34's own counts. */
+  const f33 = need ? ` need=${need.outcome} ev=${evidenceSummary(need) || "none"}` : "";
+  const metadata = {
+    guard: "existing-page-first",
+    classification: `outcome=${decision.outcome} considered=${decision.considered} matched=${decision.matched} coverage=${decision.coverageState ?? "NONE"} candidate=${digest(decision.slug)} all=${digest(ids.join(","))}${f33}`.slice(0, 200),
+    ruleEntry: need ? "F33/F34: an existing page that covers the same need is never recreated; one that cannot be ruled out holds it" : "F34: never overwrite or recreate an existing page because research rediscovered its topic",
+    role: `${entry}>EXISTING_PAGE_FIRST`,
+    resourceRef: shown.length ? `existing-pages:${shown.join(",")}${more > 0 ? `+${more}` : ""}` : "existing-pages:none",
   };
+  /* F33 NOT_COVERED lets production go on — a decision, recorded with its evidence, not a refusal. */
+  if (decision.mayProduce) return { eventType: "EVALUATION", action: "DECIDE_NEED_NOT_COVERED_BY_EXISTING_PAGES", outcome: "ALLOWED", reasonCode: decision.reason, metadata };
+  return { eventType: "REFUSAL", action: "REFUSE_PAGE_PRODUCTION_EXISTING_PAGE_FIRST", outcome: "REFUSED", reasonCode: decision.reason, metadata };
 }

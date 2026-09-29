@@ -24,6 +24,8 @@ import { scopeCompleteness, coverageForConsumers } from "../crawl/scope-complete
 import { scopeInventory } from "../crawl/scope-inventory.mjs";
 import { rightToExist, mayProduceCandidate } from "./right-to-exist.mjs";
 import { existingPageFirst, existingPageDecisionEvent } from "./existing-page-first.mjs";
+import { informationGainForCandidate, GAIN_OUTCOME } from "./information-gain.mjs";
+import { verifiedPages } from "./duplication-evidence.mjs";
 
 const WEAKEST = ["UNKNOWN", "PARTIAL", "COMPLETE"];
 
@@ -121,14 +123,29 @@ export function readExistingPagePopulation({ scope, batchId = BATCH_ID, sitemapB
  */
 /**
  * 🔴 F36 (RR-87) — THE ONE GATE A PAGE-PRODUCING TOOL CALLS: F34's existing-page check, then F36's right-to-exist outcome over it.
- * The candidate may be produced only when BOTH let it — `mayProduce` is the conjunction, and `rightToExist` carries the outcome.
+ * 🔴 F39 (RR-90) — and original information gain over the RENDERED candidate `html`, against the tenant's verified current pages,
+ * with the RECORDED `gainEvidence` handed in explicitly. The candidate may be produced only when ALL THREE let it — `mayProduce` is
+ * the conjunction; `rightToExist` and `informationGain` carry the outcomes.
  */
-export function rightToExistGate({ scope, entry, candidate, spec, siblings = [], variants = [], env = process.env, gate = existingPageGate }) {
-  /* `gate` is the existing-page check (F34), a DECLARED dependency so a test can hand it a decision that lets the page through. */
+export function rightToExistGate({ scope, entry, candidate, spec, html, gainEvidence, siblings = [], variants = [], env = process.env, gate = existingPageGate, gain = informationGainGate }) {
+  /* `gate` is the existing-page check (F34), a DECLARED dependency so a test can hand it a decision that lets the page through;
+   * `gain` is F39's, declared the same way. */
   const decision = gate({ scope, entry, candidate, env });
   const rte = rightToExist({ slug: candidate?.slug, spec, siblings, variants, existingPageDecision: decision });
+  const informationGain = gain({ scope, candidate, html, gainEvidence, env });
+  console.log(`information gain      ${informationGain.outcome} — templates ${informationGain.baselines.templates.state} · current pages ${informationGain.baselines.currentPages.state} · competitors ${informationGain.baselines.competitors.state}${informationGain.outcome === GAIN_OUTCOME.ESTABLISHED ? "" : " — not passed: a checker that could not measure is not a verdict"}`);
   console.log(`right-to-exist        ${rte.outcome}${rte.failed.length ? ` — failed: ${rte.failed.join(", ")}` : ""}${rte.undecided.length ? ` — undecided: ${rte.undecided.join(", ")}` : ""} · NOT MEASURED: whether the need is real and the value distinct in substance`);
-  return Object.freeze({ ...decision, mayProduce: mayProduceCandidate(decision, rte), rightToExist: rte });
+  return Object.freeze({ ...decision, mayProduce: mayProduceCandidate(decision, rte) && informationGain.outcome === GAIN_OUTCOME.ESTABLISHED, rightToExist: rte, informationGain });
+}
+
+/** F39 for one rendered candidate, against this run's tenant's verified current pages (F31). No html or no population → CANNOT DECIDE. */
+export function informationGainGate({ scope, candidate, html, gainEvidence, env = process.env }) {
+  if (!loaded.has(scope)) loaded.set(scope, readExistingPagePopulation({ scope, env, resolve: createTenantResolver({ env }) }));
+  const { population } = loaded.get(scope);
+  const currentPages = population?.inventory ? verifiedPages(population) : null;
+  const id = `candidate:${candidate?.slug ?? "unnamed"}`;
+  if (currentPages === null) return informationGainForCandidate({ candidateId: id, html: null, currentPages: [], evidence: gainEvidence });
+  return informationGainForCandidate({ candidateId: id, html, currentPages, evidence: gainEvidence });
 }
 
 const loaded = new WeakMap();

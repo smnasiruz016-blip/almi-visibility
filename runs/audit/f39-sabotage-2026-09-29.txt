@@ -1,0 +1,29 @@
+F39 sabotage run · 2026-09-29T07:09:26.606Z
+population: 22 sabotages over test/f39-information-gain.test.mjs, test/page-construction.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1 S19=1 S20=1 S21=1 S22=1 · all exactly once: true
+production trail sha256 before: 6484e7da02e49c38aa8041ddb01522d88b1c284bdd66254a2f3d033dc58c2a4d
+
+S1 C1/C2 templates BEYOND needs a recorded gain src/page/information-gain.mjs: landed true · named test "C1 ·" red true · failing 10 · restored by sha256 true · PROVED
+S2 C2 current pages BEYOND needs a recorded gain src/page/information-gain.mjs: landed true · named test "C2 ·" red true · failing 1 · restored by sha256 true · PROVED
+S3 C2 a gain record names a G12 kind src/page/information-gain.mjs: landed true · named test "C2 ·" red true · failing 1 · restored by sha256 true · PROVED
+S4 C2 a gain record says what it adds src/page/information-gain.mjs: landed true · named test "C2 ·" red true · failing 1 · restored by sha256 true · PROVED
+S5 C3 SHELL ONLY is NOT BEYOND templates src/page/information-gain.mjs: landed true · named test "C3 ·" red true · failing 1 · restored by sha256 true · PROVED
+S6 C3 an exact duplicate is NOT BEYOND current pages src/page/information-gain.mjs: landed true · named test "C3 ·" red true · failing 1 · restored by sha256 true · PROVED
+S7 C3 a reviewed duplicate is NOT BEYOND current pages src/page/information-gain.mjs: landed true · named test "C3 ·" red true · failing 1 · restored by sha256 true · PROVED
+S8 C3 a recorded no-gain comparison is NOT BEYOND competitors src/page/information-gain.mjs: landed true · named test "C3 ·" red true · failing 1 · restored by sha256 true · PROVED
+S9 C3 any NOT BEYOND is REFUSED src/page/information-gain.mjs: landed true · named test "C3 ·" red true · failing 1 · restored by sha256 true · PROVED
+S10 C4 no recorded comparison is NOT MEASURED src/page/information-gain.mjs: landed true · named test "C4 ·" red true · failing 3 · restored by sha256 true · PROVED
+S11 C4 a comparison must name a competitor compared src/page/information-gain.mjs: landed true · named test "C4 ·" red true · failing 1 · restored by sha256 true · PROVED
+S12 C5 CANNOT DECIDE names every missing fact src/page/information-gain.mjs: landed true · named test "C5 ·" red true · failing 3 · restored by sha256 true · PROVED
+S13 C5 unmeasured never becomes a verdict src/page/information-gain.mjs: landed true · named test "C5 ·" red true · failing 6 · restored by sha256 true · PROVED
+S14 C7 an unverified body measures nothing src/page/information-gain.mjs: landed true · named test "C7 · an unverified" red true · failing 1 · restored by sha256 true · PROVED
+S15 C7 evidence is passed, never defaulted src/page/information-gain.mjs: landed true · named test "C7 · an unverified" red true · failing 1 · restored by sha256 true · PROVED
+S16 C6 the tools' gate needs gain ESTABLISHED src/page/existing-page-population.mjs: landed true · named test "C6 ·" red true · failing 1 · restored by sha256 true · PROVED
+S17 C6 construction accepts only an ESTABLISHED gain src/page/construct.mjs: landed true · named test "F36 · C1" red true · failing 2 · restored by sha256 true · PROVED
+S18 C6 no verified population is never 'no other current page' src/page/construct.mjs: landed true · named test "F36 · C1" red true · failing 1 · restored by sha256 true · PROVED
+S19 C6 the census holds F39 on construction config/page-production.mjs: landed true · named test "C6 ·" red true · failing 1 · restored by sha256 true · PROVED
+S20 C6 a tool that skips F39 is a census fault subjects/almi-oet/tools/nursing-chain.mjs: landed true · named test "C6 ·" red true · failing 1 · restored by sha256 true · PROVED
+S21 C5/C7 the entry point prints its bound bin/page-information-gain.mjs: landed true · named test "C5/C7 · THE ENTRY POINT" red true · failing 1 · restored by sha256 true · PROVED
+S22 C7 a network call is seen tools/need-coverage-call-paths.mjs: landed true · named test "C7 · the decision" red true · failing 1 · restored by sha256 true · PROVED
+
+proved 22 of 22 · residue 0 · production trail sha256 after: 6484e7da02e49c38aa8041ddb01522d88b1c284bdd66254a2f3d033dc58c2a4d · unchanged true

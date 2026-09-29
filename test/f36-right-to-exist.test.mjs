@@ -110,7 +110,10 @@ test("C1 · the gate's rule: a candidate is produced only when the existing-page
 
 test("C1 · the tools' GATE: even when the existing-page check lets a candidate through, no right to exist → nothing produced", () => {
   const pass = () => ({ mayProduce: true, outcome: "NO_EXISTING_PAGE", reason: "NO_EXISTING_PAGE_IN_A_COMPLETE_POPULATION" });
-  const base = { scope: {}, entry: "test", candidate: { slug: "alpha", intent: "alpha" }, siblings: siblingsOf("alpha"), variants: VARIANTS, gate: pass };
+  /* F39 (RR-90) is a third declared dependency of the gate; stubbed ESTABLISHED here so this test judges F36 alone */
+  const baselines = (s) => ({ templates: { state: s }, currentPages: { state: s }, competitors: { state: s } });
+  const gainPass = () => ({ outcome: "ESTABLISHED", baselines: baselines("BEYOND") });
+  const base = { scope: {}, entry: "test", candidate: { slug: "alpha", intent: "alpha" }, siblings: siblingsOf("alpha"), variants: VARIANTS, gate: pass, gain: gainPass };
   const refused = rightToExistGate({ ...base, spec: { variant: "alpha" } });
   assert.equal(refused.rightToExist.outcome, E.REFUSED);
   assert.equal(refused.mayProduce, false, "the gate produced a candidate with no right to exist");
@@ -119,6 +122,10 @@ test("C1 · the tools' GATE: even when the existing-page check lets a candidate 
   assert.equal(established.mayProduce, true, "the control: the gate CAN let an established candidate through");
   const stopped = rightToExistGate({ ...base, spec: SPECS.alpha, gate: () => ({ mayProduce: false, outcome: "MONITOR", reason: "AN_EXISTING_PAGE_SERVES_THIS_INTENT" }) });
   assert.equal(stopped.mayProduce, false);
+  /* F39: an ESTABLISHED right to exist whose information gain cannot be decided is NOT produced */
+  const noGain = rightToExistGate({ ...base, spec: SPECS.alpha, gain: () => ({ outcome: "CANNOT_DECIDE", baselines: baselines("NOT_MEASURED") }) });
+  assert.equal(noGain.rightToExist.outcome, E.ESTABLISHED);
+  assert.equal(noGain.mayProduce, false, "the gate produced a candidate whose information gain was not established");
 });
 
 test("C5 · every page-producing path reaches the one function: construction holds it, every tool calls its gate — and the census fires", () => {

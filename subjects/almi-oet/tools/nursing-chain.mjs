@@ -48,6 +48,7 @@ import { RESOURCES } from "../../../src/tenancy/scoped-run.mjs";
 import { BATCH_ID } from "../../../src/crawl/observation-batch.mjs";
 import { SITEMAP_BATCH_ID } from "../../../src/adapter/sitemap-subject.mjs";
 import { rightToExistGate } from "../../../src/page/existing-page-population.mjs";
+import { NO_RECORDED_GAIN_EVIDENCE } from "../../../src/page/information-gain.mjs";
 
 /**
  * 🔴 THE PRODUCT ARRIVES AS AN ARGUMENT, NOT AS AN IMPORT.
@@ -343,7 +344,8 @@ const report = {
 if (outDir) {
   /* 🔴 F34 — the candidate page is written only when no existing page of this tenant serves, or may serve, its intent. */
   /* 🔴 F36 — and only when the candidate's right to exist is ESTABLISHED (a specific reason, the need not already served). */
-  const existingPage = rightToExistGate({ scope: SCOPE, entry: "subjects/almi-oet/tools/nursing-chain.mjs", candidate: { slug: "nursing", intent: PRODUCT.pageSpecs.nursing?.variant, structure: { values: PRODUCT.variants } }, spec: PRODUCT.pageSpecs.nursing, siblings: Object.entries(PRODUCT.pageSpecs).filter(([s]) => s !== "nursing").map(([slug, spec]) => ({ slug, spec })), variants: PRODUCT.variants });
+  /* 🔴 F39 — and only when the rendered page's original information gain is ESTABLISHED; no gain evidence is recorded (no store), so it is passed EXPLICITLY empty */
+  const existingPage = rightToExistGate({ scope: SCOPE, entry: "subjects/almi-oet/tools/nursing-chain.mjs", candidate: { slug: "nursing", intent: PRODUCT.pageSpecs.nursing?.variant, structure: { values: PRODUCT.variants } }, spec: PRODUCT.pageSpecs.nursing, siblings: Object.entries(PRODUCT.pageSpecs).filter(([s]) => s !== "nursing").map(([slug, spec]) => ({ slug, spec })), variants: PRODUCT.variants, html: candidateHtml, gainEvidence: NO_RECORDED_GAIN_EVIDENCE });
   const chainOutcomes = [
     ...(existingPage.mayProduce ? [["nursing.html", candidateHtml, "WRITE_CHAIN_CANDIDATE_PAGE"]] : []),
     ["chain-report.json", JSON.stringify(report, null, 2) + "\n", "WRITE_CHAIN_REPORT"],

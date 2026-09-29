@@ -34,7 +34,7 @@ const SABOTAGES = [
   ["S7", "C6 a stopped candidate owes a decision", EPF, "if (!decision || decision.outcome === EXISTING_PAGE_OUTCOMES.NO_EXISTING_PAGE) return null;", "return null;", "C6 · a stopped candidate", T],
   ["S8", "C1/C2 construction needs the check to PASS", CON, "state: existing.mayProduce ? PASS : existing.outcome === EXISTING_PAGE_OUTCOMES.REFUSED ? NOT_TESTED : FAIL,", "state: PASS,", "F34 · C1 · construction", PC],
   ["S9", "C6 the runner records each stopped candidate", BP, "if (ev) SCOPE.recordDecision(ev);", "if (false) SCOPE.recordDecision(ev);", "C6 · END TO END", T],
-  ["S10", "C1 the runner hands in the real population", BP, "existingPages: ep });", `existingPages: { tenantId: SCOPE.tenantId, coverageState: "COMPLETE", pages: [] } });`, "C6 · END TO END", T],
+  ["S10", "C1 the runner hands in the real population", BP, "existingPages: ep, gainEvidence:", "existingPages: { tenantId: SCOPE.tenantId, coverageState: \"COMPLETE\", pages: [] }, gainEvidence:", "C6 · END TO END", T],
   ["S11", "population applies the coverage correction", POP, "return c ? c.corrected_value : run.coverageState;", "return run.coverageState;", "population ·", T],
   ["S12", "C1 an unreadable batch is not a population", POP, "if (e instanceof ObservationBatchFault) return { population: null, fault: e.fault, population_of: null };", `if (e instanceof ObservationBatchFault) return { population: { tenantId: scope.tenantId, coverageState: "COMPLETE", pages: [] }, fault: null, population_of: null };`, "C6 · the shared gate", T],
   ["S13", "C6 the shared gate records", POP, "if (ev) scope.recordDecision(ev);", "if (false) scope.recordDecision(ev);", "C6 · the shared gate", T],

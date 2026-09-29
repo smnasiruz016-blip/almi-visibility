@@ -58,6 +58,8 @@ import { rightToExist } from "./right-to-exist.mjs";
 import { toGateAFact } from "../facts/registry.mjs";
 import { RENDERABLE_STATUSES } from "../facts/schema.mjs";
 import { existingPageFirst, EXISTING_PAGE_OUTCOMES } from "./existing-page-first.mjs";
+import { informationGainForCandidate, GAIN_OUTCOME } from "./information-gain.mjs";
+import { verifiedPages } from "./duplication-evidence.mjs";
 
 export const PASS = "PASS";
 export const FAIL = "FAIL";
@@ -108,8 +110,13 @@ export function selectCandidates(pageSpecs, { slug = null, allSlugs = false } = 
  * 🔴 F34 (_handoffs 53f74b4) — THE EXISTING-PAGE CHECK IS A PART, AND ACCEPTED NEEDS IT TO PASS. There is no default for
  * `existingPages`: a caller that does not hand one in gets REFUSED for every candidate, never "no existing page". Only
  * NO_EXISTING_PAGE passes; MONITOR and IMPROVE name the existing page(s) and produce nothing.
+ *
+ * 🔴 F39 (_handoffs 90e798d) — ORIGINAL INFORMATION GAIN IS A PART TOO, AND ACCEPTED NEEDS IT ESTABLISHED. `gainEvidence` is the
+ * recorded information-gain records, competitor comparisons and semantic reviews; there is no default that passes — a caller that
+ * hands none in gets that part NOT TESTED for every candidate. The rendered candidate is judged against the tenant's current pages
+ * with VERIFIED bodies (F31); without them the part is NOT TESTED, never "no other current page".
  */
-export function constructCandidates({ pageSpecs, variants = [], records = [], requested = [], tenantId = null, existingPages = null, now = new Date() }) {
+export function constructCandidates({ pageSpecs, variants = [], records = [], requested = [], tenantId = null, existingPages = null, gainEvidence = null, now = new Date() }) {
   const byId = new Map(records.map((r) => [r.id, r]));
   const family = Object.entries(pageSpecs ?? {}).map(([slug, spec]) => {
     try {
@@ -243,6 +250,20 @@ export function constructCandidates({ pageSpecs, variants = [], records = [], re
       notEnforced: rte.notMeasured,
       rightToExist: rte,
     };
+
+    // ── part 6 · F39 · original information gain over the rendered candidate, against the tenant's verified current pages ──
+    const currentPages = existingPages?.inventory ? verifiedPages(existingPages) : null;
+    const gain = me.html === null || currentPages === null || gainEvidence === null ? null
+      : informationGainForCandidate({ candidateId: `candidate:${slug}`, html: me.html, currentPages, evidence: gainEvidence });
+    parts.informationGain = gain === null
+      ? { state: NOT_TESTED, kind: null, outcome: GAIN_OUTCOME.CANNOT_DECIDE, reason: me.html === null ? `the candidate does not render: ${me.renderError}` : currentPages === null ? "the tenant's current pages with verified bodies were not handed in (F31) — information gain cannot be measured against them" : "no gain evidence was handed in — an empty list must be passed explicitly", decision: null }
+      : {
+        state: gain.outcome === GAIN_OUTCOME.ESTABLISHED ? PASS : gain.outcome === GAIN_OUTCOME.REFUSED ? FAIL : NOT_TESTED,
+        kind: gain.outcome === GAIN_OUTCOME.REFUSED ? "REJECT" : null,
+        outcome: gain.outcome,
+        reason: gain.outcome === GAIN_OUTCOME.REFUSED ? `NOT BEYOND ${gain.refusedOn.join(", ")}` : gain.outcome === GAIN_OUTCOME.CANNOT_DECIDE ? gain.missing.join(" | ") : null,
+        decision: gain,
+      };
 
     /* 🔴 THE COPY CHECK NOW ACCOUNTS FOR EVERY VALUE IT READS, AND ITS THIRD STATE IS NOT A REJECT.
      *

@@ -6,7 +6,9 @@
  *   verified facts/sources   the fact registry's records present on the page (src/gate-a/existing-pages.mjs factsPresentIn)
  *   internal links           F31: the inventory's completeness; no link target is recorded between the client's pages
  *   unique value             F39: none recorded
- *   entities · questions · locale terms · CTA · schema · prohibited claims   none recorded — MISSING, named by the brief
+ *   schema                   F48: the structured-data type of a page whose markup is ALIGNED with its visible text (none today — every
+ *                            page has render-only texts, so its visibility is NOT MEASURED)
+ *   entities · questions · locale terms · CTA · prohibited claims   none recorded — MISSING, named by the brief
  *   owner approvals          none recorded; the caller passes them EXPLICITLY
  * Count-only output; no page content, host or URL.
  */
@@ -15,6 +17,7 @@ import { judgePage, PAGE_VERDICTS } from "./need-coverage.mjs";
 import { readClientActionEvidence } from "./action-evidence.mjs";
 import { factsPresentIn } from "../gate-a/existing-pages.mjs";
 import { buildBrief, summariseBriefs } from "./content-brief.mjs";
+import { readClientStructuredData } from "./structured-data-evidence.mjs";
 
 export function readClientBriefs({ tenantId, product, records = [], resolve, approvals, reviews, decayEvidence, env = process.env, now = new Date() }) {
   if (!Array.isArray(approvals)) throw new TypeError("approvals must be passed explicitly — an empty list is a recorded fact, not a default");
@@ -26,6 +29,8 @@ export function readClientBriefs({ tenantId, product, records = [], resolve, app
   const completeness = population.completeness.state;
   const completenessRef = `completeness:${population.completeness.basis.method}:${population.completeness.basis.asOf}`;
 
+  /* F48 (RR-92): the schema section only from a page whose recorded structured data is ALIGNED with its visible text */
+  const schemaFacts = readClientStructuredData({ tenantId, resolve, env, now }).schemaFacts ?? new Map();
   const pageEvidence = (pageId) => {
     const body = html.get(pageId) ?? "";
     const covered = values.find((v) => judgePage({ pageId, html: body }, v, values).verdict === PAGE_VERDICTS.COVERS) ?? null;
@@ -33,6 +38,7 @@ export function readClientBriefs({ tenantId, product, records = [], resolve, app
       need: covered ? { value: covered, ref: `F33:COVERS:${pageId}` } : null,
       facts: factsPresentIn(body, records),
       links: { completeness, targets: [], ref: completenessRef },
+      schema: schemaFacts.get(pageId) ?? null,
     };
   };
   const needEvidence = (slug) => {

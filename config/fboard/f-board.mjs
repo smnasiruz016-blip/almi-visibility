@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -1401,6 +1401,51 @@ export const DECLARED = Object.freeze({
         sabotage: "runs/audit/f82-sabotage-2026-09-29.txt: 16 of 16 proved, every span pre-flighted once. Re-run on the changed entry points: F43, F35 and F41 in full. Not sabotaged (parked): the declared-host partition — another client's rows never map to this client's pages",
         historicalReuse: "historical row 39 was DEFERRED with no code — its words are provenance only; row 38's indexability survives as F21, re-proved under its own acceptance. Reused unchanged: F43's owned Search Console page-row reader (declared host, then own pages), F21's reader, F31's inventory",
         declaredLimit: "the index state holds only for the recorded window (2026-08-15..2026-09-12); nothing is carried beyond it. No inspection or coverage record exists, so OBSERVED_NOT_INDEXED has no real input. Queries per page are NOT OBSERVED in the recorded rows. The publication date F43 needs is not obtainable from held data — its gate is recorded in _handoffs 16a0db8 (a bounded re-fetch of 27 pages' headers or the client's sitemap with lastmod), not run.",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
+  /* 🔴 F48 · Structured data and rich-result validation. Frozen 29 Sep (_handoffs 8d03429, RR-92 per its §6 override) ALONE, before any F48
+   * code existed; AMENDED ALONE (d09dd5e, renamed 7f212cd) before any movement, because on the real data the original C2 ("otherwise
+   * MISALIGNED") and C4 (no unsupported recommendation) contradicted each other: 70 of 162 marked-up texts sit only inside a script, and
+   * their rendered visibility is not recorded. No historical row (NO MATCH). */
+  F48: Object.freeze({
+    featureId: "F48",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: F48_ORIGINAL.ruling, contractSha256: F48_ORIGINAL.contractSha256 }),
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F48", on: "2026-09-29", ruling: ACCEPTANCES.F48.ruling, contractSha256: ACCEPTANCES.F48.contractSha256, amends: ACCEPTANCES.F48.amends }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F48",
+        on: "2026-09-29",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F48.ruling.sha256, contract: ACCEPTANCES.F48.contractSha256 }),
+        branch: "rr92-f48-structured-data",
+        baseSha: "a74232abe6beddd308504ea07d7cdcf83679dfba",
+        baseCiRun: "36621666220",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-29_RR-92_CONTINUE_THE_STANDALONE_PRODUCT.md", commit: "6bbfdd2f1d2decdd2796678908b2e0287304cca3", sha256: "6af57fae16dbc67e4420507a7cd7c0b28dda360a6eaa0def07ea00fe94f18230" }),
+      }),
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F48",
+        population: "REAL",
+        on: "2026-09-29",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F48.ruling.sha256, contract: ACCEPTANCES.F48.contractSha256 }),
+        populations: "REAL (count-only; bound: recorded data only · 27 pages · stored verified bodies · JSON-LD only · no live rich-result test, no rendering): every page carries one JSON-LD FAQPage block (types Answer+FAQPage+Question), 81 questions and 81 answers; VISIBLE 92, NOT VISIBLE 0, RENDER-ONLY 70 (58 answers, 12 questions — each found only inside another script on the page); state NOT_MEASURED 27 (missing: the page's rendered visible text, F22), ALIGNED 0, MISALIGNED 0; recommendations 0; schema facts supplied to F41: 0. No page is called hidden, invalid or rich-result eligible.",
+        proofs: "test/f48-structured-data.test.mjs — every JSON-LD block found; an unparseable or untyped block INVALID, never skipped; C2 FIRING CONTROLS: a text absent from the whole page MISALIGNS it, a text only inside a script is RENDER-ONLY (NOT MEASURED, never misaligned), a certain misalignment outranks an unmeasured one, tags and case inside visible text still match; the requirement set is named NOT MEASURED; the notice states markup guarantees nothing and no code promises it; ALIGN only for NOT VISIBLE, REPAIR for invalid, nothing for RENDER-ONLY, no type for a page without markup (page-kind classification named missing); only an ALIGNED page supplies a schema fact, and F41's brief takes it with its source; an unverified body is NOT_MEASURED; REAL; the entry point prints counts and its bound and writes nothing; no network, process, connector or paid call (firing control). Hand-written expectations; production trail byte-identical",
+        sabotage: "runs/audit/f48-sabotage-2026-09-29.txt: 16 of 16 proved, every span pre-flighted once. F41 re-run on its changed reader. Not sabotaged (parked): F41's reader hand-off of the schema fact — no real page is ALIGNED to drive it; proved at unit level through buildBrief",
+        historicalReuse: "no historical row (NO MATCH) — nothing to reuse from the 61-row work. Reused unchanged: F31's verified bodies, the shell module's visible-text extraction, F41's brief",
+        declaredLimit: "rendered visibility is NOT MEASURED for 70 real texts on all 27 pages: the crawl recorded raw HTML only (F22 unassessed). GATE (RR-92 §4, recorded in Amendment 1, not run): render the 27 stored pages with their scripts — needs their script bundles fetched, a live collection; bound 27 renders, no crawl expansion; it would decide ALIGNED or MISALIGNED. A type's full requirement set and which type applies to a page are NOT MEASURED (no committed authority, no page-kind classification).",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),

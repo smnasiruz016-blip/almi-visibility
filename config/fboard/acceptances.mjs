@@ -334,6 +334,38 @@ export const F82_ORIGINAL = Object.freeze({
   contractSha256: "8af82addf8cd88b69bd833498a7349f33008940056bb8e131e8d4af3e74030d8",
 });
 
+/* 🔴 F48 · FROZEN 29 Sep 2026 (_handoffs 8d03429, RR-92 per its §6 override), committed ALONE before any F48 code existed. Pinned from the
+ * committed blob by parseContract (derivation re-run with a firing control inside the contract: "counted" → "tallied"). */
+export const F48_ORIGINAL = Object.freeze({
+  featureId: "F48",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F48_ACCEPTANCE_2026-09-29.md", commit: "8d03429ce4ada42029a3b59abc39d24f44eb1371", sha256: "390f60777d9667513e44887b3c99d902d7f2f6f393ff748dd96d6fae9969a9d9" }),
+  authority: Object.freeze({ propositionId: "F48_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F48"]) }),
+  frozenOn: "2026-09-29",
+  feature: "F48 · Structured data and rich-result validation",
+  input: "For one declared client: its inventory pages' stored verified bodies (F31) — the JSON-LD blocks they carry and their visible text — driven over the real recorded structures of the client, count-only.",
+  expected: "[C1 · DISCOVER FROM THE STORED BODY] Every JSON-LD block of every page with a verified stored body is found, with its types and items; a block that does not parse is recorded INVALID, never skipped.\n[C2 · VALID MEANS PARSED, TYPED AND VISIBLE-ALIGNED] A page is ALIGNED only when every block parses and names a type and every question, answer and name its markup carries appears in its visible text; otherwise MISALIGNED with the items and blocks named by count; a type's full requirement set is NOT MEASURED and said so.\n[C3 · NO GUARANTEE, NO PROMISE] No output claims or promises rich-result display, ranking, indexing or AI citation; the result states that markup guarantees none of them.\n[C4 · RECOMMEND ONLY WHAT EVIDENCE SUPPORTS] A misaligned item yields ALIGN and an invalid block yields REPAIR, each with its count; no new structured-data type is recommended, and the missing page-kind classification is named.\n[C5 · IT SUPPLIES F41'S SCHEMA FACT] An ALIGNED page supplies its structured-data type(s) with the source observation to F41's schema section; a MISALIGNED or NOT_MEASURED page supplies nothing.\n[C6 · THREE WORLDS, MISSING NAMED] Every page is ALIGNED, MISALIGNED or NOT_MEASURED; NOT_MEASURED names the missing fact (no verified body, or no structured data) and is never presented as aligned or valid.\n[C7 · SAME CLIENT, RECORDED DATA ONLY, BOUND PRINTED] Only the client's own verified bodies are read; the result prints its population and bound, count-only; no live, paid or metered call (no rich-result test) and no new data gathering is made.",
+  failure: "[C1] A JSON-LD block is missed, or an unparseable block is skipped instead of recorded INVALID.\n[C2] A page is ALIGNED with an unparsed or untyped block or an item absent from its visible text, or MISALIGNED items are not counted, or a type's requirement set is presented as checked.\n[C3] Any output claims or promises rich-result display, ranking, indexing or AI citation.\n[C4] A recommendation lacks recorded support, or a new structured-data type is recommended.\n[C5] F41 receives a schema type from a MISALIGNED or NOT_MEASURED page, or without its source.\n[C6] A page lacks one of the three states, or NOT_MEASURED names no missing fact or is presented as aligned or valid.\n[C7] Another client's body is read; a result is printed without its population and bound; a live, paid or metered call or new data gathering is made.\nFor any clause, it also fails when:\n- it is proved only on an empty population, or only on constructed data when real recorded structures exist;\n- it is proved only by a control that cannot fire, or by a test that computes its expected answer with the logic it checks;\n- its test writes to the production audit trail.",
+  evidence: "- For each clause:",
+  contractSha256: "2715fe85fa5a7ae334c5639475aba3b6cc95ff719ef0a4f313382d6a365a2000",
+});
+
+/* 🔴 F48 · AMENDMENT 1, 29 Sep 2026 (_handoffs d09dd5e, renamed to the inclusion rule's name at 7f212cd), committed ALONE before any F48
+ * movement: "visible text" is the server HTML's; a marked-up text present only inside a script is RENDER-ONLY — NOT MEASURED. Cause: the
+ * original C2 and C4 contradicted each other on the real evidence (70 of 162 texts render-only). Amends F48_ORIGINAL by both hashes. */
+export const F48_AMENDMENT_1 = Object.freeze({
+  featureId: "F48",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F48_ACCEPTANCE_AMENDMENT_1_2026-09-29.md", commit: "7f212cd9e61378c8fdfc7d0c7a3576fd06e561aa", sha256: "77dd33afa9278f7de3ce13eb557e1e8147f17271b2f16a77e64e92f1180f8228" }),
+  authority: Object.freeze({ propositionId: "F48_ACCEPTANCE_AMENDMENT_1", scope: Object.freeze(["ALMIVISIBILITY", "F48"]) }),
+  frozenOn: "2026-09-29",
+  feature: "F48 · Structured data and rich-result validation",
+  input: "For one declared client: its inventory pages' stored verified bodies (F31) — the JSON-LD blocks they carry, the server HTML's visible text, and where each marked-up text otherwise appears — driven over the real recorded structures of the client, count-only.",
+  expected: "[C1 · DISCOVER FROM THE STORED BODY] Every JSON-LD block of every page with a verified stored body is found, with its types and items; a block that does not parse is recorded INVALID, never skipped.\n[C2 · VALID MEANS PARSED, TYPED AND VISIBLE-ALIGNED] Each marked-up question, answer and name is VISIBLE in the server HTML's visible text, NOT VISIBLE anywhere outside its structured data, or RENDER-ONLY inside a script or template; a page is ALIGNED only when every block parses and names a type and every text is VISIBLE, MISALIGNED when any text is NOT VISIBLE or any block invalid, with counts; a type's full requirement set is NOT MEASURED and said so.\n[C3 · NO GUARANTEE, NO PROMISE] No output claims or promises rich-result display, ranking, indexing or AI citation; the result states that markup guarantees none of them.\n[C4 · RECOMMEND ONLY WHAT EVIDENCE SUPPORTS] A NOT VISIBLE text yields ALIGN and an invalid block yields REPAIR, each with its count; a RENDER-ONLY text yields no recommendation; no new structured-data type is recommended, and the missing page-kind classification is named.\n[C5 · IT SUPPLIES F41'S SCHEMA FACT] An ALIGNED page supplies its structured-data type(s) with the source observation to F41's schema section; a MISALIGNED or NOT_MEASURED page supplies nothing.\n[C6 · THREE WORLDS, MISSING NAMED] Every page is ALIGNED, MISALIGNED or NOT_MEASURED; NOT_MEASURED names the missing fact — no verified body, no structured data, or the page's rendered visible text for its RENDER-ONLY texts — and is never presented as aligned, misaligned or valid.\n[C7 · SAME CLIENT, RECORDED DATA ONLY, BOUND PRINTED] Only the client's own verified bodies are read; the result prints its population and bound, count-only; no live, paid or metered call (no rich-result test, no rendering) and no new data gathering is made.",
+  failure: "[C1] A JSON-LD block is missed, or an unparseable block is skipped instead of recorded INVALID.\n[C2] A page is ALIGNED with an unparsed or untyped block or any text not VISIBLE; a RENDER-ONLY text is treated as VISIBLE or NOT VISIBLE; MISALIGNED texts are not counted; a type's requirement set is presented as checked.\n[C3] Any output claims or promises rich-result display, ranking, indexing or AI citation.\n[C4] A recommendation lacks recorded support — including ALIGN for a RENDER-ONLY text — or a new structured-data type is recommended.\n[C5] F41 receives a schema type from a MISALIGNED or NOT_MEASURED page, or without its source.\n[C6] A page lacks one of the three states, or NOT_MEASURED names no missing fact or is presented as aligned, misaligned or valid.\n[C7] Another client's body is read; a result is printed without its population and bound; a live, paid or metered call, a render, or new data gathering is made.\nFor any clause, it also fails when:\n- it is proved only on an empty population, or only on constructed data when real recorded structures exist;\n- it is proved only by a control that cannot fire, or by a test that computes its expected answer with the logic it checks;\n- its test writes to the production audit trail.",
+  evidence: "- For each clause:",
+  contractSha256: "2627130df2a3a6765ffe905b9c96d4345c16a26fd4649d362b0a5e209a208ba8",
+  amends: Object.freeze({ ruling: F48_ORIGINAL.ruling, contractSha256: F48_ORIGINAL.contractSha256 }),
+});
+
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -503,6 +535,7 @@ export const ACCEPTANCES = Object.freeze({
   F39: F39_ORIGINAL,
   F41: F41_ORIGINAL,
   F43: F43_ORIGINAL,
+  F48: F48_AMENDMENT_1,
   F77: F77_AMENDMENT_1,
   F82: F82_ORIGINAL,
 });

@@ -165,7 +165,7 @@ test("C5 · REAL structures: one real page given TEST-ONLY records (publication 
   const base = readClientDecay({ tenantId, resolve, decayEvidence: NO_RECORDED_DECAY_EVIDENCE });
   const target = base.assessments[0].pageId;
   const decayEvidence = {
-    publications: [{ pageId: target, publishedOn: "2026-05-01", ref: "test-publication" }],
+    publications: [{ pageId: target, publishedOn: "2026-05-01", kind: "FIRST_PUBLICATION", source: "CMS_FIRST_PUBLISHED", ref: "test-publication" }],
     indexing: [{ pageId: target, state: "CLEAR", ref: "test-indexing" }],
     improvements: [{ pageId: target, on: "2026-09-13", ref: "test-improvement" }],
     remeasures: [{ pageId: target, windowStart: "2026-09-14", windowEnd: "2026-10-20", impressions: 3, ref: "test-remeasure" }],
@@ -177,6 +177,31 @@ test("C5 · REAL structures: one real page given TEST-ONLY records (publication 
   const noindex = ae.pages.filter((p) => p.actions.some((a) => a.action === "NOINDEX"));
   assert.deepEqual(noindex.map((p) => p.subject.pageId), [target], "the real pruning path did not reach NOINDEX, or reached another page");
   assert.equal(noindex[0].actions.find((a) => a.action === "NOINDEX").ownerApprovalRequired, true);
+});
+
+test("RR-93 §2 · FIRING CONTROL: a MODIFIED date, an unsourced or unreffed date never becomes a publication date — the page's age stays NOT MEASURED", async () => {
+  const resolve = createTenantResolver();
+  const tenantId = resolveSide(resolve, RESOURCES.subject("almi-oet")).tenantId;
+  const base = readClientDecay({ tenantId, resolve, decayEvidence: NO_RECORDED_DECAY_EVIDENCE });
+  const target = base.assessments[0].pageId;
+  const withPub = (pub) => ({ ...NO_RECORDED_DECAY_EVIDENCE, publications: [{ pageId: target, publishedOn: "2026-05-01", ...pub }] });
+  /* the control: the same date, typed FIRST_PUBLICATION from the CMS record with a ref, IS a recorded age */
+  const accepted = readClientDecay({ tenantId, resolve, decayEvidence: withPub({ kind: "FIRST_PUBLICATION", source: "CMS_FIRST_PUBLISHED", ref: "test-publication" }) });
+  assert.ok(!accepted.assessments.find((a) => a.pageId === target).missing.some((m) => m.startsWith("age:")), "the control did not record an age");
+  assert.equal(accepted.refusedPublications.length, 0);
+  for (const [pub, why] of [
+    [{ kind: "LAST_MODIFIED", source: "CMS_FIRST_PUBLISHED", ref: "test-modified" }, /modified or untyped date is not a publication date/],
+    [{ source: "CMS_FIRST_PUBLISHED", ref: "test-untyped" }, /kind absent/],
+    [{ kind: "FIRST_PUBLICATION", source: "SITEMAP_LASTMOD", ref: "test-sitemap" }, /not an authoritative first-publication record/],
+    [{ kind: "FIRST_PUBLICATION", source: "CMS_FIRST_PUBLISHED" }, /no ref/],
+  ]) {
+    const r = readClientDecay({ tenantId, resolve, decayEvidence: withPub(pub) });
+    const a = r.assessments.find((x) => x.pageId === target);
+    assert.ok(a.missing.some((m) => m.startsWith("age:")), `${JSON.stringify(pub)} became a publication date — age was not reported NOT MEASURED`);
+    assert.deepEqual(r.refusedPublications.map((x) => x.pageId), [target]);
+    assert.match(r.refusedPublications[0].problem, why);
+    assert.match(r.bound, /publication dates 0 accepted, 1 refused/);
+  }
 });
 
 test("C7 · THE ENTRY POINT: in a declared world it prints counts only, with its bound, and writes nothing; evidence must be passed explicitly", () => {

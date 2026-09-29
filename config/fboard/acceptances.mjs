@@ -366,6 +366,20 @@ export const F48_AMENDMENT_1 = Object.freeze({
   amends: Object.freeze({ ruling: F48_ORIGINAL.ruling, contractSha256: F48_ORIGINAL.contractSha256 }),
 });
 
+/* 🔴 F78 · FROZEN 29 Sep 2026 (_handoffs a1885de, RR-93 §4.1), committed ALONE before F78 code was read. Pinned from the committed
+ * blob by parseContract (derivation re-run with a firing control inside the contract: "injection" → "insertion"). */
+export const F78_ORIGINAL = Object.freeze({
+  featureId: "F78",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F78_ACCEPTANCE_2026-09-29.md", commit: "a1885debd33ae14ec9e86046681328965f43a8cb", sha256: "5a1ac7c19b43290f42db65a101fd4c5c5de5441236f19f31037e451de3cb479e" }),
+  authority: Object.freeze({ propositionId: "F78_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F78"]) }),
+  frozenOn: "2026-09-29",
+  feature: "F78 · Cost budget and provider governor",
+  input: "For each declared client: the recorded cost entries (money, provider calls, request workload, founder time) with the run each belongs to and that run's declared scope, and any recorded owner approval, cap and kill switch per provider and tenant; and an attempt to use a paid provider — driven over the real recorded ledgers and a test-double provider, count-only.",
+  expected: "[C1 · SPEND AND WORKLOAD BY TENANT] Every recorded cost entry is attributed to exactly one declared tenant through its run's declared scope, or reported UNATTRIBUTED with the missing declaration named; per-tenant totals of the four costs are printed with their population and bound; a measurable cost never reads UNKNOWN, and a genuinely unmeasurable one reads UNKNOWN with why.\n[C2 · PAID PROVIDERS OFF BY DEFAULT] A paid provider without a recorded owner approval for that tenant is refused before any call is made.\n[C3 · CAPS] A paid call that would exceed its tenant's recorded cap for that provider, in money or calls, is refused before it is made; with no recorded cap, every paid call is refused.\n[C4 · APPROVALS ARE SCOPED] An approval authorises only its own provider and tenant, only while unexpired, and only with a cap; any other approval authorises nothing.\n[C5 · KILL SWITCH AND RUNAWAY] An engaged kill switch refuses every paid call in its scope immediately, including mid-run; a runaway loop is hard-stopped at the cap; both are proved by injection.\n[C6 · CLIENTS STAY SEPARATE] One tenant's spend is never counted in another's totals or against another's cap, and one tenant's approval never authorises another's call.\n[C7 · RECORDED DATA ONLY, BOUND PRINTED] Only recorded ledgers are read; no real paid or metered call is made — the controls are proved against a test double; every result prints its population and bound, count-only.",
+  failure: "[C1] A cost entry is untracked, attributed to more than one tenant or to one its scope does not declare, a measurable cost reads UNKNOWN, or totals are printed without population and bound.\n[C2] A paid call proceeds without a recorded owner approval.\n[C3] A paid call proceeds past its cap, or proceeds with no cap recorded.\n[C4] An approval authorises another provider or tenant, or authorises while expired or without a cap.\n[C5] A paid call proceeds while the kill switch is engaged, or a runaway loop continues past its cap.\n[C6] One tenant's spend appears in another's totals or counts against another's cap, or one tenant's approval authorises another's call.\n[C7] A real paid or metered call is made, or a result is printed without its population and bound.\nFor any clause, it also fails when:\n- it is proved only on an empty population, or only on constructed data when real recorded structures exist;\n- it is proved only by a control that cannot fire, or by a test that computes its expected answer with the logic it checks;\n- its test writes to the production audit trail.",
+  evidence: "- For each clause:",
+  contractSha256: "375f4f6a04a5a6dee3bed809f3464aad6bd47b5d2b3c334a29b173bd747fc42b",
+});
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -537,5 +551,6 @@ export const ACCEPTANCES = Object.freeze({
   F43: F43_ORIGINAL,
   F48: F48_AMENDMENT_1,
   F77: F77_AMENDMENT_1,
+  F78: F78_ORIGINAL,
   F82: F82_ORIGINAL,
 });

@@ -50,6 +50,7 @@ import { randomUUID } from "node:crypto";
 
 import { makeCostEntry } from "./ledger.mjs";
 import { authorise, authorisationEvent } from "../governance/authorisation.mjs";
+import { decideResolvedTenants } from "../tenancy/scope.mjs";
 
 export const REFUSAL_CODES = Object.freeze([
   "NOT_AUTHORIZED",
@@ -90,10 +91,15 @@ export function createKillSwitch() {
   });
 }
 
-/** Everything that stops an authorization from being one. Empty means it is complete. */
-export function authorizationProblems(auth, provider, price) {
+/** Everything that stops an authorization from being one. Empty means it is complete.
+ *  🔴 F78 (_handoffs a1885de, RR-93) C4/C6: an authorization authorises only ITS OWN TENANT, and only while UNEXPIRED — one client's
+ *  approval never authorises another client's call, and a lapsed one authorises nothing. */
+export function authorizationProblems(auth, provider, price, { tenantId = null, now = new Date() } = {}) {
   const problems = [];
   if (auth?.provider !== provider) problems.push(`it is not an authorization for ${provider}`);
+  if (!filled(auth?.tenantId) || !decideResolvedTenants(auth.tenantId, tenantId).allowed) problems.push("it is not an authorization for this tenant");
+  if (!ISO_DATE.test(auth?.expiresOn ?? "")) problems.push("it carries no expiry");
+  else if (Date.parse(`${auth.expiresOn}T23:59:59Z`) < now.getTime()) problems.push(`it expired on ${auth.expiresOn}`);
   if (!filled(auth?.authorizedBy)) problems.push("it names nobody who authorized it");
   if (!ISO_DATE.test(auth?.date ?? "")) problems.push("it carries no date");
   if (!filled(auth?.reason) || auth.reason.trim().length < 10) problems.push("it gives no reason");
@@ -104,7 +110,7 @@ export function authorizationProblems(auth, provider, price) {
 }
 
 /** A REFUSED call, as a cost entry. Every zero carries its basis. */
-export function entryFromRefusedPaidCall({ at, seq, provider, code, reason, authorization = null, callsIssued = 0, spent = 0, fake = false, attemptId = randomUUID() }) {
+export function entryFromRefusedPaidCall({ at, seq, provider, code, reason, authorization = null, callsIssued = 0, spent = 0, fake = false, attemptId = randomUUID(), tenantId = null }) {
   if (!REFUSAL_CODES.includes(code)) throw new TypeError(`refused call: code ${JSON.stringify(code)} is not one of ${REFUSAL_CODES.join(" | ")}`);
   if (!filled(reason) || reason.length < 20) throw new TypeError("refused call: a refusal without its reason is indistinguishable from a call nobody made");
   /* 🔴 EVERY REFUSED ATTEMPT GETS ITS OWN ID. The first version built the id from the
@@ -141,7 +147,8 @@ export function entryFromRefusedPaidCall({ at, seq, provider, code, reason, auth
     founderTime: { state: "MEASURED", seconds: 0, zeroBasis: "a refusal is decided in-process before any request; no time was spent on the provider" },
     sources: [],
   });
-  return Object.freeze({ ...entry, outcome: "REFUSED", refusal: Object.freeze({ code, reason, provider, fake }) });
+  /* F78 C1: the refusal records the tenant scope it was made under, so the ledger can attribute it — or null, named UNATTRIBUTED */
+  return Object.freeze({ ...entry, outcome: "REFUSED", refusal: Object.freeze({ code, reason, provider, fake }), scope: Object.freeze({ tenantId }) });
 }
 
 /** A FAKE paid provider — a test double. It makes no request and holds no account; it counts. */
@@ -182,7 +189,7 @@ export function createPaidProviderGate({ providers, authorizations = [], killSwi
   let seq = 0;
 
   function refuse(provider, code, reason, authorization, s) {
-    const entry = entryFromRefusedPaidCall({ at: now().toISOString(), seq, provider, code, reason, authorization, callsIssued: s?.calls ?? 0, spent: s?.spent ?? 0, fake: Boolean(providers?.[provider]?.fake) });
+    const entry = entryFromRefusedPaidCall({ at: now().toISOString(), seq, provider, code, reason, authorization, callsIssued: s?.calls ?? 0, spent: s?.spent ?? 0, fake: Boolean(providers?.[provider]?.fake), tenantId: spendAuthority.scope?.tenantId ?? null });
     // appended once per entry_id — a retry of the same refusal is not a second refusal
     if (!ledger.readAll().some((e) => e.entry_id === entry.entry_id)) ledger.append(entry);
     refusals.push(entry);
@@ -192,7 +199,9 @@ export function createPaidProviderGate({ providers, authorizations = [], killSwi
   async function call(provider, request) {
     seq += 1;
     const p = providers?.[provider];
-    const auth = authorizations.find((x) => x?.provider === provider) ?? null;
+    /* F78: this tenant's authorization for this provider first; another tenant's is found only to be REFUSED with its reason */
+    const tenant = spendAuthority.scope?.tenantId ?? null;
+    const auth = authorizations.find((x) => x?.provider === provider && decideResolvedTenants(x?.tenantId, tenant).allowed) ?? authorizations.find((x) => x?.provider === provider) ?? null;
     const s = spend.get(provider) ?? { calls: 0, spent: 0 };
 
     // 0 — F04: the ONE authorisation decision, before any of the gate's own limits and before the provider is touched
@@ -202,7 +211,7 @@ export function createPaidProviderGate({ providers, authorizations = [], killSwi
     // 1 — OFF BY DEFAULT
     if (!auth) return refuse(provider, "NOT_AUTHORIZED", `paid services are OFF by default and ${provider} has no authorization`, null, s);
     // 2 — EXPLICIT AUTHORIZATION: named, per provider, dated, with a reason, a budget and a cap
-    const problems = authorizationProblems(auth, provider, p?.pricePerCall);
+    const problems = authorizationProblems(auth, provider, p?.pricePerCall, { tenantId: tenant, now: now() });
     if (problems.length) return refuse(provider, "AUTHORIZATION_INCOMPLETE", `the authorization for ${provider} authorizes nothing: ${problems.join("; ")}`, null, s);
     // 3 — KILL SWITCH
     if (killSwitch.isOn()) return refuse(provider, "KILL_SWITCH_ON", `the kill switch is on (flipped by ${killSwitch.state()?.by} at ${killSwitch.state()?.at}: ${killSwitch.state()?.reason})`, auth, s);

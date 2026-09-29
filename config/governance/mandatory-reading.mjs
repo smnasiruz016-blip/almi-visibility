@@ -223,6 +223,9 @@ export const MANDATORY_READING = Object.freeze([
   /* RR-92, F48 (29 Sep 2026): its original acceptance (a CURRENT record) and Amendment 1 (the board's acceptance), after the re-migration at _handoffs 7f212cd. */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F48_ACCEPTANCE_2026-09-29.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F48_ACCEPTANCE_AMENDMENT_1_2026-09-29.md", loader: "F-board acceptance F48" }),
+  /* RR-93, F78 (29 Sep 2026): the command (a CURRENT record) and F78's acceptance, after the migration at _handoffs a1885de. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-09-29_RR-93_CONTINUE_AFTER_21_90.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F78_ACCEPTANCE_2026-09-29.md", loader: "F-board acceptance F78" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_CLARIFICATION_2026-09-28_RR-76_TEST_ONLY_PERMISSION_IS_GENERAL.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_RULING_2026-09-28_RR-80_F07_A_LIMIT_IS_NOT_A_PERMISSION.md", loader: "authority register (CURRENT record)" }),
 ]);

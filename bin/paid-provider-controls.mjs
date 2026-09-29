@@ -67,7 +67,7 @@ const ledger = {
 const NAME = "fake-paid-provider";
 const fake = createFakePaidProvider({ name: NAME, pricePerCall: { amount: 0.4, currency: "USD" } });
 const killSwitch = createKillSwitch();
-const authorization = (over = {}) => ({ provider: NAME, authorizedBy: "owner (fake provider exercise)", date: "2026-09-13", reason: "item 47 — exercising the controls against a test double", budget: { amount: 100, currency: "USD" }, cap: { maxCalls: 50 }, ...over });
+const authorization = (over = {}) => ({ provider: NAME, authorizedBy: "owner (fake provider exercise)", date: "2026-09-13", reason: "item 47 — exercising the controls against a test double", budget: { amount: 100, currency: "USD" }, cap: { maxCalls: 50 }, tenantId: SCOPE.writeScope?.tenantId ?? null, expiresOn: "2099-12-31" /* F78: the run's tenant, unexpired */, ...over });
 
 const results = [];
 async function attempt(label, gate) {

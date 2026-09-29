@@ -1450,6 +1450,32 @@ export const DECLARED = Object.freeze({
       }),
     ]),
   }),
+  /* 🔴 F78 · Cost budget and provider governor. Frozen 29 Sep (_handoffs a1885de, RR-93 §4.1) ALONE, before any F78 code was read.
+   * CHOSEN by measured inputs (RR-93 §3): recorded cost ledgers exist (engine 22 entries, research 2). Historical item 47 (paid
+   * provider controls) survives as the gate F78 extends with tenant-scoped, expiring approvals; attribution by tenant is new. */
+  F78: Object.freeze({
+    featureId: "F78",
+    board: "F_BOARD",
+    state: "IN-PROGRESS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: ACCEPTANCES.F78.ruling, contractSha256: ACCEPTANCES.F78.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F78",
+        on: "2026-09-29",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F78.ruling.sha256, contract: ACCEPTANCES.F78.contractSha256 }),
+        branch: "rr93-f78-cost-governor",
+        baseSha: "7b54514127044cf9382fa2f1ebbcfd3d357747ba",
+        baseCiRun: "36625336427",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-29_RR-93_CONTINUE_AFTER_21_90.md", commit: "a5f9fa2b4caa6853fae718ddb657d38f27fcb680", sha256: "6c518951641b3f7d4f01227071d3e80cea12c12461b6dfb4ae99405e7da3e98d" }),
+      }),
+    ]),
+  }),
   F40: Object.freeze({
     featureId: "F40",
     board: "F_BOARD",

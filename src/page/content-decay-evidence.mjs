@@ -27,6 +27,20 @@ export const PAGE_ROWS_METHOD = "gsc.searchAnalytics.query:page-rows";
 /** None of these is recorded today and no store of them exists: [] is that recorded fact. Callers pass it EXPLICITLY. */
 export const NO_RECORDED_DECAY_EVIDENCE = Object.freeze({ publications: Object.freeze([]), improvements: Object.freeze([]), remeasures: Object.freeze([]), indexing: Object.freeze([]) });
 
+/**
+ * 🔴 RR-93 §2 — A MODIFIED DATE IS NEVER A PUBLICATION DATE. A page's age comes only from a publication record typed FIRST_PUBLICATION,
+ * from the CMS's own first-published record, with a ref. A last-modified header, a sitemap lastmod, a page-asserted date, a client's
+ * stated guess or an untyped date is REFUSED with its reason — that page's age stays NOT MEASURED, never "old enough" or "too new".
+ */
+export const PUBLICATION_KIND = "FIRST_PUBLICATION";
+export const AUTHORITATIVE_PUBLICATION_SOURCES = Object.freeze(["CMS_FIRST_PUBLISHED"]);
+export function publicationProblem(p) {
+  if (p?.kind !== PUBLICATION_KIND) return `kind ${p?.kind ?? "absent"} is not ${PUBLICATION_KIND} — a modified or untyped date is not a publication date`;
+  if (!AUTHORITATIVE_PUBLICATION_SOURCES.includes(p.source)) return `source ${p.source ?? "absent"} is not an authoritative first-publication record`;
+  if (typeof p.ref !== "string" || p.ref === "") return "it carries no ref";
+  return null;
+}
+
 const pageIdOf = (url) => { try { return targetPageId(canonicalUrl(url)); } catch { return null; } };
 
 /** The latest recorded page-rows window, attributed to this tenant by declared host, keyed by this tenant's own page ids. */
@@ -62,6 +76,8 @@ export function readClientDecay({ tenantId, resolve, values = [], decayEvidence,
   const complete = population.completeness.state === "COMPLETE";
   const peers = complete ? sameNeedPeers(population.pages, values) : null;
   const find = (list, id) => list.find((x) => x.pageId === id) ?? null;
+  const refusedPublications = d.publications.map((x) => ({ pageId: x?.pageId ?? null, problem: publicationProblem(x) })).filter((x) => x.problem);
+  const publications = d.publications.filter((x) => !publicationProblem(x));
   /* where F21 cannot decide, a RECORDED indexing check may: CLEAR only with a recorded successful served state as well */
   const indexingCheck = (id, served) => {
     const c = d.indexing.find((x) => x.pageId === id && typeof x.ref === "string" && x.ref !== "");
@@ -77,7 +93,7 @@ export function readClientDecay({ tenantId, resolve, values = [], decayEvidence,
       ? { state: "BLOCKED", evidence: [s?.state === "CONTRADICTED" ? `F21 CONTRADICTED ${s.classes.join(",")}` : null, served !== null && (served < 200 || served >= 300) ? `served ${served}` : null] }
       : s?.state === "CONSISTENT" && served !== null ? { state: "CLEAR", evidence: ["F21 CONSISTENT", `served ${served}`] }
       : indexingCheck(p.pageId, served);
-    const pub = find(d.publications, p.pageId);
+    const pub = find(publications, p.pageId);
     return assessPage({
       pageId: p.pageId,
       publishedOn: pub?.publishedOn ?? null,
@@ -94,8 +110,9 @@ export function readClientDecay({ tenantId, resolve, values = [], decayEvidence,
   return {
     fault: null,
     assessments,
+    refusedPublications,
     summary: summariseDecay(assessments),
     performance: { window: perf.window, rows: perf.rows, attributed: perf.attributed, rejected: perf.rejected, pagesCovered: covered, pagesNotCovered: assessments.length - covered },
-    bound: `recorded data only · ${assessments.length} page(s) · performance window ${perf.window ? `${perf.window.start}..${perf.window.end}` : "NONE"} covering ${covered} of ${assessments.length} page(s) · publication dates ${d.publications.length} · improvements ${d.improvements.length} · re-measurements ${d.remeasures.length} · indexing checks ${d.indexing.length} · inventory ${population.completeness.state} · nothing collected`,
+    bound: `recorded data only · ${assessments.length} page(s) · performance window ${perf.window ? `${perf.window.start}..${perf.window.end}` : "NONE"} covering ${covered} of ${assessments.length} page(s) · publication dates ${publications.length} accepted, ${refusedPublications.length} refused · improvements ${d.improvements.length} · re-measurements ${d.remeasures.length} · indexing checks ${d.indexing.length} · inventory ${population.completeness.state} · nothing collected`,
   };
 }

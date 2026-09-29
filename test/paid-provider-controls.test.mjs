@@ -18,7 +18,7 @@ import { createCostLedger, formatLedgerLine } from "../src/cost/ledger.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 
 const NAME = "fake-paid-provider";
-const complete = (over = {}) => ({ provider: NAME, authorizedBy: "owner", date: "2026-09-13", reason: "item 47 control test against a fake provider", budget: { amount: 100, currency: "USD" }, cap: { maxCalls: 50 }, ...over });
+const complete = (over = {}) => ({ provider: NAME, authorizedBy: "owner", date: "2026-09-13", reason: "item 47 control test against a fake provider", budget: { amount: 100, currency: "USD" }, cap: { maxCalls: 50 }, tenantId: SCOPE.tenantId, expiresOn: "2099-12-31" /* F78: this gate's tenant, unexpired */, ...over });
 
 /* F04: step 0 of every call is the one authorisation decision. These tests exercise the gate's OWN limits, so they pass
  * an in-memory TEST DOUBLE of the approval registry (accepted only because every provider here is a declared fake);

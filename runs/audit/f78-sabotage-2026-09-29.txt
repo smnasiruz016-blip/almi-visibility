@@ -1,0 +1,29 @@
+F78 sabotage run · 2026-09-29T21:41:45.049Z
+population: 22 sabotages over test/f78-cost-governor.test.mjs + test/f43-content-decay.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1 S19=1 S20=1 S22=1 S21=1 · all exactly once: true
+production trail sha256 before: 5895205e81656d99e4014408fbc3fe6c6897c2917ab57f679caaa4956902b7f8
+
+S1 C1 an unscoped refusal is never assigned a tenant src/cost/tenant-attribution.mjs: landed true · named test "C1 · FIRING CONTROL" red true · failing 4 · restored by sha256 true · PROVED
+S2 C1 a shared crawl batch is never assigned a tenant src/cost/tenant-attribution.mjs: landed true · named test "C1 · FIRING CONTROL" red true · failing 2 · restored by sha256 true · PROVED
+S3 C1 an undeclared research batch is never assigned a tenant src/cost/tenant-attribution.mjs: landed true · named test "C1 · FIRING CONTROL" red true · failing 1 · restored by sha256 true · PROVED
+S4 C6 a property spanning two tenants is given to neither src/cost/tenant-attribution.mjs: landed true · named test "C1 · a declared scope" red true · failing 1 · restored by sha256 true · PROVED
+S5 C1 a measurable-but-unrecorded gap is counted, never zero src/cost/tenant-attribution.mjs: landed true · named test "C1 · per-tenant totals" red true · failing 2 · restored by sha256 true · PROVED
+S6 C4 an approval authorises only its own tenant src/cost/paid-provider-gate.mjs: landed true · named test "C4/C6 ·" red true · failing 1 · restored by sha256 true · PROVED
+S7 C4 an expired approval authorises nothing src/cost/paid-provider-gate.mjs: landed true · named test "C4/C6 ·" red true · failing 1 · restored by sha256 true · PROVED
+S8 C4 an approval without expiry authorises nothing src/cost/paid-provider-gate.mjs: landed true · named test "C4/C6 ·" red true · failing 1 · restored by sha256 true · PROVED
+S9 C6 a refusal records the tenant it was made for src/cost/paid-provider-gate.mjs: landed true · named test "C4/C6 ·" red true · failing 1 · restored by sha256 true · PROVED
+S10 C2 paid providers are off by default src/cost/paid-provider-gate.mjs: landed true · named test "C2/C3 ·" red true · failing 1 · restored by sha256 true · PROVED
+S11 C3 the cap is enforced before the call src/cost/paid-provider-gate.mjs: landed true · named test "C2/C3 ·" red true · failing 2 · restored by sha256 true · PROVED
+S12 C5 the kill switch refuses the next call src/cost/paid-provider-gate.mjs: landed true · named test "C5 ·" red true · failing 1 · restored by sha256 true · PROVED
+S13 C6 a tenant's view never holds another tenant's totals src/cost/cost-by-tenant.mjs: landed true · named test "C6 · REAL" red true · failing 2 · restored by sha256 true · PROVED
+S14 C6 the entry point shows its OWN tenant bin/cost-by-tenant.mjs: landed true · named test "C7 · THE ENTRY POINT" red true · failing 1 · restored by sha256 true · PROVED
+S15 C7 the entry point prints its bound bin/cost-by-tenant.mjs: landed true · named test "C7 · THE ENTRY POINT" red true · failing 1 · restored by sha256 true · PROVED
+S16 C1 research-batch costs are read under their batch src/cost/cost-by-tenant.mjs: landed true · named test "REAL ·" red true · failing 3 · restored by sha256 true · PROVED
+S17 C7 a network call is seen tools/need-coverage-call-paths.mjs: landed true · named test "C7 · attribution" red true · failing 2 · restored by sha256 true · PROVED
+S18 RR-93 §2 a modified date is not a publication date src/page/content-decay-evidence.mjs: landed true · named test "RR-93 §2 ·" red true · failing 1 · restored by sha256 true · PROVED
+S19 RR-93 §2 only an authoritative source dates a publication src/page/content-decay-evidence.mjs: landed true · named test "RR-93 §2 ·" red true · failing 1 · restored by sha256 true · PROVED
+S20 RR-93 §2 a publication date needs its ref src/page/content-decay-evidence.mjs: landed true · named test "RR-93 §2 ·" red true · failing 1 · restored by sha256 true · PROVED
+S22 C6 the entry point reads only the research batches its scope gate named bin/cost-by-tenant.mjs: landed true · named test "C7 · THE ENTRY POINT" red true · failing 1 · restored by sha256 true · PROVED
+S21 RR-93 §2 a refused publication never reaches the assessment src/page/content-decay-evidence.mjs: landed true · named test "RR-93 §2 ·" red true · failing 1 · restored by sha256 true · PROVED
+
+proved 22 of 22 · residue 0 · production trail sha256 after: 5895205e81656d99e4014408fbc3fe6c6897c2917ab57f679caaa4956902b7f8 · unchanged true

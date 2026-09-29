@@ -143,7 +143,7 @@ test("EXPECTED · fail closed BEFORE money is committed — a real spend with no
   try {
     const ledger = createCostLedger(join(dir, "l.jsonl"));
     const fake = createFakePaidProvider({ name: "fake-paid-provider" });
-    const auth = { provider: "fake-paid-provider", authorizedBy: "owner", date: "2026-09-25", reason: "F04 money-before-decision proof", budget: { amount: 10, currency: "USD" }, cap: { maxCalls: 5 } };
+    const auth = { provider: "fake-paid-provider", authorizedBy: "owner", date: "2026-09-25", reason: "F04 money-before-decision proof", budget: { amount: 10, currency: "USD" }, cap: { maxCalls: 5 }, tenantId: T.tenantId, expiresOn: "2099-12-31" };
     const gate = createPaidProviderGate({ providers: { "fake-paid-provider": fake }, authorizations: [auth], killSwitch: createKillSwitch(), ledger, spendAuthority: { actorRef: "actor:cc", scope: T } });
     await assert.rejects(gate.call("fake-paid-provider", {}), (e) => e instanceof PaidCallRefused && e.code === "NOT_AUTHORISED_BY_F04" && /APPROVAL_MISSING/.test(e.reason));
     assert.equal(fake.callsReceived(), 0, "money was committed without the owner's approval");
@@ -230,7 +230,7 @@ test("FAILURE · no caller-specific allowlist bypasses the shared decision — e
   try {
     const fake = createFakePaidProvider({ name: "fake-paid-provider" });
     const gate = createPaidProviderGate({ providers: { "fake-paid-provider": fake }, killSwitch: createKillSwitch(), ledger: createCostLedger(join(dir, "l.jsonl")),
-      authorizations: [{ provider: "fake-paid-provider", authorizedBy: "owner", date: "2026-09-25", reason: "a complete item-47 authorization", budget: { amount: 9, currency: "USD" }, cap: { maxCalls: 9 } }],
+      authorizations: [{ provider: "fake-paid-provider", authorizedBy: "owner", date: "2026-09-25", reason: "a complete item-47 authorization", budget: { amount: 9, currency: "USD" }, cap: { maxCalls: 9 }, tenantId: T.tenantId, expiresOn: "2099-12-31" }],
       spendAuthority: { actorRef: "actor:cc", scope: T } });
     await assert.rejects(gate.call("fake-paid-provider", {}), (e) => e.code === "NOT_AUTHORISED_BY_F04", "the gate's own authorization list granted a spend");
   } finally { rmSync(dir, { recursive: true, force: true }); }

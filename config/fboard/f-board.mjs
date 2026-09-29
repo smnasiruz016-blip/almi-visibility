@@ -836,6 +836,49 @@ export const DECLARED = Object.freeze({
       }),
     ]),
   }),
+  /* 🔴 F35 · Action decision engine. Frozen 29 Sep (_handoffs da659bd, RR-88 §2) ALONE. The PAGE DECISION cluster's second row.
+   * Historical row 20 was DEFERRED (class D) with no code and never proved; its wording ("exactly one primary action", no REMOVE) is
+   * CHANGED. The verified rows F31, F33, F34, F36 and F21 supply every input; nothing is collected. */
+  F35: Object.freeze({
+    featureId: "F35",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: ACCEPTANCES.F35.ruling, contractSha256: ACCEPTANCES.F35.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F35",
+        on: "2026-09-29",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F35.ruling.sha256, contract: ACCEPTANCES.F35.contractSha256 }),
+        branch: "rr88-f35-action-decision",
+        baseSha: "522b47815cfd3783a2a725bc1df8e9b23a8b6d2b",
+        baseCiRun: "36518431124",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-29_RR-88_CLOSE_184_THEN_F35.md", commit: "b8c1463eafbe020de17d5af345946ba1a80a827f", sha256: "7f0f6e93ef624165f33a8a8efe0dabe6fa158b9c45e0b69fc5e1062adeb5ae5e" }),
+      }),
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F35",
+        population: "REAL",
+        on: "2026-09-29",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F35.ruling.sha256, contract: ACCEPTANCES.F35.contractSha256 }),
+        populations: "REAL (count-only; bound: recorded data only · inventory INCOMPLETE · 47 registry facts · demand NOT RECORDED): the subject's 2 proposed needs — CHOSEN 0, CANNOT_DECIDE 2 (an existing page covers each; KEEP needs a recorded quality measurement, ADD SECTION recorded question-level coverage) — never CREATE; its 27 existing pages — CHOSEN 17 (MERGE 17, each owner-approval-required and each carrying the NOT MEASURED duplication caveat), CANNOT_DECIDE 10. On all 27: KEEP needs a recorded quality measurement (F40 blocked); indexability signals NOT MEASURED (F21: the Link header was never recorded); LINK needs a COMPLETE inventory — every page reads 0 inbound links, and the recorded crawl links no fetched page to another (0 of 1,275 recorded edges, also 0 under a loosened path match; control: 27 of 27 page URLs map into the set).",
+        proofs: "test/f35-action-decision.test.mjs — C3 FIRING CONTROL: an ESTABLISHED right-to-exist with unmeasured demand is CANNOT DECIDE naming the missing demand, never CREATE; only recorded STRONG demand (three agreeing categories, no conflict) reaches CREATE; a covered need never becomes CREATE (a recorded defect → IMPROVE; otherwise CANNOT DECIDE, never KEEP); REJECT only for a doorway-like reason; each existing-page action exactly on its own recorded evidence; contradicting actions CANNOT DECIDE with the contradiction named; every action carries its rule and evidence and is a RECOMMENDATION, the four owner-approval actions say so (pinned to literals); LINK's input counted from the recorded inbound links, absent = unknown; the entry point prints counts only, writes nothing and is REFUSED on the real declarations; no network, process, connector or paid call (firing control); hand-written expectations; production trail byte-identical",
+        sabotage: "runs/audit/f35-sabotage-2026-09-29.txt: 25 of 25 proved, every span pre-flighted once; F31 22/22 re-run on the changed inventory module",
+        historicalReuse: "historical row 20 was DEFERRED with no code — nothing proved to reuse; the verified F31 population and completeness, F33 coverage, F34 existing-page check, F36 right-to-exist and F21 signals, and the fact registry's freshness rule, are reused unchanged as the decision's inputs",
+        declaredLimit: "CREATE is unreachable on real data: no row issues a recorded V3 §5 demand outcome (missing fact: demand evidence — F14 has no public-evidence path). KEEP is unreachable: no authoritative quality measurement (F40 blocked). LINK is unreachable: the inventory is INCOMPLETE (F19 crawl on hold; freshness rule UNSET). MERGE's need is F33's headline-level need — whether the pages duplicate one intent in substance is NOT MEASURED and every MERGE says so.",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
   /* 🔴 F36 · URL right-to-exist test. Frozen 29 Sep (_handoffs 2635153, RR-87 §4.1) ALONE. The PAGE DECISION cluster's first row.
    * Historical row 21 was DEFERRED and never proved; Gate A's part-4 reason check (judgeWhy) is reused inside the one function. */
   F36: Object.freeze({

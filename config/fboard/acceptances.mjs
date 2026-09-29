@@ -244,6 +244,21 @@ export const F36_ORIGINAL = Object.freeze({
   contractSha256: "d9598194bc52d5005617298da6b5bf5e42b681e871273d14d0628d0fd0220b81",
 });
 
+/* 🔴 F35 · FROZEN 29 Sep 2026 (_handoffs da659bd, RR-88 §2), committed ALONE before F35 code was re-read. Pinned from the committed
+ * blob by parseContract (derivation re-run with a firing control inside the contract: "whatever" → "however"). */
+export const F35_ORIGINAL = Object.freeze({
+  featureId: "F35",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F35_ACCEPTANCE_2026-09-29.md", commit: "da659bd27d5b0354301ec3627f47ab58b63f112b", sha256: "9e2011b19e6016949adf99ddc832212b33a04897f5c54e4bb94f9217677b6494" }),
+  authority: Object.freeze({ propositionId: "F35_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F35"]) }),
+  frozenOn: "2026-09-29",
+  feature: "F35 · Action decision engine",
+  input: "For one declared client: its proposed needs (candidates with their right-to-exist outcomes) and its existing pages (with F31's inventory and completeness verdict, F33/F34's coverage decisions, F21's indexability signals and recorded served states), together with any recorded demand outcome, recorded quality or freshness measurement and recorded post-publication evidence — driven over the real recorded structures and over recorded-shape fixtures meeting, and failing, each action's evidence rule.",
+  expected: "[C1 · JUSTIFIED, WITH ITS RECORDED REASON] An action is chosen only when its evidence rule (above) is met by recorded evidence; each chosen action carries the rule and the evidence identities that met it.\n[C2 · CANNOT DECIDE, NEVER FORCED] Where no rule is met, or a rule's evidence is missing, or two chosen actions contradict, the outcome is CANNOT DECIDE with the missing facts named; it never becomes MONITOR, KEEP, REJECT or any other action by default.\n[C3 · AN UNMEASURED NEED NEVER BECOMES A NEW PAGE] CREATE is chosen only when right-to-exist is ESTABLISHED AND a recorded demand outcome is STRONG AND the need is not already served; with demand unmeasured, CREATE is never chosen, whatever the other evidence says.\n[C4 · IMPROVE BEFORE CREATE] A need an existing page covers never yields CREATE; it yields IMPROVE where that page carries a recorded defect, and CANNOT DECIDE where the quality evidence KEEP needs is absent.\n[C5 · EACH ACTION'S OWN RULE] FIX, MERGE, REDIRECT, LINK, REFRESH, MONITOR and REJECT are each chosen exactly when their rule is met; KEEP, ADD SECTION, NOINDEX and REMOVE are chosen only on their recorded evidence and never without it.\n[C6 · RECOMMENDATION, NOT APPROVAL] Every chosen action is labelled a recommendation; MERGE, NOINDEX, REMOVE and REDIRECT are labelled owner-approval-required; F35 creates, publishes, removes or writes no page.\n[C7 · SAME CLIENT, RECORDED DATA ONLY, BOUND PRINTED] Only the client's own recorded data is read; the result prints its population and bound, count-only; no live, paid or metered call is made.",
+  failure: "[C1] An action is chosen without its rule being met, or carries no rule or evidence.\n[C2] Missing or insufficient evidence yields an action instead of CANNOT DECIDE, or CANNOT DECIDE names no missing fact; contradicting actions are both returned as a decision.\n[C3] CREATE is chosen with demand unmeasured, with right-to-exist not ESTABLISHED, or for a need already served.\n[C4] A covered need yields CREATE, or KEEP is chosen without recorded quality evidence.\n[C5] An action is chosen when its rule is not met, or not chosen when it is.\n[C6] A chosen action is presented as approved or implemented, an owner-approval action lacks that label, or anything is created, published, removed or written.\n[C7] Another client's data is read or decided; a result is printed without its population and bound; a live, paid or metered call is made.\nFor any clause, it also fails when:\n- it is proved only on an empty population, or only on constructed data when real recorded structures exist;\n- it is proved only by a control that cannot fire, or by a test that computes its expected answer with the logic it checks;\n- its test writes to the production audit trail.",
+  evidence: "- For each clause:",
+  contractSha256: "36b15b9878856f6e58f1881fbba55f277dcf6bc8b28f657eb0e5ec69d7a604cc",
+});
+
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -407,6 +422,7 @@ export const ACCEPTANCES = Object.freeze({
   F31: F31_ORIGINAL,
   F33: F33_ORIGINAL,
   F34: F34_ORIGINAL,
+  F35: F35_ORIGINAL,
   F36: F36_ORIGINAL,
   F77: F77_AMENDMENT_1,
 });

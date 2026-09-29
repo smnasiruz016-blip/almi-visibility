@@ -57,6 +57,8 @@ export function scopeInventory({ tenantId, batchId, records, bodies = new Map(),
         ? Object.freeze({ state: "OBSERVED", status: last.value.status, redirected: Array.isArray(last.value.redirect_chain) && last.value.redirect_chain.length > 0, observedAt: last.observed_at })
         : Object.freeze({ state: "UNKNOWN" }),
       evidence: Object.freeze({ batchId, observationIds: Object.freeze(obs.map((o) => o.observation_id)) }),
+      /* F35 (RR-88): the page's recorded inbound links within the crawled set — a count, read by LINK only over a COMPLETE inventory */
+      inboundLinks: Array.isArray(p.inbound_edges) ? p.inbound_edges.length : null,
     });
   });
   return Object.freeze({ tenantId, pages: Object.freeze(pages), conflicts: Object.freeze(conflicts), unplaced: Object.freeze({ ...unplaced }) });

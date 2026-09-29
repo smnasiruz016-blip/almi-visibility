@@ -15,11 +15,21 @@
  * Every chosen action is a RECOMMENDATION. MERGE, NOINDEX, REMOVE and REDIRECT are owner-approval-required. Nothing is created,
  * published, removed or written here — this module is pure and returns decisions only. No product is named here.
  */
+import { SEMANTIC_ASPECTS } from "./duplication.mjs";
+
 export const ACTIONS = Object.freeze(["KEEP", "FIX", "IMPROVE", "ADD SECTION", "MERGE", "REFRESH", "LINK", "CREATE", "MONITOR", "NOINDEX", "REDIRECT", "REMOVE", "REJECT"]);
 export const OWNER_APPROVAL = Object.freeze(["MERGE", "NOINDEX", "REMOVE", "REDIRECT"]);
 export const DECISION = Object.freeze({ CHOSEN: "CHOSEN", CANNOT_DECIDE: "CANNOT_DECIDE" });
 export const STANDING = "RECOMMENDATION";
-export const MERGE_NOT_MEASURED = "NOT MEASURED: whether these pages duplicate one intent in substance or serve distinct sub-needs of the same registered need — the evidence is headline-level coverage (F33), a review trigger, not a duplication judgement (V3 G15)";
+/* 🔴 RR-89 (reopened on CONCRETE_CONTRADICTORY_EVIDENCE, _handoffs 2f010f3): a shared broad need — or any similarity — is a REVIEW
+ * TRIGGER, never proof that two pages should be merged (F32; V3 G15, §14.2). MERGE's authority is V3 §8 "Multiple pages split or
+ * duplicate one intent", so a successor is a page a RECORDED semantic review finds to duplicate or split ONE intent with this one. */
+export const REVIEW_MISSING = "a recorded semantic review, comparing intent, answer, facts, architecture, examples and user value (F32, V3 §14.2), that finds these pages duplicate or split ONE intent — a shared registered need is a review trigger, not that finding";
+
+/** A recorded review supports MERGE only when it compared every aspect V3 names AND found one intent duplicated or split. */
+export function reviewShowsOneIntent(review) {
+  return Boolean(review) && SEMANTIC_ASPECTS.every((a) => review.compared?.includes(a)) && (review.duplicate === true || review.splitsOneIntent === true);
+}
 
 /* Actions that cannot share a subject with any other: each ends or replaces the page (or the proposal), or declares it fine as it is. */
 export const EXCLUSIVE = Object.freeze(["KEEP", "REMOVE", "REDIRECT", "CREATE", "REJECT"]);
@@ -83,19 +93,24 @@ export function decideForPage(e) {
   const missing = [];
   const served = e.servedState?.state === "OBSERVED" && e.servedState.status >= 200 && e.servedState.status < 300;
   const notServed = e.servedState?.state === "OBSERVED" && e.servedState.status >= 400;
-  const successor = (e.sameNeedPeers ?? []).length > 0;
+  /* a successor is a same-need page a recorded review finds to duplicate or split one intent with this one; a merely shared need is not */
+  const reviewed = (e.sameIntentPeers ?? []).filter((p) => p && p.pageId && p.reviewRef);
+  const successor = reviewed.length > 0;
+  const unreviewed = (e.sameNeedPeers ?? []).filter((id) => !reviewed.some((p) => p.pageId === id));
 
   /* FIX — a recorded technical contradiction (F21) or a recorded non-successful served state (the frozen rule, as written) */
   const fixEvidence = [];
   if (e.signals?.state === "CONTRADICTED") fixEvidence.push(`INDEXABILITY_CONTRADICTION_${e.signals.classes.join("_")}`, ...(e.signals.sources ?? []));
   if (e.servedState?.state === "OBSERVED" && !served) fixEvidence.push(`RECORDED_SERVED_STATE_${e.servedState.status}`, ...(e.servedState.evidence ?? []));
   if (fixEvidence.length) actions.push(chosen("FIX", "RECORDED_TECHNICAL_CONTRADICTION_OR_NON_SUCCESSFUL_SERVED_STATE", fixEvidence));
-  /* REDIRECT — recorded not served, while another existing page covers the same need (owner approval). Where FIX also holds,
+  const reviewEvidence = reviewed.flatMap((p) => [p.pageId, p.reviewRef]);
+  /* REDIRECT — recorded not served, while a REVIEWED same-intent page exists to receive it (owner approval). Where FIX also holds,
    * restore-or-redirect is a genuine contradiction, and C2 makes it CANNOT DECIDE. */
-  if (notServed && successor) actions.push(chosen("REDIRECT", "RECORDED_NOT_SERVED_AND_ANOTHER_PAGE_COVERS_THE_NEED", [...e.sameNeedPeers]));
-  /* MERGE — two or more existing pages each cover the same need (owner approval). The need is F33's: the registered value a page's
-   * headline names. Whether the pages DUPLICATE one intent in substance or split distinct sub-needs is not judged — every MERGE says so. */
-  if (successor) actions.push(Object.freeze({ ...chosen("MERGE", "ANOTHER_EXISTING_PAGE_COVERS_THE_SAME_NEED", [...e.sameNeedPeers]), notMeasured: MERGE_NOT_MEASURED }));
+  if (notServed && successor) actions.push(chosen("REDIRECT", "RECORDED_NOT_SERVED_AND_A_REVIEWED_SAME_INTENT_PAGE_EXISTS", reviewEvidence));
+  /* MERGE — a recorded semantic review finds this page and another duplicate or split ONE intent (V3 §8; owner approval before any
+   * merge is acted on). A shared broad need without that review is CANNOT DECIDE, the missing review named — never MERGE. */
+  if (successor) actions.push(chosen("MERGE", "A_RECORDED_SEMANTIC_REVIEW_FINDS_ONE_INTENT_DUPLICATED_OR_SPLIT", reviewEvidence));
+  else if (unreviewed.length) missing.push(`MERGE${notServed ? " and REDIRECT need" : " needs"} ${REVIEW_MISSING} — ${unreviewed.length} other page(s) share this page's registered need, none reviewed`);
   /* LINK — no recorded inbound link, within an inventory recorded COMPLETE */
   if (e.inboundLinks === 0) {
     if (e.completeness === "COMPLETE") actions.push(chosen("LINK", "NO_INBOUND_LINK_IN_A_COMPLETE_INVENTORY", [e.completenessRef]));

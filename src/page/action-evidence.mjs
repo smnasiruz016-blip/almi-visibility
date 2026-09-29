@@ -9,6 +9,8 @@
  *   facts on a page and their freshness    the subject's fact registry, read by its lifecycle (src/facts/lifecycle.mjs freshnessOf)
  *   demand                                 NONE: no row issues a recorded V3 §5 demand outcome — passed as null, and named as missing
  *   quality · question coverage · post-publication evidence   NONE recorded — passed as null, named as missing by the decision
+ *   semantic reviews                       NONE recorded (F32: no store) — passed as [] by the caller; MERGE and REDIRECT name the
+ *                                          missing review (RR-89)
  *
  * The decision itself is pure (./action-decision.mjs). Count-only output; no page content, host or URL.
  */
@@ -16,7 +18,7 @@ import { readExistingPagePopulation } from "./existing-page-population.mjs";
 import { existingPageFirst } from "./existing-page-first.mjs";
 import { rightToExist } from "./right-to-exist.mjs";
 import { judgePage, PAGE_VERDICTS } from "./need-coverage.mjs";
-import { decideForNeed, decideForPage, summarise } from "./action-decision.mjs";
+import { decideForNeed, decideForPage, summarise, reviewShowsOneIntent } from "./action-decision.mjs";
 import { readClientIndexabilitySignals } from "../audit/indexability-reader.mjs";
 import { factsPresentIn } from "../gate-a/existing-pages.mjs";
 import { freshnessOf } from "../facts/lifecycle.mjs";
@@ -32,11 +34,23 @@ export function sameNeedPeers(pages, values) {
   return peers;
 }
 
+/** A page's same-need peers that a RECORDED review finds to duplicate or split one intent with it (RR-89); others are not successors. */
+export function sameIntentPeers(pageId, needPeers, reviews) {
+  const out = [];
+  for (const peer of needPeers) {
+    const r = reviews.find((x) => Array.isArray(x.pair) && x.pair.includes(pageId) && x.pair.includes(peer) && reviewShowsOneIntent(x));
+    if (r) out.push({ pageId: peer, reviewRef: r.ref });
+  }
+  return out;
+}
+
 /**
- * @param {{ tenantId: string, product: object, records: object[], resolve: Function, env?: object, now?: Date, demand?: object|null }} input
+ * @param {{ tenantId: string, product: object, records: object[], resolve: Function, env?: object, now?: Date, demand?: object|null, reviews: object[] }} input
  * `records` is the subject's fact registry (loadRegistry), handed in by the caller that loaded the product.
  */
-export function readClientActionEvidence({ tenantId, product, records = [], resolve, env = process.env, now = new Date(), demand = null }) {
+export function readClientActionEvidence({ tenantId, product, records = [], resolve, env = process.env, now = new Date(), demand = null, reviews }) {
+  /* RR-89: the recorded semantic reviews (F32's shape). None is recorded today and no store exists — the caller passes [] and says so */
+  if (!Array.isArray(reviews)) throw new TypeError("reviews must be passed explicitly — an empty list is a recorded fact, not a default");
   const { population, fault } = readExistingPagePopulation({ scope: { tenantId }, resolve, env, now });
   if (!population) return { fault, needs: [], pages: [], bound: `recorded data only · population UNAVAILABLE (${fault})` };
   const values = product.variants ?? [];
@@ -52,6 +66,7 @@ export function readClientActionEvidence({ tenantId, product, records = [], reso
       servedState: p.servedState.state === "OBSERVED" ? { ...p.servedState, evidence: p.evidence.observationIds } : p.servedState,
       signals: s ? { state: s.state, classes: s.classes, sources: s.sources } : { state: "NOT_MEASURED", classes: [] },
       sameNeedPeers: [...(peers.get(p.pageId) ?? [])],
+      sameIntentPeers: sameIntentPeers(p.pageId, peers.get(p.pageId) ?? new Set(), reviews),
       inboundLinks: p.inboundLinks,
       completeness: population.completeness.state,
       completenessRef: `completeness:${population.completeness.basis.method}:${population.completeness.basis.asOf}`,
@@ -73,6 +88,6 @@ export function readClientActionEvidence({ tenantId, product, records = [], reso
     needs,
     pages,
     summary: { needs: summarise(needs), pages: summarise(pages) },
-    bound: `recorded data only · ${needs.length} proposed need(s) · ${pages.length} existing page(s) · inventory ${population.completeness.state} · ${records.length} registry fact(s) · demand ${demand ? "RECORDED" : "NOT RECORDED"}`,
+    bound: `recorded data only · ${needs.length} proposed need(s) · ${pages.length} existing page(s) · inventory ${population.completeness.state} · ${records.length} registry fact(s) · demand ${demand ? "RECORDED" : "NOT RECORDED"} · semantic reviews recorded ${reviews.length}`,
   };
 }

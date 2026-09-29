@@ -24,7 +24,8 @@ const SCOPE = scopedEntryPoint({ entry: "bin/page-actions.mjs", governed: false,
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: USAGE, scope: SCOPE });
 const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
 
-const r = readClientActionEvidence({ tenantId: SCOPE.tenantId, product: PRODUCT, records, resolve: createTenantResolver() });
+/* no semantic review is recorded and no store exists (F32): [] is that recorded fact, so MERGE and REDIRECT name the missing review */
+const r = readClientActionEvidence({ tenantId: SCOPE.tenantId, product: PRODUCT, records, resolve: createTenantResolver(), reviews: [] });
 const line = (label, s) => console.log(`  ${label.padEnd(15)} ${s.population} · CHOSEN ${s.chosen} · CANNOT_DECIDE ${s.cannotDecide} · ${Object.entries(s.byAction).filter(([, n]) => n > 0).map(([a, n]) => `${a} ${n}`).join(" · ") || "no action chosen"}`);
 console.log("F35 · ACTION DECISIONS — recommendations only, count-only");
 console.log(`  bound           ${r.bound}`);
@@ -32,3 +33,4 @@ if (r.fault) process.exit(2);
 line("proposed needs", r.summary.needs);
 line("existing pages", r.summary.pages);
 console.log("  every action is a RECOMMENDATION; MERGE, NOINDEX, REMOVE and REDIRECT need the owner's approval; CANNOT_DECIDE names its missing facts.");
+console.log("  similarity or a shared need is a review trigger, never proof that two pages should be merged: MERGE needs a recorded semantic review.");

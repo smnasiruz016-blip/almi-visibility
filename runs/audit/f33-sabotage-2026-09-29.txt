@@ -1,6 +1,6 @@
-F33 sabotage run · 2026-09-29T03:19:26.097Z
+F33 sabotage run · 2026-09-29T06:08:11.895Z
 population: 18 sabotages over test/f33-need-coverage.test.mjs, test/f34-no-blind-regeneration.test.mjs, test/page-construction.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
-production trail sha256 before: 0a0e9e345e9b4a646d90475a85dde7f36ab6006b18d1fe1000990fcd5964719e
+production trail sha256 before: 1eefbcf6d79da07ca579f1c6c93d1e9ae7e9d54123d309ab03dab828f5a67111
 
 S1 C1 F34's missing-information refusal still fires src/page/existing-page-first.mjs: landed true · named test "C1 ·" red true · failing 1 · restored by sha256 true · PROVED
 S2 C1 F34's foreign-tenant refusal still fires src/page/existing-page-first.mjs: landed true · named test "C1 ·" red true · failing 1 · restored by sha256 true · PROVED
@@ -21,4 +21,4 @@ S16 C6 the one check reaches F33 src/page/existing-page-first.mjs: landed true �
 S17 C6 construction hands F33 the registered structure src/page/construct.mjs: landed true · named test "F34 · C2 · a candidate whose intent" red true · failing 3 · restored by sha256 true · PROVED
 S18 C7 a network call in the decision is seen tools/need-coverage-call-paths.mjs: landed true · named test "C7 ·" red true · failing 1 · restored by sha256 true · PROVED
 
-proved 18 of 18 · residue 0 · production trail sha256 after: 0a0e9e345e9b4a646d90475a85dde7f36ab6006b18d1fe1000990fcd5964719e · unchanged true
+proved 18 of 18 · residue 0 · production trail sha256 after: 1eefbcf6d79da07ca579f1c6c93d1e9ae7e9d54123d309ab03dab828f5a67111 · unchanged true

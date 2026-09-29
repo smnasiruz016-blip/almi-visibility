@@ -229,6 +229,21 @@ export const F21_ORIGINAL = Object.freeze({
   contractSha256: "cbbf47024195eab2f17db48eca8de01e4106f2321629453a5eca764c16746b5c",
 });
 
+/* 🔴 F36 · FROZEN 29 Sep 2026 (_handoffs 2635153, RR-87 §4.1), committed ALONE before F36 code was re-read. Pinned from the committed
+ * blob by parseContract (derivation re-run with a firing control inside the contract: "templated" → "tailored"). */
+export const F36_ORIGINAL = Object.freeze({
+  featureId: "F36",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F36_ACCEPTANCE_2026-09-29.md", commit: "2635153612f2d1c9a1583c355f271da74ad143cb", sha256: "29be523ab623b9929f730534a90d425b425212518149b009c40dc91815f9655f" }),
+  authority: Object.freeze({ propositionId: "F36_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F36"]) }),
+  frozenOn: "2026-09-29",
+  feature: "F36 · URL right-to-exist test",
+  input: "Every proposed new URL of a declared subject — each candidate with its declared right-to-exist reason (the human need and the distinct value it names), its sibling candidates and their reasons, the subject's registered page structure, and F33's recorded decision for the candidate's need — driven over the real declared candidates and over recorded-shape fixtures holding a specific reason, an absent reason, a variable-only reason, a template of a sibling, a near-identical sibling, an existing page covering the need, and each way evidence can be missing.",
+  expected: "[C1 · EVERY PROPOSED URL] No page-producing path produces a candidate page unless its right-to-exist outcome is ESTABLISHED; a candidate with no declared reason is REFUSED.\n[C2 · SPECIFIC] A reason that names only the candidate's own variable, a sibling's reason with the variable swapped, or a reason near-identical to a sibling's is REFUSED with that failure named; a reason naming a human need and a distinct value that differs from every sibling passes this part.\n[C3 · NOT ALREADY SERVED] Right-to-exist is ESTABLISHED only where F33 decides NOT COVERED for the candidate's need; F33 COVERED makes it REFUSED (improve, do not create); F33 CANNOT DECIDE makes it CANNOT DECIDE.\n[C4 · THREE OUTCOMES WITH REASONS] Each candidate's outcome is exactly one of ESTABLISHED · REFUSED · CANNOT DECIDE, with the parts that decided it and their evidence; the residue that cannot be measured (whether the need is real and the value genuinely distinct in substance) is carried as NOT MEASURED on every outcome and never counted as passed.\n[C5 · ROUTED] The right-to-exist outcome is computed by one production function that every page-producing path reaches before a candidate is produced; the census of those paths prints its population and bound.\n[C6 · RECORDED DATA ONLY] No live fetch, collection, paid or metered call is made.",
+  failure: "[C1] A candidate page is produced without an ESTABLISHED outcome, or a candidate with no reason is not REFUSED.\n[C2] A variable-only, templated or near-identical reason passes, or a refusal names no failure; a genuinely specific, distinct reason is refused.\n[C3] Right-to-exist is ESTABLISHED where an existing page covers the need or where F33 cannot decide; F33 COVERED does not refuse.\n[C4] An outcome other than the three is given, an outcome carries no deciding parts or evidence, or the unmeasurable residue is omitted or counted as passed.\n[C5] A page-producing path produces a candidate without reaching the function, or the census omits a path or prints a figure without its population and bound.\n[C6] A live, paid or metered call is made.\nFor any clause, it also fails when:\n- it is proved only on an empty population, or only on constructed data when real declared candidates exist;\n- it is proved only by a control that cannot fire, or by a test that computes its expected answer with the logic it checks;\n- its test writes to the production audit trail.",
+  evidence: "- For each clause:",
+  contractSha256: "d9598194bc52d5005617298da6b5bf5e42b681e871273d14d0628d0fd0220b81",
+});
+
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -392,5 +407,6 @@ export const ACCEPTANCES = Object.freeze({
   F31: F31_ORIGINAL,
   F33: F33_ORIGINAL,
   F34: F34_ORIGINAL,
+  F36: F36_ORIGINAL,
   F77: F77_AMENDMENT_1,
 });

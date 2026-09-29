@@ -164,9 +164,9 @@ export const SUBJECT_PACKAGE = Object.freeze({
   /** F34 C5 · this package's page-producing paths, classified for tools/existing-page-first-census.mjs (merged into
    * config/page-production.mjs, which carries no subject's words). `marks` = the call AND the condition production depends on. */
   pageProduction: Object.freeze({
-    "subjects/almi-oet/tools/nursing-chain.mjs": Object.freeze({ class: "ROUTED", marks: Object.freeze(["existingPageGate(", "...(existingPage.mayProduce ? [[\"nursing.html\""]), why: "writes its candidate page only when the gate lets it produce" }),
-    "subjects/almi-oet/tools/profession-chain.mjs": Object.freeze({ class: "ROUTED", marks: Object.freeze(["existingPageGate(", "...(existingPage.mayProduce ? [[`${which}.html`"]), why: "writes its candidate page only when the gate lets it produce" }),
-    "subjects/almi-oet/tools/placement-measure.mjs": Object.freeze({ class: "ROUTED", marks: Object.freeze(["existingPageGate(", "...(existingPage.mayProduce ? [[\"nursing-placed.html\""]), why: "writes its placed candidate page only when the gate lets it produce" }),
+    "subjects/almi-oet/tools/nursing-chain.mjs": Object.freeze({ class: "ROUTED", marks: Object.freeze(["rightToExistGate(", "...(existingPage.mayProduce ? [[\"nursing.html\""]), why: "writes its candidate page only when the gate lets it produce" }),
+    "subjects/almi-oet/tools/profession-chain.mjs": Object.freeze({ class: "ROUTED", marks: Object.freeze(["rightToExistGate(", "...(existingPage.mayProduce ? [[`${which}.html`"]), why: "writes its candidate page only when the gate lets it produce" }),
+    "subjects/almi-oet/tools/placement-measure.mjs": Object.freeze({ class: "ROUTED", marks: Object.freeze(["rightToExistGate(", "...(existingPage.mayProduce ? [[\"nursing-placed.html\""]), why: "writes its placed candidate page only when the gate lets it produce" }),
     "subjects/almi-oet/tools/build-corpus.mjs": Object.freeze({ class: "NOT_PAGE_PRODUCTION", why: "stores copies of pages FETCHED from a sitemap, as served — evidence, never a new page" }),
   }),
 });

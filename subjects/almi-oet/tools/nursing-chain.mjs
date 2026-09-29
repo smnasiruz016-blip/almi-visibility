@@ -47,7 +47,7 @@ import { scopedEntryPoint } from "../../../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../../../src/tenancy/scoped-run.mjs";
 import { BATCH_ID } from "../../../src/crawl/observation-batch.mjs";
 import { SITEMAP_BATCH_ID } from "../../../src/adapter/sitemap-subject.mjs";
-import { existingPageGate } from "../../../src/page/existing-page-population.mjs";
+import { rightToExistGate } from "../../../src/page/existing-page-population.mjs";
 
 /**
  * 🔴 THE PRODUCT ARRIVES AS AN ARGUMENT, NOT AS AN IMPORT.
@@ -342,7 +342,8 @@ const report = {
 
 if (outDir) {
   /* 🔴 F34 — the candidate page is written only when no existing page of this tenant serves, or may serve, its intent. */
-  const existingPage = existingPageGate({ scope: SCOPE, entry: "subjects/almi-oet/tools/nursing-chain.mjs", candidate: { slug: "nursing", intent: PRODUCT.pageSpecs.nursing?.variant, structure: { values: PRODUCT.variants } } });
+  /* 🔴 F36 — and only when the candidate's right to exist is ESTABLISHED (a specific reason, the need not already served). */
+  const existingPage = rightToExistGate({ scope: SCOPE, entry: "subjects/almi-oet/tools/nursing-chain.mjs", candidate: { slug: "nursing", intent: PRODUCT.pageSpecs.nursing?.variant, structure: { values: PRODUCT.variants } }, spec: PRODUCT.pageSpecs.nursing, siblings: Object.entries(PRODUCT.pageSpecs).filter(([s]) => s !== "nursing").map(([slug, spec]) => ({ slug, spec })), variants: PRODUCT.variants });
   const chainOutcomes = [
     ...(existingPage.mayProduce ? [["nursing.html", candidateHtml, "WRITE_CHAIN_CANDIDATE_PAGE"]] : []),
     ["chain-report.json", JSON.stringify(report, null, 2) + "\n", "WRITE_CHAIN_REPORT"],

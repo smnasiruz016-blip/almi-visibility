@@ -108,6 +108,8 @@ test("F34 · C1 · construction with NO existing-page population refuses every c
     assert.equal(r.verdict, REFUSED, r.slug);
     assert.equal(r.html, null, `${r.slug}: a candidate was produced without an existing-page check`);
     assert.equal(r.parts.existingPage.outcome, "REFUSED");
+    /* F36 (RR-87) made part 4 refuse this too — so F34 asserts ITS OWN part, or a break in it would hide behind part 4 */
+    assert.equal(r.parts.existingPage.state, NOT_TESTED, `${r.slug}: the existing-page part itself did not refuse`);
     assert.match(r.parts.existingPage.reason, /EXISTING_PAGE_POPULATION_UNAVAILABLE/);
   }
   const other = constructCandidates({ pageSpecs, variants: VARIANTS, records, requested: ["alpha"], tenantId: FIXTURE_TENANT, existingPages: { tenantId: "tenant:someone-else", coverageState: "COMPLETE", pages: [] }, now: NOW });
@@ -122,6 +124,7 @@ test("F34 · C2 · a candidate whose intent an existing page serves is never ACC
   assert.equal(alpha.verdict, REFUSED);
   assert.equal(alpha.html, null, "a new page was produced for an intent an existing page serves");
   assert.equal(alpha.parts.existingPage.outcome, "MONITOR");
+  assert.equal(alpha.parts.existingPage.state, FAIL, "the existing-page part itself did not refuse the covered candidate");
   assert.equal(alpha.parts.existingPage.matched, 1);
   assert.deepEqual(alpha.parts.existingPage.existingPages, ["aaaaaaaaaaaaaaaa"]);
   /* 🔴 F33 (RR-84 §4.2): that page's headline names a DIFFERENT registered need, the population is COMPLETE — so it does NOT block
@@ -129,6 +132,31 @@ test("F34 · C2 · a candidate whose intent an existing page serves is never ACC
   assert.equal(beta.parts.existingPage.outcome, "NOT_COVERED");
   assert.equal(beta.verdict, ACCEPTED, "an unrelated existing page blocked a genuinely new page merely because the tenant owns pages");
   assert.deepEqual(beta.parts.existingPage.existingPages, ["aaaaaaaaaaaaaaaa"], "the decision must name the page it judged");
+});
+
+test("F36 · C1 · construction reaches the one right-to-exist function: ACCEPTED exactly when the outcome is ESTABLISHED", () => {
+  const { pageSpecs, records } = family();
+  const empty = { tenantId: FIXTURE_TENANT, coverageState: "COMPLETE", pages: [] };
+  const [ok] = constructCandidates({ pageSpecs, variants: VARIANTS, records, requested: ["alpha"], tenantId: FIXTURE_TENANT, existingPages: empty, now: NOW });
+  assert.equal(ok.parts.whyThisUrl.rightToExist.outcome, "ESTABLISHED");
+  assert.equal(ok.parts.whyThisUrl.state, PASS);
+  const covering = { tenantId: FIXTURE_TENANT, coverageState: "COMPLETE", pages: [existingPage("dddddddddddddddd", "<h1>Alpha</h1>")] };
+  const [cov] = constructCandidates({ pageSpecs, variants: VARIANTS, records, requested: ["alpha"], tenantId: FIXTURE_TENANT, existingPages: covering, now: NOW });
+  assert.equal(cov.parts.whyThisUrl.rightToExist.outcome, "REFUSED");
+  assert.match(cov.parts.whyThisUrl.rightToExist.parts.notServed.reason, /COVERS_THE_NEED/);
+  /* part 4 keeps Gate A's meaning (specificity) — the covered need is refused through part 5, and the candidate with it */
+  assert.equal(cov.parts.whyThisUrl.state, PASS);
+  assert.equal(cov.verdict, REFUSED, "a candidate whose need is covered was accepted");
+  /* EQUIVALENCE: across every population here, ACCEPTED holds exactly when the right-to-exist outcome is ESTABLISHED */
+  const worlds = [empty, covering, { tenantId: FIXTURE_TENANT, coverageState: "PARTIAL", pages: [] }, null, { tenantId: FIXTURE_TENANT, coverageState: "COMPLETE", pages: [existingPage("eeeeeeeeeeeeeeee", "<h1>Beta</h1>")] }];
+  for (const pop of worlds) for (const c of constructCandidates({ pageSpecs, variants: VARIANTS, records, requested: Object.keys(pageSpecs), tenantId: FIXTURE_TENANT, existingPages: pop, now: NOW })) {
+    assert.equal(c.verdict === ACCEPTED, c.parts.whyThisUrl.rightToExist.outcome === "ESTABLISHED", `${c.slug}: ACCEPTED and ESTABLISHED disagree`);
+  }
+  const bare = { ...pageSpecs, alpha: { ...pageSpecs.alpha, whyThisUrlDeservesToExist: undefined } };
+  const [none] = constructCandidates({ pageSpecs: bare, variants: VARIANTS, records, requested: ["alpha"], tenantId: FIXTURE_TENANT, existingPages: empty, now: NOW });
+  assert.equal(none.parts.whyThisUrl.rightToExist.outcome, "REFUSED");
+  assert.equal(none.verdict, REFUSED);
+  assert.equal(none.html, null, "a candidate with no right to exist was produced");
 });
 
 test("F34 · C4 · an existing page of unknown quality is protected; one with a recorded defect is routed to IMPROVE, never regenerated", () => {

@@ -1,0 +1,25 @@
+F79 sabotage run · 2026-09-29T22:42:36.800Z
+population: 18 sabotages over test/f79-evidence-cache.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1 · all exactly once: true
+production trail sha256 before: 5895205e81656d99e4014408fbc3fe6c6897c2917ab57f679caaa4956902b7f8
+
+S1 C1 one answer: the most recent valid record src/evidence/evidence-cache.mjs: landed true · named test "C1 ·" red true · failing 1 · restored by sha256 true · PROVED
+S2 C1 nothing held is a miss, never a hit src/evidence/evidence-cache.mjs: landed true · named test "C1 ·" red true · failing 1 · restored by sha256 true · PROVED
+S3 C1 source-change signals are passed, never defaulted src/evidence/evidence-cache.mjs: landed true · named test "C1 ·" red true · failing 1 · restored by sha256 true · PROVED
+S4 C2 another tenant's record is never served (the F02 decision) src/evidence/evidence-cache.mjs: landed true · named test "C2 · FIRING CONTROL" red true · failing 2 · restored by sha256 true · PROVED
+S5 C2 a domain property spanning tenants belongs to none src/evidence/evidence-cache.mjs: landed true · named test "C2 · FIRING CONTROL" red true · failing 2 · restored by sha256 true · PROVED
+S6 C3 a windowed record serves only its own window src/evidence/evidence-cache.mjs: landed true · named test "C3 ·" red true · failing 1 · restored by sha256 true · PROVED
+S7 C3 an undeclared age is never fresh src/evidence/evidence-cache.mjs: landed true · named test "C3 ·" red true · failing 2 · restored by sha256 true · PROVED
+S8 C3 an expired record is never served src/evidence/evidence-cache.mjs: landed true · named test "C3 ·" red true · failing 1 · restored by sha256 true · PROVED
+S9 C3 a later source change forces a miss src/evidence/evidence-cache.mjs: landed true · named test "C3 ·" red true · failing 1 · restored by sha256 true · PROVED
+S10 C4 inline content must hash to the recorded hash src/evidence/evidence-cache.mjs: landed true · named test "C4 · FIRING CONTROL" red true · failing 1 · restored by sha256 true · PROVED
+S11 C4 a raw file must hash to the recorded hash src/evidence/evidence-cache.mjs: landed true · named test "C4 · FIRING CONTROL" red true · failing 1 · restored by sha256 true · PROVED
+S12 C4 a missing raw file is a miss src/evidence/evidence-cache.mjs: landed true · named test "C4 · FIRING CONTROL" red true · failing 1 · restored by sha256 true · PROVED
+S13 C4 integrity decides the lookup src/evidence/evidence-cache.mjs: landed true · named test "C4 · FIRING CONTROL" red true · failing 1 · restored by sha256 true · PROVED
+S14 C5 metered requests are the ones the served records recorded src/evidence/evidence-cache-real.mjs: landed true · named test "C5/C2 ·" red true · failing 1 · restored by sha256 true · PROVED
+S15 C5 an unrecorded request count is counted, never zero src/evidence/evidence-cache-real.mjs: landed true · named test "C5/C2 ·" red true · failing 1 · restored by sha256 true · PROVED
+S16 C6 the entry point prints its bound bin/evidence-cache.mjs: landed true · named test "C6 · THE ENTRY POINT" red true · failing 1 · restored by sha256 true · PROVED
+S17 C6 the entry point answers for its OWN tenant bin/evidence-cache.mjs: landed true · named test "C6 · THE ENTRY POINT" red true · failing 1 · restored by sha256 true · PROVED
+S18 C6 a network call is seen tools/need-coverage-call-paths.mjs: landed true · named test "C6 · the cache" red true · failing 1 · restored by sha256 true · PROVED
+
+proved 18 of 18 · residue 0 · production trail sha256 after: 5895205e81656d99e4014408fbc3fe6c6897c2917ab57f679caaa4956902b7f8 · unchanged true

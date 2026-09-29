@@ -74,15 +74,19 @@ test("D3 · F79's acceptance CANNOT be frozen without F02 tenant-isolation confo
   const withIt = standIn(true);
   const errsWith = boardErrors(board(withF79(withIt)), { capabilities: CAPABILITIES, acceptances: { ...ACCEPTANCES, F79: withIt } });
   assert.ok(!errsWith.some((e) => e.code === "ROW_CONSTRAINT_UNMET"), "the precondition was present and still refused");
-  // A freeze EVENT without any acceptance is refused too.
-  assert.ok(boardErrors(board(withF79(without)), { capabilities: CAPABILITIES, acceptances: ACCEPTANCES }).some((e) => e.code === "ROW_CONSTRAINT_UNMET"));
+  // A freeze EVENT without any acceptance is refused too. (Since F79 was frozen for real on 29 Sep 2026 — RR-93, _handoffs f34f3af —
+  // ACCEPTANCES holds F79, so "without any acceptance" must take it OUT, or this control would test the real acceptance instead.)
+  const { F79: _real, ...noF79 } = ACCEPTANCES;
+  assert.ok(boardErrors(board(withF79(without)), { capabilities: CAPABILITIES, acceptances: noF79 }).some((e) => e.code === "ROW_CONSTRAINT_UNMET"));
   // The constraint is backed by the CURRENT disposition ruling; take the ruling out of the register and the board refuses the constraint itself.
   assert.ok(!boardErrors(board(), { capabilities: CAPABILITIES, acceptances: ACCEPTANCES, authority: AUTH }).some((e) => e.code === "ROW_CONSTRAINT_WITHOUT_AUTHORITY"));
   const without_ruling = { records: AUTHORITY_CORPUS.filter((r) => r.propositionId !== "OWNER_RULING_F02_DISPOSITION"), now: AUTH.now };
   assert.ok(boardErrors(board(), { capabilities: CAPABILITIES, acceptances: ACCEPTANCES, authority: without_ruling }).some((e) => e.code === "ROW_CONSTRAINT_WITHOUT_AUTHORITY" && e.id === "F79"));
-  // F79 itself stays UNASSESSED: this ruling starts nothing.
-  assert.equal(DECLARED.F79, undefined);
-  assert.equal(board().find((r) => r.featureId === "F79").state, "UNASSESSED");
+  // This ruling started nothing. F79 moved later ONLY under its own frozen acceptance (RR-93, _handoffs f34f3af, Amendment 1 60dee9b),
+  // which carries the precondition in its frozen contract — and the real board raises no ROW_CONSTRAINT_UNMET for it.
+  assert.ok([ACCEPTANCES.F79.input, ACCEPTANCES.F79.expected, ACCEPTANCES.F79.failure, ACCEPTANCES.F79.evidence].some((t) => t.includes("F02 tenant-isolation conformance")), "the real F79 acceptance lacks the F02 precondition");
+  assert.ok(!boardErrors(board(), { capabilities: CAPABILITIES, acceptances: ACCEPTANCES, authority: AUTH }).some((e) => e.code === "ROW_CONSTRAINT_UNMET"));
+  assert.equal(DECLARED.F79.events[0].kind, "ACCEPTANCE_FROZEN");
 });
 
 /* ─────────────────────────── THE LEARNING POPULATION ─────────────────────────── */

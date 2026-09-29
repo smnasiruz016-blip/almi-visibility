@@ -274,6 +274,21 @@ export const F32_ORIGINAL = Object.freeze({
   contractSha256: "ca96cbb62eee1b7439e5556f64d98f0946b65a92d8fa717e9bbd1601c076e363",
 });
 
+/* 🔴 F39 · FROZEN 29 Sep 2026 (_handoffs 90e798d, RR-90 §2), committed ALONE before F39 code was re-read. Pinned from the committed
+ * blob by parseContract (derivation re-run with a firing control inside the contract: "collects" → "gathers"). */
+export const F39_ORIGINAL = Object.freeze({
+  featureId: "F39",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F39_ACCEPTANCE_2026-09-29.md", commit: "90e798dc6e4242e8bffd00f7c9f4219717a431a8", sha256: "d87e5bf970c502395321a54a4c0a9e7f5588c6bb2a324644d107992797ee5722" }),
+  authority: Object.freeze({ propositionId: "F39_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F39"]) }),
+  frozenOn: "2026-09-29",
+  feature: "F39 · Original information gain",
+  input: "For one declared client: its existing pages (F31 identities and verified bodies) and any page the production path is about to accept, each measured against the client's shared shell and its other pages (F32), together with any recorded information-gain record, recorded semantic review and recorded competitor-supply comparison — driven over the real recorded structures of the client, count-only.",
+  expected: "[C1 · THREE BASELINES, EACH WITH ITS OWN VERDICT] Every page carries a verdict for shared templates, current pages and competitors — BEYOND, NOT BEYOND or NOT MEASURED — each with the evidence that decided it or the missing fact named.\n[C2 · GAIN IS RECORDED, NEVER ASSUMED] A page is ESTABLISHED only when a recorded information-gain record names its G12 kind and every baseline is BEYOND; a declared intention, a first-party statement, text length, word count or textual difference alone never establishes gain.\n[C3 · CERTAIN REFUSALS] A SHELL ONLY page is NOT BEYOND shared templates; an exact duplicate of a current page, or one a recorded semantic review finds duplicate, is NOT BEYOND current pages; a recorded comparison showing no gain beyond competitors is NOT BEYOND competitors; any NOT BEYOND makes the page REFUSED with that baseline named.\n[C4 · COMPETITORS ARE DIAGNOSTIC ONLY] The competitor baseline reads only a recorded competitor-supply comparison for the page's need; competitor content is never treated as a fact and is never collected by F39; with no recorded comparison the baseline is NOT MEASURED.\n[C5 · CANNOT DECIDE, NEVER FORCED; THE CHECKER IS NOT THE VERDICT] Where no baseline is NOT BEYOND but any is NOT MEASURED, the page is CANNOT DECIDE naming each missing fact — never ESTABLISHED, never REFUSED by default — and no output calls an unmeasured page one that has passed.\n[C6 · REQUIRED ON THE PRODUCTION PATH] Every path that accepts a page reaches F39 before accepting, and accepts only an ESTABLISHED page; REFUSED and CANNOT DECIDE are never accepted.\n[C7 · SAME CLIENT, RECORDED DATA ONLY, BOUND PRINTED] Only the client's own recorded pages and records are read; the result prints its population and bound, count-only; no live, paid or metered call and no new data gathering is made.",
+  failure: "[C1] A page lacks a verdict for any baseline, or a verdict carries neither its evidence nor its missing fact.\n[C2] A page is ESTABLISHED without a recorded information-gain record naming its kind, or with any baseline not BEYOND; a declared intention, first-party statement, length, word count or textual difference establishes gain.\n[C3] A SHELL ONLY page, an exact or reviewed duplicate, or a recorded no-gain competitor comparison is not NOT BEYOND; a NOT BEYOND page is not REFUSED, or its baseline is not named.\n[C4] The competitor baseline is decided without a recorded comparison, competitor content is treated as a fact, or F39 collects competitor content.\n[C5] Missing evidence yields ESTABLISHED or REFUSED instead of CANNOT DECIDE, CANNOT DECIDE names no missing fact, or any output presents an unmeasured page as having passed.\n[C6] A path accepts a page without reaching F39, or accepts a REFUSED or CANNOT DECIDE page.\n[C7] Another client's data is read; a result is printed without its population and bound; a live, paid or metered call or new data gathering is made.\nFor any clause, it also fails when:\n- it is proved only on an empty population, or only on constructed data when real recorded structures exist;\n- it is proved only by a control that cannot fire, or by a test that computes its expected answer with the logic it checks;\n- its test writes to the production audit trail.",
+  evidence: "- For each clause:",
+  contractSha256: "63078005a69ad7135b8b026cace3602d9597efe3e866448e079997e34bc58666",
+});
+
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -440,5 +455,6 @@ export const ACCEPTANCES = Object.freeze({
   F34: F34_ORIGINAL,
   F35: F35_ORIGINAL,
   F36: F36_ORIGINAL,
+  F39: F39_ORIGINAL,
   F77: F77_AMENDMENT_1,
 });

@@ -1,7 +1,7 @@
-F32 sabotage run · 2026-09-29T06:04:10.398Z
+F32 sabotage run · 2026-09-29T07:33:36.235Z
 population: 23 sabotages over test/f32-duplication.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
 PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1 S19=1 S20=1 S21=1 S22=1 S23=1 · all exactly once: true
-production trail sha256 before: 1eefbcf6d79da07ca579f1c6c93d1e9ae7e9d54123d309ab03dab828f5a67111
+production trail sha256 before: 6484e7da02e49c38aa8041ddb01522d88b1c284bdd66254a2f3d033dc58c2a4d
 
 S1 C1 grouping is by the main text's hash src/page/duplication.mjs: landed true · named test "C1 ·" red true · failing 2 · restored by sha256 true · PROVED
 S2 C1 the stated normalisation (case, punctuation) src/page/duplication.mjs: landed true · named test "C1 ·" red true · failing 2 · restored by sha256 true · PROVED
@@ -27,4 +27,4 @@ S21 C7 the population names the body's observation src/page/existing-page-popula
 S22 C7 a network call is seen tools/need-coverage-call-paths.mjs: landed true · named test "C7 · the detection" red true · failing 1 · restored by sha256 true · PROVED
 S23 C7 the entry point prints its bound bin/page-duplication.mjs: landed true · named test "C7 · THE ENTRY POINT" red true · failing 1 · restored by sha256 true · PROVED
 
-proved 23 of 23 · residue 0 · production trail sha256 after: 1eefbcf6d79da07ca579f1c6c93d1e9ae7e9d54123d309ab03dab828f5a67111 · unchanged true
+proved 23 of 23 · residue 0 · production trail sha256 after: 6484e7da02e49c38aa8041ddb01522d88b1c284bdd66254a2f3d033dc58c2a4d · unchanged true

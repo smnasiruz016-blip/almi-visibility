@@ -1,7 +1,7 @@
-F35 sabotage run · 2026-09-29T05:56:34.700Z
+F35 sabotage run · 2026-09-29T07:35:38.797Z
 population: 31 sabotages over test/f35-action-decision.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
 PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1 S19=1 S20=1 S21=1 S22=1 S23=1 S24=1 S25=1 S26=1 S27=1 S28=1 S29=1 S30=1 S31=1 · all exactly once: true
-production trail sha256 before: 1eefbcf6d79da07ca579f1c6c93d1e9ae7e9d54123d309ab03dab828f5a67111
+production trail sha256 before: 6484e7da02e49c38aa8041ddb01522d88b1c284bdd66254a2f3d033dc58c2a4d
 
 S1 C3 CREATE needs strong demand src/page/action-decision.mjs: landed true · named test "C3 ·" red true · failing 1 · restored by sha256 true · PROVED
 S2 C3 strong means three agreeing categories src/page/action-decision.mjs: landed true · named test "C3 ·" red true · failing 1 · restored by sha256 true · PROVED
@@ -35,4 +35,4 @@ S29 RR-89 the reader keeps only qualifying reviews src/page/action-evidence.mjs:
 S30 RR-89 reviews are passed, never defaulted src/page/action-evidence.mjs: landed true · named test "RR-89 · what a review must show" red true · failing 1 · restored by sha256 true · PROVED
 S31 RR-89 MERGE carries the review that justifies it src/page/action-decision.mjs: landed true · named test "RR-89 · FIRING CONTROL" red true · failing 3 · restored by sha256 true · PROVED
 
-proved 31 of 31 · residue 0 · production trail sha256 after: 1eefbcf6d79da07ca579f1c6c93d1e9ae7e9d54123d309ab03dab828f5a67111 · unchanged true
+proved 31 of 31 · residue 0 · production trail sha256 after: 6484e7da02e49c38aa8041ddb01522d88b1c284bdd66254a2f3d033dc58c2a4d · unchanged true

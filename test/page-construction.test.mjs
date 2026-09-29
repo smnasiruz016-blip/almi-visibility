@@ -92,13 +92,27 @@ function family({ pages = VARIANTS, words = 420, claims = MIN_FACTS } = {}) {
 /* F34: the synthetic family's tenant is DECLARED to have no existing page (a COMPLETE, empty population), so these tests judge
  * Gate A alone; the existing-page check itself is proved in test/f34-no-blind-regeneration.test.mjs. */
 const FIXTURE_TENANT = "tenant:gate-a-fixture";
-const NO_EXISTING_PAGE = Object.freeze({ tenantId: FIXTURE_TENANT, coverageState: "COMPLETE", pages: [] });
+const NO_EXISTING_PAGE = Object.freeze({ tenantId: FIXTURE_TENANT, coverageState: "COMPLETE", pages: [], inventory: { pages: [] } });
+/* F39 (_handoffs 90e798d): ACCEPTED also needs original information gain ESTABLISHED. Every fixture candidate is handed a RECORDED
+ * gain record and a RECORDED competitor comparison, written by hand, so these tests still judge Gate A alone; F39 itself is proved in
+ * test/f39-information-gain.test.mjs. With no current page there is no sibling pair to review. */
+const SLUGS = ["alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "sauerkraut"];
+const GAIN_EVIDENCE = Object.freeze({
+  gainRecords: SLUGS.map((s) => ({ pageId: `candidate:${s}`, kind: "USEFUL_COMPARISON", adds: "a fixture's recorded gain", ref: `gain:fixture:${s}` })),
+  competitorComparisons: SLUGS.map((s) => ({ pageId: `candidate:${s}`, competitorsCompared: 1, gainBeyond: true, ref: `cmp:fixture:${s}` })),
+  reviews: [],
+});
 const judge = ({ pageSpecs, records }, requested = Object.keys(pageSpecs)) =>
-  constructCandidates({ pageSpecs, variants: VARIANTS, records, requested, tenantId: FIXTURE_TENANT, existingPages: NO_EXISTING_PAGE, now: NOW });
+  constructCandidates({ pageSpecs, variants: VARIANTS, records, requested, tenantId: FIXTURE_TENANT, existingPages: NO_EXISTING_PAGE, gainEvidence: GAIN_EVIDENCE, now: NOW });
 
 /* ---- F34 · the existing-page check, on the SAME family that is otherwise ACCEPTED ---------------------------------------
  * The GREEN family below clears every Gate A part. So each refusal here is the existing-page check's, and nothing else's. */
 const existingPage = (pageId, html, extra = {}) => ({ pageId, tenantId: FIXTURE_TENANT, html, ...extra });
+/* F39: a population whose bodies are VERIFIED (F31's fingerprint shape), so information gain can be judged against it */
+const verified = (pop) => ({ ...pop, pages: pop.pages.map((p) => ({ ...p, bodyObservationId: `obs:${p.pageId}` })), inventory: { pages: pop.pages.map((p) => ({ pageId: p.pageId, fingerprints: [{ observationId: `obs:${p.pageId}`, verified: true }] })) } });
+/* F39: the recorded gain evidence plus a recorded review finding each candidate DISTINCT from each named current page (six aspects) */
+const SIX = ["intent", "answer", "facts", "architecture", "examples", "userValue"];
+const distinctFrom = (pageIds) => ({ ...GAIN_EVIDENCE, reviews: SLUGS.flatMap((s) => pageIds.map((id) => ({ pair: [`candidate:${s}`, id], compared: SIX, duplicate: false, documentedDistinctValue: "fixture", ref: `rev:${s}:${id}` }))) });
 
 test("F34 · C1 · construction with NO existing-page population refuses every candidate — never built as though the site were empty", () => {
   const { pageSpecs, records } = family();
@@ -119,8 +133,9 @@ test("F34 · C1 · construction with NO existing-page population refuses every c
 
 test("F34 · C2 · a candidate whose intent an existing page serves is never ACCEPTED — the outcome names that page", () => {
   const { pageSpecs, records } = family();
-  const pop = { tenantId: FIXTURE_TENANT, coverageState: "COMPLETE", pages: [existingPage("aaaaaaaaaaaaaaaa", "<h1>All about alpha</h1><p>An existing page.</p>")] };
-  const [alpha, beta] = constructCandidates({ pageSpecs, variants: VARIANTS, records, requested: ["alpha", "beta"], tenantId: FIXTURE_TENANT, existingPages: pop, now: NOW });
+  const pop = verified({ tenantId: FIXTURE_TENANT, coverageState: "COMPLETE", pages: [existingPage("aaaaaaaaaaaaaaaa", "<h1>All about alpha</h1><p>An existing page.</p>")] });
+  /* F39: beta is accepted only with its recorded gain and a recorded review finding it DISTINCT from that page */
+  const [alpha, beta] = constructCandidates({ pageSpecs, variants: VARIANTS, records, requested: ["alpha", "beta"], tenantId: FIXTURE_TENANT, existingPages: pop, gainEvidence: distinctFrom(["aaaaaaaaaaaaaaaa"]), now: NOW });
   assert.equal(alpha.verdict, REFUSED);
   assert.equal(alpha.html, null, "a new page was produced for an intent an existing page serves");
   assert.equal(alpha.parts.existingPage.outcome, "MONITOR");
@@ -134,27 +149,48 @@ test("F34 · C2 · a candidate whose intent an existing page serves is never ACC
   assert.deepEqual(beta.parts.existingPage.existingPages, ["aaaaaaaaaaaaaaaa"], "the decision must name the page it judged");
 });
 
-test("F36 · C1 · construction reaches the one right-to-exist function: ACCEPTED exactly when the outcome is ESTABLISHED", () => {
+test("F36 · C1 · construction reaches the one right-to-exist function: ACCEPTED exactly when right-to-exist AND information gain are ESTABLISHED", () => {
   const { pageSpecs, records } = family();
-  const empty = { tenantId: FIXTURE_TENANT, coverageState: "COMPLETE", pages: [] };
-  const [ok] = constructCandidates({ pageSpecs, variants: VARIANTS, records, requested: ["alpha"], tenantId: FIXTURE_TENANT, existingPages: empty, now: NOW });
+  const empty = verified({ tenantId: FIXTURE_TENANT, coverageState: "COMPLETE", pages: [] });
+  const [ok] = constructCandidates({ pageSpecs, variants: VARIANTS, records, requested: ["alpha"], tenantId: FIXTURE_TENANT, existingPages: empty, gainEvidence: GAIN_EVIDENCE, now: NOW });
   assert.equal(ok.parts.whyThisUrl.rightToExist.outcome, "ESTABLISHED");
   assert.equal(ok.parts.whyThisUrl.state, PASS);
-  const covering = { tenantId: FIXTURE_TENANT, coverageState: "COMPLETE", pages: [existingPage("dddddddddddddddd", "<h1>Alpha</h1>")] };
+  const covering = verified({ tenantId: FIXTURE_TENANT, coverageState: "COMPLETE", pages: [existingPage("dddddddddddddddd", "<h1>Alpha</h1>")] });
   const [cov] = constructCandidates({ pageSpecs, variants: VARIANTS, records, requested: ["alpha"], tenantId: FIXTURE_TENANT, existingPages: covering, now: NOW });
   assert.equal(cov.parts.whyThisUrl.rightToExist.outcome, "REFUSED");
   assert.match(cov.parts.whyThisUrl.rightToExist.parts.notServed.reason, /COVERS_THE_NEED/);
   /* part 4 keeps Gate A's meaning (specificity) — the covered need is refused through part 5, and the candidate with it */
   assert.equal(cov.parts.whyThisUrl.state, PASS);
   assert.equal(cov.verdict, REFUSED, "a candidate whose need is covered was accepted");
-  /* EQUIVALENCE: across every population here, ACCEPTED holds exactly when the right-to-exist outcome is ESTABLISHED */
-  const worlds = [empty, covering, { tenantId: FIXTURE_TENANT, coverageState: "PARTIAL", pages: [] }, null, { tenantId: FIXTURE_TENANT, coverageState: "COMPLETE", pages: [existingPage("eeeeeeeeeeeeeeee", "<h1>Beta</h1>")] }];
-  for (const pop of worlds) for (const c of constructCandidates({ pageSpecs, variants: VARIANTS, records, requested: Object.keys(pageSpecs), tenantId: FIXTURE_TENANT, existingPages: pop, now: NOW })) {
-    assert.equal(c.verdict === ACCEPTED, c.parts.whyThisUrl.rightToExist.outcome === "ESTABLISHED", `${c.slug}: ACCEPTED and ESTABLISHED disagree`);
+  /* EQUIVALENCE, since F39 (RR-90) added a sixth part: across every population here, ACCEPTED holds exactly when the right-to-exist
+   * outcome is ESTABLISHED AND original information gain is ESTABLISHED. F36 C1 (ESTABLISHED before any page) is the necessary half,
+   * asserted on its own. Each world is judged with, and without, recorded gain evidence. */
+  const worlds = [empty, covering, verified({ tenantId: FIXTURE_TENANT, coverageState: "PARTIAL", pages: [] }), null, verified({ tenantId: FIXTURE_TENANT, coverageState: "COMPLETE", pages: [existingPage("eeeeeeeeeeeeeeee", "<h1>Beta</h1>")] })];
+  let bothEstablished = 0;
+  for (const pop of worlds) for (const gainEvidence of [distinctFrom(["dddddddddddddddd", "eeeeeeeeeeeeeeee"]), null]) for (const c of constructCandidates({ pageSpecs, variants: VARIANTS, records, requested: Object.keys(pageSpecs), tenantId: FIXTURE_TENANT, existingPages: pop, gainEvidence, now: NOW })) {
+    const both = c.parts.whyThisUrl.rightToExist.outcome === "ESTABLISHED" && c.parts.informationGain.outcome === "ESTABLISHED";
+    assert.equal(c.verdict === ACCEPTED, both, `${c.slug}: ACCEPTED and (right-to-exist AND information gain ESTABLISHED) disagree`);
+    if (c.verdict === ACCEPTED) assert.equal(c.parts.whyThisUrl.rightToExist.outcome, "ESTABLISHED", "F36 C1: accepted without an ESTABLISHED right to exist");
+    if (both) bothEstablished++;
   }
+  assert.ok(bothEstablished > 0, "VACUOUS: no candidate was ever accepted, so the equivalence proves nothing");
+  /* and an ESTABLISHED right to exist with no recorded gain evidence is NOT accepted — F39 is a part of its own */
+  const [noGain] = constructCandidates({ pageSpecs, variants: VARIANTS, records, requested: ["alpha"], tenantId: FIXTURE_TENANT, existingPages: empty, now: NOW });
+  assert.equal(noGain.parts.whyThisUrl.rightToExist.outcome, "ESTABLISHED");
+  assert.equal(noGain.verdict, REFUSED, "a page was accepted without its information gain being judged");
+  /* recorded gain, but no recorded competitor comparison: information gain CANNOT DECIDE, so nothing is accepted */
+  const [noCmp] = constructCandidates({ pageSpecs, variants: VARIANTS, records, requested: ["alpha"], tenantId: FIXTURE_TENANT, existingPages: empty, gainEvidence: { ...GAIN_EVIDENCE, competitorComparisons: [] }, now: NOW });
+  assert.equal(noCmp.parts.informationGain.outcome, "CANNOT_DECIDE");
+  assert.equal(noCmp.verdict, REFUSED, "a candidate was accepted with its competitor baseline unmeasured");
+  /* a population handed in WITHOUT verified bodies is never read as "no other current page" */
+  const [noInv] = constructCandidates({ pageSpecs, variants: VARIANTS, records, requested: ["alpha"], tenantId: FIXTURE_TENANT, existingPages: { tenantId: FIXTURE_TENANT, coverageState: "COMPLETE", pages: [] }, gainEvidence: GAIN_EVIDENCE, now: NOW });
+  assert.equal(noInv.verdict, REFUSED, "a candidate was accepted against current pages whose bodies were never verified");
+  assert.match(noInv.parts.informationGain.reason, /verified bodies were not handed in/);
   const bare = { ...pageSpecs, alpha: { ...pageSpecs.alpha, whyThisUrlDeservesToExist: undefined } };
-  const [none] = constructCandidates({ pageSpecs: bare, variants: VARIANTS, records, requested: ["alpha"], tenantId: FIXTURE_TENANT, existingPages: empty, now: NOW });
+  /* handed recorded gain evidence, so ONLY part 4 can refuse it — F39's part must not be the reason (RR-90: F39 masked this once) */
+  const [none] = constructCandidates({ pageSpecs: bare, variants: VARIANTS, records, requested: ["alpha"], tenantId: FIXTURE_TENANT, existingPages: empty, gainEvidence: GAIN_EVIDENCE, now: NOW });
   assert.equal(none.parts.whyThisUrl.rightToExist.outcome, "REFUSED");
+  assert.equal(none.parts.whyThisUrl.state, FAIL, "part 4 itself did not refuse a candidate with no reason");
   assert.equal(none.verdict, REFUSED);
   assert.equal(none.html, null, "a candidate with no right to exist was produced");
 });
@@ -178,8 +214,10 @@ test("🟢 GREEN: a family built to clear all four parts is ACCEPTED — and onl
   const results = judge(family());
   for (const r of results) {
     assert.equal(r.verdict, ACCEPTED, `${r.slug}: ${JSON.stringify({ gaps: r.dataGaps, rejects: r.rejects, notTested: r.notTested })}`);
-    /* F34 added a fifth part — the existing-page check — which passes here only because the fixture tenant is declared empty. */
-    assert.deepEqual(Object.values(r.parts).map((p) => p.state), [PASS, PASS, PASS, PASS, PASS]);
+    /* F34 added a fifth part — the existing-page check — which passes here only because the fixture tenant is declared empty; F39
+     * added a sixth — original information gain — which passes only on the fixture's RECORDED gain and competitor comparison. */
+    assert.deepEqual(Object.values(r.parts).map((p) => p.state), [PASS, PASS, PASS, PASS, PASS, PASS]);
+    assert.equal(r.parts.informationGain.outcome, "ESTABLISHED");
     assert.equal(r.parts.existingPage.outcome, "NO_EXISTING_PAGE");
     assert.equal(r.parts.completeness.state, PASS);
     assert.ok(r.parts.completeness.supersededUniqueWords >= MIN_UNIQUE_WORDS, "the superseded figure is still measured and reported");

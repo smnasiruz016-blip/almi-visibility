@@ -22,6 +22,7 @@ import { decideForNeed, decideForPage, summarise, reviewShowsOneIntent } from ".
 import { readClientIndexabilitySignals } from "../audit/indexability-reader.mjs";
 import { factsPresentIn } from "../gate-a/existing-pages.mjs";
 import { freshnessOf } from "../facts/lifecycle.mjs";
+import { readClientDecay } from "./content-decay-evidence.mjs";
 
 /** Pages that each cover the same registered need — each page's peers. */
 export function sameNeedPeers(pages, values) {
@@ -48,10 +49,12 @@ export function sameIntentPeers(pageId, needPeers, reviews) {
  * @param {{ tenantId: string, product: object, records: object[], resolve: Function, env?: object, now?: Date, demand?: object|null, reviews: object[] }} input
  * `records` is the subject's fact registry (loadRegistry), handed in by the caller that loaded the product.
  */
-export function readClientActionEvidence({ tenantId, product, records = [], resolve, env = process.env, now = new Date(), demand = null, reviews }) {
+export function readClientActionEvidence({ tenantId, product, records = [], resolve, env = process.env, now = new Date(), demand = null, reviews, decayEvidence }) {
   /* RR-89: the recorded semantic reviews (F32's shape). None is recorded today and no store exists — the caller passes [] and says so */
   if (!Array.isArray(reviews)) throw new TypeError("reviews must be passed explicitly — an empty list is a recorded fact, not a default");
   const { population, fault } = readExistingPagePopulation({ scope: { tenantId }, resolve, env, now });
+  /* F43 (RR-91): each page's post-publication and removal evidence, from recorded performance only — NOINDEX and REMOVE read it */
+  const decay = population ? new Map(readClientDecay({ tenantId, resolve, values: product.variants ?? [], decayEvidence, env, now }).assessments.map((a) => [a.pageId, a])) : new Map();
   if (!population) return { fault, needs: [], pages: [], bound: `recorded data only · population UNAVAILABLE (${fault})` };
   const values = product.variants ?? [];
   const signals = new Map(readClientIndexabilitySignals({ tenantId, resolve, env }).urls.map((u) => [u.pageId, u]));
@@ -71,7 +74,7 @@ export function readClientActionEvidence({ tenantId, product, records = [], reso
       completeness: population.completeness.state,
       completenessRef: `completeness:${population.completeness.basis.method}:${population.completeness.basis.asOf}`,
       staleFacts: present.filter((f) => freshnessOf(f, { now }).state === "STALE").map((f) => f.id),
-      quality: null, questionCoverage: null, postPublication: null, removal: null,
+      quality: null, questionCoverage: null, postPublication: decay.get(p.pageId)?.postPublication ?? null, removal: decay.get(p.pageId)?.removal ?? null,
     });
   });
 

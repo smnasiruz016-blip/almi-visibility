@@ -16,9 +16,9 @@ import { readClientActionEvidence } from "./action-evidence.mjs";
 import { factsPresentIn } from "../gate-a/existing-pages.mjs";
 import { buildBrief, summariseBriefs } from "./content-brief.mjs";
 
-export function readClientBriefs({ tenantId, product, records = [], resolve, approvals, reviews, env = process.env, now = new Date() }) {
+export function readClientBriefs({ tenantId, product, records = [], resolve, approvals, reviews, decayEvidence, env = process.env, now = new Date() }) {
   if (!Array.isArray(approvals)) throw new TypeError("approvals must be passed explicitly — an empty list is a recorded fact, not a default");
-  const ae = readClientActionEvidence({ tenantId, product, records, resolve, env, now, reviews });
+  const ae = readClientActionEvidence({ tenantId, product, records, resolve, env, now, reviews, decayEvidence });
   if (ae.fault) return { fault: ae.fault, bound: ae.bound };
   const { population } = readExistingPagePopulation({ scope: { tenantId }, resolve, env, now });
   const values = product.variants ?? [];

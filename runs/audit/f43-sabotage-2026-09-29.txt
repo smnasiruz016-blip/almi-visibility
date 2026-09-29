@@ -1,0 +1,26 @@
+F43 sabotage run · 2026-09-29T17:28:31.807Z
+population: 19 sabotages over test/f43-content-decay.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1 S19=1 · all exactly once: true
+production trail sha256 before: 24c2fef73c7c0820d36225ae64ecfc2695f23671be06946eccc20e669f920db6
+
+S1 C6 age only from a recorded publication date src/page/content-decay.mjs: landed true · named test "C6 ·" red true · failing 1 · restored by sha256 true · PROVED
+S2 C6 no recorded age is never 'too new' src/page/content-decay.mjs: landed true · named test "C6 ·" red true · failing 2 · restored by sha256 true · PROVED
+S3 C1 a blocker is resolved before demand is judged src/page/content-decay.mjs: landed true · named test "C1 ·" red true · failing 1 · restored by sha256 true · PROVED
+S4 C1 no judgement before 28 days src/page/content-decay.mjs: landed true · named test "C1 ·" red true · failing 1 · restored by sha256 true · PROVED
+S5 C1 an unknown technical state is not clear src/page/content-decay.mjs: landed true · named test "C1 ·" red true · failing 1 · restored by sha256 true · PROVED
+S6 C1 evaluation needs 100 impressions src/page/content-decay.mjs: landed true · named test "C1 ·" red true · failing 5 · restored by sha256 true · PROVED
+S7 C1 the fallback review is at day 90 src/page/content-decay.mjs: landed true · named test "C1 ·" red true · failing 2 · restored by sha256 true · PROVED
+S8 C2 WEAK only at the fallback review src/page/content-decay.mjs: landed true · named test "C2 ·" red true · failing 2 · restored by sha256 true · PROVED
+S9 C3 a WEAK page is improved once first src/page/content-decay.mjs: landed true · named test "C3 ·" red true · failing 5 · restored by sha256 true · PROVED
+S10 C3 the re-measurement ends 28 days after the improvement src/page/content-decay.mjs: landed true · named test "C3 ·" red true · failing 1 · restored by sha256 true · PROVED
+S11 C3 the re-measurement starts after the improvement src/page/content-decay.mjs: landed true · named test "C3 ·" red true · failing 1 · restored by sha256 true · PROVED
+S12 C3 only a still-WEAK page yields noindex evidence src/page/content-decay.mjs: landed true · named test "C3 ·" red true · failing 1 · restored by sha256 true · PROVED
+S13 C4 removal needs all three facts src/page/content-decay.mjs: landed true · named test "C4 ·" red true · failing 1 · restored by sha256 true · PROVED
+S14 C6 no demand needs a recorded age of 90 days src/page/content-decay.mjs: landed true · named test "C6 ·" red true · failing 1 · restored by sha256 true · PROVED
+S15 C5 F35 reads F43's post-publication evidence src/page/action-evidence.mjs: landed true · named test "C5 · REAL structures" red true · failing 1 · restored by sha256 true · PROVED
+S16 C6 the real reader never infers age src/page/content-decay-evidence.mjs: landed true · named test "REAL ·" red true · failing 1 · restored by sha256 true · PROVED
+S17 C7 decay evidence is passed, never defaulted src/page/content-decay-evidence.mjs: landed true · named test "C7 · THE ENTRY POINT" red true · failing 1 · restored by sha256 true · PROVED
+S18 C7 the entry point prints its bound bin/page-decay.mjs: landed true · named test "C7 · THE ENTRY POINT" red true · failing 1 · restored by sha256 true · PROVED
+S19 C7 a network call is seen tools/need-coverage-call-paths.mjs: landed true · named test "C7 · the assessment" red true · failing 1 · restored by sha256 true · PROVED
+
+proved 19 of 19 · residue 0 · production trail sha256 after: 24c2fef73c7c0820d36225ae64ecfc2695f23671be06946eccc20e669f920db6 · unchanged true

@@ -15,6 +15,7 @@ import { spawnSync, execFileSync } from "node:child_process";
 import { decideForNeed, decideForPage, DECISION as D, OWNER_APPROVAL, STANDING, REVIEW_MISSING, reviewShowsOneIntent } from "../src/page/action-decision.mjs";
 import { readClientActionEvidence, sameNeedPeers, sameIntentPeers } from "../src/page/action-evidence.mjs";
 import { readExistingPagePopulation } from "../src/page/existing-page-population.mjs";
+import { NO_RECORDED_DECAY_EVIDENCE as NO_DECAY } from "../src/page/content-decay-evidence.mjs";
 import { rightToExist } from "../src/page/right-to-exist.mjs";
 import { existingPageFirst } from "../src/page/existing-page-first.mjs";
 import { decisionCallPaths } from "../tools/need-coverage-call-paths.mjs";
@@ -184,7 +185,7 @@ test("RR-89 · REAL, both controls: with no review recorded no real page is MERG
   const tenantId = resolveSide(resolve, RESOURCES.subject("almi-oet")).tenantId;
   const product = await subject("almi-oet");
   const { records } = await loadRegistry(product.factsDir, product.productId);
-  const bare = readClientActionEvidence({ tenantId, product, records, resolve, reviews: [] });
+  const bare = readClientActionEvidence({ tenantId, product, records, resolve, reviews: [], decayEvidence: NO_DECAY });
   assert.equal(bare.summary.pages.byAction.MERGE, 0, "an unreviewed real pair was turned into MERGE");
   const named = bare.pages.filter((d) => d.missing.some((m) => m.includes(REVIEW_MISSING)));
   assert.ok(named.length > 0, "EMPTY: no real page shares a need — the control would prove nothing");
@@ -194,7 +195,7 @@ test("RR-89 · REAL, both controls: with no review recorded no real page is MERG
   const [a, set] = [...peers.entries()].find(([, s]) => s.size > 0);
   const b = [...set][0];
   const review = { pair: [a, b], compared: SIX, duplicate: true, ref: "test-review:f35-rr89" };
-  const reviewed = readClientActionEvidence({ tenantId, product, records, resolve, reviews: [review] });
+  const reviewed = readClientActionEvidence({ tenantId, product, records, resolve, reviews: [review], decayEvidence: NO_DECAY });
   const merged = reviewed.pages.filter((d) => d.actions.some((x) => x.action === "MERGE"));
   assert.deepEqual(merged.map((d) => d.subject.pageId).sort(), [a, b].sort(), "a properly evidenced real MERGE was suppressed, or spread to unreviewed pages");
   for (const d of merged) {
@@ -212,7 +213,7 @@ test("REAL · the client's recorded structures, as they are — no CREATE, every
   const tenantId = resolveSide(resolve, RESOURCES.subject("almi-oet")).tenantId;
   const product = await subject("almi-oet");
   const { records } = await loadRegistry(product.factsDir, product.productId);
-  const r = readClientActionEvidence({ tenantId, product, records, resolve, reviews: [] });
+  const r = readClientActionEvidence({ tenantId, product, records, resolve, reviews: [], decayEvidence: NO_DECAY });
   assert.ok(r.pages.length > 0 && r.needs.length > 0, "EMPTY real population");
   assert.equal(r.summary.needs.byAction.CREATE, 0, "a real proposed need became a new page");
   for (const d of [...r.needs, ...r.pages]) {

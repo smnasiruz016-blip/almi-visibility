@@ -1317,6 +1317,50 @@ export const DECLARED = Object.freeze({
       }),
     ]),
   }),
+  /* 🔴 F43 · Content decay refresh and pruning. Frozen 29 Sep (_handoffs 6c7627a, RR-91 §2 and its resumption) ALONE, before any F43
+   * code existed. Matched to historical row 33 ("Content Decay & Pruning") only AFTER the freeze: DEFERRED (class D), never proved, no
+   * code — its four parts are the owner's own words and the provenance of "a pruning path that works". F43 supplies F35's
+   * post-publication and removal evidence from recorded performance only; AGE IS NOT MEASURED WHERE IT IS NOT RECORDED. */
+  F43: Object.freeze({
+    featureId: "F43",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: ACCEPTANCES.F43.ruling, contractSha256: ACCEPTANCES.F43.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F43",
+        on: "2026-09-29",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F43.ruling.sha256, contract: ACCEPTANCES.F43.contractSha256 }),
+        branch: "rr91-f43-decay",
+        baseSha: "5b94e87b387c8f6538bcece7463d7b7184d6488f",
+        baseCiRun: "36599624495",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-29_RR-91_CLOSE_188_189_THEN_F43.md", commit: "ac623af9508538716f3c2e4d94927bef4e76e926", sha256: "5642001ccdc2dedd353a049d7822f8242b4752e861187a2a65bcc98fc4ffedf1" }),
+      }),
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F43",
+        population: "REAL",
+        on: "2026-09-29",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F43.ruling.sha256, contract: ACCEPTANCES.F43.contractSha256 }),
+        populations: "REAL (count-only; bound: recorded data only · 27 pages · performance window 2026-08-15..2026-09-12 covering 27 of 27 pages (1,525 rows; 103 attributed to this client by declared host) · publication dates 0 · improvements 0 · re-measurements 0 · indexing checks 0 · inventory INCOMPLETE · nothing collected): evaluation NOT_MEASURED 27, result UNKNOWN 27, world NOT_MEASURED 27 — every page names its missing publication date (age is never inferred) and its missing technical state (F21 not measured). No contraction evidence is supplied; nothing is presented as a result. Control on the REAL structures: one real page given TEST-ONLY records (publication date, indexing check, one improvement, one re-measurement) reaches FALLBACK_REVIEW on the REAL recorded window and an F35 NOINDEX recommendation (owner approval required) — only that page.",
+        proofs: "test/f43-content-decay.test.mjs — one evaluation state per page by V3 §17.1 (BLOCKED first, TOO_EARLY, EVALUABLE at 100 impressions, FALLBACK_REVIEW at day 90, the 28–90-day gap NOT MEASURED, an unknown technical state not clear); C6 FIRING CONTROL: no recorded publication date is never 'old enough' (5,000 impressions stay NOT MEASURED) nor 'too new', supplies no removal, and an uncovered page is never zero; WEAK only at the fallback review, and WEAK alone supplies no removal or noindex; C3 FIRING CONTROL: no improvement → IMPROVE ONCE with no noindex evidence, a re-measurement under 28 days after or overlapping the improvement does not count, still-weak → NOINDEX evidence, recovered → none; removal only with all three recorded facts, and FIX + REMOVE is CANNOT DECIDE, never a deletion; the pruning path through F35 reaches NOINDEX and REMOVE, each owner-approval; REAL and its control; the entry point prints counts and its bound and writes nothing; evidence passed explicitly; no network, process, connector or paid call (firing control). Hand-written ages; production trail byte-identical",
+        sabotage: "runs/audit/f43-sabotage-2026-09-29.txt: 19 of 19 proved, every span pre-flighted once. Re-run on the changed code: F35 31/31, F41 18/18. Not sabotaged, with reasons (parked): an uncovered page read as zero, and the removal hand-off in F35's reader — no real page is uncovered or not served, both proved at the unit level; the declared-host partition — rows of another tenant never map to this client's page ids",
+        historicalReuse: "historical row 33 was DEFERRED with no code — nothing proved to reuse; its four parts (the owner's words) are the provenance of the pruning path. Reused unchanged: the recorded Search Console page rows and the declared-host partition (as F21 reads its store), F31's inventory, F21's signals, F33's peers, F35's NOINDEX and REMOVE rules",
+        declaredLimit: "on real data no page can be evaluated: no publication date is recorded (age is never inferred), and F21's technical state is NOT MEASURED; a recorded indexing check can stand in only where F21 cannot decide. No improvement or re-measurement is recorded, so the weak-result cycle has not started for any page. The recorded window's impressions (2–4 per page) are real and used; they decide nothing until age is recorded.",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
   F40: Object.freeze({
     featureId: "F40",
     board: "F_BOARD",

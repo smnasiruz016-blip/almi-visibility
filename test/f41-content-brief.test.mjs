@@ -13,6 +13,7 @@ import { spawnSync, execFileSync } from "node:child_process";
 import { buildBrief, selectFacts, SECTIONS, MISSING, BRIEF_STATE } from "../src/page/content-brief.mjs";
 import { readClientBriefs } from "../src/page/content-brief-evidence.mjs";
 import { readExistingPagePopulation } from "../src/page/existing-page-population.mjs";
+import { NO_RECORDED_DECAY_EVIDENCE as NO_DECAY } from "../src/page/content-decay-evidence.mjs";
 import { sameNeedPeers } from "../src/page/action-evidence.mjs";
 import { decisionCallPaths } from "../tools/need-coverage-call-paths.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
@@ -135,7 +136,7 @@ test("REAL · the client's recorded structures: no approval → every subject NO
   const tenantId = resolveSide(resolve, RESOURCES.subject("almi-oet")).tenantId;
   const product = await subject("almi-oet");
   const { records } = await loadRegistry(product.factsDir, product.productId);
-  const r = readClientBriefs({ tenantId, product, records, resolve, approvals: [], reviews: [] });
+  const r = readClientBriefs({ tenantId, product, records, resolve, approvals: [], reviews: [], decayEvidence: NO_DECAY });
   assert.equal(r.fault, null, r.bound);
   assert.ok(r.summary.population > 0, "EMPTY real population");
   assert.deepEqual(Object.keys(r.summary.state), ["NOT_ISSUED"], "a real brief was issued without a recorded approval");
@@ -143,7 +144,7 @@ test("REAL · the client's recorded structures: no approval → every subject NO
   const { population } = readExistingPagePopulation({ scope: { tenantId }, resolve, env: process.env, now: new Date() });
   const [a, set] = [...sameNeedPeers(population.pages, product.variants ?? []).entries()].find(([, s]) => s.size > 0);
   const reviews = [{ pair: [a, [...set][0]], compared: ["intent", "answer", "facts", "architecture", "examples", "userValue"], duplicate: true, ref: "test-review:f41" }];
-  const c = readClientBriefs({ tenantId, product, records, resolve, approvals: [{ subject: { kind: "EXISTING_PAGE", id: a }, action: "MERGE", ref: "test-approval:f41" }], reviews });
+  const c = readClientBriefs({ tenantId, product, records, resolve, approvals: [{ subject: { kind: "EXISTING_PAGE", id: a }, action: "MERGE", ref: "test-approval:f41" }], reviews, decayEvidence: NO_DECAY });
   const b = c.briefs.find((x) => x.subject.id === a);
   assert.equal(b.state, "INCOMPLETE", "a real brief was READY with sections unrecorded");
   assert.equal(b.sections.intent.state, "FILLED", "the real need (F33) did not reach the brief");

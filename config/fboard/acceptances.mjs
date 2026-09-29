@@ -304,6 +304,21 @@ export const F41_ORIGINAL = Object.freeze({
   contractSha256: "3a0fff72325c656f998860bda32e38c5c63ba26b8f8071626ed272e464c381ee",
 });
 
+/* 🔴 F43 · FROZEN 29 Sep 2026 (_handoffs 6c7627a, RR-91 §2 and its resumption), committed ALONE before F43 code was re-read. Pinned from the committed
+ * blob by parseContract (derivation re-run with a firing control inside the contract: "shrink" → "contract"). */
+export const F43_ORIGINAL = Object.freeze({
+  featureId: "F43",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F43_ACCEPTANCE_2026-09-29.md", commit: "6c7627ab0d8da9ed93a39e52db800be24a4af130", sha256: "ac1b5a38c9417fe2034f450648ad11f6beac5a950a53a16476cd9adf245a665b" }),
+  authority: Object.freeze({ propositionId: "F43_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F43"]) }),
+  frozenOn: "2026-09-29",
+  feature: "F43 · Content decay refresh and pruning",
+  input: "For one declared client: its existing pages (F31 identities and recorded served states), any recorded publication date, the recorded Search Console page rows that map to those pages, F21's technical signals, any recorded improvement and re-measurement, any recorded semantic review, and F35's decisions over them — driven over the real recorded structures of the client, count-only.",
+  expected: "[C1 · THE EVALUATION WINDOW] Each page carries exactly one evaluation state — BLOCKED, TOO_EARLY, EVALUABLE, FALLBACK_REVIEW or NOT_MEASURED — decided by V3 §17.1's rules from recorded evidence only, with the evidence that decided it; age comes only from a recorded publication date, and a page no recorded row covers has no performance evidence.\n[C2 · WEAK IS NOT FAILURE] A technically clear page with low exposure at the fallback review is WEAK; no page is judged WEAK before its evaluation state permits it, and WEAK by itself never yields a removal, a noindex or a failure.\n[C3 · IMPROVE ONCE, THEN RE-MEASURE] A WEAK page with no recorded improvement is sent to IMPROVE ONCE; one with an improvement but no re-measurement at least 28 days later is sent to RE-MEASURE; only a re-measured, still-WEAK page yields the post-publication evidence NOINDEX reads; the cycle is never skipped.\n[C4 · OWNER APPROVAL, NO AUTOMATIC DELETION] Every contraction reaches F35 as evidence and leaves it only as an owner-approval RECOMMENDATION; removal evidence is supplied only when not served, no successor and no demand are all recorded; F43 writes, removes, redirects and noindexes nothing.\n[C5 · A PRUNING PATH THAT WORKS] Given recorded evidence that meets the rules, the path yields a contraction recommendation (NOINDEX, MERGE, REDIRECT or REMOVE) from F35 — the inventory can shrink.\n[C6 · MISSING INPUTS STAY VISIBLY MISSING] Every page's assessment names each missing fact and what it would have decided; an unmeasured age, an uncovered page or any other unmeasured outcome is never presented as a result, as \"old enough\", as \"too new\", as zero, or as a claim about the client's site.\n[C7 · SAME CLIENT, RECORDED DATA ONLY, BOUND PRINTED] Only recorded rows that map to the client's own pages are read; the result prints its population and bound, count-only; no live, paid or metered call and no new data gathering is made.",
+  failure: "[C1] A page lacks an evaluation state, has more than one, or is given one the recorded evidence does not support (age inferred from anything but a recorded publication date, impressions counted from another client's page, a blocker ignored).\n[C2] A page is WEAK before its evaluation state permits, or WEAK alone yields a removal, a noindex or a failure.\n[C3] Post-publication evidence is supplied without a recorded improvement and a re-measurement at least 28 days after it, or the cycle is skipped.\n[C4] A contraction leaves F43 as anything but evidence to F35, removal evidence is supplied without all three recorded facts, or F43 writes, removes, redirects or noindexes anything.\n[C5] Recorded evidence that meets the rules does not reach a contraction recommendation — the inventory can only grow.\n[C6] A missing fact is not named, or an unmeasured age, an uncovered page or any unmeasured outcome is presented as a result, as old enough, as too new, as zero, or as a claim about the client's site.\n[C7] A row that maps to another client's page is read; a result is printed without its population and bound; a live, paid or metered call or new data gathering is made.\nFor any clause, it also fails when:\n- it is proved only on an empty population, or only on constructed data when real recorded structures exist;\n- it is proved only by a control that cannot fire, or by a test that computes its expected answer with the logic it checks;\n- its test writes to the production audit trail.",
+  evidence: "- For each clause:",
+  contractSha256: "b106e683ed50c605bbcf8cde91097e6d863f3798341485ce4f50e238ca6e90b7",
+});
+
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -472,5 +487,6 @@ export const ACCEPTANCES = Object.freeze({
   F36: F36_ORIGINAL,
   F39: F39_ORIGINAL,
   F41: F41_ORIGINAL,
+  F43: F43_ORIGINAL,
   F77: F77_AMENDMENT_1,
 });

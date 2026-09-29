@@ -16,6 +16,7 @@ import { SITEMAP_BATCH_ID } from "../src/adapter/sitemap-subject.mjs";
 import { productFromArgvOrExit, productIdOrExit } from "../src/product-cli.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { readClientBriefs } from "../src/page/content-brief-evidence.mjs";
+import { NO_RECORDED_DECAY_EVIDENCE } from "../src/page/content-decay-evidence.mjs";
 
 const USAGE = "node bin/page-briefs.mjs --product=<id> --tenant=<id> --actor=<id>";
 const PRODUCT_ID = productIdOrExit(process.argv, { usage: USAGE });
@@ -24,7 +25,7 @@ const PRODUCT = await productFromArgvOrExit(process.argv, { usage: USAGE, scope:
 const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
 
 /* no owner approval and no semantic review is recorded (no store exists): [] is that recorded fact */
-const r = readClientBriefs({ tenantId: SCOPE.tenantId, product: PRODUCT, records, resolve: createTenantResolver(), approvals: [], reviews: [] });
+const r = readClientBriefs({ tenantId: SCOPE.tenantId, product: PRODUCT, records, resolve: createTenantResolver(), approvals: [], reviews: [], decayEvidence: NO_RECORDED_DECAY_EVIDENCE });
 console.log("F41 · CONTENT BRIEFS — briefs only, count-only");
 console.log(`  bound            ${r.bound}`);
 if (r.fault) process.exit(2);

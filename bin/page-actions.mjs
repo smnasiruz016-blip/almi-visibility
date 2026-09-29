@@ -17,6 +17,7 @@ import { SITEMAP_BATCH_ID } from "../src/adapter/sitemap-subject.mjs";
 import { productFromArgvOrExit, productIdOrExit } from "../src/product-cli.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { readClientActionEvidence } from "../src/page/action-evidence.mjs";
+import { NO_RECORDED_DECAY_EVIDENCE } from "../src/page/content-decay-evidence.mjs";
 
 const USAGE = "node bin/page-actions.mjs --product=<id> --tenant=<id> --actor=<id>";
 const PRODUCT_ID = productIdOrExit(process.argv, { usage: USAGE });
@@ -25,7 +26,7 @@ const PRODUCT = await productFromArgvOrExit(process.argv, { usage: USAGE, scope:
 const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
 
 /* no semantic review is recorded and no store exists (F32): [] is that recorded fact, so MERGE and REDIRECT name the missing review */
-const r = readClientActionEvidence({ tenantId: SCOPE.tenantId, product: PRODUCT, records, resolve: createTenantResolver(), reviews: [] });
+const r = readClientActionEvidence({ tenantId: SCOPE.tenantId, product: PRODUCT, records, resolve: createTenantResolver(), reviews: [], decayEvidence: NO_RECORDED_DECAY_EVIDENCE /* F43: no publication date, improvement or re-measurement is recorded */ });
 const line = (label, s) => console.log(`  ${label.padEnd(15)} ${s.population} · CHOSEN ${s.chosen} · CANNOT_DECIDE ${s.cannotDecide} · ${Object.entries(s.byAction).filter(([, n]) => n > 0).map(([a, n]) => `${a} ${n}`).join(" · ") || "no action chosen"}`);
 console.log("F35 · ACTION DECISIONS — recommendations only, count-only");
 console.log(`  bound           ${r.bound}`);

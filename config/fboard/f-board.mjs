@@ -836,6 +836,49 @@ export const DECLARED = Object.freeze({
       }),
     ]),
   }),
+  /* 🔴 F21 · Robots sitemap canonical and noindex audit. Frozen 29 Sep (_handoffs 804ebd1, RR-86 §3) ALONE, before any F21 code
+   * was read. Matched to historical rows 38 (Indexability Preflight, historically VERIFIED-PASS: one state per page from the same
+   * signals) and 10 (never proved) only AFTER the freeze. Neither compared signals with each other — F21's core. */
+  F21: Object.freeze({
+    featureId: "F21",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: ACCEPTANCES.F21.ruling, contractSha256: ACCEPTANCES.F21.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F21",
+        on: "2026-09-29",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F21.ruling.sha256, contract: ACCEPTANCES.F21.contractSha256 }),
+        branch: "rr86-f21-indexability-signals",
+        baseSha: "acbc781893587ae062b372b1a95704146fd3c707",
+        baseCiRun: "36509172899",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-29_RR-86_NEXT_ALMIVISIBILITY_FEATURE.md", commit: "70285e19b33b72ecf6eeb362d28841dd28f7af0c", sha256: "32554fba7612f123decff855c2c9fe28eb9df6f27f71a7eb7ab7dabdd07465b0" }),
+      }),
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F21",
+        population: "REAL",
+        on: "2026-09-29",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F21.ruling.sha256, contract: ACCEPTANCES.F21.contractSha256 }),
+        populations: "REAL: the declared client's 20,016 in-scope URLs (27 observed with stored bodies, 20,000 listed in its stored sitemap) and its one recorded robots.txt: CONTRADICTED 0 · CONSISTENT 0 · NOT_MEASURED 20,016. K1 judged for every listed URL (0 listed and disallowed). No real URL can be CONSISTENT because the collector never recorded the Link header, so a header canonical can be neither seen nor ruled out.",
+        proofs: "test/f21-indexability-signals.test.mjs — C1 each signal from its own source (robots group rules, 4xx/5xx, recorded X-Robots-Tag, every canonical tag, 'not listed' only over a fully stored sitemap); C2 K1–K6 each exposed with HAND-WRITTEN expectations; C3 agreeing signals never reported, one URL per spelling; C4 three states, every unknown path NOT_MEASURED; C5 same client only, robots rows attributed through declared origins, and the entry point refused against the real declarations; C6 bound, identities and sources, never a URL; C7 32 modules, 0 call-out paths; production trail byte-identical across every suite run",
+        sabotage: "runs/audit/f21-sabotage-2026-09-29.txt: 20 of 20 proved, every span pre-flighted exactly once in the live code; the first run caught one test that could not fail (S14) — fixed before any movement",
+        historicalReuse: "row 38 (Indexability Preflight) read the same signals per page — its parsers (parseHead, noindexState) and the robots group matcher are reused; neither row 38 nor row 10 compared signals with each other",
+        declaredLimit: "the recorded collector kept no Link header, so no real URL can be CONSISTENT; page-level signals of URLs never observed are UNKNOWN; the entry point reads the shared robots store and is refused for any client the shared evidence store is not declared to",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
   /* 🔴 F31 · Existing page inventory. Frozen 29 Sep (_handoffs 3a8f7ba, RR-85 §2) ALONE, before any F31 code was read. Matched to
    * historical row 11 ("Existing Page Inventory", historically VERIFIED-PASS) only AFTER the freeze: that row proved stable identity
    * across two local replays; it proves part of C1 and C2 only. The client's page list is INCOMPLETE and says so — F31 moves on the

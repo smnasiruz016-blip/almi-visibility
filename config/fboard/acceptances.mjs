@@ -214,6 +214,21 @@ export const F31_ORIGINAL = Object.freeze({
   contractSha256: "c10915a1305290727d63dfa8ebcf9e9f34f5abc3767ebecff54f2de469a8c798",
 });
 
+/* 🔴 F21 · FROZEN 29 Sep 2026 (_handoffs 804ebd1, RR-86 §3), committed ALONE before any F21 code was read. Pinned from the committed
+ * blob by parseContract (derivation re-run with a firing control inside the contract: "holding" → "carrying"). */
+export const F21_ORIGINAL = Object.freeze({
+  featureId: "F21",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F21_ACCEPTANCE_2026-09-29.md", commit: "804ebd10507951d4d539db72c1175aed27250a8a", sha256: "e9e5a853fe6160838cffe9c4f1c61476acd650d9f4989961181aaeb792115ad8" }),
+  authority: Object.freeze({ propositionId: "F21_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F21"]) }),
+  frozenOn: "2026-09-29",
+  feature: "F21 · Robots sitemap canonical and noindex audit",
+  input: "The recorded data of a declared client — its in-scope URLs, each URL's recorded observations with response headers, robots state and stored served bytes, and the client's recorded sitemap records — read only through that client's partition; driven over the real recorded data and over recorded-shape fixtures holding every contradiction class, consistent URLs, and every way a signal can be unknown.",
+  expected: "[C1 · SIGNALS] For every in-scope URL the four declared signals (robots, sitemap, canonical, noindex) are read from the recorded data with the states defined above; each signal names the recorded source it came from; a signal the data cannot establish is UNKNOWN.\n[C2 · CONTRADICTIONS] Every URL holding a contradiction of class K1–K6 is reported with its class, both signals and their sources; each class is detected wherever its two signals are known.\n[C3 · NO FALSE CONTRADICTION] A URL whose known signals agree is never reported; two spellings of one URL are one URL; a canonical to the page itself is not a canonical elsewhere.\n[C4 · UNKNOWN IS NOT CLEAN] Each URL is CONTRADICTED, CONSISTENT or NOT MEASURED — three states, never two: a URL for which any class cannot be judged because a needed signal is UNKNOWN, and no contradiction is found, is NOT MEASURED with that reason, never CONSISTENT; the counts of each state are printed.\n[C5 · SAME CLIENT ONLY] Only the client's own URLs and sitemap records are read and judged; a canonical or link to another origin is judged only as far as the client's own data allows, and another client's page is never read to judge it.\n[C6 · EVIDENCE AND BOUND] The result prints its population and bound beside it (URLs examined, stored bodies, the sitemap's stored fraction) and reports count-only, with no page content, host or URL; every finding carries the page identity and the observation or sitemap record ids it rests on.\n[C7 · RECORDED DATA ONLY] No live fetch, crawl, collection, paid or metered call is made.",
+  failure: "[C1] A signal is inferred, taken from the wrong source, or reported known where the data cannot establish it; \"not listed\" is said over a sitemap not fully read or stored.\n[C2] A URL holding a K1–K6 contradiction with both signals known is not reported, or is reported without its class, signals or sources.\n[C3] A URL whose known signals agree is reported; a spelling of the same URL, or a self-canonical, is treated as a contradiction.\n[C4] A URL with a needed signal UNKNOWN is reported CONSISTENT; the three states are collapsed; a count is printed without its population.\n[C5] Another client's URL, page or sitemap record is read, judged or reported.\n[C6] A result is printed without its population and bound, or a report carries page content, a host or a URL; a finding carries no source.\n[C7] A live, paid or metered call is made.\nFor any clause, it also fails when:\n- it is proved only on an empty population, or only on constructed data when real recorded data exists;\n- it is proved only by a control that cannot fire, or by a test that computes its expected answer with the logic it checks;\n- its test writes to the production audit trail.",
+  evidence: "- For each clause:",
+  contractSha256: "cbbf47024195eab2f17db48eca8de01e4106f2321629453a5eca764c16746b5c",
+});
+
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -373,6 +388,7 @@ export const ACCEPTANCES = Object.freeze({
     contractSha256: "fe38acfe8d3fa9faaf49ebe6643324a35e3e1156e9a479a25a4dd7ca421f244b",
     amends: Object.freeze({ ruling: F10_AMENDMENT_2.ruling, contractSha256: F10_AMENDMENT_2.contractSha256 }),
   }),
+  F21: F21_ORIGINAL,
   F31: F31_ORIGINAL,
   F33: F33_ORIGINAL,
   F34: F34_ORIGINAL,

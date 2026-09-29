@@ -47,6 +47,10 @@ export const STATE_VOCABULARY = Object.freeze({
   requestedState: { class: "C", where: "src/intake/contract.mjs", reason: "F01: whether a declaration REQUESTED a permission — a request, never a grant" },
   resolvedState: { class: "A", where: "src/facts/lifecycle.mjs:62", unknownMeans: "two sources disagree and nothing is auto-resolved — the question reached, not established", reason: "its one value is exactly canonical UNKNOWN in meaning; it remains a lifecycle field and is not re-typed" },
   robotsState: { class: "C", where: "src/crawl/robots.mjs:32", unknownMeans: "robots.txt could not be read (5xx, error, timeout)", reason: "a robots permission dimension" },
+  /* F31 (RR-85, 29 Sep 2026) */
+  servedState: { class: "C", where: "src/crawl/scope-inventory.mjs", unknownMeans: "no recorded observation came back with a status (never requested, an error, or skipped) — never inferred", reason: "an inventory page's served-state dimension (OBSERVED with status and time / UNKNOWN)" },
+  hasServedState: { class: "I", where: "src/crawl/scope-completeness.mjs", reason: "a predicate's name, not a field with states" },
+  requestedWithoutState: { class: "I", where: "src/crawl/scope-completeness.mjs", reason: "a count of in-scope requests with no served state, not a field with states" },
   storedState: { class: "E", where: "src/audit/class-split.mjs:126", reason: "issue lifecycle state (OPEN / CLOSED / SUPERSEDED)" },
   transfersState: { class: "I", where: "src/checklist/classification.mjs:62", reason: "a boolean constant of the historical ledger" },
   unlockState: { class: "I", where: "src/search/row9-terminal.mjs:166", reason: "a function returning an array" },

@@ -15,15 +15,23 @@
  * A CRAWLED INVENTORY IS NOT THE SITE (src/crawl/inventory.mjs). That is why PARTIAL and UNKNOWN matter here: an empty partial
  * population says nothing about pages the crawl never reached, and the check will not produce a page on its silence.
  */
-import { readTenantPartition, readPartitionBodies } from "../crawl/batch-partition.mjs";
+import { readTenantPartition, readPartitionBodies, readPartitionEdges } from "../crawl/batch-partition.mjs";
 import { BATCH_ID, ObservationBatchFault } from "../crawl/observation-batch.mjs";
-import { createTenantResolver } from "../tenancy/resolver.mjs";
+import { createTenantResolver, readDeclarations } from "../tenancy/resolver.mjs";
+import { decideResolvedTenants } from "../tenancy/scope.mjs";
+import { SITEMAP_BATCH_ID } from "../adapter/sitemap-subject.mjs";
+import { scopeCompleteness, coverageForConsumers } from "../crawl/scope-completeness.mjs";
+import { scopeInventory } from "../crawl/scope-inventory.mjs";
 import { existingPageFirst, existingPageDecisionEvent } from "./existing-page-first.mjs";
 
 const WEAKEST = ["UNKNOWN", "PARTIAL", "COMPLETE"];
 
-/** Pure: the population from a partition's records and bodies. Exported so the tests drive it with crafted records. */
-export function populationFromPartition({ tenantId, records, bodies }) {
+/**
+ * Pure: the population from a partition's records and bodies. Exported so the tests drive it with crafted records.
+ * 🔴 F31 (RR-85): when the scope's completeness verdict is handed in, it — and only it — decides the coverage F33 and F34 read:
+ * COMPLETE only for a fresh COMPLETE verdict. The run-record derivation below remains for callers that have no verdict.
+ */
+export function populationFromPartition({ tenantId, records, bodies, completeness = null, inventory = null }) {
   const observations = new Map(records.filter((r) => r.record_type === "observation").map((o) => [o.observation_id, o]));
   const corrections = records.filter((r) => r.record_type === "crawl_run_correction" && r.field === "coverageState");
   const runs = records.filter((r) => r.record_type === "crawl_run").map((run) => {
@@ -38,19 +46,64 @@ export function populationFromPartition({ tenantId, records, bodies }) {
     const latest = served.at(-1);
     return { pageId: p.page_id, tenantId, html: latest ? bodies.get(latest.observation_id) : "" };
   });
-  return Object.freeze({ tenantId, coverageState: WEAKEST.includes(coverageState) ? coverageState : "UNKNOWN", pages });
+  const derived = WEAKEST.includes(coverageState) ? coverageState : "UNKNOWN";
+  return Object.freeze({ tenantId, coverageState: completeness ? coverageForConsumers(completeness) : derived, pages, completeness, inventory });
+}
+
+/** The site origins declared to this tenant, and the tenant's declared inventory freshness rule (or null) — declarations only. */
+export function declaredScope({ tenantId, env = process.env }) {
+  const d = readDeclarations({ env });
+  if (!d.readable) return { readable: false, origins: [], freshnessRule: null, reason: d.reason };
+  const mine = (t) => decideResolvedTenants(tenantId, t).allowed;
+  const origins = d.attachments.filter((a) => a?.resourceKind === "SITE_ORIGIN" && mine(a.tenantId)).map((a) => a.resourceRef);
+  const rule = d.tenants.find((t) => mine(t?.tenantId))?.existingPageInventory ?? null;
+  return { readable: true, origins, freshnessRule: rule && Number.isFinite(Number(rule.freshnessDays)) ? { freshnessDays: Number(rule.freshnessDays) } : null, reason: null };
+}
+
+/** F31's one recorded decision per read: the completeness verdict and its basis, counts and codes only. */
+export function completenessEvent(v) {
+  const c = v.basis.counts;
+  return {
+    eventType: "EVALUATION",
+    action: "DECIDE_EXISTING_PAGE_INVENTORY_COMPLETENESS",
+    outcome: v.state === "COMPLETE" ? "PASS" : v.state === "INCOMPLETE" || v.state === "STALE" ? "FAIL" : "INDETERMINATE",
+    reasonCode: v.basis.reasons[0],
+    metadata: {
+      guard: "existing-page-inventory",
+      classification: `state=${v.state} method=${v.basis.method} origins=${c.origins} obs=${c.observations} listed=${c.listedTotal} listedUnobserved=${c.listedUnobserved} linkedUnobserved=${c.linkedUnobserved} cutShort=${c.sitemapCutShort} asOf=${v.basis.asOf ?? "none"} freshDays=${v.basis.freshnessRule?.freshnessDays ?? "none"}`.slice(0, 200),
+      ruleEntry: "F31: a completeness claim carries its method, scope, as-of time and freshness rule",
+      role: "EXISTING_PAGE_INVENTORY>COMPLETENESS",
+      resourceRef: `reasons:${v.basis.reasons.join(",")}`.slice(0, 200),
+    },
+  };
 }
 
 /**
  * The decided tenant's existing pages from the stored batch. `scope` is the run's scoped entry (its `tenantId` and
  * `recordPartition`); the partition's quarantine is recorded through it, exactly as bin/detect.mjs records it.
  */
-export function readExistingPagePopulation({ scope, batchId = BATCH_ID, env = process.env, resolve }) {
+export function readExistingPagePopulation({ scope, batchId = BATCH_ID, sitemapBatchId = SITEMAP_BATCH_ID, env = process.env, resolve, now = new Date() }) {
   try {
     const part = readTenantPartition({ batchId, tenantId: scope.tenantId, resolve, env });
     scope.recordPartition?.(part.partition, { collectionKind: "CRAWL_BATCH", collectionRef: batchId });
     const bodies = readPartitionBodies({ batchId, observationIds: part.observationIds, env });
-    return { population: populationFromPartition({ tenantId: scope.tenantId, records: part.records, bodies }), fault: null, population_of: part.partition.arithmetic.population };
+    /* 🔴 F31 (RR-85) — the scope's completeness, from ITS OWN recorded sources: its sitemap partition, the links its observations
+     * recorded, and its declarations. Nothing another tenant owns is parsed. */
+    const sitemapPart = readTenantPartition({ batchId: sitemapBatchId, tenantId: scope.tenantId, resolve, env });
+    scope.recordPartition?.(sitemapPart.partition, { collectionKind: "SITEMAP_COLLECTION", collectionRef: sitemapBatchId });
+    const edges = readPartitionEdges({ batchId, observationIds: part.observationIds, env });
+    const declared = declaredScope({ tenantId: scope.tenantId, env });
+    const completeness = scopeCompleteness({
+      origins: declared.origins,
+      observations: part.records.filter((r) => r.record_type === "observation"),
+      sitemaps: sitemapPart.records.filter((r) => r.record_type === "observation"),
+      edges,
+      freshnessRule: declared.freshnessRule,
+      now,
+    });
+    const inventory = scopeInventory({ tenantId: scope.tenantId, batchId, records: part.records, bodies, unplaced: { undeclared: part.partition.arithmetic.undeclared, ambiguous: part.partition.arithmetic.ambiguous } });
+    scope.recordDecision?.(completenessEvent(completeness));
+    return { population: populationFromPartition({ tenantId: scope.tenantId, records: part.records, bodies, completeness, inventory }), fault: null, population_of: part.partition.arithmetic.population };
   } catch (e) {
     if (e instanceof ObservationBatchFault) return { population: null, fault: e.fault, population_of: null };
     throw e;

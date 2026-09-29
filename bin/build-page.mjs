@@ -37,6 +37,7 @@ import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 import { createTenantResolver } from "../src/tenancy/resolver.mjs";
 import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
+import { SITEMAP_BATCH_ID } from "../src/adapter/sitemap-subject.mjs";
 import { readExistingPagePopulation } from "../src/page/existing-page-population.mjs";
 import { existingPageDecisionEvent } from "../src/page/existing-page-first.mjs";
 
@@ -84,7 +85,7 @@ const USAGE = "node bin/build-page.mjs --product=<id> (--slug=<slug> | --all-slu
 const PRODUCT_ID = productIdOrExit(process.argv, { usage: USAGE });
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
 /* F34 — the existing-page check reads this tenant's partition of the stored observation batch, declared here like every read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/build-page.mjs", governed: true, resources: [RESOURCES.subject(PRODUCT_ID), RESOURCES.collectionPartition("CRAWL_BATCH", BATCH_ID)] });
+const SCOPE = scopedEntryPoint({ entry: "bin/build-page.mjs", governed: true, resources: [RESOURCES.subject(PRODUCT_ID), RESOURCES.collectionPartition("CRAWL_BATCH", BATCH_ID), RESOURCES.collectionPartition("SITEMAP_COLLECTION", SITEMAP_BATCH_ID)] });
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: USAGE, scope: SCOPE });
 
 const argv = process.argv.slice(2);

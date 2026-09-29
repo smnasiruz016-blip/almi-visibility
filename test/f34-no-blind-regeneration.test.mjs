@@ -161,10 +161,15 @@ test("C6 · the shared gate the subject tools call decides, records exactly once
   const d = existingPageGate({ scope, entry: "subjects/almi-oet/tools/nursing-chain.mjs", candidate: { slug: "nursing", intent: "nursing" }, env: WORLD.envWith() });
   assert.ok(d.considered > 0, "the fixture world's tenant holds the stored batch's pages — a non-empty population");
   assert.equal(d.mayProduce, false);
-  assert.equal(recorded.length, 1, "the decision was not recorded exactly once");
-  assert.equal(recorded[0].action, "REFUSE_PAGE_PRODUCTION_EXISTING_PAGE_FIRST");
+  const refusals = recorded.filter((e) => e.action === "REFUSE_PAGE_PRODUCTION_EXISTING_PAGE_FIRST");
+  assert.equal(refusals.length, 1, "the decision was not recorded exactly once");
+  /* F31 (RR-85): reading the population also records the scope's completeness verdict — once per read. */
+  assert.equal(recorded.filter((e) => e.action === "DECIDE_EXISTING_PAGE_INVENTORY_COMPLETENESS").length, 1);
+  assert.equal(recorded.length, 2);
   existingPageGate({ scope, entry: "subjects/almi-oet/tools/nursing-chain.mjs", candidate: { slug: "nursing", intent: "nursing" }, env: WORLD.envWith() });
-  assert.equal(partitions.length <= 1, true, "the population is read once per run");
+  /* read once per run: a second gate call re-reads nothing — the completeness verdict (one per read) is still recorded once */
+  assert.equal(recorded.filter((e) => e.action === "DECIDE_EXISTING_PAGE_INVENTORY_COMPLETENESS").length, 1, "the population is read once per run");
+  assert.ok(partitions.length <= 2, "one read records at most its two partitions (crawl and sitemap)");
   const none = readExistingPagePopulation({ scope: { tenantId: WORLD.tenantId }, env: { ...WORLD.envWith(), ALMIVISIBILITY_SUBJECT_ROOTS: join(WORLD.root, "no-such-root") }, resolve: createTenantResolver({ env: WORLD.envWith() }) });
   assert.equal(none.population, null, "an unreadable batch became a population");
   assert.ok(none.fault, "an unreadable batch lost its named fault");

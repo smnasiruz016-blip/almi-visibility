@@ -836,6 +836,52 @@ export const DECLARED = Object.freeze({
       }),
     ]),
   }),
+  /* 🔴 F31 · Existing page inventory. Frozen 29 Sep (_handoffs 3a8f7ba, RR-85 §2) ALONE, before any F31 code was read. Matched to
+   * historical row 11 ("Existing Page Inventory", historically VERIFIED-PASS) only AFTER the freeze: that row proved stable identity
+   * across two local replays; it proves part of C1 and C2 only. The client's page list is INCOMPLETE and says so — F31 moves on the
+   * inventory and its verdict being PROVED CORRECT, never on a completeness the recorded data cannot support. */
+  F31: Object.freeze({
+    featureId: "F31",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: ACCEPTANCES.F31.ruling, contractSha256: ACCEPTANCES.F31.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F31",
+        on: "2026-09-29",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F31.ruling.sha256, contract: ACCEPTANCES.F31.contractSha256 }),
+        branch: "rr85-f31-inventory",
+        baseSha: "8c37c695f3e79cd24a84c7ce93634679e9b42fbc",
+        baseCiRun: "36505203525",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-29_RR-85_F31_VERIFY_THE_EXISTING_PAGE_INVENTORY.md", commit: "5774427dbefaddcf8ddedc39f2fb131bf156a1d8", sha256: "24f7ac224d28dd165e0363f0a865c454d81878ef9b45df296e68f3b61c5cef83" }),
+      }),
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F31",
+        population: "REAL",
+        on: "2026-09-29",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F31.ruling.sha256, contract: ACCEPTANCES.F31.contractSha256 }),
+        populations: "REAL: the declared client's partition of the recorded batch — 27 known pages, 0 identity conflicts, 27/27 fingerprints verified against stored bytes, 27/27 served states observed, all owned by its tenant; 4 batch members placed in no tenant, counted. REAL VERDICT: INCOMPLETE (method RECORDED_SITEMAPS_AND_LINKS, 1 declared origin, as of 2026-09-12T00:44:54Z, NO freshness rule declared): its recorded sitemap lists 240,328 URLs (20,000 stored, 19,989 of those unobserved), and its observed pages link to 368 in-scope URLs never observed.",
+        proofs: "test/f31-inventory.test.mjs — C1 identity on the real 27 plus planted conflicts; C2 real fingerprints verified, changed bytes caught, none invented; C3 UNKNOWN when unanswered; C4 real ownership, a second-tenant world, and only the client's own 1,275 of 19,730 links read; C5 evidence per attribute; C6 the real verdict with its basis, every state (COMPLETE, INCOMPLETE ×7 gaps, UNKNOWN ×3, OUT OF SCOPE, STALE) distinct and named, the declared freshness rule read, the verdict recorded once; C7 5.1 INCOMPLETE, UNKNOWN, STALE and OUT OF SCOPE hold an unrelated new page, 5.2 a COMPLETE inventory lets F33 decide NOT COVERED and still blocks a covering page; C8 23 modules, 0 call-out paths; production trail byte-identical across every suite run",
+        sabotage: "runs/audit/f31-sabotage-2026-09-29.txt: 22 of 22 proved, every span pre-flighted exactly once in the live code, residue 0; F33 18 of 18 and F34 19 of 19 re-run on the changed code",
+        reading: "F31 moves on its inventory and its completeness verdict being PROVED CORRECT on the real data; the real verdict is INCOMPLETE and is recorded as such. No COMPLETE was manufactured; F33 and F34 still hold new pages for this client.",
+        blocker: "to make the real list COMPLETE the recorded data lacks: a served state for every in-scope URL the client's own sitemap lists (240,328; 20,000 stored, 11 observed) and every URL its pages link to (368) — no recorded source can supply it; it needs a new collection (F19's second crawl, ON HOLD for the owner's GREEN) — and a freshness rule declared for the client's scope (an owner decision; none is declared)",
+        historicalReuse: "historical row 11 (Existing Page Inventory) proved identity stable across two local replays — part of C1 and C2; everything else proved fresh",
+        declaredLimit: "COMPLETE means complete as discoverable by the client's recorded sitemaps and links, as of the earliest evidence; a page no recorded source lists or links cannot be claimed; the freshness window counts from that as-of time",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
   /* 🔴 F33 · Cannibalization prevention. Frozen 29 Sep (_handoffs 9dc9bc2, RR-84 §2) ALONE, before any F33 code was read. Matched to
    * historical row 13 ("Cannibalization Prevention", historically VERIFIED-PASS) only AFTER the freeze: that row detected and
    * reported EXISTING-vs-EXISTING competition in query×page data and DEFERRED exactly F33's core ("where a suitable existing URL

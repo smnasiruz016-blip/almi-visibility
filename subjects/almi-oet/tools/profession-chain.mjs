@@ -180,7 +180,7 @@ if (outDir) {
   let chainRefused = false;
   let chainFailed = false;
   /* 🔴 F34 — the candidate page is written only when no existing page of this tenant serves, or may serve, its intent. */
-  const existingPage = existingPageGate({ scope: SCOPE, entry: "subjects/almi-oet/tools/profession-chain.mjs", candidate: { slug: which, intent: spec?.variant } });
+  const existingPage = existingPageGate({ scope: SCOPE, entry: "subjects/almi-oet/tools/profession-chain.mjs", candidate: { slug: which, intent: spec?.variant, structure: { values: PRODUCT.variants } } });
   for (const [name, body, what] of [
     /* F04: the action is a label the shared engine's registry declares, so it names no subject word (neutrality census). */
     ...(existingPage.mayProduce ? [[`${which}.html`, html, "WRITE_VARIANT_CHAIN_PAGE"]] : []),

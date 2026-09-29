@@ -6,7 +6,7 @@
  * Each sabotage replaces ONE exact single-line span (identical in an LF and a CRLF checkout), proves it LANDED, runs the named
  * proof file, requires the NAMED test to fail, restores the file and proves the restore by raw-byte sha256. The production trail
  * is hashed before and after and must be unchanged. A restore also runs on any exit. A sabotage that does not turn its named test
- * red is reported NOT PROVED — never dropped. Evidence: runs/audit/f34-sabotage-2026-09-28.txt.
+ * red is reported NOT PROVED — never dropped. Evidence: runs/audit/f34-sabotage-2026-09-28.txt; re-run after F33 (RR-84): runs/audit/f34-sabotage-2026-09-29.txt.
  */
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -17,7 +17,7 @@ import { fileURLToPath } from "node:url";
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const EPF = "src/page/existing-page-first.mjs", POP = "src/page/existing-page-population.mjs", CON = "src/page/construct.mjs", BP = "bin/build-page.mjs";
 const NC = "subjects/almi-oet/tools/nursing-chain.mjs", CEN = "tools/existing-page-first-census.mjs", NGC = "tools/no-generation-census.mjs";
-const IDS = "src/evidence/ids.mjs";
+const IDS = "src/evidence/ids.mjs", NCV = "src/page/need-coverage.mjs";
 const T = "test/f34-no-blind-regeneration.test.mjs", PC = "test/page-construction.test.mjs", NBR = "test/no-blind-regeneration.test.mjs";
 const TRAIL = "audit-trail/events.jsonl";
 const sha = (b) => createHash("sha256").update(b).digest("hex");
@@ -27,10 +27,11 @@ const SABOTAGES = [
   ["S1", "C1 missing population refused", EPF, `if (population === null || typeof population !== "object" || !Array.isArray(population.pages) || !COVERAGE_STATES.includes(population.coverageState)) {`, "if (false) {", "C1 · a missing", T],
   ["S2", "C1 another tenant refused", EPF, "if (!sameTenant(population.tenantId) || population.pages.some((p) => p?.tenantId !== undefined && !sameTenant(p.tenantId))) {", "if (false) {", "C1 · a missing", T],
   ["S3", "C2 empty but not COMPLETE is MONITOR", EPF, `return population.coverageState === "COMPLETE" ? out(O.NO_EXISTING_PAGE, R.NONE, seen) : out(O.MONITOR, R.NOT_COMPLETE, seen);`, "return out(O.NO_EXISTING_PAGE, R.NONE, seen);", "C2 · with NO existing page", T],
-  ["S4", "C2 different wording never produced", EPF, "if (matched.length === 0) return out(O.MONITOR, forms.length ? R.UNCERTAIN : R.NO_INTENT, found);", "if (matched.length === 0) return out(O.NO_EXISTING_PAGE, R.NONE, found);", "C2 · the SAME need in DIFFERENT WORDS", T],
-  ["S5", "C2 a page naming the intent is matched", EPF, "return forms.some((run) => containsRun(tokens, run));", "return false;", "C2 · an existing page that names the intent", T],
+  /* S4, S5 RE-POINTED (RR-84): F33 now carries these protections inside the same check — the old spans no longer exist. */
+  ["S4", "C2 different wording never produced", NCV, "if (pages.some((p) => p.verdict === PAGE_VERDICTS.UNDECIDED)) return out(O.CANNOT_DECIDE, R.UNDECIDED_PAGES, pages);", "if (false) return out(O.CANNOT_DECIDE, R.UNDECIDED_PAGES, pages);", "C2 · the SAME need in DIFFERENT WORDS", T],
+  ["S5", "C2 a page naming the intent is matched", NCV, "[PAGE_EVIDENCE.HEADLINE_THIS_ONLY]: PAGE_VERDICTS.COVERS,", "[PAGE_EVIDENCE.HEADLINE_THIS_ONLY]: PAGE_VERDICTS.DIFFERENT,", "C2 · an existing page that names the intent", T],
   ["S6", "C4 recorded defect routes to IMPROVE", EPF, "if (defective.length) {", "if (false) {", "C4 ·", T],
-  ["S7", "C6 a stopped candidate owes a decision", EPF, "if (!decision || decision.mayProduce) return null;", "return null;", "C6 · a stopped candidate", T],
+  ["S7", "C6 a stopped candidate owes a decision", EPF, "if (!decision || decision.outcome === EXISTING_PAGE_OUTCOMES.NO_EXISTING_PAGE) return null;", "return null;", "C6 · a stopped candidate", T],
   ["S8", "C1/C2 construction needs the check to PASS", CON, "state: existing.mayProduce ? PASS : existing.outcome === EXISTING_PAGE_OUTCOMES.REFUSED ? NOT_TESTED : FAIL,", "state: PASS,", "F34 · C1 · construction", PC],
   ["S9", "C6 the runner records each stopped candidate", BP, "if (ev) SCOPE.recordDecision(ev);", "if (false) SCOPE.recordDecision(ev);", "C6 · END TO END", T],
   ["S10", "C1 the runner hands in the real population", BP, "existingPages: ep });", `existingPages: { tenantId: SCOPE.tenantId, coverageState: "COMPLETE", pages: [] } });`, "C6 · END TO END", T],
@@ -78,6 +79,6 @@ const trailAfter = sha(read(TRAIL));
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "f34-sabotage-2026-09-28.txt"), lines.join("\n") + "\n");
+writeFileSync(join(REPO, "runs", "audit", "f34-sabotage-2026-09-29.txt"), lines.join("\n") + "\n");
 console.log(lines.join("\n"));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

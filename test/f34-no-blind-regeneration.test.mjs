@@ -29,6 +29,7 @@ import { AUDIT_STORE_OVERRIDE_ENV, AUDIT_RUN_ENV, TEST_SCRATCH_AUDIT_ROOT } from
 import { createTenantResolver } from "../src/tenancy/resolver.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 import { resolveSide } from "../src/tenancy/scope.mjs";
+import { subject } from "./support/subjects.mjs";
 
 const WORLD = declaredWorld();
 process.on("exit", () => WORLD.cleanup());
@@ -40,7 +41,9 @@ const TRAIL_BEFORE = trailSha();
 
 const T = "tenant:f34-fixture";
 const page = (pageId, html, extra = {}) => ({ pageId, tenantId: T, html, ...extra });
-const decide = (intent, pages, coverageState = "COMPLETE") => existingPageFirst({ candidate: { slug: "candidate", intent }, tenantId: T, population: { tenantId: T, coverageState, pages } });
+/* F33 (RR-84): the candidate carries the registered page structure its need belongs to. */
+const VALUES = ["alpha", "beta", "gamma", "nursing", "speech-pathology"];
+const decide = (intent, pages, coverageState = "COMPLETE") => existingPageFirst({ candidate: { slug: "candidate", intent, structure: { values: VALUES } }, tenantId: T, population: { tenantId: T, coverageState, pages } });
 
 /* ---- C1 · the population is required, and it is this tenant's ------------------------------------------------------ */
 
@@ -71,13 +74,19 @@ test("C2 · an existing page that names the intent — in its declared form or w
 });
 
 test("C2 · the SAME need in DIFFERENT WORDS is never produced — the outcome is MONITOR and still names the existing page", () => {
-  /* The page serves a nursing candidate's need without ever using the word: lexical matching cannot see it. */
+  /* F33 (RR-84): an inflected form ("nurse" for "nursing") is now RECOGNISED as the same need — matched, and still never produced. */
   const d = decide("nursing", [page("p9", "<h1>Preparing for the test as a registered nurse</h1><p>Care-sector writing tasks.</p>")]);
-  assert.equal(d.matched, 0, "the premise of this test: the page does not name the intent");
+  assert.equal(d.matched, 1);
   assert.equal(d.outcome, O.MONITOR);
-  assert.equal(d.reason, R.UNCERTAIN);
+  assert.equal(d.reason, R.SERVED);
   assert.deepEqual(d.existingPages, ["p9"]);
   assert.equal(d.mayProduce, false, "a differently worded existing page let a new page through");
+  /* …and a page that serves it in words sharing NO registered form cannot be ruled out: MONITOR, named, never produced. */
+  const syn = decide("nursing", [page("p8", "<h1>Preparing for the test as an RN</h1><p>Care-sector writing tasks.</p>")]);
+  assert.equal(syn.matched, 0, "the premise: the page shares no form of the registered need");
+  assert.equal(syn.outcome, O.MONITOR);
+  assert.deepEqual(syn.existingPages, ["p8"]);
+  assert.equal(syn.mayProduce, false, "a page that might serve the need in other words let a new page through");
 });
 
 test("C2 · with NO existing page, only a COMPLETE population lets production go on; PARTIAL or UNKNOWN is MONITOR", () => {
@@ -89,16 +98,18 @@ test("C2 · with NO existing page, only a COMPLETE population lets production go
     assert.equal(d.reason, R.NOT_COMPLETE, c);
     assert.equal(d.mayProduce, false, `${c}: an unseen page could serve it`);
   }
-  assert.equal(decide("", [page("p1", "<p>x</p>")]).reason, R.NO_INTENT, "a candidate that declares no intent is not waved through");
+  const noIntent = decide("", [page("p1", "<p>x</p>")]);
+  assert.equal(noIntent.mayProduce, false, "a candidate that declares no intent is not waved through");
+  assert.deepEqual(noIntent.existingPages, ["p1"], "an undecidable outcome must still name the existing page");
 });
 
 /* ---- C4 · unknown quality is protected ---------------------------------------------------------------------------- */
 
 test("C4 · an unmeasured existing page is protected (MONITOR); a recorded defect routes to IMPROVE of THAT page; neither produces", () => {
-  const unknown = decide("gamma", [page("g1", "<p>gamma</p>")]);
+  const unknown = decide("gamma", [page("g1", "<h1>gamma</h1>")]);
   assert.equal(unknown.outcome, O.MONITOR);
   assert.equal(unknown.mayProduce, false);
-  const defect = decide("gamma", [page("g2", "<p>gamma too</p>"), page("g1", "<p>gamma</p>", { recordedDefect: "stale fact recorded" })]);
+  const defect = decide("gamma", [page("g2", "<h1>gamma too</h1>"), page("g1", "<h1>gamma</h1>", { recordedDefect: "stale fact recorded" })]);
   assert.equal(defect.outcome, O.IMPROVE);
   assert.equal(defect.existingPages[0], "g1");
   assert.equal(defect.mayProduce, false);
@@ -131,7 +142,7 @@ test("C6 · a stopped candidate owes ONE REFUSAL decision naming the existing pa
   const ev = existingPageDecisionEvent(d, { entry: "bin/build-page.mjs" });
   assert.equal(ev.eventType, "REFUSAL");
   assert.equal(ev.action, "REFUSE_PAGE_PRODUCTION_EXISTING_PAGE_FIRST");
-  assert.equal(ev.reasonCode, R.UNCERTAIN);
+  assert.equal(ev.reasonCode, "AN_EXISTING_PAGE_CANNOT_BE_RULED_IN_OR_OUT", "F33: pages naming no registered need cannot be ruled out");
   assert.match(ev.metadata.resourceRef, new RegExp(`^existing-pages:${ids.slice(0, 8).join(",")}\\+3$`));
   assert.deepEqual(Object.keys(ev.metadata).filter((k) => !GUARD_METADATA_KEYS.includes(k)), []);
   assert.deepEqual(metadataFaults(ev.metadata), []);
@@ -181,7 +192,9 @@ test("C6 · END TO END: the real runner, --confirm, in a declared world — one 
     assert.equal(decisions.length, 2, `expected exactly one recorded decision per candidate, found ${decisions.length}`);
     for (const e of decisions) {
       assert.match(e.metadata.resourceRef, /^existing-pages:[0-9a-f]{16}/, "a recorded decision does not name an existing page");
-      assert.match(e.reasonCode, /SERVES|MAY_SERVE/);
+      assert.match(e.reasonCode, /SERVES|CANNOT_BE_RULED|NOT_RECORDED_COMPLETE/);
+      /* F33 C5 (RR-84): the one recorded decision carries F33's outcome and its per-page evidence counts. */
+      assert.match(e.metadata.classification, /need=(COVERED|CANNOT_DECIDE) ev=[A-Z_:0-9,]+/);
     }
   } finally {
     rmSync(out, { recursive: true, force: true });
@@ -242,8 +255,9 @@ test("REAL · the subject that declares page specs has a non-empty same-tenant e
   assert.ok(population.pages.length > 0, "EMPTY real population — the acceptance makes that COULD-NOT-PROVE, never a pass");
   assert.notEqual(population.coverageState, "COMPLETE", "the stored crawl's coverage was corrected to PARTIAL; it must not read as COMPLETE");
   const { NURSING_PAGE, SPEECH_PATHOLOGY_PAGE } = await import(new URL("../../almi-visibility-data/almi-oet/page-specs.mjs", import.meta.url));
+  const { variants } = await subject("almi-oet");
   for (const spec of [NURSING_PAGE, SPEECH_PATHOLOGY_PAGE]) {
-    const d = existingPageFirst({ candidate: { slug: spec.slug ?? spec.variant, intent: spec.variant }, tenantId: side.tenantId, population });
+    const d = existingPageFirst({ candidate: { slug: spec.slug ?? spec.variant, intent: spec.variant, structure: { values: variants } }, tenantId: side.tenantId, population });
     assert.equal(d.mayProduce, false, `${spec.variant}: a real declared candidate would be produced over the tenant's existing pages`);
     assert.ok(d.existingPages.length > 0);
   }

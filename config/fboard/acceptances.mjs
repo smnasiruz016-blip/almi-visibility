@@ -184,6 +184,21 @@ export const F34_ORIGINAL = Object.freeze({
   contractSha256: "de94eb8b3946e09ab501a0efe70b6c981a7c2cb287803a25c3fe17ac9b799130",
 });
 
+/* 🔴 F33 · FROZEN 29 Sep 2026 (_handoffs 9dc9bc2, RR-84 §2), committed ALONE before any F33 code was read. Pinned from the committed
+ * blob by parseContract (derivation re-run with a firing control inside the contract: "conflicting" → "consistent"). */
+export const F33_ORIGINAL = Object.freeze({
+  featureId: "F33",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F33_ACCEPTANCE_2026-09-29.md", commit: "9dc9bc263d380fc5f88d77ae667c490e05c1df02", sha256: "37806e195c4df933542dd04f178c2d6830d8e982c02509c807f70955a5957206" }),
+  authority: Object.freeze({ propositionId: "F33_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F33"]) }),
+  frozenOn: "2026-09-29",
+  feature: "F33 · Cannibalization prevention",
+  input: "A candidate page for a declared subject, with the need it is declared to serve under the subject's registered page structure; and the SAME tenant's existing-page population, with each existing page's served content and the population's recorded coverage — driven where an existing page serves the candidate's need in the same wording and in different wording, where every existing page serves materially different needs, where the evidence is insufficient or conflicting, and where the existing-page information is missing, unreadable or another tenant's.",
+  expected: "[C1 · F34's REFUSAL PRESERVED] When the existing-page information is missing, unreadable, of unknown shape or another tenant's, the outcome is REFUSED and nothing is produced — exactly as F34 requires; F33 never turns missing information into a decision.\n[C2 · COVERED] When the evidence shows that an existing page of the same tenant serves the candidate's need — in the same or in different wording — the outcome is COVERED: no new page, draft or URL is produced for that need, and the outcome names the covering page(s).\n[C3 · NOT COVERED] When the evidence shows that every existing page of the same tenant, in a population recorded COMPLETE, serves a materially different need, the outcome is NOT COVERED: the existence of those pages does not block the candidate, which then goes on to every other gate that applies.\n[C4 · CANNOT DECIDE] When the evidence establishes neither C2 nor C3 — insufficient, conflicting, or a population not recorded COMPLETE — the outcome is CANNOT DECIDE: it is recorded as such, nothing is produced, and it is never reported as COVERED or NOT COVERED.\n[C5 · RECORDED REASON] Every outcome carries its reason: the evidence that decided it and, for each existing page it relied on, which evidence and what it showed; each is recorded through the audit trail exactly once.\n[C6 · ROUTED] Every page-producing path reaches this decision before it produces a page; a path that produces a page without it fails the census, whose population and bound are printed beside its result.\n[C7 · NO PAID OR METERED CALL] The decision makes no paid, metered or live call; every call path it uses is enumerated, and a paid or metered one would require the owner's GREEN first.",
+  failure: "[C1] Missing, unreadable, malformed or another tenant's existing-page information yields COVERED, NOT COVERED or any production; or the refusal is proved only by a control that cannot fire.\n[C2] An existing page that serves the candidate's need — in the same or different wording — fails to prevent a new page, draft or URL for that need; or the outcome does not name the covering page.\n[C3] An existing page that serves a materially different need blocks the candidate merely because the tenant owns pages; or NOT COVERED is given over a population not recorded COMPLETE, or without positive evidence against every existing page.\n[C4] Undecidable evidence is reported as COVERED or NOT COVERED; a CANNOT DECIDE produces anything; or a two-state result is given where the evidence supports neither.\n[C5] An outcome carries no reason, a reason that names no evidence, or is recorded zero times or twice.\n[C6] A page-producing path produces a page without reaching the decision, or the census omits or misclassifies a path, or prints a figure without its population and bound.\n[C7] The decision makes a paid, metered or live call, or a call path it uses is missing from its enumeration.\nFor any clause, it also fails when:\n- it is proved only on an empty population, or only on constructed structures when real registered structures exist;\n- it is proved only by a control that cannot fire;\n- its test writes to the production audit trail.",
+  evidence: "- For each clause:",
+  contractSha256: "f729e2cdb7ebb3709d8a434138d8efe38d4db742b8e95245c31ca0a71dab606d",
+});
+
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -343,6 +358,7 @@ export const ACCEPTANCES = Object.freeze({
     contractSha256: "fe38acfe8d3fa9faaf49ebe6643324a35e3e1156e9a479a25a4dd7ca421f244b",
     amends: Object.freeze({ ruling: F10_AMENDMENT_2.ruling, contractSha256: F10_AMENDMENT_2.contractSha256 }),
   }),
+  F33: F33_ORIGINAL,
   F34: F34_ORIGINAL,
   F77: F77_AMENDMENT_1,
 });

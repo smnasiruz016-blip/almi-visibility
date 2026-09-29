@@ -1,0 +1,24 @@
+F33 sabotage run · 2026-09-29T00:29:36.354Z
+population: 18 sabotages over test/f33-need-coverage.test.mjs, test/f34-no-blind-regeneration.test.mjs, test/page-construction.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+production trail sha256 before: d934958fe082bbc8cc0ec6ed5ba1b4a8a1470f5a6945c4163f1c53fc8fcefb2b
+
+S1 C1 F34's missing-information refusal still fires src/page/existing-page-first.mjs: landed true · named test "C1 ·" red true · failing 1 · restored by sha256 true · PROVED
+S2 C1 F34's foreign-tenant refusal still fires src/page/existing-page-first.mjs: landed true · named test "C1 ·" red true · failing 1 · restored by sha256 true · PROVED
+S3 C2 a headline naming only this need COVERS src/page/need-coverage.mjs: landed true · named test "C2 · COVERED on the REAL structure" red true · failing 3 · restored by sha256 true · PROVED
+S4 C2 different wording is the same need (stems) src/page/need-coverage.mjs: landed true · named test "C2 · the SAME need in DIFFERENT WORDS" red true · failing 2 · restored by sha256 true · PROVED
+S5 C2 different wording is the same need (prefix rule) src/page/need-coverage.mjs: landed true · named test "C2 · the SAME need in DIFFERENT WORDS" red true · failing 1 · restored by sha256 true · PROVED
+S6 C3 a headline naming only other needs is DIFFERENT src/page/need-coverage.mjs: landed true · named test "C3 · NOT COVERED on the REAL structure" red true · failing 2 · restored by sha256 true · PROVED
+S7 C3 NOT COVERED only over a COMPLETE population src/page/need-coverage.mjs: landed true · named test "C3 · NOT COVERED is NEVER given" red true · failing 1 · restored by sha256 true · PROVED
+S8 C3 NOT COVERED lets production go on src/page/existing-page-first.mjs: landed true · named test "C3 · NOT COVERED on the REAL structure" red true · failing 2 · restored by sha256 true · PROVED
+S9 C4 an undecidable page holds the decision src/page/need-coverage.mjs: landed true · named test "C4 · each undecidable world" red true · failing 3 · restored by sha256 true · PROVED
+S10 C4 a page naming no registered need is UNDECIDED src/page/need-coverage.mjs: landed true · named test "C4 · each undecidable world" red true · failing 3 · restored by sha256 true · PROVED
+S11 C4 a shared headline is UNDECIDED src/page/need-coverage.mjs: landed true · named test "C4 · each undecidable world" red true · failing 1 · restored by sha256 true · PROVED
+S12 C4 no registered structure cannot decide src/page/need-coverage.mjs: landed true · named test "C4 · each undecidable world" red true · failing 1 · restored by sha256 true · PROVED
+S13 C5 the recorded reason carries F33's evidence src/page/existing-page-first.mjs: landed true · named test "C5 ·" red true · failing 1 · restored by sha256 true · PROVED
+S14 C5 NOT COVERED is recorded src/page/existing-page-first.mjs: landed true · named test "C5 ·" red true · failing 1 · restored by sha256 true · PROVED
+S15 C5/C6 the runner's recorded decision carries F33 src/page/existing-page-first.mjs: landed true · named test "C6 · END TO END" red true · failing 1 · restored by sha256 true · PROVED
+S16 C6 the one check reaches F33 src/page/existing-page-first.mjs: landed true · named test "C6 · the one check every routed path calls" red true · failing 8 · restored by sha256 true · PROVED
+S17 C6 construction hands F33 the registered structure src/page/construct.mjs: landed true · named test "F34 · C2 · a candidate whose intent" red true · failing 2 · restored by sha256 true · PROVED
+S18 C7 a network call in the decision is seen tools/need-coverage-call-paths.mjs: landed true · named test "C7 ·" red true · failing 1 · restored by sha256 true · PROVED
+
+proved 18 of 18 · residue 0 · production trail sha256 after: d934958fe082bbc8cc0ec6ed5ba1b4a8a1470f5a6945c4163f1c53fc8fcefb2b · unchanged true

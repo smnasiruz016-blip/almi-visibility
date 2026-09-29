@@ -341,7 +341,7 @@ const report = {
 
 if (outDir) {
   /* 🔴 F34 — the candidate page is written only when no existing page of this tenant serves, or may serve, its intent. */
-  const existingPage = existingPageGate({ scope: SCOPE, entry: "subjects/almi-oet/tools/nursing-chain.mjs", candidate: { slug: "nursing", intent: PRODUCT.pageSpecs.nursing?.variant } });
+  const existingPage = existingPageGate({ scope: SCOPE, entry: "subjects/almi-oet/tools/nursing-chain.mjs", candidate: { slug: "nursing", intent: PRODUCT.pageSpecs.nursing?.variant, structure: { values: PRODUCT.variants } } });
   const chainOutcomes = [
     ...(existingPage.mayProduce ? [["nursing.html", candidateHtml, "WRITE_CHAIN_CANDIDATE_PAGE"]] : []),
     ["chain-report.json", JSON.stringify(report, null, 2) + "\n", "WRITE_CHAIN_REPORT"],

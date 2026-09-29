@@ -45,7 +45,8 @@ export function populationFromPartition({ tenantId, records, bodies, completenes
     const served = (p.observations ?? []).map((id) => observations.get(id)).filter((o) => o && bodies.has(o.observation_id))
       .sort((a, b) => String(a.observed_at).localeCompare(String(b.observed_at)));
     const latest = served.at(-1);
-    return { pageId: p.page_id, tenantId, html: latest ? bodies.get(latest.observation_id) : "" };
+    /* F32 (RR-87): the observation the body came from, so a reader can require that body's fingerprint to be verified */
+    return { pageId: p.page_id, tenantId, html: latest ? bodies.get(latest.observation_id) : "", bodyObservationId: latest ? latest.observation_id : null };
   });
   const derived = WEAKEST.includes(coverageState) ? coverageState : "UNKNOWN";
   return Object.freeze({ tenantId, coverageState: completeness ? coverageForConsumers(completeness) : derived, pages, completeness, inventory });

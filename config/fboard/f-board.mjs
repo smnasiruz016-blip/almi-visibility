@@ -1010,6 +1010,51 @@ export const DECLARED = Object.freeze({
       }),
     ]),
   }),
+  /* 🔴 F32 · Duplicate thin and template detection. Frozen 29 Sep (_handoffs a0b9776, RR-87) ALONE, before any F32 code was read.
+   * Matched to historical row 12 ("Duplicate / Thin / Template Detection", historically VERIFIED-PASS) only AFTER the freeze. The
+   * reconciliation labels it SAME; clause by clause it is CHANGED: row 12 rejects on a 0.9 near-duplicate score, a 350-word floor and a
+   * 75% template share, which V3 §13–§14 replace with a 40% review trigger, no length floor and no invented threshold. The legacy audit
+   * checks are untouched; their body extraction and shingle method are reused. The PAGE DECISION cluster's third row. */
+  F32: Object.freeze({
+    featureId: "F32",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: ACCEPTANCES.F32.ruling, contractSha256: ACCEPTANCES.F32.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F32",
+        on: "2026-09-29",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F32.ruling.sha256, contract: ACCEPTANCES.F32.contractSha256 }),
+        branch: "rr87-f32-duplicate-thin-template",
+        baseSha: "8a282b7a7d23cef1c43bddbd8ad6ea2e6e99579d",
+        baseCiRun: "36523359240",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-29_RR-87_CONTINUOUS_BUILD.md", commit: "7239df5ffdfb41fea3c082a74a4169c63117a062", sha256: "28b8dc8b9b44b8c48767b0d32b5ee45182dd9f95b214ad56118fda1a002f2567" }),
+      }),
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F32",
+        population: "REAL",
+        on: "2026-09-29",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F32.ruling.sha256, contract: ACCEPTANCES.F32.contractSha256 }),
+        populations: "REAL (count-only; bound: recorded data only · 27 pages · 27 measured, every body verified by its own fingerprint · 351 sibling pairs · semantic reviews recorded 0 · unique-value records 0 · no paid or metered call): exact duplicates 0 (0 groups); textual overlap REVIEW_REQUIRED 220 · BELOW_TRIGGER 131 of 351 pairs (Jaccard of 8-word main-text shingles, median 0.456, range 0.104–0.840); semantic duplication NOT_JUDGED on all 351 pairs; shared-shell share measured on all 27 (range 0.341–0.903, median 0.789), SHELL_ONLY 0; unique value NOT_JUDGED on all 27.",
+        proofs: "test/f32-duplication.test.mjs — identical main text grouped whatever the chrome and case, one changed word ungroups, an unreadable body NOT MEASURED; C2 FIRING CONTROL: exactly 40 percent (2/5) is below the trigger, 3/7 is REVIEW REQUIRED, and neither becomes a semantic, exact or unique-value verdict; a recorded review decides, low overlap cannot rescue a reviewed duplicate, high overlap passes only with documented distinct value, a review missing an aspect does not count; shell share by recurrence (3/13 hand-counted), nav-only SHELL ONLY, a 97%-shell page with one unique shingle is not SHELL ONLY (no invented threshold); C5 FIRING CONTROL: a three-word unique page is NOT insufficient, only exact duplicate, SHELL ONLY or a recorded record decides; no action field in the result, the legacy thresholds unchanged and unread; an unverified body NOT MEASURED, verification by the body's OWN fingerprint; the entry point prints counts and its bound and writes nothing; no network, process, connector or paid call (firing control); hand-written expectations; production trail byte-identical",
+        sabotage: "runs/audit/f32-sabotage-2026-09-29.txt: 23 of 23 proved, every span pre-flighted once; F31 22/22 re-run on the changed population module",
+        historicalReuse: "historical row 12 (VERIFIED-PASS, 394 bodies of the whole batch) is CHANGED against every clause but exact duplication (which it judged on whole-response bytes, not the main text): its 0.9 near-duplicate verdict, 350-word thin floor and 75% template threshold are what V3 §13–§14 replace. Reused unchanged: shell.mjs body extraction, words, 8-word shingles and Jaccard; F31's population and body verification. The legacy audit checks and Row 25's gate are untouched.",
+        declaredLimit: "semantic duplication and unique value are NOT JUDGED on real data (missing fact: a recorded semantic review or information-gain record — none exists, none may be bought, no new owner labels); 220 of 351 real pairs are flagged for that review and remain unreviewed. Shared shell is measured within the client's 27 recorded pages only (the inventory is INCOMPLETE).",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
   /* 🔴 F33 · Cannibalization prevention. Frozen 29 Sep (_handoffs 9dc9bc2, RR-84 §2) ALONE, before any F33 code was read. Matched to
    * historical row 13 ("Cannibalization Prevention", historically VERIFIED-PASS) only AFTER the freeze: that row detected and
    * reported EXISTING-vs-EXISTING competition in query×page data and DEFERRED exactly F33's core ("where a suitable existing URL

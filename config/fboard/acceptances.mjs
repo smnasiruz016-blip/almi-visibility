@@ -259,6 +259,21 @@ export const F35_ORIGINAL = Object.freeze({
   contractSha256: "36b15b9878856f6e58f1881fbba55f277dcf6bc8b28f657eb0e5ec69d7a604cc",
 });
 
+/* 🔴 F32 · FROZEN 29 Sep 2026 (_handoffs a0b9776, RR-87), committed ALONE before F32 code was re-read. Pinned from the committed
+ * blob by parseContract (derivation re-run with a firing control inside the contract: "grouped" → "gathered"). */
+export const F32_ORIGINAL = Object.freeze({
+  featureId: "F32",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F32_ACCEPTANCE_2026-09-29.md", commit: "a0b977607823dcf09589aa77694fe51aa37aa5d8", sha256: "3ce456e508138e5b5a1bf3c4c41c859d7f73678889f8d145109d343c431b9827" }),
+  authority: Object.freeze({ propositionId: "F32_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F32"]) }),
+  frozenOn: "2026-09-29",
+  feature: "F32 · Duplicate thin and template detection",
+  input: "For one declared client: its existing pages as F31 records them (identities, stored bodies and their verification), compared with each other as siblings; together with any recorded semantic review or information-gain record — driven over the real recorded structures of the client, count-only.",
+  expected: "[C1 · EXACT DUPLICATION] Pages whose main text is identical after the stated normalisation are reported as exact-duplicate groups with their page identities; pages not in any group are CLEAR of exact duplication.\n[C2 · OVERLAP IS A TRIGGER, NEVER A VERDICT] Every sibling pair's textual overlap is measured by the stated method; a pair above 40 percent is REVIEW REQUIRED; no pair is judged duplicate, rejected or cleared of semantic duplication by a percentage alone, and overlap at or below 40 percent never yields NOT DUPLICATE.\n[C3 · SEMANTIC DUPLICATION ONLY ON A RECORDED REVIEW] Semantic duplication is decided only from a recorded semantic review comparing intent, answer, facts, architecture, examples and user value; high overlap passes only with documented distinct value; without a recorded review the outcome is NOT JUDGED with the missing review named — never CLEAR, never DUPLICATE.\n[C4 · SHARED-SHELL DOMINANCE MEASURED] Each page's shared-shell share is measured by the stated method and reported with it; a page with no text outside the shared shell is SHELL ONLY; no dominance threshold is invented.\n[C5 · UNIQUE VALUE IS NEVER A WORD COUNT] Insufficient unique value is established only for an exact duplicate or a SHELL ONLY page, or from a recorded semantic review or information-gain record; no word-count floor or fixed minimum decides it; otherwise it is NOT JUDGED with the missing record named.\n[C6 · DETECTION ONLY, ROW 25 UNTOUCHED] F32 records findings only: it rejects, removes, merges, noindexes, publishes or writes no page, and Row 25's existing-page gate and its thresholds are unchanged.\n[C7 · SAME CLIENT, RECORDED DATA ONLY, BOUND PRINTED] Only the client's own recorded pages are read; a page without a verified stored body is counted NOT MEASURED; the result prints its population and bound, count-only; no live, paid or metered call is made.",
+  failure: "[C1] Identical pages are not grouped, different pages are grouped, or a page is reported without its identity.\n[C2] A pair is judged duplicate, rejected, or declared not duplicate on overlap alone; a pair above 40 percent is not flagged for review; the method is not stated.\n[C3] Semantic duplication is reported CLEAR or DUPLICATE without a recorded review, or the missing review is not named.\n[C4] The shell share is not measured or not reported with its method; a page with unique text is called SHELL ONLY, or a page with none is not; a dominance threshold is applied that no authority sets.\n[C5] A word count, the 350-word floor or any fixed minimum decides unique value; insufficiency is asserted without an exact duplicate, SHELL ONLY or a recorded review; NOT JUDGED names no missing record.\n[C6] Any page is rejected, removed, merged, noindexed, published or written, or Row 25's gate or thresholds change.\n[C7] Another client's page is read or compared; a page without a verified body is measured as if it had one; a result is printed without its population and bound; a live, paid or metered call is made.\nFor any clause, it also fails when:\n- it is proved only on an empty population, or only on constructed data when real recorded structures exist;\n- it is proved only by a control that cannot fire, or by a test that computes its expected answer with the logic it checks;\n- its test writes to the production audit trail.",
+  evidence: "- For each clause:",
+  contractSha256: "ca96cbb62eee1b7439e5556f64d98f0946b65a92d8fa717e9bbd1601c076e363",
+});
+
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -420,6 +435,7 @@ export const ACCEPTANCES = Object.freeze({
   }),
   F21: F21_ORIGINAL,
   F31: F31_ORIGINAL,
+  F32: F32_ORIGINAL,
   F33: F33_ORIGINAL,
   F34: F34_ORIGINAL,
   F35: F35_ORIGINAL,

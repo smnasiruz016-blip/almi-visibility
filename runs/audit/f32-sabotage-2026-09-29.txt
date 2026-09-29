@@ -1,0 +1,30 @@
+F32 sabotage run · 2026-09-29T04:56:58.675Z
+population: 23 sabotages over test/f32-duplication.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1 S19=1 S20=1 S21=1 S22=1 S23=1 · all exactly once: true
+production trail sha256 before: b0ba5f0f8b47949db2d4fc4d330d6c9d2d7d651126924e4b8d5afdfd5a43219a
+
+S1 C1 grouping is by the main text's hash src/page/duplication.mjs: landed true · named test "C1 ·" red true · failing 2 · restored by sha256 true · PROVED
+S2 C1 the stated normalisation (case, punctuation) src/page/duplication.mjs: landed true · named test "C1 ·" red true · failing 2 · restored by sha256 true · PROVED
+S3 C1 a group needs two pages src/page/duplication.mjs: landed true · named test "C1 ·" red true · failing 4 · restored by sha256 true · PROVED
+S4 C2 ABOVE 40 percent, not at it src/page/duplication.mjs: landed true · named test "C2 ·" red true · failing 1 · restored by sha256 true · PROVED
+S5 C2 the trigger is V3's 40 percent src/page/duplication.mjs: landed true · named test "C2 ·" red true · failing 2 · restored by sha256 true · PROVED
+S6 C2/C3 a percentage never becomes a semantic verdict src/page/duplication.mjs: landed true · named test "C2 ·" red true · failing 3 · restored by sha256 true · PROVED
+S7 C3 a review must compare every aspect src/page/duplication.mjs: landed true · named test "C3 ·" red true · failing 1 · restored by sha256 true · PROVED
+S8 C3 high overlap passes only with documented distinct value src/page/duplication.mjs: landed true · named test "C3 ·" red true · failing 1 · restored by sha256 true · PROVED
+S9 C3 a page with a reviewed duplicate is DUPLICATE src/page/duplication.mjs: landed true · named test "C3 ·" red true · failing 1 · restored by sha256 true · PROVED
+S10 C4 shared means seen on ANOTHER page src/page/duplication.mjs: landed true · named test "C4 ·" red true · failing 3 · restored by sha256 true · PROVED
+S11 C4 no invented dominance threshold src/page/duplication.mjs: landed true · named test "C4 ·" red true · failing 2 · restored by sha256 true · PROVED
+S12 C4 chrome is measured, not assumed src/audit/shell.mjs: landed true · named test "C4 ·" red true · failing 2 · restored by sha256 true · PROVED
+S13 C5 unique value is never a word count src/page/duplication.mjs: landed true · named test "C5 ·" red true · failing 4 · restored by sha256 true · PROVED
+S14 C5 SHELL ONLY is insufficient src/page/duplication.mjs: landed true · named test "C5 ·" red true · failing 1 · restored by sha256 true · PROVED
+S15 C5 a recorded value record decides src/page/duplication.mjs: landed true · named test "C5 ·" red true · failing 1 · restored by sha256 true · PROVED
+S16 C5 an empty review list is passed, never defaulted src/page/duplication.mjs: landed true · named test "C5 ·" red true · failing 1 · restored by sha256 true · PROVED
+S17 C6 no action field in the result src/page/duplication.mjs: landed true · named test "C6 ·" red true · failing 1 · restored by sha256 true · PROVED
+S18 C6 the legacy thresholds are unchanged src/audit/content-checks.mjs: landed true · named test "C6 ·" red true · failing 1 · restored by sha256 true · PROVED
+S19 C7 an unverified body is not measured src/page/duplication.mjs: landed true · named test "C7 · an unverified" red true · failing 1 · restored by sha256 true · PROVED
+S20 C7 verification is the body's OWN fingerprint src/page/duplication-evidence.mjs: landed true · named test "C7 · an unverified" red true · failing 1 · restored by sha256 true · PROVED
+S21 C7 the population names the body's observation src/page/existing-page-population.mjs: landed true · named test "REAL ·" red true · failing 1 · restored by sha256 true · PROVED
+S22 C7 a network call is seen tools/need-coverage-call-paths.mjs: landed true · named test "C7 · the detection" red true · failing 1 · restored by sha256 true · PROVED
+S23 C7 the entry point prints its bound bin/page-duplication.mjs: landed true · named test "C7 · THE ENTRY POINT" red true · failing 1 · restored by sha256 true · PROVED
+
+proved 23 of 23 · residue 0 · production trail sha256 after: b0ba5f0f8b47949db2d4fc4d330d6c9d2d7d651126924e4b8d5afdfd5a43219a · unchanged true

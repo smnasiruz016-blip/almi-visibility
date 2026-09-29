@@ -67,6 +67,9 @@ const textOf = (html) =>
     .replace(/\s+/g, " ")
     .trim();
 
+/** F32 (RR-87): the whole page's visible text — never-prose elements removed, chrome KEPT (shared shell is measured, not assumed). */
+export const visibleText = (html) => textOf(removeElements(String(html ?? ""), STRIP_ELEMENTS));
+
 export const words = (text) => (text === "" ? [] : text.toLowerCase().match(/[a-z0-9'’-]+/g) ?? []);
 
 /**

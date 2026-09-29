@@ -199,6 +199,21 @@ export const F33_ORIGINAL = Object.freeze({
   contractSha256: "f729e2cdb7ebb3709d8a434138d8efe38d4db742b8e95245c31ca0a71dab606d",
 });
 
+/* 🔴 F31 · FROZEN 29 Sep 2026 (_handoffs 3a8f7ba, RR-85 §2), committed ALONE before any F31 code was read. Pinned from the committed
+ * blob by parseContract (derivation re-run with a firing control inside the contract: "spelling" → "typing"). */
+export const F31_ORIGINAL = Object.freeze({
+  featureId: "F31",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F31_ACCEPTANCE_2026-09-29.md", commit: "3a8f7ba8b747dfc4e280570b6ba29a5effc1c412", sha256: "edad7336b2d35e45d3e34e09ff2efee9fd2155f8cd8b3b60f243b4eefa9e463b" }),
+  authority: Object.freeze({ propositionId: "F31_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F31"]) }),
+  frozenOn: "2026-09-29",
+  feature: "F31 · Existing page inventory",
+  input: "The recorded observation data of a declared client — its declared tenant and the site origins declared to that tenant — with every known URL, each URL's recorded observations, served bytes, served states, link records and sitemap listings, the recorded caps and gaps of each collection, and any declared freshness rule; driven over the real recorded data, and over recorded fixtures in which the inventory is complete, incomplete, unreadable, out of scope, and complete but past its freshness rule.",
+  expected: "[C1 · STABLE IDENTITY] Every known URL resolves to exactly one page identity; the same page reached through a different spelling (case, trailing slash, fragment, parameter order) or rediscovered later keeps that identity; distinct pages keep distinct identities; one URL claimed by two identities is reported as a conflict, never silently merged.\n[C2 · FINGERPRINTS] Each page carries the fingerprint of the bytes actually served at each recorded observation; unchanged bytes keep their fingerprint and changed bytes change it; a page with no stored bytes carries no fingerprint, never an invented one.\n[C3 · SERVED STATE] Each page carries its recorded served state — status, final location, observed time; a page never observed has an UNKNOWN served state, never an inferred one.\n[C4 · OWNERSHIP] Each page is owned by the one tenant its own origin is declared to, through the one tenant decision; an undeclared or ambiguous origin gets no owner and stays listed with its reason; another tenant's page never enters this client's inventory.\n[C5 · EVIDENCE] Every attribute of every page traces to the recorded observations it came from (batch, observation identities, times); an attribute with no recorded source is absent, never filled in.\n[C6 · COMPLETENESS VERDICT] For the declared client and scope the inventory states exactly one of COMPLETE · INCOMPLETE · UNKNOWN · OUT OF SCOPE — and a COMPLETE past its freshness rule reads STALE — each with its basis printed beside it: the method, the scope, the as-of time, the freshness rule, and the counts that decided it. COMPLETE only as the resolved wording above defines it; any in-scope URL a recorded source names but no observation covers, or any in-scope enumeration cut short, makes it INCOMPLETE with that count; missing or unreadable discovery records, or no declared freshness rule, make it UNKNOWN; a scope with no declared origin is OUT OF SCOPE.\n[C7 · CONSUMERS ACT ON IT] F33 and F34 read this recorded verdict: an INCOMPLETE, UNKNOWN, STALE or OUT OF SCOPE inventory holds every new page exactly as before; only a COMPLETE, unexpired inventory lets F33 decide NOT COVERED for an unrelated new page.\n[C8 · RECORDED DATA ONLY] The inventory and its verdict are computed from recorded data; no live fetch, crawl, Search Console collection, paid or metered call is made.",
+  failure: "[C1] A page gains a second identity through a spelling or a rediscovery; two pages share one; a conflict is merged silently.\n[C2] A fingerprint does not match the served bytes, stays the same when the bytes changed, changes when they did not, or is invented where no bytes were stored.\n[C3] A served state is inferred, or reported for a page never observed.\n[C4] A page is owned by an inferred tenant, by more than one, or by another tenant's client; an unowned page is dropped rather than listed with its reason.\n[C5] An attribute has no recorded source, or a source it does not in fact come from.\n[C6] The states are collapsed into two; COMPLETE is given without its method, scope, as-of time or freshness rule, or where a recorded source names an unobserved in-scope URL, or where an enumeration was cut short, or where no freshness rule is declared; a COMPLETE past its rule does not read STALE; a verdict is printed without its basis and bound; or a COMPLETE is manufactured for the real data that the recorded data cannot support.\n[C7] An INCOMPLETE, UNKNOWN, STALE or OUT OF SCOPE inventory lets a new page through; or a genuinely COMPLETE, unexpired inventory cannot let F33 decide.\n[C8] A live, metered or paid call is made.\nFor any clause, it also fails when:\n- it is proved only on an empty population;\n- it is proved only by a control that cannot fire;\n- its test writes to the production audit trail.",
+  evidence: "- For each clause:",
+  contractSha256: "c10915a1305290727d63dfa8ebcf9e9f34f5abc3767ebecff54f2de469a8c798",
+});
+
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -358,6 +373,7 @@ export const ACCEPTANCES = Object.freeze({
     contractSha256: "fe38acfe8d3fa9faaf49ebe6643324a35e3e1156e9a479a25a4dd7ca421f244b",
     amends: Object.freeze({ ruling: F10_AMENDMENT_2.ruling, contractSha256: F10_AMENDMENT_2.contractSha256 }),
   }),
+  F31: F31_ORIGINAL,
   F33: F33_ORIGINAL,
   F34: F34_ORIGINAL,
   F77: F77_AMENDMENT_1,

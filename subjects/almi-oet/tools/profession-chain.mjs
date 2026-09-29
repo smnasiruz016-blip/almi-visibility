@@ -45,6 +45,7 @@ import { productFromArgvOrExit, productIdOrExit } from "../../../src/product-cli
 import { scopedEntryPoint } from "../../../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../../../src/tenancy/scoped-run.mjs";
 import { BATCH_ID } from "../../../src/crawl/observation-batch.mjs";
+import { SITEMAP_BATCH_ID } from "../../../src/adapter/sitemap-subject.mjs";
 import { existingPageGate } from "../../../src/page/existing-page-population.mjs";
 
 /**
@@ -59,7 +60,7 @@ import { existingPageGate } from "../../../src/page/existing-page-population.mjs
 /* 🔴 F03 — the subject's data root is decided (RESOURCES.subject) BEFORE its descriptor or any of its files is read. */
 const PRODUCT_ID = productIdOrExit(process.argv, { usage: "node bin/profession-chain.mjs --product=<id> --page=<slug>" });
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/profession-chain.mjs", governed: true, resources: [RESOURCES.subject(PRODUCT_ID), RESOURCES.cache("sibling-page cache"), RESOURCES.runArtefacts("sibling pages read from the cache directory"), RESOURCES.collectionPartition("CRAWL_BATCH", BATCH_ID)] });
+const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/profession-chain.mjs", governed: true, resources: [RESOURCES.subject(PRODUCT_ID), RESOURCES.cache("sibling-page cache"), RESOURCES.runArtefacts("sibling pages read from the cache directory"), RESOURCES.collectionPartition("CRAWL_BATCH", BATCH_ID), RESOURCES.collectionPartition("SITEMAP_COLLECTION", SITEMAP_BATCH_ID)] });
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/profession-chain.mjs --product=<id> --page=<slug>", scope: SCOPE });
 
 const argv = process.argv.slice(2);

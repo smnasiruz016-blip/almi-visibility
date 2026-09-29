@@ -84,6 +84,22 @@ function tenantPartitionOf({ members, tenantId, resolve, collectionRef }) {
  * decompressed together; but a line is PARSED only when its leading observation id is in the partition — another
  * tenant's body is never parsed into a record and never returned.
  */
+export function readPartitionEdges({ batchId, observationIds, env = process.env, name = "edges-2026-09-12.jsonl.br" }) {
+  /* F31 (RR-85): the links recorded FROM the partition's own observations only. As with bodies, a line is parsed only when the
+   * observation it came from is in the partition — another tenant's link is never parsed into a record. */
+  const out = [];
+  const text = brotliDecompressSync(readFileSync(batchFile(name, { batchId, env }))).toString("utf8");
+  for (const line of text.split("\n")) {
+    if (line === "") continue;
+    const id = /"from_observation_id":"([^"]+)"/.exec(line)?.[1];
+    if (!id) throw new TypeError("an edge line carries no source observation id — the archive format changed; refusing rather than parsing blind");
+    if (!observationIds.has(id)) continue;
+    const e = JSON.parse(line);
+    out.push({ from_observation_id: e.from_observation_id, to: e.to });
+  }
+  return out;
+}
+
 export function readPartitionBodies({ batchId, observationIds, env = process.env, name = "bodies-2026-09-12.jsonl.br" }) {
   const out = new Map();
   const text = brotliDecompressSync(readFileSync(batchFile(name, { batchId, env }))).toString("utf8");

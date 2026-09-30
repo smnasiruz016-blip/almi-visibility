@@ -1,0 +1,12 @@
+RR-98 guard sabotage run · 2026-09-30T05:02:12.790Z
+population: 5 sabotages over test/rr98-command-path-guard.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 · all exactly once: true
+production trail sha256 before: 1c8360ac15897b7e046c2e6987773cd2bb88941b749dcea9d684e6fcff01b168
+
+S1 the validator fails on a command path that is no governance record src/fboard/board.mjs: landed true · named test "FIRING CONTROL" red true · failing 1 · restored by sha256 true · PROVED
+S2 the correction resolves (a historical wrong name restored in source) config/fboard/f-board.mjs: landed true · named test "the real board" red true · failing 3 · restored by sha256 true · PROVED
+S3 fboard-status hands the validator the corpus bin/fboard-status.mjs: landed true · named test "every production caller" red true · failing 1 · restored by sha256 true · PROVED
+S4 the consistency tool hands the validator the corpus tools/board-audit-consistency.mjs: landed true · named test "every production caller" red true · failing 1 · restored by sha256 true · PROVED
+S5 the trail census hands the validator the corpus tools/audit-trail-census.mjs: landed true · named test "every production caller" red true · failing 1 · restored by sha256 true · PROVED
+
+proved 5 of 5 · residue 0 · production trail sha256 after: 1c8360ac15897b7e046c2e6987773cd2bb88941b749dcea9d684e6fcff01b168 · unchanged true

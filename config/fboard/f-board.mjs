@@ -1713,7 +1713,7 @@ export const DECLARED = Object.freeze({
         baseSha: "76188dce92c456d7da3f58303bf871c51857e98d",
         baseCiRun: "36656538111",
         baseCiConclusion: "success",
-        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-30_RR-96_CLOSE_197_CONTINUE_F47.md", commit: "6eccb9ba7c62a1b51f2b6d37016c6429154791cc", sha256: "8422c1fd911fff92ffc28ec6b9a9cff07572e2334209c8e41e0e130d60d2828c" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-30_RR-96_CLOSE_197_CONTINUE_F46.md", commit: "6eccb9ba7c62a1b51f2b6d37016c6429154791cc", sha256: "8422c1fd911fff92ffc28ec6b9a9cff07572e2334209c8e41e0e130d60d2828c" }),
       }),
       Object.freeze({
         kind: "VERIFIED",
@@ -1755,7 +1755,7 @@ export const DECLARED = Object.freeze({
         baseSha: "eb02e0256d64a7590ec8d8539c8460437df02a62",
         baseCiRun: "36659504027",
         baseCiConclusion: "success",
-        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-30_RR-96_CLOSE_197_CONTINUE_F20.md", commit: "6eccb9ba7c62a1b51f2b6d37016c6429154791cc", sha256: "8422c1fd911fff92ffc28ec6b9a9cff07572e2334209c8e41e0e130d60d2828c" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-30_RR-96_CLOSE_197_CONTINUE_F46.md", commit: "6eccb9ba7c62a1b51f2b6d37016c6429154791cc", sha256: "8422c1fd911fff92ffc28ec6b9a9cff07572e2334209c8e41e0e130d60d2828c" }),
       }),
       Object.freeze({
         kind: "VERIFIED",
@@ -1797,7 +1797,7 @@ export const DECLARED = Object.freeze({
         baseSha: "3ac5f395cda65e1de541a6730d7826666ad624f6",
         baseCiRun: "36662501213",
         baseCiConclusion: "success",
-        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-30_RR-96_CLOSE_197_CONTINUE_F29.md", commit: "6eccb9ba7c62a1b51f2b6d37016c6429154791cc", sha256: "8422c1fd911fff92ffc28ec6b9a9cff07572e2334209c8e41e0e130d60d2828c" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-30_RR-96_CLOSE_197_CONTINUE_F46.md", commit: "6eccb9ba7c62a1b51f2b6d37016c6429154791cc", sha256: "8422c1fd911fff92ffc28ec6b9a9cff07572e2334209c8e41e0e130d60d2828c" }),
       }),
       Object.freeze({
         kind: "VERIFIED",

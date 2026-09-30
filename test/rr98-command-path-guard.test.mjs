@@ -48,7 +48,7 @@ test("the correction moved nothing but the name: the three rows cite the real fi
     assert.deepEqual([c.path, c.commit, c.sha256], [RIGHT, "6eccb9ba7c62a1b51f2b6d37016c6429154791cc", "8422c1fd911fff92ffc28ec6b9a9cff07572e2334209c8e41e0e130d60d2828c"]);
     assert.equal(board().find((r) => r.featureId === id).state, "VERIFIED-PASS", `${id}'s verdict moved`);
   }
-  assert.equal(progress(board()).passed, 30);
+  assert.equal(progress(board()).passed, 31); /* F90 moved UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS on 30 Sep 2026 (RR-102, acceptance 73b50bf) — the board reads 31/90 */
 });
 
 test("every production caller of the validator hands it the committed corpus — the guard cannot silently not run", () => {

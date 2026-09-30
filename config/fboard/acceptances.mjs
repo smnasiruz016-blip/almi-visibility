@@ -522,6 +522,20 @@ export const F73_ORIGINAL = Object.freeze({
   evidence: "For each clause: a test driving the production path; a firing control — C2's shows an absent cost and reversibility staying NOT MEASURED, never filled; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched. The real result over the recorded recommendations, count-only, with its bound and each field's present and absent counts. The full suite as CI runs it, and exact-SHA CI on the PR head before any merge, then on the merge commit. F73 moves only through the production validator and the audit trail, and only when every clause is PROVED.",
   contractSha256: "dbc5b19c8a531dbaa905b8a34f7f52f6b7a113197b64126a8ec99559d7ce4636",
 });
+/* 🔴 F90 · FROZEN 30 Sep 2026 (_handoffs 73b50bf, RR-99 §4), committed ALONE before any F90 code was read or changed. Pinned from the committed
+ * blob by parseContract (derivation re-run with a firing control inside the contract: "actionable" → "actionabel" moves the hash). */
+export const F90_ORIGINAL = Object.freeze({
+  featureId: "F90",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F90_ACCEPTANCE_2026-09-30.md", commit: "73b50bfaa49fd40be59a1924d8610c771f02683e", sha256: "d1ab41649ded008f1ea5ab487efeac83a3266983ff826a186ccc8d44307c64a7" }),
+  authority: Object.freeze({ propositionId: "F90_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F90"]) }),
+  frozenOn: "2026-09-30",
+  feature: "F90 · Falsifiability of findings",
+  input: "Every recorded finding in the findings stores with its latest state, verdict, supersession, detector and detector version, and the engine's registered checks with their declared clean condition and firing boundary — driven over the real recorded findings, count-only, with nothing fetched or re-run.",
+  expected: "[C1 · THE ACTIONABLE POPULATION] Exactly the findings whose latest state is OPEN, whose verdict is FAIL and which nothing supersedes are actionable; UNKNOWN, closed and superseded findings are counted apart and never refuted as actionable.\n[C2 · A HELD METHOD] Each actionable finding names the registered check that raised it, and that check exists in the engine now; a finding whose detector is not registered, or whose recorded version is not the live one, is named — never assumed held.\n[C3 · A STRUCTURED REFUTATION] Each actionable finding carries METHOD, OBSERVATION and THRESHOLD, each taken from the held method's declaration, or NOT MEASURED with the missing fact named; none is written freehand, estimated or filled.\n[C4 · THE CENSUS] The census over the real actionable findings reports how many are FALSIFIABLE and how many are NOT, by class and by the missing part, with its population and bound; its verdict is PROVED only when every actionable finding is falsifiable, DISPROVED when any is not, COULD-NOT-PROVE when the population cannot be read.\n[C5 · RECORDED DATA ONLY] Nothing is fetched, re-run or written; the output is count-only.",
+  failure: "[C1] An UNKNOWN, closed or superseded finding is treated as actionable, or an actionable one is dropped. [C2] A finding is given a method the engine does not hold, or a version mismatch is hidden. [C3] A refutation part is written freehand, estimated or filled, or a missing part names no missing fact. [C4] The census reads PROVED with any finding not falsifiable, omits its population or bound, or merges classes so a non-falsifiable class is hidden. [C5] Anything is fetched, re-run or written. And for any clause: it is proved only on an empty population, or only by a control that cannot fire.",
+  evidence: "For each clause: a test driving the production path; a firing control; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched. The census over the real recorded findings, count-only, with its bound. The full suite as CI runs it, and exact-SHA CI on the PR head before any merge, then on the merge commit. F90 moves only through the production validator and the audit trail, and only when every clause is PROVED.",
+  contractSha256: "7f4023958f2fe3d0a8c739d39d97722ce821ab58eeb72248c4fde8b3be8e6729",
+});
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -704,4 +718,5 @@ export const ACCEPTANCES = Object.freeze({
   F78: F78_ORIGINAL,
   F79: F79_AMENDMENT_1,
   F82: F82_ORIGINAL,
+  F90: F90_ORIGINAL,
 });

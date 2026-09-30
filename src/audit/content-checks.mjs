@@ -59,6 +59,7 @@ export const TEMPLATE_DOMINANCE_THRESHOLD = 0.75;
 
 export const EXACT_DUPLICATE = registerCheck({
   id: "exact-duplicate",
+  version: "1",
   description: "Two different URLs whose stored content_sha256 is identical.",
   firingFixture: "two observations on different URLs sharing one content_sha256 — must fire",
   cleanControl: "two observations on different URLs with different hashes — must NOT fire",
@@ -104,6 +105,7 @@ export const EXACT_DUPLICATE = registerCheck({
 
 export const THIN_CONTENT = registerCheck({
   id: "thin-content",
+  version: "1",
   description:
     `Body unique-word count below the Gate A floor of ${THIN_UNIQUE_WORD_FLOOR}, measured AFTER shell ` +
     "subtraction. An observed content-supply label — it implies nothing about demand (item 8).",
@@ -182,6 +184,7 @@ export const THIN_CONTENT = registerCheck({
 
 export const NEAR_DUPLICATE = registerCheck({
   id: "near-duplicate",
+  version: "1",
   description: `Body-text Jaccard similarity at or above ${NEAR_DUPLICATE_THRESHOLD} against another crawled page.`,
   firingFixture: "two pages whose bodies differ by one word — must fire",
   cleanControl:
@@ -234,6 +237,7 @@ export const NEAR_DUPLICATE = registerCheck({
 
 export const TEMPLATE_DOMINANCE = registerCheck({
   id: "template-dominance",
+  version: "1",
   description: `Shell accounts for ${TEMPLATE_DOMINANCE_THRESHOLD * 100}% or more of the page's words.`,
   firingFixture: "a page that is 90% chrome by word count — must fire",
   cleanControl: "a page that is 20% chrome — must NOT fire",

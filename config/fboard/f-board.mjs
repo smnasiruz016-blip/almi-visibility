@@ -1564,6 +1564,50 @@ export const DECLARED = Object.freeze({
       }),
     ]),
   }),
+  /* 🔴 F45 · Fact conflict freshness and recomputation. Frozen 30 Sep (_handoffs dcb9fbb, RR-94 §3.1) ALONE, before any F45 implementation
+   * was read. CHOSEN by measured inputs: the client's fact registry (47 records; 46 with a declared rule and a recorded check date; 1 derived).
+   * Historical rows 16 and 17 (MERGED) survive in src/facts/lifecycle.mjs, whose conflict detector, formulas, recomputer and dependency walk
+   * are reused unchanged and re-proved; its clock-defaulted, extraction-dated freshness is NOT reused. */
+  F45: Object.freeze({
+    featureId: "F45",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-30", ruling: ACCEPTANCES.F45.ruling, contractSha256: ACCEPTANCES.F45.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F45",
+        on: "2026-09-30",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F45.ruling.sha256, contract: ACCEPTANCES.F45.contractSha256 }),
+        branch: "rr94-f45-fact-lifecycle",
+        baseSha: "17887f6f67aaf7940eacc91b42aa1d0ca8dd80e4",
+        baseCiRun: "36646130728",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-29_RR-94_CONTINUE_FROM_23_90.md", commit: "1334661f89a3cec21f1dc53e2b38ed9f7c0d80a9", sha256: "7ec3df0d8c8ee4d03124515e34020b54cdeb73cc0546a6fc1d9b4cd10f057b37" }),
+      }),
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F45",
+        population: "REAL",
+        on: "2026-09-30",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F45.ruling.sha256, contract: ACCEPTANCES.F45.contractSha256 }),
+        populations: "REAL (count-only; bound: recorded registry only · 47 active facts, 0 retired · judged on 2026-09-30, stated · nothing fetched or re-checked): contradictions 0 (every claim held by one record); recorded settlements 1; freshness — THREE WORLDS — CURRENT 46 · EXPIRED 0 · NOT MEASURED 1 (the derived fact: no declared freshness rule of its own); the recorded recheck window disagrees with the declared rule on 9 facts (the earlier governs); derived facts 1, recomputed MATCH, yet REVIEW REQUIRED because its own freshness is NOT MEASURED; presentation CURRENT 46 · REVIEW REQUIRED 1. Positive control on the SAME real records at a later stated date (2027-04-01): every fact with a rule and a check date EXPIRED and REVIEW REQUIRED.",
+        proofs: "test/f45-fact-health.test.mjs — C1 FIRING CONTROL on the real registry with one planted variant (both retained, neither presented; identical value, other qualifier and retired are not contradictions; a recorded settlement reported as recorded); C2 own rule from own check date on a stated date, all three worlds, missing facts named, disagreeing check dates not resolved, an earlier recorded recheck governs and a later one never extends, no default date; C3 only a sound fact presented, a retired fact neither judged nor presented, no delete or noindex; C4 MATCH/MISMATCH/NOT MEASURED, a bad input marks the derived fact and — transitively, listed out of order — what is built on it; REAL on the stated date and the later-date control; the entry point refuses without a stated date, prints its bound and writes nothing; no network, process, connector or paid call (firing control). Hand-written expectations; production trail byte-identical",
+        sabotage: "runs/audit/f45-sabotage-2026-09-30.txt: 19 of 19 proved, every span pre-flighted once, production trail unchanged. Not separately provable (finding): the retired-record skip inside the reused detectConflicts is masked by F45's own filter, which is proved (S11)",
+        historicalReuse: "historical rows 16 and 17 (MERGED) — src/facts/lifecycle.mjs detectConflicts, FORMULAS, recomputeDerived and markForReview reused unchanged and re-proved under this acceptance (S2 and S16 sabotage them). NOT reused: freshnessOf (a clock default and an extraction date where F45 requires a stated date and a check date); bin/facts-lifecycle.mjs keeps using it — parked",
+        declaredLimit: "freshness is judged only from recorded check dates — no source was re-checked; a derived fact carries no freshness rule of its own, so it fails closed; no external observation of a claim was compared (that is a separate detector); the acceptance preamble's '3 claims held by more than one record' was a count that ignored the qualifier — the true count is 0",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
   F40: Object.freeze({
     featureId: "F40",
     board: "F_BOARD",

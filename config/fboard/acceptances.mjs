@@ -424,6 +424,20 @@ export const F55_ORIGINAL = Object.freeze({
   evidence: "For each clause: a test driving the production path; a firing control; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched. C1 proved on RFC 9309's own cases (a specific group over the wildcard, longest match, an allow-wins tie, 4xx, 5xx, none) and on the client's real recorded robots.txt against its real inventory. C2 proved with a firing control in which a policy of ALLOWED must still report retrieval NOT MEASURED. C5 proved with a second real client's robots record present in the shared store. The real result, count-only, with its bound. The full suite as CI runs it, and exact-SHA CI on the PR head before any merge, then on the merge commit. F55 moves only through the production validator and the audit trail, and only when every clause is PROVED.",
   contractSha256: "f8f2ff2be1b7fdcd17fd71d42ae23d3d0c09d1452b3a775e2955e80789b6d387",
 });
+/* 🔴 F45 · FROZEN 30 Sep 2026 (_handoffs dcb9fbb, RR-94 §3.1), committed ALONE before any F45 code was written. Pinned from the committed
+ * blob by parseContract (derivation re-run with a firing control inside the contract: "arithmetic" → "arithmetik"). */
+export const F45_ORIGINAL = Object.freeze({
+  featureId: "F45",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F45_ACCEPTANCE_2026-09-30.md", commit: "dcb9fbbb9e35fcb069a47e37bc0618c462672df9", sha256: "f63d771bc5ccf04a869735662548d68389e12e245370fdeb22d7f6a131b75c50" }),
+  authority: Object.freeze({ propositionId: "F45_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F45"]) }),
+  frozenOn: "2026-09-30",
+  feature: "F45 · Fact conflict freshness and recomputation",
+  input: "For each declared client: every record in its fact registry with its claim identity, value, active or retired life, declared freshness rule, recorded check date, any recorded conflict settlement, and — for a derived fact — its declared formula and input ids; and the run's own stated date — driven over the real recorded registry, count-only.",
+  expected: "[C1 · CONTRADICTIONS DETECTED, NEVER AUTO-RESOLVED] Every set of two or more active records of the same claim with differing values is reported CONTRADICTED with every record involved; the code picks no winner; a recorded settlement is reported as recorded, with its settler, and never inferred.\n[C2 · EXPIRY UNDER THE FACT'S OWN RULE] Every fact is exactly one of CURRENT, EXPIRED or NOT MEASURED, judged by its own declared freshness rule against its own recorded check date on the run's stated date, which is printed; a missing rule or check date is NOT MEASURED with the missing fact named, never current.\n[C3 · FAILS CLOSED] An EXPIRED or CONTRADICTED fact is never presented as current: its claim is REVIEW REQUIRED, and nothing is deleted or noindexed.\n[C4 · RECOMPUTATION] Every derived fact is recomputed from its declared formula and recorded inputs and reported MATCH, MISMATCH or NOT MEASURED; a derived fact with an input that is EXPIRED, CONTRADICTED or NOT MEASURED is REVIEW REQUIRED even when the arithmetic matches.\n[C5 · RECORDED DATA ONLY] No source is fetched, re-checked or called; no record is written; the output is count-only with its population, its stated date and its bound.",
+  failure: "[C1] Differing active records of one claim are not reported, one is silently chosen, or a settlement is inferred. [C2] A fact has no state or two; a fact past its window reads CURRENT; a missing rule or check date reads CURRENT or EXPIRED; the judging date is unstated. [C3] An expired or contradicted fact is presented as current, or anything is deleted or noindexed. [C4] A derived value is not recomputed, a mismatch reads MATCH, an undeclared formula or missing input is computed anyway, or a derived fact on a bad input passes. [C5] Anything is fetched, called or written, or a figure is printed without its population, date and bound. And for any clause: it is proved only on an empty population, or only by a control that cannot fire.",
+  evidence: "For each clause: a test driving the production path; a firing control; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched. The real result over the client's recorded registry, count-only, with its stated date and bound, recording all three worlds of C2. The full suite as CI runs it, and exact-SHA CI on the PR head before any merge, then on the merge commit. F45 moves only through the production validator and the audit trail, and only when every clause is PROVED.",
+  contractSha256: "65723eb09ba1ca6fbf0588e7cbdd4daa55be87c3a3d340e22cb1976df27750af",
+});
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -593,6 +607,7 @@ export const ACCEPTANCES = Object.freeze({
   F39: F39_ORIGINAL,
   F41: F41_ORIGINAL,
   F43: F43_ORIGINAL,
+  F45: F45_ORIGINAL,
   F48: F48_AMENDMENT_1,
   F55: F55_ORIGINAL,
   F77: F77_AMENDMENT_1,

@@ -33,6 +33,7 @@ export const STATE_VOCABULARY = Object.freeze({
   grantState: { class: "C", where: "src/intake/contract.mjs", reason: "F01: what intake has done with a permission — DENIED or PENDING only; intake never writes GRANTED" },
   historicalState: { class: "I", where: "src/fboard/board.mjs:64", reason: "only a forbidden property name; never assigned" },
   indexState: { class: "I", where: "src/detect/declared-served.mjs:94", reason: "a local variable holding booleans" },
+  linkTargetState: { class: "C", where: "src/crawl/provenance.mjs (RR-104)", reason: "what is known about a link's target: FETCHED_IN_THIS_RUN with its recorded status, or NOT_FETCHED — never 'working' (naming rule 3)" },
   memberState: { class: "H", where: "src/discovery/local-reasoning.mjs:294", unknownMeans: "no READ reasoning record for the locality", reason: "mixes an evaluation status, a validity fault and epistemic values" },
   noindexState: { class: "I", where: "src/audit/technical-checks.mjs:64", reason: "a function returning booleans" },
   originalState: { class: "H", where: "src/evidence/legacy-artefacts.mjs", unknownMeans: "the 15 September writer's UNKNOWN, kept verbatim: it covered both never measured and reached-not-established", reason: "a legacy literal preserved losslessly; it is never read as a canonical state" },

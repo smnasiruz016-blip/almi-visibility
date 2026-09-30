@@ -1,0 +1,21 @@
+RR-102 content-check boundary sabotage run · 2026-09-30T18:25:55.231Z
+population: 14 sabotages over test/rr102-content-check-boundaries.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): N01=1 W01=1 N02=1 W02=1 N03=1 W03=1 W04=1 N04=1 W05=1 U01=1 U02=1 D01=1 D02=1 D03=1 · all exactly once: true
+production trail sha256 before: 1c8360ac15897b7e046c2e6987773cd2bb88941b749dcea9d684e6fcff01b168
+
+N01 exact-duplicate NARROW: another URL with the same hash no longer fires src/audit/content-checks.mjs: landed true · named test "BOTH DIRECTIONS · exact-duplicate" red true · failing 1 · restored by sha256 true · PROVED
+W01 exact-duplicate WIDEN: the page's own URL counts as a twin src/audit/content-checks.mjs: landed true · named test "BOTH DIRECTIONS · exact-duplicate" red true · failing 2 · restored by sha256 true · PROVED
+N02 thin NARROW: the floor moves in by one word src/audit/content-checks.mjs: landed true · named test "BOTH DIRECTIONS · thin-content" red true · failing 1 · restored by sha256 true · PROVED
+W02 thin WIDEN: the floor moves out by one word src/audit/content-checks.mjs: landed true · named test "BOTH DIRECTIONS · thin-content" red true · failing 1 · restored by sha256 true · PROVED
+N03 near NARROW: a similarity exactly at the threshold no longer fires src/audit/content-checks.mjs: landed true · named test "BOTH DIRECTIONS · near-duplicate" red true · failing 1 · restored by sha256 true · PROVED
+W03 near WIDEN: a similarity just below the threshold fires src/audit/content-checks.mjs: landed true · named test "BOTH DIRECTIONS · near-duplicate" red true · failing 1 · restored by sha256 true · PROVED
+W04 near WIDEN: a peer at the page's own URL is compared src/audit/content-checks.mjs: landed true · named test "BOTH DIRECTIONS · near-duplicate" red true · failing 1 · restored by sha256 true · PROVED
+N04 template NARROW: a share exactly at the threshold no longer fires src/audit/content-checks.mjs: landed true · named test "BOTH DIRECTIONS · template-dominance" red true · failing 1 · restored by sha256 true · PROVED
+W05 template WIDEN: a share just below the threshold fires src/audit/content-checks.mjs: landed true · named test "BOTH DIRECTIONS · template-dominance" red true · failing 1 · restored by sha256 true · PROVED
+U01 UNMEASURED: a missing hash becomes silence, not UNKNOWN src/audit/content-checks.mjs: landed true · named test "an UNMEASURED input" red true · failing 1 · restored by sha256 true · PROVED
+U02 UNMEASURED: thin no longer refuses an unconfident split src/audit/content-checks.mjs: landed true · named test "an UNMEASURED input" red true · failing 1 · restored by sha256 true · PROVED
+D01 DECLARATION: a condition renamed away from the proved one src/audit/content-checks.mjs: landed true · named test "DRIFT GUARD: each content check's declared conditions" red true · failing 1 · restored by sha256 true · PROVED
+D02 DECLARATION: a stated threshold that is not the live constant src/audit/content-checks.mjs: landed true · named test "DRIFT GUARD: each declared threshold" red true · failing 1 · restored by sha256 true · PROVED
+D03 DECLARATION: a check loses its boundary entirely src/audit/content-checks.mjs: landed true · named test "every content detector behind F90" red true · failing 3 · restored by sha256 true · PROVED
+
+proved 14 of 14 · residue 0 · production trail sha256 after: 1c8360ac15897b7e046c2e6987773cd2bb88941b749dcea9d684e6fcff01b168 · unchanged true

@@ -120,6 +120,19 @@ export function boardErrors(board, { capabilities, acceptances = {}, authority =
       if (!permits(res)) errs.push({ code: "ROW_CONSTRAINT_WITHOUT_AUTHORITY", id: c.featureId, why: `the constraint on ${c.featureId} is backed by ${c.authority.propositionId}, which resolves ${res.outcome}, not CURRENT` });
     }
   }
+  /* 🔴 RR-98 — A CITED COMMAND MUST EXIST. Every board event that cites its governing command names a file in _handoffs; that path must
+   * be a governance record in the committed authority corpus. Found 30 Sep 2026: three merged rows (F47, F20, F29) cited a command file
+   * that never existed — a board script derived from the previous row by a global id swap had rewritten the file NAME (commit and
+   * sha256 stayed correct), and no check looked. Resolution is against the committed corpus, never a local checkout, so CI decides it too. */
+  if (authority) {
+    const known = new Set((authority.records ?? []).map((x) => (x?.sourceRef?.repo === "_handoffs" ? x.sourceRef.path : null)).filter(Boolean));
+    for (const r of board) {
+      for (const e of r.events || []) {
+        const c = e?.command;
+        if (c && c.repo === "_handoffs" && !known.has(c.path)) errs.push({ code: "COMMAND_PATH_UNRESOLVED", id: r.featureId, why: `${r.featureId} cites command ${c.path}, which is no governance record in the authority corpus` });
+      }
+    }
+  }
   return errs;
 }
 

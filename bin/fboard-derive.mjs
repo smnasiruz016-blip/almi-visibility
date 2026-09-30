@@ -21,12 +21,15 @@ const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, 
 const OUT = confineToRepo(`${REPO}config/fboard/capabilities.mjs`, { label: "the generated capability rows" });
 export const EXTRACT_PROVENANCE = Object.freeze({
   repo: "_handoffs",
-  /* Specification Amendment 2 (RR-80 §2; _handoffs 388ae02, applied 3f86fbf): the amended_1 extract with ten rows’ required
+  /* Specification Amendment 3 (RR-103 §2; _handoffs beb7362): the amended_2 extract with ONE row appended — F91 Page opportunity
+   * planning — and its two count sentences 90 → 91. 91 rows; F01–F90 unchanged. The control F91 held ("the id one past the last row does
+   * not exist") is restated as F92. Amendments 1 and 2 stay in history. */
+  /* (history) Specification Amendment 2 (RR-80 §2; _handoffs 388ae02, applied 3f86fbf): the amended_1 extract with ten rows’ required
    * outcomes amended in place (F10 F14 F15 F16 F37 F38 F42 F44 F50 F62; F62 class to Core). 90 rows, ids unchanged. Amendment 1
    * (owner ruling a3a777b, amended_1 at 3738b25, sha256 56e2575a…) stays in history. The .docx and the v1 extract stay byte-immutable. */
-  path: "AlmiVisibility_Standalone_Product_Feature_Specification_v1.amended_2.extract.txt",
-  commit: "3f86fbfd33386dcfb7092d04dc2e735a52463ada",
-  sha256: "a5b6b8e35568f10a15c9a83e25a24ee61543b8dbf1a78017a7f8b4778e5e5ea7",
+  path: "AlmiVisibility_Standalone_Product_Feature_Specification_v1.amended_3.extract.txt",
+  commit: "beb736250d9c44dfe46c345d78af7830c5ca6d67",
+  sha256: "179cb43a3a3dd59451eb5cac37ae54ccc112f2617d794d3974b805df164564f8",
 });
 const sha = (s) => createHash("sha256").update(s, "utf8").digest("hex");
 
@@ -44,7 +47,7 @@ export function render(rows) {
     "/**",
     " * 🔴 GENERATED — DO NOT EDIT BY HAND. `node bin/fboard-derive.mjs --extract=<extract> --confirm` rebuilds it.",
     " *",
-    " * The active F-board's capabilities, F01–F90, derived from the committed specification extract named below. Each",
+    " * The active F-board's capabilities, F01–F91, derived from the committed specification extract named below. Each",
     " * row carries the sha256 of its exact extract line, so a hand edit is visible and the list re-derives byte for byte.",
     " */",
     `export const EXTRACT_PROVENANCE = Object.freeze(${JSON.stringify(EXTRACT_PROVENANCE)});`,

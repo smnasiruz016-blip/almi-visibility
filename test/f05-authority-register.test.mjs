@@ -72,7 +72,7 @@ const REAL_AUTH = { records: AUTHORITY_CORPUS, now: REAL_DAY };
  * the list is still exact, and a row moving without appearing here still fails. */
 // F07 joined on 23 September 2026 under its own frozen acceptance (config/fboard/f-board.mjs).
 const MOVED = ["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08", "F09", "F10", "F20", "F21", "F26", "F29", "F31", "F32", "F33", "F34", "F35", "F36", "F39", "F40", "F41", "F43", "F45", "F46", "F47", "F48", "F55", "F73", "F77", "F78", "F79", "F82", "F90"]; /* F90 moved UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS on 30 Sep 2026 (RR-102, acceptance 73b50bf) — the board reads 31/90 */ /* F73 moved UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS on 30 Sep 2026 (RR-97, acceptance 366476c) — the board reads 30/90 */ /* F29 moved UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS on 30 Sep 2026 (RR-96, acceptance c8eee0c) — the board reads 29/90 */ /* F20 moved UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS on 30 Sep 2026 (RR-96, acceptance f566059) — the board reads 28/90 */ /* F47 moved UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS on 30 Sep 2026 (RR-96, acceptance ccd4c1e) — the board reads 27/90 */ /* F46 moved UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS on 30 Sep 2026 (RR-96, acceptance 2e76216) — the board reads 26/90 */ /* F26 moved UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS on 30 Sep 2026 (RR-95, acceptance b1a94e7) — the board reads 25/90 */ /* F45 moved UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS on 30 Sep 2026 (RR-94, acceptance dcb9fbb) — the board reads 24/90 */ /* F55 moved UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS on 29 Sep 2026 (RR-93, acceptance 7323446) — the board reads 23/90 */ /* F79 moved UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS on 29 Sep 2026 (RR-93, acceptance f34f3af) — the board reads 22/90 */ /* F78 moved UNASSESSED -> IN-PROGRESS on 29 Sep 2026 (RR-93, acceptance a1885de; C1 DISPROVED on the real ledger) — the board still reads 21/90 */ /* F48 moved UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS on 29 Sep 2026 (RR-92, acceptance 8d03429) — the board reads 21/90 */ /* F82 moved UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS on 29 Sep 2026 (RR-92, acceptance 25c7f49) — the board reads 20/90 */ /* F43 moved UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS on 29 Sep 2026 (RR-91, acceptance 6c7627a) — the board reads 19/90 */ /* F41 moved UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS on 29 Sep 2026 (RR-87, acceptance 454396e) — the board reads 18/90 */ /* F39 moved UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS on 29 Sep 2026 (RR-90, acceptance 90e798d) — the board reads 17/90 */ /* F32 moved UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS on 29 Sep 2026 (RR-87, acceptance a0b9776) — the board reads 16/90 */ /* F35 moved UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS on 29 Sep 2026 (RR-88, acceptance da659bd) — the board reads 15/90 */ /* F36 moved UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS on 29 Sep 2026 (RR-87, acceptance 2635153) — the board reads 14/90 */ /* F21 moved UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS on 29 Sep 2026 (RR-86, acceptance 804ebd1) — the board reads 13/90 */ /* F31 moved UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS on 29 Sep 2026 (RR-85, acceptance 3a8f7ba) — the board reads 12/90 */ /* F33 moved UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS on 29 Sep 2026 (RR-84, acceptance 9dc9bc2) — the board reads 11/90 */ /* F34 moved UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS on 28 Sep 2026 (RR-83, acceptance 53f74b4) — the board reads 10/90 */ /* F77 moved UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS on 28 Sep 2026 (RR-82, Amendment 1 b443e5e) — the board reads 9/90 */ // F10 joined on 26 September 2026: IN-PROGRESS by movement 1 under its own frozen acceptance (504dbb9; test/f10-human-question-discovery.test.mjs) — no PASS. // F09 joined on 25 September 2026: IN-PROGRESS by movement 1 (test/f09-cross-client-portability.test.mjs). // F04 joined on 25 September 2026: IN-PROGRESS by movement 1 only (test/f04-roles-permissions-approvals.test.mjs). // F03 joined on 25 September 2026: VERIFIED-PASS on merged main, in two movements (test/f03-closure.test.mjs). // F02 STARTED (IN-PROGRESS) on 24 September 2026 under its own frozen acceptance (3ea6fda) — it earned no PASS. // F06 joined on 24 September 2026 under its own frozen acceptance; F01 the same day, under its own (test/f01-closure.test.mjs).
-const UNASSESSED_ROWS = 90 - MOVED.length; // 89 -> 90: Specification Amendment 1, owner ruling _handoffs a3a777b: F90 appended
+const UNASSESSED_ROWS = 91 - MOVED.length; // 89 -> 90: Specification Amendment 1, owner ruling _handoffs a3a777b: F90 appended; 90 -> 91: Specification Amendment 3 (RR-103): F91 appended
 /* 🔴 EVERY PASS ON THE BOARD THAT WAS ACTUALLY EARNED — counted, not assumed.
  * This read `DECLARED.F05.state === "VERIFIED-PASS" ? 1 : 0`, which silently assumed F05 was the only row that
  * could ever pass. F08 passed on 22 September 2026 and the constant was simply wrong, not the board. Counting it
@@ -437,19 +437,19 @@ test("P21 — the generic F05 production code carries no product or client name 
   assert.ok(PRODUCT.test("// the AlmiVisibility ruling") && PRODUCT.test("OET"), "control: the pattern fires on a planted name");
 });
 
-test("P22 — F01–F90 each exist once, in the specification's order, and the denominator is 90 (Specification Amendment 1)", () => {
-  assert.equal(DENOMINATOR, 90);
-  assert.deepEqual(CAPABILITIES.map((c) => c.id), Array.from({ length: 90 }, (_, i) => `F${String(i + 1).padStart(2, "0")}`));
+test("P22 — F01–F91 each exist once, in the specification's order, and the denominator is 91 (Amendment 1: 90; Amendment 3, RR-103: 91)", () => {
+  assert.equal(DENOMINATOR, 91);
+  assert.deepEqual(CAPABILITIES.map((c) => c.id), Array.from({ length: 91 }, (_, i) => `F${String(i + 1).padStart(2, "0")}`));
   const s = progress(board());
-  assert.equal(s.total, 90);
-  assert.equal(Object.values(s.split).reduce((a, b) => a + b, 0), 90);
+  assert.equal(s.total, 91);
+  assert.equal(Object.values(s.split).reduce((a, b) => a + b, 0), 91);
   assert.deepEqual(boardErrors(board(), { capabilities: CAPABILITIES, acceptances: ACCEPTANCES }), []);
   assert.ok(boardErrors(board().slice(0, DENOMINATOR - 1), { capabilities: CAPABILITIES, acceptances: ACCEPTANCES }).some((e) => e.code === "DENOMINATOR"));
   const dup = board(); dup[DENOMINATOR - 1] = { ...dup[0] };
   assert.ok(boardErrors(dup, { capabilities: CAPABILITIES, acceptances: ACCEPTANCES }).some((e) => e.code === "DENOMINATOR"));
 });
 
-test("P22b — F90 is the owner ruling's row, byte for byte, starts UNASSESSED; F00 and F91 do not exist (Specification Amendment 1)", () => {
+test("P22b — F90 is the owner ruling's row, byte for byte; F00 and F92 do not exist (Amendment 1; the F91 control restated as F92 by Amendment 3)", () => {
   /* The ruling's fenced line (_handoffs a3a777b), carried here as TEXT and hashed here — CI has no _handoffs checkout,
    * and a pin compared to itself proves nothing, so the expected hash is re-derived, never copied from capabilities.mjs. */
   const RULING_F90 = "F90 | Assurance | Falsifiability of findings | Every finding presented as actionable carries a structured refutation — what observation, from a method the product actually holds, would overturn it, and the threshold at which it is void — proved by a census over the real findings.";
@@ -463,9 +463,12 @@ test("P22b — F90 is the owner ruling's row, byte for byte, starts UNASSESSED; 
   assert.equal(row.state, "VERIFIED-PASS");
   assert.deepEqual(row.events.map((e) => e.kind), ["ACCEPTANCE_FROZEN", "IMPLEMENTATION", "VERIFIED"]);
   assert.equal(row.events[1].from, "UNASSESSED");
-  for (const absent of ["F00", "F91"]) assert.equal(CAPABILITIES.some((c) => c.id === absent), false, `${absent} must not exist`);
-  /* negative control: renaming the 90th row F91 is a board error, so the check above can fail */
-  const renamed = board(); renamed[DENOMINATOR - 1] = { ...renamed[DENOMINATOR - 1], featureId: "F91" };
+  /* 🔴 RESTATED 30 Sep 2026 (Specification Amendment 3, RR-103 §2.2): F91 was this control — "the id one past the last row does not exist" —
+   * until F91 became a row. The control is restated, not retired: it is now F92, one past the new last row. */
+  assert.ok(CAPABILITIES.some((c) => c.id === "F91"), "F91 is a row since Amendment 3");
+  for (const absent of ["F00", "F92"]) assert.equal(CAPABILITIES.some((c) => c.id === absent), false, `${absent} must not exist`);
+  /* negative control: renaming the last row F92 is a board error, so the check above can fail */
+  const renamed = board(); renamed[DENOMINATOR - 1] = { ...renamed[DENOMINATOR - 1], featureId: "F92" };
   assert.notDeepEqual(boardErrors(renamed, { capabilities: CAPABILITIES, acceptances: ACCEPTANCES }), []);
 });
 
@@ -518,9 +521,9 @@ test("P24 — the committed F05 ruling hash is the acceptance used by code and t
   const cli = node("bin/fboard-status.mjs", "--check");
   assert.equal(cli.status, 0, cli.stdout);
   const split = progress(board()).split;
-  const line = `F-board: 90 rows · ${Object.entries(split).filter(([, v]) => v).map(([k, v]) => `${k} ${v}`).join(" · ")} · sum 90`;
+  const line = `F-board: 91 rows · ${Object.entries(split).filter(([, v]) => v).map(([k, v]) => `${k} ${v}`).join(" · ")} · sum 91`;
   assert.ok(cli.stdout.includes(line), `${line}\n${cli.stdout}`);
-  assert.ok(cli.stdout.includes(`F-progress: ${EARNED}/90`), cli.stdout);
+  assert.ok(cli.stdout.includes(`F-progress: ${EARNED}/91`), cli.stdout);
 });
 
 test("P25 — a bare state string without board identity is REFUSED", () => {

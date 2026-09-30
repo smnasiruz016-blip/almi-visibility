@@ -1093,6 +1093,18 @@ export const CROSSWALK = Object.freeze({
       "freshVerificationRequired": true,
       "authorityImported": false,
       "notes": ""
+    },
+    {
+      "featureId": "F91",
+      "historicalRows": [],
+      "historicalCommits": [],
+      "reusableModules": [],
+      "reusableTests": [],
+      "acceptanceRelation": "UNASSESSED",
+      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "freshVerificationRequired": true,
+      "authorityImported": false,
+      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
     }
   ],
   "provenance": [

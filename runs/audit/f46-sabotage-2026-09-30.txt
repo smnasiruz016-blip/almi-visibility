@@ -1,0 +1,23 @@
+F46 sabotage run · 2026-09-30T01:27:40.051Z
+population: 16 sabotages over test/f46-citation-audit.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 · all exactly once: true
+production trail sha256 before: 9aa564c808c632f54213ac0a698032af0da51548bc905ba5bc3eea83abe14de5
+
+S1 C1 a fetch that failed is not a dead link; an unrecognised outcome fails closed src/facts/citation-audit.mjs: landed true · named test "C1 ·" red true · failing 2 · restored by sha256 true · PROVED
+S2 C1 a recorded failure is FAILED / MISMATCHED src/facts/citation-audit.mjs: landed true · named test "C1 ·" red true · failing 2 · restored by sha256 true · PROVED
+S3 C2 PROVED requires FIT CONFIRMED src/facts/citation-audit.mjs: landed true · named test "C2 ·" red true · failing 2 · restored by sha256 true · PROVED
+S4 C2 any recorded failure DISPROVES src/facts/citation-audit.mjs: landed true · named test "C2 ·" red true · failing 1 · restored by sha256 true · PROVED
+S5 C2 an unmeasured fingerprint never counts as matched src/facts/citation-audit.mjs: landed true · named test "C2 ·" red true · failing 1 · restored by sha256 true · PROVED
+S6 C3 only a declared person's verdict decides FIT src/facts/citation-audit.mjs: landed true · named test "C3 ·" red true · failing 3 · restored by sha256 true · PROVED
+S7 C3 no verdict is NEEDS A PERSON, never a pass src/facts/citation-audit.mjs: landed true · named test "C3 ·" red true · failing 2 · restored by sha256 true · PROVED
+S8 C3 a recorded CONFLICT or a missing element REFUTES src/facts/citation-audit.mjs: landed true · named test "C3 ·" red true · failing 2 · restored by sha256 true · PROVED
+S9 C3 the roster of persons is passed, never defaulted src/facts/citation-audit.mjs: landed true · named test "C3 ·" red true · failing 1 · restored by sha256 true · PROVED
+S10 C4 only admissible tiers are ADMISSIBLE src/facts/citation-audit.mjs: landed true · named test "C4 ·" red true · failing 2 · restored by sha256 true · PROVED
+S11 C4 a verification date is required (V3 §10.3) src/facts/citation-audit.mjs: landed true · named test "C4 ·" red true · failing 1 · restored by sha256 true · PROVED
+S12 C4 disagreeing named and numeric tiers are never resolved silently src/facts/citation-audit.mjs: landed true · named test "C4 ·" red true · failing 1 · restored by sha256 true · PROVED
+S13 C4 the numeric tier is read by the engine's one tier reader src/facts/citation-audit.mjs: landed true · named test "C4 ·" red true · failing 2 · restored by sha256 true · PROVED
+S14 C5 the entry point prints its bound bin/citation-audit.mjs: landed true · named test "C5 · THE ENTRY POINT" red true · failing 1 · restored by sha256 true · PROVED
+S15 C5 the entry point names the fresh-fetch gate bin/citation-audit.mjs: landed true · named test "C5 · THE ENTRY POINT" red true · failing 1 · restored by sha256 true · PROVED
+S16 C5 a network call is seen tools/need-coverage-call-paths.mjs: landed true · named test "C5 · the audit" red true · failing 1 · restored by sha256 true · PROVED
+
+proved 16 of 16 · residue 0 · production trail sha256 after: 9aa564c808c632f54213ac0a698032af0da51548bc905ba5bc3eea83abe14de5 · unchanged true

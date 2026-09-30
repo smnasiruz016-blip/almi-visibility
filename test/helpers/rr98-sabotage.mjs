@@ -22,7 +22,7 @@ const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
 
 const SABOTAGES = [
-  ["S1", "the validator fails on a command path that is no governance record", BD, `if (c && c.repo === "_handoffs" && !known.has(c.path)) errs.push(`, "if (false) errs.push(", "FIRING CONTROL"],
+  ["S1", "the validator fails on a command path that is no governance record", BD, "if (c && !known.has(`${c.repo}\\u0000${c.path}`)) errs.push(", "if (false) errs.push(", "FIRING CONTROL"],
   ["S2", "the correction resolves (a historical wrong name restored in source)", FB, `path: "AlmiVisibility_CC_COMMAND_2026-09-30_RR-96_CLOSE_197_CONTINUE_F46.md", commit: "6eccb9ba7c62a1b51f2b6d37016c6429154791cc", sha256: "8422c1fd911fff92ffc28ec6b9a9cff07572e2334209c8e41e0e130d60d2828c" }),\n      }),\n      Object.freeze({\n        kind: "VERIFIED",\n        featureId: "F29",`, `path: "AlmiVisibility_CC_COMMAND_2026-09-30_RR-96_CLOSE_197_CONTINUE_F29.md", commit: "6eccb9ba7c62a1b51f2b6d37016c6429154791cc", sha256: "8422c1fd911fff92ffc28ec6b9a9cff07572e2334209c8e41e0e130d60d2828c" }),\n      }),\n      Object.freeze({\n        kind: "VERIFIED",\n        featureId: "F29",`, "the real board"],
   ["S3", "fboard-status hands the validator the corpus", ST, "authority: { records: AUTHORITY_CORPUS, now } });", "});", "every production caller"],
   ["S4", "the consistency tool hands the validator the corpus", BC, "const bErrs = boardErrors(board, { capabilities: CAPABILITIES, acceptances: ACCEPTANCES, authority: { records: AUTHORITY_CORPUS, now: CORPUS_PROVENANCE.now } });", "const bErrs = boardErrors(board, { capabilities: CAPABILITIES, acceptances: ACCEPTANCES });", "every production caller"],

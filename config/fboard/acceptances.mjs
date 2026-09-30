@@ -494,6 +494,20 @@ export const F20_ORIGINAL = Object.freeze({
   evidence: "For each clause: a test driving the production path; a firing control; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched. The real result over the client's recorded partition, count-only, with its bound, the observed and linked-only populations reported apart. The full suite as CI runs it, and exact-SHA CI on the PR head before any merge, then on the merge commit. F20 moves only through the production validator and the audit trail, and only when every clause is PROVED.",
   contractSha256: "220863bd1c0ab29d20474901604eb45bd71fd02590bdb7138cdb9f0eb0090c21",
 });
+/* 🔴 F29 · FROZEN 30 Sep 2026 (_handoffs c8eee0c, RR-96 §5), committed ALONE before any F29 code was written. Pinned from the committed
+ * blob by parseContract (derivation re-run with a firing control inside the contract: "dominating" → "dominoting"). */
+export const F29_ORIGINAL = Object.freeze({
+  featureId: "F29",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F29_ACCEPTANCE_2026-09-30.md", commit: "c8eee0c3c4176e30bc8755a5966b179d61983135", sha256: "625d75c8bf08bc4fa686d2ed0be3c51438cab561f883c3cf10cd965cd4aa0305" }),
+  authority: Object.freeze({ propositionId: "F29_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F29"]) }),
+  frozenOn: "2026-09-30",
+  feature: "F29 · Technical issue prioritization",
+  input: "For each declared client: the recorded open issues whose target page is in the client's own partition, each with its class, recorded severity and recorded evidence entries, the client's own recorded owned impressions for each affected page with their window, and any recorded effort or reversibility — driven over the real recorded findings and partitions, count-only.",
+  expected: "[C1 · THE CLIENT'S OWN ISSUES] Only issues whose target page is in the client's own partition are ranked for it; an issue attributable to no client is counted UNATTRIBUTED and ranked for none; another client's issues never appear.\n[C2 · SIX DIMENSIONS, EACH RECORDED OR NOT MEASURED] Every ranked issue carries EVIDENCE, REACH (with its window), SEVERITY, AFFECTED POPULATION, EFFORT and REVERSIBILITY, each from its recorded source or NOT MEASURED with the missing fact named; nothing is estimated.\n[C3 · RANK BY DOMINANCE ONLY] An issue ranks above another only when it is at least as high on every recorded dimension and higher on one; issues neither dominating the other share a layer as INCOMPARABLE; no weight is invented and no tie is broken by id, date or guess; NOT MEASURED dimensions take no part.\n[C4 · NOT A FIX, NOT A PROMISE] Ranking changes nothing and states no predicted gain.\n[C5 · RECORDED DATA ONLY] Nothing is fetched, re-checked or written; the output is count-only with its population, its window and its bound.",
+  failure: "[C1] Another client's issue is ranked for this client, an unattributable issue is ranked for any client, or an issue of this client is dropped. [C2] A dimension is missing, estimated, or taken from an unrecorded source, or reach is shown without its window. [C3] An issue is placed above one it does not dominate, a weight or order is invented, a tie is broken by id, date or guess, or a NOT MEASURED dimension affects the order. [C4] Anything is changed, or a gain is predicted. [C5] Anything is fetched, re-checked or written, or a figure lacks its population, window and bound. And for any clause: it is proved only on an empty population, or only by a control that cannot fire.",
+  evidence: "For each clause: a test driving the production path; a firing control; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched. The real result on the declared clients that own recorded issues, count-only, with its bound, and the reference client's empty population reported as such. The full suite as CI runs it, and exact-SHA CI on the PR head before any merge, then on the merge commit. F29 moves only through the production validator and the audit trail, and only when every clause is PROVED.",
+  contractSha256: "0b64b5358b9e7bde01cc4b167f24cef5ec2bb4356211c4285d074c933fafa43e",
+});
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -656,6 +670,7 @@ export const ACCEPTANCES = Object.freeze({
   F20: F20_ORIGINAL,
   F21: F21_ORIGINAL,
   F26: F26_ORIGINAL,
+  F29: F29_ORIGINAL,
   F31: F31_ORIGINAL,
   F32: F32_ORIGINAL,
   F33: F33_ORIGINAL,

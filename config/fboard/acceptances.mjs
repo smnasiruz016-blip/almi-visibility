@@ -452,6 +452,20 @@ export const F26_ORIGINAL = Object.freeze({
   evidence: "For each clause: a test driving the production path; a firing control; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched. Each machine check proved on a failing and a clean fixture, and on the client's real stored bodies. The real result, count-only, with its bound, recording the three populations separately. The full suite as CI runs it, and exact-SHA CI on the PR head before any merge, then on the merge commit. F26 moves only through the production validator and the audit trail, and only when every clause is PROVED.",
   contractSha256: "3fef5f2801f44fb6c73d5f8780612c822c92496c9367566016821b64f8ad97da",
 });
+/* 🔴 F46 · FROZEN 30 Sep 2026 (_handoffs 2e76216, RR-96 §2), committed ALONE before any F46 code was written. Pinned from the committed
+ * blob by parseContract (derivation re-run with a firing control inside the contract: "resemblance" → "resemblence"). */
+export const F46_ORIGINAL = Object.freeze({
+  featureId: "F46",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F46_ACCEPTANCE_2026-09-30.md", commit: "2e76216573ccf605558d298b55e14aef2a72ae0f", sha256: "66ac44d65fa4033d2a4706062776b91cf5dd2d0f6c3a45c6c4b5c133a718c823" }),
+  authority: Object.freeze({ propositionId: "F46_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F46"]) }),
+  frozenOn: "2026-09-30",
+  feature: "F46 · Source integrity and citation audit",
+  input: "For each declared client: every fact in its registry with its claim (subject, predicate, qualifier, scope), its recorded source and source tier, its recorded link, quotation and fingerprint check outcomes with their dates, and any recorded verification verdict with its checker and whether that checker is declared a person — driven over the real recorded registry, count-only, with nothing fetched.",
+  expected: "[C1 · FIVE SEPARATE CHECKS] Every fact carries exactly one result for each of LINK, QUOTATION, FINGERPRINT, AUTHORITY and FIT, each counted in its own population with its own bound, and no score or combined pass is produced.\n[C2 · A WORKING LINK IS NOT A CORRECT CITATION] A fact is PROVED only when every applicable check passed and FIT is CONFIRMED; any recorded failure makes it DISPROVED; everything else — including three passing checks with FIT unmeasured — is COULD-NOT-PROVE.\n[C3 · FIT IS A JUDGEMENT] FIT is CONFIRMED or REFUTED only by a recorded verdict whose checker is declared a person; otherwise it is NEEDS A PERSON with the reason named, and a recorded verdict by an undeclared checker is reported beside it as recorded; word overlap or similarity never decides FIT.\n[C4 · AUTHORITY] A source is ADMISSIBLE only when its recorded tier is primary official, or secondary labelled SECONDARY VERIFIED, with a recorded verification date; any other tier is NOT ADMISSIBLE; an unrecorded tier or date is NOT MEASURED.\n[C5 · RECORDED DATA ONLY] Every outcome comes from the recorded registry, reported with its recorded date; nothing is fetched, re-checked or written; the gate for a fresh check is named; the output is count-only with its population and bound.",
+  failure: "[C1] A check result is missing, doubled or merged with another, or a combined score or pass appears. [C2] A fact reads PROVED with FIT not confirmed or any applicable check not passed, or a recorded failure does not make it DISPROVED. [C3] FIT is decided by word overlap, resemblance or similarity, or by a verdict whose checker is not declared a person, or a NEEDS A PERSON answer names no reason. [C4] A tier outside the admissible ones reads ADMISSIBLE, or an unrecorded tier or date reads either way. [C5] Anything is fetched, re-checked or written, a recorded outcome is presented as current, or a figure is printed without its population and bound. And for any clause: it is proved only on an empty population, or only by a control that cannot fire.",
+  evidence: "For each clause: a test driving the production path; a firing control; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched. C3's firing control: a claim whose words wholly overlap its source, with no person's verdict recorded, must be NEEDS A PERSON. The real result over the client's recorded registry, count-only, with its bound, each check's population reported separately. The full suite as CI runs it, and exact-SHA CI on the PR head before any merge, then on the merge commit. F46 moves only through the production validator and the audit trail, and only when every clause is PROVED.",
+  contractSha256: "738f219d567ff24bf20cd7fe600f383ae5cde44636812e6e2429a1956f0fc83a",
+});
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -623,6 +637,7 @@ export const ACCEPTANCES = Object.freeze({
   F41: F41_ORIGINAL,
   F43: F43_ORIGINAL,
   F45: F45_ORIGINAL,
+  F46: F46_ORIGINAL,
   F48: F48_AMENDMENT_1,
   F55: F55_ORIGINAL,
   F77: F77_AMENDMENT_1,

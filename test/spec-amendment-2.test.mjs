@@ -41,21 +41,27 @@ test("A2·1 · each amended row is the amendment's line, byte for byte", () => {
 });
 
 test("A2·2 · no other row changed; exactly the ten amended rows differ from the amended_1 derivation", () => {
-  const changed = CAPABILITIES.filter((c) => BEFORE[c.id] !== c.lineSha256.slice(0, 16)).map((c) => c.id);
+  /* Amendment 3 (RR-103, 30 Sep) APPENDED F91 after F90; this test is about the rows Amendment 2 touched, so it reads the rows BEFORE names
+   * and requires that F91 is the one row outside them. */
+  assert.deepEqual(CAPABILITIES.filter((c) => !(c.id in BEFORE)).map((c) => c.id), ["F91"]);
+  const changed = CAPABILITIES.filter((c) => c.id in BEFORE && BEFORE[c.id] !== c.lineSha256.slice(0, 16)).map((c) => c.id);
   assert.deepEqual(changed, AMENDED.map((l) => l.slice(0, 3)));
   // CONTROL: the comparison can fail — a planted change to one untouched row is seen
   const planted = CAPABILITIES.map((c) => (c.id === "F01" ? { ...c, lineSha256: sha("planted") } : c));
   assert.ok(planted.filter((c) => BEFORE[c.id] !== c.lineSha256.slice(0, 16)).some((c) => c.id === "F01"));
 });
 
-test("A2·3 · ids, order and denominator unchanged: 90 rows F01–F90, no F00, no F91", () => {
-  assert.deepEqual(CAPABILITIES.map((c) => c.id), Array.from({ length: 90 }, (_, i) => `F${String(i + 1).padStart(2, "0")}`));
-  for (const absent of ["F00", "F91", "F99"]) assert.equal(CAPABILITIES.some((c) => c.id === absent), false, `${absent} exists`);
+test("A2·3 · Amendment 2 left ids and order unchanged: F01–F90 in order (Amendment 3 later appended F91); no F00, no F92, no F99", () => {
+  assert.deepEqual(CAPABILITIES.slice(0, 90).map((c) => c.id), Array.from({ length: 90 }, (_, i) => `F${String(i + 1).padStart(2, "0")}`));
+  /* The absent-id control was F91 until Amendment 3 made F91 a row; it is RESTATED as F92, the id one past the last row
+   * (test/spec-amendment-3.test.mjs proves the restatement fires). */
+  for (const absent of ["F00", "F92", "F99"]) assert.equal(CAPABILITIES.some((c) => c.id === absent), false, `${absent} exists`);
 });
 
 test("A2·4 · F62 is Core intelligence now, and the generated list is pinned to the amended_2 extract the derivation names", () => {
   assert.equal(CAPABILITIES.find((c) => c.id === "F62").domain, "Core intelligence");
   assert.deepEqual({ ...EXTRACT_PROVENANCE }, { ...DERIVE_PROVENANCE });
-  assert.match(EXTRACT_PROVENANCE.path, /amended_2\.extract\.txt$/);
-  assert.equal(EXTRACT_PROVENANCE.sha256, "a5b6b8e35568f10a15c9a83e25a24ee61543b8dbf1a78017a7f8b4778e5e5ea7");
+  /* since Amendment 3 (RR-103) the derivation names the amended_3 extract, which carries Amendment 2's ten lines unchanged (A2·1) */
+  assert.match(EXTRACT_PROVENANCE.path, /amended_3\.extract\.txt$/);
+  assert.equal(EXTRACT_PROVENANCE.sha256, "179cb43a3a3dd59451eb5cac37ae54ccc112f2617d794d3974b805df164564f8");
 });

@@ -30,7 +30,8 @@ export const F_BOARD = "F_BOARD";
 export const HISTORICAL_BOARDS = Object.freeze(["HISTORICAL_61", "HISTORICAL_38"]);
 export const F_STATES = Object.freeze(["UNASSESSED", "ACCEPTANCE-FROZEN", "READY", "IN-PROGRESS", "BLOCKED-BY-AUTHORITY", "BLOCKED-BY-EVIDENCE", "FAILED", "VERIFIED-PASS"]);
 /* 89 → 90 on 28 Sep 2026 (Specification Amendment 1, owner ruling a3a777b in the governance repository: F90 appended; the v1 specification's 89 rows are unchanged). */
-export const DENOMINATOR = 90;
+/* 90 → 91 on 30 Sep 2026 (Specification Amendment 3, RR-103 §2, governance beb7362: F91 Page opportunity planning appended; F01–F90 unchanged). */
+export const DENOMINATOR = 91;
 const NEEDS_ACCEPTANCE = new Set(["ACCEPTANCE-FROZEN", "READY", "IN-PROGRESS", "FAILED", "VERIFIED-PASS"]);
 const IMPLEMENTABLE = new Set(["ACCEPTANCE-FROZEN", "READY", "IN-PROGRESS", "FAILED", "VERIFIED-PASS"]);
 

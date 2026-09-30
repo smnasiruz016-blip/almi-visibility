@@ -480,6 +480,20 @@ export const F47_ORIGINAL = Object.freeze({
   evidence: "For each clause: a test driving the production path; a firing control; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched. The real result over the client's recorded structures, count-only, with its bound. The full suite as CI runs it, and exact-SHA CI on the PR head before any merge, then on the merge commit. F47 moves only through the production validator and the audit trail, and only when every clause is PROVED.",
   contractSha256: "0970d6c8acf2ef123bac084d30df793a60c6cc0cc53fe978501a21d90ca6ab6c",
 });
+/* 🔴 F20 · FROZEN 30 Sep 2026 (_handoffs f566059, RR-96 §5), committed ALONE before any F20 code was written. Pinned from the committed
+ * blob by parseContract (derivation re-run with a firing control inside the contract: "backslash" → "backslosh"). */
+export const F20_ORIGINAL = Object.freeze({
+  featureId: "F20",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F20_ACCEPTANCE_2026-09-30.md", commit: "f566059724eb27fd35c3ec3c385f198f7852bfdf", sha256: "eba6b3762cd5832c92e1b0a8e4ab1b7b2c5b030e2e3b006fdd8ad10d8c6b9476" }),
+  authority: Object.freeze({ propositionId: "F20_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F20"]) }),
+  frozenOn: "2026-09-30",
+  feature: "F20 · Status redirect and URL audit",
+  input: "For each declared client: its recorded crawl observations (requested URL, final URL, final status, fetch error, redirect chain), the stored markup of those pages (link targets as written, declared canonicals), and the recorded link edges — from its own partition, driven over the real recorded structures, count-only, with nothing fetched.",
+  expected: "[C1 · STATUS] Every observed URL is exactly one of OK, CLIENT ERROR, SERVER ERROR, OTHER or NOT MEASURED from its recorded final status and fetch error; every linked-only URL is NOT MEASURED with the missing fetch named.\n[C2 · REDIRECT CHAINS AND LOOPS] Every observed URL's recorded chain is NONE, CHAIN (hops counted) or LOOP (a repeated location); no recorded chain is NOT MEASURED.\n[C3 · MALFORMED URLS] Every link target written in the stored markup is parsed by the WHATWG standard; a rejected target, or one with raw whitespace, a backslash or a control character, is MALFORMED and counted; non-web schemes are counted apart.\n[C4 · PREFERRED LOCATION] An observed page reached by internal links in more than one form of itself, or whose declared canonical names a different form than its recorded final URL, is INCONSISTENT; a page with no declared canonical is NOT MEASURED.\n[C5 · VERDICT AND RECORDED DATA ONLY] The audit's verdict is DISPROVED on any finding, COULD-NOT-PROVE when anything is NOT MEASURED, PROVED only when nothing is open; only the client's own partition is read; nothing is fetched or written; the output is count-only with its populations and bound.",
+  failure: "[C1] An observed URL has no status or two, a fetch error reads as broken or OK, or a linked-only URL receives a status. [C2] A chain is miscounted, a repeated location is not a LOOP, or a missing chain reads NONE. [C3] A rejected or whitespace-bearing target reads well-formed, a well-formed one reads MALFORMED, or a non-web scheme is counted as malformed. [C4] Two forms of one page read consistent, a canonical naming another form is missed, or a page without a canonical reads consistent. [C5] The audit reads PROVED with anything open, another client's record is read, anything is fetched or written, or a figure lacks its population and bound. And for any clause: it is proved only on an empty population, or only by a control that cannot fire.",
+  evidence: "For each clause: a test driving the production path; a firing control; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched. The real result over the client's recorded partition, count-only, with its bound, the observed and linked-only populations reported apart. The full suite as CI runs it, and exact-SHA CI on the PR head before any merge, then on the merge commit. F20 moves only through the production validator and the audit trail, and only when every clause is PROVED.",
+  contractSha256: "220863bd1c0ab29d20474901604eb45bd71fd02590bdb7138cdb9f0eb0090c21",
+});
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -639,6 +653,7 @@ export const ACCEPTANCES = Object.freeze({
     contractSha256: "fe38acfe8d3fa9faaf49ebe6643324a35e3e1156e9a479a25a4dd7ca421f244b",
     amends: Object.freeze({ ruling: F10_AMENDMENT_2.ruling, contractSha256: F10_AMENDMENT_2.contractSha256 }),
   }),
+  F20: F20_ORIGINAL,
   F21: F21_ORIGINAL,
   F26: F26_ORIGINAL,
   F31: F31_ORIGINAL,

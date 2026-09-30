@@ -47,6 +47,12 @@ export const DEMAND_WORDS = Object.freeze(["opportunity", "should create", "wort
 export const NEAR_DUPLICATE_THRESHOLD = 0.9;
 export const TEMPLATE_DOMINANCE_THRESHOLD = 0.75;
 
+/* 🔴 RR-102 — WHAT THE `boundary` DECLARATIONS BELOW ARE, AND ARE NOT. Each states the condition this file's run() ACTUALLY fires on,
+ * crossed both ways by test/rr102-content-check-boundaries.test.mjs, so a finding it raised can be overturned. It is NOT a claim that
+ * the threshold is authoritative: V3 (quoted in src/page/duplication.mjs, F32) says the 350-word threshold does not control, treats
+ * textual overlap as a review trigger rather than a verdict, and sets no dominance threshold; F40 is BLOCKED-BY-AUTHORITY on the floor.
+ * These constants are unchanged here; whether their findings stay actionable is the owner's, recorded apart. */
+
 /* ------------------------------------------------------------------ *
  * 12a — EXACT DUPLICATE. The one check that needs no body at all.
  * ------------------------------------------------------------------ */
@@ -56,6 +62,12 @@ export const EXACT_DUPLICATE = registerCheck({
   description: "Two different URLs whose stored content_sha256 is identical.",
   firingFixture: "two observations on different URLs sharing one content_sha256 — must fire",
   cleanControl: "two observations on different URLs with different hashes — must NOT fire",
+  /* RR-102: read from run() — it fires only when another URL (never this page's own) is filed under this observation's content_sha256.
+   * The hash is of the stored bytes, not of the shell-subtracted body. A missing hash is UNKNOWN, never a finding. */
+  boundary: {
+    observes: ["the content_sha256 recorded for this page's observation", "the content_sha256 recorded for each other crawled URL of the site"],
+    fires: [{ id: "byte-identical-to-another-url", when: "at least one crawled URL other than this page's own canonical URL carries the same content_sha256" }],
+  },
   run({ page, observations, siteContext }) {
     const mine = observations[0];
     if (!mine?.content_sha256) {
@@ -99,6 +111,12 @@ export const THIN_CONTENT = registerCheck({
   cleanControl:
     "a page with the SAME 2,000-word shell and a 900-word body — must NOT fire. This is the control " +
     "that proves the shell is being subtracted rather than counted.",
+  /* RR-102: read from run() — the only firing path is a confident shell subtraction whose body unique-word count is under the floor.
+   * An absent body, an empty body and an unrecognised layout are UNKNOWN, never a finding. The floor in `when` is the live constant. */
+  boundary: {
+    observes: ["the stored body, split into shell and body by src/audit/shell.mjs"],
+    fires: [{ id: "below-unique-word-floor", when: `shell subtraction is confident and the body's unique-word count is below ${THIN_UNIQUE_WORD_FLOOR} (void at ${THIN_UNIQUE_WORD_FLOOR} or more)` }],
+  },
   run({ page, observations, siteContext }) {
     const html = siteContext.bodyHtml;
     if (html == null) {
@@ -169,6 +187,12 @@ export const NEAR_DUPLICATE = registerCheck({
   cleanControl:
     "two pages sharing a large identical shell but with wholly different bodies — must NOT fire. " +
     "This is the control that proves similarity is measured on BODY, not on chrome.",
+  /* RR-102: read from run() — the highest body-shingle Jaccard against any OTHER URL's peer entry is compared with the live threshold,
+   * inclusively. A peer at this page's own URL is skipped; an undefined similarity (both empty) never counts. */
+  boundary: {
+    observes: ["the stored body's 8-word shingles, after shell subtraction", "the body shingles of each other confidently measured crawled page of the site"],
+    fires: [{ id: "body-similarity-at-or-above-threshold", when: `shell subtraction is confident and the highest body Jaccard similarity to another URL is ${NEAR_DUPLICATE_THRESHOLD} or more (void below ${NEAR_DUPLICATE_THRESHOLD})` }],
+  },
   run({ page, observations, siteContext }) {
     const html = siteContext.bodyHtml;
     if (html == null) {
@@ -213,6 +237,12 @@ export const TEMPLATE_DOMINANCE = registerCheck({
   description: `Shell accounts for ${TEMPLATE_DOMINANCE_THRESHOLD * 100}% or more of the page's words.`,
   firingFixture: "a page that is 90% chrome by word count — must fire",
   cleanControl: "a page that is 20% chrome — must NOT fire",
+  /* RR-102: read from run() — shell words / (shell words + body words) compared with the live threshold, inclusively. A non-confident
+   * subtraction or a page with no words at all is UNKNOWN, never a finding. */
+  boundary: {
+    observes: ["the stored body's shell and body word counts, from src/audit/shell.mjs"],
+    fires: [{ id: "shell-share-at-or-above-threshold", when: `shell subtraction is confident and the shell is ${TEMPLATE_DOMINANCE_THRESHOLD} or more of the page's words (void below ${TEMPLATE_DOMINANCE_THRESHOLD})` }],
+  },
   run({ page, observations, siteContext }) {
     const html = siteContext.bodyHtml;
     if (html == null) {

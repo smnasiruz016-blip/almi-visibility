@@ -1,0 +1,19 @@
+F29 sabotage run · 2026-09-30T03:14:45.050Z
+population: 12 sabotages over test/f29-issue-priority.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 · all exactly once: true
+production trail sha256 before: fd805224e68c2fd1a132d6e0ac79bf3ef2ff9b4aa2a07e505ea941b965f3e916
+
+S1 C3 a dominated issue is placed below its dominator src/audit/issue-priority.mjs: landed true · named test "C3 ·" red true · failing 2 · restored by sha256 true · PROVED
+S2 C3 incomparable issues are never ordered by a guessed weight src/audit/issue-priority.mjs: landed true · named test "C3 ·" red true · failing 1 · restored by sha256 true · PROVED
+S3 C3 a tie is never broken by id src/audit/issue-priority.mjs: landed true · named test "C3 ·" red true · failing 2 · restored by sha256 true · PROVED
+S4 C2 a dimension recorded for one issue only never decides an order src/audit/issue-priority.mjs: landed true · named test "C2/C3 ·" red true · failing 1 · restored by sha256 true · PROVED
+S5 C2 an unrecorded effort is never estimated src/audit/issue-priority.mjs: landed true · named test "C2/C3 ·" red true · failing 1 · restored by sha256 true · PROVED
+S6 C2 affected population is this client's issues of the same class src/audit/issue-priority.mjs: landed true · named test "C2/C3 ·" red true · failing 1 · restored by sha256 true · PROVED
+S7 C1 an issue is the client's only when its page is in the client's own partition src/audit/issue-priority-reader.mjs: landed true · named test "C1 ·" red true · failing 1 · restored by sha256 true · PROVED
+S8 C2 reach carries its window src/audit/issue-priority-reader.mjs: landed true · named test "C2 · REAL" red true · failing 1 · restored by sha256 true · PROVED
+S9 C5 the entry point prints its bound bin/issue-priority.mjs: landed true · named test "C4/C5 · THE ENTRY POINT" red true · failing 1 · restored by sha256 true · PROVED
+S10 C4 the entry point states a rank changes nothing bin/issue-priority.mjs: landed true · named test "C4/C5 · THE ENTRY POINT" red true · failing 1 · restored by sha256 true · PROVED
+S11 C5 the entry point ranks its OWN tenant bin/issue-priority.mjs: landed true · named test "C4/C5 · THE ENTRY POINT" red true · failing 1 · restored by sha256 true · PROVED
+S12 C5 a network call is seen tools/need-coverage-call-paths.mjs: landed true · named test "C5 · the ranking" red true · failing 1 · restored by sha256 true · PROVED
+
+proved 12 of 12 · residue 0 · production trail sha256 after: fd805224e68c2fd1a132d6e0ac79bf3ef2ff9b4aa2a07e505ea941b965f3e916 · unchanged true

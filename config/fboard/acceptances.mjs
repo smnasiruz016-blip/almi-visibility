@@ -466,6 +466,20 @@ export const F46_ORIGINAL = Object.freeze({
   evidence: "For each clause: a test driving the production path; a firing control; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched. C3's firing control: a claim whose words wholly overlap its source, with no person's verdict recorded, must be NEEDS A PERSON. The real result over the client's recorded registry, count-only, with its bound, each check's population reported separately. The full suite as CI runs it, and exact-SHA CI on the PR head before any merge, then on the merge commit. F46 moves only through the production validator and the audit trail, and only when every clause is PROVED.",
   contractSha256: "738f219d567ff24bf20cd7fe600f383ae5cde44636812e6e2429a1956f0fc83a",
 });
+/* 🔴 F47 · FROZEN 30 Sep 2026 (_handoffs ccd4c1e, RR-96 §5), committed ALONE before any F47 code was written. Pinned from the committed
+ * blob by parseContract (derivation re-run with a firing control inside the contract: "PUBLISHED-BY" → "PUBLISHED-VIA"). */
+export const F47_ORIGINAL = Object.freeze({
+  featureId: "F47",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F47_ACCEPTANCE_2026-09-30.md", commit: "ccd4c1ef34cb10f271d8a379168bc2313457f664", sha256: "700b23a7e860afc65637ea3687dab0562a299ef80ea88b71ecda0fda05fdbcc3" }),
+  authority: Object.freeze({ propositionId: "F47_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F47"]) }),
+  frozenOn: "2026-09-30",
+  feature: "F47 · Entity relationship map",
+  input: "For each declared client: its fact registry (claim subject, predicate, scope, value, cited source and publisher, fact id), its subject's declared placement lists and page specs with the fact references they carry, and the questions declared in its pages' machine-readable data as discovered from the stored bodies — driven over the real recorded structures, count-only, with nothing fetched.",
+  expected: "[C1 · THE MAP FROM RECORDED STRUCTURES] Entities, attributes, scopes, sources, publishers, facts, pages and questions, with the ABOUT, HAS-ATTRIBUTE, IN-SCOPE, CITES, PUBLISHED-BY, PLACED and ASKS relationships, are built only from recorded fields and counted with their population and bound; nothing is inferred from prose.\n[C2 · EVERY REFERENCE RESOLVES OR IS NAMED] Every fact reference in the placement lists and page specs resolves to exactly one registry fact, or is reported UNRESOLVED with where it appears; a reference in a list the subject names \"awaiting\" is reported DECLARED AWAITING in its own population, never counted as resolved or as broken.\n[C3 · ONE IDENTITY, ONE REPRESENTATION] A source identity recorded with more than one publisher, or a fact id held more than once, is INCONSISTENT; entity names differing only in case, spacing or punctuation are NEEDS A PERSON and are never merged by the code.\n[C4 · QUESTIONS FROM MACHINE-READABLE DATA] Questions are counted per page from the page's recorded machine-readable data, never from prose, and their text is never printed; a page with no stored body is NOT MEASURED.\n[C5 · VERDICT AND RECORDED DATA ONLY] The map's verdict is DISPROVED on any inconsistency, COULD-NOT-PROVE when anything is left open, PROVED only when nothing is; nothing is fetched or written; the output is count-only with its population and bound.",
+  failure: "[C1] A node or relationship appears that no recorded field supports, or one that is recorded is dropped, or a figure lacks its population and bound. [C2] An unresolved reference is counted as resolved or dropped, a declared awaiting reference is counted as resolved or as broken, or a reference resolves to two facts. [C3] A source with two publishers or a doubled fact id reads consistent, or two entity names are merged or split by the code. [C4] A question is counted from prose or printed, or a page without a body yields a count. [C5] The map reads PROVED with anything open or inconsistent, anything is fetched or written, or a figure is printed without its bound. And for any clause: it is proved only on an empty population, or only by a control that cannot fire.",
+  evidence: "For each clause: a test driving the production path; a firing control; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched. The real result over the client's recorded structures, count-only, with its bound. The full suite as CI runs it, and exact-SHA CI on the PR head before any merge, then on the merge commit. F47 moves only through the production validator and the audit trail, and only when every clause is PROVED.",
+  contractSha256: "0970d6c8acf2ef123bac084d30df793a60c6cc0cc53fe978501a21d90ca6ab6c",
+});
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -638,6 +652,7 @@ export const ACCEPTANCES = Object.freeze({
   F43: F43_ORIGINAL,
   F45: F45_ORIGINAL,
   F46: F46_ORIGINAL,
+  F47: F47_ORIGINAL,
   F48: F48_AMENDMENT_1,
   F55: F55_ORIGINAL,
   F77: F77_AMENDMENT_1,

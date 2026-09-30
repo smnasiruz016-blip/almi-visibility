@@ -1,0 +1,25 @@
+F90 sabotage run · 2026-09-30T19:33:34.216Z
+population: 18 sabotages over test/f90-falsifiability.test.mjs + test/rr100-check-boundaries.test.mjs + test/rr102-content-check-boundaries.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): S01=1 S02=1 S03=1 S04=1 S05=1 S06=1 S07=1 S08=1 S09=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1 · all exactly once: true
+production trail sha256 before: f714a899ea4975235bbf202eaa43e59a695003461155f9ea86e42213621668e8
+
+S01 C1: an OPEN finding of any verdict is actionable src/audit/f90-falsifiability.mjs: landed true · named test "C1 · exactly OPEN" red true · failing 5 · restored by sha256 true · PROVED
+S02 C1: a second store's copies are not counted src/audit/f90-falsifiability.mjs: landed true · named test "C1 · exactly OPEN" red true · failing 1 · restored by sha256 true · PROVED
+S03 C1: a supersession with no recorded move is ignored src/audit/f90-falsifiability.mjs: landed true · named test "C1 · FIRING CONTROLS" red true · failing 1 · restored by sha256 true · PROVED
+S04 C1: one finding reading differently across stores is ignored src/audit/f90-falsifiability.mjs: landed true · named test "C1 · FIRING CONTROLS" red true · failing 1 · restored by sha256 true · PROVED
+S05 C1: unparseable lines are ignored src/audit/f90-falsifiability.mjs: landed true · named test "C1 · FIRING CONTROLS" red true · failing 1 · restored by sha256 true · PROVED
+S06 C1: lifecycle errors are ignored src/audit/f90-falsifiability.mjs: landed true · named test "C1 · FIRING CONTROLS" red true · failing 1 · restored by sha256 true · PROVED
+S07 C2: a version mismatch is not named src/audit/f90-falsifiability.mjs: landed true · named test "C2 · a held method" red true · failing 2 · restored by sha256 true · PROVED
+S08 C2: an undeclared live version is assumed src/audit/f90-falsifiability.mjs: landed true · named test "C2 · a held method" red true · failing 1 · restored by sha256 true · PROVED
+S09 C3: OBSERVATION written freehand src/audit/f90-falsifiability.mjs: landed true · named test "C3 · the three parts" red true · failing 1 · restored by sha256 true · PROVED
+S10 C3: a missing boundary is not named src/audit/f90-falsifiability.mjs: landed true · named test "C3 · FIRING CONTROL" red true · failing 3 · restored by sha256 true · PROVED
+S11 C4: a non-falsifiable finding does not disprove src/audit/f90-falsifiability.mjs: landed true · named test "C4 · PROVED only" red true · failing 3 · restored by sha256 true · PROVED
+S12 C4: an empty population is proved src/audit/f90-falsifiability.mjs: landed true · named test "C4 · FIRING CONTROL: an EMPTY" red true · failing 1 · restored by sha256 true · PROVED
+S13 C4: classes merged src/audit/f90-falsifiability.mjs: landed true · named test "C4 · PROVED only" red true · failing 1 · restored by sha256 true · PROVED
+S14 C4: untracked stores are read src/audit/f90-falsifiability-reader.mjs: landed true · named test "C4 · the stores are the TRACKED" red true · failing 1 · restored by sha256 true · PROVED
+S15 C5: the reader can write src/audit/f90-falsifiability-reader.mjs: landed true · named test "C5 · the census module" red true · failing 1 · restored by sha256 true · PROVED
+S16 C5: the entry point drops its bound bin/finding-falsifiability.mjs: landed true · named test "C5 · THE ENTRY POINT" red true · failing 1 · restored by sha256 true · PROVED
+S17 HELD METHOD: a check's declared version drifts from what it stamps src/audit/content-checks.mjs: landed true · named test "REAL · every recorded" red true · failing 3 · restored by sha256 true · PROVED
+S18 HELD METHOD: the registry drops the declared version src/audit/check.mjs: landed true · named test "REAL · every recorded" red true · failing 14 · restored by sha256 true · PROVED
+
+proved 18 of 18 · residue 0 · production trail sha256 after: f714a899ea4975235bbf202eaa43e59a695003461155f9ea86e42213621668e8 · unchanged true

@@ -101,6 +101,7 @@ export function noindexState({ metaRobots, xRobotsTag }) {
 
 export const STATUS_AND_REDIRECTS = registerCheck({
   id: "status-and-redirects",
+  version: "1",
   description: "A non-200 final status, or a redirect chain longer than one hop.",
   firingFixture: "an observation with status 404 — must fire",
   cleanControl: "an observation with status 200 and no redirect — must NOT fire",
@@ -177,6 +178,7 @@ export const HTTPS_ONLY = registerCheck({
 
 export const CANONICAL = registerCheck({
   id: "canonical",
+  version: "1",
   description: "A missing canonical, or one pointing off-host, or one pointing at a URL we saw as non-200.",
   firingFixture: "a page whose canonical points at another host — must fire",
   cleanControl: "a page whose canonical is its own URL — must NOT fire",
@@ -251,6 +253,7 @@ export const CANONICAL = registerCheck({
 
 export const NOINDEX = registerCheck({
   id: "noindex",
+  version: "1",
   description: "A page carrying noindex, and any disagreement between meta robots and X-Robots-Tag.",
   firingFixture: "a page with <meta name=robots content=noindex> — must fire",
   cleanControl: "a page with meta robots 'index,follow' and no X-Robots-Tag — must NOT fire",
@@ -291,6 +294,7 @@ export const NOINDEX = registerCheck({
 
 export const HEAD_ELEMENTS = registerCheck({
   id: "head-elements",
+  version: "1",
   description: "Missing or empty title/description/H1, more than one H1, duplicate titles, or a skipped heading level.",
   firingFixture: "a page with no <h1> and an empty <title> — must fire",
   cleanControl: "a page with one title, one description and one H1 — must NOT fire",
@@ -389,6 +393,7 @@ export const BROKEN_INTERNAL_LINK = registerCheck({
 
 export const QUERY_PARAMETERS = registerCheck({
   id: "query-parameters",
+  version: "1",
   description: "An indexed URL carrying query parameters — a facet surface Google is spending crawl on.",
   firingFixture: "a URL with ?sort=asc&page=2 — must fire",
   cleanControl: "a URL with no query string — must NOT fire",
@@ -476,6 +481,7 @@ export function preflight({ status, robotsAllowed, noindexed, canonicalOk, inSit
 
 export const INDEXABILITY_PREFLIGHT = registerCheck({
   id: "indexability-preflight",
+  version: "1",
   description: "Technical eligibility for indexing, in ASSESS MODE over pages that already exist. Never a prediction.",
   firingFixture: "a page that is noindexed and robots-disallowed — must fire as BLOCKED",
   cleanControl: "a page passing every condition — must NOT fire",

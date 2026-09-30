@@ -21,6 +21,7 @@ import { familiesFor, assessFamilies } from "./dns-family.mjs";
 
 export const ROBOTS_SCOPE = registerCheck({
   id: "robots-scope",
+  version: "1",
   description:
     "A URL with search impressions that robots.txt disallows for the SEARCH crawler's own group. " +
     "A block that applies only to our crawler is not this finding.",
@@ -65,6 +66,7 @@ export const ROBOTS_SCOPE = registerCheck({
 
 export const DNS_FAMILY = registerCheck({
   id: "dns-family",
+  version: "1",
   description:
     "A host publishing AAAA and no A record. States what DNS publishes; says NOTHING about whether " +
     "Googlebot reaches the host — that is a separate measurement.",

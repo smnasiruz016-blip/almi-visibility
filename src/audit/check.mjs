@@ -124,8 +124,13 @@ function validBoundary(id, b) {
   return Object.freeze({ observes: Object.freeze([...b.observes]), fires: Object.freeze(b.fires.map((f) => Object.freeze({ id: f.id, when: f.when }))) });
 }
 
-export function registerCheck({ id, run, firingFixture, cleanControl, description, boundary }) {
+/* 🔴 F90 — THE LIVE VERSION, DECLARED. A check MAY declare `version`: the detector_version its run() stamps on every finding it raises. F90
+ * holds a recorded finding's method only when the registered check's declared version equals the finding's recorded detector_version;
+ * with none declared, the live version is NOT MEASURED and never assumed. The crossing tests (rr100, rr102) fail if a run() stamps any
+ * other version, so the declaration and the stamp cannot drift apart. */
+export function registerCheck({ id, run, firingFixture, cleanControl, description, boundary, version }) {
   if (typeof id !== "string" || id === "") throw new TypeError("a check needs an id");
+  if (version !== undefined && (typeof version !== "string" || version === "")) throw new TypeError(`${id}: a declared version must be a non-empty string`);
   if (typeof run !== "function") throw new TypeError(`${id}: a check needs a run function`);
   if (typeof firingFixture !== "string" || firingFixture === "") {
     throw new TypeError(`${id}: a check must NAME a fixture that violates it and makes it fire`);
@@ -137,7 +142,7 @@ export function registerCheck({ id, run, firingFixture, cleanControl, descriptio
     );
   }
   if (REGISTRY.has(id)) throw new TypeError(`${id}: already registered`);
-  REGISTRY.set(id, { id, run, firingFixture, cleanControl, description, boundary: validBoundary(id, boundary) });
+  REGISTRY.set(id, { id, run, firingFixture, cleanControl, description, boundary: validBoundary(id, boundary), version });
   return REGISTRY.get(id);
 }
 

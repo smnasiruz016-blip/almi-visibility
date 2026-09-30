@@ -249,6 +249,16 @@ export const MANDATORY_READING = Object.freeze([
   /* RR-97, F73 (30 Sep 2026): the command (a CURRENT record) and F73's acceptance, after the migration at _handoffs 366476c. */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-09-30_RR-97_CONTINUE_FROM_29_90_ASSESS_F73.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F73_ACCEPTANCE_2026-09-30.md", loader: "F-board acceptance F73" }),
+  /* RR-98 to RR-101 (30 Sep 2026): commands recorded after the last migration, admitted as CURRENT records by the migration at _handoffs c3c0cbe. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-09-30_RR-98_REPAIR_THREE_REFERENCES_THEN_NEXT_ROW.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-09-30_RR-99_CONTINUE_FROM_30_90_AFTER_203.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-09-30_RR-100_REPAIR_F90_PREREQUISITE_THEN_CONTINUE.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-09-30_RR-101_SAVE_AND_PAUSE.md", loader: "authority register (CURRENT record)" }),
+  /* RR-102 §2 (30 Sep 2026): the owner's page-planning decision — direction only; no row, no board movement. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-09-30_RR-102_PAGE_PLANNING_THREE_NUMBERS.md", loader: "authority register (CURRENT record)" }),
+  /* RR-102, F90 (30 Sep 2026): the command (a CURRENT record) and F90's acceptance, after the migration at _handoffs c3c0cbe. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-09-30_RR-102_FINISH_F90_PREREQUISITE_RECORD_PAGE_PLANNING.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F90_ACCEPTANCE_2026-09-30.md", loader: "F-board acceptance F90" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_CLARIFICATION_2026-09-28_RR-76_TEST_ONLY_PERMISSION_IS_GENERAL.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_RULING_2026-09-28_RR-80_F07_A_LIMIT_IS_NOT_A_PERMISSION.md", loader: "authority register (CURRENT record)" }),
 ]);

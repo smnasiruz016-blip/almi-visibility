@@ -107,6 +107,9 @@ for (const id of F90_DETECTORS) {
       for (const [inside, outside] of pairs) {
         const hit = await run(id, inside);
         assert.equal(hit?.verdict, "FAIL", `${id} · ${cond}: just inside the boundary it did not fire`);
+        /* F90: the finding names this check, stamped with the check's DECLARED live version — the stamp and the declaration cannot drift */
+        assert.equal(hit.detector, id, `${id} · ${cond}: the finding names another detector`);
+        assert.equal(hit.detector_version, CHECKS.get(id).version, `${id} · ${cond}: run() stamps a version other than the declared one`);
         assert.equal(await run(id, outside), null, `${id} · ${cond}: just outside the boundary it still fired`);
       }
     }

@@ -41,6 +41,7 @@ import { governedFileWrite, governedStoreAppend } from "../src/governance/govern
 import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { createCostLedger, entryFromCrawlRun, formatLedgerLine } from "../src/cost/ledger.mjs";
 import { persistCrawlObservations } from "../src/crawl/persist.mjs";
+import { preflightCrawlWrites, collectionVerdict } from "../src/crawl/preflight.mjs";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { openConnector, NO_REQUEST_FETCH } from "../src/tenancy/connectors.mjs";
 import { lookupStore } from "../src/tenancy/root-registry.mjs";
@@ -125,6 +126,63 @@ if (live && !green) {
     ].join("\n"),
   );
   process.exit(3);
+}
+
+/* ---- 🔴 RR-106 — THE THREE GOVERNED APPENDS, BUILT ONE WAY, AND PROVED KEEPABLE BEFORE ANY NETWORK ACTIVITY ---------- *
+ * RR-105 made 28 live requests and then lost them all: the governed append refused records it had no evidence-state rule for.
+ * Each append this run makes is built by ONE function below, used by the preflight AND by the live run, so the preflight checks
+ * the very descriptor that will run. The preflight builds (never executes) them over every record kind the crawler can emit,
+ * from an in-process synthetic site — before the connector is opened, before the IPv6 probe, before DNS, before any request.
+ * A refusal stops a live run here with ZERO requests made. */
+const ledgerPathOf = () => ledgerFile ?? confineToRepo(`${REPO}runs/cost/ledger.jsonl`, { label: "the cost ledger" });
+const observationsAppend = (records, occurredAt, correlationId) => governedStoreAppend({ ...SCOPE.writeScope,
+  repo: WRITE_ROOT, auditRepo: REPO, permission: recordPermission, store: createJsonlStore(out), records,
+  targetClass: "GENERATED_CONFIG", action: "APPEND_CRAWL_OBSERVATIONS",
+  occurredAt, correlationId, discipline: "APPEND_IF_NEW",
+});
+const runRecordOf = (run, { selection = null, seedCount = 0, egress = null, unreachable = new Map(), dnsUnknown = [], corpusFiles = 0, corpusBytes = 0 } = {}) => ({
+  ...run,
+  selectionRule: selection?.rule ?? SELECTION_RULE,
+  seedPoolSize: selection?.seedPoolSize ?? seedCount,
+  seedSelection: selection?.byHost ?? null,
+  ipv6Egress: egress,
+  unreachableHosts: [...unreachable.entries()].map(([host, v]) => ({ host, ...v })),
+  dnsUnknownHosts: dnsUnknown,
+  corpus: {
+    files: corpusFiles,
+    bytes: corpusBytes,
+    committed: false,
+    artifactName: process.env.CRAWL_ARTIFACT_NAME ?? null,
+    githubRunId: process.env.GITHUB_RUN_ID ?? null,
+  },
+});
+/* Declared: the RUN record is unique by construction — run_id carries the start time — so it uses the
+ * without-dedupe discipline and needs no key. */
+const runAppend = (runRecord, occurredAt, correlationId) => governedStoreAppend({ ...SCOPE.writeScope,
+  repo: WRITE_ROOT, auditRepo: REPO, permission: recordPermission, store: createJsonlStore(out), records: [runRecord],
+  targetClass: "GENERATED_CONFIG", action: "APPEND_CRAWL_RUN_RECORD",
+  occurredAt, correlationId, discipline: "APPEND_WITHOUT_DEDUPE",
+});
+const costAppend = (costEntry, occurredAt, correlationId) => governedStoreAppend({ ...SCOPE.writeScope,
+  repo: WRITE_ROOT, auditRepo: REPO, permission: recordPermission, store: createCostLedger(ledgerPathOf()), records: [costEntry],
+  targetClass: "RUN_EVIDENCE", action: "APPEND_CRAWL_COST_ENTRY",
+  occurredAt, correlationId,
+  discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null,
+});
+if (live) {
+  const PF_INSTANT = governedInstant(Date.now());
+  const PF_CORRELATION = `run:crawl-preflight:${PF_INSTANT}`;
+  const pf = await preflightCrawlWrites({ build: {
+    observations: (records) => observationsAppend(records, PF_INSTANT, PF_CORRELATION),
+    run: (run) => runAppend(runRecordOf(run), PF_INSTANT, PF_CORRELATION),
+    cost: (run) => costAppend(entryFromCrawlRun(runRecordOf(run), { recordedAt: new Date().toISOString() }), PF_INSTANT, PF_CORRELATION),
+  } });
+  console.log(`PREFLIGHT       : ${pf.ok ? "PASS" : "REFUSED"} — record kinds ${pf.kinds.length} (${pf.kinds.join(", ")}) · ${pf.checks.map((c) => `${c.append} ${c.ok ? "keepable" : "REFUSED"} (${c.records})`).join(" · ")} · synthetic in-process calls ${pf.syntheticCalls} · network requests ${pf.networkRequests}`);
+  if (!pf.ok) {
+    for (const c of pf.checks.filter((x) => !x.ok)) console.error(`🔴 PREFLIGHT REFUSED — ${c.append}: ${c.why}`);
+    console.error("🔴 NO REQUEST WAS MADE. The run stops before the connector, the IPv6 probe, DNS or any fetch: a result that cannot be kept is not collected.");
+    process.exit(3);
+  }
 }
 
 /* ---- 🔴 U-CRW-IPv6, MEASURED BEFORE ANYTHING IS FETCHED ----------------- *
@@ -271,12 +329,17 @@ console.log(`   coverageState=${run.coverageState} — this run saw what its see
 const CRAWL_INSTANT = governedInstant(Date.now());
 const CRAWL_CORRELATION = `run:crawl:${CRAWL_INSTANT}`;
 const store = createJsonlStore(out);
-const observationsGoverned = executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,
-  /* RR-104: the headers, link and date-claim records ride the SAME governed append (their own measurement keys, APPEND_IF_NEW) */
-  repo: WRITE_ROOT, auditRepo: REPO, permission: recordPermission, store, records: [...result.observations, ...(result.evidence ?? [])],
-  targetClass: "GENERATED_CONFIG", action: "APPEND_CRAWL_OBSERVATIONS",
-  occurredAt: CRAWL_INSTANT, correlationId: CRAWL_CORRELATION, discipline: "APPEND_IF_NEW",
-}));
+/* RR-104: the headers, link and date-claim records ride the SAME governed append (their own measurement keys, APPEND_IF_NEW) */
+/* 🔴 RR-106 — FETCHED IS NOT KEPT. The summary above counts what was FETCHED; nothing is collected until the writes below commit. A
+ * refusal here (RR-105: EVIDENCE_STATE_UNPLACEABLE) ends the run as NOT KEPT, saying what was spent and that nothing was written. */
+console.log("FETCHED, NOT YET KEPT — the collection verdict follows the governed writes below.");
+let observationsGoverned;
+try {
+  observationsGoverned = executeGovernedWrite(observationsAppend([...result.observations, ...(result.evidence ?? [])], CRAWL_INSTANT, CRAWL_CORRELATION));
+} catch (e) {
+  console.error(`🔴 COLLECTION: ${collectionVerdict({ observations: null }).verdict} — the observations append was refused (${e.code ?? e.name}): 0 observations, 0 evidence records, 0 bodies, 0 run record and 0 cost entry were written; ${run.requestsIssued + run.robotsRequestsIssued} request(s) had been made.`);
+  process.exit(1);
+}
 if (observationsGoverned.outcome !== "REFUSED" && observationsGoverned.outcome !== "COMMITTED" && observationsGoverned.outcome !== "ALREADY_COMMITTED") {
   console.error(`🔴 ${observationsGoverned.outcome} — the observations were not written; the governed attempt is on the audit trail`);
   process.exit(1);
@@ -318,29 +381,8 @@ if (mayRecord) {
 
 /* The selection rule and the CI identifiers travel WITH the run record: a
  * selection nobody can reproduce is not evidence. */
-const runRecord = {
-  ...run,
-  selectionRule: selection?.rule ?? SELECTION_RULE,
-  seedPoolSize: selection?.seedPoolSize ?? seeds.length,
-  seedSelection: selection?.byHost ?? null,
-  ipv6Egress: egress,
-  unreachableHosts: [...unreachable.entries()].map(([host, v]) => ({ host, ...v })),
-  dnsUnknownHosts: dnsUnknown,
-  corpus: {
-    files: corpusFiles,
-    bytes: corpusBytes,
-    committed: false,
-    artifactName: process.env.CRAWL_ARTIFACT_NAME ?? null,
-    githubRunId: process.env.GITHUB_RUN_ID ?? null,
-  },
-};
-/* Declared: the RUN record is unique by construction — run_id carries the start time — so it uses the
- * without-dedupe discipline and needs no key. */
-const runGoverned = executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,
-  repo: WRITE_ROOT, auditRepo: REPO, permission: recordPermission, store, records: [runRecord],
-  targetClass: "GENERATED_CONFIG", action: "APPEND_CRAWL_RUN_RECORD",
-  occurredAt: CRAWL_INSTANT, correlationId: CRAWL_CORRELATION, discipline: "APPEND_WITHOUT_DEDUPE",
-}));
+const runRecord = runRecordOf(run, { selection, seedCount: seeds.length, egress, unreachable, dnsUnknown, corpusFiles, corpusBytes });
+const runGoverned = executeGovernedWrite(runAppend(runRecord, CRAWL_INSTANT, CRAWL_CORRELATION));
 if (runGoverned.outcome === "COMMITTED" || runGoverned.outcome === "ALREADY_COMMITTED") {
   console.log(`\nwritten: ${out}  (${result.observations.length} observations + 1 run)`);
 } else if (runGoverned.outcome === "REFUSED") {
@@ -350,6 +392,7 @@ if (runGoverned.outcome === "COMMITTED" || runGoverned.outcome === "ALREADY_COMM
   process.exit(1);
 }
 
+let costOutcome = null;
 /* 🔴 ITEM 45 — a live run is costed in the ledger as it happens. A dry run
  * issues no request and spends nothing, so it writes no cost entry. */
 if (live) {
@@ -357,13 +400,8 @@ if (live) {
    * `live` condition. The ledger SKIPS a duplicate entry_id and writes nothing, so the expected line count is
    * asked of that discipline. */
   const costEntry = entryFromCrawlRun(runRecord, { recordedAt: new Date().toISOString() });
-  const ledgerPath = ledgerFile ?? confineToRepo(`${REPO}runs/cost/ledger.jsonl`, { label: "the cost ledger" });
-  const costGoverned = executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,
-    repo: WRITE_ROOT, auditRepo: REPO, permission: recordPermission, store: createCostLedger(ledgerPath), records: [costEntry],
-    targetClass: "RUN_EVIDENCE", action: "APPEND_CRAWL_COST_ENTRY",
-    occurredAt: CRAWL_INSTANT, correlationId: CRAWL_CORRELATION,
-    discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null,
-  }));
+  const costGoverned = executeGovernedWrite(costAppend(costEntry, CRAWL_INSTANT, CRAWL_CORRELATION));
+  costOutcome = costGoverned.outcome;
   if (costGoverned.outcome === "COMMITTED" || costGoverned.outcome === "ALREADY_COMMITTED") {
     console.log(`cost ledger: ${formatLedgerLine(costEntry)}`);
   } else if (costGoverned.outcome !== "REFUSED") {
@@ -371,3 +409,8 @@ if (live) {
     process.exitCode = 1;
   }
 }
+
+/* 🔴 RR-106 — THE COLLECTION VERDICT, from the writes themselves: KEPT only when every governed write this run depends on committed. */
+const collection = collectionVerdict(live ? { observations: observationsGoverned.outcome, run: runGoverned.outcome, cost: costOutcome } : { observations: observationsGoverned.outcome, run: runGoverned.outcome });
+console.log(`COLLECTION: ${collection.verdict}${collection.failed.length ? ` — not committed: ${collection.failed.join(" · ")}` : ""}`);
+if (live && collection.verdict !== "KEPT") process.exitCode = 1;

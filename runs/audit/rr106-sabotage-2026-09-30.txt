@@ -1,0 +1,18 @@
+RR-106 repair sabotage run · 2026-09-30T23:15:19.388Z
+population: 11 sabotages over test/rr106-preflight-and-production-append.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): A01=1 A02=1 A03=1 A04=1 P01=1 P02=1 B01=1 B02=1 B03=1 V01=1 V02=1 · all exactly once: true
+production trail sha256 before: f5b662d0772db745c853a7f1edae03ca1c5ec0adf5823f6e3ca1facf694ed62e
+
+A01 STATE: response_headers has no rule again (the RR-105 defect) src/evidence/evidence-state-adapters.mjs: landed true · named test "§1 · response_headers is OBSERVED" red true · failing 3 · restored by sha256 true · PROVED
+A02 STATE: page_links placed with no input src/evidence/evidence-state-adapters.mjs: landed true · named test "§1 · FIRING CONTROLS" red true · failing 1 · restored by sha256 true · PROVED
+A03 STATE: a headers record placed without its evidence id src/evidence/evidence-state-adapters.mjs: landed true · named test "§1 · FIRING CONTROLS" red true · failing 1 · restored by sha256 true · PROVED
+A04 STATE: response_headers placed INFERRED, not OBSERVED src/evidence/evidence-state-adapters.mjs: landed true · named test "§1 · response_headers is OBSERVED" red true · failing 3 · restored by sha256 true · PROVED
+P01 PREFLIGHT: a refusal is ignored src/crawl/preflight.mjs: landed true · named test "§2 · FIRING CONTROL" red true · failing 1 · restored by sha256 true · PROVED
+P02 PREFLIGHT: the evidence records are not handed to the builder src/crawl/preflight.mjs: landed true · named test "§2 · the PREFLIGHT drives" red true · failing 1 · restored by sha256 true · PROVED
+B01 BINARY: the preflight is skipped on a live run bin/crawl.mjs: landed true · named test "§2 · IN THE BINARY" red true · failing 1 · restored by sha256 true · PROVED
+B02 BINARY: a refused preflight does not stop the run bin/crawl.mjs: landed true · named test "§2 · IN THE BINARY" red true · failing 1 · restored by sha256 true · PROVED
+B03 BINARY: the preflight checks a different builder from the live run bin/crawl.mjs: landed true · named test "§2 · IN THE BINARY" red true · failing 1 · restored by sha256 true · PROVED
+V01 VERDICT: one failed write still reads KEPT src/crawl/preflight.mjs: landed true · named test "FIRING CONTROL: a failed or missing write" red true · failing 1 · restored by sha256 true · PROVED
+V02 VERDICT: the refused-append path reports success bin/crawl.mjs: landed true · named test "FIRING CONTROL: a failed or missing write" red true · failing 1 · restored by sha256 true · PROVED
+
+proved 11 of 11 · residue 0 · production trail sha256 after: f5b662d0772db745c853a7f1edae03ca1c5ec0adf5823f6e3ca1facf694ed62e · unchanged true

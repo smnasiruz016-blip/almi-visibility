@@ -89,4 +89,44 @@ export function extractLinks(html, baseUrl) {
   return [...out];
 }
 
+/* 🔴 RR-104 — EACH LINK'S VISIBLE ANCHOR TEXT AND ACCESSIBLE NAME, FROM THE RAW HTML, BOUNDED.
+ *   anchorText       the <a> element's own text with tags removed and whitespace collapsed ("" when it has none)
+ *   accessibleName   aria-label, else the visible text, else the alt of an image inside, else the title — with its source named;
+ *                    aria-labelledby needs the document's other nodes, so a link carrying it has its name NOT MEASURED (never guessed)
+ * Read from served RAW HTML only: a script-built link is invisible here, and nothing here says it is absent. */
+export const MAX_LINKS_PER_PAGE = 1000;
+export const MAX_LINK_TEXT = 300;
+const entity = (s) => s.replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+const textOnly = (html) => entity(String(html).replace(/<(script|style|template)\b[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+const attr = (tag, name) => { const m = new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, "i").exec(tag); return m ? entity(m[1] ?? m[2] ?? "").replace(/\s+/g, " ").trim() : null; };
+const cap = (s) => (s.length > MAX_LINK_TEXT ? { v: s.slice(0, MAX_LINK_TEXT), cut: true } : { v: s, cut: false });
+
+export function extractLinkDetails(html, baseUrl, { maxLinks = MAX_LINKS_PER_PAGE } = {}) {
+  const links = [];
+  let seen = 0;
+  for (const m of String(html).matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a\s*>/gi)) {
+    const open = `<a ${m[1]}>`;
+    const href = attr(open, "href");
+    if (href === null || href === "" || href.startsWith("#") || /^(mailto|tel|javascript):/i.test(href)) continue;
+    let to;
+    try { const u = new URL(href, baseUrl); u.hash = ""; to = u.toString(); } catch { continue; }
+    seen += 1;
+    if (links.length >= maxLinks) continue;
+    const text = cap(textOnly(m[2]));
+    const aria = attr(open, "aria-label");
+    const imgAlt = /<img\b[^>]*>/i.exec(m[2]) ? attr(/<img\b[^>]*>/i.exec(m[2])[0], "alt") : null;
+    const title = attr(open, "title");
+    let name = null, nameSource;
+    if (attr(open, "aria-labelledby") !== null) nameSource = "NOT_MEASURED_ARIA_LABELLEDBY";
+    else if (aria) { name = aria; nameSource = "aria-label"; }
+    else if (text.v) { name = text.v; nameSource = "visible-text"; }
+    else if (imgAlt) { name = imgAlt; nameSource = "img-alt"; }
+    else if (title) { name = title; nameSource = "title"; }
+    else nameSource = "NONE_FOUND_IN_RAW_HTML";
+    const n = name === null ? null : cap(name);
+    links.push({ to, anchorText: text.v, anchorTextTruncated: text.cut, accessibleName: n?.v ?? null, accessibleNameSource: nameSource });
+  }
+  return { links, linksSeen: seen, linksTruncated: seen > links.length };
+}
+
 export const SEED_SOURCES = Object.freeze(["SITEMAP", "SEARCH_CONSOLE", "EXPLICIT_LIST"]);

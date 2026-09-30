@@ -272,7 +272,8 @@ const CRAWL_INSTANT = governedInstant(Date.now());
 const CRAWL_CORRELATION = `run:crawl:${CRAWL_INSTANT}`;
 const store = createJsonlStore(out);
 const observationsGoverned = executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,
-  repo: WRITE_ROOT, auditRepo: REPO, permission: recordPermission, store, records: result.observations,
+  /* RR-104: the headers, link and date-claim records ride the SAME governed append (their own measurement keys, APPEND_IF_NEW) */
+  repo: WRITE_ROOT, auditRepo: REPO, permission: recordPermission, store, records: [...result.observations, ...(result.evidence ?? [])],
   targetClass: "GENERATED_CONFIG", action: "APPEND_CRAWL_OBSERVATIONS",
   occurredAt: CRAWL_INSTANT, correlationId: CRAWL_CORRELATION, discipline: "APPEND_IF_NEW",
 }));

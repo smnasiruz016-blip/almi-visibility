@@ -1,0 +1,24 @@
+RR-104 collector sabotage run · 2026-09-30T22:22:52.263Z
+population: 17 sabotages over test/rr104-collector-evidence.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): Z01=1 Z02=1 Z03=1 Z04=1 Z05=1 Z06=1 Z07=1 Z08=1 Z09=1 Z10=1 Z11=1 Z12=1 Z13=1 Z14=1 Z15=1 Z16=1 Z17=1 · all exactly once: true
+production trail sha256 before: 6d45dd45e0eba33e0ffc0b28de00afed5b32639c11143f8127a537b9b34a4227
+
+Z01 REDACTION: a sensitive name admitted when an allowlist names it src/crawl/fetcher.mjs: landed true · named test "1.1 · REDACTION CONTROL" red true · failing 1 · restored by sha256 true · PROVED
+Z02 REDACTION: session-carrying names no longer sensitive src/crawl/fetcher.mjs: landed true · named test "1.1 · REDACTION CONTROL" red true · failing 1 · restored by sha256 true · PROVED
+Z03 SIZE: an over-long header value kept whole src/crawl/fetcher.mjs: landed true · named test "SIZE BOUNDS" red true · failing 1 · restored by sha256 true · PROVED
+Z04 SIZE: the link count uncapped src/crawl/seeds.mjs: landed true · named test "SIZE BOUNDS" red true · failing 1 · restored by sha256 true · PROVED
+Z05 STABLE: the observation's header subset grows to the allowlist src/crawl/crawler.mjs: landed true · named test "STABLE PROVENANCE: the crawl observation" red true · failing 1 · restored by sha256 true · PROVED
+Z06 STABLE: an evidence key carries the clock src/crawl/provenance.mjs: landed true · named test "STABLE PROVENANCE: the same bytes" red true · failing 1 · restored by sha256 true · PROVED
+Z07 STABLE: an evidence record loses its source observation src/crawl/provenance.mjs: landed true · named test "STABLE PROVENANCE: the crawl observation" red true · failing 2 · restored by sha256 true · PROVED
+Z08 1.2: the anchor text is dropped src/crawl/seeds.mjs: landed true · named test "1.2 · each link" red true · failing 2 · restored by sha256 true · PROVED
+Z09 1.2: an aria-labelledby name is guessed src/crawl/seeds.mjs: landed true · named test "1.2 · each link" red true · failing 1 · restored by sha256 true · PROVED
+Z10 RULE 1: Last-Modified stored as a publication date src/crawl/crawler.mjs: landed true · named test "RULE 1" red true · failing 1 · restored by sha256 true · PROVED
+Z11 RULE 2: a raw-HTML observation reads rendered src/crawl/provenance.mjs: landed true · named test "RULE 2" red true · failing 1 · restored by sha256 true · PROVED
+Z12 RULE 2: the crawler may record RENDERED provenance src/crawl/provenance.mjs: landed true · named test "RULE 2" red true · failing 1 · restored by sha256 true · PROVED
+Z13 RULE 3: an unfetched link reads as working src/crawl/provenance.mjs: landed true · named test "RULE 3" red true · failing 1 · restored by sha256 true · PROVED
+Z14 RULE 4: an uncollected header reads ABSENT src/crawl/provenance.mjs: landed true · named test "RULE 4" red true · failing 1 · restored by sha256 true · PROVED
+Z15 RULE 4: an old link's missing detail is defaulted src/crawl/provenance.mjs: landed true · named test "RULE 4" red true · failing 1 · restored by sha256 true · PROVED
+Z16 RETRY: a network failure is not retried src/crawl/fetcher.mjs: landed true · named test "RETRY" red true · failing 1 · restored by sha256 true · PROVED
+Z17 ISOLATION: evidence shared across runs src/crawl/crawler.mjs: landed true · named test "TENANT ISOLATION" red true · failing 4 · restored by sha256 true · PROVED
+
+proved 17 of 17 · residue 0 · production trail sha256 after: 6d45dd45e0eba33e0ffc0b28de00afed5b32639c11143f8127a537b9b34a4227 · unchanged true

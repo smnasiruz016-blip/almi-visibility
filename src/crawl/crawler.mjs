@@ -17,15 +17,19 @@
 
 import { BoundedFrontier, MAX_URLS_PER_RUN, MAX_REQUESTS_PER_HOST } from "./frontier.mjs";
 import { createRobotsCache, USER_AGENT } from "./robots.mjs";
-import { createFetcher, MAX_RESPONSE_BYTES, REQUEST_INTERVAL_MS, REQUEST_TIMEOUT_MS } from "./fetcher.mjs";
-import { extractLinks } from "./seeds.mjs";
+import { createFetcher, MAX_RESPONSE_BYTES, REQUEST_INTERVAL_MS, REQUEST_TIMEOUT_MS, HEADER_SUBSET, HEADER_ALLOWLIST } from "./fetcher.mjs";
+import { extractLinks, extractLinkDetails } from "./seeds.mjs";
+import { evidenceRecord, dateClaimsIn, EVIDENCE_TYPES, PROVENANCE } from "./provenance.mjs";
 import { summariseRun } from "./inventory.mjs";
 import { makeObservation } from "../evidence/records.mjs";
 import { sha256Hex } from "../evidence/ids.mjs";
 import { costRecord } from "../search/provider.mjs";
 
 const COLLECTOR = "src/crawl/crawler.mjs";
-const COLLECTOR_VERSION = "0.1";
+/* 0.1 → 0.2 (RR-104): each fetched page ALSO yields its allowlisted headers, its links with anchor text and accessible name, and the
+ * dates its raw HTML claims — each a separate record with its own provenance (src/crawl/provenance.mjs). The crawl observation itself is
+ * unchanged in shape and key: its header subset stays the v0.1 five names. */
+const COLLECTOR_VERSION = "0.2";
 
 /**
  * 🔴 THE DEPTH BOUND: 0 — the seeds only. Links are recorded as edges and never offered to the frontier (see the loop
@@ -140,6 +144,8 @@ export async function crawl({
 
   const observations = [];
   const edges = [];
+  /* RR-104: the headers, link and date-claim records, each linked to its raw-HTML observation */
+  const evidence = [];
   const robotsUnknownHosts = new Set();
   const perHostRequests = {};
   let urlsFetched = 0;
@@ -168,7 +174,7 @@ export async function crawl({
         cost: crawlCost(0),
         dryRun: true,
       }),
-      observations, edges, bodies, pages: [],
+      observations, edges, evidence, bodies, pages: [],
       dryRun: true,
     };
   }
@@ -202,7 +208,7 @@ export async function crawl({
       now, requested_url: url,
       final_url: res.finalUrl ?? null,
       status: res.status,
-      headers: res.headers,
+      headers: pick(res.headers, HEADER_SUBSET),
       body: res.ok ? res.body : null,
       bytes: res.bytes ?? 0,
       truncated: Boolean(res.truncated),
@@ -214,6 +220,7 @@ export async function crawl({
     });
     observations.push(obs);
     if (res.ok && res.body) bodies.set(obs.observation_id, res.body);
+    if (res.ok) evidence.push(...pageEvidence(obs, res));
 
     /* 🔴 LINKS ARE RECORDED AS EDGES AND NEVER OFFERED TO THE FRONTIER.
      * There is deliberately no `frontier.offer(link)` anywhere in this file. */
@@ -241,7 +248,7 @@ export async function crawl({
       /* every request this run issued — robots.txt included — is a call */
       cost: crawlCost(fetcher.requestsIssued() + robots.requestsIssued()),
     }),
-    observations, edges, bodies,
+    observations, edges, evidence, bodies,
     dryRun: false,
   };
 }
@@ -257,6 +264,24 @@ export async function crawl({
 export function journeyOf({ requested_url, final_url, redirect_chain = [] }) {
   const redirected = Boolean(final_url && final_url !== requested_url) || redirect_chain.length > 0;
   return redirected ? JSON.stringify({ final_url, redirect_chain }) : null;
+}
+
+const pick = (bag, names) => Object.fromEntries(names.filter((h) => Object.hasOwn(bag ?? {}, h)).map((h) => [h, bag[h]]));
+
+/** RR-104: the three evidence records of one fetched page — headers (RESPONSE_HEADERS), links and date claims (from the RAW_HTML). */
+function pageEvidence(obs, res) {
+  const base = { source: obs, collector: COLLECTOR, collectorVersion: COLLECTOR_VERSION };
+  const out = [evidenceRecord({ ...base, recordType: EVIDENCE_TYPES.HEADERS, provenance: PROVENANCE.RESPONSE_HEADERS,
+    value: { collected: HEADER_ALLOWLIST, headers: res.headers ?? {}, headersTruncated: res.headersTruncated ?? [] } })];
+  if (res.body) {
+    const l = extractLinkDetails(res.body, res.finalUrl ?? obs.value.requested_url);
+    out.push(evidenceRecord({ ...base, recordType: EVIDENCE_TYPES.LINKS, provenance: PROVENANCE.RAW_HTML,
+      value: { from: res.finalUrl ?? obs.value.requested_url, links: l.links, linksSeen: l.linksSeen, linksTruncated: l.linksTruncated, bodyTruncated: Boolean(res.truncated) } }));
+    const d = dateClaimsIn(res.body);
+    out.push(evidenceRecord({ ...base, recordType: EVIDENCE_TYPES.DATE_CLAIMS, provenance: PROVENANCE.PAGE_DECLARED_DATE_CLAIM,
+      value: { claims: d.claims, claimsSeen: d.claimsSeen, claimsTruncated: d.claimsTruncated, bodyTruncated: Boolean(res.truncated) } }));
+  }
+  return out;
 }
 
 function crawlCost(requests) {

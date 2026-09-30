@@ -37,6 +37,38 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
  * x-robots-tag reads as absent while an uncollected header (`link`) reads as not recorded. */
 export const HEADER_SUBSET = Object.freeze(["content-type", "x-robots-tag", "cache-control", "last-modified", "etag"]);
 
+/* 🔴 RR-104 — COLLECTOR v0.2: AN EXPLICIT ALLOWLIST, NEVER "RECORD EVERYTHING". HEADER_SUBSET above stays exactly what collector v0.1
+ * recorded (src/audit/indexability-signals.mjs reads it by version), so an old record's missing header stays NOT MEASURED. v0.2 adds the
+ * indexing and security headers the rows need, by name. */
+export const HEADER_ALLOWLIST = Object.freeze([
+  ...HEADER_SUBSET,
+  /* indexing */ "link", "content-language",
+  /* security and transport */ "strict-transport-security", "content-security-policy", "x-content-type-options", "x-frame-options",
+  "referrer-policy", "permissions-policy", "cross-origin-opener-policy",
+]);
+/** 🔴 Never admitted, whatever the allowlist says: anything that can carry a credential or a session. Checked at load, and per header. */
+export const SENSITIVE_HEADER = /^(set-cookie2?|cookie|authorization|proxy-authorization|www-authenticate|proxy-authenticate|x-api-key|x-auth-token|x-csrf-token|x-xsrf-token|.*session.*|.*token.*|.*secret.*)$/i;
+for (const h of HEADER_ALLOWLIST) if (SENSITIVE_HEADER.test(h)) throw new Error(`fetcher: the header allowlist admits a sensitive header (${h})`);
+/** One header value cannot blow a record: longer values are cut at this many bytes and the header is named in `headersTruncated`. */
+export const MAX_HEADER_VALUE_BYTES = 4096;
+
+/** The allowlisted headers of a response, each value capped; sensitive names never admitted. Pure over a Headers-like `get`. */
+export function allowlistedHeaders(get, { allowlist = HEADER_ALLOWLIST, maxValueBytes = MAX_HEADER_VALUE_BYTES } = {}) {
+  const headers = {};
+  const headersTruncated = [];
+  for (const h of allowlist) {
+    if (SENSITIVE_HEADER.test(h)) continue;
+    const v = get(h);
+    if (v == null) continue;
+    const s = String(v);
+    if (Buffer.byteLength(s, "utf8") > maxValueBytes) {
+      headers[h] = Buffer.from(s, "utf8").subarray(0, maxValueBytes).toString("utf8");
+      headersTruncated.push(h);
+    } else headers[h] = s;
+  }
+  return { headers, headersTruncated };
+}
+
 export function createFetcher({
   fetchImpl,
   userAgent = USER_AGENT,
@@ -77,11 +109,7 @@ export function createFetcher({
       // first, which is exactly what the ceiling exists to prevent.
       const { text, bytes, truncated } = await readCapped(res, maxResponseBytes);
 
-      const headers = {};
-      for (const h of HEADER_SUBSET) {
-        const v = res.headers?.get?.(h);
-        if (v != null) headers[h] = v;
-      }
+      const { headers, headersTruncated } = allowlistedHeaders((h) => res.headers?.get?.(h));
 
       return {
         ok: true,
@@ -89,6 +117,7 @@ export function createFetcher({
         finalUrl: res.url || url,
         redirected: Boolean(res.redirected),
         headers,
+        headersTruncated,
         body: text,
         bytes,
         truncated,

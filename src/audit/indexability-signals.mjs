@@ -46,7 +46,8 @@ export const CLASS_MEANING = Object.freeze({
 export const SEARCH_AGENT = "Googlebot";
 
 /** Which response headers each collector version RECORDED. An observation from any other collector: its headers are UNKNOWN. */
-export const RECORDED_HEADERS = Object.freeze({ "src/crawl/crawler.mjs@0.1": HEADER_SUBSET });
+/* RR-104: a v0.2 crawl observation still carries exactly the v0.1 subset; its wider allowlist lives in its own response_headers record. */
+export const RECORDED_HEADERS = Object.freeze({ "src/crawl/crawler.mjs@0.1": HEADER_SUBSET, "src/crawl/crawler.mjs@0.2": HEADER_SUBSET });
 
 const canon = (u, base) => { try { return canonicalUrl(base ? new URL(u, base).href : u); } catch { return null; } };
 const originOf = (u) => { const c = canon(u); return c ? new URL(c).origin : null; };

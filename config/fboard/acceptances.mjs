@@ -508,6 +508,20 @@ export const F29_ORIGINAL = Object.freeze({
   evidence: "For each clause: a test driving the production path; a firing control; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched. The real result on the declared clients that own recorded issues, count-only, with its bound, and the reference client's empty population reported as such. The full suite as CI runs it, and exact-SHA CI on the PR head before any merge, then on the merge commit. F29 moves only through the production validator and the audit trail, and only when every clause is PROVED.",
   contractSha256: "0b64b5358b9e7bde01cc4b167f24cef5ec2bb4356211c4285d074c933fafa43e",
 });
+/* 🔴 F73 · FROZEN 30 Sep 2026 (_handoffs 366476c, RR-96 §5), committed ALONE before any F73 code was written. Pinned from the committed
+ * blob by parseContract (derivation re-run with a firing control inside the contract: "defaulted" → "defaultad"). */
+export const F73_ORIGINAL = Object.freeze({
+  featureId: "F73",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F73_ACCEPTANCE_2026-09-30.md", commit: "366476c83030f2dc14199f622e185b790deebc05", sha256: "57f8f2b7a2172484fe170ff7eaf494bfa0ab6a518c97bac96bae65d701a286af" }),
+  authority: Object.freeze({ propositionId: "F73_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F73"]) }),
+  frozenOn: "2026-09-30",
+  feature: "F73 · Recommendation explainability",
+  input: "Every persisted recommendation (record type draft_recommendation) with its recorded fields, status and approval, its recorded evidence links, and the records those links reference — driven over the real recorded recommendations, count-only, with nothing fetched or written.",
+  expected: "[C1 · REAL RECOMMENDATIONS ONLY] Exactly the persisted recommendations are explained; issues, lifecycle records, evidence links, rankings, assessments and fixtures are never counted as recommendations.\n[C2 · SEVEN FIELDS, RECORDED OR NOT MEASURED] Every recommendation shows priority, evidence, confidence, dependencies, expected cost, reversibility and reason, each from its record or a record linked by its id, or NOT MEASURED with the missing fact named; no field is estimated, defaulted, inferred or filled.\n[C3 · EVIDENCE RESOLVES] Every linked evidence reference is resolved against the recorded records; one that resolves to nothing is BROKEN.\n[C4 · STATUS AS RECORDED] Each explanation reports the recorded status, approval and application exactly, and never implies approval.\n[C5 · VERDICT AND RECORDED DATA ONLY] Each explanation is PROVED only with all seven fields recorded and every reference resolving, DISPROVED on a broken reference, otherwise COULD-NOT-PROVE; nothing is fetched or written; the output is count-only with its population and bound.",
+  failure: "[C1] An issue, lifecycle record, evidence link, ranking, assessment or fixture is counted as a recommendation, or a recommendation is dropped. [C2] A missing field is estimated, defaulted, inferred, filled or rendered as a value, or a NOT MEASURED field names no missing fact. [C3] A dangling evidence reference reads resolved, or a resolving one reads broken. [C4] A status, approval or application is changed, inferred or implied. [C5] An explanation with a NOT MEASURED field reads PROVED, a broken reference does not DISPROVE, anything is fetched or written, or a figure lacks its population and bound. And for any clause: it is proved only on an empty population, or only by a control that cannot fire.",
+  evidence: "For each clause: a test driving the production path; a firing control — C2's shows an absent cost and reversibility staying NOT MEASURED, never filled; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched. The real result over the recorded recommendations, count-only, with its bound and each field's present and absent counts. The full suite as CI runs it, and exact-SHA CI on the PR head before any merge, then on the merge commit. F73 moves only through the production validator and the audit trail, and only when every clause is PROVED.",
+  contractSha256: "dbc5b19c8a531dbaa905b8a34f7f52f6b7a113197b64126a8ec99559d7ce4636",
+});
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -685,6 +699,7 @@ export const ACCEPTANCES = Object.freeze({
   F47: F47_ORIGINAL,
   F48: F48_AMENDMENT_1,
   F55: F55_ORIGINAL,
+  F73: F73_ORIGINAL,
   F77: F77_AMENDMENT_1,
   F78: F78_ORIGINAL,
   F79: F79_AMENDMENT_1,

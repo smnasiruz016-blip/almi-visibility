@@ -1860,6 +1860,48 @@ export const DECLARED = Object.freeze({
       }),
     ]),
   }),
+  /* 🔴 F75 · Task ticket and workflow integration. Frozen 30 Sep (_handoffs 01275a9, RR-103 §3) — its first freeze — ALONE, after measuring
+   * every limb on real data and before any F75 code existed. Tickets are DRAFTS: returned, never written, filed or sent. */
+  F75: Object.freeze({
+    featureId: "F75",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-30", ruling: ACCEPTANCES.F75.ruling, contractSha256: ACCEPTANCES.F75.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F75",
+        on: "2026-09-30",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F75.ruling.sha256, contract: ACCEPTANCES.F75.contractSha256 }),
+        branch: "f75-tickets",
+        baseSha: "84ca961781a00989b045dff66e724d967e818079",
+        baseCiRun: "36777574333",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-30_RR-103_CLOSE_F90_ADD_PAGE_OPPORTUNITY_ROW_THEN_CONTINUE.md", commit: "4ff0fc8fec61649ecf829fd2da39da85c1012c94", sha256: "642b48e7eae2665f83e6267d28e59ea013ad7b7d445f5330146469091776461f" }),
+      }),
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F75",
+        population: "REAL",
+        on: "2026-09-30",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F75.ruling.sha256, contract: ACCEPTANCES.F75.contractSha256 }),
+        populations: "REAL (count-only; bound: recorded data only · F90's actionable population, 528 findings in 8 tracked stores through the production lifecycle reader · 22 ACTIVE declared clients, each through its own crawl partition · nothing fetched, re-run, written, filed or sent): 527 findings ticketed exactly once, for 17 clients (5 clients have none, reported so); 1 finding unattributed, named apart; 46 ticket drafts — DEVELOPER 23, CONTENT 23, NOT MEASURED 0; every ticket complete: every finding with recorded evidence, affected pages counted with the findings behind them, and an acceptance check taken from the raising check's declared boundary. An independent attribution (no ticket code) agrees on 527. Satisfaction is claimed for no ticket.",
+        proofs: "test/f75-task-tickets.test.mjs (11) — C1 only the client's actionable findings (another client's, UNKNOWN, closed, superseded excluded; not-this-client counted); C1 FIRING CONTROL: an unreadable findings population drafts no ticket (COULD-NOT-PROVE, named); C2 CONTENT for a declared content-supply check, DEVELOPER otherwise, an unregistered detector NOT MEASURED with its fact; C2 the declared list is exactly item 12's four registered checks, the orphan excluded; C3 evidence ids kept, affected pages distinct with their findings, a finding without evidence named; C4 the acceptance check is the held check's own boundary object, satisfaction NOT CLAIMED; C4 FIRING CONTROL: no boundary leaves the acceptance check NOT MEASURED, named; REAL every ACTIVE declared client, each finding once, independent attribution agrees, both kinds occur; C5 the drafter imports nothing and the reader nothing that fetches or writes, no URL in a ticket; C5 the entry point in the declared fixture world prints bound, kinds and the not-this-client count and writes nothing",
+        sabotage: "runs/audit/f75-sabotage-2026-09-30.txt: 14 of 14 proved, every span pre-flighted once, production trail unchanged. K12 (the missing-boundary branch removed) turns its test red through a TypeError on the unfilled part, not a filled value — reported, as F90's S10",
+        historicalReuse: "no historical row maps to F75 (crosswalk UNASSESSED, no module or test). Reused: F90's actionable population and lifecycle reader, F29's own-partition attribution (clientPageIds), and the registered checks' declared boundaries (#204, #205)",
+        declaredLimit: "tickets are drafts returned by the entry point: filing them into an external tracker needs a connector the product does not hold — NOT MEASURED, never implied; nothing is re-run, so no ticket is ever called satisfied; the developer/content split follows where a check is declared (item 12's content-supply checks), not a judgement of who should fix it; the three content thresholds behind many CONTENT tickets remain an unvalidated parked gap (GAP-RR103-THRESHOLD-VALUES)",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
   /* 🔴 F90 · Falsifiability of findings. Frozen 30 Sep (_handoffs 73b50bf, RR-99 §4) — its first freeze — ALONE, before any F90 code was read.
    * Its prerequisites were repaired first, each in its own PR: the eight technical checks' boundaries (#204) and the four content checks'
    * (#205). Every refutation part is TAKEN from the held check's declaration or NOT MEASURED — never written freehand. */

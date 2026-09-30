@@ -536,6 +536,20 @@ export const F90_ORIGINAL = Object.freeze({
   evidence: "For each clause: a test driving the production path; a firing control; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched. The census over the real recorded findings, count-only, with its bound. The full suite as CI runs it, and exact-SHA CI on the PR head before any merge, then on the merge commit. F90 moves only through the production validator and the audit trail, and only when every clause is PROVED.",
   contractSha256: "7f4023958f2fe3d0a8c739d39d97722ce821ab58eeb72248c4fde8b3be8e6729",
 });
+/* 🔴 F75 · FROZEN 30 Sep 2026 (_handoffs 01275a9, RR-103 §3), committed ALONE before any F75 code existed. Pinned from the committed
+ * blob by parseContract (derivation re-run with a firing control inside the contract: "attributed" → "attributd" moves the hash). */
+export const F75_ORIGINAL = Object.freeze({
+  featureId: "F75",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F75_ACCEPTANCE_2026-09-30.md", commit: "01275a9fd2bb33597e5c3a62bd23e9100d87e9eb", sha256: "d368cbda79992f7c973ce7fbed1d55064b6516a2721ca214e1ed001f1ab5421d" }),
+  authority: Object.freeze({ propositionId: "F75_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F75"]) }),
+  frozenOn: "2026-09-30",
+  feature: "F75 · Task ticket and workflow integration",
+  input: "The recorded actionable findings (F90's population: latest state OPEN, verdict FAIL, not superseded, through the production lifecycle reader) of one declared client — attributed through that client's own crawl partition — with each finding's recorded evidence and target page, and the engine's registered checks with their declared kind and boundary; count-only, with nothing fetched, re-run, written, filed or sent.",
+  expected: "[C1 · ONE CLIENT'S ACTIONABLE FINDINGS ONLY] Exactly the requested client's actionable findings are ticketed; another client's, an unattributed one, and UNKNOWN, closed or superseded findings never enter its tickets, and unattributed findings are counted and named apart.\n[C2 · DEVELOPER OR CONTENT] Every ticket is DEVELOPER or CONTENT by the raising check's declared place — content-supply checks CONTENT, every other registered check DEVELOPER — or NOT MEASURED with the missing fact named; never guessed.\n[C3 · EVIDENCE AND AFFECTED POPULATION] Every ticket carries every recorded evidence id of its findings and its affected pages counted with the findings behind them; a finding without evidence is named, never filled.\n[C4 · ACCEPTANCE CHECKS FROM THE HELD CHECK] Every ticket's acceptance check is the raising check's own declared boundary — what it observes and each condition it fires on, satisfied only when a fresh observation makes every condition false on every affected page — or NOT MEASURED with the missing fact named; satisfaction is never claimed.\n[C5 · DRAFTS ONLY, BOUNDED, COUNT-ONLY] Tickets are returned, never written, filed or sent; the output prints its population and bound and carries no page content, host or URL.",
+  failure: "[C1] Another client's, an unattributed, an UNKNOWN, a closed or a superseded finding enters a ticket, or one of the client's actionable findings is dropped. [C2] A kind is guessed, or a ticket reads DEVELOPER or CONTENT without its check's declared place. [C3] Evidence is dropped, invented or filled, or the affected population is miscounted. [C4] An acceptance check is written freehand, a missing boundary is filled, or a ticket claims to be satisfied. [C5] Anything is fetched, re-run, written, filed or sent, a figure lacks its population and bound, or the output carries page content, a host or a URL. And for any clause: it is proved only on an empty population, or only by a control that cannot fire.",
+  evidence: "For each clause: a test driving the production path; a firing control; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched. The real result for every declared client, count-only, with its bound, including clients with no findings and the unattributed findings named apart. The full suite as CI runs it, and exact-SHA CI on the PR head before any merge, then on the merge commit. F75 moves only through the production validator and the audit trail, and only when every clause is PROVED.",
+  contractSha256: "f316c9d9dbae8188432daa67d42bc77c0f70e9a616606e6c996eb1cb97773163",
+});
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -714,6 +728,7 @@ export const ACCEPTANCES = Object.freeze({
   F48: F48_AMENDMENT_1,
   F55: F55_ORIGINAL,
   F73: F73_ORIGINAL,
+  F75: F75_ORIGINAL,
   F77: F77_AMENDMENT_1,
   F78: F78_ORIGINAL,
   F79: F79_AMENDMENT_1,

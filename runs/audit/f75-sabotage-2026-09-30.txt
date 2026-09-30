@@ -1,0 +1,21 @@
+F75 sabotage run · 2026-09-30T21:11:41.887Z
+population: 14 sabotages over test/f75-task-tickets.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): K01=1 K02=1 K03=1 K04=1 K05=1 K06=1 K07=1 K08=1 K09=1 K10=1 K11=1 K12=1 K13=1 K14=1 · all exactly once: true
+production trail sha256 before: d924c7a835bcd10d169bb915ecf2829b4f6baff21a259b49cc478134360bad5a
+
+K01 C1: every finding is the client's src/report/tickets.mjs: landed true · named test "C1 · only the client's ACTIONABLE" red true · failing 2 · restored by sha256 true · PROVED
+K02 C1: another client's findings are not counted apart src/report/tickets.mjs: landed true · named test "C1 · only the client's ACTIONABLE" red true · failing 1 · restored by sha256 true · PROVED
+K03 C1: an unreadable population still drafts tickets src/report/tickets-reader.mjs: landed true · named test "C1 · FIRING CONTROL" red true · failing 1 · restored by sha256 true · PROVED
+K04 C2: every ticket is DEVELOPER src/report/tickets.mjs: landed true · named test "C2 · CONTENT for" red true · failing 2 · restored by sha256 true · PROVED
+K05 C2: an unregistered detector's kind is guessed src/report/tickets.mjs: landed true · named test "C2 · CONTENT for" red true · failing 1 · restored by sha256 true · PROVED
+K06 C2: the content-supply list drops a check src/audit/content-checks.mjs: landed true · named test "C2 · the declared content-supply list" red true · failing 1 · restored by sha256 true · PROVED
+K07 C3: only the first finding's evidence is kept src/report/tickets.mjs: landed true · named test "C3 · every recorded evidence" red true · failing 1 · restored by sha256 true · PROVED
+K08 C3: a finding without evidence is not named src/report/tickets.mjs: landed true · named test "C3 · every recorded evidence" red true · failing 1 · restored by sha256 true · PROVED
+K09 C3: the affected population counts findings, not pages src/report/tickets.mjs: landed true · named test "C3 · every recorded evidence" red true · failing 1 · restored by sha256 true · PROVED
+K10 C4: the acceptance check is written freehand src/report/tickets.mjs: landed true · named test "C4 · the acceptance check IS" red true · failing 1 · restored by sha256 true · PROVED
+K11 C4: a ticket claims to be satisfied src/report/tickets.mjs: landed true · named test "C4 · the acceptance check IS" red true · failing 1 · restored by sha256 true · PROVED
+K12 C4: a missing boundary is not named src/report/tickets.mjs: landed true · named test "C4 · FIRING CONTROL" red true · failing 1 · restored by sha256 true · PROVED
+K13 C5: the entry point drops its bound bin/task-tickets.mjs: landed true · named test "C5 · THE ENTRY POINT" red true · failing 1 · restored by sha256 true · PROVED
+K14 C5: the reader can write src/report/tickets-reader.mjs: landed true · named test "C5 · the drafter imports" red true · failing 1 · restored by sha256 true · PROVED
+
+proved 14 of 14 · residue 0 · production trail sha256 after: d924c7a835bcd10d169bb915ecf2829b4f6baff21a259b49cc478134360bad5a · unchanged true

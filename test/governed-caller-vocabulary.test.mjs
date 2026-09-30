@@ -228,9 +228,12 @@ test("V7 · the REAL population: 46 governed = 45 routed + 1 checked exemption +
   /* 84/47 → 85/47 on 30 September (F90, RR-102), for a MEASURED reason: one production entry point, bin/finding-falsifiability.mjs,
    * READ_ONLY_DIAGNOSTIC — it reads the tracked findings stores and the registered checks and prints counts; it fetches, re-runs,
    * writes and records nothing. No existing caller moved class. */
-  assert.equal(rows.length, 85);
+  /* 85/47 → 86/47 on 30 September (F75, RR-103), for a MEASURED reason: one production entry point, bin/task-tickets.mjs,
+   * READ_ONLY_DIAGNOSTIC — it reads one client's partition, the tracked findings stores and the registered checks and prints counts;
+   * it fetches, re-runs, writes, files, sends and records nothing. No existing caller moved class. */
+  assert.equal(rows.length, 86);
   assert.equal(governed.length, 47);
-  assert.equal(rows.filter((r) => r.cls === "READ_ONLY_DIAGNOSTIC").length, 38);
+  assert.equal(rows.filter((r) => r.cls === "READ_ONLY_DIAGNOSTIC").length, 39);
   const by = Object.fromEntries(CALLER_CLASSES.map((c) => [c, governed.filter((r) => r.callerClass === c).length]));
   /* 43/2 → 44/1 on 26 September (F10), for a MEASURED reason: bin/heldout-evaluation.mjs now routes its scoring run through the
    * boundary (BOUNDARY_ROUTED); no entry point was added and no other caller moved class. */

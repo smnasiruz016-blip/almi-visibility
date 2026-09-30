@@ -62,7 +62,29 @@ const DERIVED_TYPES = Object.freeze({
   duplicate_record_superseded: { inputs: (r) => [...(present(r.issue_id) ? [`issue:${r.issue_id}`] : []), ...strs(r.evidence)], at: (r) => r.superseded_at, method: "duplicate-record-note" },
   recommendation_evidence: { inputs: (r) => [...strs(r.issues).map((x) => `issue:${x}`), ...strs(r.observations).map((x) => `observation:${x}`), ...strs(r.sources).map((x) => `source:${x}`)], at: (r) => r.linked_at, method: "recommendation-evidence-link" },
   cost_entry: { inputs: (r) => (present(r.run_ref) ? [`cost-input:${h16(r.run_ref)}`] : []), at: (r) => r.recorded_at, method: "cost-entry-from-run-counts" },
+  /* 🔴 RR-106 — the two collector v0.2 records PARSED from a stored raw-HTML body (src/crawl/provenance.mjs). Each is computed by our
+   * parser from the observation it names, so it is INFERRED with that observation as its one input — never OBSERVED: the links are
+   * what our parser found in raw HTML (a script-built link is invisible to it), and a date CLAIM is what the page says, not a date
+   * anyone observed (naming rule 1). The parse time is the observation's own time: the parse runs on the response it came from. */
+  page_links: { inputs: (r) => (present(r.source_observation_id) ? [`observation:${r.source_observation_id}`] : []), at: (r) => r.observed_at, method: "link-details-from-raw-html" },
+  publication_date_claims: { inputs: (r) => (present(r.source_observation_id) ? [`observation:${r.source_observation_id}`] : []), at: (r) => r.observed_at, method: "date-claims-from-raw-html" },
 });
+
+/**
+ * 🔴 RR-106 — a collector v0.2 `response_headers` record: the allowlisted response headers COPIED VERBATIM from the response the
+ * collector received for the observation it names (a value over the cap is cut and named, never rewritten). Nothing is computed, so it
+ * is a direct witnessing — OBSERVED, sourced from its collector, like the raw-HTML observation of the same response. It is traceable only
+ * through its own evidence id and its source observation; a record missing either, or its time, is UNMAPPED — never placed by default.
+ */
+function ofResponseHeaders(r) {
+  const rule = "response_headers";
+  if (!present(r.evidence_id)) return unmapped("a response-headers record with no evidence_id cannot be referenced", rule);
+  if (!present(r.source_observation_id)) return unmapped("a response-headers record names the observation whose response it copied", rule);
+  if (!present(r.observed_at) || !ISOISH.test(r.observed_at)) return unmapped("a response-headers record with no observed_at has no time", rule);
+  const source = [r.collector, r.collector_version].filter(present).join("@");
+  if (!present(source)) return unmapped("a response-headers record names no collector", rule);
+  return place(rule, "OBSERVED", { evidenceRef: `response_headers:${r.evidence_id}`, sourceId: source, observedAt: r.observed_at });
+}
 
 const unmapped = (why, rule) => Object.freeze({ state: null, unmapped: true, why, assignedBy: rule });
 const place = (rule, state, meta) => {
@@ -192,6 +214,7 @@ export function evidenceStateOf(record, ctx = {}) {
     case "source": return ofSource(record);
     case "issue": return ofIssue(record);
     case "draft_recommendation": return ofDraftRecommendation(record, ctx);
+    case "response_headers": return ofResponseHeaders(record);
     default:
       if (Object.hasOwn(DERIVED_TYPES, record.record_type)) return ofDerived(record);
       return unmapped(`record_type ${record.record_type} has no declared rule`, "none");

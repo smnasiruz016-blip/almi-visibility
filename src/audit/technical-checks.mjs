@@ -104,6 +104,15 @@ export const STATUS_AND_REDIRECTS = registerCheck({
   description: "A non-200 final status, or a redirect chain longer than one hop.",
   firingFixture: "an observation with status 404 — must fire",
   cleanControl: "an observation with status 200 and no redirect — must NOT fire",
+  /* RR-100: read from run() — silent only when status === 200, the chain has at most one hop and the final URL is the requested one. */
+  boundary: {
+    observes: ["the recorded final status", "the recorded redirect chain", "the recorded requested and final URLs"],
+    fires: [
+      { id: "status-not-200", when: "the recorded final status is anything other than 200 (a failed fetch with no status included)" },
+      { id: "chain-over-one-hop", when: "the recorded redirect chain has more than one entry" },
+      { id: "redirected", when: "the recorded final URL differs from the requested URL" },
+    ],
+  },
   run({ page, observations, siteContext }) {
     const o = observations[0]?.value;
     if (!o || o.status === undefined) {
@@ -171,6 +180,16 @@ export const CANONICAL = registerCheck({
   description: "A missing canonical, or one pointing off-host, or one pointing at a URL we saw as non-200.",
   firingFixture: "a page whose canonical points at another host — must fire",
   cleanControl: "a page whose canonical is its own URL — must NOT fire",
+  /* RR-100: read from run() — four firing paths, each tested in both directions. */
+  boundary: {
+    observes: ["the stored body's rel=canonical", "the page URL", "the recorded statuses of this site's URLs"],
+    fires: [
+      { id: "canonical-missing", when: "the stored body carries no rel=canonical" },
+      { id: "canonical-unparseable", when: "the canonical is not a parseable URL relative to the page" },
+      { id: "canonical-off-host", when: "the canonical resolves to a different hostname than the page" },
+      { id: "canonical-target-not-200", when: "the canonical's same-host target was recorded with a status other than 200" },
+    ],
+  },
   run({ page, observations, siteContext }) {
     const html = siteContext.bodyHtml;
     if (html == null) {
@@ -235,6 +254,11 @@ export const NOINDEX = registerCheck({
   description: "A page carrying noindex, and any disagreement between meta robots and X-Robots-Tag.",
   firingFixture: "a page with <meta name=robots content=noindex> — must fire",
   cleanControl: "a page with meta robots 'index,follow' and no X-Robots-Tag — must NOT fire",
+  /* RR-100: read from run() and noindexState() — every disagreement implies a noindex on one side, so disagreement sets severity only. */
+  boundary: {
+    observes: ["the stored body's meta robots", "the recorded X-Robots-Tag header"],
+    fires: [{ id: "noindexed", when: "meta robots or a recorded X-Robots-Tag carries the noindex token" }],
+  },
   run({ page, observations, siteContext }) {
     const html = siteContext.bodyHtml;
     if (html == null) {
@@ -270,6 +294,20 @@ export const HEAD_ELEMENTS = registerCheck({
   description: "Missing or empty title/description/H1, more than one H1, duplicate titles, or a skipped heading level.",
   firingFixture: "a page with no <h1> and an empty <title> — must fire",
   cleanControl: "a page with one title, one description and one H1 — must NOT fire",
+  /* RR-100: read from run() — eight firing conditions (its separate "empty title" branch is unreachable: an empty title is already "no title"). */
+  boundary: {
+    observes: ["the stored body's title, meta descriptions, h1 elements and heading levels", "the titles of this site's other pages"],
+    fires: [
+      { id: "no-title", when: "the title is missing or empty" },
+      { id: "no-description", when: "the meta description is missing or empty" },
+      { id: "multiple-descriptions", when: "more than one meta description" },
+      { id: "no-h1", when: "no h1 element" },
+      { id: "multiple-h1", when: "more than one h1 element" },
+      { id: "empty-h1", when: "an h1 element whose text is empty" },
+      { id: "shared-title", when: "the title is shared with at least one other page of the site" },
+      { id: "skipped-heading-level", when: "a heading level h2-h6 is used while the level above it is not" },
+    ],
+  },
   run({ page, observations, siteContext }) {
     const html = siteContext.bodyHtml;
     if (html == null) {
@@ -354,6 +392,11 @@ export const QUERY_PARAMETERS = registerCheck({
   description: "An indexed URL carrying query parameters — a facet surface Google is spending crawl on.",
   firingFixture: "a URL with ?sort=asc&page=2 — must fire",
   cleanControl: "a URL with no query string — must NOT fire",
+  /* RR-100: read from run(). */
+  boundary: {
+    observes: ["the page URL's query string"],
+    fires: [{ id: "has-query-parameter", when: "the page URL carries at least one query parameter" }],
+  },
   run({ page, observations, siteContext }) {
     const u = new URL(page.canonical_url);
     const params = [...u.searchParams.keys()];
@@ -436,6 +479,19 @@ export const INDEXABILITY_PREFLIGHT = registerCheck({
   description: "Technical eligibility for indexing, in ASSESS MODE over pages that already exist. Never a prediction.",
   firingFixture: "a page that is noindexed and robots-disallowed — must fire as BLOCKED",
   cleanControl: "a page passing every condition — must NOT fire",
+  /* RR-100: read from run() and preflight() — BLOCKED (a finding) when any of the six PREFLIGHT_CONDITIONS is false; a condition that is
+   * unmeasured makes the result UNKNOWN, never a finding. */
+  boundary: {
+    observes: ["the recorded status", "the robots decision", "the noindex state", "the canonical state", "sitemap membership", "content present in raw HTML"],
+    fires: [
+      { id: "reachable200", when: "the recorded status is not 200" },
+      { id: "notRobotsDisallowed", when: "robots disallows the page" },
+      { id: "notNoindexed", when: "the page is noindexed" },
+      { id: "canonicalSelfOrResolving", when: "the canonical is neither self nor resolving" },
+      { id: "inSitemap", when: "the page is not in the sitemap" },
+      { id: "contentInRawHtml", when: "the raw HTML carries no content" },
+    ],
+  },
   run({ page, observations, siteContext }) {
     const p = preflight(siteContext.preflightInputs ?? {});
     if (p.state === "ELIGIBLE") return null;

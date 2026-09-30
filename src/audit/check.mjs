@@ -111,7 +111,20 @@ export function unknown({ issueClass, canonicalUrl, reasonCode, evidence, detect
 
 const REGISTRY = new Map();
 
-export function registerCheck({ id, run, firingFixture, cleanControl, description }) {
+/* 🔴 RR-100 — A STRUCTURED BOUNDARY, READ FROM THE CODE. A check MAY declare `boundary`: the inputs its run reads (`observes`) and the exact
+ * conditions under which it FIRES (`fires`: [{ id, when }]). A finding is void when a fresh observation of `observes` makes every `fires`
+ * condition false. The declaration is not prose about the check: test/rr100-check-boundaries.test.mjs crosses every declared condition in
+ * BOTH directions against the check's own run, and fails the moment the declaration and the code disagree. */
+function validBoundary(id, b) {
+  if (b === undefined) return undefined;
+  const ok = b && Array.isArray(b.observes) && b.observes.length > 0 && b.observes.every((x) => typeof x === "string" && x !== "")
+    && Array.isArray(b.fires) && b.fires.length > 0 && b.fires.every((f) => typeof f?.id === "string" && f.id !== "" && typeof f?.when === "string" && f.when !== "")
+    && new Set(b.fires.map((f) => f.id)).size === b.fires.length;
+  if (!ok) throw new TypeError(`${id}: a boundary must name what it observes and each condition it fires on, with a unique id and a stated condition`);
+  return Object.freeze({ observes: Object.freeze([...b.observes]), fires: Object.freeze(b.fires.map((f) => Object.freeze({ id: f.id, when: f.when }))) });
+}
+
+export function registerCheck({ id, run, firingFixture, cleanControl, description, boundary }) {
   if (typeof id !== "string" || id === "") throw new TypeError("a check needs an id");
   if (typeof run !== "function") throw new TypeError(`${id}: a check needs a run function`);
   if (typeof firingFixture !== "string" || firingFixture === "") {
@@ -124,7 +137,7 @@ export function registerCheck({ id, run, firingFixture, cleanControl, descriptio
     );
   }
   if (REGISTRY.has(id)) throw new TypeError(`${id}: already registered`);
-  REGISTRY.set(id, { id, run, firingFixture, cleanControl, description });
+  REGISTRY.set(id, { id, run, firingFixture, cleanControl, description, boundary: validBoundary(id, boundary) });
   return REGISTRY.get(id);
 }
 

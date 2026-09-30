@@ -1,0 +1,44 @@
+RR-100 boundary sabotage run · 2026-09-30T06:19:39.625Z
+population: 37 sabotages over test/rr100-check-boundaries.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): N01=1 W01=1 N02=1 W02=1 N03=1 N04=1 N05=1 W03=1 N06=1 N07=1 N08=1 N09=1 W04=1 N10=1 W05=1 N11=1 N12=1 N13=1 N14=1 N15=1 N16=1 N17=1 N18=1 W06=1 N19=1 W07=1 N20=1 N21=1 N22=1 N23=1 N24=1 N25=1 W08=1 D01=1 D02=1 D03=1 D04=1 · all exactly once: true
+production trail sha256 before: 1c8360ac15897b7e046c2e6987773cd2bb88941b749dcea9d684e6fcff01b168
+
+N01 robots-scope NARROW: the search-crawler block no longer fires src/audit/checks.mjs: landed true · named test "BOTH DIRECTIONS · robots-scope" red true · failing 1 · restored by sha256 true · PROVED
+W01 robots-scope WIDEN: a block for our crawler alone fires src/audit/checks.mjs: landed true · named test "BOTH DIRECTIONS · robots-scope" red true · failing 1 · restored by sha256 true · PROVED
+N02 dns-family NARROW: AAAA_ONLY no longer raises src/audit/dns-family.mjs: landed true · named test "BOTH DIRECTIONS · dns-family" red true · failing 1 · restored by sha256 true · PROVED
+W02 dns-family WIDEN: A_ONLY raises too src/audit/dns-family.mjs: landed true · named test "BOTH DIRECTIONS · dns-family" red true · failing 1 · restored by sha256 true · PROVED
+N03 status NARROW: a 201 counts as clean src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · status-and-redirects" red true · failing 1 · restored by sha256 true · PROVED
+N04 status NARROW: a two-hop chain counts as clean src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · status-and-redirects" red true · failing 1 · restored by sha256 true · PROVED
+N05 status NARROW: a redirect counts as clean src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · status-and-redirects" red true · failing 1 · restored by sha256 true · PROVED
+W03 status WIDEN: a one-entry chain fires src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · status-and-redirects" red true · failing 1 · restored by sha256 true · PROVED
+N06 canonical NARROW: a missing canonical no longer fires src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · canonical" red true · failing 1 · restored by sha256 true · PROVED
+N07 canonical NARROW: an unparseable canonical no longer fires src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · canonical" red true · failing 1 · restored by sha256 true · PROVED
+N08 canonical NARROW: an off-host canonical no longer fires src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · canonical" red true · failing 1 · restored by sha256 true · PROVED
+N09 canonical NARROW: a 404 target no longer fires src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · canonical" red true · failing 1 · restored by sha256 true · PROVED
+W04 canonical WIDEN: a same-host cross-URL canonical fires src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · canonical" red true · failing 1 · restored by sha256 true · PROVED
+N10 noindex NARROW: a header noindex no longer counts src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · noindex" red true · failing 1 · restored by sha256 true · PROVED
+W05 noindex WIDEN: every page with a body fires src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · noindex" red true · failing 1 · restored by sha256 true · PROVED
+N11 head NARROW: no-title src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · head-elements" red true · failing 1 · restored by sha256 true · PROVED
+N12 head NARROW: no-description src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · head-elements" red true · failing 1 · restored by sha256 true · PROVED
+N13 head NARROW: multiple-descriptions src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · head-elements" red true · failing 1 · restored by sha256 true · PROVED
+N14 head NARROW: no-h1 src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · head-elements" red true · failing 1 · restored by sha256 true · PROVED
+N15 head NARROW: multiple-h1 src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · head-elements" red true · failing 1 · restored by sha256 true · PROVED
+N16 head NARROW: empty-h1 src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · head-elements" red true · failing 1 · restored by sha256 true · PROVED
+N17 head NARROW: shared-title src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · head-elements" red true · failing 1 · restored by sha256 true · PROVED
+N18 head NARROW: skipped-heading-level src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · head-elements" red true · failing 1 · restored by sha256 true · PROVED
+W06 head WIDEN: a single h1 fires src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · head-elements" red true · failing 1 · restored by sha256 true · PROVED
+N19 query NARROW: one parameter no longer fires src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · query-parameters" red true · failing 1 · restored by sha256 true · PROVED
+W07 query WIDEN: a URL with no parameter fires src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · query-parameters" red true · failing 1 · restored by sha256 true · PROVED
+N20 preflight NARROW: reachable200 src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · indexability-preflight" red true · failing 1 · restored by sha256 true · PROVED
+N21 preflight NARROW: notRobotsDisallowed src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · indexability-preflight" red true · failing 1 · restored by sha256 true · PROVED
+N22 preflight NARROW: notNoindexed src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · indexability-preflight" red true · failing 1 · restored by sha256 true · PROVED
+N23 preflight NARROW: canonicalSelfOrResolving src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · indexability-preflight" red true · failing 1 · restored by sha256 true · PROVED
+N24 preflight NARROW: inSitemap src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · indexability-preflight" red true · failing 1 · restored by sha256 true · PROVED
+N25 preflight NARROW: contentInRawHtml src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · indexability-preflight" red true · failing 1 · restored by sha256 true · PROVED
+W08 preflight WIDEN: a clean page is blocked src/audit/technical-checks.mjs: landed true · named test "BOTH DIRECTIONS · indexability-preflight" red true · failing 2 · restored by sha256 true · PROVED
+D01 DECLARATION: a condition renamed away from the proved one src/audit/checks.mjs: landed true · named test "DRIFT GUARD" red true · failing 1 · restored by sha256 true · PROVED
+D02 DECLARATION: a firing path dropped from the declaration src/audit/technical-checks.mjs: landed true · named test "DRIFT GUARD" red true · failing 1 · restored by sha256 true · PROVED
+D03 DECLARATION: a check loses its boundary entirely src/audit/check.mjs: landed true · named test "every detector behind F90" red true · failing 2 · restored by sha256 true · PROVED
+D04 REGISTRY: duplicate condition ids accepted src/audit/check.mjs: landed true · named test "the registry refuses" red true · failing 1 · restored by sha256 true · PROVED
+
+proved 37 of 37 · residue 0 · production trail sha256 after: 1c8360ac15897b7e046c2e6987773cd2bb88941b749dcea9d684e6fcff01b168 · unchanged true

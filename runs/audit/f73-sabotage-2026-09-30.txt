@@ -1,0 +1,21 @@
+F73 sabotage run · 2026-09-30T03:59:12.127Z
+population: 14 sabotages over test/f73-recommendation-explain.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 · all exactly once: true
+production trail sha256 before: 209642fa6a506877c78be5612298434cea502b75b249aadaff25ed72e735421c
+
+S1 C1 only draft_recommendation records are recommendations src/report/recommendation-explain-reader.mjs: landed true · named test "C1 ·" red true · failing 1 · restored by sha256 true · PROVED
+S2 C2 an absent field is NOT MEASURED, never filled (the recorded-or-not rule) src/report/recommendation-explain.mjs: landed true · named test "C2 ·" red true · failing 1 · restored by sha256 true · PROVED
+S3 C2 an absent cost is never defaulted src/report/recommendation-explain.mjs: landed true · named test "C2 ·" red true · failing 1 · restored by sha256 true · PROVED
+S4 C2 an absent reversibility is never inferred src/report/recommendation-explain.mjs: landed true · named test "C2 ·" red true · failing 1 · restored by sha256 true · PROVED
+S5 C2 evidence is never assumed without a recorded link src/report/recommendation-explain.mjs: landed true · named test "C2 ·" red true · failing 1 · restored by sha256 true · PROVED
+S6 C2 a reason taken from a finding is labelled as such src/report/recommendation-explain.mjs: landed true · named test "C2 ·" red true · failing 1 · restored by sha256 true · PROVED
+S7 C3 a dangling reference is BROKEN src/report/recommendation-explain.mjs: landed true · named test "C3 ·" red true · failing 2 · restored by sha256 true · PROVED
+S8 C3 a broken reference DISPROVES src/report/recommendation-explain.mjs: landed true · named test "C3 ·" red true · failing 1 · restored by sha256 true · PROVED
+S9 C5 an explanation with a field missing is never PROVED src/report/recommendation-explain.mjs: landed true · named test "C5 · REAL" red true · failing 1 · restored by sha256 true · PROVED
+S10 C4 approval is reported as recorded, never implied src/report/recommendation-explain.mjs: landed true · named test "C4 ·" red true · failing 1 · restored by sha256 true · PROVED
+S11 C3 references are resolved against every recorded store src/report/recommendation-explain-reader.mjs: landed true · named test "C5 · REAL" red true · failing 1 · restored by sha256 true · PROVED
+S12 C5 the entry point prints its bound bin/recommendation-explain.mjs: landed true · named test "C5 · THE ENTRY POINT" red true · failing 1 · restored by sha256 true · PROVED
+S13 C5 the entry point prints every field bin/recommendation-explain.mjs: landed true · named test "C5 · THE ENTRY POINT" red true · failing 1 · restored by sha256 true · PROVED
+S14 C5 a network call is seen tools/need-coverage-call-paths.mjs: landed true · named test "C5 · the explainer" red true · failing 1 · restored by sha256 true · PROVED
+
+proved 14 of 14 · residue 0 · production trail sha256 after: 209642fa6a506877c78be5612298434cea502b75b249aadaff25ed72e735421c · unchanged true

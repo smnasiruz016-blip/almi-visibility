@@ -1,0 +1,23 @@
+F20 sabotage run · 2026-09-30T02:34:45.578Z
+population: 16 sabotages over test/f20-url-audit.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 · all exactly once: true
+production trail sha256 before: 0369e7f4f7b61e917e81f6ec191a6ea2f4d4b115ce0f5b883e84b79bfef6d37c
+
+S1 C1 a recorded fetch error is NOT MEASURED, never broken src/audit/url-audit.mjs: landed true · named test "C1 ·" red true · failing 1 · restored by sha256 true · PROVED
+S2 C1 a 4xx is a client error src/audit/url-audit.mjs: landed true · named test "C1 ·" red true · failing 1 · restored by sha256 true · PROVED
+S3 C1 an observed page reached in another form is not linked-only src/audit/url-audit.mjs: landed true · named test "C1 ·" red true · failing 1 · restored by sha256 true · PROVED
+S4 C2 a repeated location is a LOOP src/audit/url-audit.mjs: landed true · named test "C2 ·" red true · failing 1 · restored by sha256 true · PROVED
+S5 C2 no recorded chain is NOT MEASURED src/audit/url-audit.mjs: landed true · named test "C2 ·" red true · failing 1 · restored by sha256 true · PROVED
+S6 C2 a loop disproves the audit src/audit/url-audit.mjs: landed true · named test "C2 ·" red true · failing 1 · restored by sha256 true · PROVED
+S7 C3 whitespace, a backslash or a control character is malformed src/audit/url-audit.mjs: landed true · named test "C3 ·" red true · failing 1 · restored by sha256 true · PROVED
+S8 C3 a string the WHATWG parser rejects is malformed src/audit/url-audit.mjs: landed true · named test "C3 ·" red true · failing 1 · restored by sha256 true · PROVED
+S9 C3 a non-web scheme is counted apart src/audit/url-audit.mjs: landed true · named test "C3 ·" red true · failing 1 · restored by sha256 true · PROVED
+S10 C4 a page linked in two forms is INCONSISTENT src/audit/url-audit.mjs: landed true · named test "C4 ·" red true · failing 1 · restored by sha256 true · PROVED
+S11 C4 a canonical naming another form is INCONSISTENT src/audit/url-audit.mjs: landed true · named test "C4 ·" red true · failing 1 · restored by sha256 true · PROVED
+S12 C4 no canonical is NOT MEASURED, never consistent src/audit/url-audit.mjs: landed true · named test "C4 ·" red true · failing 1 · restored by sha256 true · PROVED
+S13 C5 PROVED only when nothing is open src/audit/url-audit.mjs: landed true · named test "C5 · FIRING CONTROL" red true · failing 2 · restored by sha256 true · PROVED
+S14 C5 the entry point prints its bound bin/url-audit.mjs: landed true · named test "C5 · THE ENTRY POINT" red true · failing 1 · restored by sha256 true · PROVED
+S15 C5 the entry point audits its OWN tenant bin/url-audit.mjs: landed true · named test "C5 · THE ENTRY POINT" red true · failing 1 · restored by sha256 true · PROVED
+S16 C5 a network call is seen tools/need-coverage-call-paths.mjs: landed true · named test "C5 · the audit" red true · failing 1 · restored by sha256 true · PROVED
+
+proved 16 of 16 · residue 0 · production trail sha256 after: 0369e7f4f7b61e917e81f6ec191a6ea2f4d4b115ce0f5b883e84b79bfef6d37c · unchanged true

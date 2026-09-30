@@ -28,6 +28,11 @@ export const ROBOTS_SCOPE = registerCheck({
   cleanControl:
     "fixtures/robots/blocks-us-only.txt — the same Disallow in the * group, with a Googlebot group that " +
     "permits the path. Must NOT fire.",
+  /* RR-100: read from run() — it fires only on assessUrl's BLOCKED_FOR_GOOGLEBOT; impressions set severity, never whether it fires. */
+  boundary: {
+    observes: ["the stored robots.txt body for the page's host", "the page URL"],
+    fires: [{ id: "search-crawler-group-disallows", when: "the robots.txt group the search crawler obeys disallows the page URL (assessUrl verdict BLOCKED_FOR_GOOGLEBOT)" }],
+  },
   run({ page, observations, siteContext }) {
     const robotsObs = siteContext?.robotsObservation;
     if (!robotsObs?.value?.body) {
@@ -65,6 +70,11 @@ export const DNS_FAMILY = registerCheck({
     "Googlebot reaches the host — that is a separate measurement.",
   firingFixture: "an AAAA_ONLY family result — must fire",
   cleanControl: "an A_AND_AAAA family result and an A_ONLY family result — neither may fire",
+  /* RR-100: read from run() and assessFamilies() — FAIL only on AAAA_ONLY; an unreadable lookup is UNKNOWN, never a finding. */
+  boundary: {
+    observes: ["the DNS address families the host publishes"],
+    fires: [{ id: "aaaa-only", when: "the host's recorded address-family state is AAAA_ONLY (an AAAA record and no A record)" }],
+  },
   async run({ page, observations, siteContext }) {
     const host = new URL(page.canonical_url).hostname;
     const f = siteContext?.families ?? (await familiesFor(host));

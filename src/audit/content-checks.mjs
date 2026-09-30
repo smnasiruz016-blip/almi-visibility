@@ -277,6 +277,11 @@ export const TEMPLATE_DOMINANCE = registerCheck({
   },
 });
 
+/* 🔴 F75 (RR-103) — THE CONTENT-SUPPLY CHECKS, DECLARED HERE, BESIDE THEM: item 12's four (duplicate, near-duplicate, thin, template).
+ * A ticket raised by one of these is a CONTENT ticket; every other registered check makes a DEVELOPER ticket (acceptance _handoffs
+ * 01275a9). The orphan check below is item 26 (internal links), not content supply, and is deliberately not listed. */
+export const CONTENT_SUPPLY_CHECK_IDS = Object.freeze([EXACT_DUPLICATE.id, THIN_CONTENT.id, NEAR_DUPLICATE.id, TEMPLATE_DOMINANCE.id]);
+
 /* ------------------------------------------------------------------ *
  * ITEM 13 — CANNIBALIZATION, DETECTION MODE ONLY.
  * ------------------------------------------------------------------ */

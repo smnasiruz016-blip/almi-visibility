@@ -1,0 +1,23 @@
+F26 sabotage run · 2026-09-30T00:45:55.980Z
+population: 16 sabotages over test/f26-accessibility.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 · all exactly once: true
+production trail sha256 before: 337a8ea6b323d90ce476c48e2b12063ffec0fdc0fe53096ca8a29e4279e3c39c
+
+S1 C1 an image with no alternative is found src/audit/accessibility.mjs: landed true · named test "C1 · every declared" red true · failing 3 · restored by sha256 true · PROVED
+S2 C1 a missing page language is found src/audit/accessibility.mjs: landed true · named test "C1 · every declared" red true · failing 2 · restored by sha256 true · PROVED
+S3 C1 a missing or empty title is found src/audit/accessibility.mjs: landed true · named test "C1 · every declared" red true · failing 1 · restored by sha256 true · PROVED
+S4 C1 an unnamed link is found src/audit/accessibility.mjs: landed true · named test "C1 · every declared" red true · failing 3 · restored by sha256 true · PROVED
+S5 C1 an unnamed button is found src/audit/accessibility.mjs: landed true · named test "C1 · every declared" red true · failing 2 · restored by sha256 true · PROVED
+S6 C1 an unnamed frame is found src/audit/accessibility.mjs: landed true · named test "C1 · every declared" red true · failing 2 · restored by sha256 true · PROVED
+S7 C1 markup inside script, style, template or a comment is never read src/audit/accessibility.mjs: landed true · named test "C1 · every declared" red true · failing 1 · restored by sha256 true · PROVED
+S8 C1 a truncated body is NOT MEASURED src/audit/accessibility.mjs: landed true · named test "C1 · FIRING CONTROL" red true · failing 1 · restored by sha256 true · PROVED
+S9 C2 a decorative claim is located for a person, never dropped src/audit/accessibility.mjs: landed true · named test "C2 ·" red true · failing 1 · restored by sha256 true · PROVED
+S10 C2 a present alternative goes to a person, never to the machine count src/audit/accessibility.mjs: landed true · named test "C2 ·" red true · failing 2 · restored by sha256 true · PROVED
+S11 C4 no page is ever PROVED src/audit/accessibility.mjs: landed true · named test "C4 ·" red true · failing 2 · restored by sha256 true · PROVED
+S12 C4 a machine failure makes a page DISPROVED src/audit/accessibility.mjs: landed true · named test "C4 ·" red true · failing 1 · restored by sha256 true · PROVED
+S13 C3 the stored-body exclusion is stated src/audit/accessibility.mjs: landed true · named test "C3 ·" red true · failing 2 · restored by sha256 true · PROVED
+S14 C5 the entry point prints its bound bin/accessibility.mjs: landed true · named test "C5 · THE ENTRY POINT" red true · failing 1 · restored by sha256 true · PROVED
+S15 C5 the entry point assesses its OWN tenant bin/accessibility.mjs: landed true · named test "C5 · THE ENTRY POINT" red true · failing 1 · restored by sha256 true · PROVED
+S16 C5 a network call is seen tools/need-coverage-call-paths.mjs: landed true · named test "C5 · the assessment" red true · failing 1 · restored by sha256 true · PROVED
+
+proved 16 of 16 · residue 0 · production trail sha256 after: 337a8ea6b323d90ce476c48e2b12063ffec0fdc0fe53096ca8a29e4279e3c39c · unchanged true

@@ -438,6 +438,20 @@ export const F45_ORIGINAL = Object.freeze({
   evidence: "For each clause: a test driving the production path; a firing control; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched. The real result over the client's recorded registry, count-only, with its stated date and bound, recording all three worlds of C2. The full suite as CI runs it, and exact-SHA CI on the PR head before any merge, then on the merge commit. F45 moves only through the production validator and the audit trail, and only when every clause is PROVED.",
   contractSha256: "65723eb09ba1ca6fbf0588e7cbdd4daa55be87c3a3d340e22cb1976df27750af",
 });
+/* 🔴 F26 · FROZEN 30 Sep 2026 (_handoffs b1a94e7, RR-95 §2), committed ALONE before any F26 code was written. Pinned from the committed
+ * blob by parseContract (derivation re-run with a firing control inside the contract: "untruncated" → "untrunkated"). */
+export const F26_ORIGINAL = Object.freeze({
+  featureId: "F26",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F26_ACCEPTANCE_2026-09-30.md", commit: "b1a94e71f64dc19a84efb3e70892a093e77ae66b", sha256: "64b002f7dbb996039c259a8934d29a94c0c64bd8511929bd358c4c6482bbf981" }),
+  authority: Object.freeze({ propositionId: "F26_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F26"]) }),
+  frozenOn: "2026-09-30",
+  feature: "F26 · Accessibility assessment",
+  input: "For each declared client: its inventory pages with their stored HTML bodies (whether each body is present and untruncated), and the declared machine checks, each named by the WCAG 2.2 success criterion it tests — driven over the real stored bodies of the client, count-only, with nothing fetched or rendered.",
+  expected: "[C1 · MACHINE-CHECKED FINDINGS] Every declared machine check runs on every page with a stored, untruncated body; each instance it finds is counted by criterion and page, and a page's stored body missing or truncated makes that page NOT MEASURED for every check.\n[C2 · NEEDS A PERSON, KEPT APART] Every instance a machine can locate but only a person can judge is counted in its own population, by criterion, and is never judged, never scored and never added to the machine-checked count.\n[C3 · NOT MEASURED, NAMED] Every criterion that needs a rendered, styled or operated page is reported NOT MEASURED with the missing fact named, and the output states that stored bodies exclude script-inserted content, styles and interaction.\n[C4 · NO PASS FROM A SCAN] Each page's verdict is DISPROVED when a machine check finds a failure and COULD-NOT-PROVE otherwise; no output reads PROVED, \"accessible\" or \"passes\", and a count of zero issues names the checks it covers.\n[C5 · RECORDED DATA ONLY, THIS CLIENT] Only the client's own stored bodies are read; nothing is fetched, rendered or called; the output is count-only with its population and bound.",
+  failure: "[C1] A check skips a page with a readable body, an instance is miscounted, or a missing or truncated body yields findings or a clean result. [C2] A needs-a-person instance is judged, scored, dropped, or merged into the machine-checked count. [C3] A render-dependent criterion is reported as checked, clean or failing, or the exclusion of script, styles and interaction is unstated. [C4] Any page or the site reads PROVED, accessible or passing, or zero issues is reported without the checks it covers. [C5] Another client's body is read, anything is fetched, rendered or called, or a figure is printed without its population and bound. And for any clause: it is proved only on an empty population, or only by a control that cannot fire.",
+  evidence: "For each clause: a test driving the production path; a firing control; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched. Each machine check proved on a failing and a clean fixture, and on the client's real stored bodies. The real result, count-only, with its bound, recording the three populations separately. The full suite as CI runs it, and exact-SHA CI on the PR head before any merge, then on the merge commit. F26 moves only through the production validator and the audit trail, and only when every clause is PROVED.",
+  contractSha256: "3fef5f2801f44fb6c73d5f8780612c822c92496c9367566016821b64f8ad97da",
+});
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -598,6 +612,7 @@ export const ACCEPTANCES = Object.freeze({
     amends: Object.freeze({ ruling: F10_AMENDMENT_2.ruling, contractSha256: F10_AMENDMENT_2.contractSha256 }),
   }),
   F21: F21_ORIGINAL,
+  F26: F26_ORIGINAL,
   F31: F31_ORIGINAL,
   F32: F32_ORIGINAL,
   F33: F33_ORIGINAL,

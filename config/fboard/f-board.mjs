@@ -964,6 +964,32 @@ export const DECLARED = Object.freeze({
   /* 🔴 F21 · Robots sitemap canonical and noindex audit. Frozen 29 Sep (_handoffs 804ebd1, RR-86 §3) ALONE, before any F21 code
    * was read. Matched to historical rows 38 (Indexability Preflight, historically VERIFIED-PASS: one state per page from the same
    * signals) and 10 (never proved) only AFTER the freeze. Neither compared signals with each other — F21's core. */
+  /* 🔴 F23 · Internal and external link audit. Frozen 1 Oct (_handoffs d3c8e79, RR-111 §3) — its FIRST freeze — ALONE, before any F23
+   * code was read. Built under the owner's refinement (RR-111 §0): the row reports absent evidence; its real population is INCOMPLETE for
+   * every declared client, so it earns IN-PROGRESS only — never a pass from an incomplete population. */
+  F23: Object.freeze({
+    featureId: "F23",
+    board: "F_BOARD",
+    state: "IN-PROGRESS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-01", ruling: ACCEPTANCES.F23.ruling, contractSha256: ACCEPTANCES.F23.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F23",
+        on: "2026-10-01",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F23.ruling.sha256, contract: ACCEPTANCES.F23.contractSha256 }),
+        branch: "f23-link-audit",
+        baseSha: "2fb5e0128ccd9d9b9800ee47eed8e0e08a066216",
+        baseCiRun: "36799713792",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-111_BUILD_F23_FROM_RECORDED_DATA.md", commit: "766a74b3d5a5a20315d07ce76294079db80503b1", sha256: "e3c24104505735ac0dfe1be5995d1d303beffa2ae9a5e6d9518b69983cb84d2d" }),
+      }),
+    ]),
+  }),
   F21: Object.freeze({
     featureId: "F21",
     board: "F_BOARD",

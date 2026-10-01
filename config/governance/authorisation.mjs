@@ -121,6 +121,8 @@ export const ACTIONS = Object.freeze({
     /* RR-116 (1 Oct 2026): the human-observation writer (bin/observe-question.mjs) — the same family and resource class as the
      * crawler's observation append; a classification only, granting no permission a role does not already hold. */
     "APPEND_HUMAN_OBSERVATIONS",
+    /* RR-118 (1 Oct 2026): the source-intake writer (bin/source-intake.mjs) — the same family and resource class; a classification only. */
+    "APPEND_SOURCE_QUESTIONS", "APPEND_KEYWORD_SIGNALS",
     "WRITE_EXHIBIT_FILE", "WRITE_EXHIBIT_LISTING", "WRITE_EXHIBIT_PROVENANCE", "WRITE_EXHIBIT_INDEX",
   ]),
   ...many("GOVERNED_STATE", "GENERATED_REPORT", [

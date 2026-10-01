@@ -181,7 +181,7 @@ export async function crawl({
 
   const fetcher = createFetcher({ fetchImpl, ...fetcherOptions, intervalMs, timeoutMs, maxResponseBytes });
   /* robots.txt shares the fetcher's pacer and its declared timeout: one interval, one timeout, for every request. */
-  const robots = createRobotsCache({ fetchImpl, timeoutMs, beforeRequest: fetcher.pace });
+  const robots = createRobotsCache({ fetchImpl, timeoutMs, beforeRequest: () => fetcher.pace("robots") });
 
   for (;;) {
     const url = plan.frontier.shift();
@@ -245,6 +245,8 @@ export async function crawl({
       capReached: plan.capReached,
       ...declaredBounds,
       robotsUnknownHosts: [...robotsUnknownHosts], seedPoolSize,
+      /* RR-108: every request start on the monotonic clock, every gap, robots-to-first-page by name, and breaches of the interval */
+      pacing: fetcher.pacing(),
       /* every request this run issued — robots.txt included — is a call */
       cost: crawlCost(fetcher.requestsIssued() + robots.requestsIssued()),
     }),

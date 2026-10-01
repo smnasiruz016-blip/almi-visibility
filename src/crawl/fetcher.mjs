@@ -17,7 +17,44 @@
  * crawl is not.
  */
 
+import { performance } from "node:perf_hooks";
 import { USER_AGENT } from "./robots.mjs";
+
+/* 🔴 RR-108 — THE PACING CLOCK. RR-107's fastest page-request gap measured 999 ms against a 1,000 ms bound: the old pacer slept the
+ * computed wait ONCE on the wall clock and never rechecked, so an early timer wake-up started a request short of the interval, and no
+ * start time was recorded, so the gap could only be inferred. The repair:
+ *   CLOCK   performance.now() — monotonic within the process (it never moves backwards; a wall-clock change cannot shorten an interval)
+ *           and sub-millisecond, so a gap is a measured quantity, not an inference from response timings.
+ *   RULE    a request may START only when (now - last start) >= the interval, rechecked after EVERY wait; an early wake-up loops.
+ *   RECORD  every start — robots.txt, page, retry — is logged on that clock; the run record carries every gap, its fastest and slowest,
+ *           the robots-to-first-page gap by name, and the count of gaps under the bound.
+ * ASSUMPTIONS (named): one process, concurrency 1 (the crawl loop is sequential); "start" is the instant the pacer releases, immediately
+ * before fetchImpl is called — the bytes leave no earlier, so a later send only lengthens the true gap; the clock is the same for every
+ * request of a run; a retry is a request and is paced like any other. */
+export const PACING_CLOCK = "performance.now() (monotonic, sub-millisecond)";
+/** The one rule, at its exact boundary: a start is allowed only when at least the full interval has elapsed since the last start. */
+export const mayStart = (lastStart, nowMs, intervalMs) => lastStart === null || nowMs - lastStart >= intervalMs;
+
+/** The pacing summary of a run's request starts, in declared order. A gap under the interval is a BREACH; none measured is NOT MEASURED. */
+export function pacingSummary(starts, intervalMs) {
+  const t0 = starts[0]?.at ?? null;
+  const gaps = starts.slice(1).map((s, i) => ({ from: starts[i].kind, to: s.kind, ms: s.at - starts[i].at }));
+  const firstPage = starts.findIndex((s) => s.kind === "page");
+  const robotsToFirstPage = firstPage > 0 && starts[firstPage - 1].kind === "robots" ? starts[firstPage].at - starts[firstPage - 1].at : null;
+  const ms = gaps.map((g) => g.ms);
+  const breaches = gaps.filter((g) => g.ms < intervalMs).length;
+  return {
+    clock: PACING_CLOCK,
+    intervalMs,
+    starts: starts.map((s) => ({ kind: s.kind, sinceFirstMs: s.at - t0 })),
+    gaps: gaps.length,
+    fastestGapMs: ms.length ? Math.min(...ms) : null,
+    slowestGapMs: ms.length ? Math.max(...ms) : null,
+    robotsToFirstPageMs: robotsToFirstPage,
+    breaches,
+    ok: gaps.length > 0 && breaches === 0,
+  };
+}
 
 /** 🔴 One page cannot blow memory or bandwidth. Recorded as `truncated` when hit. */
 export const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
@@ -77,23 +114,32 @@ export function createFetcher({
   intervalMs = REQUEST_INTERVAL_MS,
   now = () => Date.now(),
   sleepImpl = sleep,
+  monotonic = () => performance.now(),
 } = {}) {
   if (typeof fetchImpl !== "function") {
     throw new TypeError("createFetcher: fetchImpl is required — the crawler never reaches for global fetch");
   }
 
-  let lastRequestAt = 0;
+  let lastStart = null;
+  const starts = [];
   let requestsIssued = 0;
 
-  /** 🔴 The pacer. Concurrency 1 is structural: nothing here runs in parallel. */
-  async function pace() {
-    const wait = lastRequestAt === 0 ? 0 : intervalMs - (now() - lastRequestAt);
-    if (wait > 0) await sleepImpl(wait);
-    lastRequestAt = now();
+  /** 🔴 The pacer. Concurrency 1 is structural. It releases a request only when the FULL interval has elapsed on the monotonic clock,
+   * rechecking after every wait — an early wake-up loops instead of starting short — and records the start. */
+  async function pace(kind = "page") {
+    for (;;) {
+      const t = monotonic();
+      if (mayStart(lastStart, t, intervalMs)) {
+        lastStart = t;
+        starts.push({ kind, at: t });
+        return t;
+      }
+      await sleepImpl(Math.max(1, Math.ceil(intervalMs - (t - lastStart))));
+    }
   }
 
-  async function once(url) {
-    await pace();
+  async function once(url, kind = "page") {
+    await pace(kind);
     requestsIssued += 1;
     const startedAt = now();
     const controller = new AbortController();
@@ -133,13 +179,13 @@ export function createFetcher({
    */
   async function fetchUrl(url) {
     try {
-      return await once(url);
+      return await once(url, "page");
     } catch (err) {
       // 🔴 A thrown error is a NETWORK error — a non-2xx never throws, it
       // returns a status. So there is no 4xx to accidentally retry here, and
       // the `once()` path above is the only place a status is produced.
       try {
-        return await once(url);
+        return await once(url, "retry");
       } catch (err2) {
         return {
           ok: false,
@@ -155,7 +201,7 @@ export function createFetcher({
 
   /* `pace` is exposed so robots.txt requests share this ONE pacer: an unpaced robots fetch followed at once by the first
    * page fetch was two requests to one host closer than the declared interval (F19 measurement, 28 Sep 2026). */
-  return { fetchUrl, pace, requestsIssued: () => requestsIssued, maxResponseBytes, intervalMs, timeoutMs };
+  return { fetchUrl, pace, pacing: () => pacingSummary(starts, intervalMs), requestsIssued: () => requestsIssued, maxResponseBytes, intervalMs, timeoutMs };
 }
 
 /** Read a response body, stopping at `limit` bytes. */

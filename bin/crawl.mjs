@@ -411,6 +411,8 @@ if (live) {
 }
 
 /* 🔴 RR-106 — THE COLLECTION VERDICT, from the writes themselves: KEPT only when every governed write this run depends on committed. */
-const collection = collectionVerdict(live ? { observations: observationsGoverned.outcome, run: runGoverned.outcome, cost: costOutcome } : { observations: observationsGoverned.outcome, run: runGoverned.outcome });
+/* RR-108: the pacing bound prints beside its measured result, and a live run passes its pacing into the verdict. */
+if (live) { const p = run.pacing; console.log(p ? `PACING: declared ${p.intervalMs} ms · gaps ${p.gaps} · fastest ${p.fastestGapMs?.toFixed(3) ?? "NOT MEASURED"} ms · slowest ${p.slowestGapMs?.toFixed(3) ?? "NOT MEASURED"} ms · robots→first page ${p.robotsToFirstPageMs?.toFixed(3) ?? "NOT MEASURED"} ms · breaches ${p.breaches} of ${p.gaps} · clock ${p.clock}` : "PACING: NOT MEASURED"); }
+const collection = collectionVerdict(live ? { observations: observationsGoverned.outcome, run: runGoverned.outcome, cost: costOutcome } : { observations: observationsGoverned.outcome, run: runGoverned.outcome }, live ? { pacing: run.pacing ?? null } : {});
 console.log(`COLLECTION: ${collection.verdict}${collection.failed.length ? ` — not committed: ${collection.failed.join(" · ")}` : ""}`);
 if (live && collection.verdict !== "KEPT") process.exitCode = 1;

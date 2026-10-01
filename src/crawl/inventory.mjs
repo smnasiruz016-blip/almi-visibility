@@ -120,7 +120,7 @@ export function summariseRun({
   urlsRequested, urlsFetched, requestsIssued, perHostRequests, robotsRequestsIssued = null, truncations = null, refusals = null,
   capReached, maxUrlsPerRun, maxRequestsPerHost, maxResponseBytes,
   capacity = null, maxDepth = null, requestIntervalMs = null, requestIntervalScope = null, requestTimeoutMs = null,
-  robotsUnknownHosts = [], cost, dryRun = false, seedPoolSize = null,
+  robotsUnknownHosts = [], cost, dryRun = false, seedPoolSize = null, pacing = null,
 }) {
   /**
    * 🔴 A DRY RUN MEASURED NOTHING, SO ITS COVERAGE IS UNKNOWN — NEVER COMPLETE.
@@ -167,6 +167,8 @@ export function summariseRun({
     // F19 (28 Sep 2026): the frozen record clause names five counts — seeds, requests, pages, TRUNCATIONS, REFUSALS. The
     // first live run carried three; these two were derivable only from the observations, which is not the record.
     truncations, refusals,
+    // RR-108: the measured pacing of this run (src/crawl/fetcher.mjs pacingSummary) — null when nothing was requested (a dry run).
+    pacing,
     perHostRequests: Object.freeze({ ...perHostRequests }),
     capReached,
     // 🔴 LAW-BOUND-1 — the bounds travel with the result. `seedPoolSize` is one

@@ -1,0 +1,31 @@
+F44 sabotage run · 2026-10-01T04:27:12.936Z
+population: 24 sabotages over test/f44-fact-supply.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1 S19=1 S20=1 S21=1 S22=1 S23=1 S24=1 · all exactly once: true
+production trail sha256 before: 035362f2b2186520b3c44ef3cf1cce68d42aa01472682a1f01e823a4e2e29d39
+
+S1 C2 a missing qualifier key makes the claim ABSENT src/facts/fact-supply.mjs: landed true · named test "C2 · a qualifier recorded as null" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S2 C2 a null qualifier is the schema's 'no qualifier', present src/facts/fact-supply.mjs: landed true · named test "C2 · a qualifier recorded as null" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S3 C2 value is read at its path src/facts/fact-supply.mjs: landed true · named test "C2 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S4 C2 scope is read at its path src/facts/fact-supply.mjs: landed true · named test "C2 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S5 C2 source is read at its path src/facts/fact-supply.mjs: landed true · named test "C2 · FIRING CONTROL" red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+S6 C2 tier is read at its path src/facts/fact-supply.mjs: landed true · named test "C2 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S7 C2 checker is read at its path src/facts/fact-supply.mjs: landed true · named test "C2 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S8 C2 check date is read at its path src/facts/fact-supply.mjs: landed true · named test "C2 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S9 C2 freshness needs its rule AND its days src/facts/fact-supply.mjs: landed true · named test "C2 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S10 C2 provenance is read at its path src/facts/fact-supply.mjs: landed true · named test "C2 · FIRING CONTROL" red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+S11 C1 an empty population is never PROVED src/facts/fact-supply.mjs: landed true · named test "C1 · records the registry declares derived" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S12 C1 derived records are counted apart src/facts/fact-supply.mjs: landed true · named test "C1 · records the registry declares derived" red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+S13 C3 a unit is never judged src/facts/fact-supply.mjs: landed true · named test "C3 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S14 C3 an empty unit is recorded-empty src/facts/fact-supply.mjs: landed true · named test "C3 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S15 C4 a derived record without its derivation DISPROVES src/facts/fact-supply.mjs: landed true · named test "C4 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S16 C4 the waiver names exactly five fields src/facts/fact-supply.mjs: landed true · named test "C4 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S17 C5 every capability claim goes through the existing admission src/facts/fact-supply.mjs: landed true · named test "C5 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S18 C5 a refused capability claim DISPROVES src/facts/fact-supply.mjs: landed true · named test "C5 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S19 C5 an empty capability population is never PROVED src/facts/fact-supply.mjs: landed true · named test "C5 · an empty capability" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S20 C5 a self-sourced claim's tier is counted from the admitted record src/facts/fact-supply.mjs: landed true · named test "C5 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S21 C5 the reader's context resolves only its own product src/facts/fact-supply-reader.mjs: landed true · named test "C5 · REAL RESOLVER" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S22 C6 one DISPROVED part disproves the row src/facts/fact-supply.mjs: landed true · named test "C6 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S23 C1 the entry point says an empty capability population is never a pass bin/fact-supply.mjs: landed true · named test "C1 · THE ENTRY POINT" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S24 C1 a network call is seen tools/need-coverage-call-paths.mjs: landed true · named test "C1 · the audit and its reader" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+
+proved 24 of 24 · residue 0 · production trail sha256 after: 035362f2b2186520b3c44ef3cf1cce68d42aa01472682a1f01e823a4e2e29d39 · unchanged true

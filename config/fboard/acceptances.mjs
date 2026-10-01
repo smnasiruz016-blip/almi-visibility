@@ -608,6 +608,20 @@ export const F91_ORIGINAL = Object.freeze({
   evidence: "For each clause: a test driving the production path; a firing control; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched; a neutrality test that goes red when a product name is planted in the planner. The real result for the demonstration product, count-only, each number with its inputs, sources, exclusions, unknowns, method and bound. The full suite as CI runs it, and exact-SHA CI on the PR head before any merge, then on the merge commit. F91 moves only through the production validator and the audit trail, and to VERIFIED-PASS only when every clause is PROVED on the real recorded population.",
   contractSha256: "147536bbd855bb2386eb6e849a2800ee78f6dd8714871096652c95dd3fad2e8f",
 });
+/* 🔴 F44 · FROZEN 1 Oct 2026 (_handoffs eecdfe4, RR-113 §9), committed ALONE before any F44 code was written. Pinned from the committed
+ * blob by parseContract (derivation re-run with a firing control inside the contract: "recorded-empty" → "recorded-blank" moves the hash). */
+export const F44_ORIGINAL = Object.freeze({
+  featureId: "F44",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F44_ACCEPTANCE_2026-10-01.md", commit: "eecdfe4dc70fb8efa972ef49a3e27ca344ef330d", sha256: "7d8e886eb8d440914d082fd1347c725b4ccd87a31127c21c2f1f7779b20cf967" }),
+  authority: Object.freeze({ propositionId: "F44_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F44"]) }),
+  frozenOn: "2026-10-01",
+  feature: "F44 · Verified fact supply",
+  input: "For one declared product, read through that product's own scope: every record of its fact registry, its declared kind, and every field it records; nothing fetched, re-checked or written.",
+  expected: "[C1 · ONE PRODUCT'S REGISTRY] Every record of the requested product's registry is read once, through that product's own scope; another product's records are never read; records the registry declares derived are counted apart.\n[C2 · NINE RECORDED FIELDS] For every record not declared derived, each of claim (subject, predicate and qualifier), value, scope, source (its URL), tier, checker, check date, freshness (rule and days) and provenance is reported PRESENT or ABSENT at its recorded path, each count with its denominator; an ABSENT field on any such record DISPROVES that field; a field is PROVED only when every such record carries it.\n[C3 · UNIT] Each record's unit is reported as recorded or recorded-empty, counted by value type; whether a record must carry a unit is not declared by any authority, so the unit is never judged and stays COULD-NOT-PROVE with that missing declaration named.\n[C4 · DERIVED RECORDS] Source, tier, checker, check date and freshness are waived only for a record the registry declares derived, which is reported with its derivation and its inputs counted; a waiver is never extended to any other record.\n[C5 · CAPABILITY CLAIMS] Every record of kind capability is admitted or refused by the existing capability-claim rules: product- and tenant-scoped; first-party decided by tenant scope; SELF-SOURCED holding no independent tier, never corroborating itself and never VERIFIED; an empty capability population is reported empty and COULD-NOT-PROVE, never PROVED.\n[C6 · DENOMINATORS AND VERDICTS] Every count carries its denominator; each field and each capability part is PROVED, DISPROVED or COULD-NOT-PROVE by the rules above; the row reads DISPROVED if any part is DISPROVED, PROVED only if every part is PROVED, and COULD-NOT-PROVE otherwise; the output is count-only.",
+  failure: "[C1] A record is skipped or read twice, another product's record is read, or a derived record is counted with the others. [C2] A missing field is counted present, a present one absent, a field read from another path, or a field reads PROVED while any non-derived record lacks it. [C3] A unit is judged required or not, or a recorded-empty unit is counted as present or absent. [C4] A waiver reaches a record not declared derived, or a derived record's inputs go uncounted. [C5] A capability claim is admitted without tenant and product scope, a self-sourced claim holds an independent tier, corroborates itself or reads VERIFIED, or an empty capability population reads PROVED. [C6] A count lacks its denominator, a part reads PROVED with any record unmeasured, or output carries a host, URL, identifier or content. And for any clause: it is proved only on an empty population, or only by a control that cannot fire.",
+  evidence: "For each clause: a test driving the production path; a firing control; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched. The real result for every declared product whose scope resolves, count-only, with each part's verdict and denominator. The full suite as CI runs it, and exact-SHA CI on the PR head before any merge, then on the merge commit. F44 moves only through the production validator and the audit trail, and to VERIFIED-PASS only when every clause is PROVED on the real recorded population.",
+  contractSha256: "c62b6121558cb148fee939cc52fe458bef435faf64bccb3e27e8287edd514a05",
+});
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -782,6 +796,7 @@ export const ACCEPTANCES = Object.freeze({
   F39: F39_ORIGINAL,
   F41: F41_ORIGINAL,
   F43: F43_ORIGINAL,
+  F44: F44_ORIGINAL,
   F45: F45_ORIGINAL,
   F46: F46_ORIGINAL,
   F47: F47_ORIGINAL,

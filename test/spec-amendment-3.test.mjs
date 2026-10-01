@@ -66,12 +66,18 @@ test("A3·4 · RESTATED CONTROL: F91's old control is now F92 — renaming the l
   assert.ok(boardErrors(board().slice(0, 90), { capabilities: CAPABILITIES, acceptances: ACCEPTANCES }).some((e) => e.code === "DENOMINATOR"), "a 90-row board was accepted");
 });
 
-test("A3·5 · F91 enters UNASSESSED: no events, no acceptance, not implementable, and no board row declares it", () => {
+/* RESTATED 1 Oct 2026 (RR-113), for a MEASURED reason: the amendment brought F91 in UNASSESSED with no events and no acceptance (still
+ * proved below — the amendment act gave it nothing); F91 has since moved by its OWN acts: its scope reconciled (_handoffs 24c44d0), its
+ * acceptance frozen ALONE (2048dd3) on 1 Oct, then IMPLEMENTATION. Never VERIFIED. The original assertions pinned the entry state. */
+test("A3·5 · F91 ENTERED UNASSESSED with no events or acceptance; its only movement since is its own acceptance, frozen by a later separate act, then implementation — never VERIFIED", () => {
   const row = board().find((r) => r.featureId === "F91");
-  assert.equal(row.state, "UNASSESSED");
-  assert.deepEqual(row.events, []);
-  assert.equal("F91" in DECLARED, false);
-  assert.equal("F91" in ACCEPTANCES, false, "F91 has an acceptance — its scope is only PROPOSED (RR-103 §2.3)");
-  assert.equal(mayImplement(board(), "F91", ACCEPTANCES), false);
-  assert.equal(CROSSWALK.entries.find((e) => e.featureId === "F91").acceptanceRelation, "UNASSESSED");
+  const acc = ACCEPTANCES.F91;
+  assert.equal(acc.featureId, "F91");
+  assert.equal(acc.ruling.path, "AlmiVisibility_F91_ACCEPTANCE_2026-10-01.md", "F91 carries an acceptance that is not its own");
+  assert.ok(acc.frozenOn > "2026-09-30", "F91's acceptance predates the amendment that brought it in");
+  assert.deepEqual(DECLARED.F91.events.map((e) => e.kind), ["ACCEPTANCE_FROZEN", "IMPLEMENTATION"]);
+  assert.deepEqual([DECLARED.F91.events[0].on, DECLARED.F91.events[1].from, DECLARED.F91.events[1].to], ["2026-10-01", "UNASSESSED", "IN-PROGRESS"]);
+  assert.equal(row.state, "IN-PROGRESS");
+  assert.ok(!row.events.some((e) => e.kind === "VERIFIED"), "F91 was verified");
+  assert.equal(CROSSWALK.entries.find((e) => e.featureId === "F91").acceptanceRelation, "NEW");
 });

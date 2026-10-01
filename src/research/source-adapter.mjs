@@ -92,7 +92,7 @@ export function recordsFrom(decl, retrieval, { subject, origin, dataPurpose = nu
         value: Object.freeze({ ...shared, idea: item.idea, note: "a generated keyword idea — never a question someone asked" }) }));
     }
   }
-  return { admitted: true, refusals: [], retrieved: total, records, refused, coverage: `${retrieval.topic} · ${retrieval.coverageLimits}` };
+  return { admitted: true, refusals: [], retrieved: total, records, refused, coverage: `${retrieval.topic} · ${retrieval.coverageLimits}`, notes: { ...(retrieval.notes ?? {}) }, checked: retrieval.items.length };
 }
 
 /** Every output is a SAMPLE with its limits; an empty retrieval says EMPTY (0 of 0, measured); no retrieval says NOT MEASURED. */
@@ -106,7 +106,9 @@ export function sampleLines(decl, r) {
   if (r.retrieved === 0) return guardScope(r, [...lines, ...scope, "EMPTY SAMPLE — 0 of 0 item(s) retrieved: no question is invented, no keyword idea stands in, nothing is padded from another topic"]);
   return guardScope(r, [...lines, ...scope,
     decl.kind === SOURCE_KINDS.QUESTION_SOURCE ? `questions people wrote: kept ${q} of ${r.retrieved} retrieved` : `keyword signals (generated ideas, never questions): kept ${k} of ${r.retrieved} retrieved`,
-    `refusals by rule: ${Object.entries(r.refused).map(([w, n]) => `${w} ${n}`).join(" · ") || "none"}`]);
+    `refusals by rule: ${Object.entries(r.refused).map(([w, n]) => `${w} ${n}`).join(" · ") || "none"}`,
+    /* RR-121: a cross-check that disagrees is REPORTED — it decides nothing, and is never folded into the refusals */
+    ...(Object.keys(r.notes ?? {}).length ? [`cross-checks (reported, not deciding): ${Object.entries(r.notes).map(([w, n]) => `${w} ${n} of ${r.checked} checked`).join(" · ")}`] : [])]);
 }
 
 /**

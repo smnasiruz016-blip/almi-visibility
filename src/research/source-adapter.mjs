@@ -3,8 +3,9 @@
  * eligibility record 2a4ef7d).
  *
  *   ADMISSION   a source is admitted only when its DURABLE-STORAGE right, its ATTRIBUTION terms and its LICENCE (with version) are each
- *               declared VERIFIED_FROM_PRIMARY_SOURCE with a citation. Anything NOT_VERIFIED_BY_US refuses the whole source — nothing it
- *               returns may be kept.
+ *               declared VERIFIED_FROM_PRIMARY_SOURCE with a citation (the quoted clause) and the date its page was read — a terms page is a
+ *               snapshot (RR-119). Anything NOT_VERIFIED_BY_US refuses the whole source; a term the source RESTRICTS refuses it for that
+ *               reason. Nothing a refused source returns may be kept.
  *   TWO KINDS   QUESTION_SOURCE items are questions people wrote → `public_question` records (kind OBSERVED); KEYWORD_SOURCE items are
  *               generated keyword ideas → `keyword_signal` records, a SEPARATE type with its own evidence state. They never merge and never
  *               total together; a keyword idea is never reported as a question someone asked.
@@ -24,6 +25,9 @@ import { RECORD_TYPE, NOT_MEASURED } from "./public-questions.mjs";
 export const SOURCE_KINDS = Object.freeze({ QUESTION_SOURCE: "QUESTION_SOURCE", KEYWORD_SOURCE: "KEYWORD_SOURCE" });
 export const VERIFIED = "VERIFIED_FROM_PRIMARY_SOURCE";
 export const NOT_VERIFIED = "NOT_VERIFIED_BY_US";
+/** RR-119: a term the primary source itself RESTRICTS is a finding, not an unknown — it refuses for its own reason, and no workaround follows. */
+export const RESTRICTED = "RESTRICTED_BY_PRIMARY_SOURCE";
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 export const ADMISSION_TERMS = Object.freeze(["storage", "attribution", "licence"]);
 export const KEYWORD_SIGNAL = "keyword_signal";
 const QUESTION_FIELDS = Object.freeze(["wording", "wordingOrigin", "sourceUrl", "postVersion", "licenceName", "licenceVersion", "attribution", "observedAt", "country", "language"]);
@@ -39,8 +43,10 @@ export function admitSource(decl) {
   if (!Object.hasOwn(SOURCE_KINDS, decl?.kind)) refusals.push("SOURCE_KIND_UNKNOWN");
   for (const t of ADMISSION_TERMS) {
     const term = decl?.terms?.[t];
-    if (term?.status !== VERIFIED) refusals.push(`${t.toUpperCase()}_TERM_NOT_VERIFIED`);
+    if (term?.status === RESTRICTED) refusals.push(`${t.toUpperCase()}_TERM_RESTRICTED_BY_SOURCE`);
+    else if (term?.status !== VERIFIED) refusals.push(`${t.toUpperCase()}_TERM_NOT_VERIFIED`);
     else if (!present(term.citation)) refusals.push(`${t.toUpperCase()}_TERM_HAS_NO_CITATION`);
+    else if (!ISO_DATE.test(term.retrievedOn ?? "")) refusals.push(`${t.toUpperCase()}_TERM_HAS_NO_SNAPSHOT_DATE`);
   }
   return refusals.length ? { admitted: false, refusals } : { admitted: true, refusals: [] };
 }

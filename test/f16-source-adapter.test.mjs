@@ -14,7 +14,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 
-import { admitSource, recordsFrom, sampleLines, SOURCE_KINDS, VERIFIED, NOT_VERIFIED, KEYWORD_SIGNAL } from "../src/research/source-adapter.mjs";
+import { admitSource, recordsFrom, sampleLines, SOURCE_KINDS, VERIFIED, NOT_VERIFIED, RESTRICTED, KEYWORD_SIGNAL } from "../src/research/source-adapter.mjs";
 import { readClientQuestionRecords } from "../src/research/public-questions-reader.mjs";
 import { intakeQuestions, COMPLETENESS_CLAIM, NOT_MEASURED, RECORD_TYPE } from "../src/research/public-questions.mjs";
 import { evidenceStateOf } from "../src/evidence/evidence-state-adapters.mjs";
@@ -33,7 +33,7 @@ const PATH = ["src/research/source-adapter.mjs", "bin/source-intake.mjs"];
 const IRRIGATION = { subject: "riverside-irrigation", origin: "https://riverside-irrigation.invalid", batch: "riverside-irrigation-research", tenant: FIXTURE_TENANT };
 const CERAMICS = { subject: "hilltop-ceramics", origin: "https://hilltop-ceramics.invalid", batch: "hilltop-ceramics-research", tenant: SECOND_FIXTURE_TENANT };
 
-const terms = (status = VERIFIED) => Object.fromEntries(["storage", "attribution", "licence"].map((t) => [t, { status, citation: status === VERIFIED ? `fixture citation for ${t} — synthetic, for a test` : null }]));
+const terms = (status = VERIFIED) => Object.fromEntries(["storage", "attribution", "licence"].map((t) => [t, { status, citation: status === VERIFIED ? `fixture citation for ${t} — synthetic, for a test` : null, retrievedOn: status === VERIFIED ? "2026-10-01" : null }]));
 const QSOURCE = { sourceId: "fixture-forum", kind: SOURCE_KINDS.QUESTION_SOURCE, terms: terms() };
 const KSOURCE = { sourceId: "fixture-keywords", kind: SOURCE_KINDS.KEYWORD_SOURCE, terms: terms() };
 const q = (n, over = {}) => ({ wording: `Fixture question number ${n}?`, wordingOrigin: "SOURCE_TEXT", sourceUrl: `https://forum.invalid/q/${n}`, postVersion: "1", licenceName: "fixture-licence", licenceVersion: "1.0", attribution: "fixture author, via the fixture forum", observedAt: "2026-10-01T09:00:00Z", country: NOT_MEASURED, language: "en", ...over });
@@ -170,6 +170,32 @@ test("§4 · THE PRODUCTION PATH REFUSES an unverified source — nothing it ret
     assert.equal(r.status, 3, r.stdout + r.stderr);
     assert.match(r.stdout, /source REFUSED — STORAGE_TERM_NOT_VERIFIED · ATTRIBUTION_TERM_NOT_VERIFIED · LICENCE_TERM_NOT_VERIFIED — nothing it returns may be kept/);
     assert.equal(stored(W, IRRIGATION.batch, "questions.jsonl").length, 0);
+  } finally { W.cleanup(); }
+});
+
+/* ================= RR-119: a restriction is a finding; a terms page is a snapshot ================= */
+
+test("§4 · FIRING CONTROL (RR-119): a term the source RESTRICTS refuses for its own reason; a verified term needs its snapshot date", () => {
+  const restricted = { ...QSOURCE, terms: { ...QSOURCE.terms, storage: { status: RESTRICTED, citation: "fixture clause restricting storage — synthetic", retrievedOn: "2026-10-01" } } };
+  assert.deepEqual(admitSource(restricted).refusals, ["STORAGE_TERM_RESTRICTED_BY_SOURCE"], "a restriction was reported as merely unverified, or admitted");
+  for (const t of ["storage", "attribution", "licence"]) {
+    for (const retrievedOn of [undefined, "", "1 Oct 2026"]) {
+      const undated = { ...QSOURCE, terms: { ...QSOURCE.terms, [t]: { status: VERIFIED, citation: "fixture clause", retrievedOn } } };
+      assert.deepEqual(admitSource(undated).refusals, [`${t.toUpperCase()}_TERM_HAS_NO_SNAPSHOT_DATE`], `${t} without a snapshot date (${retrievedOn}) was admitted`);
+    }
+  }
+});
+
+test("§4 · THE PRODUCTION PATH REFUSES a source whose storage the source RESTRICTS — nothing it returns is kept, and no workaround runs", () => {
+  const W = declaredWorld({ secondTenantOrigins: [CERAMICS.origin] });
+  try {
+    declareClient(W, IRRIGATION);
+    const src = input(W, "restricted.json", IRRIGATION.tenant, { ...QSOURCE, terms: { ...QSOURCE.terms, storage: { status: RESTRICTED, citation: "fixture clause — synthetic", retrievedOn: "2026-10-01" } } });
+    const ret = input(W, "ret2.json", IRRIGATION.tenant, retrieval([q(1), q(2)]));
+    const r = intake(W, IRRIGATION, src, ret);
+    assert.equal(r.status, 3, r.stdout + r.stderr);
+    assert.match(r.stdout, /source REFUSED — STORAGE_TERM_RESTRICTED_BY_SOURCE — nothing it returns may be kept/);
+    assert.deepEqual([stored(W, IRRIGATION.batch, "questions.jsonl").length, stored(W, IRRIGATION.batch, "keyword-signals.jsonl").length], [0, 0]);
   } finally { W.cleanup(); }
 });
 

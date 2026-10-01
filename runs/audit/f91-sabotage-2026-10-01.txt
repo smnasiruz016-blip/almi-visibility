@@ -1,0 +1,28 @@
+F91 sabotage run · 2026-10-01T03:44:51.923Z
+population: 21 sabotages over test/f91-page-opportunities.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1 S19=1 S20=1 S21=1 · all exactly once: true
+production trail sha256 before: d067a7be4f443e90f4b787df4398175e0a0a50cffcd89ac0623aad192100a4a6
+
+S1 C1 several dimensions are never multiplied blindly src/page/page-opportunities.mjs: landed true · named test "C1 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S2 C1 a dimension with no declared value is omitted src/page/page-opportunities.mjs: landed true · named test "C1 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S3 C1 number 1 is labelled candidates only src/page/page-opportunities.mjs: landed true · named test "C1 · FIRING CONTROL" red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+S4 C2 no qualifying states are chosen by the planner src/page/page-opportunities.mjs: landed true · named test "C2 · FIRING CONTROL" red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+S5 C2 an unrecorded limb leaves its candidate undecided src/page/page-opportunities.mjs: landed true · named test "C2 · an UNRECORDED limb" red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+S6 C2 a limb recorded as not met excludes its candidate src/page/page-opportunities.mjs: landed true · named test "C2 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S7 C2 owned evidence is counted apart src/page/page-opportunities.mjs: landed true · named test "C2 · an UNRECORDED limb" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S8 C3 no grouping rule is chosen by the planner src/page/page-opportunities.mjs: landed true · named test "C3 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S9 C3 coverage must be recorded src/page/page-opportunities.mjs: landed true · named test "C3 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S10 C3 groups, not combinations, become pages src/page/page-opportunities.mjs: landed true · named test "C3 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S11 C3 a covered or valueless group is not a page src/page/page-opportunities.mjs: landed true · named test "C3 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S12 C3 number 3 is never a number while number 2 is not src/page/page-opportunities.mjs: landed true · named test "C3 · FIRING CONTROL" red true · failing 4 · reason AssertionError · restored by sha256 true · PROVED
+S13 C5 the order is NOT CHECKABLE with any NOT MEASURED src/page/page-opportunities.mjs: landed true · named test "C5 · FIRING CONTROL" red true · failing 3 · reason AssertionError · restored by sha256 true · PROVED
+S14 C5 a breached order is a defect src/page/page-opportunities.mjs: landed true · named test "C5 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S15 C6 NOT MEASURED is never printed as 0 src/page/page-opportunities.mjs: landed true · named test "C6 · CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S16 C6 a plan with NOT MEASURED numbers never reads PROVED src/page/page-opportunities.mjs: landed true · named test "C6 · CONTROL" red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+S17 C7 the planner names no product src/page/page-opportunities.mjs: landed true · named test "C7 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S18 C1 number 1 comes from the product's own declaration src/page/page-opportunities-reader.mjs: landed true · named test "REAL ·" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S19 C1 data-only qualifier keys are excluded, never combined src/page/page-opportunities-reader.mjs: landed true · named test "REAL ·" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S20 C4 the entry point says nothing is summed bin/page-opportunities.mjs: landed true · named test "C4 · THE ENTRY POINT" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S21 C7 a network call is seen tools/need-coverage-call-paths.mjs: landed true · named test "C7 · the planner and its reader" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+
+proved 21 of 21 · residue 0 · production trail sha256 after: d067a7be4f443e90f4b787df4398175e0a0a50cffcd89ac0623aad192100a4a6 · unchanged true

@@ -1017,6 +1017,32 @@ export const DECLARED = Object.freeze({
       }),
     ]),
   }),
+  /* 🔴 F91 · Page opportunity planning. Scope reconciled (_handoffs 24c44d0), then frozen ALONE (2048dd3, RR-113 §2) before any F91 code.
+   * Three numbers, never one. On the real product number 1 is measured; numbers 2 and 3 are NOT MEASURED (no owner declaration of qualifying
+   * demand states, no recorded demand outcome, no grouping rule) — so it earns IN-PROGRESS only. */
+  F91: Object.freeze({
+    featureId: "F91",
+    board: "F_BOARD",
+    state: "IN-PROGRESS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-01", ruling: ACCEPTANCES.F91.ruling, contractSha256: ACCEPTANCES.F91.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F91",
+        on: "2026-10-01",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F91.ruling.sha256, contract: ACCEPTANCES.F91.contractSha256 }),
+        branch: "f91-page-planner",
+        baseSha: "2b0a2144397e09a360538d88dc0cec3d7db5458b",
+        baseCiRun: "36808650669",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-113_CLOSE_RR-112_BUILD_THE_F91_PAGE_PLANNER.md", commit: "0e1924bf2366a635b0d58fbb492ebe5b3649f6b7", sha256: "4b035e9ce223812ebb75b25d1f298a05db914ad2b4aa65c8837652c19531264e" }),
+      }),
+    ]),
+  }),
   F21: Object.freeze({
     featureId: "F21",
     board: "F_BOARD",

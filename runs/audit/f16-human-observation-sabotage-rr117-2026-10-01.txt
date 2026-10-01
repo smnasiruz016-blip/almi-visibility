@@ -1,0 +1,33 @@
+F16 human-observation sabotage run · 2026-10-01T15:24:45.274Z
+population: 26 sabotages over test/f16-human-observation.test.mjs + test/f16-neutral-clients.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S21=1 S22=1 S23=1 S24=1 S25=1 S26=1 S17=1 S18=1 S19=1 S20=1 · all exactly once: true
+production trail sha256 before: e8016aa34a81cd55502c4aeff999e9aa83c36469d18df36d3d0ff081d62b155c
+
+S1 §4 a missing required field refuses src/research/human-observation.mjs: landed true · named test "§4 · FIRING CONTROL" red true · failing 3 · reason AssertionError · restored by sha256 true · PROVED
+S2 §5 an unreviewable reference refuses an observation src/research/human-observation.mjs: landed true · named test "§5 · FIRING CONTROL: a typed question" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S3 §5 a link is reviewable only as an http(s) link src/research/human-observation.mjs: landed true · named test "§5 · FIRING CONTROL: a typed question" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S4 §4 a time must be a time src/research/human-observation.mjs: landed true · named test "§4 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S5 §5 the observer is a role, never personal data src/research/human-observation.mjs: landed true · named test "§5 · provenance" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S6 §4 the wording is kept byte for byte src/research/human-observation.mjs: landed true · named test "§4 · the original wording" red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+S7 §4 an accepted record cannot be rewritten src/research/human-observation.mjs: landed true · named test "§4 · the original wording" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S8 §5 the engine never claims to have seen it src/research/human-observation.mjs: landed true · named test "§5 · provenance" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S9 §6 a suggestion is INFERRED, never OBSERVED src/research/human-observation.mjs: landed true · named test "§6 · FIRING CONTROL" red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+S10 §5 the STORE refuses an observed question with no reference src/evidence/evidence-state-adapters.mjs: landed true · named test "§5 · FIRING CONTROL: the STORE" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S11 §6 a client's claim is UNKNOWN, never evidence src/evidence/evidence-state-adapters.mjs: landed true · named test "§6 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S12 §6 another subject's submission is never kept bin/observe-question.mjs: landed true · named test "§6/§8 · PRODUCTION PATH" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S13 §4 without --confirm nothing is written bin/observe-question.mjs: landed true · named test "§4 · without --confirm" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S14 §6 each record carries ITS client's declared origin bin/observe-question.mjs: landed true · named test "§6/§8 · PRODUCTION PATH" red true · failing 3 · reason AssertionError · restored by sha256 true · PROVED
+S15 §7 every output says SAMPLE bin/observe-question.mjs: landed true · named test "§6/§8 · PRODUCTION PATH" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S16 §10 KEPT is printed only when the write committed bin/observe-question.mjs: landed true · named test "§6 · FIRING CONTROL: when the governed commit FAILS" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S21 §5 a TEST_PILOT batch stamps its records in the data src/research/human-observation.mjs: landed true · named test "§5 · FIRING CONTROL: a TEST_PILOT batch" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S22 §5 the reader carries the marking forward src/research/public-questions.mjs: landed true · named test "§5 · FIRING CONTROL: a TEST_PILOT batch" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S23 §5 every report from pilot data carries the marking src/research/public-questions.mjs: landed true · named test "§5 · FIRING CONTROL: a TEST_PILOT batch" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S24 §5 the writer's output carries the marking bin/observe-question.mjs: landed true · named test "§5 · FIRING CONTROL: a TEST_PILOT batch" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S25 §5 a batch purpose no rule declares is refused bin/observe-question.mjs: landed true · named test "§5 · FIRING CONTROL: a TEST_PILOT batch" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S26 §4 another client's batch is refused at the gate bin/observe-question.mjs: landed true · named test "§4 · TWO UNRELATED CLIENTS" red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+S17 §8 the governed action is registered (else the boundary refuses it) config/governance/authorisation.mjs: landed true · named test "§6/§8 · PRODUCTION PATH" red true · failing 4 · reason AssertionError · restored by sha256 true · PROVED
+S18 §0 the path names no product src/research/human-observation.mjs: landed true · named test "§0 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S19 §6 the path never reaches a sealed store src/research/human-observation.mjs: landed true · named test "§6 · FIRING CONTROL: the validator" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S20 §6 a network call is seen tools/need-coverage-call-paths.mjs: landed true · named test "§6 · FIRING CONTROL: the validator" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+
+proved 26 of 26 · residue 0 · production trail sha256 after: e8016aa34a81cd55502c4aeff999e9aa83c36469d18df36d3d0ff081d62b155c · unchanged true

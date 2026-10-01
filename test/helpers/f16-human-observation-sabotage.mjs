@@ -6,7 +6,7 @@
  * PRE-FLIGHT FIRST: every span is checked to exist EXACTLY ONCE in the code live now, and the pre-flight is printed before any sabotage
  * runs — a span that does not is NOT PROVED, never silently skipped. Then each sabotage replaces its span ALONE, proves it LANDED, runs the
  * named proof file, requires the NAMED test to fail, restores by raw-byte sha256. The production trail is hashed before and after.
- * Evidence: runs/audit/f16-human-observation-sabotage-2026-10-01.txt.
+ * Evidence: runs/audit/f16-human-observation-sabotage-rr117-2026-10-01.txt (the #219 run stays at f16-human-observation-sabotage-2026-10-01.txt).
  */
 import { readFileSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -16,8 +16,8 @@ import { fileURLToPath } from "node:url";
 import { PRODUCT_WORDS } from "../../tools/product-boundary.mjs";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const HO = "src/research/human-observation.mjs", AD = "src/evidence/evidence-state-adapters.mjs", BIN = "bin/observe-question.mjs", AU = "config/governance/authorisation.mjs", CP = "tools/need-coverage-call-paths.mjs";
-const T = ["test/f16-human-observation.test.mjs"];
+const PQ = "src/research/public-questions.mjs", HO = "src/research/human-observation.mjs", AD = "src/evidence/evidence-state-adapters.mjs", BIN = "bin/observe-question.mjs", AU = "config/governance/authorisation.mjs", CP = "tools/need-coverage-call-paths.mjs";
+const T = ["test/f16-human-observation.test.mjs", "test/f16-neutral-clients.test.mjs"];
 const TRAIL = "audit-trail/events.jsonl";
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
@@ -38,7 +38,13 @@ const SABOTAGES = [
   ["S13", "§4 without --confirm nothing is written", BIN, "if (!permission.mayWrite) { console.log(\"  NOT WRITTEN — no --confirm: 0 records kept\"); process.exit(0); }", "", "§4 · without --confirm"],
   ["S14", "§6 each record carries ITS client's declared origin", BIN, "const origin = site?.reaches?.find((x) => x.resourceKind === \"SITE_ORIGIN\")?.resourceRef ?? null;", "const origin = \"https://shared-origin.invalid\";", "§6/§8 · PRODUCTION PATH"],
   ["S15", "§7 every output says SAMPLE", BIN, "  `SAMPLE — not a census of the world's questions · declared limits:", "  `RESULTS · declared limits:", "§6/§8 · PRODUCTION PATH"],
-  ["S16", "§10 KEPT is printed only when the write committed", BIN, "if (governed.outcome !== \"COMMITTED\" && governed.outcome !== \"ALREADY_COMMITTED\") {", "if (false) {", "§6/§8 · PRODUCTION PATH"],
+  ["S16", "§10 KEPT is printed only when the write committed", BIN, "if (governed.outcome !== \"COMMITTED\" && governed.outcome !== \"ALREADY_COMMITTED\") {", "if (false) {", "§6 · FIRING CONTROL: when the governed commit FAILS"],
+  ["S21", "§5 a TEST_PILOT batch stamps its records in the data", HO, "        dataPurpose,\n", "        dataPurpose: null,\n", "§5 · FIRING CONTROL: a TEST_PILOT batch"],
+  ["S22", "§5 the reader carries the marking forward", PQ, "    dataPurpose: v.dataPurpose ?? null,", "    dataPurpose: null,", "§5 · FIRING CONTROL: a TEST_PILOT batch"],
+  ["S23", "§5 every report from pilot data carries the marking", PQ, "    ...(r.pilot > 0 ? [", "    ...(false ? [", "§5 · FIRING CONTROL: a TEST_PILOT batch"],
+  ["S24", "§5 the writer's output carries the marking", BIN, "  ...(declaredPurpose === \"TEST_PILOT\" ? [", "  ...(false ? [", "§5 · FIRING CONTROL: a TEST_PILOT batch"],
+  ["S25", "§5 a batch purpose no rule declares is refused", BIN, "if (declaredPurpose !== null && !BATCH_PURPOSES.includes(declaredPurpose)) {", "if (false) {", "§5 · FIRING CONTROL: a TEST_PILOT batch"],
+  ["S26", "§4 another client's batch is refused at the gate", BIN, "RESOURCES.researchBatch(BATCH)", "RESOURCES.subject(SUBJECT)", "§4 · TWO UNRELATED CLIENTS"],
   ["S17", "§8 the governed action is registered (else the boundary refuses it)", AU, "    \"APPEND_HUMAN_OBSERVATIONS\",\n", "", "§6/§8 · PRODUCTION PATH"],
   ["S18", "§0 the path names no product", HO, "export const CATEGORIES = Object.freeze(", `export const PLANTED = "${PRODUCT_WORDS[0]}";\nexport const CATEGORIES = Object.freeze(`, "§0 · FIRING CONTROL"],
   ["S19", "§6 the path never reaches a sealed store", HO, "import { RECORD_TYPE, NOT_MEASURED } from \"./public-questions.mjs\";", "import { RECORD_TYPE, NOT_MEASURED } from \"./public-questions.mjs\";\nimport \"../governance/sealed-store-roots.mjs\";", "§6 · FIRING CONTROL: the validator"],
@@ -90,6 +96,7 @@ restoreAll();
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "f16-human-observation-sabotage-2026-10-01.txt"), lines.join("\n") + "\n");
+/* RR-117: each round's run is its own evidence file; the merged #219 run (f16-human-observation-sabotage-2026-10-01.txt) is never overwritten */
+writeFileSync(join(REPO, "runs", "audit", "f16-human-observation-sabotage-rr117-2026-10-01.txt"), lines.join("\n") + "\n");
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

@@ -6,7 +6,7 @@
  * PRE-FLIGHT FIRST: every span must exist EXACTLY ONCE in the code live now; one that does not is NOT PROVED, never skipped. Each sabotage
  * replaces its span ALONE, proves it LANDED, runs the proof files, requires the NAMED test to fail by an assertion, and restores by
  * raw-byte sha256. The production trail is hashed before and after.
- * Evidence: runs/audit/f16-agent-observer-sabotage-rr125-run2-2026-10-01.txt (run 2, after A1 exposed a self-referential test; run 1 kept as -run1).
+ * Evidence: runs/audit/f16-agent-observer-sabotage-rr126-2026-10-01.txt (RR-126 rerun after the boundary changed; earlier files kept).
  */
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -90,6 +90,6 @@ restoreAll();
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "f16-agent-observer-sabotage-rr125-run2-2026-10-01.txt"), lines.join("\n") + "\n");
+writeFileSync(join(REPO, "runs", "audit", "f16-agent-observer-sabotage-rr126-2026-10-01.txt"), lines.join("\n") + "\n");
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

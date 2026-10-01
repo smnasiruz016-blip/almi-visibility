@@ -56,8 +56,36 @@ export function admitSource(decl) {
   return refusals.length ? { admitted: false, refusals } : { admitted: true, refusals: [] };
 }
 
+/**
+ * RR-126 · THE RELEVANCE GATE. A search hit is a LEAD, never by itself a question about the subject. Before an item may enter a
+ * subject's batch, its own retained text (a question's title, a keyword's idea) is judged against a RELEVANCE PROFILE that is DECLARED
+ * DATA for that subject — never a rule written here. One rule per item, in this order:
+ *   an EXCLUDES pattern matches            → NOT_ABOUT_THE_DECLARED_SUBJECT (refused)
+ *   a CONFIRMS pattern matches             → RELEVANT (kept, with the rule that decided it, in the record)
+ *   only an AMBIGUOUS pattern matches      → RELEVANCE_AMBIGUOUS_KEPT_OUT (UNKNOWN: not stored, not counted as a question)
+ *   nothing matches                        → NOT_ABOUT_THE_DECLARED_SUBJECT (refused)
+ * No profile, a profile for another subject, one with no confirming rule, or a pattern that does not compile refuses the whole retrieval.
+ * Limit, stated: relevance is judged on the retained text alone; a question whose subject is only in its body is refused (fails closed).
+ */
+export function compileProfile(profile, subject) {
+  if (!profile || typeof profile !== "object") return { refusal: "RELEVANCE_PROFILE_UNDECLARED" };
+  if (profile.subject !== subject) return { refusal: "RELEVANCE_PROFILE_IS_ANOTHER_SUBJECTS" };
+  if (!Array.isArray(profile.confirms) || profile.confirms.length === 0) return { refusal: "RELEVANCE_PROFILE_HAS_NO_CONFIRMING_RULE" };
+  try {
+    const rx = (list) => (Array.isArray(list) ? list : []).map((s) => new RegExp(s, "i"));
+    return { refusal: null, id: profile.profileId ?? null, confirms: rx(profile.confirms), ambiguous: rx(profile.ambiguous), excludes: rx(profile.excludes) };
+  } catch { return { refusal: "RELEVANCE_PATTERN_INVALID" }; }
+}
+export function relevanceOf(text, p) {
+  const hit = (list) => list.findIndex((r) => r.test(text));
+  const x = hit(p.excludes); if (x >= 0) return { verdict: "UNRELATED", rule: `excludes[${x}]` };
+  const c = hit(p.confirms); if (c >= 0) return { verdict: "RELEVANT", rule: `confirms[${c}]` };
+  const a = hit(p.ambiguous); if (a >= 0) return { verdict: "AMBIGUOUS", rule: `ambiguous[${a}]` };
+  return { verdict: "UNRELATED", rule: null };
+}
+
 /** One retrieval → records of its declared kind, or refusals; a retrieval that never happened is NOT MEASURED, an empty one is EMPTY. */
-export function recordsFrom(decl, retrieval, { subject, origin, dataPurpose = null }) {
+export function recordsFrom(decl, retrieval, { subject, origin, dataPurpose = null, relevance = null }) {
   const admission = admitSource(decl);
   if (!admission.admitted) return { admitted: false, refusals: admission.refusals, retrieved: NOT_MEASURED, records: [], refused: {} };
   if (!retrieval || !Array.isArray(retrieval.items)) return { admitted: true, refusals: [], retrieved: NOT_MEASURED, records: [], refused: {} };
@@ -68,6 +96,8 @@ export function recordsFrom(decl, retrieval, { subject, origin, dataPurpose = nu
   if (!present(retrieval.topic)) head.push("TOPIC_ABSENT");
   if (!present(retrieval.coverageLimits)) head.push("COVERAGE_LIMITS_ABSENT");
   if (!present(origin)) head.push("SUBJECT_HAS_NO_DECLARED_SITE_ORIGIN");
+  const profile = compileProfile(relevance, subject);
+  if (profile.refusal) head.push(profile.refusal);
   if (head.length) return { admitted: true, refusals: head, retrieved: total, records: [], refused: Object.fromEntries(head.map((h) => [h, total])) };
   const question = decl.kind === SOURCE_KINDS.QUESTION_SOURCE;
   const records = [], refused = { ...before };
@@ -77,10 +107,14 @@ export function recordsFrom(decl, retrieval, { subject, origin, dataPurpose = nu
     if (missing.length) { refuse(`${missing[0].toUpperCase()}_ABSENT`); continue; }
     if (!ISO_TIME.test(item.observedAt)) { refuse("OBSERVEDAT_NOT_A_TIME"); continue; }
     if (Array.isArray(decl.licenceVersions) && !decl.licenceVersions.includes(item.licenceVersion)) { refuse("LICENCE_VERSION_OUTSIDE_DECLARED_SET"); continue; }
+    if (question && item.wordingOrigin !== "SOURCE_TEXT") { refuse("SNIPPET_IS_NOT_THE_AUTHORS_WORDING"); continue; }
+    const rel = relevanceOf(question ? item.wording : item.idea, profile);
+    if (rel.verdict === "AMBIGUOUS") { refuse("RELEVANCE_AMBIGUOUS_KEPT_OUT"); continue; }
+    if (rel.verdict !== "RELEVANT") { refuse("NOT_ABOUT_THE_DECLARED_SUBJECT"); continue; }
+    const relevanceRecord = Object.freeze({ profileId: profile.id, verdict: rel.verdict, rule: rel.rule, judgedOn: question ? "the question title as retained" : "the keyword idea as retained" });
     const shared = { subject, origin, sourceId: decl.sourceId, topic: retrieval.topic, country: item.country, language: item.language,
-      limits: retrieval.coverageLimits, licence: Object.freeze({ name: item.licenceName, version: item.licenceVersion }), attribution: item.attribution, dataPurpose };
+      limits: retrieval.coverageLimits, licence: Object.freeze({ name: item.licenceName, version: item.licenceVersion }), attribution: item.attribution, dataPurpose, relevance: relevanceRecord };
     if (question) {
-      if (item.wordingOrigin !== "SOURCE_TEXT") { refuse("SNIPPET_IS_NOT_THE_AUTHORS_WORDING"); continue; }
       const id = hash([subject, decl.sourceId, item.sourceUrl, item.postVersion]);
       records.push(Object.freeze({ record_type: RECORD_TYPE, question_id: id, measurement_key: `${RECORD_TYPE}:${id}`, recorded_at: item.observedAt,
         value: Object.freeze({ ...shared, kind: "OBSERVED", original: item.wording, reference: item.sourceUrl, postVersion: item.postVersion, postedAt: item.postedAt ?? NOT_MEASURED,

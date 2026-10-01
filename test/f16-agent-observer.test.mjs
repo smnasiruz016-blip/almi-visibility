@@ -85,7 +85,7 @@ test("§3 · FIRING CONTROL: an agent record can NEVER surface as PERSON_OBSERVE
 test("§3 · a source adapter's record counts under its OWN observer type, never as a person or an agent", () => {
   const decl = { sourceId: "fixture-forum", kind: SOURCE_KINDS.QUESTION_SOURCE, terms: Object.fromEntries(["storage", "attribution", "licence"].map((t) => [t, { status: VERIFIED, citation: "fixture clause — synthetic", retrievedOn: "2026-10-01" }])) };
   const item = { wording: "Synthetic adapter question?", wordingOrigin: "SOURCE_TEXT", sourceUrl: "https://forum.invalid/q/9", postVersion: "1", licenceName: "fixture", licenceVersion: "1", attribution: "fixture", observedAt: "2026-10-01T09:00:00Z", country: NOT_MEASURED, language: "en" };
-  const recs = recordsFrom(decl, { topic: "t", coverageLimits: "one fixture", items: [item] }, { subject: "s", origin: "https://s.invalid" }).records;
+  const recs = recordsFrom(decl, { topic: "t", coverageLimits: "one fixture", items: [item] }, { subject: "s", origin: "https://s.invalid", relevance: { profileId: "p", subject: "s", confirms: ["synthetic adapter question"] } }).records;
   const r = intakeQuestions(recs);
   assert.deepEqual([r.malformed, r.observerSplit.SOURCE_ADAPTER_OBSERVED, r.observerSplit.PERSON_OBSERVED, r.observerSplit.AGENT_OBSERVED], [0, 1, 0, 0]);
 });

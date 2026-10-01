@@ -114,6 +114,19 @@ function ofPublicQuestion(r) {
   return unmapped(`a public question of kind ${v.kind ?? "(none)"} has no declared placement`, rule);
 }
 
+/**
+ * 🔴 RR-118 — a `keyword_signal` record (src/research/source-adapter.mjs): a keyword IDEA a source generated, never a question anyone was seen
+ * asking. It is INFERRED, its source its one input — never OBSERVED. A record missing its id, its time or its source is UNMAPPED.
+ */
+function ofKeywordSignal(r) {
+  const rule = "keyword_signal";
+  const v = r.value && typeof r.value === "object" ? r.value : {};
+  if (!present(r.signal_id)) return unmapped("a keyword signal with no signal_id cannot be referenced", rule);
+  if (!present(r.recorded_at) || !ISOISH.test(r.recorded_at)) return unmapped("a keyword signal with no recorded time has no time", rule);
+  if (!present(v.sourceId)) return unmapped("a keyword signal names no source", rule);
+  return place(rule, "INFERRED", { inputRefs: [`source:${h16(v.sourceId)}`], method: "source-generated-keyword-idea", computedAt: r.recorded_at });
+}
+
 const unmapped = (why, rule) => Object.freeze({ state: null, unmapped: true, why, assignedBy: rule });
 const place = (rule, state, meta) => {
   try { return makeEvidenceState(state, { assignedBy: rule, ...meta }); }
@@ -244,6 +257,7 @@ export function evidenceStateOf(record, ctx = {}) {
     case "draft_recommendation": return ofDraftRecommendation(record, ctx);
     case "response_headers": return ofResponseHeaders(record);
     case "public_question": return ofPublicQuestion(record);
+    case "keyword_signal": return ofKeywordSignal(record);
     default:
       if (Object.hasOwn(DERIVED_TYPES, record.record_type)) return ofDerived(record);
       return unmapped(`record_type ${record.record_type} has no declared rule`, "none");

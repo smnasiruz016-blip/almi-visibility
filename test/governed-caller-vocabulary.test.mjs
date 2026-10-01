@@ -249,15 +249,18 @@ test("V7 · the REAL population: 46 governed = 45 routed + 1 checked exemption +
   /* 91/47 → 92/48 on 1 October (RR-116), for a MEASURED reason: one production entry point, bin/observe-question.mjs, a GOVERNED
    * writer routed through the boundary (BOUNDARY_ROUTED) — it appends a person's public-question observations into the client's own
    * declared research batch. No existing caller moved class. */
-  assert.equal(rows.length, 92);
-  assert.equal(governed.length, 48);
+  /* 92/48 → 93/49 on 1 October (RR-118), for a MEASURED reason: one production entry point, bin/source-intake.mjs, a GOVERNED writer
+   * routed through the boundary (BOUNDARY_ROUTED) — it keeps one retrieval from one ADMITTED source in the client's own research batch.
+   * No existing caller moved class. */
+  assert.equal(rows.length, 93);
+  assert.equal(governed.length, 49);
   assert.equal(rows.filter((r) => r.cls === "READ_ONLY_DIAGNOSTIC").length, 44);
   const by = Object.fromEntries(CALLER_CLASSES.map((c) => [c, governed.filter((r) => r.callerClass === c).length]));
   /* 43/2 → 44/1 on 26 September (F10), for a MEASURED reason: bin/heldout-evaluation.mjs now routes its scoring run through the
    * boundary (BOUNDARY_ROUTED); no entry point was added and no other caller moved class. */
   /* 44/1 → 45/1 on 27 September: bin/f10-select.mjs (BOUNDARY_ROUTED) joined; no other caller moved class. */
   /* 45/1 → 46/1 on 28 September: bin/f10-register-key.mjs (BOUNDARY_ROUTED) joined; bin/heldout-evaluation.mjs stays BOUNDARY_ROUTED. */
-  assert.deepEqual(by, { BOUNDARY_ROUTED: 47, DIRECT_DURABLE_WRITE: 0, COLLECTOR_OR_LIBRARY_WRITE: 0, CHECKED_AUDIT_STORE_EXEMPTION: 1, READ_ONLY: 0, PARTIALLY_ROUTED: 0, UNKNOWN: 0 });
+  assert.deepEqual(by, { BOUNDARY_ROUTED: 48, DIRECT_DURABLE_WRITE: 0, COLLECTOR_OR_LIBRARY_WRITE: 0, CHECKED_AUDIT_STORE_EXEMPTION: 1, READ_ONLY: 0, PARTIALLY_ROUTED: 0, UNKNOWN: 0 });
   assert.equal(bypasses(rows).length, 0);
   assert.equal(governed.filter((r) => r.routed).length + auditStoreExempt(rows).length + nonMutating(rows).length + bypasses(rows).length, governed.length);
   const sites = governed.flatMap((r) => r.siteDetail.map((s) => ({ ...s, file: r.file, reaches: r.reachesBoundary })));

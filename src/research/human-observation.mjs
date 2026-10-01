@@ -34,7 +34,10 @@ export function reviewable(ref) {
 }
 
 /** @returns {{ accepted: true, record: object } | { accepted: false, refusals: string[] }} */
-export function validateSubmission(s, { origin }) {
+/** RR-117 §5: the one declared batch purpose. A batch whose manifest declares it stamps every record it receives, in the data itself. */
+export const BATCH_PURPOSES = Object.freeze(["TEST_PILOT"]);
+
+export function validateSubmission(s, { origin, dataPurpose = null }) {
   const refusals = [];
   const category = Object.hasOwn(CATEGORIES, s?.category) ? s.category : null;
   if (!category) return { accepted: false, refusals: ["CATEGORY_UNKNOWN"] };
@@ -73,6 +76,7 @@ export function validateSubmission(s, { origin }) {
         method: s.method,
         limits: s.limits,
         basis: category === "INFERRED_SUGGESTION" ? s.basis : null,
+        dataPurpose,
       }),
     }),
   };

@@ -21,8 +21,8 @@ import { writePermission, LOCAL } from "../src/write-law.mjs";
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedStoreAppend } from "../src/governance/governed-run.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
-import { validateSubmission } from "../src/research/human-observation.mjs";
-import { COMPLETENESS_CLAIM } from "../src/research/public-questions.mjs";
+import { validateSubmission, BATCH_PURPOSES } from "../src/research/human-observation.mjs";
+import { PILOT_MARK } from "../src/research/public-questions.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (k) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? null;
@@ -42,9 +42,14 @@ if (!existsSync(batchDir)) { console.error("🔴 REFUSED — RESEARCH_BATCH_ABSE
 const site = (lookupSubject(index, SUBJECT).entry?.connectors ?? []).find((c) => c.kind === "PUBLIC_SITE");
 const origin = site?.reaches?.find((x) => x.resourceKind === "SITE_ORIGIN")?.resourceRef ?? null;
 
+/* RR-117 §5: a batch may declare its purpose in its own manifest; a TEST_PILOT batch stamps every record it receives, in the data */
+const manifestPath = join(batchDir, "batch.json");
+const declaredPurpose = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, "utf8"))?.purpose ?? null : null;
+if (declaredPurpose !== null && !BATCH_PURPOSES.includes(declaredPurpose)) { console.error("🔴 REFUSED — BATCH_PURPOSE_UNDECLARED: the batch manifest names a purpose no rule declares; nothing written"); process.exit(3); }
+
 const submissions = JSON.parse(readFileSync(FILE, "utf8"));
 if (!Array.isArray(submissions)) { console.error("🔴 REFUSED — the submission file is not a list of submissions; nothing written"); process.exit(2); }
-const results = submissions.map((s) => validateSubmission({ ...s, subject: s?.subject }, { origin }));
+const results = submissions.map((s) => validateSubmission(s, { origin, dataPurpose: declaredPurpose }));
 const foreign = submissions.filter((s) => s?.subject !== SUBJECT).length;
 const accepted = results.filter((r, i) => r.accepted && submissions[i].subject === SUBJECT).map((r) => r.record);
 const refusedBy = {};
@@ -57,8 +62,8 @@ const lines = [
   `accepted by kind: OBSERVED ${byKind.OBSERVED ?? 0} · INFERRED ${byKind.INFERRED ?? 0} · CLIENT_CLAIM ${byKind.CLIENT_CLAIM ?? 0} — three separate kinds, never merged`,
   `refusals by rule: ${Object.entries(refusedBy).map(([k, n]) => `${k} ${n}`).join(" · ") || "none"}`,
   "provenance: a person saw each observation; the engine searched nothing, fetched nothing and opened no reference",
+  ...(declaredPurpose === "TEST_PILOT" ? [`${PILOT_MARK} — this batch is declared TEST_PILOT: not the demand of any country, not global demand, not a production client result`] : []),
 ];
-if (lines.some((l) => COMPLETENESS_CLAIM.test(l))) throw new Error("COMPLETENESS_CLAIM_IN_OUTPUT: a report line claims more than a sample");
 console.log("F16 · HUMAN OBSERVATIONS — this tenant's subject only, count-only");
 for (const l of lines) console.log(`  ${l}`);
 

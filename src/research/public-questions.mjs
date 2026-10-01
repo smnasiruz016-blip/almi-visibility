@@ -32,6 +32,8 @@ export const MISSING = Object.freeze({
   population: "a recorded public-question sample for this client — none exists",
 });
 /** C5: words and shapes that claim the whole world. A report line carrying any of them is refused. */
+/** RR-117 §5: the marking every output derived from a TEST_PILOT batch carries with it. */
+export const PILOT_MARK = "TEST / PILOT DATA";
 export const COMPLETENESS_CLAIM = /\b(all|complete|completeness|full coverage|every question|exhaustive|entire|worldwide|comprehensive)\b/i;
 
 const filled = (v) => (typeof v === "string" ? v.trim() !== "" : v !== null && v !== undefined && !(typeof v === "object" && Object.keys(v).length === 0));
@@ -49,6 +51,7 @@ export function intakeOne(r) {
     original: Object.freeze({ wording: v.original, provenance: Object.freeze({ ...(v.provenance ?? {}) }) }),
     fields: Object.freeze(fields),
     notMeasured: REQUIRED_FIELDS.filter((f) => fields[f] === NOT_MEASURED),
+    dataPurpose: v.dataPurpose ?? null,
   });
 }
 
@@ -80,9 +83,10 @@ export function intakeQuestions(records, { sameAs = null } = {}) {
   const grouping = Object.fromEntries(Object.keys(KINDS).map((k) => [k, groupQuestions(lists[k], sameAs)]));
   const fieldGaps = Object.fromEntries(REQUIRED_FIELDS.map((f) => [f, all.filter((q) => q.notMeasured.includes(f)).length]));
   const population = all.length;
+  const pilot = all.filter((q) => q.dataPurpose === "TEST_PILOT").length;
   const verdict = population === 0 ? VERDICT.COULD_NOT_PROVE : malformed > 0 ? VERDICT.DISPROVED : VERDICT.COULD_NOT_PROVE;
   return {
-    population, malformed, lists, grouping, fieldGaps,
+    population, malformed, lists, grouping, fieldGaps, pilot,
     census: Object.fromEntries(CENSUS_PARTS.map((p) => [p, NOT_MEASURED])),
     missing: [...(population === 0 ? [MISSING.population] : []), MISSING.census, ...(typeof sameAs === "function" ? [] : [MISSING.sameness])],
     verdict,
@@ -93,6 +97,7 @@ export function intakeQuestions(records, { sameAs = null } = {}) {
 export function reportLines(r, { limits }) {
   const lines = [
     `SAMPLE — not a census of the world's questions · declared limits: ${limits}`,
+    ...(r.pilot > 0 ? [`${PILOT_MARK} — ${r.pilot} of ${r.population} record(s) come from a batch declared TEST_PILOT: not the demand of any country, not global demand, not a production client result`] : []),
     ...Object.keys(KINDS).map((k) => `${k}: ${r.lists[k].length} of ${r.population} recorded question(s) · ${EVIDENCE_STATE[k]} · groups ${r.grouping[k].groups.length}${r.grouping[k].grouped ? "" : " (not grouped — missing " + MISSING.sameness + ")"}`),
     `fields not captured (NOT MEASURED): ${REQUIRED_FIELDS.map((f) => `${f} ${r.fieldGaps[f]} of ${r.population}`).join(" · ")}`,
     `census: ${CENSUS_PARTS.join(", ")} — NOT MEASURED — missing ${MISSING.census}`,

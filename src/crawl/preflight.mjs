@@ -48,8 +48,11 @@ export async function syntheticRecordSet() {
  */
 export const COLLECTED = Object.freeze({ KEPT: "KEPT", NOT_KEPT: "NOT KEPT" });
 const KEPT_OUTCOMES = new Set(["COMMITTED", "ALREADY_COMMITTED"]);
-export function collectionVerdict(outcomes) {
+/* RR-108: a live run also passes its measured PACING. A breach of the interval, or pacing not measured, is never a successful collection
+ * — the records may be written and kept as evidence, but the verdict is NOT KEPT, with the breach named. */
+export function collectionVerdict(outcomes, { pacing } = {}) {
   const failed = Object.entries(outcomes).filter(([, o]) => !KEPT_OUTCOMES.has(o)).map(([k, o]) => `${k}: ${o ?? "NOT_REACHED"}`);
+  if (pacing !== undefined && pacing?.ok !== true) failed.push(pacing ? `pacing: ${pacing.breaches} of ${pacing.gaps} gap(s) under ${pacing.intervalMs} ms` : "pacing: NOT MEASURED");
   return failed.length === 0 && Object.keys(outcomes).length > 0 ? { verdict: COLLECTED.KEPT, failed } : { verdict: COLLECTED.NOT_KEPT, failed };
 }
 

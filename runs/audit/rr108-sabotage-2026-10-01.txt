@@ -1,0 +1,16 @@
+RR-108 pacer sabotage run · 2026-10-01T00:35:13.754Z
+population: 9 sabotages over test/rr108-pacer.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 120 s
+PRE-FLIGHT (span occurrences in the code live now): S01=1 S02=1 S03=1 S04=1 S05=1 S06=1 S07=1 S08=1 S09=1 · all exactly once: true
+production trail sha256 before: 464175c0e4440ba4ad3dee834166eee5dd63002a13b0fd7c7d8913fe3f411a2d
+
+S01 BOUNDARY: exactly at the bound is refused src/crawl/fetcher.mjs: landed true · named test "BOUNDARY" red true · failing 1 · restored by sha256 true · PROVED
+S02 BOUNDARY: one unit short is allowed src/crawl/fetcher.mjs: landed true · named test "BOUNDARY" red true · failing 5 · restored by sha256 true · PROVED
+S03 EARLY WAKE: the pacer waits once and never rechecks (the RR-107 defect) src/crawl/fetcher.mjs: landed true · named test "EARLY WAKE-UP" red true · failing 4 · restored by sha256 true · PROVED
+S04 RETRY: a retry is not paced src/crawl/fetcher.mjs: landed true · named test "RETRY" red true · failing 1 · restored by sha256 true · PROVED
+S05 ROBOTS: robots.txt is neither paced nor recorded src/crawl/crawler.mjs: landed true · named test "ROBOTS → FIRST PAGE" red true · failing 2 · restored by sha256 true · PROVED
+S06 RECORD: the run record carries no pacing src/crawl/crawler.mjs: landed true · named test "PRODUCTION APPEND" red true · failing 2 · restored by sha256 true · PROVED
+S07 DETECTION: a 999 ms gap is not counted a breach src/crawl/fetcher.mjs: landed true · named test "DETECTION" red true · failing 1 · restored by sha256 true · PROVED
+S08 VERDICT: a pacing failure still reads KEPT src/crawl/preflight.mjs: landed true · named test "CONTROL" red true · failing 1 · restored by sha256 true · PROVED
+S09 VERDICT: the binary does not pass pacing into its verdict bin/crawl.mjs: landed true · named test "CONTROL" red true · failing 1 · restored by sha256 true · PROVED
+
+proved 9 of 9 · residue 0 · production trail sha256 after: 464175c0e4440ba4ad3dee834166eee5dd63002a13b0fd7c7d8913fe3f411a2d · unchanged true

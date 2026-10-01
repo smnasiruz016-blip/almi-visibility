@@ -6,7 +6,7 @@
  * PRE-FLIGHT FIRST: every span is checked to exist EXACTLY ONCE in the code live now, and the pre-flight is printed before any sabotage
  * runs — a span that does not is NOT PROVED, never silently skipped. Then each sabotage replaces its span ALONE, proves it LANDED, runs the
  * named proof file, requires the NAMED test to fail, restores by raw-byte sha256. The production trail is hashed before and after.
- * Evidence: runs/audit/f16-source-adapter-sabotage-rr119-run2-2026-10-01.txt (RR-119 run 2, after S29 span fix; run 1 file and the RR-118 file kept untouched).
+ * Evidence: runs/audit/f16-source-adapter-sabotage-rr120-run2-2026-10-01.txt (RR-120 run 2, after the S13 span followed its live line; every earlier file is kept untouched).
  */
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -17,7 +17,8 @@ import { PRODUCT_WORDS } from "../../tools/product-boundary.mjs";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SA = "src/research/source-adapter.mjs", BIN = "bin/source-intake.mjs", AD = "src/evidence/evidence-state-adapters.mjs", AU = "config/governance/authorisation.mjs", CP = "tools/need-coverage-call-paths.mjs";
-const T = ["test/f16-source-adapter.test.mjs"];
+const QA = "src/research/adapters/stack-exchange.mjs";
+const T = ["test/f16-source-adapter.test.mjs", "test/f16-qa-network-adapter.test.mjs"];
 const TRAIL = "audit-trail/events.jsonl";
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
@@ -35,7 +36,7 @@ const SABOTAGES = [
   ["S10", "§4 a time must be a time", SA, "    if (!ISO_TIME.test(item.observedAt)) { refuse(\"OBSERVEDAT_NOT_A_TIME\"); continue; }", "", "§4 · FIRING CONTROL: a missing required field"],
   ["S11", "§4 a keyword idea is never a question", SA, "    if (question) {", "    if (true) {", "§4 · FIRING CONTROL: a keyword idea"],
   ["S12", "§4 a keyword signal is INFERRED, never OBSERVED", AD, "  return place(rule, \"INFERRED\", { inputRefs: [`source:${h16(v.sourceId)}`], method: \"source-generated-keyword-idea\", computedAt: r.recorded_at });", "  return place(rule, \"OBSERVED\", { evidenceRef: `keyword_signal:${r.signal_id}`, sourceId: v.sourceId, observedAt: r.recorded_at });", "§4 · FIRING CONTROL: a keyword idea"],
-  ["S13", "§5 an empty retrieval is EMPTY, never NOT MEASURED", SA, "  if (r.retrieved === 0) return [...lines, \"EMPTY SAMPLE", "  if (false) return [...lines, \"EMPTY SAMPLE", "§5 · FIRING CONTROL: an empty retrieval"],
+  ["S13", "§5 an empty retrieval is EMPTY, never NOT MEASURED", SA, "  if (r.retrieved === 0) return guardScope(r, [...lines, ...scope, \"EMPTY SAMPLE", "  if (false) return guardScope(r, [...lines, ...scope, \"EMPTY SAMPLE", "§5 · FIRING CONTROL: an empty retrieval"],
   ["S14", "§5 no retrieval is NOT MEASURED, never 0", SA, "  if (!retrieval || !Array.isArray(retrieval.items)) return { admitted: true, refusals: [], retrieved: NOT_MEASURED, records: [], refused: {} };", "  if (!retrieval || !Array.isArray(retrieval.items)) return { admitted: true, refusals: [], retrieved: 0, records: [], refused: {} };", "§5 · FIRING CONTROL: an empty retrieval"],
   ["S15", "§5 every output says SAMPLE", SA, "  const lines = [`SAMPLE — not a census of the world's questions · declared limits:", "  const lines = [`RESULTS · declared limits:", "§5 · FIRING CONTROL: an empty retrieval"],
   ["S16", "§6 each record carries its own client's origin (the reader's partition)", BIN, "const origin = site?.reaches?.find((x) => x.resourceKind === \"SITE_ORIGIN\")?.resourceRef ?? null;", "const origin = \"https://shared-origin.invalid\";", "§6 · TWO UNRELATED PRODUCTS"],
@@ -53,6 +54,22 @@ const SABOTAGES = [
   ["S29", "§4 (RR-119) a restricted term refuses for its own reason", SA, "    if (term?.status === RESTRICTED) refusals.push(`${t.toUpperCase()}_TERM_RESTRICTED_BY_SOURCE`);\n    else if (term?.status !== VERIFIED)", "    if (term?.status !== VERIFIED)", "§4 · FIRING CONTROL (RR-119)"],
   ["S30", "§4 (RR-119) a verified term needs its snapshot date", SA, "    else if (!ISO_DATE.test(term.retrievedOn ?? \"\")) refusals.push(`${t.toUpperCase()}_TERM_HAS_NO_SNAPSHOT_DATE`);", "", "§4 · FIRING CONTROL (RR-119)"],
   ["S31", "§4 (RR-119) the production path refuses a restricted source", SA, "    if (term?.status === RESTRICTED) refusals.push(", "    if (false) refusals.push(", "§4 · THE PRODUCTION PATH REFUSES a source whose storage"],
+  ["S32", "§5 (RR-120) a licence version outside the declared set is refused", SA, "    if (Array.isArray(decl.licenceVersions) && !decl.licenceVersions.includes(item.licenceVersion)) {", "    if (false) {", "§5 · FIRING CONTROL: mixed licence versions"],
+  ["S33", "§5 (RR-120) a straddling post takes the OLDER licence", QA, "  const t = Math.min(createdEpoch, editedEpoch);", "  const t = Math.max(createdEpoch, editedEpoch);", "§5 · FIRING CONTROL: mixed licence versions"],
+  ["S34", "§5 (RR-120) the 2.5 boundary is kept", QA, "  if (t < DAY(\"2011-04-08\")) return \"2.5\";", "", "§5 · FIRING CONTROL: mixed licence versions"],
+  ["S35", "§5 (RR-120) incomplete attribution is refused", QA, "      attribution: creator && link ? ", "      attribution: true ? ", "§5 · FIRING CONTROL: missing or incomplete attribution"],
+  ["S36", "§5 (RR-120) a deleted post is refused as deleted", QA, "    if (!now) { refuse(\"POST_DELETED_SINCE_RETRIEVAL\"); continue; }", "", "§5 · FIRING CONTROL: a post deleted or changed"],
+  ["S37", "§5 (RR-120) a changed post is refused", QA, "    if (now?.title !== p.title || nowEdited !== edited) {", "    if (false) {", "§5 · FIRING CONTROL: a post deleted or changed"],
+  ["S38", "§5 (RR-120) a changed version alone is a change", QA, "now?.title !== p.title || nowEdited !== edited)", "now?.title !== p.title)", "§5 · FIRING CONTROL: a post deleted or changed"],
+  ["S39", "§5 (RR-120) no recheck keeps nothing", QA, "    if (!recheck) { refuse(\"CURRENCY_NOT_RECHECKED\"); continue; }", "", "§5 · FIRING CONTROL: a post deleted or changed"],
+  ["S40", "§4 (RR-120) only mapped fields leave the adapter", QA, "    items.push({\n", "    items.push({ body: p.body,\n", "§4 · FIRING CONTROL: only the mapped fields"],
+  ["S41", "§4 (RR-120) only declared fields enter the record", SA, "        value: Object.freeze({ ...shared, kind: \"OBSERVED\",", "        value: Object.freeze({ ...item, ...shared, kind: \"OBSERVED\",", "§4 · FIRING CONTROL: only the mapped fields"],
+  ["S42", "§6 (RR-120) an overclaimed coverage throws", SA, "  if (over.length) throw Object.assign(", "  if (false) throw Object.assign(", "§6 · FIRING CONTROL: every output carries the scope disclaimer"],
+  ["S43", "§6 (RR-120) every output carries the disclaimer", SA, "stored beside each record (not printed — count-only)\", SCOPE_DISCLAIMER];", "stored beside each record (not printed — count-only)\"];", "§6 · FIRING CONTROL: every output carries the scope disclaimer"],
+  ["S44", "§5 (RR-120) adapter refusals stay in the denominator", SA, "  const total = retrieval.items.length + Object.values(before).reduce((a, n) => a + n, 0);", "  const total = retrieval.items.length;", "§5 · FIRING CONTROL: a post deleted or changed"],
+  ["S45", "§5 (RR-120) adapter refusals are counted by rule", SA, "  const records = [], refused = { ...before };", "  const records = [], refused = {};", "§5 · FIRING CONTROL: a post deleted or changed"],
+  ["S46", "§5 (RR-120) an unknown adapter is refused", BIN, "if (ADAPTER && !Object.hasOwn(ADAPTERS, ADAPTER)) {", "if (false) {", "§5 · TWO UNRELATED PRODUCTS, ONE CODE PATH, THE PRODUCTION ENTRY POINT"],
+  ["S47", "§4 (RR-120) the adapter names no product", QA, "export const LICENCE_URL = ", `export const PLANTED = "${PRODUCT_WORDS[0]}";\nexport const LICENCE_URL = `, "§4 · FIRING CONTROL: the adapter names no product"],
   ["S28","§4 a network call is seen", CP, `{ code: "RAW_NETWORK_CALL", test: (t) => t.split("\\n").some((l) => RAW_EGRESS.test(l)) },`, `{ code: "RAW_NETWORK_CALL", test: () => false },`, "§4 · FIRING CONTROL: the boundary reaches no sealed store"],
 ];
 
@@ -101,6 +118,6 @@ restoreAll();
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "f16-source-adapter-sabotage-rr119-run2-2026-10-01.txt"), lines.join("\n").split(PRODUCT_WORDS[0]).join("<planted product word>") + "\n");
+writeFileSync(join(REPO, "runs", "audit", "f16-source-adapter-sabotage-rr120-run2-2026-10-01.txt"), lines.join("\n").split(PRODUCT_WORDS[0]).join("<planted product word>") + "\n");
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

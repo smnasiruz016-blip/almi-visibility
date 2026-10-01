@@ -37,7 +37,10 @@ const post = (id, over = {}) => ({ question_id: id, title: `Synthetic fixture qu
   creation_date: E("2021-03-01T10:00:00Z"), last_edit_date: E("2022-01-01T10:00:00Z"), owner: { display_name: `fixture-user-${id}` }, content_license: "CC BY-SA 4.0",
   body: `SYNTHETIC BODY ${id} — never stored`, score: 7, view_count: 100, tags: ["fixture"], ...over });
 const recorded = (items, request = { site: "fixture-site", tagged: "fixture-tag", language: "en" }) => ({ recordedAt: "2026-10-01T09:00:00Z", request, response: { items } });
-const ctx = { subject: "subj", origin: "https://subj.invalid" };
+/* RR-126: every adapter call carries its subject's DECLARED relevance profile — fixture data, never code */
+let relN = 0;
+const PROFILE = (subject) => ({ profileId: `fixture-profile-${subject}`, subject, declaredAs: "FIXTURE", confirms: ["synthetic fixture question"] });
+const ctx = { subject: "subj", origin: "https://subj.invalid", relevance: PROFILE("subj") };
 const run = (items, recheckItems = items, request) => recordsFrom(DECLARATION, retrievalFrom(recorded(items, request), recheckItems === null ? null : recorded(recheckItems)), ctx);
 
 /* ================= the declaration ================= */
@@ -101,7 +104,7 @@ test("§4 · FIRING CONTROL: only the mapped fields leave the adapter, and only 
   const item = retrievalFrom(recorded([post(1)]), recorded([post(1)])).items[0];
   assert.deepEqual(Object.keys(item).sort(), ["attribution", "country", "language", "licenceName", "licenceVersion", "observedAt", "postVersion", "postedAt", "sourceUrl", "wording", "wordingOrigin"]);
   const v = run([post(1)]).records[0].value;
-  assert.deepEqual(Object.keys(v).sort(), ["attribution", "country", "dataPurpose", "kind", "language", "licence", "limits", "method", "origin", "original", "postVersion", "postedAt", "provenance", "reference", "source", "sourceId", "subject", "surface", "timeWindow", "topic"]);
+  assert.deepEqual(Object.keys(v).sort(), ["attribution", "country", "dataPurpose", "kind", "language", "licence", "limits", "method", "origin", "original", "postVersion", "postedAt", "provenance", "reference", "relevance", "source", "sourceId", "subject", "surface", "timeWindow", "topic"]);
   assert.doesNotMatch(JSON.stringify(v), /SYNTHETIC BODY|view_count|"score"/);
   assert.deepEqual([v.original, v.postedAt, v.postVersion, v.country], ["Synthetic fixture question 1?", "2021-03-01T10:00:00Z", "2022-01-01T10:00:00Z", NOT_MEASURED]);
 });
@@ -143,7 +146,7 @@ function input(W, name, tenant, content) {
   writeFileSync(join(W.root, "tenancy", "attachments.json"), JSON.stringify(att, null, 2));
   return p;
 }
-const intake = (W, c, ret, recheck, { adapter = "stack-exchange", batch = c.batch } = {}) => spawnSync(process.execPath, ["bin/source-intake.mjs", `--tenant=${c.tenant}`, `--actor=${W.actor}`, `--subject=${c.subject}`, `--research-batch=${batch}`, `--adapter=${adapter}`, `--retrieval=${ret}`, ...(recheck ? [`--recheck=${recheck}`] : []), "--confirm"], { cwd: REPO, encoding: "utf8", env: W.envWith() });
+const intake = (W, c, ret, recheck, { adapter = "stack-exchange", batch = c.batch } = {}) => spawnSync(process.execPath, ["bin/source-intake.mjs", `--tenant=${c.tenant}`, `--actor=${W.actor}`, `--subject=${c.subject}`, `--research-batch=${batch}`, `--adapter=${adapter}`, `--retrieval=${ret}`, ...(recheck ? [`--recheck=${recheck}`] : []), `--relevance=${input(W, `relevance-${relN++}.json`, c.tenant, PROFILE(c.subject))}`, "--confirm"], { cwd: REPO, encoding: "utf8", env: W.envWith() });
 const stored = (W, batch) => { const p = join(W.root, "research", batch, "questions.jsonl"); return existsSync(p) ? readFileSync(p, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)) : []; };
 
 test("§5 · TWO UNRELATED PRODUCTS, ONE CODE PATH, THE PRODUCTION ENTRY POINT: own records written and read, an empty source is an EMPTY SAMPLE, every cross reach refused", () => {

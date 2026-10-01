@@ -6,7 +6,7 @@
  * PRE-FLIGHT FIRST: every span is checked to exist EXACTLY ONCE in the code live now, and the pre-flight is printed before any sabotage
  * runs — a span that does not is NOT PROVED, never silently skipped. Then each sabotage replaces its span ALONE, proves it LANDED, runs the
  * named proof file, requires the NAMED test to fail, restores by raw-byte sha256. The production trail is hashed before and after.
- * Evidence: runs/audit/f16-source-adapter-sabotage-rr125-2026-10-01.txt (RR-125 rerun after S27 followed its live line; every earlier round file is kept untouched).
+ * Evidence: runs/audit/f16-source-adapter-sabotage-rr126-2026-10-01.txt (RR-126 rerun after S6 and S22 followed their live lines; every earlier round file is kept untouched).
  */
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -29,7 +29,7 @@ const SABOTAGES = [
   ["S3", "§4 an unknown source kind is refused", SA, "  if (!Object.hasOwn(SOURCE_KINDS, decl?.kind)) refusals.push(\"SOURCE_KIND_UNKNOWN\");", "", "§4 · FIRING CONTROL: a source is admitted only"],
   ["S4", "§4 a refused source keeps nothing", SA, "  if (!admission.admitted) return { admitted: false, refusals: admission.refusals, retrieved: NOT_MEASURED, records: [], refused: {} };", "", "§4 · FIRING CONTROL: a source is admitted only"],
   ["S5", "§4 a missing field refuses the item", SA, "    if (missing.length) { refuse(`${missing[0].toUpperCase()}_ABSENT`); continue; }", "", "§4 · FIRING CONTROL: a missing required field"],
-  ["S6", "§4 a snippet is never the author's wording", SA, "      if (item.wordingOrigin !== \"SOURCE_TEXT\") { refuse(\"SNIPPET_IS_NOT_THE_AUTHORS_WORDING\"); continue; }", "", "§4 · FIRING CONTROL: a missing required field"],
+  ["S6", "§4 a snippet is never the author's wording", SA, "    if (question && item.wordingOrigin !== \"SOURCE_TEXT\") { refuse(\"SNIPPET_IS_NOT_THE_AUTHORS_WORDING\"); continue; }", "", "§4 · FIRING CONTROL: a missing required field"],
   ["S7", "§4 the topic is required", SA, "  if (!present(retrieval.topic)) head.push(\"TOPIC_ABSENT\");", "", "§4 · FIRING CONTROL: a missing required field"],
   ["S8", "§4 the coverage limits are required", SA, "  if (!present(retrieval.coverageLimits)) head.push(\"COVERAGE_LIMITS_ABSENT\");", "", "§4 · FIRING CONTROL: a missing required field"],
   ["S9", "§4 the client's declared origin is required", SA, "  if (!present(origin)) head.push(\"SUBJECT_HAS_NO_DECLARED_SITE_ORIGIN\");", "", "§4 · FIRING CONTROL: a missing required field"],
@@ -45,7 +45,7 @@ const SABOTAGES = [
   ["S19", "§4 the production path refuses an unverified source", BIN, "if (!result.admitted) process.exit(3);", "", "§4 · THE PRODUCTION PATH REFUSES"],
   ["S20", "§5 a TEST_PILOT batch's output carries the marking", BIN, "if (declaredPurpose === \"TEST_PILOT\") console.log(", "if (false) console.log(", "§5 · FIRING CONTROL: a TEST_PILOT batch"],
   ["S21", "§5 an undeclared batch purpose is refused", BIN, "if (declaredPurpose !== null && !BATCH_PURPOSES.includes(declaredPurpose)) {", "if (false) {", "§5 · FIRING CONTROL: a TEST_PILOT batch"],
-  ["S22", "§5 the marking is stamped into each record", SA, "attribution: item.attribution, dataPurpose };", "attribution: item.attribution, dataPurpose: null };", "§5 · FIRING CONTROL: a TEST_PILOT batch"],
+  ["S22", "§5 the marking is stamped into each record", SA, "attribution: item.attribution, dataPurpose, relevance: relevanceRecord };", "attribution: item.attribution, dataPurpose: null, relevance: relevanceRecord };", "§5 · FIRING CONTROL: a TEST_PILOT batch"],
   ["S23", "§7 KEPT only after a commit", BIN, "  if (governed.outcome !== \"COMMITTED\" && governed.outcome !== \"ALREADY_COMMITTED\") {", "  if (false) {", "§7 · FIRING CONTROL: when the governed commit FAILS"],
   ["S24", "§7 the governed actions are registered", AU, "    \"APPEND_SOURCE_QUESTIONS\", \"APPEND_KEYWORD_SIGNALS\",\n", "", "§6 · TWO UNRELATED PRODUCTS"],
   ["S25", "§4 the boundary names no product", SA, "export const SOURCE_KINDS = Object.freeze(", `export const PLANTED = "${PRODUCT_WORDS[0]}";\nexport const SOURCE_KINDS = Object.freeze(`, "§4 · FIRING CONTROL: the boundary names no product"],
@@ -135,6 +135,6 @@ restoreAll();
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "f16-source-adapter-sabotage-rr125-2026-10-01.txt"), lines.join("\n").split(PRODUCT_WORDS[0]).join("<planted product word>") + "\n");
+writeFileSync(join(REPO, "runs", "audit", "f16-source-adapter-sabotage-rr126-2026-10-01.txt"), lines.join("\n").split(PRODUCT_WORDS[0]).join("<planted product word>") + "\n");
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

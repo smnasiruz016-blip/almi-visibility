@@ -1,0 +1,23 @@
+F16 relevance-gate sabotage run · 2026-10-01T23:17:31.588Z
+population: 16 sabotages over test/f16-relevance-gate.test.mjs + test/f16-collector.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): R1=1 R2=1 R3=1 R4=1 R5=1 R6=1 R7=1 R8=1 R9=1 R10=1 R11=1 R12=1 R13=1 R14=1 R15=1 R16=1 · all exactly once: true
+production trail sha256 before: e8016aa34a81cd55502c4aeff999e9aa83c36469d18df36d3d0ff081d62b155c
+
+R1 an exclusion beats a confirmation src/research/source-adapter.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+R2 a confirming rule makes an item relevant src/research/source-adapter.mjs: landed true · named test red true · failing 4 · reason AssertionError · restored by sha256 true · PROVED
+R3 a bare abbreviation is AMBIGUOUS src/research/source-adapter.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+R4 an ambiguous item is kept out by its own name src/research/source-adapter.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+R5 an unrelated item is refused src/research/source-adapter.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+R6 no profile, no entry src/research/source-adapter.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+R7 another subject's profile is refused src/research/source-adapter.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+R8 a profile must confirm something src/research/source-adapter.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+R9 a broken pattern refuses, never passes src/research/source-adapter.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+R10 a profile refusal stops the retrieval src/research/source-adapter.mjs: landed true · named test red true · failing 2 · reason TypeError/AssertionError · restored by sha256 true · PROVED
+R11 the record names the rule that decided it src/research/source-adapter.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+R12 relevance is judged on the item's own text src/research/source-adapter.mjs: landed true · named test red true · failing 3 · reason AssertionError · restored by sha256 true · PROVED
+R13 the entry point hands the declared profile to the gate bin/source-intake.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+R14 the collector uses the full-text method src/research/adapters/stack-exchange-collector.mjs: landed true · named test red false · failing 1 · reason AssertionError · restored by sha256 true · NOT PROVED
+R15 the collector sends q, not the old parameters src/research/adapters/stack-exchange-collector.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+R16 the core carries no subject's rule src/research/source-adapter.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+
+proved 15 of 16 · residue 0 · production trail sha256 after: e8016aa34a81cd55502c4aeff999e9aa83c36469d18df36d3d0ff081d62b155c · unchanged true

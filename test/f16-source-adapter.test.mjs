@@ -39,7 +39,10 @@ const KSOURCE = { sourceId: "fixture-keywords", kind: SOURCE_KINDS.KEYWORD_SOURC
 const q = (n, over = {}) => ({ wording: `Fixture question number ${n}?`, wordingOrigin: "SOURCE_TEXT", sourceUrl: `https://forum.invalid/q/${n}`, postVersion: "1", licenceName: "fixture-licence", licenceVersion: "1.0", attribution: "fixture author, via the fixture forum", observedAt: "2026-10-01T09:00:00Z", country: NOT_MEASURED, language: "en", ...over });
 const k = (n, over = {}) => ({ idea: `fixture idea ${n}`, licenceName: "fixture-licence", licenceVersion: "1.0", attribution: "fixture keyword source", observedAt: "2026-10-01T09:00:00Z", country: "XX", language: "en", ...over });
 const retrieval = (items, topic = "a fixture topic") => ({ topic, coverageLimits: "one fixture retrieval, first page only", items });
-const ctx = { subject: "subj", origin: "https://subj.invalid" };
+/* RR-126: every adapter call carries its subject's DECLARED relevance profile — fixture data, never code */
+let relN = 0;
+const PROFILE = (subject) => ({ profileId: `fixture-profile-${subject}`, subject, declaredAs: "FIXTURE", confirms: ["fixture question", "fixture idea"] });
+const ctx = { subject: "subj", origin: "https://subj.invalid", relevance: PROFILE("subj") };
 
 /* ================= admission ================= */
 
@@ -68,7 +71,7 @@ test("§4 · FIRING CONTROL: a missing required field REFUSES the item; a snippe
   assert.deepEqual([snip.records.length, snip.refused.SNIPPET_IS_NOT_THE_AUTHORS_WORDING], [0, 1], "a snippet was stored as an author's wording");
   assert.equal(recordsFrom(QSOURCE, { ...retrieval([q(1)]), coverageLimits: "" }, ctx).refused.COVERAGE_LIMITS_ABSENT, 1);
   assert.equal(recordsFrom(QSOURCE, { ...retrieval([q(1)]), topic: "" }, ctx).refused.TOPIC_ABSENT, 1);
-  assert.equal(recordsFrom(QSOURCE, retrieval([q(1)]), { subject: "subj", origin: null }).refused.SUBJECT_HAS_NO_DECLARED_SITE_ORIGIN, 1);
+  assert.equal(recordsFrom(QSOURCE, retrieval([q(1)]), { subject: "subj", origin: null, relevance: PROFILE("subj") }).refused.SUBJECT_HAS_NO_DECLARED_SITE_ORIGIN, 1);
   assert.equal(recordsFrom(QSOURCE, retrieval([q(1, { observedAt: "last week" })]), ctx).refused.OBSERVEDAT_NOT_A_TIME, 1);
   const kept = recordsFrom(QSOURCE, retrieval([q(1)]), ctx).records[0].value;
   assert.deepEqual([kept.original, kept.reference, kept.postVersion, kept.licence.version, kept.attribution, kept.topic, kept.limits].map(Boolean), Array(7).fill(true));
@@ -128,7 +131,7 @@ function input(W, name, tenant, content) {
   writeFileSync(join(W.root, "tenancy", "attachments.json"), JSON.stringify(att, null, 2));
   return p;
 }
-const intake = (W, c, src, ret, batch = c.batch, subject = c.subject) => spawnSync(process.execPath, ["bin/source-intake.mjs", `--tenant=${c.tenant}`, `--actor=${W.actor}`, `--subject=${subject}`, `--research-batch=${batch}`, `--source=${src}`, `--retrieval=${ret}`, "--confirm"], { cwd: REPO, encoding: "utf8", env: W.envWith() });
+const intake = (W, c, src, ret, batch = c.batch, subject = c.subject) => spawnSync(process.execPath, ["bin/source-intake.mjs", `--tenant=${c.tenant}`, `--actor=${W.actor}`, `--subject=${subject}`, `--research-batch=${batch}`, `--source=${src}`, `--retrieval=${ret}`, `--relevance=${input(W, `relevance-${relN++}.json`, c.tenant, PROFILE(subject))}`, "--confirm"], { cwd: REPO, encoding: "utf8", env: W.envWith() });
 const stored = (W, batch, file) => { const p = join(W.root, "research", batch, file); return existsSync(p) ? readFileSync(p, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)) : []; };
 
 test("§6 · TWO UNRELATED PRODUCTS, ONE CODE PATH: each keeps its own questions and keyword signals apart, reads only its own, and every cross reach is refused", () => {

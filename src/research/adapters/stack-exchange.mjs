@@ -101,7 +101,7 @@ export function retrievalFrom(recorded, recheck) {
       observedAt: str(recorded.recordedAt), country: NOT_MEASURED, language: str(req.language) ?? NOT_MEASURED,
     });
   }
-  const query = str(req.tagged) ? `tagged ${req.tagged}` : str(req.intitle) ? `title contains ${req.intitle}` : null;
+  const query = str(req.q) ? `full-text search for ${req.q} (a lead only; relevance is judged by the declared profile)` : str(req.tagged) ? `tagged ${req.tagged}` : str(req.intitle) ? `title contains ${req.intitle}` : null;
   return {
     topic: str(req.site) && query ? `${req.site} · ${query}` : null,
     coverageLimits: str(req.site) ? `one network, one site (${req.site}), its own topics and languages; one recorded page of results; titles as returned under the default (HTML-safe) filter; country NOT MEASURED` : null,

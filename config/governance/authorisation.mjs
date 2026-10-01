@@ -118,6 +118,9 @@ export const ACTIONS = Object.freeze({
      * each of these writers would have been refused ACTION_UNSUPPORTED on its first confirmed run. */
     "APPEND_SITEMAP_OBSERVATIONS", "APPEND_TECHNICAL_AUDIT_FINDINGS", "APPEND_INGEST_STOPPED_COST_ENTRY", "APPEND_INGEST_COST_ENTRY",
     "APPEND_VERIFICATION_OBSERVATIONS", "APPEND_VERIFICATION_ISSUES",
+    /* RR-116 (1 Oct 2026): the human-observation writer (bin/observe-question.mjs) — the same family and resource class as the
+     * crawler's observation append; a classification only, granting no permission a role does not already hold. */
+    "APPEND_HUMAN_OBSERVATIONS",
     "WRITE_EXHIBIT_FILE", "WRITE_EXHIBIT_LISTING", "WRITE_EXHIBIT_PROVENANCE", "WRITE_EXHIBIT_INDEX",
   ]),
   ...many("GOVERNED_STATE", "GENERATED_REPORT", [

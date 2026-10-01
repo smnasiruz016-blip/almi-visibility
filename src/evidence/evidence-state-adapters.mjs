@@ -86,6 +86,34 @@ function ofResponseHeaders(r) {
   return place(rule, "OBSERVED", { evidenceRef: `response_headers:${r.evidence_id}`, sourceId: source, observedAt: r.observed_at });
 }
 
+/**
+ * 🔴 RR-116 — a `public_question` record (src/research/human-observation.mjs; F16 acceptance _handoffs 944f769), placed by its own kind:
+ *   OBSERVED      a PERSON saw it asked; placed OBSERVED only with a reviewable reference, its own source and its own time — an observation
+ *                 with no reference is UNMAPPED, so the store refuses it (a typed question is never evidence)
+ *   INFERRED      our suggestion; its stated basis is its one input
+ *   CLIENT_CLAIM  the client's own statement of what people ask: UNKNOWN, its insufficiency named — first-party, not evidence (RR-89 §1.2)
+ * Any other kind, or a record missing what its kind needs, is UNMAPPED — never placed by default.
+ */
+function ofPublicQuestion(r) {
+  const rule = "public_question";
+  const v = r.value && typeof r.value === "object" ? r.value : {};
+  if (!present(r.question_id)) return unmapped("a public question with no question_id cannot be referenced", rule);
+  if (!present(r.recorded_at) || !ISOISH.test(r.recorded_at)) return unmapped("a public question with no recorded time has no time", rule);
+  if (v.kind === "OBSERVED") {
+    const ref = v.reference;
+    const hasRef = (typeof ref === "string" && ref.trim() !== "") || (ref !== null && typeof ref === "object" && ref.kind === "OTHER" && present(ref.text));
+    if (!hasRef) return unmapped("an observed question with no reviewable reference is not evidence", rule);
+    if (!present(v.source)) return unmapped("an observed question names no source", rule);
+    return place(`${rule}.observed`, "OBSERVED", { evidenceRef: `public_question:${r.question_id}`, sourceId: v.source, observedAt: r.recorded_at });
+  }
+  if (v.kind === "INFERRED") {
+    if (!present(v.basis)) return unmapped("an inferred suggestion states no basis", rule);
+    return place(`${rule}.inferred`, "INFERRED", { inputRefs: [`basis:${h16(v.basis)}`], method: "human-submitted-suggestion", computedAt: r.recorded_at });
+  }
+  if (v.kind === "CLIENT_CLAIM") return place(`${rule}.client-claim`, "UNKNOWN", { checkId: `public_question:${r.question_id}`, insufficiency: "FIRST_PARTY_CLAIM_NOT_EVIDENCE" });
+  return unmapped(`a public question of kind ${v.kind ?? "(none)"} has no declared placement`, rule);
+}
+
 const unmapped = (why, rule) => Object.freeze({ state: null, unmapped: true, why, assignedBy: rule });
 const place = (rule, state, meta) => {
   try { return makeEvidenceState(state, { assignedBy: rule, ...meta }); }
@@ -215,6 +243,7 @@ export function evidenceStateOf(record, ctx = {}) {
     case "issue": return ofIssue(record);
     case "draft_recommendation": return ofDraftRecommendation(record, ctx);
     case "response_headers": return ofResponseHeaders(record);
+    case "public_question": return ofPublicQuestion(record);
     default:
       if (Object.hasOwn(DERIVED_TYPES, record.record_type)) return ofDerived(record);
       return unmapped(`record_type ${record.record_type} has no declared rule`, "none");

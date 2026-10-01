@@ -1,0 +1,28 @@
+F16 sabotage run · 2026-10-01T05:05:37.050Z
+population: 21 sabotages over test/f16-public-questions.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1 S19=1 S20=1 S21=1 · all exactly once: true
+production trail sha256 before: e1833510684b1314eb1f89cebe32e70b79a96112ee7561ce49627ff58d03d332
+
+S1 C1 the path never reaches a sealed store src/research/public-questions-reader.mjs: landed true · named test "C1 · FIRING CONTROL: the intake path" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S2 C1 the reader asks for the RESEARCH store only src/research/public-questions-reader.mjs: landed true · named test "C1 · FIRING CONTROL: the intake path" red true · failing 3 · reason AssertionError · restored by sha256 true · PROVED
+S3 C1 only the client's partition is read src/research/public-questions-reader.mjs: landed true · named test "C1 · FIRING CONTROL: the production reader" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S4 C1 nothing is read until a batch is named bin/public-questions.mjs: landed true · named test "C1 · THE ENTRY POINT" red true · failing 1 · reason AssertionError/TypeError · restored by sha256 true · PROVED
+S5 C2 a field not captured is NOT MEASURED src/research/public-questions.mjs: landed true · named test "C2 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S6 C2 an empty object is not a captured field src/research/public-questions.mjs: landed true · named test "C2 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S7 C3 the three kinds stay in three lists src/research/public-questions.mjs: landed true · named test "C3 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S8 C3 a client claim is not evidence src/research/public-questions.mjs: landed true · named test "C3 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S9 C3 a client claim never outranks an observation src/research/public-questions.mjs: landed true · named test "C3 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S10 C3 a question with no recorded kind DISPROVES src/research/public-questions.mjs: landed true · named test "C3 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S11 C4 no sameness rule is picked src/research/public-questions.mjs: landed true · named test "C4 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S12 C4 an original is frozen src/research/public-questions.mjs: landed true · named test "C4 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S13 C4 grouping keeps every original src/research/public-questions.mjs: landed true · named test "C4 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S14 C5 every report says SAMPLE with its limits src/research/public-questions.mjs: landed true · named test "C5 · FIRING CONTROL" red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+S15 C5 a completeness claim is refused src/research/public-questions.mjs: landed true · named test "C5 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S16 C6 a recorded wording never reaches a report src/research/public-questions.mjs: landed true · named test "C6 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S17 C6 no answer travels through intake src/research/public-questions.mjs: landed true · named test "C6 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S18 C7 the census parts are NOT MEASURED src/research/public-questions.mjs: landed true · named test "C7 · the census parts" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S19 C7 an empty sample is never PROVED src/research/public-questions.mjs: landed true · named test "C7 · the census parts" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S20 C7 the path names no product src/research/public-questions.mjs: landed true · named test "C7 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S21 C1 a network call is seen tools/need-coverage-call-paths.mjs: landed true · named test "C1 · the intake path loads no module" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+
+proved 21 of 21 · residue 0 · production trail sha256 after: e1833510684b1314eb1f89cebe32e70b79a96112ee7561ce49627ff58d03d332 · unchanged true

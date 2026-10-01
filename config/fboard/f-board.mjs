@@ -1068,6 +1068,32 @@ export const DECLARED = Object.freeze({
       }),
     ]),
   }),
+  /* 🔴 F16 · SERP and answer-surface census. Frozen ALONE (_handoffs 944f769, RR-114 §5) before any F16 code, built to RR-89 §1 (397e809).
+   * The public-question intake is built; its real recorded sample is EMPTY and the census parts need result-page observations that
+   * may not be harvested (RR-89 §1.3) — so IN-PROGRESS only. */
+  F16: Object.freeze({
+    featureId: "F16",
+    board: "F_BOARD",
+    state: "IN-PROGRESS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-01", ruling: ACCEPTANCES.F16.ruling, contractSha256: ACCEPTANCES.F16.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F16",
+        on: "2026-10-01",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F16.ruling.sha256, contract: ACCEPTANCES.F16.contractSha256 }),
+        branch: "f16-public-question-intake",
+        baseSha: "997e54eaa85a374ef4220c61605116115af85374",
+        baseCiRun: "36816375768",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-114_BUILD_THE_PUBLIC_QUESTION_RESEARCH_INTAKE.md", commit: "72f260b1bd52343a8b07c6bf4d013684f2402d91", sha256: "d43bf7a066d697f48c3f50f7158196d15edbe640df0f19c60d22b1c78ca264ce" }),
+      }),
+    ]),
+  }),
   F21: Object.freeze({
     featureId: "F21",
     board: "F_BOARD",

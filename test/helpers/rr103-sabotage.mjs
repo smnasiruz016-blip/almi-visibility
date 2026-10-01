@@ -25,7 +25,9 @@ const SABOTAGES = [
   ["G02", "F91 is not the amendment's line (its line hash altered)", CAP, '"lineSha256":"245bd55e6d2dc4efead6edc295352cdfa57ce5e31f760ffd6e5fe0a2b6b20c10"', '"lineSha256":"245bd55e6d2dc4efead6edc295352cdfa57ce5e31f760ffd6e5fe0a2b6b20c11"', "A3·1"],
   ["G03", "the F91 row renamed to a phantom F92 in the capability list", CAP, '"id":"F91","domain":"Core intelligence"', '"id":"F92","domain":"Core intelligence"', "A3·3"],
   ["G04", "a phantom F92 in the crosswalk", CW, '"featureId": "F91"', '"featureId": "F92"', "A3·3"],
-  ["G05", "F91 given an acceptance (its scope is only PROPOSED)", AC, "  F90: F90_ORIGINAL,\n", "  F90: F90_ORIGINAL,\n  F91: F90_ORIGINAL,\n", "A3·5"],
+  /* G05 repointed 1 Oct 2026 (RR-113): F91 now holds its OWN acceptance, so the old span — adding a second F91 key after F90 — would be
+   * overridden by the live F91 line and land without effect. It now replaces F91's own acceptance with another row's. */
+  ["G05", "F91 given an acceptance that is not its own", AC, "  F91: F91_ORIGINAL,\n", "  F91: F90_ORIGINAL,\n", "A3·5"],
   ["G06", "the validator stops refusing a board whose ids are not F01..F{DENOMINATOR}", BD, " || expected.some((x) => !ids.includes(x))) errs.push({ code: \"DENOMINATOR\"", ") errs.push({ code: \"DENOMINATOR\"", "A3·4"],
 ];
 

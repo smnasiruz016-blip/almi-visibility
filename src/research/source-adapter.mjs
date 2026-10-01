@@ -28,6 +28,11 @@ export const NOT_VERIFIED = "NOT_VERIFIED_BY_US";
 /** RR-119: a term the primary source itself RESTRICTS is a finding, not an unknown — it refuses for its own reason, and no workaround follows. */
 export const RESTRICTED = "RESTRICTED_BY_PRIMARY_SOURCE";
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+/**
+ * RR-120: a source declares the coverage it can honestly stand for; no output may imply more, and the disclaimer says so in every output.
+ */
+export const SCOPE_DISCLAIMER = "this source cannot stand for any other product, any other subject or any other country — one source, its own topics, its own languages";
+export const COVERAGE_OVERCLAIM = /\b(all|every) (products|subjects|countries|markets|languages|topics|sources)\b|\bworldwide\b|\bcomplete coverage\b/i;
 export const ADMISSION_TERMS = Object.freeze(["storage", "attribution", "licence"]);
 export const KEYWORD_SIGNAL = "keyword_signal";
 const QUESTION_FIELDS = Object.freeze(["wording", "wordingOrigin", "sourceUrl", "postVersion", "licenceName", "licenceVersion", "attribution", "observedAt", "country", "language"]);
@@ -56,25 +61,29 @@ export function recordsFrom(decl, retrieval, { subject, origin, dataPurpose = nu
   const admission = admitSource(decl);
   if (!admission.admitted) return { admitted: false, refusals: admission.refusals, retrieved: NOT_MEASURED, records: [], refused: {} };
   if (!retrieval || !Array.isArray(retrieval.items)) return { admitted: true, refusals: [], retrieved: NOT_MEASURED, records: [], refused: {} };
+  /* an adapter may refuse items before they reach here (e.g. a post deleted since retrieval); they stay in the denominator */
+  const before = Object.fromEntries(Object.entries(retrieval.adapterRefusals ?? {}).filter(([, n]) => Number.isInteger(n) && n > 0));
+  const total = retrieval.items.length + Object.values(before).reduce((a, n) => a + n, 0);
   const head = [];
   if (!present(retrieval.topic)) head.push("TOPIC_ABSENT");
   if (!present(retrieval.coverageLimits)) head.push("COVERAGE_LIMITS_ABSENT");
   if (!present(origin)) head.push("SUBJECT_HAS_NO_DECLARED_SITE_ORIGIN");
-  if (head.length) return { admitted: true, refusals: head, retrieved: retrieval.items.length, records: [], refused: Object.fromEntries(head.map((h) => [h, retrieval.items.length])) };
+  if (head.length) return { admitted: true, refusals: head, retrieved: total, records: [], refused: Object.fromEntries(head.map((h) => [h, total])) };
   const question = decl.kind === SOURCE_KINDS.QUESTION_SOURCE;
-  const records = [], refused = {};
+  const records = [], refused = { ...before };
   const refuse = (why) => { refused[why] = (refused[why] ?? 0) + 1; };
   for (const item of retrieval.items) {
     const missing = (question ? QUESTION_FIELDS : KEYWORD_FIELDS).filter((f) => !present(item?.[f]));
     if (missing.length) { refuse(`${missing[0].toUpperCase()}_ABSENT`); continue; }
     if (!ISO_TIME.test(item.observedAt)) { refuse("OBSERVEDAT_NOT_A_TIME"); continue; }
+    if (Array.isArray(decl.licenceVersions) && !decl.licenceVersions.includes(item.licenceVersion)) { refuse("LICENCE_VERSION_OUTSIDE_DECLARED_SET"); continue; }
     const shared = { subject, origin, sourceId: decl.sourceId, topic: retrieval.topic, country: item.country, language: item.language,
       limits: retrieval.coverageLimits, licence: Object.freeze({ name: item.licenceName, version: item.licenceVersion }), attribution: item.attribution, dataPurpose };
     if (question) {
       if (item.wordingOrigin !== "SOURCE_TEXT") { refuse("SNIPPET_IS_NOT_THE_AUTHORS_WORDING"); continue; }
       const id = hash([subject, decl.sourceId, item.sourceUrl, item.postVersion]);
       records.push(Object.freeze({ record_type: RECORD_TYPE, question_id: id, measurement_key: `${RECORD_TYPE}:${id}`, recorded_at: item.observedAt,
-        value: Object.freeze({ ...shared, kind: "OBSERVED", original: item.wording, reference: item.sourceUrl, postVersion: item.postVersion,
+        value: Object.freeze({ ...shared, kind: "OBSERVED", original: item.wording, reference: item.sourceUrl, postVersion: item.postVersion, postedAt: item.postedAt ?? NOT_MEASURED,
           provenance: Object.freeze({ seenBy: "A SOURCE ADAPTER — the text as the source holds it", sourceId: decl.sourceId, engineObserved: true }),
           source: decl.sourceId, surface: "source adapter", timeWindow: Object.freeze({ from: item.observedAt, to: item.observedAt }), method: `source-adapter:${decl.sourceId}` }) }));
     } else {
@@ -83,7 +92,7 @@ export function recordsFrom(decl, retrieval, { subject, origin, dataPurpose = nu
         value: Object.freeze({ ...shared, idea: item.idea, note: "a generated keyword idea — never a question someone asked" }) }));
     }
   }
-  return { admitted: true, refusals: [], retrieved: retrieval.items.length, records, refused };
+  return { admitted: true, refusals: [], retrieved: total, records, refused, coverage: `${retrieval.topic} · ${retrieval.coverageLimits}` };
 }
 
 /** Every output is a SAMPLE with its limits; an empty retrieval says EMPTY (0 of 0, measured); no retrieval says NOT MEASURED. */
@@ -93,8 +102,19 @@ export function sampleLines(decl, r) {
   const lines = [`SAMPLE — not a census of the world's questions · declared limits: one retrieval from one admitted source, its coverage limits stored with each record`];
   if (!r.admitted) return [...lines, `source REFUSED — ${r.refusals.join(" · ")} — nothing it returns may be kept`];
   if (r.retrieved === NOT_MEASURED) return [...lines, "retrieved: NOT MEASURED — no retrieval was supplied"];
-  if (r.retrieved === 0) return [...lines, "EMPTY SAMPLE — 0 of 0 item(s) retrieved: no question is invented, no keyword idea stands in, nothing is padded from another topic"];
-  return [...lines,
+  const scope = ["coverage: as the source declared it for this retrieval, stored beside each record (not printed — count-only)", SCOPE_DISCLAIMER];
+  if (r.retrieved === 0) return guardScope(r, [...lines, ...scope, "EMPTY SAMPLE — 0 of 0 item(s) retrieved: no question is invented, no keyword idea stands in, nothing is padded from another topic"]);
+  return guardScope(r, [...lines, ...scope,
     decl.kind === SOURCE_KINDS.QUESTION_SOURCE ? `questions people wrote: kept ${q} of ${r.retrieved} retrieved` : `keyword signals (generated ideas, never questions): kept ${k} of ${r.retrieved} retrieved`,
-    `refusals by rule: ${Object.entries(r.refused).map(([w, n]) => `${w} ${n}`).join(" · ") || "none"}`];
+    `refusals by rule: ${Object.entries(r.refused).map(([w, n]) => `${w} ${n}`).join(" · ") || "none"}`]);
+}
+
+/**
+ * No output line, and not the source's own declared coverage, may name the broad populations: an output — or a declaration — implying
+ * wider coverage than one source's scope THROWS.
+ */
+function guardScope(r, lines) {
+  const over = [...lines, r.coverage ?? ""].filter((l) => COVERAGE_OVERCLAIM.test(l));
+  if (over.length) throw Object.assign(new Error(`COVERAGE_OVERCLAIM — ${over.length} output line(s) imply coverage wider than the source's declared scope`), { code: "COVERAGE_OVERCLAIM" });
+  return lines;
 }

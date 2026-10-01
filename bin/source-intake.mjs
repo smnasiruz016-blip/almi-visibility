@@ -21,17 +21,19 @@ import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedStoreAppend } from "../src/governance/governed-run.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { recordsFrom, sampleLines, KEYWORD_SIGNAL } from "../src/research/source-adapter.mjs";
+import { ADAPTERS } from "../src/research/adapters/index.mjs";
 import { BATCH_PURPOSES } from "../src/research/human-observation.mjs";
 import { RECORD_TYPE, PILOT_MARK } from "../src/research/public-questions.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (k) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? null;
-const SUBJECT = arg("subject"), BATCH = arg("research-batch"), SOURCE = arg("source"), RETRIEVAL = arg("retrieval");
-if (!SUBJECT || !BATCH || !SOURCE || !RETRIEVAL) {
-  console.error("usage: node bin/source-intake.mjs --subject=<id> --research-batch=<id> --source=<declaration.json> --retrieval=<retrieval.json> [--confirm] — nothing read, nothing written");
+const SUBJECT = arg("subject"), BATCH = arg("research-batch"), SOURCE = arg("source"), RETRIEVAL = arg("retrieval"), ADAPTER = arg("adapter"), RECHECK = arg("recheck");
+if (!SUBJECT || !BATCH || !RETRIEVAL || (!SOURCE === !ADAPTER)) {
+  console.error("usage: node bin/source-intake.mjs --subject=<id> --research-batch=<id> (--source=<declaration.json> | --adapter=<id> [--recheck=<recorded.json>]) --retrieval=<json> [--confirm] — nothing read, nothing written");
   process.exit(2);
 }
-const SCOPE = scopedEntryPoint({ entry: "bin/source-intake.mjs", governed: true, resources: [RESOURCES.subject(SUBJECT), RESOURCES.researchBatch(BATCH), RESOURCES.inputPath(SOURCE, "--source"), RESOURCES.inputPath(RETRIEVAL, "--retrieval")] });
+const inputs = [[SOURCE, "--source"], [RETRIEVAL, "--retrieval"], [RECHECK, "--recheck"]].filter(([p]) => p).map(([p, label]) => RESOURCES.inputPath(p, label));
+const SCOPE = scopedEntryPoint({ entry: "bin/source-intake.mjs", governed: true, resources: [RESOURCES.subject(SUBJECT), RESOURCES.researchBatch(BATCH), ...inputs] });
 
 const index = rootIndexFor(process.env);
 const store = lookupStore(index, "RESEARCH");
@@ -44,8 +46,12 @@ if (declaredPurpose !== null && !BATCH_PURPOSES.includes(declaredPurpose)) { con
 const site = (lookupSubject(index, SUBJECT).entry?.connectors ?? []).find((c) => c.kind === "PUBLIC_SITE");
 const origin = site?.reaches?.find((x) => x.resourceKind === "SITE_ORIGIN")?.resourceRef ?? null;
 
-const decl = JSON.parse(readFileSync(SOURCE, "utf8"));
-const result = recordsFrom(decl, JSON.parse(readFileSync(RETRIEVAL, "utf8")), { subject: SUBJECT, origin, dataPurpose: declaredPurpose });
+const adapter = ADAPTER ? ADAPTERS[ADAPTER] : null;
+if (ADAPTER && !Object.hasOwn(ADAPTERS, ADAPTER)) { console.error("🔴 REFUSED — ADAPTER_UNKNOWN: no adapter of that id is registered; nothing read, nothing written"); process.exit(3); }
+const decl = adapter ? adapter.DECLARATION : JSON.parse(readFileSync(SOURCE, "utf8"));
+const input = JSON.parse(readFileSync(RETRIEVAL, "utf8"));
+const retrieval = adapter ? adapter.retrievalFrom(input, RECHECK ? JSON.parse(readFileSync(RECHECK, "utf8")) : null) : input;
+const result = recordsFrom(decl, retrieval, { subject: SUBJECT, origin, dataPurpose: declaredPurpose });
 console.log("F16 · SOURCE INTAKE — this tenant's subject only, one retrieval in hand, count-only; nothing fetched");
 for (const l of sampleLines(decl, result)) console.log(`  ${l}`);
 if (declaredPurpose === "TEST_PILOT") console.log(`  ${PILOT_MARK} — this batch is declared TEST_PILOT: not the demand of any country, not global demand, not a production client result`);

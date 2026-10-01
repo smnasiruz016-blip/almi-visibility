@@ -6,7 +6,7 @@
  * PRE-FLIGHT FIRST: every span is checked to exist EXACTLY ONCE in the code live now, and the pre-flight is printed before any sabotage
  * runs — a span that does not is NOT PROVED, never silently skipped. Then each sabotage replaces its span ALONE, proves it LANDED, runs the
  * named proof file, requires the NAMED test to fail, restores by raw-byte sha256. The production trail is hashed before and after.
- * Evidence: runs/audit/f16-source-adapter-sabotage-rr121-2026-10-01.txt (RR-121 round; every earlier round file is kept untouched).
+ * Evidence: runs/audit/f16-source-adapter-sabotage-rr125-2026-10-01.txt (RR-125 rerun after S27 followed its live line; every earlier round file is kept untouched).
  */
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -50,7 +50,7 @@ const SABOTAGES = [
   ["S24", "§7 the governed actions are registered", AU, "    \"APPEND_SOURCE_QUESTIONS\", \"APPEND_KEYWORD_SIGNALS\",\n", "", "§6 · TWO UNRELATED PRODUCTS"],
   ["S25", "§4 the boundary names no product", SA, "export const SOURCE_KINDS = Object.freeze(", `export const PLANTED = "${PRODUCT_WORDS[0]}";\nexport const SOURCE_KINDS = Object.freeze(`, "§4 · FIRING CONTROL: the boundary names no product"],
   ["S26", "§4 the boundary names no provider", SA, "export const KEYWORD_SIGNAL = \"keyword_signal\";", "export const KEYWORD_SIGNAL = \"keyword_signal\";\nexport const UPSTREAM = \"stackexchange\";", "§4 · FIRING CONTROL: the boundary names no product"],
-  ["S27", "§4 the boundary reaches no sealed store", SA, "import { RECORD_TYPE, NOT_MEASURED } from \"./public-questions.mjs\";", "import { RECORD_TYPE, NOT_MEASURED } from \"./public-questions.mjs\";\nimport \"../governance/sealed-store-roots.mjs\";", "§4 · FIRING CONTROL: the boundary reaches no sealed store"],
+  ["S27", "§4 the boundary reaches no sealed store", SA, "import { RECORD_TYPE, NOT_MEASURED, OBSERVER_TYPES } from \"./public-questions.mjs\";", "import { RECORD_TYPE, NOT_MEASURED, OBSERVER_TYPES } from \"./public-questions.mjs\";\nimport \"../governance/sealed-store-roots.mjs\";", "§4 · FIRING CONTROL: the boundary reaches no sealed store"],
   ["S29", "§4 (RR-119) a restricted term refuses for its own reason", SA, "    if (term?.status === RESTRICTED) refusals.push(`${t.toUpperCase()}_TERM_RESTRICTED_BY_SOURCE`);\n    else if (term?.status !== VERIFIED)", "    if (term?.status !== VERIFIED)", "§4 · FIRING CONTROL (RR-119)"],
   ["S30", "§4 (RR-119) a verified term needs its snapshot date", SA, "    else if (!ISO_DATE.test(term.retrievedOn ?? \"\")) refusals.push(`${t.toUpperCase()}_TERM_HAS_NO_SNAPSHOT_DATE`);", "", "§4 · FIRING CONTROL (RR-119)"],
   ["S31", "§4 (RR-119) the production path refuses a restricted source", SA, "    if (term?.status === RESTRICTED) refusals.push(", "    if (false) refusals.push(", "§4 · THE PRODUCTION PATH REFUSES a source whose storage"],
@@ -135,6 +135,6 @@ restoreAll();
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "f16-source-adapter-sabotage-rr121-2026-10-01.txt"), lines.join("\n").split(PRODUCT_WORDS[0]).join("<planted product word>") + "\n");
+writeFileSync(join(REPO, "runs", "audit", "f16-source-adapter-sabotage-rr125-2026-10-01.txt"), lines.join("\n").split(PRODUCT_WORDS[0]).join("<planted product word>") + "\n");
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

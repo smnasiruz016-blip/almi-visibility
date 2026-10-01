@@ -35,6 +35,30 @@ export const MISSING = Object.freeze({
 /** RR-117 §5: the marking every output derived from a TEST_PILOT batch carries with it. */
 export const PILOT_MARK = "TEST / PILOT DATA";
 export const COMPLETENESS_CLAIM = /\b(all|complete|completeness|full coverage|every question|exhaustive|entire|worldwide|comprehensive)\b/i;
+/**
+ * RR-125: WHO LOOKED. Every OBSERVED record carries exactly one observer type, and its `seenBy` label is derived from that type by this
+ * one mapping — never chosen freely. A record whose label and type disagree (a relabelling, either way) is MALFORMED: it is never counted
+ * as any observer type, least of all as a person. The types are equal bars — the same fields, the same reviewable reference — and record
+ * only who looked.
+ */
+export const OBSERVER_TYPES = Object.freeze({
+  PERSON_OBSERVED: "A PERSON — not the engine",
+  AGENT_OBSERVED: "AN AGENT — not a person, and not the engine",
+  SOURCE_ADAPTER_OBSERVED: "A SOURCE ADAPTER — the text as the source holds it",
+});
+export const NOT_AN_OBSERVATION = "NOT_AN_OBSERVATION";
+/** A line that counts OBSERVED questions must show the split by observer type; a bare combined total is a false record. */
+const OBSERVED_COUNT = /\bOBSERVED(:| \d)/;
+export function assertObserverSplit(lines) {
+  const bare = lines.filter((l) => OBSERVED_COUNT.test(l) && !Object.keys(OBSERVER_TYPES).every((t) => new RegExp(`\\b${t} \\d+`).test(l)));
+  if (bare.length) throw Object.assign(new Error(`COMBINED_OBSERVED_COUNT_WITHOUT_SPLIT — ${bare.length} line(s) count OBSERVED without the split by observer type`), { code: "COMBINED_OBSERVED_COUNT_WITHOUT_SPLIT" });
+  return lines;
+}
+/** The observer type of an OBSERVED record, or null when it is absent, unknown, or contradicted by its label. */
+export function observerTypeOf(v) {
+  const t = v?.provenance?.observerType;
+  return Object.hasOwn(OBSERVER_TYPES, t) && v.provenance.seenBy === OBSERVER_TYPES[t] ? t : null;
+}
 
 const filled = (v) => (typeof v === "string" ? v.trim() !== "" : v !== null && v !== undefined && !(typeof v === "object" && Object.keys(v).length === 0));
 
@@ -42,11 +66,14 @@ const filled = (v) => (typeof v === "string" ? v.trim() !== "" : v !== null && v
 export function intakeOne(r) {
   if (r?.record_type !== RECORD_TYPE) return null;
   const v = r.value ?? {};
-  const kind = Object.hasOwn(KINDS, v.kind) ? v.kind : null;
+  /* RR-125: an OBSERVED record with no observer type, an unknown one, or a label that contradicts it is malformed — never counted */
+  const observer = v.kind === KINDS.OBSERVED ? observerTypeOf(v) : NOT_AN_OBSERVATION;
+  const kind = Object.hasOwn(KINDS, v.kind) && observer !== null ? v.kind : null;
   const fields = Object.fromEntries(REQUIRED_FIELDS.map((f) => [f, filled(v[f]) ? v[f] : NOT_MEASURED]));
   return Object.freeze({
     id: r.question_id ?? null,
     kind,
+    observerType: kind === null ? null : observer,
     evidenceState: kind ? EVIDENCE_STATE[kind] : null,
     original: Object.freeze({ wording: v.original, provenance: Object.freeze({ ...(v.provenance ?? {}) }) }),
     fields: Object.freeze(fields),
@@ -84,9 +111,10 @@ export function intakeQuestions(records, { sameAs = null } = {}) {
   const fieldGaps = Object.fromEntries(REQUIRED_FIELDS.map((f) => [f, all.filter((q) => q.notMeasured.includes(f)).length]));
   const population = all.length;
   const pilot = all.filter((q) => q.dataPurpose === "TEST_PILOT").length;
+  const observerSplit = Object.fromEntries(Object.keys(OBSERVER_TYPES).map((t) => [t, lists.OBSERVED.filter((q) => q.observerType === t).length]));
   const verdict = population === 0 ? VERDICT.COULD_NOT_PROVE : malformed > 0 ? VERDICT.DISPROVED : VERDICT.COULD_NOT_PROVE;
   return {
-    population, malformed, lists, grouping, fieldGaps, pilot,
+    population, malformed, lists, grouping, fieldGaps, pilot, observerSplit,
     census: Object.fromEntries(CENSUS_PARTS.map((p) => [p, NOT_MEASURED])),
     missing: [...(population === 0 ? [MISSING.population] : []), MISSING.census, ...(typeof sameAs === "function" ? [] : [MISSING.sameness])],
     verdict,
@@ -98,7 +126,7 @@ export function reportLines(r, { limits }) {
   const lines = [
     `SAMPLE — not a census of the world's questions · declared limits: ${limits}`,
     ...(r.pilot > 0 ? [`${PILOT_MARK} — ${r.pilot} of ${r.population} record(s) come from a batch declared TEST_PILOT: not the demand of any country, not global demand, not a production client result`] : []),
-    ...Object.keys(KINDS).map((k) => `${k}: ${r.lists[k].length} of ${r.population} recorded question(s) · ${EVIDENCE_STATE[k]} · groups ${r.grouping[k].groups.length}${r.grouping[k].grouped ? "" : " (not grouped — missing " + MISSING.sameness + ")"}`),
+    ...Object.keys(KINDS).map((k) => `${k}: ${r.lists[k].length} of ${r.population} recorded question(s)${k === KINDS.OBSERVED ? ` — by observer: ${Object.keys(OBSERVER_TYPES).map((o) => `${o} ${r.observerSplit[o]}`).join(" · ")}` : ""} · ${EVIDENCE_STATE[k]} · groups ${r.grouping[k].groups.length}${r.grouping[k].grouped ? "" : " (not grouped — missing " + MISSING.sameness + ")"}`),
     `fields not captured (NOT MEASURED): ${REQUIRED_FIELDS.map((f) => `${f} ${r.fieldGaps[f]} of ${r.population}`).join(" · ")}`,
     `census: ${CENSUS_PARTS.join(", ")} — NOT MEASURED — missing ${MISSING.census}`,
     `verdict ${r.verdict}${r.population === 0 ? " — the recorded sample is EMPTY, never a pass" : ""}`,
@@ -108,5 +136,5 @@ export function reportLines(r, { limits }) {
   /* C6: a question's wording lives in the store; a report line carrying any recorded wording is refused */
   const wordings = Object.values(r.lists).flat().map((q) => q.original.wording).filter((w) => typeof w === "string" && w.trim() !== "");
   if (lines.some((l) => wordings.some((w) => l.includes(w)))) throw new Error("QUESTION_WORDING_IN_OUTPUT: a report is count-only");
-  return lines;
+  return assertObserverSplit(lines);
 }

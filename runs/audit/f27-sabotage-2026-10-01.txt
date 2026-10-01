@@ -1,0 +1,30 @@
+F27 sabotage run · 2026-10-01T02:30:58.701Z
+population: 23 sabotages over test/f27-transport-security.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1 S19=1 S20=1 S21=1 S22=1 S23=1 · all exactly once: true
+production trail sha256 before: 510af60e712ef8a2dc4642463300b510fac84f47f86f717729d865d7969a58c9
+
+S1 C1 a missing body is named src/audit/transport-security.mjs: landed true · named test "C1 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S2 C1 a truncated body is never read as complete src/audit/transport-security.mjs: landed true · named test "C1 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S3 C1 the reader carries a body's truncation src/audit/transport-security-reader.mjs: landed true · named test "C1 · the reader keeps" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S4 C1 a recorded request for the http: form is seen src/audit/transport-security-reader.mjs: landed true · named test "C1 · the reader keeps" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S5 C2 an http final URL DISPROVES the part src/audit/transport-security.mjs: landed true · named test "C2 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S6 C2 HTTPS is never PROVED while TLS is unrecorded src/audit/transport-security.mjs: landed true · named test "C2 · FIRING CONTROL" red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+S7 C2 a never-fetched page is NOT MEASURED, never HTTPS src/audit/transport-security.mjs: landed true · named test "C2 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S8 C3 an attribute is read only at a whitespace boundary (data-src) src/audit/transport-security.mjs: landed true · named test "C3 · FIRING CONTROL: every" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S9 C3 a script's own src is read src/audit/transport-security.mjs: landed true · named test "C3 · FIRING CONTROL: every" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S10 C3 a script in a comment or template is not read src/audit/transport-security.mjs: landed true · named test "C3 · markup inside" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S11 C3 every srcset candidate is read src/audit/transport-security.mjs: landed true · named test "C3 · FIRING CONTROL: every" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S12 C3 only loading link rels are read src/audit/transport-security.mjs: landed true · named test "C3 · FIRING CONTROL: every" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S13 C3 an http page is not judged for mixed content src/audit/transport-security.mjs: landed true · named test "C3 · markup inside" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S14 C4 an http: formaction is unsafe src/audit/transport-security.mjs: landed true · named test "C4 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S15 C4 a password counts only on an http page src/audit/transport-security.mjs: landed true · named test "C4 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S16 C4 a form with no action is judged by its own page src/audit/transport-security.mjs: landed true · named test "C4 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S17 C5 no header is judged without a declaration src/audit/transport-security.mjs: landed true · named test "C5 ·" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S18 C6 public exposure is never passed src/audit/transport-security.mjs: landed true · named test "C5 ·" red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+S19 C7 one DISPROVED part disproves the row src/audit/transport-security.mjs: landed true · named test "C7 ·" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S20 C7 the raw-HTML exclusion is named src/audit/transport-security.mjs: landed true · named test "C7 ·" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S21 C1 the entry point reads its OWN tenant bin/transport-security.mjs: landed true · named test "C1 · THE ENTRY POINT" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S22 C1 the entry point prints TLS as NOT MEASURED bin/transport-security.mjs: landed true · named test "C1 · THE ENTRY POINT" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S23 C1 a network call is seen tools/need-coverage-call-paths.mjs: landed true · named test "C1 · the audit and its reader" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+
+proved 23 of 23 · residue 0 · production trail sha256 after: 510af60e712ef8a2dc4642463300b510fac84f47f86f717729d865d7969a58c9 · unchanged true

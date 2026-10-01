@@ -262,6 +262,18 @@ export const MANDATORY_READING = Object.freeze([
   /* RR-103, F75 (30 Sep 2026): the command (a CURRENT record) and F75's acceptance, after the migration at _handoffs 01275a9. */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-09-30_RR-103_CLOSE_F90_ADD_PAGE_OPPORTUNITY_ROW_THEN_CONTINUE.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F75_ACCEPTANCE_2026-09-30.md", loader: "F-board acceptance F75" }),
+  /* RR-104 to RR-110 (30 Sep - 1 Oct 2026): seven commands admitted CURRENT by the migration at _handoffs d3c8e79 (RR-111). */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-09-30_RR-104_IMPROVE_THE_COLLECTOR_PREPARE_ONE_BOUNDED_COLLECTION.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-09-30_RR-105_GREEN_RUN_THE_ONE_BOUNDED_COLLECTION.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-09-30_RR-106_RR-105_FAILURE_REPAIR_ONLY.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-107_RUN_THE_ONE_BOUNDED_COLLECTION_UNDER_THE_FRESH_GREEN.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-108_REPAIR_THE_PACER_CLASSIFY_THE_KEPT_EVIDENCE.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-109_213_MERGED_VERIFY_EVERY_GATE_BEFORE_ANY_NEW_COLLECTION.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-110_PAUSE_THE_CRAWL_LOOP_CONTINUE_BUILDING.md", loader: "authority register (CURRENT record)" }),
+  /* RR-111, F23 (1 Oct 2026): the command, the owner's every-limb refinement (both CURRENT records) and F23's acceptance, after the migration at _handoffs d3c8e79. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-111_BUILD_F23_FROM_RECORDED_DATA.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_RULING_2026-10-01_RR-111_EVERY_LIMB_RULE_REFINEMENT.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F23_ACCEPTANCE_2026-10-01.md", loader: "F-board acceptance F23" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_CLARIFICATION_2026-09-28_RR-76_TEST_ONLY_PERMISSION_IS_GENERAL.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_RULING_2026-09-28_RR-80_F07_A_LIMIT_IS_NOT_A_PERMISSION.md", loader: "authority register (CURRENT record)" }),
 ]);

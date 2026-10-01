@@ -53,6 +53,7 @@ export const STATE_VOCABULARY = Object.freeze({
   hasServedState: { class: "I", where: "src/crawl/scope-completeness.mjs", reason: "a predicate's name, not a field with states" },
   requestedWithoutState: { class: "I", where: "src/crawl/scope-completeness.mjs", reason: "a count of in-scope requests with no served state, not a field with states" },
   storedState: { class: "E", where: "src/audit/class-split.mjs:126", reason: "issue lifecycle state (OPEN / CLOSED / SUPERSEDED)" },
+  targetState: { class: "C", where: "src/audit/link-audit.mjs (F23, RR-111)", unknownMeans: "no usable recorded status for the target: never observed, a robots skip, a failed fetch, a status outside 2xx-5xx, or two records that disagree — printed as NOT MEASURED, never 0", reason: "a link target's class from its RECORDED status only (WORKING / REDIRECTED / BROKEN / NOT MEASURED) — not an evidence state" },
   transfersState: { class: "I", where: "src/checklist/classification.mjs:62", reason: "a boolean constant of the historical ledger" },
   unlockState: { class: "I", where: "src/search/row9-terminal.mjs:166", reason: "a function returning an array" },
   verificationState: { class: "C", where: "src/facts/record.mjs:57", unknownMeans: "a check RAN and could not confirm (CONFLICT / INCOMPLETE / PARTIAL_EVIDENCE — or SOURCE_UNREACHABLE, where no reading was produced)", reason: "fact verification — kept separate by the acceptance; the adapter reads its reason and dates, never renames VERIFIED to OBSERVED" },

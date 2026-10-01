@@ -1043,6 +1043,31 @@ export const DECLARED = Object.freeze({
       }),
     ]),
   }),
+  /* 🔴 F44 · Verified fact supply. Frozen ALONE (_handoffs eecdfe4, RR-113 §9) before any F44 code. Every non-derived record carries
+   * the nine recorded fields; the unit is never judged (no declared rule) and no capability claim is recorded — so IN-PROGRESS only. */
+  F44: Object.freeze({
+    featureId: "F44",
+    board: "F_BOARD",
+    state: "IN-PROGRESS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-01", ruling: ACCEPTANCES.F44.ruling, contractSha256: ACCEPTANCES.F44.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F44",
+        on: "2026-10-01",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F44.ruling.sha256, contract: ACCEPTANCES.F44.contractSha256 }),
+        branch: "f44-fact-supply",
+        baseSha: "a09c40f6da7a5c6c42e8d2bb548cbd6da8be8c77",
+        baseCiRun: "36813939064",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-113_CLOSE_RR-112_BUILD_THE_F91_PAGE_PLANNER.md", commit: "0e1924bf2366a635b0d58fbb492ebe5b3649f6b7", sha256: "4b035e9ce223812ebb75b25d1f298a05db914ad2b4aa65c8837652c19531264e" }),
+      }),
+    ]),
+  }),
   F21: Object.freeze({
     featureId: "F21",
     board: "F_BOARD",

@@ -274,6 +274,10 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-111_BUILD_F23_FROM_RECORDED_DATA.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_RULING_2026-10-01_RR-111_EVERY_LIMB_RULE_REFINEMENT.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F23_ACCEPTANCE_2026-10-01.md", loader: "F-board acceptance F23" }),
+  /* RR-111 §5 and §9, F27 (1 Oct 2026): F23's open owner decision (a CURRENT record), and F27's acceptance and its amendment, after the migration at _handoffs 93fa696. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OPEN_OWNER_DECISION_2026-10-01_RR-111_F23_EXCESSIVE_AND_WEAK_LINKS.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F27_ACCEPTANCE_2026-10-01.md", loader: "F-board acceptance F27" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F27_ACCEPTANCE_AMENDMENT_1_2026-10-01.md", loader: "F-board acceptance F27" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_CLARIFICATION_2026-09-28_RR-76_TEST_ONLY_PERMISSION_IS_GENERAL.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_RULING_2026-09-28_RR-80_F07_A_LIMIT_IS_NOT_A_PERMISSION.md", loader: "authority register (CURRENT record)" }),
 ]);

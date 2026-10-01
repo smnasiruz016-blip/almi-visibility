@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -985,6 +985,33 @@ export const DECLARED = Object.freeze({
         branch: "f23-link-audit",
         baseSha: "2fb5e0128ccd9d9b9800ee47eed8e0e08a066216",
         baseCiRun: "36799713792",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-111_BUILD_F23_FROM_RECORDED_DATA.md", commit: "766a74b3d5a5a20315d07ce76294079db80503b1", sha256: "e3c24104505735ac0dfe1be5995d1d303beffa2ae9a5e6d9518b69983cb84d2d" }),
+      }),
+    ]),
+  }),
+  /* 🔴 F27 · Security and transport checks. Frozen 1 Oct (_handoffs 8a6312b, RR-111 §9) — its FIRST freeze — ALONE, before any F27
+   * code; AMENDED alone (93fa696) before any code, for the row's NAME only. Built under the owner's refinement (RR-111 §0): TLS, the http:
+   * redirect, headers and public exposure were never collected or declared, so it earns IN-PROGRESS only. */
+  F27: Object.freeze({
+    featureId: "F27",
+    board: "F_BOARD",
+    state: "IN-PROGRESS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-01", ruling: F27_ORIGINAL.ruling, contractSha256: F27_ORIGINAL.contractSha256 }),
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F27", on: "2026-10-01", ruling: ACCEPTANCES.F27.ruling, contractSha256: ACCEPTANCES.F27.contractSha256, amends: ACCEPTANCES.F27.amends }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F27",
+        on: "2026-10-01",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F27.ruling.sha256, contract: ACCEPTANCES.F27.contractSha256 }),
+        branch: "f27-security-transport",
+        baseSha: "5ea5beeb18efceeab4e5e967e3b0bfea924ac432",
+        baseCiRun: "36804707198",
         baseCiConclusion: "success",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-111_BUILD_F23_FROM_RECORDED_DATA.md", commit: "766a74b3d5a5a20315d07ce76294079db80503b1", sha256: "e3c24104505735ac0dfe1be5995d1d303beffa2ae9a5e6d9518b69983cb84d2d" }),
       }),

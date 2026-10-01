@@ -6,7 +6,7 @@
  * PRE-FLIGHT FIRST: every span is checked to exist EXACTLY ONCE in the code live now, and the pre-flight is printed before any sabotage
  * runs — a span that does not is NOT PROVED, never silently skipped. Then each sabotage replaces its span ALONE, proves it LANDED, runs the
  * named proof file, requires the NAMED test to fail, restores by raw-byte sha256. The production trail is hashed before and after.
- * Evidence: runs/audit/f16-source-adapter-sabotage-rr118-2026-10-01.txt (its own file; no earlier round's evidence is overwritten).
+ * Evidence: runs/audit/f16-source-adapter-sabotage-rr119-run2-2026-10-01.txt (RR-119 run 2, after S29 span fix; run 1 file and the RR-118 file kept untouched).
  */
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -23,7 +23,7 @@ const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
 
 const SABOTAGES = [
-  ["S1", "§4 an unverified term refuses the source", SA, "    if (term?.status !== VERIFIED) refusals.push(`${t.toUpperCase()}_TERM_NOT_VERIFIED`);", "    if (false) refusals.push(`${t.toUpperCase()}_TERM_NOT_VERIFIED`);", "§4 · FIRING CONTROL: a source is admitted only"],
+  ["S1", "§4 an unverified term refuses the source", SA, "    else if (term?.status !== VERIFIED) refusals.push(`${t.toUpperCase()}_TERM_NOT_VERIFIED`);", "    else if (false) refusals.push(`${t.toUpperCase()}_TERM_NOT_VERIFIED`);", "§4 · FIRING CONTROL: a source is admitted only"],
   ["S2", "§4 a verified term needs a citation", SA, "    else if (!present(term.citation)) refusals.push(`${t.toUpperCase()}_TERM_HAS_NO_CITATION`);", "", "§4 · FIRING CONTROL: a source is admitted only"],
   ["S3", "§4 an unknown source kind is refused", SA, "  if (!Object.hasOwn(SOURCE_KINDS, decl?.kind)) refusals.push(\"SOURCE_KIND_UNKNOWN\");", "", "§4 · FIRING CONTROL: a source is admitted only"],
   ["S4", "§4 a refused source keeps nothing", SA, "  if (!admission.admitted) return { admitted: false, refusals: admission.refusals, retrieved: NOT_MEASURED, records: [], refused: {} };", "", "§4 · FIRING CONTROL: a source is admitted only"],
@@ -50,7 +50,10 @@ const SABOTAGES = [
   ["S25", "§4 the boundary names no product", SA, "export const SOURCE_KINDS = Object.freeze(", `export const PLANTED = "${PRODUCT_WORDS[0]}";\nexport const SOURCE_KINDS = Object.freeze(`, "§4 · FIRING CONTROL: the boundary names no product"],
   ["S26", "§4 the boundary names no provider", SA, "export const KEYWORD_SIGNAL = \"keyword_signal\";", "export const KEYWORD_SIGNAL = \"keyword_signal\";\nexport const UPSTREAM = \"stackexchange\";", "§4 · FIRING CONTROL: the boundary names no product"],
   ["S27", "§4 the boundary reaches no sealed store", SA, "import { RECORD_TYPE, NOT_MEASURED } from \"./public-questions.mjs\";", "import { RECORD_TYPE, NOT_MEASURED } from \"./public-questions.mjs\";\nimport \"../governance/sealed-store-roots.mjs\";", "§4 · FIRING CONTROL: the boundary reaches no sealed store"],
-  ["S28", "§4 a network call is seen", CP, `{ code: "RAW_NETWORK_CALL", test: (t) => t.split("\\n").some((l) => RAW_EGRESS.test(l)) },`, `{ code: "RAW_NETWORK_CALL", test: () => false },`, "§4 · FIRING CONTROL: the boundary reaches no sealed store"],
+  ["S29", "§4 (RR-119) a restricted term refuses for its own reason", SA, "    if (term?.status === RESTRICTED) refusals.push(`${t.toUpperCase()}_TERM_RESTRICTED_BY_SOURCE`);\n    else if (term?.status !== VERIFIED)", "    if (term?.status !== VERIFIED)", "§4 · FIRING CONTROL (RR-119)"],
+  ["S30", "§4 (RR-119) a verified term needs its snapshot date", SA, "    else if (!ISO_DATE.test(term.retrievedOn ?? \"\")) refusals.push(`${t.toUpperCase()}_TERM_HAS_NO_SNAPSHOT_DATE`);", "", "§4 · FIRING CONTROL (RR-119)"],
+  ["S31", "§4 (RR-119) the production path refuses a restricted source", SA, "    if (term?.status === RESTRICTED) refusals.push(", "    if (false) refusals.push(", "§4 · THE PRODUCTION PATH REFUSES a source whose storage"],
+  ["S28","§4 a network call is seen", CP, `{ code: "RAW_NETWORK_CALL", test: (t) => t.split("\\n").some((l) => RAW_EGRESS.test(l)) },`, `{ code: "RAW_NETWORK_CALL", test: () => false },`, "§4 · FIRING CONTROL: the boundary reaches no sealed store"],
 ];
 
 const files = [...new Set(SABOTAGES.map((s) => s[2]))];
@@ -98,6 +101,6 @@ restoreAll();
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "f16-source-adapter-sabotage-rr118-2026-10-01.txt"), lines.join("\n").split(PRODUCT_WORDS[0]).join("<planted product word>") + "\n");
+writeFileSync(join(REPO, "runs", "audit", "f16-source-adapter-sabotage-rr119-run2-2026-10-01.txt"), lines.join("\n").split(PRODUCT_WORDS[0]).join("<planted product word>") + "\n");
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

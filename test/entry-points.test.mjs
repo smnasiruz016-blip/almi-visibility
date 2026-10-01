@@ -128,6 +128,8 @@ test("🔴 every runner that needs a product takes it as an ARGUMENT, never as a
 /** module path (repo-relative, forward slashes) → why it has no importer. */
 const ORPHAN_ALLOWLIST = Object.freeze({
   // "src/example.mjs": "reason, dated, and who accepted it",
+  "src/research/adapters/stack-exchange-collector.mjs":
+    "TEMPORARY. Built AHEAD of its consumer by the owner's order, RR-121 §4 (_handoffs ebb1dbd, 1 Oct 2026): 'PROVE THE COLLECTOR STOPS ITSELF, WITH FIXTURES' while 'any provider API endpoint call' stays forbidden — so its only possible consumer, a live transport entry point, cannot exist until the owner's GREEN for the one bounded pilot (_handoffs 7175653). Remove this entry in the change that adds that consumer.",
   "src/facts/question-fit.mjs":
     "TEMPORARY. Built AHEAD of its consumer by the owner's order, RR-80 §3 (_handoffs 9e60c53, 28 Sep 2026): 'Build the verification and readback path BEFORE any ADDRESSES / PARTIALLY ADDRESSES / DOES NOT ADDRESS verdict is reported.' It is NOT a completed capability, counts toward no row and moves no row. Accepted as TEMPORARY only by the owner, RR-81 §2.1 (_handoffs 4eb9d8f). REMOVAL TRIGGER: the change that makes F50's question-and-answer inventory import this gate — and that same change deletes this entry (enforced below: an allowlisted module with a production consumer fails the census).",
 });

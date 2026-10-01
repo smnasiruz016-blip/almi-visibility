@@ -13,8 +13,8 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 
-import { DECLARATION, retrievalFrom, licenceVersionOf, LICENCE_URL, FIELD_MAP } from "../src/research/adapters/stack-exchange.mjs";
-import { recordsFrom, sampleLines, admitSource, SCOPE_DISCLAIMER, VERIFIED } from "../src/research/source-adapter.mjs";
+import { DECLARATION, retrievalFrom, licenceVersionByDate, LICENCE_URL, FIELD_MAP } from "../src/research/adapters/stack-exchange.mjs";
+import { recordsFrom, sampleLines, admitSource, SCOPE_DISCLAIMER, VERIFIED, NOT_VERIFIED } from "../src/research/source-adapter.mjs";
 import { readClientQuestionRecords } from "../src/research/public-questions-reader.mjs";
 import { COMPLETENESS_CLAIM, NOT_MEASURED } from "../src/research/public-questions.mjs";
 import { createTenantResolver } from "../src/tenancy/resolver.mjs";
@@ -34,7 +34,7 @@ const GROOM = { subject: "tidy-paws-grooming", origin: "https://tidy-paws.invali
 
 const E = (iso) => Date.parse(iso) / 1000;
 const post = (id, over = {}) => ({ question_id: id, title: `Synthetic fixture question ${id}?`, link: `https://fixture-qa.invalid/q/${id}`,
-  creation_date: E("2021-03-01T10:00:00Z"), last_edit_date: E("2022-01-01T10:00:00Z"), owner: { display_name: `fixture-user-${id}` },
+  creation_date: E("2021-03-01T10:00:00Z"), last_edit_date: E("2022-01-01T10:00:00Z"), owner: { display_name: `fixture-user-${id}` }, content_license: "CC BY-SA 4.0",
   body: `SYNTHETIC BODY ${id} — never stored`, score: 7, view_count: 100, tags: ["fixture"], ...over });
 const recorded = (items, request = { site: "fixture-site", tagged: "fixture-tag", language: "en" }) => ({ recordedAt: "2026-10-01T09:00:00Z", request, response: { items } });
 const ctx = { subject: "subj", origin: "https://subj.invalid" };
@@ -50,28 +50,38 @@ test("§3 · the adapter's declaration is admitted only on its quoted, dated cla
     assert.match(DECLARATION.terms[t].citation, /RR-120_STACK_EXCHANGE_DECISION/);
   }
   assert.deepEqual([...DECLARATION.licenceVersions], ["4.0"]);
-  assert.deepEqual(Object.entries(FIELD_MAP).filter(([, f]) => f.status === VERIFIED).map(([k]) => k), ["postedAt"], "a field name was marked verified without a primary source");
+  /* RR-121: every name and type is from the question-object and shallow-user pages; the licence VALUE format alone is not documented */
+  assert.deepEqual(Object.entries(FIELD_MAP).filter(([, f]) => f.status !== VERIFIED).map(([k]) => k), ["licenceValueFormat"]);
+  assert.equal(FIELD_MAP.licenceValueFormat.status, NOT_VERIFIED);
+  assert.deepEqual(["lastEdit", "owner", "creator"].map((k) => FIELD_MAP[k].present), ["OPTIONAL", "OPTIONAL", "OPTIONAL"], "a 'may be absent' field was marked guaranteed");
 });
 
 /* ================= licence versions ================= */
 
-test("§5 · FIRING CONTROL: mixed licence versions in one sample — each post carries its own; 2.5, 3.0 and a straddling post are REFUSED, never defaulted", () => {
-  assert.deepEqual([licenceVersionOf(E("2010-06-01")), licenceVersionOf(E("2015-06-01")), licenceVersionOf(E("2019-06-01"))], ["2.5", "3.0", "4.0"]);
-  assert.equal(licenceVersionOf(E("2018-05-01T23:59:59Z")), "3.0");
-  assert.equal(licenceVersionOf(E("2018-05-02T00:00:00Z")), "4.0");
-  assert.equal(licenceVersionOf(E("2017-01-01"), E("2020-01-01")), "3.0", "a straddling post was upgraded to the newer licence");
-  const items = [post(1), post(2, { creation_date: E("2015-01-01"), last_edit_date: undefined }), post(3, { creation_date: E("2010-01-01"), last_edit_date: undefined }), post(4, { creation_date: E("2017-01-01"), last_edit_date: E("2020-01-01") })];
-  const r = run(items);
-  assert.deepEqual([r.records.length, r.retrieved, r.refused.LICENCE_VERSION_OUTSIDE_DECLARED_SET], [1, 4, 3]);
-  assert.equal(r.records[0].value.licence.version, "4.0");
-  assert.match(sampleLines(DECLARATION, r).join("\n"), /kept 1 of 4 retrieved[\s\S]*LICENCE_VERSION_OUTSIDE_DECLARED_SET 3/);
+test("§3 · FIRING CONTROL (RR-121): the response's STATED licence decides — never a date; absent or unrecognised is refused; versions outside the set are refused", () => {
+  /* mixed stated versions in one sample: each post carries its own, and only the declared 4.0 is kept */
+  const mixed = run([post(1), post(2, { content_license: "CC BY-SA 3.0" }), post(3, { content_license: "CC BY-SA 2.5" })]);
+  assert.deepEqual([mixed.records.length, mixed.retrieved, mixed.refused.LICENCE_VERSION_OUTSIDE_DECLARED_SET], [1, 3, 2]);
+  assert.equal(mixed.records[0].value.licence.version, "4.0");
+  assert.match(sampleLines(DECLARATION, mixed).join("\n"), /kept 1 of 3 retrieved[\s\S]*LICENCE_VERSION_OUTSIDE_DECLARED_SET 2/);
+  /* the stated field GOVERNS: a post dated in the 3.0 era but stated 4.0 is kept as 4.0, and the disagreement is reported, not decided on */
+  const old = run([post(4, { creation_date: E("2015-01-01"), last_edit_date: undefined })]);
+  assert.deepEqual([old.records.length, old.records[0]?.value.licence.version, old.notes.LICENCE_DATE_CROSSCHECK_DISAGREES], [1, "4.0", 1]);
+  assert.match(sampleLines(DECLARATION, old).join("\n"), /cross-checks \(reported, not deciding\): LICENCE_DATE_CROSSCHECK_DISAGREES 1 of 1 checked/);
+  /* ...and a post dated in the 4.0 era but stated 3.0 is REFUSED as 3.0 — the date never upgrades it */
+  assert.equal(run([post(5, { content_license: "CC BY-SA 3.0" })]).refused.LICENCE_VERSION_OUTSIDE_DECLARED_SET, 1);
+  const absent = run([post(6, { content_license: undefined }), post(7, { content_license: "" }), post(8, { content_license: "CC-BY-SA-4.0" })]);
+  assert.deepEqual([absent.records.length, absent.refused.CONTENT_LICENSE_ABSENT, absent.refused.CONTENT_LICENSE_UNRECOGNISED], [0, 2, 1]);
+  assert.deepEqual([licenceVersionByDate(E("2010-06-01")), licenceVersionByDate(E("2015-06-01")), licenceVersionByDate(E("2019-06-01")), licenceVersionByDate(E("2017-01-01"), E("2020-01-01"))], ["2.5", "3.0", "4.0", "3.0"]);
 });
 
 /* ================= attribution ================= */
 
-test("§5 · FIRING CONTROL: missing or incomplete attribution is REFUSED; a kept record carries every element", () => {
-  const r = run([post(1, { owner: {} }), post(2, { owner: { display_name: " " } }), post(3, { link: "" })]);
-  assert.deepEqual([r.records.length, r.refused.ATTRIBUTION_ABSENT, r.refused.SOURCEURL_ABSENT], [0, 2, 1]);
+test("§3 · FIRING CONTROL: a missing creator, link or title REFUSES the item by name — a creator is never defaulted, substituted or derived", () => {
+  const r = run([post(1, { owner: {} }), post(2, { owner: { display_name: " " } }), post(9, { owner: undefined }), post(3, { link: "" }), post(10, { title: "" })]);
+  assert.deepEqual([r.records.length, r.refused.CREATOR_ABSENT, r.refused.POST_LINK_ABSENT, r.refused.TITLE_ABSENT], [0, 3, 1, 1]);
+  const anon = run([post(12, { owner: { user_id: 99, user_type: "does_not_exist" } })]);
+  assert.deepEqual([anon.records.length, anon.refused.CREATOR_ABSENT], [0, 1], "a creator was derived from an id or a user type");
   const v = run([post(5)]).records[0].value;
   for (const part of ["fixture-user-5", "https://fixture-qa.invalid/q/5", "the Stack Exchange Network", "CC BY-SA 4.0", LICENCE_URL, "unmodified"]) assert.ok(v.attribution.includes(part), `attribution lacks ${part}`);
 });
@@ -141,8 +151,8 @@ test("§5 · TWO UNRELATED PRODUCTS, ONE CODE PATH, THE PRODUCTION ENTRY POINT: 
   try {
     declareClient(W, SOLAR);
     declareClient(W, GROOM);
-    const sa = input(W, "sa.json", SOLAR.tenant, recorded([post(1), post(2), post(3, { creation_date: E("2015-01-01"), last_edit_date: undefined })]));
-    const sr = input(W, "sr.json", SOLAR.tenant, recorded([post(1), post(2), post(3, { creation_date: E("2015-01-01"), last_edit_date: undefined })]));
+    const sa = input(W, "sa.json", SOLAR.tenant, recorded([post(1), post(2), post(3, { creation_date: E("2015-01-01"), last_edit_date: undefined, content_license: "CC BY-SA 3.0" })]));
+    const sr = input(W, "sr.json", SOLAR.tenant, recorded([post(1), post(2), post(3, { creation_date: E("2015-01-01"), last_edit_date: undefined, content_license: "CC BY-SA 3.0" })]));
     const ga = input(W, "ga.json", GROOM.tenant, recorded([]));
     const gr = input(W, "gr.json", GROOM.tenant, recorded([]));
     const a = intake(W, SOLAR, sa, sr), b = intake(W, GROOM, ga, gr);

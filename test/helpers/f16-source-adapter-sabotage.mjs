@@ -6,7 +6,7 @@
  * PRE-FLIGHT FIRST: every span is checked to exist EXACTLY ONCE in the code live now, and the pre-flight is printed before any sabotage
  * runs — a span that does not is NOT PROVED, never silently skipped. Then each sabotage replaces its span ALONE, proves it LANDED, runs the
  * named proof file, requires the NAMED test to fail, restores by raw-byte sha256. The production trail is hashed before and after.
- * Evidence: runs/audit/f16-source-adapter-sabotage-rr120-run2-2026-10-01.txt (RR-120 run 2, after the S13 span followed its live line; every earlier file is kept untouched).
+ * Evidence: runs/audit/f16-source-adapter-sabotage-rr121-2026-10-01.txt (RR-121 round; every earlier round file is kept untouched).
  */
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -17,8 +17,8 @@ import { PRODUCT_WORDS } from "../../tools/product-boundary.mjs";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SA = "src/research/source-adapter.mjs", BIN = "bin/source-intake.mjs", AD = "src/evidence/evidence-state-adapters.mjs", AU = "config/governance/authorisation.mjs", CP = "tools/need-coverage-call-paths.mjs";
-const QA = "src/research/adapters/stack-exchange.mjs";
-const T = ["test/f16-source-adapter.test.mjs", "test/f16-qa-network-adapter.test.mjs"];
+const QA = "src/research/adapters/stack-exchange.mjs", GOV = "src/research/request-governor.mjs", COL = "src/research/adapters/stack-exchange-collector.mjs";
+const T = ["test/f16-source-adapter.test.mjs", "test/f16-qa-network-adapter.test.mjs", "test/f16-collector.test.mjs"];
 const TRAIL = "audit-trail/events.jsonl";
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
@@ -54,10 +54,27 @@ const SABOTAGES = [
   ["S29", "§4 (RR-119) a restricted term refuses for its own reason", SA, "    if (term?.status === RESTRICTED) refusals.push(`${t.toUpperCase()}_TERM_RESTRICTED_BY_SOURCE`);\n    else if (term?.status !== VERIFIED)", "    if (term?.status !== VERIFIED)", "§4 · FIRING CONTROL (RR-119)"],
   ["S30", "§4 (RR-119) a verified term needs its snapshot date", SA, "    else if (!ISO_DATE.test(term.retrievedOn ?? \"\")) refusals.push(`${t.toUpperCase()}_TERM_HAS_NO_SNAPSHOT_DATE`);", "", "§4 · FIRING CONTROL (RR-119)"],
   ["S31", "§4 (RR-119) the production path refuses a restricted source", SA, "    if (term?.status === RESTRICTED) refusals.push(", "    if (false) refusals.push(", "§4 · THE PRODUCTION PATH REFUSES a source whose storage"],
-  ["S32", "§5 (RR-120) a licence version outside the declared set is refused", SA, "    if (Array.isArray(decl.licenceVersions) && !decl.licenceVersions.includes(item.licenceVersion)) {", "    if (false) {", "§5 · FIRING CONTROL: mixed licence versions"],
-  ["S33", "§5 (RR-120) a straddling post takes the OLDER licence", QA, "  const t = Math.min(createdEpoch, editedEpoch);", "  const t = Math.max(createdEpoch, editedEpoch);", "§5 · FIRING CONTROL: mixed licence versions"],
-  ["S34", "§5 (RR-120) the 2.5 boundary is kept", QA, "  if (t < DAY(\"2011-04-08\")) return \"2.5\";", "", "§5 · FIRING CONTROL: mixed licence versions"],
-  ["S35", "§5 (RR-120) incomplete attribution is refused", QA, "      attribution: creator && link ? ", "      attribution: true ? ", "§5 · FIRING CONTROL: missing or incomplete attribution"],
+  ["S32", "§3 a licence version outside the declared set is refused", SA, "    if (Array.isArray(decl.licenceVersions) && !decl.licenceVersions.includes(item.licenceVersion)) {", "    if (false) {", "§3 · FIRING CONTROL (RR-121): the response's STATED licence"],
+  ["S33", "§3 the date cross-check compares the OLDER date", QA, "  const t = Math.min(createdEpoch, editedEpoch);", "  const t = Math.max(createdEpoch, editedEpoch);", "§3 · FIRING CONTROL (RR-121): the response's STATED licence"],
+  ["S34", "§3 the date cross-check keeps the 2.5 boundary", QA, "  if (t < DAY(\"2011-04-08\")) return \"2.5\";", "", "§3 · FIRING CONTROL (RR-121): the response's STATED licence"],
+  ["S35", "§3 (RR-121) a missing creator is refused by name, never defaulted", QA, "    if (!creator) { refuse(\"CREATOR_ABSENT\"); continue; }", "", "§3 · FIRING CONTROL: a missing creator, link or title"],
+  ["S48", "§3 (RR-121) an absent licence field is refused, not inferred", QA, "    if (str(p.content_license) === null) { refuse(\"CONTENT_LICENSE_ABSENT\"); continue; }", "", "§3 · FIRING CONTROL (RR-121): the response's STATED licence"],
+  ["S49", "§3 (RR-121) an unrecognised licence value is refused", QA, "    if (stated === null) { refuse(\"CONTENT_LICENSE_UNRECOGNISED\"); continue; }", "", "§3 · FIRING CONTROL (RR-121): the response's STATED licence"],
+  ["S50", "§3 (RR-121) the STATED licence governs, never the date", QA, "      licenceName: \"CC BY-SA\", licenceVersion: stated,", "      licenceName: \"CC BY-SA\", licenceVersion: licenceVersionByDate(p.creation_date, edited),", "§3 · FIRING CONTROL (RR-121): the response's STATED licence"],
+  ["S51", "§3 (RR-121) a date disagreement is counted", QA, "    if (licenceVersionByDate(p.creation_date, edited) !== stated) note(", "    if (false) note(", "§3 · FIRING CONTROL (RR-121): the response's STATED licence"],
+  ["S52", "§3 (RR-121) a cross-check is reported, not hidden", SA, "    ...(Object.keys(r.notes ?? {}).length ? [", "    ...(false ? [", "§3 · FIRING CONTROL (RR-121): the response's STATED licence"],
+  ["S53", "§3 (RR-121) a missing title is refused by name", QA, "    if (!title) { refuse(\"TITLE_ABSENT\"); continue; }", "", "§3 · FIRING CONTROL: a missing creator, link or title"],
+  ["S54", "§3 (RR-121) a missing link is refused by name", QA, "    if (!link) { refuse(\"POST_LINK_ABSENT\"); continue; }", "", "§3 · FIRING CONTROL: a missing creator, link or title"],
+  ["S55", "§4 (RR-121) the run's cap stops the collector", GOV, "      if (sent >= cap) return refuse(\"REQUEST_CAP_REACHED\");", "", "§4 · FIRING CONTROL: the run's own CAP"],
+  ["S56", "§4 (RR-121) no quota left stops the collector", GOV, "      if (quotaRemaining !== null && quotaRemaining <= 0) return refuse(\"QUOTA_EXHAUSTED\");", "", "§4 · FIRING CONTROL: the QUOTA stops"],
+  ["S57", "§4 (RR-121) a backoff in force stops the method", GOV, "      if (backoffUntil.has(method) && clock() < backoffUntil.get(method)) return refuse(\"BACKOFF_IN_FORCE\");", "", "§4 · FIRING CONTROL: BACKOFF is obeyed"],
+  ["S58", "§4 (RR-121) an identical request within the window is refused", GOV, "      if (lastSent.has(id) && clock() - lastSent.get(id) < dedupeWindowSeconds) return refuse(\"IDENTICAL_REQUEST_WITHIN_WINDOW\");", "", "§4 · FIRING CONTROL: a semantically identical request"],
+  ["S59", "§4 (RR-121) a returned backoff is recorded", GOV, "      if (Number.isInteger(response?.backoff) && response.backoff > 0) backoffUntil.set(", "      if (false) backoffUntil.set(", "§4 · FIRING CONTROL: BACKOFF is obeyed"],
+  ["S60", "§4 (RR-121) a returned quota is recorded", GOV, "      if (Number.isInteger(response?.quota_remaining)) quotaRemaining = ", "      if (false) quotaRemaining = ", "§4 · FIRING CONTROL: the QUOTA stops"],
+  ["S61", "§4 (RR-121) a credential never makes a request different", GOV, ".filter((k) => !CREDENTIAL_PARAMS.has(k))", ".filter(() => true)", "§4 · FIRING CONTROL: a semantically identical request"],
+  ["S62", "§4 (RR-121) a refused recheck keeps no recheck", COL, "  if (again.refused) return { recorded, recheck: null,", "  if (false) return { recorded, recheck: null,", "§4 · the collector makes exactly one search"],
+  ["S63", "§4 (RR-121) an empty search is not rechecked", COL, "  if (ids.length === 0) return {", "  if (false) return {", "§4 · the collector makes exactly one search"],
+  ["S64", "§4 (RR-121) the backoff window is per method", GOV, "backoffUntil.has(method) && clock() < backoffUntil.get(method)", "backoffUntil.size > 0 && clock() < Math.max(...backoffUntil.values())", "§4 · FIRING CONTROL: BACKOFF is obeyed"],
   ["S36", "§5 (RR-120) a deleted post is refused as deleted", QA, "    if (!now) { refuse(\"POST_DELETED_SINCE_RETRIEVAL\"); continue; }", "", "§5 · FIRING CONTROL: a post deleted or changed"],
   ["S37", "§5 (RR-120) a changed post is refused", QA, "    if (now?.title !== p.title || nowEdited !== edited) {", "    if (false) {", "§5 · FIRING CONTROL: a post deleted or changed"],
   ["S38", "§5 (RR-120) a changed version alone is a change", QA, "now?.title !== p.title || nowEdited !== edited)", "now?.title !== p.title)", "§5 · FIRING CONTROL: a post deleted or changed"],
@@ -118,6 +135,6 @@ restoreAll();
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "f16-source-adapter-sabotage-rr120-run2-2026-10-01.txt"), lines.join("\n").split(PRODUCT_WORDS[0]).join("<planted product word>") + "\n");
+writeFileSync(join(REPO, "runs", "audit", "f16-source-adapter-sabotage-rr121-2026-10-01.txt"), lines.join("\n").split(PRODUCT_WORDS[0]).join("<planted product word>") + "\n");
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

@@ -22,7 +22,7 @@ import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedStoreAppend } from "../src/governance/governed-run.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { validateSubmission, BATCH_PURPOSES } from "../src/research/human-observation.mjs";
-import { PILOT_MARK } from "../src/research/public-questions.mjs";
+import { PILOT_MARK, OBSERVER_TYPES } from "../src/research/public-questions.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (k) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? null;
@@ -55,13 +55,15 @@ const accepted = results.filter((r, i) => r.accepted && submissions[i].subject =
 const refusedBy = {};
 results.forEach((r, i) => { const why = submissions[i]?.subject !== SUBJECT ? ["SUBJECT_IS_NOT_THIS_RUNS_SUBJECT"] : r.accepted ? [] : r.refusals; for (const w of why) refusedBy[w] = (refusedBy[w] ?? 0) + 1; });
 const byKind = accepted.reduce((m, r) => ((m[r.value.kind] = (m[r.value.kind] ?? 0) + 1), m), {});
+/* RR-125: WHO LOOKED, counted per observer type — never one combined total */
+const byObserver = Object.fromEntries(Object.keys(OBSERVER_TYPES).map((o) => [o, accepted.filter((r) => r.value.kind === "OBSERVED" && r.value.provenance.observerType === o).length]));
 
 const lines = [
   `SAMPLE — not a census of the world's questions · declared limits: the ${submissions.length} submission(s) of this session, each stored with its own declared limits`,
   `submissions ${submissions.length} · accepted ${accepted.length} of ${submissions.length} · refused ${submissions.length - accepted.length} of ${submissions.length} (another subject's: ${foreign})`,
-  `accepted by kind: OBSERVED ${byKind.OBSERVED ?? 0} · INFERRED ${byKind.INFERRED ?? 0} · CLIENT_CLAIM ${byKind.CLIENT_CLAIM ?? 0} — three separate kinds, never merged`,
+  `accepted by kind: OBSERVED ${byKind.OBSERVED ?? 0} (by observer: ${Object.keys(OBSERVER_TYPES).map((o) => `${o} ${byObserver[o]}`).join(" · ")}) · INFERRED ${byKind.INFERRED ?? 0} · CLIENT_CLAIM ${byKind.CLIENT_CLAIM ?? 0} — three separate kinds, never merged`,
   `refusals by rule: ${Object.entries(refusedBy).map(([k, n]) => `${k} ${n}`).join(" · ") || "none"}`,
-  "provenance: a person saw each observation; the engine searched nothing, fetched nothing and opened no reference",
+  "provenance: each observation names WHO looked — a person or an agent, never relabelled; the engine searched nothing, fetched nothing and opened no reference",
   ...(declaredPurpose === "TEST_PILOT" ? [`${PILOT_MARK} — this batch is declared TEST_PILOT: not the demand of any country, not global demand, not a production client result`] : []),
 ];
 console.log("F16 · HUMAN OBSERVATIONS — this tenant's subject only, count-only");

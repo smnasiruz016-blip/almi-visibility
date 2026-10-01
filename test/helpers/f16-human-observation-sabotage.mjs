@@ -6,7 +6,7 @@
  * PRE-FLIGHT FIRST: every span is checked to exist EXACTLY ONCE in the code live now, and the pre-flight is printed before any sabotage
  * runs — a span that does not is NOT PROVED, never silently skipped. Then each sabotage replaces its span ALONE, proves it LANDED, runs the
  * named proof file, requires the NAMED test to fail, restores by raw-byte sha256. The production trail is hashed before and after.
- * Evidence: runs/audit/f16-human-observation-sabotage-rr117-2026-10-01.txt (the #219 run stays at f16-human-observation-sabotage-2026-10-01.txt).
+ * Evidence: runs/audit/f16-human-observation-sabotage-rr125-2026-10-01.txt (RR-125 rerun after S19 followed its live line; the rr117 and #219 files stay untouched).
  */
 import { readFileSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -47,7 +47,7 @@ const SABOTAGES = [
   ["S26", "§4 another client's batch is refused at the gate", BIN, "RESOURCES.researchBatch(BATCH)", "RESOURCES.subject(SUBJECT)", "§4 · TWO UNRELATED CLIENTS"],
   ["S17", "§8 the governed action is registered (else the boundary refuses it)", AU, "    \"APPEND_HUMAN_OBSERVATIONS\",\n", "", "§6/§8 · PRODUCTION PATH"],
   ["S18", "§0 the path names no product", HO, "export const CATEGORIES = Object.freeze(", `export const PLANTED = "${PRODUCT_WORDS[0]}";\nexport const CATEGORIES = Object.freeze(`, "§0 · FIRING CONTROL"],
-  ["S19", "§6 the path never reaches a sealed store", HO, "import { RECORD_TYPE, NOT_MEASURED } from \"./public-questions.mjs\";", "import { RECORD_TYPE, NOT_MEASURED } from \"./public-questions.mjs\";\nimport \"../governance/sealed-store-roots.mjs\";", "§6 · FIRING CONTROL: the validator"],
+  ["S19", "§6 the path never reaches a sealed store", HO, "import { RECORD_TYPE, NOT_MEASURED, OBSERVER_TYPES, NOT_AN_OBSERVATION } from \"./public-questions.mjs\";", "import { RECORD_TYPE, NOT_MEASURED, OBSERVER_TYPES, NOT_AN_OBSERVATION } from \"./public-questions.mjs\";\nimport \"../governance/sealed-store-roots.mjs\";", "§6 · FIRING CONTROL: the validator"],
   ["S20", "§6 a network call is seen", CP, `{ code: "RAW_NETWORK_CALL", test: (t) => t.split("\\n").some((l) => RAW_EGRESS.test(l)) },`, `{ code: "RAW_NETWORK_CALL", test: () => false },`, "§6 · FIRING CONTROL: the validator"],
 ];
 
@@ -97,6 +97,6 @@ const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
 /* RR-117: each round's run is its own evidence file; the merged #219 run (f16-human-observation-sabotage-2026-10-01.txt) is never overwritten */
-writeFileSync(join(REPO, "runs", "audit", "f16-human-observation-sabotage-rr117-2026-10-01.txt"), lines.join("\n") + "\n");
+writeFileSync(join(REPO, "runs", "audit", "f16-human-observation-sabotage-rr125-2026-10-01.txt"), lines.join("\n") + "\n");
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

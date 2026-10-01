@@ -20,7 +20,7 @@
  * this boundary admits.
  */
 import { createHash } from "node:crypto";
-import { RECORD_TYPE, NOT_MEASURED } from "./public-questions.mjs";
+import { RECORD_TYPE, NOT_MEASURED, OBSERVER_TYPES } from "./public-questions.mjs";
 
 export const SOURCE_KINDS = Object.freeze({ QUESTION_SOURCE: "QUESTION_SOURCE", KEYWORD_SOURCE: "KEYWORD_SOURCE" });
 export const VERIFIED = "VERIFIED_FROM_PRIMARY_SOURCE";
@@ -84,7 +84,7 @@ export function recordsFrom(decl, retrieval, { subject, origin, dataPurpose = nu
       const id = hash([subject, decl.sourceId, item.sourceUrl, item.postVersion]);
       records.push(Object.freeze({ record_type: RECORD_TYPE, question_id: id, measurement_key: `${RECORD_TYPE}:${id}`, recorded_at: item.observedAt,
         value: Object.freeze({ ...shared, kind: "OBSERVED", original: item.wording, reference: item.sourceUrl, postVersion: item.postVersion, postedAt: item.postedAt ?? NOT_MEASURED,
-          provenance: Object.freeze({ seenBy: "A SOURCE ADAPTER — the text as the source holds it", sourceId: decl.sourceId, engineObserved: true }),
+          provenance: Object.freeze({ observerType: "SOURCE_ADAPTER_OBSERVED", seenBy: OBSERVER_TYPES.SOURCE_ADAPTER_OBSERVED, sourceId: decl.sourceId, engineObserved: true }),
           source: decl.sourceId, surface: "source adapter", timeWindow: Object.freeze({ from: item.observedAt, to: item.observedAt }), method: `source-adapter:${decl.sourceId}` }) }));
     } else {
       const id = hash([subject, decl.sourceId, item.idea, item.observedAt]);
@@ -105,7 +105,7 @@ export function sampleLines(decl, r) {
   const scope = ["coverage: as the source declared it for this retrieval, stored beside each record (not printed — count-only)", SCOPE_DISCLAIMER];
   if (r.retrieved === 0) return guardScope(r, [...lines, ...scope, "EMPTY SAMPLE — 0 of 0 item(s) retrieved: no question is invented, no keyword idea stands in, nothing is padded from another topic"]);
   return guardScope(r, [...lines, ...scope,
-    decl.kind === SOURCE_KINDS.QUESTION_SOURCE ? `questions people wrote: kept ${q} of ${r.retrieved} retrieved` : `keyword signals (generated ideas, never questions): kept ${k} of ${r.retrieved} retrieved`,
+    decl.kind === SOURCE_KINDS.QUESTION_SOURCE ? `questions people wrote: kept ${q} of ${r.retrieved} retrieved · observer type SOURCE_ADAPTER_OBSERVED, the only one this path writes` : `keyword signals (generated ideas, never questions): kept ${k} of ${r.retrieved} retrieved`,
     `refusals by rule: ${Object.entries(r.refused).map(([w, n]) => `${w} ${n}`).join(" · ") || "none"}`,
     /* RR-121: a cross-check that disagrees is REPORTED — it decides nothing, and is never folded into the refusals */
     ...(Object.keys(r.notes ?? {}).length ? [`cross-checks (reported, not deciding): ${Object.entries(r.notes).map(([w, n]) => `${w} ${n} of ${r.checked} checked`).join(" · ")}`] : [])]);

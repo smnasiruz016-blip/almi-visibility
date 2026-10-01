@@ -30,7 +30,7 @@ const BAKERY = { subject: "harbour-bakery", origin: "https://harbour-bakery.inva
 const BIKES = { subject: "trailside-bike-repair", origin: "https://trailside-bikes.invalid", batch: "trailside-bike-questions", tenant: SECOND_FIXTURE_TENANT };
 const PILOT = { subject: "harbour-bakery", origin: BAKERY.origin, batch: "harbour-bakery-pilot", tenant: FIXTURE_TENANT, purpose: "TEST_PILOT" };
 
-const ask = (client, wording, n) => ({ category: "RESEARCHER_OBSERVATION", subject: client.subject, wording, source: "a public discussion forum", surface: "forum thread", reference: `https://forum.invalid/t/${n}`, observedAt: "2026-10-01T09:00:00Z", country: NOT_MEASURED, language: "en", method: "manual search by a person", limits: "one session, first results page only", observerRole: "researcher" });
+const ask = (client, wording, n) => ({ category: "RESEARCHER_OBSERVATION", subject: client.subject, wording, source: "a public discussion forum", surface: "forum thread", reference: `https://forum.invalid/t/${n}`, observedAt: "2026-10-01T09:00:00Z", observerType: "PERSON_OBSERVED", verifiedOn: "ORIGINAL_PAGE", country: NOT_MEASURED, language: "en", method: "manual search by a person", limits: "one session, first results page only", observerRole: "researcher" });
 
 /** ONE declaration function for every client: its subject, its origin, its own research batch — and, optionally, the batch's purpose. */
 function declareClient(W, c) {

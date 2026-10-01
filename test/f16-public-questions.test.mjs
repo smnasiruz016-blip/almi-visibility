@@ -12,7 +12,7 @@ import { existsSync, readFileSync, readdirSync, statSync, mkdirSync, writeFileSy
 import { join } from "node:path";
 import { spawnSync, execFileSync } from "node:child_process";
 
-import { intakeOne, intakeQuestions, groupQuestions, originalsOf, outranks, reportLines, KINDS, REQUIRED_FIELDS, CENSUS_PARTS, COMPLETENESS_CLAIM, NOT_MEASURED, VERDICT, MISSING, RECORD_TYPE } from "../src/research/public-questions.mjs";
+import { intakeOne, intakeQuestions, groupQuestions, originalsOf, outranks, reportLines, KINDS, REQUIRED_FIELDS, CENSUS_PARTS, COMPLETENESS_CLAIM, NOT_MEASURED, VERDICT, MISSING, RECORD_TYPE, OBSERVER_TYPES } from "../src/research/public-questions.mjs";
 import { readClientQuestionRecords } from "../src/research/public-questions-reader.mjs";
 import { createTenantResolver, readDeclarations, rootIndexFor } from "../src/tenancy/resolver.mjs";
 import { lookupStore } from "../src/tenancy/root-registry.mjs";
@@ -28,7 +28,7 @@ const PATH = ["src/research/public-questions.mjs", "src/research/public-question
 const ENTRIES = ["src/research/public-questions.mjs", "src/research/public-questions-reader.mjs"];
 
 const FULL = { source: "src-a", surface: "surface-a", country: "XX", language: "xx", timeWindow: { from: "2026-09-01", to: "2026-09-30" }, method: "manual reading", limits: "first page only" };
-const q = (id, kind, wording, over = {}) => ({ record_type: RECORD_TYPE, question_id: id, value: { kind, original: wording, provenance: { seenAt: "fixture" }, ...FULL, ...over } });
+const q = (id, kind, wording, over = {}) => ({ record_type: RECORD_TYPE, question_id: id, value: { kind, original: wording, provenance: kind === "OBSERVED" ? { observerType: "PERSON_OBSERVED", seenBy: OBSERVER_TYPES.PERSON_OBSERVED } : { observerType: "NOT_AN_OBSERVATION" }, ...FULL, ...over } });
 
 /* ================= C1 — lawful sources; nothing sealed, nothing owned ================= */
 

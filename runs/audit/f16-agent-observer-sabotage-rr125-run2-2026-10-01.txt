@@ -1,0 +1,25 @@
+F16 who-looked sabotage run · 2026-10-01T22:05:04.437Z
+population: 18 sabotages over test/f16-agent-observer.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): A1=1 A2=1 A3=1 A4=1 A5=1 A6=1 A7=1 A8=1 A9=1 A10=1 A11=1 A12=1 A13=1 A14=1 A15=1 A16=1 A17=1 A18=1 · all exactly once: true
+production trail sha256 before: e8016aa34a81cd55502c4aeff999e9aa83c36469d18df36d3d0ff081d62b155c
+
+A1 the observer type is required src/research/human-observation.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+A2 the original-page attestation is required src/research/human-observation.mjs: landed true · named test red true · failing 2 · reason AssertionError/TypeError · restored by sha256 true · PROVED
+A3 only a person or an agent may be submitted src/research/human-observation.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+A4 a lead is refused by name src/research/human-observation.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+A5 the label is derived from the type, never chosen src/research/human-observation.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+A6 a claim or a suggestion is never an observer src/research/human-observation.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+A7 a label that contradicts its type is refused by the reader src/research/public-questions.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+A8 an unattributed observation is malformed, never counted src/research/public-questions.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+A9 only OBSERVED records need an observer src/research/public-questions.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+A10 the split counts each observer type apart src/research/public-questions.mjs: landed true · named test red true · failing 3 · reason AssertionError · restored by sha256 true · PROVED
+A11 a combined count without its split throws src/research/public-questions.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+A12 the report refuses a result whose split is missing src/research/public-questions.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+A13 the report line carries the split src/research/public-questions.mjs: landed true · named test red true · failing 3 · reason Error · restored by sha256 true · PROVED
+A14 the writer shows the split bin/observe-question.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+A15 the writer never says every observer was a person bin/observe-question.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+A16 the writer is tenant-scoped to the batch bin/observe-question.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+A17 an adapter record carries its own observer type src/research/source-adapter.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+A18 the source field is required src/research/human-observation.mjs: landed true · named test red true · failing 2 · reason AssertionError/TypeError · restored by sha256 true · PROVED
+
+proved 18 of 18 · residue 0 · production trail sha256 after: e8016aa34a81cd55502c4aeff999e9aa83c36469d18df36d3d0ff081d62b155c · unchanged true

@@ -33,7 +33,7 @@ const TMP = join(tmpdir(), `almi-f16-hobs-${process.pid}`);
 
 const SUBJECT_B = "second-client-subject", ORIGIN_B = "https://second-client.invalid", BATCH_A = "hobs-client-a", BATCH_B = "hobs-client-b";
 const base = (subject, over = {}) => ({ subject, wording: "  How long does it TAKE to hear back?  ", source: "a public discussion forum", surface: "forum thread", country: NOT_MEASURED, language: "en", method: "manual search by a person", limits: "one session, first results page only", observerRole: "researcher", ...over });
-const obs = (subject, over = {}) => ({ ...base(subject), category: "RESEARCHER_OBSERVATION", reference: "https://forum.invalid/thread/1", observedAt: "2026-10-01T09:00:00Z", ...over });
+const obs = (subject, over = {}) => ({ ...base(subject), category: "RESEARCHER_OBSERVATION", reference: "https://forum.invalid/thread/1", observedAt: "2026-10-01T09:00:00Z", observerType: "PERSON_OBSERVED", verifiedOn: "ORIGINAL_PAGE", ...over });
 
 /** One confined world with TWO clients: A (the fixture subject) and B (a second subject, origin and batch, attached to a second tenant). */
 function twoClients(files) {

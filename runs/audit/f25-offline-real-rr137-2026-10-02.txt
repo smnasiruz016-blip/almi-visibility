@@ -1,0 +1,17 @@
+F25 mobile readiness on the REAL stored pages, offline · 2026-10-02T22:41:52Z · engine c780d76+working tree · data c545d1c · count-only
+== subject almi-oet
+  population   fetched pages 5 · with a stored body matching its recorded hash 5 · without 0
+  renders      mobile PARTIAL 5 · desktop PARTIAL 5
+  VIEWPORT     PRESENT 5 — of 5 page(s) · width=device-width 5 · zoom restricted (WCAG 2.2 SC 1.4.4) 0   [from the stored HTML]
+  RESPONSIVE   NOT MEASURED 5 — of 5 page(s)   [COMPLETE mobile render only]
+  TAP TARGETS  NOT MEASURED 5 — of 5 page(s) · undersized (WCAG 2.2 SC 2.5.8) NOT MEASURED   [COMPLETE mobile render only]
+  MOBILE TEXT  NOT MEASURED 5 — of 5 page(s)   [COMPLETE mobile AND desktop render only]
+  population   INCOMPLETE — a page or measure above is NOT MEASURED · nothing written
+== subject shamool-foundation
+  population   fetched pages 3 · with a stored body matching its recorded hash 3 · without 0
+  renders      mobile FAILED 1 · PARTIAL 2 · desktop FAILED 1 · PARTIAL 2
+  VIEWPORT     PRESENT 3 — of 3 page(s) · width=device-width 3 · zoom restricted (WCAG 2.2 SC 1.4.4) 0   [from the stored HTML]
+  RESPONSIVE   NOT MEASURED 3 — of 3 page(s)   [COMPLETE mobile render only]
+  TAP TARGETS  NOT MEASURED 3 — of 3 page(s) · undersized (WCAG 2.2 SC 2.5.8) NOT MEASURED   [COMPLETE mobile render only]
+  MOBILE TEXT  NOT MEASURED 3 — of 3 page(s)   [COMPLETE mobile AND desktop render only]
+  population   INCOMPLETE — a page or measure above is NOT MEASURED · nothing written

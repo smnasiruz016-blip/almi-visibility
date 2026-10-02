@@ -147,12 +147,16 @@ export async function launchOfflineChromium({ chromium, playwrightVersion }) {
  *                      browser still resolves no name: what it receives is fulfilled by the Node side.
  *   javaScriptEnabled  false renders the page as a client without scripts sees it (F22's SOURCE side); default true.
  *   readVisibleText    true also returns the page's visible text (document.body.innerText), read after the page settled.
+ * RR-137 (F25): two more, also off by default.
+ *   viewport           a DECLARED viewport for the context ({ width, height, isMobile, hasTouch, deviceScaleFactor }).
+ *   readLayout         true also returns layout facts: the document's scroll width, the viewport width, and every link, button and
+ *                      form control as { x, y, w, h, visible } (its bounding box and whether it is rendered visible).
  */
-export async function renderDocument({ browser, origin, id, documentUrl, bounds = RENDER_BOUNDS, egress, subresources = null, javaScriptEnabled = true, readVisibleText = false }) {
+export async function renderDocument({ browser, origin, id, documentUrl, bounds = RENDER_BOUNDS, egress, subresources = null, javaScriptEnabled = true, readVisibleText = false, viewport = null, readLayout = false }) {
   const t0 = Date.now();
   const target = new URL(documentUrl).href;
   /* a FRESH context for every render: cookies, storage and cache are the context's, and are discarded with it (F22 C4 · storage) */
-  const context = await browser.newContext({ serviceWorkers: "block", acceptDownloads: false, javaScriptEnabled });
+  const context = await browser.newContext({ serviceWorkers: "block", acceptDownloads: false, javaScriptEnabled, ...(viewport ? { viewport: { width: viewport.width, height: viewport.height }, isMobile: Boolean(viewport.isMobile), hasTouch: Boolean(viewport.hasTouch), deviceScaleFactor: viewport.deviceScaleFactor ?? 1 } : {}) });
   const requests = [];
   const routed = new Set();
   const issued = [];
@@ -163,6 +167,7 @@ export async function renderDocument({ browser, origin, id, documentUrl, bounds 
   let crashed = false;
   let html = null;
   let visibleText = null;
+  let layout = null;
   let proof;
   try {
     await context.route("**/*", async (route) => {
@@ -223,6 +228,18 @@ export async function renderDocument({ browser, origin, id, documentUrl, bounds 
       try {
         html = await page.content();
         if (readVisibleText) visibleText = await page.evaluate(() => (document.body ? document.body.innerText : ""));
+        if (readLayout) {
+          layout = await page.evaluate(() => {
+            const targets = [...document.querySelectorAll('a[href], button, input:not([type="hidden"]), select, textarea, [role="button"]')].map((el) => {
+              const b = el.getBoundingClientRect();
+              const s = getComputedStyle(el);
+              return { x: b.x + scrollX, y: b.y + scrollY, w: b.width, h: b.height, visible: b.width > 0 && b.height > 0 && s.visibility !== "hidden" && s.display !== "none" };
+            });
+            /* the LAYOUT viewport (clientWidth), not window.innerWidth: under mobile emulation the visual viewport zooms out to fit wide
+             * content, so innerWidth grows with the overflow it should reveal (found by F25's browser test) */
+            return { scrollWidth: document.documentElement.scrollWidth, viewportWidth: document.documentElement.clientWidth, targets };
+          });
+        }
       } catch (e) {
         navigationError = `the DOM could not be read: ${firstLine(e.message)}`;
       }
@@ -246,6 +263,7 @@ export async function renderDocument({ browser, origin, id, documentUrl, bounds 
   return {
     html: renderState === "FAILED" ? null : html,
     visibleText: renderState === "FAILED" ? null : visibleText,
+    layout: renderState === "FAILED" ? null : layout,
     renderState,
     reason,
     requests: summariseRequests(requests),

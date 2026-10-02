@@ -1,0 +1,17 @@
+F87 operator overview sabotage run · 2026-10-02T02:55:25.140Z
+population: 10 sabotages over test/f87-operator-overview.test.mjs · each applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): O1=1 O2=1 O3=1 O4=1 O5=1 O6=1 O7=1 O8=1 O9=1 O10=1 · all exactly once: true
+production trail sha256 before: 9049914e85016baaac1db8af69dc3ae8ec0fa41606e926448991146223c0d970
+
+O1 a released value carries no URL, host, identifier, quote or question character src/ops/operator-overview.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+O2 a field outside counts and codes is refused before print src/ops/operator-overview.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+O3 render prints only an overview that passed the check src/ops/operator-overview.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+O4 an attribution naming no tenant is charged to no one src/ops/operator-overview.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+O5 a contested batch member is UNATTRIBUTED src/ops/operator-overview.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+O6 facts are never read across tenants — NOT MEASURED here src/ops/operator-overview.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+O7 no recorded failure reads UNPROVED, never passed src/ops/operator-overview.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+O8 the operator read is decided at GLOBAL_PRODUCT scope src/ops/operator-overview.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+O9 a refused actor reads nothing bin/operations-overview.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+O10 the batch is attributed by F02's partition, never charged wholesale src/ops/operator-overview-reader.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+
+proved 10 of 10 · residue 0 · production trail sha256 after: 9049914e85016baaac1db8af69dc3ae8ec0fa41606e926448991146223c0d970 · unchanged true

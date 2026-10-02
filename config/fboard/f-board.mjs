@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F13_ORIGINAL } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F13_ORIGINAL, F81_ORIGINAL } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -1088,6 +1088,33 @@ export const DECLARED = Object.freeze({
         historicalReuse: "reused unchanged: F27's page reader (transportPages), F02's crawl partition and body readers, the fact registry loader, the product scope and F91's qualifier reader (as a cross-check). The historical axis-discovery runner (row 6) is NOT reused: it decides with thresholds this acceptance forbids.",
         declaredLimit: "discovery reads two evidence kinds — fact-record qualifiers and declared page language; a dimension carried by no record of either (a stage or a use case, say) is not discovered, and nothing infers one. Discovery never declares: a CANDIDATE enters page planning only if the product declares it (F91).",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
+  /* 🔴 F81 · Search performance and rank tracking. Frozen ALONE (_handoffs ae4834b, RR-132 §3) before any F81 code. Built on recorded data:
+   * the per-client tracker (F02's partition by a row's own page origin) and the dated, device and country pull types behind the governed
+   * connector, proved on the fake provider. IN-PROGRESS only: on the real population the device and country dimensions and the trend are
+   * NOT MEASURED — no recorded observation carries them, and fixtures never satisfy a real-population clause. */
+  F81: Object.freeze({
+    featureId: "F81",
+    board: "F_BOARD",
+    state: "IN-PROGRESS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-02", ruling: F81_ORIGINAL.ruling, contractSha256: F81_ORIGINAL.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F81",
+        on: "2026-10-02",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: F81_ORIGINAL.ruling.sha256, contract: F81_ORIGINAL.contractSha256 }),
+        branch: "rr132-f81-search-performance",
+        baseSha: "ce7bd8b1d2a6903b69a040571f140cc76408f461",
+        baseCiRun: "36965874939",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-02_RR-132_CONFIRM_33_PREPARE_F81_HONESTLY_KEEP_CLOSING_ROWS.md", commit: "d9ee137ffcf7e0eb436403db5dcb6e47b7ee05e9", sha256: "482d50d914f4fbd549940b71a4eac33931113870af6bf09dd3e0dd14455654e7" }),
       }),
     ]),
   }),

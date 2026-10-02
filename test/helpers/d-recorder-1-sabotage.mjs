@@ -31,8 +31,9 @@ const CONS = "tools/board-audit-consistency.mjs";
 export function dRecorder1Sabotages() {
   return [
     { id: "DR1-S1", what: "the row's latest acceptance governs every movement (re-attribution)", file: POP, test: T, named: SAME_DAY,
-      from: "      const authorityRef = governing ? refOf(governing) : blockerAuthority?.[row.featureId] ?? null;",
-      to: "      const authorityRef = governing ? refOf(versionOf([...(row.events ?? [])].reverse().find((x) => x.ruling)?.ruling) ?? governing) : blockerAuthority?.[row.featureId] ?? null;",
+      /* RR-127: span moved to the live line (an event may now name its own authority); the sabotage is unchanged in intent */
+      from: "      const authorityRef = governing ? refOf(governing) : own ?? blockerAuthority?.[row.featureId] ?? null;",
+      to: "      const authorityRef = governing ? refOf(versionOf([...(row.events ?? [])].reverse().find((x) => x.ruling)?.ruling) ?? governing) : own ?? blockerAuthority?.[row.featureId] ?? null;",
       expect: /a movement was attributed to a later acceptance, or carries a state that was not true after it/ },
     { id: "DR1-S2", what: "stateAfter is the row's current state", file: POP, test: T, named: SAME_DAY,
       from: "stateAfter: state, identitySubject,", to: "stateAfter: row.state, identitySubject,",

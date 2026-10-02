@@ -706,6 +706,24 @@ export const F81_ORIGINAL = Object.freeze({
   contractSha256: "f56f69cbfad16333763a3e4a4a68a489a91ea1ff4a569ab93c803d1bae0e25a3",
 });
 
+/* 🔴 F19 · FROZEN 28 Sep 2026 (_handoffs 61407eb, command 65d05e2 §4.3), committed ALONE before any F19 engine change, measurement or
+ * verification: the website crawler bounded on all five controls (pages per run and per host, depth, response size, rate, timeout), dry run by
+ * default, the owner's green before any live request, robots honoured, public pages only, one declared tenant through F02, and a count-only
+ * run record. Pinned 2 Oct 2026 (RR-135) from the committed blob by parseContract (firing control: "arrive closer than the declared interval"
+ * → "arrive nearer than the declared interval" moves the hash); its sha256 equals the authority register's CURRENT record. */
+export const F19_ORIGINAL = Object.freeze({
+  featureId: "F19",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F19_ACCEPTANCE_2026-09-28.md", commit: "61407eb6d99f1f8c5155a324fbe16c3d9984eafa", sha256: "65c807721a53903d87beccf12aab0342608946f0db66ce9e7c06573e566a7fc5" }),
+  authority: Object.freeze({ propositionId: "F19_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F19"]) }),
+  frozenOn: "2026-09-28",
+  feature: "F19 · Website crawler",
+  input: "A declared crawl of bounded public properties for ONE declared tenant: its seeds come only from that tenant's declared resource (a research batch or another attachment the F02 scope decision allows for that tenant), and its bounds are the crawler's declared page, depth, response-size, rate and timeout controls; the live network is reached only with the owner's explicit green; no login, no payment and no paid provider (S2).",
+  expected: "Every crawl is bounded on all five controls, each DECLARED in the run's own plan or record and ENFORCED by the running code: a maximum number of pages per run (and per host); a maximum link DEPTH from the seeds; a maximum response size, beyond which a body is truncated and marked truncated, never stored whole; a minimum interval between requests to one host (the rate); and a per-request timeout that aborts the request. A dry run issues no network request and reports the plan; a live run without the owner's green is refused before any request. robots rules are honoured and a host whose robots state is unknown is not crawled beyond what the rules allow. The crawl reads only public pages (no login, no credential, no payment), runs only for the requested declared tenant through the F02 scope decision, and records its run (seeds' count, requests issued, pages fetched, truncations, refusals) count-only; nothing it fetches is written except by its caller's governed route.",
+  failure: "Any of the five controls is absent, undeclared or not enforced: more pages or more requests per host than the declared cap are fetched; a link is followed beyond the declared depth; a body beyond the size cap is stored whole or not marked truncated; two requests to one host arrive closer than the declared interval; a request runs past its timeout; a dry run issues a request; a live run proceeds without the owner's green; a robots-disallowed path is fetched; a login, a credential, a payment or a paid provider is used; the crawl reads a resource not declared for the requested tenant, or a whole shared collection; the run's record is missing or carries page content; or any control is proved only on an empty population.",
+  evidence: "For each of the five controls, a test driving the production crawler against a local fixture server that shows the bound holding at its limit, and a sabotage that removes the bound's enforcement and turns a named test red for that reason, restored by raw-byte hash with the production trail untouched; the dry-run and owner-green refusals shown red and green; the robots limb shown; the F02 scope decision shown refusing an undeclared tenant resource; and the REAL population: the committed record of a real live crawl run on a declared tenant resource, censused count-only against every declared bound, with its count stated and never empty; plus exact-SHA CI on the PR head and then on the merge commit.",
+  contractSha256: "079554cea021c49af65d840c8bba8f125185e22dbb9c12b6cc01d2dc0bc9dedc",
+});
+
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -892,6 +910,7 @@ export const ACCEPTANCES = Object.freeze({
   F77: F77_AMENDMENT_1,
   F78: F78_ORIGINAL,
   F13: F13_ORIGINAL,
+  F19: F19_ORIGINAL,
   F81: F81_ORIGINAL,
   F79: F79_AMENDMENT_1,
   F82: F82_ORIGINAL,

@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F13_ORIGINAL, F81_ORIGINAL } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F13_ORIGINAL, F19_ORIGINAL, F81_ORIGINAL } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -1087,6 +1087,49 @@ export const DECLARED = Object.freeze({
         sabotage: "runs/audit/f13-sabotage-rr131-2026-10-02.txt: 18 of 18 proved, every span pre-flighted once, named tests confirmed GREEN before the run (RR-131 §7), every named test red by assertion (X3, X12, X15 isolated), production trail unchanged.",
         historicalReuse: "reused unchanged: F27's page reader (transportPages), F02's crawl partition and body readers, the fact registry loader, the product scope and F91's qualifier reader (as a cross-check). The historical axis-discovery runner (row 6) is NOT reused: it decides with thresholds this acceptance forbids.",
         declaredLimit: "discovery reads two evidence kinds — fact-record qualifiers and declared page language; a dimension carried by no record of either (a stage or a use case, say) is not discovered, and nothing infers one. Discovery never declares: a CANDIDATE enters page planning only if the product declares it (F91).",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
+  /* 🔴 F19 · Website crawler. Frozen ALONE (_handoffs 61407eb, 28 Sep 2026) before any F19 change. Every clause PROVED: the five
+   * controls, dry run and owner green, robots and F02 scope on fixtures with sabotages; and the REAL population — two real live runs on two
+   * UNRELATED declared sites (different subjects, tenants, origins and batch sizes), each censused count-only against every bound (RR-135). */
+  F19: Object.freeze({
+    featureId: "F19",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-28", ruling: F19_ORIGINAL.ruling, contractSha256: F19_ORIGINAL.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F19",
+        on: "2026-10-02",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: F19_ORIGINAL.ruling.sha256, contract: F19_ORIGINAL.contractSha256 }),
+        branch: "rr135-f19-generic-crawl",
+        baseSha: "9cb73a27502e6a730ebb81436043948d6bed6389",
+        baseCiRun: "36975155594",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-02_RR-135_GENERIC_CRAWLER_DATA_CI_F19_BY_REAL_RUNS.md", commit: "fa22aa7a3ebd37400ab546ff0971aed3b715320e", sha256: "350f6fcb72e9bae0d9c3943f5ac4b4e64f2b1dbf26572937e0b011f36e38f821" }),
+      }),
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F19",
+        population: "REAL",
+        on: "2026-10-02",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F19_ORIGINAL.ruling.sha256, contract: F19_ORIGINAL.contractSha256 }),
+        populations: "REAL (count-only; bound: two runs, each declared before its first request at _handoffs 34fff79, each preceded by a zero-external preflight that PROVED every limb on the exact heads): run A — one declared product site, 5 seeds, 1 robots + 5 page requests, 5 × 200, pacing 5 gaps fastest 1004.3 ms 0 breaches, 0 truncations, 0 refusals, 0 redirect hops, KEPT; run B — an UNRELATED declared site (another subject, tenant and origin, not an almiworld.com host), 3 seeds, 1 robots + 3 page requests, 3 × 200, pacing 3 gaps fastest 1012.5 ms 0 breaches, 0 truncations, 0 refusals, 0 redirect hops, KEPT; money NOT MEASURED on both (self-operated, no paid provider, U-COST-5)",
+        proofs: "test/f19-crawler-bounds.test.mjs (the five controls at their limits, robots, refusals, cost, declared plan and record) · test/f19-real-append-path.test.mjs (the binary's live path, no egress: every governed append COMMITS; no green and an undeclared batch refused with 0 network calls) · test/f19-generic-crawl.test.mjs (GENERIC on two unrelated declared sites; RESUMABLE without duplicating an observation; SITE-HELD: an off-site seed and no seed refused with 0 calls, an undeclared redirect not followed; PACED HOPS on the production fetcher) · test/f19-real-run-census.test.mjs (the committed records of both real runs, every clause, 20 tests) · test/owner-authorization-gates.test.mjs (D-CRW-4)",
+        sabotage: "runs/audit/f19-sabotage-rr135-2026-10-02-repointed.txt 15/15 (S5 and S8 re-pointed at the code live now: their anchors had matched 0 times since RR-108, so they were NOT RUN until RR-135) · runs/audit/f19-generic-crawl-sabotage-rr135-2026-10-02.txt 8/8 · runs/audit/f19-append-path-sabotage-rr133-2026-10-02.txt 3/3 · runs/audit/f19-real-census-controls-rr135-2026-10-02-1790958612625.txt 10/10 (each clause of the real census shown failing on a corrupted copy) — named tests confirmed GREEN first; production trail unchanged by every harness",
+        historicalReuse: "none: acceptanceRelation NEW — the 61↔89 artifact links F19 to no historical row",
+        declaredLimit: "depth 0 by design: links are recorded, never followed; no rendering (renderMode RAW_HTML on every record); redirects are followed only to a declared origin, each hop paced, at most 5; a run's money is NOT MEASURED. The per-run caps (500 URLs, 200 per host) bound ONE run, never the product: a client continues batch after batch.",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),

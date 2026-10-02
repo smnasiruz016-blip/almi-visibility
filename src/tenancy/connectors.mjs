@@ -70,9 +70,8 @@ export function openConnector({ scope, subjectId, kind, resolve = null }) {
     credentialName,
     origins: origins ? Object.freeze([...origins]) : null,
     admits: (url) => origins === null || origins.has(originOf(url)),
-    fetch: origins
-      ? (url, init) => (origins.has(originOf(url)) ? globalThis.fetch(url, init) : Promise.reject(new ConnectorRefused("ORIGIN_NOT_DECLARED_FOR_THIS_CONNECTOR")))
-      : (url, init) => globalThis.fetch(url, init),
+    /* ONE call site for the global fetch (F77's egress census counts it) */
+    fetch: (url, init) => (origins === null || origins.has(originOf(url)) ? globalThis.fetch(url, init) : Promise.reject(new ConnectorRefused("ORIGIN_NOT_DECLARED_FOR_THIS_CONNECTOR"))),
   });
 }
 

@@ -1,4 +1,4 @@
-F19 generic-crawl sabotage run · 2026-10-02T15:50:34.504Z
+F19 generic-crawl sabotage run · 2026-10-02T16:05:57.634Z
 population: 8 sabotages over test/f19-generic-crawl.test.mjs · each applied ALONE; each run killed after 300 s
 PRE-FLIGHT (span occurrences in the code live now): G1=1 G2=1 G3=1 G4=1 G5=1 G6=1 G7=1 G8=1 · all exactly once: true
 production trail sha256 before: ef5b083ba8752f3ac0a70c896a37c188af5d303b59edea77293313e9ee01efe8

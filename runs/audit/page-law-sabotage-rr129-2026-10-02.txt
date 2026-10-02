@@ -1,0 +1,11 @@
+Page-law reader sabotage run · 2026-10-02T01:07:19.745Z
+population: 4 sabotages over test/page-law.test.mjs · each applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): G1=1 G2=1 G3=1 G4=1 · all exactly once: true
+production trail sha256 before: 57e26be1ed3978dcb14724f6698f4ab69a656ebe283f4cd62bfc787dcca20d60
+
+G1 clauses 4 and 6 come from the amendment src/governance/page-law.mjs: landed true · named test red true · failing 3 · reason AssertionError · restored by sha256 true · PROVED
+G2 a record that is not CURRENT is refused src/governance/page-law.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+G3 a carried text must be the register's record src/governance/page-law.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+G4 a missing clause is refused src/governance/page-law.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+
+proved 4 of 4 · residue 0 · production trail sha256 after: 57e26be1ed3978dcb14724f6698f4ab69a656ebe283f4cd62bfc787dcca20d60 · unchanged true

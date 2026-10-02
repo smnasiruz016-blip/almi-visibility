@@ -252,9 +252,13 @@ test("V7 · the REAL population: 46 governed = 45 routed + 1 checked exemption +
   /* 92/48 → 93/49 on 1 October (RR-118), for a MEASURED reason: one production entry point, bin/source-intake.mjs, a GOVERNED writer
    * routed through the boundary (BOUNDARY_ROUTED) — it keeps one retrieval from one ADMITTED source in the client's own research batch.
    * No existing caller moved class. */
-  assert.equal(rows.length, 93);
+  /* 93/49 → 94/49 on 2 October (RR-129 §2), for a MEASURED reason: one production entry point, bin/page-law.mjs, READ_ONLY_DIAGNOSTIC —
+   * it prints the owner's effective page law from the authority register; it reads no store, writes nothing and records nothing. No
+   * existing caller moved class. (An earlier edit this round reverted this pin on a wrong belief that the census skips it; the full
+   * suite measured 94.) */
+  assert.equal(rows.length, 94);
   assert.equal(governed.length, 49);
-  assert.equal(rows.filter((r) => r.cls === "READ_ONLY_DIAGNOSTIC").length, 44);
+  assert.equal(rows.filter((r) => r.cls === "READ_ONLY_DIAGNOSTIC").length, 45);
   const by = Object.fromEntries(CALLER_CLASSES.map((c) => [c, governed.filter((r) => r.callerClass === c).length]));
   /* 43/2 → 44/1 on 26 September (F10), for a MEASURED reason: bin/heldout-evaluation.mjs now routes its scoring run through the
    * boundary (BOUNDARY_ROUTED); no entry point was added and no other caller moved class. */

@@ -1,0 +1,22 @@
+/**
+ * 🔴 THE OWNER'S PAGE LAW — the two governance records, carried VERBATIM (RR-128, RR-129 §2).
+ *
+ * Generated from the committed blobs in the governance repository, never typed: each text below hashes (CRLF→LF, sha256) to the
+ * contentHash the authority register holds for it, and src/governance/page-law.mjs refuses to serve either text unless it does. CI has no
+ * checkout of the governance repository, so the bytes travel here and the register's hash proves them.
+ */
+export const PAGE_LAW_RECORDS = Object.freeze({
+  law: Object.freeze({
+    propositionId: "OWNER_RULING_PAGE_LAW",
+    scope: Object.freeze(["ALMIVISIBILITY"]),
+    path: "AlmiVisibility_OWNER_RULING_2026-10-02_PAGE_LAW.md",
+    text: "# AlmiVisibility · OWNER RULING · 2 October 2026 · THE OWNER'S PAGE LAW\n\nThe owner's own words: make this a law for how a page is built. Transcribed verbatim from the clauses of his command RR-128 (_handoffs\nc65aebd). Committed ALONE. CC transcribed it and authored none of it. Recording a law moves no row.\n\n---\n\n1. A page is built FROM the real questions people actually ask, gathered and verified, together with their\n   answers. It is never built from a keyword, a guess, or a list of search terms.\n\n2. THE ORDER IS FIXED, and the order is the law's whole point:\n   gather the real observed questions → find and verify their answers → then build the page.\n   Never the reverse. A page written first and fitted to questions afterwards does not satisfy this law.\n\n3. Word count is NEVER a target and NEVER a gate. When a page carries the real questions and their real\n   answers, its length rises by itself. Length is a by-product and is never reported as a measure of\n   quality.\n\n4. Quality is not applied at the end — it comes from the SOURCE being real. A page built on verified real\n   demand is relevant by construction. This is what the law secures.\n\n5. After this law, the whole weight of quality rests on ONE thing: that each answer is complete, truthful\n   and sourced. An answer with no source is UNKNOWN — never guessed, never filled in to look complete.\n\n6. A page that brings together, in one place, the questions people ask in many scattered places serves the\n   reader better than pages that each answer one of them half-way. The same holds for AI systems, which\n   look for answers, not keywords.\n\n7. 🔴 What this law makes MORE important, not less: because pages are built from questions, two pages can\n   be built from overlapping questions. So the check \"does an existing page already serve this need\" and\n   the duplicate check both gain weight under this law, and neither may be relaxed because of it.\n\n8. Nothing in this law promises ranking, indexing, or citation by any AI system. It governs how a page is\n   built, not what the world does with it.\n",
+  }),
+  amendment1: Object.freeze({
+    propositionId: "OWNER_RULING_PAGE_LAW_AMENDMENT_1",
+    scope: Object.freeze(["ALMIVISIBILITY"]),
+    path: "AlmiVisibility_OWNER_RULING_2026-10-02_PAGE_LAW_AMENDMENT_1.md",
+    replaces: Object.freeze([4, 6]),
+    text: "# AlmiVisibility · OWNER RULING · 2 October 2026 · THE OWNER'S PAGE LAW — AMENDMENT 1 (clauses 4 and 6 restated)\n\nThe owner restated clauses 4 and 6 of his page law in a message during RR-128, the same day. This record APPENDS his restatement. The\nlaw as first recorded (`AlmiVisibility_OWNER_RULING_2026-10-02_PAGE_LAW.md`, _handoffs beb9edd) stays untouched, and so does its\nhistory. **From this record on, clauses 4 and 6 read as below and replace the first wording; clauses 1, 2, 3, 5, 7 and 8 are unchanged.**\nTranscribed verbatim. CC authored none of it. Recording it moves no row.\n\n---\n\n4. Quality begins with a real, verified question sample: the page addresses observed needs rather than an invented keyword target. This establishes relevance to that recorded sample, not automatic overall quality. Each answer must still be checked for completeness, truth, source, and fit to the question.\n\n6. Bring related questions observed across multiple sources together where one page genuinely serves the same need. Record the sample's sources, countries, languages, time windows and limits; never claim every question worldwide was collected. Merge similar questions without losing materially different needs. This can make the page more useful to readers, but does not guarantee AI use, citation, indexing or ranking.\n",
+  }),
+});

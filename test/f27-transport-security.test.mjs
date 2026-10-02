@@ -115,8 +115,10 @@ test("C4 · FIRING CONTROL: an http: action or formaction is unsafe; https:, emp
 
 /* ================= C5 / C6 — headers, public exposure ================= */
 
-test("C5 · no header is judged without an owner declaration; recorded names are counts only; C6 public exposure is NOT MEASURED", () => {
-  const a = run([pg(S, "")], { "content-type": 1, "strict-transport-security": 1 });
+/* Amendment 2 (2 Oct 2026): a declaration now exists (config/security/header-declaration.mjs); this proves the clause's other half — with
+ * NO declaration, still nothing is judged. The declared path is proved in test/f27-header-assessment.test.mjs. */
+test("C5 · with NO declaration no header is judged; recorded names are counts only; C6 public exposure is NOT MEASURED", () => {
+  const a = auditTransport({ pages: [pg(S, "")], headerNames: { "content-type": 1, "strict-transport-security": 1 }, fetchedObservations: 1, declaration: null });
   assert.equal(a.parts.headers.judged, 0);
   assert.deepEqual(a.parts.headers.recordedNames, { "content-type": 1, "strict-transport-security": 1 });
   assert.equal(a.parts.headers.verdict, VERDICT.COULD_NOT_PROVE, "a header was judged with no declaration");
@@ -135,7 +137,7 @@ test("C7 · FIRING CONTROL: every part carries its denominator; the population i
   assert.equal(typeof a.parts.mixedContent.denominator, "number");
   assert.equal(typeof a.parts.unsafeForms.denominator, "number");
   assert.equal(a.incomplete, true);
-  assert.ok(a.absent.some((s) => s.startsWith("raw HTML: ")) && a.absent.some((s) => s.startsWith("headers: ")) && a.absent.some((s) => s.startsWith("public exposure: ")));
+  assert.ok(a.absent.some((s) => s.startsWith("raw HTML: ")) && a.absent.some((s) => s.startsWith("header")) && a.absent.some((s) => s.startsWith("public exposure: ")));
   assert.deepEqual(Object.values(a.parts).map((x) => x.verdict), Array(5).fill(VERDICT.COULD_NOT_PROVE));
   assert.equal(a.verdict, VERDICT.COULD_NOT_PROVE, "a row read PROVED with parts unmeasured");
   assert.equal(run([pg(S, '<img src="http://c.example/a.png">')]).verdict, VERDICT.DISPROVED);
@@ -175,7 +177,8 @@ test("C1 · THE ENTRY POINT: in a declared world it prints this tenant's parts w
     assert.match(ok.stdout, /bound\s+recorded data only · \d+ page\(s\)/);
     assert.ok(ok.stdout.includes(`HTTPS: HTTPS ${a.parts.https.https} · NOT HTTPS ${a.parts.https.notHttps} · NOT MEASURED ${a.parts.https.notMeasured} of ${a.parts.https.denominator} page(s)`), "the entry point printed another tenant's pages");
     assert.match(ok.stdout, /TLS NOT MEASURED/);
-    assert.match(ok.stdout, /HEADERS: none judged — missing an owner declaration/);
+    assert.match(ok.stdout, /HEADERS: judged by each page's own type and behaviour — declared by CC, under the owner's express delegation/);
+    assert.match(ok.stdout, /strict-transport-security \(applies when SERVED_OVER_HTTPS\): PRESENT \d+ · ABSENT \d+ · NOT MEASURED \d+ · NOT APPLICABLE \d+ of \d+ fetched page\(s\)/);
     assert.match(ok.stdout, /PUBLIC EXPOSURE: NOT MEASURED/);
     assert.doesNotMatch(ok.stdout + ok.stderr, /https?:\/\//, "the entry point printed a URL");
   } finally { WORLD.cleanup(); }

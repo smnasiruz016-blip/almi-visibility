@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1 } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F13_ORIGINAL } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -1047,6 +1047,48 @@ export const DECLARED = Object.freeze({
       }),
       /* 2 Oct 2026 (RR-130 §3): Amendment 1, frozen ALONE before any F91 implementation change; F91 stays IN-PROGRESS */
       Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F91", on: "2026-10-02", ruling: F91_AMENDMENT_1.ruling, contractSha256: F91_AMENDMENT_1.contractSha256, amends: F91_AMENDMENT_1.amends }),
+    ]),
+  }),
+  /* 🔴 F13 · Context and axis discovery. Frozen ALONE (_handoffs 0ca24d3, RR-131 §3) before any F13 code; every clause PROVED on the real
+   * population (the demonstration product's own registry and its tenant's own crawl partition) and on two unrelated declared products. */
+  F13: Object.freeze({
+    featureId: "F13",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-02", ruling: F13_ORIGINAL.ruling, contractSha256: F13_ORIGINAL.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F13",
+        on: "2026-10-02",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: F13_ORIGINAL.ruling.sha256, contract: F13_ORIGINAL.contractSha256 }),
+        branch: "rr131-f13-axis-discovery",
+        baseSha: "aab807d7ccab2ecf427d7534c6d8303473d94f8b",
+        baseCiRun: "36961977049",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-02_RR-131_STOP_PREPARING_FINISH_ROWS_ONE_AT_A_TIME.md", commit: "48ca85bec4ae221ac0e1af888745dcc8c2d2ccb1", sha256: "c9cf4a0b923f1acb6e2b46f80eaadd08a377f7c386254128f443e7fecf18926f" }),
+      }),
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F13",
+        population: "REAL",
+        on: "2026-10-02",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F13_ORIGINAL.ruling.sha256, contract: F13_ORIGINAL.contractSha256 }),
+        populations: "REAL (count-only; bound: the demonstration product's fact registry, 47 records of which 26 carry a key=value qualifier, and the 27 stored pages of the one tenant that registry is declared to — 27 readable; nothing fetched, rendered or written): 6 dimensions discovered (5 from fact qualifiers, 1 from declared page language), the declared axis EVIDENCED, 5 CANDIDATES never added; two unrelated declared test products each discover only their own axis.",
+        proofs: "test/f13-context-axes.test.mjs — C1 discovered only where a record carries it, once per record, values counted never printed; C2 EVIDENCED / NOT EVIDENCED / CANDIDATE, the declaration unchanged; C3 VERIFIED apart, a served page never verified; C4 an unread registry, an empty or truncated page set and an unfetched page are NOT MEASURED, no language assigned; C5 one record suffices, no threshold in the code; C6 neutrality scanners fire on a planted product word and dimension, two products, the entry point prints keys and counts only, no network module; REAL counts cross-checked against F91's qualifier reader; production trail unchanged.",
+        sabotage: "runs/audit/f13-sabotage-rr131-2026-10-02.txt: 18 of 18 proved, every span pre-flighted once, named tests confirmed GREEN before the run (RR-131 §7), every named test red by assertion (X3, X12, X15 isolated), production trail unchanged.",
+        historicalReuse: "reused unchanged: F27's page reader (transportPages), F02's crawl partition and body readers, the fact registry loader, the product scope and F91's qualifier reader (as a cross-check). The historical axis-discovery runner (row 6) is NOT reused: it decides with thresholds this acceptance forbids.",
+        declaredLimit: "discovery reads two evidence kinds — fact-record qualifiers and declared page language; a dimension carried by no record of either (a stage or a use case, say) is not discovered, and nothing infers one. Discovery never declares: a CANDIDATE enters page planning only if the product declares it (F91).",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
     ]),
   }),
   /* 🔴 F44 · Verified fact supply. Frozen ALONE (_handoffs eecdfe4, RR-113 §9) before any F44 code. Every non-derived record carries

@@ -1,0 +1,25 @@
+F13 axis discovery sabotage run · 2026-10-02T04:14:51.586Z
+population: 18 sabotages over test/f13-context-axes.test.mjs · each applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): X1=1 X2=1 X3=1 X4=1 X5=1 X6=1 X7=1 X8=1 X9=1 X10=1 X11=1 X12=1 X13=1 X14=1 X15=1 X16=1 X17=1 X18=1 · all exactly once: true
+production trail sha256 before: 0fd967b3e20acc696dd3baf2650dab281a0989ff569d436ae90d7cb6b0a7be59
+
+X1 C1 a record counts once per key, however often the key repeats src/discovery/context-axes.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X2 C1 a value's text never leaves the discovery src/discovery/context-axes.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X3 C1 the declared page language is read from the body src/discovery/context-axes.mjs: landed true · named test red true · failing 4 · reason AssertionError/TypeError · restored by sha256 true · PROVED
+X4 C2 a declared dimension is EVIDENCED only with a carrying record src/discovery/context-axes.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X5 C2 a candidate is a discovered dimension NOT declared src/discovery/context-axes.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X6 C3 VERIFIED records are counted apart src/discovery/context-axes.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+X7 C3 a served page is never a VERIFIED record src/discovery/context-axes.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X8 C4 an unread registry is NOT MEASURED and named src/discovery/context-axes.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X9 C4 an empty page set is NOT MEASURED, never a measured zero src/discovery/context-axes.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+X10 C4 a truncated body is NOT MEASURED, never read src/discovery/context-axes.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X11 C4 a page declaring no language is never assigned one src/discovery/context-axes.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X12 C5 no minimum decides discovery src/discovery/context-axes.mjs: landed true · named test red true · failing 6 · reason TypeError/AssertionError · restored by sha256 true · PROVED
+X13 C6 the code names no product src/discovery/context-axes.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X14 C6 the code names no dimension src/discovery/context-axes.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X15 C2 the declared dimensions come from the product's own descriptor src/discovery/context-axes-reader.mjs: landed true · named test red true · failing 4 · reason AssertionError/TypeError · restored by sha256 true · PROVED
+X16 C6 each product's evidence comes from its own registry only src/discovery/context-axes-reader.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+X17 C6 the entry point says values are not printed bin/context-axes.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X18 C6 a network call is seen tools/need-coverage-call-paths.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+
+proved 18 of 18 · residue 0 · production trail sha256 after: 0fd967b3e20acc696dd3baf2650dab281a0989ff569d436ae90d7cb6b0a7be59 · unchanged true

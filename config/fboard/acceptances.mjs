@@ -672,6 +672,23 @@ export const F91_AMENDMENT_1 = Object.freeze({
   amends: Object.freeze({ ruling: F91_ORIGINAL.ruling, contractSha256: F91_ORIGINAL.contractSha256 }),
 });
 
+/* 🔴 F13 · FROZEN 2 Oct 2026 (_handoffs 0ca24d3, RR-131 §3), committed ALONE before any F13 implementation: context and axis
+ * discovery from recorded evidence only — fact-record qualifiers and the language stored pages declare; declared against discovered; verified
+ * kept apart; NOT MEASURED named; no threshold. Pinned from the committed blob by parseContract (firing control: "one record suffices" →
+ * "one record is enough" moves the hash). */
+export const F13_ORIGINAL = Object.freeze({
+  featureId: "F13",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F13_ACCEPTANCE_2026-10-02.md", commit: "0ca24d3d4669ad7c4b0d697faed500180adc0102", sha256: "25139876e81af75e00d13e8894299c032870442e83d3b1ce1e85ed62a1e563fd" }),
+  authority: Object.freeze({ propositionId: "F13_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F13"]) }),
+  frozenOn: "2026-10-02",
+  feature: "F13 · Context and axis discovery",
+  input: "For one declared product, read through that product's own scope: its descriptor's declared page axis and any further dimensions it declares; the claim-qualifier keys and values of every record in its fact registry, each with the record's verification state; and the language declared by each stored page body in the crawl partition of the tenant that product's scope resolves to; nothing fetched, rendered or written.",
+  expected: "[C1 · DISCOVERED ONLY FROM RECORDED EVIDENCE] A dimension is discovered only where a record carries it: a claim-qualifier key on a fact record of the product, or the language declared by a stored page body of its tenant; each discovered dimension is printed with its evidence kind, the number of records carrying it, how many of those records are VERIFIED, and its number of distinct values; no dimension name or value is supplied by the engine's code.\n[C2 · DECLARED AGAINST DISCOVERED] Each dimension the product declares is reported EVIDENCED when at least one record carries it and NOT EVIDENCED otherwise; each discovered dimension the product does not declare is reported a CANDIDATE — never added to the product's declaration, never combined, and never made a page dimension by this row.\n[C3 · VERIFIED KEPT APART] Records whose verification state is not VERIFIED are counted apart from VERIFIED ones for every dimension; a dimension carried only by unverified records is never reported as verified.\n[C4 · NOT MEASURED, NAMED] An evidence kind the product does not have — no fact registry, no stored body, or a body the collector truncated — is NOT MEASURED with its missing input named, never 0; a stored page that declares no language is counted apart as declaring none, never assigned one.\n[C5 · NO THRESHOLD] No minimum count, share, probability, weight or period decides whether a dimension is discovered: one record suffices, and its count is printed beside it.\n[C6 · ANY PRODUCT, ITS OWN SCOPE] The discovery's code names no product, host, dimension or value; it is proved on two unrelated products whose dimensions differ; a product's inputs are read only through that product's own scope, and one product's evidence is never counted for another; the output is count-only — dimension keys and counts, never a value's text, a URL or content.",
+  failure: "[C1] A dimension is reported with no record carrying it, a count or verified count is wrong, or a dimension name or value comes from the engine's code. [C2] A declared dimension with no carrying record reads EVIDENCED, an EVIDENCED one reads NOT EVIDENCED, or a CANDIDATE is added to the declaration, combined or made a page dimension. [C3] Unverified records are counted as verified, or a dimension carried only by unverified records reads verified. [C4] A missing evidence kind is printed as 0 or omitted, or a page with no declared language is assigned one. [C5] Any minimum, share, probability, weight or period decides discovery. [C6] The code names a product, host, dimension or value; it is proved on one product only; another product's evidence is read or counted; or the output prints a value's text, a URL or content. And for any clause: it is proved only on an empty population, or only by a control that cannot fire.",
+  evidence: "For each clause: a test driving the production path; a firing control; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched; a neutrality test that goes red when a product name or a dimension name is planted in the discovery code; the discovery driven on two unrelated products whose dimensions differ. The real result for the demonstration product, count-only, with its bound. The full suite as CI runs it, and exact-SHA CI on the PR head before any merge, then on the merge commit. F13 moves only through the production validator and the audit trail, and to VERIFIED-PASS only when every clause is PROVED on the real recorded population.",
+  contractSha256: "2a30c091951b12ee922ccbca84e603930cbb44b2872aa2a2b65bbe21c98bde42",
+});
+
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -857,6 +874,7 @@ export const ACCEPTANCES = Object.freeze({
   F75: F75_ORIGINAL,
   F77: F77_AMENDMENT_1,
   F78: F78_ORIGINAL,
+  F13: F13_ORIGINAL,
   F79: F79_AMENDMENT_1,
   F82: F82_ORIGINAL,
   F90: F90_ORIGINAL,

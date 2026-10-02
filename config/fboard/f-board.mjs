@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -999,7 +999,8 @@ export const DECLARED = Object.freeze({
     state: "IN-PROGRESS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-01", ruling: F27_ORIGINAL.ruling, contractSha256: F27_ORIGINAL.contractSha256 }),
-      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F27", on: "2026-10-01", ruling: ACCEPTANCES.F27.ruling, contractSha256: ACCEPTANCES.F27.contractSha256, amends: ACCEPTANCES.F27.amends }),
+      /* named EXPLICITLY since 2 Oct 2026: ACCEPTANCES.F27 now points at Amendment 2, and this 1 Oct event must keep naming Amendment 1 */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F27", on: "2026-10-01", ruling: F27_AMENDMENT_1.ruling, contractSha256: F27_AMENDMENT_1.contractSha256, amends: F27_AMENDMENT_1.amends }),
       Object.freeze({
         kind: "IMPLEMENTATION",
         featureId: "F27",
@@ -1015,6 +1016,8 @@ export const DECLARED = Object.freeze({
         baseCiConclusion: "success",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-111_BUILD_F23_FROM_RECORDED_DATA.md", commit: "766a74b3d5a5a20315d07ce76294079db80503b1", sha256: "e3c24104505735ac0dfe1be5995d1d303beffa2ae9a5e6d9518b69983cb84d2d" }),
       }),
+      /* RR-129 §3: Amendment 2, after the row's 1 Oct implementation — in date order, so that implementation stays under Amendment 1 */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F27", on: "2026-10-02", ruling: F27_AMENDMENT_2.ruling, contractSha256: F27_AMENDMENT_2.contractSha256, amends: F27_AMENDMENT_2.amends }),
     ]),
   }),
   /* 🔴 F91 · Page opportunity planning. Scope reconciled (_handoffs 24c44d0), then frozen ALONE (2048dd3, RR-113 §2) before any F91 code.

@@ -116,6 +116,12 @@ export const EXCLUDED_ENTRY_POINTS = Object.freeze({
    * sealed role, not a tenant resource — after a durable, witness-checked ACCESS; it releases only a row count and a commitment, and
    * joins, reports on or decides nothing about any tenant. Its control: test/f10-key-registration.test.mjs. */
   "bin/f10-register-key.mjs": "the governed F10 key registration / pre-scoring key preflight (Part D1): the registry, the audit trail and one marking key in storage S read only after a durable witness-checked ACCESS; it releases a row count and a commitment and decides nothing about a tenant",
+  /* F87 (RR-130 §2, owner decision 2 Oct 2026). NOT a claim that it reads no tenant data: it reads the engine's operational stores to
+   * COUNT them, for the engine operator — a cross-tenant overview the owner permitted for running and repairing the engine. F04 decides
+   * READ_OPERATIONS_OVERVIEW at GLOBAL_PRODUCT scope before any read; the crawl batch is attributed only by F02's own partition
+   * arithmetic; it releases counts and state codes only (assertOverview), never a record or a tenant identifier; unscoped history stays
+   * UNATTRIBUTED. Its control: test/f87-operator-overview.test.mjs (proofs 1–4 and the authorisation gate). */
+  "bin/operations-overview.mjs": "the engine operator's cross-tenant operational overview (owner, RR-130 §2): F04-authorised at GLOBAL_PRODUCT scope before any read; counts and state codes only, never a record, URL, content or tenant identifier; unscoped history stays UNATTRIBUTED",
   "bin/approval.mjs": "the F04 approval registry: config/governance/approvals.jsonl and the committed authority corpus; it records an owner-issued approval and reads, joins or decides nothing about a tenant",
   "bin/retire-attachment.mjs": "the declaration source (F02, owner ruling 25 Sep): it removes one attachment PROVED unlawful by its own members' identity fields; it joins nothing, reads no body, and its write is F08-governed",
 });

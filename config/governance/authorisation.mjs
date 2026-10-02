@@ -101,6 +101,11 @@ const many = (family, resourceClass, names) => Object.fromEntries(names.map((n) 
 export const ACTIONS = Object.freeze({
   /* protected reads and remote work — decided at the scoped entry point and at a connector's opening */
   READ_PROTECTED_TENANT_DATA: A("RESEARCH", "PROTECTED_TENANT_DATA"),
+  /* RR-130 §2 (owner, 2 Oct 2026): the engine operator's CROSS-TENANT OPERATIONAL OVERVIEW — counts and states of jobs, writes,
+   * refusals, cost-record completeness and stale evidence, for running and repairing the engine, never for reading a client's research
+   * or content. It IS a protected read, so it is this class, decided at GLOBAL_PRODUCT scope (never a tenant's); what it may RELEASE is
+   * bounded in code (src/ops/operator-overview.mjs: counts and state codes only). No new family and no new permission. */
+  READ_OPERATIONS_OVERVIEW: A("RESEARCH", "PROTECTED_TENANT_DATA"),
   OPEN_CONNECTOR_PUBLIC_SITE: A("RESEARCH", "EXTERNAL_SOURCE"),
   OPEN_CONNECTOR_CITED_SOURCES: A("RESEARCH", "EXTERNAL_SOURCE"),
   OPEN_CONNECTOR_SEARCH_CONSOLE_API: A("RESEARCH", "EXTERNAL_SOURCE"),

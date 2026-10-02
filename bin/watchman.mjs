@@ -9,6 +9,8 @@
  * 🔴 "No recorded mid-write failure" means recovery is UNPROVED — it never reads as passed. 🔴 Alerts are printed, never sent: no
  * channel is declared. The tenant scope of every store read is decided HERE, before any of it is read.
  * Assessment: src/ops/watchman.mjs; reading: src/ops/watchman-reader.mjs.
+ * 🔴 A TENANT run of this entry point is REFUSED by scope while the engine-wide stores belong to no tenant — correctly: one client never
+ * reads the engine's whole operations. The engine OPERATOR's cross-tenant view, counts only, is bin/operations-overview.mjs (RR-130 §2).
  */
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";

@@ -36,6 +36,7 @@ const PRELOAD = pathToFileURL(join(REPO, "test", "helpers", "no-egress-preload.m
 /* RR-135 · GENERIC: any declared batch of any declared subject — named by the operator, never by this file. */
 const BATCH = process.env.F19_BATCH ?? null, SUBJECT = process.env.F19_SUBJECT ?? null;
 const lines = [];
+const headOf = (dir) => { const r = spawnSync("git", ["rev-parse", "HEAD"], { cwd: dir, encoding: "utf8" }); return r.status === 0 ? r.stdout.trim() : "UNKNOWN"; };
 const limb = (name, declared, measured, ok) => { lines.push(`${ok ? "PROVED " : "FAILED "} ${name.padEnd(34)} declared: ${declared} · measured: ${measured}`); return ok; };
 
 function realCopy() {
@@ -124,6 +125,9 @@ test("F19 PLAN PREFLIGHT · every prerequisite of the one planned run, proved wi
     ok.push(limb("pre-request phase: network calls", "0 fetch, 0 DNS before the IPv6 probe (the first network step after the preflight)", `first recorded call: ${(c.order ?? [])[0] ?? "none"} · calls before it: ${beforeProbe.length}`, (c.order ?? [])[0] === "socket" && beforeProbe.length === 0));
     ok.push(limb("external requests (left the machine)", "0", `http/https/tls attempts ${c.otherEgress} · every fetch (${c.fetch}), DNS (${c.dns}) and socket (${c.connect}) call answered in-process`, c.otherEgress === 0 && c.fetch === N + HOSTS && Number.isInteger(c.dns) && Number.isInteger(c.connect)));
     lines.push(`bounds in the code: depth ${MAX_DEPTH} · interval ${REQUEST_INTERVAL_MS} ms · timeout ${REQUEST_TIMEOUT_MS} ms · size ${MAX_RESPONSE_BYTES} bytes · URL caps ${MAX_URLS_PER_RUN}/run, ${MAX_REQUESTS_PER_HOST}/host · retry ≤ 1, network error only`);
+    /* the governed events the live rehearsal appended to its CONFINED store — the prediction for the real run's production-trail appends */
+    const evTypes = live.events.reduce((m, e) => ((m[e.eventType] = (m[e.eventType] ?? 0) + 1), m), {});
+    lines.push(`audit events the run appends (confined here; the production trail on a real run): ${live.events.length} · ${JSON.stringify(evTypes)}`);
     lines.push(`in-process calls of the rehearsal (never external): fetch ${live.counts?.fetch} (robots ${live.counts?.robots}, pages ${live.counts?.pages}) · dns ${live.counts?.dns} · socket ${live.counts?.connect}`);
   } finally { rmSync(corpus, { recursive: true, force: true }); rmSync(root, { recursive: true, force: true }); }
   lines.push(`production trail unchanged: ${trailSha() === TRAIL_BEFORE}`);
@@ -132,7 +136,7 @@ test("F19 PLAN PREFLIGHT · every prerequisite of the one planned run, proved wi
   const day = new Date().toISOString().slice(0, 10);
   let evidence = join(REPO, "runs", "audit", `f19-plan-preflight-${BATCH}-${day}.txt`);
   if (existsSync(evidence)) evidence = evidence.replace(/.txt$/, `-${Date.now()}.txt`);
-  writeFileSync(evidence, [`F19 plan preflight · ${new Date().toISOString()} · batch ${BATCH} · count-only`, ...lines, ""].join("\n"));
+  writeFileSync(evidence, [`F19 plan preflight · ${new Date().toISOString()} · batch ${BATCH} · engine ${headOf(REPO)} · data ${headOf(DATA_ROOT)} · count-only`, ...lines, ""].join("\n"));
   console.log(lines.join("\n"));
   assert.ok(ok.every(Boolean), "a prerequisite failed — the run must not be asked for");
   assert.equal(trailSha(), TRAIL_BEFORE, "the production trail was written");

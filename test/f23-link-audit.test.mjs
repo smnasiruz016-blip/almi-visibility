@@ -12,7 +12,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync, execFileSync } from "node:child_process";
 
-import { auditLinks, linksOf, targetState, formatPart, STATE, VERDICT, MISSING } from "../src/audit/link-audit.mjs";
+import { auditLinks, linksOf, targetState, formatPart, STATE, VERDICT, MISSING, OWNER_LINK_RULE } from "../src/audit/link-audit.mjs";
+import { AUTHORITY_CORPUS } from "../config/authority/corpus.mjs";
 import { readClientLinkAudit, recordedTargets, canon } from "../src/audit/link-audit-reader.mjs";
 import { decisionCallPaths } from "../tools/need-coverage-call-paths.mjs";
 import { createTenantResolver, readDeclarations } from "../src/tenancy/resolver.mjs";
@@ -137,8 +138,16 @@ test("C6 · excessive and weakly contextual are NOT MEASURED at ANY link count �
     assert.equal(a.parts.weaklyContextual.verdict, VERDICT.COULD_NOT_PROVE, `"click here" x${n} was judged weak or not`);
     assert.equal(a.parts.weaklyContextual.notMeasured, n);
   }
-  assert.match(MISSING.excessive, /owner declaration .* none is declared/);
-  assert.match(MISSING.weaklyContextual, /owner declaration .* none is declared/);
+  /* RR-129 §5: the owner DID declare the boundary (RR-127 §2) — the output may no longer say "none is declared". It names the rule and
+   * the per-link record still missing; no count, threshold or default appears (the source scan below). */
+  assert.doesNotMatch(MISSING.excessive + MISSING.weaklyContextual, /none is declared/, "the output still claims the owner declared nothing");
+  assert.match(MISSING.excessive, /owner declared no maximum link count \(RR-127 §2\), so a link is never excessive by count/);
+  assert.match(MISSING.weaklyContextual, /a relevant purpose, real context and a usable destination \(RR-127 §2\)/);
+  assert.match(MISSING.weaklyContextual, /^a recorded judgement of each link's purpose and context/);
+  /* the cited rule is pinned to the owner's command record as the authority register holds it: CURRENT, and the same content hash */
+  const rec = AUTHORITY_CORPUS.find((r) => r.propositionId === OWNER_LINK_RULE.propositionId);
+  assert.equal(rec?.status, "CURRENT", "the cited command record is not CURRENT in the register");
+  assert.equal(rec.contentHash, OWNER_LINK_RULE.contentHash, "the cited rule no longer points at the record the register holds");
   const src = readFileSync(join(REPO, "src/audit/link-audit.mjs"), "utf8");
   assert.doesNotMatch(src, /excessive[^\n]*[<>]=?\s*\d|weak[^\n]*[<>]=?\s*\d|(MAX|LIMIT|THRESHOLD|BOUNDARY)_?[A-Z_]*\s*=\s*\d/i, "a numeric boundary appeared in the F23 source");
 });
@@ -196,7 +205,9 @@ test("C1 · THE ENTRY POINT: in a declared world it prints this tenant's links w
     assert.ok(ok.stdout.includes(formatPart("INTERNAL", r.audit.parts.internal)), "the entry point printed another tenant's links");
     assert.ok(ok.stdout.includes(formatPart("EXTERNAL", r.audit.parts.external)));
     assert.match(ok.stdout, /ORPHANED: .* UNKNOWN, never orphan/);
-    assert.match(ok.stdout, /EXCESSIVE: NOT MEASURED .* owner declaration/);
+    assert.match(ok.stdout, /EXCESSIVE: NOT MEASURED \d+ of \d+ — missing a recorded judgement of each link's purpose — the owner declared no maximum link count/);
+    assert.match(ok.stdout, /WEAKLYCONTEXTUAL: NOT MEASURED \d+ of \d+ — missing a recorded judgement of each link's purpose and context/);
+    assert.doesNotMatch(ok.stdout, /none is declared/, "the entry point still claims the owner declared nothing");
     assert.match(ok.stdout, /population\s+(INCOMPLETE — absent: |COMPLETE)/);
     assert.doesNotMatch(ok.stdout + ok.stderr, /https?:\/\//, "the entry point printed a URL");
   } finally { WORLD.cleanup(); }

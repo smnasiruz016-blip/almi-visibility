@@ -5,7 +5,8 @@
  *   node bin/link-audit.mjs --tenant=<id> --actor=<id>      READ-ONLY; nothing fetched, rendered or followed; writes nothing
  *
  * 🔴 AN EXTERNAL DESTINATION NEVER FETCHED IS NOT MEASURED (RR-111) — never working, never broken, never 0. Excessive and weakly
- * contextual wait for an owner declaration and are NOT MEASURED until one exists. Audit: src/audit/link-audit.mjs.
+ * contextual follow the owner's declared rule (RR-127 §2: no maximum link count; purpose, context, destination): purpose and context
+ * are per-link judgements no record holds, so both stay NOT MEASURED, naming that record. Audit: src/audit/link-audit.mjs.
  */
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";

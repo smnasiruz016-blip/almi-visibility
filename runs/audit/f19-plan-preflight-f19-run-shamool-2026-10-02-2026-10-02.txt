@@ -1,0 +1,26 @@
+F19 plan preflight · 2026-10-02T16:26:14.843Z · batch f19-run-shamool-2026-10-02 · engine cc15a2350f50c65dea0cff953e83dc7d9576b66e · data 5a35aa591464aa7576256b1350aeb3d9fb6380f3 · count-only
+PROVED  tenant attachment                  declared: the batch is the subject's member, attached to the tenant its declared site belongs to · measured: RESEARCH_BATCH attached · member of the subject: true · declared site origins 1, of the same tenant 1
+PROVED  scope (F02)                        declared: SAME_TENANT_ALLOWED · measured: SAME_TENANT_ALLOWED
+PROVED  clean starting state               declared: the batch holds only seeds.txt, at least one seed · measured: files: seeds.txt · seeds 3 · hosts 1
+PROVED  seed scope (RR-135)                declared: every seed on a site origin the subject declares · measured: 3 of 3
+PROVED  refuses before 1st request: green  declared: refused, 0 network calls · measured: exit 3 · network calls 0
+PROVED  refuses before 1st request: scope  declared: exit 3, 0 network calls · measured: exit 3 · network calls 0
+PROVED  refuses before 1st request: off-site seed declared: exit 3, 0 network calls · measured: exit 3 · network calls 0 · SEED_OUTSIDE_DECLARED_SITE
+PROVED  binary preflight (pre-request)     declared: PASS, 0 external calls · measured: PREFLIGHT       : PASS — record kinds 6 (observation:crawl.fetch, observation:
+PROVED  placement + write: observation     declared: 3 committed · measured: 3 kept
+PROVED  placement + write: response_headers declared: 3 committed · measured: 3 kept
+PROVED  placement + write: page_links      declared: 3 committed · measured: 3 kept
+PROVED  placement + write: publication_date_claims declared: 3 committed · measured: 3 kept
+PROVED  placement + write: crawl_run       declared: 1 committed · measured: 1 kept
+PROVED  cost-record path                   declared: 1 cost entry committed in the batch ledger · measured: 1 kept
+PROVED  writeability of every target       declared: every governed write COMMITTED, 0 refused · measured: {"APPEND_CRAWL_OBSERVATIONS":1,"WRITE_CRAWL_BODY":3,"APPEND_CRAWL_RUN_RECORD":1,"APPEND_CRAWL_COST_ENTRY":1} · refused 0
+PROVED  robots.txt first                   declared: 1 robots request(s), one per host, before its pages · measured: robots 1 · pages 3 · robotsRequestsIssued 1 · first starts robots
+PROVED  rate, from request starts          declared: 1000 ms minimum, monotonic · measured: gaps 3 · fastest 1007.1 ms · breaches 0
+PROVED  run record fields                  declared: seeds, requests, robots, fetched, truncations, refusals · measured: seedPoolSize 3 · requestsIssued 3 · robotsRequestsIssued 1 · urlsFetched 3 · truncations 0 · refusals 0
+PROVED  collection verdict                 declared: KEPT · measured: KEPT — the collection verdict follows the go
+PROVED  pre-request phase: network calls   declared: 0 fetch, 0 DNS before the IPv6 probe (the first network step after the preflight) · measured: first recorded call: socket · calls before it: 0
+PROVED  external requests (left the machine) declared: 0 · measured: http/https/tls attempts 0 · every fetch (4), DNS (2) and socket (1) call answered in-process
+bounds in the code: depth 0 · interval 1000 ms · timeout 15000 ms · size 2097152 bytes · URL caps 500/run, 200/host · retry ≤ 1, network error only
+audit events the run appends (confined here; the production trail on a real run): 21 · {"SCOPE_RESOLUTION":1,"AUTHORISATION_DECISION":8,"GOVERNED_WRITE":12}
+in-process calls of the rehearsal (never external): fetch 4 (robots 1, pages 3) · dns 2 · socket 1
+production trail unchanged: true

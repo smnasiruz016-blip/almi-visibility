@@ -50,7 +50,9 @@ export const F19_SABOTAGES = [
     expect: /F19-SIZE-(NOT-MARKED|STORED-WHOLE)/ },
 
   { id: "F19-S5", what: "the pacer does not wait between page requests", file: FETCHER, test: T, named: "F19 · B5 ·",
-    from: `    if (wait > 0) await sleepImpl(wait);`, to: `    if (false) await sleepImpl(wait);`,
+    /* RR-135: re-pointed at the pacer LIVE NOW. The RR-108 repair (#213) replaced the old anchor, which then matched 0 times: this
+     * sabotage was NOT RUN from RR-108 until RR-135. It still disables the wait: a start is released whatever the elapsed time. */
+    from: `      if (mayStart(lastStart, t, intervalMs)) {`, to: `      if (true) {`,
     expect: /F19-RATE-VIOLATED/ },
 
   { id: "F19-S6", what: "robots.txt is fetched outside the pacer (the defect the measurement found)", file: ROBOTS, test: T, named: "F19 · B5 ·",
@@ -62,8 +64,9 @@ export const F19_SABOTAGES = [
     expect: /F19-TIMEOUT-NOT-ENFORCED/ },
 
   { id: "F19-S8", what: "robots.txt falls back to its own 10 s timeout instead of the declared one", file: CRAWLER, test: T, named: "F19 · B7 ·",
-    from: `  const robots = createRobotsCache({ fetchImpl, timeoutMs, beforeRequest: fetcher.pace });`,
-    to: `  const robots = createRobotsCache({ fetchImpl, beforeRequest: fetcher.pace });`,
+    /* RR-135: re-pointed at the line LIVE NOW (RR-108 changed it to name the "robots" start, and the old anchor matched 0 times). */
+    from: `  const robots = createRobotsCache({ fetchImpl, timeoutMs, beforeRequest: () => fetcher.pace("robots") });`,
+    to: `  const robots = createRobotsCache({ fetchImpl, beforeRequest: () => fetcher.pace("robots") });`,
     expect: /F19-ROBOTS-TIMEOUT-NOT-DECLARED-VALUE/ },
 
   { id: "F19-S9", what: "the record does not declare depth", file: CRAWLER, test: T, named: "F19 · D ·",

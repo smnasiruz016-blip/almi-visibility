@@ -121,13 +121,51 @@ if (live && !green) {
       "D-CRW-4 is recorded in PHASE_0_FROZEN_GAP_REGISTER.md as NOT YET GIVEN:",
       '  "THE FIRST REAL RUN REQUIRES THE OWNER\'S GREEN"',
       "",
-      "A live run issues billable requests against our own hosts. Run without --live",
+      "A live run issues real requests to the declared hosts. Run without --live",
       "to see exactly what it would do, at no cost.",
     ].join("\n"),
   );
   process.exit(3);
 }
 
+/* ---- 🔴 RR-135 — THE SEEDS ARE READ, AND HELD TO THE DECLARED SITE, BEFORE ANY NETWORK ACTIVITY ------------------------------ *
+ * Reading them is local (a file, a sitemap file, a stored evidence record). A LIVE run then opens its PUBLIC_SITE connector — no
+ * request — and refuses, with ZERO requests made, when it has no seed at all (an empty population proves nothing) or when ANY seed is
+ * outside the site origins its subject declares (F19 FAILURE: "the crawl reads a resource not declared for the requested tenant").
+ * The check itself sits just after the preflight below, which RR-106 requires to come before the connector is opened.
+ * Generic: the origins are the client's own declaration; nothing here names a host. */
+let seeds = [];
+let seedSource = "EXPLICIT_LIST";
+let selection = null;
+
+if (fromEvidence) {
+  /* 🔴 SEEDS FROM THE EVIDENCE STORE — item 4's output is item 1's input. */
+  seedSource = "SEARCH_CONSOLE";
+  const records = createJsonlStore(fromEvidence).readAll();
+  const pageRows = records
+    .filter((r) => r.record_type === "observation" && r.method === "gsc.searchAnalytics.query:page-rows")
+    .at(-1)?.value?.rows;
+  if (!pageRows?.length) {
+    console.error(
+      `no page rows in ${fromEvidence}. Run bin/gsc-ingest.mjs first — the by-page HOSTNAME aggregate\n` +
+        "is not the page list, and this seeding mode needs the URLs themselves.",
+    );
+    process.exit(4);
+  }
+  selection = selectSeeds(pageRows);
+  seeds = selection.selected;
+  console.log(renderSelection(selection));
+  console.log("");
+} else if (seedsFile || batchSeeds) {
+  seeds = readFileSync(seedsFile ?? batchSeeds, "utf8").split(/\r?\n/).map((s) => s.trim()).filter((s) => s !== "" && !s.startsWith("#"));
+} else {
+  seedSource = "SITEMAP";
+  const parsed = parseSitemap(readFileSync(sitemapFile, "utf8"));
+  seeds = parsed.urls;
+  if (parsed.sitemaps.length) {
+    console.log(`note: this is a sitemap INDEX naming ${parsed.sitemaps.length} sitemaps. Child sitemaps are not fetched here.`);
+  }
+}
 /* ---- 🔴 RR-106 — THE THREE GOVERNED APPENDS, BUILT ONE WAY, AND PROVED KEEPABLE BEFORE ANY NETWORK ACTIVITY ---------- *
  * RR-105 made 28 live requests and then lost them all: the governed append refused records it had no evidence-state rule for.
  * Each append this run makes is built by ONE function below, used by the preflight AND by the live run, so the preflight checks
@@ -140,6 +178,8 @@ const observationsAppend = (records, occurredAt, correlationId) => governedStore
   targetClass: "GENERATED_CONFIG", action: "APPEND_CRAWL_OBSERVATIONS",
   occurredAt, correlationId, discipline: "APPEND_IF_NEW",
 });
+/* RR-135: the opened PUBLIC_SITE connector of a live run — opened only after the preflight, below */
+let CONNECTOR = null;
 const runRecordOf = (run, { selection = null, seedCount = 0, egress = null, unreachable = new Map(), dnsUnknown = [], corpusFiles = 0, corpusBytes = 0 } = {}) => ({
   ...run,
   selectionRule: selection?.rule ?? SELECTION_RULE,
@@ -148,6 +188,8 @@ const runRecordOf = (run, { selection = null, seedCount = 0, egress = null, unre
   ipv6Egress: egress,
   unreachableHosts: [...unreachable.entries()].map(([host, v]) => ({ host, ...v })),
   dnsUnknownHosts: dnsUnknown,
+  /* RR-135: the declared site this run was held to (counts only) */
+  seedScope: CONNECTOR ? { declaredOrigins: CONNECTOR.origins.length, seeds: seedCount, seedsOutside: 0 } : null,
   corpus: {
     files: corpusFiles,
     bytes: corpusBytes,
@@ -183,6 +225,21 @@ if (live) {
     console.error("🔴 NO REQUEST WAS MADE. The run stops before the connector, the IPv6 probe, DNS or any fetch: a result that cannot be kept is not collected.");
     process.exit(3);
   }
+}
+
+/* RR-135: after the preflight (RR-106: nothing opens before it), before the IPv6 probe, DNS or any request. */
+CONNECTOR = live ? openConnector({ scope: SCOPE, subjectId: SUBJECT, kind: "PUBLIC_SITE" }) : null;
+if (live) {
+  if (seeds.length === 0) {
+    console.error("🔴 REFUSED — NO_SEEDS: a live run needs at least one declared seed. NO REQUEST WAS MADE.");
+    process.exit(3);
+  }
+  const outside = seeds.filter((u) => !CONNECTOR.admits(u)).length;
+  if (outside > 0) {
+    console.error(`🔴 REFUSED — SEED_OUTSIDE_DECLARED_SITE: ${outside} of ${seeds.length} seed(s) are not on a site origin the subject declares (${CONNECTOR.origins.length} declared). NO REQUEST WAS MADE.`);
+    process.exit(3);
+  }
+  console.log(`SEED SCOPE      : ${seeds.length} seed(s), every one on a declared site origin (${CONNECTOR.origins.length} declared) · redirects followed only to a declared origin, each hop paced`);
 }
 
 /* ---- 🔴 U-CRW-IPv6, MEASURED BEFORE ANYTHING IS FETCHED ----------------- *
@@ -223,44 +280,13 @@ if (dnsUnknown.length) {
 }
 console.log("");
 
-let seeds = [];
-let seedSource = "EXPLICIT_LIST";
-let selection = null;
-
-if (fromEvidence) {
-  /* 🔴 SEEDS FROM THE EVIDENCE STORE — item 4's output is item 1's input. */
-  seedSource = "SEARCH_CONSOLE";
-  const records = createJsonlStore(fromEvidence).readAll();
-  const pageRows = records
-    .filter((r) => r.record_type === "observation" && r.method === "gsc.searchAnalytics.query:page-rows")
-    .at(-1)?.value?.rows;
-  if (!pageRows?.length) {
-    console.error(
-      `no page rows in ${fromEvidence}. Run bin/gsc-ingest.mjs first — the by-page HOSTNAME aggregate\n` +
-        "is not the page list, and this seeding mode needs the URLs themselves.",
-    );
-    process.exit(4);
-  }
-  selection = selectSeeds(pageRows);
-  seeds = selection.selected;
-  console.log(renderSelection(selection));
-  console.log("");
-} else if (seedsFile || batchSeeds) {
-  seeds = readFileSync(seedsFile ?? batchSeeds, "utf8").split(/\r?\n/).map((s) => s.trim()).filter((s) => s !== "" && !s.startsWith("#"));
-} else {
-  seedSource = "SITEMAP";
-  const parsed = parseSitemap(readFileSync(sitemapFile, "utf8"));
-  seeds = parsed.urls;
-  if (parsed.sitemaps.length) {
-    console.log(`note: this is a sitemap INDEX naming ${parsed.sitemaps.length} sitemaps. Child sitemaps are not fetched here.`);
-  }
-}
 
 const result = await crawl({
   seeds,
   seedSource,
   seedPoolSize: selection?.seedPoolSize ?? seeds.length,
-  fetchImpl: live ? openConnector({ scope: SCOPE, subjectId: SUBJECT, kind: "PUBLIC_SITE" }).fetch : NO_REQUEST_FETCH,
+  fetchImpl: live ? CONNECTOR.fetch : NO_REQUEST_FETCH,
+  fetcherOptions: live ? { admits: CONNECTOR.admits } : {},
   live,
   onPlan: (plan) => {
     console.log(renderPlan(plan, { live }));
@@ -300,10 +326,10 @@ console.log("");
 
 /* 🔴 THE BILLING SENTENCE. EVERY RUN. NO EXCEPTIONS. */
 for (const [host, n] of Object.entries(run.perHostRequests)) {
-  console.log(`🔴 ${n} requests issued to host ${host} — this is billable traffic on our own Vercel account.`);
+  console.log(`🔴 ${n} requests issued to host ${host} — real traffic to that host; whatever it cost the host's operator is NOT MEASURED.`);
 }
 if (Object.keys(run.perHostRequests).length === 0) {
-  console.log("0 requests issued — dry run. No billable traffic.");
+  console.log("0 requests issued — dry run. No traffic.");
 }
 
 if (run.robotsUnknownHosts.length) {
@@ -412,6 +438,7 @@ if (live) {
 
 /* 🔴 RR-106 — THE COLLECTION VERDICT, from the writes themselves: KEPT only when every governed write this run depends on committed. */
 /* RR-108: the pacing bound prints beside its measured result, and a live run passes its pacing into the verdict. */
+if (live) { const rd = run.redirects; console.log(rd ? `REDIRECTS: hops followed ${rd.hopsFollowed} (each paced, max ${rd.maxHops} per page) · not followed: origin not declared ${rd.notFollowed.ORIGIN_NOT_ADMITTED}, past the hop bound ${rd.notFollowed.MAX_HOPS}` : "REDIRECTS: NOT MEASURED"); }
 if (live) { const p = run.pacing; console.log(p ? `PACING: declared ${p.intervalMs} ms · gaps ${p.gaps} · fastest ${p.fastestGapMs?.toFixed(3) ?? "NOT MEASURED"} ms · slowest ${p.slowestGapMs?.toFixed(3) ?? "NOT MEASURED"} ms · robots→first page ${p.robotsToFirstPageMs?.toFixed(3) ?? "NOT MEASURED"} ms · breaches ${p.breaches} of ${p.gaps} · clock ${p.clock}` : "PACING: NOT MEASURED"); }
 const collection = collectionVerdict(live ? { observations: observationsGoverned.outcome, run: runGoverned.outcome, cost: costOutcome } : { observations: observationsGoverned.outcome, run: runGoverned.outcome }, live ? { pacing: run.pacing ?? null } : {});
 console.log(`COLLECTION: ${collection.verdict}${collection.failed.length ? ` — not committed: ${collection.failed.join(" · ")}` : ""}`);

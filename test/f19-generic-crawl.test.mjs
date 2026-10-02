@@ -205,17 +205,21 @@ test("PACED HOPS · the production fetcher against a local server, with the plat
   const origin = `http://127.0.0.1:${server.address().port}`;
   try {
     const admits = (u) => new URL(u).origin === origin;
-    /* the pacer bounds request STARTS (RR-108); a server sees arrivals, and the first request also carries connection setup, so an
-     * arrival gap may fall short of the start gap by that setup time — bounded here by a stated tolerance, never ignored */
-    const INTERVAL = 200, SETUP_TOLERANCE_MS = 50;
-    const f = createFetcher({ fetchImpl: (u, i) => globalThis.fetch(u, i), intervalMs: INTERVAL, admits });
+    /* the pacer bounds request STARTS (RR-108). A server sees ARRIVALS, and an earlier request can be delayed in transit (connection
+     * setup, a loaded machine), so the gap between two ARRIVALS can fall short of the start gap — RR-137's full suite measured 91 ms
+     * against a 200 ms interval with a 50 ms tolerance. The load-independent invariant, on ONE clock (server and client share this
+     * process): no request ARRIVES sooner than the full interval after the previous request was SENT. */
+    const INTERVAL = 200;
+    const sent = [];
+    const f = createFetcher({ fetchImpl: (u, i) => { sent.push(performance.now()); return globalThis.fetch(u, i); }, intervalMs: INTERVAL, admits });
     const r = await f.fetchUrl(`${origin}/r1`);
     assert.equal(r.status, 200);
     assert.equal(r.finalUrl, `${origin}/final`);
     assert.deepEqual(r.redirectChain.map((h) => h.status), [301, 302]);
     assert.equal(f.requestsIssued(), 3);
     assert.deepEqual(seen.map((s) => s.path), ["/r1", "/r2", "/final"]);
-    for (let i = 1; i < seen.length; i++) assert.ok(seen[i].at - seen[i - 1].at >= INTERVAL - SETUP_TOLERANCE_MS, `hop ${i} arrived ${(seen[i].at - seen[i - 1].at).toFixed(1)} ms after the last request`);
+    assert.equal(sent.length, seen.length);
+    for (let i = 1; i < seen.length; i++) assert.ok(seen[i].at - sent[i - 1] >= INTERVAL, `request ${i} arrived ${(seen[i].at - sent[i - 1]).toFixed(1)} ms after the previous one was sent`);
     assert.equal(f.pacing().breaches, 0);
     assert.ok(f.pacing().fastestGapMs >= INTERVAL, "a hop started before the interval");
 

@@ -1,13 +1,13 @@
-RR-103 sabotage run · 2026-10-02T03:17:41.786Z
+RR-103 sabotage run · 2026-10-02T03:30:21.062Z
 population: 6 sabotages over test/spec-amendment-3.test.mjs + test/spec-amendment-2.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
 PRE-FLIGHT (span occurrences in the code live now): G01=1 G02=1 G03=1 G04=1 G05=1 G06=1 · all exactly once: true
 production trail sha256 before: a0e60b65d9d2a0e1fd9e3028e7a2b54b84d5b5e83bf2544978179254673914e6
 
-G01 DENOMINATOR back to 90 src/fboard/board.mjs: landed true · named test "A3·3" red true · failing 3 · restored by sha256 true · PROVED
-G02 F91 is not the amendment's line (its line hash altered) config/fboard/capabilities.mjs: landed true · named test "A3·1" red true · failing 2 · restored by sha256 true · PROVED
+G01 DENOMINATOR back to 90 src/fboard/board.mjs: landed true · named test "A3·3" red true · failing 2 · restored by sha256 true · PROVED
+G02 F91 is not the amendment's line (its line hash altered) config/fboard/capabilities.mjs: landed true · named test "A3·1" red true · failing 1 · restored by sha256 true · PROVED
 G03 the F91 row renamed to a phantom F92 in the capability list config/fboard/capabilities.mjs: landed true · named test "A3·3" red true · failing 6 · restored by sha256 true · PROVED
 G04 a phantom F92 in the crosswalk config/fboard/crosswalk.mjs: landed true · named test "A3·3" red true · failing 2 · restored by sha256 true · PROVED
 G05 F91 given an acceptance that is not its own config/fboard/acceptances.mjs: landed true · named test "A3·5" red true · failing 2 · restored by sha256 true · PROVED
-G06 the validator stops refusing a board whose ids are not F01..F{DENOMINATOR} src/fboard/board.mjs: landed true · named test "A3·4" red true · failing 2 · restored by sha256 true · PROVED
+G06 the validator stops refusing a board whose ids are not F01..F{DENOMINATOR} src/fboard/board.mjs: landed true · named test "A3·4" red true · failing 1 · restored by sha256 true · PROVED
 
 proved 6 of 6 · residue 0 · production trail sha256 after: a0e60b65d9d2a0e1fd9e3028e7a2b54b84d5b5e83bf2544978179254673914e6 · unchanged true

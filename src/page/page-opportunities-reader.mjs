@@ -1,15 +1,22 @@
 /**
- * F91 · ONE PRODUCT'S DECLARED PLANNING INPUTS (acceptance _handoffs 2048dd3, RR-113).
+ * F91 · ONE PRODUCT'S PLANNING INPUTS (acceptance _handoffs 2048dd3; Amendment 1 _handoffs 4ef1b9c, RR-130).
  *
- *   dimensions        the product descriptor's declared page dimension (axis) and its declared values — read from the descriptor
- *   verified data     the claim-qualifier keys its fact registry records; a key the product does not declare as a page dimension is
- *                     EXCLUDED and counted, never combined
- *   demand, sources,  no recorded per-candidate demand outcome, source, product-fit or distinct-need record exists in any store, and no
- *   grouping          owner declaration of qualifying demand states or of a grouping rule exists — they are passed as absent, never filled
- * Read only, through the product's own scope; nothing fetched, rendered or written.
+ *   dimensions        the descriptor's declared page dimension (axis) and its declared values — APPLIES by the product's own declaration —
+ *                     plus any further dimension the descriptor declares under `planning.dimensions`, each with its source, applicability
+ *                     (APPLIES · CANDIDATE UNIVERSE · NOT APPLICABLE), limits and exclusions; relevant combinations only as declared
+ *   verified data     the claim-qualifier keys its fact registry records; a key not declared as a page dimension is EXCLUDED, counted
+ *   planning records  the store the descriptor itself names (`planning.records`) — none named → none read, and every candidate is UNKNOWN:
+ *                       planning_demand    { combination, state, questionId?, wording? }   a demand item (DEMAND_RULES decides its state)
+ *                       planning_limbs     { combination, credibleSource, productFit, distinctNeed }
+ *                       planning_sameness  { questions: [idA, idB] }                        a RECORDED sameness judgement
+ *                       planning_group     { members: [combination…], coverage, rightToExist, uniqueValue, verifiedFacts, verifiedAnswer }
+ *                     a record of any other shape is counted MALFORMED and never read as a limb
+ * Read only, through the product's own scope; nothing fetched, rendered or written; wording stays in memory and is never returned.
  */
+import { existsSync } from "node:fs";
 import { loadRegistry } from "../facts/registry.mjs";
-import { planPages } from "./page-opportunities.mjs";
+import { createJsonlStore } from "../evidence/store.mjs";
+import { planPages, candidateKey, APPLICABILITY } from "./page-opportunities.mjs";
 
 /** The claim-qualifier keys a registry records (`key=value` pairs in each claim's qualifier), with how many records carry each. */
 export function qualifierKeys(records) {
@@ -22,23 +29,51 @@ export function qualifierKeys(records) {
   return keys;
 }
 
+const isCombination = (c) => c !== null && typeof c === "object" && !Array.isArray(c) && Object.keys(c).length > 0 && Object.values(c).every((v) => typeof v === "string");
+
+/** The recorded planning inputs, from records already read — exported so a test drives the same shaping the entry point uses. */
+export function planningInputs(rows = []) {
+  const records = new Map(), questions = new Map(), groupRecords = new Map(), sameness = [];
+  let malformed = 0;
+  const slot = (c) => { const k = candidateKey(c); if (!records.has(k)) records.set(k, { demand: [] }); return records.get(k); };
+  for (const r of rows) {
+    if (r?.record_type === "planning_demand" && isCombination(r.combination) && typeof r.state === "string") {
+      slot(r.combination).demand.push({ state: r.state });
+      if (typeof r.questionId === "string") questions.set(candidateKey(r.combination), [...(questions.get(candidateKey(r.combination)) ?? []), { id: r.questionId, wording: r.wording }]);
+    } else if (r?.record_type === "planning_limbs" && isCombination(r.combination)) {
+      Object.assign(slot(r.combination), { credibleSource: r.credibleSource, productFit: r.productFit, distinctNeed: r.distinctNeed });
+    } else if (r?.record_type === "planning_sameness" && Array.isArray(r.questions) && r.questions.length === 2) {
+      sameness.push([String(r.questions[0]), String(r.questions[1])]);
+    } else if (r?.record_type === "planning_group" && Array.isArray(r.members) && r.members.every(isCombination)) {
+      groupRecords.set(JSON.stringify(r.members.map(candidateKey).sort()), { coverage: r.coverage, rightToExist: r.rightToExist, uniqueValue: r.uniqueValue, verifiedFacts: r.verifiedFacts, verifiedAnswer: r.verifiedAnswer });
+    } else malformed += 1;
+  }
+  return { records, questions, sameness, groupRecords, malformed };
+}
+
 export async function readProductPlan(product) {
-  const { records } = await loadRegistry(product.factsDir, product.productId);
-  const dimensions = product.axis?.key ? [{ key: product.axis.key, values: [...(product.variants ?? [])] }] : [];
+  const { records: facts } = await loadRegistry(product.factsDir, product.productId);
+  const axis = product.axis?.key
+    ? [{ key: product.axis.key, values: [...(product.variants ?? [])], source: "the product's own descriptor (its declared page axis)", applicability: APPLICABILITY.APPLIES, limits: "its declared variants only", exclusions: "none declared" }]
+    : [];
+  const dimensions = [...axis, ...(Array.isArray(product.planning?.dimensions) ? product.planning.dimensions : [])];
   const declaredKeys = new Set(dimensions.map((d) => d.key));
-  const dataKeys = qualifierKeys(records);
-  const excludedDataKeys = [...dataKeys.keys()].filter((k) => !declaredKeys.has(k)).length;
-  const plan = planPages({ dimensions });
+  const dataKeys = qualifierKeys(facts);
+  const storePath = typeof product.planning?.records === "string" ? product.planning.records : null;
+  const rows = storePath && existsSync(storePath) ? createJsonlStore(storePath).readAll() : [];
+  const inputs = planningInputs(rows);
+  const plan = planPages({ dimensions, declaredCombinations: product.planning?.relevantCombinations ?? null, ...inputs });
   return {
     plan,
     inputs: {
       declaredDimensions: dimensions.length,
-      declaredValues: dimensions.reduce((n, d) => n + d.values.length, 0),
-      factRecords: records.length,
-      verifiedFacts: records.filter((r) => r.verificationState === "VERIFIED").length,
+      factRecords: facts.length,
+      verifiedFacts: facts.filter((r) => r.verificationState === "VERIFIED").length,
       qualifierKeysInFacts: dataKeys.size,
-      excludedDataKeys,
-      demandOutcomes: "NOT MEASURED — no store of per-candidate demand outcomes exists (no producer: F14 and F15 are UNASSESSED)",
+      excludedDataKeys: [...dataKeys.keys()].filter((k) => !declaredKeys.has(k)).length,
+      planningStore: storePath ? (existsSync(storePath) ? "declared, read" : "declared, ABSENT — nothing read, never treated as empty evidence") : "none declared by the product",
+      planningRecords: rows.length,
+      malformedRecords: inputs.malformed,
     },
   };
 }

@@ -1,0 +1,42 @@
+F91 sabotage run · 2026-10-02T03:18:13.032Z
+population: 35 sabotages over test/f91-page-opportunities.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1 S19=1 S20=1 S21=1 S22=1 S23=1 S24=1 S25=1 S26=1 S27=1 S28=1 S29=1 S30=1 S31=1 S35=1 S32=1 S33=1 S34=1 · all exactly once: true
+production trail sha256 before: a0e60b65d9d2a0e1fd9e3028e7a2b54b84d5b5e83bf2544978179254673914e6
+
+S1 C1 several dimensions are never multiplied blindly src/page/page-opportunities.mjs: landed true · named test "C1 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S2 C1 a candidate universe never enters the arithmetic src/page/page-opportunities.mjs: landed true · named test "C1 · FIRING CONTROL" red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+S3 C1 a dimension with no recorded source is excluded src/page/page-opportunities.mjs: landed true · named test "C1 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S4 C1 a declared combination counts only over applying dimensions' declared values, once src/page/page-opportunities.mjs: landed true · named test "C1 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S5 C1 number 1 is labelled candidates only src/page/page-opportunities.mjs: landed true · named test "C1 · FIRING CONTROL" red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+S6 C2 an INFERRED suggestion never qualifies src/page/page-opportunities.mjs: landed true · named test "C2 · FIRING CONTROL: the demand mapping" red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+S7 C2 a state no contract decides stays UNKNOWN src/page/page-opportunities.mjs: landed true · named test "C2 · FIRING CONTROL: the demand mapping" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S8 C2 an empty sample is UNKNOWN, never no demand src/page/page-opportunities.mjs: landed true · named test "C2 · FIRING CONTROL: the demand mapping" red true · failing 5 · reason AssertionError · restored by sha256 true · PROVED
+S9 C2 one UNKNOWN candidate makes number 2 NOT MEASURED src/page/page-opportunities.mjs: landed true · named test "C2 · FIRING CONTROL: every limb" red true · failing 4 · reason AssertionError · restored by sha256 true · PROVED
+S10 C2 a limb recorded as not met excludes its candidate src/page/page-opportunities.mjs: landed true · named test "C2 · FIRING CONTROL: every limb" red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+S11 C2 the four kinds of demand evidence are counted apart src/page/page-opportunities.mjs: landed true · named test "C2 · FIRING CONTROL: every limb" red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+S12 C3 number 3 is never a number while number 2 is not src/page/page-opportunities.mjs: landed true · named test "C3 · FIRING CONTROL: COVERED" red true · failing 5 · reason AssertionError · restored by sha256 true · PROVED
+S13 C3 merging is identity after the stated normalisation, never similarity src/page/page-opportunities.mjs: landed true · named test "C3 · FIRING CONTROL: identical wording" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S14 C3 different combinations never merge without a recorded judgement src/page/page-opportunities.mjs: landed true · named test "C3 · FIRING CONTROL: identical wording" red true · failing 3 · reason AssertionError · restored by sha256 true · PROVED
+S15 C3 a judgement naming an unknown question is ignored, not applied src/page/page-opportunities.mjs: landed true · named test "C3 · FIRING CONTROL: identical wording" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S16 C3 a COVERED group is never a new page src/page/page-opportunities.mjs: landed true · named test "C3 · FIRING CONTROL: COVERED" red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+S17 C3 coverage that cannot be decided HOLDS the group src/page/page-opportunities.mjs: landed true · named test "C3 · FIRING CONTROL: COVERED" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S18 C3 a group F32 records without unique value is refused src/page/page-opportunities.mjs: landed true · named test "C3 · FIRING CONTROL: COVERED" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S19 C3 no verified facts HOLDS the group src/page/page-opportunities.mjs: landed true · named test "C3 · FIRING CONTROL: COVERED" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S20 C3 no sourced verified answer HOLDS the group src/page/page-opportunities.mjs: landed true · named test "C3 · FIRING CONTROL: COVERED" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S21 C5 the order is NOT CHECKABLE with any NOT MEASURED src/page/page-opportunities.mjs: landed true · named test "C5 · FIRING CONTROL" red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+S22 C5 a breached order is a defect src/page/page-opportunities.mjs: landed true · named test "C5 · FIRING CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S23 C6 NOT MEASURED is never printed as 0 src/page/page-opportunities.mjs: landed true · named test "C6 · CONTROL" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S24 C7 the planner names no product src/page/page-opportunities.mjs: landed true · named test "C7 · FIRING CONTROL: the planner names" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S25 C7 the planner names no dimension src/page/page-opportunities.mjs: landed true · named test "C7 · FIRING CONTROL: the planner names" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S26 C7 the planner carries no page quota src/page/page-opportunities.mjs: landed true · named test "C7 · FIRING CONTROL: the planner names" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S27 C1 number 1 comes from the product's own declaration src/page/page-opportunities-reader.mjs: landed true · named test "REAL ·" red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+S28 C1 data-only qualifier keys are excluded, never combined src/page/page-opportunities-reader.mjs: landed true · named test "REAL ·" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S29 C7 a malformed planning record is counted, never read src/page/page-opportunities-reader.mjs: landed true · named test "C7 · the reader shapes" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S30 C4 the entry point says nothing is summed bin/page-opportunities.mjs: landed true · named test "C4 · THE ENTRY POINT" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S31 C8 the entry point prints the sample bound bin/page-opportunities.mjs: landed true · named test "C4 · THE ENTRY POINT" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S35 C6 an unread planning store prints its demand kinds NOT MEASURED, never zeros bin/page-opportunities.mjs: landed true · named test "C4 · THE ENTRY POINT" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S32 C8 no complete sample and no ranking are claimed src/page/page-opportunities.mjs: landed true · named test "C8 ·" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S33 C8 the planner writes nothing src/page/page-opportunities.mjs: landed true · named test "C8 ·" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+S34 C7 a network call is seen tools/need-coverage-call-paths.mjs: landed true · named test "C7 · the planner and its reader" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+
+proved 35 of 35 · residue 0 · production trail sha256 after: a0e60b65d9d2a0e1fd9e3028e7a2b54b84d5b5e83bf2544978179254673914e6 · unchanged true

@@ -724,6 +724,24 @@ export const F19_ORIGINAL = Object.freeze({
   contractSha256: "079554cea021c49af65d840c8bba8f125185e22dbb9c12b6cc01d2dc0bc9dedc",
 });
 
+/* 🔴 F22 · FROZEN 2 Oct 2026 (_handoffs 2d20a63, RR-137 §3), committed ALONE before any F22 engine change: the JavaScript
+ * rendering audit — one client's own stored pages, source against render on four dimensions, measured only against a COMPLETE render;
+ * a bounded same-origin live path proved on fixtures and never run without a reviewed request; written under the sealed exam rule
+ * (Owner Ruling 7). Pinned from the committed blob by parseContract (firing control: "a comparison is MEASURED only against" →
+ * "MEASURED solely against" moves the hash). */
+export const F22_ORIGINAL = Object.freeze({
+  featureId: "F22",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F22_ACCEPTANCE_2026-10-02.md", commit: "2d20a63c533afe8322c3ab2578ac59014fddfd8f", sha256: "d94960b6909e3c68d9b64f614827e87818677a0d5bbfed875a6aa1cae0057468" }),
+  authority: Object.freeze({ propositionId: "F22_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F22"]) }),
+  frozenOn: "2026-10-02",
+  feature: "F22 · JavaScript rendering audit",
+  input: "For one declared client: its own stored raw-HTML page bodies, and for each a render of that page made by the engine's renderer — either OFFLINE (the stored body served locally, every other request refused) or, only under an owner-reviewed bounded request, LIVE SAME-ORIGIN (the page and its subresources requested only from the page's own declared site origin); nothing published, and nothing written except through the governed route.",
+  expected: "[C1 · ONE CLIENT, ANY CLIENT] Only the requested client's own stored bodies are rendered and compared, through the F02 scope decision; the render and comparison code names no host, tenant, product or path shape, and is proved on two unrelated declared subjects through the same code, at least one of them on a different registered domain from the other.\n[C2 · RENDER STATE] Every render is COMPLETE, PARTIAL or FAILED with its reason recorded (requests refused, by count; not settled inside the per-page bound; never served; crashed); a comparison is MEASURED only against a COMPLETE render; against a PARTIAL or FAILED render every compared dimension is NOT MEASURED with that reason named — never SAME, never 0.\n[C3 · FOUR DIMENSIONS, SOURCE AGAINST RENDER] For each page with a COMPLETE render, four dimensions are compared between the stored source and the rendered DOM: LINKS (the set of link targets), CANONICAL (the canonical link values), CONTENT (the visible text), STRUCTURED DATA (the parsed JSON-LD blocks); each is SAME or DIFFERS, and DIFFERS carries the counts present only in the render (JS-only) and present only in the source (removed by script); a value that cannot be parsed is counted as unparseable, never dropped.\n[C4 · THE LIVE SAME-ORIGIN PATH, BOUNDED] A live render requests only the page's own declared site origin and refuses and records every other host; obeys that origin's robots rules for every request it makes, a disallowed resource being refused; starts each request no sooner than the declared interval after the run's previous request; aborts a request past its timeout and a page past its per-page bound; truncates or refuses a response past the size cap; follows a redirect only within the declared origin; keeps no state between pages (a fresh browser context for each page, no service worker, cookies and storage discarded with the context); caps the requests per page; and makes no live call at all without the owner's reviewed bounded request.\n[C5 · THE SEALED EXAM RULE] The detector and the render path never name, open or read the sealed exam directory, and their output carries nothing that tells a sealed item from an unsealed one.\n[C6 · DENOMINATORS, INCOMPLETENESS] Every count carries its denominator; the population is reported INCOMPLETE whenever any page or dimension is NOT MEASURED, naming what is absent; the output is count-only — no host, URL or page content.",
+  failure: "[C1] Another client's body is rendered or compared, or the code names a host, tenant, product or path shape, or it is proved on one subject only. [C2] A comparison is reported against a PARTIAL or FAILED render, or a NOT MEASURED dimension is printed as SAME or 0, or a render's state or reason is missing. [C3] A dimension is mis-compared (a link, canonical, text or JSON-LD block present on one side is missed or invented), or an unparseable value is dropped. [C4] A live render requests an undeclared host, fetches a robots-disallowed resource, starts two requests closer than the interval, runs past a timeout or size cap, follows a redirect off the declared origin, carries state from one page to the next, exceeds its request cap, or any live render is made without a reviewed bounded request. [C5] The sealed directory is named, opened or read, or the output distinguishes a sealed item. [C6] A count lacks its denominator, an incomplete population reads complete, or output carries a host, URL or content. And for any clause: it is proved only on an empty population, or only by a control that cannot fire.",
+  evidence: "For each clause: a test driving the production path; a firing control; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched. The live same-origin path proved against local fixture servers for scripts, redirects, subresources, robots, timeout, response size, rate, storage and refusal of an undeclared host, with no live call. The real result for the declared clients, count-only. F22 moves to VERIFIED-PASS only when every clause is PROVED on the real population with COMPLETE renders — never from PARTIAL renders — and with exact-SHA CI on the PR head and then on the merge commit.",
+  contractSha256: "9ecbda51d1b0c0d011130ee67a953c6d2186f97b17745f9ca7dd9a02d279a4e8",
+});
+
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -911,6 +929,7 @@ export const ACCEPTANCES = Object.freeze({
   F78: F78_ORIGINAL,
   F13: F13_ORIGINAL,
   F19: F19_ORIGINAL,
+  F22: F22_ORIGINAL,
   F81: F81_ORIGINAL,
   F79: F79_AMENDMENT_1,
   F82: F82_ORIGINAL,

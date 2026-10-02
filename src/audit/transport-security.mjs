@@ -7,12 +7,16 @@
  *   C3  mixed content: an http: URL in a declared subresource attribute of an HTTPS page's raw HTML (comments, script, style and
  *       template removed first — the stripping F26 uses); CSS, style attributes and script-inserted content are NOT MEASURED
  *   C4  unsafe forms: a form action or formaction resolving to http:, and a password input on a NOT HTTPS page
- *   C5  headers: no owner declaration of which headers F27 checks, so none is judged; recorded header NAMES are counts only
+ *   C5  headers (Amendment 2, _handoffs 258141f): judged under the declaration CC made by the owner's express delegation
+ *       (config/security/header-declaration.mjs), each header only where the page's own recorded type or behaviour calls for it
+ *       (src/audit/header-assessment.mjs); with NO declaration none is judged; recorded header NAMES stay counts
  *   C6  public exposure: no owner declaration of what it covers, so NOT MEASURED — no list exists here to invent
  *   C7  every count with its denominator; INCOMPLETE named; three verdicts per part
  * Pure: recorded pages in, counts out. Never fetches, renders or writes.
  */
 import { scannable } from "./accessibility.mjs";
+import { assessHeaders } from "./header-assessment.mjs";
+import { HEADER_DECLARATION } from "../../config/security/header-declaration.mjs";
 
 export const VERDICT = Object.freeze({ PROVED: "PROVED", DISPROVED: "DISPROVED", COULD_NOT_PROVE: "COULD-NOT-PROVE" });
 export const MISSING = Object.freeze({
@@ -72,7 +76,7 @@ export function unsafeForms(html, base) {
  *   pages        one entry per distinct recorded page; `url` is its recorded final URL (null when never fetched)
  *   headerNames  how many fetched observations recorded each response-header NAME (values are never read)
  */
-export function auditTransport({ pages, headerNames, fetchedObservations }) {
+export function auditTransport({ pages, headerNames, fetchedObservations, declaration = HEADER_DECLARATION }) {
   const fetched = pages.filter((p) => p.fetched && p.url !== null);
   const notMeasured = pages.length - fetched.length;
   const https = fetched.filter((p) => new URL(p.url).protocol === "https:").length;
@@ -95,7 +99,9 @@ export function auditTransport({ pages, headerNames, fetchedObservations }) {
       missing: [MISSING.rendered], verdict: mixedRefs > 0 ? VERDICT.DISPROVED : VERDICT.COULD_NOT_PROVE },
     unsafeForms: { formsSeen, submissions, passwordsOnNotHttps: passwords, pagesWithOne: formPages, pagesRead: readable.length, denominator: fetched.length,
       missing: [MISSING.rendered], verdict: submissions + passwords > 0 ? VERDICT.DISPROVED : VERDICT.COULD_NOT_PROVE },
-    headers: { recordedNames: { ...headerNames }, observations: fetchedObservations, judged: 0, missing: [MISSING.headers], verdict: VERDICT.COULD_NOT_PROVE },
+    headers: declaration
+      ? { recordedNames: { ...headerNames }, observations: fetchedObservations, declaredBy: declaration.declaredBy, ...assessHeaders(fetched, declaration), missing: [] }
+      : { recordedNames: { ...headerNames }, observations: fetchedObservations, judged: 0, missing: [MISSING.headers], verdict: VERDICT.COULD_NOT_PROVE },
     publicExposure: { missing: [MISSING.publicExposure], verdict: VERDICT.COULD_NOT_PROVE },
   };
   const named = [];
@@ -104,7 +110,9 @@ export function auditTransport({ pages, headerNames, fetchedObservations }) {
   if (absent) named.push(`${absent} of ${fetched.length} fetched page(s) have no stored body`);
   if (truncated) named.push(`${truncated} of ${withBody.length} stored bod(ies) were truncated by the collector`);
   named.push(`TLS: ${MISSING.tls}`, `redirect: ${MISSING.httpRedirect} (${redirectMeasured} of ${fetched.length} measured)`,
-    `raw HTML: ${MISSING.rendered}`, `headers: ${MISSING.headers}`, `public exposure: ${MISSING.publicExposure}`);
+    `raw HTML: ${MISSING.rendered}`, `public exposure: ${MISSING.publicExposure}`);
+  if (!declaration) named.push(`headers: ${MISSING.headers}`);
+  else for (const h of parts.headers.per) if (h["NOT MEASURED"]) named.push(`header ${h.name}: NOT MEASURED on ${h["NOT MEASURED"]} of ${h.of} fetched page(s) — ${Object.keys(h.notMeasuredWhy).join("; ")}`);
   const verdicts = Object.values(parts).map((x) => x.verdict);
   /* No part can read PROVED while TLS, raw-HTML exclusions and two owner declarations are unmeasured, so the row cannot either (a branch
    * for it would be unreachable — sabotage S19 found it so on 1 Oct 2026). One DISPROVED part disproves the row. */

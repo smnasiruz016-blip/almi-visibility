@@ -20,8 +20,11 @@ export function transportPages(records, bodies) {
   const obs = records.filter((r) => r.record_type === "observation");
   const truncated = new Set(obs.filter((o) => o.value?.truncated === true).map((o) => o.observation_id));
   const httpRequested = new Set(obs.filter((o) => !o.value?.skipped).map((o) => httpsForm(o.value?.requested_url)).filter(Boolean));
+  const byId = new Map(obs.map((o) => [o.observation_id, o]));
+  /* RR-129: each fetched page carries its OWN observation, so its OWN recorded header names are judged (Amendment 2 C5) */
   const fetched = pagesFromRun({ crawlRecords: records, bodies }).map((p) => ({
     url: p.canonical, fetched: true, html: p.html, truncated: truncated.has(p.body_observation_id), httpFormRequested: httpRequested.has(p.canonical),
+    observation: byId.get(p.body_observation_id) ?? null,
   }));
   const seen = new Set(fetched.map((p) => p.url));
   const skipped = new Set();

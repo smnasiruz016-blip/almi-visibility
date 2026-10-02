@@ -6,7 +6,7 @@
  * PRE-FLIGHT FIRST: every span is checked to exist EXACTLY ONCE in the code live now, and the pre-flight is printed before any sabotage
  * runs — a span that does not is NOT PROVED, never silently skipped. Then each sabotage replaces its span ALONE, proves it LANDED, runs the
  * named proof file, requires the NAMED test to fail, restores by raw-byte sha256. The production trail is hashed before and after.
- * Evidence: runs/audit/f27-sabotage-2026-10-01.txt.
+ * Evidence: runs/audit/f27-sabotage-rr129-2026-10-02.txt (RR-129 rerun after the header assessment; the 1 Oct file is kept untouched).
  */
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -91,6 +91,6 @@ const trailAfter = sha(read(TRAIL));
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "f27-sabotage-2026-10-01.txt"), lines.join("\n") + "\n");
+writeFileSync(join(REPO, "runs", "audit", "f27-sabotage-rr129-2026-10-02.txt"), lines.join("\n") + "\n");
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

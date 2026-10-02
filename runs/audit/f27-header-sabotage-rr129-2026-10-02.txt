@@ -1,0 +1,17 @@
+F27 header assessment sabotage run · 2026-10-02T01:18:01.370Z
+population: 10 sabotages over test/f27-header-assessment.test.mjs + test/f27-transport-security.test.mjs · each applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): H1=1 H2=1 H3=1 H4=1 H5=1 H6=1 H7=1 H8=1 H9=1 H10=1 · all exactly once: true
+production trail sha256 before: 9049914e85016baaac1db8af69dc3ae8ec0fa41606e926448991146223c0d970
+
+H1 HSTS applies only to pages served over HTTPS src/audit/header-assessment.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+H2 CSP applies only where the page runs script src/audit/header-assessment.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+H3 a truncated body that does not show the behaviour is NOT MEASURED src/audit/header-assessment.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+H4 an unrecorded header is NOT MEASURED, never ABSENT src/audit/header-assessment.mjs: landed true · named test red true · failing 3 · reason AssertionError · restored by sha256 true · PROVED
+H5 frame protection behind a recorded CSP is NOT MEASURED src/audit/header-assessment.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+H6 an applicable ABSENT disproves src/audit/header-assessment.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+H7 an empty population never reads PROVED src/audit/header-assessment.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+H8 the audit judges under the declaration src/audit/transport-security.mjs: landed true · named test red true · failing 8 · reason TypeError/AssertionError · restored by sha256 true · PROVED
+H9 each fetched page carries its OWN observation src/audit/transport-security-reader.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+H10 an undeclared condition is refused src/audit/header-assessment.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+
+proved 10 of 10 · residue 0 · production trail sha256 after: 9049914e85016baaac1db8af69dc3ae8ec0fa41606e926448991146223c0d970 · unchanged true

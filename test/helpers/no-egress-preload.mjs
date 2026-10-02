@@ -21,7 +21,7 @@ import { syncBuiltinESMExports } from "node:module";
 
 const LOG = process.env.NO_EGRESS_LOG ?? null;
 const MODE = process.env.NO_EGRESS_MODE === "fixture" ? "fixture" : "refuse";
-const counts = { mode: MODE, fetch: 0, robots: 0, pages: 0, dns: 0, connect: 0, otherEgress: 0, order: [] };
+const counts = { mode: MODE, fetch: 0, robots: 0, pages: 0, dns: 0, connect: 0, otherEgress: 0, order: [], hosts: {} };
 const save = () => { if (LOG) writeFileSync(LOG, JSON.stringify(counts)); };
 /* the ORDER of network calls (first 64), so a run can show what happened before its first request */
 const seen = (kind) => { if (counts.order.length < 64) counts.order.push(kind); };
@@ -36,10 +36,15 @@ const PAGE = '<!doctype html><html lang="en"><head><title>fixture</title></head>
 globalThis.fetch = async (url) => {
   counts.fetch += 1;
   seen("fetch");
-  const isRobots = new URL(String(url)).pathname === "/robots.txt";
+  const u = new URL(String(url));
+  const isRobots = u.pathname === "/robots.txt";
   counts[isRobots ? "robots" : "pages"] += 1;
+  counts.hosts[u.host] = (counts.hosts[u.host] ?? 0) + 1;
   save();
   if (MODE === "refuse") refuse("fetch");
+  /* RR-135: two fixture redirects — one to the same origin, one to an origin nobody declared */
+  if (u.pathname === "/redirect-in") return new Response(null, { status: 301, headers: { location: "/a" } });
+  if (u.pathname === "/redirect-out") return new Response(null, { status: 301, headers: { location: "https://elsewhere.invalid/x" } });
   return isRobots
     ? new Response("User-agent: *\nAllow: /\n", { status: 200, headers: { "content-type": "text/plain" } })
     : new Response(PAGE, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });

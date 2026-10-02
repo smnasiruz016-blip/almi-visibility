@@ -163,7 +163,7 @@ export function entryFromCrawlRun(run, { correction = null, actionsTiming = null
         "two components, neither priced by anything this engine can read. (1) GitHub Actions: the run's minutes ARE measured" +
         (t ? ` (run ${t.runId}: run_duration_ms=${t.run_duration_ms}; GitHub's timing API reported billable ${JSON.stringify(t.billable)})` : "") +
         ", but the account's plan, its per-minute price and its free allowance are NOT (U-COST-1) — so no minute is converted to money, and a reported 0 billable ms is not read as $0. " +
-        `(2) our own hosting: each of ${run.requestsIssued} requests may invoke a function or an ISR regeneration on our own account, and that has never been measured (U-COST-5)`,
+        `(2) the crawled host's hosting: each of ${run.requestsIssued} requests may invoke a function or a regeneration there, on whoever operates it, and that has never been measured (U-COST-5)`,
     },
     /* A record that states its robots.txt requests (F19, 28 Sep 2026) is counted whole; an older record that does not state
      * them keeps its page count and says so — no robots figure is invented for it. */

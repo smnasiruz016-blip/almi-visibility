@@ -101,8 +101,8 @@ export function renderPlan(plan, { live }) {
   for (const [host, n] of Object.entries(plan.perHost)) {
     lines.push(
       live
-        ? `🔴 ${n} requests WILL be issued to host ${host} — this is billable traffic on our own Vercel account.`
-        : `🔴 ${n} requests WOULD be issued to host ${host} — that would be billable traffic on our own Vercel account. None issued: this is a dry run.`,
+        ? `🔴 ${n} requests WILL be issued to host ${host} — real traffic to that host; whatever it costs the host's operator is NOT MEASURED.`
+        : `🔴 ${n} requests WOULD be issued to host ${host} — that would be real traffic to that host. None issued: this is a dry run.`,
     );
   }
   return lines.join("\n");
@@ -213,6 +213,8 @@ export async function crawl({
       bytes: res.bytes ?? 0,
       truncated: Boolean(res.truncated),
       timing_ms: res.timing_ms,
+      redirect_chain: res.redirectChain ?? [],
+      redirect_not_followed: res.redirectNotFollowed ?? null,
       error: res.error ?? null,
       robotsState: verdict.state,
       robotsReason: verdict.reason,
@@ -233,7 +235,7 @@ export async function crawl({
 
   return {
     plan,
-    run: summariseRun({
+    run: { ...summariseRun({
       run_id, started_at, finished_at: now().toISOString(), seedSource,
       urlsRequested: plan.urlsQueued, urlsFetched, requestsIssued: fetcher.requestsIssued(),
       robotsRequestsIssued: robots.requestsIssued(),
@@ -250,6 +252,8 @@ export async function crawl({
       /* every request this run issued — robots.txt included — is a call */
       cost: crawlCost(fetcher.requestsIssued() + robots.requestsIssued()),
     }),
+    /* RR-135: every hop is a paced request inside requestsIssued; how many were followed, and how many were NOT and why */
+    redirects: fetcher.redirects() },
     observations, edges, evidence, bodies,
     dryRun: false,
   };
@@ -293,13 +297,14 @@ function crawlCost(requests) {
     billableUnits: requests,
     currency: "USD",
     amount: null,
-    // 🔴 UNKNOWN, not 0. Each request may trigger a function invocation and an
-    // ISR regeneration on our own account. Nobody has applied Gate C to a
-    // crawler we operate (`U-COST-5`), so the amount is not known — and a 0
-    // here would be a number nobody measured.
+    // 🔴 UNKNOWN, not 0. Each request may trigger a function invocation or a
+    // regeneration on the crawled host's own hosting, whoever operates it (RR-135:
+    // generic — not "our own account"). Nobody has applied Gate C to a crawler
+    // we operate (`U-COST-5`), so the amount is not known — and a 0 here would
+    // be a number nobody measured.
     amountState: "UNKNOWN",
     basis:
-      "each request may invoke a function and trigger an ISR regeneration on our own account; " +
+      "each request may invoke a function or a regeneration on the crawled host's hosting, whoever operates it; " +
       "Gate C has never been applied to a crawler we operate (U-COST-5)",
   });
 }
@@ -307,16 +312,12 @@ function crawlCost(requests) {
 function pageObservation({
   now, requested_url, final_url, status, headers = {}, body = null,
   bytes = 0, truncated = false, timing_ms = null, error = null,
-  robotsState, robotsReason, skipped,
+  robotsState, robotsReason, skipped, redirect_chain = [], redirect_not_followed = null,
 }) {
   const observed_at = now().toISOString();
   const content_sha256 = sha256Hex(body ?? `<no-body:${status ?? error ?? "skipped"}>`);
-  /* ⚠️ The fetcher follows redirects with `redirect: "follow"`, which reports
-   * where a request ENDED but not the hops in between — so the chain is empty on
-   * every record, and a change of intermediate hop that keeps the same final URL
-   * and the same bytes is still invisible. Recorded as a declared limit, not
-   * papered over: the chain participates in the key the moment it is captured. */
-  const redirect_chain = [];
+  /* RR-135: the fetcher now follows redirects itself, hop by hop, paced, so the chain is CAPTURED — and, as declared when it was
+   * empty, it participates in the key: a changed intermediate hop is a changed measurement. A record with no hop keeps its old key. */
   return makeObservation({
     observed_at,
     method: skipped ? "crawl.skipped" : "crawl.fetch",
@@ -328,6 +329,7 @@ function pageObservation({
     value: {
       requested_url, final_url, status,
       redirect_chain,
+      ...(redirect_not_followed ? { redirect_not_followed } : {}),
       timing_ms,
       response_headers_subset: headers,
       bytes, truncated, error,

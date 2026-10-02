@@ -57,10 +57,31 @@ export function openConnector({ scope, subjectId, kind, resolve = null }) {
   /* The declarations were read again: a declaration that changed between the decision and here is refused, not used. */
   if (l.state !== "DECLARED") throw new ConnectorRefused(`CONNECTOR_${l.state}`);
   const credentialName = l.connector.credential?.name ?? null;
+  /* 🔴 RR-135 · A PUBLIC SITE CONNECTOR REACHES ONLY THE SITE ORIGINS IT DECLARES. Until now an opened PUBLIC_SITE connector fetched
+   * any URL it was handed, so a declared batch could carry a seed on any host and it would be read — F19's FAILURE clause "the crawl
+   * reads a resource not declared for the requested tenant". Its fetch now refuses every other origin before any request, and `admits`
+   * lets a caller check a URL before it spends a paced slot on it. A redirect the platform follows by itself is outside this check —
+   * so the crawler follows redirects itself, hop by hop, paced, and only to an origin this connector admits (src/crawl/fetcher.mjs).
+   * Generic: the origins come from the subject's own declaration, whoever the client is. */
+  const origins = l.connector.kind === "PUBLIC_SITE" ? siteOriginsOf(l.connector) : null;
   return Object.freeze({
     connectorId: l.connector.connectorId,
     kind: l.connector.kind,
     credentialName,
-    fetch: (url, init) => globalThis.fetch(url, init),
+    origins: origins ? Object.freeze([...origins]) : null,
+    admits: (url) => origins === null || origins.has(originOf(url)),
+    fetch: origins
+      ? (url, init) => (origins.has(originOf(url)) ? globalThis.fetch(url, init) : Promise.reject(new ConnectorRefused("ORIGIN_NOT_DECLARED_FOR_THIS_CONNECTOR")))
+      : (url, init) => globalThis.fetch(url, init),
   });
+}
+
+/** The origin of a URL, or null when it is not one. */
+export function originOf(url) {
+  try { return new URL(String(url)).origin; } catch { return null; }
+}
+
+/** Every SITE_ORIGIN a connector declares it reaches, as origins. */
+export function siteOriginsOf(connector) {
+  return new Set((connector?.reaches ?? []).filter((r) => r.resourceKind === "SITE_ORIGIN").map((r) => originOf(r.resourceRef)).filter(Boolean));
 }

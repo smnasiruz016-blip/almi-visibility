@@ -120,8 +120,10 @@ export function createRobotsCache({ fetchImpl, userAgent = USER_AGENT, timeoutMs
       const timer = setTimeout(() => controller.abort(), timeoutMs);
       let res;
       try {
+        /* RR-135: never followed by the platform. A 3xx is "not ok" below, so a redirected robots.txt is UNKNOWN and fails closed */
         res = await fetchImpl(`${origin}/robots.txt`, {
           headers: { "User-Agent": userAgent },
+          redirect: "manual",
           signal: controller.signal,
         });
       } finally {

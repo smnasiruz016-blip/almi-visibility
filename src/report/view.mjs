@@ -390,7 +390,7 @@ export function renderRunCost(s) {
 <section id="cost">
   <h2>Cost, and the work a repeat run does</h2>
   <table class="bounds"><tbody>
-    <tr><th>crawl requests issued</th><td>${cell(run?.requestsIssued)} — <strong>billable traffic on our own account</strong></td></tr>
+    <tr><th>crawl requests issued</th><td>${cell(run?.requestsIssued)} — <strong>real traffic to the crawled hosts — its cost to their operator is NOT MEASURED</strong></td></tr>
     <tr><th>crawl cost</th><td>${cell(run?.cost?.amount)} ${costBadge(run)} <span class="bound">${cell(run?.cost?.amountState)}</span></td></tr>
     <tr><th>cost basis</th><td class="wrap">${cell(run?.cost?.basis)}</td></tr>
     <tr><th>evidence: new measurements</th><td>${cell(s.evidenceObservations)}</td></tr>

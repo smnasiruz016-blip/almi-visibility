@@ -64,6 +64,15 @@ export const REQUEST_INTERVAL_MS = 1000;
 
 export const REQUEST_TIMEOUT_MS = 15000;
 
+/* 🔴 RR-135 — REDIRECTS ARE FOLLOWED HERE, HOP BY HOP, PACED — NEVER BY THE PLATFORM. `redirect: "follow"` let the network layer issue
+ * each hop itself: an UNPACED request (F19 FAILURE: "two requests to one host arrive closer than the declared interval"), to wherever the
+ * Location pointed, declared or not ("the crawl reads a resource not declared for the requested tenant"), and the hops went unrecorded
+ * (the redirect chain was empty on every record). Now each hop is its own request: it waits for the pacer, has its own timeout, is
+ * counted, is recorded in the chain, and is taken only when `admits` (the opened connector's declared origins) allows its target.
+ * A redirect not followed — to an origin not admitted, or past the hop bound — is returned as served and says why. */
+export const MAX_REDIRECT_HOPS = 5;
+const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
+
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
@@ -115,6 +124,8 @@ export function createFetcher({
   now = () => Date.now(),
   sleepImpl = sleep,
   monotonic = () => performance.now(),
+  admits = () => true,
+  maxRedirectHops = MAX_REDIRECT_HOPS,
 } = {}) {
   if (typeof fetchImpl !== "function") {
     throw new TypeError("createFetcher: fetchImpl is required — the crawler never reaches for global fetch");
@@ -123,6 +134,8 @@ export function createFetcher({
   let lastStart = null;
   const starts = [];
   let requestsIssued = 0;
+  let redirectHops = 0;
+  const redirectsNotFollowed = { ORIGIN_NOT_ADMITTED: 0, MAX_HOPS: 0 };
 
   /** 🔴 The pacer. Concurrency 1 is structural. It releases a request only when the FULL interval has elapsed on the monotonic clock,
    * rechecking after every wait — an early wake-up loops instead of starting short — and records the start. */
@@ -139,38 +152,59 @@ export function createFetcher({
   }
 
   async function once(url, kind = "page") {
-    await pace(kind);
-    requestsIssued += 1;
     const startedAt = now();
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      const res = await fetchImpl(url, {
-        headers: { "User-Agent": userAgent },
-        redirect: "follow",
-        signal: controller.signal,
-      });
+    const chain = [];
+    let current = url;
+    let k = kind;
+    for (;;) {
+      await pace(k);
+      requestsIssued += 1;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const res = await fetchImpl(current, {
+          headers: { "User-Agent": userAgent },
+          redirect: "manual",
+          signal: controller.signal,
+        });
 
-      // Read with a hard byte ceiling. `res.text()` would buffer the whole body
-      // first, which is exactly what the ceiling exists to prevent.
-      const { text, bytes, truncated } = await readCapped(res, maxResponseBytes);
+        const location = REDIRECT_STATUSES.has(res.status) ? res.headers?.get?.("location") ?? null : null;
+        let next = null;
+        try { next = location ? new URL(location, current).toString() : null; } catch { next = null; }
+        if (next !== null && chain.length < maxRedirectHops && admits(next)) {
+          chain.push({ from: current, status: res.status, to: next });
+          redirectHops += 1;
+          await Promise.resolve().then(() => res.body?.cancel?.()).catch(() => {});
+          current = next;
+          k = "redirect";
+          continue;
+        }
+        const notFollowed = next === null ? null : chain.length >= maxRedirectHops ? "MAX_HOPS" : "ORIGIN_NOT_ADMITTED";
+        if (notFollowed) redirectsNotFollowed[notFollowed] += 1;
 
-      const { headers, headersTruncated } = allowlistedHeaders((h) => res.headers?.get?.(h));
+        // Read with a hard byte ceiling. `res.text()` would buffer the whole body
+        // first, which is exactly what the ceiling exists to prevent.
+        const { text, bytes, truncated } = await readCapped(res, maxResponseBytes);
 
-      return {
-        ok: true,
-        status: res.status,
-        finalUrl: res.url || url,
-        redirected: Boolean(res.redirected),
-        headers,
-        headersTruncated,
-        body: text,
-        bytes,
-        truncated,
-        timing_ms: now() - startedAt,
-      };
-    } finally {
-      clearTimeout(timer);
+        const { headers, headersTruncated } = allowlistedHeaders((h) => res.headers?.get?.(h));
+
+        return {
+          ok: true,
+          status: res.status,
+          finalUrl: chain.length ? current : res.url || current,
+          redirected: chain.length > 0 || Boolean(res.redirected),
+          redirectChain: chain,
+          redirectNotFollowed: notFollowed,
+          headers,
+          headersTruncated,
+          body: text,
+          bytes,
+          truncated,
+          timing_ms: now() - startedAt,
+        };
+      } finally {
+        clearTimeout(timer);
+      }
     }
   }
 
@@ -201,7 +235,9 @@ export function createFetcher({
 
   /* `pace` is exposed so robots.txt requests share this ONE pacer: an unpaced robots fetch followed at once by the first
    * page fetch was two requests to one host closer than the declared interval (F19 measurement, 28 Sep 2026). */
-  return { fetchUrl, pace, pacing: () => pacingSummary(starts, intervalMs), requestsIssued: () => requestsIssued, maxResponseBytes, intervalMs, timeoutMs };
+  return { fetchUrl, pace, pacing: () => pacingSummary(starts, intervalMs), requestsIssued: () => requestsIssued,
+    redirects: () => ({ hopsFollowed: redirectHops, notFollowed: { ...redirectsNotFollowed }, maxHops: maxRedirectHops }),
+    maxResponseBytes, intervalMs, timeoutMs };
 }
 
 /** Read a response body, stopping at `limit` bytes. */

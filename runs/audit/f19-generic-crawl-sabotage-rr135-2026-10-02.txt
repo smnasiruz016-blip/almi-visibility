@@ -1,0 +1,15 @@
+F19 generic-crawl sabotage run · 2026-10-02T15:50:34.504Z
+population: 8 sabotages over test/f19-generic-crawl.test.mjs · each applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): G1=1 G2=1 G3=1 G4=1 G5=1 G6=1 G7=1 G8=1 · all exactly once: true
+production trail sha256 before: ef5b083ba8752f3ac0a70c896a37c188af5d303b59edea77293313e9ee01efe8
+
+G1 the connector admits only its declared site origins src/tenancy/connectors.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+G2 a live run with no seed is refused before any request bin/crawl.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+G3 the platform never follows a redirect for the crawler src/crawl/fetcher.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+G4 a redirect hop waits for the pacer src/crawl/fetcher.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+G5 a redirect is followed only to an admitted origin src/crawl/fetcher.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+G6 a redirected robots.txt is not followed (fails closed) src/crawl/robots.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+G7 the redirect chain is recorded on the observation src/crawl/crawler.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+G8 a resumed batch never duplicates a saved observation bin/crawl.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+
+proved 8 of 8 · residue 0 · production trail sha256 after: ef5b083ba8752f3ac0a70c896a37c188af5d303b59edea77293313e9ee01efe8 · unchanged true

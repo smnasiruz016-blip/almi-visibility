@@ -271,7 +271,7 @@ test("🔴 DRY RUN: the plan is produced BEFORE any request, and names the billa
   assert.ok(planSeen, "onPlan must fire before any fetch");
   const text = renderPlan(planSeen, { live: false });
   assert.match(text, /DRY RUN/);
-  assert.match(text, /billable traffic on our own Vercel account/);
+  assert.match(text, /real traffic to that host/);
   assert.match(text, /x\.example\.com/);
 });
 

@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F81_ORIGINAL } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F81_ORIGINAL } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -1156,6 +1156,33 @@ export const DECLARED = Object.freeze({
         branch: "rr137-f22-render-audit",
         baseSha: "bc5ebef411063c7108ef77ec3d1f1eef9e5d9de3",
         baseCiRun: "37040949554",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-02_RR-137_RESOLVE_THE_RULE_TEXT_THEN_KEEP_BUILDING.md", commit: "54934288d40f548039f1ccfb495781a9d74dba4d", sha256: "4d2763418935fdce5518c1ff54463da5037a53510f2e17a66c5e38f222ea82ba" }),
+      }),
+    ]),
+  }),
+  /* 🔴 F25 · Mobile readiness assessment. Frozen ALONE (_handoffs b56655a, RR-137 §4) before any F25 code. IN-PROGRESS only:
+   * the viewport (C2) is measured on the real stored pages (8 of 8 PRESENT, device-width 8, zoom restricted 0); overflow, tap targets and
+   * mobile content need COMPLETE renders, and every real render is PARTIAL or FAILED offline — NOT MEASURED. The live renders wait on
+   * their reviewed bounded request (_handoffs AlmiVisibility_RR-137_F25_LIVE_RENDER_BOUNDED_REQUEST). */
+  F25: Object.freeze({
+    featureId: "F25",
+    board: "F_BOARD",
+    state: "IN-PROGRESS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-02", ruling: F25_ORIGINAL.ruling, contractSha256: F25_ORIGINAL.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F25",
+        on: "2026-10-02",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: F25_ORIGINAL.ruling.sha256, contract: F25_ORIGINAL.contractSha256 }),
+        branch: "rr137-f25-mobile-readiness",
+        baseSha: "c780d76de8fda73282cf2f2e82d57bdb5ce0e15a",
+        baseCiRun: "37071935783",
         baseCiConclusion: "success",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-02_RR-137_RESOLVE_THE_RULE_TEXT_THEN_KEEP_BUILDING.md", commit: "54934288d40f548039f1ccfb495781a9d74dba4d", sha256: "4d2763418935fdce5518c1ff54463da5037a53510f2e17a66c5e38f222ea82ba" }),
       }),

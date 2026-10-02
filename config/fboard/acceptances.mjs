@@ -742,6 +742,23 @@ export const F22_ORIGINAL = Object.freeze({
   contractSha256: "9ecbda51d1b0c0d011130ee67a953c6d2186f97b17745f9ca7dd9a02d279a4e8",
 });
 
+/* 🔴 F25 · FROZEN 2 Oct 2026 (_handoffs b56655a, RR-137 §4), committed ALONE before any F25 engine change: mobile
+ * readiness — the viewport from the stored HTML; overflow, tap targets (WCAG 2.2 SC 2.5.8) and mobile-against-desktop words only from
+ * COMPLETE renders at declared viewports. Pinned from the committed blob by parseContract (firing control: "measured only from a
+ * COMPLETE render" → "measured solely from" moves the hash). */
+export const F25_ORIGINAL = Object.freeze({
+  featureId: "F25",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F25_ACCEPTANCE_2026-10-02.md", commit: "b56655ae001e97c9d7516013ea33069a7cb65727", sha256: "0df65f7992c9ab473bdaf9a780923e7bca911452865e95a19a2120174dc901ba" }),
+  authority: Object.freeze({ propositionId: "F25_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F25"]) }),
+  frozenOn: "2026-10-02",
+  feature: "F25 · Mobile readiness assessment",
+  input: "For one declared client: its own stored raw-HTML page bodies, and for each, renders made by the engine's renderer at a DECLARED mobile viewport and a DECLARED desktop viewport — offline, or only under an owner-reviewed bounded request live same-origin (F22's path); nothing published and nothing written.",
+  expected: "[C1 · ONE CLIENT, ANY CLIENT] Only the requested client's own stored bodies are read and rendered, through the F02 scope decision; the code names no host, tenant, product or path shape and is proved on two unrelated declared subjects through the same code, at least one of them on a different registered domain from the other.\n[C2 · VIEWPORT, FROM THE STORED HTML] For each page with a stored body, its viewport declaration is read from the raw HTML (outside comments, scripts, styles and templates): ABSENT, or PRESENT with its parsed properties; PRESENT pages are classed by whether width is device-width, and a page whose declaration sets user-scalable to no or 0, or a maximum-scale below 2, is ZOOM RESTRICTED (WCAG 2.2 SC 1.4.4); more than one declaration, or one whose content cannot be parsed, is counted as such, never silently resolved.\n[C3 · RENDERED FACTS ONLY FROM COMPLETE RENDERS] Responsive rendering, tap targets and mobile content are measured only from a COMPLETE render at the declared viewport; a PARTIAL or FAILED render makes each of them NOT MEASURED with that render's reason — never a pass, never 0.\n[C4 · RESPONSIVE RENDERING] On a COMPLETE mobile render, a page whose document is wider than the declared viewport width is HORIZONTAL OVERFLOW, with the overflow in CSS pixels; otherwise it FITS.\n[C5 · TAP TARGETS] On a COMPLETE mobile render, every visible link, button and form control is a target; a target smaller than 24 by 24 CSS pixels whose 24-pixel circle intersects another target is UNDERSIZED (WCAG 2.2 SC 2.5.8); targets are counted with their denominator.\n[C6 · MOBILE CONTENT AVAILABILITY] When both the mobile and the desktop render of a page are COMPLETE, the visible-text words present in the desktop render and absent in the mobile render are counted as missing on mobile (and the reverse as mobile-only); otherwise NOT MEASURED; no judgement of importance is made by the code — the count is reported.\n[C7 · DENOMINATORS, INCOMPLETENESS] Every count carries its denominator; the population is INCOMPLETE whenever any page or measure is NOT MEASURED, naming what is absent; the output is count-only — no host, URL or page content.",
+  failure: "[C1] Another client's page is read, or the code names a host, tenant, product or path shape, or it is proved on one subject only. [C2] A viewport declaration inside a comment or script is read, a present one is missed, a zoom restriction is missed or invented, or several or unparseable declarations are resolved silently. [C3] Any rendered measure is reported from a PARTIAL or FAILED render, or NOT MEASURED is printed as a pass or 0. [C4] An overflow is missed or invented, or measured at an undeclared width. [C5] A target is mis-sized, an undersized target with clear spacing is flagged, or an invisible element is counted. [C6] Words are counted from a non-COMPLETE render, or an importance judgement is made. [C7] A count lacks its denominator, an incomplete population reads complete, or output carries a host, URL or content. And for any clause: it is proved only on an empty population, or only by a control that cannot fire.",
+  evidence: "For each clause: a test driving the production path; a firing control; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched. The real result for the declared clients, count-only: C2 from the stored bodies now; C3–C6 NOT MEASURED until COMPLETE renders exist. F25 moves to VERIFIED-PASS only when every clause is PROVED on the real population with COMPLETE renders where a clause needs one, and with exact-SHA CI on the PR head and then on the merge commit.",
+  contractSha256: "843819d1fd444db12b35d80d8ba47e2c5ea82a83385262fcee7192e393fb1034",
+});
+
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -930,6 +947,7 @@ export const ACCEPTANCES = Object.freeze({
   F13: F13_ORIGINAL,
   F19: F19_ORIGINAL,
   F22: F22_ORIGINAL,
+  F25: F25_ORIGINAL,
   F81: F81_ORIGINAL,
   F79: F79_AMENDMENT_1,
   F82: F82_ORIGINAL,

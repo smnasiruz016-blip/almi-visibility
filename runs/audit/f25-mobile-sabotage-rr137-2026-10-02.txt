@@ -1,0 +1,22 @@
+F25 mobile sabotage run · 2026-10-02T22:37:21.585Z
+population: 15 sabotages over test/f25-mobile-readiness.test.mjs · each applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): M1=1 M2=1 M3=1 M4=1 M5=1 M6=1 M7=1 M8=1 M9=1 M10=1 M11=1 M12=1 M13=1 M14=1 M15=1 · all exactly once: true
+production trail sha256 before: 06178668f432418eb4755ef664041e7c38eaf44044b4a01453870183bab0f080
+
+M1 C2: comments and scripts are not read for the viewport src/audit/mobile-readiness.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+M2 C2: user-scalable=no restricts zoom src/audit/mobile-readiness.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+M3 C2: a maximum-scale below 2 restricts zoom src/audit/mobile-readiness.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+M4 C2: several declarations are counted, never resolved src/audit/mobile-readiness.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+M5 C3: overflow only from a COMPLETE mobile render src/audit/mobile-readiness.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+M6 C4: the overflow is measured src/audit/mobile-readiness.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+M7 C5: a small target is undersized only when its circle meets another src/audit/mobile-readiness.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+M8 C5: invisible elements are not targets src/audit/mobile-readiness.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+M9 C6: mobile content needs the desktop render COMPLETE too src/audit/mobile-readiness.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+M10 C7: any NOT MEASURED makes the population INCOMPLETE src/audit/mobile-readiness.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+M11 C4: the layout viewport, not the zoomed visual one src/render/renderer.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+M12 C1: a body is read only when its hash matches bin/mobile-audit.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+M13 C1: only pages of the declared site bin/mobile-audit.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+M14 C7: with nothing measured the target count is NOT MEASURED, never 0 bin/mobile-audit.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+M15 C1: live mode needs the owner's green bin/mobile-audit.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+
+proved 15 of 15 · residue 0 · production trail sha256 after: 06178668f432418eb4755ef664041e7c38eaf44044b4a01453870183bab0f080 · unchanged true

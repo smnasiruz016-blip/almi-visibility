@@ -1,25 +1,30 @@
 /**
- * F91 · PAGE OPPORTUNITY PLANNING (acceptance _handoffs 2048dd3, RR-113).
+ * F91 · PAGE OPPORTUNITY PLANNING (acceptance _handoffs 2048dd3; Amendment 1 _handoffs 4ef1b9c, RR-130).
  *
- * Fixtures DRIVE the rules (hand-counted below); they never stand in for the real population. The REAL test reads the demonstration
- * product's own descriptor and registry through its own scope and is the only source of reported figures. Nothing is fetched or
- * rendered; the production trail is not written (last test).
+ * Fixtures DRIVE the rules (hand-counted below); they never stand in for the real population. The two-product proof runs the production
+ * reader over the engine's two unrelated neutral test products (different dimensions, their own fact registries), each with a planning
+ * store written to a temporary directory. The REAL test reads the demonstration product through its own scope and is the only source of
+ * reported figures. Nothing is fetched or rendered; the production trail is not written (last test).
  */
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync, execFileSync } from "node:child_process";
 
-import { planPages, possibleCombinations, verifiedOpportunities, neededPages, orderLaw, formatNumber, NOT_MEASURED, VERDICT, MISSING, LABELS } from "../src/page/page-opportunities.mjs";
-import { readProductPlan, qualifierKeys } from "../src/page/page-opportunities-reader.mjs";
+import { planPages, possibleCombinations, verifiedOpportunities, neededPages, orderLaw, formatNumber, demandOf, normaliseWording, candidateKey, NOT_MEASURED, VERDICT, MISSING, LABELS, APPLICABILITY, DEMAND_RULES, SAMPLE_NOTICE } from "../src/page/page-opportunities.mjs";
+import { readProductPlan, qualifierKeys, planningInputs } from "../src/page/page-opportunities-reader.mjs";
 import { productFromArgv } from "../src/product-cli.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { censusSubjectScope } from "../src/tenancy/scoped-run.mjs";
 import { PRODUCT_WORDS, scanSource } from "../tools/product-boundary.mjs";
 import { decisionCallPaths } from "../tools/need-coverage-call-paths.mjs";
+import { COMPLETENESS_CLAIM } from "../src/research/public-questions.mjs";
 import { declaredWorld } from "./helpers/declared-world.mjs";
+import { PRODUCT as KNOTS } from "../products/neutral-test-knots/product.mjs";
+import { PRODUCT as FERMENTS } from "../products/neutral-test-ferments/product.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const TRAIL = join(REPO, "audit-trail", "events.jsonl");
@@ -27,126 +32,228 @@ const trailSha = () => (existsSync(TRAIL) ? createHash("sha256").update(readFile
 const TRAIL_BEFORE = trailSha();
 const PLANNER = ["src/page/page-opportunities.mjs", "src/page/page-opportunities-reader.mjs", "bin/page-opportunities.mjs"];
 
-const DIM = [{ key: "role", values: ["a", "b", "c"] }];
-const k = (c) => JSON.stringify(Object.keys(c).sort().map((x) => [x, c[x]]));
-const rec = (state, more = {}) => ({ demand: { state, owned: false, observed: true }, reliableSource: true, productFit: true, distinctNeed: true, ...more });
+const SRC = "a recorded declaration";
+const dim = (key, values, applicability = APPLICABILITY.APPLIES, source = SRC) => ({ key, values, source, applicability, limits: "declared values only", exclusions: "none" });
+const all4 = (demand) => ({ demand, credibleSource: true, productFit: true, distinctNeed: true });
+const recs = (entries) => new Map(entries.map(([c, r]) => [candidateKey(c), r]));
 
 /* ================= C1 — possible combinations ================= */
 
-test("C1 · FIRING CONTROL: one dimension counts its declared values; several are NEVER multiplied without a declared combination rule; an empty one is omitted", () => {
-  assert.equal(possibleCombinations({ dimensions: DIM }).value, 3);
-  const two = [{ key: "role", values: ["a", "b", "c"] }, { key: "place", values: ["x", "y"] }];
-  const blind = possibleCombinations({ dimensions: two });
-  assert.equal(blind.value, NOT_MEASURED, "two dimensions were multiplied without the product declaring which combinations are relevant");
-  assert.equal(blind.missing, MISSING.combinationRule);
-  assert.equal(possibleCombinations({ dimensions: two, declaredCombinations: [{ role: "a", place: "x" }, { role: "b", place: "y" }] }).value, 2);
-  const withEmpty = possibleCombinations({ dimensions: [...DIM, { key: "unused", values: [] }] });
-  assert.deepEqual([withEmpty.value, withEmpty.omittedDimensions], [3, 1], "an empty dimension was filled instead of omitted");
-  assert.equal(possibleCombinations({ dimensions: [] }).value, NOT_MEASURED);
+test("C1 · FIRING CONTROL: one applying dimension counts its values; several are NEVER multiplied without declared combinations; universes, inapplicable and sourceless dimensions are excluded", () => {
+  assert.equal(possibleCombinations({ dimensions: [dim("d1", ["a", "b", "c"])] }).value, 3);
+  const two = [dim("d1", ["a", "b", "c"]), dim("d2", ["x", "y", "z", "w"])];
+  const none = possibleCombinations({ dimensions: two });
+  assert.equal(none.value, NOT_MEASURED, "3 × 4 were multiplied with no declaration");
+  assert.equal(none.missing, MISSING.combinationRule);
+  assert.equal(possibleCombinations({ dimensions: two, declaredCombinations: [{ d1: "a", d2: "x" }, { d1: "b", d2: "y" }, { d1: "a", d2: "x" }, { d1: "q", d2: "x" }] }).value, 2, "a repeated or undeclared-value combination was counted");
+  /* a candidate universe, an inapplicable dimension and a dimension with no recorded source never enter the arithmetic */
+  const mixed = possibleCombinations({ dimensions: [dim("d1", ["a", "b"]), dim("universe", Array.from({ length: 196 }, (_, i) => `u${i}`), APPLICABILITY.CANDIDATE_UNIVERSE), dim("na", ["n"], APPLICABILITY.NOT_APPLICABLE), dim("nosrc", ["s"], APPLICABILITY.APPLIES, "")] });
+  assert.equal(mixed.value, 2, "an excluded dimension entered the count");
+  assert.deepEqual(mixed.excluded.map((x) => x.key), ["universe", "na", "nosrc"]);
+  assert.match(mixed.excluded[0].why, /CANDIDATE UNIVERSE .* never multiplied, never a target/);
+  assert.deepEqual(mixed.dimensions.map((d) => [d.key, d.values, d.source]), [["d1", 2, SRC]]);
+  assert.equal(possibleCombinations({ dimensions: [dim("d1", [])] }).value, NOT_MEASURED);
+  /* a declared combination naming an excluded dimension is dropped and counted */
+  const viaExcluded = possibleCombinations({ dimensions: [dim("d1", ["a"]), dim("d2", ["x"]), dim("u", ["z"], APPLICABILITY.CANDIDATE_UNIVERSE)], declaredCombinations: [{ d1: "a", d2: "x" }, { d1: "a", u: "z" }] });
+  assert.equal(viaExcluded.value, 1);
   assert.match(LABELS.possible, /candidates only; not pages, not a plan, not a target, not a potential, not a page estimate/);
 });
 
 /* ================= C2 — verified opportunities ================= */
 
-test("C2 · FIRING CONTROL: no owner declaration of qualifying states → NOT MEASURED; all four limbs recorded → counted; a limb not met → excluded and named", () => {
-  const possible = possibleCombinations({ dimensions: DIM });
-  const records = new Map([[k({ role: "a" }), rec("STRONG")], [k({ role: "b" }), rec("WEAK")], [k({ role: "c" }), rec("STRONG", { productFit: false })]]);
-  const none = verifiedOpportunities({ possible, records });
-  assert.equal(none.value, NOT_MEASURED, "number 2 was computed with no owner declaration of qualifying demand states");
-  assert.equal(none.missing, MISSING.qualifyingStates);
-  const v = verifiedOpportunities({ possible, qualifyingDemandStates: ["STRONG"], records });
-  assert.equal(v.value, 1);
-  assert.deepEqual(v.excluded, { demand: 1, reliableSource: 0, productFit: 1, distinctNeed: 0 });
+test("C2 · FIRING CONTROL: the demand mapping — OBSERVED, OWNED and STRONG qualify; INFERRED, CLIENT_CLAIM, MONITOR and competitor coverage never do; anything else is UNKNOWN", () => {
+  for (const s of ["OBSERVED", "OWNED_OBSERVED", "STRONG"]) assert.equal(demandOf([{ state: s }]), true, s);
+  for (const s of ["INFERRED", "CLIENT_CLAIM", "MONITOR", "COMPETITOR_COVERAGE"]) assert.equal(demandOf([{ state: s }]), false, s);
+  for (const s of ["MODERATE", "WEAK", "UNKNOWN", "SOMETHING_NEW"]) assert.equal(demandOf([{ state: s }]), undefined, `${s} was decided by the implementation`);
+  assert.equal(demandOf([]), undefined, "an empty sample was read as no demand");
+  assert.equal(demandOf([{ state: "INFERRED" }, { state: "OBSERVED" }]), true);
+  assert.equal(demandOf([{ state: "INFERRED" }, { state: "MODERATE" }]), undefined, "an undecided state was overridden by a non-qualifying one");
+  for (const [s, r] of Object.entries(DEMAND_RULES)) assert.ok(typeof r.by === "string" && r.by.length > 0, `${s} names no deciding contract`);
 });
 
-test("C2 · an UNRECORDED limb leaves its candidate undecided and the number NOT MEASURED — fails closed; owned and inferred demand are counted apart", () => {
-  const possible = possibleCombinations({ dimensions: DIM });
-  const partial = new Map([[k({ role: "a" }), rec("STRONG")], [k({ role: "b" }), rec("STRONG", { reliableSource: undefined })]]);
-  const v = verifiedOpportunities({ possible, qualifyingDemandStates: ["STRONG"], records: partial });
-  assert.equal(v.value, NOT_MEASURED, "a candidate with an unrecorded limb was counted or excluded instead of left undecided");
-  assert.equal(v.undecided, 2);
-  const full = new Map(["a", "b", "c"].map((r, i) => [k({ role: r }), { ...rec("STRONG"), demand: { state: "STRONG", owned: i === 0, observed: i !== 2 } }]));
-  const w = verifiedOpportunities({ possible, qualifyingDemandStates: ["STRONG"], records: full });
-  assert.deepEqual([w.value, w.ownedEvidence, w.inferredDemand], [3, 1, 1]);
+test("C2 · FIRING CONTROL: every limb must be recorded; a limb not met is excluded and named; one UNKNOWN candidate makes number 2 NOT MEASURED — never 0; the four kinds are counted apart", () => {
+  const possible = possibleCombinations({ dimensions: [dim("d", ["a", "b", "c", "d", "e"])] });
+  const r = verifiedOpportunities({ possible, records: recs([
+    [{ d: "a" }, all4([{ state: "OBSERVED" }, { state: "INFERRED" }])],
+    [{ d: "b" }, all4([{ state: "OWNED_OBSERVED" }])],
+    [{ d: "c" }, all4([{ state: "CLIENT_CLAIM" }])],
+    [{ d: "d" }, { ...all4([{ state: "OBSERVED" }]), productFit: false }],
+  ]) });
+  assert.equal(r.value, NOT_MEASURED, "number 2 was a number while a candidate is UNKNOWN");
+  assert.match(r.missing, /never zero demand/);
+  assert.deepEqual([r.verifiedSoFar, r.unknown, r.excluded.demand, r.excluded.productFit], [2, 1, 1, 1]);
+  assert.deepEqual([r.kinds.observedQuestions, r.kinds.inferredSuggestions, r.kinds.ownedEvidence, r.kinds.clientClaims], [2, 1, 1, 1], "one kind of demand evidence was counted as another");
+  const done = verifiedOpportunities({ possible: possibleCombinations({ dimensions: [dim("d", ["a", "b"])] }), records: recs([[{ d: "a" }, all4([{ state: "STRONG" }])], [{ d: "b" }, all4([{ state: "MONITOR" }])]]) });
+  assert.deepEqual([done.value, done.excluded.demand], [1, 1]);
+  const empty = verifiedOpportunities({ possible: possibleCombinations({ dimensions: [dim("d", ["a"])] }) });
+  assert.equal(empty.value, NOT_MEASURED, "a candidate with no record read as verified or as zero");
 });
 
 /* ================= C3 — genuinely needed pages ================= */
 
-test("C3 · FIRING CONTROL: number 3 needs number 2, a declared grouping rule and recorded coverage and unique value; groups, not combinations, become pages", () => {
-  const possible = possibleCombinations({ dimensions: DIM });
-  const records = new Map(["a", "b", "c"].map((r) => [k({ role: r }), rec("STRONG")]));
-  const verified = verifiedOpportunities({ possible, qualifyingDemandStates: ["STRONG"], records });
-  assert.equal(neededPages({ verified: { value: NOT_MEASURED, missing: "x" } }).value, NOT_MEASURED);
-  assert.equal(neededPages({ verified }).missing, MISSING.groupingRule, "a grouping rule was assumed");
-  const groupOf = (c) => (c.role === "c" ? "g2" : "g1");
-  assert.equal(neededPages({ verified, groupOf }).missing, MISSING.coverage);
-  assert.equal(neededPages({ verified, groupOf, assessments: new Map([["g1", { covered: false }], ["g2", { covered: false }]]) }).missing, MISSING.uniqueValue);
-  const n = neededPages({ verified, groupOf, assessments: new Map([["g1", { covered: false, uniqueValue: true }], ["g2", { covered: true, uniqueValue: true }]]) });
-  assert.deepEqual([n.value, n.groups, n.excluded], [1, 2, { coveredByAnExistingPage: 1, noUniqueValue: 0 }]);
+const v = (cands) => ({ value: cands.length, opportunities: cands });
+const g = (members, rec) => [JSON.stringify(members.map(candidateKey).sort()), rec];
+const NEW_REC = { coverage: "NOT_COVERED", rightToExist: "ESTABLISHED", verifiedFacts: true, verifiedAnswer: true };
+
+test("C3 · FIRING CONTROL: identical wording merges inside one combination only; similar wording never merges; a recorded judgement joins two combinations", () => {
+  const A = { d: "a" }, B = { d: "b" }, C = { d: "c" };
+  const questions = new Map([
+    [candidateKey(A), [{ id: "q1", wording: "How long is it valid?" }, { id: "q2", wording: "  how long is it VALID " }, { id: "q3", wording: "How long does it stay valid?" }]],
+    [candidateKey(B), [{ id: "q4", wording: "How long is it valid?" }]],
+    [candidateKey(C), [{ id: "q5", wording: "Where do I take it?" }]],
+  ]);
+  const plain = neededPages({ verified: v([A, B, C]), questions, groupRecords: new Map() });
+  assert.equal(plain.merged.questions, 1, "only q1/q2 are identical after the stated normalisation");
+  assert.equal(plain.groups, 3, "identical wording in two different combinations was merged without a recorded judgement");
+  const judged = neededPages({ verified: v([A, B, C]), questions, sameness: [["q1", "q4"], ["q9", "q5"]], groupRecords: new Map() });
+  assert.deepEqual([judged.groups, judged.merged.candidatesJoined, judged.merged.judgementsApplied, judged.merged.judgementsIgnored], [2, 1, 1, 1]);
+  assert.equal(normaliseWording("  How long is it VALID?? "), "how long is it valid");
 });
 
-/* ================= C5 — a combination never authorises a page; the order law ================= */
+test("C3 · FIRING CONTROL: COVERED is never new; CANNOT DECIDE, a missing right to exist, facts or answer HOLD with the reason; only a fully recorded group is NEW", () => {
+  const cands = ["a", "b", "c", "d", "e", "f", "h", "i"].map((x) => ({ d: x }));
+  const groupRecords = new Map([
+    g([cands[0]], { coverage: "COVERED" }),
+    g([cands[1]], { coverage: "CANNOT_DECIDE" }),
+    g([cands[2]], { coverage: "NOT_COVERED", rightToExist: "REFUSED" }),
+    g([cands[3]], { coverage: "NOT_COVERED", rightToExist: "ESTABLISHED", verifiedFacts: true }),
+    g([cands[4]], { coverage: "NOT_COVERED", rightToExist: "CANNOT DECIDE" }),
+    g([cands[5]], NEW_REC),
+    g([cands[6]], { ...NEW_REC, uniqueValue: false }),
+    g([cands[7]], { coverage: "NOT_COVERED", rightToExist: "ESTABLISHED" }),
+  ]);
+  const r = neededPages({ verified: v(cands), groupRecords });
+  assert.deepEqual([r.value, r.covered, r.refused, r.held], [1, 1, 2, 4]);
+  assert.deepEqual(r.heldBy, { coverage: 1, rightToExist: 1, facts: 1, answer: 1 });
+  const none = neededPages({ verified: v([{ d: "z" }]) });
+  assert.deepEqual([none.value, none.held, none.heldBy.coverage], [0, 1, 1], "a group with no records at all was counted as a page");
+  assert.equal(neededPages({ verified: { value: NOT_MEASURED, missing: "x" } }).value, NOT_MEASURED, "number 3 was a number while number 2 is NOT MEASURED");
+});
 
-test("C5 · CONTROL: a combination with NO evidence never becomes a verified opportunity or a needed page, whatever else is declared", () => {
-  const p = planPages({ dimensions: DIM, qualifyingDemandStates: ["STRONG"], records: new Map(), groupOf: () => "g", assessments: new Map([["g", { covered: false, uniqueValue: true }]]) });
-  assert.equal(p.possible.value, 3);
-  assert.equal(p.verified.value, NOT_MEASURED, "evidence-free candidates were counted as opportunities");
-  assert.equal(p.needed.value, NOT_MEASURED, "an evidence-free candidate reached a page");
+/* ================= C4–C6 ================= */
+
+test("C5 · CONTROL: a combination with NO evidence never becomes a verified opportunity or a needed page, whatever else is recorded", () => {
+  const p = planPages({ dimensions: [dim("d", ["a"])], groupRecords: new Map([g([{ d: "a" }], NEW_REC)]) });
+  assert.equal(p.verified.value, NOT_MEASURED);
+  assert.equal(p.needed.value, NOT_MEASURED);
 });
 
 test("C5 · FIRING CONTROL: the order law holds, is NOT CHECKABLE with any NOT MEASURED, and a breach is a DEFECT — never reordered", () => {
-  const n = (v) => ({ value: v });
-  assert.deepEqual(orderLaw(n(3), n(2), n(1)), { state: "HOLDS", verdict: VERDICT.PROVED });
-  assert.equal(orderLaw(n(3), n(NOT_MEASURED), n(NOT_MEASURED)).state, "NOT CHECKABLE");
-  const breach = orderLaw(n(2), n(3), n(1));
-  assert.equal(breach.verdict, VERDICT.DISPROVED, "a breached order was accepted");
-  assert.match(breach.state, /BREACHED — a planner defect/);
+  assert.equal(orderLaw({ value: 3 }, { value: 2 }, { value: 1 }).state, "HOLDS");
+  assert.equal(orderLaw({ value: 3 }, { value: NOT_MEASURED }, { value: 1 }).state, "NOT CHECKABLE");
+  const b = orderLaw({ value: 1 }, { value: 2 }, { value: 0 });
+  assert.deepEqual([b.state, b.verdict], ["BREACHED — a planner defect", VERDICT.DISPROVED]);
 });
 
-/* ================= C4 / C6 — three numbers, NOT MEASURED never zero ================= */
-
-test("C6 · CONTROL: NOT MEASURED is never printed as 0, never a pass; C4 the three numbers stay separate and nothing sums them", () => {
-  const p = planPages({ dimensions: DIM });
-  for (const x of [p.verified, p.needed]) {
-    assert.equal(x.value, NOT_MEASURED);
-    const line = formatNumber(x);
-    assert.match(line, /NOT MEASURED — missing /);
-    assert.doesNotMatch(line, /:\s*0\b/, "NOT MEASURED was printed as 0");
-  }
-  assert.equal(p.verdict, VERDICT.COULD_NOT_PROVE, "a plan with NOT MEASURED numbers read PROVED");
-  assert.equal(p.order.state, "NOT CHECKABLE");
-  const src = readFileSync(join(REPO, "src/page/page-opportunities.mjs"), "utf8");
-  assert.doesNotMatch(src, /possible\.value\s*\+|verified\.value\s*\+|needed\.value\s*\+|\bTOTAL_PAGES\b|\bquota\s*=/i, "a sum or quota appeared in the planner");
+test("C6 · CONTROL: NOT MEASURED is never printed as 0; C4 the three numbers stay separate and nothing sums them", () => {
+  const p = planPages({ dimensions: [] });
+  for (const n of [p.possible, p.verified, p.needed]) assert.match(formatNumber(n), /NOT MEASURED — missing /);
+  assert.doesNotMatch(formatNumber(p.verified), /: 0\b/);
+  assert.equal(formatNumber({ label: "X", value: 0 }), "X: 0");
+  const src = readFileSync(join(REPO, PLANNER[0]), "utf8");
+  assert.doesNotMatch(src, /possible\.value\s*\+|verified\.value\s*\+|needed\.value\s*\+/, "the planner sums two of its numbers");
 });
 
-/* ================= C7 — any client, one at a time ================= */
+/* ================= C7 — any client, one client at a time ================= */
 
-test("C7 · FIRING CONTROL: the planner names no declared product word — and the scanner fires when one is planted", () => {
+const QUOTA = /\b(max|limit|quota|cap|target)_?pages?\b|\bpages?_?(quota|cap|limit|target)\b|quota\s*[:=]\s*\d/i;
+const DIMENSION_NAMES = () => [...new Set([KNOTS.axis.key, FERMENTS.axis.key, "profession", "country", "institution", "university", "course", "destination", "origin"])];
+
+test("C7 · FIRING CONTROL: the planner names no declared product word, no product's dimension and no page quota — and each scanner fires when one is planted", () => {
   assert.ok(PRODUCT_WORDS.length > 0, "an empty vocabulary would make every scan pass");
-  for (const f of PLANNER) assert.deepEqual(scanSource(readFileSync(join(REPO, f), "utf8")).code, [], `${f} names a product in code`);
-  const planted = `${readFileSync(join(REPO, PLANNER[0]), "utf8")}\nexport const X = "${PRODUCT_WORDS[0]}";\n`;
+  for (const f of PLANNER) {
+    const text = readFileSync(join(REPO, f), "utf8");
+    assert.deepEqual(scanSource(text).code, [], `${f} names a product in code`);
+    const code = text.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, "");
+    for (const d of DIMENSION_NAMES()) assert.doesNotMatch(code, new RegExp(`["'\`]${d}["'\`]`, "i"), `${f} names the dimension "${d}" in code`);
+    assert.doesNotMatch(code, QUOTA, `${f} carries a page quota`);
+  }
+  const planted = `${readFileSync(join(REPO, PLANNER[0]), "utf8")}\nexport const X = "${PRODUCT_WORDS[0]}";\nconst MAX_PAGES = 50;\nconst DIM = "profession";\n`;
   assert.ok(scanSource(planted).code.length > 0, "the neutrality scanner did not fire on a planted product word");
+  assert.match(planted, QUOTA, "the quota scanner did not fire on a planted quota");
+  assert.match(planted.replace(/\/\*[\s\S]*?\*\//g, ""), /["']profession["']/, "the dimension scanner did not fire on a planted dimension");
 });
 
-test("C7 · the reader counts qualifier keys from a registry's claims without reading anything else", () => {
+/** A product object as the descriptor gives it, with a planning store in a temporary directory. */
+function withPlanning(product, planning, rows) {
+  const dir = mkdtempSync(join(tmpdir(), "almi-f91-"));
+  const records = join(dir, "planning.jsonl");
+  writeFileSync(records, rows.map((r) => JSON.stringify(r)).join("\n") + "\n");
+  return { product: { ...product, planning: { ...planning, records } }, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
+}
+
+test("C7 · TWO UNRELATED PRODUCTS, DIFFERENT DIMENSIONS — sparse data, duplicate questions and existing-page coverage, through the production reader", async () => {
+  const [k0, k1, k2] = KNOTS.variants;
+  /* product 1: its own axis + a second applying dimension, combinations declared; one candidate UNKNOWN (sparse) → number 2 NOT MEASURED */
+  const K = withPlanning(KNOTS, {
+    dimensions: [{ key: "use", values: ["sailing", "climbing"], source: "a recorded declaration", applicability: APPLICABILITY.APPLIES, limits: "two uses", exclusions: "none" }],
+    relevantCombinations: [{ [KNOTS.axis.key]: k0, use: "sailing" }, { [KNOTS.axis.key]: k1, use: "climbing" }, { [KNOTS.axis.key]: k2, use: "sailing" }],
+  }, [
+    { record_type: "planning_demand", combination: { [KNOTS.axis.key]: k0, use: "sailing" }, state: "OBSERVED", questionId: "kq1", wording: "W1" },
+    { record_type: "planning_limbs", combination: { [KNOTS.axis.key]: k0, use: "sailing" }, credibleSource: true, productFit: true, distinctNeed: true },
+    { record_type: "planning_demand", combination: { [KNOTS.axis.key]: k1, use: "climbing" }, state: "INFERRED" },
+    { record_type: "planning_limbs", combination: { [KNOTS.axis.key]: k1, use: "climbing" }, credibleSource: true, productFit: true, distinctNeed: true },
+    { record_type: "not_a_planning_record" },
+  ]);
+  /* product 2: its own axis + a CANDIDATE UNIVERSE that never enters; every candidate decided; duplicates; one covered, one new */
+  const [f0, f1, f2] = FERMENTS.variants;
+  const fc = (x) => ({ [FERMENTS.axis.key]: x });
+  const F = withPlanning(FERMENTS, {
+    dimensions: [{ key: "region", values: Array.from({ length: 196 }, (_, i) => `r${i}`), source: "an inventory", applicability: APPLICABILITY.CANDIDATE_UNIVERSE, limits: "unverified", exclusions: "all" }],
+  }, [
+    ...[f0, f1, f2].map((x) => ({ record_type: "planning_limbs", combination: fc(x), credibleSource: true, productFit: true, distinctNeed: true })),
+    { record_type: "planning_demand", combination: fc(f0), state: "OBSERVED", questionId: "fq1", wording: "Same question?" },
+    { record_type: "planning_demand", combination: fc(f0), state: "OBSERVED", questionId: "fq2", wording: "same   QUESTION" },
+    { record_type: "planning_demand", combination: fc(f1), state: "OWNED_OBSERVED", questionId: "fq3", wording: "Other question" },
+    { record_type: "planning_demand", combination: fc(f2), state: "CLIENT_CLAIM" },
+    ...FERMENTS.variants.slice(3).flatMap((x) => [{ record_type: "planning_demand", combination: fc(x), state: "MONITOR" }, { record_type: "planning_limbs", combination: fc(x), credibleSource: true, productFit: true, distinctNeed: true }]),
+    { record_type: "planning_group", members: [fc(f0)], coverage: "COVERED" },
+    { record_type: "planning_group", members: [fc(f1)], ...NEW_REC },
+  ]);
+  try {
+    const k = (await readProductPlan(K.product)).plan;
+    const f = (await readProductPlan(F.product));
+    assert.deepEqual([k.possible.value, k.verified.value, k.verified.unknown, k.verified.verifiedSoFar, k.verified.excluded.demand, k.needed.value], [3, NOT_MEASURED, 1, 1, 1, NOT_MEASURED]);
+    assert.deepEqual([f.plan.possible.value, f.plan.possible.excluded.map((x) => x.key)], [FERMENTS.variants.length, ["region"]], "a candidate universe entered product 2's arithmetic");
+    assert.deepEqual([f.plan.verified.value, f.plan.verified.excluded.demand, f.plan.verified.kinds.ownedEvidence, f.plan.verified.kinds.clientClaims], [2, FERMENTS.variants.length - 2, 1, 1]);
+    assert.deepEqual([f.plan.needed.value, f.plan.needed.covered, f.plan.needed.merged.questions, f.plan.needed.groups], [1, 1, 1, 2]);
+    assert.equal(f.plan.order.state, "HOLDS");
+    assert.equal(f.inputs.malformedRecords, 0);
+    assert.notDeepEqual(k.possible.dimensions.map((d) => d.key), f.plan.possible.dimensions.map((d) => d.key), "the two products did not differ in dimensions");
+  } finally { K.cleanup(); F.cleanup(); }
+});
+
+test("C7 · the reader shapes only well-formed planning records; anything else is counted MALFORMED, never read as a limb", () => {
+  const i = planningInputs([{ record_type: "planning_limbs", combination: { d: "a" }, credibleSource: true }, { record_type: "planning_limbs", combination: "d=a" }, { record_type: "planning_sameness", questions: ["a"] }]);
+  assert.equal(i.malformed, 2);
+  assert.equal(i.records.size, 1);
   const keys = qualifierKeys([{ claim: { qualifier: "role=a,place=x" } }, { claim: { qualifier: { role: "b" } } }, { claim: {} }]);
   assert.deepEqual([...keys.entries()], [["role", 2], ["place", 1]]);
 });
 
+/* ================= C8 — a sample, and the handoff ================= */
+
+test("C8 · the planner claims no complete sample and promises no ranking; it drafts, answers and writes nothing", () => {
+  assert.match(SAMPLE_NOTICE, /a recorded SAMPLE, never every question asked; no ranking, indexing or AI citation is promised/);
+  assert.match(LABELS.needed, /opportunities handed on; nothing is drafted or written here/);
+  for (const f of PLANNER.slice(0, 2)) assert.doesNotMatch(readFileSync(join(REPO, f), "utf8"), /\b(writeFileSync|appendFileSync|createWriteStream|renameSync)\b/, `${f} writes`);
+});
+
 /* ================= REAL — the demonstration product ================= */
 
-test("REAL · the demonstration product: number 1 from its own declaration, numbers 2 and 3 NOT MEASURED with their missing inputs named", async () => {
+test("REAL · the demonstration product: number 1 from its own declaration; numbers 2 and 3 NOT MEASURED with every candidate UNKNOWN — never zero", async () => {
   const product = await productFromArgv(["node", "x", "--product=almi-oet"], { scope: censusSubjectScope("almi-oet") });
   const { plan, inputs } = await readProductPlan(product);
-  assert.ok(inputs.declaredValues > 0 && inputs.factRecords > 0, "EMPTY real population");
-  assert.equal(plan.possible.value, inputs.declaredValues, "number 1 is not the declared values of the one declared dimension");
+  assert.ok(inputs.factRecords > 0 && product.variants.length > 0, "EMPTY real population");
+  assert.equal(plan.possible.value, product.variants.length, "number 1 is not the declared values of the one applying dimension");
   const keys = qualifierKeys((await loadRegistry(product.factsDir, product.productId)).records);
   assert.equal(inputs.excludedDataKeys, [...keys.keys()].filter((x) => x !== product.axis.key).length, "a data-only qualifier key was combined, or a declared one excluded");
-  assert.equal(plan.verified.missing, MISSING.qualifyingStates);
+  assert.equal(plan.verified.value, NOT_MEASURED);
+  assert.equal(plan.verified.unknown, plan.possible.value, "a real candidate was decided without a recorded demand record");
   assert.equal(plan.needed.value, NOT_MEASURED);
   assert.equal(plan.order.state, "NOT CHECKABLE");
   assert.notEqual(plan.verdict, VERDICT.PROVED);
-  console.log(`  REAL (count-only, the demonstration product's own descriptor and registry): ${JSON.stringify({ n1: plan.possible.value, n2: plan.verified.value, n3: plan.needed.value, order: plan.order.state, verdict: plan.verdict, inputs })}`);
+  console.log(`  REAL (count-only, the demonstration product's own descriptor and registry): ${JSON.stringify({ n1: plan.possible.value, n2: plan.verified.value, unknown: plan.verified.unknown, verifiedSoFar: plan.verified.verifiedSoFar, n3: plan.needed.value, order: plan.order.state, verdict: plan.verdict, inputs })}`);
 });
 
 /* ================= the entry point, no network ================= */
@@ -158,16 +265,20 @@ test("C4 · THE ENTRY POINT: in a declared world it prints three separate number
     const env = WORLD.envWith();
     const ok = spawnSync(process.execPath, WORLD.argv(["bin/page-opportunities.mjs", "--product=almi-oet"]), { cwd: REPO, encoding: "utf8", env });
     assert.equal(ok.status, 0, ok.stdout + ok.stderr);
-    for (const n of ["  1 POSSIBLE COMBINATIONS — candidates only", "  2 VERIFIED OPPORTUNITIES", "  3 GENUINELY NEEDED PAGES"]) assert.ok(ok.stdout.includes(n), `missing ${n}`);
-    for (const part of ["inputs: ", "method: ", "excluded: ", "unknown: ", "order 1 ≥ 2 ≥ 3: "]) assert.ok(ok.stdout.includes(part), `missing ${part}`);
+    for (const n of ["  1 POSSIBLE COMBINATIONS — candidates only", "  2 VERIFIED OPPORTUNITIES — verified does not authorise a page", "  3 GENUINELY NEEDED PAGES — opportunities handed on"]) assert.ok(ok.stdout.includes(n), `missing ${n}`);
+    for (const part of ["inputs: ", "method: ", "excluded: ", "unknown: ", "counts: verified so far ", "order 1 ≥ 2 ≥ 3: ", `bound: ${SAMPLE_NOTICE}`]) assert.ok(ok.stdout.includes(part), `missing ${part}`);
     assert.match(ok.stdout, /never summed and no page total or quota exists/);
+    /* the demonstration product declares no planning store: its demand kinds are NOT MEASURED, never a row of zeros */
+    assert.match(ok.stdout, /demand kinds counted apart: NOT MEASURED — no planning record was read/);
+    assert.doesNotMatch(ok.stdout, /observedQuestions 0/, "an unread store was printed as zero observed questions");
+    for (const line of ok.stdout.split("\n").filter((l) => !l.includes(SAMPLE_NOTICE))) assert.doesNotMatch(line, COMPLETENESS_CLAIM, `a line claims completeness: ${line}`);
     assert.doesNotMatch(ok.stdout + ok.stderr, /https?:\/\//, "the entry point printed a URL");
   } finally { WORLD.cleanup(); }
   assert.equal(execFileSync("git", ["-C", REPO, "status", "--porcelain"], { encoding: "utf8" }), before, "the entry point wrote into the repository");
 });
 
 test("C7 · the planner and its reader load no module that can make a network, process, connector or paid call — and it fires", () => {
-  const entries = ["src/page/page-opportunities.mjs", "src/page/page-opportunities-reader.mjs"];
+  const entries = PLANNER.slice(0, 2);
   assert.deepEqual(decisionCallPaths({ entries }).faults, []);
   const planted = decisionCallPaths({ entries, read: (f) => { const t = existsSync(REPO + f) ? readFileSync(REPO + f, "utf8") : null; return f === entries[0] ? `${t}\nawait fetch(u);\n` : t; } });
   assert.deepEqual(planted.faults.map((x) => x.code), ["RAW_NETWORK_CALL"]);

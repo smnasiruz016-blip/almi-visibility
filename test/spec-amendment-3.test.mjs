@@ -73,9 +73,13 @@ test("A3·5 · F91 ENTERED UNASSESSED with no events or acceptance; its only mov
   const row = board().find((r) => r.featureId === "F91");
   const acc = ACCEPTANCES.F91;
   assert.equal(acc.featureId, "F91");
-  assert.equal(acc.ruling.path, "AlmiVisibility_F91_ACCEPTANCE_2026-10-01.md", "F91 carries an acceptance that is not its own");
+  /* RR-130 §3 (2 Oct 2026), for a MEASURED reason: F91's own Acceptance Amendment 1 (_handoffs 4ef1b9c), frozen ALONE, now governs; it
+   * amends F91's own 1 Oct acceptance, which stays its origin. The history gains exactly one event, that amendment, after the two it had. */
+  assert.equal(acc.ruling.path, "AlmiVisibility_F91_ACCEPTANCE_AMENDMENT_1_2026-10-02.md", "F91 carries an acceptance that is not its own");
+  assert.equal(acc.amends.ruling.path, "AlmiVisibility_F91_ACCEPTANCE_2026-10-01.md", "F91's amendment does not amend F91's own acceptance");
   assert.ok(acc.frozenOn > "2026-09-30", "F91's acceptance predates the amendment that brought it in");
-  assert.deepEqual(DECLARED.F91.events.map((e) => e.kind), ["ACCEPTANCE_FROZEN", "IMPLEMENTATION"]);
+  assert.deepEqual(DECLARED.F91.events.map((e) => e.kind), ["ACCEPTANCE_FROZEN", "IMPLEMENTATION", "ACCEPTANCE_AMENDED"]);
+  assert.equal(DECLARED.F91.events[2].on, "2026-10-02");
   assert.deepEqual([DECLARED.F91.events[0].on, DECLARED.F91.events[1].from, DECLARED.F91.events[1].to], ["2026-10-01", "UNASSESSED", "IN-PROGRESS"]);
   assert.equal(row.state, "IN-PROGRESS");
   assert.ok(!row.events.some((e) => e.kind === "VERIFIED"), "F91 was verified");

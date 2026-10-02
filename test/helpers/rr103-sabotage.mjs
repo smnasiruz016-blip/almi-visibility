@@ -5,7 +5,8 @@
  *
  * The method of test/helpers/f90-sabotage.mjs: PRE-FLIGHT (each span exactly once in the bytes live now), each sabotage ALONE, proved to have
  * LANDED, its NAMED test required red, restored by raw-byte sha256, the production trail hashed before and after.
- * Evidence: runs/audit/rr103-sabotage-2026-09-30.txt.
+ * Evidence: runs/audit/rr103-sabotage-rr130-2026-10-02.txt — RR-130 moved G05 to the live line (ACCEPTANCES.F91 now names Amendment 1);
+ * the 2026-09-30 file is the RR-103 run, kept.
  */
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -27,7 +28,7 @@ const SABOTAGES = [
   ["G04", "a phantom F92 in the crosswalk", CW, '"featureId": "F91"', '"featureId": "F92"', "A3·3"],
   /* G05 repointed 1 Oct 2026 (RR-113): F91 now holds its OWN acceptance, so the old span — adding a second F91 key after F90 — would be
    * overridden by the live F91 line and land without effect. It now replaces F91's own acceptance with another row's. */
-  ["G05", "F91 given an acceptance that is not its own", AC, "  F91: F91_ORIGINAL,\n", "  F91: F90_ORIGINAL,\n", "A3·5"],
+  ["G05", "F91 given an acceptance that is not its own", AC, "  F91: F91_AMENDMENT_1,\n", "  F91: F90_ORIGINAL,\n", "A3·5"],
   ["G06", "the validator stops refusing a board whose ids are not F01..F{DENOMINATOR}", BD, " || expected.some((x) => !ids.includes(x))) errs.push({ code: \"DENOMINATOR\"", ") errs.push({ code: \"DENOMINATOR\"", "A3·4"],
 ];
 
@@ -76,6 +77,6 @@ const trailAfter = sha(read(TRAIL));
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "rr103-sabotage-2026-09-30.txt"), lines.join("\n") + "\n");
+writeFileSync(join(REPO, "runs", "audit", "rr103-sabotage-rr130-2026-10-02.txt"), lines.join("\n") + "\n");
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore && proved === SABOTAGES.length ? 0 : 1;

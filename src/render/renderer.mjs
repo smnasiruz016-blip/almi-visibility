@@ -140,11 +140,19 @@ export async function launchOfflineChromium({ chromium, playwrightVersion }) {
 /**
  * Render ONE stored document. Returns what was seen; decides nothing about the page.
  * Throws EgressError if any response came from an address other than 127.0.0.1.
+ *
+ * RR-137 (F22): three optional parameters, all off by default so every existing caller renders exactly as before.
+ *   subresources       (url, resourceType) => { served, status, contentType, body } | { served: false, refusal } — a request other
+ *                      than the document is handed to it instead of being refused outright (src/render/same-origin-policy.mjs). The
+ *                      browser still resolves no name: what it receives is fulfilled by the Node side.
+ *   javaScriptEnabled  false renders the page as a client without scripts sees it (F22's SOURCE side); default true.
+ *   readVisibleText    true also returns the page's visible text (document.body.innerText), read after the page settled.
  */
-export async function renderDocument({ browser, origin, id, documentUrl, bounds = RENDER_BOUNDS, egress }) {
+export async function renderDocument({ browser, origin, id, documentUrl, bounds = RENDER_BOUNDS, egress, subresources = null, javaScriptEnabled = true, readVisibleText = false }) {
   const t0 = Date.now();
   const target = new URL(documentUrl).href;
-  const context = await browser.newContext({ serviceWorkers: "block", acceptDownloads: false });
+  /* a FRESH context for every render: cookies, storage and cache are the context's, and are discarded with it (F22 C4 · storage) */
+  const context = await browser.newContext({ serviceWorkers: "block", acceptDownloads: false, javaScriptEnabled });
   const requests = [];
   const routed = new Set();
   const issued = [];
@@ -154,6 +162,7 @@ export async function renderDocument({ browser, origin, id, documentUrl, bounds 
   let timedOut = false;
   let crashed = false;
   let html = null;
+  let visibleText = null;
   let proof;
   try {
     await context.route("**/*", async (route) => {
@@ -166,6 +175,16 @@ export async function renderDocument({ browser, origin, id, documentUrl, bounds 
         const body = Buffer.from(await r.arrayBuffer());
         requests.push({ ...entry, outcome: "SERVED_LOCAL" });
         return route.fulfill({ status: r.status, headers: { "content-type": r.headers.get("content-type") ?? "text/html" }, body });
+      }
+      if (subresources) {
+        let got;
+        try { got = await subresources(req.url(), req.resourceType()); } catch (e) { got = { served: false, refusal: "NETWORK" }; }
+        if (got?.served) {
+          requests.push({ ...entry, outcome: "SERVED_SAME_ORIGIN" });
+          return route.fulfill({ status: got.status, headers: got.contentType ? { "content-type": got.contentType } : {}, body: got.body });
+        }
+        requests.push({ ...entry, outcome: "REFUSED", refusal: got?.refusal ?? "NETWORK" });
+        return route.abort("blockedbyclient");
       }
       requests.push({ ...entry, outcome: "REFUSED" });
       return route.abort("blockedbyclient");
@@ -203,6 +222,7 @@ export async function renderDocument({ browser, origin, id, documentUrl, bounds 
       }
       try {
         html = await page.content();
+        if (readVisibleText) visibleText = await page.evaluate(() => (document.body ? document.body.innerText : ""));
       } catch (e) {
         navigationError = `the DOM could not be read: ${firstLine(e.message)}`;
       }
@@ -225,6 +245,7 @@ export async function renderDocument({ browser, origin, id, documentUrl, bounds 
   const { renderState, reason } = renderStateOf({ documentServed, navigationError, crashed, requests, unaccounted, timedOut });
   return {
     html: renderState === "FAILED" ? null : html,
+    visibleText: renderState === "FAILED" ? null : visibleText,
     renderState,
     reason,
     requests: summariseRequests(requests),

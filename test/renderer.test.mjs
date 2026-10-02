@@ -53,7 +53,7 @@ test("🔴 FAILED when there is no render to speak of — never served, navigati
 
 test("a render that did not settle inside its bound is PARTIAL, not COMPLETE — and an unknown outcome is refused outright", () => {
   assert.equal(renderStateOf({ documentServed: true, requests: [served], timedOut: true }).renderState, "PARTIAL");
-  assert.throws(() => renderStateOf({ documentServed: true, requests: [{ ...served, outcome: "DROPPED" }] }), /not one of SERVED_LOCAL\|REFUSED/);
+  assert.throws(() => renderStateOf({ documentServed: true, requests: [{ ...served, outcome: "DROPPED" }] }), /not one of SERVED_LOCAL\|SERVED_SAME_ORIGIN\|REFUSED/); /* RR-137 (F22 C4): the same-origin outcome joins the vocabulary */
   assert.deepEqual(RENDER_STATES, ["COMPLETE", "PARTIAL", "FAILED"]);
 });
 

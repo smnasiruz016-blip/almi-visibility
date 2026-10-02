@@ -26,7 +26,9 @@
  */
 
 export const RENDER_STATES = Object.freeze(["COMPLETE", "PARTIAL", "FAILED"]);
-export const REQUEST_OUTCOMES = Object.freeze(["SERVED_LOCAL", "REFUSED"]);
+/* RR-137 (F22 C4): SERVED_SAME_ORIGIN — a subresource of the page's own DECLARED origin, fetched by the Node side through the declared
+ * connector (paced, robots-checked, size- and time-bounded) and handed to the browser, which itself still resolves no name. */
+export const REQUEST_OUTCOMES = Object.freeze(["SERVED_LOCAL", "SERVED_SAME_ORIGIN", "REFUSED"]);
 
 const state = (renderState, reason) => Object.freeze({ renderState, reason });
 
@@ -54,32 +56,37 @@ export function renderStateOf({ documentServed = false, navigationError = null, 
     const hosts = new Set(refused.map((q) => q.host)).size;
     return state(
       "PARTIAL",
-      `${refused.length} request(s) to ${hosts} host(s) were REFUSED by the offline renderer — what did not load did not load IN THIS ENVIRONMENT, which is a fact about the renderer, not about the page (LAW-ABSENT-1)` +
+      `${refused.length} request(s) to ${hosts} host(s) were REFUSED by the renderer — what did not load did not load IN THIS ENVIRONMENT, which is a fact about the renderer, not about the page (LAW-ABSENT-1)` +
         (timedOut ? "; and the page did not settle inside the per-page bound" : ""),
     );
   }
   if (timedOut) return state("PARTIAL", "the page did not settle inside the per-page bound, so the DOM was read before it finished");
-  return state("COMPLETE", "the document was served from 127.0.0.1 and the page requested nothing else");
+  const live = requests.filter((q) => q.outcome === "SERVED_SAME_ORIGIN").length;
+  return state("COMPLETE", live ? `the document was served from 127.0.0.1 and every one of the ${live} other request(s) it made was served from its declared origin` : "the document was served from 127.0.0.1 and the page requested nothing else");
 }
 
 /** The per-page resource record: what was attempted and refused, by host and by kind. */
 export function summariseRequests(requests) {
   const byHost = {};
   const refusedByType = {};
+  const refusedByReason = {};
   for (const q of requests) {
     const h = (byHost[q.host] ??= { attempted: 0, refused: 0 });
     h.attempted += 1;
     if (q.outcome === "REFUSED") {
       h.refused += 1;
       refusedByType[q.resourceType] = (refusedByType[q.resourceType] ?? 0) + 1;
+      refusedByReason[q.refusal ?? "OFFLINE"] = (refusedByReason[q.refusal ?? "OFFLINE"] ?? 0) + 1;
     }
   }
   const sorted = (o) => Object.fromEntries(Object.entries(o).sort(([a], [b]) => a.localeCompare(b)));
   return {
     attempted: requests.length,
     servedLocal: requests.filter((q) => q.outcome === "SERVED_LOCAL").length,
+    servedSameOrigin: requests.filter((q) => q.outcome === "SERVED_SAME_ORIGIN").length,
     refused: requests.filter((q) => q.outcome === "REFUSED").length,
     byHost: sorted(byHost),
     refusedByType: sorted(refusedByType),
+    refusedByReason: sorted(refusedByReason),
   };
 }

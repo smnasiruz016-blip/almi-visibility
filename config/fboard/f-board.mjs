@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F13_ORIGINAL, F19_ORIGINAL, F81_ORIGINAL } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F81_ORIGINAL } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -1131,6 +1131,33 @@ export const DECLARED = Object.freeze({
         historicalReuse: "none: acceptanceRelation NEW — the 61↔89 artifact links F19 to no historical row",
         declaredLimit: "depth 0 by design: links are recorded, never followed; no rendering (renderMode RAW_HTML on every record); redirects are followed only to a declared origin, each hop paced, at most 5; a run's money is NOT MEASURED. The per-run caps (500 URLs, 200 per host) bound ONE run, never the product: a client continues batch after batch.",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
+  /* 🔴 F22 · JavaScript rendering audit. Frozen ALONE (_handoffs 2d20a63, RR-137 §3) before any F22 code. IN-PROGRESS only:
+   * the detector, the tenant-scoped render audit and the bounded same-origin live path are built and proved on fixtures and on the offline
+   * real run; every real render is PARTIAL or FAILED offline, so every real comparison is NOT MEASURED — and F22 never passes from PARTIAL
+   * renders. The live run waits on its reviewed bounded request (_handoffs AlmiVisibility_RR-137_F22_LIVE_RENDER_BOUNDED_REQUEST). */
+  F22: Object.freeze({
+    featureId: "F22",
+    board: "F_BOARD",
+    state: "IN-PROGRESS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-02", ruling: F22_ORIGINAL.ruling, contractSha256: F22_ORIGINAL.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F22",
+        on: "2026-10-02",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: F22_ORIGINAL.ruling.sha256, contract: F22_ORIGINAL.contractSha256 }),
+        branch: "rr137-f22-render-audit",
+        baseSha: "bc5ebef411063c7108ef77ec3d1f1eef9e5d9de3",
+        baseCiRun: "37040949554",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-02_RR-137_RESOLVE_THE_RULE_TEXT_THEN_KEEP_BUILDING.md", commit: "54934288d40f548039f1ccfb495781a9d74dba4d", sha256: "4d2763418935fdce5518c1ff54463da5037a53510f2e17a66c5e38f222ea82ba" }),
       }),
     ]),
   }),

@@ -184,7 +184,7 @@ export function createFetcher({
 
         // Read with a hard byte ceiling. `res.text()` would buffer the whole body
         // first, which is exactly what the ceiling exists to prevent.
-        const { text, bytes, truncated } = await readCapped(res, maxResponseBytes);
+        const { text, buffer, bytes, truncated } = await readCapped(res, maxResponseBytes);
 
         const { headers, headersTruncated } = allowlistedHeaders((h) => res.headers?.get?.(h));
 
@@ -198,6 +198,7 @@ export function createFetcher({
           headers,
           headersTruncated,
           body: text,
+          bodyBytes: buffer,
           bytes,
           truncated,
           timing_ms: now() - startedAt,
@@ -246,9 +247,10 @@ async function readCapped(res, limit) {
     const text = await res.text();
     const bytes = Buffer.byteLength(text, "utf8");
     if (bytes > limit) {
-      return { text: Buffer.from(text, "utf8").subarray(0, limit).toString("utf8"), bytes: limit, truncated: true };
+      const buffer = Buffer.from(text, "utf8").subarray(0, limit);
+      return { text: buffer.toString("utf8"), buffer, bytes: limit, truncated: true };
     }
-    return { text, bytes, truncated: false };
+    return { text, buffer: Buffer.from(text, "utf8"), bytes, truncated: false };
   }
   const reader = res.body.getReader();
   const chunks = [];
@@ -267,5 +269,7 @@ async function readCapped(res, limit) {
     }
     chunks.push(value);
   }
-  return { text: Buffer.concat(chunks.map(Buffer.from)).toString("utf8"), bytes: total, truncated };
+  /* RR-137: the raw bytes too — a subresource handed to a browser (an image, a font) must arrive as bytes, never re-encoded text */
+  const buffer = Buffer.concat(chunks.map((c) => Buffer.from(c)));
+  return { text: buffer.toString("utf8"), buffer, bytes: total, truncated };
 }

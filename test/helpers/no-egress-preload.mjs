@@ -27,13 +27,29 @@ const save = () => { if (LOG) writeFileSync(LOG, JSON.stringify(counts)); };
 const seen = (kind) => { if (counts.order.length < 64) counts.order.push(kind); };
 save();
 const refuse = (what) => { throw Object.assign(new Error(`NO EGRESS: ${what} was attempted`), { code: "NO_EGRESS" }); };
+/* RR-137: the ORIGINAL http.request, kept for LOOPBACK only (a process's own local server is not egress) */
+const loopbackRequest = http.request;
 /* every OTHER way out is counted and refused: http(s) requests and TLS connections */
 for (const [mod, names] of [[http, ["request", "get"]], [https, ["request", "get"]], [tls, ["connect"]]]) {
   for (const n of names) mod[n] = () => { counts.otherEgress += 1; seen(n); save(); refuse(`${n} on a network module`); };
 }
 const PAGE = '<!doctype html><html lang="en"><head><title>fixture</title></head><body><main><h1>fixture</h1><a href="/elsewhere">a link, never followed</a></main></body></html>';
 
-globalThis.fetch = async (url) => {
+/* a minimal GET to 127.0.0.1 through the original http module — used ONLY for loopback; any other host never reaches it */
+const loopbackFetch = (url) => new Promise((resolve, reject) => {
+  const u = new URL(String(url));
+  if (u.hostname !== "127.0.0.1") return reject(new Error("loopbackFetch: not loopback"));
+  const req = loopbackRequest({ host: "127.0.0.1", port: u.port, path: u.pathname + u.search, method: "GET" }, (res) => {
+    const chunks = [];
+    res.on("data", (c) => chunks.push(c));
+    res.on("end", () => resolve(new Response(Buffer.concat(chunks), { status: res.statusCode, headers: { "content-type": res.headers["content-type"] ?? "application/octet-stream" } })));
+  });
+  req.on("error", reject);
+  req.end();
+});
+globalThis.fetch = async (url, init) => {
+  /* RR-137: LOOPBACK is not egress — a process's own local server (the renderer's document server) is reached for real, counted apart */
+  if (new URL(String(url)).hostname === "127.0.0.1") { counts.loopback = (counts.loopback ?? 0) + 1; save(); return loopbackFetch(url); }
   counts.fetch += 1;
   seen("fetch");
   const u = new URL(String(url));

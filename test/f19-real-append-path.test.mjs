@@ -70,9 +70,12 @@ test("REAL APPEND PATH · the binary's live run, no egress: robots first, every 
   try {
     mkdirSync(join(REPO, ".test-scratch"), { recursive: true });
     const corpus = mkdtempSync(join(REPO, ".test-scratch", "f19-corpus-"));
-    const before = readdirSync(join(REPO, "runs", "crawl", "corpus")).length;
+    /* the engine's own corpus is git-ignored: absent in a fresh checkout (CI), present locally — either state must be left exactly as found */
+    const ENGINE_CORPUS = join(REPO, "runs", "crawl", "corpus");
+    const corpusState = () => (existsSync(ENGINE_CORPUS) ? readdirSync(ENGINE_CORPUS).length : "ABSENT");
+    const before = corpusState();
     const { r, counts, events } = runBin(WORLD, [...LIVE, corpusArg(corpus)], { mode: "fixture" });
-    assert.equal(readdirSync(join(REPO, "runs", "crawl", "corpus")).length, before, "the rehearsal wrote into the engine's own corpus");
+    assert.equal(corpusState(), before, "the rehearsal wrote into the engine's own corpus");
     assert.equal(readdirSync(corpus).length, SEEDS.length, "a page body was not written into the confined corpus");
     rmSync(corpus, { recursive: true, force: true });
     assert.equal(r.status, 0, r.stdout.slice(-1500) + r.stderr.slice(-1500));

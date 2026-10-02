@@ -1,0 +1,35 @@
+F87 watchman sabotage run · 2026-10-02T01:49:22.434Z
+population: 28 sabotages over test/f87-watchman.test.mjs · each applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): W1=1 W2=1 W3=1 W4=1 W5=1 W6=1 W7=1 W8=1 W9=1 W10=1 W11=1 W12=1 W13=1 W14=1 W15=1 W16=1 W17=1 W18=1 W19=1 W20=1 W21=1 W22=1 W23=1 W24=1 W25=1 W26=1 W27=1 W28=1 · all exactly once: true
+production trail sha256 before: 9049914e85016baaac1db8af69dc3ae8ec0fa41606e926448991146223c0d970
+
+W1 a cost entry with no outcome is NOT MEASURED src/ops/watchman.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+W2 the LATEST correction governs, whatever the record order src/ops/watchman.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+W3 a recorded correction is applied src/ops/watchman.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+W4 UNKNOWN coverage is NOT MEASURED, never complete src/ops/watchman.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+W5 FORBIDDEN is UNAVAILABLE even beside a data state src/ops/watchman.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+W6 a retrieval with no result is counted neither way src/ops/watchman.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+W7 a claim observation is not a retrieval src/ops/watchman.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+W8 an output with no recorded state is NOT MEASURED src/ops/watchman.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+W9 a PARTIAL is counted with its recorded reason, an empty reason is none src/ops/watchman.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+W10 evidence with no declared window, or no registry, is never fresh src/ops/watchman.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+W11 the judging date is stated, never defaulted src/ops/watchman.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+W12 an attempt with no terminal is a SILENT LOSS src/ops/watchman.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+W13 a re-attempt never hides the first attempt's lost outcome src/ops/watchman.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+W14 a refusal BEFORE the attempt is no outcome for it (order) src/ops/watchman.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+W15 an unreadable trail line is never read as no write src/ops/watchman.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+W16 a FAILED outcome is a recorded failure, not silent src/ops/watchman.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+W17 a retry that commits recovers the failure src/ops/watchman.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+W18 no real failure: recovery is UNPROVED, never PROVED src/ops/watchman.mjs: landed true · named test red true · failing 4 · reason AssertionError · restored by sha256 true · PROVED
+W19 a failed recovery disproves src/ops/watchman.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+W20 every alert carries its denominator src/ops/watchman.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+W21 no alert is claimed sent src/ops/watchman.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+W22 an empty population never reads PROVED src/ops/watchman.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+W23 the whole reads PROVED only when every part does src/ops/watchman.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+W24 an incomplete population is reported incomplete src/ops/watchman.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+W25 unproved recovery is named among the absences src/ops/watchman.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+W26 the reader reads every recorded correction src/ops/watchman-reader.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+W27 the reader counts an unreadable trail line src/ops/watchman-reader.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+W28 the entry point refuses a run with no stated date bin/watchman.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+
+proved 28 of 28 · residue 0 · production trail sha256 after: 9049914e85016baaac1db8af69dc3ae8ec0fa41606e926448991146223c0d970 · unchanged true

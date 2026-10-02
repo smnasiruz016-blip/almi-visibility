@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { applies, headerState, assessHeaders } from "../src/audit/header-assessment.mjs";
+import { applies, judgeHeader, assessHeaders } from "../src/audit/header-assessment.mjs";
 import { auditTransport } from "../src/audit/transport-security.mjs";
 import { HEADER_DECLARATION } from "../config/security/header-declaration.mjs";
 import { EVIDENCE_TYPES } from "../src/crawl/provenance.mjs";
@@ -44,7 +44,7 @@ test("C5 · FIRING CONTROL: a header applies only where the page's own record ca
 });
 
 test("C5 · FIRING CONTROL: a header the collector never recorded is NOT MEASURED, named — never ABSENT, never 0", () => {
-  const s = headerState(page(), H("strict-transport-security"));
+  const s = judgeHeader(page(), H("strict-transport-security"));
   assert.equal(s.state, "NOT MEASURED");
   assert.match(s.why, /did not record strict-transport-security/);
   const a = assessHeaders([page(), page()], HEADER_DECLARATION);
@@ -56,8 +56,8 @@ test("C5 · FIRING CONTROL: a header the collector never recorded is NOT MEASURE
 test("C5 · FIRING CONTROL: ABSENT only where the collector recorded the header and the response had none — and an applicable ABSENT disproves", () => {
   const withHsts = page({ observation: headerRec(["strict-transport-security", "x-content-type-options", "referrer-policy", "x-frame-options"]) });
   const without = page({ observation: headerRec([]) });
-  assert.equal(headerState(withHsts, H("strict-transport-security")).state, "PRESENT");
-  assert.equal(headerState(without, H("strict-transport-security")).state, "ABSENT");
+  assert.equal(judgeHeader(withHsts, H("strict-transport-security")).state, "PRESENT");
+  assert.equal(judgeHeader(without, H("strict-transport-security")).state, "ABSENT");
   assert.equal(assessHeaders([withHsts], HEADER_DECLARATION).verdict, "PROVED", "every applicable header measured and present did not read PROVED");
   assert.equal(assessHeaders([withHsts, without], HEADER_DECLARATION).verdict, "DISPROVED");
   assert.equal(assessHeaders([], HEADER_DECLARATION).verdict, "COULD-NOT-PROVE", "an empty population read PROVED");
@@ -65,11 +65,11 @@ test("C5 · FIRING CONTROL: ABSENT only where the collector recorded the header 
 
 test("C5 · FIRING CONTROL: frame protection behind a recorded CSP is NOT MEASURED — a header value is never read", () => {
   const cspOnly = page({ observation: headerRec(["content-security-policy"]) });
-  const s = headerState(cspOnly, H("x-frame-options"));
+  const s = judgeHeader(cspOnly, H("x-frame-options"));
   assert.equal(s.state, "NOT MEASURED");
   assert.match(s.why, /frame-ancestors is a value never read/);
-  assert.equal(headerState(page({ observation: headerRec(["x-frame-options"]) }), H("x-frame-options")).state, "PRESENT");
-  assert.equal(headerState(page({ observation: headerRec([]) }), H("x-frame-options")).state, "ABSENT");
+  assert.equal(judgeHeader(page({ observation: headerRec(["x-frame-options"]) }), H("x-frame-options")).state, "PRESENT");
+  assert.equal(judgeHeader(page({ observation: headerRec([]) }), H("x-frame-options")).state, "ABSENT");
 });
 
 test("C5 · the declaration is CC's under the owner's express delegation; X-XSS-Protection is never credited; isolation headers are not assessed", () => {

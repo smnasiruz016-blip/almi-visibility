@@ -1,4 +1,4 @@
-F27 header assessment sabotage run · 2026-10-02T01:18:01.370Z
+F27 header assessment sabotage run · 2026-10-02T01:34:23.983Z
 population: 10 sabotages over test/f27-header-assessment.test.mjs + test/f27-transport-security.test.mjs · each applied ALONE; each run killed after 300 s
 PRE-FLIGHT (span occurrences in the code live now): H1=1 H2=1 H3=1 H4=1 H5=1 H6=1 H7=1 H8=1 H9=1 H10=1 · all exactly once: true
 production trail sha256 before: 9049914e85016baaac1db8af69dc3ae8ec0fa41606e926448991146223c0d970

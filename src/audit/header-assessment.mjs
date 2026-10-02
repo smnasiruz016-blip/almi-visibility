@@ -35,7 +35,7 @@ export function applies(condition, page) {
 }
 
 /** One page, one declared header → PRESENT · ABSENT · NOT MEASURED (with why) · NOT APPLICABLE. */
-export function headerState(page, h) {
+export function judgeHeader(page, h) {
   const a = applies(h.appliesWhen, page);
   if (a === false) return { state: "NOT APPLICABLE" };
   if (a === null) return { state: NOT_MEASURED, why: `whether ${h.name} applies — the page's record cannot show ${h.appliesWhen}` };
@@ -52,7 +52,7 @@ export function assessHeaders(pages, declaration) {
   const per = declaration.headers.map((h) => {
     const counts = { PRESENT: 0, ABSENT: 0, [NOT_MEASURED]: 0, "NOT APPLICABLE": 0 };
     const why = {};
-    for (const p of pages) { const s = headerState(p, h); counts[s.state] += 1; if (s.why) why[s.why] = (why[s.why] ?? 0) + 1; }
+    for (const p of pages) { const s = judgeHeader(p, h); counts[s.state] += 1; if (s.why) why[s.why] = (why[s.why] ?? 0) + 1; }
     return { name: h.name, appliesWhen: h.appliesWhen, ...counts, of: pages.length, notMeasuredWhy: why };
   });
   const absent = per.reduce((n, h) => n + h.ABSENT, 0), unmeasured = per.reduce((n, h) => n + h[NOT_MEASURED], 0);

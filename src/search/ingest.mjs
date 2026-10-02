@@ -21,6 +21,19 @@ import { sha256Hex } from "../evidence/ids.mjs";
 const COLLECTOR = "src/search/ingest.mjs";
 const COLLECTOR_VERSION = "2";
 
+/**
+ * The declared pull sets. "estate" is the ingest as it has always run. "performance" (F81, RR-132) is ONLY the three dated,
+ * device and country pulls, each with the page — the observations F81's C2 and C4 need — and nothing else.
+ */
+export const PULL_SETS = Object.freeze({
+  estate: Object.freeze([]),
+  performance: Object.freeze([
+    Object.freeze(["date-page", Object.freeze(["date", "page"])]),
+    Object.freeze(["device-page", Object.freeze(["device", "page"])]),
+    Object.freeze(["country-page", Object.freeze(["country", "page"])]),
+  ]),
+});
+
 export function windowFor(days, now = () => Date.now()) {
   const iso = (d) => new Date(now() - d * 86400000).toISOString().slice(0, 10);
   return { startDate: iso(days), endDate: iso(0) };
@@ -40,7 +53,9 @@ export async function runIngest({
   days = 28,
   controlProperty = "https://example.com/",
   now = () => new Date(),
+  pullSet = "estate",
 }) {
+  if (!Object.hasOwn(PULL_SETS, pullSet)) throw new Error(`unknown pull set "${pullSet}" — declared: ${Object.keys(PULL_SETS).join(", ")}`);
   const { startDate, endDate } = windowFor(days, () => now().getTime());
   /* F77 R2: a RETRY counts what this operation had ALREADY saved apart from new and re-sighted records. */
   const results = { appended: 0, resighted: 0, alreadySaved: 0, records: [] };
@@ -88,6 +103,35 @@ export async function runIngest({
   const queried = properties.filter((p) => p.propertyId === propertyId);
   if (queried.length === 0) {
     throw new Error(`${propertyId} is not among the properties this account can see`);
+  }
+
+  /* ---- F81 (RR-132): the performance pull set — ONLY these three, each carrying the page ------------------------------ *
+   *
+   * Same provider (the governed SEARCH_CONSOLE_API connector, its cost governor and its operation journal, all from bin/),
+   * same store gate, same pagination law and bounds as every pull above. Each pull carries the PAGE so every row can be
+   * attributed, by the origin it stores, to the one declared tenant that origin belongs to (F02's partition) — a site-wide
+   * row of a multi-tenant property can never become one client's performance. A failed or truncated pull is recorded with
+   * its own state, never COMPLETE. Nothing else of the estate set runs. */
+  if (pullSet === "performance") {
+    for (const [key, dims] of PULL_SETS.performance) {
+      const res = await provider.queryRows({ propertyId, startDate, endDate, dimensions: dims, rowLimitPerRequest: 25000, maxRequests: 20 });
+      const rows = res.rows.map((r) => ({
+        [dims[0]]: r.keys?.[0] ?? null,
+        url: r.keys?.[1] ?? null,
+        clicks: r.clicks ?? 0,
+        impressions: r.impressions ?? 0,
+        ctr: r.ctr ?? null,
+        position: r.position ?? null,
+      }));
+      record({ kind: "property", ref: propertyId }, `gsc.searchAnalytics.query:${key}`, {
+        startDate, endDate, dimensions: dims,
+        rowCount: res.rowCount, requestCount: res.requestCount, exhausted: res.exhausted,
+        dataState: res.dataState, truncationReason: res.truncationReason,
+        rowLimitPerRequest: res.rowLimitPerRequest, maxRequests: res.maxRequests,
+        cost: res.cost, rows,
+      });
+    }
+    return { ...results, pullSet, startDate, endDate };
   }
 
   /* ---- aggregate ------------------------------------------------------- */

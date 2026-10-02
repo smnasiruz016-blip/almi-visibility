@@ -325,4 +325,7 @@ export const MANDATORY_READING = Object.freeze([
   /* RR-131 (2 Oct 2026): the two CURRENT records admitted by the migration at _handoffs 0ca24d3 — command RR-131 and F13's acceptance. */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-02_RR-131_STOP_PREPARING_FINISH_ROWS_ONE_AT_A_TIME.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F13_ACCEPTANCE_2026-10-02.md", loader: "F-board acceptance F13" }),
+  /* RR-132 (2 Oct 2026): the two CURRENT records admitted by the migration at _handoffs ae4834b — command RR-132 and F81's acceptance. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-02_RR-132_CONFIRM_33_PREPARE_F81_HONESTLY_KEEP_CLOSING_ROWS.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F81_ACCEPTANCE_2026-10-02.md", loader: "F-board acceptance F81" }),
 ]);

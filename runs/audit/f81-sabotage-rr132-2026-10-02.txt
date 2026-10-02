@@ -1,0 +1,24 @@
+F81 search performance sabotage run · 2026-10-02T05:09:55.821Z
+population: 17 sabotages over test/f81-search-performance.test.mjs · each applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): P1=1 P2=1 P3=1 P4=1 P5=1 P6=1 P7=1 P8=1 P9=1 P10=1 P11=1 P12=1 P13=1 P14=1 P15=1 P16=1 P17=1 · all exactly once: true
+production trail sha256 before: b7ec4839cb80cdf65f2e27577ad1635ebc7c242f72941370ed8c2dd9b0a4e4f0
+
+P1 C1 a row reaches only the client its stored origin is declared to src/search/performance-reader.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+P2 C1 only a genuine, allowed F02 decision opens a client's partition src/search/performance-reader.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+P3 C1 a site-wide row is never a client's row src/search/performance-reader.mjs: landed true · named test red true · failing 3 · reason AssertionError · restored by sha256 true · PROVED
+P4 C2 a dimension is tracked only from a pull carrying it src/search/performance-tracker.mjs: landed true · named test red true · failing 4 · reason AssertionError · restored by sha256 true · PROVED
+P5 C3 CTR over zero impressions is NOT MEASURED src/search/performance-tracker.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+P6 C3 no position is invented for a pull that records none src/search/performance-tracker.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+P7 C3 position is the impression-weighted mean of recorded positions src/search/performance-tracker.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+P8 C4 a window trend needs two recorded windows src/search/performance-tracker.mjs: landed true · named test red true · failing 3 · reason AssertionError · restored by sha256 true · PROVED
+P9 C4 a dated trend needs two recorded dates src/search/performance-tracker.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+P10 C5 a pull not COMPLETE contributes nothing src/search/performance-tracker.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+P11 C5 the latest reading of a pull and window is used src/search/performance-tracker.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+P12 C6 a performance pull keeps the ingest's request ceiling src/search/ingest.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+P13 C6 every performance row keeps its page src/search/ingest.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+P14 C6 the performance set runs nothing of the estate set src/search/ingest.mjs: landed true · named test red true · failing 2 · reason AssertionError/TypeError · restored by sha256 true · PROVED
+P15 C6 an undeclared pull set is refused src/search/ingest.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+P16 C7 an unrecorded bound prints NOT MEASURED, never NaN src/search/performance-reader.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+P17 C7 a network call is seen tools/need-coverage-call-paths.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+
+proved 17 of 17 · residue 0 · production trail sha256 after: b7ec4839cb80cdf65f2e27577ad1635ebc7c242f72941370ed8c2dd9b0a4e4f0 · unchanged true

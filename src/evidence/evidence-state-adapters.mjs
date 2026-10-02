@@ -56,6 +56,8 @@ const strs = (xs) => (Array.isArray(xs) ? xs.filter((x) => typeof x === "string"
 const DERIVED_TYPES = Object.freeze({
   page: { inputs: (r) => strs(r.observations).map((x) => `observation:${x}`), at: (r) => r.last_seen, method: "page-identity-from-observations" },
   crawl_run: { inputs: (r) => (present(r.run_id) ? [`run:${r.run_id}`] : []), at: (r) => r.finished_at, method: "crawl-run-summary" },
+  /* RR-138 §2: a live same-origin render run's own record (src/render/render-evidence.mjs) — its counts summarise the run, like a crawl run's */
+  render_run: { inputs: (r) => (present(r.run_id) ? [`run:${r.run_id}`] : []), at: (r) => r.finished_at, method: "render-run-summary" },
   crawl_run_correction: { inputs: (r) => (present(r.corrects_run_id) ? [`run:${r.corrects_run_id}`] : []), at: (r) => r.corrected_at, method: "crawl-run-field-rederivation" },
   inventory_note: { inputs: (r) => (present(r.run_id) ? [`run:${r.run_id}`] : []), at: (r) => r.built_at, method: "inventory-from-stored-observations" },
   issue_state_change: { inputs: (r) => [...(present(r.issue_id) ? [`issue:${r.issue_id}`] : []), ...strs(r.evidence)], at: (r) => r.changed_at, method: "issue-lifecycle-decision" },

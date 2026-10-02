@@ -28,7 +28,8 @@ const SABOTAGES = [
   ["K4", "C3: an unparseable JSON-LD block is counted", D, "    try { blocks.push(canonicalJson(JSON.parse(m[2]))); } catch { unparseable += 1; }\n", "    try { blocks.push(canonicalJson(JSON.parse(m[2]))); } catch { }\n", C3],
   ["K5", "C6: a page without a body is in every dimension's NOT MEASURED", D, "      [NOT_MEASURED]: xs.filter((x) => x.state === NOT_MEASURED).length + pagesWithoutBody,\n", "      [NOT_MEASURED]: xs.filter((x) => x.state === NOT_MEASURED).length,\n", C6],
   ["K6", "C4: an undeclared host is refused", P, "      if (originOf(url) === null || !admits(url)) return refused(\"UNDECLARED_HOST\");\n", "      if (originOf(url) === null) return refused(\"UNDECLARED_HOST\");\n", POL],
-  ["K7", "C4: robots rules are obeyed", P, "      if (!verdict.allowed) return refused(\"ROBOTS\");\n", "      if (false) return refused(\"ROBOTS\");\n", POL],
+  /* RR-138: re-pointed at the robots line LIVE NOW (RR-138 §2 rewrote it to name RUN_CAP when the ceiling is what failed robots) */
+  ["K7", "C4: robots rules are obeyed", P, "      if (!verdict.allowed) return refused(sent >= maxTotal ? \"RUN_CAP\" : \"ROBOTS\");\n", "      if (false) return refused(sent >= maxTotal ? \"RUN_CAP\" : \"ROBOTS\");\n", POL],
   ["K8", "C4: an oversized response is refused", P, "      if (res.truncated) return refused(\"SIZE_CAP\");\n", "", POL],
   ["K9", "C4: the cap counts requests started, hops and retries included", P, "      made += fetcher.requestsIssued() - before;\n", "      made += 1;\n", POL],
   ["K10", "C4: no response cache crosses pages", P, "  function forPage() {\n    const cache = new Map();\n", "  const shared = new Map();\n  function forPage() {\n    const cache = shared;\n", POL],

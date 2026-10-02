@@ -182,8 +182,14 @@ export async function renderDocument({ browser, origin, id, documentUrl, bounds 
         return route.fulfill({ status: r.status, headers: { "content-type": r.headers.get("content-type") ?? "text/html" }, body });
       }
       if (subresources) {
+        /* RR-138: once the document is served, a second TOP-LEVEL navigation (a script sending the page elsewhere) is refused — the
+         * render is of the requested page, never of wherever a script leads */
+        if (documentServed && req.isNavigationRequest() && req.frame().parentFrame() === null) {
+          requests.push({ ...entry, outcome: "REFUSED", refusal: "NAVIGATION_AWAY" });
+          return route.abort("blockedbyclient");
+        }
         let got;
-        try { got = await subresources(req.url(), req.resourceType()); } catch (e) { got = { served: false, refusal: "NETWORK" }; }
+        try { got = await subresources(req.url(), req.resourceType(), req.method()); } catch (e) { got = { served: false, refusal: "NETWORK" }; }
         if (got?.served) {
           requests.push({ ...entry, outcome: "SERVED_SAME_ORIGIN" });
           return route.fulfill({ status: got.status, headers: got.contentType ? { "content-type": got.contentType } : {}, body: got.body });

@@ -2,11 +2,11 @@
  * 🔴 RR-135 · F19 · THE REAL POPULATION — the committed records of two real live crawl runs, censused count-only against every
  * clause of F19's frozen acceptance (_handoffs AlmiVisibility_F19_ACCEPTANCE_2026-09-28).
  *
- * The runs (declared before their first request, _handoffs 34fff79):
- *   A · the almi-oet subject's site, batch f19-compliant-run-2026-10-02, 5 seeds
- *   B · the shamool-foundation subject's site (NOT an almiworld.com host), batch f19-run-shamool-2026-10-02, 3 seeds
- * Each is read from the data root's RESEARCH store exactly as committed. A batch that is absent, or holds no run, FAILS: an empty
- * population is not a pass. Nothing here prints a host, URL, tenant id or page content.
+ * GENERIC: the population is DISCOVERED, never listed — every research batch in the data root's RESEARCH store holding a run record of
+ * the current crawler (one that records its seed scope, RR-135), each attributed to the subject that declares the batch as a member.
+ * Nothing here names a subject, a batch or a site. The runs of RR-135 were declared before their first request (_handoffs 34fff79).
+ * The population must hold at least two runs, on at least two tenants and two registered domains, or it FAILS: an empty or
+ * single-site population is not a pass. Nothing here prints a host, URL, tenant id or page content.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -15,10 +15,6 @@ import { join } from "node:path";
 
 import { DATA_ROOT } from "./helpers/declared-world.mjs";
 
-const RUNS = [
-  { batch: "f19-compliant-run-2026-10-02", subject: "almi-oet", seeds: 5 },
-  { batch: "f19-run-shamool-2026-10-02", subject: "shamool-foundation", seeds: 3 },
-];
 /* F19_CENSUS_ROOT: a CONTROL run only — a corrupted copy of the data root, to show each clause can fail (test/helpers/f19-census-controls.mjs) */
 const ROOT = process.env.F19_CENSUS_ROOT ?? DATA_ROOT;
 const roots = JSON.parse(readFileSync(join(ROOT, "roots.json"), "utf8"));
@@ -26,7 +22,28 @@ const attachments = JSON.parse(readFileSync(join(ROOT, "tenancy", "attachments.j
 const research = roots.stores.find((s) => s.store === "RESEARCH");
 const jsonl = (f) => (existsSync(f) ? readFileSync(f, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)) : []);
 
-function load({ batch, subject, seeds }) {
+/** Every batch holding a run of the CURRENT crawler (its record carries seedScope), sorted, with the subject that declares it. */
+export function discoverRuns(root = ROOT) {
+  const store = join(root, research.path);
+  return readdirSync(store, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort()
+    .filter((batch) => jsonl(join(store, batch, "crawl.jsonl")).some((r) => r.record_type === "crawl_run" && r.seedScope))
+    .map((batch) => ({ batch, subject: roots.subjects.find((s) => (s.members ?? []).some((m) => m.resourceKind === "RESEARCH_BATCH" && m.resourceRef === batch))?.subjectId ?? null }));
+}
+const RUNS = discoverRuns();
+/* the registered domain: the last two labels of the host (enough to tell two unrelated sites apart; no public-suffix list is needed for it) */
+const domainOf = (origin) => new URL(origin).hostname.split(".").slice(-2).join(".");
+
+test("F19 · REAL · the population: at least two runs of the current crawler, on at least two tenants and two registered domains", () => {
+  assert.ok(RUNS.length >= 2, `${RUNS.length} run(s) — an empty or single-run population is not a pass`);
+  assert.equal(RUNS.filter((r) => r.subject === null).length, 0, "a run's batch is declared by no subject");
+  const tenants = new Set(RUNS.map((r) => attachments.find((a) => a.resourceKind === "RESEARCH_BATCH" && a.resourceRef === r.batch)?.tenantId));
+  const domains = new Set(RUNS.flatMap((r) => load(r).origins.map(domainOf)));
+  assert.ok(tenants.size >= 2, "every run is on one tenant — genericness is unproved");
+  assert.ok(domains.size >= 2, "every run is on one registered domain — genericness is unproved");
+  console.log(`[F19 REAL population] runs ${RUNS.length} · subjects ${new Set(RUNS.map((r) => r.subject)).size} · tenants ${tenants.size} · registered domains ${domains.size}`);
+});
+
+function load({ batch, subject }) {
   const dir = join(ROOT, research.path, batch);
   assert.ok(existsSync(dir), `the batch of a declared real run is absent`);
   const records = jsonl(join(dir, "crawl.jsonl"));
@@ -37,18 +54,20 @@ function load({ batch, subject, seeds }) {
   const subj = roots.subjects.find((s) => s.subjectId === subject);
   const site = subj.connectors.find((c) => c.kind === "PUBLIC_SITE");
   const origins = site.reaches.filter((x) => x.resourceKind === "SITE_ORIGIN").map((x) => new URL(x.resourceRef).origin);
-  return { dir, records, ledger, seedList, runs, obs, subj, site, origins, expectSeeds: seeds };
+  return { dir, records, ledger, seedList, runs, obs, subj, site, origins };
 }
 
-for (const R of RUNS) {
-  const label = R.batch.startsWith("f19-run-shamool") ? "B (unrelated site)" : "A (product site)";
+for (const [i, R] of RUNS.entries()) {
+  const label = `run ${i + 1}`;
   test(`F19 · REAL ${label} · the committed record of a real live run exists, once, and is never empty`, () => {
     const d = load(R);
     assert.equal(d.runs.length, 1, "exactly one run record per declared run");
     /* a LIVE record: a dry run issues nothing and carries dryRun: true; this one issued requests and kept their pacing */
     assert.notEqual(d.runs[0].dryRun, true, "the record is of a dry run");
     assert.ok(d.runs[0].requestsIssued + d.runs[0].robotsRequestsIssued >= 1 && d.runs[0].pacing?.gaps >= 1, "the record is not of a live run");
-    assert.equal(d.seedList.length, d.expectSeeds);
+    assert.ok(d.seedList.length >= 1, "a run with no seed");
+    assert.equal(d.runs[0].seedPoolSize, d.seedList.length, "the run did not read the batch's own seeds");
+    assert.equal(d.runs[0].urlsRequested, d.seedList.length);
     assert.ok(d.obs.length >= 1, "an empty population is not a pass");
     console.log(`[F19 REAL ${label}] seeds ${d.seedList.length} · observations ${d.obs.length} · requests ${d.runs[0].requestsIssued} + robots ${d.runs[0].robotsRequestsIssued} · truncations ${d.runs[0].truncations} · refusals ${d.runs[0].refusals} · pacing gaps ${d.runs[0].pacing.gaps}, fastest ${d.runs[0].pacing.fastestGapMs.toFixed(1)} ms, breaches ${d.runs[0].pacing.breaches} · redirect hops ${d.runs[0].redirects?.hopsFollowed} · money ${d.ledger[0]?.money?.amount === null ? "NOT MEASURED" : "RECORDED"} · provider calls ${d.ledger[0]?.providerCalls?.total}`);
   });

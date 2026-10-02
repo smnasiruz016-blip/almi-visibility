@@ -1,0 +1,9 @@
+F23 owner link rule sabotage run · 2026-10-02T02:16:32.953Z
+population: 2 sabotages over test/f23-link-audit.test.mjs · each applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): L1=1 L2=1 · all exactly once: true
+production trail sha256 before: 9049914e85016baaac1db8af69dc3ae8ec0fa41606e926448991146223c0d970
+
+L1 the output may not claim the owner declared nothing src/audit/link-audit.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+L2 the cited owner rule stays pinned to the register's record src/audit/link-audit.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+
+proved 2 of 2 · residue 0 · production trail sha256 after: 9049914e85016baaac1db8af69dc3ae8ec0fa41606e926448991146223c0d970 · unchanged true

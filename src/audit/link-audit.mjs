@@ -10,7 +10,11 @@
  *   C4  a link with no accessible name (no visible text, aria-label, image alt or title) is an ANCHOR PROBLEM (WCAG 2.2 SC 4.1.2); a name
  *       through aria-labelledby, or an element whose name cannot be aligned to its href, is NOT MEASURED; a present name NEEDS A PERSON
  *   C5  zero inbound inside the raw-HTML crawled set is UNKNOWN, never orphan; hidden needs a rendered page → NOT MEASURED
- *   C6  excessive / weakly contextual: no owner boundary is declared, so both are NOT MEASURED — no value exists here to invent
+ *   C6  excessive / weakly contextual, under the boundary the OWNER declared (RR-127 §2, _handoffs ab5aca4, 1 Oct 2026): "no arbitrary
+ *       maximum link count" and "a link needs a relevant purpose, real context, and a usable destination". So no link is ever excessive
+ *       by how many links share its page — there is no count here at all — and whether a link is surplus or weakly contextual is its
+ *       PURPOSE and CONTEXT, a per-link judgement no record holds: both stay NOT MEASURED, naming that record. A usable destination is
+ *       C2/C3's recorded target class, never re-judged here; being reachable or indexable alone never makes a link useful.
  *   C7  every count with its denominator; INCOMPLETE named; three verdicts per part
  * Pure: pages, recorded target states and the item-26 zero-inbound set in; counts out. Never fetches, renders or writes.
  */
@@ -23,9 +27,11 @@ export const VERDICT = Object.freeze({ PROVED: "PROVED", DISPROVED: "DISPROVED",
 export const MISSING = Object.freeze({
   hidden: "a rendered page — whether a link is hidden is decided by styles and scripts a stored raw-HTML body does not carry",
   orphaned: "a rendered page and a complete page inventory — a script-inserted link is invisible to raw HTML (item 26)",
-  excessive: "an owner declaration of how many links on one page is excessive — none is declared",
-  weaklyContextual: "an owner declaration of what makes a link weakly contextual — none is declared",
+  excessive: "a recorded judgement of each link's purpose — the owner declared no maximum link count (RR-127 §2), so a link is never excessive by count, and whether it is surplus is its purpose, which no record holds",
+  weaklyContextual: "a recorded judgement of each link's purpose and context — the owner declared that a link needs a relevant purpose, real context and a usable destination (RR-127 §2); purpose and context are judgements no record holds",
 });
+/** C6: the owner's declared boundary, cited where it is applied (RR-127 §2, _handoffs ab5aca4). */
+export const OWNER_LINK_RULE = Object.freeze({ command: "RR-127 §2", propositionId: "CC_COMMAND_RR-127_CLOSE_226_RECONCILE_DECISIONS_FINISH_IN_PROGRESS_ROWS", contentHash: "523153c9623d986dbc8262e75ec7ceabb371f0d90f81a16348e2888da1effbf6", rules: Object.freeze(["no arbitrary maximum link count", "a link needs a relevant purpose, real context, and a usable destination"]) });
 
 /** C2/C3: one target's class from its RECORDED observations only. `recs` is the list of records for that URL ([] = never observed). */
 export function targetState(recs) {

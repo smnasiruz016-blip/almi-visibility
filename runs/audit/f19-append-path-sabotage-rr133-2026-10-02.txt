@@ -1,0 +1,10 @@
+F19 append-path sabotage run · 2026-10-02T06:00:59.582Z
+population: 3 sabotages over test/f19-real-append-path.test.mjs · each applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): R1=1 R2=1 R3=1 · all exactly once: true
+production trail sha256 before: ef5b083ba8752f3ac0a70c896a37c188af5d303b59edea77293313e9ee01efe8
+
+R1 a live run without the owner's green is refused before any request bin/crawl.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+R2 the observations append keeps its declared discipline bin/crawl.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+R3 the cost entry is appended under its declared action bin/crawl.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+
+proved 3 of 3 · residue 0 · production trail sha256 after: ef5b083ba8752f3ac0a70c896a37c188af5d303b59edea77293313e9ee01efe8 · unchanged true

@@ -1,0 +1,23 @@
+F19 plan preflight · 2026-10-02T06:00:25.163Z · batch f19-compliant-run-2026-10-02 · count-only
+PROVED  tenant attachment                  declared: the fresh batch declared to the product's tenant · measured: RESEARCH_BATCH attached; same tenant as the product registry: true; site origins of that tenant: 1
+PROVED  scope (F02)                        declared: SAME_TENANT_ALLOWED · measured: SAME_TENANT_ALLOWED
+PROVED  clean starting state               declared: the fresh batch holds only seeds.txt · measured: files: seeds.txt · seeds 27 · hosts 1
+PROVED  refuses before 1st request: green  declared: refused, 0 network calls · measured: exit 3 · network calls 0
+PROVED  refuses before 1st request: scope  declared: exit 3, 0 network calls · measured: exit 3 · network calls 0
+PROVED  binary preflight (pre-request)     declared: PASS, 0 external calls · measured: PREFLIGHT       : PASS — record kinds 6 (observation:crawl.fetch, observation:
+PROVED  placement + write: observation     declared: 27 committed · measured: 27 kept
+PROVED  placement + write: response_headers declared: 27 committed · measured: 27 kept
+PROVED  placement + write: page_links      declared: 27 committed · measured: 27 kept
+PROVED  placement + write: publication_date_claims declared: 27 committed · measured: 27 kept
+PROVED  placement + write: crawl_run       declared: 1 committed · measured: 1 kept
+PROVED  cost-record path                   declared: 1 cost entry committed in the batch ledger · measured: 1 kept
+PROVED  writeability of every target       declared: every governed write COMMITTED, 0 refused · measured: {"APPEND_CRAWL_OBSERVATIONS":1,"WRITE_CRAWL_BODY":27,"APPEND_CRAWL_RUN_RECORD":1,"APPEND_CRAWL_COST_ENTRY":1} · refused 0
+PROVED  robots.txt first                   declared: 1 robots request, before any page · measured: robots 1 · pages 27 · robotsRequestsIssued 1
+PROVED  rate, from request starts          declared: 1000 ms minimum, monotonic · measured: gaps 27 · fastest 1000.5 ms · breaches 0
+PROVED  run record fields                  declared: seeds, requests, robots, fetched, truncations, refusals · measured: seedPoolSize 27 · requestsIssued 27 · robotsRequestsIssued 1 · urlsFetched 27 · truncations 0 · refusals 0
+PROVED  collection verdict                 declared: KEPT · measured: KEPT — the collection verdict follows the go
+PROVED  pre-request phase: network calls   declared: 0 fetch, 0 DNS before the IPv6 probe (the first network step after the preflight) · measured: first recorded call: socket · calls before it: 0
+PROVED  external requests (left the machine) declared: 0 · measured: http/https/tls attempts 0 · every fetch (28), DNS (2) and socket (1) call answered in-process
+bounds in the code: depth 0 · interval 1000 ms · timeout 15000 ms · size 2097152 bytes · URL caps 500/run, 200/host · retry ≤ 1, network error only
+in-process calls of the rehearsal (never external): fetch 28 (robots 1, pages 27) · dns 2 · socket 1
+production trail unchanged: true

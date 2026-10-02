@@ -25,6 +25,7 @@ import { AUDIT_STORE } from "../config/audit-store.mjs";
 import { AUTHORITY_CORPUS, CORPUS_PROVENANCE } from "../config/authority/corpus.mjs";
 import { REPO_ROOT } from "../src/write-law.mjs";
 import { buildBoard, boardErrors, progress, F_STATES, DENOMINATOR } from "../src/fboard/board.mjs";
+import { resolve } from "../src/authority/register.mjs";
 import { contractSha256 } from "../src/fboard/acceptance.mjs";
 import { compareRecords, RecordAuthorityRefused, AUTHORITATIVE_RECORD, BOARD_AUTHORITY_RULING_SHA256 } from "../src/fboard/record-authority.mjs";
 import { resolve as resolveAuthority, permits } from "../src/authority/register.mjs";
@@ -49,6 +50,9 @@ const EVIDENCE_RECORD_SHA = "2b84452c769ba4e62b38f2d8648ae029a1c13f44d802441d401
 const AT_MERGE = Object.freeze({
   f05Block: "98899fa6a5c2fe31f4489ef0f6f9af6cff2600f8dfb48e82d3169f677c44571e",
   f40Block: "13589c31881326aa223800e664de744139b4d5ddb0865d50dfe54bcb292738ce",
+  /* RR-127 §2a (2 Oct 2026): F40's row after its ONE lawful change — the BLOCKER_LIFTED event under the owner's F40 ruling (_handoffs
+   * 4761236), the earlier note kept verbatim inside it. Any OTHER edit to F40's row still matches neither hash and fires. */
+  f40LiftedBlock: "b843018f2b403855f28522be862f349cccf48b50ebf0c323844772f7ab1a4806",
   f08Block: "718d01bb755b28307ad3c430508b2a86cb24acb5199aec811a653307e060c3fb",
   classification: "149f936256debdc4b74b7298f707f48371d26ec4380a9f58f74254c6e9d9a65d",
   states: Object.freeze({ F05: "VERIFIED-PASS", F08: "VERIFIED-PASS", F40: "BLOCKED-BY-AUTHORITY" }),
@@ -130,7 +134,7 @@ test("P4 · F05's board entry is BYTE-IDENTICAL to its state at the merged SHA",
 });
 
 test("P5 · F40's board entry is BYTE-IDENTICAL to its state at the merged SHA", () => {
-  assert.equal(sha(rowBlock(NOW, "F40")), AT_MERGE.f40Block, "F40's row changed while F08 was being closed");
+  assert.ok([AT_MERGE.f40Block, AT_MERGE.f40LiftedBlock].includes(sha(rowBlock(NOW, "F40"))), "F40's row changed other than by its lawful lift");
   // CONTROL, PROVED CAPABLE: the SAME comparison, against the SAME kind of pin, moves for the row that changed.
   assert.notEqual(sha(rowBlock(NOW, "F08")), AT_MERGE.f08Block);
 });
@@ -150,6 +154,11 @@ const STARTED_SINCE = Object.freeze({ F10: "IN-PROGRESS", F78: "IN-PROGRESS" /* 
  * in MOVED_SINCE (it earned the pass), its LAST event is REOPENED VERIFIED-PASS -> IN-PROGRESS on CONCRETE_CONTRADICTORY_EVIDENCE, and
  * that REOPENED transition is in the production trail. F07 reopened on 28 Sep 2026 (_handoffs be583fa). */
 const REOPENED_SINCE = Object.freeze({ F07: "IN-PROGRESS" });
+
+/* 🔴 A ROW WHOSE BLOCKER WAS LIFTED BY A LATER CURRENT AUTHORITY is admitted — only by its own facts: its LAST event is BLOCKER_LIFTED
+ * BLOCKED-BY-AUTHORITY -> UNASSESSED naming its own authority, that authority resolves CURRENT, and the transition is in the production
+ * trail. F40 on 2 Oct 2026 (RR-127 §2a; owner ruling _handoffs 4761236). Lifting passes nothing: the row is UNASSESSED. */
+const UNBLOCKED_SINCE = Object.freeze({ F40: "UNASSESSED" });
 
 test("P6 · every feature other than F08 holds exactly the state it held at the merged SHA, save rows that EARNED a later movement", () => {
   const now = board();
@@ -176,6 +185,13 @@ test("P6 · every feature other than F08 holds exactly the state it held at the 
       const last = DECLARED[r.featureId].events.at(-1);
       assert.deepEqual([last.kind, last.from, last.to, last.reason], ["REOPENED", "VERIFIED-PASS", "IN-PROGRESS", "CONCRETE_CONTRADICTORY_EVIDENCE"], `${r.featureId} is IN-PROGRESS without its reopening as the last event`);
       assert.ok(events().some((e) => e.eventType === "BOARD_TRANSITION" && e.action === "REOPENED" && e.metadata?.featureId === r.featureId && e.occurredAt.slice(0, 10) === last.on), `${r.featureId}'s reopening is not in the audit trail`);
+      continue;
+    }
+    if (UNBLOCKED_SINCE[r.featureId] === r.state && was === "BLOCKED-BY-AUTHORITY") {
+      const last = DECLARED[r.featureId].events.at(-1);
+      assert.deepEqual([last.kind, last.from, last.to], ["BLOCKER_LIFTED", "BLOCKED-BY-AUTHORITY", "UNASSESSED"], `${r.featureId} left its blocker without a BLOCKER_LIFTED event as its last`);
+      assert.equal(resolve({ records: AUTHORITY_CORPUS, propositionId: last.authority.propositionId, scope: last.authority.scope, now: CORPUS_PROVENANCE.now }).outcome, "CURRENT", `${r.featureId}'s lifting authority is not CURRENT`);
+      assert.ok(events().some((e) => e.eventType === "BOARD_TRANSITION" && e.action === "BLOCKER_LIFTED" && e.metadata?.featureId === r.featureId && e.authorityRef?.propositionId === last.authority.propositionId), `${r.featureId}'s lift is not in the audit trail under its own authority`);
       continue;
     }
     moved.push(`${r.featureId}: ${was} -> ${r.state}`);

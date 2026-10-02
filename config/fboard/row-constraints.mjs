@@ -18,4 +18,22 @@ export const ROW_CONSTRAINTS = Object.freeze([
     authority: Object.freeze({ propositionId: "OWNER_RULING_F02_DISPOSITION", scope: Object.freeze(["ALMIVISIBILITY", "F02"]) }),
     ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_RULING_2026-09-25_F02_DISPOSITION.md", commit: "1145012eb6a6109c3367de033ed9e4f0a71a3e05" }),
   }),
+  /* RR-127 §2a — the owner's F40 ruling REPLACES the universal word floor with an evidence-based check. These two make F40's future
+   * acceptance unfreezable unless it carries that check and refuses any word floor; they decide nothing about a page by themselves. */
+  Object.freeze({
+    featureId: "F40",
+    name: "Adaptive page-quality gate",
+    requires: "whether the page answers its stated need",
+    why: "The owner's ruling: the assessment is whether the page answers its stated need accurately and sufficiently; length is not the measure.",
+    authority: Object.freeze({ propositionId: "OWNER_RULING_F40_ANSWER_SUFFICIENCY", scope: Object.freeze(["ALMIVISIBILITY", "F40"]) }),
+    ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_RULING_2026-10-02_F40_ANSWER_SUFFICIENCY.md", commit: "4761236e81f1fe6f0bd0d03172132d4109fcb36f" }),
+  }),
+  Object.freeze({
+    featureId: "F40",
+    name: "Adaptive page-quality gate",
+    requires: "no fixed minimum and no fixed maximum page word count",
+    why: "The owner's ruling removes the universal 350-word floor; no word count, minimum or maximum, may decide F40.",
+    authority: Object.freeze({ propositionId: "OWNER_RULING_F40_ANSWER_SUFFICIENCY", scope: Object.freeze(["ALMIVISIBILITY", "F40"]) }),
+    ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_RULING_2026-10-02_F40_ANSWER_SUFFICIENCY.md", commit: "4761236e81f1fe6f0bd0d03172132d4109fcb36f" }),
+  }),
 ]);

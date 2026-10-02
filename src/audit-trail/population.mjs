@@ -212,7 +212,10 @@ export function familyBCandidates({ declared, versions, recorded, softwareVersio
         if (!governing?.authority) { out.push({ family: "B", sourceId: `${row.featureId}:${ev.kind}:${day}`, notMigratable: "GOVERNING_ACCEPTANCE_UNRESOLVED: the declared ruling matches no pinned acceptance version" }); continue; }
       }
       if (typeof ev.to === "string" && ev.to) state = ev.to;
-      const authorityRef = governing ? refOf(governing) : blockerAuthority?.[row.featureId] ?? null;
+      /* RR-127: an event that names its OWN authority (a blocker lifted by an owner ruling) is recorded under that authority, never under
+       * the row's blocker source — the very authority it supersedes */
+      const own = ev.authority?.propositionId && Array.isArray(ev.authority.scope) ? { propositionId: ev.authority.propositionId, scope: [...ev.authority.scope] } : null;
+      const authorityRef = governing ? refOf(governing) : own ?? blockerAuthority?.[row.featureId] ?? null;
       if (!authorityRef) { out.push({ family: "B", sourceId: `${row.featureId}:${ev.kind}`, notMigratable: "NO_GOVERNING_AUTHORITY: no acceptance governs this event and the row records no blocker source" }); continue; }
       const occurredAt = dayToInstant(day);
       /* The declared event's position among the row's events of the same kind and day makes two genuinely distinct movements with

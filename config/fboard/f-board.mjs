@@ -2078,11 +2078,22 @@ export const DECLARED = Object.freeze({
   F40: Object.freeze({
     featureId: "F40",
     board: "F_BOARD",
-    state: "BLOCKED-BY-AUTHORITY",
-    blocker: "UNIVERSAL_350_WORD_FLOOR_STILL_APPLICABLE",
-    note: "Amendment 7 changed only the fact floor. It is not credited with changing the universal 350-word floor, which still applies — and the specification's F40 asks for no universal word quota. F40 is not implemented.",
+    state: "UNASSESSED",
+    note: "The universal 350-word floor no longer governs F40: the owner's ruling of 2 October 2026 (no fixed minimum and no fixed maximum page word count; the assessment is whether the page answers its stated need) supersedes the blocker recorded on 22 September, which stays in this row's history. F40 has no frozen acceptance and is not implemented; when one is frozen it must carry that check (config/fboard/row-constraints.mjs). Lifting a blocker passes nothing.",
     events: Object.freeze([
       Object.freeze({ kind: "BLOCKER_RECORDED", on: "2026-09-22", source: "_handoffs/AlmiVisibility_CC_COMMAND_2026-09-22_F05_CURRENT_AUTHORITY_REGISTER_CHAIN.md §0.7" }),
+      /* RR-127 §2a — the blocking authority is superseded by an owner ruling; the row returns to UNASSESSED, never further. The note
+       * this event replaced is kept verbatim below, so nothing of the earlier record is lost. */
+      Object.freeze({
+        kind: "BLOCKER_LIFTED", on: "2026-10-02", from: "BLOCKED-BY-AUTHORITY", to: "UNASSESSED",
+        route: "BLOCKED-BY-AUTHORITY -> UNASSESSED (the blocking authority superseded by an owner ruling; no acceptance, no implementation, no pass)",
+        reason: "OWNER_RULING_SUPERSEDES_BLOCKER",
+        liftedBlocker: "UNIVERSAL_350_WORD_FLOOR_STILL_APPLICABLE",
+        supersededNote: "Amendment 7 changed only the fact floor. It is not credited with changing the universal 350-word floor, which still applies — and the specification's F40 asks for no universal word quota. F40 is not implemented.",
+        authority: Object.freeze({ propositionId: "OWNER_RULING_F40_ANSWER_SUFFICIENCY", scope: Object.freeze(["ALMIVISIBILITY", "F40"]) }),
+        authorityRecord: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_RULING_2026-10-02_F40_ANSWER_SUFFICIENCY.md", commit: "4761236e81f1fe6f0bd0d03172132d4109fcb36f", sha256: "3e1fbc5c36dd97bb3a7db5a72e38cc80d58310429ec84dacc2b620940b24f2ba" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-127_CLOSE_226_RECONCILE_DECISIONS_FINISH_IN_PROGRESS_ROWS.md", commit: "ab5aca48af3328dc1f20481f22d82b7bd26e0616", sha256: "523153c9623d986dbc8262e75ec7ceabb371f0d90f81a16348e2888da1effbf6" }),
+      }),
     ]),
   }),
 });

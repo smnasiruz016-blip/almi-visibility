@@ -294,4 +294,20 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F16_ACCEPTANCE_2026-10-01.md", loader: "F-board acceptance F16" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_CLARIFICATION_2026-09-28_RR-76_TEST_ONLY_PERMISSION_IS_GENERAL.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_RULING_2026-09-28_RR-80_F07_A_LIMIT_IS_NOT_A_PERMISSION.md", loader: "authority register (CURRENT record)" }),
+  /* RR-127 (2 Oct 2026): the fourteen CURRENT records admitted by the migration at _handoffs 4761236 — commands RR-115 to RR-127 and the
+   * owner ruling on F40. The RR-120 decision record was also admitted but resolves INVALID (no issuer), so it is not required here. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-115_PREPARE_ONE_REAL_PUBLIC_QUESTION_SAMPLE_FOR_F16.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-116_CORRECT_RR-115_BUILD_A_GOVERNED_HUMAN_OBSERVATION_PATH.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-117_VERIFY_219_MERGE_THEN_PROVE_PRODUCT_NEUTRALITY.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-118_BUILD_THE_PRODUCT_NEUTRAL_SOURCE_ADAPTER_BOUNDARY.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-119_CLOSE_221_READ_PRIMARY_TERMS_FINISH_ONE_ADAPTER.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-120_READ_TWO_PUBLIC_TERMS_FINISH_OR_PARK_ADAPTER.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-121_VERIFY_REAL_API_SHAPE_PREPARE_ONE_PILOT.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-122_VERIFY_224_MERGE_CORRECT_THE_PILOT.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-123_THE_PILOTS_SUBJECT_WAS_WRONG_CORRECT_IT.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-124_FIND_A_REAL_RELEVANT_PUBLIC_QUESTION_SAMPLE.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-125_CORRECT_RR124_ADD_TRUTHFUL_AGENT_OBSERVER_ROUTE.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-126_VERIFY_225_RECORD_PAGE_DIRECTION_CONTINUE_F16.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-127_CLOSE_226_RECONCILE_DECISIONS_FINISH_IN_PROGRESS_ROWS.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_RULING_2026-10-02_F40_ANSWER_SUFFICIENCY.md", loader: "authority register (CURRENT record)" }),
 ]);

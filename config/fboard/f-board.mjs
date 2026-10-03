@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F81_ORIGINAL } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -1186,6 +1186,8 @@ export const DECLARED = Object.freeze({
         baseCiConclusion: "success",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-02_RR-137_RESOLVE_THE_RULE_TEXT_THEN_KEEP_BUILDING.md", commit: "54934288d40f548039f1ccfb495781a9d74dba4d", sha256: "4d2763418935fdce5518c1ff54463da5037a53510f2e17a66c5e38f222ea82ba" }),
       }),
+      /* 3 Oct 2026 (RR-144 §1): Amendment 1, frozen ALONE before any F25 implementation change for it; F25 stays IN-PROGRESS here */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F25", on: "2026-10-03", ruling: F25_AMENDMENT_1.ruling, contractSha256: F25_AMENDMENT_1.contractSha256, amends: F25_AMENDMENT_1.amends }),
     ]),
   }),
   /* 🔴 F81 · Search performance and rank tracking. Frozen ALONE (_handoffs ae4834b, RR-132 §3) before any F81 code. Built on recorded data:

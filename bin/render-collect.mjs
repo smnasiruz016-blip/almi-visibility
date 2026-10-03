@@ -3,7 +3,7 @@
  * 🔴 RR-138 §2 · THE ONE BOUNDED LIVE SAME-ORIGIN RENDER COLLECTION — SHARED EVIDENCE FOR F22 AND F25, STORED ONCE.
  *
  *   node bin/render-collect.mjs --source-batch=<declared id> --evidence-batch=<declared id> --tenant=<t> --subject=<s>
- *        --live --i-have-the-owners-green --confirm [--max-pages=N] [--max-total-requests=N] [--corpus=<dir>]
+ *        --live --i-have-the-owners-green --confirm [--max-pages=N] [--max-total-requests=N] [--max-requests-per-page=N] [--corpus=<dir>]
  *
  * LIVE ONLY, and only on the owner's reviewed GREEN for the exact run. Everything below happens BEFORE any request, and any refusal
  * makes ZERO HTTP requests:
@@ -49,7 +49,7 @@ const EVIDENCE_BATCH = arg("evidence-batch");
 const SUBJECT = arg("subject");
 const ID = /^[a-z0-9][a-z0-9-]*$/;
 if (!SOURCE_BATCH || !ID.test(SOURCE_BATCH) || !EVIDENCE_BATCH || !ID.test(EVIDENCE_BATCH) || !SUBJECT || SOURCE_BATCH === EVIDENCE_BATCH) {
-  console.error("usage: node bin/render-collect.mjs --source-batch=<id> --evidence-batch=<another id> --tenant=<t> --subject=<s> --live --i-have-the-owners-green --confirm [--max-pages=N] [--max-total-requests=N]");
+  console.error("usage: node bin/render-collect.mjs --source-batch=<id> --evidence-batch=<another id> --tenant=<t> --subject=<s> --live --i-have-the-owners-green --confirm [--max-pages=N] [--max-total-requests=N] [--max-requests-per-page=N]");
   process.exit(2);
 }
 /* 1 · the GREEN, and the STORAGE PERMISSION — before anything else */
@@ -71,7 +71,17 @@ const lower = (name, ceiling) => {
 };
 const MAX_PAGES = lower("max-pages", OFFLINE_BOUNDS.maxPages);
 const MAX_TOTAL = lower("max-total-requests", LIVE_RENDER_BOUNDS.maxTotalRequests);
-const BOUNDS = Object.freeze({ ...LIVE_RENDER_BOUNDS, maxTotalRequests: MAX_TOTAL });
+/* RR-144 §2: the per-page cap is no longer fixed. A run may DECLARE it — set from the page's measured need plus headroom — from 1 up to
+ * the run's own TOTAL ceiling, never above it; undeclared, it is the recorded default. It is printed in the PLAN and stored in the run
+ * record's bounds, so the cap a run used is always on its record. The TOTAL ceiling still bounds everything. */
+const PER_PAGE = (() => {
+  const v = arg("max-requests-per-page");
+  if (v === null) return LIVE_RENDER_BOUNDS.maxRequestsPerPage;
+  const n = Number(v);
+  if (!Number.isInteger(n) || n < 1 || n > MAX_TOTAL) { console.error(`🔴 REFUSED — --max-requests-per-page must be an integer from 1 to the run's total ceiling (${MAX_TOTAL}). NO REQUEST WAS MADE.`); process.exit(2); }
+  return n;
+})();
+const BOUNDS = Object.freeze({ ...LIVE_RENDER_BOUNDS, maxTotalRequests: MAX_TOTAL, maxRequestsPerPage: PER_PAGE });
 const RENDER_BOUNDS = Object.freeze({ ...OFFLINE_BOUNDS, perPageTimeoutMs: BOUNDS.perPageTimeoutMs });
 
 /* 2 · F02 — the subject's declared site, then every resource this run reads or writes, decided before any of it is touched */

@@ -43,6 +43,8 @@ const PAGE = '<!doctype html><html lang="en"><head><title>fixture</title></head>
 const RICH = '<!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width"><title>rich</title></head><body><main><h1>rich</h1><a href="/x">x</a>' +
   '<img src="/login" alt="l"><img src="/pay" alt="p"><script src="/app.js"></script><script src="https://third-party.invalid/t.js"></script>' +
   '<script>fetch("/api", { method: "POST", body: "x" }).catch(() => {});</script></main></body></html>';
+const OUTSIDE_ONLY = '<!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width"><title>outside</title></head><body><main><h1>outside</h1>' +
+  '<a href="/x">x</a><script src="/app.js"></script><script src="https://third-party.invalid/t.js"></script></main></body></html>';
 
 /* a minimal GET to 127.0.0.1 through the original http module — used ONLY for loopback; any other host never reaches it */
 const loopbackFetch = (url) => new Promise((resolve, reject) => {
@@ -80,6 +82,8 @@ globalThis.fetch = async (url, init) => {
   }
   /* RR-138: a page that asks for its OWN script, a THIRD-PARTY script, a 401 and a 402 route, and POSTs from a script */
   if (u.pathname === "/doc-rich") return new Response(RICH, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
+  /* RR-144 (F25 Amendment 1): a page whose OWN files all load and whose ONLY refusal is an outside company's script */
+  if (u.pathname === "/doc-outside") return new Response(OUTSIDE_ONLY, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
   if (u.pathname === "/app.js") return new Response(`document.body.insertAdjacentHTML("beforeend", "<a href='/js-added'>added</a><p>scripted words</p>");`, { status: 200, headers: { "content-type": "text/javascript" } });
   if (u.pathname === "/login") return new Response("sign in", { status: 401, headers: { "content-type": "text/html" } });
   if (u.pathname === "/pay") return new Response("pay", { status: 402, headers: { "content-type": "text/html" } });

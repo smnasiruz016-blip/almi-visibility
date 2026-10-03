@@ -35,9 +35,9 @@ const sha = (s) => createHash("sha256").update(s).digest("hex");
 const B_SUBJECT = "second-client-site", B_ORIGIN = "https://second-client.invalid";
 
 function world() {
-  const WORLD = declaredWorld({ extra: [["RESEARCH_BATCH", "src-a"], ["RESEARCH_BATCH", "ev-a"], ["RESEARCH_BATCH", "src-b"], ["RESEARCH_BATCH", "ev-b"], ["SITE_ORIGIN", B_ORIGIN]], secondTenantOrigins: [B_ORIGIN] });
+  const WORLD = declaredWorld({ extra: [["RESEARCH_BATCH", "src-a"], ["RESEARCH_BATCH", "ev-a"], ["RESEARCH_BATCH", "src-b"], ["RESEARCH_BATCH", "ev-b"], ["RESEARCH_BATCH", "src-c"], ["RESEARCH_BATCH", "ev-c"], ["SITE_ORIGIN", B_ORIGIN]], secondTenantOrigins: [B_ORIGIN] });
   const roots = JSON.parse(readFileSync(join(WORLD.root, "roots.json"), "utf8"));
-  roots.subjects.find((x) => x.subjectId === FIXTURE_SUBJECT).members.push({ resourceKind: "RESEARCH_BATCH", resourceRef: "src-a" }, { resourceKind: "RESEARCH_BATCH", resourceRef: "ev-a" });
+  roots.subjects.find((x) => x.subjectId === FIXTURE_SUBJECT).members.push({ resourceKind: "RESEARCH_BATCH", resourceRef: "src-a" }, { resourceKind: "RESEARCH_BATCH", resourceRef: "ev-a" }, { resourceKind: "RESEARCH_BATCH", resourceRef: "src-c" }, { resourceKind: "RESEARCH_BATCH", resourceRef: "ev-c" });
   roots.subjects.push({ subjectId: B_SUBJECT, path: B_SUBJECT, members: [{ resourceKind: "SITE_ORIGIN", resourceRef: B_ORIGIN }, { resourceKind: "RESEARCH_BATCH", resourceRef: "src-b" }, { resourceKind: "RESEARCH_BATCH", resourceRef: "ev-b" }], connectors: [{ connectorId: "site", kind: "PUBLIC_SITE", credential: null, reaches: [{ resourceKind: "SITE_ORIGIN", resourceRef: B_ORIGIN }] }] });
   writeFileSync(join(WORLD.root, "roots.json"), JSON.stringify(roots, null, 2) + "\n");
   mkdirSync(join(WORLD.root, B_SUBJECT), { recursive: true });
@@ -57,7 +57,9 @@ function world() {
   };
   source("src-a", FIXTURE_SUBJECT_ORIGIN, ["/doc-rich", "/p1"]);
   source("src-b", B_ORIGIN, ["/q1"]);
-  for (const e of ["ev-a", "ev-b"]) mkdirSync(join(research, e), { recursive: true });
+  /* RR-144 (F25 Amendment 1): one page whose only refusal is an outside company's script */
+  source("src-c", FIXTURE_SUBJECT_ORIGIN, ["/doc-outside"]);
+  for (const e of ["ev-a", "ev-b", "ev-c"]) mkdirSync(join(research, e), { recursive: true });
   return { WORLD, corpus, research };
 }
 
@@ -163,6 +165,48 @@ test("R11 · F25 C7 from stored evidence: a page of the population with NO store
     /* the fixture's one rendered page is itself PARTIAL (it asks for a third-party script), so BOTH pages are NOT MEASURED — of 2 */
     assert.match(f25.stdout, /RESPONSIVE\s+NOT MEASURED 2 — of 2 page\(s\)/, `the unrendered page is not counted NOT MEASURED in the population: ${said}`);
     assert.match(f25.stdout, /population\s+INCOMPLETE/, `a population with an unrendered page read COMPLETE: ${said}`);
+  } finally { rmSync(corpus, { recursive: true, force: true }); WORLD.cleanup(); }
+});
+
+test("R12 · F25 Amendment 1 on the production path: a render whose ONLY refusal is an outside host is measured as OWN-SITE COMPLETE and still reports that refusal; a render that refused its OWN site's files is not (RR-144)", { skip: NO_BROWSER }, () => {
+  const { WORLD, corpus, research } = world();
+  try {
+    assert.equal(collect(WORLD, corpus, { source: "src-c", evidence: "ev-c" }).r.status, 0);
+    const recs = jsonl(join(research, "ev-c", "render.jsonl")).filter((x) => x.record_type === "observation");
+    const mobile = recs.find((x) => x.value.kind === "MOBILE");
+    assert.equal(mobile.value.renderState, "PARTIAL", "the render state itself must stay PARTIAL");
+    assert.deepEqual(mobile.value.requests.refusedByReason, { UNDECLARED_HOST: 1 }, "the fixture's only refusal must be the outside script");
+    const pos = audit(WORLD, corpus, "bin/mobile-audit.mjs", { source: "src-c", evidence: "ev-c" });
+    assert.equal(pos.status, 0, pos.stderr.slice(-300));
+    assert.match(pos.stdout, /RESPONSIVE\s+FITS 1 — of 1 page\(s\)/, pos.stdout);
+    assert.match(pos.stdout, /MOBILE TEXT\s+(SAME|DIFFERS) 1 — of 1 page\(s\)/, pos.stdout);
+    assert.match(pos.stdout, /OWN-SITE COMPLETE \(Amendment 1\) 2 · their refused requests, all to hosts outside the declared site, 2 by reason UNDECLARED_HOST 2/, pos.stdout);
+    assert.match(pos.stdout, /population\s+COMPLETE/, pos.stdout);
+    /* CONTROL: the rich page refuses its OWN site's login and payment routes — never OWN-SITE COMPLETE */
+    assert.equal(collect(WORLD, corpus).r.status, 0);
+    const neg = audit(WORLD, corpus, "bin/mobile-audit.mjs");
+    assert.match(neg.stdout, /OWN-SITE COMPLETE \(Amendment 1\) 0 · their refused requests, all to hosts outside the declared site, 0/, neg.stdout);
+    assert.match(neg.stdout, /population\s+INCOMPLETE/, neg.stdout);
+  } finally { rmSync(corpus, { recursive: true, force: true }); WORLD.cleanup(); }
+});
+
+test("R13 · the per-page cap is DECLARED per run (RR-144 §2): it binds when low, it may sit above the old 60, it is stored on the run record, and it can never exceed the run's TOTAL ceiling — refused with no request", { skip: NO_BROWSER }, () => {
+  const { WORLD, corpus, research } = world();
+  try {
+    const low = collect(WORLD, corpus, { more: ["--max-requests-per-page=2"] });
+    assert.equal(low.r.status === 0 || low.r.status === 1, true, low.r.stderr.slice(-300));
+    const run = jsonl(join(research, "ev-a", "render.jsonl")).find((x) => x.record_type === "render_run");
+    assert.equal(run.bounds.maxRequestsPerPage, 2, "the declared cap is not on the run record");
+    assert.ok((run.refusedByReason.REQUEST_CAP ?? 0) >= 1, "a declared cap of 2 never refused");
+    assert.match(low.r.stdout, /per page 2 /, "the declared cap is not printed in the PLAN");
+    const high = collect(WORLD, corpus, { tenant: SECOND_FIXTURE_TENANT, subject: B_SUBJECT, source: "src-b", evidence: "ev-b", more: ["--max-requests-per-page=150"] });
+    assert.equal(high.r.status, 0, high.r.stderr.slice(-300));
+    assert.equal(jsonl(join(research, "ev-b", "render.jsonl")).find((x) => x.record_type === "render_run").bounds.maxRequestsPerPage, 150);
+    for (const more of [["--max-total-requests=5", "--max-requests-per-page=6"], ["--max-requests-per-page=301"], ["--max-requests-per-page=0"], ["--max-requests-per-page=2.5"]]) {
+      const x = collect(WORLD, corpus, { source: "src-c", evidence: "ev-c", more, mode: "refuse" });
+      assert.equal(x.r.status, 2, `${more.join(" ")} was not refused`);
+      assert.equal(calls(x.counts), 0, `${more.join(" ")} made a request`);
+    }
   } finally { rmSync(corpus, { recursive: true, force: true }); WORLD.cleanup(); }
 });
 

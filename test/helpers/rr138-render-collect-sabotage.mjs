@@ -19,7 +19,7 @@ const T = ["test/rr138-render-collect.test.mjs"];
 const TRAIL = "audit-trail/events.jsonl";
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
-const R1 = "R1 · refused BEFORE", R2 = "R2 · the run", R3 = "R3 · the TOTAL", R4 = "R4 · each row", R6 = "R6 · the PREFLIGHT", R7 = "R7 · the TOTAL ceiling holds", R8 = "R8 · a script", R9 = "R9 · CONCURRENT", R10 = "R10 · with JavaScript OFF", R11 = "R11 · F25 C7 from stored evidence";
+const R1 = "R1 · refused BEFORE", R2 = "R2 · the run", R3 = "R3 · the TOTAL", R4 = "R4 · each row", R6 = "R6 · the PREFLIGHT", R7 = "R7 · the TOTAL ceiling holds", R8 = "R8 · a script", R9 = "R9 · CONCURRENT", R10 = "R10 · with JavaScript OFF", R11 = "R11 · F25 C7 from stored evidence", R12 = "R12 · F25 Amendment 1", R13 = "R13 · the per-page cap";
 
 const SABOTAGES = [
   ["X1", "a third-party subresource is refused before it leaves", P, "      if (originOf(url) === null || !admits(url)) return refused(\"UNDECLARED_HOST\");\n", "      if (originOf(url) === null) return refused(\"UNDECLARED_HOST\");\n", R2],
@@ -41,6 +41,10 @@ const SABOTAGES = [
   ["X16", "a slot is reserved before the await, so concurrent calls cannot all pass the cap", P, "      made += 1;\n      const verdict = await robots.check(url);\n      if (!verdict.allowed) { made -= 1; return", "      const verdict = await robots.check(url);\n      if (!verdict.allowed) { return", R9],
   /* RR-143 · F25 C7: the population read from stored evidence is every page of the source batch, not the rendered ones alone */
   ["X17", "F25 counts a page with no stored render in its population (NOT MEASURED), never only the rendered pages", MA, "  const out = pages.map((p) => { const e = ev.byPage.get(p.id); return e ?", "  const out = collected.map((p) => { const e = ev.byPage.get(p.id); return e ?", R11],
+  /* RR-144 · F25 Amendment 1 on the production path, and the per-page cap declared per run */
+  ["X18", "F25 reads stored evidence with the subject's declared site hosts (OWN-SITE COMPLETE needs them)", MA, "verified(e.DESKTOP), ownHosts: OWN_HOSTS })", "verified(e.DESKTOP) })", R12],
+  ["X19", "the declared per-page cap is the cap the run uses", B, "maxTotalRequests: MAX_TOTAL, maxRequestsPerPage: PER_PAGE });", "maxTotalRequests: MAX_TOTAL });", R13],
+  ["X20", "the declared per-page cap can never exceed the run's total ceiling", B, " || n > MAX_TOTAL) {", ") {", R13],
 ];
 
 const files = [...new Set(SABOTAGES.map((s) => s[2]))];
@@ -88,6 +92,6 @@ restoreAll();
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "rr138-render-collect-sabotage-rr143-2026-10-03.txt"), lines.join("\n") + "\n");
+writeFileSync(join(REPO, "runs", "audit", "rr138-render-collect-sabotage-rr144-2026-10-03.txt"), lines.join("\n") + "\n");
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

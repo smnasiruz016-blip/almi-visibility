@@ -59,6 +59,8 @@ const RENDER_BOUNDS = LIVE ? Object.freeze({ ...OFFLINE_BOUNDS, perPageTimeoutMs
 const SITE = lookupConnector(rootIndexFor(process.env), SUBJECT, "PUBLIC_SITE");
 const SITE_ORIGINS = SITE.state === "DECLARED" ? [...siteOriginsOf(SITE.connector)] : [];
 if (SITE_ORIGINS.length === 0) { console.error("🔴 REFUSED — NO_DECLARED_SITE: the subject declares no site origin. NOTHING WAS READ."); process.exit(3); }
+/* Amendment 1 (C3): the page's OWN site, as hosts — a render that refused only hosts outside this set may be OWN-SITE COMPLETE */
+const OWN_HOSTS = new Set(SITE_ORIGINS.map((o) => new URL(o).host));
 /* 🔴 F02 — decided HERE, before anything is read */
 const SCOPE = scopedEntryPoint({ entry: "bin/mobile-audit.mjs", governed: false, resources: [RESOURCES.researchBatch(BATCH), ...(EVIDENCE_BATCH ? [RESOURCES.researchBatch(EVIDENCE_BATCH)] : []), ...SITE_ORIGINS.map((o) => RESOURCES.siteOrigin(o)), ...(LIVE ? [RESOURCES.connector(SUBJECT, "PUBLIC_SITE")] : [])] });
 const CORPUS = confineToRepo(arg("corpus") ?? `${REPO}runs/crawl/corpus`, { label: "--corpus" });
@@ -95,7 +97,7 @@ if (EVIDENCE_BATCH) {
    * A page the collection did not render stays in it, NOT MEASURED with that reason, and a page without a matching stored body is counted
    * too — the first version assessed the rendered pages only, so the denominator shrank to them and an unrendered page vanished. */
   const notRendered = { renderState: "ABSENT", reason: "the evidence batch holds no render of this page" };
-  const out = pages.map((p) => { const e = ev.byPage.get(p.id); return e ? assessPage({ html: p.body, mobile: verified(e.MOBILE), desktop: verified(e.DESKTOP) }) : assessPage({ html: p.body, mobile: notRendered, desktop: notRendered }); });
+  const out = pages.map((p) => { const e = ev.byPage.get(p.id); return e ? assessPage({ html: p.body, mobile: verified(e.MOBILE), desktop: verified(e.DESKTOP), ownHosts: OWN_HOSTS }) : assessPage({ html: p.body, mobile: notRendered, desktop: notRendered }); });
   const s = summariseMobile(out, { pagesWithoutBody: withoutBody });
   const fmt = (o) => Object.entries(o).map(([k, n]) => `${k} ${n}`).join(" · ");
   const measuredTargets = out.filter((a) => a.tapTargets.state !== NOT_MEASURED).length;
@@ -104,6 +106,7 @@ if (EVIDENCE_BATCH) {
   console.log(`  RESPONSIVE   ${fmt(s.responsive)} — of ${s.pages} page(s)`);
   console.log(`  TAP TARGETS  ${fmt(Object.fromEntries(Object.entries(s.tapTargets).filter(([k]) => k !== "targets" && k !== "undersized")))} — of ${s.pages} page(s) · undersized (WCAG 2.2 SC 2.5.8) ${measuredTargets ? `${s.tapTargets.undersized} of ${s.tapTargets.targets} measured target(s)` : NOT_MEASURED}`);
   console.log(`  MOBILE TEXT  ${fmt(s.mobileContent)} — of ${s.pages} page(s)`);
+  console.log(`  OWN-SITE     renders measured as OWN-SITE COMPLETE (Amendment 1) ${s.ownSite.renders} · their refused requests, all to hosts outside the declared site, ${s.ownSite.refusedOutside}${s.ownSite.refusedOutside ? ` by reason ${fmt(s.ownSite.refusedByReason)}` : ""}`);
   console.log(`  population   ${s.incomplete ? "INCOMPLETE — a page or measure above is NOT MEASURED" : "COMPLETE"} · from stored evidence · nothing fetched, rendered or written`);
   process.exit(0);
 }
@@ -138,7 +141,7 @@ if (pw.unavailable) {
       const desktop = await renderDocument({ browser, origin: server.origin, id: p.id, documentUrl: p.url, egress: [], bounds: RENDER_BOUNDS, viewport: DESKTOP_VIEWPORT, readVisibleText: true, ...sub });
       states.mobile[mobile.renderState] = (states.mobile[mobile.renderState] ?? 0) + 1;
       states.desktop[desktop.renderState] = (states.desktop[desktop.renderState] ?? 0) + 1;
-      assessments.push(assessPage({ html, mobile, desktop }));
+      assessments.push(assessPage({ html, mobile, desktop, ownHosts: OWN_HOSTS }));
     }
   } finally { await browser.close(); await server.close(); }
 }
@@ -151,5 +154,6 @@ console.log(`  VIEWPORT     ${fmt(s.viewport)} — of ${s.pages} page(s) · widt
 console.log(`  RESPONSIVE   ${fmt(s.responsive)} — of ${s.pages} page(s)   [COMPLETE mobile render only]`);
 console.log(`  TAP TARGETS  ${fmt(Object.fromEntries(Object.entries(s.tapTargets).filter(([k]) => k !== "targets" && k !== "undersized")))} — of ${s.pages} page(s) · undersized (WCAG 2.2 SC 2.5.8) ${measuredTargetPages ? `${s.tapTargets.undersized} of ${s.tapTargets.targets} measured target(s)` : NOT_MEASURED}   [COMPLETE mobile render only]`);
 console.log(`  MOBILE TEXT  ${fmt(s.mobileContent)} — of ${s.pages} page(s)   [COMPLETE mobile AND desktop render only]`);
+console.log(`  OWN-SITE     renders measured as OWN-SITE COMPLETE (Amendment 1) ${s.ownSite.renders} · their refused requests, all to hosts outside the declared site, ${s.ownSite.refusedOutside}${s.ownSite.refusedOutside ? ` by reason ${fmt(s.ownSite.refusedByReason)}` : ""}`);
 if (policy) console.log(`  live bounds  requests ${policy.requestsIssued()} · per page cap ${LIVE_RENDER_BOUNDS.maxRequestsPerPage} · pacing breaches ${policy.pacing().breaches}`);
 console.log(`  population   ${s.incomplete ? "INCOMPLETE — a page or measure above is NOT MEASURED" : "COMPLETE"} · nothing written`);

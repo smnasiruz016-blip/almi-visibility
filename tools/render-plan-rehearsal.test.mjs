@@ -28,6 +28,7 @@ import { AUDIT_STORE_OVERRIDE_ENV, AUDIT_RUN_ENV, TEST_SCRATCH_AUDIT_ROOT } from
 import { readDeclarations } from "../src/tenancy/resolver.mjs";
 import { SUBJECT_ROOTS_ENV, DATA_ROOT } from "../test/helpers/declared-world.mjs";
 import { LIVE_RENDER_BOUNDS } from "../src/render/same-origin-policy.mjs";
+import { measurableBasisOf } from "../src/audit/mobile-readiness.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const TRAIL = join(REPO, "audit-trail", "events.jsonl");
@@ -36,6 +37,8 @@ const TRAIL_BEFORE = trailSha();
 const PRELOAD = pathToFileURL(join(REPO, "test", "helpers", "no-egress-preload.mjs")).href;
 const SRC = process.env.RENDER_SOURCE_BATCH ?? null, EV = process.env.RENDER_EVIDENCE_BATCH ?? null, SUBJECT = process.env.RENDER_SUBJECT ?? null;
 const MAX_PAGES = Number(process.env.RENDER_MAX_PAGES ?? NaN);
+/* RR-144 §2: the plan's declared per-page cap and its per-site share of the total ceiling — passed exactly as the live run passes them */
+const PER_PAGE = process.env.RENDER_MAX_PER_PAGE ?? null, MAX_TOTAL = process.env.RENDER_MAX_TOTAL ?? null;
 const headOf = (dir) => { const r = spawnSync("git", ["rev-parse", "HEAD"], { cwd: dir, encoding: "utf8" }); return r.status === 0 ? r.stdout.trim() : "UNKNOWN"; };
 const lines = [];
 const limb = (name, declared, measured, ok) => { lines.push(`${ok ? "PROVED " : "FAILED "} ${name.padEnd(40)} declared: ${declared} · measured: ${measured}`); return ok; };
@@ -82,12 +85,16 @@ test("RENDER PLAN PREFLIGHT · every prerequisite of the requested collection, p
     const evDir = join(root, research, EV);
     ok.push(limb("clean evidence batch", "declared, no render evidence yet", `${existsSync(evDir) ? "present" : "ABSENT"} · render.jsonl ${existsSync(join(evDir, "render.jsonl")) ? "PRESENT" : "absent"}`, existsSync(evDir) && !existsSync(join(evDir, "render.jsonl"))));
     ok.push(limb("population", `${MAX_PAGES} page(s) with a stored body`, `source fetched pages ${srcRecs.length} · stored bodies ${bodies}`, bodies >= MAX_PAGES));
-    const ARGS = [`--source-batch=${SRC}`, `--evidence-batch=${EV}`, `--tenant=${tenant}`, `--subject=${SUBJECT}`, "--actor=actor:cc", "--live", "--i-have-the-owners-green", "--confirm", `--max-pages=${MAX_PAGES}`];
+    const ARGS = [`--source-batch=${SRC}`, `--evidence-batch=${EV}`, `--tenant=${tenant}`, `--subject=${SUBJECT}`, "--actor=actor:cc", "--live", "--i-have-the-owners-green", "--confirm", `--max-pages=${MAX_PAGES}`, ...(MAX_TOTAL ? [`--max-total-requests=${MAX_TOTAL}`] : []), ...(PER_PAGE ? [`--max-requests-per-page=${PER_PAGE}`] : [])];
     /* refusals before the first request, each in REFUSE mode: any network call would be counted */
     for (const [name, args, code] of [
       ["refuses without the GREEN", ARGS.filter((a) => a !== "--i-have-the-owners-green"), 3],
       ["refuses without storage permission", ARGS.filter((a) => a !== "--confirm"), 3],
-      ["refuses a raised ceiling", [...ARGS, `--max-total-requests=${LIVE_RENDER_BOUNDS.maxTotalRequests + 1}`], 2],
+      /* the plan's own --max-total-requests is REPLACED, not shadowed: the collector reads the first occurrence, so an appended raise
+       * behind a declared ceiling was never seen, and the probe ran a whole refuse-mode collection into the copy (found by RR-144's first
+       * rehearsal: it left FAILED evidence that made the real rehearsal NOT_CLEAN) */
+      ["refuses a raised ceiling", [...ARGS.filter((a) => !a.startsWith("--max-total-requests=")), `--max-total-requests=${LIVE_RENDER_BOUNDS.maxTotalRequests + 1}`], 2],
+      ["refuses a per-page cap above the ceiling", [...ARGS.filter((a) => !a.startsWith("--max-requests-per-page=")), `--max-requests-per-page=${(Number(MAX_TOTAL) || LIVE_RENDER_BOUNDS.maxTotalRequests) + 1}`], 2],
       ["refuses a batch outside the declarations", ARGS.map((a) => (a.startsWith("--evidence-batch=") ? "--evidence-batch=undeclared-render-batch" : a)), 3],
     ]) { const x = runCollect(root, args, "refuse", corpus); ok.push(limb(name, `exit ${code}, 0 network calls`, `exit ${x.r.status} · network calls ${calls(x.c)}`, x.r.status === code && calls(x.c) === 0)); }
     /* the exact run, in-process, on the REAL stored bodies (RR-142 §3: fixture pages never exercised the renders that broke live) */
@@ -105,7 +112,16 @@ test("RENDER PLAN PREFLIGHT · every prerequisite of the requested collection, p
     ok.push(limb("real stored bodies rendered", `${MAX_PAGES} document(s) answered with their stored bytes`, `stored-body answers ${c.replayed ?? "NOT MEASURED"} · empty subresource answers ${c.emptySubresources ?? "NOT MEASURED"}`, c.replayed === MAX_PAGES));
     ok.push(limb("request count", "the run's counter = every request answered in process", `run record ${runRec.requestsIssued} · answered ${c.fetch ?? "NOT MEASURED"} (robots ${c.robots}, other ${c.pages})`, Number.isInteger(c.fetch) && runRec.requestsIssued === c.fetch));
     const st = runRec.renderStates ?? {};
-    ok.push(limb("COMPLETE browser renders", `DESKTOP ${MAX_PAGES} · MOBILE ${MAX_PAGES} COMPLETE`, Object.entries(st).map(([k, n]) => `${k} ${n}`).sort().join(" · ") || "NONE", st["DESKTOP:COMPLETE"] === MAX_PAGES && st["MOBILE:COMPLETE"] === MAX_PAGES));
+    /* RR-144: "COMPLETE" as F25 reads it — the render state COMPLETE, or OWN-SITE COMPLETE under F25 Amendment 1 (24cd44f): only outside
+     * hosts refused, nothing of the page's own declared site, settled in time. Decided by the SAME function F25's assessment uses, from the
+     * stored records; the refused requests are printed, never hidden. */
+    const subj = JSON.parse(readFileSync(join(root, "roots.json"), "utf8")).subjects.find((x) => x.subjectId === SUBJECT);
+    const ownHosts = new Set((subj?.connectors ?? []).filter((k) => k.kind === "PUBLIC_SITE").flatMap((k) => k.reaches).filter((r) => r.resourceKind === "SITE_ORIGIN").map((r) => new URL(r.resourceRef).host));
+    const basisOf = (kind) => obs.filter((o) => o.value.kind === kind).map((o) => measurableBasisOf({ ...o.value }, ownHosts));
+    const tally = (bs) => `COMPLETE ${bs.filter((b) => b?.basis === "COMPLETE").length} · OWN-SITE COMPLETE ${bs.filter((b) => b?.basis === "OWN_SITE_COMPLETE").length} · not measurable ${bs.filter((b) => !b).length}`;
+    const dB = basisOf("DESKTOP"), mB = basisOf("MOBILE");
+    const outside = [...dB, ...mB].reduce((n, b) => n + (b?.refusedOutside ?? 0), 0);
+    ok.push(limb("COMPLETE for F25 (Amendment 1)", `DESKTOP ${MAX_PAGES} · MOBILE ${MAX_PAGES} measurable`, `DESKTOP ${tally(dB)} · MOBILE ${tally(mB)} · refused outside the site ${outside} · render states ${Object.entries(st).map(([k, n]) => `${k} ${n}`).sort().join(" · ") || "NONE"}`, dB.length === MAX_PAGES && mB.length === MAX_PAGES && [...dB, ...mB].every(Boolean)));
     ok.push(limb("no FAILED render, no cap refusal", "0 FAILED · 0 REQUEST_CAP · 0 RUN_CAP", `FAILED ${Object.entries(st).filter(([k]) => k.endsWith(":FAILED")).reduce((a, [, n]) => a + n, 0)} · refused ${JSON.stringify(runRec.refusedByReason ?? {})}`, !Object.keys(st).some((k) => k.endsWith(":FAILED")) && !runRec.refusedByReason?.REQUEST_CAP && !runRec.refusedByReason?.RUN_CAP));
     ok.push(limb("collection verdict", "KEPT", (out.match(/COLLECTION: [A-Z ]+/) ?? ["NOT PRINTED"])[0], /COLLECTION: KEPT/.test(out)));
     ok.push(limb("external requests (left the machine)", "0", `http/https/tls attempts ${c.otherEgress} · every fetch (${c.fetch}), DNS (${c.dns}) and socket (${c.connect}) answered in-process`, c.otherEgress === 0));

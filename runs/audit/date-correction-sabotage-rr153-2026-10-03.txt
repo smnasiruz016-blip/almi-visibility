@@ -1,0 +1,14 @@
+RR-153 date-correction sabotage run · 2026-10-03T22:03:08.113Z
+population: 6 sabotages over test/date-correction.test.mjs · each applied ALONE; each run killed after 300 s
+BASELINE (unsabotaged): passing 4 · failing 0 · every named test green: true
+PRE-FLIGHT (span occurrences in the code live now): Z1=1 Z2=1 Z3=1 Z4=1 Z5=1 Z6=1 · all exactly once: true
+production trail sha256 before: 4396a1ce4e5c885031ca3c9bd2860da7c1fd7c216a753289f5ba522df936a302
+
+Z1 only an OWNER-issued record corrects a date src/authority/date-correction.mjs: landed true · named test (D3 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+Z2 a correction never moves a record into its own future src/authority/date-correction.mjs: landed true · named test (D3 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+Z3 one target is corrected once src/authority/date-correction.mjs: landed true · named test (D3 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+Z4 an unknown target is refused, never invented src/authority/date-correction.mjs: landed true · named test (D3 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+Z5 the corrected record names the correction and the date its file name carried src/authority/date-correction.mjs: landed true · named test (D2 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+Z6 a block without its reason (or target, or ISO date) is refused src/authority/date-correction.mjs: landed true · named test (D1 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+
+proved 6 of 6 · residue 0 · production trail sha256 after: 4396a1ce4e5c885031ca3c9bd2860da7c1fd7c216a753289f5ba522df936a302 · unchanged true

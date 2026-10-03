@@ -61,7 +61,8 @@ test("A2·3 · Amendment 2 left ids and order unchanged: F01–F90 in order (Ame
 test("A2·4 · F62 is Core intelligence now, and the generated list is pinned to the amended_2 extract the derivation names", () => {
   assert.equal(CAPABILITIES.find((c) => c.id === "F62").domain, "Core intelligence");
   assert.deepEqual({ ...EXTRACT_PROVENANCE }, { ...DERIVE_PROVENANCE });
-  /* since Amendment 3 (RR-103) the derivation names the amended_3 extract, which carries Amendment 2's ten lines unchanged (A2·1) */
-  assert.match(EXTRACT_PROVENANCE.path, /amended_3\.extract\.txt$/);
-  assert.equal(EXTRACT_PROVENANCE.sha256, "179cb43a3a3dd59451eb5cac37ae54ccc112f2617d794d3974b805df164564f8");
+  /* since Amendment 3 (RR-103) the derivation named the amended_3 extract, and since Amendment 4 (RR-153, 6c606b2) the amended_4 extract —
+   * each carries Amendment 2's ten lines unchanged (A2·1); Amendment 4 changed only F91's line */
+  assert.match(EXTRACT_PROVENANCE.path, /amended_4\.extract\.txt$/);
+  assert.equal(EXTRACT_PROVENANCE.sha256, "53db85b7968941a0e694022013bf4f11cb89f2ecd587581f17b63663e7cd892a");
 });

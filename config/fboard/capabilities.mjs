@@ -4,7 +4,7 @@
  * The active F-board's capabilities, F01–F91, derived from the committed specification extract named below. Each
  * row carries the sha256 of its exact extract line, so a hand edit is visible and the list re-derives byte for byte.
  */
-export const EXTRACT_PROVENANCE = Object.freeze({"repo":"_handoffs","path":"AlmiVisibility_Standalone_Product_Feature_Specification_v1.amended_3.extract.txt","commit":"beb736250d9c44dfe46c345d78af7830c5ca6d67","sha256":"179cb43a3a3dd59451eb5cac37ae54ccc112f2617d794d3974b805df164564f8"});
+export const EXTRACT_PROVENANCE = Object.freeze({"repo":"_handoffs","path":"AlmiVisibility_Standalone_Product_Feature_Specification_v1.amended_4.extract.txt","commit":"6c606b23effa9f5ae3bb9d94b1f6ee69fbbdfb04","sha256":"53db85b7968941a0e694022013bf4f11cb89f2ecd587581f17b63663e7cd892a"});
 export const CAPABILITIES = Object.freeze([
   Object.freeze({"id":"F01","domain":"Foundation","name":"Product declaration and intake","lineSha256":"1748b770c0bddb60dcd68ad09d2a95769928b5fe2a7eccf4240d3cfbaf36c06f"}),
   Object.freeze({"id":"F02","domain":"Foundation","name":"Tenant and evidence isolation","lineSha256":"9d3bc31f9c5ed63a19c207a7e5c99d339d0becb0ef31706e5fc82368f4173155"}),
@@ -96,5 +96,5 @@ export const CAPABILITIES = Object.freeze([
   Object.freeze({"id":"F88","domain":"Assurance","name":"Desktop mobile and accessibility of owner workflows","lineSha256":"7dd81393cf9c9c493249a9413f73b31f89a9528329672a0daba3e7832528bad4"}),
   Object.freeze({"id":"F89","domain":"Assurance","name":"Final independent audit and done declaration","lineSha256":"535e1d46041e87ccb8d533639858ece3f903853583198f9f4e133b05fc95c75e"}),
   Object.freeze({"id":"F90","domain":"Assurance","name":"Falsifiability of findings","lineSha256":"38a78a7e03509bcedfba9e28386e0273057c1ff83b041e9bd685b528ffb9a38c"}),
-  Object.freeze({"id":"F91","domain":"Core intelligence","name":"Page opportunity planning","lineSha256":"245bd55e6d2dc4efead6edc295352cdfa57ce5e31f760ffd6e5fe0a2b6b20c10"}),
+  Object.freeze({"id":"F91","domain":"Core intelligence","name":"Page opportunity planning","lineSha256":"53fedf6de40f1a711bfc0fb5e581e6fd915d14211f5b305df2ff5ce9150c016d"}),
 ]);

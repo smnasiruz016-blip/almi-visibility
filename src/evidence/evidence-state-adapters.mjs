@@ -164,6 +164,24 @@ function ofApplicabilityConfirmation(r) {
   return place(rule, "INFERRED", { inputRefs: [`applicability_assessment:${h16(r.assessment_id)}`], method: "applicability-confirmed-by-a-declared-person", computedAt: r.recorded_at });
 }
 
+/**
+ * 🔴 RR-153 — F91's connection records (src/page/demand-connection.mjs). A `planning_demand` connection and a `planning_sameness` join
+ * are DERIVED from stored questions: INFERRED, their inputs named — never an observation themselves. A `planning_need` whose answer is
+ * SOURCED is INFERRED from that source; one whose answer is UNKNOWN stays UNKNOWN, its insufficiency named. Missing id or time: UNMAPPED.
+ */
+function ofPlanning(r) {
+  const rule = r.record_type;
+  if (!present(r.measurement_key)) return unmapped(`a ${rule} record with no measurement_key cannot be referenced`, rule);
+  if (!present(r.recorded_at) || !ISOISH.test(r.recorded_at)) return unmapped(`a ${rule} record with no recorded time has no time`, rule);
+  if (rule === "planning_need") {
+    if (r.answer?.state !== "SOURCED") return place(rule, "UNKNOWN", { checkId: `${rule}:${h16(r.measurement_key)}`, insufficiency: "ANSWER_NOT_SOURCED_FROM_THE_PRODUCTS_OWN_OFFICIAL_SITE" });
+    return place(rule, "INFERRED", { inputRefs: [`source:${h16(r.answer.sourceRef)}`], method: "need-answer-from-the-products-official-source", computedAt: r.recorded_at });
+  }
+  const inputs = rule === "planning_sameness" ? (r.questions ?? []) : [r.questionId];
+  if (!inputs.length || inputs.some((q) => !present(q))) return unmapped(`a ${rule} record names no question`, rule);
+  return place(rule, "INFERRED", { inputRefs: inputs.map((q) => `public_question:${h16(q)}`), method: `${rule}-from-stored-questions`, computedAt: r.recorded_at });
+}
+
 const unmapped = (why, rule) => Object.freeze({ state: null, unmapped: true, why, assignedBy: rule });
 const place = (rule, state, meta) => {
   try { return makeEvidenceState(state, { assignedBy: rule, ...meta }); }
@@ -298,6 +316,7 @@ export function evidenceStateOf(record, ctx = {}) {
     case "research_lead": return ofResearchLead(record);
     case "applicability_assessment": return ofApplicabilityAssessment(record);
     case "applicability_confirmation": return ofApplicabilityConfirmation(record);
+    case "planning_demand": case "planning_sameness": case "planning_need": return ofPlanning(record);
     default:
       if (Object.hasOwn(DERIVED_TYPES, record.record_type)) return ofDerived(record);
       return unmapped(`record_type ${record.record_type} has no declared rule`, "none");

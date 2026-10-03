@@ -34,7 +34,7 @@ const isCombination = (c) => c !== null && typeof c === "object" && !Array.isArr
 /** The recorded planning inputs, from records already read — exported so a test drives the same shaping the entry point uses. */
 export function planningInputs(rows = []) {
   const records = new Map(), questions = new Map(), groupRecords = new Map(), sameness = [];
-  let malformed = 0;
+  let malformed = 0, needs = 0;
   const slot = (c) => { const k = candidateKey(c); if (!records.has(k)) records.set(k, { demand: [] }); return records.get(k); };
   for (const r of rows) {
     if (r?.record_type === "planning_demand" && isCombination(r.combination) && typeof r.state === "string") {
@@ -46,9 +46,13 @@ export function planningInputs(rows = []) {
       sameness.push([String(r.questions[0]), String(r.questions[1])]);
     } else if (r?.record_type === "planning_group" && Array.isArray(r.members) && r.members.every(isCombination)) {
       groupRecords.set(JSON.stringify(r.members.map(candidateKey).sort()), { coverage: r.coverage, rightToExist: r.rightToExist, uniqueValue: r.uniqueValue, verifiedFacts: r.verifiedFacts, verifiedAnswer: r.verifiedAnswer });
+    } else if (r?.record_type === "planning_need" && typeof r.needId === "string" && isCombination(r.combination)) {
+      /* Amendment 2 C10/C11 (RR-153): the connection writer's need record — its one answer and its country sections. Read by the
+       * connection readback (src/page/demand-connection.mjs); the three numbers take nothing from it, so it is neither a limb nor malformed. */
+      needs += 1;
     } else malformed += 1;
   }
-  return { records, questions, sameness, groupRecords, malformed };
+  return { records, questions, sameness, groupRecords, malformed, needs };
 }
 
 export async function readProductPlan(product) {

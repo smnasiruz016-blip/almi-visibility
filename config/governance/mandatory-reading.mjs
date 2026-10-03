@@ -374,4 +374,10 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-04_RR-153_GIVE_F91_ITS_MISSING_WRITER_AND_BUILD_IT.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-04_RR-153_ANSWER_SOURCE_AND_PRESENTATION.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F91_ACCEPTANCE_AMENDMENT_2_2026-10-04.md", loader: "F-board acceptance F91" }),
+  /* RR-153 timing correction (3 Oct 2026): the four CURRENT records admitted by the migration at _handoffs b91ef2a — RR-153 revision 2, the
+   * owner's two-leg source rule, the timing-correction command, and the owner's DATE CORRECTION (the 4 October date was beta-g's error). */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-04_RR-153_REVISION_2_GIVE_F91_ITS_MISSING_WRITER_AND_BUILD_IT.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-04_RR-153_REVISION_2_SOURCE_RULE_TWO_LEGS.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-153_TIMING_CORRECTION.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-03_RR-153_DATE_CORRECTION.md", loader: "authority register (CURRENT record)" }),
 ]);

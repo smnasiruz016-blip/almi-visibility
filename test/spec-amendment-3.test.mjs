@@ -87,7 +87,7 @@ test("A3·5 · F91 ENTERED UNASSESSED with no events or acceptance; its only mov
   assert.equal(acc.amends.ruling.path, "AlmiVisibility_F91_ACCEPTANCE_AMENDMENT_1_2026-10-02.md", "F91's amendment does not amend F91's own previous acceptance");
   assert.ok(acc.frozenOn > "2026-09-30", "F91's acceptance predates the amendment that brought it in");
   assert.deepEqual(DECLARED.F91.events.map((e) => e.kind), ["ACCEPTANCE_FROZEN", "IMPLEMENTATION", "ACCEPTANCE_AMENDED", "ACCEPTANCE_AMENDED"]);
-  assert.deepEqual([DECLARED.F91.events[2].on, DECLARED.F91.events[3].on], ["2026-10-02", "2026-10-04"]);
+  assert.deepEqual([DECLARED.F91.events[2].on, DECLARED.F91.events[3].on], ["2026-10-02", "2026-10-03"]);
   assert.deepEqual([DECLARED.F91.events[0].on, DECLARED.F91.events[1].from, DECLARED.F91.events[1].to], ["2026-10-01", "UNASSESSED", "IN-PROGRESS"]);
   assert.equal(row.state, "IN-PROGRESS");
   assert.ok(!row.events.some((e) => e.kind === "VERIFIED"), "F91 was verified");

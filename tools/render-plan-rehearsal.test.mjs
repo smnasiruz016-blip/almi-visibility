@@ -4,6 +4,12 @@
  * bodies, with every network primitive answered in-process (test/helpers/no-egress-preload.mjs). Nothing leaves the machine; nothing is
  * written to the real data root or the production trail.
  *
+ * RR-142 §3: the exact run is REPLAYED on the real stored bodies (NO_EGRESS_MODE=replay) — the fixture page every document used to get
+ * never exercised the renders that broke live. The rehearsal now also requires: the stored bodies were the documents rendered, the run's
+ * own request counter equals every request answered in process, DESKTOP and MOBILE are COMPLETE on every page, no render is FAILED and
+ * no request was refused by a cap. Its limit, stated: a subresource's bytes were never stored, so each answers EMPTY — a script that would
+ * have asked for more never runs here, so the live run can ask for more than the rehearsal did.
+ *
  *   RENDER_SOURCE_BATCH=<id> RENDER_EVIDENCE_BATCH=<id> RENDER_SUBJECT=<id> RENDER_MAX_PAGES=<n> node --test tools/render-plan-rehearsal.test.mjs
  *
  * NOT part of `npm test` (it reads the data root as checked out). Generic: names no site, product or population size.
@@ -34,13 +40,13 @@ const headOf = (dir) => { const r = spawnSync("git", ["rev-parse", "HEAD"], { cw
 const lines = [];
 const limb = (name, declared, measured, ok) => { lines.push(`${ok ? "PROVED " : "FAILED "} ${name.padEnd(40)} declared: ${declared} · measured: ${measured}`); return ok; };
 
-function runCollect(root, args, mode, corpus) {
+function runCollect(root, args, mode, corpus, replayMap = null) {
   mkdirSync(join(REPO, TEST_SCRATCH_AUDIT_ROOT), { recursive: true });
   const storeDir = mkdtempSync(join(REPO, TEST_SCRATCH_AUDIT_ROOT, "render-plan-"));
   const log = join(storeDir, "egress.json");
   try {
     const r = spawnSync(process.execPath, ["--import", PRELOAD, "bin/render-collect.mjs", ...args, `--corpus=${corpus}`], { cwd: REPO, encoding: "utf8", timeout: 900000,
-      env: { ...process.env, [SUBJECT_ROOTS_ENV]: root, [AUDIT_STORE_OVERRIDE_ENV]: storeDir, [AUDIT_RUN_ENV]: `render-plan-${Date.now()}`, NO_EGRESS_MODE: mode, NO_EGRESS_LOG: log } });
+      env: { ...process.env, [SUBJECT_ROOTS_ENV]: root, [AUDIT_STORE_OVERRIDE_ENV]: storeDir, [AUDIT_RUN_ENV]: `render-plan-${Date.now()}`, NO_EGRESS_MODE: mode, NO_EGRESS_LOG: log, ...(replayMap ? { NO_EGRESS_REPLAY: replayMap } : {}) } });
     return { r, c: existsSync(log) ? JSON.parse(readFileSync(log, "utf8")) : null };
   } finally { rmSync(storeDir, { recursive: true, force: true }); }
 }
@@ -62,7 +68,17 @@ test("RENDER PLAN PREFLIGHT · every prerequisite of the requested collection, p
     const research = JSON.parse(readFileSync(join(root, "roots.json"), "utf8")).stores.find((s) => s.store === "RESEARCH").path;
     const srcRecs = readFileSync(join(root, research, SRC, "crawl.jsonl"), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)).filter((r) => r.record_type === "observation" && r.method === "crawl.fetch");
     let bodies = 0;
-    for (const o of srcRecs) { const f = join(REPO, "runs", "crawl", "corpus", `${o.observation_id}.html`); if (existsSync(f)) { cpSync(f, join(corpus, `${o.observation_id}.html`)); bodies += 1; } }
+    /* RR-142 §3: each recorded page URL → its stored body, so the rehearsal's in-process answer IS the real page (replay mode) */
+    const replay = {};
+    for (const o of srcRecs) {
+      const f = join(REPO, "runs", "crawl", "corpus", `${o.observation_id}.html`);
+      if (!existsSync(f)) continue;
+      cpSync(f, join(corpus, `${o.observation_id}.html`));
+      bodies += 1;
+      replay[o.value.final_url ?? o.value.requested_url] = join(corpus, `${o.observation_id}.html`);
+    }
+    const replayMap = join(corpus, "replay-map.json");
+    writeFileSync(replayMap, JSON.stringify(replay));
     const evDir = join(root, research, EV);
     ok.push(limb("clean evidence batch", "declared, no render evidence yet", `${existsSync(evDir) ? "present" : "ABSENT"} · render.jsonl ${existsSync(join(evDir, "render.jsonl")) ? "PRESENT" : "absent"}`, existsSync(evDir) && !existsSync(join(evDir, "render.jsonl"))));
     ok.push(limb("population", `${MAX_PAGES} page(s) with a stored body`, `source fetched pages ${srcRecs.length} · stored bodies ${bodies}`, bodies >= MAX_PAGES));
@@ -74,8 +90,8 @@ test("RENDER PLAN PREFLIGHT · every prerequisite of the requested collection, p
       ["refuses a raised ceiling", [...ARGS, `--max-total-requests=${LIVE_RENDER_BOUNDS.maxTotalRequests + 1}`], 2],
       ["refuses a batch outside the declarations", ARGS.map((a) => (a.startsWith("--evidence-batch=") ? "--evidence-batch=undeclared-render-batch" : a)), 3],
     ]) { const x = runCollect(root, args, "refuse", corpus); ok.push(limb(name, `exit ${code}, 0 network calls`, `exit ${x.r.status} · network calls ${calls(x.c)}`, x.r.status === code && calls(x.c) === 0)); }
-    /* the exact run, in-process */
-    const live = runCollect(root, ARGS, "fixture", corpus);
+    /* the exact run, in-process, on the REAL stored bodies (RR-142 §3: fixture pages never exercised the renders that broke live) */
+    const live = runCollect(root, ARGS, "replay", corpus, replayMap);
     const out = live.r.stdout;
     ok.push(limb("preflight (placement, key, F04)", "PASS before any request", (out.match(/PREFLIGHT\s+: [A-Z]+/) ?? ["NOT PRINTED"])[0], /PREFLIGHT\s+: PASS/.test(out)));
     const recs = existsSync(join(evDir, "render.jsonl")) ? readFileSync(join(evDir, "render.jsonl"), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
@@ -84,6 +100,13 @@ test("RENDER PLAN PREFLIGHT · every prerequisite of the requested collection, p
     ok.push(limb("stored once, readers named", `${MAX_PAGES * 3} render records + 1 run record`, `${obs.length} + ${recs.length - obs.length} · readers ${[...new Set(obs.map((o) => `${o.value.kind}:${o.value.readBy.join("+")}`))].sort().join(" ")}`, obs.length === MAX_PAGES * 3 && recs.length - obs.length === 1));
     const c = live.c ?? {};
     ok.push(limb("ceiling", `≤ ${LIVE_RENDER_BOUNDS.maxTotalRequests} requests in total`, `${runRec.requestsIssued} sent (in-process)`, Number.isInteger(runRec.requestsIssued) && runRec.requestsIssued <= LIVE_RENDER_BOUNDS.maxTotalRequests));
+    /* RR-142 §3: the renders are of the REAL pages, the run's own counter equals every request answered in process, and the browser
+     * renders reach COMPLETE — the guard that would have stopped the 3 Oct run before it was spent */
+    ok.push(limb("real stored bodies rendered", `${MAX_PAGES} document(s) answered with their stored bytes`, `stored-body answers ${c.replayed ?? "NOT MEASURED"} · empty subresource answers ${c.emptySubresources ?? "NOT MEASURED"}`, c.replayed === MAX_PAGES));
+    ok.push(limb("request count", "the run's counter = every request answered in process", `run record ${runRec.requestsIssued} · answered ${c.fetch ?? "NOT MEASURED"} (robots ${c.robots}, other ${c.pages})`, Number.isInteger(c.fetch) && runRec.requestsIssued === c.fetch));
+    const st = runRec.renderStates ?? {};
+    ok.push(limb("COMPLETE browser renders", `DESKTOP ${MAX_PAGES} · MOBILE ${MAX_PAGES} COMPLETE`, Object.entries(st).map(([k, n]) => `${k} ${n}`).sort().join(" · ") || "NONE", st["DESKTOP:COMPLETE"] === MAX_PAGES && st["MOBILE:COMPLETE"] === MAX_PAGES));
+    ok.push(limb("no FAILED render, no cap refusal", "0 FAILED · 0 REQUEST_CAP · 0 RUN_CAP", `FAILED ${Object.entries(st).filter(([k]) => k.endsWith(":FAILED")).reduce((a, [, n]) => a + n, 0)} · refused ${JSON.stringify(runRec.refusedByReason ?? {})}`, !Object.keys(st).some((k) => k.endsWith(":FAILED")) && !runRec.refusedByReason?.REQUEST_CAP && !runRec.refusedByReason?.RUN_CAP));
     ok.push(limb("collection verdict", "KEPT", (out.match(/COLLECTION: [A-Z ]+/) ?? ["NOT PRINTED"])[0], /COLLECTION: KEPT/.test(out)));
     ok.push(limb("external requests (left the machine)", "0", `http/https/tls attempts ${c.otherEgress} · every fetch (${c.fetch}), DNS (${c.dns}) and socket (${c.connect}) answered in-process`, c.otherEgress === 0));
   } finally { rmSync(corpus, { recursive: true, force: true }); rmSync(root, { recursive: true, force: true }); }

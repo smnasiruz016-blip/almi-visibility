@@ -9,9 +9,13 @@
  * NO_EGRESS_MODE=refuse   every call throws: a run that must refuse BEFORE its first request is proved by a count of 0
  * NO_EGRESS_MODE=fixture  every call is answered HERE, in this process: robots.txt allows all; a page answers 200 with a small HTML body; DNS
  *                         answers a documentation address (RFC 5737); the IPv6 probe fails as unreachable. Nothing leaves the machine.
+ * NO_EGRESS_MODE=replay   as fixture, but a URL named in the JSON map at NO_EGRESS_REPLAY ({ url: path of a stored body }) is answered with
+ *                         THAT STORED BODY's exact bytes, so a rehearsal renders the real pages and requests what they really ask for
+ *                         (RR-142 §3). A subresource's own bytes were never stored: it answers 200 with an EMPTY body of its extension's
+ *                         type, counted as `emptySubresources`. Every stored-body answer is counted as `replayed`.
  * Named ESM imports of builtins see the replacements through node:module syncBuiltinESMExports. Test use only.
  */
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import dns from "node:dns/promises";
 import net from "node:net";
 import http from "node:http";
@@ -20,8 +24,10 @@ import tls from "node:tls";
 import { syncBuiltinESMExports } from "node:module";
 
 const LOG = process.env.NO_EGRESS_LOG ?? null;
-const MODE = process.env.NO_EGRESS_MODE === "fixture" ? "fixture" : "refuse";
-const counts = { mode: MODE, fetch: 0, robots: 0, pages: 0, dns: 0, connect: 0, otherEgress: 0, order: [], hosts: {} };
+const MODE = ["fixture", "replay"].includes(process.env.NO_EGRESS_MODE) ? process.env.NO_EGRESS_MODE : "refuse";
+const REPLAY = MODE === "replay" ? JSON.parse(readFileSync(process.env.NO_EGRESS_REPLAY, "utf8")) : {};
+const counts = { mode: MODE, fetch: 0, robots: 0, pages: 0, dns: 0, connect: 0, otherEgress: 0, order: [], hosts: {}, ...(MODE === "replay" ? { replayed: 0, emptySubresources: 0 } : {}) };
+const EMPTY_TYPE = { ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".woff2": "font/woff2" };
 const save = () => { if (LOG) writeFileSync(LOG, JSON.stringify(counts)); };
 /* the ORDER of network calls (first 64), so a run can show what happened before its first request */
 const seen = (kind) => { if (counts.order.length < 64) counts.order.push(kind); };
@@ -63,6 +69,15 @@ globalThis.fetch = async (url, init) => {
   counts.paths[u.pathname] = (counts.paths[u.pathname] ?? 0) + 1;
   save();
   if (MODE === "refuse") refuse("fetch");
+  /* RR-142 §3: REPLAY — a recorded page answers with its own stored bytes; any other non-robots URL is a subresource, answered empty */
+  if (MODE === "replay" && !isRobots) {
+    const stored = REPLAY[u.href];
+    if (stored) { counts.replayed += 1; save(); return new Response(readFileSync(stored), { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }); }
+    counts.emptySubresources += 1;
+    save();
+    const ext = (u.pathname.match(/\.[a-z0-9]+$/i) ?? [""])[0].toLowerCase();
+    return new Response("", { status: 200, headers: { "content-type": EMPTY_TYPE[ext] ?? "application/octet-stream" } });
+  }
   /* RR-138: a page that asks for its OWN script, a THIRD-PARTY script, a 401 and a 402 route, and POSTs from a script */
   if (u.pathname === "/doc-rich") return new Response(RICH, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
   if (u.pathname === "/app.js") return new Response(`document.body.insertAdjacentHTML("beforeend", "<a href='/js-added'>added</a><p>scripted words</p>");`, { status: 200, headers: { "content-type": "text/javascript" } });

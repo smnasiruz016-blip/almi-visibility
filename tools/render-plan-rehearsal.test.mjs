@@ -34,15 +34,15 @@ const headOf = (dir) => { const r = spawnSync("git", ["rev-parse", "HEAD"], { cw
 const lines = [];
 const limb = (name, declared, measured, ok) => { lines.push(`${ok ? "PROVED " : "FAILED "} ${name.padEnd(40)} declared: ${declared} · measured: ${measured}`); return ok; };
 
-function run(root, args, mode, corpus) {
+function runCollect(root, args, mode, corpus) {
   mkdirSync(join(REPO, TEST_SCRATCH_AUDIT_ROOT), { recursive: true });
-  const store = mkdtempSync(join(REPO, TEST_SCRATCH_AUDIT_ROOT, "render-plan-"));
-  const log = join(store, "egress.json");
+  const storeDir = mkdtempSync(join(REPO, TEST_SCRATCH_AUDIT_ROOT, "render-plan-"));
+  const log = join(storeDir, "egress.json");
   try {
     const r = spawnSync(process.execPath, ["--import", PRELOAD, "bin/render-collect.mjs", ...args, `--corpus=${corpus}`], { cwd: REPO, encoding: "utf8", timeout: 900000,
-      env: { ...process.env, [SUBJECT_ROOTS_ENV]: root, [AUDIT_STORE_OVERRIDE_ENV]: store, [AUDIT_RUN_ENV]: `render-plan-${Date.now()}`, NO_EGRESS_MODE: mode, NO_EGRESS_LOG: log } });
+      env: { ...process.env, [SUBJECT_ROOTS_ENV]: root, [AUDIT_STORE_OVERRIDE_ENV]: storeDir, [AUDIT_RUN_ENV]: `render-plan-${Date.now()}`, NO_EGRESS_MODE: mode, NO_EGRESS_LOG: log } });
     return { r, c: existsSync(log) ? JSON.parse(readFileSync(log, "utf8")) : null };
-  } finally { rmSync(store, { recursive: true, force: true }); }
+  } finally { rmSync(storeDir, { recursive: true, force: true }); }
 }
 const calls = (c) => (c ? c.fetch + c.dns + c.connect + (c.otherEgress ?? 0) : "NOT MEASURED");
 
@@ -73,9 +73,9 @@ test("RENDER PLAN PREFLIGHT · every prerequisite of the requested collection, p
       ["refuses without storage permission", ARGS.filter((a) => a !== "--confirm"), 3],
       ["refuses a raised ceiling", [...ARGS, `--max-total-requests=${LIVE_RENDER_BOUNDS.maxTotalRequests + 1}`], 2],
       ["refuses a batch outside the declarations", ARGS.map((a) => (a.startsWith("--evidence-batch=") ? "--evidence-batch=undeclared-render-batch" : a)), 3],
-    ]) { const x = run(root, args, "refuse", corpus); ok.push(limb(name, `exit ${code}, 0 network calls`, `exit ${x.r.status} · network calls ${calls(x.c)}`, x.r.status === code && calls(x.c) === 0)); }
+    ]) { const x = runCollect(root, args, "refuse", corpus); ok.push(limb(name, `exit ${code}, 0 network calls`, `exit ${x.r.status} · network calls ${calls(x.c)}`, x.r.status === code && calls(x.c) === 0)); }
     /* the exact run, in-process */
-    const live = run(root, ARGS, "fixture", corpus);
+    const live = runCollect(root, ARGS, "fixture", corpus);
     const out = live.r.stdout;
     ok.push(limb("preflight (placement, key, F04)", "PASS before any request", (out.match(/PREFLIGHT\s+: [A-Z]+/) ?? ["NOT PRINTED"])[0], /PREFLIGHT\s+: PASS/.test(out)));
     const recs = existsSync(join(evDir, "render.jsonl")) ? readFileSync(join(evDir, "render.jsonl"), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];

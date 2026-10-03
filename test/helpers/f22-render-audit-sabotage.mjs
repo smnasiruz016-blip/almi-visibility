@@ -5,7 +5,7 @@
  *
  * PRE-FLIGHT: every span exactly once in the code live now. Each sabotage alone; the named test must fail by an assertion (a SyntaxError
  * is a harness fault, never a proof); restored by raw-byte sha256; the production trail hashed before and after.
- * Evidence: runs/audit/f22-render-audit-sabotage-rr137-2026-10-02.txt (its own file).
+ * Evidence: runs/audit/f22-render-audit-sabotage-rr139-2026-10-03.txt (its own file).
  */
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -29,9 +29,11 @@ const SABOTAGES = [
   ["K5", "C6: a page without a body is in every dimension's NOT MEASURED", D, "      [NOT_MEASURED]: xs.filter((x) => x.state === NOT_MEASURED).length + pagesWithoutBody,\n", "      [NOT_MEASURED]: xs.filter((x) => x.state === NOT_MEASURED).length,\n", C6],
   ["K6", "C4: an undeclared host is refused", P, "      if (originOf(url) === null || !admits(url)) return refused(\"UNDECLARED_HOST\");\n", "      if (originOf(url) === null) return refused(\"UNDECLARED_HOST\");\n", POL],
   /* RR-138: re-pointed at the robots line LIVE NOW (RR-138 §2 rewrote it to name RUN_CAP when the ceiling is what failed robots) */
-  ["K7", "C4: robots rules are obeyed", P, "      if (!verdict.allowed) return refused(sent >= maxTotal ? \"RUN_CAP\" : \"ROBOTS\");\n", "      if (false) return refused(sent >= maxTotal ? \"RUN_CAP\" : \"ROBOTS\");\n", POL],
+  /* RR-139: re-pointed again — the robots line now also releases the page's reserved slot */
+  ["K7", "C4: robots rules are obeyed", P, "      if (!verdict.allowed) { made -= 1; return refused(sent >= maxTotal ? \"RUN_CAP\" : \"ROBOTS\"); }\n", "      if (false) { made -= 1; return refused(sent >= maxTotal ? \"RUN_CAP\" : \"ROBOTS\"); }\n", POL],
   ["K8", "C4: an oversized response is refused", P, "      if (res.truncated) return refused(\"SIZE_CAP\");\n", "", POL],
-  ["K9", "C4: the cap counts requests started, hops and retries included", P, "      made += fetcher.requestsIssued() - before;\n", "      made += 1;\n", POL],
+  /* RR-139: re-pointed — the old anchor (a run-wide delta) was the live run's defect and is gone; the per-call settle is the live line */
+  ["K9", "C4: the cap counts requests started, hops and retries included", P, "      made += own.n - 1;\n", "      made += 0;\n", POL],
   ["K10", "C4: no response cache crosses pages", P, "  function forPage() {\n    const cache = new Map();\n", "  const shared = new Map();\n  function forPage() {\n    const cache = shared;\n", POL],
   ["K12", "C4: live mode needs the owner's green", B, "if (LIVE && !flag(\"i-have-the-owners-green\")) {\n", "if (false) {\n", LIVE],
   ["K13", "C1: a body is read only when its hash matches the batch's record", B, "  if (body === null || sha(body) !== o.content_sha256) { withoutBody += 1; continue; }\n", "  if (body === null) { withoutBody += 1; continue; }\n", HASH],
@@ -85,6 +87,6 @@ restoreAll();
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "f22-render-audit-sabotage-rr137-2026-10-02.txt"), lines.join("\n") + "\n");
+writeFileSync(join(REPO, "runs", "audit", "f22-render-audit-sabotage-rr139-2026-10-03.txt"), lines.join("\n") + "\n");
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

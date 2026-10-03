@@ -1,0 +1,14 @@
+render plan preflight · 2026-10-03T01:25:19.357Z · engine e51cd03fbc22cac62cb02d9003ffe7799dc10a89 · data 348b46d5a725c4ec8ce3db23334f4e26e8fcb7a6 · count-only
+PROVED  tenant: both batches, one tenant         declared: the source and evidence batches attached to the same tenant · measured: source attached · evidence attached · same tenant true
+PROVED  clean evidence batch                     declared: declared, no render evidence yet · measured: present · render.jsonl absent
+PROVED  population                               declared: 5 page(s) with a stored body · measured: source fetched pages 5 · stored bodies 5
+PROVED  refuses without the GREEN                declared: exit 3, 0 network calls · measured: exit 3 · network calls 0
+PROVED  refuses without storage permission       declared: exit 3, 0 network calls · measured: exit 3 · network calls 0
+PROVED  refuses a raised ceiling                 declared: exit 2, 0 network calls · measured: exit 2 · network calls 0
+PROVED  refuses a batch outside the declarations declared: exit 3, 0 network calls · measured: exit 3 · network calls 0
+PROVED  preflight (placement, key, F04)          declared: PASS before any request · measured: PREFLIGHT       : PASS
+PROVED  stored once, readers named               declared: 15 render records + 1 run record · measured: 15 + 1 · readers DESKTOP:F22+F25 MOBILE:F25 SOURCE:F22
+PROVED  ceiling                                  declared: ≤ 300 requests in total · measured: 6 sent (in-process)
+PROVED  collection verdict                       declared: KEPT · measured: COLLECTION: KEPT
+PROVED  external requests (left the machine)     declared: 0 · measured: http/https/tls attempts 0 · every fetch (6), DNS (0) and socket (0) answered in-process
+production trail unchanged: true

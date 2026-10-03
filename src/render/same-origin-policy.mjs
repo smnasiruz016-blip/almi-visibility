@@ -25,6 +25,7 @@
  *
  * Generic: the admitted origins come from the subject's declaration through the opened connector; this file names no host.
  */
+import { AsyncLocalStorage } from "node:async_hooks";
 import { createFetcher, REQUEST_INTERVAL_MS, REQUEST_TIMEOUT_MS, MAX_RESPONSE_BYTES } from "../crawl/fetcher.mjs";
 import { createRobotsCache } from "../crawl/robots.mjs";
 
@@ -54,9 +55,15 @@ export function createSameOriginPolicy({ fetchImpl, admits, bounds = LIVE_RENDER
   const maxTotal = bounds.maxTotalRequests ?? LIVE_RENDER_BOUNDS.maxTotalRequests;
   /* 🔴 THE TOTAL CEILING, on the one function every request of the run passes through: robots, documents, subresources, hops, retries */
   let sent = 0;
+  /* RR-139: each resolve() carries ITS OWN counter through the async context, so a page counts exactly the requests its own calls sent.
+   * The first version took a delta of the run-wide counter across an await, and concurrent subresources inflated it: the 3 Oct live
+   * render refused 84 requests as REQUEST_CAP at 81 sent in all. */
+  const perCall = new AsyncLocalStorage();
   const ceiled = (url, init) => {
     if (sent >= maxTotal) return Promise.reject(new RunCapReached());
     sent += 1;
+    const own = perCall.getStore();
+    if (own) own.n += 1;
     return fetchImpl(url, init);
   };
   const fetcher = createFetcher({ fetchImpl: ceiled, admits, intervalMs: bounds.intervalMs, timeoutMs: bounds.timeoutMs, maxResponseBytes: bounds.maxResponseBytes, ...(sleepImpl ? { sleepImpl } : {}), ...(monotonic ? { monotonic } : {}) });
@@ -72,13 +79,15 @@ export function createSameOriginPolicy({ fetchImpl, admits, bounds = LIVE_RENDER
       if (method !== "GET" && method !== "HEAD") return refused("METHOD_NOT_ALLOWED");
       if (sent >= maxTotal) return refused("RUN_CAP");
       if (made >= bounds.maxRequestsPerPage) return refused("REQUEST_CAP");
+      /* a slot is RESERVED before any await, so concurrent calls cannot all pass the check above; settled to the real count after */
+      made += 1;
       const verdict = await robots.check(url);
-      if (!verdict.allowed) return refused(sent >= maxTotal ? "RUN_CAP" : "ROBOTS");
+      if (!verdict.allowed) { made -= 1; return refused(sent >= maxTotal ? "RUN_CAP" : "ROBOTS"); }
       /* the cap counts HTTP requests actually started — a redirect hop and a retry are requests too — checked before each resource */
-      const before = fetcher.requestsIssued();
+      const own = { n: 0 };
       const sentBefore = sent;
-      const res = await fetcher.fetchUrl(url);
-      made += fetcher.requestsIssued() - before;
+      const res = await perCall.run(own, () => fetcher.fetchUrl(url));
+      made += own.n - 1;
       if (res.status === null || res.error) return refused(sent >= maxTotal && sent === sentBefore ? "RUN_CAP" : "NETWORK");
       if (AUTH_OR_PAYMENT_STATUSES.has(res.status)) return refused("AUTH_OR_PAYMENT");
       if (res.redirectNotFollowed) return refused("REDIRECT_OFF_ORIGIN");

@@ -349,5 +349,9 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-142_FRESH_WINDOW_COMPLETE_F25_ONLY.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-143_F25_ONLY_REPLACE_THE_IMPOSSIBLE_RENDER_PLAN.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F30_ACCEPTANCE_2026-10-03.md", loader: "authority register (CURRENT record)" }),
+  /* RR-145 (3 Oct 2026): the two CURRENT records admitted by the migration at _handoffs dd91e92 — command RR-145 and the owner's
+   * product-scope decision, the authority Board Amendment 1 (config/fboard/required-path.mjs) is pinned to. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-145_OWNER_PRODUCT_SCOPE_CORRECTION_F25_LEAVES_THE_REQUIRED_PATH.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-03_RR-145_PRODUCT_SCOPE.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F25_ACCEPTANCE_AMENDMENT_1_2026-10-03.md", loader: "F-board acceptance F25" }),
 ]);

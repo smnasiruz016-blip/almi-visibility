@@ -1,0 +1,12 @@
+BOARD AMENDMENT 1 sabotage run · 2026-10-03T07:24:44.069Z
+population: 5 sabotages over test/board-amendment-1.test.mjs · each applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): A1=1 A2=1 A3=1 A4=1 A5=1 · all exactly once: true
+production trail sha256 before: ede45770442788022acccc104b7590fb2bb4bca5381308e442f37216fc2b95fa
+
+A1 a NOT REQUIRED row leaves the required denominator and numerator src/fboard/board.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+A2 an exclusion needs its owner authority to resolve CURRENT src/fboard/board.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+A3 the CURRENT ruling must BE the pinned bytes src/fboard/board.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+A4 an exclusion must name a row of this board src/fboard/board.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+A5 the status line prints the REQUIRED figure bin/fboard-status.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+
+proved 5 of 5 · residue 0 · production trail sha256 after: ede45770442788022acccc104b7590fb2bb4bca5381308e442f37216fc2b95fa · unchanged true

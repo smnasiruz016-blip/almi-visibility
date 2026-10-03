@@ -25,6 +25,7 @@ import { DISCLOSED_SEALS } from "../../config/fboard/disclosed-seals.mjs";
 import { EVIDENCE_ROLE_REGISTRY } from "../../config/evidence-roles.mjs";
 import { disclosureOf } from "../heldout/disclosed-seal.mjs";
 import { CLAUSES } from "./acceptance.mjs";
+import { NOT_REQUIRED } from "../../config/fboard/required-path.mjs";
 
 export const F_BOARD = "F_BOARD";
 export const HISTORICAL_BOARDS = Object.freeze(["HISTORICAL_61", "HISTORICAL_38"]);
@@ -59,7 +60,7 @@ export function buildBoard(capabilities, declared = {}) {
  * With `authority` ({ records, now }), every frozen acceptance must ALSO be the CURRENT authority for its declared
  * proposition and scope, naming the very bytes the engine pinned — resolved by the register, no exemption (§6A).
  */
-export function boardErrors(board, { capabilities, acceptances = {}, authority = null, constraints = ROW_CONSTRAINTS, disclosedSeals = DISCLOSED_SEALS, registry = EVIDENCE_ROLE_REGISTRY }) {
+export function boardErrors(board, { capabilities, acceptances = {}, authority = null, constraints = ROW_CONSTRAINTS, disclosedSeals = DISCLOSED_SEALS, registry = EVIDENCE_ROLE_REGISTRY, notRequired = NOT_REQUIRED }) {
   const errs = [];
   const ids = board.map((r) => r.featureId);
   const expected = Array.from({ length: DENOMINATOR }, (_, i) => `F${String(i + 1).padStart(2, "0")}`);
@@ -135,6 +136,19 @@ export function boardErrors(board, { capabilities, acceptances = {}, authority =
       }
     }
   }
+  /* 🔴 BOARD AMENDMENT 1 (3 Oct 2026; governance dd91e92) — A ROW LEAVES THE REQUIRED PATH ONLY ON A CURRENT OWNER AUTHORITY. Each
+   * NOT REQUIRED entry must name a row on this board, name an owner ruling by its bytes, and — with the register at hand — that ruling
+   * must resolve CURRENT and BE those bytes. No authority, no exclusion: the row stays required. */
+  for (const [id, n] of Object.entries(notRequired ?? {})) {
+    if (n?.featureId !== id || !board.some((r) => r.featureId === id)) { errs.push({ code: "NOT_REQUIRED_UNKNOWN_ROW", id, why: `${id} is marked NOT REQUIRED but names no row of this board` }); continue; }
+    const pin = n.authority?.ruling?.sha256;
+    if (!n.authority?.propositionId || typeof pin !== "string" || !/^[0-9a-f]{64}$/.test(pin)) { errs.push({ code: "NOT_REQUIRED_WITHOUT_AUTHORITY", id, why: `${id} is marked NOT REQUIRED with no owner ruling named by its bytes` }); continue; }
+    if (authority) {
+      const res = resolve({ records: authority.records, propositionId: n.authority.propositionId, scope: n.authority.scope ?? [], now: authority.now });
+      if (!permits(res)) errs.push({ code: "NOT_REQUIRED_WITHOUT_AUTHORITY", id, why: `${id} is marked NOT REQUIRED on ${n.authority.propositionId}, which resolves ${res.outcome}, not CURRENT` });
+      else if (res.authority.contentHash !== pin) errs.push({ code: "NOT_REQUIRED_NOT_THE_CURRENT_RULING", id, why: `${id}'s NOT REQUIRED ruling is pinned to ${pin.slice(0, 12)}…, but the CURRENT one is ${res.authority.contentHash.slice(0, 12)}…` });
+    }
+  }
   return errs;
 }
 
@@ -146,9 +160,16 @@ export function mayImplement(board, featureId, acceptances = {}) {
 }
 
 /** The state split (summing to DENOMINATOR, 90) and progress = VERIFIED-PASS / DENOMINATOR. Only F-board records count. */
-export function progress(board) {
+export function progress(board, { notRequired = NOT_REQUIRED } = {}) {
   const split = Object.fromEntries(F_STATES.map((s) => [s, 0]));
   for (const r of board) split[fBoardState(r)] += 1;
   const passed = split["VERIFIED-PASS"];
-  return { split, total: board.length, passed, denominator: DENOMINATOR, progress: passed / DENOMINATOR };
+  /* Board Amendment 1: REQUIRED progress is counted over the required rows only. A NOT REQUIRED row leaves the numerator AND the
+   * denominator together — it is never passed by leaving, and never counted as passed even if it is VERIFIED-PASS. The all-rows figures
+   * above stay exactly as they were, so the old and new figures are always printed side by side. */
+  const excluded = board.filter((r) => Object.hasOwn(notRequired ?? {}, r.featureId));
+  const requiredRows = board.filter((r) => !Object.hasOwn(notRequired ?? {}, r.featureId));
+  const requiredPassed = requiredRows.filter((r) => fBoardState(r) === "VERIFIED-PASS").length;
+  const required = { denominator: requiredRows.length, passed: requiredPassed, progress: requiredRows.length ? requiredPassed / requiredRows.length : 0, notRequired: excluded.map((r) => ({ featureId: r.featureId, state: fBoardState(r) })) };
+  return { split, total: board.length, passed, denominator: DENOMINATOR, progress: passed / DENOMINATOR, required };
 }

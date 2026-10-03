@@ -152,6 +152,20 @@ test("R4 · each row reads ONLY the records that name it; a body failing its has
   } finally { rmSync(corpus, { recursive: true, force: true }); WORLD.cleanup(); }
 });
 
+test("R11 · F25 C7 from stored evidence: a page of the population with NO stored render is NOT MEASURED, so the population reads INCOMPLETE — never COMPLETE over the rendered pages alone (RR-143)", { skip: NO_BROWSER }, () => {
+  const { WORLD, corpus } = world();
+  try {
+    assert.equal(collect(WORLD, corpus, { more: ["--max-pages=1"] }).r.status, 0);
+    const f25 = audit(WORLD, corpus, "bin/mobile-audit.mjs");
+    assert.equal(f25.status, 0, f25.stderr.slice(-300));
+    assert.match(f25.stdout, /read by F25 for 1 of 2 page\(s\)/);
+    const said = f25.stdout.split("\n").filter((l) => /RESPONSIVE|population\s+(IN)?COMPLETE/.test(l)).join(" | ");
+    /* the fixture's one rendered page is itself PARTIAL (it asks for a third-party script), so BOTH pages are NOT MEASURED — of 2 */
+    assert.match(f25.stdout, /RESPONSIVE\s+NOT MEASURED 2 — of 2 page\(s\)/, `the unrendered page is not counted NOT MEASURED in the population: ${said}`);
+    assert.match(f25.stdout, /population\s+INCOMPLETE/, `a population with an unrendered page read COMPLETE: ${said}`);
+  } finally { rmSync(corpus, { recursive: true, force: true }); WORLD.cleanup(); }
+});
+
 test("R5 · GENERIC — an unrelated subject on another tenant and origin through the same collector", { skip: NO_BROWSER }, () => {
   const { WORLD, corpus, research } = world();
   try {

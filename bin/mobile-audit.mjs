@@ -91,8 +91,12 @@ if (EVIDENCE_BATCH) {
   if (!ev.run || ev.run.source_batch !== BATCH) { console.error("🔴 REFUSED — the evidence batch holds no render run collected from this source batch."); process.exit(3); }
   const collected = pages.filter((p) => ev.byPage.has(p.id));
   const verified = (r) => (!r ? { renderState: "ABSENT", reason: "no stored render of this kind" } : r.renderState !== "FAILED" && r.visibleText == null ? { renderState: "UNVERIFIED", reason: "the stored render does not match its recorded hash" } : r);
-  const out = collected.map((p) => { const e = ev.byPage.get(p.id); return assessPage({ html: p.body, mobile: verified(e.MOBILE), desktop: verified(e.DESKTOP) }); });
-  const s = summariseMobile(out);
+  /* RR-143 · C7: the population is EVERY page of the source batch (INPUT: "its own stored raw-HTML page bodies, and for each, renders").
+   * A page the collection did not render stays in it, NOT MEASURED with that reason, and a page without a matching stored body is counted
+   * too — the first version assessed the rendered pages only, so the denominator shrank to them and an unrendered page vanished. */
+  const notRendered = { renderState: "ABSENT", reason: "the evidence batch holds no render of this page" };
+  const out = pages.map((p) => { const e = ev.byPage.get(p.id); return e ? assessPage({ html: p.body, mobile: verified(e.MOBILE), desktop: verified(e.DESKTOP) }) : assessPage({ html: p.body, mobile: notRendered, desktop: notRendered }); });
+  const s = summariseMobile(out, { pagesWithoutBody: withoutBody });
   const fmt = (o) => Object.entries(o).map(([k, n]) => `${k} ${n}`).join(" · ");
   const measuredTargets = out.filter((a) => a.tapTargets.state !== NOT_MEASURED).length;
   console.log(`  evidence     stored render evidence read by F25 for ${collected.length} of ${pages.length} page(s) · records not naming F25 skipped ${ev.notForThisRow} · bodies failing their hash ${ev.unverified}`);

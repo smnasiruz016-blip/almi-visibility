@@ -279,8 +279,11 @@ test("ENTRY3 · bin/applicability-assess.mjs in a declared world: no --confirm w
     assert.match(c.stdout, /guidance for F16 0 CONFIRMED/);
     /* TENANT CROSSOVER at the entry point: another subject, with a batch of ITS OWN (so the scope gate admits the run and the product
      * membership rule is what must refuse it) — refused by name, and nothing written into its batch */
-    declareBatchForSubject(W, "shamool-foundation", "fixture-other-review");
-    const other = spawnSync(process.execPath, W.argv(["bin/applicability-assess.mjs", "--subject=shamool-foundation", "--product=almi-oet", "--research-batch=fixture-other-review", `--on=${ON}`, `--drafts=${drafts}`, "--confirm"]), { cwd: REPO, encoding: "utf8", env: W.envWith() });
+    /* the other subject is found in the declared registry, never named here (F09: a generic test names no subject) */
+    const OTHER = JSON.parse(readFileSync(join(W.root, "roots.json"), "utf8")).subjects.map((s) => s.subjectId).find((id) => id !== "almi-oet");
+    assert.ok(OTHER, "the declared world holds no second subject — the crossover case would be vacuous");
+    declareBatchForSubject(W, OTHER, "fixture-other-review");
+    const other = spawnSync(process.execPath, W.argv(["bin/applicability-assess.mjs", `--subject=${OTHER}`, "--product=almi-oet", "--research-batch=fixture-other-review", `--on=${ON}`, `--drafts=${drafts}`, "--confirm"]), { cwd: REPO, encoding: "utf8", env: W.envWith() });
     assert.equal(other.status, 3, other.stdout + other.stderr);
     assert.match(other.stderr, /PRODUCT_IS_NOT_THIS_SUBJECTS/);
     assert.ok(!existsSync(join(W.root, "research", "fixture-other-review", "applicability.jsonl")), "another subject's batch received this product's assessments");

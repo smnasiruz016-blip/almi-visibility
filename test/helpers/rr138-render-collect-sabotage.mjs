@@ -5,7 +5,7 @@
  *
  * PRE-FLIGHT: every span exactly once in the code live now. Each sabotage alone; the named test must fail by an assertion (a SyntaxError
  * is a harness fault, never a proof); restored by raw-byte sha256; the production trail hashed before and after.
- * Evidence: runs/audit/rr138-render-collect-sabotage-2026-10-02.txt (its own file).
+ * Evidence: runs/audit/rr138-render-collect-sabotage-<round>-<day>.txt, one file per round (2026-10-02, rr139, rr143), never overwritten.
  */
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -14,12 +14,12 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const P = "src/render/same-origin-policy.mjs", B = "bin/render-collect.mjs", F = "src/render/render-preflight.mjs", RD = "src/render/render-evidence-reader.mjs", RN = "src/render/renderer.mjs";
+const P = "src/render/same-origin-policy.mjs", B = "bin/render-collect.mjs", F = "src/render/render-preflight.mjs", RD = "src/render/render-evidence-reader.mjs", RN = "src/render/renderer.mjs", MA = "bin/mobile-audit.mjs";
 const T = ["test/rr138-render-collect.test.mjs"];
 const TRAIL = "audit-trail/events.jsonl";
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
-const R1 = "R1 · refused BEFORE", R2 = "R2 · the run", R3 = "R3 · the TOTAL", R4 = "R4 · each row", R6 = "R6 · the PREFLIGHT", R7 = "R7 · the TOTAL ceiling holds", R8 = "R8 · a script", R9 = "R9 · CONCURRENT", R10 = "R10 · with JavaScript OFF";
+const R1 = "R1 · refused BEFORE", R2 = "R2 · the run", R3 = "R3 · the TOTAL", R4 = "R4 · each row", R6 = "R6 · the PREFLIGHT", R7 = "R7 · the TOTAL ceiling holds", R8 = "R8 · a script", R9 = "R9 · CONCURRENT", R10 = "R10 · with JavaScript OFF", R11 = "R11 · F25 C7 from stored evidence";
 
 const SABOTAGES = [
   ["X1", "a third-party subresource is refused before it leaves", P, "      if (originOf(url) === null || !admits(url)) return refused(\"UNDECLARED_HOST\");\n", "      if (originOf(url) === null) return refused(\"UNDECLARED_HOST\");\n", R2],
@@ -39,6 +39,8 @@ const SABOTAGES = [
   ["X14", "a page counts only its OWN requests (the run-wide delta the live run used is reinstated)", P, "      const res = await perCall.run(own, () => fetcher.fetchUrl(url));\n      made += own.n - 1;\n", "      const b0 = fetcher.requestsIssued();\n      const res = await fetcher.fetchUrl(url);\n      made += fetcher.requestsIssued() - b0 - 1;\n", R9],
   ["X15", "an unrouted request that loaded nothing is counted REFUSED, not unaccounted", RN, "  const neverLoaded = unrouted.filter((r) => failedNoResponse.has(r) && !responded.has(r));\n", "  const neverLoaded = [];\n", R10],
   ["X16", "a slot is reserved before the await, so concurrent calls cannot all pass the cap", P, "      made += 1;\n      const verdict = await robots.check(url);\n      if (!verdict.allowed) { made -= 1; return", "      const verdict = await robots.check(url);\n      if (!verdict.allowed) { return", R9],
+  /* RR-143 · F25 C7: the population read from stored evidence is every page of the source batch, not the rendered ones alone */
+  ["X17", "F25 counts a page with no stored render in its population (NOT MEASURED), never only the rendered pages", MA, "  const out = pages.map((p) => { const e = ev.byPage.get(p.id); return e ?", "  const out = collected.map((p) => { const e = ev.byPage.get(p.id); return e ?", R11],
 ];
 
 const files = [...new Set(SABOTAGES.map((s) => s[2]))];
@@ -86,6 +88,6 @@ restoreAll();
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "rr138-render-collect-sabotage-rr139-2026-10-03.txt"), lines.join("\n") + "\n");
+writeFileSync(join(REPO, "runs", "audit", "rr138-render-collect-sabotage-rr143-2026-10-03.txt"), lines.join("\n") + "\n");
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

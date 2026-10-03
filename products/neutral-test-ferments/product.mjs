@@ -46,8 +46,9 @@ export const PRODUCT = registerProduct({
   variants: ["sauerkraut", "kimchi", "kombucha", "water-kefir", "miso"],
   /* RR-146 · the product's declared research block (F16 routes): a test topic, a route bound and one fixture source — never fetched */
   research: { topic: "declared test topic two", maxRoutes: 6, language: "en", sources: [{ sourceId: "stack-exchange", site: "fixture-site-two" }],
-    /* RR-146 addendum · where this test product may apply: a declared research scope (never a page plan) */
-    applicability: { dimension: "declared-scope", values: ["scope-one", "scope-two"] } },
+    /* F62 · the dimension this test product applies along — its KEY only: the values are whatever its own records carry (F62 C5),
+     * never a list typed here (RR-148 §1: nobody enumerates them by hand) */
+    applicability: { dimension: "declared-scope" } },
 
   factsDir: join(HERE, "facts"),
   pageSpecs: {},

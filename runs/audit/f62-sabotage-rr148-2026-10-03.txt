@@ -1,0 +1,30 @@
+RR-148 F62 applicability sabotage run · 2026-10-03T17:24:23.855Z
+population: 22 sabotages over test/f62-applicability.test.mjs · each applied ALONE; each run killed after 300 s
+BASELINE (unsabotaged): passing 12 · failing 0 · every named test green: true
+PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1 S19=1 S20=1 S21=1 S22=1 · all exactly once: true
+production trail sha256 before: 7212fef4ef7d5e7f45313c5213923fed3d9dcedae4db70d5d881a606da05a77e
+
+S1 C1 ACCEPTED is never turned into REQUIRED src/research/applicability.mjs: landed true · named test (P1 · C1) red true · failing 4 · reason AssertionError · restored true · PROVED
+S2 C1 a conflict is never resolved by choosing src/research/applicability.mjs: landed true · named test (P1 · C1) red true · failing 1 · reason AssertionError · restored true · PROVED
+S3 C1 an outcome is read only from a record that states it src/research/applicability.mjs: landed true · named test (P1 · C1) red true · failing 1 · reason AssertionError · restored true · PROVED
+S4 C2 an absent source is UNKNOWN, never NOT_REQUIRED src/research/applicability.mjs: landed true · named test (P2 · C2) red true · failing 4 · reason AssertionError · restored true · PROVED
+S5 C3 only a source F46 admits decides src/research/applicability.mjs: landed true · named test (P3 · C3) red true · failing 1 · reason AssertionError · restored true · PROVED
+S6 C3 only the deciding body's own (tier 1) source decides src/research/applicability.mjs: landed true · named test (P3 · C3) red true · failing 1 · reason AssertionError · restored true · PROVED
+S7 C3 only a citation F46 PROVES decides src/research/applicability.mjs: landed true · named test (P3 · C3) red true · failing 2 · reason AssertionError · restored true · PROVED
+S8 C3 only a record F45 presents CURRENT decides src/research/applicability.mjs: landed true · named test (P3 · C3) red true · failing 1 · reason AssertionError · restored true · PROVED
+S9 C3 a deciding record carries its observed date src/research/applicability.mjs: landed true · named test (P3 · C3) red true · failing 2 · reason AssertionError · restored true · PROVED
+S10 C4 a narrower record never decides the wider combination src/research/applicability.mjs: landed true · named test (P4 · C4) red true · failing 3 · reason AssertionError · restored true · PROVED
+S11 C4 a wider record is never copied down src/research/applicability.mjs: landed true · named test (P4 · C4) red true · failing 2 · reason AssertionError · restored true · PROVED
+S12 C5 no carried value is NOT MEASURED, never a measured 0 src/research/applicability.mjs: landed true · named test (P5 · C5) red true · failing 1 · reason AssertionError · restored true · PROVED
+S13 C5 no routes in hand is NOT MEASURED src/research/applicability.mjs: landed true · named test (P5 · C5) red true · failing 1 · reason AssertionError · restored true · PROVED
+S14 C5 the judging date is stated, never the clock's src/research/applicability.mjs: landed true · named test (P5 · C5) red true · failing 3 · reason AssertionError · restored true · PROVED
+S15 C5 the dimension must be one F13 reports from the product's records src/research/applicability.mjs: landed true · named test (P5 · C5) red true · failing 2 · reason AssertionError · restored true · PROVED
+S16 C6 only REQUIRED and ACCEPTED combinations are handed on src/research/applicability.mjs: landed true · named test (P6 · C6) red true · failing 2 · reason AssertionError · restored true · PROVED
+S17 C6 every route is narrowed, the topic route included src/research/research-routes.mjs: landed true · named test (P6 · C6) red true · failing 2 · reason AssertionError+TypeError · restored true · NOT PROVED — A FINDING
+S18 C6 unmeasured applicability hands over nothing src/research/applicability.mjs: landed true · named test (P6 · C6) red true · failing 1 · reason AssertionError · restored true · PROVED
+S19 C6 a handed route carries its limits (not a question, not an opportunity, not demand) src/research/applicability.mjs: landed true · named test (P6 · C6) red true · failing 1 · reason AssertionError · restored true · PROVED
+S20 C7 the code names no product src/research/applicability.mjs: landed true · named test (P7b · C7) red true · failing 1 · reason AssertionError · restored true · PROVED
+S21 C7 the code reaches no network src/research/applicability.mjs: landed true · named test (P7b · C7) red true · failing 1 · reason AssertionError · restored true · PROVED
+S22 C8 language, cultural and search differences are NOT MEASURED, named src/research/applicability.mjs: landed true · named test (P8 · C8) red true · failing 2 · reason AssertionError · restored true · PROVED
+
+proved 21 of 22 · residue 0 · production trail sha256 after: 7212fef4ef7d5e7f45313c5213923fed3d9dcedae4db70d5d881a606da05a77e · unchanged true

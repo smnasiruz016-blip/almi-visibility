@@ -35,15 +35,8 @@ const SABOTAGES = [
   ["L10", "a lead is UNKNOWN, never OBSERVED", ES, "  return place(rule, \"UNKNOWN\", { checkId: `research_lead:", "  return place(rule, \"OBSERVED\", { evidenceRef: `research_lead:${r.lead_id}`, sourceId: r.sourceId, observedAt: r.recorded_at, checkId: `research_lead:", Q4B],
   ["L11", "leads are counted apart by the reader", RD, "      leads += all.filter((r) => r.record_type === LEAD_RECORD).length;\n", "", Q6],
   ["L12", "leads are kept in their own store, never with the questions", SI, "  const g = append(routeIntake.leads, \"leads.jsonl\", \"APPEND_RESEARCH_LEADS\");", "  const g = append(routeIntake.leads, \"questions.jsonl\", \"APPEND_RESEARCH_LEADS\");", Q6],
-  /* RR-146 owner addendum · applicability */
-  ["A1", "ACCEPTED is never turned into REQUIRED", AP, "    if (outcomes.length === 1) return { combination: c, outcome: outcomes[0],", "    if (outcomes.length === 1) return { combination: c, outcome: outcomes[0] === \"ACCEPTED\" ? \"REQUIRED\" : outcomes[0],", Q8],
-  ["A2", "a conflict is never resolved by choosing", AP, "    if (outcomes.length === 1) return { combination: c,", "    if (outcomes.length >= 1) return { combination: c,", Q8],
-  ["A3", "only the deciding body (tier 1) counts", AP, "  if (f?.source?.tier !== 1) return \"source is not tier 1 — not the body that decides it\";\n", "", Q8],
-  ["A4", "only a citation F46 PROVES counts", AP, "  if (cite.verdict !== CITATION.PROVED) return", "  if (false) return", Q8],
-  ["A5", "only a record F45 finds USABLE counts", AP, "  if (fresh.state !== \"USABLE\") return", "  if (false) return", Q8],
-  ["A6", "one institution's record never decides the wider combination", AP, "    const pathway = here.filter((f) => !present(f.locale?.institution));\n", "    const pathway = here;\n", Q8],
-  ["A7", "only REQUIRED and ACCEPTED combinations become routes", RT, "    const kept = applicability.combinations.filter((c) => [\"REQUIRED\", \"ACCEPTED\"].includes(c.outcome));\n", "    const kept = applicability.combinations;\n", Q9],
-  ["A8", "declared but unmeasured applicability yields no routes", RT, "  if (r.applicability) {\n", "  if (r.applicability && applicability?.measured) {\n", Q9],
+  /* RR-148: A1–A8 (applicability) moved to F62's own harness, test/helpers/f62-sabotage.mjs — the code they pointed at was rewritten
+   * for F62's frozen clauses. RR-146's evidence files keep their results as recorded; this harness must not be re-run onto them. */
 ];
 
 const files = [...new Set(SABOTAGES.map((s) => s[2]))];

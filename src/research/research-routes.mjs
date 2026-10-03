@@ -18,6 +18,7 @@
  *                them.
  */
 import { createHash } from "node:crypto";
+import { applicableRoutes } from "./applicability.mjs";
 
 export const NOT_MEASURED = "NOT MEASURED";
 export const RESEARCH_KINDS = Object.freeze({
@@ -72,20 +73,21 @@ export function researchRoutes({ subject, product, axes, applicability = null })
     dimensionsUsed.push({ key: d.key, values: values.length });
     for (const v of values) routes.push({ dimension: d.key, value: v });
   }
-  /* RR-146 addendum · APPLICABILITY FIRST: when the product declares where it may apply, a value route survives only as one route per
-   * combination whose outcome is REQUIRED or ACCEPTED (src/research/applicability.mjs); without that measurement there are no routes.
-   * Applicability narrows research; it never creates or counts a page. */
+  /* F62 (acceptance _handoffs a5ec9f1) · APPLICABILITY FIRST: when the product declares the dimension it applies along, EVERY route — the
+   * topic route included — survives only as one route per combination F62 finds REQUIRED or ACCEPTED (src/research/applicability.mjs
+   * applicableRoutes), carrying its records, their dates and its limits; without that measurement there are no routes. Applicability
+   * narrows research; it never creates or counts a page, and a route is never demand. */
   let narrowing = null;
   if (r.applicability) {
     if (!applicability?.measured) return { routes: NOT_MEASURED, refusals: [`APPLICABILITY_NOT_MEASURED — missing ${applicability?.missing ?? "the applicability measurement"}`], universe, excluded: [...excluded, ...noValues], dimensionsUsed, narrowing: { before: routes.length, after: NOT_MEASURED } };
-    const kept = applicability.combinations.filter((c) => ["REQUIRED", "ACCEPTED"].includes(c.outcome));
+    const kept = applicableRoutes(applicability);
     const before = routes.length;
-    routes.splice(1, routes.length - 1, ...kept.map((c) => ({ dimension: dimensionsUsed[0]?.key ?? null, value: c.combination[dimensionsUsed[0]?.key], context: { dimension: r.applicability.dimension, value: c.combination[r.applicability.dimension], outcome: c.outcome } })));
-    narrowing = { before, after: routes.length, population: applicability.population, date: applicability.date, counts: applicability.counts };
+    routes.splice(0, routes.length, ...kept.map((k) => ({ dimension: k.route.dimension, value: k.route.value, context: { scope: k.scope, outcome: k.outcome, records: k.records, measuredOn: k.measuredOn, limits: k.limits } })));
+    narrowing = { before, after: routes.length, population: applicability.population, date: applicability.on, counts: applicability.counts };
   }
   if (routes.length > r.maxRoutes) return { routes: NOT_MEASURED, refusals: [`ROUTE_BOUND_EXCEEDED — ${routes.length} route(s) against a declared maxRoutes of ${r.maxRoutes}; refused whole, never truncated`], universe, excluded: [...excluded, ...noValues], dimensionsUsed, narrowing };
   const built = routes.map((x) => Object.freeze({
-    record_type: ROUTE_RECORD, kind: "PROPOSED_ROUTE", route_id: id([subject, r.topic, x.dimension, x.value, ...(x.context ? [x.context.dimension, x.context.value] : [])]), subject,
+    record_type: ROUTE_RECORD, kind: "PROPOSED_ROUTE", route_id: id([subject, r.topic, x.dimension, x.value, ...(x.context ? [Object.entries(x.context.scope).sort()] : [])]), subject,
     topic: r.topic, dimension: x.dimension, value: x.value, ...(x.context ? { context: Object.freeze({ ...x.context }) } : {}), status: "PROPOSED — not a lead, not a question",
   }));
   return { routes: Object.freeze(built), refusals: [], universe, excluded: [...excluded, ...noValues], dimensionsUsed, narrowing };

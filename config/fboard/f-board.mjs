@@ -1217,6 +1217,35 @@ export const DECLARED = Object.freeze({
       }),
     ]),
   }),
+  /* 🔴 F62 · International and locale intelligence. Frozen ALONE (_handoffs a5ec9f1, RR-148 §2) before any F62 code was read or written
+   * that round. Built: where a product applies, from records that STATE an outcome, decided only by F46-PROVED, F45-CURRENT, tier-1 records
+   * of the exact scope, bounded to the routes in hand, handed to F16 as routes only. IN-PROGRESS only: on the real population (3 Oct
+   * 2026) no declared product declares an applicability dimension or a research block, 0 of 47 active records state an outcome, and no
+   * checker is declared a person — and C8 (language, cultural and search differences) has no owner-defined evidence path, so it is NOT
+   * MEASURED by its own clause. Fixtures never satisfy a real-population clause. */
+  F62: Object.freeze({
+    featureId: "F62",
+    board: "F_BOARD",
+    state: "IN-PROGRESS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-03", ruling: ACCEPTANCES.F62.ruling, contractSha256: ACCEPTANCES.F62.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F62",
+        on: "2026-10-03",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F62.ruling.sha256, contract: ACCEPTANCES.F62.contractSha256 }),
+        branch: "rr148-f62-applicability",
+        baseSha: "9ba2a954ce8360a98c2334c8a59fac58d6e381b6",
+        baseCiRun: "37111226893",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-148_ONE_FEATURE_PRODUCT_APPLICABILITY.md", commit: "e10099e88e8548cbee912c34b8649b7a28996acd", sha256: "2cb7548638f583e7825f15800a2a66fe502e1f71d06a22a24a5d29eda8b9dec3" }),
+      }),
+    ]),
+  }),
   /* 🔴 F44 · Verified fact supply. Frozen ALONE (_handoffs eecdfe4, RR-113 §9) before any F44 code. Every non-derived record carries
    * the nine recorded fields; the unit is never judged (no declared rule) and no capability claim is recorded — so IN-PROGRESS only. */
   F44: Object.freeze({

@@ -354,4 +354,11 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-145_OWNER_PRODUCT_SCOPE_CORRECTION_F25_LEAVES_THE_REQUIRED_PATH.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-03_RR-145_PRODUCT_SCOPE.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F25_ACCEPTANCE_AMENDMENT_1_2026-10-03.md", loader: "F-board acceptance F25" }),
+  /* RR-148 (3 Oct 2026): the five records admitted by the migration at _handoffs a5ec9f1 — RR-146's command and its owner addendum (no
+   * migration ran in RR-146 or RR-147), the RR-147 and RR-148 commands, and F62's acceptance. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-146_BUILD_PRODUCT_LED_QUESTION_RESEARCH_F16_ONLY.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-146_OWNER_ADDENDUM_PRODUCT_APPLICABILITY.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-147_FRESH_WINDOW_VERIFY_PRESERVE_REPORT.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-148_ONE_FEATURE_PRODUCT_APPLICABILITY.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F62_ACCEPTANCE_2026-10-03.md", loader: "F-board acceptance F62" }),
 ]);

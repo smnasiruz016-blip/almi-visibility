@@ -145,6 +145,10 @@ test("🔴 CONTROL — the same census SEES a client host planted in a real shar
   const real = (f) => readFileSync(join(REPO, f), "utf8");
   const planted = await neutralityCensus({ repo: REPO, read: (f) => (f === "bin/facts.mjs" ? `${real(f)}\nconst h = "x.${PRODUCT_WORDS.find((w) => w.includes(".")) ?? PRODUCT_WORDS[0]}";\n` : real(f)) });
   assert.equal(planted.breaches.length, 1, "a planted client term in bin/ was not seen");
-  const edited = await neutralityCensus({ repo: REPO, read: (f) => (f === PINNED_HISTORICAL_LINES[0].file ? real(f).replace("node bin/gsc-dimensions.mjs", "node bin/gsc-dimensions.mjs --edited") : real(f)) });
+  const LEDGER = PINNED_HISTORICAL_LINES.find((x) => x.file === "src/checklist/classification.mjs").file;
+  const edited = await neutralityCensus({ repo: REPO, read: (f) => (f === LEDGER ? real(f).replace("node bin/gsc-dimensions.mjs", "node bin/gsc-dimensions.mjs --edited") : real(f)) });
   assert.deepEqual([edited.breaches.length, edited.stale.length], [1, 1], "editing the pinned line did not un-pin it");
+  /* RR-148: one of THREE pins in one file (F62's frozen acceptance) — editing that one line must un-pin THAT pin, not hide behind the other two */
+  const f62 = await neutralityCensus({ repo: REPO, read: (f) => (f === "config/fboard/acceptances.mjs" ? real(f).replace("REQUIRED is never derived from ACCEPTED", "REQUIRED is never derived from ACCEPTED (edited)") : real(f)) });
+  assert.deepEqual([f62.breaches.length, f62.stale.length], [1, 1], "editing one pinned F62 line did not un-pin it");
 });

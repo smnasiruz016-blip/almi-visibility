@@ -282,7 +282,7 @@ for (const p of changed) console.log(`  ${p}`);
     faults.length,
     "the board refuses a historical record BY NAME (HISTORICAL_STATE_REFUSED / HISTORICAL_STATE_IMPORTED); S17 plants a historical VERIFIED-PASS on F08 and turns the named test RED",
   );
-  console.log(`    F-board: ${Object.entries(p.split).filter(([, v]) => v).map(([k, v]) => `${k} ${v}`).join(" · ")} · sum ${Object.values(p.split).reduce((a, b) => a + b, 0)} · F-progress ${p.passed}/${p.denominator}`);
+  console.log(`    F-board: ${Object.entries(p.split).filter(([, v]) => v).map(([k, v]) => `${k} ${v}`).join(" · ")} · sum ${Object.values(p.split).reduce((a, b) => a + b, 0)} · F-progress ${p.required.passed}/${p.required.denominator} required (all rows ${p.passed}/${p.denominator}; NOT REQUIRED ${p.required.notRequired.map((x) => x.featureId).join(", ") || "none"})`);
   for (const r of board.filter((x) => x.state !== "UNASSESSED")) console.log(`      ${r.featureId} ${r.state}`);
   if (faults.length) for (const f of faults) console.log(`    🔴 ${f}`);
 }

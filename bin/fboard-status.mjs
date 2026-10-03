@@ -23,7 +23,8 @@ export function fboardStatus(now) {
 }
 const s = fboardStatus(now);
 console.log(`F-board: ${s.total} rows · ${Object.entries(s.split).filter(([, v]) => v).map(([k, v]) => `${k} ${v}`).join(" · ")} · sum ${Object.values(s.split).reduce((a, b) => a + b, 0)}`);
-console.log(`F-progress: ${s.passed}/${s.denominator}`);
+/* Board Amendment 1 (_handoffs dd91e92): progress is over the REQUIRED rows; the all-rows figure is printed beside it, never silently */
+console.log(`F-progress: ${s.required.passed}/${s.required.denominator} (required rows) · all rows ${s.passed}/${s.denominator}${s.required.notRequired.length ? ` · NOT REQUIRED ${s.required.notRequired.length}: ${s.required.notRequired.map((n) => `${n.featureId} (work state ${n.state}, not passed)`).join(", ")}` : ""}`);
 for (const r of s.board.filter((x) => x.state !== "UNASSESSED")) console.log(`  ${r.featureId} ${r.state}${r.blocker ? ` — ${r.blocker}` : ""}`);
 for (const e of s.errors) console.log(`  ERROR ${e.code} ${e.id ?? ""} — ${e.why}`);
 if (process.argv.includes("--check") && s.errors.length) process.exit(1);

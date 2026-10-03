@@ -536,7 +536,8 @@ test("P24 — the committed F05 ruling hash is the acceptance used by code and t
   const split = progress(board()).split;
   const line = `F-board: 91 rows · ${Object.entries(split).filter(([, v]) => v).map(([k, v]) => `${k} ${v}`).join(" · ")} · sum 91`;
   assert.ok(cli.stdout.includes(line), `${line}\n${cli.stdout}`);
-  assert.ok(cli.stdout.includes(`F-progress: ${EARNED}/91`), cli.stdout);
+  /* Board Amendment 1 (3 Oct 2026, RR-145 §2): the line reads the REQUIRED figure first and the all-rows figure beside it — F25 is NOT REQUIRED, not passed */
+  assert.ok(cli.stdout.includes(`F-progress: ${EARNED}/90 (required rows) · all rows ${EARNED}/91`), cli.stdout);
 });
 
 test("P25 — a bare state string without board identity is REFUSED", () => {

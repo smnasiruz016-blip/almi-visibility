@@ -127,6 +127,6 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("\\").join
   for (const e of bErrs) console.log(`    🔴 ${e.code} ${e.id ?? ""} — ${e.why}`);
   console.log(`  consistency errors    : ${errs.length}`);
   for (const e of errs) console.log(`    🔴 ${e.code} ${e.id} — ${e.why}`);
-  console.log(`  F-progress (computed from the board file): ${p.passed}/${p.denominator}`);
+  console.log(`  F-progress (computed from the board file): ${p.required.passed}/${p.required.denominator} required rows · all rows ${p.passed}/${p.denominator} · NOT REQUIRED ${p.required.notRequired.map((n) => n.featureId).join(", ") || "none"}`);
   if (process.argv.includes("--check") && (errs.length || bErrs.length)) process.exit(1);
 }

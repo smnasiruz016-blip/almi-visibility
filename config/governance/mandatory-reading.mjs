@@ -340,5 +340,14 @@ export const MANDATORY_READING = Object.freeze([
   /* RR-144 (3 Oct 2026): of the CURRENT records the migration at _handoffs 24cd44f admitted, the two F25's movement stands on — command
    * RR-144 and F25's Acceptance Amendment 1 (the owner's declaration it quotes, 12ecf91, matches no inclusion rule and is read through it). */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-144_OWNER_GREEN_COMPLETE_F25_NOW.md", loader: "authority register (CURRENT record)" }),
+  /* the other CURRENT records the same migration admitted — every CURRENT record is required reading (P20–P22); found missing by the full
+   * suite on cb4588f, not by me before it */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-02_RR-138_FINISH_F22_F25_KEEP_F27_F30_MOVING.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-139_OWNER_GREEN_FOR_THE_RENDER_RUN.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-140_CONTINUE_AUTONOMOUSLY_AND_COMPLETE_FEATURES.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-141_COMPLETE_F25_ONLY.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-142_FRESH_WINDOW_COMPLETE_F25_ONLY.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-143_F25_ONLY_REPLACE_THE_IMPOSSIBLE_RENDER_PLAN.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F30_ACCEPTANCE_2026-10-03.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F25_ACCEPTANCE_AMENDMENT_1_2026-10-03.md", loader: "F-board acceptance F25" }),
 ]);

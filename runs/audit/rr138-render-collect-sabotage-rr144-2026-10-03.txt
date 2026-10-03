@@ -1,0 +1,27 @@
+RR-138 render-collect sabotage run · 2026-10-03T05:21:26.325Z
+population: 20 sabotages over test/rr138-render-collect.test.mjs · each applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): X1=1 X2=1 X3=1 X4=1 X5=1 X6=1 X7=1 X8=1 X9=1 X10=1 X11=1 X12=1 X13=1 X14=1 X15=1 X16=1 X17=1 X18=1 X19=1 X20=1 · all exactly once: true
+production trail sha256 before: fb168c66ccceeacf4900a5fbbe3e60ab655e4e485267d18f02a6c056ac614763
+
+X1 a third-party subresource is refused before it leaves src/render/same-origin-policy.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+X2 only GET or HEAD leaves — no login, payment or form submission src/render/same-origin-policy.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X3 a 401/402/407 route is refused src/render/same-origin-policy.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X4 the TOTAL ceiling is enforced where every request passes src/render/same-origin-policy.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+X5 a resource is fetched once per page however many renders read it src/render/same-origin-policy.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X6 no GREEN, no run bin/render-collect.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X7 no storage permission, no run bin/render-collect.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X8 an evidence batch that is not clean is refused bin/render-collect.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X9 the preflight asks F04 before any request src/render/render-preflight.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X10 the preflight refuses an append-if-new record without a key src/render/render-preflight.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X11 a row reads only the records that name it src/render/render-evidence-reader.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X12 a stored body is read only when its hash holds src/render/render-evidence-reader.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X13 a script cannot send the render elsewhere src/render/renderer.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X14 a page counts only its OWN requests (the run-wide delta the live run used is reinstated) src/render/same-origin-policy.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X15 an unrouted request that loaded nothing is counted REFUSED, not unaccounted src/render/renderer.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X16 a slot is reserved before the await, so concurrent calls cannot all pass the cap src/render/same-origin-policy.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+X17 F25 counts a page with no stored render in its population (NOT MEASURED), never only the rendered pages bin/mobile-audit.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X18 F25 reads stored evidence with the subject's declared site hosts (OWN-SITE COMPLETE needs them) bin/mobile-audit.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X19 the declared per-page cap is the cap the run uses bin/render-collect.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X20 the declared per-page cap can never exceed the run's total ceiling bin/render-collect.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+
+proved 20 of 20 · residue 0 · production trail sha256 after: fb168c66ccceeacf4900a5fbbe3e60ab655e4e485267d18f02a6c056ac614763 · unchanged true

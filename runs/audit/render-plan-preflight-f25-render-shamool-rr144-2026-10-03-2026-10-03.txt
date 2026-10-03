@@ -1,0 +1,18 @@
+render plan preflight · 2026-10-03T04:59:33.158Z · engine d3d9dedac390f3975ab520585dbbe88b1196aacb · data 5289c3d8dac4a2f463bcd71ba92ed4ff9a06ff23 · count-only
+PROVED  tenant: both batches, one tenant         declared: the source and evidence batches attached to the same tenant · measured: source attached · evidence attached · same tenant true
+PROVED  clean evidence batch                     declared: declared, no render evidence yet · measured: present · render.jsonl absent
+PROVED  population                               declared: 1 page(s) with a stored body · measured: source fetched pages 1 · stored bodies 1
+PROVED  refuses without the GREEN                declared: exit 3, 0 network calls · measured: exit 3 · network calls 0
+PROVED  refuses without storage permission       declared: exit 3, 0 network calls · measured: exit 3 · network calls 0
+FAILED  refuses a raised ceiling                 declared: exit 2, 0 network calls · measured: exit 1 · network calls 1
+PROVED  refuses a batch outside the declarations declared: exit 3, 0 network calls · measured: exit 3 · network calls 0
+FAILED  preflight (placement, key, F04)          declared: PASS before any request · measured: NOT PRINTED
+PROVED  stored once, readers named               declared: 3 render records + 1 run record · measured: 3 + 1 · readers DESKTOP:F22+F25 MOBILE:F25 SOURCE:F22
+PROVED  ceiling                                  declared: ≤ 300 requests in total · measured: 1 sent (in-process)
+FAILED  real stored bodies rendered              declared: 1 document(s) answered with their stored bytes · measured: stored-body answers 0 · empty subresource answers 0
+FAILED  request count                            declared: the run's counter = every request answered in process · measured: run record 1 · answered 0 (robots 0, other 0)
+FAILED  COMPLETE for F25 (Amendment 1)           declared: DESKTOP 1 · MOBILE 1 measurable · measured: DESKTOP COMPLETE 0 · OWN-SITE COMPLETE 0 · not measurable 1 · MOBILE COMPLETE 0 · OWN-SITE COMPLETE 0 · not measurable 1 · refused outside the site 0 · render states DESKTOP:FAILED 1 · MOBILE:FAILED 1 · SOURCE:FAILED 1
+FAILED  no FAILED render, no cap refusal         declared: 0 FAILED · 0 REQUEST_CAP · 0 RUN_CAP · measured: FAILED 3 · refused {"DOCUMENT_ROBOTS":1}
+FAILED  collection verdict                       declared: KEPT · measured: NOT PRINTED
+PROVED  external requests (left the machine)     declared: 0 · measured: http/https/tls attempts 0 · every fetch (0), DNS (0) and socket (0) answered in-process
+production trail unchanged: true

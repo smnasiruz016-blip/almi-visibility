@@ -1,0 +1,27 @@
+RR-146 F16 product-led sabotage run · 2026-10-03T08:23:15.907Z
+population: 20 sabotages over test/f16-product-led-research.test.mjs · each applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): L1=1 L2=1 L3=1 L4=1 L5=1 L6=1 L7=1 L8=1 L9=1 L10=1 L11=1 L12=1 A1=1 A2=1 A3=1 A4=1 A5=1 A6=1 A7=1 A8=1 · all exactly once: true
+production trail sha256 before: 7212fef4ef7d5e7f45313c5213923fed3d9dcedae4db70d5d881a606da05a77e
+
+L1 only EVIDENCED declared dimensions yield routes — a candidate never src/research/research-routes.mjs: landed true · named test red true · failing 1 · reason TypeError · restored by sha256 true · PROVED
+L2 a route set over the declared bound is refused whole src/research/research-routes.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L3 an author attribution without the original post's statement is refused src/research/lead-intake.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+L4 author fields are NOT MEASURED unless the source established them — the route never lends its value src/research/lead-intake.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L5 a duplicate is refused, never stored twice src/research/lead-intake.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+L6 another subject's route is refused src/research/lead-intake.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L7 a sameness rule must be the OWNER's src/research/sameness.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L8 no similarity, threshold or unknown method src/research/sameness.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+L9 only the steps the owner declared are applied src/research/sameness.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L10 a lead is UNKNOWN, never OBSERVED src/evidence/evidence-state-adapters.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+L11 leads are counted apart by the reader src/research/public-questions-reader.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L12 leads are kept in their own store, never with the questions bin/source-intake.mjs: landed true · named test red true · failing 1 · reason Error · restored by sha256 true · PROVED
+A1 ACCEPTED is never turned into REQUIRED src/research/applicability.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+A2 a conflict is never resolved by choosing src/research/applicability.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+A3 only the deciding body (tier 1) counts src/research/applicability.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+A4 only a citation F46 PROVES counts src/research/applicability.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+A5 only a record F45 finds USABLE counts src/research/applicability.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+A6 one institution's record never decides the wider combination src/research/applicability.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+A7 only REQUIRED and ACCEPTED combinations become routes src/research/research-routes.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+A8 declared but unmeasured applicability yields no routes src/research/research-routes.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+
+proved 20 of 20 · residue 0 · production trail sha256 after: 7212fef4ef7d5e7f45313c5213923fed3d9dcedae4db70d5d881a606da05a77e · unchanged true

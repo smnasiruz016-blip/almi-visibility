@@ -78,8 +78,9 @@ test("Q2 · a route set over the declared bound is REFUSED whole, never truncate
 test("Q3 · a CANDIDATE never yields a route; a NOT EVIDENCED declaration is excluded with its reason; without a research block routes are NOT MEASURED, the missing declaration named", async () => {
   const axes = { declared: [{ key: KNOTS.axis.key, status: "EVIDENCED" }, { key: "undeclared-values", status: "NOT EVIDENCED" }], candidates: [{ key: "candidate-dimension" }], discovered: [{ key: KNOTS.axis.key, distinctValues: 3 }, { key: "candidate-dimension", distinctValues: 196 }] };
   /* the candidate HAS declared values here, so a code path that routed candidates WOULD produce routes — this check can fail */
-  const withValues = { ...KNOTS, planning: { dimensions: [{ key: "candidate-dimension", values: ["cv-one", "cv-two"] }, { key: "undeclared-values", values: ["uv-one"] }] } };
+  const withValues = { ...KNOTS, research: { ...KNOTS.research, maxRoutes: 10 }, planning: { dimensions: [{ key: "candidate-dimension", values: ["cv-one", "cv-two"] }, { key: "undeclared-values", values: ["uv-one"] }] } };
   const r = researchRoutes({ subject: KNOTS.productId, product: withValues, axes });
+  assert.ok(Array.isArray(r.routes), `routes were not built: ${JSON.stringify(r.refusals)}`);
   assert.ok(!r.routes.some((x) => x.dimension === "candidate-dimension"), "a candidate yielded a route");
   assert.ok(!r.routes.some((x) => x.dimension === "undeclared-values"), "a NOT EVIDENCED declaration yielded a route");
   assert.deepEqual(r.excluded.map((x) => x.key).sort(), ["candidate-dimension", "undeclared-values"]);

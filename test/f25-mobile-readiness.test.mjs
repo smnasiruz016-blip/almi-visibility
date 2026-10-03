@@ -51,6 +51,39 @@ test("C3 · against a PARTIAL, FAILED or absent render every rendered measure is
   assert.equal(mobileContentOf(complete({ scrollWidth: 1, viewportWidth: 1, targets: [] }, "a b"), { renderState: "PARTIAL", reason: "r", visibleText: "a b c" }).state, NOT_MEASURED);
 });
 
+test("C3 · AMENDMENT 1 (24cd44f): a PARTIAL render whose ONLY refusals are outside hosts, nothing of its own site refused, settled in time, is OWN-SITE COMPLETE — measured, its state unchanged, its refusals carried; every other PARTIAL is NOT MEASURED", () => {
+  const OWN = new Set(["site.invalid"]);
+  const layout = { scrollWidth: 390, viewportWidth: 390, targets: [] };
+  const partial = (byHost, { timedOut = false, refusedByReason = { UNDECLARED_HOST: 2 } } = {}) => ({
+    renderState: "PARTIAL", reason: "refused", layout, visibleText: "a b", timedOut,
+    requests: { attempted: 9, refused: Object.values(byHost).reduce((n, h) => n + h.refused, 0), byHost, refusedByReason },
+  });
+  const outsideOnly = partial({ "site.invalid": { attempted: 7, refused: 0 }, "fonts.other.invalid": { attempted: 1, refused: 1 }, "stats.other.invalid": { attempted: 1, refused: 1 } });
+  /* POSITIVE */
+  const r = responsiveOf(outsideOnly, OWN);
+  assert.deepEqual(r, { state: "FITS", viewportWidth: 390, basis: "OWN_SITE_COMPLETE", refusedOutside: 2, refusedByReason: { UNDECLARED_HOST: 2 } });
+  assert.equal(outsideOnly.renderState, "PARTIAL", "the render state was relabelled");
+  const m = mobileContentOf(outsideOnly, { ...outsideOnly, visibleText: "a b c" }, OWN);
+  assert.deepEqual([m.state, m.missingOnMobile, m.mobileBasis.basis, m.desktopBasis.refusedOutside], ["DIFFERS", 1, "OWN_SITE_COMPLETE", 2]);
+  const s = summariseMobile([assessPage({ html: "", mobile: outsideOnly, desktop: outsideOnly, ownHosts: OWN })]);
+  assert.deepEqual(s.ownSite, { renders: 2, refusedOutside: 4, refusedByReason: { UNDECLARED_HOST: 4 } }, "a render called complete must still say what it refused");
+  /* NEGATIVE — each one is NOT MEASURED */
+  const ownRefused = partial({ "site.invalid": { attempted: 7, refused: 1 }, "fonts.other.invalid": { attempted: 1, refused: 1 } }, { refusedByReason: { REQUEST_CAP: 1, UNDECLARED_HOST: 1 } });
+  const timedOut = partial({ "fonts.other.invalid": { attempted: 1, refused: 2 } }, { timedOut: true });
+  const noTimedOutRecord = { ...partial({ "fonts.other.invalid": { attempted: 1, refused: 2 } }), timedOut: undefined };
+  const mismatched = { ...outsideOnly, requests: { ...outsideOnly.requests, refused: 3 } };
+  const failed = { renderState: "FAILED", reason: "never served", layout: null };
+  for (const [name, render, hosts] of [["own-site refusal", ownRefused, OWN], ["did not settle", timedOut, OWN], ["no timedOut record", noTimedOutRecord, OWN], ["refusals not accounted by host", mismatched, OWN], ["FAILED", failed, OWN], ["no declared site hosts", outsideOnly, null], ["empty declared site hosts", outsideOnly, new Set()]]) {
+    assert.equal(responsiveOf(render, hosts).state, NOT_MEASURED, `${name}: measured`);
+    assert.equal(tapTargetsOf(render, hosts).state, NOT_MEASURED, `${name}: tap targets measured`);
+    assert.equal(mobileContentOf(render, outsideOnly, hosts).state, NOT_MEASURED, `${name}: words measured`);
+  }
+  /* MISSING EVIDENCE: a PARTIAL render that carries no request record cannot be told apart by host */
+  assert.equal(responsiveOf({ renderState: "PARTIAL", reason: "r", layout, timedOut: false }, OWN).state, NOT_MEASURED);
+  /* a COMPLETE render reads exactly as before the amendment */
+  assert.deepEqual(responsiveOf(complete(layout)), { state: "FITS", viewportWidth: 390 });
+});
+
 test("C4 · overflow at the declared width: a document wider than the viewport overflows by its excess; one that fits FITS", () => {
   assert.deepEqual(responsiveOf(complete({ scrollWidth: 450, viewportWidth: 390, targets: [] })), { state: "HORIZONTAL_OVERFLOW", overflowPx: 60, viewportWidth: 390 });
   assert.deepEqual(responsiveOf(complete({ scrollWidth: 390, viewportWidth: 390, targets: [] })), { state: "FITS", viewportWidth: 390 });

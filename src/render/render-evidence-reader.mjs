@@ -32,7 +32,7 @@ export function renderEvidenceFor({ records, corpus, row }) {
     const html = r.value.renderState === "FAILED" ? null : read("html", r.content_sha256);
     const visibleText = read("txt", r.value.visible_text_sha256);
     const page = byPage.get(r.value.source_observation_id) ?? {};
-    page[r.value.kind] = { renderState: r.value.renderState, reason: r.value.reason, html, visibleText, layout: r.value.layout ?? null, viewport: r.value.viewport, requests: r.value.requests };
+    page[r.value.kind] = { renderState: r.value.renderState, reason: r.value.reason, html, visibleText, layout: r.value.layout ?? null, viewport: r.value.viewport, requests: r.value.requests, timedOut: r.value.timedOut };
     byPage.set(r.value.source_observation_id, page);
   }
   return { byPage, run, unverified, notForThisRow };

@@ -160,6 +160,8 @@ export async function renderDocument({ browser, origin, id, documentUrl, bounds 
   const requests = [];
   const routed = new Set();
   const issued = [];
+  const failedNoResponse = new Set();
+  const responded = new Set();
   const addressChecks = [];
   let documentServed = false;
   let navigationError = null;
@@ -207,6 +209,11 @@ export async function renderDocument({ browser, origin, id, documentUrl, bounds 
     context.on("request", (req) => {
       if (/^(https?|wss?):/i.test(req.url())) issued.push(req);
     });
+    /* RR-139: a request no route saw is still ACCOUNTED when Chromium itself reports it FAILED and it produced NO response — it loaded
+     * nothing (found live: with JavaScript off, Chromium issues a script request the route never sees). It is counted REFUSED, so the
+     * render reads PARTIAL, never COMPLETE; any other unrouted request still makes the render FAILED. */
+    context.on("requestfailed", (req) => failedNoResponse.add(req));
+    context.on("response", (res) => responded.add(res.request()));
     context.on("response", (res) => {
       addressChecks.push(
         res.serverAddr().then(
@@ -264,7 +271,10 @@ export async function renderDocument({ browser, origin, id, documentUrl, bounds 
     throw new EgressError(`🔴 render of ${id}: ${proof.nonLocal.length} response(s) from a non-local address, ${proof.unverified.length} unverifiable — ${[...proof.nonLocal, ...proof.unverified].slice(0, 3).join("; ")}`);
   }
 
-  const unaccounted = issued.filter((r) => !routed.has(r)).length;
+  const unrouted = issued.filter((r) => !routed.has(r));
+  const neverLoaded = unrouted.filter((r) => failedNoResponse.has(r) && !responded.has(r));
+  for (const r of neverLoaded) requests.push({ host: hostOf(r.url()), resourceType: r.resourceType(), outcome: "REFUSED", refusal: "UNROUTED_NEVER_LOADED" });
+  const unaccounted = unrouted.length - neverLoaded.length;
   const { renderState, reason } = renderStateOf({ documentServed, navigationError, crashed, requests, unaccounted, timedOut });
   return {
     html: renderState === "FAILED" ? null : html,

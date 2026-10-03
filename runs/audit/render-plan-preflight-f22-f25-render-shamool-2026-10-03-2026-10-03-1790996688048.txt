@@ -1,0 +1,18 @@
+render plan preflight · 2026-10-03T03:04:48.048Z · engine cd47cd5c246b458a6c84964e8c9abed6c7859795 · data 1a89a90588ad6b6eb3b9fa87876118db5e67e2e3 · count-only
+PROVED  tenant: both batches, one tenant         declared: the source and evidence batches attached to the same tenant · measured: source attached · evidence attached · same tenant true
+PROVED  clean evidence batch                     declared: declared, no render evidence yet · measured: present · render.jsonl absent
+PROVED  population                               declared: 3 page(s) with a stored body · measured: source fetched pages 3 · stored bodies 3
+PROVED  refuses without the GREEN                declared: exit 3, 0 network calls · measured: exit 3 · network calls 0
+PROVED  refuses without storage permission       declared: exit 3, 0 network calls · measured: exit 3 · network calls 0
+PROVED  refuses a raised ceiling                 declared: exit 2, 0 network calls · measured: exit 2 · network calls 0
+PROVED  refuses a batch outside the declarations declared: exit 3, 0 network calls · measured: exit 3 · network calls 0
+PROVED  preflight (placement, key, F04)          declared: PASS before any request · measured: PREFLIGHT       : PASS
+PROVED  stored once, readers named               declared: 9 render records + 1 run record · measured: 9 + 1 · readers DESKTOP:F22+F25 MOBILE:F25 SOURCE:F22
+PROVED  ceiling                                  declared: ≤ 300 requests in total · measured: 181 sent (in-process)
+PROVED  real stored bodies rendered              declared: 3 document(s) answered with their stored bytes · measured: stored-body answers 3 · empty subresource answers 177
+PROVED  request count                            declared: the run's counter = every request answered in process · measured: run record 181 · answered 181 (robots 1, other 180)
+FAILED  COMPLETE browser renders                 declared: DESKTOP 3 · MOBILE 3 COMPLETE · measured: DESKTOP:PARTIAL 3 · MOBILE:PARTIAL 3 · SOURCE:PARTIAL 3
+FAILED  no FAILED render, no cap refusal         declared: 0 FAILED · 0 REQUEST_CAP · 0 RUN_CAP · measured: FAILED 0 · refused {"REQUEST_CAP":333,"UNDECLARED_HOST":30,"UNROUTED_NEVER_LOADED":9,"NOT_FETCHED_IN_RENDER":43}
+PROVED  collection verdict                       declared: KEPT · measured: COLLECTION: KEPT
+PROVED  external requests (left the machine)     declared: 0 · measured: http/https/tls attempts 0 · every fetch (181), DNS (0) and socket (0) answered in-process
+production trail unchanged: true

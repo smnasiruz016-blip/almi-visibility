@@ -19,7 +19,7 @@ const T = ["test/rr138-render-collect.test.mjs"];
 const TRAIL = "audit-trail/events.jsonl";
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
-const R1 = "R1 · refused BEFORE", R2 = "R2 · the run", R3 = "R3 · the TOTAL", R4 = "R4 · each row", R6 = "R6 · the PREFLIGHT", R7 = "R7 · the TOTAL ceiling holds", R8 = "R8 · a script";
+const R1 = "R1 · refused BEFORE", R2 = "R2 · the run", R3 = "R3 · the TOTAL", R4 = "R4 · each row", R6 = "R6 · the PREFLIGHT", R7 = "R7 · the TOTAL ceiling holds", R8 = "R8 · a script", R9 = "R9 · CONCURRENT", R10 = "R10 · with JavaScript OFF";
 
 const SABOTAGES = [
   ["X1", "a third-party subresource is refused before it leaves", P, "      if (originOf(url) === null || !admits(url)) return refused(\"UNDECLARED_HOST\");\n", "      if (originOf(url) === null) return refused(\"UNDECLARED_HOST\");\n", R2],
@@ -35,6 +35,10 @@ const SABOTAGES = [
   ["X11", "a row reads only the records that name it", RD, "    if (!Array.isArray(r.value.readBy) || !r.value.readBy.includes(row)) { notForThisRow += 1; continue; }\n", "", R4],
   ["X12", "a stored body is read only when its hash holds", RD, "      if (bytes === null || sha(bytes) !== want) { unverified += 1; return null; }\n", "      if (bytes === null) { unverified += 1; return null; }\n", R4],
   ["X13", "a script cannot send the render elsewhere", RN, "        if (documentServed && req.isNavigationRequest() && req.frame().parentFrame() === null) {\n", "        if (false) {\n", R8],
+  /* RR-139 · the two defects the live run exposed */
+  ["X14", "a page counts only its OWN requests (the run-wide delta the live run used is reinstated)", P, "      const res = await perCall.run(own, () => fetcher.fetchUrl(url));\n      made += own.n - 1;\n", "      const b0 = fetcher.requestsIssued();\n      const res = await fetcher.fetchUrl(url);\n      made += fetcher.requestsIssued() - b0 - 1;\n", R9],
+  ["X15", "an unrouted request that loaded nothing is counted REFUSED, not unaccounted", RN, "  const neverLoaded = unrouted.filter((r) => failedNoResponse.has(r) && !responded.has(r));\n", "  const neverLoaded = [];\n", R10],
+  ["X16", "a slot is reserved before the await, so concurrent calls cannot all pass the cap", P, "      made += 1;\n      const verdict = await robots.check(url);\n      if (!verdict.allowed) { made -= 1; return", "      const verdict = await robots.check(url);\n      if (!verdict.allowed) { return", R9],
 ];
 
 const files = [...new Set(SABOTAGES.map((s) => s[2]))];
@@ -82,6 +86,6 @@ restoreAll();
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "rr138-render-collect-sabotage-2026-10-02.txt"), lines.join("\n") + "\n");
+writeFileSync(join(REPO, "runs", "audit", "rr138-render-collect-sabotage-rr139-2026-10-03.txt"), lines.join("\n") + "\n");
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

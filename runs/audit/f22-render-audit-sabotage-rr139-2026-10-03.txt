@@ -1,0 +1,22 @@
+F22 render-audit sabotage run · 2026-10-03T01:54:44.555Z
+population: 15 sabotages over test/f22-render-audit.test.mjs · each applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): K1=1 K2=1 K3=1 K4=1 K5=1 K6=1 K7=1 K8=1 K9=1 K10=1 K12=1 K13=1 K14=1 K16=1 K15=1 · all exactly once: true
+production trail sha256 before: f665be15f20dab4976a3d938967c13f013d6ff3f475f7aa0ced2a88e9a097e1b
+
+K1 C2: no comparison against a non-COMPLETE render src/audit/render-compare.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+K2 C3: the render's links are read from the render src/audit/render-compare.mjs: landed true · named test red true · failing 3 · reason AssertionError · restored by sha256 true · PROVED
+K3 C3: links are read from elements, not script text src/audit/render-compare.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+K4 C3: an unparseable JSON-LD block is counted src/audit/render-compare.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+K5 C6: a page without a body is in every dimension's NOT MEASURED src/audit/render-compare.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+K6 C4: an undeclared host is refused src/render/same-origin-policy.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+K7 C4: robots rules are obeyed src/render/same-origin-policy.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+K8 C4: an oversized response is refused src/render/same-origin-policy.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+K9 C4: the cap counts requests started, hops and retries included src/render/same-origin-policy.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+K10 C4: no response cache crosses pages src/render/same-origin-policy.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+K12 C4: live mode needs the owner's green bin/render-audit.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+K13 C1: a body is read only when its hash matches the batch's record bin/render-audit.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+K14 C1: only pages of the subject's declared site are rendered bin/render-audit.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+K16 C4: live mode requests the document itself through the policy bin/render-audit.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+K15 C5: the render path never reads the sealed directory bin/render-audit.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+
+proved 15 of 15 · residue 0 · production trail sha256 after: f665be15f20dab4976a3d938967c13f013d6ff3f475f7aa0ced2a88e9a097e1b · unchanged true

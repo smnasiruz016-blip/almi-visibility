@@ -26,7 +26,7 @@ process.on("exit", () => WORLD.cleanup());
 import assert from "node:assert/strict";
 import { readFileSync, mkdtempSync, mkdirSync, rmSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const PRODUCER = "bin/build-page.mjs";
@@ -156,26 +156,68 @@ test("🔴 CONTROL: the guard FIRES on the unsafe shape, and REFUSES to guess on
  * The STRUCTURAL test above is what proves the property. It is static and platform-independent.
  * TTY-attached stdout is NOT exercised here and is left untested.
  */
-test("🔴 BOUNDED EXIT: over a PIPE the runner terminates and does not hang (a); the tail is present (b, not probative on Windows)", () => {
+/**
+ * 🔴 WHAT (a) MEASURES (RR-140 §1, 3 Oct 2026). A drain HANG is a process that has written its final report and then never exits. So the
+ * verdict is measured from the moment the report's summary line arrives to the moment the process exits: that interval holds only the
+ * drain and the exit, and does not grow with the work the build does or with how loaded the machine is.
+ *
+ * The first version bounded the WHOLE build by wall clock (60 s). Measured: 13–16 s alone; 39.6–41.7 s inside the full suite on five
+ * runs; 60.2 s, killed, on two runs once the suite grew. Its verdict depended on parallel load, not on a hang.
+ *
+ * The outer limit only stops a run that never reaches its report at all. That is a different verdict ("never reached its report"),
+ * never a hang, and it is not what (a) claims. The CONTROL below drives the SAME function with a process that prints the same tail and
+ * never exits, and it must read HANG.
+ */
+const TAIL_MARKER = /ACCEPTED \d+ of \d+ candidate\(s\)/;
+const HANG_GRACE_MS = 20_000; // 4× the runner's own DRAIN_TIMEOUT_MS fallback (5 s)
+const NEVER_REPORTED_MS = 600_000;
+export function runToExit(argv, { env, graceMs = HANG_GRACE_MS, outerMs = NEVER_REPORTED_MS } = {}) {
+  return new Promise((resolve) => {
+    // stdio "pipe" — the shape CI uses, and the shape whose asynchronous stdout the drain exists for
+    const child = spawn(process.execPath, argv, { cwd: REPO, env, stdio: ["ignore", "pipe", "pipe"] });
+    let stdout = "", tailAt = null, verdict = null, grace = null;
+    const outer = setTimeout(() => { verdict = "NEVER_REPORTED"; child.kill(); }, outerMs);
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (d) => {
+      stdout += d;
+      if (tailAt === null && TAIL_MARKER.test(stdout)) {
+        tailAt = Date.now();
+        clearTimeout(outer);
+        grace = setTimeout(() => { verdict = "HANG"; child.kill(); }, graceMs);
+      }
+    });
+    child.stderr.resume();
+    child.on("close", (status, signal) => {
+      clearTimeout(outer); clearTimeout(grace);
+      resolve({ verdict: verdict ?? (tailAt === null ? "EXITED_WITHOUT_REPORT" : "EXITED"), status, signal, stdout, tailToExitMs: tailAt === null ? null : Date.now() - tailAt });
+    });
+  });
+}
+
+test("🔴 CONTROL (a): the SAME measurement reads HANG for a process that prints the tail and never exits, and EXITED for one that exits", async () => {
+  const hang = await runToExit(["-e", "console.log('ACCEPTED 0 of 1 candidate(s).'); setInterval(() => {}, 1000);"], { graceMs: 1500 });
+  assert.equal(hang.verdict, "HANG", "a process that never exits after its tail was not read as a hang");
+  const ok = await runToExit(["-e", "console.log('ACCEPTED 0 of 1 candidate(s).');"], { graceMs: 1500 });
+  assert.equal(ok.verdict, "EXITED");
+  assert.equal(ok.status, 0);
+  const silent = await runToExit(["-e", "setInterval(() => {}, 1000);"], { outerMs: 1500 });
+  assert.equal(silent.verdict, "NEVER_REPORTED", "a process that never reports was read as something else");
+});
+
+test("🔴 BOUNDED EXIT: over a PIPE the runner terminates and does not hang (a); the tail is present (b, not probative on Windows)", async () => {
   mkdirSync(join(REPO, ".test-scratch"), { recursive: true });
   const out = mkdtempSync(join(REPO, ".test-scratch", "drain-"));
-  const BOUND_MS = 60_000;
   let r;
-  const started = Date.now();
   try {
-    // stdio defaults to "pipe" — the shape spawnSync gives and the shape CI uses.
-    r = spawnSync(process.execPath, WORLD.argv(["bin/build-page.mjs", "--product=almi-oet", "--all-slugs", `--out=${out}`, "--confirm"]), {
-      cwd: REPO, encoding: "utf8", timeout: BOUND_MS, env: WORLD.envWith(),
-    });
+    r = await runToExit(WORLD.argv(["bin/build-page.mjs", "--product=almi-oet", "--all-slugs", `--out=${out}`, "--confirm"]), { env: WORLD.envWith() });
   } finally {
     rmSync(out, { recursive: true, force: true });
   }
-  const elapsed = Date.now() - started;
 
+  console.log(`  [BOUNDED EXIT] verdict ${r.verdict} · tail→exit ${r.tailToExitMs} ms (hang bound ${HANG_GRACE_MS} ms after the report)`);
   // (a) — platform-independent, and the reason this test exists alongside the structural one.
-  assert.equal(r.signal, null, `(a) HANG: the runner was killed after ${BOUND_MS}ms — a drain that never completes is worse than a truncated one`);
-  assert.equal(r.error, undefined, `(a) the runner did not complete: ${r.error?.message ?? ""}`);
-  assert.ok(elapsed < BOUND_MS, `(a) the runner took ${elapsed}ms, at or beyond the ${BOUND_MS}ms bound`);
+  assert.notEqual(r.verdict, "HANG", `(a) HANG: the runner printed its report and did not exit within ${HANG_GRACE_MS}ms — a drain that never completes is worse than a truncated one`);
+  assert.equal(r.verdict, "EXITED", `(a) the runner did not reach and finish its report: ${r.verdict}`);
   assert.equal(r.status, 2, "(a) the fail-closed refusal must still exit 2 after draining");
 
   // (b) — meaningful on POSIX CI, NOT probative on Windows where pipe writes are synchronous.

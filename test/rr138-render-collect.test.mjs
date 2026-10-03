@@ -197,6 +197,41 @@ test("R7 · the TOTAL ceiling holds INSIDE a resource: a redirect hop that would
   assert.equal(policy.requestsIssued(), 2);
 });
 
+test("R9 · CONCURRENT subresources: a page counts exactly the requests its own calls sent — 12 parallel resolves under a cap of 60 are all served; under a cap of 5, exactly 5 are sent (RR-139: the live run's false REQUEST_CAP)", async () => {
+  const { createSameOriginPolicy } = await import("../src/render/same-origin-policy.mjs");
+  for (const [cap, served] of [[60, 12], [5, 5]]) {
+    const sent = [];
+    const fetchImpl = async (u) => {
+      sent.push(new URL(u).pathname);
+      if (new URL(u).pathname === "/robots.txt") return new Response("User-agent: *\nAllow: /\n", { status: 200 });
+      await new Promise((r) => setTimeout(r, 5));
+      return new Response("x", { status: 200 });
+    };
+    const policy = createSameOriginPolicy({ fetchImpl, admits: (u) => new URL(u).origin === "https://site.invalid", bounds: { maxRequestsPerPage: cap, maxTotalRequests: 300, intervalMs: 0, timeoutMs: 1000, maxResponseBytes: 1000 } });
+    const page = policy.forPage();
+    const results = await Promise.all(Array.from({ length: 12 }, (_, i) => page.resolve(`https://site.invalid/r${i}.js`)));
+    assert.equal(results.filter((r) => r.served).length, served, `cap ${cap}: served`);
+    assert.equal(results.filter((r) => !r.served && r.refusal === "REQUEST_CAP").length, 12 - served, `cap ${cap}: refused as REQUEST_CAP`);
+    assert.equal(sent.filter((p) => p !== "/robots.txt").length, served, `cap ${cap}: requests sent beyond what was served`);
+    assert.equal(page.requestsMade(), served, `cap ${cap}: the page's count is not its own requests`);
+  }
+});
+
+test("R10 · with JavaScript OFF, a script preload the route never sees, which loads nothing, is counted REFUSED (UNROUTED_NEVER_LOADED): the render is PARTIAL — never FAILED, never COMPLETE (RR-139: every live SOURCE render read FAILED)", { skip: NO_BROWSER }, async () => {
+  const { launchOfflineChromium, startDocumentServer, renderDocument } = await import("../src/render/renderer.mjs");
+  const { browser } = await launchOfflineChromium({ chromium: PW.chromium, playwrightVersion: PW.version });
+  const docs = { pre: `<html><head><link rel="preload" as="script" href="/_x/b.js"></head><body><p>b</p></body></html>`, mod: `<html><head><link rel="modulepreload" href="/_x/c.js"></head><body><p>c</p></body></html>` };
+  const server = await startDocumentServer(new Map(Object.entries(docs).map(([k, body]) => [k, { body }])));
+  try {
+    for (const k of Object.keys(docs)) {
+      const r = await renderDocument({ browser, origin: server.origin, id: k, documentUrl: `https://site.invalid/${k}`, egress: [], javaScriptEnabled: false, readVisibleText: true, subresources: async () => ({ served: false, refusal: "NOT_FETCHED_IN_RENDER" }) });
+      assert.equal(r.renderState, "PARTIAL", `${k}: ${r.reason}`);
+      assert.equal(r.unaccounted, 0);
+      assert.equal(r.requests.refusedByReason.UNROUTED_NEVER_LOADED, 1, `${k}: the unrouted request was not counted`);
+    }
+  } finally { await browser.close(); await server.close(); }
+});
+
 test("R8 · a script that sends the page elsewhere is refused (NAVIGATION_AWAY): nothing from elsewhere enters, and the render is PARTIAL, never COMPLETE", { skip: NO_BROWSER }, async () => {
   const { launchOfflineChromium, startDocumentServer, renderDocument } = await import("../src/render/renderer.mjs");
   const { browser } = await launchOfflineChromium({ chromium: PW.chromium, playwrightVersion: PW.version });

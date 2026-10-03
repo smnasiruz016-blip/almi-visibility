@@ -280,9 +280,12 @@ test("V7 · the REAL population: 46 governed = 45 routed + 1 checked exemption +
   /* 101/50 → 102/50 on 3 October (F16, RR-146 §2), for a MEASURED reason: one production entry point, bin/research-routes.mjs,
    * READ_ONLY_DIAGNOSTIC — it reads one product's F13 axes and fact registry and prints route, applicability and plan counts; it fetches,
    * writes and records nothing. No existing caller moved class (bin/source-intake.mjs's route mode stays GOVERNED, ROUTED). */
-  assert.equal(rows.length, 102);
+  /* 102/50 → 103/50 on 3 October (F62, RR-149 §5), for a MEASURED reason: one production entry point, bin/applicability.mjs,
+   * READ_ONLY_DIAGNOSTIC — it reads one product's F13 axes and fact registry and prints the derived declaration's counts; it fetches,
+   * writes and records nothing (head CI 37144288646 on dc53932 went red on this pin: 103 !== 102). No existing caller moved class. */
+  assert.equal(rows.length, 103);
   assert.equal(governed.length, 50);
-  assert.equal(rows.filter((r) => r.cls === "READ_ONLY_DIAGNOSTIC").length, 52);
+  assert.equal(rows.filter((r) => r.cls === "READ_ONLY_DIAGNOSTIC").length, 53);
   const by = Object.fromEntries(CALLER_CLASSES.map((c) => [c, governed.filter((r) => r.callerClass === c).length]));
   /* 43/2 → 44/1 on 26 September (F10), for a MEASURED reason: bin/heldout-evaluation.mjs now routes its scoring run through the
    * boundary (BOUNDARY_ROUTED); no entry point was added and no other caller moved class. */

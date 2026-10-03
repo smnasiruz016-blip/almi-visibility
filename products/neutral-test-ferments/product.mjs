@@ -45,7 +45,9 @@ export const PRODUCT = registerProduct({
   axis: { key: "ferment", label: "Ferment" },
   variants: ["sauerkraut", "kimchi", "kombucha", "water-kefir", "miso"],
   /* RR-146 · the product's declared research block (F16 routes): a test topic, a route bound and one fixture source — never fetched */
-  research: { topic: "declared test topic two", maxRoutes: 6, language: "en", sources: [{ sourceId: "stack-exchange", site: "fixture-site-two" }] },
+  research: { topic: "declared test topic two", maxRoutes: 6, language: "en", sources: [{ sourceId: "stack-exchange", site: "fixture-site-two" }],
+    /* RR-146 addendum · where this test product may apply: a declared research scope (never a page plan) */
+    applicability: { dimension: "declared-scope", values: ["scope-one", "scope-two"] } },
 
   factsDir: join(HERE, "facts"),
   pageSpecs: {},

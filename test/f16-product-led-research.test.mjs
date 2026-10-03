@@ -23,6 +23,7 @@ import { spawnSync } from "node:child_process";
 import { researchRoutes, requestPlanFor, RESEARCH_KINDS, NOT_MEASURED, ROUTE_RECORD } from "../src/research/research-routes.mjs";
 import { intakeFromRoute, LEAD_RECORD, AUTHOR_EVIDENCE } from "../src/research/lead-intake.mjs";
 import { samenessFromDeclaration } from "../src/research/sameness.mjs";
+import { applicabilityOf } from "../src/research/applicability.mjs";
 import { intakeQuestions, groupQuestions, originalsOf, RECORD_TYPE } from "../src/research/public-questions.mjs";
 import { DECLARATION as SOURCE } from "../src/research/adapters/stack-exchange.mjs";
 import { readProductAxes } from "../src/discovery/context-axes-reader.mjs";
@@ -38,8 +39,10 @@ const TRAIL = join(REPO, "audit-trail", "events.jsonl");
 const trailSha = () => (existsSync(TRAIL) ? createHash("sha256").update(readFileSync(TRAIL)).digest("hex") : "absent");
 const TRAIL_BEFORE = trailSha();
 const TMP = join(tmpdir(), `almi-f16-product-led-${process.pid}`);
-const NEW = ["src/research/research-routes.mjs", "src/research/lead-intake.mjs", "src/research/sameness.mjs"];
+const NEW = ["src/research/research-routes.mjs", "src/research/lead-intake.mjs", "src/research/sameness.mjs", "src/research/applicability.mjs", "src/research/research-plan-reader.mjs"];
 
+/* Q1/Q2 test route derivation itself, so they use the second product WITHOUT its applicability declaration */
+const UNSCOPED_FERMENTS = { ...FERMENTS, research: { ...FERMENTS.research, applicability: undefined } };
 const axesOf = async (p) => (await readProductAxes({ product: p, tenantId: null, resolve: null })).axes;
 const item = (n, over = {}) => ({ wording: `declared test topic one question ${n}?`, wordingOrigin: "SOURCE_TEXT", sourceUrl: `https://fixture-qa.invalid/q/${n}`, postVersion: `v${n}`,
   licenceName: "CC BY-SA", licenceVersion: "4.0", attribution: `fixture-author-${n}`, observedAt: "2026-10-03T09:00:00Z", country: NOT_MEASURED, language: "en", ...over });
@@ -50,7 +53,7 @@ const PROFILE = { subject: "neutral-test-knots", profileId: "fixture-profile-one
 
 test("Q1 · routes come from F13's EVIDENCED declared dimensions on TWO unrelated products — one topic route + one per declared value, never combined; the universe is a count", async () => {
   const k = researchRoutes({ subject: KNOTS.productId, product: KNOTS, axes: await axesOf(KNOTS) });
-  const f = researchRoutes({ subject: FERMENTS.productId, product: FERMENTS, axes: await axesOf(FERMENTS) });
+  const f = researchRoutes({ subject: FERMENTS.productId, product: UNSCOPED_FERMENTS, axes: await axesOf(FERMENTS) });
   assert.equal(k.routes.length, 1 + KNOTS.variants.length);
   assert.equal(f.routes.length, 1 + FERMENTS.variants.length);
   assert.deepEqual(k.dimensionsUsed, [{ key: KNOTS.axis.key, values: KNOTS.variants.length }]);
@@ -66,10 +69,10 @@ test("Q1 · routes come from F13's EVIDENCED declared dimensions on TWO unrelate
 
 test("Q2 · a route set over the declared bound is REFUSED whole, never truncated (CONTROL: within the bound it is built)", async () => {
   const axes = await axesOf(FERMENTS);
-  const tight = researchRoutes({ subject: FERMENTS.productId, product: { ...FERMENTS, research: { ...FERMENTS.research, maxRoutes: 3 } }, axes });
+  const tight = researchRoutes({ subject: FERMENTS.productId, product: { ...UNSCOPED_FERMENTS, research: { ...UNSCOPED_FERMENTS.research, maxRoutes: 3 } }, axes });
   assert.equal(tight.routes, NOT_MEASURED);
   assert.match(tight.refusals[0], /^ROUTE_BOUND_EXCEEDED — 6 route\(s\) against a declared maxRoutes of 3/);
-  assert.equal(researchRoutes({ subject: FERMENTS.productId, product: FERMENTS, axes }).routes.length, 6, "CONTROL: the bound could not build");
+  assert.equal(researchRoutes({ subject: FERMENTS.productId, product: UNSCOPED_FERMENTS, axes }).routes.length, 6, "CONTROL: the bound could not build");
 });
 
 test("Q3 · a CANDIDATE never yields a route; a NOT EVIDENCED declaration is excluded with its reason; without a research block routes are NOT MEASURED, the missing declaration named", async () => {
@@ -218,6 +221,78 @@ test("Q6 · THE PRODUCTION ENTRY POINTS, offline: routes counted; a route run ke
     assert.equal(refused.status, 3);
     assert.match(refused.stderr, /SAMENESS_METHOD_NOT_ACCEPTED/);
   } finally { W.cleanup(); rmSync(TMP, { recursive: true, force: true }); }
+});
+
+/* ================= applicability (owner addendum) ================= */
+
+const PERSONS = ["human:Fixture Checker"];
+const NOW = new Date("2026-10-03T00:00:00Z");
+/* a fixture fact shaped so the EXISTING F46 audit can PROVE it and F45 finds it USABLE — the checks are the real ones, not copies */
+const fact = (id, locale, outcome, over = {}) => ({
+  id, locale, ...(outcome ? { applicability: { outcome } } : {}), source: { tier: 1 }, freshness: { days: 180 }, life: { extractedOn: "2026-10-01" },
+  verification: { checkedOn: "2026-10-01", verdict: "VERIFIED", checkedBy: PERSONS[0], elementsConfirmedKeys: ["outcome"] },
+  checks: { linkCheckOutcome: "pass", linkCheckedOn: "2026-10-01", quoteMatchOutcome: "not-applicable", fingerprintOutcome: "pass", fingerprintCheckedOn: "2026-10-01" }, ...over,
+});
+const DECL = { dimension: "region", values: ["r-one", "r-two", "r-three"] };
+
+test("Q8 · FOUR OUTCOMES, KEPT DISTINCT: read only from a stated outcome on a tier-1 record the existing F46 audit PROVES and F45 finds USABLE; ACCEPTED is never REQUIRED; a conflict, a weaker source, a failed audit, a stale record or an unstated outcome stays UNKNOWN; one institution is one institution", () => {
+  const facts = [
+    fact("f1", { knot: "bowline", region: "r-one" }, "REQUIRED"),
+    fact("f2", { knot: "bowline", region: "r-two" }, "ACCEPTED"),
+    fact("f3", { knot: "bowline", region: "r-three" }, "NOT_REQUIRED"),
+    fact("f4", { knot: "clove-hitch", region: "r-one" }, "REQUIRED"), fact("f5", { knot: "clove-hitch", region: "r-one" }, "NOT_REQUIRED"),
+    /* F46 ADMITS a record NAMED OFFICIAL with no numeric tier — it never says it is the deciding body (tier 1), so only the tier-1 rule keeps it out */
+    fact("f6", { knot: "clove-hitch", region: "r-two" }, "REQUIRED", { source: {}, verification: { checkedOn: "2026-10-01", verdict: "VERIFIED", checkedBy: PERSONS[0], elementsConfirmedKeys: ["outcome"], sourceTier: "OFFICIAL" } }),
+    fact("f7", { knot: "clove-hitch", region: "r-three" }, "REQUIRED", { life: { extractedOn: "2025-01-01" } }),
+    fact("f8", { knot: "sheet-bend", region: "r-one" }, null, { claim: "this region requires it" }),
+    fact("f9", { knot: "sheet-bend", region: "r-two", institution: "inst-one" }, "REQUIRED"),
+  ];
+  const a = applicabilityOf({ facts, axisKey: "knot", routeValues: KNOTS.variants, declaration: DECL, persons: PERSONS, now: NOW });
+  const at = (k, r) => a.combinations.find((c) => c.combination.knot === k && c.combination.region === r);
+  assert.equal(a.population, 9);
+  assert.equal(a.date, "2026-10-03");
+  assert.deepEqual([at("bowline", "r-one").outcome, at("bowline", "r-two").outcome, at("bowline", "r-three").outcome], ["REQUIRED", "ACCEPTED", "NOT_REQUIRED"], "an outcome was changed");
+  assert.match(at("clove-hitch", "r-one").why, /^CONFLICT/);
+  assert.match(at("clove-hitch", "r-two").why, /not tier 1/, "a source F46 admits but that is not the deciding body was counted");
+  assert.match(at("clove-hitch", "r-three").why, /freshness STALE/);
+  assert.equal(at("sheet-bend", "r-one").outcome, "UNKNOWN", "an outcome was inferred from a claim's words");
+  assert.equal(at("sheet-bend", "r-two").outcome, "UNKNOWN", "one institution decided the whole combination");
+  assert.deepEqual(a.institutions.map((x) => [x.institution, x.outcome]), [["inst-one", "REQUIRED"]]);
+  assert.deepEqual(a.counts, { REQUIRED: 1, ACCEPTED: 1, NOT_REQUIRED: 1, UNKNOWN: 6 });
+  assert.equal(Object.values(a.counts).reduce((x, y) => x + y, 0), a.population, "the outcomes do not sum to their population");
+  const noRoster = applicabilityOf({ facts, axisKey: "knot", routeValues: KNOTS.variants, declaration: DECL, persons: [], now: NOW });
+  assert.deepEqual(noRoster.counts, { REQUIRED: 0, ACCEPTED: 0, NOT_REQUIRED: 0, UNKNOWN: 9 }, "with no declared checker no citation is PROVED, so nothing is known");
+  assert.equal(applicabilityOf({ facts, axisKey: "knot", routeValues: KNOTS.variants, declaration: null, persons: PERSONS, now: NOW }).measured, false);
+});
+
+test("Q9 · applicability NARROWS routes on two unrelated products — only REQUIRED and ACCEPTED combinations survive, before and after counted; unmeasured applicability yields NO routes; nothing is a page", async () => {
+  const product = { ...KNOTS, research: { ...KNOTS.research, maxRoutes: 10, applicability: DECL } };
+  const facts = [fact("f1", { knot: "bowline", region: "r-one" }, "REQUIRED"), fact("f2", { knot: "bowline", region: "r-two" }, "ACCEPTED"), fact("f3", { knot: "sheet-bend", region: "r-one" }, "NOT_REQUIRED")];
+  const a = applicabilityOf({ facts, axisKey: "knot", routeValues: KNOTS.variants, declaration: DECL, persons: PERSONS, now: NOW });
+  const r = researchRoutes({ subject: KNOTS.productId, product, axes: await axesOf(KNOTS), applicability: a });
+  assert.deepEqual([r.narrowing.before, r.narrowing.after], [4, 3]);
+  assert.deepEqual(r.routes.slice(1).map((x) => [x.value, x.context.value, x.context.outcome]), [["bowline", "r-one", "REQUIRED"], ["bowline", "r-two", "ACCEPTED"]]);
+  assert.ok(!r.routes.some((x) => x.context?.outcome === "NOT_REQUIRED" || x.context?.outcome === "UNKNOWN"), "a non-applicable combination was routed");
+  const unmeasured = researchRoutes({ subject: KNOTS.productId, product, axes: await axesOf(KNOTS), applicability: null });
+  assert.equal(unmeasured.routes, NOT_MEASURED);
+  assert.match(unmeasured.refusals[0], /^APPLICABILITY_NOT_MEASURED/);
+  const ferm = applicabilityOf({ facts: [fact("g1", { ferment: "miso", "declared-scope": "scope-two" }, "ACCEPTED")], axisKey: "ferment", routeValues: FERMENTS.variants, declaration: FERMENTS.research.applicability, persons: PERSONS, now: NOW });
+  const rf = researchRoutes({ subject: FERMENTS.productId, product: FERMENTS, axes: await axesOf(FERMENTS), applicability: ferm });
+  assert.deepEqual([rf.narrowing.before, rf.narrowing.after, rf.routes.length], [6, 2, 2]);
+  assert.doesNotMatch(JSON.stringify([r, rf]), /"page|pages":/i, "a route or a narrowing carried a page");
+});
+
+test("Q10 · THE ENTRY POINT on two declared products: one declares applicability (counted over its population and date, routes narrowed), one does not (said so) — and both print that no page was created or counted", () => {
+  const W = declaredWorld();
+  try {
+    const run = (p) => spawnSync(process.execPath, ["bin/research-routes.mjs", `--product=${p}`, `--tenant=${FIXTURE_TENANT}`, `--actor=${W.actor}`], { cwd: REPO, encoding: "utf8", env: W.envWith() });
+    const f = run(FERMENTS.productId), k = run(KNOTS.productId);
+    assert.equal(f.status, 0, f.stdout + f.stderr);
+    assert.match(f.stdout, /applicability {4}of 10 combination\(s\) the routes need, measured \d{4}-\d{2}-\d{2}: REQUIRED 0 · ACCEPTED 0 · NOT_REQUIRED 0 · UNKNOWN 10/);
+    assert.match(f.stdout, /narrowing {8}routes before 6 → after 1/);
+    assert.match(k.stdout, /applicability {4}NOT DECLARED by the product/);
+    for (const x of [f, k]) assert.match(x.stdout, /pages {12}0 created and 0 counted/);
+  } finally { W.cleanup(); }
 });
 
 /* ================= neutrality, network, real ================= */

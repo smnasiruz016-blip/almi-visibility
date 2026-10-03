@@ -26,8 +26,7 @@ import { BATCH_PURPOSES } from "../src/research/human-observation.mjs";
 import { RECORD_TYPE, PILOT_MARK } from "../src/research/public-questions.mjs";
 import { productFromArgvOrExit } from "../src/product-cli.mjs";
 import { createTenantResolver } from "../src/tenancy/resolver.mjs";
-import { readProductAxes } from "../src/discovery/context-axes-reader.mjs";
-import { researchRoutes } from "../src/research/research-routes.mjs";
+import { readResearchPlan } from "../src/research/research-plan-reader.mjs";
 import { intakeFromRoute } from "../src/research/lead-intake.mjs";
 import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
@@ -69,8 +68,7 @@ if (ROUTE_ID) {
   /* the product is THIS subject's only when the subject declares the product's own fact registry among its members */
   const members = lookupSubject(index, SUBJECT).entry?.members ?? [];
   if (!members.some((m) => m.resourceKind === "FACT_REGISTRY" && String(m.resourceRef).split(":").pop().split("/")[0] === product?.productId)) { console.error("🔴 REFUSED — PRODUCT_IS_NOT_THIS_SUBJECTS: the subject does not declare this product's fact registry; nothing written"); process.exit(3); }
-  const { axes } = await readProductAxes({ product, tenantId: SCOPE.tenantId, resolve: createTenantResolver() });
-  const plan = researchRoutes({ subject: SUBJECT, product, axes });
+  const { plan } = await readResearchPlan({ product, subject: SUBJECT, tenantId: SCOPE.tenantId, resolve: createTenantResolver() });
   const route = Array.isArray(plan.routes) ? plan.routes.find((x) => x.route_id === ROUTE_ID) : null;
   if (!route) { console.error(`🔴 REFUSED — ROUTE_UNKNOWN: no research route of that id for this product (${plan.routes === "NOT MEASURED" ? `routes NOT MEASURED — missing ${plan.refusals.join("; ")}` : `${plan.routes.length} route(s)`}); nothing written`); process.exit(3); }
   const qFile = join(batchDir, "questions.jsonl");

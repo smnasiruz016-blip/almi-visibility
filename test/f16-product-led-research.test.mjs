@@ -201,6 +201,7 @@ test("Q6 · THE PRODUCTION ENTRY POINTS, offline: routes counted; a route run ke
     assert.doesNotMatch(first.stdout, /https?:\/\/|declared test topic one question|fixture-author/);
     const dir = join(W.root, "research", BATCH);
     const lines = (f) => readFileSync(join(dir, f), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+    assert.ok(existsSync(join(dir, "leads.jsonl")), "no leads store was written — leads were not kept apart");
     assert.equal(lines("leads.jsonl").length, 3);
     assert.equal(lines("questions.jsonl").length, 1);
     assert.ok(lines("leads.jsonl").every((l) => l.record_type === LEAD_RECORD));

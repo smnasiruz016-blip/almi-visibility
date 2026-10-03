@@ -21,15 +21,18 @@ const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, 
 const OUT = confineToRepo(`${REPO}config/fboard/capabilities.mjs`, { label: "the generated capability rows" });
 export const EXTRACT_PROVENANCE = Object.freeze({
   repo: "_handoffs",
-  /* Specification Amendment 3 (RR-103 §2; _handoffs beb7362): the amended_2 extract with ONE row appended — F91 Page opportunity
+  /* Specification Amendment 4 (RR-153 §3; _handoffs 6c606b2): the amended_3 extract with ONE sentence APPENDED to F91's line — F91 owns the
+   * governed question-to-page-candidate connection (the owner's assignment, RR-153 §2). Exactly one line differs; 91 rows; every other row
+   * unchanged. Amendments 1–3 stay in history, their extracts byte-immutable. */
+  /* (history) Specification Amendment 3 (RR-103 §2; _handoffs beb7362): the amended_2 extract with ONE row appended — F91 Page opportunity
    * planning — and its two count sentences 90 → 91. 91 rows; F01–F90 unchanged. The control F91 held ("the id one past the last row does
    * not exist") is restated as F92. Amendments 1 and 2 stay in history. */
   /* (history) Specification Amendment 2 (RR-80 §2; _handoffs 388ae02, applied 3f86fbf): the amended_1 extract with ten rows’ required
    * outcomes amended in place (F10 F14 F15 F16 F37 F38 F42 F44 F50 F62; F62 class to Core). 90 rows, ids unchanged. Amendment 1
    * (owner ruling a3a777b, amended_1 at 3738b25, sha256 56e2575a…) stays in history. The .docx and the v1 extract stay byte-immutable. */
-  path: "AlmiVisibility_Standalone_Product_Feature_Specification_v1.amended_3.extract.txt",
-  commit: "beb736250d9c44dfe46c345d78af7830c5ca6d67",
-  sha256: "179cb43a3a3dd59451eb5cac37ae54ccc112f2617d794d3974b805df164564f8",
+  path: "AlmiVisibility_Standalone_Product_Feature_Specification_v1.amended_4.extract.txt",
+  commit: "6c606b23effa9f5ae3bb9d94b1f6ee69fbbdfb04",
+  sha256: "53db85b7968941a0e694022013bf4f11cb89f2ecd587581f17b63663e7cd892a",
 });
 const sha = (s) => createHash("sha256").update(s, "utf8").digest("hex");
 

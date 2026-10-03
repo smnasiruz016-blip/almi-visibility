@@ -1,0 +1,33 @@
+RR-153 F91 connection sabotage run · 2026-10-03T21:33:39.387Z
+population: 25 sabotages over test/f91-connection.test.mjs · each applied ALONE; each run killed after 300 s
+BASELINE (unsabotaged): passing 17 · failing 0 · every named test green: true
+PRE-FLIGHT (span occurrences in the code live now): Y1=1 Y2=1 Y3=1 Y4=1 Y5=1 Y6=1 Y7=1 Y8=1 Y9=1 Y10=1 Y11=1 Y12=1 Y13=1 Y14=1 Y15=1 Y16=1 Y17=1 Y18=1 Y19=1 Y20=1 Y21=1 Y22=1 Y23=1 Y24=1 Y25=1 · all exactly once: true
+production trail sha256 before: 191eeab0e00b8434b3a8fc4ec44c7ce909aedd6e12569dca8f7e13b1d337c2af
+
+Y1 C9 a search lead is refused by name src/page/demand-connection.mjs: landed true · named test (K2 ·) red true · failing 3 · reason AssertionError · restored true · PROVED
+Y2 C9 a keyword idea is refused by name src/page/demand-connection.mjs: landed true · named test (K2 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+Y3 C9 a client's claim is refused by name src/page/demand-connection.mjs: landed true · named test (K2 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+Y4 C9 only an OBSERVED question is demand src/page/demand-connection.mjs: landed true · named test (K2 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+Y5 C9 a fixture or test record is refused src/page/demand-connection.mjs: landed true · named test (K2 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+Y6 C9 another product's or tenant's question is refused src/page/demand-connection.mjs: landed true · named test (K2 ·) red true · failing 3 · reason AssertionError · restored true · PROVED
+Y7 C9 an author attribute not stated on the original post is refused src/page/demand-connection.mjs: landed true · named test (K2 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+Y8 C9 an observer label that contradicts its type is refused src/page/demand-connection.mjs: landed true · named test (K2 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+Y9 C9 a duplicate write is refused src/page/demand-connection.mjs: landed true · named test (K2 ·) red true · failing 2 · reason AssertionError · restored true · PROVED
+Y10 C9 the page candidate must be one of F91's possible combinations src/page/demand-connection.mjs: landed true · named test (K2 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+Y11 C10 country never splits one need src/page/demand-connection.mjs: landed true · named test (K3 ·) red true · failing 7 · reason AssertionError · restored true · PROVED
+Y12 C10 needs never merge by similarity src/page/demand-connection.mjs: landed true · named test (K4 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+Y13 C10 a recorded judgement joins a translation to the SAME need src/page/demand-connection.mjs: landed true · named test (K3 ·) red true · failing 3 · reason AssertionError · restored true · PROVED
+Y14 C10 a country-specific difference is kept as a section src/page/demand-connection.mjs: landed true · named test (K5 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+Y15 C10 one need has one page candidate src/page/demand-connection.mjs: landed true · named test (K6 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+Y16 C11 the answer only from the product's own official site src/page/demand-connection.mjs: landed true · named test (K7 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+Y17 C11 two different answers for one need are never chosen between src/page/demand-connection.mjs: landed true · named test (K7 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+Y18 C11 a checker field is refused src/page/demand-connection.mjs: landed true · named test (K8 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+Y19 C12 an existing page that serves the need is honoured src/page/demand-connection.mjs: landed true · named test (K9 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+Y20 C12 an UNKNOWN answer is HELD, never recommended src/page/demand-connection.mjs: landed true · named test (K9 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+Y21 the planner's reader takes the need record as neither a limb nor malformed src/page/page-opportunities-reader.mjs: landed true · named test (K10 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+Y22 a connection is INFERRED, never OBSERVED src/evidence/evidence-state-adapters.mjs: landed true · named test (K12 ·) red true · failing 3 · reason AssertionError · restored true · PROVED
+Y23 without --confirm nothing is written bin/demand-connect.mjs: landed true · named test (ENTRY4 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+Y24 the product must be the subject's (no tenant crossover at the entry point) bin/demand-connect.mjs: landed true · named test (ENTRY5 ·) red true · failing 2 · reason AssertionError · restored true · PROVED
+Y25 the answer source is the product's own declared official site bin/demand-connect.mjs: landed true · named test (ENTRY5 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+
+proved 25 of 25 · residue 0 · production trail sha256 after: 191eeab0e00b8434b3a8fc4ec44c7ce909aedd6e12569dca8f7e13b1d337c2af · unchanged true

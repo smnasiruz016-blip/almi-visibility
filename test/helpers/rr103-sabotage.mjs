@@ -23,12 +23,14 @@ const read = (p) => readFileSync(join(REPO, p));
 
 const SABOTAGES = [
   ["G01", "DENOMINATOR back to 90", BD, "export const DENOMINATOR = 91;", "export const DENOMINATOR = 90;", "A3·3"],
-  ["G02", "F91 is not the amendment's line (its line hash altered)", CAP, '"lineSha256":"245bd55e6d2dc4efead6edc295352cdfa57ce5e31f760ffd6e5fe0a2b6b20c10"', '"lineSha256":"245bd55e6d2dc4efead6edc295352cdfa57ce5e31f760ffd6e5fe0a2b6b20c11"', "A3·1"],
+  /* RR-153: re-anchored to live code — Specification Amendment 4 (6c606b2) appended a sentence to F91's line, so its row hash moved */
+  ["G02", "F91 is not the amendment's line (its line hash altered)", CAP, '"lineSha256":"53fedf6de40f1a711bfc0fb5e581e6fd915d14211f5b305df2ff5ce9150c016d"', '"lineSha256":"53fedf6de40f1a711bfc0fb5e581e6fd915d14211f5b305df2ff5ce9150c016e"', "A3·1"],
   ["G03", "the F91 row renamed to a phantom F92 in the capability list", CAP, '"id":"F91","domain":"Core intelligence"', '"id":"F92","domain":"Core intelligence"', "A3·3"],
   ["G04", "a phantom F92 in the crosswalk", CW, '"featureId": "F91"', '"featureId": "F92"', "A3·3"],
   /* G05 repointed 1 Oct 2026 (RR-113): F91 now holds its OWN acceptance, so the old span — adding a second F91 key after F90 — would be
    * overridden by the live F91 line and land without effect. It now replaces F91's own acceptance with another row's. */
-  ["G05", "F91 given an acceptance that is not its own", AC, "  F91: F91_AMENDMENT_1,\n", "  F91: F90_ORIGINAL,\n", "A3·5"],
+  /* RR-153: re-anchored to live code — ACCEPTANCES.F91 now names Amendment 2 (fff60df) */
+  ["G05", "F91 given an acceptance that is not its own", AC, "  F91: F91_AMENDMENT_2,\n", "  F91: F90_ORIGINAL,\n", "A3·5"],
   ["G06", "the validator stops refusing a board whose ids are not F01..F{DENOMINATOR}", BD, " || expected.some((x) => !ids.includes(x))) errs.push({ code: \"DENOMINATOR\"", ") errs.push({ code: \"DENOMINATOR\"", "A3·4"],
 ];
 

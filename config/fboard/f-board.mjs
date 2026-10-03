@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -1047,6 +1047,13 @@ export const DECLARED = Object.freeze({
       }),
       /* 2 Oct 2026 (RR-130 §3): Amendment 1, frozen ALONE before any F91 implementation change; F91 stays IN-PROGRESS */
       Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F91", on: "2026-10-02", ruling: F91_AMENDMENT_1.ruling, contractSha256: F91_AMENDMENT_1.contractSha256, amends: F91_AMENDMENT_1.amends }),
+      /* 4 Oct 2026 (RR-153 §3): Amendment 2, frozen ALONE after Specification Amendment 4 and before any F91 implementation was read; F91
+       * owns the question-to-page-candidate connection; F91 stays IN-PROGRESS — 0 admitted real public questions, numbers 2 and 3 NOT MEASURED */
+      /* dated 2026-10-04, the owner's date and the authority's own effective date. The amendment was frozen at 2026-10-03T~21Z on the UTC
+       * clock, so the first record run REFUSED this event as OCCURRED_AT_IN_FUTURE, and a re-dating to 2026-10-03 was refused in turn as
+       * AUTHORITY_NOT_CURRENT_AT_EVENT (it predates its own authority). It is recorded only once the UTC clock reaches 2026-10-04. Both
+       * refused runs are on the trail; this was CC's error. */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F91", on: "2026-10-04", ruling: F91_AMENDMENT_2.ruling, contractSha256: F91_AMENDMENT_2.contractSha256, amends: F91_AMENDMENT_2.amends }),
     ]),
   }),
   /* 🔴 F13 · Context and axis discovery. Frozen ALONE (_handoffs 0ca24d3, RR-131 §3) before any F13 code; every clause PROVED on the real

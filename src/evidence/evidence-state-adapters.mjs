@@ -129,6 +129,19 @@ function ofKeywordSignal(r) {
   return place(rule, "INFERRED", { inputRefs: [`source:${h16(v.sourceId)}`], method: "source-generated-keyword-idea", computedAt: r.recorded_at });
 }
 
+/**
+ * 🔴 RR-146 — a `research_lead` record (src/research/lead-intake.mjs): a hit a source's own listing or search returned. A search hit is a
+ * LEAD, never an observed question: it is UNKNOWN, its insufficiency named — not yet read and rechecked on its original post. It is
+ * never OBSERVED and never INFERRED. A lead missing its id, its time or its source is UNMAPPED.
+ */
+function ofResearchLead(r) {
+  const rule = "research_lead";
+  if (!present(r.lead_id)) return unmapped("a research lead with no lead_id cannot be referenced", rule);
+  if (!present(r.recorded_at) || !ISOISH.test(r.recorded_at)) return unmapped("a research lead with no recorded time has no time", rule);
+  if (!present(r.sourceId)) return unmapped("a research lead names no source", rule);
+  return place(rule, "UNKNOWN", { checkId: `research_lead:${r.lead_id}`, insufficiency: "LEAD_NOT_YET_VERIFIED_ON_ITS_ORIGINAL_POST" });
+}
+
 const unmapped = (why, rule) => Object.freeze({ state: null, unmapped: true, why, assignedBy: rule });
 const place = (rule, state, meta) => {
   try { return makeEvidenceState(state, { assignedBy: rule, ...meta }); }
@@ -260,6 +273,7 @@ export function evidenceStateOf(record, ctx = {}) {
     case "response_headers": return ofResponseHeaders(record);
     case "public_question": return ofPublicQuestion(record);
     case "keyword_signal": return ofKeywordSignal(record);
+    case "research_lead": return ofResearchLead(record);
     default:
       if (Object.hasOwn(DERIVED_TYPES, record.record_type)) return ofDerived(record);
       return unmapped(`record_type ${record.record_type} has no declared rule`, "none");

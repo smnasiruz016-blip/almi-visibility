@@ -361,4 +361,12 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-147_FRESH_WINDOW_VERIFY_PRESERVE_REPORT.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-148_ONE_FEATURE_PRODUCT_APPLICABILITY.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F62_ACCEPTANCE_2026-10-03.md", loader: "F-board acceptance F62" }),
+  /* RR-152 (3 Oct 2026): the five CURRENT records admitted by the migration at _handoffs 1c5f103 — commands RR-149, RR-150, RR-151
+   * (superseded by RR-152 as a round; recorded at _handoffs 618e1b4, the register holds no whole-command supersession) and RR-152, and the
+   * owner's sameness decision, the declared grouping value. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-149_F62_ONLY_DERIVE_THE_REAL_INPUT_PATH.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-150_F62_ONLY_BUILD_THE_EVIDENCE_TO_VERDICT_PATH.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-151_CORRECT_THE_FALSE_HUMAN_CHECKER_RECORD.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-152_ONE_FEATURE_THE_MISSING_PLANNING_DEMAND_WRITER.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-03_RR-152_SAMENESS_RULE.md", loader: "authority register (CURRENT record)" }),
 ]);

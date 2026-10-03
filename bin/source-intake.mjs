@@ -24,6 +24,11 @@ import { recordsFrom, sampleLines, KEYWORD_SIGNAL } from "../src/research/source
 import { ADAPTERS } from "../src/research/adapters/index.mjs";
 import { BATCH_PURPOSES } from "../src/research/human-observation.mjs";
 import { RECORD_TYPE, PILOT_MARK } from "../src/research/public-questions.mjs";
+import { productFromArgvOrExit } from "../src/product-cli.mjs";
+import { createTenantResolver } from "../src/tenancy/resolver.mjs";
+import { readResearchPlan } from "../src/research/research-plan-reader.mjs";
+import { intakeFromRoute } from "../src/research/lead-intake.mjs";
+import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (k) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? null;
@@ -33,7 +38,8 @@ if (!SUBJECT || !BATCH || !RETRIEVAL || (!SOURCE === !ADAPTER)) {
   process.exit(2);
 }
 const inputs = [[SOURCE, "--source"], [RETRIEVAL, "--retrieval"], [RECHECK, "--recheck"], [RELEVANCE, "--relevance"]].filter(([p]) => p).map(([p, label]) => RESOURCES.inputPath(p, label));
-const SCOPE = scopedEntryPoint({ entry: "bin/source-intake.mjs", governed: true, resources: [RESOURCES.subject(SUBJECT), RESOURCES.researchBatch(BATCH), ...inputs] });
+/* RR-146 route mode reads F13's evidence too (the product's facts and its crawl partition) — decided here with everything else */
+const SCOPE = scopedEntryPoint({ entry: "bin/source-intake.mjs", governed: true, resources: [RESOURCES.subject(SUBJECT), RESOURCES.researchBatch(BATCH), ...inputs, ...(arg("route") ? [RESOURCES.collectionPartition("CRAWL_BATCH", BATCH_ID), ...(arg("product") && arg("product") !== SUBJECT ? [RESOURCES.subject(arg("product"))] : [])] : [])] });
 
 const index = rootIndexFor(process.env);
 const store = lookupStore(index, "RESEARCH");
@@ -53,7 +59,25 @@ const input = JSON.parse(readFileSync(RETRIEVAL, "utf8"));
 const retrieval = adapter ? adapter.retrievalFrom(input, RECHECK ? JSON.parse(readFileSync(RECHECK, "utf8")) : null) : input;
 /* RR-126: the subject's DECLARED relevance profile (data, never code); without one, nothing a source returns may enter this batch */
 const relevance = RELEVANCE ? JSON.parse(readFileSync(RELEVANCE, "utf8")) : null;
-const result = recordsFrom(decl, retrieval, { subject: SUBJECT, origin, dataPurpose: declaredPurpose, relevance });
+/* RR-146 · ROUTE MODE: --route names one of the product's own research routes (src/research/research-routes.mjs, from F13's dimensions).
+ * Every hit becomes a LEAD first (leads.jsonl, never a question); attribution and duplicates are refused before anything is kept. */
+const ROUTE_ID = arg("route");
+let routeIntake = null;
+if (ROUTE_ID) {
+  const product = await productFromArgvOrExit(process.argv, { usage: "--product=<id> --route=<route id>", scope: SCOPE });
+  /* the product is THIS subject's only when the subject declares the product's own fact registry among its members */
+  const members = lookupSubject(index, SUBJECT).entry?.members ?? [];
+  if (!members.some((m) => m.resourceKind === "FACT_REGISTRY" && String(m.resourceRef).split(":").pop().split("/")[0] === product?.productId)) { console.error("🔴 REFUSED — PRODUCT_IS_NOT_THIS_SUBJECTS: the subject does not declare this product's fact registry; nothing written"); process.exit(3); }
+  const { plan } = await readResearchPlan({ product, subject: SUBJECT, tenantId: SCOPE.tenantId, resolve: createTenantResolver() });
+  const route = Array.isArray(plan.routes) ? plan.routes.find((x) => x.route_id === ROUTE_ID) : null;
+  if (!route) { console.error(`🔴 REFUSED — ROUTE_UNKNOWN: no research route of that id for this product (${plan.routes === "NOT MEASURED" ? `routes NOT MEASURED — missing ${plan.refusals.join("; ")}` : `${plan.routes.length} route(s)`}); nothing written`); process.exit(3); }
+  const qFile = join(batchDir, "questions.jsonl");
+  const existing = existsSync(qFile) ? createJsonlStore(qFile).readAll().filter((x) => x.record_type === RECORD_TYPE).map((x) => x.question_id) : [];
+  routeIntake = intakeFromRoute({ route, decl, retrieval, subject: SUBJECT, origin, relevance, existingQuestionIds: existing, dataPurpose: declaredPurpose });
+}
+const result = routeIntake
+  ? { admitted: !routeIntake.sourceRefused, refusals: routeIntake.sourceRefused ?? [], retrieved: routeIntake.retrieved, records: [...routeIntake.questions, ...(routeIntake.keywordIdeas ?? [])], refused: routeIntake.refused }
+  : recordsFrom(decl, retrieval, { subject: SUBJECT, origin, dataPurpose: declaredPurpose, relevance });
 console.log("F16 · SOURCE INTAKE — this tenant's subject only, one retrieval in hand, count-only; nothing fetched");
 for (const l of sampleLines(decl, result)) console.log(`  ${l}`);
 if (declaredPurpose === "TEST_PILOT") console.log(`  ${PILOT_MARK} — this batch is declared TEST_PILOT: not the demand of any country, not global demand, not a production client result`);
@@ -67,6 +91,12 @@ const append = (records, file, action) => executeGovernedWrite(governedStoreAppe
   targetClass: "GENERATED_CONFIG", action, occurredAt: instant, correlationId: `run:source-intake:${instant}`, discipline: "APPEND_IF_NEW",
 }));
 let kept = 0;
+/* the leads of a route run are kept in their own store, first, and are never counted as kept questions */
+if (routeIntake && routeIntake.leads.length) {
+  const g = append(routeIntake.leads, "leads.jsonl", "APPEND_RESEARCH_LEADS");
+  if (g.outcome !== "COMMITTED" && g.outcome !== "ALREADY_COMMITTED") { console.error(`  🔴 ${g.outcome} — ${routeIntake.leads.length} lead(s) did NOT persist; nothing else written`); process.exit(1); }
+  console.log(`  LEADS ${routeIntake.leads.length} kept apart in leads.jsonl — leads, not questions`);
+}
 for (const [type, file, action] of [[RECORD_TYPE, "questions.jsonl", "APPEND_SOURCE_QUESTIONS"], [KEYWORD_SIGNAL, "keyword-signals.jsonl", "APPEND_KEYWORD_SIGNALS"]]) {
   const records = result.records.filter((r) => r.record_type === type);
   if (records.length === 0) continue;

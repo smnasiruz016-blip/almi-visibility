@@ -128,6 +128,9 @@ export const ACTIONS = Object.freeze({
     "APPEND_HUMAN_OBSERVATIONS",
     /* RR-118 (1 Oct 2026): the source-intake writer (bin/source-intake.mjs) — the same family and resource class; a classification only. */
     "APPEND_SOURCE_QUESTIONS", "APPEND_KEYWORD_SIGNALS",
+    /* RR-146 (3 Oct 2026): the route run's search LEADS (bin/source-intake.mjs --route) — kept in their own store, the same family and
+     * resource class; a classification only, granting no permission a role does not already hold. */
+    "APPEND_RESEARCH_LEADS",
     "WRITE_EXHIBIT_FILE", "WRITE_EXHIBIT_LISTING", "WRITE_EXHIBIT_PROVENANCE", "WRITE_EXHIBIT_INDEX",
     /* RR-138 §2 (2 Oct 2026): the shared render collection (bin/render-collect.mjs) — the same family and resource class as the
      * crawler's observation append and body write; a classification only, granting no permission a role does not already hold. */

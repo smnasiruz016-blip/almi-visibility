@@ -46,6 +46,8 @@ export const PRODUCT = registerProduct({
 
   axis: { key: "knot", label: "Knot" },
   variants: ["bowline", "clove-hitch", "sheet-bend"],
+  /* RR-146 · the product's declared research block (F16 routes): a test topic, a route bound and one fixture source — never fetched */
+  research: { topic: "declared test topic one", maxRoutes: 4, language: "en", sources: [{ sourceId: "stack-exchange", site: "fixture-site-one" }] },
 
   factsDir: join(HERE, "facts"),
   pageSpecs: {

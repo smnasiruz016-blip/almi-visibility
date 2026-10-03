@@ -32,6 +32,7 @@ import { confineToRepo } from "../src/write-law.mjs";
 import { RENDER_BOUNDS as OFFLINE_BOUNDS, loadPlaywright, launchOfflineChromium, startDocumentServer, renderDocument } from "../src/render/renderer.mjs";
 import { createSameOriginPolicy, LIVE_RENDER_BOUNDS } from "../src/render/same-origin-policy.mjs";
 import { assessPage, summariseMobile, NOT_MEASURED } from "../src/audit/mobile-readiness.mjs";
+import { renderEvidenceFor } from "../src/render/render-evidence-reader.mjs";
 
 /** The DECLARED viewports (C4–C6): printed beside every result. */
 export const MOBILE_VIEWPORT = Object.freeze({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 3 });
@@ -47,6 +48,9 @@ if (!BATCH || !/^[a-z0-9][a-z0-9-]*$/.test(BATCH) || !SUBJECT) {
   process.exit(2);
 }
 const LIVE = flag("live-render");
+/* RR-138 §2: --evidence-batch=<id> reads the shared render evidence a collection stored (bin/render-collect.mjs) instead of rendering */
+const EVIDENCE_BATCH = arg("evidence-batch");
+if (EVIDENCE_BATCH !== null && (!/^[a-z0-9][a-z0-9-]*$/.test(EVIDENCE_BATCH) || LIVE)) { console.error("🔴 REFUSED — --evidence-batch is a declared id, and it reads stored evidence: it never renders live"); process.exit(2); }
 if (LIVE && !flag("i-have-the-owners-green")) {
   console.error("🔴 REFUSED — --live-render runs the page's own scripts against its live origin and needs the owner's reviewed bounded request (--i-have-the-owners-green). NO REQUEST WAS MADE.");
   process.exit(3);
@@ -56,7 +60,7 @@ const SITE = lookupConnector(rootIndexFor(process.env), SUBJECT, "PUBLIC_SITE");
 const SITE_ORIGINS = SITE.state === "DECLARED" ? [...siteOriginsOf(SITE.connector)] : [];
 if (SITE_ORIGINS.length === 0) { console.error("🔴 REFUSED — NO_DECLARED_SITE: the subject declares no site origin. NOTHING WAS READ."); process.exit(3); }
 /* 🔴 F02 — decided HERE, before anything is read */
-const SCOPE = scopedEntryPoint({ entry: "bin/mobile-audit.mjs", governed: false, resources: [RESOURCES.researchBatch(BATCH), ...SITE_ORIGINS.map((o) => RESOURCES.siteOrigin(o)), ...(LIVE ? [RESOURCES.connector(SUBJECT, "PUBLIC_SITE")] : [])] });
+const SCOPE = scopedEntryPoint({ entry: "bin/mobile-audit.mjs", governed: false, resources: [RESOURCES.researchBatch(BATCH), ...(EVIDENCE_BATCH ? [RESOURCES.researchBatch(EVIDENCE_BATCH)] : []), ...SITE_ORIGINS.map((o) => RESOURCES.siteOrigin(o)), ...(LIVE ? [RESOURCES.connector(SUBJECT, "PUBLIC_SITE")] : [])] });
 const CORPUS = confineToRepo(arg("corpus") ?? `${REPO}runs/crawl/corpus`, { label: "--corpus" });
 
 const store = lookupStore(rootIndexFor(process.env), "RESEARCH");
@@ -77,6 +81,28 @@ for (const o of fetched) {
 console.log(`F25 · MOBILE READINESS — one client's own pages, count-only · mode ${LIVE ? "LIVE SAME-ORIGIN" : "OFFLINE"} · declared viewports mobile ${MOBILE_VIEWPORT.width}×${MOBILE_VIEWPORT.height}, desktop ${DESKTOP_VIEWPORT.width}×${DESKTOP_VIEWPORT.height}`);
 console.log(`  population   fetched pages ${fetched.length} · with a stored body matching its recorded hash ${pages.length} · without ${withoutBody}${offSite ? ` · not on the declared site ${offSite}` : ""}`);
 if (fetched.length === 0) { console.log(`  ${NOT_MEASURED} — the batch holds no fetched page: an empty population is not a result`); process.exit(1); }
+
+/* RR-138 §2 · FROM STORED SHARED EVIDENCE: no render here — F25 reads only the records that name F25 (MOBILE, DESKTOP), each body only
+ * when its hash holds; the viewport (C2) is still read from the page's stored HTML */
+if (EVIDENCE_BATCH) {
+  const f = join(store.dir, EVIDENCE_BATCH, "render.jsonl");
+  const recs = existsSync(f) ? readFileSync(f, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
+  const ev = renderEvidenceFor({ records: recs, corpus: CORPUS, row: "F25" });
+  if (!ev.run || ev.run.source_batch !== BATCH) { console.error("🔴 REFUSED — the evidence batch holds no render run collected from this source batch."); process.exit(3); }
+  const collected = pages.filter((p) => ev.byPage.has(p.id));
+  const verified = (r) => (!r ? { renderState: "ABSENT", reason: "no stored render of this kind" } : r.renderState !== "FAILED" && r.visibleText == null ? { renderState: "UNVERIFIED", reason: "the stored render does not match its recorded hash" } : r);
+  const out = collected.map((p) => { const e = ev.byPage.get(p.id); return assessPage({ html: p.body, mobile: verified(e.MOBILE), desktop: verified(e.DESKTOP) }); });
+  const s = summariseMobile(out);
+  const fmt = (o) => Object.entries(o).map(([k, n]) => `${k} ${n}`).join(" · ");
+  const measuredTargets = out.filter((a) => a.tapTargets.state !== NOT_MEASURED).length;
+  console.log(`  evidence     stored render evidence read by F25 for ${collected.length} of ${pages.length} page(s) · records not naming F25 skipped ${ev.notForThisRow} · bodies failing their hash ${ev.unverified}`);
+  console.log(`  VIEWPORT     ${fmt(s.viewport)} — of ${s.pages} page(s) · width=device-width ${s.viewportDeviceWidth} · zoom restricted (WCAG 2.2 SC 1.4.4) ${s.viewportZoomRestricted}   [from the stored HTML]`);
+  console.log(`  RESPONSIVE   ${fmt(s.responsive)} — of ${s.pages} page(s)`);
+  console.log(`  TAP TARGETS  ${fmt(Object.fromEntries(Object.entries(s.tapTargets).filter(([k]) => k !== "targets" && k !== "undersized")))} — of ${s.pages} page(s) · undersized (WCAG 2.2 SC 2.5.8) ${measuredTargets ? `${s.tapTargets.undersized} of ${s.tapTargets.targets} measured target(s)` : NOT_MEASURED}`);
+  console.log(`  MOBILE TEXT  ${fmt(s.mobileContent)} — of ${s.pages} page(s)`);
+  console.log(`  population   ${s.incomplete ? "INCOMPLETE — a page or measure above is NOT MEASURED" : "COMPLETE"} · from stored evidence · nothing fetched, rendered or written`);
+  process.exit(0);
+}
 
 let policy = null;
 if (LIVE) {

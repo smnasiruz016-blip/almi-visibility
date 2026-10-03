@@ -129,6 +129,9 @@ export const ACTIONS = Object.freeze({
     /* RR-118 (1 Oct 2026): the source-intake writer (bin/source-intake.mjs) — the same family and resource class; a classification only. */
     "APPEND_SOURCE_QUESTIONS", "APPEND_KEYWORD_SIGNALS",
     "WRITE_EXHIBIT_FILE", "WRITE_EXHIBIT_LISTING", "WRITE_EXHIBIT_PROVENANCE", "WRITE_EXHIBIT_INDEX",
+    /* RR-138 §2 (2 Oct 2026): the shared render collection (bin/render-collect.mjs) — the same family and resource class as the
+     * crawler's observation append and body write; a classification only, granting no permission a role does not already hold. */
+    "APPEND_RENDER_EVIDENCE", "WRITE_RENDER_BODY",
   ]),
   ...many("GOVERNED_STATE", "GENERATED_REPORT", [
     "WRITE_DETECT_FINDINGS", "WRITE_DETECT_FINDINGS_DIGEST", "WRITE_DETECT_SCORE", "WRITE_EDGE_GRAPH", "WRITE_FACTS_CENSUS",

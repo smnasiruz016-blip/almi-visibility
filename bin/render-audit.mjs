@@ -39,6 +39,7 @@ import { confineToRepo } from "../src/write-law.mjs";
 import { RENDER_BOUNDS as OFFLINE_BOUNDS, loadPlaywright, launchOfflineChromium, startDocumentServer, renderDocument } from "../src/render/renderer.mjs";
 import { createSameOriginPolicy, LIVE_RENDER_BOUNDS } from "../src/render/same-origin-policy.mjs";
 import { compareSourceRender, summariseComparisons, DIMENSIONS, NOT_MEASURED } from "../src/audit/render-compare.mjs";
+import { renderEvidenceFor } from "../src/render/render-evidence-reader.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n) => process.argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3) ?? null;
@@ -50,6 +51,9 @@ if (!BATCH || !/^[a-z0-9][a-z0-9-]*$/.test(BATCH) || !SUBJECT) {
   process.exit(2);
 }
 const LIVE = flag("live-render");
+/* RR-138 §2: --evidence-batch=<id> reads the shared render evidence a collection stored (bin/render-collect.mjs) instead of rendering */
+const EVIDENCE_BATCH = arg("evidence-batch");
+if (EVIDENCE_BATCH !== null && (!/^[a-z0-9][a-z0-9-]*$/.test(EVIDENCE_BATCH) || LIVE)) { console.error("🔴 REFUSED — --evidence-batch is a declared id, and it reads stored evidence: it never renders live"); process.exit(2); }
 /* the per-page bound: the offline renderer's, or the live path's own (src/render/same-origin-policy.mjs) */
 const RENDER_BOUNDS = LIVE ? Object.freeze({ ...OFFLINE_BOUNDS, perPageTimeoutMs: LIVE_RENDER_BOUNDS.perPageTimeoutMs }) : OFFLINE_BOUNDS;
 if (LIVE && !flag("i-have-the-owners-green")) {
@@ -63,7 +67,7 @@ const SITE_ORIGINS = SITE.state === "DECLARED" ? [...siteOriginsOf(SITE.connecto
 if (SITE_ORIGINS.length === 0) { console.error("🔴 REFUSED — NO_DECLARED_SITE: the subject declares no site origin to render. NOTHING WAS READ."); process.exit(3); }
 /* 🔴 F02 — decided HERE, before anything is read: this batch, the subject's declared site origins (the stored bodies are copies of
  * their pages), and (live only) this subject's PUBLIC_SITE connector. */
-const SCOPE = scopedEntryPoint({ entry: "bin/render-audit.mjs", governed: false, resources: [RESOURCES.researchBatch(BATCH), ...SITE_ORIGINS.map((o) => RESOURCES.siteOrigin(o)), ...(LIVE ? [RESOURCES.connector(SUBJECT, "PUBLIC_SITE")] : [])] });
+const SCOPE = scopedEntryPoint({ entry: "bin/render-audit.mjs", governed: false, resources: [RESOURCES.researchBatch(BATCH), ...(EVIDENCE_BATCH ? [RESOURCES.researchBatch(EVIDENCE_BATCH)] : []), ...SITE_ORIGINS.map((o) => RESOURCES.siteOrigin(o)), ...(LIVE ? [RESOURCES.connector(SUBJECT, "PUBLIC_SITE")] : [])] });
 const CORPUS = confineToRepo(arg("corpus") ?? `${REPO}runs/crawl/corpus`, { label: "--corpus" });
 
 const store = lookupStore(rootIndexFor(process.env), "RESEARCH");
@@ -86,6 +90,30 @@ for (const o of fetched) {
 console.log(`F22 · JAVASCRIPT RENDERING AUDIT — one client's own pages, source against render, count-only · mode ${LIVE ? "LIVE SAME-ORIGIN" : "OFFLINE"}`);
 console.log(`  population   fetched pages ${fetched.length} · with a stored body matching its recorded hash ${pages.length} · without ${withoutBody}${offSite ? ` · not on the declared site ${offSite}` : ""}`);
 if (fetched.length === 0) { console.log(`  ${NOT_MEASURED} — the batch holds no fetched page: an empty population is not a result`); process.exit(1); }
+
+/* RR-138 §2 · FROM STORED SHARED EVIDENCE: no render here — F22 reads only the records that name F22, each body only when its hash holds */
+if (EVIDENCE_BATCH) {
+  const f = join(store.dir, EVIDENCE_BATCH, "render.jsonl");
+  const recs = existsSync(f) ? readFileSync(f, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
+  const ev = renderEvidenceFor({ records: recs, corpus: CORPUS, row: "F22" });
+  if (!ev.run || ev.run.source_batch !== BATCH) { console.error("🔴 REFUSED — the evidence batch holds no render run collected from this source batch."); process.exit(3); }
+  const collected = pages.filter((p) => ev.byPage.has(p.id));
+  const out = [];
+  for (const p of collected) {
+    const e = ev.byPage.get(p.id);
+    const d = e.DESKTOP, src = e.SOURCE;
+    const unverified = !d || !src || (d.renderState !== "FAILED" && d.html == null) || src.html == null;
+    out.push(compareSourceRender(unverified
+      ? { renderState: "UNVERIFIED", renderReason: "a stored render of this page is missing or does not match its recorded hash", pageUrl: p.url }
+      : { renderState: d.renderState, renderReason: d.reason, pageUrl: p.url, sourceHtml: src.html, renderedHtml: d.html, sourceText: src.visibleText, renderedText: d.visibleText }));
+  }
+  const s = summariseComparisons(out);
+  console.log(`  evidence     stored render evidence read by F22 for ${collected.length} of ${pages.length} page(s) · records not naming F22 skipped ${ev.notForThisRow} · bodies failing their hash ${ev.unverified}`);
+  console.log(`  renders      ${Object.entries(s.renderStates).map(([k, n]) => `${k} ${n}`).join(" · ") || "none"} of ${out.length}`);
+  for (const dim of DIMENSIONS) { const x = s.dimensions[dim]; console.log(`  ${dim.padEnd(15)} SAME ${x.SAME} · DIFFERS ${x.DIFFERS} · ${NOT_MEASURED} ${x[NOT_MEASURED]} — of ${x.denominator} page(s) · only in render ${x.onlyInRender} · only in source ${x.onlyInSource}`); }
+  console.log(`  population   ${s.incomplete ? "INCOMPLETE — a page or dimension above is NOT MEASURED" : "COMPLETE"} · from stored evidence · nothing fetched, rendered or written`);
+  process.exit(0);
+}
 
 let CONNECTOR = null;
 let policy = null;

@@ -1,0 +1,20 @@
+RR-138 render-collect sabotage run · 2026-10-02T23:46:23.770Z
+population: 13 sabotages over test/rr138-render-collect.test.mjs · each applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): X1=1 X2=1 X3=1 X4=1 X5=1 X6=1 X7=1 X8=1 X9=1 X10=1 X11=1 X12=1 X13=1 · all exactly once: true
+production trail sha256 before: 2e59222518e940dc494e0693597db2b07617065cffc285b3adb0a41cc50e41d3
+
+X1 a third-party subresource is refused before it leaves src/render/same-origin-policy.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X2 only GET or HEAD leaves — no login, payment or form submission src/render/same-origin-policy.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X3 a 401/402/407 route is refused src/render/same-origin-policy.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X4 the TOTAL ceiling is enforced where every request passes src/render/same-origin-policy.mjs: landed true · named test red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+X5 a resource is fetched once per page however many renders read it src/render/same-origin-policy.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X6 no GREEN, no run bin/render-collect.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X7 no storage permission, no run bin/render-collect.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X8 an evidence batch that is not clean is refused bin/render-collect.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X9 the preflight asks F04 before any request src/render/render-preflight.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X10 the preflight refuses an append-if-new record without a key src/render/render-preflight.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X11 a row reads only the records that name it src/render/render-evidence-reader.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X12 a stored body is read only when its hash holds src/render/render-evidence-reader.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+X13 a script cannot send the render elsewhere src/render/renderer.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+
+proved 13 of 13 · residue 0 · production trail sha256 after: 2e59222518e940dc494e0693597db2b07617065cffc285b3adb0a41cc50e41d3 · unchanged true

@@ -1,5 +1,6 @@
 /**
- * 🔴 RR-148 · F62 APPLICABILITY · ONE SABOTAGE PER CLAUSE LIMB (acceptance _handoffs a5ec9f1).
+ * 🔴 RR-148 · F62 APPLICABILITY · ONE SABOTAGE PER CLAUSE LIMB (acceptance _handoffs a5ec9f1). RR-149 adds S23–S33 for the derived
+ * research declaration; RR-149's run writes its OWN file (F62_EVIDENCE_NAME=f62-sabotage-rr149-2026-10-03.txt) — never RR-148's.
  *
  *   node test/helpers/f62-sabotage.mjs      NOT part of `npm test`
  *
@@ -24,6 +25,7 @@ const TRAIL = "audit-trail/events.jsonl";
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
 const P1 = "P1 · C1", P2 = "P2 · C2", P3 = "P3 · C3", P4 = "P4 · C4", P5 = "P5 · C5", P6 = "P6 · C6", P7B = "P7b · C7", P8 = "P8 · C8";
+const D1 = "D1 · DERIVED", D2 = "D2 · A CHECK", D3 = "D3 · WHAT IS MISSING", D4 = "D4 · A PROPOSED CHECK", E2 = "ENTRY2 ·", BA = "bin/applicability.mjs";
 
 const SABOTAGES = [
   /* C1 */
@@ -37,7 +39,7 @@ const SABOTAGES = [
   ["S6", "C3 only the deciding body's own (tier 1) source decides", AP, "  if (f?.source?.tier !== 1) return", "  if (false) return", P3],
   ["S7", "C3 only a citation F46 PROVES decides", AP, "  if (cite.verdict !== CITATION.PROVED) {", "  if (false) {", P3],
   ["S8", "C3 only a record F45 presents CURRENT decides", AP, "  if (h.presentation !== \"CURRENT\") return", "  if (false) return", P3],
-  ["S9", "C3 a deciding record carries its observed date", AP, "observedOn: health.get(f.id)?.freshness?.checkedOn ?? null", "observedOn: null", P3],
+  ["S9", "C3 a deciding record carries its observed date", AP, "const observedOnOf = (health, f) => health.get(f.id)?.freshness?.checkedOn ?? null;", "const observedOnOf = (health, f) => null;", P3],
   /* C4 */
   ["S10", "C4 a narrower record never decides the wider combination", AP, "      if (s.size === n.scope.size && covers(s, n.scope)) exact.push(f);\n", "      if (covers(s, n.scope)) exact.push(f);\n", P4],
   ["S11", "C4 a wider record is never copied down", AP, "else if (s.size < n.scope.size && covers(n.scope, s)) wider.push(f.id ?? null);", "else if (s.size < n.scope.size && covers(n.scope, s)) exact.push(f);", P4],
@@ -56,6 +58,18 @@ const SABOTAGES = [
   ["S21", "C7 the code reaches no network", AP, "export const NOT_MEASURED_APPLICABILITY = NOT_MEASURED;\n", "export const NOT_MEASURED_APPLICABILITY = NOT_MEASURED;\nexport async function probe(u) { return fetch(u); }\n", P7B],
   /* C8 */
   ["S22", "C8 language, cultural and search differences are NOT MEASURED, named", AP, "Object.freeze({ state: NOT_MEASURED, missing: MISSING.otherEvidence })", "Object.freeze({ state: 0, missing: null })", P8],
+  /* RR-149 · the derived research declaration */
+  ["S23", "D1 only a tier-1 record makes a deciding body", AP, "const deciding = act.filter((f) => f?.source?.tier === 1 && present(f?.claim?.subject));", "const deciding = act.filter((f) => present(f?.claim?.subject));", D1],
+  ["S24", "D1/D2 a check is one body and one EXACT scope — never merged across scopes", AP, "    const k = scopeKey(f.claim.subject, scope);", "    const k = scopeKey(f.claim.subject, new Map());", D1],
+  ["S25", "D2 one body's record never decides another body's check", AP, "const scopeKey = (body, scope) => JSON.stringify([body,", "const scopeKey = (body, scope) => JSON.stringify([\"\",", D2],
+  ["S26", "D2 a stating record decides only under F46/F45 (a declared person signs)", AP, "for (const f of stating) { const why = disqualification(f, { persons, health });", "for (const f of stating) { const why = null;", D2],
+  ["S27", "D3 the missing stated outcome is named", AP, "    if (!stating.length) unknownFields.push(MISSING_FACT.outcome);\n", "", D3],
+  ["S28", "D3 the missing declared person is named", AP, "    if (!records.some((f) => persons.includes(f?.verification?.checkedBy))) unknownFields.push(MISSING_FACT.person);\n", "", D3],
+  ["S29", "D3 the missing tier-1 record is named", AP, "  if (!deciding.length) missing.push(MISSING_FACT.tier1);\n", "", D3],
+  ["S30", "D3 the judging date is stated, never the clock's", AP, "  if (!ISO.test(on ?? \"\")) return Object.freeze({ ...base, derived: false, missing: [MISSING.date] });", "  if (!ISO.test(on ?? \"\")) on = new Date().toISOString().slice(0, 10);", D3],
+  ["S31", "D4 a proposed check is not demand evidence (the five NOTs)", AP, "\"a public question\", \"demand evidence\", \"a page opportunity\"", "\"a public question\", \"a page opportunity\"", D4],
+  ["S32", "D4 every check says it is PROPOSED and what it is not", AP, "status: \"PROPOSED — not a verdict, not a question, not demand, not a page\",", "status: \"PROPOSED\",", D4],
+  ["S33", "ENTRY2 the entry point prints counts only — never a body", BA, "for (const m of d.missing) console.log(`  missing          ${m}`);\n", "for (const m of d.missing) console.log(`  missing          ${m}`);\nif (d.derived) for (const c of d.checks) console.log(`  body ${c.body}`);\n", E2],
 ];
 
 const files = [...new Set(SABOTAGES.map((s) => s[2]))];

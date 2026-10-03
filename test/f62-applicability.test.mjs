@@ -24,7 +24,9 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 
-import { applicabilityOf, applicableRoutes, neededCombinations, OUTCOMES, OTHER_DIFFERENCES, MISSING, NOT_MEASURED, ROUTE_LIMITS } from "../src/research/applicability.mjs";
+import { applicabilityOf, applicableRoutes, neededCombinations, deriveDeclaration, OUTCOMES, OTHER_DIFFERENCES, MISSING, MISSING_FACT, CHECK_AUTHORITY, NOT_MEASURED, ROUTE_LIMITS } from "../src/research/applicability.mjs";
+import { readDerivedDeclaration } from "../src/research/applicability-declaration-reader.mjs";
+import { qualifierPairs } from "../src/discovery/context-axes.mjs";
 import { researchRoutes } from "../src/research/research-routes.mjs";
 import { readResearchPlan } from "../src/research/research-plan-reader.mjs";
 import { readProductAxes } from "../src/discovery/context-axes-reader.mjs";
@@ -42,7 +44,7 @@ const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, 
 const TRAIL = join(REPO, "audit-trail", "events.jsonl");
 const trailSha = () => (existsSync(TRAIL) ? createHash("sha256").update(readFileSync(TRAIL)).digest("hex") : "absent");
 const TRAIL_BEFORE = trailSha();
-const CODE = ["src/research/applicability.mjs", "src/research/research-plan-reader.mjs"];
+const CODE = ["src/research/applicability.mjs", "src/research/research-plan-reader.mjs", "src/research/applicability-declaration-reader.mjs", "bin/applicability.mjs"];
 const TMP = join(tmpdir(), `almi-f62-${process.pid}`);
 
 const PERSONS = ["human:Fixture Checker"];
@@ -229,7 +231,8 @@ test("P7b · C7 the applicability code and its reader name no product word and r
   const read = (f) => readFileSync(join(REPO, f), "utf8");
   for (const f of CODE) assert.deepEqual(scanSource(read(f)).code, [], `${f} names a product`);
   assert.ok(scanSource(`${read(CODE[0])}\nexport const X = "${PRODUCT_WORDS[0]}";\n`).code.length > 0, "CONTROL: the product scanner cannot fire");
-  assert.deepEqual(decisionCallPaths({ entries: CODE }).faults, []);
+  /* the decision modules only: an entry point reaches the audit trail's wiring through its scoped run, as every entry point does */
+  assert.deepEqual(decisionCallPaths({ entries: CODE.filter((f) => f.startsWith("src/")) }).faults, []);
   assert.deepEqual(decisionCallPaths({ entries: [CODE[0]], read: (f) => (f === CODE[0] ? `${read(f)}\nawait fetch(u);\n` : read(f)) }).faults.map((x) => x.code), ["RAW_NETWORK_CALL"], "CONTROL: the network scanner cannot fire");
 });
 
@@ -278,6 +281,126 @@ test("REAL · every declared product in the real data root, count-only, on the s
   const oet = out.find((x) => x.activeRecords !== undefined);
   assert.deepEqual({ ...oet, subject: undefined }, { subject: undefined, activeRecords: 47, statingAnOutcome: 0, applicabilityDeclared: false, researchDeclared: false, routes: NOT_MEASURED, declaredPersons: 0 });
   assert.equal(out.filter((x) => x.applicability === NOT_MEASURED).length, 1);
+});
+
+/* ================= RR-149 · the derived research declaration ================= */
+
+/* a record of a NAMED deciding body (its own claim.subject) — everything else as `fact` */
+const bodyFact = (id, body, qualifier, outcome, over = {}) => fact(id, qualifier, outcome, { claim: { subject: body, predicate: `fixture-${id}`, qualifier }, ...over });
+const AXES2 = { declared: [{ key: "knot", status: "EVIDENCED" }], discovered: [{ key: "knot", records: 2, verifiedRecords: 2, distinctValues: 2 }, { key: "region", records: 1, verifiedRecords: 1, distinctValues: 1 }] };
+const derive = (facts, over = {}) => deriveDeclaration({ axes: AXES2, facts, persons: PERSONS, on: ON, ...over });
+const check = (d, body, q) => d.checks.find((c) => c.body === body && JSON.stringify(c.scope) === JSON.stringify(q));
+
+test("D1 · DERIVED, NOT LISTED: one proposed check per deciding body (a tier-1 record's own subject) and scope (its qualifiers) — a non-tier-1 record never makes a body; dimensions are F13's", () => {
+  const d = derive([
+    bodyFact("a1", "body-a", "knot=bowline", null), bodyFact("a2", "body-a", "knot=bowline", null), bodyFact("a3", "body-a", null, null),
+    bodyFact("b1", "body-b", "knot=sheet-bend,region=r-one", null),
+    bodyFact("c1", "body-c", "knot=bowline", null, { source: { tier: 4 } }),
+  ]);
+  assert.equal(d.derived, true);
+  assert.deepEqual(d.checks.map((c) => [c.body, c.scope]), [["body-a", { knot: "bowline" }], ["body-a", {}], ["body-b", { knot: "sheet-bend", region: "r-one" }]]);
+  assert.deepEqual(check(d, "body-a", { knot: "bowline" }).provenance.map((p) => [p.factId, p.observedOn]), [["a1", "2026-10-01"], ["a2", "2026-10-01"]]);
+  assert.ok(!d.checks.some((c) => c.body === "body-c"), "a tier-4 source became a deciding body");
+  assert.deepEqual({ ...d.counts, byOutcome: { ...d.counts.byOutcome } }, { checks: 3, bodies: 2, byOutcome: { REQUIRED: 0, ACCEPTED: 0, NOT_REQUIRED: 0, UNKNOWN: 3 }, activeRecords: 5, decidingRecords: 4, notDeciding: 1, statingRecords: 0 });
+  assert.deepEqual(d.dimensions.map((x) => [x.key, x.status]), [["knot", "EVIDENCED"], ["region", "CANDIDATE"]]);
+  for (const c of d.checks) assert.equal(c.requiredAuthority, CHECK_AUTHORITY);
+});
+
+test("D2 · A CHECK IS DECIDED ONLY BY ITS OWN BODY AND EXACT SCOPE: ACCEPTED stays ACCEPTED; a body-wide record never decides a narrower check; another body's record never decides; absent is UNKNOWN 'no source'", () => {
+  const d = derive([
+    bodyFact("a1", "body-a", "knot=bowline", "ACCEPTED"),
+    bodyFact("a2", "body-a", null, "REQUIRED"),
+    bodyFact("a3", "body-a", "knot=sheet-bend", null),
+    bodyFact("b1", "body-b", "knot=sheet-bend", "REQUIRED"),
+    bodyFact("b2", "body-b", "knot=clove-hitch", "REQUIRED", { verification: { ...fact("x", null, null).verification, checkedBy: "someone undeclared" } }),
+  ]);
+  assert.equal(check(d, "body-a", { knot: "bowline" }).outcome, "ACCEPTED", "ACCEPTED was changed");
+  assert.equal(check(d, "body-a", {}).outcome, "REQUIRED");
+  assert.equal(check(d, "body-a", { knot: "sheet-bend" }).outcome, "UNKNOWN", "a body-wide rule or another body's rule decided a narrower check");
+  assert.match(check(d, "body-a", { knot: "sheet-bend" }).why, /^no source/);
+  assert.equal(check(d, "body-b", { knot: "sheet-bend" }).outcome, "REQUIRED");
+  assert.equal(check(d, "body-b", { knot: "clove-hitch" }).outcome, "UNKNOWN", "a record whose checker is not a declared person decided");
+  assert.match(check(d, "body-b", { knot: "clove-hitch" }).why, /citation COULD-NOT-PROVE by F46 — FIT NEEDS_A_PERSON/);
+  assert.deepEqual({ ...d.counts.byOutcome }, { REQUIRED: 2, ACCEPTED: 1, NOT_REQUIRED: 0, UNKNOWN: 2 });
+  /* CONTROL: with no declared person (the real roster today) the same records decide nothing */
+  assert.deepEqual({ ...derive([bodyFact("a1", "body-a", "knot=bowline", "ACCEPTED")], { persons: [] }).counts.byOutcome }, { REQUIRED: 0, ACCEPTED: 0, NOT_REQUIRED: 0, UNKNOWN: 1 });
+});
+
+test("D3 · WHAT IS MISSING IS NAMED, ONE BY ONE — never 0, never guessed: the stated outcome, the declared person, a tier-1 record, the registry, the date", () => {
+  const none = derive([bodyFact("a1", "body-a", "knot=bowline", null)], { persons: [] });
+  assert.deepEqual([...check(none, "body-a", { knot: "bowline" }).unknownFields], [MISSING_FACT.outcome, MISSING_FACT.person]);
+  assert.deepEqual([...none.missing], [MISSING_FACT.outcome, MISSING_FACT.person]);
+  const signed = derive([bodyFact("a1", "body-a", "knot=bowline", "REQUIRED")]);
+  assert.deepEqual([...signed.missing], [], "a stated, signed check still reports something missing");
+  assert.deepEqual([...derive([bodyFact("c1", "body-c", "knot=bowline", null, { source: { tier: 4 } })]).missing], [MISSING_FACT.tier1]);
+  assert.deepEqual([...derive([bodyFact("a1", "body-a", "knot=bowline", null)], { axes: null }).missing], [MISSING_FACT.dimensions, MISSING_FACT.outcome]);
+  assert.equal(derive([bodyFact("a1", "body-a", "knot=bowline", null)], { axes: null }).dimensions, NOT_MEASURED);
+  assert.deepEqual([derive(null).derived, [...derive(null).missing]], [false, [MISSING_FACT.registry]]);
+  assert.deepEqual([derive([], { on: null }).derived, [...derive([], { on: null }).missing]], [false, [MISSING.date]]);
+  assert.equal(derive([], { on: null }).counts, undefined, "an underived declaration carried counts — they would read as 0");
+});
+
+test("D4 · A PROPOSED CHECK IS NOT a verdict, a question, demand, a page opportunity or permission to make a page — and no page is created or counted", () => {
+  const d = derive([bodyFact("a1", "body-a", "knot=bowline", "REQUIRED")]);
+  assert.deepEqual([...d.notA], ["an applicability verdict", "a public question", "demand evidence", "a page opportunity", "permission to make a page"]);
+  for (const c of d.checks) assert.match(c.status, /^PROPOSED — not a verdict, not a question, not demand, not a page/);
+  assert.deepEqual([d.pagesCreated, d.pagesCounted], [0, 0]);
+  assert.doesNotMatch(JSON.stringify(d), /"(page|pages|pageCount|opportunit\w*|demand|route|routes|maxRoutes)":/i, "the declaration carried a page, an opportunity, demand or a route budget");
+  for (const x of OTHER_DIFFERENCES) assert.deepEqual({ ...d.otherDifferences[x] }, { state: NOT_MEASURED, missing: MISSING.otherEvidence });
+});
+
+test("D5 · THE PRODUCTION READER on two unrelated products, each over its own registry on disk — nothing listed by hand, one product's records never counted for another", async () => {
+  try {
+    const knots = { ...KNOTS, factsDir: registryOf("d-knots", [bodyFact("k1", "knot-body-one", "knot=bowline", "REQUIRED"), bodyFact("k2", "knot-body-two", "knot=clove-hitch", null)]) };
+    const ferments = { ...FERMENTS, factsDir: registryOf("d-ferments", [bodyFact("m1", "ferment-body-one", "ferment=miso", "ACCEPTED"), bodyFact("m2", "ferment-body-one", null, null), bodyFact("m3", "ferment-body-two", "ferment=kimchi", null, { source: { tier: 3 } })]) };
+    const k = await readDerivedDeclaration({ product: knots, tenantId: null, resolve: null, on: ON, persons: PERSONS });
+    const f = await readDerivedDeclaration({ product: ferments, tenantId: null, resolve: null, on: ON, persons: PERSONS });
+    assert.deepEqual([k.counts.checks, k.counts.bodies, { ...k.counts.byOutcome }], [2, 2, { REQUIRED: 1, ACCEPTED: 0, NOT_REQUIRED: 0, UNKNOWN: 1 }]);
+    assert.deepEqual([f.counts.checks, f.counts.bodies, f.counts.notDeciding, { ...f.counts.byOutcome }], [2, 1, 1, { REQUIRED: 0, ACCEPTED: 1, NOT_REQUIRED: 0, UNKNOWN: 1 }]);
+    assert.ok(k.dimensions.some((x) => x.key === "knot") && f.dimensions.some((x) => x.key === "ferment"), "F13's dimensions were not read through each product");
+    assert.ok(!JSON.stringify(k).includes("ferment-body") && !JSON.stringify(f).includes("knot-body"), "one product's records were counted for another");
+  } finally { rmSync(TMP, { recursive: true, force: true }); }
+});
+
+/* RR-149: on the demonstration product, whose 46 tier-1 records make real checks — the neutral ferments product holds no tier-1 record, so
+ * a "nothing printed" assertion over it could never fail (0 checks print nothing) */
+test("ENTRY2 · bin/applicability.mjs in a declared world on the demonstration product: counts only — no body, value or wording printed; without --on it is NOT MEASURED", async () => {
+  const W = declaredWorld();
+  try {
+    const go = (on) => spawnSync(process.execPath, W.argv(["bin/applicability.mjs", "--product=almi-oet", ...(on ? [`--on=${on}`] : [])]), { cwd: REPO, encoding: "utf8", env: W.envWith() });
+    const f = go(ON), f0 = go(null);
+    for (const x of [f, f0]) assert.equal(x.status, 0, x.stdout + x.stderr);
+    const m = f.stdout.match(/proposed checks {2}(\d+) over (\d+) deciding bod\(ies\): REQUIRED \d+ · ACCEPTED \d+ · NOT_REQUIRED \d+ · UNKNOWN \d+/);
+    assert.ok(m && Number(m[1]) > 0, "the entry point derived no check — the no-print assertion below would be vacuous");
+    assert.match(f.stdout, /a proposed check is NOT: an applicability verdict · a public question · demand evidence · a page opportunity · permission to make a page/);
+    assert.match(f0.stdout, /declaration {6}NOT MEASURED — missing a stated judging date/);
+    for (const x of [f, f0]) assert.match(x.stdout, /pages {12}0 created and 0 counted/);
+    const product = await productFromArgv(["node", "x", "--product=almi-oet"], { scope: censusSubjectScope("almi-oet") });
+    const recs = (await loadRegistry(product.factsDir, product.productId)).records;
+    const words = new Set([...recs.map((r) => r.claim?.subject), ...recs.flatMap((r) => qualifierPairs(r).map(([, v]) => v))].filter((v) => typeof v === "string" && v.length > 3));
+    assert.ok(words.size > 0);
+    for (const v of words) assert.ok(!f.stdout.includes(v), "the entry point printed a body or a value");
+    assert.doesNotMatch(f.stdout, /https?:\/\//);
+  } finally { W.cleanup(); }
+});
+
+test("REAL2 · the derived declaration for every declared subject in the real data root, count-only, on the stated date — reported apart from any fixture", async () => {
+  const roots = JSON.parse(readFileSync(join(DATA_ROOT, "roots.json"), "utf8")).subjects.map((s) => s.subjectId);
+  const out = [];
+  for (const id of roots) {
+    if (!existsSync(join(DATA_ROOT, id, "product.mjs"))) { out.push({ subject: id, declaration: NOT_MEASURED, missing: "a product declaration (no product.mjs) and its fact registry" }); continue; }
+    const product = await productFromArgv(["node", "x", `--product=${id}`], { scope: censusSubjectScope(id) });
+    const d = await readDerivedDeclaration({ product, tenantId: null, resolve: null, on: ON });
+    out.push({ subject: id, dimensions: d.dimensions === NOT_MEASURED ? NOT_MEASURED : d.dimensions.map((x) => `${x.key}:${x.status}:${x.records}r:${x.distinctValues}v`), counts: d.counts, missing: d.missing, unknownFieldsPerCheck: d.checks.map((c) => c.unknownFields.length) });
+  }
+  console.log(`  REAL2 (${ON}, count-only, every declared subject; persons declared: ${NO_DECLARED_PERSON_CHECKERS.length}): ${JSON.stringify(out)}`);
+  /* pins — re-measured, never assumed */
+  const oet = out.find((x) => x.counts);
+  assert.deepEqual([oet.counts.activeRecords, oet.counts.decidingRecords, oet.counts.statingRecords], [47, 46, 0]);
+  assert.equal(oet.counts.byOutcome.UNKNOWN, oet.counts.checks, "a real check was decided without a stated outcome");
+  assert.ok(oet.counts.checks > 0, "EMPTY real population");
+  assert.deepEqual([...oet.missing], [MISSING_FACT.outcome, MISSING_FACT.person]);
+  assert.equal(out.filter((x) => x.declaration === NOT_MEASURED).length, 1);
 });
 
 test("the production trail was not written by this file", () => assert.equal(trailSha(), TRAIL_BEFORE));

@@ -304,7 +304,10 @@ export const SHARED_SCOPE = Object.freeze(["src", "bin", "config"]);
  * a line is itself a breach, so it cannot outlive its reason.
  */
 export const PINNED_HISTORICAL_LINES = Object.freeze([
-  /* RR-148: F62's frozen acceptance (_handoffs a5ec9f1) carries the owner's own words (RR-148 §1: the engine names "no profession") in
+  /* 🔴 DECLARED BLIND SPOT (RR-149 §6): the three lines below are NOT scanned for a client word — the census cannot see one planted
+   * there while the bytes stay identical. Bounded: by exact sha256 only, three lines, one file; any edit to a line un-pins THAT pin
+   * (stale is judged per pin — test/product-boundary.test.mjs CONTROL); it ends when the owner amends or replaces F62's acceptance.
+   * RR-148: F62's frozen acceptance (_handoffs a5ec9f1) carries the owner's own words (RR-148 §1: the engine names "no profession") in
    * its EXPECTED, FAILURE and EVIDENCE clauses, copied byte-for-byte and pinned by contractSha256 — altering them breaks the contract pin,
    * and changing the acceptance is the owner's act. These three exact lines, by hash, and nothing else. */
   Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "3ad2b28d6e31dfb4916aab05b9f1c90ae8f76deabec28970eaecc7bec20d0138", why: "F62's frozen acceptance, EXPECTED (the owner's words, a5ec9f1)" }),

@@ -380,4 +380,9 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-04_RR-153_REVISION_2_SOURCE_RULE_TWO_LEGS.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-153_TIMING_CORRECTION.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-03_RR-153_DATE_CORRECTION.md", loader: "authority register (CURRENT record)" }),
+  /* RR-154 (3 Oct 2026): the three CURRENT records admitted by the migration at _handoffs 3dba784 — command RR-154, the owner's ruling on
+   * datasets and page count, and his Stack Exchange source decision (it replaces RR-120's record, which stays INVALID: ISSUER_UNDECLARED). */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-154.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_RULING_2026-10-03_RR-154_DATASETS_AND_PAGE_COUNT.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-03_RR-154_STACK_EXCHANGE_SOURCE.md", loader: "authority register (CURRENT record)" }),
 ]);

@@ -337,4 +337,8 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F22_ACCEPTANCE_2026-10-02.md", loader: "F-board acceptance F22" }),
   /* RR-137 §4 (2 Oct 2026): the one CURRENT record admitted by the migration at _handoffs a23d374 — F25's acceptance. */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F25_ACCEPTANCE_2026-10-02.md", loader: "F-board acceptance F25" }),
+  /* RR-144 (3 Oct 2026): of the CURRENT records the migration at _handoffs 24cd44f admitted, the two F25's movement stands on — command
+   * RR-144 and F25's Acceptance Amendment 1 (the owner's declaration it quotes, 12ecf91, matches no inclusion rule and is read through it). */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-144_OWNER_GREEN_COMPLETE_F25_NOW.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F25_ACCEPTANCE_AMENDMENT_1_2026-10-03.md", loader: "F-board acceptance F25" }),
 ]);

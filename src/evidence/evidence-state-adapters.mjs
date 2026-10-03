@@ -142,6 +142,28 @@ function ofResearchLead(r) {
   return place(rule, "UNKNOWN", { checkId: `research_lead:${r.lead_id}`, insufficiency: "LEAD_NOT_YET_VERIFIED_ON_ITS_ORIGINAL_POST" });
 }
 
+/**
+ * 🔴 RR-150 — F62 (src/research/applicability-assessment.mjs). A PROPOSED `applicability_assessment` is a reading drafted from one stored
+ * record: INFERRED, never OBSERVED — its input is that record. An assessment whose outcome is UNKNOWN stays UNKNOWN, its missing fact named.
+ * An `applicability_confirmation` is a declared person's signature on one assessment: INFERRED from that assessment, never an observation
+ * of the world. Either missing its id, its time or its input is UNMAPPED.
+ */
+function ofApplicabilityAssessment(r) {
+  const rule = "applicability_assessment";
+  if (!present(r.assessment_id)) return unmapped("an applicability assessment with no assessment_id cannot be referenced", rule);
+  if (!present(r.recorded_at) || !ISOISH.test(r.recorded_at)) return unmapped("an applicability assessment with no recorded time has no time", rule);
+  if (!present(r.evidence?.factId)) return unmapped("an applicability assessment names no evidence record", rule);
+  if (r.outcome === "UNKNOWN") return place(rule, "UNKNOWN", { checkId: `applicability_assessment:${r.assessment_id}`, insufficiency: "APPLICABILITY_NOT_STATED_BY_THE_STORED_SOURCE" });
+  return place(rule, "INFERRED", { inputRefs: [`fact:${h16(r.evidence.factId)}`], method: "applicability-drafted-from-stored-evidence", computedAt: r.recorded_at });
+}
+function ofApplicabilityConfirmation(r) {
+  const rule = "applicability_confirmation";
+  if (!present(r.confirmation_id)) return unmapped("an applicability confirmation with no confirmation_id cannot be referenced", rule);
+  if (!present(r.recorded_at) || !ISOISH.test(r.recorded_at)) return unmapped("an applicability confirmation with no recorded time has no time", rule);
+  if (!present(r.assessment_id)) return unmapped("an applicability confirmation names no assessment", rule);
+  return place(rule, "INFERRED", { inputRefs: [`applicability_assessment:${h16(r.assessment_id)}`], method: "applicability-confirmed-by-a-declared-person", computedAt: r.recorded_at });
+}
+
 const unmapped = (why, rule) => Object.freeze({ state: null, unmapped: true, why, assignedBy: rule });
 const place = (rule, state, meta) => {
   try { return makeEvidenceState(state, { assignedBy: rule, ...meta }); }
@@ -274,6 +296,8 @@ export function evidenceStateOf(record, ctx = {}) {
     case "public_question": return ofPublicQuestion(record);
     case "keyword_signal": return ofKeywordSignal(record);
     case "research_lead": return ofResearchLead(record);
+    case "applicability_assessment": return ofApplicabilityAssessment(record);
+    case "applicability_confirmation": return ofApplicabilityConfirmation(record);
     default:
       if (Object.hasOwn(DERIVED_TYPES, record.record_type)) return ofDerived(record);
       return unmapped(`record_type ${record.record_type} has no declared rule`, "none");

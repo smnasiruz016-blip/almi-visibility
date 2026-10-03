@@ -1,0 +1,25 @@
+RR-150 F62 applicability writer sabotage run · 2026-10-03T19:23:31.105Z
+population: 17 sabotages over test/f62-assessment.test.mjs · each applied ALONE; each run killed after 300 s
+BASELINE (unsabotaged): passing 14 · failing 0 · every named test green: true
+PRE-FLIGHT (span occurrences in the code live now): X1=1 X2=1 X3=1 X4=1 X5=1 X6=1 X7=1 X8=1 X9=1 X10=1 X11=1 X12=1 X13=1 X14=1 X15=1 X16=1 X17=1 · all exactly once: true
+production trail sha256 before: 1ef75aa8ceb835a4e8117843e39679af1d26807be9c1cd0f72df4b56aa70b3d7
+
+X1 ACCEPTED is never mapped to REQUIRED src/research/applicability-assessment.mjs: landed true · named test (W1 ·) red true · failing 12 · reason AssertionError · restored true · PROVED
+X2 a kind gives exactly its own outcome (silence never NOT_REQUIRED) src/research/applicability-assessment.mjs: landed true · named test (W1 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+X3 an UNKNOWN names its missing fact src/research/applicability-assessment.mjs: landed true · named test (W1 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+X4 the evidence must be a record OF that check (no copied scope) src/research/applicability-assessment.mjs: landed true · named test (W2 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+X5 a check is matched by body AND exact scope src/research/applicability-assessment.mjs: landed true · named test (W2 ·) red true · failing 7 · reason AssertionError · restored true · PROVED
+X6 a stale or undated source is refused at drafting src/research/applicability-assessment.mjs: landed true · named test (W3 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+X7 the excerpt must occur in the stored text src/research/applicability-assessment.mjs: landed true · named test (W4 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+X8 a duplicate is refused src/research/applicability-assessment.mjs: landed true · named test (W5 ·) red true · failing 2 · reason AssertionError · restored true · PROVED
+X9 another subject's draft is refused src/research/applicability-assessment.mjs: landed true · named test (W6 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+X10 only a checker declared a person confirms (F46 C3) src/research/applicability-assessment.mjs: landed true · named test (W7 ·) red true · failing 2 · reason AssertionError · restored true · PROVED
+X11 a source stale at confirmation is refused src/research/applicability-assessment.mjs: landed true · named test (W7 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+X12 the readback counts only confirmations by declared persons src/research/applicability-assessment.mjs: landed true · named test (W8 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+X13 a PROPOSED assessment is never read back as CONFIRMED src/research/applicability-assessment.mjs: landed true · named test (W8 ·) red true · failing 3 · reason AssertionError · restored true · PROVED
+X14 a PROPOSED assessment is INFERRED, never OBSERVED src/evidence/evidence-state-adapters.mjs: landed true · named test (W10 ·) red true · failing 2 · reason AssertionError · restored true · PROVED
+X15 without --confirm nothing is written bin/applicability-assess.mjs: landed true · named test (ENTRY3 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+X16 the product must be the subject's (no tenant crossover at the entry point) bin/applicability-assess.mjs: landed true · named test (ENTRY3 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+X17 the roster is the declared one — a recorded id is never treated as a person bin/applicability-assess.mjs: landed true · named test (ENTRY3 ·) red true · failing 1 · reason AssertionError · restored true · PROVED
+
+proved 17 of 17 · residue 0 · production trail sha256 after: 1ef75aa8ceb835a4e8117843e39679af1d26807be9c1cd0f72df4b56aa70b3d7 · unchanged true

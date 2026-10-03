@@ -211,7 +211,13 @@ export function classifyEntryPoint(file, text, readers = READERS) {
   const firstLoad = loads.length ? Math.min(...loads.map((l) => l.line)) : 0;
   const gateText = gateAt ? text.replace(/\r\n/g, "\n").split("\n").slice(gateAt - 1, gateAt + 40).join("\n") : "";
   /* `everySubjectRegistry()` names each subject's registry by its declared location (src/tenancy/scoped-run.mjs). */
-  const namesFamily = (f, t) => new RegExp(`RESOURCES\\.(${FAMILIES[f].resource})\\(`).test(t) || (f === "FACTS" && /\beverySubjectRegistry\(/.test(t));
+  /* RR-138 §4 (3 Oct 2026): a RESEARCH BATCH's own ledger.jsonl lives inside the batch that F02 decides, so researchBatch names it — but
+   * ONLY in a file that never reaches the SHARED ledger (createCostLedger, runs/cost, actions-runs.jsonl). A file that does still needs
+   * costLedger. Found when bin/change-check.mjs read its batches' ledgers; bin/crawl.mjs had passed this census only because its text
+   * names costLedger in a branch a batch run never takes. */
+  const SHARED_COST = /\bcreateCostLedger\(|["']actions-runs\.jsonl["']|["']runs["']\s*,\s*["']cost["']|["'`](\$\{\w+\})?\.?\/?runs\/cost[^"'`\s]*["'`]/;
+  const namesFamily = (f, t) => new RegExp(`RESOURCES\\.(${FAMILIES[f].resource})\\(`).test(t) || (f === "FACTS" && /\beverySubjectRegistry\(/.test(t))
+    || (f === "COST" && /RESOURCES\.researchBatch\(/.test(t) && !SHARED_COST.test(text));
   const named = families.filter((f) => namesFamily(f, gateText) || namesFamily(f, text));
   const missing = families.filter((f) => !named.includes(f));
   if (Object.hasOwn(EXCLUDED_ENTRY_POINTS, file)) return { file, cls: "EXCLUDED", families, loads, gateAt, firstLoad, missing, why: EXCLUDED_ENTRY_POINTS[file] };

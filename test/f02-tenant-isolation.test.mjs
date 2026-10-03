@@ -188,6 +188,12 @@ test("C1 · every production entry point decides tenant scope before it reads (t
   // POSITIVE CONTROL: a planted entry point that reads the evidence store before any gate is UNSCOPED.
   const planted = tenantScopeCensus({ sources: [{ file: "bin/planted.mjs", text: 'import { createJsonlStore } from "../src/evidence/store.mjs";\nconst e = createJsonlStore("runs/evidence/evidence.jsonl").readAll();\n' }] });
   assert.equal(planted[0].cls, "UNSCOPED", JSON.stringify(planted[0]));
+  /* RR-138 §4 · a research batch's OWN ledger is named by researchBatch; the moment the file reaches the SHARED ledger it is not */
+  const gate = 'import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";\nscopedEntryPoint({ entry: "bin/p.mjs", governed: false, resources: [RESOURCES.researchBatch(b)] });\n';
+  const own = tenantScopeCensus({ sources: [{ file: "bin/p.mjs", text: `${gate}const l = readFileSync(join(dir, b, "ledger.jsonl"), "utf8");\n` }] });
+  assert.equal(own[0].cls, "SCOPED", JSON.stringify(own[0]));
+  const shared = tenantScopeCensus({ sources: [{ file: "bin/p.mjs", text: `${gate}const l = readFileSync(join(dir, b, "ledger.jsonl"), "utf8");\nconst s = createCostLedger("runs/cost/ledger.jsonl");\n` }] });
+  assert.equal(shared[0].cls, "UNSCOPED", `CONTROL: a batch-only scope covered the SHARED ledger: ${JSON.stringify(shared[0])}`);
 });
 
 test("C2 · every production relationship between two tenant identities reaches the one decision (relationship census: 0 SELF_DECIDED, remainder 0) — and it fires on a planted self-decision", () => {

@@ -184,6 +184,23 @@ function ofPlanning(r) {
   return place(rule, "INFERRED", { inputRefs: inputs.map((q) => `public_question:${h16(q)}`), method: `${rule}-from-stored-questions`, computedAt: r.recorded_at });
 }
 
+/**
+ * 🔴 RR-157 — a `held_for_judgement` item (src/research/source-adapter.mjs, MEANING profile): its original post is read, its meaning not yet
+ * judged — UNKNOWN, never OBSERVED. A `meaning_judgement` is a named judge's reading of the original post — INFERRED from that held item.
+ */
+function ofHeld(r) {
+  const rule = "held_for_judgement";
+  if (!present(r.held_id)) return unmapped("a held item with no held_id cannot be referenced", rule);
+  if (!present(r.recorded_at) || !ISOISH.test(r.recorded_at)) return unmapped("a held item with no recorded time has no time", rule);
+  return place(rule, "UNKNOWN", { checkId: `held_for_judgement:${r.held_id}`, insufficiency: "MEANING_NOT_YET_JUDGED_ON_THE_ORIGINAL_POST" });
+}
+function ofMeaningJudgement(r) {
+  const rule = "meaning_judgement";
+  if (!present(r.judgement_id) || !present(r.value?.held_id)) return unmapped("a judgement with no id or no held item cannot be referenced", rule);
+  if (!present(r.recorded_at) || !ISOISH.test(r.recorded_at)) return unmapped("a judgement with no time has no time", rule);
+  return place(rule, "INFERRED", { inputRefs: [`held_for_judgement:${h16(r.value.held_id)}`], method: "meaning-judgement-on-the-original-post", computedAt: r.recorded_at });
+}
+
 const unmapped = (why, rule) => Object.freeze({ state: null, unmapped: true, why, assignedBy: rule });
 const place = (rule, state, meta) => {
   try { return makeEvidenceState(state, { assignedBy: rule, ...meta }); }
@@ -316,6 +333,8 @@ export function evidenceStateOf(record, ctx = {}) {
     case "public_question": return ofPublicQuestion(record);
     case "keyword_signal": return ofKeywordSignal(record);
     case "research_lead": return ofResearchLead(record);
+    case "held_for_judgement": return ofHeld(record);
+    case "meaning_judgement": return ofMeaningJudgement(record);
     case "applicability_assessment": return ofApplicabilityAssessment(record);
     case "applicability_confirmation": return ofApplicabilityConfirmation(record);
     case "planning_demand": case "planning_sameness": case "planning_need": return ofPlanning(record);

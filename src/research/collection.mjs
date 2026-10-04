@@ -125,7 +125,7 @@ export async function runCollection({ collect, transport, clock, plan }) {
 
 /** The run's items through the existing boundary: leads apart, questions only as the boundary admits them. A source refusal is NOT MEASURED. */
 export function intakeOf({ run, adapter, plan, subject, origin, relevance, existingQuestionIds, dataPurpose }) {
-  if (!run.recorded) return { leads: [], questions: [], refused: {}, retrieved: NOT_MEASURED };
+  if (!run.recorded) return { leads: [], questions: [], held: [], refused: {}, retrieved: NOT_MEASURED };
   const retrieval = adapter.retrievalFrom(run.recorded, run.recheck);
   return intakeFromPlan({ plan, decl: adapter.DECLARATION, retrieval, subject, origin, relevance, existingQuestionIds, dataPurpose });
 }
@@ -145,8 +145,9 @@ export function runRecord({ plan, planSha, greenId, preflightRefusals = [], run 
       stoppedBy: run?.stoppedBy ?? null,
       retrieved,
       leads: intake ? intake.leads.length : 0,
+      heldForJudgement: intake ? (intake.held ?? []).length : 0,
       observedQuestions: retrieved === NOT_MEASURED ? NOT_MEASURED : questions,
-      zero: outcome === OUTCOMES.COMPLETED && retrieved !== NOT_MEASURED && questions === 0,
+      zero: outcome === OUTCOMES.COMPLETED && retrieved !== NOT_MEASURED && questions === 0 && (intake?.held ?? []).length === 0,
       refusedItems: { ...(intake?.refused ?? {}) },
       observerType: OBSERVER_TYPE,
       sample: "SAMPLE — one bounded run of one plan on one source; never every question in the world",
@@ -166,6 +167,7 @@ export function reportLines(rec) {
   ];
   if (v.outcome === OUTCOMES.REFUSED) return [...lines, `REFUSED before any request: ${v.preflightRefusals.join(" · ")} — no request was issued`];
   lines.push(`leads ${v.leads} — search hits, kept apart, never questions and never counted with them`);
+  if (v.heldForJudgement) lines.push(`held for meaning judgement ${v.heldForJudgement} — not observed questions until a named judge finds each a CANDIDATE on its original post`);
   if (v.observedQuestions === NOT_MEASURED) lines.push("observed questions NOT MEASURED — the source refused; a refusal is not zero, and nothing is retried or routed around");
   else if (v.outcome === OUTCOMES.STOPPED) lines.push(`observed questions ${v.observedQuestions} — the run was STOPPED by ${v.stoppedBy}: not a completed zero, and nothing is retried`);
   else if (v.zero) lines.push("observed questions 0 — ZERO IS THE ANSWER: recorded, and the run ends; nothing widened, re-queried, sent to another source or filled with a lead");

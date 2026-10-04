@@ -1,0 +1,26 @@
+RR-157 sabotage run · 2026-10-04T04:17:40.241Z
+population: 18 sabotages over test/rr157-meaning.test.mjs + test/rr156-lamzish-scope.test.mjs + test/f16-collection.test.mjs · each applied ALONE (X16: three spans together) · fake transport only, zero real requests
+BASELINE (named tests before any sabotage): GREEN
+PRE-FLIGHT (span occurrences in the code live now): X01=1 X02=1 X03=1 X04=1 X05=1 X06=1 X07=1 X08=1 X09=1 X10=1 X11=1 X12=1 X13=1 X14=1 X15=1 X16=1+1+1 X17=1 X18=1 · all exactly once: true
+production trail sha256 before: b9e7df6d0bc592f5997da5ef39ac7bcd456911a821c3af985bf1ace5e77d1e14
+
+X01 a plainly relevant post judged CANDIDATE is rejected [src/research/meaning-judgement.mjs]: landed true · named test "M2" red true · by AssertionError only true · failing 4 · restored by sha256 true · PROVED
+X02 an unrelated post judged NOT_A_CANDIDATE is admitted [src/research/meaning-judgement.mjs]: landed true · named test "M2" red true · by AssertionError only true · failing 4 · restored by sha256 true · PROVED
+X03 a borderline post (UNKNOWN) is admitted instead of held [src/research/meaning-judgement.mjs]: landed true · named test "M2" red true · by AssertionError only true · failing 3 · restored by sha256 true · PROVED
+X04 a reason not quoted from the original post accepted [src/research/meaning-judgement.mjs]: landed true · named test "M3" red true · by AssertionError only true · failing 2 · restored by sha256 true · PROVED
+X05 a judgement with no quote accepted [src/research/meaning-judgement.mjs]: landed true · named test "M3" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+X06 a judgement on a snippet or title accepted [src/research/meaning-judgement.mjs]: landed true · named test "M3" red true · by AssertionError only true · failing 2 · restored by sha256 true · PROVED
+X07 a residence the post does not establish accepted [src/research/meaning-judgement.mjs]: landed true · named test "M3" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+X08 a judgement with no declared judge accepted [src/research/meaning-judgement.mjs]: landed true · named test "M3" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+X09 a second judgement accepted without naming the one it overturns [src/research/meaning-judgement.mjs]: landed true · named test "M3" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+X10 the meaning test turned into a match-everything rule (unjudged posts admitted) [src/research/source-adapter.mjs]: landed true · named test "M1" red true · by AssertionError only true · failing 6 · restored by sha256 true · PROVED
+X11 a reply stored as part of the original post [src/research/adapters/stack-exchange.mjs]: landed true · named test "M1" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+X12 a residence recorded that no one established [src/research/meaning-judgement.mjs]: landed true · named test "M5" red true · by AssertionError only true · failing 2 · restored by sha256 true · PROVED
+X13 the withdrawn plan runs (its check removed) [src/research/collection.mjs]: landed true · named test "L2" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+X14 a request issued with no GREEN [src/research/collection.mjs]: landed true · named test "K2" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+X15 a request issued under an invalid source decision [src/research/collection.mjs]: landed true · named test "K9" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+X16 ALL THREE guards on another client's batch removed [bin/collect-public-questions.mjs]: landed true · named test "L5" red true · by AssertionError only true · failing 2 · restored by sha256 true · PROVED
+X17 leads stored as questions [bin/collect-public-questions.mjs]: landed true · named test "K5" red true · by AssertionError only true · failing 9 · restored by sha256 true · PROVED
+X18 the credential's value touched (its length measured) [bin/collect-public-questions.mjs]: landed true · named test "K7" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+
+proved 18 of 18 · residue 0 · production trail sha256 after: b9e7df6d0bc592f5997da5ef39ac7bcd456911a821c3af985bf1ace5e77d1e14 · unchanged true

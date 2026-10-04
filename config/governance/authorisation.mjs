@@ -143,6 +143,9 @@ export const ACTIONS = Object.freeze({
     /* RR-155 (4 Oct 2026): F16 C9–C13 — the collection run record (every request counted, every refusal, every zero), kept in the research
      * batch's own collection store, the same family and resource class; a classification only, granting no permission. */
     "APPEND_COLLECTION_RUN",
+    /* RR-157 (4 Oct 2026): F16 C15 — items held for a meaning judgement, and the judgements (bin/judge-public-questions.mjs), kept in the research
+     * batch's own stores, the same family and resource class; a classification only, granting no permission. */
+    "APPEND_HELD_FOR_JUDGEMENT", "APPEND_MEANING_JUDGEMENTS",
     "WRITE_EXHIBIT_FILE", "WRITE_EXHIBIT_LISTING", "WRITE_EXHIBIT_PROVENANCE", "WRITE_EXHIBIT_INDEX",
     /* RR-138 §2 (2 Oct 2026): the shared render collection (bin/render-collect.mjs) — the same family and resource class as the
      * crawler's observation append and body write; a classification only, granting no permission a role does not already hold. */

@@ -19,6 +19,7 @@ import { createHash } from "node:crypto";
 import { recordsFrom } from "./source-adapter.mjs";
 import { RECORD_TYPE, NOT_MEASURED } from "./public-questions.mjs";
 import { ROUTE_RECORD } from "./research-routes.mjs";
+import { HELD_RECORD } from "./meaning-judgement.mjs";
 
 export const LEAD_RECORD = "research_lead";
 /** The only basis on which an author's country or role is recorded: the original post itself states it. */
@@ -74,5 +75,12 @@ function intakeLookedFor({ field, id: lookedForId, decl, retrieval, subject, ori
     const author = Object.freeze(Object.fromEntries(AUTHOR_FIELDS.map((f) => [f, present(it[f]) && it.authorEvidence === AUTHOR_EVIDENCE ? it[f] : NOT_MEASURED])));
     questions.push(Object.freeze({ ...q, value: Object.freeze({ ...q.value, [field]: lookedForId, author }) }));
   }
-  return { refused, leads, questions, keywordIdeas: r.records.filter((x) => x.record_type !== RECORD_TYPE), retrieved: r.retrieved };
+  /* RR-157 · C15: held items stay apart from questions, a duplicate refused like a question */
+  const held = [];
+  for (const h of r.records.filter((x) => x.record_type === HELD_RECORD)) {
+    if (seen.has(h.held_id)) { refused.DUPLICATE_INTAKE = (refused.DUPLICATE_INTAKE ?? 0) + 1; continue; }
+    seen.add(h.held_id);
+    held.push(h);
+  }
+  return { refused, leads, questions, held, keywordIdeas: r.records.filter((x) => x.record_type !== RECORD_TYPE && x.record_type !== HELD_RECORD), retrieved: r.retrieved };
 }

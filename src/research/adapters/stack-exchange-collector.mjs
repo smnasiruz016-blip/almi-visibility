@@ -39,7 +39,8 @@ export async function collect({ transport, clock, cap, site, q, language, pagesi
   if (ids.length === 0) return { recorded, recheck: { recordedAt: isoAt(clock()), response: { items: [] } }, tally: g.tally(), stoppedBy: null };
   /* RR-155 (F16 C10): a backoff the source asks for is honoured as a refusal of the rest of this run — no recheck, nothing admitted */
   if (Number.isInteger(first.response?.backoff) && first.response.backoff > 0) return { recorded, recheck: null, tally: g.tally(), stoppedBy: "BACKOFF_REQUESTED" };
-  const again = await g.request(BY_IDS, { site, ids: ids.join(";"), filter: "default" }, transport);
+  /* RR-157 · C15: the recheck reads each original post with its body, so a judgement can quote it (filter name NOT VERIFIED live) */
+  const again = await g.request(BY_IDS, { site, ids: ids.join(";"), filter: "withbody" }, transport);
   if (again.refused) return { recorded, recheck: null, tally: g.tally(), stoppedBy: again.refused };
   const recheckRefused = sourceRefusal(again.response);
   if (recheckRefused) return { recorded, recheck: null, tally: g.tally(), stoppedBy: recheckRefused };

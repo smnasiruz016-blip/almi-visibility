@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F16_ORIGINAL, F16_AMENDMENT_1, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -1286,7 +1286,8 @@ export const DECLARED = Object.freeze({
     board: "F_BOARD",
     state: "IN-PROGRESS",
     events: Object.freeze([
-      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-01", ruling: ACCEPTANCES.F16.ruling, contractSha256: ACCEPTANCES.F16.contractSha256 }),
+      /* named EXPLICITLY since 4 Oct 2026: ACCEPTANCES.F16 now points at Amendment 1, and these 1 Oct events must keep naming the original */
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-01", ruling: F16_ORIGINAL.ruling, contractSha256: F16_ORIGINAL.contractSha256 }),
       Object.freeze({
         kind: "IMPLEMENTATION",
         featureId: "F16",
@@ -1295,13 +1296,15 @@ export const DECLARED = Object.freeze({
         to: "IN-PROGRESS",
         route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
         reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F16.ruling.sha256, contract: ACCEPTANCES.F16.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F16_ORIGINAL.ruling.sha256, contract: F16_ORIGINAL.contractSha256 }),
         branch: "f16-public-question-intake",
         baseSha: "997e54eaa85a374ef4220c61605116115af85374",
         baseCiRun: "36816375768",
         baseCiConclusion: "success",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-114_BUILD_THE_PUBLIC_QUESTION_RESEARCH_INTAKE.md", commit: "72f260b1bd52343a8b07c6bf4d013684f2402d91", sha256: "d43bf7a066d697f48c3f50f7158196d15edbe640df0f19c60d22b1c78ca264ce" }),
       }),
+      /* RR-155 §1: F16's own Acceptance Amendment 1 (_handoffs 45a1cbf), frozen ALONE — collection added as a separate, separately-gated limb */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F16", on: "2026-10-04", ruling: F16_AMENDMENT_1.ruling, contractSha256: F16_AMENDMENT_1.contractSha256, amends: F16_AMENDMENT_1.amends }),
     ]),
   }),
   F21: Object.freeze({

@@ -277,10 +277,11 @@ test("REAL · every declared product in the real data root, count-only, on the s
   }
   console.log(`  REAL (${ON}, count-only, every declared subject in the real data root): ${JSON.stringify(out)}`);
   /* pins — re-measured, never assumed: a change here must be read, not edited */
-  assert.deepEqual(roots.length, 2);
+  /* RR-155 §2: the owner declared a third subject (_handoffs a03a11f) with no product declaration — re-measured: 3 subjects, 2 NOT MEASURED */
+  assert.deepEqual(roots.length, 3);
   const oet = out.find((x) => x.activeRecords !== undefined);
   assert.deepEqual({ ...oet, subject: undefined }, { subject: undefined, activeRecords: 47, statingAnOutcome: 0, applicabilityDeclared: false, researchDeclared: false, routes: NOT_MEASURED, declaredPersons: 0 });
-  assert.equal(out.filter((x) => x.applicability === NOT_MEASURED).length, 1);
+  assert.equal(out.filter((x) => x.applicability === NOT_MEASURED).length, 2);
 });
 
 /* ================= RR-149 · the derived research declaration ================= */
@@ -400,7 +401,8 @@ test("REAL2 · the derived declaration for every declared subject in the real da
   assert.equal(oet.counts.byOutcome.UNKNOWN, oet.counts.checks, "a real check was decided without a stated outcome");
   assert.ok(oet.counts.checks > 0, "EMPTY real population");
   assert.deepEqual([...oet.missing], [MISSING_FACT.outcome, MISSING_FACT.person]);
-  assert.equal(out.filter((x) => x.declaration === NOT_MEASURED).length, 1);
+  /* RR-155 §2: the owner's third declared subject has no product declaration — NOT MEASURED, re-measured */
+  assert.equal(out.filter((x) => x.declaration === NOT_MEASURED).length, 2);
 });
 
 test("the production trail was not written by this file", () => assert.equal(trailSha(), TRAIL_BEFORE));

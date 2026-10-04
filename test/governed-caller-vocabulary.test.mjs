@@ -290,8 +290,12 @@ test("V7 · the REAL population: 46 governed = 45 routed + 1 checked exemption +
   /* 104/51 → 105/52 on 4 October (F91, RR-153 §4), for a MEASURED reason, moved in the SAME commit as the change: one production entry
    * point, bin/demand-connect.mjs, GOVERNED — it writes question-to-page-candidate connections into a research batch's planning store only
    * through the governed boundary (APPEND_PLANNING_DEMAND), only with --confirm. No existing caller moved class. */
-  assert.equal(rows.length, 105);
-  assert.equal(governed.length, 52);
+  /* 105/52 → 106/53 on 4 October (F16, RR-155 §3), for a MEASURED reason, moved in the SAME commit as the change: one production entry
+   * point, bin/collect-public-questions.mjs, GOVERNED — it writes collection run records, leads and admitted questions into a research batch's
+   * stores only through the governed boundary (APPEND_COLLECTION_RUN, APPEND_RESEARCH_LEADS, APPEND_SOURCE_QUESTIONS), only with --confirm.
+   * No existing caller moved class. */
+  assert.equal(rows.length, 106);
+  assert.equal(governed.length, 53);
   assert.equal(rows.filter((r) => r.cls === "READ_ONLY_DIAGNOSTIC").length, 53);
   const by = Object.fromEntries(CALLER_CLASSES.map((c) => [c, governed.filter((r) => r.callerClass === c).length]));
   /* 43/2 → 44/1 on 26 September (F10), for a MEASURED reason: bin/heldout-evaluation.mjs now routes its scoring run through the
@@ -300,7 +304,8 @@ test("V7 · the REAL population: 46 governed = 45 routed + 1 checked exemption +
   /* 45/1 → 46/1 on 28 September: bin/f10-register-key.mjs (BOUNDARY_ROUTED) joined; bin/heldout-evaluation.mjs stays BOUNDARY_ROUTED. */
   /* 49 → 50 BOUNDARY_ROUTED on 3 October (RR-150): bin/applicability-assess.mjs, the one new governed caller above */
   /* 50 → 51 BOUNDARY_ROUTED on 4 October (RR-153): bin/demand-connect.mjs, the one new governed caller above */
-  assert.deepEqual(by, { BOUNDARY_ROUTED: 51, DIRECT_DURABLE_WRITE: 0, COLLECTOR_OR_LIBRARY_WRITE: 0, CHECKED_AUDIT_STORE_EXEMPTION: 1, READ_ONLY: 0, PARTIALLY_ROUTED: 0, UNKNOWN: 0 });
+  /* 51 → 52 BOUNDARY_ROUTED on 4 October (RR-155): bin/collect-public-questions.mjs, the one new governed caller above */
+  assert.deepEqual(by, { BOUNDARY_ROUTED: 52, DIRECT_DURABLE_WRITE: 0, COLLECTOR_OR_LIBRARY_WRITE: 0, CHECKED_AUDIT_STORE_EXEMPTION: 1, READ_ONLY: 0, PARTIALLY_ROUTED: 0, UNKNOWN: 0 });
   assert.equal(bypasses(rows).length, 0);
   assert.equal(governed.filter((r) => r.routed).length + auditStoreExempt(rows).length + nonMutating(rows).length + bypasses(rows).length, governed.length);
   const sites = governed.flatMap((r) => r.siteDetail.map((s) => ({ ...s, file: r.file, reaches: r.reachesBoundary })));

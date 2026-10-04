@@ -37,7 +37,7 @@ export const REGISTRY_SCHEMA_VERSION = 1;
 /** The stores a root may declare. A vocabulary, validated at read time; nothing branches on which one it is. */
 export const STORE_KINDS = Object.freeze(["PROJECT_DECLARATIONS", "OBSERVATIONS", "CAPTURES", "RESEARCH"]);
 /** What a connector does, generically. An entry point constructs a connector of ONE kind, named in its own code. */
-export const CONNECTOR_KINDS = Object.freeze(["PUBLIC_SITE", "CITED_SOURCES", "SEARCH_CONSOLE_API"]);
+export const CONNECTOR_KINDS = Object.freeze(["PUBLIC_SITE", "CITED_SOURCES", "SEARCH_CONSOLE_API", "QUESTION_SOURCE_API"]);
 /** How a credential may be named. The only mechanism is a reference to an environment variable BY ITS NAME. */
 export const CREDENTIAL_MECHANISMS = Object.freeze(["ENV_REFERENCE"]);
 

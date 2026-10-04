@@ -15,6 +15,13 @@ export const DOCUMENTED = Object.freeze({ dedupeWindowSeconds: 60, ipRequestsPer
  * algorithm", so a hit is only a LEAD: the relevance gate (source-adapter.mjs) decides what may enter a subject's batch */
 export const SEARCH = "/2.3/search/advanced", BY_IDS = "/2.3/questions/{ids}";
 const isoAt = (s) => new Date(s * 1000).toISOString().replace(/\.\d{3}Z$/, "Z");
+/** A source's own error shape (error_id / error_name, as its error page documents), or a transport's NOT_JSON / HTTP refusal, as a code. */
+export function sourceRefusal(response) {
+  if (!response || typeof response !== "object") return "SOURCE_REFUSED:NO_RESPONSE";
+  if (response.error_id === undefined && response.error_name === undefined) return null;
+  const name = String(response.error_name ?? response.error_id);
+  return `SOURCE_REFUSED:${/^[A-Za-z0-9_]{1,40}$/.test(name) ? name : "UNNAMED"}`;
+}
 
 /** One page of one search, then one recheck of exactly the returned ids. Refusals stop the run; nothing is retried around them. */
 export async function collect({ transport, clock, cap, site, q, language, pagesize }) {
@@ -22,11 +29,19 @@ export async function collect({ transport, clock, cap, site, q, language, pagesi
   const params = { site, q, pagesize, page: 1, filter: "default" };
   /* the first request of a fresh governor cannot be refused (cap ≥ 1 or it throws; no quota, backoff or prior identity yet) — RR-121 */
   const first = await g.request(SEARCH, params, transport);
+  /* RR-155 (F16 C10, C13): an error, a throttle or a bot challenge is a REFUSAL, never an empty result — reading it as zero would be a
+   * false zero. Nothing is recorded as retrieved and nothing is rechecked; the run ends. */
+  const refusedBySource = sourceRefusal(first.response);
+  if (refusedBySource) return { recorded: null, recheck: null, tally: g.tally(), stoppedBy: refusedBySource };
   const items = Array.isArray(first.response?.items) ? first.response.items : [];
   const recorded = { recordedAt: isoAt(clock()), request: { site, q, language }, response: { items } };
   const ids = items.map((p) => p?.question_id).filter(Number.isInteger);
   if (ids.length === 0) return { recorded, recheck: { recordedAt: isoAt(clock()), response: { items: [] } }, tally: g.tally(), stoppedBy: null };
+  /* RR-155 (F16 C10): a backoff the source asks for is honoured as a refusal of the rest of this run — no recheck, nothing admitted */
+  if (Number.isInteger(first.response?.backoff) && first.response.backoff > 0) return { recorded, recheck: null, tally: g.tally(), stoppedBy: "BACKOFF_REQUESTED" };
   const again = await g.request(BY_IDS, { site, ids: ids.join(";"), filter: "default" }, transport);
   if (again.refused) return { recorded, recheck: null, tally: g.tally(), stoppedBy: again.refused };
+  const recheckRefused = sourceRefusal(again.response);
+  if (recheckRefused) return { recorded, recheck: null, tally: g.tally(), stoppedBy: recheckRefused };
   return { recorded, recheck: { recordedAt: isoAt(clock()), response: { items: Array.isArray(again.response?.items) ? again.response.items : [] } }, tally: g.tally(), stoppedBy: null };
 }

@@ -29,12 +29,25 @@ const id = (x) => createHash("sha256").update(JSON.stringify(x)).digest("hex").s
 
 export function intakeFromRoute({ route, decl, retrieval, subject, origin, relevance, existingQuestionIds = [], dataPurpose = null }) {
   if (route?.record_type !== ROUTE_RECORD || route.subject !== subject) return { refused: { ROUTE_NOT_THIS_SUBJECTS: 1 }, leads: [], questions: [], retrieved: NOT_MEASURED };
+  return intakeLookedFor({ field: "route_id", id: route.route_id, decl, retrieval, subject, origin, relevance, existingQuestionIds, dataPurpose });
+}
+
+/**
+ * RR-155 · F16 C11 · the same intake for a COLLECTION run: the subject's exact bounded plan is how the items were looked for. Leads,
+ * attribution, the boundary and duplicates are decided exactly as for a route — one implementation, never a second.
+ */
+export function intakeFromPlan({ plan, decl, retrieval, subject, origin, relevance, existingQuestionIds = [], dataPurpose = null }) {
+  if (typeof plan?.planId !== "string" || plan.subject !== subject) return { refused: { PLAN_NOT_THIS_SUBJECTS: 1 }, leads: [], questions: [], retrieved: NOT_MEASURED };
+  return intakeLookedFor({ field: "plan_id", id: plan.planId, decl, retrieval, subject, origin, relevance, existingQuestionIds, dataPurpose });
+}
+
+function intakeLookedFor({ field, id: lookedForId, decl, retrieval, subject, origin, relevance, existingQuestionIds, dataPurpose }) {
   const items = Array.isArray(retrieval?.items) ? retrieval.items : null;
   if (items === null) return { refused: {}, leads: [], questions: [], retrieved: NOT_MEASURED };
   /* 1 · every hit is a LEAD first, stored apart */
-  const leads = items.map((it) => { const leadId = id([subject, route.route_id, decl?.sourceId, it?.sourceUrl ?? null, it?.postVersion ?? null]); return Object.freeze({
+  const leads = items.map((it) => { const leadId = id([subject, lookedForId, decl?.sourceId, it?.sourceUrl ?? null, it?.postVersion ?? null]); return Object.freeze({
     record_type: LEAD_RECORD, kind: "SEARCH_LEAD", lead_id: leadId, measurement_key: `${LEAD_RECORD}:${leadId}`,
-    subject, route_id: route.route_id, sourceId: decl?.sourceId ?? null, reference: it?.sourceUrl ?? null, recorded_at: it?.observedAt ?? null,
+    subject, [field]: lookedForId, sourceId: decl?.sourceId ?? null, reference: it?.sourceUrl ?? null, recorded_at: it?.observedAt ?? null,
     status: "LEAD — not an observed question until its original post is read and rechecked",
   }); });
   /* 2 · attribution: an author field without the original post's own statement refuses the item */
@@ -59,7 +72,7 @@ export function intakeFromRoute({ route, decl, retrieval, subject, origin, relev
     seen.add(q.question_id);
     const it = byUrl.get(`${q.value.reference}\u0000${q.value.postVersion}`) ?? {};
     const author = Object.freeze(Object.fromEntries(AUTHOR_FIELDS.map((f) => [f, present(it[f]) && it.authorEvidence === AUTHOR_EVIDENCE ? it[f] : NOT_MEASURED])));
-    questions.push(Object.freeze({ ...q, value: Object.freeze({ ...q.value, route_id: route.route_id, author }) }));
+    questions.push(Object.freeze({ ...q, value: Object.freeze({ ...q.value, [field]: lookedForId, author }) }));
   }
   return { refused, leads, questions, keywordIdeas: r.records.filter((x) => x.record_type !== RECORD_TYPE), retrieved: r.retrieved };
 }

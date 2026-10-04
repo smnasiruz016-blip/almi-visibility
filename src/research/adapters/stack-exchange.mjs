@@ -22,6 +22,29 @@
 import { SOURCE_KINDS, VERIFIED, NOT_VERIFIED } from "../source-adapter.mjs";
 import { NOT_MEASURED } from "../public-questions.mjs";
 
+export { collect, sourceRefusal } from "./stack-exchange-collector.mjs";
+
+/**
+ * RR-155 · F16 C9 · THE SOURCE DECISION THIS ADAPTER RUNS UNDER — the owner's own, issued in his name (_handoffs 3dba784; RR-154 §2). It
+ * replaced RR-120's record, which stays INVALID (issuer never declared). The collection entry point resolves it from the authority register
+ * before any request and refuses unless it is CURRENT with a declared issuer. The terms readings below (RR-120) stay what they were: readings.
+ */
+export const SOURCE_DECISION = Object.freeze({ propositionId: "OWNER_DECISION_RR-154_STACK_EXCHANGE_SOURCE", scope: Object.freeze(["ALMIVISIBILITY"]) });
+/** The one origin a collection run may reach; the subject's QUESTION_SOURCE_API connector must declare it, and the connector refuses any other. */
+export const API_ORIGIN = "https://api.stackexchange.com";
+/**
+ * One request's URL from a method and its parameters — WITHOUT the credential: the entry point's transport adds the key itself, at the
+ * moment of sending, and nothing here sees it. `{ids}` in a method is filled from the `ids` parameter, which then leaves the query string.
+ */
+export function requestUrl(method, params = {}) {
+  const p = { ...params };
+  let path = String(method);
+  if (path.includes("{ids}")) { path = path.replace("{ids}", encodeURIComponent(String(p.ids ?? "")).replace(/%3B/gi, ";")); delete p.ids; }
+  const u = new URL(path, API_ORIGIN);
+  for (const k of Object.keys(p).sort()) { if (k === "key" || k === "access_token") continue; u.searchParams.set(k, String(p[k])); }
+  return u.toString();
+}
+
 const READ_ON = "2026-10-01";
 const DECISION = "_handoffs AlmiVisibility_RR-120_STACK_EXCHANGE_DECISION_2026-10-01.md";
 export const LICENCE_URL = "https://creativecommons.org/licenses/by-sa/4.0/legalcode.en";

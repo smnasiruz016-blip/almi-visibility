@@ -37,6 +37,8 @@ export const CONNECTOR_CALL_CLASS = Object.freeze({
   PUBLIC_SITE: "UNMETERED_PUBLIC",
   CITED_SOURCES: "UNMETERED_PUBLIC",
   SEARCH_CONSOLE_API: "METERED",
+  /* RR-155: a public-question source API is keyed and counted against a daily quota by its provider — METERED */
+  QUESTION_SOURCE_API: "METERED",
 });
 const GATE = /\bcreatePaidProviderGate\(/;
 const FAKE = /\bcreateFakePaidProvider\(/;

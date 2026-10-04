@@ -129,7 +129,10 @@ test("Q6 · REAL ENTRY POINT · bin/edge-graph.mjs, for every tenant, reads only
 });
 
 test("Q7 · a scheduled consumer runs ONLY its decided tenant: bin/detect.mjs in a two-tenant world (FIXTURE, failure branch) reads one partition and runs one tenant", () => {
-  const origins = DECL.attachments.filter((a) => a.resourceKind === "SITE_ORIGIN").map((a) => a.resourceRef);
+  /* RR-155: detect.mjs requests EVERY declared subject's root for its one tenant, so a subject's own origin must stay with that tenant;
+   * only origins no declared subject names are split across the two tenants (measured: the split of every other origin is unchanged) */
+  const subjectOrigins = new Set(JSON.parse(readFileSync(join(DATA, "roots.json"), "utf8")).subjects.flatMap((s) => s.members.filter((m) => m.resourceKind === "SITE_ORIGIN").map((m) => m.resourceRef)));
+  const origins = DECL.attachments.filter((a) => a.resourceKind === "SITE_ORIGIN" && !subjectOrigins.has(a.resourceRef)).map((a) => a.resourceRef);
   const W = declaredWorld({ secondTenantOrigins: origins.filter((_, i) => i % 2 === 1) });
   try {
     for (const bundle of ["observed-pages", "sitemap"]) {

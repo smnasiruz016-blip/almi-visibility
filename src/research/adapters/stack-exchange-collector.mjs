@@ -46,3 +46,28 @@ export async function collect({ transport, clock, cap, site, q, language, pagesi
   if (recheckRefused) return { recorded, recheck: null, tally: g.tally(), stoppedBy: recheckRefused };
   return { recorded, recheck: { recordedAt: isoAt(clock()), response: { items: Array.isArray(again.response?.items) ? again.response.items : [] } }, tally: g.tally(), stoppedBy: null };
 }
+
+/**
+ * RR-159 · F16 C22 · READ THE ORIGINAL POSTS AT LEAD ADDRESSES — one read of exactly the posts the leads named, then one recheck of exactly
+ * the posts that read returned (with their body, for the meaning judgement), through the same governor and cap. A post the read does not
+ * return does not exist there: its lead is DEAD. `proceed` is asked before the recheck — a run in flight stops there when it says no.
+ */
+export async function collectByIds({ transport, clock, cap, site, ids, language, proceed = () => true }) {
+  const g = createGovernor({ cap, dedupeWindowSeconds: DOCUMENTED.dedupeWindowSeconds, clock });
+  const wanted = [...new Set((ids ?? []).filter(Number.isInteger))];
+  if (wanted.length === 0) return { recorded: null, recheck: null, tally: g.tally(), stoppedBy: null, returnedIds: [] };
+  const first = await g.request(BY_IDS, { site, ids: wanted.join(";"), filter: "default" }, transport);
+  const refusedBySource = sourceRefusal(first.response);
+  if (refusedBySource) return { recorded: null, recheck: null, tally: g.tally(), stoppedBy: refusedBySource, returnedIds: [] };
+  const items = (Array.isArray(first.response?.items) ? first.response.items : []).filter((p) => wanted.includes(p?.question_id));
+  const recorded = { recordedAt: isoAt(clock()), request: { site, language, leadAddresses: wanted.length }, response: { items } };
+  const returnedIds = items.map((p) => p.question_id);
+  if (returnedIds.length === 0) return { recorded, recheck: { recordedAt: isoAt(clock()), response: { items: [] } }, tally: g.tally(), stoppedBy: null, returnedIds };
+  if (Number.isInteger(first.response?.backoff) && first.response.backoff > 0) return { recorded, recheck: null, tally: g.tally(), stoppedBy: "BACKOFF_REQUESTED", returnedIds };
+  if (!proceed()) return { recorded, recheck: null, tally: g.tally(), stoppedBy: "DISCONNECTED", returnedIds };
+  const again = await g.request(BY_IDS, { site, ids: returnedIds.join(";"), filter: "withbody" }, transport);
+  if (again.refused) return { recorded, recheck: null, tally: g.tally(), stoppedBy: again.refused, returnedIds };
+  const recheckRefused = sourceRefusal(again.response);
+  if (recheckRefused) return { recorded, recheck: null, tally: g.tally(), stoppedBy: recheckRefused, returnedIds };
+  return { recorded, recheck: { recordedAt: isoAt(clock()), response: { items: Array.isArray(again.response?.items) ? again.response.items : [] } }, tally: g.tally(), stoppedBy: null, returnedIds };
+}

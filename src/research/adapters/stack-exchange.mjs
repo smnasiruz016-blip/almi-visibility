@@ -22,7 +22,7 @@
 import { SOURCE_KINDS, VERIFIED, NOT_VERIFIED } from "../source-adapter.mjs";
 import { NOT_MEASURED } from "../public-questions.mjs";
 
-export { collect, sourceRefusal } from "./stack-exchange-collector.mjs";
+export { collect, collectByIds, sourceRefusal } from "./stack-exchange-collector.mjs";
 
 /**
  * RR-155 · F16 C9 · THE SOURCE DECISION THIS ADAPTER RUNS UNDER — the owner's own, issued in his name (_handoffs 3dba784; RR-154 §2). It
@@ -128,10 +128,30 @@ export function retrievalFrom(recorded, recheck) {
       observedAt: str(recorded.recordedAt), country: NOT_MEASURED, language: str(req.language) ?? NOT_MEASURED, originalPost: postText,
     });
   }
-  const query = str(req.q) ? `full-text search for ${req.q} (a lead only; relevance is judged by the declared profile)` : str(req.tagged) ? `tagged ${req.tagged}` : str(req.intitle) ? `title contains ${req.intitle}` : null;
+  /* RR-159 · F16 C22: a read of the original posts at LEAD addresses (an AI connection's or a client's) — the leads say where, never what */
+  const fromLeads = Number.isInteger(req.leadAddresses) && req.leadAddresses > 0;
+  const query = str(req.q) ? `full-text search for ${req.q} (a lead only; relevance is judged by the declared profile)` : str(req.tagged) ? `tagged ${req.tagged}` : str(req.intitle) ? `title contains ${req.intitle}` : fromLeads ? `the original posts at ${req.leadAddresses} lead address(es), read through this source's own reader (the leads said where, never what)` : null;
   return {
     topic: str(req.site) && query ? `${req.site} · ${query}` : null,
-    coverageLimits: str(req.site) ? `one network, one site (${req.site}), its own topics and languages; one recorded page of results; titles as returned under the default (HTML-safe) filter; country NOT MEASURED` : null,
+    coverageLimits: str(req.site) ? `one network, one site (${req.site}), its own topics and languages; ${fromLeads ? "only the posts the leads named" : "one recorded page of results"}; titles as returned under the default (HTML-safe) filter; country NOT MEASURED` : null,
     items, adapterRefusals, notes,
   };
+}
+
+/**
+ * RR-159 · F16 C22 · WHICH LEAD ADDRESSES ARE THIS SOURCE'S OWN QUESTION POSTS. Only an address on the plan's one declared site, in that
+ * site's own question-address form, names a post this reader may read; every other address is OUTSIDE (never read — NOT MEASURED). An
+ * address only says WHERE: whether a real post exists there is decided by reading it, never by the address.
+ * Limit, stated: only sites under the network's own subdomain form are recognised; any other address is outside.
+ */
+export function idsFromAddresses(addresses, site) {
+  const host = typeof site === "string" && /^[a-z0-9-]{1,60}$/.test(site) ? `${site}.stackexchange.com` : null;
+  const onSource = [], outside = [];
+  for (const a of addresses ?? []) {
+    let u = null;
+    try { u = new URL(a); } catch { u = null; }
+    const m = u && host && u.protocol === "https:" && u.hostname === host ? /^\/(?:questions|q)\/(\d{1,12})(?:\/|$)/.exec(u.pathname) : null;
+    if (m) onSource.push({ address: a, id: Number(m[1]) }); else outside.push(a);
+  }
+  return { onSource, outside };
 }

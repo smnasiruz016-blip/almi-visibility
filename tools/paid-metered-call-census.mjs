@@ -24,6 +24,7 @@ import { fileURLToPath } from "node:url";
 
 import { CONNECTOR_KINDS } from "../src/tenancy/root-registry.mjs";
 import { DEFERRED_LIMBS } from "../config/fboard/deferred-limbs.mjs";
+import { AI_PROVIDER_ADAPTERS } from "../src/research/ai-providers/index.mjs";
 
 export const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const FILE_BOUND = 2000;
@@ -39,13 +40,18 @@ export const CONNECTOR_CALL_CLASS = Object.freeze({
   SEARCH_CONSOLE_API: "METERED",
   /* RR-155: a public-question source API is keyed and counted against a daily quota by its provider — METERED */
   QUESTION_SOURCE_API: "METERED",
+  /* RR-159: the client's own AI provider is keyed and billed to the client's own account by its provider — METERED */
+  AI_PROVIDER: "METERED",
 });
 const GATE = /\bcreatePaidProviderGate\(/;
 const FAKE = /\bcreateFakePaidProvider\(/;
+/* RR-159: a gate whose providers come ONLY from the declared AI-provider adapter registry (src/research/ai-providers/index.mjs) is REAL
+ * exactly when that registry holds an adapter; while it is empty no real provider can be constructed there — counted, never assumed */
+const REGISTRY = /\bAI_PROVIDER_ADAPTERS\[/;
 const isComment = (line) => /^\s*(\*|\/\/|\/\*)/.test(line);
 
 /** The census over { path: text } — pure, so a control can plant a file. */
-export function censusOf(files, { connectorKinds = CONNECTOR_KINDS } = {}) {
+export function censusOf(files, { connectorKinds = CONNECTOR_KINDS, registrySize = Object.keys(AI_PROVIDER_ADAPTERS).length } = {}) {
   const paths = Object.keys(files).sort();
   if (paths.length > FILE_BOUND) throw new RangeError(`POPULATION_OVER_BOUND: ${paths.length} files exceed ${FILE_BOUND}`);
   const egress = [];
@@ -59,7 +65,8 @@ export function censusOf(files, { connectorKinds = CONNECTOR_KINDS } = {}) {
       if (GATE.test(line) && !/export function createPaidProviderGate/.test(line)) gates.push({ site: `${p}:${i + 1}`, file: p });
     });
   }
-  const paid = gates.map((g) => ({ site: g.site, provider: FAKE.test(String(files[g.file])) ? "FAKE_EXERCISE" : "REAL_OR_UNKNOWN" }));
+  const paid = gates.map((g) => ({ site: g.site, provider: FAKE.test(String(files[g.file])) ? "FAKE_EXERCISE" : REGISTRY.test(String(files[g.file])) ? (registrySize > 0 ? "REAL_FROM_REGISTRY" : "REGISTRY_EMPTY") : "REAL_OR_UNKNOWN" }));
+  const notReal = (x) => x.provider === "FAKE_EXERCISE" || x.provider === "REGISTRY_EMPTY";
   const kinds = [...connectorKinds];
   const unclassifiedKinds = kinds.filter((k) => !Object.hasOwn(CONNECTOR_CALL_CLASS, k));
   const staleKinds = Object.keys(CONNECTOR_CALL_CLASS).filter((k) => !kinds.includes(k));
@@ -75,8 +82,8 @@ export function censusOf(files, { connectorKinds = CONNECTOR_KINDS } = {}) {
     unclassifiedKinds,
     staleKinds,
     paidGateSites: paid,
-    realPaidProviders: paid.filter((x) => x.provider !== "FAKE_EXERCISE").length,
-    ok: unclassified.length === 0 && unclassifiedKinds.length === 0 && staleKinds.length === 0 && paid.every((x) => x.provider === "FAKE_EXERCISE"),
+    realPaidProviders: paid.filter((x) => !notReal(x)).length,
+    ok: unclassified.length === 0 && unclassifiedKinds.length === 0 && staleKinds.length === 0 && paid.every(notReal),
   };
 }
 

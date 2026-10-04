@@ -60,6 +60,9 @@ const DERIVED_TYPES = Object.freeze({
   render_run: { inputs: (r) => (present(r.run_id) ? [`run:${r.run_id}`] : []), at: (r) => r.finished_at, method: "render-run-summary" },
   /* RR-155: F16's collection run record (src/research/collection.mjs) — counts and codes summarising one bounded run, like a crawl run's */
   collection_run: { inputs: (r) => (present(r.run_id) ? [`run:${r.run_id}`] : []), at: (r) => r.recorded_at, method: "collection-run-summary" },
+  /* RR-159: the client's own connect or disconnect of its AI connection (src/research/ai-connection.mjs) — a record of the client's act, never
+   * evidence about any question; its one input is the connector it names */
+  ai_connection_event: { inputs: (r) => (present(r.value?.connectorId) ? [`connector:${h16(`${r.value.subject}#${r.value.connectorId}`)}`] : []), at: (r) => r.recorded_at, method: "client-ai-connection-event" },
   crawl_run_correction: { inputs: (r) => (present(r.corrects_run_id) ? [`run:${r.corrects_run_id}`] : []), at: (r) => r.corrected_at, method: "crawl-run-field-rederivation" },
   inventory_note: { inputs: (r) => (present(r.run_id) ? [`run:${r.run_id}`] : []), at: (r) => r.built_at, method: "inventory-from-stored-observations" },
   issue_state_change: { inputs: (r) => [...(present(r.issue_id) ? [`issue:${r.issue_id}`] : []), ...strs(r.evidence)], at: (r) => r.changed_at, method: "issue-lifecycle-decision" },

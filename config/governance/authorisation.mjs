@@ -112,6 +112,9 @@ export const ACTIONS = Object.freeze({
   /* RR-155 (4 Oct 2026): F16 C9–C14 — a public-question source API, opened only by the collection entry point (bin/collect-public-questions.mjs)
    * after its preflight; a classification only */
   OPEN_CONNECTOR_QUESTION_SOURCE_API: A("RESEARCH", "EXTERNAL_SOURCE"),
+  /* RR-159 (4 Oct 2026): F16 C17 — the client's own AI provider connection, opened only by the collection entry point after its preflight; a
+   * classification only */
+  OPEN_CONNECTOR_AI_PROVIDER: A("RESEARCH", "EXTERNAL_SOURCE"),
   ...many("GOVERNED_STATE", "RUN_EVIDENCE", [
     "WRITE_BODY_ARCHIVE", "APPEND_CONTENT_AUDIT_FINDINGS", "APPEND_ROBOTS_AND_DNS_FINDINGS", "APPEND_ACTIONS_TIMING_OBSERVATION",
     "APPEND_COST_LEDGER_BACKFILL", "APPEND_CRAWL_OBSERVATIONS", "WRITE_CRAWL_BODY", "APPEND_CRAWL_RUN_RECORD", "APPEND_CRAWL_COST_ENTRY",
@@ -146,6 +149,9 @@ export const ACTIONS = Object.freeze({
     /* RR-157 (4 Oct 2026): F16 C15 — items held for a meaning judgement, and the judgements (bin/judge-public-questions.mjs), kept in the research
      * batch's own stores, the same family and resource class; a classification only, granting no permission. */
     "APPEND_HELD_FOR_JUDGEMENT", "APPEND_MEANING_JUDGEMENTS",
+    /* RR-159 (4 Oct 2026): F16 C17–C24 — the client's AI connection events (bin/ai-connection.mjs), the discovery leads, and the ledger of the
+     * run's provider calls, kept in the research batch's own stores, the same family and resource class; a classification only. */
+    "APPEND_AI_CONNECTION_EVENTS", "APPEND_DISCOVERY_LEADS", "APPEND_PROVIDER_CALL_LEDGER",
     "WRITE_EXHIBIT_FILE", "WRITE_EXHIBIT_LISTING", "WRITE_EXHIBIT_PROVENANCE", "WRITE_EXHIBIT_INDEX",
     /* RR-138 §2 (2 Oct 2026): the shared render collection (bin/render-collect.mjs) — the same family and resource class as the
      * crawler's observation append and body write; a classification only, granting no permission a role does not already hold. */

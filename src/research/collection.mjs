@@ -30,8 +30,19 @@ export const PLAN_KIND = "PUBLIC_QUESTION_COLLECTION_PLAN";
 export const OBSERVER_TYPE = "SOURCE_ADAPTER_OBSERVED";
 /** RR-156 §4: the HARD STOP in code — one search and one recheck at most, whatever a plan or a GREEN says. */
 export const COLLECTION_REQUEST_CEILING = 2;
-export const OUTCOMES = Object.freeze({ REFUSED: "REFUSED_BEFORE_ANY_REQUEST", STOPPED: "STOPPED_BY_REFUSAL", COMPLETED: "COMPLETED" });
+export const OUTCOMES = Object.freeze({ REFUSED: "REFUSED_BEFORE_ANY_REQUEST", STOPPED: "STOPPED_BY_REFUSAL", COMPLETED: "COMPLETED", DISCONNECTED: "STOPPED_BY_DISCONNECT", ABSENT: "DISCOVERY_ABSENT" });
 const PLAN_FIELDS = Object.freeze(["schemaVersion", "kind", "planId", "subject", "tenantId", "researchBatch", "adapter", "site", "query", "language", "pagesize", "requests", "relevanceProfileSha256", "keeps", "retention", "declaredOn"]);
+/**
+ * RR-159 · F16 C17–C24 · an AI-LED (or client-led) plan: the same limb, the same preflight, the same GREEN by hash — it asks a provider WHERE
+ * (the queries its subject's declaration forms) and/or carries the client's own links, then reads the original posts through the source.
+ *   discovery: { ai: null | { connectorId, providerId, providerRecord, queries: [text], providerCalls, budget: {amount,currency},
+ *                pricePerCall: {amount,currency}, expiresOn }, suppliedLinks: [address], maxLeads }
+ */
+export const AI_PLAN_KIND = "AI_LED_COLLECTION_PLAN";
+/** RR-159 · the HARD STOP on provider calls in one run, whatever a plan or a GREEN says. */
+export const PROVIDER_CALL_CEILING = 5;
+const AI_PLAN_FIELDS = Object.freeze(["schemaVersion", "kind", "planId", "subject", "tenantId", "researchBatch", "adapter", "site", "language", "requests", "relevanceProfileSha256", "keeps", "retention", "declaredOn", "discovery"]);
+const AI_FIELDS = Object.freeze(["connectorId", "providerId", "providerRecord", "queries", "providerCalls", "budget", "pricePerCall", "expiresOn"]);
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const HEX64 = /^[0-9a-f]{64}$/;
 const present = (v) => typeof v === "string" && v.trim() !== "";
@@ -45,14 +56,19 @@ export const fileSha256 = planSha256;
 export function planRefusals(plan, { subject, batch, tenantDecidedAllowed }) {
   if (!plan || typeof plan !== "object" || Array.isArray(plan)) return ["PLAN_ABSENT"];
   const r = [];
-  for (const k of Object.keys(plan)) if (!PLAN_FIELDS.includes(k)) r.push("PLAN_NOT_EXACT:UNKNOWN_FIELD");
-  for (const k of PLAN_FIELDS) if (!Object.hasOwn(plan, k)) r.push(`PLAN_NOT_EXACT:${k}`);
+  const ai = plan.kind === AI_PLAN_KIND;
+  const fields = ai ? AI_PLAN_FIELDS : PLAN_FIELDS;
+  for (const k of Object.keys(plan)) if (!fields.includes(k)) r.push("PLAN_NOT_EXACT:UNKNOWN_FIELD");
+  for (const k of fields) if (!Object.hasOwn(plan, k)) r.push(`PLAN_NOT_EXACT:${k}`);
   if (r.length) return r;
-  if (plan.schemaVersion !== 1 || plan.kind !== PLAN_KIND) r.push("PLAN_NOT_EXACT:kind");
+  if (plan.schemaVersion !== 1 || ![PLAN_KIND, AI_PLAN_KIND].includes(plan.kind)) r.push("PLAN_NOT_EXACT:kind");
   if (!/^[a-z0-9][a-z0-9-]{2,63}$/.test(plan.planId)) r.push("PLAN_NOT_EXACT:planId");
   for (const k of ["adapter", "site", "language", "retention"]) if (!present(plan[k])) r.push(`PLAN_NOT_EXACT:${k}`);
-  if (!plan.query || typeof plan.query !== "object" || Object.keys(plan.query).join() !== "q" || !present(plan.query.q)) r.push("PLAN_NOT_EXACT:query");
-  if (!Number.isInteger(plan.pagesize) || plan.pagesize < 1 || plan.pagesize > 100) r.push("PLAN_NOT_EXACT:pagesize");
+  if (ai) r.push(...discoveryPlanRefusals(plan.discovery));
+  else {
+    if (!plan.query || typeof plan.query !== "object" || Object.keys(plan.query).join() !== "q" || !present(plan.query.q)) r.push("PLAN_NOT_EXACT:query");
+    if (!Number.isInteger(plan.pagesize) || plan.pagesize < 1 || plan.pagesize > 100) r.push("PLAN_NOT_EXACT:pagesize");
+  }
   if (!Number.isInteger(plan.requests) || plan.requests < 1) r.push("PLAN_NOT_EXACT:requests");
   else if (plan.requests > COLLECTION_REQUEST_CEILING) r.push("PLAN_EXCEEDS_REQUEST_CEILING");
   if (!HEX64.test(plan.relevanceProfileSha256 ?? "")) r.push("PLAN_NOT_EXACT:relevanceProfileSha256");
@@ -63,6 +79,29 @@ export function planRefusals(plan, { subject, batch, tenantDecidedAllowed }) {
    * decided for the tenant the plan names — a batch belongs to exactly one tenant, so another tenant is refused there */
   if (tenantDecidedAllowed !== true) r.push("PLAN_NOT_THIS_TENANTS");
   if (plan.researchBatch !== batch) r.push("PLAN_NOT_THIS_BATCH");
+  return r;
+}
+
+/** RR-159 · the discovery block of an AI-led plan, exact: an AI route, supplied links, both — or neither (discovery ABSENT, a state). */
+function discoveryPlanRefusals(d) {
+  if (!d || typeof d !== "object" || Array.isArray(d)) return ["PLAN_NOT_EXACT:discovery"];
+  const r = [];
+  if (Object.keys(d).sort().join() !== "ai,maxLeads,suppliedLinks") r.push("PLAN_NOT_EXACT:discovery");
+  if (!Array.isArray(d.suppliedLinks) || !d.suppliedLinks.every(present)) r.push("PLAN_NOT_EXACT:suppliedLinks");
+  if (!Number.isInteger(d.maxLeads) || d.maxLeads < 1 || d.maxLeads > 100) r.push("PLAN_NOT_EXACT:maxLeads");
+  if (d.ai === null) return r;
+  const a = d.ai;
+  if (!a || typeof a !== "object" || Object.keys(a).sort().join() !== [...AI_FIELDS].sort().join()) return [...r, "PLAN_NOT_EXACT:ai"];
+  for (const k of ["connectorId", "providerId", "providerRecord"]) if (!present(a[k])) r.push(`PLAN_NOT_EXACT:ai.${k}`);
+  if (!Array.isArray(a.queries) || a.queries.length === 0 || !a.queries.every(present)) r.push("PLAN_NOT_EXACT:ai.queries");
+  if (!Number.isInteger(a.providerCalls) || a.providerCalls < 1) r.push("PLAN_NOT_EXACT:ai.providerCalls");
+  else if (a.providerCalls > PROVIDER_CALL_CEILING) r.push("PLAN_EXCEEDS_PROVIDER_CALL_CEILING");
+  const money = (m) => m && typeof m === "object" && Object.keys(m).sort().join() === "amount,currency" && typeof m.amount === "number" && m.amount > 0 && /^[A-Z]{3}$/.test(m.currency);
+  if (!money(a.budget)) r.push("PLAN_NOT_EXACT:ai.budget");
+  /* the paid-provider controls charge a call BEFORE it is made — a plan with no declared price per call could not be bounded by its budget */
+  if (!money(a.pricePerCall)) r.push("PLAN_NOT_EXACT:ai.pricePerCall");
+  else if (money(a.budget) && a.pricePerCall.currency !== a.budget.currency) r.push("PLAN_NOT_EXACT:ai.pricePerCall.currency");
+  if (!DAY.test(a.expiresOn ?? "")) r.push("PLAN_NOT_EXACT:ai.expiresOn");
   return r;
 }
 
@@ -101,7 +140,7 @@ export function greenRefusals({ greenId, records, textOf, planSha, plan, spent, 
 }
 
 /** C9 · every condition, every failure named. `ok` only when the list is empty. */
-export function preflight({ subjectDeclared, connectorDeclared, plan, planCheck, planSha = null, withdrawn = [], records, sourceDecision, decl, credentialPresent, green, relevanceSha, now }) {
+export function preflight({ subjectDeclared, connectorDeclared, plan, planCheck, planSha = null, withdrawn = [], records, sourceDecision, decl, credentialPresent, green, relevanceSha, now, discovery = [] }) {
   const r = [];
   if (!subjectDeclared) r.push("SUBJECT_NOT_DECLARED");
   /* RR-156 §2: a withdrawn plan is DEAD — refused whatever GREEN names it */
@@ -115,6 +154,9 @@ export function preflight({ subjectDeclared, connectorDeclared, plan, planCheck,
   r.push(...admitSource(decl).refusals.map((x) => `SOURCE_TERMS:${x}`));
   if (!credentialPresent) r.push("CREDENTIAL_ABSENT");
   r.push(...green);
+  /* RR-159 · C17/C20 · an AI-led plan's own conditions — the client's connection, the owner provider record, the client's credential by
+   * presence, the formed queries — each named, in this ONE preflight, before any provider call or source request */
+  r.push(...discovery);
   return { ok: r.length === 0, refusals: [...new Set(r)] };
 }
 
@@ -131,8 +173,9 @@ export function intakeOf({ run, adapter, plan, subject, origin, relevance, exist
 }
 
 /** The run record — every request counted, every refusal, the zero. Counts and codes only: no wording, no reference, no credential. */
-export function runRecord({ plan, planSha, greenId, preflightRefusals = [], run = null, intake = null, at }) {
-  const outcome = preflightRefusals.length ? OUTCOMES.REFUSED : run?.stoppedBy ? OUTCOMES.STOPPED : OUTCOMES.COMPLETED;
+export function runRecord({ plan, planSha, greenId, preflightRefusals = [], run = null, intake = null, at, discovery = null }) {
+  const outcome = preflightRefusals.length ? OUTCOMES.REFUSED : discovery?.state === "ABSENT" ? OUTCOMES.ABSENT
+    : run?.stoppedBy === "DISCONNECTED" ? OUTCOMES.DISCONNECTED : run?.stoppedBy ? OUTCOMES.STOPPED : OUTCOMES.COMPLETED;
   const questions = intake ? intake.questions.length : 0;
   const retrieved = intake?.retrieved ?? NOT_MEASURED;
   const id = sha256(JSON.stringify([plan?.planId ?? null, planSha ?? null, greenId ?? null, at])).slice(0, 32);
@@ -151,6 +194,8 @@ export function runRecord({ plan, planSha, greenId, preflightRefusals = [], run 
       refusedItems: { ...(intake?.refused ?? {}) },
       observerType: OBSERVER_TYPE,
       sample: "SAMPLE — one bounded run of one plan on one source; never every question in the world",
+      /* RR-159 · C18/C22/C23 · the discovery route, its provider calls against the cap, every lead by resolution, and AS AT */
+      ...(discovery ? { discovery: Object.freeze({ ...discovery }) } : {}),
     }),
   });
 }
@@ -166,9 +211,18 @@ export function reportLines(rec) {
     `outcome ${v.outcome} · requests sent ${v.requests.sent} of cap ${v.requests.cap ?? "NOT DECLARED"}${v.stoppedBy ? ` · stopped by ${v.stoppedBy}` : ""}`,
   ];
   if (v.outcome === OUTCOMES.REFUSED) return [...lines, `REFUSED before any request: ${v.preflightRefusals.join(" · ")} — no request was issued`];
-  lines.push(`leads ${v.leads} — search hits, kept apart, never questions and never counted with them`);
+  /* RR-159 · C23: no AI connection and no supplied links — a STATE, never zero demand, never an error */
+  if (v.outcome === OUTCOMES.ABSENT) return [...lines, "discovery ABSENT — no AI connection and no supplied links: observed questions NOT MEASURED, never zero demand; every other part of the product runs unchanged"];
+  const dv = v.discovery;
+  if (dv) {
+    lines.push(`discovery ${dv.state} · provider calls ${dv.providerCalls.made} of cap ${dv.providerCalls.cap} · ${dv.asAt}`);
+    lines.push(`leads ${dv.leads.total} (AI ${dv.leads.ai} · supplied ${dv.leads.supplied}) — addresses only, UNVERIFIED: read ${dv.leads.read} · DEAD ${dv.leads.dead} · NOT READ (outside every approved source) ${dv.leads.notRead} · LEFT UNREAD ${dv.leads.leftUnread} — none is a question or demand`);
+    if (v.outcome === OUTCOMES.DISCONNECTED) lines.push(`STOPPED BY DISCONNECT ${dv.asAt}: ${dv.leads.leftUnread} lead(s) left unread; every record written before it stands unchanged and needs no re-verification`);
+  } else lines.push(`leads ${v.leads} — search hits, kept apart, never questions and never counted with them`);
   if (v.heldForJudgement) lines.push(`held for meaning judgement ${v.heldForJudgement} — not observed questions until a named judge finds each a CANDIDATE on its original post`);
-  if (v.observedQuestions === NOT_MEASURED) lines.push("observed questions NOT MEASURED — the source refused; a refusal is not zero, and nothing is retried or routed around");
+  if (v.observedQuestions === NOT_MEASURED && v.outcome === OUTCOMES.DISCONNECTED) lines.push("observed questions NOT MEASURED — the client disconnected before the posts were read; a stop is not zero");
+  else if (v.observedQuestions === NOT_MEASURED && dv && !v.stoppedBy) lines.push("observed questions NOT MEASURED — no lead named a post of the approved source, so nothing was read; NOT MEASURED is not zero");
+  else if (v.observedQuestions === NOT_MEASURED) lines.push("observed questions NOT MEASURED — the source refused; a refusal is not zero, and nothing is retried or routed around");
   else if (v.outcome === OUTCOMES.STOPPED) lines.push(`observed questions ${v.observedQuestions} — the run was STOPPED by ${v.stoppedBy}: not a completed zero, and nothing is retried`);
   else if (v.zero) lines.push("observed questions 0 — ZERO IS THE ANSWER: recorded, and the run ends; nothing widened, re-queried, sent to another source or filled with a lead");
   else lines.push(`observed questions ${v.observedQuestions}`);

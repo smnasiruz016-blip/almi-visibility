@@ -1,0 +1,9 @@
+RR-159 sabotage run · 2026-10-04T18:43:09.421Z
+population: 1 sabotage(s) over test/rr159-ai-led-discovery.test.mjs · each applied ALONE · a FAKE provider and a FAKE source transport only, zero real requests
+BASELINE (the named tests before any sabotage): GREEN
+PRE-FLIGHT (span occurrences in the code live now): S25=1 · all exactly once: true
+production trail sha256 before: 09b16cc732decb296a0e2b2cb1253b6da0ac03fe1aeae492ec58e5cf1e056818
+
+S25 C18 · a same-second reconnect deduplicated into the earlier event [src/research/ai-connection.mjs]: landed true · named test "P3b" red true · its failure AssertionError · SyntaxError false · a production child crashed false · failing 1 · restored by sha256 true · PROVED
+
+proved 1 of 1 · residue 0 · production trail sha256 after: 09b16cc732decb296a0e2b2cb1253b6da0ac03fe1aeae492ec58e5cf1e056818 · unchanged true

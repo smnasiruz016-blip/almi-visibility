@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -1307,6 +1307,8 @@ export const DECLARED = Object.freeze({
       Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F16", on: "2026-10-04", ruling: F16_AMENDMENT_1.ruling, contractSha256: F16_AMENDMENT_1.contractSha256, amends: F16_AMENDMENT_1.amends }),
       /* RR-157: F16's own Acceptance Amendment 2 (_handoffs 2a842c1), frozen ALONE — meaning on the original post (C15); question source is not answer source (C16) */
       Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F16", on: "2026-10-04", ruling: F16_AMENDMENT_2.ruling, contractSha256: F16_AMENDMENT_2.contractSha256, amends: F16_AMENDMENT_2.amends }),
+      /* RR-159: F16's own Acceptance Amendment 3 (_handoffs 1e48cb8), frozen ALONE — the client's own AI connection under an owner provider record (C17–C24) */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F16", on: "2026-10-04", ruling: F16_AMENDMENT_3.ruling, contractSha256: F16_AMENDMENT_3.contractSha256, amends: F16_AMENDMENT_3.amends }),
     ]),
   }),
   F21: Object.freeze({

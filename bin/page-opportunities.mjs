@@ -23,6 +23,7 @@ const { plan: p, inputs: i } = await readProductPlan(PRODUCT);
 const fmt = (o) => Object.entries(o ?? {}).map(([k, n]) => `${k} ${n}`).join(" · ") || "none";
 console.log("F91 · PAGE OPPORTUNITY PLANNING — this product only, recorded declarations and records only, count-only; three numbers, never one");
 console.log(`  bound: ${p.notice}`);
+console.log(`  ${i.asAt} · demand left out because its question was overturned: ${i.overturnedDemand}`);
 console.log(`  1 ${formatNumber(p.possible)}`);
 console.log(`      inputs: ${p.possible.dimensions.length} applying dimension(s) of ${i.declaredDimensions} declared — ${p.possible.dimensions.map((d) => `${d.values} value(s), source: ${d.source}, limits: ${d.limits}, exclusions: ${d.exclusions}`).join(" | ") || "none"}`);
 console.log(`      method: ${p.possible.method}`);

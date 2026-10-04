@@ -15,12 +15,13 @@ import { createJsonlStore } from "../evidence/store.mjs";
 import { partitionRecords } from "../crawl/batch-partition.mjs";
 import { RECORD_TYPE } from "./public-questions.mjs";
 import { LEAD_RECORD } from "./lead-intake.mjs";
+import { JUDGEMENT_RECORD } from "./meaning-judgement.mjs";
 
 /** The public-question records of the named research batches that belong to `tenantId`, with the arithmetic of what was read. */
 export function readClientQuestionRecords({ tenantId, resolve, batches, env = process.env }) {
   const store = lookupStore(rootIndexFor(env), "RESEARCH");
   if (store.state !== "DECLARED") return { records: [], files: 0, read: 0, outsidePartition: 0, store: store.state };
-  const records = [];
+  const records = [], judgements = [];
   let files = 0, read = 0, questionsSeen = 0, leads = 0;
   for (const batch of batches) {
     let names;
@@ -32,9 +33,11 @@ export function readClientQuestionRecords({ tenantId, resolve, batches, env = pr
       questionsSeen += all.filter((r) => r.record_type === RECORD_TYPE).length;
       /* RR-146: a search LEAD is counted apart and never read as a question */
       leads += all.filter((r) => r.record_type === LEAD_RECORD).length;
+      /* RR-158 §5: the batch's meaning judgements — they can only TAKE a question out of a count (an overturn), never add one */
+      judgements.push(...all.filter((r) => r.record_type === JUDGEMENT_RECORD));
       const part = partitionRecords({ records: all, fileName: name, tenantId, resolve });
       records.push(...part.records.filter((r) => r.record_type === RECORD_TYPE));
     }
   }
-  return { records, files, read, outsidePartition: questionsSeen - records.length, leads, store: "DECLARED" };
+  return { records, judgements, files, read, outsidePartition: questionsSeen - records.length, leads, store: "DECLARED" };
 }

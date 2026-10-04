@@ -1,0 +1,18 @@
+RR-158 sabotage run · 2026-10-04T05:35:37.945Z
+population: 10 sabotages over test/rr158-overturn.test.mjs + test/rr157-meaning.test.mjs · each applied ALONE · fake transport only, zero real requests
+BASELINE (named tests before any sabotage): GREEN
+PRE-FLIGHT (span occurrences in the code live now): Y01=1 Y02=1 Y03=1 Y04=1 Y05=1 Y06=1 Y07=1 Y08=1 Y09=1 Y10=1 · all exactly once: true
+production trail sha256 before: 4aa046762f69d47d3258e3913d8320d675949b78fc1e9af1d2e4b6843b71225c
+
+Y01 F16 counts an overturned admission (its filter removed) [bin/public-questions.mjs]: landed true · named test "O1" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+Y02 F16's reader stops bringing the judgements [src/research/public-questions-reader.mjs]: landed true · named test "O1" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+Y03 F91 admits an overturned question [src/page/demand-connection.mjs]: landed true · named test "O2" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+Y04 F91's connection read-back counts an overturned question [src/page/demand-connection.mjs]: landed true · named test "O2" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+Y05 F91's three numbers count an overturned question's demand [src/page/page-opportunities-reader.mjs]: landed true · named test "O2" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+Y06 the shared rule takes an overturn that names nothing [src/research/meaning-judgement.mjs]: landed true · named test "O3" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+Y07 the judging entry point accepts an overturn that names nothing [src/research/meaning-judgement.mjs]: landed true · named test "M3" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+Y08 the F16 count no longer says AS AT [bin/public-questions.mjs]: landed true · named test "O1" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+Y09 the F91 count no longer says AS AT [bin/page-opportunities.mjs]: landed true · named test "O4" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+Y10 the shared rule finds no overturn at all [src/research/meaning-judgement.mjs]: landed true · named test "O2" red true · by AssertionError only true · failing 2 · restored by sha256 true · PROVED
+
+proved 10 of 10 · residue 0 · production trail sha256 after: 4aa046762f69d47d3258e3913d8320d675949b78fc1e9af1d2e4b6843b71225c · unchanged true

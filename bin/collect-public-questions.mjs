@@ -54,6 +54,7 @@ import { planSha256, fileSha256, planRefusals, greenRefusals, preflight, runColl
 import { AI_CONNECTOR_KIND, CONNECTION, DISCOVERY, ABSENT_MEANING, connectionNow, discoveryRouteOf, formResearchQueries, queryRefusals, providerRecordRefusals } from "../src/research/ai-connection.mjs";
 import { runAiLed } from "../src/research/ai-led-collection.mjs";
 import { AI_PROVIDER_ADAPTERS } from "../src/research/ai-providers/index.mjs";
+import { BUILT_ADAPTERS } from "../src/research/ai-providers/built.mjs";
 import { governedProviderCall } from "../src/governance/governed-provider-call.mjs";
 import { namedActor, namedApproval } from "../src/governance/authorisation.mjs";
 
@@ -142,7 +143,14 @@ if (aiPlan) {
     const state = connectionNow(connectionRows(), { subject: SUBJECT, connectorId: ai.connectorId });
     if (state !== CONNECTION.CONNECTED) discoveryChecks.push(`AI_CONNECTION_${state}`);
     discoveryChecks.push(...providerRecordRefusals({ records, propositionId: ai.providerRecord, textOf, now, providerId: ai.providerId, origin: origins[0] ?? null }));
-    if (!seams.includes(TEST_PROVIDER) && !Object.hasOwn(AI_PROVIDER_ADAPTERS, ai.providerId)) discoveryChecks.push("PROVIDER_ADAPTER_ABSENT");
+    /* RR-161 · C25: a provider whose adapter is BUILT but not REGISTERED is refused by that name, its options still checked */
+    if (!seams.includes(TEST_PROVIDER) && !Object.hasOwn(AI_PROVIDER_ADAPTERS, ai.providerId)) {
+      if (Object.hasOwn(BUILT_ADAPTERS, ai.providerId)) discoveryChecks.push("PROVIDER_ADAPTER_BUILT_NOT_REGISTERED", ...BUILT_ADAPTERS[ai.providerId].optionsRefusals(ai.providerOptions));
+      else discoveryChecks.push("PROVIDER_ADAPTER_ABSENT");
+    }
+    else if (!seams.includes(TEST_PROVIDER)) discoveryChecks.push(...AI_PROVIDER_ADAPTERS[ai.providerId].optionsRefusals(ai.providerOptions));
+    /* RR-161 · C25: the plan's authorization for the provider expires on its declared day — after it, nothing is called */
+    if (ai.expiresOn < now) discoveryChecks.push("PLAN_AUTHORIZATION_EXPIRED");
   }
 }
 const pre = preflight({
@@ -235,7 +243,7 @@ async function aiLedRunAndExit() {
     const greenRecord = records.find((r) => r.authorityId === GREEN);
     const authorization = { provider: ai.providerId, tenantId: plan.tenantId, expiresOn: ai.expiresOn, authorizedBy: GREEN, date: greenRecord.issuedAt,
       reason: `the owner's GREEN ${GREEN} names this exact plan (${planSha})`, budget: ai.budget, cap: { maxCalls: Math.min(ai.providerCalls, PROVIDER_CALL_CEILING) } };
-    provider = governedProviderCall({ providerId: ai.providerId, fakeProvider, opened, credentialName, pricePerCall: ai.pricePerCall, authorization, now: instant,
+    provider = governedProviderCall({ providerId: ai.providerId, fakeProvider, opened, credentialName, pricePerCall: ai.pricePerCall, providerOptions: ai.providerOptions, authorization, now: instant,
       spendAuthority: { actorRef: namedActor(process.argv), scope: { scopeType: "TENANT", tenantId: plan.tenantId }, approvalRef, ...(approvals ? { approvals } : {}) } });
   }
   const callProvider = provider ? provider.call : null;

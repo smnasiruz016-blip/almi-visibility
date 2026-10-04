@@ -14,7 +14,7 @@ export default function createFakeAiProvider({ env, providerId, pricePerCall }) 
   const scenario = JSON.parse(readFileSync(env.FAKE_AI_SCENARIO, "utf8"));
   let calls = 0;
   const provider = Object.freeze({
-    name: providerId, fake: true, pricePerCall: Object.freeze({ ...pricePerCall }),
+    name: providerId, fake: true, priceMeasured: true, pricePerCall: Object.freeze({ ...pricePerCall }),
     async invoke(request) {
       calls += 1;
       appendFileSync(env.FAKE_AI_CALLS, JSON.stringify({ call: calls, query: request?.query ?? null }) + "\n");

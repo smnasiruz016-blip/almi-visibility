@@ -20,10 +20,10 @@ import { providerCallEntry } from "../research/ai-connection.mjs";
  *           authorization: object, spendAuthority: object, now: () => string }} o
  * @returns {{ call: (query: string) => Promise<unknown>, entries: () => object[] }}
  */
-export function governedProviderCall({ providerId, fakeProvider = null, opened = null, credentialName = null, pricePerCall, authorization, spendAuthority, now }) {
+export function governedProviderCall({ providerId, fakeProvider = null, opened = null, credentialName = null, pricePerCall, providerOptions = null, authorization, spendAuthority, now }) {
   if (fakeProvider && fakeProvider.fake !== true) throw new TypeError("a handed-in provider must be a declared fake — a live one comes from the registry alone");
   if (!fakeProvider && !Object.hasOwn(AI_PROVIDER_ADAPTERS, providerId)) throw new TypeError("PROVIDER_ADAPTER_ABSENT — no adapter is declared for this provider");
-  const impl = fakeProvider ?? AI_PROVIDER_ADAPTERS[providerId].create({ opened, credentialName, pricePerCall });
+  const impl = fakeProvider ?? AI_PROVIDER_ADAPTERS[providerId].create({ opened, credentialName, pricePerCall, options: providerOptions });
   const kept = [];
   const keep = (e) => { if (kept.some((x) => x.entry_id === e.entry_id)) return { appended: false }; kept.push(e); return { appended: true }; };
   const gate = createPaidProviderGate({ providers: { [providerId]: impl }, authorizations: [authorization], killSwitch: createKillSwitch(),
@@ -31,9 +31,16 @@ export function governedProviderCall({ providerId, fakeProvider = null, opened =
   let seq = 0;
   return Object.freeze({
     async call(query) {
-      const r = await gate.call(providerId, { query });
+      const base = { provider: providerId, tenantId: authorization.tenantId, cap: authorization.cap.maxCalls, pricePerCall, fake: impl.fake === true, priceMeasured: impl.priceMeasured === true };
+      let r;
+      try { r = await gate.call(providerId, { query }); }
+      catch (e) {
+        /* a refusal by the controls is already on the ledger; a call the provider answered with an error WAS a call — it is ledgered too (C24, C26) */
+        if (e?.name !== "PaidCallRefused") { seq += 1; keep(providerCallEntry({ ...base, at: now(), seq, callsSoFar: gate.spendOf(providerId).calls - 1, errored: typeof e?.code === "string" ? e.code : "UNNAMED" })); }
+        throw e;
+      }
       seq += 1;
-      keep(providerCallEntry({ at: now(), seq, provider: providerId, tenantId: authorization.tenantId, cap: authorization.cap.maxCalls, callsSoFar: r.calls - 1, pricePerCall, fake: impl.fake === true }));
+      keep(providerCallEntry({ ...base, at: now(), seq, callsSoFar: r.calls - 1, usage: r.result?.usage ?? null }));
       return r.result;
     },
     entries: () => [...kept],

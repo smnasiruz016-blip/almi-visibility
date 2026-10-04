@@ -101,7 +101,7 @@ function green(planSha, { provider = providerText(), propositionId, requests = 2
   return { id: g.authorityId, path: file("green.json", { record: g, text, also }) };
 }
 const aiBlock = (over = {}) => ({ connectorId: AI_CONNECTOR, providerId: PROVIDER, providerRecord: null, queries: [FORMED[0].text], providerCalls: 1,
-  budget: { amount: 1, currency: "USD" }, pricePerCall: { amount: 0.01, currency: "USD" }, expiresOn: "2099-12-31", ...over });
+  budget: { amount: 1, currency: "USD" }, pricePerCall: { amount: 0.01, currency: "USD" }, expiresOn: "2099-12-31", providerOptions: null, ...over });
 const planOf = ({ ai = aiBlock(), suppliedLinks = [], maxLeads = 10, planId = `lamzish-ai-led-fixture-${++n}` } = {}) => ({
   schemaVersion: 1, kind: AI_PLAN_KIND, planId, subject: SUBJECT, tenantId: TENANT, researchBatch: BATCH, adapter: "stack-exchange", site: SITE, language: "en", requests: 2,
   relevanceProfileSha256: PROFILE_SHA, keeps: ["each lead as an ADDRESS only, with how it was found and what reading it showed", "for each post the boundary holds: its title, its original post's own text (never a reply), link, dates, author display name, licence and attribution"],
@@ -404,6 +404,65 @@ test("P9 · F77 — the paid-provider census sees the registry-fed gate: REAL ex
   const planted = { "bin/x.mjs": "const g = createPaidProviderGate({ providers: { [id]: AI_PROVIDER_ADAPTERS[id].create() } });" };
   assert.equal(censusOf(planted, { registrySize: 1 }).realPaidProviders, 1, "CONTROL: a registry holding an adapter was not counted REAL");
   assert.equal(censusOf(planted, { registrySize: 0 }).realPaidProviders, 0);
+});
+
+test("P10 · RR-161 C25–C26 — refused BY NAME, with no provider call: a record WITHDRAWN by a later owner record, an EXPIRED authorization; and the HARD BUDGET stops the run", () => {
+  const W = world();
+  try {
+    { const k = connection(W, "--connect"); assert.equal(k.r.status, 0, k.out); }
+    /* the record is no longer current: a LATER owner record for the same proposition withdraws the capability (the register resolves the latest) */
+    const p1 = planOf();
+    const prop = `OWNER_PROVIDER_RECORD_FIXTURE_r${++n}`;
+    p1.discovery.ai.providerRecord = prop;
+    const bytes = JSON.stringify(p1, null, 2);
+    writeFileSync(batchFile(W, "collection-plan.json"), bytes);
+    const g = green(planSha256(bytes), { provider: providerText(), propositionId: prop });
+    const gj = JSON.parse(readFileSync(g.path, "utf8"));
+    /* the EARLIER record (issued 1 Jan) permits; the LATER one (issued today) withdraws — the register resolves the later one */
+    const withdrawn = providerText({ capability: "NOT_PERMITTED" });
+    gj.also[0].record.issuedAt = "2026-01-01";
+    gj.also.push({ record: authorityRecord(`AlmiVisibility_OWNER_DECISION_${TODAY}_FIXTURE_PROVIDER_WITHDRAWN_r${n}.md`, prop, withdrawn), text: withdrawn });
+    writeFileSync(g.path, JSON.stringify(gj));
+    attach(W, "INPUT_PATH", inputPathRef(g.path), TENANT);
+    const aiCalls = file("ai-calls.jsonl", ""), qsCalls = file("qs-calls.jsonl", "");
+    const w = spawn(W, ["bin/collect-public-questions.mjs", `--subject=${SUBJECT}`, `--research-batch=${BATCH}`, `--green=${g.id}`, `--tenant=${TENANT}`, "--actor=actor:cc", "--ai-connection", "--confirm"], {
+      [KEY_NAME]: QS_SECRET, [AI_KEY]: AI_SECRET, ALMIVISIBILITY_TEST_TRANSPORT: join(REPO, "test", "fixtures", "fake-question-source-transport.mjs"), ALMIVISIBILITY_TEST_GREEN: g.path,
+      ALMIVISIBILITY_TEST_PROVIDER: join(REPO, "test", "fixtures", "fake-ai-provider.mjs"), FAKE_QS_SCENARIO: file("qs.json", { responses: [] }), FAKE_QS_CALLS: qsCalls,
+      FAKE_AI_SCENARIO: file("ai.json", { outputs: [providerSays(11)], tenantId: TENANT }), FAKE_AI_CALLS: aiCalls });
+    const wl = w.out.split(/\r?\n/).find((l) => /REFUSED before any request: /.test(l)) ?? "";
+    assert.match(wl, /PROVIDER_CAPABILITY_NOT_PERMITTED/, `a record withdrawn by a later owner record still permitted the call\n${w.out}`);
+    assert.deepEqual([lines(aiCalls).length, lines(qsCalls).length], [0, 0], "a provider or source call was made under a withdrawn record");
+    /* the plan's authorization has expired */
+    const e = collect(W, { plan: planOf({ ai: aiBlock({ expiresOn: "2020-01-01" }) }), outputs: [providerSays(11)] });
+    const el = e.out.split(/\r?\n/).find((l) => /REFUSED before any request: /.test(l)) ?? "";
+    assert.match(el, /PLAN_AUTHORIZATION_EXPIRED/, `an expired authorization was not refused by name\n${e.out}`);
+    assert.deepEqual([e.aiCalls, e.qsCalls.length], [0, 0]);
+    /* the hard budget: two calls planned at a per-call charge of 0.6 under a budget of 1.0 — the second is refused, the run STOPS, both ledgered */
+    const before = stored(W, "provider-ledger.jsonl").length;
+    const b = collect(W, { plan: planOf({ ai: aiBlock({ queries: [FORMED[0].text, FORMED[1].text], providerCalls: 2, budget: { amount: 1, currency: "USD" }, pricePerCall: { amount: 0.6, currency: "USD" } }) }), outputs: [{ text: "" }, { text: "" }] });
+    assert.equal(b.aiCalls, 1, "a call over the hard budget was made");
+    assert.match(b.out, /stopped by PROVIDER_REFUSED:BUDGET_WOULD_BE_EXCEEDED/, `the budget did not stop the run by name\n${b.out}`);
+    assert.equal(b.qsCalls.length, 0, "the source was read after the budget stopped the run");
+    assert.deepEqual(stored(W, "provider-ledger.jsonl").slice(before).map((x) => x.outcome), ["CALLED", "REFUSED"], "the budget stop was not ledgered");
+  } finally { W.cleanup(); }
+});
+
+test("P11 · RR-161 C25 — a plan naming the provider whose adapter is BUILT but NOT REGISTERED is refused by that name, its options checked; no call", () => {
+  const W = world();
+  try {
+    { const k = connection(W, "--connect"); assert.equal(k.r.status, 0, k.out); }
+    const opts = { model: "fixture-model-1", toolType: "web_search_20260318", maxSearchesPerCall: 3, maxOutputTokens: 512 };
+    const rec = providerText({ provider: "anthropic" });
+    const run = (providerOptions) => collect(W, { plan: planOf({ ai: aiBlock({ providerId: "anthropic", providerOptions }) }), provider: rec, outputs: [providerSays(11)], env: { ALMIVISIBILITY_TEST_PROVIDER: "" } });
+    const ok = run(opts);
+    const okLine = ok.out.split(/\r?\n/).find((l) => /REFUSED before any request: /.test(l)) ?? "";
+    assert.match(okLine, /PROVIDER_ADAPTER_BUILT_NOT_REGISTERED/, `a built-but-unregistered adapter was not refused by that name\n${ok.out}`);
+    assert.doesNotMatch(okLine, /PROVIDER_ADAPTER_ABSENT|PROVIDER_OPTIONS_/, "valid options were refused, or the built adapter read as absent");
+    const bad = run({ ...opts, maxSearchesPerCall: 99 });
+    const badLine = bad.out.split(/\r?\n/).find((l) => /REFUSED before any request: /.test(l)) ?? "";
+    assert.match(badLine, /PROVIDER_OPTIONS_SEARCH_CAP/, "the built adapter's options check did not run");
+    assert.deepEqual([ok.aiCalls, ok.qsCalls.length, bad.aiCalls, bad.qsCalls.length], [0, 0, 0, 0], "a call was made");
+  } finally { W.cleanup(); }
 });
 
 test("TRAIL · the production audit trail is byte-identical after every proof in this file", () => {

@@ -185,8 +185,10 @@ export function leadRecord({ subject, planId, kind, address, queryId = null, pro
 }
 
 /** C24 · the ledger entry for one provider call that WAS made: counted against the plan's cap; its money as the plan prices it, or UNKNOWN. */
-export function providerCallEntry({ at, seq, provider, tenantId, cap, callsSoFar, pricePerCall = null, fake = false }) {
-  const priced = pricePerCall && typeof pricePerCall.amount === "number" && present(pricePerCall.currency);
+export function providerCallEntry({ at, seq, provider, tenantId, cap, callsSoFar, pricePerCall = null, fake = false, priceMeasured = false, usage = null, errored = null }) {
+  /* RR-161 · C26: an amount is MEASURED only where the provider's own price per call is measured — the plan's declared per-call charge bounds
+   * the hard budget, it is never reported as what the call cost */
+  const priced = priceMeasured === true && pricePerCall && typeof pricePerCall.amount === "number" && present(pricePerCall.currency);
   const entry = makeCostEntry({
     entry_id: `ai-provider-call:${provider}:${at}:${seq}`,
     run_kind: "paid-provider-call",
@@ -194,10 +196,12 @@ export function providerCallEntry({ at, seq, provider, tenantId, cap, callsSoFar
     run_started_at: at, recorded_at: at,
     money: priced
       ? { amountState: "MEASURED", amount: pricePerCall.amount, currency: pricePerCall.currency, basis: "the price per call the run's provider declares — charged to the client's own account" }
-      : { amountState: "UNKNOWN", amount: null, unknownKind: "MEASURABLE_BUT_NOT_RECORDED", unknownReason: "the client's provider bills the client's own account; no price per call is declared to this run" },
+      : { amountState: "UNKNOWN", amount: null, unknownKind: "NOT_MEASURABLE_WITH_TOOLS_WE_HOLD", unknownReason: `the provider's full price per call is NOT MEASURED (its token cost was not read); the hard budget was charged the plan's declared ${pricePerCall?.amount ?? "?"} ${pricePerCall?.currency ?? ""} per call, which is a bound, not a cost` },
     providerCalls: { state: "MEASURED", total: 1, perProvider: { [provider]: 1 } },
     budget: { kind: "paid-provider", used: { callsIssuedBefore: callsSoFar, attempted: 1 }, bounds: { maxCalls: cap }, capReached: callsSoFar + 1 >= cap },
     founderTime: { state: "MEASURED", seconds: 0, zeroBasis: "an automated call inside a run; no founder time is spent on it" },
   });
-  return Object.freeze({ ...entry, outcome: "CALLED", scope: Object.freeze({ tenantId: tenantId ?? null }) });
+  return Object.freeze({ ...entry, outcome: errored ? "CALLED_ERROR" : "CALLED", ...(errored ? { error: Object.freeze({ code: errored }) } : {}),
+    usage: Object.freeze({ ...(usage ?? {}) }), usageMeasurement: usage && Object.keys(usage).length ? "MEASURED — counts as the provider reported them" : "NOT MEASURED — the provider reported none",
+    scope: Object.freeze({ tenantId: tenantId ?? null }) });
 }

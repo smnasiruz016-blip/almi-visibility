@@ -42,7 +42,7 @@ export const AI_PLAN_KIND = "AI_LED_COLLECTION_PLAN";
 /** RR-159 · the HARD STOP on provider calls in one run, whatever a plan or a GREEN says. */
 export const PROVIDER_CALL_CEILING = 5;
 const AI_PLAN_FIELDS = Object.freeze(["schemaVersion", "kind", "planId", "subject", "tenantId", "researchBatch", "adapter", "site", "language", "requests", "relevanceProfileSha256", "keeps", "retention", "declaredOn", "discovery"]);
-const AI_FIELDS = Object.freeze(["connectorId", "providerId", "providerRecord", "queries", "providerCalls", "budget", "pricePerCall", "expiresOn"]);
+const AI_FIELDS = Object.freeze(["connectorId", "providerId", "providerRecord", "queries", "providerCalls", "budget", "pricePerCall", "expiresOn", "providerOptions"]);
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const HEX64 = /^[0-9a-f]{64}$/;
 const present = (v) => typeof v === "string" && v.trim() !== "";
@@ -102,6 +102,8 @@ function discoveryPlanRefusals(d) {
   if (!money(a.pricePerCall)) r.push("PLAN_NOT_EXACT:ai.pricePerCall");
   else if (money(a.budget) && a.pricePerCall.currency !== a.budget.currency) r.push("PLAN_NOT_EXACT:ai.pricePerCall.currency");
   if (!DAY.test(a.expiresOn ?? "")) r.push("PLAN_NOT_EXACT:ai.expiresOn");
+  /* RR-161 · C25: the provider's own options — an object the adapter checks exactly, or null for a provider that takes none */
+  if (a.providerOptions !== null && (typeof a.providerOptions !== "object" || Array.isArray(a.providerOptions))) r.push("PLAN_NOT_EXACT:ai.providerOptions");
   return r;
 }
 

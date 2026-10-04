@@ -1,0 +1,22 @@
+RR-156 sabotage run · 2026-10-04T03:01:37.027Z
+population: 14 sabotages over test/rr156-lamzish-scope.test.mjs + test/f16-collection.test.mjs · each applied ALONE (W08: two spans together) · fake transport only, zero real requests
+BASELINE (named tests before any sabotage): GREEN
+PRE-FLIGHT (span occurrences in the code live now): W01=1 W02=1 W03=1 W04=1 W05=1 W06=1 W07=1 W08=1+1+1 W09=1 W10=1 W11=1 W12=1 W13=1 W14=1 · all exactly once: true
+production trail sha256 before: 2c46576e126837b68ed28ee858349b850e98db61492e91f18f34e163f6b63c01
+
+W01 the withdrawn-plan check removed [src/research/collection.mjs]: landed true · named test "L2" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+W02 the withdrawn plan's hash altered in the list [config/research/withdrawn-plans.mjs]: landed true · named test "L2" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+W03 the entry point stops handing the withdrawn list to the preflight [bin/collect-public-questions.mjs]: landed true · named test "L2" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+W04 a GREEN for another plan admitted [src/research/collection.mjs]: landed true · named test "L3" red true · by AssertionError only true · failing 2 · restored by sha256 true · PROVED
+W05 the relevance profile's excluding rules ignored [src/research/source-adapter.mjs]: landed true · named test "L4" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+W06 the relevance gate removed [src/research/source-adapter.mjs]: landed true · named test "L4" red true · by AssertionError only true · failing 3 · restored by sha256 true · PROVED
+W07 admitted records claim another client [src/research/source-adapter.mjs]: landed true · named test "L5" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+W08 ALL THREE guards on another client's batch removed (scope gate + membership + the plan's tenant decision) [bin/collect-public-questions.mjs]: landed true · named test "L5" red true · by AssertionError only true · failing 2 · restored by sha256 true · PROVED
+W09 a plan for more than two no longer refused [src/research/collection.mjs]: landed true · named test "L6" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+W10 the collector handed the plan's own count [src/research/collection.mjs]: landed true · named test "L6" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+W11 the ceiling raised to three [src/research/collection.mjs]: landed true · named test "L6" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+W12 leads stored as questions [bin/collect-public-questions.mjs]: landed true · named test "K5" red true · by AssertionError only true · failing 4 · restored by sha256 true · PROVED
+W13 zero no longer reported as zero [src/research/collection.mjs]: landed true · named test "K5" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+W14 the credential's value touched (its length measured) [bin/collect-public-questions.mjs]: landed true · named test "K7" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+
+proved 14 of 14 · residue 0 · production trail sha256 after: 2c46576e126837b68ed28ee858349b850e98db61492e91f18f34e163f6b63c01 · unchanged true

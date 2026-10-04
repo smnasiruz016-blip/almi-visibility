@@ -390,4 +390,8 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-04_RR-155.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F16_ACCEPTANCE_AMENDMENT_1_2026-10-04.md", loader: "F-board acceptance F16" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-04_RR-155_LAMZISH_SUBJECT.md", loader: "authority register (CURRENT record)" }),
+  /* RR-156 (4 Oct 2026): the two CURRENT records admitted by the migration at _handoffs 9fb9bb4 — command RR-156 and the owner's declaration
+   * of what lamzish is (its eight services are its dimensions; origin country is audience context). */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-04_RR-156.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-04_RR-156_LAMZISH_PRODUCT_DECLARATION.md", loader: "authority register (CURRENT record)" }),
 ]);

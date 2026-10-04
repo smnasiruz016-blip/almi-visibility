@@ -28,6 +28,8 @@ import { NOT_MEASURED, RECORD_TYPE } from "./public-questions.mjs";
 export const COLLECTION_RUN = "collection_run";
 export const PLAN_KIND = "PUBLIC_QUESTION_COLLECTION_PLAN";
 export const OBSERVER_TYPE = "SOURCE_ADAPTER_OBSERVED";
+/** RR-156 §4: the HARD STOP in code — one search and one recheck at most, whatever a plan or a GREEN says. */
+export const COLLECTION_REQUEST_CEILING = 2;
 export const OUTCOMES = Object.freeze({ REFUSED: "REFUSED_BEFORE_ANY_REQUEST", STOPPED: "STOPPED_BY_REFUSAL", COMPLETED: "COMPLETED" });
 const PLAN_FIELDS = Object.freeze(["schemaVersion", "kind", "planId", "subject", "tenantId", "researchBatch", "adapter", "site", "query", "language", "pagesize", "requests", "relevanceProfileSha256", "keeps", "retention", "declaredOn"]);
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -52,6 +54,7 @@ export function planRefusals(plan, { subject, batch, tenantDecidedAllowed }) {
   if (!plan.query || typeof plan.query !== "object" || Object.keys(plan.query).join() !== "q" || !present(plan.query.q)) r.push("PLAN_NOT_EXACT:query");
   if (!Number.isInteger(plan.pagesize) || plan.pagesize < 1 || plan.pagesize > 100) r.push("PLAN_NOT_EXACT:pagesize");
   if (!Number.isInteger(plan.requests) || plan.requests < 1) r.push("PLAN_NOT_EXACT:requests");
+  else if (plan.requests > COLLECTION_REQUEST_CEILING) r.push("PLAN_EXCEEDS_REQUEST_CEILING");
   if (!HEX64.test(plan.relevanceProfileSha256 ?? "")) r.push("PLAN_NOT_EXACT:relevanceProfileSha256");
   if (!Array.isArray(plan.keeps) || plan.keeps.length === 0 || !plan.keeps.every(present)) r.push("PLAN_NOT_EXACT:keeps");
   if (!DAY.test(plan.declaredOn ?? "")) r.push("PLAN_NOT_EXACT:declaredOn");
@@ -98,9 +101,11 @@ export function greenRefusals({ greenId, records, textOf, planSha, plan, spent, 
 }
 
 /** C9 · every condition, every failure named. `ok` only when the list is empty. */
-export function preflight({ subjectDeclared, connectorDeclared, plan, planCheck, records, sourceDecision, decl, credentialPresent, green, relevanceSha, now }) {
+export function preflight({ subjectDeclared, connectorDeclared, plan, planCheck, planSha = null, withdrawn = [], records, sourceDecision, decl, credentialPresent, green, relevanceSha, now }) {
   const r = [];
   if (!subjectDeclared) r.push("SUBJECT_NOT_DECLARED");
+  /* RR-156 §2: a withdrawn plan is DEAD — refused whatever GREEN names it */
+  if (planSha !== null && withdrawn.some((w) => w.planSha256 === planSha)) r.push("PLAN_WITHDRAWN");
   r.push(...planCheck);
   if (plan && relevanceSha !== plan.relevanceProfileSha256) r.push("RELEVANCE_PROFILE_IS_NOT_THE_PLANS");
   if (!connectorDeclared) r.push("QUESTION_SOURCE_CONNECTOR_UNDECLARED");
@@ -115,7 +120,7 @@ export function preflight({ subjectDeclared, connectorDeclared, plan, planCheck,
 
 /** One bounded run through the source's own collector: the plan's request count IS the cap. */
 export async function runCollection({ collect, transport, clock, plan }) {
-  return collect({ transport, clock, cap: plan.requests, site: plan.site, q: plan.query.q, language: plan.language, pagesize: plan.pagesize });
+  return collect({ transport, clock, cap: Math.min(plan.requests, COLLECTION_REQUEST_CEILING), site: plan.site, q: plan.query.q, language: plan.language, pagesize: plan.pagesize });
 }
 
 /** The run's items through the existing boundary: leads apart, questions only as the boundary admits them. A source refusal is NOT MEASURED. */

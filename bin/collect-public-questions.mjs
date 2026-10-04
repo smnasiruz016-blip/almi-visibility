@@ -42,6 +42,7 @@ import { ADAPTERS } from "../src/research/adapters/index.mjs";
 import { BATCH_PURPOSES } from "../src/research/human-observation.mjs";
 import { RECORD_TYPE } from "../src/research/public-questions.mjs";
 import { AUTHORITY_CORPUS } from "../config/authority/corpus.mjs";
+import { WITHDRAWN_PLANS } from "../config/research/withdrawn-plans.mjs";
 import { contentHashOf } from "../src/authority/corpus.mjs";
 import { planSha256, fileSha256, planRefusals, greenRefusals, preflight, runCollection, intakeOf, runRecord, spentGreens, reportLines } from "../src/research/collection.mjs";
 
@@ -103,7 +104,7 @@ const earlierRuns = existsSync(runsFile) ? createJsonlStore(runsFile).readAll() 
 const now = new Date().toISOString().slice(0, 10);
 const green = greenRefusals({ greenId: GREEN, records, textOf, planSha, plan, spent: spentGreens(earlierRuns), now });
 const pre = preflight({
-  subjectDeclared: subject.state === "DECLARED", connectorDeclared, plan, planCheck, records, sourceDecision: adapter?.SOURCE_DECISION ?? null,
+  subjectDeclared: subject.state === "DECLARED", connectorDeclared, plan, planCheck, planSha, withdrawn: WITHDRAWN_PLANS, records, sourceDecision: adapter?.SOURCE_DECISION ?? null,
   decl: adapter?.DECLARATION ?? null, credentialPresent: credentialName !== null && Object.hasOwn(process.env, credentialName), green, relevanceSha: relevanceBytes === null ? null : fileSha256(relevanceBytes), now,
 });
 

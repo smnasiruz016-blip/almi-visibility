@@ -102,7 +102,10 @@ test("§5 · FIRING CONTROL: a post deleted or changed since retrieval is REFUSE
 
 test("§4 · FIRING CONTROL: only the mapped fields leave the adapter, and only the declared fields enter the record — never a body, a score or a whole response", () => {
   const item = retrievalFrom(recorded([post(1)]), recorded([post(1)])).items[0];
-  assert.deepEqual(Object.keys(item).sort(), ["attribution", "country", "language", "licenceName", "licenceVersion", "observedAt", "postVersion", "postedAt", "sourceUrl", "wording", "wordingOrigin"]);
+  /* RESTATED 4 Oct 2026 (RR-157 §1, F16 Acceptance Amendment 2 C15), for a MEASURED reason: the owner's meaning test is judged on the ORIGINAL
+   * POST, so the adapter now also hands on `originalPost` — the question's own title and body, never a reply. It reaches a stored record ONLY
+   * as a HELD item under a meaning profile; under this ordinary profile the record below still carries no body (its keys are pinned exactly). */
+  assert.deepEqual(Object.keys(item).sort(), ["attribution", "country", "language", "licenceName", "licenceVersion", "observedAt", "originalPost", "postVersion", "postedAt", "sourceUrl", "wording", "wordingOrigin"]);
   const v = run([post(1)]).records[0].value;
   assert.deepEqual(Object.keys(v).sort(), ["attribution", "country", "dataPurpose", "kind", "language", "licence", "limits", "method", "origin", "original", "postVersion", "postedAt", "provenance", "reference", "relevance", "source", "sourceId", "subject", "surface", "timeWindow", "topic"]);
   assert.doesNotMatch(JSON.stringify(v), /SYNTHETIC BODY|view_count|"score"/);

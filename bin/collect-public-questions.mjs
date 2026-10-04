@@ -148,6 +148,10 @@ if (intake.leads.length) {
   const g = append(intake.leads, "leads.jsonl", "APPEND_RESEARCH_LEADS");
   if (!persisted(g)) { console.error(`  🔴 ${g.outcome} — ${intake.leads.length} lead(s) did NOT persist`); process.exit(1); }
 }
+if ((intake.held ?? []).length) {
+  const g = append(intake.held, "held-for-judgement.jsonl", "APPEND_HELD_FOR_JUDGEMENT");
+  if (!persisted(g)) { console.error(`  🔴 ${g.outcome} — ${intake.held.length} held item(s) did NOT persist`); process.exit(1); }
+}
 if (intake.questions.length) {
   const g = append(intake.questions, "questions.jsonl", "APPEND_SOURCE_QUESTIONS");
   if (!persisted(g)) { console.error(`  🔴 ${g.outcome} — ${intake.questions.length} question(s) did NOT persist`); process.exit(1); }

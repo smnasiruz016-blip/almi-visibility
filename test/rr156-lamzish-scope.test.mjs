@@ -60,7 +60,8 @@ function world() {
   const t = JSON.parse(readFileSync(tf, "utf8"));
   t.tenants.push({ schemaVersion: 1, tenantId: TENANT, status: "ACTIVE", declaredOn: TODAY, declarationBasis: "F02_DECLARED_FIXTURE_WORLD_NOT_THE_REAL_POPULATION", label: "the subject's real tenant, in a confined copy" });
   writeFileSync(tf, JSON.stringify(t, null, 2));
-  for (const [k, r] of [["SITE_ORIGIN", ORIGIN], ["RESEARCH_BATCH", OLD_BATCH], ["SITE_ORIGIN", API_ORIGIN]]) attach(W, k, r, TENANT);
+  /* every member the subject declares (RR-157 added a second batch), and the source it reaches, to its own tenant */
+  for (const [k, r] of [...ENTRY.members.map((m) => [m.resourceKind, m.resourceRef]), ["SITE_ORIGIN", API_ORIGIN]]) attach(W, k, r, TENANT);
   return W;
 }
 function attach(W, kind, ref, tenant) {
@@ -133,20 +134,25 @@ test("L3 · A GREEN NAMING ONE PLAN NEVER ADMITS A DIFFERENT PLAN — the withdr
   } finally { W.cleanup(); }
 });
 
-test("L4 · UNDER THE SUBJECT'S REAL RELEVANCE PROFILE, a do-it-yourself or repair question is never admitted; a declared service in Pakistan is", () => {
+/* RESTATED 4 Oct 2026 (RR-157 §1), for a MEASURED reason: the owner corrected RR-156 — the eight service words were EXAMPLES, never a
+ * matching rule, and the literal "Pakistan AND a label" profile is removed. The subject's REAL profile is now his MEANING TEST (data
+ * lamzish/relevance-profile.json), judged on the original post by a named judge (test/rr157-meaning.test.mjs). What RR-156 proved still
+ * holds and is proved here: under the real profile a do-it-yourself or repair question is NEVER admitted — and now nothing is admitted by the
+ * collection run at all: every item that passes the boundary is HELD for judgement. */
+test("L4 · UNDER THE SUBJECT'S REAL PROFILE (the owner's meaning test), a do-it-yourself or repair question is never admitted — every surviving item is HELD for a judgement, none admitted by the run", () => {
   const W = world();
   try {
+    assert.equal(JSON.parse(PROFILE_TEXT).mode, "MEANING_JUDGEMENT", "the subject's real profile is not the owner's meaning test");
     const live = livePlan(W, { planId: "fixture-relevance-plan" });
     const good = post(1, "Hiring an architect to build a house in Pakistan from abroad?");
     const diy = post(2, "How do I repair a leaking concrete roof myself?");
     const diyPk = post(3, "DIY repair of the exterior of my house in Pakistan?");
     const x = run(W, green(live, { tag: "rel" }), [{ items: [good, diy, diyPk] }, { items: [good, diy, diyPk] }]);
     assert.equal(x.r.status, 0, x.out);
-    assert.match(x.out, /observed questions 1\n/);
-    assert.match(x.out, /NOT_ABOUT_THE_DECLARED_SUBJECT 2/, "a do-it-yourself or repair question was admitted");
-    const qs = stored(W, OLD_BATCH, "questions.jsonl");
-    assert.deepEqual(qs.map((q) => q.value?.original), [good.title]);
-    assert.equal(qs[0]?.value?.author?.authorCountry, "NOT MEASURED", "a question about Pakistan placed its author");
+    assert.match(x.out, /observed questions 0/);
+    assert.match(x.out, /held for meaning judgement 3/);
+    assert.deepEqual(stored(W, OLD_BATCH, "questions.jsonl"), [], "the collection run admitted a question without a judgement");
+    assert.equal(stored(W, OLD_BATCH, "held-for-judgement.jsonl").length, 3);
   } finally { W.cleanup(); }
 });
 

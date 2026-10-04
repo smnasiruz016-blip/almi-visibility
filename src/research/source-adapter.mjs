@@ -21,6 +21,7 @@
  */
 import { createHash } from "node:crypto";
 import { RECORD_TYPE, NOT_MEASURED, OBSERVER_TYPES } from "./public-questions.mjs";
+import { HELD_RECORD } from "./meaning-judgement.mjs";
 
 export const SOURCE_KINDS = Object.freeze({ QUESTION_SOURCE: "QUESTION_SOURCE", KEYWORD_SOURCE: "KEYWORD_SOURCE" });
 export const VERIFIED = "VERIFIED_FROM_PRIMARY_SOURCE";
@@ -70,6 +71,9 @@ export function admitSource(decl) {
 export function compileProfile(profile, subject) {
   if (!profile || typeof profile !== "object") return { refusal: "RELEVANCE_PROFILE_UNDECLARED" };
   if (profile.subject !== subject) return { refusal: "RELEVANCE_PROFILE_IS_ANOTHER_SUBJECTS" };
+  /* RR-157 · C15: a MEANING test is judged on the original post by a named judge (src/research/meaning-judgement.mjs) — never matched here;
+   * its example words are never compiled into a rule */
+  if (profile.mode === "MEANING_JUDGEMENT") return present(profile.test) ? { refusal: null, id: profile.profileId ?? null, mode: "MEANING", test: profile.test } : { refusal: "MEANING_TEST_UNDECLARED" };
   if (!Array.isArray(profile.confirms) || profile.confirms.length === 0) return { refusal: "RELEVANCE_PROFILE_HAS_NO_CONFIRMING_RULE" };
   try {
     const rx = (list) => (Array.isArray(list) ? list : []).map((s) => new RegExp(s, "i"));
@@ -108,6 +112,22 @@ export function recordsFrom(decl, retrieval, { subject, origin, dataPurpose = nu
     if (!ISO_TIME.test(item.observedAt)) { refuse("OBSERVEDAT_NOT_A_TIME"); continue; }
     if (Array.isArray(decl.licenceVersions) && !decl.licenceVersions.includes(item.licenceVersion)) { refuse("LICENCE_VERSION_OUTSIDE_DECLARED_SET"); continue; }
     if (question && item.wordingOrigin !== "SOURCE_TEXT") { refuse("SNIPPET_IS_NOT_THE_AUTHORS_WORDING"); continue; }
+    /* RR-157 · C15: under a MEANING test every surviving question is HELD, with its original post, until a named judge decides it */
+    if (profile.mode === "MEANING") {
+      if (!question) { refuse("MEANING_TEST_APPLIES_TO_QUESTIONS_ONLY"); continue; }
+      const hid = hash([subject, decl.sourceId, item.sourceUrl, item.postVersion]);
+      records.push(Object.freeze({ record_type: HELD_RECORD, held_id: hid, measurement_key: `${HELD_RECORD}:${hid}`, recorded_at: item.observedAt,
+        value: Object.freeze({ subject, origin, sourceId: decl.sourceId, topic: retrieval.topic, country: item.country, language: item.language, limits: retrieval.coverageLimits,
+          licence: Object.freeze({ name: item.licenceName, version: item.licenceVersion }), attribution: item.attribution, dataPurpose,
+          relevance: Object.freeze({ profileId: profile.id, mode: "MEANING", verdict: "HELD", judgedOn: "not yet — the original post, by a named judge" }),
+          kind: "HELD", status: "HELD — not an observed question until a named judge finds it a CANDIDATE on its original post",
+          original: item.wording, originalPost: present(item.originalPost) ? item.originalPost : NOT_MEASURED, meaningTest: profile.test,
+          reference: item.sourceUrl, postVersion: item.postVersion, postedAt: item.postedAt ?? NOT_MEASURED,
+          provenance: Object.freeze({ observerType: "SOURCE_ADAPTER_OBSERVED", seenBy: OBSERVER_TYPES.SOURCE_ADAPTER_OBSERVED, sourceId: decl.sourceId, engineObserved: true }),
+          source: decl.sourceId, surface: "source adapter", timeWindow: Object.freeze({ from: item.observedAt, to: item.observedAt }), method: `source-adapter:${decl.sourceId}` }) }));
+      refuse("HELD_FOR_MEANING_JUDGEMENT");
+      continue;
+    }
     const rel = relevanceOf(question ? item.wording : item.idea, profile);
     if (rel.verdict === "AMBIGUOUS") { refuse("RELEVANCE_AMBIGUOUS_KEPT_OUT"); continue; }
     if (rel.verdict !== "RELEVANT") { refuse("NOT_ABOUT_THE_DECLARED_SUBJECT"); continue; }

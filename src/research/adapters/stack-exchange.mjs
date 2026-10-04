@@ -91,6 +91,8 @@ export function licenceVersionByDate(createdEpoch, editedEpoch = createdEpoch) {
 const isEpoch = (n) => Number.isInteger(n) && n > 0;
 const iso = (n) => new Date(n * 1000).toISOString().replace(/\.\d{3}Z$/, "Z");
 const str = (v) => (typeof v === "string" && v.trim() !== "" ? v : null);
+/** A post body's text: tags dropped, the common entities decoded — what a reader of the page sees, for a quote to be checked against. */
+const textOf = (html) => String(html).replace(/<[^>]*>/g, " ").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
 
 /** A recorded response and its recheck → one boundary retrieval. Only the mapped fields leave this function. */
 export function retrievalFrom(recorded, recheck) {
@@ -110,6 +112,8 @@ export function retrievalFrom(recorded, recheck) {
     const nowEdited = isEpoch(now?.last_edit_date) ? now.last_edit_date : now?.creation_date;
     if (now?.title !== p.title || nowEdited !== edited) { refuse("POST_CHANGED_SINCE_RETRIEVAL"); continue; }
     const title = str(p.title), link = str(p.link), creator = str(p.owner?.display_name);
+    /* RR-157 · C15/C16: the ORIGINAL POST's own text, as the recheck returned it (its title and its body) — never an answer or a comment */
+    const postText = str(now?.body) ? `${now.title}\n\n${textOf(now.body)}` : null;
     if (!title) { refuse("TITLE_ABSENT"); continue; }
     if (!link) { refuse("POST_LINK_ABSENT"); continue; }
     if (!creator) { refuse("CREATOR_ABSENT"); continue; }
@@ -121,7 +125,7 @@ export function retrievalFrom(recorded, recheck) {
       wording: title, wordingOrigin: "SOURCE_TEXT", sourceUrl: link, postVersion: iso(edited), postedAt: iso(p.creation_date),
       licenceName: "CC BY-SA", licenceVersion: stated,
       attribution: `by ${creator} · ${link} · source: the Stack Exchange Network · ${p.content_license}${stated === "4.0" ? ` ${LICENCE_URL}` : ""} · unmodified`,
-      observedAt: str(recorded.recordedAt), country: NOT_MEASURED, language: str(req.language) ?? NOT_MEASURED,
+      observedAt: str(recorded.recordedAt), country: NOT_MEASURED, language: str(req.language) ?? NOT_MEASURED, originalPost: postText,
     });
   }
   const query = str(req.q) ? `full-text search for ${req.q} (a lead only; relevance is judged by the declared profile)` : str(req.tagged) ? `tagged ${req.tagged}` : str(req.intitle) ? `title contains ${req.intitle}` : null;

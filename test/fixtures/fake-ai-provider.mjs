@@ -20,7 +20,7 @@ export default function createFakeAiProvider({ env, providerId, pricePerCall }) 
       appendFileSync(env.FAKE_AI_CALLS, JSON.stringify({ call: calls, query: request?.query ?? null }) + "\n");
       const out = scenario.outputs[calls - 1] ?? { text: "" };
       const d = scenario.disconnect;
-      if (d && d.afterCall === calls) appendFileSync(d.file, JSON.stringify(connectionEvent({ subject: d.subject, connectorId: d.connectorId, event: "DISCONNECTED", at: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"), by: "the client (fixture)" })) + "\n");
+      if (d && d.afterCall === calls) appendFileSync(d.file, JSON.stringify(connectionEvent({ subject: d.subject, connectorId: d.connectorId, event: "DISCONNECTED", at: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"), by: "the client (fixture)", seq: readFileSync(d.file, "utf8").split("\n").filter(Boolean).length })) + "\n");
       return out;
     },
   });

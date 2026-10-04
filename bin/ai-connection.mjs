@@ -22,7 +22,7 @@ import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedStoreAppend } from "../src/governance/governed-run.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { namedActor } from "../src/governance/authorisation.mjs";
-import { AI_CONNECTOR_KIND, CONNECTION, connectionEvent, connectionNow } from "../src/research/ai-connection.mjs";
+import { AI_CONNECTOR_KIND, CONNECTION, CONNECTION_EVENT, connectionEvent, connectionNow } from "../src/research/ai-connection.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (k) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? null;
@@ -48,9 +48,12 @@ if (!connectorId) { console.error("🔴 REFUSED — no connector to disconnect: 
 
 /* the batch's own connection store, inside the RESEARCH store the gate decided */
 const file = join(batchDir, "ai-connection.jsonl");
-const before = connectionNow(existsSync(file) ? createJsonlStore(join(store.dir, BATCH, "ai-connection.jsonl")).readAll() : [], { subject: SUBJECT, connectorId });
+const prior = existsSync(file) ? createJsonlStore(join(store.dir, BATCH, "ai-connection.jsonl")).readAll() : [];
+const before = connectionNow(prior, { subject: SUBJECT, connectorId });
 const at = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
-const ev = connectionEvent({ subject: SUBJECT, connectorId, event: want, at, by: namedActor(process.argv) ?? "unnamed" });
+/* its sequence for this connector: a reconnect in the same second is a NEW event, never deduplicated into the earlier one */
+const seq = prior.filter((r) => r?.record_type === CONNECTION_EVENT && r.value?.subject === SUBJECT && r.value?.connectorId === connectorId).length;
+const ev = connectionEvent({ subject: SUBJECT, connectorId, event: want, at, by: namedActor(process.argv) ?? "unnamed", seq });
 const g = executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: store.rootPath, auditRepo: REPO, permission, store: createJsonlStore(file), records: [ev],
   targetClass: "GENERATED_CONFIG", action: "APPEND_AI_CONNECTION_EVENTS", occurredAt: at, correlationId: `run:ai-connection:${at}`, discipline: "APPEND_IF_NEW" }));
 if (g.outcome !== "COMMITTED" && g.outcome !== "ALREADY_COMMITTED") { console.error(`  🔴 ${g.outcome} — the connection event did NOT persist`); process.exit(1); }

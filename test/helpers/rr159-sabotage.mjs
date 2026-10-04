@@ -21,8 +21,10 @@ const GPC = "src/governance/governed-provider-call.mjs", SE = "src/research/adap
 const T = ["test/rr159-ai-led-discovery.test.mjs"];
 const TRAIL = "audit-trail/events.jsonl";
 const PRACTICE = process.argv.includes("--practice");
+/* --only=<id>: one sabotage added after the full run, with its own evidence file (the full run's file is never overwritten) */
+const ONLY = process.argv.find((a) => a.startsWith("--only="))?.slice(7) ?? null;
 const DAY = new Date().toISOString().slice(0, 10);
-const EVIDENCE = join(REPO, "runs", "audit", `rr159-sabotage-${PRACTICE ? "practice-" : ""}${DAY}.txt`);
+const EVIDENCE = join(REPO, "runs", "audit", `rr159-sabotage-${PRACTICE ? "practice-" : ""}${ONLY ? `${ONLY}-` : ""}${DAY}.txt`);
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
 
@@ -50,9 +52,12 @@ const SABOTAGES = [
   ["S21", "C24 · the F04 spend approval bypassed", [[GATE, 'if (!d.allowed) return refuse(provider, "NOT_AUTHORISED_BY_F04", `the one authorisation decision refused this spend: ${d.outcome}`, null, s);', ""]], "P7"],
   ["S22", "C24 · the provider-call ceiling removed", [[C, 'else if (a.providerCalls > PROVIDER_CALL_CEILING) r.push("PLAN_EXCEEDS_PROVIDER_CALL_CEILING");', ""]], "P7"],
   ["S23", "C17 · the client's credential VALUE measured", [[BIN, "if (aiCredential === null || !Object.hasOwn(process.env, aiCredential))", "if (aiCredential === null || String(process.env[aiCredential] ?? \"\").length < 1 || !Object.hasOwn(process.env, aiCredential))"]], "P8"],
+  ["S25", "C18 · a same-second reconnect deduplicated into the earlier event", [[AC, "const id = hash([subject, connectorId, event, at, by, seq]);", "const id = hash([subject, connectorId, event, at, by]);"]], "P3b"],
   ["S24", "F77 · a registry holding an adapter still counted as no real provider", [[CENSUS, '(registrySize > 0 ? "REAL_FROM_REGISTRY" : "REGISTRY_EMPTY")', '"REGISTRY_EMPTY"']], "P9"],
 ];
 
+const RUN = ONLY ? SABOTAGES.filter((s) => s[0] === ONLY) : SABOTAGES;
+if (ONLY && RUN.length !== 1) { console.error(`REFUSED — no sabotage ${ONLY}`); process.exit(2); }
 if (existsSync(EVIDENCE)) { console.error(`REFUSED — ${EVIDENCE} exists; an earlier run's evidence is never overwritten`); process.exit(2); }
 const files = [...new Set(SABOTAGES.flatMap((s) => s[2].map((x) => x[0])))];
 const originals = new Map(files.map((p) => [p, read(p)]));
@@ -62,7 +67,7 @@ for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => { restoreAll(); p
 
 const inEol = (text, s) => (text.includes("\r\n") ? s.replace(/\n/g, "\r\n") : s);
 const occurrences = (text, s) => text.split(inEol(text, s)).length - 1;
-const preflight = SABOTAGES.map(([id, , spans]) => [id, spans.map(([f, from]) => occurrences(originals.get(f).toString("utf8"), from))]);
+const preflight = RUN.map(([id, , spans]) => [id, spans.map(([f, from]) => occurrences(originals.get(f).toString("utf8"), from))]);
 const allOnce = preflight.every(([, ns]) => ns.every((x) => x === 1));
 const trailBefore = sha(read(TRAIL));
 const run = () => spawnSync(process.execPath, ["--test", ...T], { cwd: REPO, encoding: "utf8", timeout: 900000 });
@@ -77,14 +82,14 @@ const base = run();
 const baselineGreen = base.status === 0;
 const lines = [
   `RR-159 sabotage ${PRACTICE ? "PRACTICE " : ""}run · ${new Date().toISOString()}`,
-  `population: ${SABOTAGES.length} sabotages over ${T.join(" + ")} · each applied ALONE · a FAKE provider and a FAKE source transport only, zero real requests`,
+  `population: ${RUN.length} sabotage(s) over ${T.join(" + ")} · each applied ALONE · a FAKE provider and a FAKE source transport only, zero real requests`,
   `BASELINE (the named tests before any sabotage): ${baselineGreen ? "GREEN" : "NOT GREEN — no sabotage is run"}`,
   `PRE-FLIGHT (span occurrences in the code live now): ${preflight.map(([id, ns]) => `${id}=${ns.join("+")}`).join(" ")} · all exactly once: ${allOnce}`,
   `production trail sha256 before: ${trailBefore}`, "",
 ];
 console.log(lines.join("\n"));
 let proved = 0;
-for (const [id, limb, spans, expect] of baselineGreen ? SABOTAGES : []) {
+for (const [id, limb, spans, expect] of baselineGreen ? RUN : []) {
   if (!spans.every(([f, from]) => occurrences(originals.get(f).toString("utf8"), from) === 1)) { lines.push(`${id} ${limb}: SPAN NOT FOUND EXACTLY ONCE — NOT PROVED`); console.log(lines.at(-1)); continue; }
   const touched = [...new Set(spans.map((s) => s[0]))];
   for (const f of touched) {
@@ -115,8 +120,8 @@ for (const [id, limb, spans, expect] of baselineGreen ? SABOTAGES : []) {
 }
 const trailAfter = sha(read(TRAIL));
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
-lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
+lines.push("", `proved ${proved} of ${RUN.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(dirname(EVIDENCE), { recursive: true });
 writeFileSync(EVIDENCE, lines.join("\n") + "\n", { flag: "wx" });
 console.log(lines.at(-1));
-process.exitCode = residue === 0 && trailAfter === trailBefore && proved === SABOTAGES.length ? 0 : 1;
+process.exitCode = residue === 0 && trailAfter === trailBefore && proved === RUN.length ? 0 : 1;

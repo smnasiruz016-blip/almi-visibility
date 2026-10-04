@@ -29,7 +29,7 @@ import { spawnSync } from "node:child_process";
 import { declaredWorld, inputPathRef, DATA_ROOT } from "./helpers/declared-world.mjs";
 import { contentHashOf } from "../src/authority/corpus.mjs";
 import { planSha256, AI_PLAN_KIND, PROVIDER_CALL_CEILING } from "../src/research/collection.mjs";
-import { formResearchQueries, addressesIn, leadRecord, LEAD_KINDS, RESOLUTION, discoveryRouteOf, DISCOVERY, PROVIDER_CAPABILITY } from "../src/research/ai-connection.mjs";
+import { formResearchQueries, addressesIn, leadRecord, LEAD_KINDS, RESOLUTION, discoveryRouteOf, DISCOVERY, PROVIDER_CAPABILITY, connectionEvent, connectionNow } from "../src/research/ai-connection.mjs";
 import { ROUTE_RECORD, RESEARCH_KINDS } from "../src/research/research-routes.mjs";
 import { connectQuestions, readConnections, refusalOf, REFUSAL } from "../src/page/demand-connection.mjs";
 import { API_ORIGIN, idsFromAddresses } from "../src/research/adapters/stack-exchange.mjs";
@@ -250,6 +250,17 @@ test("P3 · C18 — DISCONNECT: refused before a run; a run in flight STOPS, rec
     assert.match(rb.out, /OBSERVED: 1 of 1 recorded question/, "the admitted question stopped counting after a disconnect");
     assert.doesNotMatch(rb.out + b.out, /re-verif(y|ication) (required|needed)/i, "a disconnect marked records for re-verification");
   } finally { W.cleanup(); }
+});
+
+test("P3b · C18 — a reconnect in the SAME SECOND as a disconnect is a new event, never deduplicated away (found by CI, where runs are fast)", () => {
+  const at = `${TODAY}T03:00:00Z`;
+  const ev = (event, seq) => connectionEvent({ subject: SUBJECT, connectorId: AI_CONNECTOR, event, at, by: "actor:cc", seq });
+  /* a store that keeps a record only when its measurement_key is new — as the governed append does */
+  const kept = [];
+  for (const e of [ev("CONNECTED", 0), ev("DISCONNECTED", 1), ev("CONNECTED", 2)]) if (!kept.some((k) => k.measurement_key === e.measurement_key)) kept.push(e);
+  assert.equal(kept.length, 3, "a same-second event was deduplicated into an earlier one");
+  assert.equal(connectionNow(kept, { subject: SUBJECT, connectorId: AI_CONNECTOR }), "CONNECTED", "a reconnect in the same second left the client DISCONNECTED");
+  assert.throws(() => connectionEvent({ subject: SUBJECT, connectorId: AI_CONNECTOR, event: "CONNECTED", at, by: "actor:cc" }), /sequence number/, "an event with no sequence was accepted");
 });
 
 test("P4 · C20 — the PRODUCT asks: a hand-written query is refused; the formed queries carry origin country only in the declared words; one need across countries", () => {

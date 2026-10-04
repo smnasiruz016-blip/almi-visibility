@@ -47,12 +47,17 @@ const present = (v) => typeof v === "string" && v.trim() !== "";
 const hash = (x) => createHash("sha256").update(JSON.stringify(x)).digest("hex").slice(0, 32);
 
 /** One connect or disconnect, by the client — it names the connector, never a credential. */
-export function connectionEvent({ subject, connectorId, event, at, by }) {
+/**
+ * One connect or disconnect, by the client. `seq` is how many events this connector already has: two events in the same second (a
+ * reconnect right after a disconnect) are two events, never one deduplicated away — found by CI (RR-159), where it ran fast enough to happen.
+ */
+export function connectionEvent({ subject, connectorId, event, at, by, seq }) {
   if (![CONNECTION.CONNECTED, CONNECTION.DISCONNECTED].includes(event)) throw new TypeError("an AI connection event is CONNECTED or DISCONNECTED");
   if (!present(subject) || !present(connectorId) || !present(by) || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(at ?? "")) throw new TypeError("an AI connection event names its subject, connector, who and when");
-  const id = hash([subject, connectorId, event, at, by]);
+  if (!Number.isInteger(seq) || seq < 0) throw new TypeError("an AI connection event carries its sequence number for its connector");
+  const id = hash([subject, connectorId, event, at, by, seq]);
   return Object.freeze({ record_type: CONNECTION_EVENT, event_id: id, measurement_key: `${CONNECTION_EVENT}:${id}`, recorded_at: at,
-    value: Object.freeze({ subject, connectorId, event, by }) });
+    value: Object.freeze({ subject, connectorId, event, by, seq }) });
 }
 
 /** The connection's state now: the LATEST event for this connector decides; none at all is NEVER_CONNECTED. */

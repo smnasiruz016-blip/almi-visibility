@@ -29,6 +29,8 @@ export const REFUSAL = Object.freeze({
   OTHER_SUBJECT: "ANOTHER_PRODUCT_OR_TENANT", UNSUPPORTED_ATTRIBUTE: "UNSUPPORTED_AUTHOR_OR_OBSERVER_ATTRIBUTE", DUPLICATE: "DUPLICATE_WRITE",
   CANDIDATE: "PAGE_CANDIDATE_NOT_A_POSSIBLE_COMBINATION", SPANS_CANDIDATES: "ONE_NEED_TWO_PAGE_CANDIDATES",
   JUDGEMENT: "SAMENESS_JUDGEMENT_NAMES_NO_CONNECTED_QUESTION", CHECKER_FIELD: "CHECKER_FIELD_IS_NOT_EVIDENCE",
+  /* RR-158 §5: its admitting meaning judgement was overturned — it leaves every count */
+  OVERTURNED: "ITS_ADMITTING_JUDGEMENT_WAS_OVERTURNED",
 });
 export const ANSWER_UNKNOWN = Object.freeze({
   none: "no answer source was recorded for this need",
@@ -62,10 +64,11 @@ export function answerOf(a, officialSites) {
 }
 
 /** C9 — why one record is not admitted as verified demand for this subject, or null. */
-export function refusalOf(r, { subject }) {
+export function refusalOf(r, { subject, overturned = new Set() }) {
   if (r?.record_type === "research_lead") return REFUSAL.LEAD;
   if (r?.record_type === "keyword_signal") return REFUSAL.KEYWORD;
   if (r?.record_type !== "public_question" || !present(r?.question_id)) return REFUSAL.NOT_A_QUESTION;
+  if (overturned.has(r.question_id)) return REFUSAL.OVERTURNED;
   const v = r.value ?? {};
   if (v.kind === "CLIENT_CLAIM") return REFUSAL.CLIENT_CLAIM;
   if (v.kind !== "OBSERVED") return REFUSAL.INFERRED;
@@ -83,7 +86,7 @@ export function refusalOf(r, { subject }) {
  * already in the planning store; `officialSites` are the product's own declared official origins.
  * A draft: { questionId, combination, sameAs?: { questionId, judgementRef, reason }, answer?: { sourceRef, readOn }, sections?: [{ country, sourceRef?, readOn? }] }
  */
-export function connectQuestions({ subject, possible, records, drafts, existing = [], officialSites = [], on }) {
+export function connectQuestions({ subject, possible, records, drafts, existing = [], officialSites = [], on, overturned = new Set() }) {
   if (!present(subject)) throw new TypeError("a connection names its subject");
   if (!ISO_DAY.test(on ?? "")) throw new TypeError("the run's stated date (YYYY-MM-DD)");
   const byId = new Map(records.map((r) => [r?.question_id ?? r?.lead_id ?? r?.signal_id, r]));
@@ -96,7 +99,7 @@ export function connectQuestions({ subject, possible, records, drafts, existing 
   for (const d of drafts) {
     if (Object.keys(d ?? {}).some((k) => CHECKER_FIELDS.test(k)) || Object.keys(d?.answer ?? {}).some((k) => CHECKER_FIELDS.test(k))) { refuse(d, REFUSAL.CHECKER_FIELD); continue; }
     const r = byId.get(d?.questionId);
-    const why = refusalOf(r, { subject });
+    const why = refusalOf(r, { subject, overturned });
     if (why) { refuse(d, why); continue; }
     if (connected.has(r.question_id)) { refuse(d, REFUSAL.DUPLICATE); continue; }
     if (!candidates || !d?.combination || !candidates.has(candidateKey(d.combination))) { refuse(d, REFUSAL.CANDIDATE); continue; }
@@ -140,8 +143,10 @@ export function connectQuestions({ subject, possible, records, drafts, existing 
  * READBACK — every need with its questions, countries, languages, its one answer, its sections, and its coverage recommendation (C12), from
  * the planning store's rows (connections, needs, and F91's recorded coverage decisions as planning_group records). Count-only fields.
  */
-export function readConnections(rows = []) {
-  const connections = rows.filter((r) => r?.record_type === CONNECTION && present(r.needId));
+export function readConnections(rows = [], { overturned = new Set() } = {}) {
+  /* RR-158 §5: a connection whose question was overturned leaves every count */
+  const all = rows.filter((r) => r?.record_type === CONNECTION && present(r.needId));
+  const connections = all.filter((r) => !overturned.has(r.questionId));
   const latestNeed = new Map();
   for (const r of rows) if (r?.record_type === NEED && present(r.needId)) latestNeed.set(r.needId, r);
   const coverage = new Map();
@@ -162,6 +167,6 @@ export function readConnections(rows = []) {
   const count = (r) => needs.filter((n) => n.recommendation === r).length;
   return Object.freeze({
     needs: Object.freeze(needs),
-    counts: Object.freeze({ questions: connections.length, needs: needs.length, pageCandidates: new Set(needs.map((n) => n.pageCandidate)).size, covered: count(RECOMMENDATION.COVERED), heldCoverage: count(RECOMMENDATION.HELD_COVERAGE), heldAnswer: count(RECOMMENDATION.HELD_ANSWER), notCovered: count(RECOMMENDATION.NOT_COVERED) }),
+    counts: Object.freeze({ overturned: all.length - connections.length, questions: connections.length, needs: needs.length, pageCandidates: new Set(needs.map((n) => n.pageCandidate)).size, covered: count(RECOMMENDATION.COVERED), heldCoverage: count(RECOMMENDATION.HELD_COVERAGE), heldAnswer: count(RECOMMENDATION.HELD_ANSWER), notCovered: count(RECOMMENDATION.NOT_COVERED) }),
   });
 }

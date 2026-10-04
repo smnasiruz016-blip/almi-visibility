@@ -24,6 +24,7 @@ import { productFromArgvOrExit } from "../src/product-cli.mjs";
 import { readProductPlan } from "../src/page/page-opportunities-reader.mjs";
 import { NOT_MEASURED } from "../src/page/page-opportunities.mjs";
 import { connectQuestions, readConnections } from "../src/page/demand-connection.mjs";
+import { overturnedIds, asAt } from "../src/research/meaning-judgement.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (k) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? null;
@@ -42,6 +43,9 @@ if (!members.some((m) => m.resourceKind === "FACT_REGISTRY" && String(m.resource
 
 const rowsOf = (f) => (existsSync(join(batchDir, f)) ? createJsonlStore(join(batchDir, f)).readAll() : []);
 const records = ["questions.jsonl", "leads.jsonl", "keyword-signals.jsonl"].flatMap(rowsOf);
+/* RR-158 §5: the batch's meaning judgements — an overturned question is refused and leaves every count */
+const judgements = rowsOf("meaning-judgements.jsonl");
+const overturned = overturnedIds(judgements);
 const file = join(batchDir, "planning.jsonl");
 const held = () => rowsOf("planning.jsonl");
 const { plan } = await readProductPlan(product);
@@ -53,7 +57,7 @@ console.log(`  stored records   ${records.length} read from the batch (questions
 let toWrite = [];
 if (DRAFTS) {
   const drafts = JSON.parse(readFileSync(DRAFTS, "utf8"));
-  const r = connectQuestions({ subject: SUBJECT, possible: plan.possible, records, drafts, existing: held(), officialSites, on: ON });
+  const r = connectQuestions({ subject: SUBJECT, possible: plan.possible, records, drafts, existing: held(), officialSites, on: ON, overturned });
   const codes = r.refused.reduce((m, x) => ((m[x.code] = (m[x.code] ?? 0) + 1), m), {});
   console.log(`  drafts           ${drafts.length} read · ${r.records.filter((x) => x.record_type === "planning_demand").length} connected · refused ${r.refused.length}${r.refused.length ? ` (${Object.entries(codes).map(([k, n]) => `${k} ${n}`).join(" · ")})` : ""}`);
   toWrite = r.records;
@@ -67,6 +71,8 @@ if (toWrite.length && permission.mayWrite) {
   if (governed.outcome !== "COMMITTED" && governed.outcome !== "ALREADY_COMMITTED") { console.error(`  🔴 ${governed.outcome} — ${toWrite.length} record(s) did NOT persist`); process.exit(1); }
   console.log(`  kept             ${toWrite.length} record(s) in the batch's planning store (${governed.outcome})`);
 }
-const rb = readConnections(held());
+const rb = readConnections(held(), { overturned });
+console.log(`  ${asAt(judgements)}`);
+console.log(`  overturned       ${rb.counts.overturned} connection(s) whose question was overturned — left out of every count`);
 console.log(`  readback         ${rb.counts.questions} connected question(s) · ${rb.counts.needs} underlying need(s) · ${rb.counts.pageCandidates} page candidate(s)`);
 console.log(`  coverage         COVERED ${rb.counts.covered} · HELD (coverage undecided) ${rb.counts.heldCoverage} · HELD (answer UNKNOWN) ${rb.counts.heldAnswer} · NOT COVERED ${rb.counts.notCovered} — handed to F91's number 3; nothing here is a page`);

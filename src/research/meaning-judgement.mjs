@@ -75,3 +75,27 @@ export function decide({ held, draft, subject, recorded = [] }) {
   });
   return { outcome, code: "CANDIDATE", judgement, question };
 }
+
+/**
+ * RR-158 §5 · THE CURRENT JUDGEMENT of each held item: the end of its NAMED chain — the item's first recorded judgement, then each later one
+ * that names the judgement it overturns. A later judgement that names nothing never decides: it is ignored here, as the judging entry point
+ * refuses it. An admission whose current judgement is no longer CANDIDATE has been OVERTURNED, and its question LEAVES every count — F16's
+ * and F91's alike. One rule, here, so the two rows can never disagree. Pure; the rows' own order is the record order.
+ */
+export function currentJudgements(rows = []) {
+  const js = rows.filter((r) => r?.record_type === JUDGEMENT_RECORD && present(r.judgement_id) && present(r.value?.held_id));
+  const current = new Map();
+  for (const j of js) {
+    const at = current.get(j.value.held_id);
+    if (!at) { if (!present(j.value.overturns)) current.set(j.value.held_id, j); continue; }
+    if (j.value.overturns === at.judgement_id) current.set(j.value.held_id, j);
+  }
+  return current;
+}
+/** The question ids an overturn has taken out of every count: their current judgement is not CANDIDATE. */
+export const overturnedIds = (rows = []) => new Set([...currentJudgements(rows)].filter(([, j]) => j.value.verdict !== "CANDIDATE").map(([id]) => id));
+/** The moment a count is taken AS AT: the instant of reading, and the latest judgement it took into account. */
+export const asAt = (rows = [], now = new Date()) => {
+  const last = rows.filter((r) => r?.record_type === JUDGEMENT_RECORD && present(r.recorded_at)).map((r) => r.recorded_at).sort().at(-1) ?? null;
+  return `as at ${now.toISOString().replace(/\.\d{3}Z$/, "Z")} — judgements taken into account up to ${last ?? "none recorded"}`;
+};

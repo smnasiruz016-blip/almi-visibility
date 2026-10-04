@@ -399,6 +399,12 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-04_RR-157.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F16_ACCEPTANCE_AMENDMENT_2_2026-10-04.md", loader: "F-board acceptance F16" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-04_RR-157_MEANING_NOT_LABELS_AND_TWO_KINDS_OF_SOURCE.md", loader: "authority register (CURRENT record)" }),
+  /* RR-159 (4 Oct 2026): the four CURRENT records admitted by the migration at _handoffs 08cbd0c — the owner's save-and-stand-down command (not
+   * migrated in its own round), the RR-159 command, his answers to Q1–Q3, and F16's Acceptance Amendment 3 (the client's own AI connection). */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-04_SAVE_AND_STAND_DOWN.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-04_RR-159.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F16_ACCEPTANCE_AMENDMENT_3_2026-10-04.md", loader: "F-board acceptance F16" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-04_RR-159_Q1_Q2_Q3_ANSWERS.md", loader: "authority register (CURRENT record)" }),
   /* RR-158 (4 Oct 2026): the three CURRENT records admitted by the migration at _handoffs b36244f — the owner's correction RR-158, his GREEN
    * for the terms reads, and his direction (discovery from the product, leads only; answers from the body that owns the fact). */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-04_RR-158.md", loader: "authority register (CURRENT record)" }),

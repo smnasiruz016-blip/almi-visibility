@@ -42,6 +42,9 @@ function subjectsUnderProof(resolve = R) {
     const file = join(l.dir, "descriptor.json");
     if (!existsSync(file)) continue;
     const d = JSON.parse(readFileSync(file, "utf8"));
+    /* RR-155: F09's population is the subject its descriptor declares an F09 TEST SUBJECT — a later subject that declares a research batch
+     * for another row (F16's collection pilot) is not F09's evidence. Measured on 4 Oct: the population is unchanged (the one F09 batch). */
+    if (d.kind !== "F09_TEST_SUBJECT") continue;
     for (const batch of d.declares?.researchBatches ?? []) out.push({ id, dir: l.dir, descriptor: d, batch, entry: l.entry });
   }
   return out;

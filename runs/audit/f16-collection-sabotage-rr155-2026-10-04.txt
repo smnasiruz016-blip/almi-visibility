@@ -1,0 +1,31 @@
+RR-155 F16 collection sabotage run · 2026-10-04T01:17:02.139Z
+population: 23 sabotages over test/f16-collection.test.mjs · each applied ALONE · fake transport only, zero real requests
+BASELINE (named tests before any sabotage): GREEN
+PRE-FLIGHT (span occurrences in the code live now): S01=1 S02=1 S03=1 S04=1 S05=1 S06=1 S07=1 S08=1 S09=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1 S19=1 S20=1 S21=1 S22=1 S23=1 · all exactly once: true
+production trail sha256 before: f2591bc7f717043632018e683145df5e7db8f78f6fb87e6dce2aad1cb55a22ae
+
+S01 missing GREEN no longer refused src/research/collection.mjs: landed true · named test "K2" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+S02 a STALE GREEN no longer refused src/research/collection.mjs: landed true · named test "K2" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+S03 a REUSED GREEN no longer refused src/research/collection.mjs: landed true · named test "K2" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+S04 a GREEN for another plan no longer refused src/research/collection.mjs: landed true · named test "K2" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+S05 the request cap exceeded by one src/research/collection.mjs: landed true · named test "K3" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+S06 a quota exhausted no longer stops the run src/research/request-governor.mjs: landed true · named test "K3" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+S07 a backoff ignored src/research/adapters/stack-exchange-collector.mjs: landed true · named test "K3" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+S08 a source refusal read as an empty result (and the run goes on) src/research/adapters/stack-exchange-collector.mjs: landed true · named test "K3" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+S09 an irrelevant result admitted src/research/source-adapter.mjs: landed true · named test "K4" red true · by AssertionError only true · failing 2 · restored by sha256 true · PROVED
+S10 a deleted post no longer refused as deleted src/research/adapters/stack-exchange.mjs: landed true · named test "K4" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+S11 a missing licence no longer refused as missing src/research/adapters/stack-exchange.mjs: landed true · named test "K4" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+S12 a duplicate admitted src/research/lead-intake.mjs: landed true · named test "K4" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+S13 a plan for another tenant runs src/research/collection.mjs: landed true · named test "K6" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+S14 a plan for another subject runs src/research/collection.mjs: landed true · named test "K6" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+S15 zero no longer reported as zero src/research/collection.mjs: landed true · named test "K5" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+S16 leads stored as questions bin/collect-public-questions.mjs: landed true · named test "K5" red true · by AssertionError only true · failing 3 · restored by sha256 true · PROVED
+S17 the credential's value touched (its length measured) bin/collect-public-questions.mjs: landed true · named test "K7" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+S18 a missing credential no longer refused src/research/collection.mjs: landed true · named test "K7" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+S19 the test seams no longer halt outside a test run bin/collect-public-questions.mjs: landed true · named test "K6" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+S20 a run without --confirm proceeds bin/collect-public-questions.mjs: landed true · named test "K6" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+S21 an invalid source decision passes src/research/collection.mjs: landed true · named test "K9" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+S22 a read-back module gains a raw network call src/research/source-adapter.mjs: landed true · named test "K8" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+S23 an agent's record relabelled as a person's is counted as a person src/research/public-questions.mjs: landed true · named test "K8" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+
+proved 23 of 23 · residue 0 · production trail sha256 after: f2591bc7f717043632018e683145df5e7db8f78f6fb87e6dce2aad1cb55a22ae · unchanged true

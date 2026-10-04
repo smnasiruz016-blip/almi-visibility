@@ -63,7 +63,8 @@ export function openConnector({ scope, subjectId, kind, resolve = null }) {
    * lets a caller check a URL before it spends a paced slot on it. A redirect the platform follows by itself is outside this check —
    * so the crawler follows redirects itself, hop by hop, paced, and only to an origin this connector admits (src/crawl/fetcher.mjs).
    * Generic: the origins come from the subject's own declaration, whoever the client is. */
-  const origins = l.connector.kind === "PUBLIC_SITE" ? siteOriginsOf(l.connector) : null;
+  /* RR-155: a QUESTION_SOURCE_API connector likewise reaches ONLY the origins it declares */
+  const origins = l.connector.kind === "PUBLIC_SITE" || l.connector.kind === "QUESTION_SOURCE_API" ? siteOriginsOf(l.connector) : null;
   return Object.freeze({
     connectorId: l.connector.connectorId,
     kind: l.connector.kind,

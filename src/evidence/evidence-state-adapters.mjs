@@ -58,6 +58,8 @@ const DERIVED_TYPES = Object.freeze({
   crawl_run: { inputs: (r) => (present(r.run_id) ? [`run:${r.run_id}`] : []), at: (r) => r.finished_at, method: "crawl-run-summary" },
   /* RR-138 §2: a live same-origin render run's own record (src/render/render-evidence.mjs) — its counts summarise the run, like a crawl run's */
   render_run: { inputs: (r) => (present(r.run_id) ? [`run:${r.run_id}`] : []), at: (r) => r.finished_at, method: "render-run-summary" },
+  /* RR-155: F16's collection run record (src/research/collection.mjs) — counts and codes summarising one bounded run, like a crawl run's */
+  collection_run: { inputs: (r) => (present(r.run_id) ? [`run:${r.run_id}`] : []), at: (r) => r.recorded_at, method: "collection-run-summary" },
   crawl_run_correction: { inputs: (r) => (present(r.corrects_run_id) ? [`run:${r.corrects_run_id}`] : []), at: (r) => r.corrected_at, method: "crawl-run-field-rederivation" },
   inventory_note: { inputs: (r) => (present(r.run_id) ? [`run:${r.run_id}`] : []), at: (r) => r.built_at, method: "inventory-from-stored-observations" },
   issue_state_change: { inputs: (r) => [...(present(r.issue_id) ? [`issue:${r.issue_id}`] : []), ...strs(r.evidence)], at: (r) => r.changed_at, method: "issue-lifecycle-decision" },

@@ -164,7 +164,8 @@ test("M4 · R5b · the paid and metered call-path census over the REAL tree, wit
   assert.equal(real.bound, FILE_BOUND);
   assert.equal(real.ok, true);
   assert.equal(real.declaredEgress.length, 1, "every network call leaves through the one connector fetch");
-  assert.deepEqual(real.meteredKinds, ["SEARCH_CONSOLE_API"]);
+  /* RR-155: F16's collection limb adds a keyed, quota-counted public-question source connector — a SECOND metered kind, re-measured */
+  assert.deepEqual(real.meteredKinds, ["SEARCH_CONSOLE_API", "QUESTION_SOURCE_API"]);
   assert.equal(real.realPaidProviders, 0, "a REAL paid provider now exists — F77's paid limb is measurable and must be proved on it");
   // CONTROLS — each planted defect is SEEN
   assert.deepEqual(censusOf({ "src/planted.mjs": "const r = await fetch(u);" }).unclassifiedEgress, ["src/planted.mjs:1"]);

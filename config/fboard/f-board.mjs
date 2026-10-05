@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -1455,9 +1455,9 @@ export const DECLARED = Object.freeze({
   F33: Object.freeze({
     featureId: "F33",
     board: "F_BOARD",
-    state: "VERIFIED-PASS",
+    state: "IN-PROGRESS",
     events: Object.freeze([
-      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: ACCEPTANCES.F33.ruling, contractSha256: ACCEPTANCES.F33.contractSha256 }),
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: F33_ORIGINAL.ruling, contractSha256: F33_ORIGINAL.contractSha256 }),
       Object.freeze({
         kind: "IMPLEMENTATION",
         featureId: "F33",
@@ -1466,7 +1466,7 @@ export const DECLARED = Object.freeze({
         to: "IN-PROGRESS",
         route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
         reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F33.ruling.sha256, contract: ACCEPTANCES.F33.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F33_ORIGINAL.ruling.sha256, contract: F33_ORIGINAL.contractSha256 }),
         branch: "rr84-f33-cannibalization",
         baseSha: "a673e100199bb81e4e62e01efd8914917f9139d5",
         baseCiRun: "36501632527",
@@ -1482,7 +1482,7 @@ export const DECLARED = Object.freeze({
         to: "VERIFIED-PASS",
         route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
         reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F33.ruling.sha256, contract: ACCEPTANCES.F33.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F33_ORIGINAL.ruling.sha256, contract: F33_ORIGINAL.contractSha256 }),
         populations: "REAL: the subject's registered page structure (12 declared values) and the 27 existing pages of its tenant (coverage UNKNOWN), count-only. COVERED: both real declared specs, each by a real page whose headline names its need only. NOT COVERED: shown for the 2 registered values no real page covers, over their real DIFFERENT pages with the population set COMPLETE by the test (stated). The real record as it is: those 2 values are CANNOT DECIDE — 1 real page names no registered need and the population is not recorded COMPLETE.",
         proofs: "test/f33-need-coverage.test.mjs — C1 F34's refusals first, F33 never judges refused information; C2 COVERED on real specs, the same need in different words for 10 of 12 registered values; C3 NOT COVERED on real DIFFERENT pages, never over a population not COMPLETE nor with an undecidable page; C4 every undecidable world; C5 one REFUSAL or one EVALUATION per decision with per-page evidence counts, and end to end through bin/build-page on a confined store; C6 the one routed check reaches F33 for every page; C7 8 modules, 0 call-out paths, with a firing control; F34's proofs re-run on the changed code; production trail byte-identical across every suite run",
         sabotage: "runs/audit/f33-sabotage-2026-09-29.txt: 18 of 18 proved, residue 0; F34 re-run on the changed code runs/audit/f34-sabotage-2026-09-29.txt: 19 of 19 (S4, S5, S7 re-pointed to the code that now carries them)",
@@ -1490,6 +1490,22 @@ export const DECLARED = Object.freeze({
         historicalReuse: "historical row 13 (Cannibalization Prevention) detected existing-vs-existing query overlap; it compares no candidate with existing pages and proves none of F33's current clauses; not reused",
         declaredLimit: "a synonym that shares no stem with a registered value is not recognised, and two registered values are measured limits (a practitioner name unrelated to the field's name; a two-word field whose practitioner name does not repeat both words) — each can only yield CANNOT DECIDE, never a new page; a page naming no registered need can never be ruled out, so one such page holds every uncovered candidate; NOT COVERED needs a population recorded COMPLETE, which the stored crawl is not",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+      /* RR-172 §4.2: F33's own Acceptance Amendment 1 (_handoffs 6ecc99f), approved by its hash and frozen ALONE — C8, coverage for a grouped need */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F33", on: "2026-10-05", ruling: F33_AMENDMENT_1.ruling, contractSha256: F33_AMENDMENT_1.contractSha256, amends: F33_AMENDMENT_1.amends }),
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F33",
+        on: "2026-10-05",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: Amendment 1)",
+        reason: "AUTHORITATIVE_REQUIREMENT_CHANGE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "F33's 2026-09-29 evidence remains historically valid for what it measured; the reopen is caused by the newly frozen wider requirement (C8, a grouped need's coverage), not by a defect found in the proved clauses",
+        amendment: Object.freeze({ ruling: F33_AMENDMENT_1.ruling, contractSha256: F33_AMENDMENT_1.contractSha256 }),
+        ownerRulings: Object.freeze({ repo: "_handoffs", rr172CoverageRulings: "48ae36618a50835402fb37121a2295db17eafd52" }),
+        command: Object.freeze({repo: "_handoffs",path: "AlmiVisibility_CC_COMMAND_2026-10-05_RR-172.md",commit: "1f5e9b5853c670388dc160abc18fb0989f4c8685",sha256: "f7dc563e7652ebde8cc5ef01c82bb7cb17346c62896aa1d6d0be5f8e031b6ef5"}),
       }),
     ]),
   }),

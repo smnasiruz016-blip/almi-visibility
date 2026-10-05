@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1 } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -851,9 +851,9 @@ export const DECLARED = Object.freeze({
   F35: Object.freeze({
     featureId: "F35",
     board: "F_BOARD",
-    state: "VERIFIED-PASS",
+    state: "IN-PROGRESS",
     events: Object.freeze([
-      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: ACCEPTANCES.F35.ruling, contractSha256: ACCEPTANCES.F35.contractSha256 }),
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: F35_ORIGINAL.ruling, contractSha256: F35_ORIGINAL.contractSha256 }),
       Object.freeze({
         kind: "IMPLEMENTATION",
         featureId: "F35",
@@ -862,7 +862,7 @@ export const DECLARED = Object.freeze({
         to: "IN-PROGRESS",
         route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
         reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F35.ruling.sha256, contract: ACCEPTANCES.F35.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F35_ORIGINAL.ruling.sha256, contract: F35_ORIGINAL.contractSha256 }),
         branch: "rr88-f35-action-decision",
         baseSha: "522b47815cfd3783a2a725bc1df8e9b23a8b6d2b",
         baseCiRun: "36518431124",
@@ -878,7 +878,7 @@ export const DECLARED = Object.freeze({
         to: "VERIFIED-PASS",
         route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
         reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F35.ruling.sha256, contract: ACCEPTANCES.F35.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F35_ORIGINAL.ruling.sha256, contract: F35_ORIGINAL.contractSha256 }),
         populations: "REAL (count-only; bound: recorded data only · inventory INCOMPLETE · 47 registry facts · demand NOT RECORDED): the subject's 2 proposed needs — CHOSEN 0, CANNOT_DECIDE 2 (an existing page covers each; KEEP needs a recorded quality measurement, ADD SECTION recorded question-level coverage) — never CREATE; its 27 existing pages — CHOSEN 17 (MERGE 17, each owner-approval-required and each carrying the NOT MEASURED duplication caveat), CANNOT_DECIDE 10. On all 27: KEEP needs a recorded quality measurement (F40 blocked); indexability signals NOT MEASURED (F21: the Link header was never recorded); LINK needs a COMPLETE inventory — every page reads 0 inbound links, and the recorded crawl links no fetched page to another (0 of 1,275 recorded edges, also 0 under a loosened path match; control: 27 of 27 page URLs map into the set).",
         proofs: "test/f35-action-decision.test.mjs — C3 FIRING CONTROL: an ESTABLISHED right-to-exist with unmeasured demand is CANNOT DECIDE naming the missing demand, never CREATE; only recorded STRONG demand (three agreeing categories, no conflict) reaches CREATE; a covered need never becomes CREATE (a recorded defect → IMPROVE; otherwise CANNOT DECIDE, never KEEP); REJECT only for a doorway-like reason; each existing-page action exactly on its own recorded evidence; contradicting actions CANNOT DECIDE with the contradiction named; every action carries its rule and evidence and is a RECOMMENDATION, the four owner-approval actions say so (pinned to literals); LINK's input counted from the recorded inbound links, absent = unknown; the entry point prints counts only, writes nothing and is REFUSED on the real declarations; no network, process, connector or paid call (firing control); hand-written expectations; production trail byte-identical",
         sabotage: "runs/audit/f35-sabotage-2026-09-29.txt: 25 of 25 proved, every span pre-flighted once; F31 22/22 re-run on the changed inventory module",
@@ -896,7 +896,7 @@ export const DECLARED = Object.freeze({
         reason: "CONCRETE_CONTRADICTORY_EVIDENCE",
         reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
         rationale: "F35's real result chose MERGE for 17 existing pages on a shared registered value alone (F33 headline coverage), each carrying F35's own caveat that whether the pages duplicate one intent was NOT MEASURED; no semantic review was recorded (F32: 0 reviews, 351 pairs NOT_JUDGED). MERGE's authority (V3 §8) is 'Multiple pages split or duplicate one intent'; the frozen FAILURE limb [C2] 'Missing or insufficient evidence yields an action instead of CANNOT DECIDE' is met. Similarity, and a shared broad need, is a review trigger, never proof that two pages should be merged (F32, V3 G15).",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F35.ruling.sha256, contract: ACCEPTANCES.F35.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F35_ORIGINAL.ruling.sha256, contract: F35_ORIGINAL.contractSha256 }),
         evidenceRecord: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F35_MERGE_CONTRADICTION_2026-09-29.md", commit: "2f010f39a98f9ab88f3b9dd2ccaf5c9e2df3773b", sha256: "1784950ea38921e45f6441312513fab59c1992a798cbba4f31c8d92195a2fddc" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-29_RR-89_OWNER_DIRECTION_THEN_REPAIR_F35_MERGE.md", commit: "2d82434fcae2005a08df855e3f76fbb781a2ab49", sha256: "911761164cfc7961b83bce69d0ef10489bb3824cbe5d097132e6848a68c1578e" }),
       }),
@@ -909,13 +909,29 @@ export const DECLARED = Object.freeze({
         to: "VERIFIED-PASS",
         route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (reopened on concrete contradictory evidence; returned on the corrected behaviour)",
         reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F35.ruling.sha256, contract: ACCEPTANCES.F35.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F35_ORIGINAL.ruling.sha256, contract: F35_ORIGINAL.contractSha256 }),
         populations: "REAL (count-only; bound: recorded data only · 2 proposed needs · 27 existing pages · inventory INCOMPLETE · 47 registry facts · demand NOT RECORDED · semantic reviews recorded 0): proposed needs CHOSEN 0, CANNOT_DECIDE 2; existing pages CHOSEN 0, CANNOT_DECIDE 27 — MERGE 0 (was 17): the 17 pages that share a registered need with another page now name the missing semantic review. Positive control on the REAL structures: one real same-need pair given a test-only review (all six aspects compared, one intent duplicated) is MERGE for exactly those two pages, owner approval required, the review carried as evidence.",
         proofs: "test/f35-action-decision.test.mjs — RR-89 FIRING CONTROL: an unreviewed shared need is CANNOT DECIDE with the review named, never MERGE or REDIRECT (a not-served page keeps FIX on its own evidence); one reviewed peer among two gives MERGE with that peer and its review only; a review counts only with all six aspects compared and one intent duplicated or split (a DISTINCT or partial review is no successor); the reader keeps only qualifying reviews and refuses a defaulted review list; REAL, both controls: no review → MERGE 0 and 17 pages name the review, one reviewed real pair → MERGE 2 — plus every earlier F35 proof (C1–C7), hand-written expectations, production trail byte-identical",
         sabotage: "runs/audit/f35-sabotage-2026-09-29.txt: 31 of 31 proved, every span pre-flighted once — incl. S21 (an unreviewed shared need turned into MERGE) and S10 (a reviewed MERGE suppressed), S26–S31 on the review rule; re-run on the changed code: F32 23/23, F36 12/12, F34 19/19, F33 18/18, F31 22/22, production trail untouched",
         historicalReuse: "the first verification's evidence stays valid for every action but MERGE and REDIRECT; F32's semantic-review shape (six aspects, V3 §14.2) is reused as MERGE's evidence rule",
         declaredLimit: "MERGE and REDIRECT are unreachable on real data until a semantic review is recorded (missing fact: a recorded semantic review — none exists, none may be bought, no new owner labels). CREATE (no recorded demand outcome), KEEP (no authoritative quality measurement; F40 blocked) and LINK (inventory INCOMPLETE; F19 on hold, freshness rule unset) stay unreachable as before.",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+      /* RR-174 §4: F35's own Acceptance Amendment 1 (_handoffs dcddcb0), approved by its hash and frozen ALONE */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F35", on: "2026-10-05", ruling: F35_AMENDMENT_1.ruling, contractSha256: F35_AMENDMENT_1.contractSha256, amends: F35_AMENDMENT_1.amends }),
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F35",
+        on: "2026-10-05",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: Amendment 1)",
+        reason: "AUTHORITATIVE_REQUIREMENT_CHANGE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "F35's 2026-09-29 evidence remains historically valid for what it measured; the reopen is caused by the newly frozen wider requirement (Amendment 1: grouped needs, P19's full table, one CREATE rule), not by a defect found in the proved clauses",
+        amendment: Object.freeze({ ruling: F35_AMENDMENT_1.ruling, contractSha256: F35_AMENDMENT_1.contractSha256 }),
+        ownerRulings: Object.freeze({ repo: "_handoffs", rr174R3Rulings: "7945b7692b15a31fd546d90a0c0c7a00e0b62759" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-05_RR-174.md", commit: "d4b4f3da61b4f3920412dc19d826af92ddd0764e", sha256: "6ec7a6f23ba97dcafcde274a12ac19c1a42710142ab2a6254917f13fe74e79d8" }),
       }),
     ]),
   }),

@@ -159,7 +159,7 @@ const STARTED_SINCE = Object.freeze({ F62: "IN-PROGRESS", F25: "IN-PROGRESS", F2
 /* 🔴 A ROW THAT EARNED VERIFIED-PASS AND WAS THEN REOPENED on concrete contradictory evidence is admitted — only by its own facts: it is
  * in MOVED_SINCE (it earned the pass), its LAST event is REOPENED VERIFIED-PASS -> IN-PROGRESS on CONCRETE_CONTRADICTORY_EVIDENCE, and
  * that REOPENED transition is in the production trail. F07 reopened on 28 Sep 2026 (_handoffs be583fa). */
-const REOPENED_SINCE = Object.freeze({ F07: ["IN-PROGRESS", "CONCRETE_CONTRADICTORY_EVIDENCE"], F33: ["IN-PROGRESS", "AUTHORITATIVE_REQUIREMENT_CHANGE"] /* RR-172 §4.2: its own Amendment 1, frozen alone */ });
+const REOPENED_SINCE = Object.freeze({ F07: ["IN-PROGRESS", "CONCRETE_CONTRADICTORY_EVIDENCE"], F33: ["IN-PROGRESS", "AUTHORITATIVE_REQUIREMENT_CHANGE"] /* RR-172 §4.2: its own Amendment 1, frozen alone */, F35: ["IN-PROGRESS", "AUTHORITATIVE_REQUIREMENT_CHANGE"] /* RR-174 §4.1: its own Amendment 1, frozen alone */ });
 
 /* 🔴 A ROW WHOSE BLOCKER WAS LIFTED BY A LATER CURRENT AUTHORITY is admitted — only by its own facts: its LAST event is BLOCKER_LIFTED
  * BLOCKED-BY-AUTHORITY -> UNASSESSED naming its own authority, that authority resolves CURRENT, and the transition is in the production

@@ -14,7 +14,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync, execFileSync } from "node:child_process";
 
-import { planPages, possibleCombinations, verifiedOpportunities, neededPages, orderLaw, formatNumber, demandOf, normaliseWording, candidateKey, NOT_MEASURED, VERDICT, MISSING, LABELS, APPLICABILITY, DEMAND_RULES, SAMPLE_NOTICE } from "../src/page/page-opportunities.mjs";
+import { planPages, possibleCombinations, verifiedOpportunities, groupOpportunities, neededNewPages, formatNumber, formatLine, F35_GROUPED, TIER_NAMES, demandOf, normaliseWording, candidateKey, NOT_MEASURED, VERDICT, MISSING, LABELS, APPLICABILITY, DEMAND_RULES, SAMPLE_NOTICE } from "../src/page/page-opportunities.mjs";
 import { readProductPlan, qualifierKeys, planningInputs } from "../src/page/page-opportunities-reader.mjs";
 import { productFromArgv } from "../src/product-cli.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
@@ -102,10 +102,10 @@ test("C3 · FIRING CONTROL: identical wording merges inside one combination only
     [candidateKey(B), [{ id: "q4", wording: "How long is it valid?" }]],
     [candidateKey(C), [{ id: "q5", wording: "Where do I take it?" }]],
   ]);
-  const plain = neededPages({ verified: v([A, B, C]), questions, groupRecords: new Map() });
+  const plain = groupOpportunities({ verified: v([A, B, C]), questions, groupRecords: new Map() });
   assert.equal(plain.merged.questions, 1, "only q1/q2 are identical after the stated normalisation");
   assert.equal(plain.groups, 3, "identical wording in two different combinations was merged without a recorded judgement");
-  const judged = neededPages({ verified: v([A, B, C]), questions, sameness: [["q1", "q4"], ["q9", "q5"]], groupRecords: new Map() });
+  const judged = groupOpportunities({ verified: v([A, B, C]), questions, sameness: [["q1", "q4"], ["q9", "q5"]], groupRecords: new Map() });
   assert.deepEqual([judged.groups, judged.merged.candidatesJoined, judged.merged.judgementsApplied, judged.merged.judgementsIgnored], [2, 1, 1, 1]);
   assert.equal(normaliseWording("  How long is it VALID?? "), "how long is it valid");
 });
@@ -122,12 +122,14 @@ test("C3 · FIRING CONTROL: COVERED is never new; CANNOT DECIDE, a missing right
     g([cands[6]], { ...NEW_REC, uniqueValue: false }),
     g([cands[7]], { coverage: "NOT_COVERED", rightToExist: "ESTABLISHED" }),
   ]);
-  const r = neededPages({ verified: v(cands), groupRecords });
+  const r = groupOpportunities({ verified: v(cands), groupRecords });
   assert.deepEqual([r.value, r.covered, r.refused, r.held], [1, 1, 2, 4]);
   assert.deepEqual(r.heldBy, { coverage: 1, rightToExist: 1, facts: 1, answer: 1 });
-  const none = neededPages({ verified: v([{ d: "z" }]) });
+  const none = groupOpportunities({ verified: v([{ d: "z" }]) });
   assert.deepEqual([none.value, none.held, none.heldBy.coverage], [0, 1, 1], "a group with no records at all was counted as a page");
-  assert.equal(neededPages({ verified: { value: NOT_MEASURED, missing: "x" } }).value, NOT_MEASURED, "number 3 was a number while number 2 is NOT MEASURED");
+  /* Amendment 3 C14 (RR-172): this grouping of number 2's opportunities is NOT number 3 — it cannot group what number 2 has not measured. Number 3
+   * (neededNewPages) takes no number-2 limb at all: test/rr172-r2-f91-f33.test.mjs T14d proves it. */
+  assert.equal(groupOpportunities({ verified: { value: NOT_MEASURED, missing: "x" } }).value, NOT_MEASURED, "number 2's opportunities were grouped while number 2 is NOT MEASURED");
 });
 
 /* ================= C4–C6 ================= */
@@ -135,19 +137,24 @@ test("C3 · FIRING CONTROL: COVERED is never new; CANNOT DECIDE, a missing right
 test("C5 · CONTROL: a combination with NO evidence never becomes a verified opportunity or a needed page, whatever else is recorded", () => {
   const p = planPages({ dimensions: [dim("d", ["a"])], groupRecords: new Map([g([{ d: "a" }], NEW_REC)]) });
   assert.equal(p.verified.value, NOT_MEASURED);
-  assert.equal(p.needed.value, NOT_MEASURED);
+  /* Amendment 3 C14: number 3 is by tier, from F35's decisions only — NOT MEASURED here, never a page */
+  for (const n of Object.values(p.needed)) assert.equal(n.value, NOT_MEASURED);
+  assert.equal(p.groups.value, NOT_MEASURED);
 });
 
-test("C5 · FIRING CONTROL: the order law holds, is NOT CHECKABLE with any NOT MEASURED, and a breach is a DEFECT — never reordered", () => {
-  assert.equal(orderLaw({ value: 3 }, { value: 2 }, { value: 1 }).state, "HOLDS");
-  assert.equal(orderLaw({ value: 3 }, { value: NOT_MEASURED }, { value: 1 }).state, "NOT CHECKABLE");
-  const b = orderLaw({ value: 1 }, { value: 2 }, { value: 0 });
-  assert.deepEqual([b.state, b.verdict], ["BREACHED — a planner defect", VERDICT.DISPROVED]);
+/* C5's order law ('number 1 ≥ number 2 ≥ number 3 must hold …') is SUPERSEDED by Amendment 3 C15 (RR-172): no ordering is asserted, checked
+ * or implied. Its proof — a fixture with needed new pages exceeding combinations, passing, and a sabotage restoring the order check — is
+ * test/rr172-r2-f91-f33.test.mjs T15. Here only the absence: no order law is exported and no plan carries one. */
+test("C5 → C15 · no order law exists: the planner exports none and a plan carries no order or order verdict", async () => {
+  const mod = await import("../src/page/page-opportunities.mjs");
+  assert.equal(mod.orderLaw, undefined, "an order law is still exported");
+  const p = planPages({ dimensions: [dim("d", ["a"])] });
+  assert.ok(!("order" in p) && !("verdict" in p), "a plan still carries an order or an order verdict");
 });
 
 test("C6 · CONTROL: NOT MEASURED is never printed as 0; C4 the three numbers stay separate and nothing sums them", () => {
   const p = planPages({ dimensions: [] });
-  for (const n of [p.possible, p.verified, p.needed]) assert.match(formatNumber(n), /NOT MEASURED — missing /);
+  for (const n of [p.possible, p.verified, ...Object.values(p.needed), ...Object.values(p.actions), p.lines.clientReceived]) assert.match(formatNumber(n), /NOT MEASURED — missing /);
   assert.doesNotMatch(formatNumber(p.verified), /: 0\b/);
   assert.equal(formatNumber({ label: "X", value: 0 }), "X: 0");
   const src = readFileSync(join(REPO, PLANNER[0]), "utf8");
@@ -213,11 +220,14 @@ test("C7 · TWO UNRELATED PRODUCTS, DIFFERENT DIMENSIONS — sparse data, duplic
   try {
     const k = (await readProductPlan(K.product)).plan;
     const f = (await readProductPlan(F.product));
-    assert.deepEqual([k.possible.value, k.verified.value, k.verified.unknown, k.verified.verifiedSoFar, k.verified.excluded.demand, k.needed.value], [3, NOT_MEASURED, 1, 1, 1, NOT_MEASURED]);
+    assert.deepEqual([k.possible.value, k.verified.value, k.verified.unknown, k.verified.verifiedSoFar, k.verified.excluded.demand, k.groups.value], [3, NOT_MEASURED, 1, 1, 1, NOT_MEASURED]);
+    for (const n of Object.values(k.needed)) assert.equal(n.value, NOT_MEASURED, "number 3 was a number with no F35 decision");
     assert.deepEqual([f.plan.possible.value, f.plan.possible.excluded.map((x) => x.key)], [FERMENTS.variants.length, ["region"]], "a candidate universe entered product 2's arithmetic");
     assert.deepEqual([f.plan.verified.value, f.plan.verified.excluded.demand, f.plan.verified.kinds.ownedEvidence, f.plan.verified.kinds.clientClaims], [2, FERMENTS.variants.length - 2, 1, 1]);
-    assert.deepEqual([f.plan.needed.value, f.plan.needed.covered, f.plan.needed.merged.questions, f.plan.needed.groups], [1, 1, 1, 2]);
-    assert.equal(f.plan.order.state, "HOLDS");
+    assert.deepEqual([f.plan.groups.value, f.plan.groups.covered, f.plan.groups.merged.questions, f.plan.groups.groups], [1, 1, 1, 2]);
+    /* Amendment 3 C14/C15: number 3 waits for F35 (R3) — NOT MEASURED, never 0 — and no order is checked */
+    for (const n of Object.values(f.plan.needed)) assert.equal(n.value, NOT_MEASURED);
+    assert.ok(!("order" in f.plan));
     assert.equal(f.inputs.malformedRecords, 0);
     assert.notDeepEqual(k.possible.dimensions.map((d) => d.key), f.plan.possible.dimensions.map((d) => d.key), "the two products did not differ in dimensions");
   } finally { K.cleanup(); F.cleanup(); }
@@ -235,7 +245,7 @@ test("C7 · the reader shapes only well-formed planning records; anything else i
 
 test("C8 · the planner claims no complete sample and promises no ranking; it drafts, answers and writes nothing", () => {
   assert.match(SAMPLE_NOTICE, /a recorded SAMPLE, never every question asked; no ranking, indexing or AI citation is promised/);
-  assert.match(LABELS.needed, /opportunities handed on; nothing is drafted or written here/);
+  assert.match(LABELS.needed, /nothing is drafted or written here/);
   for (const f of PLANNER.slice(0, 2)) assert.doesNotMatch(readFileSync(join(REPO, f), "utf8"), /\b(writeFileSync|appendFileSync|createWriteStream|renameSync)\b/, `${f} writes`);
 });
 
@@ -250,10 +260,9 @@ test("REAL · the demonstration product: number 1 from its own declaration; numb
   assert.equal(inputs.excludedDataKeys, [...keys.keys()].filter((x) => x !== product.axis.key).length, "a data-only qualifier key was combined, or a declared one excluded");
   assert.equal(plan.verified.value, NOT_MEASURED);
   assert.equal(plan.verified.unknown, plan.possible.value, "a real candidate was decided without a recorded demand record");
-  assert.equal(plan.needed.value, NOT_MEASURED);
-  assert.equal(plan.order.state, "NOT CHECKABLE");
-  assert.notEqual(plan.verdict, VERDICT.PROVED);
-  console.log(`  REAL (count-only, the demonstration product's own descriptor and registry): ${JSON.stringify({ n1: plan.possible.value, n2: plan.verified.value, unknown: plan.verified.unknown, verifiedSoFar: plan.verified.verifiedSoFar, n3: plan.needed.value, order: plan.order.state, verdict: plan.verdict, inputs })}`);
+  for (const n of Object.values(plan.needed)) assert.equal(n.value, NOT_MEASURED);
+  assert.ok(!("order" in plan), "an order is still checked (C15)");
+  console.log(`  REAL (count-only, the demonstration product's own descriptor and registry): ${JSON.stringify({ n1: plan.possible.value, n2: plan.verified.value, unknown: plan.verified.unknown, verifiedSoFar: plan.verified.verifiedSoFar, n3: Object.fromEntries(Object.entries(plan.needed).map(([t, n]) => [t, n.value])), _: plan.verdict, inputs })}`);
 });
 
 /* ================= the entry point, no network ================= */
@@ -265,9 +274,10 @@ test("C4 · THE ENTRY POINT: in a declared world it prints three separate number
     const env = WORLD.envWith();
     const ok = spawnSync(process.execPath, WORLD.argv(["bin/page-opportunities.mjs", "--product=almi-oet"]), { cwd: REPO, encoding: "utf8", env });
     assert.equal(ok.status, 0, ok.stdout + ok.stderr);
-    for (const n of ["  1 POSSIBLE COMBINATIONS — candidates only", "  2 VERIFIED OPPORTUNITIES — verified does not authorise a page", "  3 GENUINELY NEEDED PAGES — opportunities handed on"]) assert.ok(ok.stdout.includes(n), `missing ${n}`);
-    for (const part of ["inputs: ", "method: ", "excluded: ", "unknown: ", "counts: verified so far ", "order 1 ≥ 2 ≥ 3: ", `bound: ${SAMPLE_NOTICE}`]) assert.ok(ok.stdout.includes(part), `missing ${part}`);
-    assert.match(ok.stdout, /never summed and no page total or quota exists/);
+    for (const n of ["  1 POSSIBLE COMBINATIONS — candidates only", "  2 VERIFIED OPPORTUNITIES — observed and verified only; verified does not authorise a page", "    3 NEEDED NEW PAGES — the needs F35 chooses CREATE for"]) assert.ok(ok.stdout.includes(n), `missing ${n}`);
+    for (const part of ["inputs: ", "method: ", "excluded: ", "unknown: ", "counts: verified so far ", "lines — each its own, never summed, no order between them", `bound: ${SAMPLE_NOTICE}`]) assert.ok(ok.stdout.includes(part), `missing ${part}`);
+    assert.match(ok.stdout, /no page total or quota exists; no line is a ceiling for another/);
+    assert.doesNotMatch(ok.stdout, /order 1 ≥ 2 ≥ 3|≥/, "an order is still printed (C15)");
     /* the demonstration product declares no planning store: its demand kinds are NOT MEASURED, never a row of zeros */
     assert.match(ok.stdout, /demand kinds counted apart: NOT MEASURED — no planning record was read/);
     assert.doesNotMatch(ok.stdout, /observedQuestions 0/, "an unread store was printed as zero observed questions");

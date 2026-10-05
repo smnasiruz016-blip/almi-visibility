@@ -10,13 +10,18 @@
  *                       planning_limbs     { combination, credibleSource, productFit, distinctNeed }
  *                       planning_sameness  { questions: [idA, idB] }                        a RECORDED sameness judgement
  *                       planning_group     { members: [combination…], coverage, rightToExist, uniqueValue, verifiedFacts, verifiedAnswer }
- *                     a record of any other shape is counted MALFORMED and never read as a limb
+ *                       planning_need, planning_coverage, coverage_judgement — the connection writer's need, F91's coverage record (C14)
+ *                                          and F33 C8's per-question judgements: read by the connection readback, never a limb
+ *                     a record of any other shape is counted MALFORMED and never read as a limb. Demand rows of the RESEARCH-DERIVED tier
+ *                     are their own state (DEMAND_RULES: never qualifying); the readback's needs carry each need's tier into number 3.
  * Read only, through the product's own scope; nothing fetched, rendered or written; wording stays in memory and is never returned.
  */
 import { existsSync } from "node:fs";
 import { loadRegistry } from "../facts/registry.mjs";
 import { createJsonlStore } from "../evidence/store.mjs";
 import { planPages, candidateKey, APPLICABILITY } from "./page-opportunities.mjs";
+import { readConnections, COVERAGE } from "./demand-connection.mjs";
+import { COVERAGE_JUDGEMENT } from "./grouped-need-coverage.mjs";
 import { join, dirname } from "node:path";
 import { overturnedIds, asAt } from "../research/meaning-judgement.mjs";
 
@@ -36,13 +41,17 @@ const isCombination = (c) => c !== null && typeof c === "object" && !Array.isArr
 /** The recorded planning inputs, from records already read — exported so a test drives the same shaping the entry point uses. */
 export function planningInputs(rows = []) {
   const records = new Map(), questions = new Map(), groupRecords = new Map(), sameness = [];
-  let malformed = 0, needs = 0, overturnedDemand = 0;
+  let malformed = 0, needs = 0, overturnedDemand = 0, coverageRecords = 0, coverageJudgements = 0;
+  const leftOutByDemand = {};
   /* RR-158 §5: a demand item whose question was OVERTURNED leaves every count — the batch's judgements travel with its planning rows */
   const overturned = overturnedIds(rows);
   const slot = (c) => { const k = candidateKey(c); if (!records.has(k)) records.set(k, { demand: [] }); return records.get(k); };
   for (const r of rows) {
     if (r?.record_type === "meaning_judgement") continue;
-    if (r?.record_type === "planning_demand" && typeof r.questionId === "string" && overturned.has(r.questionId)) { overturnedDemand += 1; continue; }
+    if (r?.record_type === "planning_demand" && typeof r.questionId === "string" && overturned.has(r.questionId)) { overturnedDemand += 1; leftOutByDemand[r.state] = (leftOutByDemand[r.state] ?? 0) + 1; continue; }
+    /* Amendment 3 C14 (RR-172): F91's coverage record and F33 C8's recorded per-question judgements — read by the readback, never a limb */
+    if (r?.record_type === COVERAGE && typeof r.needId === "string") { coverageRecords += 1; continue; }
+    if (r?.record_type === COVERAGE_JUDGEMENT && r.value && typeof r.value === "object") { coverageJudgements += 1; continue; }
     if (r?.record_type === "planning_demand" && isCombination(r.combination) && typeof r.state === "string") {
       slot(r.combination).demand.push({ state: r.state });
       if (typeof r.questionId === "string") questions.set(candidateKey(r.combination), [...(questions.get(candidateKey(r.combination)) ?? []), { id: r.questionId, wording: r.wording }]);
@@ -58,7 +67,7 @@ export function planningInputs(rows = []) {
       needs += 1;
     } else malformed += 1;
   }
-  return { records, questions, sameness, groupRecords, malformed, needs, overturnedDemand };
+  return { records, questions, sameness, groupRecords, malformed, needs, overturnedDemand, leftOutByDemand, coverageRecords, coverageJudgements, connected: readConnections(rows, { overturned }) };
 }
 
 export async function readProductPlan(product) {
@@ -74,7 +83,7 @@ export async function readProductPlan(product) {
   const judgementsPath = storePath ? join(dirname(storePath), "meaning-judgements.jsonl") : null;
   const rows = [...(storePath && existsSync(storePath) ? createJsonlStore(storePath).readAll() : []), ...(judgementsPath && existsSync(judgementsPath) ? createJsonlStore(judgementsPath).readAll() : [])];
   const inputs = planningInputs(rows);
-  const plan = planPages({ dimensions, declaredCombinations: product.planning?.relevantCombinations ?? null, ...inputs });
+  const plan = planPages({ dimensions, declaredCombinations: product.planning?.relevantCombinations ?? null, ...inputs, needs: inputs.connected.needs, asAt: asAt(rows) });
   return {
     plan,
     inputs: {
@@ -88,7 +97,7 @@ export async function readProductPlan(product) {
       excludedDataKeys: [...dataKeys.keys()].filter((k) => !declaredKeys.has(k)).length,
       planningStore: storePath ? (existsSync(storePath) ? "declared, read" : "declared, ABSENT — nothing read, never treated as empty evidence") : "none declared by the product",
       planningRecords: rows.length,
-      malformedRecords: inputs.malformed,
+      malformedRecords: inputs.malformed, coverageRecords: inputs.coverageRecords, coverageJudgements: inputs.coverageJudgements,
     },
   };
 }

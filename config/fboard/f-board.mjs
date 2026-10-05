@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -1054,6 +1054,8 @@ export const DECLARED = Object.freeze({
        * record. Two earlier record runs refused this event — OCCURRED_AT_IN_FUTURE at 2026-10-04, then AUTHORITY_NOT_CURRENT_AT_EVENT before
        * the correction existed; both are on the trail. */
       Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F91", on: "2026-10-03", ruling: F91_AMENDMENT_2.ruling, contractSha256: F91_AMENDMENT_2.contractSha256, amends: F91_AMENDMENT_2.amends }),
+      /* RR-172 §4.1: F91's own Acceptance Amendment 3 (_handoffs b8a4ea5), approved by its hash and frozen ALONE — C13–C18 */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F91", on: "2026-10-05", ruling: F91_AMENDMENT_3.ruling, contractSha256: F91_AMENDMENT_3.contractSha256, amends: F91_AMENDMENT_3.amends }),
     ]),
   }),
   /* 🔴 F13 · Context and axis discovery. Frozen ALONE (_handoffs 0ca24d3, RR-131 §3) before any F13 code; every clause PROVED on the real
@@ -1455,7 +1457,7 @@ export const DECLARED = Object.freeze({
     board: "F_BOARD",
     state: "VERIFIED-PASS",
     events: Object.freeze([
-      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: ACCEPTANCES.F33.ruling, contractSha256: ACCEPTANCES.F33.contractSha256 }),
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: F33_ORIGINAL.ruling, contractSha256: F33_ORIGINAL.contractSha256 }),
       Object.freeze({
         kind: "IMPLEMENTATION",
         featureId: "F33",
@@ -1464,7 +1466,7 @@ export const DECLARED = Object.freeze({
         to: "IN-PROGRESS",
         route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
         reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F33.ruling.sha256, contract: ACCEPTANCES.F33.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F33_ORIGINAL.ruling.sha256, contract: F33_ORIGINAL.contractSha256 }),
         branch: "rr84-f33-cannibalization",
         baseSha: "a673e100199bb81e4e62e01efd8914917f9139d5",
         baseCiRun: "36501632527",
@@ -1480,13 +1482,49 @@ export const DECLARED = Object.freeze({
         to: "VERIFIED-PASS",
         route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
         reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F33.ruling.sha256, contract: ACCEPTANCES.F33.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F33_ORIGINAL.ruling.sha256, contract: F33_ORIGINAL.contractSha256 }),
         populations: "REAL: the subject's registered page structure (12 declared values) and the 27 existing pages of its tenant (coverage UNKNOWN), count-only. COVERED: both real declared specs, each by a real page whose headline names its need only. NOT COVERED: shown for the 2 registered values no real page covers, over their real DIFFERENT pages with the population set COMPLETE by the test (stated). The real record as it is: those 2 values are CANNOT DECIDE — 1 real page names no registered need and the population is not recorded COMPLETE.",
         proofs: "test/f33-need-coverage.test.mjs — C1 F34's refusals first, F33 never judges refused information; C2 COVERED on real specs, the same need in different words for 10 of 12 registered values; C3 NOT COVERED on real DIFFERENT pages, never over a population not COMPLETE nor with an undecidable page; C4 every undecidable world; C5 one REFUSAL or one EVALUATION per decision with per-page evidence counts, and end to end through bin/build-page on a confined store; C6 the one routed check reaches F33 for every page; C7 8 modules, 0 call-out paths, with a firing control; F34's proofs re-run on the changed code; production trail byte-identical across every suite run",
         sabotage: "runs/audit/f33-sabotage-2026-09-29.txt: 18 of 18 proved, residue 0; F34 re-run on the changed code runs/audit/f34-sabotage-2026-09-29.txt: 19 of 19 (S4, S5, S7 re-pointed to the code that now carries them)",
         matcher: "FREE, local, deterministic: the subject's registered values read against each existing page's served headline and body, with a fixed suffix list and a 5-letter prefix rule for different wording. No model, no embedding, no metered or paid call (RR-84 §5).",
         historicalReuse: "historical row 13 (Cannibalization Prevention) detected existing-vs-existing query overlap; it compares no candidate with existing pages and proves none of F33's current clauses; not reused",
         declaredLimit: "a synonym that shares no stem with a registered value is not recognised, and two registered values are measured limits (a practitioner name unrelated to the field's name; a two-word field whose practitioner name does not repeat both words) — each can only yield CANNOT DECIDE, never a new page; a page naming no registered need can never be ruled out, so one such page holds every uncovered candidate; NOT COVERED needs a population recorded COMPLETE, which the stored crawl is not",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+      /* RR-172 §4.2: F33's own Acceptance Amendment 1 (_handoffs 6ecc99f), approved by its hash and frozen ALONE — C8, coverage for a grouped need */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F33", on: "2026-10-05", ruling: F33_AMENDMENT_1.ruling, contractSha256: F33_AMENDMENT_1.contractSha256, amends: F33_AMENDMENT_1.amends }),
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F33",
+        on: "2026-10-05",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: Amendment 1)",
+        reason: "AUTHORITATIVE_REQUIREMENT_CHANGE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "F33's 2026-09-29 evidence remains historically valid for what it measured; the reopen is caused by the newly frozen wider requirement (C8, a grouped need's coverage), not by a defect found in the proved clauses",
+        amendment: Object.freeze({ ruling: F33_AMENDMENT_1.ruling, contractSha256: F33_AMENDMENT_1.contractSha256 }),
+        ownerRulings: Object.freeze({ repo: "_handoffs", rr172CoverageRulings: "48ae36618a50835402fb37121a2295db17eafd52" }),
+        command: Object.freeze({repo: "_handoffs",path: "AlmiVisibility_CC_COMMAND_2026-10-05_RR-172.md",commit: "1f5e9b5853c670388dc160abc18fb0989f4c8685",sha256: "f7dc563e7652ebde8cc5ef01c82bb7cb17346c62896aa1d6d0be5f8e031b6ef5"}),
+      }),
+      /* RR-172 §8: F33 RE-PROVED under Amendment 1 — C1–C7 on the real structures as before, C8 (a grouped need's coverage) new; every clause
+       * PROVED and every sabotage PROVED. Recorded through the board route in the same PR, as F07 and F33 were; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F33",
+        population: "REAL",
+        on: "2026-10-05",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: Amendment 1)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F33_AMENDMENT_1.ruling.sha256, contract: F33_AMENDMENT_1.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED", C8: "PROVED" }),
+        populations: "REAL: the one tenant holding existing pages today — 27 existing pages, coverage PARTIAL as recorded; its registered page structure for C1–C7. C8 on those real pages: FULL and PARTIAL by exact match, CANNOT DECIDE as the record stands, NONE over the population SET COMPLETE by the test with recorded positive evidence against all 27. An unlike second subject CONSTRUCTED (no other tenant holds existing pages today), said so. Count-only.",
+        proofs: "test/f33-need-coverage.test.mjs C1–C7 (unchanged, re-run); test/rr172-r2-f91-f33.test.mjs T33a–T33f (C8: each coverage value on two unlike subjects; ruling 3a never similarity; recorded judgement never an approval nor human; never refused for not being a registered value; PARTIAL never FULL or NONE, the missing question named; ruling 3b its own function, F33's existing function, F34 and F35 byte-identical to the base), T14a–T14b (the coverage record written for every need; ADD SECTION through F35's real rule), R33 (the ten unparsed evidence items, ruling 3c)",
+        sabotage: "runs/audit/rr172-sabotage-2026-10-05T0257.txt: 47 of 47 proved (F91 C13–C18, F33 C8, and F33 C1–C7 for the re-proof), residue 0, production trail unchanged",
+        matcher: "C8: a RECORDED per-question coverage judgement (a method or an agent) or an EXACT match after the one declared normalisation (letter case, runs of white space, terminal punctuation) — never similarity, never F33's stem matcher. C1–C7: F33's free matcher, unchanged.",
+        ownerRulings: Object.freeze({ repo: "_handoffs", rr172CoverageRulings: "48ae36618a50835402fb37121a2295db17eafd52" }),
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),

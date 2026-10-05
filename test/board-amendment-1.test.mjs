@@ -2,7 +2,7 @@
  * 🔴 BOARD AMENDMENT 1 (3 Oct 2026; _handoffs dd91e92, owner decision f8fa5e9, RR-145 §2) — F25 leaves the REQUIRED path; it is NOT passed.
  *
  * Proves, on the production board and the production entry points:
- *   B1 the real board reads 34/90 over the required rows and 34/91 over all rows, both printed; F25 is NOT REQUIRED with its work state;
+ *   B1 the real board reads 34/90 over the required rows and 34/91 over all rows (33/90 between F33's reopening and its re-proof, RR-172), both printed; F25 is NOT REQUIRED with its work state;
  *   B2 the numerator can never rise by leaving: a NOT REQUIRED row that is VERIFIED-PASS still does not count (control: kept, it would);
  *   B3 no exclusion without a CURRENT owner authority named by its bytes — wrong pin, no ruling, an unknown proposition, an unknown row;
  *   B4 nothing is deleted: all 91 rows stay on the board, F25 keeps its acceptance chain and its events.
@@ -26,7 +26,7 @@ const errs = (b, notRequired) => boardErrors(b, { capabilities: CAPABILITIES, ac
 test("B1 · the board reads 34/90 over the REQUIRED rows and 34/91 over all rows — both figures, F25 NOT REQUIRED with its work state", () => {
   const p = progress(board());
   assert.deepEqual([p.passed, p.denominator, p.total], [34, 91, 91], "the all-rows figure moved");
-  assert.deepEqual([p.required.passed, p.required.denominator], [34, 90], "the required figure is not 34/90");
+  assert.deepEqual([p.required.passed, p.required.denominator], [34, 90], "the required figure is not 34/90"); /* F33 REOPENED 5 Oct 2026 (AUTHORITATIVE_REQUIREMENT_CHANGE, RR-172 §4.2) and RE-PROVED the same day under Amendment 1 (RR-172 §8) — the board reads 34/90 again */
   assert.deepEqual(p.required.notRequired, [{ featureId: "F25", state: "IN-PROGRESS" }]);
   assert.deepEqual(errs(board()), [], "the real board is not lawful");
   const cli = spawnSync(process.execPath, ["bin/fboard-status.mjs"], { cwd: REPO, encoding: "utf8" });

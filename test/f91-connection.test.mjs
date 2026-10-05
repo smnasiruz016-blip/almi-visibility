@@ -19,7 +19,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 
-import { connectQuestions, readConnections, refusalOf, answerOf, REFUSAL, ANSWER_UNKNOWN, RECOMMENDATION, CONNECTION, SAMENESS, NEED } from "../src/page/demand-connection.mjs";
+import { connectQuestions, readConnections, refusalOf, REFUSAL, ANSWER_UNKNOWN, RECOMMENDATION, CONNECTION, SAMENESS, NEED, COVERAGE } from "../src/page/demand-connection.mjs";
 import { possibleCombinations, NOT_MEASURED } from "../src/page/page-opportunities.mjs";
 import { readProductPlan, planningInputs } from "../src/page/page-opportunities-reader.mjs";
 import { evidenceStateOf } from "../src/evidence/evidence-state-adapters.mjs";
@@ -57,6 +57,9 @@ const QS = [
 ];
 const run = (drafts, over = {}) => connectQuestions({ subject: S, possible: POSSIBLE, records: QS, drafts, officialSites: [OFFICIAL], on: ON, ...over });
 const conn = (r) => r.records.filter((x) => x.record_type === CONNECTION);
+/* Amendment 3 C17 (RR-172): an answer is its material claims, each with what it states, its named, linked, dated source and the recorded
+ * finding that the source supports it. A fact about the product itself, from the product's own site: */
+const productFact = (link, claimId = "c1") => ({ claims: [{ claimId, states: "PRODUCT_FACT", source: { kind: "PRODUCT_SITE", name: "the product's own site", link, readOn: "2026-10-02" }, supports: { finding: "SUPPORTS", ref: `fixture-finding:${claimId}` } }] });
 const needsOf = (r) => new Set(conn(r).map((c) => c.needId));
 
 test("K1 · C9 ONE CONNECTION PER ADMITTED QUESTION: original wording unchanged, source reference, observed date, country, language and sampling kept — NOT MEASURED where not recorded, never guessed", () => {
@@ -111,10 +114,10 @@ test("K4 · C10 MATERIALLY DIFFERENT INTENTS STAY APART — and near-identical w
 });
 
 test("K5 · C10 A COUNTRY-SPECIFIC ANSWER DIFFERENCE IS A SECTION of the one need — kept even when UNKNOWN, never dropped, never a second need", () => {
-  const r = run([{ questionId: "q1", combination: BOW, answer: { sourceRef: `${OFFICIAL}/results`, readOn: "2026-10-02" }, sections: [{ country: "c-two", sourceRef: `${OFFICIAL}/results-c-two`, readOn: "2026-10-02" }, { country: "c-three" }] }, { questionId: "q2", combination: BOW }]);
+  const r = run([{ questionId: "q1", combination: BOW, answer: productFact(`${OFFICIAL}/results`), sections: [{ country: "c-two", answer: productFact(`${OFFICIAL}/results-c-two`) }, { country: "c-three" }] }, { questionId: "q2", combination: BOW }]);
   const needs = r.records.filter((x) => x.record_type === NEED);
   assert.equal(needs.length, 1, "a country section became a second need");
-  assert.deepEqual(needs[0].sections.map((s) => [s.country, s.answer.state]), [["c-two", "SOURCED"], ["c-three", "UNKNOWN"]], "a country section was dropped");
+  assert.deepEqual(needs[0].sections.map((s) => [s.country, s.answer.state]), [["c-two", "SUPPORTED"], ["c-three", "UNKNOWN"]], "a country section was dropped");
   assert.equal(needsOf(r).size, 1);
 });
 
@@ -123,35 +126,38 @@ test("K6 · C10 ONE NEED, ONE PAGE CANDIDATE: the same need is never attached to
   assert.deepEqual([conn(r).length, r.refused.map((x) => x.code)], [1, [REFUSAL.SPANS_CANDIDATES]]);
 });
 
-test("K7 · C11 ONE SOURCED ANSWER: only the product's own official site and the day it was read; every other case UNKNOWN with its reason — and every question of the need points to the one answer", () => {
-  assert.deepEqual({ ...answerOf({ sourceRef: `${OFFICIAL}/a`, readOn: "2026-10-02" }, [OFFICIAL]) }, { state: "SOURCED", sourceRef: `${OFFICIAL}/a`, readOn: "2026-10-02" });
-  assert.equal(answerOf({ sourceRef: "https://blog.invalid/a", readOn: "2026-10-02" }, [OFFICIAL]).why, ANSWER_UNKNOWN.notOfficial);
-  assert.equal(answerOf({ sourceRef: `${OFFICIAL}/a`, readOn: "2026-10-02" }, []).why, ANSWER_UNKNOWN.noOfficialSite);
-  assert.equal(answerOf({ sourceRef: `${OFFICIAL}/a` }, [OFFICIAL]).why, ANSWER_UNKNOWN.noDate);
-  assert.equal(answerOf(null, [OFFICIAL]).why, ANSWER_UNKNOWN.none);
-  const two = run([{ questionId: "q1", combination: BOW, answer: { sourceRef: `${OFFICIAL}/a`, readOn: "2026-10-02" } }, { questionId: "q2", combination: BOW, answer: { sourceRef: `${OFFICIAL}/b`, readOn: "2026-10-02" } }]);
-  assert.match(two.records.find((x) => x.record_type === NEED).answer.why, /two different answer sources/);
-  const one = run([{ questionId: "q1", combination: BOW, answer: { sourceRef: `${OFFICIAL}/a`, readOn: "2026-10-02" } }, { questionId: "q2", combination: BOW }]);
+/* C11's "only as the product's own official source" is SUPERSEDED by Amendment 3 C17 (RR-172); C11's other parts stand. The claim test's
+ * controls, one per P14 limb, are test/rr172-r2-f91-f33.test.mjs T17. Here: C11's one answer per need, every question pointing to it. */
+test("K7 · C11 (C17) ONE ANSWER PER NEED, judged claim by claim: none recorded is UNKNOWN with its reason; two different answers are UNKNOWN, none chosen — and every question of the need points to the one answer", () => {
+  const none = run([{ questionId: "q1", combination: BOW }]);
+  assert.equal(none.records.find((x) => x.record_type === NEED).answer.why, ANSWER_UNKNOWN.none);
+  const two = run([{ questionId: "q1", combination: BOW, answer: productFact(`${OFFICIAL}/a`) }, { questionId: "q2", combination: BOW, answer: productFact(`${OFFICIAL}/b`) }]);
+  assert.equal(two.records.find((x) => x.record_type === NEED).answer.why, ANSWER_UNKNOWN.two);
+  const one = run([{ questionId: "q1", combination: BOW, answer: productFact(`${OFFICIAL}/a`) }, { questionId: "q2", combination: BOW }]);
   const rb = readConnections(one.records);
-  assert.deepEqual([rb.needs.length, rb.needs[0].questions, rb.needs[0].answer.state], [1, 2, "SOURCED"]);
+  assert.deepEqual([rb.needs.length, rb.needs[0].questions, rb.needs[0].answer.state], [1, 2, "SUPPORTED"]);
 });
 
 test("K8 · C11 NO CHECKER: a draft carrying a checker, signature or credential field is refused; the writer's code holds no such field — and the scan fires", () => {
   for (const f of ["checkedBy", "verifiedBy", "signature", "credential"]) assert.deepEqual(run([{ questionId: "q1", combination: BOW, [f]: "someone" }]).refused.map((x) => x.code), [REFUSAL.CHECKER_FIELD], `${f} was accepted`);
-  assert.deepEqual(run([{ questionId: "q1", combination: BOW, answer: { sourceRef: `${OFFICIAL}/a`, readOn: "2026-10-02", checkedBy: "someone" } }]).refused.map((x) => x.code), [REFUSAL.CHECKER_FIELD]);
+  assert.deepEqual(run([{ questionId: "q1", combination: BOW, answer: { ...productFact(`${OFFICIAL}/a`), checkedBy: "someone" } }]).refused.map((x) => x.code), [REFUSAL.CHECKER_FIELD]);
   const code = readFileSync(join(REPO, "src/page/demand-connection.mjs"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
   const scan = (t) => /\b(checkedBy|verifiedBy|isHuman|humanVerified|human:)\b|"human/.test(t.replace(/const CHECKER_FIELDS = .*$/m, ""));
   assert.equal(scan(code), false, "a checker condition is in the writer");
   assert.equal(scan(`${code}\nconst gate = (r) => r.verification?.checkedBy;\n`), true, "CONTROL: the scan cannot fire");
 });
 
-test("K9 · C12 COVERAGE BEFORE A NEW PAGE: a need an existing page serves is COVERED, never recommended; undecided coverage is HELD; an UNKNOWN answer is HELD; only NOT COVERED with a sourced answer goes on to F91's number 3", () => {
-  const rows = run([{ questionId: "q1", combination: BOW, answer: { sourceRef: `${OFFICIAL}/a`, readOn: "2026-10-02" } }, { questionId: "q4", combination: SHEET }]).records;
-  const group = (c, coverage) => ({ record_type: "planning_group", members: [c], coverage });
+/* C12 reads, since Amendment 3 C14 (RR-172), F91's own coverage record per need (planning_coverage) — FULL and PARTIAL are COVERED (PARTIAL
+ * to IMPROVE / ADD SECTION, never a new page), NONE is NOT COVERED, anything else HELD; C18: HELD for an unsupported CENTRAL answer only. */
+test("K9 · C12 COVERAGE BEFORE A NEW PAGE: a need an existing page serves (FULL, or PARTIAL) is never recommended as a new page; undecided coverage is HELD; an unsupported answer is HELD; only NONE with a supported central answer goes on", () => {
+  const rows = run([{ questionId: "q1", combination: BOW, answer: productFact(`${OFFICIAL}/a`) }, { questionId: "q4", combination: SHEET }]).records;
+  const needOf = (word) => readConnections(rows).needs.find((n) => n.pageCandidate.includes(word)).needId;
+  const cover = (word, coverage) => ({ record_type: COVERAGE, needId: needOf(word), coverage });
   const rec = (extra) => Object.fromEntries(readConnections([...rows, ...extra]).needs.map((n) => [n.pageCandidate.includes("bowline") ? "bow" : "sheet", n.recommendation]));
-  assert.deepEqual(rec([group(BOW, "COVERED"), group(SHEET, "COVERED")]), { bow: RECOMMENDATION.COVERED, sheet: RECOMMENDATION.COVERED }, "an existing page that serves the need was ignored");
+  assert.deepEqual(rec([cover("bowline", "FULL"), cover("sheet-bend", "PARTIAL")]), { bow: RECOMMENDATION.COVERED, sheet: RECOMMENDATION.COVERED_PARTIAL }, "an existing page that serves the need was ignored");
   assert.deepEqual(rec([]), { bow: RECOMMENDATION.HELD_COVERAGE, sheet: RECOMMENDATION.HELD_COVERAGE });
-  assert.deepEqual(rec([group(BOW, "NOT_COVERED"), group(SHEET, "NOT_COVERED")]), { bow: RECOMMENDATION.NOT_COVERED, sheet: RECOMMENDATION.HELD_ANSWER }, "an UNKNOWN answer went on toward a page");
+  assert.deepEqual(rec([cover("bowline", "CANNOT_DECIDE"), cover("sheet-bend", "REFUSED")]), { bow: RECOMMENDATION.HELD_COVERAGE, sheet: RECOMMENDATION.HELD_COVERAGE });
+  assert.deepEqual(rec([cover("bowline", "NONE"), cover("sheet-bend", "NONE")]), { bow: RECOMMENDATION.NOT_COVERED, sheet: RECOMMENDATION.HELD_ANSWER }, "an unsupported answer went on toward a page");
   assert.doesNotMatch(JSON.stringify(readConnections(rows)), /"(page|pages|newPages|pageCount)":/i, "the readback carried a page or a page count");
 });
 
@@ -187,7 +193,7 @@ test("K11 · TWO UNRELATED PRODUCTS: the writer and F91's reader on two products
 });
 
 test("K12 · EVIDENCE STATES: a connection and a join are INFERRED from stored questions; a need with an UNKNOWN answer is UNKNOWN, with a sourced one INFERRED; a record missing its key is UNMAPPED", () => {
-  const r = run([{ questionId: "q1", combination: BOW, answer: { sourceRef: `${OFFICIAL}/a`, readOn: "2026-10-02" } }, { questionId: "q3", combination: BOW, sameAs: { questionId: "q1", judgementRef: "j1" } }, { questionId: "q4", combination: SHEET }]);
+  const r = run([{ questionId: "q1", combination: BOW, answer: productFact(`${OFFICIAL}/a`) }, { questionId: "q3", combination: BOW, sameAs: { questionId: "q1", judgementRef: "j1" } }, { questionId: "q4", combination: SHEET }]);
   const by = (t) => r.records.filter((x) => x.record_type === t);
   assert.deepEqual([evidenceStateOf(by(CONNECTION)[0]).state, evidenceStateOf(by(SAMENESS)[0]).state], ["INFERRED", "INFERRED"]);
   assert.deepEqual(by(NEED).map((n) => evidenceStateOf(n).state).sort(), ["INFERRED", "UNKNOWN"]);
@@ -245,7 +251,10 @@ test("ENTRY4 · bin/demand-connect.mjs in a declared world: no --confirm writes 
     const first = go([`--drafts=${drafts}`, "--confirm"]);
     assert.equal(first.status, 0, first.stdout + first.stderr);
     assert.match(first.stdout, /readback {9}3 connected question\(s\) · 2 underlying need\(s\) · 1 page candidate\(s\)/);
-    assert.match(first.stdout, /coverage {9}COVERED 0 · HELD \(coverage undecided\) 2 · HELD \(answer UNKNOWN\) 0 · NOT COVERED 0/);
+    assert.match(first.stdout, /coverage {9}COVERED 0 · COVERED IN PART 0 · HELD \(coverage undecided\) 2 · HELD \(central answer unsupported\) 0 · NOT COVERED 0/);
+    /* Amendment 3 C14: a coverage record for EVERY need, written in the same governed append */
+    assert.match(first.stdout, /coverage records 2 need\(s\), one record each \(2 new\)/);
+    assert.match(first.stdout, /needs without a coverage record 0/);
     assert.match(first.stdout, /official sites declared 0 \(turn order — not a gap\)/);
     const second = go([`--drafts=${drafts}`, "--confirm"]);
     assert.match(second.stdout, /4 read · 0 connected · refused 4 \(DUPLICATE_WRITE 3 · SEARCH_LEAD_IS_NOT_A_QUESTION 1\)/);
@@ -298,7 +307,7 @@ test("ENTRY5 · THE OWNER'S TWO SUBJECTS: the same governed writer on both — o
       writeFileSync(join(W.root, "research", batch, "questions.jsonl"), rows.map((r) => JSON.stringify(r)).join("\n") + "\n");
       writeFileSync(join(W.root, "research", batch, "leads.jsonl"), JSON.stringify({ record_type: "research_lead", lead_id: "lead-x", recorded_at: "2026-10-01T09:00:00Z", sourceId: "fixture" }) + "\n");
       const combo = { offering: "offering-one" };
-      const drafts = input(W, `drafts-${subject.length}.json`, [{ questionId: "s1", combination: combo, answer: { sourceRef: `${origin}/fixture-page`, readOn: "2026-10-02" } }, { questionId: "s2", combination: combo }, { questionId: "s3", combination: combo }, { questionId: "lead-x", combination: combo }]);
+      const drafts = input(W, `drafts-${subject.length}.json`, [{ questionId: "s1", combination: combo, answer: productFact(`${origin}/fixture-page`) }, { questionId: "s2", combination: combo }, { questionId: "s3", combination: combo }, { questionId: "lead-x", combination: combo }]);
       const r = spawnSync(process.execPath, W.argv(["bin/demand-connect.mjs", `--subject=${subject}`, `--product=${subject}`, `--research-batch=${batch}`, `--on=${ON}`, `--drafts=${drafts}`, "--confirm"]), { cwd: REPO, encoding: "utf8", env: W.envWith() });
       assert.equal(r.status, 0, r.stdout + r.stderr);
       runs[subject] = { r, batch, drafts };
@@ -307,8 +316,9 @@ test("ENTRY5 · THE OWNER'S TWO SUBJECTS: the same governed writer on both — o
       assert.match(r.stdout, /drafts {11}4 read · 3 connected · refused 1 \(SEARCH_LEAD_IS_NOT_A_QUESTION 1\)/);
       assert.match(r.stdout, /readback {9}3 connected question\(s\) · 2 underlying need\(s\) · 1 page candidate\(s\)/, "country or language split one need, or two needs merged");
       const kept = readFileSync(join(W.root, "research", batch, "planning.jsonl"), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
-      const sourced = kept.filter((x) => x.record_type === NEED && x.answer.state === "SOURCED");
+      const sourced = kept.filter((x) => x.record_type === NEED && x.answer.state === "SUPPORTED");
       assert.equal(sourced.length, 1, "the answer from the subject's own declared official site was not kept");
+      assert.equal(kept.filter((x) => x.record_type === COVERAGE).length, 2, "a need was written without its coverage record (C14)");
     }
     /* each subject's product reaches only its own run: the declared subject's run with the named subject's product is refused by name */
     const cross = spawnSync(process.execPath, W.argv(["bin/demand-connect.mjs", `--subject=${DECLARED}`, `--product=${NAMED}`, `--research-batch=${runs[DECLARED].batch}`, `--on=${ON}`, `--drafts=${runs[DECLARED].drafts}`, "--confirm"]), { cwd: REPO, encoding: "utf8", env: W.envWith() });
@@ -334,7 +344,7 @@ test("REAL · every declared subject in the real data root: admitted public ques
     if (existsSync(join(DATA_ROOT, s.path ?? s.subjectId, "product.mjs"))) {
       const product = await productFromArgv(["node", "x", `--product=${s.subjectId}`], { scope: censusSubjectScope(s.subjectId) });
       const { plan } = await readProductPlan(product);
-      numbers = { possible: plan.possible.value, verified: plan.verified.value, needed: plan.needed.value };
+      numbers = { possible: plan.possible.value, verified: plan.verified.value, needed: Object.fromEntries(Object.entries(plan.needed).map(([tier, n]) => [tier, n.value])) };
     }
     out.push({ subject: s.subjectId.length, batches: batches.length, admittedQuestions: admitted, connections, numbers });
   }
@@ -342,7 +352,7 @@ test("REAL · every declared subject in the real data root: admitted public ques
   /* pins — re-measured, never assumed: 0 admitted real public questions today, so numbers 2 and 3 are NOT MEASURED, never 0 */
   assert.equal(out.reduce((n, x) => n + x.admittedQuestions, 0), 0, "the real store now holds admitted public questions — re-measure, never assume");
   assert.equal(out.reduce((n, x) => n + x.connections, 0), 0);
-  for (const x of out.filter((y) => y.numbers !== NOT_MEASURED)) assert.deepEqual([x.numbers.verified, x.numbers.needed], [NOT_MEASURED, NOT_MEASURED]);
+  for (const x of out.filter((y) => y.numbers !== NOT_MEASURED)) assert.deepEqual([x.numbers.verified, ...Object.values(x.numbers.needed)], [NOT_MEASURED, NOT_MEASURED, NOT_MEASURED]);
 });
 
 test("the production trail was not written by this file", () => assert.equal(trailSha(), TRAIL_BEFORE));

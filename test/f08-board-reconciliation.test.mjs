@@ -159,7 +159,7 @@ const STARTED_SINCE = Object.freeze({ F62: "IN-PROGRESS", F25: "IN-PROGRESS", F2
 /* 🔴 A ROW THAT EARNED VERIFIED-PASS AND WAS THEN REOPENED on concrete contradictory evidence is admitted — only by its own facts: it is
  * in MOVED_SINCE (it earned the pass), its LAST event is REOPENED VERIFIED-PASS -> IN-PROGRESS on CONCRETE_CONTRADICTORY_EVIDENCE, and
  * that REOPENED transition is in the production trail. F07 reopened on 28 Sep 2026 (_handoffs be583fa). */
-const REOPENED_SINCE = Object.freeze({ F07: "IN-PROGRESS" });
+const REOPENED_SINCE = Object.freeze({ F07: ["IN-PROGRESS", "CONCRETE_CONTRADICTORY_EVIDENCE"], F33: ["IN-PROGRESS", "AUTHORITATIVE_REQUIREMENT_CHANGE"] /* RR-172 §4.2: its own Amendment 1, frozen alone */ });
 
 /* 🔴 A ROW WHOSE BLOCKER WAS LIFTED BY A LATER CURRENT AUTHORITY is admitted — only by its own facts: its LAST event is BLOCKER_LIFTED
  * BLOCKED-BY-AUTHORITY -> UNASSESSED naming its own authority, that authority resolves CURRENT, and the transition is in the production
@@ -187,9 +187,9 @@ test("P6 · every feature other than F08 holds exactly the state it held at the 
       assert.ok(events().some((e) => e.eventType === "BOARD_TRANSITION" && e.action === "IMPLEMENTATION" && e.metadata?.featureId === r.featureId && e.metadata?.to === "IN-PROGRESS"), `${r.featureId}'s start is not in the audit trail`);
       continue;
     }
-    if (REOPENED_SINCE[r.featureId] === r.state && MOVED_SINCE[r.featureId] === "VERIFIED-PASS") {
+    if (REOPENED_SINCE[r.featureId]?.[0] === r.state && MOVED_SINCE[r.featureId] === "VERIFIED-PASS") {
       const last = DECLARED[r.featureId].events.at(-1);
-      assert.deepEqual([last.kind, last.from, last.to, last.reason], ["REOPENED", "VERIFIED-PASS", "IN-PROGRESS", "CONCRETE_CONTRADICTORY_EVIDENCE"], `${r.featureId} is IN-PROGRESS without its reopening as the last event`);
+      assert.deepEqual([last.kind, last.from, last.to, last.reason], ["REOPENED", "VERIFIED-PASS", "IN-PROGRESS", REOPENED_SINCE[r.featureId][1]], `${r.featureId} is IN-PROGRESS without its reopening, for its own recorded reason, as the last event`);
       assert.ok(events().some((e) => e.eventType === "BOARD_TRANSITION" && e.action === "REOPENED" && e.metadata?.featureId === r.featureId && e.occurredAt.slice(0, 10) === last.on), `${r.featureId}'s reopening is not in the audit trail`);
       continue;
     }

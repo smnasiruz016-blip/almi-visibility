@@ -311,9 +311,16 @@ test("🔴 RED: WHY — no rationale is a DATA GAP; a need that names only the v
 
 test("🔴 WHY — near-identical is measured, and what is NOT enforced is said", () => {
   const siblings = [{ slug: "beta", spec: { whyThisUrlDeservesToExist: { humanNeed: `${WHY.alpha.humanNeed} today`, distinctValue: WHY.alpha.distinctValue } } }];
+  /* RR-179 · RTP-1 Rev 6 S38: the overlap is a REVIEW SIGNAL — with no recorded substance review the part is undecided, never refused on
+   * the number; a recorded SAME review refuses, a recorded DISTINCT review passes. */
   const near = judgeWhy("alpha", { whyThisUrlDeservesToExist: WHY.alpha }, siblings, VARIANTS);
-  assert.equal(near.state, FAIL);
-  assert.match(near.reason, /near-identical to beta/);
+  assert.equal(near.state, NOT_TESTED);
+  assert.match(near.reason, /review required — the rationale overlaps beta/);
+  const review = (verdict) => [{ pair: ["alpha", "beta"], verdict, ref: `review:alpha-beta:${verdict}`, source: { kind: "METHOD" } }];
+  const same = judgeWhy("alpha", { whyThisUrlDeservesToExist: WHY.alpha }, siblings, VARIANTS, { reviews: review("SAME") });
+  assert.equal(same.state, FAIL);
+  assert.match(same.reason, /near-identical in substance to beta/);
+  assert.equal(judgeWhy("alpha", { whyThisUrlDeservesToExist: WHY.alpha }, siblings, VARIANTS, { reviews: review("DISTINCT") }).state, PASS);
   assert.match(WHY_NOT_ENFORCED, /NOT ENFORCED/);
   assert.match(WHY_NOT_ENFORCED, /residue of GATE-4 stays OPEN/);
 });
@@ -334,11 +341,12 @@ test("🔴 BLOCKED / NOT TESTED — a two-spec family cannot learn a shell; both
   assert.equal(r.verdict, REFUSED);
 });
 
-test("🔴 BLOCKED / NOT TESTED — a family of one has no sibling: overlap and distinctness are never a pass", () => {
+test("🔴 A FAMILY OF ONE — the lone page's distinctness is not refused for having no sibling (record B, D1); its overlap still is, until construction's D1", () => {
   const [r] = judge(family({ pages: ["alpha"] }), ["alpha"]);
   assert.equal(r.verdict, REFUSED);
   assert.equal(r.parts.overlap.state, NOT_TESTED);
-  assert.equal(r.parts.whyThisUrl.state, NOT_TESTED);
+  /* RR-179 §4.4 · record B (_handoffs d014ca1): "differs from every sibling" holds with none to differ from */
+  assert.equal(r.parts.whyThisUrl.state, PASS);
 });
 
 /* ---- selection: no default ------------------------------------------------ */

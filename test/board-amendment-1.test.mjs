@@ -23,23 +23,23 @@ const AUTH = { records: AUTHORITY_CORPUS, now: CORPUS_PROVENANCE.now };
 const board = () => buildBoard(CAPABILITIES, DECLARED);
 const errs = (b, notRequired) => boardErrors(b, { capabilities: CAPABILITIES, acceptances: ACCEPTANCES, authority: AUTH, ...(notRequired ? { notRequired } : {}) });
 
-test("B1 · the board reads 33/90 over the REQUIRED rows and 33/91 over all rows — both figures, F25 NOT REQUIRED with its work state", () => {
+test("B1 · the board reads 32/90 over the REQUIRED rows and 32/91 over all rows — both figures, F25 NOT REQUIRED with its work state", () => {
   const p = progress(board());
-  assert.deepEqual([p.passed, p.denominator, p.total], [33, 91, 91], "the all-rows figure moved");
-  assert.deepEqual([p.required.passed, p.required.denominator], [33, 90], "the required figure is not 33/90"); /* RR-179 §4.2: F41 REOPENED at its Amendment 1 freeze (_handoffs be0ec9d) */
+  assert.deepEqual([p.passed, p.denominator, p.total], [32, 91, 91], "the all-rows figure moved");
+  assert.deepEqual([p.required.passed, p.required.denominator], [32, 90], "the required figure is not 32/90"); /* RR-179 §4.4: F36 REOPENED at the commit that changes its proved behaviour (S38, record B _handoffs d014ca1) */
   assert.deepEqual(p.required.notRequired, [{ featureId: "F25", state: "IN-PROGRESS" }]);
   assert.deepEqual(errs(board()), [], "the real board is not lawful");
   const cli = spawnSync(process.execPath, ["bin/fboard-status.mjs"], { cwd: REPO, encoding: "utf8" });
-  assert.match(cli.stdout, /F-progress: 33\/90 \(required rows\) · all rows 33\/91 · NOT REQUIRED 1: F25 \(work state IN-PROGRESS, not passed\)/, cli.stdout);
+  assert.match(cli.stdout, /F-progress: 32\/90 \(required rows\) · all rows 32\/91 · NOT REQUIRED 1: F25 \(work state IN-PROGRESS, not passed\)/, cli.stdout);
 });
 
 test("B2 · leaving the required path never raises the numerator: a NOT REQUIRED row that is VERIFIED-PASS still does not count (CONTROL: kept, it would)", () => {
   const b = board().map((r) => (r.featureId === "F25" ? { ...r, state: "VERIFIED-PASS" } : r));
   const p = progress(b);
-  assert.equal(p.required.passed, 33, "a NOT REQUIRED row was counted as passed");
+  assert.equal(p.required.passed, 32, "a NOT REQUIRED row was counted as passed");
   assert.equal(p.required.denominator, 90);
   const kept = progress(b, { notRequired: {} });
-  assert.equal(kept.required.passed, 34, "CONTROL: with no exclusion the same board must count it — the check could not fail");
+  assert.equal(kept.required.passed, 33, "CONTROL: with no exclusion the same board must count it — the check could not fail");
   assert.equal(kept.required.denominator, 91);
 });
 

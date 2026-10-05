@@ -959,7 +959,7 @@ export const DECLARED = Object.freeze({
   F36: Object.freeze({
     featureId: "F36",
     board: "F_BOARD",
-    state: "VERIFIED-PASS",
+    state: "IN-PROGRESS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: ACCEPTANCES.F36.ruling, contractSha256: ACCEPTANCES.F36.contractSha256 }),
       Object.freeze({
@@ -993,6 +993,21 @@ export const DECLARED = Object.freeze({
         historicalReuse: "historical row 21 was DEFERRED; Gate A's part-4 reason check (judgeWhy) is reused unchanged inside the one right-to-exist function",
         declaredLimit: "whether the named need is real and the value distinct in substance is NOT MEASURED (missing fact: demand evidence — F14 has no public-evidence path); a candidate can only be ESTABLISHED where F33 can decide NOT COVERED, which needs a COMPLETE inventory (F31: the real one is INCOMPLETE)",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+      /* RR-179 §4.4: F36 REOPENED at the commit that changes its proved behaviour; its acceptance is unchanged */
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F36",
+        on: "2026-10-05",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: RTP-1 Rev 6 S38 and the owner's record B)",
+        reason: "AUTHORITATIVE_REQUIREMENT_CHANGE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "F36's 2026-09-29 evidence remains historically valid for what it measured; the reopen is caused by the owner's authoritative requirements now in force — RTP-1 Rev 6 §17 S38 (the 0.40 rationale refusal becomes a review signal; near-identical is judged on substance) and record B (D1: a lone page is never refused or left NOT TESTED only because no sibling exists) — which change F36's proved behaviour (why-this-url.mjs judgeWhy) at this commit; F36's acceptance text is unchanged (RR-179 §0)",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F36.ruling.sha256, contract: ACCEPTANCES.F36.contractSha256 }),
+        evidenceRecord: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-05_RR-179_RECORD_B_LONE_PAGE_AT_F36.md", commit: "d014ca1f220b3b112d27bd35742a1a4c627a2369", sha256: "6495bc6a6a92dcc92b660d85991989bf4cde1f92f76fe38c2a03543711f9b7d7" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-05_RR-179.md", commit: "59473db0b220f06f6013bc5b96ff917d62053be0", sha256: "1a1ea4d126f809d21dc2827d1360afea4caccabaf02680298120c55bfc9d0da2" }),
       }),
     ]),
   }),

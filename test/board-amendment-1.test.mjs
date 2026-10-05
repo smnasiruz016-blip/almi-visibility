@@ -2,7 +2,7 @@
  * 🔴 BOARD AMENDMENT 1 (3 Oct 2026; _handoffs dd91e92, owner decision f8fa5e9, RR-145 §2) — F25 leaves the REQUIRED path; it is NOT passed.
  *
  * Proves, on the production board and the production entry points:
- *   B1 the real board reads 33/90 over the required rows and 33/91 over all rows (F35 reopened, RR-174 §4.1; 33/90 also between F33's reopening and its re-proof, RR-172), both printed; F25 is NOT REQUIRED with its work state;
+ *   B1 the real board reads 32/90 over the required rows and 32/91 over all rows (F35 and F34 reopened, RR-174 §4; 33/90 also between F33's reopening and its re-proof, RR-172), both printed; F25 is NOT REQUIRED with its work state;
  *   B2 the numerator can never rise by leaving: a NOT REQUIRED row that is VERIFIED-PASS still does not count (control: kept, it would);
  *   B3 no exclusion without a CURRENT owner authority named by its bytes — wrong pin, no ruling, an unknown proposition, an unknown row;
  *   B4 nothing is deleted: all 91 rows stay on the board, F25 keeps its acceptance chain and its events.
@@ -23,23 +23,23 @@ const AUTH = { records: AUTHORITY_CORPUS, now: CORPUS_PROVENANCE.now };
 const board = () => buildBoard(CAPABILITIES, DECLARED);
 const errs = (b, notRequired) => boardErrors(b, { capabilities: CAPABILITIES, acceptances: ACCEPTANCES, authority: AUTH, ...(notRequired ? { notRequired } : {}) });
 
-test("B1 · the board reads 33/90 over the REQUIRED rows and 33/91 over all rows — both figures, F25 NOT REQUIRED with its work state", () => {
+test("B1 · the board reads 32/90 over the REQUIRED rows and 32/91 over all rows — both figures, F25 NOT REQUIRED with its work state", () => {
   const p = progress(board());
-  assert.deepEqual([p.passed, p.denominator, p.total], [33, 91, 91], "the all-rows figure moved");
-  assert.deepEqual([p.required.passed, p.required.denominator], [33, 90], "the required figure is not 33/90"); /* F35 REOPENED 5 Oct 2026 (AUTHORITATIVE_REQUIREMENT_CHANGE, its Amendment 1 frozen alone, RR-174 §4.1) — the board reads 33/90 until its re-proof */
+  assert.deepEqual([p.passed, p.denominator, p.total], [32, 91, 91], "the all-rows figure moved");
+  assert.deepEqual([p.required.passed, p.required.denominator], [32, 90], "the required figure is not 32/90"); /* F34 REOPENED 5 Oct 2026 (AUTHORITATIVE_REQUIREMENT_CHANGE, its Amendment 1 frozen alone, RR-174 §4.2) — with F35 reopened, the board reads 32/90 until their re-proofs */
   assert.deepEqual(p.required.notRequired, [{ featureId: "F25", state: "IN-PROGRESS" }]);
   assert.deepEqual(errs(board()), [], "the real board is not lawful");
   const cli = spawnSync(process.execPath, ["bin/fboard-status.mjs"], { cwd: REPO, encoding: "utf8" });
-  assert.match(cli.stdout, /F-progress: 33\/90 \(required rows\) · all rows 33\/91 · NOT REQUIRED 1: F25 \(work state IN-PROGRESS, not passed\)/, cli.stdout);
+  assert.match(cli.stdout, /F-progress: 32\/90 \(required rows\) · all rows 32\/91 · NOT REQUIRED 1: F25 \(work state IN-PROGRESS, not passed\)/, cli.stdout);
 });
 
 test("B2 · leaving the required path never raises the numerator: a NOT REQUIRED row that is VERIFIED-PASS still does not count (CONTROL: kept, it would)", () => {
   const b = board().map((r) => (r.featureId === "F25" ? { ...r, state: "VERIFIED-PASS" } : r));
   const p = progress(b);
-  assert.equal(p.required.passed, 33, "a NOT REQUIRED row was counted as passed");
+  assert.equal(p.required.passed, 32, "a NOT REQUIRED row was counted as passed");
   assert.equal(p.required.denominator, 90);
   const kept = progress(b, { notRequired: {} });
-  assert.equal(kept.required.passed, 34, "CONTROL: with no exclusion the same board must count it — the check could not fail");
+  assert.equal(kept.required.passed, 33, "CONTROL: with no exclusion the same board must count it — the check could not fail");
   assert.equal(kept.required.denominator, 91);
 });
 

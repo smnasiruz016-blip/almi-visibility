@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1 } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -1552,9 +1552,9 @@ export const DECLARED = Object.freeze({
   F34: Object.freeze({
     featureId: "F34",
     board: "F_BOARD",
-    state: "VERIFIED-PASS",
+    state: "IN-PROGRESS",
     events: Object.freeze([
-      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-28", ruling: ACCEPTANCES.F34.ruling, contractSha256: ACCEPTANCES.F34.contractSha256 }),
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-28", ruling: F34_ORIGINAL.ruling, contractSha256: F34_ORIGINAL.contractSha256 }),
       Object.freeze({
         kind: "IMPLEMENTATION",
         featureId: "F34",
@@ -1563,7 +1563,7 @@ export const DECLARED = Object.freeze({
         to: "IN-PROGRESS",
         route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
         reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F34.ruling.sha256, contract: ACCEPTANCES.F34.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F34_ORIGINAL.ruling.sha256, contract: F34_ORIGINAL.contractSha256 }),
         branch: "rr83-f34-no-blind-regeneration",
         baseSha: "2f15c5bd475b87c9b115b89d4cb2ae18faf94dc5",
         baseCiRun: "36494244386",
@@ -1579,13 +1579,29 @@ export const DECLARED = Object.freeze({
         to: "VERIFIED-PASS",
         route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
         reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F34.ruling.sha256, contract: ACCEPTANCES.F34.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F34_ORIGINAL.ruling.sha256, contract: F34_ORIGINAL.contractSha256 }),
         populations: "REAL: the subject that declares page specs resolves lawfully to one tenant, whose partition of the stored observation batch holds 27 existing pages (coverage UNKNOWN — the batch's run records are not in the tenant's partition, and the run's COMPLETE was corrected to PARTIAL); both real declared page specs are stopped (MONITOR), each naming existing pages. The page-producing census over 338 committed modules outside test/ plus the 7-entry page-writer register: 8 paths — 1 CHECKS, 4 ROUTED, 3 NOT_PAGE_PRODUCTION, 0 unclassified, 0 faults.",
         proofs: "C1/C2/C4 through constructCandidates on a family Gate A otherwise ACCEPTS (test/page-construction.test.mjs, F34 ·); C1–C6 in test/f34-no-blind-regeneration.test.mjs — missing, malformed and foreign populations REFUSED; same need in different words MONITOR naming the page; empty COMPLETE the only way through (control); unknown quality protected, recorded defect → IMPROVE; the real runner end to end in a declared world on a confined store: 2 candidates, 2 recorded decisions, nothing written; census with firing controls; no product-repository write, publish or bulk path, with firing controls; real population count-only; production trail byte-identical across every suite run",
         sabotage: "runs/audit/f34-sabotage-2026-09-28.txt: 19 of 19 proved (C1 ×4, C2 ×3, C3 ×3, C4, C5 ×3, C6 ×4, coverage correction), residue 0, production trail untouched",
         historicalReuse: "historical row 14 (No Blind Regeneration) re-run fresh for C3 — no product-repository write, no publish, no bulk generation, a rediscovered URL keeps its page_id; its deferred half (KEEP; no recreate or overwrite) was never built and is F34's new code",
         declaredLimit: "same-need detection in other words is F33's and does not exist: while any existing page of the tenant exists, a candidate is never produced (MONITOR naming every existing page), so different wording can change what is named first, never whether a page is produced; no page-quality measurement is authoritative (F40 BLOCKED), so no existing page is presumed bad; the census is a source check and cannot see a dynamic import or a renderer copied rather than imported; no live fetch or metered call in any proof",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+      /* RR-174 §4: F34's own Acceptance Amendment 1 (_handoffs 348f029), approved by its hash and frozen ALONE */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F34", on: "2026-10-05", ruling: F34_AMENDMENT_1.ruling, contractSha256: F34_AMENDMENT_1.contractSha256, amends: F34_AMENDMENT_1.amends }),
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F34",
+        on: "2026-10-05",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: Amendment 1)",
+        reason: "AUTHORITATIVE_REQUIREMENT_CHANGE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "F34's 2026-09-28 evidence remains historically valid for what it measured; the reopen is caused by the newly frozen wider requirement (Amendment 1: the explicit MONITOR mapping), not by a defect found in the proved clauses",
+        amendment: Object.freeze({ ruling: F34_AMENDMENT_1.ruling, contractSha256: F34_AMENDMENT_1.contractSha256 }),
+        ownerRulings: Object.freeze({ repo: "_handoffs", rr174R3Rulings: "7945b7692b15a31fd546d90a0c0c7a00e0b62759" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-05_RR-174.md", commit: "d4b4f3da61b4f3920412dc19d826af92ddd0764e", sha256: "6ec7a6f23ba97dcafcde274a12ac19c1a42710142ab2a6254917f13fe74e79d8" }),
       }),
     ]),
   }),

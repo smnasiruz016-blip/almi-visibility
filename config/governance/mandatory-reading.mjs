@@ -405,6 +405,9 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-04_RR-159.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F16_ACCEPTANCE_AMENDMENT_3_2026-10-04.md", loader: "F-board acceptance F16" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-04_RR-159_Q1_Q2_Q3_ANSWERS.md", loader: "authority register (CURRENT record)" }),
+  /* RR-174 §4.2 (5 Oct 2026): the one CURRENT record admitted by the migration at _handoffs 348f029 — F34's Acceptance Amendment 1 (C7,
+   * the explicit MONITOR mapping M1–M6), approved by its hash. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F34_ACCEPTANCE_AMENDMENT_1_2026-10-05.md", loader: "F-board acceptance F34" }),
   /* RR-174 §4.1 (5 Oct 2026): the four CURRENT records admitted by the migration at _handoffs dcddcb0 — the RR-173 command, the RR-174
    * command, the owner's RR-174 rulings on the R3 choices, and F35's Acceptance Amendment 1, approved by its hash. */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-05_RR-173.md", loader: "authority register (CURRENT record)" }),

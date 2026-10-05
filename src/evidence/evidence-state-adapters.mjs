@@ -204,6 +204,24 @@ function ofMeaningJudgement(r) {
   return place(rule, "INFERRED", { inputRefs: [`held_for_judgement:${h16(r.value.held_id)}`], method: "meaning-judgement-on-the-original-post", computedAt: r.recorded_at });
 }
 
+/**
+ * 🔴 RR-170 — a `research_derived_question` (src/research/research-derived.mjs; F16 Acceptance Amendment 5, C27–C31): wording research
+ * returned for a research question Visibility FORMED — INFERRED from that formed query, never OBSERVED (nobody is shown to have asked it).
+ * A `relevance_assessment` is a method's or an agent's assessment of one such question — INFERRED from that question, never an approval.
+ */
+function ofResearchDerived(r) {
+  const rule = "research_derived_question";
+  if (!present(r.question_id) || !present(r.query_id)) return unmapped("a research-derived question with no id or no formed query cannot be referenced", rule);
+  if (!present(r.recorded_at) || !ISOISH.test(r.recorded_at)) return unmapped("a research-derived question with no recorded time has no time", rule);
+  return place(rule, "INFERRED", { inputRefs: [`formed-research-query:${h16(r.query_id)}`], method: "research-derived-wording-for-a-formed-question", computedAt: r.recorded_at });
+}
+function ofRelevanceAssessment(r) {
+  const rule = "relevance_assessment";
+  if (!present(r.assessment_id) || !present(r.value?.question_id)) return unmapped("an assessment with no id or no question cannot be referenced", rule);
+  if (!present(r.recorded_at) || !ISOISH.test(r.recorded_at)) return unmapped("an assessment with no time has no time", rule);
+  return place(rule, "INFERRED", { inputRefs: [`research_derived_question:${h16(r.value.question_id)}`], method: "relevance-from-the-declaration-and-the-meaning", computedAt: r.recorded_at });
+}
+
 const unmapped = (why, rule) => Object.freeze({ state: null, unmapped: true, why, assignedBy: rule });
 const place = (rule, state, meta) => {
   try { return makeEvidenceState(state, { assignedBy: rule, ...meta }); }
@@ -338,6 +356,8 @@ export function evidenceStateOf(record, ctx = {}) {
     case "research_lead": return ofResearchLead(record);
     case "held_for_judgement": return ofHeld(record);
     case "meaning_judgement": return ofMeaningJudgement(record);
+    case "research_derived_question": return ofResearchDerived(record);
+    case "relevance_assessment": return ofRelevanceAssessment(record);
     case "applicability_assessment": return ofApplicabilityAssessment(record);
     case "applicability_confirmation": return ofApplicabilityConfirmation(record);
     case "planning_demand": case "planning_sameness": case "planning_need": return ofPlanning(record);

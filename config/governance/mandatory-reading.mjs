@@ -405,6 +405,19 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-04_RR-159.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F16_ACCEPTANCE_AMENDMENT_3_2026-10-04.md", loader: "F-board acceptance F16" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-04_RR-159_Q1_Q2_Q3_ANSWERS.md", loader: "authority register (CURRENT record)" }),
+  /* RR-170 (5 Oct 2026): the ten CURRENT records admitted by the migration at _handoffs 91ef421 — the RR-162, RR-162 continued (v2), RR-163
+   * and RR-170 commands; F16's Acceptance Amendment 5 (research-derived questions, C27–C32), approved by its hash; the owner's RR-162 and
+   * RR-163 decisions; and his RR-170 issue of RTP-1 Revision 6 with Correction 1. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-04_RR-162.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-04_RR-162_CONTINUED_V2.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-04_RR-163.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-05_RR-170.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F16_ACCEPTANCE_AMENDMENT_5_2026-10-05.md", loader: "F-board acceptance F16" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-04_RR-162_FOUR_FINAL_DECISIONS.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-04_RR-162_RESEARCH_DERIVED_QUESTIONS.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-04_RR-163_A2_SEVEN_CORRECTIONS.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-04_RR-163_FIVE_SETTLED_RULINGS.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-05_RR-170_ISSUE_RTP-1_REV6.md", loader: "authority register (CURRENT record)" }),
   /* RR-161 (4 Oct 2026): the six CURRENT records admitted by the migration at _handoffs 9321cd8 — the RR-160 and RR-161 commands, F16's
    * Acceptance Amendment 4 (the one adapter; the hard budget cap), and the owner's three RR-161 rulings: the issued provider record, the
    * downloadable version (option 5 plus 1), and the client-received-questions direction. */

@@ -19,6 +19,9 @@
  * the client's own OPENED connector, whose one exit reaches only its declared origin.
  * 🔴 WHERE ONLY: `invoke` returns the addresses of the search results and the provider's usage counts — never its prose, never an address the
  * model wrote in its own text (C19, C25). A refusal, an HTTP error or a search error is thrown with a code: the run stops (C26).
+ * 🔴 RR-170 · F16 Acceptance Amendment 5, C29 (C25 as narrowed): beside the addresses it also returns the QUESTION WORDING the provider gives for
+ * the formed research question — only its lines that begin "QUESTION: ", each marked GENERATED; a line holding a web address is dropped whole.
+ * Every other byte — an answer, a summary, an explanation — is still dropped, and no address the search did not return comes back.
  */
 export const PROVIDER_ID = "anthropic";
 export const ORIGIN = "https://api.anthropic.com";
@@ -52,6 +55,26 @@ export function searchAddressesOf(body) {
   return out;
 }
 
+/** RR-170 · C29: the one instruction the adapter adds — the provider is asked for question WORDING, never for an answer. */
+export const QUESTION_INSTRUCTION = "Besides searching, list the questions people ask in this field that the search found, each on its own line beginning \"QUESTION: \". Do not answer them.";
+const QUESTION_LINE = /^\s*QUESTION:\s*(.+?)\s*$/;
+/**
+ * RR-170 · C29 (C25 as narrowed): the GENERATED question wording — only the provider's text lines that begin "QUESTION: ". A line that holds a
+ * web address is dropped whole; every other line of prose is dropped. Unique, in order, at most `cap`.
+ */
+export function generatedQuestionsOf(body, cap = 50) {
+  const out = [];
+  for (const b of Array.isArray(body?.content) ? body.content : []) {
+    if (b?.type !== "text" || typeof b.text !== "string") continue;
+    for (const line of b.text.split("\n")) {
+      const m = line.match(QUESTION_LINE);
+      if (!m || /https?:\/\//i.test(m[1]) || out.length >= cap || out.some((q) => q.wording === m[1])) continue;
+      out.push(Object.freeze({ wording: m[1], generated: true }));
+    }
+  }
+  return out;
+}
+
 /** The provider's usage as COUNTS only — every numeric field of its usage object, nested once; nothing else. */
 export function usageCountsOf(body) {
   const u = body?.usage, out = {};
@@ -76,7 +99,7 @@ export function create({ opened, credentialName, pricePerCall, options }) {
     name: PROVIDER_ID, fake: false, priceMeasured: false, pricePerCall: Object.freeze({ ...pricePerCall }),
     async invoke(request) {
       const body = JSON.stringify({
-        model: options.model, max_tokens: options.maxOutputTokens,
+        model: options.model, max_tokens: options.maxOutputTokens, system: QUESTION_INSTRUCTION,
         messages: [{ role: "user", content: String(request?.query ?? "") }],
         tools: [{ type: options.toolType, name: "web_search", max_uses: options.maxSearchesPerCall }],
       });
@@ -88,7 +111,7 @@ export function create({ opened, credentialName, pricePerCall, options }) {
       try { parsed = await res.json(); } catch { throw coded("NOT_JSON"); }
       if (!res.ok) throw coded(`HTTP_${Number.isInteger(res.status) ? res.status : "UNKNOWN"}`);
       if (parsed?.stop_reason === "refusal") throw coded("REFUSAL");
-      return Object.freeze({ addresses: Object.freeze(searchAddressesOf(parsed)), usage: Object.freeze(usageCountsOf(parsed)) });
+      return Object.freeze({ addresses: Object.freeze(searchAddressesOf(parsed)), questions: Object.freeze(generatedQuestionsOf(parsed)), usage: Object.freeze(usageCountsOf(parsed)) });
     },
   });
 }

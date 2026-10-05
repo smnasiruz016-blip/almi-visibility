@@ -851,7 +851,7 @@ export const DECLARED = Object.freeze({
   F35: Object.freeze({
     featureId: "F35",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: F35_ORIGINAL.ruling, contractSha256: F35_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -932,6 +932,25 @@ export const DECLARED = Object.freeze({
         amendment: Object.freeze({ ruling: F35_AMENDMENT_1.ruling, contractSha256: F35_AMENDMENT_1.contractSha256 }),
         ownerRulings: Object.freeze({ repo: "_handoffs", rr174R3Rulings: "7945b7692b15a31fd546d90a0c0c7a00e0b62759" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-05_RR-174.md", commit: "d4b4f3da61b4f3920412dc19d826af92ddd0764e", sha256: "6ec7a6f23ba97dcafcde274a12ac19c1a42710142ab2a6254917f13fe74e79d8" }),
+      }),
+      /* RR-174 §8: F35 RE-PROVED under Amendment 1 — every clause PROVED and every sabotage PROVED; recorded through the board route in the
+       * same PR, as F07 and F33 were; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F35",
+        population: "REAL",
+        on: "2026-10-05",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: Amendment 1)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F35_AMENDMENT_1.ruling.sha256, contract: F35_AMENDMENT_1.contractSha256 }),
+        clauses: Object.freeze({C1: "PROVED",C2: "PROVED",C3: "PROVED",C4: "PROVED",C5: "PROVED",C6: "PROVED",C7: "PROVED",C8: "PROVED",C9: "PROVED"}),
+        populations: "REAL: the one tenant holding existing pages today — 27 existing pages (inventory INCOMPLETE), its product's 2 declared page specs (both HOLD, no recorded question), and a grouped need built by F91's own functions over those pages (HOLD: 27 comparison pages, no substance review, the guidance read not approved — ruling (d)). C3, C4, C8 and C9's table rows and guards on hand-written fixtures whose expected outcomes are written by hand. Count-only.",
+        proofs: "test/rr174-r3-f35-f34.test.mjs T3a–T3e (one CREATE rule; D1; P20), T4a–T4c (P19's table; weak demand → CREATE; HOLD by its own name), T8a–T8c (the three guards; the 6 August shape → one page), T9a–T9e (grouped needs decided in their own field; F35 reads F91's coverage record; ADD SECTION from it; right-to-exist from the matching spec; the entry point), R35 (the 8 unpinned evidence items, ruling e); test/f35-action-decision.test.mjs C1, C2, C5, C6, C7 and REAL (re-run; C3, C4 and C5's need-REJECT moved to their amended clauses)",
+        sabotage: "runs/audit/rr174-sabotage-2026-10-05T0529.txt: 42 of 42 proved (F35 C3, C4, C8, C9 and F34 C7, and F35 C1–C7 / F34 C1–C6 for the re-proofs), residue 0, production trail unchanged",
+        ownerRulings: Object.freeze({ repo: "_handoffs", rr174R3Rulings: "7945b7692b15a31fd546d90a0c0c7a00e0b62759" }),
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),
@@ -1552,7 +1571,7 @@ export const DECLARED = Object.freeze({
   F34: Object.freeze({
     featureId: "F34",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-28", ruling: F34_ORIGINAL.ruling, contractSha256: F34_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -1602,6 +1621,25 @@ export const DECLARED = Object.freeze({
         amendment: Object.freeze({ ruling: F34_AMENDMENT_1.ruling, contractSha256: F34_AMENDMENT_1.contractSha256 }),
         ownerRulings: Object.freeze({ repo: "_handoffs", rr174R3Rulings: "7945b7692b15a31fd546d90a0c0c7a00e0b62759" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-05_RR-174.md", commit: "d4b4f3da61b4f3920412dc19d826af92ddd0764e", sha256: "6ec7a6f23ba97dcafcde274a12ac19c1a42710142ab2a6254917f13fe74e79d8" }),
+      }),
+      /* RR-174 §8: F34 RE-PROVED under Amendment 1 — every clause PROVED and every sabotage PROVED; recorded through the board route in the
+       * same PR, as F07 and F33 were; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F34",
+        population: "REAL",
+        on: "2026-10-05",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: Amendment 1)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F34_AMENDMENT_1.ruling.sha256, contract: F34_AMENDMENT_1.contractSha256 }),
+        clauses: Object.freeze({C1: "PROVED",C2: "PROVED",C3: "PROVED",C4: "PROVED",C5: "PROVED",C6: "PROVED",C7: "PROVED"}),
+        populations: "REAL: the same tenant's 27 existing pages; served, served in other words, not served and uncertain intents on F34's own tests (unchanged but for the renamed outcomes); the real runner end to end. Count-only.",
+        proofs: "test/rr174-r3-f35-f34.test.mjs T7a–T7e (M3–M6: served → KEEP with its served reason kept for F36; uncertain → HOLD; MONITOR no longer an outcome; KEEP and HOLD produce nothing), R34 (the 12 unpinned evidence items, ruling e); test/f34-no-blind-regeneration.test.mjs C1–C6 and REAL (re-run; MONITOR pins renamed by C7)",
+        sabotage: "runs/audit/rr174-sabotage-2026-10-05T0529.txt: 42 of 42 proved (F35 C3, C4, C8, C9 and F34 C7, and F35 C1–C7 / F34 C1–C6 for the re-proofs), residue 0, production trail unchanged",
+        ownerRulings: Object.freeze({ repo: "_handoffs", rr174R3Rulings: "7945b7692b15a31fd546d90a0c0c7a00e0b62759" }),
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

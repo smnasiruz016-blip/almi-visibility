@@ -208,7 +208,7 @@ test("B · the board: F02 holds the state its evidence earned, and no other row 
   assert.ok(["IN-PROGRESS", "VERIFIED-PASS"].includes(f02.state));
   if (f02.state === "VERIFIED-PASS") {
     assert.ok(DECLARED.F02.events.some((e) => e.kind === "VERIFIED" && e.featureId === "F02" && e.population === "REAL"));
-    assert.equal(p.passed, 32); /* F34 REOPENED 5 Oct 2026 (AUTHORITATIVE_REQUIREMENT_CHANGE, its Amendment 1 frozen alone, RR-174 §4.2) — with F35 reopened, the board reads 32/90 until their re-proofs */
+    assert.equal(p.passed, 34); /* F35 and F34 REOPENED 5 Oct 2026 (AUTHORITATIVE_REQUIREMENT_CHANGE, RR-174 §4) and RE-PROVED the same day under their Amendments 1 (RR-174 §8) — the board reads 34/90 again */
   } else assert.equal(p.passed, 5);
   for (const id of ["F01", "F05", "F06", "F08"]) assert.equal(board().find((r) => r.featureId === id).state, "VERIFIED-PASS");
   assert.equal(board().find((r) => r.featureId === "F07").state, "IN-PROGRESS"); // F07 reopened 28 Sep (test/f07-closure.test.mjs owns it)

@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4 } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -1741,9 +1741,9 @@ export const DECLARED = Object.freeze({
   F41: Object.freeze({
     featureId: "F41",
     board: "F_BOARD",
-    state: "VERIFIED-PASS",
+    state: "IN-PROGRESS",
     events: Object.freeze([
-      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: ACCEPTANCES.F41.ruling, contractSha256: ACCEPTANCES.F41.contractSha256 }),
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: F41_ORIGINAL.ruling, contractSha256: F41_ORIGINAL.contractSha256 }),
       Object.freeze({
         kind: "IMPLEMENTATION",
         featureId: "F41",
@@ -1752,7 +1752,7 @@ export const DECLARED = Object.freeze({
         to: "IN-PROGRESS",
         route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
         reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F41.ruling.sha256, contract: ACCEPTANCES.F41.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F41_ORIGINAL.ruling.sha256, contract: F41_ORIGINAL.contractSha256 }),
         branch: "rr90-f41-next",
         baseSha: "64e21ae4abc81371a4bb6c229b99ecc3ab6043b0",
         baseCiRun: "36540475129",
@@ -1768,13 +1768,29 @@ export const DECLARED = Object.freeze({
         to: "VERIFIED-PASS",
         route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
         reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F41.ruling.sha256, contract: ACCEPTANCES.F41.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F41_ORIGINAL.ruling.sha256, contract: F41_ORIGINAL.contractSha256 }),
         populations: "REAL (count-only; bound: recorded data only · 29 subjects (2 proposed needs, 27 existing pages) · owner approvals 0 · semantic reviews 0 · 47 registry facts · inventory INCOMPLETE · nothing collected): NOT_ISSUED 29 — F35 chose no action for any subject and no owner approval is recorded. Control on the REAL structures: one real same-need pair given a TEST-ONLY review and one real page a TEST-ONLY approval gives exactly one brief, INCOMPLETE: intent (from F33) and acceptance criteria FILLED; 9 sections MISSING, each named (that page carries no VERIFIED registry fact). No brief is READY; nothing is reported as a finished brief.",
         proofs: "test/f41-content-brief.test.mjs — C1 FIRING CONTROL: no recorded approval is NOT ISSUED with the approval named; an approval of another action, another subject or without a ref is no approval; CANNOT DECIDE is NOT ISSUED for want of an action; approvals passed explicitly. Every one of the eleven sections FILLED only from recorded evidence with rule and identities, and removing each input makes exactly its own section MISSING; an unreferenced input fills nothing; links need a COMPLETE inventory. Only VERIFIED, sourced, fresh facts enter, every other excluded and named. C4 FIRING CONTROL: one missing section makes INCOMPLETE, never READY, every missing section named. No length or word field anywhere; competitor evidence only a diagnostic; F41 writes and renders nothing. REAL and its control; the entry point prints counts and its bound and writes nothing; no network, process, connector or paid call (firing control). Hand-written expectations; production trail byte-identical",
         sabotage: "runs/audit/f41-sabotage-2026-09-29.txt: 18 of 18 proved, every span pre-flighted once. F41 changed no shared module, so no other row's harness was affected",
         historicalReuse: "historical row 34 was DEFERRED with no code — nothing proved to reuse; its four parts (the owner's words) are the provenance of the section list. Reused unchanged as inputs: F35's decisions, F33's coverage, F31's inventory and completeness, the fact registry's lifecycle",
         declaredLimit: "no brief can be issued on real data until an owner approval of a chosen action is recorded (none is; none may be requested). Nine of eleven sections have no recorded source today — entities, questions (F10 held), locale terms, CTA, schema, prohibited claims, unique value (F39: no gain record), verified facts on pages without registry facts, internal links (inventory INCOMPLETE). Facts are included only when USABLE or FRESH — stricter than the frozen 'not STALE'.",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+      /* RR-179 §4: F41's own Acceptance Amendment 1 (_handoffs be0ec9d), approved by its hash and frozen ALONE */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F41", on: "2026-10-05", ruling: F41_AMENDMENT_1.ruling, contractSha256: F41_AMENDMENT_1.contractSha256, amends: F41_AMENDMENT_1.amends }),
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F41",
+        on: "2026-10-05",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: Amendment 1)",
+        reason: "AUTHORITATIVE_REQUIREMENT_CHANGE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "F41's 2026-09-29 evidence remains historically valid for what it measured; the reopen is caused by the newly frozen wider requirement (Amendment 1: D5, the tier and the grouped need), not by a defect found in the proved clauses",
+        amendment: Object.freeze({ ruling: F41_AMENDMENT_1.ruling, contractSha256: F41_AMENDMENT_1.contractSha256 }),
+        ownerRulings: Object.freeze({ repo: "_handoffs", rr179R4Rulings: "a8dc1900442ff17508b0ee7129db19b3b29f69a3" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-05_RR-179.md", commit: "59473db0b220f06f6013bc5b96ff917d62053be0", sha256: "1a1ea4d126f809d21dc2827d1360afea4caccabaf02680298120c55bfc9d0da2" }),
       }),
     ]),
   }),

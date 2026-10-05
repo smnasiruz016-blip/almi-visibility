@@ -48,7 +48,7 @@ test("the correction moved nothing but the name: the three rows cite the real fi
     assert.deepEqual([c.path, c.commit, c.sha256], [RIGHT, "6eccb9ba7c62a1b51f2b6d37016c6429154791cc", "8422c1fd911fff92ffc28ec6b9a9cff07572e2334209c8e41e0e130d60d2828c"]);
     assert.equal(board().find((r) => r.featureId === id).state, "VERIFIED-PASS", `${id}'s verdict moved`);
   }
-  assert.equal(progress(board()).passed, 34); /* F35 and F34 REOPENED 5 Oct 2026 (AUTHORITATIVE_REQUIREMENT_CHANGE, RR-174 §4) and RE-PROVED the same day under their Amendments 1 (RR-174 §8) — the board reads 34/90 again */
+  assert.equal(progress(board()).passed, 33); /* RR-179 §4.2: F41 REOPENED at its Amendment 1 freeze (_handoffs be0ec9d) */
 });
 
 test("every production caller of the validator hands it the committed corpus — the guard cannot silently not run", () => {

@@ -25,7 +25,7 @@
  * page you cannot trace to a record is a fact nobody will ever re-verify.
  */
 import { renderableQuote, quoteUsableNow } from "../facts/freshness.mjs";
-import { RENDERABLE_STATUSES } from "../facts/schema.mjs";
+import { RENDERABLE_STATUSES, isOrdinaryTier4, SECONDARY_LABEL } from "../facts/schema.mjs";
 import { quotabilityState } from "../facts/licences.mjs";
 
 const esc = (s) =>
@@ -57,8 +57,10 @@ export function renderFact(record, now = new Date()) {
   }
 
   const url = record.source.url;
+  /* FS-A1 (RTP-1 Rev 6 S39, P14): a tier-4 source supporting an ordinary claim is labelled SECONDARY — never called official */
+  const label = isOrdinaryTier4(record) ? SECONDARY_LABEL : null;
   parts.push(
-    `<p class="citation">Source: <a href="${esc(url)}" rel="nofollow noopener">${esc(record.source.label)}</a>` +
+    `<p class="citation">${label ? `${label} source` : "Source"}: <a href="${esc(url)}" rel="nofollow noopener">${esc(record.source.label)}</a>` +
       ` — ${esc(record.source.publisher)}. Checked ${esc(record.checks.linkCheckedOn ?? "not checked")}.</p>`,
   );
 
@@ -69,6 +71,7 @@ export function renderFact(record, now = new Date()) {
       subject: record.claim.subject,
       sourceUrl: url,
       tier: record.source.tier,
+      label,
       licence: record.licence,
       quotabilityState: quotabilityState(record.licence, record._productId),
       renderedQuote: Boolean(quote),

@@ -4,8 +4,9 @@
  *
  *   node bin/page-briefs.mjs --product=<id> --tenant=<id> --actor=<id>      READ-ONLY; prints counts only; writes nothing
  *
- * 🔴 F02 — the tenant is decided HERE, before anything is read. No owner approval and no semantic review is recorded (no store exists),
- * so both are passed EXPLICITLY empty: every subject is NOT_ISSUED, and says why. A brief is not a draft — nothing is written.
+ * 🔴 F02 — the tenant is decided HERE, before anything is read. No semantic review is recorded (no store exists), so [] is passed
+ * EXPLICITLY. 🔴 F41 Amendment 1 (D5): a routine brief is PREPARED for every action F35 chose, with no per-item approval — a recommendation,
+ * never an approval. A brief is not a draft — nothing is written, nothing is published.
  * Brief: src/page/content-brief.mjs; evidence: src/page/content-brief-evidence.mjs.
  */
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
@@ -26,9 +27,9 @@ const PRODUCT = await productFromArgvOrExit(process.argv, { usage: USAGE, scope:
 const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
 
 /* no owner approval and no semantic review is recorded (no store exists): [] is that recorded fact */
-const r = readClientBriefs({ tenantId: SCOPE.tenantId, product: PRODUCT, records, resolve: createTenantResolver(), approvals: [], reviews: [], decayEvidence: { ...NO_RECORDED_DECAY_EVIDENCE, indexing: readClientIndexation({ tenantId: SCOPE.tenantId, resolve: createTenantResolver(), inspections: [] }).indexingChecks ?? [] } });
+const r = readClientBriefs({ tenantId: SCOPE.tenantId, product: PRODUCT, records, resolve: createTenantResolver(), reviews: [], decayEvidence: { ...NO_RECORDED_DECAY_EVIDENCE, indexing: readClientIndexation({ tenantId: SCOPE.tenantId, resolve: createTenantResolver(), inspections: [] }).indexingChecks ?? [] } });
 console.log("F41 · CONTENT BRIEFS — briefs only, count-only");
 console.log(`  bound            ${r.bound}`);
 if (r.fault) process.exit(2);
 console.log(`  briefs           ${Object.entries(r.summary.state).map(([k, n]) => `${k} ${n}`).join(" · ")}`);
-console.log("  a brief is issued only for an owner-approved action; NOT_ISSUED and INCOMPLETE name what is missing; nothing is written.");
+console.log("  a brief is prepared for each action F35 chose, without per-item approval (D5) — a recommendation, never an approval; NOT_ISSUED and INCOMPLETE name what is missing; nothing is written or published.");

@@ -60,12 +60,23 @@ import { RENDERABLE_STATUSES } from "../facts/schema.mjs";
 import { existingPageFirst, EXISTING_PAGE_OUTCOMES } from "./existing-page-first.mjs";
 import { informationGainForCandidate, GAIN_OUTCOME } from "./information-gain.mjs";
 import { verifiedPages } from "./duplication-evidence.mjs";
+import { isChosenCreate } from "./action-decision.mjs";
+import { existingPageDecisionFromCoverage } from "./spec-compiler.mjs";
+import { COVERAGE } from "./demand-connection.mjs";
+import { LONE_PAGE } from "../gate-a/why-this-url.mjs";
 
 export const PASS = "PASS";
 export const FAIL = "FAIL";
 export const NOT_TESTED = "BLOCKED / NOT TESTED";
 export const ACCEPTED = "ACCEPTED";
 export const REFUSED = "REFUSED";
+
+/* 🔴 RR-179 (c) — CONSTRUCTION ACTS ONLY ON F35'S DECISION. A spec with no recorded relevant question, or one F35 did not choose, is
+ * never built (A1, P3): no part is judged for it and nothing is rendered for it. */
+export const NO_F35_DECISION = "no F35 decision was handed in — construction acts only on F35's decision (the owner's ruling RR-179 (c); A1, P3); nothing is built";
+export const NOT_CHOSEN = "F35 did not choose CREATE for this spec — a spec with no recorded relevant question, or one F35 did not choose, is never built (ruling RR-179 (c); A1, P3)";
+/* 🔴 RR-179 (d) — the complete-draft render is F37's; its acceptance is frozen before any render code changes. A compiled spec is NOT rendered. */
+export const RENDER_WAITS_FOR_F37 = "the complete-draft render (Q&A with tiers and GENERATED marking, explicit UNKNOWN parts, the attribution check, markup only for visible Q&A) is F37's and is NOT built in R4 (the owner's ruling RR-179 (d)) — a compiled spec is not rendered";
 
 export const PAGE_ONE = Object.freeze({
   id: "PAGE-1",
@@ -105,6 +116,10 @@ export function selectCandidates(pageSpecs, { slug = null, allSlugs = false } = 
  * @param {string[]} input.requested                slugs to judge (from selectCandidates)
  * @param {string|null} input.tenantId              the run's DECIDED tenant
  * @param {object|null} input.existingPages         that tenant's existing-page population (src/page/existing-page-population.mjs)
+ * @param {{ slug: string, decision: object, spec: object|null }[]|null} input.decisions  F35's construction set (action-evidence
+ *                                                  `compiled.forConstruction`): a candidate is judged ONLY when F35 CHOSE CREATE for it
+ *                                                  (ruling RR-179 (c)); none handed in → nothing is built. A compiled spec rides in it.
+ * @param {object[]} [input.rationaleReviews]       recorded substance reviews of rationale pairs (F36, S38) — none recorded is []
  * @param {Date}     [input.now]
  *
  * 🔴 F34 (_handoffs 53f74b4) — THE EXISTING-PAGE CHECK IS A PART, AND ACCEPTED NEEDS IT TO PASS. There is no default for
@@ -117,24 +132,35 @@ export function selectCandidates(pageSpecs, { slug = null, allSlugs = false } = 
  * hands none in gets that part NOT TESTED for every candidate. The rendered candidate is judged against the tenant's current pages
  * with VERIFIED bodies (F31); without them the part is NOT TESTED, never "no other current page".
  */
-export function constructCandidates({ pageSpecs, variants = [], records = [], requested = [], tenantId = null, existingPages = null, gainEvidence = null, now = new Date() }) {
+export function constructCandidates({ pageSpecs, variants = [], records = [], requested = [], tenantId = null, existingPages = null, gainEvidence = null, decisions = null, rationaleReviews = [], now = new Date() }) {
   const byId = new Map(records.map((r) => [r.id, r]));
-  const family = Object.entries(pageSpecs ?? {}).map(([slug, spec]) => {
+  /* a compiled spec (F91 C19) F35 chose joins the family as a candidate, but is never rendered here (ruling RR-179 (d)) */
+  const compiled = (Array.isArray(decisions) ? decisions : []).filter((d) => d?.spec && isChosenCreate(d.decision) && !(d.slug in (pageSpecs ?? {})))
+    .map((d) => ({ slug: d.slug, spec: d.spec, html: null, trace: [], tokens: null, renderError: RENDER_WAITS_FOR_F37, compiled: true }));
+  const family = [...Object.entries(pageSpecs ?? {}).map(([slug, spec]) => {
     try {
       const { html, trace } = renderPage(spec, records, now);
       return { slug, spec, html, trace, tokens: tokensOf(html), renderError: null };
     } catch (e) {
       return { slug, spec, html: null, trace: [], tokens: null, renderError: e.message };
     }
-  });
+  }), ...compiled];
   const rendered = family.filter((f) => f.html !== null);
   const shell = shellFor({ groupTokens: rendered.map((f) => f.tokens) });
 
   return requested.map((slug) => {
     const me = family.find((f) => f.slug === slug);
     if (!me) throw new Error(`constructCandidates: ${slug} is not in the declared family`);
+    /* 🔴 RR-179 (c): only a candidate F35 CHOSE to CREATE is judged; anything else is never built */
+    const chosen = Array.isArray(decisions) ? decisions.find((d) => d?.slug === slug && isChosenCreate(d.decision)) ?? null : null;
+    if (!chosen) {
+      const why = Array.isArray(decisions) ? NOT_CHOSEN : NO_F35_DECISION;
+      return { slug, verdict: REFUSED, html: null, trace: null, parts: { f35Decision: { state: FAIL, kind: "REJECT", reason: why } }, dataGaps: [], rejects: [{ part: "f35Decision", reason: why }], notTested: [],
+        copies: [], copiesNotTested: [], copiesFullyChecked: 0, family: { declared: family.length, rendered: rendered.length, shellSource: shell.source, shellPages: shell.pages }, renderedWords: null, pageOne: PAGE_ONE };
+    }
     const siblings = family.filter((f) => f.slug !== slug);
     const parts = {};
+    parts.f35Decision = { state: PASS, kind: null, rule: "RR-179 (c): F35 CHOSE CREATE", value: chosen.decision.subject.needId, reason: null };
 
     // ── part 2 · verified sourced facts — the VERIFIED state, never the record count ──
     const claimIds = claimIdsOf(me.spec);
@@ -191,11 +217,14 @@ export function constructCandidates({ pageSpecs, variants = [], records = [], re
     // ── part 3 · overlap against EVERY sibling ──
     const unrenderedSiblings = siblings.filter((s) => s.html === null).map((s) => s.slug);
     if (me.html === null) parts.overlap = { state: NOT_TESTED, reason: `the candidate does not render: ${me.renderError}` };
-    else if (siblings.length === 0) parts.overlap = { state: NOT_TESTED, reason: "no sibling spec is declared in the template family — there is nothing to differ from, and that is never a pass" };
-    else if (!shell.shell) parts.overlap = { state: NOT_TESTED, reason: `overlap is measured on what is left after the shell, and ${noShell}` };
+    /* 🔴 D1 · S41 (RTP-1 Rev 6) · the owner's record B: a lone page is never refused for having no comparison page. Its distinct need,
+     * supported answer and useful value are assessed — by the F35 CREATE decision construction now acts on (DISTINCT and USEFUL, F35 C8b;
+     * ruling RR-179 (c)). Where siblings exist but no shared shell can be learned, overlap is measured on the full text: a review signal
+     * (Rule C), never a refusal only because the family is small. */
+    else if (siblings.length === 0) parts.overlap = { state: PASS, kind: null, rule: "D1 (S41, record B)", value: null, reviewTrigger: MAX_SIBLING_OVERLAP, reviewRequired: false, reason: null, basis: `${LONE_PAGE}; its distinct need, supported answer and useful value are assessed by the F35 CREATE decision it acts on` };
     else if (unrenderedSiblings.length) parts.overlap = { state: NOT_TESTED, reason: `sibling(s) ${unrenderedSiblings.join(", ")} do not render, so overlap against EVERY sibling cannot be measured` };
     else {
-      const population = rendered.map((f) => ({ id: f.slug, residual: residualTokens(f.tokens, shell.shell) }));
+      const population = rendered.map((f) => ({ id: f.slug, residual: shell.shell ? residualTokens(f.tokens, shell.shell) : f.tokens }));
       const [o] = maxAgainstPopulation([population.find((p) => p.id === slug)], population);
       /* 🔴 AMENDMENT 7 · RULE C — the percentage triggers MANDATORY REVIEW; it no longer rejects on
        * its own. Above the trigger a candidate passes only on a RECORDED distinct user value. And a
@@ -217,6 +246,7 @@ export function constructCandidates({ pageSpecs, variants = [], records = [], re
         comparedWith: o.comparedWith,
         reason: ruleC.reason,
         detail: ruleC.detail,
+        shell: shell.shell ? "subtracted" : `none learnable (${noShell}) — overlap measured on the full text, a review signal (Rule C, D1)`,
       };
     }
 
@@ -224,7 +254,11 @@ export function constructCandidates({ pageSpecs, variants = [], records = [], re
     parts.whyThisUrl = null;
 
     // ── part 5 · F34 · the existing-page check, BEFORE anything is produced ──
-    const existing = existingPageFirst({ candidate: { slug, intent: me.spec?.variant, structure: { values: variants } }, tenantId, population: existingPages });
+    /* a compiled spec's need is a group id, not a registered value: its decision is the need's own coverage record (F91 C14, the record F35
+     * decided on); F34's check is never asked about it and stays unchanged (RR-178 I-2) */
+    const existing = me.compiled
+      ? existingPageDecisionFromCoverage({ record_type: COVERAGE, coverage: me.spec?.basis?.coverage?.outcome ?? null, measurement_key: me.spec?.basis?.coverage?.ref ?? null, pages: [] })
+      : existingPageFirst({ candidate: { slug, intent: me.spec?.variant, structure: { values: variants } }, tenantId, population: existingPages });
     parts.existingPage = {
       state: existing.mayProduce ? PASS : existing.outcome === EXISTING_PAGE_OUTCOMES.REFUSED ? NOT_TESTED : FAIL,
       kind: existing.mayProduce ? null : "REJECT",
@@ -240,7 +274,7 @@ export function constructCandidates({ pageSpecs, variants = [], records = [], re
     /* 🔴 F36 (_handoffs 2635153) — the ONE right-to-exist function decides here. Part 4 keeps Gate A's own meaning — the reason's
      * SPECIFICITY — read from that function; part 5 above is the need not already served. ACCEPTED needs both parts to PASS, which is
      * exactly the outcome ESTABLISHED (test/f36-right-to-exist.test.mjs proves the equivalence). The outcome travels on the part. */
-    const rte = rightToExist({ slug, spec: me.spec, siblings: siblings.map((s) => ({ slug: s.slug, spec: s.spec })), variants, existingPageDecision: existing });
+    const rte = rightToExist({ slug, spec: me.spec, siblings: siblings.map((s) => ({ slug: s.slug, spec: s.spec })), variants, existingPageDecision: existing, rationaleReviews });
     const specific = rte.parts.specific;
     const partFour = specific.state === "PASS" ? PASS : specific.state === "FAIL" ? FAIL : NOT_TESTED;
     parts.whyThisUrl = {

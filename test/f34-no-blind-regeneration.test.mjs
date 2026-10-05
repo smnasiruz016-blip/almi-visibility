@@ -175,7 +175,7 @@ test("C6 · the shared gate the subject tools call decides, records exactly once
   assert.ok(none.fault, "an unreadable batch lost its named fault");
 });
 
-test("C6 · END TO END: the real runner, --confirm, in a declared world — one recorded decision per candidate, NOTHING written, on a CONFINED store", () => {
+test("C6 · END TO END: the real runner, --confirm, in a declared world — no F35 decision is handed in, so every candidate stops before the check (ruling RR-179 (c)); NOTHING written, no decision owed, on a CONFINED store", () => {
   mkdirSync(join(REPO, TEST_SCRATCH_AUDIT_ROOT), { recursive: true });
   const storeDir = mkdtempSync(join(REPO, TEST_SCRATCH_AUDIT_ROOT, "f34-e2e-"));
   mkdirSync(join(REPO, ".test-scratch"), { recursive: true });
@@ -186,7 +186,9 @@ test("C6 · END TO END: the real runner, --confirm, in a declared world — one 
     const r = spawnSync(process.execPath, WORLD.argv(["bin/build-page.mjs", "--product=almi-oet", "--all-slugs", `--out=${out}`, "--confirm"]), { cwd: REPO, encoding: "utf8", env: { ...WORLD.envWith(), [AUDIT_STORE_OVERRIDE_ENV]: storeDir, [AUDIT_RUN_ENV]: `f34-e2e-${process.pid}` } });
     assert.equal(r.status, 2, r.stdout + r.stderr);
     assert.match(r.stdout, /existing pages {8}\d+ of this tenant \(coverage (PARTIAL|UNKNOWN)\)/);
-    assert.equal((r.stdout.match(/existingPage +(KEEP|HOLD|IMPROVE) — \d+ existing page\(s\) considered/g) ?? []).length, 2, "each of the 2 declared candidates must be stopped by the existing-page check"); /* F34 C7 (RR-174): MONITOR is no longer an F34 outcome */
+    /* RR-179 (c): construction acts only on F35's decision; the runner hands in none, so neither declared candidate reaches the check */
+    assert.equal((r.stdout.match(/REJECT {5}f35Decision: no F35 decision was handed in/g) ?? []).length, 2);
+    assert.equal((r.stdout.match(/existingPage +(KEEP|HOLD|IMPROVE) — \d+ existing page\(s\) considered/g) ?? []).length, 0, "a candidate F35 did not choose reached the existing-page check"); /* F34 C7 (RR-174): MONITOR is no longer an F34 outcome */
     assert.doesNotMatch(r.stdout, /https?:\/\//, "the run printed a URL");
     assert.deepEqual(readdirSync(out), [], "a candidate page was written over existing pages");
     const files = [];
@@ -194,7 +196,8 @@ test("C6 · END TO END: the real runner, --confirm, in a declared world — one 
     walk(storeDir);
     const events = files.flatMap((f) => readFileSync(f, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)));
     const decisions = events.filter((e) => e.action === "REFUSE_PAGE_PRODUCTION_EXISTING_PAGE_FIRST");
-    assert.equal(decisions.length, 2, `expected exactly one recorded decision per candidate, found ${decisions.length}`);
+    /* a decision is owed only by a candidate the check STOPPED (C6, l.139); none reached it, so none is owed — and none is invented */
+    assert.equal(decisions.length, 0, `a decision was recorded for a candidate the check never judged: ${decisions.length}`);
     for (const e of decisions) {
       assert.match(e.metadata.resourceRef, /^existing-pages:[0-9a-f]{16}/, "a recorded decision does not name an existing page");
       assert.match(e.reasonCode, /SERVES|CANNOT_BE_RULED|NOT_RECORDED_COMPLETE/);

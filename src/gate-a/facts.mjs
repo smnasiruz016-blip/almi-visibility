@@ -95,7 +95,9 @@ export function judgeFact(fact, now = new Date()) {
   if (value === undefined || value === null || String(value).trim() === "") reasons.push("no value");
   const urlProblem = urlShapeProblem(sourceUrl);
   if (urlProblem) reasons.push(urlProblem);
-  if (!Object.prototype.hasOwnProperty.call(TIERS, String(tier))) reasons.push(`tier is ${JSON.stringify(tier)}, not one of 1, 2, 3`);
+  /* FS-A1 (RTP-1 Rev 6 S39, D2): a tier-4 source counts for an ORDINARY claim it supports (rendered SECONDARY), never for a body's rule */
+  const ordinaryTier4 = Number(tier) === 4 && fact?.claimStates === "OTHER";
+  if (!Object.prototype.hasOwnProperty.call(TIERS, String(tier)) && !ordinaryTier4) reasons.push(`tier is ${JSON.stringify(tier)}, not one of 1, 2, 3 (tier 4 only for an ordinary claim, FS-A1)`);
 
   if (typeof verifiedDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(verifiedDate)) {
     reasons.push("no verified date (ISO yyyy-mm-dd)");

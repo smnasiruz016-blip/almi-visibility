@@ -110,9 +110,19 @@ describe("F2 — a typed value, with its unit", () => {
 // ─────────────── F4 / F13 · TIER 4 IS A LEAD, NEVER A CITATION ──────────────
 
 describe("F4 and F13 — a third party is a lead, never the citation itself", () => {
-  test("RED: a tier-4 source may not be active, however true it is", () => {
+  /* 🔴 RR-179 · FS-A1 (RTP-1 Rev 6 S39, P14, D2): the rule moves — it is not deleted. A tier-4 source stays A LEAD for a claim stating a
+   * body's rule, policy or requirement, and for any claim that does not say what it states; it may be a citation, rendered SECONDARY, only
+   * for an ORDINARY claim (claim.states "OTHER"). */
+  test("RED: a tier-4 source may not be active for a body's rule, or for a claim that does not say what it states, however true it is", () => {
     const r = lawful({ source: { ...lawful().source, tier: TIER_LEAD_ONLY }, life: { ...lawful().life, status: "active" } });
     assert.ok(laws(r).has("F4"));
+    const body = lawful({ claim: { ...lawful().claim, states: "RESPONSIBLE_BODY_RULE" }, source: { ...lawful().source, tier: TIER_LEAD_ONLY }, life: { ...lawful().life, status: "active" } });
+    assert.ok(laws(body).has("F4"), "a tier-4 source was accepted as the citation for a body's rule");
+  });
+
+  test("GREEN (FS-A1): a tier-4 source that supports an ORDINARY claim may be active — no category is banned as a whole", () => {
+    const r = lawful({ claim: { ...lawful().claim, states: "OTHER" }, source: { ...lawful().source, tier: TIER_LEAD_ONLY }, life: { ...lawful().life, status: "active" } });
+    assert.ok(!laws(r).has("F4"), "a tier-4 source was refused for an ordinary claim by its category alone");
   });
 
   test("RED: route R4 may not be active either — the two guards catch it from both sides", () => {

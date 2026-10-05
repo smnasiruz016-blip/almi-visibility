@@ -17,6 +17,7 @@ import {
   factId,
   TIERS,
   TIER_LEAD_ONLY,
+  isOrdinaryTier4,
   SCOPES,
   STATUSES,
   CHECK_OUTCOMES,
@@ -120,12 +121,15 @@ export function validateRecord(record) {
     push("F3", `source.tier is ${JSON.stringify(s.tier)}, not one of ${Object.keys(TIERS).join(", ")}`);
   }
 
-  // ── F4 · TIER 4 IS A LEAD, NEVER A CITATION ───────────────────────────────
+  // ── F4 · TIER 4 IS A LEAD, NEVER A CITATION — FOR A BODY'S RULE (FS-A1) ───
+  // FS-A1 (RTP-1 Rev 6 S39, P14, D2): no related-source category is banned as a whole. A tier-4 record that states an ORDINARY
+  // claim (claim.states "OTHER") may be a citation, rendered SECONDARY; one stating a body's rule, policy or requirement, or not
+  // saying what it states, stays a lead.
   // AlmiOET's own rule, adopted rather than reinvented. The NZ record exists
   // because it was obeyed: a law-firm blog found the change, a person then read
   // Immigration New Zealand's own page.
-  if (Number(s.tier) === TIER_LEAD_ONLY && r.life?.status !== "lead") {
-    push("F4", `tier 4 with status ${JSON.stringify(r.life?.status)} — a tier-4 source is A LEAD, NEVER A CITATION, and may only be status "lead"`);
+  if (Number(s.tier) === TIER_LEAD_ONLY && r.life?.status !== "lead" && !isOrdinaryTier4(r)) {
+    push("F4", `tier 4 with status ${JSON.stringify(r.life?.status)} — a tier-4 source is A LEAD, NEVER A CITATION, for a body's rule, policy or requirement (or a claim that does not say what it states), and may only be status "lead"; only an ordinary claim (claim.states "OTHER") may cite it, rendered SECONDARY (FS-A1)`);
   }
 
   // ── F5 · THE TWO INDEPENDENT FIELDS, EACH WITH ITS BASIS ──────────────────

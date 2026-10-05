@@ -123,10 +123,11 @@ const existing = readExistingPagePopulation({ scope: SCOPE, resolve: createTenan
 const ep = existing.population;
 console.log(`existing pages        ${ep ? `${ep.pages.length} of this tenant (coverage ${ep.coverageState}) · bound: one stored observation batch, this tenant's partition` : `UNAVAILABLE (${existing.fault}) — every candidate is refused`}`);
 
-const results = constructCandidates({ pageSpecs: PRODUCT.pageSpecs, variants: PRODUCT.variants, records, requested, tenantId: SCOPE.tenantId, existingPages: ep, gainEvidence: NO_RECORDED_GAIN_EVIDENCE /* F39: none is recorded (no store) — passed EXPLICITLY */ });
+const results = constructCandidates({ pageSpecs: PRODUCT.pageSpecs, variants: PRODUCT.variants, records, requested, tenantId: SCOPE.tenantId, existingPages: ep, decisions: null /* 🔴 RR-179 (c): construction acts only on F35's decision — this runner hands in none, so nothing is built; F35's construction set (action-evidence `compiled.forConstruction`) is the only input that lets a candidate through */, gainEvidence: NO_RECORDED_GAIN_EVIDENCE /* F39: none is recorded (no store) — passed EXPLICITLY */ });
 /* C6 — one recorded decision per candidate the check stopped, through this run's own guard sink. */
 for (const c of results) {
-  const ev = existingPageDecisionEvent(c.parts.existingPage.decision, { entry: "bin/build-page.mjs" });
+  /* RR-179 (c): a candidate F35 did not choose is never judged, so it has no existing-page decision to record */
+  const ev = c.parts.existingPage ? existingPageDecisionEvent(c.parts.existingPage.decision, { entry: "bin/build-page.mjs" }) : null;
   if (ev) SCOPE.recordDecision(ev);
 }
 
@@ -146,8 +147,8 @@ for (const c of results) {
   for (const g of c.dataGaps) console.log(`  DATA GAP   ${g.part}: ${g.reason}`);
   for (const r of c.rejects) console.log(`  REJECT     ${r.part}: ${r.reason}`);
   for (const n of c.notTested) console.log(`  ${NOT_TESTED}  ${n.part}: ${n.reason}`);
-  if (c.parts.facts.notVerified.length) console.log(`  cited but not VERIFIED: ${c.parts.facts.notVerified.join(" · ")}`);
-  console.log(`  ${c.parts.whyThisUrl.notEnforced}`);
+  if (c.parts.facts?.notVerified.length) console.log(`  cited but not VERIFIED: ${c.parts.facts.notVerified.join(" · ")}`);
+  if (c.parts.whyThisUrl) console.log(`  ${c.parts.whyThisUrl.notEnforced}`);
   console.log(`  ${c.pageOne.id} ${c.pageOne.state}: ${c.pageOne.statement} — missing: ${c.pageOne.missingGateFamilies.join(", ")}`);
   console.log(`  §5A fact text copied into the spec: ${c.copies.length} DETECTED · ${c.copiesNotTested.length} value(s) NOT TESTED · ${c.copiesFullyChecked} fully checked and clean`);
   for (const n of c.copiesNotTested) console.log(`    NOT TESTED  ${n.claimId} (${n.field}): ${n.reason}`);

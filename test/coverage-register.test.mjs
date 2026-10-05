@@ -15,6 +15,7 @@ import { splitView, coverageClassesOf, isUnmeasured } from "../src/audit/class-s
 import { coverageErrors, blastRadiusErrors, voidEscalationErrors, populationOf } from "../src/audit/coverage.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { constructCandidates, selectCandidates, REFUSED, PASS, FAIL, NOT_TESTED } from "../src/page/construct.mjs";
+import { chosenFor } from "./helpers/f35-chosen.mjs"; /* RR-179 (c): construction acts only on F35's decision */
 import { CONSEQUENCE_REGISTER, SUPERSEDED_ENTRIES } from "../config/consequence-register.mjs";
 import { COVERAGE_REGISTER } from "../config/coverage-register.mjs";
 import { DECISION_REGISTER } from "../config/decision-register.mjs";
@@ -164,16 +165,18 @@ test("🔴 each spec's rationale is the brief's, WORD FOR WORD, cut at its own s
 
 test("🟢 Gate A part 4 PASSES on both — and both candidates are still REFUSED, each with its full record", async () => {
   const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
-  const res = constructCandidates({ pageSpecs: PRODUCT.pageSpecs, variants: PRODUCT.variants, records, requested: selectCandidates(PRODUCT.pageSpecs, { allSlugs: true }) });
+  const res = constructCandidates({ decisions: chosenFor(Object.keys(PRODUCT.pageSpecs ?? {})), pageSpecs: PRODUCT.pageSpecs, variants: PRODUCT.variants, records, requested: selectCandidates(PRODUCT.pageSpecs, { allSlugs: true }) });
   const by = Object.fromEntries(res.map((c) => [c.slug, c]));
   for (const c of res) {
     assert.equal(c.parts.whyThisUrl.state, PASS, `${c.slug}: ${c.parts.whyThisUrl.reason}`);
     assert.equal(c.verdict, REFUSED);
     /* 🔴 AMENDMENT 7 (21 Sep 2026): completeness replaced the unique-word floor and is read from the
      * spec's DECLARED coverage, so it no longer needs a learned shell and no longer blocks here.
-     * Overlap still does — a two-spec family cannot learn one. */
+     * RR-179 · D1 (S41): a two-spec family cannot learn a shell, so its overlap is MEASURED on the full text as a review signal — no
+     * longer refused for the family's size. */
     assert.equal(c.parts.completeness.state, PASS, c.slug);
-    assert.equal(c.parts.overlap.state, NOT_TESTED, c.slug);
+    assert.notEqual(c.parts.overlap.state, NOT_TESTED, c.slug);
+    assert.match(c.parts.overlap.shell, /none learnable/, c.slug);
   }
   assert.equal(by.nursing.parts.facts.state, FAIL);
   /* 🔴 THIS ONE MOVED, AND STRICTER. Under the superseded ≥5 count this page's facts part PASSED.

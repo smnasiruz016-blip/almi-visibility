@@ -22,6 +22,10 @@ import { coverageJudgementRecords } from "../src/page/grouped-need-coverage.mjs"
 import { possibleCombinations } from "../src/page/page-opportunities.mjs";
 import { researchDerivedQuestion, assessmentRecord, ROUTES } from "../src/research/research-derived.mjs";
 import { rightToExist } from "../src/page/right-to-exist.mjs";
+import { buildBrief, previewForOwner, publicationDecision, PREVIEW } from "../src/page/content-brief.mjs";
+import { groupedNeedEvidence } from "../src/page/content-brief-evidence.mjs";
+import { decisionCallPaths } from "../tools/need-coverage-call-paths.mjs";
+import { execFileSync } from "node:child_process";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const TRAIL = join(REPO, "audit-trail", "events.jsonl");
@@ -179,6 +183,170 @@ test("T35c · F35 I-3 THE COMPILED SPEC'S RIGHT-TO-EXIST READS THE NEED'S OWN CO
   const spec = { whyThisUrlDeservesToExist: { humanNeed: "a renewing licence holder needs the renewal time", distinctValue: "the renewal time and documents answered in one place" } };
   const r = (c) => rightToExist({ slug: "compiled-x", spec, siblings: [], variants: [], existingPageDecision: existingPageDecisionFromCoverage(rec(c)) }).outcome;
   assert.deepEqual(["NONE", "FULL", "PARTIAL", "CANNOT_DECIDE"].map(r), ["ESTABLISHED", "REFUSED", "REFUSED", "CANNOT_DECIDE"]);
+});
+
+/* ================= F41 · ACCEPTANCE AMENDMENT 1 — C1 as amended (D5) and C8 ================= */
+
+const NOW41 = new Date("2026-10-05T00:00:00Z");
+const groupedDecision = () => decideAll(planning(), { tenantId: T, coverageState: "COMPLETE", pages: [] }).groupedNeeds[0];
+const groupedBrief = (rows = planning()) => {
+  const d = decideAll(rows, { tenantId: T, coverageState: "COMPLETE", pages: [] }).groupedNeeds[0];
+  return buildBrief({ decision: d, evidence: groupedNeedEvidence(rows, d.subject.needId), now: NOW41 });
+};
+
+test("T41a · F41 C8 THE CONTROL PAIR (tier and GENERATED): every brief question shows its tier and marking — GENERATED for a route-1 wording, none for observed or route-2; a question item without its tier is excluded and named, never shown untiered or as observed", () => {
+  const b = groupedBrief();
+  const qs = new Map(b.sections.questions.content.map((q) => [q.questionId, q]));
+  assert.deepEqual([qs.get(Q1.question_id).tier, qs.get(Q1.question_id).marking, qs.get(Q1.question_id).observed], ["RESEARCH-DERIVED", "GENERATED", false]);
+  assert.deepEqual([qs.get(Q2.question_id).tier, qs.get(Q2.question_id).marking, qs.get(Q2.question_id).observed], ["OBSERVED", null, true]);
+  assert.deepEqual([qs.get(Q4.question_id).tier, qs.get(Q4.question_id).marking], ["RESEARCH-DERIVED", null]);
+  const untiered = buildBrief({ decision: groupedDecision(), evidence: { questions: { items: [{ questionId: "x", wording: "a question with no tier?" }], ref: "q:x" } }, now: NOW41 });
+  assert.equal(untiered.sections.questions.state, "MISSING", "an untiered question reached the brief");
+  assert.deepEqual(untiered.excludedQuestions.map((e) => [e.question, e.why]), [["x", "NO_TIER"]]);
+});
+
+test("T41b · F41 C8 A GROUPED NEED'S BRIEF NAMES THE GROUPED NEED AS ITS INTENT — never a registered value; a brief whose evidence names another need leaves intent MISSING", () => {
+  const b = groupedBrief();
+  assert.equal(b.subject.kind, "GROUPED_NEED");
+  assert.equal(b.sections.intent.state, "FILLED");
+  assert.equal(b.sections.intent.rule, "THE_GROUPED_NEED_F91_FORMED");
+  assert.equal(b.sections.intent.content.groupedNeed, NEED_ID());
+  const d = groupedDecision();
+  const wrong = buildBrief({ decision: d, evidence: { ...groupedNeedEvidence(planning(), d.subject.needId), need: { groupedNeed: "need:another", ref: "x" } }, now: NOW41 });
+  assert.equal(wrong.sections.intent.state, "MISSING", "a grouped need's brief named another intent");
+});
+
+test("T41c · F41 C8 (C3 narrowed): a SUPPORTED answer claim — SECONDARY included — enters the brief with its label, source and freshness; an UNKNOWN part is carried as UNKNOWN, never a fact; a stale claim is excluded and named, never one for its label", () => {
+  const b = groupedBrief();
+  assert.equal(b.sections.verifiedFactsAndSources.state, "FILLED", "the supported claim did not enter the brief");
+  const placed = b.sections.verifiedFactsAndSources.content;
+  assert.deepEqual(placed.map((c) => [c.claimId, c.label, c.source.name]), [["c-supported", "SECONDARY", "a related fixture source"]]);
+  assert.deepEqual(b.unknownParts.map((u) => [u.claimId, u.state]), [["c-unknown", "UNKNOWN"]]);
+  assert.ok(!placed.some((c) => c.claimId === "c-unknown"), "an UNKNOWN part was placed as a fact");
+  const later = buildBrief({ decision: groupedDecision(), evidence: groupedNeedEvidence(planning(), NEED_ID()), now: new Date("2026-12-31T00:00:00Z") });
+  assert.equal(later.sections.verifiedFactsAndSources.state, "MISSING");
+  assert.deepEqual(later.excludedFacts.map((x) => [x.claimId, x.why]), [["c-supported", "FRESHNESS_STALE"]]);
+});
+
+test("T41d · F41 C1 AS AMENDED · D5: A BRIEF PREPARED WITH NO PER-ITEM APPROVAL is issued and labelled a recommendation — never an approval, never counted as one", () => {
+  const b = groupedBrief();
+  assert.notEqual(b.state, "NOT_ISSUED", "a routine brief was refused or held for want of a per-item approval");
+  assert.match(b.standing, /RECOMMENDATION/);
+  assert.match(b.standing, /never an approval/);
+  assert.ok(!Object.keys(b).some((k) => /approv/i.test(k)), "a brief is labelled or counted as an approval");
+  assert.deepEqual([...b.recommended], ["CREATE"]);
+});
+
+const PASSING = { verdict: "ACCEPTED", html: "<article>a fixture page that passed every frozen gate</article>" };
+const READY = { subject: { kind: "GROUPED_NEED", id: "need:r" }, state: "READY" };
+
+test("T41e · F41 C1 AS AMENDED · D5: A PREVIEW THAT DOES NOT PASS IS NEVER PUT FORWARD for the owner's approval — a refused construction or a brief not READY; a complete passing preview is", () => {
+  for (const [label, construction, brief] of [["refused construction", { verdict: "REFUSED", html: "<article>a page construction refused</article>" }, READY], ["INCOMPLETE brief", PASSING, { ...READY, state: "INCOMPLETE" }], ["nothing", null, null]]) {
+    const p = previewForOwner({ construction, brief });
+    assert.equal(p.state, PREVIEW.NOT_PUT_FORWARD, `${label}: put forward`);
+    assert.ok(p.missing.length > 0);
+  }
+  const ok = previewForOwner({ construction: PASSING, brief: READY });
+  assert.equal(ok.state, PREVIEW.PUT_FORWARD);
+  assert.match(ok.standing, /not an approval, not published/);
+});
+
+test("T41f · F41 C1 AS AMENDED · D5: A PUBLICATION ATTEMPT WITH NO RECORDED EXACT APPROVAL IS REFUSED — none assumed; an approval of other content, or not exact, is none; only the owner's exact recorded approval of this preview passes, and F41 still publishes nothing", () => {
+  const preview = previewForOwner({ construction: PASSING, brief: READY });
+  assert.throws(() => publicationDecision({ preview }), /passed explicitly/, "an approval was assumed");
+  assert.equal(publicationDecision({ preview, approvals: [] }).outcome, "REFUSED");
+  const exact = { kind: "PUBLICATION", exact: true, subject: preview.subject, contentSha256: preview.contentSha256, ref: "owner-approval:fixture" };
+  for (const bad of [{ ...exact, contentSha256: "0".repeat(64) }, { ...exact, exact: false }, { ...exact, ref: "" }, { ...exact, subject: { kind: "GROUPED_NEED", id: "need:other" } }]) {
+    assert.equal(publicationDecision({ preview, approvals: [bad] }).outcome, "REFUSED", `a non-exact approval passed: ${JSON.stringify(bad)}`);
+  }
+  assert.equal(publicationDecision({ preview: previewForOwner({ construction: { verdict: "REFUSED", html: null }, brief: READY }), approvals: [exact] }).outcome, "REFUSED", "a preview that did not pass was approved for publication");
+  const yes = publicationDecision({ preview, approvals: [exact] });
+  assert.deepEqual([yes.outcome, yes.published], ["APPROVED_BY_THE_OWNER", false]);
+  /* no publication path exists: nothing in src/ or bin/ deploys, publishes or writes to a client site */
+  const files = execFileSync("git", ["-C", REPO, "ls-files", "src/*.mjs", "bin/*.mjs"], { encoding: "utf8" }).split("\n").filter(Boolean);
+  const publishers = files.filter((f) => /\b(vercel deploy|git push|publishPage|deployPage|ftp\.|uploadToSite)\b/.test(readFileSync(join(REPO, f), "utf8")));
+  assert.deepEqual(publishers, [], "a publication path exists");
+});
+
+/* ================= RR-177 · nothing in R4 depends on the 27 pages ================= */
+
+const REAL_READS = /readExistingPagePopulation|createTenantResolver|almi-visibility-data|first-real-crawl|subject\("almi-oet"\)|readClientActionEvidence\(|readClientBriefs\(/;
+test("T27 · RR-177: NO R4 PROOF READS THE REAL PARTITIONS — this file and its helper use fixture pages only, and the census fires on a planted real read", () => {
+  const own = [new URL(import.meta.url), new URL("./helpers/f35-chosen.mjs", import.meta.url)].map((u) => readFileSync(u, "utf8").replace(/const REAL_READS = [^\n]*\n/, ""));
+  for (const src of own) assert.doesNotMatch(src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/"[^"\n]*"/g, (s) => (/^"\.\.?\//.test(s) ? s : '""')), REAL_READS, "an R4 proof reads a real partition");
+  assert.match("const p = readExistingPagePopulation({ scope });", REAL_READS, "the census cannot see a planted real read");
+});
+
+/* ================= RE-PROOFS · every unpinned EVIDENCE line (ruling RR-174 (e)'s method) ================= */
+
+const F41T = readFileSync(join(REPO, "test/f41-content-brief.test.mjs"), "utf8");
+const F36T = readFileSync(join(REPO, "test/f36-right-to-exist.test.mjs"), "utf8");
+const PCT = readFileSync(join(REPO, "test/page-construction.test.mjs"), "utf8");
+const MINE = readFileSync(new URL(import.meta.url), "utf8");
+const SAB = existsSync(join(REPO, "test/helpers/rr179-sabotage.mjs")) ? readFileSync(join(REPO, "test/helpers/rr179-sabotage.mjs"), "utf8") : "";
+const named = (src, prefix) => new RegExp(`test\\("${prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(src);
+
+test("R41 · F41's 8 unpinned evidence items are each proved by a named test — per clause a production-path test, a firing control and a sabotage; hand-written fixtures; C1 and C4's own firing controls; the real structures; CI; the board route", () => {
+  const map = {
+    E1_production_path: [[F41T, "C7 · THE ENTRY POINT"], [MINE, "T41a ·"], [MINE, "T41b ·"]],
+    E2_firing_control: [[F41T, "C4 · FIRING CONTROL"], [MINE, "T41e ·"], [MINE, "T41f ·"]],
+    E4_hand_written_fixtures: [[F41T, "C2 ·"], [F41T, "C3 ·"], [MINE, "T41c ·"]],
+    E5_c1_and_c4_firing_controls: [[F41T, "C1 AS AMENDED ·"], [F41T, "C4 · FIRING CONTROL"], [MINE, "T41d ·"]],
+    E6_real_structures_as_they_are: [[F41T, "REAL ·"]],
+    E7_full_suite_in_ci: [[MINE, "R4-CI ·"]],
+    E8_board_route: [[MINE, "R4-BOARD ·"]],
+  };
+  for (const [item, tests] of Object.entries(map)) for (const [src, p] of tests) assert.ok(named(src, p), `${item}: no test named "${p}"`);
+  for (const c of ["C1", "C2", "C3", "C4", "C5", "C6", "C7", "C1 AS AMENDED", "C8"]) assert.match(SAB, new RegExp(`"F41 ${c} · `), `E3: no sabotage for F41 ${c}`);
+});
+
+test("R36 · F36's unpinned evidence items are each proved by a named test — per clause a production-path test, a firing control and a sabotage; hand-written fixtures; the real declared candidates; CI; the board route", () => {
+  const map = {
+    E1_production_path: [[F36T, "C1 · the tools' GATE"], [PCT, "R4c ·"]],
+    E2_firing_control: [[F36T, "C1/C2 ·"], [F36T, "C2 · S38"], [F36T, "C2/C4 ·"]],
+    E4_hand_written_fixtures: [[F36T, "C3 ·"], [MINE, "T35c ·"]],
+    E5_real_declared_candidates: [[PCT, "🟢 GREEN"]],
+    E6_full_suite_in_ci: [[MINE, "R4-CI ·"]],
+    E7_board_route: [[MINE, "R4-BOARD ·"]],
+  };
+  for (const [item, tests] of Object.entries(map)) for (const [src, p] of tests) assert.ok(named(src, p), `${item}: no test named "${p}"`);
+  for (const c of ["C1", "C2", "C3", "C4", "C5", "C6"]) assert.match(SAB, new RegExp(`"F36 ${c} · `), `E3: no sabotage for F36 ${c}`);
+});
+
+test("R35b · F35's I-3 change is proved on fixture pages — the compiled spec decided (T35a–T35c) — beside R3's recorded real-structure proof, which stands (RR-177: proofs already recorded are not undone)", () => {
+  for (const p of ["T35a ·", "T35b ·", "T35c ·", "T19b ·"]) assert.ok(named(MINE, p), `no test named "${p}"`);
+  for (const c of ["C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9"]) assert.match(SAB, new RegExp(`"F35 ${c} · `), `E3: no sabotage for F35 ${c}`);
+});
+
+test("R4-CALLS · the compiler, F35's reader, construction and the brief load no module that can make a network, process, connector or paid call — and the enumeration fires when one is planted", () => {
+  const entries = ["src/page/spec-compiler.mjs", "src/page/action-evidence.mjs", "src/page/construct.mjs", "src/page/content-brief.mjs"];
+  assert.deepEqual(decisionCallPaths({ entries }).faults, []);
+  const planted = decisionCallPaths({ entries, read: (f) => { const t = existsSync(join(REPO, f)) ? readFileSync(join(REPO, f), "utf8") : null; return f === entries[0] ? `${t}\nawait fetch(u);\n` : t; } });
+  assert.deepEqual(planted.faults.map((x) => x.code), ["RAW_NETWORK_CALL"]);
+});
+
+test("R4-CI · the full suite runs as CI runs it: the tracked workflow runs node --test over every test on each pull request and on main", () => {
+  const wf = execFileSync("git", ["-C", REPO, "ls-files", ".github/workflows"], { encoding: "utf8" }).split("\n").filter(Boolean).map((f) => readFileSync(join(REPO, f), "utf8")).join("\n");
+  assert.match(wf, /pull_request/);
+  assert.match(wf, /\bmain\b/);
+  assert.match(JSON.parse(readFileSync(join(REPO, "package.json"), "utf8")).scripts?.test ?? "", /node --test|test\//);
+});
+
+test("R4-BOARD · F41, F36 and F35 move only through the production validator and the audit trail: each R4 REOPENED is on the board and in the trail; a VERIFIED-PASS row carries a REAL VERIFIED event after it, every clause PROVED", async () => {
+  const { DECLARED } = await import("../config/fboard/f-board.mjs");
+  const trail = readFileSync(TRAIL, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+  for (const [f, n] of [["F41", 8], ["F36", 6], ["F35", 9]]) {
+    const row = DECLARED[f];
+    const reopened = row.events.filter((e) => e.kind === "REOPENED").at(-1);
+    assert.equal(reopened?.reason, "AUTHORITATIVE_REQUIREMENT_CHANGE");
+    assert.ok(/RR-179/.test(JSON.stringify(reopened.command ?? reopened.ownerRulings ?? "")), `${f}'s last REOPENED is not R4's`);
+    assert.ok(trail.some((e) => e.eventType === "BOARD_TRANSITION" && e.action === "REOPENED" && e.metadata?.featureId === f && e.occurredAt.startsWith("2026-10-05")), `${f}'s REOPENED is not in the trail`);
+    if (row.state === "VERIFIED-PASS") {
+      const v = row.events.filter((e) => e.kind === "VERIFIED").at(-1);
+      assert.ok(row.events.indexOf(v) > row.events.indexOf(reopened) && v.population === "REAL");
+      assert.ok(Object.keys(v.clauses ?? {}).length === n && Object.values(v.clauses).every((c) => c === "PROVED"), `${f} is VERIFIED-PASS with a clause not PROVED`);
+    } else assert.equal(row.state, "IN-PROGRESS");
+  }
 });
 
 test("the production trail was not written by this file", () => assert.equal(trailSha(), TRAIL_BEFORE));

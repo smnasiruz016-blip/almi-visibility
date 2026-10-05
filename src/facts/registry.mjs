@@ -86,6 +86,7 @@ export function toGateAFact(record) {
     value: record?.value?.value,
     sourceUrl: record?.source?.url,
     tier: record?.source?.tier,
+    claimStates: record?.claim?.states ?? null,
     verifiedDate: machineCheckDate,
     linkChecked: record?.checks?.linkCheckOutcome === "pass",
     inShell: false,

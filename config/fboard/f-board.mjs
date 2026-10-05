@@ -1455,7 +1455,7 @@ export const DECLARED = Object.freeze({
   F33: Object.freeze({
     featureId: "F33",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: F33_ORIGINAL.ruling, contractSha256: F33_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -1506,6 +1506,26 @@ export const DECLARED = Object.freeze({
         amendment: Object.freeze({ ruling: F33_AMENDMENT_1.ruling, contractSha256: F33_AMENDMENT_1.contractSha256 }),
         ownerRulings: Object.freeze({ repo: "_handoffs", rr172CoverageRulings: "48ae36618a50835402fb37121a2295db17eafd52" }),
         command: Object.freeze({repo: "_handoffs",path: "AlmiVisibility_CC_COMMAND_2026-10-05_RR-172.md",commit: "1f5e9b5853c670388dc160abc18fb0989f4c8685",sha256: "f7dc563e7652ebde8cc5ef01c82bb7cb17346c62896aa1d6d0be5f8e031b6ef5"}),
+      }),
+      /* RR-172 §8: F33 RE-PROVED under Amendment 1 — C1–C7 on the real structures as before, C8 (a grouped need's coverage) new; every clause
+       * PROVED and every sabotage PROVED. Recorded through the board route in the same PR, as F07 and F33 were; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F33",
+        population: "REAL",
+        on: "2026-10-05",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: Amendment 1)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F33_AMENDMENT_1.ruling.sha256, contract: F33_AMENDMENT_1.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED", C8: "PROVED" }),
+        populations: "REAL: the one tenant holding existing pages today — 27 existing pages, coverage PARTIAL as recorded; its registered page structure for C1–C7. C8 on those real pages: FULL and PARTIAL by exact match, CANNOT DECIDE as the record stands, NONE over the population SET COMPLETE by the test with recorded positive evidence against all 27. An unlike second subject CONSTRUCTED (no other tenant holds existing pages today), said so. Count-only.",
+        proofs: "test/f33-need-coverage.test.mjs C1–C7 (unchanged, re-run); test/rr172-r2-f91-f33.test.mjs T33a–T33f (C8: each coverage value on two unlike subjects; ruling 3a never similarity; recorded judgement never an approval nor human; never refused for not being a registered value; PARTIAL never FULL or NONE, the missing question named; ruling 3b its own function, F33's existing function, F34 and F35 byte-identical to the base), T14a–T14b (the coverage record written for every need; ADD SECTION through F35's real rule), R33 (the ten unparsed evidence items, ruling 3c)",
+        sabotage: "runs/audit/rr172-sabotage-2026-10-05T0257.txt: 47 of 47 proved (F91 C13–C18, F33 C8, and F33 C1–C7 for the re-proof), residue 0, production trail unchanged",
+        matcher: "C8: a RECORDED per-question coverage judgement (a method or an agent) or an EXACT match after the one declared normalisation (letter case, runs of white space, terminal punctuation) — never similarity, never F33's stem matcher. C1–C7: F33's free matcher, unchanged.",
+        ownerRulings: Object.freeze({ repo: "_handoffs", rr172CoverageRulings: "48ae36618a50835402fb37121a2295db17eafd52" }),
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

@@ -405,6 +405,12 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-04_RR-159.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F16_ACCEPTANCE_AMENDMENT_3_2026-10-04.md", loader: "F-board acceptance F16" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-04_RR-159_Q1_Q2_Q3_ANSWERS.md", loader: "authority register (CURRENT record)" }),
+  /* RR-172 §4.1 (5 Oct 2026): the four CURRENT records admitted by the migration at _handoffs b8a4ea5 — the owner's RR-171 rulings on the R1
+   * findings, the RR-172 command, his RR-172 rulings on F33's coverage, and F91's Acceptance Amendment 3 (C13–C18), approved by its hash. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-05_RR-172.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F91_ACCEPTANCE_AMENDMENT_3_2026-10-05.md", loader: "F-board acceptance F91" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-05_RR-171_RULINGS_ON_R1_FINDINGS.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-05_RR-172_F33_COVERAGE_RULINGS.md", loader: "authority register (CURRENT record)" }),
   /* RR-170 (5 Oct 2026): the ten CURRENT records admitted by the migration at _handoffs 91ef421 — the RR-162, RR-162 continued (v2), RR-163
    * and RR-170 commands; F16's Acceptance Amendment 5 (research-derived questions, C27–C32), approved by its hash; the owner's RR-162 and
    * RR-163 decisions; and his RR-170 issue of RTP-1 Revision 6 with Correction 1. */

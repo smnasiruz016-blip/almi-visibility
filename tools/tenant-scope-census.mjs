@@ -51,6 +51,10 @@ export const FAMILIES = Object.freeze({
    * captures reader dropped out of this population (28 → 27), and the research reader had never been in it. */
   CAPTURES: { resource: "captures", re: /["']captures["']|\blookupStore\([^;\n]*["']CAPTURES["']/ },
   RESEARCH: { resource: "research|researchBatch", re: /["']research["']|\blookupStore\([^;\n]*["']RESEARCH["']/ },
+  /* RR-170 (5 Oct 2026): a SUBJECT'S OWN DATA ROOT — its descriptor and declared files, located through the root registry as `subject.dir`.
+   * RESOURCES.subject decides it "BEFORE any of the subject's files is read" (src/tenancy/scoped-run.mjs); before this family, such a read
+   * fell to READS, which only an unrelated resource could satisfy. A subject-root read now needs RESOURCES.subject, and nothing else does. */
+  SUBJECT_ROOT: { resource: "subject", re: /\bsubject\.dir\b/ },
 });
 
 /**

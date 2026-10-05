@@ -250,6 +250,17 @@ test("T32 · C32 — an owned search query is OWNED SEARCH EVIDENCE: never a cli
   } finally { W.cleanup(); }
 });
 
+test("CENSUS · the tenant-scope census's SUBJECT_ROOT family: a subject-root read needs RESOURCES.subject — the new intake is SCOPED, and a planted read without it is UNSCOPED", async () => {
+  const { census } = await import("../tools/tenant-scope-census.mjs");
+  const rows = census();
+  const mine = rows.find((r) => r.file === "bin/research-derived-intake.mjs");
+  assert.equal(mine?.cls, "SCOPED", JSON.stringify(mine));
+  assert.ok(mine.families.includes("SUBJECT_ROOT"), "the intake's read of the subject's declaration was not seen as a subject-root read");
+  const planted = census({ sources: [{ file: "bin/planted.mjs", text: 'import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";\nconst SCOPE = scopedEntryPoint({ entry: "x", governed: true, resources: [RESOURCES.researchBatch(B)] });\nconst d = readFileSync(join(subject.dir, "descriptor.json"), "utf8");\n' }] });
+  assert.equal(planted[0].cls, "UNSCOPED", "CONTROL: a subject-root read with no RESOURCES.subject was not refused");
+  assert.match(planted[0].why, /SUBJECT_ROOT/);
+});
+
 test("TRAIL · the production audit trail is byte-identical after every proof in this file", () => {
   assert.equal(trailSha(), TRAIL_BEFORE, "a proof wrote to the production audit trail");
 });

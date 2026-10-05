@@ -138,7 +138,7 @@ test("F34 · C2 · a candidate whose intent an existing page serves is never ACC
   const [alpha, beta] = constructCandidates({ pageSpecs, variants: VARIANTS, records, requested: ["alpha", "beta"], tenantId: FIXTURE_TENANT, existingPages: pop, gainEvidence: distinctFrom(["aaaaaaaaaaaaaaaa"]), now: NOW });
   assert.equal(alpha.verdict, REFUSED);
   assert.equal(alpha.html, null, "a new page was produced for an intent an existing page serves");
-  assert.equal(alpha.parts.existingPage.outcome, "MONITOR");
+  assert.equal(alpha.parts.existingPage.outcome, "KEEP"); /* F34 C7 (RR-174): a served need is KEEP / NO NEW PAGE (M1, M3) */
   assert.equal(alpha.parts.existingPage.state, FAIL, "the existing-page part itself did not refuse the covered candidate");
   assert.equal(alpha.parts.existingPage.matched, 1);
   assert.deepEqual(alpha.parts.existingPage.existingPages, ["aaaaaaaaaaaaaaaa"]);
@@ -200,7 +200,7 @@ test("F34 · C4 · an existing page of unknown quality is protected; one with a 
   const unknown = { tenantId: FIXTURE_TENANT, coverageState: "COMPLETE", pages: [existingPage("bbbbbbbbbbbbbbbb", "<h1>gamma</h1>")] };
   const [u] = constructCandidates({ pageSpecs, variants: VARIANTS, records, requested: ["gamma"], tenantId: FIXTURE_TENANT, existingPages: unknown, now: NOW });
   assert.equal(u.html, null, "an unmeasured existing page was treated as bad and recreated");
-  assert.equal(u.parts.existingPage.outcome, "MONITOR");
+  assert.equal(u.parts.existingPage.outcome, "KEEP"); /* F34 C7 (RR-174): a served need is KEEP / NO NEW PAGE (M1, M3) */
   const defect = { tenantId: FIXTURE_TENANT, coverageState: "COMPLETE", pages: [existingPage("cccccccccccccccc", "<h1>alpha</h1>"), existingPage("bbbbbbbbbbbbbbbb", "<h1>gamma</h1>", { recordedDefect: "a recorded measurement names a stale fact" })] };
   const [d] = constructCandidates({ pageSpecs, variants: VARIANTS, records, requested: ["gamma"], tenantId: FIXTURE_TENANT, existingPages: defect, now: NOW });
   assert.equal(d.html, null, "a page with a recorded defect was regenerated instead of repaired");

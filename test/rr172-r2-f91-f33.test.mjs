@@ -502,8 +502,10 @@ test("T33e · F33 C8 A GROUPED NEED IS NEVER REFUSED FOR NOT BEING A REGISTERED 
   assert.equal(evidenceStateOf(rec).state, "INFERRED");
 });
 
-test("T33f · F33 C8 RULING 3(b): ITS OWN FUNCTION — F33's existing function, F34 (its only caller) and F35's rule are byte-for-byte the merged base; the new function imports F33's outcome names only", () => {
-  const BASE = Object.freeze({ "src/page/need-coverage.mjs": "a435564272cdda13b6e8555a653631c3348b1278", "src/page/existing-page-first.mjs": "0f26022318a7522f6df6c1545a3044fa66bd6a1f", "src/page/existing-page-population.mjs": "bf88e69fe6922ae2f6bee315ef8a2d12e824eedf", "src/page/action-decision.mjs": "075da1fdb24db4f47ff2fdd4c206d6f6e0fa1b95", "src/page/action-evidence.mjs": "f87f4525e00bddf09ddddc80bebfe87d5cb09e40" });
+test("T33f · F33 C8 RULING 3(b): ITS OWN FUNCTION — F33's existing function and F34's population loader are byte-for-byte the R2 base (F34's check and F35's rule moved lawfully in R3); the new function imports F33's outcome names only", () => {
+  /* RR-174 (R3): F34's check and F35's rule are changed LAWFULLY under F34 Amendment 1 and F35 Amendment 1, so they leave this R2 pin; F33's
+   * existing function and F34's population loader stay pinned (test/rr174-r3-f35-f34.test.mjs T-PIN pins F33, F36 and F41 again). */
+  const BASE = Object.freeze({ "src/page/need-coverage.mjs": "a435564272cdda13b6e8555a653631c3348b1278", "src/page/existing-page-population.mjs": "bf88e69fe6922ae2f6bee315ef8a2d12e824eedf" });
   for (const [f, blob] of Object.entries(BASE)) assert.equal(execFileSync("git", ["-C", REPO, "ls-files", "-s", f], { encoding: "utf8" }).split(/\s+/)[1], blob, `${f} changed — F33's existing function, F34 or F35 is not untouched`);
   const g = readFileSync(join(REPO, "src/page/grouped-need-coverage.mjs"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
   assert.match(g, /import \{ NEED_OUTCOMES \} from "\.\/need-coverage\.mjs";/);

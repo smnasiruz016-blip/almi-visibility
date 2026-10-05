@@ -109,7 +109,8 @@ export function selectCandidates(pageSpecs, { slug = null, allSlugs = false } = 
  *
  * 🔴 F34 (_handoffs 53f74b4) — THE EXISTING-PAGE CHECK IS A PART, AND ACCEPTED NEEDS IT TO PASS. There is no default for
  * `existingPages`: a caller that does not hand one in gets REFUSED for every candidate, never "no existing page". Only
- * NO_EXISTING_PAGE passes; MONITOR and IMPROVE name the existing page(s) and produce nothing.
+ * NO_EXISTING_PAGE passes; KEEP, HOLD and IMPROVE name the existing page(s) and produce nothing (F34 C7 M6: a comment only — the rule is
+ * `mayProduce`, unchanged).
  *
  * 🔴 F39 (_handoffs 90e798d) — ORIGINAL INFORMATION GAIN IS A PART TOO, AND ACCEPTED NEEDS IT ESTABLISHED. `gainEvidence` is the
  * recorded information-gain records, competitor comparisons and semantic reviews; there is no default that passes — a caller that

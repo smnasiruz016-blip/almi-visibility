@@ -14,18 +14,23 @@
  * no draft and no URL is produced for that intent.
  *
  *   population missing, unreadable, of unknown shape, or another tenant's  -> REFUSED   (C1: never treated as empty)
- *   an existing page names the candidate's declared intent                  -> MONITOR   naming it (C2)
+ *   an existing page names the candidate's declared intent                  -> KEEP      / NO NEW PAGE, naming it (C2; C7 M1/M3)
  *     … and a recorded measurement names a defect in that page               -> IMPROVE   naming it (C4: repair, not regenerate)
- *   existing pages exist but none names the intent                          -> MONITOR   naming EVERY one of them (C2: uncertain)
+ *   existing pages exist but none names the intent                          -> HOLD      naming EVERY one of them (C2: uncertain; C7 M2/M4)
  *   no existing page, and the population is COMPLETE                        -> NO_EXISTING_PAGE
- *   no existing page, but the population is PARTIAL or UNKNOWN              -> MONITOR   (an unseen page may serve it)
+ *   no existing page, but the population is PARTIAL or UNKNOWN              -> HOLD      (an unseen page may serve it; C7 M5)
+ *
+ * 🔴 F34 C7 (Acceptance Amendment 1, _handoffs 348f029, RR-174): MONITOR is no longer an F34 outcome. A served need is KEEP / NO NEW PAGE —
+ * no new page, the existing page named and unchanged; whether it has a needed gap is F35's decision on F91's coverage record, never
+ * F34's. An uncertain match is HOLD, its reason named. KEEP keeps the served reason AN_EXISTING_PAGE_SERVES_THIS_INTENT, which F36's
+ * right-to-exist reads; every other outcome and reason stands. Demand monitoring is never an F34 outcome.
  *
  * ── 🔴 WHY "NAMES THE INTENT" DECIDES ONLY THE LABEL, NEVER THE PERMISSION ──
  *
  * A candidate's intent is the axis value its spec declares (its variant): the one thing a product says each of its pages is FOR.
  * An existing page that names it is MATCHED. But the same need is often served in other words, and recognising that is
  * same-need detection — F33's territory, which does not exist yet. So a page that does NOT name the intent is never evidence that
- * no page serves it: while any existing page of the tenant exists, the outcome is at best MONITOR, and every existing page stays
+ * no page serves it: while any existing page of the tenant exists, the outcome is at best HOLD, and every existing page stays
  * named as a candidate. Different wording can therefore change what is NAMED FIRST, never whether a page is produced.
  *
  * ── 🔴 "GOOD" IS NEVER PRESUMED BAD ──────────────────────────────────────────
@@ -48,7 +53,9 @@ export const EXISTING_PAGE_OUTCOMES = Object.freeze({
   NO_EXISTING_PAGE: "NO_EXISTING_PAGE",
   /* F33: existing pages exist, and positive evidence shows every one serves a different need — they do not block. */
   NOT_COVERED: "NOT_COVERED",
-  MONITOR: "MONITOR",
+  /* F34 C7: KEEP / NO NEW PAGE for a served need (M1, M3); HOLD for an uncertain one (M2, M4, M5). MONITOR is no longer an F34 outcome. */
+  KEEP: "KEEP",
+  HOLD: "HOLD",
   IMPROVE: "IMPROVE",
   REFUSED: "REFUSED",
 });
@@ -103,7 +110,7 @@ export function existingPageFirst({ candidate, tenantId, population }) {
   const pages = population.pages;
   const seen = { coverageState: population.coverageState, considered: pages.length };
   if (pages.length === 0) {
-    return population.coverageState === "COMPLETE" ? out(O.NO_EXISTING_PAGE, R.NONE, seen) : out(O.MONITOR, R.NOT_COMPLETE, seen);
+    return population.coverageState === "COMPLETE" ? out(O.NO_EXISTING_PAGE, R.NONE, seen) : out(O.HOLD, R.NOT_COMPLETE, seen);
   }
 
   /* 🔴 F33 (_handoffs 9dc9bc2) — the judgement F34 lacked: does an existing page of this tenant already cover the SAME need?
@@ -118,13 +125,13 @@ export function existingPageFirst({ candidate, tenantId, population }) {
   const found = { ...seen, matched: need.covering.length, existingPages: named, needCoverage: need };
 
   if (need.outcome === NEED_OUTCOMES.NOT_COVERED) return out(O.NOT_COVERED, need.reason, found);
-  if (need.outcome === NEED_OUTCOMES.CANNOT_DECIDE) return out(O.MONITOR, need.reason, found);
+  if (need.outcome === NEED_OUTCOMES.CANNOT_DECIDE) return out(O.HOLD, need.reason, found);
   const defective = pages.filter((p) => need.covering.includes(p.pageId) && typeof p.recordedDefect === "string" && p.recordedDefect.trim() !== "");
   if (defective.length) {
     const first = defective.map((p) => p.pageId).sort();
     return out(O.IMPROVE, R.SERVED_WITH_DEFECT, { ...found, existingPages: [...first, ...named.filter((id) => !first.includes(id))] });
   }
-  return out(O.MONITOR, R.SERVED, found);
+  return out(O.KEEP, R.SERVED, found);
 }
 
 /**

@@ -12,7 +12,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync, execFileSync } from "node:child_process";
 
-import { decideForNeed, decideForPage, DECISION as D, OWNER_APPROVAL, STANDING, REVIEW_MISSING, reviewShowsOneIntent } from "../src/page/action-decision.mjs";
+import { decideForNeed, decideForPage, decideGroupedNeed, DECISION as D, OWNER_APPROVAL, STANDING, REVIEW_MISSING, reviewShowsOneIntent } from "../src/page/action-decision.mjs";
 import { readClientActionEvidence, sameNeedPeers, sameIntentPeers } from "../src/page/action-evidence.mjs";
 import { readExistingPagePopulation } from "../src/page/existing-page-population.mjs";
 import { NO_RECORDED_DECAY_EVIDENCE as NO_DECAY } from "../src/page/content-decay-evidence.mjs";
@@ -55,39 +55,43 @@ const page = (over = {}) => ({ pageId: "p1", servedState: { state: "OBSERVED", s
 
 /* ================= C3 — an unmeasured need never becomes a new page ================= */
 
-test("C3 · FIRING CONTROL: an ESTABLISHED right-to-exist with UNMEASURED demand is CANNOT DECIDE — never CREATE; STRONG recorded demand is the only way", () => {
-  const unmeasured = need("alpha");
-  assert.equal(unmeasured.decision, D.CANNOT_DECIDE);
-  assert.ok(!acts(unmeasured).includes("CREATE"), "an unmeasured need became a new page");
-  assert.ok(unmeasured.missing.some((m) => /demand/.test(m)), "the missing demand fact is not named");
-  const strong = need("alpha", { demand: STRONG });
-  assert.deepEqual(acts(strong), ["CREATE"], "the control: STRONG recorded demand with an established right CAN create");
-  assert.equal(strong.actions[0].standing, "RECOMMENDATION");
-  assert.deepEqual(acts(need("alpha", { demand: { ...STRONG, independentCategories: 2 } })), ["MONITOR"], "fewer than three categories created a page");
-  assert.deepEqual(acts(need("alpha", { demand: { ...STRONG, conflict: true } })), ["MONITOR"], "conflicting demand created a page");
-  assert.deepEqual(acts(need("alpha", { demand: { ...STRONG, zeroClickOnly: true, outcome: "MONITOR" } })), ["MONITOR"]);
-  assert.ok(!acts(need("alpha", { spec: { variant: "alpha" }, demand: STRONG })).includes("CREATE"), "a candidate with no right to exist was created on demand alone");
+/* C3's demand gate is SUPERSEDED by F35 Amendment 1 C3 AS AMENDED (RR-174; RTP-1 P19, §17 S21): no demand outcome, category or observation
+ * is required, under any name, and C9 (A1) makes a declared spec alone never a reason for a page. The one-CREATE-rule controls are
+ * test/rr174-r3-f35-f34.test.mjs T3a–T3e. Here: a declared spec, whatever demand is recorded, is HOLD by its own name — never CREATE. */
+test("C3 (as amended) · FIRING CONTROL: a declared spec alone never becomes a page — HOLD with A1's missing fact named, whatever demand says; STRONG recorded demand unlocks nothing", () => {
+  for (const d of [null, STRONG, { ...STRONG, independentCategories: 2 }, { ...STRONG, conflict: true }]) {
+    const n = need("alpha", { demand: d });
+    assert.deepEqual([n.decision, n.class, n.outcome, acts(n)], [D.CANNOT_DECIDE, "HOLD", "HOLD", []], `demand ${JSON.stringify(d)} decided a declared spec`);
+    assert.ok(n.missing.some((m) => /no recorded relevant question/.test(m)), "the HOLD names no missing fact");
+  }
 });
 
 /* ================= C4 — improve before create ================= */
 
-test("C4 · a covered need never becomes CREATE: a recorded defect → IMPROVE; no quality evidence → CANNOT DECIDE (never KEEP)", () => {
-  const covered = need("alpha", { pages: [{ pageId: "c1", tenantId: T, html: "<h1>Alpha</h1>" }], demand: STRONG });
-  assert.ok(!acts(covered).includes("CREATE"), "a covered need was created");
-  assert.equal(covered.decision, D.CANNOT_DECIDE);
-  assert.ok(covered.missing.some((m) => /KEEP needs a recorded quality measurement/.test(m)));
-  const defect = need("alpha", { pages: [{ pageId: "c1", tenantId: T, html: "<h1>Alpha</h1>", recordedDefect: "stale fact" }] });
-  assert.deepEqual(acts(defect), ["IMPROVE"]);
-  assert.deepEqual(defect.actions[0].evidence, ["c1"], "IMPROVE does not name the page it improves");
+/* C4 for a need is NARROWED by F35 Amendment 1 C4 AS AMENDED (P19's table): FULL coverage and no needed gap → KEEP / NO NEW PAGE on the
+ * coverage record (no quality measurement is needed for a need); PARTIAL or a missing relevant question → IMPROVE / ADD SECTION. A covered
+ * need never yields CREATE (FAILURE [C4]'s first limb stands). Each table row is test/rr174-r3-f35-f34.test.mjs T4a. */
+test("C4 (as amended) · a covered need never becomes CREATE: FULL with no gap → KEEP / NO NEW PAGE; PARTIAL → IMPROVE / ADD SECTION — each naming the coverage record", () => {
+  const g = (coverage) => decideGroupedNeed({ need: { needId: "n1", pageCandidate: "[]", questions: 2, tier: "OBSERVED", centralSupported: true }, coverage, rightToExist: { outcome: "ESTABLISHED", reason: "r" }, duplication: { state: "NO_COMPARISON_PAGE", ref: "d" } });
+  const full = g({ coverage: "FULL", relevantQuestionMissing: false, pages: [{ pageId: "c1" }], measurement_key: "planning_coverage:k1" });
+  assert.deepEqual([acts(full), full.outcome], [["KEEP"], "KEEP / NO NEW PAGE"]);
+  assert.deepEqual(full.actions[0].evidence, ["planning_coverage:k1", "c1"], "KEEP does not name its coverage record and page");
+  const part = g({ coverage: "PARTIAL", relevantQuestionMissing: true, pages: [{ pageId: "c1" }], measurement_key: "planning_coverage:k2" });
+  assert.deepEqual([acts(part), part.outcome], [["ADD SECTION"], "IMPROVE / ADD SECTION"]);
+  for (const d of [full, part]) assert.ok(!acts(d).includes("CREATE"), "a covered need was created");
 });
 
 /* ================= C5 — each action's own rule ================= */
 
-test("C5 · REJECT only for a doorway-like reason (substitution or template); a missing reason is CANNOT DECIDE, not REJECT", () => {
-  const template = need("alpha", { spec: { variant: "alpha", ...why("a returning professional needs the alpha renewal exceptions", "a worked renewal example with every exception case") } });
+/* REJECT's rule stands (C5), for a need that REACHES the decision: since F35 Amendment 1 C9 that is a grouped need with a recorded question
+ * (a declared spec alone is HOLD). The spec's right-to-exist is F36's, read for the need's matching spec (ruling RR-174 (c)). */
+test("C5 · REJECT only for a doorway-like reason (substitution or template); a missing reason is HOLD (CANNOT DECIDE), not REJECT", () => {
+  const rteOf = (spec) => rightToExist({ slug: "alpha", spec, siblings: sibs("alpha"), variants: V, existingPageDecision: ex("alpha", []) });
+  const g = (spec) => decideGroupedNeed({ need: { needId: "n1", pageCandidate: "[]", questions: 1, tier: "OBSERVED", centralSupported: true }, coverage: { coverage: "NONE", relevantQuestionMissing: false, pages: [], measurement_key: "k" }, rightToExist: rteOf(spec), duplication: { state: "NO_COMPARISON_PAGE", ref: "d" } });
+  const template = g({ variant: "alpha", ...why("a returning professional needs the alpha renewal exceptions", "a worked renewal example with every exception case") });
   assert.deepEqual(acts(template), ["REJECT"]);
-  const missing = need("alpha", { spec: { variant: "alpha" } });
-  assert.equal(missing.decision, D.CANNOT_DECIDE, "a missing reason was treated as proof of no value");
+  const missing = g({ variant: "alpha" });
+  assert.deepEqual([missing.decision, missing.class], [D.CANNOT_DECIDE, "HOLD"], "a missing reason was treated as proof of no value");
 });
 
 test("C5 · the existing-page rules: FIX, MERGE, REDIRECT, LINK, REFRESH, KEEP, ADD SECTION, NOINDEX, REMOVE — each exactly on its evidence", () => {
@@ -232,8 +236,12 @@ test("C6/C7 · THE ENTRY POINT: in a declared world it prints counts only and wr
   try {
     const ok = spawnSync(process.execPath, WORLD.argv(["bin/page-actions.mjs", "--product=almi-oet"]), { cwd: REPO, encoding: "utf8", env: WORLD.envWith() });
     assert.equal(ok.status, 0, ok.stdout + ok.stderr);
-    assert.match(ok.stdout, /proposed needs\s+\d+ · CHOSEN \d+ · CANNOT_DECIDE \d+/);
-    assert.match(ok.stdout, /existing pages\s+\d+ · CHOSEN \d+ · CANNOT_DECIDE \d+/);
+    /* ruling RR-174 (a): HOLD is printed by its own name; grouped needs and DEMAND MONITORING on their own lines (F35 Amendment 1) */
+    assert.match(ok.stdout, /proposed needs\s+\d+ · CHOSEN \d+ · HOLD \d+ · CANNOT_DECIDE \d+/);
+    assert.match(ok.stdout, /existing pages\s+\d+ · CHOSEN \d+ · HOLD \d+ · CANNOT_DECIDE \d+/);
+    assert.match(ok.stdout, /grouped needs   NOT MEASURED — no research batch named/);
+    assert.match(ok.stdout, /DEMAND MONITORING  NOT MEASURED — .* never an outcome, never a gate/);
+    assert.doesNotMatch(ok.stdout, /MONITOR(?!ING)/, "MONITOR is printed as an outcome");
     assert.doesNotMatch(ok.stdout + ok.stderr, /https?:\/\//, "the entry point printed a URL");
   } finally { WORLD.cleanup(); }
   assert.equal(execFileSync("git", ["-C", REPO, "status", "--porcelain"], { encoding: "utf8" }), before, "the entry point wrote into the repository");

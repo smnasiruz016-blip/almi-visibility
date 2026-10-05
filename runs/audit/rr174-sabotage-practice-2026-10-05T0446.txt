@@ -1,0 +1,8 @@
+RR-174 R3 sabotage PRACTICE run · 2026-10-05T04:46:28.004Z
+population: 42 sabotage(s) over test/rr174-r3-f35-f34.test.mjs + test/f35-action-decision.test.mjs + test/f34-no-blind-regeneration.test.mjs · each applied ALONE · no provider, no network, no third-party read
+BASELINE (the named tests before any sabotage): NOT GREEN — no sabotage is run · named tests seen GREEN: 22 of 27
+PRE-FLIGHT (span occurrences in the code live now): S01=1 S02=1 S03=1 S04=1 S05=1 S06=1 S07=1 S08=1 S09=1 S10=1 S11=1+1 S12=1+1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1 S19=1 S20=1 S21=1 S22=1 S23=1 S24=1 S25=1 S26=1 S27=1 S28=1 S29=1 S30=1 S31=1 S32=1 S33=1 S34=1 S35=1 S36=1 S37=1 S38=1 S39=1 S40=1 S41=1 S42=1 · all exactly once: true
+production trail sha256 before: 3b5bfa581c1f75b011f4ae25a8c2b20e5122ae87a19566af7a544378e750d4a2
+
+
+proved 0 of 42 · residue 0 · production trail sha256 after: 3b5bfa581c1f75b011f4ae25a8c2b20e5122ae87a19566af7a544378e750d4a2 · unchanged true

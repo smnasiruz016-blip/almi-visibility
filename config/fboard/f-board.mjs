@@ -851,7 +851,7 @@ export const DECLARED = Object.freeze({
   F35: Object.freeze({
     featureId: "F35",
     board: "F_BOARD",
-    state: "VERIFIED-PASS",
+    state: "IN-PROGRESS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: F35_ORIGINAL.ruling, contractSha256: F35_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -951,6 +951,21 @@ export const DECLARED = Object.freeze({
         sabotage: "runs/audit/rr174-sabotage-2026-10-05T0529.txt: 42 of 42 proved (F35 C3, C4, C8, C9 and F34 C7, and F35 C1–C7 / F34 C1–C6 for the re-proofs), residue 0, production trail unchanged",
         ownerRulings: Object.freeze({ repo: "_handoffs", rr174R3Rulings: "7945b7692b15a31fd546d90a0c0c7a00e0b62759" }),
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+      /* RR-179 §4.4: F35 REOPENED at the commit that changes its proved behaviour; its acceptance is unchanged */
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F35",
+        on: "2026-10-05",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: the owner's ruling RR-179 (b), I-3)",
+        reason: "AUTHORITATIVE_REQUIREMENT_CHANGE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "F35's Amendment 1 evidence remains historically valid for what it measured; the reopen is the owner's ruling RR-179 (b) (I-3): F35's code changes at this commit so a need HELD only for want of a declared spec is compiled (F91 C19) and decided again on the compiled spec's right-to-exist, which changes F35's proved behaviour ('HOLD until R4's spec compiler', ruling RR-174 (c)); F35's acceptance text is unchanged",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F35.ruling.sha256, contract: ACCEPTANCES.F35.contractSha256 }),
+        evidenceRecord: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-05_RR-179_R4_RULINGS.md", commit: "a8dc1900442ff17508b0ee7129db19b3b29f69a3", sha256: "5b721e1c41d9688fb6fb9a438f06c71d66a1eb1dc8fa5ed07ba01586af3632e2" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-05_RR-179.md", commit: "59473db0b220f06f6013bc5b96ff917d62053be0", sha256: "1a1ea4d126f809d21dc2827d1360afea4caccabaf02680298120c55bfc9d0da2" }),
       }),
     ]),
   }),

@@ -31,8 +31,8 @@ test("F1-BOARD · F01 is VERIFIED-PASS by UNASSESSED → IN-PROGRESS → VERIFIE
   /* F09 VERIFIED-PASS on 25 Sep 2026 (movement 2, close-out command 2601cb3 §10) — the board reads 9/89, measured on the closure tree. */
   /* F07 REOPENED 28 Sep 2026 (CONCRETE_CONTRADICTORY_EVIDENCE, eight out-of-band reads, _handoffs be583fa) — the board reads 8/89; test/f07-closure.test.mjs owns that movement. */
   /* F90 appended 28 Sep 2026 by Specification Amendment 1 (_handoffs a3a777b) — the board reads 8/90: F90 starts UNASSESSED. */
-  assert.deepEqual(p.split, { UNASSESSED: 45, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 14, "BLOCKED-BY-AUTHORITY": 0, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 32 }); /* RR-179 §4.4: F36 REOPENED at the commit that changes its proved behaviour (S38, record B _handoffs d014ca1) */
-  assert.equal(p.passed, 32); /* RR-179 §4.4: F36 REOPENED at the commit that changes its proved behaviour (S38, record B _handoffs d014ca1) */
+  assert.deepEqual(p.split, { UNASSESSED: 45, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 15, "BLOCKED-BY-AUTHORITY": 0, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 31 }); /* RR-179 §4.4: F35 REOPENED at the commit that changes its proved behaviour (I-3, ruling RR-179 (b)) */
+  assert.equal(p.passed, 31); /* RR-179 §4.4: F35 REOPENED at the commit that changes its proved behaviour (I-3, ruling RR-179 (b)) */
   assert.deepEqual(["F05", "F06", "F07", "F08", "F40"].map((f) => DECLARED[f].state), ["VERIFIED-PASS", "VERIFIED-PASS", "IN-PROGRESS", "VERIFIED-PASS", "UNASSESSED"]); // F40 unblocked 2 Oct by the owner ruling (_handoffs 4761236); F07 reopened 28 Sep
   const f01 = DECLARED.F01;
   assert.equal(f01.state, "VERIFIED-PASS");

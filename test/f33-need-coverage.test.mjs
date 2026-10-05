@@ -145,7 +145,7 @@ test("C4 · CANNOT DECIDE — the REAL record as it is: every uncovered value is
     const d = decide(v, REAL.pages, REAL.coverageState);
     assert.equal(d.needCoverage.outcome, N.CANNOT_DECIDE);
     assert.ok([NR.UNDECIDED_PAGES, NR.NOT_COMPLETE].includes(d.needCoverage.reason));
-    assert.equal(d.outcome, O.MONITOR);
+    assert.equal(d.outcome, O.HOLD); /* F34 C7 (RR-174): an uncertain match is HOLD (M2, M4, M5) */ /* F33's own decision (CANNOT_DECIDE) is unchanged; only F34's name for it moved */
     assert.equal(d.mayProduce, false);
   }
   const undecided = REAL.pages.filter((p) => uncovered.length && judgePage(p, uncovered[0], VALUES).verdict === PV.UNDECIDED).length;

@@ -1,0 +1,9 @@
+RR-174 R3 sabotage PRACTICE run · 2026-10-05T05:13:08.578Z
+population: 1 sabotage(s) over test/rr174-r3-f35-f34.test.mjs + test/f35-action-decision.test.mjs + test/f34-no-blind-regeneration.test.mjs · each applied ALONE · no provider, no network, no third-party read
+BASELINE (the named tests before any sabotage): GREEN · named tests seen GREEN: 1 of 1
+PRE-FLIGHT (span occurrences in the code live now): S26=1 · all exactly once: true
+production trail sha256 before: 3b5bfa581c1f75b011f4ae25a8c2b20e5122ae87a19566af7a544378e750d4a2
+
+S26 F35 C9 · ruling (b) the declared specs' needs output changes shape [src/page/action-decision.mjs]: landed true · named test "T9a" red true · its failure AssertionError · SyntaxError false · a production child crashed false · failing T9a · restored by sha256 true · PROVED
+
+proved 1 of 1 · residue 0 · production trail sha256 after: 3b5bfa581c1f75b011f4ae25a8c2b20e5122ae87a19566af7a544378e750d4a2 · unchanged true

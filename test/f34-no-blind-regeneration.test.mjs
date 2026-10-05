@@ -66,35 +66,35 @@ test("C2 · an existing page that names the intent — in its declared form or w
   assert.deepEqual(intentForms("speech-pathology"), [["speech-pathology"], ["speech", "pathology"]], "the declared form and its spaced form");
   assert.deepEqual(intentForms("Nursing"), [["nursing"]]);
   const d = decide("speech-pathology", [page("p2", "<p>Unrelated</p>"), page("p1", "<h1>Speech Pathology, explained</h1>")]);
-  assert.equal(d.outcome, O.MONITOR);
+  assert.equal(d.outcome, O.KEEP); /* F34 C7 (RR-174): a served need is KEEP / NO NEW PAGE (M1, M3) */
   assert.equal(d.reason, R.SERVED);
   assert.equal(d.matched, 1);
   assert.deepEqual(d.existingPages, ["p1", "p2"], "the matching page is named first, then every other existing page");
   assert.equal(d.mayProduce, false);
 });
 
-test("C2 · the SAME need in DIFFERENT WORDS is never produced — the outcome is MONITOR and still names the existing page", () => {
+test("C2 · the SAME need in DIFFERENT WORDS is never produced — the outcome is KEEP (F34 C7) and still names the existing page", () => {
   /* F33 (RR-84): an inflected form ("nurse" for "nursing") is now RECOGNISED as the same need — matched, and still never produced. */
   const d = decide("nursing", [page("p9", "<h1>Preparing for the test as a registered nurse</h1><p>Care-sector writing tasks.</p>")]);
   assert.equal(d.matched, 1);
-  assert.equal(d.outcome, O.MONITOR);
+  assert.equal(d.outcome, O.KEEP); /* F34 C7 (RR-174): a served need is KEEP / NO NEW PAGE (M1, M3) */
   assert.equal(d.reason, R.SERVED);
   assert.deepEqual(d.existingPages, ["p9"]);
   assert.equal(d.mayProduce, false, "a differently worded existing page let a new page through");
-  /* …and a page that serves it in words sharing NO registered form cannot be ruled out: MONITOR, named, never produced. */
+  /* …and a page that serves it in words sharing NO registered form cannot be ruled out: HOLD (F34 C7), named, never produced. */
   const syn = decide("nursing", [page("p8", "<h1>Preparing for the test as an RN</h1><p>Care-sector writing tasks.</p>")]);
   assert.equal(syn.matched, 0, "the premise: the page shares no form of the registered need");
-  assert.equal(syn.outcome, O.MONITOR);
+  assert.equal(syn.outcome, O.HOLD); /* F34 C7 (RR-174): an uncertain match is HOLD (M2, M4, M5) */
   assert.deepEqual(syn.existingPages, ["p8"]);
   assert.equal(syn.mayProduce, false, "a page that might serve the need in other words let a new page through");
 });
 
-test("C2 · with NO existing page, only a COMPLETE population lets production go on; PARTIAL or UNKNOWN is MONITOR", () => {
+test("C2 · with NO existing page, only a COMPLETE population lets production go on; PARTIAL or UNKNOWN is HOLD (F34 C7 M5)", () => {
   assert.equal(decide("alpha", [], "COMPLETE").outcome, O.NO_EXISTING_PAGE);
   assert.equal(decide("alpha", [], "COMPLETE").mayProduce, true, "the control: the check CAN let a page through, so its refusals mean something");
   for (const c of ["PARTIAL", "UNKNOWN"]) {
     const d = decide("alpha", [], c);
-    assert.equal(d.outcome, O.MONITOR, c);
+    assert.equal(d.outcome, O.HOLD, c); /* F34 C7 (RR-174): an uncertain match is HOLD (M2, M4, M5) */
     assert.equal(d.reason, R.NOT_COMPLETE, c);
     assert.equal(d.mayProduce, false, `${c}: an unseen page could serve it`);
   }
@@ -105,16 +105,16 @@ test("C2 · with NO existing page, only a COMPLETE population lets production go
 
 /* ---- C4 · unknown quality is protected ---------------------------------------------------------------------------- */
 
-test("C4 · an unmeasured existing page is protected (MONITOR); a recorded defect routes to IMPROVE of THAT page; neither produces", () => {
+test("C4 · an unmeasured existing page is protected (KEEP, F34 C7); a recorded defect routes to IMPROVE of THAT page; neither produces", () => {
   const unknown = decide("gamma", [page("g1", "<h1>gamma</h1>")]);
-  assert.equal(unknown.outcome, O.MONITOR);
+  assert.equal(unknown.outcome, O.KEEP); /* F34 C7 (RR-174): a served need is KEEP / NO NEW PAGE (M1, M3) */
   assert.equal(unknown.mayProduce, false);
   const defect = decide("gamma", [page("g2", "<h1>gamma too</h1>"), page("g1", "<h1>gamma</h1>", { recordedDefect: "stale fact recorded" })]);
   assert.equal(defect.outcome, O.IMPROVE);
   assert.equal(defect.existingPages[0], "g1");
   assert.equal(defect.mayProduce, false);
   const elsewhere = decide("gamma", [page("g3", "<p>gamma</p>"), page("x1", "<p>other</p>", { recordedDefect: "defect on an unrelated page" })]);
-  assert.equal(elsewhere.outcome, O.MONITOR, "a defect on a page that does not serve the intent must not license anything");
+  assert.equal(elsewhere.outcome, O.HOLD, "a defect on a page that does not serve the intent must not license anything"); /* F34 C7 (RR-174): an uncertain match is HOLD (M2, M4, M5) */
 });
 
 /* ---- the population loader --------------------------------------------------------------------------------------- */
@@ -186,7 +186,7 @@ test("C6 · END TO END: the real runner, --confirm, in a declared world — one 
     const r = spawnSync(process.execPath, WORLD.argv(["bin/build-page.mjs", "--product=almi-oet", "--all-slugs", `--out=${out}`, "--confirm"]), { cwd: REPO, encoding: "utf8", env: { ...WORLD.envWith(), [AUDIT_STORE_OVERRIDE_ENV]: storeDir, [AUDIT_RUN_ENV]: `f34-e2e-${process.pid}` } });
     assert.equal(r.status, 2, r.stdout + r.stderr);
     assert.match(r.stdout, /existing pages {8}\d+ of this tenant \(coverage (PARTIAL|UNKNOWN)\)/);
-    assert.equal((r.stdout.match(/existingPage +(MONITOR|IMPROVE) — \d+ existing page\(s\) considered/g) ?? []).length, 2, "each of the 2 declared candidates must be stopped by the existing-page check");
+    assert.equal((r.stdout.match(/existingPage +(KEEP|HOLD|IMPROVE) — \d+ existing page\(s\) considered/g) ?? []).length, 2, "each of the 2 declared candidates must be stopped by the existing-page check"); /* F34 C7 (RR-174): MONITOR is no longer an F34 outcome */
     assert.doesNotMatch(r.stdout, /https?:\/\//, "the run printed a URL");
     assert.deepEqual(readdirSync(out), [], "a candidate page was written over existing pages");
     const files = [];

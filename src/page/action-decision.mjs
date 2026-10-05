@@ -1,15 +1,17 @@
 /**
- * F35 · ACTION DECISION ENGINE — a JUSTIFIED action for every decision subject, or CANNOT DECIDE (acceptance _handoffs da659bd, RR-88).
+ * F35 · ACTION DECISION ENGINE — a JUSTIFIED action for every decision subject, or CANNOT DECIDE (acceptance _handoffs da659bd, RR-88;
+ * Acceptance Amendment 1 _handoffs dcddcb0, RR-174: grouped needs, RTP-1 P19's complete table, one CREATE rule, HOLD by its own name).
  *
  * Spec row: "Choose KEEP, FIX, IMPROVE, ADD SECTION, MERGE, REFRESH, LINK, CREATE, MONITOR, NOINDEX, REDIRECT, REMOVE or REJECT."
  * Spec §1: "Page creation is conditional" · "A finding, recommendation, approved roadmap item and implemented feature are different
- * states and must never be conflated." V3 §5 (CREATE needs three independent demand categories; conflict → MONITOR), §8 (the actions),
+ * states and must never be conflated." V3 §5's demand gate and its MONITOR are SUPERSEDED for a need (RTP-1 §17 S1, S21; P19), §8 (the actions),
  * §17.2 (MERGE and NOINDEX need owner approval; automatic deletion is forbidden). RR-88 §3: every action carries its recorded reason;
  * insufficient evidence is CANNOT DECIDE and never quietly becomes the safest-looking action; an unmeasured need never becomes a page.
  *
  * ── ONE EVIDENCE RULE PER ACTION (the acceptance's rules; each chosen action carries its rule and evidence ids) ─────────
  *
- *   proposed need   CREATE · IMPROVE · MONITOR · REJECT
+ *   grouped need    KEEP / NO NEW PAGE · IMPROVE / ADD SECTION · CREATE · HOLD · REJECT / CONNECT   (P19; Amendment 1 C3, C4, C8, C9)
+ *   declared spec   HOLD — with no recorded question (A1), or decided as its grouped need(s); its `needs` shape is unchanged (F41)
  *   existing page   FIX · MERGE · REDIRECT · LINK · REFRESH · KEEP · ADD SECTION · NOINDEX · REMOVE
  *
  * Every chosen action is a RECOMMENDATION. MERGE, NOINDEX, REMOVE and REDIRECT are owner-approval-required. Nothing is created,
@@ -17,7 +19,9 @@
  */
 import { SEMANTIC_ASPECTS } from "./duplication.mjs";
 
-export const ACTIONS = Object.freeze(["KEEP", "FIX", "IMPROVE", "ADD SECTION", "MERGE", "REFRESH", "LINK", "CREATE", "MONITOR", "NOINDEX", "REDIRECT", "REMOVE", "REJECT"]);
+/* Amendment 1: MONITOR is no longer an outcome (M7–M9; demand strength is its own report line); CONNECT is new — a recommendation naming
+ * the existing suitable page and the need's questions, never a record F35 writes (C6 stands). */
+export const ACTIONS = Object.freeze(["KEEP", "FIX", "IMPROVE", "ADD SECTION", "MERGE", "REFRESH", "LINK", "CREATE", "CONNECT", "NOINDEX", "REDIRECT", "REMOVE", "REJECT"]);
 export const OWNER_APPROVAL = Object.freeze(["MERGE", "NOINDEX", "REMOVE", "REDIRECT"]);
 export const DECISION = Object.freeze({ CHOSEN: "CHOSEN", CANNOT_DECIDE: "CANNOT_DECIDE" });
 export const STANDING = "RECOMMENDATION";
@@ -46,41 +50,77 @@ function settle(subject, actions, missing) {
   return Object.freeze({ subject, decision: DECISION.CANNOT_DECIDE, actions: Object.freeze([]), missing: Object.freeze(why.length ? why : ["no action's evidence rule is met"]) });
 }
 
-/** V3 §5, read from a RECORDED demand outcome only. */
-const strongDemand = (d) => d?.outcome === "STRONG" && Number(d.independentCategories) >= 3 && d.conflict !== true;
-const monitorDemand = (d) => d !== null && d !== undefined && (d.conflict === true || Number(d.independentCategories) < 3 || d.zeroClickOnly === true || d.outcome === "MONITOR");
+/* ── 🔴 F35 AMENDMENT 1 (_handoffs dcddcb0, RR-174) — NEED-LEVEL DECISIONS ─────────────────────────────────────────────────────────
+ * One CREATE rule (C3 as amended; RTP-1 P19): no demand outcome, category or observation is required, under any name — the V3 §5 gate is
+ * superseded (RTP-1 §17 S1, S21), and demand strength is reported on its own line, never an outcome and never a gate (M9). HOLD is how a
+ * CANNOT DECIDE is RECORDED (C2 as narrowed, ruling RR-174 (a)): the decision is CANNOT_DECIDE, its class and outcome are HOLD, its missing
+ * fact is named, and every count shows it by its own name. */
+export const HOLD = "HOLD";
+export const OUTCOMES = Object.freeze({ KEEP: "KEEP / NO NEW PAGE", IMPROVE: "IMPROVE / ADD SECTION", CREATE: "CREATE", HOLD: "HOLD", REJECT: "REJECT / CONNECT" });
+const OUTCOME_OF = Object.freeze({ KEEP: OUTCOMES.KEEP, IMPROVE: OUTCOMES.IMPROVE, "ADD SECTION": OUTCOMES.IMPROVE, CREATE: OUTCOMES.CREATE, REJECT: OUTCOMES.REJECT, CONNECT: OUTCOMES.REJECT });
+export const DUPLICATION = Object.freeze({ NO_COMPARISON: "NO_COMPARISON_PAGE", RESOLVED: "RESOLVED_BY_A_SUBSTANCE_REVIEW", DUPLICATE: "DUPLICATE", REFUSED: "REFUSED_PENDING_GUIDANCE" });
+export const GUIDANCE_REFUSAL = "duplication verdict REFUSED: it would depend on guidance, and no guidance reference qualifies until the guidance read is approved and done (RTP-1 P20; ruling RR-174 (d))";
+const hold = (subject, missing, extra = {}) => Object.freeze({ subject, decision: DECISION.CANNOT_DECIDE, class: HOLD, outcome: OUTCOMES.HOLD, actions: Object.freeze([]), missing: Object.freeze(missing), ...extra });
+const decided = (subject, action, extra) => { const d = settle(subject, [action], []); return Object.freeze({ ...d, outcome: OUTCOME_OF[action.action], ...extra }); };
 
 /**
- * A proposed need (a candidate page).
- * @param {{ slug: string, rightToExist: object, existingPageDecision: object, demand: object|null }} input
+ * A declared page spec (the existing `needs` output, which F41 reads — its shape is unchanged until R4, ruling RR-174 (b)).
+ * C9 (A1): a declared spec alone is never a reason for a page. With no recorded relevant question it is HOLD, its missing fact named; with
+ * one, it is decided as its grouped need(s) in F35's own grouped-need field — one need, at most one page (C8c) — and HOLD here, naming them.
+ * No existing page is deleted or changed because of it. `demand` is no longer read: it is never an outcome and never a gate (M9).
+ * @param {{ slug: string, groupedNeedIds?: string[] }} input
  */
-export function decideForNeed({ slug, rightToExist, existingPageDecision, demand = null }) {
+export function decideForNeed({ slug, groupedNeedIds = [] }) {
   const subject = Object.freeze({ kind: "PROPOSED_NEED", slug });
-  const actions = [];
-  const missing = [];
-  const rte = rightToExist;
-  const ex = existingPageDecision;
-  const covering = ex?.needCoverage?.covering ?? [];
+  if (!groupedNeedIds.length) return hold(subject, ["no recorded relevant question for this declared spec — a declared page spec alone is never a reason for a page (F35 C9, A1)"]);
+  return hold(subject, [`decided as its grouped need(s) ${groupedNeedIds.join(", ")} (F35 C9) — one need, at most one page (C8c); the declared spec is never a second subject`]);
+}
 
-  /* REJECT — right-to-exist refused for a named substitution or template failure (doorway-like) */
-  if (rte?.parts?.specific?.state === "FAIL" && rte.parts.specific.kind === "REJECT") {
-    actions.push(chosen("REJECT", "RIGHT_TO_EXIST_REFUSED_AS_SUBSTITUTION_OR_TEMPLATE", [rte.parts.specific.reason]));
-  }
-  /* IMPROVE — an existing page covers the need AND carries a recorded defect */
-  if (ex?.outcome === "IMPROVE") actions.push(chosen("IMPROVE", "COVERING_PAGE_HAS_A_RECORDED_DEFECT", [...(ex.existingPages ?? []).slice(0, 1)]));
-  /* CREATE — right-to-exist ESTABLISHED, recorded STRONG demand, and the need not already served */
-  if (rte?.outcome === "ESTABLISHED" && ex?.mayProduce === true) {
-    if (strongDemand(demand)) actions.push(chosen("CREATE", "ESTABLISHED_AND_STRONG_RECORDED_DEMAND_AND_NOT_SERVED", [demand.ref, ex.reason]));
-    else if (demand === null || demand === undefined) missing.push("CREATE needs a recorded demand outcome — none is recorded (no row issues V3 §5's demand outcome; F14 has no public-evidence path)");
-  }
-  /* MONITOR — a recorded demand outcome showing conflict, fewer than three categories, or zero clicks alone */
-  if (monitorDemand(demand) && !strongDemand(demand)) actions.push(chosen("MONITOR", "RECORDED_DEMAND_CONFLICTED_OR_INSUFFICIENT", [demand.ref]));
+/**
+ * The duplication verdict for one grouped need, under ruling RR-174 (d) until the guidance read is approved: resolved only where there is
+ * NO comparison page among the tenant's existing pages and the other candidates (D1), or by a RECORDED substance review that needs no
+ * guidance; a review finding a duplicate makes it DUPLICATE; anything else is REFUSED, the refusal recorded.
+ * A review: { needId, against, verdict: "DISTINCT"|"DUPLICATE", needsGuidance: false, ref }.
+ */
+export function duplicationFor({ needId, comparisons = [], reviews = [] }) {
+  if (!comparisons.length) return Object.freeze({ state: DUPLICATION.NO_COMPARISON, ref: "no comparison page among the tenant's existing pages and candidates (D1)", comparisons: 0 });
+  const usable = reviews.filter((r) => r?.needId === needId && r.needsGuidance === false && typeof r.ref === "string" && r.ref.trim() !== "");
+  const dup = usable.find((r) => r.verdict === "DUPLICATE" && comparisons.includes(r.against));
+  if (dup) return Object.freeze({ state: DUPLICATION.DUPLICATE, against: dup.against, ref: dup.ref, comparisons: comparisons.length });
+  const distinct = new Set(usable.filter((r) => r.verdict === "DISTINCT").map((r) => r.against));
+  if (comparisons.every((c) => distinct.has(c))) return Object.freeze({ state: DUPLICATION.RESOLVED, ref: usable.filter((r) => r.verdict === "DISTINCT").map((r) => r.ref).join(","), comparisons: comparisons.length });
+  return Object.freeze({ state: DUPLICATION.REFUSED, ref: GUIDANCE_REFUSAL, comparisons: comparisons.length, unreviewed: comparisons.filter((c) => !distinct.has(c)).length });
+}
 
-  /* what is missing when nothing was chosen, named — never defaulted */
-  if (covering.length && ex?.outcome !== "IMPROVE") missing.push("an existing page covers this need: KEEP needs a recorded quality measurement (none is authoritative — F40 blocked) and ADD SECTION needs recorded question-level coverage");
-  if (rte?.outcome === "CANNOT_DECIDE") missing.push(`right-to-exist cannot be decided: ${rte.undecided.join(", ")}`);
-  if (ex && ex.mayProduce !== true && !covering.length && ex.outcome !== "IMPROVE") missing.push(`the existing-page decision does not let a page through: ${ex.reason}`);
-  return settle(subject, actions, missing);
+/**
+ * A GROUPED NEED from F91 (C9), decided on P19's complete table (C4 as amended), the three guards (C8) and the one CREATE rule (C3 as
+ * amended). Every decision carries the need's TIER.
+ * @param {{ need: { needId: string, pageCandidate: string, questions: number, tier: string, centralSupported: boolean },
+ *           coverage: object|null, rightToExist: object|null, duplication: object }} input
+ */
+export function decideGroupedNeed({ need, coverage, rightToExist, duplication }) {
+  const subject = Object.freeze({ kind: "GROUPED_NEED", needId: need.needId, pageCandidate: need.pageCandidate });
+  const extra = { tier: need.tier };
+  /* C9 (A1): every page decision starts from a recorded relevant question */
+  if (!(need.questions > 0)) return hold(subject, ["no recorded relevant question (F35 C9, A1)"], extra);
+  /* C8 (a), C9: existing pages first — no decision without the coverage record F91 writes */
+  if (!coverage) return hold(subject, ["no coverage record for this need (F91 C14) — existing pages first (C8a)"], extra);
+  if (!["FULL", "PARTIAL", "NONE"].includes(coverage.coverage)) return hold(subject, [`coverage is ${coverage.coverage} (${coverage.reason}) — the coverage record decides nothing (F35 C9)`], extra);
+  const pages = (coverage.pages ?? []).map((p) => p.pageId);
+  /* P19: FULL and no needed gap → KEEP / NO NEW PAGE, on the coverage record — no quality measurement is needed for a need (F35-7) */
+  if (coverage.coverage === "FULL" && coverage.relevantQuestionMissing !== true) return decided(subject, chosen("KEEP", "FULL_COVERAGE_AND_NO_NEEDED_GAP", [coverage.measurement_key, ...pages]), extra);
+  /* P19: PARTIAL, or a relevant question missing from a suitable page → IMPROVE / ADD SECTION — never CREATE */
+  if (coverage.coverage === "PARTIAL" || coverage.relevantQuestionMissing === true) return decided(subject, chosen("ADD SECTION", "A_RELEVANT_QUESTION_MISSING_FROM_A_SUITABLE_PAGE", [coverage.measurement_key, ...pages]), extra);
+  /* coverage NONE */
+  if (duplication?.state === DUPLICATION.DUPLICATE) return decided(subject, chosen("CONNECT", "A_DUPLICATE_CANDIDATE_CONNECTS_TO_THE_EXISTING_SUITABLE_PAGE", [duplication.against, duplication.ref]), extra);
+  if (need.centralSupported !== true) return hold(subject, ["the central answer is unsupported (F35 C8b; F91 C18)"], extra);
+  if (rightToExist === null || rightToExist === undefined) return hold(subject, ["no declared page spec for the need's candidate — right-to-exist waits for R4's spec compiler (ruling RR-174 (c))"], extra);
+  if (rightToExist.parts?.specific?.state === "FAIL" && rightToExist.parts.specific.kind === "REJECT") return decided(subject, chosen("REJECT", "RIGHT_TO_EXIST_REFUSED_AS_SUBSTITUTION_OR_TEMPLATE", [rightToExist.parts.specific.reason]), extra);
+  if (rightToExist.outcome !== "ESTABLISHED") return hold(subject, [`right-to-exist is ${rightToExist.outcome}${rightToExist.undecided?.length ? `: ${rightToExist.undecided.join(", ")}` : ""}`], extra);
+  if (duplication?.state === DUPLICATION.REFUSED) return hold(subject, [duplication.ref], { ...extra, duplicationRefusal: duplication.ref });
+  if (![DUPLICATION.NO_COMPARISON, DUPLICATION.RESOLVED].includes(duplication?.state)) return hold(subject, ["the duplication verdict is not recorded"], extra);
+  /* C3 as amended: no suitable existing page · DISTINCT and USEFUL · right-to-exist ESTABLISHED · duplication resolved → CREATE */
+  return decided(subject, chosen("CREATE", "NO_SUITABLE_PAGE_DISTINCT_USEFUL_ESTABLISHED_AND_DUPLICATION_RESOLVED", [coverage.measurement_key, rightToExist.reason, duplication.ref]), extra);
 }
 
 /**
@@ -135,6 +175,9 @@ export function summarise(decisions) {
     population: decisions.length,
     chosen: decisions.filter((d) => d.decision === DECISION.CHOSEN).length,
     cannotDecide: decisions.filter((d) => d.decision === DECISION.CANNOT_DECIDE).length,
+    /* ruling RR-174 (a): HOLD is shown by its own name in every count */
+    hold: decisions.filter((d) => d.class === HOLD).length,
+    byOutcome: Object.freeze(Object.fromEntries(Object.values(OUTCOMES).map((o) => [o, decisions.filter((d) => d.outcome === o).length]))),
     byAction: Object.freeze(byAction),
   });
 }

@@ -17,8 +17,9 @@
  *
  *   ESTABLISHED    both parts pass
  *   REFUSED        a named failure: no reason, a variable-only / templated / near-identical reason, or an existing page covers the need
- *   CANNOT_DECIDE  a part could not be judged: a sibling reason missing or no sibling at all, the existing-page information refused,
- *                  or F33 unable to decide
+ *   CANNOT_DECIDE  a part could not be judged: a sibling reason missing, a rationale overlap with no recorded substance review (S38),
+ *                  the existing-page information refused, or F33 unable to decide. A lone page with no sibling is NOT undecided for that
+ *                  alone (D1; the owner's record B, _handoffs d014ca1).
  *   A named failure outranks a missing judgement.
  *
  * 🔴 EVERY OUTCOME CARRIES THE RESIDUE THAT CANNOT BE MEASURED — whether the named need is real and the value genuinely distinct in
@@ -49,10 +50,11 @@ export function mayProduceCandidate(existingPageDecision, rte) {
 }
 
 /**
- * @param {{ slug: string, spec: object, siblings: {slug: string, spec: object}[], variants: string[], existingPageDecision: object }} input
+ * @param {{ slug: string, spec: object, siblings: {slug: string, spec: object}[], variants: string[], existingPageDecision: object, rationaleReviews?: object[] }} input
+ *   rationaleReviews  the recorded substance reviews of rationale pairs (S38) — none recorded is [] and leaves an overlap undecided
  */
-export function rightToExist({ slug, spec, siblings = [], variants = [], existingPageDecision }) {
-  const why = judgeWhy(slug, spec, siblings, variants);
+export function rightToExist({ slug, spec, siblings = [], variants = [], existingPageDecision, rationaleReviews = [] }) {
+  const why = judgeWhy(slug, spec, siblings, variants, { reviews: rationaleReviews });
   const specific = why.state === "PASS" ? { state: "PASS" } : why.state === "FAIL" ? { state: "FAIL", kind: why.kind, reason: why.reason } : { state: "CANNOT_DECIDE", reason: why.reason };
   const notServed = notServedPart(existingPageDecision);
   const parts = Object.freeze({ specific: Object.freeze(specific), notServed: Object.freeze(notServed) });

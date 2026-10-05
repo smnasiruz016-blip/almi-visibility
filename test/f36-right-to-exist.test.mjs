@@ -39,7 +39,9 @@ const siblingsOf = (slug, specs = SPECS) => Object.entries(specs).filter(([s]) =
 const decide = (intent, pages, coverageState = "COMPLETE") =>
   existingPageFirst({ candidate: { slug: intent, intent, structure: { values: VARIANTS } }, tenantId: T, population: { tenantId: T, coverageState, pages } });
 const NONE = decide("alpha", []); // no existing page, COMPLETE → the need is not served
-const rte = (slug, over = {}) => rightToExist({ slug, spec: over.spec ?? SPECS[slug], siblings: over.siblings ?? siblingsOf(slug, over.specs), variants: VARIANTS, existingPageDecision: "decision" in over ? over.decision : NONE });
+const rte = (slug, over = {}) => rightToExist({ slug, spec: over.spec ?? SPECS[slug], siblings: over.siblings ?? siblingsOf(slug, over.specs), variants: VARIANTS, existingPageDecision: "decision" in over ? over.decision : NONE, rationaleReviews: over.reviews ?? [] });
+/* a reason whose shingles overlap beta's above 0.40 (S38's review signal) */
+const NEAR = { variant: "alpha", ...why("a returning professional needs the beta renewal exceptions quickly", "a worked renewal example with every exception case") };
 
 test("C2/C4 · a specific reason and an unserved need → ESTABLISHED, still carrying the unmeasured residue", () => {
   const r = rte("alpha");
@@ -54,7 +56,8 @@ test("C1/C2 · no reason, a variable-only reason, a sibling's template, a near-i
     ["no reason", { spec: { variant: "alpha" } }],
     ["variable only", { spec: { variant: "alpha", ...why("alpha", "alpha") } }],
     ["a sibling's template", { spec: { variant: "alpha", ...why("a returning professional needs the alpha renewal exceptions", "a worked renewal example with every exception case") } }],
-    ["near-identical", { spec: { variant: "alpha", ...why("a returning professional needs the beta renewal exceptions quickly", "a worked renewal example with every exception case") } }],
+    /* RR-179 · RTP-1 Rev 6 S38: near-identical is judged on SUBSTANCE — a recorded review that finds the reasons the SAME refuses */
+    ["near-identical", { spec: NEAR, reviews: [{ pair: ["alpha", "beta"], verdict: "SAME", ref: "review:f36:near", source: { kind: "METHOD" } }] }],
   ];
   for (const [label, over] of cases) {
     const r = rte("alpha", over);
@@ -64,11 +67,27 @@ test("C1/C2 · no reason, a variable-only reason, a sibling's template, a near-i
   }
 });
 
-test("C2/C4 · a sibling with no reason, or no sibling at all → CANNOT DECIDE, never ESTABLISHED", () => {
+test("C2 · S38: an overlap above 0.40 is a REVIEW SIGNAL — no recorded review → CANNOT DECIDE, never REFUSED on the number; a DISTINCT review passes", () => {
+  const noReview = rte("alpha", { spec: NEAR });
+  assert.equal(noReview.outcome, E.CANNOT_DECIDE, `the percentage alone decided: ${noReview.outcome}`);
+  assert.match(noReview.parts.specific.reason, /review required/);
+  const distinct = rte("alpha", { spec: NEAR, reviews: [{ pair: ["alpha", "beta"], verdict: "DISTINCT", ref: "review:f36:distinct", source: { kind: "AGENT" } }] });
+  assert.equal(distinct.outcome, E.ESTABLISHED, "a recorded DISTINCT review did not let a specific reason through");
+  /* a review carrying an approval field, or with no METHOD/AGENT source, is no review */
+  for (const bad of [{ pair: ["alpha", "beta"], verdict: "SAME", ref: "r", source: { kind: "PERSON" } }, { pair: ["alpha", "beta"], verdict: "SAME", ref: "r", source: { kind: "METHOD" }, approvedBy: "x" }]) {
+    assert.equal(rte("alpha", { spec: NEAR, reviews: [bad] }).outcome, E.CANNOT_DECIDE, `an invalid review decided: ${JSON.stringify(bad)}`);
+  }
+});
+
+test("C2/C4 · a sibling with no reason → CANNOT DECIDE, never ESTABLISHED; a lone page with no sibling at all is not undecided for that alone (D1, record B)", () => {
   const noSiblingReason = rte("alpha", { specs: { ...SPECS, beta: { variant: "beta" } } });
   assert.equal(noSiblingReason.outcome, E.CANNOT_DECIDE);
   assert.deepEqual([...noSiblingReason.undecided], ["specific"]);
-  assert.equal(rte("alpha", { siblings: [] }).outcome, E.CANNOT_DECIDE);
+  /* RR-179 §4.4 · record B (_handoffs d014ca1): "differs from every sibling" holds with none to differ from; the residue stays NOT MEASURED */
+  const lone = rte("alpha", { siblings: [] });
+  assert.equal(lone.outcome, E.ESTABLISHED);
+  assert.match(lone.checks.find((c) => c.check === "distinct from every sibling").basis, /no sibling spec exists/);
+  assert.match(lone.notMeasured, /NOT ENFORCED/);
 });
 
 test("C3 · an existing page covering the need → REFUSED (improve, do not create); F33 cannot decide or refused information → CANNOT DECIDE", () => {
@@ -104,7 +123,7 @@ test("C1 · the gate's rule: a candidate is produced only when the existing-page
   assert.equal(mayProduceCandidate({ mayProduce: true }, ok), true);
   assert.equal(mayProduceCandidate({ mayProduce: false }, ok), false, "a candidate the existing-page check stopped was produced");
   assert.equal(mayProduceCandidate({ mayProduce: true }, rte("alpha", { spec: { variant: "alpha" } })), false, "a candidate without a right to exist was produced");
-  assert.equal(mayProduceCandidate({ mayProduce: true }, rte("alpha", { siblings: [] })), false, "CANNOT DECIDE produced a candidate");
+  assert.equal(mayProduceCandidate({ mayProduce: true }, rte("alpha", { specs: { ...SPECS, beta: { variant: "beta" } } })), false, "CANNOT DECIDE produced a candidate");
   assert.equal(mayProduceCandidate(undefined, ok), false);
 });
 

@@ -14,6 +14,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { constructCandidates, ACCEPTED, REFUSED, PASS, FAIL, NOT_TESTED } from "../src/page/construct.mjs";
+import { chosenFor } from "./helpers/f35-chosen.mjs"; /* RR-179 (c): construction acts only on F35's decision */
 import {
   OVERLAP_REVIEW_TRIGGER, ADAPTIVE_RULES,
   PASS as ADAPTIVE_PASS, FAIL as ADAPTIVE_FAIL, NOT_TESTED as ADAPTIVE_NOT_TESTED,
@@ -110,7 +111,7 @@ const GAIN_EVIDENCE = Object.freeze({
   reviews: [],
 });
 const judge = ({ pageSpecs, records }, slug = "alpha") =>
-  constructCandidates({ pageSpecs, variants: VARIANTS, records, requested: [slug], tenantId: FIXTURE_TENANT, existingPages: NO_EXISTING_PAGE, gainEvidence: GAIN_EVIDENCE, now: NOW })[0];
+  constructCandidates({ decisions: chosenFor(Object.keys(pageSpecs ?? {})), pageSpecs, variants: VARIANTS, records, requested: [slug], tenantId: FIXTURE_TENANT, existingPages: NO_EXISTING_PAGE, gainEvidence: GAIN_EVIDENCE, now: NOW })[0];
 
 test("🔴 the adaptive rules speak the CONSTRUCTION PATH's state vocabulary — they drifted once", () => {
   /* An invented NOT_TESTED once failed to match "BLOCKED / NOT TESTED", and a rule-B refusal would

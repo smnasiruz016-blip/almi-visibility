@@ -85,11 +85,13 @@ test("A3·5 · F91 ENTERED UNASSESSED with no events or acceptance; its only mov
    * amends Amendment 1, which amends the 1 Oct original. The history gains one event, that amendment. */
   /* RR-172 §4.1 (5 Oct 2026), for a MEASURED reason: F91's own Acceptance Amendment 3 (_handoffs b8a4ea5), approved by its hash and frozen
    * ALONE, now governs; it amends Amendment 2. The history gains one event, that amendment. */
-  assert.equal(acc.ruling.path, "AlmiVisibility_F91_ACCEPTANCE_AMENDMENT_3_2026-10-05.md", "F91 carries an acceptance that is not its own");
-  assert.equal(acc.amends.ruling.path, "AlmiVisibility_F91_ACCEPTANCE_AMENDMENT_2_2026-10-04.md", "F91's amendment does not amend F91's own previous acceptance");
+  /* RR-179 §4.1 (5 Oct 2026), for a MEASURED reason: F91's own Acceptance Amendment 4 (_handoffs 0abcd15, C19 the spec compiler), approved by
+   * its hash and frozen ALONE, now governs; it amends Amendment 3. The history gains one event, that amendment. */
+  assert.equal(acc.ruling.path, "AlmiVisibility_F91_ACCEPTANCE_AMENDMENT_4_2026-10-05.md", "F91 carries an acceptance that is not its own");
+  assert.equal(acc.amends.ruling.path, "AlmiVisibility_F91_ACCEPTANCE_AMENDMENT_3_2026-10-05.md", "F91's amendment does not amend F91's own previous acceptance");
   assert.ok(acc.frozenOn > "2026-09-30", "F91's acceptance predates the amendment that brought it in");
-  assert.deepEqual(DECLARED.F91.events.map((e) => e.kind), ["ACCEPTANCE_FROZEN", "IMPLEMENTATION", "ACCEPTANCE_AMENDED", "ACCEPTANCE_AMENDED", "ACCEPTANCE_AMENDED"]);
-  assert.deepEqual([DECLARED.F91.events[2].on, DECLARED.F91.events[3].on, DECLARED.F91.events[4].on], ["2026-10-02", "2026-10-03", "2026-10-05"]);
+  assert.deepEqual(DECLARED.F91.events.map((e) => e.kind), ["ACCEPTANCE_FROZEN", "IMPLEMENTATION", "ACCEPTANCE_AMENDED", "ACCEPTANCE_AMENDED", "ACCEPTANCE_AMENDED", "ACCEPTANCE_AMENDED"]);
+  assert.deepEqual([DECLARED.F91.events[2].on, DECLARED.F91.events[3].on, DECLARED.F91.events[4].on, DECLARED.F91.events[5].on], ["2026-10-02", "2026-10-03", "2026-10-05", "2026-10-05"]);
   assert.deepEqual([DECLARED.F91.events[0].on, DECLARED.F91.events[1].from, DECLARED.F91.events[1].to], ["2026-10-01", "UNASSESSED", "IN-PROGRESS"]);
   assert.equal(row.state, "IN-PROGRESS");
   assert.ok(!row.events.some((e) => e.kind === "VERIFIED"), "F91 was verified");

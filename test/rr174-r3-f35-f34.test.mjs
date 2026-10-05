@@ -306,7 +306,9 @@ test("T7e · F34 C7 AN UNCERTAIN MATCH IS NOTHING BUT HOLD — a synonym-only pa
 /* ================= unchanged rows, pinned by blob (§6) ================= */
 
 test("T-PIN · F33's existing coverage function, F36's right-to-exist and F41's brief (and its evidence reader) are byte-for-byte the merged base", () => {
-  const BASE_BLOBS = Object.freeze({ "src/page/need-coverage.mjs": "a435564272cdda13b6e8555a653631c3348b1278", "src/page/right-to-exist.mjs": "1ca02751f1d901a182187603f0a40ff4ffcc4c94", "src/page/content-brief.mjs": "25144d394bc05ef90cfe34bd5bf9b9d9d3eb4bd3", "src/page/content-brief-evidence.mjs": "6244eca62a26e6edb5c09c82c880d9b11f77a29b" });
+  /* RR-179 §4.4: src/page/right-to-exist.mjs leaves this pin — F36 is REOPENED at that commit (S38, record B) and re-proved in R4 */
+  /* RR-179 §5: src/page/content-brief.mjs and content-brief-evidence.mjs leave this pin — F41 is REOPENED by its Amendment 1 and re-proved in R4 */
+  const BASE_BLOBS = Object.freeze({ "src/page/need-coverage.mjs": "a435564272cdda13b6e8555a653631c3348b1278" });
   for (const [f, blob] of Object.entries(BASE_BLOBS)) assert.equal(execFileSync("git", ["-C", REPO, "ls-files", "-s", f], { encoding: "utf8" }).split(/\s+/)[1], blob, `${f} changed`);
 });
 

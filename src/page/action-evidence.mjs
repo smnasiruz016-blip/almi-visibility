@@ -13,6 +13,8 @@
  *                                          batch's planning store the caller hands in; a page a record names carries it (ADD SECTION's rule)
  *   grouped needs                          F91's grouped needs from the same store, decided in their OWN field (ruling RR-174 (b)); with no
  *                                          planning store handed in they are NOT MEASURED, named — the declared specs' `needs` keep their shape
+ *   compiled specs                         🔴 F91 C19 (Amendment 4) and I-3 (RR-179): decideGroupedNeeds below — a need HELD only for
+ *                                          want of a declared spec is compiled and judged by F36; only a CHOSEN need is handed on
  *   semantic reviews                       NONE recorded (F32: no store) — passed as [] by the caller; MERGE and REDIRECT name the
  *                                          missing review (RR-89)
  *
@@ -24,6 +26,7 @@ import { rightToExist } from "./right-to-exist.mjs";
 import { judgePage, PAGE_VERDICTS } from "./need-coverage.mjs";
 import { decideForNeed, decideForPage, decideGroupedNeed, duplicationFor, summarise, reviewShowsOneIntent } from "./action-decision.mjs";
 import { readConnections, questionCoverageFor, COVERAGE } from "./demand-connection.mjs";
+import { compileNeedSpec, compiledSlug, purposeOf, existingPageDecisionFromCoverage, PURPOSE } from "./spec-compiler.mjs";
 import { readClientIndexabilitySignals } from "../audit/indexability-reader.mjs";
 import { factsPresentIn } from "../gate-a/existing-pages.mjs";
 import { freshnessOf } from "../facts/lifecycle.mjs";
@@ -68,7 +71,62 @@ export function specForCandidate(pageCandidate, product) {
   return Object.entries(product.pageSpecs ?? {}).find(([, s]) => s.variant === entries[0][1])?.[0] ?? null;
 }
 
-export function readClientActionEvidence({ tenantId, product, records = [], resolve, env = process.env, now = new Date(), demand = null, reviews, decayEvidence, planningRows = null, overturned = new Set(), duplicationReviews = [] }) {
+/**
+ * 🔴 F35 C9 (Amendment 1) and I-3 (the owner's ruling RR-179 (b)) — EVERY GROUPED NEED DECIDED, from F91's planning store and the SAME tenant's
+ * existing-page population, HANDED IN (the reader hands in the real one; a test hands in fixture pages — never the 27 pages the owner set
+ * aside, RR-177). Pure: records in, decisions out; it reads and writes nothing.
+ *
+ *   first pass   each need: its coverage record (F91 C14), its central answer, the matching DECLARED spec's right-to-exist (ruling RR-174
+ *                (c)) and the duplication verdict under ruling (d) — comparisons are the tenant's existing pages and every OTHER candidate
+ *   second pass  a need HELD ONLY for want of a declared spec is COMPILED (F91 C19, src/page/spec-compiler.mjs); F36 judges the COMPILED
+ *                spec — its siblings the declared specs and every other compiled one, its not-served part the need's own coverage record —
+ *                and the need is decided again. A compiled spec is never by itself a reason for a page (A1).
+ *   handed on    only a CHOSEN need: CREATE → `forConstruction` (its declared spec, or its spec compiled for construction); IMPROVE / ADD
+ *                SECTION → `sectionProposals`, addressed to the existing page, never a new page (F34 C2, F33 C8).
+ */
+export function decideGroupedNeeds({ tenantId, product, population, planningRows = null, overturned = new Set(), duplicationReviews = [], rationaleReviews = [] }) {
+  const values = product.variants ?? [];
+  const connected = planningRows ? readConnections(planningRows, { overturned }) : null;
+  const coverage = latestCoverageRecords(planningRows ?? []);
+  const slugs = Object.keys(product.pageSpecs ?? {});
+  const rteFor = (slug) => {
+    const spec = product.pageSpecs[slug];
+    const ex = existingPageFirst({ candidate: { slug, intent: spec.variant, structure: { values } }, tenantId, population });
+    return rightToExist({ slug, spec, siblings: slugs.filter((x) => x !== slug).map((x) => ({ slug: x, spec: product.pageSpecs[x] })), variants: values, existingPageDecision: ex, rationaleReviews });
+  };
+  const grouped = connected ? connected.needs.map((n) => ({ ...n, slug: specForCandidate(n.pageCandidate, product) })) : [];
+  const decideFor = (g, rte) => decideGroupedNeed({
+    need: { needId: g.needId, pageCandidate: g.pageCandidate, questions: g.questions, tier: g.tier, centralSupported: g.answer?.centralSupported === true },
+    coverage: coverage.get(g.needId) ?? null,
+    rightToExist: rte,
+    duplication: duplicationFor({ needId: g.needId, comparisons: [...population.pages.map((p) => p.pageId), ...grouped.filter((o) => o.needId !== g.needId).map((o) => o.needId), ...slugs.filter((s) => s !== g.slug)], reviews: duplicationReviews }),
+  });
+  const firstPass = grouped.map((g) => decideFor(g, g.slug ? rteFor(g.slug) : null));
+  /* F91 C19 · ruling RR-174 (c): only a need HELD for want of a declared spec is compiled here, and only so F36 can judge it */
+  const forJudgement = firstPass.map((d) => { const c = compileNeedSpec({ decision: d, rows: planningRows ?? [], overturned }).spec; return c?.purpose === PURPOSE.RIGHT_TO_EXIST ? c : null; });
+  const pool = forJudgement.filter(Boolean).map((spec) => ({ slug: compiledSlug(spec.subject), spec }));
+  const rteCompiled = (spec) => {
+    const slug = compiledSlug(spec.subject);
+    const siblings = [...slugs.map((x) => ({ slug: x, spec: product.pageSpecs[x] })), ...pool.filter((p) => p.slug !== slug)];
+    return rightToExist({ slug, spec, siblings, variants: values, existingPageDecision: existingPageDecisionFromCoverage(coverage.get(spec.subject) ?? null), rationaleReviews });
+  };
+  const groupedNeeds = grouped.map((g, i) => (forJudgement[i] ? decideFor(g, rteCompiled(forJudgement[i])) : firstPass[i]));
+  const forConstruction = [], sectionProposals = [], refusals = [];
+  groupedNeeds.forEach((d, i) => {
+    const purpose = purposeOf(d);
+    if (purpose !== PURPOSE.CONSTRUCTION && purpose !== PURPOSE.SECTION_PROPOSAL) return;
+    if (purpose === PURPOSE.CONSTRUCTION && grouped[i].slug) { forConstruction.push(Object.freeze({ slug: grouped[i].slug, decision: d, spec: null })); return; }
+    const c = compileNeedSpec({ decision: d, rows: planningRows ?? [], overturned });
+    if (!c.spec) { refusals.push(Object.freeze({ needId: d.subject.needId, refused: c.refused })); return; }
+    (purpose === PURPOSE.CONSTRUCTION ? forConstruction : sectionProposals).push(Object.freeze({ slug: compiledSlug(c.spec.subject), decision: d, spec: c.spec }));
+  });
+  return Object.freeze({
+    connected, slugs, grouped, groupedNeeds,
+    compiled: Object.freeze({ forJudgement: pool.length, forConstruction: Object.freeze(forConstruction), sectionProposals: Object.freeze(sectionProposals), refusals: Object.freeze(refusals) }),
+  });
+}
+
+export function readClientActionEvidence({ tenantId, product, records = [], resolve, env = process.env, now = new Date(), demand = null, reviews, decayEvidence, planningRows = null, overturned = new Set(), duplicationReviews = [], rationaleReviews = [] }) {
   /* RR-89: the recorded semantic reviews (F32's shape). None is recorded today and no store exists — the caller passes [] and says so */
   if (!Array.isArray(reviews)) throw new TypeError("reviews must be passed explicitly — an empty list is a recorded fact, not a default");
   const { population, fault } = readExistingPagePopulation({ scope: { tenantId }, resolve, env, now });
@@ -105,28 +163,17 @@ export function readClientActionEvidence({ tenantId, product, records = [], reso
     });
   });
 
-  const slugs = Object.keys(product.pageSpecs ?? {});
-  const rteFor = (slug) => {
-    const spec = product.pageSpecs[slug];
-    const ex = existingPageFirst({ candidate: { slug, intent: spec.variant, structure: { values } }, tenantId, population });
-    return rightToExist({ slug, spec, siblings: slugs.filter((x) => x !== slug).map((x) => ({ slug: x, spec: product.pageSpecs[x] })), variants: values, existingPageDecision: ex });
-  };
-  const grouped = connected ? connected.needs.map((n) => ({ ...n, slug: specForCandidate(n.pageCandidate, product) })) : [];
+  /* F35 C9 + I-3 (RR-179): every grouped need decided in ONE pure function, the population handed in */
+  const G = decideGroupedNeeds({ tenantId, product, population, planningRows, overturned, duplicationReviews, rationaleReviews });
+  const { slugs, grouped, groupedNeeds } = G;
   const needs = slugs.map((slug) => decideForNeed({ slug, groupedNeedIds: grouped.filter((g) => g.slug === slug).map((g) => g.needId) }));
-  /* F35 C9 · every grouped need is decided — its coverage record, its central answer, the matching spec's right-to-exist (ruling (c)) and
-   * the duplication verdict under ruling (d): comparisons are the tenant's existing pages and every OTHER candidate */
-  const groupedNeeds = grouped.map((g) => decideGroupedNeed({
-    need: { needId: g.needId, pageCandidate: g.pageCandidate, questions: g.questions, tier: g.tier, centralSupported: g.answer?.centralSupported === true },
-    coverage: coverage.get(g.needId) ?? null,
-    rightToExist: g.slug ? rteFor(g.slug) : null,
-    duplication: duplicationFor({ needId: g.needId, comparisons: [...population.pages.map((p) => p.pageId), ...grouped.filter((o) => o.needId !== g.needId).map((o) => o.needId), ...slugs.filter((s) => s !== g.slug)], reviews: duplicationReviews }),
-  }));
 
   return {
     fault: null,
     needs,
     pages,
     groupedNeeds: connected ? groupedNeeds : null,
+    compiled: connected ? G.compiled : null,
     groupedNeedsMissing: connected ? null : "no research batch named — F91's planning store was not read, so grouped needs are NOT MEASURED",
     demandMonitoring: demand ? Object.freeze({ recorded: true, outcome: demand.outcome ?? null, independentCategories: demand.independentCategories ?? null, ref: demand.ref ?? null }) : Object.freeze({ recorded: false, note: "NOT MEASURED — no recorded demand outcome; demand strength is never an outcome and never a gate (F35 M9)" }),
     summary: { needs: summarise(needs), pages: summarise(pages), groupedNeeds: connected ? summarise(groupedNeeds) : null },

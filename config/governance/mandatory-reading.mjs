@@ -405,6 +405,20 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-04_RR-159.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F16_ACCEPTANCE_AMENDMENT_3_2026-10-04.md", loader: "F-board acceptance F16" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-04_RR-159_Q1_Q2_Q3_ANSWERS.md", loader: "authority register (CURRENT record)" }),
+  /* RR-179 §4.3 (5 Oct 2026): the one CURRENT record admitted by the migration at _handoffs d014ca1 — the owner's record B, the lone-page
+   * rule at F36's site (why-this-url.mjs l.123–126), approved as written in 76d6a99. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-05_RR-179_RECORD_B_LONE_PAGE_AT_F36.md", loader: "authority register (CURRENT record)" }),
+  /* RR-179 §4.2 (5 Oct 2026): the one CURRENT record admitted by the migration at _handoffs be0ec9d — F41's Acceptance Amendment 1 (C1 as
+   * amended under D5, C8 the tier and the grouped need), approved by its hash. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F41_ACCEPTANCE_AMENDMENT_1_2026-10-05.md", loader: "F-board acceptance F41" }),
+  /* RR-179 §4.1 (5 Oct 2026): the five CURRENT records admitted by the migration at _handoffs 0abcd15 — the owner's RR-177 ruling (the 27
+   * existing AlmiOET pages SET ASIDE), the RR-178 and RR-179 commands, the owner's RR-179 rulings on the RR-178 findings, and F91's
+   * Acceptance Amendment 4 (C19, the spec compiler), approved by its hash. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-05_RR-177_27_PAGES_SET_ASIDE.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-05_RR-178.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-05_RR-179.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-05_RR-179_R4_RULINGS.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F91_ACCEPTANCE_AMENDMENT_4_2026-10-05.md", loader: "F-board acceptance F91" }),
   /* RR-174 §4.2 (5 Oct 2026): the one CURRENT record admitted by the migration at _handoffs 348f029 — F34's Acceptance Amendment 1 (C7,
    * the explicit MONITOR mapping M1–M6), approved by its hash. */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F34_ACCEPTANCE_AMENDMENT_1_2026-10-05.md", loader: "F-board acceptance F34" }),

@@ -1,0 +1,9 @@
+RR-179 R4 sabotage PRACTICE run · 2026-10-05T21:21:35.312Z
+population: 1 sabotage(s) over test/rr179-r4.test.mjs + test/page-construction.test.mjs + test/f36-right-to-exist.test.mjs + test/f41-content-brief.test.mjs + test/f35-action-decision.test.mjs + test/rr174-r3-f35-f34.test.mjs + test/facts-registry.test.mjs · each applied ALONE · no provider, no network, no third-party read
+BASELINE (the named tests before any sabotage): GREEN · named tests seen GREEN: 1 of 1
+PRE-FLIGHT (span occurrences in the code live now): S06=1 · all exactly once: true
+production trail sha256 before: c242c6d325435f9c2b48d9985abf326ceea343a9164f3197c250d043920c2e2a
+
+S06 F91 C19 · a spec compiled for judgement reaches construction [src/page/action-evidence.mjs]: landed true · named test "T19b" red true · its failure AssertionError · SyntaxError false · a production child crashed true · failing T19a,T19b,T19d,T19e,T35a,T35b · restored by sha256 true · PROVED
+
+proved 1 of 1 · residue 0 · production trail sha256 after: c242c6d325435f9c2b48d9985abf326ceea343a9164f3197c250d043920c2e2a · unchanged true

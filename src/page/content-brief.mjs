@@ -1,38 +1,55 @@
 /**
- * F41 · CONTENT BRIEF ENGINE — measured evidence turned into an implementation-ready, reviewable brief (acceptance _handoffs 454396e).
+ * F41 · CONTENT BRIEF ENGINE — measured evidence turned into an implementation-ready, reviewable brief (acceptance _handoffs 454396e, as
+ * amended by Acceptance Amendment 1, _handoffs be0ec9d, RR-179: C1 as amended under the owner's decision D5, and C8).
  *
  * Spec row: "Turn measured evidence into an implementation-ready, reviewable brief." Spec line 185: "Use competitor evidence as input,
  * not a universal word-count prescription." Spec §1: a recommendation and an approved item are different states. The owner's words for
- * this row (historical row 34, provenance only): INPUT "the evidence for one approved action"; the eleven sections below; FAILURE "any
- * required section missing, or a fact without a source".
+ * this row (historical row 34, provenance only): the eleven sections below; FAILURE "any required section missing, or a fact without a
+ * source".
  *
- *   NOT_ISSUED   no RECORDED owner approval of a chosen F35 action — a recommendation alone produces no brief
- *   INCOMPLETE   approved, but a required section is MISSING — each named with its missing fact
- *   READY        approved, and every section FILLED from recorded evidence (its evidence identities and rule carried)
+ * 🔴 C1 AS AMENDED (D5, RTP-1 S40 with Correction 1): a routine brief is PREPARED for an action F35 chose WITHOUT the owner's per-item
+ * approval. A brief is a recommendation and a preparation — never an approval, never labelled or counted as one. A complete passing preview
+ * is put before the owner for publication approval (`previewForOwner`); publication, and any live or client-site change, happen only with
+ * his exact recorded approval (`publicationDecision` — F41 itself publishes nothing). No approval is assumed.
  *
- * Facts: only VERIFIED registry facts with a source and a USABLE or FRESH freshness state enter a brief; every other candidate fact is
- * EXCLUDED and named (stricter than "not STALE": EXPIRED and UNKNOWN freshness are not fresh enough either). No word-count or length
- * target exists anywhere in a brief; competitor evidence is carried only as a recorded diagnostic input. Pure: F41 writes no page.
+ *   NOT_ISSUED   F35 chose no action for this subject — there is nothing to prepare
+ *   INCOMPLETE   prepared, but a required section is MISSING — each named with its missing fact
+ *   READY        prepared, and every section FILLED from recorded evidence (its evidence identities and rule carried)
+ *
+ * 🔴 C8: the brief carries each question's TIER and GENERATED marking (a question item without its tier is excluded and named — never shown
+ * untiered, never as observed), and a grouped need's brief names the GROUPED NEED as its intent.
+ *
+ * Facts: VERIFIED registry facts with a source and a USABLE or FRESH freshness state (C3), and — in a grouped need's brief — the SUPPORTED
+ * claims of its answer (F91 C17), each with its label (RESPONSIBLE BODY · PRODUCT'S OWN SITE · SECONDARY), its source's name, link and date
+ * read, and its freshness under v3 §10.4 (C8 narrows C3). A claim records no fact class, so the strictest §10.4 window (30 days, "urgent or
+ * highly dynamic") is applied — a declared choice, never presented as a measured requirement. An UNKNOWN part is carried as UNKNOWN, never
+ * placed as a fact; no claim is excluded for its label or its source's category or tier. Every excluded fact is named. No word-count or
+ * length target exists anywhere in a brief; competitor evidence is carried only as a recorded diagnostic input. Pure: F41 writes no page.
  */
+import { createHash } from "node:crypto";
 import { freshnessOf } from "../facts/lifecycle.mjs";
 
 export const SECTIONS = Object.freeze(["intent", "entities", "questions", "verifiedFactsAndSources", "uniqueValue", "localeTerms", "internalLinks", "cta", "schema", "prohibitedClaims", "acceptanceCriteria"]);
 export const BRIEF_STATE = Object.freeze({ READY: "READY", INCOMPLETE: "INCOMPLETE", NOT_ISSUED: "NOT_ISSUED" });
 export const FRESH_ENOUGH = Object.freeze(["USABLE", "FRESH"]);
+/** D5 · what a brief is: a recommendation and a preparation — never an approval. */
+export const STANDING = "RECOMMENDATION — a preparation for review, never an approval";
+/** v3 §10.4's strictest recheck window, applied to an answer claim that records no fact class (a declared choice). */
+export const CLAIM_RECHECK_DAYS = 30;
 /** The recorded rules a page built from this brief must pass — the frozen acceptances of the production gates. */
 export const ACCEPTANCE_CRITERIA = Object.freeze([
+  Object.freeze({ gate: "F35 chose CREATE for the need — construction acts only on F35's decision (ruling RR-179 (c))", ref: "_handoffs a8dc190" }),
   Object.freeze({ gate: "F34 existing-page check: NO_EXISTING_PAGE or NOT_COVERED", ref: "_handoffs 53f74b4" }),
   Object.freeze({ gate: "F36 right-to-exist ESTABLISHED", ref: "_handoffs 2635153" }),
   Object.freeze({ gate: "F39 original information gain ESTABLISHED", ref: "_handoffs 90e798d" }),
   Object.freeze({ gate: "Gate A adaptive parts (facts, completeness, overlap) PASS", ref: "src/page/construct.mjs" }),
 ]);
 export const MISSING = Object.freeze({
-  APPROVAL: "a recorded owner approval of this action for this subject — none is recorded; none is assumed or requested (no new owner labels)",
-  NO_ACTION: "F35 chose no action for this subject (CANNOT DECIDE) — there is nothing to approve",
-  intent: "the registered need this subject serves (F33) — none is recorded for it",
+  NO_ACTION: "F35 chose no action for this subject (CANNOT DECIDE / HOLD) — there is nothing to prepare",
+  intent: "the registered need this subject serves (F33), or the grouped need F91 formed — none is recorded for it",
   entities: "a recorded entity list for the need — no store exists",
-  questions: "a recorded question set for the need (F10 held) — none is recorded",
-  verifiedFactsAndSources: "at least one VERIFIED registry fact with a source and a USABLE or FRESH freshness state for this subject",
+  questions: "a recorded question set for the need, each question with its tier and marking — none is recorded",
+  verifiedFactsAndSources: "at least one VERIFIED registry fact, or one supported answer claim (F91 C17), with a source and a USABLE or FRESH freshness state for this subject",
   uniqueValue: "a recorded information-gain record (F39) — none is recorded",
   localeTerms: "recorded search-language evidence for the need's locale — none is recorded",
   internalLinks: "recorded internal link targets within a COMPLETE inventory (F31) — the inventory is not COMPLETE or no edge is recorded",
@@ -44,6 +61,8 @@ export const MISSING = Object.freeze({
 const filled = (rule, content, evidence) => Object.freeze({ state: "FILLED", rule, content, evidence: Object.freeze(evidence.filter(Boolean)) });
 const missing = (key, why = MISSING[key]) => Object.freeze({ state: "MISSING", missing: why });
 const recorded = (x) => x && typeof x.ref === "string" && x.ref !== "";
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+const TIERS = Object.freeze(["OBSERVED", "RESEARCH-DERIVED"]);
 
 /** The facts a brief may carry, and every one it may not — with why. */
 export function selectFacts(facts, { now }) {
@@ -60,27 +79,57 @@ export function selectFacts(facts, { now }) {
 }
 
 /**
- * One subject's brief.
- * @param {{ decision: object, approvals: object[], evidence: object, now?: Date }} input
- *   decision   an F35 decision ({ subject, decision, actions })
- *   approvals  RECORDED owner approvals: { subject: {kind, id}, action, ref }
- *   evidence   the recorded section inputs: { need, entities, questions, facts, gain, links, cta, schema, prohibitedClaims, competitorInputs }
+ * C8 (narrowing C3) · a grouped need's answer claims (F91 C17's judged claims): every SUPPORTED claim is placed with its label, source and
+ * freshness; every other claim is an UNKNOWN part, carried and never placed as a fact. A claim is excluded only for a missing or stale
+ * source — never for its label or its source's category or tier.
  */
-export function buildBrief({ decision, approvals, evidence, now = new Date() }) {
-  if (!Array.isArray(approvals)) throw new TypeError("approvals must be passed explicitly — an empty list is a recorded fact, not a default");
-  const id = decision.subject.pageId ?? decision.subject.slug;
+export function selectAnswerClaims(claims, { now }) {
+  const included = [], excluded = [], unknown = [];
+  for (const c of claims ?? []) {
+    if (c?.state !== "SUPPORTED") { unknown.push(Object.freeze({ claimId: c?.claimId ?? null, state: "UNKNOWN", why: c?.why ?? "unsupported" })); continue; }
+    const s = c.source ?? {};
+    if (!s.name || !s.link || !ISO_DAY.test(s.readOn ?? "")) { excluded.push(Object.freeze({ claimId: c.claimId, why: "NO_SOURCE" })); continue; }
+    const due = new Date(`${s.readOn}T00:00:00Z`); due.setUTCDate(due.getUTCDate() + CLAIM_RECHECK_DAYS);
+    if (now > due) { excluded.push(Object.freeze({ claimId: c.claimId, why: "FRESHNESS_STALE" })); continue; }
+    included.push(Object.freeze({ claimId: c.claimId, label: c.label, source: Object.freeze({ name: s.name, link: s.link, readOn: s.readOn }), freshness: "USABLE", dueOn: due.toISOString().slice(0, 10) }));
+  }
+  return { included, excluded, unknown };
+}
+
+/** C8 · the question items a brief may carry — each with its tier and marking; an item without its tier is excluded and named. */
+export function selectQuestions(items) {
+  const included = [], excluded = [];
+  for (const q of items ?? []) {
+    if (!q || typeof q.wording !== "string" || q.wording.trim() === "" || !TIERS.includes(q.tier)) { excluded.push(Object.freeze({ question: q?.questionId ?? null, why: "NO_TIER" })); continue; }
+    included.push(Object.freeze({ questionId: q.questionId ?? null, question: q.wording, tier: q.tier, marking: q.marking ?? null, observed: q.tier === "OBSERVED" }));
+  }
+  return { included, excluded };
+}
+
+/**
+ * One subject's brief — prepared without a per-item approval (D5).
+ * @param {{ decision: object, evidence: object, now?: Date }} input
+ *   decision   an F35 decision ({ subject, decision, actions }) — an existing page, a declared spec, or a grouped need
+ *   evidence   the recorded section inputs: { need, entities, questions, facts, answerClaims, gain, links, cta, schema, prohibitedClaims, competitorInputs }
+ */
+export function buildBrief({ decision, evidence, now = new Date() }) {
+  const id = decision.subject.pageId ?? decision.subject.slug ?? decision.subject.needId;
   const subject = Object.freeze({ kind: decision.subject.kind, id });
-  if (decision.decision !== "CHOSEN" || decision.actions.length === 0) return Object.freeze({ subject, state: BRIEF_STATE.NOT_ISSUED, missing: Object.freeze([MISSING.NO_ACTION]) });
-  const approval = approvals.find((a) => recorded(a) && a.subject?.kind === subject.kind && a.subject?.id === id && decision.actions.some((x) => x.action === a.action)) ?? null;
-  if (!approval) return Object.freeze({ subject, state: BRIEF_STATE.NOT_ISSUED, recommended: Object.freeze(decision.actions.map((a) => a.action)), missing: Object.freeze([MISSING.APPROVAL]) });
+  if (decision.decision !== "CHOSEN" || decision.actions.length === 0) return Object.freeze({ subject, state: BRIEF_STATE.NOT_ISSUED, standing: STANDING, missing: Object.freeze([MISSING.NO_ACTION]) });
 
   const e = evidence ?? {};
   const facts = selectFacts(e.facts, { now });
+  const claims = selectAnswerClaims(e.answerClaims, { now });
+  const qs = selectQuestions(e.questions?.items);
+  const grouped = decision.subject.kind === "GROUPED_NEED";
   const s = {};
-  s.intent = recorded(e.need) && e.need.value ? filled("THE_REGISTERED_NEED_THE_SUBJECT_SERVES", e.need.value, [e.need.ref]) : missing("intent");
+  s.intent = grouped
+    ? (recorded(e.need) && e.need.groupedNeed === decision.subject.needId ? filled("THE_GROUPED_NEED_F91_FORMED", Object.freeze({ groupedNeed: e.need.groupedNeed, pageCandidate: e.need.pageCandidate ?? null }), [e.need.ref]) : missing("intent"))
+    : (recorded(e.need) && e.need.value ? filled("THE_REGISTERED_NEED_THE_SUBJECT_SERVES", e.need.value, [e.need.ref]) : missing("intent"));
   s.entities = recorded(e.entities) && e.entities.items?.length ? filled("RECORDED_ENTITIES_FOR_THE_NEED", [...e.entities.items], [e.entities.ref]) : missing("entities");
-  s.questions = recorded(e.questions) && e.questions.items?.length ? filled("RECORDED_QUESTIONS_FOR_THE_NEED", [...e.questions.items], [e.questions.ref]) : missing("questions");
-  s.verifiedFactsAndSources = facts.included.length ? filled("VERIFIED_SOURCED_FRESH_REGISTRY_FACTS", facts.included, facts.included.map((f) => f.factId)) : missing("verifiedFactsAndSources");
+  s.questions = recorded(e.questions) && qs.included.length ? filled("RECORDED_QUESTIONS_WITH_TIER_AND_MARKING", qs.included, [e.questions.ref]) : missing("questions");
+  const placed = [...facts.included, ...claims.included];
+  s.verifiedFactsAndSources = placed.length ? filled("VERIFIED_REGISTRY_FACTS_AND_SUPPORTED_ANSWER_CLAIMS", placed, placed.map((f) => f.factId ?? f.claimId)) : missing("verifiedFactsAndSources");
   s.uniqueValue = recorded(e.gain) && e.gain.adds ? filled("A_RECORDED_INFORMATION_GAIN_RECORD", { kind: e.gain.kind, adds: e.gain.adds }, [e.gain.ref]) : missing("uniqueValue");
   s.localeTerms = recorded(e.localeTerms) && e.localeTerms.items?.length ? filled("RECORDED_SEARCH_LANGUAGE_EVIDENCE", [...e.localeTerms.items], [e.localeTerms.ref]) : missing("localeTerms");
   s.internalLinks = recorded(e.links) && e.links.completeness === "COMPLETE" && e.links.targets?.length ? filled("RECORDED_LINK_TARGETS_IN_A_COMPLETE_INVENTORY", [...e.links.targets], [e.links.ref]) : missing("internalLinks");
@@ -93,14 +142,43 @@ export function buildBrief({ decision, approvals, evidence, now = new Date() }) 
   return Object.freeze({
     subject,
     state: missingSections.length ? BRIEF_STATE.INCOMPLETE : BRIEF_STATE.READY,
-    action: approval.action,
-    approval: approval.ref,
+    standing: STANDING,
+    recommended: Object.freeze(decision.actions.map((a) => a.action)),
     sections: Object.freeze(s),
     missing: Object.freeze(missingSections.map((k) => `${k}: ${s[k].missing}`)),
-    excludedFacts: Object.freeze(facts.excluded),
+    excludedFacts: Object.freeze([...facts.excluded, ...claims.excluded]),
+    excludedQuestions: Object.freeze(qs.excluded),
+    unknownParts: Object.freeze(claims.unknown),
     /* competitor evidence: a recorded diagnostic input only — never a length target, never a fact */
     diagnostics: Object.freeze((e.competitorInputs ?? []).filter(recorded).map((c) => c.ref)),
   });
+}
+
+export const PREVIEW = Object.freeze({ PUT_FORWARD: "PUT_FORWARD_FOR_THE_OWNER'S_PUBLICATION_APPROVAL", NOT_PUT_FORWARD: "NOT_PUT_FORWARD" });
+/**
+ * D5 · a COMPLETE PASSING preview is put before the owner for publication approval: construction ACCEPTED it (every frozen gate passed)
+ * and its brief is READY. Anything else is NOT put forward, its missing parts named. A preview is never an approval and publishes nothing.
+ */
+export function previewForOwner({ construction, brief }) {
+  const missingParts = [];
+  if (construction?.verdict !== "ACCEPTED" || typeof construction?.html !== "string" || construction.html === "") missingParts.push("the constructed page did not pass — construction did not ACCEPT it");
+  if (brief?.state !== BRIEF_STATE.READY) missingParts.push(`the brief is ${brief?.state ?? "absent"}, not READY`);
+  if (missingParts.length) return Object.freeze({ state: PREVIEW.NOT_PUT_FORWARD, missing: Object.freeze(missingParts) });
+  return Object.freeze({ state: PREVIEW.PUT_FORWARD, subject: brief.subject, contentSha256: createHash("sha256").update(construction.html).digest("hex"),
+    standing: "a preview put before the owner for his publication approval — not an approval, not published" });
+}
+
+/**
+ * D5 · THE GUARD every publication path must pass: only the owner's EXACT recorded approval of THIS preview (same subject, same content
+ * hash) lets anything be published or any live or client-site change be made. No approval is assumed. F41 itself publishes nothing — no
+ * publication path exists today; this returns a decision, never an act.
+ */
+export function publicationDecision({ preview, approvals }) {
+  if (!Array.isArray(approvals)) throw new TypeError("approvals must be passed explicitly — an empty list is a recorded fact, not a default");
+  if (preview?.state !== PREVIEW.PUT_FORWARD) return Object.freeze({ outcome: "REFUSED", why: "no complete passing preview was put before the owner" });
+  const exact = approvals.find((a) => recorded(a) && a.kind === "PUBLICATION" && a.exact === true && a.subject?.kind === preview.subject.kind && a.subject?.id === preview.subject.id && a.contentSha256 === preview.contentSha256);
+  if (!exact) return Object.freeze({ outcome: "REFUSED", why: "no exact recorded owner approval of this preview — none is assumed" });
+  return Object.freeze({ outcome: "APPROVED_BY_THE_OWNER", approval: exact.ref, published: false, note: "F41 publishes nothing; the approval is recorded for the publication path the owner names" });
 }
 
 export function summariseBriefs(briefs) {

@@ -10,7 +10,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync, execFileSync } from "node:child_process";
 
-import { buildBrief, selectFacts, SECTIONS, MISSING, BRIEF_STATE } from "../src/page/content-brief.mjs";
+import { buildBrief, selectFacts, SECTIONS, MISSING, BRIEF_STATE, STANDING } from "../src/page/content-brief.mjs";
 import { readClientBriefs } from "../src/page/content-brief-evidence.mjs";
 import { readExistingPagePopulation } from "../src/page/existing-page-population.mjs";
 import { NO_RECORDED_DECAY_EVIDENCE as NO_DECAY } from "../src/page/content-decay-evidence.mjs";
@@ -31,13 +31,13 @@ const TRAIL_BEFORE = trailSha();
 /* ---- fixtures ---- */
 const NOW = new Date("2026-09-29T00:00:00Z");
 const chosen = (actions = ["IMPROVE"]) => ({ subject: { kind: "EXISTING_PAGE", pageId: "p1" }, decision: "CHOSEN", actions: actions.map((a) => ({ action: a, standing: "RECOMMENDATION" })), missing: [] });
-const APPROVED = [{ subject: { kind: "EXISTING_PAGE", id: "p1" }, action: "IMPROVE", ref: "approval:p1" }];
 /* a fact that is VERIFIED, sourced, and whose recheck date (the lifecycle reads checks.recheckAfter) is after NOW: USABLE */
 const fact = (id, over = {}) => ({ id, verificationState: "VERIFIED", source: { documentRef: `doc:${id}`, url: null }, checks: { recheckAfter: "2027-03-01" }, ...over });
 const FULL = {
   need: { value: "alpha", ref: "F33:COVERS:p1" },
   entities: { items: ["the alpha register"], ref: "entities:1" },
-  questions: { items: ["how long does alpha take"], ref: "questions:1" },
+  /* C8 (Amendment 1): each question item carries its tier and marking */
+  questions: { items: [{ questionId: "q1", wording: "how long does alpha take", tier: "OBSERVED", marking: null }], ref: "questions:1" },
   facts: [fact("f1")],
   gain: { kind: "USEFUL_COMPARISON", adds: "a side-by-side of the pathways", ref: "gain:p1" },
   localeTerms: { items: ["alpha licence"], ref: "locale:1" },
@@ -46,23 +46,22 @@ const FULL = {
   schema: { type: "HowTo", ref: "schema:1" },
   prohibitedClaims: { items: ["guaranteed pass"], ref: "prohibited:1" },
 };
-const brief = (evidence = FULL, { decision = chosen(), approvals = APPROVED } = {}) => buildBrief({ decision, approvals, evidence, now: NOW });
+/* C1 as amended (D5): no per-item approval is handed in, or needed */
+const brief = (evidence = FULL, { decision = chosen() } = {}) => buildBrief({ decision, evidence, now: NOW });
 
 /* ================= C1 — only for an approved action ================= */
 
-test("C1 · FIRING CONTROL: a recommendation with no recorded approval is NOT ISSUED — the approval named; CANNOT DECIDE is NOT ISSUED too", () => {
-  const unapproved = brief(FULL, { approvals: [] });
-  assert.equal(unapproved.state, BRIEF_STATE.NOT_ISSUED, "a brief was issued for an unapproved recommendation");
-  assert.deepEqual(unapproved.missing, [MISSING.APPROVAL]);
-  assert.equal(unapproved.sections, undefined, "an unapproved subject carries brief sections");
-  /* an approval of a DIFFERENT action, or for a different subject, or with no ref, is no approval */
-  for (const a of [{ ...APPROVED[0], action: "MERGE" }, { ...APPROVED[0], subject: { kind: "EXISTING_PAGE", id: "p9" } }, { ...APPROVED[0], ref: "" }]) {
-    assert.equal(brief(FULL, { approvals: [a] }).state, BRIEF_STATE.NOT_ISSUED, `a mismatched approval issued a brief: ${JSON.stringify(a)}`);
-  }
+test("C1 AS AMENDED · D5: a routine brief is PREPARED for an action F35 chose with no per-item approval — a recommendation, never an approval; CANNOT DECIDE is NOT ISSUED", () => {
+  /* RR-179 · F41 Amendment 1 C1 as amended (_handoffs be0ec9d): the per-item approval gate is superseded for a routine brief (S40) */
+  const prepared = brief(FULL);
+  assert.equal(prepared.state, BRIEF_STATE.READY, "a routine brief was refused or held for want of a per-item approval");
+  assert.equal(prepared.standing, STANDING);
+  assert.match(prepared.standing, /never an approval/);
+  assert.ok(!("approval" in prepared), "a brief is labelled or counted as an approval");
+  assert.deepEqual([...prepared.recommended], ["IMPROVE"]);
   const cannot = brief(FULL, { decision: { subject: { kind: "EXISTING_PAGE", pageId: "p1" }, decision: "CANNOT_DECIDE", actions: [], missing: ["x"] } });
   assert.deepEqual([cannot.state, cannot.missing], [BRIEF_STATE.NOT_ISSUED, [MISSING.NO_ACTION]]);
-  assert.equal(brief().state, BRIEF_STATE.READY, "the control: an approved action with every section recorded IS a brief");
-  assert.throws(() => buildBrief({ decision: chosen(), evidence: FULL }), /passed explicitly/);
+  assert.equal(brief({}).state, BRIEF_STATE.INCOMPLETE, "the control: a prepared brief with no recorded section is INCOMPLETE, never READY");
 });
 
 /* ================= C2 — every section from measured evidence ================= */
@@ -131,25 +130,28 @@ test("C5/C6 · every filled section is traceable; no length or word target anywh
 
 /* ================= REAL — count-only; and the control on the REAL structures ================= */
 
-test("REAL · the client's recorded structures: no approval → every subject NOT ISSUED; one real page given a TEST-ONLY review and approval gets an INCOMPLETE brief naming its missing sections", async () => {
+/* RR-179: the recorded real-structure test, restated in D5's meaning. It reads the tenant's existing pages, which RR-177 set aside as the
+ * research-to-page comparison population — so F41's R4 verdict is drawn from the fixture tests above and rr179-r4.test.mjs, never from
+ * this one. */
+test("REAL · the client's recorded structures: briefs are prepared without approval, never READY with sections unrecorded; one real page given a TEST-ONLY review gets its own prepared brief", async () => {
   const resolve = createTenantResolver();
   const tenantId = resolveSide(resolve, RESOURCES.subject("almi-oet")).tenantId;
   const product = await subject("almi-oet");
   const { records } = await loadRegistry(product.factsDir, product.productId);
-  const r = readClientBriefs({ tenantId, product, records, resolve, approvals: [], reviews: [], decayEvidence: NO_DECAY });
+  const r = readClientBriefs({ tenantId, product, records, resolve, reviews: [], decayEvidence: NO_DECAY });
   assert.equal(r.fault, null, r.bound);
   assert.ok(r.summary.population > 0, "EMPTY real population");
-  assert.deepEqual(Object.keys(r.summary.state), ["NOT_ISSUED"], "a real brief was issued without a recorded approval");
-  for (const b of r.briefs) assert.ok(b.missing.length > 0);
+  assert.ok(!("READY" in r.summary.state), "a real brief was READY with sections unrecorded");
+  for (const b of r.briefs) { assert.ok(b.missing.length > 0); assert.ok(!("approval" in b), "a brief carries an approval"); }
   const { population } = readExistingPagePopulation({ scope: { tenantId }, resolve, env: process.env, now: new Date() });
   const [a, set] = [...sameNeedPeers(population.pages, product.variants ?? []).entries()].find(([, s]) => s.size > 0);
   const reviews = [{ pair: [a, [...set][0]], compared: ["intent", "answer", "facts", "architecture", "examples", "userValue"], duplicate: true, ref: "test-review:f41" }];
-  const c = readClientBriefs({ tenantId, product, records, resolve, approvals: [{ subject: { kind: "EXISTING_PAGE", id: a }, action: "MERGE", ref: "test-approval:f41" }], reviews, decayEvidence: NO_DECAY });
+  const c = readClientBriefs({ tenantId, product, records, resolve, reviews, decayEvidence: NO_DECAY });
   const b = c.briefs.find((x) => x.subject.id === a);
   assert.equal(b.state, "INCOMPLETE", "a real brief was READY with sections unrecorded");
   assert.equal(b.sections.intent.state, "FILLED", "the real need (F33) did not reach the brief");
-  assert.equal(b.approval, "test-approval:f41");
-  assert.deepEqual(c.summary.state, { NOT_ISSUED: r.summary.population - 1, INCOMPLETE: 1 }, "an approval spread to another subject");
+  assert.equal(b.standing, STANDING);
+  assert.equal(c.summary.population, r.summary.population);
   console.log(`  REAL (count-only): ${r.bound} | ${JSON.stringify(r.summary)} · control: ${JSON.stringify(c.summary)} · missing sections ${b.missing.length}`);
 });
 

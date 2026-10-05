@@ -56,6 +56,10 @@ function settle(subject, actions, missing) {
  * CANNOT DECIDE is RECORDED (C2 as narrowed, ruling RR-174 (a)): the decision is CANNOT_DECIDE, its class and outcome are HOLD, its missing
  * fact is named, and every count shows it by its own name. */
 export const HOLD = "HOLD";
+/* Ruling RR-174 (c): the one HOLD the spec compiler (F91 C19) may lift — the words are unchanged, now named once so the compiler reads them. */
+export const NO_DECLARED_SPEC_HOLD = "no declared page spec for the need's candidate — right-to-exist waits for R4's spec compiler (ruling RR-174 (c))";
+/** Ruling RR-179 (c): construction acts only on this — a grouped need F35 CHOSE to CREATE (a CHOSEN need always has a recorded question, C9). */
+export const isChosenCreate = (d) => d?.subject?.kind === "GROUPED_NEED" && d.decision === DECISION.CHOSEN && (d.actions ?? []).some((a) => a.action === "CREATE");
 export const OUTCOMES = Object.freeze({ KEEP: "KEEP / NO NEW PAGE", IMPROVE: "IMPROVE / ADD SECTION", CREATE: "CREATE", HOLD: "HOLD", REJECT: "REJECT / CONNECT" });
 const OUTCOME_OF = Object.freeze({ KEEP: OUTCOMES.KEEP, IMPROVE: OUTCOMES.IMPROVE, "ADD SECTION": OUTCOMES.IMPROVE, CREATE: OUTCOMES.CREATE, REJECT: OUTCOMES.REJECT, CONNECT: OUTCOMES.REJECT });
 export const DUPLICATION = Object.freeze({ NO_COMPARISON: "NO_COMPARISON_PAGE", RESOLVED: "RESOLVED_BY_A_SUBSTANCE_REVIEW", DUPLICATE: "DUPLICATE", REFUSED: "REFUSED_PENDING_GUIDANCE" });
@@ -114,7 +118,7 @@ export function decideGroupedNeed({ need, coverage, rightToExist, duplication })
   /* coverage NONE */
   if (duplication?.state === DUPLICATION.DUPLICATE) return decided(subject, chosen("CONNECT", "A_DUPLICATE_CANDIDATE_CONNECTS_TO_THE_EXISTING_SUITABLE_PAGE", [duplication.against, duplication.ref]), extra);
   if (need.centralSupported !== true) return hold(subject, ["the central answer is unsupported (F35 C8b; F91 C18)"], extra);
-  if (rightToExist === null || rightToExist === undefined) return hold(subject, ["no declared page spec for the need's candidate — right-to-exist waits for R4's spec compiler (ruling RR-174 (c))"], extra);
+  if (rightToExist === null || rightToExist === undefined) return hold(subject, [NO_DECLARED_SPEC_HOLD], extra);
   if (rightToExist.parts?.specific?.state === "FAIL" && rightToExist.parts.specific.kind === "REJECT") return decided(subject, chosen("REJECT", "RIGHT_TO_EXIST_REFUSED_AS_SUBSTITUTION_OR_TEMPLATE", [rightToExist.parts.specific.reason]), extra);
   if (rightToExist.outcome !== "ESTABLISHED") return hold(subject, [`right-to-exist is ${rightToExist.outcome}${rightToExist.undecided?.length ? `: ${rightToExist.undecided.join(", ")}` : ""}`], extra);
   if (duplication?.state === DUPLICATION.REFUSED) return hold(subject, [duplication.ref], { ...extra, duplicationRefusal: duplication.ref });

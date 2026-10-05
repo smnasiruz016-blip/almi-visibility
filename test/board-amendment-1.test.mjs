@@ -26,7 +26,7 @@ const errs = (b, notRequired) => boardErrors(b, { capabilities: CAPABILITIES, ac
 test("B1 · the board reads 34/90 over the REQUIRED rows and 34/91 over all rows — both figures, F25 NOT REQUIRED with its work state", () => {
   const p = progress(board());
   assert.deepEqual([p.passed, p.denominator, p.total], [34, 91, 91], "the all-rows figure moved");
-  assert.deepEqual([p.required.passed, p.required.denominator], [34, 90], "the required figure is not 34/90"); /* F35 and F34 REOPENED 5 Oct 2026 (AUTHORITATIVE_REQUIREMENT_CHANGE, RR-174 §4) and RE-PROVED the same day under their Amendments 1 (RR-174 §8) — the board reads 34/90 again */
+  assert.deepEqual([p.required.passed, p.required.denominator], [34, 90], "the required figure is not 34/90"); /* RR-179 §7: F41, F36 and F35 RE-PROVED in R4 (rr179-sabotage-2026-10-05T2142: 65 of 65) */
   assert.deepEqual(p.required.notRequired, [{ featureId: "F25", state: "IN-PROGRESS" }]);
   assert.deepEqual(errs(board()), [], "the real board is not lawful");
   const cli = spawnSync(process.execPath, ["bin/fboard-status.mjs"], { cwd: REPO, encoding: "utf8" });

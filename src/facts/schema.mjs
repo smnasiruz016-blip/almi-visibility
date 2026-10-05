@@ -55,7 +55,7 @@ export const TIERS = Object.freeze({
   1: "primary — the body that decides the fact, on its own site",
   2: "official secondary — another official body restating it",
   3: "reputable third party — a well-known publication",
-  4: "aggregator, law firm, prep blog — 🔴 A LEAD, NEVER A CITATION",
+  4: "aggregator, law firm, prep blog — SECONDARY for an ordinary claim it actually supports; 🔴 for a body's rule, policy or requirement A LEAD, NEVER A CITATION",
 });
 
 /**
@@ -68,19 +68,29 @@ export const TIERS = Object.freeze({
  *    firm's summary or a prep-industry blog is a lead to verify, never the
  *    citation itself."   — src/lib/oet-seo/org-notes.ts
  *
- * So a tier-4 record is admissible ONLY as `status: "lead"`. It can never be
+ * 🔴 FS-A1 (RTP-1 Rev 6 §17 S39, P14, decision D2; RR-179): no related-source category is banned as a whole. The rule above stands for
+ * what it was written for — a claim stating an official body's rule, policy or requirement cites THAT body, and tier 4 is a lead for it.
+ * For an ORDINARY claim (the record's `claim.states` is "OTHER", F91 C17's kind) a tier-4 source that actually supports it may be a
+ * citation, rendered SECONDARY — never called official. A record that does not say what its claim states keeps the old rule:
+ *
+ * So a tier-4 record is admissible ONLY as `status: "lead"` unless it is an ordinary claim. Otherwise it can never be
  * active, and therefore can never reach a page. The NZ record exists BECAUSE
  * this was obeyed: a law-firm blog surfaced the change, and a person then read
  * Immigration New Zealand's own news centre.
  */
 export const TIER_LEAD_ONLY = 4;
+/** FS-A1 · what a claim states, in F91 C17's words; only an ORDINARY claim may cite tier 4, labelled SECONDARY. */
+export const CLAIM_STATES = Object.freeze({ BODY_RULE: "RESPONSIBLE_BODY_RULE", PRODUCT_FACT: "PRODUCT_FACT", ORDINARY: "OTHER" });
+export const SECONDARY_LABEL = "SECONDARY";
+/** A tier-4 record that may be rendered: an ordinary claim (FS-A1). Its label is SECONDARY. */
+export const isOrdinaryTier4 = (r) => Number(r?.source?.tier) === TIER_LEAD_ONLY && r?.claim?.states === CLAIM_STATES.ORDINARY;
 
 export const SCOPES = Object.freeze(["destination", "origin", "corridor", "test", "shared"]);
 
 export const STATUSES = Object.freeze({
   active: "acquired, checked as far as its source permits, and usable by a page",
   candidate: "believed true, NOT acquired from a tier-1 source — may not reach a page",
-  lead: "tier 4, or a third-party pointer. A thing to go and verify. Never a citation",
+  lead: "tier 4 for anything but an ordinary claim (FS-A1), or a third-party pointer. A thing to go and verify. Never a citation",
   conflict: "🔴 two readings of the same claim disagree. Frozen until a person rules",
   retired: "superseded or withdrawn. Kept, never deleted — see `life.supersededBy`",
 });

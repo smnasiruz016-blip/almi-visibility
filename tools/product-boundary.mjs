@@ -313,6 +313,9 @@ export const PINNED_HISTORICAL_LINES = Object.freeze([
   Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "3ad2b28d6e31dfb4916aab05b9f1c90ae8f76deabec28970eaecc7bec20d0138", why: "F62's frozen acceptance, EXPECTED (the owner's words, a5ec9f1)" }),
   Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "c115938d210ef7e8d9f8871bb65a0d020009122aa56a5b412653c4dc15819bc6", why: "F62's frozen acceptance, FAILURE (the owner's words, a5ec9f1)" }),
   Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "e587cc1272e9c7d96718df3e18cf72756222a8aabcf451c2687910df198ce6fc", why: "F62's frozen acceptance, EVIDENCE (the owner's words, a5ec9f1)" }),
+  /* RR-179 §4.2: F41 Acceptance Amendment 1's EXPECTED (frozen by its hash, _handoffs be0ec9d) names the owner's RR-177 ruling on the 27
+   * existing pages of a named subject — the frozen words, copied byte for byte and pinned by contractSha256; this pin is that one line. */
+  Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "63bb2aa4fbad8915d463e2860f2775f01a689d828e81d6cb321bb5c287732b56", why: "F41 Amendment 1's frozen acceptance, EXPECTED (RR-177's ruling named in C8, be0ec9d)" }),
   /* in the census's own order (files sorted: config/ before src/), so each pin is matched in turn */
   Object.freeze({ file: "src/checklist/classification.mjs", sha256: "945c24967dd7f9cc4a784ac06b215b4b2828353200458f22d0a643c79995f51d", why: "the historical ledger (frozen; F02 command §3: do not alter the historical 61/38 ledger)" }),
 ]);

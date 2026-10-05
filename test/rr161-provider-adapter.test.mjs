@@ -58,10 +58,14 @@ const searchAnswer = (urls, prose) => ({ status: 200, body: {
   usage: { input_tokens: 1200, output_tokens: 80, server_tool_use: { web_search_requests: 1 } },
 } });
 
-test("A1 · the request leaves for the record's origin with the documented headers, the client's key ONLY on it, the plan's caps; back come ONLY the search results' addresses and usage counts", async () => {
+test("A1 · the request leaves for the record's origin with the documented headers, the client's key ONLY on it, the plan's caps; back come ONLY the search results' addresses, the GENERATED question wording (RR-170, C25 as narrowed) and usage counts", async () => {
   process.env[KEY] = SECRET;
   try {
-    const PROSE = "SENTINEL-MODEL-PROSE-77 — see also https://invented-by-the-model.invalid/thread/9 which no search returned";
+    /* RR-170 · F16 Amendment 5, C29 (C25 as narrowed): the provider's QUESTION lines come back as GENERATED wording; its answer prose, and a
+     * QUESTION line that holds an address, never do */
+    const PROSE = ["SENTINEL-MODEL-PROSE-77 — see also https://invented-by-the-model.invalid/thread/9 which no search returned",
+      "QUESTION: How do I find an architect for a family home?", "QUESTION: See https://invented-by-the-model.invalid/q/3 for more?",
+      "The answer is SENTINEL-ANSWER-PROSE-12."].join("\n");
     const x = fakeExit([searchAnswer(["https://site-one.invalid/questions/11/a", "https://site-two.invalid/q/22"], PROSE)]);
     const p = adapter.create({ opened: x.opened, credentialName: KEY, pricePerCall: PRICE, options: OPTIONS });
     const out = await p.invoke({ query: "Where on the public web do people ask their own questions in this field?" });
@@ -76,12 +80,14 @@ test("A1 · the request leaves for the record's origin with the documented heade
     assert.equal(body.model, OPTIONS.model);
     assert.equal(body.max_tokens, OPTIONS.maxOutputTokens, "the plan's output cap was not sent");
     assert.deepEqual(body.tools, [{ type: OPTIONS.toolType, name: "web_search", max_uses: OPTIONS.maxSearchesPerCall }], "the plan's search cap was not sent");
+    assert.equal(body.system, adapter.QUESTION_INSTRUCTION, "the adapter did not ask for question wording, or asked for something else");
     assert.ok(!c.init.body.includes(SECRET), "the key reached the request body");
-    /* only the search results' addresses — the model's own prose, and an address only the prose names, never come back */
+    /* only the search results' addresses and the GENERATED question wording — the model's answer prose, and an address only the prose names, never come back */
+    assert.deepEqual(out.questions.map((q) => ({ ...q })), [{ wording: "How do I find an architect for a family home?", generated: true }], "the GENERATED question wording did not come back, or came back unmarked, or a QUESTION line with an address came back");
     assert.deepEqual([...out.addresses], ["https://site-one.invalid/questions/11/a", "https://site-two.invalid/q/22"]);
     assert.deepEqual(addressesIn(out, 10), ["https://site-one.invalid/questions/11/a", "https://site-two.invalid/q/22"], "the address extractor saw something beyond the search results");
     const kept = JSON.stringify(out);
-    assert.ok(!kept.includes("SENTINEL-MODEL-PROSE") && !kept.includes("invented-by-the-model") && !kept.includes("a title the model was shown"), "provider prose or an un-searched address came back");
+    assert.ok(!kept.includes("SENTINEL-MODEL-PROSE") && !kept.includes("SENTINEL-ANSWER-PROSE") && !kept.includes("invented-by-the-model") && !kept.includes("a title the model was shown"), "provider answer prose or an un-searched address came back");
     assert.ok(!kept.includes(SECRET) && !JSON.stringify(p).includes(SECRET), "the key is kept by what the adapter returns or holds");
     assert.deepEqual({ ...out.usage }, { input_tokens: 1200, output_tokens: 80, "server_tool_use.web_search_requests": 1 }, "usage was not kept as counts");
     /* the code touches the key's value in ONE place: the outgoing header */

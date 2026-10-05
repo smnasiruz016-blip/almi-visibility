@@ -56,6 +56,7 @@ import { runAiLed } from "../src/research/ai-led-collection.mjs";
 import { AI_PROVIDER_ADAPTERS } from "../src/research/ai-providers/index.mjs";
 import { BUILT_ADAPTERS } from "../src/research/ai-providers/built.mjs";
 import { governedProviderCall } from "../src/governance/governed-provider-call.mjs";
+import { researchDerivedStoreRefusals } from "../src/research/research-derived.mjs";
 import { namedActor, namedApproval } from "../src/governance/authorisation.mjs";
 
 const REPO = resolvePath(new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
@@ -259,6 +260,10 @@ async function aiLedRunAndExit() {
   /* the run record FIRST: it spends the GREEN even if a later write fails */
   writeOrExit([rec], "collection-runs.jsonl", "APPEND_COLLECTION_RUN", "run record");
   writeOrExit(intake.leads, "leads.jsonl", "APPEND_DISCOVERY_LEADS", "lead(s)");
+  /* RR-170 · F16 C27/C29/C31: the route-1 RESEARCH-DERIVED questions, in their own store — nothing but a research-derived question enters it */
+  const kindRefusals = researchDerivedStoreRefusals(r.researchDerived);
+  if (kindRefusals.length) { console.error(`  🔴 REFUSED — ${kindRefusals[0]}: a record of another kind was offered to the research-derived store; nothing of it written`); process.exit(1); }
+  writeOrExit(r.researchDerived, "research-derived-questions.jsonl", "APPEND_RESEARCH_DERIVED_QUESTIONS", "research-derived question(s)");
   writeOrExit(intake.held ?? [], "held-for-judgement.jsonl", "APPEND_HELD_FOR_JUDGEMENT", "held item(s)");
   writeOrExit(intake.questions, "questions.jsonl", "APPEND_SOURCE_QUESTIONS", "question(s)");
   /* every call AND every refusal the paid-provider controls made, each once by its entry id */
@@ -266,6 +271,7 @@ async function aiLedRunAndExit() {
   writeOrExit(entries.map((e) => ({ ...e, measurement_key: `cost_entry:${e.entry_id}` })), "provider-ledger.jsonl", "APPEND_PROVIDER_CALL_LEDGER", "ledger entr(ies)");
   for (const l of reportLines(rec)) console.log(`  ${l}`);
   console.log(`  provider ledger ${entries.length} entr(ies): calls ${entries.filter((e) => e.outcome === "CALLED").length} · refusals ${entries.filter((e) => e.outcome === "REFUSED").length}`);
+  console.log(`  research-derived questions (route 1, wording marked GENERATED; never OBSERVED, never demand): ${r.researchDerived.length}`);
   process.exit([OUTCOMES.COMPLETED, OUTCOMES.DISCONNECTED].includes(rec.value.outcome) ? 0 : 3);
 }
 

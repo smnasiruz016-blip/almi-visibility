@@ -152,6 +152,10 @@ export const ACTIONS = Object.freeze({
     /* RR-159 (4 Oct 2026): F16 C17–C24 — the client's AI connection events (bin/ai-connection.mjs), the discovery leads, and the ledger of the
      * run's provider calls, kept in the research batch's own stores, the same family and resource class; a classification only. */
     "APPEND_AI_CONNECTION_EVENTS", "APPEND_DISCOVERY_LEADS", "APPEND_PROVIDER_CALL_LEDGER",
+    /* RR-170 (5 Oct 2026): F16 C27–C32 — research-derived questions, their relevance assessments, and route-2 statements tied to no formed
+     * question (client claims) (bin/collect-public-questions.mjs, bin/research-derived-intake.mjs), kept in the research batch's own stores,
+     * the same family and resource class; a classification only, granting no permission. */
+    "APPEND_RESEARCH_DERIVED_QUESTIONS", "APPEND_RELEVANCE_ASSESSMENTS", "APPEND_CLIENT_CLAIMS",
     "WRITE_EXHIBIT_FILE", "WRITE_EXHIBIT_LISTING", "WRITE_EXHIBIT_PROVENANCE", "WRITE_EXHIBIT_INDEX",
     /* RR-138 §2 (2 Oct 2026): the shared render collection (bin/render-collect.mjs) — the same family and resource class as the
      * crawler's observation append and body write; a classification only, granting no permission a role does not already hold. */

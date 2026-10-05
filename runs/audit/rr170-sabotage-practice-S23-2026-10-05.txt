@@ -1,0 +1,9 @@
+RR-170 R1 sabotage PRACTICE run · 2026-10-05T00:58:22.541Z
+population: 1 sabotage(s) over test/rr170-r1-research-derived.test.mjs · each applied ALONE · a FAKE provider and a FAKE source transport only, zero real requests
+BASELINE (the named tests before any sabotage): GREEN · named tests seen GREEN: 1 of 1
+PRE-FLIGHT (span occurrences in the code live now): S23=1 · all exactly once: true
+production trail sha256 before: 150d25755a7dd530a6eb44774496b5044a185f045698406feefe92121aaef269
+
+S23 C31 · a keyword idea sharing the research-derived count [src/research/research-derived.mjs]: landed true · named test "T31" red true · its failure AssertionError · SyntaxError false · a production child crashed false · failing 1 · restored by sha256 true · PROVED
+
+proved 1 of 1 · residue 0 · production trail sha256 after: 150d25755a7dd530a6eb44774496b5044a185f045698406feefe92121aaef269 · unchanged true

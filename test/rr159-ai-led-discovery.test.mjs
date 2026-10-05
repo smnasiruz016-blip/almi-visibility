@@ -151,7 +151,9 @@ test("P1 · THE WHOLE PATH — an AI lead → the original post read through the
   try {
     { const k = connection(W, "--connect"); assert.equal(k.r.status, 0, `the client could not connect
 ${k.out}`); }
-    const c = collect(W, { outputs: [providerSays(11, 999)], responses: [{ items: [ONE] }, { items: [ONE] }] });
+    /* RR-170 · C29: the provider also gives question WORDING, as a structured GENERATED list beside its answer prose */
+    const WORDING = "FIXTURE-GENERATED-WORDING: how do I build a family home from abroad?";
+    const c = collect(W, { outputs: [{ ...providerSays(11, 999), questions: [{ wording: WORDING, generated: true }] }], responses: [{ items: [ONE] }, { items: [ONE] }] });
     assert.equal(c.r.status, 0, c.out);
     assert.equal(c.aiCalls, 1, "the provider was not asked exactly once");
     assert.deepEqual(c.qsCalls.map((x) => x.params.ids), ["11;999", "11"], "the source did not read exactly the on-source lead posts, then recheck the one it returned");
@@ -177,8 +179,12 @@ ${k.out}`); }
     const rbc = readConnections(conn.records);
     assert.deepEqual([rbc.counts.questions, rbc.counts.needs, rbc.counts.pageCandidates, rbc.counts.heldCoverage], [1, 1, 1, 1], "F91 did not show one question, one need, one page candidate, coverage HELD");
     assert.equal(rbc.needs[0].answer.state, "UNKNOWN", "an answer was invented with no official source read");
-    /* C19 — no provider prose in ANY record of the batch, nor in what F91 wrote */
-    assert.ok(!everyBatchByte(W).includes(SENTINEL), "provider-produced text was kept in a record");
+    /* C19 as narrowed by C29 (RR-170) — no provider ANSWER prose in ANY record of the batch, nor in what F91 wrote; the provider's question
+     * WORDING is kept only as a research-derived question, marked GENERATED, in its own store — never on a lead, never as a question */
+    assert.ok(!everyBatchByte(W).includes(SENTINEL), "provider answer prose was kept in a record");
+    const rd = stored(W, "research-derived-questions.jsonl");
+    assert.deepEqual(rd.map((x) => [x.wording.text, x.wording.generated, x.tier]), [[WORDING, true, "RESEARCH-DERIVED"]], "the GENERATED wording was not kept as one research-derived question");
+    assert.ok(!["leads.jsonl", "questions.jsonl", "held-for-judgement.jsonl"].some((x) => readFileSync(batchFile(W, x), "utf8").includes("FIXTURE-GENERATED-WORDING")), "the GENERATED wording reached a lead, a question or a held item");
     assert.ok(!JSON.stringify(conn.records).includes(SENTINEL), "provider-produced text reached F91's connection or need");
     assert.equal(stored(W, "provider-ledger.jsonl").filter((e) => e.outcome === "CALLED").length, 1, "the provider call left no ledger entry");
   } finally { W.cleanup(); }
@@ -304,7 +310,8 @@ test("P5 · C21 — FIVE KINDS, five record types, never one: a route, a lead, a
   assert.equal(refusalOf(keyword, { subject: SUBJECT }), REFUSAL.KEYWORD);
   assert.equal(refusalOf(claim, { subject: SUBJECT }), REFUSAL.CLIENT_CLAIM);
   assert.equal(refusalOf(route, { subject: SUBJECT }), REFUSAL.NOT_A_QUESTION);
-  /* a lead holds an ADDRESS and how it was found — no field can carry provider prose */
+  /* a lead holds an ADDRESS and how it was found — no field can carry provider prose; the provider's GENERATED question wording lives only in its
+   * own record type (RR-170, C29/C31), never on a lead */
   assert.deepEqual(Object.keys(lead).sort(), ["kind", "lead_id", "meaning", "measurement_key", "plan_id", "query_id", "record_type", "recorded_at", "reference", "resolution", "sourceId", "status", "subject"].sort());
 });
 

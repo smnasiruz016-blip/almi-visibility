@@ -1,18 +1,19 @@
 #!/usr/bin/env node
 /**
- * F91 · PAGE OPPORTUNITY PLANNING — one product's three numbers, never one; count-only.
+ * F91 · PAGE OPPORTUNITY PLANNING — one product's separate lines, never summed, never ordered; count-only (Amendment 3 C13–C15).
  *
  *   node bin/page-opportunities.mjs --product=<id> --tenant=<id> --actor=<id>      READ-ONLY; nothing fetched, rendered or written
  *
  * 🔴 A COMBINATION NEVER AUTHORISES A PAGE (RR-113); POSSIBLE DOES NOT IMPLY VERIFIED, VERIFIED DOES NOT AUTHORISE A PAGE (RR-130). Number 1 is
- * arithmetic over declared, applying dimensions — never a plan, a target, a potential or a page estimate. A NEW group is an opportunity
- * handed on in the page law's order; nothing is drafted, answered or written here. Planner: src/page/page-opportunities.mjs.
+ * arithmetic over declared, applying dimensions — never a plan, a target, a potential, a page estimate or an upper bound on any other line.
+ * Number 3 counts the needs F35 chooses CREATE for, by tier — NOT MEASURED until F35 decides grouped needs (R3), never 0. Nothing is
+ * drafted, answered or written here. Planner: src/page/page-opportunities.mjs.
  */
 import { productFromArgvOrExit, productIdOrExit } from "../src/product-cli.mjs";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 import { readProductPlan } from "../src/page/page-opportunities-reader.mjs";
-import { formatNumber, DEMAND_RULES } from "../src/page/page-opportunities.mjs";
+import { formatNumber, formatLine, DEMAND_RULES } from "../src/page/page-opportunities.mjs";
 
 const USAGE = "node bin/page-opportunities.mjs --product=<id>";
 const PRODUCT_ID = productIdOrExit(process.argv, { usage: USAGE });
@@ -21,7 +22,7 @@ const PRODUCT = await productFromArgvOrExit(process.argv, { usage: USAGE, scope:
 
 const { plan: p, inputs: i } = await readProductPlan(PRODUCT);
 const fmt = (o) => Object.entries(o ?? {}).map(([k, n]) => `${k} ${n}`).join(" · ") || "none";
-console.log("F91 · PAGE OPPORTUNITY PLANNING — this product only, recorded declarations and records only, count-only; three numbers, never one");
+console.log("F91 · PAGE OPPORTUNITY PLANNING — this product only, recorded declarations and records only, count-only; separate lines, never summed, never ordered");
 console.log(`  bound: ${p.notice}`);
 console.log(`  ${i.asAt} · demand left out because its question was overturned: ${i.overturnedDemand}`);
 console.log(`  1 ${formatNumber(p.possible)}`);
@@ -34,10 +35,10 @@ console.log(`      inputs: planning store ${i.planningStore} · ${i.planningReco
 console.log(`      method: four limbs, each recorded; demand by the amendment's mapping (${Object.entries(DEMAND_RULES).map(([s, r]) => `${s} ${r.qualifies ? "qualifies" : "never qualifies"}`).join(", ")}; any other state UNKNOWN)`);
 console.log(`      counts: verified so far ${p.verified.verifiedSoFar ?? "NOT MEASURED"} · excluded ${fmt(p.verified.excluded)} · UNKNOWN ${p.verified.unknown ?? "NOT MEASURED"} of ${p.verified.of ?? "NOT MEASURED"} candidate(s)`);
 console.log(`      unknown: ${i.verifiedFacts} of ${i.factRecords} fact record(s) are VERIFIED; a fact is not a demand record`);
-console.log(`  3 ${formatNumber(p.needed)}`);
-if (Number.isInteger(p.needed.value)) {
-  console.log(`      groups ${p.needed.groups} of ${p.needed.of} opportunit(ies) · merged: ${fmt(p.needed.merged)} · COVERED ${p.needed.covered} · REFUSED ${p.needed.refused} · HELD ${p.needed.held} (${fmt(p.needed.heldBy)}) · NEW ${p.needed.value}`);
-  console.log(`      method: ${p.needed.method}`);
-} else console.log("      inputs: number 2's opportunities · recorded sameness judgements · F33, F36, F32, F44 and verified-answer records per group");
-console.log(`  order 1 ≥ 2 ≥ 3: ${p.order.state} — never reordered; the three numbers are never summed and no page total or quota exists`);
-console.log(`  verdict ${p.verdict}`);
+/* C13: every other line on its own, AS AT its time, with its left-out count — never summed with another, and no order between them (C15) */
+console.log("  lines — each its own, never summed, no order between them:");
+for (const k of ["possible", "verified", "researchDerived", "clientReceived", "ownedSearch"]) console.log(`    ${formatLine(p.lines[k], i.asAt)}`);
+for (const n of Object.values(p.needed)) console.log(`    3 ${formatLine(n, i.asAt)}`);
+for (const n of Object.values(p.actions)) console.log(`    ${formatLine(n, i.asAt)}`);
+console.log(`  coverage records ${i.coverageRecords} · recorded coverage judgements ${i.coverageJudgements} — F91's coverage record (C14) is read by F35 in R3`);
+console.log("  no page total or quota exists; no line is a ceiling for another");

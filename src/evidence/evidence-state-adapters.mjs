@@ -173,18 +173,34 @@ function ofApplicabilityConfirmation(r) {
  * 🔴 RR-153 — F91's connection records (src/page/demand-connection.mjs). A `planning_demand` connection and a `planning_sameness` join
  * are DERIVED from stored questions: INFERRED, their inputs named — never an observation themselves. A `planning_need` whose answer is
  * SOURCED is INFERRED from that source; one whose answer is UNKNOWN stays UNKNOWN, its insufficiency named. Missing id or time: UNMAPPED.
+ * 🔴 RR-172 (Amendment 3) — a need's answer is judged claim by claim (C17): SUPPORTED or PARTLY SUPPORTED is INFERRED from the sources of its
+ * SUPPORTED claims (the rest stays UNKNOWN inside the record); UNKNOWN stays UNKNOWN. A research-derived connection is INFERRED from its
+ * research-derived question, never from a public question (C16). A `planning_coverage` record (C14) is INFERRED from the need's connections
+ * and the pages it names — CANNOT DECIDE or REFUSED stays UNKNOWN, its insufficiency named; a `coverage_judgement` (F33 C8, ruling 3a) is a
+ * method's or an agent's judgement of one question against one page — INFERRED, never an approval.
  */
 function ofPlanning(r) {
   const rule = r.record_type;
   if (!present(r.measurement_key)) return unmapped(`a ${rule} record with no measurement_key cannot be referenced`, rule);
   if (!present(r.recorded_at) || !ISOISH.test(r.recorded_at)) return unmapped(`a ${rule} record with no recorded time has no time`, rule);
   if (rule === "planning_need") {
-    if (r.answer?.state !== "SOURCED") return place(rule, "UNKNOWN", { checkId: `${rule}:${h16(r.measurement_key)}`, insufficiency: "ANSWER_NOT_SOURCED_FROM_THE_PRODUCTS_OWN_OFFICIAL_SITE" });
-    return place(rule, "INFERRED", { inputRefs: [`source:${h16(r.answer.sourceRef)}`], method: "need-answer-from-the-products-official-source", computedAt: r.recorded_at });
+    const supported = (r.answer?.claims ?? []).filter((c) => c?.state === "SUPPORTED" && present(c.source?.link));
+    if (!["SUPPORTED", "PARTLY SUPPORTED"].includes(r.answer?.state) || !supported.length) return place(rule, "UNKNOWN", { checkId: `${rule}:${h16(r.measurement_key)}`, insufficiency: "ANSWER_NOT_SUPPORTED_CLAIM_BY_CLAIM" });
+    return place(rule, "INFERRED", { inputRefs: supported.map((c) => `source:${h16(c.source.link)}`), method: "need-answer-supported-claim-by-claim", computedAt: r.recorded_at });
+  }
+  if (rule === "planning_coverage") {
+    if (!present(r.needId)) return unmapped("a coverage record names no need", rule);
+    if (!["FULL", "PARTIAL", "NONE"].includes(r.coverage)) return place(rule, "UNKNOWN", { checkId: `${rule}:${h16(r.measurement_key)}`, insufficiency: r.coverage === "REFUSED" ? "EXISTING_PAGE_POPULATION_REFUSED" : "COVERAGE_CANNOT_BE_DECIDED" });
+    return place(rule, "INFERRED", { inputRefs: [`planning_need:${h16(r.needId)}`, ...(r.pages ?? []).map((p) => `existing_page:${h16(p.pageId)}`)], method: "f33-c8-grouped-need-coverage", computedAt: r.recorded_at });
+  }
+  if (rule === "coverage_judgement") {
+    if (!present(r.value?.questionId) || !present(r.value?.pageId)) return unmapped("a coverage judgement names no question or page", rule);
+    return place(rule, "INFERRED", { inputRefs: [`question:${h16(r.value.questionId)}`, `existing_page:${h16(r.value.pageId)}`], method: "per-question-coverage-judgement-by-a-method-or-an-agent", computedAt: r.recorded_at });
   }
   const inputs = rule === "planning_sameness" ? (r.questions ?? []) : [r.questionId];
   if (!inputs.length || inputs.some((q) => !present(q))) return unmapped(`a ${rule} record names no question`, rule);
-  return place(rule, "INFERRED", { inputRefs: inputs.map((q) => `public_question:${h16(q)}`), method: `${rule}-from-stored-questions`, computedAt: r.recorded_at });
+  const kind = rule === "planning_demand" && r.tier === "RESEARCH-DERIVED" ? "research_derived_question" : "public_question";
+  return place(rule, "INFERRED", { inputRefs: inputs.map((q) => `${kind}:${h16(q)}`), method: `${rule}-from-stored-questions`, computedAt: r.recorded_at });
 }
 
 /**
@@ -360,7 +376,7 @@ export function evidenceStateOf(record, ctx = {}) {
     case "relevance_assessment": return ofRelevanceAssessment(record);
     case "applicability_assessment": return ofApplicabilityAssessment(record);
     case "applicability_confirmation": return ofApplicabilityConfirmation(record);
-    case "planning_demand": case "planning_sameness": case "planning_need": return ofPlanning(record);
+    case "planning_demand": case "planning_sameness": case "planning_need": case "planning_coverage": case "coverage_judgement": return ofPlanning(record);
     default:
       if (Object.hasOwn(DERIVED_TYPES, record.record_type)) return ofDerived(record);
       return unmapped(`record_type ${record.record_type} has no declared rule`, "none");

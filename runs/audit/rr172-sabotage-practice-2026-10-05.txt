@@ -1,0 +1,8 @@
+RR-172 R2 sabotage PRACTICE run · 2026-10-05T02:37:01.348Z
+population: 47 sabotage(s) over test/rr172-r2-f91-f33.test.mjs + test/f33-need-coverage.test.mjs · each applied ALONE · no provider, no network, no third-party read
+BASELINE (the named tests before any sabotage): NOT GREEN — no sabotage is run · named tests seen GREEN: 33 of 35
+PRE-FLIGHT (span occurrences in the code live now): S01=1 S02=1 S03=1 S04=1 S05=1 S06=1 S07=1 S08=1 S09=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1 S19=1 S20=1 S21=1 S22=1 S23=1 S24=1 S25=1 S26=1 S27=1 S28=1 S29=1 S30=1 S31=1 S32=1 S33=1 S34=1 S35=1 S36=1 S37=1 S38=1 S39=1 S40=1 S41=1 S42=1 S43=1 S44=1 S45=1 S46=1 S47=1 · all exactly once: true
+production trail sha256 before: 48e7f481c4cc57c49cfbd7394d1fc0a4932068ba4b3690f1d1d0b79b0240c91e
+
+
+proved 0 of 47 · residue 0 · production trail sha256 after: 48e7f481c4cc57c49cfbd7394d1fc0a4932068ba4b3690f1d1d0b79b0240c91e · unchanged true

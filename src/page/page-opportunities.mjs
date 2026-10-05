@@ -13,24 +13,38 @@
  *                             credible source, verified product fit, a distinct need. Observed questions, inferred suggestions, owned
  *                             Search Console evidence and client claims are counted APART. A candidate with any limb unknown is UNKNOWN;
  *                             while one is, number 2 is NOT MEASURED — printed with verified-so-far, excluded-by-limb and unknown counts.
- *   3 GENUINELY NEEDED PAGES  only from a measured number 2. Questions merge only when identical after the stated normalisation, or by a
- *                             RECORDED sameness judgement (never across combinations without one, never by similarity); each need group is
- *                             COVERED (F33) · REFUSED (F36) · HELD (a named limb cannot be determined) · NEW (F33 NOT COVERED, F36
- *                             ESTABLISHED, facts, a sourced verified answer). Number 3 is the NEW count; HELD and COVERED are never pages.
- *   ORDER LAW                 all three measured → 1 ≥ 2 ≥ 3, else a planner DEFECT (DISPROVED), never reordered; any NOT MEASURED → the
- *                             order is NOT CHECKABLE, never "holding".
- *   A SAMPLE, THE HANDOFF     no claim that every question was collected; no promise of ranking, indexing or AI citation. A NEW group is an
- *                             OPPORTUNITY handed on in the page law's order — observed questions, then sourced and verified answers, then a
- *                             page. Nothing here drafts, answers or writes.
+ *   3 NEEDED NEW PAGES        🔴 Amendment 3 C14 (_handoffs b8a4ea5): the needs F35 chooses CREATE for under P19, split by tier — no
+ *                             number-2 limb and no demand limb, for any tier. Until F35 decides grouped needs (R3) it is NOT MEASURED, that
+ *                             missing input named — never 0. (groupOpportunities below groups number 2's opportunities by C3's merge limbs;
+ *                             it is NOT number 3.)
+ *   C13 SEPARATE LINES        possible combinations · verified opportunities (observed and verified only) · research-derived opportunities
+ *                             (never inside verified opportunities, never called demand) · client-received questions (NOT MEASURED until
+ *                             their intake exists) · owned search evidence (never client-received, never public demand) · needed new pages
+ *                             by tier · KEEP, IMPROVE, ADD SECTION, HOLD and REJECT/CONNECT, each on its own line. NEVER SUMMED. Every line
+ *                             is AS AT its time and states how many it left out. NOT MEASURED is never zero.
+ *   C15 NO ORDER              no ordering is asserted, checked or implied between the lines; possible combinations is not an upper bound
+ *                             on anything.
+ *   A SAMPLE, THE HANDOFF     no claim that every question was collected; no promise of ranking, indexing or AI citation. The order is
+ *                             relevant questions, observed or research-derived, then supported answers, then the page (C16). Nothing here
+ *                             drafts, answers or writes.
  * Pure: declared and recorded inputs in, counts out. Names no product, no dimension and no quota. Never fetches, renders or writes.
  */
 export const NOT_MEASURED = "NOT MEASURED";
 export const VERDICT = Object.freeze({ PROVED: "PROVED", DISPROVED: "DISPROVED", COULD_NOT_PROVE: "COULD-NOT-PROVE" });
 export const LABELS = Object.freeze({
-  possible: "POSSIBLE COMBINATIONS — candidates only; not pages, not a plan, not a target, not a potential, not a page estimate",
-  verified: "VERIFIED OPPORTUNITIES — verified does not authorise a page",
-  needed: "GENUINELY NEEDED PAGES — opportunities handed on; nothing is drafted or written here",
+  possible: "POSSIBLE COMBINATIONS — candidates only; not pages, not a plan, not a target, not a potential, not a page estimate, not an upper bound on any other line",
+  verified: "VERIFIED OPPORTUNITIES — observed and verified only; verified does not authorise a page",
+  groups: "GROUPS OF VERIFIED OPPORTUNITIES (C3's merge limbs) — not number 3",
+  researchDerived: "RESEARCH-DERIVED OPPORTUNITIES — page candidates a relevant research-derived question connects to; never inside verified opportunities, never demand",
+  clientReceived: "CLIENT-RECEIVED QUESTIONS",
+  ownedSearch: "OWNED SEARCH EVIDENCE — the client's own search records; never client-received, never public demand",
+  needed: "NEEDED NEW PAGES — the needs F35 chooses CREATE for; nothing is drafted or written here",
 });
+/** C13: the five action lines, each its own line; until F35 decides grouped needs (R3) each is NOT MEASURED. */
+export const ACTION_LINES = Object.freeze(["KEEP", "IMPROVE", "ADD SECTION", "HOLD", "REJECT/CONNECT"]);
+export const TIER_NAMES = Object.freeze(["OBSERVED", "RESEARCH-DERIVED"]);
+export const F35_GROUPED = "F35's decision for each grouped need (F35 Amendment 1, R3) — not yet recorded";
+export const NO_CLIENT_INTAKE = "a client-received question intake — none exists yet";
 export const SAMPLE_NOTICE = "a recorded SAMPLE, never every question asked; no ranking, indexing or AI citation is promised";
 export const APPLICABILITY = Object.freeze({ APPLIES: "APPLIES", CANDIDATE_UNIVERSE: "CANDIDATE UNIVERSE", NOT_APPLICABLE: "NOT APPLICABLE" });
 export const MISSING = Object.freeze({
@@ -51,6 +65,7 @@ export const DEMAND_RULES = Object.freeze({
   CLIENT_CLAIM: Object.freeze({ qualifies: false, kind: "clientClaims", by: "F16 C3; RR-89 §1.2 — not evidence" }),
   MONITOR: Object.freeze({ qualifies: false, kind: "monitorOutcomes", by: "V3 §5; F14 — never proof of no demand" }),
   COMPETITOR_COVERAGE: Object.freeze({ qualifies: false, kind: "competitorCoverage", by: "F14 — supply diagnosis only" }),
+  "RESEARCH-DERIVED": Object.freeze({ qualifies: false, kind: "researchDerived", by: "F91 Amendment 3 C13/C16 — never inside verified opportunities, never demand" }),
 });
 const KINDS = [...new Set(Object.values(DEMAND_RULES).map((r) => r.kind)), "unknownStates"];
 const OTHER_LIMBS = Object.freeze(["credibleSource", "productFit", "distinctNeed"]);
@@ -134,16 +149,19 @@ export const HELD = Object.freeze({
   coverage: "existing-page coverage cannot be decided (F33 CANNOT DECIDE, or no decision recorded)",
   rightToExist: "the right to exist cannot be decided (F36 CANNOT DECIDE, or no outcome recorded)",
   facts: "no verified facts recorded for the need (F44)",
-  answer: "no sourced and verified answer recorded — the answer-finding row's work, never F91's",
+  /* C18: HELD means UNSUPPORTED — a supported answer under C17; never "not officially verified" */
+  answer: "no supported answer under C17 recorded for the need's central answer — the answer-finding row's work, never F91's",
 });
 
 /**
  * `questions`: Map(candidateKey → [{ id, wording }]); `sameness`: [[questionIdA, questionIdB]] RECORDED judgements; `groupRecords`:
  * Map(groupKey → { coverage: "COVERED"|"NOT_COVERED"|"CANNOT_DECIDE", rightToExist: "ESTABLISHED"|"REFUSED"|"CANNOT DECIDE",
- * uniqueValue?: boolean, verifiedFacts?: boolean, verifiedAnswer?: boolean }) — F33, F36, F32, F44 and the answer row's records.
+ * uniqueValue?: boolean, verifiedFacts?: boolean, verifiedAnswer?: boolean }) — F33, F36, F32, F44 and the answer row's records
+ * (`verifiedAnswer` reads "a supported answer under C17", C18). 🔴 This groups NUMBER 2's opportunities by C3's merge limbs; it is NOT number 3
+ * (C14) — number 3 is neededNewPages, which takes no number-2 limb.
  */
-export function neededPages({ verified, questions = new Map(), sameness = [], groupRecords = new Map() }) {
-  if (!measured(verified.value)) return { label: LABELS.needed, ...nm(`number 2, which is itself NOT MEASURED — ${verified.missing}`) };
+export function groupOpportunities({ verified, questions = new Map(), sameness = [], groupRecords = new Map() }) {
+  if (!measured(verified.value)) return { label: LABELS.groups, ...nm(`number 2, which is itself NOT MEASURED — ${verified.missing}`) };
   /* union-find over question ids and candidates: a question belongs to its candidate; identical wording merges inside ONE candidate only */
   const parent = new Map();
   const find = (x) => { while (parent.get(x) !== x) { parent.set(x, parent.get(parent.get(x))); x = parent.get(x); } return x; };
@@ -187,26 +205,56 @@ export function neededPages({ verified, questions = new Map(), sameness = [], gr
   }
   const mergedCandidates = verified.opportunities.length - groups.size;
   return {
-    label: LABELS.needed, value: out.new, groups: groups.size, of: verified.value,
+    label: LABELS.groups, value: out.new, groups: groups.size, of: verified.value,
     merged: { questions: mergedQuestions, of: questionsIn, candidatesJoined: mergedCandidates, judgementsApplied, judgementsIgnored },
     covered: out.covered, refused: out.refused, held: out.held, heldBy: out.heldBy,
     method: "merge only identical wording (stated normalisation) or a recorded sameness judgement; then F33 coverage, F36 right to exist, F32 unique value, verified facts and a sourced answer",
   };
 }
 
-/** The order law: checked only when all three are numbers; a breach is a DEFECT, never reordered. */
-export function orderLaw(n1, n2, n3) {
-  if (![n1, n2, n3].every((n) => measured(n.value))) return { state: "NOT CHECKABLE", verdict: VERDICT.COULD_NOT_PROVE };
-  return n1.value >= n2.value && n2.value >= n3.value ? { state: "HOLDS", verdict: VERDICT.PROVED } : { state: "BREACHED — a planner defect", verdict: VERDICT.DISPROVED };
+/**
+ * C14 · NUMBER 3, BY TIER — the needs F35 chooses CREATE for. `needs`: [{ needId, tier }]; `decisions`: Map(needId → F35's decision) or null.
+ * It takes NO number-2 limb and NO demand limb. With no F35 decision for grouped needs (R3), every tier is NOT MEASURED with that input named.
+ */
+export function neededNewPages({ needs = [], decisions = null }) {
+  return Object.freeze(Object.fromEntries(TIER_NAMES.map((tier) => {
+    const mine = needs.filter((n) => n.tier === tier);
+    if (!(decisions instanceof Map)) return [tier, Object.freeze({ label: `${LABELS.needed} · ${tier}`, ...nm(F35_GROUPED), leftOut: mine.length, leftOutWhy: "every need of this tier — none decided by F35 yet" })];
+    const decided = mine.filter((n) => decisions.has(n.needId));
+    const create = decided.filter((n) => (decisions.get(n.needId)?.actions ?? []).some((a) => a.action === "CREATE")).length;
+    if (decided.length < mine.length) return [tier, Object.freeze({ label: `${LABELS.needed} · ${tier}`, ...nm(`${F35_GROUPED} for ${mine.length - decided.length} of ${mine.length} need(s)`), leftOut: mine.length - decided.length, leftOutWhy: "needs F35 has not decided" })];
+    return [tier, Object.freeze({ label: `${LABELS.needed} · ${tier}`, value: create, of: mine.length, leftOut: 0, leftOutWhy: "none" })];
+  })));
 }
 
-export function planPages({ dimensions, declaredCombinations = null, records = new Map(), questions = new Map(), sameness = [], groupRecords = new Map() }) {
+/** C13 · the five action lines — each NOT MEASURED, its missing input named, until F35 decides grouped needs (R3). Never 0. */
+export function actionLines({ needs = [] }) {
+  return Object.freeze(Object.fromEntries(ACTION_LINES.map((a) => [a, Object.freeze({ label: a, ...nm(F35_GROUPED), leftOut: needs.length, leftOutWhy: "every need — none decided by F35 yet" })])));
+}
+
+/**
+ * `needs`: the connection readback's needs ({ needId, tier }); `asAt`: the moment the lines are taken; `demandCounts`: per-state item counts
+ * of the planning store's demand rows, with those left out. Every line is its own; nothing here sums two of them, and no order is checked.
+ */
+export function planPages({ dimensions, declaredCombinations = null, records = new Map(), questions = new Map(), sameness = [], groupRecords = new Map(), needs = [], decisions = null, asAt = NOT_MEASURED, leftOutByDemand = {} }) {
   const possible = possibleCombinations({ dimensions, declaredCombinations });
   const verified = verifiedOpportunities({ possible, records });
-  const needed = neededPages({ verified, questions, sameness, groupRecords });
-  const order = orderLaw(possible, verified, needed);
-  return { possible, verified, needed, order, verdict: order.verdict, notice: SAMPLE_NOTICE };
+  const groups = groupOpportunities({ verified, questions, sameness, groupRecords });
+  const rdCandidates = [...records.entries()].filter(([, r]) => (r?.demand ?? []).some((i) => i?.state === "RESEARCH-DERIVED")).length;
+  const ownedItems = [...records.values()].reduce((n, r) => n + (r?.demand ?? []).filter((i) => i?.state === "OWNED_OBSERVED").length, 0);
+  const lines = {
+    possible: { ...possible, leftOut: possible.excluded.length, leftOutWhy: "excluded dimensions or declarations" },
+    verified: { ...verified, leftOut: measured(verified.of) ? Object.values(verified.excluded).reduce((a, b) => a + b, 0) + (verified.unknown ?? 0) : NOT_MEASURED, leftOutWhy: "candidates excluded by a limb, or UNKNOWN — a research-derived item never qualifies" },
+    researchDerived: { label: LABELS.researchDerived, value: rdCandidates, leftOut: leftOutByDemand["RESEARCH-DERIVED"] ?? 0, leftOutWhy: "research-derived connections whose question was overturned" },
+    clientReceived: { label: LABELS.clientReceived, ...nm(NO_CLIENT_INTAKE), leftOut: NOT_MEASURED, leftOutWhy: NO_CLIENT_INTAKE },
+    ownedSearch: { label: LABELS.ownedSearch, value: ownedItems, leftOut: leftOutByDemand.OWNED_OBSERVED ?? 0, leftOutWhy: "owned items whose question was overturned" },
+  };
+  const needed = neededNewPages({ needs, decisions });
+  const actions = actionLines({ needs });
+  return { possible, verified, groups, lines, needed, actions, asAt, notice: SAMPLE_NOTICE };
 }
 
-/** C4/C6: one number's line — a value or NOT MEASURED with its missing input; never 0 in its place, never summed with another. */
+/** C4/C6/C13: one line — a value or NOT MEASURED with its missing input; never 0 in its place, never summed with another. */
 export const formatNumber = (n) => (measured(n.value) ? `${n.label}: ${n.value}` : `${n.label}: NOT MEASURED — missing ${n.missing}`);
+/** C13: a line with its AS AT and its left-out count. */
+export const formatLine = (n, asAt) => `${formatNumber(n)} · ${asAt} · left out ${n.leftOut} (${n.leftOutWhy})`;

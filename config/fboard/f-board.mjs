@@ -1516,7 +1516,7 @@ export const DECLARED = Object.freeze({
   F32: Object.freeze({
     featureId: "F32",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: F32_ORIGINAL.ruling, contractSha256: F32_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -1566,6 +1566,24 @@ export const DECLARED = Object.freeze({
         amendment: Object.freeze({ ruling: F32_AMENDMENT_1.ruling, contractSha256: F32_AMENDMENT_1.contractSha256 }),
         ownerDecision: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-06_RR-192_APPROVE_F32_A1_REV2_F39_A1_PG-A1.md", commit: "7b12d2cd7446d0554f4cf746099c15cb3ca70d43", sha256: "e4cc18aa02a3bb8081c55dc33af4286bbbc7d06718eea03b8d0eff8c3be96bb0" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-06_RR-192.md", commit: "7b12d2cd7446d0554f4cf746099c15cb3ca70d43", sha256: "f6deb7744599d6bd489b04dadeae34adcc5358c64d090b8ac89be6556fb7762a" }),
+      }),
+      /* RR-192: F32 RE-PROVED under F32_AMENDMENT_1 — every clause PROVED and every sabotage PROVED, after T-1 (RTP-1 S8–S9; PG-A1);
+       * recorded through the board route in the same PR; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F32",
+        population: "REAL",
+        on: "2026-10-06",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (R6a, RR-192)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F32_AMENDMENT_1.ruling.sha256, contract: F32_AMENDMENT_1.contractSha256 }),
+        clauses: Object.freeze({ "C1": "PROVED", "C2": "PROVED", "C3": "PROVED", "C4": "PROVED", "C5": "PROVED", "C6": "PROVED", "C7": "PROVED", "C3 AS AMENDED": "PROVED", "C6 AS AMENDED": "PROVED" }),
+        populations: "REAL: the client's 27 recorded pages and 351 sibling pairs, count-only (0 semantic reviews recorded, so semantic duplication NOT JUDGED on all 351); every limb also on hand-written recorded-shape fixtures. No paid or metered call.",
+        proofs: "test/f32-duplication.test.mjs C1–C7 (counted fixture reviews recorded needsGuidance: false), C3 AS AMENDED (guidance-dependent and unmarked reviews HELD, the missing guidance-free review named), C6 AS AMENDED (no threshold value pinned; F32 imports and reads none of the six constants and imports no gate), REAL; test/rr192-r6a.test.mjs R192-BOARD",
+        sabotage: "runs/audit/rr192-sabotage-2026-10-06T1923.txt: 64 of 64 proved across F32, F39 and T-1 — F32 C1–C7 (22 carried; S18 retired with C6's superseded limb) and C3/C6 AS AMENDED (5) — residue 0, production trail unchanged",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),
@@ -1782,7 +1800,7 @@ export const DECLARED = Object.freeze({
   F39: Object.freeze({
     featureId: "F39",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: F39_ORIGINAL.ruling, contractSha256: F39_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -1832,6 +1850,24 @@ export const DECLARED = Object.freeze({
         amendment: Object.freeze({ ruling: F39_AMENDMENT_1.ruling, contractSha256: F39_AMENDMENT_1.contractSha256 }),
         ownerDecision: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-06_RR-192_APPROVE_F32_A1_REV2_F39_A1_PG-A1.md", commit: "7b12d2cd7446d0554f4cf746099c15cb3ca70d43", sha256: "e4cc18aa02a3bb8081c55dc33af4286bbbc7d06718eea03b8d0eff8c3be96bb0" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-06_RR-192.md", commit: "7b12d2cd7446d0554f4cf746099c15cb3ca70d43", sha256: "f6deb7744599d6bd489b04dadeae34adcc5358c64d090b8ac89be6556fb7762a" }),
+      }),
+      /* RR-192: F39 RE-PROVED under F39_AMENDMENT_1 — every clause PROVED and every sabotage PROVED, after T-1 (RTP-1 S8–S9; PG-A1);
+       * recorded through the board route in the same PR; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F39",
+        population: "REAL",
+        on: "2026-10-06",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (R6a, RR-192)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F39_AMENDMENT_1.ruling.sha256, contract: F39_AMENDMENT_1.contractSha256 }),
+        clauses: Object.freeze({ "C1": "PROVED", "C2": "PROVED", "C3": "PROVED", "C4": "PROVED", "C5": "PROVED", "C6": "PROVED", "C7": "PROVED", "C3 AS AMENDED": "PROVED" }),
+        populations: "REAL: the client's recorded pages through F39's own reader, count-only (no gain record, competitor comparison or review recorded); every limb also on hand-written recorded-shape fixtures. No paid or metered call, no new data gathering.",
+        proofs: "test/f39-information-gain.test.mjs C1–C7 (counted fixture reviews recorded needsGuidance: false) and C3 AS AMENDED (a held review leaves the current-pages baseline NOT MEASURED, naming the missing guidance-free review, never NOT BEYOND or BEYOND; the page CANNOT DECIDE), REAL; test/page-construction.test.mjs (F36 · C1 and the construction path); test/rr192-r6a.test.mjs R192-BOARD",
+        sabotage: "runs/audit/rr192-sabotage-2026-10-06T1923.txt: 64 of 64 proved across F32, F39 and T-1 — F39 C1–C7 (22 carried) and C3 AS AMENDED (3) — residue 0, production trail unchanged",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

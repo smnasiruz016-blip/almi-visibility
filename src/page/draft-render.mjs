@@ -68,21 +68,34 @@ export function renderCompiledDraft({ spec, decision, links = null }) {
   const central = renderable.filter((c) => c.central !== false);
   const trace = [];
   const traced = (claims, where) => { for (const c of claims) trace.push(Object.freeze({ claimId: c.claimId, label: c.label, source: c.source, link: c.link, readOn: c.readOn, section: where })); return claims.map(claimHtml); };
+  /* 🔴 F37 C7 (Acceptance Amendment 1, RR-186; the owner's ruling in RR-185): EACH DISTINCT CLAIM ONCE. The need's answer — its central claims
+   * first, then the rest — is rendered ONCE, contiguously, in the answer block (id "answer"), each claim with its label, source, date read and
+   * trace; every UNKNOWN part is shown once. A Q&A section never renders a claim again: its heading — its question's own wording, unchanged
+   * (C2) — links back to the answer block, and the section names the claims it refers to in data-refers-to. A refer-back adds no visible
+   * text. Each question's markup carries the answer block's text, visible once on the page (C6, F48's rule). */
+  const seen = new Set(), shownUnknown = new Set();
+  const once = (claims) => claims.filter((c) => !seen.has(c.claimId) && seen.add(c.claimId));
+  const unknownOnce = (parts) => parts.filter((u) => { const k = u.claimId ?? `none:${u.why}`; return !shownUnknown.has(k) && shownUnknown.add(k); });
+  const answerClaims = [...central, ...renderable.filter((c) => c.central === false)];
   const out = [`<article class="draft" data-subject="${esc(spec.subject)}" data-writer="${esc(WRITER)}">`, `<h1>${esc(spec.title)}</h1>`];
-  out.push(`<section class="direct-answer"><h2>The answer</h2>`, ...(central.length ? traced(central, "direct answer") : [unknownHtml({ claimId: null, why: "the central answer is not supported" })]), `</section>`);
+  out.push(`<section class="direct-answer" id="answer"><h2>The answer</h2>`, ...(central.length ? [] : [unknownHtml({ claimId: null, why: "the central answer is not supported" })]),
+    ...traced(once(answerClaims), "the answer"), ...unknownOnce(unknown).map(unknownHtml), `</section>`);
+  const rendered = answerClaims.filter((c) => seen.has(c.claimId));
   const faq = [];
   const sectionsOut = spec.sections.map((s) => {
     const mine = renderable.filter((c) => (s.claims ?? []).includes(c.claimId));
-    const missing = [...(s.unknown ?? []).map((u) => ({ claimId: u.claimId ?? null, why: u.why ?? "unsupported" })), ...unknown.filter((u) => !(s.unknown ?? []).some((x) => x.claimId === u.claimId))];
+    const own = unknownOnce((s.unknown ?? []).map((u) => ({ claimId: u.claimId ?? null, why: u.why ?? "unsupported" })));
     const tierLine = `${TIER_LABEL[s.tier] ?? s.tier}${s.marking === GENERATED ? " · GENERATED wording" : ""}`;
-    out.push(`<section class="qa" data-question-id="${esc(s.questionId)}" data-tier="${esc(s.tier)}" data-marking="${esc(s.marking ?? "NONE")}">`, `<h2>${esc(s.heading)}</h2>`, `<p class="qa-tier">${esc(tierLine)}</p>`,
-      ...traced(mine, s.heading), ...missing.map(unknownHtml), `</section>`);
-    if (mine.length) faq.push({ "@type": "Question", name: s.heading, acceptedAnswer: { "@type": "Answer", text: answerText(mine) } });
-    return { heading: s.heading, claims: mine.length, unknown: missing.length };
+    out.push(`<section class="qa" data-question-id="${esc(s.questionId)}" data-tier="${esc(s.tier)}" data-marking="${esc(s.marking ?? "NONE")}" data-refers-to="${esc(mine.map((c) => c.claimId).join(" "))}">`,
+      `<h2><a href="#answer">${esc(s.heading)}</a></h2>`, `<p class="qa-tier">${esc(tierLine)}</p>`, ...traced(once(mine), s.heading), ...own.map(unknownHtml), `</section>`);
+    if (mine.length) faq.push({ "@type": "Question", name: s.heading, acceptedAnswer: { "@type": "Answer", text: answerText(rendered) } });
+    return { heading: s.heading, claims: mine.length, unknown: own.length };
   });
   for (const cs of spec.countrySections ?? []) {
     const mine = renderable.filter((c) => (cs.claims ?? []).includes(c.claimId));
-    out.push(`<section class="country-part" data-country="${esc(cs.country)}">`, `<h2>${esc(cs.country)}</h2>`, ...traced(mine, cs.country), ...(cs.unknown ?? []).map(unknownHtml), `</section>`);
+    const fresh = once(mine);
+    out.push(`<section class="country-part" data-country="${esc(cs.country)}" data-refers-to="${esc(mine.filter((c) => !fresh.includes(c)).map((c) => c.claimId).join(" "))}">`, `<h2>${esc(cs.country)}</h2>`,
+      ...traced(fresh, cs.country), ...unknownOnce(cs.unknown ?? []).map(unknownHtml), `</section>`);
   }
   const outLinks = links && links.completeness === "COMPLETE" && Array.isArray(links.out) ? links.out.filter((l) => present(l?.url)) : [];
   if (outLinks.length) out.push(`<nav class="related"><h2>Related pages</h2><ul>${outLinks.map((l) => `<li><a href="${esc(l.url)}">${esc(l.title ?? l.url)}</a></li>`).join("")}</ul></nav>`);
@@ -97,7 +110,7 @@ export function renderCompiledDraft({ spec, decision, links = null }) {
   const tracedIds = new Set(trace.map((t) => t.claimId));
   const factDivs = [...html.matchAll(/<div class="claim" data-claim-id="([^"]+)">/g)].map((m) => m[1]);
   checks.everyClaimSourced = factDivs.every((id) => tracedIds.has(id)) && trace.every((t) => present(t.source) && present(t.link) && present(t.readOn)) ? { state: CHECK.PASS } : { state: CHECK.FAIL, why: "a written claim lacks its source or its trace" };
-  const headings = [...html.matchAll(/<section class="qa"[^>]*>\n<h2>([^<]*)<\/h2>/g)].map((m) => m[1]);
+  const headings = [...html.matchAll(/<section class="qa"[^>]*>\n<h2><a href="#answer">([^<]*)<\/a><\/h2>/g)].map((m) => m[1]);
   checks.headingsMatch = headings.length === spec.sections.length && spec.sections.every((s, i) => headings[i] === esc(s.heading)) ? { state: CHECK.PASS } : { state: CHECK.FAIL, why: "a heading differs from its compiled section's wording" };
   checks.internalLinks = !links || links.completeness !== "COMPLETE"
     ? { state: CHECK.NOT_MEASURED, why: "no recorded internal-link targets within a COMPLETE inventory — internal links in and out cannot be measured" }

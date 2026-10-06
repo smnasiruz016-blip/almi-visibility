@@ -142,7 +142,8 @@ test("T40-C2 · F40 C2 ANSWER SUFFICIENCY, NOT LENGTH: a supported central answe
 /* ================= C3 ================= */
 test("T40-C3 · F40 C3 FIVE SEPARATE ASSESSMENTS: every record carries all five, each its own result; F39 CANNOT DECIDE gives distinct value CANNOT DECIDE while the other four are still assessed; one FAIL among PASSes stays separate; nothing sums or collapses them", () => {
   const c = chosen();
-  const q = judged(c, { judgements: PASSING_JUDGEMENTS }).q;
+  /* RR-186: F37 now renders each claim once, so its render no longer supplies the FAIL this test keeps separate; a recorded FAIL judgement does */
+  const q = judged(c, { judgements: [fixtureJudgement("engaging", VERDICT.FAIL), fixtureJudgement("hookable", VERDICT.PASS)] }).q;
   assert.deepEqual(Object.keys(q.assessments), ASSESSMENTS);
   for (const a of ASSESSMENTS) assert.ok(q.assessments[a] && [VERDICT.PASS, VERDICT.FAIL, VERDICT.NOT_MEASURED, CANNOT_DECIDE].includes(q.assessments[a].verdict), `${a} is missing or carries no verdict of its own`);
   const noGain = judged(c, { withGain: false }).q;
@@ -150,7 +151,7 @@ test("T40-C3 · F40 C3 FIVE SEPARATE ASSESSMENTS: every record carries all five,
   assert.equal(noGain.assessments.distinctValue.verdict, CANNOT_DECIDE);
   for (const a of ASSESSMENTS.filter((x) => x !== "distinctValue")) assert.notEqual(noGain.assessments[a].verdict, CANNOT_DECIDE, `${a} was not assessed`);
   assert.equal(noGain.assessments.answerQuality.verdict, VERDICT.PASS);
-  /* one FAIL (repetition, unjustified) among PASSes, kept separate and visible */
+  /* one FAIL (the engaging judgement) among PASSes, kept separate and visible */
   assert.equal(q.assessments.engagingPresentation.verdict, VERDICT.FAIL);
   assert.deepEqual(["technicalIndexability", "answerQuality", "verifiedFacts", "distinctValue"].map((a) => q.assessments[a].verdict), [VERDICT.PASS, VERDICT.PASS, VERDICT.PASS, VERDICT.PASS]);
   assert.ok(q.gate.blockers.includes("engagingPresentation FAIL"));
@@ -181,10 +182,18 @@ test("T40-C4 · F40 C4 THE JUDGEMENTS: a fixture draft judged FILLER is blocked 
   assert.deepEqual([wrong.judgements.engaging.verdict, wrong.judgements.hookable.verdict], [VERDICT.NOT_MEASURED, VERDICT.NOT_MEASURED]);
   assert.equal(judged(c, { judgements: [{ ...fixtureJudgement("engaging", VERDICT.PASS), observation: "" }] }).q.judgements.engaging.verdict, VERDICT.NOT_MEASURED);
   /* the repetition judgement on F37's OWN render of the grouped need (RR-184 I-5), no justification recorded: recorded as given */
+  /* RR-186: restated to F37's NEW real output (Amendment 1, each distinct claim once). Before it: FAIL, "5 claim block(s) rendered for 2
+   * distinct claim(s); repeated: c-central ×3, c-body ×2". Recorded as given, by F40's unchanged criterion. */
   const f37 = clean.q.judgements.repetition;
-  assert.equal(f37.verdict, VERDICT.FAIL);
-  assert.match(f37.observation, /^5 claim block\(s\) rendered for 2 distinct claim\(s\); repeated: c-central ×3, c-body ×2$/);
-  assert.equal(judged(chosen({ grouped: false })).q.judgements.repetition.verdict, VERDICT.FAIL, "F37's render was exempted from the repetition criterion");
+  assert.equal(f37.verdict, VERDICT.PASS);
+  assert.match(f37.observation, /^2 claim block\(s\) rendered for 2 distinct claim\(s\); repeated: none$/);
+  const oneQ = judged(chosen({ grouped: false })).q.judgements.repetition;
+  assert.deepEqual([oneQ.verdict, oneQ.observation], [VERDICT.PASS, "2 claim block(s) rendered for 2 distinct claim(s); repeated: none"], "F37's one-question render repeats a claim");
+  /* the criterion still FAILs a claim rendered twice — F37's render is not exempted, it simply no longer repeats */
+  const twice = { ...clean.d, html: clean.d.html.replace(/(<div class="claim" data-claim-id="c-body">[\s\S]*?<\/div><\/div>|<div class="claim" data-claim-id="c-body">[\s\S]*?<\/p><\/div>)/, "$1\n$1") };
+  const tq = judged(c, { draft: twice }).q;
+  assert.equal(tq.judged, true, tq.why);
+  assert.deepEqual([tq.judgements.repetition.verdict, tq.judgements.repetition.observation], [VERDICT.FAIL, "3 claim block(s) rendered for 2 distinct claim(s); repeated: c-body ×2"], "the repetition criterion cannot see a claim rendered twice");
 });
 
 /* ================= C5 ================= */

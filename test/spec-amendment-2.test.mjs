@@ -27,6 +27,11 @@ const AMENDED = [
   "F62 | Core intelligence | International and locale intelligence | Research genuine language, regulatory, cultural and search differences across the subject's relevant countries and languages without doorway-page multiplication; country-name substitution alone never justifies a separate URL."
 ];
 const BEFORE = {"F01":"1748b770c0bddb60","F02":"9d3bc31f9c5ed63a","F03":"4c18284ea9ce9432","F04":"35fa86c408583d1b","F05":"49766bcd9fcb2bc4","F06":"301364750546b580","F07":"997fe93cfe4ba01e","F08":"bb1ce57d2f93bf4c","F09":"59ad397d7bc5c3c1","F10":"f7b08a7a050b8f43","F11":"f1f41efa529012f4","F12":"177a5239084699df","F13":"8de20f1065a22c8c","F14":"6d988d00e079f090","F15":"7d7783d24b1c76f9","F16":"b5f1612d16e44074","F17":"7087cbbe624d393a","F18":"80fac5b9e4b11358","F19":"7d160dda974c6936","F20":"8821c65c100fb0c7","F21":"fd807b2eaa570f40","F22":"6fbc1b4f11b1d5e1","F23":"e946c09bf61260c5","F24":"1ce5d2a57471f4a8","F25":"2d0177ceb9c91583","F26":"aad29acf34d1c42c","F27":"bf1d96f4f1ff5d64","F28":"3901556e8b3b8359","F29":"868d41af9080c705","F30":"26162028d183978b","F31":"0fd1d4c832855f42","F32":"ffc28a17240666cf","F33":"458c185987f3cd37","F34":"30fad1995e055faa","F35":"f12bccfa0405b153","F36":"82095c0a5a5a28e7","F37":"025fea718b836ad0","F38":"748e6a374e4ee865","F39":"467e292bf95735e0","F40":"f8557dbf9fb76554","F41":"b554423f57083f54","F42":"c93059a4d8fe1efb","F43":"6959e21d2cc473c3","F44":"63bf99012def7b50","F45":"87446985392914b4","F46":"2f2f8fef450e1a52","F47":"278c1aceb38e0a18","F48":"8c66df03235b1ecd","F49":"1175f5e79b0f7713","F50":"d429f508c8a652e6","F51":"2b1f9ac461a3230e","F52":"d304d70bd185a828","F53":"35e5a112bbdbec5f","F54":"3f976bcf33988749","F55":"1868d4828ab01a5d","F56":"acb23152bb3249c8","F57":"f61782e2889ed023","F58":"ca2ef141872e1787","F59":"ca025e906717d38b","F60":"c9d800e700290745","F61":"6fdb17fb9d221f03","F62":"144607e2d844d90c","F63":"8b9d6dfc16a182c4","F64":"2576737e0c5ec95b","F65":"dbe5c4c5aae2238c","F66":"113a465f7fbf4c80","F67":"c9d6f4b7a9b52a42","F68":"18a5d686f178210d","F69":"3e141ca885d0e4ef","F70":"26d0eeba1dc3976f","F71":"537da0495aa89701","F72":"0d28532420926fb0","F73":"01e25cd3d613a31a","F74":"bc7cee142b4cb4f7","F75":"134843d9631c934a","F76":"1d3b098e44da5dff","F77":"d0df9b307574a619","F78":"f16649c6d328f76f","F79":"f34ee5e267e8147b","F80":"93930914da6f703e","F81":"9d3a7153db863b1e","F82":"5ccad95a4f905f6d","F83":"bb4f564e8ecc945e","F84":"9a2daf4cf96d9a52","F85":"03b0d5596ba2ef18","F86":"5e616e0d3ea407ef","F87":"499094137be90e7d","F88":"7dd81393cf9c9c49","F89":"535e1d46041e87cc","F90":"38a78a7e03509bce"};
+/* RR-182: Specification Amendment 5 APPENDED one sentence to F38's and F62's lines (and to F17 F58 F76 F81, which Amendment 2 did not touch);
+ * carried here as TEXT. Amendment 2's line stays, byte for byte, as each line's opening. */
+const A5_SENTENCE = Object.freeze({ F38: "Every page, new or existing, carries exactly one title and one meta description, each truthful to the page's verified content and unique among the client's pages; an absent, empty, duplicated or overstating title or description is a finding, never silently rewritten.",
+  F62: "Where a page genuinely exists in more than one language or country version, the versions declare one another reciprocally (hreflang, with an x-default where one applies) and link to one another, and a missing, one-way or contradictory declaration is a finding." });
+const A5_EXTENDED_ELSEWHERE = ["F17", "F58", "F76", "F81"];
 const sha = (s) => createHash("sha256").update(s, "utf8").digest("hex");
 
 test("A2·1 · each amended row is the amendment's line, byte for byte", () => {
@@ -35,7 +40,7 @@ test("A2·1 · each amended row is the amendment's line, byte for byte", () => {
     const [id, domain, name] = line.split(" | ");
     const row = CAPABILITIES.find((c) => c.id === id);
     assert.ok(row, `${id} missing`);
-    assert.equal(row.lineSha256, sha(line), `${id} is not the amendment's line`);
+    assert.equal(row.lineSha256, sha(A5_SENTENCE[id] ? `${line} ${A5_SENTENCE[id]}` : line), `${id} is not the amendment's line (with Amendment 5's sentence where it appended one)`);
     assert.deepEqual([row.domain, row.name], [domain, name]);
   }
 });
@@ -43,26 +48,29 @@ test("A2·1 · each amended row is the amendment's line, byte for byte", () => {
 test("A2·2 · no other row changed; exactly the ten amended rows differ from the amended_1 derivation", () => {
   /* Amendment 3 (RR-103, 30 Sep) APPENDED F91 after F90; this test is about the rows Amendment 2 touched, so it reads the rows BEFORE names
    * and requires that F91 is the one row outside them. */
-  assert.deepEqual(CAPABILITIES.filter((c) => !(c.id in BEFORE)).map((c) => c.id), ["F91"]);
+  /* RR-182: Amendment 5 appended F92–F96 after F91, and extended four rows Amendment 2 did not touch — named, so nothing else may differ */
+  assert.deepEqual(CAPABILITIES.filter((c) => !(c.id in BEFORE)).map((c) => c.id), ["F91", "F92", "F93", "F94", "F95", "F96"]);
   const changed = CAPABILITIES.filter((c) => c.id in BEFORE && BEFORE[c.id] !== c.lineSha256.slice(0, 16)).map((c) => c.id);
-  assert.deepEqual(changed, AMENDED.map((l) => l.slice(0, 3)));
+  assert.deepEqual(changed.filter((id) => !A5_EXTENDED_ELSEWHERE.includes(id)), AMENDED.map((l) => l.slice(0, 3)));
+  assert.deepEqual(changed.filter((id) => A5_EXTENDED_ELSEWHERE.includes(id)), A5_EXTENDED_ELSEWHERE);
   // CONTROL: the comparison can fail — a planted change to one untouched row is seen
   const planted = CAPABILITIES.map((c) => (c.id === "F01" ? { ...c, lineSha256: sha("planted") } : c));
   assert.ok(planted.filter((c) => BEFORE[c.id] !== c.lineSha256.slice(0, 16)).some((c) => c.id === "F01"));
 });
 
-test("A2·3 · Amendment 2 left ids and order unchanged: F01–F90 in order (Amendment 3 later appended F91); no F00, no F92, no F99", () => {
+test("A2·3 · Amendment 2 left ids and order unchanged: F01–F90 in order (Amendment 3 later appended F91, Amendment 5 F92–F96); no F00, no F97, no F99", () => {
   assert.deepEqual(CAPABILITIES.slice(0, 90).map((c) => c.id), Array.from({ length: 90 }, (_, i) => `F${String(i + 1).padStart(2, "0")}`));
-  /* The absent-id control was F91 until Amendment 3 made F91 a row; it is RESTATED as F92, the id one past the last row
-   * (test/spec-amendment-3.test.mjs proves the restatement fires). */
-  for (const absent of ["F00", "F92", "F99"]) assert.equal(CAPABILITIES.some((c) => c.id === absent), false, `${absent} exists`);
+  /* The absent-id control was F91 until Amendment 3 made F91 a row; it was RESTATED as F92, the id one past the last row, and since
+   * Amendment 5 (RR-182) made F92–F96 rows it is F97 (test/spec-amendment-5.test.mjs proves the restatement fires). */
+  for (const absent of ["F00", "F97", "F99"]) assert.equal(CAPABILITIES.some((c) => c.id === absent), false, `${absent} exists`);
 });
 
 test("A2·4 · F62 is Core intelligence now, and the generated list is pinned to the amended_2 extract the derivation names", () => {
   assert.equal(CAPABILITIES.find((c) => c.id === "F62").domain, "Core intelligence");
   assert.deepEqual({ ...EXTRACT_PROVENANCE }, { ...DERIVE_PROVENANCE });
   /* since Amendment 3 (RR-103) the derivation named the amended_3 extract, and since Amendment 4 (RR-153, 6c606b2) the amended_4 extract —
-   * each carries Amendment 2's ten lines unchanged (A2·1); Amendment 4 changed only F91's line */
-  assert.match(EXTRACT_PROVENANCE.path, /amended_4\.extract\.txt$/);
-  assert.equal(EXTRACT_PROVENANCE.sha256, "53db85b7968941a0e694022013bf4f11cb89f2ecd587581f17b63663e7cd892a");
+   * each carries Amendment 2's ten lines unchanged (A2·1); Amendment 4 changed only F91's line. Since Amendment 5 (RR-182) the derivation names
+   * the amended_5 extract: Amendment 2's ten lines are still each line's opening, F38's and F62's with one sentence appended (A2·1) */
+  assert.match(EXTRACT_PROVENANCE.path, /amended_5\.extract\.txt$/);
+  assert.equal(EXTRACT_PROVENANCE.sha256, "526c8e5de1e7c56c061f08ef24afdc65118891fe7f277c97e2ce2910a035583f");
 });

@@ -1,6 +1,6 @@
 # ALMIVISIBILITY — THE PASS BOUNDARIES (58 FROZEN, PLUS ROWS ADMITTED BY RULING) AND THE SEVEN-STATE LEDGER
 
-> 🔴 **HISTORICAL — SUPERSEDED FOR ACTIVE PRODUCT ACCOUNTING — DO NOT APPLY AS F-ROW AUTHORITY.** Active completion is measured against F01–F90 only (src/fboard); this ledger is kept for audit, provenance and evidence discovery, transfers no state to an F-row and grants no F-row acceptance authority. Source: _handoffs/AlmiVisibility_CC_COMMAND_2026-09-22_F05_CURRENT_AUTHORITY_REGISTER_CHAIN.md §0.4.
+> 🔴 **HISTORICAL — SUPERSEDED FOR ACTIVE PRODUCT ACCOUNTING — DO NOT APPLY AS F-ROW AUTHORITY.** Active completion is measured against F01–F96 only (src/fboard); this ledger is kept for audit, provenance and evidence discovery, transfers no state to an F-row and grants no F-row acceptance authority. Source: _handoffs/AlmiVisibility_CC_COMMAND_2026-09-22_F05_CURRENT_AUTHORITY_REGISTER_CHAIN.md §0.4.
 
 > 🔴 **GENERATED — DO NOT EDIT BY HAND.** `node bin/checklist-boundaries.mjs --confirm` rebuilds it; without `--confirm` the run writes nothing and reports whether this file is stale.
 > Every boundary below is read out of `PASS_BOUNDARIES_SOURCE.md`, whose body is verified

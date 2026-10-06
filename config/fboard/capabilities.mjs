@@ -1,10 +1,10 @@
 /**
  * 🔴 GENERATED — DO NOT EDIT BY HAND. `node bin/fboard-derive.mjs --extract=<extract> --confirm` rebuilds it.
  *
- * The active F-board's capabilities, F01–F91, derived from the committed specification extract named below. Each
+ * The active F-board's capabilities, F01–F96, derived from the committed specification extract named below. Each
  * row carries the sha256 of its exact extract line, so a hand edit is visible and the list re-derives byte for byte.
  */
-export const EXTRACT_PROVENANCE = Object.freeze({"repo":"_handoffs","path":"AlmiVisibility_Standalone_Product_Feature_Specification_v1.amended_4.extract.txt","commit":"6c606b23effa9f5ae3bb9d94b1f6ee69fbbdfb04","sha256":"53db85b7968941a0e694022013bf4f11cb89f2ecd587581f17b63663e7cd892a"});
+export const EXTRACT_PROVENANCE = Object.freeze({"repo":"_handoffs","path":"AlmiVisibility_Standalone_Product_Feature_Specification_v1.amended_5.extract.txt","commit":"7acd99cadc1af60e0a2757bdb02601303a00ffce","sha256":"526c8e5de1e7c56c061f08ef24afdc65118891fe7f277c97e2ce2910a035583f"});
 export const CAPABILITIES = Object.freeze([
   Object.freeze({"id":"F01","domain":"Foundation","name":"Product declaration and intake","lineSha256":"1748b770c0bddb60dcd68ad09d2a95769928b5fe2a7eccf4240d3cfbaf36c06f"}),
   Object.freeze({"id":"F02","domain":"Foundation","name":"Tenant and evidence isolation","lineSha256":"9d3bc31f9c5ed63a19c207a7e5c99d339d0becb0ef31706e5fc82368f4173155"}),
@@ -22,7 +22,7 @@ export const CAPABILITIES = Object.freeze([
   Object.freeze({"id":"F14","domain":"Core intelligence","name":"Demand evidence research","lineSha256":"5f07eac1ffbc6ada7350c6cbb509224e0b09f63a85c3bda5702defd8a6446c3b"}),
   Object.freeze({"id":"F15","domain":"Core intelligence","name":"Supply visibility demand need separation","lineSha256":"91dc39ade1654da18ac4360fd6af75f0ef6589ddf8746b0e372c5c277220fc5f"}),
   Object.freeze({"id":"F16","domain":"Core intelligence","name":"SERP and answer-surface census","lineSha256":"6a936fcbe46fcc15cb6c85a4a09568cbb5c3da42867a34ac6570e84d82afdaa9"}),
-  Object.freeze({"id":"F17","domain":"Core intelligence","name":"Second-search and information-gap detection","lineSha256":"7087cbbe624d393a0f876f0f896c3a46e67cbe7d5fbdc70db02821f4c4a869f6"}),
+  Object.freeze({"id":"F17","domain":"Core intelligence","name":"Second-search and information-gap detection","lineSha256":"81831c1201ec444e6cdd4b434134772f73e6315265b3b188a412937156a3566d"}),
   Object.freeze({"id":"F18","domain":"Advanced","name":"New-product and pre-launch research","lineSha256":"80fac5b9e4b113586ccfd0fa583356b5af1d36bf552f354838a7097a35d6b90d"}),
   Object.freeze({"id":"F19","domain":"Core intelligence","name":"Website crawler","lineSha256":"7d160dda974c6936c866ba048bf5b23f46a86b9ac3b7163a002a0882124f6dd5"}),
   Object.freeze({"id":"F20","domain":"Core intelligence","name":"Status redirect and URL audit","lineSha256":"8821c65c100fb0c733bdf69b50ee47e4ddf5a6fb2f9679700befdf4a2a9db965"}),
@@ -43,7 +43,7 @@ export const CAPABILITIES = Object.freeze([
   Object.freeze({"id":"F35","domain":"Core intelligence","name":"Action decision engine","lineSha256":"f12bccfa0405b15327cc54a4e47275389a1bcdaf06377d2a57cdaca531a8bd7b"}),
   Object.freeze({"id":"F36","domain":"Core intelligence","name":"URL right-to-exist test","lineSha256":"82095c0a5a5a28e79f7bae7ceee8fa43d1ea28d60c90ea2520ffa941079f666b"}),
   Object.freeze({"id":"F37","domain":"Core intelligence","name":"Best-answer architecture","lineSha256":"621806602431b91c626f84f22f69dd4697ffba1fddfb1fbfe08b5bacd8317f7d"}),
-  Object.freeze({"id":"F38","domain":"Core intelligence","name":"Answer-first content specification","lineSha256":"47c773e9a4bb7338ac63f1c9a48b8becc2961fe6d6d2a780e202598b276394df"}),
+  Object.freeze({"id":"F38","domain":"Core intelligence","name":"Answer-first content specification","lineSha256":"bfdf05cdb9d3282a2a3592a11ec65de7b245d34fd199ae15a854a22a193835a6"}),
   Object.freeze({"id":"F39","domain":"Core intelligence","name":"Original information gain","lineSha256":"467e292bf95735e0aae99a839532ca2b176c122c06a1fe95aa780c50063a0f27"}),
   Object.freeze({"id":"F40","domain":"Core intelligence","name":"Adaptive page-quality gate","lineSha256":"f8557dbf9fb76554181e13e3fda5cfbe4d93e09704e31da65e11c72467c34d86"}),
   Object.freeze({"id":"F41","domain":"Core intelligence","name":"Content brief engine","lineSha256":"b554423f57083f546d1028803f17259303a06b48dd986763d409ce152a48628e"}),
@@ -63,11 +63,11 @@ export const CAPABILITIES = Object.freeze([
   Object.freeze({"id":"F55","domain":"Advanced","name":"AI crawler access audit","lineSha256":"1868d4828ab01a5df50ad1caebc06b6a7fa2325bd36b44a75fdcd0111eea8a5f"}),
   Object.freeze({"id":"F56","domain":"Advanced","name":"AI sentiment and narrative monitoring","lineSha256":"acb23152bb3249c824921049d8389d6c98129d290b1f046ff10778e3e0e2fb6f"}),
   Object.freeze({"id":"F57","domain":"Advanced","name":"AI recommendation engine","lineSha256":"f61782e2889ed023555cb6da511e77b75874c8be3e18a5e16adcc9e3a1d47529"}),
-  Object.freeze({"id":"F58","domain":"Core intelligence","name":"Competitor discovery and coverage comparison","lineSha256":"ca2ef141872e17876e759fab43f8e926c74c5f03fbabbd114945c77989ee9ae9"}),
+  Object.freeze({"id":"F58","domain":"Core intelligence","name":"Competitor discovery and coverage comparison","lineSha256":"8472116f53987df23bdabdc9d52a988033835140fe80fc434f5f319d1009cf25"}),
   Object.freeze({"id":"F59","domain":"Advanced","name":"Backlink profile and link-gap intelligence","lineSha256":"ca025e906717d38b0700b6e0bb6e22c43fc164afa9e87711cea524f2b5513b6b"}),
   Object.freeze({"id":"F60","domain":"Advanced","name":"Earned citation and digital PR opportunities","lineSha256":"c9d800e70029074581bb7a9ce5a682e678afc8305d0cad5ee7f275d74b3ef00e"}),
   Object.freeze({"id":"F61","domain":"Advanced","name":"Brand mention monitoring","lineSha256":"6fdb17fb9d221f03fbdb328033c5cead50c95afc6396e6bb352cccf88b496623"}),
-  Object.freeze({"id":"F62","domain":"Core intelligence","name":"International and locale intelligence","lineSha256":"8706b4fb9984bc1af2c603ad5c4956964deebc318bcaefe00257944367a5983c"}),
+  Object.freeze({"id":"F62","domain":"Core intelligence","name":"International and locale intelligence","lineSha256":"b43693ccebc9f2bab3ae5266a2ce24c25ba11dc6dbd72bf339a62e5d3ec96bc9"}),
   Object.freeze({"id":"F63","domain":"Advanced","name":"Local rank and map visibility tracking","lineSha256":"8b9d6dfc16a182c4aa8234b591de993b80334de9660b9a2cdfef73e3bbc6e177"}),
   Object.freeze({"id":"F64","domain":"Advanced","name":"Business profile listing and NAP consistency","lineSha256":"2576737e0c5ec95b5c91affd9b976c78b01255a61c14860e4ffa8e4a5e40453c"}),
   Object.freeze({"id":"F65","domain":"Advanced","name":"Review and local reputation intelligence","lineSha256":"dbe5c4c5aae2238cc5408a1bce3828c2f37324a2d0643a9ffa6609cdc72a0103"}),
@@ -81,12 +81,12 @@ export const CAPABILITIES = Object.freeze([
   Object.freeze({"id":"F73","domain":"Foundation","name":"Recommendation explainability","lineSha256":"01e25cd3d613a31ad1a9545fd133596882af60430113635041c40bc59a72e5a8"}),
   Object.freeze({"id":"F74","domain":"Core intelligence","name":"Safe implementation command generation","lineSha256":"bc7cee142b4cb4f73a7c6e456591fedc38f96849a8ebe4544419a750391e89b3"}),
   Object.freeze({"id":"F75","domain":"Advanced","name":"Task ticket and workflow integration","lineSha256":"134843d9631c934a7230007091e02e93c753ffc83549d2cc4fe7bf15cc17af0a"}),
-  Object.freeze({"id":"F76","domain":"Advanced","name":"Controlled draft and publishing workflow","lineSha256":"1d3b098e44da5dffe2826a97598055fe53da77d56693960c85739d4347f47658"}),
+  Object.freeze({"id":"F76","domain":"Advanced","name":"Controlled draft and publishing workflow","lineSha256":"43ce82b296270124b92794512839079c4ef39f14c65ffe53d1ce30720f66d4f0"}),
   Object.freeze({"id":"F77","domain":"Foundation","name":"Idempotency retry and rollback safety","lineSha256":"d0df9b307574a619d64eabde283fad48d05960d8218ebde8c909e05d5c162352"}),
   Object.freeze({"id":"F78","domain":"Foundation","name":"Cost budget and provider governor","lineSha256":"f16649c6d328f76f9374d062df3854bef7d4dbcda393def0526d54196a59516b"}),
   Object.freeze({"id":"F79","domain":"Foundation","name":"Evidence cache before re-research","lineSha256":"f34ee5e267e8147b7a7af7f6003cf71d63b332d58997c7f553254c775a89f28b"}),
   Object.freeze({"id":"F80","domain":"Advanced","name":"API webhooks exports and integrations","lineSha256":"93930914da6f703e8865d7bf5a5e3e583e013a0a2643a02c6f42caf3648bcd86"}),
-  Object.freeze({"id":"F81","domain":"Core intelligence","name":"Search performance and rank tracking","lineSha256":"9d3a7153db863b1e01d146d76a3cd975b4137020c039e86c046b65f21063f5d2"}),
+  Object.freeze({"id":"F81","domain":"Core intelligence","name":"Search performance and rank tracking","lineSha256":"3976eaadb5d1cd9eb8f8dfaddc9200cf4263a6214a4cbe300ccd6e626a7b1e13"}),
   Object.freeze({"id":"F82","domain":"Core intelligence","name":"Real indexation learning","lineSha256":"5ccad95a4f905f6d64ad284a9aa0a35e3ca53250f8c9d814185bbae65d920835"}),
   Object.freeze({"id":"F83","domain":"Advanced","name":"Experiment and change-impact analysis","lineSha256":"bb4f564e8ecc945e23fdb7479f94cc0daf6185ffdf116e1f71b68fe7d7b1f404"}),
   Object.freeze({"id":"F84","domain":"Advanced","name":"Funnel and business-outcome intelligence","lineSha256":"9a2daf4cf96d9a521f984e4ba7a3c05042c8acef4975288326fb0cefe4216db2"}),
@@ -97,4 +97,9 @@ export const CAPABILITIES = Object.freeze([
   Object.freeze({"id":"F89","domain":"Assurance","name":"Final independent audit and done declaration","lineSha256":"535e1d46041e87ccb8d533639858ece3f903853583198f9f4e133b05fc95c75e"}),
   Object.freeze({"id":"F90","domain":"Assurance","name":"Falsifiability of findings","lineSha256":"38a78a7e03509bcedfba9e28386e0273057c1ff83b041e9bd685b528ffb9a38c"}),
   Object.freeze({"id":"F91","domain":"Core intelligence","name":"Page opportunity planning","lineSha256":"53fedf6de40f1a711bfc0fb5e581e6fd915d14211f5b305df2ff5ce9150c016d"}),
+  Object.freeze({"id":"F92","domain":"Advanced","name":"Image and video visibility","lineSha256":"cdddee59e04881ee3df5117b52b1cfcfd35ce8e1d3610ae0f0b809c4023c8221"}),
+  Object.freeze({"id":"F93","domain":"Core intelligence","name":"Trust and identity signals","lineSha256":"9d441b91cde082969b4e81ac15c0acf8db523875192163b2e6a28a48ea00e55c"}),
+  Object.freeze({"id":"F94","domain":"Core intelligence","name":"Site architecture and internal-linking plan","lineSha256":"d7a168916114c3d086264afe7f902eb98a6dcb9d5538cca309308d08daa6e605"}),
+  Object.freeze({"id":"F95","domain":"Core intelligence","name":"Client-received question intake","lineSha256":"8f15de27aa0d76075cabd55e54abc0ce50773a3bd026583a7c17ad56c4261498"}),
+  Object.freeze({"id":"F96","domain":"Advanced","name":"E-commerce visibility","lineSha256":"63767b006eeea132919c6b69937419b7a471433a4b83d40609240a0829968d39"}),
 ]);

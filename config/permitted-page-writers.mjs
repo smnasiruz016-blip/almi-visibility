@@ -339,13 +339,13 @@ const SHARED_LOCAL_WRITERS = [
      * recorded instead of silent. */
     routed: true,
     sites: 0,
-    writes: "config/fboard/capabilities.mjs — F01–F90, derived line by line from the committed specification extract, each row pinned to its line's sha256",
+    writes: "config/fboard/capabilities.mjs — F01–F96, derived line by line from the committed specification extract, each row pinned to its line's sha256",
     where: "config/fboard/capabilities.mjs — a fixed path inside this repository, no operator flag; a GENERATED file, not evidence",
     gatedBy: "write-law LOCAL: permission.mayWrite, which only --confirm grants. Without it the run derives every row and reports whether the committed file is UP TO DATE or STALE",
     gateFlags: ["--confirm"],
     gateToken: "permission.mayWrite",
     destinationOverridable: false,
-    why: "the active completion denominator must be the specification's own rows (90: the v1 89 plus F90 by Specification Amendment 1), never typed: it is re-derived from the committed extract, so it can be rebuilt and never hand-edited",
+    why: "the active completion denominator must be the specification's own rows (96: the v1 89 plus F90 by Specification Amendment 1, F91 by Specification Amendment 3 and F92–F96 by Specification Amendment 5), never typed: it is re-derived from the committed extract, so it can be rebuilt and never hand-edited",
     whyKnown: true,
   },
   {

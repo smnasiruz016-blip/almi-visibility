@@ -1,7 +1,7 @@
 /**
  * 🔴 THE HISTORICAL CROSSWALK — ONE ENTRY PER F-ROW. IT POINTS TO REUSABLE WORK; IT NEVER IMPORTS AUTHORITY.
  *
- * For each F01–F90: the historical rows mapped to it (provenance references only), the relation of its frozen acceptance
+ * For each F01–F96: the historical rows mapped to it (provenance references only), the relation of its frozen acceptance
  * to theirs (the four-clause comparator, src/fboard/acceptance.mjs — never a semantic judgement), and the plain rule
  * that fresh verification is always required and no authority is imported. A row with no frozen acceptance is
  * UNASSESSED: no lawful comparison is possible, and it grants no implementation permission.

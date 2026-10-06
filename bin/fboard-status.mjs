@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 🔴 THE ACTIVE F-BOARD'S PRODUCTION ENTRY POINT — F01–F90, the state split (summing to 90) and F-progress.
+ * 🔴 THE ACTIVE F-BOARD'S PRODUCTION ENTRY POINT — F01–F96, the state split (summing to 96) and F-progress.
  *
  *   node bin/fboard-status.mjs [--check] [--now=YYYY-MM-DD]
  *

@@ -22,11 +22,11 @@ const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
 
 const SABOTAGES = [
-  ["G01", "DENOMINATOR back to 90", BD, "export const DENOMINATOR = 91;", "export const DENOMINATOR = 90;", "A3·3"],
+  ["G01", "DENOMINATOR one row short (RR-182: 96 → 95)", BD, "export const DENOMINATOR = 96;", "export const DENOMINATOR = 95;", "A3·3"],
   /* RR-153: re-anchored to live code — Specification Amendment 4 (6c606b2) appended a sentence to F91's line, so its row hash moved */
   ["G02", "F91 is not the amendment's line (its line hash altered)", CAP, '"lineSha256":"53fedf6de40f1a711bfc0fb5e581e6fd915d14211f5b305df2ff5ce9150c016d"', '"lineSha256":"53fedf6de40f1a711bfc0fb5e581e6fd915d14211f5b305df2ff5ce9150c016e"', "A3·1"],
-  ["G03", "the F91 row renamed to a phantom F92 in the capability list", CAP, '"id":"F91","domain":"Core intelligence"', '"id":"F92","domain":"Core intelligence"', "A3·3"],
-  ["G04", "a phantom F92 in the crosswalk", CW, '"featureId": "F91"', '"featureId": "F92"', "A3·3"],
+  ["G03", "the last row (F96 since RR-182) renamed to a phantom F97 in the capability list", CAP, '"id":"F96","domain":"Advanced"', '"id":"F97","domain":"Advanced"', "A3·3"],
+  ["G04", "a phantom F97 in the crosswalk (the last row F96 renamed, RR-182)", CW, '"featureId": "F96"', '"featureId": "F97"', "A3·3"],
   /* G05 repointed 1 Oct 2026 (RR-113): F91 now holds its OWN acceptance, so the old span — adding a second F91 key after F90 — would be
    * overridden by the live F91 line and land without effect. It now replaces F91's own acceptance with another row's. */
   /* RR-153: re-anchored to live code — ACCEPTANCES.F91 now names Amendment 2 (fff60df) */

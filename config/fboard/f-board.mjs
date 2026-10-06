@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1 } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -1956,6 +1956,40 @@ export const DECLARED = Object.freeze({
         ownerRulings: Object.freeze({ repo: "_handoffs", rr179R4Rulings: "a8dc1900442ff17508b0ee7129db19b3b29f69a3" }),
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
+      /* RR-188: F41's acceptance amendment, approved by its hash and frozen ALONE; F41 REOPENED at this freeze (F41 Amendment 1's practice) */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F41", on: "2026-10-06", ruling: F41_AMENDMENT_2.ruling, contractSha256: F41_AMENDMENT_2.contractSha256, amends: F41_AMENDMENT_2.amends }),
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F41",
+        on: "2026-10-06",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: F41_ACCEPTANCE_AMENDMENT_2)",
+        reason: "AUTHORITATIVE_REQUIREMENT_CHANGE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "F41's earlier evidence remains historically valid for what it measured; the reopen is caused by the newly frozen wider requirement (a preview only on a full F40 PASS for the same subject and the same contentSha256 (policy A); F40's blockers carried word for word), not by any defect found in that evidence",
+        amendment: Object.freeze({ ruling: F41_AMENDMENT_2.ruling, contractSha256: F41_AMENDMENT_2.contractSha256 }),
+        ownerDecision: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-06_RR-188_APPROVE_F40_A1_F41_A2_REV2.md", commit: "56560733f13e6038d71cd6078ff2dd683b895aa6", sha256: "49b106a455b28a8cb372924f5af5b21da341cdd7d85a9c76ede0279e54b5518f" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-06_RR-188.md", commit: "56560733f13e6038d71cd6078ff2dd683b895aa6", sha256: "b96e8bab866746a4515c3db0f207633a4aa6ab5597ae1dea50878e1fed4f7247" }),
+      }),
+      /* RR-188: F41 RE-PROVED under F41_AMENDMENT_2 — every clause PROVED and every sabotage PROVED, on FIXTURE structures only (RR-177);
+       * recorded through the board route in the same PR; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F41",
+        population: "REAL",
+        on: "2026-10-06",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (R5c, RR-188)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F41_AMENDMENT_2.ruling.sha256, contract: F41_AMENDMENT_2.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED", C8: "PROVED", C9: "PROVED" }),
+        populations: "FIXTURE structures only (RR-177): a fixture tenant and pages; F40 results judged by F40's own function on F37's own render, or hand-written PASS results where the test names them; nothing published. The runner's REAL path puts nothing forward today. Count-only.",
+        proofs: "test/f41-content-brief.test.mjs (C1 AS AMENDED–C7; C2 gains the unrecorded-need control), test/rr179-r4.test.mjs T41a–T41f (C1 AS AMENDED and C8, the preview handed F40's PASS), test/rr188-r5c.test.mjs T41-C9 and the three strict-subject tests (KIND, NOID, OTHERID), R188-BOARD",
+        sabotage: "runs/audit/rr188-sabotage-2026-10-06T0652.txt: 75 of 75 proved across F40 and F41 — F41 C1 AS AMENDED and C8 (11, RR-179's), C2–C7 and its live C1 limb (13, from f41-sabotage.mjs), C9 and the owner's strict subject match (9) — residue 0, production trail unchanged",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
     ]),
   }),
   /* 🔴 F43 · Content decay refresh and pruning. Frozen 29 Sep (_handoffs 6c7627a, RR-91 §2 and its resumption) ALONE, before any F43
@@ -2638,6 +2672,40 @@ export const DECLARED = Object.freeze({
         populations: "FIXTURE structures only — a fixture tenant with two fixture pages (verified bodies, recorded DOES_NOT_COVER judgements, DISTINCT reviews), planning rows built by F91's and F16's own functions, drafts rendered by F37's own function; fixture judgements carry their declared FIXTURE source and prove only the record, its FAIL path and the gate. Never the 27 existing pages set aside (RR-177). On a REAL draft today engaging and hookable are NOT MEASURED (no lawful judge) and distinct value is CANNOT DECIDE (no gain records), so no real draft passes F40; F37's own render of a grouped need FAILs the repetition judgement (5 claim blocks for 2 distinct claims), recorded as given (RR-184 I-5). Count-only.",
         proofs: "test/rr184-r5.test.mjs T40-C1 to T40-C7 and T40-ALL (one per EVIDENCE line), R40-BOARD",
         sabotage: "runs/audit/rr184-sabotage-2026-10-06T0301.txt: 37 of 37 proved (one per FAILURE limb of C1–C7 and [ALL]), residue 0, production trail unchanged",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+      /* RR-188: F40's acceptance amendment, approved by its hash and frozen ALONE; F40 REOPENED at this freeze (F41 Amendment 1's practice) */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F40", on: "2026-10-06", ruling: F40_AMENDMENT_1.ruling, contractSha256: F40_AMENDMENT_1.contractSha256, amends: F40_AMENDMENT_1.amends }),
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F40",
+        on: "2026-10-06",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: F40_ACCEPTANCE_AMENDMENT_1)",
+        reason: "AUTHORITATIVE_REQUIREMENT_CHANGE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "F40's earlier evidence remains historically valid for what it measured; the reopen is caused by the newly frozen wider requirement (the judged-content sha256 in F40's record (contentSha256); F40's criteria and methods unchanged, pinned), not by any defect found in that evidence",
+        amendment: Object.freeze({ ruling: F40_AMENDMENT_1.ruling, contractSha256: F40_AMENDMENT_1.contractSha256 }),
+        ownerDecision: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-06_RR-188_APPROVE_F40_A1_F41_A2_REV2.md", commit: "56560733f13e6038d71cd6078ff2dd683b895aa6", sha256: "49b106a455b28a8cb372924f5af5b21da341cdd7d85a9c76ede0279e54b5518f" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-06_RR-188.md", commit: "56560733f13e6038d71cd6078ff2dd683b895aa6", sha256: "b96e8bab866746a4515c3db0f207633a4aa6ab5597ae1dea50878e1fed4f7247" }),
+      }),
+      /* RR-188: F40 RE-PROVED under F40_AMENDMENT_1 — every clause PROVED and every sabotage PROVED, on FIXTURE structures only (RR-177);
+       * recorded through the board route in the same PR; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F40",
+        population: "REAL",
+        on: "2026-10-06",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (R5c, RR-188)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F40_AMENDMENT_1.ruling.sha256, contract: F40_AMENDMENT_1.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED", C8: "PROVED" }),
+        populations: "FIXTURE structures only (RR-177): drafts rendered by F37's own function on fixture pages and judged by F40's own function; fixture judgements carry their declared FIXTURE source. On a REAL draft today the gate stays NOT MEASURED (engaging and hookable have no lawful judge; distinct value CANNOT DECIDE without gain records). Count-only.",
+        proofs: "test/rr184-r5.test.mjs T40-C1–T40-C7 and T40-ALL (re-run unchanged); test/rr188-r5c.test.mjs T40-C8 (contentSha256 of the exact content judged, judged and NOT JUDGED; no verdict changed; the criteria and the three methods byte-identical to their pins), R188-BOARD",
+        sabotage: "runs/audit/rr188-sabotage-2026-10-06T0652.txt: 75 of 75 proved across F40 and F41 — F40 C1–C7 and [ALL] (37, RR-184's, re-run) and C8 (5) — residue 0, production trail unchanged",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),

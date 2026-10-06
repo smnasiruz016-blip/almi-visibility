@@ -33,7 +33,7 @@ test("F40 · the board is valid with the lift; the lift passed nothing — F40 m
   assert.deepEqual(kinds.slice(0, 4), ["BLOCKER_RECORDED", "BLOCKER_LIFTED", "ACCEPTANCE_FROZEN", "IMPLEMENTATION"]);
   assert.deepEqual([DECLARED.F40.events[1].to, DECLARED.F40.events[3].from], ["UNASSESSED", "UNASSESSED"]);
   assert.ok(["IN-PROGRESS", "VERIFIED-PASS"].includes(DECLARED.F40.state), DECLARED.F40.state);
-  assert.equal(DECLARED.F40.events.findIndex((e) => e.kind === "VERIFIED") < 0 || DECLARED.F40.state === "VERIFIED-PASS", true, "a VERIFIED event without the VERIFIED-PASS state");
+  assert.equal(DECLARED.F40.events.findIndex((e) => e.kind === "VERIFIED") < 0 || DECLARED.F40.state === ((r) => (r.state === "IN-PROGRESS" && r.events.at(-1)?.kind === "REOPENED" && r.events.at(-1)?.reason === "AUTHORITATIVE_REQUIREMENT_CHANGE" && r.events.at(-2)?.kind === "ACCEPTANCE_AMENDED" ? "IN-PROGRESS" : "VERIFIED-PASS"))(DECLARED.F40), true, "a VERIFIED event without the VERIFIED-PASS state, or a reopen without its own amendment" /* RR-188: F40's lawful state — VERIFIED-PASS, or IN-PROGRESS while its own Amendment 1 has reopened it */);
 });
 
 test("F40 · FIRING CONTROL: an F40 acceptance WITHOUT the owner's check, or without refusing a word count, cannot be frozen; with both it can", () => {

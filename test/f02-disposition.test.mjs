@@ -208,9 +208,9 @@ test("B · the board: F02 holds the state its evidence earned, and no other row 
   assert.ok(["IN-PROGRESS", "VERIFIED-PASS"].includes(f02.state));
   if (f02.state === "VERIFIED-PASS") {
     assert.ok(DECLARED.F02.events.some((e) => e.kind === "VERIFIED" && e.featureId === "F02" && e.population === "REAL"));
-    assert.equal(p.passed, 36); /* RR-186: F37 RE-PROVED under Amendment 1 (rr186-sabotage-2026-10-06T0419: 42 of 42) */
+    assert.equal(p.passed, 36); /* RR-188: F41 re-proved under Amendment 2 */
   } else assert.equal(p.passed, 5);
   for (const id of ["F01", "F05", "F06", "F08"]) assert.equal(board().find((r) => r.featureId === id).state, "VERIFIED-PASS");
   assert.equal(board().find((r) => r.featureId === "F07").state, "IN-PROGRESS"); // F07 reopened 28 Sep (test/f07-closure.test.mjs owns it)
-  assert.equal(board().find((r) => r.featureId === "F40").state, "VERIFIED-PASS"); /* RR-184: F40 frozen under its own acceptance (_handoffs 6d64c27), started after its lift, then PROVED (rr184-sabotage-2026-10-06T0301: 37 of 37) */ /* lifted 2 Oct 2026 by the owner ruling _handoffs 4761236 (RR-127 §2a) */
+  assert.equal(board().find((r) => r.featureId === "F40").state, ((r) => (r.state === "IN-PROGRESS" && r.events.at(-1)?.kind === "REOPENED" && r.events.at(-1)?.reason === "AUTHORITATIVE_REQUIREMENT_CHANGE" && r.events.at(-2)?.kind === "ACCEPTANCE_AMENDED" ? "IN-PROGRESS" : "VERIFIED-PASS"))(board().find((x) => x.featureId === "F40"))); /* RR-188: F40's lawful state — VERIFIED-PASS, or IN-PROGRESS while its own Amendment 1 has reopened it */ /* RR-184: F40 frozen under its own acceptance (_handoffs 6d64c27), started after its lift, then PROVED (rr184-sabotage-2026-10-06T0301: 37 of 37) */ /* lifted 2 Oct 2026 by the owner ruling _handoffs 4761236 (RR-127 §2a) */
 });

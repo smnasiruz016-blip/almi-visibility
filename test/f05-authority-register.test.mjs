@@ -396,7 +396,7 @@ test("P18 — UNASSESSED cannot enter implementation", () => {
 test("P19 — F40's 350-word-floor blocker is lifted ONLY by a CURRENT owner ruling, its history kept; F40 was UNASSESSED and not implementable until its own acceptance froze (RR-184), carrying both of the ruling's preconditions", () => {
   const f40 = board().find((x) => x.featureId === "F40");
   /* RR-184: F40 frozen under its own acceptance (_handoffs 6d64c27), started after its lift, then PROVED (rr184-sabotage-2026-10-06T0301: 37 of 37) */
-  assert.equal(fBoardState(f40), "VERIFIED-PASS");
+  assert.equal(fBoardState(f40), ((r) => (r.state === "IN-PROGRESS" && r.events.at(-1)?.kind === "REOPENED" && r.events.at(-1)?.reason === "AUTHORITATIVE_REQUIREMENT_CHANGE" && r.events.at(-2)?.kind === "ACCEPTANCE_AMENDED" ? "IN-PROGRESS" : "VERIFIED-PASS"))(f40)); /* RR-188: F40's lawful state — VERIFIED-PASS, or IN-PROGRESS while its own Amendment 1 has reopened it */
   assert.equal(f40.blocker, undefined);
   const [rec, lift] = f40.events;
   assert.deepEqual([rec.kind, lift.kind, lift.from, lift.to, lift.liftedBlocker], ["BLOCKER_RECORDED", "BLOCKER_LIFTED", "BLOCKED-BY-AUTHORITY", "UNASSESSED", "UNIVERSAL_350_WORD_FLOOR_STILL_APPLICABLE"]);

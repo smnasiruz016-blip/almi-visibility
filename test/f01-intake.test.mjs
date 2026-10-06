@@ -666,7 +666,7 @@ test("P45 · a NEW unrelated neutral declaration passes the production path with
 
 test("P47 · F40 stays BLOCKED and the historical 61/38 ledger is untouched", () => {
   /* RR-127 §2a: F40's blocker lifted by the owner ruling (_handoffs 4761236); the blocker's history is kept in its events */
-  assert.deepEqual([DECLARED.F40.state, DECLARED.F40.blocker, DECLARED.F40.events.map((e) => e.kind)], ["VERIFIED-PASS", undefined, ["BLOCKER_RECORDED", "BLOCKER_LIFTED", "ACCEPTANCE_FROZEN", "IMPLEMENTATION", "VERIFIED"]]); /* RR-184: F40 frozen under its own acceptance (_handoffs 6d64c27), started after its lift, then PROVED (rr184-sabotage-2026-10-06T0301: 37 of 37) */
+  assert.deepEqual([DECLARED.F40.state, DECLARED.F40.blocker, DECLARED.F40.events.map((e) => e.kind).slice(0, 5)], [((r) => (r.state === "IN-PROGRESS" && r.events.at(-1)?.kind === "REOPENED" && r.events.at(-1)?.reason === "AUTHORITATIVE_REQUIREMENT_CHANGE" && r.events.at(-2)?.kind === "ACCEPTANCE_AMENDED" ? "IN-PROGRESS" : "VERIFIED-PASS"))(DECLARED.F40), undefined, ["BLOCKER_RECORDED", "BLOCKER_LIFTED", "ACCEPTANCE_FROZEN", "IMPLEMENTATION", "VERIFIED"]] /* RR-188: later events are its own amendments */); /* RR-184: F40 frozen under its own acceptance (_handoffs 6d64c27), started after its lift, then PROVED (rr184-sabotage-2026-10-06T0301: 37 of 37) */
   const h = sha(readFileSync(join(REPO, "src/checklist/classification.mjs"), "utf8").split("\r\n").join("\n"));
   assert.equal(h, "149f936256debdc4b74b7298f707f48371d26ec4380a9f58f74254c6e9d9a65d");
 });

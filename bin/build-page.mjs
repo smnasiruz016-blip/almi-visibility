@@ -39,6 +39,7 @@ import { loadRegistry } from "../src/facts/registry.mjs";
 import { selectCandidates, constructCandidates, decisionsForConstruction, ACCEPTED, NOT_TESTED } from "../src/page/construct.mjs";
 import { renderCompiledDraft } from "../src/page/draft-render.mjs";
 import { judgeDraft, POPULATION, ASSESSMENTS, JUDGEMENTS } from "../src/page/quality-judgements.mjs";
+import { previewForOwner } from "../src/page/content-brief.mjs";
 import { readClientActionEvidence } from "../src/page/action-evidence.mjs";
 import { NO_RECORDED_DECAY_EVIDENCE } from "../src/page/content-decay-evidence.mjs";
 import { readClientIndexation } from "../src/page/indexation-evidence.mjs";
@@ -201,6 +202,14 @@ for (const { slug, q } of judged) {
   console.log(`  ${slug} — F40 gate ${q.gate.verdict}${q.gate.blockers.length ? ` (${q.gate.blockers.join(" · ")})` : ""}`);
   for (const a of ASSESSMENTS) console.log(`    ${a.padEnd(22)} ${q.assessments[a].verdict}`);
   for (const n of JUDGEMENTS) console.log(`    judgement ${n.padEnd(12)} ${q.judgements[n].verdict} — ${q.judgements[n].observation ?? q.judgements[n].why} [source: ${q.judgements[n].source?.id ?? "none"}]`);
+}
+
+/* 🔴 F41 C9 (RR-188) · each judged draft's preview, handed F40's result for THAT draft. This runner prepares no brief, so none is READY;
+ * the preview states every reason it is not put forward, F40's verdict and blockers word for word. Nothing is published. */
+for (const { slug, q } of judged) {
+  const construction = results.find((r) => r.slug === slug);
+  const pv = previewForOwner({ construction, brief: null, f40: q });
+  console.log(`  preview ${slug} — ${pv.state}${pv.missing?.length ? `: ${pv.missing.join(" | ")}` : ""}`);
 }
 
 if (outDir) {

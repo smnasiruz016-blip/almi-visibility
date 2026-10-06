@@ -1,0 +1,9 @@
+RR-188 R5c sabotage PRACTICE run · 2026-10-06T06:06:56.006Z
+population: 1 sabotage(s) over test/rr184-r5.test.mjs + test/rr188-r5c.test.mjs + test/rr179-r4.test.mjs + test/f41-content-brief.test.mjs · each applied ALONE · no provider, no network, no third-party read
+BASELINE (the named tests before any sabotage): GREEN · named tests seen GREEN: 1 of 1
+PRE-FLIGHT (span occurrences in the code live now): F41-O10=1+1 · all exactly once: true
+production trail sha256 before: 7ae38b637e597a014ea6f71067779535bf9457a2af2ad32ae9e68fb50fde9294
+
+F41-O10 F41 (original) C3 a fact needs a source [src/page/content-brief.mjs]: landed true · named test "C3" red true · its failure AssertionError · SyntaxError false · a production child crashed false · failing C3 · restored by sha256 true · PROVED
+
+proved 1 of 1 · residue 0 · production trail sha256 after: 7ae38b637e597a014ea6f71067779535bf9457a2af2ad32ae9e68fb50fde9294 · unchanged true

@@ -48,7 +48,7 @@ test("the correction moved nothing but the name: the three rows cite the real fi
     assert.deepEqual([c.path, c.commit, c.sha256], [RIGHT, "6eccb9ba7c62a1b51f2b6d37016c6429154791cc", "8422c1fd911fff92ffc28ec6b9a9cff07572e2334209c8e41e0e130d60d2828c"]);
     assert.equal(board().find((r) => r.featureId === id).state, "VERIFIED-PASS", `${id}'s verdict moved`);
   }
-  assert.equal(progress(board()).passed, 36); /* RR-186: F37 RE-PROVED under Amendment 1 (rr186-sabotage-2026-10-06T0419: 42 of 42) */
+  assert.equal(progress(board()).passed, 36); /* RR-188: F41 re-proved under Amendment 2 */
 });
 
 test("every production caller of the validator hands it the committed corpus — the guard cannot silently not run", () => {

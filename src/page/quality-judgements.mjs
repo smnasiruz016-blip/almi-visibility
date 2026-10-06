@@ -18,6 +18,7 @@
  */
 import { isChosenCreate } from "./action-decision.mjs";
 import { claimsOf, CHECK, DRAFT } from "./draft-render.mjs";
+import { createHash } from "node:crypto";
 
 export const VERDICT = Object.freeze({ PASS: "PASS", FAIL: "FAIL", NOT_MEASURED: "NOT MEASURED" });
 /** F39's third outcome, carried as given into distinct value — never turned into PASS or FAIL */
@@ -27,6 +28,8 @@ export const ASSESSMENTS = Object.freeze(["technicalIndexability", "answerQualit
 export const JUDGEMENTS = Object.freeze(["filler", "repetition", "engaging", "hookable"]);
 export const MAX_REPAIR_ROUNDS = 2;
 export const POPULATION = Object.freeze({ REAL: "REAL", FIXTURE: "FIXTURE" });
+/** the kind of subject F40 judges (C1): a grouped need F35 chose — F41 C9 matches a brief's subject against it */
+export const JUDGED_KIND = "GROUPED_NEED";
 
 /* ── the declared criteria (I-3, I-4): fixed here BEFORE any observation; a record names its criterion by id ── */
 export const CRITERIA = Object.freeze({
@@ -48,7 +51,10 @@ const strip = (s) => String(s).replace(/<[^>]+>/g, " ").replace(/&[a-z]+;|&#\d+;
 const norm = (s) => strip(s).toLowerCase();
 const worst = (states) => (states.includes(VERDICT.FAIL) ? VERDICT.FAIL : states.some((s) => s !== VERDICT.PASS) ? VERDICT.NOT_MEASURED : VERDICT.PASS);
 const fromCheck = (c) => (c?.state === CHECK.PASS ? VERDICT.PASS : c?.state === CHECK.FAIL ? VERDICT.FAIL : VERDICT.NOT_MEASURED);
-const refuse = (why) => Object.freeze({ judged: false, verdict: NOT_JUDGED, why });
+/* C8 (Acceptance Amendment 1, RR-188): every result for a PRESENTED draft names the exact content it judged — the sha256 of the draft's HTML
+ * as UTF-8 bytes, the rule F41's preview applies to the constructed page; the field decides nothing */
+const contentSha256Of = (html) => (present(html) ? createHash("sha256").update(html).digest("hex") : null);
+const refuse = (why, contentSha256 = null) => Object.freeze({ judged: false, verdict: NOT_JUDGED, why, contentSha256 });
 
 /* ── the deterministic methods ── */
 function fillerJudgement(html) {
@@ -109,16 +115,17 @@ function recordedJudgement(name, given, { population, registeredProviders }) {
  * @param {object|null} [input.previous] the previous round's result
  */
 export function judgeDraft({ spec, decision, draft, parts, population, judgements = [], registeredProviders = [], repeatJustifications = [], round = 0, previous = null }) {
+  const contentSha256 = contentSha256Of(draft?.html);
   /* C1: only a complete draft F37 rendered for a need F35 chose; F37's checks read exactly as construction judged them */
-  if (!isChosenCreate(decision) || decision.subject?.needId !== spec?.subject) return refuse("F35 did not choose CREATE for this need — F40 judges only a draft for a need F35 chose");
-  if (draft?.state !== DRAFT.RENDERED || !present(draft.html) || !present(draft.writer)) return refuse("no complete draft F37 rendered, with its writer named");
-  if (!Object.values(POPULATION).includes(population)) return refuse("the population (REAL or FIXTURE) is not declared");
+  if (!isChosenCreate(decision) || decision.subject?.needId !== spec?.subject) return refuse("F35 did not choose CREATE for this need — F40 judges only a draft for a need F35 chose", contentSha256);
+  if (draft?.state !== DRAFT.RENDERED || !present(draft.html) || !present(draft.writer)) return refuse("no complete draft F37 rendered, with its writer named", contentSha256);
+  if (!Object.values(POPULATION).includes(population)) return refuse("the population (REAL or FIXTURE) is not declared", contentSha256);
   const checks = draft.checks ?? {};
   const judgedBy = parts?.draft?.checks ?? null;
   if (!judgedBy || JSON.stringify(Object.fromEntries(Object.entries(judgedBy).map(([k, c]) => [k, c.state]))) !== JSON.stringify(Object.fromEntries(Object.entries(checks).map(([k, c]) => [k, c.state]))))
-    return refuse("the draft's six checks are not the ones construction judged — F40 reads F37's checks, it never rebuilds them");
-  if (!Number.isInteger(round) || round < 0) return refuse("the round is not declared");
-  if (round > MAX_REPAIR_ROUNDS) return refuse(`a third repair round: at most ${MAX_REPAIR_ROUNDS} follow the initial draft (v3 §15); the draft is halted or parked with its exact blocker`);
+    return refuse("the draft's six checks are not the ones construction judged — F40 reads F37's checks, it never rebuilds them", contentSha256);
+  if (!Number.isInteger(round) || round < 0) return refuse("the round is not declared", contentSha256);
+  if (round > MAX_REPAIR_ROUNDS) return refuse(`a third repair round: at most ${MAX_REPAIR_ROUNDS} follow the initial draft (v3 §15); the draft is halted or parked with its exact blocker`, contentSha256);
 
   /* the five assessments, each with its own result and what it read */
   const technicalIndexability = Object.freeze({ verdict: worst(["technical", "internalLinks", "markup"].map((k) => fromCheck(checks[k]))), reads: "F37 checks technical, internalLinks, markup",
@@ -159,7 +166,7 @@ export function judgeDraft({ spec, decision, draft, parts, population, judgement
   const before = previous?.judged ? new Set(JUDGEMENTS.filter((n) => previous.judgements[n].verdict === VERDICT.FAIL)) : null;
   const stopsEarly = round > 0 && before !== null && failed.size > 0 && ![...before].some((n) => !failed.has(n));
   return Object.freeze({
-    judged: true, population, subject: spec.subject, writer: draft.writer, round, stopsEarly,
+    judged: true, population, subject: spec.subject, contentSha256, writer: draft.writer, round, stopsEarly,
     assessments, judgements: records,
     gate: Object.freeze({ verdict, blockers: Object.freeze(blockers), passesF40: verdict === VERDICT.PASS,
       standing: "F40 publishes nothing, approves nothing and decides no ranking; a draft that does not pass F40 is never a complete passing preview (D5)" }),

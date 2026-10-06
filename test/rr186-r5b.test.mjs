@@ -29,7 +29,9 @@ const TRAIL_BEFORE = trailSha();
 const sha = (s) => createHash("sha256").update(String(s).replace(/\r\n/g, "\n"), "utf8").digest("hex");
 /* F40 as frozen and built at main 4ca0e5af — its criteria and its method file, pinned from those committed bytes (F40 is not reopened) */
 const F40_CRITERIA_SHA = "6b734b4577090f6209368b56f3d98ab17adb5da8c070e3bd8aac6fd6c523827f";
-const F40_MODULE_SHA = "b495f2372184825624a43a4266f77f51091f5763763ccc8987861891e11fe841";
+/* RR-188: F40 Acceptance Amendment 1 adds contentSha256 to the record, so the module file changes; what stays byte-identical are its
+ * criteria and its three judgement methods — the amendment's own pins */
+const F40_METHOD_SHA = Object.freeze({ fillerJudgement: "1c3d18fffff3b61044847da264861dda26949d6f9192946b839cac32e4999af4", repetitionJudgement: "1b63ea813b1039cc375e1011f3c5548eee91a6a342ab8420ea4de413edc522e4", recordedJudgement: "3503fde206ade00d8848b34195b1f702f26929317d069872d14b7f578f05483e" });
 const ON = "2026-10-06", AT = `${ON}T00:00:00Z`, NOW = new Date(`${ON}T12:00:00Z`);
 const T = "tenant:rr186-fixture", S = "rr186-fixture-subject";
 
@@ -104,7 +106,8 @@ test("T37-C7 · F37 C7 EACH DISTINCT CLAIM ONCE: F37's own render of a one-quest
   assert.equal(claimsOnce(d.html.replace('href="#answer"', 'href="#elsewhere"'), c.d.spec).everyHeadingLinksBack, false, "a broken refer-back was not seen");
   /* F40's text, criteria and method: unchanged, byte for byte */
   assert.equal(sha(JSON.stringify({ CRITERIA, METHOD_SOURCE })), F40_CRITERIA_SHA, "F40's criteria changed");
-  assert.equal(sha(readFileSync(join(REPO, "src/page/quality-judgements.mjs"), "utf8")), F40_MODULE_SHA, "F40's method changed");
+  const qj = readFileSync(join(REPO, "src/page/quality-judgements.mjs"), "utf8").replace(/\r\n/g, "\n");
+  for (const [name, want] of Object.entries(F40_METHOD_SHA)) { const s = qj.indexOf(`function ${name}(`); assert.equal(sha(qj.slice(s, qj.indexOf("\n}\n", s) + 2)), want, `F40's ${name} changed`); }
 });
 
 test("the production trail was not written by this file", () => assert.equal(trailSha(), TRAIL_BEFORE));

@@ -239,27 +239,29 @@ test("T41d · F41 C1 AS AMENDED · D5: A BRIEF PREPARED WITH NO PER-ITEM APPROVA
 
 const PASSING = { verdict: "ACCEPTED", html: "<article>a fixture page that passed every frozen gate</article>" };
 const READY = { subject: { kind: "GROUPED_NEED", id: "need:r" }, state: "READY" };
+/* RR-188 (F41 C9): a preview is put forward only on a full F40 PASS for the same subject and the same content — a hand-written F40 result for PASSING */
+const F40_PASS = Object.freeze({ judged: true, subject: "need:r", contentSha256: createHash("sha256").update(PASSING.html).digest("hex"), gate: Object.freeze({ verdict: "PASS", blockers: Object.freeze([]) }) });
 
 test("T41e · F41 C1 AS AMENDED · D5: A PREVIEW THAT DOES NOT PASS IS NEVER PUT FORWARD for the owner's approval — a refused construction or a brief not READY; a complete passing preview is", () => {
   for (const [label, construction, brief] of [["refused construction", { verdict: "REFUSED", html: "<article>a page construction refused</article>" }, READY], ["INCOMPLETE brief", PASSING, { ...READY, state: "INCOMPLETE" }], ["nothing", null, null]]) {
-    const p = previewForOwner({ construction, brief });
+    const p = previewForOwner({ construction, brief, f40: F40_PASS });
     assert.equal(p.state, PREVIEW.NOT_PUT_FORWARD, `${label}: put forward`);
     assert.ok(p.missing.length > 0);
   }
-  const ok = previewForOwner({ construction: PASSING, brief: READY });
+  const ok = previewForOwner({ construction: PASSING, brief: READY, f40: F40_PASS });
   assert.equal(ok.state, PREVIEW.PUT_FORWARD);
   assert.match(ok.standing, /not an approval, not published/);
 });
 
 test("T41f · F41 C1 AS AMENDED · D5: A PUBLICATION ATTEMPT WITH NO RECORDED EXACT APPROVAL IS REFUSED — none assumed; an approval of other content, or not exact, is none; only the owner's exact recorded approval of this preview passes, and F41 still publishes nothing", () => {
-  const preview = previewForOwner({ construction: PASSING, brief: READY });
+  const preview = previewForOwner({ construction: PASSING, brief: READY, f40: F40_PASS });
   assert.throws(() => publicationDecision({ preview }), /passed explicitly/, "an approval was assumed");
   assert.equal(publicationDecision({ preview, approvals: [] }).outcome, "REFUSED");
   const exact = { kind: "PUBLICATION", exact: true, subject: preview.subject, contentSha256: preview.contentSha256, ref: "owner-approval:fixture" };
   for (const bad of [{ ...exact, contentSha256: "0".repeat(64) }, { ...exact, exact: false }, { ...exact, ref: "" }, { ...exact, subject: { kind: "GROUPED_NEED", id: "need:other" } }]) {
     assert.equal(publicationDecision({ preview, approvals: [bad] }).outcome, "REFUSED", `a non-exact approval passed: ${JSON.stringify(bad)}`);
   }
-  assert.equal(publicationDecision({ preview: previewForOwner({ construction: { verdict: "REFUSED", html: null }, brief: READY }), approvals: [exact] }).outcome, "REFUSED", "a preview that did not pass was approved for publication");
+  assert.equal(publicationDecision({ preview: previewForOwner({ construction: { verdict: "REFUSED", html: null }, brief: READY, f40: F40_PASS }), approvals: [exact] }).outcome, "REFUSED", "a preview that did not pass was approved for publication");
   const yes = publicationDecision({ preview, approvals: [exact] });
   assert.deepEqual([yes.outcome, yes.published], ["APPROVED_BY_THE_OWNER", false]);
   /* no publication path exists: nothing in src/ or bin/ deploys, publishes or writes to a client site */
@@ -337,14 +339,18 @@ test("R4-BOARD · F41, F36 and F35 move only through the production validator an
   const trail = readFileSync(TRAIL, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
   for (const [f, n] of [["F41", 8], ["F36", 6], ["F35", 9]]) {
     const row = DECLARED[f];
-    const reopened = row.events.filter((e) => e.kind === "REOPENED").at(-1);
+    /* RR-188: a row may be reopened again later by its OWN amendment (F41 Amendment 2); R4's REOPENED stays on the board, and a VERIFIED-PASS
+     * row carries its REAL VERIFIED after its LATEST reopen, every clause of the acceptance then in force PROVED */
+    const reopened = row.events.find((e) => e.kind === "REOPENED" && /RR-179/.test(JSON.stringify(e.command ?? e.ownerRulings ?? "")));
+    assert.ok(reopened, `${f}'s R4 REOPENED is not on the board`);
     assert.equal(reopened?.reason, "AUTHORITATIVE_REQUIREMENT_CHANGE");
-    assert.ok(/RR-179/.test(JSON.stringify(reopened.command ?? reopened.ownerRulings ?? "")), `${f}'s last REOPENED is not R4's`);
+    const latest = row.events.filter((e) => e.kind === "REOPENED").at(-1);
+    assert.equal(latest.reason, "AUTHORITATIVE_REQUIREMENT_CHANGE", `${f}'s latest REOPENED is not for an authoritative requirement change`);
     assert.ok(trail.some((e) => e.eventType === "BOARD_TRANSITION" && e.action === "REOPENED" && e.metadata?.featureId === f && e.occurredAt.startsWith("2026-10-05")), `${f}'s REOPENED is not in the trail`);
     if (row.state === "VERIFIED-PASS") {
       const v = row.events.filter((e) => e.kind === "VERIFIED").at(-1);
-      assert.ok(row.events.indexOf(v) > row.events.indexOf(reopened) && v.population === "REAL");
-      assert.ok(Object.keys(v.clauses ?? {}).length === n && Object.values(v.clauses).every((c) => c === "PROVED"), `${f} is VERIFIED-PASS with a clause not PROVED`);
+      assert.ok(row.events.indexOf(v) > row.events.indexOf(latest) && v.population === "REAL");
+      assert.ok(Object.keys(v.clauses ?? {}).length >= n && Object.values(v.clauses).every((c) => c === "PROVED"), `${f} is VERIFIED-PASS with a clause not PROVED`);
     } else assert.equal(row.state, "IN-PROGRESS");
   }
 });

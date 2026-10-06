@@ -277,7 +277,8 @@ test("R40-BOARD · F40 moves only through the production validator and the audit
   const trail = readFileSync(TRAIL, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
   assert.ok(trail.some((e) => e.eventType === "BOARD_TRANSITION" && e.metadata?.featureId === "F40" && e.occurredAt.startsWith("2026-10-06")), "F40's movement is not in the trail");
   if (row.state === "VERIFIED-PASS") {
-    const v = row.events.filter((e) => e.kind === "VERIFIED").at(-1);
+    /* RR-188: R5's own VERIFIED (under the acceptance as first frozen, C1–C7); the re-proof under Amendment 1 (C1–C8) is R188-BOARD's */
+    const v = row.events.find((e) => e.kind === "VERIFIED");
     assert.equal(v.population, "REAL");
     assert.deepEqual(Object.keys(v.clauses), ["C1", "C2", "C3", "C4", "C5", "C6", "C7"]);
     assert.ok(Object.values(v.clauses).every((x) => x === "PROVED"));

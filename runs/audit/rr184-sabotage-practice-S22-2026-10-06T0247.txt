@@ -1,0 +1,9 @@
+RR-184 R5 sabotage PRACTICE run · 2026-10-06T02:47:54.643Z
+population: 1 sabotage(s) over test/rr184-r5.test.mjs · each applied ALONE · no provider, no network, no third-party read
+BASELINE (the named tests before any sabotage): GREEN · named tests seen GREEN: 1 of 1
+PRE-FLIGHT (span occurrences in the code live now): S22=1 · all exactly once: true
+production trail sha256 before: 256cfc6b73e0a0c5037eac47d5fdd16b30fc3e1a9fb9dda146068b2cbe19eed0
+
+S22 C5 · a NOT MEASURED judgement is counted as passing [src/page/quality-judgements.mjs]: landed true · named test "T40-C5" red true · its failure AssertionError · SyntaxError false · a production child crashed false · failing T40-C5,T40-C7 · restored by sha256 true · PROVED
+
+proved 1 of 1 · residue 0 · production trail sha256 after: 256cfc6b73e0a0c5037eac47d5fdd16b30fc3e1a9fb9dda146068b2cbe19eed0 · unchanged true

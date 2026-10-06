@@ -54,18 +54,18 @@ const siByUrl = new Map((si?.results ?? []).map((r) => [r.url, r]));
 const n = m.results.length;
 const count = (f) => m.results.filter(f).length;
 console.log(`corpus: ${batchFile("bodies-2026-09-12.jsonl.br")} (committed archive)`);
-console.log(`[bound: ${n} distinct pages with a served body · ${m.groups} template groups · thresholds uniqueWords>=${m.thresholds.MIN_UNIQUE_WORDS}, siblingOverlap<=${m.thresholds.MAX_SIBLING_OVERLAP}, facts>=${m.thresholds.MIN_FACTS}, fact value >=${m.thresholds.MIN_VALUE_CHARS} chars]`);
+console.log(`[bound: ${n} distinct pages with a served body · ${m.groups} template groups · review signals (none decides, RR-192 T-1) uniqueWords>=${m.signals.MIN_UNIQUE_WORDS}, siblingOverlap<=${m.signals.MAX_SIBLING_OVERLAP}, facts>=${m.signals.MIN_FACTS}, fact value >=${m.signals.MIN_VALUE_CHARS} chars]`);
 console.log("TEMPLATE GROUP = one host, the same first path segment, the same path depth.\n");
 
 console.log("SHELL = learned from the template group when it has 3 or more pages; otherwise borrowed from the OTHER pages of the same site (3 or more); otherwise UNMEASURABLE (D-GATEA-1).");
 console.log(`  shells: GROUP ${count((r) => r.shellSource === "GROUP")} · REFERENCE ${count((r) => r.shellSource === "REFERENCE")} · NONE ${count((r) => r.shellSource === "NONE")}\n`);
 console.log("=== 1 · UNIQUE VALUE (unique words after the page's shell) ===");
-console.log(`  measured ${count((r) => Number.isInteger(r.uniqueWords))} of ${n} · at or above ${m.thresholds.MIN_UNIQUE_WORDS}: ${count((r) => r.uniquePass === true)} · below: ${count((r) => r.uniquePass === false)} · UNMEASURABLE ${count((r) => r.uniquePass === null)} (the only crawled page on its site — no shell to learn)`);
+console.log(`  measured ${count((r) => Number.isInteger(r.uniqueWords))} of ${n} · at or above ${m.signals.MIN_UNIQUE_WORDS}: ${count((r) => r.belowUniqueWordsSignal === false)} · below: ${count((r) => r.belowUniqueWordsSignal === true)} · UNMEASURABLE ${count((r) => r.belowUniqueWordsSignal === null)} (the only crawled page on its site — no shell to learn)`);
 console.log("=== 2 · SIBLING OVERLAP (max body-shingle Jaccard against every sibling in the group) ===");
-console.log(`  MEASURED ${count((r) => r.overlapState === "MEASURED")} of ${n} · within ${m.thresholds.MAX_SIBLING_OVERLAP}: ${count((r) => r.overlapPass === true)} · above: ${count((r) => r.overlapPass === false)}`);
+console.log(`  MEASURED ${count((r) => r.overlapState === "MEASURED")} of ${n} · within ${m.signals.MAX_SIBLING_OVERLAP}: ${count((r) => r.overlapAboveReviewSignal === false)} · above: ${count((r) => r.overlapAboveReviewSignal === true)}`);
 console.log(`  VACUOUS ${count((r) => r.overlapState === "VACUOUS")} (a group of one — no sibling) · UNMEASURABLE ${count((r) => r.overlapState === "UNMEASURABLE_PAIR")} (a group of two — on a site with too few other pages to lend a shell). Neither is a pass.`);
 console.log("=== 3 · VERIFIED-FACT PRESENCE (registry VERIFIED values found in the page text) ===");
-console.log(`  measured ${n} of ${n} · carrying at least one verified fact: ${count((r) => r.factsPresent.length > 0)} · reaching ${m.thresholds.MIN_FACTS}: ${count((r) => r.factsPass)}`);
+console.log(`  measured ${n} of ${n} · carrying at least one verified fact: ${count((r) => r.factsPresent.length > 0)} · reaching ${m.signals.MIN_FACTS}: ${count((r) => r.factsReachSignal)}`);
 console.log("=== 4 · SOURCE INTEGRITY (the recorded link check of every source a page's facts cite) ===");
 if (si) {
   console.log(`  sources checked: ${si.results.length} [bound: ${si.requests} of ${si.maxRequests} requests, 1/s] · LIVE ${si.counts.LIVE} · GONE ${si.counts.GONE} · UNKNOWN ${si.counts.UNKNOWN}`);

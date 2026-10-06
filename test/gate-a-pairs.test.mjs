@@ -29,6 +29,7 @@ test("🔴 RED (the defect, kept as a test): a shell learned from the pair itsel
   assert.equal(MIN_PAGES_FOR_OWN_SHELL, 3);
 });
 
+/* RR-192 · T-1 (RTP-1 S9; PG-A1): 350 / five facts / 0.40 are review SIGNALS, never a pass or a REJECT — this test reads the signal fields (belowUniqueWordsSignal, overlapAboveReviewSignal, factsReachSignal); an identical pair is REVIEW_REQUIRED */
 test("🔴 EXISTING PAGES — an IDENTICAL PAIR FIRES: maximum overlap, measured on a shell borrowed from the rest of the site", () => {
   const same = words(2, 400);
   const m = measureExistingPages([page("https://s.example.com/guide/x", same), page("https://s.example.com/guide/y", same), ...siteOthers], []);
@@ -36,16 +37,17 @@ test("🔴 EXISTING PAGES — an IDENTICAL PAIR FIRES: maximum overlap, measured
     assert.equal(r.shellSource, "REFERENCE");
     assert.equal(r.overlapState, "MEASURED");
     assert.ok(r.maxOverlap > 0.99, `an identical pair scored ${r.maxOverlap}`);
-    assert.equal(r.overlapPass, false, "an identical pair was not flagged");
+    assert.equal(r.overlapAboveReviewSignal, true, "an identical pair was not flagged");
   }
 });
 
+/* RR-192 · T-1 (RTP-1 S9; PG-A1): 350 / five facts / 0.40 are review SIGNALS, never a pass or a REJECT — this test reads the signal fields (belowUniqueWordsSignal, overlapAboveReviewSignal, factsReachSignal); an identical pair is REVIEW_REQUIRED */
 test("🔴 EXISTING PAGES — a DISTINCT PAIR STAYS SILENT on the same borrowed shell", () => {
   const m = measureExistingPages([page("https://s.example.com/guide/x", words(3, 400)), page("https://s.example.com/guide/y", words(4, 400)), ...siteOthers], []);
   for (const r of m.results.filter((x) => x.id.includes("/guide/"))) {
     assert.equal(r.overlapState, "MEASURED");
     assert.ok(r.maxOverlap < 0.4, `a distinct pair scored ${r.maxOverlap}`);
-    assert.equal(r.overlapPass, true);
+    assert.equal(r.overlapAboveReviewSignal, false);
   }
 });
 
@@ -57,12 +59,13 @@ test("🔴 EXISTING PAGES — a single page's unique words are measured against 
   assert.equal(r.overlapState, "VACUOUS", "a page with no sibling still has no overlap to measure");
 });
 
+/* RR-192 · T-1 (RTP-1 S9; PG-A1): 350 / five facts / 0.40 are review SIGNALS, never a pass or a REJECT — this test reads the signal fields (belowUniqueWordsSignal, overlapAboveReviewSignal, factsReachSignal); an identical pair is REVIEW_REQUIRED */
 test("EXISTING PAGES — with too few other pages on the site to lend a shell, a pair is UNMEASURABLE, never a pass", () => {
   const same = words(6, 400);
   const m = measureExistingPages([page("https://t.example.com/guide/x", same), page("https://t.example.com/guide/y", same)], []);
   for (const r of m.results) {
     assert.equal(r.overlapState, "UNMEASURABLE_PAIR");
-    assert.equal(r.overlapPass, null);
+    assert.equal(r.overlapAboveReviewSignal, null);
     assert.equal(r.uniqueWords, null);
   }
 });
@@ -73,13 +76,15 @@ const NOW = new Date("2026-09-13T00:00:00Z");
 const facts = () => Array.from({ length: 5 }, (_, i) => ({ value: `value ${i}`, sourceUrl: `https://regulator.example.org/rule/${i}`, tier: 1, verifiedDate: "2026-09-01" }));
 const candidate = (id, body) => ({ ...page(`https://s.example.com/guide/${id}`, body), id, facts: facts(), whyThisUrl: `the page for ${id}` });
 
-test("🔴 GATE A RUN — an identical pair, given the site as reference, is REJECTED at overlap", () => {
+/* RR-192 · T-1 (RTP-1 S9; PG-A1): 350 / five facts / 0.40 are review SIGNALS, never a pass or a REJECT — this test reads the signal fields (belowUniqueWordsSignal, overlapAboveReviewSignal, factsReachSignal); an identical pair is REVIEW_REQUIRED */
+test("🔴 GATE A RUN — an identical pair, given the site as reference, is REVIEW_REQUIRED at overlap — never REJECTED on the percentage", () => {
   const same = words(7, 400);
   const out = runGateA([candidate("x", same), candidate("y", same)], { now: NOW, reference: siteOthers });
   for (const r of out.results) {
     assert.ok(r.maxOverlap > 0.99, `identical pair scored ${r.maxOverlap}`);
-    assert.equal(r.verdict, "REJECT");
-    assert.equal(r.rejectedAt, "overlap");
+    assert.equal(r.verdict, "REVIEW_REQUIRED");
+    assert.equal(r.reviewAt, "overlap");
+    assert.equal(r.rejectedAt, null);
   }
 });
 
@@ -91,10 +96,11 @@ test("🔴 GATE A RUN — a distinct pair, given the site as reference, is KEPT"
   }
 });
 
+/* RR-192 · T-1 (RTP-1 S9; PG-A1): 350 / five facts / 0.40 are review SIGNALS, never a pass or a REJECT — this test reads the signal fields (belowUniqueWordsSignal, overlapAboveReviewSignal, factsReachSignal); an identical pair is REVIEW_REQUIRED */
 test("🔴 GATE A RUN — a pair with NO reference cannot be kept on an overlap it could not measure", () => {
   const out = runGateA([candidate("x", `${words(10, 400)} ${words(11, 400)}`), candidate("y", `${words(10, 400)} ${words(12, 400)}`)], { now: NOW });
   for (const r of out.results) {
-    assert.equal(r.overlapPass, null);
+    assert.equal(r.overlapAboveReviewSignal, null);
     assert.equal(r.overlapUnmeasurable, true);
     assert.equal(r.verdict, "REJECT");
     assert.equal(r.rejectedAt, "overlap-unmeasurable");

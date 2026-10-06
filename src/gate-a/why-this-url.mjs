@@ -46,15 +46,16 @@
  */
 import { tokenise } from "./tokens.mjs";
 import { shingles, jaccard } from "./overlap.mjs";
-import { MAX_SIBLING_OVERLAP } from "./run.mjs";
+import { OVERLAP_REVIEW_TRIGGER } from "./adaptive.mjs";
 
 export const WHY_FIELD = "whyThisUrlDeservesToExist";
 export const WHY_PARTS = Object.freeze(["humanNeed", "distinctValue"]);
 export const WHY_SHINGLE_N = 3;
-export const WHY_NEAR_IDENTICAL = MAX_SIBLING_OVERLAP;
+/* RR-192 · T-1: read from the adaptive gate's overlap REVIEW SIGNAL (P20), no longer from Gate A's retired MAX_SIBLING_OVERLAP decider. */
+export const WHY_NEAR_IDENTICAL = OVERLAP_REVIEW_TRIGGER;
 /* 🔴 P20: a percentage may stay only as a REVIEW SIGNAL, with its justification recorded. This is that justification. */
 export const WHY_REVIEW_TRIGGER_JUSTIFICATION =
-  "0.40 is Gate A's frozen MAX_SIBLING_OVERLAP, kept only as a review signal (RTP-1 P20, S38): the 6 August measurement (P19b) found " +
+  "0.40 is the overlap review signal (src/gate-a/adaptive.mjs OVERLAP_REVIEW_TRIGGER; Gate A's own 0.40 no longer decides anything, RR-192 T-1), kept only as a review signal (RTP-1 P20, S38): the 6 August measurement (P19b) found " +
   "54–60 per cent same-origin overlap across 10 of 10 origins, every one over this 40 per cent line — a figure that triggers a substance " +
   "review and never decides a verdict.";
 /* A recorded substance review of two rationales. Its source is a METHOD or an AGENT — never an approval, never a person's gate. */

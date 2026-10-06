@@ -233,10 +233,12 @@ describe("🔴 facts — all four fields, and the freshness window that did not 
     assert.equal(c.factChecked, 0, "nothing in this pipeline reads a source and confirms a value");
   });
 
-  test("RED: four qualifying facts is not five", () => {
+  /* RR-192 · T-1 (RTP-1 S8; PG-A1): five facts is a REVIEW SIGNAL — reported, never a pass; countFacts carries no "passes" any more */
+  test("RR-192 T-1: four qualifying facts does not reach the five-fact signal and five does — a labelled signal, never a pass", () => {
     const four = [good, good, good, good];
-    assert.equal(countFacts(four, NOW).passes, false);
-    assert.equal(countFacts([...four, good], NOW).passes, true);
+    assert.equal(countFacts(four, NOW).reachesSignal, false);
+    assert.equal(countFacts([...four, good], NOW).reachesSignal, true);
+    assert.equal("passes" in countFacts(four, NOW), false, "countFacts still reports a pass");
   });
 });
 
@@ -289,32 +291,36 @@ describe("🔴 overlap — on the residual, and honest about its strategy", () =
 
 // ───────────────────────── THE ORDER (D2-A) ──────────────────────────────────
 
-describe("🔴 D2-A — the order is part of the gate", () => {
+/* RR-192 · T-1 (RTP-1 S8; PG-A1): D2-A's "reject here and STOP" is retired — no stage stops on a number any more. */
+describe("🔴 RR-192 · T-1 — no stage stops on 350, five facts or 0.40", () => {
   const thin = (id) => ({ id, html: `<p>short page ${id} with far too few words</p>`, whyThisUrl: "x", facts: [] });
 
-  test("🔴 a page rejected on uniqueWords never has its facts or overlap computed", () => {
+  test("🔴 a page below the 350-word signal is measured on every stage and never rejected for it", () => {
     const out = runGateA([thin("a"), thin("b"), thin("c")], { now: NOW });
     const a = out.results.find((r) => r.id === "a");
-    assert.equal(a.verdict, "REJECT");
-    assert.equal(a.rejectedAt, "uniqueWords");
-    assert.equal(a.facts, null, "facts were NOT computed for an already-rejected page");
-    assert.equal(a.maxOverlap, null, "overlap was NOT computed either");
+    assert.equal(a.belowUniqueWordsSignal, true, "the signal is reported");
+    assert.ok(!["uniqueWords", "facts", "overlap"].includes(a.rejectedAt), `rejected on a number: ${a.rejectedAt}`);
+    assert.notEqual(a.facts, null, "facts were not computed");
+    assert.notEqual(a.maxOverlap, null, "overlap was not computed");
+    assert.equal("uniquePass" in a || "factsPass" in a || "overlapPass" in a, false, "a pass field survives");
   });
 
-  test("🔴 and the report says how many pages reached the quadratic stage", () => {
+  test("🔴 and the report says every page reached the overlap stage — none was eliminated before it", () => {
     const out = runGateA([thin("a"), thin("b"), thin("c")], { now: NOW });
-    assert.equal(out.reachedOverlap, 0);
-    assert.equal(out.eliminatedBefore, 3);
+    assert.equal(out.reachedOverlap, 3);
+    assert.equal(out.eliminatedBefore, 0);
   });
 
   test("an empty group is VACUOUS, and says so rather than passing", () => {
     assert.equal(runGateA([], { now: NOW }).vacuous, true);
   });
 
-  test("thresholds are reported with the result, so a run carries its own bar", () => {
+  /* RR-192 · T-1: the figures are reported as SIGNALS, not thresholds — a run carries its signals, never a bar */
+  test("signals are reported with the result, never as thresholds", () => {
     const out = runGateA([thin("a")], { now: NOW });
-    assert.equal(out.thresholds.MIN_UNIQUE_WORDS, MIN_UNIQUE_WORDS);
-    assert.equal(out.thresholds.MAX_SIBLING_OVERLAP, 0.4);
+    assert.equal(out.signals.MIN_UNIQUE_WORDS, MIN_UNIQUE_WORDS);
+    assert.equal(out.signals.MAX_SIBLING_OVERLAP, 0.4);
+    assert.equal("thresholds" in out, false);
   });
 });
 
@@ -414,20 +420,18 @@ describe("🔴 overlap is scored against the PUBLISHED population, never the sur
     return group;
   }
 
-  test("🔴 RED: the last one standing does NOT get a free pass", () => {
-    // 190 siblings, all rejected at facts. Only `india` survives to stage 3.
+  /* RR-192 · T-1: no sibling is eliminated at facts any more, so every page reaches stage 3; the near-identical page is REVIEW_REQUIRED
+   * (P20: a recorded substance review decides), never a free KEEP and never a REJECT on the percentage */
+  test("🔴 RED: the last one standing does NOT get a free pass — above the 0.40 signal it is REVIEW_REQUIRED", () => {
     const out = runGateA(corpus(190));
     const india = out.results.find((r) => r.id === "india");
-
-    // Under the OLD rule this page had nobody to compare with and scored 0.0000.
-    // Under the new rule it is compared with every PUBLISHED sibling.
-    assert.equal(out.reachedOverlap, 1, "one page reached stage 3");
+    assert.equal(out.reachedOverlap, 1 + 190 + OUTSIDERS, "every page reached stage 3");
     assert.equal(out.overlapPopulation, 1 + 190 + OUTSIDERS, "judged against the whole published group");
-    assert.equal(india.comparedWith, 190 + OUTSIDERS, "every published page, not every survivor");
+    assert.equal(india.comparedWith, 190 + OUTSIDERS, "every published page");
     assert.ok(india.maxOverlap > 0.4, `near-identical siblings must score high, got ${india.maxOverlap}`);
-    assert.equal(india.overlapPass, false);
-    assert.equal(india.verdict, "REJECT");
-    assert.equal(india.rejectedAt, "overlap");
+    assert.equal(india.overlapAboveReviewSignal, true);
+    assert.equal(india.verdict, "REVIEW_REQUIRED");
+    assert.equal(india.rejectedAt, null, "rejected on a percentage");
   });
 
   test("🔴 THE DIFFERENCE ITSELF — survivors-only says 0.0000, the published population does not", () => {
@@ -486,21 +490,23 @@ describe("🔴 overlap is scored against the PUBLISHED population, never the sur
     assert.equal(only.maxOverlap, 0, "the number is 0, but `vacuous` is what the caller must read");
   });
 
-  test("a ONE-PAGE group never reaches overlap at all — the shell eats it at stage 1", () => {
-    // Worth recording rather than discovering later: with one page, the shell IS
-    // the page, so uniqueWords is 0 and it is rejected two stages earlier.
+  /* RR-192 · T-1: a one-page group's 0 unique words is reported as a signal, not a rejection; its overlap is VACUOUS — flagged, never scored */
+  test("a ONE-PAGE group: the shell eats it (0 unique words, the signal reported) and its overlap is VACUOUS — never a rejection on the number", () => {
     const out = runGateA([
       { id: "india", html: `<p>${SHARED_BODY} india</p>`, facts: freshFacts(), whyThisUrl: "x" },
     ]);
     const only = out.results[0];
     assert.equal(only.uniqueWords, 0);
-    assert.equal(only.rejectedAt, "uniqueWords");
-    assert.equal(out.reachedOverlap, 0);
+    assert.equal(only.belowUniqueWordsSignal, true);
+    assert.equal(only.rejectedAt, null);
+    assert.equal(only.overlapVacuous, true, "a page alone has nothing to differ from — flagged");
+    assert.equal(only.overlapAboveReviewSignal, null);
   });
 
+  /* RR-192 · T-1: with no stage stopping, every page is scored — the two numbers are now equal, and both are still shown */
   test("reachedOverlap and overlapPopulation are reported together", () => {
     const out = runGateA(corpus(190));
-    assert.equal(out.overlapComparisons, 1 * (190 + OUTSIDERS));
-    assert.ok(out.overlapPopulation > out.reachedOverlap, "the two are different numbers and both are shown");
+    const n = 1 + 190 + OUTSIDERS;
+    assert.deepEqual([out.reachedOverlap, out.overlapPopulation, out.overlapComparisons], [n, n, n * (n - 1)]);
   });
 });

@@ -137,13 +137,14 @@ test("12 · 13 · the controls — a shared shell is not unique value, a twin is
   for (const k of ["A", "B", "C", "D"]) assert.deepEqual(c[k], { fires: true, silent: true }, k);
 });
 
+/* RR-192 · T-1 (RTP-1 S9; PG-A1): 350 / five facts / 0.40 are review SIGNALS, never a pass or a REJECT — this test reads the signal fields (belowUniqueWordsSignal, overlapAboveReviewSignal, factsReachSignal); an identical pair is REVIEW_REQUIRED */
 test("🔴 B has a third state: a measured overlap over too few residual words is NOISY, never a pass", () => {
   const resolve = () => ({ state: "RESOLVED", tenantId: T1 });
   const shell = `<nav>${Array.from({ length: 80 }, (_, i) => `nav${i}`).join(" ")}</nav>`;
   const pages = ["a", "b", "c"].map((id, i) => ({ id: `https://a.invalid/g/${id}`, origin: "https://a.invalid", evidenceClass: "REAL", html: `<html><body>${shell}<main>${i === 0 ? "tiny page" : Array.from({ length: 300 }, (_, k) => `${id}${k}`).join(" ")}</main></body></html>` }));
   const rs = evaluatePageQuality({ pages, facts: [], registry: reg("r"), resolve, linkVerdicts: new Map() });
   assert.equal(rs[0].B.state, "NOISY");
-  assert.equal(rs[1].B.state, "PASS");
+  assert.equal(rs[1].B.state, "BELOW_REVIEW_SIGNAL");
 });
 
 test("14 · fixture-only evidence cannot tick row 25 — and one passing check never hides another", () => {

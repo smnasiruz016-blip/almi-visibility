@@ -58,6 +58,9 @@ export const TIERS = Object.freeze({
  */
 export const FACT_FRESHNESS_DAYS = 180;
 
+/* 🔴 RR-192 · T-1 (RTP-1 §17 S8; the owner's PG-A1, _handoffs b5b616e): five facts is a REVIEW SIGNAL ONLY — measured and reported, it
+ * decides nothing. A claim's support is judged under P14, never by a count of facts. The name stays because frozen acceptances (F32 C6 as
+ * amended, F40 C6) name it in their censuses of what may never decide. */
 export const MIN_FACTS = 5;
 
 /** Is this URL usable as a source at all — before anyone has fetched it? */
@@ -126,7 +129,7 @@ export function countFacts(facts = [], now = new Date()) {
   return {
     total: facts.length,
     qualifying: qualifying.length,
-    passes: qualifying.length >= MIN_FACTS,
+    reachesSignal: qualifying.length >= MIN_FACTS, // RR-192 T-1: a labelled signal, never a pass or a gate
     // Two columns, never one. See the header.
     linkChecked: facts.filter((f) => f?.linkChecked === true).length,
     factChecked: 0, // 🔴 ALWAYS ZERO TODAY. Nothing in this pipeline reads a source and confirms a value.

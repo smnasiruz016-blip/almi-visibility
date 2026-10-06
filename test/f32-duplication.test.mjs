@@ -15,8 +15,7 @@ import { spawnSync, execFileSync } from "node:child_process";
 
 import { detectDuplication, OVERLAP_REVIEW_TRIGGER, SEMANTIC_ASPECTS, MISSING } from "../src/page/duplication.mjs";
 import { verifiedPages, readClientDuplication } from "../src/page/duplication-evidence.mjs";
-import { THIN_UNIQUE_WORD_FLOOR } from "../src/audit/shell.mjs";
-import { NEAR_DUPLICATE_THRESHOLD, TEMPLATE_DOMINANCE_THRESHOLD, RECOMMENDATION_FIELDS } from "../src/audit/content-checks.mjs";
+import { RECOMMENDATION_FIELDS } from "../src/audit/content-checks.mjs";
 import { decisionCallPaths } from "../tools/need-coverage-call-paths.mjs";
 import { createTenantResolver } from "../src/tenancy/resolver.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
@@ -75,8 +74,9 @@ test("C2 · FIRING CONTROL: above 40 percent is REVIEW REQUIRED and nothing more
 /* ================= C3 — semantic duplication only on a recorded review ================= */
 
 test("C3 · a recorded review decides; low overlap cannot rescue duplication; high overlap passes only with documented distinct value; a partial review does not count", () => {
-  const dup = { pair: ["A", "B"], compared: ALL, duplicate: true, ref: "review:ab" };
-  const distinctNoValue = { pair: ["A", "C"], compared: ALL, duplicate: false, ref: "review:ac" };
+  /* RR-192: a counted review is recorded with needsGuidance: false (C3 as amended); the guidance limb itself is T32-C3-AMENDED's */
+  const dup = { pair: ["A", "B"], compared: ALL, duplicate: true, needsGuidance: false, ref: "review:ab" };
+  const distinctNoValue = { pair: ["A", "C"], compared: ALL, duplicate: false, needsGuidance: false, ref: "review:ac" };
   const r1 = run([pg("A", A), pg("B", B), pg("C", C)], { reviews: [dup, distinctNoValue] });
   assert.deepEqual(pair(r1, "A", "B").semantic, { state: "DUPLICATE", ref: "review:ab" }, "low textual overlap rescued a semantic duplicate");
   assert.equal(pair(r1, "A", "C").semantic.state, "NOT_JUDGED");
@@ -128,18 +128,39 @@ test("C5 · FIRING CONTROL: a three-word page with unique text is NOT insufficie
 
 /* ================= C6 — detection only; Row 25 and the legacy audit untouched ================= */
 
-test("C6 · no action field anywhere in the result; the legacy audit's thresholds are unchanged and F32 does not read them", () => {
-  const r = run([pg("A", A), pg("C", C)], { reviews: [{ pair: ["A", "C"], compared: ALL, duplicate: true, ref: "r" }] });
+/* RR-192 · C6 AS AMENDED (F32 Acceptance Amendment 1): the test pins NO threshold value any more — the Row 25 and audit thresholds are not
+ * F32's (they change under RTP-1, T-1 and T-2) — and asserts instead that F32 imports and reads none of the six constants and changes no gate. */
+test("C6 AS AMENDED · no action field anywhere in the result; F32 imports and reads none of the six threshold constants and imports no gate; no threshold value is pinned", () => {
+  const r = run([pg("A", A), pg("C", C)], { reviews: [{ pair: ["A", "C"], compared: ALL, duplicate: true, needsGuidance: false, ref: "r" }] });
   const keys = new Set();
   (function walk(o) { if (o && typeof o === "object") for (const [k, v] of Object.entries(o)) { keys.add(k); walk(v); } })(r);
   for (const f of RECOMMENDATION_FIELDS) assert.equal(keys.has(f), false, `the result carries ${f}`);
-  assert.equal(THIN_UNIQUE_WORD_FLOOR, 350);
-  assert.equal(NEAR_DUPLICATE_THRESHOLD, 0.9);
-  assert.equal(TEMPLATE_DOMINANCE_THRESHOLD, 0.75);
   /* the CODE, comments removed — the module's comments quote V3 ("the 350-word threshold does not control") */
   const code = readFileSync(join(REPO, "src/page/duplication.mjs"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
-  assert.doesNotMatch(code, /content-checks|THIN_UNIQUE_WORD_FLOOR|NEAR_DUPLICATE_THRESHOLD|TEMPLATE_DOMINANCE_THRESHOLD|\b350\b/, "F32 reads a legacy threshold");
+  for (const name of ["MIN_UNIQUE_WORDS", "MIN_FACTS", "MAX_SIBLING_OVERLAP", "THIN_UNIQUE_WORD_FLOOR", "NEAR_DUPLICATE_THRESHOLD", "TEMPLATE_DOMINANCE_THRESHOLD"]) assert.doesNotMatch(code, new RegExp(`\\b${name}\\b`), `F32 imports or reads ${name}`);
+  assert.doesNotMatch(code, /content-checks|\b350\b/, "F32 reads a legacy threshold");
+  /* F32 changes no gate: it imports nothing but hashing and the shell measure — no gate, construction or decision module */
+  assert.deepEqual([...code.matchAll(/from "([^"]+)"/g)].map((m) => m[1]).sort(), ["../audit/shell.mjs", "node:crypto"], "F32 imports a module that can change a gate");
   assert.match(code, /from "\.\.\/audit\/shell\.mjs"/, "control: the stripped code still holds the module's imports");
+});
+
+/* ================= C3 AS AMENDED — a review counts only when it needs no guidance (RR-192) ================= */
+
+test("C3 AS AMENDED · a review recorded with needsGuidance: false decides as before; the same review with needsGuidance: true, and with the field absent, leaves the pair NOT JUDGED naming the missing guidance-free review", () => {
+  const dup = { pair: ["A", "C"], compared: ALL, duplicate: true, ref: "review:ac" };
+  const dist = { pair: ["A", "C"], compared: ALL, duplicate: false, documentedDistinctValue: "a different need", ref: "review:ac" };
+  /* needsGuidance: false — decides exactly as before */
+  assert.equal(pair(run([pg("A", A), pg("C", C)], { reviews: [{ ...dup, needsGuidance: false }] }), "A", "C").semantic.state, "DUPLICATE");
+  assert.equal(pair(run([pg("A", A), pg("C", C)], { reviews: [{ ...dist, needsGuidance: false }] }), "A", "C").semantic.state, "DISTINCT");
+  /* needsGuidance: true, and absent — HELD: NOT JUDGED, the missing guidance-free review named, never DUPLICATE and never DISTINCT */
+  for (const [label, over] of [["guidance-dependent", { needsGuidance: true }], ["unmarked", {}]]) {
+    for (const base of [dup, dist]) {
+      const s = pair(run([pg("A", A), pg("C", C)], { reviews: [{ ...base, ...over }] }), "A", "C").semantic;
+      assert.equal(s.state, "NOT_JUDGED", `a ${label} ${base.duplicate ? "DUPLICATE" : "DISTINCT"} review decided`);
+      assert.equal(s.heldForGuidance, true);
+      assert.ok(s.missing.includes(MISSING.GUIDANCE_FREE), `the ${label} review's missing fact is not named: ${s.missing}`);
+    }
+  }
 });
 
 /* ================= C7 — same client, verified bodies only, bound printed, no call-out ================= */

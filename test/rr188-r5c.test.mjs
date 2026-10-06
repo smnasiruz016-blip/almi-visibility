@@ -66,7 +66,7 @@ function chosen() {
 const gainFor = (slug, withGain) => ({
   gainRecords: withGain ? [{ pageId: `candidate:${slug}`, kind: "USEFUL_COMPARISON", adds: "the renewal time and the form answered in one place", ref: `gain:${slug}` }] : [],
   competitorComparisons: withGain ? [{ pageId: `candidate:${slug}`, competitorsCompared: 1, gainBeyond: true, ref: `cmp:${slug}` }] : [],
-  reviews: PAGES.map((p) => ({ pair: [`candidate:${slug}`, p.pageId], compared: ASPECTS, duplicate: false, documentedDistinctValue: "a different need", ref: `f32:${p.pageId}` })),
+  reviews: PAGES.map((p) => ({ pair: [`candidate:${slug}`, p.pageId], compared: ASPECTS, duplicate: false, documentedDistinctValue: "a different need", needsGuidance: false, ref: `f32:${p.pageId}` })),
 });
 const fj = (name, verdict = VERDICT.PASS) => ({ name, verdict, criterionId: CRITERIA[name].id, observation: `the fixture judge's recorded observation (${verdict})`, source: { kind: "FIXTURE", ref: `fixture-judge:${name}` } });
 /** the production path: construction, F37's own render of the same spec, F40's own judgement of it */
@@ -94,7 +94,13 @@ test("T40-C8 · F40 C8 THE RECORD NAMES THE EXACT CONTENT IT JUDGED: contentSha2
   /* the field decides nothing: every verdict field is what F40 decides for these inputs, hand-written */
   assert.deepEqual([q.gate.verdict, q.gate.blockers.length, ...Object.values(q.assessments).map((a) => a.verdict), ...Object.values(q.judgements).map((j) => j.verdict)],
     [VERDICT.PASS, 0, VERDICT.PASS, VERDICT.PASS, VERDICT.PASS, VERDICT.PASS, VERDICT.PASS, VERDICT.PASS, VERDICT.PASS, VERDICT.PASS, VERDICT.PASS]);
-  assert.equal(sha(withoutR40Board(readFileSync(join(REPO, "test/rr184-r5.test.mjs"), "utf8"))), RR184_TEST_SHA, "R5's fixtures changed — they must re-run unchanged");
+  /* RR-192: the one restated fixture field — l.76's gain review gains needsGuidance: false (F32 C3 / F39 C3 as amended), proved to leave every
+   * F40 and F41 verdict and blocker identical (main's code on the old fixture = the new code on the new one). It is removed, exactly once,
+   * before the unchanged pin is compared — any other change still fails. */
+  const rr184 = withoutR40Board(readFileSync(join(REPO, "test/rr184-r5.test.mjs"), "utf8"));
+  const ADDED = "documentedDistinctValue: \"a different need\", needsGuidance: false, ref:";
+  assert.equal(rr184.split(ADDED).length - 1, 1, "the RR-192 restatement is not exactly one field");
+  assert.equal(sha(rr184.replace(ADDED, "documentedDistinctValue: \"a different need\", ref:")), RR184_TEST_SHA, "R5's fixtures changed — they must re-run unchanged");
   /* the four pins, re-derived from the code */
   assert.equal(sha(JSON.stringify({ CRITERIA, METHOD_SOURCE })), PIN.criteria, "F40's criteria changed");
   const qj = readFileSync(join(REPO, "src/page/quality-judgements.mjs"), "utf8").replace(/\r\n/g, "\n");

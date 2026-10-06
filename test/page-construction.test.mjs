@@ -113,7 +113,7 @@ const existingPage = (pageId, html, extra = {}) => ({ pageId, tenantId: FIXTURE_
 const verified = (pop) => ({ ...pop, pages: pop.pages.map((p) => ({ ...p, bodyObservationId: `obs:${p.pageId}` })), inventory: { pages: pop.pages.map((p) => ({ pageId: p.pageId, fingerprints: [{ observationId: `obs:${p.pageId}`, verified: true }] })) } });
 /* F39: the recorded gain evidence plus a recorded review finding each candidate DISTINCT from each named current page (six aspects) */
 const SIX = ["intent", "answer", "facts", "architecture", "examples", "userValue"];
-const distinctFrom = (pageIds) => ({ ...GAIN_EVIDENCE, reviews: SLUGS.flatMap((s) => pageIds.map((id) => ({ pair: [`candidate:${s}`, id], compared: SIX, duplicate: false, documentedDistinctValue: "fixture", ref: `rev:${s}:${id}` }))) });
+const distinctFrom = (pageIds) => ({ ...GAIN_EVIDENCE, reviews: SLUGS.flatMap((s) => pageIds.map((id) => ({ pair: [`candidate:${s}`, id], compared: SIX, duplicate: false, needsGuidance: false /* RR-192: F32/F39 C3 as amended */, documentedDistinctValue: "fixture", ref: `rev:${s}:${id}` }))) });
 
 test("F34 · C1 · construction with NO existing-page population refuses every candidate — never built as though the site were empty", () => {
   const { pageSpecs, records } = family();

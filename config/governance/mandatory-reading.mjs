@@ -408,6 +408,15 @@ export const MANDATORY_READING = Object.freeze([
   /* RR-188 (6 Oct 2026): the one CURRENT record admitted by the migration at _handoffs fc3555d — F41's Acceptance Amendment 2 (REV2: a
    * preview only on a full F40 PASS for the same subject and contentSha256), approved by its hash. */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F41_ACCEPTANCE_AMENDMENT_2_2026-10-06.md", loader: "F-board acceptance F41" }),
+  /* RR-192 (6 Oct 2026): the CURRENT record admitted by the migration at _handoffs 69fa57d — F39's Acceptance Amendment 1. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F39_ACCEPTANCE_AMENDMENT_1_2026-10-06.md", loader: "F-board acceptance F39" }),
+  /* RR-192 (6 Oct 2026): the four CURRENT records admitted by the migration at _handoffs 3317b25 — the owner's PG-A1 ruling (Page Generator
+   * FINAL v2 Amendment 1, b5b616e), the RR-192 command, the owner's decisions (F32 A1 REV2, F39 A1 and PG-A1 approved by hash; R6a scope), and
+   * F32's Acceptance Amendment 1. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_RULING_2026-10-06_PG-A1_PAGE_GENERATOR_AMENDMENT_1.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-06_RR-192.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-06_RR-192_APPROVE_F32_A1_REV2_F39_A1_PG-A1.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F32_ACCEPTANCE_AMENDMENT_1_2026-10-06.md", loader: "F-board acceptance F32" }),
   /* RR-188 (6 Oct 2026): the three CURRENT records admitted by the migration at _handoffs e51b27f — the RR-188 command, the owner's
    * decisions (F40 A1 and F41 A2 REV2 approved by hash; one round; policy A; strict subject match), and F40's Acceptance Amendment 1. */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-06_RR-188.md", loader: "authority register (CURRENT record)" }),

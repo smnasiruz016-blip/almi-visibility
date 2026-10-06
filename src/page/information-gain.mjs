@@ -22,7 +22,7 @@
  * A declared intention (a candidate's WHY), a first-party statement, length, word count or textual difference is never a gain record:
  * this module reads none of them. Pure — it writes nothing and names no product.
  */
-import { detectDuplication } from "./duplication.mjs";
+import { detectDuplication, MISSING as DUPLICATION_MISSING } from "./duplication.mjs";
 
 export const G12_KINDS = Object.freeze(["VERIFIED_SYNTHESIS", "CLEARER_DECISIONS", "USEFUL_COMPARISON", "TOOLING", "EXAMPLES", "OTHER_DEFENSIBLE_VALUE"]);
 export const BASELINES = Object.freeze(["templates", "currentPages", "competitors"]);
@@ -36,6 +36,9 @@ export const MISSING = Object.freeze({
 /** Every evidence list F39 reads, empty: no store of any of them exists today. Callers pass it EXPLICITLY. */
 export const NO_RECORDED_GAIN_EVIDENCE = Object.freeze({ gainRecords: Object.freeze([]), competitorComparisons: Object.freeze([]), reviews: Object.freeze([]) });
 
+/* F39 C3 AS AMENDED (Acceptance Amendment 1, RR-192): a review F32 HELD for guidance decides no baseline — the current-pages baseline is
+ * NOT MEASURED, naming the missing guidance-free review, never NOT BEYOND and never BEYOND (it never reaches either branch above). */
+const heldForGuidance = (pairs) => { const h = pairs.filter((p) => p.semantic.heldForGuidance === true).length; return h ? `${MISSING.REVIEW}; ${h} pair(s) HELD — ${DUPLICATION_MISSING.GUIDANCE_FREE}` : MISSING.REVIEW; };
 const verdict = (state, evidence, missing = null) => Object.freeze({ state, evidence: Object.freeze(evidence.filter(Boolean)), missing });
 
 /** A gain record counts only when it names a G12 kind and what it adds. */
@@ -70,7 +73,7 @@ export function judgePage({ pageId, dup, evidence, siblings }) {
       : measured.exact.state === "NOT_MEASURED" ? verdict("NOT_MEASURED", [], `the main text could not be read (${measured.exact.why})`)
       : pairs.every((p) => p.semantic.state === "DISTINCT") && gain ? verdict("BEYOND", [siblings === 0 ? "no other current page" : `all ${pairs.length} sibling pair(s) reviewed DISTINCT`, gain.ref])
       : pairs.every((p) => p.semantic.state === "DISTINCT") ? verdict("NOT_MEASURED", [`all ${pairs.length} sibling pair(s) reviewed DISTINCT`], MISSING.GAIN)
-      : verdict("NOT_MEASURED", [`${pairs.filter((p) => p.semantic.state !== "DISTINCT").length} of ${pairs.length} sibling pair(s) not reviewed DISTINCT · ${pairs.filter((p) => p.textual === "REVIEW_REQUIRED").length} above the 40% review trigger`], MISSING.REVIEW);
+      : verdict("NOT_MEASURED", [`${pairs.filter((p) => p.semantic.state !== "DISTINCT").length} of ${pairs.length} sibling pair(s) not reviewed DISTINCT · ${pairs.filter((p) => p.textual === "REVIEW_REQUIRED").length} above the 40% review trigger`], heldForGuidance(pairs));
     /* competitors — a recorded comparison only */
     const cmp = evidence.competitorComparisons.find((c) => c.pageId === pageId) ?? null;
     b.competitors = !cmp ? verdict("NOT_MEASURED", [], MISSING.COMPETITORS)

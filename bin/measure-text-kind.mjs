@@ -86,7 +86,7 @@ for (const g of readdirSync(corpusDir).filter((n) => statSync(join(corpusDir, n)
   // The same decomposition for the pages that PASSED stage 1 — the only ones on
   // which the question "was it a table?" has any force.
   const passed = rows.filter((r) => r.uniqueWords >= MIN_UNIQUE_WORDS);
-  console.log(`  passed uniqueWords >= ${MIN_UNIQUE_WORDS}: ${passed.length}`);
+  console.log(`  at or above the ${MIN_UNIQUE_WORDS}-word review signal (a diagnostic, never a pass — RR-192 T-1): ${passed.length}`);
   let passedStats = null;
   if (passed.length) {
     passedStats = {};

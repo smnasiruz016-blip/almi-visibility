@@ -37,7 +37,8 @@ const pg = (pageId, main, verified = true) => ({ pageId, html: doc(main), verifi
 const SIX = ["intent", "answer", "facts", "architecture", "examples", "userValue"];
 const gain = (pageId, over = {}) => ({ pageId, kind: "USEFUL_COMPARISON", adds: "a side-by-side of the two pathways", ref: `gain:${pageId}`, ...over });
 const cmp = (pageId, over = {}) => ({ pageId, competitorsCompared: 2, gainBeyond: true, ref: `cmp:${pageId}`, ...over });
-const distinct = (a, b) => ({ pair: [a, b], compared: SIX, duplicate: false, documentedDistinctValue: "different pathway", ref: `rev:${a}:${b}` });
+/* RR-192: a counted review is recorded with needsGuidance: false (F32 C3 and F39 C3 as amended) */
+const distinct = (a, b) => ({ pair: [a, b], compared: SIX, duplicate: false, documentedDistinctValue: "different pathway", needsGuidance: false, ref: `rev:${a}:${b}` });
 const ev = (over = {}) => ({ gainRecords: [], competitorComparisons: [], reviews: [], ...over });
 const A = () => pg("a", seq("a", 20)), B = () => pg("b", seq("b", 20));
 const one = (r, id) => r.decisions.find((d) => d.pageId === id);
@@ -103,6 +104,26 @@ test("C3 · SHELL ONLY, an exact or reviewed duplicate, and a recorded no-gain c
   const noGainBeyond = judgeInformationGain({ pages: [A(), B()], evidence: { ...FULL, competitorComparisons: [cmp("a", { gainBeyond: false }), cmp("b")] } });
   assert.deepEqual(one(noGainBeyond, "a").refusedOn, ["competitors"]);
   assert.equal(one(noGainBeyond, "b").outcome, "ESTABLISHED", "the control: the other page is untouched");
+});
+
+/* ================= C3 AS AMENDED — F39 follows F32 C3 as amended (RR-192) ================= */
+
+test("C3 AS AMENDED · a duplicate review with needsGuidance: false is NOT BEYOND and REFUSED as before; with needsGuidance: true or absent the current-pages baseline is NOT MEASURED naming the missing guidance-free review and the page CANNOT DECIDE; a DISTINCT review makes BEYOND only when needsGuidance: false", () => {
+  const dupReview = (over) => ({ ...distinct("a", "b"), duplicate: true, ...over });
+  /* recorded guidance-free: as before */
+  const counted = one(judgeInformationGain({ pages: [A(), B()], evidence: { ...FULL, reviews: [dupReview({ needsGuidance: false })] } }), "a");
+  assert.deepEqual([counted.baselines.currentPages.state, counted.outcome], ["NOT_BEYOND", "REFUSED"]);
+  /* guidance-dependent, and unmarked: NOT MEASURED, never NOT BEYOND or BEYOND; CANNOT DECIDE, never REFUSED or ESTABLISHED */
+  for (const over of [{ needsGuidance: true }, { needsGuidance: undefined }]) {
+    for (const review of [dupReview(over), { ...distinct("a", "b"), ...over }]) {
+      const d = one(judgeInformationGain({ pages: [A(), B()], evidence: { ...FULL, reviews: [review] } }), "a");
+      assert.equal(d.baselines.currentPages.state, "NOT_MEASURED", `a ${over.needsGuidance === true ? "guidance-dependent" : "unmarked"} ${review.duplicate ? "DUPLICATE" : "DISTINCT"} review decided the baseline`);
+      assert.ok(d.baselines.currentPages.missing.includes("needs no guidance"), `the missing guidance-free review is not named: ${d.baselines.currentPages.missing}`);
+      assert.equal(d.outcome, "CANNOT_DECIDE");
+    }
+  }
+  /* the DISTINCT review with a gain record makes BEYOND only when recorded guidance-free */
+  assert.equal(one(judgeInformationGain({ pages: [A(), B()], evidence: FULL }), "a").baselines.currentPages.state, "BEYOND");
 });
 
 /* ================= C4 — competitors are diagnostic only ================= */

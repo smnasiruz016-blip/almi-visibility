@@ -32,8 +32,10 @@ const html256 = (h) => createHash("sha256").update(h).digest("hex");
 /* F40 Acceptance Amendment 1's pins (main 74d664af): the criteria and the three judgement methods, byte for byte */
 const PIN = Object.freeze({ criteria: "6b734b4577090f6209368b56f3d98ab17adb5da8c070e3bd8aac6fd6c523827f", fillerJudgement: "1c3d18fffff3b61044847da264861dda26949d6f9192946b839cac32e4999af4",
   repetitionJudgement: "1b63ea813b1039cc375e1011f3c5548eee91a6a342ab8420ea4de413edc522e4", recordedJudgement: "3503fde206ade00d8848b34195b1f702f26929317d069872d14b7f578f05483e" });
-/* R5's fixtures, re-run unchanged: test/rr184-r5.test.mjs as it stands at main 74d664af */
-const RR184_TEST_SHA = "f33392e815995d0ae482dde40213225d5324b56dce2e016cdd73b31260e56b99";
+/* R5's fixtures and tests, re-run unchanged: test/rr184-r5.test.mjs as it stands at main 74d664af, less its R40-BOARD test (restated in RR-188
+ * to read R5's own VERIFIED; the board is not a fixture) — the stripped text's sha256, re-derived from main's blob */
+const RR184_TEST_SHA = "7353481ed162bac39360f2055a46c96fb7943793d6cb0033f91d13576188cf03";
+const withoutR40Board = (t) => { t = t.replace(/\r\n/g, "\n"); const s = t.indexOf('test("R40-BOARD'); return s < 0 ? t : t.slice(0, s) + t.slice(t.indexOf("\n});\n", s) + 5); };
 const ON = "2026-10-06", AT = `${ON}T00:00:00Z`, NOW = new Date(`${ON}T12:00:00Z`);
 const T = "tenant:rr188-fixture", S = "rr188-fixture-subject";
 
@@ -92,7 +94,7 @@ test("T40-C8 · F40 C8 THE RECORD NAMES THE EXACT CONTENT IT JUDGED: contentSha2
   /* the field decides nothing: every verdict field is what F40 decides for these inputs, hand-written */
   assert.deepEqual([q.gate.verdict, q.gate.blockers.length, ...Object.values(q.assessments).map((a) => a.verdict), ...Object.values(q.judgements).map((j) => j.verdict)],
     [VERDICT.PASS, 0, VERDICT.PASS, VERDICT.PASS, VERDICT.PASS, VERDICT.PASS, VERDICT.PASS, VERDICT.PASS, VERDICT.PASS, VERDICT.PASS, VERDICT.PASS]);
-  assert.equal(sha(readFileSync(join(REPO, "test/rr184-r5.test.mjs"), "utf8")), RR184_TEST_SHA, "R5's fixtures changed — they must re-run unchanged");
+  assert.equal(sha(withoutR40Board(readFileSync(join(REPO, "test/rr184-r5.test.mjs"), "utf8"))), RR184_TEST_SHA, "R5's fixtures changed — they must re-run unchanged");
   /* the four pins, re-derived from the code */
   assert.equal(sha(JSON.stringify({ CRITERIA, METHOD_SOURCE })), PIN.criteria, "F40's criteria changed");
   const qj = readFileSync(join(REPO, "src/page/quality-judgements.mjs"), "utf8").replace(/\r\n/g, "\n");

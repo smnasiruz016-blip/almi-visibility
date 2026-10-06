@@ -1886,7 +1886,7 @@ export const DECLARED = Object.freeze({
   F41: Object.freeze({
     featureId: "F41",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: F41_ORIGINAL.ruling, contractSha256: F41_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -1971,6 +1971,24 @@ export const DECLARED = Object.freeze({
         amendment: Object.freeze({ ruling: F41_AMENDMENT_2.ruling, contractSha256: F41_AMENDMENT_2.contractSha256 }),
         ownerDecision: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-06_RR-188_APPROVE_F40_A1_F41_A2_REV2.md", commit: "56560733f13e6038d71cd6078ff2dd683b895aa6", sha256: "49b106a455b28a8cb372924f5af5b21da341cdd7d85a9c76ede0279e54b5518f" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-06_RR-188.md", commit: "56560733f13e6038d71cd6078ff2dd683b895aa6", sha256: "b96e8bab866746a4515c3db0f207633a4aa6ab5597ae1dea50878e1fed4f7247" }),
+      }),
+      /* RR-188: F41 RE-PROVED under F41_AMENDMENT_2 — every clause PROVED and every sabotage PROVED, on FIXTURE structures only (RR-177);
+       * recorded through the board route in the same PR; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F41",
+        population: "REAL",
+        on: "2026-10-06",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (R5c, RR-188)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F41_AMENDMENT_2.ruling.sha256, contract: F41_AMENDMENT_2.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED", C8: "PROVED", C9: "PROVED" }),
+        populations: "FIXTURE structures only (RR-177): a fixture tenant and pages; F40 results judged by F40's own function on F37's own render, or hand-written PASS results where the test names them; nothing published. The runner's REAL path puts nothing forward today. Count-only.",
+        proofs: "test/f41-content-brief.test.mjs (C1 AS AMENDED–C7; C2 gains the unrecorded-need control), test/rr179-r4.test.mjs T41a–T41f (C1 AS AMENDED and C8, the preview handed F40's PASS), test/rr188-r5c.test.mjs T41-C9 and the three strict-subject tests (KIND, NOID, OTHERID), R188-BOARD",
+        sabotage: "runs/audit/rr188-sabotage-2026-10-06T0652.txt: 75 of 75 proved across F40 and F41 — F41 C1 AS AMENDED and C8 (11, RR-179's), C2–C7 and its live C1 limb (13, from f41-sabotage.mjs), C9 and the owner's strict subject match (9) — residue 0, production trail unchanged",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),
@@ -2605,7 +2623,7 @@ export const DECLARED = Object.freeze({
   F40: Object.freeze({
     featureId: "F40",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     note: "The universal 350-word floor no longer governs F40: the owner's ruling of 2 October 2026 (no fixed minimum and no fixed maximum page word count; the assessment is whether the page answers its stated need) supersedes the blocker recorded on 22 September, which stays in this row's history. F40 has no frozen acceptance and is not implemented; when one is frozen it must carry that check (config/fboard/row-constraints.mjs). Lifting a blocker passes nothing. 6 October 2026 (RR-184): F40's first acceptance is frozen (_handoffs 6d64c27), carrying that check, and its implementation is begun; the sentences above record the row as it stood on 2 October.",
     events: Object.freeze([
       Object.freeze({ kind: "BLOCKER_RECORDED", on: "2026-09-22", source: "_handoffs/AlmiVisibility_CC_COMMAND_2026-09-22_F05_CURRENT_AUTHORITY_REGISTER_CHAIN.md §0.7" }),
@@ -2671,6 +2689,24 @@ export const DECLARED = Object.freeze({
         amendment: Object.freeze({ ruling: F40_AMENDMENT_1.ruling, contractSha256: F40_AMENDMENT_1.contractSha256 }),
         ownerDecision: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-06_RR-188_APPROVE_F40_A1_F41_A2_REV2.md", commit: "56560733f13e6038d71cd6078ff2dd683b895aa6", sha256: "49b106a455b28a8cb372924f5af5b21da341cdd7d85a9c76ede0279e54b5518f" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-06_RR-188.md", commit: "56560733f13e6038d71cd6078ff2dd683b895aa6", sha256: "b96e8bab866746a4515c3db0f207633a4aa6ab5597ae1dea50878e1fed4f7247" }),
+      }),
+      /* RR-188: F40 RE-PROVED under F40_AMENDMENT_1 — every clause PROVED and every sabotage PROVED, on FIXTURE structures only (RR-177);
+       * recorded through the board route in the same PR; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F40",
+        population: "REAL",
+        on: "2026-10-06",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (R5c, RR-188)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F40_AMENDMENT_1.ruling.sha256, contract: F40_AMENDMENT_1.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED", C8: "PROVED" }),
+        populations: "FIXTURE structures only (RR-177): drafts rendered by F37's own function on fixture pages and judged by F40's own function; fixture judgements carry their declared FIXTURE source. On a REAL draft today the gate stays NOT MEASURED (engaging and hookable have no lawful judge; distinct value CANNOT DECIDE without gain records). Count-only.",
+        proofs: "test/rr184-r5.test.mjs T40-C1–T40-C7 and T40-ALL (re-run unchanged); test/rr188-r5c.test.mjs T40-C8 (contentSha256 of the exact content judged, judged and NOT JUDGED; no verdict changed; the criteria and the three methods byte-identical to their pins), R188-BOARD",
+        sabotage: "runs/audit/rr188-sabotage-2026-10-06T0652.txt: 75 of 75 proved across F40 and F41 — F40 C1–C7 and [ALL] (37, RR-184's, re-run) and C8 (5) — residue 0, production trail unchanged",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

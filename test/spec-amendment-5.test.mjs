@@ -147,6 +147,6 @@ test("A5·6 · the denominator: 96 rows, 95 required (F25 NOT REQUIRED), 35/95 �
   assert.deepEqual([p.passed, p.denominator, p.total], [35, 96, 96]);
   assert.deepEqual([p.required.passed, p.required.denominator], [35, 95]);
   assert.equal(Object.values(p.split).reduce((a, x) => a + x, 0), 96);
-  assert.equal(p.split.UNASSESSED, 49);
+  assert.equal(p.split.UNASSESSED, 48); /* RR-184: F40 frozen under its own acceptance (_handoffs 6d64c27) and started — UNASSESSED -> IN-PROGRESS, after its lift */ /* 49 at the amendment */
   assert.equal(CROSSWALK.entries.length, 96);
 });

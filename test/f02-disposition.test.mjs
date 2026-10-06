@@ -212,5 +212,5 @@ test("B · the board: F02 holds the state its evidence earned, and no other row 
   } else assert.equal(p.passed, 5);
   for (const id of ["F01", "F05", "F06", "F08"]) assert.equal(board().find((r) => r.featureId === id).state, "VERIFIED-PASS");
   assert.equal(board().find((r) => r.featureId === "F07").state, "IN-PROGRESS"); // F07 reopened 28 Sep (test/f07-closure.test.mjs owns it)
-  assert.equal(board().find((r) => r.featureId === "F40").state, "UNASSESSED"); /* lifted 2 Oct 2026 by the owner ruling _handoffs 4761236 (RR-127 §2a) */
+  assert.equal(board().find((r) => r.featureId === "F40").state, "IN-PROGRESS"); /* RR-184: F40 frozen under its own acceptance (_handoffs 6d64c27) and started — UNASSESSED -> IN-PROGRESS, after its lift */ /* lifted 2 Oct 2026 by the owner ruling _handoffs 4761236 (RR-127 §2a) */
 });

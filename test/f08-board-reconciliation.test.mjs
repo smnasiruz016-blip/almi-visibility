@@ -134,7 +134,16 @@ test("P4 · F05's board entry is BYTE-IDENTICAL to its state at the merged SHA",
 });
 
 test("P5 · F40's board entry is BYTE-IDENTICAL to its state at the merged SHA", () => {
-  assert.ok([AT_MERGE.f40Block, AT_MERGE.f40LiftedBlock].includes(sha(rowBlock(NOW, "F40"))), "F40's row changed other than by its lawful lift");
+  /* RR-184 (6 Oct 2026): F40's row then gained its OWN acceptance's freeze and start — the state line, one sentence appended to the note, and
+   * the two events after BLOCKER_LIFTED. With exactly those removed, the row must still be the lifted row BYTE FOR BYTE: any other edit fires. */
+  const f40Now = rowBlock(NOW, "F40");
+  const RR184_NOTE = / 6 October 2026 \(RR-184\): F40's first acceptance is frozen \(_handoffs 6d64c27\), carrying that check, and its implementation is begun; the sentences above record the row as it stood on 2 October\./;
+  const RR184_EVENTS = /\n {6}\/\* RR-184: F40's first acceptance[\s\S]*?\n {6}\}\),(?=\n {4}\]\),)/;
+  assert.equal((f40Now.match(RR184_EVENTS) ?? []).length, 1, "the RR-184 additions are not where they were made");
+  const f40Before = f40Now.replace('    state: "IN-PROGRESS",', '    state: "UNASSESSED",').replace(RR184_NOTE, "").replace(RR184_EVENTS, "");
+  assert.ok([AT_MERGE.f40Block, AT_MERGE.f40LiftedBlock].includes(sha(f40Before)), "F40's row changed other than by its lawful lift and its RR-184 freeze and start");
+  // CONTROL: one more character anywhere else in the row is seen
+  assert.ok(![AT_MERGE.f40Block, AT_MERGE.f40LiftedBlock].includes(sha(f40Before.replace("BLOCKER_LIFTED", "BLOCKER_LIFTED "))), "the comparison cannot see an edit");
   // CONTROL, PROVED CAPABLE: the SAME comparison, against the SAME kind of pin, moves for the row that changed.
   assert.notEqual(sha(rowBlock(NOW, "F08")), AT_MERGE.f08Block);
 });
@@ -155,7 +164,7 @@ const MOVED_SINCE = Object.freeze({ F37: "VERIFIED-PASS" /* RR-180 §8: started 
 /* F25 moved UNASSESSED -> IN-PROGRESS on 2 Oct 2026 (RR-137, acceptance b56655a) — IN-PROGRESS 11, UNASSESSED 46; the board still reads 34/91 */
 /* F62 moved UNASSESSED -> IN-PROGRESS on 3 Oct 2026 (RR-148, acceptance a5ec9f1) — IN-PROGRESS 12, UNASSESSED 45; the board still reads 34/90 required, 34/91 all rows */
 /* F37 moved UNASSESSED -> IN-PROGRESS on 5 Oct 2026 (RR-180, acceptance 9516f2c) — IN-PROGRESS 13, UNASSESSED 44; the board still reads 34/90 required, 34/91 all rows */
-const STARTED_SINCE = Object.freeze({ F62: "IN-PROGRESS", F25: "IN-PROGRESS", F22: "IN-PROGRESS", F81: "IN-PROGRESS", F10: "IN-PROGRESS", F78: "IN-PROGRESS" /* F78 started on 29 Sep 2026 (RR-93, acceptance a1885de committed alone; C1 DISPROVED on the real ledger) */, F23: "IN-PROGRESS" /* F23 started on 1 Oct 2026 (RR-111, acceptance d3c8e79 committed alone; its real population is INCOMPLETE for every client) */, F27: "IN-PROGRESS" /* F27 started on 1 Oct 2026 (RR-111, acceptance 8a6312b committed alone, amended alone 93fa696; TLS, redirect, headers and public exposure never collected or declared) */, F91: "IN-PROGRESS" /* F91 started on 1 Oct 2026 (RR-113, acceptance 2048dd3 committed alone after reconciliation 24c44d0; numbers 2 and 3 NOT MEASURED) */, F44: "IN-PROGRESS" /* F44 started on 1 Oct 2026 (RR-113 §9, acceptance eecdfe4 committed alone; unit never judged, no capability claim recorded) */, F16: "IN-PROGRESS" /* F16 started on 1 Oct 2026 (RR-114, acceptance 944f769 committed alone; the recorded public-question sample is EMPTY) */ }); // F10 started on 26 Sep 2026 (movement 1, acceptance 504dbb9 committed alone, owner command 991eb9e) — admitted only by the three facts below. // F09 started on 25 Sep 2026 (movement 1, owner commands e5f5fd4 / 474d27a) and EARNED VERIFIED-PASS the same day (close-out 2601cb3) — see MOVED_SINCE. // F04 started on 25 Sep 2026 (movement 1, owner command 94acbb7 §15) and EARNED VERIFIED-PASS the same day under Amendment 1 (89e8664) — see MOVED_SINCE. F02 started here on 24 Sep and then EARNED VERIFIED-PASS on 25 Sep — see MOVED_SINCE.
+const STARTED_SINCE = Object.freeze({ F40: "IN-PROGRESS" /* RR-184: frozen under its own acceptance (6d64c27) and started */, F62: "IN-PROGRESS", F25: "IN-PROGRESS", F22: "IN-PROGRESS", F81: "IN-PROGRESS", F10: "IN-PROGRESS", F78: "IN-PROGRESS" /* F78 started on 29 Sep 2026 (RR-93, acceptance a1885de committed alone; C1 DISPROVED on the real ledger) */, F23: "IN-PROGRESS" /* F23 started on 1 Oct 2026 (RR-111, acceptance d3c8e79 committed alone; its real population is INCOMPLETE for every client) */, F27: "IN-PROGRESS" /* F27 started on 1 Oct 2026 (RR-111, acceptance 8a6312b committed alone, amended alone 93fa696; TLS, redirect, headers and public exposure never collected or declared) */, F91: "IN-PROGRESS" /* F91 started on 1 Oct 2026 (RR-113, acceptance 2048dd3 committed alone after reconciliation 24c44d0; numbers 2 and 3 NOT MEASURED) */, F44: "IN-PROGRESS" /* F44 started on 1 Oct 2026 (RR-113 §9, acceptance eecdfe4 committed alone; unit never judged, no capability claim recorded) */, F16: "IN-PROGRESS" /* F16 started on 1 Oct 2026 (RR-114, acceptance 944f769 committed alone; the recorded public-question sample is EMPTY) */ }); // F10 started on 26 Sep 2026 (movement 1, acceptance 504dbb9 committed alone, owner command 991eb9e) — admitted only by the three facts below. // F09 started on 25 Sep 2026 (movement 1, owner commands e5f5fd4 / 474d27a) and EARNED VERIFIED-PASS the same day (close-out 2601cb3) — see MOVED_SINCE. // F04 started on 25 Sep 2026 (movement 1, owner command 94acbb7 §15) and EARNED VERIFIED-PASS the same day under Amendment 1 (89e8664) — see MOVED_SINCE. F02 started here on 24 Sep and then EARNED VERIFIED-PASS on 25 Sep — see MOVED_SINCE.
 
 /* 🔴 A ROW THAT EARNED VERIFIED-PASS AND WAS THEN REOPENED on concrete contradictory evidence is admitted — only by its own facts: it is
  * in MOVED_SINCE (it earned the pass), its LAST event is REOPENED VERIFIED-PASS -> IN-PROGRESS on CONCRETE_CONTRADICTORY_EVIDENCE, and
@@ -181,7 +190,15 @@ test("P6 · every feature other than F08 holds exactly the state it held at the 
       assert.ok(events().some((e) => e.eventType === "BOARD_TRANSITION" && e.action === "VERIFIED" && e.metadata?.featureId === r.featureId), `${r.featureId}'s movement is not in the audit trail`);
       continue;
     }
-    if (STARTED_SINCE[r.featureId] === r.state && was === "UNASSESSED") {
+    /* RR-184: a row whose blocker was LIFTED (UNBLOCKED_SINCE) and which then STARTED under its own acceptance is admitted by its own facts:
+     * the lift (CURRENT authority) precedes its IMPLEMENTATION, and the start's own checks below apply. F40 on 6 Oct 2026. */
+    const liftedThenStarted = was === "BLOCKED-BY-AUTHORITY" && UNBLOCKED_SINCE[r.featureId] === "UNASSESSED" && (() => {
+      const ev = DECLARED[r.featureId].events;
+      const lift = ev.findIndex((e) => e.kind === "BLOCKER_LIFTED" && e.from === "BLOCKED-BY-AUTHORITY" && e.to === "UNASSESSED");
+      const start = ev.findIndex((e) => e.kind === "IMPLEMENTATION" && e.from === "UNASSESSED");
+      return lift >= 0 && start > lift && resolve({ records: AUTHORITY_CORPUS, propositionId: ev[lift].authority.propositionId, scope: ev[lift].authority.scope, now: CORPUS_PROVENANCE.now }).outcome === "CURRENT";
+    })();
+    if (STARTED_SINCE[r.featureId] === r.state && (was === "UNASSESSED" || liftedThenStarted)) {
       const d = DECLARED[r.featureId];
       assert.ok(ACCEPTANCES[r.featureId], `${r.featureId} started with no frozen acceptance`);
       assert.ok(d.events.some((e) => e.kind === "IMPLEMENTATION" && e.featureId === r.featureId && e.from === "UNASSESSED" && e.to === "IN-PROGRESS"), `${r.featureId} started with no IMPLEMENTATION event of its own`);
@@ -210,7 +227,8 @@ test("P6 · every feature other than F08 holds exactly the state it held at the 
   assert.deepEqual(moved, [], "a feature moved away from its state at the merged SHA");
   assert.ok(DECLARED.F08.events.some((e) => e.kind === "CONTRADICTORY_EVIDENCE_RECORDED"), "F08's reopening was erased rather than superseded");
   // The set of declared rows itself did not grow: a new row appearing would also be a movement.
-  assert.deepEqual(Object.keys(DECLARED).sort(), [...Object.keys(AT_MERGE.states), ...Object.keys(MOVED_SINCE), ...Object.keys(STARTED_SINCE)].sort());
+  /* RR-184: F40 is in AT_MERGE.states (blocked then) and in STARTED_SINCE (lifted, then started) — one row, counted once */
+  assert.deepEqual(Object.keys(DECLARED).sort(), [...new Set([...Object.keys(AT_MERGE.states), ...Object.keys(MOVED_SINCE), ...Object.keys(STARTED_SINCE)])].sort());
 });
 
 test("P7 · the historical 61/38 ledger is BYTE-IDENTICAL to its state at the merged SHA", () => {

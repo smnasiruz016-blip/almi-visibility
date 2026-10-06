@@ -27,7 +27,7 @@ test("B1 · the board reads 36/95 over the REQUIRED rows and 36/96 over all rows
   const p = progress(board());
   /* RR-182 §3: Specification Amendment 5 appended F92–F96 UNASSESSED — UNASSESSED 44 → 49, rows 91 → 96, required 90 → 95; passed unchanged */
   assert.deepEqual([p.passed, p.denominator, p.total], [36, 96, 96], "the all-rows figure moved");
-  assert.deepEqual([p.required.passed, p.required.denominator], [36, 95], "the required figure is not 36/95"); /* RR-184: F40 PROVED in R5 (rr184-sabotage-2026-10-06T0301: 37 of 37) */
+  assert.deepEqual([p.required.passed, p.required.denominator], [36, 95], "the required figure is not 36/95"); /* RR-186: F37 RE-PROVED under Amendment 1 (rr186-sabotage-2026-10-06T0419: 42 of 42) */
   assert.deepEqual(p.required.notRequired, [{ featureId: "F25", state: "IN-PROGRESS" }]);
   assert.deepEqual(errs(board()), [], "the real board is not lawful");
   const cli = spawnSync(process.execPath, ["bin/fboard-status.mjs"], { cwd: REPO, encoding: "utf8" });

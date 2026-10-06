@@ -117,7 +117,13 @@ test("A5·3 · F97 does not exist — the control one past the last row (F91 →
 
 test("A5·4 · no passed row moved, F62 and F81 stay IN-PROGRESS, and the amendment froze nothing and built nothing — every touched row's state is what it was", () => {
   const b = board();
-  assert.deepEqual(b.filter((r) => r.state === "VERIFIED-PASS").map((r) => r.featureId), PASSED_AT_2FC76540, "a passed row moved, or a row became passed");
+  /* RR-186: a listed row may leave VERIFIED-PASS later only by its OWN act — an acceptance amendment frozen alone, with an explicit REOPENED
+   * on AUTHORITATIVE_REQUIREMENT_CHANGE as its last event (F37 on 6 Oct 2026); the amendment itself moved none, and nothing else moved */
+  const ownReopen = (id) => { const ev = b.find((r) => r.featureId === id).events; const last = ev.at(-1);
+    return last?.kind === "REOPENED" && last.reason === "AUTHORITATIVE_REQUIREMENT_CHANGE" && ev.at(-2)?.kind === "ACCEPTANCE_AMENDED" && last.on >= "2026-10-06"; };
+  const passedNow = b.filter((r) => r.state === "VERIFIED-PASS").map((r) => r.featureId);
+  assert.deepEqual(passedNow, PASSED_AT_2FC76540.filter((id) => passedNow.includes(id) || !ownReopen(id)), "a passed row moved, or a row became passed");
+  assert.ok(PASSED_AT_2FC76540.filter((id) => !passedNow.includes(id)).every(ownReopen), "a passed row left VERIFIED-PASS other than by its own amendment and reopen");
   assert.deepEqual(["F62", "F81"].map((id) => b.find((r) => r.featureId === id).state), ["IN-PROGRESS", "IN-PROGRESS"]);
   for (const id of ["F92", "F93", "F94", "F95", "F96", "F17", "F38", "F58", "F76"]) {
     const r = b.find((x) => x.featureId === id);
@@ -145,8 +151,10 @@ test("A5·5 · the amendment's text did not change: the admitted record's bytes 
 
 test("A5·6 · the denominator: 96 rows, 95 required (F25 NOT REQUIRED) — 35/95 at the amendment, 36/95 since F40 was PROVED (RR-184); the split sums to 96", () => {
   const p = progress(board());
-  assert.deepEqual([p.passed, p.denominator, p.total], [36, 96, 96]);
-  assert.deepEqual([p.required.passed, p.required.denominator], [36, 95]);
+  /* RR-186: this test's job is the DENOMINATOR; the passed figure moves with lawful later movements and is pinned by the board-figure tests */
+  assert.deepEqual([p.denominator, p.total, p.required.denominator], [96, 96, 95]);
+  assert.equal(p.passed, board().filter((r) => r.state === "VERIFIED-PASS").length);
+  assert.equal(p.required.passed, p.passed, "F25 (NOT REQUIRED) is not passed, so both figures count the same rows");
   assert.equal(Object.values(p.split).reduce((a, x) => a + x, 0), 96);
   assert.equal(p.split.UNASSESSED, 48); /* RR-184: F40 frozen under its own acceptance (_handoffs 6d64c27) and started — UNASSESSED -> IN-PROGRESS, after its lift */ /* 49 at the amendment */
   assert.equal(CROSSWALK.entries.length, 96);

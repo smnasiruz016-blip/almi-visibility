@@ -124,7 +124,7 @@ test("T37b · F37 C1 THE SAME DRAFT WITH ONE CLAIM'S SOURCE REMOVED shows it UNK
 test("T37c · F37 C2 THE CONTROL PAIR: each heading is its question's own wording with its tier and GENERATED marking visible; the same wording as an attribution heading is refused", () => {
   const c = chosenWithPages();
   const draft = renderCompiledDraft({ spec: c.d.spec, decision: c.d.decision, links: LINKS });
-  const h = [...draft.html.matchAll(/<section class="qa" data-question-id="([^"]+)" data-tier="([^"]+)" data-marking="([^"]+)">\n<h2>([^<]+)<\/h2>\n<p class="qa-tier">([^<]+)<\/p>/g)].map((m) => ({ id: m[1], tier: m[2], marking: m[3], heading: m[4], line: m[5] }));
+  const h = [...draft.html.matchAll(/<section class="qa" data-question-id="([^"]+)" data-tier="([^"]+)" data-marking="([^"]+)" data-refers-to="[^"]*">\n<h2><a href="#answer">([^<]+)<\/a><\/h2>\n<p class="qa-tier">([^<]+)<\/p>/g)].map((m) => ({ id: m[1], tier: m[2], marking: m[3], heading: m[4], line: m[5] }));
   const byId = new Map(h.map((x) => [x.id, x]));
   assert.deepEqual([byId.get(Q1.question_id).heading, byId.get(Q1.question_id).marking, byId.get(Q1.question_id).line], ["How long does a fixture licence renewal take?", "GENERATED", "Research-derived question · GENERATED wording"]);
   assert.deepEqual([byId.get(Q2.question_id).heading, byId.get(Q2.question_id).line], ["How long is the renewal of a fixture licence?", "Asked publicly (observed)"]);
@@ -264,7 +264,8 @@ test("R37-BOARD · F37 moves only through the production validator and the audit
   if (row.state === "VERIFIED-PASS") {
     const v = row.events.filter((e) => e.kind === "VERIFIED").at(-1);
     assert.equal(v.population, "REAL");
-    assert.deepEqual(Object.keys(v.clauses), ["C1", "C2", "C3", "C4", "C5", "C6"]);
+    /* RR-186: since Acceptance Amendment 1 the acceptance in force has C7 (each distinct claim once); the re-proof names every clause */
+    assert.deepEqual(Object.keys(v.clauses), ["C1", "C2", "C3", "C4", "C5", "C6", "C7"]);
     assert.ok(Object.values(v.clauses).every((x) => x === "PROVED"));
   } else assert.equal(row.state, "IN-PROGRESS");
 });

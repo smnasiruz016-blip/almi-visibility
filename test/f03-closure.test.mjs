@@ -76,11 +76,11 @@ test("F03 · CLOSE · 3 · the board validates clean, and every other named row 
   const state = (id) => b.find((r) => r.featureId === id).state;
   for (const id of ["F01", "F02", "F03", "F05", "F06", "F08"]) assert.equal(state(id), "VERIFIED-PASS", id);
   assert.equal(state("F07"), "IN-PROGRESS", "F07 reopened 28 Sep (test/f07-closure.test.mjs owns it)");
-  assert.equal(state("F40"), "VERIFIED-PASS"); /* RR-184: F40 frozen under its own acceptance (_handoffs 6d64c27), started after its lift, then PROVED (rr184-sabotage-2026-10-06T0301: 37 of 37) */ /* lifted 2 Oct 2026 by the owner ruling _handoffs 4761236 (RR-127 §2a) */
+  assert.equal(state("F40"), ((r) => (r.state === "IN-PROGRESS" && r.events.at(-1)?.kind === "REOPENED" && r.events.at(-1)?.reason === "AUTHORITATIVE_REQUIREMENT_CHANGE" && r.events.at(-2)?.kind === "ACCEPTANCE_AMENDED" ? "IN-PROGRESS" : "VERIFIED-PASS"))(b.find((x) => x.featureId === "F40"))); /* RR-188: F40's lawful state — VERIFIED-PASS, or IN-PROGRESS while its own Amendment 1 has reopened it */ /* RR-184: F40 frozen under its own acceptance (_handoffs 6d64c27), started after its lift, then PROVED (rr184-sabotage-2026-10-06T0301: 37 of 37) */ /* lifted 2 Oct 2026 by the owner ruling _handoffs 4761236 (RR-127 §2a) */
   assert.equal(state("F79"), "VERIFIED-PASS", "F79 moved 29 Sep 2026 under its own acceptance (RR-93, _handoffs f34f3af) — test/f79-evidence-cache.test.mjs owns it");
   const p = progress(b);
   assert.equal(p.passed, b.filter((r) => r.state === "VERIFIED-PASS").length);
-  assert.equal(p.passed, 36); /* RR-186: F37 RE-PROVED under Amendment 1 (rr186-sabotage-2026-10-06T0419: 42 of 42) */
+  assert.equal(p.passed, 35); /* RR-188: F40 REOPENED at its Amendment 1 freeze (AUTHORITATIVE_REQUIREMENT_CHANGE) */
 });
 
 test("F03 · CLOSE · R7 rows · every portability outcome row, printed, reproduces the digest exact-SHA main CI recorded", (t) => {

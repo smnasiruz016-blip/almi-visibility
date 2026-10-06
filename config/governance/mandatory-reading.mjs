@@ -405,6 +405,11 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-04_RR-159.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F16_ACCEPTANCE_AMENDMENT_3_2026-10-04.md", loader: "F-board acceptance F16" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-04_RR-159_Q1_Q2_Q3_ANSWERS.md", loader: "authority register (CURRENT record)" }),
+  /* RR-188 (6 Oct 2026): the three CURRENT records admitted by the migration at _handoffs e51b27f — the RR-188 command, the owner's
+   * decisions (F40 A1 and F41 A2 REV2 approved by hash; one round; policy A; strict subject match), and F40's Acceptance Amendment 1. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-06_RR-188.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-06_RR-188_APPROVE_F40_A1_F41_A2_REV2.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F40_ACCEPTANCE_AMENDMENT_1_2026-10-06.md", loader: "F-board acceptance F40" }),
   /* RR-186 (6 Oct 2026): the three CURRENT records admitted by the migration at _handoffs 998ef05 — the RR-186 command, the owner's
    * decisions (F37 Amendment 1 approved by its hash; F41 A2 deferred to R5c; policy A), and F37's Acceptance Amendment 1 (each claim once). */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-06_RR-186.md", loader: "authority register (CURRENT record)" }),

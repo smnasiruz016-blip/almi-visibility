@@ -46,12 +46,12 @@ test("F-BOARD · F08 is VERIFIED-PASS by FAILED → IN-PROGRESS → VERIFIED-PAS
   /* F09 VERIFIED-PASS on 25 Sep 2026 (movement 2, close-out command 2601cb3 §10) — the board reads 9/89, measured on the closure tree. */
   /* F07 REOPENED 28 Sep 2026 (CONCRETE_CONTRADICTORY_EVIDENCE, eight out-of-band reads, _handoffs be583fa) — the board reads 8/89; test/f07-closure.test.mjs owns that movement. */
   /* F90 appended 28 Sep 2026 by Specification Amendment 1 (_handoffs a3a777b) — the board reads 8/90: F90 starts UNASSESSED. */
-  assert.deepEqual(p.split, { UNASSESSED: 48, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 12, "BLOCKED-BY-AUTHORITY": 0, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 36 }); /* RR-186: F37 RE-PROVED under Amendment 1 (rr186-sabotage-2026-10-06T0419: 42 of 42) */
-  assert.equal(p.passed, 36); /* RR-186: F37 RE-PROVED under Amendment 1 (rr186-sabotage-2026-10-06T0419: 42 of 42) */
+  assert.deepEqual(p.split, { UNASSESSED: 48, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 13, "BLOCKED-BY-AUTHORITY": 0, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 35 }); /* RR-188: F40 REOPENED at its Amendment 1 freeze (AUTHORITATIVE_REQUIREMENT_CHANGE) */
+  assert.equal(p.passed, 35); /* RR-188: F40 REOPENED at its Amendment 1 freeze (AUTHORITATIVE_REQUIREMENT_CHANGE) */
   /* RR-182 §3: Specification Amendment 5 appended F92–F96 UNASSESSED — UNASSESSED 44 → 49, rows 91 → 96, required 90 → 95; passed unchanged */
   assert.equal(p.total, 96); // F90 appended 28 Sep 2026 by Specification Amendment 1 (_handoffs a3a777b) — the board reads 8/90; F91 appended 30 Sep 2026 by Specification Amendment 3 (RR-103) — 91 rows
   assert.equal(DECLARED.F05.state, "VERIFIED-PASS");
-  assert.equal(DECLARED.F40.state, "VERIFIED-PASS"); /* RR-184: F40 frozen under its own acceptance (_handoffs 6d64c27), started after its lift, then PROVED (rr184-sabotage-2026-10-06T0301: 37 of 37) */ /* lifted 2 Oct 2026 by the owner ruling _handoffs 4761236 (RR-127 §2a) */
+  assert.equal(DECLARED.F40.state, ((r) => (r.state === "IN-PROGRESS" && r.events.at(-1)?.kind === "REOPENED" && r.events.at(-1)?.reason === "AUTHORITATIVE_REQUIREMENT_CHANGE" && r.events.at(-2)?.kind === "ACCEPTANCE_AMENDED" ? "IN-PROGRESS" : "VERIFIED-PASS"))(DECLARED.F40)); /* RR-188: F40's lawful state — VERIFIED-PASS, or IN-PROGRESS while its own Amendment 1 has reopened it */ /* RR-184: F40 frozen under its own acceptance (_handoffs 6d64c27), started after its lift, then PROVED (rr184-sabotage-2026-10-06T0301: 37 of 37) */ /* lifted 2 Oct 2026 by the owner ruling _handoffs 4761236 (RR-127 §2a) */
   const f08 = DECLARED.F08;
   assert.equal(f08.state, "VERIFIED-PASS");
   const kinds = f08.events.map((e) => `${e.kind}@${e.on}`);

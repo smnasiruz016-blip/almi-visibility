@@ -49,7 +49,8 @@ export function claimSupport(claim, { officialSites = [] } = {}) {
   if (s.kind === SOURCE_KINDS.PROVIDER_TEXT) return unknown(CLAIM_UNKNOWN.PROVIDER);
   if (!present(s.name) || !present(s.link) || !ISO_DAY.test(s.readOn ?? "")) return unknown(CLAIM_UNKNOWN.SOURCE);
   if (claim.supports?.finding !== SUPPORTS || !present(claim.supports?.ref)) return unknown(CLAIM_UNKNOWN.NOT_SUPPORTED);
-  const ok = (label, statedAs) => Object.freeze({ claimId: claim.claimId ?? null, central: claim.central !== false, state: ANSWER_STATES.SUPPORTED, label, statedAs,
+  /* RR-180 (F37 C3): the claim's OWN recorded statement travels with its support, so a draft can write it — never composed here */
+  const ok = (label, statedAs) => Object.freeze({ claimId: claim.claimId ?? null, central: claim.central !== false, state: ANSWER_STATES.SUPPORTED, label, statedAs, text: present(claim.text) ? claim.text.trim() : null,
     source: Object.freeze({ name: s.name, link: s.link, readOn: s.readOn }), finding: claim.supports.ref });
   if (claim.states === CLAIM_KINDS.BODY_RULE) {
     if (claim.estimate === true) return unknown(CLAIM_UNKNOWN.ESTIMATE_AS_OFFICIAL);

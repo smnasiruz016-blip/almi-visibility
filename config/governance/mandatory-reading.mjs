@@ -405,6 +405,11 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-04_RR-159.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F16_ACCEPTANCE_AMENDMENT_3_2026-10-04.md", loader: "F-board acceptance F16" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-04_RR-159_Q1_Q2_Q3_ANSWERS.md", loader: "authority register (CURRENT record)" }),
+  /* RR-180 §4 (5 Oct 2026): the three CURRENT records admitted by the migration at _handoffs 9516f2c — the RR-180 command, the owner's
+   * RR-180 rulings on the R4 findings, and F37's first Acceptance (the complete-draft render), approved by its hash. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-05_RR-180.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-05_RR-180_R4B_RULINGS.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F37_ACCEPTANCE_2026-10-05.md", loader: "F-board acceptance F37" }),
   /* RR-179 §4.3 (5 Oct 2026): the one CURRENT record admitted by the migration at _handoffs d014ca1 — the owner's record B, the lone-page
    * rule at F36's site (why-this-url.mjs l.123–126), approved as written in 76d6a99. */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-05_RR-179_RECORD_B_LONE_PAGE_AT_F36.md", loader: "authority register (CURRENT record)" }),

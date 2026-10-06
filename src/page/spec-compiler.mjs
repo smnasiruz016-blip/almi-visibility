@@ -68,7 +68,8 @@ function answerParts(answer) {
   if (!claims.length) unknown.push(Object.freeze({ claimId: null, state: ANSWER_STATES.UNKNOWN, why: answer?.why ?? "no answer was recorded" }));
   return {
     claims: Object.freeze([...new Set(supported.map((c) => c.claimId))].sort()),
-    labels: Object.freeze(supported.map((c) => Object.freeze({ claimId: c.claimId, label: c.label, source: c.source?.name ?? null })).sort((a, b) => (a.claimId < b.claimId ? -1 : 1))),
+    /* RR-180 (F37 C3): each supported claim's own recorded statement, label, source name, link and date read, and whether it is central */
+    labels: Object.freeze(supported.map((c) => Object.freeze({ claimId: c.claimId, label: c.label, source: c.source?.name ?? null, link: c.source?.link ?? null, readOn: c.source?.readOn ?? null, text: c.text ?? null, statedAs: c.statedAs ?? null, central: c.central !== false })).sort((a, b) => (a.claimId < b.claimId ? -1 : 1))),
     unknown: Object.freeze(unknown.sort((a, b) => String(a.claimId) < String(b.claimId) ? -1 : 1)),
   };
 }

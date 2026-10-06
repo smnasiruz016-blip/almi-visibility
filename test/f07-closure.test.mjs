@@ -34,8 +34,8 @@ test("F7-BOARD · F07 is VERIFIED-PASS by UNASSESSED → IN-PROGRESS → VERIFIE
   /* F09 VERIFIED-PASS on 25 Sep 2026 (movement 2, close-out command 2601cb3 §10) — the board reads 9/89, measured on the closure tree. */
   /* F07 REOPENED 28 Sep 2026 (CONCRETE_CONTRADICTORY_EVIDENCE, eight out-of-band reads, _handoffs be583fa) — the board reads 8/89; test/f07-closure.test.mjs owns that movement. */
   /* F90 appended 28 Sep 2026 by Specification Amendment 1 (_handoffs a3a777b) — the board reads 8/90: F90 starts UNASSESSED. */
-  assert.deepEqual(p.split, { UNASSESSED: 45, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 12, "BLOCKED-BY-AUTHORITY": 0, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 34 }); /* RR-179 §7: F41, F36 and F35 RE-PROVED in R4 (rr179-sabotage-2026-10-05T2142: 65 of 65) */
-  assert.equal(p.passed, 34); /* RR-179 §7: F41, F36 and F35 RE-PROVED in R4 (rr179-sabotage-2026-10-05T2142: 65 of 65) */
+  assert.deepEqual(p.split, { UNASSESSED: 44, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 12, "BLOCKED-BY-AUTHORITY": 0, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 35 }); /* RR-180 §8: F37 PROVED in R4b (rr180-sabotage-2026-10-06T0009: 34 of 34) */
+  assert.equal(p.passed, 35); /* RR-180 §8: F37 PROVED in R4b (rr180-sabotage-2026-10-06T0009: 34 of 34) */
   assert.equal(p.total, 91); // F90 appended 28 Sep 2026 by Specification Amendment 1 (_handoffs a3a777b) — the board reads 8/90; F91 appended 30 Sep 2026 by Specification Amendment 3 (RR-103) — 91 rows
   assert.deepEqual(["F05", "F08", "F40"].map((f) => DECLARED[f].state), ["VERIFIED-PASS", "VERIFIED-PASS", "UNASSESSED"]); // F40 unblocked 2 Oct by the owner ruling (_handoffs 4761236)
 
@@ -153,5 +153,5 @@ test("F7-TRAIL · the board ↔ audit consistency check is clean, and names F07 
   const r = spawnSync(process.execPath, [join(REPO, "tools/board-audit-consistency.mjs")], { cwd: REPO, encoding: "utf8" });
   assert.match(r.stdout, /rows needing a transition event: F01, F02, F03, F04, F05, F06, F08, F09/); // F07 left the list on 28 Sep (reopened, IN-PROGRESS). F06 and F01 joined on 24 September 2026; F03 on 25 September 2026; F04 on 25 September 2026
   assert.match(r.stdout, /consistency errors\s*: 0/);
-  assert.match(r.stdout, /F-progress \(computed from the board file\): 34\/90 required rows · all rows 34\/91 · NOT REQUIRED F25/); /* RR-179 §7: F41, F36 and F35 RE-PROVED in R4 (rr179-sabotage-2026-10-05T2142: 65 of 65) */
+  assert.match(r.stdout, /F-progress \(computed from the board file\): 35\/90 required rows · all rows 35\/91 · NOT REQUIRED F25/); /* RR-180 §8: F37 PROVED in R4b (rr180-sabotage-2026-10-06T0009: 34 of 34) */
 });

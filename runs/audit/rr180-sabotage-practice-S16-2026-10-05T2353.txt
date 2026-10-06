@@ -1,0 +1,9 @@
+RR-180 R4b sabotage PRACTICE run · 2026-10-05T23:53:05.577Z
+population: 1 sabotage(s) over test/rr180-r4b.test.mjs · each applied ALONE · no provider, no network, no third-party read
+BASELINE (the named tests before any sabotage): GREEN · named tests seen GREEN: 1 of 1
+PRE-FLIGHT (span occurrences in the code live now): S16=1 · all exactly once: true
+production trail sha256 before: 3471bb7f2d5aeb2404fc0668838a8ad7f1037261b642495d6a6fe74525037b29
+
+S16 F37 C3 · an ordinary claim is refused for want of an official body [src/page/answer-support.mjs]: landed true · named test "T37d" red true · its failure AssertionError · SyntaxError false · a production child crashed false · failing T37a,T37b,T37c,T37d,T37e,T37f,T37h,T37i,T37j · restored by sha256 true · PROVED
+
+proved 1 of 1 · residue 0 · production trail sha256 after: 3471bb7f2d5aeb2404fc0668838a8ad7f1037261b642495d6a6fe74525037b29 · unchanged true

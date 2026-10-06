@@ -46,8 +46,8 @@ test("F-BOARD · F08 is VERIFIED-PASS by FAILED → IN-PROGRESS → VERIFIED-PAS
   /* F09 VERIFIED-PASS on 25 Sep 2026 (movement 2, close-out command 2601cb3 §10) — the board reads 9/89, measured on the closure tree. */
   /* F07 REOPENED 28 Sep 2026 (CONCRETE_CONTRADICTORY_EVIDENCE, eight out-of-band reads, _handoffs be583fa) — the board reads 8/89; test/f07-closure.test.mjs owns that movement. */
   /* F90 appended 28 Sep 2026 by Specification Amendment 1 (_handoffs a3a777b) — the board reads 8/90: F90 starts UNASSESSED. */
-  assert.deepEqual(p.split, { UNASSESSED: 45, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 12, "BLOCKED-BY-AUTHORITY": 0, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 34 }); /* RR-179 §7: F41, F36 and F35 RE-PROVED in R4 (rr179-sabotage-2026-10-05T2142: 65 of 65) */
-  assert.equal(p.passed, 34); /* RR-179 §7: F41, F36 and F35 RE-PROVED in R4 (rr179-sabotage-2026-10-05T2142: 65 of 65) */
+  assert.deepEqual(p.split, { UNASSESSED: 44, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 12, "BLOCKED-BY-AUTHORITY": 0, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 35 }); /* RR-180 §8: F37 PROVED in R4b (rr180-sabotage-2026-10-06T0009: 34 of 34) */
+  assert.equal(p.passed, 35); /* RR-180 §8: F37 PROVED in R4b (rr180-sabotage-2026-10-06T0009: 34 of 34) */
   assert.equal(p.total, 91); // F90 appended 28 Sep 2026 by Specification Amendment 1 (_handoffs a3a777b) — the board reads 8/90; F91 appended 30 Sep 2026 by Specification Amendment 3 (RR-103) — 91 rows
   assert.equal(DECLARED.F05.state, "VERIFIED-PASS");
   assert.equal(DECLARED.F40.state, "UNASSESSED"); /* lifted 2 Oct 2026 by the owner ruling _handoffs 4761236 (RR-127 §2a) */

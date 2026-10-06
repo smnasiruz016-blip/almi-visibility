@@ -26,10 +26,14 @@ function withStandInFreeze(expected) {
   return boardErrors(rows, { ...ctx, acceptances: { ...ACCEPTANCES, F40: acc } }).filter((e) => e.code === "ROW_CONSTRAINT_UNMET" && e.id === "F40").map((e) => e.why.match(/"([^"]+)"/)[1]).sort();
 }
 
-test("F40 · the board is valid with the lift, and F40 is UNASSESSED — lifted, never passed", () => {
+test("F40 · the board is valid with the lift; the lift passed nothing — F40 moved on only by its OWN acceptance, frozen and started after it (RR-184)", () => {
   assert.deepEqual(boardErrors(board(), ctx), []);
-  assert.equal(DECLARED.F40.state, "UNASSESSED");
-  assert.equal(DECLARED.F40.events.some((e) => e.kind === "VERIFIED" || e.kind === "IMPLEMENTATION"), false);
+  /* RR-184: the lift itself left F40 UNASSESSED; its later movement is its own acceptance frozen (6d64c27), then IMPLEMENTATION, after the lift */
+  const kinds = DECLARED.F40.events.map((e) => e.kind);
+  assert.deepEqual(kinds.slice(0, 4), ["BLOCKER_RECORDED", "BLOCKER_LIFTED", "ACCEPTANCE_FROZEN", "IMPLEMENTATION"]);
+  assert.deepEqual([DECLARED.F40.events[1].to, DECLARED.F40.events[3].from], ["UNASSESSED", "UNASSESSED"]);
+  assert.ok(["IN-PROGRESS", "VERIFIED-PASS"].includes(DECLARED.F40.state), DECLARED.F40.state);
+  assert.equal(DECLARED.F40.events.findIndex((e) => e.kind === "VERIFIED") < 0 || DECLARED.F40.state === "VERIFIED-PASS", true, "a VERIFIED event without the VERIFIED-PASS state");
 });
 
 test("F40 · FIRING CONTROL: an F40 acceptance WITHOUT the owner's check, or without refusing a word count, cannot be frozen; with both it can", () => {

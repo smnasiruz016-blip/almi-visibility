@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -2555,8 +2555,8 @@ export const DECLARED = Object.freeze({
   F40: Object.freeze({
     featureId: "F40",
     board: "F_BOARD",
-    state: "UNASSESSED",
-    note: "The universal 350-word floor no longer governs F40: the owner's ruling of 2 October 2026 (no fixed minimum and no fixed maximum page word count; the assessment is whether the page answers its stated need) supersedes the blocker recorded on 22 September, which stays in this row's history. F40 has no frozen acceptance and is not implemented; when one is frozen it must carry that check (config/fboard/row-constraints.mjs). Lifting a blocker passes nothing.",
+    state: "VERIFIED-PASS",
+    note: "The universal 350-word floor no longer governs F40: the owner's ruling of 2 October 2026 (no fixed minimum and no fixed maximum page word count; the assessment is whether the page answers its stated need) supersedes the blocker recorded on 22 September, which stays in this row's history. F40 has no frozen acceptance and is not implemented; when one is frozen it must carry that check (config/fboard/row-constraints.mjs). Lifting a blocker passes nothing. 6 October 2026 (RR-184): F40's first acceptance is frozen (_handoffs 6d64c27), carrying that check, and its implementation is begun; the sentences above record the row as it stood on 2 October.",
     events: Object.freeze([
       Object.freeze({ kind: "BLOCKER_RECORDED", on: "2026-09-22", source: "_handoffs/AlmiVisibility_CC_COMMAND_2026-09-22_F05_CURRENT_AUTHORITY_REGISTER_CHAIN.md §0.7" }),
       /* RR-127 §2a — the blocking authority is superseded by an owner ruling; the row returns to UNASSESSED, never further. The note
@@ -2570,6 +2570,41 @@ export const DECLARED = Object.freeze({
         authority: Object.freeze({ propositionId: "OWNER_RULING_F40_ANSWER_SUFFICIENCY", scope: Object.freeze(["ALMIVISIBILITY", "F40"]) }),
         authorityRecord: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_RULING_2026-10-02_F40_ANSWER_SUFFICIENCY.md", commit: "4761236e81f1fe6f0bd0d03172132d4109fcb36f", sha256: "3e1fbc5c36dd97bb3a7db5a72e38cc80d58310429ec84dacc2b620940b24f2ba" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-127_CLOSE_226_RECONCILE_DECISIONS_FINISH_IN_PROGRESS_ROWS.md", commit: "ab5aca48af3328dc1f20481f22d82b7bd26e0616", sha256: "523153c9623d986dbc8262e75ec7ceabb371f0d90f81a16348e2888da1effbf6" }),
+      }),
+      /* RR-184: F40's first acceptance, approved by its hash and frozen ALONE before any F40 code; then its implementation begins. */
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-06", ruling: F40_ORIGINAL.ruling, contractSha256: F40_ORIGINAL.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F40",
+        on: "2026-10-06",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: F40_ORIGINAL.ruling.sha256, contract: F40_ORIGINAL.contractSha256 }),
+        branch: "rr184-r5",
+        baseSha: "5d2f8899dea635687e2f0ef7d5e5aef2af31d934",
+        baseCiRun: "37400399354",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-06_RR-184.md", commit: "c8d1eb2f539c4d449bbabdce4acf87fc397fd557", sha256: "56448c627cfba9de2a09b0c14eb3d17913ed5b4ecaade324ee991d3b128ae719" }),
+      }),
+      /* RR-184: F40 PROVED — every clause of its frozen acceptance PROVED and every sabotage PROVED, on FIXTURE structures only (RR-177);
+       * recorded through the board route in the same PR; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F40",
+        population: "REAL",
+        on: "2026-10-06",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F40_ORIGINAL.ruling.sha256, contract: F40_ORIGINAL.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED" }),
+        populations: "FIXTURE structures only — a fixture tenant with two fixture pages (verified bodies, recorded DOES_NOT_COVER judgements, DISTINCT reviews), planning rows built by F91's and F16's own functions, drafts rendered by F37's own function; fixture judgements carry their declared FIXTURE source and prove only the record, its FAIL path and the gate. Never the 27 existing pages set aside (RR-177). On a REAL draft today engaging and hookable are NOT MEASURED (no lawful judge) and distinct value is CANNOT DECIDE (no gain records), so no real draft passes F40; F37's own render of a grouped need FAILs the repetition judgement (5 claim blocks for 2 distinct claims), recorded as given (RR-184 I-5). Count-only.",
+        proofs: "test/rr184-r5.test.mjs T40-C1 to T40-C7 and T40-ALL (one per EVIDENCE line), R40-BOARD",
+        sabotage: "runs/audit/rr184-sabotage-2026-10-06T0301.txt: 37 of 37 proved (one per FAILURE limb of C1–C7 and [ALL]), residue 0, production trail unchanged",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

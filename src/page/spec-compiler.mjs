@@ -64,7 +64,7 @@ export function purposeOf(decision) {
 function answerParts(answer) {
   const claims = Array.isArray(answer?.claims) ? answer.claims : [];
   const supported = claims.filter((c) => c.state === ANSWER_STATES.SUPPORTED && present(c.claimId));
-  const unknown = claims.filter((c) => !supported.includes(c)).map((c) => Object.freeze({ claimId: c.claimId ?? null, state: ANSWER_STATES.UNKNOWN, why: c.why ?? "unsupported" }));
+  const unknown = claims.filter((c) => !supported.includes(c)).map((c) => Object.freeze({ claimId: c.claimId ?? null, central: c.central !== false /* RR-184: F91 C17 recorded it; F40 C2 reads it */, state: ANSWER_STATES.UNKNOWN, why: c.why ?? "unsupported" }));
   if (!claims.length) unknown.push(Object.freeze({ claimId: null, state: ANSWER_STATES.UNKNOWN, why: answer?.why ?? "no answer was recorded" }));
   return {
     claims: Object.freeze([...new Set(supported.map((c) => c.claimId))].sort()),

@@ -37,6 +37,8 @@ import { governedFileWrite } from "../src/governance/governed-run.mjs";
 import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { selectCandidates, constructCandidates, decisionsForConstruction, ACCEPTED, NOT_TESTED } from "../src/page/construct.mjs";
+import { renderCompiledDraft } from "../src/page/draft-render.mjs";
+import { judgeDraft, POPULATION, ASSESSMENTS, JUDGEMENTS } from "../src/page/quality-judgements.mjs";
 import { readClientActionEvidence } from "../src/page/action-evidence.mjs";
 import { NO_RECORDED_DECAY_EVIDENCE } from "../src/page/content-decay-evidence.mjs";
 import { readClientIndexation } from "../src/page/indexation-evidence.mjs";
@@ -187,6 +189,19 @@ for (const c of results) {
 
 const accepted = results.filter((c) => c.verdict === ACCEPTED);
 console.log(`\nACCEPTED ${accepted.length} of ${results.length} candidate(s). A refusal is a result, not an error.`);
+
+/* 🔴 F40 (RR-184) · the quality judgements of each draft F37 rendered for a need F35 chose. The draft is F37's own render of the same
+ * spec, with the same links construction was handed (none); F40 reads construction's parts for that slug and refuses the draft if its
+ * checks are not the ones construction judged. A REAL run: engaging and hookable have no lawful judge today, so each is NOT MEASURED. */
+const judged = chosen.decisions.filter((d) => d.spec).map((d) => ({ slug: d.slug, q: judgeDraft({ spec: d.spec, decision: d.decision,
+  draft: renderCompiledDraft({ spec: d.spec, decision: d.decision, links: null }), parts: results.find((r) => r.slug === d.slug)?.parts, population: POPULATION.REAL }) }));
+console.log(`\nF40 · quality judgements: ${judged.length} draft(s) — five separate assessments each, never a score; a draft that does not pass F40 is never a passing preview`);
+for (const { slug, q } of judged) {
+  if (!q.judged) { console.log(`  ${slug} — NOT JUDGED: ${q.why}`); continue; }
+  console.log(`  ${slug} — F40 gate ${q.gate.verdict}${q.gate.blockers.length ? ` (${q.gate.blockers.join(" · ")})` : ""}`);
+  for (const a of ASSESSMENTS) console.log(`    ${a.padEnd(22)} ${q.assessments[a].verdict}`);
+  for (const n of JUDGEMENTS) console.log(`    judgement ${n.padEnd(12)} ${q.judgements[n].verdict} — ${q.judgements[n].observation ?? q.judgements[n].why} [source: ${q.judgements[n].source?.id ?? "none"}]`);
+}
 
 if (outDir) {
   for (const c of results) {

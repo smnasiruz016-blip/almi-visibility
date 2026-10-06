@@ -80,7 +80,7 @@ test("F03 · CLOSE · 3 · the board validates clean, and every other named row 
   assert.equal(state("F79"), "VERIFIED-PASS", "F79 moved 29 Sep 2026 under its own acceptance (RR-93, _handoffs f34f3af) — test/f79-evidence-cache.test.mjs owns it");
   const p = progress(b);
   assert.equal(p.passed, b.filter((r) => r.state === "VERIFIED-PASS").length);
-  assert.equal(p.passed, 36); /* RR-188: F41 re-proved under Amendment 2 */
+  assert.equal(p.passed, 35); /* RR-192: F32 reopened at its Amendment 1 freeze */
 });
 
 test("F03 · CLOSE · R7 rows · every portability outcome row, printed, reproduces the digest exact-SHA main CI recorded", (t) => {

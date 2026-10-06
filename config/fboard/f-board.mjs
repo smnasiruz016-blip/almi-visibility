@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2 } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -1516,9 +1516,9 @@ export const DECLARED = Object.freeze({
   F32: Object.freeze({
     featureId: "F32",
     board: "F_BOARD",
-    state: "VERIFIED-PASS",
+    state: "IN-PROGRESS",
     events: Object.freeze([
-      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: ACCEPTANCES.F32.ruling, contractSha256: ACCEPTANCES.F32.contractSha256 }),
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: F32_ORIGINAL.ruling, contractSha256: F32_ORIGINAL.contractSha256 }),
       Object.freeze({
         kind: "IMPLEMENTATION",
         featureId: "F32",
@@ -1527,7 +1527,7 @@ export const DECLARED = Object.freeze({
         to: "IN-PROGRESS",
         route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
         reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F32.ruling.sha256, contract: ACCEPTANCES.F32.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F32_ORIGINAL.ruling.sha256, contract: F32_ORIGINAL.contractSha256 }),
         branch: "rr87-f32-duplicate-thin-template",
         baseSha: "8a282b7a7d23cef1c43bddbd8ad6ea2e6e99579d",
         baseCiRun: "36523359240",
@@ -1543,13 +1543,29 @@ export const DECLARED = Object.freeze({
         to: "VERIFIED-PASS",
         route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
         reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F32.ruling.sha256, contract: ACCEPTANCES.F32.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F32_ORIGINAL.ruling.sha256, contract: F32_ORIGINAL.contractSha256 }),
         populations: "REAL (count-only; bound: recorded data only · 27 pages · 27 measured, every body verified by its own fingerprint · 351 sibling pairs · semantic reviews recorded 0 · unique-value records 0 · no paid or metered call): exact duplicates 0 (0 groups); textual overlap REVIEW_REQUIRED 220 · BELOW_TRIGGER 131 of 351 pairs (Jaccard of 8-word main-text shingles, median 0.456, range 0.104–0.840); semantic duplication NOT_JUDGED on all 351 pairs; shared-shell share measured on all 27 (range 0.341–0.903, median 0.789), SHELL_ONLY 0; unique value NOT_JUDGED on all 27.",
         proofs: "test/f32-duplication.test.mjs — identical main text grouped whatever the chrome and case, one changed word ungroups, an unreadable body NOT MEASURED; C2 FIRING CONTROL: exactly 40 percent (2/5) is below the trigger, 3/7 is REVIEW REQUIRED, and neither becomes a semantic, exact or unique-value verdict; a recorded review decides, low overlap cannot rescue a reviewed duplicate, high overlap passes only with documented distinct value, a review missing an aspect does not count; shell share by recurrence (3/13 hand-counted), nav-only SHELL ONLY, a 97%-shell page with one unique shingle is not SHELL ONLY (no invented threshold); C5 FIRING CONTROL: a three-word unique page is NOT insufficient, only exact duplicate, SHELL ONLY or a recorded record decides; no action field in the result, the legacy thresholds unchanged and unread; an unverified body NOT MEASURED, verification by the body's OWN fingerprint; the entry point prints counts and its bound and writes nothing; no network, process, connector or paid call (firing control); hand-written expectations; production trail byte-identical",
         sabotage: "runs/audit/f32-sabotage-2026-09-29.txt: 23 of 23 proved, every span pre-flighted once; F31 22/22 re-run on the changed population module",
         historicalReuse: "historical row 12 (VERIFIED-PASS, 394 bodies of the whole batch) is CHANGED against every clause but exact duplication (which it judged on whole-response bytes, not the main text): its 0.9 near-duplicate verdict, 350-word thin floor and 75% template threshold are what V3 §13–§14 replace. Reused unchanged: shell.mjs body extraction, words, 8-word shingles and Jaccard; F31's population and body verification. The legacy audit checks and Row 25's gate are untouched.",
         declaredLimit: "semantic duplication and unique value are NOT JUDGED on real data (missing fact: a recorded semantic review or information-gain record — none exists, none may be bought, no new owner labels); 220 of 351 real pairs are flagged for that review and remain unreviewed. Shared shell is measured within the client's 27 recorded pages only (the inventory is INCOMPLETE).",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+      /* RR-192: F32's acceptance amendment, approved by its hash and frozen ALONE; F32 REOPENED at this freeze (A6; F41 Amendment 1's practice) */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F32", on: "2026-10-06", ruling: F32_AMENDMENT_1.ruling, contractSha256: F32_AMENDMENT_1.contractSha256, amends: F32_AMENDMENT_1.amends }),
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F32",
+        on: "2026-10-06",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: F32_ACCEPTANCE_AMENDMENT_1)",
+        reason: "AUTHORITATIVE_REQUIREMENT_CHANGE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "F32's earlier evidence remains historically valid for what it measured; the reopen is caused by the newly frozen wider requirement (C3: a duplication review counts only when recorded with needsGuidance: false (P20, RR-174 (d)); C6: detection only, the Row 25 and audit thresholds are not F32's (A6)), not by any defect found in that evidence",
+        amendment: Object.freeze({ ruling: F32_AMENDMENT_1.ruling, contractSha256: F32_AMENDMENT_1.contractSha256 }),
+        ownerDecision: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-06_RR-192_APPROVE_F32_A1_REV2_F39_A1_PG-A1.md", commit: "7b12d2cd7446d0554f4cf746099c15cb3ca70d43", sha256: "e4cc18aa02a3bb8081c55dc33af4286bbbc7d06718eea03b8d0eff8c3be96bb0" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-06_RR-192.md", commit: "7b12d2cd7446d0554f4cf746099c15cb3ca70d43", sha256: "f6deb7744599d6bd489b04dadeae34adcc5358c64d090b8ac89be6556fb7762a" }),
       }),
     ]),
   }),

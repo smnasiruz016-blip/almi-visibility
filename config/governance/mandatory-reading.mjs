@@ -405,6 +405,12 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-04_RR-159.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F16_ACCEPTANCE_AMENDMENT_3_2026-10-04.md", loader: "F-board acceptance F16" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-04_RR-159_Q1_Q2_Q3_ANSWERS.md", loader: "authority register (CURRENT record)" }),
+  /* RR-182 §2–§3 (6 Oct 2026): the three CURRENT records admitted by the migration at _handoffs 7acd99c — the RR-182 command, the owner's
+   * approval of Specification Amendment 5, and Specification Amendment 5 itself (the approved draft, byte-identical: F92–F96 added; F17,
+   * F38, F58, F62, F76 and F81 each extended by one sentence). */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-06_RR-182.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-06_RR-182_APPROVE_SPECIFICATION_AMENDMENT_5.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_RULING_2026-10-06_SPECIFICATION_AMENDMENT_5.md", loader: "authority register (CURRENT record) — Specification Amendment 5" }),
   /* RR-180 §4 (5 Oct 2026): the three CURRENT records admitted by the migration at _handoffs 9516f2c — the RR-180 command, the owner's
    * RR-180 rulings on the R4 findings, and F37's first Acceptance (the complete-draft render), approved by its hash. */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-05_RR-180.md", loader: "authority register (CURRENT record)" }),

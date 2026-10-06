@@ -27,13 +27,17 @@ test("A4·1 · F91 is Amendment 3's line with Amendment 4's sentence APPENDED, b
 
 test("A4·2 · the derivation and the generated list name the amended_4 extract, its commit and its sha256", () => {
   assert.deepEqual({ ...EXTRACT_PROVENANCE }, { ...DERIVE_PROVENANCE });
-  assert.match(EXTRACT_PROVENANCE.path, /amended_4\.extract\.txt$/);
-  assert.equal(EXTRACT_PROVENANCE.commit, "6c606b23effa9f5ae3bb9d94b1f6ee69fbbdfb04");
-  assert.equal(EXTRACT_PROVENANCE.sha256, "53db85b7968941a0e694022013bf4f11cb89f2ecd587581f17b63663e7cd892a");
+  /* RESTATED 6 Oct 2026 (RR-182): since Amendment 5 (_handoffs 7acd99c) the derivation names the amended_5 extract; it carries F91's
+   * Amendment 4 line unchanged (A4·1 still holds), and the amended_4 extract (6c606b2, sha256 53db85b7…) stays byte-immutable in history */
+  assert.match(EXTRACT_PROVENANCE.path, /amended_5\.extract\.txt$/);
+  assert.equal(EXTRACT_PROVENANCE.commit, "7acd99cadc1af60e0a2757bdb02601303a00ffce");
+  assert.equal(EXTRACT_PROVENANCE.sha256, "526c8e5de1e7c56c061f08ef24afdc65118891fe7f277c97e2ce2910a035583f");
 });
 
-test("A4·3 · the denominator stays 91 — no row added, none removed", () => {
-  assert.equal(DENOMINATOR, 91);
-  assert.equal(CAPABILITIES.length, 91);
-  assert.equal(new Set(CAPABILITIES.map((c) => c.id)).size, 91);
+test("A4·3 · Amendment 4 added no row and removed none — F91 stays the 91st; since Amendment 5 (RR-182) the denominator is 96", () => {
+  /* RR-182 §3: Specification Amendment 5 appended F92–F96 UNASSESSED — UNASSESSED 44 → 49, rows 91 → 96, required 90 → 95; passed unchanged */
+  assert.equal(CAPABILITIES[90].id, "F91");
+  assert.equal(DENOMINATOR, 96);
+  assert.equal(CAPABILITIES.length, 96);
+  assert.equal(new Set(CAPABILITIES.map((c) => c.id)).size, 96);
 });

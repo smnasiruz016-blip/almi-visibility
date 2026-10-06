@@ -3,7 +3,7 @@
  * 🔴 F05 §4 — GENERATE THE HISTORICAL CROSSWALK (config/fboard/crosswalk.mjs). Without a flag it reports UP TO DATE or
  * STALE; `--check` exits 1 when stale; `--confirm` writes it (write-law LOCAL — src/write-law.mjs).
  *
- * One entry per F01–F90 from the extracted specification, its frozen acceptance (if any) and the declared mappings —
+ * One entry per F01–F96 from the extracted specification, its frozen acceptance (if any) and the declared mappings —
  * and the historical ledger's 61 status records as PROVENANCE ONLY. Nothing here moves a state or imports authority.
  *
  * MAPPINGS: none is asserted. Which historical rows an F-row reuses is a judgement that belongs to that F-row's own

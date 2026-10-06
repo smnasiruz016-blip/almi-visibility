@@ -2,10 +2,10 @@
  * 🔴 BOARD AMENDMENT 1 (3 Oct 2026; _handoffs dd91e92, owner decision f8fa5e9, RR-145 §2) — F25 leaves the REQUIRED path; it is NOT passed.
  *
  * Proves, on the production board and the production entry points:
- *   B1 the real board reads 34/90 over the required rows and 34/91 over all rows (32/90 between F35's and F34's reopening and re-proof, RR-174; 33/90 also between F33's reopening and its re-proof, RR-172), both printed; F25 is NOT REQUIRED with its work state;
+ *   B1 the real board reads 35/95 over the required rows and 35/96 over all rows (RR-182: Specification Amendment 5 added F92–F96; before it, 35/90 and 35/91; (32/90 between F35's and F34's reopening and re-proof, RR-174; 33/90 also between F33's reopening and its re-proof, RR-172), both printed; F25 is NOT REQUIRED with its work state;
  *   B2 the numerator can never rise by leaving: a NOT REQUIRED row that is VERIFIED-PASS still does not count (control: kept, it would);
  *   B3 no exclusion without a CURRENT owner authority named by its bytes — wrong pin, no ruling, an unknown proposition, an unknown row;
- *   B4 nothing is deleted: all 91 rows stay on the board, F25 keeps its acceptance chain and its events.
+ *   B4 nothing is deleted: all 96 rows stay on the board, F25 keeps its acceptance chain and its events.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -23,24 +23,25 @@ const AUTH = { records: AUTHORITY_CORPUS, now: CORPUS_PROVENANCE.now };
 const board = () => buildBoard(CAPABILITIES, DECLARED);
 const errs = (b, notRequired) => boardErrors(b, { capabilities: CAPABILITIES, acceptances: ACCEPTANCES, authority: AUTH, ...(notRequired ? { notRequired } : {}) });
 
-test("B1 · the board reads 35/90 over the REQUIRED rows and 35/91 over all rows — both figures, F25 NOT REQUIRED with its work state", () => {
+test("B1 · the board reads 35/95 over the REQUIRED rows and 35/96 over all rows — both figures, F25 NOT REQUIRED with its work state", () => {
   const p = progress(board());
-  assert.deepEqual([p.passed, p.denominator, p.total], [35, 91, 91], "the all-rows figure moved");
-  assert.deepEqual([p.required.passed, p.required.denominator], [35, 90], "the required figure is not 35/90"); /* RR-180 §8: F37 PROVED in R4b (rr180-sabotage-2026-10-06T0009: 34 of 34) */
+  /* RR-182 §3: Specification Amendment 5 appended F92–F96 UNASSESSED — UNASSESSED 44 → 49, rows 91 → 96, required 90 → 95; passed unchanged */
+  assert.deepEqual([p.passed, p.denominator, p.total], [35, 96, 96], "the all-rows figure moved");
+  assert.deepEqual([p.required.passed, p.required.denominator], [35, 95], "the required figure is not 35/95"); /* RR-180 §8: F37 PROVED in R4b (rr180-sabotage-2026-10-06T0009: 34 of 34) */
   assert.deepEqual(p.required.notRequired, [{ featureId: "F25", state: "IN-PROGRESS" }]);
   assert.deepEqual(errs(board()), [], "the real board is not lawful");
   const cli = spawnSync(process.execPath, ["bin/fboard-status.mjs"], { cwd: REPO, encoding: "utf8" });
-  assert.match(cli.stdout, /F-progress: 35\/90 \(required rows\) · all rows 35\/91 · NOT REQUIRED 1: F25 \(work state IN-PROGRESS, not passed\)/, cli.stdout);
+  assert.match(cli.stdout, /F-progress: 35\/95 \(required rows\) · all rows 35\/96 · NOT REQUIRED 1: F25 \(work state IN-PROGRESS, not passed\)/, cli.stdout);
 });
 
 test("B2 · leaving the required path never raises the numerator: a NOT REQUIRED row that is VERIFIED-PASS still does not count (CONTROL: kept, it would)", () => {
   const b = board().map((r) => (r.featureId === "F25" ? { ...r, state: "VERIFIED-PASS" } : r));
   const p = progress(b);
   assert.equal(p.required.passed, 35, "a NOT REQUIRED row was counted as passed");
-  assert.equal(p.required.denominator, 90);
+  assert.equal(p.required.denominator, 95);
   const kept = progress(b, { notRequired: {} });
   assert.equal(kept.required.passed, 36, "CONTROL: with no exclusion the same board must count it — the check could not fail");
-  assert.equal(kept.required.denominator, 91);
+  assert.equal(kept.required.denominator, 96);
 });
 
 test("B3 · no exclusion without a CURRENT owner authority named by its bytes", () => {
@@ -57,7 +58,7 @@ test("B3 · no exclusion without a CURRENT owner authority named by its bytes", 
   assert.equal(res?.contentHash, real.authority.ruling.sha256);
 });
 
-test("B4 · nothing is deleted: all 91 rows stay, F25 keeps its frozen acceptance chain and events; optional findings are reported, never gated on", () => {
+test("B4 · nothing is deleted: all 96 rows stay, F25 keeps its frozen acceptance chain and events; optional findings are reported, never gated on", () => {
   const b = board();
   assert.equal(b.length, DENOMINATOR);
   const f25 = b.find((r) => r.featureId === "F25");

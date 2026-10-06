@@ -64,6 +64,19 @@ import { isChosenCreate } from "./action-decision.mjs";
 import { existingPageDecisionFromCoverage } from "./spec-compiler.mjs";
 import { COVERAGE } from "./demand-connection.mjs";
 import { LONE_PAGE } from "../gate-a/why-this-url.mjs";
+import { renderCompiledDraft, DRAFT, CHECK } from "./draft-render.mjs";
+
+/**
+ * 🔴 RR-180 ruling 3(a) · the ONE input a runner hands construction: F35's construction set (action-evidence `compiled.forConstruction`) —
+ * each a need F35 CHOSE to CREATE, with its declared or compiled spec. No evidence read, or no grouped need decided → an EMPTY set, named:
+ * construction then builds nothing.
+ */
+export function decisionsForConstruction(ae) {
+  if (!ae || ae.fault) return Object.freeze({ decisions: Object.freeze([]), why: `F35's evidence is unavailable (${ae?.fault ?? "none read"}) — nothing is chosen` });
+  if (!ae.compiled) return Object.freeze({ decisions: Object.freeze([]), why: ae.groupedNeedsMissing ?? "F35 decided no grouped need" });
+  const decisions = ae.compiled.forConstruction.filter((d) => isChosenCreate(d.decision));
+  return Object.freeze({ decisions: Object.freeze(decisions), why: decisions.length ? null : "F35 chose CREATE for no need" });
+}
 
 export const PASS = "PASS";
 export const FAIL = "FAIL";
@@ -75,8 +88,9 @@ export const REFUSED = "REFUSED";
  * never built (A1, P3): no part is judged for it and nothing is rendered for it. */
 export const NO_F35_DECISION = "no F35 decision was handed in — construction acts only on F35's decision (the owner's ruling RR-179 (c); A1, P3); nothing is built";
 export const NOT_CHOSEN = "F35 did not choose CREATE for this spec — a spec with no recorded relevant question, or one F35 did not choose, is never built (ruling RR-179 (c); A1, P3)";
-/* 🔴 RR-179 (d) — the complete-draft render is F37's; its acceptance is frozen before any render code changes. A compiled spec is NOT rendered. */
-export const RENDER_WAITS_FOR_F37 = "the complete-draft render (Q&A with tiers and GENERATED marking, explicit UNKNOWN parts, the attribution check, markup only for visible Q&A) is F37's and is NOT built in R4 (the owner's ruling RR-179 (d)) — a compiled spec is not rendered";
+/* 🔴 RR-180 · F37 (acceptance _handoffs 9516f2c) — a compiled spec F35 chose is rendered by F37's complete-draft render
+ * (src/page/draft-render.mjs): direct answer, full Q&A with tiers and GENERATED marking, every claim traced, UNKNOWN parts visible, markup only
+ * for visible supported Q&A, and P21's measurable checks — the `draft` part. A check whose input is not recorded is NOT MEASURED and refuses. */
 
 export const PAGE_ONE = Object.freeze({
   id: "PAGE-1",
@@ -120,6 +134,8 @@ export function selectCandidates(pageSpecs, { slug = null, allSlugs = false } = 
  *                                                  `compiled.forConstruction`): a candidate is judged ONLY when F35 CHOSE CREATE for it
  *                                                  (ruling RR-179 (c)); none handed in → nothing is built. A compiled spec rides in it.
  * @param {object[]} [input.rationaleReviews]       recorded substance reviews of rationale pairs (F36, S38) — none recorded is []
+ * @param {object|null} [input.links]               F37 · recorded internal-link targets for a compiled draft ({ completeness, out, inboundFrom,
+ *                                                  selfUrl, ref }); none recorded → the internal-links and technical checks are NOT MEASURED
  * @param {Date}     [input.now]
  *
  * 🔴 F34 (_handoffs 53f74b4) — THE EXISTING-PAGE CHECK IS A PART, AND ACCEPTED NEEDS IT TO PASS. There is no default for
@@ -132,11 +148,16 @@ export function selectCandidates(pageSpecs, { slug = null, allSlugs = false } = 
  * hands none in gets that part NOT TESTED for every candidate. The rendered candidate is judged against the tenant's current pages
  * with VERIFIED bodies (F31); without them the part is NOT TESTED, never "no other current page".
  */
-export function constructCandidates({ pageSpecs, variants = [], records = [], requested = [], tenantId = null, existingPages = null, gainEvidence = null, decisions = null, rationaleReviews = [], now = new Date() }) {
+export function constructCandidates({ pageSpecs, variants = [], records = [], requested = [], tenantId = null, existingPages = null, gainEvidence = null, decisions = null, rationaleReviews = [], links = null, now = new Date() }) {
   const byId = new Map(records.map((r) => [r.id, r]));
-  /* a compiled spec (F91 C19) F35 chose joins the family as a candidate, but is never rendered here (ruling RR-179 (d)) */
+  /* a compiled spec (F91 C19) F35 chose joins the family as a candidate, rendered by F37's complete-draft render (RR-180) */
   const compiled = (Array.isArray(decisions) ? decisions : []).filter((d) => d?.spec && isChosenCreate(d.decision) && !(d.slug in (pageSpecs ?? {})))
-    .map((d) => ({ slug: d.slug, spec: d.spec, html: null, trace: [], tokens: null, renderError: RENDER_WAITS_FOR_F37, compiled: true }));
+    .map((d) => {
+      const draft = renderCompiledDraft({ spec: d.spec, decision: d.decision, links });
+      return draft.state === DRAFT.RENDERED
+        ? { slug: d.slug, spec: d.spec, html: draft.html, trace: draft.trace, tokens: tokensOf(draft.html), renderError: null, compiled: true, draft }
+        : { slug: d.slug, spec: d.spec, html: null, trace: [], tokens: null, renderError: draft.why, compiled: true, draft };
+    });
   const family = [...Object.entries(pageSpecs ?? {}).map(([slug, spec]) => {
     try {
       const { html, trace } = renderPage(spec, records, now);
@@ -192,6 +213,26 @@ export function constructCandidates({ pageSpecs, variants = [], records = [], re
       verifiedButNotCounted: counted.rejected.map((j) => `${j.reasons.join("; ")}`),
     };
 
+    /* F37 C3 · a compiled draft's claims are F91 C17 supported claims, not registry facts: the part reads the draft's own trace — every written
+     * claim with its statement, label, source and date read; UNKNOWN parts stay UNKNOWN and fail nothing; no count decides anything */
+    if (me.compiled) {
+      const d = me.draft;
+      const ok = d?.state === DRAFT.RENDERED && d.checks.everyClaimSourced.state === CHECK.PASS && d.trace.length > 0;
+      parts.facts = { state: ok ? PASS : FAIL, kind: ok ? null : "DATA GAP", rule: "F37 C3: every written claim is a supported claim (F91 C17) with its own statement, label, source and trace",
+        value: d?.trace?.length ?? 0, cited: d?.trace?.length ?? 0, unsupported: [], reason: ok ? null : (d?.why ?? "no supported claim written with its source"), notVerified: [], verifiedButNotCounted: [] };
+      /* F37 C5 / P21 · a compiled draft is complete when EVERY Q&A section is answered by the need's supported answer; its grouped questions
+       * share one answer by design (P17: one need, one answer), so Gate A's declared-framing rule does not apply to it */
+      const unanswered = d?.state === DRAFT.RENDERED ? d.sectionsOut.filter((s) => s.claims === 0).map((s) => s.heading) : null;
+      parts.completeness = { state: unanswered === null ? NOT_TESTED : unanswered.length ? FAIL : PASS, kind: unanswered?.length ? "REJECT" : null,
+        rule: "F37 C5: every Q&A section answered by the need's supported answer (P21, P17)", sections: me.spec?.sections?.length ?? 0,
+        reason: unanswered === null ? d?.why : unanswered.length ? `${unanswered.length} Q&A section(s) not answered: ${unanswered.map((h) => `"${h}"`).join(", ")}` : null, detail: null };
+      const st = d?.checksVerdict;
+      parts.draft = { state: d?.state !== DRAFT.RENDERED ? NOT_TESTED : st === CHECK.PASS ? PASS : st === CHECK.FAIL ? FAIL : NOT_TESTED, kind: st === CHECK.FAIL ? "REJECT" : null,
+        rule: "F37 C5: P21's measurable checks — direct answer, every claim sourced, headings match, internal links in and out, technical eligibility, markup aligned",
+        reason: d?.state !== DRAFT.RENDERED ? d?.why : Object.entries(d.checks).filter(([, c]) => c.state !== CHECK.PASS).map(([k, c]) => `${k} ${c.state}: ${c.why}`).join("; ") || null,
+        checks: d?.checks ?? null, writer: d?.writer ?? null };
+    }
+
     // ── part 1 · unique words after the shared shell ──
     const noShell =
       `the template family renders ${rendered.length} of ${family.length} declared page(s); a shared shell is learned from ` +
@@ -200,7 +241,8 @@ export function constructCandidates({ pageSpecs, variants = [], records = [], re
      * sections ARE the coverage it promises, so a spec declaring none cannot be judged at all and is
      * NOT TESTED, which refuses. The unique-word count is still measured and reported, because the
      * figure is worth having; it no longer decides anything. */
-    if (me.html === null) parts.completeness = { state: NOT_TESTED, reason: `the candidate does not render: ${me.renderError}` };
+    if (me.compiled) { /* F37 C5: a compiled draft's completeness was judged above, from F37's own rule */ }
+    else if (me.html === null) parts.completeness = { state: NOT_TESTED, reason: `the candidate does not render: ${me.renderError}` };
     else {
       const ruleB = judgeCompleteness({ sections: me.spec?.sections });
       parts.completeness = {

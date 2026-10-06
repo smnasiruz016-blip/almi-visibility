@@ -405,8 +405,9 @@ test("🔴 RUNNER FAILS CLOSED: the real product, every declared spec, --confirm
     assert.equal(r.status, 2, r.stdout + r.stderr);
     assert.match(r.stdout, /ACCEPTED 0 of 2 candidate\(s\)/);
     assert.match(r.stdout, /\[refused\] nothing written for /);
-    /* RR-179 (c): the runner hands in no F35 decision, so every spec is refused at that part — never judged, never built */
-    assert.equal((r.stdout.match(/REJECT {5}f35Decision: no F35 decision was handed in/g) ?? []).length, 2);
+    /* RR-180 ruling 3(a): the runner asks F35; with no research batch F35 chooses nothing, so every spec is refused at that part — never judged, never built */
+    assert.match(r.stdout, /F35 decisions {9}0 chosen CREATE/);
+    assert.equal((r.stdout.match(/REJECT {5}f35Decision: F35 did not choose CREATE/g) ?? []).length, 2);
     assert.match(r.stdout, new RegExp(PAGE_ONE.id));
     assert.deepEqual(readdirSync(out), [], "a refused candidate was written");
   } finally {
@@ -465,7 +466,7 @@ test("🔴 61 · THE SECOND DECLARED PRODUCT — declared as one, sharing no sub
   }
 });
 
-test("🔴 61 · RUNNER ON THE SECOND DECLARED PRODUCT — every declared spec REFUSED inside the construction path (no F35 decision, ruling RR-179 (c)), exit 2, and --confirm writes NOTHING", async () => {
+test("🔴 61 · RUNNER ON THE SECOND DECLARED PRODUCT — every declared spec REFUSED inside the construction path (F35 chose nothing, ruling RR-180 (a)), exit 2, and --confirm writes NOTHING", async () => {
   const second = await subject(SECOND);
   const slugs = Object.keys(second.pageSpecs);
   mkdirSync(join(REPO, ".test-scratch"), { recursive: true });
@@ -480,8 +481,8 @@ test("🔴 61 · RUNNER ON THE SECOND DECLARED PRODUCT — every declared spec R
       assert.match(r.stdout, new RegExp(`🔴 ${slug} — REFUSED`));
       assert.match(r.stdout, new RegExp(`\\[refused\\] nothing written for ${slug}`));
     }
-    /* RR-179 (c): no F35 decision is handed in, so every spec is refused at that part — never judged, never built */
-    assert.equal((r.stdout.match(/REJECT {5}f35Decision: no F35 decision was handed in/g) ?? []).length, slugs.length);
+    /* RR-180 ruling 3(a): the runner asks F35; it chose nothing, so every spec is refused at that part — never judged, never built */
+    assert.equal((r.stdout.match(/REJECT {5}f35Decision: F35 did not choose CREATE/g) ?? []).length, slugs.length);
     assert.equal((r.stdout.match(/§5A fact text copied into the spec: 0/g) ?? []).length, slugs.length);
     assert.doesNotMatch(r.stdout, /(completeness|overlap|facts) +PASS/, "a part that could not be exercised was reported as a pass");
     assert.deepEqual(readdirSync(out), [], "a refused candidate was written");
@@ -570,14 +571,16 @@ test("R4c · RULING RR-179 (c): construction acts ONLY on F35's decision — non
   assert.equal(ok.parts.f35Decision.state, PASS);
 });
 
-test("R4e · RULING RR-179 (d): a compiled spec F35 chose is a candidate but is NOT rendered — the complete-draft render is F37's; REFUSED, never ACCEPTED, no HTML; its existing-page part read from its own coverage record", () => {
-  const compiledSpec = { kind: "PAGE", purpose: "CONSTRUCTION", subject: "need:c1", variant: "need:c1", title: "A fixture question?", intro: null,
+/* RR-180: F37's acceptance is frozen (9516f2c) and its draft render built — R4e follows: the compiled spec is RENDERED and judged by F37's checks */
+test("R4e · F37: a compiled spec F35 chose is rendered by F37's draft render and judged by its checks — with no supported central claim it is REFUSED, no HTML; its existing-page part read from its own coverage record", () => {
+  const compiledSpec = { kind: "PAGE", purpose: "CONSTRUCTION", subject: "need:compiled-c1", variant: "need:compiled-c1", title: "A fixture question?", intro: null,
     sections: [{ heading: "A fixture question?", questionId: "q1", tier: "OBSERVED", marking: null, claims: ["c1"], unknown: [] }], whyThisUrlDeservesToExist: WHY.alpha,
-    basis: { needId: "need:c1", coverage: { outcome: "NONE", ref: "planning_coverage:c1" } } };
+    basis: { needId: "need:compiled-c1", coverage: { outcome: "NONE", ref: "planning_coverage:c1" } } };
   const [d] = chosenFor(["compiled-c1"]);
   const r = runOne([{ ...d, spec: compiledSpec }], "compiled-c1");
   assert.deepEqual([r.verdict, r.html], [REFUSED, null]);
-  assert.match(r.rejects.map((x) => x.reason).join(" "), /is F37's and is NOT built in R4/);
+  assert.equal(r.parts.draft.state, FAIL, "a draft with no supported central claim passed F37's checks");
+  assert.match(r.parts.draft.reason, /directAnswer FAIL/);
   assert.equal(r.parts.existingPage.outcome, "NOT_COVERED", "the compiled spec's existing-page part did not read its own coverage record");
 });
 

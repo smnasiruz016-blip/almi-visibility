@@ -6,6 +6,11 @@
  *   node bin/build-page.mjs --product=<id> --slug=<slug>                 judge one declared candidate
  *   node bin/build-page.mjs --product=<id> --all-slugs                   judge every declared candidate of ONE product
  *   node bin/build-page.mjs --product=<id> --slug=<slug> --out=<dir> --confirm   also write it, IF accepted
+ *   node bin/build-page.mjs --product=<id> --all-slugs --research-batch=<id>       judge F35's chosen needs too (their compiled drafts)
+ *
+ * 🔴 RR-180 ruling 3(a) — THIS RUNNER RECEIVES AND ACTS ONLY ON F35'S DECISION. It reads F91's planning store of the named research batch,
+ * asks F35 (src/page/action-evidence.mjs) and hands construction F35's construction set (decisionsForConstruction): a draft is built only
+ * for a need F35 CHOSE to CREATE. No research batch, or no need chosen → every candidate is refused at that part, and nothing is built.
  *
  * 🔴 NOTHING IS PUBLISHED. An accepted candidate is written as an HTML file on this machine, inside this
  * repository, behind --confirm. No page is created in any product, no route, no sitemap entry, no deploy,
@@ -31,7 +36,15 @@ import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedFileWrite } from "../src/governance/governed-run.mjs";
 import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
-import { selectCandidates, constructCandidates, ACCEPTED, NOT_TESTED } from "../src/page/construct.mjs";
+import { selectCandidates, constructCandidates, decisionsForConstruction, ACCEPTED, NOT_TESTED } from "../src/page/construct.mjs";
+import { readClientActionEvidence } from "../src/page/action-evidence.mjs";
+import { NO_RECORDED_DECAY_EVIDENCE } from "../src/page/content-decay-evidence.mjs";
+import { readClientIndexation } from "../src/page/indexation-evidence.mjs";
+import { existsSync } from "node:fs";
+import { rootIndexFor } from "../src/tenancy/resolver.mjs";
+import { lookupStore } from "../src/tenancy/root-registry.mjs";
+import { createJsonlStore } from "../src/evidence/store.mjs";
+import { overturnedIds } from "../src/research/meaning-judgement.mjs";
 import { NO_RECORDED_GAIN_EVIDENCE } from "../src/page/information-gain.mjs";
 import { productFromArgvOrExit, productIdOrExit } from "../src/product-cli.mjs";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
@@ -81,12 +94,13 @@ function exitAfterDrain(code) {
   process.stdout.write("", go);
 }
 
-const USAGE = "node bin/build-page.mjs --product=<id> (--slug=<slug> | --all-slugs) [--out=<dir> --confirm]";
+const USAGE = "node bin/build-page.mjs --product=<id> (--slug=<slug> | --all-slugs) [--research-batch=<id>] [--out=<dir> --confirm]";
+const BATCH = process.argv.find((a) => a.startsWith("--research-batch="))?.slice("--research-batch=".length) ?? null;
 /* 🔴 F03 — the subject's data root is decided (RESOURCES.subject) BEFORE its descriptor or any of its files is read. */
 const PRODUCT_ID = productIdOrExit(process.argv, { usage: USAGE });
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
 /* F34 — the existing-page check reads this tenant's partition of the stored observation batch, declared here like every read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/build-page.mjs", governed: true, resources: [RESOURCES.subject(PRODUCT_ID), RESOURCES.collectionPartition("CRAWL_BATCH", BATCH_ID), RESOURCES.collectionPartition("SITEMAP_COLLECTION", SITEMAP_BATCH_ID)] });
+const SCOPE = scopedEntryPoint({ entry: "bin/build-page.mjs", governed: true, resources: [RESOURCES.subject(PRODUCT_ID), RESOURCES.collectionPartition("CRAWL_BATCH", BATCH_ID), RESOURCES.collectionPartition("SITEMAP_COLLECTION", SITEMAP_BATCH_ID), ...(BATCH ? [RESOURCES.researchBatch(BATCH)] : []), RESOURCES.evidenceStore()] });
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: USAGE, scope: SCOPE });
 
 const argv = process.argv.slice(2);
@@ -123,7 +137,24 @@ const existing = readExistingPagePopulation({ scope: SCOPE, resolve: createTenan
 const ep = existing.population;
 console.log(`existing pages        ${ep ? `${ep.pages.length} of this tenant (coverage ${ep.coverageState}) · bound: one stored observation batch, this tenant's partition` : `UNAVAILABLE (${existing.fault}) — every candidate is refused`}`);
 
-const results = constructCandidates({ pageSpecs: PRODUCT.pageSpecs, variants: PRODUCT.variants, records, requested, tenantId: SCOPE.tenantId, existingPages: ep, decisions: null /* 🔴 RR-179 (c): construction acts only on F35's decision — this runner hands in none, so nothing is built; F35's construction set (action-evidence `compiled.forConstruction`) is the only input that lets a candidate through */, gainEvidence: NO_RECORDED_GAIN_EVIDENCE /* F39: none is recorded (no store) — passed EXPLICITLY */ });
+/* 🔴 RR-180 ruling 3(a) — F35's decision, read from the named research batch's planning store (F91 C14) as page-actions reads it */
+let planningRows = null, overturned = new Set();
+if (BATCH) {
+  const store = lookupStore(rootIndexFor(process.env), "RESEARCH");
+  if (store.state !== "DECLARED") { console.error(`🔴 REFUSED — the RESEARCH store is ${store.state}`); exitAfterDrain(3); }
+  /* the batch directory is bound on the line that names the RESEARCH store, so every read through it is that store's (tenant-scope census) */
+  const dir = join(lookupStore(rootIndexFor(process.env), "RESEARCH").dir, BATCH);
+  if (!existsSync(dir)) { console.error("🔴 REFUSED — RESEARCH_BATCH_ABSENT: the declared research batch has no directory in the RESEARCH store"); exitAfterDrain(3); }
+  const rowsOf = (f) => (existsSync(join(dir, f)) ? createJsonlStore(join(dir, f)).readAll() : []);
+  planningRows = rowsOf("planning.jsonl");
+  overturned = overturnedIds(rowsOf("meaning-judgements.jsonl"));
+}
+const ae = readClientActionEvidence({ tenantId: SCOPE.tenantId, product: PRODUCT, records, resolve: createTenantResolver(), reviews: [], planningRows, overturned, decayEvidence: { ...NO_RECORDED_DECAY_EVIDENCE, indexing: readClientIndexation({ tenantId: SCOPE.tenantId, resolve: createTenantResolver(), inspections: [] }).indexingChecks ?? [] } });
+const chosen = decisionsForConstruction(ae);
+if (argv.includes("--all-slugs")) requested = [...requested, ...chosen.decisions.filter((d) => d.spec && !requested.includes(d.slug)).map((d) => d.slug)];
+console.log(`F35 decisions         ${chosen.decisions.length} chosen CREATE (${chosen.decisions.filter((d) => d.spec).length} compiled) · section proposals ${ae.compiled?.sectionProposals?.length ?? 0}${chosen.why ? ` — ${chosen.why}` : ""}`);
+
+const results = constructCandidates({ pageSpecs: PRODUCT.pageSpecs, variants: PRODUCT.variants, records, requested, tenantId: SCOPE.tenantId, existingPages: ep, decisions: chosen.decisions /* 🔴 RR-180 ruling 3(a): F35's construction set, and nothing else */, links: null /* F37: no internal-link targets are recorded — the internal-links and technical checks are NOT MEASURED */, gainEvidence: NO_RECORDED_GAIN_EVIDENCE /* F39: none is recorded (no store) — passed EXPLICITLY */ });
 /* C6 — one recorded decision per candidate the check stopped, through this run's own guard sink. */
 for (const c of results) {
   /* RR-179 (c): a candidate F35 did not choose is never judged, so it has no existing-page decision to record */

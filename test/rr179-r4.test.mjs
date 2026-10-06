@@ -337,14 +337,18 @@ test("R4-BOARD · F41, F36 and F35 move only through the production validator an
   const trail = readFileSync(TRAIL, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
   for (const [f, n] of [["F41", 8], ["F36", 6], ["F35", 9]]) {
     const row = DECLARED[f];
-    const reopened = row.events.filter((e) => e.kind === "REOPENED").at(-1);
+    /* RR-188: a row may be reopened again later by its OWN amendment (F41 Amendment 2); R4's REOPENED stays on the board, and a VERIFIED-PASS
+     * row carries its REAL VERIFIED after its LATEST reopen, every clause of the acceptance then in force PROVED */
+    const reopened = row.events.find((e) => e.kind === "REOPENED" && /RR-179/.test(JSON.stringify(e.command ?? e.ownerRulings ?? "")));
+    assert.ok(reopened, `${f}'s R4 REOPENED is not on the board`);
     assert.equal(reopened?.reason, "AUTHORITATIVE_REQUIREMENT_CHANGE");
-    assert.ok(/RR-179/.test(JSON.stringify(reopened.command ?? reopened.ownerRulings ?? "")), `${f}'s last REOPENED is not R4's`);
+    const latest = row.events.filter((e) => e.kind === "REOPENED").at(-1);
+    assert.equal(latest.reason, "AUTHORITATIVE_REQUIREMENT_CHANGE", `${f}'s latest REOPENED is not for an authoritative requirement change`);
     assert.ok(trail.some((e) => e.eventType === "BOARD_TRANSITION" && e.action === "REOPENED" && e.metadata?.featureId === f && e.occurredAt.startsWith("2026-10-05")), `${f}'s REOPENED is not in the trail`);
     if (row.state === "VERIFIED-PASS") {
       const v = row.events.filter((e) => e.kind === "VERIFIED").at(-1);
-      assert.ok(row.events.indexOf(v) > row.events.indexOf(reopened) && v.population === "REAL");
-      assert.ok(Object.keys(v.clauses ?? {}).length === n && Object.values(v.clauses).every((c) => c === "PROVED"), `${f} is VERIFIED-PASS with a clause not PROVED`);
+      assert.ok(row.events.indexOf(v) > row.events.indexOf(latest) && v.population === "REAL");
+      assert.ok(Object.keys(v.clauses ?? {}).length >= n && Object.values(v.clauses).every((c) => c === "PROVED"), `${f} is VERIFIED-PASS with a clause not PROVED`);
     } else assert.equal(row.state, "IN-PROGRESS");
   }
 });

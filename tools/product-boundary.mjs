@@ -304,7 +304,8 @@ export const SHARED_SCOPE = Object.freeze(["src", "bin", "config"]);
  * a line is itself a breach, so it cannot outlive its reason.
  */
 export const PINNED_HISTORICAL_LINES = Object.freeze([
-  /* 🔴 DECLARED BLIND SPOT (RR-149 §6): the three lines below are NOT scanned for a client word — the census cannot see one planted
+  /* 🔴 DECLARED BLIND SPOT (RR-149 §6; widened by RR-179 §4.2 and RR-188 to F41's two amendments' EXPECTED lines, five lines in this file
+   * in all): the F62 lines below are NOT scanned for a client word — the census cannot see one planted
    * there while the bytes stay identical. Bounded: by exact sha256 only, three lines, one file; any edit to a line un-pins THAT pin
    * (stale is judged per pin — test/product-boundary.test.mjs CONTROL); it ends when the owner amends or replaces F62's acceptance.
    * RR-148: F62's frozen acceptance (_handoffs a5ec9f1) carries the owner's own words (RR-148 §1: the engine names "no profession") in
@@ -316,6 +317,9 @@ export const PINNED_HISTORICAL_LINES = Object.freeze([
   /* RR-179 §4.2: F41 Acceptance Amendment 1's EXPECTED (frozen by its hash, _handoffs be0ec9d) names the owner's RR-177 ruling on the 27
    * existing pages of a named subject — the frozen words, copied byte for byte and pinned by contractSha256; this pin is that one line. */
   Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "63bb2aa4fbad8915d463e2860f2775f01a689d828e81d6cb321bb5c287732b56", why: "F41 Amendment 1's frozen acceptance, EXPECTED (RR-177's ruling named in C8, be0ec9d)" }),
+  /* RR-188: F41 Acceptance Amendment 2's EXPECTED (frozen by its hash, _handoffs fc3555d) carries Amendment 1's EXPECTED word for word, and
+   * so the same RR-177 words, plus C9; the frozen words, copied byte for byte and pinned by contractSha256; this pin is that one line. */
+  Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "597a8b2fe968ddf72efac4e72f431a4386b937afbd52135d81da9cb0cd5d8864", why: "F41 Amendment 2's frozen acceptance, EXPECTED (Amendment 1's text, with RR-177's ruling named in C8, plus C9; fc3555d)" }),
   /* in the census's own order (files sorted: config/ before src/), so each pin is matched in turn */
   Object.freeze({ file: "src/checklist/classification.mjs", sha256: "945c24967dd7f9cc4a784ac06b215b4b2828353200458f22d0a643c79995f51d", why: "the historical ledger (frozen; F02 command §3: do not alter the historical 61/38 ledger)" }),
 ]);

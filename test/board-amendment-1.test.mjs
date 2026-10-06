@@ -23,24 +23,24 @@ const AUTH = { records: AUTHORITY_CORPUS, now: CORPUS_PROVENANCE.now };
 const board = () => buildBoard(CAPABILITIES, DECLARED);
 const errs = (b, notRequired) => boardErrors(b, { capabilities: CAPABILITIES, acceptances: ACCEPTANCES, authority: AUTH, ...(notRequired ? { notRequired } : {}) });
 
-test("B1 · the board reads 35/95 over the REQUIRED rows and 35/96 over all rows — both figures, F25 NOT REQUIRED with its work state", () => {
+test("B1 · the board reads 34/95 over the REQUIRED rows and 34/96 over all rows — both figures, F25 NOT REQUIRED with its work state", () => {
   const p = progress(board());
   /* RR-182 §3: Specification Amendment 5 appended F92–F96 UNASSESSED — UNASSESSED 44 → 49, rows 91 → 96, required 90 → 95; passed unchanged */
-  assert.deepEqual([p.passed, p.denominator, p.total], [35, 96, 96], "the all-rows figure moved");
-  assert.deepEqual([p.required.passed, p.required.denominator], [35, 95], "the required figure is not 35/95"); /* RR-188: F40 REOPENED at its Amendment 1 freeze (AUTHORITATIVE_REQUIREMENT_CHANGE) */
+  assert.deepEqual([p.passed, p.denominator, p.total], [34, 96, 96], "the all-rows figure moved");
+  assert.deepEqual([p.required.passed, p.required.denominator], [34, 95], "the required figure is not 34/95"); /* RR-188: F41 REOPENED at its Amendment 2 freeze (AUTHORITATIVE_REQUIREMENT_CHANGE) */
   assert.deepEqual(p.required.notRequired, [{ featureId: "F25", state: "IN-PROGRESS" }]);
   assert.deepEqual(errs(board()), [], "the real board is not lawful");
   const cli = spawnSync(process.execPath, ["bin/fboard-status.mjs"], { cwd: REPO, encoding: "utf8" });
-  assert.match(cli.stdout, /F-progress: 35\/95 \(required rows\) · all rows 35\/96 · NOT REQUIRED 1: F25 \(work state IN-PROGRESS, not passed\)/, cli.stdout);
+  assert.match(cli.stdout, /F-progress: 34\/95 \(required rows\) · all rows 34\/96 · NOT REQUIRED 1: F25 \(work state IN-PROGRESS, not passed\)/, cli.stdout);
 });
 
 test("B2 · leaving the required path never raises the numerator: a NOT REQUIRED row that is VERIFIED-PASS still does not count (CONTROL: kept, it would)", () => {
   const b = board().map((r) => (r.featureId === "F25" ? { ...r, state: "VERIFIED-PASS" } : r));
   const p = progress(b);
-  assert.equal(p.required.passed, 35, "a NOT REQUIRED row was counted as passed");
+  assert.equal(p.required.passed, 34, "a NOT REQUIRED row was counted as passed");
   assert.equal(p.required.denominator, 95);
   const kept = progress(b, { notRequired: {} });
-  assert.equal(kept.required.passed, 36, "CONTROL: with no exclusion the same board must count it — the check could not fail");
+  assert.equal(kept.required.passed, 35, "CONTROL: with no exclusion the same board must count it — the check could not fail");
   assert.equal(kept.required.denominator, 96);
 });
 

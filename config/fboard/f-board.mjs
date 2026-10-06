@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1 } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -1886,7 +1886,7 @@ export const DECLARED = Object.freeze({
   F41: Object.freeze({
     featureId: "F41",
     board: "F_BOARD",
-    state: "VERIFIED-PASS",
+    state: "IN-PROGRESS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: F41_ORIGINAL.ruling, contractSha256: F41_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -1955,6 +1955,22 @@ export const DECLARED = Object.freeze({
         sabotage: "runs/audit/rr179-sabotage-2026-10-05T2142.txt: 65 of 65 proved (F91 C19, F41 C1 as amended and C8, F36 S38 and record B, construction under ruling RR-179 (c) and D1, FS-A1, and one per clause for the F41, F36 and F35 re-proofs), residue 0, production trail unchanged",
         ownerRulings: Object.freeze({ repo: "_handoffs", rr179R4Rulings: "a8dc1900442ff17508b0ee7129db19b3b29f69a3" }),
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+      /* RR-188: F41's acceptance amendment, approved by its hash and frozen ALONE; F41 REOPENED at this freeze (F41 Amendment 1's practice) */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F41", on: "2026-10-06", ruling: F41_AMENDMENT_2.ruling, contractSha256: F41_AMENDMENT_2.contractSha256, amends: F41_AMENDMENT_2.amends }),
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F41",
+        on: "2026-10-06",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: F41_ACCEPTANCE_AMENDMENT_2)",
+        reason: "AUTHORITATIVE_REQUIREMENT_CHANGE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "F41's earlier evidence remains historically valid for what it measured; the reopen is caused by the newly frozen wider requirement (a preview only on a full F40 PASS for the same subject and the same contentSha256 (policy A); F40's blockers carried word for word), not by any defect found in that evidence",
+        amendment: Object.freeze({ ruling: F41_AMENDMENT_2.ruling, contractSha256: F41_AMENDMENT_2.contractSha256 }),
+        ownerDecision: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-06_RR-188_APPROVE_F40_A1_F41_A2_REV2.md", commit: "56560733f13e6038d71cd6078ff2dd683b895aa6", sha256: "49b106a455b28a8cb372924f5af5b21da341cdd7d85a9c76ede0279e54b5518f" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-06_RR-188.md", commit: "56560733f13e6038d71cd6078ff2dd683b895aa6", sha256: "b96e8bab866746a4515c3db0f207633a4aa6ab5597ae1dea50878e1fed4f7247" }),
       }),
     ]),
   }),

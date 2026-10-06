@@ -1810,7 +1810,7 @@ export const DECLARED = Object.freeze({
   F37: Object.freeze({
     featureId: "F37",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-05", ruling: F37_ORIGINAL.ruling, contractSha256: F37_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -1827,6 +1827,25 @@ export const DECLARED = Object.freeze({
         baseCiRun: "37384823262",
         baseCiConclusion: "success",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-05_RR-180.md", commit: "5d52f7324d2c62ea3055060a18d200f3901efeee", sha256: "a7a2eaf589316bf06cfbd3c8af40e5094785c2ea850d481e52a6cfed5338f699" }),
+      }),
+      /* RR-180 §8: F37 PROVED — every clause of its frozen acceptance PROVED and every sabotage PROVED, on FIXTURE structures only (RR-177);
+       * recorded through the board route in the same PR; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F37",
+        population: "REAL",
+        on: "2026-10-06",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F37_ORIGINAL.ruling.sha256, contract: F37_ORIGINAL.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED" }),
+        populations: "FIXTURE structures only — a fixture tenant with two fixture pages (verified bodies, recorded DOES_NOT_COVER judgements, recorded DISTINCT reviews), planning rows built by F91's and F16's own functions (a route-1 GENERATED question, an observed one, an attributing one), supported claims (SECONDARY, RESPONSIBLE BODY, an estimate) and unsupported ones; never the 27 existing pages the owner set aside (RR-177; census T37-27). A complete passing preview is proved on these fixtures only (ruling RR-180 (b)). Count-only.",
+        proofs: "test/rr180-r4b.test.mjs T37a–T37k (the production path ACCEPTED with its writer and every claim traced; a source removed → UNKNOWN; provider text never a fact; the tier and GENERATED pair with the attribution control; one control per P14 limb as rendered; one per P19 row with the section proposal; P21's measurable checks with NOT MEASURED never passed; the no-threshold census; markup aligned by F48's rule with planted controls; ruling (a) in construction and bin/build-page.mjs; ruling (b)'s passing preview on fixtures; no live writer, nothing read or published), T37-27, R37-CI, R37-BOARD",
+        sabotage: "runs/audit/rr180-sabotage-2026-10-06T0009.txt: 34 of 34 proved (F37 C1–C6 and ruling RR-180 (a)), residue 0, production trail unchanged",
+        ownerRulings: Object.freeze({ repo: "_handoffs", rr180R4bRulings: "20150bea6ab938311b5446adaa30d3ae92383e53" }),
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

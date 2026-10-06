@@ -83,6 +83,9 @@ test("C2 · each of the eleven sections is FILLED only from recorded evidence, w
   }
   /* a recorded input with no ref is not recorded evidence */
   assert.equal(brief({ ...FULL, cta: { text: "buy now" } }).sections.cta.state, "MISSING", "an unreferenced input filled a section");
+  /* RR-188: the same control for the intent — a need carrying a value but no ref is not the RECORDED need (the C2 limb had no control of its
+   * own; its old sabotage turned red only by crashing) */
+  assert.equal(brief({ ...FULL, need: { ...FULL.need, ref: "" } }).sections.intent.state, "MISSING", "an unreferenced need filled the intent");
   /* links need a COMPLETE inventory */
   assert.equal(brief({ ...FULL, links: { ...FULL.links, completeness: "INCOMPLETE" } }).sections.internalLinks.state, "MISSING");
 });

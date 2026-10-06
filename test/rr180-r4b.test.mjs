@@ -25,6 +25,7 @@ import { possibleCombinations } from "../src/page/page-opportunities.mjs";
 import { researchDerivedQuestion, assessmentRecord, ROUTES } from "../src/research/research-derived.mjs";
 import { assessPage, STATE as MARKUP } from "../src/page/structured-data.mjs";
 import { buildBrief, previewForOwner, PREVIEW } from "../src/page/content-brief.mjs";
+import { judgeDraft, CRITERIA as F40_CRITERIA, POPULATION as F40_POPULATION } from "../src/page/quality-judgements.mjs";
 import { groupedNeedEvidence } from "../src/page/content-brief-evidence.mjs";
 import { decisionCallPaths } from "../tools/need-coverage-call-paths.mjs";
 
@@ -227,11 +228,15 @@ test("T37j · RULING RR-180 (b): A COMPLETE PASSING PREVIEW, ON FIXTURES — an 
     links: { completeness: "COMPLETE", targets: ["fixture-page-a"], ref: "links:fixture" }, cta: { text: "start the renewal", ref: "c" }, schema: { type: "FAQPage", ref: "s" }, prohibitedClaims: { items: ["guaranteed approval"], ref: "p" } };
   const brief = buildBrief({ decision: c.d.decision, evidence, now: NOW });
   assert.equal(brief.state, "READY", JSON.stringify(brief.missing));
-  assert.equal(previewForOwner({ construction: r, brief }).state, PREVIEW.PUT_FORWARD);
+  /* RR-188 (F41 C9): put forward only on F40's full PASS for THIS draft — F40 judges it here, with fixture judges declared as such */
+  const fj = (name) => ({ name, verdict: "PASS", criterionId: F40_CRITERIA[name].id, observation: "the fixture judge's recorded observation", source: { kind: "FIXTURE", ref: `fixture-judge:${name}` } });
+  const f40 = judgeDraft({ spec: c.d.spec, decision: c.d.decision, draft: renderCompiledDraft({ spec: c.d.spec, decision: c.d.decision, links: LINKS }), parts: r.parts, population: F40_POPULATION.FIXTURE, judgements: [fj("engaging"), fj("hookable")] });
+  assert.equal(f40.gate.verdict, "PASS", JSON.stringify(f40.gate.blockers));
+  assert.equal(previewForOwner({ construction: r, brief, f40 }).state, PREVIEW.PUT_FORWARD);
   /* ruling (b): with no recorded gain or competitor comparison, F39 stays CANNOT DECIDE and nothing is put forward */
   const noGain = constructCandidates({ pageSpecs: {}, records: [], requested: [c.d.slug], tenantId: T, existingPages: POPULATION, gainEvidence: { gainRecords: [], competitorComparisons: [], reviews: gainFor(c.d.slug).reviews }, decisions: decisionsForConstruction({ compiled: c.g.compiled }).decisions, links: LINKS, now: NOW })[0];
   assert.equal(noGain.verdict, REFUSED);
-  assert.equal(previewForOwner({ construction: noGain, brief }).state, PREVIEW.NOT_PUT_FORWARD);
+  assert.equal(previewForOwner({ construction: noGain, brief, f40 }).state, PREVIEW.NOT_PUT_FORWARD);
 });
 
 test("T37k · F37 C1 NO LIVE WRITER, NOTHING READ OR PUBLISHED: the draft path loads no module that can make a network, process, connector or paid call — and the enumeration fires when one is planted", () => {

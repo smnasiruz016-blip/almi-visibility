@@ -239,27 +239,29 @@ test("T41d · F41 C1 AS AMENDED · D5: A BRIEF PREPARED WITH NO PER-ITEM APPROVA
 
 const PASSING = { verdict: "ACCEPTED", html: "<article>a fixture page that passed every frozen gate</article>" };
 const READY = { subject: { kind: "GROUPED_NEED", id: "need:r" }, state: "READY" };
+/* RR-188 (F41 C9): a preview is put forward only on a full F40 PASS for the same subject and the same content — a hand-written F40 result for PASSING */
+const F40_PASS = Object.freeze({ judged: true, subject: "need:r", contentSha256: createHash("sha256").update(PASSING.html).digest("hex"), gate: Object.freeze({ verdict: "PASS", blockers: Object.freeze([]) }) });
 
 test("T41e · F41 C1 AS AMENDED · D5: A PREVIEW THAT DOES NOT PASS IS NEVER PUT FORWARD for the owner's approval — a refused construction or a brief not READY; a complete passing preview is", () => {
   for (const [label, construction, brief] of [["refused construction", { verdict: "REFUSED", html: "<article>a page construction refused</article>" }, READY], ["INCOMPLETE brief", PASSING, { ...READY, state: "INCOMPLETE" }], ["nothing", null, null]]) {
-    const p = previewForOwner({ construction, brief });
+    const p = previewForOwner({ construction, brief, f40: F40_PASS });
     assert.equal(p.state, PREVIEW.NOT_PUT_FORWARD, `${label}: put forward`);
     assert.ok(p.missing.length > 0);
   }
-  const ok = previewForOwner({ construction: PASSING, brief: READY });
+  const ok = previewForOwner({ construction: PASSING, brief: READY, f40: F40_PASS });
   assert.equal(ok.state, PREVIEW.PUT_FORWARD);
   assert.match(ok.standing, /not an approval, not published/);
 });
 
 test("T41f · F41 C1 AS AMENDED · D5: A PUBLICATION ATTEMPT WITH NO RECORDED EXACT APPROVAL IS REFUSED — none assumed; an approval of other content, or not exact, is none; only the owner's exact recorded approval of this preview passes, and F41 still publishes nothing", () => {
-  const preview = previewForOwner({ construction: PASSING, brief: READY });
+  const preview = previewForOwner({ construction: PASSING, brief: READY, f40: F40_PASS });
   assert.throws(() => publicationDecision({ preview }), /passed explicitly/, "an approval was assumed");
   assert.equal(publicationDecision({ preview, approvals: [] }).outcome, "REFUSED");
   const exact = { kind: "PUBLICATION", exact: true, subject: preview.subject, contentSha256: preview.contentSha256, ref: "owner-approval:fixture" };
   for (const bad of [{ ...exact, contentSha256: "0".repeat(64) }, { ...exact, exact: false }, { ...exact, ref: "" }, { ...exact, subject: { kind: "GROUPED_NEED", id: "need:other" } }]) {
     assert.equal(publicationDecision({ preview, approvals: [bad] }).outcome, "REFUSED", `a non-exact approval passed: ${JSON.stringify(bad)}`);
   }
-  assert.equal(publicationDecision({ preview: previewForOwner({ construction: { verdict: "REFUSED", html: null }, brief: READY }), approvals: [exact] }).outcome, "REFUSED", "a preview that did not pass was approved for publication");
+  assert.equal(publicationDecision({ preview: previewForOwner({ construction: { verdict: "REFUSED", html: null }, brief: READY, f40: F40_PASS }), approvals: [exact] }).outcome, "REFUSED", "a preview that did not pass was approved for publication");
   const yes = publicationDecision({ preview, approvals: [exact] });
   assert.deepEqual([yes.outcome, yes.published], ["APPROVED_BY_THE_OWNER", false]);
   /* no publication path exists: nothing in src/ or bin/ deploys, publishes or writes to a client site */

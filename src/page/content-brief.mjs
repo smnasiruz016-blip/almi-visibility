@@ -27,6 +27,7 @@
  * length target exists anywhere in a brief; competitor evidence is carried only as a recorded diagnostic input. Pure: F41 writes no page.
  */
 import { createHash } from "node:crypto";
+import { JUDGED_KIND as F40_JUDGED_KIND } from "./quality-judgements.mjs";
 import { freshnessOf } from "../facts/lifecycle.mjs";
 
 export const SECTIONS = Object.freeze(["intent", "entities", "questions", "verifiedFactsAndSources", "uniqueValue", "localeTerms", "internalLinks", "cta", "schema", "prohibitedClaims", "acceptanceCriteria"]);
@@ -159,8 +160,24 @@ export const PREVIEW = Object.freeze({ PUT_FORWARD: "PUT_FORWARD_FOR_THE_OWNER'S
  * D5 · a COMPLETE PASSING preview is put before the owner for publication approval: construction ACCEPTED it (every frozen gate passed)
  * and its brief is READY. Anything else is NOT put forward, its missing parts named. A preview is never an approval and publishes nothing.
  */
-export function previewForOwner({ construction, brief }) {
+/**
+ * F41 C9 (Acceptance Amendment 2, RR-188; policy A): a preview is put forward only when F40's recorded result for the SAME subject — the
+ * brief's subject of the kind F40 judges, with the same id — and the SAME content sha256 as the constructed page is a full PASS. Otherwise
+ * NOT_PUT_FORWARD, F40's gate verdict and each blocker carried word for word. F41 reads F40's result; it never re-judges or overrides it.
+ */
+export function previewForOwner({ construction, brief, f40 = null }) {
   const missingParts = [];
+  const pageSha = typeof construction?.html === "string" && construction.html !== "" ? createHash("sha256").update(construction.html).digest("hex") : null;
+  if (!f40) missingParts.push("no F40 result for this draft — F40 has not judged it");
+  else {
+    if (typeof f40.contentSha256 !== "string" || f40.contentSha256 === "") missingParts.push("F40's result names no contentSha256 — it does not say which content it judged");
+    else if (pageSha !== null && f40.contentSha256 !== pageSha) missingParts.push(`F40's result is for other content (${f40.contentSha256}), not this page (${pageSha})`);
+    if (brief?.subject?.kind !== F40_JUDGED_KIND) missingParts.push(`the brief's subject is of kind ${brief?.subject?.kind ?? "none"}, not the kind F40 judges (${F40_JUDGED_KIND})`);
+    else if (typeof brief.subject.id !== "string" || brief.subject.id === "") missingParts.push("the brief's subject has no id to match F40's subject");
+    else if (brief.subject.id !== f40.subject) missingParts.push(`F40's result is for subject ${f40.subject ?? "none"}, not this brief's subject ${brief.subject.id}`);
+    if (f40.judged !== true) missingParts.push(`F40 did not judge this draft: ${f40.why ?? "no reason recorded"}`);
+    else if (f40.gate?.verdict !== "PASS") missingParts.push(`F40 gate ${f40.gate?.verdict ?? "absent"}`, ...(f40.gate?.blockers ?? []));
+  }
   if (construction?.verdict !== "ACCEPTED" || typeof construction?.html !== "string" || construction.html === "") missingParts.push("the constructed page did not pass — construction did not ACCEPT it");
   if (brief?.state !== BRIEF_STATE.READY) missingParts.push(`the brief is ${brief?.state ?? "absent"}, not READY`);
   if (missingParts.length) return Object.freeze({ state: PREVIEW.NOT_PUT_FORWARD, missing: Object.freeze(missingParts) });

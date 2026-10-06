@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -1782,9 +1782,9 @@ export const DECLARED = Object.freeze({
   F39: Object.freeze({
     featureId: "F39",
     board: "F_BOARD",
-    state: "VERIFIED-PASS",
+    state: "IN-PROGRESS",
     events: Object.freeze([
-      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: ACCEPTANCES.F39.ruling, contractSha256: ACCEPTANCES.F39.contractSha256 }),
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: F39_ORIGINAL.ruling, contractSha256: F39_ORIGINAL.contractSha256 }),
       Object.freeze({
         kind: "IMPLEMENTATION",
         featureId: "F39",
@@ -1793,7 +1793,7 @@ export const DECLARED = Object.freeze({
         to: "IN-PROGRESS",
         route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
         reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F39.ruling.sha256, contract: ACCEPTANCES.F39.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F39_ORIGINAL.ruling.sha256, contract: F39_ORIGINAL.contractSha256 }),
         branch: "rr90-f39-information-gain",
         baseSha: "5846e8f4d3bab932ddecca82a3c3aadf2e0272d6",
         baseCiRun: "36530852937",
@@ -1809,13 +1809,29 @@ export const DECLARED = Object.freeze({
         to: "VERIFIED-PASS",
         route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
         reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F39.ruling.sha256, contract: ACCEPTANCES.F39.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F39_ORIGINAL.ruling.sha256, contract: F39_ORIGINAL.contractSha256 }),
         populations: "REAL (count-only; bound: recorded data only · 27 pages · information-gain records 0 · competitor comparisons 0 · semantic reviews 0 · nothing collected): CANNOT_DECIDE 27, ESTABLISHED 0, REFUSED 0 — shared templates NOT_MEASURED 27 (every page has text outside the shared shell; whether it is useful value needs a recorded gain record), current pages NOT_MEASURED 27 (no sibling pair reviewed), competitors NOT_MEASURED 27 (no recorded competitor comparison). THE CHECKER IS NOT THE VERDICT: no real page is reported as having information gain, and none as lacking it. The page-production census: 8 paths, CHECKS 1, ROUTED 4, 0 faults, F39 on every accepting path.",
         proofs: "test/f39-information-gain.test.mjs — every page carries three baseline verdicts with evidence or missing fact; C2 FIRING CONTROL: all baselines otherwise clear but no recorded gain record is CANNOT DECIDE, a declared intention or malformed record is no record; SHELL ONLY, an exact duplicate (also under a different nav), a reviewed duplicate and a recorded no-gain comparison each refuse on their own baseline; no recorded comparison, or one naming no competitor, is NOT MEASURED; C5 FIRING CONTROL: unmeasured never becomes a verdict, every missing fact named; the gate produces nothing unless gain is ESTABLISHED and the census fires when F39 is removed from construction; an unverified body measures nothing; evidence passed explicitly; the entry point prints counts and its bound and never PASS. test/page-construction.test.mjs — ACCEPTED exactly when right-to-exist AND information gain are ESTABLISHED (non-vacuous), no gain evidence or no competitor comparison refuses, a population without verified bodies is never 'no other current page'. Hand-written expectations; production trail byte-identical",
         sabotage: "runs/audit/f39-sabotage-2026-09-29.txt: 22 of 22 proved, every span pre-flighted once (S15 first stayed GREEN: F32's own guard masked F39's — the test now isolates F39's guard). Re-run on the changed code: F36 12/12, F34 19/19 (F36 S9 and F34 S10 re-pointed — F39 rewrote their lines; F36 S10 had been masked by F39's new part — its test now isolates part 4), F33 18/18, F31 22/22, F32 23/23, F35 31/31",
         historicalReuse: "historical row 24 was DEFERRED with no code — nothing proved to reuse. Reused unchanged as inputs: F32's shared shell, exact duplication and semantic-review shape; F31's verified bodies; F36's gate. Gate A's adaptive rule C is not an information-gain measure.",
         declaredLimit: "information gain is NOT MEASURED on every real page (missing facts: a recorded information-gain record, recorded semantic reviews of sibling pairs, and a recorded competitor-supply comparison — no store of any exists; none may be collected, bought or labelled). As a consequence no candidate can be ACCEPTED by construction or written by a subject tool until such records exist — by design, the frozen C6.",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+      /* RR-192: F39's acceptance amendment, approved by its hash and frozen ALONE; F39 REOPENED at this freeze (A6; F41 Amendment 1's practice) */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F39", on: "2026-10-06", ruling: F39_AMENDMENT_1.ruling, contractSha256: F39_AMENDMENT_1.contractSha256, amends: F39_AMENDMENT_1.amends }),
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F39",
+        on: "2026-10-06",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: F39_ACCEPTANCE_AMENDMENT_1)",
+        reason: "AUTHORITATIVE_REQUIREMENT_CHANGE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "F39's earlier evidence remains historically valid for what it measured; the reopen is caused by the newly frozen wider requirement (C3 follows F32 C3 as amended: a review not recorded with needsGuidance: false leaves the current-pages baseline NOT MEASURED, never NOT BEYOND or BEYOND), not by any defect found in that evidence",
+        amendment: Object.freeze({ ruling: F39_AMENDMENT_1.ruling, contractSha256: F39_AMENDMENT_1.contractSha256 }),
+        ownerDecision: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-06_RR-192_APPROVE_F32_A1_REV2_F39_A1_PG-A1.md", commit: "7b12d2cd7446d0554f4cf746099c15cb3ca70d43", sha256: "e4cc18aa02a3bb8081c55dc33af4286bbbc7d06718eea03b8d0eff8c3be96bb0" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-06_RR-192.md", commit: "7b12d2cd7446d0554f4cf746099c15cb3ca70d43", sha256: "f6deb7744599d6bd489b04dadeae34adcc5358c64d090b8ac89be6556fb7762a" }),
       }),
     ]),
   }),

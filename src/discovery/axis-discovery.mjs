@@ -30,6 +30,8 @@
  */
 import { extractBody, shingles, jaccard } from "../audit/shell.mjs";
 import { surface } from "./intent-clusters.mjs";
+import { OVERLAP_REVIEW_TRIGGER } from "../gate-a/adaptive.mjs";
+import { NEAR_DUPLICATE_THRESHOLD } from "../audit/content-checks.mjs";
 
 export const VERDICTS = Object.freeze(["BUILD", "MONITOR", "REJECT", "UNKNOWN"]);
 export const LEGS = Object.freeze(["discovery", "distinguishing", "demand", "evidenceAvailability", "siblingCollapse", "humanValue"]);
@@ -43,9 +45,9 @@ export const MIN_OBS_PER_VALUE = 3;
 export const MIN_ROWS_PER_COUNTRY = 5;
 /** Sibling collapse is MEASURED on at least this many archived page pairs. */
 export const MIN_SIBLING_PAIRS = 10;
-/** The owner's bars, reused and not re-chosen: Gate A's maximum sibling overlap, the audit's near-duplicate line. */
-export const GATE_A_MAX_SIBLING_OVERLAP = 0.4;
-export const NEAR_DUPLICATE_THRESHOLD = 0.9;
+/* RR-192 · T-1: the two local COPIES (0.4 and 0.9) are removed. Both figures are read from their one home — the adaptive gate's overlap
+ * REVIEW SIGNAL (P20) and the audit check's near-duplicate line (T-2, R6b) — and here they only COUNT pairs for a labelled report; neither
+ * decides an axis, a value or a page (RTP-1 S22a removed those gates). */
 
 const ANSWER_UNKNOWN =
   "no per-value ANSWER evidence is owned. Measuring whether the useful answer changes needs the answer at each value from " +
@@ -139,7 +141,7 @@ export function siblingCollapse(pairs, families = []) {
       basis: `${measured.length} measured archived pair(s) (${where}) — below the ${MIN_SIBLING_PAIRS} needed. LAW-ABSENT-1: few pairs is a fact about our archive`,
     };
   }
-  const above = sorted.filter((x) => x > GATE_A_MAX_SIBLING_OVERLAP).length;
+  const above = sorted.filter((x) => x > OVERLAP_REVIEW_TRIGGER).length;
   const near = sorted.filter((x) => x >= NEAR_DUPLICATE_THRESHOLD).length;
   return {
     state: "MEASURED",
@@ -148,9 +150,9 @@ export function siblingCollapse(pairs, families = []) {
     median: Number(median.toFixed(4)),
     min: Number(sorted[0].toFixed(4)),
     max: Number(sorted.at(-1).toFixed(4)),
-    aboveGateABar: above,
-    nearDuplicate: near,
-    basis: `${measured.length} archived pairs of OUR pages (${where}): body overlap median ${median.toFixed(3)} (min ${sorted[0].toFixed(3)}, max ${sorted.at(-1).toFixed(3)}); ${above} above Gate A's ${GATE_A_MAX_SIBLING_OVERLAP}; ${near} at or above the near-duplicate line ${NEAR_DUPLICATE_THRESHOLD}. It measures our construction, never the answer`,
+    aboveOverlapReviewSignal: above,
+    atOrAboveNearDuplicateSignal: near,
+    basis: `${measured.length} archived pairs of OUR pages (${where}): body overlap median ${median.toFixed(3)} (min ${sorted[0].toFixed(3)}, max ${sorted.at(-1).toFixed(3)}); ${above} above the overlap review signal ${OVERLAP_REVIEW_TRIGGER}; ${near} at or above the near-duplicate review signal ${NEAR_DUPLICATE_THRESHOLD} (labelled signals, never a verdict). It measures our construction, never the answer`,
   };
 }
 

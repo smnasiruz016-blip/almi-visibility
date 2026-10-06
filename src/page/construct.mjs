@@ -51,9 +51,8 @@ import { claimIdsOf } from "./claim-ids.mjs";
 import { tokensOf } from "../gate-a/tokens.mjs";
 import { shellFor, uniqueWords, residualTokens, MIN_PAGES_FOR_OWN_SHELL } from "../gate-a/shell.mjs";
 import { maxAgainstPopulation } from "../gate-a/overlap.mjs";
-import { countFacts, MIN_FACTS, judgeFact } from "../gate-a/facts.mjs";
-import { judgeFactSufficiency, judgeCompleteness, judgeOverlap } from "../gate-a/adaptive.mjs";
-import { MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../gate-a/run.mjs";
+import { countFacts, judgeFact } from "../gate-a/facts.mjs";
+import { judgeFactSufficiency, judgeCompleteness, judgeOverlap, OVERLAP_REVIEW_TRIGGER } from "../gate-a/adaptive.mjs"; /* RR-192 · T-1: Gate A's 350/5/0.40 are no longer imported */
 import { rightToExist } from "./right-to-exist.mjs";
 import { toGateAFact } from "../facts/registry.mjs";
 import { RENDERABLE_STATUSES } from "../facts/schema.mjs";
@@ -263,7 +262,7 @@ export function constructCandidates({ pageSpecs, variants = [], records = [], re
      * supported answer and useful value are assessed — by the F35 CREATE decision construction now acts on (DISTINCT and USEFUL, F35 C8b;
      * ruling RR-179 (c)). Where siblings exist but no shared shell can be learned, overlap is measured on the full text: a review signal
      * (Rule C), never a refusal only because the family is small. */
-    else if (siblings.length === 0) parts.overlap = { state: PASS, kind: null, rule: "D1 (S41, record B)", value: null, reviewTrigger: MAX_SIBLING_OVERLAP, reviewRequired: false, reason: null, basis: `${LONE_PAGE}; its distinct need, supported answer and useful value are assessed by the F35 CREATE decision it acts on` };
+    else if (siblings.length === 0) parts.overlap = { state: PASS, kind: null, rule: "D1 (S41, record B)", value: null, reviewTrigger: OVERLAP_REVIEW_TRIGGER, reviewRequired: false, reason: null, basis: `${LONE_PAGE}; its distinct need, supported answer and useful value are assessed by the F35 CREATE decision it acts on` };
     else if (unrenderedSiblings.length) parts.overlap = { state: NOT_TESTED, reason: `sibling(s) ${unrenderedSiblings.join(", ")} do not render, so overlap against EVERY sibling cannot be measured` };
     else {
       const population = rendered.map((f) => ({ id: f.slug, residual: shell.shell ? residualTokens(f.tokens, shell.shell) : f.tokens }));
@@ -282,7 +281,7 @@ export function constructCandidates({ pageSpecs, variants = [], records = [], re
         kind: ruleC.kind,
         rule: ruleC.rule,
         value: Number(o.maxOverlap.toFixed(4)),
-        reviewTrigger: MAX_SIBLING_OVERLAP,
+        reviewTrigger: OVERLAP_REVIEW_TRIGGER,
         reviewRequired: ruleC.reviewRequired,
         against: o.against,
         comparedWith: o.comparedWith,

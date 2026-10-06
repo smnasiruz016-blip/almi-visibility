@@ -1,0 +1,9 @@
+RR-192 R6a sabotage PRACTICE run · 2026-10-06T19:04:34.335Z
+population: 1 sabotage(s) over test/f32-duplication.test.mjs + test/f39-information-gain.test.mjs + test/page-construction.test.mjs + test/gate-a.test.mjs + test/gate-a-pairs.test.mjs + test/existing-pages.test.mjs + test/page-quality-row25.test.mjs + test/v3-adoption-code-match.test.mjs + test/rr192-r6a.test.mjs · each applied ALONE · no provider, no network, no third-party read
+BASELINE (the named tests before any sabotage): GREEN · named tests seen GREEN: 1 of 1
+PRE-FLIGHT (span occurrences in the code live now): F39-S1=1 · all exactly once: true
+production trail sha256 before: aaf236c0b6ae1062153f278428945df1c9568d61b57ede1aaeacbd340a0e9032
+
+F39-S1 F39 C1/C2 templates BEYOND needs a recorded gain (re-anchored, RR-192: null-safe gain read) [src/page/information-gain.mjs]: landed true · named test "C1 · every" red true · its failure AssertionError · SyntaxError false · a production child crashed false · failing C1 · restored by sha256 true · PROVED
+
+proved 1 of 1 · residue 0 · production trail sha256 after: aaf236c0b6ae1062153f278428945df1c9568d61b57ede1aaeacbd340a0e9032 · unchanged true

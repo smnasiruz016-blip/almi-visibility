@@ -32,14 +32,19 @@ export const SEMANTIC_ASPECTS = Object.freeze(["intent", "answer", "facts", "arc
 export const MISSING = Object.freeze({
   REVIEW: "a recorded semantic review comparing intent, answer, facts, architecture, examples and user value (V3 §14.2) — none is recorded; none may be bought (no paid or metered call) or labelled (no new owner labels)",
   VALUE: "a recorded semantic review or information-gain record (V3 §13 distinct value, G12) — none is recorded",
+  /* F32 C3 AS AMENDED (Acceptance Amendment 1, RR-192; RTP-1 P20, ruling RR-174 (d)) */
+  GUIDANCE_FREE: "a recorded substance review that needs no guidance (needsGuidance: false) — RR-174 (d): until the guidance read is approved, a guidance-dependent review decides nothing",
 });
 
 const sha = (s) => createHash("sha256").update(s).digest("hex");
 const pairKey = (a, b) => (a < b ? `${a}|${b}` : `${b}|${a}`);
 
-/** A review counts only when it compared every aspect V3 names; it may say DUPLICATE, or DISTINCT with documented distinct value. */
+/** A review counts only when it compared every aspect V3 names; it may say DUPLICATE, or DISTINCT with documented distinct value.
+ * C3 AS AMENDED: and only when it is recorded with needsGuidance: false — a guidance-dependent or unmarked review is HELD: NOT JUDGED,
+ * naming the missing guidance-free review, never DUPLICATE and never DISTINCT. */
 function reviewVerdict(review, overlapAbove) {
   if (!review) return { state: "NOT_JUDGED", missing: MISSING.REVIEW };
+  if (review.needsGuidance !== false) return { state: "NOT_JUDGED", heldForGuidance: true, missing: `the recorded review ${review.ref} is ${review.needsGuidance === true ? "guidance-dependent" : "not marked needsGuidance: false"} — needs ${MISSING.GUIDANCE_FREE}` };
   if (!SEMANTIC_ASPECTS.every((a) => review.compared?.includes(a))) return { state: "NOT_JUDGED", missing: `the recorded review ${review.ref} does not compare ${SEMANTIC_ASPECTS.filter((a) => !review.compared?.includes(a)).join(", ")}` };
   if (review.duplicate === true) return { state: "DUPLICATE", ref: review.ref };
   if (review.duplicate === false) {

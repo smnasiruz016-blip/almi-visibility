@@ -98,12 +98,12 @@ export function measureExistingPages(pages, facts, { now = new Date() } = {}) {
         shellSource: chosen.source,
         shellPages: chosen.pages,
         uniqueWords: unique,
-        uniquePass: unique === null ? null : unique >= MIN_UNIQUE_WORDS,
+        belowUniqueWordsSignal: unique === null ? null : unique < MIN_UNIQUE_WORDS, // RR-192 T-1: a labelled signal, never a pass
         overlapState,
         maxOverlap: measured ? o.maxOverlap : null,
         overlapAgainst: measured ? o.against : null,
         overlapVacuous: overlapState === "VACUOUS",
-        overlapPass: measured ? o.maxOverlap <= MAX_SIBLING_OVERLAP : null,
+        overlapAboveReviewSignal: measured ? o.maxOverlap > MAX_SIBLING_OVERLAP : null, // RR-192 T-1: P20 review signal, never a pass
         /* 🔴 21 Sep 2026: carried, not dropped. overlap.mjs's own D2 rule — "a Jaccard computed over very few residual
          * words is noise wearing a number's clothes … never [reported] without this count beside it" — was lost here,
          * so a page with 27 residual words reported a clean overlap PASS. The number and the pass flag are unchanged;
@@ -113,9 +113,10 @@ export function measureExistingPages(pages, facts, { now = new Date() } = {}) {
         factsPresent: present.map((f) => f.id),
         factSources: [...new Set(present.map((f) => f.source?.url).filter(Boolean))],
         factsQualifying: counted.qualifying,
-        factsPass: counted.passes,
+        factsReachSignal: counted.reachesSignal, // RR-192 T-1: a labelled signal, never a pass
       });
     }
   }
-  return { results, groups: groups.size, thresholds: { MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP, MIN_FACTS, MIN_VALUE_CHARS } };
+  /* RR-192 · T-1 (RTP-1 §17 S9; PG-A1): ROW25 decides nothing on 350, five facts or 0.40 — each is measured and reported as a review signal. */
+  return { results, groups: groups.size, signals: { MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP, MIN_FACTS, MIN_VALUE_CHARS } };
 }

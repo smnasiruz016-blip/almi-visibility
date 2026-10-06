@@ -14,7 +14,9 @@
  *   1. TENANCY — the page's site and the fact registry are separate RESOURCE ATTACHMENTS; the page is handed the
  *      registry's facts only when both are explicitly declared to the same subject (../tenancy/attachment.mjs).
  *      A page of another subject is INVALID_CROSS_TENANT for checks C and D — never "0 facts".
- *   2. A UNIQUE VALUE and B SIBLING OVERLAP — Gate A's own measures and thresholds, unchanged (./existing-pages.mjs).
+ *   2. A UNIQUE VALUE and B SIBLING OVERLAP — Gate A's own measures (./existing-pages.mjs). 🔴 RR-192 · T-1 (RTP-1 S9; PG-A1): their
+ *      350-word and 0.40 figures are REVIEW SIGNALS, never a PASS or a FAIL — A reports BELOW_SIGNAL or AT_OR_ABOVE_SIGNAL; B reports
+ *      REVIEW_REQUIRED above 0.40 (a recorded substance review decides), BELOW_REVIEW_SIGNAL or NOISY.
  *   3. C VERIFIED-FACT PRESENCE — a CLAIM bound to a VERIFIED fact (./claim-binding.mjs).
  *   4. D SOURCE INTEGRITY — the bound claim's trace: claim → VERIFIED fact → the source the page cites → that source
  *      LIVE in the recorded link check. Drift, an unverified fact, or a conflicting statement FAILS. A page with no bound
@@ -56,11 +58,11 @@ export function evaluatePageQuality({ pages, facts, registry, resolve, linkVerdi
   const ab = new Map(measureExistingPages(pages.map((p) => ({ id: p.id, html: p.html })), [], { now }).results.map((r) => [r.id, r]));
   return pages.map((p) => {
     const m = ab.get(p.id);
-    const A = m.uniqueWords === null ? { state: "UNMEASURABLE", uniqueWords: null } : { state: m.uniquePass ? "PASS" : "FAIL", uniqueWords: m.uniqueWords };
+    const A = m.uniqueWords === null ? { state: "UNMEASURABLE", uniqueWords: null } : { state: m.belowUniqueWordsSignal ? "BELOW_SIGNAL" : "AT_OR_ABOVE_SIGNAL", uniqueWords: m.uniqueWords };
     /* B has a THIRD state: a measured overlap over fewer residual words than Gate A's NOISY_RESIDUAL_WORDS is NOISY —
      * reported with its number and its count, and never a pass (overlap.mjs, D2). A high score stays a FAIL. */
     const B = m.overlapState !== "MEASURED" ? { state: m.overlapState }
-      : { state: !m.overlapPass ? "FAIL" : m.overlapNoisy ? "NOISY" : "PASS", maxOverlap: m.maxOverlap, against: m.overlapAgainst, residualWords: m.residualWords };
+      : { state: m.overlapAboveReviewSignal ? "REVIEW_REQUIRED" : m.overlapNoisy ? "NOISY" : "BELOW_REVIEW_SIGNAL", maxOverlap: m.maxOverlap, against: m.overlapAgainst, residualWords: m.residualWords };
     const tenancy = bindResources(resolve, { resourceKind: "SITE_ORIGIN", resourceRef: p.origin, evidenceClass: p.evidenceClass }, registry);
     if (tenancy.binding !== "BOUND") {
       const s = tenancy.binding === "UNBOUND" || tenancy.binding === "UNKNOWN" ? "UNKNOWN" : "INVALID";
@@ -96,7 +98,8 @@ export function tallyPageQuality(results) {
     }
     if (r.C.state === "NO_BOUND_CLAIM") { t.boundNoClaim += 1; t.UNKNOWN += 1; continue; }
     t.selected += 1;
-    const states = [r.A.state, r.B.state, r.C.state === "PRESENT" ? "PASS" : "FAIL", r.D.state];
+    /* RR-192 · T-1: A is a signal and decides nothing; B decides nothing either — REVIEW_REQUIRED and NOISY wait on a review (never PASS) */
+    const states = [r.B.state === "BELOW_REVIEW_SIGNAL" ? "PASS" : "UNKNOWN", r.C.state === "PRESENT" ? "PASS" : "FAIL", r.D.state];
     if (states.includes("FAIL")) t.FAIL += 1;
     else if (states.every((s) => s === "PASS")) t.PASS += 1;
     else t.UNKNOWN += 1;
@@ -115,8 +118,8 @@ export function tallyPageQuality(results) {
 export function row25Verdict({ results, controls }) {
   const real = results.filter((r) => r.evidenceClass === "REAL");
   const reasons = [];
-  if (!real.some((r) => ["PASS", "FAIL"].includes(r.A.state))) reasons.push({ code: "A_NOT_MEASURED_ON_REAL", why: "unique value was measured on no real page" });
-  if (!real.some((r) => ["PASS", "FAIL"].includes(r.B.state))) reasons.push({ code: "B_NOT_MEASURED_ON_REAL", why: "sibling overlap was measured on no real page" });
+  if (!real.some((r) => ["BELOW_SIGNAL", "AT_OR_ABOVE_SIGNAL"].includes(r.A.state))) reasons.push({ code: "A_NOT_MEASURED_ON_REAL", why: "unique value was measured on no real page" });
+  if (!real.some((r) => ["REVIEW_REQUIRED", "BELOW_REVIEW_SIGNAL"].includes(r.B.state))) reasons.push({ code: "B_NOT_MEASURED_ON_REAL", why: "sibling overlap was measured on no real page" });
   if (!real.some((r) => r.tenancy === "BOUND" && (r.C.bindings ?? []).some((b) => ["MATCH", "DRIFT", "CONFLICTING"].includes(b.outcome)))) reasons.push({ code: "C_NO_REAL_BOUND_CLAIM", why: "no real page carries a claim bound to a VERIFIED fact" });
   if (!real.some((r) => ["PASS", "FAIL"].includes(r.D.state))) reasons.push({ code: "D_NOT_REPORTED_ON_REAL", why: "source integrity reached no real page's claim" });
   if (results.some((r) => r.D.state === "PASS" && (r.C.bindings ?? []).some((b) => b.outcome !== "MATCH"))) reasons.push({ code: "UNSOURCED_CLAIM_PASSED", why: "a page whose bound claim does not match passed source integrity" });
@@ -154,8 +157,8 @@ export function liveControls({ fact }) {
     { ...page("filler", words("filler", 420)) },
   ], [fact]);
   return {
-    A: { fires: byId(ab, "thin").A.state === "FAIL", silent: byId(ab, "own").A.state === "PASS" },
-    B: { fires: byId(ab, "twin-a").B.state === "FAIL", silent: byId(ab, "own").B.state === "PASS" },
+    A: { fires: byId(ab, "thin").A.state === "BELOW_SIGNAL", silent: byId(ab, "own").A.state === "AT_OR_ABOVE_SIGNAL" }, // RR-192 T-1: the signal fires, nothing fails
+    B: { fires: byId(ab, "twin-a").B.state === "REVIEW_REQUIRED", silent: byId(ab, "own").B.state === "BELOW_REVIEW_SIGNAL" },
     C: { fires: byId(cd, "drift").C.state === "ADDRESSED_NOT_PRESENT", silent: byId(cd, "clean").C.state === "PRESENT" },
     D: { fires: byId(cd, "drift").D.state === "FAIL", silent: byId(cd, "clean").D.state === "PASS" },
   };

@@ -144,29 +144,29 @@ for (const g of groups) {
   const dist = distribution(out.results.map((r) => r.uniqueWords));
   report.groups[report.groups.length - 1].uniqueWordsDistribution = dist;
   console.log(
-    `  uniqueWords (threshold ${out.thresholds.MIN_UNIQUE_WORDS}): ` +
+    `  uniqueWords (review signal ${out.signals.MIN_UNIQUE_WORDS}): ` +
       `min ${dist.min} · p25 ${dist.p25} · median ${dist.median} · p75 ${dist.p75} · p95 ${dist.p95} · MAX ${dist.max}`,
   );
   if (sampled) {
     // The rule the owner set before the run: if even the sample's MAXIMUM is far
     // below the bar, the finding is about the whole group. If anything came
     // CLOSE, the sample has done its job and the group must be counted in full.
-    const near = dist.max >= out.thresholds.MIN_UNIQUE_WORDS * 0.8;
+    const near = dist.max >= out.signals.MIN_UNIQUE_WORDS * 0.8;
     console.log(
       near
-        ? `    🔴 the sample's MAXIMUM (${dist.max}) is within 20% of the threshold — THE SAMPLE HAS DONE ITS JOB. Count this group IN FULL before ruling on it.`
-        : `    the sample's MAXIMUM (${dist.max}) is far below ${out.thresholds.MIN_UNIQUE_WORDS} — one justification covers the whole group; it does not need 237,413 separate ones.`,
+        ? `    🔴 the sample's MAXIMUM (${dist.max}) is within 20% of the review signal — THE SAMPLE HAS DONE ITS JOB. Count this group IN FULL before ruling on it.`
+        : `    the sample's MAXIMUM (${dist.max}) is far below ${out.signals.MIN_UNIQUE_WORDS} — one justification covers the whole group; it does not need 237,413 separate ones.`,
     );
   }
 
-  const keep = out.results.filter((r) => r.verdict === "KEEP").length;
-  console.log(`  KEEP ${keep} · REJECT ${out.results.length - keep}`);
+  /* RR-192 · T-1: 350 / 5 / 0.40 decide nothing; above 0.40 is REVIEW_REQUIRED, and only a missing why-this-url or an unmeasurable pair REJECTs */
+  const by = (v) => out.results.filter((r) => r.verdict === v).length;
+  console.log(`  KEEP ${by("KEEP")} · REVIEW_REQUIRED ${by("REVIEW_REQUIRED")} · REJECT ${by("REJECT")}`);
   const byStage = {};
   for (const r of out.results) if (r.rejectedAt) byStage[r.rejectedAt] = (byStage[r.rejectedAt] ?? 0) + 1;
   for (const [stage, n] of Object.entries(byStage)) console.log(`    rejected at ${stage}: ${n}`);
 
-  const reachedFacts = out.results.filter((r) => r.uniquePass).length;
-  console.log(`  reached stage 2 (facts): ${reachedFacts}`);
+  console.log(`  facts counted on every page (no stop, RR-192 T-1): ${out.results.length} · reaching the five-fact review signal: ${out.results.filter((r) => r.factsReachSignal).length}`);
 
   // 🔴 The quadratic stage must never be silently empty.
   // 🔴 Both numbers, always. How many pages were SCORED, and what they were

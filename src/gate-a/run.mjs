@@ -1,6 +1,11 @@
 /**
  * GATE A, IN ORDER.
  *
+ * 🔴 RR-192 · T-1 (RTP-1 §17 S8; the owner's PG-A1): THE "reject here and STOP" BELOW IS RETIRED. 350 unique words, five facts and 0.40
+ * overlap are review signals only — every page is measured on all three and none is rejected on them. What still REJECTS is not a number:
+ * no why-this-url, and a pair whose overlap could not be measured (D-GATEA-1). Above 0.40 a page is REVIEW_REQUIRED. The history below
+ * is kept as written.
+ *
  * ── 🔴 D2-A · THE ORDER IS PART OF THE GATE, NOT AN OPTIMISATION ────────────
  *
  *     1. uniqueWords    linear, per page   → reject here and STOP
@@ -105,6 +110,10 @@ import { maxAgainstPopulation, strategyFor, EXACT_ALL_PAIRS_MAX_GROUP } from "./
  * being safe, because then a mis-placed bar either ships thin pages or blocks
  * good ones.
  */
+/* 🔴 RR-192 · T-1 (RTP-1 §17 S8 and S9; the owner's PG-A1, _handoffs b5b616e): NEITHER NUMBER DECIDES ANY MORE. 350 unique words and five
+ * facts are REVIEW SIGNALS, measured and reported; 0.40 is the overlap REVIEW SIGNAL of P20 — above it a page is REVIEW_REQUIRED (a recorded
+ * substance review decides), never REJECT. Completeness is the adaptive gate's (P21, src/gate-a/adaptive.mjs), a claim's support P14's. The
+ * names stay because frozen acceptances (F32 C6 as amended, F40 C6) name them in their censuses of what may never decide. */
 export const MIN_UNIQUE_WORDS = 350;
 export const MAX_SIBLING_OVERLAP = 0.40;
 
@@ -139,42 +148,38 @@ export function runGateA(group, { now = new Date(), shellDefinition = "B", refer
   const shell = borrowed?.shell ?? (shellDefinition === "A" ? shellInfo.shellA : shellInfo.shellB);
   const pairUnmeasurable = pages.length === 2 && !borrowed?.shell;
 
-  // ── stage 1 and 2 · linear, per page ─────────────────────────────────────
+  // ── stage 1 and 2 · linear, per page — MEASURED AND REPORTED, NEVER A STOP (RR-192 · T-1) ──
+  // The 350-word and five-fact figures decide nothing any more (RTP-1 S8), so nothing stops at them: every page is measured on
+  // every stage. D2-A's ordering was a workload rule built on those stops; the workload stays bounded by EXACT_ALL_PAIRS_MAX_GROUP.
   const results = pages.map((p) => {
     const unique = uniqueWords(p.tokens, shell);
-    const uniquePass = unique >= MIN_UNIQUE_WORDS;
-
-    // Not computed at all when stage 1 already rejected the page — that is the
-    // whole point of the ordering, and it must be visible in the record.
-    const facts = uniquePass ? countFacts(p.facts ?? [], now) : null;
-    const factsPass = facts ? facts.passes : false;
-
+    const facts = countFacts(p.facts ?? [], now);
     const why = typeof p.whyThisUrl === "string" && p.whyThisUrl.trim().length > 0;
 
     return {
       id: p.id,
       totalWords: p.tokens.length,
       uniqueWords: unique,
-      uniquePass,
+      belowUniqueWordsSignal: unique < MIN_UNIQUE_WORDS, // a labelled signal, never a stop
       facts,
-      factsPass,
+      factsReachSignal: facts.reachesSignal, // a labelled signal, never a stop
       whyThisUrlPresent: why,
-      // stage 3 fields, filled below only for survivors
+      // stage 3 fields, filled below
       maxOverlap: null,
       overlapAgainst: null,
       residualWords: null,
-      overlapPass: null,
+      overlapAboveReviewSignal: null,
       verdict: "PENDING",
-      rejectedAt: uniquePass ? (factsPass ? null : "facts") : "uniqueWords",
+      rejectedAt: null,
     };
   });
 
-  // ── stage 3 · only SURVIVORS are scored, against the WHOLE PUBLISHED GROUP ─
+  // ── stage 3 · every page is scored against the WHOLE PUBLISHED GROUP ─
   //
   // 🔴 The denominator is the published population, never the run's own output.
   // See maxAgainstPopulation() in overlap.mjs for the defect this replaces.
-  // D2-A still holds: the WORK is candidates x population, not population^2.
-  const survivors = results.filter((r) => r.uniquePass && r.factsPass);
+  // RR-192 · T-1: no page is eliminated before it, so every page is a candidate.
+  const survivors = results;
   const strategy = strategyFor(pages.length);
 
   if (survivors.length > 0 && pages.length <= EXACT_ALL_PAIRS_MAX_GROUP) {
@@ -194,15 +199,14 @@ export function runGateA(group, { now = new Date(), shellDefinition = "B", refer
       row.overlapVacuous = o.vacuous;
       // A pair with no reference shell: the score exists but measures nothing, so it is neither pass nor fail.
       row.overlapUnmeasurable = pairUnmeasurable;
-      row.overlapPass = o.vacuous || pairUnmeasurable ? null : o.maxOverlap <= MAX_SIBLING_OVERLAP;
+      row.overlapAboveReviewSignal = o.vacuous || pairUnmeasurable ? null : o.maxOverlap > MAX_SIBLING_OVERLAP;
     }
   }
 
   for (const r of results) {
-    if (!r.uniquePass) r.verdict = "REJECT";
-    else if (!r.factsPass) r.verdict = "REJECT";
-    else if (!r.whyThisUrlPresent) { r.verdict = "REJECT"; r.rejectedAt = "whyThisUrl"; }
-    else if (r.overlapPass === false) { r.verdict = "REJECT"; r.rejectedAt = "overlap"; }
+    if (!r.whyThisUrlPresent) { r.verdict = "REJECT"; r.rejectedAt = "whyThisUrl"; }
+    // RR-192 · T-1 (P20): above the 0.40 review signal a page needs a recorded substance review — REVIEW_REQUIRED, never REJECT.
+    else if (r.overlapAboveReviewSignal === true) { r.verdict = "REVIEW_REQUIRED"; r.reviewAt = "overlap"; }
     // 🔴 D-GATEA-1: a page is never kept on an overlap that could not be measured.
     else if (r.overlapUnmeasurable) { r.verdict = "REJECT"; r.rejectedAt = "overlap-unmeasurable"; }
     else if (r.overlapVacuous) {
@@ -235,7 +239,7 @@ export function runGateA(group, { now = new Date(), shellDefinition = "B", refer
     overlapPopulation: pages.length,
     overlapComparisons: survivors.length * Math.max(0, pages.length - 1),
     overlapStrategy: strategy,
-    thresholds: { MIN_UNIQUE_WORDS, MIN_FACTS, MAX_SIBLING_OVERLAP },
+    signals: { MIN_UNIQUE_WORDS, MIN_FACTS, MAX_SIBLING_OVERLAP }, // RR-192 · T-1: review signals, reported; none decides
     vacuous: false,
   };
 }

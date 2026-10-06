@@ -83,7 +83,7 @@ function chosenWithPages({ claims } = {}) {
 const gainFor = (slug) => ({
   gainRecords: [{ pageId: `candidate:${slug}`, kind: "USEFUL_COMPARISON", adds: "the renewal time and the form answered in one place", ref: `gain:${slug}` }],
   competitorComparisons: [{ pageId: `candidate:${slug}`, competitorsCompared: 1, gainBeyond: true, ref: `cmp:${slug}` }],
-  reviews: PAGES.map((p) => ({ pair: [`candidate:${slug}`, p.pageId], compared: ASPECTS, duplicate: false, documentedDistinctValue: "a different need", ref: `f32:${p.pageId}` })),
+  reviews: PAGES.map((p) => ({ pair: [`candidate:${slug}`, p.pageId], compared: ASPECTS, duplicate: false, documentedDistinctValue: "a different need", needsGuidance: false, ref: `f32:${p.pageId}` })),
 });
 const construct = (c, { links = LINKS, population = POPULATION } = {}) =>
   constructCandidates({ pageSpecs: {}, variants: PRODUCT.variants, records: [], requested: [c.d.slug], tenantId: T, existingPages: population, gainEvidence: gainFor(c.d.slug), decisions: decisionsForConstruction({ compiled: c.g.compiled }).decisions, links, now: NOW })[0];

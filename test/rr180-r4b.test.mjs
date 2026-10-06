@@ -264,7 +264,8 @@ test("R37-BOARD · F37 moves only through the production validator and the audit
   if (row.state === "VERIFIED-PASS") {
     const v = row.events.filter((e) => e.kind === "VERIFIED").at(-1);
     assert.equal(v.population, "REAL");
-    assert.deepEqual(Object.keys(v.clauses), ["C1", "C2", "C3", "C4", "C5", "C6"]);
+    /* RR-186: since Acceptance Amendment 1 the acceptance in force has C7 (each distinct claim once); the re-proof names every clause */
+    assert.deepEqual(Object.keys(v.clauses), ["C1", "C2", "C3", "C4", "C5", "C6", "C7"]);
     assert.ok(Object.values(v.clauses).every((x) => x === "PROVED"));
   } else assert.equal(row.state, "IN-PROGRESS");
 });

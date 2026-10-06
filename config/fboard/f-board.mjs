@@ -1810,7 +1810,7 @@ export const DECLARED = Object.freeze({
   F37: Object.freeze({
     featureId: "F37",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-05", ruling: F37_ORIGINAL.ruling, contractSha256: F37_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -1862,6 +1862,24 @@ export const DECLARED = Object.freeze({
         amendment: Object.freeze({ ruling: F37_AMENDMENT_1.ruling, contractSha256: F37_AMENDMENT_1.contractSha256 }),
         ownerDecision: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-06_RR-186_APPROVE_F37_AMENDMENT_1_POLICY_A.md", commit: "6638499e06ce871dccf3028d18fd60b1e83c73c1", sha256: "8f2b32b45d4e017fbeda5af82f37baedcb9c082be0cc274fe59c3c626f956ca5" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-06_RR-186.md", commit: "6638499e06ce871dccf3028d18fd60b1e83c73c1", sha256: "1a64c85b333b717103e514cd5fef5050ae8a49ed0f2ad4409a0174645cdef6f2" }),
+      }),
+      /* RR-186: F37 RE-PROVED under Acceptance Amendment 1 — every clause PROVED and every sabotage PROVED, on FIXTURE structures only
+       * (RR-177); recorded through the board route in the same PR; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F37",
+        population: "REAL",
+        on: "2026-10-06",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (R5b, RR-186)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F37_AMENDMENT_1.ruling.sha256, contract: F37_AMENDMENT_1.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED" }),
+        populations: "FIXTURE structures only — a fixture tenant with two fixture pages, planning rows built by F91's and F16's own functions, drafts rendered by F37's own function and judged by F40's UNCHANGED repetition and filler judgements; never the 27 existing pages set aside (RR-177). Measured: the RR-180 grouped fixture renders 2 claim blocks for 2 distinct claims (5 before this amendment); the one-question fixture likewise; F40 repetition and filler PASS on both. On a real draft F40's engaging and hookable stay NOT MEASURED and distinct value CANNOT DECIDE — not F37's. Count-only.",
+        proofs: "test/rr180-r4b.test.mjs T37a–T37k, T37-27, R37-CI, R37-BOARD (C1–C6, T37c reading the heading through its refer-back link); test/rr186-r5b.test.mjs T37-C7 (C7: each distinct claim once in the one-question and the grouped case, every refer-back a link resolving to a rendered claim, no new visible text, markup aligned by F48's rule, F40's criteria and method byte for byte)",
+        sabotage: "runs/audit/rr186-sabotage-2026-10-06T0419.txt: 42 of 42 proved (RR-180's 34 for C1–C6 and ruling RR-180 (a), four re-anchored; 8 for C7), residue 0, production trail unchanged",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

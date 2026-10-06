@@ -2555,7 +2555,7 @@ export const DECLARED = Object.freeze({
   F40: Object.freeze({
     featureId: "F40",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     note: "The universal 350-word floor no longer governs F40: the owner's ruling of 2 October 2026 (no fixed minimum and no fixed maximum page word count; the assessment is whether the page answers its stated need) supersedes the blocker recorded on 22 September, which stays in this row's history. F40 has no frozen acceptance and is not implemented; when one is frozen it must carry that check (config/fboard/row-constraints.mjs). Lifting a blocker passes nothing. 6 October 2026 (RR-184): F40's first acceptance is frozen (_handoffs 6d64c27), carrying that check, and its implementation is begun; the sentences above record the row as it stood on 2 October.",
     events: Object.freeze([
       Object.freeze({ kind: "BLOCKER_RECORDED", on: "2026-09-22", source: "_handoffs/AlmiVisibility_CC_COMMAND_2026-09-22_F05_CURRENT_AUTHORITY_REGISTER_CHAIN.md §0.7" }),
@@ -2587,6 +2587,24 @@ export const DECLARED = Object.freeze({
         baseCiRun: "37400399354",
         baseCiConclusion: "success",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-06_RR-184.md", commit: "c8d1eb2f539c4d449bbabdce4acf87fc397fd557", sha256: "56448c627cfba9de2a09b0c14eb3d17913ed5b4ecaade324ee991d3b128ae719" }),
+      }),
+      /* RR-184: F40 PROVED — every clause of its frozen acceptance PROVED and every sabotage PROVED, on FIXTURE structures only (RR-177);
+       * recorded through the board route in the same PR; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F40",
+        population: "REAL",
+        on: "2026-10-06",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F40_ORIGINAL.ruling.sha256, contract: F40_ORIGINAL.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED" }),
+        populations: "FIXTURE structures only — a fixture tenant with two fixture pages (verified bodies, recorded DOES_NOT_COVER judgements, DISTINCT reviews), planning rows built by F91's and F16's own functions, drafts rendered by F37's own function; fixture judgements carry their declared FIXTURE source and prove only the record, its FAIL path and the gate. Never the 27 existing pages set aside (RR-177). On a REAL draft today engaging and hookable are NOT MEASURED (no lawful judge) and distinct value is CANNOT DECIDE (no gain records), so no real draft passes F40; F37's own render of a grouped need FAILs the repetition judgement (5 claim blocks for 2 distinct claims), recorded as given (RR-184 I-5). Count-only.",
+        proofs: "test/rr184-r5.test.mjs T40-C1 to T40-C7 and T40-ALL (one per EVIDENCE line), R40-BOARD",
+        sabotage: "runs/audit/rr184-sabotage-2026-10-06T0301.txt: 37 of 37 proved (one per FAILURE limb of C1–C7 and [ALL]), residue 0, production trail unchanged",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

@@ -62,7 +62,8 @@ const EXTENDED = [
     "Where the client's authorised Search Console property provides a generative-AI performance report, it is read through the same governed connector as its own line, kept apart from other performance data and never summed with it; where the property provides none it is NOT MEASURED."
   ]
 ];
-const PASSED_AT_2FC76540 = ["F01","F02","F03","F04","F05","F06","F08","F09","F13","F19","F20","F21","F26","F29","F31","F32","F33","F34","F35","F36","F37","F39","F41","F43","F45","F46","F47","F48","F55","F73","F75","F77","F79","F82","F90"];
+/* RR-184: F40 joined by its OWN acceptance and proof after Amendment 5 (rr184-sabotage-2026-10-06T0301); the amendment itself moved none */
+const PASSED_AT_2FC76540 = ["F01","F02","F03","F04","F05","F06","F08","F09","F13","F19","F20","F21","F26","F29","F31","F32","F33","F34","F35","F36","F37","F39","F40","F41","F43","F45","F46","F47","F48","F55","F73","F75","F77","F79","F82","F90"];
 const APPROVED_DRAFT_SHA256 = "a5ec2a78432643c432dfe24d2083e2c9a2eca064deb26fddbd1538d81efef3c8";
 const sha = (s) => createHash("sha256").update(s, "utf8").digest("hex");
 const board = () => buildBoard(CAPABILITIES, DECLARED);
@@ -142,10 +143,10 @@ test("A5·5 · the amendment's text did not change: the admitted record's bytes 
   assert.equal(EXTRACT_PROVENANCE.sha256, "526c8e5de1e7c56c061f08ef24afdc65118891fe7f277c97e2ce2910a035583f");
 });
 
-test("A5·6 · the denominator: 96 rows, 95 required (F25 NOT REQUIRED), 35/95 — the split sums to 96", () => {
+test("A5·6 · the denominator: 96 rows, 95 required (F25 NOT REQUIRED) — 35/95 at the amendment, 36/95 since F40 was PROVED (RR-184); the split sums to 96", () => {
   const p = progress(board());
-  assert.deepEqual([p.passed, p.denominator, p.total], [35, 96, 96]);
-  assert.deepEqual([p.required.passed, p.required.denominator], [35, 95]);
+  assert.deepEqual([p.passed, p.denominator, p.total], [36, 96, 96]);
+  assert.deepEqual([p.required.passed, p.required.denominator], [36, 95]);
   assert.equal(Object.values(p.split).reduce((a, x) => a + x, 0), 96);
   assert.equal(p.split.UNASSESSED, 48); /* RR-184: F40 frozen under its own acceptance (_handoffs 6d64c27) and started — UNASSESSED -> IN-PROGRESS, after its lift */ /* 49 at the amendment */
   assert.equal(CROSSWALK.entries.length, 96);

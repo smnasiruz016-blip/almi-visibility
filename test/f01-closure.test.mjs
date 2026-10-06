@@ -31,9 +31,9 @@ test("F1-BOARD · F01 is VERIFIED-PASS by UNASSESSED → IN-PROGRESS → VERIFIE
   /* F09 VERIFIED-PASS on 25 Sep 2026 (movement 2, close-out command 2601cb3 §10) — the board reads 9/89, measured on the closure tree. */
   /* F07 REOPENED 28 Sep 2026 (CONCRETE_CONTRADICTORY_EVIDENCE, eight out-of-band reads, _handoffs be583fa) — the board reads 8/89; test/f07-closure.test.mjs owns that movement. */
   /* F90 appended 28 Sep 2026 by Specification Amendment 1 (_handoffs a3a777b) — the board reads 8/90: F90 starts UNASSESSED. */
-  assert.deepEqual(p.split, { UNASSESSED: 48, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 13, "BLOCKED-BY-AUTHORITY": 0, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 35 }); /* RR-180 §8: F37 PROVED in R4b (rr180-sabotage-2026-10-06T0009: 34 of 34) */
-  assert.equal(p.passed, 35); /* RR-180 §8: F37 PROVED in R4b (rr180-sabotage-2026-10-06T0009: 34 of 34) */
-  assert.deepEqual(["F05", "F06", "F07", "F08", "F40"].map((f) => DECLARED[f].state), ["VERIFIED-PASS", "VERIFIED-PASS", "IN-PROGRESS", "VERIFIED-PASS", "IN-PROGRESS"]); /* RR-184: F40 frozen under its own acceptance (_handoffs 6d64c27) and started — UNASSESSED -> IN-PROGRESS, after its lift */ // F40 unblocked 2 Oct by the owner ruling (_handoffs 4761236); F07 reopened 28 Sep
+  assert.deepEqual(p.split, { UNASSESSED: 48, "ACCEPTANCE-FROZEN": 0, READY: 0, "IN-PROGRESS": 12, "BLOCKED-BY-AUTHORITY": 0, "BLOCKED-BY-EVIDENCE": 0, FAILED: 0, "VERIFIED-PASS": 36 }); /* RR-184: F40 PROVED in R5 (rr184-sabotage-2026-10-06T0301: 37 of 37) */
+  assert.equal(p.passed, 36); /* RR-184: F40 PROVED in R5 (rr184-sabotage-2026-10-06T0301: 37 of 37) */
+  assert.deepEqual(["F05", "F06", "F07", "F08", "F40"].map((f) => DECLARED[f].state), ["VERIFIED-PASS", "VERIFIED-PASS", "IN-PROGRESS", "VERIFIED-PASS", "VERIFIED-PASS"]); /* RR-184: F40 frozen under its own acceptance (_handoffs 6d64c27), started after its lift, then PROVED (rr184-sabotage-2026-10-06T0301: 37 of 37) */ // F40 unblocked 2 Oct by the owner ruling (_handoffs 4761236); F07 reopened 28 Sep
   const f01 = DECLARED.F01;
   assert.equal(f01.state, "VERIFIED-PASS");
   assert.deepEqual(f01.events.map((e) => `${e.kind}@${e.on}`), ["ACCEPTANCE_FROZEN@2026-09-24", "IMPLEMENTATION@2026-09-24", "VERIFIED@2026-09-24"]);

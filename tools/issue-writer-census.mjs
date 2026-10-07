@@ -100,6 +100,30 @@ export const DECLARED = Object.freeze([
   },
 ]);
 
+/**
+ * 🔴 RR-195 · DECLARED SPLIT WRITERS — an entry point that persists issues BUILT IN ANOTHER MODULE. The population rule above is "builds AND
+ * writes", so such an entry point falls outside it (it writes, it does not build) and its builder falls outside it too (it builds, it does
+ * not write). Each is therefore declared HERE by name, with its builder and a proof checked in its own file — and any entry point that names
+ * a governed *ISSUES action while outside the population and undeclared is a FAILURE (UNDECLARED_ISSUE_WRITER), so a new split writer cannot
+ * slip past unseen.
+ */
+export const DECLARED_SPLIT_WRITERS = Object.freeze([
+  /* Found by this rule on its first run (RR-195): a PRE-EXISTING split writer no census saw — lawful, and now declared. */
+  {
+    file: "bin/instrument-disagreement.mjs",
+    builder: "src/audit/instrument-agreement.mjs",
+    why: "persists the disagreement issues src/audit/instrument-agreement.mjs builds (APPEND_IF_NEW), and closes them only by appended OPEN -> CLOSED state changes",
+    proof: /discipline:\s*["']APPEND_IF_NEW["']/,
+  },
+  {
+    file: "bin/t2-reassess.mjs",
+    builder: "src/audit/t2-reassessment.mjs",
+    why: "persists the version-2 review-signal replacements src/audit/t2-reassessment.mjs builds (APPEND_IF_NEW), and their OPEN -> SUPERSEDED state changes, built only from OPEN version-1 findings — a re-run appends none (test/rr194-t2.test.mjs)",
+    proof: /discipline:\s*["']APPEND_IF_NEW["']/,
+  },
+]);
+const NAMES_ISSUE_ACTION = /action:\s*["'][A-Z0-9_]*ISSUES["']/;
+
 const isComment = (l) => /^\s*(\/\/|\*|\/\*)/.test(l);
 const isImport = (l) => /^\s*import\b/.test(l);
 
@@ -131,7 +155,19 @@ export function issueWriterCensus({ repo = REPO, sources = null } = {}) {
     const undeclared = other.filter((o) => !o.declared);
     population.push({ file, callsIfNew, otherWrites: other, undeclared, ok: callsIfNew && undeclared.length === 0 });
   }
-  return { scanned: files.length, population: population.sort((a, b) => a.file.localeCompare(b.file)), failures: population.filter((p) => !p.ok) };
+  /* RR-195: an entry point that names a governed *ISSUES action, outside the population, must be a DECLARED split writer whose proof holds */
+  const inPopulation = new Set(population.map((p) => p.file));
+  const split = [];
+  for (const file of files) {
+    if (!file.startsWith("bin/") || inPopulation.has(file)) continue;
+    const text = textOf(file);
+    const code = text.split(/\r?\n/).filter((l) => !isComment(l)).join("\n");
+    if (!NAMES_ISSUE_ACTION.test(code)) continue;
+    const d = DECLARED_SPLIT_WRITERS.find((x) => x.file === file);
+    split.push({ file, declared: Boolean(d), proved: Boolean(d && d.proof.test(code)), builder: d?.builder ?? null, ok: Boolean(d && d.proof.test(code)) });
+  }
+  const undeclared = split.filter((s) => !s.ok).map((s) => ({ file: s.file, callsIfNew: false, otherWrites: [], undeclared: [{ line: 0, text: s.declared ? "UNPROVED_SPLIT_WRITER" : "UNDECLARED_ISSUE_WRITER", declared: false }], ok: false }));
+  return { scanned: files.length, population: population.sort((a, b) => a.file.localeCompare(b.file)), split, failures: [...population.filter((p) => !p.ok), ...undeclared] };
 }
 
 if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1].replace(/\\/g, "/")}`).href) {

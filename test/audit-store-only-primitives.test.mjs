@@ -226,12 +226,14 @@ test("ASP-C3 · REAL · every production primitive site hands in the entry point
   /* 7 → 8 sites, 5 → 6 files on 27 Sep 2026 (F10), for a MEASURED reason: bin/f10-select.mjs records its write-gate decisions through
    * the same primitive, on the entry point's OWN audit context, exactly as bin/heldout-evaluation.mjs does.
    * 8 → 9 sites, files unchanged, on 27 Sep 2026 (F08 incident): bin/audit-trail.mjs gap records its AUDIT_CORRECTION through recordCandidates,
-   * on its OWN production audit store, exactly as its record subcommand does (the direct store.append it first had was a BYPASS). */
-  assert.equal(sites.length, 9);
+   * on its OWN production audit store, exactly as its record subcommand does (the direct store.append it first had was a BYPASS).
+   * 9 → 10 sites, 6 → 7 files on 7 Oct 2026 (T-2, RR-194), for a MEASURED reason: bin/t2-reassess.mjs records its F06 evidence-state
+   * transitions through the same primitive, on its OWN bound audit context, exactly as bin/supersede-noindex.mjs does. */
+  assert.equal(sites.length, 10);
   const proved = sites.filter((s) => s.cls === "CHECKED_AUDIT_STORE_EXEMPTION");
   assert.equal(proved.length + sites.filter((s) => s.cls !== "CHECKED_AUDIT_STORE_EXEMPTION").length, sites.length);
   assert.deepEqual(sites.filter((s) => s.cls !== "CHECKED_AUDIT_STORE_EXEMPTION").map((s) => `${s.file}:${s.line} ${s.cls} ${s.why}`), []);
-  assert.deepEqual([...new Set(sites.map((s) => s.file))].sort(), ["bin/audit-trail.mjs", "bin/authority-migrate.mjs", "bin/f10-select.mjs", "bin/heldout-evaluation.mjs", "bin/project-intake.mjs", "bin/supersede-noindex.mjs"]);
+  assert.deepEqual([...new Set(sites.map((s) => s.file))].sort(), ["bin/audit-trail.mjs", "bin/authority-migrate.mjs", "bin/f10-select.mjs", "bin/heldout-evaluation.mjs", "bin/project-intake.mjs", "bin/supersede-noindex.mjs", "bin/t2-reassess.mjs"]); /* RR-194: + bin/t2-reassess.mjs (see ASP-C3 note) */
 });
 
 test("ASP-C3 · CONTROLS · an emission path that is replaced, chosen or merely NAMED is not the governed audit-store path", () => {
@@ -258,8 +260,9 @@ test("ASP-C4 · REAL · every production file that names a declared primitive is
   const binCalls = grep("bin").filter((l) => !/^\S+:\d+:\s*(\/\/|\*)/.test(l));
   /* 7 → 8 sites, 5 → 6 files on 27 Sep 2026 (F10), for a MEASURED reason: bin/f10-select.mjs records its write-gate decisions through
    * the same primitive, on the entry point's OWN audit context, exactly as bin/heldout-evaluation.mjs does.
-   * 8 → 9 calls on 27 Sep 2026: bin/audit-trail.mjs gap (see ASP-C3). */
-  assert.equal(binCalls.length, 9);
+   * 8 → 9 calls on 27 Sep 2026: bin/audit-trail.mjs gap (see ASP-C3).
+   * 9 → 10 calls on 7 Oct 2026: bin/t2-reassess.mjs (RR-194, see ASP-C3). */
+  assert.equal(binCalls.length, 10);
   for (const l of binCalls) {
     const [file, line] = l.split(":");
     const row = REAL.find((r) => r.file === file);

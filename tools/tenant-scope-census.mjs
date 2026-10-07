@@ -126,6 +126,18 @@ export const EXCLUDED_ENTRY_POINTS = Object.freeze({
    * arithmetic; it releases counts and state codes only (assertOverview), never a record or a tenant identifier; unscoped history stays
    * UNATTRIBUTED. Its control: test/f87-operator-overview.test.mjs (proofs 1–4 and the authorisation gate). */
   "bin/operations-overview.mjs": "the engine operator's cross-tenant operational overview (owner, RR-130 §2): F04-authorised at GLOBAL_PRODUCT scope before any read; counts and state codes only, never a record, URL, content or tenant identifier; unscoped history stays UNATTRIBUTED",
+  /* RR-196 (OWNER APPROVED, 7 Oct 2026). NOT a claim that it reads no tenant data: it reads every run store and declared observation
+   * source to COUNT issues by class for the OWNER's ruling sheet — a GLOBAL read the owner declared under F02. F04 decides
+   * READ_OWNER_RULING_SHEET at GLOBAL_PRODUCT scope before any read; its only output is the owner's ruling sheet in this repository
+   * (runs/export/row60-ruling-sheet.json/.md, GLOBAL_PRODUCT-scoped governed writes); it changes no tenant's data. Its control:
+   * test/rr196-r6b.test.mjs (the authorisation gate). */
+  /* RR-197 (OWNER APPROVED, 7 Oct 2026). NOT a claim that it reads no tenant data: it reads the run stores, the evidence store, the cost
+   * ledger and the observation batch across tenants for the OWNER's report — a GLOBAL read the owner declared under F02. F04 decides
+   * READ_OWNER_REPORT at GLOBAL_PRODUCT scope before any read; the named product's subject root is still decided through F02/F03 for its
+   * own tenant before its descriptor or facts are read; its only output is runs/report/ (a GLOBAL_PRODUCT-scoped governed write); it
+   * changes no tenant's data. Its control: test/rr197-r6b.test.mjs. */
+  "bin/report.mjs": "the owner's report (owner, RR-197, 7 Oct 2026): a GLOBAL read declared under F02, F04-authorised (READ_OWNER_REPORT) at GLOBAL_PRODUCT scope before any read; the named product's subject root still decided for its own tenant (F02/F03); owner output only, it changes no tenant's data",
+  "bin/row60-ruling-sheet.mjs": "the owner's Row 60 ruling sheet (owner, RR-196, 7 Oct 2026): a GLOBAL read declared under F02, F04-authorised (READ_OWNER_RULING_SHEET) at GLOBAL_PRODUCT scope before any read; read-only over the stores, owner-only output, it changes no tenant's data",
   "bin/approval.mjs": "the F04 approval registry: config/governance/approvals.jsonl and the committed authority corpus; it records an owner-issued approval and reads, joins or decides nothing about a tenant",
   "bin/retire-attachment.mjs": "the declaration source (F02, owner ruling 25 Sep): it removes one attachment PROVED unlawful by its own members' identity fields; it joins nothing, reads no body, and its write is F08-governed",
 });
@@ -215,7 +227,12 @@ export function classifyEntryPoint(file, text, readers = READERS) {
   const firstLoad = loads.length ? Math.min(...loads.map((l) => l.line)) : 0;
   const gateText = gateAt ? text.replace(/\r\n/g, "\n").split("\n").slice(gateAt - 1, gateAt + 40).join("\n") : "";
   /* `everySubjectRegistry()` names each subject's registry by its declared location (src/tenancy/scoped-run.mjs). */
-  const namesFamily = (f, t) => new RegExp(`RESOURCES\\.(${FAMILIES[f].resource})\\(`).test(t) || (f === "FACTS" && /\beverySubjectRegistry\(/.test(t));
+  /* RR-194 (7 Oct 2026): a SHARED run store's tenant PARTITION also names the READS family — RESOURCES.collectionPartition("RUN_STORE", …),
+   * and that kind only. RR-193 measured the two findings stores shared across 15 tenants: naming them whole (runArtefacts) is REFUSED for
+   * every real tenant (NO_ATTACHMENT, the F02 ruling), and their requested-tenant partition is decided by the one scope decision exactly as
+   * the crawl batch's is. A CRAWL_BATCH or SITEMAP partition does NOT satisfy READS (test/rr194-t2.test.mjs proves both directions). */
+  const namesFamily = (f, t) => new RegExp(`RESOURCES\\.(${FAMILIES[f].resource})\\(`).test(t) || (f === "FACTS" && /\beverySubjectRegistry\(/.test(t))
+    || (f === "READS" && /RESOURCES\.collectionPartition\(\s*["']RUN_STORE["']/.test(t));
   const named = families.filter((f) => namesFamily(f, gateText) || namesFamily(f, text));
   const missing = families.filter((f) => !named.includes(f));
   if (Object.hasOwn(EXCLUDED_ENTRY_POINTS, file)) return { file, cls: "EXCLUDED", families, loads, gateAt, firstLoad, missing, why: EXCLUDED_ENTRY_POINTS[file] };

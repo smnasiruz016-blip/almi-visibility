@@ -88,7 +88,10 @@ test("🔴 counts are the JOIN's, not each issue's first recorded state — and 
   for (const k of differs) assert.ok(Object.keys(by[k].ruled).length > 0, `${k} differs from its first-state count but carries no ruling`);
 });
 
-test("🔴 the sheet SETS nothing: the 14 ruled levels copied and attributed, and every other population apart — coverage, decisions on record, audit trail", () => {
+/* RR-196: 14 → 11 ruled levels — thin-content-found, near-duplicate-found and template-dominance-found are RETIRED (SUPERSEDED_ENTRIES), their
+ * records now a DECISION ON RECORD (the 125 version-2 review signals, PG-A1) and AUDIT TRAIL (the 125 withdrawn version-1 FAILs). Populations
+ * 541 / 1224 / 134 / 134 = 2033 → 416 / 1224 / 259 / 259 = 2158: the 125 replacements are new distinct issues; nothing else moved. */
+test("🔴 the sheet SETS nothing: the 11 ruled levels copied and attributed, and every other population apart — coverage, decisions on record, audit trail", () => {
   for (const c of COMMITTED.classes) {
     const e = CONSEQUENCE_REGISTER[c.issue_class];
     assert.deepEqual([c.level, c.ruledBy, c.ruledOn, c.splitFrom], [e.level, e.ruledBy, e.ruledOn, e.splitFrom ?? null], c.issue_class);
@@ -101,15 +104,23 @@ test("🔴 the sheet SETS nothing: the 14 ruled levels copied and attributed, an
     assert.ok(row, `${h.issue_class} has no row in the owner's ruling table`);
     assert.match(row, /\| \| \|$/, `${h.issue_class}'s LEVEL and WHY are not blank`);
   }
-  assert.match(MD, /## Part B — the 14 levels already ruled \(unchanged, attributed\)/);
+  assert.match(MD, /## Part B — the 11 levels already ruled \(unchanged, attributed\)/);
   assert.match(MD, /## Part B1 — the 0 finding classes for the owner to rule: LEVEL and WHY are blank/);
   // 🔴 Option A: the decisions on record and the audit trail, each apart, and the four totals summing to the store
-  assert.deepEqual(COMMITTED.decisions.map((d) => [d.issue_class, d.count, d.open, d.awaits]), [["noindex-declared-deliberate", 134, 134, "REC-NOINDEX-CV-GUIDE"]]);
-  assert.deepEqual(COMMITTED.auditTrail.map((a) => [a.issue_class, a.count, a.states]), [["noindex-defect-claim-withdrawn", 134, { SUPERSEDED: 134 }]]);
-  assert.deepEqual(COMMITTED.populations, { FINDINGS: 541, "COVERAGE GAP": 1224, "DECISION ON RECORD": 134, "AUDIT TRAIL": 134, distinct: 2033 });
+  assert.deepEqual(COMMITTED.decisions.map((d) => [d.issue_class, d.count, d.open, d.awaits, d.signals.length]), [
+    ["near-duplicate-review-signal", 5, 5, "PG-A1", 5], ["noindex-declared-deliberate", 134, 134, "REC-NOINDEX-CV-GUIDE", 0],
+    ["template-dominance-review-signal", 2, 2, "PG-A1", 2], ["thin-content-review-signal", 118, 118, "PG-A1", 118],
+  ]);
+  assert.deepEqual(COMMITTED.auditTrail.map((a) => [a.issue_class, a.count, a.states]), [
+    ["near-duplicate-claim-withdrawn", 5, { SUPERSEDED: 5 }], ["noindex-defect-claim-withdrawn", 134, { SUPERSEDED: 134 }],
+    ["template-dominance-claim-withdrawn", 2, { SUPERSEDED: 2 }], ["thin-content-claim-withdrawn", 118, { SUPERSEDED: 118 }],
+  ]);
+  assert.deepEqual(COMMITTED.populations, { FINDINGS: 416, "COVERAGE GAP": 1224, "DECISION ON RECORD": 259, "AUDIT TRAIL": 259, distinct: 2158 });
+  // RR-196: every review-signal page stays visible on the owner's sheet, with its measured value
+  for (const d of COMMITTED.decisions.filter((x) => x.signals.length)) for (const s of d.signals) assert.ok(MD.includes(`| \`${s.target_page_id}\` | ${s.signal} | ${s.value} | ${s.bound} | ${s.state} |`), `${d.issue_class}: ${s.issue_id} is not on the sheet`);
   assert.match(MD, /## Part E — DECISIONS ON RECORD/);
   assert.match(MD, /## Part F — THE AUDIT TRAIL/);
-  assert.equal((MD.match(/\| owner 2026-09-14 \|/g) ?? []).length, 14);
+  assert.equal((MD.match(/\| owner 2026-09-14 \|/g) ?? []).length, 11);
   // 🔴 the coverage population: its own part, its own total, no level, and not one of its classes among the findings
   assert.match(MD, /## Part D — THE COVERAGE POPULATION: checks that never ran\. Not findings, never a level, never ranked/);
   assert.deepEqual(COMMITTED.coverage.map((c) => [c.issue_class, c.count]), Object.entries(COVERAGE_REGISTER).map(([k, e]) => [k, e.count]).sort());

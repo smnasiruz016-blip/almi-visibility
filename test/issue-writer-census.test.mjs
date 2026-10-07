@@ -103,6 +103,25 @@ test("🔴 CONTROL: a declared exemption whose PROOF no longer holds is not hono
   assert.equal(r.failures.length, 1, "an exemption survived after the thing it relied on was removed");
 });
 
+/* RR-195: a SPLIT writer — issues built in one module, persisted by an entry point — is declared by name, and an undeclared one FAILS */
+test("RR-195 · the split writer bin/t2-reassess.mjs is DECLARED, its proof holds in its own file, and the real census has no undeclared issue writer", async () => {
+  const { DECLARED_SPLIT_WRITERS } = await import("../tools/issue-writer-census.mjs");
+  const real = issueWriterCensus();
+  /* bin/instrument-disagreement.mjs: a PRE-EXISTING split writer this rule found on its first run, declared beside it */
+  assert.deepEqual(real.split.map((s) => [s.file, s.declared, s.proved]), [["bin/instrument-disagreement.mjs", true, true], ["bin/t2-reassess.mjs", true, true]]);
+  assert.deepEqual(DECLARED_SPLIT_WRITERS.map((d) => d.file).sort(), ["bin/instrument-disagreement.mjs", "bin/t2-reassess.mjs"]);
+  assert.deepEqual(real.failures, []);
+});
+
+test("RR-195 · CONTROL: an UNDECLARED entry point that names a governed *ISSUES action FAILS — and a declared one whose proof no longer holds fails too", () => {
+  const planted = 'import { governedStoreAppend } from "../src/governance/governed-run.mjs";\nexecuteGovernedWrite(governedStoreAppend({ store, records, action: "APPEND_PLANTED_ISSUES", discipline: "APPEND_IF_NEW" }));';
+  const r = issueWriterCensus({ sources: [{ file: "bin/planted-writer.mjs", text: planted }] });
+  assert.deepEqual(r.failures.map((f) => [f.file, f.undeclared[0].text]), [["bin/planted-writer.mjs", "UNDECLARED_ISSUE_WRITER"]]);
+  const unproved = readFileSync(`${REPO}bin/t2-reassess.mjs`, "utf8").replace(/discipline: "APPEND_IF_NEW"/g, 'discipline: "APPEND_ALL_WITHOUT_DEDUPE"');
+  const u = issueWriterCensus({ sources: [{ file: "bin/t2-reassess.mjs", text: unproved }] });
+  assert.deepEqual(u.failures.map((f) => [f.file, f.undeclared[0].text]), [["bin/t2-reassess.mjs", "UNPROVED_SPLIT_WRITER"]]);
+});
+
 test("CONTROL: a lawful writer passes, and a module that builds issues but writes nothing is not a writer", () => {
   const ok = issueWriterCensus(src("bin/good.mjs", 'import { makeIssue } from "../src/evidence/records.mjs";\nconst store = createJsonlStore(out);\nstore.appendIfNew(makeIssue(a));\n'));
   assert.deepEqual(ok.failures, []);

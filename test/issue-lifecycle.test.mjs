@@ -69,12 +69,18 @@ test("🔴 CONTROL: the walk reports a MISSING part rather than filling it in", 
 const audit = () => readdirSync(`${REPO}runs/audit`).filter((f) => f.endsWith(".jsonl")).flatMap((f) => createJsonlStore(`${REPO}runs/audit/${f}`).readAll());
 const crawl = () => batchJsonlFiles().flatMap((p) => createJsonlStore(p).readAll());
 
-test("🔴 REAL: 134 cv-guide noindex issues are SUPERSEDED — the first lifecycles this project has completed — with no lifecycle error", () => {
+/* RR-196: 134 → 259 SUPERSEDED — the 125 version-1 thin / near / template FAILs the 15 named T-2 runs superseded (RR-195) join the 134
+ * noindex claims, and nothing else moved. Each T-2 move is written into BOTH stores holding the finding's copies; read as one population
+ * those 120 identical second copies are ONE move each (src/evidence/lifecycle.mjs changeCopies), so there is still no lifecycle error. */
+test("🔴 REAL: 259 issues are SUPERSEDED — the 134 cv-guide noindex claims and the 125 T-2 version-1 FAILs — with no lifecycle error", () => {
   const r = lifecycleOf([...audit(), ...crawl()]);
   assert.deepEqual(r.errors, []);
+  assert.equal(r.changeCopies, 120, "the T-2 moves' copies in the second store");
   const superseded = [...r.issues.values()].filter((e) => e.state === "SUPERSEDED");
-  assert.equal(superseded.length, 134);
-  assert.ok(superseded.every((e) => e.issue.issue_class === "noindex"));
+  assert.equal(superseded.length, 259);
+  const byClass = {};
+  for (const e of superseded) byClass[e.issue.issue_class] = (byClass[e.issue.issue_class] ?? 0) + 1;
+  assert.deepEqual(byClass, { "thin-content": 118, "near-duplicate": 5, "template-dominance": 2, noindex: 134 });
   // 🔴 13 September 2026: the first CLOSED issues — the 11 raised when two instruments disagreed (item 26),
   // closed only after both runners' recorded re-runs printed the same count. Nothing else may be CLOSED.
   const closed = [...r.issues.values()].filter((e) => e.state === "CLOSED");
@@ -131,7 +137,8 @@ test("🔴 CONTROL: the prefix check FIRES when one pre-existing byte changes", 
 
 test("🔴 REAL: one chain walked end to end shows all five — what, why, evidence, when, and what changed it", () => {
   const records = [...audit(), ...crawl()];
-  const moved = [...lifecycleOf(records).issues.values()].find((e) => e.state === "SUPERSEDED");
+  /* RR-196: the chain this test walks is a NOINDEX one — the first SUPERSEDED issue in store order is now a T-2 one (walked below) */
+  const moved = [...lifecycleOf(records).issues.values()].find((e) => e.state === "SUPERSEDED" && e.issue.issue_class === "noindex");
   const w = walkChain(moved.issue.issue_id, records);
   assert.deepEqual(w.present, { what: true, why: true, evidence: true, when: true, changedBy: true });
   assert.equal(w.why.verdict, "FAIL");
@@ -139,6 +146,18 @@ test("🔴 REAL: one chain walked end to end shows all five — what, why, evide
   assert.match(w.changedBy[0].reason, /DELIBERATE/);
   assert.match(w.changedBy[0].reason, /NOT established/);
   assert.equal(w.copies, 2, "the duplicate append of the original is no longer visible");
+});
+
+/* RR-196: and a T-2 chain, walked the same way — the version-1 FAIL, superseded under PG-A1 by a version-2 REVIEW SIGNAL that decides nothing */
+test("🔴 REAL: a T-2 chain walked end to end — the FAIL, why it was superseded (PG-A1), and the review signal that replaced it", () => {
+  const records = [...audit(), ...crawl()];
+  const moved = [...lifecycleOf(records).issues.values()].find((e) => e.state === "SUPERSEDED" && e.issue.issue_class === "thin-content");
+  const w = walkChain(moved.issue.issue_id, records);
+  assert.deepEqual(w.present, { what: true, why: true, evidence: true, when: true, changedBy: true });
+  assert.equal(w.why.verdict, "FAIL");
+  assert.equal(w.changedBy[0].replacement.verdict, "UNKNOWN", "the replacement claims more than the evidence supports");
+  assert.match(w.changedBy[0].reason, /PG-A1/);
+  assert.match(w.changedBy[0].reason, /no longer decides anything/);
 });
 
 test("🔴 REAL: the report shows the walked chain", () => {

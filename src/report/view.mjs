@@ -465,6 +465,11 @@ export function renderDecisions(d) {
       return `    <tr><td><code>${esc(e.issue_class)}</code></td><td><strong>${esc(e.count)}</strong> issues · ${esc(e.open)} open</td><td>${imp}</td><td class="wrap">${esc(e.decided)}</td><td class="wrap">${esc(e.notEstablished)}</td><td><code>${esc(e.awaits)}</code></td></tr>`;
     })
     .join("\n");
+  /* RR-196: a decision whose records carry a measured REVIEW SIGNAL lists every page and its value — the evidence stays visible */
+  const signals = d.entries.filter((e) => (e.signals ?? []).length).map((e) => `  <details><summary><code>${esc(e.issue_class)}</code> — every page and its measured signal (${esc(e.signals.length)}); the value decides nothing</summary>
+  <table><thead><tr><th>page (target_page_id)</th><th>signal</th><th>measured value</th><th>review bound</th><th>state</th></tr></thead><tbody>
+${e.signals.map((s) => `    <tr><td><code>${esc(s.target_page_id)}</code></td><td>${esc(s.signal)}</td><td>${esc(s.value)}</td><td>${esc(s.bound)}</td><td>${esc(s.state)}</td></tr>`).join("\n")}
+  </tbody></table></details>`).join("\n");
   const t = d.fourWay.totals;
   const audit = d.auditTrail.map((a) => `<code>${esc(a.issue_class)}</code> ${esc(a.count)} — ${esc(a.why)}`).join(" · ") || "none";
   return `<section id="decisions">
@@ -476,6 +481,7 @@ export function renderDecisions(d) {
 ${rows}
     </tbody>
   </table>
+${signals}
   <p class="bound">Every issue lands in exactly one population — findings <strong>${esc(t.FINDINGS)}</strong> · coverage gaps <strong>${esc(t["COVERAGE GAP"])}</strong> · decisions on record <strong>${esc(t["DECISION ON RECORD"])}</strong> · audit trail <strong>${esc(t["AUDIT TRAIL"])}</strong> = <strong>${esc(d.fourWay.distinct)}</strong> distinct issues.</p>
   <p class="bound">Audit trail — history, kept and queryable, never live: ${audit}</p>
 </section>`;

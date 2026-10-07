@@ -29,15 +29,30 @@ import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedFileWrite } from "../src/governance/governed-run.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
-import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
-import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
-import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
+import { authorise, authorisationEvent, namedActor, AUTHORISATION_REFUSED_EXIT } from "../src/governance/authorisation.mjs";
+import { diagnosticGuardSink } from "../src/governance/guard-audit.mjs";
+import { governedGuardSink } from "../src/governance/governed-run.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const JSON_OUT = confineToRepo(join(REPO, "runs", "export", "row60-ruling-sheet.json"), { label: "sheet (json)" });
 const MD_OUT = confineToRepo(join(REPO, "runs", "export", "row60-ruling-sheet.md"), { label: "sheet (markdown)" });
-/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/row60-ruling-sheet.mjs", governed: true, resources: [RESOURCES.crawlBatch(BATCH_ID), RESOURCES.runArtefacts("run stores")] });
+/* 🔴 RR-196 · A GLOBAL READ DECLARED UNDER F02 (owner approved, 7 Oct 2026; declaration 357a138) — NOT a tenant read and NOT a bypass.
+ * The owner's ruling sheet reads every run store to count issues by class, so it names no tenant: F04 decides READ_OWNER_RULING_SHEET for
+ * the named actor at GLOBAL_PRODUCT scope BEFORE anything is read; a refusal ends the process (exit 5). Its only output is the owner's
+ * sheet (GLOBAL_PRODUCT-scoped governed writes); it changes no tenant's data. The decision reaches the audit trail ONLY on the --confirm
+ * run, which writes; a reconcile run records it to the diagnostic sink and writes nothing at all. */
+export const SHEET_SCOPE = Object.freeze({ scopeType: "GLOBAL_PRODUCT", action: "READ_OWNER_RULING_SHEET", authority: "RR-196 · owner, 7 Oct 2026" });
+const confirmMode = process.argv.includes("--confirm");
+const ENTRY = "bin/row60-ruling-sheet.mjs";
+const sink = confirmMode
+  ? governedGuardSink({ repo: REPO, env: process.env, correlationId: `run:${ENTRY}:global-read:${isoSeconds(Date.now())}`, now: isoSeconds(Date.now()).slice(0, 10), actor: ENTRY })
+  : diagnosticGuardSink({ actor: ENTRY });
+const decision = authorise({ actorRef: namedActor(process.argv), action: SHEET_SCOPE.action, scope: { scopeType: SHEET_SCOPE.scopeType }, resourceRef: "row60-ruling-sheet", now: new Date().toISOString() });
+sink.emit(authorisationEvent(decision));
+if (!decision.allowed) {
+  console.error(`🔴 AUTHORISATION REFUSED — ${SHEET_SCOPE.action}: ${decision.outcome} (${decision.reason}); nothing was read`);
+  process.exit(AUTHORISATION_REFUSED_EXIT);
+}
 
 const walk = (dir) => readdirSync(dir).flatMap((n) => {
   const p = join(dir, n);
@@ -72,8 +87,6 @@ const externalFiles = externalSources.map((s) => ({ file: s.canonical, records: 
 const files = [...localFiles, ...externalFiles].sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : 0));
 
 const fresh = buildRulingSheet({ files, register: CONSEQUENCE_REGISTER, unreachable: UNREACHABLE_RECOMMENDATIONS, scale: SEVERITY_SCALE, splits: CLASS_SPLITS, superseded: SUPERSEDED_ENTRIES, coverage: COVERAGE_REGISTER, decisions: DECISION_REGISTER, auditTrail: AUDIT_TRAIL, unmeasuredCodes: UNMEASURED_REASON_CODES, generatedAt: new Date().toISOString() });
-const confirmMode = process.argv.includes("--confirm");
-
 console.log("ROW 60 — OWNER RULING SHEET\n");
 console.log(`files read: ${fresh.sources.length} — ${localFiles.length} under runs/ plus ${externalFiles.length} declared external observation source(s)${dropped.length ? `; ${dropped.length} local copy(ies) superseded by a declared mapping: ${dropped.join(", ")}` : ""}`);
 for (const s of fresh.sources) console.log(`  ${s.file.padEnd(62)} records ${String(s.records).padStart(5)} · issues ${String(s.issueRecords).padStart(5)} · state changes ${String(s.stateChanges).padStart(4)} · recommendations ${s.recommendations}`);
@@ -98,7 +111,7 @@ const RUN_CORRELATION = `run:row60-ruling-sheet:${RUN_INSTANT}`;
     [JSON_OUT, `${JSON.stringify(fresh, null, 2)}\n`, "WRITE_RULING_SHEET_JSON"],
     [MD_OUT, renderRulingSheet(fresh), "WRITE_RULING_SHEET_MARKDOWN"],
   ]) {
-    const governed = executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
+    const governed = executeGovernedWrite(governedFileWrite({ scopeType: SHEET_SCOPE.scopeType,
       repo: REPO, permission, target, targetClass: "GENERATED_CONFIG", bytes: body,
       action: what, occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
     }));

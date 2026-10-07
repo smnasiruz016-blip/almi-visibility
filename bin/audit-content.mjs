@@ -192,5 +192,5 @@ for (const c of registeredChecks()) {
   console.log(`     control: ${c.cleanControl}`);
 }
 console.log(`\nwritten: ${out}  (${store.count()} records)`);
-console.log(`bound: thin floor = ${THIN_UNIQUE_WORD_FLOOR} unique body words`);
+console.log(`bound: review signal = ${THIN_UNIQUE_WORD_FLOOR} unique body words — it decides nothing (RR-194 T-2)`);
 console.log("🔴 Nothing was fixed. No product repository was touched. No recommendation was emitted by any check.");

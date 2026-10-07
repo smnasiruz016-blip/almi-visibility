@@ -118,7 +118,8 @@ const openedAt = new Date().toISOString();
 const CHECKS = [EXACT_DUPLICATE, THIN_CONTENT, NEAR_DUPLICATE, TEMPLATE_DOMINANCE];
 
 const findings = [];
-const labels = { HEAVY: 0, THIN: 0, EMPTY: 0, UNKNOWN: 0 };
+/* RR-194 · T-2: BELOW_SIGNAL replaces THIN — 350 is a review signal (PG-A1, RTP-1 S10), a label never a verdict on the page */
+const labels = { HEAVY: 0, BELOW_SIGNAL: 0, EMPTY: 0, UNKNOWN: 0 };
 const unknownReasons = {};
 let withBody = 0;
 
@@ -174,7 +175,7 @@ for (const p of pages) {
     );
   }
   if (words === 0) labels.EMPTY += 1;
-  else if (words < THIN_UNIQUE_WORD_FLOOR) labels.THIN += 1;
+  else if (words < THIN_UNIQUE_WORD_FLOOR) labels.BELOW_SIGNAL += 1;
   else labels.HEAVY += 1;
 }
 
@@ -223,10 +224,10 @@ console.log(`ITEM 8 — SUPPLY LABELS OVER THE REAL CORPUS\n`);
 console.log(`corpus dir : ${CORPUS}`);
 console.log(`pages      : ${pages.length}   with a stored body: ${withBody}`);
 console.log(`[bound: shell definition = ${SHELL_DEFINITION}]`);
-console.log(`[bound: thin floor = ${THIN_UNIQUE_WORD_FLOOR} unique words, AFTER shell subtraction]\n`);
+console.log(`[bound: review signal = ${THIN_UNIQUE_WORD_FLOOR} unique words, AFTER shell subtraction — it decides nothing (RR-194 T-2)]\n`);
 
 console.log(`  HEAVY   ${String(labels.HEAVY).padStart(4)}`);
-console.log(`  THIN    ${String(labels.THIN).padStart(4)}`);
+console.log(`  BELOW_SIGNAL ${String(labels.BELOW_SIGNAL).padStart(4)}   (below the ${THIN_UNIQUE_WORD_FLOOR}-word review signal — a label, never a verdict)`);
 console.log(`  EMPTY   ${String(labels.EMPTY).padStart(4)}`);
 console.log(`  UNKNOWN ${String(labels.UNKNOWN).padStart(4)}   ${Object.entries(unknownReasons).map(([k, v]) => `${k}=${v}`).join("  ") || ""}`);
 console.log(`  total   ${String(Object.values(labels).reduce((a, b) => a + b, 0)).padStart(4)}`);
@@ -241,11 +242,12 @@ console.log(`   that an EMPTY one is an opportunity. No demand was measured, so 
  * the same thing by different routes. They must agree, and when they did not it
  * was the census that was wrong.
  */
-const thinFails = findings.filter((f) => f.issue_class === "thin-content" && f.verdict === "FAIL").length;
-const agree = thinFails === labels.THIN;
+/* RR-194 · T-2: thin-content version 2 records a REVIEW_SIGNAL (UNKNOWN), never a FAIL — the cross-check counts those */
+const thinFails = findings.filter((f) => f.issue_class === "thin-content" && f.detector_version === "2" && f.signal?.name === "unique-body-words").length;
+const agree = thinFails === labels.BELOW_SIGNAL;
 console.log(`\nCROSS-CHECK — two counters over one corpus`);
-console.log(`  census THIN          : ${labels.THIN}`);
-console.log(`  thin-content FAILs   : ${thinFails}`);
+console.log(`  census BELOW_SIGNAL  : ${labels.BELOW_SIGNAL}`);
+console.log(`  thin-content signals : ${thinFails}`);
 console.log(`  ${agree ? "they agree" : "🔴 THEY DISAGREE — one of them is wrong, and neither number may be quoted"}`);
 
 console.log(`\nfindings: ${findings.length} → ${OUT}  (this run: ${writes.appended} new, ${writes.resighted} re-sighting(s))`);

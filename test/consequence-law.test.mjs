@@ -61,7 +61,9 @@ test("🔴 the owner's law is frozen — its LF-normalised bytes hash to the val
 
 test("🔴 every text field of every RULED entry — live or superseded — the Part C gap and every scale definition appear in the law WORD FOR WORD", () => {
   const skip = new Set(["what", "level", "ruledBy", "ruledOn", "wording", "figuresFrom", "escalatedFrom", "supersededOn", "supersededBy"]);
-  const ruledEntries = [...Object.entries(CONSEQUENCE_REGISTER).filter(([, e]) => !e.splitFrom), ...Object.entries(SUPERSEDED_ENTRIES)];
+  /* RR-196: the three RETIRED halves (thin / near / template -found) sit in SUPERSEDED_ENTRIES now; they are halves, ruled by the split
+   * ruling, and their words are policed against it in test/coverage-register.test.mjs — not against this law */
+  const ruledEntries = [...Object.entries(CONSEQUENCE_REGISTER).filter(([, e]) => !e.splitFrom), ...Object.entries(SUPERSEDED_ENTRIES).filter(([, e]) => !e.retired)];
   assert.equal(ruledEntries.length, 17, "the owner ruled 17 entries — 10 live, 7 superseded");
   const notVerbatim = [];
   const check = (where, s) => typeof s === "string" && !LAW.includes(norm(s)) && notVerbatim.push(where);
@@ -115,9 +117,11 @@ test("🟢 GREEN: the real classes order consequence-first, the unclassified go 
   const order = orderByConsequence({ items, scale: SEVERITY_SCALE });
   assert.deepEqual(orderErrors({ order, items, register: CONSEQUENCE_REGISTER, scale: SEVERITY_SCALE }), []);
   assert.deepEqual(determinismErrors({ items, scale: SEVERITY_SCALE }), []);
+  /* RR-196: thin-content-found, near-duplicate-found and template-dominance-found leave the order — retired; their records are a decision
+   * on record and audit trail, never ranked */
   assert.deepEqual(order.ranked.map((r) => r.id), [
     "exact-duplicate", "host-publishes-no-a-record", "official-source-contradicts-itself", "instrument-disagreement",
-    "indexability-preflight-found", "thin-content-found", "robots-blocks-search-crawler", "near-duplicate-found", "template-dominance-found", "commencement-date-ambiguous-against-source",
+    "indexability-preflight-found", "robots-blocks-search-crawler", "commencement-date-ambiguous-against-source",
     "head-elements", "status-and-redirects", "canonical", "query-parameters",
   ]);
   assert.deepEqual(order.unranked.map((u) => u.id), HALVES);
@@ -168,8 +172,9 @@ test("🔴 RED limb 2: volume amplifying ACROSS a level — LOW 18 above HIGH 1 
   assert.ok(at("head-elements") < at("host-publishes-no-a-record"), "the sabotaged order must actually put volume above consequence");
   const errs = orderErrors({ order, items, register: CONSEQUENCE_REGISTER, scale: SEVERITY_SCALE });
   assert.deepEqual(limbs(errs), ["cross-level-amplifier"], JSON.stringify(errs));
-  // the check reads adjacent pairs: the first boundary volume crossed is MODERATE 118 sitting directly above HIGH 106
-  assert.ok(errs.some((e) => /thin-content-found \(MODERATE, volume 118\) ranks above exact-duplicate \(HIGH, volume 106\)/.test(e.why)), JSON.stringify(errs));
+  // the check reads adjacent pairs: the first boundary volume crossed is MODERATE 158 sitting directly above HIGH 106
+  // (RR-196: indexability-preflight-found's 158 — thin-content-found's 118 is retired)
+  assert.ok(errs.some((e) => /indexability-preflight-found \(MODERATE, volume 158\) ranks above exact-duplicate \(HIGH, volume 106\)/.test(e.why)), JSON.stringify(errs));
 });
 
 test("🔴 inside ONE level, less volume above more is refused too — volume is the amplifier there", () => {

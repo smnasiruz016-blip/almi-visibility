@@ -79,6 +79,19 @@ export function impressionsForClass(issueClass, { view, records }) {
 }
 
 /**
+ * 🔴 RR-196 · EVERY PAGE AND ITS MEASURED SIGNAL, for a decision on record whose records carry a REVIEW SIGNAL — one row per distinct
+ * issue, read from its first stored copy, never summarised away (the owner's sheet and the owner's report both list these). A class
+ * whose records carry no signal (noindex) has none. The page is named by its stored target_page_id — the records hold no URL.
+ */
+export function signalsForClass(issueClass, { view, records }) {
+  const first = new Map();
+  for (const r of records) if (r.record_type === "issue" && !first.has(r.issue_id)) first.set(r.issue_id, r);
+  return [...view.values()].filter((v) => v.class === issueClass).map((v) => first.get(v.issue_id)).filter((r) => r?.signal)
+    .map((r) => ({ target_page_id: r.target_page_id, issue_id: r.issue_id, signal: r.signal.name, value: r.signal.value, bound: r.signal.bound, state: view.get(r.issue_id).state }))
+    .sort((a, b) => (a.target_page_id < b.target_page_id ? -1 : a.target_page_id > b.target_page_id ? 1 : a.issue_id < b.issue_id ? -1 : 1));
+}
+
+/**
  * @param {object}   a
  * @param {Map}      a.view        splitView's view of the store
  * @param {object[]} a.records     every record — for the impressions join

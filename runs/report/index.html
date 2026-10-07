@@ -35,6 +35,9 @@ code{font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-
 .lbl-INFERRED{background:#0b4a8a;color:#fff}
 .lbl-RECOMMENDED{background:#7a4b00;color:#fff}
 .lbl-UNKNOWN{background:#555;color:#fff}
+.lbl-NOT_MEASURED{background:#8a1c1c;color:#fff}
+.lbl-NOT_APPLICABLE{background:#6b6b00;color:#fff}
+.lbl-UNMAPPED{background:#fff;color:#8a1c1c;border:1px dashed #8a1c1c}
 .vs-UNVERIFIED{color:var(--warn)}
 .vs-VERIFIED{color:var(--ok)}
 .legend span{margin-right:.5rem}
@@ -75,20 +78,157 @@ footer{margin-top:2rem;padding-top:1rem;border-top:2px solid var(--line);color:v
   <p class="invariant">🔴 A FETCHED URL IS NOT AN INDEXED URL. A CRAWLED INVENTORY IS NOT THE SITE.</p>
 </header>
 <section id="decisions">
-  <h2>🔴 Decisions on record — waiting on the owner — 1</h2>
+  <h2>🔴 Decisions on record — waiting on the owner — 4</h2>
   <p class="bound">Not findings: nothing was detected. Each is a deliberate choice whose consequence is NOT established. It carries no level and is never ranked beside a finding — and it is shown first, because it waits on a human.</p>
   <table>
     <thead><tr><th>decision</th><th>issues</th><th>measured search impact</th><th>what was decided</th><th>why its consequence is not established</th><th>waits on</th></tr></thead>
     <tbody>
     <tr><td><code>noindex-declared-deliberate</code></td><td><strong>134</strong> issues · 134 open</td><td><strong>484</strong> search impressions on 134 of the 134 pages<br><span class="bound">page-rows pull 9f8cbf772d1cd434, 2026-08-15..2026-09-12</span></td><td class="wrap">to de-index these cv-guide pages deliberately: noindex, correctly configured and crawlable, keyed on a country-verification gate (commit 50f8c20, as the review record reads)</td><td class="wrap">Whether it is still the right rule is UNKNOWN from our evidence: the premise it cites is not confirmed by our similarity measurement. Owner's decision: REC-NOINDEX-CV-GUIDE.</td><td><code>REC-NOINDEX-CV-GUIDE</code></td></tr>
+    <tr><td><code>thin-content-review-signal</code></td><td><strong>118</strong> issues · 118 open</td><td><strong>849</strong> search impressions on 118 of the 118 pages<br><span class="bound">page-rows pull 9f8cbf772d1cd434, 2026-08-15..2026-09-12</span></td><td class="wrap">PG-A1 (owner): the count of unique body words no longer decides anything (RTP-1 S10); the 15 named T-2 runs (RR-195) superseded every version-1 FAIL by a version-2 review signal that keeps the page and its measured value, labelled</td><td class="wrap">Whether any of these pages fails its need is NOT established by the number: completeness is judged for a need (P21), by a human, page by page</td><td><code>PG-A1</code></td></tr>
+    <tr><td><code>near-duplicate-review-signal</code></td><td><strong>5</strong> issues · 5 open</td><td><strong>15</strong> search impressions on 5 of the 5 pages<br><span class="bound">page-rows pull 9f8cbf772d1cd434, 2026-08-15..2026-09-12</span></td><td class="wrap">PG-A1 (owner): body similarity to a sibling page no longer decides anything (RTP-1 S10); the 15 named T-2 runs (RR-195) superseded every version-1 FAIL by a version-2 review signal that keeps the page and its measured value, labelled</td><td class="wrap">Whether any of these pages fails its need is NOT established by the number: completeness is judged for a need (P21), by a human, page by page</td><td><code>PG-A1</code></td></tr>
+    <tr><td><code>template-dominance-review-signal</code></td><td><strong>2</strong> issues · 2 open</td><td><strong>21</strong> search impressions on 2 of the 2 pages<br><span class="bound">page-rows pull 9f8cbf772d1cd434, 2026-08-15..2026-09-12</span></td><td class="wrap">PG-A1 (owner): the shell's share of a page's words no longer decides anything (RTP-1 S10); the 15 named T-2 runs (RR-195) superseded every version-1 FAIL by a version-2 review signal that keeps the page and its measured value, labelled</td><td class="wrap">Whether any of these pages fails its need is NOT established by the number: completeness is judged for a need (P21), by a human, page by page</td><td><code>PG-A1</code></td></tr>
     </tbody>
   </table>
-  <p class="bound">Every issue lands in exactly one population — findings <strong>541</strong> · coverage gaps <strong>1224</strong> · decisions on record <strong>134</strong> · audit trail <strong>134</strong> = <strong>2033</strong> distinct issues.</p>
-  <p class="bound">Audit trail — history, kept and queryable, never live: <code>noindex-defect-claim-withdrawn</code> 134 — the claim that noindex on these pages was a DEFECT was withdrawn on 12 September 2026 — later evidence showed a deliberate de-indexing decision — and each claim was superseded by the review record now held under noindex-declared-deliberate</p>
+  <details><summary><code>thin-content-review-signal</code> — every page and its measured signal (118); the value decides nothing</summary>
+  <table><thead><tr><th>page (target_page_id)</th><th>signal</th><th>measured value</th><th>review bound</th><th>state</th></tr></thead><tbody>
+    <tr><td><code>0062d5f3e556b0de</code></td><td>unique-body-words</td><td>206</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>031b6876cda8cf9b</code></td><td>unique-body-words</td><td>256</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>0374fe0a482873c7</code></td><td>unique-body-words</td><td>347</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>080cc740ee5c6b1c</code></td><td>unique-body-words</td><td>204</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>0885500bd0856856</code></td><td>unique-body-words</td><td>101</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>0b78c4df190a4246</code></td><td>unique-body-words</td><td>86</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>0cc3b6f139176072</code></td><td>unique-body-words</td><td>200</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>0e420312cbd16341</code></td><td>unique-body-words</td><td>344</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>11db5c8ea6ffa35c</code></td><td>unique-body-words</td><td>328</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>13115853f5c75828</code></td><td>unique-body-words</td><td>340</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>1ad3b4b025dbc0e2</code></td><td>unique-body-words</td><td>311</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>1ae7229a4c6c63cd</code></td><td>unique-body-words</td><td>29</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>1f6a3ad5e4767e07</code></td><td>unique-body-words</td><td>257</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>212c7ca84b65e467</code></td><td>unique-body-words</td><td>101</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>23fb5f51e14eb009</code></td><td>unique-body-words</td><td>232</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>25066b5ff14ee813</code></td><td>unique-body-words</td><td>215</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>28c24ba38dd43a5f</code></td><td>unique-body-words</td><td>233</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>2d6cf82a519a04fb</code></td><td>unique-body-words</td><td>286</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>2f7b78d64fe81454</code></td><td>unique-body-words</td><td>215</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>3189e740766271e8</code></td><td>unique-body-words</td><td>333</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>35776a8334251d9c</code></td><td>unique-body-words</td><td>162</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>37e9bc34915ec485</code></td><td>unique-body-words</td><td>252</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>3cdcc32d3aa6a001</code></td><td>unique-body-words</td><td>277</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>3ce9e2e497d4859b</code></td><td>unique-body-words</td><td>114</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>424114372a159300</code></td><td>unique-body-words</td><td>174</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>42de49ceb98cad8f</code></td><td>unique-body-words</td><td>230</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>42f94d2e797c14a5</code></td><td>unique-body-words</td><td>314</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>45ee54cd2a3c9206</code></td><td>unique-body-words</td><td>101</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>46ede219a1fa4651</code></td><td>unique-body-words</td><td>162</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>48dda615cecaef4e</code></td><td>unique-body-words</td><td>276</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>49769c9983efa118</code></td><td>unique-body-words</td><td>101</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>49fcc296f36d5f1a</code></td><td>unique-body-words</td><td>311</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>4d97e41599d93994</code></td><td>unique-body-words</td><td>217</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>4de2148110a83e97</code></td><td>unique-body-words</td><td>204</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>51d28730a20ba7e7</code></td><td>unique-body-words</td><td>186</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>54e7b47bbc67a448</code></td><td>unique-body-words</td><td>212</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>5642e98154f9d14b</code></td><td>unique-body-words</td><td>318</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>5709ba906e254d40</code></td><td>unique-body-words</td><td>206</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>5902bc0f841038e0</code></td><td>unique-body-words</td><td>346</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>5b205913c59484ed</code></td><td>unique-body-words</td><td>86</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>5e8fed8b809493be</code></td><td>unique-body-words</td><td>101</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>603d69707f730c7a</code></td><td>unique-body-words</td><td>222</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>61740f300e53a128</code></td><td>unique-body-words</td><td>205</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>61a8f910901b13c4</code></td><td>unique-body-words</td><td>200</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>644006003ef4349a</code></td><td>unique-body-words</td><td>199</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>67863f818cb3da4f</code></td><td>unique-body-words</td><td>205</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>67ce1a8bd57df8b5</code></td><td>unique-body-words</td><td>191</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>685b569c81f15063</code></td><td>unique-body-words</td><td>347</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>6ac6b0e5c74a043f</code></td><td>unique-body-words</td><td>329</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>6ae6ab307bacd9f9</code></td><td>unique-body-words</td><td>323</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>6dbc913d781d447e</code></td><td>unique-body-words</td><td>14</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>709c97b4be9b5fda</code></td><td>unique-body-words</td><td>266</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>718d8914ee85adeb</code></td><td>unique-body-words</td><td>215</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>73c2ef80f43d620b</code></td><td>unique-body-words</td><td>199</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>75290a39889ba930</code></td><td>unique-body-words</td><td>67</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>78772aa7baba8950</code></td><td>unique-body-words</td><td>346</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>78a51f495b2f4572</code></td><td>unique-body-words</td><td>293</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>796cb0ca5942711a</code></td><td>unique-body-words</td><td>196</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>7a7484eb48c69d0a</code></td><td>unique-body-words</td><td>267</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>7a9d83b79385be20</code></td><td>unique-body-words</td><td>162</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>8607cdc2ca05ea52</code></td><td>unique-body-words</td><td>345</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>874e71a7f8392942</code></td><td>unique-body-words</td><td>304</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>8767ab1401b86ab0</code></td><td>unique-body-words</td><td>114</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>8be42b59bd2b6b06</code></td><td>unique-body-words</td><td>290</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>8c063e035391b4ac</code></td><td>unique-body-words</td><td>169</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>8eb04f89161a18c7</code></td><td>unique-body-words</td><td>162</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>92cdce200077ac54</code></td><td>unique-body-words</td><td>330</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>95936e8d40c94a60</code></td><td>unique-body-words</td><td>212</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>975ef5b7071b364c</code></td><td>unique-body-words</td><td>192</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>9d49bd9891280248</code></td><td>unique-body-words</td><td>310</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>a209b7287c8f31ea</code></td><td>unique-body-words</td><td>204</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>a2e6cbadbc62701a</code></td><td>unique-body-words</td><td>79</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>a489fd1b2a4a8e41</code></td><td>unique-body-words</td><td>317</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>a6931086f351ce01</code></td><td>unique-body-words</td><td>324</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>a796ae7b7f9ff623</code></td><td>unique-body-words</td><td>267</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>a8e8feacb5790667</code></td><td>unique-body-words</td><td>310</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>affb1209f6ca0d22</code></td><td>unique-body-words</td><td>287</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>b35242571896e85e</code></td><td>unique-body-words</td><td>203</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>b400031a19dd207e</code></td><td>unique-body-words</td><td>305</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>b53c35053ce26d95</code></td><td>unique-body-words</td><td>202</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>b67e4bf38cfc7c0b</code></td><td>unique-body-words</td><td>311</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>b84e30477ad5774f</code></td><td>unique-body-words</td><td>202</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>b98442bee9e50332</code></td><td>unique-body-words</td><td>147</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>bd3d1213f6f25dd2</code></td><td>unique-body-words</td><td>201</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>bd684b549bc715f9</code></td><td>unique-body-words</td><td>208</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>c44584783ef92378</code></td><td>unique-body-words</td><td>262</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>c8f99b7185d3ea5e</code></td><td>unique-body-words</td><td>109</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>c90dc73c6d134cf7</code></td><td>unique-body-words</td><td>65</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>c9a13b8054597b1a</code></td><td>unique-body-words</td><td>204</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>cbe8fdc71b9a5e39</code></td><td>unique-body-words</td><td>285</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>ce79a16ed74ba7be</code></td><td>unique-body-words</td><td>256</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>d558a783cbadc01b</code></td><td>unique-body-words</td><td>162</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>d6416221c5fb5823</code></td><td>unique-body-words</td><td>211</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>d797533fa3d72a9f</code></td><td>unique-body-words</td><td>320</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>d8c0e5c424a38c9d</code></td><td>unique-body-words</td><td>163</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>dd170fc8b4d96e08</code></td><td>unique-body-words</td><td>275</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>de367b729d27f4d7</code></td><td>unique-body-words</td><td>164</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>de5faebd7d179ff8</code></td><td>unique-body-words</td><td>307</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>df2b1e4753a4ad85</code></td><td>unique-body-words</td><td>60</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>dfe9bbb322dfcacf</code></td><td>unique-body-words</td><td>226</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>e56cb84e1c8ef1a6</code></td><td>unique-body-words</td><td>214</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>e58026581e4f6a3b</code></td><td>unique-body-words</td><td>313</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>e60c92eca5b6c365</code></td><td>unique-body-words</td><td>247</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>e8c47253e9117c1f</code></td><td>unique-body-words</td><td>279</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>e9948c79dbf5b622</code></td><td>unique-body-words</td><td>346</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>e9c697b786c11be4</code></td><td>unique-body-words</td><td>148</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>e9fe8b05d1b6dc1c</code></td><td>unique-body-words</td><td>164</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>ea88faef0aaa1afc</code></td><td>unique-body-words</td><td>328</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>eb8a12a543e42fd1</code></td><td>unique-body-words</td><td>320</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>edd20b7176efa9b4</code></td><td>unique-body-words</td><td>264</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>eecca47959f9eef6</code></td><td>unique-body-words</td><td>193</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>f112e7cdbbf1596b</code></td><td>unique-body-words</td><td>327</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>f5daca8027b9e387</code></td><td>unique-body-words</td><td>310</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>f6a5384a2d6788cf</code></td><td>unique-body-words</td><td>202</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>f805e0b60d83ea51</code></td><td>unique-body-words</td><td>163</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>f9ef69c6efa6b631</code></td><td>unique-body-words</td><td>157</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>fccfc83d6a60c311</code></td><td>unique-body-words</td><td>234</td><td>350</td><td>OPEN</td></tr>
+    <tr><td><code>fe43fd2c4529ea68</code></td><td>unique-body-words</td><td>336</td><td>350</td><td>OPEN</td></tr>
+  </tbody></table></details>
+  <details><summary><code>near-duplicate-review-signal</code> — every page and its measured signal (5); the value decides nothing</summary>
+  <table><thead><tr><th>page (target_page_id)</th><th>signal</th><th>measured value</th><th>review bound</th><th>state</th></tr></thead><tbody>
+    <tr><td><code>70dd4bdbfdbfeb43</code></td><td>body-similarity</td><td>0.903</td><td>0.9</td><td>OPEN</td></tr>
+    <tr><td><code>c55222edeb1a7f19</code></td><td>body-similarity</td><td>0.908</td><td>0.9</td><td>OPEN</td></tr>
+    <tr><td><code>d2098da6971dafa4</code></td><td>body-similarity</td><td>0.908</td><td>0.9</td><td>OPEN</td></tr>
+    <tr><td><code>d6416221c5fb5823</code></td><td>body-similarity</td><td>0.911</td><td>0.9</td><td>OPEN</td></tr>
+    <tr><td><code>e56cb84e1c8ef1a6</code></td><td>body-similarity</td><td>0.911</td><td>0.9</td><td>OPEN</td></tr>
+  </tbody></table></details>
+  <details><summary><code>template-dominance-review-signal</code> — every page and its measured signal (2); the value decides nothing</summary>
+  <table><thead><tr><th>page (target_page_id)</th><th>signal</th><th>measured value</th><th>review bound</th><th>state</th></tr></thead><tbody>
+    <tr><td><code>1ae7229a4c6c63cd</code></td><td>shell-share</td><td>0.76</td><td>0.75</td><td>OPEN</td></tr>
+    <tr><td><code>6dbc913d781d447e</code></td><td>shell-share</td><td>0.96</td><td>0.75</td><td>OPEN</td></tr>
+  </tbody></table></details>
+  <p class="bound">Every issue lands in exactly one population — findings <strong>416</strong> · coverage gaps <strong>1224</strong> · decisions on record <strong>259</strong> · audit trail <strong>259</strong> = <strong>2158</strong> distinct issues.</p>
+  <p class="bound">Audit trail — history, kept and queryable, never live: <code>noindex-defect-claim-withdrawn</code> 134 — the claim that noindex on these pages was a DEFECT was withdrawn on 12 September 2026 — later evidence showed a deliberate de-indexing decision — and each claim was superseded by the review record now held under noindex-declared-deliberate · <code>thin-content-claim-withdrawn</code> 118 — the claim that a count of unique body words decided a defect was withdrawn under the owner's PG-A1 (RTP-1 S10); each FAIL was superseded by the 15 named T-2 runs (RR-195) by a version-2 review signal, now held under thin-content-review-signal · <code>near-duplicate-claim-withdrawn</code> 5 — the claim that a body similarity decided a defect was withdrawn under the owner's PG-A1 (RTP-1 S10); each FAIL was superseded by the 15 named T-2 runs (RR-195) by a version-2 review signal, now held under near-duplicate-review-signal · <code>template-dominance-claim-withdrawn</code> 2 — the claim that a shell share decided a defect was withdrawn under the owner's PG-A1 (RTP-1 S10); each FAIL was superseded by the 15 named T-2 runs (RR-195) by a version-2 review signal, now held under template-dominance-review-signal</p>
 </section>
 
-<p class="legend">Every record below carries one of: <span class="lbl lbl-OBSERVED">OBSERVED</span><span class="lbl lbl-INFERRED">INFERRED</span><span class="lbl lbl-RECOMMENDED">RECOMMENDED</span><span class="lbl lbl-UNKNOWN">UNKNOWN</span></p>
-<p class="bound">Label census across all 1234 records: OBSERVED=598 · INFERRED=499 · RECOMMENDED=107 · UNKNOWN=30</p>
+<p class="legend">Every record below carries one of: <span class="lbl lbl-OBSERVED">OBSERVED</span><span class="lbl lbl-INFERRED">INFERRED</span><span class="lbl lbl-RECOMMENDED">RECOMMENDED</span><span class="lbl lbl-UNKNOWN">UNKNOWN</span><span class="lbl lbl-NOT_MEASURED">NOT MEASURED</span><span class="lbl lbl-NOT_APPLICABLE">NOT APPLICABLE</span><span class="lbl lbl-UNMAPPED">UNMAPPED</span></p>
+<p class="bound">Label census across all 1235 records: OBSERVED=489 · INFERRED=607 · RECOMMENDED=0 · UNKNOWN=27 · NOT MEASURED=112 · NOT APPLICABLE=0 · UNMAPPED=0</p>
 
 
 <section id="reconciliation">
@@ -132,8 +272,8 @@ footer{margin-top:2rem;padding-top:1rem;border-top:2px solid var(--line);color:v
 <section id="cost">
   <h2>Cost, and the work a repeat run does</h2>
   <table class="bounds"><tbody>
-    <tr><th>crawl requests issued</th><td>394 — <strong>billable traffic on our own account</strong></td></tr>
-    <tr><th>crawl cost</th><td><span class="null" title="not measured">—</span> <span class="lbl lbl-UNKNOWN">UNKNOWN</span></td></tr>
+    <tr><th>crawl requests issued</th><td>394 — <strong>real traffic to the crawled hosts — its cost to their operator is NOT MEASURED</strong></td></tr>
+    <tr><th>crawl cost</th><td><span class="null" title="not measured">—</span> <span class="lbl lbl-NOT_MEASURED" title="money">NOT MEASURED</span> <span class="bound">UNKNOWN</span></td></tr>
     <tr><th>cost basis</th><td class="wrap">each request may invoke a function and trigger an ISR regeneration on our own account; Gate C has never been applied to a crawler we operate (U-COST-5)</td></tr>
     <tr><th>evidence: new measurements</th><td>63</td></tr>
     <tr><th>evidence: re-sightings</th><td>19</td></tr>
@@ -144,45 +284,45 @@ footer{margin-top:2rem;padding-top:1rem;border-top:2px solid var(--line);color:v
 
 <section id="ledger">
   <h2>Cost ledger — 22 entries</h2>
-  <pre class="wrap">crawl:42c54fa63036f1c7  money=UNKNOWN(NOT_MEASURABLE_WITH_TOOLS_WE_HOLD)  calls=394  time=403.268s  budget(crawl): urlsRequested=500 urlsFetched=394 requestsIssued=394 disallowedByRobots=106 capReached=false  [bound: maxUrlsPerRun=500 maxRequestsPerHost=200 maxResponseBytes=2097152 seedPoolSize=1497]
-gsc-ingest:2026-09-11T22:58:51.912Z  money=0 USD [ZERO_BY_TARIFF]  calls=5  time=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=2 requestsInNewPulls=2 resightings=0 capReached=false  [bound: rowLimitPerRequest=not stored in this run maxRequestsPerPull=not stored in this run]
-gsc-ingest:2026-09-12T00:15:14.660Z  money=0 USD [ZERO_BY_TARIFF]  calls=5  time=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=2 requestsInNewPulls=2 resightings=0 capReached=false  [bound: rowLimitPerRequest=25000 maxRequestsPerPull=20]
-gsc-ingest:2026-09-12T00:15:15.685Z  money=0 USD [ZERO_BY_TARIFF]  calls=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  time=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=0 requestsInNewPulls=0 resightings=3 capReached=false  [bound: rowLimitPerRequest=not stored in this run maxRequestsPerPull=not stored in this run]
-gsc-ingest:2026-09-12T00:16:19.426Z  money=0 USD [ZERO_BY_TARIFF]  calls=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  time=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=0 requestsInNewPulls=0 resightings=3 capReached=false  [bound: rowLimitPerRequest=not stored in this run maxRequestsPerPull=not stored in this run]
-gsc-ingest:2026-09-12T00:16:20.518Z  money=0 USD [ZERO_BY_TARIFF]  calls=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  time=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=0 requestsInNewPulls=0 resightings=4 capReached=false  [bound: rowLimitPerRequest=not stored in this run maxRequestsPerPull=not stored in this run]
-gsc-ingest:2026-09-12T00:36:17.340Z  money=0 USD [ZERO_BY_TARIFF]  calls=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  time=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=2 requestsInNewPulls=1 resightings=3 capReached=false  [bound: rowLimitPerRequest=25000 maxRequestsPerPull=20]
-gsc-ingest:2026-09-12T02:44:15.609Z  money=0 USD [ZERO_BY_TARIFF]  calls=7  time=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=2 requestsInNewPulls=2 resightings=3 capReached=false  [bound: rowLimitPerRequest=25000 maxRequestsPerPull=20]
-gsc-ingest:2026-09-12T22:06:42.662Z  money=0 USD [ZERO_BY_TARIFF]  calls=9  time=UNKNOWN(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=7 requestsInNewPulls=6 resightings=1 capReached=false  [bound: rowLimitPerRequest=25000 maxRequestsPerPull=20]
-gsc-ingest:2026-09-12T23:25:02.608Z  money=0 USD [ZERO_BY_TARIFF]  calls=9  time=2.238s  budget(crawl): urlsFetched=0 requestsIssued=0 capReached=false  [bound: maxUrlsPerRun=500 maxRequestsPerHost=200]
-artifact-recovery:2026-09-13T00:27:05.860Z  money=UNKNOWN(NOT_MEASURABLE_WITH_TOOLS_WE_HOLD)  calls=1  time=80.025s  budget(artifact-download): files=394 bytes=39921127 capReached=false  [bound: artifact=crawl-corpus-34662527129 artifactExpiresAt=2026-12-11T00:42:30Z]
-replay:2026-09-13T00:27:05.860Z  money=0 USD [MEASURED]  calls=0  time=93.84s  budget(crawl): passes=2 urlsFetched=788 requestsIssued=788 localRequests=822 nonLocalRequests=0 capReached=false  [bound: maxUrlsPerRun=500 maxRequestsPerHost=200]
-replay:2026-09-13T01:02:04.073Z  money=0 USD [MEASURED]  calls=0  time=13.814s  budget(crawl): passes=2 urlsFetched=788 requestsIssued=788 localRequests=822 nonLocalRequests=0 capReached=false  [bound: maxUrlsPerRun=500 maxRequestsPerHost=200]
-link-check:2026-09-13T01:42:09.708Z  money=0 USD [ZERO_BY_TARIFF]  calls=18  time=18.616s  budget(link-check): urls=15 requests=18 capReached=false  [bound: maxRequests=40 intervalMs=1000 concurrency=1]
-source-fetch:2026-09-13T02:19:52.573Z  money=0 USD [ZERO_BY_TARIFF]  calls=7  time=6.328s  budget(link-check): urls=5 requests=7 capReached=false  [bound: maxRequests=12 intervalMs=1000 concurrency=1]
-tool-install:2026-09-13T02:54:16.342Z  money=UNKNOWN(NOT_MEASURABLE_WITH_TOOLS_WE_HOLD)  calls=1  time=2.342s  budget(tool-download): registryFetches=1 cacheHits=1 installedBytes=13442086 browserBytesDownloaded=0 capReached=false  [bound: package=playwright-core@1.62.1 browserRevision=chromium_headless_shell-1234]
-render:2026-09-13T03:02:48.090Z  money=0 USD [MEASURED]  calls=0  time=245.527s  budget(crawl): urlsFetched=0 requestsIssued=0 capReached=false  [bound: maxUrlsPerRun=500 maxRequestsPerHost=200]
-paid-refusal:fake-paid-provider:2026-09-13T04:33:21.328Z:1:af35b9c4-33ba-4f9a-a51a-2df12ca37099  REFUSED(NOT_AUTHORIZED)  money=0 USD [MEASURED]  calls=0  time=0s  budget(paid-provider): attempted=1 callsIssuedBefore=0 spentBefore=0 capReached=false  [bound: authorization=none complete — paid services are OFF by default]
-paid-refusal:fake-paid-provider:2026-09-13T04:33:21.345Z:1:bd1ec9c5-cdea-4259-b932-a585b3916c2e  REFUSED(AUTHORIZATION_INCOMPLETE)  money=0 USD [MEASURED]  calls=0  time=0s  budget(paid-provider): attempted=1 callsIssuedBefore=0 spentBefore=0 capReached=false  [bound: authorization=none complete — paid services are OFF by default]
-paid-refusal:fake-paid-provider:2026-09-13T04:33:21.363Z:2:72e3be6d-6f99-4754-abb5-7d6e02e7c7fc  REFUSED(CAP_WOULD_BE_EXCEEDED)  money=0 USD [MEASURED]  calls=0  time=0s  budget(paid-provider): attempted=1 callsIssuedBefore=1 spentBefore=0.4 capReached=true  [bound: maxCalls=1 budget=100 USD]
-paid-refusal:fake-paid-provider:2026-09-13T04:33:21.379Z:2:c6514dda-f6f0-43fa-b8b7-33810f7a742c  REFUSED(BUDGET_WOULD_BE_EXCEEDED)  money=0 USD [MEASURED]  calls=0  time=0s  budget(paid-provider): attempted=1 callsIssuedBefore=1 spentBefore=0.4 capReached=true  [bound: maxCalls=50 budget=0.5 USD]
-paid-refusal:fake-paid-provider:2026-09-13T04:33:21.395Z:1:da654c39-92e0-4cb0-90a1-09371bcc2a73  REFUSED(KILL_SWITCH_ON)  money=0 USD [MEASURED]  calls=0  time=0s  budget(paid-provider): attempted=1 callsIssuedBefore=0 spentBefore=0 capReached=false  [bound: maxCalls=50 budget=100 USD]</pre>
-  <p class="sum bad">UNKNOWN although measurable: <strong>12</strong> — gsc-ingest:2026-09-11T22:58:51.912Z · founderTime; gsc-ingest:2026-09-12T00:15:14.660Z · founderTime; gsc-ingest:2026-09-12T00:15:15.685Z · providerCalls; gsc-ingest:2026-09-12T00:15:15.685Z · founderTime; gsc-ingest:2026-09-12T00:16:19.426Z · providerCalls; gsc-ingest:2026-09-12T00:16:19.426Z · founderTime; gsc-ingest:2026-09-12T00:16:20.518Z · providerCalls; gsc-ingest:2026-09-12T00:16:20.518Z · founderTime; gsc-ingest:2026-09-12T00:36:17.340Z · providerCalls; gsc-ingest:2026-09-12T00:36:17.340Z · founderTime; gsc-ingest:2026-09-12T02:44:15.609Z · founderTime; gsc-ingest:2026-09-12T22:06:42.662Z · founderTime</p>
+  <pre class="wrap">crawl:42c54fa63036f1c7  money=NOT MEASURED(NOT_MEASURABLE_WITH_TOOLS_WE_HOLD)  calls=394 [OBSERVED]  time=403.268s [OBSERVED]  budget(crawl): urlsRequested=500 urlsFetched=394 requestsIssued=394 disallowedByRobots=106 capReached=false  [bound: maxUrlsPerRun=500 maxRequestsPerHost=200 maxResponseBytes=2097152 seedPoolSize=1497]
+gsc-ingest:2026-09-11T22:58:51.912Z  money=0 USD [ZERO_BY_TARIFF · INFERRED]  calls=5 [OBSERVED]  time=NOT MEASURED(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=2 requestsInNewPulls=2 resightings=0 capReached=false  [bound: rowLimitPerRequest=not stored in this run maxRequestsPerPull=not stored in this run]
+gsc-ingest:2026-09-12T00:15:14.660Z  money=0 USD [ZERO_BY_TARIFF · INFERRED]  calls=5 [OBSERVED]  time=NOT MEASURED(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=2 requestsInNewPulls=2 resightings=0 capReached=false  [bound: rowLimitPerRequest=25000 maxRequestsPerPull=20]
+gsc-ingest:2026-09-12T00:15:15.685Z  money=0 USD [ZERO_BY_TARIFF · INFERRED]  calls=NOT MEASURED(MEASURABLE_BUT_NOT_RECORDED)  time=NOT MEASURED(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=0 requestsInNewPulls=0 resightings=3 capReached=false  [bound: rowLimitPerRequest=not stored in this run maxRequestsPerPull=not stored in this run]
+gsc-ingest:2026-09-12T00:16:19.426Z  money=0 USD [ZERO_BY_TARIFF · INFERRED]  calls=NOT MEASURED(MEASURABLE_BUT_NOT_RECORDED)  time=NOT MEASURED(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=0 requestsInNewPulls=0 resightings=3 capReached=false  [bound: rowLimitPerRequest=not stored in this run maxRequestsPerPull=not stored in this run]
+gsc-ingest:2026-09-12T00:16:20.518Z  money=0 USD [ZERO_BY_TARIFF · INFERRED]  calls=NOT MEASURED(MEASURABLE_BUT_NOT_RECORDED)  time=NOT MEASURED(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=0 requestsInNewPulls=0 resightings=4 capReached=false  [bound: rowLimitPerRequest=not stored in this run maxRequestsPerPull=not stored in this run]
+gsc-ingest:2026-09-12T00:36:17.340Z  money=0 USD [ZERO_BY_TARIFF · INFERRED]  calls=NOT MEASURED(MEASURABLE_BUT_NOT_RECORDED)  time=NOT MEASURED(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=2 requestsInNewPulls=1 resightings=3 capReached=false  [bound: rowLimitPerRequest=25000 maxRequestsPerPull=20]
+gsc-ingest:2026-09-12T02:44:15.609Z  money=0 USD [ZERO_BY_TARIFF · INFERRED]  calls=7 [OBSERVED]  time=NOT MEASURED(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=2 requestsInNewPulls=2 resightings=3 capReached=false  [bound: rowLimitPerRequest=25000 maxRequestsPerPull=20]
+gsc-ingest:2026-09-12T22:06:42.662Z  money=0 USD [ZERO_BY_TARIFF · INFERRED]  calls=9 [OBSERVED]  time=NOT MEASURED(MEASURABLE_BUT_NOT_RECORDED)  budget(api-pagination): newPulls=7 requestsInNewPulls=6 resightings=1 capReached=false  [bound: rowLimitPerRequest=25000 maxRequestsPerPull=20]
+gsc-ingest:2026-09-12T23:25:02.608Z  money=0 USD [ZERO_BY_TARIFF · INFERRED]  calls=9 [OBSERVED]  time=2.238s [OBSERVED]  budget(crawl): urlsFetched=0 requestsIssued=0 capReached=false  [bound: maxUrlsPerRun=500 maxRequestsPerHost=200]
+artifact-recovery:2026-09-13T00:27:05.860Z  money=NOT MEASURED(NOT_MEASURABLE_WITH_TOOLS_WE_HOLD)  calls=1 [OBSERVED]  time=80.025s [OBSERVED]  budget(artifact-download): files=394 bytes=39921127 capReached=false  [bound: artifact=crawl-corpus-34662527129 artifactExpiresAt=2026-12-11T00:42:30Z]
+replay:2026-09-13T00:27:05.860Z  money=0 USD [MEASURED · INFERRED]  calls=0 [OBSERVED]  time=93.84s [OBSERVED]  budget(crawl): passes=2 urlsFetched=788 requestsIssued=788 localRequests=822 nonLocalRequests=0 capReached=false  [bound: maxUrlsPerRun=500 maxRequestsPerHost=200]
+replay:2026-09-13T01:02:04.073Z  money=0 USD [MEASURED · INFERRED]  calls=0 [OBSERVED]  time=13.814s [OBSERVED]  budget(crawl): passes=2 urlsFetched=788 requestsIssued=788 localRequests=822 nonLocalRequests=0 capReached=false  [bound: maxUrlsPerRun=500 maxRequestsPerHost=200]
+link-check:2026-09-13T01:42:09.708Z  money=0 USD [ZERO_BY_TARIFF · INFERRED]  calls=18 [OBSERVED]  time=18.616s [OBSERVED]  budget(link-check): urls=15 requests=18 capReached=false  [bound: maxRequests=40 intervalMs=1000 concurrency=1]
+source-fetch:2026-09-13T02:19:52.573Z  money=0 USD [ZERO_BY_TARIFF · INFERRED]  calls=7 [OBSERVED]  time=6.328s [OBSERVED]  budget(link-check): urls=5 requests=7 capReached=false  [bound: maxRequests=12 intervalMs=1000 concurrency=1]
+tool-install:2026-09-13T02:54:16.342Z  money=NOT MEASURED(NOT_MEASURABLE_WITH_TOOLS_WE_HOLD)  calls=1 [OBSERVED]  time=2.342s [OBSERVED]  budget(tool-download): registryFetches=1 cacheHits=1 installedBytes=13442086 browserBytesDownloaded=0 capReached=false  [bound: package=playwright-core@1.62.1 browserRevision=chromium_headless_shell-1234]
+render:2026-09-13T03:02:48.090Z  money=0 USD [MEASURED · INFERRED]  calls=0 [OBSERVED]  time=245.527s [OBSERVED]  budget(crawl): urlsFetched=0 requestsIssued=0 capReached=false  [bound: maxUrlsPerRun=500 maxRequestsPerHost=200]
+paid-refusal:fake-paid-provider:2026-09-13T04:33:21.328Z:1:af35b9c4-33ba-4f9a-a51a-2df12ca37099  REFUSED(NOT_AUTHORIZED)  money=0 USD [MEASURED · INFERRED]  calls=0 [OBSERVED]  time=0s [OBSERVED]  budget(paid-provider): attempted=1 callsIssuedBefore=0 spentBefore=0 capReached=false  [bound: authorization=none complete — paid services are OFF by default]
+paid-refusal:fake-paid-provider:2026-09-13T04:33:21.345Z:1:bd1ec9c5-cdea-4259-b932-a585b3916c2e  REFUSED(AUTHORIZATION_INCOMPLETE)  money=0 USD [MEASURED · INFERRED]  calls=0 [OBSERVED]  time=0s [OBSERVED]  budget(paid-provider): attempted=1 callsIssuedBefore=0 spentBefore=0 capReached=false  [bound: authorization=none complete — paid services are OFF by default]
+paid-refusal:fake-paid-provider:2026-09-13T04:33:21.363Z:2:72e3be6d-6f99-4754-abb5-7d6e02e7c7fc  REFUSED(CAP_WOULD_BE_EXCEEDED)  money=0 USD [MEASURED · INFERRED]  calls=0 [OBSERVED]  time=0s [OBSERVED]  budget(paid-provider): attempted=1 callsIssuedBefore=1 spentBefore=0.4 capReached=true  [bound: maxCalls=1 budget=100 USD]
+paid-refusal:fake-paid-provider:2026-09-13T04:33:21.379Z:2:c6514dda-f6f0-43fa-b8b7-33810f7a742c  REFUSED(BUDGET_WOULD_BE_EXCEEDED)  money=0 USD [MEASURED · INFERRED]  calls=0 [OBSERVED]  time=0s [OBSERVED]  budget(paid-provider): attempted=1 callsIssuedBefore=1 spentBefore=0.4 capReached=true  [bound: maxCalls=50 budget=0.5 USD]
+paid-refusal:fake-paid-provider:2026-09-13T04:33:21.395Z:1:da654c39-92e0-4cb0-90a1-09371bcc2a73  REFUSED(KILL_SWITCH_ON)  money=0 USD [MEASURED · INFERRED]  calls=0 [OBSERVED]  time=0s [OBSERVED]  budget(paid-provider): attempted=1 callsIssuedBefore=0 spentBefore=0 capReached=false  [bound: maxCalls=50 budget=100 USD]</pre>
+  <p class="sum bad">NOT MEASURED although measurable: <strong>12</strong> — gsc-ingest:2026-09-11T22:58:51.912Z · founderTime; gsc-ingest:2026-09-12T00:15:14.660Z · founderTime; gsc-ingest:2026-09-12T00:15:15.685Z · providerCalls; gsc-ingest:2026-09-12T00:15:15.685Z · founderTime; gsc-ingest:2026-09-12T00:16:19.426Z · providerCalls; gsc-ingest:2026-09-12T00:16:19.426Z · founderTime; gsc-ingest:2026-09-12T00:16:20.518Z · providerCalls; gsc-ingest:2026-09-12T00:16:20.518Z · founderTime; gsc-ingest:2026-09-12T00:36:17.340Z · providerCalls; gsc-ingest:2026-09-12T00:36:17.340Z · founderTime; gsc-ingest:2026-09-12T02:44:15.609Z · founderTime; gsc-ingest:2026-09-12T22:06:42.662Z · founderTime</p>
 </section>
 
 <section id="chain">
-  <h2>A conclusion, walked end to end — <code>c078c4028de76b49</code> · now CLOSED</h2>
+  <h2>A conclusion, walked end to end — <code>e62a93373e122ada</code> · now SUPERSEDED</h2>
   <table class="bounds"><tbody>
-    <tr><th>WHAT ✅ present</th><td>instrument-disagreement on page <code>2d6cf82a519a04fb</code> — two instruments disagree about this page's inbound links over the same bodies (bin/audit-content.mjs 340, bin/audit-technical.mjs 341). bin/audit-content.mjs finds inbound links to this page and bin/audit-technical.mjs finds none: bin/audit-technical.mjs counts ONLY a link from the same host counts, bin/audit-content.mjs counts a link from any crawled host counts.</td></tr>
-    <tr><th>WHY ✅ present</th><td>verdict FAIL by detector <code>instrument-agreement</code> v1 — two instruments disagree about this page's inbound links over the same bodies (bin/audit-content.mjs 340, bin/audit-technical.mjs 341). bin/audit-content.mjs finds inbound links to this page and bin/audit-technical.mjs finds none: bin/audit-technical.mjs counts ONLY a link from the same host counts, bin/audit-content.mjs counts a link from any crawled host counts.</td></tr>
-    <tr><th>FROM WHICH EVIDENCE ✅ present</th><td class="wrap"><code>167dab3768ac2185</code> crawl.fetch · https://almidanish.almiworld.com/ · 2026-09-12T00:43:01.591Z</td></tr>
-    <tr><th>WHEN ✅ present</th><td>opened 2026-09-13T01:51:21.862Z; → CLOSED 2026-09-13T01:53:56.400Z</td></tr>
+    <tr><th>WHAT ✅ present</th><td>thin-content on page <code>11db5c8ea6ffa35c</code> — 328 unique body words [bound: floor=350]; shell was 193 words (18% of the page). SHELL = head, script, style, noscript, svg, template, nav, header, footer, aside, [role=navigation], [aria-hidden=true], and cookie/consent containers. BODY = &lt;main&gt; or &lt;article&gt; if present, else the document minus the shell. Word counts are taken on BODY only.</td></tr>
+    <tr><th>WHY ✅ present</th><td>verdict FAIL by detector <code>thin-content</code> v1 — 328 unique body words [bound: floor=350]; shell was 193 words (18% of the page). SHELL = head, script, style, noscript, svg, template, nav, header, footer, aside, [role=navigation], [aria-hidden=true], and cookie/consent containers. BODY = &lt;main&gt; or &lt;article&gt; if present, else the document minus the shell. Word counts are taken on BODY only.</td></tr>
+    <tr><th>FROM WHICH EVIDENCE ✅ present</th><td class="wrap"><code>81de8a37a17861e8</code> crawl.fetch · https://almipte.almiworld.com/learn/pte-ielts-score-conversion · 2026-09-12T00:42:42.743Z</td></tr>
+    <tr><th>WHEN ✅ present</th><td>opened 2026-09-12T02:26:00.975Z; → SUPERSEDED 2026-10-07T01:26:15.826Z</td></tr>
     <tr><th>WHAT CHANGED IT ✅ present</th><td class="wrap">
-      <p><strong>→ CLOSED</strong> by <code>src/crawl/inbound.mjs · bin/edge-graph.mjs · bin/audit-content.mjs · bin/audit-technical.mjs</code> (Claude (queue run), on beta-g's brief of 13 Sep 2026)</p>
-      <p class="wrap">both runners now read one stored graph (runs/crawl/edges-2026-09-12.jsonl.br) through one definition (src/crawl/inbound.mjs) and their recorded re-runs print the same count: 335</p>
-      <p>evidence for the move:<br><code>167dab3768ac2185</code> crawl.fetch · https://almidanish.almiworld.com/ · 2026-09-12T00:43:01.591Z</p>
-      </td></tr>
+      <p><strong>→ SUPERSEDED</strong> by <code>bin/t2-reassess.mjs — replacement issued by the version-2 check (RR-194 T-2)</code> (actor:cc)</p>
+      <p class="wrap">SUPERSEDED by the version-2 check (RR-194 T-2): 350 unique body words no longer decides anything (RTP-1 S10; the owner's PG-A1) — completeness is judged for a need (P21), never by a word count. Not deleted: the replacement keeps the measured count as a REVIEW SIGNAL, so the page stays visible for review.</p>
+      <p>evidence for the move:<br><code>81de8a37a17861e8</code> crawl.fetch · https://almipte.almiworld.com/learn/pte-ielts-score-conversion · 2026-09-12T00:42:42.743Z</p>
+      <p>replaced by <code>389b43c9a09dc865</code> — verdict <strong>UNKNOWN</strong>, thin-content v2<br><span class="wrap"></span></p></td></tr>
   </tbody></table>
-  <p class="bound">The original record is unchanged in the store; the move is a second record. The store holds this issue_id 1 time(s).</p>
+  <p class="bound">The original record is unchanged in the store; the move is a second record. The store holds this issue_id 2 time(s).</p>
 </section>
 
 <section id="recommendations">
@@ -218,749 +358,749 @@ paid-refusal:fake-paid-provider:2026-09-13T04:33:21.395Z:1:da654c39-92e0-4cb0-90
 </section>
 <section id="issues"><h2>Issues — 107</h2>
   <table><thead><tr><th>label</th><th>id</th><th>verdict</th><th>evidence chain</th></tr></thead><tbody><tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>b915be7ebbf1b546</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>b80f51335c9d532a</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>9f8cc3b6db5cf244</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>59e2c45516990db2</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>28a99a5a465e497a</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>c8206cc88ee3e6e5</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>c970d9b1a09afb48</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>6739cdbf58d08667</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>f0d0a22efc3bc6d3</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>375811db9ff02153</code><br><code>9c92ca7dd25181b2</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>46cd2885c8b5d03c</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>f153117b2c32d7aa</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>5fe4d9022f61d59d</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>afdc8ef113ce19ca</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>d86a64162626750c</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>56be5ebfe5bd9a27</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>4091694f0f8293b3</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>93d478d07764c360</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>2e9d0520c0aafa97</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>cfc966e31016647f</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>c1b39ac2213ba846</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>70052b7820129028</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>b16d253e877981f6</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>b2e11aa6cf8835b2</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>aee971e2a87b5add</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>456e292056866049</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>5128f7987ceb2917</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>817f3b8e2748891e</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>4d459eb397fc3245</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>57601586a5bbd584</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>39394962baca5f19</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>0a07de60e51aaa2b</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>3d804907998ad7bc</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>8891c6ec9eacf906</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>dcbd92794dada3f8</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>d1b543a05c2097af</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>80e87622f4aebc60</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>87408e59c049ca51</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>9b63d479ae199c65</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>be40f939229c3ad7</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>9133d1a7ae285b61</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>c7a67e3d33f3c4a0</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>ac66cc53ac0b8789</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>87098b9540d6a878</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>4410af2b24bd0df7</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>12eb1397d2b00a90</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>77c981dd57994eee</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>a4b73b38bbe4c64f</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>ba671b3cdfcb62f0</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>6a79e431c79fe554</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>12e7584967e8d358</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>e628f186dafa0759</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>f39be6292b083cc8</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>faec0a63003efea2</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>5301574ec530a10e</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>25f97b330f3efec2</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>c6ac978d32e90c34</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>7c32b5346a361921</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>c6401b9ce317e1c3</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>d16e21aee6b6babe</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>bb77e0623672929d</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>3aca6ed28ffe247e</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>734c5708ea8b4874</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>4ef66bcc72fb9243</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>4c19e5433fc0dc9a</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>788799fa5015ba98</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>e1057d91ad0678a8</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>874f0c91c0f9fde8</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>22792a33b9485c1f</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>d1939ce4588ecfea</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>b10e0fe25ddb301b</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>a3f79a0e417955d6</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>567cf0ed974a5715</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>ba9a627a847deffc</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>d75977b1339b4621</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>37967e27520c2d47</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>f8bb0e4a2e387759</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>c40a68b096c6be10</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>6363754f85a4b9ad</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>8167e1285ea6270b</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>1df86936efbe0828</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>2451e917374c164f</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>3b99fb7f914f60e5</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>ae997050177020cb</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>9bd70f63820fdec9</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>6be7dc674a38a316</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>8460d8c7c96ad0bc</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>d89d2df888e5b2a1</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>e2baec7d7d40d368</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>7cb766efec995bb1</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>3ddd8840852acceb</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>6a5eab3a4ef95fd1</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>e53771e3b510e6eb</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>4d451edd607c8528</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>8aeafdba8ce99067</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>a71251a2869027c0</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>28f63aa395f52a35</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>6f59aa8a13ac4591</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>dd6227eb7375de77</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>da13e1ee47725e76</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>d8d1f1459402e53e</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>19e5f22d1d028ba1</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>d3a8081cfec308d7</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>1aedd9f1530ec928</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>c0b4d598778da1ef</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>29bebd4b316df575</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>55489b83672612f8</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>5183f27c1ec94597</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>124309cf503012ca</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>f0314d68b6d7ee33</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>48abed71b121f88a</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>8cef476faa6085ac</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>a1db90429a52e7aa</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>9a761431a25b62c6</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>f34677d6574fb465</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>afc999974d318c36</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>4e64d126a8825cee</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>bea678fc152fb629</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>7ef8151d47f1b715</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>178b5d8a22c3efb4</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>0b6c0c55440388d1</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>7c5b8e4029557b0b</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>f3f4cecf31a079f7</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>33dd2365011cba59</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>587d133712240118</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>efee2f736e6153a1</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>028d9ac89b5c2b07</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>50e1da6740363287</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>e2b069334aec6ca4</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>230e5a4a22e020aa</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>1668eaa724facfc0</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>dfc96d00ded27e5b</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>266f5a77071f038a</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>ac3f813ecf11c718</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>3c83484063fd8574</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>29826b3bd5993ee0</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>f01ce18f9dadbf2f</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>77085effc092b9b7</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>0b11ad5f88c34cbb</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>93ea4e6ad2948b1d</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>9e3ca848a29cdbe5</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>0cf4a630b646b8e3</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>ae5e11405b32eba8</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>6a0b871090f1fb34</code><br><code>bd4e96b4beba602f</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>90a0ddd9348ef81f</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>40a37c23779de65e</code><br><code>9c92ca7dd25181b2</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>c7c0be3e71b8c2ce</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>d77d2fa17156ff28</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>428ab5dec9af6176</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>6a21174d76c2f210</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>f502e0386cd82177</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>c9558b2b2c63978a</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>9fa28d0e34d7b7d4</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>f1cdd5094fb95a3e</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>ec42ae3966d05bc2</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>2ab3d388b8520dda</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>b16abd70811c8f19</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>5fa8a1d369ec302e</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>c9441bdfecf4ef5a</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>1e2a519b53b3ff0c</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>7b244ffe0d83a251</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>463bf5cfc4c977f1</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>b04104beef8cb683</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>a87676e7e19ce731</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>61eb6b53bb360a1f</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>bcafe8bac67bb82c</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>2cd633dc700d60c5</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>03ec3857bd081b58</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>ef3364ec1dbd94a8</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>56e2dfc8286db09f</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>b65956f639e3ecfd</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>bba766f3b349487f</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>1300898f8dc67016</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>faaeb82520d082ea</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>f101fadaede3d3b6</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>4ba4b124167d5739</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>9b37a36a703a6460</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>4d664c5d5ccb0f26</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>d0c6de31e4a8934e</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>09344465216429c0</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>278c80909d01b436</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>e5018e1b574d2782</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>f3d79add7764a6ea</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>213d882944cd4a3d</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>d0d4172567b00079</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>2e5d6c01cdd79b25</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>1cf8954bc9eb198d</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>a6b62b85e8b94706</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>c6bb89715164bb26</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>6e7c04278f754581</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>696e40ab6b4549f5</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>e8d667312cacc587</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>adc7566262dea257</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>915786cbfbdbb6d3</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>42676603d564cbf3</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>2bc4a1b60691bba1</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>cd8dc59a47b92d88</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>f01431721788197f</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>84234d50fa047616</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>73fec095819b9a25</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>5a444d2bf3f8454a</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>a7f177a3db63fadf</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>2d9a55a7bfac9cb9</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>6a148db803da3ea6</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>98be6348b2429a47</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>a8a690791ddc757b</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>4565ceea5f05b025</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>0eb7c37bba4946c6</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>c007a5d2dbd8b4f6</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>400b10f86c5487ea</code><br><code>4fb6a4c960e070b3</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>387310653b1f0b6e</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>2b2d0f9df4b3aee1</code><br><code>e45b65e7f2b659ae</code>
         </td>
       </tr>
 <tr>
-        <td><span class="lbl lbl-RECOMMENDED" title="a claim that something is wrong, derived from evidence">RECOMMENDED</span></td>
+        <td><span class="lbl lbl-INFERRED" title="issue · issue.finding">INFERRED</span></td>
         <td><code>5a8a6d0594950162</code></td>
         <td>FAIL</td>
         <td class="wrap"><code>5e4fac8b6ad708fa</code>
@@ -968,353 +1108,362 @@ paid-refusal:fake-paid-provider:2026-09-13T04:33:21.395Z:1:da654c39-92e0-4cb0-90
       </tr></tbody></table></section>
 
 <section id="source-tiers">
-  <h2>Sources, ranked by the §623 tier order — 20 real records</h2>
-  <p class="bound">[bound: tier census OFFICIAL=16 · OWNED_GSC_ANALYTICS=1 · VERIFIED_ALMIWORLD=0 · REPUTABLE_SECONDARY=0 · COMPETITOR_COMMUNITY=0 · AGENT_INFERENCE=3; equal tiers keep their input order — the rule states no preference between them]</p>
+  <h2>Sources, ranked by the §623 tier order — 22 real records</h2>
+  <p class="bound">[bound: tier census OFFICIAL=18 · OWNED_GSC_ANALYTICS=1 · REPUTABLE_SECONDARY=0 · COMPETITOR_COMMUNITY=0 · VERIFIED_ALMIWORLD=0 · AGENT_INFERENCE=3; equal tiers keep their input order — the rule states no preference between them]</p>
   <table><thead><tr><th>#</th><th>tier</th><th>source</th><th>publisher</th><th>retrieved</th></tr></thead><tbody><tr><td>1</td><td>OFFICIAL</td><td><code>fact-source:ie-nmbi.oet-minimum-grade.profession=nursing</code></td><td>Nursing and Midwifery Board of Ireland</td><td>2026-09-12</td></tr>
 <tr><td>2</td><td>OFFICIAL</td><td><code>fact-source:ie-nmbi.oet-version-required.profession=nursing</code></td><td>Nursing and Midwifery Board of Ireland</td><td>2026-09-12</td></tr>
 <tr><td>3</td><td>OFFICIAL</td><td><code>fact-source:ng-nmcn.issuing-body</code></td><td>Nursing and Midwifery Council of Nigeria</td><td>2026-09-12</td></tr>
 <tr><td>4</td><td>OFFICIAL</td><td><code>fact-source:oet.content-licence-permits-stored-quotation</code></td><td>Cambridge Boxhill Language Assessment (OET)</td><td>2026-09-13</td></tr>
 <tr><td>5</td><td>OFFICIAL</td><td><code>fact-source:oet.subtests-and-which-are-profession-specific</code></td><td>Cambridge Boxhill Language Assessment (OET)</td><td>2026-09-12</td></tr>
 <tr><td>6</td><td>OFFICIAL</td><td><code>fact-source:pk-pnmc.issuing-body</code></td><td>Pakistan Nursing &amp; Midwifery Council</td><td>2026-09-12</td></tr>
-<tr><td>7</td><td>OFFICIAL</td><td><code>fact-source:pk-pnmc.verification-response-time</code></td><td>Pakistan Nursing &amp; Midwifery Council</td><td>2026-09-12</td></tr>
-<tr><td>8</td><td>OFFICIAL</td><td><code>fact-source:uk-code-of-practice.amber-list-countries</code></td><td>UK Department of Health and Social Care</td><td>2026-09-12</td></tr>
-<tr><td>9</td><td>OFFICIAL</td><td><code>fact-source:uk-code-of-practice.red-list-country-count</code></td><td>UK Department of Health and Social Care</td><td>2026-09-12</td></tr>
-<tr><td>10</td><td>OFFICIAL</td><td><code>fact-source:uk-hcpc.oet-minimum-score.profession=speech-pathology</code></td><td>Health and Care Professions Council</td><td>2026-09-12</td></tr>
-<tr><td>11</td><td>OFFICIAL</td><td><code>fact-source:uk-hcpc.oet-score-differs-by-profession</code></td><td>Health and Care Professions Council</td><td>2026-09-12</td></tr>
-<tr><td>12</td><td>OFFICIAL</td><td><code>fact-source:uk-hcpc.ielts-minimum.profession=speech-pathology</code></td><td>Health and Care Professions Council</td><td>2026-09-12</td></tr>
-<tr><td>13</td><td>OFFICIAL</td><td><code>fact-source:uk-hcpc.certificate-maximum-age</code></td><td>Health and Care Professions Council</td><td>2026-09-12</td></tr>
-<tr><td>14</td><td>OFFICIAL</td><td><code>fact-source:uk-hcpc.test-venue-requirement</code></td><td>Health and Care Professions Council</td><td>2026-09-12</td></tr>
-<tr><td>15</td><td>OFFICIAL</td><td><code>fact-source:uk-hcpc.oet-profession-version.profession=speech-pathology</code></td><td>Health and Care Professions Council</td><td>2026-09-12</td></tr>
-<tr><td>16</td><td>OFFICIAL</td><td><code>fact-source:uk-nmc.oet-profession-version.profession=nursing</code></td><td>Nursing and Midwifery Council</td><td>2026-09-12</td></tr>
-<tr><td>17</td><td>OWNED_GSC_ANALYTICS</td><td><code>gsc-property:sc-domain:almiworld.com</code></td><td>Google Search Console (our own property)</td><td>2026-09-12T02:44:15.609Z</td></tr>
-<tr><td>18</td><td>AGENT_INFERENCE</td><td><code>draft:REC-ROBOTS-CORRIDOR</code></td><td>AlmiVisibility (drafted, not approved)</td><td>2026-09-12T02:28:02.143Z</td></tr>
-<tr><td>19</td><td>AGENT_INFERENCE</td><td><code>draft:REC-AI-CRAWLER-BLOCK</code></td><td>AlmiVisibility (drafted, not approved)</td><td>2026-09-12T02:28:02.143Z</td></tr>
-<tr><td>20</td><td>AGENT_INFERENCE</td><td><code>draft:REC-NOINDEX-CV-GUIDE</code></td><td>AlmiVisibility (drafted, not approved)</td><td>2026-09-12T03:15:46.798Z</td></tr></tbody></table>
+<tr><td>7</td><td>OFFICIAL</td><td><code>fact-source:pk-pnmc.verification-fee.destination=foreign</code></td><td>Pakistan Nursing &amp; Midwifery Council</td><td>2026-09-21</td></tr>
+<tr><td>8</td><td>OFFICIAL</td><td><code>fact-source:pk-pnmc.verification-fee.destination=domestic</code></td><td>Pakistan Nursing &amp; Midwifery Council</td><td>2026-09-21</td></tr>
+<tr><td>9</td><td>OFFICIAL</td><td><code>fact-source:pk-pnmc.verification-response-time</code></td><td>Pakistan Nursing &amp; Midwifery Council</td><td>2026-09-12</td></tr>
+<tr><td>10</td><td>OFFICIAL</td><td><code>fact-source:uk-code-of-practice.amber-list-countries</code></td><td>UK Department of Health and Social Care</td><td>2026-09-12</td></tr>
+<tr><td>11</td><td>OFFICIAL</td><td><code>fact-source:uk-code-of-practice.red-list-country-count</code></td><td>UK Department of Health and Social Care</td><td>2026-09-12</td></tr>
+<tr><td>12</td><td>OFFICIAL</td><td><code>fact-source:uk-hcpc.oet-minimum-score.profession=speech-pathology</code></td><td>Health and Care Professions Council</td><td>2026-09-12</td></tr>
+<tr><td>13</td><td>OFFICIAL</td><td><code>fact-source:uk-hcpc.oet-score-differs-by-profession</code></td><td>Health and Care Professions Council</td><td>2026-09-12</td></tr>
+<tr><td>14</td><td>OFFICIAL</td><td><code>fact-source:uk-hcpc.ielts-minimum.profession=speech-pathology</code></td><td>Health and Care Professions Council</td><td>2026-09-12</td></tr>
+<tr><td>15</td><td>OFFICIAL</td><td><code>fact-source:uk-hcpc.certificate-maximum-age</code></td><td>Health and Care Professions Council</td><td>2026-09-12</td></tr>
+<tr><td>16</td><td>OFFICIAL</td><td><code>fact-source:uk-hcpc.test-venue-requirement</code></td><td>Health and Care Professions Council</td><td>2026-09-12</td></tr>
+<tr><td>17</td><td>OFFICIAL</td><td><code>fact-source:uk-hcpc.oet-profession-version.profession=speech-pathology</code></td><td>Health and Care Professions Council</td><td>2026-09-12</td></tr>
+<tr><td>18</td><td>OFFICIAL</td><td><code>fact-source:uk-nmc.oet-profession-version.profession=nursing</code></td><td>Nursing and Midwifery Council</td><td>2026-09-12</td></tr>
+<tr><td>19</td><td>OWNED_GSC_ANALYTICS</td><td><code>gsc-property:sc-domain:almiworld.com</code></td><td>Google Search Console (our own property)</td><td>2026-09-12T02:44:15.609Z</td></tr>
+<tr><td>20</td><td>AGENT_INFERENCE</td><td><code>draft:REC-ROBOTS-CORRIDOR</code></td><td>AlmiVisibility (drafted, not approved)</td><td>2026-09-12T02:28:02.143Z</td></tr>
+<tr><td>21</td><td>AGENT_INFERENCE</td><td><code>draft:REC-AI-CRAWLER-BLOCK</code></td><td>AlmiVisibility (drafted, not approved)</td><td>2026-09-12T02:28:02.143Z</td></tr>
+<tr><td>22</td><td>AGENT_INFERENCE</td><td><code>draft:REC-NOINDEX-CV-GUIDE</code></td><td>AlmiVisibility (drafted, not approved)</td><td>2026-09-12T03:15:46.798Z</td></tr></tbody></table>
 </section>
 
 <section id="facts">
-  <h2>Verified fact registry — 46 records</h2>
-  <p class="sum bad">🔴 <strong>0 of 46</strong> are <strong>UNVERIFIED</strong>.
+  <h2>Verified fact registry — 47 records</h2>
+  <p class="sum bad">🔴 <strong>0 of 47</strong> are <strong>UNVERIFIED</strong>.
   They keep their values and their sources; nobody has fact-checked them, and no date was backfilled.</p>
   <table>
     <thead><tr><th>label</th><th>id</th><th>verificationState</th><th>factCheckedOn</th><th>tier</th></tr></thead>
     <tbody><tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="fact · fact.checked">OBSERVED</span></td>
       <td class="wrap"><code>ie-nmbi.oet-minimum-grade.profession=nursing</code></td>
       <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="fact · fact.checked">OBSERVED</span></td>
       <td class="wrap"><code>ie-nmbi.oet-version-required.profession=nursing</code></td>
       <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="fact · fact.reached-unestablished">UNKNOWN</span></td>
       <td class="wrap"><code>ie-nmbi.recognised-english-speaking-countries</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="fact · fact.checked">OBSERVED</span></td>
       <td class="wrap"><code>ng-nmcn.issuing-body</code></td>
       <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="fact · fact.reached-unestablished">UNKNOWN</span></td>
       <td class="wrap"><code>ng-nmcn.verification-fee.purpose=certificate-verification</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="fact · fact.reached-unestablished">UNKNOWN</span></td>
       <td class="wrap"><code>ng-nmcn.verification-fee.purpose=authentication</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="fact · fact.reached-unestablished">UNKNOWN</span></td>
       <td class="wrap"><code>ng-nmcn.verification-fee.purpose=letter-of-good-standing</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="fact · fact.reached-unestablished">UNKNOWN</span></td>
       <td class="wrap"><code>ng-nmcn.verification-fee.destination=uk-nmc</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="fact · fact.reached-unestablished">UNKNOWN</span></td>
       <td class="wrap"><code>ng-nmcn.verification-documents</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="fact · fact.reached-unestablished">UNKNOWN</span></td>
       <td class="wrap"><code>nz-immigration-nz.oet-must-be-taken-in-person</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="fact · fact.checked">OBSERVED</span></td>
       <td class="wrap"><code>oet.content-licence-permits-stored-quotation</code></td>
       <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
       <td>2026-09-13</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="fact · fact.reached-unestablished">UNKNOWN</span></td>
       <td class="wrap"><code>oet.writing-task-type.profession=nursing</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-13</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="fact · fact.reached-unestablished">UNKNOWN</span></td>
       <td class="wrap"><code>oet.speaking-roleplay-setting.profession=nursing</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-13</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="fact · fact.checked">OBSERVED</span></td>
       <td class="wrap"><code>oet.subtests-and-which-are-profession-specific</code></td>
       <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-NOT_MEASURED" title="fact · fact.unreachable">NOT MEASURED</span></td>
       <td class="wrap"><code>oet.grade-bands-0-500</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-13</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-INFERRED" title="fact · fact.derived">INFERRED</span></td>
+      <td class="wrap"><code>pk-pnmc.verification-fee-foreign-to-domestic-ratio</code></td>
+      <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
+      <td><span class="null" title="not measured">—</span></td>
+      <td><span class="null" title="not measured">—</span></td>
+    </tr>
+<tr>
+      <td><span class="lbl lbl-OBSERVED" title="fact · fact.checked">OBSERVED</span></td>
       <td class="wrap"><code>pk-pnmc.issuing-body</code></td>
       <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="fact · fact.checked">OBSERVED</span></td>
       <td class="wrap"><code>pk-pnmc.verification-fee.destination=foreign</code></td>
-      <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
-      <td>2026-09-12</td>
+      <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
+      <td>2026-09-21</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="fact · fact.checked">OBSERVED</span></td>
       <td class="wrap"><code>pk-pnmc.verification-fee.destination=domestic</code></td>
-      <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
-      <td>2026-09-12</td>
+      <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
+      <td>2026-09-21</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="fact · fact.reached-unestablished">UNKNOWN</span></td>
       <td class="wrap"><code>pk-pnmc.verification-documents</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="fact · fact.checked">OBSERVED</span></td>
       <td class="wrap"><code>pk-pnmc.verification-response-time</code></td>
       <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="fact · fact.reached-unestablished">UNKNOWN</span></td>
       <td class="wrap"><code>uk-code-of-practice.recruitment-list-membership.country=nigeria</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="fact · fact.reached-unestablished">UNKNOWN</span></td>
       <td class="wrap"><code>uk-code-of-practice.recruitment-list-membership.country=pakistan</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="fact · fact.reached-unestablished">UNKNOWN</span></td>
       <td class="wrap"><code>uk-code-of-practice.recruitment-list-membership.country=kenya</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="fact · fact.reached-unestablished">UNKNOWN</span></td>
       <td class="wrap"><code>uk-code-of-practice.recruitment-list-membership.country=india</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="fact · fact.reached-unestablished">UNKNOWN</span></td>
       <td class="wrap"><code>uk-code-of-practice.recruitment-list-membership.country=philippines</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="fact · fact.reached-unestablished">UNKNOWN</span></td>
       <td class="wrap"><code>uk-code-of-practice.red-list-rule</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="fact · fact.reached-unestablished">UNKNOWN</span></td>
       <td class="wrap"><code>uk-code-of-practice.amber-list-rule</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="fact · fact.checked">OBSERVED</span></td>
       <td class="wrap"><code>uk-code-of-practice.amber-list-countries</code></td>
       <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="fact · fact.reached-unestablished">UNKNOWN</span></td>
       <td class="wrap"><code>uk-code-of-practice.direct-application-exception</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="fact · fact.checked">OBSERVED</span></td>
       <td class="wrap"><code>uk-code-of-practice.red-list-country-count</code></td>
       <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="fact · fact.checked">OBSERVED</span></td>
       <td class="wrap"><code>uk-hcpc.oet-minimum-score.profession=speech-pathology</code></td>
       <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="fact · fact.checked">OBSERVED</span></td>
       <td class="wrap"><code>uk-hcpc.oet-score-differs-by-profession</code></td>
       <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="fact · fact.checked">OBSERVED</span></td>
       <td class="wrap"><code>uk-hcpc.ielts-minimum.profession=speech-pathology</code></td>
       <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="fact · fact.reached-unestablished">UNKNOWN</span></td>
       <td class="wrap"><code>uk-hcpc.accepted-english-tests</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="fact · fact.checked">OBSERVED</span></td>
       <td class="wrap"><code>uk-hcpc.certificate-maximum-age</code></td>
       <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="fact · fact.checked">OBSERVED</span></td>
       <td class="wrap"><code>uk-hcpc.test-venue-requirement</code></td>
       <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="fact · fact.checked">OBSERVED</span></td>
       <td class="wrap"><code>uk-hcpc.oet-profession-version.profession=speech-pathology</code></td>
       <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="fact · fact.reached-unestablished">UNKNOWN</span></td>
       <td class="wrap"><code>uk-nmc.oet-minimum-grade.profession=nursing</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="fact · fact.reached-unestablished">UNKNOWN</span></td>
       <td class="wrap"><code>uk-nmc.oet-combining-sittings.profession=nursing</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="fact · fact.reached-unestablished">UNKNOWN</span></td>
       <td class="wrap"><code>uk-nmc.english-evidence-routes.profession=nursing</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="fact · fact.reached-unestablished">UNKNOWN</span></td>
       <td class="wrap"><code>uk-nmc.qualified-in-english-evidence.profession=nursing</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="fact-checked, with a date and a named checker">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="fact · fact.checked">OBSERVED</span></td>
       <td class="wrap"><code>uk-nmc.oet-profession-version.profession=nursing</code></td>
       <td><strong class="vs vs-VERIFIED">VERIFIED</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="fact · fact.reached-unestablished">UNKNOWN</span></td>
       <td class="wrap"><code>uk-nmc.oet-combining-sittings-floor.profession=nursing</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="fact · fact.reached-unestablished">UNKNOWN</span></td>
       <td class="wrap"><code>uk-nmc.accepted-oet-delivery-modes.profession=nursing</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="fact · fact.reached-unestablished">UNKNOWN</span></td>
       <td class="wrap"><code>uk-ukvi.majority-english-speaking-countries</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
       <td>1</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-UNKNOWN" title="record_type null has no declared label — shown rather than hidden">UNKNOWN</span></td>
+      <td><span class="lbl lbl-UNKNOWN" title="fact · fact.reached-unestablished">UNKNOWN</span></td>
       <td class="wrap"><code>uk-ukvi.english-nationality-exemption.nationality=india</code></td>
       <td><strong class="vs vs-UNKNOWN">UNKNOWN</strong></td>
       <td>2026-09-12</td>
@@ -1330,350 +1479,350 @@ paid-refusal:fake-paid-provider:2026-09-13T04:33:21.395Z:1:da654c39-92e0-4cb0-90
   <table>
     <thead><tr><th>label</th><th>type</th><th>what</th><th>id</th><th>when</th></tr></thead>
     <tbody><tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.sites.list</td>
       <td><code>b53d43fb020c3daa</code></td>
       <td>2026-09-11T22:58:51.912Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.searchAnalytics.query:aggregate</td>
       <td><code>bb607c41cf0a2ce5</code></td>
       <td>2026-09-11T22:58:52.117Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-NOT_MEASURED" title="observation · observation.request-refused">NOT MEASURED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.searchAnalytics.query:control</td>
       <td><code>aba4aff1b049b881</code></td>
       <td>2026-09-11T22:58:52.483Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.searchAnalytics.query:by-page</td>
       <td><code>c1ade75f5707bbb8</code></td>
       <td>2026-09-11T22:58:52.489Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.sites.list</td>
       <td><code>df1e5200b1dc6fab</code></td>
       <td>2026-09-12T00:15:14.660Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.searchAnalytics.query:aggregate</td>
       <td><code>f294cb34162421cc</code></td>
       <td>2026-09-12T00:15:14.861Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-NOT_MEASURED" title="observation · observation.request-refused">NOT MEASURED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.searchAnalytics.query:control</td>
       <td><code>f2afedb7e11260a4</code></td>
       <td>2026-09-12T00:15:15.168Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.searchAnalytics.query:by-page</td>
       <td><code>73eadc8e01cd287b</code></td>
       <td>2026-09-12T00:15:15.175Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.sites.list</td>
       <td><code>1e2d5ec690b30bae</code></td>
       <td>2026-09-12T00:15:15.685Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="resighting · resighting.observation">OBSERVED</span></td>
       <td><code>resighting</code></td>
       <td class="wrap"></td>
       <td><code>f294cb34162421cc</code></td>
       <td>2026-09-12T00:15:15.892Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="resighting · resighting.observation">OBSERVED</span></td>
       <td><code>resighting</code></td>
       <td class="wrap"></td>
       <td><code>f2afedb7e11260a4</code></td>
       <td>2026-09-12T00:15:16.164Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="resighting · resighting.observation">OBSERVED</span></td>
       <td><code>resighting</code></td>
       <td class="wrap"></td>
       <td><code>73eadc8e01cd287b</code></td>
       <td>2026-09-12T00:15:16.173Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.sites.list</td>
       <td><code>e9fcace3798fffbf</code></td>
       <td>2026-09-12T00:16:19.426Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="resighting · resighting.observation">OBSERVED</span></td>
       <td><code>resighting</code></td>
       <td class="wrap"></td>
       <td><code>f294cb34162421cc</code></td>
       <td>2026-09-12T00:16:19.718Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="resighting · resighting.observation">OBSERVED</span></td>
       <td><code>resighting</code></td>
       <td class="wrap"></td>
       <td><code>f2afedb7e11260a4</code></td>
       <td>2026-09-12T00:16:20.027Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="resighting · resighting.observation">OBSERVED</span></td>
       <td><code>resighting</code></td>
       <td class="wrap"></td>
       <td><code>73eadc8e01cd287b</code></td>
       <td>2026-09-12T00:16:20.036Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="resighting · resighting.observation">OBSERVED</span></td>
       <td><code>resighting</code></td>
       <td class="wrap"></td>
       <td><code>e9fcace3798fffbf</code></td>
       <td>2026-09-12T00:16:20.518Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="resighting · resighting.observation">OBSERVED</span></td>
       <td><code>resighting</code></td>
       <td class="wrap"></td>
       <td><code>f294cb34162421cc</code></td>
       <td>2026-09-12T00:16:20.730Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="resighting · resighting.observation">OBSERVED</span></td>
       <td><code>resighting</code></td>
       <td class="wrap"></td>
       <td><code>f2afedb7e11260a4</code></td>
       <td>2026-09-12T00:16:20.994Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="resighting · resighting.observation">OBSERVED</span></td>
       <td><code>resighting</code></td>
       <td class="wrap"></td>
       <td><code>73eadc8e01cd287b</code></td>
       <td>2026-09-12T00:16:21.003Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="resighting · resighting.observation">OBSERVED</span></td>
       <td><code>resighting</code></td>
       <td class="wrap"></td>
       <td><code>e9fcace3798fffbf</code></td>
       <td>2026-09-12T00:36:17.340Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="resighting · resighting.observation">OBSERVED</span></td>
       <td><code>resighting</code></td>
       <td class="wrap"></td>
       <td><code>f294cb34162421cc</code></td>
       <td>2026-09-12T00:36:17.543Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.searchAnalytics.query:page-rows</td>
       <td><code>c1154a02cd5e4168</code></td>
       <td>2026-09-12T00:36:17.753Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="resighting · resighting.observation">OBSERVED</span></td>
       <td><code>resighting</code></td>
       <td class="wrap"></td>
       <td><code>f2afedb7e11260a4</code></td>
       <td>2026-09-12T00:36:17.856Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.searchAnalytics.query:by-page</td>
       <td><code>7232870b20c1c800</code></td>
       <td>2026-09-12T00:36:17.883Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.sites.list</td>
       <td><code>bfe6cd30454108c1</code></td>
       <td>2026-09-12T02:44:15.609Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="resighting · resighting.observation">OBSERVED</span></td>
       <td><code>resighting</code></td>
       <td class="wrap"></td>
       <td><code>f294cb34162421cc</code></td>
       <td>2026-09-12T02:44:15.820Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="resighting · resighting.observation">OBSERVED</span></td>
       <td><code>resighting</code></td>
       <td class="wrap"></td>
       <td><code>c1154a02cd5e4168</code></td>
       <td>2026-09-12T02:44:16.148Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.searchAnalytics.query:query</td>
       <td><code>0d0d33046335e0ba</code></td>
       <td>2026-09-12T02:44:16.363Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.searchAnalytics.query:query-page</td>
       <td><code>06767e89fbebf01e</code></td>
       <td>2026-09-12T02:44:16.540Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-NOT_MEASURED" title="observation · observation.request-refused">NOT MEASURED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.searchAnalytics.query:control</td>
       <td><code>58977f6f8ba1dc90</code></td>
       <td>2026-09-12T02:44:16.654Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="resighting · resighting.observation">OBSERVED</span></td>
       <td><code>resighting</code></td>
       <td class="wrap"></td>
       <td><code>7232870b20c1c800</code></td>
       <td>2026-09-12T02:44:16.687Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="resighting · resighting.observation">OBSERVED</span></td>
       <td><code>resighting</code></td>
       <td class="wrap"></td>
       <td><code>e9fcace3798fffbf</code></td>
       <td>2026-09-12T22:06:42.662Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.searchAnalytics.query:aggregate</td>
       <td><code>96ac9479e50cee08</code></td>
       <td>2026-09-12T22:06:43.095Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.searchAnalytics.query:page-rows</td>
       <td><code>9f8cbf772d1cd434</code></td>
       <td>2026-09-12T22:06:43.410Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.searchAnalytics.query:query</td>
       <td><code>309f8e48d99ca494</code></td>
       <td>2026-09-12T22:06:43.903Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.searchAnalytics.query:query-page</td>
       <td><code>8814d6fcf18a7b01</code></td>
       <td>2026-09-12T22:06:44.251Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.searchAnalytics.query:country</td>
       <td><code>edc55a6020d7d4a2</code></td>
       <td>2026-09-12T22:06:44.518Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.searchAnalytics.query:country-query</td>
       <td><code>432d3af69041f0ab</code></td>
       <td>2026-09-12T22:06:44.853Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-NOT_MEASURED" title="observation · observation.request-refused">NOT MEASURED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.searchAnalytics.query:control</td>
       <td><code>d1f40cd521a49ca9</code></td>
       <td>2026-09-12T22:06:45.111Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.searchAnalytics.query:by-page</td>
       <td><code>b750ce6ae484e841</code></td>
       <td>2026-09-12T22:06:45.147Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="resighting · resighting.observation">OBSERVED</span></td>
       <td><code>resighting</code></td>
       <td class="wrap"></td>
       <td><code>e9fcace3798fffbf</code></td>
       <td>2026-09-12T23:25:03.086Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.searchAnalytics.query:aggregate</td>
       <td><code>8c5f987dc5074cd5</code></td>
       <td>2026-09-12T23:25:03.347Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="we looked again on this date and the content was unchanged">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="resighting · resighting.observation">OBSERVED</span></td>
       <td><code>resighting</code></td>
       <td class="wrap"></td>
       <td><code>9f8cbf772d1cd434</code></td>
       <td>2026-09-12T23:25:03.652Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.searchAnalytics.query:query</td>
       <td><code>45ce21253a3fc58c</code></td>
       <td>2026-09-12T23:25:03.868Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.searchAnalytics.query:query-page</td>
       <td><code>c97334fdd102df8e</code></td>
       <td>2026-09-12T23:25:04.172Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.searchAnalytics.query:country</td>
       <td><code>59535dbde94fbacd</code></td>
       <td>2026-09-12T23:25:04.351Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.searchAnalytics.query:country-query</td>
       <td><code>9bf50cfb134a0d7d</code></td>
       <td>2026-09-12T23:25:04.608Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-NOT_MEASURED" title="observation · observation.request-refused">NOT MEASURED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.searchAnalytics.query:control</td>
       <td><code>9c282bcc255de82d</code></td>
       <td>2026-09-12T23:25:04.764Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">gsc.searchAnalytics.query:by-page</td>
       <td><code>f77bfd93a0370b97</code></td>
@@ -1689,350 +1838,350 @@ paid-refusal:fake-paid-provider:2026-09-13T04:33:21.395Z:1:da654c39-92e0-4cb0-90
   <table>
     <thead><tr><th>label</th><th>type</th><th>what</th><th>id</th><th>when</th></tr></thead>
     <tbody><tr>
-      <td><span class="lbl lbl-INFERRED" title="computed from the observations of one run, not measured directly">INFERRED</span></td>
+      <td><span class="lbl lbl-INFERRED" title="crawl_run · crawl_run">INFERRED</span></td>
       <td><code>crawl_run</code></td>
       <td class="wrap">512ddf710a7e2f39</td>
       <td><code>512ddf710a7e2f39</code></td>
       <td><span class="null" title="not measured">—</span></td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>81de8a37a17861e8</code></td>
       <td>2026-09-12T00:42:42.743Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>fe16bf0c821d847e</code></td>
       <td>2026-09-12T00:42:45.126Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>ad9bee34f12b05a6</code></td>
       <td>2026-09-12T00:42:45.898Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>5157357bd948a90f</code></td>
       <td>2026-09-12T00:42:46.919Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>a326d6e12f2e84ab</code></td>
       <td>2026-09-12T00:42:47.842Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>07daed64c6c80239</code></td>
       <td>2026-09-12T00:42:48.175Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>d9e22e94edab919b</code></td>
       <td>2026-09-12T00:42:49.978Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>ca8a97016419ddb6</code></td>
       <td>2026-09-12T00:42:50.898Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>186a1245afadfdd9</code></td>
       <td>2026-09-12T00:42:51.868Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>849417bd81582d4c</code></td>
       <td>2026-09-12T00:42:52.936Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>188b3ae980d4220e</code></td>
       <td>2026-09-12T00:42:53.320Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>80caf1128d729a9c</code></td>
       <td>2026-09-12T00:42:54.258Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>3d54cd11dc3d6f87</code></td>
       <td>2026-09-12T00:42:55.253Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>d90060b5635e695e</code></td>
       <td>2026-09-12T00:42:56.205Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>286015ebc2571c4a</code></td>
       <td>2026-09-12T00:42:57.220Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>1ec8e28a6fe1496d</code></td>
       <td>2026-09-12T00:42:58.276Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>fde1274f2263172d</code></td>
       <td>2026-09-12T00:43:00.552Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>e0b20c039149e85c</code></td>
       <td>2026-09-12T00:43:01.316Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>167dab3768ac2185</code></td>
       <td>2026-09-12T00:43:01.591Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>517c7132bfd0626d</code></td>
       <td>2026-09-12T00:43:03.342Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-NOT_MEASURED" title="observation · observation.skipped">NOT MEASURED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.skipped</td>
       <td><code>b80f51335c9d532a</code></td>
       <td>2026-09-12T00:43:03.462Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>b6981e66a486f116</code></td>
       <td>2026-09-12T00:43:03.730Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>28d0fcf9135785ee</code></td>
       <td>2026-09-12T00:43:04.772Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>e212cab6786cc429</code></td>
       <td>2026-09-12T00:43:05.716Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>9d57827c301f85df</code></td>
       <td>2026-09-12T00:43:06.602Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>59e816111fcb73a0</code></td>
       <td>2026-09-12T00:43:07.775Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>bee9446c65af488a</code></td>
       <td>2026-09-12T00:43:08.874Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>e24117d2c163af64</code></td>
       <td>2026-09-12T00:43:11.569Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>c0c72fbad998db69</code></td>
       <td>2026-09-12T00:43:12.137Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>656e9cb206089e85</code></td>
       <td>2026-09-12T00:43:12.864Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>dae82d3ee09d93a3</code></td>
       <td>2026-09-12T00:43:13.810Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>a586285acd9a8646</code></td>
       <td>2026-09-12T00:43:14.877Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>b219014f5a1befe7</code></td>
       <td>2026-09-12T00:43:15.827Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>c66c7299c93e5379</code></td>
       <td>2026-09-12T00:43:16.841Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>c097b22c80cf8688</code></td>
       <td>2026-09-12T00:43:19.169Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>9120e6f43a88a049</code></td>
       <td>2026-09-12T00:43:19.950Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>b20aeadacab9cbf3</code></td>
       <td>2026-09-12T00:43:20.545Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>b62ad02430f2bd08</code></td>
       <td>2026-09-12T00:43:21.309Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>912503582770b6f6</code></td>
       <td>2026-09-12T00:43:22.307Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>73d45a9964d8bd0e</code></td>
       <td>2026-09-12T00:43:23.385Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>5cd98710f0d2523f</code></td>
       <td>2026-09-12T00:43:24.308Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>2fef055fa9b6021c</code></td>
       <td>2026-09-12T00:43:25.316Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>fb8b25ef38482dfb</code></td>
       <td>2026-09-12T00:43:26.295Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>85e0de8e23d97818</code></td>
       <td>2026-09-12T00:43:27.292Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>3b81a698d79097b4</code></td>
       <td>2026-09-12T00:43:28.359Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>11cad430c8311dec</code></td>
       <td>2026-09-12T00:43:29.345Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>90a91ff3268081a9</code></td>
       <td>2026-09-12T00:43:30.406Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>3f977d36c6b96b92</code></td>
       <td>2026-09-12T00:43:31.346Z</td>
     </tr>
 <tr>
-      <td><span class="lbl lbl-OBSERVED" title="measured, with a content hash and a timestamp">OBSERVED</span></td>
+      <td><span class="lbl lbl-OBSERVED" title="observation · observation">OBSERVED</span></td>
       <td><code>observation</code></td>
       <td class="wrap">crawl.fetch</td>
       <td><code>272247b8eaa7a0c5</code></td>
@@ -2042,7 +2191,7 @@ paid-refusal:fake-paid-provider:2026-09-13T04:33:21.395Z:1:da654c39-92e0-4cb0-90
 </section>
 
 <footer>
-  <p>Generated 2026-09-14T05:08:37.525Z from the evidence store.</p>
+  <p>Generated 2026-10-07T03:20:57.681Z from the evidence store.</p>
   <p><strong>Read-only</strong> — this page has no action, no form and no write path of any kind.</p>
   <p>🔴 This is one report page, not a dashboard (V5.1 §62). It states what it covers and what it does not.</p>
 </footer>

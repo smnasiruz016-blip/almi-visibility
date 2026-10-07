@@ -96,14 +96,15 @@ test("🔴 no supply label emits a recommendation, an action, or a demand claim"
   }
 });
 
-test("🔴 the thin label prints its own floor beside the count (LAW-BOUND-1)", async () => {
+/* RR-194 · T-2 (RTP-1 S10, P20, P21; PG-A1): version 2 decides nothing on 350 / 0.9 / 0.75 — the same fixture now records a REVIEW SIGNAL (UNKNOWN, its value carried in `signal`), never a FAIL */
+test("🔴 the thin signal prints its own bound beside the count (LAW-BOUND-1)", async () => {
   const f = await THIN_CONTENT.run({
     page: { canonical_url: "https://e.example.com/a" },
     observations: OBS,
     siteContext: CTX({ bodyHtml: shellHeavy(words(40)) }),
   });
-  assert.equal(f.verdict, "FAIL");
-  assert.match(f.summary, new RegExp(`bound: floor=${THIN_UNIQUE_WORD_FLOOR}`));
+  assert.deepEqual([f.verdict, f.signal.bound], ["UNKNOWN", THIN_UNIQUE_WORD_FLOOR]);
+  assert.match(f.summary, new RegExp(`review signal: ${THIN_UNIQUE_WORD_FLOOR}`));
 });
 
 test("CONTROL: the SAME shell with a large body does NOT fire — the shell is subtracted, not counted", async () => {
@@ -124,9 +125,12 @@ const real = existsSync(REAL)
   ? readFileSync(REAL, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l))
   : [];
 
-test("🔴 REAL: 550 findings over the real corpus, and not one carries a demand claim", { skip: !real.length }, () => {
-  assert.equal(real.length, 550);
-  for (const f of real) {
+/* RR-195: 550 → 790 records — the 15 named T-2 runs appended 120 version-2 replacements and 120 state changes (append-only; the 550
+ * stand as written). Findings are the issue records; a state change's `action` names the act that moved a finding, not a recommendation. */
+test("🔴 REAL: 790 records (550 findings of the corpus run + 240 of the T-2 re-assessment), and not one finding carries a demand claim", { skip: !real.length }, () => {
+  assert.equal(real.length, 790);
+  assert.deepEqual([real.filter((f) => f.record_type === "issue").length, real.filter((f) => f.record_type === "issue_state_change").length], [670, 120]);
+  for (const f of real.filter((x) => x.record_type === "issue")) {
     for (const field of RECOMMENDATION_FIELDS) {
       assert.ok(!(field in f), `${f.issue_class} on ${f.canonical_url} emitted "${field}"`);
     }
@@ -147,15 +151,20 @@ test("🔴 REAL: 550 findings over the real corpus, and not one carries a demand
  * A lone counter has nothing to be wrong against. So the two are pinned here.
  */
 test("🔴 REAL: the thin census and the thin CHECK agree — 118 either way", { skip: !real.length }, () => {
+  /* RR-195: the census recorded 118 version-1 thin FAILs; each is now SUPERSEDED by a version-2 review signal (none left OPEN) */
   const thinFails = real.filter((f) => f.issue_class === "thin-content" && f.verdict === "FAIL").length;
   assert.equal(thinFails, 118, "the real corpus holds 118 thin pages; if this moved, re-run the census");
+  const moved = new Set(real.filter((f) => f.record_type === "issue_state_change" && f.to === "SUPERSEDED").map((f) => f.issue_id));
+  assert.equal(real.filter((f) => f.issue_class === "thin-content" && f.verdict === "FAIL" && !moved.has(f.issue_id)).length, 0, "a version-1 thin FAIL is still OPEN");
 });
 
 test("🔴 REAL: every UNKNOWN carries a reason — 'we could not see it' is never 'it is not there'", { skip: !real.length }, () => {
+  /* RR-195: 324 could-not-answer UNKNOWNs (each a reason code) + 120 version-2 REVIEW SIGNALS (each a measured value and its recorded
+   * justification) — both say what was or was not seen; none is silent */
   const unknowns = real.filter((f) => f.verdict === "UNKNOWN");
-  assert.equal(unknowns.length, 324);
+  assert.deepEqual([unknowns.length, unknowns.filter((u) => u.reason_code).length, unknowns.filter((u) => u.signal).length], [444, 324, 120]);
   for (const u of unknowns) {
-    assert.ok(u.reason_code, `${u.issue_class} on ${u.canonical_url} is UNKNOWN with no reason code`);
+    assert.ok(u.reason_code || (u.signal && Number.isFinite(u.signal.value) && u.signal.justification), `${u.issue_class} on ${u.canonical_url} is UNKNOWN with neither a reason code nor a measured review signal`);
   }
   const byReason = {};
   for (const u of unknowns) byReason[u.reason_code] = (byReason[u.reason_code] ?? 0) + 1;

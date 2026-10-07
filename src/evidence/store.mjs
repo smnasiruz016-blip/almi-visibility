@@ -42,6 +42,8 @@
 import { appendFileSync, readFileSync, existsSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
+import { markReadFrom } from "./provenance.mjs";
+
 /**
  * The verbs a store may expose. C2's test compares against this exact list.
  *
@@ -278,7 +280,8 @@ export function createJsonlStore(filePath) {
       .filter((l) => l.trim() !== "")
       .map((l, i) => {
         try {
-          return JSON.parse(l);
+          /* RR-196: each record remembers the store it was read from (src/evidence/provenance.mjs) — a fact about the object */
+          return markReadFrom(JSON.parse(l), filePath);
         } catch (err) {
           // 🔴 Names the LINE. A corrupt evidence file that reports only "bad
           // JSON" is a file nobody can repair without re-running the ingest.

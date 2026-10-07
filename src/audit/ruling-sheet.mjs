@@ -32,6 +32,7 @@
 
 import { UNCLASSIFIED, consequenceFor, orderByConsequence } from "./consequence.mjs";
 import { classOf, splitView, isUnmeasured, coverageClassesOf } from "./class-split.mjs";
+import { signalsForClass } from "./populations.mjs";
 
 const COUNT_FIELDS = Object.freeze(["distinct", "open", "raw", "notRun"]);
 
@@ -77,10 +78,12 @@ export function buildRulingSheet({ files, register, unreachable = {}, scale, spl
   // 🔴 Option A (owner, 14 Sep 2026): a decision on record and the audit trail are not findings either — each apart.
   const measureOf = new Map(Object.values(splits ?? {}).flatMap((s) => s.halves.map((h) => [h.class, h.measures])));
   const ofMeasure = (m) => [...byClass.keys()].filter((k) => measureOf.get(k) === m).sort();
+  /* 🔴 RR-196: a decision whose records carry a measured REVIEW SIGNAL keeps EVERY page and its value visible on the sheet — one row per
+   * distinct issue, read from its first stored copy, never summarised away. A decision with no signal (noindex) lists none. */
   const decisionRows = ofMeasure("decision").map((issue_class) => {
     const e = byClass.get(issue_class);
     const d = decisions?.[issue_class];
-    return { issue_class, splitFrom: d?.splitFrom ?? null, count: e.ids.size, open: [...e.ids].filter((id) => view.get(id).state === "OPEN").length, raw: e.raw, decided: d?.decided ?? null, notEstablished: d?.notEstablished ?? null, awaits: d?.awaits ?? null };
+    return { issue_class, splitFrom: d?.splitFrom ?? null, count: e.ids.size, open: [...e.ids].filter((id) => view.get(id).state === "OPEN").length, raw: e.raw, decided: d?.decided ?? null, notEstablished: d?.notEstablished ?? null, awaits: d?.awaits ?? null, signals: signalsForClass(issue_class, { view, records: all }) };
   });
   const auditRows = ofMeasure("withdrawn").map((issue_class) => {
     const e = byClass.get(issue_class);
@@ -318,6 +321,15 @@ export function renderRulingSheet(sheet) {
   L.push("|---|---|---|---|---|---|---|---|");
   for (const d of sheet.decisions) L.push(`| \`${d.issue_class}\` | ${d.splitFrom ? `\`${d.splitFrom}\`` : "—"} | ${d.count} | ${d.open} | ${d.raw} | ${d.decided ?? "🔴 no entry"} | ${d.notEstablished ?? "🔴 no entry"} | ${d.awaits ? `\`${d.awaits}\`` : "🔴 none"} |`);
   L.push("");
+  /* RR-196: every page a review signal names, with its measured value — the decision's own evidence, visible */
+  for (const d of sheet.decisions.filter((x) => (x.signals ?? []).length)) {
+    L.push(`### \`${d.issue_class}\` — every page and its measured signal (${d.signals.length}); the value decides nothing (${d.awaits ?? "—"})`);
+    L.push("");
+    L.push("| page (target_page_id) | signal | measured value | review bound | state |");
+    L.push("|---|---|---|---|---|");
+    for (const s of d.signals) L.push(`| \`${s.target_page_id}\` | ${s.signal} | ${s.value} | ${s.bound} | ${s.state} |`);
+    L.push("");
+  }
   L.push("## Part F — THE AUDIT TRAIL: claims withdrawn as wrong. History, never live");
   L.push("");
   L.push("| class | split from | issues | states | raw | why it was withdrawn |");

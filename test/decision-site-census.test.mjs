@@ -75,5 +75,8 @@ test("🔴 THE TOTAL IS MEASURED, AND IT IS NOT 102 — the 102 added files to r
   assert.equal(sealedRows, 3, "the sealed rows are not the case-study row plus F10's two sealed sets");
   assert.equal(EVIDENCE_ROLE_REGISTRY.filter((e) => e.sealed && e.resource?.root === "engine").length, 1, "the 61 sealed FILES are governed by one registry row, not sixty");
   assert.ok(byFamily.SEALED > sealedRows, "the sealed rule is enforced at more sites than it has rows");
-  assert.notEqual(real.total, 102);
+  /* RR-194 (7 Oct 2026): the MEASURED total reached 102 — 101 on main e45943f9 plus the one WRITE_GATE site of the new entry point
+   * bin/t2-reassess.mjs — so "not 102" stopped telling a measurement from the old figure. The old 102 was a sum of files, rows and sites;
+   * the guard now asserts what that sum never was: the total IS the count of measured decision sites. */
+  assert.equal(real.total, real.sites.length, "the total is not the count of measured sites");
 });

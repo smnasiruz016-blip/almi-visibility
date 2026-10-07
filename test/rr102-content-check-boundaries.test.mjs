@@ -60,18 +60,19 @@ const PAIRS = {
       [dup([["h1", [P, Q]]]), dup([["h1", [P, P]]])],
     ],
   },
+  /* RR-194 · T-2: version 2's condition ids — the same lines, now each records a REVIEW SIGNAL (UNKNOWN), never a FAIL */
   "thin-content": {
-    "below-unique-word-floor": [[thin(THIN_UNIQUE_WORD_FLOOR - 1), thin(THIN_UNIQUE_WORD_FLOOR)]],
+    "below-unique-word-review-signal": [[thin(THIN_UNIQUE_WORD_FLOOR - 1), thin(THIN_UNIQUE_WORD_FLOOR)]],
   },
   "near-duplicate": {
-    "body-similarity-at-or-above-threshold": [
+    "body-similarity-at-or-above-review-signal": [
       [near(90), near(89)],
       /* an identical peer at this page's OWN url is skipped */
       [near(100, Q), near(100, P)],
     ],
   },
   "template-dominance": {
-    "shell-share-at-or-above-threshold": [[tmpl(75, 25), tmpl(74, 26)]],
+    "shell-share-at-or-above-review-signal": [[tmpl(75, 25), tmpl(74, 26)]],
   },
 };
 
@@ -95,19 +96,23 @@ test("DRIFT GUARD: each content check's declared conditions and the proved pairs
   }
 });
 
-test("DRIFT GUARD: each declared threshold is the LIVE constant the code compares against", () => {
+/* RR-194 · T-2: the declared condition is now a REVIEW SIGNAL's — the live constant still sits in it, on both sides of the line */
+test("DRIFT GUARD: each declared review signal is the LIVE constant the code compares against, and says it is never a FAIL", () => {
   const when = (id) => CHECKS.get(id).boundary.fires[0].when;
-  assert.match(when("thin-content"), new RegExp(`below ${THIN_UNIQUE_WORD_FLOOR} \\(void at ${THIN_UNIQUE_WORD_FLOOR} or more\\)`));
-  assert.match(when("near-duplicate"), new RegExp(`is ${NEAR_DUPLICATE_THRESHOLD} or more \\(void below ${NEAR_DUPLICATE_THRESHOLD}\\)`));
-  assert.match(when("template-dominance"), new RegExp(`is ${TEMPLATE_DOMINANCE_THRESHOLD} or more of the page's words \\(void below ${TEMPLATE_DOMINANCE_THRESHOLD}\\)`));
+  assert.match(when("thin-content"), new RegExp(`below the ${THIN_UNIQUE_WORD_FLOOR}-word review signal .*never a FAIL \\(void at ${THIN_UNIQUE_WORD_FLOOR} or more\\)`));
+  assert.match(when("near-duplicate"), new RegExp(`at or above the ${NEAR_DUPLICATE_THRESHOLD} review signal .*never a FAIL \\(void below ${NEAR_DUPLICATE_THRESHOLD}\\)`));
+  assert.match(when("template-dominance"), new RegExp(`at or above the ${TEMPLATE_DOMINANCE_THRESHOLD} review signal of the page's words .*never a FAIL \\(void below ${TEMPLATE_DOMINANCE_THRESHOLD}\\)`));
 });
 
+/* RR-194 · T-2: exact-duplicate still FAILs; the three version-2 checks "fire" by recording a REVIEW SIGNAL — UNKNOWN, its value carried */
+const T2 = new Set(["thin-content", "near-duplicate", "template-dominance"]);
 for (const id of F90_CONTENT_DETECTORS) {
   test(`BOTH DIRECTIONS · ${id}: just inside each declared condition it fires; just outside it does not`, async () => {
     for (const [cond, pairs] of Object.entries(PAIRS[id])) {
       for (const [inside, outside] of pairs) {
         const hit = await run(id, inside);
-        assert.equal(hit?.verdict, "FAIL", `${id} · ${cond}: just inside the boundary it did not fire`);
+        assert.equal(hit?.verdict, T2.has(id) ? "UNKNOWN" : "FAIL", `${id} · ${cond}: just inside the boundary it did not fire`);
+        if (T2.has(id)) assert.ok(hit.signal && hit.signal.decides === "nothing", `${id} · ${cond}: fired without its review signal`);
         /* F90: the finding names this check, stamped with the check's DECLARED live version — the stamp and the declaration cannot drift */
         assert.equal(hit.detector, id, `${id} · ${cond}: the finding names another detector`);
         assert.equal(hit.detector_version, CHECKS.get(id).version, `${id} · ${cond}: run() stamps a version other than the declared one`);
@@ -128,7 +133,10 @@ test("an UNMEASURED input is never a finding across the boundary: a missing hash
   const empty = `<html><body><nav>${ws(80, "s")}</nav><main></main></body></html>`;
   for (const id of ["thin-content", "near-duplicate", "template-dominance"]) {
     for (const bodyHtml of [null, unrecognised, empty]) {
-      assert.equal((await run(id, { siteContext: ctx({ bodyHtml, peers: [{ url: Q, shingles: new Set(MINE) }] }) }))?.verdict, "UNKNOWN", `${id} on ${bodyHtml === null ? "no body" : "an unconfident split"}`);
+      const u = await run(id, { siteContext: ctx({ bodyHtml, peers: [{ url: Q, shingles: new Set(MINE) }] }) });
+      assert.equal(u?.verdict, "UNKNOWN", `${id} on ${bodyHtml === null ? "no body" : "an unconfident split"}`);
+      /* RR-194 · T-2: a could-not-answer UNKNOWN is never mistaken for a review signal — it carries a reason code and no signal */
+      assert.ok(u.reason_code && u.signal === undefined, `${id}: an unmeasured input was recorded as a review signal`);
     }
   }
 });

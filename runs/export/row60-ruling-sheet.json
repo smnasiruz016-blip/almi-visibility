@@ -1,7 +1,7 @@
 {
   "_provenance": {
     "title": "AlmiVisibility — row 60 consequence sheet",
-    "generatedAt": "2026-09-20T19:52:37.746Z",
+    "generatedAt": "2026-10-07T02:19:00.230Z",
     "generatedBy": "bin/row60-ruling-sheet.mjs",
     "covers": [
       "every finding class present on an issue record in the files listed under `sources`, as config/class-splits.mjs counts it",
@@ -37,9 +37,9 @@
     },
     {
       "file": "runs/audit/content-findings.jsonl",
-      "records": 471,
-      "issueRecords": 471,
-      "stateChanges": 0,
+      "records": 721,
+      "issueRecords": 596,
+      "stateChanges": 125,
       "recommendations": 0
     },
     {
@@ -79,9 +79,9 @@
     },
     {
       "file": "runs/audit/supply-labels.jsonl",
-      "records": 550,
-      "issueRecords": 550,
-      "stateChanges": 0,
+      "records": 790,
+      "issueRecords": 670,
+      "stateChanges": 120,
       "recommendations": 0
     },
     {
@@ -294,20 +294,6 @@
       "ruledOn": "2026-09-14"
     },
     {
-      "issue_class": "near-duplicate-found",
-      "what": "the near-duplicate check ran and found a page's body highly similar to a sibling page's",
-      "splitFrom": "near-duplicate",
-      "distinct": 5,
-      "open": 5,
-      "raw": 5,
-      "notRun": 0,
-      "ruled": {},
-      "level": "MODERATE",
-      "escalatedFrom": null,
-      "ruledBy": "owner",
-      "ruledOn": "2026-09-14"
-    },
-    {
       "issue_class": "official-source-contradicts-itself",
       "what": "an official source states two things about the same fact that disagree",
       "splitFrom": null,
@@ -362,34 +348,6 @@
       "escalatedFrom": null,
       "ruledBy": "owner",
       "ruledOn": "2026-09-14"
-    },
-    {
-      "issue_class": "template-dominance-found",
-      "what": "the template-dominance check ran and found the shared shell making up most of a page's words",
-      "splitFrom": "template-dominance",
-      "distinct": 2,
-      "open": 2,
-      "raw": 4,
-      "notRun": 0,
-      "ruled": {},
-      "level": "MODERATE",
-      "escalatedFrom": null,
-      "ruledBy": "owner",
-      "ruledOn": "2026-09-14"
-    },
-    {
-      "issue_class": "thin-content-found",
-      "what": "the thin-content check ran and found fewer unique body words than the floor after the shell is subtracted",
-      "splitFrom": "thin-content",
-      "distinct": 118,
-      "open": 118,
-      "raw": 236,
-      "notRun": 0,
-      "ruled": {},
-      "level": "MODERATE",
-      "escalatedFrom": null,
-      "ruledBy": "owner",
-      "ruledOn": "2026-09-14"
     }
   ],
   "order": {
@@ -397,98 +355,77 @@
       {
         "id": "exact-duplicate",
         "rank": 1,
-        "of": 14,
+        "of": 11,
         "level": "HIGH",
         "volume": 106
       },
       {
         "id": "host-publishes-no-a-record",
         "rank": 2,
-        "of": 14,
+        "of": 11,
         "level": "HIGH",
         "volume": 1
       },
       {
         "id": "official-source-contradicts-itself",
         "rank": 3,
-        "of": 14,
+        "of": 11,
         "level": "HIGH",
         "volume": 1
       },
       {
         "id": "instrument-disagreement",
         "rank": 4,
-        "of": 14,
+        "of": 11,
         "level": "HIGH",
         "volume": 0
       },
       {
         "id": "indexability-preflight-found",
         "rank": 5,
-        "of": 14,
+        "of": 11,
         "level": "MODERATE",
         "volume": 158
       },
       {
-        "id": "thin-content-found",
-        "rank": 6,
-        "of": 14,
-        "level": "MODERATE",
-        "volume": 118
-      },
-      {
         "id": "robots-blocks-search-crawler",
-        "rank": 7,
-        "of": 14,
+        "rank": 6,
+        "of": 11,
         "level": "MODERATE",
         "volume": 106
       },
       {
-        "id": "near-duplicate-found",
-        "rank": 8,
-        "of": 14,
-        "level": "MODERATE",
-        "volume": 5
-      },
-      {
-        "id": "template-dominance-found",
-        "rank": 9,
-        "of": 14,
-        "level": "MODERATE",
-        "volume": 2
-      },
-      {
         "id": "commencement-date-ambiguous-against-source",
-        "rank": 10,
-        "of": 14,
+        "rank": 7,
+        "of": 11,
         "level": "MODERATE",
         "volume": 1
       },
       {
         "id": "head-elements",
-        "rank": 11,
-        "of": 14,
+        "rank": 8,
+        "of": 11,
         "level": "LOW",
         "volume": 18
       },
       {
         "id": "status-and-redirects",
-        "rank": 12,
-        "of": 14,
+        "rank": 9,
+        "of": 11,
         "level": "LOW",
         "volume": 7
       },
       {
         "id": "canonical",
-        "rank": 13,
-        "of": 14,
+        "rank": 10,
+        "of": 11,
         "level": "LOW",
         "volume": 6
       },
       {
         "id": "query-parameters",
-        "rank": 14,
-        "of": 14,
+        "rank": 11,
+        "of": 11,
         "level": "LOW",
         "volume": 1
       }
@@ -562,6 +499,58 @@
   ],
   "decisions": [
     {
+      "issue_class": "near-duplicate-review-signal",
+      "splitFrom": "near-duplicate",
+      "count": 5,
+      "open": 5,
+      "raw": 5,
+      "decided": "PG-A1 (owner): body similarity to a sibling page no longer decides anything (RTP-1 S10); the 15 named T-2 runs (RR-195) superseded every version-1 FAIL by a version-2 review signal that keeps the page and its measured value, labelled",
+      "notEstablished": "Whether any of these pages fails its need is NOT established by the number: completeness is judged for a need (P21), by a human, page by page",
+      "awaits": "PG-A1",
+      "signals": [
+        {
+          "target_page_id": "70dd4bdbfdbfeb43",
+          "issue_id": "404a4acc82050ca6",
+          "signal": "body-similarity",
+          "value": 0.903,
+          "bound": 0.9,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "c55222edeb1a7f19",
+          "issue_id": "c73cf860446c910b",
+          "signal": "body-similarity",
+          "value": 0.908,
+          "bound": 0.9,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "d2098da6971dafa4",
+          "issue_id": "30aa6be8c7ef8f75",
+          "signal": "body-similarity",
+          "value": 0.908,
+          "bound": 0.9,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "d6416221c5fb5823",
+          "issue_id": "3df1fb79dfedc6cf",
+          "signal": "body-similarity",
+          "value": 0.911,
+          "bound": 0.9,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "e56cb84e1c8ef1a6",
+          "issue_id": "d2852ae3a44f35bf",
+          "signal": "body-similarity",
+          "value": 0.911,
+          "bound": 0.9,
+          "state": "OPEN"
+        }
+      ]
+    },
+    {
       "issue_class": "noindex-declared-deliberate",
       "splitFrom": "noindex",
       "count": 134,
@@ -569,10 +558,1005 @@
       "raw": 134,
       "decided": "to de-index these cv-guide pages deliberately: noindex, correctly configured and crawlable, keyed on a country-verification gate (commit 50f8c20, as the review record reads)",
       "notEstablished": "Whether it is still the right rule is UNKNOWN from our evidence: the premise it cites is not confirmed by our similarity measurement. Owner's decision: REC-NOINDEX-CV-GUIDE.",
-      "awaits": "REC-NOINDEX-CV-GUIDE"
+      "awaits": "REC-NOINDEX-CV-GUIDE",
+      "signals": []
+    },
+    {
+      "issue_class": "template-dominance-review-signal",
+      "splitFrom": "template-dominance",
+      "count": 2,
+      "open": 2,
+      "raw": 4,
+      "decided": "PG-A1 (owner): the shell's share of a page's words no longer decides anything (RTP-1 S10); the 15 named T-2 runs (RR-195) superseded every version-1 FAIL by a version-2 review signal that keeps the page and its measured value, labelled",
+      "notEstablished": "Whether any of these pages fails its need is NOT established by the number: completeness is judged for a need (P21), by a human, page by page",
+      "awaits": "PG-A1",
+      "signals": [
+        {
+          "target_page_id": "1ae7229a4c6c63cd",
+          "issue_id": "1f74d7f47bd82fba",
+          "signal": "shell-share",
+          "value": 0.76,
+          "bound": 0.75,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "6dbc913d781d447e",
+          "issue_id": "796f70eaef2e93c1",
+          "signal": "shell-share",
+          "value": 0.96,
+          "bound": 0.75,
+          "state": "OPEN"
+        }
+      ]
+    },
+    {
+      "issue_class": "thin-content-review-signal",
+      "splitFrom": "thin-content",
+      "count": 118,
+      "open": 118,
+      "raw": 236,
+      "decided": "PG-A1 (owner): the count of unique body words no longer decides anything (RTP-1 S10); the 15 named T-2 runs (RR-195) superseded every version-1 FAIL by a version-2 review signal that keeps the page and its measured value, labelled",
+      "notEstablished": "Whether any of these pages fails its need is NOT established by the number: completeness is judged for a need (P21), by a human, page by page",
+      "awaits": "PG-A1",
+      "signals": [
+        {
+          "target_page_id": "0062d5f3e556b0de",
+          "issue_id": "81d4e4a31ca2d366",
+          "signal": "unique-body-words",
+          "value": 206,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "031b6876cda8cf9b",
+          "issue_id": "197600de1ab17073",
+          "signal": "unique-body-words",
+          "value": 256,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "0374fe0a482873c7",
+          "issue_id": "f2c6a3a64fb4470d",
+          "signal": "unique-body-words",
+          "value": 347,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "080cc740ee5c6b1c",
+          "issue_id": "e350dc9410cd69c1",
+          "signal": "unique-body-words",
+          "value": 204,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "0885500bd0856856",
+          "issue_id": "8fd12f35298ce34c",
+          "signal": "unique-body-words",
+          "value": 101,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "0b78c4df190a4246",
+          "issue_id": "9a2a43b3d08e329b",
+          "signal": "unique-body-words",
+          "value": 86,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "0cc3b6f139176072",
+          "issue_id": "8a80652e5c1bf056",
+          "signal": "unique-body-words",
+          "value": 200,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "0e420312cbd16341",
+          "issue_id": "30aab9f5486c8f7c",
+          "signal": "unique-body-words",
+          "value": 344,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "11db5c8ea6ffa35c",
+          "issue_id": "389b43c9a09dc865",
+          "signal": "unique-body-words",
+          "value": 328,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "13115853f5c75828",
+          "issue_id": "6336eff78a6d6956",
+          "signal": "unique-body-words",
+          "value": 340,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "1ad3b4b025dbc0e2",
+          "issue_id": "e948a80a1feb5190",
+          "signal": "unique-body-words",
+          "value": 311,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "1ae7229a4c6c63cd",
+          "issue_id": "93fa983d505fa75d",
+          "signal": "unique-body-words",
+          "value": 29,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "1f6a3ad5e4767e07",
+          "issue_id": "0b4ba9537cb1fa52",
+          "signal": "unique-body-words",
+          "value": 257,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "212c7ca84b65e467",
+          "issue_id": "8b56c517c80f7589",
+          "signal": "unique-body-words",
+          "value": 101,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "23fb5f51e14eb009",
+          "issue_id": "7998de517dcb3cd8",
+          "signal": "unique-body-words",
+          "value": 232,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "25066b5ff14ee813",
+          "issue_id": "2c1a81f748d54afb",
+          "signal": "unique-body-words",
+          "value": 215,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "28c24ba38dd43a5f",
+          "issue_id": "9a1e2118cec03f98",
+          "signal": "unique-body-words",
+          "value": 233,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "2d6cf82a519a04fb",
+          "issue_id": "6eecb1432b5118c9",
+          "signal": "unique-body-words",
+          "value": 286,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "2f7b78d64fe81454",
+          "issue_id": "28cbb1e68f17c36e",
+          "signal": "unique-body-words",
+          "value": 215,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "3189e740766271e8",
+          "issue_id": "3efaa7de974dbbbf",
+          "signal": "unique-body-words",
+          "value": 333,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "35776a8334251d9c",
+          "issue_id": "15f92ba63be7397f",
+          "signal": "unique-body-words",
+          "value": 162,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "37e9bc34915ec485",
+          "issue_id": "fc31c74d27c75fad",
+          "signal": "unique-body-words",
+          "value": 252,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "3cdcc32d3aa6a001",
+          "issue_id": "e777079d4a076112",
+          "signal": "unique-body-words",
+          "value": 277,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "3ce9e2e497d4859b",
+          "issue_id": "e7a93924c0bd173c",
+          "signal": "unique-body-words",
+          "value": 114,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "424114372a159300",
+          "issue_id": "b66884d7edf10eaa",
+          "signal": "unique-body-words",
+          "value": 174,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "42de49ceb98cad8f",
+          "issue_id": "342bb40c50677781",
+          "signal": "unique-body-words",
+          "value": 230,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "42f94d2e797c14a5",
+          "issue_id": "4ed596d5fecfe504",
+          "signal": "unique-body-words",
+          "value": 314,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "45ee54cd2a3c9206",
+          "issue_id": "5e4f530f1f28f183",
+          "signal": "unique-body-words",
+          "value": 101,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "46ede219a1fa4651",
+          "issue_id": "79d1b4f25a9c6764",
+          "signal": "unique-body-words",
+          "value": 162,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "48dda615cecaef4e",
+          "issue_id": "ec1f7f24489d9809",
+          "signal": "unique-body-words",
+          "value": 276,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "49769c9983efa118",
+          "issue_id": "46742c4b5bf0e174",
+          "signal": "unique-body-words",
+          "value": 101,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "49fcc296f36d5f1a",
+          "issue_id": "2709bd9b8a00640c",
+          "signal": "unique-body-words",
+          "value": 311,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "4d97e41599d93994",
+          "issue_id": "6930fd8b9d6a6f20",
+          "signal": "unique-body-words",
+          "value": 217,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "4de2148110a83e97",
+          "issue_id": "6c09853b36872323",
+          "signal": "unique-body-words",
+          "value": 204,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "51d28730a20ba7e7",
+          "issue_id": "f207179ba30fe922",
+          "signal": "unique-body-words",
+          "value": 186,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "54e7b47bbc67a448",
+          "issue_id": "fffbc66c510c8594",
+          "signal": "unique-body-words",
+          "value": 212,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "5642e98154f9d14b",
+          "issue_id": "3254eaed58226b05",
+          "signal": "unique-body-words",
+          "value": 318,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "5709ba906e254d40",
+          "issue_id": "f42236574d8f91d6",
+          "signal": "unique-body-words",
+          "value": 206,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "5902bc0f841038e0",
+          "issue_id": "bc2944fd785e8240",
+          "signal": "unique-body-words",
+          "value": 346,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "5b205913c59484ed",
+          "issue_id": "0b14bbc95ec0079d",
+          "signal": "unique-body-words",
+          "value": 86,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "5e8fed8b809493be",
+          "issue_id": "79186cc23f0dc6ef",
+          "signal": "unique-body-words",
+          "value": 101,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "603d69707f730c7a",
+          "issue_id": "c79b523c8c082679",
+          "signal": "unique-body-words",
+          "value": 222,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "61740f300e53a128",
+          "issue_id": "0d89bd4c7d123cd0",
+          "signal": "unique-body-words",
+          "value": 205,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "61a8f910901b13c4",
+          "issue_id": "95eaa718446dc4de",
+          "signal": "unique-body-words",
+          "value": 200,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "644006003ef4349a",
+          "issue_id": "6c4db83485a7ea55",
+          "signal": "unique-body-words",
+          "value": 199,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "67863f818cb3da4f",
+          "issue_id": "52b2bf0ea808907b",
+          "signal": "unique-body-words",
+          "value": 205,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "67ce1a8bd57df8b5",
+          "issue_id": "ff8ea0b79f527974",
+          "signal": "unique-body-words",
+          "value": 191,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "685b569c81f15063",
+          "issue_id": "4529b119c7adcdff",
+          "signal": "unique-body-words",
+          "value": 347,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "6ac6b0e5c74a043f",
+          "issue_id": "4ed08edc8150a618",
+          "signal": "unique-body-words",
+          "value": 329,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "6ae6ab307bacd9f9",
+          "issue_id": "878008af12dc3960",
+          "signal": "unique-body-words",
+          "value": 323,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "6dbc913d781d447e",
+          "issue_id": "b47e1d5ebd2c47c3",
+          "signal": "unique-body-words",
+          "value": 14,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "709c97b4be9b5fda",
+          "issue_id": "7f19e5a6bf9db043",
+          "signal": "unique-body-words",
+          "value": 266,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "718d8914ee85adeb",
+          "issue_id": "fc24b806d396b581",
+          "signal": "unique-body-words",
+          "value": 215,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "73c2ef80f43d620b",
+          "issue_id": "20ff38cb2471cf72",
+          "signal": "unique-body-words",
+          "value": 199,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "75290a39889ba930",
+          "issue_id": "93980306b402b65d",
+          "signal": "unique-body-words",
+          "value": 67,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "78772aa7baba8950",
+          "issue_id": "7ec7b544aa148f80",
+          "signal": "unique-body-words",
+          "value": 346,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "78a51f495b2f4572",
+          "issue_id": "a12449a48b415f56",
+          "signal": "unique-body-words",
+          "value": 293,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "796cb0ca5942711a",
+          "issue_id": "0df64a19f7ff4a73",
+          "signal": "unique-body-words",
+          "value": 196,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "7a7484eb48c69d0a",
+          "issue_id": "eee36e4967d6c9f3",
+          "signal": "unique-body-words",
+          "value": 267,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "7a9d83b79385be20",
+          "issue_id": "7bb18f491667ad5b",
+          "signal": "unique-body-words",
+          "value": 162,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "8607cdc2ca05ea52",
+          "issue_id": "695be2b04f9e9caf",
+          "signal": "unique-body-words",
+          "value": 345,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "874e71a7f8392942",
+          "issue_id": "7ae7a2693e33b2e8",
+          "signal": "unique-body-words",
+          "value": 304,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "8767ab1401b86ab0",
+          "issue_id": "9534cfbae013cf18",
+          "signal": "unique-body-words",
+          "value": 114,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "8be42b59bd2b6b06",
+          "issue_id": "6bb8765b3e328eae",
+          "signal": "unique-body-words",
+          "value": 290,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "8c063e035391b4ac",
+          "issue_id": "c4cd8b5a6c6f0be7",
+          "signal": "unique-body-words",
+          "value": 169,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "8eb04f89161a18c7",
+          "issue_id": "671da9f3d27d31ba",
+          "signal": "unique-body-words",
+          "value": 162,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "92cdce200077ac54",
+          "issue_id": "bda0150f50efddd4",
+          "signal": "unique-body-words",
+          "value": 330,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "95936e8d40c94a60",
+          "issue_id": "3fdac5aa3583199b",
+          "signal": "unique-body-words",
+          "value": 212,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "975ef5b7071b364c",
+          "issue_id": "c8422e30d3a72b7c",
+          "signal": "unique-body-words",
+          "value": 192,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "9d49bd9891280248",
+          "issue_id": "67fad4b178ced13f",
+          "signal": "unique-body-words",
+          "value": 310,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "a209b7287c8f31ea",
+          "issue_id": "251ac5c0a4a524a9",
+          "signal": "unique-body-words",
+          "value": 204,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "a2e6cbadbc62701a",
+          "issue_id": "dee0b7621de18f75",
+          "signal": "unique-body-words",
+          "value": 79,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "a489fd1b2a4a8e41",
+          "issue_id": "2c9cc6b5100b01ed",
+          "signal": "unique-body-words",
+          "value": 317,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "a6931086f351ce01",
+          "issue_id": "0d7229dfd604c11b",
+          "signal": "unique-body-words",
+          "value": 324,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "a796ae7b7f9ff623",
+          "issue_id": "c9c5fe2ea8ce1012",
+          "signal": "unique-body-words",
+          "value": 267,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "a8e8feacb5790667",
+          "issue_id": "e529ad10efecb3d5",
+          "signal": "unique-body-words",
+          "value": 310,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "affb1209f6ca0d22",
+          "issue_id": "dfe5c2984ced655f",
+          "signal": "unique-body-words",
+          "value": 287,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "b35242571896e85e",
+          "issue_id": "c01e1a04927faf9a",
+          "signal": "unique-body-words",
+          "value": 203,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "b400031a19dd207e",
+          "issue_id": "5d3535f6965950ed",
+          "signal": "unique-body-words",
+          "value": 305,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "b53c35053ce26d95",
+          "issue_id": "6947d304111c6435",
+          "signal": "unique-body-words",
+          "value": 202,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "b67e4bf38cfc7c0b",
+          "issue_id": "3c5177f955a7baf9",
+          "signal": "unique-body-words",
+          "value": 311,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "b84e30477ad5774f",
+          "issue_id": "c3c902808d938e06",
+          "signal": "unique-body-words",
+          "value": 202,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "b98442bee9e50332",
+          "issue_id": "50a45f8f89578935",
+          "signal": "unique-body-words",
+          "value": 147,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "bd3d1213f6f25dd2",
+          "issue_id": "44030ce5ef136c05",
+          "signal": "unique-body-words",
+          "value": 201,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "bd684b549bc715f9",
+          "issue_id": "488256b43ded1e95",
+          "signal": "unique-body-words",
+          "value": 208,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "c44584783ef92378",
+          "issue_id": "391857808adb0217",
+          "signal": "unique-body-words",
+          "value": 262,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "c8f99b7185d3ea5e",
+          "issue_id": "83e41cc364c6b76c",
+          "signal": "unique-body-words",
+          "value": 109,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "c90dc73c6d134cf7",
+          "issue_id": "34f810b3286efad9",
+          "signal": "unique-body-words",
+          "value": 65,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "c9a13b8054597b1a",
+          "issue_id": "3545695b23661b69",
+          "signal": "unique-body-words",
+          "value": 204,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "cbe8fdc71b9a5e39",
+          "issue_id": "931816fcd8dcc3e5",
+          "signal": "unique-body-words",
+          "value": 285,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "ce79a16ed74ba7be",
+          "issue_id": "c5480b3af389b400",
+          "signal": "unique-body-words",
+          "value": 256,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "d558a783cbadc01b",
+          "issue_id": "591311d6d440d156",
+          "signal": "unique-body-words",
+          "value": 162,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "d6416221c5fb5823",
+          "issue_id": "982d0047db29c22f",
+          "signal": "unique-body-words",
+          "value": 211,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "d797533fa3d72a9f",
+          "issue_id": "0f41f10bed8052e4",
+          "signal": "unique-body-words",
+          "value": 320,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "d8c0e5c424a38c9d",
+          "issue_id": "f4c9330b49c821c6",
+          "signal": "unique-body-words",
+          "value": 163,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "dd170fc8b4d96e08",
+          "issue_id": "fcf2d0c107a5bd5e",
+          "signal": "unique-body-words",
+          "value": 275,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "de367b729d27f4d7",
+          "issue_id": "19593283b7968fb9",
+          "signal": "unique-body-words",
+          "value": 164,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "de5faebd7d179ff8",
+          "issue_id": "dd2c654efaea3474",
+          "signal": "unique-body-words",
+          "value": 307,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "df2b1e4753a4ad85",
+          "issue_id": "96487a809017981b",
+          "signal": "unique-body-words",
+          "value": 60,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "dfe9bbb322dfcacf",
+          "issue_id": "550fe8ec10eecb49",
+          "signal": "unique-body-words",
+          "value": 226,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "e56cb84e1c8ef1a6",
+          "issue_id": "129cfb1eac9bc07c",
+          "signal": "unique-body-words",
+          "value": 214,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "e58026581e4f6a3b",
+          "issue_id": "b8ba5683d7602e2e",
+          "signal": "unique-body-words",
+          "value": 313,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "e60c92eca5b6c365",
+          "issue_id": "514e4d70779e794b",
+          "signal": "unique-body-words",
+          "value": 247,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "e8c47253e9117c1f",
+          "issue_id": "2fe5d79d47f9c926",
+          "signal": "unique-body-words",
+          "value": 279,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "e9948c79dbf5b622",
+          "issue_id": "40df185772959285",
+          "signal": "unique-body-words",
+          "value": 346,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "e9c697b786c11be4",
+          "issue_id": "681d38f42c7d3553",
+          "signal": "unique-body-words",
+          "value": 148,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "e9fe8b05d1b6dc1c",
+          "issue_id": "3ba4f5cd8f9225c0",
+          "signal": "unique-body-words",
+          "value": 164,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "ea88faef0aaa1afc",
+          "issue_id": "c1b644aa54f37bba",
+          "signal": "unique-body-words",
+          "value": 328,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "eb8a12a543e42fd1",
+          "issue_id": "d1a95c9d849b56ba",
+          "signal": "unique-body-words",
+          "value": 320,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "edd20b7176efa9b4",
+          "issue_id": "26874a412673db6c",
+          "signal": "unique-body-words",
+          "value": 264,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "eecca47959f9eef6",
+          "issue_id": "995bb6ca2fd2267b",
+          "signal": "unique-body-words",
+          "value": 193,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "f112e7cdbbf1596b",
+          "issue_id": "563d5e627cdd049c",
+          "signal": "unique-body-words",
+          "value": 327,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "f5daca8027b9e387",
+          "issue_id": "592e1190cbabb114",
+          "signal": "unique-body-words",
+          "value": 310,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "f6a5384a2d6788cf",
+          "issue_id": "915b730fd2841377",
+          "signal": "unique-body-words",
+          "value": 202,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "f805e0b60d83ea51",
+          "issue_id": "7bb9fedbd979cf6e",
+          "signal": "unique-body-words",
+          "value": 163,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "f9ef69c6efa6b631",
+          "issue_id": "6a7c33c7c99ecf46",
+          "signal": "unique-body-words",
+          "value": 157,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "fccfc83d6a60c311",
+          "issue_id": "484475946a0a4449",
+          "signal": "unique-body-words",
+          "value": 234,
+          "bound": 350,
+          "state": "OPEN"
+        },
+        {
+          "target_page_id": "fe43fd2c4529ea68",
+          "issue_id": "ebab4b88df0764c3",
+          "signal": "unique-body-words",
+          "value": 336,
+          "bound": 350,
+          "state": "OPEN"
+        }
+      ]
     }
   ],
   "auditTrail": [
+    {
+      "issue_class": "near-duplicate-claim-withdrawn",
+      "splitFrom": "near-duplicate",
+      "count": 5,
+      "raw": 5,
+      "states": {
+        "SUPERSEDED": 5
+      },
+      "why": "the claim that a body similarity decided a defect was withdrawn under the owner's PG-A1 (RTP-1 S10); each FAIL was superseded by the 15 named T-2 runs (RR-195) by a version-2 review signal, now held under near-duplicate-review-signal"
+    },
     {
       "issue_class": "noindex-defect-claim-withdrawn",
       "splitFrom": "noindex",
@@ -582,14 +1566,34 @@
         "SUPERSEDED": 134
       },
       "why": "the claim that noindex on these pages was a DEFECT was withdrawn on 12 September 2026 — later evidence showed a deliberate de-indexing decision — and each claim was superseded by the review record now held under noindex-declared-deliberate"
+    },
+    {
+      "issue_class": "template-dominance-claim-withdrawn",
+      "splitFrom": "template-dominance",
+      "count": 2,
+      "raw": 4,
+      "states": {
+        "SUPERSEDED": 2
+      },
+      "why": "the claim that a shell share decided a defect was withdrawn under the owner's PG-A1 (RTP-1 S10); each FAIL was superseded by the 15 named T-2 runs (RR-195) by a version-2 review signal, now held under template-dominance-review-signal"
+    },
+    {
+      "issue_class": "thin-content-claim-withdrawn",
+      "splitFrom": "thin-content",
+      "count": 118,
+      "raw": 236,
+      "states": {
+        "SUPERSEDED": 118
+      },
+      "why": "the claim that a count of unique body words decided a defect was withdrawn under the owner's PG-A1 (RTP-1 S10); each FAIL was superseded by the 15 named T-2 runs (RR-195) by a version-2 review signal, now held under thin-content-review-signal"
     }
   ],
   "populations": {
-    "FINDINGS": 541,
+    "FINDINGS": 416,
     "COVERAGE GAP": 1224,
-    "DECISION ON RECORD": 134,
-    "AUDIT TRAIL": 134,
-    "distinct": 2033
+    "DECISION ON RECORD": 259,
+    "AUDIT TRAIL": 259,
+    "distinct": 2158
   },
   "supersededClasses": [
     {
@@ -610,6 +1614,16 @@
       "supersededBy": [
         "near-duplicate-found",
         "near-duplicate-check-not-run"
+      ]
+    },
+    {
+      "issue_class": "near-duplicate-found",
+      "level": "MODERATE",
+      "ruledBy": "owner",
+      "supersededOn": "2026-10-07",
+      "supersededBy": [
+        "near-duplicate-claim-withdrawn",
+        "near-duplicate-review-signal"
       ]
     },
     {
@@ -653,6 +1667,16 @@
       ]
     },
     {
+      "issue_class": "template-dominance-found",
+      "level": "MODERATE",
+      "ruledBy": "owner",
+      "supersededOn": "2026-10-07",
+      "supersededBy": [
+        "template-dominance-claim-withdrawn",
+        "template-dominance-review-signal"
+      ]
+    },
+    {
       "issue_class": "thin-content",
       "level": "MODERATE",
       "ruledBy": "owner",
@@ -660,6 +1684,16 @@
       "supersededBy": [
         "thin-content-found",
         "thin-content-check-not-run"
+      ]
+    },
+    {
+      "issue_class": "thin-content-found",
+      "level": "MODERATE",
+      "ruledBy": "owner",
+      "supersededOn": "2026-10-07",
+      "supersededBy": [
+        "thin-content-claim-withdrawn",
+        "thin-content-review-signal"
       ]
     }
   ],

@@ -27,6 +27,7 @@
 
 import { ISSUE_STATES } from "./records.mjs";
 import { canTransition } from "./transitions.mjs";
+import { storeOfRecord } from "./provenance.mjs";
 
 export const STATE_CHANGE_TYPE = "issue_state_change";
 
@@ -75,13 +76,25 @@ export function makeIssueStateChange({ issue_id, from, to, changed_at, reason, e
  * same `issue_id` is one issue; `copies` says how many times it was written, so
  * a duplicate append stays visible.
  */
-export function lifecycleOf(records) {
+/* RR-196 · a state change's identity: every field, keys sorted — a byte-identical move, whatever order its writer used */
+const canonical = (v) => (Array.isArray(v) ? `[${v.map(canonical).join(",")}]` : v && typeof v === "object" ? `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${canonical(v[k])}`).join(",")}}` : JSON.stringify(v));
+
+/**
+ * 🔴 RR-196 · ONE MOVE WRITTEN INTO TWO STORES IS ONE MOVE. A finding whose copies live in two stores is moved in both (F90 reads its
+ * copies identically, or fails closed). Read as one population, a state change IDENTICAL in every field to one already applied, and
+ * read from a DIFFERENT store, is a COPY of that move: counted (`changeCopies`), never applied twice, never hidden.
+ * Each store keeps its own duplicate guard: the same move twice in ONE store — or from a record whose store is unknown (`storeOf`
+ * null: a fixture, a clone) — is judged exactly as before, and refused.
+ * @param {object[]} records
+ * @param {{storeOf?: (record: object) => string|null}} [o]  where a record was read from (default: the store reader's own mark)
+ */
+export function lifecycleOf(records, { storeOf = storeOfRecord } = {}) {
   const issues = new Map();
   for (const r of records) {
     if (r?.record_type !== "issue") continue;
     const cur = issues.get(r.issue_id);
     if (cur) cur.copies += 1;
-    else issues.set(r.issue_id, { issue: r, copies: 1, state: r.state ?? "OPEN", changes: [] });
+    else issues.set(r.issue_id, { issue: r, copies: 1, state: r.state ?? "OPEN", changes: [], changeCopies: 0 });
   }
 
   const errors = [];
@@ -91,7 +104,19 @@ export function lifecycleOf(records) {
     .filter((r) => r?.record_type === STATE_CHANGE_TYPE)
     .sort((a, b) => (a.changed_at < b.changed_at ? -1 : a.changed_at > b.changed_at ? 1 : 0));
 
+  const appliedFrom = new Map(); // a move's identity → the stores it has been read from
+  let changeCopies = 0;
   for (const c of changes) {
+    const key = canonical(c);
+    const from = storeOf(c);
+    const seen = appliedFrom.get(key);
+    if (seen && from !== null && !seen.has(null) && !seen.has(from)) {
+      seen.add(from);
+      changeCopies += 1;
+      const copied = issues.get(c.issue_id);
+      if (copied) copied.changeCopies += 1;
+      continue;
+    }
     const entry = issues.get(c.issue_id);
     if (!entry) {
       errors.push(`state change for ${c.issue_id}: no such issue in this store — a move cannot apply to nothing`);
@@ -139,11 +164,13 @@ export function lifecycleOf(records) {
     }
     entry.state = c.to;
     entry.changes.push(c);
+    if (seen) seen.add(from);
+    else appliedFrom.set(key, new Set([from]));
   }
 
   const census = Object.fromEntries(ISSUE_STATES.map((s) => [s, 0]));
   for (const e of issues.values()) census[e.state] += 1;
-  return { issues, errors, census, guard };
+  return { issues, errors, census, guard, changeCopies };
 }
 
 export const DUPLICATE_SUPERSEDED_TYPE = "duplicate_record_superseded";

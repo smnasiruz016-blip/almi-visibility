@@ -1,0 +1,9 @@
+RR-199 R6b sabotage PRACTICE run · 2026-10-07T04:22:40.080Z
+population: 1 sabotage(s) over test/rr194-t2.test.mjs + test/rr195-r6b.test.mjs + test/rr196-r6b.test.mjs + test/rr197-r6b.test.mjs + test/f90-falsifiability.test.mjs + test/rr100-check-boundaries.test.mjs + test/rr102-content-check-boundaries.test.mjs + test/issue-writer-census.test.mjs + test/class-split.test.mjs + test/populations.test.mjs + test/consequence-register.test.mjs + test/row60-ruling-sheet.test.mjs · each applied ALONE · no provider, no network, no third-party read
+BASELINE (the named tests before any sabotage): GREEN · named tests seen GREEN: 1 of 1
+PRE-FLIGHT (span occurrences in the code live now): F90-S10=1 · all exactly once: true
+production trail + committed outputs (sheet, report, both stores) sha256 before: e9d17410457872a73813ce76649dd10b8f0dab4201276a2b5c783a44e7966879
+
+F90-S10 F90 C3: a missing boundary is not named (re-anchored, RR-199: the branch names nothing) [src/audit/f90-falsifiability.mjs]: landed true · named test "C3 · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · a production child crashed false · failing C3,C4,REAL · restored by sha256 true · PROVED
+
+proved 1 of 1 · residue 0 · production trail + committed outputs sha256 after: e9d17410457872a73813ce76649dd10b8f0dab4201276a2b5c783a44e7966879 · unchanged true

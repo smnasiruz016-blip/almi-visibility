@@ -17,6 +17,19 @@
 const decision = (splitFrom, count, decided, notEstablished, awaits) =>
   Object.freeze({ splitFrom, count, decided, notEstablished, awaits, recordedOn: "2026-09-14" });
 
+/* 🔴 RR-196 · THE T-2 REVIEW SIGNALS (7 October 2026). Not a finding: under PG-A1 the measured number decides nothing. Each record keeps its
+ * page and its measured value — the owner's sheet lists every one (src/audit/ruling-sheet.mjs, `signals`) — and waits on a human
+ * judgement of that page against its need (P21), which no number makes. */
+const reviewSignals = (splitFrom, count, measured) =>
+  Object.freeze({
+    splitFrom,
+    count,
+    decided: `PG-A1 (owner): ${measured} no longer decides anything (RTP-1 S10); the 15 named T-2 runs (RR-195) superseded every version-1 FAIL by a version-2 review signal that keeps the page and its measured value, labelled`,
+    notEstablished: "Whether any of these pages fails its need is NOT established by the number: completeness is judged for a need (P21), by a human, page by page",
+    awaits: "PG-A1",
+    recordedOn: "2026-10-07",
+  });
+
 export const DECISION_REGISTER = Object.freeze({
   "noindex-declared-deliberate": decision(
     "noindex",
@@ -25,4 +38,7 @@ export const DECISION_REGISTER = Object.freeze({
     "Whether it is still the right rule is UNKNOWN from our evidence: the premise it cites is not confirmed by our similarity measurement. Owner's decision: REC-NOINDEX-CV-GUIDE.",
     "REC-NOINDEX-CV-GUIDE",
   ),
+  "thin-content-review-signal": reviewSignals("thin-content", 118, "the count of unique body words"),
+  "near-duplicate-review-signal": reviewSignals("near-duplicate", 5, "body similarity to a sibling page"),
+  "template-dominance-review-signal": reviewSignals("template-dominance", 2, "the shell's share of a page's words"),
 });

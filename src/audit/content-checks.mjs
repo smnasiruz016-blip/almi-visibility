@@ -30,7 +30,7 @@
  * intent is a rule with a loophole.
  */
 
-import { registerCheck, fail, unknown } from "./check.mjs";
+import { registerCheck, fail, unknown, reviewSignal } from "./check.mjs";
 import { measure, shingles, jaccard, SHELL_DEFINITION, THIN_UNIQUE_WORD_FLOOR } from "./shell.mjs";
 
 /** 🔴 If any finding from this file ever carries one of these, item 8 is breached. */
@@ -47,11 +47,25 @@ export const DEMAND_WORDS = Object.freeze(["opportunity", "should create", "wort
 export const NEAR_DUPLICATE_THRESHOLD = 0.9;
 export const TEMPLATE_DOMINANCE_THRESHOLD = 0.75;
 
+/* 🔴 RR-194 · T-2 (RTP-1 §17 S10, P20, P21; the owner's PG-A1, _handoffs b5b616e): thin-content, near-duplicate and template-dominance are
+ * VERSION 2. None of 350, 0.9 or 0.75 decides anything any more: past each, the check records an UNKNOWN finding (reason REVIEW_SIGNAL)
+ * carrying the measured value and the signal's justification, so the page stays visible for review (the owner's RR-194 decision 2) — and
+ * it is never a FAIL. A recorded substance review decides (P20); completeness is the adaptive judgement for a need (P21). */
+export const T2_VERSION = "2";
+/** P20: "0.40, 0.75 and 0.9 may stay only as review signals, each with its justification recorded." These are those justifications. */
+export const REVIEW_SIGNAL_JUSTIFICATIONS = Object.freeze({
+  "thin-content": `${THIN_UNIQUE_WORD_FLOOR} unique body words after shell subtraction is the struck Gate A floor (PG-A1), kept only as a review signal so a page with little text of its own stays visible; completeness is judged for a need (P21), never by a word count`,
+  "near-duplicate": `${NEAR_DUPLICATE_THRESHOLD} body-shingle Jaccard means nine in ten of the body's 8-word shingles are shared with another page — kept only as a review signal (P20); whether the pages duplicate one another is decided by a recorded substance review`,
+  "template-dominance": `${TEMPLATE_DOMINANCE_THRESHOLD} shell share has NO measured basis and was never a value the owner set (P20) — it is kept only as a review signal so a shell-dominated page stays visible, and it decides nothing`,
+});
+
 /* 🔴 RR-102 — WHAT THE `boundary` DECLARATIONS BELOW ARE, AND ARE NOT. Each states the condition this file's run() ACTUALLY fires on,
  * crossed both ways by test/rr102-content-check-boundaries.test.mjs, so a finding it raised can be overturned. It is NOT a claim that
  * the threshold is authoritative: V3 (quoted in src/page/duplication.mjs, F32) says the 350-word threshold does not control, treats
  * textual overlap as a review trigger rather than a verdict, and sets no dominance threshold; F40 is BLOCKED-BY-AUTHORITY on the floor.
- * These constants are unchanged here; whether their findings stay actionable is the owner's, recorded apart. */
+ * These constants are unchanged here; whether their findings stay actionable is the owner's, recorded apart.
+ * RR-194 · T-2: decided — none is actionable. Each boundary below now states the condition on which version 2 records a REVIEW SIGNAL
+ * (UNKNOWN), never a FAIL; F90 refutes FAILs only, and the version-1 FAILs are superseded by bin/t2-reassess.mjs (RR-195). */
 
 /* ------------------------------------------------------------------ *
  * 12a — EXACT DUPLICATE. The one check that needs no body at all.
@@ -105,10 +119,10 @@ export const EXACT_DUPLICATE = registerCheck({
 
 export const THIN_CONTENT = registerCheck({
   id: "thin-content",
-  version: "1",
+  version: T2_VERSION,
   description:
-    `Body unique-word count below the Gate A floor of ${THIN_UNIQUE_WORD_FLOOR}, measured AFTER shell ` +
-    "subtraction. An observed content-supply label — it implies nothing about demand (item 8).",
+    `VERSION 2 (RR-194): the body unique-word count, measured AFTER shell subtraction, below the ${THIN_UNIQUE_WORD_FLOOR}-word REVIEW SIGNAL ` +
+    "is recorded UNKNOWN as a REVIEW SIGNAL (its value carried in its signal field) with its value — never a FAIL. An observed content-supply label — it implies nothing about demand (item 8).",
   firingFixture: "a page with a 2,000-word shell and a 40-word body — must fire",
   cleanControl:
     "a page with the SAME 2,000-word shell and a 900-word body — must NOT fire. This is the control " +
@@ -117,7 +131,7 @@ export const THIN_CONTENT = registerCheck({
    * An absent body, an empty body and an unrecognised layout are UNKNOWN, never a finding. The floor in `when` is the live constant. */
   boundary: {
     observes: ["the stored body, split into shell and body by src/audit/shell.mjs"],
-    fires: [{ id: "below-unique-word-floor", when: `shell subtraction is confident and the body's unique-word count is below ${THIN_UNIQUE_WORD_FLOOR} (void at ${THIN_UNIQUE_WORD_FLOOR} or more)` }],
+    fires: [{ id: "below-unique-word-review-signal", when: `shell subtraction is confident and the body's unique-word count is below the ${THIN_UNIQUE_WORD_FLOOR}-word review signal — recorded UNKNOWN as a REVIEW SIGNAL (its value carried in its signal field), never a FAIL (void at ${THIN_UNIQUE_WORD_FLOOR} or more)` }],
   },
   run({ page, observations, siteContext }) {
     const html = siteContext.bodyHtml;
@@ -128,7 +142,7 @@ export const THIN_CONTENT = registerCheck({
         reasonCode: "MISSING_INPUT",
         evidence: observations.map((o) => o.observation_id),
         detector: "thin-content",
-        detectorVersion: "1",
+        detectorVersion: T2_VERSION,
         openedAt: siteContext.openedAt,
         summary: "the stored body is not available to this run",
       });
@@ -153,7 +167,7 @@ export const THIN_CONTENT = registerCheck({
         reasonCode: emptyBody ? "NEEDS_RENDERED_HTML" : "TOOL_FAILED",
         evidence: observations.map((o) => o.observation_id),
         detector: "thin-content",
-        detectorVersion: "1",
+        detectorVersion: T2_VERSION,
         openedAt: siteContext.openedAt,
         summary: emptyBody
           ? `the body is EMPTY in raw HTML (${m.why}). A client-rendered page is indistinguishable from an ` +
@@ -162,18 +176,19 @@ export const THIN_CONTENT = registerCheck({
       });
     }
     if (m.bodyUniqueWordCount >= THIN_UNIQUE_WORD_FLOOR) return null;
-    return fail({
+    /* RR-194 · T-2: a REVIEW SIGNAL, never a FAIL — the value and the signal's justification travel with it */
+    return reviewSignal({
       issueClass: "thin-content",
       canonicalUrl: page.canonical_url,
-      severity: "medium",
+      signal: { name: "unique-body-words", value: m.bodyUniqueWordCount, bound: THIN_UNIQUE_WORD_FLOOR, justification: REVIEW_SIGNAL_JUSTIFICATIONS["thin-content"] },
       evidence: observations.map((o) => o.observation_id),
       detector: "thin-content",
-      detectorVersion: "1",
+      detectorVersion: T2_VERSION,
       openedAt: siteContext.openedAt,
-      // 🔴 LAW-BOUND-1: the floor prints beside the result, every time.
+      // 🔴 LAW-BOUND-1: the signal prints beside the result, every time.
       summary:
-        `${m.bodyUniqueWordCount} unique body words [bound: floor=${THIN_UNIQUE_WORD_FLOOR}]; ` +
-        `shell was ${m.shellWordCount} words (${((m.shellShare ?? 0) * 100).toFixed(0)}% of the page). ${SHELL_DEFINITION}`,
+        `REVIEW SIGNAL: ${m.bodyUniqueWordCount} unique body words [review signal: ${THIN_UNIQUE_WORD_FLOOR} — decides nothing]; ` +
+        `shell was ${m.shellWordCount} words (${((m.shellShare ?? 0) * 100).toFixed(0)}% of the page). ${REVIEW_SIGNAL_JUSTIFICATIONS["thin-content"]}. ${SHELL_DEFINITION}`,
     });
   },
 });
@@ -184,8 +199,8 @@ export const THIN_CONTENT = registerCheck({
 
 export const NEAR_DUPLICATE = registerCheck({
   id: "near-duplicate",
-  version: "1",
-  description: `Body-text Jaccard similarity at or above ${NEAR_DUPLICATE_THRESHOLD} against another crawled page.`,
+  version: T2_VERSION,
+  description: `VERSION 2 (RR-194): body-text Jaccard similarity at or above the ${NEAR_DUPLICATE_THRESHOLD} REVIEW SIGNAL against another crawled page is recorded UNKNOWN as a REVIEW SIGNAL (its value carried in its signal field) with its score — never a FAIL.`,
   firingFixture: "two pages whose bodies differ by one word — must fire",
   cleanControl:
     "two pages sharing a large identical shell but with wholly different bodies — must NOT fire. " +
@@ -194,7 +209,7 @@ export const NEAR_DUPLICATE = registerCheck({
    * inclusively. A peer at this page's own URL is skipped; an undefined similarity (both empty) never counts. */
   boundary: {
     observes: ["the stored body's 8-word shingles, after shell subtraction", "the body shingles of each other confidently measured crawled page of the site"],
-    fires: [{ id: "body-similarity-at-or-above-threshold", when: `shell subtraction is confident and the highest body Jaccard similarity to another URL is ${NEAR_DUPLICATE_THRESHOLD} or more (void below ${NEAR_DUPLICATE_THRESHOLD})` }],
+    fires: [{ id: "body-similarity-at-or-above-review-signal", when: `shell subtraction is confident and the highest body Jaccard similarity to another URL is at or above the ${NEAR_DUPLICATE_THRESHOLD} review signal — recorded UNKNOWN as a REVIEW SIGNAL (its value carried in its signal field), never a FAIL (void below ${NEAR_DUPLICATE_THRESHOLD})` }],
   },
   run({ page, observations, siteContext }) {
     const html = siteContext.bodyHtml;
@@ -202,7 +217,7 @@ export const NEAR_DUPLICATE = registerCheck({
       return unknown({
         issueClass: "near-duplicate", canonicalUrl: page.canonical_url, reasonCode: "MISSING_INPUT",
         evidence: observations.map((o) => o.observation_id),
-        detector: "near-duplicate", detectorVersion: "1", openedAt: siteContext.openedAt,
+        detector: "near-duplicate", detectorVersion: T2_VERSION, openedAt: siteContext.openedAt,
       });
     }
     const m = measure(html);
@@ -210,7 +225,7 @@ export const NEAR_DUPLICATE = registerCheck({
       return unknown({
         issueClass: "near-duplicate", canonicalUrl: page.canonical_url, reasonCode: "TOOL_FAILED",
         evidence: observations.map((o) => o.observation_id),
-        detector: "near-duplicate", detectorVersion: "1", openedAt: siteContext.openedAt,
+        detector: "near-duplicate", detectorVersion: T2_VERSION, openedAt: siteContext.openedAt,
         summary: `shell subtraction is not confident: ${m.why}`,
       });
     }
@@ -222,11 +237,13 @@ export const NEAR_DUPLICATE = registerCheck({
       if (score !== null && (best === null || score > best.score)) best = { url: other.url, score };
     }
     if (!best || best.score < NEAR_DUPLICATE_THRESHOLD) return null;
-    return fail({
-      issueClass: "near-duplicate", canonicalUrl: page.canonical_url, severity: "medium",
+    /* RR-194 · T-2: a REVIEW SIGNAL, never a FAIL */
+    return reviewSignal({
+      issueClass: "near-duplicate", canonicalUrl: page.canonical_url,
+      signal: { name: "body-similarity", value: Number(best.score.toFixed(3)), bound: NEAR_DUPLICATE_THRESHOLD, justification: REVIEW_SIGNAL_JUSTIFICATIONS["near-duplicate"] },
       evidence: observations.map((o) => o.observation_id),
-      detector: "near-duplicate", detectorVersion: "1", openedAt: siteContext.openedAt,
-      summary: `body similarity ${best.score.toFixed(3)} to ${best.url} [bound: threshold=${NEAR_DUPLICATE_THRESHOLD}]. ${SHELL_DEFINITION}`,
+      detector: "near-duplicate", detectorVersion: T2_VERSION, openedAt: siteContext.openedAt,
+      summary: `REVIEW SIGNAL: body similarity ${best.score.toFixed(3)} to ${best.url} [review signal: ${NEAR_DUPLICATE_THRESHOLD} — decides nothing]. ${REVIEW_SIGNAL_JUSTIFICATIONS["near-duplicate"]}. ${SHELL_DEFINITION}`,
     });
   },
 });
@@ -237,15 +254,15 @@ export const NEAR_DUPLICATE = registerCheck({
 
 export const TEMPLATE_DOMINANCE = registerCheck({
   id: "template-dominance",
-  version: "1",
-  description: `Shell accounts for ${TEMPLATE_DOMINANCE_THRESHOLD * 100}% or more of the page's words.`,
+  version: T2_VERSION,
+  description: `VERSION 2 (RR-194): a shell share at or above the ${TEMPLATE_DOMINANCE_THRESHOLD * 100}% REVIEW SIGNAL is recorded UNKNOWN as a REVIEW SIGNAL (its value carried in its signal field) with its share — never a FAIL.`,
   firingFixture: "a page that is 90% chrome by word count — must fire",
   cleanControl: "a page that is 20% chrome — must NOT fire",
   /* RR-102: read from run() — shell words / (shell words + body words) compared with the live threshold, inclusively. A non-confident
    * subtraction or a page with no words at all is UNKNOWN, never a finding. */
   boundary: {
     observes: ["the stored body's shell and body word counts, from src/audit/shell.mjs"],
-    fires: [{ id: "shell-share-at-or-above-threshold", when: `shell subtraction is confident and the shell is ${TEMPLATE_DOMINANCE_THRESHOLD} or more of the page's words (void below ${TEMPLATE_DOMINANCE_THRESHOLD})` }],
+    fires: [{ id: "shell-share-at-or-above-review-signal", when: `shell subtraction is confident and the shell is at or above the ${TEMPLATE_DOMINANCE_THRESHOLD} review signal of the page's words — recorded UNKNOWN as a REVIEW SIGNAL (its value carried in its signal field), never a FAIL (void below ${TEMPLATE_DOMINANCE_THRESHOLD})` }],
   },
   run({ page, observations, siteContext }) {
     const html = siteContext.bodyHtml;
@@ -253,7 +270,7 @@ export const TEMPLATE_DOMINANCE = registerCheck({
       return unknown({
         issueClass: "template-dominance", canonicalUrl: page.canonical_url, reasonCode: "MISSING_INPUT",
         evidence: observations.map((o) => o.observation_id),
-        detector: "template-dominance", detectorVersion: "1", openedAt: siteContext.openedAt,
+        detector: "template-dominance", detectorVersion: T2_VERSION, openedAt: siteContext.openedAt,
       });
     }
     const m = measure(html);
@@ -261,18 +278,20 @@ export const TEMPLATE_DOMINANCE = registerCheck({
       return unknown({
         issueClass: "template-dominance", canonicalUrl: page.canonical_url, reasonCode: "TOOL_FAILED",
         evidence: observations.map((o) => o.observation_id),
-        detector: "template-dominance", detectorVersion: "1", openedAt: siteContext.openedAt,
+        detector: "template-dominance", detectorVersion: T2_VERSION, openedAt: siteContext.openedAt,
         summary: `shell subtraction is not confident: ${m.why}`,
       });
     }
     if (m.shellShare < TEMPLATE_DOMINANCE_THRESHOLD) return null;
-    return fail({
-      issueClass: "template-dominance", canonicalUrl: page.canonical_url, severity: "low",
+    /* RR-194 · T-2: a REVIEW SIGNAL, never a FAIL */
+    return reviewSignal({
+      issueClass: "template-dominance", canonicalUrl: page.canonical_url,
+      signal: { name: "shell-share", value: Number(m.shellShare.toFixed(3)), bound: TEMPLATE_DOMINANCE_THRESHOLD, justification: REVIEW_SIGNAL_JUSTIFICATIONS["template-dominance"] },
       evidence: observations.map((o) => o.observation_id),
-      detector: "template-dominance", detectorVersion: "1", openedAt: siteContext.openedAt,
+      detector: "template-dominance", detectorVersion: T2_VERSION, openedAt: siteContext.openedAt,
       summary:
-        `shell is ${(m.shellShare * 100).toFixed(0)}% of the page's words ` +
-        `[bound: threshold=${TEMPLATE_DOMINANCE_THRESHOLD * 100}%]. ${SHELL_DEFINITION}`,
+        `REVIEW SIGNAL: shell is ${(m.shellShare * 100).toFixed(0)}% of the page's words ` +
+        `[review signal: ${TEMPLATE_DOMINANCE_THRESHOLD * 100}% — decides nothing]. ${REVIEW_SIGNAL_JUSTIFICATIONS["template-dominance"]}. ${SHELL_DEFINITION}`,
     });
   },
 });

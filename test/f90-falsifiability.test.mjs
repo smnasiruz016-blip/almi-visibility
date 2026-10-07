@@ -176,7 +176,10 @@ test("REAL · every recorded actionable finding is FALSIFIABLE from a held metho
 test("REAL · POSITIVE CONTROL: the same real census DISPROVES the moment one real detector's boundary or version is withdrawn", () => {
   const indep = independentActionable();
   const n = (d) => indep.filter(([, v]) => v.detector === d).length;
-  for (const d of ["thin-content", "indexability-preflight", "exact-duplicate"]) {
+  /* RR-195: thin-content holds no actionable finding any more — its 118 version-1 FAILs are SUPERSEDED by version-2 review signals (the 15
+   * named T-2 runs) — so robots-scope, which stays actionable (106), takes its place: the control still withdraws a REAL held detector's
+   * boundary and version and must DISPROVE. The T-2 trap itself has its own control (test/rr195-r6b.test.mjs). */
+  for (const d of ["robots-scope", "indexability-preflight", "exact-duplicate"]) {
     assert.ok(n(d) > 0, `${d} raised no real actionable finding — the control would be vacuous`);
     const noBoundary = registeredChecks().map((k) => (k.id === d ? { ...k, boundary: undefined } : k));
     const c1 = readFalsifiabilityCensus({ checks: noBoundary }).census;

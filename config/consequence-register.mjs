@@ -57,8 +57,18 @@ const half = (parent, what) =>
   });
 
 /* A superseded entry keeps every word it had, and names the halves it became. It is not in use and ranks nothing. */
+/* RR-196: a parent re-split later still names the halves it became ON ITS SPLIT DAY (`firstHalves`), never the later ones. */
 const superseded = (parent, entry, record = {}) =>
-  Object.freeze({ ...entry, ...record, supersededOn: CLASS_SPLITS[parent].splitOn, supersededBy: Object.freeze(CLASS_SPLITS[parent].halves.map((h) => h.class)) });
+  Object.freeze({ ...entry, ...record, supersededOn: CLASS_SPLITS[parent].splitOn, supersededBy: Object.freeze(CLASS_SPLITS[parent].firstHalves ?? CLASS_SPLITS[parent].halves.map((h) => h.class)) });
+
+/* 🔴 RR-196 · A RULED HALF RETIRED (7 October 2026). Every word the owner ruled is kept; it names the two classes its records became
+ * (config/class-splits.mjs, the T-2 re-split) and why. Its level carries to neither: one is a decision on record, the other audit trail. */
+const T2_RETIRED = Object.freeze({
+  on: "2026-10-07",
+  why: "PG-A1 (the owner's ruling, recorded RR-192): the number this check compared no longer decides anything (RTP-1 S10). The 15 named T-2 runs (RR-195) superseded every version-1 FAIL by a version-2 review signal, so no record of this class is a defect found any more",
+});
+const retiredHalf = (parent, entry) =>
+  Object.freeze({ ...entry, supersededOn: T2_RETIRED.on, supersededBy: Object.freeze([`${parent}-claim-withdrawn`, `${parent}-review-signal`]), retired: T2_RETIRED });
 
 /* 🔴 A half the owner ruled: the ruling names THE HALF ITSELF (`ruledFor`). A copy of a parent's ruling cannot. */
 const SPLIT_RULING = Object.freeze({
@@ -165,27 +175,8 @@ export const CONSEQUENCE_REGISTER = Object.freeze({
     blastRadius: "158 real findings; bounded, not systemic",
     why: "the same family as robots-blocks and a defect noindex: meaningful harm to discovery, bounded, recoverable by normal corrective work",
   }),
-  "near-duplicate-found": ruledHalf("near-duplicate", "near-duplicate-found", "the near-duplicate check ran and found a page's body highly similar to a sibling page's", "MODERATE", {
-    consequence: "bodies highly similar to a sibling",
-    reversibility: "reversible — merge, differentiate or remove",
-    why: "the same family as exact-duplicate but at a judged threshold rather than a byte match, so the consequence is weaker and the remedy is ordinary editorial work",
-    blastRadius: "5",
-    levelRestsOn: "consequence, not the count — the level stands because the consequence has not changed; PR #77's figure of 113 counted checks that never ran, the real findings are 5, and volume amplifies within a level and never defines it",
-  }),
-  "template-dominance-found": ruledHalf("template-dominance", "template-dominance-found", "the template-dominance check ran and found the shared shell making up most of a page's words", "MODERATE", {
-    consequence: "the shared shell makes up most of a page's words — the reader receives furniture, not answer",
-    reversibility: "reversible — add real content or remove the page",
-    why: "bounded and reversible; it is a quality failure, not an integrity failure",
-    blastRadius: "2",
-    levelRestsOn: "consequence, not the count — the level stands because the consequence has not changed; PR #77's figure of 110 counted checks that never ran, the real findings are 2, and volume amplifies within a level and never defines it",
-  }),
-  "thin-content-found": ruledHalf("thin-content", "thin-content-found", "the thin-content check ran and found fewer unique body words than the floor after the shell is subtracted", "MODERATE", {
-    consequence: "fewer unique body words than the floor after the shell is subtracted",
-    reversibility: "reversible — write it properly or remove it",
-    why: "the other named half of the historical failure, but unlike exact-duplicate a thin page may still carry some value, so the consequence is weaker",
-    blastRadius: "118, the largest content class",
-    levelRestsOn: "consequence, not the count — the level stands because the consequence has not changed; PR #77's figure of 226 counted checks that never ran, the real findings are 118, and volume amplifies within a level and never defines it",
-  }),
+  /* RR-196: thin-content-found, near-duplicate-found and template-dominance-found are RETIRED — moved, word for word, to
+   * SUPERSEDED_ENTRIES below (their records are now a decision on record and audit trail, config/class-splits.mjs) */
 
   /* ── the two noindex halves are NOT findings (owner's ruling, Option A, 14 September 2026): noindex-declared-deliberate is
    * a DECISION ON RECORD (config/decision-register.mjs) and noindex-defect-claim-withdrawn is AUDIT TRAIL (config/audit-trail.mjs) ── */
@@ -197,6 +188,28 @@ export const CONSEQUENCE_REGISTER = Object.freeze({
  * applied to a class that no longer exists as one, and it carries to neither half.
  */
 export const SUPERSEDED_ENTRIES = Object.freeze({
+  /* ── RR-196 · the three ruled T-2 halves, retired 7 October 2026, every word kept (T2_RETIRED above) ── */
+  "near-duplicate-found": retiredHalf("near-duplicate", ruledHalf("near-duplicate", "near-duplicate-found", "the near-duplicate check ran and found a page's body highly similar to a sibling page's", "MODERATE", {
+    consequence: "bodies highly similar to a sibling",
+    reversibility: "reversible — merge, differentiate or remove",
+    why: "the same family as exact-duplicate but at a judged threshold rather than a byte match, so the consequence is weaker and the remedy is ordinary editorial work",
+    blastRadius: "5",
+    levelRestsOn: "consequence, not the count — the level stands because the consequence has not changed; PR #77's figure of 113 counted checks that never ran, the real findings are 5, and volume amplifies within a level and never defines it",
+  })),
+  "template-dominance-found": retiredHalf("template-dominance", ruledHalf("template-dominance", "template-dominance-found", "the template-dominance check ran and found the shared shell making up most of a page's words", "MODERATE", {
+    consequence: "the shared shell makes up most of a page's words — the reader receives furniture, not answer",
+    reversibility: "reversible — add real content or remove the page",
+    why: "bounded and reversible; it is a quality failure, not an integrity failure",
+    blastRadius: "2",
+    levelRestsOn: "consequence, not the count — the level stands because the consequence has not changed; PR #77's figure of 110 counted checks that never ran, the real findings are 2, and volume amplifies within a level and never defines it",
+  })),
+  "thin-content-found": retiredHalf("thin-content", ruledHalf("thin-content", "thin-content-found", "the thin-content check ran and found fewer unique body words than the floor after the shell is subtracted", "MODERATE", {
+    consequence: "fewer unique body words than the floor after the shell is subtracted",
+    reversibility: "reversible — write it properly or remove it",
+    why: "the other named half of the historical failure, but unlike exact-duplicate a thin page may still carry some value, so the consequence is weaker",
+    blastRadius: "118, the largest content class",
+    levelRestsOn: "consequence, not the count — the level stands because the consequence has not changed; PR #77's figure of 226 counted checks that never ran, the real findings are 118, and volume amplifies within a level and never defines it",
+  })),
   "orphan-within-crawled-set": superseded("orphan-within-crawled-set", ruled("no page inside the crawled set links to this page", "MODERATE", {
     consequence: "no page inside the crawled set links to it — discovery depends entirely on sitemaps",
     reversibility: "add links",

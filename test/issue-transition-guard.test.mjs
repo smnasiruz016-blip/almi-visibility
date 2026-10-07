@@ -58,10 +58,12 @@ test("CONTROL: a FAIL issue CLOSED, and a FAIL superseded by an UNKNOWN, pass th
 const audit = () => readdirSync(`${REPO}runs/audit`).filter((f) => f.endsWith(".jsonl")).flatMap((f) => createJsonlStore(`${REPO}runs/audit/${f}`).readAll());
 const crawl = () => batchJsonlFiles().flatMap((p) => createJsonlStore(p).readAll());
 
-test("🔴 REAL: the guard judges every real issue transition — 145, none refused — so it no longer polices an empty population", () => {
+/* RR-196: 145 → 270 — the 125 T-2 supersessions (RR-195) are judged once each; their 120 identical copies in the second store are
+ * copies of one move (changeCopies), never judged twice */
+test("🔴 REAL: the guard judges every real issue transition — 270, none refused — so it no longer polices an empty population", () => {
   const r = lifecycleOf([...audit(), ...crawl()]);
   assert.deepEqual(r.errors, []);
-  assert.equal(r.guard.judged, 145, "134 supersessions and 11 closures");
+  assert.equal(r.guard.judged, 270, "134 noindex supersessions, 125 T-2 supersessions and 11 closures");
   assert.equal(r.guard.refused, 0);
 });
 

@@ -111,6 +111,12 @@ export const ACTIONS = Object.freeze({
    * and it changes no tenant's data. Decided at GLOBAL_PRODUCT scope (never a tenant's) BEFORE anything is read, as READ_OPERATIONS_OVERVIEW
    * is; the entry point is declared by name in tools/tenant-scope-census.mjs. No new family and no new permission. */
   READ_OWNER_RULING_SHEET: A("RESEARCH", "PROTECTED_TENANT_DATA"),
+  /* RR-197 (OWNER APPROVED, 7 Oct 2026): the OWNER REPORT (runs/report/) is a GLOBAL read under F02, the same way as the ruling sheet —
+   * read-only over the run stores, the evidence store, the cost ledger and the observation batch; its output is the owner's; it changes no
+   * tenant's data. "Owner-only" means the OUTPUT is the owner's: actor:cc may run it, actor:model stays refused — no new permission rule.
+   * Decided at GLOBAL_PRODUCT scope before anything is read. A product's own subject root is NOT part of this declaration: it is still
+   * read only through its tenant's F02/F03 decision. */
+  READ_OWNER_REPORT: A("RESEARCH", "PROTECTED_TENANT_DATA"),
   OPEN_CONNECTOR_PUBLIC_SITE: A("RESEARCH", "EXTERNAL_SOURCE"),
   OPEN_CONNECTOR_CITED_SOURCES: A("RESEARCH", "EXTERNAL_SOURCE"),
   OPEN_CONNECTOR_SEARCH_CONSOLE_API: A("RESEARCH", "EXTERNAL_SOURCE"),

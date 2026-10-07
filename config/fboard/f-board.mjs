@@ -2866,7 +2866,7 @@ export const DECLARED = Object.freeze({
   F38: Object.freeze({
     featureId: "F38",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-07", ruling: F38_ORIGINAL.ruling, contractSha256: F38_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -2883,6 +2883,26 @@ export const DECLARED = Object.freeze({
         baseCiRun: "37689604481",
         baseCiConclusion: "success",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-07_RR-210.md", commit: "91b92d286b9de976fff2d4eec46ec9895a46f8ee", sha256: "6f59b4844b81b932cae259dc9fe895bf429d050f962421e9bd2a004a98a53da6" }),
+      }),
+      /* RR-210: F38 PROVED — every clause of its frozen acceptance PROVED and every sabotage PROVED, on FIXTURE pages (RR-177) with C6's
+       * count-only real-structure control; recorded through the board route in the same PR; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F38",
+        population: "REAL",
+        on: "2026-10-07",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F38_ORIGINAL.ruling.sha256, contract: F38_ORIGINAL.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED" }),
+        populations: "FIXTURE pages only for C1–C5, C7 and [ALL] — the RR-184 fixture chain (planning rows by F91's and F16's own functions, F35's own CREATE, F37's own render) and hand-written fixture page bodies, one per finding. C6's REAL control, count-only and records-only: 20 declared tenants with a site origin — INCOMPLETE 18, UNKNOWN 2, COMPLETE 0 — every result UNIQUE AMONG RECORDED PAGES. The real F38 path for one declared client, once, in-process, no trail write: 0 drafts (F35 chose no page to CREATE); 27 existing pages, all with a stored body, INCOMPLETE — title and description findings 0 (absent, empty, multiple, duplicated), every one UNIQUE AMONG RECORDED PAGES, overstating NOT MEASURED on all 27. F40 and F41: 173 verdict calls over 8 test files byte-identical before and after (load-hook snapshot; positive control fired). Never the 27 existing pages' content in a proof (RR-177).",
+        proofs: "test/rr210-f38.test.mjs T38-C1 to T38-C7 and T38-ALL (one per EVIDENCE line), R38-BOARD",
+        sabotage: "runs/audit/rr210-sabotage-2026-10-07T2305.txt (sha256 f3e63d14…): 37 of 37 proved (one per FAILURE limb of C1–C7 and [ALL]), residue 0, production trail unchanged; the practice pass found S25 NOT PROVED (its sabotage crashed the module, a TypeError) — re-anchored and re-practised before the real pass",
+        historicalReuse: "no historical row maps to F38 (crosswalk NEW, no module or test). Reused read-only: F37's render and claimsOf, F37's PROMISE census, F31's population reader, the head-elements check's parseHead (agreement on fixtures); none changed (C7 pins their bytes at base 24069ee3)",
+        declaredLimit: "overstating and answer placement are NOT MEASURED on existing pages (no verified-claims record, no central question recorded for them); uniqueness is among recorded pages only while no inventory is COMPLETE; a draft's head is built without F94's plan (F94 C7), which never changes its title or direct answer; F41's preview shows the body only (its own amendment); no length guidance is a gate",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

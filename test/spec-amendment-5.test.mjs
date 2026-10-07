@@ -63,7 +63,7 @@ const EXTENDED = [
   ]
 ];
 /* RR-184: F40 joined by its OWN acceptance and proof after Amendment 5 (rr184-sabotage-2026-10-06T0301); the amendment itself moved none */
-const PASSED_AT_2FC76540 = ["F01","F02","F03","F04","F05","F06","F08","F09","F13","F19","F20","F21","F26","F29","F31","F32","F33","F34","F35","F36","F37","F39","F40","F41","F43","F45","F46","F47","F48","F55","F73","F75","F77","F79","F82","F90","F94"]; /* RR-206: F94 joined by its OWN acceptance (959ae05) and proof after Amendment 5 (rr206-sabotage-2026-10-07T1855); the amendment itself moved none */
+const PASSED_AT_2FC76540 = ["F01","F02","F03","F04","F05","F06","F08","F09","F13","F19","F20","F21","F26","F29","F31","F32","F33","F34","F35","F36","F37","F38","F39","F40","F41","F43","F45","F46","F47","F48","F55","F73","F75","F77","F79","F82","F90","F94"]; /* RR-210: F38 joined by its OWN first acceptance (96ae49e) and proof after Amendment 5 (rr210-sabotage-2026-10-07T2305) */ /* RR-206: F94 joined by its OWN acceptance (959ae05) and proof after Amendment 5 (rr206-sabotage-2026-10-07T1855); the amendment itself moved none */
 const APPROVED_DRAFT_SHA256 = "a5ec2a78432643c432dfe24d2083e2c9a2eca064deb26fddbd1538d81efef3c8";
 const sha = (s) => createHash("sha256").update(s, "utf8").digest("hex");
 const board = () => buildBoard(CAPABILITIES, DECLARED);
@@ -167,7 +167,7 @@ test("A5·5 · the amendment's text did not change: the admitted record's bytes 
   assert.equal(EXTRACT_PROVENANCE.sha256, "526c8e5de1e7c56c061f08ef24afdc65118891fe7f277c97e2ce2910a035583f");
 });
 
-test("A5·6 · the denominator: 96 rows, 95 required (F25 NOT REQUIRED) — 35/95 at the amendment, 36/95 since F40 was PROVED (RR-184), 37/95 since F94 was PROVED (RR-206); the split sums to 96", () => {
+test("A5·6 · the denominator: 96 rows, 95 required (F25 NOT REQUIRED) — 35/95 at the amendment, 36/95 since F40 was PROVED (RR-184), 37/95 since F94 was PROVED (RR-206), 38/95 since F38 was PROVED (RR-210); the split sums to 96", () => {
   const p = progress(board());
   /* RR-186: this test's job is the DENOMINATOR; the passed figure moves with lawful later movements and is pinned by the board-figure tests */
   assert.deepEqual([p.denominator, p.total, p.required.denominator], [96, 96, 95]);

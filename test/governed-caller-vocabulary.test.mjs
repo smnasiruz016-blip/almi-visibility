@@ -308,9 +308,12 @@ test("V7 · the REAL population: 46 governed = 45 routed + 1 checked exemption +
    * point, bin/t2-reassess.mjs, GOVERNED — it appends the version-2 replacements and their state changes to the two findings stores only
    * through the governed boundary (APPEND_T2_REASSESSMENT_ISSUES, APPEND_T2_REASSESSMENT_STATE_CHANGES), only with --confirm. No existing
    * caller moved class. */
-  assert.equal(rows.length, 110);
+  /* 110/57 → 111/57 on 7 October (F94, RR-206), for a MEASURED reason, moved in the SAME commit as the change: one production entry
+   * point, bin/site-plan.mjs, READ-ONLY — it plans where a page F35 chose sits in one client's site and writes nothing (READ_ONLY_DIAGNOSTIC
+   * 53 → 54). No governed caller was added and no existing caller moved class. */
+  assert.equal(rows.length, 111);
   assert.equal(governed.length, 57);
-  assert.equal(rows.filter((r) => r.cls === "READ_ONLY_DIAGNOSTIC").length, 53);
+  assert.equal(rows.filter((r) => r.cls === "READ_ONLY_DIAGNOSTIC").length, 54);
   const by = Object.fromEntries(CALLER_CLASSES.map((c) => [c, governed.filter((r) => r.callerClass === c).length]));
   /* 43/2 → 44/1 on 26 September (F10), for a MEASURED reason: bin/heldout-evaluation.mjs now routes its scoring run through the
    * boundary (BOUNDARY_ROUTED); no entry point was added and no other caller moved class. */

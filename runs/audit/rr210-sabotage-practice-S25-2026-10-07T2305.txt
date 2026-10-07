@@ -1,0 +1,9 @@
+RR-210 F38 sabotage PRACTICE run · 2026-10-07T23:05:42.220Z
+population: 1 sabotage(s) over test/rr210-f38.test.mjs · each applied ALONE · no provider, no network, no third-party read
+BASELINE (the named tests before any sabotage): GREEN · named tests seen GREEN: 1 of 1
+PRE-FLIGHT (span occurrences in the code live now): S25=1+1 · all exactly once: true
+production trail sha256 before: 0df64da8fc5d30480ebb3937e84d3a40761003a4f182a862b7e84ba97d388de3
+
+S25 C5 · a page with no stored body is reported clean [src/page/answer-first.mjs]: landed true · named test "T38-C5" red true · its failure AssertionError · SyntaxError false · a production child crashed false · failing T38-C5 · restored true · PROVED
+
+proved 1 of 1 · residue 0 · production trail sha256 after: 0df64da8fc5d30480ebb3937e84d3a40761003a4f182a862b7e84ba97d388de3 · unchanged true

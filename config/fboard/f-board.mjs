@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -1878,7 +1878,7 @@ export const DECLARED = Object.freeze({
   F37: Object.freeze({
     featureId: "F37",
     board: "F_BOARD",
-    state: "VERIFIED-PASS",
+    state: "IN-PROGRESS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-05", ruling: F37_ORIGINAL.ruling, contractSha256: F37_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -1948,6 +1948,22 @@ export const DECLARED = Object.freeze({
         proofs: "test/rr180-r4b.test.mjs T37a–T37k, T37-27, R37-CI, R37-BOARD (C1–C6, T37c reading the heading through its refer-back link); test/rr186-r5b.test.mjs T37-C7 (C7: each distinct claim once in the one-question and the grouped case, every refer-back a link resolving to a rendered claim, no new visible text, markup aligned by F48's rule, F40's criteria and method byte for byte)",
         sabotage: "runs/audit/rr186-sabotage-2026-10-06T0419.txt: 42 of 42 proved (RR-180's 34 for C1–C6 and ruling RR-180 (a), four re-anchored; 8 for C7), residue 0, production trail unchanged",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+      /* RR-208: F37's Acceptance Amendment 2, approved by its hash and frozen ALONE; F37 REOPENED at this freeze (Amendment 1's practice) */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F37", on: "2026-10-07", ruling: F37_AMENDMENT_2.ruling, contractSha256: F37_AMENDMENT_2.contractSha256, amends: F37_AMENDMENT_2.amends }),
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F37",
+        on: "2026-10-07",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: Amendment 2)",
+        reason: "AUTHORITATIVE_REQUIREMENT_CHANGE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "F37's 2026-10-06 R5b evidence remains historically valid for what it measured; the reopen is caused by the newly frozen wider requirement (Amendment 2, RR-207/RR-208: the draft's internal links and URL from F94's plan, a PARTIAL plan labelled, no plan stated), not by any defect found in that evidence",
+        amendment: Object.freeze({ ruling: F37_AMENDMENT_2.ruling, contractSha256: F37_AMENDMENT_2.contractSha256 }),
+        ownerDecision: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-07_RR-208_APPROVE_F37_AMENDMENT_2.md", commit: "aced7555ff461ee056cba3c9d00e9d0ed73b71b0", sha256: "ef9448df6f3f15249e33f3aef68bfd7f89fbde6ab24fffc32a25a24509b5aeb2" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-07_RR-208.md", commit: "aced7555ff461ee056cba3c9d00e9d0ed73b71b0", sha256: "0c4b7cbba3330a4ef51a02e6d465919628e5037ab4997b151d20ae27d9ae1245" }),
       }),
     ]),
   }),

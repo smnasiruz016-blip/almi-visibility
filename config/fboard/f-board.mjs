@@ -2784,7 +2784,7 @@ export const DECLARED = Object.freeze({
   F94: Object.freeze({
     featureId: "F94",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-07", ruling: F94_ORIGINAL.ruling, contractSha256: F94_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -2801,6 +2801,27 @@ export const DECLARED = Object.freeze({
         baseCiRun: "37577858579",
         baseCiConclusion: "success",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-07_RR-206.md", commit: "448028203d223f128102500018db327023f4c4db", sha256: "49c5be925e1b00643e172fd4dccf36c8c87782a60e015833c866db1019a45888" }),
+      }),
+      /* RR-206: F94 PROVED — every clause of its frozen acceptance PROVED and every sabotage PROVED, on FIXTURE pages only (RR-177) with
+       * C5's count-only control on the real recorded inventory shapes; recorded through the board route in the same PR; main CI on the
+       * merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F94",
+        population: "REAL",
+        on: "2026-10-07",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F94_ORIGINAL.ruling.sha256, contract: F94_ORIGINAL.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED" }),
+        populations: "FIXTURE pages only for C1–C4, C6, C7 and [ALL] — one fixture tenant on a fixture origin (a hub and two spokes of one need), its completeness decided by F31's own scopeCompleteness and its CREATE by F35's own decideGroupedNeed; a second fixture tenant for C6. C5's REAL control is count-only on the recorded inventory SHAPES (page and observation records, edges, sitemap records, declarations; no page body read): 20 declared tenants with a site origin — INCOMPLETE 18, UNKNOWN 2, COMPLETE 0 — and 18 real-structure plans, every one PARTIAL with its bound and no completeness-dependent part decided. The real F94 path for one declared client, once, in-process, no trail write: 27 recorded pages, 1,275 recorded links, 20,395 recorded URLs, INCOMPLETE; F35 chose no page to create or improve (no research batch; every page action 0), so 0 plans — no real plan exists today. Never the 27 existing pages' content (RR-177).",
+        proofs: "test/rr206-r7.test.mjs T94-C1 to T94-C7 and T94-ALL (one per EVIDENCE line), R94-BOARD",
+        sabotage: "runs/audit/rr206-sabotage-2026-10-07T1855.txt (sha256 6312f541…): 33 of 33 proved (one per FAILURE limb of C1–C7 and [ALL]), residue 0, production trail unchanged; the practice pass (rr206-sabotage-practice-2026-10-07T1853.txt) found S33 NOT PROVED (no refused subject in T94-ALL) — the test was repaired, S33 alone proved, then the real pass",
+        historicalReuse: "no historical row maps to F94 (crosswalk NEW, no module or test). Reused read-only: F31's partition, edge and completeness readers, F33's judgePage, F23's recordedTargets and targetState, F35's decisions; none changed (C7 pins their bytes at base a08db7a5)",
+        declaredLimit: "an edge records no anchor text and no position, so a plan says which pages link, never with what words or where; F37's draft and F41's brief do not read the plan (their own amendments, a later round); on every real tenant today the inventory is INCOMPLETE or UNKNOWN, so every real plan is PARTIAL",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

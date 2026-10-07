@@ -106,6 +106,11 @@ export const ACTIONS = Object.freeze({
    * or content. It IS a protected read, so it is this class, decided at GLOBAL_PRODUCT scope (never a tenant's); what it may RELEASE is
    * bounded in code (src/ops/operator-overview.mjs: counts and state codes only). No new family and no new permission. */
   READ_OPERATIONS_OVERVIEW: A("RESEARCH", "PROTECTED_TENANT_DATA"),
+  /* RR-196 (OWNER APPROVED, 7 Oct 2026): the Row 60 OWNER RULING SHEET is a GLOBAL read under F02 — read-only over the run stores and the
+   * declared observation sources, owner-only (its output is the owner's ruling sheet, runs/export/row60-ruling-sheet.*, and nothing else),
+   * and it changes no tenant's data. Decided at GLOBAL_PRODUCT scope (never a tenant's) BEFORE anything is read, as READ_OPERATIONS_OVERVIEW
+   * is; the entry point is declared by name in tools/tenant-scope-census.mjs. No new family and no new permission. */
+  READ_OWNER_RULING_SHEET: A("RESEARCH", "PROTECTED_TENANT_DATA"),
   OPEN_CONNECTOR_PUBLIC_SITE: A("RESEARCH", "EXTERNAL_SOURCE"),
   OPEN_CONNECTOR_CITED_SOURCES: A("RESEARCH", "EXTERNAL_SOURCE"),
   OPEN_CONNECTOR_SEARCH_CONSOLE_API: A("RESEARCH", "EXTERNAL_SOURCE"),

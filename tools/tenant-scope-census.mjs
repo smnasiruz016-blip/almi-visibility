@@ -126,6 +126,12 @@ export const EXCLUDED_ENTRY_POINTS = Object.freeze({
    * arithmetic; it releases counts and state codes only (assertOverview), never a record or a tenant identifier; unscoped history stays
    * UNATTRIBUTED. Its control: test/f87-operator-overview.test.mjs (proofs 1–4 and the authorisation gate). */
   "bin/operations-overview.mjs": "the engine operator's cross-tenant operational overview (owner, RR-130 §2): F04-authorised at GLOBAL_PRODUCT scope before any read; counts and state codes only, never a record, URL, content or tenant identifier; unscoped history stays UNATTRIBUTED",
+  /* RR-196 (OWNER APPROVED, 7 Oct 2026). NOT a claim that it reads no tenant data: it reads every run store and declared observation
+   * source to COUNT issues by class for the OWNER's ruling sheet — a GLOBAL read the owner declared under F02. F04 decides
+   * READ_OWNER_RULING_SHEET at GLOBAL_PRODUCT scope before any read; its only output is the owner's ruling sheet in this repository
+   * (runs/export/row60-ruling-sheet.json/.md, GLOBAL_PRODUCT-scoped governed writes); it changes no tenant's data. Its control:
+   * test/rr196-r6b.test.mjs (the authorisation gate). */
+  "bin/row60-ruling-sheet.mjs": "the owner's Row 60 ruling sheet (owner, RR-196, 7 Oct 2026): a GLOBAL read declared under F02, F04-authorised (READ_OWNER_RULING_SHEET) at GLOBAL_PRODUCT scope before any read; read-only over the stores, owner-only output, it changes no tenant's data",
   "bin/approval.mjs": "the F04 approval registry: config/governance/approvals.jsonl and the committed authority corpus; it records an owner-issued approval and reads, joins or decides nothing about a tenant",
   "bin/retire-attachment.mjs": "the declaration source (F02, owner ruling 25 Sep): it removes one attachment PROVED unlawful by its own members' identity fields; it joins nothing, reads no body, and its write is F08-governed",
 });

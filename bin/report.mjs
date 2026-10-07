@@ -43,7 +43,9 @@ import { statSync } from "node:fs";
 import { batchJsonlFiles } from "../src/crawl/observation-batch.mjs";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
-import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
+import { authorise, authorisationEvent, namedActor, AUTHORISATION_REFUSED_EXIT } from "../src/governance/authorisation.mjs";
+import { diagnosticGuardSink } from "../src/governance/guard-audit.mjs";
+import { governedGuardSink } from "../src/governance/governed-run.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (n, d) => {
@@ -54,12 +56,31 @@ const arg = (n, d) => {
 // 🔴 Confined BEFORE anything is read or rendered: a destination outside this
 // repository is refused while nothing has happened yet.
 const out = confineToRepo(arg("out", `${REPO}runs/report/index.html`), { label: "--out" });
+/* 🔴 RR-197 · A GLOBAL READ DECLARED UNDER F02 (owner approved, 7 Oct 2026; declaration 57e2d6a) — NOT a tenant read and NOT a bypass.
+ * The owner's report counts every run store, the evidence store, the cost ledger and the observation batch across tenants, so F04 decides
+ * READ_OWNER_REPORT for the named actor at GLOBAL_PRODUCT scope BEFORE anything is read; a refusal ends the process (exit 5). The named
+ * product's own subject root is NOT part of that declaration: it is still decided below, through F02/F03, for its own tenant.
+ * 🔴 A DRY RUN WRITES NOTHING TO ANY TRAIL (owner, RR-196/197): only the --confirm run records — its decisions on the governed sink and
+ * its one governed write; without --confirm every decision goes to the diagnostic sink and no governed write is attempted. */
+export const REPORT_SCOPE = Object.freeze({ scopeType: "GLOBAL_PRODUCT", action: "READ_OWNER_REPORT", authority: "RR-197 · owner, 7 Oct 2026" });
+const confirmMode = process.argv.includes("--confirm");
+const ENTRY = "bin/report.mjs";
+const globalSink = confirmMode
+  ? governedGuardSink({ repo: REPO, env: process.env, correlationId: `run:${ENTRY}:global-read:${isoSeconds(Date.now())}`, now: isoSeconds(Date.now()).slice(0, 10), actor: ENTRY })
+  : diagnosticGuardSink({ actor: ENTRY });
+const globalDecision = authorise({ actorRef: namedActor(process.argv), action: REPORT_SCOPE.action, scope: { scopeType: REPORT_SCOPE.scopeType }, resourceRef: "owner-report", now: new Date().toISOString() });
+globalSink.emit(authorisationEvent(globalDecision));
+if (!globalDecision.allowed) {
+  console.error(`🔴 AUTHORISATION REFUSED — ${REPORT_SCOPE.action}: ${globalDecision.outcome} (${globalDecision.reason}); nothing was read`);
+  process.exit(AUTHORISATION_REFUSED_EXIT);
+}
 // 🔴 The product is an ARGUMENT, never a folder written here (owner ruling, 14 September 2026): no default.
 /* 🔴 F03 — the subject's data root is decided (RESOURCES.subject) BEFORE its descriptor or any of its files is read. */
 const PRODUCT_ID = productIdOrExit(process.argv, { usage: "node bin/report.mjs --product=<id> --tenant=<declared tenant> [--evidence=<path>] [--crawl=<path>] [--out=<file>] [--confirm]" });
-/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. The
- * destination is confined first (that reads nothing); every path an operator hands the run is decided as an INPUT_PATH. */
-const SCOPE = scopedEntryPoint({ entry: "bin/report.mjs", governed: true, resources: [RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.crawlBatch(BATCH_ID), RESOURCES.runArtefacts("run stores"), RESOURCES.subject(PRODUCT_ID), RESOURCES.inputPath(arg("evidence", null), "--evidence"), RESOURCES.inputPath(arg("robots", null), "--robots"), RESOURCES.inputPath(arg("audit", null), "--audit"), RESOURCES.inputPath(arg("crawl-dir", null), "--crawl-dir")] });
+/* 🔴 F02/F03 — the named product's subject root, and every path an operator hands the run (an INPUT_PATH), are decided HERE for the
+ * requested tenant, before any of them is read. The shared stores are the GLOBAL read decided above (RR-197), not named here. The
+ * decision reaches the trail only on the --confirm run (a dry run writes nothing to any trail). */
+const SCOPE = scopedEntryPoint({ entry: "bin/report.mjs", governed: confirmMode, resources: [RESOURCES.subject(PRODUCT_ID), RESOURCES.inputPath(arg("evidence", null), "--evidence"), RESOURCES.inputPath(arg("robots", null), "--robots"), RESOURCES.inputPath(arg("audit", null), "--audit"), RESOURCES.inputPath(arg("crawl-dir", null), "--crawl-dir")] });
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/report.mjs --product=<id> --tenant=<declared tenant> [--evidence=<path>] [--crawl=<path>] [--out=<file>] [--confirm]", scope: SCOPE });
 
 const evidencePath = arg("evidence", `${REPO}runs/evidence/evidence.jsonl`);
@@ -191,10 +212,13 @@ const html = renderPage({ crawlRecords, evidenceRecords, facts, generatedAt, cha
 
 {
   const size = `(${(Buffer.byteLength(html, "utf8") / 1024).toFixed(1)} KiB)`;
-  const governed = executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
-    repo: REPO, permission, target: out, targetClass: "GENERATED_CONFIG", bytes: html,
-    action: "WRITE_ESTATE_REPORT", occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
-  }));
+  /* RR-197: the owner's output — a GLOBAL_PRODUCT write; and a dry run attempts no governed write at all, so it writes no trail */
+  const governed = confirmMode
+    ? executeGovernedWrite(governedFileWrite({ scopeType: REPORT_SCOPE.scopeType,
+      repo: REPO, permission, target: out, targetClass: "GENERATED_CONFIG", bytes: html,
+      action: "WRITE_ESTATE_REPORT", occurredAt: RUN_INSTANT, correlationId: RUN_CORRELATION,
+    }))
+    : { outcome: "REFUSED" };
   if (governed.outcome === "REFUSED") console.log(`[dry-run] would have written ${out}  ${size} — add --confirm`);
   else if (governed.outcome === "COMMITTED" || governed.outcome === "ALREADY_COMMITTED") console.log(`written: ${out}  ${size} [${governed.outcome}]`);
   else { console.error(`🔴 ${governed.outcome} — ${out} was not written; the governed attempt is on the audit trail`); process.exitCode = 1; }

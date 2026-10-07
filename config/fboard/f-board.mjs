@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -1947,6 +1947,41 @@ export const DECLARED = Object.freeze({
         populations: "FIXTURE structures only — a fixture tenant with two fixture pages, planning rows built by F91's and F16's own functions, drafts rendered by F37's own function and judged by F40's UNCHANGED repetition and filler judgements; never the 27 existing pages set aside (RR-177). Measured: the RR-180 grouped fixture renders 2 claim blocks for 2 distinct claims (5 before this amendment); the one-question fixture likewise; F40 repetition and filler PASS on both. On a real draft F40's engaging and hookable stay NOT MEASURED and distinct value CANNOT DECIDE — not F37's. Count-only.",
         proofs: "test/rr180-r4b.test.mjs T37a–T37k, T37-27, R37-CI, R37-BOARD (C1–C6, T37c reading the heading through its refer-back link); test/rr186-r5b.test.mjs T37-C7 (C7: each distinct claim once in the one-question and the grouped case, every refer-back a link resolving to a rendered claim, no new visible text, markup aligned by F48's rule, F40's criteria and method byte for byte)",
         sabotage: "runs/audit/rr186-sabotage-2026-10-06T0419.txt: 42 of 42 proved (RR-180's 34 for C1–C6 and ruling RR-180 (a), four re-anchored; 8 for C7), residue 0, production trail unchanged",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+      /* RR-208: F37's Acceptance Amendment 2, approved by its hash and frozen ALONE; F37 REOPENED at this freeze (Amendment 1's practice) */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F37", on: "2026-10-07", ruling: F37_AMENDMENT_2.ruling, contractSha256: F37_AMENDMENT_2.contractSha256, amends: F37_AMENDMENT_2.amends }),
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F37",
+        on: "2026-10-07",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: Amendment 2)",
+        reason: "AUTHORITATIVE_REQUIREMENT_CHANGE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "F37's 2026-10-06 R5b evidence remains historically valid for what it measured; the reopen is caused by the newly frozen wider requirement (Amendment 2, RR-207/RR-208: the draft's internal links and URL from F94's plan, a PARTIAL plan labelled, no plan stated), not by any defect found in that evidence",
+        amendment: Object.freeze({ ruling: F37_AMENDMENT_2.ruling, contractSha256: F37_AMENDMENT_2.contractSha256 }),
+        ownerDecision: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-07_RR-208_APPROVE_F37_AMENDMENT_2.md", commit: "aced7555ff461ee056cba3c9d00e9d0ed73b71b0", sha256: "ef9448df6f3f15249e33f3aef68bfd7f89fbde6ab24fffc32a25a24509b5aeb2" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-07_RR-208.md", commit: "aced7555ff461ee056cba3c9d00e9d0ed73b71b0", sha256: "0c4b7cbba3330a4ef51a02e6d465919628e5037ab4997b151d20ae27d9ae1245" }),
+      }),
+      /* RR-208: F37 RE-PROVED under Acceptance Amendment 2 — every clause C1–C8 PROVED and every sabotage PROVED, on FIXTURE structures only
+       * (RR-177) with C8's count-only real-path control; recorded through the board route in the same PR; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F37",
+        population: "REAL",
+        on: "2026-10-07",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: Amendment 2)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F37_AMENDMENT_2.ruling.sha256, contract: F37_AMENDMENT_2.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED", C8: "PROVED" }),
+        populations: "FIXTURE structures only — the RR-184 fixture chain (planning rows by F91's and F16's own functions, F35's own CREATE, F37's own render) and F94's OWN plan over a fixture site, COMPLETE and INCOMPLETE; never the 27 existing pages' content (RR-177). C8's REAL control, count-only, in-process, no trail write: one declared client — 27 recorded pages, 1,275 recorded links, an INCOMPLETE inventory, F35 chose no page to CREATE, F94 made 0 plans — so every real draft today carries the no-plan UNKNOWN part, its internal links and technical NOT MEASURED. F40 and F41: 166 verdict calls over 7 test files byte-identical before and after (load-hook snapshot; positive control fired).",
+        proofs: "test/rr180-r4b.test.mjs and test/rr186-r5b.test.mjs (C1–C7, re-run under Amendment 2, fixtures restated to F94's plan shape), test/rr208-f37a2.test.mjs T37-C8, T37-C8-REAL, R37-A2-BOARD",
+        sabotage: "runs/audit/rr208-sabotage-2026-10-07T2045.txt (sha256 b7289671…): 59 of 59 proved (RR-186's 42, S29 re-anchored, and C8's 17), residue 0, production trail unchanged; the practice pass found 3 NOT PROVED (S29 stale, S43 unreachable, S46 unseen) — repaired and re-practised before the real pass",
+        declaredLimit: "an edge records no anchor text, so a link's visible text is its URL; no real plan exists today, so the PASS path of internal links and technical is proved on fixtures only; F41's brief does not read the plan (its own amendment)",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),

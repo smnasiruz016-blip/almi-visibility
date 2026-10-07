@@ -36,6 +36,21 @@ const PIN = Object.freeze({ criteria: "6b734b4577090f6209368b56f3d98ab17adb5da8c
  * to read R5's own VERIFIED; the board is not a fixture) — the stripped text's sha256, re-derived from main's blob */
 const RR184_TEST_SHA = "7353481ed162bac39360f2055a46c96fb7943793d6cb0033f91d13576188cf03";
 const withoutR40Board = (t) => { t = t.replace(/\r\n/g, "\n"); const s = t.indexOf('test("R40-BOARD'); return s < 0 ? t : t.slice(0, s) + t.slice(t.indexOf("\n});\n", s) + 5); };
+/* 🔴 RR-208 (F37 Acceptance Amendment 2): R5's fixtures were RESTATED, and only restated — the hand-shaped `links` fixture became the same
+ * targets in F94's plan shape. undoRR208 reverses exactly those four edits; the pin below is unchanged and still must match, so ANY other
+ * change to R5's fixtures or tests still fires. */
+const RR208_PLAN = [
+  "/* 🔴 RR-208 (F37 Acceptance Amendment 2, C8): the draft reads its links and URL ONLY from F94's plan for its need. FIXTURE RESTATE ONLY — the same",
+  " * targets as the earlier `links` fixture (page a out, page b in, the same URL), now in F94's plan shape for the chosen need; every assertion is unchanged. */",
+  "const PLAN_OF = (decision, over = {}) => Object.freeze({ feature: \"F94\", planned: true, subject: { kind: \"NEW_PAGE\", ref: `F35:CREATE:${decision?.subject?.needId}` },",
+  "  url: { state: \"PROPOSED\", url: \"https://fixture-world.invalid/renewal\", readFrom: [\"fixture-page-a\", \"fixture-page-b\"] },",
+  "  linksOut: [{ pageId: \"fixture-page-a\", url: \"https://fixture-world.invalid/hours\", reason: { kind: \"SAME_NEED\", ref: \"F33:COVERS:fixture-page-a\" }, extends: [], targetStatus: \"WORKING\" }],",
+  "  linksIn: [{ pageId: \"fixture-page-b\", url: \"https://fixture-world.invalid/contact\", reason: { kind: \"SAME_NEED\", ref: \"F33:COVERS:fixture-page-b\" }, extends: [], targetStatus: \"NOT MEASURED\" }],",
+  "  bound: { state: \"COMPLETE\", text: \"the fixture inventory (RR-177)\", counts: null }, complete: true, claims: { urlUnique: true }, ...over });",
+].join("\n");
+const RR208_LINKS = 'const LINKS = Object.freeze({ completeness: "COMPLETE", out: [{ pageId: "fixture-page-a", url: "https://fixture-world.invalid/hours", title: "Fixture opening hours" }], inboundFrom: [{ pageId: "fixture-page-b" }], selfUrl: "https://fixture-world.invalid/renewal", ref: "links:fixture" });';
+const undoRR208 = (t) => t.replace(/\r\n/g, "\n").replace(RR208_PLAN, RR208_LINKS).replace("{ plan = PLAN_OF(c.d.decision), ", "{ links = LINKS, ")
+  .replace("plans: [plan].filter(Boolean), now: NOW })", "links, now: NOW })").replace("renderCompiledDraft({ spec, decision: c.d.decision, plan })", "renderCompiledDraft({ spec, decision: c.d.decision, links })");
 const ON = "2026-10-06", AT = `${ON}T00:00:00Z`, NOW = new Date(`${ON}T12:00:00Z`);
 const T = "tenant:rr188-fixture", S = "rr188-fixture-subject";
 
@@ -51,7 +66,13 @@ const Q1 = rd("formed-1", "How long does a fixture licence renewal take?");
 const page = (id, h1) => ({ pageId: id, tenantId: T, html: `<article><h1>${h1}</h1><p>Fixture body text about ${h1.toLowerCase()} and nothing else of the subject.</p></article>`, bodyObservationId: `obs:${id}` });
 const PAGES = [page("fixture-page-a", "Fixture opening hours"), page("fixture-page-b", "Fixture contact details")];
 const POP = { tenantId: T, coverageState: "COMPLETE", pages: PAGES, inventory: { pages: PAGES.map((p) => ({ pageId: p.pageId, fingerprints: [{ observationId: p.bodyObservationId, verified: true }] })) } };
-const LINKS = Object.freeze({ completeness: "COMPLETE", out: [{ pageId: "fixture-page-a", url: "https://fixture-world.invalid/hours", title: "Fixture opening hours" }], inboundFrom: [{ pageId: "fixture-page-b" }], selfUrl: "https://fixture-world.invalid/renewal", ref: "links:fixture" });
+/* 🔴 RR-208 (F37 Acceptance Amendment 2, C8): the draft reads its links and URL ONLY from F94's plan for its need. FIXTURE RESTATE ONLY — the same
+ * targets as the earlier `links` fixture (page a out, page b in, the same URL), now in F94's plan shape for the chosen need; every assertion is unchanged. */
+const PLAN_OF = (decision, over = {}) => Object.freeze({ feature: "F94", planned: true, subject: { kind: "NEW_PAGE", ref: `F35:CREATE:${decision?.subject?.needId}` },
+  url: { state: "PROPOSED", url: "https://fixture-world.invalid/renewal", readFrom: ["fixture-page-a", "fixture-page-b"] },
+  linksOut: [{ pageId: "fixture-page-a", url: "https://fixture-world.invalid/hours", reason: { kind: "SAME_NEED", ref: "F33:COVERS:fixture-page-a" }, extends: [], targetStatus: "WORKING" }],
+  linksIn: [{ pageId: "fixture-page-b", url: "https://fixture-world.invalid/contact", reason: { kind: "SAME_NEED", ref: "F33:COVERS:fixture-page-b" }, extends: [], targetStatus: "NOT MEASURED" }],
+  bound: { state: "COMPLETE", text: "the fixture inventory (RR-177)", counts: null }, complete: true, claims: { urlUnique: true }, ...over });
 const ASPECTS = ["intent", "answer", "facts", "architecture", "examples", "userValue"];
 function chosen() {
   const conn = connectQuestions({ subject: S, possible: POSSIBLE, records: [Q1], assessments: [relevant(Q1)], on: ON, drafts: [{ questionId: Q1.question_id, combination: { axis: "one" }, answer: { claims: [CENTRAL, BODY] } }] });
@@ -72,8 +93,8 @@ const fj = (name, verdict = VERDICT.PASS) => ({ name, verdict, criterionId: CRIT
 /** the production path: construction, F37's own render of the same spec, F40's own judgement of it */
 function judged({ withGain = true, judgements = [fj("engaging"), fj("hookable")] } = {}) {
   const c = chosen();
-  const r = constructCandidates({ pageSpecs: {}, variants: PRODUCT.variants, records: [], requested: [c.d.slug], tenantId: T, existingPages: POP, gainEvidence: gainFor(c.d.slug, withGain), decisions: decisionsForConstruction({ compiled: c.g.compiled }).decisions, links: LINKS, now: NOW })[0];
-  const d = renderCompiledDraft({ spec: c.d.spec, decision: c.d.decision, links: LINKS });
+  const r = constructCandidates({ pageSpecs: {}, variants: PRODUCT.variants, records: [], requested: [c.d.slug], tenantId: T, existingPages: POP, gainEvidence: gainFor(c.d.slug, withGain), decisions: decisionsForConstruction({ compiled: c.g.compiled }).decisions, plans: [PLAN_OF(c.d.decision)], now: NOW })[0];
+  const d = renderCompiledDraft({ spec: c.d.spec, decision: c.d.decision, plan: PLAN_OF(c.d.decision) });
   const q = judgeDraft({ spec: c.d.spec, decision: c.d.decision, draft: d, parts: r.parts, population: POPULATION.FIXTURE, judgements });
   return { c, r, d, q, brief: Object.freeze({ subject: Object.freeze({ kind: "GROUPED_NEED", id: c.needId }), state: "READY" }) };
 }
@@ -97,7 +118,7 @@ test("T40-C8 · F40 C8 THE RECORD NAMES THE EXACT CONTENT IT JUDGED: contentSha2
   /* RR-192: the one restated fixture field — l.76's gain review gains needsGuidance: false (F32 C3 / F39 C3 as amended), proved to leave every
    * F40 and F41 verdict and blocker identical (main's code on the old fixture = the new code on the new one). It is removed, exactly once,
    * before the unchanged pin is compared — any other change still fails. */
-  const rr184 = withoutR40Board(readFileSync(join(REPO, "test/rr184-r5.test.mjs"), "utf8"));
+  const rr184 = withoutR40Board(undoRR208(readFileSync(join(REPO, "test/rr184-r5.test.mjs"), "utf8"))); /* RR-208: the fixture restate reversed, nothing else */
   const ADDED = "documentedDistinctValue: \"a different need\", needsGuidance: false, ref:";
   assert.equal(rr184.split(ADDED).length - 1, 1, "the RR-192 restatement is not exactly one field");
   assert.equal(sha(rr184.replace(ADDED, "documentedDistinctValue: \"a different need\", ref:")), RR184_TEST_SHA, "R5's fixtures changed — they must re-run unchanged");

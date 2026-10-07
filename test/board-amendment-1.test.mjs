@@ -27,7 +27,7 @@ test("B1 · the board reads 37/95 over the REQUIRED rows and 37/96 over all rows
   const p = progress(board());
   /* RR-182 §3: Specification Amendment 5 appended F92–F96 UNASSESSED — UNASSESSED 44 → 49, rows 91 → 96, required 90 → 95; passed unchanged */
   assert.deepEqual([p.passed, p.denominator, p.total], [37, 96, 96], "the all-rows figure moved");
-  assert.deepEqual([p.required.passed, p.required.denominator], [37, 95], "the required figure is not 37/95"); /* RR-206: F94 PROVED in R7 (rr206-sabotage-2026-10-07T1855: 33 of 33) */ /* RR-192: F39 re-proved under Amendment 1 */
+  assert.deepEqual([p.required.passed, p.required.denominator], [37, 95], "the required figure is not 37/95"); /* RR-208: F37 RE-PROVED under its Amendment 2 (rr208-sabotage-2026-10-07T2045: 59 of 59) */ /* RR-208: F37 REOPENED by its own Amendment 2 (_handoffs f9edf2a) — VERIFIED-PASS -> IN-PROGRESS */ /* RR-206: F94 PROVED in R7 (rr206-sabotage-2026-10-07T1855: 33 of 33) */ /* RR-192: F39 re-proved under Amendment 1 */
   assert.deepEqual(p.required.notRequired, [{ featureId: "F25", state: "IN-PROGRESS" }]);
   assert.deepEqual(errs(board()), [], "the real board is not lawful");
   const cli = spawnSync(process.execPath, ["bin/fboard-status.mjs"], { cwd: REPO, encoding: "utf8" });
@@ -37,7 +37,7 @@ test("B1 · the board reads 37/95 over the REQUIRED rows and 37/96 over all rows
 test("B2 · leaving the required path never raises the numerator: a NOT REQUIRED row that is VERIFIED-PASS still does not count (CONTROL: kept, it would)", () => {
   const b = board().map((r) => (r.featureId === "F25" ? { ...r, state: "VERIFIED-PASS" } : r));
   const p = progress(b);
-  assert.equal(p.required.passed, 37, "a NOT REQUIRED row was counted as passed"); /* RR-206: F94 PROVED in R7 (rr206-sabotage-2026-10-07T1855: 33 of 33) */
+  assert.equal(p.required.passed, 37, "a NOT REQUIRED row was counted as passed"); /* RR-208: F37 RE-PROVED under its Amendment 2 (rr208-sabotage-2026-10-07T2045: 59 of 59) */ /* RR-208: F37 REOPENED by its own Amendment 2 (_handoffs f9edf2a) — VERIFIED-PASS -> IN-PROGRESS */ /* RR-206: F94 PROVED in R7 (rr206-sabotage-2026-10-07T1855: 33 of 33) */
   assert.equal(p.required.denominator, 95);
   const kept = progress(b, { notRequired: {} });
   assert.equal(kept.required.passed, 38, "CONTROL: with no exclusion the same board must count it — the check could not fail");

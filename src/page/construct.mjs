@@ -133,8 +133,9 @@ export function selectCandidates(pageSpecs, { slug = null, allSlugs = false } = 
  *                                                  `compiled.forConstruction`): a candidate is judged ONLY when F35 CHOSE CREATE for it
  *                                                  (ruling RR-179 (c)); none handed in → nothing is built. A compiled spec rides in it.
  * @param {object[]} [input.rationaleReviews]       recorded substance reviews of rationale pairs (F36, S38) — none recorded is []
- * @param {object|null} [input.links]               F37 · recorded internal-link targets for a compiled draft ({ completeness, out, inboundFrom,
- *                                                  selfUrl, ref }); none recorded → the internal-links and technical checks are NOT MEASURED
+ * @param {object[]} [input.plans]                  F37 Amendment 2 (C8, RR-208) · F94's plans; each compiled draft reads ONLY the plan whose subject
+ *                                                  is its own need (linksFromPlan) — none → the draft says so, and the internal-links and technical
+ *                                                  checks are NOT MEASURED
  * @param {Date}     [input.now]
  *
  * 🔴 F34 (_handoffs 53f74b4) — THE EXISTING-PAGE CHECK IS A PART, AND ACCEPTED NEEDS IT TO PASS. There is no default for
@@ -147,12 +148,15 @@ export function selectCandidates(pageSpecs, { slug = null, allSlugs = false } = 
  * hands none in gets that part NOT TESTED for every candidate. The rendered candidate is judged against the tenant's current pages
  * with VERIFIED bodies (F31); without them the part is NOT TESTED, never "no other current page".
  */
-export function constructCandidates({ pageSpecs, variants = [], records = [], requested = [], tenantId = null, existingPages = null, gainEvidence = null, decisions = null, rationaleReviews = [], links = null, now = new Date() }) {
+/** C8 · the F94 plan for one chosen need: the plan whose subject is that need, or null (the draft then says so). */
+export const planFor = (plans, decision) => (Array.isArray(plans) ? plans : []).find((p) => p?.subject?.ref === `F35:CREATE:${decision?.subject?.needId}`) ?? null;
+
+export function constructCandidates({ pageSpecs, variants = [], records = [], requested = [], tenantId = null, existingPages = null, gainEvidence = null, decisions = null, rationaleReviews = [], plans = [], now = new Date() }) {
   const byId = new Map(records.map((r) => [r.id, r]));
   /* a compiled spec (F91 C19) F35 chose joins the family as a candidate, rendered by F37's complete-draft render (RR-180) */
   const compiled = (Array.isArray(decisions) ? decisions : []).filter((d) => d?.spec && isChosenCreate(d.decision) && !(d.slug in (pageSpecs ?? {})))
     .map((d) => {
-      const draft = renderCompiledDraft({ spec: d.spec, decision: d.decision, links });
+      const draft = renderCompiledDraft({ spec: d.spec, decision: d.decision, plan: planFor(plans, d.decision) });
       return draft.state === DRAFT.RENDERED
         ? { slug: d.slug, spec: d.spec, html: draft.html, trace: draft.trace, tokens: tokensOf(draft.html), renderError: null, compiled: true, draft }
         : { slug: d.slug, spec: d.spec, html: null, trace: [], tokens: null, renderError: draft.why, compiled: true, draft };

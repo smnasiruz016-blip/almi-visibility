@@ -167,6 +167,8 @@ test("T37-C8 · F37 C8 (Amendment 2) THE PLAN INTO THE DRAFT: over a COMPLETE fi
   const planted = { ...plan, linksOut: [...plan.linksOut, { pageId: "fixture-invented", url: `${A}/guides/invented`, reason: null, targetStatus: "WORKING" }] };
   const broken = { ...plan, linksOut: [{ ...plan.linksOut[0], targetStatus: "BROKEN" }] };
   /* another need's plan: construction never hands it (planFor), and the render refuses it when handed directly */
+  assert.equal(planFor([other], c.d.decision), null, "construction would hand another need's plan to the draft");
+  assert.equal(planFor([other, plan], c.d.decision), plan, "construction does not pick the plan for its own need");
   assert.equal(built(c, [other]).d.plan.state, "ABSENT", "construction handed another need's plan to the draft");
   for (const [x, why] of [[other, /not this page(?:'|&#39;)s plan/], [planted, /a link F94 would not plan/], [broken, /a link F94 would not plan/]]) {
     const d = x === other ? renderCompiledDraft({ spec: c.d.spec, decision: c.d.decision, plan: other }) : built(c, [x]).d;
@@ -181,6 +183,12 @@ test("T37-C8 · F37 C8 (Amendment 2) THE PLAN INTO THE DRAFT: over a COMPLETE fi
   for (const [name, x] of [["complete", full], ["partial", partial], ["none", none]]) {
     assert.deepEqual([x.q.judgements.filler.verdict, x.q.judgements.repetition.verdict], [VERDICT.PASS, VERDICT.PASS], `F40 judged the ${name} render filler or repetition: ${x.q.judgements.filler.observation}`);
   }
+  /* the runner (bin/build-page.mjs): construction and F40's judged draft both read F94's plans for the run's tenant — and nothing else */
+  const bp = readFileSync(join(REPO, "bin/build-page.mjs"), "utf8");
+  assert.match(bp, /const sitePlans = readClientSitePlans\(\{ tenantId: SCOPE\.tenantId, /, "the runner does not read F94's plans for its own tenant");
+  assert.match(bp, /decisions: chosen\.decisions [^\n]*, plans \/\* F37 C8/, "construction is not handed F94's plans");
+  assert.match(bp, /draft: renderCompiledDraft\(\{ spec: d\.spec, decision: d\.decision, plan: planFor\(plans, d\.decision\) \}\)/, "F40's judged draft is not rendered with its F94 plan");
+  assert.doesNotMatch(bp, /\blinks: (null|\{)/, "the runner still hands a draft hand-made links");
   /* F40's and F94's frozen code, byte for byte */
   assert.equal(html256(JSON.stringify({ CRITERIA, METHOD_SOURCE })), F40_CRITERIA, "F40's criteria changed");
   assert.equal(lfSha("src/page/site-plan.mjs"), F94_PLAN_AT_BASE, "F94's plan code changed");

@@ -1,0 +1,9 @@
+RR-206 R7 sabotage PRACTICE run · 2026-10-07T18:55:15.721Z
+population: 1 sabotage(s) over test/rr206-r7.test.mjs · each applied ALONE · no provider, no network, no third-party read
+BASELINE (the named tests before any sabotage): GREEN · named tests seen GREEN: 1 of 1
+PRE-FLIGHT (span occurrences in the code live now): S33=1 · all exactly once: true
+production trail sha256 before: 49036ab921cdbad41fafc8d6efc8dac67bceb506593c74f76c7d015f88096596
+
+S33 [ALL] · a run is reported with a plan it did not produce (a refused plan counted) [src/page/site-plan-evidence.mjs]: landed true · named test "T94-ALL" red true · its failure AssertionError · SyntaxError false · a production child crashed false · failing T94-ALL · restored true · PROVED
+
+proved 1 of 1 · residue 0 · production trail sha256 after: 49036ab921cdbad41fafc8d6efc8dac67bceb506593c74f76c7d015f88096596 · unchanged true

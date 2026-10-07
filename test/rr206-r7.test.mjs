@@ -376,9 +376,9 @@ test("T94-ALL · F94 [ALL]: no proof reads a page body, the 27 pages set aside o
   assert.doesNotMatch(code(PLAN), /from "node:|readFileSync|fetch\(/, "the plan reads a file or fetches");
   /* a run's summary is taken only from the plans it produced: a refused plan is never counted as a plan */
   const W = twoTenantWorld();
-  const r = readClientSitePlans({ tenantId: T, actionEvidence: { compiled: { forConstruction: [{ decision: CREATE, slug: "renewal-fees" }, { decision: CREATE, slug: "renewal-time" }] } }, values: ["renewal"], io: W.io });
-  assert.deepEqual([r.plans.length, r.refused.length], [2, 0]);
-  assert.deepEqual([r.summary.plans, r.summary.refused, r.summary.url], [2, 0, { [URL_STATE.PROPOSED]: 1, [URL_STATE.REFUSED_EXISTING_PAGE]: 1 }]);
+  const r = readClientSitePlans({ tenantId: T, actionEvidence: { compiled: { forConstruction: [{ decision: CREATE, slug: "renewal-fees" }, { decision: CREATE, slug: "renewal-time" }] }, pages: [improve("a-not-recorded")] }, values: ["renewal"], io: W.io });
+  assert.deepEqual([r.plans.length, r.refused.length], [2, 1], "the page F35 chose to improve, which no record holds, was not refused");
+  assert.deepEqual([r.summary.plans, r.summary.refused, r.summary.url], [2, 1, { [URL_STATE.PROPOSED]: 1, [URL_STATE.REFUSED_EXISTING_PAGE]: 1 }], "a refused plan was counted as a plan");
   assert.equal(r.summary.linksOut, r.plans.reduce((n, x) => n + x.linksOut.length, 0));
   const bad = readClientSitePlans({ tenantId: T, actionEvidence: { compiled: { forConstruction: [{ decision: { ...CREATE, decision: DECISION.CANNOT_DECIDE }, slug: "renewal-fees" }] } }, values: ["renewal"], io: W.io });
   assert.deepEqual([bad.plans.length, bad.summary.plans], [0, 0], "a subject F35 did not choose was planned or counted");

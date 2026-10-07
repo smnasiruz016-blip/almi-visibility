@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SP = "src/page/site-plan.mjs", EV = "src/page/site-plan-evidence.mjs", TF = "test/rr206-r7.test.mjs";
 const BP = "bin/build-page.mjs", CB = "src/page/content-brief.mjs", CBE = "src/page/content-brief-evidence.mjs";
+const ACC = "config/fboard/acceptances.mjs";
 const T = ["test/rr206-r7.test.mjs"];
 const TRAIL = "audit-trail/events.jsonl";
 const PRACTICE = process.argv.includes("--practice");
@@ -64,7 +65,9 @@ const SABOTAGES = [
   ["S28", "C6 · a provider is reachable (a connector is loaded)", [[EV, "import { DECISION } from \"./action-decision.mjs\";", "import { DECISION } from \"./action-decision.mjs\";\nimport { NO_REQUEST_FETCH } from \"../tenancy/connectors.mjs\";"]], "T94-C6"],
   /* ── C7 ── */
   ["S29", "C7 · F94 changes another row's code (F41's brief)", [[CB, "internalLinks: \"recorded internal link targets within a COMPLETE inventory (F31)", "internalLinks: \"recorded internal link targets within a COMPLETE inventory (F31) or an F94 plan"]], "T94-C7"],
-  ["S30", "C7 · F94 wires its plan into F37's draft", [[BP, "import { writeFileSync, mkdirSync } from \"node:fs\";", "import { writeFileSync, mkdirSync } from \"node:fs\";\nimport { readClientSitePlans } from \"../src/page/site-plan-evidence.mjs\";"]], "T94-C7"],
+  /* RR-208: F37's draft now reads the plan by its OWN Amendment 2, so the limb is "wired WITHOUT F37's own amended acceptance": the same wiring
+   * with F37's governing acceptance put back to Amendment 1 must fire */
+  ["S30", "C7 · F94's plan reaches F37's draft without F37's own amended acceptance", [[ACC, "  F37: F37_AMENDMENT_2,\n", "  F37: F37_AMENDMENT_1,\n"]], "T94-C7"],
   ["S31", "C7 · F94 wires its plan into F41's brief", [[CBE, "import { readExistingPagePopulation } from \"./existing-page-population.mjs\";", "import { readExistingPagePopulation } from \"./existing-page-population.mjs\";\nimport { readClientSitePlans } from \"./site-plan-evidence.mjs\";"]], "T94-C7"],
   /* ── [ALL] ── */
   ["S32", "[ALL] · a proof reads a page body (the 27 pages set aside)", [[TF, "const canon = (u) => canonicalUrl(u);", "const canon = (u) => canonicalUrl(u);\nconst bodies = () => readPartitionBodies;"]], "T94-ALL"],

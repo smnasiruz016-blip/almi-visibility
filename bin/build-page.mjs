@@ -36,7 +36,8 @@ import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedFileWrite } from "../src/governance/governed-run.mjs";
 import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
-import { selectCandidates, constructCandidates, decisionsForConstruction, ACCEPTED, NOT_TESTED } from "../src/page/construct.mjs";
+import { selectCandidates, constructCandidates, decisionsForConstruction, planFor, ACCEPTED, NOT_TESTED } from "../src/page/construct.mjs";
+import { readClientSitePlans } from "../src/page/site-plan-evidence.mjs";
 import { renderCompiledDraft } from "../src/page/draft-render.mjs";
 import { judgeDraft, POPULATION, ASSESSMENTS, JUDGEMENTS } from "../src/page/quality-judgements.mjs";
 import { previewForOwner } from "../src/page/content-brief.mjs";
@@ -154,10 +155,14 @@ if (BATCH) {
 }
 const ae = readClientActionEvidence({ tenantId: SCOPE.tenantId, product: PRODUCT, records, resolve: createTenantResolver(), reviews: [], planningRows, overturned, decayEvidence: { ...NO_RECORDED_DECAY_EVIDENCE, indexing: readClientIndexation({ tenantId: SCOPE.tenantId, resolve: createTenantResolver(), inspections: [] }).indexingChecks ?? [] } });
 const chosen = decisionsForConstruction(ae);
+/* 🔴 F37 Amendment 2 (C8, RR-208): each chosen need's draft reads ONLY F94's plan for that need — read here, for this run's tenant, read-only */
+const sitePlans = readClientSitePlans({ tenantId: SCOPE.tenantId, actionEvidence: ae, values: PRODUCT.variants ?? [], resolve: createTenantResolver() });
+const plans = sitePlans.plans ?? [];
+console.log(`F94 site plans        ${plans.length} plan(s) · refused ${sitePlans.refused?.length ?? 0}${sitePlans.fault ? ` — UNAVAILABLE (${sitePlans.fault})` : ""} · a draft with no plan says so; its internal links and URL are NOT MEASURED`);
 if (argv.includes("--all-slugs")) requested = [...requested, ...chosen.decisions.filter((d) => d.spec && !requested.includes(d.slug)).map((d) => d.slug)];
 console.log(`F35 decisions         ${chosen.decisions.length} chosen CREATE (${chosen.decisions.filter((d) => d.spec).length} compiled) · section proposals ${ae.compiled?.sectionProposals?.length ?? 0}${chosen.why ? ` — ${chosen.why}` : ""}`);
 
-const results = constructCandidates({ pageSpecs: PRODUCT.pageSpecs, variants: PRODUCT.variants, records, requested, tenantId: SCOPE.tenantId, existingPages: ep, decisions: chosen.decisions /* 🔴 RR-180 ruling 3(a): F35's construction set, and nothing else */, links: null /* F37: no internal-link targets are recorded — the internal-links and technical checks are NOT MEASURED */, gainEvidence: NO_RECORDED_GAIN_EVIDENCE /* F39: none is recorded (no store) — passed EXPLICITLY */ });
+const results = constructCandidates({ pageSpecs: PRODUCT.pageSpecs, variants: PRODUCT.variants, records, requested, tenantId: SCOPE.tenantId, existingPages: ep, decisions: chosen.decisions /* 🔴 RR-180 ruling 3(a): F35's construction set, and nothing else */, plans /* F37 C8: F94's plans; a draft with none says so */, gainEvidence: NO_RECORDED_GAIN_EVIDENCE /* F39: none is recorded (no store) — passed EXPLICITLY */ });
 /* C6 — one recorded decision per candidate the check stopped, through this run's own guard sink. */
 for (const c of results) {
   /* RR-179 (c): a candidate F35 did not choose is never judged, so it has no existing-page decision to record */
@@ -192,10 +197,10 @@ const accepted = results.filter((c) => c.verdict === ACCEPTED);
 console.log(`\nACCEPTED ${accepted.length} of ${results.length} candidate(s). A refusal is a result, not an error.`);
 
 /* 🔴 F40 (RR-184) · the quality judgements of each draft F37 rendered for a need F35 chose. The draft is F37's own render of the same
- * spec, with the same links construction was handed (none); F40 reads construction's parts for that slug and refuses the draft if its
+ * spec, with the same F94 plan construction was handed (C8); F40 reads construction's parts for that slug and refuses the draft if its
  * checks are not the ones construction judged. A REAL run: engaging and hookable have no lawful judge today, so each is NOT MEASURED. */
 const judged = chosen.decisions.filter((d) => d.spec).map((d) => ({ slug: d.slug, q: judgeDraft({ spec: d.spec, decision: d.decision,
-  draft: renderCompiledDraft({ spec: d.spec, decision: d.decision, links: null }), parts: results.find((r) => r.slug === d.slug)?.parts, population: POPULATION.REAL }) }));
+  draft: renderCompiledDraft({ spec: d.spec, decision: d.decision, plan: planFor(plans, d.decision) }), parts: results.find((r) => r.slug === d.slug)?.parts, population: POPULATION.REAL }) }));
 console.log(`\nF40 · quality judgements: ${judged.length} draft(s) — five separate assessments each, never a score; a draft that does not pass F40 is never a passing preview`);
 for (const { slug, q } of judged) {
   if (!q.judged) { console.log(`  ${slug} — NOT JUDGED: ${q.why}`); continue; }

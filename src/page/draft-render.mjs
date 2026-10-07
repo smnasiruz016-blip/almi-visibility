@@ -19,15 +19,48 @@
  * The writer is this deterministic path; no writing-AI provider is connected or registered (D4). It reads no source, fetches nothing, and
  * writes nothing: it returns HTML and a trace. Publication is never its act. A section proposal (IMPROVE / ADD SECTION) is rendered as a
  * fragment addressed to the existing page — never a new page, never a URL — the page unchanged until the owner approves (F34 C3).
+ *
+ * 🔴 ACCEPTANCE AMENDMENT 2 (_handoffs f9edf2a, RR-208) — C8: the draft's internal links and its own URL come ONLY from F94's recorded plan for
+ * that page (linksFromPlan): a plan over a COMPLETE inventory is rendered as it is; a PARTIAL plan is rendered and LABELLED PARTIAL inside the
+ * related-pages navigation, its internal-links and technical checks NOT MEASURED; with no plan (or another page's plan, or a plan carrying a
+ * link F94 would not plan) the draft says so in a visible UNKNOWN part and renders no link and no URL. A link's visible text is its recorded
+ * URL: an edge records no anchor text, and no title is invented. The label and the notice sit only in parts F40's filler criterion names.
  */
 import { attributionRefusal } from "../research/research-derived.mjs";
 import { assessPage, STATE as MARKUP } from "./structured-data.mjs";
 import { isChosenCreate } from "./action-decision.mjs";
 import { PURPOSE, SPEC_KIND, GENERATED } from "./spec-compiler.mjs";
+import { UNUSABLE as F94_UNUSABLE } from "./site-plan.mjs";
 
 export const WRITER = "deterministic construction (src/page/draft-render.mjs); no writing-AI provider is connected or registered (D4)";
 export const CHECK = Object.freeze({ PASS: "PASS", FAIL: "FAIL", NOT_MEASURED: "NOT MEASURED" });
 export const DRAFT = Object.freeze({ RENDERED: "RENDERED", REFUSED: "REFUSED" });
+/** C8: what the draft holds of F94's plan for its page. */
+export const PLAN = Object.freeze({ COMPLETE: "COMPLETE", PARTIAL: "PARTIAL", ABSENT: "ABSENT" });
+
+/**
+ * C8 · F94's plan for THIS page, read into what the draft renders — or ABSENT, with why. The plan is this page's only when its subject is the
+ * need F35 chose CREATE for this draft; a plan carrying a link F94 would not plan (no recorded reason, or a broken, redirected or not-served
+ * target) is not read. Nothing here adds a link, a target, a title or a URL the plan does not hold.
+ */
+export function linksFromPlan(plan, decision) {
+  const own = decision?.subject?.needId ? `F35:CREATE:${decision.subject.needId}` : null;
+  if (!plan) return Object.freeze({ state: PLAN.ABSENT, why: "no F94 plan is recorded for this page" });
+  if (plan.feature !== "F94" || plan.planned !== true || !own || plan.subject?.ref !== own) return Object.freeze({ state: PLAN.ABSENT, why: "the F94 plan handed in is not this page's plan, so it is not read" });
+  const usable = (l) => present(l?.pageId) && present(l?.url) && present(l?.reason?.ref) && !F94_UNUSABLE.includes(l?.targetStatus);
+  if (![...(plan.linksIn ?? []), ...(plan.linksOut ?? [])].every(usable)) return Object.freeze({ state: PLAN.ABSENT, why: "the F94 plan carries a link F94 would not plan, so it is not read" });
+  const urlOk = ["PROPOSED", "RECORDED"].includes(plan.url?.state) && present(plan.url?.url);
+  return Object.freeze({
+    state: plan.complete === true && plan.bound?.state === "COMPLETE" ? PLAN.COMPLETE : PLAN.PARTIAL,
+    inventory: present(plan.bound?.state) ? plan.bound.state : "UNKNOWN",
+    out: Object.freeze((plan.linksOut ?? []).map(({ pageId, url }) => Object.freeze({ pageId, url }))),
+    inboundFrom: Object.freeze((plan.linksIn ?? []).map(({ pageId }) => Object.freeze({ pageId }))),
+    selfUrl: urlOk ? plan.url.url : null,
+    urlMissing: urlOk ? null : `the plan's URL is ${plan.url?.state ?? "absent"}${present(plan.url?.missing) ? ` (missing: ${plan.url.missing})` : ""}`,
+    urlUnique: plan.claims?.urlUnique === true,
+    ref: `F94:${plan.subject.ref}`,
+  });
+}
 export const DRAFT_REFUSAL = Object.freeze({
   NOT_CHOSEN: "F35 did not choose CREATE for this compiled spec's need — no draft is rendered (ruling RR-179 (c))",
   NOT_A_PAGE: "the spec is not a page spec compiled for construction — a spec compiled for judgement, or a section proposal, is never a page",
@@ -56,9 +89,10 @@ const unknownHtml = (u) => `<p class="unknown" data-claim-id="${esc(u.claimId ??
 const answerText = (claims) => claims.map((c) => `${c.text} ${c.label} source: ${c.source} — read ${c.readOn}${estimateOf(c)}`).join(" ");
 
 /**
- * @param {{ spec: object, decision: object, links?: { completeness: string, out: {pageId: string, url: string, title: string}[], inboundFrom: {pageId: string}[], selfUrl?: string, ref: string }|null }} input
+ * @param {{ spec: object, decision: object, plan?: object|null }} input   C8: `plan` is F94's plan for this page (src/page/site-plan.mjs), or null
  */
-export function renderCompiledDraft({ spec, decision, links = null }) {
+export function renderCompiledDraft({ spec, decision, plan = null }) {
+  const links = linksFromPlan(plan, decision);
   if (spec?.kind !== SPEC_KIND.PAGE || spec?.purpose !== PURPOSE.CONSTRUCTION) return Object.freeze({ state: DRAFT.REFUSED, why: DRAFT_REFUSAL.NOT_A_PAGE });
   if (!isChosenCreate(decision) || decision.subject.needId !== spec.subject) return Object.freeze({ state: DRAFT.REFUSED, why: DRAFT_REFUSAL.NOT_CHOSEN });
   const research = (s) => s.tier === "RESEARCH-DERIVED";
@@ -97,8 +131,13 @@ export function renderCompiledDraft({ spec, decision, links = null }) {
     out.push(`<section class="country-part" data-country="${esc(cs.country)}" data-refers-to="${esc(mine.filter((c) => !fresh.includes(c)).map((c) => c.claimId).join(" "))}">`, `<h2>${esc(cs.country)}</h2>`,
       ...traced(fresh, cs.country), ...unknownOnce(cs.unknown ?? []).map(unknownHtml), `</section>`);
   }
-  const outLinks = links && links.completeness === "COMPLETE" && Array.isArray(links.out) ? links.out.filter((l) => present(l?.url)) : [];
-  if (outLinks.length) out.push(`<nav class="related"><h2>Related pages</h2><ul>${outLinks.map((l) => `<li><a href="${esc(l.url)}">${esc(l.title ?? l.url)}</a></li>`).join("")}</ul></nav>`);
+  /* C8: the plan's links out, their visible text the recorded URL; a PARTIAL plan is labelled inside the navigation; no plan is said as UNKNOWN */
+  const outLinks = links.state === PLAN.ABSENT ? [] : links.out;
+  const list = outLinks.length ? `<ul>${outLinks.map((l) => `<li><a href="${esc(l.url)}">${esc(l.url)}</a></li>`).join("")}</ul>` : "";
+  const planNotes = links.state === PLAN.ABSENT ? [`${links.why} — its internal links and its URL are NOT MEASURED`] : links.selfUrl ? [] : [`${links.urlMissing} in the F94 plan — the page's URL is NOT MEASURED`];
+  for (const n of planNotes) out.push(unknownHtml({ claimId: null, why: n }));
+  if (links.state === PLAN.COMPLETE && list) out.push(`<nav class="related"><h2>Related pages</h2>${list}</nav>`);
+  if (links.state === PLAN.PARTIAL) out.push(`<nav class="related"><h2>Related pages</h2><p class="plan-partial">PARTIAL — this site plan stands on an ${esc(links.inventory)} inventory: pages it does not hold are not considered</p>${list}</nav>`);
   if (faq.length) out.push(`<script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq }).replace(/</g, "\\u003c")}</script>`);
   out.push(`</article>`);
   const head = present(links?.selfUrl) ? `<link rel="canonical" href="${esc(links.selfUrl)}">\n` : "";
@@ -112,11 +151,12 @@ export function renderCompiledDraft({ spec, decision, links = null }) {
   checks.everyClaimSourced = factDivs.every((id) => tracedIds.has(id)) && trace.every((t) => present(t.source) && present(t.link) && present(t.readOn)) ? { state: CHECK.PASS } : { state: CHECK.FAIL, why: "a written claim lacks its source or its trace" };
   const headings = [...html.matchAll(/<section class="qa"[^>]*>\n<h2><a href="#answer">([^<]*)<\/a><\/h2>/g)].map((m) => m[1]);
   checks.headingsMatch = headings.length === spec.sections.length && spec.sections.every((s, i) => headings[i] === esc(s.heading)) ? { state: CHECK.PASS } : { state: CHECK.FAIL, why: "a heading differs from its compiled section's wording" };
-  checks.internalLinks = !links || links.completeness !== "COMPLETE"
-    ? { state: CHECK.NOT_MEASURED, why: "no recorded internal-link targets within a COMPLETE inventory — internal links in and out cannot be measured" }
+  checks.internalLinks = links.state === PLAN.ABSENT ? { state: CHECK.NOT_MEASURED, why: `${links.why} — internal links in and out cannot be measured` }
+    : links.state === PLAN.PARTIAL ? { state: CHECK.NOT_MEASURED, why: `the F94 plan is PARTIAL (an ${links.inventory} inventory) — internal links in and out need a COMPLETE inventory (C5)` }
     : !outLinks.length && !(links.inboundFrom ?? []).length ? { state: CHECK.NOT_MEASURED, why: "no internal-link target is recorded in or out (F37-9: an input not recorded is never passed by default)" }
     : outLinks.length && (links.inboundFrom ?? []).length ? { state: CHECK.PASS, out: outLinks.length, inboundFrom: links.inboundFrom.length } : { state: CHECK.FAIL, why: "no internal link out, or no recorded page to link in from" };
-  checks.technical = !present(links?.selfUrl) ? { state: CHECK.NOT_MEASURED, why: "no proposed URL is recorded — canonical and indexability cannot be measured" }
+  checks.technical = !present(links.selfUrl) ? { state: CHECK.NOT_MEASURED, why: "no proposed URL is recorded in an F94 plan for this page — canonical and indexability cannot be measured" }
+    : !links.urlUnique ? { state: CHECK.NOT_MEASURED, why: "the F94 plan leaves the URL's uniqueness NOT MEASURED (a PARTIAL plan) — canonical correctness cannot be measured" }
     : /noindex/i.test(html) ? { state: CHECK.FAIL, why: "the draft carries noindex" } : { state: CHECK.PASS };
   const markup = assessPage({ pageId: `draft:${spec.subject}`, html, verified: true });
   checks.markup = !faq.length ? { state: CHECK.PASS, note: "no Q&A has a supported answer, so none is marked up" }
@@ -126,7 +166,8 @@ export function renderCompiledDraft({ spec, decision, links = null }) {
   const sources = new Set(trace.map((t) => t.link));
   return Object.freeze({
     state: DRAFT.RENDERED, html, trace: Object.freeze(trace), writer: WRITER, checks: Object.freeze(checks), checksVerdict: state,
-    counts: Object.freeze({ sections: spec.sections.length + 1 + (spec.countrySections ?? []).length, questions: spec.sections.length, claims: renderable.length, sources: sources.size, unknown: unknown.length, markedUp: faq.length }),
+    counts: Object.freeze({ sections: spec.sections.length + 1 + (spec.countrySections ?? []).length, questions: spec.sections.length, claims: renderable.length, sources: sources.size, unknown: unknown.length, markedUp: faq.length, planNotices: planNotes.length }),
+    plan: Object.freeze({ state: links.state, ref: links.ref ?? null, inventory: links.inventory ?? null }),
     sectionsOut: Object.freeze(sectionsOut),
   });
 }

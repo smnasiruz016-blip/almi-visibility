@@ -25,6 +25,8 @@ import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 import { SITEMAP_BATCH_ID } from "../src/adapter/sitemap-subject.mjs";
 import { createTenantResolver, readDeclarations } from "../src/tenancy/resolver.mjs";
 import { declaredScope } from "../src/page/existing-page-population.mjs";
+import { linksFromPlan, PLAN as DRAFT_PLAN } from "../src/page/draft-render.mjs";
+import { ACCEPTANCES } from "../config/fboard/acceptances.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const TRAIL = join(REPO, "audit-trail", "events.jsonl");
@@ -327,11 +329,14 @@ function twoTenantWorld() {
 }
 
 /* ================= C7 ================= */
+/* 🔴 RR-208: F37's draft (src/page/draft-render.mjs) and its runner (bin/build-page.mjs) now read F94's plan BY F37'S OWN Acceptance Amendment
+ * 2 (_handoffs f9edf2a) — "whether F37's draft or F41's brief reads the plan is decided by their own acceptances, never by F94" (F94 C7). Their
+ * byte pins left this list; they are held instead by F37_WIRING below: they may read F94 ONLY while F37's governing acceptance is Amendment 2. */
+const F37_WIRING = Object.freeze({ "src/page/draft-render.mjs": /from "\.\/site-plan\.mjs";/, "bin/build-page.mjs": /from "\.\.\/src\/page\/site-plan-evidence\.mjs";/ });
+const F37_A2_CONTRACT = "9120e6b545742b34e72e7cda799601ab560373c59cceadbb96b83857de7b7d2e";
 const OTHER_ROWS = Object.freeze({
-  "src/page/draft-render.mjs": "9eabd5524fd1c866239e532a31acefeaa1d9a02d8c86be19497d4fafcc37af36",
   "src/page/content-brief.mjs": "5771c6955fcc621430391b9c34a525a74673e81a3ff4d3b05cf429d358ad5c06",
   "src/page/content-brief-evidence.mjs": "b1af103909fa3ef4782686380c4d1c5e14c473f5e73e1080f29fb1c06c37abe6",
-  "bin/build-page.mjs": "8f9329026462d6d3b634ae3c7d927b922543c6b525b9781445a9e55687e3eb23",
   "src/crawl/batch-partition.mjs": "94c5fdcf901e80df57cfa528f1deaca4ffe17a5e7ed8826045558d6fa55af434",
   "src/crawl/scope-completeness.mjs": "836378e2c90f8c0a945450fe39c845dffe3a85bf9100210806eaf86206b9cb55",
   "src/crawl/scope-inventory.mjs": "b86e203845542a456fa0f49b83adeb4ea4063069f481f0b353dae5277d0bd758",
@@ -347,16 +352,15 @@ const mjsUnder = (dir) => readdirSync(join(REPO, dir), { withFileTypes: true }).
 test("T94-C7 · F94 C7 A PLAN OTHERS MAY READ: F94's change set touches no other row's code; the plan's recorded shape is read back in the shape F37 and F41 document, without changing either", () => {
   /* census: the other rows' modules F94 reads or could wire into are byte-for-byte as at base a08db7a5 (LF-normalised) */
   for (const [f, sha] of Object.entries(OTHER_ROWS)) assert.equal(lfSha(f), sha, `${f} changed — F94 changes no other row's code`);
-  /* census: nothing in src/, bin/ or tools/ but F94's own reader and entry point imports F94 — the plan is wired into no draft and no brief */
+  /* census: nothing in src/, bin/ or tools/ reads F94 but F94's own reader and entry point, and — RR-208 — F37's draft and runner, ONLY while
+   * F37's governing acceptance is its own Amendment 2 (F94 C7: the reading row's acceptance decides, never F94); the brief (F41) reads nothing */
   const importers = ["src", "bin", "tools"].flatMap(mjsUnder).filter((f) => ![EVID, "bin/site-plan.mjs"].includes(f) && /site-plan(-evidence)?\.mjs["']/.test(readFileSync(join(REPO, f), "utf8")));
-  assert.deepEqual(importers, [], "another row's code reads F94's plan");
-  /* the plan, read back in F37's documented `links` shape (its JSDoc) and F41's `links` evidence shape */
+  const a2 = ACCEPTANCES.F37?.contractSha256 === F37_A2_CONTRACT;
+  assert.deepEqual(importers.filter((f) => !(a2 && f in F37_WIRING && F37_WIRING[f].test(readFileSync(join(REPO, f), "utf8")))), [], "another row's code reads F94's plan without its own amended acceptance");
+  /* the plan, read back by F37's OWN reader (Amendment 2 C8) and in F41's documented `links` evidence shape — F94 changes neither */
   const p = plan();
-  const doc = readFileSync(join(REPO, "src/page/draft-render.mjs"), "utf8").match(/links\?: \{ ([^|]+) \}\|null/)[1];
-  const f37Keys = [...doc.matchAll(/(\w+)\??: /g)].map((m) => m[1]);
-  assert.deepEqual(f37Keys, ["completeness", "out", "pageId", "url", "title", "inboundFrom", "pageId", "selfUrl", "ref"], "F37's documented links shape moved");
-  const asDraft = { completeness: p.bound.state, out: p.linksOut.map(({ pageId, url }) => ({ pageId, url })), inboundFrom: p.linksIn.map(({ pageId }) => ({ pageId })), selfUrl: p.url.url, ref: p.subject.ref };
-  assert.deepEqual(Object.keys(asDraft), ["completeness", "out", "inboundFrom", "selfUrl", "ref"]);
+  const asDraft = linksFromPlan(p, CREATE);
+  assert.deepEqual([asDraft.state, asDraft.out, asDraft.inboundFrom, asDraft.selfUrl], [DRAFT_PLAN.COMPLETE, p.linksOut.map(({ pageId, url }) => ({ pageId, url })), p.linksIn.map(({ pageId }) => ({ pageId })), p.url.url], "F37 does not read the plan as F94 records it");
   assert.ok(asDraft.out.length && asDraft.inboundFrom.length && asDraft.selfUrl, "the plan does not hold what a draft reads");
   const asBrief = { completeness: p.bound.state, targets: p.linksOut.map((l) => l.url), ref: p.subject.ref };
   assert.match(readFileSync(join(REPO, "src/page/content-brief.mjs"), "utf8"), /e\.links\.completeness === "COMPLETE" && e\.links\.targets\?\.length/, "F41's documented links shape moved");

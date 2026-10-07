@@ -331,7 +331,9 @@ test("ITEM 14: the guarantee rests on content-derived ids, and it is stated here
 const FINDINGS = `${REPO}runs/audit/content-findings.jsonl`;
 
 test("🔴 REAL: the content findings carry no recommendation field anywhere", { skip: !existsSync(FINDINGS) }, () => {
-  const records = createJsonlStore(FINDINGS).readAll();
+  /* RR-195: the store now holds LIFECYCLE records too — the T-2 state changes (their `action` names the act that moved a finding, not a
+   * recommendation) — so the law reads its FINDINGS: the issue records */
+  const records = createJsonlStore(FINDINGS).readAll().filter((r) => r.record_type === "issue");
   assert.ok(records.length > 50, `only ${records.length} findings — this law would be weak`);
   for (const r of records) {
     for (const field of RECOMMENDATION_FIELDS) {
@@ -341,7 +343,8 @@ test("🔴 REAL: the content findings carry no recommendation field anywhere", {
 });
 
 test("🔴 REAL: every finding is FAIL or UNKNOWN — a check never emits PASS", { skip: !existsSync(FINDINGS) }, () => {
-  for (const r of createJsonlStore(FINDINGS).readAll()) {
+  /* RR-195: findings only — the store's T-2 state changes carry no verdict by design (src/evidence/lifecycle.mjs) */
+  for (const r of createJsonlStore(FINDINGS).readAll().filter((x) => x.record_type === "issue")) {
     assert.ok(["FAIL", "UNKNOWN"].includes(r.verdict), `verdict ${r.verdict} escaped`);
     assert.ok(r.evidence?.length > 0, "a finding with no evidence reached the store");
   }

@@ -27,7 +27,14 @@ const REAL = { trail: join(REPO, "audit-trail", "events.jsonl"), content: join(R
 const BEFORE = Object.fromEntries(Object.entries(REAL).map(([k, p]) => [k, sha(p)]));
 const lines = (p) => readFileSync(p, "utf8").split(/\r?\n/).filter((l) => l.trim() !== "");
 const records = (p) => lines(p).map((l) => JSON.parse(l));
-const COMMITTED = { content: records(REAL.content), labels: records(REAL.labels) };
+/* RR-195: the fixtures are the stores AS THEY STOOD BEFORE the 15 real runs (the live stores now hold the runs' supersessions, so their
+ * version-1 FAILs are no longer OPEN). The stores are APPEND-ONLY, so that state is exactly each file's first N lines — proved byte for byte
+ * against the pre-run blob's sha256 (main e45943f9, resolved from git when pinned), with no git history read (CI checks out at depth 1). */
+const PRE_LINES = { content: [471, "5f34f3cb9a66217369bdd905e2be6940d49bf10f1fe16593909c65e6d09b88a1"], labels: [550, "2db7f0d104dd83e8d52da352becb73b4fcd98dacf47b4675b108667ae1721481"] };
+const prefix = (p, [n, want]) => { const b = Buffer.from(readFileSync(p, "utf8").replace(/\r\n/g, "\n").split("\n").slice(0, n).join("\n") + "\n", "utf8"); if (createHash("sha256").update(b).digest("hex") !== want) throw new Error(`${p}: its first ${n} lines are not the pre-run store`); return b; };
+const PRE = { content: prefix(REAL.content, PRE_LINES.content), labels: prefix(REAL.labels, PRE_LINES.labels) };
+const parse = (buf) => buf.toString("utf8").split(/\r?\n/).filter((l) => l.trim() !== "").map((l) => JSON.parse(l));
+const COMMITTED = { content: parse(PRE.content), labels: parse(PRE.labels) };
 const STORES = () => [{ name: "runs/audit/content-findings.jsonl", records: COMMITTED.content }, { name: "runs/audit/supply-labels.jsonl", records: COMMITTED.labels }];
 const NOW = "2026-10-07T00:00:00.000Z";
 const ACT = { now: NOW, actor: "actor:cc", action: "test" };
@@ -127,7 +134,7 @@ let RUNS = 0;
 const AUDIT_DIR = `.test-scratch/audit/rr194-${process.pid}-${randomBytes(3).toString("hex")}`;
 function stores(tag) {
   const c = join(SCRATCH, `${tag}-content.jsonl`), l = join(SCRATCH, `${tag}-labels.jsonl`);
-  writeFileSync(c, readFileSync(REAL.content)); writeFileSync(l, readFileSync(REAL.labels));
+  writeFileSync(c, PRE.content); writeFileSync(l, PRE.labels);
   return { c, l, args: [`--content-store=${c}`, `--labels-store=${l}`] };
 }
 const trailLines = () => { const root = join(REPO, AUDIT_DIR); if (!existsSync(root)) return 0; let n = 0; const walk = (d) => { for (const e of readdirSync(d)) { const p = join(d, e); if (statSync(p).isDirectory()) walk(p); else if (e === "events.jsonl") n += lines(p).length; } }; walk(root); return n; };

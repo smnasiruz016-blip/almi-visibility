@@ -32,6 +32,7 @@
 
 import { UNCLASSIFIED, consequenceFor, orderByConsequence } from "./consequence.mjs";
 import { classOf, splitView, isUnmeasured, coverageClassesOf } from "./class-split.mjs";
+import { signalsForClass } from "./populations.mjs";
 
 const COUNT_FIELDS = Object.freeze(["distinct", "open", "raw", "notRun"]);
 
@@ -79,15 +80,10 @@ export function buildRulingSheet({ files, register, unreachable = {}, scale, spl
   const ofMeasure = (m) => [...byClass.keys()].filter((k) => measureOf.get(k) === m).sort();
   /* 🔴 RR-196: a decision whose records carry a measured REVIEW SIGNAL keeps EVERY page and its value visible on the sheet — one row per
    * distinct issue, read from its first stored copy, never summarised away. A decision with no signal (noindex) lists none. */
-  const firstCopy = new Map();
-  for (const r of all) if (r.record_type === "issue" && !firstCopy.has(r.issue_id)) firstCopy.set(r.issue_id, r);
-  const signalsOf = (ids) => [...ids].map((id) => firstCopy.get(id)).filter((r) => r?.signal)
-    .map((r) => ({ target_page_id: r.target_page_id, issue_id: r.issue_id, signal: r.signal.name, value: r.signal.value, bound: r.signal.bound, state: view.get(r.issue_id).state }))
-    .sort((a, b) => (a.target_page_id < b.target_page_id ? -1 : a.target_page_id > b.target_page_id ? 1 : a.issue_id < b.issue_id ? -1 : 1));
   const decisionRows = ofMeasure("decision").map((issue_class) => {
     const e = byClass.get(issue_class);
     const d = decisions?.[issue_class];
-    return { issue_class, splitFrom: d?.splitFrom ?? null, count: e.ids.size, open: [...e.ids].filter((id) => view.get(id).state === "OPEN").length, raw: e.raw, decided: d?.decided ?? null, notEstablished: d?.notEstablished ?? null, awaits: d?.awaits ?? null, signals: signalsOf(e.ids) };
+    return { issue_class, splitFrom: d?.splitFrom ?? null, count: e.ids.size, open: [...e.ids].filter((id) => view.get(id).state === "OPEN").length, raw: e.raw, decided: d?.decided ?? null, notEstablished: d?.notEstablished ?? null, awaits: d?.awaits ?? null, signals: signalsForClass(issue_class, { view, records: all }) };
   });
   const auditRows = ofMeasure("withdrawn").map((issue_class) => {
     const e = byClass.get(issue_class);

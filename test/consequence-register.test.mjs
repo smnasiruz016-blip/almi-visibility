@@ -40,12 +40,14 @@ const reconcile = (register) => reconcileRegister({ records: AUDIT, register, sc
 const HALVES = [];
 const POPULATIONS = { "noindex-declared-deliberate": "DECISION ON RECORD", "noindex-defect-claim-withdrawn": "AUDIT TRAIL" };
 
-test("🟢 REAL: the register holds exactly the 14 FINDING classes in use — every one ruled and attributed; no coverage gap, decision on record or audit trail among them", () => {
+/* RR-196: 14 → 11 finding classes in use — thin-content-found, near-duplicate-found and template-dominance-found (MODERATE each) retired to
+ * SUPERSEDED_ENTRIES; their records are now a decision on record (review signals) and audit trail (withdrawn claims) */
+test("🟢 REAL: the register holds exactly the 11 FINDING classes in use — every one ruled and attributed; no coverage gap, decision on record or audit trail among them", () => {
   const r = reconcile(CONSEQUENCE_REGISTER);
   assert.equal(r.ok, true, JSON.stringify(r));
   const notFindings = nonFindingClassesOf(CLASS_SPLITS);
   assert.deepEqual(Object.keys(CONSEQUENCE_REGISTER).sort(), effectiveClassesInUse(AUDIT, CLASS_SPLITS).filter((k) => !notFindings.has(k)));
-  assert.equal(r.classesInUse.length, 14);
+  assert.equal(r.classesInUse.length, 11);
   assert.deepEqual(r.onCoverage, []);
   assert.deepEqual(r.unclassified, HALVES);
   const byLevel = {};
@@ -55,7 +57,7 @@ test("🟢 REAL: the register holds exactly the 14 FINDING classes in use — ev
     else if (e.splitFrom) assert.deepEqual([e.ruledFor, e.ruledBy, e.ruledOn], [k, "owner", "2026-09-14"], `${k}: a half is ruled only by a ruling that names it`);
     else assert.deepEqual([e.ruledBy, e.ruledOn], ["owner", "2026-09-14"], `${k} carries no dated owner ruling`);
   }
-  assert.deepEqual(Object.fromEntries(Object.entries(byLevel).map(([l, ks]) => [l, ks.length])), { HIGH: 4, MODERATE: 6, LOW: 4 });
+  assert.deepEqual(Object.fromEntries(Object.entries(byLevel).map(([l, ks]) => [l, ks.length])), { HIGH: 4, MODERATE: 3, LOW: 4 });
 });
 
 test("🔴 the splits are REQUIRED — a reconciliation that leaves them out would reconcile against a bundle", () => {

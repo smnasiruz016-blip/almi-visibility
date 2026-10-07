@@ -47,14 +47,16 @@ test("🔴 the ruling is frozen — its LF-normalised bytes hash to the value pi
 
 test("🔴 every ruled half's words are the ruling's or the law's, WORD FOR WORD — except the 3b figures, which must be the store's", () => {
   const words = norm(`${RULING_RAW} ${LAW_RAW}`);
-  const ruled = Object.entries(CONSEQUENCE_REGISTER).filter(([, e]) => e.splitFrom && e.level !== "UNCLASSIFIED");
+  /* RR-196: three of the four ruled halves are RETIRED to SUPERSEDED_ENTRIES — their words are kept there, and are still the ruling's */
+  const ruled = [...Object.entries(CONSEQUENCE_REGISTER).filter(([, e]) => e.splitFrom && e.level !== "UNCLASSIFIED"), ...Object.entries(SUPERSEDED_ENTRIES).filter(([, e]) => e.retired)];
   assert.deepEqual(ruled.map(([k]) => k).sort(), ["indexability-preflight-found", "near-duplicate-found", "template-dominance-found", "thin-content-found"]);
+  assert.deepEqual(Object.keys(CONSEQUENCE_REGISTER).filter((k) => CONSEQUENCE_REGISTER[k].splitFrom && CONSEQUENCE_REGISTER[k].level !== "UNCLASSIFIED"), ["indexability-preflight-found"]);
   for (const [k, e] of ruled) {
     assert.deepEqual([e.level, e.ruledFor, e.ruledBy, e.ruledOn], ["MODERATE", k, "owner", "2026-09-14"], k);
     for (const f of ["consequence", "reversibility", "why"]) assert.ok(words.includes(norm(e[f])), `${k}.${f} is not the ruling's or the law's words`);
   }
   assert.ok(words.includes(norm(CONSEQUENCE_REGISTER["indexability-preflight-found"].blastRadius)));
-  for (const k of ["near-duplicate-found", "template-dominance-found", "thin-content-found"]) assert.match(CONSEQUENCE_REGISTER[k].levelRestsOn, /^consequence, not the count/);
+  for (const k of ["near-duplicate-found", "template-dominance-found", "thin-content-found"]) assert.match(SUPERSEDED_ENTRIES[k].levelRestsOn, /^consequence, not the count/);
   // the noindex halves were never given NONE — and since Option A they are not findings at all
   for (const k of ["noindex-declared-deliberate", "noindex-defect-claim-withdrawn"]) assert.equal(CONSEQUENCE_REGISTER[k], undefined, k);
   assert.ok(DECISION_REGISTER["noindex-declared-deliberate"] && AUDIT_TRAIL["noindex-defect-claim-withdrawn"]);
@@ -69,7 +71,9 @@ test("🟢 MEASURED — the findings population and the coverage population, apa
   const all = [...VIEW.values()];
   const findings = all.filter((v) => !isUnmeasured(v, U));
   const coverage = all.filter((v) => isUnmeasured(v, U));
-  assert.deepEqual([all.length, findings.length, findings.filter((v) => v.state === "OPEN").length, coverage.length, coverage.filter((v) => v.state === "OPEN").length], [2033, 809, 664, 1224, 1224]);
+  /* RR-196: 2033 → 2158 and 809 → 934 measured issues — the 125 version-2 review signals are measured (a value each), not checks that never
+   * ran; open stays 664 (the 125 replacements opened as the 125 version-1 FAILs left OPEN) */
+  assert.deepEqual([all.length, findings.length, findings.filter((v) => v.state === "OPEN").length, coverage.length, coverage.filter((v) => v.state === "OPEN").length], [2158, 934, 664, 1224, 1224]);
   const codes = {};
   for (const v of coverage) codes[v.reason_code] = (codes[v.reason_code] ?? 0) + 1;
   assert.deepEqual(codes, { MISSING_INPUT: 878, NEEDS_RENDERED_HTML: 342, TOOL_FAILED: 4 });
@@ -125,10 +129,11 @@ test("🔴 RED: a coverage count or reason code that disagrees with the store is
 
 test("🔴 RED 3c: a blast-radius figure that is not the store's count of REAL findings is refused, alone — the 113 that was never real", () => {
   const reg = clone(CONSEQUENCE_REGISTER);
-  reg["near-duplicate-found"].blastRadius = "113";
+  /* RR-196: on indexability-preflight-found — near-duplicate-found is retired */
+  reg["indexability-preflight-found"].blastRadius = "113";
   const errs = blastRadiusErrors({ register: reg, view: VIEW, unmeasuredCodes: U });
   assert.deepEqual(limbs(errs), ["blast-radius"]);
-  assert.match(errs[0].why, /cites 113, and the store holds 5 real finding/);
+  assert.match(errs[0].why, /cites 113, and the store holds 158 real finding/);
   // and real findings are not FAIL alone: an UNKNOWN human-verification finding counts (owner's answer)
   assert.equal(populationOf(VIEW, U).get("official-source-contradicts-itself").real, 1);
 });

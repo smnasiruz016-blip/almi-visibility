@@ -38,7 +38,7 @@ import { COVERAGE_REGISTER } from "../config/coverage-register.mjs";
 import { DECISION_REGISTER } from "../config/decision-register.mjs";
 import { AUDIT_TRAIL } from "../config/audit-trail.mjs";
 import { splitView } from "../src/audit/class-split.mjs";
-import { fourWay, impressionsForClass } from "../src/audit/populations.mjs";
+import { fourWay, impressionsForClass, signalsForClass } from "../src/audit/populations.mjs";
 import { statSync } from "node:fs";
 import { batchJsonlFiles } from "../src/crawl/observation-batch.mjs";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
@@ -170,6 +170,8 @@ const decisions = {
     decided: e.decided,
     notEstablished: e.notEstablished,
     awaits: e.awaits,
+    /* RR-196: every page a review signal names, with its measured value (src/audit/populations.mjs signalsForClass) */
+    signals: signalsForClass(k, { view: storeView, records: storeRecords }),
   })),
   fourWay: fourWay(storeView, registers),
   auditTrail: Object.entries(AUDIT_TRAIL).map(([k, e]) => ({ issue_class: k, count: e.count, why: e.why })),

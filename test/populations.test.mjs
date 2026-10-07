@@ -37,11 +37,13 @@ test("🔴 the ruling is frozen — its LF-normalised bytes hash to the value pi
 
 test("🟢 MEASURED — the four-way split over every file under runs/, every issue in exactly one population", () => {
   const four = fourWay(VIEW, REGISTERS);
-  assert.deepEqual(four.totals, { FINDINGS: 541, "COVERAGE GAP": 1224, "DECISION ON RECORD": 134, "AUDIT TRAIL": 134 });
-  assert.deepEqual(four.open, { FINDINGS: 530, "COVERAGE GAP": 1224, "DECISION ON RECORD": 134, "AUDIT TRAIL": 0 });
+  /* RR-196: the 125 version-1 thin / near / template FAILs leave FINDINGS for the AUDIT TRAIL (withdrawn under PG-A1, all SUPERSEDED), and the
+   * 125 version-2 review signals that replaced them are DECISIONS ON RECORD (all OPEN): 541/134/134 → 416/259/259, 2033 → 2158 distinct */
+  assert.deepEqual(four.totals, { FINDINGS: 416, "COVERAGE GAP": 1224, "DECISION ON RECORD": 259, "AUDIT TRAIL": 259 });
+  assert.deepEqual(four.open, { FINDINGS: 405, "COVERAGE GAP": 1224, "DECISION ON RECORD": 259, "AUDIT TRAIL": 0 });
   assert.equal(four.unplaced, 0);
   assert.equal(POPULATIONS.reduce((n, p) => n + four.totals[p], 0), four.distinct);
-  assert.equal(four.distinct, 2033);
+  assert.equal(four.distinct, 2158);
   // the proof, issue by issue: each lands in exactly one register
   for (const v of VIEW.values()) assert.equal(populationsOf(v.class, REGISTERS).length, 1, `${v.issue_id} (${v.class})`);
   // and the archive rule is the owner's answer: withdrawn claims only — instrument-disagreement (all CLOSED) is a live finding

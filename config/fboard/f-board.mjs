@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -2774,6 +2774,53 @@ export const DECLARED = Object.freeze({
         populations: "FIXTURE structures only (RR-177): drafts rendered by F37's own function on fixture pages and judged by F40's own function; fixture judgements carry their declared FIXTURE source. On a REAL draft today the gate stays NOT MEASURED (engaging and hookable have no lawful judge; distinct value CANNOT DECIDE without gain records). Count-only.",
         proofs: "test/rr184-r5.test.mjs T40-C1–T40-C7 and T40-ALL (re-run unchanged); test/rr188-r5c.test.mjs T40-C8 (contentSha256 of the exact content judged, judged and NOT JUDGED; no verdict changed; the criteria and the three methods byte-identical to their pins), R188-BOARD",
         sabotage: "runs/audit/rr188-sabotage-2026-10-06T0652.txt: 75 of 75 proved across F40 and F41 — F40 C1–C7 and [ALL] (37, RR-184's, re-run) and C8 (5) — residue 0, production trail unchanged",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
+  /* 🔴 F94 · Site architecture and internal-linking plan. RR-206: its first acceptance (REV2), approved by its hash and frozen ALONE
+   * (_handoffs 959ae05) before any F94 code; then its implementation begins. Its history was empty (crosswalk: no rows, commits,
+   * modules or tests; 0 trail events), so the freeze-history rule pinned nothing. */
+  F94: Object.freeze({
+    featureId: "F94",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-07", ruling: F94_ORIGINAL.ruling, contractSha256: F94_ORIGINAL.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F94",
+        on: "2026-10-07",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: F94_ORIGINAL.ruling.sha256, contract: F94_ORIGINAL.contractSha256 }),
+        branch: "rr206-r7",
+        baseSha: "a08db7a55e213c9a97c26e581e743333ac5ef647",
+        baseCiRun: "37577858579",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-07_RR-206.md", commit: "448028203d223f128102500018db327023f4c4db", sha256: "49c5be925e1b00643e172fd4dccf36c8c87782a60e015833c866db1019a45888" }),
+      }),
+      /* RR-206: F94 PROVED — every clause of its frozen acceptance PROVED and every sabotage PROVED, on FIXTURE pages only (RR-177) with
+       * C5's count-only control on the real recorded inventory shapes; recorded through the board route in the same PR; main CI on the
+       * merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F94",
+        population: "REAL",
+        on: "2026-10-07",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F94_ORIGINAL.ruling.sha256, contract: F94_ORIGINAL.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED" }),
+        populations: "FIXTURE pages only for C1–C4, C6, C7 and [ALL] — one fixture tenant on a fixture origin (a hub and two spokes of one need), its completeness decided by F31's own scopeCompleteness and its CREATE by F35's own decideGroupedNeed; a second fixture tenant for C6. C5's REAL control is count-only on the recorded inventory SHAPES (page and observation records, edges, sitemap records, declarations; no page body read): 20 declared tenants with a site origin — INCOMPLETE 18, UNKNOWN 2, COMPLETE 0 — and 18 real-structure plans, every one PARTIAL with its bound and no completeness-dependent part decided. The real F94 path for one declared client, once, in-process, no trail write: 27 recorded pages, 1,275 recorded links, 20,395 recorded URLs, INCOMPLETE; F35 chose no page to create or improve (no research batch; every page action 0), so 0 plans — no real plan exists today. Never the 27 existing pages' content (RR-177).",
+        proofs: "test/rr206-r7.test.mjs T94-C1 to T94-C7 and T94-ALL (one per EVIDENCE line), R94-BOARD",
+        sabotage: "runs/audit/rr206-sabotage-2026-10-07T1855.txt (sha256 6312f541…): 33 of 33 proved (one per FAILURE limb of C1–C7 and [ALL]), residue 0, production trail unchanged; the practice pass (rr206-sabotage-practice-2026-10-07T1853.txt) found S33 NOT PROVED (no refused subject in T94-ALL) — the test was repaired, S33 alone proved, then the real pass",
+        historicalReuse: "no historical row maps to F94 (crosswalk NEW, no module or test). Reused read-only: F31's partition, edge and completeness readers, F33's judgePage, F23's recordedTargets and targetState, F35's decisions; none changed (C7 pins their bytes at base a08db7a5)",
+        declaredLimit: "an edge records no anchor text and no position, so a plan says which pages link, never with what words or where; F37's draft and F41's brief do not read the plan (their own amendments, a later round); on every real tenant today the inventory is INCOMPLETE or UNKNOWN, so every real plan is PARTIAL",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),

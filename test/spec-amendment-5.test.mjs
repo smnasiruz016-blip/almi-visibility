@@ -63,7 +63,7 @@ const EXTENDED = [
   ]
 ];
 /* RR-184: F40 joined by its OWN acceptance and proof after Amendment 5 (rr184-sabotage-2026-10-06T0301); the amendment itself moved none */
-const PASSED_AT_2FC76540 = ["F01","F02","F03","F04","F05","F06","F08","F09","F13","F19","F20","F21","F26","F29","F31","F32","F33","F34","F35","F36","F37","F39","F40","F41","F43","F45","F46","F47","F48","F55","F73","F75","F77","F79","F82","F90"];
+const PASSED_AT_2FC76540 = ["F01","F02","F03","F04","F05","F06","F08","F09","F13","F19","F20","F21","F26","F29","F31","F32","F33","F34","F35","F36","F37","F39","F40","F41","F43","F45","F46","F47","F48","F55","F73","F75","F77","F79","F82","F90","F94"]; /* RR-206: F94 joined by its OWN acceptance (959ae05) and proof after Amendment 5 (rr206-sabotage-2026-10-07T1855); the amendment itself moved none */
 const APPROVED_DRAFT_SHA256 = "a5ec2a78432643c432dfe24d2083e2c9a2eca064deb26fddbd1538d81efef3c8";
 const sha = (s) => createHash("sha256").update(s, "utf8").digest("hex");
 const board = () => buildBoard(CAPABILITIES, DECLARED);
@@ -125,7 +125,16 @@ test("A5·4 · no passed row moved, F62 and F81 stay IN-PROGRESS, and the amendm
   assert.deepEqual(passedNow, PASSED_AT_2FC76540.filter((id) => passedNow.includes(id) || !ownReopen(id)), "a passed row moved, or a row became passed");
   assert.ok(PASSED_AT_2FC76540.filter((id) => !passedNow.includes(id)).every(ownReopen), "a passed row left VERIFIED-PASS other than by its own amendment and reopen");
   assert.deepEqual(["F62", "F81"].map((id) => b.find((r) => r.featureId === id).state), ["IN-PROGRESS", "IN-PROGRESS"]);
-  for (const id of ["F92", "F93", "F94", "F95", "F96", "F17", "F38", "F58", "F76"]) {
+  /* RR-206: F94 left UNASSESSED later only by its OWN act — its first acceptance frozen alone (_handoffs 959ae05, 7 Oct 2026), then
+   * IMPLEMENTATION from UNASSESSED; the amendment itself froze and built nothing for it. Any other movement fires. */
+  {
+    const r = b.find((x) => x.featureId === "F94");
+    assert.deepEqual(r.events.slice(0, 2).map((e) => [e.kind, e.on]), [["ACCEPTANCE_FROZEN", "2026-10-07"], ["IMPLEMENTATION", "2026-10-07"]], "F94 moved other than by its own frozen acceptance");
+    assert.equal(r.events[1].from, "UNASSESSED");
+    assert.equal(r.events[0].ruling.commit, "959ae05cfb056c3cc22c2fedf70a5542bfeb281c");
+    assert.ok(["IN-PROGRESS", "VERIFIED-PASS"].includes(r.state), r.state);
+  }
+  for (const id of ["F92", "F93", "F95", "F96", "F17", "F38", "F58", "F76"]) {
     const r = b.find((x) => x.featureId === id);
     assert.equal(r.state, "UNASSESSED", `${id} moved`);
     assert.deepEqual(r.events, [], `${id} carries an event`);
@@ -149,13 +158,13 @@ test("A5·5 · the amendment's text did not change: the admitted record's bytes 
   assert.equal(EXTRACT_PROVENANCE.sha256, "526c8e5de1e7c56c061f08ef24afdc65118891fe7f277c97e2ce2910a035583f");
 });
 
-test("A5·6 · the denominator: 96 rows, 95 required (F25 NOT REQUIRED) — 35/95 at the amendment, 36/95 since F40 was PROVED (RR-184); the split sums to 96", () => {
+test("A5·6 · the denominator: 96 rows, 95 required (F25 NOT REQUIRED) — 35/95 at the amendment, 36/95 since F40 was PROVED (RR-184), 37/95 since F94 was PROVED (RR-206); the split sums to 96", () => {
   const p = progress(board());
   /* RR-186: this test's job is the DENOMINATOR; the passed figure moves with lawful later movements and is pinned by the board-figure tests */
   assert.deepEqual([p.denominator, p.total, p.required.denominator], [96, 96, 95]);
   assert.equal(p.passed, board().filter((r) => r.state === "VERIFIED-PASS").length);
   assert.equal(p.required.passed, p.passed, "F25 (NOT REQUIRED) is not passed, so both figures count the same rows");
   assert.equal(Object.values(p.split).reduce((a, x) => a + x, 0), 96);
-  assert.equal(p.split.UNASSESSED, 48); /* RR-184: F40 frozen under its own acceptance (_handoffs 6d64c27) and started — UNASSESSED -> IN-PROGRESS, after its lift */ /* 49 at the amendment */
+  assert.equal(p.split.UNASSESSED, 47); /* RR-206: F94 frozen under its own acceptance (_handoffs 959ae05) and started — UNASSESSED -> IN-PROGRESS (48 -> 47, IN-PROGRESS 12 -> 13) */ /* RR-184: F40 frozen under its own acceptance (_handoffs 6d64c27) and started — UNASSESSED -> IN-PROGRESS, after its lift */ /* 49 at the amendment */
   assert.equal(CROSSWALK.entries.length, 96);
 });

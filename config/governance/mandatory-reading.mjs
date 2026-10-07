@@ -417,6 +417,11 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-06_RR-192.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-06_RR-192_APPROVE_F32_A1_REV2_F39_A1_PG-A1.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F32_ACCEPTANCE_AMENDMENT_1_2026-10-06.md", loader: "F-board acceptance F32" }),
+  /* RR-210 (7 Oct 2026): the three CURRENT records admitted by the migration at _handoffs 96ae49e — the RR-210 command, the owner's
+   * approval of F38's acceptance by its hash, and F38's first Acceptance (answer-first, titles and meta descriptions). */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-07_RR-210.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-07_RR-210_APPROVE_F38_ACCEPTANCE.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F38_ACCEPTANCE_2026-10-07.md", loader: "F-board acceptance F38" }),
   /* RR-208 (7 Oct 2026): the three CURRENT records admitted by the migration at _handoffs f9edf2a — the RR-208 command, the owner's
    * approval of F37's Acceptance Amendment 2 by its hash, and F37's Acceptance Amendment 2 (internal links and URL from F94's plan). */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-07_RR-208.md", loader: "authority register (CURRENT record)" }),

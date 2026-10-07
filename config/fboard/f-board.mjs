@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2 } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -2857,6 +2857,32 @@ export const DECLARED = Object.freeze({
         historicalReuse: "no historical row maps to F94 (crosswalk NEW, no module or test). Reused read-only: F31's partition, edge and completeness readers, F33's judgePage, F23's recordedTargets and targetState, F35's decisions; none changed (C7 pins their bytes at base a08db7a5)",
         declaredLimit: "an edge records no anchor text and no position, so a plan says which pages link, never with what words or where; F37's draft and F41's brief do not read the plan (their own amendments, a later round); on every real tenant today the inventory is INCOMPLETE or UNKNOWN, so every real plan is PARTIAL",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
+  /* 🔴 F38 · Answer-first content specification. RR-210: its first acceptance, approved by its hash and frozen ALONE (_handoffs 96ae49e)
+   * before any F38 code; then its implementation begins. Its history was empty (crosswalk: no rows, commits, modules or tests; 0 trail
+   * events), so the freeze-history rule pinned nothing. */
+  F38: Object.freeze({
+    featureId: "F38",
+    board: "F_BOARD",
+    state: "IN-PROGRESS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-07", ruling: F38_ORIGINAL.ruling, contractSha256: F38_ORIGINAL.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F38",
+        on: "2026-10-07",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: F38_ORIGINAL.ruling.sha256, contract: F38_ORIGINAL.contractSha256 }),
+        branch: "rr210-f38",
+        baseSha: "24069ee38bd445f5401b2cd946a5018e647f5abc",
+        baseCiRun: "37689604481",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-07_RR-210.md", commit: "91b92d286b9de976fff2d4eec46ec9895a46f8ee", sha256: "6f59b4844b81b932cae259dc9fe895bf429d050f962421e9bd2a004a98a53da6" }),
       }),
     ]),
   }),

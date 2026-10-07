@@ -37,6 +37,34 @@ export const UNKNOWN_REASONS = Object.freeze({
   NOT_APPLICABLE_YET: "the data this check reads does not exist in the store yet",
 });
 
+/**
+ * 🔴 RR-194 · T-2 (RTP-1 S10, P20, P21; the owner's PG-A1) — A REVIEW SIGNAL. A measured figure past a signal the owner kept ONLY as a
+ * signal: the check DID answer (the value is measured), so this is not a could-not-answer UNKNOWN (UNKNOWN_REASONS above) — it is UNKNOWN
+ * because the figure decides nothing: a recorded substance review decides (P20), completeness is judged for a need (P21). It carries the
+ * measured value and the signal's recorded justification, so the page stays visible for review (the owner's RR-194 decision 2). Never FAIL.
+ */
+export function reviewSignal({ issueClass, canonicalUrl, targetPageId, evidence, detector, detectorVersion, openedAt, signal, summary, supersedes = null }) {
+  if (!signal || typeof signal.name !== "string" || signal.name === "" || typeof signal.value !== "number" || !Number.isFinite(signal.value) || typeof signal.bound !== "number" || typeof signal.justification !== "string" || signal.justification === "") {
+    throw new TypeError("a review signal names the signal, its measured value, the bound it is read against and its recorded justification");
+  }
+  return {
+    ...makeIssue({
+      issue_class: issueClass,
+      canonical_url: canonicalUrl,
+      target_page_id: targetPageId,
+      verdict: "UNKNOWN",
+      severity: "low",
+      evidence,
+      opened_at: openedAt,
+      detector,
+      detector_version: detectorVersion,
+      supersedes,
+    }),
+    signal: Object.freeze({ name: signal.name, value: signal.value, bound: signal.bound, justification: signal.justification, decides: "nothing" }),
+    summary,
+  };
+}
+
 export const CHECK_SEVERITIES = Object.freeze(["low", "medium", "high", "critical"]);
 
 /**

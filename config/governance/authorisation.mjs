@@ -160,6 +160,9 @@ export const ACTIONS = Object.freeze({
     /* RR-138 §2 (2 Oct 2026): the shared render collection (bin/render-collect.mjs) — the same family and resource class as the
      * crawler's observation append and body write; a classification only, granting no permission a role does not already hold. */
     "APPEND_RENDER_EVIDENCE", "WRITE_RENDER_BODY",
+    /* RR-194 (7 Oct 2026): T-2 — the version-2 replacement issues for the superseded version-1 content-supply findings (bin/t2-reassess.mjs),
+     * appended to the findings stores beside the noindex precedent; the same family and resource class; a classification only. */
+    "APPEND_T2_REASSESSMENT_ISSUES",
   ]),
   ...many("GOVERNED_STATE", "GENERATED_REPORT", [
     "WRITE_DETECT_FINDINGS", "WRITE_DETECT_FINDINGS_DIGEST", "WRITE_DETECT_SCORE", "WRITE_EDGE_GRAPH", "WRITE_FACTS_CENSUS",
@@ -169,7 +172,8 @@ export const ACTIONS = Object.freeze({
   ]),
   ...many("CONTENT_BUILD", "CANDIDATE_CONTENT", ["WRITE_CANDIDATE_PAGE", "WRITE_CANDIDATE_TRACE", "WRITE_CHAIN_CANDIDATE_PAGE", "WRITE_PLACEMENT_PAGE", "WRITE_VARIANT_CHAIN_PAGE"]),
   /* (SUPERSEDE_EVIDENCE_STATE is the ACTION LABEL of an F06 audit event, not an action anyone performs — removed 25 Sep.) */
-  ...many("EVIDENCE_STATE_CHANGE", "EVIDENCE_STATE", ["APPEND_NOINDEX_STATE_CHANGES"]),
+  /* RR-194 (7 Oct 2026): T-2 — OPEN → SUPERSEDED for those findings (bin/t2-reassess.mjs), beside the noindex precedent; a classification only. */
+  ...many("EVIDENCE_STATE_CHANGE", "EVIDENCE_STATE", ["APPEND_NOINDEX_STATE_CHANGES", "APPEND_T2_REASSESSMENT_STATE_CHANGES"]),
   ...many("DECLARATION_CHANGE", "DECLARATION", ["DECLARE_STRUCTURAL_ATTACHMENT", "RETIRE_UNLAWFUL_WHOLE_COLLECTION_ATTACHMENT", "WRITE_PROJECT_DECLARATION", "WRITE_PROJECT_DECLARATION_CURRENT_VIEW"]),
   ...many("AUTHORITY_CHANGE", "AUTHORITY_CORPUS", ["WRITE_AUTHORITY_CORPUS"]),
   ...many("BOARD_CHANGE", "BOARD_CONFIG", ["GENERATE_FBOARD_CROSSWALK", "GENERATE_FBOARD_CAPABILITIES", "GENERATE_CHECKLIST_BOUNDARIES"]),

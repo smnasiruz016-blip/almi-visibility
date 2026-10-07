@@ -39,7 +39,9 @@ export const SHELL_DEFINITION =
   "BODY = <main> or <article> if present, else the document minus the shell. " +
   "Word counts are taken on BODY only.";
 
-/** The DoD's Gate A floor. Printed beside every thin result (LAW-BOUND-1). */
+/** 🔴 RR-194 · T-2 (RTP-1 S10, P21; the owner's PG-A1): 350 unique body words is a REVIEW SIGNAL ONLY — measured and printed beside every
+ * result (LAW-BOUND-1), it decides nothing: thin-content version 2 never FAILs on it. The name stays because frozen acceptances (F32 C6 as
+ * amended, F40 C6) name it in their censuses of what may never decide. */
 export const THIN_UNIQUE_WORD_FLOOR = 350;
 
 const STRIP_ELEMENTS = ["script", "style", "noscript", "svg", "template", "head"];

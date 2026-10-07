@@ -75,6 +75,7 @@ test("🔴 an unrecognisable layout is NOT CONFIDENT — and a check reading it 
   assert.equal(f.reason_code, "TOOL_FAILED");
 });
 
+/* RR-194 · T-2 (RTP-1 S10, P20, P21; PG-A1): version 2 decides nothing on 350 / 0.9 / 0.75 — the same fixture now records a REVIEW SIGNAL (UNKNOWN, its value carried in `signal`), never a FAIL */
 test("the definition is printed in every result that uses it", async () => {
   const f = await THIN_CONTENT.run({
     page: { canonical_url: "https://e.example.com/x" },
@@ -82,19 +83,20 @@ test("the definition is printed in every result that uses it", async () => {
     siteContext: CTX({ bodyHtml: shellHeavy(words(40)) }),
   });
   assert.ok(f.summary.includes(SHELL_DEFINITION), "the shell definition must travel with the number");
-  assert.match(f.summary, new RegExp(`floor=${THIN_UNIQUE_WORD_FLOOR}`), "LAW-BOUND-1: the floor prints beside the result");
+  assert.match(f.summary, new RegExp(`review signal: ${THIN_UNIQUE_WORD_FLOOR}`), "LAW-BOUND-1: the signal prints beside the result");
 });
 
 /* ================================================================== *
  * ITEM 12 — EVERY CHECK: FIRING FIXTURE **AND** SILENT CLEAN CONTROL.
  * ================================================================== */
 
-test("🔴 THIN — FIRES on a 40-word body inside a 2,000-word shell", async () => {
+/* RR-194 · T-2 (RTP-1 S10, P20, P21; PG-A1): version 2 decides nothing on 350 / 0.9 / 0.75 — the same fixture now records a REVIEW SIGNAL (UNKNOWN, its value carried in `signal`), never a FAIL */
+test("🔴 THIN — FIRES (records a REVIEW SIGNAL, never a FAIL) on a 40-word body inside a 2,000-word shell", async () => {
   const f = await THIN_CONTENT.run({
     page: { canonical_url: "https://e.example.com/thin" }, observations: OBS,
     siteContext: CTX({ bodyHtml: shellHeavy(words(40)) }),
   });
-  assert.equal(f.verdict, "FAIL");
+  assert.deepEqual([f.verdict, f.detector_version, f.signal.name, f.signal.value, f.signal.bound], ["UNKNOWN", "2", "unique-body-words", 40, THIN_UNIQUE_WORD_FLOOR]);
 });
 
 test("🔴 THIN — CLEAN CONTROL: the SAME 2,000-word shell with a 900-word body stays SILENT", async () => {
@@ -130,7 +132,8 @@ test("🔴 EXACT DUPLICATE — FIRES on a shared hash, SILENT on distinct hashes
   assert.equal(silent, null, "🔴 FALSE POSITIVE: a unique page was called a duplicate");
 });
 
-test("🔴 NEAR-DUPLICATE — FIRES on near-identical bodies", async () => {
+/* RR-194 · T-2 (RTP-1 S10, P20, P21; PG-A1): version 2 decides nothing on 350 / 0.9 / 0.75 — the same fixture now records a REVIEW SIGNAL (UNKNOWN, its value carried in `signal`), never a FAIL */
+test("🔴 NEAR-DUPLICATE — FIRES (records a REVIEW SIGNAL, never a FAIL) on near-identical bodies", async () => {
   const a = shellHeavy(words(400));
   const b = shellHeavy(words(400) + " extraword");
   const peers = [{ url: "https://e.example.com/b", shingles: shingles(measure(b).bodyText) }];
@@ -138,8 +141,8 @@ test("🔴 NEAR-DUPLICATE — FIRES on near-identical bodies", async () => {
     page: { canonical_url: "https://e.example.com/a" }, observations: OBS,
     siteContext: CTX({ bodyHtml: a, peers }),
   });
-  assert.equal(f.verdict, "FAIL");
-  assert.match(f.summary, new RegExp(`threshold=${NEAR_DUPLICATE_THRESHOLD}`));
+  assert.deepEqual([f.verdict, f.signal.name, f.signal.bound, f.signal.value >= NEAR_DUPLICATE_THRESHOLD], ["UNKNOWN", "body-similarity", NEAR_DUPLICATE_THRESHOLD, true]);
+  assert.match(f.summary, new RegExp(`review signal: ${NEAR_DUPLICATE_THRESHOLD}`));
 });
 
 test("🔴 NEAR-DUPLICATE — CLEAN CONTROL: an identical 2,000-word SHELL with different bodies stays SILENT", async () => {
@@ -154,12 +157,13 @@ test("🔴 NEAR-DUPLICATE — CLEAN CONTROL: an identical 2,000-word SHELL with 
   assert.equal(f, null, "🔴 FALSE POSITIVE: two pages were called near-duplicates because they share a navigation");
 });
 
-test("🔴 TEMPLATE DOMINANCE — FIRES at 90% chrome, SILENT at 20%", async () => {
+/* RR-194 · T-2 (RTP-1 S10, P20, P21; PG-A1): version 2 decides nothing on 350 / 0.9 / 0.75 — the same fixture now records a REVIEW SIGNAL (UNKNOWN, its value carried in `signal`), never a FAIL */
+test("🔴 TEMPLATE DOMINANCE — FIRES (records a REVIEW SIGNAL, never a FAIL) at 90% chrome, SILENT at 20%", async () => {
   const fired = await TEMPLATE_DOMINANCE.run({
     page: { canonical_url: "https://e.example.com/a" }, observations: OBS,
     siteContext: CTX({ bodyHtml: shellHeavy(words(100)) }),
   });
-  assert.equal(fired.verdict, "FAIL");
+  assert.deepEqual([fired.verdict, fired.signal.name], ["UNKNOWN", "shell-share"]);
 
   const silent = await TEMPLATE_DOMINANCE.run({
     page: { canonical_url: "https://e.example.com/b" }, observations: OBS,
@@ -244,13 +248,14 @@ test("🔴 CANNIBALIZATION — FIRES when one query draws impressions on two URL
  * shell was learned from the pair itself. Item 12's near-duplicate check is a DIFFERENT metric: it
  * takes the body structurally (src/audit/shell.mjs) and compares it against every crawled page — it
  * never learns a shell from a template group. Both claims are proved here, not asserted. */
+/* RR-194 · T-2 (RTP-1 S10, P20, P21; PG-A1): version 2 decides nothing on 350 / 0.9 / 0.75 — the same fixture now records a REVIEW SIGNAL (UNKNOWN, its value carried in `signal`), never a FAIL */
 test("🔴 ITEM 12 is NOT blind to a pair: two identical bodies, and no other page at all, FIRE the near-duplicate check", async () => {
   const body = `<html><body><nav>home about</nav><main><p>${Array.from({ length: 300 }, (_, i) => `word${i}`).join(" ")}</p></main></body></html>`;
   const { measure, shingles } = await import("../src/audit/shell.mjs");
   const peers = [{ url: "https://p.example.com/a", shingles: shingles(measure(body).bodyText) }, { url: "https://p.example.com/b", shingles: shingles(measure(body).bodyText) }];
   const f = await NEAR_DUPLICATE.run({ page: { canonical_url: "https://p.example.com/a", page_id: "pa" }, observations: [{ observation_id: "o1" }], siteContext: { openedAt: "t", bodyHtml: body, peers } });
   assert.ok(f, "an identical pair was not flagged by item 12's near-duplicate check");
-  assert.equal(f.verdict, "FAIL");
+  assert.deepEqual([f.verdict, f.signal.name], ["UNKNOWN", "body-similarity"]);
 });
 
 test("🔴 ITEM 12's near-duplicate metric does not share Gate A's shell — no import of src/gate-a", () => {

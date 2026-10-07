@@ -37,6 +37,11 @@ const present = (v) => v !== undefined && v !== null && v !== "";
 export const REASONLESS_UNKNOWN_DETECTORS = Object.freeze({
   "noindex.origin-review": "PREMISE_NOT_ESTABLISHED_BY_MEASUREMENT",
   "human-verification": "EVIDENCE_DOES_NOT_ESTABLISH_ANSWER",
+  /* RR-194 · T-2: src/audit/check.mjs reviewSignal() — "the check DID answer (the value is measured) … UNKNOWN because the figure decides
+   * nothing: a recorded substance review decides (P20), completeness is judged for a need (P21)". Reached, measured, not established. */
+  "thin-content": "REVIEW_SIGNAL_DECIDES_NOTHING",
+  "near-duplicate": "REVIEW_SIGNAL_DECIDES_NOTHING",
+  "template-dominance": "REVIEW_SIGNAL_DECIDES_NOTHING",
 });
 
 /** Fact verification reasons (src/facts/record.mjs UNKNOWN_REASONS) and the evidence state each one IS. */

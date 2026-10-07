@@ -96,14 +96,15 @@ test("🔴 no supply label emits a recommendation, an action, or a demand claim"
   }
 });
 
-test("🔴 the thin label prints its own floor beside the count (LAW-BOUND-1)", async () => {
+/* RR-194 · T-2 (RTP-1 S10, P20, P21; PG-A1): version 2 decides nothing on 350 / 0.9 / 0.75 — the same fixture now records a REVIEW SIGNAL (UNKNOWN, its value carried in `signal`), never a FAIL */
+test("🔴 the thin signal prints its own bound beside the count (LAW-BOUND-1)", async () => {
   const f = await THIN_CONTENT.run({
     page: { canonical_url: "https://e.example.com/a" },
     observations: OBS,
     siteContext: CTX({ bodyHtml: shellHeavy(words(40)) }),
   });
-  assert.equal(f.verdict, "FAIL");
-  assert.match(f.summary, new RegExp(`bound: floor=${THIN_UNIQUE_WORD_FLOOR}`));
+  assert.deepEqual([f.verdict, f.signal.bound], ["UNKNOWN", THIN_UNIQUE_WORD_FLOOR]);
+  assert.match(f.summary, new RegExp(`review signal: ${THIN_UNIQUE_WORD_FLOOR}`));
 });
 
 test("CONTROL: the SAME shell with a large body does NOT fire — the shell is subtracted, not counted", async () => {

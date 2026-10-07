@@ -1,0 +1,9 @@
+RR-206 R7 sabotage PRACTICE run · 2026-10-07T20:23:11.146Z
+population: 1 sabotage(s) over test/rr206-r7.test.mjs · each applied ALONE · no provider, no network, no third-party read
+BASELINE (the named tests before any sabotage): GREEN · named tests seen GREEN: 1 of 1
+PRE-FLIGHT (span occurrences in the code live now): S30=1 · all exactly once: true
+production trail sha256 before: 5cd470653505e9af149c6b2af8981cd4274ae5b1b2a3d37ba529e8eeed8c2450
+
+S30 C7 · F94's plan reaches F37's draft without F37's own amended acceptance [config/fboard/acceptances.mjs]: landed true · named test "T94-C7" red true · its failure AssertionError · SyntaxError false · a production child crashed false · failing T94-C7 · restored true · PROVED
+
+proved 1 of 1 · residue 0 · production trail sha256 after: 5cd470653505e9af149c6b2af8981cd4274ae5b1b2a3d37ba529e8eeed8c2450 · unchanged true

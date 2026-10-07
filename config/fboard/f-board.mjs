@@ -1878,7 +1878,7 @@ export const DECLARED = Object.freeze({
   F37: Object.freeze({
     featureId: "F37",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-05", ruling: F37_ORIGINAL.ruling, contractSha256: F37_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -1964,6 +1964,25 @@ export const DECLARED = Object.freeze({
         amendment: Object.freeze({ ruling: F37_AMENDMENT_2.ruling, contractSha256: F37_AMENDMENT_2.contractSha256 }),
         ownerDecision: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-07_RR-208_APPROVE_F37_AMENDMENT_2.md", commit: "aced7555ff461ee056cba3c9d00e9d0ed73b71b0", sha256: "ef9448df6f3f15249e33f3aef68bfd7f89fbde6ab24fffc32a25a24509b5aeb2" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-07_RR-208.md", commit: "aced7555ff461ee056cba3c9d00e9d0ed73b71b0", sha256: "0c4b7cbba3330a4ef51a02e6d465919628e5037ab4997b151d20ae27d9ae1245" }),
+      }),
+      /* RR-208: F37 RE-PROVED under Acceptance Amendment 2 — every clause C1–C8 PROVED and every sabotage PROVED, on FIXTURE structures only
+       * (RR-177) with C8's count-only real-path control; recorded through the board route in the same PR; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F37",
+        population: "REAL",
+        on: "2026-10-07",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: Amendment 2)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F37_AMENDMENT_2.ruling.sha256, contract: F37_AMENDMENT_2.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED", C8: "PROVED" }),
+        populations: "FIXTURE structures only — the RR-184 fixture chain (planning rows by F91's and F16's own functions, F35's own CREATE, F37's own render) and F94's OWN plan over a fixture site, COMPLETE and INCOMPLETE; never the 27 existing pages' content (RR-177). C8's REAL control, count-only, in-process, no trail write: one declared client — 27 recorded pages, 1,275 recorded links, an INCOMPLETE inventory, F35 chose no page to CREATE, F94 made 0 plans — so every real draft today carries the no-plan UNKNOWN part, its internal links and technical NOT MEASURED. F40 and F41: 166 verdict calls over 7 test files byte-identical before and after (load-hook snapshot; positive control fired).",
+        proofs: "test/rr180-r4b.test.mjs and test/rr186-r5b.test.mjs (C1–C7, re-run under Amendment 2, fixtures restated to F94's plan shape), test/rr208-f37a2.test.mjs T37-C8, T37-C8-REAL, R37-A2-BOARD",
+        sabotage: "runs/audit/rr208-sabotage-2026-10-07T2045.txt (sha256 b7289671…): 59 of 59 proved (RR-186's 42, S29 re-anchored, and C8's 17), residue 0, production trail unchanged; the practice pass found 3 NOT PROVED (S29 stale, S43 unreachable, S46 unseen) — repaired and re-practised before the real pass",
+        declaredLimit: "an edge records no anchor text, so a link's visible text is its URL; no real plan exists today, so the PASS path of internal links and technical is proved on fixtures only; F41's brief does not read the plan (its own amendment)",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

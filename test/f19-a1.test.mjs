@@ -374,6 +374,7 @@ test("E3 · BODIES IN THE BATCH · each body stored in bodies.jsonl with its obs
     assert.equal(big.truncated, true, "a body cut by the response bound is not marked truncated");
     assert.ok(Buffer.byteLength(big.body, "utf8") <= 2 * 1024 * 1024, "a body past the response bound was stored whole");
     const run = jsonl(join(dir, "crawl.jsonl")).find((x) => x.record_type === "crawl_run");
+    assert.ok(run?.bodies && typeof run.bodies === "object", "the run record does not count its bodies");
     assert.deepEqual([run.bodies.store, run.bodies.stored, run.bodies.notStored.OVER_THE_BATCH_STORE_CEILING], ["bodies.jsonl", seeds.length, 0]);
     assert.ok(!JSON.stringify(run).includes("<html"), "the run record carries page content");
     assert.deepEqual(committed(events), ["APPEND_CRAWL_BODIES", "APPEND_CRAWL_COST_ENTRY", "APPEND_CRAWL_OBSERVATIONS", "APPEND_CRAWL_RUN_RECORD"]);
@@ -392,6 +393,7 @@ test("E4 · BODY CEILING · bodies that would put the batch's body store past it
     const crawl = jsonl(join(dir, "crawl.jsonl"));
     assert.equal(crawl.filter((x) => x.record_type === "observation").length, SEEDS.length, "an observation was dropped with its body");
     const run = crawl.find((x) => x.record_type === "crawl_run");
+    assert.ok(run?.bodies && typeof run.bodies === "object", "the run record does not count its bodies");
     assert.deepEqual([run.bodies.stored, run.bodies.notStored.OVER_THE_BATCH_STORE_CEILING], [0, SEEDS.length], "the bodies not stored were not counted");
   } finally { W.cleanup(); }
 });

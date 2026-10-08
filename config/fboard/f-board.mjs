@@ -53,7 +53,7 @@ export const DECLARED = Object.freeze({
   F02: Object.freeze({
     featureId: "F02",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       // The acceptance was committed ALONE in the governance repository (3ea6fda) before any F02 engine change.
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-24", ruling: F02_ORIGINAL.ruling, contractSha256: F02_ORIGINAL.contractSha256 }),
@@ -102,6 +102,27 @@ export const DECLARED = Object.freeze({
         amendment: Object.freeze({ ruling: F02_AMENDMENT_2.ruling, contractSha256: F02_AMENDMENT_2.contractSha256 }),
         ownerDecision: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-08_RR-225_APPROVE_F02_AMENDMENT_2.md", commit: "941b3eb3c2369c2284c0dbc234fa6415e02f4052", sha256: "04e0e0ff8fbae665acb44f619e8d181401f85c1265156abd0c0d7d0b9777a72b" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-225.md", commit: "941b3eb3c2369c2284c0dbc234fa6415e02f4052", sha256: "61d1f9eeea43f4d1d30daca66690e21a0664e7ce9072cfd29f2be03470ea241c" }),
+      }),
+      /* RR-225: F02 RE-PROVED under F02_AMENDMENT_2 — every clause PROVED and every sabotage PROVED; recorded through the board route in
+       * the same PR as F31's re-proof; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F02",
+        population: "REAL",
+        on: "2026-10-08",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: Amendment 2, RR-225)",
+        reason: "EVERY_CURRENT_CLAUSE_PROVED_UNDER_AMENDMENT_2",
+        acceptanceUnchanged: Object.freeze({ ruling: F02_AMENDMENT_2.ruling.sha256, contract: F02_AMENDMENT_2.contractSha256 }),
+        clauses: Object.freeze({ "AMENDMENT 1 (unchanged)": "PROVED", "A2 · read only on F02's recorded decision": "PROVED", "A2 · census exception by file AND function": "PROVED", "census honesty · every exclusion has a firing control": "PROVED" }),
+        deferredToF79: Object.freeze(["real learning write evidence", "real learning reuse evidence"]),
+        populations: "A2 on FIXTURE worlds only (RR-177, no real page read): a batch attached and named (read, ALLOWED recorded), attached to another tenant, attached to none, attached but named by no subject (each unread, REFUSED recorded with its reason and tenant decision), another tenant's own batch (never located). REAL declarations, count-only: 23 active tenants, 12 research-batch decisions (11 ALLOWED — the same batches F31 read before — and 1 REFUSED NOT_A_MEMBER), recorded per governed run. The tenant-scope census over the real entry points: 0 UNSCOPED; the seven entry points that reach F31's reader SCOPED with the exception.",
+        proofs: "test/f02-tenant-scope.test.mjs — F02-EXCL-META (every exclusion names a module defining its function and a control test that exists; a missing one refused), F02-EXCL-1 (the held-out derivation only narrows an append; a same-named function elsewhere is not excused), F02-EXCL-3 (the gate's member read returns origins only; a batch shared by two tenants refused AMBIGUOUS), F02-EXCL-4 EXPECTED/FAILURE/EVIDENCE/CENSUS (decisions read back from a durable guard sink; a planted same-named reader not excused; a direct RESEARCH load UNSCOPED); test/f02-real-prerequisites.test.mjs A2 (captureSetMembers' control); the Amendment 1 proofs re-run green (f02-disposition, f02-tenant-isolation, f02-real-prerequisites)",
+        sabotage: "runs/audit/rr225-sabotage-2026-10-08T0805.txt: 52 of 52 proved (F31 C1–C9 35; F02 A2 and the census controls 17), every span pre-flighted exactly once in the live code, each applied ALONE and red by an AssertionError, residue 0, production trail unchanged; practice 2026-10-08T0741 found S35 not red with the merge filter alone (the rule binds in two layers) — re-anchored to both and re-proved (T0804)",
+        censusHonesty: "6 exclusions, each with a control that exists and fires: derivedForbiddenSubstrings F02-EXCL-1 (S46), captureSetMembers f02-real-prerequisites A2 (S49), memberOrigins / batchPageUrls / sitemapListedUrls F02-EXCL-3 (S48, S50, S51), readNewerCollections F02-EXCL-4 (S36–S43, S45, S52); META (S44, S47). Four exclusions had cited test/f02-tenant-scope.test.mjs since 24 Sep without it existing (found RR-224); it exists now.",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-225.md", commit: "941b3eb3c2369c2284c0dbc234fa6415e02f4052", sha256: "61d1f9eeea43f4d1d30daca66690e21a0664e7ce9072cfd29f2be03470ea241c" }),
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),
@@ -1485,7 +1506,7 @@ export const DECLARED = Object.freeze({
   F31: Object.freeze({
     featureId: "F31",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: F31_ORIGINAL.ruling, contractSha256: F31_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -1537,6 +1558,24 @@ export const DECLARED = Object.freeze({
         amendment: Object.freeze({ ruling: F31_AMENDMENT_1.ruling, contractSha256: F31_AMENDMENT_1.contractSha256 }),
         ownerDecision: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-08_RR-223_APPROVE_F31_AMENDMENT_1.md", commit: "ce851f8610a2ca1b99d5a5a51cb29283310bd29f", sha256: "30532ecf94f8da91bdd1bb0fdcb12b9f805932e66cbd8c57162455e8ada34456" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-223.md", commit: "ce851f8610a2ca1b99d5a5a51cb29283310bd29f", sha256: "118ded1887c803fc2c1fd9228f670e60b8559aa998c0c37fe465da7e714b7ecf" }),
+      }),
+      /* RR-225: F31 RE-PROVED under F31_AMENDMENT_1 (C1–C9), its newer-batch reader now on F02's recorded decision (F02 Amendment 2) */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F31",
+        population: "REAL",
+        on: "2026-10-08",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: Amendment 1, RR-223/RR-225)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F31_AMENDMENT_1.ruling.sha256, contract: F31_AMENDMENT_1.contractSha256 }),
+        clauses: Object.freeze({ "C1": "PROVED", "C2": "PROVED", "C3": "PROVED", "C4": "PROVED", "C5": "PROVED", "C6": "PROVED", "C7": "PROVED", "C8": "PROVED", "C9": "PROVED" }),
+        populations: "C1–C9 on FIXTURE data roots built from nothing (RR-177: no real page read): two tenants, the fixed batches and research batches attached and named, attached elsewhere, attached to none and unnamed. REAL: records only — every real tenant whose newer batches hold no observation of it keeps the verdict it had over the fixed batches (T31-C9-REAL, count-only).",
+        proofs: "test/f31-inventory.test.mjs (C1–C8 on the fixture root) and test/rr223-f31a1.test.mjs (T31-C9-NEWER/SCOPE/BODY/CUT/COMPLETE/REAL/CENSUS, R31-BOARD); consumers restated with notes: f82 REAL, rr206 (F94 unchanged), rr172 T33f, f34 C6",
+        sabotage: "runs/audit/rr225-sabotage-2026-10-08T0805.txt: 52 of 52 proved (F31 C1–C9 35; F02 A2 and the census controls 17), every span pre-flighted exactly once in the live code, each applied ALONE and red by an AssertionError, residue 0, production trail unchanged; practice 2026-10-08T0741 found S35 not red with the merge filter alone (the rule binds in two layers) — re-anchored to both and re-proved (T0804)",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-225.md", commit: "941b3eb3c2369c2284c0dbc234fa6415e02f4052", sha256: "61d1f9eeea43f4d1d30daca66690e21a0664e7ce9072cfd29f2be03470ea241c" }),
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

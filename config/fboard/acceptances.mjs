@@ -1211,6 +1211,46 @@ export const F31_AMENDMENT_1 = Object.freeze({
   contractSha256: "1453dd162426e04f41b144dcbba870b0b88c9e5d82e06aae42fa03913a578d7a",
   amends: Object.freeze({ ruling: F31_ORIGINAL.ruling, contractSha256: F31_ORIGINAL.contractSha256 }),
 });
+/* 🔴 F02 · AMENDMENT 1 (25 Sep 2026) — the contract until Amendment 2 (RR-225), exported unchanged so F02's history keeps reading it. It changes ONLY the treatment of the non-existent learning
+ * population (deferred to F79 · Evidence Cache Before Re-Research); no isolation rule is weakened and no existing population
+ * leaves F02. The original acceptance stays frozen, exported as F02_ORIGINAL, and is named by `amends`: the board refuses an
+ * amendment that does not name, by both hashes, the freeze it amends (src/fboard/board.mjs). */
+export const F02_AMENDMENT_1 = Object.freeze({
+  featureId: "F02",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F02_ACCEPTANCE_AMENDMENT_1_2026-09-25.md", commit: "ad14a64e8853e26a49fdac994dc5d00b6a65e29b", sha256: "19764797de24261a02725caa6786ec19d0c29e4f207a2db2b0dbbae6fc684db5" }),
+  // Resolved through the register (inclusion rule f-row-acceptance-amendment); the board accepts it only while that
+  // resolution is CURRENT and names these exact bytes.
+  authority: Object.freeze({ propositionId: "F02_ACCEPTANCE_AMENDMENT_1", scope: Object.freeze(["ALMIVISIBILITY", "F02"]) }),
+  frozenOn: "2026-09-25",
+  feature: "F02 · Tenant and evidence isolation",
+  input: "F02 is judged over every tenant-governed resource population that presently\nexists in production. A future learning population enters F02 automatically\nwhen F79 creates it.",
+  expected: "All existing evidence, costs, caches, research inputs and outputs remain\ntenant-isolated. Any future F79 learning or evidence-cache path must use the\nsame F02 boundary before F79 may pass.",
+  failure: "An existing population crosses tenants; an undeclared learning resource is\naccepted; F79 later introduces learning without F02 isolation; or the absence\nof a learning population is disguised by fixtures or fabricated records.",
+  evidence: "Real non-empty existing populations prove their isolation NOW. The\nundeclared-learning refusal is proved with a firing control NOW. Real\nlearning write and reuse evidence is deferred to F79 and becomes mandatory\nwhen that population exists.",
+  contractSha256: "4b153869c05b3563d313a9941fca874aef789732e842169671df80ccb48dbd3d",
+  amends: Object.freeze({ ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F02_ACCEPTANCE_2026-09-24.md", commit: "3ea6fdac909bc76b4ba8137ef0c07147f7525143", sha256: "e468526e1257fd6ac16505a5018398fb8701165da0f711edc44b1395673e79e5" }), contractSha256: "9b6273d6fdb92f7fa8f2d542a40cdb1a210cce6ad34b430bc3d7c7e0d2b03471", supersededOnlyAs: "the demand for a presently non-empty real learning population" }),
+  dependsOn: Object.freeze({ featureId: "F79", name: "Evidence Cache Before Re-Research", state: "UNASSESSED", constraint: "config/fboard/row-constraints.mjs" }),
+});
+/* 🔴 F02 · ACCEPTANCE AMENDMENT 2 · FROZEN 8 Oct 2026 (_handoffs fb0613a, RR-225) — a research batch F31's existing-page reader locates for a
+ * tenant is read only on F02's recorded ALLOWED decision (attached to that tenant AND a member of a subject resolving to it); every decision
+ * recorded through the run's scope; the census excuses that reader by file AND function only (RR-224) — approved by the owner BY ITS HASH
+ * (file 05e36910…, contract fe78ea0c…) and committed ALONE before any F02 code was read for change. It amends Amendment 1, which stays
+ * pinned and readable, as does the original. Pinned from the committed blob by parseContract (firing control: "Only an ALLOWED batch is
+ * read" → "Any batch is read" moves the hash). */
+export const F02_AMENDMENT_2 = Object.freeze({
+  featureId: "F02",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F02_ACCEPTANCE_AMENDMENT_2_2026-10-08.md", commit: "fb0613a0806af9571473d45a26e4a58e63eff86f", sha256: "05e369102e7e81f5c721e7e9b2a286a925cd10825b084cc2bfd9359303b4c620" }),
+  authority: Object.freeze({ propositionId: "F02_ACCEPTANCE_AMENDMENT_2", scope: Object.freeze(["ALMIVISIBILITY", "F02"]) }),
+  frozenOn: "2026-10-08",
+  feature: "F02 · Tenant and evidence isolation",
+  input: "F02 is judged over every tenant-governed resource population that presently\nexists in production. A future learning population enters F02 automatically\nwhen F79 creates it.\n[A2 · RR-224] And every research batch F31's existing-page reader locates for a tenant (F31 Acceptance Amendment 1, C9), with F02's recorded decision on it.",
+  expected: "All existing evidence, costs, caches, research inputs and outputs remain\ntenant-isolated. Any future F79 learning or evidence-cache path must use the\nsame F02 boundary before F79 may pass.\n[A2 · A RESEARCH BATCH LOCATED BY F31'S READER IS READ ONLY ON F02'S RECORDED DECISION] Before F31's existing-page reader reads any research batch for a tenant, F02 decides that batch: ALLOWED only when the batch is attached to that tenant and is a member of a subject that resolves to that same tenant; otherwise REFUSED with its reason (not attached to this tenant; not a member of this tenant's subject). Only an ALLOWED batch is read; a REFUSED one stays unread and its refusal is recorded — never silently skipped. Every decision, allowed or refused, is recorded through the run's own scope record (in a governed run, on the audit trail), naming the batch, the tenant decision and the reason. F02's tenant-scope census names this reader as an exception by its file and its function together (src/crawl/newer-collections.mjs, the reader F31 calls), with its reason and its control; a function of the same name in any other file is not excused, and any other reader that loads a tenant-governed family without its entry point naming that family still fails the census. No other F02 rule, decision, census or population changes.",
+  failure: "An existing population crosses tenants; an undeclared learning resource is\naccepted; F79 later introduces learning without F02 isolation; or the absence\nof a learning population is disguised by fixtures or fabricated records.\n[A2] F31's reader reads a research batch without F02's ALLOWED decision; a batch attached to another tenant, attached to none, or named by no subject of the tenant is read; a refusal is not recorded, or a batch is skipped silently; a decision is recorded without the batch, the tenant decision or the reason; the census excuses a function by its name alone, or excuses any reader other than this one; any other F02 behaviour changes.",
+  evidence: "Real non-empty existing populations prove their isolation NOW. The\nundeclared-learning refusal is proved with a firing control NOW. Real\nlearning write and reuse evidence is deferred to F79 and becomes mandatory\nwhen that population exists.\n[A2] Fixture worlds (no real page read, RR-177): a tenant with a batch attached and named (read; ALLOWED recorded), a batch attached to another tenant, one attached to none, and one attached but named by no subject (each unread; REFUSED recorded with its reason); the recorded decisions read back from a governed run's scope sink; the census over the seven entry points that reach the reader — SCOPED with the exception, UNSCOPED without it; controls: a planted function of the same name in another file is NOT excused; a planted entry point loading the RESEARCH family directly, without naming it, is UNSCOPED; every other census row unchanged. For each limb a sabotage that turns a named test red by an AssertionError, restored by raw-byte hash, with the production trail untouched; CI on the exact head and on the merge.",
+  contractSha256: "fe78ea0c7ad35fbea52e90fc8742de6a11e4cc32f4aa0c342fe163f7bdac060c",
+  amends: Object.freeze({ ruling: F02_AMENDMENT_1.ruling, contractSha256: F02_AMENDMENT_1.contractSha256 }),
+  dependsOn: F02_AMENDMENT_1.dependsOn,
+});
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -1226,26 +1266,7 @@ export const ACCEPTANCES = Object.freeze({
     evidence: "The contract exercised through a real non-empty declaration population\nand a new unrelated neutral declaration; accepted, refused, duplicate,\nsuperseded and unavailable-storage worlds; complete field and population\narithmetic; tenant isolation, secret exclusion, portability, audit,\nidempotency and orphan proofs; independent sabotage for every failure\nclass; two agreeing full suites; named counting control; one green PR,\nmerge and exact-main CI.",
     contractSha256: "5d7ddb4c6d37a3d96cbc8ce65797eb20f3119816a20084c9176aa089b5d80ccb",
   }),
-  /* 🔴 F02 · AMENDMENT 1 (25 Sep 2026) is the CURRENT contract. It changes ONLY the treatment of the non-existent learning
-   * population (deferred to F79 · Evidence Cache Before Re-Research); no isolation rule is weakened and no existing population
-   * leaves F02. The original acceptance stays frozen, exported as F02_ORIGINAL, and is named by `amends`: the board refuses an
-   * amendment that does not name, by both hashes, the freeze it amends (src/fboard/board.mjs). */
-  F02: Object.freeze({
-    featureId: "F02",
-    ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F02_ACCEPTANCE_AMENDMENT_1_2026-09-25.md", commit: "ad14a64e8853e26a49fdac994dc5d00b6a65e29b", sha256: "19764797de24261a02725caa6786ec19d0c29e4f207a2db2b0dbbae6fc684db5" }),
-    // Resolved through the register (inclusion rule f-row-acceptance-amendment); the board accepts it only while that
-    // resolution is CURRENT and names these exact bytes.
-    authority: Object.freeze({ propositionId: "F02_ACCEPTANCE_AMENDMENT_1", scope: Object.freeze(["ALMIVISIBILITY", "F02"]) }),
-    frozenOn: "2026-09-25",
-    feature: "F02 · Tenant and evidence isolation",
-    input: "F02 is judged over every tenant-governed resource population that presently\nexists in production. A future learning population enters F02 automatically\nwhen F79 creates it.",
-    expected: "All existing evidence, costs, caches, research inputs and outputs remain\ntenant-isolated. Any future F79 learning or evidence-cache path must use the\nsame F02 boundary before F79 may pass.",
-    failure: "An existing population crosses tenants; an undeclared learning resource is\naccepted; F79 later introduces learning without F02 isolation; or the absence\nof a learning population is disguised by fixtures or fabricated records.",
-    evidence: "Real non-empty existing populations prove their isolation NOW. The\nundeclared-learning refusal is proved with a firing control NOW. Real\nlearning write and reuse evidence is deferred to F79 and becomes mandatory\nwhen that population exists.",
-    contractSha256: "4b153869c05b3563d313a9941fca874aef789732e842169671df80ccb48dbd3d",
-    amends: Object.freeze({ ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F02_ACCEPTANCE_2026-09-24.md", commit: "3ea6fdac909bc76b4ba8137ef0c07147f7525143", sha256: "e468526e1257fd6ac16505a5018398fb8701165da0f711edc44b1395673e79e5" }), contractSha256: "9b6273d6fdb92f7fa8f2d542a40cdb1a210cce6ad34b430bc3d7c7e0d2b03471", supersededOnlyAs: "the demand for a presently non-empty real learning population" }),
-    dependsOn: Object.freeze({ featureId: "F79", name: "Evidence Cache Before Re-Research", state: "UNASSESSED", constraint: "config/fboard/row-constraints.mjs" }),
-  }),
+  F02: F02_AMENDMENT_2,
   F05: Object.freeze({
     featureId: "F05",
     ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_RULING_2026-09-22_F05_ACCEPTANCE.md", commit: "58685998b08fafb8bf3d6b1b7da9a2becf3fe004", sha256: "035ae68d09de3378a18d4935af146308fdeef34ab21f5121dde4db47fb3a1f70" }),

@@ -30,7 +30,7 @@ import { productionEntryPoints, isEntryPoint } from "../src/entry-points.mjs";
 import { census as tenantScopeCensus } from "../tools/tenant-scope-census.mjs";
 import { census as relationshipCensus } from "../tools/tenant-relationship-census.mjs";
 import { neutralityCensus } from "../tools/product-boundary.mjs";
-import { ACCEPTANCES, F02_ORIGINAL } from "../config/fboard/acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F02_AMENDMENT_1 } from "../config/fboard/acceptances.mjs";
 import { DECLARED } from "../config/fboard/f-board.mjs";
 import { contractSha256 } from "../src/fboard/acceptance.mjs";
 import { declaredWorld } from "./helpers/declared-world.mjs";
@@ -282,7 +282,9 @@ test("L4 · lawful subject execution still works: a relocated tool, given a DECL
 test("L5 · the frozen F02 acceptance did not move: bytes e468526e…, contract 9b6273d6… (amended — not replaced — by Amendment 1)", () => {
   assert.equal(F02_ORIGINAL.contractSha256, "9b6273d6fdb92f7fa8f2d542a40cdb1a210cce6ad34b430bc3d7c7e0d2b03471");
   assert.equal(contractSha256(F02_ORIGINAL), F02_ORIGINAL.contractSha256, "the original clauses no longer hash to the frozen contract");
-  assert.equal(ACCEPTANCES.F02.amends.contractSha256, F02_ORIGINAL.contractSha256);
+  /* RR-225: Amendment 1 amends the original (unchanged); the CURRENT contract (Amendment 2) amends Amendment 1 — restated */
+  assert.equal(F02_AMENDMENT_1.amends.contractSha256, F02_ORIGINAL.contractSha256);
+  assert.equal(ACCEPTANCES.F02.amends.contractSha256, F02_AMENDMENT_1.contractSha256);
   const frozen = DECLARED.F02.events.find((e) => e.kind === "ACCEPTANCE_FROZEN");
   assert.equal(frozen.ruling.sha256, "e468526e1257fd6ac16505a5018398fb8701165da0f711edc44b1395673e79e5");
   assert.equal(frozen.contractSha256, F02_ORIGINAL.contractSha256);

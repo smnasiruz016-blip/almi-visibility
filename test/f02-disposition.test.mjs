@@ -12,7 +12,7 @@ import { spawnSync, execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { ACCEPTANCES, F02_ORIGINAL } from "../config/fboard/acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F02_AMENDMENT_1 } from "../config/fboard/acceptances.mjs";
 import { DECLARED } from "../config/fboard/f-board.mjs";
 import { CAPABILITIES } from "../config/fboard/capabilities.mjs";
 import { ROW_CONSTRAINTS } from "../config/fboard/row-constraints.mjs";
@@ -37,7 +37,10 @@ const board = (declared = DECLARED) => buildBoard(CAPABILITIES, declared);
 
 /* ─────────────────────────── AMENDMENT 1 ─────────────────────────── */
 test("D1 · Amendment 1 is the CURRENT F02 contract, pinned to its committed bytes; it names the original it amends; a one-word change breaks it", () => {
-  const a = ACCEPTANCES.F02;
+  /* RR-225: Amendment 2 (_handoffs fb0613a) is now the CURRENT F02 contract; Amendment 1 is exported unchanged as F02_AMENDMENT_1 and
+   * is what this test pins — restated, every assertion kept; the current contract amends it by both hashes */
+  const a = F02_AMENDMENT_1;
+  assert.deepEqual([ACCEPTANCES.F02.amends.ruling.sha256, ACCEPTANCES.F02.amends.contractSha256], [a.ruling.sha256, a.contractSha256]);
   assert.equal(a.ruling.sha256, "19764797de24261a02725caa6786ec19d0c29e4f207a2db2b0dbbae6fc684db5");
   assert.equal(a.contractSha256, "4b153869c05b3563d313a9941fca874aef789732e842169671df80ccb48dbd3d");
   assert.equal(contractSha256(a), a.contractSha256, "the amended clauses no longer hash to the frozen contract");
@@ -209,7 +212,7 @@ test("B · the board: F02 holds the state its evidence earned, and no other row 
   if (f02.state === "VERIFIED-PASS") {
     assert.ok(DECLARED.F02.events.some((e) => e.kind === "VERIFIED" && e.featureId === "F02" && e.population === "REAL"));
     assert.equal(p.passed, 39); /* RR-223: F31 REOPENED by its own Amendment 1 (_handoffs 7805047) — VERIFIED-PASS -> IN-PROGRESS (40 -> 39, IN-PROGRESS 12 -> 13) until re-proved */ /* RR-216: F92 PROVED (rr216-sabotage-2026-10-08T0359: 35 of 35) */ /* RR-214: F93 PROVED (rr214-sabotage-2026-10-08T0218: 31 of 31) */ /* RR-210: F38 PROVED (rr210-sabotage-2026-10-07T2305: 37 of 37) */ /* RR-208: F37 RE-PROVED under its Amendment 2 (rr208-sabotage-2026-10-07T2045: 59 of 59) */ /* RR-208: F37 REOPENED by its own Amendment 2 (_handoffs f9edf2a) — VERIFIED-PASS -> IN-PROGRESS */ /* RR-206: F94 PROVED in R7 (rr206-sabotage-2026-10-07T1855: 33 of 33) */ /* RR-192: F39 re-proved under Amendment 1 */
-  } else assert.equal(p.passed, 5);
+  } else assert.equal(p.passed, 38); /* RR-225: F02 REOPENED by its own Amendment 2 (_handoffs fb0613a) — VERIFIED-PASS -> IN-PROGRESS until re-proved */ /* its earlier figure, 5, was the board of 25 Sep 2026 */
   for (const id of ["F01", "F05", "F06", "F08"]) assert.equal(board().find((r) => r.featureId === id).state, "VERIFIED-PASS");
   assert.equal(board().find((r) => r.featureId === "F07").state, "IN-PROGRESS"); // F07 reopened 28 Sep (test/f07-closure.test.mjs owns it)
   assert.equal(board().find((r) => r.featureId === "F40").state, ((r) => (r.state === "IN-PROGRESS" && r.events.at(-1)?.kind === "REOPENED" && r.events.at(-1)?.reason === "AUTHORITATIVE_REQUIREMENT_CHANGE" && r.events.at(-2)?.kind === "ACCEPTANCE_AMENDED" ? "IN-PROGRESS" : "VERIFIED-PASS"))(board().find((x) => x.featureId === "F40"))); /* RR-188: F40's lawful state — VERIFIED-PASS, or IN-PROGRESS while its own Amendment 1 has reopened it */ /* RR-184: F40 frozen under its own acceptance (_handoffs 6d64c27), started after its lift, then PROVED (rr184-sabotage-2026-10-06T0301: 37 of 37) */ /* lifted 2 Oct 2026 by the owner ruling _handoffs 4761236 (RR-127 §2a) */

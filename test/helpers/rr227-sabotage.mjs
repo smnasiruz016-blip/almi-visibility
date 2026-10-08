@@ -90,7 +90,7 @@ const SABOTAGES = [
   ["G4", "a redirect hop waits for the pacer", [[FETCHER, "      await pace(k);\n", "      if (k !== \"redirect\") await pace(k);\n"]], GENERIC, "PACED HOPS"],
   ["G5", "a redirect is followed only to an admitted origin", [[FETCHER, "chain.length < maxRedirectHops && admits(next)", "chain.length < maxRedirectHops"]], GENERIC, "PACED HOPS"],
   ["G6", "a redirected robots.txt is not followed (fails closed)", [[ROBOTS, "          redirect: \"manual\",\n", ""]], GENERIC, "PACED HOPS"],
-  ["G7", "the redirect chain is recorded on the observation", [[CRAWLER, "      redirect_chain: res.redirectChain ?? [],\n", "      redirect_chain: [],\n"]], GENERIC, "SITE-HELD · in the binary"],
+  ["G7", "the redirect chain is recorded on the observation", [[CRAWLER, "      redirect_chain: res.redirectChain ?? [],\n", "      redirect_chain: [],\n"]], GENERIC, "SITE-HELD · in the binary,"],
   /* G8 and R2 re-anchored (RR-227): bin/crawl.mjs now holds three APPEND_IF_NEW builders — the span names the observations builder */
   ["G8", "a resumed batch never duplicates a saved observation", [[B, "action: \"APPEND_CRAWL_OBSERVATIONS\",\n  occurredAt, correlationId, discipline: \"APPEND_IF_NEW\",\n", "action: \"APPEND_CRAWL_OBSERVATIONS\",\n  occurredAt, correlationId, discipline: \"APPEND_WITHOUT_DEDUPE\",\n"]], GENERIC, "RESUMABLE"],
   /* R1 re-anchored (RR-227): the sitemap re-collection carries its own green gate — the span names the crawl's D-CRW-4 gate */

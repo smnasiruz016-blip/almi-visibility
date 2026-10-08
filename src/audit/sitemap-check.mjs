@@ -22,27 +22,28 @@
  *
  * ── 🔴 THE FETCH IS BOUNDED, AND THE BOUND IS PART OF THE RESULT ────────────
  *
- * At most one sitemap index plus `MAX_CHILD_SITEMAPS` children per host, at one
- * request per second. Everything not fetched is COUNTED and reported, and
- * coverage is PARTIAL. This is the standing of the four robots.txt reads: a
- * handful of discovery files, named, counted and recorded. **It is not a crawl
- * and must not become one.**
+ * RR-227 (F19 Acceptance Amendment 1): the collector moved to F19 (src/crawl/sitemap-collect.mjs) and this name now delegates to it.
+ * RR-226 found the old body here counting a FAILED child as fetched (COMPLETE, its URLs missing), adding 0 URLs for a nested index and
+ * still saying COMPLETE, and reading every sitemap with no byte bound and no timeout. The one collector now bounds every request
+ * (bytes, timeout, interval), follows nested indexes, and is COMPLETE only when nothing failed, was cut, unparsed or skipped.
  */
 
 import { registerCheck, fail, unknown } from "./check.mjs";
 import { parseSitemap } from "../crawl/seeds.mjs";
 import { parseGroups, selectGroup, decide } from "./robots-scope.mjs";
+import { collectSitemap, SITEMAP_BOUNDS } from "../crawl/sitemap-collect.mjs";
 
-export const MAX_CHILD_SITEMAPS = 10;
-export const REQUEST_INTERVAL_MS = 1000;
+export const MAX_CHILD_SITEMAPS = SITEMAP_BOUNDS.maxChildren;
+export const REQUEST_INTERVAL_MS = SITEMAP_BOUNDS.intervalMs;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /**
- * Collect sitemap URLs for one host, under a hard bound.
+ * Collect sitemap URLs for one host, under a hard bound — through F19's one collector (src/crawl/sitemap-collect.mjs).
  *
- * Returns the URLs found AND everything the bound left out, so a reader can see
- * the denominator rather than infer it.
+ * Kept for its existing callers' shape. It reads no robots.txt (honourRobots false): its only production caller, bin/audit-technical.mjs
+ * --sitemaps, is retired (F19 A1), and a tenant's sitemap is re-collected by bin/crawl.mjs --research-batch --sitemaps, which honours
+ * robots. The pacer here runs on a clock advanced by `sleepImpl`, so a caller that hands a no-op sleep is not held in a busy wait.
  */
 export async function collectSitemapUrls({
   origin,
@@ -52,60 +53,9 @@ export async function collectSitemapUrls({
   sleepImpl = sleep,
   userAgent = "AlmiVisibilityBot/0.1 (+internal audit)",
 }) {
-  const requests = [];
-  const get = async (url) => {
-    if (requests.length > 0) await sleepImpl(intervalMs);
-    requests.push(url);
-    try {
-      const res = await fetchImpl(url, { headers: { "User-Agent": userAgent } });
-      return { ok: res.ok, status: res.status, body: res.ok ? await res.text() : null };
-    } catch (err) {
-      /* 🔴 LAW-ABSENT-1. A fetch failure is our tool, not their sitemap. */
-      return { ok: false, status: null, error: String(err?.message ?? err), body: null };
-    }
-  };
-
-  const indexUrl = `${origin}/sitemap-index.xml`;
-  let root = await get(indexUrl);
-  let rootUrl = indexUrl;
-  if (!root.ok) {
-    rootUrl = `${origin}/sitemap.xml`;
-    root = await get(rootUrl);
-  }
-  if (!root.ok) {
-    return {
-      origin, urls: [], childrenFetched: 0, childrenTotal: null, childrenSkipped: null,
-      requests: requests.length, coverageState: "UNKNOWN",
-      why: `no sitemap could be read (last status ${root.status ?? root.error})`,
-      bound: { maxChildren, intervalMs },
-    };
-  }
-
-  const parsed = parseSitemap(root.body);
-  const urls = [...parsed.urls];
-  const children = parsed.sitemaps;
-  let fetched = 0;
-  for (const child of children.slice(0, maxChildren)) {
-    const r = await get(child);
-    fetched += 1;
-    if (r.ok) urls.push(...parseSitemap(r.body).urls);
-  }
-
-  const skipped = Math.max(0, children.length - fetched);
-  return {
-    origin,
-    rootUrl,
-    urls: [...new Set(urls)],
-    childrenFetched: fetched,
-    childrenTotal: children.length,
-    childrenSkipped: skipped,
-    requests: requests.length,
-    /* 🔴 PARTIAL whenever the bound left anything out — and this bound is the
-     * point, so it usually will. */
-    coverageState: skipped > 0 ? "PARTIAL" : "COMPLETE",
-    why: skipped > 0 ? `${skipped} child sitemaps NOT fetched — bound maxChildren=${maxChildren}` : "all children fetched",
-    bound: { maxChildren, intervalMs },
-  };
+  let clock = 0;
+  const advance = async (ms) => { clock += ms; await sleepImpl(ms); };
+  return collectSitemap({ origin, fetchImpl, honourRobots: false, bounds: { maxChildren, intervalMs }, sleepImpl: advance, monotonic: () => clock, userAgent });
 }
 
 /** For every sitemap URL, is it disallowed for the search crawler? */

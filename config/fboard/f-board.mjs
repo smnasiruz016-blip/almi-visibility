@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2 } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -1248,7 +1248,7 @@ export const DECLARED = Object.freeze({
   F19: Object.freeze({
     featureId: "F19",
     board: "F_BOARD",
-    state: "VERIFIED-PASS",
+    state: "IN-PROGRESS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-28", ruling: F19_ORIGINAL.ruling, contractSha256: F19_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -1282,6 +1282,22 @@ export const DECLARED = Object.freeze({
         historicalReuse: "none: acceptanceRelation NEW — the 61↔89 artifact links F19 to no historical row",
         declaredLimit: "depth 0 by design: links are recorded, never followed; no rendering (renderMode RAW_HTML on every record); redirects are followed only to a declared origin, each hop paced, at most 5; a run's money is NOT MEASURED. The per-run caps (500 URLs, 200 per host) bound ONE run, never the product: a client continues batch after batch.",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+      /* RR-227: F19's Acceptance Amendment 1, approved by its hash and frozen ALONE; F19 REOPENED at this freeze */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F19", on: "2026-10-08", ruling: F19_AMENDMENT_1.ruling, contractSha256: F19_AMENDMENT_1.contractSha256, amends: F19_AMENDMENT_1.amends }),
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F19",
+        on: "2026-10-08",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: Amendment 1)",
+        reason: "AUTHORITATIVE_REQUIREMENT_CHANGE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "F19's 2026-10-02 evidence remains historically valid for what it measured; the reopen is caused by the newly frozen wider requirement (Amendment 1, RR-226/RR-227: the whole sitemap stored, one tenant's sitemap re-collected into its own research batch, a research-batch crawl's bodies stored in that batch), not by any defect found in that evidence",
+        amendment: Object.freeze({ ruling: F19_AMENDMENT_1.ruling, contractSha256: F19_AMENDMENT_1.contractSha256 }),
+        ownerApproval: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_APPROVAL_2026-10-08_RR-227_F19_AMENDMENT_1_BY_HASH.md", commit: "7aa4c0ffcfcea302f0f307a1a2829369957d8eb0", sha256: "62790d761accd5b43c774c39d7922c483cc7c37a40f10cc2a18f91af9563e41f", admitted: false, why: "named without RULING or DECISION by the owner's rule (RR-226); the admitted command record quotes the same hashes" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-227.md", commit: "7aa4c0ffcfcea302f0f307a1a2829369957d8eb0", sha256: "8d511e13e188f0366c6c60502732e5094ab8c2e78300d38cae4d3e1c30eaaba0" }),
       }),
     ]),
   }),
@@ -1575,6 +1591,40 @@ export const DECLARED = Object.freeze({
         proofs: "test/f31-inventory.test.mjs (C1–C8 on the fixture root) and test/rr223-f31a1.test.mjs (T31-C9-NEWER/SCOPE/BODY/CUT/COMPLETE/REAL/CENSUS, R31-BOARD); consumers restated with notes: f82 REAL, rr206 (F94 unchanged), rr172 T33f, f34 C6",
         sabotage: "runs/audit/rr225-sabotage-2026-10-08T0805.txt: 52 of 52 proved (F31 C1–C9 35; F02 A2 and the census controls 17), every span pre-flighted exactly once in the live code, each applied ALONE and red by an AssertionError, residue 0, production trail unchanged; practice 2026-10-08T0741 found S35 not red with the merge filter alone (the rule binds in two layers) — re-anchored to both and re-proved (T0804)",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-225.md", commit: "941b3eb3c2369c2284c0dbc234fa6415e02f4052", sha256: "61d1f9eeea43f4d1d30daca66690e21a0664e7ce9072cfd29f2be03470ea241c" }),
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+      /* RR-229: F31 REOPENED under its SAME acceptance (Amendment 1) — concrete contradictory evidence at real size (precedent: F35, RR-89) */
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F31",
+        on: "2026-10-08",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS (concrete contradictory evidence: F31's reader throws on a whole 240,328-URL listing)",
+        reason: "CONCRETE_CONTRADICTORY_EVIDENCE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "F31 Amendment 1 C9 reads 'its sitemap listings' from every newer declared research batch. RR-228 stored a real listing whole (240,328 URLs, F19 Amendment 1) and F31's reader threw RangeError (maximum call stack size exceeded) in recordIdentities (src/crawl/batch-partition.mjs l.33, a push(...) spread of every listed URL); scopeCompleteness's Math.min(...times) (src/crawl/scope-completeness.mjs l.94) throws the same way at that many observations. The 20,000-URL cap had hidden both. The acceptance is unchanged; the code does not meet it at real size.",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F31.ruling.sha256, contract: ACCEPTANCES.F31.contractSha256 }),
+        evidenceRecord: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_STOP_REPORT_2026-10-08_RR-228_F19_A1_F31_SCALE.md", commit: "57d6fe1b14cd7b300f9f9df0b68422118e5b6640", sha256: "b49cd8a50512b430d7709f9ecfc4d36a47934e8c9d2d962df0aeb54c4e9f83cd" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-229.md", commit: "51e28c86c16233479666edf75a96a51e11539d2d", sha256: "33c647212c6c3c1c01cb71668bb522066162cf63bd9cc71da8356d3b37ca3799" }),
+      }),
+      /* RR-229: F31 re-proved under its SAME acceptance after RR-228's real-size finding — the two call-argument spreads replaced by loops */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F31",
+        population: "REAL",
+        on: "2026-10-08",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (concrete contradictory evidence at real size, RR-228/RR-229; acceptance unchanged)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F31.ruling.sha256, contract: ACCEPTANCES.F31.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED", C8: "PROVED", C9: "PROVED" }),
+        populations: "C1–C9 on FIXTURE data roots built from nothing (RR-177), as RR-225; and at REAL SIZE on a fixture: a research batch whose listing holds 240,328 URLs (the size of the real listing RR-228 stored) read end to end through readExistingPagePopulation — no error, the whole listing counted (listedTotal 240,328) — and scopeCompleteness over 240,328 observations with the earliest as-of time. SAME OUTPUT as the pre-RR-229 code on small and mixed listings, a 50,000-URL listing, and all 1,186 stored records of the data root as checked out. REAL: records only, as RR-225 (the data repository's main, which does not yet hold the RR-228 batch).",
+        proofs: "test/rr229-f31-scale.test.mjs (S1–S5) · test/f31-inventory.test.mjs and test/rr223-f31a1.test.mjs unchanged · rr206 F94 C7 pins of batch-partition.mjs and scope-completeness.mjs restated (F94 unchanged) · full suite on the exact head against the data repository's main AND against the RR-228 data branch checked out (no merge)",
+        sabotage: "runs/audit/rr229-sabotage-2026-10-08T1956.txt: 37 of 37 proved — F31's 35 limbs (S28 re-anchored to the loop) and S53/S54, which put the call-argument spreads back and turn the size tests red by an AssertionError; every span pre-flighted exactly once, each applied ALONE, restored by raw-byte hash, production trail unchanged (practice runs/audit/rr229-sabotage-practice-2026-10-08T1950.txt: 37 of 37)",
+        declaredLimit: "the scale census (_handoffs 51e28c8) found four more call-argument spreads over data that can grow — src/tenancy/row-partition.mjs:78, src/research/public-questions-reader.mjs:37,39, bin/demand-connect.mjs:58, src/cost/ledger.mjs:250 — each throws past about 124,000 items; they belong to other rows and are left for their own rounds",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-229.md", commit: "51e28c86c16233479666edf75a96a51e11539d2d", sha256: "33c647212c6c3c1c01cb71668bb522066162cf63bd9cc71da8356d3b37ca3799" }),
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),

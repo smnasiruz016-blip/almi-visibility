@@ -28,6 +28,9 @@ export function syntheticFetch() {
     const path = new URL(String(url)).pathname;
     if (path === "/robots.txt") return new Response("User-agent: *\nDisallow: /blocked\n", { status: 200, headers: { "content-type": "text/plain" } });
     if (path === "/error") throw new TypeError("preflight: synthetic network failure");
+    /* RR-227 (F19 A1): a sitemap index naming one child, and that child — so the sitemap preflight builds a real listing record */
+    if (path === "/sitemap-index.xml") return new Response(`<?xml version="1.0"?><sitemapindex><sitemap><loc>${PREFLIGHT_ORIGIN}/sitemap-1.xml</loc></sitemap></sitemapindex>`, { status: 200, headers: { "content-type": "application/xml" } });
+    if (path === "/sitemap-1.xml") return new Response(`<?xml version="1.0"?><urlset><url><loc>${PREFLIGHT_ORIGIN}/page</loc></url></urlset>`, { status: 200, headers: { "content-type": "application/xml" } });
     return new Response(PAGE, { status: 200, headers: { "content-type": "text/html", "strict-transport-security": "max-age=1", "link": "<https://preflight.invalid/page>; rel=\"canonical\"", "last-modified": "Wed, 01 Jan 2025 00:00:00 GMT" } });
   };
   return { fetchImpl, calls };
@@ -70,6 +73,26 @@ export async function preflightCrawlWrites({ build }) {
   attempt("observations and evidence", result.observations.length + result.evidence.length, () => build.observations([...result.observations, ...result.evidence]));
   attempt("run record", 1, () => build.run(result.run));
   attempt("cost entry", 1, () => build.cost(result.run));
+  /* RR-227 (F19 A1 · E): a research-batch run also keeps its bodies in the batch — that append is built here too, before any request */
+  if (typeof build.bodies === "function") attempt("page bodies", result.bodies.size, () => build.bodies(result));
   const ok = external.length === 0 && checks.every((c) => c.ok);
   return { ok, checks, kinds, syntheticCalls: calls.length, externalCalls: external.length, networkRequests: 0 };
+}
+
+/**
+ * 🔴 RR-227 (F19 A1 · C) — THE SITEMAP RE-COLLECTION'S PREFLIGHT. The one collector (src/crawl/sitemap-collect.mjs) reads the in-process
+ * synthetic site's robots.txt, index and child, the listing record is built exactly as a live run builds it, and the caller's REAL builder
+ * constructs the append descriptor the live run would execute. Nothing is executed and nothing leaves the process; any refusal stops the
+ * live run with ZERO requests made.
+ */
+export async function preflightSitemapWrite({ build }) {
+  const { collectSitemap, sitemapListingRecord } = await import("./sitemap-collect.mjs");
+  const { fetchImpl, calls } = syntheticFetch();
+  const result = await collectSitemap({ origin: PREFLIGHT_ORIGIN, fetchImpl, bounds: { intervalMs: 0, timeoutMs: 1000 } });
+  const record = sitemapListingRecord({ result, observedAt: new Date().toISOString() });
+  const external = calls.filter((u) => !u.startsWith(PREFLIGHT_ORIGIN));
+  const checks = [];
+  try { build.sitemaps([record]); checks.push({ append: "sitemap listing", records: 1, ok: true }); } catch (e) { checks.push({ append: "sitemap listing", records: 1, ok: false, why: `${e.code ?? e.name}: ${e.message}` }); }
+  const ok = external.length === 0 && result.coverageState === "COMPLETE" && checks.every((c) => c.ok);
+  return { ok, checks, kinds: ["observation:sitemap.collect"], syntheticCalls: calls.length, externalCalls: external.length, networkRequests: 0, listing: { urls: result.urls.length, coverageState: result.coverageState } };
 }

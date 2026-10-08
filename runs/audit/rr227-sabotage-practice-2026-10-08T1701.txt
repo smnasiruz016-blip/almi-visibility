@@ -1,0 +1,22 @@
+RR-227 F19 Acceptance Amendment 1 sabotage PRACTICE run · 2026-10-08T17:02:57.381Z
+population: 58 source sabotage(s) over test/f19-a1.test.mjs + test/f19-crawler-bounds.test.mjs + test/f19-generic-crawl.test.mjs + test/f19-real-append-path.test.mjs · each applied ALONE · fixtures only, no network · + the 10 real-census controls (test/helpers/f19-census-controls.mjs)
+BASELINE (the named test files before any sabotage): NOT GREEN — no sabotage is run · files green 4 of 4 · named tests seen GREEN 57 of 58
+PRE-FLIGHT (span occurrences in the code live now): N01=1 N02=1 N03=1 N04=1 N05=1 N06=1 N07=1 N08=1 N09=1 N10=1 N11=1 N12=1 N13=1 N14=1 N15=1 N16=1 N17=1 N18=1+1 N19=1 N20=1 N21=1 N22=1 N23=1 N24=1 N25=1 N26=1 N27=1 N28=1 N29=1 N30=1 N31=1 N32=1 F19-S1=1 F19-S2=1 F19-S3=1 F19-S4=1 F19-S5=1 F19-S6=1 F19-S7=1 F19-S8=1 F19-S9=1 F19-S10=1 F19-S11=1 F19-S12=1 F19-S13=1 F19-S14=1 F19-S15=1 G1=1 G2=1 G3=1 G4=1 G5=1 G6=1 G7=1 G8=1 R1=1 R2=1 R3=1 · all exactly once: true
+production trail sha256 before: dbffeea2866e4a1a2ca268f3672ea46a3b8e72f5230267bd72ead21ffdbe4d0c
+
+
+REAL-CENSUS CONTROLS (test/helpers/f19-census-controls.mjs, on a copy of the data root):
+  F19 real-census controls · 2026-10-08T17:02:57.493Z · each corruption on a copy of the data root · count-only
+  K1 a page beyond depth 0 (not a seed) was read: named test failing true · tests run 1 · failing 1 · reason AssertionError · PROVED
+  K2 two requests closer than the interval: named test failing true · tests run 1 · failing 1 · reason AssertionError · PROVED
+  K3 a body over the size cap stored whole: named test failing true · tests run 1 · failing 1 · reason AssertionError · PROVED
+  K4 a request ran past its timeout: named test failing true · tests run 1 · failing 1 · reason AssertionError · PROVED
+  K5 a page fetched without robots allowing it: named test failing true · tests run 1 · failing 1 · reason AssertionError · PROVED
+  K6 a resource of another site was read: named test failing true · tests run 1 · failing 1 · reason AssertionError · PROVED
+  K7 money written as a number nobody measured: named test failing true · tests run 1 · failing 1 · reason AssertionError · PROVED
+  K8 page content in the committed record: named test failing true · tests run 1 · failing 1 · reason AssertionError · PROVED
+  K9 more requests to one host than the declared cap: named test failing true · tests run 1 · failing 1 · reason AssertionError · PROVED
+  K10 a run record removed (the population falls below two runs): named test failing true · tests run 1 · failing 1 · reason AssertionError · PROVED
+  proved 10 of 10 · the real data root was not written
+
+proved 10 of 68 (source 0 of 58 · census controls 10 of 10) · residue 0 · production trail sha256 after: dbffeea2866e4a1a2ca268f3672ea46a3b8e72f5230267bd72ead21ffdbe4d0c · unchanged true

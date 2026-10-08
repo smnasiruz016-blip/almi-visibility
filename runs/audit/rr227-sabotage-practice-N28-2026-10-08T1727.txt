@@ -1,0 +1,9 @@
+RR-227 F19 Acceptance Amendment 1 sabotage PRACTICE run · 2026-10-08T17:27:46.660Z
+population: 1 source sabotage(s) over test/f19-a1.test.mjs · each applied ALONE · fixtures only, no network · + the 10 real-census controls (test/helpers/f19-census-controls.mjs)
+BASELINE (the named test files before any sabotage): GREEN · files green 1 of 1 · named tests seen GREEN 1 of 1
+PRE-FLIGHT (span occurrences in the code live now): N28=1 · all exactly once: true
+production trail sha256 before: dbffeea2866e4a1a2ca268f3672ea46a3b8e72f5230267bd72ead21ffdbe4d0c
+
+N28 E · the run record does not count the bodies [bin/crawl.mjs] → test/f19-a1.test.mjs: landed true · named test "E3 ·" red true · its failure AssertionError · SyntaxError false · failing E3,E4 · restored true · PROVED
+
+proved 1 of 1 (source 1 of 1) · residue 0 · production trail sha256 after: dbffeea2866e4a1a2ca268f3672ea46a3b8e72f5230267bd72ead21ffdbe4d0c · unchanged true

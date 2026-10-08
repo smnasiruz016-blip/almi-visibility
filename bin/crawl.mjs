@@ -21,11 +21,23 @@
  * lawfully be attached to them, and every tenant's production crawl is refused at F02. With --research-batch=<id>, the run
  * scopes ONE resource instead: that RESEARCH_BATCH, declared in the data root's RESEARCH store (F03) and attached to the
  * run's tenant (F02). Its seeds are read from the batch (seeds.txt), and its observations, run record and cost entry are
- * written INTO the batch through the governed boundary. The shared stores are never touched. Bodies still go only to
- * --corpus and are never committed. Nothing here names a subject.
+ * written INTO the batch through the governed boundary. The shared stores are never touched. Without --research-batch, bodies
+ * still go only to --corpus and are never committed. Nothing here names a subject.
+ *
+ * 🔴 F19 ACCEPTANCE AMENDMENT 1 (_handoffs b6b3382, RR-227):
+ *   E  a crawl ON A RESEARCH BATCH stores each fetched body in that batch's own body store (bodies.jsonl, the format F31's reader
+ *      reads: src/crawl/batch-bodies.mjs), in the same run as its observation, under the batch store's ceiling — a body past it is
+ *      counted, never cut — and never in the engine's corpus. The run record carries the counts only.
+ *   C  `--sitemaps` (with --research-batch and --subject) re-collects the sitemap of every site origin the subject's PUBLIC_SITE
+ *      connector declares, for ONE tenant, into that batch's own sitemap store (sitemaps.jsonl) — and writes nothing else. The batch
+ *      must be attached to the tenant (F02) and a member of the subject, which must resolve to the tenant (F03); robots honoured; a
+ *      dry run issues no request; a live run needs the owner's green.
+ *   B  the listing is stored WHOLE (src/crawl/sitemap-collect.mjs): every URL read, COMPLETE only when nothing failed, was cut,
+ *      unparsed or skipped; a listing that would put the store over its ceiling is refused whole, and the refusal recorded.
+ *   node bin/crawl.mjs --research-batch=<declared id> --tenant=<t> --subject=<s> --sitemaps [--live --i-have-the-owners-green]
  */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { crawl, renderPlan } from "../src/crawl/crawler.mjs";
@@ -41,10 +53,12 @@ import { governedFileWrite, governedStoreAppend } from "../src/governance/govern
 import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { createCostLedger, entryFromCrawlRun, formatLedgerLine } from "../src/cost/ledger.mjs";
 import { persistCrawlObservations } from "../src/crawl/persist.mjs";
-import { preflightCrawlWrites, collectionVerdict } from "../src/crawl/preflight.mjs";
+import { preflightCrawlWrites, preflightSitemapWrite, collectionVerdict } from "../src/crawl/preflight.mjs";
+import { collectSitemap, sitemapListingRecord, recordLineBytes, storeCeilingDecision, ceilingRefusalEvent, renderSitemapPlan, BATCH_STORE_CEILING_BYTES } from "../src/crawl/sitemap-collect.mjs";
+import { pageBodyRecords, bodiesUnderCeiling, BATCH_FILES } from "../src/crawl/batch-bodies.mjs";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { openConnector, NO_REQUEST_FETCH } from "../src/tenancy/connectors.mjs";
-import { lookupStore } from "../src/tenancy/root-registry.mjs";
+import { lookupStore, lookupSubject } from "../src/tenancy/root-registry.mjs";
 import { rootIndexFor } from "../src/tenancy/resolver.mjs";
 import { RESOURCES, declaredSiteHosts } from "../src/tenancy/scoped-run.mjs";
 
@@ -65,6 +79,12 @@ const sitemapFile = arg("sitemap");
 const fromEvidence = arg("seeds-from-evidence");
 const live = flag("live");
 const green = flag("i-have-the-owners-green");
+/* RR-227 (F19 A1 · C): a sitemap re-collection, only ever into a declared research batch, only for a named subject */
+const sitemapMode = flag("sitemaps");
+if (sitemapMode && (researchBatch === null || !arg("subject"))) {
+  console.error("🔴 USAGE REFUSED: --sitemaps re-collects into ONE declared research batch for ONE subject — it needs --research-batch=<id> and --subject=<id>");
+  process.exit(2);
+}
 // 🔴 Confined here, BEFORE the egress measurement and DNS lookups below: a
 // destination outside this repository is refused before any network activity.
 let out = researchBatch ? null : confineToRepo(arg("out", `${REPO}runs/crawl/crawl.jsonl`), { label: "--out" });
@@ -74,7 +94,8 @@ const corpusDir = confineToRepo(arg("corpus", `${REPO}runs/crawl/corpus`), { lab
  * (--subject=<declared id>), decided here with everything else. A dry run opens no connector and is handed a fetch that
  * refuses every request, so it needs no connector decision and can reach nothing. */
 const SUBJECT = arg("subject");
-const STORES = researchBatch ? [RESOURCES.researchBatch(researchBatch)] : [RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.runArtefacts("crawl store and seed inputs")];
+/* RR-227: a sitemap re-collection also names the SUBJECT's data root, so F03 decides it resolves to the run's tenant before anything */
+const STORES = researchBatch ? [RESOURCES.researchBatch(researchBatch), ...(sitemapMode ? [RESOURCES.subject(SUBJECT)] : [])] : [RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.runArtefacts("crawl store and seed inputs")];
 const SCOPE = scopedEntryPoint({ entry: "bin/crawl.mjs", governed: true, resources: [...(live ? [RESOURCES.connector(SUBJECT, "PUBLIC_SITE")] : []), ...STORES, RESOURCES.inputPath(seedsFile, "--seeds"), RESOURCES.inputPath(sitemapFile, "--sitemap"), RESOURCES.inputPath(fromEvidence, "--seeds-from-evidence")] });
 /* F02: this run's hosts are the site origins DECLARED to its tenant — no estate list in shared code (relocated, 24 Sep 2026). */
 const DECLARED_HOSTS = declaredSiteHosts({ tenantId: SCOPE.tenantId });
@@ -83,10 +104,11 @@ const DECLARED_HOSTS = declaredSiteHosts({ tenantId: SCOPE.tenantId });
 let WRITE_ROOT = REPO;
 let batchSeeds = null;
 let ledgerFile = null;
+let batchDir = null;
 if (researchBatch) {
   const store = lookupStore(rootIndexFor(process.env), "RESEARCH");
   if (store.state !== "DECLARED") { console.error(`🔴 REFUSED — the RESEARCH store is ${store.state} (${store.reason})`); process.exit(3); }
-  const batchDir = join(store.dir, researchBatch);
+  batchDir = join(store.dir, researchBatch);
   if (!existsSync(batchDir)) { console.error("🔴 REFUSED — RESEARCH_BATCH_ABSENT: the declared research batch has no directory in the RESEARCH store"); process.exit(3); }
   WRITE_ROOT = store.rootPath;
   out = join(batchDir, "crawl.jsonl");
@@ -103,6 +125,13 @@ const mayRecord = live || permission.mayWrite;
  * given, which is a wider rule than the write law alone; handing the boundary `permission` would have silently
  * narrowed it. The boundary is given the decision this caller actually makes, and audits both outcomes of it. */
 const recordPermission = { ...permission, mayWrite: mayRecord, reason: mayRecord ? permission.reason : "no --live and no --confirm" };
+
+/* ---- 🔴 RR-227 · F19 A1 · C — ONE TENANT'S SITEMAP, RE-COLLECTED INTO ITS OWN RESEARCH BATCH, AND NOTHING ELSE --------------------- *
+ * Decided above, before anything here: the batch is attached to the run's tenant (F02) and the subject's data root resolves to it (F03).
+ * Here, still before any request: the batch must be a MEMBER of that subject; the live run needs the owner's green (checked below with
+ * the crawl's own gate wording); the governed append is preflighted; only then is the connector opened. The only write is the batch's
+ * sitemaps.jsonl. No seed file, no crawl store, no ledger and no shared store is read or written. */
+if (sitemapMode) await recollectSitemaps();
 
 if (!seedsFile && !sitemapFile && !fromEvidence && !batchSeeds) {
   console.error(
@@ -180,7 +209,14 @@ const observationsAppend = (records, occurredAt, correlationId) => governedStore
 });
 /* RR-135: the opened PUBLIC_SITE connector of a live run — opened only after the preflight, below */
 let CONNECTOR = null;
-const runRecordOf = (run, { selection = null, seedCount = 0, egress = null, unreachable = new Map(), dnsUnknown = [], corpusFiles = 0, corpusBytes = 0 } = {}) => ({
+/* RR-227 (F19 A1 · E): a research-batch run's bodies go into the batch's own body store, as ONE governed append */
+const BODIES_FILE = batchDir ? join(batchDir, BATCH_FILES.BODIES) : null;
+const bodiesAppend = (records, occurredAt, correlationId) => governedStoreAppend({ ...SCOPE.writeScope,
+  repo: WRITE_ROOT, auditRepo: REPO, permission: recordPermission, store: createJsonlStore(BODIES_FILE), records,
+  targetClass: "GENERATED_CONFIG", action: "APPEND_CRAWL_BODIES",
+  occurredAt, correlationId, discipline: "APPEND_IF_NEW",
+});
+const runRecordOf = (run, { selection = null, seedCount = 0, egress = null, unreachable = new Map(), dnsUnknown = [], corpusFiles = 0, corpusBytes = 0, bodies = null } = {}) => ({
   ...run,
   selectionRule: selection?.rule ?? SELECTION_RULE,
   seedPoolSize: selection?.seedPoolSize ?? seedCount,
@@ -197,6 +233,8 @@ const runRecordOf = (run, { selection = null, seedCount = 0, egress = null, unre
     artifactName: process.env.CRAWL_ARTIFACT_NAME ?? null,
     githubRunId: process.env.GITHUB_RUN_ID ?? null,
   },
+  /* RR-227 (F19 A1 · E): count-only — the bodies stored in the batch, their bytes, and every body not stored with its reason */
+  bodies: researchBatch ? (bodies ?? { store: BATCH_FILES.BODIES, stored: 0, bytes: 0, notStored: {}, ceiling: BATCH_STORE_CEILING_BYTES }) : null,
 });
 /* Declared: the RUN record is unique by construction — run_id carries the start time — so it uses the
  * without-dedupe discipline and needs no key. */
@@ -218,6 +256,7 @@ if (live) {
     observations: (records) => observationsAppend(records, PF_INSTANT, PF_CORRELATION),
     run: (run) => runAppend(runRecordOf(run), PF_INSTANT, PF_CORRELATION),
     cost: (run) => costAppend(entryFromCrawlRun(runRecordOf(run), { recordedAt: new Date().toISOString() }), PF_INSTANT, PF_CORRELATION),
+    ...(researchBatch ? { bodies: (r) => bodiesAppend(pageBodyRecords({ observations: r.observations, bodies: r.bodies }), PF_INSTANT, PF_CORRELATION) } : {}),
   } });
   console.log(`PREFLIGHT       : ${pf.ok ? "PASS" : "REFUSED"} — record kinds ${pf.kinds.length} (${pf.kinds.join(", ")}) · ${pf.checks.map((c) => `${c.append} ${c.ok ? "keepable" : "REFUSED"} (${c.records})`).join(" · ")} · synthetic in-process calls ${pf.syntheticCalls} · network requests ${pf.networkRequests}`);
   if (!pf.ok) {
@@ -383,7 +422,22 @@ if (observationsGoverned.outcome !== "REFUSED" && observationsGoverned.outcome !
  */
 let corpusFiles = 0;
 let corpusBytes = 0;
-if (mayRecord) {
+let bodiesCount = null;
+let bodiesOutcome;
+if (mayRecord && live && researchBatch) {
+  /* 🔴 RR-227 (F19 A1 · E): INTO THE BATCH, never the engine's corpus. Each body is its observation's (same hash, or nothing is built),
+   * checked against the batch store's ceiling before the write: a body past it is counted and not stored — never cut. */
+  const all = pageBodyRecords({ observations: result.observations, bodies: result.bodies ?? new Map() });
+  const fit = bodiesUnderCeiling({ records: all, existingBytes: existsSync(BODIES_FILE) ? statSync(BODIES_FILE).size : 0 });
+  if (fit.kept.length) {
+    const g = executeGovernedWrite(bodiesAppend(fit.kept, CRAWL_INSTANT, CRAWL_CORRELATION));
+    bodiesOutcome = g.outcome;
+    if (g.outcome !== "COMMITTED" && g.outcome !== "ALREADY_COMMITTED") { console.error(`🔴 ${g.outcome} — the bodies were not written; the governed attempt is on the audit trail`); process.exitCode = 1; }
+  }
+  const stored = bodiesOutcome === "COMMITTED" || bodiesOutcome === "ALREADY_COMMITTED";
+  bodiesCount = { store: BATCH_FILES.BODIES, stored: stored ? fit.kept.length : 0, bytes: stored ? fit.keptBytes : 0, notStored: { ...fit.notStored, ...(fit.kept.length && !stored ? { WRITE_NOT_COMMITTED: fit.kept.length } : {}) }, ceiling: fit.ceiling };
+  console.log(`\nbodies: ${bodiesCount.stored} stored in the batch (${bodiesCount.bytes} bytes) · not stored: ${Object.entries(bodiesCount.notStored).map(([k, n]) => `${k} ${n}`).join(", ") || "none"} · nothing written to the engine's corpus`);
+} else if (mayRecord) {
   if (live && result.bodies?.size) {
     for (const [observationId, body] of result.bodies) {
       /* One body is one target, so this is per-TARGET and not per-record. */
@@ -407,7 +461,7 @@ if (mayRecord) {
 
 /* The selection rule and the CI identifiers travel WITH the run record: a
  * selection nobody can reproduce is not evidence. */
-const runRecord = runRecordOf(run, { selection, seedCount: seeds.length, egress, unreachable, dnsUnknown, corpusFiles, corpusBytes });
+const runRecord = runRecordOf(run, { selection, seedCount: seeds.length, egress, unreachable, dnsUnknown, corpusFiles, corpusBytes, bodies: bodiesCount });
 const runGoverned = executeGovernedWrite(runAppend(runRecord, CRAWL_INSTANT, CRAWL_CORRELATION));
 if (runGoverned.outcome === "COMMITTED" || runGoverned.outcome === "ALREADY_COMMITTED") {
   console.log(`\nwritten: ${out}  (${result.observations.length} observations + 1 run)`);
@@ -440,6 +494,67 @@ if (live) {
 /* RR-108: the pacing bound prints beside its measured result, and a live run passes its pacing into the verdict. */
 if (live) { const rd = run.redirects; console.log(rd ? `REDIRECTS: hops followed ${rd.hopsFollowed} (each paced, max ${rd.maxHops} per page) · not followed: origin not declared ${rd.notFollowed.ORIGIN_NOT_ADMITTED}, past the hop bound ${rd.notFollowed.MAX_HOPS}` : "REDIRECTS: NOT MEASURED"); }
 if (live) { const p = run.pacing; console.log(p ? `PACING: declared ${p.intervalMs} ms · gaps ${p.gaps} · fastest ${p.fastestGapMs?.toFixed(3) ?? "NOT MEASURED"} ms · slowest ${p.slowestGapMs?.toFixed(3) ?? "NOT MEASURED"} ms · robots→first page ${p.robotsToFirstPageMs?.toFixed(3) ?? "NOT MEASURED"} ms · breaches ${p.breaches} of ${p.gaps} · clock ${p.clock}` : "PACING: NOT MEASURED"); }
-const collection = collectionVerdict(live ? { observations: observationsGoverned.outcome, run: runGoverned.outcome, cost: costOutcome } : { observations: observationsGoverned.outcome, run: runGoverned.outcome }, live ? { pacing: run.pacing ?? null } : {});
+const collection = collectionVerdict(live ? { observations: observationsGoverned.outcome, ...(bodiesOutcome !== undefined ? { bodies: bodiesOutcome } : {}), run: runGoverned.outcome, cost: costOutcome } : { observations: observationsGoverned.outcome, run: runGoverned.outcome }, live ? { pacing: run.pacing ?? null } : {});
 console.log(`COLLECTION: ${collection.verdict}${collection.failed.length ? ` — not committed: ${collection.failed.join(" · ")}` : ""}`);
 if (live && collection.verdict !== "KEPT") process.exitCode = 1;
+
+/** RR-227 · F19 A1 · C — the sitemap re-collection (called above, before any seed is read; it always exits). */
+async function recollectSitemaps() {
+  if (live && !green) {
+    console.error("🔴 REFUSED. --live requires --i-have-the-owners-green. NO REQUEST WAS MADE.");
+    process.exit(3);
+  }
+  const subject = lookupSubject(rootIndexFor(process.env), SUBJECT);
+  const member = subject.state === "DECLARED" && (subject.entry?.members ?? []).some((m) => m?.resourceKind === "RESEARCH_BATCH" && m?.resourceRef === researchBatch);
+  if (!member) {
+    console.error("🔴 REFUSED — BATCH_NOT_A_MEMBER_OF_THE_SUBJECT: the research batch is not declared as a member of the subject this run is for. NO REQUEST WAS MADE.");
+    process.exit(3);
+  }
+  /* the batch's OWN sitemap store, named by F19's BATCH_FILES — the very name F31's reader reads (held equal by test/f19-a1.test.mjs). It lives inside
+   * the research batch decided above (RESEARCH), never the shared sitemap collection. */
+  const SITEMAPS_FILE = join(batchDir, BATCH_FILES.SITEMAPS);
+  const sitemapsAppend = (records, occurredAt, correlationId) => governedStoreAppend({ ...SCOPE.writeScope,
+    repo: WRITE_ROOT, auditRepo: REPO, permission: recordPermission, store: createJsonlStore(SITEMAPS_FILE), records,
+    targetClass: "GENERATED_CONFIG", action: "APPEND_SITEMAP_LISTING",
+    occurredAt, correlationId, discipline: "APPEND_IF_NEW",
+  });
+  if (live) {
+    const PF_INSTANT = governedInstant(Date.now());
+    const pf = await preflightSitemapWrite({ build: { sitemaps: (records) => sitemapsAppend(records, PF_INSTANT, `run:crawl-sitemaps-preflight:${PF_INSTANT}`) } });
+    console.log(`PREFLIGHT       : ${pf.ok ? "PASS" : "REFUSED"} — ${pf.checks.map((c) => `${c.append} ${c.ok ? "keepable" : "REFUSED"} (${c.records})`).join(" · ")} · synthetic in-process calls ${pf.syntheticCalls} · network requests ${pf.networkRequests}`);
+    if (!pf.ok) {
+      for (const c of pf.checks.filter((x) => !x.ok)) console.error(`🔴 PREFLIGHT REFUSED — ${c.append}: ${c.why}`);
+      console.error("🔴 NO REQUEST WAS MADE. A listing that cannot be kept is not collected.");
+      process.exit(3);
+    }
+  }
+  const SM_CONNECTOR = live ? openConnector({ scope: SCOPE, subjectId: SUBJECT, kind: "PUBLIC_SITE" }) : null;
+  const origins = live ? SM_CONNECTOR.origins : DECLARED_HOSTS.map((h) => `https://${h}`);
+  console.log(renderSitemapPlan({ origins: origins.length, live }));
+  if (!live) {
+    console.log("0 requests issued — dry run. No traffic. Nothing is written.");
+    process.exit(0);
+  }
+  const results = [];
+  for (const origin of origins) {
+    const r = await collectSitemap({ origin, fetchImpl: SM_CONNECTOR.fetch, admits: SM_CONNECTOR.admits });
+    results.push(r);
+    console.log(`  origin ${results.length}: urls ${r.urls.length} · children fetched ${r.childrenFetched}/${r.childrenTotal ?? "?"} · nested indexes followed ${r.nestedIndexesFollowed}/${r.nestedIndexes} · requests ${r.requests} · coverage ${r.coverageState} — ${r.why}`);
+    console.log(`🔴 ${r.requests} requests issued to declared origin ${results.length} — real traffic to that host; whatever it cost the host's operator is NOT MEASURED.`);
+  }
+  const records = results.map((result) => sitemapListingRecord({ result, observedAt: new Date().toISOString() }));
+  /* 🔴 B — THE CEILING, BEFORE THE WRITE: past it, the listing is refused WHOLE and the refusal recorded; never cut to fit */
+  const decision = storeCeilingDecision({ existingBytes: existsSync(SITEMAPS_FILE) ? statSync(SITEMAPS_FILE).size : 0, addBytes: records.reduce((n, r) => n + recordLineBytes(r), 0) });
+  if (!decision.fits) {
+    SCOPE.recordDecision(ceilingRefusalEvent({ store: "sitemaps" }));
+    console.error(`🔴 REFUSED WHOLE — OVER_THE_BATCH_STORE_CEILING: the listing would put the batch's sitemap store at ${decision.after} bytes, past its ceiling of ${decision.ceiling}. Nothing was written; the refusal is recorded. COLLECTION: NOT KEPT`);
+    process.exit(1);
+  }
+  const SM_INSTANT = governedInstant(Date.now());
+  const governed = executeGovernedWrite(sitemapsAppend(records, SM_INSTANT, `run:crawl-sitemaps:${SM_INSTANT}`));
+  const pacing = { ok: results.every((r) => (r.pacing?.breaches ?? 1) === 0), breaches: results.reduce((n, r) => n + (r.pacing?.breaches ?? 0), 0), gaps: results.reduce((n, r) => n + (r.pacing?.gaps ?? 0), 0), intervalMs: results[0]?.bound?.intervalMs ?? null };
+  const collection = collectionVerdict({ sitemaps: governed.outcome }, { pacing });
+  console.log(`LISTINGS: ${records.length} · URLs stored ${records.reduce((n, r) => n + r.value.urlsStored, 0)} of ${records.reduce((n, r) => n + r.value.urlsTotal, 0)} read · store ${decision.after} of ${BATCH_STORE_CEILING_BYTES} bytes`);
+  console.log(`COLLECTION: ${collection.verdict}${collection.failed.length ? ` — not committed: ${collection.failed.join(" · ")}` : ""}`);
+  process.exit(collection.verdict === "KEPT" ? 0 : 1);
+}

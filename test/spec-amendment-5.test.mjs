@@ -120,7 +120,11 @@ test("A5·4 · no passed row moved, F62 and F81 stay IN-PROGRESS, and the amendm
   /* RR-186: a listed row may leave VERIFIED-PASS later only by its OWN act — an acceptance amendment frozen alone, with an explicit REOPENED
    * on AUTHORITATIVE_REQUIREMENT_CHANGE as its last event (F37 on 6 Oct 2026); the amendment itself moved none, and nothing else moved */
   const ownReopen = (id) => { const ev = b.find((r) => r.featureId === id).events; const last = ev.at(-1);
-    return last?.kind === "REOPENED" && last.reason === "AUTHORITATIVE_REQUIREMENT_CHANGE" && ev.at(-2)?.kind === "ACCEPTANCE_AMENDED" && last.on >= "2026-10-06"; };
+    return (last?.kind === "REOPENED" && last.reason === "AUTHORITATIVE_REQUIREMENT_CHANGE" && ev.at(-2)?.kind === "ACCEPTANCE_AMENDED" && last.on >= "2026-10-06")
+      /* RR-229: or its own reopen under its SAME acceptance on concrete contradictory evidence (precedent F35, RR-89) — the hashes it names
+       * must be the row's current acceptance, and the evidence record must be named; nothing else qualifies */
+      || (last?.kind === "REOPENED" && last.reason === "CONCRETE_CONTRADICTORY_EVIDENCE" && last.on >= "2026-10-08" && Boolean(last.evidenceRecord?.sha256)
+        && last.acceptanceUnchanged?.ruling === ACCEPTANCES[id]?.ruling?.sha256 && last.acceptanceUnchanged?.contract === ACCEPTANCES[id]?.contractSha256); };
   const passedNow = b.filter((r) => r.state === "VERIFIED-PASS").map((r) => r.featureId);
   assert.deepEqual(passedNow, PASSED_AT_2FC76540.filter((id) => passedNow.includes(id) || !ownReopen(id)), "a passed row moved, or a row became passed");
   assert.ok(PASSED_AT_2FC76540.filter((id) => !passedNow.includes(id)).every(ownReopen), "a passed row left VERIFIED-PASS other than by its own amendment and reopen");

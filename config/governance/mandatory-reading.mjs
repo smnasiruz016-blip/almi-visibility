@@ -417,6 +417,13 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-06_RR-192.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-06_RR-192_APPROVE_F32_A1_REV2_F39_A1_PG-A1.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F32_ACCEPTANCE_AMENDMENT_1_2026-10-06.md", loader: "F-board acceptance F32" }),
+  /* RR-229 (8 Oct 2026): the one CURRENT record admitted by the migration at _handoffs 51e28c8 — the RR-229 (REV2) command. Its step-0
+   * gate report and the RR-228 records are named without an admitted token, so the register does not admit them. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-229.md", loader: "authority register (CURRENT record)" }),
+  /* RR-227 (8 Oct 2026): the two CURRENT records admitted by the migration at _handoffs b6b3382 — the RR-227 command and F19's Acceptance
+   * Amendment 1. The owner's approval by hash is named without RULING or DECISION (RR-226), so the register does not admit it. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-227.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F19_ACCEPTANCE_AMENDMENT_1_2026-10-08.md", loader: "F-board acceptance F19 (Amendment 1)" }),
   /* RR-225 (8 Oct 2026): the three CURRENT records admitted by the migration at _handoffs fb0613a — the RR-225 command, the owner's
    * approval of F02's Acceptance Amendment 2 by its hash, and that amendment. */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-225.md", loader: "authority register (CURRENT record)" }),

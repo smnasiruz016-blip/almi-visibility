@@ -143,6 +143,10 @@ export const ACTIONS = Object.freeze({
     /* RR-116 (1 Oct 2026): the human-observation writer (bin/observe-question.mjs) — the same family and resource class as the
      * crawler's observation append; a classification only, granting no permission a role does not already hold. */
     "APPEND_HUMAN_OBSERVATIONS",
+    /* RR-227 (8 Oct 2026, F19 Acceptance Amendment 1): a research-batch crawl's bodies, ONE append into the batch's own body store, and a
+     * tenant's re-collected sitemap listing into the batch's own sitemap store (bin/crawl.mjs) — the same family and resource class as the
+     * crawler's observation append; a classification only, granting no permission a role does not already hold. */
+    "APPEND_CRAWL_BODIES", "APPEND_SITEMAP_LISTING",
     /* RR-118 (1 Oct 2026): the source-intake writer (bin/source-intake.mjs) — the same family and resource class; a classification only. */
     "APPEND_SOURCE_QUESTIONS", "APPEND_KEYWORD_SIGNALS",
     /* RR-146 (3 Oct 2026): the route run's search LEADS (bin/source-intake.mjs --route) — kept in their own store, the same family and

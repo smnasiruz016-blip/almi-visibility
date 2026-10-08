@@ -91,7 +91,8 @@ export function scopeCompleteness({ origins = [], observations = [], sitemaps = 
   const linkedUnobserved = [...linked].filter((u) => !served.has(u)).length;
 
   const times = [...scoped, ...scopeSitemaps].map((o) => Date.parse(o.observed_at)).filter(Number.isFinite);
-  const asOf = times.length ? new Date(Math.min(...times)).toISOString() : null;
+  /* RR-229: the earliest time by a loop — Math.min(...times) passes every time as a call argument and throws past ~120,000 observations */
+  const asOf = times.length ? new Date(times.reduce((m, t) => (t < m ? t : m), Infinity)).toISOString() : null;
   const days = Number(freshnessRule?.freshnessDays);
   const rule = Number.isFinite(days) && days > 0 ? { freshnessDays: days } : null;
   const expiresAt = rule && asOf ? new Date(Date.parse(asOf) + rule.freshnessDays * DAY_MS).toISOString() : null;

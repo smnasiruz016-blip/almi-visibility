@@ -337,8 +337,8 @@ const F37_A2_CONTRACT = "9120e6b545742b34e72e7cda799601ab560373c59cceadbb96b8385
 const OTHER_ROWS = Object.freeze({
   "src/page/content-brief.mjs": "5771c6955fcc621430391b9c34a525a74673e81a3ff4d3b05cf429d358ad5c06",
   "src/page/content-brief-evidence.mjs": "b1af103909fa3ef4782686380c4d1c5e14c473f5e73e1080f29fb1c06c37abe6",
-  "src/crawl/batch-partition.mjs": "94c5fdcf901e80df57cfa528f1deaca4ffe17a5e7ed8826045558d6fa55af434",
-  "src/crawl/scope-completeness.mjs": "6d9b87b29efa7943790a1370f658bf25ad7f65bd243bdd635f3cfbae75f43f34", /* RR-225: F31 A1 (C9) and F02 A2 (the recorded decision) — restated again, F94 unchanged */
+  "src/crawl/batch-partition.mjs": "4c2ccd03d56105f959fdcf839d96360c61c31f7cc1a5188dcdb5727ff267a936", /* RR-229: F31 re-proved under its same acceptance — recordIdentities builds the URL list by a loop, not a call-argument spread (it threw at 240,328 URLs) — restated, F94 unchanged */
+  "src/crawl/scope-completeness.mjs": "2cb745b0e1ff3d13f020644e4591da00f48f0f4a9f35a8f888b4b446e0ff8ebe", /* RR-229: F31 re-proved under its same acceptance — the earliest time by a loop, not Math.min(...times) — restated, F94 unchanged */ /* RR-225: F31 A1 (C9) and F02 A2 (the recorded decision) — restated again, F94 unchanged */
   "src/crawl/scope-inventory.mjs": "0894e2d32164af60269efc4288cbdea4f35e0fa2ec5666b4f1f72a111a1438af", /* RR-225: F31 A1 (C9) and F02 A2 (the recorded decision) — restated again, F94 unchanged */
   "src/page/existing-page-population.mjs": "ae81025a364cec5f7573b8eb68912f3bf96fa63c7378286eb72f69a3bdfd4858", /* RR-225: F31 A1 (C9) and F02 A2 (the recorded decision) — restated again, F94 unchanged */
   "src/page/need-coverage.mjs": "75b88c1578530598b848a137ab73b66316d095a0eba5fe1966ff5bb4050e6b30",

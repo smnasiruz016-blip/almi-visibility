@@ -30,7 +30,8 @@ export function recordIdentities(r) {
   if (r?.target?.kind === "url") urls.push(r.target.ref);
   if (typeof r?.canonical_url === "string") urls.push(r.canonical_url);
   for (const k of ORIGIN_FIELDS) if (typeof r?.value?.[k] === "string") urls.push(r.value[k]);
-  if (Array.isArray(r?.value?.urls)) urls.push(...r.value.urls.filter((u) => typeof u === "string"));
+  /* RR-229: a loop, never a spread — push(...list) passes every listed URL as a call argument and throws at real size (240,328 URLs, RR-228) */
+  if (Array.isArray(r?.value?.urls)) for (const u of r.value.urls) if (typeof u === "string") urls.push(u);
   return [...new Set(urls.map(originOf).filter(Boolean))].sort().map((o) => ({ resourceKind: "SITE_ORIGIN", resourceRef: o }));
 }
 

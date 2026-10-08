@@ -71,11 +71,14 @@ const SHARED_PAGE_WRITERS = [
      * body is one target), the run record (unique by construction, so the without-dedupe discipline and no key),
      * and the cost entry (ledger skip). Its OWN gate is preserved, not replaced — this binary records when EITHER
      * --live or --confirm is given, which is wider than the write law alone, and the boundary is handed that
-     * decision rather than the narrower one. */
+     * decision rather than the narrower one.
+     * RR-227 (F19 Acceptance Amendment 1): on a declared RESEARCH BATCH the bodies are ONE governed append into that batch's own body
+     * store (bodies.jsonl, under the batch store's ceiling — a body past it counted, never cut), never the engine's corpus; and
+     * --sitemaps writes ONE governed append of the tenant's whole sitemap listing into the batch's sitemaps.jsonl, and nothing else. */
     routed: true,
     sites: 0,
-    writes: "the raw HTML bodies of pages FETCHED by a live crawl, one file per observation",
-    where: `runs/crawl/corpus/ by default, or the directory given by --corpus (and the run record at --out); ${CONFINED}`,
+    writes: "the raw HTML bodies of pages FETCHED by a live crawl — one file per observation without a research batch; on a research batch, one page_body record per observation in the batch's bodies.jsonl; and, with --sitemaps on a research batch, the tenant's whole sitemap listing",
+    where: `runs/crawl/corpus/ by default, or the directory given by --corpus (and the run record at --out); ${CONFINED}. On --research-batch, the batch's own bodies.jsonl and (with --sitemaps) sitemaps.jsonl inside the declared RESEARCH store`,
     gatedBy: "D-CRW-4: bodies are written only on a --live run, and --live is refused without --i-have-the-owners-green — two explicit flags, the second deliberately awkward to type. It does not use write-law's --confirm",
     gateFlags: ["--live", "--i-have-the-owners-green"],
     gateRuling: "TECHNICAL-OWNER RULING, 12 Sep 2026 (PHASE_0_FROZEN_GAP_REGISTER.md): two explicit flags — one named for the owner's own green — satisfy dry-run by default",
@@ -252,11 +255,14 @@ const SHARED_LOCAL_WRITERS = [
     file: "bin/audit-technical.mjs",
     /* 🔴 ROUTED (23 September 2026). Sitemap observations and findings are collected and committed as two
      * governed decisions. The bare mkdir is gone rather than gated, and the store still decides
-     * appended-versus-re-sighted so the run reports its answer unchanged. */
+     * appended-versus-re-sighted so the run reports its answer unchanged.
+     * RR-227 (F19 Acceptance Amendment 1): --sitemaps is RETIRED — refused before any read or request; it writes no sitemap listing
+     * (it kept 20,000 URLs, could run for no tenant under F02, and wrote real captures into the engine). The sitemap-observation append
+     * it still makes is always empty. A tenant's sitemap is re-collected by bin/crawl.mjs --research-batch --sitemaps. */
     routed: true,
     sites: 0,
-    writes: "the technical findings (status, https, canonical, noindex, head elements, broken links, query parameters, indexability preflight) and, with --sitemaps, one observation per host's sitemap collection",
-    where: `runs/audit/technical-findings.jsonl by default, or the file given by --out; the sitemap observations at runs/evidence/sitemaps.jsonl; ${CONFINED}`,
+    writes: "the technical findings (status, https, canonical, noindex, head elements, broken links, query parameters, indexability preflight); no sitemap listing (--sitemaps retired, RR-227)",
+    where: `runs/audit/technical-findings.jsonl by default, or the file given by --out; ${CONFINED}`,
     gatedBy: "write-law LOCAL: the directory, the findings and the sitemap observations each sit behind permission.mayWrite. 🔴 Until 16 September 2026 it had NO gate — and it is the writer that once stored 868 issues twice",
     gateFlags: ["--confirm"],
     gateToken: "permission.mayWrite",

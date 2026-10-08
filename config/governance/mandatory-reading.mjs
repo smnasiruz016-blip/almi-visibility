@@ -417,6 +417,18 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-06_RR-192.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-06_RR-192_APPROVE_F32_A1_REV2_F39_A1_PG-A1.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F32_ACCEPTANCE_AMENDMENT_1_2026-10-06.md", loader: "F-board acceptance F32" }),
+  /* RR-225 (8 Oct 2026): the three CURRENT records admitted by the migration at _handoffs fb0613a — the RR-225 command, the owner's
+   * approval of F02's Acceptance Amendment 2 by its hash, and that amendment. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-225.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-08_RR-225_APPROVE_F02_AMENDMENT_2.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F02_ACCEPTANCE_AMENDMENT_2_2026-10-08.md", loader: "F-board acceptance F02 (Amendment 2)" }),
+  /* RR-223 (8 Oct 2026): the four CURRENT records admitted by the migration at _handoffs 7805047 — the RR-217 command (RR-216's
+   * continuation, first admitted here), the RR-223 command, the owner's approval of F31's Acceptance Amendment 1 by its hash, and that
+   * amendment. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-217.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-223.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-08_RR-223_APPROVE_F31_AMENDMENT_1.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F31_ACCEPTANCE_AMENDMENT_1_2026-10-08.md", loader: "F-board acceptance F31 (Amendment 1)" }),
   /* RR-216 (8 Oct 2026): the three CURRENT records admitted by the migration at _handoffs 06cdb82 — the RR-216 command, the owner's
    * approval of F92's acceptance by its hash, and F92's first Acceptance (image and video visibility). */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-216.md", loader: "authority register (CURRENT record)" }),

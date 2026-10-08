@@ -15,6 +15,7 @@
  * A CRAWLED INVENTORY IS NOT THE SITE (src/crawl/inventory.mjs). That is why PARTIAL and UNKNOWN matter here: an empty partial
  * population says nothing about pages the crawl never reached, and the check will not produce a page on its silence.
  */
+import { createHash } from "node:crypto";
 import { readTenantPartition, readPartitionBodies, readPartitionEdges } from "../crawl/batch-partition.mjs";
 import { BATCH_ID, ObservationBatchFault } from "../crawl/observation-batch.mjs";
 import { createTenantResolver, readDeclarations } from "../tenancy/resolver.mjs";
@@ -22,12 +23,14 @@ import { decideResolvedTenants } from "../tenancy/scope.mjs";
 import { SITEMAP_BATCH_ID } from "../adapter/sitemap-subject.mjs";
 import { scopeCompleteness, coverageForConsumers } from "../crawl/scope-completeness.mjs";
 import { scopeInventory } from "../crawl/scope-inventory.mjs";
+import { readNewerCollections, mergeCollections } from "../crawl/newer-collections.mjs";
 import { rightToExist, mayProduceCandidate } from "./right-to-exist.mjs";
 import { existingPageFirst, existingPageDecisionEvent } from "./existing-page-first.mjs";
 import { informationGainForCandidate, GAIN_OUTCOME } from "./information-gain.mjs";
 import { verifiedPages } from "./duplication-evidence.mjs";
 
 const WEAKEST = ["UNKNOWN", "PARTIAL", "COMPLETE"];
+const sha256 = (s) => createHash("sha256").update(String(s), "utf8").digest("hex");
 
 /**
  * Pure: the population from a partition's records and bodies. Exported so the tests drive it with crafted records.
@@ -44,9 +47,15 @@ export function populationFromPartition({ tenantId, records, bodies, completenes
   const coverageState = runs.length === 0 ? "UNKNOWN" : runs.reduce((w, s) => (WEAKEST.indexOf(s) < WEAKEST.indexOf(w) ? s : w), "COMPLETE");
 
   const pages = records.filter((r) => r.record_type === "page").map((p) => {
-    const served = (p.observations ?? []).map((id) => observations.get(id)).filter((o) => o && bodies.has(o.observation_id))
+    /* F31 C9 (RR-223): the page's NEWEST recorded observation is the one read; its body only when the store holds it — an older body
+     * of a page that has since been observed again is never read as current (no body → NOT MEASURED downstream) */
+    const obs = (p.observations ?? []).map((id) => observations.get(id)).filter(Boolean)
       .sort((a, b) => String(a.observed_at).localeCompare(String(b.observed_at)));
-    const latest = served.at(-1);
+    const newest = obs.at(-1);
+    /* the newest observation's own stored body; else a stored body whose bytes ARE the newest observation's — its recorded fingerprint
+     * equals the newest's and its stored bytes hash to it (proved, never assumed); a changed page has none */
+    const same = (o) => typeof newest?.content_sha256 === "string" && newest.content_sha256 !== "" && o.content_sha256 === newest.content_sha256 && bodies.has(o.observation_id) && sha256(bodies.get(o.observation_id)) === newest.content_sha256;
+    const latest = newest && bodies.has(newest.observation_id) ? newest : obs.filter(same).at(-1) ?? null;
     /* F32 (RR-87): the observation the body came from, so a reader can require that body's fingerprint to be verified */
     return { pageId: p.page_id, tenantId, html: latest ? bodies.get(latest.observation_id) : "", bodyObservationId: latest ? latest.observation_id : null };
   });
@@ -97,17 +106,23 @@ export function readExistingPagePopulation({ scope, batchId = BATCH_ID, sitemapB
     scope.recordPartition?.(sitemapPart.partition, { collectionKind: "SITEMAP_COLLECTION", collectionRef: sitemapBatchId });
     const edges = readPartitionEdges({ batchId, observationIds: part.observationIds, env });
     const declared = declaredScope({ tenantId: scope.tenantId, env });
+    /* 🔴 F31 C9 (Amendment 1, RR-223): beside the fixed batches, every newer collection this tenant holds in a declared RESEARCH_BATCH —
+     * newest observation per URL, newest listing per origin, links from the observations used, bodies only from the batch's own store */
+    /* 🔴 F02 A2 (RR-225): each research batch is read only on F02's recorded decision, recorded through this run's own scope */
+    const newer = readNewerCollections({ tenantId: scope.tenantId, resolve, env, record: scope.recordDecision ?? null });
+    const merged = mergeCollections({ fixed: { batchId, records: part.records, bodies, sitemaps: sitemapPart.records.filter((r) => r.record_type === "observation"), edges }, newer });
     const completeness = scopeCompleteness({
       origins: declared.origins,
-      observations: part.records.filter((r) => r.record_type === "observation"),
-      sitemaps: sitemapPart.records.filter((r) => r.record_type === "observation"),
-      edges,
+      observations: merged.observations,
+      sitemaps: merged.sitemaps,
+      edges: merged.edges,
       freshnessRule: declared.freshnessRule,
       now,
+      crawlRunsCutShort: merged.crawlRunsCutShort,
     });
-    const inventory = scopeInventory({ tenantId: scope.tenantId, batchId, records: part.records, bodies, unplaced: { undeclared: part.partition.arithmetic.undeclared, ambiguous: part.partition.arithmetic.ambiguous } });
+    const inventory = scopeInventory({ tenantId: scope.tenantId, batchId, records: merged.records, bodies: merged.bodies, unplaced: { undeclared: part.partition.arithmetic.undeclared, ambiguous: part.partition.arithmetic.ambiguous }, batchOf: newer.length ? merged.batchOf : null });
     scope.recordDecision?.(completenessEvent(completeness));
-    return { population: populationFromPartition({ tenantId: scope.tenantId, records: part.records, bodies, completeness, inventory }), fault: null, population_of: part.partition.arithmetic.population };
+    return { population: populationFromPartition({ tenantId: scope.tenantId, records: merged.records, bodies: merged.bodies, completeness, inventory }), fault: null, population_of: part.partition.arithmetic.population, newerBatches: merged.newerBatches };
   } catch (e) {
     if (e instanceof ObservationBatchFault) return { population: null, fault: e.fault, population_of: null };
     throw e;

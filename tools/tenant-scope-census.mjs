@@ -83,12 +83,19 @@ export const EXCLUSIONS = Object.freeze([
   Object.freeze({
     fn: "captureSetMembers", module: "src/tenancy/attachment-declaration.mjs",
     why: "the attachment proof itself: it reads ONLY a capture manifest's recorded page URL and origin — never a page body — so each identity can be decided against the requested tenant by the one decision before any attachment is written",
-    control: "test/f02-real-prerequisites.test.mjs: a capture whose members resolve to another tenant, or to none, is refused",
+    control: "test/f02-real-prerequisites.test.mjs A2: a capture whose members resolve to another tenant, or to none, is refused",
+  }),
+  /* F02 Amendment 2 (_handoffs fb0613a, RR-225): F31's existing-page reader locates a tenant's research batches itself — on F02's own
+   * decision per batch, recorded through the run's scope — so the entry points that reach it need not name each batch. */
+  Object.freeze({
+    fn: "readNewerCollections", module: "src/crawl/newer-collections.mjs",
+    why: "F02 Amendment 2: it reads a research batch only on F02's ALLOWED decision (attached to the run's tenant AND a member of a subject resolving to it), records every decision, allowed or refused, through the run's scope, and locates only batches the tenant's own declarations name",
+    control: "test/f02-tenant-scope.test.mjs F02-EXCL-4: an unattached, another tenant's or an unnamed batch is refused and recorded, never read; without the exclusion the seven entry points are UNSCOPED",
   }),
   ...["memberOrigins", "batchPageUrls", "sitemapListedUrls"].map((fn) => Object.freeze({
     fn, module: "src/tenancy/scoped-run.mjs",
     why: "the gate itself: it reads a container's member IDENTITY fields (a page's canonical URL, a listed URL) — never a body — so the one decision can refuse a container whose members are declared to another tenant",
-    control: "test/f02-tenant-scope.test.mjs F02-EXCL-3: the member read returns origins only, and the decision it feeds refuses the real batch as AMBIGUOUS",
+    control: "test/f02-tenant-scope.test.mjs F02-EXCL-3: the member read returns origins only, and the decision it feeds refuses a batch shared by two tenants as AMBIGUOUS",
   })),
 ]);
 
@@ -167,10 +174,11 @@ export function derivedFamilyReaders({ files = null, read = null } = {}) {
     const hits = [...t.matchAll(/^(export )?(?:(?:async )?function (\w+)\s*\(|const (\w+)\s*=\s*(?:async\s*)?(?:\([^)]*\)|\w+)\s*=>)/gm)];
     hits.forEach((m, i) => fns.push({ file, name: m[2] ?? m[3], exported: Boolean(m[1]), body: t.slice(m.index, i + 1 < hits.length ? hits[i + 1].index : t.length) }));
   }
-  const excluded = new Set(EXCLUSIONS.map((e) => e.fn));
+  /* F02 Amendment 2 (RR-225): an exclusion excuses ONE function in ONE file — matched by file AND name, never by a name alone */
+  const excluded = new Set(EXCLUSIONS.map((e) => `${e.module}#${e.fn}`));
   const reach = new Map();
   for (const f of fns) {
-    if (excluded.has(f.name)) continue;
+    if (excluded.has(`${f.file}#${f.name}`)) continue;
     const code = codeLines(f.body).map((r) => r.text).join("\n");
     const fams = Object.keys(FAMILIES).filter((k) => FAMILIES[k].re.test(code));
     if (fams.length) reach.set(`${f.file}#${f.name}`, new Set(fams));
@@ -180,7 +188,7 @@ export function derivedFamilyReaders({ files = null, read = null } = {}) {
     const byName = new Map();
     for (const f of fns) if (reach.has(`${f.file}#${f.name}`)) { const s = byName.get(f.name) ?? new Set(); for (const x of reach.get(`${f.file}#${f.name}`)) s.add(x); byName.set(f.name, s); }
     for (const f of fns) {
-      if (excluded.has(f.name)) continue;
+      if (excluded.has(`${f.file}#${f.name}`)) continue;
       const code = codeLines(f.body.slice(f.body.indexOf("{"))).map((r) => r.text).join("\n");
       const key = `${f.file}#${f.name}`;
       const cur = reach.get(key) ?? new Set();

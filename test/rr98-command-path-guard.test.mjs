@@ -48,7 +48,7 @@ test("the correction moved nothing but the name: the three rows cite the real fi
     assert.deepEqual([c.path, c.commit, c.sha256], [RIGHT, "6eccb9ba7c62a1b51f2b6d37016c6429154791cc", "8422c1fd911fff92ffc28ec6b9a9cff07572e2334209c8e41e0e130d60d2828c"]);
     assert.equal(board().find((r) => r.featureId === id).state, "VERIFIED-PASS", `${id}'s verdict moved`);
   }
-  assert.equal(progress(board()).passed, 40); /* RR-216: F92 PROVED (rr216-sabotage-2026-10-08T0359: 35 of 35) */ /* RR-214: F93 PROVED (rr214-sabotage-2026-10-08T0218: 31 of 31) */ /* RR-210: F38 PROVED (rr210-sabotage-2026-10-07T2305: 37 of 37) */ /* RR-208: F37 RE-PROVED under its Amendment 2 (rr208-sabotage-2026-10-07T2045: 59 of 59) */ /* RR-208: F37 REOPENED by its own Amendment 2 (_handoffs f9edf2a) — VERIFIED-PASS -> IN-PROGRESS */ /* RR-206: F94 PROVED in R7 (rr206-sabotage-2026-10-07T1855: 33 of 33) */ /* RR-192: F39 re-proved under Amendment 1 */
+  assert.equal(progress(board()).passed, 40); /* RR-216: F92 PROVED (rr216-sabotage-2026-10-08T0359: 35 of 35) */ /* RR-214: F93 PROVED (rr214-sabotage-2026-10-08T0218: 31 of 31) */ /* RR-210: F38 PROVED (rr210-sabotage-2026-10-07T2305: 37 of 37) */ /* RR-208: F37 RE-PROVED under its Amendment 2 (rr208-sabotage-2026-10-07T2045: 59 of 59) */ /* RR-208: F37 REOPENED by its own Amendment 2 (_handoffs f9edf2a) — VERIFIED-PASS -> IN-PROGRESS */ /* RR-206: F94 PROVED in R7 (rr206-sabotage-2026-10-07T1855: 33 of 33) */ /* RR-192: F39 re-proved under Amendment 1 */ /* RR-225: F02 (Amendment 2) and F31 (Amendment 1) RE-PROVED (rr225-sabotage-2026-10-08T0805: 52 of 52) — the board back to 40/95, restated */
 });
 
 test("every production caller of the validator hands it the committed corpus — the guard cannot silently not run", () => {

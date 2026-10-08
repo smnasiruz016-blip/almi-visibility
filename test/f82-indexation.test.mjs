@@ -106,7 +106,13 @@ test("REAL · the client's owned evidence: every page carries one state and its 
   const before = readClientDecay({ tenantId, resolve, decayEvidence: NO_RECORDED_DECAY_EVIDENCE });
   const after = readClientDecay({ tenantId, resolve, decayEvidence: { ...NO_RECORDED_DECAY_EVIDENCE, indexing: r.indexingChecks } });
   const technical = (x) => x.assessments.filter((a) => a.missing.some((m) => m.startsWith("technical:"))).length;
-  assert.ok(technical(before) > 0 && technical(after) === 0, "F82 did not supply F43's missing technical fact");
+  /* RR-223 (F31 Amendment 1, C9): the client's population now also holds the pages its newer declared crawl observed; those carry no
+   * recorded indexing evidence, so F82 holds them UNKNOWN and their technical fact stays missing — exactly those pages, no other. */
+  const unknownPages = new Set(r.states.filter((s) => s.state === "UNKNOWN").map((s) => s.pageId));
+  const stillMissing = after.assessments.filter((a) => a.missing.some((m) => m.startsWith("technical:")));
+  assert.ok(technical(before) > 0 && technical(after) < technical(before), "F82 did not supply F43's missing technical fact");
+  assert.deepEqual(stillMissing.map((a) => a.pageId).filter((id) => !unknownPages.has(id)), [], "F82 did not supply the technical fact of a page it observed");
+  assert.equal(stillMissing.length, unknownPages.size, "a page F82 holds UNKNOWN gained a technical fact");
   assert.ok(after.assessments.every((a) => a.missing.some((m) => m.startsWith("age:"))), "the missing age was hidden by the indexing supply");
   console.log(`  REAL (count-only): ${r.bound} | ${JSON.stringify(r.summary)} | F43 missing technical ${technical(before)} → ${technical(after)}`);
 });

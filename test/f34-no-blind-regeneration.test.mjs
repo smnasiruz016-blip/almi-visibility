@@ -165,7 +165,11 @@ test("C6 · the shared gate the subject tools call decides, records exactly once
   assert.equal(refusals.length, 1, "the decision was not recorded exactly once");
   /* F31 (RR-85): reading the population also records the scope's completeness verdict — once per read. */
   assert.equal(recorded.filter((e) => e.action === "DECIDE_EXISTING_PAGE_INVENTORY_COMPLETENESS").length, 1);
-  assert.equal(recorded.length, 2);
+  /* F02 A2 (RR-225): the read also records F02's decision on each research batch the tenant's declarations name — this copied
+   * world's subjects name batches attached to no tenant, each REFUSED and recorded once, never read; nothing else is recorded */
+  const batches = recorded.filter((e) => /^(RESOLVE|REFUSE)_RESEARCH_BATCH$/.test(e.action));
+  assert.equal(new Set(batches.map((e) => e.metadata.resourceRef)).size, batches.length, "a research batch was decided more than once in one read");
+  assert.equal(recorded.length, 2 + batches.length);
   existingPageGate({ scope, entry: "subjects/almi-oet/tools/nursing-chain.mjs", candidate: { slug: "nursing", intent: "nursing" }, env: WORLD.envWith() });
   /* read once per run: a second gate call re-reads nothing — the completeness verdict (one per read) is still recorded once */
   assert.equal(recorded.filter((e) => e.action === "DECIDE_EXISTING_PAGE_INVENTORY_COMPLETENESS").length, 1, "the population is read once per run");

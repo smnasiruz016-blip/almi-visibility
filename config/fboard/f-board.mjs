@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -70,7 +70,7 @@ export const DECLARED = Object.freeze({
       }),
       /* Amendment 1, committed ALONE (ad14a64) under the owner's disposition ruling (1145012, Decision 3): the learning
        * population is deferred to F79. It names, by both hashes, the freeze it amends. */
-      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F02", on: "2026-09-25", ruling: ACCEPTANCES.F02.ruling, contractSha256: ACCEPTANCES.F02.contractSha256, amends: ACCEPTANCES.F02.amends }),
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F02", on: "2026-09-25", ruling: F02_AMENDMENT_1.ruling, contractSha256: F02_AMENDMENT_1.contractSha256, amends: F02_AMENDMENT_1.amends }),
       /* Earned under Amendment 1 on the REAL populations (test/f02-disposition.test.mjs and the F02 proofs before it). The
        * two learning rows are DEFERRED-TO-F79, not proved; the whole-collection retirement is the data precondition, and
        * test D8 turns red while any shared collection is still attached whole in the current declarations. */
@@ -82,10 +82,47 @@ export const DECLARED = Object.freeze({
         from: "IN-PROGRESS",
         to: "VERIFIED-PASS",
         reason: "EVERY_CURRENT_CLAUSE_PROVED_ON_REAL_POPULATIONS_UNDER_AMENDMENT_1",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F02.ruling.sha256, contract: ACCEPTANCES.F02.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F02_AMENDMENT_1.ruling.sha256, contract: F02_AMENDMENT_1.contractSha256 }),
         deferredToF79: Object.freeze(["real learning write evidence", "real learning reuse evidence"]),
         dataPrecondition: "almi-visibility-data: the whole crawl-batch and sitemap-collection attachments retired (owner ruling 1145012, Decision 2)",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-25_F02_DISPOSITION.md", commit: "ab2dfd80b6c9b0fd1ab6c290924dcd25827e86dc" }),
+      }),
+      /* RR-225: F02's Acceptance Amendment 2, approved by its hash and frozen ALONE; F02 REOPENED at this freeze */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F02", on: "2026-10-08", ruling: F02_AMENDMENT_2.ruling, contractSha256: F02_AMENDMENT_2.contractSha256, amends: F02_AMENDMENT_2.amends }),
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F02",
+        on: "2026-10-08",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: Amendment 2)",
+        reason: "AUTHORITATIVE_REQUIREMENT_CHANGE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "F02's 2026-09-25 evidence remains historically valid for what it measured; the reopen is caused by the newly frozen wider requirement (Amendment 2, RR-224/RR-225: a research batch F31's reader locates is read only on F02's recorded decision; the census excuses that reader by file and function), not by any defect found in that evidence",
+        amendment: Object.freeze({ ruling: F02_AMENDMENT_2.ruling, contractSha256: F02_AMENDMENT_2.contractSha256 }),
+        ownerDecision: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-08_RR-225_APPROVE_F02_AMENDMENT_2.md", commit: "941b3eb3c2369c2284c0dbc234fa6415e02f4052", sha256: "04e0e0ff8fbae665acb44f619e8d181401f85c1265156abd0c0d7d0b9777a72b" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-225.md", commit: "941b3eb3c2369c2284c0dbc234fa6415e02f4052", sha256: "61d1f9eeea43f4d1d30daca66690e21a0664e7ce9072cfd29f2be03470ea241c" }),
+      }),
+      /* RR-225: F02 RE-PROVED under F02_AMENDMENT_2 — every clause PROVED and every sabotage PROVED; recorded through the board route in
+       * the same PR as F31's re-proof; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F02",
+        population: "REAL",
+        on: "2026-10-08",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: Amendment 2, RR-225)",
+        reason: "EVERY_CURRENT_CLAUSE_PROVED_UNDER_AMENDMENT_2",
+        acceptanceUnchanged: Object.freeze({ ruling: F02_AMENDMENT_2.ruling.sha256, contract: F02_AMENDMENT_2.contractSha256 }),
+        clauses: Object.freeze({ "AMENDMENT 1 (unchanged)": "PROVED", "A2 · read only on F02's recorded decision": "PROVED", "A2 · census exception by file AND function": "PROVED", "census honesty · every exclusion has a firing control": "PROVED" }),
+        deferredToF79: Object.freeze(["real learning write evidence", "real learning reuse evidence"]),
+        populations: "A2 on FIXTURE worlds only (RR-177, no real page read): a batch attached and named (read, ALLOWED recorded), attached to another tenant, attached to none, attached but named by no subject (each unread, REFUSED recorded with its reason and tenant decision), another tenant's own batch (never located). REAL declarations, count-only: 23 active tenants, 12 research-batch decisions (11 ALLOWED — the same batches F31 read before — and 1 REFUSED NOT_A_MEMBER), recorded per governed run. The tenant-scope census over the real entry points: 0 UNSCOPED; the seven entry points that reach F31's reader SCOPED with the exception.",
+        proofs: "test/f02-tenant-scope.test.mjs — F02-EXCL-META (every exclusion names a module defining its function and a control test that exists; a missing one refused), F02-EXCL-1 (the held-out derivation only narrows an append; a same-named function elsewhere is not excused), F02-EXCL-3 (the gate's member read returns origins only; a batch shared by two tenants refused AMBIGUOUS), F02-EXCL-4 EXPECTED/FAILURE/EVIDENCE/CENSUS (decisions read back from a durable guard sink; a planted same-named reader not excused; a direct RESEARCH load UNSCOPED); test/f02-real-prerequisites.test.mjs A2 (captureSetMembers' control); the Amendment 1 proofs re-run green (f02-disposition, f02-tenant-isolation, f02-real-prerequisites)",
+        sabotage: "runs/audit/rr225-sabotage-2026-10-08T0805.txt: 52 of 52 proved (F31 C1–C9 35; F02 A2 and the census controls 17), every span pre-flighted exactly once in the live code, each applied ALONE and red by an AssertionError, residue 0, production trail unchanged; practice 2026-10-08T0741 found S35 not red with the merge filter alone (the rule binds in two layers) — re-anchored to both and re-proved (T0804)",
+        censusHonesty: "6 exclusions, each with a control that exists and fires: derivedForbiddenSubstrings F02-EXCL-1 (S46), captureSetMembers f02-real-prerequisites A2 (S49), memberOrigins / batchPageUrls / sitemapListedUrls F02-EXCL-3 (S48, S50, S51), readNewerCollections F02-EXCL-4 (S36–S43, S45, S52); META (S44, S47). Four exclusions had cited test/f02-tenant-scope.test.mjs since 24 Sep without it existing (found RR-224); it exists now.",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-225.md", commit: "941b3eb3c2369c2284c0dbc234fa6415e02f4052", sha256: "61d1f9eeea43f4d1d30daca66690e21a0664e7ce9072cfd29f2be03470ea241c" }),
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),
@@ -1471,7 +1508,7 @@ export const DECLARED = Object.freeze({
     board: "F_BOARD",
     state: "VERIFIED-PASS",
     events: Object.freeze([
-      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: ACCEPTANCES.F31.ruling, contractSha256: ACCEPTANCES.F31.contractSha256 }),
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: F31_ORIGINAL.ruling, contractSha256: F31_ORIGINAL.contractSha256 }),
       Object.freeze({
         kind: "IMPLEMENTATION",
         featureId: "F31",
@@ -1480,7 +1517,7 @@ export const DECLARED = Object.freeze({
         to: "IN-PROGRESS",
         route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
         reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F31.ruling.sha256, contract: ACCEPTANCES.F31.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F31_ORIGINAL.ruling.sha256, contract: F31_ORIGINAL.contractSha256 }),
         branch: "rr85-f31-inventory",
         baseSha: "8c37c695f3e79cd24a84c7ce93634679e9b42fbc",
         baseCiRun: "36505203525",
@@ -1496,7 +1533,7 @@ export const DECLARED = Object.freeze({
         to: "VERIFIED-PASS",
         route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
         reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F31.ruling.sha256, contract: ACCEPTANCES.F31.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F31_ORIGINAL.ruling.sha256, contract: F31_ORIGINAL.contractSha256 }),
         populations: "REAL: the declared client's partition of the recorded batch — 27 known pages, 0 identity conflicts, 27/27 fingerprints verified against stored bytes, 27/27 served states observed, all owned by its tenant; 4 batch members placed in no tenant, counted. REAL VERDICT: INCOMPLETE (method RECORDED_SITEMAPS_AND_LINKS, 1 declared origin, as of 2026-09-12T00:44:54Z, NO freshness rule declared): its recorded sitemap lists 240,328 URLs (20,000 stored, 19,989 of those unobserved), and its observed pages link to 368 in-scope URLs never observed.",
         proofs: "test/f31-inventory.test.mjs — C1 identity on the real 27 plus planted conflicts; C2 real fingerprints verified, changed bytes caught, none invented; C3 UNKNOWN when unanswered; C4 real ownership, a second-tenant world, and only the client's own 1,275 of 19,730 links read; C5 evidence per attribute; C6 the real verdict with its basis, every state (COMPLETE, INCOMPLETE ×7 gaps, UNKNOWN ×3, OUT OF SCOPE, STALE) distinct and named, the declared freshness rule read, the verdict recorded once; C7 5.1 INCOMPLETE, UNKNOWN, STALE and OUT OF SCOPE hold an unrelated new page, 5.2 a COMPLETE inventory lets F33 decide NOT COVERED and still blocks a covering page; C8 23 modules, 0 call-out paths; production trail byte-identical across every suite run",
         sabotage: "runs/audit/f31-sabotage-2026-09-29.txt: 22 of 22 proved, every span pre-flighted exactly once in the live code, residue 0; F33 18 of 18 and F34 19 of 19 re-run on the changed code",
@@ -1504,6 +1541,40 @@ export const DECLARED = Object.freeze({
         blocker: "to make the real list COMPLETE the recorded data lacks: a served state for every in-scope URL the client's own sitemap lists (240,328; 20,000 stored, 11 observed) and every URL its pages link to (368) — no recorded source can supply it; it needs a new collection (F19's second crawl, ON HOLD for the owner's GREEN) — and a freshness rule declared for the client's scope (an owner decision; none is declared)",
         historicalReuse: "historical row 11 (Existing Page Inventory) proved identity stable across two local replays — part of C1 and C2; everything else proved fresh",
         declaredLimit: "COMPLETE means complete as discoverable by the client's recorded sitemaps and links, as of the earliest evidence; a page no recorded source lists or links cannot be claimed; the freshness window counts from that as-of time",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+      /* RR-223: F31's Acceptance Amendment 1, approved by its hash and frozen ALONE; F31 REOPENED at this freeze */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F31", on: "2026-10-08", ruling: F31_AMENDMENT_1.ruling, contractSha256: F31_AMENDMENT_1.contractSha256, amends: F31_AMENDMENT_1.amends }),
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F31",
+        on: "2026-10-08",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: Amendment 1)",
+        reason: "AUTHORITATIVE_REQUIREMENT_CHANGE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "F31's 2026-09-29 evidence remains historically valid for what it measured; the reopen is caused by the newly frozen wider requirement (Amendment 1, RR-222/RR-223: newer declared collections read beside the fixed batches), not by any defect found in that evidence",
+        amendment: Object.freeze({ ruling: F31_AMENDMENT_1.ruling, contractSha256: F31_AMENDMENT_1.contractSha256 }),
+        ownerDecision: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-08_RR-223_APPROVE_F31_AMENDMENT_1.md", commit: "ce851f8610a2ca1b99d5a5a51cb29283310bd29f", sha256: "30532ecf94f8da91bdd1bb0fdcb12b9f805932e66cbd8c57162455e8ada34456" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-223.md", commit: "ce851f8610a2ca1b99d5a5a51cb29283310bd29f", sha256: "118ded1887c803fc2c1fd9228f670e60b8559aa998c0c37fe465da7e714b7ecf" }),
+      }),
+      /* RR-225: F31 RE-PROVED under F31_AMENDMENT_1 (C1–C9), its newer-batch reader now on F02's recorded decision (F02 Amendment 2) */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F31",
+        population: "REAL",
+        on: "2026-10-08",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: Amendment 1, RR-223/RR-225)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F31_AMENDMENT_1.ruling.sha256, contract: F31_AMENDMENT_1.contractSha256 }),
+        clauses: Object.freeze({ "C1": "PROVED", "C2": "PROVED", "C3": "PROVED", "C4": "PROVED", "C5": "PROVED", "C6": "PROVED", "C7": "PROVED", "C8": "PROVED", "C9": "PROVED" }),
+        populations: "C1–C9 on FIXTURE data roots built from nothing (RR-177: no real page read): two tenants, the fixed batches and research batches attached and named, attached elsewhere, attached to none and unnamed. REAL: records only — every real tenant whose newer batches hold no observation of it keeps the verdict it had over the fixed batches (T31-C9-REAL, count-only).",
+        proofs: "test/f31-inventory.test.mjs (C1–C8 on the fixture root) and test/rr223-f31a1.test.mjs (T31-C9-NEWER/SCOPE/BODY/CUT/COMPLETE/REAL/CENSUS, R31-BOARD); consumers restated with notes: f82 REAL, rr206 (F94 unchanged), rr172 T33f, f34 C6",
+        sabotage: "runs/audit/rr225-sabotage-2026-10-08T0805.txt: 52 of 52 proved (F31 C1–C9 35; F02 A2 and the census controls 17), every span pre-flighted exactly once in the live code, each applied ALONE and red by an AssertionError, residue 0, production trail unchanged; practice 2026-10-08T0741 found S35 not red with the merge filter alone (the rule binds in two layers) — re-anchored to both and re-proved (T0804)",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-225.md", commit: "941b3eb3c2369c2284c0dbc234fa6415e02f4052", sha256: "61d1f9eeea43f4d1d30daca66690e21a0664e7ce9072cfd29f2be03470ea241c" }),
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),

@@ -334,7 +334,8 @@ test("C5 · THE OLDER CAPPED WRITER IS RETIRED · bin/audit-technical.mjs --site
   const target = join(REPO, "runs", "evidence", "sitemaps.jsonl");
   const had = existsSync(target) ? statSync(target).size : "ABSENT";
   try {
-    const { r, counts } = runBin(W, ["--sitemaps", `--subject=${FIXTURE_SUBJECT}`, "--confirm"], { mode: "refuse", bin: "bin/audit-technical.mjs" });
+    /* no --confirm: even if the retirement were removed (sabotage N21), this run could write nothing into the engine */
+    const { r, counts } = runBin(W, ["--sitemaps", `--subject=${FIXTURE_SUBJECT}`], { mode: "refuse", bin: "bin/audit-technical.mjs" });
     assert.equal(r.status, 2, r.stdout.slice(-600) + r.stderr.slice(-600));
     assert.match(r.stderr, /RETIRED — --sitemaps no longer collects or writes a sitemap listing here/);
     assert.match(r.stderr, /bin\/crawl\.mjs --research-batch=<declared id> --tenant=<t> --subject=<s> --sitemaps/);
@@ -350,8 +351,14 @@ test("E3 · BODIES IN THE BATCH · each body stored in bodies.jsonl with its obs
   const ENGINE_CORPUS = join(REPO, "runs", "crawl", "corpus");
   const corpusState = () => (existsSync(ENGINE_CORPUS) ? readdirSync(ENGINE_CORPUS).length : "ABSENT");
   const before = corpusState();
+  /* a confined --corpus: if bodies ever went to a corpus again (sabotage N22), they land HERE, never in the engine's own */
+  mkdirSync(join(REPO, ".test-scratch"), { recursive: true });
+  const corpus = mkdtempSync(join(REPO, ".test-scratch", "f19-a1-corpus-"));
   try {
-    const { r, events } = runBin(W, ["--research-batch=" + BATCH, `--subject=${FIXTURE_SUBJECT}`, ...GREEN], { mode: "fixture" });
+    const { r, events } = runBin(W, ["--research-batch=" + BATCH, `--subject=${FIXTURE_SUBJECT}`, `--corpus=${corpus}`, ...GREEN], { mode: "fixture" });
+    const corpusFiles = readdirSync(corpus).length;
+    rmSync(corpus, { recursive: true, force: true });
+    assert.equal(corpusFiles, 0, "a research-batch crawl wrote its bodies into a corpus, not its batch");
     assert.equal(r.status, 0, r.stdout.slice(-1500) + r.stderr.slice(-1500));
     assert.equal(corpusState(), before, "a research-batch crawl wrote into the engine's corpus");
     const obs = jsonl(join(dir, "crawl.jsonl")).filter((x) => x.record_type === "observation");

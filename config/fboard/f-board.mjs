@@ -1522,7 +1522,7 @@ export const DECLARED = Object.freeze({
   F31: Object.freeze({
     featureId: "F31",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: F31_ORIGINAL.ruling, contractSha256: F31_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -1607,6 +1607,25 @@ export const DECLARED = Object.freeze({
         acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F31.ruling.sha256, contract: ACCEPTANCES.F31.contractSha256 }),
         evidenceRecord: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_STOP_REPORT_2026-10-08_RR-228_F19_A1_F31_SCALE.md", commit: "57d6fe1b14cd7b300f9f9df0b68422118e5b6640", sha256: "b49cd8a50512b430d7709f9ecfc4d36a47934e8c9d2d962df0aeb54c4e9f83cd" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-229.md", commit: "51e28c86c16233479666edf75a96a51e11539d2d", sha256: "33c647212c6c3c1c01cb71668bb522066162cf63bd9cc71da8356d3b37ca3799" }),
+      }),
+      /* RR-229: F31 re-proved under its SAME acceptance after RR-228's real-size finding — the two call-argument spreads replaced by loops */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F31",
+        population: "REAL",
+        on: "2026-10-08",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (concrete contradictory evidence at real size, RR-228/RR-229; acceptance unchanged)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F31.ruling.sha256, contract: ACCEPTANCES.F31.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED", C8: "PROVED", C9: "PROVED" }),
+        populations: "C1–C9 on FIXTURE data roots built from nothing (RR-177), as RR-225; and at REAL SIZE on a fixture: a research batch whose listing holds 240,328 URLs (the size of the real listing RR-228 stored) read end to end through readExistingPagePopulation — no error, the whole listing counted (listedTotal 240,328) — and scopeCompleteness over 240,328 observations with the earliest as-of time. SAME OUTPUT as the pre-RR-229 code on small and mixed listings, a 50,000-URL listing, and all 1,186 stored records of the data root as checked out. REAL: records only, as RR-225 (the data repository's main, which does not yet hold the RR-228 batch).",
+        proofs: "test/rr229-f31-scale.test.mjs (S1–S5) · test/f31-inventory.test.mjs and test/rr223-f31a1.test.mjs unchanged · rr206 F94 C7 pins of batch-partition.mjs and scope-completeness.mjs restated (F94 unchanged) · full suite on the exact head against the data repository's main AND against the RR-228 data branch checked out (no merge)",
+        sabotage: "runs/audit/rr229-sabotage-2026-10-08T1956.txt: 37 of 37 proved — F31's 35 limbs (S28 re-anchored to the loop) and S53/S54, which put the call-argument spreads back and turn the size tests red by an AssertionError; every span pre-flighted exactly once, each applied ALONE, restored by raw-byte hash, production trail unchanged (practice runs/audit/rr229-sabotage-practice-2026-10-08T1950.txt: 37 of 37)",
+        declaredLimit: "the scale census (_handoffs 51e28c8) found four more call-argument spreads over data that can grow — src/tenancy/row-partition.mjs:78, src/research/public-questions-reader.mjs:37,39, bin/demand-connect.mjs:58, src/cost/ledger.mjs:250 — each throws past about 124,000 items; they belong to other rows and are left for their own rounds",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-229.md", commit: "51e28c86c16233479666edf75a96a51e11539d2d", sha256: "33c647212c6c3c1c01cb71668bb522066162cf63bd9cc71da8356d3b37ca3799" }),
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

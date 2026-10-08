@@ -1,0 +1,8 @@
+RR-216 F92 sabotage PRACTICE run · 2026-10-08T03:58:21.914Z
+population: 1 sabotage(s) over test/rr216-f92.test.mjs · each applied ALONE · no provider, no network, no third-party read
+BASELINE (the named tests before any sabotage): NOT GREEN — no sabotage is run · named tests seen GREEN: 0 of 1
+PRE-FLIGHT (span occurrences in the code live now): S06=1 · all exactly once: true
+production trail sha256 before: ef4c676280d0ce42d0bafa6d693d87be75a0b31a520721aa7f291db4785f3a2e
+
+
+proved 0 of 1 · residue 0 · production trail sha256 after: ef4c676280d0ce42d0bafa6d693d87be75a0b31a520721aa7f291db4785f3a2e · unchanged true

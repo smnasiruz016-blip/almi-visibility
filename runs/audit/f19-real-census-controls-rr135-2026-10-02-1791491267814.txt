@@ -1,0 +1,12 @@
+F19 real-census controls · 2026-10-08T20:27:45.546Z · each corruption on a copy of the data root · count-only
+K1 a page beyond depth 0 (not a seed) was read: named test failing true · tests run 1 · failing 1 · reason AssertionError · PROVED
+K2 two requests closer than the interval: named test failing true · tests run 1 · failing 1 · reason AssertionError · PROVED
+K3 a body over the size cap stored whole: named test failing true · tests run 1 · failing 1 · reason AssertionError · PROVED
+K4 a request ran past its timeout: named test failing true · tests run 1 · failing 1 · reason AssertionError · PROVED
+K5 a page fetched without robots allowing it: named test failing true · tests run 1 · failing 1 · reason AssertionError · PROVED
+K6 a resource of another site was read: named test failing true · tests run 1 · failing 1 · reason AssertionError · PROVED
+K7 money written as a number nobody measured: named test failing true · tests run 1 · failing 1 · reason AssertionError · PROVED
+K8 page content in the committed record: named test failing true · tests run 1 · failing 1 · reason AssertionError · PROVED
+K9 more requests to one host than the declared cap: named test failing true · tests run 1 · failing 1 · reason AssertionError · PROVED
+K10 a run record removed (the population falls below two runs): named test failing true · tests run 1 · failing 1 · reason AssertionError · PROVED
+proved 10 of 10 · the real data root was not written

@@ -23,7 +23,7 @@ import { hasServedState } from "./scope-completeness.mjs";
 
 const sha = (s) => createHash("sha256").update(String(s), "utf8").digest("hex");
 
-export function scopeInventory({ tenantId, batchId, records, bodies = new Map(), unplaced = { undeclared: 0, ambiguous: 0 } }) {
+export function scopeInventory({ tenantId, batchId, records, bodies = new Map(), unplaced = { undeclared: 0, ambiguous: 0 }, batchOf = null }) {
   const observations = new Map(records.filter((r) => r.record_type === "observation").map((o) => [o.observation_id, o]));
   const pageRecords = records.filter((r) => r.record_type === "page");
   const idsByUrl = new Map();
@@ -48,7 +48,9 @@ export function scopeInventory({ tenantId, batchId, records, bodies = new Map(),
       verified: bodies.has(o.observation_id) ? sha(bodies.get(o.observation_id)) === o.content_sha256 : null,
       observedAt: o.observed_at,
     }));
-    const last = obs.filter(hasServedState).at(-1);
+    /* F31 C9 (RR-223): the NEWEST recorded observation decides the served state; an older served one stays in the evidence */
+    const newest = obs.at(-1);
+    const last = newest && hasServedState(newest) ? newest : null;
     return Object.freeze({
       pageId: p.page_id,
       owner: tenantId,
@@ -56,7 +58,7 @@ export function scopeInventory({ tenantId, batchId, records, bodies = new Map(),
       servedState: last
         ? Object.freeze({ state: "OBSERVED", status: last.value.status, redirected: Array.isArray(last.value.redirect_chain) && last.value.redirect_chain.length > 0, observedAt: last.observed_at })
         : Object.freeze({ state: "UNKNOWN" }),
-      evidence: Object.freeze({ batchId, observationIds: Object.freeze(obs.map((o) => o.observation_id)) }),
+      evidence: Object.freeze({ batchId, observationIds: Object.freeze(obs.map((o) => o.observation_id)), ...(batchOf ? { batches: Object.freeze(obs.map((o) => batchOf.get(o.observation_id) ?? batchId)) } : {}) }),
       /* F35 (RR-88): the page's recorded inbound links within the crawled set — a count, read by LINK only over a COMPLETE inventory */
       inboundLinks: Array.isArray(p.inbound_edges) ? p.inbound_edges.length : null,
     });

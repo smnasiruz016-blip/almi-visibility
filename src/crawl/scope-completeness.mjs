@@ -37,6 +37,8 @@ export const COMPLETENESS_REASONS = Object.freeze({
   SITEMAP_CUT_SHORT: "A_SITEMAP_WAS_NOT_FULLY_READ_OR_STORED",
   BODY_TRUNCATED: "AN_IN_SCOPE_BODY_WAS_TRUNCATED",
   NO_SERVED_STATE: "AN_IN_SCOPE_URL_WAS_REQUESTED_WITHOUT_A_SERVED_STATE",
+  /* F31 C9 (Amendment 1, RR-223): a newer declared crawl run whose own record says it was not COMPLETE */
+  CRAWL_CUT_SHORT: "A_NEWER_CRAWL_RUN_WAS_CUT_SHORT",
   NO_SITEMAP: "AN_ORIGIN_HAS_NO_RECORDED_SITEMAP",
   NO_OBSERVATION: "THE_SCOPE_HAS_NO_OBSERVATION",
   NO_FRESHNESS_RULE: "NO_FRESHNESS_RULE_IS_DECLARED",
@@ -61,7 +63,7 @@ export const hasServedState = (o) => Number.isInteger(o?.value?.status) && !o?.v
  * @param {{ freshnessDays: number }|null} input.freshnessRule  declared, or null
  * @param {Date} input.now
  */
-export function scopeCompleteness({ origins = [], observations = [], sitemaps = [], edges = [], freshnessRule = null, now = new Date() }) {
+export function scopeCompleteness({ origins = [], observations = [], sitemaps = [], edges = [], freshnessRule = null, now = new Date(), crawlRunsCutShort = 0 }) {
   const S = COMPLETENESS;
   const R = COMPLETENESS_REASONS;
   const scope = [...new Set(origins.map((o) => originOf(o) ?? String(o)))].sort();
@@ -97,7 +99,7 @@ export function scopeCompleteness({ origins = [], observations = [], sitemaps = 
   const counts = Object.freeze({
     origins: scope.length, observations: scoped.length, servedUrls: served.size, outOfScopeObservations: outOfScope,
     sitemaps: scopeSitemaps.length, listedTotal, listedStored: listed.size, listedUnobserved, linked: linked.size, linkedUnobserved,
-    sitemapCutShort, truncated, requestedWithoutState, originsWithoutSitemap,
+    sitemapCutShort, truncated, requestedWithoutState, originsWithoutSitemap, crawlRunsCutShort,
   });
   const basis = (reasons) => Object.freeze({ method: COMPLETENESS_METHOD, scope: Object.freeze({ origins: scope.length }), asOf, freshnessRule: rule, expiresAt, counts, reasons: Object.freeze(reasons) });
   const verdict = (state, reasons) => Object.freeze({ state, basis: basis(reasons), bound: `recorded data only · ${counts.observations} in-scope observation(s) · ${counts.sitemaps} sitemap record(s) · ${counts.linked} linked in-scope URL(s)` });
@@ -105,7 +107,7 @@ export function scopeCompleteness({ origins = [], observations = [], sitemaps = 
   if (scope.length === 0) return verdict(S.OUT_OF_SCOPE, [R.NO_ORIGIN]);
   const gaps = [
     [listedUnobserved > 0, R.LISTED_UNOBSERVED], [linkedUnobserved > 0, R.LINKED_UNOBSERVED], [sitemapCutShort > 0, R.SITEMAP_CUT_SHORT],
-    [truncated > 0, R.BODY_TRUNCATED], [requestedWithoutState > 0, R.NO_SERVED_STATE],
+    [truncated > 0, R.BODY_TRUNCATED], [requestedWithoutState > 0, R.NO_SERVED_STATE], [crawlRunsCutShort > 0, R.CRAWL_CUT_SHORT],
   ].filter(([hit]) => hit).map(([, r]) => r);
   if (gaps.length) return verdict(S.INCOMPLETE, gaps);
   const unknown = [[scoped.length === 0, R.NO_OBSERVATION], [originsWithoutSitemap > 0, R.NO_SITEMAP], [!rule, R.NO_FRESHNESS_RULE]].filter(([hit]) => hit).map(([, r]) => r);

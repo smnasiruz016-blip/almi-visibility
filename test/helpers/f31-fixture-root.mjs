@@ -39,8 +39,9 @@ export const run = (coverageState = "COMPLETE") => ({ record_type: "crawl_run", 
  * @param fixed     { records, bodies: [[id, body]], edges: [{from_observation_id, to}], sitemaps: [] }
  * @param batches   { [batchId]: { crawl?: [], sitemaps?: [], bodies?: [[id, body]], attachTo?: TA|TZ|null, namedBy?: SUBJECT_A|SUBJECT_Z|null, extraFiles?: {name: text} } }
  * @param tenants   tenant records' extra fields, by tenant id (e.g. { [TA]: { existingPageInventory: { freshnessDays: 30 } } })
+ * @param extraAttachments  further [resourceKind, resourceRef, tenantId] attachments (e.g. a whole shared batch, for a gate control)
  */
-export function f31FixtureRoot({ fixed, batches = {}, tenants = {} }) {
+export function f31FixtureRoot({ fixed, batches = {}, tenants = {}, extraAttachments = [] }) {
   const root = mkdtempSync(join(tmpdir(), "almi-f31-root-"));
   const w = (p, t) => { mkdirSync(join(root, p, ".."), { recursive: true }); writeFileSync(join(root, p), t); };
   for (const s of [SUBJECT_A, SUBJECT_Z]) mkdirSync(join(root, s), { recursive: true });
@@ -55,7 +56,7 @@ export function f31FixtureRoot({ fixed, batches = {}, tenants = {} }) {
   }));
   const basis = "F31_FIXTURE_ROOT_NOT_THE_REAL_POPULATION";
   w("tenancy/tenants.json", JSON.stringify({ schemaVersion: 1, tenants: [TA, TZ].map((t) => ({ schemaVersion: 1, tenantId: t, status: "ACTIVE", declaredOn: "2026-09-24", declarationBasis: basis, label: `F31 fixture ${t.slice(-2)}`, ...(tenants[t] ?? {}) })) }));
-  const att = [["SITE_ORIGIN", FA, TA], ["SITE_ORIGIN", FZ, TZ], ...Object.entries(batches).filter(([, b]) => b.attachTo).map(([id, b]) => ["RESEARCH_BATCH", id, b.attachTo])];
+  const att = [["SITE_ORIGIN", FA, TA], ["SITE_ORIGIN", FZ, TZ], ...Object.entries(batches).filter(([, b]) => b.attachTo).map(([id, b]) => ["RESEARCH_BATCH", id, b.attachTo]), ...extraAttachments];
   w("tenancy/attachments.json", JSON.stringify({ schemaVersion: 1, attachments: att.map(([resourceKind, resourceRef, tenantId]) => ({ schemaVersion: 1, resourceKind, resourceRef, tenantId, declaredOn: "2026-09-24", declarationBasis: basis })) }));
   const jsonl = (rows) => rows.map((r) => JSON.stringify(r)).join("\n") + (rows.length ? "\n" : "");
   w("observations/crawl-2026-09-12/fixture-crawl.jsonl", jsonl(fixed.records));

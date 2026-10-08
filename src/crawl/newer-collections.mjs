@@ -23,6 +23,7 @@ import { lookupStore, lookupSubject } from "../tenancy/root-registry.mjs";
 import { decideResolvedTenants, resolveSide } from "../tenancy/scope.mjs";
 import { RESOURCES } from "../tenancy/scoped-run.mjs";
 import { partitionRecords } from "./batch-partition.mjs";
+import { decideResearchBatch } from "../tenancy/research-batch-decision.mjs";
 import { canonicalUrl, targetPageId } from "../evidence/ids.mjs";
 
 export const NEWER_FILES = Object.freeze({ CRAWL: "crawl.jsonl", SITEMAPS: "sitemaps.jsonl", BODIES: "bodies.jsonl" });
@@ -32,28 +33,49 @@ const originOf = (u) => { const c = canon(u); return c ? new URL(c).origin : nul
 const urlOfObservation = (o) => o?.target?.ref ?? o?.value?.requested_url ?? o?.value?.final_url ?? null;
 const jsonl = (path) => (existsSync(path) ? readFileSync(path, "utf8").split("\n").filter((l) => l.trim() !== "").map((l) => JSON.parse(l)) : []);
 
-/** The RESEARCH_BATCH ids this tenant may read: attached to it AND a member of a subject that resolves to it. */
-export function declaredNewerBatches({ tenantId, resolve, env = process.env }) {
+/**
+ * F02 Amendment 2's decision for every research batch THIS tenant's own declarations name — attached to it, or named by one of its
+ * subjects (src/tenancy/research-batch-decision.mjs). Another tenant's batch is never located.
+ */
+export function newerBatchDecisions({ tenantId, resolve, env = process.env }) {
   const d = readDeclarations({ env });
   if (!d.readable) return [];
   const attached = new Set(d.attachments.filter((a) => a?.resourceKind === "RESEARCH_BATCH" && decideResolvedTenants(tenantId, a.tenantId).allowed).map((a) => a.resourceRef));
+  const mineAttached = (m) => d.attachments.some((a) => a?.resourceKind === m?.resourceKind && a?.resourceRef === m?.resourceRef && decideResolvedTenants(tenantId, a.tenantId).allowed);
   const index = rootIndexFor(env);
-  const named = new Set();
+  /* named: batches of subjects that RESOLVE to this tenant (membership); located: also the batches of any subject one of whose members
+   * is attached to this tenant — so a batch such a subject names but that is attached elsewhere, or nowhere, is decided and refused */
+  const named = new Set(), located = new Set();
   for (const subjectId of index.subjects instanceof Map ? index.subjects.keys() : []) {
     const l = lookupSubject(index, subjectId);
     if (l.state !== "DECLARED") continue;
     const members = l.entry?.members ?? [];
     const batches = members.filter((m) => m?.resourceKind === "RESEARCH_BATCH").map((m) => m.resourceRef);
     if (!batches.length) continue;
+    if (members.some(mineAttached)) for (const b of batches) located.add(b);
     const side = resolveSide(resolve, RESOURCES.subject(subjectId));
     if (!decideResolvedTenants(tenantId, side?.tenantId).allowed) continue;
     for (const b of batches) named.add(b);
   }
-  return [...attached].filter((b) => named.has(b) && BATCH_ID.test(b)).sort();
+  return [...new Set([...attached, ...located, ...named])].filter((b) => BATCH_ID.test(b)).sort().map((batchId) => decideResearchBatch({ resolve, tenantId, batchId, named }));
 }
 
-/** Each declared newer batch's own records, partitioned to the tenant, with the bodies its declared store holds for them. */
-export function readNewerCollections({ tenantId, resolve, env = process.env, batches = declaredNewerBatches({ tenantId, resolve, env }) }) {
+/** The RESEARCH_BATCH ids this tenant may read: those F02 decided ALLOWED (attached to it AND a member of a subject that resolves to it). */
+export function declaredNewerBatches({ tenantId, resolve, env = process.env }) {
+  return newerBatchDecisions({ tenantId, resolve, env }).filter((x) => x.allowed).map((x) => x.batchId);
+}
+
+/**
+ * Each declared newer batch's own records, partitioned to the tenant, with the bodies its declared store holds for them. Every F02
+ * decision — the allowed and the refused — is handed to `record` (the run's scope record) before any batch is read; only ALLOWED batches
+ * are read. `batches`, when given, are read as already decided (tests of the merge only).
+ */
+export function readNewerCollections({ tenantId, resolve, env = process.env, record = null, batches = undefined }) {
+  if (batches === undefined) {
+    const decisions = newerBatchDecisions({ tenantId, resolve, env });
+    for (const x of decisions) record?.(x.event);
+    batches = decisions.filter((x) => x.allowed).map((x) => x.batchId);
+  }
   const store = lookupStore(rootIndexFor(env), "RESEARCH");
   if (store.state !== "DECLARED") return [];
   const out = [];

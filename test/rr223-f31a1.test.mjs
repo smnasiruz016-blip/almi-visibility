@@ -174,7 +174,8 @@ test("T31-C9-CENSUS · F31 C9: every consumer reads the population through F31's
     assert.match(t, /readExistingPagePopulation|readExistingPagePopulation\(/, `${f} is not a consumer of F31's reader`);
     assert.doesNotMatch(t, BATCH_READ, `${f} reads a newer batch outside F31's reader`);
   }
-  const importers = ["src", "bin", "tools"].flatMap(mjsUnder).filter((f) => /newer-collections\.mjs["']/.test(readFileSync(join(REPO, f), "utf8")));
+  /* an IMPORT of the reader — F02's census names its file as an exclusion (F02 Amendment 2), which is not a read */
+  const importers = ["src", "bin", "tools"].flatMap(mjsUnder).filter((f) => /\bfrom\s+["'][^"']*newer-collections\.mjs["']/.test(readFileSync(join(REPO, f), "utf8")));
   assert.deepEqual(importers, ["src/page/existing-page-population.mjs"], "a module other than F31's reader reads the newer collections");
   assert.match('import { readNewerCollections } from "../crawl/newer-collections.mjs";', BATCH_READ, "the census cannot see a planted read");
 });

@@ -338,9 +338,9 @@ const OTHER_ROWS = Object.freeze({
   "src/page/content-brief.mjs": "5771c6955fcc621430391b9c34a525a74673e81a3ff4d3b05cf429d358ad5c06",
   "src/page/content-brief-evidence.mjs": "b1af103909fa3ef4782686380c4d1c5e14c473f5e73e1080f29fb1c06c37abe6",
   "src/crawl/batch-partition.mjs": "94c5fdcf901e80df57cfa528f1deaca4ffe17a5e7ed8826045558d6fa55af434",
-  "src/crawl/scope-completeness.mjs": "6d9b87b29efa7943790a1370f658bf25ad7f65bd243bdd635f3cfbae75f43f34", /* RR-223: F31's own code under its Amendment 1 (C9, newer declared collections) — restated, F94 unchanged */
-  "src/crawl/scope-inventory.mjs": "0894e2d32164af60269efc4288cbdea4f35e0fa2ec5666b4f1f72a111a1438af", /* RR-223: F31's own code under its Amendment 1 (C9, newer declared collections) — restated, F94 unchanged */
-  "src/page/existing-page-population.mjs": "c98db874883bfb76a37649d2c052fb303e1b90f186d90e9b537684654dfd21d2", /* RR-223: F31's own code under its Amendment 1 (C9, newer declared collections) — restated, F94 unchanged */
+  "src/crawl/scope-completeness.mjs": "6d9b87b29efa7943790a1370f658bf25ad7f65bd243bdd635f3cfbae75f43f34", /* RR-225: F31 A1 (C9) and F02 A2 (the recorded decision) — restated again, F94 unchanged */
+  "src/crawl/scope-inventory.mjs": "0894e2d32164af60269efc4288cbdea4f35e0fa2ec5666b4f1f72a111a1438af", /* RR-225: F31 A1 (C9) and F02 A2 (the recorded decision) — restated again, F94 unchanged */
+  "src/page/existing-page-population.mjs": "ae81025a364cec5f7573b8eb68912f3bf96fa63c7378286eb72f69a3bdfd4858", /* RR-225: F31 A1 (C9) and F02 A2 (the recorded decision) — restated again, F94 unchanged */
   "src/page/need-coverage.mjs": "75b88c1578530598b848a137ab73b66316d095a0eba5fe1966ff5bb4050e6b30",
   "src/page/action-decision.mjs": "74a70c37571842c4fde1ad7392f5442c0f0bd778ac0cccd1e0d7c4c057c8e2c8",
   "src/page/action-evidence.mjs": "fa87018736e057e786f78e396e512f41318b3c3dc78095bc389081fcc9eaec67",

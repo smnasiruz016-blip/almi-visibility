@@ -57,6 +57,7 @@ const OWNED = Object.freeze([
   "src/tenancy/scope.mjs",
   "src/tenancy/scoped-run.mjs",
   "src/tenancy/refs.mjs",
+  "src/tenancy/research-batch-decision.mjs", /* RR-225: F02 Amendment 2 */
   "src/governance/scoped-entry.mjs",
   /* 🔴 F02 post-merge, 24 Sep 2026: the one partition mechanism, its collection reader and the structural attachment proof
    * join the list — they decide which tenant a member or a resource belongs to. */

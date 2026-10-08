@@ -108,7 +108,8 @@ export function readExistingPagePopulation({ scope, batchId = BATCH_ID, sitemapB
     const declared = declaredScope({ tenantId: scope.tenantId, env });
     /* 🔴 F31 C9 (Amendment 1, RR-223): beside the fixed batches, every newer collection this tenant holds in a declared RESEARCH_BATCH —
      * newest observation per URL, newest listing per origin, links from the observations used, bodies only from the batch's own store */
-    const newer = readNewerCollections({ tenantId: scope.tenantId, resolve, env });
+    /* 🔴 F02 A2 (RR-225): each research batch is read only on F02's recorded decision, recorded through this run's own scope */
+    const newer = readNewerCollections({ tenantId: scope.tenantId, resolve, env, record: scope.recordDecision ?? null });
     const merged = mergeCollections({ fixed: { batchId, records: part.records, bodies, sitemaps: sitemapPart.records.filter((r) => r.record_type === "observation"), edges }, newer });
     const completeness = scopeCompleteness({
       origins: declared.origins,

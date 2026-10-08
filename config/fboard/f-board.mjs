@@ -1522,7 +1522,7 @@ export const DECLARED = Object.freeze({
   F31: Object.freeze({
     featureId: "F31",
     board: "F_BOARD",
-    state: "VERIFIED-PASS",
+    state: "IN-PROGRESS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: F31_ORIGINAL.ruling, contractSha256: F31_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -1592,6 +1592,21 @@ export const DECLARED = Object.freeze({
         sabotage: "runs/audit/rr225-sabotage-2026-10-08T0805.txt: 52 of 52 proved (F31 C1–C9 35; F02 A2 and the census controls 17), every span pre-flighted exactly once in the live code, each applied ALONE and red by an AssertionError, residue 0, production trail unchanged; practice 2026-10-08T0741 found S35 not red with the merge filter alone (the rule binds in two layers) — re-anchored to both and re-proved (T0804)",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-225.md", commit: "941b3eb3c2369c2284c0dbc234fa6415e02f4052", sha256: "61d1f9eeea43f4d1d30daca66690e21a0664e7ce9072cfd29f2be03470ea241c" }),
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+      /* RR-229: F31 REOPENED under its SAME acceptance (Amendment 1) — concrete contradictory evidence at real size (precedent: F35, RR-89) */
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F31",
+        on: "2026-10-08",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS (concrete contradictory evidence: F31's reader throws on a whole 240,328-URL listing)",
+        reason: "CONCRETE_CONTRADICTORY_EVIDENCE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "F31 Amendment 1 C9 reads 'its sitemap listings' from every newer declared research batch. RR-228 stored a real listing whole (240,328 URLs, F19 Amendment 1) and F31's reader threw RangeError (maximum call stack size exceeded) in recordIdentities (src/crawl/batch-partition.mjs l.33, a push(...) spread of every listed URL); scopeCompleteness's Math.min(...times) (src/crawl/scope-completeness.mjs l.94) throws the same way at that many observations. The 20,000-URL cap had hidden both. The acceptance is unchanged; the code does not meet it at real size.",
+        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F31.ruling.sha256, contract: ACCEPTANCES.F31.contractSha256 }),
+        evidenceRecord: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_STOP_REPORT_2026-10-08_RR-228_F19_A1_F31_SCALE.md", commit: "57d6fe1b14cd7b300f9f9df0b68422118e5b6640", sha256: "b49cd8a50512b430d7709f9ecfc4d36a47934e8c9d2d962df0aeb54c4e9f83cd" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-229.md", commit: "51e28c86c16233479666edf75a96a51e11539d2d", sha256: "33c647212c6c3c1c01cb71668bb522066162cf63bd9cc71da8356d3b37ca3799" }),
       }),
     ]),
   }),

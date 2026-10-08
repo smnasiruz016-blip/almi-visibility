@@ -16,7 +16,7 @@
  * everything. **A page that already failed uniqueWords is already rejected; its
  * overlap never needs computing.**
  *
- * On AlmiOET this is the difference between running and not running: the measured
+ * On the first connected product this is the difference between running and not running: the measured
  * pages carry 66, 95, 102, 111 and 167 unique words against a threshold of 350,
  * so the population reaching stage 3 is close to zero and the 28-billion-pair
  * problem mostly stops existing.

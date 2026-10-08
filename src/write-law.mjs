@@ -31,7 +31,7 @@
  *
  * ── WHY ANY OF IT IS HERE ON DAY ONE ────────────────────────────────────────
  *
- * It is AlmiOET's law, and AlmiOET has it BECAUSE environment separation was
+ * It is the first connected product's law, and that product has it BECAUSE environment separation was
  * never achieved there. The same is true here today and it is measured, not
  * assumed: AlmiVisibility's Preview and Production point at the same Neon
  * project, the same endpoint and the same database (architecture report §2b).

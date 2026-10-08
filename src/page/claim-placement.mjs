@@ -104,12 +104,12 @@ export function buildPlacement({ universal = [], pendingLayers = [] } = {}) {
  * THE CLAIMS SOMEBODY REMEMBERED TO PUT IN IT.
  *
  * Found while running the chain on a SECOND profession. `ALL_REPEATED_CLAIMS`
- * was assembled from the /nursing page, so on a speech-pathology page it did not
+ * was assembled from one profession's page, so on another profession's page it did not
  * recognise HCPC's profession-independent claims (accepted tests, certificate
  * age, test venue) — and counted them as UNIQUE. That flatters the page: text
  * that would be identical on all twelve was being credited as distinguishing.
  *
- * The same bug was already present on /nursing itself:
+ * The same bug was already present on that first profession's page itself:
  * `ie-nmbi.recognised-english-speaking-countries` has no profession qualifier and
  * is the same list for a dentist as for a nurse, yet it was counted as unique.
  *
@@ -131,10 +131,10 @@ export function buildPlacement({ universal = [], pendingLayers = [] } = {}) {
  *   NUMBER (1400/300). Only speech and language therapy differs (1800/400).
  *
  * A product’s own census does the comparison, and reports a THIRD answer —
- * UNCOMPARABLE — where only one variant holds a predicate. For AlmiOET today
+ * UNCOMPARABLE — where only one variant holds a predicate. For the first connected product today
  * that is 14 of 14, because its registry covers 2 of 12 professions.
  *
- * ✅ AND THE SUPPLY THAT DOES DISTINGUISH HAS BEEN FOUND, in almi-oet’s
+ * ✅ AND THE SUPPLY THAT DOES DISTINGUISH HAS BEEN FOUND, in that product’s
  * clinical item bank: 12/12 professions, 30 items each, cross-variant overlap
  * 0.0125 against a market benchmark of 0.0828–0.1305. `recipient` measures
  * 0.0011 and `setting` 0.0000; `letterType` measures 0.9242 and distinguishes

@@ -2,7 +2,7 @@
  * THE SHARED SHELL — what a template says on every one of its pages, and what
  * must be subtracted before a page's own words can be counted.
  *
- * Measured on five live AlmiOET siblings, 10 September 2026: 577–678 rendered
+ * Measured on five live sibling pages of the first connected product, 10 September 2026: 577–678 rendered
  * words per page, of which **511 were shell**. Get this wrong in either
  * direction and Gate A either passes everything or fails everything.
  *
@@ -42,7 +42,7 @@ import { counts } from "./tokens.mjs";
  * reason because an inline 0.98 is a number nobody can argue with later.
  *
  * ⚠️ PROVISIONAL. It has NOT been calibrated against a real corpus yet — Gate A's
- * first run on AlmiOET is that calibration. If it turns out to admit or exclude
+ * first run on the first connected product is that calibration. If it turns out to admit or exclude
  * the wrong tokens, the fix is a MEASUREMENT of where the shell boundary really
  * sits, not a nudge to make a result look better.
  */

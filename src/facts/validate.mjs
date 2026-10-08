@@ -125,7 +125,7 @@ export function validateRecord(record) {
   // FS-A1 (RTP-1 Rev 6 S39, P14, D2): no related-source category is banned as a whole. A tier-4 record that states an ORDINARY
   // claim (claim.states "OTHER") may be a citation, rendered SECONDARY; one stating a body's rule, policy or requirement, or not
   // saying what it states, stays a lead.
-  // AlmiOET's own rule, adopted rather than reinvented. The NZ record exists
+  // The first connected product's own rule, adopted rather than reinvented. The NZ record exists
   // because it was obeyed: a law-firm blog found the change, a person then read
   // Immigration New Zealand's own page.
   if (Number(s.tier) === TIER_LEAD_ONLY && r.life?.status !== "lead" && !isOrdinaryTier4(r)) {

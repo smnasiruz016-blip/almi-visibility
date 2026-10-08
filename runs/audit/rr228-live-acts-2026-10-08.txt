@@ -1,0 +1,24 @@
+RR-228 · F19 Acceptance Amendment 1 · the three live acts under the owner's GREEN (_handoffs 8997f4a) · count-only (no host, URL or tenant id)
+batch <B> = f19-a1-almioet-2026-10-08 · data branch rr228-f19a1-almioet (pushed, NOT merged — see FINDING)
+
+ACT 1 · declaration: one RESEARCH_BATCH attachment to the owner's tenant + subject membership + batch directory; data validator PASS
+ACT 2 · sitemap re-collect (bin/crawl.mjs --research-batch --subject --sitemaps --live --i-have-the-owners-green --confirm) · 2026-10-08T18:17Z
+  declared origins 1 · requests 8 (robots 1, index 1, children 6) · children fetched 6 of 6 · every cause 0 (failed, truncated, unparsed,
+  skipped, robots-refused, off-site, unfollowed index) · coverage COMPLETE · URLs read 240,328 · stored 240,328 · store 21,371,900 of
+  47,185,920 bytes · KEPT · trail 6832 → 6839 (+7: 2 scope, 2 run authorisations, 3 governed write)
+  the /speech-pathology part in the listing: 8,978 URLs
+ACT 3 · crawl of the part (same bin, no --sitemaps; seeds = the first 199 part URLs in sorted order) · 2026-10-08T18:22Z
+  seeds 199 · fetched 199 (status 200: 199) · requests to the host 200 (199 pages + 1 robots.txt) · redirects 0 · truncations 0 · refusals 0
+  pacing: 199 gaps, 0 breaches, fastest 1000.111 ms · bodies stored in the batch 199 (12,987,386 bytes; store 14,505,655 of 47,185,920) ·
+  over the ceiling 0 · each body's hash = its observation's: 199 of 199 · truncated flags agree 199 of 199 · run record carries no page
+  content · cost entry 1 (money NOT MEASURED) · KEPT · trail 6839 → 6854 (+15: 3 scope, 4 × 3 governed write)
+  links: 199 link records · 349 distinct targets · 230 inside the part · 37 inside the part not crawled (all 37 are in the listing)
+  IPv6 probe: UNAVAILABLE (ENETUNREACH) · DNS reachability lookup: UNKNOWN (ECONNREFUSED), recorded as UNKNOWN — the fetches themselves succeeded
+
+THE PART: INCOMPLETE — 8,978 URLs listed, 199 crawled (one run allows 199 + robots.txt = 200 requests); 8,779 listed URLs not crawled; no
+second run (owner's condition).
+
+🔴 FINDING — F31'S READER CANNOT READ A WHOLE LISTING OF THIS SIZE. readExistingPagePopulation → readNewerCollections → partitionRecords →
+recordIdentities (src/crawl/batch-partition.mjs l.33) spreads every listed URL into one push(...) call: RangeError, maximum call stack size
+exceeded, at 240,328 URLs. The 20,000-URL cap hid it. Merging this batch into the data repository's main would make every F31 population
+read for this tenant (and every row reading through F31) throw. So: the data branch is NOT merged, F19 is NOT VERIFIED, PR #276 stays a draft.

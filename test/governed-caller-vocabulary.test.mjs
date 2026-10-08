@@ -317,9 +317,12 @@ test("V7 · the REAL population: 46 governed = 45 routed + 1 checked exemption +
   /* 112/57 → 113/57 on 8 October (F93, RR-214), for a MEASURED reason, moved in the SAME commit as the change: one production entry
    * point, bin/trust-signals.mjs, READ-ONLY — it reports one client's trust-signal findings and draft plans and writes nothing
    * (READ_ONLY_DIAGNOSTIC 55 → 56). No governed caller was added and no existing caller moved class. */
-  assert.equal(rows.length, 113);
+  /* 113/57 → 114/57 on 8 October (F92, RR-216), for a MEASURED reason, moved in the SAME commit as the change: one production entry
+   * point, bin/media-visibility.mjs, READ-ONLY — it reports one client's image and video findings and writes nothing
+   * (READ_ONLY_DIAGNOSTIC 56 → 57). No governed caller was added and no existing caller moved class. */
+  assert.equal(rows.length, 114);
   assert.equal(governed.length, 57);
-  assert.equal(rows.filter((r) => r.cls === "READ_ONLY_DIAGNOSTIC").length, 56);
+  assert.equal(rows.filter((r) => r.cls === "READ_ONLY_DIAGNOSTIC").length, 57);
   const by = Object.fromEntries(CALLER_CLASSES.map((c) => [c, governed.filter((r) => r.callerClass === c).length]));
   /* 43/2 → 44/1 on 26 September (F10), for a MEASURED reason: bin/heldout-evaluation.mjs now routes its scoring run through the
    * boundary (BOUNDARY_ROUTED); no entry point was added and no other caller moved class. */

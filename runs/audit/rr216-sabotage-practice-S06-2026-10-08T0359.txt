@@ -1,0 +1,9 @@
+RR-216 F92 sabotage PRACTICE run · 2026-10-08T03:59:06.626Z
+population: 1 sabotage(s) over test/rr216-f92.test.mjs · each applied ALONE · no provider, no network, no third-party read
+BASELINE (the named tests before any sabotage): GREEN · named tests seen GREEN: 1 of 1
+PRE-FLIGHT (span occurrences in the code live now): S06=1 · all exactly once: true
+production trail sha256 before: ef4c676280d0ce42d0bafa6d693d87be75a0b31a520721aa7f291db4785f3a2e
+
+S06 C2 · alt presence is measured again instead of read from F26 [src/page/media-visibility.mjs]: landed true · named test "T92-C2" red true · its failure AssertionError · SyntaxError false · a production child crashed false · failing T92-C1,T92-C2 · restored true · PROVED
+
+proved 1 of 1 · residue 0 · production trail sha256 after: ef4c676280d0ce42d0bafa6d693d87be75a0b31a520721aa7f291db4785f3a2e · unchanged true

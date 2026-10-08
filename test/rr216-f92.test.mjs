@@ -140,8 +140,11 @@ test("T92-C2 · F92 C2 DESCRIBED, READ FROM F26: an image with no alt — a find
   assert.match(r.items[1].described.why, /F26's img-alt check/);
   const f26 = f26AssessPage(html("", body));
   assert.deepEqual([r.items.filter((i) => i.described.signal === SIGNAL.FINDING).length, r.items.filter((i) => i.described.signal === SIGNAL.PRESENT).length], [f26.machine["img-alt"], f26.person["alt-adequate"]], "F92's alt presence differs from F26's result");
-  assert.doesNotMatch(code(MV), /attrOf\([^)]*["']alt["']|\balt\s*=/, "F92 counts alt attributes itself instead of reading F26");
-  assert.match('const a = attrOf(t, "alt");', /attrOf\([^)]*["']alt["']|\balt\s*=/, "the census cannot see a planted alt count");
+  /* F92's code names "alt" nowhere but F26's own result fields ("img-alt", "alt-adequate"), the word "alternative" and its standing's
+   * "alt text" — so no alt attribute is counted or read but through F26 */
+  const ALT = /(?<!img-)alt(?!-adequate|ernative| text)/i;
+  assert.doesNotMatch(code(MV), ALT, "F92 counts alt attributes itself instead of reading F26");
+  for (const planted of ['const a = attrOf(t, "alt");', "if (/\\balt\\s*=/.test(tag)) return 1;"]) assert.match(planted, ALT, "the census cannot see a planted alt count");
   const vo = html(ld({ "@type": "VideoObject", name: "Intro", description: "How renewal works", contentUrl: `${A}/v/intro.mp4` }), '<video src="/v/intro.mp4"></video>');
   const cap = html("", '<video src="/v/b.mp4"><track kind="captions" src="/v/b.vtt"></video>');
   const ifr = html("", '<iframe src="https://player.vimeo.com/video/1" title="Walkthrough"></iframe>');

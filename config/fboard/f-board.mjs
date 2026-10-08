@@ -1248,7 +1248,7 @@ export const DECLARED = Object.freeze({
   F19: Object.freeze({
     featureId: "F19",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-28", ruling: F19_ORIGINAL.ruling, contractSha256: F19_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -1298,6 +1298,26 @@ export const DECLARED = Object.freeze({
         amendment: Object.freeze({ ruling: F19_AMENDMENT_1.ruling, contractSha256: F19_AMENDMENT_1.contractSha256 }),
         ownerApproval: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_APPROVAL_2026-10-08_RR-227_F19_AMENDMENT_1_BY_HASH.md", commit: "7aa4c0ffcfcea302f0f307a1a2829369957d8eb0", sha256: "62790d761accd5b43c774c39d7922c483cc7c37a40f10cc2a18f91af9563e41f", admitted: false, why: "named without RULING or DECISION by the owner's rule (RR-226); the admitted command record quotes the same hashes" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-227.md", commit: "7aa4c0ffcfcea302f0f307a1a2829369957d8eb0", sha256: "8d511e13e188f0366c6c60502732e5094ab8c2e78300d38cae4d3e1c30eaaba0" }),
+      }),
+      /* RR-229 (c): F19 VERIFIED under its Amendment 1 — fixtures (RR-227) and the REAL population of RR-228, committed (data main 0c342bd) */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F19",
+        population: "REAL",
+        on: "2026-10-08",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: Amendment 1, RR-226..RR-229)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F19_AMENDMENT_1.ruling.sha256, contract: F19_AMENDMENT_1.contractSha256 }),
+        populations: "FIXTURES (RR-227, test/f19-a1.test.mjs): every A1 EVIDENCE line fixtures can prove — whole listing past 20,000, ceiling at and past, failed/truncated/skipped child and unfollowed nested index each PARTIAL, timeout, re-collection only into its batch and refused with zero requests elsewhere, dry run and owner green, the older writer retired, residency clean, bodies in the batch with their observations' hashes, truncated marked, ceiling counted, preflight of both appends, F31 reading both, F02's census unchanged. REAL (count-only; the owner's GREEN _handoffs 8997f4a; committed to the data repository's main at 0c342bd): ONE tenant-scoped sitemap re-collection — 8 requests, 6 of 6 children, every cause 0, COMPLETE, 240,328 URLs read = stored, store 21,371,900 of 47,185,920 bytes; ONE research-batch crawl — 199 seeds, 199 × 200, 200 requests to the host (199 + robots.txt), 0 truncations, 0 refusals, 0 redirects, pacing 0 breaches of 199, 199 bodies in the batch (12,987,386 bytes), every body's hash its observation's, 0 over the ceiling; both censused by test/f19-a1-real.test.mjs and test/f19-real-run-census.test.mjs, never empty",
+        proofs: "test/f19-a1.test.mjs (fixtures, 23) · test/f19-a1-real.test.mjs (the REAL listings and body stores, 7 + 7 clauses, each with a control on a corrupted copy) · test/f19-real-run-census.test.mjs (every committed run of the current crawler, RECORD clause restated under A1) · test/f19-crawler-bounds, f19-generic-crawl, f19-real-append-path (restated: bodies in the batch), rr106 §2b · F31 reads the real listing through its reader without error since RR-229 (its real-size fix)",
+        sabotage: "runs/audit/rr227-sabotage-2026-10-08T1728.txt 68 of 68 (32 A1 limbs, 26 earlier F19 limbs, 10 real-census controls) and its re-proofs (T2008 68 of 68) · runs/audit/rr229c-sabotage-2026-10-08T2147.txt 14 of 14 (each REAL census clause neutralised, its control red by an AssertionError) · residue 0 and the production trail unchanged in every run",
+        historicalReuse: "none: acceptanceRelation NEW",
+        declaredLimit: "the /speech-pathology part is INCOMPLETE: 8,978 URLs listed, 199 crawled in the ONE run the GREEN allowed (8,779 listed and 37 linked in-part URLs unobserved); a part verdict needs F31 Amendment 2 (held), a part ruling and a freshness rule. Depth 0 by design; no rendering; money NOT MEASURED. The crawler's own IPv6 probe and DNS reachability lookup are part of a live run (IPv6 UNAVAILABLE, DNS UNKNOWN on RR-228's run).",
+        ownerGreen: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_GREEN_2026-10-08_RR-228_F19_A1_THREE_LIVE_ACTS.md", commit: "8997f4a04d322334714a31921d76525f8839bef2", sha256: "292ae700f02ba4bb3240bd3077d7168e948a0e5d9239c10ed776ee1b3f1f24ac", admitted: false }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-229.md", commit: "51e28c86c16233479666edf75a96a51e11539d2d", sha256: "33c647212c6c3c1c01cb71668bb522066162cf63bd9cc71da8356d3b37ca3799" }),
+        afterMerge: "main CI green on the exact merged SHA, reading the data repository's main (0c342bd); a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

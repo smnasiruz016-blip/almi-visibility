@@ -10,6 +10,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
@@ -142,12 +143,31 @@ for (const [i, R] of RUNS.entries()) {
     assert.deepEqual(Object.keys(d.ledger[0].providerCalls.perProvider), ["self-operated-crawler"], "a provider other than the self-operated crawler was called");
   });
 
-  test(`F19 · REAL ${label} · RECORD: count-only, no page content in the committed record, and no body in the data repository`, () => {
+  /* RR-229 (F19 Acceptance Amendment 1, E and C): a research batch now also holds its OWN body store (bodies.jsonl, each body its
+   * observation's — same hash) and its sitemap listing (sitemaps.jsonl), and may hold a README declaration note. The record stays
+   * count-only, with no page content in it; anything else in the batch still fails. (Restated: it was ["crawl.jsonl", "ledger.jsonl",
+   * "seeds.txt"] and "no body in the data repository", the pre-A1 rule.) */
+  test(`F19 · REAL ${label} · RECORD: count-only, no page content in the committed record; a body only in the batch's own body store, each its observation's`, () => {
     const d = load(R);
     for (const f of ["requestsIssued", "robotsRequestsIssued", "urlsFetched", "truncations", "refusals", "seedPoolSize"]) assert.ok(Number.isInteger(d.runs[0][f]), `the run record lacks ${f}`);
     const text = readFileSync(join(d.dir, "crawl.jsonl"), "utf8");
     assert.doesNotMatch(text, /<html|<body|<!doctype/i, "the committed record carries page content");
     for (const r of d.records) assert.equal(Object.hasOwn(r.value ?? {}, "body"), false);
-    assert.deepEqual(readdirSync(d.dir).sort(), ["crawl.jsonl", "ledger.jsonl", "seeds.txt"], "something other than the governed records landed in the batch");
+    const files = readdirSync(d.dir).sort();
+    const lawful = new Set(["crawl.jsonl", "ledger.jsonl", "seeds.txt", "bodies.jsonl", "sitemaps.jsonl", "README.md"]);
+    assert.deepEqual(files.filter((f) => !lawful.has(f)), [], "something other than the governed records landed in the batch");
+    for (const f of ["crawl.jsonl", "ledger.jsonl", "seeds.txt"]) assert.ok(files.includes(f), `the batch lacks ${f}`);
+    if (files.includes("README.md")) assert.doesNotMatch(readFileSync(join(d.dir, "README.md"), "utf8"), /<html|<body|<!doctype/i, "the declaration note carries page content");
+    if (files.includes("bodies.jsonl")) {
+      const obs = new Map(d.records.filter((r) => r.record_type === "observation").map((o) => [o.observation_id, o]));
+      const bodies = readFileSync(join(d.dir, "bodies.jsonl"), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+      assert.ok(bodies.length > 0, "an empty body store");
+      for (const b of bodies) {
+        const o = obs.get(b.observation_id);
+        assert.ok(o, "a stored body names no observation of this batch");
+        assert.equal(b.content_sha256, o.content_sha256, "a stored body's hash is not its observation's");
+        assert.equal(createHash("sha256").update(b.body, "utf8").digest("hex"), o.content_sha256, "a stored body's bytes do not hash to its observation");
+      }
+    }
   });
 }

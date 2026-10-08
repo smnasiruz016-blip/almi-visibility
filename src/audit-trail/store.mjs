@@ -99,7 +99,7 @@ export const systemClock = () => isoSeconds(Date.now());
  */
 export function createAuditStore({
   eventsPath, headPath, clock = systemClock, evidenceEntryFor = () => null, isSealedRef = () => false,
-  forbiddenSubstrings = [], appendLine = defaultAppendLine, sizeCeilingBytes = 8 * 1024 * 1024,
+  forbiddenSubstrings = [], appendLine = defaultAppendLine, sizeCeilingBytes = 32 * 1024 * 1024 /* 32 MiB, REPORTED — NOT ENFORCED (owner ruling 8 Oct 2026, f11a415) */,
   assertLocation = () => {},
   /* 🔴 The production trail's out-of-tree witness (witness.mjs). null for every confined store. When present, an append
    * onto a trail the witness shows was shortened or altered is REFUSED, and verify reports it. */

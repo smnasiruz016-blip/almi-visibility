@@ -132,7 +132,8 @@ test("T93-C1 · F93 C1 WHO IS RESPONSIBLE: each identity marker PRESENT and name
     assert.deepEqual([r.signal, r.markers.length], [SIGNAL.FINDING, 0], "an identity marker was reported that the body does not hold");
     assert.match(r.why, /no identity marker/);
   }
-  for (const [h] of cases) assert.equal(identityOf(h).credentials, NOT_VERIFIED);
+  /* the text itself, not the exported constant: a constant that changed to claim verification must still fire */
+  for (const [h] of cases) assert.match(identityOf(h).credentials, /^NOT MEASURED — no record verifies an identity, a credential, expertise or experience$/, "credentials or experience were reported as verified");
   const c = chosen();
   const d = renderCompiledDraft({ spec: c.d.spec, decision: c.d.decision, plan: null });
   const none = planForDraft({ draft: d, organisation: null, pages: SITE, recordsOf: SERVED, tenantId: T, completeness: COMPLETE_INV });

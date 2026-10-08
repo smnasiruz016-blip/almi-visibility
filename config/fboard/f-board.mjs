@@ -2958,7 +2958,7 @@ export const DECLARED = Object.freeze({
   F92: Object.freeze({
     featureId: "F92",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-08", ruling: F92_ORIGINAL.ruling, contractSha256: F92_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -2975,6 +2975,26 @@ export const DECLARED = Object.freeze({
         baseCiRun: "37720185351",
         baseCiConclusion: "success",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-216.md", commit: "8c155bb342909aa2c2e667ec3a81af43e196367c", sha256: "152757f5c78a15c8988c168f30784a05153cc96c67c4edfddd5e5edeeea68d50" }),
+      }),
+      /* RR-216: F92 PROVED — every clause of its frozen acceptance PROVED and every sabotage PROVED, on FIXTURE pages (RR-177) with C6's
+       * count-only real-structure control; recorded through the board route in the same PR; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F92",
+        population: "REAL",
+        on: "2026-10-08",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F92_ORIGINAL.ruling.sha256, contract: F92_ORIGINAL.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED" }),
+        populations: "FIXTURE pages only for C1–C5, C7 and [ALL] — hand-written fixture bodies on a fixture origin (img, picture, video, declared video hosts, decorative claims, VideoObject, captions tracks, og and structured media, fixture judgements, fixture sitemap media entries, a fixture need naming a media format) and the RR-184 fixture chain (F35's own CREATE, F37's own render) for the new page. C6's REAL control, count-only and records-only: 20 declared tenants with a site origin — INCOMPLETE 18, UNKNOWN 2, COMPLETE 0 — no result claims the site has no media. The real F92 path for one declared client, once, in-process, no trail write: 0 drafts; 27 existing pages, INCOMPLETE — NO MEDIA 27 (no image or video on any page), decorative claims 27 (inline svg, F26's, not decided), described/judged/structured/videos 0, sitemap media NOT MEASURED 27 (the capture records URL strings only), recommendation NOT MEASURED 27 (no need record names a media format); site-level NOT MEASURED. Never the 27 existing pages' content in a proof (RR-177).",
+        proofs: "test/rr216-f92.test.mjs T92-C1 to T92-C7 and T92-ALL (one per EVIDENCE line), R92-BOARD",
+        sabotage: "runs/audit/rr216-sabotage-2026-10-08T0359.txt (sha256 bd604420…): 35 of 35 proved (one per FAILURE limb of C1–C7 and [ALL]), residue 0, production trail unchanged; the practice pass found S06 NOT PROVED (T92-C2's alt census did not see a planted regex literal) — the census now refuses any alt in F92's code but F26's own field names, S06 re-practised before the real pass",
+        historicalReuse: "no historical row maps to F92 (crosswalk NEW, no module or test). Reused read-only: F26's assessPage and scannable (alt presence and decorative claims, per image), F48's discoverBlocks (which blocks are valid), F31's population and partition, the sitemap capture's records, F37's render; none changed (C7 pins their bytes at base dcd9450e)",
+        declaredLimit: "no image or video file is fetched or stored, so truthfulness and adequacy are NOT MEASURED until a registered provider's recorded call (F40's law) judges recorded media; sitemap media are NOT MEASURED until a capture records media entries; a recommendation needs a recorded need naming a media format (none exists); media a script or a style inserts is NOT MEASURED; video hosts and description markers are declared lists; no draft, brief or head shows F92's findings (their own amendments)",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

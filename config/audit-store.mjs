@@ -34,6 +34,13 @@
  *   refuse an append and does not block a governed write.** Measured size at that time: 185,285 bytes, 2.2% of the
  *   declared 8,388,608.
  *
+ *   🔴 RAISED 8 October 2026 to 32 MiB (33,554,432 bytes) by the owner's ruling
+ *   _handoffs AlmiVisibility_OWNER_RULING_2026-10-08_AUDIT_STORE_CEILING_32MiB.md (f11a415, sha256 77fe46bf…; RR-212, prep RR-211 5e4f454).
+ *   It stays REPORTED — NOT ENFORCED (8f3f323, 47dc66c): nothing refuses a write for crossing it. Reason, measured: the store had
+ *   reached 8,025,429 bytes, and two tests assert the REAL store is within the ceiling (test/audit-trail.test.mjs, test/f08-board-
+ *   reconciliation.test.mjs P15), so crossing 8 MiB would have stopped every merge although no write is refused. The store's bytes,
+ *   hash chain and witness were not changed by raising it.
+ *
  *   This is a correction to a DECLARATION, not a repair: capacity appears nowhere in F08's frozen acceptance, so
  *   building enforcement would enlarge what F08 delivers without changing what it promised. Enforcement is PARKED
  *   as its own row. Until then, nothing here may be read as a guarantee that the store cannot grow unbounded —
@@ -50,7 +57,7 @@ export const AUDIT_STORE = Object.freeze({
   eventsPath: "audit-trail/events.jsonl",
   headPath: "audit-trail/head.json",
   format: "JSONL/UTF-8/LF, one canonical event per line",
-  sizeCeilingBytes: 8 * 1024 * 1024,
+  sizeCeilingBytes: 32 * 1024 * 1024, /* 32 MiB — REPORTED, NOT ENFORCED (owner ruling 8 Oct 2026, f11a415) */
   retention: "append-only; never pruned; bounded by what is admitted, not by what is deleted",
   derivedArtefacts: Object.freeze([]),
   derivedArtefactRule: "regenerable from the store alone, and it records the sha256 of every input it was built from",

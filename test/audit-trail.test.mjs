@@ -26,6 +26,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { appendFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { createHash } from "node:crypto";
 
 import { AUDIT_STORE } from "../config/audit-store.mjs";
@@ -44,9 +45,9 @@ import { isHeldOut } from "../src/discovery/intent-clusters.mjs";
 import { PRODUCT_WORDS } from "../tools/product-boundary.mjs";
 import {
   AUDIT_VERSION, EVENT_TYPES, FIELD_ORDER, GENESIS_PREVIOUS_HASH, canonicalJson, contentFingerprint, eventFaults,
-  hashEvent,
+  hashEvent, deriveEventId,
 } from "../src/audit-trail/event.mjs";
-import { AuditRefused, DETECTION_BOUNDARY, createAuditStore, isoSeconds, orderedFor } from "../src/audit-trail/store.mjs";
+import { AuditRefused, DETECTION_BOUNDARY, createAuditStore, isoSeconds, orderedFor, defaultIdentity } from "../src/audit-trail/store.mjs";
 import { createAuditReader } from "../src/audit-trail/reader.mjs";
 import { makeEvidenceLookup, makeSealedLookup, refForEntry, familyTCandidates } from "../src/audit-trail/population.mjs";
 import { recordCandidates, writeGateEvent } from "../src/audit-trail/recorder.mjs";
@@ -751,6 +752,55 @@ test("P34 · the declared store location and format are product-neutral, and the
 /* ════════════════════════════════════════════════════════════════════════════════════════════════════════════════
  * THE REAL COMMITTED TRAIL, AND THE SCHEMA ITSELF
  * ════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+
+/* 🔴 RR-212 · THE CEILING, CROSSED ON A COPY (owner ruling 8 Oct 2026, _handoffs f11a415: 32 MiB, REPORTED — NOT ENFORCED). The committed
+ * store is copied to the OS temp directory and extended PAST the declared ceiling by a valid chain — each event built exactly as append()
+ * builds it (deriveEventId · defaultIdentity · hashEvent · orderedFor), because 4,000+ real appends would each re-read the whole store
+ * (measured: 300 appends of ~5 KB took 334 s). The production verify() then judges that chain, and a REAL append() follows. Never the
+ * committed store: its sha256 is compared before and after. */
+test("RR-212 · CONTROL: a copy of the store past the declared 32 MiB reports withinCeiling false, verifies, and the next append is still ACCEPTED", () => {
+  const committed = join(REPO_ROOT, AUDIT_STORE.eventsPath), committedHead = join(REPO_ROOT, AUDIT_STORE.headPath);
+  const before = [readFileSync(committed), readFileSync(committedHead)].map((b) => createHash("sha256").update(b).digest("hex"));
+  assert.equal(AUDIT_STORE.sizeCeilingBytes, 32 * 1024 * 1024, "the declared ceiling is not the owner's 32 MiB");
+  const dir = mkdtempSync(join(tmpdir(), "rr212-ceiling-"));
+  try {
+    const eventsPath = join(dir, "events.jsonl"), headPath = join(dir, "head.json");
+    const lines = readFileSync(committed, "utf8").split("\n").filter(Boolean);
+    let prev = JSON.parse(lines.at(-1));
+    let bytes = lines.reduce((n, l) => n + Buffer.byteLength(l) + 1, 0);
+    const startedWithin = bytes <= AUDIT_STORE.sizeCeilingBytes;
+    const meta = Object.fromEntries(Array.from({ length: 20 }, (_, k) => [`k${k}`, "x".repeat(200)]));
+    const t0 = Date.parse(prev.occurredAt);
+    const out = [...lines];
+    for (let i = 1; bytes <= AUDIT_STORE.sizeCeilingBytes; i += 1) {
+      const draft = { eventType: "BOARD_TRANSITION", action: "RR212_CEILING_CONTROL", outcome: "RECORDED", reasonCode: "CONTROL", occurredAt: isoSeconds(Math.min(t0 + i * 1000, Date.now() - 60000)), actor: "test/audit-trail.test.mjs", actorType: "ENGINE", scopeType: "GLOBAL_PRODUCT", tenantId: null, subjectId: null, authorityRef: { ...F08_AUTHORITY, scope: [...F08_AUTHORITY.scope] }, authorityHash: F08_RECORD.contentHash, softwareVersion: SW, evidenceRefs: [], correlationId: `rr212-${i}`, parentEventId: null, migration: false, migrationSource: null, migratedAt: null, metadata: { ...meta, n: String(i) } };
+      const event = {};
+      for (const k of FIELD_ORDER) event[k] = null;
+      Object.assign(event, { ...draft, auditVersion: AUDIT_VERSION, eventId: deriveEventId({ ...defaultIdentity(draft), subject: `rr212-${i}` }), recordedAt: isoSeconds(Date.now() - 1000), previousEventHash: prev.eventHash, eventHash: null, metadata: { ...draft.metadata } });
+      if (Date.parse(event.occurredAt) < Date.parse(prev.occurredAt)) event.metadata.timeAnomaly = "OUT_OF_ORDER_OCCURRED_AT";
+      event.eventHash = hashEvent(event);
+      const line = JSON.stringify(orderedFor(event));
+      out.push(line);
+      bytes += Buffer.byteLength(line) + 1;
+      prev = event;
+    }
+    writeFileSync(eventsPath, out.join("\n") + "\n");
+    writeFileSync(headPath, JSON.stringify({ auditVersion: AUDIT_VERSION, count: out.length, headHash: prev.eventHash, updatedAt: isoSeconds(Date.now()) }, null, 2) + "\n");
+    const store = createAuditStore({ eventsPath, headPath, evidenceEntryFor, isSealedRef, sizeCeilingBytes: AUDIT_STORE.sizeCeilingBytes });
+    const v0 = store.verify();
+    assert.deepEqual([v0.ok, v0.findings], [true, []], "the extended copy is not a valid chain — the control would prove nothing");
+    const crossed = store.sizeReport();
+    assert.ok(startedWithin, "the copy did not start within the ceiling");
+    assert.deepEqual([crossed.ceilingBytes, crossed.withinCeiling], [33554432, false], "past 32 MiB the store did not report it");
+    let r;
+    try { r = store.append(draft({ action: "RR212_AFTER_THE_CEILING", correlationId: "rr212-after" })); } catch (e) { r = { status: `REFUSED: ${e.message}` }; }
+    assert.equal(r.status, "APPENDED", "an append past the ceiling was refused — the ceiling must be REPORTED, NOT ENFORCED");
+    const v1 = store.verify();
+    assert.deepEqual([v1.ok, v1.findings, store.readHead().count], [true, [], out.length + 1]);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+  const after = [readFileSync(committed), readFileSync(committedHead)].map((b) => createHash("sha256").update(b).digest("hex"));
+  assert.deepEqual(after, before, "the committed store or its head changed");
+});
 
 test("🔴 the COMMITTED audit trail verifies, in field order, with its head record and within its declared ceiling", () => {
   const store = productionAuditStore({ repo: REPO_ROOT, forbiddenSubstrings: [] });

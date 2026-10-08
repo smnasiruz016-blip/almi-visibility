@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -2902,6 +2902,52 @@ export const DECLARED = Object.freeze({
         sabotage: "runs/audit/rr210-sabotage-2026-10-07T2305.txt (sha256 f3e63d14…): 37 of 37 proved (one per FAILURE limb of C1–C7 and [ALL]), residue 0, production trail unchanged; the practice pass found S25 NOT PROVED (its sabotage crashed the module, a TypeError) — re-anchored and re-practised before the real pass",
         historicalReuse: "no historical row maps to F38 (crosswalk NEW, no module or test). Reused read-only: F37's render and claimsOf, F37's PROMISE census, F31's population reader, the head-elements check's parseHead (agreement on fixtures); none changed (C7 pins their bytes at base 24069ee3)",
         declaredLimit: "overstating and answer placement are NOT MEASURED on existing pages (no verified-claims record, no central question recorded for them); uniqueness is among recorded pages only while no inventory is COMPLETE; a draft's head is built without F94's plan (F94 C7), which never changes its title or direct answer; F41's preview shows the body only (its own amendment); no length guidance is a gate",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
+  /* 🔴 F93 · Trust and identity signals. RR-214: its first acceptance, approved by its hash and frozen ALONE (_handoffs 4938f07)
+   * before any F93 code; then its implementation begins. Its history was empty (crosswalk: no rows, commits, modules or tests; 0 trail
+   * events), so the freeze-history rule pinned nothing. */
+  F93: Object.freeze({
+    featureId: "F93",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-08", ruling: F93_ORIGINAL.ruling, contractSha256: F93_ORIGINAL.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F93",
+        on: "2026-10-08",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: F93_ORIGINAL.ruling.sha256, contract: F93_ORIGINAL.contractSha256 }),
+        branch: "rr214-f93",
+        baseSha: "87591a9717b66a2821535fc8fbec6fe181476d57",
+        baseCiRun: "37712424005",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-214.md", commit: "003b8c257233eb8b86315561ff0e14fda641b5c9", sha256: "8f0a8d0918fbc7da97340acc1b1acf1e17c78ce8bfc4338ba36c27a7118300b4" }),
+      }),
+      /* RR-214: F93 PROVED — every clause of its frozen acceptance PROVED and every sabotage PROVED, on FIXTURE pages (RR-177) with C6's
+       * count-only real-structure control; recorded through the board route in the same PR; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F93",
+        population: "REAL",
+        on: "2026-10-08",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F93_ORIGINAL.ruling.sha256, contract: F93_ORIGINAL.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED" }),
+        populations: "FIXTURE pages only for C1–C5, C7 and [ALL] — hand-written fixture bodies on a fixture origin (identity markers, about and contact pages with recorded statuses, visible dates against recorded fingerprints) and the RR-184 fixture chain (F35's own CREATE, F37's own render) for the new page. C6's REAL control, count-only and records-only: 20 declared tenants with a site origin — INCOMPLETE 18, UNKNOWN 2, COMPLETE 0 — no result claims a page the inventory does not hold. The real F93 path for one declared client, once, in-process, no trail write: 0 drafts; no recorded organisation identity; 27 existing pages, INCOMPLETE — identity PRESENT 27 (credentials and experience NOT MEASURED), about FINDING 27, contact NOT MEASURED 27 (the linked URL never observed), date FINDING 27, sources NOT MEASURED 27 (no per-page citation verdict exists); site-level about/contact NOT MEASURED. Never the 27 existing pages' content in a proof (RR-177).",
+        proofs: "test/rr214-f93.test.mjs T93-C1 to T93-C7 and T93-ALL (one per EVIDENCE line), R93-BOARD",
+        sabotage: "runs/audit/rr214-sabotage-2026-10-08T0218.txt (sha256 48cde090…): 31 of 31 proved (one per FAILURE limb of C1–C7 and [ALL]), residue 0, production trail unchanged; the practice pass found S04 NOT PROVED (T93-C1 compared against the very constant the sabotage changed) — the test now asserts the text itself, S04 re-practised before the real pass",
+        historicalReuse: "no historical row maps to F93 (crosswalk NEW, no module or test). Reused read-only: F23's targetState and recorded targets, F31's population, inventory fingerprints, partition and edges, F37's render and its every-claim-sourced record; none changed (C7 pins their bytes at base 87591a97)",
+        declaredLimit: "identity is marker presence, never verified; credentials, expertise and experience are NOT MEASURED; about and contact are decided only by a declared English word list over the URL's last segment; a date match needs two recorded fingerprints; existing pages' sources are NOT MEASURED until a per-page citation verdict exists (F46 audits the fact registry); a draft's date is NOT MEASURED until a recorded publication; no draft, brief or head shows F93's plan (their own amendments)",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),

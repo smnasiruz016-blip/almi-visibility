@@ -417,6 +417,11 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-06_RR-192.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-06_RR-192_APPROVE_F32_A1_REV2_F39_A1_PG-A1.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F32_ACCEPTANCE_AMENDMENT_1_2026-10-06.md", loader: "F-board acceptance F32" }),
+  /* RR-216 (8 Oct 2026): the three CURRENT records admitted by the migration at _handoffs 06cdb82 — the RR-216 command, the owner's
+   * approval of F92's acceptance by its hash, and F92's first Acceptance (image and video visibility). */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-216.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-08_RR-216_APPROVE_F92_ACCEPTANCE.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F92_ACCEPTANCE_2026-10-08.md", loader: "F-board acceptance F92" }),
   /* RR-214 (8 Oct 2026): the four CURRENT records admitted by the migration at _handoffs 4938f07 — the owner's ruling raising the audit
    * store's reported ceiling to 32 MiB (f11a415, RR-212), the RR-214 command, the owner's approval of F93's acceptance by its hash, and
    * F93's first Acceptance (trust and identity signals). */

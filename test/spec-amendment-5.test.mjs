@@ -143,7 +143,16 @@ test("A5·4 · no passed row moved, F62 and F81 stay IN-PROGRESS, and the amendm
     assert.equal(r.events[0].ruling.commit, "96ae49ef487c0f80d0acfff28fb37030e0e7559c");
     assert.ok(["IN-PROGRESS", "VERIFIED-PASS"].includes(r.state), r.state);
   }
-  for (const id of ["F92", "F93", "F95", "F96", "F17", "F58", "F76"]) {
+  /* RR-214: F93 left UNASSESSED later only by its OWN act — its first acceptance frozen alone (_handoffs 4938f07, 8 Oct 2026), then
+   * IMPLEMENTATION from UNASSESSED; the amendment itself froze and built nothing for it. Any other movement fires. */
+  {
+    const r = b.find((x) => x.featureId === "F93");
+    assert.deepEqual(r.events.slice(0, 2).map((e) => [e.kind, e.on]), [["ACCEPTANCE_FROZEN", "2026-10-08"], ["IMPLEMENTATION", "2026-10-08"]], "F93 moved other than by its own frozen acceptance");
+    assert.equal(r.events[1].from, "UNASSESSED");
+    assert.equal(r.events[0].ruling.commit, "4938f071a5823c42a25730a073436e795a39c244");
+    assert.ok(["IN-PROGRESS", "VERIFIED-PASS"].includes(r.state), r.state);
+  }
+  for (const id of ["F92", "F95", "F96", "F17", "F58", "F76"]) {
     const r = b.find((x) => x.featureId === id);
     assert.equal(r.state, "UNASSESSED", `${id} moved`);
     assert.deepEqual(r.events, [], `${id} carries an event`);
@@ -174,6 +183,6 @@ test("A5·6 · the denominator: 96 rows, 95 required (F25 NOT REQUIRED) — 35/9
   assert.equal(p.passed, board().filter((r) => r.state === "VERIFIED-PASS").length);
   assert.equal(p.required.passed, p.passed, "F25 (NOT REQUIRED) is not passed, so both figures count the same rows");
   assert.equal(Object.values(p.split).reduce((a, x) => a + x, 0), 96);
-  assert.equal(p.split.UNASSESSED, 46); /* RR-210: F38 frozen under its own first acceptance (_handoffs 96ae49e) and started — UNASSESSED -> IN-PROGRESS (47 -> 46, IN-PROGRESS 12 -> 13) */ /* RR-206: F94 frozen under its own acceptance (_handoffs 959ae05) and started — UNASSESSED -> IN-PROGRESS (48 -> 47, IN-PROGRESS 12 -> 13) */ /* RR-184: F40 frozen under its own acceptance (_handoffs 6d64c27) and started — UNASSESSED -> IN-PROGRESS, after its lift */ /* 49 at the amendment */
+  assert.equal(p.split.UNASSESSED, 45); /* RR-214: F93 frozen under its own first acceptance (_handoffs 4938f07) and started — UNASSESSED -> IN-PROGRESS (46 -> 45, IN-PROGRESS 12 -> 13) */ /* RR-210: F38 frozen under its own first acceptance (_handoffs 96ae49e) and started — UNASSESSED -> IN-PROGRESS (47 -> 46, IN-PROGRESS 12 -> 13) */ /* RR-206: F94 frozen under its own acceptance (_handoffs 959ae05) and started — UNASSESSED -> IN-PROGRESS (48 -> 47, IN-PROGRESS 12 -> 13) */ /* RR-184: F40 frozen under its own acceptance (_handoffs 6d64c27) and started — UNASSESSED -> IN-PROGRESS, after its lift */ /* 49 at the amendment */
   assert.equal(CROSSWALK.entries.length, 96);
 });

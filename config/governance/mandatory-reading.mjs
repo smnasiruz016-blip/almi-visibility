@@ -417,6 +417,13 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-06_RR-192.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-06_RR-192_APPROVE_F32_A1_REV2_F39_A1_PG-A1.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F32_ACCEPTANCE_AMENDMENT_1_2026-10-06.md", loader: "F-board acceptance F32" }),
+  /* RR-214 (8 Oct 2026): the four CURRENT records admitted by the migration at _handoffs 4938f07 — the owner's ruling raising the audit
+   * store's reported ceiling to 32 MiB (f11a415, RR-212), the RR-214 command, the owner's approval of F93's acceptance by its hash, and
+   * F93's first Acceptance (trust and identity signals). */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_RULING_2026-10-08_AUDIT_STORE_CEILING_32MiB.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-214.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-08_RR-214_APPROVE_F93_ACCEPTANCE.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F93_ACCEPTANCE_2026-10-08.md", loader: "F-board acceptance F93" }),
   /* RR-210 (7 Oct 2026): the three CURRENT records admitted by the migration at _handoffs 96ae49e — the RR-210 command, the owner's
    * approval of F38's acceptance by its hash, and F38's first Acceptance (answer-first, titles and meta descriptions). */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-07_RR-210.md", loader: "authority register (CURRENT record)" }),

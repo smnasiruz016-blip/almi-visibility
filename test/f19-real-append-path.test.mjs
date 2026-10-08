@@ -76,9 +76,14 @@ test("REAL APPEND PATH · the binary's live run, no egress: robots first, every 
     const before = corpusState();
     const { r, counts, events } = runBin(WORLD, [...LIVE, corpusArg(corpus)], { mode: "fixture" });
     assert.equal(corpusState(), before, "the rehearsal wrote into the engine's own corpus");
-    assert.equal(readdirSync(corpus).length, SEEDS.length, "a page body was not written into the confined corpus");
+    /* RR-227 (F19 A1 · E): a research-batch run keeps its bodies IN THE BATCH — the --corpus directory is no longer written (it was
+     * SEEDS.length files before; restated) */
+    assert.equal(readdirSync(corpus).length, 0, "a research-batch run wrote a body into a corpus directory, not into its batch");
     rmSync(corpus, { recursive: true, force: true });
     assert.equal(r.status, 0, r.stdout.slice(-1500) + r.stderr.slice(-1500));
+    assert.ok(existsSync(join(batchDir, "bodies.jsonl")), `no body store in the batch: ${r.stdout.slice(-1500)}`);
+    const bodies = readFileSync(join(batchDir, "bodies.jsonl"), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+    assert.equal(bodies.filter((b) => b.record_type === "page_body" && typeof b.body === "string").length, SEEDS.length, "a page body was not stored in the batch");
     assert.match(r.stdout, /PREFLIGHT\s+: PASS/);
     assert.deepEqual([counts.robots, counts.pages], [1, SEEDS.length], "the run did not read robots.txt once and each seed once");
     const kept = readFileSync(join(batchDir, "crawl.jsonl"), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
@@ -92,7 +97,8 @@ test("REAL APPEND PATH · the binary's live run, no egress: robots first, every 
     const ledger = readFileSync(join(batchDir, "ledger.jsonl"), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
     assert.equal(ledger.filter((e) => e.record_type === "cost_entry").length, 1, "the cost entry was not kept");
     const committed = events.filter((e) => e.eventType === "GOVERNED_WRITE" && e.metadata?.governedWritePhase === "COMMITTED").map((e) => e.action).sort();
-    assert.deepEqual(committed, ["APPEND_CRAWL_COST_ENTRY", "APPEND_CRAWL_OBSERVATIONS", "APPEND_CRAWL_RUN_RECORD", ...Array(SEEDS.length).fill("WRITE_CRAWL_BODY")], "the three real appends and every body write did not each commit through the boundary");
+    /* RR-227 (F19 A1 · E): the bodies are ONE governed append into the batch (it was one WRITE_CRAWL_BODY per page into the corpus; restated) */
+    assert.deepEqual(committed, ["APPEND_CRAWL_BODIES", "APPEND_CRAWL_COST_ENTRY", "APPEND_CRAWL_OBSERVATIONS", "APPEND_CRAWL_RUN_RECORD"], "the four real appends did not each commit through the boundary");
     assert.equal(events.filter((e) => e.eventType === "GOVERNED_WRITE" && e.outcome === "REFUSED").length, 0, "a governed write was refused");
     assert.match(r.stdout, /KEPT/);
   } finally { WORLD.cleanup(); }

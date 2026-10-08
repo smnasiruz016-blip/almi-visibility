@@ -25,7 +25,7 @@ import {
   BROKEN_INTERNAL_LINK, QUERY_PARAMETERS, INDEXABILITY_PREFLIGHT,
   parseHead, noindexState, preflight, STRUCTURALLY_UNKNOWN, INDEXABLE_IS_NOT_INDEXED,
 } from "../src/audit/technical-checks.mjs";
-import { SITEMAP_VS_ROBOTS, collectSitemapUrls, contradictions, MAX_CHILD_SITEMAPS } from "../src/audit/sitemap-check.mjs";
+import { SITEMAP_VS_ROBOTS, contradictions } from "../src/audit/sitemap-check.mjs";
 import { parseGroups, selectGroup, decide } from "../src/audit/robots-scope.mjs";
 import { batchFile } from "../src/crawl/observation-batch.mjs";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
@@ -51,6 +51,14 @@ const flag = (n) => process.argv.includes(`--${n}`);
 
 const corpusDir = arg("corpus", null);
 const doSitemaps = flag("sitemaps");
+/* 🔴 RR-227 (F19 Acceptance Amendment 1) — THIS SITEMAP WRITER IS RETIRED. It kept the first 20,000 URLs of a listing, scoped the shared
+ * crawl batch and evidence store (so F02 refused it for every real tenant), and wrote real sitemap captures into the ENGINE, which the
+ * sitemap-residency law forbids. It now writes no listing and names the one lawful route. Refused before any scope decision, read or
+ * request. Without --sitemaps this entry point reads the stored listings exactly as before. */
+if (doSitemaps) {
+  console.error("🔴 RETIRED — --sitemaps no longer collects or writes a sitemap listing here (F19 Acceptance Amendment 1). Re-collect one tenant's sitemap, stored whole, into its own research batch with: node bin/crawl.mjs --research-batch=<declared id> --tenant=<t> --subject=<s> --sitemaps [--live --i-have-the-owners-green]. Nothing was read, requested or written.");
+  process.exit(2);
+}
 const out = confineToRepo(arg("out", `${REPO}runs/audit/technical-findings.jsonl`), { label: "--out" });
 const openedAt = new Date().toISOString();
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
@@ -128,50 +136,11 @@ console.log(`     pages with no inbound links inside the crawled set: ${zero.len
 const SITEMAP_HOSTS = declaredSiteHosts({ tenantId: SCOPE.tenantId });
 const sitemapByHost = new Map();
 const sitemapStore = createJsonlStore(`${REPO}runs/evidence/sitemaps.jsonl`);
-if (doSitemaps) {
-  let totalRequests = 0;
-  console.log(`PART 2 — SITEMAPS  [bound: maxChildren=${MAX_CHILD_SITEMAPS}/host, 1 request/second]`);
-  const SITEMAP_CONNECTOR = openConnector({ scope: SCOPE, subjectId: SUBJECT, kind: "PUBLIC_SITE" });
-  for (const host of SITEMAP_HOSTS) {
-    const r = await collectSitemapUrls({ origin: `https://${host}`, fetchImpl: SITEMAP_CONNECTOR.fetch });
-    totalRequests += r.requests;
-    sitemapByHost.set(host, r);
-    const obs = makeObservation({
-      observed_at: new Date().toISOString(), method: "sitemap.collect",
-      target: { kind: "url", ref: `https://${host}/sitemap-index.xml` },
-      content_sha256: sha256Hex(JSON.stringify(r.urls)),
-      /* 🔴 THE STORED LIST IS CAPPED, AND THE RECORD SAYS SO.
-       * almioet's sitemap carries 240,328 URLs; storing them all would put ~20 MB
-       * of somebody else's URL list in git. The cap is a BOUND on the stored
-       * evidence, and a later reader must not mistake `urls.length` for the real
-       * total (LAW-BOUND-1). */
-      value: {
-        ...r,
-        urls: r.urls.slice(0, 20000),
-        urlsTotal: r.urls.length,
-        urlsStored: Math.min(20000, r.urls.length),
-        storageBound: 20000,
-        storageNote:
-          r.urls.length > 20000
-            ? `only the first 20,000 of ${r.urls.length} sitemap URLs are stored; the contradiction check ran on ALL ${r.urls.length} at collection time`
-            : "all sitemap URLs are stored",
-      },
-      collector: "bin/audit-technical.mjs", collector_version: "1",
-    });
-    pendingSitemapObservations.push(obs);
-    if (!permission.mayWrite) wouldWrite.sitemapObservations += 1;
-    r.observationId = obs.observation_id;
-    console.log(
-      `  ${host.padEnd(30)} urls=${String(r.urls.length).padStart(6)}  children ${r.childrenFetched}/${r.childrenTotal ?? "?"}` +
-        `  skipped=${r.childrenSkipped ?? "?"}  requests=${r.requests}  coverage=${r.coverageState}`,
-    );
-  }
-  console.log(`  🔴 ${totalRequests} requests issued in total — sitemap discovery files only. This is not a crawl.\n`);
-} else {
+{
   for (const r of sitemapStore.readAll()) {
     if (r.record_type === "observation") sitemapByHost.set(r.value.origin.replace("https://", ""), { ...r.value, observationId: r.observation_id });
   }
-  console.log(`PART 2 — SITEMAPS: reading ${sitemapByHost.size} stored sitemap observation(s). Pass --sitemaps to re-read.\n`);
+  console.log(`PART 2 — SITEMAPS: reading ${sitemapByHost.size} stored sitemap observation(s). A tenant's sitemap is re-collected by bin/crawl.mjs --sitemaps (F19 A1).\n`);
 }
 
 const robotsByHost = new Map();

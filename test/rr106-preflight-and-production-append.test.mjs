@@ -118,6 +118,22 @@ test("§2 · IN THE BINARY: the preflight runs before the connector, the IPv6 pr
   assert.ok(src.includes("executeGovernedWrite(observationsAppend("), "the live run does not use the builder the preflight checked");
 });
 
+/* RR-227 (F19 Acceptance Amendment 1): the two NEW appends obey the same law — built by the live run's own builder, preflighted before any
+ * connector, DNS or request, a refusal exits 3. Extended, not restated: §2 above is unchanged. */
+test("§2b · RR-227 · IN THE BINARY: the batch-body append and the sitemap-listing append are preflighted with the live run's own builders, before the connector", () => {
+  const src = readFileSync(join(REPO, "bin/crawl.mjs"), "utf8");
+  const pf = src.indexOf("const pf = await preflightCrawlWrites(");
+  assert.ok(src.slice(pf, pf + 2500).includes("bodies: (r) => bodiesAppend("), "the crawl preflight does not build the batch-body append");
+  assert.ok(src.includes("executeGovernedWrite(bodiesAppend("), "the live run does not use the body builder the preflight checked");
+  const fn = src.indexOf("async function recollectSitemaps() {");
+  assert.ok(fn > 0, "the sitemap re-collection is not where it is declared");
+  const body = src.slice(fn);
+  const spf = body.indexOf("const pf = await preflightSitemapWrite(");
+  for (const later of ["openConnector({", "await collectSitemap(", "executeGovernedWrite(sitemapsAppend("]) assert.ok(spf >= 0 && spf < body.indexOf(later), `the sitemap preflight does not precede ${later}`);
+  assert.match(body.slice(spf, spf + 1500), /if \(!pf\.ok\) \{[\s\S]*?process\.exit\(3\);/);
+  assert.ok(body.slice(spf, spf + 400).includes("sitemaps: (records) => sitemapsAppend("), "the sitemap preflight does not use the live run's own builder");
+});
+
 /* ================= a failed write is never a successful collection ================= */
 
 test("FIRING CONTROL: a failed or missing write is NOT KEPT — only every write committed is KEPT", () => {

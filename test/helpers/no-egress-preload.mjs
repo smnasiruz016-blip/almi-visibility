@@ -90,6 +90,12 @@ globalThis.fetch = async (url, init) => {
   /* RR-135: two fixture redirects — one to the same origin, one to an origin nobody declared */
   if (u.pathname === "/redirect-in") return new Response(null, { status: 301, headers: { location: "/a" } });
   if (u.pathname === "/redirect-out") return new Response(null, { status: 301, headers: { location: "https://elsewhere.invalid/x" } });
+  /* RR-227 (F19 A1 · E): a page larger than the crawler's 2 MiB response bound, so a stored body is shown cut AND marked truncated */
+  if (u.pathname === "/big") return new Response(`<!doctype html><html><body>${"x".repeat(2 * 1024 * 1024 + 4096)}</body></html>`, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
+  /* RR-227 (F19 A1): a sitemap index on the asking origin naming two children, which list /a, /b and /c (answered here, never fetched) */
+  if (u.pathname === "/sitemap-index.xml") return new Response(`<?xml version="1.0"?><sitemapindex><sitemap><loc>${u.origin}/sitemap-1.xml</loc></sitemap><sitemap><loc>${u.origin}/sitemap-2.xml</loc></sitemap></sitemapindex>`, { status: 200, headers: { "content-type": "application/xml" } });
+  if (u.pathname === "/sitemap-1.xml") return new Response(`<?xml version="1.0"?><urlset><url><loc>${u.origin}/a</loc></url><url><loc>${u.origin}/b</loc></url></urlset>`, { status: 200, headers: { "content-type": "application/xml" } });
+  if (u.pathname === "/sitemap-2.xml") return new Response(`<?xml version="1.0"?><urlset><url><loc>${u.origin}/c</loc></url></urlset>`, { status: 200, headers: { "content-type": "application/xml" } });
   return isRobots
     ? new Response("User-agent: *\nAllow: /\n", { status: 200, headers: { "content-type": "text/plain" } })
     : new Response(PAGE, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });

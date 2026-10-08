@@ -99,6 +99,22 @@ function ofResponseHeaders(r) {
 }
 
 /**
+ * 🔴 RR-227 (F19 Amendment 1) — a `page_body` record: the bytes the collector received for the observation it names, stored in that
+ * research batch's own body store. Nothing is computed, so it is a direct witnessing — OBSERVED, sourced from its collector, like the
+ * observation of the same response. It is traceable only through its observation and its content hash; a record missing either, or its
+ * time, or its collector, is UNMAPPED — never placed by default.
+ */
+function ofPageBody(r) {
+  const rule = "page_body";
+  if (!present(r.observation_id)) return unmapped("a page-body record names the observation whose response it holds", rule);
+  if (!present(r.content_sha256)) return unmapped("a page-body record with no content hash is not traceable", rule);
+  if (!present(r.observed_at) || !ISOISH.test(r.observed_at)) return unmapped("a page-body record with no observed_at has no time", rule);
+  const source = [r.collector, r.collector_version].filter(present).join("@");
+  if (!present(source)) return unmapped("a page-body record names no collector", rule);
+  return place(rule, "OBSERVED", { evidenceRef: `page_body:${r.observation_id}`, sourceId: source, observedAt: r.observed_at });
+}
+
+/**
  * 🔴 RR-116 — a `public_question` record (src/research/human-observation.mjs; F16 acceptance _handoffs 944f769), placed by its own kind:
  *   OBSERVED      a PERSON saw it asked; placed OBSERVED only with a reviewable reference, its own source and its own time — an observation
  *                 with no reference is UNMAPPED, so the store refuses it (a typed question is never evidence)
@@ -372,6 +388,7 @@ export function evidenceStateOf(record, ctx = {}) {
     case "issue": return ofIssue(record);
     case "draft_recommendation": return ofDraftRecommendation(record, ctx);
     case "response_headers": return ofResponseHeaders(record);
+    case "page_body": return ofPageBody(record);
     case "public_question": return ofPublicQuestion(record);
     case "keyword_signal": return ofKeywordSignal(record);
     case "research_lead": return ofResearchLead(record);

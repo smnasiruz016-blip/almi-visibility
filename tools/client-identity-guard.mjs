@@ -40,8 +40,8 @@ export function engineTextFiles({ repo = REPO } = {}) {
 export function operatorStrings({ operator, subjects }) {
   if (!Array.isArray(operator) || operator.length !== 1) throw Object.assign(new Error(`OPERATOR_IDENTITY must hold exactly ONE entry; it holds ${operator?.length ?? 0}`), { code: "OPERATOR_NOT_ONE" });
   const [o] = operator;
-  const domain = String(o.domain ?? "").toLowerCase();
-  const out = new Set([String(o.name ?? "").toLowerCase(), domain, domain.split(".")[0]].filter(Boolean));
+  const out = new Set([String(o.name ?? "").toLowerCase()].filter(Boolean));
+  if (!out.size) throw Object.assign(new Error("the operator identity names no operator"), { code: "OPERATOR_UNNAMED" });
   for (const s of subjects) for (const v of [s.toLowerCase(), s.toLowerCase().replace(/-/g, "")]) if (out.has(v)) throw Object.assign(new Error("the operator identity equals a declared client subject"), { code: "OPERATOR_IS_A_CLIENT" });
   return out;
 }
@@ -57,7 +57,14 @@ export function deriveClientIdentifiers({ dataRoot, operator, stoplist }) {
   for (const s of subjects) { add("name", s); add("name", s.replace(/-/g, "")); }
   const thirdParty = new Set((roots.subjects ?? []).flatMap((s) => (s.connectors ?? []).filter((c) => c.kind !== "PUBLIC_SITE").flatMap((c) => (c.reaches ?? []).map((r) => hostOf(r.resourceRef)))));
   for (const a of att) {
-    if (a.resourceKind === "SITE_ORIGIN") { const h = hostOf(a.resourceRef); if (!h || thirdParty.has(h)) continue; add("domain", h); add("domain-label", h.split(".")[0]); }
+    if (a.resourceKind === "SITE_ORIGIN") {
+      const h = hostOf(a.resourceRef);
+      if (!h || thirdParty.has(h)) continue;
+      /* the operator's own apex domain (two labels, the first the operator's name) is the operator's, not a client's */
+      const labels = h.split(".");
+      if (labels.length === 2 && op.has(labels[0])) continue;
+      add("domain", h); add("domain-label", labels[0]);
+    }
     if (/CHANNEL/.test(String(a.resourceKind)) || String(a.resourceRef).startsWith("@")) add("handle", String(a.resourceRef).replace(/^@/, ""));
   }
   const stop = new Set(stoplist.map((w) => w.toLowerCase()));

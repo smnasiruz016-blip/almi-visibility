@@ -47,7 +47,7 @@ const SABOTAGES = [
   ["P3", "a client NAME in a comment", "src/write-law.mjs", "that product has it BECAUSE", `that product (${NAME}) has it BECAUSE`],
   ["P4", "ONE byte of an exempted frozen clause changed", ACC, FROZEN_LINE, FROZEN_LINE?.replace(/"(,?)\s*$/, 'X"$1')],
   ["P5", "a fake exemption: a stoplist word that is a client identifier", "config/client-identity.mjs", '"/privacy", "/terms"]', `"/privacy", "/terms", "/${LABEL}"]`],
-  ["P6", "a fake exemption: a SECOND operator identity", "config/client-identity.mjs", '  Object.freeze({ name: "AlmiWorld", domain: "almiworld.com" }),\n', '  Object.freeze({ name: "AlmiWorld", domain: "almiworld.com" }),\n  Object.freeze({ name: "Second", domain: "second.invalid" }),\n'],
+  ["P6", "a fake exemption: a SECOND operator identity", "config/client-identity.mjs", '  Object.freeze({ name: "AlmiWorld" }),\n', '  Object.freeze({ name: "AlmiWorld" }),\n  Object.freeze({ name: "Second" }),\n'],
   ["P7", "a fake exemption: a governance file name that is not in the register, holding a client label", "src/facts/gaps.mjs", "about the first connected product's destination-regulator block", `about the first connected product's destination-regulator block (AlmiVisibility_FAKE_${String(LABEL).toUpperCase()}_RECORD.md)`],
 ];
 const RUN = ONLY ? SABOTAGES.filter((s) => s[0] === ONLY) : SABOTAGES;

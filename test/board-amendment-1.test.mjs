@@ -23,24 +23,24 @@ const AUTH = { records: AUTHORITY_CORPUS, now: CORPUS_PROVENANCE.now };
 const board = () => buildBoard(CAPABILITIES, DECLARED);
 const errs = (b, notRequired) => boardErrors(b, { capabilities: CAPABILITIES, acceptances: ACCEPTANCES, authority: AUTH, ...(notRequired ? { notRequired } : {}) });
 
-test("B1 · the board reads 38/95 over the REQUIRED rows and 38/96 over all rows — both figures, F25 NOT REQUIRED with its work state", () => {
+test("B1 · the board reads 39/95 over the REQUIRED rows and 39/96 over all rows — both figures, F25 NOT REQUIRED with its work state", () => {
   const p = progress(board());
   /* RR-182 §3: Specification Amendment 5 appended F92–F96 UNASSESSED — UNASSESSED 44 → 49, rows 91 → 96, required 90 → 95; passed unchanged */
-  assert.deepEqual([p.passed, p.denominator, p.total], [38, 96, 96], "the all-rows figure moved");
-  assert.deepEqual([p.required.passed, p.required.denominator], [38, 95], "the required figure is not 38/95"); /* RR-210: F38 PROVED (rr210-sabotage-2026-10-07T2305: 37 of 37) */ /* RR-208: F37 RE-PROVED under its Amendment 2 (rr208-sabotage-2026-10-07T2045: 59 of 59) */ /* RR-208: F37 REOPENED by its own Amendment 2 (_handoffs f9edf2a) — VERIFIED-PASS -> IN-PROGRESS */ /* RR-206: F94 PROVED in R7 (rr206-sabotage-2026-10-07T1855: 33 of 33) */ /* RR-192: F39 re-proved under Amendment 1 */
+  assert.deepEqual([p.passed, p.denominator, p.total], [39, 96, 96], "the all-rows figure moved"); /* RR-214: F93 PROVED (rr214-sabotage-2026-10-08T0218: 31 of 31) */
+  assert.deepEqual([p.required.passed, p.required.denominator], [39, 95], "the required figure is not 39/95"); /* RR-214: F93 PROVED (rr214-sabotage-2026-10-08T0218: 31 of 31) */ /* RR-210: F38 PROVED (rr210-sabotage-2026-10-07T2305: 37 of 37) */ /* RR-208: F37 RE-PROVED under its Amendment 2 (rr208-sabotage-2026-10-07T2045: 59 of 59) */ /* RR-208: F37 REOPENED by its own Amendment 2 (_handoffs f9edf2a) — VERIFIED-PASS -> IN-PROGRESS */ /* RR-206: F94 PROVED in R7 (rr206-sabotage-2026-10-07T1855: 33 of 33) */ /* RR-192: F39 re-proved under Amendment 1 */
   assert.deepEqual(p.required.notRequired, [{ featureId: "F25", state: "IN-PROGRESS" }]);
   assert.deepEqual(errs(board()), [], "the real board is not lawful");
   const cli = spawnSync(process.execPath, ["bin/fboard-status.mjs"], { cwd: REPO, encoding: "utf8" });
-  assert.match(cli.stdout, /F-progress: 38\/95 \(required rows\) · all rows 38\/96 · NOT REQUIRED 1: F25 \(work state IN-PROGRESS, not passed\)/, cli.stdout);
+  assert.match(cli.stdout, /F-progress: 39\/95 \(required rows\) · all rows 39\/96 · NOT REQUIRED 1: F25 \(work state IN-PROGRESS, not passed\)/, cli.stdout);
 });
 
 test("B2 · leaving the required path never raises the numerator: a NOT REQUIRED row that is VERIFIED-PASS still does not count (CONTROL: kept, it would)", () => {
   const b = board().map((r) => (r.featureId === "F25" ? { ...r, state: "VERIFIED-PASS" } : r));
   const p = progress(b);
-  assert.equal(p.required.passed, 38, "a NOT REQUIRED row was counted as passed"); /* RR-210: F38 PROVED (rr210-sabotage-2026-10-07T2305: 37 of 37) */ /* RR-208: F37 RE-PROVED under its Amendment 2 (rr208-sabotage-2026-10-07T2045: 59 of 59) */ /* RR-208: F37 REOPENED by its own Amendment 2 (_handoffs f9edf2a) — VERIFIED-PASS -> IN-PROGRESS */ /* RR-206: F94 PROVED in R7 (rr206-sabotage-2026-10-07T1855: 33 of 33) */
+  assert.equal(p.required.passed, 39, "a NOT REQUIRED row was counted as passed"); /* RR-214: F93 PROVED (rr214-sabotage-2026-10-08T0218: 31 of 31) */ /* RR-210: F38 PROVED (rr210-sabotage-2026-10-07T2305: 37 of 37) */ /* RR-208: F37 RE-PROVED under its Amendment 2 (rr208-sabotage-2026-10-07T2045: 59 of 59) */ /* RR-208: F37 REOPENED by its own Amendment 2 (_handoffs f9edf2a) — VERIFIED-PASS -> IN-PROGRESS */ /* RR-206: F94 PROVED in R7 (rr206-sabotage-2026-10-07T1855: 33 of 33) */
   assert.equal(p.required.denominator, 95);
   const kept = progress(b, { notRequired: {} });
-  assert.equal(kept.required.passed, 39, "CONTROL: with no exclusion the same board must count it — the check could not fail");
+  assert.equal(kept.required.passed, 40, "CONTROL: with no exclusion the same board must count it — the check could not fail"); /* RR-214: 39 + F25 */
   assert.equal(kept.required.denominator, 96);
 });
 

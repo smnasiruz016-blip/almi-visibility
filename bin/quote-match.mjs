@@ -54,6 +54,9 @@ import { productFromArgvOrExit, productIdOrExit } from "../src/product-cli.mjs";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { openConnector } from "../src/tenancy/connectors.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { runCost, ownLedgerRef } from "../src/cost/run-cost.mjs";
+import { governedStoreAppend } from "../src/governance/governed-run.mjs";
+import { createCostLedger } from "../src/cost/ledger.mjs";
 
 /**
  * 🔴 THE PRODUCT ARRIVES AS AN ARGUMENT, NOT AS AN IMPORT.
@@ -68,7 +71,7 @@ import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 const PRODUCT_ID = productIdOrExit(process.argv, { usage: "node bin/quote-match.mjs --product=<id>" });
 
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/quote-match.mjs", governed: true, resources: [RESOURCES.subject(PRODUCT_ID), RESOURCES.connector(PRODUCT_ID, "CITED_SOURCES")] });
+const SCOPE = scopedEntryPoint({ entry: "bin/quote-match.mjs", governed: true, resources: [RESOURCES.subject(PRODUCT_ID), RESOURCES.connector(PRODUCT_ID, "CITED_SOURCES"), RESOURCES.costLedger(ownLedgerRef())] });
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/quote-match.mjs --product=<id>", scope: SCOPE });
 const argv = process.argv.slice(2);
 const out = argv.find((a) => a.startsWith("--out="))?.split("=").slice(1).join("=") ?? null;
@@ -77,12 +80,15 @@ const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const permission = writePermission({ target: LOCAL, argv, env: process.env });
 if (out) announceWritePermission(permission);
+/* F78 Amendment 1 C8/C9 (RR-243): this run's one cost entry, into its tenant's own declared ledger, whatever ends the run; without
+ * --confirm it makes no request at all */
+const RUN_COST = runCost({ entryPoint: "bin/quote-match.mjs", scope: SCOPE, permission, write: (w) => executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: w.root, auditRepo: w.auditRepo, permission: w.permission, store: createCostLedger(w.path), records: [w.entry], targetClass: "RUN_EVIDENCE", action: "APPEND_RUN_COST_ENTRY", occurredAt: w.occurredAt, correlationId: w.correlationId, discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null })), auditRepo: REPO });
 
 console.log(`\nNIGHTLY QUOTE MATCH — ${records.length} records in the registry`);
 console.log("─".repeat(78));
 
 /* 🔴 F03 — the sources are fetched only through the CITED_SOURCES connector the run's decision allowed. */
-const CONNECTOR = openConnector({ scope: SCOPE, subjectId: PRODUCT_ID, kind: "CITED_SOURCES" });
+const CONNECTOR = RUN_COST.metered(openConnector({ scope: SCOPE, subjectId: PRODUCT_ID, kind: "CITED_SOURCES" }));
 const report = await runQuoteMatch(records, { fetchImpl: CONNECTOR.fetch });
 
 console.log(`fetched ${report.urlsFetched} distinct URLs\n`);

@@ -250,7 +250,10 @@ test("🔴 crawl — a DRY run with NO flags writes no record and no corpus, iss
   try {
     const r = crawlRun(dir, [`--out=${out}`, `--corpus=${corpus}`]);
     assert.equal(r.status, 0, r.stderr);
-    assert.match(r.stderr, /\[no-network\] refused/, "the preload refused nothing — this run's network was not contained");
+    /* RR-243 (restated, F78 Amendment 1 C8): a dry crawl now asks for NO network at all — no egress probe, no DNS — so the preload has
+     * nothing to refuse; it used to refuse the probe and the lookups. Contained, and quieter. */
+    assert.doesNotMatch(r.stderr, /\[no-network\] refused/, "a dry crawl asked for the network");
+    assert.match(r.stdout, /IPv6 EGRESS\s+: NOT_MEASURED — a dry run makes no request/);
     // The filesystem first: what the limb protects is that nothing was WRITTEN, not how the run words it.
     assert.equal(existsSync(join(dir, "record")), false, "a dry crawl created its record directory without --confirm");
     assert.equal(existsSync(out), false, "a dry crawl wrote its record without --confirm");

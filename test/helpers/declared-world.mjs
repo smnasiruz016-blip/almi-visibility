@@ -60,6 +60,9 @@ const FIXTURE_SUBJECT_ENTRY = Object.freeze({
 export const FIXTURE_ATTACHMENTS = Object.freeze([
   ["EVIDENCE_STORE", "evidence-store"],
   ["COST_LEDGER", "cost-ledger"],
+  /* RR-243 (F78 Amendment 1, C9): the fixture tenant's OWN declared cost ledger, as src/cost/run-cost.mjs names it; the second fixture
+   * tenant declares none, so a run for it is refused before any request */
+  ["COST_LEDGER", `cost-ledger/${FIXTURE_TENANT}`],
   ["CAPTURE_SET", "row25-2026-09-21"],
   ["CACHE_STORE", "sibling-page cache"],
   ["CACHE_STORE", "robots cache"],
@@ -93,7 +96,7 @@ export function inputPathRef(p) {
   return (rel !== "" && !rel.startsWith("..") && !isAbsolute(rel) ? rel : abs).split(sep).join("/");
 }
 
-export function declaredWorld({ inputPaths = [], extra = [], secondTenantOrigins = [] } = {}) {
+export function declaredWorld({ inputPaths = [], extra = [], secondTenantOrigins = [], secondTenantLedger = true } = {}) {
   const second = new Set(secondTenantOrigins);
   if (!existsSync(join(DATA_ROOT, "tenancy", "attachments.json"))) throw new Error(`declaredWorld: no data root at ${DATA_ROOT}`);
   const root = mkdtempSync(join(tmpdir(), "almi-f02-world-"));
@@ -113,10 +116,12 @@ export function declaredWorld({ inputPaths = [], extra = [], secondTenantOrigins
   const pairs = [];
   const seen = new Set();
   const add = (k, r) => { const key = `${k}\u0000${r}`; if (!seen.has(key)) { seen.add(key); pairs.push([k, r]); return true; } return false; };
-  for (const [k, r] of [...real.map((a) => [a.resourceKind, a.resourceRef]), ...FIXTURE_ATTACHMENTS, ...inputPaths.map((p) => ["INPUT_PATH", inputPathRef(p)]), ...extra]) add(k, r);
+  /* RR-243 (F78 Amendment 1, C9): a second fixture tenant holds its OWN cost ledger too, unless a test proves the refusal of a tenant with none */
+  const secondLedger = second.size && secondTenantLedger ? `cost-ledger/${SECOND_FIXTURE_TENANT}` : null;
+  for (const [k, r] of [...real.map((a) => [a.resourceKind, a.resourceRef]), ...FIXTURE_ATTACHMENTS, ...(secondLedger ? [["COST_LEDGER", secondLedger]] : []), ...inputPaths.map((p) => ["INPUT_PATH", inputPathRef(p)]), ...extra]) add(k, r);
   const write = () => writeFileSync(join(root, "tenancy", "attachments.json"), JSON.stringify({
     schemaVersion: 1,
-    attachments: pairs.map(([resourceKind, resourceRef]) => ({ schemaVersion: 1, resourceKind, resourceRef, tenantId: resourceKind === "SITE_ORIGIN" && second.has(resourceRef) ? SECOND_FIXTURE_TENANT : FIXTURE_TENANT, declaredOn: "2026-09-24", declarationBasis: BASIS })),
+    attachments: pairs.map(([resourceKind, resourceRef]) => ({ schemaVersion: 1, resourceKind, resourceRef, tenantId: (resourceKind === "SITE_ORIGIN" && second.has(resourceRef)) || (resourceKind === "COST_LEDGER" && resourceRef === secondLedger) ? SECOND_FIXTURE_TENANT : FIXTURE_TENANT, declaredOn: "2026-09-24", declarationBasis: BASIS })),
   }, null, 2) + "\n");
   writeFileSync(join(root, "tenancy", "tenants.json"), JSON.stringify({ schemaVersion: 1, tenants: [{ schemaVersion: 1, tenantId: FIXTURE_TENANT, status: "ACTIVE", declaredOn: "2026-09-24", declarationBasis: BASIS, label: "F02 fixture world — every fixture resource, one tenant" }, ...(second.size ? [{ schemaVersion: 1, tenantId: SECOND_FIXTURE_TENANT, status: "ACTIVE", declaredOn: "2026-09-24", declarationBasis: BASIS, label: "F02 fixture world — a second tenant, for a failure branch" }] : [])] }, null, 2) + "\n");
   write();

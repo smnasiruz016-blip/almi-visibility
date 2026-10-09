@@ -254,7 +254,8 @@ const committed = (events) => events.filter((e) => e.eventType === "GOVERNED_WRI
 const jsonl = (p) => (existsSync(p) ? readFileSync(p, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)) : []);
 const engineStatus = () => execFileSync("git", ["-C", REPO, "status", "--porcelain", "--untracked-files=all"], { encoding: "utf8" }).split("\n").filter((l) => l && !l.includes(".test-scratch") && !l.includes(TEST_SCRATCH_AUDIT_ROOT)).sort().join("\n");
 const SITEMAPS = ["--research-batch=" + BATCH, `--subject=${FIXTURE_SUBJECT}`, "--sitemaps"];
-const GREEN = ["--live", "--i-have-the-owners-green"];
+/* RR-243 (restated, F78 Amendment 1 C8): a live run now also needs --confirm — a run that cannot record its cost makes no request */
+const GREEN = ["--live", "--i-have-the-owners-green", "--confirm"];
 
 test("C1 · RE-COLLECT · one tenant's sitemap into its own batch's sitemaps.jsonl ONLY — whole, COMPLETE, robots read first, one governed append, nothing in the engine", () => {
   const { W, dir } = world();
@@ -271,7 +272,8 @@ test("C1 · RE-COLLECT · one tenant's sitemap into its own batch's sitemaps.jso
     assert.deepEqual(l.value.urls.sort(), SEEDS.slice().sort(), "the listing is not the fixture site's three URLs");
     assert.deepEqual([counts.robots, counts.paths["/sitemap-index.xml"], counts.paths["/sitemap-1.xml"], counts.paths["/sitemap-2.xml"]], [1, 1, 1, 1], "not robots then index then each child once");
     assert.deepEqual(Object.keys(counts.hosts), [new URL(FIXTURE_SUBJECT_ORIGIN).host], "a host the subject does not declare was reached");
-    assert.deepEqual(committed(events), ["APPEND_SITEMAP_LISTING"], "the re-collection made a governed write other than its one listing");
+    /* RR-243 (restated, F78 Amendment 1 C8/C9): beside its one listing, the run writes its ONE cost entry — into the tenant's own ledger */
+    assert.deepEqual(committed(events), ["APPEND_RUN_COST_ENTRY", "APPEND_SITEMAP_LISTING"], "the re-collection made a governed write other than its one listing and its one cost entry");
     assert.equal(engineStatus(), before, "the re-collection changed a file in the engine");
     /* residency: the engine holds no real sitemap capture — every tracked or untracked engine file the run could have touched is unchanged,
      * and the record it wrote IS a capture (a control that the classifier would have caught it there) */
@@ -325,7 +327,8 @@ test("C4 · CEILING · a listing that would put the batch's sitemap store past i
     assert.match(r.stderr, /REFUSED WHOLE — OVER_THE_BATCH_STORE_CEILING/);
     assert.equal(statSync(file).size, BATCH_STORE_CEILING_BYTES - 10, "the store changed — the listing was cut or partly written");
     assert.equal(events.filter((e) => e.action === "REFUSE_SITEMAP_LISTING_OVER_CEILING" && e.outcome === "REFUSED").length, 1, "the refusal was not recorded");
-    assert.deepEqual(committed(events), [], "a governed write committed past the ceiling");
+    /* RR-243 (restated, F78 Amendment 1 C8): a refused run still writes its ONE cost entry (into the tenant's own ledger) — nothing else commits */
+    assert.deepEqual(committed(events), ["APPEND_RUN_COST_ENTRY"], "a governed write other than the run's cost entry committed past the ceiling");
   } finally { W.cleanup(); }
 });
 

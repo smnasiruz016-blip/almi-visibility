@@ -39,6 +39,9 @@ import { isoSeconds as governedInstant } from "../../../src/audit-trail/store.mj
 import { scopedEntryPoint } from "../../../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../../../src/tenancy/scoped-run.mjs";
 import { openConnector } from "../../../src/tenancy/connectors.mjs";
+import { runCost, ownLedgerRef } from "../../../src/cost/run-cost.mjs";
+import { governedStoreAppend } from "../../../src/governance/governed-run.mjs";
+import { createCostLedger } from "../../../src/cost/ledger.mjs";
 import { SUBJECT_PACKAGE } from "../package.mjs";
 
 const argv = process.argv.slice(2);
@@ -61,8 +64,12 @@ const CORPUS_INSTANT = governedInstant(Date.now());
 const CORPUS_CORRELATION = `run:build-corpus:${CORPUS_INSTANT}`;
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
 /* 🔴 F03 — pages are fetched only through this package's subject's PUBLIC_SITE connector, decided here with the site. */
-const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/build-corpus.mjs", governed: true, resources: [RESOURCES.siteOrigin(SITE), RESOURCES.connector(SUBJECT_PACKAGE.subjectId, "PUBLIC_SITE")] });
-const CONNECTOR = openConnector({ scope: SCOPE, subjectId: SUBJECT_PACKAGE.subjectId, kind: "PUBLIC_SITE" });
+const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/build-corpus.mjs", governed: true, resources: [RESOURCES.siteOrigin(SITE), RESOURCES.connector(SUBJECT_PACKAGE.subjectId, "PUBLIC_SITE"), RESOURCES.costLedger(ownLedgerRef())] });
+/* F78 Amendment 1 C8/C9 (RR-243): this run's one cost entry, into its tenant's own declared ledger, whatever ends the run; without
+ * --confirm it makes no request at all */
+const ENGINE_ROOT = new URL("../../../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+const RUN_COST = runCost({ entryPoint: "subjects/almi-oet/tools/build-corpus.mjs", scope: SCOPE, permission, write: (w) => executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: w.root, auditRepo: w.auditRepo, permission: w.permission, store: createCostLedger(w.path), records: [w.entry], targetClass: "RUN_EVIDENCE", action: "APPEND_RUN_COST_ENTRY", occurredAt: w.occurredAt, correlationId: w.correlationId, discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null })), auditRepo: ENGINE_ROOT });
+const CONNECTOR = RUN_COST.metered(openConnector({ scope: SCOPE, subjectId: SUBJECT_PACKAGE.subjectId, kind: "PUBLIC_SITE" }));
 if (!OUT) {
   console.error("usage: node bin/build-corpus.mjs --site <url> --out <dir> --confirm [--leaf-sample 500] [--seed N]");
   process.exit(2);

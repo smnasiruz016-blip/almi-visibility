@@ -39,6 +39,8 @@ import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { RENDER_BOUNDS as OFFLINE_BOUNDS, loadPlaywright, launchOfflineChromium, startDocumentServer, renderDocument } from "../src/render/renderer.mjs";
 import { createSameOriginPolicy, LIVE_RENDER_BOUNDS } from "../src/render/same-origin-policy.mjs";
+import { runCost, ownLedgerRef } from "../src/cost/run-cost.mjs";
+import { createCostLedger } from "../src/cost/ledger.mjs";
 import { renderEvidenceObservation, renderRunRecord, RENDER_KINDS, VIEWPORT_OF } from "../src/render/render-evidence.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -88,7 +90,9 @@ const RENDER_BOUNDS = Object.freeze({ ...OFFLINE_BOUNDS, perPageTimeoutMs: BOUND
 const SITE = lookupConnector(rootIndexFor(process.env), SUBJECT, "PUBLIC_SITE");
 const SITE_ORIGINS = SITE.state === "DECLARED" ? [...siteOriginsOf(SITE.connector)] : [];
 if (SITE_ORIGINS.length === 0) { console.error("🔴 REFUSED — NO_DECLARED_SITE. NO REQUEST WAS MADE."); process.exit(3); }
-const SCOPE = scopedEntryPoint({ entry: "bin/render-collect.mjs", governed: true, resources: [RESOURCES.researchBatch(SOURCE_BATCH), RESOURCES.researchBatch(EVIDENCE_BATCH), ...SITE_ORIGINS.map((o) => RESOURCES.siteOrigin(o)), RESOURCES.connector(SUBJECT, "PUBLIC_SITE")] });
+const SCOPE = scopedEntryPoint({ entry: "bin/render-collect.mjs", governed: true, resources: [RESOURCES.researchBatch(SOURCE_BATCH), RESOURCES.researchBatch(EVIDENCE_BATCH), ...SITE_ORIGINS.map((o) => RESOURCES.siteOrigin(o)), RESOURCES.connector(SUBJECT, "PUBLIC_SITE"), RESOURCES.costLedger(ownLedgerRef())] });
+/* F78 Amendment 1 C8/C9 (RR-243): this run's one cost entry, into its tenant's own declared ledger, whatever ends the run */
+const RUN_COST = runCost({ entryPoint: "bin/render-collect.mjs", scope: SCOPE, permission, write: (w) => executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: w.root, auditRepo: w.auditRepo, permission: w.permission, store: createCostLedger(w.path), records: [w.entry], targetClass: "RUN_EVIDENCE", action: "APPEND_RUN_COST_ENTRY", occurredAt: w.occurredAt, correlationId: w.correlationId, discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null })), auditRepo: REPO });
 const CORPUS = confineToRepo(arg("corpus") ?? `${REPO}runs/crawl/corpus`, { label: "--corpus" });
 
 /* 3 · the population */
@@ -147,7 +151,7 @@ const writeBody = (path, bytes, occurredAt, correlationId) => governedFileWrite(
 console.log(`PLAN            : pages ${pages.length} (declared site only) · renders per page 3 (SOURCE js-off, DESKTOP ${VIEWPORT_OF.DESKTOP.width}×${VIEWPORT_OF.DESKTOP.height}, MOBILE ${VIEWPORT_OF.MOBILE.width}×${VIEWPORT_OF.MOBILE.height}) · TOTAL request ceiling ${BOUNDS.maxTotalRequests} (robots, documents, subresources, redirects and retries all count) · per page ${BOUNDS.maxRequestsPerPage} · ≥ ${BOUNDS.intervalMs} ms between request starts · ${BOUNDS.timeoutMs} ms per request · ${BOUNDS.perPageTimeoutMs} ms per page · ${BOUNDS.maxResponseBytes} bytes per response · retry ≤ 1 on a network error · GET/HEAD only · nothing but the declared origin`);
 
 /* THE RUN */
-const CONNECTOR = openConnector({ scope: SCOPE, subjectId: SUBJECT, kind: "PUBLIC_SITE" });
+const CONNECTOR = RUN_COST.metered(openConnector({ scope: SCOPE, subjectId: SUBJECT, kind: "PUBLIC_SITE" }));
 const policy = createSameOriginPolicy({ fetchImpl: CONNECTOR.fetch, admits: CONNECTOR.admits, bounds: BOUNDS });
 const pw = await loadPlaywright();
 if (pw.unavailable) { console.error(`🔴 REFUSED — no renderer here (${pw.unavailable}). NO REQUEST WAS MADE.`); process.exit(3); }

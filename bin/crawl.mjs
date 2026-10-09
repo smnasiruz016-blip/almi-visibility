@@ -47,6 +47,7 @@ import { createJsonlStore } from "../src/evidence/store.mjs";
 import { parseSitemap } from "../src/crawl/seeds.mjs";
 import { selectSeeds, renderSelection, SELECTION_RULE } from "../src/crawl/seed-selection.mjs";
 import { measureIpv6Egress, addressFamilies, reachabilityState } from "../src/crawl/ipv6.mjs";
+import { runCost, ownLedgerRef } from "../src/cost/run-cost.mjs";
 import { confineToRepo, writePermission, LOCAL } from "../src/write-law.mjs";
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedFileWrite, governedStoreAppend } from "../src/governance/governed-run.mjs";
@@ -96,7 +97,7 @@ const corpusDir = confineToRepo(arg("corpus", `${REPO}runs/crawl/corpus`), { lab
 const SUBJECT = arg("subject");
 /* RR-227: a sitemap re-collection also names the SUBJECT's data root, so F03 decides it resolves to the run's tenant before anything */
 const STORES = researchBatch ? [RESOURCES.researchBatch(researchBatch), ...(sitemapMode ? [RESOURCES.subject(SUBJECT)] : [])] : [RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.runArtefacts("crawl store and seed inputs")];
-const SCOPE = scopedEntryPoint({ entry: "bin/crawl.mjs", governed: true, resources: [...(live ? [RESOURCES.connector(SUBJECT, "PUBLIC_SITE")] : []), ...STORES, RESOURCES.inputPath(seedsFile, "--seeds"), RESOURCES.inputPath(sitemapFile, "--sitemap"), RESOURCES.inputPath(fromEvidence, "--seeds-from-evidence")] });
+const SCOPE = scopedEntryPoint({ entry: "bin/crawl.mjs", governed: true, resources: [...(live ? [RESOURCES.connector(SUBJECT, "PUBLIC_SITE"), RESOURCES.costLedger(ownLedgerRef())] : []), ...STORES, RESOURCES.inputPath(seedsFile, "--seeds"), RESOURCES.inputPath(sitemapFile, "--sitemap"), RESOURCES.inputPath(fromEvidence, "--seeds-from-evidence")] });
 /* F02: this run's hosts are the site origins DECLARED to its tenant — no estate list in shared code (relocated, 24 Sep 2026). */
 const DECLARED_HOSTS = declaredSiteHosts({ tenantId: SCOPE.tenantId });
 /* The run store, located only AFTER F02 decided it belongs to this run's tenant. Its root is where every write of this run
@@ -125,6 +126,10 @@ const mayRecord = live || permission.mayWrite;
  * given, which is a wider rule than the write law alone; handing the boundary `permission` would have silently
  * narrowed it. The boundary is given the decision this caller actually makes, and audits both outcomes of it. */
 const recordPermission = { ...permission, mayWrite: mayRecord, reason: mayRecord ? permission.reason : "no --live and no --confirm" };
+/* 🔴 F78 Amendment 1 C8/C9 (RR-243): a LIVE run (the only kind that opens a connector or makes any request) writes its cost into its
+ * tenant's own declared ledger — its crawl entry, or, when it ends before that entry, one run entry, whatever ended it. It is handed the
+ * WRITE LAW's permission (--confirm), never --live's wider recording rule: without --confirm it makes no request at all. */
+const RUN_COST = live ? runCost({ entryPoint: "bin/crawl.mjs", scope: SCOPE, permission, write: (w) => executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: w.root, auditRepo: w.auditRepo, permission: w.permission, store: createCostLedger(w.path), records: [w.entry], targetClass: "RUN_EVIDENCE", action: "APPEND_RUN_COST_ENTRY", occurredAt: w.occurredAt, correlationId: w.correlationId, discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null })), auditRepo: REPO }) : null;
 
 /* ---- 🔴 RR-227 · F19 A1 · C — ONE TENANT'S SITEMAP, RE-COLLECTED INTO ITS OWN RESEARCH BATCH, AND NOTHING ELSE --------------------- *
  * Decided above, before anything here: the batch is attached to the run's tenant (F02) and the subject's data root resolves to it (F03).
@@ -201,7 +206,7 @@ if (fromEvidence) {
  * the very descriptor that will run. The preflight builds (never executes) them over every record kind the crawler can emit,
  * from an in-process synthetic site — before the connector is opened, before the IPv6 probe, before DNS, before any request.
  * A refusal stops a live run here with ZERO requests made. */
-const ledgerPathOf = () => ledgerFile ?? confineToRepo(`${REPO}runs/cost/ledger.jsonl`, { label: "the cost ledger" });
+const ledgerPathOf = () => RUN_COST?.ledgerPath ?? ledgerFile ?? confineToRepo(`${REPO}runs/cost/ledger.jsonl`, { label: "the cost ledger" });
 const observationsAppend = (records, occurredAt, correlationId) => governedStoreAppend({ ...SCOPE.writeScope,
   repo: WRITE_ROOT, auditRepo: REPO, permission: recordPermission, store: createJsonlStore(out), records,
   targetClass: "GENERATED_CONFIG", action: "APPEND_CRAWL_OBSERVATIONS",
@@ -244,7 +249,7 @@ const runAppend = (runRecord, occurredAt, correlationId) => governedStoreAppend(
   occurredAt, correlationId, discipline: "APPEND_WITHOUT_DEDUPE",
 });
 const costAppend = (costEntry, occurredAt, correlationId) => governedStoreAppend({ ...SCOPE.writeScope,
-  repo: WRITE_ROOT, auditRepo: REPO, permission: recordPermission, store: createCostLedger(ledgerPathOf()), records: [costEntry],
+  repo: RUN_COST?.ledgerRoot ?? WRITE_ROOT, auditRepo: REPO, permission: RUN_COST ? permission : recordPermission, store: createCostLedger(ledgerPathOf()), records: [RUN_COST ? { ...costEntry, scope: { tenantId: SCOPE.tenantId } } : costEntry],
   targetClass: "RUN_EVIDENCE", action: "APPEND_CRAWL_COST_ENTRY",
   occurredAt, correlationId,
   discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null,
@@ -267,7 +272,7 @@ if (live) {
 }
 
 /* RR-135: after the preflight (RR-106: nothing opens before it), before the IPv6 probe, DNS or any request. */
-CONNECTOR = live ? openConnector({ scope: SCOPE, subjectId: SUBJECT, kind: "PUBLIC_SITE" }) : null;
+CONNECTOR = live ? RUN_COST.metered(openConnector({ scope: SCOPE, subjectId: SUBJECT, kind: "PUBLIC_SITE" })) : null;
 if (live) {
   if (seeds.length === 0) {
     console.error("🔴 REFUSED — NO_SEEDS: a live run needs at least one declared seed. NO REQUEST WAS MADE.");
@@ -288,13 +293,16 @@ if (live) {
  * the difference between recording a third state and inventing a zero.
  */
 console.log(live ? "[write:local] a LIVE run records what it fetches and spends — D-CRW-4's two flags were given" : permission.mayWrite ? `[write:local] ${permission.reason}` : `[dry-run] no writes will happen — ${permission.reason}`);
-const egress = await measureIpv6Egress();
+/* RR-243 (F78 C8): the probe and the lookups are requests — made only by a LIVE run, which records its cost; a dry run makes none */
+const egress = live ? await measureIpv6Egress() : { state: "NOT_MEASURED", detail: "a dry run makes no request (F78 Amendment 1, C8)", elapsedMs: 0 };
+if (live) RUN_COST.noteRequests("ipv6-egress-probe", 1);
 console.log(`IPv6 EGRESS     : ${egress.state} — ${egress.detail} (${egress.elapsedMs}ms)`);
 
 const unreachable = new Map();
 const dnsUnknown = [];
-for (const host of DECLARED_HOSTS) {
+for (const host of live ? DECLARED_HOSTS : []) {
   const families = await addressFamilies(host);
+  RUN_COST.noteRequests("dns-lookup", 1);
   if (families.hasA === true) continue; // the ordinary case; nothing to say
   const verdict = reachabilityState({ families, egress });
   if (!verdict) {
@@ -483,6 +491,7 @@ if (live) {
   const costGoverned = executeGovernedWrite(costAppend(costEntry, CRAWL_INSTANT, CRAWL_CORRELATION));
   costOutcome = costGoverned.outcome;
   if (costGoverned.outcome === "COMMITTED" || costGoverned.outcome === "ALREADY_COMMITTED") {
+    RUN_COST?.covered(costEntry.entry_id);
     console.log(`cost ledger: ${formatLedgerLine(costEntry)}`);
   } else if (costGoverned.outcome !== "REFUSED") {
     console.error(`🔴 ${costGoverned.outcome} — the cost entry was not written; the governed attempt is on the audit trail`);
@@ -528,7 +537,7 @@ async function recollectSitemaps() {
       process.exit(3);
     }
   }
-  const SM_CONNECTOR = live ? openConnector({ scope: SCOPE, subjectId: SUBJECT, kind: "PUBLIC_SITE" }) : null;
+  const SM_CONNECTOR = live ? RUN_COST.metered(openConnector({ scope: SCOPE, subjectId: SUBJECT, kind: "PUBLIC_SITE" })) : null;
   const origins = live ? SM_CONNECTOR.origins : DECLARED_HOSTS.map((h) => `https://${h}`);
   console.log(renderSitemapPlan({ origins: origins.length, live }));
   if (!live) {

@@ -76,7 +76,7 @@ function runBin(WORLD, { tenantId, subject, batch, corpus, mode = "fixture", sto
   const dir = storeDir ?? mkdtempSync(join(REPO, TEST_SCRATCH_AUDIT_ROOT, "f19-generic-"));
   const log = join(dir, `egress-${Date.now()}-${Math.random().toString(16).slice(2)}.json`);
   try {
-    const args = ["bin/crawl.mjs", `--research-batch=${batch}`, `--subject=${subject}`, "--live", "--i-have-the-owners-green", `--corpus=${corpus}`, `--tenant=${tenantId}`, "--actor=actor:cc"];
+    const args = ["bin/crawl.mjs", `--research-batch=${batch}`, `--subject=${subject}`, "--live", "--i-have-the-owners-green", /* RR-243: a live run needs --confirm (F78 C8) */ "--confirm", `--corpus=${corpus}`, `--tenant=${tenantId}`, "--actor=actor:cc"];
     const r = spawnSync(process.execPath, ["--import", PRELOAD, ...args], { cwd: REPO, encoding: "utf8", timeout: 120000,
       env: { ...WORLD.envWith(), [AUDIT_STORE_OVERRIDE_ENV]: dir, [AUDIT_RUN_ENV]: `f19-generic-${Date.now()}`, NO_EGRESS_MODE: mode, NO_EGRESS_LOG: log } });
     const counts = existsSync(log) ? JSON.parse(readFileSync(log, "utf8")) : null;

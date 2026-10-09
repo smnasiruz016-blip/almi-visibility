@@ -28,7 +28,11 @@ import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 import { lookupStore, lookupConnector } from "../src/tenancy/root-registry.mjs";
 import { rootIndexFor } from "../src/tenancy/resolver.mjs";
 import { openConnector, siteOriginsOf } from "../src/tenancy/connectors.mjs";
-import { confineToRepo } from "../src/write-law.mjs";
+import { confineToRepo, writePermission, LOCAL } from "../src/write-law.mjs";
+import { runCost, ownLedgerRef } from "../src/cost/run-cost.mjs";
+import { governedStoreAppend } from "../src/governance/governed-run.mjs";
+import { createCostLedger } from "../src/cost/ledger.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { RENDER_BOUNDS as OFFLINE_BOUNDS, loadPlaywright, launchOfflineChromium, startDocumentServer, renderDocument } from "../src/render/renderer.mjs";
 import { createSameOriginPolicy, LIVE_RENDER_BOUNDS } from "../src/render/same-origin-policy.mjs";
 import { assessPage, summariseMobile, NOT_MEASURED } from "../src/audit/mobile-readiness.mjs";
@@ -62,7 +66,10 @@ if (SITE_ORIGINS.length === 0) { console.error("🔴 REFUSED — NO_DECLARED_SIT
 /* Amendment 1 (C3): the page's OWN site, as hosts — a render that refused only hosts outside this set may be OWN-SITE COMPLETE */
 const OWN_HOSTS = new Set(SITE_ORIGINS.map((o) => new URL(o).host));
 /* 🔴 F02 — decided HERE, before anything is read */
-const SCOPE = scopedEntryPoint({ entry: "bin/mobile-audit.mjs", governed: false, resources: [RESOURCES.researchBatch(BATCH), ...(EVIDENCE_BATCH ? [RESOURCES.researchBatch(EVIDENCE_BATCH)] : []), ...SITE_ORIGINS.map((o) => RESOURCES.siteOrigin(o)), ...(LIVE ? [RESOURCES.connector(SUBJECT, "PUBLIC_SITE")] : [])] });
+const SCOPE = scopedEntryPoint({ entry: "bin/mobile-audit.mjs", governed: false, resources: [RESOURCES.researchBatch(BATCH), ...(EVIDENCE_BATCH ? [RESOURCES.researchBatch(EVIDENCE_BATCH)] : []), ...SITE_ORIGINS.map((o) => RESOURCES.siteOrigin(o)), ...(LIVE ? [RESOURCES.connector(SUBJECT, "PUBLIC_SITE"), RESOURCES.costLedger(ownLedgerRef())] : [])] });
+/* F78 Amendment 1 C8/C9 (RR-243): a LIVE run (the only mode that opens a connector) writes its one cost entry into its tenant's own
+ * declared ledger, whatever ends it; without --confirm it makes no request at all */
+const RUN_COST = LIVE ? runCost({ entryPoint: "bin/mobile-audit.mjs", scope: SCOPE, permission: writePermission({ target: LOCAL, argv: process.argv, env: process.env }), write: (w) => executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: w.root, auditRepo: w.auditRepo, permission: w.permission, store: createCostLedger(w.path), records: [w.entry], targetClass: "RUN_EVIDENCE", action: "APPEND_RUN_COST_ENTRY", occurredAt: w.occurredAt, correlationId: w.correlationId, discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null })), auditRepo: REPO }) : null;
 const CORPUS = confineToRepo(arg("corpus") ?? `${REPO}runs/crawl/corpus`, { label: "--corpus" });
 
 const store = lookupStore(rootIndexFor(process.env), "RESEARCH");
@@ -113,7 +120,7 @@ if (EVIDENCE_BATCH) {
 
 let policy = null;
 if (LIVE) {
-  const CONNECTOR = openConnector({ scope: SCOPE, subjectId: SUBJECT, kind: "PUBLIC_SITE" });
+  const CONNECTOR = RUN_COST.metered(openConnector({ scope: SCOPE, subjectId: SUBJECT, kind: "PUBLIC_SITE" }));
   policy = createSameOriginPolicy({ fetchImpl: CONNECTOR.fetch, admits: CONNECTOR.admits });
 }
 const pw = await loadPlaywright();

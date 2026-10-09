@@ -36,6 +36,8 @@ import { pathToFileURL } from "node:url";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { inVerifiedTestContext } from "../src/governance/governed-run.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { runCost, ownLedgerRef } from "../src/cost/run-cost.mjs";
+import { createCostLedger } from "../src/cost/ledger.mjs";
 import { rootIndexFor, createTenantResolver } from "../src/tenancy/resolver.mjs";
 import { decideForTenant } from "../src/tenancy/scope.mjs";
 import { lookupStore, lookupSubject, lookupConnector } from "../src/tenancy/root-registry.mjs";
@@ -75,7 +77,10 @@ if (!SUBJECT || !BATCH) { console.error("usage: node bin/collect-public-question
 const permission = writePermission({ target: LOCAL, argv: process.argv, env: process.env });
 if (!permission.mayWrite) { console.error("🔴 REFUSED — COLLECTION_REQUIRES_CONFIRM: there is no dry run; nothing read, no request"); process.exit(2); }
 
-const SCOPE = scopedEntryPoint({ entry: "bin/collect-public-questions.mjs", governed: true, resources: [RESOURCES.subject(SUBJECT), RESOURCES.researchBatch(BATCH), RESOURCES.connector(SUBJECT, KIND), ...(AI_RUN ? [RESOURCES.connector(SUBJECT, AI_CONNECTOR_KIND)] : []), ...(seams.includes(TEST_GREEN) ? [RESOURCES.inputPath(process.env[TEST_GREEN], "--test-green")] : [])] });
+const SCOPE = scopedEntryPoint({ entry: "bin/collect-public-questions.mjs", governed: true, resources: [RESOURCES.subject(SUBJECT), RESOURCES.researchBatch(BATCH), RESOURCES.connector(SUBJECT, KIND), ...(AI_RUN ? [RESOURCES.connector(SUBJECT, AI_CONNECTOR_KIND)] : []), RESOURCES.costLedger(ownLedgerRef()), ...(seams.includes(TEST_GREEN) ? [RESOURCES.inputPath(process.env[TEST_GREEN], "--test-green")] : [])] });
+/* F78 Amendment 1 C8/C9 (RR-243): this run's one cost entry, into its tenant's own declared ledger, whatever ends the run; without
+ * --confirm it makes no request at all */
+const RUN_COST = runCost({ entryPoint: "bin/collect-public-questions.mjs", scope: SCOPE, permission, write: (w) => executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: w.root, auditRepo: w.auditRepo, permission: w.permission, store: createCostLedger(w.path), records: [w.entry], targetClass: "RUN_EVIDENCE", action: "APPEND_RUN_COST_ENTRY", occurredAt: w.occurredAt, correlationId: w.correlationId, discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null })), auditRepo: REPO });
 const index = rootIndexFor(process.env);
 const store = lookupStore(index, "RESEARCH");
 if (store.state !== "DECLARED") { console.error(`🔴 REFUSED — the RESEARCH store is ${store.state}; no request`); process.exit(3); }
@@ -184,7 +189,7 @@ if (Object.hasOwn(process.env, TEST_TRANSPORT) && process.env[TEST_TRANSPORT] !=
   if (rel.startsWith("..") || isAbsolute(rel)) { console.error("🔴 HALTED — the test transport is not under test/; no request"); process.exit(4); }
   transport = (await import(pathToFileURL(p).href)).default;
 } else {
-  const opened = openConnector({ scope: SCOPE, subjectId: SUBJECT, kind: KIND });
+  const opened = RUN_COST.metered(openConnector({ scope: SCOPE, subjectId: SUBJECT, kind: KIND }));
   transport = liveTransport(opened, adapter, credentialName);
 }
 const clock = () => Math.floor(Date.now() / 1000);
@@ -238,7 +243,7 @@ async function aiLedRunAndExit() {
       const made = (await import(pathToFileURL(p).href)).default({ env: process.env, providerId: ai.providerId, pricePerCall: ai.pricePerCall });
       ({ provider: fakeProvider, approvals = null, approvalRef = approvalRef } = made);
     } else {
-      opened = openConnector({ scope: SCOPE, subjectId: SUBJECT, kind: AI_CONNECTOR_KIND });
+      opened = RUN_COST.metered(openConnector({ scope: SCOPE, subjectId: SUBJECT, kind: AI_CONNECTOR_KIND }));
       credentialName = lookupConnector(index, SUBJECT, AI_CONNECTOR_KIND).connector.credential.name;
     }
     const greenRecord = records.find((r) => r.authorityId === GREEN);

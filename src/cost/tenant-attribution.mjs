@@ -13,11 +13,14 @@
  *                              tenant attributes, several do not (no per-tenant split of the property's calls is recorded)
  *   a crawl batch              UNATTRIBUTED — a shared batch; no per-tenant split of its cost is recorded
  *   an engine run              UNATTRIBUTED — no tenant scope is declared for it (tool install, render, replay, recovery, checks)
+ *   a tenant's own ledger      (F78 Amendment 1, C9) that tenant, when the entry's recorded scope names it; otherwise FOREIGN, counted
+ *                              for nobody
  *
  * The four costs (money, provider calls, request workload, founder time) are totalled per tenant as RECORDED; a cost the ledger marks
  * MEASURABLE_BUT_NOT_RECORDED is counted and named — it is the FAILURE C1 names, never hidden. Pure; names no product.
  */
 import { coverageFailures } from "./ledger.mjs";
+import { decideResolvedTenants } from "../tenancy/scope.mjs";
 
 export const ATTRIBUTION = Object.freeze({ ATTRIBUTED: "ATTRIBUTED", UNATTRIBUTED: "UNATTRIBUTED" });
 
@@ -37,8 +40,14 @@ const resolved = (r) => r?.state === "RESOLVED" && typeof r.tenantId === "string
  *   origins        the declared SITE_ORIGIN attachments as { host, tenantId } (for a domain property's coverage)
  *   batch          the RESEARCH_BATCH id the entry was recorded under, or null
  */
-export function attributeCostEntry(entry, { resolve, evidenceById = new Map(), origins = [], batch = null }) {
-  const out = (state, tenantId, via, missing = null) => Object.freeze({ entryId: entry.entry_id, runKind: entry.run_kind, state, tenantId, via, missing });
+export function attributeCostEntry(entry, { resolve, evidenceById = new Map(), origins = [], batch = null, ledgerTenant = null }) {
+  const out = (state, tenantId, via, missing = null, foreign = false) => Object.freeze({ entryId: entry.entry_id, runKind: entry.run_kind, state, tenantId, via, missing, foreign });
+  /* F78 Amendment 1, C9 (RR-243): an entry in a tenant's OWN declared ledger belongs to that tenant — only when the entry's recorded
+   * scope names that same tenant; an entry naming another tenant, or none, in a tenant's ledger is FOREIGN: never counted for anyone */
+  if (ledgerTenant) {
+    return decideResolvedTenants(entry.scope?.tenantId, ledgerTenant).allowed ? out(ATTRIBUTION.ATTRIBUTED, ledgerTenant, "the tenant's own declared cost ledger")
+      : out(ATTRIBUTION.UNATTRIBUTED, null, null, "an entry in a tenant's own ledger whose recorded scope names another tenant, or none", true);
+  }
   if (batch) {
     const r = resolve({ resourceKind: "RESEARCH_BATCH", resourceRef: batch });
     return resolved(r) ? out(ATTRIBUTION.ATTRIBUTED, r.tenantId, "the declared research batch")

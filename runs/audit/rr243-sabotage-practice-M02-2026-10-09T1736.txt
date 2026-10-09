@@ -1,0 +1,10 @@
+RR-243 F78 Amendment 1 sabotage PRACTICE run · 2026-10-09T17:36:24.867Z
+population: 1 sabotage(s) = 0 on the mechanism + 1 on the 1 entry points the run-cost census finds · over test/rr243-f78-cost.test.mjs · each applied ALONE
+BASELINE: GREEN (every named test passed, none skipped)
+PRE-FLIGHT (span occurrences in the code now): M02=1 · all exactly once: true
+production trail sha256 before: 15a9a7c7b911d2d08c0ad7a990a0f05730a12640b7ec0d1530480c603a328a19
+
+M02 C8 bin/crawl.mjs makes no request without --confirm (its connector is metered) · bin/crawl.mjs: landed true · "C8-1 ·" red true · its failure AssertionError · restored true · PROVED
+
+GREEN after restore: true
+proved 1 of 1 · residue 0 · production trail sha256 after: 15a9a7c7b911d2d08c0ad7a990a0f05730a12640b7ec0d1530480c603a328a19 · unchanged true

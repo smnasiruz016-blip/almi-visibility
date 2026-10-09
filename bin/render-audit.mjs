@@ -35,7 +35,11 @@ import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 import { lookupStore, lookupConnector } from "../src/tenancy/root-registry.mjs";
 import { rootIndexFor } from "../src/tenancy/resolver.mjs";
 import { openConnector, siteOriginsOf } from "../src/tenancy/connectors.mjs";
-import { confineToRepo } from "../src/write-law.mjs";
+import { confineToRepo, writePermission, LOCAL } from "../src/write-law.mjs";
+import { runCost, ownLedgerRef } from "../src/cost/run-cost.mjs";
+import { governedStoreAppend } from "../src/governance/governed-run.mjs";
+import { createCostLedger } from "../src/cost/ledger.mjs";
+import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { RENDER_BOUNDS as OFFLINE_BOUNDS, loadPlaywright, launchOfflineChromium, startDocumentServer, renderDocument } from "../src/render/renderer.mjs";
 import { createSameOriginPolicy, LIVE_RENDER_BOUNDS } from "../src/render/same-origin-policy.mjs";
 import { compareSourceRender, summariseComparisons, DIMENSIONS, NOT_MEASURED } from "../src/audit/render-compare.mjs";
@@ -67,7 +71,10 @@ const SITE_ORIGINS = SITE.state === "DECLARED" ? [...siteOriginsOf(SITE.connecto
 if (SITE_ORIGINS.length === 0) { console.error("🔴 REFUSED — NO_DECLARED_SITE: the subject declares no site origin to render. NOTHING WAS READ."); process.exit(3); }
 /* 🔴 F02 — decided HERE, before anything is read: this batch, the subject's declared site origins (the stored bodies are copies of
  * their pages), and (live only) this subject's PUBLIC_SITE connector. */
-const SCOPE = scopedEntryPoint({ entry: "bin/render-audit.mjs", governed: false, resources: [RESOURCES.researchBatch(BATCH), ...(EVIDENCE_BATCH ? [RESOURCES.researchBatch(EVIDENCE_BATCH)] : []), ...SITE_ORIGINS.map((o) => RESOURCES.siteOrigin(o)), ...(LIVE ? [RESOURCES.connector(SUBJECT, "PUBLIC_SITE")] : [])] });
+const SCOPE = scopedEntryPoint({ entry: "bin/render-audit.mjs", governed: false, resources: [RESOURCES.researchBatch(BATCH), ...(EVIDENCE_BATCH ? [RESOURCES.researchBatch(EVIDENCE_BATCH)] : []), ...SITE_ORIGINS.map((o) => RESOURCES.siteOrigin(o)), ...(LIVE ? [RESOURCES.connector(SUBJECT, "PUBLIC_SITE"), RESOURCES.costLedger(ownLedgerRef())] : [])] });
+/* F78 Amendment 1 C8/C9 (RR-243): a LIVE run (the only mode that opens a connector) writes its one cost entry into its tenant's own
+ * declared ledger, whatever ends it; without --confirm it makes no request at all */
+const RUN_COST = LIVE ? runCost({ entryPoint: "bin/render-audit.mjs", scope: SCOPE, permission: writePermission({ target: LOCAL, argv: process.argv, env: process.env }), write: (w) => executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: w.root, auditRepo: w.auditRepo, permission: w.permission, store: createCostLedger(w.path), records: [w.entry], targetClass: "RUN_EVIDENCE", action: "APPEND_RUN_COST_ENTRY", occurredAt: w.occurredAt, correlationId: w.correlationId, discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null })), auditRepo: REPO }) : null;
 const CORPUS = confineToRepo(arg("corpus") ?? `${REPO}runs/crawl/corpus`, { label: "--corpus" });
 
 const store = lookupStore(rootIndexFor(process.env), "RESEARCH");
@@ -118,7 +125,7 @@ if (EVIDENCE_BATCH) {
 let CONNECTOR = null;
 let policy = null;
 if (LIVE) {
-  CONNECTOR = openConnector({ scope: SCOPE, subjectId: SUBJECT, kind: "PUBLIC_SITE" });
+  CONNECTOR = RUN_COST.metered(openConnector({ scope: SCOPE, subjectId: SUBJECT, kind: "PUBLIC_SITE" }));
   const outside = pages.filter((p) => !CONNECTOR.admits(p.url)).length;
   if (outside > 0) { console.error(`🔴 REFUSED — ${outside} page(s) are not on a site origin the subject declares. NO REQUEST WAS MADE.`); process.exit(3); }
   policy = createSameOriginPolicy({ fetchImpl: CONNECTOR.fetch, admits: CONNECTOR.admits });

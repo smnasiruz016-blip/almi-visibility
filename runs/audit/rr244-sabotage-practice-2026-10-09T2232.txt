@@ -1,0 +1,25 @@
+RR-244 F78 Amendment 2 sabotage PRACTICE run · 2026-10-09T22:32:55.901Z
+population: 16 sabotage(s) — one per limb of the Amendment 2 text and per repair this round made
+BASELINE: GREEN (every named test passed, none skipped)
+PRE-FLIGHT (span occurrences in the code now): A01=1 A02=1 A03=1 A04=1 A05=1 A06=1 A07=1 A08=1 A09=1 A10=1 A11=1 A12=1 A13=1 A14=1 A16=1 A15=1 · all exactly once: true
+production trail sha256 before: 5708ea2e2dd94effd4e8778a26c13230ded7489119f83e3c0fb56b258c91b48e
+
+A01 render-audit: a scope-gate refusal in its connector mode is recorded (the durable gate) · bin/render-audit.mjs: landed true · "A2-2 ·" red true · its failure AssertionError · restored true · PROVED
+A02 mobile-audit: a scope-gate refusal in its connector mode is recorded (the durable gate) · bin/mobile-audit.mjs: landed true · "A2-2 ·" red true · its failure AssertionError · restored true · PROVED
+A03 render-audit: a connector-mode run without --confirm has its refusal recorded (it ends only after the recorder) · bin/render-audit.mjs: landed true · "A2-3 ·" red true · its failure AssertionError · restored true · PROVED
+A04 mobile-audit: a connector-mode run without --confirm has its refusal recorded (it ends only after the recorder) · bin/mobile-audit.mjs: landed true · "A2-3 ·" red true · its failure AssertionError · restored true · PROVED
+A05 render-audit offline writes nothing to the trail · bin/render-audit.mjs: landed true · "A2-4 ·" red true · its failure AssertionError · restored true · PROVED
+A06 mobile-audit offline writes nothing to the trail · bin/mobile-audit.mjs: landed true · "A2-4 ·" red true · its failure AssertionError · restored true · PROVED
+A07 render-audit offline makes no request · bin/render-audit.mjs: landed true · "A2-4 ·" red true · its failure AssertionError · restored true · PROVED
+A08 a run refused at its scope gate makes no request · src/governance/scoped-entry.mjs: landed true · "A2-2 ·" red true · its failure AssertionError · restored true · PROVED
+A09 a connector-mode run without --confirm makes no request · src/cost/run-cost.mjs: landed true · "A2-3 ·" red true · its failure AssertionError · restored true · PROVED
+A10 a confirmed run ending in a refusal by the target writes its one cost entry · src/cost/run-cost.mjs: landed true · "A2-5 ·" red true · its failure AssertionError · restored true · PROVED
+A11 build-corpus: the REPO repair (a confirmed run completes and writes its cost entry) · subjects/almi-oet/tools/build-corpus.mjs: landed true · "A2-6 ·" red true · its failure AssertionError · restored true · PROVED
+A12 nursing-chain: the REPO repair · subjects/almi-oet/tools/nursing-chain.mjs: landed true · "A2-6b ·" red true · its failure AssertionError · restored true · PROVED
+A13 collect-public-questions: its no --confirm refusal comes after the recorder · bin/collect-public-questions.mjs: landed true · "A2-3 ·" red true · its failure AssertionError · restored true · PROVED
+A14 render-collect: its storage-permission refusal comes after the recorder · bin/render-collect.mjs: landed true · "A2-3 ·" red true · its failure AssertionError · restored true · PROVED
+A16 placement-measure: the REPO repair (a third subject tool, found by A2-6b) · subjects/almi-oet/tools/placement-measure.mjs: landed true · "A2-6b ·" red true · its failure AssertionError · restored true · PROVED
+A15 the census: nothing ends a gate-passed run before its recorder exists · bin/quote-match.mjs: landed true · "A2-1 ·" red true · its failure AssertionError · restored true · PROVED
+
+GREEN after restore: true
+proved 16 of 16 · residue 0 · production trail sha256 after: 5708ea2e2dd94effd4e8778a26c13230ded7489119f83e3c0fb56b258c91b48e · unchanged true

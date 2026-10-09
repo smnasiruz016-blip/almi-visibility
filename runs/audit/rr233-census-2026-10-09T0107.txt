@@ -1,0 +1,6 @@
+RR-233 admitted-set census (read-only) · 2026-10-09T01:07:16Z · engine 9a288de · _handoffs 2696149 · before = main's inclusion.mjs, after = this branch
+_handoffs HEAD: names 1461 · admitted before 413 · after 413 · added 0 · removed 0 · by the new rules 0
+_handoffs corpus commit: names 1456 · admitted before 413 · after 413 · added 0 · removed 0 · by the new rules 0
+_handoffs EVERY name ever committed: names 1725 · admitted before 415 · after 415 · added 0 · removed 0 · by the new rules 0
+engine HEAD: names 67 · admitted before 8 · after 8 · added 0 · removed 0 · by the new rules 0
+CENSUS: IDENTICAL

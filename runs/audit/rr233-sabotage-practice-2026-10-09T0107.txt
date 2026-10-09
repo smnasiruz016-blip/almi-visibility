@@ -1,0 +1,16 @@
+RR-233 admissible-name rules sabotage PRACTICE run · 2026-10-09T01:07:02.416Z
+population: 7 sabotage(s) of config/authority/inclusion.mjs over test/rr233-admissible-names.test.mjs · each applied ALONE · each names the test that must turn RED
+BASELINE: GREEN (every named test passed, none skipped)
+PRE-FLIGHT (span occurrences in the file now): R1=1 R2=1 R3=1 R4=1 R5=1 R6=1 R7=1 · all exactly once: true
+production trail sha256 before: 782a69af4e9a6cdf3a072fa1530fecc26cede2d326ab6cfdfc292c78d98338be
+
+R1 the amendment number widened to any number (Q3 (a) as first written: admits the committed, never-admitted 2/3/4): landed true · "N4 ·" red true · its failure AssertionError · restored true · PROVED
+R2 the same widening, seen by the full census over the governance repository: landed true · "N5 ·" red true · its failure AssertionError · restored true · PROVED
+R3 a suffix allowed after the amendment's date (a held FOR_OWNER_APPROVAL draft would enter): landed true · "N2 ·" red true · its failure AssertionError · restored true · PROVED
+R4 the specification-amendment rule removed: landed true · "N1 ·" red true · its failure AssertionError · restored true · PROVED
+R5 the consent record's tenant label widened to any word (a client name would enter): landed true · "N3 ·" red true · its failure AssertionError · restored true · PROVED
+R6 the consent record's extension widened to any extension: landed true · "N3 ·" red true · its failure AssertionError · restored true · PROVED
+R7 the consent record's issuer removed (it would resolve INVALID, never CURRENT): landed true · "N1 ·" red true · its failure AssertionError · restored true · PROVED
+
+GREEN after restore: true
+proved 7 of 7 · residue 0 · production trail sha256 after: 782a69af4e9a6cdf3a072fa1530fecc26cede2d326ab6cfdfc292c78d98338be · unchanged true

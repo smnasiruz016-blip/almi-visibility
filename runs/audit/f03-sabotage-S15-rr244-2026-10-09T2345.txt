@@ -1,0 +1,25 @@
+F03 SABOTAGE EVIDENCE — one defect per limb of the frozen acceptance
+
+Engine tree: 44c0002e29de88d4c642594037ebf22686aafd76. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
+runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
+requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
+No sabotage aims at the production audit trail; every firing case writes to a stand-in or a confined store.
+
+RESULTS
+F3-S15   landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — a runnable entry point loses its connector (it now asks for one its subject does not declare)
+         target bin/quote-match.mjs · named test "F03 · C9 ·…" in test/f03-root-connector-registry.test.mjs
+         sha256 before fffd8789e3d3e9a7ffb950702c93a1da026e9b2cc107717c4ad8c930fbfb8b9a · after fffd8789e3d3e9a7ffb950702c93a1da026e9b2cc107717c4ad8c930fbfb8b9a
+         failing tests: F03 · C2e · an entry point refused on its connector constructs nothing and asks for no network — exit 3 | F03 · C9 · every connection entry point runnable today still resolves its connector for its subject's tenant
+         verdict: RED, named test, intended reason
+
+TOTAL 1 · PROVED 1 · NOT PROVED 0
+residue in sabotaged files after restore: 0
+tracked modifications after restore (excluding this evidence file): 1
+
+PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
+  audit-trail/events.jsonl  before 0164341ad9b2b5b07f561f63e23a16d83ec96617c8bf97b5d3f36fa715b9e5d3  after 0164341ad9b2b5b07f561f63e23a16d83ec96617c8bf97b5d3f36fa715b9e5d3
+  audit-trail/head.json  before 36a9b9ebcb31998eb31e721c144c6b3b623d3df0ad1aa877df7544a903b688c6  after 36a9b9ebcb31998eb31e721c144c6b3b623d3df0ad1aa877df7544a903b688c6
+  untouched: true
+
+EXECUTION ASSERTION: 1 of 1 sabotages executed.

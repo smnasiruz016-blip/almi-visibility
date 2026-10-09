@@ -89,12 +89,44 @@ function fixtureSite({ robots = "User-agent: *\nDisallow: /blocked/\n", big = 0 
   return { seen, start: () => new Promise((r) => server.listen(0, "127.0.0.1", () => r(`http://127.0.0.1:${server.address().port}`))), stop: () => new Promise((r) => server.close(r)) };
 }
 
+/* 🔴 RR-234 — THE SAME FIXTURE SITE, ANSWERED IN-PROCESS, so the live-policy test does not depend on the wall clock under load.
+ * Measured (RR-234): the 200 ms test timeout covered the process's FIRST fetch over a real socket — a cold start of 14 ms idle but up to
+ * 235 ms under CPU contention — so robots.txt timed out, the robots cache failed CLOSED (correct), and C4 read ROBOTS / an empty request
+ * log: 11 of 15 runs under 32 CPU burners. Here every answer is a real Response settled in microtasks, before any timer phase, so a 200 ms
+ * abort can never beat it; /slow.js answers only after 2000 ms, and timers fire in deadline order, so the 200 ms abort ALWAYS wins it.
+ * The policy, the fetcher (pacing, timeout, one retry, size cap, redirect rule), the robots cache and every assertion are the production
+ * code and the same bounds as before. The browser test below keeps the real socket server. */
+function fixtureNetwork({ robots = "User-agent: *\nDisallow: /blocked/\n", big = 0, origin = "http://fixture.invalid" } = {}) {
+  const seen = [];
+  const answer = (path) => {
+    if (path === "/robots.txt") return new Response(robots, { status: 200, headers: { "content-type": "text/plain" } });
+    if (path === "/hop") return new Response(null, { status: 301, headers: { location: "/app.js" } });
+    if (path === "/away") return new Response(null, { status: 301, headers: { location: "http://127.0.0.2:9/x.js" } });
+    if (path === "/big.js") return new Response("x".repeat(big), { status: 200, headers: { "content-type": "text/javascript" } });
+    if (path === "/img.png") return new Response(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0xff]), { status: 200, headers: { "content-type": "image/png" } });
+    return new Response("/* ok */", { status: 200, headers: { "content-type": "text/javascript" } });
+  };
+  const fetchImpl = async (u, init = {}) => {
+    const url = new URL(u);
+    /* EVERY call is logged first — a request to any other host is still a request, and "no request" must be able to fail */
+    seen.push({ path: url.origin === origin ? url.pathname : url.href, at: performance.now() });
+    if (url.origin !== origin) throw new TypeError(`fetch failed: no fixture at ${url.origin}`);
+    if (url.pathname !== "/slow.js") return answer(url.pathname);
+    /* the slow resource: an answer after 2000 ms, unless the request's signal aborts first */
+    return new Promise((resolve, reject) => {
+      const t = setTimeout(() => resolve(new Response("1", { status: 200 })), 2000);
+      init.signal?.addEventListener("abort", () => { clearTimeout(t); reject(new DOMException("aborted", "AbortError")); }, { once: true });
+    });
+  };
+  return { seen, origin, fetchImpl };
+}
+
 test("C4 · the live policy: an undeclared host and the request cap refuse with NO request; robots refuse; a redirect is followed only on-origin, paced; size and time bounded; bytes kept exact", async () => {
-  const site = fixtureSite({ big: 5000 });
-  const origin = await site.start();
-  try {
+  const site = fixtureNetwork({ big: 5000 });
+  const origin = site.origin;
+  {
     const INTERVAL = 60;
-    const policy = createSameOriginPolicy({ fetchImpl: (u, i) => globalThis.fetch(u, i), admits: (u) => new URL(u).origin === origin, bounds: { maxRequestsPerPage: 7, intervalMs: INTERVAL, timeoutMs: 200, maxResponseBytes: 1000 } });
+    const policy = createSameOriginPolicy({ fetchImpl: site.fetchImpl, admits: (u) => new URL(u).origin === origin, bounds: { maxRequestsPerPage: 7, intervalMs: INTERVAL, timeoutMs: 200, maxResponseBytes: 1000 } });
     /* the cap counts REQUESTS STARTED: below, the hop costs 2, the off-origin redirect 1, the oversized body 1, the timed-out one 2 (its retry), the image 1 = 7 */
     const page = policy.forPage();
     assert.deepEqual(await page.resolve("http://127.0.0.2:9/other.js"), { served: false, refusal: "UNDECLARED_HOST" });
@@ -122,7 +154,7 @@ test("C4 · the live policy: an undeclared host and the request cap refuse with 
     const next = policy.forPage();
     assert.equal(next.requestsMade(), 0);
     assert.deepEqual(await next.cacheOnly(`${origin}/img.png`), { served: false, refusal: "NOT_FETCHED_IN_RENDER" });
-  } finally { await site.stop(); }
+  }
 });
 
 /* ---------------- C4 · scripts and storage, in a real browser, against fixtures ---------------- */

@@ -423,6 +423,9 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_TENANT_CONSENT_T1_2026-10-08.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_TENANT_CONSENT_T2_2026-10-09.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F78_ACCEPTANCE_AMENDMENT_1_2026-10-09.md", loader: "F-board acceptance F78 (Amendment 1)" }),
+  /* RR-244 (9 Oct 2026): the one CURRENT record admitted by the migration at _handoffs 2e623ff — F78's Acceptance Amendment 2. The
+   * RR-243 stop report, the RR-244A exposure census and the RR-244 stop report are named without an admitted token. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F78_ACCEPTANCE_AMENDMENT_2_2026-10-09.md", loader: "F-board acceptance F78 (Amendment 2)" }),
   /* RR-229 (8 Oct 2026): the one CURRENT record admitted by the migration at _handoffs 51e28c8 — the RR-229 (REV2) command. Its step-0
    * gate report and the RR-228 records are named without an admitted token, so the register does not admit them. */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-229.md", loader: "authority register (CURRENT record)" }),

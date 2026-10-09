@@ -98,9 +98,11 @@ NEAR({
 }, NEW[1]);
 
 /* RR-243 (restated): the RR-243 migration at _handoffs d2bfd22 admitted three records — F78's Acceptance Amendment 1 (an earlier rule) and
- * the T1/T2 consent records (the RR-233 tenant-consent rule) — 421 -> 424. A record a new rule admits must be one NO earlier rule admits. */
-test("N4 · the admitted set is unchanged: 424 corpus records by the same rule; no earlier admission moves; the committed prefix names stay out", () => {
-  assert.equal(AUTHORITY_CORPUS.length, 424, "the corpus population moved — re-measure");
+ * the T1/T2 consent records (the RR-233 tenant-consent rule) — 421 -> 424. A record a new rule admits must be one NO earlier rule admits.
+ * RR-244 (restated): the RR-244 migration at _handoffs 2e623ff admitted one record — F78's Acceptance Amendment 2 (an earlier rule, the
+ * f-row acceptance amendment rule) — 424 -> 425; the two RR-233 rules still admit exactly the two consent records. */
+test("N4 · the admitted set is unchanged: 425 corpus records by the same rule; no earlier admission moves; the committed prefix names stay out", () => {
+  assert.equal(AUTHORITY_CORPUS.length, 425, "the corpus population moved — re-measure");
   for (const r of AUTHORITY_CORPUS) {
     const name = r.sourceRef.path.split("/").pop();
     const rules = r.sourceRef.repo === "engine" ? ENGINE_RULES : GOVERNANCE_RULES;

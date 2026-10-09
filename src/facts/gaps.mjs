@@ -21,7 +21,7 @@
  * ── 🔴 WHY THIS FILE HOLDS NO GAPS OF ITS OWN ───────────────────────────────
  *
  * A gap is always a gap in SOME PRODUCT'S page. "AHPRA returns 403" is a fact
- * about AlmiOET's destination-regulator block, not about the machinery that
+ * about the first connected product's destination-regulator block, not about the machinery that
  * counts gaps. So this file is the REGISTER — the shape, the doctrine and the
  * counting — and every entry arrives from a product.
  *

@@ -386,12 +386,12 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_RULING_2026-10-03_RR-154_DATASETS_AND_PAGE_COUNT.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-03_RR-154_STACK_EXCHANGE_SOURCE.md", loader: "authority register (CURRENT record)" }),
   /* RR-155 (4 Oct 2026): the three CURRENT records admitted by the migration at _handoffs a03a11f — command RR-155, F16's Acceptance
-   * Amendment 1 (collection as a separate, separately-gated limb), and the owner's values declaring lamzish as a subject. */
+   * Amendment 1 (collection as a separate, separately-gated limb), and the owner's values declaring that client as a subject. */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-04_RR-155.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F16_ACCEPTANCE_AMENDMENT_1_2026-10-04.md", loader: "F-board acceptance F16" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-04_RR-155_LAMZISH_SUBJECT.md", loader: "authority register (CURRENT record)" }),
   /* RR-156 (4 Oct 2026): the two CURRENT records admitted by the migration at _handoffs 9fb9bb4 — command RR-156 and the owner's declaration
-   * of what lamzish is (its eight services are its dimensions; origin country is audience context). */
+   * of what that client is (its eight services are its dimensions; origin country is audience context). */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-04_RR-156.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-04_RR-156_LAMZISH_PRODUCT_DECLARATION.md", loader: "authority register (CURRENT record)" }),
   /* RR-157 (4 Oct 2026): the three CURRENT records admitted by the migration at _handoffs 8a37495 — the owner's correction RR-157, F16's
@@ -496,7 +496,7 @@ export const MANDATORY_READING = Object.freeze([
    * amended under D5, C8 the tier and the grouped need), approved by its hash. */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F41_ACCEPTANCE_AMENDMENT_1_2026-10-05.md", loader: "F-board acceptance F41" }),
   /* RR-179 §4.1 (5 Oct 2026): the five CURRENT records admitted by the migration at _handoffs 0abcd15 — the owner's RR-177 ruling (the 27
-   * existing AlmiOET pages SET ASIDE), the RR-178 and RR-179 commands, the owner's RR-179 rulings on the RR-178 findings, and F91's
+   * existing pages of the first connected product SET ASIDE), the RR-178 and RR-179 commands, the owner's RR-179 rulings on the RR-178 findings, and F91's
    * Acceptance Amendment 4 (C19, the spec compiler), approved by its hash. */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-05_RR-177_27_PAGES_SET_ASIDE.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-05_RR-178.md", loader: "authority register (CURRENT record)" }),

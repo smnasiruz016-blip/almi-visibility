@@ -8,7 +8,7 @@
  *
  * ── WHAT WAS CLAIMED, AND WHAT LATER EVIDENCE SHOWS ─────────────────────────
  *
- * The noindex detector raised 134 issues on `almicv.almiworld.com/cv-guide/
+ * The noindex detector raised 134 issues on `<a declared site origin>/cv-guide/
  * {country}/{role}` pages: "noindex present", verdict FAIL — a DEFECT.
  *
  * Tracing the origin (observation 8b90879f2f7c290b, hissa 3) found it is a
@@ -50,7 +50,7 @@ import { softwareVersionOf } from "../src/audit-trail/wiring.mjs";
 import { checkTransition, recordEvidenceStateTransitions } from "../src/evidence/evidence-state.mjs";
 import { evidenceStateOf, evidenceStateAuthority } from "../src/evidence/evidence-state-adapters.mjs";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
-import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { RESOURCES, declaredSiteHosts } from "../src/tenancy/scoped-run.mjs";
 import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -84,7 +84,12 @@ for (const id of [ORIGIN_OBSERVATION, GUIDANCE_OBSERVATION]) {
 const pages = new Map(crawl.filter((r) => r.record_type === "page").map((p) => [p.page_id, p.canonical_url]));
 const technical = readJsonl(TARGET);
 const { issues } = lifecycleOf(technical);
-const CV_GUIDE = /^https:\/\/almicv\.almiworld\.com\/cv-guide\/[^/]+\/[^/]+\/?$/;
+/* RR-232: the origin is a site origin DECLARED to this run's tenant — never a hostname written here; the path shape is unchanged */
+const DECLARED_HOSTS = new Set(declaredSiteHosts({ tenantId: SCOPE.tenantId }));
+const CV_GUIDE = Object.freeze({
+  test: (u) => { try { const x = new URL(u); return x.protocol === "https:" && DECLARED_HOSTS.has(x.hostname) && /^\/cv-guide\/[^/]+\/[^/]+\/?$/.test(x.pathname); } catch { return false; } },
+  toString: () => "https://<a site origin declared to this tenant>/cv-guide/{country}/{role}",
+});
 
 /* 🔴 ONLY THE ORIGINAL DETECTOR'S ISSUES. A first version selected every
  * issue_class "noindex" — and the replacements it had just written ARE noindex

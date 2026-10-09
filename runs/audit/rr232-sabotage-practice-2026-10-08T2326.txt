@@ -1,0 +1,16 @@
+RR-232 client-identity guard sabotage PRACTICE run · 2026-10-08T23:26:47.202Z
+population: 7 sabotage(s) over test/client-identity-guard.test.mjs (named test "G1 · CENSUS") · each applied ALONE · client strings derived at run time, never written here
+BASELINE: GREEN
+PRE-FLIGHT (span occurrences in the files now): P1=1 P2=1 P3=1 P4=1 P5=1 P6=1 P7=1 · all exactly once: true
+production trail sha256 before: 782a69af4e9a6cdf3a072fa1530fecc26cede2d326ab6cfdfc292c78d98338be
+
+P1 a client PATH put back into F19's board event text (the RR-230 leak) [config/fboard/f-board.mjs]: landed true · "G1 · CENSUS" red true · its failure AssertionError · restored true · PROVED
+P2 a client DOMAIN in a comment [src/write-law.mjs]: landed true · "G1 · CENSUS" red true · its failure AssertionError · restored true · PROVED
+P3 a client NAME in a comment [src/write-law.mjs]: landed true · "G1 · CENSUS" red true · its failure AssertionError · restored true · PROVED
+P4 ONE byte of an exempted frozen clause changed [config/fboard/acceptances.mjs]: landed true · "G1 · CENSUS" red true · its failure AssertionError · restored true · PROVED
+P5 a fake exemption: a stoplist word that is a client identifier [config/client-identity.mjs]: landed true · "G1 · CENSUS" red true · its failure AssertionError · restored true · PROVED
+P6 a fake exemption: a SECOND operator identity [config/client-identity.mjs]: landed true · "G1 · CENSUS" red true · its failure AssertionError · restored true · PROVED
+P7 a fake exemption: a governance file name that is not in the register, holding a client label [src/facts/gaps.mjs]: landed true · "G1 · CENSUS" red true · its failure AssertionError · restored true · PROVED
+
+GREEN after restore: true
+proved 7 of 7 · residue 0 · production trail sha256 after: 782a69af4e9a6cdf3a072fa1530fecc26cede2d326ab6cfdfc292c78d98338be · unchanged true

@@ -6,7 +6,7 @@
  * SHINGLES, not bare words: bare-word overlap ignores order, so two pages saying
  * the same sentences in a different arrangement score as different.
  *
- * 🔴 RESIDUAL, NOT RAW — and this is measured, not argued. On five live AlmiOET
+ * 🔴 RESIDUAL, NOT RAW — and this is measured, not argued. On five live first-product
  * siblings the RAW rendered text overlapped 76.3%–94.5%. That number describes
  * the TEMPLATE, not the page. On raw text every sibling fails and the metric
  * says nothing anyone did not already know. Overlap is a question about what the

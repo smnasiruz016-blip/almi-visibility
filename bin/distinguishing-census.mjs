@@ -30,7 +30,7 @@
  */
 /**
  * ⚠️ REPOINTED after the product boundary landed. This census was written when
- * the engine still held AlmiOET’s twelve professions and its own facts path.
+ * the engine still held the first connected product’s twelve professions and its own facts path.
  * It now asks the PRODUCT for both, and asks the engine only for the
  * predicate — with the axis passed in rather than the word "profession" baked
  * into a shared function.

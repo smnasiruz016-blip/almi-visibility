@@ -61,7 +61,7 @@ export const TIERS = Object.freeze({
 /**
  * 🔴 TIER 4 IS NOT A WEAK CITATION. IT IS NOT A CITATION.
  *
- * AlmiOET wrote this rule by hand before this registry existed and the design
+ * The first connected product wrote this rule by hand before this registry existed and the design
  * adopts it rather than inventing a new one:
  *
  *   "Cite an OFFICIAL source — the authority's or organisation's own site. A law

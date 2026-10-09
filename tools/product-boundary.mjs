@@ -7,8 +7,8 @@
  *    hamaray TAMAM products k liye hay — jo ban chuke hain aur jo abhi bannay
  *    wale hain."
  *
- * AlmiVisibility is the SYSTEM for building pages. AlmiOET is one PRODUCT that
- * is fed to it. The twelve professions are AlmiOET's axis, not the system's
+ * AlmiVisibility is the SYSTEM for building pages. A connected product is one PRODUCT that
+ * is fed to it. The twelve professions are that product's axis, not the system's
  * vocabulary — so `src/` may not name them, and neither may it name any other
  * product's subject matter.
  *

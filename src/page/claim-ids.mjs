@@ -7,7 +7,7 @@
  * because that is what it has to fetch from the registry and what it has to
  * refuse when a claim is missing.
  *
- * This function used to live at the bottom of `spec.mjs` with the /nursing page
+ * This function used to live at the bottom of `spec.mjs` with one profession's page
  * as its default argument, which is how a generic helper ends up owned by one
  * product: not by naming it, but by falling back to it.
  *

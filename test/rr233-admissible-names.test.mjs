@@ -97,14 +97,18 @@ NEAR({
   tokened: ["AlmiVisibility_TENANT_CONSENT_T1_RULING_2026-10-08.md", "AlmiVisibility_OWNER_DECISION_2026-10-08_TENANT_CONSENT_T1.md", "AlmiVisibility_TENANT_CONSENT_T1_2026-10-08_DECISION.md"],
 }, NEW[1]);
 
-test("N4 · the admitted set is unchanged: 421 corpus records by the same rule; no earlier admission moves; the committed prefix names stay out", () => {
-  assert.equal(AUTHORITY_CORPUS.length, 421, "the corpus population moved — re-measure");
+/* RR-243 (restated): the RR-243 migration at _handoffs d2bfd22 admitted three records — F78's Acceptance Amendment 1 (an earlier rule) and
+ * the T1/T2 consent records (the RR-233 tenant-consent rule) — 421 -> 424. A record a new rule admits must be one NO earlier rule admits. */
+test("N4 · the admitted set is unchanged: 424 corpus records by the same rule; no earlier admission moves; the committed prefix names stay out", () => {
+  assert.equal(AUTHORITY_CORPUS.length, 424, "the corpus population moved — re-measure");
   for (const r of AUTHORITY_CORPUS) {
     const name = r.sourceRef.path.split("/").pop();
     const rules = r.sourceRef.repo === "engine" ? ENGINE_RULES : GOVERNANCE_RULES;
     assert.equal(idOf(name, rules), r.inclusionRule, `${r.authorityId} is no longer admitted by ${r.inclusionRule}`);
   }
-  assert.ok(!AUTHORITY_CORPUS.some((r) => NEW.includes(idOf(r.sourceRef.path, GOVERNANCE_RULES))), "a new rule takes a name that was already admitted");
+  const byNew = AUTHORITY_CORPUS.filter((r) => NEW.includes(idOf(r.sourceRef.path, GOVERNANCE_RULES)));
+  assert.deepEqual(byNew.map((r) => r.sourceRef.path).sort(), ["AlmiVisibility_TENANT_CONSENT_T1_2026-10-08.md", "AlmiVisibility_TENANT_CONSENT_T2_2026-10-09.md"], "the records the two RR-233 rules admit are not exactly the two consent records");
+  assert.ok(byNew.every((r) => idOf(r.sourceRef.path, BEFORE) === null), "a new rule takes a name that was already admitted");
   for (const n of PREFIX_POPULATION) {
     assert.equal(idOf(n), null, `${n} became admitted`);
     assert.equal(idOf(n, BEFORE), null, `${n} was admitted before — the pinned population is wrong`);

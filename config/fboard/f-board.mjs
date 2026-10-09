@@ -2375,7 +2375,7 @@ export const DECLARED = Object.freeze({
   F78: Object.freeze({
     featureId: "F78",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: F78_ORIGINAL.ruling, contractSha256: F78_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -2399,6 +2399,27 @@ export const DECLARED = Object.freeze({
       /* RR-244: F78's Acceptance Amendment 2 ('every run' in C8, a requirement), an owner act frozen ALONE; F78 stays IN-PROGRESS, so no
        * reopen is recorded */
       Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F78", on: "2026-10-09", ruling: F78_AMENDMENT_2.ruling, contractSha256: F78_AMENDMENT_2.contractSha256, amends: F78_AMENDMENT_2.amends }),
+      /* RR-244: F78 PROVED — every clause of its frozen acceptance (Amendment 2, _handoffs 2e623ff, carrying Amendment 1's A1/C8/C9 and the
+       * original's C2–C7) PROVED on the real ledgers and on the census; recorded through the board route in the same PR; main CI on the merge
+       * decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F78",
+        population: "REAL",
+        on: "2026-10-09",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F78_AMENDMENT_2.ruling.sha256, contract: F78_AMENDMENT_2.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED", C8: "PROVED", C9: "PROVED" }),
+        populations: "REAL, count-only. The recorded ledgers: 28 cost entries (engine ledger 22, research ledgers 6, the 3 declared tenant ledgers 0 — no connector run since the boundary) — ATTRIBUTED 6 over 2 tenants, UNATTRIBUTED 22 each with its missing declaration named; measurable-but-not-recorded 12, every one a listed pre-boundary gap. A1: the frozen list intact (25, a38fd23e…), 12 seen in the ledgers, 0 unlisted, 0 on or after the boundary — C1's gap part PROVED. C9 on the real declarations: 23 tenants, 3 with their own declared cost ledger, the shared engine ledger refused to all 23 and attached to none. C8/Amendment 2 on the real production code: the run-cost census and the Amendment 2 census over all 10 connector entry points (12 connector sites), every row matching the text (pre-gate exits 17, none a REFUSAL); each entry point run on its real path in a DISPOSABLE declared world (RR-177): gate-refused and no --confirm, each 0 requests, 0 cost entries, its refusal on the trail. C2–C5 against the hand-written test double (no real paid provider, approval, cap or kill switch is recorded); C6 on the 2 real tenants holding entries; C7 the entry point in a declared world, bound printed, writes nothing.",
+        proofs: "test/f78-cost-governor.test.mjs (C1–C7), test/rr243-f78-cost.test.mjs (A1-1..3, C8-1..4, C9-1..4, C9-2b), test/rr244-f78-amendment2.test.mjs (A2-1..A2-6b: the Amendment 2 census over all 10 connector entry points; per entry point a gate-refused and a no --confirm run; offline modes; a target refusal; a confirmed subject-tool run)",
+        sabotage: "runs/audit/rr244-sabotage-2026-10-09T2236.txt (sha256 906c40d3…): Amendment 2 and this round's repairs; runs/audit/rr243-sabotage-2026-10-09T2240.txt (sha256 c8c9677c…): Amendment 1, 15 mechanism + W/M on all 10 entry points; runs/audit/f78-sabotage-2026-10-09T2320.txt (sha256 091bf0ff…): the original C1–C7 — each residue 0, production trail unchanged",
+        historicalReuse: "F78's RR-93 implementation (cost-by-tenant, tenant attribution, the paid-provider gate, the kill switch) reused unchanged in its clauses C2–C7; RR-243 added the bounded C1, the run recorder and the per-tenant ledgers; RR-244 made every connector entry point meet Amendment 2",
+        declaredLimit: "money stays NOT MEASURABLE for a connector run (no tool held reads an origin's serving cost); 25 pre-boundary gaps are reported by name and never counted as PROVED; a usage, confinement or test-seam exit before a scope gate forms no mode and records nothing (the Amendment 2 census classifies each); C2–C5 are proved against a test double because no real paid provider, approval, cap or kill switch is recorded",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
     ]),
   }),
   /* 🔴 F79 · Evidence cache before re-research. Frozen 29 Sep (_handoffs f34f3af, RR-93 continuous build) ALONE, before any F79 code;

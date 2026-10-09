@@ -1,0 +1,16 @@
+RR-234 C4 live-policy sabotage run · 2026-10-09T04:51:49.539Z
+population: 7 sabotage(s) of the production served path over test/f22-render-audit.test.mjs (named test "C4 · the live policy") · each applied ALONE
+BASELINE: GREEN
+PRE-FLIGHT (span occurrences in the files now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 · all exactly once: true
+production trail sha256 before: 782a69af4e9a6cdf3a072fa1530fecc26cede2d326ab6cfdfc292c78d98338be
+
+S1 the request timeout never aborts (a slow resource would be served) [src/crawl/fetcher.mjs]: landed true · "C4 · the live policy" red true · its failure AssertionError · restored true · PROVED
+S2 an on-origin redirect is not followed (the served path breaks at the hop) [src/crawl/fetcher.mjs]: landed true · "C4 · the live policy" red true · its failure AssertionError · restored true · PROVED
+S3 the served body is re-encoded as text (binary bytes not kept exact) [src/render/same-origin-policy.mjs]: landed true · "C4 · the live policy" red true · its failure AssertionError · restored true · PROVED
+S4 robots rules are ignored [src/render/same-origin-policy.mjs]: landed true · "C4 · the live policy" red true · its failure AssertionError · restored true · PROVED
+S5 an undeclared host is not refused before a request [src/render/same-origin-policy.mjs]: landed true · "C4 · the live policy" red true · its failure AssertionError · restored true · PROVED
+S6 an oversized response is served [src/render/same-origin-policy.mjs]: landed true · "C4 · the live policy" red true · its failure AssertionError · restored true · PROVED
+S7 the request cap does not count hops and retries [src/render/same-origin-policy.mjs]: landed true · "C4 · the live policy" red true · its failure AssertionError · restored true · PROVED
+
+GREEN after restore: true
+proved 7 of 7 · residue 0 · production trail sha256 after: 782a69af4e9a6cdf3a072fa1530fecc26cede2d326ab6cfdfc292c78d98338be · unchanged true

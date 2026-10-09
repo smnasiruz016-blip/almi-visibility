@@ -60,21 +60,23 @@ const EVIDENCE_BATCH = arg("evidence-batch");
 if (EVIDENCE_BATCH !== null && (!/^[a-z0-9][a-z0-9-]*$/.test(EVIDENCE_BATCH) || LIVE)) { console.error("🔴 REFUSED — --evidence-batch is a declared id, and it reads stored evidence: it never renders live"); process.exit(2); }
 /* the per-page bound: the offline renderer's, or the live path's own (src/render/same-origin-policy.mjs) */
 const RENDER_BOUNDS = LIVE ? Object.freeze({ ...OFFLINE_BOUNDS, perPageTimeoutMs: LIVE_RENDER_BOUNDS.perPageTimeoutMs }) : OFFLINE_BOUNDS;
-if (LIVE && !flag("i-have-the-owners-green")) {
-  console.error("🔴 REFUSED — --live-render runs the page's own scripts against its live origin and needs the owner's reviewed bounded request (--i-have-the-owners-green). NO REQUEST WAS MADE.");
-  process.exit(3);
-}
 /* The subject's declared site: the origins its PUBLIC_SITE connector reaches. The stored bodies this run reads are copies of THOSE
  * pages, so each origin is a resource the scope decision must allow; a subject that declares no site has nothing to render. */
 const SITE = lookupConnector(rootIndexFor(process.env), SUBJECT, "PUBLIC_SITE");
 const SITE_ORIGINS = SITE.state === "DECLARED" ? [...siteOriginsOf(SITE.connector)] : [];
-if (SITE_ORIGINS.length === 0) { console.error("🔴 REFUSED — NO_DECLARED_SITE: the subject declares no site origin to render. NOTHING WAS READ."); process.exit(3); }
 /* 🔴 F02 — decided HERE, before anything is read: this batch, the subject's declared site origins (the stored bodies are copies of
  * their pages), and (live only) this subject's PUBLIC_SITE connector. */
-const SCOPE = scopedEntryPoint({ entry: "bin/render-audit.mjs", governed: false, resources: [RESOURCES.researchBatch(BATCH), ...(EVIDENCE_BATCH ? [RESOURCES.researchBatch(EVIDENCE_BATCH)] : []), ...SITE_ORIGINS.map((o) => RESOURCES.siteOrigin(o)), ...(LIVE ? [RESOURCES.connector(SUBJECT, "PUBLIC_SITE"), RESOURCES.costLedger(ownLedgerRef())] : [])] });
+const SCOPE = scopedEntryPoint({ entry: "bin/render-audit.mjs", governed: LIVE, resources: [RESOURCES.researchBatch(BATCH), ...(EVIDENCE_BATCH ? [RESOURCES.researchBatch(EVIDENCE_BATCH)] : []), ...SITE_ORIGINS.map((o) => RESOURCES.siteOrigin(o)), ...(LIVE ? [RESOURCES.connector(SUBJECT, "PUBLIC_SITE"), RESOURCES.costLedger(ownLedgerRef())] : [])] });
 /* F78 Amendment 1 C8/C9 (RR-243): a LIVE run (the only mode that opens a connector) writes its one cost entry into its tenant's own
  * declared ledger, whatever ends it; without --confirm it makes no request at all */
 const RUN_COST = LIVE ? runCost({ entryPoint: "bin/render-audit.mjs", scope: SCOPE, permission: writePermission({ target: LOCAL, argv: process.argv, env: process.env }), write: (w) => executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: w.root, auditRepo: w.auditRepo, permission: w.permission, store: createCostLedger(w.path), records: [w.entry], targetClass: "RUN_EVIDENCE", action: "APPEND_RUN_COST_ENTRY", occurredAt: w.occurredAt, correlationId: w.correlationId, discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null })), auditRepo: REPO }) : null;
+/* RR-244 (F78 Amendment 2): a refusal of this connector mode comes AFTER the scope gate and the cost recorder, so it is recorded on the
+ * trail — without --confirm the write law refuses the run's cost entry, and that refusal is the record; with --confirm the entry is written */
+if (LIVE && !flag("i-have-the-owners-green")) {
+  console.error("🔴 REFUSED — --live-render runs the page's own scripts against its live origin and needs the owner's reviewed bounded request (--i-have-the-owners-green). NO REQUEST WAS MADE.");
+  process.exit(3);
+}
+if (SITE_ORIGINS.length === 0) { console.error("🔴 REFUSED — NO_DECLARED_SITE: the subject declares no site origin to render. NOTHING WAS READ."); process.exit(3); }
 const CORPUS = confineToRepo(arg("corpus") ?? `${REPO}runs/crawl/corpus`, { label: "--corpus" });
 
 const store = lookupStore(rootIndexFor(process.env), "RESEARCH");

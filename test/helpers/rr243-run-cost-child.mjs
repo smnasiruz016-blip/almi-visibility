@@ -9,6 +9,7 @@
  *     throw           opens the connector, makes 1 request, throws (an error)
  *     own-entry       writes its own entry for the run, then ends 0 (the hook writes no second one)
  *     open-only       opens the connector (metered) and ends — the probe of "no request without --confirm"
+ *     target-refusal  RR-244: opens the connector, makes 1 request the target refuses (403), ends with exit 3 (a refusal by the target)
  * Test material only.
  */
 import { scopedEntryPoint } from "../../src/governance/scoped-entry.mjs";
@@ -25,7 +26,7 @@ const SCOPE = scopedEntryPoint({ entry: "test/helpers/rr243-run-cost-child.mjs",
 const permission = writePermission({ target: LOCAL, argv: process.argv, env: process.env });
 const RUN_COST = runCost({ entryPoint: "test/helpers/rr243-run-cost-child.mjs", scope: SCOPE, permission, write: (w) => executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: w.root, auditRepo: w.auditRepo, permission: w.permission, store: createCostLedger(w.path), records: [w.entry], targetClass: "RUN_EVIDENCE", action: "APPEND_RUN_COST_ENTRY", occurredAt: w.occurredAt, correlationId: w.correlationId, discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null })), auditRepo: REPO });
 let fetched = 0;
-const standIn = Object.freeze({ kind: "PUBLIC_SITE", origins: [], admits: () => true, fetch: async () => { fetched += 1; return new Response("ok"); } });
+const standIn = Object.freeze({ kind: "PUBLIC_SITE", origins: [], admits: () => true, fetch: async () => { fetched += 1; return mode === "target-refusal" ? new Response("forbidden", { status: 403 }) : new Response("ok"); } });
 process.on("exit", () => console.log(`STAND_IN_REQUESTS ${fetched}`));
 if (mode === "refuse") { console.error("REFUSED — a post-gate refusal, before any request"); process.exit(3); }
 if (mode === "own-entry") {
@@ -36,6 +37,7 @@ if (mode === "own-entry") {
 }
 const c = RUN_COST.metered(standIn);
 if (mode === "open-only") process.exit(0);
+if (mode === "target-refusal") { const r = await c.fetch("https://fixture-world.invalid/a"); console.error(`REFUSED BY THE TARGET (${r.status})`); process.exit(3); }
 await c.fetch("https://fixture-world.invalid/a");
 if (mode === "throw") throw new TypeError("a run that ends in error");
 await c.fetch("https://fixture-world.invalid/b");

@@ -60,6 +60,11 @@ const days = Number(arg("days", "28"));
  * (--source) makes no request and constructs no connector. */
 const SUBJECT = arg("subject");
 const SCOPE = scopedEntryPoint({ entry: "bin/gsc-ingest.mjs", governed: true, resources: [...(arg("source") === null ? [RESOURCES.connector(SUBJECT, "SEARCH_CONSOLE_API"), RESOURCES.costLedger(ownLedgerRef())] : [RESOURCES.costLedger()]), RESOURCES.evidenceStore(), RESOURCES.inputPath(arg("store"), "--store"), RESOURCES.inputPath(arg("source"), "--source"), RESOURCES.inputPath(arg("journal-dir"), "--journal-dir")] });
+/* RR-244 (F78 Amendment 2): the cost recorder is constructed immediately after the scope gate */
+const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
+/* F78 Amendment 1 C8/C9 (RR-243): a LIVE run (the only kind that opens a connector) writes its cost into its tenant's own declared
+ * ledger — its own entry, or, when it ends before that, one run entry, whatever ended it; without --confirm it makes no request at all */
+const RUN_COST = arg("source") === null ? runCost({ entryPoint: "bin/gsc-ingest.mjs", scope: SCOPE, permission, write: (w) => executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: w.root, auditRepo: w.auditRepo, permission: w.permission, store: createCostLedger(w.path), records: [w.entry], targetClass: "RUN_EVIDENCE", action: "APPEND_RUN_COST_ENTRY", occurredAt: w.occurredAt, correlationId: w.correlationId, discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null })), auditRepo: REPO }) : null;
 /* F02: this run's hosts are the site origins DECLARED to its tenant — no estate list in shared code (relocated, 24 Sep 2026). */
 const DECLARED_HOSTS = declaredSiteHosts({ tenantId: SCOPE.tenantId });
 /* 🔴 GAP 2 (16 September 2026) — the evidence store and the cost ledger are both confined before the
@@ -70,10 +75,6 @@ const storePath = confineToRepo(arg("store", `${REPO}runs/evidence/evidence.json
 /* F77 R2: one journal per ingest operation, BESIDE the store it collects for — so a disposable store takes its journals with it.
  * Never committed (.gitignore): a journal holds the metered responses. */
 const JOURNAL_DIR = confineToRepo(arg("journal-dir", `${storePath}.operations`), { label: "--journal-dir" });
-const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
-/* F78 Amendment 1 C8/C9 (RR-243): a LIVE run (the only kind that opens a connector) writes its cost into its tenant's own declared
- * ledger — its own entry, or, when it ends before that, one run entry, whatever ended it; without --confirm it makes no request at all */
-const RUN_COST = arg("source") === null ? runCost({ entryPoint: "bin/gsc-ingest.mjs", scope: SCOPE, permission, write: (w) => executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: w.root, auditRepo: w.auditRepo, permission: w.permission, store: createCostLedger(w.path), records: [w.entry], targetClass: "RUN_EVIDENCE", action: "APPEND_RUN_COST_ENTRY", occurredAt: w.occurredAt, correlationId: w.correlationId, discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null })), auditRepo: REPO }) : null;
 const controlProperty = arg("control", "https://example.com/");
 /* 🔴 GAP 2 (17 September 2026) — --source=<path>: the testability seam. A SYNTHETIC source file, CONFINED to this
  * repository by the same confineToRepo as --store, stands in for Search Console, so the suite can drive the real

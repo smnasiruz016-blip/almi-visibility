@@ -54,12 +54,21 @@ if (!SOURCE_BATCH || !ID.test(SOURCE_BATCH) || !EVIDENCE_BATCH || !ID.test(EVIDE
   console.error("usage: node bin/render-collect.mjs --source-batch=<id> --evidence-batch=<another id> --tenant=<t> --subject=<s> --live --i-have-the-owners-green --confirm [--max-pages=N] [--max-total-requests=N] [--max-requests-per-page=N]");
   process.exit(2);
 }
-/* 1 · the GREEN, and the STORAGE PERMISSION — before anything else */
+
+const permission = writePermission({ target: LOCAL, argv: process.argv, env: process.env });
+/* 2 · F02 — the subject's declared site, then every resource this run reads or writes, decided before any of it is touched */
+const SITE = lookupConnector(rootIndexFor(process.env), SUBJECT, "PUBLIC_SITE");
+const SITE_ORIGINS = SITE.state === "DECLARED" ? [...siteOriginsOf(SITE.connector)] : [];
+const SCOPE = scopedEntryPoint({ entry: "bin/render-collect.mjs", governed: true, resources: [RESOURCES.researchBatch(SOURCE_BATCH), RESOURCES.researchBatch(EVIDENCE_BATCH), ...SITE_ORIGINS.map((o) => RESOURCES.siteOrigin(o)), RESOURCES.connector(SUBJECT, "PUBLIC_SITE"), RESOURCES.costLedger(ownLedgerRef())] });
+/* F78 Amendment 1 C8/C9 (RR-243): this run's one cost entry, into its tenant's own declared ledger, whatever ends the run */
+const RUN_COST = runCost({ entryPoint: "bin/render-collect.mjs", scope: SCOPE, permission, write: (w) => executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: w.root, auditRepo: w.auditRepo, permission: w.permission, store: createCostLedger(w.path), records: [w.entry], targetClass: "RUN_EVIDENCE", action: "APPEND_RUN_COST_ENTRY", occurredAt: w.occurredAt, correlationId: w.correlationId, discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null })), auditRepo: REPO });
+/* RR-244 (F78 Amendment 2): a refusal of this connector mode comes AFTER the scope gate and the cost recorder, so it is recorded on the
+ * trail — without --confirm the write law refuses the run's cost entry, and that refusal is the record; with --confirm the entry is written */
+/* 1 · the GREEN, the STORAGE PERMISSION and the bounds — decided after the scope gate and the recorder (RR-244), so a refusal is recorded */
 if (!flag("live") || !flag("i-have-the-owners-green")) {
   console.error("🔴 REFUSED — NO_GREEN: this collection runs a page's own scripts against its live origin; it needs --live and the owner's reviewed GREEN (--i-have-the-owners-green). NO REQUEST WAS MADE.");
   process.exit(3);
 }
-const permission = writePermission({ target: LOCAL, argv: process.argv, env: process.env });
 if (!permission.mayWrite) {
   console.error(`🔴 REFUSED — STORAGE_PERMISSION_MISSING: the evidence could not be kept (${permission.reason}); a collection that cannot be kept is not collected. NO REQUEST WAS MADE.`);
   process.exit(3);
@@ -85,14 +94,7 @@ const PER_PAGE = (() => {
 })();
 const BOUNDS = Object.freeze({ ...LIVE_RENDER_BOUNDS, maxTotalRequests: MAX_TOTAL, maxRequestsPerPage: PER_PAGE });
 const RENDER_BOUNDS = Object.freeze({ ...OFFLINE_BOUNDS, perPageTimeoutMs: BOUNDS.perPageTimeoutMs });
-
-/* 2 · F02 — the subject's declared site, then every resource this run reads or writes, decided before any of it is touched */
-const SITE = lookupConnector(rootIndexFor(process.env), SUBJECT, "PUBLIC_SITE");
-const SITE_ORIGINS = SITE.state === "DECLARED" ? [...siteOriginsOf(SITE.connector)] : [];
 if (SITE_ORIGINS.length === 0) { console.error("🔴 REFUSED — NO_DECLARED_SITE. NO REQUEST WAS MADE."); process.exit(3); }
-const SCOPE = scopedEntryPoint({ entry: "bin/render-collect.mjs", governed: true, resources: [RESOURCES.researchBatch(SOURCE_BATCH), RESOURCES.researchBatch(EVIDENCE_BATCH), ...SITE_ORIGINS.map((o) => RESOURCES.siteOrigin(o)), RESOURCES.connector(SUBJECT, "PUBLIC_SITE"), RESOURCES.costLedger(ownLedgerRef())] });
-/* F78 Amendment 1 C8/C9 (RR-243): this run's one cost entry, into its tenant's own declared ledger, whatever ends the run */
-const RUN_COST = runCost({ entryPoint: "bin/render-collect.mjs", scope: SCOPE, permission, write: (w) => executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: w.root, auditRepo: w.auditRepo, permission: w.permission, store: createCostLedger(w.path), records: [w.entry], targetClass: "RUN_EVIDENCE", action: "APPEND_RUN_COST_ENTRY", occurredAt: w.occurredAt, correlationId: w.correlationId, discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null })), auditRepo: REPO });
 const CORPUS = confineToRepo(arg("corpus") ?? `${REPO}runs/crawl/corpus`, { label: "--corpus" });
 
 /* 3 · the population */

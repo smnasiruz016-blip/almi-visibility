@@ -75,12 +75,14 @@ const seams = [TEST_TRANSPORT, TEST_GREEN, TEST_PROVIDER].filter((k) => Object.h
 if (seams.length && !inVerifiedTestContext(process.env)) { console.error(`🔴 HALTED — ${seams.join(", ")} set outside a verified test run; nothing read, no request`); process.exit(4); }
 if (!SUBJECT || !BATCH) { console.error("usage: node bin/collect-public-questions.mjs --subject=<id> --research-batch=<id> --green=<authority id> --governance-root=<dir> --confirm — nothing read, no request"); process.exit(2); }
 const permission = writePermission({ target: LOCAL, argv: process.argv, env: process.env });
-if (!permission.mayWrite) { console.error("🔴 REFUSED — COLLECTION_REQUIRES_CONFIRM: there is no dry run; nothing read, no request"); process.exit(2); }
 
 const SCOPE = scopedEntryPoint({ entry: "bin/collect-public-questions.mjs", governed: true, resources: [RESOURCES.subject(SUBJECT), RESOURCES.researchBatch(BATCH), RESOURCES.connector(SUBJECT, KIND), ...(AI_RUN ? [RESOURCES.connector(SUBJECT, AI_CONNECTOR_KIND)] : []), RESOURCES.costLedger(ownLedgerRef()), ...(seams.includes(TEST_GREEN) ? [RESOURCES.inputPath(process.env[TEST_GREEN], "--test-green")] : [])] });
 /* F78 Amendment 1 C8/C9 (RR-243): this run's one cost entry, into its tenant's own declared ledger, whatever ends the run; without
  * --confirm it makes no request at all */
 const RUN_COST = runCost({ entryPoint: "bin/collect-public-questions.mjs", scope: SCOPE, permission, write: (w) => executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: w.root, auditRepo: w.auditRepo, permission: w.permission, store: createCostLedger(w.path), records: [w.entry], targetClass: "RUN_EVIDENCE", action: "APPEND_RUN_COST_ENTRY", occurredAt: w.occurredAt, correlationId: w.correlationId, discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null })), auditRepo: REPO });
+/* RR-244 (F78 Amendment 2): a refusal of this connector mode comes AFTER the scope gate and the cost recorder, so it is recorded on the
+ * trail — without --confirm the write law refuses the run's cost entry, and that refusal is the record; with --confirm the entry is written */
+if (!permission.mayWrite) { console.error("🔴 REFUSED — COLLECTION_REQUIRES_CONFIRM: there is no dry run; nothing read, no request"); process.exit(2); }
 const index = rootIndexFor(process.env);
 const store = lookupStore(index, "RESEARCH");
 if (store.state !== "DECLARED") { console.error(`🔴 REFUSED — the RESEARCH store is ${store.state}; no request`); process.exit(3); }

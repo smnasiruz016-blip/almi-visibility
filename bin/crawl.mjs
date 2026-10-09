@@ -98,6 +98,22 @@ const SUBJECT = arg("subject");
 /* RR-227: a sitemap re-collection also names the SUBJECT's data root, so F03 decides it resolves to the run's tenant before anything */
 const STORES = researchBatch ? [RESOURCES.researchBatch(researchBatch), ...(sitemapMode ? [RESOURCES.subject(SUBJECT)] : [])] : [RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.runArtefacts("crawl store and seed inputs")];
 const SCOPE = scopedEntryPoint({ entry: "bin/crawl.mjs", governed: true, resources: [...(live ? [RESOURCES.connector(SUBJECT, "PUBLIC_SITE"), RESOURCES.costLedger(ownLedgerRef())] : []), ...STORES, RESOURCES.inputPath(seedsFile, "--seeds"), RESOURCES.inputPath(sitemapFile, "--sitemap"), RESOURCES.inputPath(fromEvidence, "--seeds-from-evidence")] });
+/* RR-244 (F78 Amendment 2): the cost recorder is constructed immediately after the scope gate — nothing can end a run that passed
+ * the gate before it is recorded */
+/* 🔴 GAP 1 (15 September 2026) — THE LOCAL RECORD. D-CRW-4's two flags gate the NETWORK and the bodies; until today
+ * every DRY run still appended a run record to --out. A dry run now records nothing unless --confirm. A LIVE run has
+ * already passed D-CRW-4's two flags and records what it fetched and spent: a billable run that kept no record would be
+ * the worse failure. */
+const permission = writePermission({ target: LOCAL, argv: process.argv, env: process.env });
+const mayRecord = live || permission.mayWrite;
+/* 🔴 THE CALLER'S OWN GATE IS PRESERVED, NOT REPLACED. This binary records when EITHER --live or --confirm is
+ * given, which is a wider rule than the write law alone; handing the boundary `permission` would have silently
+ * narrowed it. The boundary is given the decision this caller actually makes, and audits both outcomes of it. */
+const recordPermission = { ...permission, mayWrite: mayRecord, reason: mayRecord ? permission.reason : "no --live and no --confirm" };
+/* 🔴 F78 Amendment 1 C8/C9 (RR-243): a LIVE run (the only kind that opens a connector or makes any request) writes its cost into its
+ * tenant's own declared ledger — its crawl entry, or, when it ends before that entry, one run entry, whatever ended it. It is handed the
+ * WRITE LAW's permission (--confirm), never --live's wider recording rule: without --confirm it makes no request at all. */
+const RUN_COST = live ? runCost({ entryPoint: "bin/crawl.mjs", scope: SCOPE, permission, write: (w) => executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: w.root, auditRepo: w.auditRepo, permission: w.permission, store: createCostLedger(w.path), records: [w.entry], targetClass: "RUN_EVIDENCE", action: "APPEND_RUN_COST_ENTRY", occurredAt: w.occurredAt, correlationId: w.correlationId, discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null })), auditRepo: REPO }) : null;
 /* F02: this run's hosts are the site origins DECLARED to its tenant — no estate list in shared code (relocated, 24 Sep 2026). */
 const DECLARED_HOSTS = declaredSiteHosts({ tenantId: SCOPE.tenantId });
 /* The run store, located only AFTER F02 decided it belongs to this run's tenant. Its root is where every write of this run
@@ -116,20 +132,6 @@ if (researchBatch) {
   ledgerFile = join(batchDir, "ledger.jsonl");
   batchSeeds = join(batchDir, "seeds.txt");
 }
-/* 🔴 GAP 1 (15 September 2026) — THE LOCAL RECORD. D-CRW-4's two flags gate the NETWORK and the bodies; until today
- * every DRY run still appended a run record to --out. A dry run now records nothing unless --confirm. A LIVE run has
- * already passed D-CRW-4's two flags and records what it fetched and spent: a billable run that kept no record would be
- * the worse failure. */
-const permission = writePermission({ target: LOCAL, argv: process.argv, env: process.env });
-const mayRecord = live || permission.mayWrite;
-/* 🔴 THE CALLER'S OWN GATE IS PRESERVED, NOT REPLACED. This binary records when EITHER --live or --confirm is
- * given, which is a wider rule than the write law alone; handing the boundary `permission` would have silently
- * narrowed it. The boundary is given the decision this caller actually makes, and audits both outcomes of it. */
-const recordPermission = { ...permission, mayWrite: mayRecord, reason: mayRecord ? permission.reason : "no --live and no --confirm" };
-/* 🔴 F78 Amendment 1 C8/C9 (RR-243): a LIVE run (the only kind that opens a connector or makes any request) writes its cost into its
- * tenant's own declared ledger — its crawl entry, or, when it ends before that entry, one run entry, whatever ended it. It is handed the
- * WRITE LAW's permission (--confirm), never --live's wider recording rule: without --confirm it makes no request at all. */
-const RUN_COST = live ? runCost({ entryPoint: "bin/crawl.mjs", scope: SCOPE, permission, write: (w) => executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: w.root, auditRepo: w.auditRepo, permission: w.permission, store: createCostLedger(w.path), records: [w.entry], targetClass: "RUN_EVIDENCE", action: "APPEND_RUN_COST_ENTRY", occurredAt: w.occurredAt, correlationId: w.correlationId, discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null })), auditRepo: REPO }) : null;
 
 /* ---- 🔴 RR-227 · F19 A1 · C — ONE TENANT'S SITEMAP, RE-COLLECTED INTO ITS OWN RESEARCH BATCH, AND NOTHING ELSE --------------------- *
  * Decided above, before anything here: the batch is attached to the run's tenant (F02) and the subject's data root resolves to it (F03).

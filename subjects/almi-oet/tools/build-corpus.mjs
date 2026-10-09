@@ -171,7 +171,7 @@ async function fetchGroup(name, urls) {
           const id = new URL(u).pathname.replace(/^\//, "").replace(/\/$/, "").split("/").join("__") || "root";
           /* Routed. One fetched page is one target, so this is per-TARGET and not per-record. */
           const pageGoverned = executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
-            repo: REPO, permission, target: join(dir, `${id}.html`), targetClass: "OPERATOR_CHOSEN_OUTPUT",
+            repo: ENGINE_ROOT, permission, target: join(dir, `${id}.html`), targetClass: "OPERATOR_CHOSEN_OUTPUT",
             bytes: r.body, action: "WRITE_CORPUS_PAGE", occurredAt: CORPUS_INSTANT,
             correlationId: CORPUS_CORRELATION,
           }));
@@ -219,7 +219,7 @@ const manifest = {
 };
 {
   const manifestGoverned = executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
-    repo: REPO, permission, target: join(OUT, "corpus-manifest.json"), targetClass: "OPERATOR_CHOSEN_OUTPUT",
+    repo: ENGINE_ROOT, permission, target: join(OUT, "corpus-manifest.json"), targetClass: "OPERATOR_CHOSEN_OUTPUT",
     bytes: JSON.stringify(manifest, null, 2), action: "WRITE_CORPUS_MANIFEST",
     occurredAt: CORPUS_INSTANT, correlationId: CORPUS_CORRELATION,
   }));

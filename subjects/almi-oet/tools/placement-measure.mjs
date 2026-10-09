@@ -65,6 +65,9 @@ const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/pla
 const argv = process.argv.slice(2);
 const outDir = confineToRepo(argv.find((a) => a.startsWith("--out="))?.split("=").slice(1).join("=") ?? null, { label: "--out" });
 const permission = writePermission({ target: LOCAL, argv, env: process.env });
+/* RR-244: the engine root its governed writes name — the file used REPO without ever declaring it (relocated 24 Sep 2026 from bin/,
+ * where it was never declared either), so every --confirm write threw a ReferenceError */
+const REPO = new URL("../../../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 if (outDir) announceWritePermission(permission);
 
 const line = (ch = "─") => console.log(ch.repeat(78));

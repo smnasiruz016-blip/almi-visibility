@@ -7,8 +7,9 @@
  * N4  the admitted set is unchanged (CI-safe): every one of the 421 committed corpus records is admitted by the SAME rule as before;
  *     no name the earlier rules admit is taken by a new rule; the committed names with these prefixes stay NOT admitted — and a
  *     POSITIVE CONTROL: the plain "\d+" pattern (Q3 (a) as first written) WOULD have admitted three of them.
- * N5  the full census over the governance repository, where it is checked out (CI has none): the admitted set before = after, and
- *     the pinned prefix population of N4 is the real one.
+ * N5  the full census over the governance repository, where it is checked out (CI has none): before → after moves ONLY names that
+ *     nothing admitted before and one of the two RR-233 rules admits now (RR-243: RR-239's T1/T2 consent records); any other move is
+ *     RED, proved by a planted older-rule admission; and the pinned never-admitted prefix population of N4 is the real one.
  *
  * "Before" is the rule list WITHOUT the two RR-233 rules — the same code, the same order, so the comparison holds on any later head.
  */
@@ -19,7 +20,7 @@ import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 
 import { GOVERNANCE_RULES, ENGINE_RULES, EXCLUDE, SCOPE_ROOT } from "../config/authority/inclusion.mjs";
-import { ruleFor, recordFromFile, propositionOf } from "../src/authority/corpus.mjs";
+import { ruleFor, recordFromFile, propositionOf, admissionChanges } from "../src/authority/corpus.mjs";
 import { AUTHORITY_CORPUS, CORPUS_PROVENANCE } from "../config/authority/corpus.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -115,14 +116,22 @@ test("N4 · the admitted set is unchanged: 421 corpus records by the same rule; 
 
 const H = join(REPO, "..", "_handoffs");
 const HAVE = existsSync(join(H, ".git"));
-test("N5 · the full census over the governance repository (where checked out): admitted before = after over every name ever committed; the prefix population is the real one", { skip: HAVE ? false : "no governance checkout here (CI) — N4 holds the CI-safe half; the census evidence is committed under runs/audit" }, () => {
+/* RR-243: N5 now allows exactly one kind of move — a name nothing admitted before, admitted now by one of the two RR-233 rules (the
+ * T1/T2 consent records of RR-239 are the first). Any other move of the admitted set stays RED; both controls below must hold first. */
+const changesOf = (names, after = GOVERNANCE_RULES) => admissionChanges(names, { before: BEFORE, after, exclude: EXCLUDE, allowedNew: NEW });
+test("N5 · the full census over the governance repository (where checked out): before → after moves only names the two RR-233 rules newly admit; the prefix population is the real one", { skip: HAVE ? false : "no governance checkout here (CI) — N4 holds the CI-safe half; the census evidence is committed under runs/audit" }, () => {
+  /* CONTROL 1: a planted name newly admitted under an OLDER rule's id is a change that is not allowed */
+  const planted = "AlmiVisibility_RR243_PLANTED_2026-10-09.md";
+  const widened = [...GOVERNANCE_RULES, { id: BEFORE[0].id, re: /_RR243_PLANTED_/, issuer: "OWNER" }];
+  assert.deepEqual(changesOf([planted], widened).map((c) => [c.after, c.allowed]), [[BEFORE[0].id, false]], "CONTROL: a planted older-rule admission must be refused");
+  /* CONTROL 2: the two lawful consent names are allowed moves */
+  assert.deepEqual(changesOf(["AlmiVisibility_TENANT_CONSENT_T1_2026-10-08.md", "AlmiVisibility_SPECIFICATION_AMENDMENT_6_2026-10-09.md"]).map((c) => c.allowed), [true, true], "CONTROL: an RR-233 admission must be allowed");
   const git = (...a) => execFileSync("git", a, { cwd: H, encoding: "utf8", maxBuffer: 1 << 28 });
   const all = [...new Set(git("log", "--all", "--format=", "--name-only").split("\n").map((p) => p.split("/").pop()).filter(Boolean))];
   const atCorpus = git("ls-tree", "--name-only", CORPUS_PROVENANCE.governanceCommit).split("\n").filter(Boolean);
-  for (const names of [all, atCorpus]) {
-    const before = names.filter((n) => idOf(n, BEFORE)).sort(), after = names.filter((n) => idOf(n)).sort();
-    assert.deepEqual(after, before, "the admitted set changed");
-  }
-  assert.equal(atCorpus.filter((n) => idOf(n, BEFORE)).length, 413, "the corpus commit's admitted set is not the committed corpus's 413");
-  assert.deepEqual(all.filter((n) => PREFIX.test(n)).sort(), [...PREFIX_POPULATION], "the pinned prefix population is not the real one");
+  for (const names of [all, atCorpus]) assert.deepEqual(changesOf(names).filter((c) => !c.allowed), [], "the admitted set moved beyond the two RR-233 rules");
+  assert.equal(atCorpus.filter((n) => idOf(n)).length, AUTHORITY_CORPUS.filter((r) => r.sourceRef.repo === "_handoffs").length, "the corpus commit's admitted set is not the committed corpus's governance records");
+  const newlyAdmitted = changesOf(all).map((c) => c.name);
+  assert.deepEqual(all.filter((n) => PREFIX.test(n) && !newlyAdmitted.includes(n)).sort(), [...PREFIX_POPULATION], "the pinned never-admitted prefix population is not the real one");
+  for (const n of PREFIX_POPULATION) assert.equal(idOf(n), null, `${n} became admitted`);
 });

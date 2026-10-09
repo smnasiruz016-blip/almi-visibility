@@ -15,6 +15,20 @@ const DATE = /\d{4}-\d{2}-\d{2}/;
 /** Which declared rule includes this file name, if any (first match wins). An excluded name is taken by no rule. */
 export const ruleFor = (rules, name, exclude = null) => (exclude && exclude.test(name) ? null : rules.find((r) => r.re.test(name)) ?? null);
 
+/**
+ * RR-243 · how a change of rules moved the admitted set over `names`: every name whose admitting rule differs between `before` and
+ * `after`, each with `allowed` true ONLY when `before` admitted nothing and one of `allowedNew` admits it now. Any other move — a name
+ * dropped, a name taken from one rule by another, a name newly admitted by any other rule — is a change that is not allowed.
+ */
+export function admissionChanges(names, { before, after, exclude = null, allowedNew = [] }) {
+  const out = [];
+  for (const name of names) {
+    const was = ruleFor(before, name, exclude)?.id ?? null, now = ruleFor(after, name, exclude)?.id ?? null;
+    if (was !== now) out.push({ name, before: was, after: now, allowed: was === null && allowedNew.includes(now) });
+  }
+  return out;
+}
+
 /** Proposition id: the file name without extension, its repository prefix and its date token(s), upper-cased. */
 export function propositionOf(name, prefix = "") {
   return name.replace(/\.md$/i, "").replace(new RegExp(`^${prefix}`), "").replace(/_?\d{4}-\d{2}-\d{2}_?/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "").toUpperCase();

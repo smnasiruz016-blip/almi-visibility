@@ -37,6 +37,18 @@ export const GOVERNANCE_RULES = Object.freeze([
    * amendment number, one date. Its proposition is its own (F02_ACCEPTANCE_AMENDMENT_1); the F-board row names it, and the
    * board requires it to name, by both hashes, the freeze it amends. On the day it was added it matched exactly one file. */
   Object.freeze({ id: "f-row-acceptance-amendment", re: /^AlmiVisibility_F\d{2}_ACCEPTANCE_AMENDMENT_\d+_\d{4}-\d{2}-\d{2}\.md$/, issuer: "OWNER" }),
+  /* 🔴 RR-233 (9 October 2026, RR-231 Q3 = (a), technical ruling beta-g) — a SPECIFICATION AMENDMENT and a TENANT CONSENT
+   * RECORD, under names with NO RULING/DECISION token (the owner bars those tokens in approval file names; Amendment 5 could
+   * enter only through an OWNER_RULING_ copy). Issuer by pattern, as for the F-row rules above: each file exists only as the
+   * owner's act — approving an amendment, or recording a tenant's consent given through him. Narrow on purpose: the fixed
+   * words, a number, one date, nothing after the date.
+   *   · the amendment number is 6 or more: Amendments 1–5 already have their route (1 and 5 through OWNER_RULING_ copies), and
+   *     the committed SPECIFICATION_AMENDMENT_2/3/4 files were never admitted — admitting them now would be a NEW authority
+   *     admission, which this change must not make (an owner matter, recorded in the RR-233 end report);
+   *   · a consent record names its tenant by the register's tenant label (T1, T2, …), never by a client's name.
+   * On the day they were added they matched ZERO committed files. */
+  Object.freeze({ id: "specification-amendment", re: /^AlmiVisibility_SPECIFICATION_AMENDMENT_(?:[6-9]|[1-9]\d+)_\d{4}-\d{2}-\d{2}\.md$/, issuer: "OWNER" }),
+  Object.freeze({ id: "tenant-consent-record", re: /^AlmiVisibility_TENANT_CONSENT_T[1-9]\d*_\d{4}-\d{2}-\d{2}\.md$/, issuer: "OWNER" }),
   Object.freeze({ id: "other-declared-ruling", re: /^AlmiVisibility_[A-Za-z0-9_-]*(RULING|DECISION)[A-Za-z0-9_-]*\.md$/, issuer: null, issuerTokens: Object.freeze({ BETA_G: "BETA_G", OWNER: "OWNER" }) }),
 ]);
 /**

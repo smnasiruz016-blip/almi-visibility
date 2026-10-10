@@ -1,0 +1,23 @@
+F07 AMENDMENT 1 SABOTAGE EVIDENCE — one defect per obligation of the frozen amendment
+
+Engine tree: 8de02f168284fc8580e9356a63b394270b298c53. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
+runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
+requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
+No sabotage aims at the production audit trail; every firing case writes to a stand-in or a confined store.
+
+RESULTS
+F7A-S7   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the in-boundary read is no longer classified as an ACCESS
+         target src/governance/guard-audit.mjs · named test "F07A · ACCESS…" in test/f07-amendment-leak-census.test.mjs
+         sha256 before 5e3b8a629db09bb9fae2fd82905889de605c0be2a77d9f839825acc7f2c4eb75 · after 5e3b8a629db09bb9fae2fd82905889de605c0be2a77d9f839825acc7f2c4eb75
+         failing tests: F07A · ACCESS · the census's in-boundary read of a sealed role is recorded as exactly ONE durable ACCESS in a confined store, under an action the evaluation lifecycle never counts as held-out access
+         verdict: RED, named test, intended reason
+
+TOTAL 1 · PROVED 1 · NOT PROVED 0
+residue in sabotaged files after restore: 0
+tracked modifications after restore (excluding this evidence file): 3
+
+PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
+  audit-trail/events.jsonl  before c3af0be89fbad6174c8e314a9c1f463a8237da9ac363e3cb1e410bca5e3ba8de  after c3af0be89fbad6174c8e314a9c1f463a8237da9ac363e3cb1e410bca5e3ba8de
+  audit-trail/head.json  before 0a44fe75dbb3a68e77a4116544d1e01fb19e0944a8de27d9e463f11ce63ba0e0  after 0a44fe75dbb3a68e77a4116544d1e01fb19e0944a8de27d9e463f11ce63ba0e0
+  untouched: true

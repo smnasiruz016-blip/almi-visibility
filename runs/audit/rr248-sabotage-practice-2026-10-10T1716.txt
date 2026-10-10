@@ -1,0 +1,18 @@
+RR-248 freshness-check sabotage PRACTICE run · 2026-10-10T17:15:56.573Z
+population: 10 sabotage(s) over test/rr248-span-freshness.test.mjs · each applied ALONE · no provider, no network, no third-party read
+BASELINE (the named tests before any sabotage): GREEN · named tests seen GREEN: 6 of 6
+PRE-FLIGHT (span occurrences in the code live now): R01=1 R02=1 R03=1 R04=1 R05=1 R06=1 R07=1 R08=1 R09=1 R10=1 · all exactly once: true
+production trail sha256 before: f6944b72d64ccb8491055927dbab97497f5c81ed3d7a750bc3ac238092f77c26
+
+R01 SF-2 · a protected line rewritten in new words leaves its span stale (the throwaway change) [src/page/action-decision.mjs]: landed true · named test "SF-2" red true · its failure AssertionError · SyntaxError false · failing SF-2 · restored by sha256 true · GREEN after restore true · PROVED
+R02 SF-2 · a span that occurs twice in its target [src/page/action-decision.mjs]: landed true · named test "SF-2" red true · its failure AssertionError · SyntaxError false · failing SF-2 · restored by sha256 true · GREEN after restore true · PROVED
+R03 SF-6 · a harness writes a fixed evidence name [test/helpers/rr180-sabotage.mjs]: landed true · named test "SF-6" red true · its failure AssertionError · SyntaxError false · failing SF-2,SF-6 · restored by sha256 true · GREEN after restore true · PROVED
+R04 SF-6 · the shared evidence writer opens an existing file [test/helpers/evidence-once.mjs]: landed true · named test "SF-6" red true · its failure AssertionError · SyntaxError false · failing SF-2,SF-6 · restored by sha256 true · GREEN after restore true · PROVED
+R05 SF-6 · an operator-named evidence write without wx [test/helpers/f01-sabotage.mjs]: landed true · named test "SF-6" red true · its failure AssertionError · SyntaxError false · failing SF-2,SF-6 · restored by sha256 true · GREEN after restore true · PROVED
+R06 SF-3 · the reader imports a write [test/support/harness-spans.mjs]: landed true · named test "SF-3" red true · its failure AssertionError · SyntaxError false · failing SF-2,SF-3 · restored by sha256 true · GREEN after restore true · PROVED
+R07 SF-3 · the fs stand-in performs a write instead of stopping it (a no-op, never a real write) [test/support/harness-spans.mjs]: landed true · named test "SF-3" red true · its failure AssertionError · SyntaxError false · failing SF-2,SF-3 · restored by sha256 true · GREEN after restore true · PROVED
+R08 SF-1 · the population shrinks to the f-harnesses [test/support/harness-spans.mjs]: landed true · named test "SF-1" red true · its failure AssertionError · SyntaxError false · failing SF-1 · restored by sha256 true · GREEN after restore true · PROVED
+R09 SF-5 · a second dynamic-import exception added by default [test/support/harness-spans.mjs]: landed true · named test "SF-5" red true · its failure AssertionError · SyntaxError false · failing SF-2,SF-5 · restored by sha256 true · GREEN after restore true · PROVED
+R10 SF-4 · the verdict no longer fires on a removed span [test/support/harness-spans.mjs]: landed true · named test "SF-4" red true · its failure AssertionError · SyntaxError false · failing SF-4 · restored by sha256 true · GREEN after restore true · PROVED
+
+proved 10 of 10 · residue 0 · production trail sha256 after: f6944b72d64ccb8491055927dbab97497f5c81ed3d7a750bc3ac238092f77c26 · unchanged true

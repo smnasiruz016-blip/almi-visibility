@@ -39,6 +39,12 @@ const SABOTAGES = [
   ["B07", "the lifecycle refuses a retired set as retired", LIFE, '  if (e.role === "RETIRED_CONTAMINATED") return { refuse: "SET_RETIRED_CONTAMINATED" };\n', "", T, "RT-1 ·"],
   ["B08", "a sealed retired set still requires its store (fails closed unlocated)", ROOTS, 'SEALED_ROLES_IN_STORES.includes(e?.role) || (e?.role === "RETIRED_CONTAMINATED" && e?.sealed === true);', "SEALED_ROLES_IN_STORES.includes(e?.role);", T, "RT-2 ·"],
   ["B09", "a sealed retired set is still read and scanned inside the boundary", FW, "export const scannedInBoundary = (e) => NEW_SEALED_ROLES.includes(e?.role) || isSealedRetiredInBoundary(e);", "export const scannedInBoundary = (e) => NEW_SEALED_ROLES.includes(e?.role);", T, "RT-3 ·"],
+  /* RR-246 (continue): the KR-3 proof can never write the production trail. B11 adds a spawn of the production entry that NEVER runs (if
+   * (false)) — the static guard must see it; B12 drops KR-3's refusal of a non-confined store; B13 hands KR-3 a non-confined store, and
+   * KR-3 must refuse it before anything is written. None of the three can reach the production trail. */
+  ["B11", "KR-3 spawns no entry point (a re-allowed spawn is seen)", T, "  const loc = resolveAuditStoreLocation({ repo: REPO });\n", "  if (false) spawnSync(process.execPath, [\"bin/audit-trail.mjs\", \"gap\", \"--actor=actor:cc\", \"--confirm\"]);\n  const loc = resolveAuditStoreLocation({ repo: REPO });\n", T, "KR-3b ·"],
+  ["B12", "KR-3 refuses a non-confined store before it writes (the refusal is kept)", T, '  assert.equal(loc.synthetic, true, "not a confined store — the proof would write the production trail");\n', "", T, "KR-3b ·"],
+  ["B13", "KR-3 refuses a non-confined store at run time", T, "  const loc = resolveAuditStoreLocation({ repo: REPO });\n", "  const loc = { ...resolveAuditStoreLocation({ repo: REPO }), synthetic: false };\n", T, "KR-3 ·"],
   ["B10", "the firewall entry point re-derives only DERIVED retired populations", FWB, 'for (const entry of ofRole("RETIRED_CONTAMINATED").filter((e) => e.resource?.derivation)) {', 'for (const entry of ofRole("RETIRED_CONTAMINATED")) {', TL, "F07A · REAL · the production entry point enumerates every sealed role"],
 ];
 const RUN = ONLY ? SABOTAGES.filter((s) => s[0] === ONLY) : SABOTAGES;

@@ -10,6 +10,7 @@
  *   KR-3  THE RECORDER PATH (in-process, CONFINED store): the correction is appended ONCE, under F07 Amendment 4's authority, and a
  *         second offer finds it already on the trail. 🔴 It never spawns bin/audit-trail.mjs: that entry point writes the PRODUCTION
  *         trail even inside a test run (RR-246: a first draft of this test did exactly that — the real correction, +2, recorded by a test)
+ *   KR-3b KR-3 spawns no entry point and binds only a confined store (static; its sabotages add a dead spawn or drop the refusal)
  *   KR-4  REAL: the production trail holds exactly one such correction, naming 8 reads and both sets
  *   RT-1  REAL: both sets RETIRED, never evaluable, still sealed; the lifecycle refuses each (CONTROL: an evaluable copy is not refused)
  *   RT-2  REAL: retired, they still REQUIRE their store, which fails closed unlocated (CONTROL: an unsealed retired set requires nothing)
@@ -93,6 +94,17 @@ test("KR-3 · THE RECORDER PATH (in-process, CONFINED store): the correction is 
   const mine = store.readAll().events.filter((e) => e.action === "RECORD_KNOWN_OUT_OF_BAND_READS");
   assert.deepEqual([mine.length, mine[0].metadata.knownReads, mine[0].authorityRef], [1, 8, AUTH]);
   assert.deepEqual(offer(), [], "a recorded correction was offered again");
+});
+
+test("KR-3b · KR-3 spawns no entry point and binds ONLY a confined store — it can never write the production trail (the RR-246 first draft did)", () => {
+  const self = readFileSync(new URL(import.meta.url), "utf8");
+  const start = self.indexOf('test("KR-3 · THE RECORDER PATH');
+  const end = self.indexOf('test("KR-3b ·', start);
+  assert.ok(start > 0 && end > start, "the KR-3 block was not found");
+  const block = self.slice(start, end);
+  assert.doesNotMatch(block, /\bspawn(?:Sync)?\s*\(|\bexecFile(?:Sync)?\s*\(|\bexec(?:Sync)?\s*\(|\bfork\s*\(/, "KR-3 spawns a process");
+  assert.doesNotMatch(block, /["'`]bin\//, "KR-3 names an entry point");
+  assert.match(block, /assert\.equal\(loc\.synthetic, true,/, "KR-3 no longer refuses a non-confined store before it writes");
 });
 
 test("KR-4 · REAL: the production trail holds exactly one known-read correction, naming 8 reads and both sets, under Amendment 4's authority", () => {

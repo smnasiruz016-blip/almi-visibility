@@ -3,11 +3,12 @@
  *
  *   node test/helpers/rr247-bare-clone-proof.mjs --deliberate      NOT part of `npm test`; runs the whole repository's tests in a clone
  *
- * It clones the CURRENT COMMIT of this repository into a fresh temporary directory, runs `node --test` there with NO file list (Node's
+ * It clones the CURRENT COMMIT of this repository into a fresh sibling directory (beside it, so the declared data root resolves), runs `node --test` there with NO file list (Node's
  * default discovery: every suite file, every harness, every helper), and then requires: no tracked file of the clone changed, the
  * clone's trail is byte-identical, and THIS working tree (its git status and its production trail) is untouched. The clone runs as a
  * shell would run it — not as a child of a test runner — and with no sealed-store variable, so it can reach no sealed store. The clone
- * is deleted afterwards. Test failures inside the clone are recorded but are not the subject (a clone has no witness and no local data).
+ * is deleted afterwards. The run must FINISH (a timeout is a FAIL), and the shared data root's git state must not move. Test failures
+ * inside the clone are recorded but are not the subject (a clone has no witness and no untracked local files).
  * Evidence: runs/audit/rr247-bare-clone-proof-<date>T<hhmm>.txt, written once (wx).
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
@@ -15,7 +16,6 @@ import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync, existsSync
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
-import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -31,7 +31,13 @@ const branch = git(REPO, "rev-parse", "--abbrev-ref", "HEAD").stdout.trim();
 const realStatusBefore = git(REPO, "status", "--porcelain").stdout;
 const realTrailBefore = sha(readFileSync(join(REPO, TRAIL)));
 
-const dir = mkdtempSync(join(tmpdir(), "rr247-clone-"));
+/* The clone is a SIBLING of this repository: the real data root is declared by a relative path (config/subject-roots.mjs,
+ * ../almi-visibility-data), the way CI checks both out side by side. In a temporary directory it resolves nowhere, the real-data
+ * tests fail and the run never finishes (first run: 7200 s, ETIMEDOUT). That root is shared, so its git state must not move either. */
+const DATA = join(REPO, "..", "almi-visibility-data");
+const dataState = () => `${git(DATA, "rev-parse", "HEAD").stdout.trim()} · ${sha(git(DATA, "status", "--porcelain", "--untracked-files=all").stdout)}`;
+const dataBefore = dataState();
+const dir = mkdtempSync(join(REPO, "..", "rr247-clone-"));
 const lines = [`RR-247 bare \`node --test\` in a full disposable clone · ${new Date().toISOString()}`, `source: ${branch} @ ${head}`];
 let ok = false;
 try {
@@ -64,7 +70,12 @@ try {
     `THIS working tree: git status unchanged ${realStatusAfter === realStatusBefore} · production trail sha256 ${realTrailAfter} · unchanged ${realTrailAfter === realTrailBefore}`,
   );
   if (cloneStatus.trim()) lines.push(...cloneStatus.trim().split(/\r?\n/).slice(0, 40).map((l) => `  changed: ${l}`));
-  ok = cloneHead === head && cloneStatus.trim() === "" && cloneTrailAfter === cloneTrailBefore && realStatusAfter === realStatusBefore && realTrailAfter === realTrailBefore && harnessesNamed.size >= 118;
+  /* a run killed by the timeout never finished: "changed nothing" would only describe what it reached before it stopped */
+  const finished = !run.error && run.status !== null && Number.isFinite(count(/ℹ tests (\d+)/));
+  const dataAfter = dataState();
+  lines.push(`the bare run finished on its own (no timeout, a final summary): ${finished}`,
+    `the shared data root (git HEAD · status digest): before ${dataBefore} · after ${dataAfter} · unchanged ${dataAfter === dataBefore}`);
+  ok = finished && dataAfter === dataBefore &&cloneHead === head && cloneStatus.trim() === "" && cloneTrailAfter === cloneTrailBefore && realStatusAfter === realStatusBefore && realTrailAfter === realTrailBefore && harnessesNamed.size >= 118;
 } finally {
   rmSync(dir, { recursive: true, force: true });
   lines.push(`clone deleted: ${!existsSync(dir)}`, `VERDICT: ${ok ? "PASS — a bare `node --test` ran no harness and changed no tracked file" : "FAIL"}`);

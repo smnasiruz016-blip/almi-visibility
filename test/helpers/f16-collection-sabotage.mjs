@@ -1,13 +1,14 @@
 /**
  * 🔴 RR-155 · F16 C8–C14 · ONE SABOTAGE PER PROTECTION OF test/f16-collection.test.mjs.
  *
- *   node test/helpers/f16-collection-sabotage.mjs     NOT part of `npm test` (test/*.test.mjs only)
+ *   node test/helpers/f16-collection-sabotage.mjs --deliberate     NOT part of `npm test` (test/*.test.mjs only)
  *
  * The method of test/helpers/rr154-owner-records-sabotage.mjs: BASELINE (the named tests green before any sabotage), PRE-FLIGHT (each span
  * exactly once in the bytes live now), each sabotage ALONE, proved to have LANDED, its NAMED test required red by an AssertionError only
  * (a SyntaxError, TypeError or ReferenceError proves nothing), restored by raw-byte sha256, the production trail hashed before and after.
  * Evidence: runs/audit/f16-collection-sabotage-rr155-2026-10-04.txt — refuses to overwrite an earlier run's evidence.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

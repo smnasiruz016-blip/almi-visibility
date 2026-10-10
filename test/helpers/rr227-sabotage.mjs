@@ -7,11 +7,12 @@
  * required RED by an AssertionError (and, where the earlier harness named one, by its own reason), every file restored by raw-byte sha256,
  * the production trail hashed before and after. Fixtures only (RR-177): no real page and no real request.
  *
- *   node test/helpers/rr227-sabotage.mjs [--practice] [--only=<id>]     NOT part of `npm test`
+ *   node test/helpers/rr227-sabotage.mjs --deliberate [--practice] [--only=<id>]     NOT part of `npm test`
  *
  * --practice writes runs/audit/rr227-sabotage-practice-<date>T<hhmm>.txt; the real run writes runs/audit/rr227-sabotage-<date>T<hhmm>.txt.
  * Neither overwrites an earlier file. The engine of test/helpers/rr225-sabotage.mjs, with one change: each limb runs ITS OWN test file.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -169,7 +170,7 @@ for (const [id, limb, spans, testFile, expect, reason] of baselineGreen && named
 /* the 10 real-census controls (RR-135), re-run on a COPY of the data root — the real root is never written */
 let census = { proved: 0, of: 10, line: "NOT RUN" };
 if (!ONLY || ONLY === "CENSUS") {
-  const r = spawnSync(process.execPath, ["test/helpers/f19-census-controls.mjs"], { cwd: REPO, encoding: "utf8", timeout: 1800000 });
+  const r = spawnSync(process.execPath, ["test/helpers/f19-census-controls.mjs", "--deliberate"], { /* RR-247: the controls are gated */ cwd: REPO, encoding: "utf8", timeout: 1800000 });
   const m = `${r.stdout}`.match(/proved (\d+) of (\d+)/);
   census = { proved: m ? Number(m[1]) : 0, of: m ? Number(m[2]) : 10, line: `${r.stdout}`.trim().split("\n").map((l) => `  ${l}`).join("\n") };
   lines.push("", "REAL-CENSUS CONTROLS (test/helpers/f19-census-controls.mjs, on a copy of the data root):", census.line);

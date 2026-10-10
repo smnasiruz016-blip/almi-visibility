@@ -108,7 +108,7 @@ test("C8-1 · the census: every entry point the F03 census finds opening a conne
 
 const childRun = (W, mode, { confirm = true, tenant = FIXTURE_TENANT } = {}) => {
   const sentinelFile = join(W.root, `sentinel-${mode}-${confirm}.json`);
-  const r = spawnSync(process.execPath, ["--import", SENTINEL, CHILD, `--mode=${mode}`, `--tenant=${tenant}`, "--actor=actor:cc", ...(confirm ? ["--confirm"] : [])], { cwd: REPO, encoding: "utf8", env: { ...W.envWith(), NET_SENTINEL_FILE: sentinelFile }, timeout: 120_000 });
+  const r = spawnSync(process.execPath, ["--import", SENTINEL, CHILD, "--deliberate", `--mode=${mode}`, /* RR-247: the child is gated */ `--tenant=${tenant}`, "--actor=actor:cc", ...(confirm ? ["--confirm"] : [])], { cwd: REPO, encoding: "utf8", env: { ...W.envWith(), NET_SENTINEL_FILE: sentinelFile }, timeout: 120_000 });
   return { ...r, out: r.stdout + r.stderr, net: existsSync(sentinelFile) ? JSON.parse(readFileSync(sentinelFile, "utf8")).total : null, standIn: Number((r.stdout.match(/STAND_IN_REQUESTS (\d+)/) ?? [])[1] ?? -1) };
 };
 const ledgerOf = (W, tenant) => join(W.root, "tenancy", TENANT_LEDGER_DIR, `${tenant.slice(7)}.jsonl`);

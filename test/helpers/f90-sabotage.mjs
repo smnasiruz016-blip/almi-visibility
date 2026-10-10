@@ -1,13 +1,14 @@
 /**
  * 🔴 F90 · FALSIFIABILITY OF FINDINGS — ONE SABOTAGE PER CLAUSE AND GUARD, AGAINST THE CODE LIVE NOW.
  *
- *   node test/helpers/f90-sabotage.mjs     NOT part of `npm test` (test/*.test.mjs only)
+ *   node test/helpers/f90-sabotage.mjs --deliberate     NOT part of `npm test` (test/*.test.mjs only)
  *
  * The method of test/helpers/rr102-sabotage.mjs. Each sabotage removes or bends one clause in the bytes; the NAMED test must turn red for
  * it. PRE-FLIGHT first: each span must occur EXACTLY ONCE in the code live now (written with "\n", matched in the file's own line ending).
  * Each is applied ALONE, proved to have LANDED, its named test required red, the file restored by raw-byte sha256; the production trail is
  * hashed before and after. Evidence: runs/audit/f90-sabotage-2026-09-30.txt.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

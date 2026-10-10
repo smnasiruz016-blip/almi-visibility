@@ -185,7 +185,7 @@ test("A2-4 · REAL PATH: modes that open no connector make no request and write 
 test("A2-5 · REAL PATH: a confirmed run that ends in a refusal by the target (403) writes exactly one cost entry, the request counted", async () => {
   const W = world();
   try {
-    const r = await run(W, "test/helpers/rr243-run-cost-child.mjs", ["--mode=target-refusal"], { confirm: true });
+    const r = await run(W, "test/helpers/rr243-run-cost-child.mjs", ["--deliberate", "--mode=target-refusal"], { confirm: true }); // RR-247: the child is gated
     assert.equal(r.status, 3, r.out);
     assert.match(r.out, /REFUSED BY THE TARGET \(403\)/);
     const es = jsonl(ledgerOf(W));

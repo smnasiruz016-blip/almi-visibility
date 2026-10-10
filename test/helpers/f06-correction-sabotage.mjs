@@ -3,11 +3,12 @@
  * LANDED (bytes AND behaviour), each RED on its named K-proof for the intended reason, restored byte-identically
  * (24 September 2026). The harness is F08's (test/helpers/f08-sabotage.mjs), unchanged.
  *
- *   node test/helpers/f06-correction-sabotage.mjs [--only=X1,…] [--out=runs/audit/<file>.txt]
+ *   node test/helpers/f06-correction-sabotage.mjs --deliberate [--only=X1,…] [--out=runs/audit/<file>.txt]
  *
  * Every probe is first run on the CLEAN tree and must report no defect. Synthetic records only; the production trail
  * is hashed around the whole run.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";

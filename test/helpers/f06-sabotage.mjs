@@ -2,13 +2,14 @@
  * F06 §11 · SABOTAGE — one independent defect per enforcement limb, each asserted to have RUN and to have LANDED (bytes
  * AND behaviour), each RED on its named proof for the intended reason, restored byte-identically (24 September 2026).
  *
- *   node test/helpers/f06-sabotage.mjs [--only=E1,…] [--out=runs/audit/<file>.txt]
+ *   node test/helpers/f06-sabotage.mjs --deliberate [--only=E1,…] [--out=runs/audit/<file>.txt]
  *
  * RAN     the anchor occurs exactly once, the edit was applied, and the named test file was executed.
  * LANDED  the bytes hold the defect (shared harness) AND a probe run WHILE the defect is applied shows the mechanism
  *         now behaves differently (DEFECT_TOOK_EFFECT:true). Every probe is first run on the CLEAN tree and must say false.
  * Synthetic records and confined stores only; the production trail is hashed around the whole run.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";

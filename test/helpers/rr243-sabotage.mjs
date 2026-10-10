@@ -1,7 +1,7 @@
 /**
  * 🔴 RR-243 · F78 ACCEPTANCE AMENDMENT 1 — ONE SABOTAGE PER PROTECTION (A1, C8, C9), AND TWO PER ENTRY POINT THAT OPENS A CONNECTOR.
  *
- *   node test/helpers/rr243-sabotage.mjs [--practice] [--only=<id>]      NOT part of `npm test`
+ *   node test/helpers/rr243-sabotage.mjs --deliberate [--practice] [--only=<id>]      NOT part of `npm test`
  *
  * PRE-FLIGHT FIRST: every span must exist EXACTLY ONCE in the code live now (a span that does not is NOT PROVED, never skipped). Each
  * limb replaces its span ALONE, proves it LANDED, runs test/rr243-f78-cost.test.mjs, and requires its NAMED test to fail by an
@@ -11,6 +11,7 @@
  * request without --confirm").
  * --practice writes runs/audit/rr243-sabotage-practice-<date>T<hhmm>.txt; the real run writes runs/audit/rr243-sabotage-<date>T<hhmm>.txt.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

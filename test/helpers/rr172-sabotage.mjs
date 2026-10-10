@@ -4,12 +4,13 @@
  * ALONE, the named test confirmed GREEN first and then required RED by an AssertionError (never a crash of the TEST), every file restored by
  * raw-byte sha256, the production trail hashed before and after.
  *
- *   node test/helpers/rr172-sabotage.mjs [--practice] [--only=<id>]     NOT part of `npm test`
+ *   node test/helpers/rr172-sabotage.mjs --deliberate [--practice] [--only=<id>]     NOT part of `npm test`
  *
  * --practice writes runs/audit/rr172-sabotage-practice-<date>T<hhmm>.txt; the real run writes runs/audit/rr172-sabotage-<date>T<hhmm>.txt. Neither
  * overwrites an earlier file. The method of test/helpers/rr170-sabotage.mjs, unchanged. A sabotage on F34's file (F33 C1, C6) changes
  * nothing that stays: the bytes are restored and checked by hash before the next one.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

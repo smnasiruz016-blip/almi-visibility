@@ -1,13 +1,14 @@
 /**
  * 🔴 RR-98 · THE COMMAND-PATH GUARD — ONE SABOTAGE PER PROTECTION (correction record _handoffs d400e73).
  *
- *   node test/helpers/rr98-sabotage.mjs      NOT part of `npm test` (test/*.test.mjs only)
+ *   node test/helpers/rr98-sabotage.mjs --deliberate      NOT part of `npm test` (test/*.test.mjs only)
  *
  * PRE-FLIGHT FIRST (RR-85 §7): every span is checked to exist EXACTLY ONCE in the code live now, and the pre-flight is printed
  * before any sabotage runs — a span that does not is NOT PROVED, never silently skipped. Then each sabotage replaces its span ALONE,
  * proves it LANDED, runs the named proof file, requires the NAMED test to fail, restores by raw-byte sha256. The production trail
  * is hashed before and after. Evidence: runs/audit/rr98-sabotage-2026-09-30.txt.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

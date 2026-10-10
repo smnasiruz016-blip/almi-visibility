@@ -1,7 +1,7 @@
 /**
  * 🔴 D-RECORDER-1 — ONE SABOTAGE PER BRANCH OF THE REPAIR (F08 reopened on CONCRETE_CONTRADICTORY_EVIDENCE, _handoffs 99f0732).
  *
- *   node test/helpers/d-recorder-1-sabotage.mjs [--only=DR1-S1,…]
+ *   node test/helpers/d-recorder-1-sabotage.mjs --deliberate [--only=DR1-S1,…]
  *
  * Each sabotage removes or bends ONE branch, proves the bytes changed (LANDED), runs its NAMED test and requires it RED for the
  * INTENDED reason (an assertion message, never a test name), then restores the file byte-for-byte (f08-sabotage.mjs harness).
@@ -16,6 +16,7 @@
  *   DR1-S8  the guard ignores the identitySubject — the same keyed movement written twice passes
  *   DR1-S9  the guard forgives a keyed copy of a LEGACY movement under the same authority
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { runSabotages } from "./f08-sabotage.mjs";
 
 const T = "test/d-recorder-1.test.mjs";

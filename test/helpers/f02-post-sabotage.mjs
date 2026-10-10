@@ -4,13 +4,14 @@
  * test/f02-real-prerequisites.test.mjs that must turn RED for the intended reason, restored byte-identically, the
  * production trail hashed around the whole run (shared harness: test/helpers/f08-sabotage.mjs).
  *
- *   node test/helpers/f02-post-sabotage.mjs [--only=P2-S1,…] [--out=<file>]
+ *   node test/helpers/f02-post-sabotage.mjs --deliberate [--only=P2-S1,…] [--out=<file>]
  *
  * Why these ten: each is one way the ruling's NOT-ALLOWED list or §6's arithmetic could be broken in the code that now
  * enforces it — a member discarded, a shared member given to one tenant, a partition granted without a declared request,
  * a consumer reading past its partition, a run spanning tenants, a majority or a caller's tenant taken as proof, a
  * reassignment let through, a filename taken as identity, a phantom resource put back in a gate.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";

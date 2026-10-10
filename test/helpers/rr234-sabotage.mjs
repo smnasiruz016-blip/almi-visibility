@@ -3,11 +3,12 @@
  * change to production code), and "C4 · the live policy" in test/f22-render-audit.test.mjs must turn RED by an AssertionError; every file
  * is restored by raw bytes (sha256 checked), the production trail is hashed before and after, and the test file is GREEN after restore.
  *
- *   node test/helpers/rr234-sabotage.mjs [--practice] [--only=<id>]     NOT part of `npm test`
+ *   node test/helpers/rr234-sabotage.mjs --deliberate [--practice] [--only=<id>]     NOT part of `npm test`
  *
  * --practice writes runs/audit/rr234-sabotage-practice-<date>T<hhmm>.txt; the real run writes runs/audit/rr234-sabotage-<date>T<hhmm>.txt.
  * Neither overwrites an earlier file.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

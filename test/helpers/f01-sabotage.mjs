@@ -3,12 +3,13 @@
  * have LANDED (bytes AND behaviour) and to turn its named proof RED for the intended reason, restored byte-identically
  * (24 September 2026). The harness is F08's (test/helpers/f08-sabotage.mjs), unchanged.
  *
- *   node test/helpers/f01-sabotage.mjs [--only=S1,…] [--out=runs/audit/<file>.txt]
+ *   node test/helpers/f01-sabotage.mjs --deliberate [--only=S1,…] [--out=runs/audit/<file>.txt]
  *
  * 🔴 A PROBE NEVER TOUCHES THE PRODUCTION TRAIL. Probes that run the binary give it a temporary world and a CONFINED
  * audit store (the test runner's own two signals, under a nonce this harness mints and then removes — nothing it did
  * not create). Module-level probes touch no store at all. The harness hashes the production trail around the run.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";

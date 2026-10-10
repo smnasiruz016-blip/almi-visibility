@@ -3,7 +3,7 @@
  * each aimed at the NAMED proof in test/f03-root-connector-registry.test.mjs that must turn RED for the intended reason,
  * restored byte-identically, the production trail hashed around the whole run (shared harness: test/helpers/f08-sabotage.mjs).
  *
- *   node test/helpers/f03-sabotage.mjs [--only=F3-S1,…] [--out=<file>]
+ *   node test/helpers/f03-sabotage.mjs --deliberate [--only=F3-S1,…] [--out=<file>]
  *
  * FAILURE limbs → sabotages:
  *   a root or connector created by a directory, a store by presence, a descriptor's own content ...... F3-S1, F3-S2, F3-S3
@@ -17,6 +17,7 @@
  *   useful subject-owned behaviour deleted ............................................................... F3-S15
  *   the declarations read are not their committed form .................................................. F3-S18
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";

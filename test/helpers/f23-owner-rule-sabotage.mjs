@@ -1,12 +1,13 @@
 /**
  * 🔴 F23 C6 · THE OWNER'S DECLARED LINK RULE · ONE SABOTAGE PER SAFEGUARD (RR-129 §5).
  *
- *   node test/helpers/f23-owner-rule-sabotage.mjs      NOT part of `npm test`
+ *   node test/helpers/f23-owner-rule-sabotage.mjs --deliberate      NOT part of `npm test`
  *
  * PRE-FLIGHT: every span exactly once in the code live now. Each sabotage alone; the named test must fail by an assertion (a SyntaxError
  * is a harness fault, never a proof); restored by raw-byte sha256; the production trail hashed before and after.
  * Evidence: runs/audit/f23-owner-rule-sabotage-rr129-2026-10-02.txt (its own file).
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

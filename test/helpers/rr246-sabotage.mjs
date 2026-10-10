@@ -3,13 +3,14 @@
  * keeps the sets sealed, required and scanned). The read guard's own limbs are test/helpers/rr80-sabotage.mjs (re-run with every F07
  * harness); its installation is proved by test/rr246-f07-amendment4.test.mjs GD-1 and the new-session record.
  *
- *   node test/helpers/rr246-sabotage.mjs [--practice] [--only=<id>]      NOT part of `npm test`
+ *   node test/helpers/rr246-sabotage.mjs --deliberate [--practice] [--only=<id>]      NOT part of `npm test`
  *
  * The discipline of test/helpers/rr244-sabotage.mjs: PRE-FLIGHT FIRST (every span exactly once in the code live now, else NOT PROVED,
  * never skipped); each limb replaces its span ALONE, proves it LANDED, runs its named test file, and requires its NAMED test to fail by
  * an AssertionError; the file is restored by raw bytes (sha256 checked); every test file is GREEN again at the end; the production trail
  * is hashed before and after. Evidence: runs/audit/rr246-sabotage-[practice-]<date>T<hhmm>.txt, written once (wx).
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

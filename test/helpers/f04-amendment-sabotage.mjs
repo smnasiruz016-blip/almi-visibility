@@ -3,12 +3,13 @@
  * at the NAMED proof in test/f04-amendment-zero-population.test.mjs, restored byte-identically, the production trail hashed
  * around the whole run (shared harness: test/helpers/f08-sabotage.mjs). Owner command _handoffs 89e8664 §6.
  *
- *   node test/helpers/f04-amendment-sabotage.mjs [--only=F4A-S1,…] [--out=<file>]
+ *   node test/helpers/f04-amendment-sabotage.mjs --deliberate [--only=F4A-S1,…] [--out=<file>]
  *
  *   F4A-S1 hide an existing approval · F4A-S2 count a control as real · F4A-S3 convert a refusal to success ·
  *   F4A-S4 remove the future-reopen trigger · F4A-S5 let automation create an owner approval ·
  *   F4A-S6 apply the zero-population route to Research · F4A-S7 (original, not in the first set) drop the missing-approval refusal
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";

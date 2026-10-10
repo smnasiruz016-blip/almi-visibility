@@ -2,7 +2,7 @@
  * 🔴 F08 · THE OUT-OF-TREE WITNESS — ONE SABOTAGE PER BRANCH OF THE REPAIR (F07/F08 reopened 27 Sep 2026 on
  * CONCRETE_CONTRADICTORY_EVIDENCE, _handoffs 5fd0435).
  *
- *   node test/helpers/f08-witness-sabotage.mjs [--only=WS-S1,…]
+ *   node test/helpers/f08-witness-sabotage.mjs --deliberate [--only=WS-S1,…]
  *
  * Each case removes or bends ONE branch and proves the bytes changed (LANDED). It then runs its NAMED test, which must
  * go RED for the INTENDED reason (a WITNESS-* assertion message, never a test name), and restores the file
@@ -23,6 +23,7 @@
  *   GP-S3  the gap event says the lost events are recorded here
  *   GP-S4  a gap already on the trail is offered again
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { runSabotages } from "./f08-sabotage.mjs";
 
 const T = "test/f08-witness.test.mjs";

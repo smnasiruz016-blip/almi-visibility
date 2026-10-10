@@ -2,10 +2,11 @@
  * 🔴 RR-158 §5 · ONE SABOTAGE PER PROTECTION OF test/rr158-overturn.test.mjs (and of the judging guard in test/rr157-meaning.test.mjs M3
  * that refuses an overturn naming nothing).
  *
- *   node test/helpers/rr158-sabotage.mjs     NOT part of `npm test`
+ *   node test/helpers/rr158-sabotage.mjs --deliberate     NOT part of `npm test`
  *
  * Method of test/helpers/rr157-sabotage.mjs. Evidence: runs/audit/rr158-sabotage-2026-10-04.txt — refuses to overwrite.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

@@ -3,7 +3,7 @@
  * constraint, each aimed at the NAMED proof in test/f02-disposition.test.mjs that must turn RED for the intended reason,
  * restored byte-identically, the production trail hashed around the whole run (shared harness: test/helpers/f08-sabotage.mjs).
  *
- *   node test/helpers/f02-disposition-sabotage.mjs [--only=D2-S1,…] [--out=<file>]
+ *   node test/helpers/f02-disposition-sabotage.mjs --deliberate [--only=D2-S1,…] [--out=<file>]
  *
  * FAILURE: "An existing population crosses tenants" → D2-S1 · "an undeclared learning resource is accepted" → D2-S2 ·
  * "F79 later introduces learning without F02 isolation" → D2-S3 (the freeze constraint dropped) and D2-S4 (its authority
@@ -11,6 +11,7 @@
  * And the disposition's own mechanisms: the amendment chain (D2-S6), the lawful-retirement proof (D2-S7), an unresolved
  * resource treated as operational (D2-S8).
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";

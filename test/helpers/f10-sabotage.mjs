@@ -1,7 +1,7 @@
 /**
  * 🔴 F10 · ONE SABOTAGE PER REQUIRED FIRING (command _handoffs 991eb9e §4 C2) AND PER CLAUSE LIMB OF THE FROZEN ACCEPTANCE (504dbb9).
  *
- *   node test/helpers/f10-sabotage.mjs [--only=F10-S1,…] [--out=<file>]
+ *   node test/helpers/f10-sabotage.mjs --deliberate [--only=F10-S1,…] [--out=<file>]
  *
  * Each sabotage removes or bends ONE branch (an anchor that occurs exactly once), proves the bytes changed (LANDED), runs its
  * NAMED test, and requires it RED for the INTENDED reason — an assertion message of that test, never a test name; then restores
@@ -14,6 +14,7 @@
  *                      test context S17 · a dropped exclusion rule S18 · retired set not applied S19 · the C7 reopen trigger S20 ·
  *                      a scorer changed since freeze S21 · an unassessable class assessed S22 · one assessable class passes S23
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";

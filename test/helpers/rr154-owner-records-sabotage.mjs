@@ -1,12 +1,13 @@
 /**
  * 🔴 RR-154 §1–§2 · ONE SABOTAGE PER PROTECTION OF test/rr154-owner-records.test.mjs.
  *
- *   node test/helpers/rr154-owner-records-sabotage.mjs     NOT part of `npm test` (test/*.test.mjs only)
+ *   node test/helpers/rr154-owner-records-sabotage.mjs --deliberate     NOT part of `npm test` (test/*.test.mjs only)
  *
  * The method of test/helpers/rr103-sabotage.mjs: PRE-FLIGHT (each span exactly once in the bytes live now), each sabotage ALONE, proved to
  * have LANDED, its NAMED test required red by an AssertionError (a SyntaxError or TypeError proves nothing), restored by raw-byte sha256,
  * the production trail hashed before and after. Evidence: runs/audit/rr154-owner-records-sabotage-2026-10-03.txt — refuses to overwrite.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

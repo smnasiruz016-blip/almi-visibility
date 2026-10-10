@@ -3,7 +3,7 @@
  * test/f19-crawler-bounds.test.mjs that must turn RED for the intended reason, restored byte-identically, the production
  * trail hashed around the whole run (shared harness: test/helpers/f08-sabotage.mjs). Each sabotage is applied ALONE.
  *
- *   node test/helpers/f19-sabotage.mjs [--only=F19-S1,…] [--out=<file>]
+ *   node test/helpers/f19-sabotage.mjs --deliberate [--only=F19-S1,…] [--out=<file>]
  *
  * FAILURE limbs → sabotages:
  *   more pages than the declared cap ............................................................. F19-S1
@@ -16,6 +16,7 @@
  *   found missing) ............................................................................... F19-S9, F19-S10, F19-S11
  *   the run record lacks a truncation or refusal count; the cost undercounts requests ............. F19-S12 … F19-S15
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";

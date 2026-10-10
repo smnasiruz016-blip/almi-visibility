@@ -4,11 +4,12 @@
  * clause C1–C6 — each on code LIVE NOW, its span found EXACTLY ONCE, applied ALONE, the named test confirmed GREEN first and then required
  * RED by an AssertionError (never a crash of the TEST), every file restored by raw-byte sha256, the production trail hashed before and after.
  *
- *   node test/helpers/rr174-sabotage.mjs [--practice] [--only=<id>]     NOT part of `npm test`
+ *   node test/helpers/rr174-sabotage.mjs --deliberate [--practice] [--only=<id>]     NOT part of `npm test`
  *
  * --practice writes runs/audit/rr174-sabotage-practice-<date>T<hhmm>.txt; the real run writes runs/audit/rr174-sabotage-<date>T<hhmm>.txt.
  * Neither overwrites an earlier file. The method of test/helpers/rr172-sabotage.mjs, unchanged.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

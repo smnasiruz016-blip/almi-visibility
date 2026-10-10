@@ -1,7 +1,7 @@
 /**
  * 🔴 F07 · AMENDMENT 2 — ONE SABOTAGE PER MATERIAL OBLIGATION, derived from the frozen amendment (governance 051feb9).
  *
- *   node test/helpers/f07-amendment2-sabotage.mjs [--only=F7B-S1,…] [--out=<file>]
+ *   node test/helpers/f07-amendment2-sabotage.mjs --deliberate [--only=F7B-S1,…] [--out=<file>]
  *
  * Each sabotage replaces ONE anchor that occurs exactly once, proves the bytes changed (LANDED), runs its NAMED test, and
  * requires it RED for the INTENDED reason — an assertion message of that test, never a test name; then restores the file
@@ -18,6 +18,7 @@
  *   COMPLETE CENSUS  label vocabulary reported as a leak · an unreadable store reported as zero files · an unlocatable
  *                    store reported located · the production evaluator ignores the linked fields  → F7B-S13, S16, S19, S21
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";

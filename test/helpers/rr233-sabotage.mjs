@@ -3,11 +3,12 @@
  * change), and its NAMED test in test/rr233-admissible-names.test.mjs must turn RED by an AssertionError; the file is restored by raw
  * bytes (sha256 checked) and the production trail is hashed before and after; the whole test file must be GREEN again after restore.
  *
- *   node test/helpers/rr233-sabotage.mjs [--practice] [--only=<id>]     NOT part of `npm test`
+ *   node test/helpers/rr233-sabotage.mjs --deliberate [--practice] [--only=<id>]     NOT part of `npm test`
  *
  * --practice writes runs/audit/rr233-sabotage-practice-<date>T<hhmm>.txt; the real run writes runs/audit/rr233-sabotage-<date>T<hhmm>.txt.
  * Neither overwrites an earlier file.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

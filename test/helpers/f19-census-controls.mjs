@@ -3,8 +3,9 @@
  * 🔴 RR-135 · F19 · CAN THE REAL CENSUS FAIL? — one corruption per clause, each on a COPY of the data root, each required to turn its named
  * census test red by AssertionError. The real data root is never written; each copy is deleted after its run.
  *
- *   node test/helpers/f19-census-controls.mjs        evidence: runs/audit/f19-real-census-controls-rr135-2026-10-02.txt (count-only)
+ *   node test/helpers/f19-census-controls.mjs --deliberate        evidence: runs/audit/f19-real-census-controls-rr135-2026-10-02.txt (count-only)
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdtempSync, cpSync, rmSync, mkdirSync, existsSync } from "node:fs";
 import { join, sep } from "node:path";
 import { tmpdir } from "node:os";

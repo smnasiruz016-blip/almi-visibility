@@ -1,13 +1,14 @@
 /**
  * 🔴 RR-103 · SPECIFICATION AMENDMENT 3 — ONE SABOTAGE PER PROTECTION OF THE NEW ROW, THE DENOMINATOR AND THE RESTATED CONTROL.
  *
- *   node test/helpers/rr103-sabotage.mjs     NOT part of `npm test` (test/*.test.mjs only)
+ *   node test/helpers/rr103-sabotage.mjs --deliberate     NOT part of `npm test` (test/*.test.mjs only)
  *
  * The method of test/helpers/f90-sabotage.mjs: PRE-FLIGHT (each span exactly once in the bytes live now), each sabotage ALONE, proved to have
  * LANDED, its NAMED test required red, restored by raw-byte sha256, the production trail hashed before and after.
  * Evidence: runs/audit/rr103-sabotage-rr130-2026-10-02.txt — RR-130 moved G05 to the live line (ACCEPTANCES.F91 now names Amendment 1);
  * the 2026-09-30 file is the RR-103 run, kept.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

@@ -13,6 +13,7 @@
 //   OUTSIDE ⇔ sabotageA stdout byte-identical to clean, exit identical, no runs/discovery path read, AND controlC differs.
 // Positive controls: each sabotage fires on a direct call (LANDED); the tracer records files the census is known to read.
 // Bytes are restored in `finally`, and the restored sha256 is compared to the original.
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";

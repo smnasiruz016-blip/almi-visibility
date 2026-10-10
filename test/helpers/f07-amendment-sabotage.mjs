@@ -1,7 +1,7 @@
 /**
  * 🔴 F07 · AMENDMENT 1 — ONE SABOTAGE PER MATERIAL OBLIGATION, derived from the frozen amendment (governance a0b7e4b).
  *
- *   node test/helpers/f07-amendment-sabotage.mjs [--only=F7A-S1,…] [--out=<file>]
+ *   node test/helpers/f07-amendment-sabotage.mjs --deliberate [--only=F7A-S1,…] [--out=<file>]
  *
  * Each sabotage replaces ONE anchor that occurs exactly once, proves the bytes changed (LANDED), runs its NAMED test, and
  * requires it RED for the INTENDED reason; then restores the file byte-for-byte (raw-byte sha256 before == after). The
@@ -21,6 +21,7 @@
  *   a governed caller behind an alias: the entry point routes the new roles around the
  *   recording function (a local alias that reads without recording)                          → F7A-S11
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";

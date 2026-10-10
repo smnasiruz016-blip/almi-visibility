@@ -1,12 +1,13 @@
 /**
  * 🔴 RR-153 TIMING CORRECTION · F05 DECLARED DATE CORRECTION · ONE SABOTAGE PER GUARD (src/authority/date-correction.mjs).
  *
- *   node test/helpers/date-correction-sabotage.mjs      NOT part of `npm test`
+ *   node test/helpers/date-correction-sabotage.mjs --deliberate      NOT part of `npm test`
  *
  * BASELINE green first; PRE-FLIGHT every span exactly once; each sabotage alone; the named test must fail by an ASSERTION; restored by
  * raw-byte sha256; the production trail hashed before and after.
  * Evidence: runs/audit/date-correction-sabotage-rr153-2026-10-03.txt — its own file; it refuses to overwrite one that exists.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

@@ -1,12 +1,13 @@
 /**
  * 🔴 F22 · THE JAVASCRIPT RENDERING AUDIT · ONE SABOTAGE PER CLAUSE LIMB (RR-137 §3).
  *
- *   node test/helpers/f22-render-audit-sabotage.mjs      NOT part of `npm test`
+ *   node test/helpers/f22-render-audit-sabotage.mjs --deliberate      NOT part of `npm test`
  *
  * PRE-FLIGHT: every span exactly once in the code live now. Each sabotage alone; the named test must fail by an assertion (a SyntaxError
  * is a harness fault, never a proof); restored by raw-byte sha256; the production trail hashed before and after.
  * Evidence: runs/audit/f22-render-audit-sabotage-rr139-2026-10-03.txt (its own file).
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

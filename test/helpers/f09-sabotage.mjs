@@ -3,7 +3,7 @@
  * must turn RED for the intended reason, restored byte-identically, the production trail hashed around the whole run
  * (shared harness: test/helpers/f08-sabotage.mjs). Owner commands _handoffs e5f5fd4 §14 and the Option A continuation §13.
  *
- *   node test/helpers/f09-sabotage.mjs [--only=F9-S1,…] [--out=<file>]
+ *   node test/helpers/f09-sabotage.mjs --deliberate [--only=F9-S1,…] [--out=<file>]
  *
  * GENERIC: this file names no subject. The one sabotage that plants the subject's word reads it at run time from the subject's
  * own package (the subject whose external-root descriptor declares a research batch).
@@ -26,6 +26,7 @@
  *   a governed caller behind an alias                             → F9-S13
  *   one client's presence breaks another's run (subject ≠ product)→ F9-S15
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";

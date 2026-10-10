@@ -1,13 +1,14 @@
 /**
  * 🔴 F16 · WHO LOOKED · ONE SABOTAGE PER SAFEGUARD (RR-125).
  *
- *   node test/helpers/f16-agent-observer-sabotage.mjs      NOT part of `npm test` (test/*.test.mjs only)
+ *   node test/helpers/f16-agent-observer-sabotage.mjs --deliberate      NOT part of `npm test` (test/*.test.mjs only)
  *
  * PRE-FLIGHT FIRST: every span must exist EXACTLY ONCE in the code live now; one that does not is NOT PROVED, never skipped. Each sabotage
  * replaces its span ALONE, proves it LANDED, runs the proof files, requires the NAMED test to fail by an assertion, and restores by
  * raw-byte sha256. The production trail is hashed before and after.
  * Evidence: runs/audit/f16-agent-observer-sabotage-rr126-2026-10-01.txt (RR-126 rerun after the boundary changed; earlier files kept).
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

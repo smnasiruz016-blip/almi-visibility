@@ -1,7 +1,7 @@
 /**
  * 🔴 RR-244 · F78 ACCEPTANCE AMENDMENT 2 — ONE SABOTAGE PER LIMB OF THE AMENDMENT 2 TEXT, AND PER REPAIR THIS ROUND MADE.
  *
- *   node test/helpers/rr244-sabotage.mjs [--practice] [--only=<id>]      NOT part of `npm test`
+ *   node test/helpers/rr244-sabotage.mjs --deliberate [--practice] [--only=<id>]      NOT part of `npm test`
  *
  * The same discipline as test/helpers/rr243-sabotage.mjs: PRE-FLIGHT FIRST (every span exactly once in the code live now, or the limb is
  * NOT PROVED, never skipped); each limb replaces its span ALONE, proves it LANDED, runs test/rr244-f78-amendment2.test.mjs, and requires
@@ -9,6 +9,7 @@
  * the end; the production trail is hashed before and after. The 35 RR-243 limbs are run by their own harness.
  * --practice writes runs/audit/rr244-sabotage-practice-<date>T<hhmm>.txt; the real run writes runs/audit/rr244-sabotage-<date>T<hhmm>.txt.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

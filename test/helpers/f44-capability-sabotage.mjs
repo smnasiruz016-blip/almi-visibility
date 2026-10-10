@@ -1,13 +1,14 @@
 /**
  * 🔴 F44 CAPABILITY PRECONDITION · ONE SABOTAGE PER FAILURE LIMB (acceptance _handoffs d6a41a3, EVIDENCE clause).
  *
- *   node test/helpers/f44-capability-sabotage.mjs      NOT part of `npm test` (test/*.test.mjs only)
+ *   node test/helpers/f44-capability-sabotage.mjs --deliberate      NOT part of `npm test` (test/*.test.mjs only)
  *
  * Each sabotage replaces ONE exact span in a production source file, proves the replacement LANDED in the bytes, runs the F44
  * capability test file, requires the NAMED test to fail, then restores the file and proves the restore by raw-byte sha256.
  * The production audit trail is hashed before and after the whole run and must be unchanged. A restore also runs on any exit,
  * so an abort cannot leave damage behind. Writes its evidence to runs/audit/f44-capability-precondition-sabotage-2026-09-28.txt.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

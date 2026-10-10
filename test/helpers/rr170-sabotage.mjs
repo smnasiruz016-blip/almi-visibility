@@ -21,7 +21,7 @@ const T = ["test/rr170-r1-research-derived.test.mjs"];
 const TRAIL = "audit-trail/events.jsonl";
 const PRACTICE = process.argv.includes("--practice");
 const ONLY = process.argv.find((a) => a.startsWith("--only="))?.slice(7) ?? null;
-const DAY = new Date().toISOString().slice(0, 10);
+const DAY = new Date().toISOString().slice(0, 16).replace(":", ""); // RR-248: to the minute — a day-only name refused every second run that day
 const EVIDENCE = join(REPO, "runs", "audit", `rr170-sabotage-${PRACTICE ? "practice-" : ""}${ONLY ? `${ONLY}-` : ""}${DAY}.txt`);
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));

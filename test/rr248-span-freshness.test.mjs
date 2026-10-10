@@ -83,9 +83,12 @@ test("SF-6 · EVIDENCE IS NEVER OVERWRITTEN: every harness writes its evidence t
   const offences = [];
   for (const f of HARNESSES) {
     const src = readFileSync(join(REPO, f), "utf8");
+    const dayOnly = /^const DAY = new Date\(\)\.toISOString\(\)\.slice\(0, 10\);/m.test(src);
     src.split(/\r?\n/).forEach((l, i) => {
       /* a fixed evidence name: a run can only ever write (or refuse) the same file */
       if (/^const (EVIDENCE|OUT) = join\(REPO, "runs", "audit", "[^"$`]+"\);/.test(l)) offences.push(`${f}:${i + 1} a fixed evidence name`);
+      /* RR-248 Q2: a name fixed for the whole DAY refuses every second run that day (rr159, rr161, rr170 did) */
+      if (/^const (EVIDENCE|OUT) = join\(REPO, "runs", "audit"/.test(l) && (/toISOString\(\)\.slice\(0, 10\)/.test(l) || (dayOnly && l.includes("${DAY}")))) offences.push(`${f}:${i + 1} an evidence name fixed for the day`);
       /* an evidence write CALL (a statement, never text inside a limb) must refuse an existing file: flag "wx", or an existsSync refusal of that path */
       if (!/^\s*writeFileSync\(/.test(l) || !/runs["', /]+audit|EVIDENCE|\bOUT\b|outArg/.test(l)) return;
       const v = l.match(/writeFileSync\(\s*([A-Za-z_$][\w$]*)\s*,/)?.[1];

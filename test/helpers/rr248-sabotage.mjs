@@ -40,6 +40,7 @@ const SABOTAGES = [
   ["R02", "SF-2 · a span that occurs twice in its target", [[AD, CREATE, `${CREATE}\n/* a second copy:\n${CREATE}\n*/`]], "SF-2"],
   ["R03", "SF-6 · a harness writes a fixed evidence name", [[R180, R180_EVIDENCE, 'const EVIDENCE = join(REPO, "runs", "audit", "rr180-sabotage.txt");']], "SF-6"],
   ["R04", "SF-6 · the shared evidence writer opens an existing file", [[EO, 'writeFileSync(join(repo, rel), text, { flag: "wx" })', 'writeFileSync(join(repo, rel), text, { flag: "w" })']], "SF-6"],
+  ["R15", "SF-6 · a harness names its evidence by the day alone (a second run that day is refused)", [[R180, 'const DAY = new Date().toISOString().slice(0, 16).replace(":", "");', "const DAY = new Date().toISOString().slice(0, 10);"]], "SF-6"],
   ["R05", "SF-6 · an operator-named evidence write without wx", [[F01, '    writeFileSync(join(REPO, outArg), text, { flag: "wx" });', "    writeFileSync(join(REPO, outArg), text);"]], "SF-6"],
   ["R06", "SF-3 · the reader imports a write", [[HS, FS_IMPORT, 'import { readFileSync, existsSync, readdirSync, statSync, lstatSync, realpathSync, writeFileSync } from "node:fs";']], "SF-3"],
   ["R07", "SF-3 · the fs stand-in performs a write instead of stopping it (a no-op, never a real write)", [[HS, ': k === "promises" ? stopping("fs.promises") : stopper(`fs.${k}`)) });', ': k === "promises" ? stopping("fs.promises") : () => undefined) });']], "SF-3"],

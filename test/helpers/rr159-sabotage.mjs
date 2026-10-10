@@ -24,7 +24,7 @@ const TRAIL = "audit-trail/events.jsonl";
 const PRACTICE = process.argv.includes("--practice");
 /* --only=<id>: one sabotage added after the full run, with its own evidence file (the full run's file is never overwritten) */
 const ONLY = process.argv.find((a) => a.startsWith("--only="))?.slice(7) ?? null;
-const DAY = new Date().toISOString().slice(0, 10);
+const DAY = new Date().toISOString().slice(0, 16).replace(":", ""); // RR-248: to the minute — a day-only name refused every second run that day
 const EVIDENCE = join(REPO, "runs", "audit", `rr159-sabotage-${PRACTICE ? "practice-" : ""}${ONLY ? `${ONLY}-` : ""}${DAY}.txt`);
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));

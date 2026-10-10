@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2 } from "./acceptances.mjs";
+import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -586,7 +586,7 @@ export const DECLARED = Object.freeze({
         sabotage: "F7B-S1–S21 (new) · F7-S1–S16, K1–K10 and F7A-S1–S11 (existing, re-run; F7-S1 re-anchored to the changed readUnsealed line, intent unchanged)",
         afterMerge: "main CI green on the exact merged SHA — verified after merge and reported in _handoffs; a red main run means this record is wrong and must be reverted",
       }),
-      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F07", on: "2026-09-26", ruling: ACCEPTANCES.F07.ruling, contractSha256: ACCEPTANCES.F07.contractSha256, amends: ACCEPTANCES.F07.amends }),
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F07", on: "2026-09-26", ruling: F07_AMENDMENT_3.ruling, contractSha256: F07_AMENDMENT_3.contractSha256, amends: F07_AMENDMENT_3.amends }),
       Object.freeze({
         kind: "REOPENED",
         featureId: "F07",
@@ -597,7 +597,7 @@ export const DECLARED = Object.freeze({
         reason: "AUTHORITATIVE_REQUIREMENT_CHANGE",
         reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
         rationale: "Amendments 1 and 2 remain historically valid for what they measured; live HELD_OUT_EVIDENCE and MARKING_KEY entries number zero; the reopen is caused by the newly frozen wider requirement (the paired release F10 C7 needs), not by concealed contradictory evidence",
-        amendment: Object.freeze({ ruling: ACCEPTANCES.F07.ruling, contractSha256: ACCEPTANCES.F07.contractSha256 }),
+        amendment: Object.freeze({ ruling: F07_AMENDMENT_3.ruling, contractSha256: F07_AMENDMENT_3.contractSha256 }),
         limbCensus: Object.freeze({ repo: "_handoffs", commit: "4fc565696b769c0dba6396c9993757aee57e12d6" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-26_F10_C7_COMPLETION_PATH.md", commit: "148d48f94dfca10123580d8cf9b279c056d03e5d", sha256: "5bdd8100f025a8fd7850e57b3c009acf1e7503fa36840a0747be68ac6f10e69e" }),
       }),
@@ -610,7 +610,7 @@ export const DECLARED = Object.freeze({
         to: "VERIFIED-PASS",
         route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: Amendment 3)",
         reason: "AMENDED_CONTRACT_PROVED_EXISTING_LIMBS_ON_REAL_POPULATIONS",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F07.ruling.sha256, contract: ACCEPTANCES.F07.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F07_AMENDMENT_3.ruling.sha256, contract: F07_AMENDMENT_3.contractSha256 }),
         realPopulationNewLimbs: "NOT_MEASURED (F06) — 0 registered HELD_OUT_EVIDENCE and 0 registered MARKING_KEY in the real registry; the one declared governed sealed store (f10-marking-key) is required by no entry; zero is not a pass, and the amended EVIDENCE clause requires the count stated, including zero",
         provedAgainst: "the existing limbs re-run on the amended tree; the four added limbs (paired release, ABSTAIN distinct from NO, pair structure, set/key preflight before the claim) and the paired ceiling on constructed, non-sensitive stand-ins in scratch trees, an OS temporary store and in-memory audit stores, in BOTH marking-key location shapes — hand-worked counts reproduced exactly (tables, abstentions 2, discordant pairs 3, correct both ways 2), every refusal named by code, the once-only run unspent after a set/key fault",
         notYetProvedAgainst: "a REAL registered paired set or its marking key — none exists; the first real registration is the first real population for these limbs; activity outside the governed paths is not observable by F07 and is not claimed",
@@ -628,7 +628,7 @@ export const DECLARED = Object.freeze({
         reason: "CONCRETE_CONTRADICTORY_EVIDENCE",
         reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
         rationale: "GOVERNED READ requires every read of either side to record a durable ACCESS event before the value is used; two real production sealed reads appended their ACCESS events (trail 1131 -> 1133) and a git checkout in the same command removed both, so no durable ACCESS record of those two reads exists — the requirement did not change, the store that holds the record was deletable by an ordinary git operation",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F07.ruling.sha256, contract: ACCEPTANCES.F07.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F07_AMENDMENT_3.ruling.sha256, contract: F07_AMENDMENT_3.contractSha256 }),
         evidenceRecord: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_PR171_AUDIT_INCIDENT_TIMELINE_AND_BLAST_RADIUS_2026-09-27.md", commit: "5fd0435127540d9879c7b573e7a33bf859d0a59c", sha256: "a67dedd4faa0ff5c707371cab647078463e98ff60506556427ab5643999697ca" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-27_PR171_AUDIT_INCIDENT_RECONCILE.md", commit: "788919908338c3ddb39217a7d60c62733eb29381", sha256: "4e56ffae5818346437381347ecd73c2b912f687215e18151e2a8b277cd69559d" }),
       }),
@@ -641,7 +641,7 @@ export const DECLARED = Object.freeze({
         to: "VERIFIED-PASS",
         route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (concrete contradictory evidence: two ACCESS records destroyed by a source-control operation)",
         reason: "GOVERNED_READ_DURABILITY_REPAIRED_HISTORY_RECORDED_AS_A_GAP",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F07.ruling.sha256, contract: ACCEPTANCES.F07.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F07_AMENDMENT_3.ruling.sha256, contract: F07_AMENDMENT_3.contractSha256 }),
         historyRepresented: "AUDIT_CORRECTION fc623f98b8a3b3bd31d790b2279e3ef6 (GAP-2026-09-27-A): the two lost ACCESS records do not exist, their bytes and ids are UNRECOVERABLE, and the later census (70af1508…, 6075a9c3…) is a different pair of reads — no lost event is recreated or claimed",
         provedAgainst: "the REAL registration on the owner machine: a fresh PRODUCTION census after the repair, FAILURES 0, HELD_OUT_EVIDENCE 2 read in the boundary, two durable ACCESS events 7ef97808… and 7b23adfc… appended before use and mirrored to the out-of-tree witness (EQUAL); durability against checkout, restore, reset --hard and stash proved with real git on the production store path (test/f08-witness.test.mjs W2), each with a control",
         notYetProvedAgainst: "a loss that also removes the witness, or occurs where no witness exists (a fresh clone before its first append, CI) — the witness's declared limit; activity outside the governed paths is not observable by F07 and is not claimed",
@@ -659,10 +659,13 @@ export const DECLARED = Object.freeze({
         reason: "CONCRETE_CONTRADICTORY_EVIDENCE",
         reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
         rationale: "between the seal (2026-09-27T02:19:02Z) and the owner's labelling, eight reads of storage S read both registered HELD_OUT_EVIDENCE sets' members and the packet queues' wording without a durable ACCESS event and outside the sealed lifecycle; F07 FAILURE 'a read of either side reaches its value without a durable ACCESS recorded first, or through any path other than the sealed lifecycle' and 'a payload item … or an item-level result crosses out of the boundary' are met; no label and no marking key was read; THE LIMIT disclaims observation and does not remove the limbs",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F07.ruling.sha256, contract: ACCEPTANCES.F07.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F07_AMENDMENT_3.ruling.sha256, contract: F07_AMENDMENT_3.contractSha256 }),
         evidenceRecord: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F10_C3_INCIDENT_CLASSIFICATION_2026-09-28.md", commit: "be583fa523427593debe259da1134cd6ca6a62cb", sha256: "63c6c54b9c564984f1f7d2c3ecf53cfd57acfbe7098d1d787ce0475d023a4f21" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-09-27_CORRECT_V3_ADOPTION_AND_RECOVER_F10.md", commit: "af4e9c89a8cd1d5216696858bc4c5dae67eb3120", sha256: "3c6144c0beadacd28724a27aa991fe384aed60791e737c0a1defdf8d7d8aab72" }),
       }),
+      /* RR-246: F07's Acceptance Amendment 4 (owner ruling RR-80 §5), frozen ALONE on 28 Sep (5afaae5) and pinned here before any F07
+       * implementation change; F07 is IN-PROGRESS since its 28 Sep reopening, so no reopen is recorded */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F07", on: "2026-10-10", ruling: F07_AMENDMENT_4.ruling, contractSha256: F07_AMENDMENT_4.contractSha256, amends: F07_AMENDMENT_4.amends }),
     ]),
   }),
   F08: Object.freeze({

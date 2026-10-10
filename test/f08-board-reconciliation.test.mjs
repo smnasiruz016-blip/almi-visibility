@@ -206,7 +206,9 @@ test("P6 · every feature other than F08 holds exactly the state it held at the 
       continue;
     }
     if (REOPENED_SINCE[r.featureId]?.[0] === r.state && MOVED_SINCE[r.featureId] === "VERIFIED-PASS") {
-      const last = DECLARED[r.featureId].events.at(-1);
+      /* RR-246: a row reopened and then given its own acceptance amendment (F07: Amendment 4, recorded after its 28 Sep reopening) still
+       * stands on that reopening — an ACCEPTANCE_AMENDED after it moves no state */
+      const last = DECLARED[r.featureId].events.filter((e) => e.kind !== "ACCEPTANCE_AMENDED").at(-1);
       assert.deepEqual([last.kind, last.from, last.to, last.reason], ["REOPENED", "VERIFIED-PASS", "IN-PROGRESS", REOPENED_SINCE[r.featureId][1]], `${r.featureId} is IN-PROGRESS without its reopening, for its own recorded reason, as the last event`);
       assert.ok(events().some((e) => e.eventType === "BOARD_TRANSITION" && e.action === "REOPENED" && e.metadata?.featureId === r.featureId && e.occurredAt.slice(0, 10) === last.on), `${r.featureId}'s reopening is not in the audit trail`);
       continue;

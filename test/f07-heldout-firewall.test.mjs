@@ -21,7 +21,7 @@ import { join, resolve } from "node:path";
 
 import { EVIDENCE_ROLE_REGISTRY } from "../config/evidence-roles.mjs";
 import { AUTHORITY_CORPUS, CORPUS_PROVENANCE } from "../config/authority/corpus.mjs";
-import { ACCEPTANCES, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2 } from "../config/fboard/acceptances.mjs";
+import { ACCEPTANCES, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F07_AMENDMENT_3 } from "../config/fboard/acceptances.mjs";
 import { CAPABILITIES } from "../config/fboard/capabilities.mjs";
 import { DECLARED } from "../config/fboard/f-board.mjs";
 import { MANDATORY_READING, BOARD_AND_AUTHORITY_CONFIG } from "../config/governance/mandatory-reading.mjs";
@@ -405,8 +405,13 @@ test("P30 · REAL · F07's acceptance hashes to its pin, and ONE changed word is
   /* F07 Amendment 3 (governance 264c680) governs; Amendment 2 (051feb9) is kept frozen as F07_AMENDMENT_2 and named by `amends`;
    * Amendment 1 (a0b7e4b) is kept frozen as F07_AMENDMENT_1 and is what Amendment 2 amends; the ORIGINAL (cd149ae) is kept frozen
    * as F07_ORIGINAL and is what Amendment 1 amends. */
-  assert.equal(contractSha256(acc), "06634cdfd4c5404647644fa3f8797e4c4eeffc9cc770da7853c59d418df9036f");
-  assert.equal(acc.ruling.sha256, "ad4dc1e67a7fd71b2c7b26e54c90cc1486c7d6f14e25e23764d227a222d8cd26");
+  /* RR-246 (restated): F07 Amendment 4 (governance 5afaae5, owner ruling RR-80 §5) governs; Amendment 3 (264c680) is kept frozen as
+   * F07_AMENDMENT_3 and named by `amends` */
+  assert.equal(contractSha256(acc), "e5b88fd0198877b34445892d895cf7cbfc2dfa36c35c04bbba53df0cd756614b");
+  assert.equal(acc.ruling.sha256, "6b6ee2f23ede86eb82f42162efae5c49d1ddac802feda68d786a04bffb92a4cd");
+  assert.deepEqual(acc.amends, { ruling: F07_AMENDMENT_3.ruling, contractSha256: F07_AMENDMENT_3.contractSha256 });
+  assert.equal(contractSha256(F07_AMENDMENT_3), "06634cdfd4c5404647644fa3f8797e4c4eeffc9cc770da7853c59d418df9036f");
+  assert.equal(F07_AMENDMENT_3.ruling.sha256, "ad4dc1e67a7fd71b2c7b26e54c90cc1486c7d6f14e25e23764d227a222d8cd26");
   assert.equal(contractSha256(F07_AMENDMENT_2), "cafe48d471cbd09575e69ebc7c51114dd50f785bf3b59b49285a36249ee7db42");
   assert.equal(F07_AMENDMENT_2.ruling.sha256, "9e9a3f6e4ad875a9802ca07e7d5953b454d6d04d76426cbac43fceb897aabed5");
   assert.deepEqual(F07_AMENDMENT_2.amends, { ruling: F07_AMENDMENT_1.ruling, contractSha256: F07_AMENDMENT_1.contractSha256 });
@@ -415,7 +420,7 @@ test("P30 · REAL · F07's acceptance hashes to its pin, and ONE changed word is
   assert.deepEqual(F07_AMENDMENT_1.amends, { ruling: F07_ORIGINAL.ruling, contractSha256: F07_ORIGINAL.contractSha256 });
   assert.equal(contractSha256(F07_ORIGINAL), "263ebb5cd23aaf2e98c95b66b307a25308da8b6f35e4c0e25b654a524f80b0a5");
   assert.equal(F07_ORIGINAL.ruling.sha256, "a9fbccdd040cc20d3962635372f318c49308086de6a8613842f8d957eb8b1112");
-  assert.deepEqual(acc.amends, { ruling: F07_AMENDMENT_2.ruling, contractSha256: F07_AMENDMENT_2.contractSha256 });
+  assert.deepEqual(F07_AMENDMENT_3.amends, { ruling: F07_AMENDMENT_2.ruling, contractSha256: F07_AMENDMENT_2.contractSha256 });
   assert.ok(acc.expected.includes("unchanged"), "the tamper word is not in the amended text — the mutation below could not land");
   const tampered = { ...ACCEPTANCES, F07: { ...acc, expected: acc.expected.replace("unchanged", "changed") } };
   assert.notEqual(tampered.F07.expected, acc.expected);

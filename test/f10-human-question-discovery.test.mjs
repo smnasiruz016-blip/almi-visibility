@@ -255,7 +255,8 @@ test("F10 · C3 · REAL · the key store's production descriptor is a lawful F03
   /* 0/0 → 2/0 since 27 Sep 2026: F10's two sealed sets are registered in this store, which they now REQUIRE — so where its reference
    * is unset (this in-process resolution, and CI) the store FAILS CLOSED, by name and reason. That is C3's law, asserted here in every
    * environment; it is never softened into "declared, not required". */
-  assert.deepEqual(["HELD_OUT_EVIDENCE", "MARKING_KEY"].map((r) => EVIDENCE_ROLE_REGISTRY.filter((e) => e.role === r).length), [2, 0]);
+  /* RR-246: both F10 sets RETIRED (read out of band on 27 Sep) — still sealed in this store, which they still REQUIRE (asserted below) */
+  assert.deepEqual(["HELD_OUT_EVIDENCE", "MARKING_KEY", "RETIRED_CONTAMINATED"].map((r) => EVIDENCE_ROLE_REGISTRY.filter((e) => e.role === r).length), [0, 0, 3]);
   const st = sealedStoreStatus({ registry: EVIDENCE_ROLE_REGISTRY, resolution: resolveSealedStoreRoots({ env: {} }) });
   assert.deepEqual(st.map((s) => [s.store, s.requiredBy, s.status, s.fails]), [["f10-marking-key", 2, "REQUIRED_BUT_UNLOCATED (SEALED_STORE_REFERENCE_UNSET)", true]], "a required but unlocated store was not failed by name");
 });

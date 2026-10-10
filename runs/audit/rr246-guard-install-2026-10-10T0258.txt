@@ -1,0 +1,38 @@
+RR-246 · F07 Amendment 4 · THE READ GUARD INSTALLED IN THE OPERATOR'S TOOLING (owner GREEN E1, 2026-10-10)
+
+GREEN, verbatim: "GREEN: install the F07 read guard as one PreToolUse hook in my user-level assistant settings, exactly as bounded in
+RR-80 E1, and nothing else."
+
+FILE: the user-level assistant settings file of this machine (one file). Its top-level keys: enabledPlugins, tui, theme, hooks, autoMode
+(no secret, no environment block). Backed up first, byte-identical: settings.json.bak-rr246-20261010T025600Z (same directory).
+
+CHANGE (the whole diff; nothing else in the file changed):
+@@ -15,6 +15,15 @@
+             "timeout": 10
+           }
+         ]
++      },
++      {
++        "matcher": "*",
++        "hooks": [
++          {
++            "type": "command",
++            "command": "node \"C:/Projects/almi-visibility/tools/sealed-store-read-guard.mjs\""
++          }
++        ]
+       }
+     ]
+   },
+
+PROOF IN NEW SESSIONS (claude -p, each its own session; a SYNTHETIC store only — a scratch directory holding one planted file, named to
+the session through the store's environment reference; the real store was never touched, located or named):
+  session 71d884b3  Read of the planted file      -> REFUSED: SEALED_STORE_DIRECT_READ_REFUSED (LOCATION, store f10-marking-key), no location shown
+                    Read of an unrelated file     -> allowed (its first line returned)
+  session bfcc4c17  Bash cat through a dollar-brace dereference of the store's environment reference
+                                                  -> REFUSED: SEALED_STORE_DIRECT_READ_REFUSED (ENV_REFERENCE_DEREFERENCE, store f10-marking-key)
+  The planted line appears in neither session's transcript (0 occurrences).
+
+ALSO OBSERVED: the hook took effect in the installing session itself — a later command of that session that dereferenced the store's
+reference, and a scratch script naming the store resolver outside the engine's reviewed trees, were each refused by the guard.
+
+REPEATABLE PROOF: test/rr246-f07-amendment4.test.mjs GD-1 (owner machine only) reads the installed hook and drives exactly its command.

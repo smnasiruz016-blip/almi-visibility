@@ -11,12 +11,25 @@
  *         second offer finds it already on the trail. 🔴 It never spawns bin/audit-trail.mjs: that entry point writes the PRODUCTION
  *         trail even inside a test run (RR-246: a first draft of this test did exactly that — the real correction, +2, recorded by a test)
  *   KR-4  REAL: the production trail holds exactly one such correction, naming 8 reads and both sets
+ *   RT-1  REAL: both sets RETIRED, never evaluable, still sealed; the lifecycle refuses each (CONTROL: an evaluable copy is not refused)
+ *   RT-2  REAL: retired, they still REQUIRE their store, which fails closed unlocated (CONTROL: an unsealed retired set requires nothing)
+ *   RT-3  retired, they are still read and scanned inside the boundary, a leak named FAIL_RETIRED_PAYLOAD (on a constructed store)
+ *   GD-1  LOCAL (owner machine only): ONE PreToolUse hook for every tool runs the guard; driven exactly as installed it refuses a planted
+ *         read of a SYNTHETIC store by location and by dereference, names no location, and allows an unrelated read
  */
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash, randomBytes } from "node:crypto";
-import { existsSync, readFileSync, readdirSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readFileSync, readdirSync, rmSync, mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { homedir, tmpdir } from "node:os";
+import { spawnSync } from "node:child_process";
+import { EVIDENCE_ROLE_REGISTRY } from "../config/evidence-roles.mjs";
+import { registryErrors } from "../src/governance/evidence-roles.mjs";
+import { requiredStores, sealedStoreStatus, resolveSealedStoreRoots, isStoreSealedEntry } from "../src/governance/sealed-store-roots.mjs";
+import { scannedInBoundary, sealedRolePopulation, ROLE_DISPOSITION } from "../tools/heldout-firewall.mjs";
+import { requestHeldOutAccess } from "../src/heldout/lifecycle.mjs";
+import { countingStore } from "../tools/heldout-access-census.mjs";
 
 import { KNOWN_OUT_OF_BAND_READS } from "../config/known-out-of-band-reads.mjs";
 import { knownReadsFaults, knownReadsEventDraft, KNOWN_READS_EVENT } from "../src/audit-trail/known-reads.mjs";
@@ -87,6 +100,70 @@ test("KR-4 · REAL: the production trail holds exactly one known-read correction
   assert.equal(real.length, 1);
   assert.deepEqual([real[0].metadata.correctionId, real[0].metadata.knownReads, real[0].metadata.setsRead, real[0].authorityRef], ["OOB-2026-09-27-A", 8, SETS.join(","), AUTH]);
   for (let i = 1; i <= 8; i += 1) assert.ok(real[0].metadata[`read${i}`]?.startsWith(`${i} 2026-09-27T`), `read ${i} missing`);
+});
+
+/* ================= RT · the two sets the known reads reached are RETIRED (technical ruling 2026-10-10) ================= */
+
+test("RT-1 · REAL: both sets are RETIRED_CONTAMINATED, never evaluable, still sealed with a stated reason — and the lifecycle refuses each; CONTROL: an evaluable copy is not", () => {
+  const two = EVIDENCE_ROLE_REGISTRY.filter((e) => SETS.includes(e.id));
+  assert.deepEqual(two.map((e) => [e.id, e.role, e.mayEvaluate, e.sealed, e.mandatoryReadable, /^RETIRED 10 Oct 2026/.test(e.retiredReason)]), SETS.map((id) => [id, "RETIRED_CONTAMINATED", false, true, false, true]));
+  assert.deepEqual(registryErrors(EVIDENCE_ROLE_REGISTRY), []);
+  assert.equal(EVIDENCE_ROLE_REGISTRY.filter((e) => e.role === "HELD_OUT_EVIDENCE" && e.mayEvaluate === true).length, 0, "an evaluable held-out set remains");
+  /* FIRING CONTROL: a retired set that claims it may evaluate is an unlawful registry */
+  assert.ok(registryErrors(EVIDENCE_ROLE_REGISTRY.map((e) => (e.id === SETS[0] ? { ...e, mayEvaluate: true } : e))).some((x) => x.code === "ROLE_PERMISSION_CONFLICT"));
+  const audit = () => ({ store: countingStore(), actor: "test/rr246", softwareVersion: "engine:test", correlationId: `run:rr246-rt1:${Math.random()}`, authorityRef: { propositionId: "OWNER_RULING_HELDOUT_ROLE_SCOPE", scope: ["ALMIVISIBILITY"] }, authorityHash: "d".repeat(64) });
+  const ask = (registry, e) => requestHeldOutAccess({ audit: audit(), registry, request: { mechanismId: "rr246-mechanism", mechanismHash: "a".repeat(64), sealedSetId: e.id, populationCommitment: e.contentHash, protocolId: "rr246-protocol", evaluatorAuthority: { propositionId: "SYNTHETIC_F07_EVALUATOR", scope: ["ALMIVISIBILITY"] }, purpose: "assessment", at: "2026-10-10T00:00:00Z" } });
+  for (const e of two) assert.deepEqual([ask(EVIDENCE_ROLE_REGISTRY, e).allowed, ask(EVIDENCE_ROLE_REGISTRY, e).code], [false, "SET_RETIRED_CONTAMINATED"]);
+  /* CONTROL: the same request against a copy where the set is still an evaluable held-out set gets PAST the set check */
+  const live = { ...two[0], role: "HELD_OUT_EVIDENCE", mayEvaluate: true, retiredReason: null };
+  assert.notEqual(ask(EVIDENCE_ROLE_REGISTRY.map((e) => (e.id === live.id ? live : e)), live).code, "SET_RETIRED_CONTAMINATED");
+});
+
+test("RT-2 · REAL: retired, the two still REQUIRE their store — unlocated, it FAILS CLOSED by name; CONTROL: a retired set that is not sealed requires nothing", () => {
+  assert.deepEqual([...requiredStores(EVIDENCE_ROLE_REGISTRY)], [["f10-marking-key", SETS]]);
+  assert.deepEqual(sealedStoreStatus({ registry: EVIDENCE_ROLE_REGISTRY, resolution: resolveSealedStoreRoots({ env: {} }) }).map((s) => [s.store, s.requiredBy, s.fails]), [["f10-marking-key", 2, true]]);
+  assert.equal(isStoreSealedEntry({ role: "RETIRED_CONTAMINATED", sealed: false }), false);
+  assert.equal(isStoreSealedEntry({ role: "RETIRED_CONTAMINATED", sealed: true }), true);
+});
+
+test("RT-3 · retired, the two are still READ AND SCANNED inside the boundary by the leak census, and a leak of their content is named FAIL_RETIRED_PAYLOAD — on a constructed store", () => {
+  const real = EVIDENCE_ROLE_REGISTRY.filter(scannedInBoundary).map((e) => e.id);
+  assert.deepEqual(real, SETS, "a retired set that stays sealed is no longer read in the boundary");
+  const entry = { ...EVIDENCE_ROLE_REGISTRY.find((e) => e.id === SETS[0]), resource: { root: "rr246-constructed", pathPrefixes: ["set/"] } };
+  const pop = sealedRolePopulation(entry, { roots: { "rr246-constructed": "/constructed" }, filesOf: () => ["set/items.txt"], read: () => Buffer.from("constructed-member-alpha\nconstructed-member-bravo\n") });
+  assert.deepEqual([pop.ok, pop.members.length, pop.source], [true, 2, "SEALED_PREFIX"]);
+  assert.equal(ROLE_DISPOSITION.RETIRED_CONTAMINATED, "FAIL_RETIRED_PAYLOAD");
+  /* CONTROL: a retired DERIVED population keeps its own route, never this one */
+  assert.equal(scannedInBoundary({ role: "RETIRED_CONTAMINATED", sealed: false, resource: { derivation: { rule: "X" } } }), false);
+});
+
+/* ================= GD · the read guard, installed in the operator's tooling (owner GREEN E1, 2026-10-10) ================= */
+
+const SETTINGS = join(homedir(), ".claude", "settings.json");
+test("GD-1 · LOCAL: ONE PreToolUse hook for every tool runs the guard; driven exactly as installed, it refuses a planted read of a synthetic store by location and by dereference, names no location, and allows an unrelated read", { skip: existsSync(SETTINGS) ? false : "the operator's user-level settings exist only on the owner machine" }, () => {
+  const hooks = JSON.parse(readFileSync(SETTINGS, "utf8")).hooks?.PreToolUse ?? [];
+  const mine = hooks.filter((h) => (h.hooks ?? []).some((x) => /tools\/sealed-store-read-guard\.mjs/.test(String(x.command))));
+  assert.equal(mine.length, 1, "not exactly one installed guard hook");
+  assert.equal(mine[0].matcher, "*", "the guard does not cover every tool");
+  const command = mine[0].hooks.find((x) => /sealed-store-read-guard/.test(String(x.command))).command;
+  const script = command.match(/"([^"]+sealed-store-read-guard\.mjs)"/)[1];
+  assert.equal(resolve(script).toLowerCase(), resolve(REPO, "tools", "sealed-store-read-guard.mjs").toLowerCase(), "the installed hook runs another file");
+  const dir = mkdtempSync(join(tmpdir(), "rr246-syn-store-"));
+  try {
+    mkdirSync(join(dir, "set"));
+    writeFileSync(join(dir, "set", "planted.txt"), "planted, synthetic\n");
+    const env = { ...process.env, ALMIVISIBILITY_SEALED_STORE_F10_KEY: dir };
+    const run = (input) => spawnSync(process.execPath, [script], { input: JSON.stringify(input), encoding: "utf8", env });
+    const byLocation = run({ tool_name: "Read", tool_input: { file_path: join(dir, "set", "planted.txt") } });
+    assert.equal(byLocation.status, 2, byLocation.stderr);
+    assert.match(byLocation.stderr, /SEALED_STORE_DIRECT_READ_REFUSED \(LOCATION, store f10-marking-key\)/);
+    assert.ok(!byLocation.stderr.toLowerCase().includes(dir.toLowerCase().replace(/\\/g, "/")) && !byLocation.stderr.includes(dir), "a refusal named the location");
+    const byReference = run({ tool_name: "Bash", tool_input: { command: "cat \"${" + "ALMIVISIBILITY_SEALED_STORE_F10_KEY}/set/planted.txt\"" } });
+    assert.equal(byReference.status, 2, byReference.stderr);
+    assert.match(byReference.stderr, /ENV_REFERENCE_DEREFERENCE/);
+    const unrelated = run({ tool_name: "Read", tool_input: { file_path: join(REPO, "README.md") } });
+    assert.equal(unrelated.status, 0, "an unrelated read was refused");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 test("the production trail was not written by this file", () => {

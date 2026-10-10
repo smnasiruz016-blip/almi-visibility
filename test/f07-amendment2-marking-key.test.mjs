@@ -114,12 +114,15 @@ const events = (a, action) => a.store.events.filter((e) => e.action === action);
 test("F07A2 · REAL · the real registry holds 2 HELD_OUT_EVIDENCE and 0 MARKING_KEY, both in the one declared governed sealed store, which they now REQUIRE — CONTROL: a constructed linked pair added to a copy is lawful and enumerated", () => {
   const count = (reg, role) => reg.filter((e) => e.role === role).length;
   /* 0/0 → 2/0 since 27 Sep 2026 (F10's one selection, sealed and registered in storage S — engine cecf880 and its registration commit). At F07 Amendment 2's verification the population WAS zero; that record stays true for what it measured. */
-  assert.deepEqual([count(EVIDENCE_ROLE_REGISTRY, "HELD_OUT_EVIDENCE"), count(EVIDENCE_ROLE_REGISTRY, "MARKING_KEY"), Object.keys(SEALED_STORE_ROOTS).length], [2, 0, 1]);
+  /* RR-246: both F10 sets RETIRED (read out of band on 27 Sep; correction OOB-2026-09-27-A) — still sealed, still in the store, still required */
+  assert.deepEqual([count(EVIDENCE_ROLE_REGISTRY, "HELD_OUT_EVIDENCE"), count(EVIDENCE_ROLE_REGISTRY, "MARKING_KEY"), Object.keys(SEALED_STORE_ROOTS).length], [0, 0, 1]);
+  assert.deepEqual(EVIDENCE_ROLE_REGISTRY.filter((e) => e.resource?.root === "f10-marking-key").map((e) => [e.role, e.sealed, e.mayEvaluate]), [["RETIRED_CONTAMINATED", true, false], ["RETIRED_CONTAMINATED", true, false]]);
   assert.deepEqual(EVIDENCE_ROLE_REGISTRY.filter((e) => e.resource?.root === "f10-marking-key").map((e) => e.id), ["sealed:f10-c3-selection", "sealed:f10-c7-pairs"], "the declared store holds other than the two registered F10 sets");
   const w = world("S");
   try {
     assert.deepEqual(registryErrors([...EVIDENCE_ROLE_REGISTRY, ...w.registry]), [], "CONTROL: the constructed linked pair is not lawful registry structure");
-    assert.equal(sealedManifest([...EVIDENCE_ROLE_REGISTRY, ...w.registry], { roots: w.roots, filesOf: w.filesOf }).length, 4, "CONTROL: the constructed pair was not enumerated beside the two real sets");
+    /* RR-246: the two real sets are RETIRED, so the held-out manifest carries only the constructed pair (they stay in the leak census) */
+    assert.equal(sealedManifest([...EVIDENCE_ROLE_REGISTRY, ...w.registry], { roots: w.roots, filesOf: w.filesOf }).length, 2, "CONTROL: the constructed pair was not enumerated");
   } finally { w.cleanup(); }
 });
 

@@ -94,7 +94,9 @@ test("🔴 REAL — the observed-data carriers are registered OBSERVED_DATA: not
 test("🔴 REAL — no replacement held-out set, marking key or expected-answer map was created for the RETIRED set", () => {
   /* since 27 Sep 2026 (F10's one selection, sealed and registered in storage S — engine cecf880 and its registration commit): two HELD_OUT_EVIDENCE entries exist — F10's OWN sealed sets, a new selection under F10's frozen acceptance, NOT a
    * replacement for the retired reference (which stays retired). No marking key and no expected-answer map exists. */
-  assert.deepEqual(REG.filter((e) => ["HELD_OUT_EVIDENCE", "MARKING_KEY"].includes(e.role)).map((e) => e.id), ["sealed:f10-c3-selection", "sealed:f10-c7-pairs"]);
+  /* RR-246: both F10 sets RETIRED (read out of band on 27 Sep; correction OOB-2026-09-27-A) — no held-out set or key exists; F10 needs fresh ones */
+  assert.deepEqual(REG.filter((e) => ["HELD_OUT_EVIDENCE", "MARKING_KEY"].includes(e.role)).map((e) => e.id), []);
+  assert.deepEqual(REG.filter((e) => e.role === "RETIRED_CONTAMINATED").map((e) => e.id), ["retired:held-out-set-3d4951d6673301bc", "sealed:f10-c3-selection", "sealed:f10-c7-pairs"]);
   assert.equal(REG.filter((e) => e.role === "MARKING_KEY").length, 0);
   assert.equal(INTENT_REFERENCE, null);
 });

@@ -80,7 +80,8 @@ for (const id of SCOPED.notMeasured) console.log(`  NOT MEASURED IN THIS SCOPE (
 /* Each role's zero is stated on its own (27 Sep 2026): once HELD_OUT_EVIDENCE was registered, a note printed only when BOTH were zero
  * fell silent while MARKING_KEY was still zero — and that zero is still NOT_MEASURED on real material. */
 for (const role of ["HELD_OUT_EVIDENCE", "MARKING_KEY"]) if (!ofRole(role).length) console.log(`  ${role} — 0 registered: its real population is NOT_MEASURED (F06); nothing real to scan, and zero is not a pass`);
-for (const entry of ofRole("RETIRED_CONTAMINATED")) {
+/* RR-246: a derived retired population is re-derived here; a retired set that stays sealed in a store is scanned by censusNewRoles below */
+for (const entry of ofRole("RETIRED_CONTAMINATED").filter((e) => e.resource?.derivation)) {
   const pop = derivePopulation(entry, derive);
   if (!pop.ok) { failures.push(`${pop.code} ${entry.id}`); console.log(`  🔴 ${pop.code}: ${pop.why}`); continue; }
   const fragments = distinctiveFragments(pop.members, pop.others, productionTexts);

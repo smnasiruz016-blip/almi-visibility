@@ -369,7 +369,8 @@ test("P25 · SYNTHETIC · the real entry point's output and records stay payload
   for (const p of REAL.paths) assert.ok(!r.stdout.includes(p) && !r.stderr.includes(p));
   const st = spawnSync(process.execPath, ["bin/heldout-evaluation.mjs", "status"], { cwd: REPO, encoding: "utf8", env: process.env, timeout: 120_000 });
   assert.equal(st.status, 0);
-  assert.match(st.stdout, /evaluation sets \(HELD_OUT_EVIDENCE, evaluable\): 2/); // 0 → 2 since 27 Sep 2026 (F10's one selection, sealed and registered in storage S — engine cecf880 and its registration commit)
+  /* RR-246: both F10 sets RETIRED (read out of band on 27 Sep; correction OOB-2026-09-27-A) — no evaluable set remains */
+  assert.match(st.stdout, /evaluation sets \(HELD_OUT_EVIDENCE, evaluable\): 0/); // 0 → 2 since 27 Sep 2026 (F10's one selection, sealed and registered in storage S — engine cecf880 and its registration commit)
 });
 
 test("P26 · P28 · REAL · the F07 modules carry no product or client vocabulary, and each has a production caller", () => {

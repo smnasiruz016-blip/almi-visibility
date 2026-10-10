@@ -488,7 +488,7 @@ export const DECLARED = Object.freeze({
      * recorded first, or through any path other than the sealed lifecycle" and "a payload item … or an item-level result crosses out
      * of the boundary" are MET by those events; THE LIMIT disclaims OBSERVATION, it does not remove the limbs. No label and no key was
      * read. The requirement did not change; no amendment. Classification: _handoffs be583fa. */
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       // The acceptance was committed ALONE in the governance repository (cd149ae) before any F07 engine change.
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-23", ruling: F07_ORIGINAL.ruling, contractSha256: F07_ORIGINAL.contractSha256 }),
@@ -666,6 +666,29 @@ export const DECLARED = Object.freeze({
       /* RR-246: F07's Acceptance Amendment 4 (owner ruling RR-80 §5), frozen ALONE on 28 Sep (5afaae5) and pinned here before any F07
        * implementation change; F07 is IN-PROGRESS since its 28 Sep reopening, so no reopen is recorded */
       Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F07", on: "2026-10-10", ruling: F07_AMENDMENT_4.ruling, contractSha256: F07_AMENDMENT_4.contractSha256, amends: F07_AMENDMENT_4.amends }),
+      /* RR-246: F07 VERIFIED-PASS again under Amendment 4 (5afaae5), by the route its 28 Sep reopening recorded — only after the three
+       * conditions held: the eight known reads represented (audit correction OOB-2026-09-27-A), the read guard installed in the operator's
+       * tooling and shown refusing a planted read in new sessions, and every existing F07 proof and sabotage re-run. History is
+       * represented, not repaired. EARNED only when main CI is green on the exact merged SHA (afterMerge). */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F07",
+        population: "REAL",
+        on: "2026-10-10",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (concrete contradictory evidence: eight out-of-band reads of storage S; Amendment 4's three conditions)",
+        reason: "AMENDMENT_4_CONDITIONS_MET_KNOWN_READS_REPRESENTED_GUARD_INSTALLED_EVERY_PROOF_RE_RUN",
+        acceptanceUnchanged: Object.freeze({ ruling: F07_AMENDMENT_4.ruling.sha256, contract: F07_AMENDMENT_4.contractSha256 }),
+        historyRepresented: "AUDIT_CORRECTION c83481c1 (OOB-2026-09-27-A, RECORD_KNOWN_OUT_OF_BAND_READS): the eight known reads of 27 Sep (_handoffs be583fa) named count-only, no ACCESS record claimed, REPRESENTED_NOT_REPAIRED; both sets they reached are DISCLOSED and RETIRED (technical ruling RR-246) — still sealed, still required by their store, still scanned by the leak census; nothing is reconstructed",
+        guardInstalled: "tools/sealed-store-read-guard.mjs as ONE user-level PreToolUse hook for every tool (owner GREEN E1, 2026-10-10; backup and diff in runs/audit/rr246-guard-install-2026-10-10T0258.txt); refused a planted read of a SYNTHETIC store by location (new session 71d884b3) and by dereference (new session bfcc4c17), named no location, allowed an unrelated read; test GD-1 drives the installed command",
+        realPopulationNewLimbs: "NOT_MEASURED (F06) — 0 evaluable HELD_OUT_EVIDENCE and 0 MARKING_KEY in the real registry: the two F10 sets are RETIRED; zero is not a pass, and F10 needs fresh held-out sets in its own round",
+        provedAgainst: "the real registry (10 entries, 0 errors; RETIRED 3), the real production trail (the correction on it), the operator's real tooling (the installed hook), and the existing limbs on constructed, non-sensitive stand-ins in scratch trees and confined audit stores; the real sealed store was never read",
+        notYetProvedAgainst: "a read by a program, person or session the guard cannot see (a copied location typed nowhere in a tool input) — the guard's declared LIMIT, which restricts what F07 observes and licenses nothing (RR-80 §5)",
+        proofs: "test/rr246-f07-amendment4.test.mjs (KR-1..4, RT-1..3, GD-1) with every existing F07 proof re-run: f07-heldout-firewall, heldout-firewall, f07-sink-repair, f07-closure, f07-amendment-leak-census, f07-amendment2-marking-key, f07-amendment3-paired, f08-witness, f08-audit-gap, f10-storage-s-registration, f07-sealed-store-read-guard",
+        sabotage: "every F07 harness re-run on 9b12c04 (runs/audit/*-rr246-2026-10-10.txt): F7 16/16, F7A 11/11 (S7 re-anchored, practice 1/1), F7B 21/21, F7C 16/16, K 10/10 (K6 re-anchored, practice 1/1), F10 23/23, C7 24/24, SL 17/17, WS/GP 13/13; RR-80 guard limbs K1-K6 PROVED (rr80-sabotage-2026-10-10T0347, 20/21 - G2e is F50's redundant limb, NOT PROVED on 28 Sep too); this round's protections rr246-sabotage-2026-10-10T0325 10/10 (practice 10/10) - residue 0 each, production trail unchanged",
+        afterMerge: "main CI green on the exact merged SHA — a red main run means this record is wrong and must be reverted",
+      }),
     ]),
   }),
   F08: Object.freeze({

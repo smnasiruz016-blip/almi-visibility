@@ -31,9 +31,13 @@ const SABOTAGES = [
    * The NEW rule is guarded by rr179 S48 (the per-item gate restored), S51 (publication without the exact recorded approval) and S59
    * (a brief where F35 chose no action), each run on 2026-10-10 with --deliberate: RED by assertion, restored by sha256, 3 of 3
    * PROVED, then its proof files GREEN. No row state changes. */
-  ["S4", "C1 the approval is recorded (has a ref)", CB, "approvals.find((a) => recorded(a) && ", "approvals.find((a) => ", "C1 ·"],
-  ["S5", "C1 CANNOT DECIDE is NOT ISSUED for want of an action", CB, `if (decision.decision !== "CHOSEN" || decision.actions.length === 0) return`, "if (false) return", "C1 ·"],
-  ["S6", "C1 approvals are passed, never defaulted", CB, `if (!Array.isArray(approvals)) throw new TypeError("approvals must be passed explicitly`, `if (false) throw new TypeError("approvals must be passed explicitly`, "C1 ·"],
+  /* RR-248 · CASE (b) — S4 and S6 RETIRED (beta-g pre-ruling, 10 Oct), by the same D5 (be0ec9d, built at 1d4bc58). 1d4bc58 deleted
+   * the brief's per-item approval lookup (S4) and its `approvals` parameter with its throw (S6); both spans now match only inside
+   * publicationDecision, which no f41 test calls, and it deleted the test "C1 · FIRING CONTROL" that S4–S6 named. The moved rules are
+   * guarded by rr179 S51R (a publication approval with no ref passes — the ref rule alone, added by RR-248 because S51 breaks it
+   * together with the sha match) and S52 (an approval is assumed), each run with --deliberate and PROVED before this retirement. */
+  /* RR-248: restated — the protection is unchanged in buildBrief; 1d4bc58 renamed its test to "C1 AS AMENDED ·" */
+  ["S5", "C1 AS AMENDED CANNOT DECIDE is NOT ISSUED for want of an action", CB, `if (decision.decision !== "CHOSEN" || decision.actions.length === 0) return`, "if (false) return", "C1 AS AMENDED ·"],
   ["S7", "C2 recorded evidence carries a ref", CB, `const recorded = (x) => x && typeof x.ref === "string" && x.ref !== "";`, "const recorded = (x) => Boolean(x);", "C2 ·"],
   /* RR-248: restated — RR-179 (1d4bc58) split intent: a grouped need's from F91's group, every other from the registered need (this limb) */
   ["S8", "C2 intent only from the recorded need", CB, ": (recorded(e.need) && e.need.value ? filled(\"THE_REGISTERED_NEED_THE_SUBJECT_SERVES\",", ": (true ? filled(\"THE_REGISTERED_NEED_THE_SUBJECT_SERVES\",", "C2 ·"],

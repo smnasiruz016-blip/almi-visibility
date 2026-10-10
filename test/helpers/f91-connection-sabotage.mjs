@@ -19,7 +19,7 @@ const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const EVIDENCE = join(REPO, "runs", "audit", process.env.F91_EVIDENCE_NAME ?? `f91-connection-sabotage-${new Date().toISOString().slice(0, 16).replace(":", "")}.txt`); // RR-248: a new timestamped file each run (the fixed name could never be written twice)
 if (existsSync(EVIDENCE)) { console.error(`refused: ${EVIDENCE} exists — an earlier run's evidence is never overwritten; name a new file with F91_EVIDENCE_NAME`); process.exit(2); }
 const DC = "src/page/demand-connection.mjs", BD = "bin/demand-connect.mjs", RD = "src/page/page-opportunities-reader.mjs", ES = "src/evidence/evidence-state-adapters.mjs";
-const T = ["test/f91-connection.test.mjs"];
+const T = ["test/f91-connection.test.mjs", "test/rr172-r2-f91-f33.test.mjs"]; // RR-248: + rr172-r2, where RR-172 (efc36be) moved the official-origin pin (T17h)
 const TRAIL = "audit-trail/events.jsonl";
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
@@ -49,8 +49,11 @@ const SABOTAGES = [
   ["Y15", "C10 one need has one page candidate", DC, "    if (needCandidate.has(needId) && needCandidate.get(needId) !== ck) { refuse(d, REFUSAL.SPANS_CANDIDATES); continue; }\n", "", K6],
   /* C11 — one sourced answer, no checker */
   /* RR-248 · CASE (b) — MOVED: RR-172 (efc36be) moved the official-site rule into src/page/answer-support.mjs (claimSupport, per claim).
-   * Re-pointed to the moved rule, breaking ONLY the official-origin condition (the product-site kind check stays): not an easier limb. */
-  ["Y16", "C11 the answer only from the product's own official site", "src/page/answer-support.mjs", "if (s.kind !== SOURCE_KINDS.PRODUCT_SITE || !officialSites.includes(originOf(s.link))) return", "if (s.kind !== SOURCE_KINDS.PRODUCT_SITE) return", K7],
+   * Re-pointed to the moved rule, breaking ONLY the official-origin condition (the product-site kind check stays): not an easier limb.
+   * RR-248 (beta-g pre-ruling, option A): efc36be also took the non-official-origin assertion out of K7; it lives in T17h
+   * (test/rr172-r2-f91-f33.test.mjs), so the limb names T17h. rr172 S28 breaks this line the other way (always refused); this limb
+   * proves the rule-REMOVED direction for the first time. */
+  ["Y16", "C11 the answer only from the product's own official site", "src/page/answer-support.mjs", "if (s.kind !== SOURCE_KINDS.PRODUCT_SITE || !officialSites.includes(originOf(s.link))) return", "if (s.kind !== SOURCE_KINDS.PRODUCT_SITE) return", "T17h ·"],
   ["Y17", "C11 two different answers for one need are never chosen between", DC, "const answer = answers.length > 1 ?", "const answer = answers.length > 99 ?", K7],
   ["Y18", "C11 a checker field is refused", DC, "    if (Object.keys(d ?? {}).some((k) => CHECKER_FIELDS.test(k)) || Object.keys(d?.answer ?? {}).some((k) => CHECKER_FIELDS.test(k))) { refuse(d, REFUSAL.CHECKER_FIELD); continue; }\n", "", K8],
   /* C12 — coverage */

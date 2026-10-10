@@ -98,6 +98,9 @@ const SABOTAGES = [
   ["S49", "F41 C1 AS AMENDED · a brief is labelled an approval", [[CB, "    standing: STANDING,\n    recommended:", "    standing: STANDING,\n    approval: \"assumed\",\n    recommended:"]], "T41d"],
   ["S50", "F41 C1 AS AMENDED · a preview that does not pass is put forward", [[CB, "  if (missingParts.length) return Object.freeze({ state: PREVIEW.NOT_PUT_FORWARD,", "  if (false) return Object.freeze({ state: PREVIEW.NOT_PUT_FORWARD,"]], "T41e"],
   ["S51", "F41 C1 AS AMENDED · publication passes without the owner's exact recorded approval", [[CB, '  const exact = approvals.find((a) => recorded(a) && a.kind === "PUBLICATION"', '  const exact = approvals.find((a) => a && a.kind === "PUBLICATION"'], [CB, " && a.contentSha256 === preview.contentSha256);", ");"]], "T41f"],
+  /* RR-248: S51 breaks the ref rule together with the sha match, and T41f's sha control goes red from the sha change alone; this limb
+   * breaks the ref rule ALONE (the covering limb for retired f41 S4) */
+  ["S51R", "F41 C1 AS AMENDED · a publication approval with no ref (not recorded) passes", [[CB, "approvals.find((a) => recorded(a) && ", "approvals.find((a) => "]], "T41f"],
   ["S52", "F41 C1 AS AMENDED · an approval is assumed", [[CB, "  if (!Array.isArray(approvals)) throw new TypeError(", "  if (false) throw new TypeError("]], "T41f"],
   ["S53", "F41 C8 · a research-derived question loses its GENERATED marking (the brief)", [[CB, "marking: q.marking ?? null,", "marking: null,"]], "T41a"],
   ["S54", "F41 C8 · a research-derived question loses its GENERATED marking (the reader)", [[CBE, 'marking: q.tier === TIERS.RESEARCH_DERIVED && q.route === ROUTES.CLIENT_AI ? "GENERATED" : null', "marking: null"]], "T41a"],

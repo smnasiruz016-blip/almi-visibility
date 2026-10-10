@@ -109,8 +109,9 @@ export const F03_SABOTAGES = [
     expect: /names a subject identity from the registry/ },
 
   { id: "F3-S15", what: "a runnable entry point loses its connector (it now asks for one its subject does not declare)", file: "bin/quote-match.mjs", test: T, named: "F03 · C9 ·",
-    from: `RESOURCES.connector(PRODUCT_ID, "CITED_SOURCES")] });`,
-    to: `RESOURCES.connector(PRODUCT_ID, "SEARCH_CONSOLE_API")] });`,
+    /* RR-244 (restated): RR-243 named the run's own cost ledger after the connector, so the span moved; the sabotage is the same */
+    from: `RESOURCES.connector(PRODUCT_ID, "CITED_SOURCES"), RESOURCES.costLedger(ownLedgerRef())] });`,
+    to: `RESOURCES.connector(PRODUCT_ID, "SEARCH_CONSOLE_API"), RESOURCES.costLedger(ownLedgerRef())] });`,
     expect: /no longer resolves — behaviour was lost/ },
 
   { id: "F3-S16", what: "an entry point reaches the network without a connector (a bare fetch)", file: "bin/facts.mjs", test: T, named: "F03 · C2c ·",

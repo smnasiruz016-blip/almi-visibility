@@ -417,6 +417,15 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-06_RR-192.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-06_RR-192_APPROVE_F32_A1_REV2_F39_A1_PG-A1.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F32_ACCEPTANCE_AMENDMENT_1_2026-10-06.md", loader: "F-board acceptance F32" }),
+  /* RR-243 (9 Oct 2026): the three CURRENT records admitted by the migration at _handoffs d2bfd22 — the T1 and T2 tenant consent records
+   * (RR-239, admitted by the RR-233 tenant-consent-record rule) and F78's Acceptance Amendment 1. The RR-241 approval and command record,
+   * the RR-242 report and every RR-238..RR-240 record are named without an admitted token, so the register does not admit them. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_TENANT_CONSENT_T1_2026-10-08.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_TENANT_CONSENT_T2_2026-10-09.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F78_ACCEPTANCE_AMENDMENT_1_2026-10-09.md", loader: "F-board acceptance F78 (Amendment 1)" }),
+  /* RR-244 (9 Oct 2026): the one CURRENT record admitted by the migration at _handoffs 2e623ff — F78's Acceptance Amendment 2. The
+   * RR-243 stop report, the RR-244A exposure census and the RR-244 stop report are named without an admitted token. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F78_ACCEPTANCE_AMENDMENT_2_2026-10-09.md", loader: "F-board acceptance F78 (Amendment 2)" }),
   /* RR-229 (8 Oct 2026): the one CURRENT record admitted by the migration at _handoffs 51e28c8 — the RR-229 (REV2) command. Its step-0
    * gate report and the RR-228 records are named without an admitted token, so the register does not admit them. */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-08_RR-229.md", loader: "authority register (CURRENT record)" }),

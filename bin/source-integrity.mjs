@@ -31,6 +31,7 @@ import { createCostLedger, entryFromLinkCheck, formatLedgerLine } from "../src/c
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { openConnector } from "../src/tenancy/connectors.mjs";
 import { RESOURCES, declaredSiteHosts } from "../src/tenancy/scoped-run.mjs";
+import { runCost, ownLedgerRef } from "../src/cost/run-cost.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const argv = process.argv.slice(2);
@@ -46,7 +47,10 @@ const EVIDENCE = confineToRepo(`${REPO}runs/audit/source-integrity-2026-09-13.js
 /* 🔴 F03 — the subject's data root is decided (RESOURCES.subject) BEFORE its descriptor or any of its files is read. */
 const PRODUCT_ID = productIdOrExit(process.argv, { usage: "node bin/source-integrity.mjs --product=<id> [--live [--confirm]]" });
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/source-integrity.mjs", governed: true, resources: [RESOURCES.subject(PRODUCT_ID), RESOURCES.costLedger(), RESOURCES.runArtefacts("source-integrity stores"), ...(live ? [RESOURCES.connector(PRODUCT_ID, "CITED_SOURCES")] : [])] });
+const SCOPE = scopedEntryPoint({ entry: "bin/source-integrity.mjs", governed: true, resources: [RESOURCES.subject(PRODUCT_ID), ...(live ? [RESOURCES.costLedger(ownLedgerRef())] : [RESOURCES.costLedger()]), RESOURCES.runArtefacts("source-integrity stores"), ...(live ? [RESOURCES.connector(PRODUCT_ID, "CITED_SOURCES")] : [])] });
+/* F78 Amendment 1 C8/C9 (RR-243): a LIVE run (the only kind that opens a connector) writes its cost into its tenant's own declared
+ * ledger — its own entry, or, when it ends before that, one run entry, whatever ended it; without --confirm it makes no request at all */
+const RUN_COST = live ? runCost({ entryPoint: "bin/source-integrity.mjs", scope: SCOPE, permission, write: (w) => executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: w.root, auditRepo: w.auditRepo, permission: w.permission, store: createCostLedger(w.path), records: [w.entry], targetClass: "RUN_EVIDENCE", action: "APPEND_RUN_COST_ENTRY", occurredAt: w.occurredAt, correlationId: w.correlationId, discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null })), auditRepo: REPO }) : null;
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/source-integrity.mjs --product=<id> [--live [--confirm]]", scope: SCOPE });
 /* F02: this run's hosts are the site origins DECLARED to its tenant — no estate list in shared code (relocated, 24 Sep 2026). */
 const DECLARED_HOSTS = declaredSiteHosts({ tenantId: SCOPE.tenantId });
@@ -88,7 +92,7 @@ const run = await checkSources({
   estateHostnames: ESTATE,
   baselineFor,
   /* 🔴 F03 — a live check fetches only through the CITED_SOURCES connector the run's decision allowed. */
-  fetchImpl: openConnector({ scope: SCOPE, subjectId: PRODUCT_ID, kind: "CITED_SOURCES" }).fetch,
+  fetchImpl: RUN_COST.metered(openConnector({ scope: SCOPE, subjectId: PRODUCT_ID, kind: "CITED_SOURCES" })).fetch,
   sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
 });
 const finishedAt = new Date().toISOString();
@@ -128,7 +132,7 @@ const observations = run.results.map((r) => makeObservation({
 }));
 const SI_INSTANT = governedInstant(Date.now());
 const SI_CORRELATION = `run:source-integrity:${SI_INSTANT}`;
-const ledger = createCostLedger(confineToRepo(`${REPO}runs/cost/ledger.jsonl`, { label: "the cost ledger" }));
+const ledger = createCostLedger(RUN_COST.ledgerPath);
 const siOutcomes = [
   executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,
     repo: REPO, permission, store, records: observations, targetClass: "RUN_EVIDENCE",
@@ -136,7 +140,7 @@ const siOutcomes = [
     discipline: "APPEND_IF_NEW", seenAt: finishedAt,
   })),
   executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,
-    repo: REPO, permission, store: ledger, records: [entry], targetClass: "RUN_EVIDENCE",
+    repo: RUN_COST.ledgerRoot, permission, store: ledger, records: [{ ...entry, scope: { tenantId: SCOPE.tenantId } }], targetClass: "RUN_EVIDENCE",
     action: "APPEND_SOURCE_INTEGRITY_COST_ENTRY", occurredAt: SI_INSTANT, correlationId: SI_CORRELATION,
     discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null,
   })),
@@ -151,4 +155,5 @@ if (siBad) {
   console.error(`🔴 ${siBad.outcome} — the run was not recorded; the governed attempt is on the audit trail`);
   process.exit(1);
 }
+if (siOutcomes[1].outcome === "COMMITTED" || siOutcomes[1].outcome === "ALREADY_COMMITTED") RUN_COST.covered(entry.entry_id);
 console.log(`recorded: ${STORE}, ${EVIDENCE}, and the cost entry`);

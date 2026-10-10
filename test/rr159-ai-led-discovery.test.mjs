@@ -78,7 +78,8 @@ function world({ aiConnector = true } = {}) {
   const t = JSON.parse(readFileSync(tf, "utf8"));
   t.tenants.push({ schemaVersion: 1, tenantId: TENANT, status: "ACTIVE", declaredOn: TODAY, declarationBasis: "F02_DECLARED_FIXTURE_WORLD_NOT_THE_REAL_POPULATION", label: "the subject's real tenant, in a confined copy" });
   writeFileSync(tf, JSON.stringify(t, null, 2));
-  for (const [k, r] of [...ENTRY.members.map((m) => [m.resourceKind, m.resourceRef]), ["SITE_ORIGIN", API_ORIGIN], ["SITE_ORIGIN", AI_ORIGIN]]) attach(W, k, r, TENANT);
+  /* RR-243 (F78 Amendment 1, C9): the run writes its cost into its tenant's own declared ledger, so the tenant holds one here too */
+  for (const [k, r] of [...ENTRY.members.map((m) => [m.resourceKind, m.resourceRef]), ["SITE_ORIGIN", API_ORIGIN], ["SITE_ORIGIN", AI_ORIGIN], ["COST_LEDGER", `cost-ledger/${TENANT}`]]) attach(W, k, r, TENANT);
   if (aiConnector) {
     const rf = join(W.root, "roots.json");
     const roots = JSON.parse(readFileSync(rf, "utf8"));

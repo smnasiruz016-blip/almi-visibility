@@ -100,7 +100,10 @@ test("CONTROL: the same lying source with a generous run cap is bounded by the p
   const { dir, path } = tempKey();
   try {
     const lie = lyingFetch({ fullPages: true });
-    const governor = createCostGovernor({ label: "control", maxApiCalls: 1000, maxWallClockMs: 60000 });
+    /* RR-244: the GENEROUS run cap was 60 s, and this control's own CPU work (122 full pages) measured 27.7–62.5 s across six full-suite
+     * runs on the owner's machine — run 2 on 031b7e4 crossed it (61.6 s) and the governor's wall clock, not the per-pull law, stopped it.
+     * The control is about the per-pull law; its run cap must be generous in fact, so it is 600 s. The runaway test above keeps its 60 s. */
+    const governor = createCostGovernor({ label: "control", maxApiCalls: 1000, maxWallClockMs: 600000 });
     const provider = createGoogleSearchConsoleProvider({ keyFilePath: path, fetchImpl: lie.fetchImpl, governor });
     const r = await runIngest({ provider, store: createJsonlStore(join(dir, "e.jsonl")), propertyId: "sc-domain:example.com", estateHostnames: ["a.example.com"], controlProperty: "https://control.invalid/" });
     assert.equal(r.pages.truncationReason, "MAX_REQUESTS");

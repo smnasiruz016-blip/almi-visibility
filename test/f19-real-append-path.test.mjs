@@ -17,7 +17,7 @@ import { pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 
 import { AUDIT_STORE_OVERRIDE_ENV, AUDIT_RUN_ENV, TEST_SCRATCH_AUDIT_ROOT } from "../src/governance/governed-run.mjs";
-import { declaredWorld, FIXTURE_SUBJECT, FIXTURE_SUBJECT_ORIGIN } from "./helpers/declared-world.mjs";
+import { declaredWorld, FIXTURE_SUBJECT, FIXTURE_SUBJECT_ORIGIN, FIXTURE_TENANT } from "./helpers/declared-world.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const TRAIL = join(REPO, "audit-trail", "events.jsonl");
@@ -63,7 +63,8 @@ function runBin(WORLD, args, { mode }) {
 }
 /* the page-body corpus is confined too: a rehearsal never writes into the engine's own local corpus */
 const corpusArg = (dir) => `--corpus=${dir}`;
-const LIVE = ["--research-batch=" + BATCH, `--subject=${FIXTURE_SUBJECT}`, "--live", "--i-have-the-owners-green"];
+/* RR-243 (restated, F78 Amendment 1 C8): a live run now also needs --confirm — a run that cannot record its cost makes no request */
+const LIVE = ["--research-batch=" + BATCH, `--subject=${FIXTURE_SUBJECT}`, "--live", "--i-have-the-owners-green", "--confirm"];
 
 test("REAL APPEND PATH · the binary's live run, no egress: robots first, every page fetched in-process, all THREE governed appends COMMIT into the batch, KEPT", () => {
   const { WORLD, batchDir } = rehearsalWorld();
@@ -94,8 +95,11 @@ test("REAL APPEND PATH · the binary's live run, no egress: robots first, every 
     const run = kept.find((x) => x.record_type === "crawl_run");
     for (const f of ["requestsIssued", "robotsRequestsIssued", "urlsFetched", "truncations", "refusals"]) assert.ok(Number.isInteger(run[f]), `the run record lacks ${f}`);
     assert.equal(run.pacing?.ok, true, "the repaired pacer's measurement is missing or breached");
-    const ledger = readFileSync(join(batchDir, "ledger.jsonl"), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
-    assert.equal(ledger.filter((e) => e.record_type === "cost_entry").length, 1, "the cost entry was not kept");
+    /* RR-243 (restated, F78 Amendment 1 C9): the cost entry goes to the tenant's OWN declared ledger, never into the batch */
+    assert.equal(existsSync(join(batchDir, "ledger.jsonl")), false, "a cost entry was written into the batch");
+    const ownLedger = join(WORLD.root, "tenancy", "cost-ledgers", `${FIXTURE_TENANT.slice(7)}.jsonl`);
+    const ledger = readFileSync(ownLedger, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+    assert.deepEqual(ledger.filter((e) => e.record_type === "cost_entry").map((e) => [e.run_kind, e.scope?.tenantId]), [["crawl", FIXTURE_TENANT]], "the cost entry was not kept, once, in the tenant's own ledger");
     const committed = events.filter((e) => e.eventType === "GOVERNED_WRITE" && e.metadata?.governedWritePhase === "COMMITTED").map((e) => e.action).sort();
     /* RR-227 (F19 A1 · E): the bodies are ONE governed append into the batch (it was one WRITE_CRAWL_BODY per page into the corpus; restated) */
     assert.deepEqual(committed, ["APPEND_CRAWL_BODIES", "APPEND_CRAWL_COST_ENTRY", "APPEND_CRAWL_OBSERVATIONS", "APPEND_CRAWL_RUN_RECORD"], "the four real appends did not each commit through the boundary");

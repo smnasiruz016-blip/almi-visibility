@@ -1,0 +1,44 @@
+RR-243 F78 Amendment 1 sabotage run · 2026-10-09T17:59:54.409Z
+population: 35 sabotage(s) = 15 on the mechanism + 20 on the 10 entry points the run-cost census finds · over test/rr243-f78-cost.test.mjs · each applied ALONE
+BASELINE: GREEN (every named test passed, none skipped)
+PRE-FLIGHT (span occurrences in the code now): S01=1 S02=1 S03=1 S04=1 S05=1 S06=1 S07=1 S08=1 S09=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 W01=1 M01=1 W02=1 M02=1 W03=1 M03=1 W04=1 M04=1 W05=1 M05=1 W06=1 M06=1 W07=1 M07=1 W08=1 M08=1 W09=1 M09=1 W10=1 M10=1 · all exactly once: true
+production trail sha256 before: 15a9a7c7b911d2d08c0ad7a990a0f05730a12640b7ec0d1530480c603a328a19
+
+S01 A1 a post-boundary gap disproves C1 · src/cost/gap-boundary.mjs: landed true · "A1-2 ·" red true · its failure AssertionError · restored true · PROVED
+S02 A1 an unlisted pre-boundary gap is refused · src/cost/gap-boundary.mjs: landed true · "A1-2 ·" red true · its failure AssertionError · restored true · PROVED
+S03 A1 a listed gap is reported by name, never hidden · src/cost/gap-boundary.mjs: landed true · "A1-2 ·" red true · its failure AssertionError · restored true · PROVED
+S04 A1 a list that no longer hashes to its pin disproves C1 · src/cost/gap-boundary.mjs: landed true · "A1-2 ·" red true · its failure AssertionError · restored true · PROVED
+S05 A1 every read carries the frozen list · src/cost/cost-by-tenant.mjs: landed true · "A1-3 ·" red true · its failure AssertionError · restored true · PROVED
+S06 C8 no request without --confirm · src/cost/run-cost.mjs: landed true · "C8-3 ·" red true · its failure AssertionError · restored true · PROVED
+S07 C8 one entry for every run (the exit hook) · src/cost/run-cost.mjs: landed true · "C8-2 ·" red true · its failure AssertionError · restored true · PROVED
+S08 C8 never a second entry beside the run's own · src/cost/run-cost.mjs: landed true · "C8-2 ·" red true · its failure AssertionError · restored true · PROVED
+S09 C8 every request through the connector is counted · src/cost/run-cost.mjs: landed true · "C8-2 ·" red true · its failure AssertionError · restored true · PROVED
+S10 C8 a dry crawl makes no network request (no egress probe) · bin/crawl.mjs: landed true · "C8-4 ·" red true · its failure AssertionError · restored true · PROVED
+S11 C9 a ledger is a tenant's only when F02 decides it is the same tenant · src/cost/tenant-ledger.mjs: landed true · "C9-3 ·" red true · its failure AssertionError · restored true · PROVED
+S12 C9 an entry naming another tenant is counted for nobody · src/cost/tenant-attribution.mjs: landed true · "C9-3 ·" red true · its failure AssertionError · restored true · PROVED
+S13 C9 a tenant with no declared ledger is refused before any request (the recorder's layer) · src/cost/run-cost.mjs: landed true · "C9-2b ·" red true · its failure AssertionError · restored true · PROVED
+S14 C9 a live crawl names its tenant's own ledger, never the shared one · bin/crawl.mjs: landed true · "C9-4 ·" red true · its failure AssertionError · restored true · PROVED
+S15 C9 a test run never writes the real data repository's ledger · src/cost/run-cost.mjs: landed true · "C9-2b ·" red true · its failure AssertionError · restored true · PROVED
+W01 C8 bin/collect-public-questions.mjs writes its run's cost entry (its recorder) · bin/collect-public-questions.mjs: landed true · "C8-1 ·" red true · its failure AssertionError · restored true · PROVED
+M01 C8 bin/collect-public-questions.mjs makes no request without --confirm (its connector is metered) · bin/collect-public-questions.mjs: landed true · "C8-1 ·" red true · its failure AssertionError · restored true · PROVED
+W02 C8 bin/crawl.mjs writes its run's cost entry (its recorder) · bin/crawl.mjs: landed true · "C8-1 ·" red true · its failure AssertionError · restored true · PROVED
+M02 C8 bin/crawl.mjs makes no request without --confirm (its connector is metered) · bin/crawl.mjs: landed true · "C8-1 ·" red true · its failure AssertionError · restored true · PROVED
+W03 C8 bin/gsc-ingest.mjs writes its run's cost entry (its recorder) · bin/gsc-ingest.mjs: landed true · "C8-1 ·" red true · its failure AssertionError · restored true · PROVED
+M03 C8 bin/gsc-ingest.mjs makes no request without --confirm (its connector is metered) · bin/gsc-ingest.mjs: landed true · "C8-1 ·" red true · its failure AssertionError · restored true · PROVED
+W04 C8 bin/mobile-audit.mjs writes its run's cost entry (its recorder) · bin/mobile-audit.mjs: landed true · "C8-1 ·" red true · its failure AssertionError · restored true · PROVED
+M04 C8 bin/mobile-audit.mjs makes no request without --confirm (its connector is metered) · bin/mobile-audit.mjs: landed true · "C8-1 ·" red true · its failure AssertionError · restored true · PROVED
+W05 C8 bin/quote-match.mjs writes its run's cost entry (its recorder) · bin/quote-match.mjs: landed true · "C8-1 ·" red true · its failure AssertionError · restored true · PROVED
+M05 C8 bin/quote-match.mjs makes no request without --confirm (its connector is metered) · bin/quote-match.mjs: landed true · "C8-1 ·" red true · its failure AssertionError · restored true · PROVED
+W06 C8 bin/render-audit.mjs writes its run's cost entry (its recorder) · bin/render-audit.mjs: landed true · "C8-1 ·" red true · its failure AssertionError · restored true · PROVED
+M06 C8 bin/render-audit.mjs makes no request without --confirm (its connector is metered) · bin/render-audit.mjs: landed true · "C8-1 ·" red true · its failure AssertionError · restored true · PROVED
+W07 C8 bin/render-collect.mjs writes its run's cost entry (its recorder) · bin/render-collect.mjs: landed true · "C8-1 ·" red true · its failure AssertionError · restored true · PROVED
+M07 C8 bin/render-collect.mjs makes no request without --confirm (its connector is metered) · bin/render-collect.mjs: landed true · "C8-1 ·" red true · its failure AssertionError · restored true · PROVED
+W08 C8 bin/source-integrity.mjs writes its run's cost entry (its recorder) · bin/source-integrity.mjs: landed true · "C8-1 ·" red true · its failure AssertionError · restored true · PROVED
+M08 C8 bin/source-integrity.mjs makes no request without --confirm (its connector is metered) · bin/source-integrity.mjs: landed true · "C8-1 ·" red true · its failure AssertionError · restored true · PROVED
+W09 C8 subjects/almi-oet/tools/build-corpus.mjs writes its run's cost entry (its recorder) · subjects/almi-oet/tools/build-corpus.mjs: landed true · "C8-1 ·" red true · its failure AssertionError · restored true · PROVED
+M09 C8 subjects/almi-oet/tools/build-corpus.mjs makes no request without --confirm (its connector is metered) · subjects/almi-oet/tools/build-corpus.mjs: landed true · "C8-1 ·" red true · its failure AssertionError · restored true · PROVED
+W10 C8 subjects/almi-oet/tools/nursing-chain.mjs writes its run's cost entry (its recorder) · subjects/almi-oet/tools/nursing-chain.mjs: landed true · "C8-1 ·" red true · its failure AssertionError · restored true · PROVED
+M10 C8 subjects/almi-oet/tools/nursing-chain.mjs makes no request without --confirm (its connector is metered) · subjects/almi-oet/tools/nursing-chain.mjs: landed true · "C8-1 ·" red true · its failure AssertionError · restored true · PROVED
+
+GREEN after restore: true
+proved 35 of 35 · residue 0 · production trail sha256 after: 15a9a7c7b911d2d08c0ad7a990a0f05730a12640b7ec0d1530480c603a328a19 · unchanged true

@@ -296,7 +296,7 @@ test("C4 · the binary's LIVE path, in-process (no egress): the DOCUMENT itself 
   const { WORLD, corpus } = twoClientWorld();
   const log = join(corpus, "egress.json");
   try {
-    const r = runAudit(WORLD, corpus, { tenant: FIXTURE_TENANT, subject: FIXTURE_SUBJECT, batch: "render-a", extra: ["--live-render", "--i-have-the-owners-green"], preload: pathToFileURL(join(REPO, "test", "helpers", "no-egress-preload.mjs")).href, env: { NO_EGRESS_MODE: "fixture", NO_EGRESS_LOG: log } });
+    const r = runAudit(WORLD, corpus, { tenant: FIXTURE_TENANT, subject: FIXTURE_SUBJECT, batch: "render-a", extra: ["--live-render", "--i-have-the-owners-green", /* RR-243: a live render needs --confirm (F78 C8) */ "--confirm"], preload: pathToFileURL(join(REPO, "test", "helpers", "no-egress-preload.mjs")).href, env: { NO_EGRESS_MODE: "fixture", NO_EGRESS_LOG: log } });
     assert.equal(r.status, 0, r.stderr.slice(-400));
     const c = JSON.parse(readFileSync(log, "utf8"));
     assert.deepEqual(Object.keys(c.hosts), [new URL(FIXTURE_SUBJECT_ORIGIN).host], "a host other than the subject's declared site was requested");

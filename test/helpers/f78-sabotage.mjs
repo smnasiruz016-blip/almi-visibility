@@ -6,7 +6,8 @@
  * PRE-FLIGHT FIRST (RR-85 §7): every span is checked to exist EXACTLY ONCE in the code live now, and the pre-flight is printed
  * before any sabotage runs — a span that does not is NOT PROVED, never silently skipped. Then each sabotage replaces its span ALONE,
  * proves it LANDED, runs the named proof files, requires the NAMED test to fail, restores by raw-byte sha256. The production trail
- * is hashed before and after. Evidence: runs/audit/f78-sabotage-2026-09-29.txt.
+ * is hashed before and after. Evidence: runs/audit/f78-sabotage-<date>T<hhmm>.txt, one file per run (RR-244); the first run's
+ * runs/audit/f78-sabotage-2026-09-29.txt is kept as it was.
  */
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -42,7 +43,9 @@ const SABOTAGES = [
   ["S18", "RR-93 §2 a modified date is not a publication date", EV, "if (p?.kind !== PUBLICATION_KIND) return", "if (false) return", "RR-93 §2 ·"],
   ["S19", "RR-93 §2 only an authoritative source dates a publication", EV, "if (!AUTHORITATIVE_PUBLICATION_SOURCES.includes(p.source)) return", "if (false) return", "RR-93 §2 ·"],
   ["S20", "RR-93 §2 a publication date needs its ref", EV, `if (typeof p.ref !== "string" || p.ref === "") return "it carries no ref";`, `if (false) return "it carries no ref";`, "RR-93 §2 ·"],
-  ["S22", "C6 the entry point reads only the research batches its scope gate named", BIN, "readCostByTenant({ resolve: createTenantResolver(), batches: BATCHES });", "readCostByTenant({ resolve: createTenantResolver(), batches: null });", "C7 · THE ENTRY POINT"],
+  /* RR-244 (restated): RR-243 gave the entry point's read its tenant's own ledger (tenantLedgers), so the span moved; the protection is
+   * the same — the batches are the ones the scope gate named, never null (every batch) */
+  ["S22", "C6 the entry point reads only the research batches its scope gate named", BIN, "readCostByTenant({ resolve: createTenantResolver(), batches: BATCHES, tenantLedgers:", "readCostByTenant({ resolve: createTenantResolver(), batches: null, tenantLedgers:", "C7 · THE ENTRY POINT"],
   ["S21", "RR-93 §2 a refused publication never reaches the assessment", EV, "const publications = d.publications.filter((x) => !publicationProblem(x));", "const publications = d.publications;", "RR-93 §2 ·"],
 ];
 
@@ -89,6 +92,8 @@ const trailAfter = sha(read(TRAIL));
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "f78-sabotage-2026-09-29.txt"), lines.join("\n") + "\n");
+/* RR-244: each run writes its OWN evidence file and never overwrites an earlier one (the 29 Sep run's evidence stays as it was; this file
+ * used to rewrite it on every run) */
+writeFileSync(join(REPO, "runs", "audit", `f78-sabotage-${new Date().toISOString().slice(0, 16).replace(":", "")}.txt`), lines.join("\n") + "\n", { flag: "wx" });
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

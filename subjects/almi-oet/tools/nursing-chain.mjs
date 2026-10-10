@@ -41,6 +41,9 @@ import { tokensOf } from "../../../src/gate-a/tokens.mjs";
 import { shingles, jaccard } from "../../../src/gate-a/overlap.mjs";
 import { fetchForMatch } from "../../../src/facts/quote-match.mjs";
 import { openConnector } from "../../../src/tenancy/connectors.mjs";
+import { runCost, ownLedgerRef } from "../../../src/cost/run-cost.mjs";
+import { governedStoreAppend } from "../../../src/governance/governed-run.mjs";
+import { createCostLedger } from "../../../src/cost/ledger.mjs";
 
 import { productFromArgvOrExit, productIdOrExit } from "../../../src/product-cli.mjs";
 import { scopedEntryPoint } from "../../../src/governance/scoped-entry.mjs";
@@ -62,16 +65,21 @@ import { NO_RECORDED_GAIN_EVIDENCE } from "../../../src/page/information-gain.mj
 /* 🔴 F03 — the subject's data root is decided (RESOURCES.subject) BEFORE its descriptor or any of its files is read. */
 const PRODUCT_ID = productIdOrExit(process.argv, { usage: "node bin/nursing-chain.mjs --product=<id>" });
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/nursing-chain.mjs", governed: true, resources: [RESOURCES.subject(PRODUCT_ID), RESOURCES.connector(PRODUCT_ID, "PUBLIC_SITE"), RESOURCES.cache("sibling-page cache"), RESOURCES.runArtefacts("live sibling pages"), RESOURCES.collectionPartition("CRAWL_BATCH", BATCH_ID), RESOURCES.collectionPartition("SITEMAP_COLLECTION", SITEMAP_BATCH_ID)] });
+const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/nursing-chain.mjs", governed: true, resources: [RESOURCES.subject(PRODUCT_ID), RESOURCES.connector(PRODUCT_ID, "PUBLIC_SITE"), RESOURCES.cache("sibling-page cache"), RESOURCES.runArtefacts("live sibling pages"), RESOURCES.collectionPartition("CRAWL_BATCH", BATCH_ID), RESOURCES.collectionPartition("SITEMAP_COLLECTION", SITEMAP_BATCH_ID), RESOURCES.costLedger(ownLedgerRef())] });
+/* RR-244 (F78 Amendment 2): the cost recorder is constructed immediately after the scope gate */
+const argv = process.argv.slice(2);
+const permission = writePermission({ target: LOCAL, argv, env: process.env });
+/* F78 Amendment 1 C8/C9 (RR-243): this run's one cost entry, into its tenant's own declared ledger, whatever ends the run; without
+ * --confirm it makes no request at all */
+const ENGINE_ROOT = new URL("../../../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+const RUN_COST = runCost({ entryPoint: "subjects/almi-oet/tools/nursing-chain.mjs", scope: SCOPE, permission, write: (w) => executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: w.root, auditRepo: w.auditRepo, permission: w.permission, store: createCostLedger(w.path), records: [w.entry], targetClass: "RUN_EVIDENCE", action: "APPEND_RUN_COST_ENTRY", occurredAt: w.occurredAt, correlationId: w.correlationId, discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null })), auditRepo: ENGINE_ROOT });
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: "node bin/nursing-chain.mjs --product=<id>", scope: SCOPE });
 
-const argv = process.argv.slice(2);
 // 🔴 Both destinations are confined to this repository before anything runs.
 // The cache path is relative to the cwd, so run from anywhere else it would
 // have landed outside — and now it is refused instead.
 const outDir = confineToRepo(argv.find((a) => a.startsWith("--out="))?.split("=").slice(1).join("=") ?? null, { label: "--out" });
 const cacheDir = confineToRepo("runs/_profession-cache", { label: "the sibling-page cache" });
-const permission = writePermission({ target: LOCAL, argv, env: process.env });
 // Announced on every run, not only with --out: the sibling cache is a write too.
 announceWritePermission(permission);
 
@@ -110,7 +118,7 @@ for (const p of PRODUCT.variants) {
     continue;
   }
   /* 🔴 F03 — a live sibling page is fetched only through the subject's PUBLIC_SITE connector. */
-  const res = await fetchForMatch(`${SITE}/${p}`, { fetchImpl: openConnector({ scope: SCOPE, subjectId: PRODUCT_ID, kind: "PUBLIC_SITE" }).fetch });
+  const res = await fetchForMatch(`${SITE}/${p}`, { fetchImpl: RUN_COST.metered(openConnector({ scope: SCOPE, subjectId: PRODUCT_ID, kind: "PUBLIC_SITE" })).fetch });
   if (!res.ok) {
     console.log(`  🔴 ${p}: ${res.detail}`);
     continue;
@@ -118,7 +126,7 @@ for (const p of PRODUCT.variants) {
   /* Routed. One cached page is one target, so this is per-TARGET and not per-record. The page is still FETCHED
    * and MEASURED either way — a read, which the scope law permits — and only KEPT when the write is allowed. */
   const cacheGoverned = executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
-    repo: REPO, permission, target: cached, targetClass: "RUN_EVIDENCE", bytes: res.body,
+    repo: ENGINE_ROOT, permission, target: cached, targetClass: "RUN_EVIDENCE", bytes: res.body,
     action: "WRITE_SIBLING_PAGE_CACHE", occurredAt: CHAIN_INSTANT, correlationId: CHAIN_CORRELATION,
   }));
   if (cacheGoverned.outcome === "REFUSED") console.log(`  [dry-run] ${p}: fetched and measured, NOT cached — add --confirm to keep it`);
@@ -350,7 +358,7 @@ if (outDir) {
     ...(existingPage.mayProduce ? [["nursing.html", candidateHtml, "WRITE_CHAIN_CANDIDATE_PAGE"]] : []),
     ["chain-report.json", JSON.stringify(report, null, 2) + "\n", "WRITE_CHAIN_REPORT"],
   ].map(([name, body, what]) => executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
-    repo: REPO, permission, target: join(outDir, name), targetClass: "RUN_EVIDENCE", bytes: body,
+    repo: ENGINE_ROOT, permission, target: join(outDir, name), targetClass: "RUN_EVIDENCE", bytes: body,
     action: what, occurredAt: CHAIN_INSTANT, correlationId: CHAIN_CORRELATION,
   })));
   const bad = chainOutcomes.find((o) => o.outcome !== "REFUSED" && o.outcome !== "COMMITTED" && o.outcome !== "ALREADY_COMMITTED");

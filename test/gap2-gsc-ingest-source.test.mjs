@@ -114,8 +114,16 @@ test("🔴 THIRD STATE · with no --source and no key, the run dies BEFORE its w
   const r = run(["--property=sc-domain:example.invalid", WORLD.subjectArg]);
   assert.notEqual(r.status, 0, show(r));
   assert.match(r.stdout, /\[dry-run\] no writes will happen/, "the banner the old incident case asserted");
-  assert.match(r.stderr, /the connector's declared credential variable is not set/, "the real provider was not the one that stopped this run");
+  /* RR-243 (restated, F78 Amendment 1 C8): a live ingest without --confirm now stops EARLIER — before its provider is even built — because a
+   * run that cannot record its cost makes no request; it still dies before its write decision (NEITHER gate). The provider's own stop is
+   * proved below WITH --confirm, the only way the live path now reaches it. */
+  assert.match(r.stderr, /NO_WRITE_PERMISSION: bin\/gsc-ingest\.mjs makes no request without --confirm/, "the run without --confirm was not stopped before any request");
   assert.equal(gateFired(r), "NEITHER", show(r));
+  assert.deepEqual([fingerprint(EVIDENCE), fingerprint(LEDGER)], before);
+  const c = run(["--property=sc-domain:example.invalid", WORLD.subjectArg, "--confirm"]);
+  assert.notEqual(c.status, 0, show(c));
+  assert.match(c.stderr, /the connector's declared credential variable is not set/, "the real provider was not the one that stopped the confirmed run");
+  assert.equal(gateFired(c), "NEITHER", show(c));
   assert.deepEqual([fingerprint(EVIDENCE), fingerprint(LEDGER)], before);
 });
 

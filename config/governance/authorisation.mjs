@@ -136,6 +136,9 @@ export const ACTIONS = Object.freeze({
     "WRITE_SOURCE_INTEGRITY_EVIDENCE", "APPEND_DUPLICATE_SUPERSESSION_NOTES", "APPEND_NOINDEX_REPLACEMENT_ISSUES",
     "APPEND_SUPPLY_LABEL_FINDINGS", "WRITE_CORPUS_PAGE", "WRITE_CORPUS_MANIFEST", "WRITE_SIBLING_PAGE_CACHE",
     "APPEND_PAID_PROVIDER_REFUSAL_ENTRIES",
+    /* RR-243 (9 Oct 2026): F78 Amendment 1 C8/C9 — every cost-writing entry point's entry into its tenant's own declared cost ledger
+     * (src/cost/run-cost.mjs); the same family and resource class as every other cost entry, a classification only. */
+    "APPEND_RUN_COST_ENTRY",
     /* Found by tools/authorisation-census.mjs on 25 Sep 2026 — named at write sites and missing from the first registry, so
      * each of these writers would have been refused ACTION_UNSUPPORTED on its first confirmed run. */
     "APPEND_SITEMAP_OBSERVATIONS", "APPEND_TECHNICAL_AUDIT_FINDINGS", "APPEND_INGEST_STOPPED_COST_ENTRY", "APPEND_INGEST_COST_ENTRY",

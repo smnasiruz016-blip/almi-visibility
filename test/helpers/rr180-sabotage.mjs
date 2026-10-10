@@ -59,7 +59,10 @@ const SABOTAGES = [
   ["S17", "F37 C3 · a secondary source is called official", [[DR, '<p class="citation">${esc(c.label)} source: ', '<p class="citation">${esc(c.label === "SECONDARY" ? "OFFICIAL" : c.label)} source: ']], "T37d"],
   ["S18", "F37 C3 · a third party's estimate is not stated as its estimate", [[DR, 'const estimateOf = (c) => (present(c.statedAs) && /estimate/.test(c.statedAs) ? ` · ${c.statedAs}` : "");', 'const estimateOf = () => "";']], "T37d"],
   ["S19", "F37 C3 · a source that does not support the claim is accepted", [[AS, "  if (claim.supports?.finding !== SUPPORTS || !present(claim.supports?.ref)) return unknown(CLAIM_UNKNOWN.NOT_SUPPORTED);", "  if (!present(claim.supports?.ref)) return unknown(CLAIM_UNKNOWN.NOT_SUPPORTED);"]], "T37d"],
-  ["S20", "F37 C3 · an UNKNOWN part is dropped", [[DR, "...traced(once(mine), s.heading), ...own.map(unknownHtml), `</section>`);", "...traced(once(mine), s.heading), `</section>`);"]], "T37d"],
+  /* RR-248 Q5: S20 and S34 re-restated to rr186's spans — since RR-186 every UNKNOWN part is shown ONCE, in the answer block, so a
+   * section's own list is usually empty: dropping only `own` dropped nothing (practice 10 Oct: T37d not red). These drop / mark up
+   * every UNKNOWN part, as the RR-180 limbs did when they were written. */
+  ["S20", "F37 C3 · an UNKNOWN part is dropped", [[DR, "const unknownOnce = (parts) => parts.filter((u) => {", "const unknownOnce = (parts) => [].filter((u) => {"]], "T37d"],
   ["S21", "F37 C3 · a rendered claim lacks its trace to its claim id", [[DR, "  const traced = (claims, where) => { for (const c of claims) trace.push(", "  const traced = (claims, where) => { for (const c of []) trace.push("]], "T37a"],
   ["S22", "F37 C3 · a rendered claim lacks its source's link", [[DR, '<a href="${esc(c.link)}" rel="nofollow noopener">${esc(c.source)}</a> — read ${esc(c.readOn)}${esc(estimateOf(c))}', '${esc(c.source)} — read ${esc(c.readOn)}${esc(estimateOf(c))}']], "T37d"],
   ["S23", "F37 C3 · F37 reads a source", [[DR, 'import { attributionRefusal } from "../research/research-derived.mjs";', 'import { attributionRefusal } from "../research/research-derived.mjs";\nimport { readFileSync } from "node:fs";']], "T37k"],
@@ -76,7 +79,7 @@ const SABOTAGES = [
   ["S32", "F37 C5 · a draft with no direct answer passes", [[DR, "  checks.directAnswer = central.length ? { state: CHECK.PASS }", "  checks.directAnswer = true ? { state: CHECK.PASS }"]], "T37f"],
   /* ── F37 C6 (D3, F37-11, F37-12) ── */
   ["S33", "F37 C6 · a marked question is not visible on the draft in the same words", [[DR, FAQ, FAQ.replace("name: s.heading,", "name: `${s.heading} (marked)`,")]], "T37h"],
-  ["S34", "F37 C6 · an UNKNOWN answer is marked up as answered", [[DR, FAQ, `${FAQ}\n    for (const u of own) faq.push({ "@type": "Question", name: s.heading, acceptedAnswer: { "@type": "Answer", text: String(u.claimId) } });`]], "T37h"],
+  ["S34", "F37 C6 · an UNKNOWN answer is marked up as answered", [[DR, FAQ, `${FAQ}\n    for (const u of [...unknown, ...own]) faq.push({ "@type": "Question", name: s.heading, acceptedAnswer: { "@type": "Answer", text: String(u.claimId) } });`]], "T37h"],
 ];
 
 const RUN = ONLY ? SABOTAGES.filter((s) => s[0] === ONLY) : SABOTAGES;

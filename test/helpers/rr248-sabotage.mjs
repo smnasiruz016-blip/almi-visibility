@@ -2,7 +2,8 @@
  * 🔴 RR-248 · THE FRESHNESS CHECK CAN FAIL — one sabotage per thing test/rr248-span-freshness.test.mjs guards, each on the REAL tree:
  * a protected line rewritten in new words (a span made stale in a throwaway change), a span doubled, a fixed evidence name, an evidence
  * write that can overwrite, a reader that imports a write or whose stand-in performs one, a shrunken population, an unpinned exception
- * and a verdict that no longer fires. Each span found EXACTLY ONCE, applied ALONE, the named test confirmed GREEN first, then required
+ * and a verdict that no longer fires — and (RR-248 Q4, R11–R14) each part of the refusal that keeps a harness run off the production
+ * trail and its witness (test/rr248-harness-run-refusal.test.mjs). Each span found EXACTLY ONCE, applied ALONE, the named test confirmed GREEN first, then required
  * RED by an AssertionError, every file restored by raw-byte sha256 and the named test required GREEN again; the production trail is
  * hashed before and after. Nothing here is run by a provider or the network; the freshness test itself writes nothing.
  *
@@ -21,7 +22,8 @@ import { fileURLToPath } from "node:url";
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const AD = "src/page/action-decision.mjs", HS = "test/support/harness-spans.mjs", EO = "test/helpers/evidence-once.mjs";
 const R180 = "test/helpers/rr180-sabotage.mjs", F01 = "test/helpers/f01-sabotage.mjs";
-const T = ["test/rr248-span-freshness.test.mjs"];
+const T = ["test/rr248-span-freshness.test.mjs", "test/rr248-harness-run-refusal.test.mjs"];
+const WIR = "src/audit-trail/wiring.mjs", HR = "src/audit-trail/harness-run.mjs", GATE = "test/helpers/harness-gate.mjs";
 const TRAIL = "audit-trail/events.jsonl";
 const PRACTICE = process.argv.includes("--practice");
 const ONLY = process.argv.find((a) => a.startsWith("--only="))?.slice(7) ?? null;
@@ -44,6 +46,11 @@ const SABOTAGES = [
   ["R08", "SF-1 · the population shrinks to the f-harnesses", [[HS, POPULATION, String.raw`.filter((f) => /^test\/helpers\/f[^/]*sabotage[^/]*\.mjs$/.test(f))`]], "SF-1"],
   ["R09", "SF-5 · a second dynamic-import exception added by default", [[HS, 'export const DYNAMIC_IMPORT = new Set(["test/helpers/f09-sabotage.mjs"]);', 'export const DYNAMIC_IMPORT = new Set(["test/helpers/f09-sabotage.mjs", "test/helpers/none-sabotage.mjs"]);']], "SF-5"],
   ["R10", "SF-4 · the verdict no longer fires on a removed span", [[HS, "r.spans.filter((s) => s.occurrences !== 1)", "r.spans.filter((s) => s.occurrences > 1)"]], "SF-4"],
+  /* ── RR-248 Q4: no harness run appends to the production trail or its witness — each limb removes one part of that refusal ── */
+  ["R11", "HR-2 · the production store no longer asks for live harness runs (a harness run appends)", [[WIR, "assertDeclaredAuditLocation(repo); assertNoHarnessRun(repo); }", "assertDeclaredAuditLocation(repo); }"]], "HR-2"],
+  ["R12", "HR-2 · a live harness run is found but the append is not refused", [[HR, "  if (pids.length) throw new HarnessRunAppendRefused(pids);", "  if (false) throw new HarnessRunAppendRefused(pids);"]], "HR-2"],
+  ["R13", "HR-2 · a running harness is read as exited (its mark ignored)", [[HR, "  try { process.kill(pid, 0); return true; }", "  try { process.kill(pid, 0); return false; }"]], "HR-2"],
+  ["R14", "HR-3 · the gate no longer marks a deliberate run", [[GATE, '  try { markHarnessRun(fileURLToPath(new URL("../../", import.meta.url))); }', "  try { void fileURLToPath; }"]], "HR-3"],
 ];
 
 const RUN = ONLY ? SABOTAGES.filter((s) => s[0] === ONLY) : SABOTAGES;

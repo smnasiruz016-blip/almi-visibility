@@ -104,6 +104,8 @@ test("HG-4 · a disposable copy: a bare `node --test` changes no tracked file; t
     mkdirSync(join(dir, "test", "helpers"), { recursive: true });
     mkdirSync(join(dir, "src"));
     writeFileSync(join(dir, GATE), readFileSync(join(REPO, GATE))); // the REAL gate, byte for byte
+    mkdirSync(join(dir, "src", "audit-trail"), { recursive: true }); // RR-248 Q4: and the module it marks a deliberate run with
+    writeFileSync(join(dir, "src", "audit-trail", "harness-run.mjs"), readFileSync(join(REPO, "src/audit-trail/harness-run.mjs")));
     writeFileSync(join(dir, "src", "engine.mjs"), 'export const RULE = "clean";\n');
     writeFileSync(join(dir, "test", "helpers", "canary-sabotage.mjs"), [
       'import "./harness-gate.mjs";',

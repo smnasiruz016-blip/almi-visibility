@@ -14,7 +14,7 @@
  * test/rr247-harness-gate.test.mjs proves the gate (and that no file a bare run discovers writes or spawns without it);
  * test/helpers/rr247-sabotage.mjs proves those tests can fail.
  */
-import { pathToFileURL } from "node:url";
+import { pathToFileURL, fileURLToPath } from "node:url";
 
 export const DELIBERATE_FLAG = "--deliberate";
 
@@ -29,4 +29,16 @@ if (!ranAlone && !process.argv.includes(DELIBERATE_FLAG)) {
     "Nothing was changed. (A bare `node --test` runs every file under test/; this exit stops it here.)\n",
   );
   process.exit(2);
+}
+
+/* 🔴 RR-248 Q4: a deliberate run is MARKED until it exits (src/audit-trail/harness-run.mjs), and the production audit store refuses
+ * every append while a marked run is alive — so no limb, whatever guard it removes, can write the product's history or its witness.
+ * A run that cannot be marked does not run. */
+if (!ranAlone) {
+  const { markHarnessRun } = await import(new URL("../../src/audit-trail/harness-run.mjs", import.meta.url).href);
+  try { markHarnessRun(fileURLToPath(new URL("../../", import.meta.url))); }
+  catch (e) {
+    process.stderr.write(`REFUSED — this harness run could not be marked (${e?.code ?? e?.message ?? e}); a run the production trail cannot recognise does not run. Nothing was changed.\n`);
+    process.exit(2);
+  }
 }

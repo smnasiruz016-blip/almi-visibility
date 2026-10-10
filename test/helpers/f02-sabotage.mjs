@@ -60,7 +60,10 @@ export const F02_SABOTAGES = [
     /* RR-248: restated — F03 (3104dbb) scopes it on the subject; the limb still removes the whole gate */
     from: `const SCOPE = scopedEntryPoint({ entry: "bin/label-on-face.mjs", governed: false, resources: [RESOURCES.subject(PRODUCT_ID)] });`,
     to: `const SCOPE = { tenantId: null, writeScope: null }; void scopedEntryPoint;`,
-    expect: /0 !== 3/ },
+    /* RR-248 Q5: re-pinned — since F03 (3104dbb) the product loader reads a subject only through the gate's own decision
+     * (src/product-cli.mjs, SUBJECT_NOT_RESOLVED), so a removed gate no longer lets another tenant run: it stops EVERY run, and
+     * R5's first verdict (the declared tenant runs) fails for that reason. "0 !== 3" (a crossing run) cannot happen at this site. */
+    expect: /same tenant:[\s\S]{0,800}SUBJECT_NOT_RESOLVED/ },
 
   { id: "F2-S8", what: "a relationship path decides tenancy for itself again (audit evidence join)", file: "src/audit-trail/event.mjs", test: T, named: "C2 ·",
     from: `    if (nonEmpty(ref.tenantId) && event.scopeType !== "GLOBAL_PRODUCT" && !decideResolvedTenants(event.tenantId, ref.tenantId).allowed) {`,

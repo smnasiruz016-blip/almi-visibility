@@ -127,8 +127,9 @@ export const ASP_SABOTAGES = [
     expect: /condition A still reads the NAME/ },
 
   { id: "S15", what: "the production store's location check is not wired to append", file: WIR, test: T, named: "ASP-C1d",
-    from: "    assertLocation: at ? () => {} : () => assertDeclaredAuditLocation(repo),",
-    to: "    assertLocation: () => {},",
+    /* RR-248 Q4: restated — the production check also asks for live harness runs now; the limb still removes ONLY the location check */
+    from: "    assertLocation: at ? () => {} : () => { assertDeclaredAuditLocation(repo); assertNoHarnessRun(repo); },",
+    to: "    assertLocation: at ? () => {} : () => { assertNoHarnessRun(repo); },",
     probe: probe(`const b = fs.mkdtempSync(path.join(os.tmpdir(), "asp-s15-")); try { const r = path.join(b, "r"); fs.mkdirSync(r); const e = path.join(b, "e"); fs.mkdirSync(e); fs.symlinkSync(e, path.join(r, "audit-trail"), "junction"); let msg = ""; try { W.productionAuditStore({ repo: r, forbiddenSubstrings: [] }).append({ eventType: "X" }); } catch (x) { msg = String(x.message); } say(!/AUDIT_STORE_LOCATION_REFUSED/.test(msg)); } finally { fs.rmSync(b, { recursive: true, force: true }); }`),
     expect: /the check is not on the production append path/ },
 ];

@@ -1,0 +1,9 @@
+RR-186 R5b sabotage PRACTICE run · 2026-10-10T17:47:05.095Z
+population: 1 sabotage(s) over test/rr180-r4b.test.mjs + test/rr186-r5b.test.mjs · each applied ALONE · no provider, no network, no third-party read
+BASELINE (the named tests before any sabotage): GREEN · named tests seen GREEN: 1 of 1
+PRE-FLIGHT (span occurrences in the code live now): S29=1 · all exactly once: true
+production trail sha256 before: f6944b72d64ccb8491055927dbab97497f5c81ed3d7a750bc3ac238092f77c26
+
+S29 F37 C5 · a measurable check with no recorded input is passed by default (technical) [src/page/draft-render.mjs]: landed true · named test "T37f" red true · its failure AssertionError · SyntaxError false · a production child crashed false · failing T37f · restored by sha256 true · PROVED
+
+proved 1 of 1 · residue 0 · production trail sha256 after: f6944b72d64ccb8491055927dbab97497f5c81ed3d7a750bc3ac238092f77c26 · unchanged true

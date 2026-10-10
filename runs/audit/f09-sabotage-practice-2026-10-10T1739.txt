@@ -1,0 +1,100 @@
+F09 SABOTAGE EVIDENCE — one defect per invariant of the frozen acceptance
+
+Engine tree: 603f3a565a88ed42ff4504b26150cd2f3fe1570a. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
+runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
+requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
+No sabotage aims at the production audit trail; every firing case writes to a stand-in or a confined store.
+
+RESULTS
+F9-S1    landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — shared engine code gains the subject's word (a client-specific constant in the crawler)
+         target bin/crawl.mjs · named test "F09 · EVIDENCE · zero shared-engine specialisation…" in test/f09-cross-client-portability.test.mjs
+         sha256 before 50e4f0264e67345541ae319932a7aaa44544406af4d3053c292945f98ff31184 · after 50e4f0264e67345541ae319932a7aaa44544406af4d3053c292945f98ff31184
+         failing tests: F09 · EVIDENCE · zero shared-engine specialisation: the subject's declared vocabulary appears nowhere in shared src/, bin/, config/ or generic tests — CONTROL: a planted breach is SEEN
+         verdict: RED, named test, intended reason
+F9-S2    landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the crawl's store scope comes from the requested tenant's own partition, not the batch's attachment (authority by name)
+         target bin/crawl.mjs · named test "F09 · EXPECTED · the crawler REFUSES the engine's shared stores…" in test/f09-cross-client-portability.test.mjs
+         sha256 before 50e4f0264e67345541ae319932a7aaa44544406af4d3053c292945f98ff31184 · after 50e4f0264e67345541ae319932a7aaa44544406af4d3053c292945f98ff31184
+         failing tests: F09 · EXPECTED · the crawler REFUSES the engine's shared stores for any tenant (the existing subject's need too) and runs on the declared research batch — the refused and the authorised worlds
+         verdict: RED, named test, intended reason
+F9-S4    landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the live crawl reaches the web through the global fetch, not the declared connector (F03 bypass)
+         target bin/crawl.mjs · named test "F03 · C2c ·…" in test/f03-root-connector-registry.test.mjs
+         sha256 before 50e4f0264e67345541ae319932a7aaa44544406af4d3053c292945f98ff31184 · after 50e4f0264e67345541ae319932a7aaa44544406af4d3053c292945f98ff31184
+         failing tests: F03 · C2c · census: every root-locating, subject-reading and connection-constructing site resolves first — 0 BYPASS, and the zero FIRES
+         verdict: RED, named test, intended reason
+F9-S5    landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a connector opens on F02's allow alone — the F04 authorisation check dropped
+         target src/tenancy/connectors.mjs · named test "EXPECTED · fail closed BEFORE remote work…" in test/f04-roles-permissions-approvals.test.mjs
+         sha256 before 8a82df2f397a36705746ee6ba4fac4b2ae6c39b67feca9233f0df215fc9be0a8 · after 8a82df2f397a36705746ee6ba4fac4b2ae6c39b67feca9233f0df215fc9be0a8
+         failing tests: EXPECTED · fail closed BEFORE remote work begins — F02's allow alone opens no connector and no request is issued; CONTROL: the authorised actor's connector opens
+         verdict: RED, named test, intended reason
+F9-S6    landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the research-batch run record is appended directly, outside the governed boundary (F08 bypass)
+         target bin/crawl.mjs · named test "V7 ·…" in test/governed-caller-vocabulary.test.mjs
+         sha256 before 50e4f0264e67345541ae319932a7aaa44544406af4d3053c292945f98ff31184 · after 50e4f0264e67345541ae319932a7aaa44544406af4d3053c292945f98ff31184
+         failing tests: V7 · the REAL population: 46 governed = 45 routed + 1 checked exemption + 0 non-mutating + 0 bypass, remainder 0 — every collector's caller commits through the boundary
+         verdict: RED, named test, intended reason
+F9-S7    landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the crawler reads the research batch's seeds BEFORE its tenant scope is decided
+         target bin/crawl.mjs · named test "C1 ·…" in test/f02-tenant-isolation.test.mjs
+         sha256 before 50e4f0264e67345541ae319932a7aaa44544406af4d3053c292945f98ff31184 · after 50e4f0264e67345541ae319932a7aaa44544406af4d3053c292945f98ff31184
+         failing tests: C1 · every production entry point decides tenant scope before it reads (tenant-scope census: 0 UNSCOPED, remainder 0)
+         verdict: RED, named test, intended reason
+F9-S8    landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a tenant's run writes into the engine's SHARED crawl store instead of its own batch (cross-client influence)
+         target bin/crawl.mjs · named test "F09 · EXPECTED · a tenant run writes ONLY into its own research batch…" in test/f09-cross-client-portability.test.mjs
+         sha256 before 50e4f0264e67345541ae319932a7aaa44544406af4d3053c292945f98ff31184 · after 50e4f0264e67345541ae319932a7aaa44544406af4d3053c292945f98ff31184
+         failing tests: F09 · EXPECTED · a tenant run writes ONLY into its own research batch, found through a RELOCATED root — the engine's shared stores and the original root are untouched (no network: a dry run with --confirm records its run)
+         verdict: RED, named test, intended reason
+F9-S9    landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the root index ignores the relocated root the run was given (works only from the original location)
+         target src/tenancy/resolver.mjs · named test "F09 · EVIDENCE · the subject resolves to the SAME stable identities from a RELOCATED copy…" in test/f09-cross-client-portability.test.mjs
+         sha256 before fd0a869ac5942553e2967e1d02e19598f6735c39fa364bce9685ab4108f1469c · after fd0a869ac5942553e2967e1d02e19598f6735c39fa364bce9685ab4108f1469c
+         failing tests: F09 · EVIDENCE · the subject resolves to the SAME stable identities from a RELOCATED copy of its root — a declaration move only, no shared-code edit — and prints the fingerprint for the second environment
+         verdict: RED, named test, intended reason
+F9-S10   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — an existing attachment may be widened to a second tenant (the conflict refusal dropped)
+         target src/tenancy/attachment-declaration.mjs · named test "A2 ·…" in test/f02-real-prerequisites.test.mjs
+         sha256 before e03a2dd22ff5541108a65b0d20b7a3dc8a1441571cd56884af51e7bb49e612b8 · after e03a2dd22ff5541108a65b0d20b7a3dc8a1441571cd56884af51e7bb49e612b8
+         failing tests: A2 · every NOT-ALLOWED basis is a refusal: another tenant, a majority, a shared collection, no identity, a name, a look-alike host, a duplicate, a reassignment
+         verdict: RED, named test, intended reason
+F9-S11   landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — the engine's fixture root is relabelled external — a fixture counted as a real client
+         target src/subject-roots.mjs · named test "the engine's own fixture resolves from the FIXTURES root…" in test/product-cli.test.mjs
+         sha256 before 5cc6db1ee59403cf946da1744c334d81ce2dca6f918b28f9e4758944472429d1 · after 5cc6db1ee59403cf946da1744c334d81ce2dca6f918b28f9e4758944472429d1
+         failing tests: the engine's own fixture resolves from the FIXTURES root, inside this repository | the override replaces the EXTERNAL roots and never the fixtures root
+         verdict: RED, named test, intended reason
+F9-S12   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the F09 acceptance pin no longer names the frozen contract
+         target config/fboard/acceptances.mjs · named test "F09 · ACCEPTANCE ·…" in test/f09-cross-client-portability.test.mjs
+         sha256 before 80d783f95170b0507fdeb7edca04b8c95623dcb02d015072d1a6301db429c569 · after 80d783f95170b0507fdeb7edca04b8c95623dcb02d015072d1a6301db429c569
+         failing tests: F09 · ACCEPTANCE · pinned from its committed blob, CURRENT, contract d0c8bd96…
+         verdict: RED, named test, intended reason
+F9-S13   landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — a HIDDEN ALIASED governed caller writes under an unregistered action
+         target bin/crawl.mjs · named test "CENSUS · the real tree…" in test/f04-roles-permissions-approvals.test.mjs
+         sha256 before 50e4f0264e67345541ae319932a7aaa44544406af4d3053c292945f98ff31184 · after 50e4f0264e67345541ae319932a7aaa44544406af4d3053c292945f98ff31184
+         failing tests: FAILURE · no caller-specific allowlist bypasses the shared decision — every entry point reaches it, and the paid gate's own list cannot grant | CENSUS · the real tree: every entry point has a route, every governed site resolves to a registered action — 0 defects
+         verdict: RED, named test, intended reason
+F9-S15   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — products are every declared subject again — one site-only subject breaks every other subject's product loaders
+         target src/subject-roots.mjs · named test "F09 · EXPECTED · the generic contract 'a PRODUCT is a declared subject…" in test/f09-cross-client-portability.test.mjs
+         sha256 before 5cc6db1ee59403cf946da1744c334d81ce2dca6f918b28f9e4758944472429d1 · after 5cc6db1ee59403cf946da1744c334d81ce2dca6f918b28f9e4758944472429d1
+         failing tests: F09 · EXPECTED · the generic contract 'a PRODUCT is a declared subject that carries a product module': the existing product stays a product, the site-only subject is a subject but not a product, and the production loaders no longer break for anyone (opposite verdicts, both subjects)
+         verdict: RED, named test, intended reason
+F9-S16   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — THE FINGERPRINT IS A CONSTANT — the batch identity row stops carrying the resolved decision, so a changed declaration cannot move the digest
+         target test/f09-cross-client-portability.test.mjs · named test "F09 · EVIDENCE · the subject resolves to the SAME stable identities from a RELOCATED copy…" in test/f09-cross-client-portability.test.mjs
+         sha256 before 8c20b4ee786fbe9cf3afbfe008da5bf92d9474b604ffd528d12b55fd719c89cb · after 8c20b4ee786fbe9cf3afbfe008da5bf92d9474b604ffd528d12b55fd719c89cb
+         failing tests: F09 · EVIDENCE · the subject resolves to the SAME stable identities from a RELOCATED copy of its root — a declaration move only, no shared-code edit — and prints the fingerprint for the second environment
+         verdict: RED, named test, intended reason
+F9-S17   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the crawler stops scoping the engine's evidence store — the run still exits 3 on the other stores, so an exit-code-only check stays GREEN
+         target bin/crawl.mjs · named test "F09 · EXPECTED · the crawler REFUSES the engine's shared stores…" in test/f09-cross-client-portability.test.mjs
+         sha256 before 50e4f0264e67345541ae319932a7aaa44544406af4d3053c292945f98ff31184 · after 50e4f0264e67345541ae319932a7aaa44544406af4d3053c292945f98ff31184
+         failing tests: F09 · EXPECTED · the crawler REFUSES the engine's shared stores for any tenant (the existing subject's need too) and runs on the declared research batch — the refused and the authorised worlds
+         verdict: RED, named test, intended reason
+F9-S14   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — A PATTERN THAT CANNOT FAIL — the neutrality scanner's pattern matches nothing
+         target tools/product-boundary.mjs · named test "F09 · EVIDENCE · zero shared-engine specialisation…" in test/f09-cross-client-portability.test.mjs
+         sha256 before 777f3eb9cae2012bb9f8b6ba52b0b8715714003d03eebd6e015711ac67c82b93 · after 777f3eb9cae2012bb9f8b6ba52b0b8715714003d03eebd6e015711ac67c82b93
+         failing tests: F09 · EVIDENCE · zero shared-engine specialisation: the subject's declared vocabulary appears nowhere in shared src/, bin/, config/ or generic tests — CONTROL: a planted breach is SEEN
+         verdict: RED, named test, intended reason
+
+TOTAL 16 · PROVED 16 · NOT PROVED 0
+residue in sabotaged files after restore: 0
+tracked modifications after restore (excluding this evidence file): 0
+
+PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
+  audit-trail/events.jsonl  before f6944b72d64ccb8491055927dbab97497f5c81ed3d7a750bc3ac238092f77c26  after f6944b72d64ccb8491055927dbab97497f5c81ed3d7a750bc3ac238092f77c26
+  audit-trail/head.json  before 875f8a1e7a92fe4a7812410001dfd4adcc872c35d5a155e140e2c7d2a4bf5f21  after 875f8a1e7a92fe4a7812410001dfd4adcc872c35d5a155e140e2c7d2a4bf5f21
+  untouched: true
+
+EXECUTION ASSERTION: 16 of 16 executed · 16 proved

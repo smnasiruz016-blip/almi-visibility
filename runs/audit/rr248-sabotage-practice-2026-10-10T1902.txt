@@ -1,0 +1,22 @@
+RR-248 freshness-check sabotage PRACTICE run · 2026-10-10T19:01:01.666Z
+population: 14 sabotage(s) over test/rr248-span-freshness.test.mjs + test/rr248-harness-run-refusal.test.mjs · each applied ALONE · no provider, no network, no third-party read
+BASELINE (the named tests before any sabotage): GREEN · named tests seen GREEN: 8 of 8
+PRE-FLIGHT (span occurrences in the code live now): R01=1 R02=1 R03=1 R04=1 R05=1 R06=1 R07=1 R08=1 R09=1 R10=1 R11=1 R12=1 R13=1 R14=1 · all exactly once: true
+production trail sha256 before: b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1
+
+R01 SF-2 · a protected line rewritten in new words leaves its span stale (the throwaway change) [src/page/action-decision.mjs]: landed true · named test "SF-2" red true · its failure AssertionError · SyntaxError false · failing SF-2 · restored by sha256 true · GREEN after restore true · PROVED
+R02 SF-2 · a span that occurs twice in its target [src/page/action-decision.mjs]: landed true · named test "SF-2" red true · its failure AssertionError · SyntaxError false · failing SF-2 · restored by sha256 true · GREEN after restore true · PROVED
+R03 SF-6 · a harness writes a fixed evidence name [test/helpers/rr180-sabotage.mjs]: landed true · named test "SF-6" red true · its failure AssertionError · SyntaxError false · failing SF-2,SF-6 · restored by sha256 true · GREEN after restore true · PROVED
+R04 SF-6 · the shared evidence writer opens an existing file [test/helpers/evidence-once.mjs]: landed true · named test "SF-6" red true · its failure AssertionError · SyntaxError false · failing SF-2,SF-6 · restored by sha256 true · GREEN after restore true · PROVED
+R05 SF-6 · an operator-named evidence write without wx [test/helpers/f01-sabotage.mjs]: landed true · named test "SF-6" red true · its failure AssertionError · SyntaxError false · failing SF-2,SF-6 · restored by sha256 true · GREEN after restore true · PROVED
+R06 SF-3 · the reader imports a write [test/support/harness-spans.mjs]: landed true · named test "SF-3" red true · its failure AssertionError · SyntaxError false · failing SF-2,SF-3 · restored by sha256 true · GREEN after restore true · PROVED
+R07 SF-3 · the fs stand-in performs a write instead of stopping it (a no-op, never a real write) [test/support/harness-spans.mjs]: landed true · named test "SF-3" red true · its failure AssertionError · SyntaxError false · failing SF-2,SF-3 · restored by sha256 true · GREEN after restore true · PROVED
+R08 SF-1 · the population shrinks to the f-harnesses [test/support/harness-spans.mjs]: landed true · named test "SF-1" red true · its failure AssertionError · SyntaxError false · failing SF-1 · restored by sha256 true · GREEN after restore true · PROVED
+R09 SF-5 · a second dynamic-import exception added by default [test/support/harness-spans.mjs]: landed true · named test "SF-5" red true · its failure AssertionError · SyntaxError false · failing SF-2,SF-5 · restored by sha256 true · GREEN after restore true · PROVED
+R10 SF-4 · the verdict no longer fires on a removed span [test/support/harness-spans.mjs]: landed true · named test "SF-4" red true · its failure AssertionError · SyntaxError false · failing SF-4 · restored by sha256 true · GREEN after restore true · PROVED
+R11 HR-2 · the production store no longer asks for live harness runs (a harness run appends) [src/audit-trail/wiring.mjs]: landed true · named test "HR-2" red true · its failure AssertionError · SyntaxError false · failing HR-1,HR-2,SF-2 · restored by sha256 true · GREEN after restore true · PROVED
+R12 HR-2 · a live harness run is found but the append is not refused [src/audit-trail/harness-run.mjs]: landed true · named test "HR-2" red true · its failure AssertionError · SyntaxError false · failing HR-2,SF-2 · restored by sha256 true · GREEN after restore true · PROVED
+R13 HR-2 · a running harness is read as exited (its mark ignored) [src/audit-trail/harness-run.mjs]: landed true · named test "HR-2" red true · its failure AssertionError · SyntaxError false · failing HR-2,HR-3,SF-2 · restored by sha256 true · GREEN after restore true · PROVED
+R14 HR-3 · the gate no longer marks a deliberate run [test/helpers/harness-gate.mjs]: landed true · named test "HR-3" red true · its failure AssertionError · SyntaxError false · failing HR-1,HR-3,SF-2 · restored by sha256 true · GREEN after restore true · PROVED
+
+proved 14 of 14 · residue 0 · production trail sha256 after: b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1 · unchanged true

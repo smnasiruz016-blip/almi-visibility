@@ -1,0 +1,27 @@
+F01 PRODUCT DECLARATION AND INTAKE — SABOTAGE EVIDENCE (§12)
+
+Engine tree: 408b58a690001f397bbffb8cae417f725e2c2d03. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
+runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
+requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
+No sabotage aims at the production audit trail; every firing case writes to a stand-in or a confined store.
+
+RESULTS
+S10      landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — an ACCEPTED declaration MUTATED (same id, new bytes, written over it)
+         target src/intake/intake.mjs · named test "P10 ·…" in test/f01-intake.test.mjs
+         sha256 before e4ec809ccdeb78ce0d81645473b71efb378ff769ce883f9cb15c6109ee914cdc · after e4ec809ccdeb78ce0d81645473b71efb378ff769ce883f9cb15c6109ee914cdc
+         failing tests: P10 · the same declaration id with changed content is a conflict — CONTROL: identical content is a replay | P33 · a refusal leaves the accepted store byte-identical — CONTROL: a lawful supersession changes it
+         verdict: RED, named test, intended reason
+
+TOTAL 1 · PROVED 1 · NOT PROVED 0
+residue in sabotaged files after restore: 0
+tracked modifications after restore (excluding this evidence file): 11
+
+PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
+  audit-trail/events.jsonl  before b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1  after b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1
+  audit-trail/head.json  before d624c54b24c60777f7e2c1e3d55c446b0401ecec9c93a54f1802d85735f0475d  after d624c54b24c60777f7e2c1e3d55c446b0401ecec9c93a54f1802d85735f0475d
+  untouched: true
+
+PROBE CONTROL (clean tree): 1 of 1 probes report no defect.
+  S10  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — an ACCEPTED declaration MUTATED (same id, new bytes, written over it)
+RAN 1 of 1 · LANDED 1 of 1 · COULD-FAIL 1 of 1 · PROVED 1 of 1

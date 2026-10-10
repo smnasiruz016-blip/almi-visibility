@@ -1,0 +1,9 @@
+RR-225 F02 A2 + F31 A1 sabotage PRACTICE run · 2026-10-10T17:47:39.778Z
+population: 1 sabotage(s) over test/f31-inventory.test.mjs + test/rr223-f31a1.test.mjs + test/f02-tenant-scope.test.mjs + test/f02-real-prerequisites.test.mjs · each applied ALONE · no provider, no network, no third-party read
+BASELINE (the named tests before any sabotage): GREEN · named tests seen GREEN: 1 of 1
+PRE-FLIGHT (span occurrences in the code live now): S28=1 · all exactly once: true
+production trail sha256 before: f6944b72d64ccb8491055927dbab97497f5c81ed3d7a750bc3ac238092f77c26
+
+S28 C9 · the as-of time is later than the earliest observation used [src/crawl/scope-completeness.mjs]: landed true · named test "T31-C9-COMPLETE" red true · its failure AssertionError · SyntaxError false · a production child crashed false · failing T31-C9-COMPLETE · restored true · PROVED
+
+proved 1 of 1 · residue 0 · production trail sha256 after: f6944b72d64ccb8491055927dbab97497f5c81ed3d7a750bc3ac238092f77c26 · unchanged true

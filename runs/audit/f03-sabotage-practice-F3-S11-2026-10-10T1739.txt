@@ -1,0 +1,25 @@
+F03 SABOTAGE EVIDENCE — one defect per limb of the frozen acceptance
+
+Engine tree: 603f3a565a88ed42ff4504b26150cd2f3fe1570a. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
+runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
+requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
+No sabotage aims at the production audit trail; every firing case writes to a stand-in or a confined store.
+
+RESULTS
+F3-S11   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — an opened connector carries its credential's VALUE
+         target src/tenancy/connectors.mjs · named test "F03 · C5b ·…" in test/f03-root-connector-registry.test.mjs
+         sha256 before 8a82df2f397a36705746ee6ba4fac4b2ae6c39b67feca9233f0df215fc9be0a8 · after 8a82df2f397a36705746ee6ba4fac4b2ae6c39b67feca9233f0df215fc9be0a8
+         failing tests: F03 · C5b · an opened connector carries the credential's NAME only — never its value
+         verdict: RED, named test, intended reason
+
+TOTAL 1 · PROVED 1 · NOT PROVED 0
+residue in sabotaged files after restore: 0
+tracked modifications after restore (excluding this evidence file): 0
+
+PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
+  audit-trail/events.jsonl  before f6944b72d64ccb8491055927dbab97497f5c81ed3d7a750bc3ac238092f77c26  after f6944b72d64ccb8491055927dbab97497f5c81ed3d7a750bc3ac238092f77c26
+  audit-trail/head.json  before 875f8a1e7a92fe4a7812410001dfd4adcc872c35d5a155e140e2c7d2a4bf5f21  after 875f8a1e7a92fe4a7812410001dfd4adcc872c35d5a155e140e2c7d2a4bf5f21
+  untouched: true
+
+EXECUTION ASSERTION: 1 of 1 sabotages executed.

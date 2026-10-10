@@ -1,0 +1,21 @@
+F10 · SELECTION AND PACKET · SABOTAGE — landed · named test RED · intended reason · restored by raw-byte hash
+
+  ok   SL-S1   failed= 2 RED, named test, intended reason
+  ok   SL-S2   failed= 1 RED, named test, intended reason
+  ok   SL-S3   failed= 1 RED, named test, intended reason
+  ok   SL-S4   failed= 1 RED, named test, intended reason
+  ok   SL-S5   failed= 1 RED, named test, intended reason
+  ok   SL-S6   failed= 1 RED, named test, intended reason
+  ok   SL-S7   failed= 2 RED, named test, intended reason
+  ok   SL-S8   failed= 1 RED, named test, intended reason
+  ok   SL-S9   failed= 3 RED, named test, intended reason
+  ok   SL-S10  failed= 1 RED, named test, intended reason
+  ok   SL-S11  failed= 2 RED, named test, intended reason
+  ok   SL-S12  failed= 1 RED, named test, intended reason
+  ok   SL-S13  failed= 1 RED, named test, intended reason
+  ok   SL-S14  failed= 1 RED, named test, intended reason
+  ok   SL-S15  failed= 2 RED, named test, intended reason
+  ok   SL-S16  failed= 1 RED, named test, intended reason
+  ok   SL-S17  failed= 3 RED, named test, intended reason
+
+17 sabotage(s) · EXECUTED 17 of 17 · 17 proved · 0 NOT proved · residue 0 · production untouched true

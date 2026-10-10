@@ -1,0 +1,17 @@
+F08 WITNESS · SABOTAGE — landed · named test RED · intended reason · restored by raw-byte hash
+
+  ok   WS-S1   failed= 7 RED, named test, intended reason
+  ok   WS-S2   failed= 4 RED, named test, intended reason
+  ok   WS-S3   failed= 4 RED, named test, intended reason
+  ok   WS-S4   failed= 7 RED, named test, intended reason
+  ok   WS-S5   failed= 1 RED, named test, intended reason
+  ok   WS-S6   failed= 9 RED, named test, intended reason
+  ok   WS-S7   failed= 1 RED, named test, intended reason
+  ok   WS-S8   failed= 1 RED, named test, intended reason
+  ok   WS-S9   failed= 2 RED, named test, intended reason
+  ok   GP-S1   failed= 1 RED, named test, intended reason
+  ok   GP-S2   failed= 1 RED, named test, intended reason
+  ok   GP-S3   failed= 1 RED, named test, intended reason
+  ok   GP-S4   failed= 1 RED, named test, intended reason
+
+13 sabotage(s) · EXECUTED 13 of 13 · 13 proved · 0 NOT proved · residue 0 · production untouched true

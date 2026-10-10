@@ -1,0 +1,123 @@
+F07 AMENDMENT 2 SABOTAGE EVIDENCE — one defect per obligation of the frozen amendment
+
+Engine tree: 9b12c04864fe2a5d32be1a577377abacd7348c7e. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
+runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
+requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
+No sabotage aims at the production audit trail; every firing case writes to a stand-in or a confined store.
+
+RESULTS
+F7B-S1   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the grant does not check that the key is linked to the set
+         target src/heldout/lifecycle.mjs · named test "F07A2 · C1 · the grant FAILS CLOSED…" in test/f07-amendment2-marking-key.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A2 · C1 · the grant FAILS CLOSED, recorded, on a missing link, a substituted key, substituted key content, either side unregistered, a non-key, a crossed tenant scope, a shared artefact, two keys, an unfrozen scorer and an incomplete linked request
+         verdict: RED, named test, intended reason
+F7B-S2   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — substituted key CONTENT is accepted — the key commitment is not checked at grant
+         target src/heldout/lifecycle.mjs · named test "F07A2 · C1 · the grant FAILS CLOSED…" in test/f07-amendment2-marking-key.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A2 · C1 · the grant FAILS CLOSED, recorded, on a missing link, a substituted key, substituted key content, either side unregistered, a non-key, a crossed tenant scope, a shared artefact, two keys, an unfrozen scorer and an incomplete linked request
+         verdict: RED, named test, intended reason
+F7B-S3   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a pair spanning different tenant scopes is granted
+         target src/heldout/lifecycle.mjs · named test "F07A2 · C1 · the grant FAILS CLOSED…" in test/f07-amendment2-marking-key.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A2 · C1 · the grant FAILS CLOSED, recorded, on a missing link, a substituted key, substituted key content, either side unregistered, a non-key, a crossed tenant scope, a shared artefact, two keys, an unfrozen scorer and an incomplete linked request
+         verdict: RED, named test, intended reason
+F7B-S4   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a linked grant binds a scorer that was never frozen
+         target src/heldout/lifecycle.mjs · named test "F07A2 · C1 · the grant FAILS CLOSED…" in test/f07-amendment2-marking-key.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A2 · C1 · the grant FAILS CLOSED, recorded, on a missing link, a substituted key, substituted key content, either side unregistered, a non-key, a crossed tenant scope, a shared artefact, two keys, an unfrozen scorer and an incomplete linked request
+         verdict: RED, named test, intended reason
+F7B-S5   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the value is read BEFORE its ACCESS is recorded
+         target src/heldout/lifecycle.mjs · named test "F07A2 · C2 · every read of either side…" in test/f07-amendment2-marking-key.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A2 · C2 · every read of either side is recorded as a durable ACCESS BEFORE the value exists, in both key shapes; a read whose record cannot be made never happens; an unlinked grant cannot read the key
+         verdict: RED, named test, intended reason
+F7B-S6   landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — the read's ACCESS is never recorded
+         target src/heldout/lifecycle.mjs · named test "F07A2 · C2 · every read of either side…" in test/f07-amendment2-marking-key.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A2 · C2 · every read of either side is recorded as a durable ACCESS BEFORE the value exists, in both key shapes; a read whose record cannot be made never happens; an unlinked grant cannot read the key | F07A2 · C3 · exactly ONE valid run per frozen combination: a re-invocation is refused, a crash after the claim spends the run, an unlinked grant cannot score — CONTROL: a different frozen scorer is a different combination
+         verdict: RED, named test, intended reason
+F7B-S7   landed=true red=true failed=4 namedTestFailed=true reason=true restored=true — a linked grant no longer covers its marking key — the evaluator cannot lawfully read the key
+         target src/heldout/lifecycle.mjs · named test "F07A2 · C2 · every read of either side…" in test/f07-amendment2-marking-key.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A2 · C2 · every read of either side is recorded as a durable ACCESS BEFORE the value exists, in both key shapes; a read whose record cannot be made never happens; an unlinked grant cannot read the key | F07A2 · C3 · the frozen scorer releases EXACTLY the hand-worked per-class TP/FP/FN/TN tables, the denominator and the exclusion counts — identical in both key shapes — and nothing tied to an item | F07A2 · C3 · missing, partial, duplicate, unreadable and inconsistent inputs FAIL CLOSED — a set/key fault is REFUSED before the claim (run unspent), an output fault is recorded INVALID — and no result is released | F07A2 · C3 · exactly ONE valid run per frozen combination: a re-invocation is refused, a crash after the claim spends the run, an unlinked grant cannot score — CONTROL: a different frozen scorer is a different combination
+         verdict: RED, named test, intended reason
+F7B-S8   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a re-invocation of a claimed combination is allowed
+         target src/heldout/lifecycle.mjs · named test "F07A2 · C3 · exactly ONE valid run…" in test/f07-amendment2-marking-key.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A2 · C3 · exactly ONE valid run per frozen combination: a re-invocation is refused, a crash after the claim spends the run, an unlinked grant cannot score — CONTROL: a different frozen scorer is a different combination
+         verdict: RED, named test, intended reason
+F7B-S9   landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — the claim is not recorded before the run — a crash or a retry can manufacture a second result
+         target src/heldout/lifecycle.mjs · named test "F07A2 · C3 · exactly ONE valid run…" in test/f07-amendment2-marking-key.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A2 · C3 · missing, partial, duplicate, unreadable and inconsistent inputs FAIL CLOSED — a set/key fault is REFUSED before the claim (run unspent), an output fault is recorded INVALID — and no result is released | F07A2 · C3 · exactly ONE valid run per frozen combination: a re-invocation is refused, a crash after the claim spends the run, an unlinked grant cannot score — CONTROL: a different frozen scorer is a different combination
+         verdict: RED, named test, intended reason
+F7B-S10  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a declared item with no key row is accepted (partial key)
+         target src/heldout/lifecycle.mjs · named test "F07A2 · C3 · missing, partial, duplicate…" in test/f07-amendment2-marking-key.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A2 · C3 · missing, partial, duplicate, unreadable and inconsistent inputs FAIL CLOSED — a set/key fault is REFUSED before the claim (run unspent), an output fault is recorded INVALID — and no result is released
+         verdict: RED, named test, intended reason
+F7B-S11  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a duplicated key row is accepted
+         target src/heldout/lifecycle.mjs · named test "F07A2 · C3 · missing, partial, duplicate…" in test/f07-amendment2-marking-key.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A2 · C3 · missing, partial, duplicate, unreadable and inconsistent inputs FAIL CLOSED — a set/key fault is REFUSED before the claim (run unspent), an output fault is recorded INVALID — and no result is released
+         verdict: RED, named test, intended reason
+F7B-S12  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the release carries the item identities
+         target src/heldout/lifecycle.mjs · named test "F07A2 · C3 · the frozen scorer releases EXACTLY…" in test/f07-amendment2-marking-key.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A2 · C3 · the frozen scorer releases EXACTLY the hand-worked per-class TP/FP/FN/TN tables, the denominator and the exclusion counts — identical in both key shapes — and nothing tied to an item
+         verdict: RED, named test, intended reason
+F7B-S13  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the key's declared label vocabulary is reported as a leak — the census could never be clean
+         target tools/heldout-firewall.mjs · named test "F07A2 · C4 · the key's declared label VOCABULARY…" in test/f07-amendment2-marking-key.test.mjs
+         sha256 before a7550143663687921b0ac7108d4e42bb355277221bb7b521ec16c0a5b31bcdd8 · after a7550143663687921b0ac7108d4e42bb355277221bb7b521ec16c0a5b31bcdd8
+         failing tests: F07A2 · C4 · the key's declared label VOCABULARY is never a leak by itself — CONTROL: the same governance text IS reported when the vocabulary is not declared
+         verdict: RED, named test, intended reason
+F7B-S14  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — an ordinary governed loader reads a governed sealed store through a climbing path — the foreign-store check dropped
+         target src/governance/sealed-paths.mjs · named test "F07A2 · C2 · C4 · an ORDINARY governed loader…" in test/f07-amendment2-marking-key.test.mjs
+         sha256 before 8e8900e63cda970aaaf882c691445e9bfb49cfaf431ea9010712808728002854 · after 8e8900e63cda970aaaf882c691445e9bfb49cfaf431ea9010712808728002854
+         failing tests: F07A2 · C2 · C4 · an ORDINARY governed loader handed a path that climbs into a governed sealed store is REFUSED before read and recorded — CONTROL: the same path with the store not declared would be read (the refusal is the store check, nothing else)
+         verdict: RED, named test, intended reason
+F7B-S15  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the registry's linked-pair law is dropped
+         target src/governance/evidence-roles.mjs · named test "F07A2 · C1 · the registry law…" in test/f07-amendment2-marking-key.test.mjs
+         sha256 before b3fd25f0e3e83f1511e905d6c8492715a69d2d08541ec66f5c53a8848ef54c56 · after b3fd25f0e3e83f1511e905d6c8492715a69d2d08541ec66f5c53a8848ef54c56
+         failing tests: F07A2 · C1 · the registry law: a key with no link, a link to nothing, a crossed tenant scope, a tenant-blind held-out role, two keys for one set and a malformed vocabulary are each refused by name — CONTROL: the lawful pair is clean
+         verdict: RED, named test, intended reason
+F7B-S16  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the manifest reports an unreadable store as zero files
+         target tools/heldout-firewall.mjs · named test "F07A2 · C4 · registration yields a discoverable manifest…" in test/f07-amendment2-marking-key.test.mjs
+         sha256 before a7550143663687921b0ac7108d4e42bb355277221bb7b521ec16c0a5b31bcdd8 · after a7550143663687921b0ac7108d4e42bb355277221bb7b521ec16c0a5b31bcdd8
+         failing tests: F07A2 · C4 · registration yields a discoverable manifest — ids, roles, link, shape, readability, file count, commitment — and NO value; an unreadable store is reported UNREADABLE, never as zero files
+         verdict: RED, named test, intended reason
+F7B-S17  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a key changed after the grant is scored
+         target src/heldout/lifecycle.mjs · named test "F07A2 · C3 · missing, partial, duplicate…" in test/f07-amendment2-marking-key.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A2 · C3 · missing, partial, duplicate, unreadable and inconsistent inputs FAIL CLOSED — a set/key fault is REFUSED before the claim (run unspent), an output fault is recorded INVALID — and no result is released
+         verdict: RED, named test, intended reason
+F7B-S18  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a missing mechanism output is accepted
+         target src/heldout/lifecycle.mjs · named test "F07A2 · C3 · missing, partial, duplicate…" in test/f07-amendment2-marking-key.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A2 · C3 · missing, partial, duplicate, unreadable and inconsistent inputs FAIL CLOSED — a set/key fault is REFUSED before the claim (run unspent), an output fault is recorded INVALID — and no result is released
+         verdict: RED, named test, intended reason
+F7B-S19  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a declared store whose directory is absent is reported located
+         target src/governance/sealed-store-roots.mjs · named test "F07A2 · C4 · a governed sealed store that cannot be located…" in test/f07-amendment2-marking-key.test.mjs
+         sha256 before c01b8c76b0b42a13890f6b353af6921cb82388f994fcd3bc90551a834da64a59 · after c01b8c76b0b42a13890f6b353af6921cb82388f994fcd3bc90551a834da64a59
+         failing tests: F07A2 · C4 · a governed sealed store that cannot be located FAILS CLOSED — undeclared, unset, relative, absent, a reserved name and a bad reference each named; the census fails the entry instead of reading an empty store
+         verdict: RED, named test, intended reason
+F7B-S20  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a derived set's read is not recorded before its deriver runs
+         target src/heldout/lifecycle.mjs · named test "F07A2 · C2 · a derived held-out set…" in test/f07-amendment2-marking-key.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A2 · C2 · a derived held-out set is read through the lifecycle, recorded before its deriver runs, and checked against its commitment
+         verdict: RED, named test, intended reason
+F7B-S21  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the production evaluator ignores the linked fields — an incomplete linked request is treated as an unlinked one
+         target bin/heldout-evaluation.mjs · named test "F07A2 · REAL · the production firewall, in the SYNTHETIC scope…" in test/f07-amendment2-marking-key.test.mjs
+         sha256 before 5ad90e1d9b490ef9afa33bbfae4ac786ea4f33addb2ff7387d79fa1676fa1ed8 · after 5ad90e1d9b490ef9afa33bbfae4ac786ea4f33addb2ff7387d79fa1676fa1ed8
+         failing tests: F07A2 · REAL · the production firewall, in the SYNTHETIC scope, prints an in-scope manifest with no real store and passes; the production evaluator refuses an INCOMPLETE linked request, recorded — CONTROL: without key flags the same request reaches the set check
+         verdict: RED, named test, intended reason
+
+TOTAL 21 · PROVED 21 · NOT PROVED 0
+residue in sabotaged files after restore: 0
+tracked modifications after restore (excluding this evidence file): 0
+
+PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
+  audit-trail/events.jsonl  before c3af0be89fbad6174c8e314a9c1f463a8237da9ac363e3cb1e410bca5e3ba8de  after c3af0be89fbad6174c8e314a9c1f463a8237da9ac363e3cb1e410bca5e3ba8de
+  audit-trail/head.json  before 0a44fe75dbb3a68e77a4116544d1e01fb19e0944a8de27d9e463f11ce63ba0e0  after 0a44fe75dbb3a68e77a4116544d1e01fb19e0944a8de27d9e463f11ce63ba0e0
+  untouched: true

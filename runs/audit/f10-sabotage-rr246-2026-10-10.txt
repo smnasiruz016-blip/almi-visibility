@@ -1,0 +1,133 @@
+F10 SABOTAGE EVIDENCE — one defect per required firing and per clause limb
+
+Engine tree: 9b12c04864fe2a5d32be1a577377abacd7348c7e. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
+runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
+requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
+No sabotage aims at the production audit trail; every firing case writes to a stand-in or a confined store.
+
+RESULTS
+F10-S1   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — cross-tenant: a decision made for one tenant opens another tenant's partition
+         target src/discovery/search-console-partition.mjs · named test "F10 · C1 · the shared store is never read whole…" in test/f10-human-question-discovery.test.mjs
+         sha256 before 2e3e58334003e2a8a1fa0a69c10050275ce67b27cadd55661bd3ecee941071e7 · after 2e3e58334003e2a8a1fa0a69c10050275ce67b27cadd55661bd3ecee941071e7
+         failing tests: F10 · C1 · the shared store is never read whole or for no tenant, and a decision is bound to its own tenant and resource
+         verdict: RED, named test, intended reason
+F10-S2   landed=true red=true failed=5 namedTestFailed=true reason=true restored=true — cross-tenant: the reader returns every tenant's partition, not the requested one
+         target src/discovery/search-console-partition.mjs · named test "F10 · C1 · a planted cross-tenant stand-in…" in test/f10-human-question-discovery.test.mjs
+         sha256 before 2e3e58334003e2a8a1fa0a69c10050275ce67b27cadd55661bd3ecee941071e7 · after 2e3e58334003e2a8a1fa0a69c10050275ce67b27cadd55661bd3ecee941071e7
+         failing tests: F10 · C1 · REAL · every ACTIVE tenant's partition is decided by F02 and read through the production reader; the accounting reconciles with the committed counts, remainder 0 | F10 · C1 · REAL · a row reaches only the tenant its own stored origin resolves to — no row in two partitions, the partitions sum to the store | F10 · C1 · a planted cross-tenant stand-in is refused from the requesting tenant and a planted undeclared origin is quarantined | F10 · C3 · the adopted allocation, byte-for-byte as written, recomputes the committed seats from the recounted capacities — and its controls fire | F10 · C2 · REAL · the mechanism emits exactly one INFERRED, traced entry for every eligible item of every tenant, and the same input gives the same output
+         verdict: RED, named test, intended reason
+F10-S3   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — whole store: a read for no tenant is not refused
+         target src/discovery/search-console-partition.mjs · named test "F10 · C1 · the shared store is never read whole…" in test/f10-human-question-discovery.test.mjs
+         sha256 before 2e3e58334003e2a8a1fa0a69c10050275ce67b27cadd55661bd3ecee941071e7 · after 2e3e58334003e2a8a1fa0a69c10050275ce67b27cadd55661bd3ecee941071e7
+         failing tests: F10 · C1 · the shared store is never read whole or for no tenant, and a decision is bound to its own tenant and resource
+         verdict: RED, named test, intended reason
+F10-S4   landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — missing store: the route no longer refuses an unlocated required store before the claim
+         target src/governance/governed-scoring.mjs · named test "F10 · C4 · a required store that cannot be located…" in test/f10-human-question-discovery.test.mjs
+         sha256 before c836bc44268115526bc2c28c174830e8f933b005808d0f0ec83c6fe771aa1a86 · after c836bc44268115526bc2c28c174830e8f933b005808d0f0ec83c6fe771aa1a86
+         failing tests: F10 · C4 · a required store that cannot be located refuses BEFORE any attempt or claim — the one run is not spent — CONTROL: located, the same request proceeds | F10 · C4 · REAL entry point · the production scoring route through bin/heldout-evaluation.mjs: without --confirm nothing is requested; a required store unlocated refuses before any claim; items no partition holds give MISSING outputs and an INVALID run (ruling 1.3)
+         verdict: RED, named test, intended reason
+F10-S5   landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — missing store: the census reports a required unlocated store but does not fail it
+         target src/governance/sealed-store-roots.mjs · named test "F10 · C3 · the PRODUCTION census over an isolated synthetic store…" in test/f10-human-question-discovery.test.mjs
+         sha256 before c01b8c76b0b42a13890f6b353af6921cb82388f994fcd3bc90551a834da64a59 · after c01b8c76b0b42a13890f6b353af6921cb82388f994fcd3bc90551a834da64a59
+         failing tests: F10 · C3 · REAL · the key store's production descriptor is a lawful F03 storage descriptor, declared and REQUIRED by the 2 registered sealed sets — 0 MARKING_KEY yet | F10 · C3 · the PRODUCTION census over an isolated synthetic store: located → scanned and clean; required but unlocated or absent → FAILS by name — the census is never weakened
+         verdict: RED, named test, intended reason
+F10-S6   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — wrong key: a key changed after the grant is scored
+         target src/heldout/lifecycle.mjs · named test "F10 · C4 · a wrong key yields no result…" in test/f10-human-question-discovery.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F10 · C4 · a wrong key yields no result: a substituted commitment is refused at the grant, and a key changed after the grant is REFUSED before the claim — the run unspent (F07 Amendment 3)
+         verdict: RED, named test, intended reason
+F10-S7   landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — missing output counted as an ordinary false negative (the draft-v2 E5 error)
+         target src/heldout/lifecycle.mjs · named test "F10 · C5 · a MISSING output INVALIDATES the run…" in test/f10-human-question-discovery.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F10 · C5 · a MISSING output INVALIDATES the run — it is never a false negative — CONTROL: the same run complete is released | F10 · C4 · REAL entry point · the production scoring route through bin/heldout-evaluation.mjs: without --confirm nothing is requested; a required store unlocated refuses before any claim; items no partition holds give MISSING outputs and an INVALID run (ruling 1.3)
+         verdict: RED, named test, intended reason
+F10-S8   landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — explicit negative: an abstention is dropped from D instead of counting as a negative
+         target src/heldout/lifecycle.mjs · named test "F10 · C5 · an EXPLICIT, VALID negative…" in test/f10-human-question-discovery.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F10 · C4 · one synthetic run through the governed route: authorised, attempted, key read (preflight), claimed, released, committed — in that order — with an aggregate-only release | F10 · C5 · an EXPLICIT, VALID negative against a positive key is a FALSE NEGATIVE; an empty list is an abstention that stays in D — CONTROL: the positive prediction is a TRUE POSITIVE
+         verdict: RED, named test, intended reason
+F10-S9   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — duplicate scoring: the idempotency key is not stable across attempts, so a retry of a committed run runs again
+         target src/governance/governed-scoring.mjs · named test "F10 · C4 · exactly ONE valid run per combination…" in test/f10-human-question-discovery.test.mjs
+         sha256 before c836bc44268115526bc2c28c174830e8f933b005808d0f0ec83c6fe771aa1a86 · after c836bc44268115526bc2c28c174830e8f933b005808d0f0ec83c6fe771aa1a86
+         failing tests: F10 · C4 · exactly ONE valid run per combination: a retry of a committed run runs nothing; a duplicate request is ALREADY_COMMITTED; a scorer changed since its freeze is refused
+         verdict: RED, named test, intended reason
+F10-S10  landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — retry after a crash: a claimed combination can be claimed again
+         target src/heldout/lifecycle.mjs · named test "F10 · C4 · a crash after the claim…" in test/f10-human-question-discovery.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F10 · C4 · a crash after the claim leaves an EXPOSED incomplete attempt, and the re-invocation is refused — no second valid result | F10 · C4 · REAL entry point · the production scoring route through bin/heldout-evaluation.mjs: without --confirm nothing is requested; a required store unlocated refuses before any claim; items no partition holds give MISSING outputs and an INVALID run (ruling 1.3)
+         verdict: RED, named test, intended reason
+F10-S11  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — census omission: any file's call counts as the governed route
+         target tools/scorer-caller-census.mjs · named test "F10 · C4 · the caller census finds every production call…" in test/f10-human-question-discovery.test.mjs
+         sha256 before 5415194b3bba02bc631252f559aecf5f12385bceff59228b6589cced0b2bd027 · after 5415194b3bba02bc631252f559aecf5f12385bceff59228b6589cced0b2bd027
+         failing tests: F10 · C4 · the caller census finds every production call of the aggregate scorer on the governed route — CONTROL: a planted direct call is a BYPASS
+         verdict: RED, named test, intended reason
+F10-S12  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — payload leakage: the release carries the set's item identities
+         target src/governance/governed-scoring.mjs · named test "F10 · C4 · one synthetic run through the governed route…" in test/f10-human-question-discovery.test.mjs
+         sha256 before c836bc44268115526bc2c28c174830e8f933b005808d0f0ec83c6fe771aa1a86 · after c836bc44268115526bc2c28c174830e8f933b005808d0f0ec83c6fe771aa1a86
+         failing tests: F10 · C4 · one synthetic run through the governed route: authorised, attempted, key read (preflight), claimed, released, committed — in that order — with an aggregate-only release
+         verdict: RED, named test, intended reason
+F10-S13  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — denominator below 80 is scored as a rate
+         target src/heldout/classification-rule.mjs · named test "F10 · C6 · the rule's firing controls…" in test/f10-human-question-discovery.test.mjs
+         sha256 before 96eb2d92bf3ab344b6c45e7560ea3f00784bc8d1970ba1999a5d949621d3b6a5 · after 96eb2d92bf3ab344b6c45e7560ea3f00784bc8d1970ba1999a5d949621d3b6a5
+         failing tests: F10 · C6 · the rule's firing controls: all-NO, all-YES, coin-flip, perfect, weak-class, single-class, D = 79 — and the rare-class mechanism that finds nothing passes raw agreement and FAILS kappa (LIMIT a)
+         verdict: RED, named test, intended reason
+F10-S14  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — an item without source rows gets an entry (an untraceable output)
+         target src/discovery/human-questions.mjs · named test "F10 · C2 · an untraceable item…" in test/f10-human-question-discovery.test.mjs
+         sha256 before 1c74a48826e9839122f16e503af79d8e41115fb43b866ce0f5fe26c415afdaab · after 1c74a48826e9839122f16e503af79d8e41115fb43b866ce0f5fe26c415afdaab
+         failing tests: F10 · C2 · an untraceable item, a class without a trace, a missing entry, an invalid class and an OBSERVED claim are each refused
+         verdict: RED, named test, intended reason
+F10-S15  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the neutrality scan stops looking for hosts, tenants and labels — its control must fire
+         target test/f10-human-question-discovery.test.mjs · named test "F10 · C8 · the files F10 adds or changes…" in test/f10-human-question-discovery.test.mjs
+         sha256 before 46f9a10269ea81f37f845aa444c628cd24cc15bc34589543a0592d86f7507754 · after 46f9a10269ea81f37f845aa444c628cd24cc15bc34589543a0592d86f7507754
+         failing tests: F10 · C8 · the files F10 adds or changes carry no host, tenant id, registry label or subject vocabulary — over a stated non-empty population — CONTROL: a planted host FIRES
+         verdict: RED, named test, intended reason
+F10-S16  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a changed source observation is used (the C1 reopen trigger removed)
+         target src/discovery/search-console-partition.mjs · named test "F10 · C1 · a changed, re-methoded or missing source observation…" in test/f10-human-question-discovery.test.mjs
+         sha256 before 2e3e58334003e2a8a1fa0a69c10050275ce67b27cadd55661bd3ecee941071e7 · after 2e3e58334003e2a8a1fa0a69c10050275ce67b27cadd55661bd3ecee941071e7
+         failing tests: F10 · C1 · a changed, re-methoded or missing source observation fails closed (REOPEN TRIGGER)
+         verdict: RED, named test, intended reason
+F10-S17  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a synthetic configuration is honoured outside a verified test context
+         target src/governance/synthetic-sealed-fixture.mjs · named test "F10 · C3 · a synthetic configuration is refused outside…" in test/f10-human-question-discovery.test.mjs
+         sha256 before 33fc05861d849b881709ea27325e43b8da274a6dd9afbb775ca51e538b45ea1a · after 33fc05861d849b881709ea27325e43b8da274a6dd9afbb775ca51e538b45ea1a
+         failing tests: F10 · C3 · a synthetic configuration is refused outside a verified test context and can never replace a real entry or descriptor
+         verdict: RED, named test, intended reason
+F10-S18  landed=true red=true failed=3 namedTestFailed=true reason=true restored=true — an owner-authorised exclusion rule is no longer applied (PAYMENT)
+         target src/discovery/human-question-population.mjs · named test "F10 · C1 · each owner-authorised exclusion family…" in test/f10-human-question-discovery.test.mjs
+         sha256 before 694a2c3b207709bbe44a5bab8bf3190ebca42f917262fff4a3fd978f3cd96083 · after 694a2c3b207709bbe44a5bab8bf3190ebca42f917262fff4a3fd978f3cd96083
+         failing tests: F10 · C1 · REAL · every ACTIVE tenant's partition is decided by F02 and read through the production reader; the accounting reconciles with the committed counts, remainder 0 | F10 · C1 · each owner-authorised exclusion family removes its planted stand-in, for that family, by count — operator, retired and both duplicate rules too — and a neutral stand-in stays eligible | F10 · C2 · REAL · the mechanism emits exactly one INFERRED, traced entry for every eligible item of every tenant, and the same input gives the same output
+         verdict: RED, named test, intended reason
+F10-S19  landed=true red=true failed=4 namedTestFailed=true reason=true restored=true — the retired population is not applied
+         target src/discovery/human-question-population.mjs · named test "F10 · C1 · each owner-authorised exclusion family…" in test/f10-human-question-discovery.test.mjs
+         sha256 before 694a2c3b207709bbe44a5bab8bf3190ebca42f917262fff4a3fd978f3cd96083 · after 694a2c3b207709bbe44a5bab8bf3190ebca42f917262fff4a3fd978f3cd96083
+         failing tests: F10 · C1 · REAL · every ACTIVE tenant's partition is decided by F02 and read through the production reader; the accounting reconciles with the committed counts, remainder 0 | F10 · C1 · each owner-authorised exclusion family removes its planted stand-in, for that family, by count — operator, retired and both duplicate rules too — and a neutral stand-in stays eligible | F10 · C3 · the adopted allocation, byte-for-byte as written, recomputes the committed seats from the recounted capacities — and its controls fire | F10 · C2 · REAL · the mechanism emits exactly one INFERRED, traced entry for every eligible item of every tenant, and the same input gives the same output
+         verdict: RED, named test, intended reason
+F10-S20  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the C7 reopen trigger never fires
+         target tools/human-question-census.mjs · named test "F10 · C7 · REAL · no tracked store carries a sequence field…" in test/f10-human-question-discovery.test.mjs
+         sha256 before 6240da947b50a01a1e2d7f9db426cb13448326d4b98e636b5770ec631e236656 · after 6240da947b50a01a1e2d7f9db426cb13448326d4b98e636b5770ec631e236656
+         failing tests: F10 · C7 · REAL · no tracked store carries a sequence field, so the follow-up limb is NOT_MEASURED and never zero — CONTROL: a planted sequence-field stand-in FIRES the reopen trigger
+         verdict: RED, named test, intended reason
+F10-S21  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a scorer changed since its freeze reaches scoring
+         target src/governance/governed-scoring.mjs · named test "F10 · C4 · exactly ONE valid run per combination…" in test/f10-human-question-discovery.test.mjs
+         sha256 before c836bc44268115526bc2c28c174830e8f933b005808d0f0ec83c6fe771aa1a86 · after c836bc44268115526bc2c28c174830e8f933b005808d0f0ec83c6fe771aa1a86
+         failing tests: F10 · C4 · exactly ONE valid run per combination: a retry of a committed run runs nothing; a duplicate request is ALREADY_COMMITTED; a scorer changed since its freeze is refused
+         verdict: RED, named test, intended reason
+F10-S22  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a class below the assessable threshold is assessed
+         target src/heldout/classification-rule.mjs · named test "F10 · C6 · the rule's firing controls…" in test/f10-human-question-discovery.test.mjs
+         sha256 before 96eb2d92bf3ab344b6c45e7560ea3f00784bc8d1970ba1999a5d949621d3b6a5 · after 96eb2d92bf3ab344b6c45e7560ea3f00784bc8d1970ba1999a5d949621d3b6a5
+         failing tests: F10 · C6 · the rule's firing controls: all-NO, all-YES, coin-flip, perfect, weak-class, single-class, D = 79 — and the rare-class mechanism that finds nothing passes raw agreement and FAILS kappa (LIMIT a)
+         verdict: RED, named test, intended reason
+F10-S23  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — one assessable class is enough for a result
+         target src/heldout/classification-rule.mjs · named test "F10 · C6 · the rule's firing controls…" in test/f10-human-question-discovery.test.mjs
+         sha256 before 96eb2d92bf3ab344b6c45e7560ea3f00784bc8d1970ba1999a5d949621d3b6a5 · after 96eb2d92bf3ab344b6c45e7560ea3f00784bc8d1970ba1999a5d949621d3b6a5
+         failing tests: F10 · C6 · the rule's firing controls: all-NO, all-YES, coin-flip, perfect, weak-class, single-class, D = 79 — and the rare-class mechanism that finds nothing passes raw agreement and FAILS kappa (LIMIT a)
+         verdict: RED, named test, intended reason
+
+TOTAL 23 · PROVED 23 · NOT PROVED 0
+residue in sabotaged files after restore: 0
+tracked modifications after restore (excluding this evidence file): 0
+
+PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
+  audit-trail/events.jsonl  before c3af0be89fbad6174c8e314a9c1f463a8237da9ac363e3cb1e410bca5e3ba8de  after c3af0be89fbad6174c8e314a9c1f463a8237da9ac363e3cb1e410bca5e3ba8de
+  audit-trail/head.json  before 0a44fe75dbb3a68e77a4116544d1e01fb19e0944a8de27d9e463f11ce63ba0e0  after 0a44fe75dbb3a68e77a4116544d1e01fb19e0944a8de27d9e463f11ce63ba0e0
+  untouched: true

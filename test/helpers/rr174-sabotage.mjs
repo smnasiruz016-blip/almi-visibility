@@ -62,7 +62,9 @@ const SABOTAGES = [
   ["S19", "F35 C8 · a country-only difference splits one need into two pages", [[DC, "    } else needId = needOfWording.get(normaliseWording(fields.wording))", "    } else needId = needOfWording.get(normaliseWording(fields.wording) + fields.country)"]], "T8c"],
   ["S20", "F35 C8 · a country-specific part is lost", [[DC, "    const sections = n.sections.filter((s) => present(s?.country))", "    const sections = [].filter((s) => present(s?.country))"]], "T8c"],
   /* ── F35 C9 ── */
-  ["S21", "F35 C9 · a grouped need is not decided", [[AE, "  const groupedNeeds = grouped.map((g) => decideGroupedNeed({", "  const groupedNeeds = grouped.slice(1).map((g) => decideGroupedNeed({"]], "T9a"],
+  /* RR-248: restated — RR-179 (f3ea39c) decides grouped needs in two passes (a first pass, then a compiled spec where F36 must judge);
+   * the limb still leaves the first grouped need undecided */
+  ["S21", "F35 C9 · a grouped need is not decided", [[AE, "  const groupedNeeds = grouped.map((g, i) => (forJudgement[i] ? decideFor(g, rteCompiled(forJudgement[i])) : firstPass[i]));", "  const groupedNeeds = grouped.map((g, i) => (forJudgement[i] ? decideFor(g, rteCompiled(forJudgement[i])) : firstPass[i])).slice(1);"]], "T9a"],
   ["S22", "F35 C9 · a page decision other than HOLD for a need with no recorded question", [[AD, '  if (!(need.questions > 0)) return hold(subject, ["no recorded relevant question (F35 C9, A1)"], extra);', ""]], "T9b"],
   ["S23", "F35 C9 · an existing page is changed because its spec had no recorded question", [[AD, '  if (!groupedNeedIds.length) return hold(subject, ["no recorded relevant question for this declared spec', '  if (!groupedNeedIds.length) return decided(subject, chosen("REMOVE", "SPEC_WITHOUT_QUESTION", []), {}) || hold(subject, ["no recorded relevant question for this declared spec']], "T9b"],
   ["S24", "F35 C9 · a grouped need is decided without reading its coverage record", [[AE, "    coverage: coverage.get(g.needId) ?? null,", "    coverage: null,"]], "T9c"],

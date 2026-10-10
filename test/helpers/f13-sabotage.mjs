@@ -8,6 +8,7 @@
  * Evidence: runs/audit/f13-sabotage-rr131-2026-10-02.txt (its own file).
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { writeEvidenceOnce } from "./evidence-once.mjs"; // RR-248: evidence to a new timestamped file, never over an earlier run's
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { PRODUCT_WORDS } from "../../tools/product-boundary.mjs";
@@ -90,6 +91,6 @@ restoreAll();
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "f13-sabotage-rr131-2026-10-02.txt"), lines.join("\n").split(PRODUCT_WORDS[0]).join("<planted product word>") + "\n");
+console.log(`evidence written: ${writeEvidenceOnce(REPO, "f13-sabotage", lines.join("\n").split(PRODUCT_WORDS[0]).join("<planted product word>") + "\n")}`);
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

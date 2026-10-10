@@ -22,7 +22,7 @@ const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const C = "src/research/collection.mjs", BIN = "bin/collect-public-questions.mjs", SA = "src/research/source-adapter.mjs", WP = "config/research/withdrawn-plans.mjs";
 const T = ["test/rr156-lamzish-scope.test.mjs", "test/f16-collection.test.mjs"];
 const TRAIL = "audit-trail/events.jsonl";
-const EVIDENCE = join(REPO, "runs", "audit", "rr156-sabotage-2026-10-04.txt");
+const EVIDENCE = join(REPO, "runs", "audit", `rr156-sabotage-${new Date().toISOString().slice(0, 16).replace(":", "")}.txt`); // RR-248: a new timestamped file each run (the fixed name could never be written twice)
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
 
@@ -44,7 +44,8 @@ const SABOTAGES = [
   ["W10", "the collector handed the plan's own count", [[C, "cap: Math.min(plan.requests, COLLECTION_REQUEST_CEILING),", "cap: plan.requests,"]], "L6"],
   ["W11", "the ceiling raised to three", [[C, "export const COLLECTION_REQUEST_CEILING = 2;", "export const COLLECTION_REQUEST_CEILING = 3;"]], "L6"],
   ["W12", "leads stored as questions", [[BIN, 'const g = append(intake.leads, "leads.jsonl", "APPEND_RESEARCH_LEADS");', 'const g = append(intake.leads, "questions.jsonl", "APPEND_RESEARCH_LEADS");']], "K5"],
-  ["W13", "zero no longer reported as zero", [[C, "zero: outcome === OUTCOMES.COMPLETED && retrieved !== NOT_MEASURED && questions === 0,", "zero: false,"]], "K5"],
+  /* RR-248: restated — RR-157 (b235888) added held items to zero; the limb still reports no zero */
+  ["W13", "zero no longer reported as zero", [[C, "zero: outcome === OUTCOMES.COMPLETED && retrieved !== NOT_MEASURED && questions === 0 && (intake?.held ?? []).length === 0,", "zero: false,"]], "K5"],
   ["W14", "the credential's value touched (its length measured)", [[BIN, "credentialPresent: credentialName !== null && Object.hasOwn(process.env, credentialName),", "credentialPresent: credentialName !== null && String(process.env[credentialName] ?? \"\").length >= 0 && Object.hasOwn(process.env, credentialName),"]], "K7"],
 ];
 

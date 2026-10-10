@@ -67,7 +67,7 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("\\").join
   console.log(`\n${run.results.length} sabotage(s) · EXECUTED ${executed} of ${list.length} · ${run.results.length - bad} proved · ${bad} NOT proved · residue ${run.residue.length} · production untouched ${run.productionUntouched}`);
   if (outArg) {
     const head = execFileSync("git", ["-C", REPO, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-    writeFileSync(outArg.includes(":") || outArg.startsWith("/") ? outArg : join(REPO, outArg), renderEvidence(run, { title: "F04 AMENDMENT 1 SABOTAGE EVIDENCE", head }) + `\nEXECUTION ASSERTION: ${executed} of ${list.length} executed · ${run.results.length - bad} proved\n`);
+    writeFileSync(outArg.includes(":") || outArg.startsWith("/") ? outArg : join(REPO, outArg), renderEvidence(run, { title: "F04 AMENDMENT 1 SABOTAGE EVIDENCE", head }) + `\nEXECUTION ASSERTION: ${executed} of ${list.length} executed · ${run.results.length - bad} proved\n`, { flag: "wx" });
     console.log(`evidence written: ${outArg}`);
   }
   process.exit(bad === 0 && executed === list.length && run.residue.length === 0 && run.productionUntouched ? 0 : 1);

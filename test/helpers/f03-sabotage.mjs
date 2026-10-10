@@ -90,8 +90,9 @@ export const F03_SABOTAGES = [
     expect: /a secret-shaped value was accepted into the registry/ },
 
   { id: "F3-S11", what: "an opened connector carries its credential's VALUE", file: CONN, test: T, named: "F03 · C5b ·",
-    from: "    credentialName,\n    fetch: (url, init) => globalThis.fetch(url, init),",
-    to: "    credentialName,\n    credential: credentialName ? globalThis[\"pro\" + \"cess\"].env[credentialName] : null,\n    fetch: (url, init) => globalThis.fetch(url, init),",
+    /* RR-248: restated — RR-135 put `origins` and `admits` beside the name (4814d1d / 94e5329); the limb still adds the VALUE */
+    from: "    credentialName,\n    origins: origins ? Object.freeze([...origins]) : null,",
+    to: "    credentialName,\n    credential: credentialName ? globalThis[\"pro\" + \"cess\"].env[credentialName] : null,\n    origins: origins ? Object.freeze([...origins]) : null,",
     expect: /the connector carried the credential's value/ },
 
   { id: "F3-S12", what: "an allowed resolution is not recorded through the governed guard sink", file: "src/governance/scoped-entry.mjs", test: T, named: "F03 · C6a ·",
@@ -142,7 +143,7 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("\\").join
   console.log(`\n${run.results.length} sabotage(s) · EXECUTED ${executed} of ${list.length} · ${run.results.length - bad} proved · ${bad} NOT proved · residue ${run.residue.length} · production untouched ${run.productionUntouched}`);
   if (outArg) {
     const head = execFileSync("git", ["-C", REPO, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-    writeFileSync(outArg.includes(":") || outArg.startsWith("/") ? outArg : join(REPO, outArg), renderEvidence(run, { title: "F03 SABOTAGE EVIDENCE — one defect per limb of the frozen acceptance", head }) + `\nEXECUTION ASSERTION: ${executed} of ${list.length} sabotages executed.\n`);
+    writeFileSync(outArg.includes(":") || outArg.startsWith("/") ? outArg : join(REPO, outArg), renderEvidence(run, { title: "F03 SABOTAGE EVIDENCE — one defect per limb of the frozen acceptance", head }) + `\nEXECUTION ASSERTION: ${executed} of ${list.length} sabotages executed.\n`, { flag: "wx" });
     console.log(`evidence written: ${outArg}`);
   }
   process.exit(bad === 0 && executed === list.length && run.residue.length === 0 && run.productionUntouched ? 0 : 1);

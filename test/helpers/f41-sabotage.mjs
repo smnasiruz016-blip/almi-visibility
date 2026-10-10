@@ -9,6 +9,7 @@
  * is hashed before and after. Evidence: runs/audit/f41-sabotage-2026-09-29.txt.
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { writeEvidenceOnce } from "./evidence-once.mjs"; // RR-248: evidence to a new timestamped file, never over an earlier run's
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -30,7 +31,8 @@ const SABOTAGES = [
   ["S5", "C1 CANNOT DECIDE is NOT ISSUED for want of an action", CB, `if (decision.decision !== "CHOSEN" || decision.actions.length === 0) return`, "if (false) return", "C1 ·"],
   ["S6", "C1 approvals are passed, never defaulted", CB, `if (!Array.isArray(approvals)) throw new TypeError("approvals must be passed explicitly`, `if (false) throw new TypeError("approvals must be passed explicitly`, "C1 ·"],
   ["S7", "C2 recorded evidence carries a ref", CB, `const recorded = (x) => x && typeof x.ref === "string" && x.ref !== "";`, "const recorded = (x) => Boolean(x);", "C2 ·"],
-  ["S8", "C2 intent only from the recorded need", CB, "s.intent = recorded(e.need) && e.need.value ?", "s.intent = true ?", "C2 ·"],
+  /* RR-248: restated — RR-179 (1d4bc58) split intent: a grouped need's from F91's group, every other from the registered need (this limb) */
+  ["S8", "C2 intent only from the recorded need", CB, ": (recorded(e.need) && e.need.value ? filled(\"THE_REGISTERED_NEED_THE_SUBJECT_SERVES\",", ": (true ? filled(\"THE_REGISTERED_NEED_THE_SUBJECT_SERVES\",", "C2 ·"],
   ["S9", "C2 internal links need a COMPLETE inventory", CB, `e.links.completeness === "COMPLETE" && `, "", "C2 ·"],
   ["S10", "C3 a fact needs a source", CB, `const why = !hasSource ? "NO_SOURCE" :`, `const why = false ? "NO_SOURCE" :`, "C3 ·"],
   ["S11", "C3 a fact must be VERIFIED", CB, `: f.verificationState !== "VERIFIED" ? "NOT_VERIFIED"`, `: false ? "NOT_VERIFIED"`, "C3 ·"],
@@ -83,6 +85,6 @@ const trailAfter = sha(read(TRAIL));
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "f41-sabotage-2026-09-29.txt"), lines.join("\n") + "\n");
+console.log(`evidence written: ${writeEvidenceOnce(REPO, "f41-sabotage", lines.join("\n") + "\n")}`);
 console.log(lines.join("\n"));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

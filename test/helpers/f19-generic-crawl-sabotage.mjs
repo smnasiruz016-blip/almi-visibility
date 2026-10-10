@@ -8,6 +8,7 @@
  * Evidence: runs/audit/f19-generic-crawl-sabotage-rr135-2026-10-02.txt (its own file).
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { writeEvidenceOnce } from "./evidence-once.mjs"; // RR-248: evidence to a new timestamped file, never over an earlier run's
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -30,7 +31,8 @@ const SABOTAGES = [
   ["G5", "a redirect is followed only to an admitted origin", F, "chain.length < maxRedirectHops && admits(next)", "chain.length < maxRedirectHops", HOPS],
   ["G6", "a redirected robots.txt is not followed (fails closed)", R, "          redirect: \"manual\",\n", "", HOPS],
   ["G7", "the redirect chain is recorded on the observation", W, "      redirect_chain: res.redirectChain ?? [],\n", "      redirect_chain: [],\n", HOPBIN],
-  ["G8", "a resumed batch never duplicates a saved observation", B, "  occurredAt, correlationId, discipline: \"APPEND_IF_NEW\",\n", "  occurredAt, correlationId, discipline: \"APPEND_WITHOUT_DEDUPE\",\n", RES],
+  /* RR-248: restated — RR-227 (91ead21) added two more APPEND_IF_NEW appends; the span names the observations append */
+  ["G8", "a resumed batch never duplicates a saved observation", B, "action: \"APPEND_CRAWL_OBSERVATIONS\",\n  occurredAt, correlationId, discipline: \"APPEND_IF_NEW\",\n", "action: \"APPEND_CRAWL_OBSERVATIONS\",\n  occurredAt, correlationId, discipline: \"APPEND_WITHOUT_DEDUPE\",\n", RES],
 ];
 
 const files = [...new Set(SABOTAGES.map((s) => s[2]))];
@@ -78,6 +80,6 @@ restoreAll();
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "f19-generic-crawl-sabotage-rr135-2026-10-02.txt"), lines.join("\n") + "\n");
+console.log(`evidence written: ${writeEvidenceOnce(REPO, "f19-generic-crawl-sabotage", lines.join("\n") + "\n")}`);
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

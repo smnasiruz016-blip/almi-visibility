@@ -10,6 +10,7 @@
  * hashed before and after. Evidence: runs/audit/rr100-sabotage-2026-09-30.txt.
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { writeEvidenceOnce } from "./evidence-once.mjs"; // RR-248: evidence to a new timestamped file, never over an earlier run's
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -69,7 +70,8 @@ const SABOTAGES = [
   /* the declarations */
   ["D01", "DECLARATION: a condition renamed away from the proved one", CK, '{ id: "aaaa-only", when:', '{ id: "aaaa-or-neither", when:', "DRIFT GUARD"],
   ["D02", "DECLARATION: a firing path dropped from the declaration", TC, '      { id: "redirected", when: "the recorded final URL differs from the requested URL" },', "", "DRIFT GUARD"],
-  ["D03", "DECLARATION: a check loses its boundary entirely", RC, "boundary: validBoundary(id, boundary) });", "boundary: id === \"query-parameters\" ? undefined : validBoundary(id, boundary) });", "every detector behind F90"],
+  /* RR-248: restated — F90 (fa60894) registers the declared version beside the boundary; the limb still drops one check's boundary */
+  ["D03", "DECLARATION: a check loses its boundary entirely", RC, "boundary: validBoundary(id, boundary), version });", "boundary: id === \"query-parameters\" ? undefined : validBoundary(id, boundary), version });", "every detector behind F90"],
   ["D04", "REGISTRY: duplicate condition ids accepted", RC, "&& new Set(b.fires.map((f) => f.id)).size === b.fires.length;", ";", "the registry refuses"],
 ];
 
@@ -116,6 +118,6 @@ const trailAfter = sha(read(TRAIL));
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "rr100-sabotage-2026-09-30.txt"), lines.join("\n") + "\n");
+console.log(`evidence written: ${writeEvidenceOnce(REPO, "rr100-sabotage", lines.join("\n") + "\n")}`);
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

@@ -42,7 +42,14 @@ async function subjectWord() {
   const { declaredSubjectIds, lookupSubject } = await import("../../src/tenancy/root-registry.mjs");
   const { loadAllSubjectPackages } = await import("../../src/subject-package.mjs");
   const r = createTenantResolver();
-  const id = declaredSubjectIds(r.roots).find((s) => { const l = lookupSubject(r.roots, s); return l.state === "DECLARED" && l.rootKind === "external" && existsSync(join(l.dir, "descriptor.json")); });
+  /* RR-248: F09's subject is the one its descriptor declares an F09 TEST SUBJECT — the population test/f09-cross-client-portability.test.mjs
+   * proves on since RR-155. "The first external subject" became another subject when a later one was declared, and that subject has no
+   * package with a vocabulary, so this harness could not build its limbs at all. */
+  const id = declaredSubjectIds(r.roots).find((s) => {
+    const l = lookupSubject(r.roots, s);
+    const file = join(l.dir ?? "", "descriptor.json");
+    return l.state === "DECLARED" && l.rootKind === "external" && existsSync(file) && JSON.parse(readFileSync(file, "utf8")).kind === "F09_TEST_SUBJECT";
+  });
   const pkg = (await loadAllSubjectPackages()).find((p) => p.subjectId === id);
   if (!pkg?.vocabulary?.length) throw new Error("no F09 subject package with a vocabulary — the neutrality sabotage cannot be built");
   return pkg.vocabulary[0];
@@ -57,12 +64,14 @@ export async function f09Sabotages() {
       expect: /shared engine code names the subject/ },
 
     { id: "F9-S2", what: "the crawl's store scope comes from the requested tenant's own partition, not the batch's attachment (authority by name)", file: CRAWL, test: T, named: "F09 · EXPECTED · the crawler REFUSES the engine's shared stores",
-      from: `const STORES = researchBatch ? [RESOURCES.researchBatch(researchBatch)] :`,
-      to: `const STORES = researchBatch ? [RESOURCES.tenantPartition(arg("tenant"), "requested tenant")] :`,
+      /* RR-248: S2, S4, S6 and S17 restated — RR-135 (94e5329) opens the connector once, metered, as CONNECTOR; RR-227 (91ead21) adds the
+       * subject to a sitemap run's stores and appends the run record through runAppend(). Each limb breaks the same protection as before. */
+      from: `const STORES = researchBatch ? [RESOURCES.researchBatch(researchBatch), ...(sitemapMode ? [RESOURCES.subject(SUBJECT)] : [])] :`,
+      to: `const STORES = researchBatch ? [RESOURCES.tenantPartition(arg("tenant"), "requested tenant"), ...(sitemapMode ? [RESOURCES.subject(SUBJECT)] : [])] :`,
       expect: /another tenant ran on this subject's research batch/ },
 
     { id: "F9-S4", what: "the live crawl reaches the web through the global fetch, not the declared connector (F03 bypass)", file: CRAWL, test: "test/f03-root-connector-registry.test.mjs", named: "F03 · C2c ·",
-      from: `  fetchImpl: live ? openConnector({ scope: SCOPE, subjectId: SUBJECT, kind: "PUBLIC_SITE" }).fetch : NO_REQUEST_FETCH,`,
+      from: `  fetchImpl: live ? CONNECTOR.fetch : NO_REQUEST_FETCH,`,
       to: `  fetchImpl: live ? ((u, i) => fetch(u, i)) : NO_REQUEST_FETCH,`,
       expect: /a site constructs, reads or locates without resolving first/ },
 
@@ -72,8 +81,8 @@ export async function f09Sabotages() {
       expect: /Missing expected exception/ },
 
     { id: "F9-S6", what: "the research-batch run record is appended directly, outside the governed boundary (F08 bypass)", file: CRAWL, test: "test/governed-caller-vocabulary.test.mjs", named: "V7 ·",
-      from: `const runGoverned = executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,`,
-      to: `if (researchBatch) appendFileSync(out, JSON.stringify(runRecord) + "\\n");\nconst runGoverned = executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope,`,
+      from: `const runGoverned = executeGovernedWrite(runAppend(runRecord, CRAWL_INSTANT, CRAWL_CORRELATION));`,
+      to: `if (researchBatch) appendFileSync(out, JSON.stringify(runRecord) + "\\n");\nconst runGoverned = executeGovernedWrite(runAppend(runRecord, CRAWL_INSTANT, CRAWL_CORRELATION));`,
       expect: /Expected values to be strictly (deep-)?equal/ },
 
     { id: "F9-S7", what: "the crawler reads the research batch's seeds BEFORE its tenant scope is decided", file: CRAWL, test: "test/f02-tenant-isolation.test.mjs", named: "C1 ·",
@@ -122,8 +131,8 @@ export async function f09Sabotages() {
       expect: /SENSITIVITY: re-attaching the batch to another tenant did not change the fingerprint/ },
 
     { id: "F9-S17", what: "the crawler stops scoping the engine's evidence store — the run still exits 3 on the other stores, so an exit-code-only check stays GREEN", file: "bin/crawl.mjs", test: T, named: "F09 · EXPECTED · the crawler REFUSES the engine's shared stores",
-      from: "const STORES = researchBatch ? [RESOURCES.researchBatch(researchBatch)] : [RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.runArtefacts(\"crawl store and seed inputs\")];",
-      to: "const STORES = researchBatch ? [RESOURCES.researchBatch(researchBatch)] : [RESOURCES.costLedger(), RESOURCES.runArtefacts(\"crawl store and seed inputs\")];",
+      from: "const STORES = researchBatch ? [RESOURCES.researchBatch(researchBatch), ...(sitemapMode ? [RESOURCES.subject(SUBJECT)] : [])] : [RESOURCES.evidenceStore(), RESOURCES.costLedger(), RESOURCES.runArtefacts(\"crawl store and seed inputs\")];",
+      to: "const STORES = researchBatch ? [RESOURCES.researchBatch(researchBatch), ...(sitemapMode ? [RESOURCES.subject(SUBJECT)] : [])] : [RESOURCES.costLedger(), RESOURCES.runArtefacts(\"crawl store and seed inputs\")];",
       expect: /the evidence store was not refused for want of an attachment/ },
 
     { id: "F9-S14", what: "A PATTERN THAT CANNOT FAIL — the neutrality scanner's pattern matches nothing", file: "tools/product-boundary.mjs", test: T, named: "F09 · EVIDENCE · zero shared-engine specialisation",
@@ -145,7 +154,7 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("\\").join
   console.log(`\n${run.results.length} sabotage(s) · EXECUTED ${executed} of ${list.length} · ${run.results.length - bad} proved · ${bad} NOT proved · residue ${run.residue.length} · production untouched ${run.productionUntouched}`);
   if (outArg) {
     const head = execFileSync("git", ["-C", REPO, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-    writeFileSync(outArg.includes(":") || outArg.startsWith("/") ? outArg : join(REPO, outArg), renderEvidence(run, { title: "F09 SABOTAGE EVIDENCE — one defect per invariant of the frozen acceptance", head }) + `\nEXECUTION ASSERTION: ${executed} of ${list.length} executed · ${run.results.length - bad} proved\n`);
+    writeFileSync(outArg.includes(":") || outArg.startsWith("/") ? outArg : join(REPO, outArg), renderEvidence(run, { title: "F09 SABOTAGE EVIDENCE — one defect per invariant of the frozen acceptance", head }) + `\nEXECUTION ASSERTION: ${executed} of ${list.length} executed · ${run.results.length - bad} proved\n`, { flag: "wx" });
     console.log(`evidence written: ${outArg}`);
   }
   process.exit(bad === 0 && executed === list.length && run.residue.length === 0 && run.productionUntouched ? 0 : 1);

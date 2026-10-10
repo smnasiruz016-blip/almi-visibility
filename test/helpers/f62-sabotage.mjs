@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url";
 import { PRODUCT_WORDS } from "../../tools/product-boundary.mjs";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const EVIDENCE = join(REPO, "runs", "audit", process.env.F62_EVIDENCE_NAME ?? "f62-sabotage-rr148-2026-10-03.txt");
+const EVIDENCE = join(REPO, "runs", "audit", process.env.F62_EVIDENCE_NAME ?? `f62-sabotage-${new Date().toISOString().slice(0, 16).replace(":", "")}.txt`); // RR-248: a new timestamped file each run (the fixed name could never be written twice)
 if (existsSync(EVIDENCE)) { console.error(`refused: ${EVIDENCE} exists — an earlier run's evidence is never overwritten; name a new file with F62_EVIDENCE_NAME`); process.exit(2); }
 const AP = "src/research/applicability.mjs", RT = "src/research/research-routes.mjs";
 const T = ["test/f62-applicability.test.mjs"];

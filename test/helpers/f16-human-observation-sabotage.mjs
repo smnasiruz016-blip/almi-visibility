@@ -9,6 +9,7 @@
  * Evidence: runs/audit/f16-human-observation-sabotage-rr125-2026-10-01.txt (RR-125 rerun after S19 followed its live line; the rr117 and #219 files stay untouched).
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { writeEvidenceOnce } from "./evidence-once.mjs"; // RR-248: evidence to a new timestamped file, never over an earlier run's
 import { readFileSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -98,6 +99,6 @@ const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
 /* RR-117: each round's run is its own evidence file; the merged #219 run (f16-human-observation-sabotage-2026-10-01.txt) is never overwritten */
-writeFileSync(join(REPO, "runs", "audit", "f16-human-observation-sabotage-rr125-2026-10-01.txt"), lines.join("\n") + "\n");
+console.log(`evidence written: ${writeEvidenceOnce(REPO, "f16-human-observation-sabotage", lines.join("\n") + "\n")}`);
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

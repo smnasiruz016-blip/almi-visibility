@@ -11,6 +11,7 @@
  * raw-byte sha256; the production trail is hashed before and after. Evidence: runs/audit/rr102-sabotage-2026-09-30.txt.
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { writeEvidenceOnce } from "./evidence-once.mjs"; // RR-248: evidence to a new timestamped file, never over an earlier run's
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -43,8 +44,10 @@ const SABOTAGES = [
   ["U01", "UNMEASURED: a missing hash becomes silence, not UNKNOWN", CC, "if (!mine?.content_sha256) {", "if (false) {", "an UNMEASURED input"],
   ["U02", "UNMEASURED: thin no longer refuses an unconfident split", CC, "    if (!m.confident) {\n      /**\n       * 🔴 TWO DIFFERENT UNKNOWNS", "    if (false) {\n      /**\n       * 🔴 TWO DIFFERENT UNKNOWNS", "an UNMEASURED input"],
   /* the declarations */
-  ["D01", "DECLARATION: a condition renamed away from the proved one", CC, '{ id: "below-unique-word-floor", when:', '{ id: "below-floor", when:', "DRIFT GUARD: each content check's declared conditions"],
-  ["D02", "DECLARATION: a stated threshold that is not the live constant", CC, "is ${NEAR_DUPLICATE_THRESHOLD} or more (void below", "is 0.8 or more (void below", "DRIFT GUARD: each declared threshold"],
+  /* RR-248: D01 and D02 restated — RR-194 T-2 (39c531f) made the thresholds REVIEW SIGNALS: the condition is
+   * below-unique-word-review-signal, the near-duplicate line says "at or above the … review signal", and the drift guard was renamed */
+  ["D01", "DECLARATION: a condition renamed away from the proved one", CC, '{ id: "below-unique-word-review-signal", when:', '{ id: "below-floor", when:', "DRIFT GUARD: each content check's declared conditions"],
+  ["D02", "DECLARATION: a stated threshold that is not the live constant", CC, "at or above the ${NEAR_DUPLICATE_THRESHOLD} review signal — recorded UNKNOWN", "at or above the 0.8 review signal — recorded UNKNOWN", "DRIFT GUARD: each declared review signal"],
   ["D03", "DECLARATION: a check loses its boundary entirely", CC, '  boundary: {\n    observes: ["the stored body, split into shell and body by src/audit/shell.mjs"],', '  boundaryDropped: {\n    observes: ["the stored body, split into shell and body by src/audit/shell.mjs"],', "every content detector behind F90"],
 ];
 
@@ -94,6 +97,6 @@ const trailAfter = sha(read(TRAIL));
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "rr102-sabotage-2026-09-30.txt"), lines.join("\n") + "\n");
+console.log(`evidence written: ${writeEvidenceOnce(REPO, "rr102-sabotage", lines.join("\n") + "\n")}`);
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore && proved === SABOTAGES.length ? 0 : 1;

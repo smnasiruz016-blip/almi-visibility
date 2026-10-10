@@ -89,8 +89,9 @@ export const F06_SABOTAGES = [
     expect: /a reason-less UNKNOWN from an undeclared detector/ },
 
   { id: "E10", what: "a cross-TENANT evidence reference allowed", file: MODEL, test: T, named: "P30",
-    from: '    if (t && es.meta.tenantId && t !== es.meta.tenantId) f.push(',
-    to: '    if (false && t && es.meta.tenantId && t !== es.meta.tenantId) f.push(',
+    /* RR-248: restated over F02's tenant decision (0da6756); the limb still disables the cross-tenant refusal */
+    from: '    if (t && es.meta.tenantId && !decideResolvedTenants(es.meta.tenantId, t).allowed) f.push(',
+    to: '    if (false && t && es.meta.tenantId && !decideResolvedTenants(es.meta.tenantId, t).allowed) f.push(',
     probe: probe(`const s = M.makeEvidenceState("INFERRED", { assignedBy: "p", tenantId: "t1", inputRefs: ["tenant:t2/observation:o"], method: "m", computedAt: "2026-09-24" }); say(M.isolationFaults(s).length === 0);`),
     expect: /Cannot read properties of undefined|EVIDENCE_REF_CROSS_TENANT|falsy/ },
 
@@ -154,7 +155,7 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("\\").join
       + `\nPROBE CONTROL (clean tree): ${cleanProbe.length - bad.length} of ${cleanProbe.length} probes report no defect.\n`
       + run.results.map((r) => `  ${r.id}  ran ${!String(r.verdict).startsWith("NOT RUN")} · bytes landed ${r.landed} · defect took effect ${r.tookEffect} · ${r.verdict} · restored ${r.restoredClean}  — ${r.what}`).join("\n")
       + `\nRAN ${ran} of ${list.length} · LANDED ${landed} of ${list.length} · PROVED ${proved} of ${list.length}\n`;
-    writeFileSync(join(REPO, outArg), text);
+    writeFileSync(join(REPO, outArg), text, { flag: "wx" });
     console.log(`evidence written: ${outArg}`);
   }
   process.exit(bad.length === 0 && ran === list.length && landed === list.length && proved === list.length && run.residue.length === 0 && run.productionUntouched ? 0 : 1);

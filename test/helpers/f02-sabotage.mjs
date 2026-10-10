@@ -57,7 +57,8 @@ export const F02_SABOTAGES = [
     expect: /allowed with no tenant requested/ },
 
   { id: "F2-S7", what: "the gate removed from a real production entry point", file: "bin/label-on-face.mjs", test: T, named: "R5 ·",
-    from: `const SCOPE = scopedEntryPoint({ entry: "bin/label-on-face.mjs", governed: false, resources: [RESOURCES.factRegistryAt(PRODUCT.factsDir)] });`,
+    /* RR-248: restated — F03 (3104dbb) scopes it on the subject; the limb still removes the whole gate */
+    from: `const SCOPE = scopedEntryPoint({ entry: "bin/label-on-face.mjs", governed: false, resources: [RESOURCES.subject(PRODUCT_ID)] });`,
     to: `const SCOPE = { tenantId: null, writeScope: null }; void scopedEntryPoint;`,
     expect: /0 !== 3/ },
 
@@ -90,7 +91,7 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("\\").join
   if (outArg) {
     const head = execFileSync("git", ["-C", REPO, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
     const text = renderEvidence(run, { title: "F02 SABOTAGE EVIDENCE — one defect per tenant-isolation enforcement limb (§8)", head }) + `\nEXECUTION ASSERTION: ${executed} of ${list.length} sabotages executed.\n`;
-    writeFileSync(outArg.includes(":") || outArg.startsWith("/") ? outArg : join(REPO, outArg), text);
+    writeFileSync(outArg.includes(":") || outArg.startsWith("/") ? outArg : join(REPO, outArg), text, { flag: "wx" });
     console.log(`evidence written: ${outArg}`);
   }
   process.exit(bad === 0 && executed === list.length && probeFailed.length === 0 && run.residue.length === 0 && run.productionUntouched ? 0 : 1);

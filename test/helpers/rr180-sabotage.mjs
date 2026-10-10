@@ -31,8 +31,11 @@ const RENDERABLE = '    if (present(c.text) && present(c.source) && present(c.li
 const UNKNOWN_HTML = 'const unknownHtml = (u) => `<p class="unknown" data-claim-id="${esc(u.claimId ?? "none")}">UNKNOWN — ${esc(u.why)}</p>`;';
 const CHOSEN = "  if (!isChosenCreate(decision) || decision.subject.needId !== spec.subject) return Object.freeze({ state: DRAFT.REFUSED, why: DRAFT_REFUSAL.NOT_CHOSEN });";
 const TIERLINE = '    const tierLine = `${TIER_LABEL[s.tier] ?? s.tier}${s.marking === GENERATED ? " · GENERATED wording" : ""}`;';
-const HEAD = '`<h2>${esc(s.heading)}</h2>`, `<p class="qa-tier">${esc(tierLine)}</p>`,';
-const FAQ = '    if (mine.length) faq.push({ "@type": "Question", name: s.heading, acceptedAnswer: { "@type": "Answer", text: answerText(mine) } });';
+/* RR-248: HEAD, FAQ, S12, S20, S29 and S34 restated — RR-186 (7c402c4) linked the heading to the answer, renders each distinct claim once
+ * (`once(mine)`, `own` unknowns, the FAQ answer from `rendered`), and RR-208 (c286d62) reads `links.selfUrl` (links are always an F94 plan
+ * state). Each limb breaks the same F37 clause as before; the restated spans are the ones test/helpers/rr186-sabotage.mjs carries. */
+const HEAD = '`<h2><a href="#answer">${esc(s.heading)}</a></h2>`, `<p class="qa-tier">${esc(tierLine)}</p>`,';
+const FAQ = '    if (mine.length) faq.push({ "@type": "Question", name: s.heading, acceptedAnswer: { "@type": "Answer", text: answerText(rendered) } });';
 const SABOTAGES = [
   /* ── F37 C1 (P6b, F37-1, F37-2) ── */
   ["S01", "F37 C1 · a written material claim has no supporting source record", [[DR, RENDERABLE, "    if (present(c.text)) renderable.push(c);"]], "T37b"],
@@ -47,7 +50,7 @@ const SABOTAGES = [
   /* ── F37 C2 (P13b, P13c, F37-3, F37-4) ── */
   ["S10", "F37 C2 · a research-derived question appears under an attribution phrase without observed evidence", [[DR, "    return Object.freeze({ state: DRAFT.REFUSED, why: DRAFT_REFUSAL.ATTRIBUTION });\n", "    void 0;\n"]], "T37c"],
   ["S11", "F37 C2 · a section's GENERATED marking is not visible", [[DR, TIERLINE, '    const tierLine = `${TIER_LABEL[s.tier] ?? s.tier}`;']], "T37c"],
-  ["S12", "F37 C2 · a heading's wording differs from its compiled section's", [[DR, HEAD, '`<h2>${esc(s.heading.toUpperCase())}</h2>`, `<p class="qa-tier">${esc(tierLine)}</p>`,']], "T37c"],
+  ["S12", "F37 C2 · a heading's wording differs from its compiled section's", [[DR, HEAD, '`<h2><a href="#answer">${esc(s.heading.toUpperCase())}</a></h2>`, `<p class="qa-tier">${esc(tierLine)}</p>`,']], "T37c"],
   ["S13", "F37 C2 · a research-derived question is shown as observed", [[DR, '"RESEARCH-DERIVED": "Research-derived question"', '"RESEARCH-DERIVED": "Asked publicly (observed)"']], "T37c"],
   ["S14", "F37 C2 · a research-derived question appears in a verified-demand label", [[DR, '"RESEARCH-DERIVED": "Research-derived question"', '"RESEARCH-DERIVED": "Verified public demand"']], "T37c"],
   /* ── F37 C3 (P14, F37-5, F37-6) ── */
@@ -56,7 +59,7 @@ const SABOTAGES = [
   ["S17", "F37 C3 · a secondary source is called official", [[DR, '<p class="citation">${esc(c.label)} source: ', '<p class="citation">${esc(c.label === "SECONDARY" ? "OFFICIAL" : c.label)} source: ']], "T37d"],
   ["S18", "F37 C3 · a third party's estimate is not stated as its estimate", [[DR, 'const estimateOf = (c) => (present(c.statedAs) && /estimate/.test(c.statedAs) ? ` · ${c.statedAs}` : "");', 'const estimateOf = () => "";']], "T37d"],
   ["S19", "F37 C3 · a source that does not support the claim is accepted", [[AS, "  if (claim.supports?.finding !== SUPPORTS || !present(claim.supports?.ref)) return unknown(CLAIM_UNKNOWN.NOT_SUPPORTED);", "  if (!present(claim.supports?.ref)) return unknown(CLAIM_UNKNOWN.NOT_SUPPORTED);"]], "T37d"],
-  ["S20", "F37 C3 · an UNKNOWN part is dropped", [[DR, "      ...traced(mine, s.heading), ...missing.map(unknownHtml), `</section>`);", "      ...traced(mine, s.heading), `</section>`);"]], "T37d"],
+  ["S20", "F37 C3 · an UNKNOWN part is dropped", [[DR, "...traced(once(mine), s.heading), ...own.map(unknownHtml), `</section>`);", "...traced(once(mine), s.heading), `</section>`);"]], "T37d"],
   ["S21", "F37 C3 · a rendered claim lacks its trace to its claim id", [[DR, "  const traced = (claims, where) => { for (const c of claims) trace.push(", "  const traced = (claims, where) => { for (const c of []) trace.push("]], "T37a"],
   ["S22", "F37 C3 · a rendered claim lacks its source's link", [[DR, '<a href="${esc(c.link)}" rel="nofollow noopener">${esc(c.source)}</a> — read ${esc(c.readOn)}${esc(estimateOf(c))}', '${esc(c.source)} — read ${esc(c.readOn)}${esc(estimateOf(c))}']], "T37d"],
   ["S23", "F37 C3 · F37 reads a source", [[DR, 'import { attributionRefusal } from "../research/research-derived.mjs";', 'import { attributionRefusal } from "../research/research-derived.mjs";\nimport { readFileSync } from "node:fs";']], "T37k"],
@@ -67,13 +70,13 @@ const SABOTAGES = [
   /* ── F37 C5 (P21, F37-9, F37-10) ── */
   ["S27", "F37 C5 · a fact-count threshold decides something", [[DR, "  checks.directAnswer = central.length ? { state: CHECK.PASS }", "  checks.directAnswer = central.length >= 2 ? { state: CHECK.PASS }"]], "T37g"],
   ["S28", "F37 C5 · a measurable check with no recorded input is passed by default (internal links)", [[DR, '{ state: CHECK.NOT_MEASURED, why: "no internal-link target is recorded in or out', '{ state: CHECK.PASS, why: "no internal-link target is recorded in or out']], "T37f"],
-  ["S29", "F37 C5 · a measurable check with no recorded input is passed by default (technical)", [[DR, '  checks.technical = !present(links?.selfUrl) ? { state: CHECK.NOT_MEASURED,', "  checks.technical = !present(links?.selfUrl) ? { state: CHECK.PASS,"]], "T37f"],
+  ["S29", "F37 C5 · a measurable check with no recorded input is passed by default (technical)", [[DR, '  checks.technical = !present(links.selfUrl) ? { state: CHECK.NOT_MEASURED,', "  checks.technical = !present(links.selfUrl) ? { state: CHECK.PASS,"]], "T37f"],
   ["S30", "F37 C5 · a judged quality of F40's is required by F37", [[DR, "  const states = Object.values(checks).map((c) => c.state);", '  checks.engaging = { state: CHECK.NOT_MEASURED, why: "F40\'s judgement" };\n  const states = Object.values(checks).map((c) => c.state);']], "T37f"],
   ["S31", "F37 C5 · copy that promises ranking passes", [[DR, "markup.state === MARKUP.ALIGNED && !PROMISE.test(html) ?", "markup.state === MARKUP.ALIGNED ?"]], "T37h"],
   ["S32", "F37 C5 · a draft with no direct answer passes", [[DR, "  checks.directAnswer = central.length ? { state: CHECK.PASS }", "  checks.directAnswer = true ? { state: CHECK.PASS }"]], "T37f"],
   /* ── F37 C6 (D3, F37-11, F37-12) ── */
   ["S33", "F37 C6 · a marked question is not visible on the draft in the same words", [[DR, FAQ, FAQ.replace("name: s.heading,", "name: `${s.heading} (marked)`,")]], "T37h"],
-  ["S34", "F37 C6 · an UNKNOWN answer is marked up as answered", [[DR, FAQ, `${FAQ}\n    for (const u of missing) faq.push({ "@type": "Question", name: s.heading, acceptedAnswer: { "@type": "Answer", text: String(u.claimId) } });`]], "T37h"],
+  ["S34", "F37 C6 · an UNKNOWN answer is marked up as answered", [[DR, FAQ, `${FAQ}\n    for (const u of own) faq.push({ "@type": "Question", name: s.heading, acceptedAnswer: { "@type": "Answer", text: String(u.claimId) } });`]], "T37h"],
 ];
 
 const RUN = ONLY ? SABOTAGES.filter((s) => s[0] === ONLY) : SABOTAGES;

@@ -20,7 +20,7 @@ const MJ = "src/research/meaning-judgement.mjs", SA = "src/research/source-adapt
 const C = "src/research/collection.mjs", BIN = "bin/collect-public-questions.mjs";
 const T = ["test/rr157-meaning.test.mjs", "test/rr156-lamzish-scope.test.mjs", "test/f16-collection.test.mjs"];
 const TRAIL = "audit-trail/events.jsonl";
-const EVIDENCE = join(REPO, "runs", "audit", "rr157-sabotage-2026-10-04.txt");
+const EVIDENCE = join(REPO, "runs", "audit", `rr157-sabotage-${new Date().toISOString().slice(0, 16).replace(":", "")}.txt`); // RR-248: a new timestamped file each run (the fixed name could never be written twice)
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
 

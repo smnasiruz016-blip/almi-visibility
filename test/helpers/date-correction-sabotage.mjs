@@ -15,7 +15,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const EVIDENCE = join(REPO, "runs", "audit", process.env.DC_EVIDENCE_NAME ?? "date-correction-sabotage-rr153-2026-10-03.txt");
+const EVIDENCE = join(REPO, "runs", "audit", process.env.DC_EVIDENCE_NAME ?? `date-correction-sabotage-${new Date().toISOString().slice(0, 16).replace(":", "")}.txt`); // RR-248: a new timestamped file each run (the fixed name could never be written twice)
 if (existsSync(EVIDENCE)) { console.error(`refused: ${EVIDENCE} exists — an earlier run's evidence is never overwritten; name a new file with DC_EVIDENCE_NAME`); process.exit(2); }
 const DC = "src/authority/date-correction.mjs";
 const T = ["test/date-correction.test.mjs"];

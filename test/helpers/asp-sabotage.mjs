@@ -158,7 +158,7 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("\\").join
       + `\nPROBE CONTROL (clean tree): ${cleanProbe.length - bad.length} of ${cleanProbe.length} probes report no defect.\n`
       + run.results.map((r) => `  ${r.id}  ran ${!String(r.verdict).startsWith("NOT RUN")} · bytes landed ${r.landed} · defect took effect ${r.tookEffect} · named RED ${r.namedFailed} · pinned reason ${r.reason} · ${r.verdict} · restored ${r.restoredClean}  — ${r.what}`).join("\n")
       + `\nRAN ${ran} of ${list.length} · LANDED ${landed} of ${list.length} · COULD-FAIL ${couldFail} of ${list.length} · PROVED ${proved} of ${list.length}\n`;
-    writeFileSync(join(REPO, outArg), text);
+    writeFileSync(join(REPO, outArg), text, { flag: "wx" });
     console.log(`evidence written: ${outArg}`);
   }
   process.exit(bad.length === 0 && ran === list.length && landed === list.length && proved === list.length && run.residue.length === 0 && run.productionUntouched ? 0 : 1);

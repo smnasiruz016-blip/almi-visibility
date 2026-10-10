@@ -131,12 +131,11 @@ test("HG-4 · a disposable copy: a bare `node --test` changes no tracked file; t
 });
 
 test("HG-5 · every place in the repository that tells how to run a gated file says --deliberate", () => {
-  /* runs/ holds evidence records of past runs, and CASE_STUDY_01_RUN_01.md is the dated record of one run (by its old bin/ path);
-   * a record says how a run WAS made and is never rewritten. */
-  const RECORDS = (f) => f.startsWith("runs/") || f === "CASE_STUDY_01_RUN_01.md";
+  /* RR-248: NO exemption. RR-247 exempted runs/ and CASE_STUDY_01_RUN_01.md as records; measured on 10 Oct, neither holds a single
+   * how-to-run line for a gated file, so the exemption forgave nothing — and could only have hidden a future line. */
   const names = new Set(gated.map((f) => f.split("/").pop()));
   const stale = [];
-  for (const f of tracked.filter((x) => /\.(mjs|js|md|json|ya?ml|txt)$/.test(x) && !RECORDS(x))) {
+  for (const f of tracked.filter((x) => /\.(mjs|js|md|json|ya?ml|txt)$/.test(x))) {
     let text;
     try { text = readFileSync(join(REPO, f), "utf8"); } catch { continue; }
     for (const m of text.matchAll(/node (?:--import \S+ )?(?:test\/helpers|subjects\/almi-oet\/tools|bin)\/([\w.-]+\.mjs)(?! --deliberate)/g)) {

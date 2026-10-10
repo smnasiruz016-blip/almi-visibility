@@ -8,6 +8,7 @@
  * Evidence: runs/audit/f19-append-path-sabotage-rr133-2026-10-02.txt (its own file).
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { writeEvidenceOnce } from "./evidence-once.mjs"; // RR-248: evidence to a new timestamped file, never over an earlier run's
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -23,8 +24,10 @@ const read = (p) => readFileSync(join(REPO, p));
 const APPEND = "REAL APPEND PATH", REFUSE = "REFUSES BEFORE THE FIRST REQUEST";
 
 const SABOTAGES = [
-  ["R1", "a live run without the owner's green is refused before any request", B, "if (live && !green) {", "if (false) {", REFUSE],
-  ["R2", "the observations append keeps its declared discipline", B, "  occurredAt, correlationId, discipline: \"APPEND_IF_NEW\",\n", "  occurredAt, correlationId, discipline: \"NOT_A_DISCIPLINE\",\n", APPEND],
+  /* RR-248: R1 and R2 restated — RR-227 (91ead21) added a second live gate (the sitemap re-collection) and two more APPEND_IF_NEW
+   * appends (bodies, sitemaps); each span names the gate and the append these limbs were written for */
+  ["R1", "a live run without the owner's green is refused before any request", B, "if (live && !green) {\n  console.error(\n    [", "if (false) {\n  console.error(\n    [", REFUSE],
+  ["R2", "the observations append keeps its declared discipline", B, "action: \"APPEND_CRAWL_OBSERVATIONS\",\n  occurredAt, correlationId, discipline: \"APPEND_IF_NEW\",\n", "action: \"APPEND_CRAWL_OBSERVATIONS\",\n  occurredAt, correlationId, discipline: \"NOT_A_DISCIPLINE\",\n", APPEND],
   ["R3", "the cost entry is appended under its declared action", B, "targetClass: \"RUN_EVIDENCE\", action: \"APPEND_CRAWL_COST_ENTRY\",", "targetClass: \"RUN_EVIDENCE\", action: \"APPEND_CRAWL_COSTS\",", APPEND],
 ];
 
@@ -73,6 +76,6 @@ restoreAll();
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "f19-append-path-sabotage-rr133-2026-10-02.txt"), lines.join("\n") + "\n");
+console.log(`evidence written: ${writeEvidenceOnce(REPO, "f19-append-path-sabotage", lines.join("\n") + "\n")}`);
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

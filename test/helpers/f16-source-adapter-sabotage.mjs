@@ -9,6 +9,7 @@
  * Evidence: runs/audit/f16-source-adapter-sabotage-rr126-2026-10-01.txt (RR-126 rerun after S6 and S22 followed their live lines; every earlier round file is kept untouched).
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { writeEvidenceOnce } from "./evidence-once.mjs"; // RR-248: evidence to a new timestamped file, never over an earlier run's
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -73,7 +74,8 @@ const SABOTAGES = [
   ["S59", "§4 (RR-121) a returned backoff is recorded", GOV, "      if (Number.isInteger(response?.backoff) && response.backoff > 0) backoffUntil.set(", "      if (false) backoffUntil.set(", "§4 · FIRING CONTROL: BACKOFF is obeyed"],
   ["S60", "§4 (RR-121) a returned quota is recorded", GOV, "      if (Number.isInteger(response?.quota_remaining)) quotaRemaining = ", "      if (false) quotaRemaining = ", "§4 · FIRING CONTROL: the QUOTA stops"],
   ["S61", "§4 (RR-121) a credential never makes a request different", GOV, ".filter((k) => !CREDENTIAL_PARAMS.has(k))", ".filter(() => true)", "§4 · FIRING CONTROL: a semantically identical request"],
-  ["S62", "§4 (RR-121) a refused recheck keeps no recheck", COL, "  if (again.refused) return { recorded, recheck: null,", "  if (false) return { recorded, recheck: null,", "§4 · the collector makes exactly one search"],
+  /* RR-248: restated — RR-159 (fc356d3) added collectByIds with the same opening; the span is collect()'s own line, as written for */
+  ["S62", "§4 (RR-121) a refused recheck keeps no recheck", COL, "  if (again.refused) return { recorded, recheck: null, tally: g.tally(), stoppedBy: again.refused };", "  if (false) return { recorded, recheck: null, tally: g.tally(), stoppedBy: again.refused };", "§4 · the collector makes exactly one search"],
   ["S63", "§4 (RR-121) an empty search is not rechecked", COL, "  if (ids.length === 0) return {", "  if (false) return {", "§4 · the collector makes exactly one search"],
   ["S64", "§4 (RR-121) the backoff window is per method", GOV, "backoffUntil.has(method) && clock() < backoffUntil.get(method)", "backoffUntil.size > 0 && clock() < Math.max(...backoffUntil.values())", "§4 · FIRING CONTROL: BACKOFF is obeyed"],
   ["S36", "§5 (RR-120) a deleted post is refused as deleted", QA, "    if (!now) { refuse(\"POST_DELETED_SINCE_RETRIEVAL\"); continue; }", "", "§5 · FIRING CONTROL: a post deleted or changed"],
@@ -136,6 +138,6 @@ restoreAll();
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "f16-source-adapter-sabotage-rr126-2026-10-01.txt"), lines.join("\n").split(PRODUCT_WORDS[0]).join("<planted product word>") + "\n");
+console.log(`evidence written: ${writeEvidenceOnce(REPO, "f16-source-adapter-sabotage", lines.join("\n").split(PRODUCT_WORDS[0]).join("<planted product word>") + "\n")}`);
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

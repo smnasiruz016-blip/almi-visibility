@@ -2,7 +2,8 @@
 /**
  * THE ACCEPTANCE TEST — one corridor, five hand-sourced facts, Gate A re-run.
  *
- *   node bin/acceptance-test.mjs --corpus <dir> --page nursing__from-india
+ *   node subjects/almi-oet/tools/acceptance-test.mjs --tenant=<declared tenant id> --corpus <dir> --page nursing__from-india
+ *   (RR-248: its path since F02's relocation, 0382b11; F02 refuses every read without a declared --tenant)
  *
  * ⚠️ THE AUGMENTED PAGE IS BUILT IN MEMORY AND NEVER PUBLISHED. Nothing is
  * written to any product repo, no page is created, no deploy happens. This reads
@@ -58,7 +59,7 @@ const RUN_CORRELATION = `run:acceptance-test:${RUN_INSTANT}`;
 /* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
 const SCOPE = scopedEntryPoint({ entry: "subjects/almi-oet/tools/acceptance-test.mjs", governed: true, resources: [RESOURCES.inputPath(corpusDir, "--corpus"), RESOURCES.inputPath(factsDir, "--facts")] });
 if (!corpusDir || !existsSync(join(corpusDir, group))) {
-  console.error("usage: node bin/acceptance-test.mjs --corpus <dir> [--group g] [--page id] [--facts dir] [--out f] [--confirm]");
+  console.error("usage: node subjects/almi-oet/tools/acceptance-test.mjs --tenant=<declared tenant id> --corpus <dir> [--group g] [--page id] [--facts dir] [--out f] [--confirm]");
   process.exit(2);
 }
 

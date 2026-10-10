@@ -68,7 +68,8 @@ const SABOTAGES = [
   /* ── F37 C5 (P21, F37-9, F37-10) ── */
   ["S27", "F37 C5 · a fact-count threshold decides something", [[DR, "  checks.directAnswer = central.length ? { state: CHECK.PASS }", "  checks.directAnswer = central.length >= 2 ? { state: CHECK.PASS }"]], "T37g"],
   ["S28", "F37 C5 · a measurable check with no recorded input is passed by default (internal links)", [[DR, '{ state: CHECK.NOT_MEASURED, why: "no internal-link target is recorded in or out', '{ state: CHECK.PASS, why: "no internal-link target is recorded in or out']], "T37f"],
-  ["S29", "F37 C5 · a measurable check with no recorded input is passed by default (technical)", [[DR, '  checks.technical = !present(links?.selfUrl) ? { state: CHECK.NOT_MEASURED,', "  checks.technical = !present(links?.selfUrl) ? { state: CHECK.PASS,"]], "T37f"],
+  /* RR-248: restated — RR-208 (c286d62) reads `links.selfUrl` (links are always an F94 plan state); the limb still passes it by default */
+  ["S29", "F37 C5 · a measurable check with no recorded input is passed by default (technical)", [[DR, '  checks.technical = !present(links.selfUrl) ? { state: CHECK.NOT_MEASURED,', "  checks.technical = !present(links.selfUrl) ? { state: CHECK.PASS,"]], "T37f"],
   ["S30", "F37 C5 · a judged quality of F40's is required by F37", [[DR, "  const states = Object.values(checks).map((c) => c.state);", '  checks.engaging = { state: CHECK.NOT_MEASURED, why: "F40\'s judgement" };\n  const states = Object.values(checks).map((c) => c.state);']], "T37f"],
   ["S31", "F37 C5 · copy that promises ranking passes", [[DR, "markup.state === MARKUP.ALIGNED && !PROMISE.test(html) ?", "markup.state === MARKUP.ALIGNED ?"]], "T37h"],
   ["S32", "F37 C5 · a draft with no direct answer passes", [[DR, "  checks.directAnswer = central.length ? { state: CHECK.PASS }", "  checks.directAnswer = true ? { state: CHECK.PASS }"]], "T37f"],

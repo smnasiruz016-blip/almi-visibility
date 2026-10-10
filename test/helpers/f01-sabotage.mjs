@@ -53,7 +53,8 @@ export const F01_SABOTAGES = [
     expect: /was not refused — a usual tenant was supplied/ },
 
   { id: "S2", what: "one project allowed to cross tenants", file: INTAKE, test: T, named: "P7 ·",
-    from: '  if (holders.some((h) => h !== n.tenantId)) return refuseStore("PROJECT_BELONGS_TO_ANOTHER_TENANT", "$.projectId");',
+    /* RR-248: restated — since F02 (0da6756) the tenant comparison is the ONE decision; the limb still lets a project cross tenants */
+    from: '  if (holders.some((h) => !decideResolvedTenants(n.tenantId, h).allowed)) return refuseStore("PROJECT_BELONGS_TO_ANOTHER_TENANT", "$.projectId");',
     to: '  if (false) return refuseStore("PROJECT_BELONGS_TO_ANOTHER_TENANT", "$.projectId");',
     probe: probe(`const d = world(); const a = fresh(TA); bin(d, "--submit", "--file", put(d, a), "--confirm"); say(bin(d, "--submit", "--file", put(d, fresh(TB, { projectId: a.projectId })), "--confirm").j?.outcome === "ACCEPTED");`),
     expect: /a project crossed tenants/ },
@@ -102,7 +103,8 @@ export const F01_SABOTAGES = [
 
   { id: "S10", what: "an ACCEPTED declaration MUTATED (same id, new bytes, written over it)", test: T, named: "P10 ·",
     edits: [
-      { file: INTAKE, from: '    if (held.tenantId !== n.tenantId || held.projectId !== n.projectId || held.bytes !== bytes) return refuseStore("DECLARATION_ID_CONFLICT", "$.declarationId");', to: '    if (held.tenantId !== n.tenantId || held.projectId !== n.projectId) return refuseStore("DECLARATION_ID_CONFLICT", "$.declarationId");' },
+      /* RR-248: restated over F02's tenant decision (0da6756); the edit still removes ONLY the bytes comparison */
+      { file: INTAKE, from: '    if (!decideResolvedTenants(n.tenantId, held.tenantId).allowed || held.projectId !== n.projectId || held.bytes !== bytes) return refuseStore("DECLARATION_ID_CONFLICT", "$.declarationId");', to: '    if (!decideResolvedTenants(n.tenantId, held.tenantId).allowed || held.projectId !== n.projectId) return refuseStore("DECLARATION_ID_CONFLICT", "$.declarationId");' },
       { file: INTAKE, from: "    if (current?.record.declarationId === n.declarationId || currentPointer(root, n.tenantId, n.projectId)?.declarationId === n.declarationId) {", to: "    if (held.bytes === bytes && (current?.record.declarationId === n.declarationId || currentPointer(root, n.tenantId, n.projectId)?.declarationId === n.declarationId)) {" },
       { file: INTAKE, from: '    if (n.supersedes === null) return refuseStore("SUPERSESSION_REQUIRED", "$.supersedes");', to: '    if (n.supersedes === null && current.record.declarationId !== n.declarationId) return refuseStore("SUPERSESSION_REQUIRED", "$.supersedes");' },
       { file: INTAKE, from: '    if (n.supersedes !== current.record.declarationId) return refuseStore("SUPERSEDES_NOT_CURRENT", "$.supersedes");', to: '    if (n.supersedes !== current.record.declarationId && current.record.declarationId !== n.declarationId) return refuseStore("SUPERSEDES_NOT_CURRENT", "$.supersedes");' },
@@ -203,7 +205,7 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("\\").join
       + `\nPROBE CONTROL (clean tree): ${cleanProbe.length - bad.length} of ${cleanProbe.length} probes report no defect.\n`
       + run.results.map((r) => `  ${r.id}  ran ${!String(r.verdict).startsWith("NOT RUN")} · bytes landed ${r.landed} · defect took effect ${r.tookEffect} · named RED ${r.namedFailed} · pinned reason ${r.reason} · ${r.verdict} · restored ${r.restoredClean}  — ${r.what}`).join("\n")
       + `\nRAN ${ran} of ${list.length} · LANDED ${landed} of ${list.length} · COULD-FAIL ${couldFail} of ${list.length} · PROVED ${proved} of ${list.length}\n`;
-    writeFileSync(join(REPO, outArg), text);
+    writeFileSync(join(REPO, outArg), text, { flag: "wx" });
     console.log(`evidence written: ${outArg}`);
   }
   process.exit(bad.length === 0 && ran === list.length && landed === list.length && proved === list.length && run.residue.length === 0 && run.productionUntouched ? 0 : 1);

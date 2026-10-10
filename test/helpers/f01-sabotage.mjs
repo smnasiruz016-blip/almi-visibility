@@ -134,9 +134,11 @@ export const F01_SABOTAGES = [
     probe: probe(`const d = world(); const a = fresh(TA); bin(d, "--submit", "--file", put(d, a), "--confirm"); say(bin(d, "--show", a.declarationId, "--tenant", TB).j?.outcome === "FOUND");`),
     expect: /a cross-tenant inspection returned another tenant's declaration/ },
 
+  /* RR-248: restated — since F04 (f9d81f7) a governed write is authorised only for a named actor; the planted write carried no
+   * actorRef, was refused IDENTITY_MISSING and wrote nothing, so the probe saw no defect. It now names the actor as the submit path does. */
   { id: "S14", what: "validate-only PERFORMS A WRITE", file: BIN, test: T, named: "P30 ·",
     from: '  exitWith(0, { outcome: "VALID", declarationId: v.normalised.declarationId,',
-    to: '  { const root = resolveDeclarationRoot({ env: process.env }); if (root.ok) executeGovernedWrite(declarationWrite({ root, audit: governedContext({ repo: REPO, env: process.env, correlationId: "validate:sabotage", now: isoSeconds(Date.now()).slice(0, 10) }), permission: { mayWrite: true, reason: "sabotage" }, repoRelativeTarget: "declarations/validate-wrote.json", bytes: "{}", action: "WRITE_PROJECT_DECLARATION", tenantId: v.normalised.tenantId, occurredAt: isoSeconds(Date.now()) })); }\n  exitWith(0, { outcome: "VALID", declarationId: v.normalised.declarationId,',
+    to: '  { const root = resolveDeclarationRoot({ env: process.env }); if (root.ok) executeGovernedWrite(declarationWrite({ root, audit: governedContext({ repo: REPO, env: process.env, correlationId: "validate:sabotage", now: isoSeconds(Date.now()).slice(0, 10) }), permission: { mayWrite: true, reason: "sabotage", actorRef: namedActor(process.argv) }, repoRelativeTarget: "declarations/validate-wrote.json", bytes: "{}", action: "WRITE_PROJECT_DECLARATION", tenantId: v.normalised.tenantId, occurredAt: isoSeconds(Date.now()) })); }\n  exitWith(0, { outcome: "VALID", declarationId: v.normalised.declarationId,',
     probe: probe(`const d = world(); bin(d, "--validate", "--file", put(d, fresh())); say(files(d).length > 1);`),
     expect: /validate-only wrote or recorded something/ },
 

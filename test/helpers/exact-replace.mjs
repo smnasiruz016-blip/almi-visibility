@@ -14,13 +14,14 @@
  *
  * A file with BOTH styles is refused outright: guessing which one to restore would rewrite lines nobody touched.
  *
- *   node test/helpers/exact-replace.mjs <spec.json> [--apply]
+ *   node test/helpers/exact-replace.mjs --deliberate <spec.json> [--apply]
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const REPO = new URL("../../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
-const spec = JSON.parse(readFileSync(process.argv[2], "utf8"));
+const spec = JSON.parse(readFileSync(process.argv.slice(2).find((a) => !a.startsWith("--")), "utf8")); // RR-247: the spec is the first non-flag argument, so --deliberate may stand anywhere
 const apply = process.argv.includes("--apply");
 
 /** Count endings from the bytes, never from a shell grep. */

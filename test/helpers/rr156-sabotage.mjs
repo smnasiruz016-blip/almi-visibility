@@ -2,7 +2,7 @@
  * 🔴 RR-156 · ONE SABOTAGE PER PROTECTION OF test/rr156-lamzish-scope.test.mjs — and, for the limbs RR-156 §5 names that live in
  * test/f16-collection.test.mjs (a lead admitted, zero misreported, a credential touched), the same sabotages again on the code live now.
  *
- *   node test/helpers/rr156-sabotage.mjs     NOT part of `npm test` (test/*.test.mjs only)
+ *   node test/helpers/rr156-sabotage.mjs --deliberate     NOT part of `npm test` (test/*.test.mjs only)
  *
  * Method of test/helpers/f16-collection-sabotage.mjs: BASELINE green, PRE-FLIGHT (every span exactly once), each sabotage ALONE, LANDED,
  * its NAMED test red by AssertionError only, restored by raw-byte sha256, the production trail hashed before and after. One sabotage is TWO
@@ -11,6 +11,7 @@
  * rehearsal: two removed, the test stayed green), which is the design, not a gap.
  * Evidence: runs/audit/rr156-sabotage-2026-10-04.txt — refuses to overwrite.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

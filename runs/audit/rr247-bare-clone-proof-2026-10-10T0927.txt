@@ -1,0 +1,13 @@
+RR-247 bare `node --test` in a full disposable clone · 2026-10-10T09:27:33.361Z
+source: rr247-harness-gate @ f6fb56f3d0fbdbbde84d1c8d4e2787b53e5f030e
+clone: rr247-clone-CrvIvA @ f6fb56f3d0fbdbbde84d1c8d4e2787b53e5f030e · 1507 tracked files · same commit as the source: true
+command: node --test   (no file list; cwd = the clone; not a child of a test runner; no sealed-store variable)
+exit 1 · 814 s · tests 3665 · pass 3514 · fail 130 (failures inside a clone are not the subject)
+sabotage harnesses the bare run DISCOVERED (named in its output): 118 · gate refusal lines in its output: 124
+clone tracked changes after the run: NONE · untracked entries (ignored scratch excluded): 0
+clone trail sha256 before f6944b72d64ccb8491055927dbab97497f5c81ed3d7a750bc3ac238092f77c26 · after f6944b72d64ccb8491055927dbab97497f5c81ed3d7a750bc3ac238092f77c26 · unchanged true
+THIS working tree: git status unchanged true · production trail sha256 f6944b72d64ccb8491055927dbab97497f5c81ed3d7a750bc3ac238092f77c26 · unchanged true
+the bare run finished on its own (no timeout, a final summary): true
+the shared data root (git HEAD · status digest): before e384d2e9562d813b3032c89e57b650033e49c735 · e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 · after e384d2e9562d813b3032c89e57b650033e49c735 · e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 · unchanged true
+clone deleted: true
+VERDICT: PASS — a bare `node --test` ran no harness and changed no tracked file

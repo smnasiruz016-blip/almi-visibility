@@ -1,0 +1,130 @@
+RR-247 goal 3 · every gated file invoked DELIBERATELY (node <file> --deliberate) under the RR-245 pre-flight preload <preload>
+(every write a no-op, every child process not run, read-only git allowed) — read-only; no sabotage pass ran. Branch rr247-harness-gate, the 124-file gate.
+Recorded per file: the gate passed (no REFUSED line), the exit, and its pre-flight / first line. An exit 1 here is the preload
+refusing a write or a spawn after the gate was passed; it is not the subject. Trail and git status were unchanged afterwards.
+test/helpers/asp-sabotage.mjs                        gate passed · exit 1 · probe control on the clean tree: 0 of 15 report no defect — 🔴 S1, S2, S3, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, S14, S15
+test/helpers/board-amendment-1-sabotage.mjs          gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): A1=1 A2=1 A3=1 A4=1 A5=1 · all exactly once: true
+test/helpers/d-recorder-1-sabotage.mjs               gate passed · exit 1 · D-RECORDER-1 · SABOTAGE — landed · named test RED · intended reason · restored by raw-byte hash
+test/helpers/date-correction-sabotage.mjs            gate passed · exit 2 · refused: C:\Projects\almi-visibility\runs\audit\date-correction-sabotage-rr153-2026-10-03.txt exists — an earlier run's evidence is never overwritten;
+test/helpers/exact-replace.mjs                       gate passed · exit 1 · node:fs:439
+test/helpers/f01-sabotage.mjs                        gate passed · exit 1 · 🔴   S2      NOT RUN — an anchor in src/intake/intake.mjs occurs 0 time(s)
+test/helpers/f02-disposition-sabotage.mjs            gate passed · exit 1 · F02 DISPOSITION · SABOTAGE — landed · named test RED · intended reason · restored by raw-byte hash
+test/helpers/f02-post-sabotage.mjs                   gate passed · exit 1 · F02 POST-MERGE · SABOTAGE — landed · named test RED · intended reason · restored by raw-byte hash
+test/helpers/f02-sabotage.mjs                        gate passed · exit 1 · 🔴   F2-S7   NOT RUN — an anchor in bin/label-on-face.mjs occurs 0 time(s)
+test/helpers/f03-sabotage.mjs                        gate passed · exit 1 · 🔴   F3-S11  NOT RUN — an anchor in src/tenancy/connectors.mjs occurs 0 time(s)
+test/helpers/f04-amendment-sabotage.mjs              gate passed · exit 1 · F04 · AMENDMENT 1 · SABOTAGE — landed · named test RED · intended reason · restored by raw-byte hash
+test/helpers/f04-sabotage.mjs                        gate passed · exit 1 · F04 · SABOTAGE — landed · named test RED · intended reason · restored by raw-byte hash
+test/helpers/f06-correction-sabotage.mjs             gate passed · exit 1 · probe control on the clean tree: 0 of 16 report no defect — 🔴 X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, X11, X12, X13, X14, X15, X16
+test/helpers/f06-correction-section-a.mjs            gate passed · exit 0 · engine HEAD
+test/helpers/f06-sabotage.mjs                        gate passed · exit 1 · 🔴   E10     NOT RUN — an anchor in src/evidence/evidence-state.mjs occurs 0 time(s)
+test/helpers/f07-amendment-sabotage.mjs              gate passed · exit 1 · F07 AMENDMENT 1 · SABOTAGE — landed · named test RED · intended reason · restored by raw-byte hash
+test/helpers/f07-amendment2-sabotage.mjs             gate passed · exit 1 · F07 AMENDMENT 2 · SABOTAGE — landed · named test RED · intended reason · restored by raw-byte hash
+test/helpers/f07-amendment3-sabotage.mjs             gate passed · exit 1 · F07 AMENDMENT 3 · SABOTAGE — landed · named test RED · intended reason · restored by raw-byte hash
+test/helpers/f07-sabotage.mjs                        gate passed · exit 1 · F07 §7 · SABOTAGE — landed · named test RED · intended reason · restored by raw-byte hash
+test/helpers/f07-sink-sabotage.mjs                   gate passed · exit 1 · probe control on the clean tree: 0 of 10 report no defect — 🔴 K1, K2, K3, K4, K5, K6, K7, K10, K8, K9
+test/helpers/f08-counting-control.mjs                gate passed · exit 1 · BEFORE  tests 0 · pass 0 · fail 0 · skipped 0
+test/helpers/f08-sabotage.mjs                        gate passed · exit 1 · §10 · SABOTAGE — landed · named test RED · intended reason · restored by raw-byte hash
+test/helpers/f08-witness-sabotage.mjs                gate passed · exit 1 · F08 WITNESS · SABOTAGE — landed · named test RED · intended reason · restored by raw-byte hash
+test/helpers/f09-sabotage.mjs                        gate passed · exit 1 · <local path>
+test/helpers/f10-c7-sabotage.mjs                     gate passed · exit 1 · F10 · C7 · SABOTAGE — landed · named test RED · intended reason · restored by raw-byte hash
+test/helpers/f10-sabotage.mjs                        gate passed · exit 1 · F10 · SABOTAGE — landed · named test RED · intended reason · restored by raw-byte hash
+test/helpers/f10-selection-sabotage.mjs              gate passed · exit 1 · F10 · SELECTION AND PACKET · SABOTAGE — landed · named test RED · intended reason · restored by raw-byte hash
+test/helpers/f13-sabotage.mjs                        gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): X1=1 X2=1 X3=1 X4=1 X5=1 X6=1 X7=1 X8=1 X9=1 X10=1 X11=1 X12=1 X13=1 X14=1 X15=1 X16=1 X17=1 X18=1
+test/helpers/f16-agent-observer-sabotage.mjs         gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): A1=1 A2=1 A3=1 A4=1 A5=1 A6=1 A7=1 A8=1 A9=1 A10=1 A11=1 A12=1 A13=1 A14=1 A15=1 A16=1 A17=2 A18=1
+test/helpers/f16-collection-sabotage.mjs             gate passed · exit 2 · REFUSED — C:\Projects\almi-visibility\runs\audit\f16-collection-sabotage-rr155-2026-10-04-run2.txt exists; an earlier run's evidence is never overwrit
+test/helpers/f16-human-observation-sabotage.mjs      gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S21=1 S22=1
+test/helpers/f16-product-led-sabotage.mjs            gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): L1=1 L2=1 L3=1 L4=1 L5=1 L6=1 L7=1 L8=1 L9=1 L10=1 L11=1 L12=1 · all exactly once: true
+test/helpers/f16-relevance-gate-sabotage.mjs         gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): R1=1 R2=1 R3=1 R4=1 R5=1 R6=1 R7=1 R8=1 R9=1 R10=1 R11=1 R12=1 R13=1 R14=1 R15=1 R16=1 · all exact
+test/helpers/f16-sabotage.mjs                        gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1
+test/helpers/f16-source-adapter-sabotage.mjs         gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1
+test/helpers/f19-append-path-sabotage.mjs            gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): R1=2 R2=3 R3=1 · all exactly once: false
+test/helpers/f19-census-controls.mjs                 gate passed · exit 1 · [F19 REAL population] runs 3 · subjects 2 · tenants 2 · registered domains 2
+test/helpers/f19-generic-crawl-sabotage.mjs          gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): G1=1 G2=1 G3=1 G4=1 G5=1 G6=1 G7=1 G8=3 · all exactly once: false
+test/helpers/f19-sabotage.mjs                        gate passed · exit 1 · F19 · SABOTAGE — landed · named test RED · intended reason · restored by raw-byte hash
+test/helpers/f20-sabotage.mjs                        gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 · all exact
+test/helpers/f21-sabotage.mjs                        gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1
+test/helpers/f22-render-audit-sabotage.mjs           gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): K1=1 K2=1 K3=1 K4=1 K5=1 K6=1 K7=1 K8=1 K9=1 K10=1 K12=1 K13=1 K14=1 K16=1 K15=1 · all exactly onc
+test/helpers/f23-owner-rule-sabotage.mjs             gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): L1=1 L2=1 · all exactly once: true
+test/helpers/f23-sabotage.mjs                        gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1
+test/helpers/f25-mobile-sabotage.mjs                 gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): M1=1 M2=1 M3=1 M4=1 M5=1 M6=1 M7=1 M8=1 M9=1 M10=1 M11=1 M12=1 M13=1 M14=1 M15=1 M16=1 M17=1 M18=1
+test/helpers/f26-sabotage.mjs                        gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 · all exact
+test/helpers/f27-header-sabotage.mjs                 gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): H1=1 H2=1 H3=1 H4=1 H5=1 H6=1 H7=1 H8=1 H9=1 H10=1 · all exactly once: true
+test/helpers/f27-sabotage.mjs                        gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1
+test/helpers/f29-sabotage.mjs                        gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 · all exactly once: true
+test/helpers/f31-sabotage.mjs                        gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=0 S6=1 S7=1 S8=0 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1
+test/helpers/f32-sabotage.mjs                        gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1
+test/helpers/f33-sabotage.mjs                        gate passed · exit 0 · F33 sabotage run · 2026-10-10T05:54:42.362Z
+test/helpers/f34-sabotage.mjs                        gate passed · exit 0 · S3 C2 empty but not COMPLETE is MONITOR src/page/existing-page-first.mjs: SPAN NOT FOUND EXACTLY ONCE — NOT PROVED
+test/helpers/f35-sabotage.mjs                        gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): S1=0 S2=0 S3=0 S4=0 S5=0 S6=1 S7=0 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1
+test/helpers/f36-sabotage.mjs                        gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 · all exactly once: true
+test/helpers/f39-sabotage.mjs                        gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1
+test/helpers/f40-lift-sabotage.mjs                   gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): L1=1 L2=1 L3=1 L4=1 · all exactly once: true
+test/helpers/f41-sabotage.mjs                        gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): S1=0 S2=0 S3=0 S4=1 S5=1 S6=1 S7=1 S8=0 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1
+test/helpers/f43-sabotage.mjs                        gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1
+test/helpers/f44-capability-sabotage.mjs             gate passed · exit 1 · F44 capability-claim precondition · sabotage run · 2026-10-10T05:54:48.637Z
+test/helpers/f44-sabotage.mjs                        gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1
+test/helpers/f45-sabotage.mjs                        gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1
+test/helpers/f46-sabotage.mjs                        gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 · all exact
+test/helpers/f47-sabotage.mjs                        gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 · all exactly once: tru
+test/helpers/f48-sabotage.mjs                        gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 · all exact
+test/helpers/f55-sabotage.mjs                        gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 · all
+test/helpers/f62-assessment-sabotage.mjs             gate passed · exit 2 · refused: C:\Projects\almi-visibility\runs\audit\f62-assessment-sabotage-rr150-2026-10-03.txt exists — an earlier run's evidence is never overwritten; 
+test/helpers/f62-sabotage.mjs                        gate passed · exit 2 · refused: C:\Projects\almi-visibility\runs\audit\f62-sabotage-rr148-2026-10-03.txt exists — an earlier run's evidence is never overwritten; name a new 
+test/helpers/f73-sabotage.mjs                        gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 · all exactly once: tru
+test/helpers/f75-sabotage.mjs                        gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code live now): K01=1 K02=1 K03=1 K04=1 K05=1 K06=1 K07=1 K08=1 K09=1 K10=1 K11=1 K12=1 K13=1 K14=1 · all exactly 
+test/helpers/f77-sabotage.mjs                        gate passed · exit 0 · S7 M4 real paid provider seen tools/paid-metered-call-census.mjs: SPAN NOT FOUND EXACTLY ONCE — NOT PROVED
+test/helpers/f78-sabotage.mjs                        gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1
+test/helpers/f79-sabotage.mjs                        gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1
+test/helpers/f81-sabotage.mjs                        gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): P1=1 P2=1 P3=1 P4=1 P5=1 P6=1 P7=1 P8=1 P9=1 P10=1 P11=1 P12=1 P13=1 P14=1 P15=1 P16=1 P17=1 · all
+test/helpers/f82-sabotage.mjs                        gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 · all exact
+test/helpers/f87-operator-sabotage.mjs               gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): O1=1 O2=1 O3=1 O4=1 O5=1 O6=1 O7=1 O8=1 O9=1 O10=1 · all exactly once: true
+test/helpers/f87-sabotage.mjs                        gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): W1=1 W2=1 W3=1 W4=1 W5=1 W6=1 W7=1 W8=1 W9=1 W10=1 W11=1 W12=1 W13=1 W14=1 W15=1 W16=1 W17=1 W18=1
+test/helpers/f90-sabotage.mjs                        gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code live now): S01=1 S02=1 S03=1 S04=1 S05=1 S06=1 S07=1 S08=1 S09=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S1
+test/helpers/f91-connection-sabotage.mjs             gate passed · exit 2 · refused: C:\Projects\almi-visibility\runs\audit\f91-connection-sabotage-rr153-2026-10-04.txt exists — an earlier run's evidence is never overwritten; 
+test/helpers/f91-sabotage.mjs                        gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=0 S6=1 S7=1 S8=1 S9=1 S10=1 S11=1 S12=0 S13=1 S14=1 S15=1 S16=1 S17=1 S18=1
+test/helpers/page-law-sabotage.mjs                   gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): G1=1 G2=1 G3=1 G4=1 · all exactly once: true
+test/helpers/rr100-sabotage.mjs                      gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): N01=1 W01=1 N02=1 W02=1 N03=1 N04=1 N05=1 W03=1 N06=1 N07=1 N08=1 N09=1 W04=1 N10=1 W05=1 N11=1 N1
+test/helpers/rr102-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code live now): N01=1 W01=1 N02=1 W02=1 N03=1 W03=1 W04=1 N04=1 W05=1 U01=1 U02=1 D01=0 D02=0 D03=1 · all exactly 
+test/helpers/rr103-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code live now): G01=1 G02=1 G03=1 G04=1 G05=0 G06=1 · all exactly once: false
+test/helpers/rr104-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code live now): Z01=1 Z02=1 Z03=1 Z04=1 Z05=1 Z06=1 Z07=1 Z08=1 Z09=1 Z10=1 Z11=1 Z12=1 Z13=1 Z14=1 Z15=1 Z16=0 Z1
+test/helpers/rr106-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code live now): A01=1 A02=1 A03=1 A04=1 P01=1 P02=1 B01=1 B02=1 B03=1 V01=1 V02=1 · all exactly once: true
+test/helpers/rr108-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code live now): S01=1 S02=1 S03=1 S04=0 S05=1 S06=1 S07=1 S08=1 S09=1 · all exactly once: false
+test/helpers/rr138-render-collect-sabotage.mjs       gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): X1=1 X2=1 X3=1 X4=1 X5=1 X6=1 X7=1 X8=1 X9=1 X10=1 X11=1 X12=1 X13=1 X14=1 X15=1 X16=1 X17=1 X18=1
+test/helpers/rr154-owner-records-sabotage.mjs        gate passed · exit 2 · REFUSED — C:\Projects\almi-visibility\runs\audit\rr154-owner-records-sabotage-2026-10-03.txt exists; an earlier run's evidence is never overwritten
+test/helpers/rr156-sabotage.mjs                      gate passed · exit 2 · REFUSED — C:\Projects\almi-visibility\runs\audit\rr156-sabotage-2026-10-04.txt exists; an earlier run's evidence is never overwritten
+test/helpers/rr157-sabotage.mjs                      gate passed · exit 2 · REFUSED — C:\Projects\almi-visibility\runs\audit\rr157-sabotage-2026-10-04.txt exists; an earlier run's evidence is never overwritten
+test/helpers/rr158-sabotage.mjs                      gate passed · exit 2 · REFUSED — C:\Projects\almi-visibility\runs\audit\rr158-sabotage-2026-10-04.txt exists; an earlier run's evidence is never overwritten
+test/helpers/rr159-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code live now): S01=1 S02=1 S03=1 S04=1 S05=1 S06=1 S07=1 S08=0 S09=1 S10=1 S11=1 S12=1 S13=0 S14=1 S15=1 S16=1 S1
+test/helpers/rr161-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code live now): T01=1 T02=1 T03=1 T04=1 T05=1 T06=1 T07=1 T08=1 T09=1 T10=1 T11=1 T12=1 T13=1 T14=1 T16=1 T15=1 · 
+test/helpers/rr170-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code live now): S01=1 S02=1 S03=1 S04=1 S05=1 S06=1 S07=1 S08=1 S09=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S1
+test/helpers/rr172-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code live now): S01=1 S02=1 S03=1 S04=1 S05=1 S06=1 S07=1 S08=1 S09=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S1
+test/helpers/rr174-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code live now): S01=1 S02=1 S03=1 S04=1 S05=1 S06=1 S07=1 S08=1 S09=1 S10=1 S11=1+1 S12=1+1 S13=1 S14=1 S15=1 S16=
+test/helpers/rr179-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code live now): S01=1 S02=1 S03=1 S04=1 S05=1 S06=1 S07=1 S08=1 S09=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S1
+test/helpers/rr180-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code live now): S01=1 S02=1 S03=1 S04=1 S05=1 S06=1 S07=1 S08=1 S09=1 S10=1 S11=1 S12=0 S13=1 S14=1 S15=1 S16=1 S1
+test/helpers/rr184-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code live now): S01=1 S02=1 S03=1 S04=1+1 S05=1 S06=1 S07=1 S08=1 S09=1 S10=1 S11=1+1 S12=1 S13=1 S14=1 S15=1 S16=
+test/helpers/rr186-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code live now): S01=1 S02=1 S03=1 S04=1 S05=1 S06=1 S07=1 S08=1 S09=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S1
+test/helpers/rr188-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code live now): S01=1 S02=1 S03=1 S04=1+1 S05=1 S06=1 S07=1 S08=1 S09=1 S10=1 S11=1+1 S12=1 S13=1 S14=1 S15=1 S16=
+test/helpers/rr192-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code live now): F32-S1=1 F32-S2=1 F32-S3=1 F32-S4=1 F32-S5=1 F32-S6=1 F32-S7=1 F32-S8=1 F32-S9=1 F32-S10=1 F32-S11
+test/helpers/rr199-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code live now): T2-thin-content=1 T2-near-duplicate=1 T2-template-dominance=1 T2-version=1 T2-value=1 T2-justifica
+test/helpers/rr206-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code live now): S01=1 S02=1 S03=1 S04=1 S05=1 S06=1 S07=1 S08=1 S09=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S1
+test/helpers/rr208-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code live now): S01=1 S02=1 S03=1 S04=1 S05=1 S06=1 S07=1 S08=1 S09=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S1
+test/helpers/rr210-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code live now): S01=1 S02=1 S03=1 S04=1 S05=1 S06=1 S07=1 S08=1 S09=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S1
+test/helpers/rr214-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code live now): S01=1 S02=1 S03=1 S04=1 S05=1 S06=1 S07=1 S08=1 S09=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S1
+test/helpers/rr216-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code live now): S01=1 S02=1 S03=1 S04=1 S05=1 S06=1 S07=1 S08=1 S09=1 S10=1 S11=1 S12=1 S13=1 S14=1+1 S15=1 S16=1 
+test/helpers/rr225-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code live now): S01=1 S02=1 S03=1 S04=1 S05=1 S06=1 S07=1 S08=1 S09=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S1
+test/helpers/rr227-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code live now): N01=1 N02=1 N03=1 N04=1 N05=1 N06=1 N07=1 N08=1 N09=1 N10=1 N11=1 N12=1 N13=1 N14=1 N15=1 N16=1 N1
+test/helpers/rr229-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code live now): S01=1 S02=1 S03=1 S04=1 S05=1 S06=1 S07=1 S08=1 S09=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 S16=1 S1
+test/helpers/rr229c-sabotage.mjs                     gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code live now): L-WHOLE=1 L-HASH=1 L-COVERAGE=1 L-BOUNDS=1 L-SITE_HELD=1 L-CEILING=1 L-COUNT_ONLY=1 B-OWN_OBSERVAT
+test/helpers/rr232-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the files now): P1=1 P2=1 P3=1 P4=1 P5=1 P6=1 P7=1 · all exactly once: true
+test/helpers/rr233-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the file now): R1=1 R2=1 R3=1 R4=1 R5=1 R6=1 R7=1 R8=1 R9=1 · all exactly once: true
+test/helpers/rr234-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the files now): S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=1 · all exactly once: true
+test/helpers/rr243-run-cost-child.mjs                gate passed · exit 1 · <local path>
+test/helpers/rr243-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code now): S01=1 S02=1 S03=1 S04=1 S05=1 S06=1 S07=1 S08=1 S09=1 S10=1 S11=1 S12=1 S13=1 S14=1 S15=1 W01=1 M01=1 W
+test/helpers/rr244-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code now): A01=1 A02=1 A03=1 A04=1 A05=1 A06=1 A07=1 A08=1 A09=1 A10=1 A11=1 A12=1 A13=1 A14=1 A16=1 A15=1 · all e
+test/helpers/rr246-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code now): B01=1 B02=1 B03=1 B04=1 B05=1 B06=1 B07=1 B08=1 B09=1 B11=1 B12=1 B13=1 B10=1 · all exactly once: true
+test/helpers/rr247-bare-clone-proof.mjs              gate passed · exit 1 · <local path>
+test/helpers/rr247-sabotage.mjs                      gate passed · exit 1 · PRE-FLIGHT (span occurrences in the code now): G01=1 G02=1 G03=1 G04=1 G05=1 · all exactly once: true
+test/helpers/rr80-sabotage.mjs                       gate passed · exit 0 · RR-80 sabotage run · 2026-10-10T05:55:42.065Z
+test/helpers/rr98-sabotage.mjs                       gate passed · exit 0 · PRE-FLIGHT (span occurrences in the code live now): S1=1 S2=1 S3=1 S4=1 S5=1 · all exactly once: true
+
+gated files 124 · passed the gate when invoked deliberately 124 · stopped at the gate 0 · with a pre-flight line 87 · all anchors exactly once 61 · reporting stale anchors 26 · timed out 0

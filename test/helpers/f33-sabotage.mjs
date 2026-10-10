@@ -1,13 +1,14 @@
 /**
  * 🔴 F33 · ONE SABOTAGE PER PROTECTION (acceptance _handoffs 9dc9bc2 EVIDENCE).
  *
- *   node test/helpers/f33-sabotage.mjs      NOT part of `npm test` (test/*.test.mjs only)
+ *   node test/helpers/f33-sabotage.mjs --deliberate      NOT part of `npm test` (test/*.test.mjs only)
  *
  * Each sabotage replaces ONE exact single-line span, proves it LANDED, runs the named proof file, requires the NAMED test to fail,
  * restores the file and proves the restore by raw-byte sha256. The production trail is hashed before and after and must be unchanged.
  * A restore also runs on any exit. A sabotage that does not turn its named test red is reported NOT PROVED — never dropped.
  * Evidence: runs/audit/f33-sabotage-2026-09-29.txt.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

@@ -2,13 +2,14 @@
  * 🔴 RR-80 · ONE SABOTAGE PER FAILURE LIMB — first-party demotion (00f20db), question-fit gate (ef4c6fc), the F07 Amendment 4 guard
  * (5afaae5) and Specification Amendment 2's pin (388ae02).
  *
- *   node test/helpers/rr80-sabotage.mjs      NOT part of `npm test` (test/*.test.mjs only)
+ *   node test/helpers/rr80-sabotage.mjs --deliberate      NOT part of `npm test` (test/*.test.mjs only)
  *
  * Each sabotage replaces ONE exact span, proves it LANDED, runs ONE test file, requires the NAMED test to fail, restores the file
  * and proves the restore by raw-byte sha256. The production trail is hashed before and after the run and must be unchanged. A
  * restore also runs on any exit. A sabotage that does not turn its named test red is reported NOT PROVED — never dropped.
  * Evidence: runs/audit/rr80-sabotage-<date>T<hhmm>.txt, one file per run (RR-246); the 28 Sep run's file is kept as it was.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

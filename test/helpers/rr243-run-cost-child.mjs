@@ -3,7 +3,7 @@
  * goes through the REAL path every connector entry point uses: F02's scoped entry naming the tenant's own ledger, src/cost/run-cost.mjs,
  * the governed write and the ledger file. Its "connector" is a stand-in whose fetch counts and never leaves the process.
  *
- *   node test/helpers/rr243-run-cost-child.mjs --mode=<mode> --tenant=<t> --actor=<a> [--confirm]
+ *   node test/helpers/rr243-run-cost-child.mjs --deliberate --mode=<mode> --tenant=<t> --actor=<a> [--confirm]
  *     complete        opens the connector, makes 2 requests, ends 0
  *     refuse          ends with exit 3 after the gate, before any request (a refusal)
  *     throw           opens the connector, makes 1 request, throws (an error)
@@ -12,6 +12,7 @@
  *     target-refusal  RR-244: opens the connector, makes 1 request the target refuses (403), ends with exit 3 (a refusal by the target)
  * Test material only.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { scopedEntryPoint } from "../../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../../src/tenancy/scoped-run.mjs";
 import { writePermission, LOCAL } from "../../src/write-law.mjs";

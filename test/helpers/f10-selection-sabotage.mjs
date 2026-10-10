@@ -2,7 +2,7 @@
  * 🔴 F10 · THE ONE SELECTION AND THE OWNER'S PACKET — one sabotage per guard, each turning its named test RED for the intended
  * reason (an assertion message of that test), then restored byte-for-byte (command ec3bbaf §4–§6).
  *
- *   node test/helpers/f10-selection-sabotage.mjs [--only=SL-S1,…]
+ *   node test/helpers/f10-selection-sabotage.mjs --deliberate [--only=SL-S1,…]
  *
  *   SL-S1  a version never frozen at this code does not refuse        SL-S6  the door opens twice (ALREADY_SEALED dropped)
  *   SL-S2  a freeze at the selection instant does not refuse          SL-S7  an incomplete key is written (the preflight dropped)
@@ -10,6 +10,7 @@
  *   SL-S4  an allocation other than the frozen one is used            SL-S9  an answer is not saved when typed
  *   SL-S5  rows are taken in input order, not by identity hash (D5b)  SL-S10 a corrected answer does not replace the old one
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { runSabotages } from "./f08-sabotage.mjs";
 
 const T = "test/f10-selection-packet.test.mjs";

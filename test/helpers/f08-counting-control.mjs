@@ -2,6 +2,7 @@
  * §15 · THE COUNTING CONTROL. A suite count is only evidence if the counter can be shown to notice a failure and
  * NAME it. Plant exactly one failing test, measure, remove it, prove the tree is byte-clean.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { writeFileSync, rmSync, existsSync, readdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";

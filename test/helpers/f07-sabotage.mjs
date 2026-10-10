@@ -2,7 +2,7 @@
  * F07 §7 · SABOTAGE — one deliberate defect per independent enforcement limb, each aimed at the NAMED proof that must
  * turn RED for the intended reason, restored byte-identically, the production trail hashed around the whole run.
  *
- *   node test/helpers/f07-sabotage.mjs [--only=F7-S1,…] [--out=runs/audit/<file>.txt]
+ *   node test/helpers/f07-sabotage.mjs --deliberate [--only=F7-S1,…] [--out=runs/audit/<file>.txt]
  *
  * Shares F08's harness (test/helpers/f08-sabotage.mjs: runSabotages / renderEvidence). 🔴 ADDED FOR F07: the run
  * ASSERTS THAT EVERY SABOTAGE EXECUTED. In F08 one sabotage never ran and the harness said nothing; a no-op is worse
@@ -10,6 +10,7 @@
  *
  * Synthetic payload and confined stores only. No sabotage touches or opens the real sealed material.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";

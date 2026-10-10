@@ -2,7 +2,7 @@
  * §10 · SABOTAGE — DURABLE EVIDENCE. For each: confirm the mutation LANDED · run its test file · require RED, the
  * NAMED test among the failures, and the INTENDED reason in the output · restore byte-identically · verify by hash.
  *
- *   node test/helpers/f08-sabotage.mjs [--only=S3,S19] [--out=runs/audit/<file>.txt]
+ *   node test/helpers/f08-sabotage.mjs --deliberate [--only=S3,S19] [--out=runs/audit/<file>.txt]
  *
  * 🔴 ATTRIBUTION IS BY THE FAILING TEST'S NAME, NOT ONLY BY A WORD IN THE OUTPUT. A pattern such as /REFUSED/
  * matches almost anything a governed-write test prints, so "red, and the word appeared" can be red for another
@@ -15,6 +15,7 @@
  * sabotaged code DID. The production audit trail is hashed before the first sabotage and after the last, and a
  * difference fails the whole run, whatever each sabotage reported.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";

@@ -1,11 +1,12 @@
 /**
  * 🔴 F75 · TASK TICKETS — ONE SABOTAGE PER CLAUSE, AGAINST THE CODE LIVE NOW (acceptance _handoffs 01275a9 EVIDENCE).
  *
- *   node test/helpers/f75-sabotage.mjs     NOT part of `npm test` (test/*.test.mjs only)
+ *   node test/helpers/f75-sabotage.mjs --deliberate     NOT part of `npm test` (test/*.test.mjs only)
  *
  * The method of test/helpers/f90-sabotage.mjs: PRE-FLIGHT (each span exactly once), each sabotage ALONE, proved to have LANDED, its NAMED
  * test required red, restored by raw-byte sha256, the production trail hashed before and after. Evidence: runs/audit/f75-sabotage-2026-09-30.txt.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

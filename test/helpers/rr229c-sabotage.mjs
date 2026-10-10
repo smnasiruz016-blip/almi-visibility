@@ -4,8 +4,9 @@
  * found EXACTLY ONCE, applied ALONE, restored by raw-byte sha256, the production trail hashed before and after. Fixture/real records are
  * only READ. The engine of test/helpers/rr227-sabotage.mjs, without its census-control step.
  *
- *   node test/helpers/rr229c-sabotage.mjs [--practice] [--only=<id>]     NOT part of `npm test`
+ *   node test/helpers/rr229c-sabotage.mjs --deliberate [--practice] [--only=<id>]     NOT part of `npm test`
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -114,7 +115,7 @@ for (const [id, limb, spans, testFile, expect, reason] of baselineGreen && named
 /* the 10 real-census controls (RR-135), re-run on a COPY of the data root — the real root is never written */
 let census = { proved: 0, of: 10, line: "NOT RUN" };
 if (false) {
-  const r = spawnSync(process.execPath, ["test/helpers/f19-census-controls.mjs"], { cwd: REPO, encoding: "utf8", timeout: 1800000 });
+  const r = spawnSync(process.execPath, ["test/helpers/f19-census-controls.mjs", "--deliberate"], { /* RR-247: the controls are gated */ cwd: REPO, encoding: "utf8", timeout: 1800000 });
   const m = `${r.stdout}`.match(/proved (\d+) of (\d+)/);
   census = { proved: m ? Number(m[1]) : 0, of: m ? Number(m[2]) : 10, line: `${r.stdout}`.trim().split("\n").map((l) => `  ${l}`).join("\n") };
   lines.push("", "REAL-CENSUS CONTROLS (test/helpers/f19-census-controls.mjs, on a copy of the data root):", census.line);

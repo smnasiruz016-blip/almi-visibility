@@ -1,13 +1,14 @@
 /**
  * 🔴 RR-153 · F91 QUESTION-TO-PAGE-CANDIDATE CONNECTION · ONE SABOTAGE PER LIMB (Acceptance Amendment 2, _handoffs fff60df).
  *
- *   node test/helpers/f91-connection-sabotage.mjs      NOT part of `npm test`
+ *   node test/helpers/f91-connection-sabotage.mjs --deliberate      NOT part of `npm test`
  *
  * BASELINE: the test file must be wholly GREEN before any sabotage, or nothing is run. PRE-FLIGHT: every span exactly once in the code
  * live now. Each sabotage alone; the named test must fail by an ASSERTION (a crash is a harness fault, never a proof); restored by raw-byte
  * sha256; the production trail hashed before and after.
  * Evidence: runs/audit/f91-connection-sabotage-rr153-2026-10-04.txt — its own file; it refuses to overwrite one that exists.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

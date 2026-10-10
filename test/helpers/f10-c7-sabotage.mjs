@@ -3,7 +3,7 @@
  * test must turn RED for the intended reason (an assertion message of that test, never a test name), and the file is restored
  * byte-for-byte (F10 Amendment 1, _handoffs 2ee6c2a; the controls of ed85493 §4.1 / 148d48f §4.2).
  *
- *   node test/helpers/f10-c7-sabotage.mjs [--only=C7-S1,…]
+ *   node test/helpers/f10-c7-sabotage.mjs --deliberate [--only=C7-S1,…]
  *
  *   1 duplicates ............................. C7-S1, S2       6 cross-tenant access ............ C7-S4, S5
  *   2 generic need-blind output .............. C7-S6, S20      7 insufficient valid denominator . C7-S12
@@ -13,6 +13,7 @@
  *   and: the incomplete-key preflight (C7-S18) · the paired release on the route (C7-S19) · the trace law (C7-S21) ·
  *   the tenant-common-term rule (C7-S22) and its per-tenant isolation (C7-S23)
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { runSabotages } from "./f08-sabotage.mjs";
 
 const T = "test/f10-c7-follow-up.test.mjs";

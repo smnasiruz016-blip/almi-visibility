@@ -1,7 +1,7 @@
 /**
  * 🔴 F07 · AMENDMENT 3 — ONE SABOTAGE PER ADDED FAILURE LIMB, derived from the frozen amendment (governance 264c680).
  *
- *   node test/helpers/f07-amendment3-sabotage.mjs [--only=F7C-S1,…] [--out=<file>]
+ *   node test/helpers/f07-amendment3-sabotage.mjs --deliberate [--only=F7C-S1,…] [--out=<file>]
  *
  * Each sabotage replaces ONE anchor that occurs exactly once, proves the bytes changed (LANDED), runs its NAMED test, and
  * requires it RED for the INTENDED reason — an assertion message of that test, never a test name; then restores the file
@@ -17,6 +17,7 @@
  *   L10 PREFLIGHT          the claim made before the preflight · the completeness check dropped           → F7C-S13, S15
  *   L5  CEILING            the seven-token paired ceiling not applied                                     → F7C-S16
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";

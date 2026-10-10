@@ -3,12 +3,13 @@
  * RED for the intended reason; each is asserted to have RUN, to have LANDED (bytes AND behaviour) and to be restored
  * byte-identically (24 September 2026). The harness is F08's (test/helpers/f08-sabotage.mjs), unchanged.
  *
- *   node test/helpers/asp-sabotage.mjs [--only=S1,…] [--out=runs/audit/<file>.txt]
+ *   node test/helpers/asp-sabotage.mjs --deliberate [--only=S1,…] [--out=runs/audit/<file>.txt]
  *
  * 🔴 NO SABOTAGE AIMS AT THE PRODUCTION TRAIL. Every target is a census, a proof or the store's location check; the
  * named proofs hand primitives in-memory stores and stand-in entry points; the runtime probe writes only inside an OS
  * temp directory it mints and removes. The harness hashes the production trail around the whole run.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";

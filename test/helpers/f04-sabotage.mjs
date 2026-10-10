@@ -3,7 +3,7 @@
  * each aimed at the NAMED proof that must turn RED for the intended reason, restored byte-identically, the production
  * trail hashed around the whole run (shared harness: test/helpers/f08-sabotage.mjs).
  *
- *   node test/helpers/f04-sabotage.mjs [--only=F4-S1,…] [--out=<file>]
+ *   node test/helpers/f04-sabotage.mjs --deliberate [--only=F4-S1,…] [--out=<file>]
  *
  * FAILURE limbs → sabotages:
  *   proceeds without a declared actor or current permission ........................... F4-S1, F4-S19
@@ -19,6 +19,7 @@
  *                                                                      F4-S2, F4-S8, F4-S9, F4-S10
  * EVIDENCE → non-leakage F4-S17 · audit events F4-S18 · a fabricated owner approval F4-S16
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";

@@ -2,7 +2,7 @@
  * F07/F08 SINK REPAIR §4 · SABOTAGE — each independent limb of the repair, separately; each asserted to have RUN and to
  * have LANDED, which are different claims.
  *
- *   node test/helpers/f07-sink-sabotage.mjs [--only=K1,…] [--out=runs/audit/<file>.txt]
+ *   node test/helpers/f07-sink-sabotage.mjs --deliberate [--only=K1,…] [--out=runs/audit/<file>.txt]
  *
  * RAN     the edit was applied (its anchor occurs exactly once) and the named test file was executed.
  * LANDED  two checks, both required: the bytes hold the defect (the shared harness), AND a behavioural probe run WHILE
@@ -12,6 +12,7 @@
  *
  * Synthetic decisions and counting stores only; the production trail is hashed around the whole run.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";

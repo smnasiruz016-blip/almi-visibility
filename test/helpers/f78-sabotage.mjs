@@ -1,7 +1,7 @@
 /**
  * 🔴 F78 · ONE SABOTAGE PER PROTECTION (acceptance _handoffs a1885de EVIDENCE; RR-93 §2 publication-date guard included).
  *
- *   node test/helpers/f78-sabotage.mjs      NOT part of `npm test` (test/*.test.mjs only)
+ *   node test/helpers/f78-sabotage.mjs --deliberate      NOT part of `npm test` (test/*.test.mjs only)
  *
  * PRE-FLIGHT FIRST (RR-85 §7): every span is checked to exist EXACTLY ONCE in the code live now, and the pre-flight is printed
  * before any sabotage runs — a span that does not is NOT PROVED, never silently skipped. Then each sabotage replaces its span ALONE,
@@ -9,6 +9,7 @@
  * is hashed before and after. Evidence: runs/audit/f78-sabotage-<date>T<hhmm>.txt, one file per run (RR-244); the first run's
  * runs/audit/f78-sabotage-2026-09-29.txt is kept as it was.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

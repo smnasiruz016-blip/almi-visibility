@@ -1,13 +1,14 @@
 /**
  * 🔴 F16 · THE RELEVANCE GATE · ONE SABOTAGE PER SAFEGUARD (RR-126).
  *
- *   node test/helpers/f16-relevance-gate-sabotage.mjs      NOT part of `npm test` (test/*.test.mjs only)
+ *   node test/helpers/f16-relevance-gate-sabotage.mjs --deliberate      NOT part of `npm test` (test/*.test.mjs only)
  *
  * PRE-FLIGHT FIRST: every span must exist EXACTLY ONCE in the code live now. Each sabotage replaces its span ALONE, proves it LANDED, runs
  * the proof files, requires the NAMED test to fail, and restores by raw-byte sha256; a SyntaxError red is a harness fault, never a proof.
  * The production trail is hashed before and after.
  * Evidence: runs/audit/f16-relevance-gate-sabotage-rr126-run2-2026-10-01.txt (run 2, after R14 was pointed at the test that pins the literal; run 1 kept).
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

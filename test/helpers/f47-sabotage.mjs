@@ -1,13 +1,14 @@
 /**
  * 🔴 F47 · ONE SABOTAGE PER PROTECTION (acceptance _handoffs ccd4c1e EVIDENCE; RR-96 §4).
  *
- *   node test/helpers/f47-sabotage.mjs      NOT part of `npm test` (test/*.test.mjs only)
+ *   node test/helpers/f47-sabotage.mjs --deliberate      NOT part of `npm test` (test/*.test.mjs only)
  *
  * PRE-FLIGHT FIRST (RR-85 §7): every span is checked to exist EXACTLY ONCE in the code live now, and the pre-flight is printed
  * before any sabotage runs — a span that does not is NOT PROVED, never silently skipped. Then each sabotage replaces its span ALONE,
  * proves it LANDED, runs the named proof file, requires the NAMED test to fail, restores by raw-byte sha256. The production trail
  * is hashed before and after. Evidence: runs/audit/f47-sabotage-2026-09-30.txt.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

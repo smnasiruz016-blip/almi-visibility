@@ -1,7 +1,7 @@
 /**
  * 🔴 RR-100 · EVERY DECLARED CHECK BOUNDARY — ONE SABOTAGE PER CONDITION, IN BOTH DIRECTIONS, PLUS THE DECLARATIONS THEMSELVES.
  *
- *   node test/helpers/rr100-sabotage.mjs     NOT part of `npm test` (test/*.test.mjs only)
+ *   node test/helpers/rr100-sabotage.mjs --deliberate     NOT part of `npm test` (test/*.test.mjs only)
  *
  * NARROW sabotages switch one firing condition off in the live code: its "just inside" pair must go red. WIDEN sabotages make the code
  * fire past its declared boundary: a "just outside" pair must go red. DECLARATION sabotages drop, rename or unregister a declared
@@ -9,6 +9,7 @@
  * applied ALONE, proved to have LANDED, its named test required red, the file restored by raw-byte sha256; the production trail is
  * hashed before and after. Evidence: runs/audit/rr100-sabotage-2026-09-30.txt.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

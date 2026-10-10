@@ -1,11 +1,12 @@
 /**
  * 🔴 RR-106 · THE RR-105 REPAIR — ONE SABOTAGE PER PROTECTION, AGAINST THE CODE LIVE NOW.
  *
- *   node test/helpers/rr106-sabotage.mjs     NOT part of `npm test` (test/*.test.mjs only)
+ *   node test/helpers/rr106-sabotage.mjs --deliberate     NOT part of `npm test` (test/*.test.mjs only)
  *
  * The method of test/helpers/rr104-sabotage.mjs: PRE-FLIGHT (each span exactly once), each sabotage ALONE, proved to have LANDED, its NAMED
  * test required red, restored by raw-byte sha256, the production trail hashed before and after. Evidence: runs/audit/rr106-sabotage-2026-09-30.txt.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

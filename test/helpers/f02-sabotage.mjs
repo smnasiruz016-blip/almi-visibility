@@ -3,7 +3,7 @@
  * proof in test/f02-tenant-isolation.test.mjs that must turn RED for the intended reason, restored byte-identically, the
  * production trail hashed around the whole run.
  *
- *   node test/helpers/f02-sabotage.mjs [--only=F2-S1,…] [--out=<file>]
+ *   node test/helpers/f02-sabotage.mjs --deliberate [--only=F2-S1,…] [--out=<file>]
  *
  * Shares F08's harness (test/helpers/f08-sabotage.mjs: runSabotages / renderEvidence) and F07's execution assertion:
  * every sabotage must EXECUTE, and the executed count is reported. Where the defect's behaviour can be observed directly,
@@ -11,6 +11,7 @@
  * behaviour. No sabotage is aimed at the production audit trail: the named proofs spawn only non-governed runs or run
  * inside the test context, and the harness hashes the trail before and after.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";

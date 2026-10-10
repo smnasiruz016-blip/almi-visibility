@@ -8,11 +8,12 @@
  * OUTPUTS a sabotaged bin could reach — the owner's ruling sheet and report and both findings stores — are hashed with the production trail
  * before and after. FIXTURE STRUCTURES ONLY (RR-177).
  *
- *   node test/helpers/rr199-sabotage.mjs [--practice] [--only=<id>]     NOT part of `npm test`
+ *   node test/helpers/rr199-sabotage.mjs --deliberate [--practice] [--only=<id>]     NOT part of `npm test`
  *
  * --practice writes runs/audit/rr199-sabotage-practice-<date>T<hhmm>.txt; the real run writes runs/audit/rr199-sabotage-<date>T<hhmm>.txt.
  * Neither overwrites an earlier file.
  */
+import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";

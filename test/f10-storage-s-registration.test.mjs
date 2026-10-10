@@ -32,7 +32,8 @@ const prodHashes = () => PROD.map((p) => sha(fs.readFileSync(p)));
 const PROD_BEFORE = prodHashes();
 const ENV_REF = SEALED_STORE_ROOTS["f10-marking-key"].name;
 const SEAL = JSON.parse(fs.readFileSync(join(REPO, "evaluation-releases", "selection-seals.jsonl"), "utf8").trim().split("\n")[0]);
-const REAL = EVIDENCE_ROLE_REGISTRY.filter((e) => ["HELD_OUT_EVIDENCE", "MARKING_KEY"].includes(e.role));
+/* RR-246: both F10 sets RETIRED (read out of band on 27 Sep; correction OOB-2026-09-27-A) — named by their store, not by a role they no longer hold */
+const REAL = EVIDENCE_ROLE_REGISTRY.filter((e) => e.resource?.root === "f10-marking-key");
 const TEST_ENV = { NODE_TEST_CONTEXT: "child-v8", NODE_TEST_WORKER_ID: process.env.NODE_TEST_WORKER_ID || "1" };
 
 function census(label, args, envOver = {}) {
@@ -61,12 +62,12 @@ function synthetic(tag) {
 
 test("F10 · S · REAL · the registration: exactly two HELD_OUT_EVIDENCE entries in the real store, their commitments THOSE recorded at the one seal, no MARKING_KEY yet, and a lawful registry", () => {
   assert.deepEqual(REAL.map((e) => [e.id, e.role, e.resource.root, e.resource.pathPrefixes.join(",")]), [
-    ["sealed:f10-c3-selection", "HELD_OUT_EVIDENCE", "f10-marking-key", "set/"],
-    ["sealed:f10-c7-pairs", "HELD_OUT_EVIDENCE", "f10-marking-key", "pairs/"],
+    ["sealed:f10-c3-selection", "RETIRED_CONTAMINATED", "f10-marking-key", "set/"],
+    ["sealed:f10-c7-pairs", "RETIRED_CONTAMINATED", "f10-marking-key", "pairs/"],
   ]);
   assert.deepEqual(REAL.map((e) => e.contentHash), [SEAL.setCommitment, SEAL.pairsCommitment], "a registered commitment is not the one recorded at the seal");
   assert.deepEqual([SEAL.selected, SEAL.remainder, SEAL.pairs, SEAL.tenantsConsumedToCapacity], [100, 0, 370, 6]);
-  for (const e of REAL) assert.deepEqual([e.sealed, e.mayEvaluate, e.mayTrain, e.maySupplyExpectedAnswer, e.mandatoryReadable, e.tenantScope.length], [true, true, false, false, false, 9]);
+  for (const e of REAL) assert.deepEqual([e.sealed, e.mayEvaluate, e.mayTrain, e.maySupplyExpectedAnswer, e.mandatoryReadable, e.tenantScope.length, /^RETIRED 10 Oct 2026/.test(e.retiredReason)], [true, false, false, false, false, 9, true]); /* RR-246: retired, never to evaluate again, still sealed */
   assert.deepEqual(registryErrors(EVIDENCE_ROLE_REGISTRY), []);
   assert.deepEqual(sealedStoreStatus({ registry: EVIDENCE_ROLE_REGISTRY }).map((s) => [s.store, s.requiredBy]), [["f10-marking-key", 2]]);
 });
@@ -124,10 +125,10 @@ test("F10 · S · CONTROL 3 · CROSS-SCOPE SUBSTITUTION — a fixture in the PRO
 test("F10 · S · CONTROL 4 · OMITTED ROLE — every registered real role is carried in BOTH scopes: scanned in PRODUCTION, NAMED as not measured in SYNTHETIC — a planted third real set is carried too", () => {
   const eff = { registry: EVIDENCE_ROLE_REGISTRY, declared: SEALED_STORE_ROOTS, synthetic: null };
   const prod = applyCensusScope({ scope: "PRODUCTION", realDeclared: SEALED_STORE_ROOTS, effective: eff, env: {} });
-  assert.deepEqual(prod.registry.filter((e) => e.role === "HELD_OUT_EVIDENCE").map((e) => e.id), ["sealed:f10-c3-selection", "sealed:f10-c7-pairs"], "a real set is missing from the PRODUCTION scope");
+  assert.deepEqual(prod.registry.filter((e) => e.resource?.root === "f10-marking-key").map((e) => e.id), ["sealed:f10-c3-selection", "sealed:f10-c7-pairs"], "a real set is missing from the PRODUCTION scope"); /* RR-246: by store, not by role — retired and still carried */
   const syn = applyCensusScope({ scope: "SYNTHETIC", realDeclared: SEALED_STORE_ROOTS, effective: eff, env: TEST_ENV });
   assert.deepEqual(syn.notMeasured, ["sealed:f10-c3-selection", "sealed:f10-c7-pairs"], "a real set was omitted instead of named as not measured");
-  const third = { ...REAL[0], id: "sealed:f10-planted-third", resource: { root: "f10-marking-key", pathPrefixes: ["third/"] } };
+  const third = { ...REAL[0], id: "sealed:f10-planted-third", role: "HELD_OUT_EVIDENCE", mayEvaluate: true, retiredReason: null, resource: { root: "f10-marking-key", pathPrefixes: ["third/"] } }; /* RR-246: a newly registered EVALUABLE set */
   const eff3 = { ...eff, registry: [...EVIDENCE_ROLE_REGISTRY, third] };
   assert.ok(applyCensusScope({ scope: "PRODUCTION", realDeclared: SEALED_STORE_ROOTS, effective: eff3, env: {} }).registry.some((e) => e.id === third.id), "CONTROL: a newly registered set was omitted from PRODUCTION");
   assert.ok(applyCensusScope({ scope: "SYNTHETIC", realDeclared: SEALED_STORE_ROOTS, effective: eff3, env: TEST_ENV }).notMeasured.includes(third.id), "CONTROL: a newly registered set was omitted from the SYNTHETIC not-measured list");

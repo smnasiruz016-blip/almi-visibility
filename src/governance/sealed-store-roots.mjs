@@ -26,6 +26,9 @@ export const SEALED_STORE_MECHANISMS = Object.freeze(["ENV_REFERENCE"]);
 /** Root names a governed sealed store may never take: the engine's own tree and the derivation pseudo-root. */
 export const RESERVED_ROOTS = Object.freeze(["engine", "derived"]);
 export const SEALED_ROLES_IN_STORES = Object.freeze(["HELD_OUT_EVIDENCE", "MARKING_KEY"]);
+/** RR-246: an entry that lives in a governed store as sealed material — a held-out set or key, or a RETIRED set that stays sealed
+ * (retired 10 Oct 2026: it may never evaluate, and it is still protected and scanned). */
+export const isStoreSealedEntry = (e) => SEALED_ROLES_IN_STORES.includes(e?.role) || (e?.role === "RETIRED_CONTAMINATED" && e?.sealed === true);
 
 /**
  * Every declared store, resolved: { roots: { name: absoluteDir | null }, codes: { name: code } }.
@@ -58,7 +61,7 @@ export function requiredStores(registry) {
   const out = new Map();
   for (const e of registry ?? []) {
     const r = e?.resource ?? {};
-    if (!SEALED_ROLES_IN_STORES.includes(e?.role) || r.derivation || typeof r.root !== "string" || RESERVED_ROOTS.includes(r.root)) continue;
+    if (!isStoreSealedEntry(e) || r.derivation || typeof r.root !== "string" || RESERVED_ROOTS.includes(r.root)) continue;
     if (!out.has(r.root)) out.set(r.root, []);
     out.get(r.root).push(String(e.id));
   }

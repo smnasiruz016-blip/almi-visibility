@@ -7,7 +7,7 @@
  * Each sabotage replaces ONE exact span, proves it LANDED, runs ONE test file, requires the NAMED test to fail, restores the file
  * and proves the restore by raw-byte sha256. The production trail is hashed before and after the run and must be unchanged. A
  * restore also runs on any exit. A sabotage that does not turn its named test red is reported NOT PROVED — never dropped.
- * Evidence: runs/audit/rr80-sabotage-2026-09-28.txt.
+ * Evidence: runs/audit/rr80-sabotage-<date>T<hhmm>.txt, one file per run (RR-246); the 28 Sep run's file is kept as it was.
  */
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -82,6 +82,7 @@ const trailAfter = sha(read(TRAIL));
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "rr80-sabotage-2026-09-28.txt"), lines.join("\n") + "\n");
+/* RR-246: each run writes its OWN evidence file and never overwrites an earlier one (this used to rewrite the 28 Sep record every run) */
+writeFileSync(join(REPO, "runs", "audit", `rr80-sabotage-${new Date().toISOString().slice(0, 16).replace(":", "")}.txt`), lines.join("\n") + "\n", { flag: "wx" });
 console.log(lines.join("\n"));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

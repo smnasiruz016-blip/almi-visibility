@@ -1,0 +1,100 @@
+F07 SABOTAGE EVIDENCE — one defect per enforcement limb (§7)
+
+Engine tree: 9b12c04864fe2a5d32be1a577377abacd7348c7e. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
+runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
+requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
+No sabotage aims at the production audit trail; every firing case writes to a stand-in or a confined store.
+
+RESULTS
+F7-S1    landed=true red=true failed=5 namedTestFailed=true reason=true restored=true — denial moved AFTER the read
+         target src/governance/sealed-paths.mjs · named test "P2 ·…" in test/f07-heldout-firewall.test.mjs
+         sha256 before 8e8900e63cda970aaaf882c691445e9bfb49cfaf431ea9010712808728002854 · after 8e8900e63cda970aaaf882c691445e9bfb49cfaf431ea9010712808728002854
+         failing tests: P2 · P8 · P9 · REAL · every one of the 61 sealed paths is refused BEFORE a read — one metadata-only DURABLE event each, no path in it | P4 · SYNTHETIC · traversal cannot bypass the seal — every ../ and ./ form is refused before a read | P5 · SYNTHETIC · a JUNCTION, a directory SYMLINK and a file SYMLINK into the seal are refused by their REAL target | P6 · SYNTHETIC · case, separator, trailing-dot, absolute, 8.3 and stream forms cannot bypass it | P7 · SYNTHETIC · UNAVAILABLE seal metadata FAILS CLOSED — no registry, an empty one, a sealed entry without prefixes, an unresolvable path
+         verdict: RED, named test, intended reason
+F7-S2    landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — traversal check removed (the lexical limb no longer collapses ./..)
+         target src/governance/sealed-paths.mjs · named test "P4 ·…" in test/f07-heldout-firewall.test.mjs
+         sha256 before 8e8900e63cda970aaaf882c691445e9bfb49cfaf431ea9010712808728002854 · after 8e8900e63cda970aaaf882c691445e9bfb49cfaf431ea9010712808728002854
+         failing tests: P4 · SYNTHETIC · traversal cannot bypass the seal — every ../ and ./ form is refused before a read
+         verdict: RED, named test, intended reason
+F7-S3    landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — symlink / junction / 8.3 check removed (the real limb no longer resolves)
+         target src/governance/sealed-paths.mjs · named test "P5 ·…" in test/f07-heldout-firewall.test.mjs
+         sha256 before 8e8900e63cda970aaaf882c691445e9bfb49cfaf431ea9010712808728002854 · after 8e8900e63cda970aaaf882c691445e9bfb49cfaf431ea9010712808728002854
+         failing tests: P5 · SYNTHETIC · a JUNCTION, a directory SYMLINK and a file SYMLINK into the seal are refused by their REAL target | P6 · SYNTHETIC · case, separator, trailing-dot, absolute, 8.3 and stream forms cannot bypass it
+         verdict: RED, named test, intended reason
+F7-S4    landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — case folding removed from the lexical limb
+         target src/governance/sealed-paths.mjs · named test "P6 ·…" in test/f07-heldout-firewall.test.mjs
+         sha256 before 8e8900e63cda970aaaf882c691445e9bfb49cfaf431ea9010712808728002854 · after 8e8900e63cda970aaaf882c691445e9bfb49cfaf431ea9010712808728002854
+         failing tests: P6 · SYNTHETIC · case, separator, trailing-dot, absolute, 8.3 and stream forms cannot bypass it
+         verdict: RED, named test, intended reason
+F7-S5    landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — stream / control-character forms no longer refused
+         target src/governance/sealed-paths.mjs · named test "P6 ·…" in test/f07-heldout-firewall.test.mjs
+         sha256 before 8e8900e63cda970aaaf882c691445e9bfb49cfaf431ea9010712808728002854 · after 8e8900e63cda970aaaf882c691445e9bfb49cfaf431ea9010712808728002854
+         failing tests: P6 · SYNTHETIC · case, separator, trailing-dot, absolute, 8.3 and stream forms cannot bypass it
+         verdict: RED, named test, intended reason
+F7-S6    landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — unavailable seal metadata read as "nothing is sealed" (fail OPEN)
+         target src/governance/sealed-paths.mjs · named test "P7 ·…" in test/f07-heldout-firewall.test.mjs
+         sha256 before 8e8900e63cda970aaaf882c691445e9bfb49cfaf431ea9010712808728002854 · after 8e8900e63cda970aaaf882c691445e9bfb49cfaf431ea9010712808728002854
+         failing tests: P7 · SYNTHETIC · UNAVAILABLE seal metadata FAILS CLOSED — no registry, an empty one, a sealed entry without prefixes, an unresolvable path
+         verdict: RED, named test, intended reason
+F7-S7    landed=true red=true failed=3 namedTestFailed=true reason=true restored=true — mechanism-freeze requirement removed
+         target src/heldout/lifecycle.mjs · named test "P11 ·…" in test/f07-heldout-firewall.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: P11 · SYNTHETIC · access WITHOUT a frozen mechanism is refused, recorded, and nothing is read | P-EXEC · the access decisions are LIVE-AUDITED BY EXECUTION — every exit reaches its branch and records exactly one event | P34 · the full F07 acceptance on the real and synthetic populations — callers, decisions, access exits, manifest, real denial
+         verdict: RED, named test, intended reason
+F7-S8    landed=true red=true failed=3 namedTestFailed=true reason=true restored=true — post-access mechanism change allowed at scoring
+         target src/heldout/lifecycle.mjs · named test "P13 · P31 ·…" in test/f07-heldout-firewall.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: P13 · P31 · SYNTHETIC · a mechanism changed AFTER access invalidates the evaluation, and a run cannot be relabelled untouched | P-EXEC · the access decisions are LIVE-AUDITED BY EXECUTION — every exit reaches its branch and records exactly one event | P34 · the full F07 acceptance on the real and synthetic populations — callers, decisions, access exits, manifest, real denial
+         verdict: RED, named test, intended reason
+F7-S9    landed=true red=true failed=6 namedTestFailed=true reason=true restored=true — access logging removed (an ACCESS decision appends nothing)
+         target src/heldout/lifecycle.mjs · named test "P14 · P15 ·…" in test/f07-heldout-firewall.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: P11 · SYNTHETIC · access WITHOUT a frozen mechanism is refused, recorded, and nothing is read | P13 · P31 · SYNTHETIC · a mechanism changed AFTER access invalidates the evaluation, and a run cannot be relabelled untouched | P14 · P15 · SYNTHETIC + REAL registry · every access decision is recorded — who, purpose, mechanism, set, outcome, time, authority, version | P32 · SYNTHETIC · an authorised rerun is VISIBLY a rerun — never an untouched test | P-EXEC · the access decisions are LIVE-AUDITED BY EXECUTION — every exit reaches its branch and records exactly one event | P34 · the full F07 acceptance on the real and synthetic populations — callers, decisions, access exits, manifest, real denial
+         verdict: RED, named test, intended reason
+F7-S10   landed=true red=true failed=5 namedTestFailed=true reason=true restored=true — a denominator item silently dropped
+         target src/heldout/lifecycle.mjs · named test "P16 · P17 · P18 · P19 ·…" in test/f07-heldout-firewall.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: P13 · P31 · SYNTHETIC · a mechanism changed AFTER access invalidates the evaluation, and a run cannot be relabelled untouched | P16 · P17 · P18 · P19 · SYNTHETIC · the population is accounted to remainder 0 — UNKNOWN and UNAVAILABLE are never PASS, an exclusion needs a lawful reason | P32 · SYNTHETIC · an authorised rerun is VISIBLY a rerun — never an untouched test | P-EXEC · the access decisions are LIVE-AUDITED BY EXECUTION — every exit reaches its branch and records exactly one event | P34 · the full F07 acceptance on the real and synthetic populations — callers, decisions, access exits, manifest, real denial
+         verdict: RED, named test, intended reason
+F7-S11   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — UNKNOWN converted to PASS
+         target src/heldout/lifecycle.mjs · named test "P16 · P17 · P18 · P19 ·…" in test/f07-heldout-firewall.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: P16 · P17 · P18 · P19 · SYNTHETIC · the population is accounted to remainder 0 — UNKNOWN and UNAVAILABLE are never PASS, an exclusion needs a lawful reason
+         verdict: RED, named test, intended reason
+F7-S12   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — payload inserted into an event's metadata (and the metadata-only rule disabled)
+         target src/governance/sealed-paths.mjs + src/governance/guard-audit.mjs · named test "P2 · P8 · P9 ·…" in test/f07-heldout-firewall.test.mjs
+         sha256 before 8e8900e63cda970aaaf882c691445e9bfb49cfaf431ea9010712808728002854,5e3b8a629db09bb9fae2fd82905889de605c0be2a77d9f839825acc7f2c4eb75 · after 8e8900e63cda970aaaf882c691445e9bfb49cfaf431ea9010712808728002854,5e3b8a629db09bb9fae2fd82905889de605c0be2a77d9f839825acc7f2c4eb75
+         failing tests: P2 · P8 · P9 · REAL · every one of the 61 sealed paths is refused BEFORE a read — one metadata-only DURABLE event each, no path in it
+         verdict: RED, named test, intended reason
+F7-S13   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the mandatory-reading manifest accepts a sealed path
+         target src/governance/mandatory-reading.mjs · named test "P20 · P21 · P22 ·…" in test/f07-heldout-firewall.test.mjs
+         sha256 before 0fa4afecc1d2b53f910f22f9a6a9f3f1ed649a880864368d8dc8a6c67bbc7af0 · after 0fa4afecc1d2b53f910f22f9a6a9f3f1ed649a880864368d8dc8a6c67bbc7af0
+         failing tests: P20 · P21 · P22 · REAL · the mandatory-reading manifest is complete for the loaders and excludes sealed payload — a planted sealed source and a removed required one are each RED
+         verdict: RED, named test, intended reason
+F7-S14   landed=true red=true failed=3 namedTestFailed=true reason=true restored=true — current-authority selection replaced by the OLDEST ruling
+         target src/authority/register.mjs · named test "P29 ·…" in test/f07-heldout-firewall.test.mjs
+         sha256 before 76869a686160ad1eab91b12d71d6e299782345e28d2fe326ec66a7a2441d7d5f · after 76869a686160ad1eab91b12d71d6e299782345e28d2fe326ec66a7a2441d7d5f
+         failing tests: P20 · P21 · P22 · REAL · the mandatory-reading manifest is complete for the loaders and excludes sealed payload — a planted sealed source and a removed required one are each RED | P29 · REAL · the current authority is applied and a superseded one is ignored | P34 · the full F07 acceptance on the real and synthetic populations — callers, decisions, access exits, manifest, real denial
+         verdict: RED, named test, intended reason
+F7-S15   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a product/client term inserted into generic F07 code
+         target src/heldout/lifecycle.mjs · named test "P26 · P28 ·…" in test/f07-heldout-firewall.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: P26 · P28 · REAL · the F07 modules carry no product or client vocabulary, and each has a production caller
+         verdict: RED, named test, intended reason
+F7-S16   landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — a rerun presented as an untouched evaluation
+         target src/heldout/lifecycle.mjs · named test "P32 ·…" in test/f07-heldout-firewall.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: P13 · P31 · SYNTHETIC · a mechanism changed AFTER access invalidates the evaluation, and a run cannot be relabelled untouched | P32 · SYNTHETIC · an authorised rerun is VISIBLY a rerun — never an untouched test
+         verdict: RED, named test, intended reason
+
+TOTAL 16 · PROVED 16 · NOT PROVED 0
+residue in sabotaged files after restore: 0
+tracked modifications after restore (excluding this evidence file): 0
+
+PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
+  audit-trail/events.jsonl  before c3af0be89fbad6174c8e314a9c1f463a8237da9ac363e3cb1e410bca5e3ba8de  after c3af0be89fbad6174c8e314a9c1f463a8237da9ac363e3cb1e410bca5e3ba8de
+  audit-trail/head.json  before 0a44fe75dbb3a68e77a4116544d1e01fb19e0944a8de27d9e463f11ce63ba0e0  after 0a44fe75dbb3a68e77a4116544d1e01fb19e0944a8de27d9e463f11ce63ba0e0
+  untouched: true
+
+EXECUTION ASSERTION: 16 of 16 sabotages executed (a sabotage that did not run is a failure of this run, never a pass).

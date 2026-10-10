@@ -4,7 +4,8 @@
  *
  *   node bin/audit-trail.mjs census                      the inclusion rule, every family's counts, the exclusions
  *   node bin/audit-trail.mjs record [--confirm]          append every lawful candidate; dry-run is the default
- *   node bin/audit-trail.mjs gap [--confirm]             record each declared audit gap (config/audit-gaps.mjs) once
+ *   node bin/audit-trail.mjs gap [--confirm]             record each declared audit gap (config/audit-gaps.mjs) once, and each
+ *                                                         declared known out-of-band read correction (config/known-out-of-band-reads.mjs)
  *   node bin/audit-trail.mjs verify [--check]            verify the chain and print the detection boundary
  *   node bin/audit-trail.mjs read --all | --event=<id> | --tenant=<id> | --correlation=<id> | --parents=<id>
  *
@@ -40,6 +41,8 @@ import { DETECTION_BOUNDARY } from "../src/audit-trail/store.mjs";
 import { WITNESS_BOUNDARY } from "../src/audit-trail/witness.mjs";
 import { GAP_EVENT, gapEventDraft, gapFaults, gapsNotOnTrail } from "../src/audit-trail/gap.mjs"; // appended only via recordCandidates
 import { AUDIT_GAPS } from "../config/audit-gaps.mjs";
+import { KNOWN_READS_EVENT, knownReadsEventDraft, knownReadsFaults, correctionsNotOnTrail } from "../src/audit-trail/known-reads.mjs"; // RR-246, appended only via recordCandidates
+import { KNOWN_OUT_OF_BAND_READS } from "../config/known-out-of-band-reads.mjs";
 import { authorise, authorisationEvent, namedActor, AUTHORISATION_REFUSED_EXIT } from "../src/governance/authorisation.mjs";
 import { durableGuardSink } from "../src/governance/guard-audit.mjs";
 
@@ -270,21 +273,29 @@ function doGap() {
   console.log(`AUDIT GAPS · declared ${AUDIT_GAPS.length} · already on the trail ${AUDIT_GAPS.length - pending.length} · to record ${pending.length}`);
   const faulty = pending.map((g) => ({ g, f: gapFaults(g) })).filter((x) => x.f.length);
   for (const { g, f } of faulty) console.log(`  🔴 ${g.gapId}: ${f.map((x) => `${x.code}(${x.field})`).join(", ")}`);
-  if (faulty.length) process.exit(1);
+  /* RR-246 (F07 Amendment 4): each known out-of-band read correction, once, ever — under F07's Amendment 4 authority */
+  const pendingReads = correctionsNotOnTrail(KNOWN_OUT_OF_BAND_READS, onTrail);
+  console.log(`KNOWN OUT-OF-BAND READ CORRECTIONS · declared ${KNOWN_OUT_OF_BAND_READS.length} · already on the trail ${KNOWN_OUT_OF_BAND_READS.length - pendingReads.length} · to record ${pendingReads.length}`);
+  const faultyReads = pendingReads.map((c) => ({ c, f: knownReadsFaults(c) })).filter((x) => x.f.length);
+  for (const { c, f } of faultyReads) console.log(`  🔴 ${c.correctionId}: ${f.map((x) => `${x.code}(${x.field})`).join(", ")}`);
+  const f07a4 = AUTHORITY_CORPUS.find((r) => r.propositionId === "F07_ACCEPTANCE_AMENDMENT_4");
+  if (pendingReads.length && !f07a4) { console.log("NO CURRENT AUTHORITY for F07 Amendment 4 — nothing is recorded"); process.exit(1); }
+  if (faulty.length || faultyReads.length) process.exit(1);
   if (!permission.mayWrite) { console.log("nothing is appended without --confirm"); return; }
   /* Nothing to record is not a write: no authorisation is asked for and nothing reaches the trail. */
-  if (pending.length === 0) { console.log("every declared gap is already on the trail — nothing is appended"); return; }
+  if (pending.length === 0 && pendingReads.length === 0) { console.log("every declared gap and correction is already on the trail — nothing is appended"); return; }
   const store = productionAuditStore({ repo: REPO });
   const decision = authorise({ actorRef: namedActor(process.argv), action: "WRITE_AUDIT_TRAIL_STORE", scope: { scopeType: "GLOBAL_PRODUCT" }, resourceRef: AUDIT_STORE.eventsPath, now: RUN_INSTANT });
   durableGuardSink({ store, actor: "bin/audit-trail.mjs", softwareVersion, correlationId: `run:audit-trail:gap:${RUN_INSTANT}:authorisation`, authorityRef: { propositionId: F08_AUTHORITY.propositionId, scope: [...F08_AUTHORITY.scope] }, authorityHash: f08.contentHash }).emit(authorisationEvent(decision));
   if (!decision.allowed) { console.error(`🔴 AUTHORISATION REFUSED — WRITE_AUDIT_TRAIL_STORE: ${decision.outcome} (${decision.reason}); nothing was recorded`); process.exit(AUTHORISATION_REFUSED_EXIT); }
   /* Appended through the recorder's audit-store-only primitive, as `record` does — never a direct store.append here. */
-  const candidates = pending.map((gap) => ({ family: GAP_EVENT.eventType, sourceId: gap.gapId, draft: gapEventDraft({ gap, occurredAt: RUN_INSTANT, softwareVersion, authorityRef: { propositionId: F08_AUTHORITY.propositionId, scope: [...F08_AUTHORITY.scope] }, authorityHash: f08.contentHash, correlationId: `run:audit-trail:gap:${RUN_INSTANT}` }) }));
+  const candidates = [...pending.map((gap) => ({ family: GAP_EVENT.eventType, sourceId: gap.gapId, draft: gapEventDraft({ gap, occurredAt: RUN_INSTANT, softwareVersion, authorityRef: { propositionId: F08_AUTHORITY.propositionId, scope: [...F08_AUTHORITY.scope] }, authorityHash: f08.contentHash, correlationId: `run:audit-trail:gap:${RUN_INSTANT}` }) })),
+    ...pendingReads.map((correction) => ({ family: KNOWN_READS_EVENT.eventType, sourceId: correction.correctionId, draft: knownReadsEventDraft({ correction, occurredAt: RUN_INSTANT, softwareVersion, authorityRef: { propositionId: f07a4.propositionId, scope: [...f07a4.scope] }, authorityHash: f07a4.contentHash, correlationId: `run:audit-trail:gap:${RUN_INSTANT}` }) }))];
   const result = recordCandidates({ store, candidates, corpus: AUTHORITY_CORPUS });
   for (const m of result.migrated) console.log(`  ${m.sourceId} → ${m.eventId} (APPENDED)`);
   for (const i of result.invalid) console.log(`  🔴 ${i.sourceId} INVALID — ${i.codes.join(", ")}`);
   for (const n of result.notMigratable) console.log(`  🔴 ${n.sourceId} NOT_MIGRATABLE — ${n.notMigratable}`);
-  console.log(`  gaps offered ${result.total} · appended ${result.counts.migrated} · already audited ${result.counts.alreadyAudited} · invalid ${result.counts.invalid} · not migratable ${result.counts.notMigratable} · remainder ${result.remainder}`);
+  console.log(`  gaps and corrections offered ${result.total} · appended ${result.counts.migrated} · already audited ${result.counts.alreadyAudited} · invalid ${result.counts.invalid} · not migratable ${result.counts.notMigratable} · remainder ${result.remainder}`);
   console.log(`  store sha256 ${store.storeHash()}`);
   if (result.remainder !== 0 || result.counts.invalid || result.counts.notMigratable) process.exit(1);
 }

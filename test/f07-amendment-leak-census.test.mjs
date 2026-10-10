@@ -24,7 +24,7 @@ import { auditClassOf, diagnosticGuardSink } from "../src/governance/guard-audit
 import { readUnsealed, SealedPathRefused } from "../src/governance/sealed-paths.mjs";
 import { populationCommitment, EVALUATION_ACTIONS } from "../src/heldout/lifecycle.mjs";
 import { EVIDENCE_STATES } from "../src/evidence/evidence-state.mjs";
-import { censusEntries, censusNewRoles, sealedRolePopulation, extractMembers, SEALED_CENSUS_ROLES, ROLE_DISPOSITION, CENSUS_READ_ACTION, scan } from "../tools/heldout-firewall.mjs";
+import { censusEntries, censusNewRoles, sealedRolePopulation, extractMembers, SEALED_CENSUS_ROLES, ROLE_DISPOSITION, CENSUS_READ_ACTION, scan, scannedInBoundary } from "../tools/heldout-firewall.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const sha = (b) => createHash("sha256").update(b).digest("hex");
@@ -68,15 +68,18 @@ const confinedCount = () => governedAuditContext({ repo: REPO, correlationId: `r
 
 /* ═══ THE REAL POPULATION — stated, and NOT_MEASURED ═════════════════════════════════════════════════════════════════════ */
 
-test("F07A · REAL · the census enumerates every sealed role of the REAL registry: RETIRED 1, HELD_OUT_EVIDENCE 2, MARKING_KEY 0 — the new roles' real population is OBSERVED (F10's two sealed sets) — CONTROL: the same enumeration counts a constructed HELD_OUT_EVIDENCE and MARKING_KEY added to a copy of the real registry, and that copy is a VALID registry", () => {
+test("F07A · REAL · the census enumerates every sealed role of the REAL registry: RETIRED 3, HELD_OUT_EVIDENCE 0, MARKING_KEY 0 — the in-boundary real population is OBSERVED (F10's two sealed sets, retired 10 Oct and still scanned) — CONTROL: the same enumeration counts a constructed HELD_OUT_EVIDENCE and MARKING_KEY added to a copy of the real registry, and that copy is a VALID registry", () => {
   assert.ok(EVIDENCE_ROLE_REGISTRY.length > 0, "the real registry is empty — nothing can be enumerated");
   const real = censusEntries(EVIDENCE_ROLE_REGISTRY);
   const count = (list, role) => list.filter((e) => e.role === role).length;
   assert.deepEqual(SEALED_CENSUS_ROLES, ["RETIRED_CONTAMINATED", "HELD_OUT_EVIDENCE", "MARKING_KEY"]);
   /* 0 → 2 HELD_OUT_EVIDENCE since 27 Sep 2026 (F10's one selection, sealed and registered in storage S — engine cecf880 and its registration commit): the real population is no longer zero. At F07's verifications (A1–A3) it WAS zero, and those
    * records stay true for what they measured. No MARKING_KEY exists until the owner's keys are complete. */
-  assert.deepEqual([count(real, "RETIRED_CONTAMINATED"), count(real, "HELD_OUT_EVIDENCE"), count(real, "MARKING_KEY")], [1, 2, 0], "a registered held-out set or marking key was not enumerated");
-  const realNewRolePopulation = count(real, "HELD_OUT_EVIDENCE") + count(real, "MARKING_KEY");
+  /* RR-246: both F10 sets RETIRED (read out of band on 27 Sep; correction OOB-2026-09-27-A) — still sealed, still required, still
+   * read and scanned inside the boundary, which is the real population this census observes */
+  assert.deepEqual([count(real, "RETIRED_CONTAMINATED"), count(real, "HELD_OUT_EVIDENCE"), count(real, "MARKING_KEY")], [3, 0, 0], "a registered held-out set or marking key was not enumerated");
+  assert.deepEqual(real.filter(scannedInBoundary).map((e) => e.id), ["sealed:f10-c3-selection", "sealed:f10-c7-pairs"], "a retired set that stays sealed is no longer read and scanned in the boundary");
+  const realNewRolePopulation = real.filter(scannedInBoundary).length;
   const state = realNewRolePopulation === 0 ? "NOT_MEASURED" : "OBSERVED";
   assert.ok(EVIDENCE_STATES.includes(state));
   assert.equal(state, "OBSERVED", "the registered sets were not enumerated as a real population");
@@ -84,17 +87,18 @@ test("F07A · REAL · the census enumerates every sealed role of the REAL regist
   const copy = [...EVIDENCE_ROLE_REGISTRY, HO_ENTRY, MK_ENTRY];
   assert.deepEqual(registryErrors(copy), [], "the constructed entries are not lawful registry structure");
   const widened = censusEntries(copy);
-  assert.deepEqual([count(widened, "RETIRED_CONTAMINATED"), count(widened, "HELD_OUT_EVIDENCE"), count(widened, "MARKING_KEY")], [1, 3, 1], "CONTROL: a registered held-out set and marking key were not enumerated");
+  assert.deepEqual([count(widened, "RETIRED_CONTAMINATED"), count(widened, "HELD_OUT_EVIDENCE"), count(widened, "MARKING_KEY")], [3, 1, 1] /* RR-246 */, "CONTROL: a registered held-out set and marking key were not enumerated");
 });
 
-test("F07A · REAL · the production entry point enumerates every sealed role — RETIRED 1, HELD_OUT_EVIDENCE 2, MARKING_KEY 0 — in the SYNTHETIC scope, naming the two real sealed-store roles it does NOT measure — confined run, production trail unchanged", () => {
+test("F07A · REAL · the production entry point enumerates every sealed role — RETIRED 3, HELD_OUT_EVIDENCE 0, MARKING_KEY 0 — in the SYNTHETIC scope, naming the two real sealed-store roles it does NOT measure — confined run, production trail unchanged", () => {
   const before = prodHashes();
   /* F10 Amendment 2 (governance 370a3b3): a test is CI evidence, so it runs the census in the declared SYNTHETIC scope; the REAL registration is proved by the recorded owner-machine PRODUCTION census, never by a test. Enumeration is of EVERY registered role in every scope — a role is never omitted silently. */
   const r = spawnSync(process.execPath, ["bin/heldout-firewall.mjs", "--check", "--scope=synthetic"], { cwd: REPO, encoding: "utf8", env: { ...process.env, NODE_TEST_CONTEXT: "child-v8", NODE_TEST_WORKER_ID: "1" }, timeout: 120_000 });
   assert.equal(r.status, 0, r.stdout.slice(-400));
-  assert.match(r.stdout, /SEALED ROLES ENUMERATED — RETIRED_CONTAMINATED 1 · HELD_OUT_EVIDENCE 2 · MARKING_KEY 0/, "the production entry point does not enumerate the registered sealed roles");
+  /* RR-246: both F10 sets RETIRED (still sealed, still named as not measured in this scope); the evaluable held-out population is zero */
+  assert.match(r.stdout, /SEALED ROLES ENUMERATED — RETIRED_CONTAMINATED 3 · HELD_OUT_EVIDENCE 0 · MARKING_KEY 0/, "the production entry point does not enumerate the registered sealed roles");
   assert.match(r.stdout, /MARKING_KEY — 0 registered: its real population is NOT_MEASURED/, "a zero was not reported as NOT_MEASURED");
-  assert.doesNotMatch(r.stdout, /HELD_OUT_EVIDENCE — 0 registered/, "a registered population was reported as zero");
+  assert.match(r.stdout, /HELD_OUT_EVIDENCE — 0 registered: its real population is NOT_MEASURED/, "the zero evaluable held-out population was not reported as NOT_MEASURED");
   for (const id of ["sealed:f10-c3-selection", "sealed:f10-c7-pairs"]) assert.match(r.stdout, new RegExp(`NOT MEASURED IN THIS SCOPE \\(SYNTHETIC\\) — ${id}`), `${id} was omitted instead of named as not measured`);
   assert.match(r.stdout, /RETIRED SET retired:held-out-set-3d4951d6673301bc · 61 member\(s\)/, "the retired census changed");
   assert.deepEqual(prodHashes(), before, "the confined run changed the production trail");

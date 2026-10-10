@@ -168,6 +168,10 @@ export const trackedFiles = (base) => execFileSync("git", ["-C", base, "ls-files
  * MIN_MEMBER_LENGTH characters, lower-cased. The detector reports path, category and counts; never a member. */
 export const SEALED_CENSUS_ROLES = Object.freeze(["RETIRED_CONTAMINATED", "HELD_OUT_EVIDENCE", "MARKING_KEY"]);
 export const NEW_SEALED_ROLES = Object.freeze(["HELD_OUT_EVIDENCE", "MARKING_KEY"]);
+/** RR-246: a RETIRED set that stays sealed in a governed store (no derivation) is read and scanned inside the boundary like the new roles,
+ * its findings named FAIL_RETIRED_PAYLOAD; a derived retired population keeps its own route (derivePopulation). */
+export const isSealedRetiredInBoundary = (e) => e?.role === "RETIRED_CONTAMINATED" && e?.sealed === true && !e?.resource?.derivation;
+export const scannedInBoundary = (e) => NEW_SEALED_ROLES.includes(e?.role) || isSealedRetiredInBoundary(e);
 export const ROLE_DISPOSITION = Object.freeze({ RETIRED_CONTAMINATED: "FAIL_RETIRED_PAYLOAD", HELD_OUT_EVIDENCE: "FAIL_HELD_OUT_PAYLOAD", MARKING_KEY: "FAIL_MARKING_KEY_CONTENT" });
 export const MIN_MEMBER_LENGTH = 8;
 export const CENSUS_READ_ACTION = "HELDOUT_CENSUS_READ";
@@ -199,7 +203,7 @@ export function extractMembers(text) {
  */
 export function sealedRolePopulation(entry, { roots = {}, filesOf, read = (f) => readFileSync(f), derivers = {}, commitment, audit = diagnosticGuardSink({ actor: "tools/heldout-firewall.mjs" }) } = {}) {
   const fail = (code, why) => ({ ok: false, code, why: `${entry?.id ?? "?"}: ${why}` });
-  if (!NEW_SEALED_ROLES.includes(entry?.role)) return fail("NOT_A_NEW_SEALED_ROLE", `role ${entry?.role} is not HELD_OUT_EVIDENCE or MARKING_KEY`);
+  if (!scannedInBoundary(entry)) return fail("NOT_A_NEW_SEALED_ROLE", `role ${entry?.role} is not HELD_OUT_EVIDENCE, MARKING_KEY or a sealed retired set`);
   if (entry.sealed !== true) return fail("SEALED_ROLE_NOT_SEALED", "a held-out or marking-key entry must be registered sealed");
   const r = entry.resource ?? {};
   if (r.derivation) {
@@ -243,7 +247,7 @@ export function censusNewRoles({ registry, root, base, files, roots, filesOf, de
   const counts = Object.fromEntries(SEALED_CENSUS_ROLES.map((r) => [r, entries.filter((e) => e.role === r).length]));
   const results = [];
   const failures = [];
-  for (const entry of entries.filter((e) => NEW_SEALED_ROLES.includes(e.role))) {
+  for (const entry of entries.filter(scannedInBoundary)) {
     const pop = sealedRolePopulation(entry, { roots, filesOf, read, derivers, commitment, audit });
     if (!pop.ok) { results.push({ id: entry.id, role: entry.role, ok: false, code: pop.code, why: pop.why }); failures.push(`${pop.code} ${entry.id}`); continue; }
     const fragments = pop.others.length ? distinctiveFragments(pop.members, pop.others, productionTexts) : [];

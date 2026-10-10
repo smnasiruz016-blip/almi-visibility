@@ -1,0 +1,28 @@
+F10 · C7 · SABOTAGE — landed · named test RED · intended reason · restored by raw-byte hash
+
+  ok   C7-S1   failed= 1 RED, named test, intended reason
+  ok   C7-S2   failed= 8 RED, named test, intended reason
+  ok   C7-S3   failed= 6 RED, named test, intended reason
+  ok   C7-S4   failed= 1 RED, named test, intended reason
+  ok   C7-S5   failed= 1 RED, named test, intended reason
+  ok   C7-S6   failed= 2 RED, named test, intended reason
+  ok   C7-S7   failed= 1 RED, named test, intended reason
+  ok   C7-S8   failed= 1 RED, named test, intended reason
+  ok   C7-S9   failed= 2 RED, named test, intended reason
+  ok   C7-S10  failed= 1 RED, named test, intended reason
+  ok   C7-S11  failed= 1 RED, named test, intended reason
+  ok   C7-S12  failed= 1 RED, named test, intended reason
+  ok   C7-S13  failed= 1 RED, named test, intended reason
+  ok   C7-S14  failed= 1 RED, named test, intended reason
+  ok   C7-S15  failed= 1 RED, named test, intended reason
+  ok   C7-S16  failed= 1 RED, named test, intended reason
+  ok   C7-S16b failed= 1 RED, named test, intended reason
+  ok   C7-S17  failed= 1 RED, named test, intended reason
+  ok   C7-S18  failed= 1 RED, named test, intended reason
+  ok   C7-S19  failed= 3 RED, named test, intended reason
+  ok   C7-S20  failed= 2 RED, named test, intended reason
+  ok   C7-S21  failed= 1 RED, named test, intended reason
+  ok   C7-S22  failed= 1 RED, named test, intended reason
+  ok   C7-S23  failed= 1 RED, named test, intended reason
+
+24 sabotage(s) · EXECUTED 24 of 24 · 24 proved · 0 NOT proved · residue 0 · production untouched true

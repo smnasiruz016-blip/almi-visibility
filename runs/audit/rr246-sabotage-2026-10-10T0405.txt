@@ -1,0 +1,22 @@
+RR-246 F07 Amendment 4 sabotage run · 2026-10-10T04:05:45.059Z
+population: 13 sabotage(s) — one per protection this round added (the known-read correction; the retirement that keeps the sets sealed, required and scanned)
+BASELINE: GREEN (every named test passed, none skipped)
+PRE-FLIGHT (span occurrences in the code now): B01=1 B02=1 B03=1 B04=1 B05=1 B06=1 B07=1 B08=1 B09=1 B11=1 B12=1 B13=1 B10=1 · all exactly once: true
+production trail sha256 before: f6944b72d64ccb8491055927dbab97497f5c81ed3d7a750bc3ac238092f77c26
+
+B01 a correction that claims an ACCESS record is refused · src/audit-trail/known-reads.mjs: landed true · "KR-2 ·" red true · its failure AssertionError · restored true · PROVED
+B02 a correction that claims a repair is refused · src/audit-trail/known-reads.mjs: landed true · "KR-2 ·" red true · its failure AssertionError · restored true · PROVED
+B03 a correction that miscounts its reads is refused · src/audit-trail/known-reads.mjs: landed true · "KR-2 ·" red true · its failure AssertionError · restored true · PROVED
+B04 a read that names a path is refused · src/audit-trail/known-reads.mjs: landed true · "KR-2 ·" red true · its failure AssertionError · restored true · PROVED
+B05 a correction is recorded once, ever · src/audit-trail/known-reads.mjs: landed true · "KR-3 ·" red true · its failure AssertionError · restored true · PROVED
+B06 the C3 selection is retired · config/evidence-roles.mjs: landed true · "RT-1 ·" red true · its failure AssertionError · restored true · PROVED
+B07 the lifecycle refuses a retired set as retired · src/heldout/lifecycle.mjs: landed true · "RT-1 ·" red true · its failure AssertionError · restored true · PROVED
+B08 a sealed retired set still requires its store (fails closed unlocated) · src/governance/sealed-store-roots.mjs: landed true · "RT-2 ·" red true · its failure AssertionError · restored true · PROVED
+B09 a sealed retired set is still read and scanned inside the boundary · tools/heldout-firewall.mjs: landed true · "RT-3 ·" red true · its failure AssertionError · restored true · PROVED
+B11 KR-3 spawns no entry point (a re-allowed spawn is seen) · test/rr246-f07-amendment4.test.mjs: landed true · "KR-3b ·" red true · its failure AssertionError · restored true · PROVED
+B12 KR-3 refuses a non-confined store before it writes (the refusal is kept) · test/rr246-f07-amendment4.test.mjs: landed true · "KR-3b ·" red true · its failure AssertionError · restored true · PROVED
+B13 KR-3 refuses a non-confined store at run time · test/rr246-f07-amendment4.test.mjs: landed true · "KR-3 ·" red true · its failure AssertionError · restored true · PROVED
+B10 the firewall entry point re-derives only DERIVED retired populations · bin/heldout-firewall.mjs: landed true · "F07A · REAL · the production entry point" red true · its failure AssertionError · restored true · PROVED
+
+GREEN after restore: true
+proved 13 of 13 · residue 0 · production trail sha256 after: f6944b72d64ccb8491055927dbab97497f5c81ed3d7a750bc3ac238092f77c26 · unchanged true

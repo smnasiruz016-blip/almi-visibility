@@ -63,8 +63,10 @@ export function f07AmendmentSabotages() {
       expect: /the in-boundary read was not recorded exactly once/ },
 
     { id: "F7A-S7", what: "the in-boundary read is no longer classified as an ACCESS", file: "src/governance/guard-audit.mjs", test: T, named: "F07A · ACCESS",
-      from: "  if (eventType === \"EVALUATION\") return action === \"HELDOUT_ACCESS\" || action === \"HELDOUT_CENSUS_READ\" ? \"ACCESS\" : \"GOVERNED_CHANGE\";",
-      to: "  if (eventType === \"EVALUATION\") return action === \"HELDOUT_ACCESS\" ? \"ACCESS\" : \"GOVERNED_CHANGE\";",
+      /* Re-anchored 10 Oct 2026 (RR-246): since 4e728af (28 Sep, Part D1) the line also names the key access; the span had not matched
+       * since. Same intent — the census's in-boundary read is no longer classified as an ACCESS. */
+      from: "  if (eventType === \"EVALUATION\") return action === \"HELDOUT_ACCESS\" || action === \"HELDOUT_CENSUS_READ\" || action === \"HELDOUT_KEY_ACCESS\" ? \"ACCESS\" : \"GOVERNED_CHANGE\";",
+      to: "  if (eventType === \"EVALUATION\") return action === \"HELDOUT_ACCESS\" || action === \"HELDOUT_KEY_ACCESS\" ? \"ACCESS\" : \"GOVERNED_CHANGE\";",
       expect: /\+ 'GOVERNED_CHANGE'[\s\S]*- 'ACCESS'/ },
 
     { id: "F7A-S8", what: "a derivation that does not reproduce its registered commitment is accepted", file: TOOL, test: T, named: "F07A · FAIL-CLOSED",

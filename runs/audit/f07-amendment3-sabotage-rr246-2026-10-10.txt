@@ -1,0 +1,98 @@
+F07 AMENDMENT 3 SABOTAGE EVIDENCE — one defect per added failure limb of the frozen amendment
+
+Engine tree: 9b12c04864fe2a5d32be1a577377abacd7348c7e. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
+runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
+requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
+No sabotage aims at the production audit trail; every firing case writes to a stand-in or a confined store.
+
+RESULTS
+F7C-S1   landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — a NO is counted as an abstention — ABSTAIN and NO cannot be told apart
+         target src/heldout/lifecycle.mjs · named test "F07A3 · L6 · an ABSTAIN stays in D…" in test/f07-amendment3-paired.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A3 · L7 · a paired run releases EXACTLY the hand-worked tables and the three aggregates — identical in both key shapes — within the ceiling, and nothing tied to an item | F07A3 · L6 · an ABSTAIN stays in D, is not-positive, is counted as an abstention and NEVER as a negative answer — CONTROL: the same run with each ABSTAIN replaced by NO counts ZERO abstentions
+         verdict: RED, named test, intended reason
+F7C-S2   landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — abstentions are never counted
+         target src/heldout/lifecycle.mjs · named test "F07A3 · L6 · an ABSTAIN stays in D…" in test/f07-amendment3-paired.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A3 · L7 · a paired run releases EXACTLY the hand-worked tables and the three aggregates — identical in both key shapes — within the ceiling, and nothing tied to an item | F07A3 · L6 · an ABSTAIN stays in D, is not-positive, is counted as an abstention and NEVER as a negative answer — CONTROL: the same run with each ABSTAIN replaced by NO counts ZERO abstentions
+         verdict: RED, named test, intended reason
+F7C-S3   landed=true red=true failed=3 namedTestFailed=true reason=true restored=true — an ABSTAIN is dropped from the denominator
+         target src/heldout/lifecycle.mjs · named test "F07A3 · L6 · an ABSTAIN stays in D…" in test/f07-amendment3-paired.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A3 · L7 · a paired run releases EXACTLY the hand-worked tables and the three aggregates — identical in both key shapes — within the ceiling, and nothing tied to an item | F07A3 · L6 · an ABSTAIN stays in D, is not-positive, is counted as an abstention and NEVER as a negative answer — CONTROL: the same run with each ABSTAIN replaced by NO counts ZERO abstentions | F07A3 · L10 · a key changed after the grant is REFUSED and the SAME combination is still unspent: restored, the same grant claims once and scores
+         verdict: RED, named test, intended reason
+F7C-S4   landed=true red=true failed=3 namedTestFailed=true reason=true restored=true — an ABSTAIN is scored as positive in the tables
+         target src/heldout/lifecycle.mjs · named test "F07A3 · L6 · an ABSTAIN stays in D…" in test/f07-amendment3-paired.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A3 · L7 · a paired run releases EXACTLY the hand-worked tables and the three aggregates — identical in both key shapes — within the ceiling, and nothing tied to an item | F07A3 · L6 · an ABSTAIN stays in D, is not-positive, is counted as an abstention and NEVER as a negative answer — CONTROL: the same run with each ABSTAIN replaced by NO counts ZERO abstentions | F07A3 · L10 · a key changed after the grant is REFUSED and the SAME combination is still unspent: restored, the same grant claims once and scores
+         verdict: RED, named test, intended reason
+F7C-S5   landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — discordance ignores the partner's judgement — every re-pair is counted discordant
+         target src/heldout/lifecycle.mjs · named test "F07A3 · L7 · a paired run releases EXACTLY…" in test/f07-amendment3-paired.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A3 · L7 · a paired run releases EXACTLY the hand-worked tables and the three aggregates — identical in both key shapes — within the ceiling, and nothing tied to an item | F07A3 · L5 · a paired protocol carries at most SEVEN tokens, and names one of its own classes — CONTROL: seven tokens claim
+         verdict: RED, named test, intended reason
+F7C-S6   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — "correct both ways" checks only the matched side
+         target src/heldout/lifecycle.mjs · named test "F07A3 · L7 · a paired run releases EXACTLY…" in test/f07-amendment3-paired.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A3 · L7 · a paired run releases EXACTLY the hand-worked tables and the three aggregates — identical in both key shapes — within the ceiling, and nothing tied to an item
+         verdict: RED, named test, intended reason
+F7C-S7   landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — a fourth aggregate is released
+         target src/heldout/lifecycle.mjs · named test "F07A3 · L7 · a paired run releases EXACTLY…" in test/f07-amendment3-paired.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A3 · L7 · a paired run releases EXACTLY the hand-worked tables and the three aggregates — identical in both key shapes — within the ceiling, and nothing tied to an item | F07A3 · L5 · a paired protocol carries at most SEVEN tokens, and names one of its own classes — CONTROL: seven tokens claim
+         verdict: RED, named test, intended reason
+F7C-S8   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the paired aggregates are released for an unpaired protocol
+         target src/heldout/lifecycle.mjs · named test "F07A3 · L7 · an UNPAIRED protocol…" in test/f07-amendment3-paired.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A3 · L7 · an UNPAIRED protocol releases no paired field and accepts no ABSTAIN — its release is Amendment 2's, unchanged
+         verdict: RED, named test, intended reason
+F7C-S9   landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a malformed pair id is accepted
+         target src/heldout/lifecycle.mjs · named test "F07A3 · L8 · a malformed, duplicate or dangling…" in test/f07-amendment3-paired.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A3 · L8 · a malformed, duplicate or dangling pair structure is REFUSED before the claim, named by code only — CONTROL: the well-formed set claims and scores
+         verdict: RED, named test, intended reason
+F7C-S10  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a duplicate pair is accepted
+         target src/heldout/lifecycle.mjs · named test "F07A3 · L8 · a malformed, duplicate or dangling…" in test/f07-amendment3-paired.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A3 · L8 · a malformed, duplicate or dangling pair structure is REFUSED before the claim, named by code only — CONTROL: the well-formed set claims and scores
+         verdict: RED, named test, intended reason
+F7C-S11  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a re-pair whose matched partner is absent is accepted
+         target src/heldout/lifecycle.mjs · named test "F07A3 · L8 · a malformed, duplicate or dangling…" in test/f07-amendment3-paired.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A3 · L8 · a malformed, duplicate or dangling pair structure is REFUSED before the claim, named by code only — CONTROL: the well-formed set claims and scores
+         verdict: RED, named test, intended reason
+F7C-S12  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a pair-structure fault is parsed but not refused — a bad structure yields a result
+         target src/heldout/lifecycle.mjs · named test "F07A3 · L8 · a malformed, duplicate or dangling…" in test/f07-amendment3-paired.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A3 · L8 · a malformed, duplicate or dangling pair structure is REFUSED before the claim, named by code only — CONTROL: the well-formed set claims and scores
+         verdict: RED, named test, intended reason
+F7C-S13  landed=true red=true failed=4 namedTestFailed=true reason=true restored=true — the run is claimed BEFORE the preflight — a set/key fault spends the once-only run
+         target src/heldout/lifecycle.mjs · named test "F07A3 · L10 · an INCOMPLETE key…" in test/f07-amendment3-paired.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A3 · L8 · a malformed, duplicate or dangling pair structure is REFUSED before the claim, named by code only — CONTROL: the well-formed set claims and scores | F07A3 · L10 · an INCOMPLETE key is REFUSED before the claim and the run stays UNSPENT — CONTROL: a complete key claims | F07A3 · L10 · a key changed after the grant is REFUSED and the SAME combination is still unspent: restored, the same grant claims once and scores | F07A3 · L10 · a MISSING output still INVALIDATES the claimed run in a paired protocol — it is never a NO and never an ABSTAIN
+         verdict: RED, named test, intended reason
+F7C-S14  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — an ABSTAIN is accepted under an unpaired protocol, where no count can show it
+         target src/heldout/lifecycle.mjs · named test "F07A3 · L7 · an UNPAIRED protocol…" in test/f07-amendment3-paired.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A3 · L7 · an UNPAIRED protocol releases no paired field and accepts no ABSTAIN — its release is Amendment 2's, unchanged
+         verdict: RED, named test, intended reason
+F7C-S15  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the key's completeness is not checked before the claim
+         target src/heldout/lifecycle.mjs · named test "F07A3 · L10 · an INCOMPLETE key…" in test/f07-amendment3-paired.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A3 · L10 · an INCOMPLETE key is REFUSED before the claim and the run stays UNSPENT — CONTROL: a complete key claims
+         verdict: RED, named test, intended reason
+F7C-S16  landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — the seven-token ceiling for a paired protocol is not applied
+         target src/heldout/lifecycle.mjs · named test "F07A3 · L5 · a paired protocol carries at most SEVEN…" in test/f07-amendment3-paired.test.mjs
+         sha256 before 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615 · after 21d0e218c8b37b24eb18a4a1babcf62e54be26b2c6b0213905291c52cd64e615
+         failing tests: F07A3 · L5 · a paired protocol carries at most SEVEN tokens, and names one of its own classes — CONTROL: seven tokens claim
+         verdict: RED, named test, intended reason
+
+TOTAL 16 · PROVED 16 · NOT PROVED 0
+residue in sabotaged files after restore: 0
+tracked modifications after restore (excluding this evidence file): 0
+
+PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
+  audit-trail/events.jsonl  before c3af0be89fbad6174c8e314a9c1f463a8237da9ac363e3cb1e410bca5e3ba8de  after c3af0be89fbad6174c8e314a9c1f463a8237da9ac363e3cb1e410bca5e3ba8de
+  audit-trail/head.json  before 0a44fe75dbb3a68e77a4116544d1e01fb19e0944a8de27d9e463f11ce63ba0e0  after 0a44fe75dbb3a68e77a4116544d1e01fb19e0944a8de27d9e463f11ce63ba0e0
+  untouched: true

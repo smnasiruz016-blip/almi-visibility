@@ -112,7 +112,8 @@ const A3_FIELDS = ["abstentions", "discordantPairs", "discordantBothCorrect"];
 test("F07A3 · REAL · the real registry holds 2 HELD_OUT_EVIDENCE (F10's sealed sets) and 0 MARKING_KEY — the paired limbs stay NOT_MEASURED on real material until a real key exists", () => {
   /* At Amendment 3's verification it held 0 and 0 (that record stays true). since 27 Sep 2026 (F10's one selection, sealed and registered in storage S — engine cecf880 and its registration commit): 2 sealed sets, no key yet — so no real paired
    * run has happened, and the paired limbs are still NOT_MEASURED on real material. */
-  assert.deepEqual(["HELD_OUT_EVIDENCE", "MARKING_KEY"].map((r) => EVIDENCE_ROLE_REGISTRY.filter((e) => e.role === r).length), [2, 0]);
+  /* RR-246: both F10 sets RETIRED (read out of band on 27 Sep) — 0 evaluable sets, 0 keys; the paired limbs stay NOT_MEASURED on real material */
+  assert.deepEqual(["HELD_OUT_EVIDENCE", "MARKING_KEY"].map((r) => EVIDENCE_ROLE_REGISTRY.filter((e) => e.role === r).length), [0, 0]);
 });
 
 /* ═══ L7 · THE PAIRED RELEASE ═════════════════════════════════════════════════════════════════════════════════════════════ */

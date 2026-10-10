@@ -24,9 +24,13 @@ const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
 
 const SABOTAGES = [
-  ["S1", "C1 no approval, no brief", CB, "if (!approval) return Object.freeze({ subject, state: BRIEF_STATE.NOT_ISSUED,", "if (false) return Object.freeze({ subject, state: BRIEF_STATE.NOT_ISSUED,", "C1 ·"],
-  ["S2", "C1 the approval is of THIS action", CB, " && decision.actions.some((x) => x.action === a.action)", "", "C1 ·"],
-  ["S3", "C1 the approval is for THIS subject", CB, "a.subject?.kind === subject.kind && a.subject?.id === id && ", "", "C1 ·"],
+  /* RR-248 · CASE (b) — S1–S3 RETIRED (owner ruling RR-248 Q1 (A), _handoffs 689eea7). F41 Acceptance Amendment 1, owner decision
+   * D5 (_handoffs be0ec9d; frozen at RR-179 637fc2a, built at 1d4bc58) took the per-item approval off the brief: a brief now follows
+   * F35's chosen action, and the owner's exact recorded approval gates PUBLICATION (publicationDecision). The gate S1 removed, the
+   * action match S2 removed and the subject match S3 removed are gone from the brief (RR-188 cf686a1 already named S1–S3 superseded).
+   * The NEW rule is guarded by rr179 S48 (the per-item gate restored), S51 (publication without the exact recorded approval) and S59
+   * (a brief where F35 chose no action), each run on 2026-10-10 with --deliberate: RED by assertion, restored by sha256, 3 of 3
+   * PROVED, then its proof files GREEN. No row state changes. */
   ["S4", "C1 the approval is recorded (has a ref)", CB, "approvals.find((a) => recorded(a) && ", "approvals.find((a) => ", "C1 ·"],
   ["S5", "C1 CANNOT DECIDE is NOT ISSUED for want of an action", CB, `if (decision.decision !== "CHOSEN" || decision.actions.length === 0) return`, "if (false) return", "C1 ·"],
   ["S6", "C1 approvals are passed, never defaulted", CB, `if (!Array.isArray(approvals)) throw new TypeError("approvals must be passed explicitly`, `if (false) throw new TypeError("approvals must be passed explicitly`, "C1 ·"],

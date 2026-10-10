@@ -1,0 +1,9 @@
+RR-179 R4 sabotage PRACTICE run · 2026-10-10T16:45:31.699Z
+population: 1 sabotage(s) over test/rr179-r4.test.mjs + test/page-construction.test.mjs + test/f36-right-to-exist.test.mjs + test/f41-content-brief.test.mjs + test/f35-action-decision.test.mjs + test/rr174-r3-f35-f34.test.mjs + test/facts-registry.test.mjs · each applied ALONE · no provider, no network, no third-party read
+BASELINE (the named tests before any sabotage): GREEN · named tests seen GREEN: 1 of 1
+PRE-FLIGHT (span occurrences in the code live now): S51=1+1 · all exactly once: true
+production trail sha256 before: f6944b72d64ccb8491055927dbab97497f5c81ed3d7a750bc3ac238092f77c26
+
+S51 F41 C1 AS AMENDED · publication passes without the owner's exact recorded approval [src/page/content-brief.mjs]: landed true · named test "T41f" red true · its failure AssertionError · SyntaxError false · a production child crashed false · failing T41f · restored by sha256 true · PROVED
+
+proved 1 of 1 · residue 0 · production trail sha256 after: f6944b72d64ccb8491055927dbab97497f5c81ed3d7a750bc3ac238092f77c26 · unchanged true

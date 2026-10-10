@@ -24,11 +24,13 @@ const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
 
 const SABOTAGES = [
-  ["S1", "C3 CREATE needs strong demand", AD, `if (strongDemand(demand)) actions.push(chosen("CREATE",`, `if (true) actions.push(chosen("CREATE",`, "C3 ·"],
-  ["S2", "C3 strong means three agreeing categories", AD, `const strongDemand = (d) => d?.outcome === "STRONG" && Number(d.independentCategories) >= 3 && d.conflict !== true;`, `const strongDemand = (d) => d?.outcome === "STRONG";`, "C3 ·"],
-  ["S3", "C3 CREATE needs an established right", AD, `if (rte?.outcome === "ESTABLISHED" && ex?.mayProduce === true) {`, "if (ex?.mayProduce === true) {", "C3 ·"],
-  ["S4", "C3 the missing demand is named", AD, "else if (demand === null || demand === undefined) missing.push(", "else if (false) missing.push(", "C3 ·"],
-  ["S5", "C4 IMPROVE on a covering page with a defect", AD, `if (ex?.outcome === "IMPROVE") actions.push(`, "if (false) actions.push(", "C4 ·"],
+  /* RR-248 · CASE (b) — S1–S5 RETIRED (owner ruling RR-248 Q1 (A), _handoffs 689eea7). F35 Acceptance Amendment 1 (RR-174,
+   * 47e1769) removed the rules these limbs broke: "no demand outcome … is required, under any name" (S1 strong demand, S2 three
+   * categories, S4 the missing demand named — demand is never a gate, M9); C3 as amended decides a grouped need on rightToExist,
+   * not on an ESTABLISHED right (S3); C4 as amended turns a PARTIAL cover into ADD SECTION, not IMPROVE (S5). Their named tests
+   * "C3 ·" and "C4 ·" no longer exist ("C3 (as amended) ·", "C4 (as amended) ·"). The NEW rule is guarded by rr174 S01–S14
+   * (test/helpers/rr174-sabotage.mjs), each run on 2026-10-10 with --deliberate: RED by assertion, restored by sha256, 14 of 14
+   * PROVED, then its proof files GREEN. No row state changes. */
   ["S6", "C4/C5 KEEP never without recorded quality", AD, "if (e.quality?.satisfiesIntent === true) actions.push(", "if (true) actions.push(", "C5 · the existing-page rules"],
   /* RR-248: restated — F35 Amendment 1 (RR-174, 47e1769) decides a grouped need on `rightToExist`; the REJECT rule is unchanged */
   ["S7", "C5 REJECT only for a doorway-like reason", AD, `if (rightToExist.parts?.specific?.state === "FAIL" && rightToExist.parts.specific.kind === "REJECT") return decided(`, `if (rightToExist.parts?.specific?.state === "FAIL") return decided(`, "C5 · REJECT only"],

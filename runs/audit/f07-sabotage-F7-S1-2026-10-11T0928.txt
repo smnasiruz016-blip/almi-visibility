@@ -1,0 +1,25 @@
+F07 SABOTAGE EVIDENCE — one defect per enforcement limb (§7)
+
+Engine tree: 7cb0a26982f3ee01c3696fb98951655d71717bc9. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
+runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
+requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
+No sabotage aims at the production audit trail; every firing case writes to a stand-in or a confined store.
+
+RESULTS
+F7-S1    landed=true red=true failed=5 namedTestFailed=true reason=true restored=true — denial moved AFTER the read
+         target src/governance/sealed-paths.mjs · named test "P2 ·…" in test/f07-heldout-firewall.test.mjs
+         sha256 before 8e8900e63cda970aaaf882c691445e9bfb49cfaf431ea9010712808728002854 · after 8e8900e63cda970aaaf882c691445e9bfb49cfaf431ea9010712808728002854
+         failing tests: P2 · P8 · P9 · REAL · every one of the 61 sealed paths is refused BEFORE a read — one metadata-only DURABLE event each, no path in it | P4 · SYNTHETIC · traversal cannot bypass the seal — every ../ and ./ form is refused before a read | P5 · SYNTHETIC · a JUNCTION, a directory SYMLINK and a file SYMLINK into the seal are refused by their REAL target | P6 · SYNTHETIC · case, separator, trailing-dot, absolute, 8.3 and stream forms cannot bypass it | P7 · SYNTHETIC · UNAVAILABLE seal metadata FAILS CLOSED — no registry, an empty one, a sealed entry without prefixes, an unresolvable path
+         verdict: RED, named test, intended reason
+
+TOTAL 1 · PROVED 1 · NOT PROVED 0
+residue in sabotaged files after restore: 0
+tracked modifications after restore (excluding this evidence file): 0
+
+PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
+  audit-trail/events.jsonl  before b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1  after b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1
+  audit-trail/head.json  before d624c54b24c60777f7e2c1e3d55c446b0401ecec9c93a54f1802d85735f0475d  after d624c54b24c60777f7e2c1e3d55c446b0401ecec9c93a54f1802d85735f0475d
+  untouched: true
+
+EXECUTION ASSERTION: 1 of 1 sabotages executed (a sabotage that did not run is a failure of this run, never a pass).

@@ -1,0 +1,23 @@
+F08 SABOTAGE EVIDENCE — the established set re-run, and the completion set (§10)
+
+Engine tree: 7cb0a26982f3ee01c3696fb98951655d71717bc9. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
+runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
+requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
+No sabotage aims at the production audit trail; every firing case writes to a stand-in or a confined store.
+
+RESULTS
+S3       landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — mutate the target before ATTEMPTED is durable
+         target src/governance/governed-write.mjs · named test "P7 · P8 ·…" in test/governed-write.test.mjs
+         sha256 before 549b05315e44cb5360fac41d87c2c428f28bc64365a3a765552dfe4e7d7dc128 · after 549b05315e44cb5360fac41d87c2c428f28bc64365a3a765552dfe4e7d7dc128
+         failing tests: P7 · P8 · an allowed action appends ATTEMPTED BEFORE the mutation, then exactly one terminal outcome | P11 · an ATTEMPTED with no terminal is EXPOSED as an incomplete saga, not hidden
+         verdict: RED, named test, intended reason
+
+TOTAL 1 · PROVED 1 · NOT PROVED 0
+residue in sabotaged files after restore: 0
+tracked modifications after restore (excluding this evidence file): 0
+
+PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
+  audit-trail/events.jsonl  before b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1  after b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1
+  audit-trail/head.json  before d624c54b24c60777f7e2c1e3d55c446b0401ecec9c93a54f1802d85735f0475d  after d624c54b24c60777f7e2c1e3d55c446b0401ecec9c93a54f1802d85735f0475d
+  untouched: true

@@ -1,0 +1,27 @@
+AUDIT-STORE-ONLY PRIMITIVES — SABOTAGE EVIDENCE (owner ruling 24 Sep 2026)
+
+Engine tree: 7cb0a26982f3ee01c3696fb98951655d71717bc9. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
+runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
+requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
+No sabotage aims at the production audit trail; every firing case writes to a stand-in or a confined store.
+
+RESULTS
+S1       landed=true red=true failed=4 namedTestFailed=true reason=true restored=true — the proof accepts a write on ANY receiver (not only the handed audit store)
+         target tools/audit-store-primitives.mjs · named test "ASP-C6 · every real non-audit writer…" in test/audit-store-only-primitives.test.mjs
+         sha256 before 771a9468327f757d0550b59b9d69f126a02f14cc0ee75a1e58739bde0b2d0773 · after 771a9468327f757d0550b59b9d69f126a02f14cc0ee75a1e58739bde0b2d0773
+         failing tests: ASP-C1b · STATIC · the proof reads every reachable function and refuses a write to anything but the handed audit store | ASP-C2 · a primitive handed a decision's METADATA records it and performs NONE of the decision's product mutation | ASP-C6 · every real non-audit writer, registered, FAILS the proof — and the census's --check verdict goes RED | ASP-C7 · a registered primitive CHANGED to write elsewhere: the real census over the real bin/ goes RED
+         verdict: RED, named test, intended reason
+
+TOTAL 1 · PROVED 1 · NOT PROVED 0
+residue in sabotaged files after restore: 0
+tracked modifications after restore (excluding this evidence file): 0
+
+PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
+  audit-trail/events.jsonl  before b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1  after b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1
+  audit-trail/head.json  before d624c54b24c60777f7e2c1e3d55c446b0401ecec9c93a54f1802d85735f0475d  after d624c54b24c60777f7e2c1e3d55c446b0401ecec9c93a54f1802d85735f0475d
+  untouched: true
+
+PROBE CONTROL (clean tree): 1 of 1 probes report no defect.
+  S1  ran true · bytes landed true · defect took effect true · named RED true · pinned reason true · RED, named test, intended reason · restored true  — the proof accepts a write on ANY receiver (not only the handed audit store)
+RAN 1 of 1 · LANDED 1 of 1 · COULD-FAIL 1 of 1 · PROVED 1 of 1

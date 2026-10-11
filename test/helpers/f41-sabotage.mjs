@@ -9,6 +9,7 @@
  * is hashed before and after. Evidence: runs/audit/f41-sabotage-2026-09-29.txt.
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { writeEvidenceOnce } from "./evidence-once.mjs"; // RR-248: evidence to a new timestamped file, never over an earlier run's
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -23,14 +24,23 @@ const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
 
 const SABOTAGES = [
-  ["S1", "C1 no approval, no brief", CB, "if (!approval) return Object.freeze({ subject, state: BRIEF_STATE.NOT_ISSUED,", "if (false) return Object.freeze({ subject, state: BRIEF_STATE.NOT_ISSUED,", "C1 ·"],
-  ["S2", "C1 the approval is of THIS action", CB, " && decision.actions.some((x) => x.action === a.action)", "", "C1 ·"],
-  ["S3", "C1 the approval is for THIS subject", CB, "a.subject?.kind === subject.kind && a.subject?.id === id && ", "", "C1 ·"],
-  ["S4", "C1 the approval is recorded (has a ref)", CB, "approvals.find((a) => recorded(a) && ", "approvals.find((a) => ", "C1 ·"],
-  ["S5", "C1 CANNOT DECIDE is NOT ISSUED for want of an action", CB, `if (decision.decision !== "CHOSEN" || decision.actions.length === 0) return`, "if (false) return", "C1 ·"],
-  ["S6", "C1 approvals are passed, never defaulted", CB, `if (!Array.isArray(approvals)) throw new TypeError("approvals must be passed explicitly`, `if (false) throw new TypeError("approvals must be passed explicitly`, "C1 ·"],
+  /* RR-248 · CASE (b) — S1–S3 RETIRED (owner ruling RR-248 Q1 (A), _handoffs 689eea7). F41 Acceptance Amendment 1, owner decision
+   * D5 (_handoffs be0ec9d; frozen at RR-179 637fc2a, built at 1d4bc58) took the per-item approval off the brief: a brief now follows
+   * F35's chosen action, and the owner's exact recorded approval gates PUBLICATION (publicationDecision). The gate S1 removed, the
+   * action match S2 removed and the subject match S3 removed are gone from the brief (RR-188 cf686a1 already named S1–S3 superseded).
+   * The NEW rule is guarded by rr179 S48 (the per-item gate restored), S51 (publication without the exact recorded approval) and S59
+   * (a brief where F35 chose no action), each run on 2026-10-10 with --deliberate: RED by assertion, restored by sha256, 3 of 3
+   * PROVED, then its proof files GREEN. No row state changes. */
+  /* RR-248 · CASE (b) — S4 and S6 RETIRED (beta-g pre-ruling, 10 Oct), by the same D5 (be0ec9d, built at 1d4bc58). 1d4bc58 deleted
+   * the brief's per-item approval lookup (S4) and its `approvals` parameter with its throw (S6); both spans now match only inside
+   * publicationDecision, which no f41 test calls, and it deleted the test "C1 · FIRING CONTROL" that S4–S6 named. The moved rules are
+   * guarded by rr179 S51R (a publication approval with no ref passes — the ref rule alone, added by RR-248 because S51 breaks it
+   * together with the sha match) and S52 (an approval is assumed), each run with --deliberate and PROVED before this retirement. */
+  /* RR-248: restated — the protection is unchanged in buildBrief; 1d4bc58 renamed its test to "C1 AS AMENDED ·" */
+  ["S5", "C1 AS AMENDED CANNOT DECIDE is NOT ISSUED for want of an action", CB, `if (decision.decision !== "CHOSEN" || decision.actions.length === 0) return`, "if (false) return", "C1 AS AMENDED ·"],
   ["S7", "C2 recorded evidence carries a ref", CB, `const recorded = (x) => x && typeof x.ref === "string" && x.ref !== "";`, "const recorded = (x) => Boolean(x);", "C2 ·"],
-  ["S8", "C2 intent only from the recorded need", CB, "s.intent = recorded(e.need) && e.need.value ?", "s.intent = true ?", "C2 ·"],
+  /* RR-248: restated — RR-179 (1d4bc58) split intent: a grouped need's from F91's group, every other from the registered need (this limb) */
+  ["S8", "C2 intent only from the recorded need", CB, ": (recorded(e.need) && e.need.value ? filled(\"THE_REGISTERED_NEED_THE_SUBJECT_SERVES\",", ": (true ? filled(\"THE_REGISTERED_NEED_THE_SUBJECT_SERVES\",", "C2 ·"],
   ["S9", "C2 internal links need a COMPLETE inventory", CB, `e.links.completeness === "COMPLETE" && `, "", "C2 ·"],
   ["S10", "C3 a fact needs a source", CB, `const why = !hasSource ? "NO_SOURCE" :`, `const why = false ? "NO_SOURCE" :`, "C3 ·"],
   ["S11", "C3 a fact must be VERIFIED", CB, `: f.verificationState !== "VERIFIED" ? "NOT_VERIFIED"`, `: false ? "NOT_VERIFIED"`, "C3 ·"],
@@ -83,6 +93,6 @@ const trailAfter = sha(read(TRAIL));
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "f41-sabotage-2026-09-29.txt"), lines.join("\n") + "\n");
+console.log(`evidence written: ${writeEvidenceOnce(REPO, "f41-sabotage", lines.join("\n") + "\n")}`);
 console.log(lines.join("\n"));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

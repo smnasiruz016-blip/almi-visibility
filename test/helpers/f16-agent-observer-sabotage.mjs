@@ -9,6 +9,7 @@
  * Evidence: runs/audit/f16-agent-observer-sabotage-rr126-2026-10-01.txt (RR-126 rerun after the boundary changed; earlier files kept).
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { writeEvidenceOnce } from "./evidence-once.mjs"; // RR-248: evidence to a new timestamped file, never over an earlier run's
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -42,7 +43,9 @@ const SABOTAGES = [
   ["A14", "the writer shows the split", BIN, "(by observer: ${Object.keys(OBSERVER_TYPES).map((o) => `${o} ${byObserver[o]}`).join(\" · \")})", "", PROD],
   ["A15", "the writer never says every observer was a person", BIN, "\"provenance: each observation names WHO looked — a person or an agent, never relabelled; the engine searched nothing, fetched nothing and opened no reference\",", "\"provenance: a person saw each observation; the engine searched nothing, fetched nothing and opened no reference\",", PROD],
   ["A16", "the writer is tenant-scoped to the batch", BIN, "RESOURCES.researchBatch(BATCH)", "RESOURCES.subject(SUBJECT)", PROD],
-  ["A17", "an adapter record carries its own observer type", SA, "provenance: Object.freeze({ observerType: \"SOURCE_ADAPTER_OBSERVED\", seenBy:", "provenance: Object.freeze({ seenBy:", ADAPTER],
+  /* RR-248: restated — RR-157 (b235888) added a second (HELD) record with the same provenance; the span names the OBSERVED record,
+   * the one this limb was written for */
+  ["A17", "an adapter record carries its own observer type", SA, "kind: \"OBSERVED\", original: item.wording, reference: item.sourceUrl, postVersion: item.postVersion, postedAt: item.postedAt ?? NOT_MEASURED,\n          provenance: Object.freeze({ observerType: \"SOURCE_ADAPTER_OBSERVED\", seenBy:", "kind: \"OBSERVED\", original: item.wording, reference: item.sourceUrl, postVersion: item.postVersion, postedAt: item.postedAt ?? NOT_MEASURED,\n          provenance: Object.freeze({ seenBy:", ADAPTER],
   ["A18", "the source field is required", HO, "const COMMON = [\"subject\", \"wording\", \"source\", ", "const COMMON = [\"subject\", \"wording\", ", FIELDS],
 ];
 
@@ -91,6 +94,6 @@ restoreAll();
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "f16-agent-observer-sabotage-rr126-2026-10-01.txt"), lines.join("\n") + "\n");
+console.log(`evidence written: ${writeEvidenceOnce(REPO, "f16-agent-observer-sabotage", lines.join("\n") + "\n")}`);
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

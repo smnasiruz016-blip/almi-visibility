@@ -18,16 +18,18 @@ const MJ = "src/research/meaning-judgement.mjs", RD = "src/research/public-quest
 const DC = "src/page/demand-connection.mjs", PR = "src/page/page-opportunities-reader.mjs", PO = "bin/page-opportunities.mjs";
 const T = ["test/rr158-overturn.test.mjs", "test/rr157-meaning.test.mjs"];
 const TRAIL = "audit-trail/events.jsonl";
-const EVIDENCE = join(REPO, "runs", "audit", "rr158-sabotage-2026-10-04.txt");
+const EVIDENCE = join(REPO, "runs", "audit", `rr158-sabotage-${new Date().toISOString().slice(0, 16).replace(":", "")}.txt`); // RR-248: a new timestamped file each run (the fixed name could never be written twice)
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
 
 const SABOTAGES = [
   ["Y01", "F16 counts an overturned admission (its filter removed)", [[PQ, "const r = intakeQuestions(read.records.filter((q) => !gone.has(q.question_id)), { sameAs: rule.sameAs });", "const r = intakeQuestions(read.records, { sameAs: rule.sameAs });"]], "O1"],
   ["Y02", "F16's reader stops bringing the judgements", [[RD, "      judgements.push(...all.filter((r) => r.record_type === JUDGEMENT_RECORD));\n", ""]], "O1"],
-  ["Y03", "F91 admits an overturned question", [[DC, "  if (overturned.has(r.question_id)) return REFUSAL.OVERTURNED;\n", ""]], "O2"],
+  /* RR-248: Y03 and Y05 restated — RR-172 (efc36be) refuses an overturned RESEARCH-DERIVED question too (Y03 names the observed-question
+   * branch it was written for), and the reader now counts what each overturned demand row left out (Y05) */
+  ["Y03", "F91 admits an overturned question", [[DC, "  if (r?.record_type !== \"public_question\" || !present(r?.question_id)) return REFUSAL.NOT_A_QUESTION;\n  if (overturned.has(r.question_id)) return REFUSAL.OVERTURNED;\n", "  if (r?.record_type !== \"public_question\" || !present(r?.question_id)) return REFUSAL.NOT_A_QUESTION;\n"]], "O2"],
   ["Y04", "F91's connection read-back counts an overturned question", [[DC, "  const connections = all.filter((r) => !overturned.has(r.questionId));", "  const connections = all;"]], "O2"],
-  ["Y05", "F91's three numbers count an overturned question's demand", [[PR, '    if (r?.record_type === "planning_demand" && typeof r.questionId === "string" && overturned.has(r.questionId)) { overturnedDemand += 1; continue; }\n', ""]], "O2"],
+  ["Y05", "F91's three numbers count an overturned question's demand", [[PR, '    if (r?.record_type === "planning_demand" && typeof r.questionId === "string" && overturned.has(r.questionId)) { overturnedDemand += 1; leftOutByDemand[r.state] = (leftOutByDemand[r.state] ?? 0) + 1; continue; }\n', ""]], "O2"],
   ["Y06", "the shared rule takes an overturn that names nothing", [[MJ, "    if (j.value.overturns === at.judgement_id) current.set(j.value.held_id, j);", "    current.set(j.value.held_id, j);"]], "O3"],
   ["Y07", "the judging entry point accepts an overturn that names nothing", [[MJ, 'if (current && draft.overturns !== current.judgement_id) return refuse("ALREADY_JUDGED_NAME_THE_JUDGEMENT_YOU_OVERTURN");', ""]], "M3"],
   ["Y08", "the F16 count no longer says AS AT", [[PQ, "console.log(`  ${asAt(read.judgements ?? [])}`);\n", ""]], "O1"],

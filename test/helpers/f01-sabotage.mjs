@@ -34,12 +34,12 @@ const TA = "tenant:" + "a1".repeat(16), TB = "tenant:" + "b2".repeat(16), TN = N
 const hex = () => cr.randomBytes(16).toString("hex");
 const fresh = (t = TN, o = {}) => ({ ...JSON.parse(JSON.stringify(N)), tenantId: t, declarationId: "decl_" + hex(), ...o });
 const worlds = [];
-const world = () => { const d = fs.mkdtempSync(path.join(os.tmpdir(), "f01-probe-")); worlds.push(d); fs.mkdirSync(path.join(d, "tenancy")); fs.writeFileSync(path.join(d, "tenancy", "tenants.json"), JSON.stringify({ schemaVersion: 1, tenants: TS.map((t) => ({ schemaVersion: 1, tenantId: t, status: "ACTIVE" })) })); fs.writeFileSync(path.join(d, "tenancy", "attachments.json"), JSON.stringify({ schemaVersion: 1, attachments: [] })); fs.mkdirSync(path.join(d, "declarations")); fs.writeFileSync(path.join(d, "declarations", "ROOT.json"), JSON.stringify({ schemaVersion: 1, kind: "PROJECT_DECLARATION_ROOT" })); return d; };
+const world = () => { const d = fs.mkdtempSync(path.join(os.tmpdir(), "f01-probe-")); worlds.push(d); fs.mkdirSync(path.join(d, "tenancy")); fs.writeFileSync(path.join(d, "tenancy", "tenants.json"), JSON.stringify({ schemaVersion: 1, tenants: TS.map((t) => ({ schemaVersion: 1, tenantId: t, status: "ACTIVE" })) })); fs.writeFileSync(path.join(d, "tenancy", "attachments.json"), JSON.stringify({ schemaVersion: 1, attachments: [] })); fs.mkdirSync(path.join(d, "declarations")); fs.writeFileSync(path.join(d, "declarations", "ROOT.json"), JSON.stringify({ schemaVersion: 1, kind: "PROJECT_DECLARATION_ROOT" })); fs.writeFileSync(path.join(d, "roots.json"), JSON.stringify({ schemaVersion: 1, kind: "ROOT_REGISTRY", stores: [{ store: "PROJECT_DECLARATIONS", path: "declarations" }], subjects: [] })); return d; }; /* RR-248 Q5: since F03 (3104dbb) a declaration root exists only where a root registry declares it — the probe world declares it, as test/f01-intake.test.mjs's world does; before this, every bin probe was refused DECLARATION_ROOT_MISSING and could not see its defect */
 const NONCE = "f01probe-" + cr.randomBytes(4).toString("hex");
 const RUNDIR = path.join(".test-scratch", "audit", "run-" + NONCE);
 const events = () => { const p = path.join(RUNDIR, "worker-f01-probe", "events.jsonl"); return fs.existsSync(p) ? fs.readFileSync(p, "utf8").trim().split("\\n").filter(Boolean).map((l) => JSON.parse(l)) : []; };
 process.on("exit", () => { for (const w of worlds) fs.rmSync(w, { recursive: true, force: true }); fs.rmSync(RUNDIR, { recursive: true, force: true }); });
-const bin = (d, ...a) => { const r = cp.spawnSync(process.execPath, ["${BIN}", ...a, "--json"], { encoding: "utf8", env: { ...process.env, ALMIVISIBILITY_SUBJECT_ROOTS: d, NODE_TEST_CONTEXT: "child-v8", NODE_TEST_WORKER_ID: "f01-probe", ALMIVISIBILITY_AUDIT_RUN: NONCE } }); let j = null; try { j = JSON.parse(r.stdout.trim().split("\\n").pop()); } catch {} return { j, out: r.stdout + r.stderr }; };
+const bin = (d, ...a) => { const r = cp.spawnSync(process.execPath, ["${BIN}", ...a, "--json", "--actor=actor:cc" /* RR-248 Q5: since F04 (f9d81f7) a governed write names its actor, as test/f01-intake.test.mjs's run() does */],{ encoding: "utf8", env: { ...process.env, ALMIVISIBILITY_SUBJECT_ROOTS: d, NODE_TEST_CONTEXT: "child-v8", NODE_TEST_WORKER_ID: "f01-probe", ALMIVISIBILITY_AUDIT_RUN: NONCE } }); let j = null; try { j = JSON.parse(r.stdout.trim().split("\\n").pop()); } catch {} return { j, out: r.stdout + r.stderr }; };
 const put = (d, doc) => { const p = path.join(d, "doc-" + hex() + ".json"); fs.writeFileSync(p, JSON.stringify(doc)); return p; };
 const files = (d) => { const out = []; const walk = (x) => { for (const n of fs.readdirSync(x)) { const p = path.join(x, n); if (fs.statSync(p).isDirectory()) walk(p); else out.push(p); } }; walk(path.join(d, "declarations")); return out; };
 `;
@@ -53,7 +53,8 @@ export const F01_SABOTAGES = [
     expect: /was not refused — a usual tenant was supplied/ },
 
   { id: "S2", what: "one project allowed to cross tenants", file: INTAKE, test: T, named: "P7 ·",
-    from: '  if (holders.some((h) => h !== n.tenantId)) return refuseStore("PROJECT_BELONGS_TO_ANOTHER_TENANT", "$.projectId");',
+    /* RR-248: restated — since F02 (0da6756) the tenant comparison is the ONE decision; the limb still lets a project cross tenants */
+    from: '  if (holders.some((h) => !decideResolvedTenants(n.tenantId, h).allowed)) return refuseStore("PROJECT_BELONGS_TO_ANOTHER_TENANT", "$.projectId");',
     to: '  if (false) return refuseStore("PROJECT_BELONGS_TO_ANOTHER_TENANT", "$.projectId");',
     probe: probe(`const d = world(); const a = fresh(TA); bin(d, "--submit", "--file", put(d, a), "--confirm"); say(bin(d, "--submit", "--file", put(d, fresh(TB, { projectId: a.projectId })), "--confirm").j?.outcome === "ACCEPTED");`),
     expect: /a project crossed tenants/ },
@@ -102,7 +103,8 @@ export const F01_SABOTAGES = [
 
   { id: "S10", what: "an ACCEPTED declaration MUTATED (same id, new bytes, written over it)", test: T, named: "P10 ·",
     edits: [
-      { file: INTAKE, from: '    if (held.tenantId !== n.tenantId || held.projectId !== n.projectId || held.bytes !== bytes) return refuseStore("DECLARATION_ID_CONFLICT", "$.declarationId");', to: '    if (held.tenantId !== n.tenantId || held.projectId !== n.projectId) return refuseStore("DECLARATION_ID_CONFLICT", "$.declarationId");' },
+      /* RR-248: restated over F02's tenant decision (0da6756); the edit still removes ONLY the bytes comparison */
+      { file: INTAKE, from: '    if (!decideResolvedTenants(n.tenantId, held.tenantId).allowed || held.projectId !== n.projectId || held.bytes !== bytes) return refuseStore("DECLARATION_ID_CONFLICT", "$.declarationId");', to: '    if (!decideResolvedTenants(n.tenantId, held.tenantId).allowed || held.projectId !== n.projectId) return refuseStore("DECLARATION_ID_CONFLICT", "$.declarationId");' },
       { file: INTAKE, from: "    if (current?.record.declarationId === n.declarationId || currentPointer(root, n.tenantId, n.projectId)?.declarationId === n.declarationId) {", to: "    if (held.bytes === bytes && (current?.record.declarationId === n.declarationId || currentPointer(root, n.tenantId, n.projectId)?.declarationId === n.declarationId)) {" },
       { file: INTAKE, from: '    if (n.supersedes === null) return refuseStore("SUPERSESSION_REQUIRED", "$.supersedes");', to: '    if (n.supersedes === null && current.record.declarationId !== n.declarationId) return refuseStore("SUPERSESSION_REQUIRED", "$.supersedes");' },
       { file: INTAKE, from: '    if (n.supersedes !== current.record.declarationId) return refuseStore("SUPERSEDES_NOT_CURRENT", "$.supersedes");', to: '    if (n.supersedes !== current.record.declarationId && current.record.declarationId !== n.declarationId) return refuseStore("SUPERSEDES_NOT_CURRENT", "$.supersedes");' },
@@ -132,9 +134,11 @@ export const F01_SABOTAGES = [
     probe: probe(`const d = world(); const a = fresh(TA); bin(d, "--submit", "--file", put(d, a), "--confirm"); say(bin(d, "--show", a.declarationId, "--tenant", TB).j?.outcome === "FOUND");`),
     expect: /a cross-tenant inspection returned another tenant's declaration/ },
 
+  /* RR-248: restated — since F04 (f9d81f7) a governed write is authorised only for a named actor; the planted write carried no
+   * actorRef, was refused IDENTITY_MISSING and wrote nothing, so the probe saw no defect. It now names the actor as the submit path does. */
   { id: "S14", what: "validate-only PERFORMS A WRITE", file: BIN, test: T, named: "P30 ·",
     from: '  exitWith(0, { outcome: "VALID", declarationId: v.normalised.declarationId,',
-    to: '  { const root = resolveDeclarationRoot({ env: process.env }); if (root.ok) executeGovernedWrite(declarationWrite({ root, audit: governedContext({ repo: REPO, env: process.env, correlationId: "validate:sabotage", now: isoSeconds(Date.now()).slice(0, 10) }), permission: { mayWrite: true, reason: "sabotage" }, repoRelativeTarget: "declarations/validate-wrote.json", bytes: "{}", action: "WRITE_PROJECT_DECLARATION", tenantId: v.normalised.tenantId, occurredAt: isoSeconds(Date.now()) })); }\n  exitWith(0, { outcome: "VALID", declarationId: v.normalised.declarationId,',
+    to: '  { const root = resolveDeclarationRoot({ env: process.env }); if (root.ok) executeGovernedWrite(declarationWrite({ root, audit: governedContext({ repo: REPO, env: process.env, correlationId: "validate:sabotage", now: isoSeconds(Date.now()).slice(0, 10) }), permission: { mayWrite: true, reason: "sabotage", actorRef: namedActor(process.argv) }, repoRelativeTarget: "declarations/validate-wrote.json", bytes: "{}", action: "WRITE_PROJECT_DECLARATION", tenantId: v.normalised.tenantId, occurredAt: isoSeconds(Date.now()) })); }\n  exitWith(0, { outcome: "VALID", declarationId: v.normalised.declarationId,',
     probe: probe(`const d = world(); bin(d, "--validate", "--file", put(d, fresh())); say(files(d).length > 1);`),
     expect: /validate-only wrote or recorded something/ },
 
@@ -203,7 +207,7 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("\\").join
       + `\nPROBE CONTROL (clean tree): ${cleanProbe.length - bad.length} of ${cleanProbe.length} probes report no defect.\n`
       + run.results.map((r) => `  ${r.id}  ran ${!String(r.verdict).startsWith("NOT RUN")} · bytes landed ${r.landed} · defect took effect ${r.tookEffect} · named RED ${r.namedFailed} · pinned reason ${r.reason} · ${r.verdict} · restored ${r.restoredClean}  — ${r.what}`).join("\n")
       + `\nRAN ${ran} of ${list.length} · LANDED ${landed} of ${list.length} · COULD-FAIL ${couldFail} of ${list.length} · PROVED ${proved} of ${list.length}\n`;
-    writeFileSync(join(REPO, outArg), text);
+    writeFileSync(join(REPO, outArg), text, { flag: "wx" });
     console.log(`evidence written: ${outArg}`);
   }
   process.exit(bad.length === 0 && ran === list.length && landed === list.length && proved === list.length && run.residue.length === 0 && run.productionUntouched ? 0 : 1);

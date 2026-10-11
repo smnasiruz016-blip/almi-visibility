@@ -1,0 +1,10 @@
+RR-247 deliberate-invocation gate sabotage PRACTICE run · 2026-10-10T19:00:25.749Z
+population: 1 sabotage(s) — one per protection (the gate's stop, its exit code, the harness census, the behaviour census, the how-to-run lines)
+BASELINE: GREEN (every named test passed, none skipped)
+PRE-FLIGHT (span occurrences in the code now): G02=1 · all exactly once: true
+production trail sha256 before: b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1
+
+G02 a refusal is never a success (exit 2) · test/helpers/harness-gate.mjs: landed true · "HG-3 ·" red true · its failure AssertionError · restored true · PROVED
+
+GREEN after restore: true
+proved 1 of 1 · residue 0 · production trail sha256 after: b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1 · unchanged true

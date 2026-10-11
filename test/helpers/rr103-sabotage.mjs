@@ -9,6 +9,7 @@
  * the 2026-09-30 file is the RR-103 run, kept.
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { writeEvidenceOnce } from "./evidence-once.mjs"; // RR-248: evidence to a new timestamped file, never over an earlier run's
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -31,7 +32,8 @@ const SABOTAGES = [
   /* G05 repointed 1 Oct 2026 (RR-113): F91 now holds its OWN acceptance, so the old span — adding a second F91 key after F90 — would be
    * overridden by the live F91 line and land without effect. It now replaces F91's own acceptance with another row's. */
   /* RR-153: re-anchored to live code — ACCEPTANCES.F91 now names Amendment 2 (fff60df) */
-  ["G05", "F91 given an acceptance that is not its own", AC, "  F91: F91_AMENDMENT_2,\n", "  F91: F90_ORIGINAL,\n", "A3·5"],
+  /* RR-248: moved to the live line again, as RR-130 did — ACCEPTANCES.F91 now names Amendment 4 (b66d46d and after) */
+  ["G05", "F91 given an acceptance that is not its own", AC, "  F91: F91_AMENDMENT_4,\n", "  F91: F90_ORIGINAL,\n", "A3·5"],
   ["G06", "the validator stops refusing a board whose ids are not F01..F{DENOMINATOR}", BD, " || expected.some((x) => !ids.includes(x))) errs.push({ code: \"DENOMINATOR\"", ") errs.push({ code: \"DENOMINATOR\"", "A3·4"],
 ];
 
@@ -80,6 +82,6 @@ const trailAfter = sha(read(TRAIL));
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "rr103-sabotage-rr130-2026-10-02.txt"), lines.join("\n") + "\n");
+console.log(`evidence written: ${writeEvidenceOnce(REPO, "rr103-sabotage", lines.join("\n") + "\n")}`);
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore && proved === SABOTAGES.length ? 0 : 1;

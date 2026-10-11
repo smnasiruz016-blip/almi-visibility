@@ -23,7 +23,7 @@ const T = ["test/f16-collection.test.mjs"];
 const TRAIL = "audit-trail/events.jsonl";
 /* run 2: the first run's evidence (…-2026-10-04.txt, 23 of 23) stays as the record of the code before the plan's tenant check moved to the
  * one scope decision (S13's span changed with it); this run is the code as committed */
-const EVIDENCE = join(REPO, "runs", "audit", "f16-collection-sabotage-rr155-2026-10-04-run2.txt");
+const EVIDENCE = join(REPO, "runs", "audit", `f16-collection-sabotage-${new Date().toISOString().slice(0, 16).replace(":", "")}.txt`); // RR-248: a new timestamped file each run (the fixed name could never be written twice)
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
 
@@ -32,7 +32,8 @@ const SABOTAGES = [
   ["S02", "a STALE GREEN no longer refused", C, ' r.push("GREEN_PREDATES_THE_PLAN");', " void 0;", "K2"],
   ["S03", "a REUSED GREEN no longer refused", C, 'if (spent.has(greenId)) r.push("GREEN_ALREADY_SPENT");', "", "K2"],
   ["S04", "a GREEN for another plan no longer refused", C, 'else if (!mine) r.push("GREEN_NAMES_ANOTHER_PLAN");', "else if (!mine) void 0;", "K2"],
-  ["S05", "the request cap exceeded by one", C, "cap: plan.requests,", "cap: plan.requests + 1,", "K3"],
+  /* RR-248: S05 and S15 restated — RR-156 (d671815) bounded the cap by the ceiling, RR-157 (b235888) added held items to zero */
+  ["S05", "the request cap exceeded by one", C, "cap: Math.min(plan.requests, COLLECTION_REQUEST_CEILING),", "cap: Math.min(plan.requests, COLLECTION_REQUEST_CEILING) + 1,", "K3"],
   ["S06", "a quota exhausted no longer stops the run", G, 'if (quotaRemaining !== null && quotaRemaining <= 0) return refuse("QUOTA_EXHAUSTED");', "", "K3"],
   ["S07", "a backoff ignored", COL, 'if (Number.isInteger(first.response?.backoff) && first.response.backoff > 0) return { recorded, recheck: null, tally: g.tally(), stoppedBy: "BACKOFF_REQUESTED" };', "", "K3"],
   ["S08", "a source refusal read as an empty result (and the run goes on)", COL, "if (refusedBySource) return { recorded: null, recheck: null, tally: g.tally(), stoppedBy: refusedBySource };", "", "K3"],
@@ -42,7 +43,7 @@ const SABOTAGES = [
   ["S12", "a duplicate admitted", LI, "if (seen.has(q.question_id)) { refused.DUPLICATE_INTAKE = (refused.DUPLICATE_INTAKE ?? 0) + 1; continue; }", "", "K4"],
   ["S13", "a plan for another tenant runs", C, 'if (tenantDecidedAllowed !== true) r.push("PLAN_NOT_THIS_TENANTS");', "", "K6"],
   ["S14", "a plan for another subject runs", C, 'if (plan.subject !== subject) r.push("PLAN_NOT_THIS_SUBJECTS");', "", "K6"],
-  ["S15", "zero no longer reported as zero", C, "zero: outcome === OUTCOMES.COMPLETED && retrieved !== NOT_MEASURED && questions === 0,", "zero: false,", "K5"],
+  ["S15", "zero no longer reported as zero", C, "zero: outcome === OUTCOMES.COMPLETED && retrieved !== NOT_MEASURED && questions === 0 && (intake?.held ?? []).length === 0,", "zero: false,", "K5"],
   ["S16", "leads stored as questions", BIN, 'const g = append(intake.leads, "leads.jsonl", "APPEND_RESEARCH_LEADS");', 'const g = append(intake.leads, "questions.jsonl", "APPEND_RESEARCH_LEADS");', "K5"],
   ["S17", "the credential's value touched (its length measured)", BIN, "credentialPresent: credentialName !== null && Object.hasOwn(process.env, credentialName),", "credentialPresent: credentialName !== null && String(process.env[credentialName] ?? \"\").length >= 0 && Object.hasOwn(process.env, credentialName),", "K7"],
   ["S18", "a missing credential no longer refused", C, 'if (!credentialPresent) r.push("CREDENTIAL_ABSENT");', "", "K7"],

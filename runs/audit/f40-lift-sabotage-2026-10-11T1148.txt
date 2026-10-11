@@ -1,0 +1,11 @@
+F40 lift sabotage run · 2026-10-11T11:48:29.736Z
+population: 4 sabotages over test/f40-blocker-lift.test.mjs + test/f05-authority-register.test.mjs · each applied ALONE; each run killed after 300 s
+PRE-FLIGHT (span occurrences in the code live now): L1=1 L2=1 L3=1 L4=1 · all exactly once: true
+production trail sha256 before: b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1
+
+L1 F40's acceptance must carry the owner's check config/fboard/row-constraints.mjs: landed true · named test red true · failing 12 · reason AssertionError · restored by sha256 true · PROVED
+L2 F40's acceptance must refuse a word count config/fboard/row-constraints.mjs: landed true · named test red true · failing 12 · reason AssertionError · restored by sha256 true · PROVED
+L3 a lift is recorded under its own authority src/audit-trail/population.mjs: landed true · named test red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L4 the lifting event names its own authority config/fboard/f-board.mjs: landed true · named test red true · failing 2 · reason TypeError/AssertionError · restored by sha256 true · PROVED
+
+proved 4 of 4 · residue 0 · production trail sha256 after: b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1 · unchanged true

@@ -7,6 +7,7 @@
  * test required red, restored by raw-byte sha256, the production trail hashed before and after. Evidence: runs/audit/rr104-sabotage-2026-09-30.txt.
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { writeEvidenceOnce } from "./evidence-once.mjs"; // RR-248: evidence to a new timestamped file, never over an earlier run's
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -37,7 +38,8 @@ const SABOTAGES = [
   ["Z13", "RULE 3: an unfetched link reads as working", P, 'return { state: "NOT_FETCHED", status: null,', 'return { state: "WORKING", status: 200,', "RULE 3"],
   ["Z14", "RULE 4: an uncollected header reads ABSENT", P, "if (!collected || !collected.includes(h)) return { state: NOT_MEASURED,", "if (!collected) return { state: NOT_MEASURED,", "RULE 4"],
   ["Z15", "RULE 4: an old link's missing detail is defaulted", P, "if (!Object.hasOwn(link ?? {}, field)) return { state: NOT_MEASURED,", "if (false) return { state: NOT_MEASURED,", "RULE 4"],
-  ["Z16", "RETRY: a network failure is not retried", F, "      try {\n        return await once(url);\n      } catch (err2) {", "      try {\n        throw err;\n      } catch (err2) {", "RETRY"],
+  /* RR-248: restated — RR-108/RR-135 name the request kind (94e5329); the retry is once(url, "retry"), still the only retry */
+  ["Z16", "RETRY: a network failure is not retried", F, "      try {\n        return await once(url, \"retry\");\n      } catch (err2) {", "      try {\n        throw err;\n      } catch (err2) {", "RETRY"],
   ["Z17", "ISOLATION: evidence shared across runs", C, "if (res.ok) evidence.push(...pageEvidence(obs, res));", "if (res.ok) { (globalThis.__rr104 ??= []).push(...pageEvidence(obs, res)); evidence.push(...globalThis.__rr104); }", "TENANT ISOLATION"],
 ];
 
@@ -86,6 +88,6 @@ const trailAfter = sha(read(TRAIL));
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "rr104-sabotage-2026-09-30.txt"), lines.join("\n") + "\n");
+console.log(`evidence written: ${writeEvidenceOnce(REPO, "rr104-sabotage", lines.join("\n") + "\n")}`);
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore && proved === SABOTAGES.length ? 0 : 1;

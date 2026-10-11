@@ -9,6 +9,7 @@
  * red is reported NOT PROVED — never dropped. Evidence: runs/audit/f77-sabotage-2026-09-28.txt.
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { writeEvidenceOnce } from "./evidence-once.mjs"; // RR-248: evidence to a new timestamped file, never over an earlier run's
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -30,7 +31,8 @@ const SABOTAGES = [
   ["S4", "M2 lock bound honoured", LK, "if (Date.now() - start > boundMs) throw", "if (Date.now() - start > boundMs * 30) throw", "M2 · the lock is BOUNDED"],
   ["S5", "M2 dead holder cleared", LK, "pid !== process.pid && !alive(pid)) {", "pid !== process.pid && false) {", "M2 · the lock is BOUNDED"],
   ["S6", "M4 raw egress classified", CE, "if (RAW_EGRESS.test(line)) (Object.hasOwn(DECLARED_EGRESS, p) ? egress : unclassified).push(`${p}:${i + 1}`);", "if (RAW_EGRESS.test(line)) egress.push(`${p}:${i + 1}`);", "M4 ·"],
-  ["S7", "M4 real paid provider seen", CE, `const paid = gates.map((g) => ({ site: g.site, provider: FAKE.test(String(files[g.file])) ? "FAKE_EXERCISE" : "REAL_OR_UNKNOWN" }));`, `const paid = gates.map((g) => ({ site: g.site, provider: "FAKE_EXERCISE" }));`, "M4 ·"],
+  /* RR-248: restated — RR-159 (fc356d3) added the provider-registry branch; the limb still labels every paid call a fake exercise */
+  ["S7", "M4 real paid provider seen", CE, `const paid = gates.map((g) => ({ site: g.site, provider: FAKE.test(String(files[g.file])) ? "FAKE_EXERCISE" : REGISTRY.test(String(files[g.file])) ? (registrySize > 0 ? "REAL_FROM_REGISTRY" : "REGISTRY_EMPTY") : "REAL_OR_UNKNOWN" }));`, `const paid = gates.map((g) => ({ site: g.site, provider: "FAKE_EXERCISE" }));`, "M4 ·"],
   ["S8", "M4 connector kinds classified", CE, "const unclassifiedKinds = kinds.filter((k) => !Object.hasOwn(CONNECTOR_CALL_CLASS, k));", "const unclassifiedKinds = kinds.filter(() => false);", "M4 ·"],
   ["S10", "R2 retry replays answered calls", IO, "if (held?.state === CALL_STATES.ANSWERED) {", "if (false) {", "R2 · RETRY after an INTERRUPTION", T_R2],
   ["S11", "R2 uncertain call refused", IO, "if (held?.state === CALL_STATES.ISSUED) {", "if (false) {", "R2 · RETRY after an UNCERTAIN", T_R2],
@@ -76,6 +78,6 @@ const trailAfter = sha(read(TRAIL));
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "f77-sabotage-2026-09-28.txt"), lines.join("\n") + "\n");
+console.log(`evidence written: ${writeEvidenceOnce(REPO, "f77-sabotage", lines.join("\n") + "\n")}`);
 console.log(lines.join("\n"));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

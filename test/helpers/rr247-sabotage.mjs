@@ -33,7 +33,8 @@ const GATE_IMPORT = 'import "./harness-gate.mjs"; // RR-247: first import — ex
 /* [id, limb, file, from, to, test file, named test prefix] */
 const SABOTAGES = [
   ["G01", "the gate stops a harness that a bare run starts", GATE, "if (!ranAlone && !process.argv.includes(DELIBERATE_FLAG)) {", "if (false) {", T, "HG-4 ·"],
-  ["G02", "a refusal is never a success (exit 2)", GATE, "  process.exit(2);\n", "  process.exit(0);\n", T, "HG-3 ·"],
+  /* RR-248 Q4: restated — the gate now has a second exit 2 (a run it cannot mark); the span names the bare-run refusal's, as before */
+  ["G02", "a refusal is never a success (exit 2)", GATE, "  );\n  process.exit(2);\n", "  );\n  process.exit(0);\n", T, "HG-3 ·"],
   ["G03", "every sabotage harness imports the gate first", F01, GATE_IMPORT, "", T, "HG-1 ·"],
   ["G04", "a writer that a bare run discovers is gated (found by behaviour)", F19, GATE_IMPORT, "", T, "HG-2 ·"],
   /* G05's "to" is assembled, so this harness itself never carries a how-to-run line without the flag (HG-5 reads it too) */

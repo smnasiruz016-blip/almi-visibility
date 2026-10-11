@@ -1,0 +1,25 @@
+F02 SABOTAGE EVIDENCE — one defect per tenant-isolation enforcement limb (§8)
+
+Engine tree: 408b58a690001f397bbffb8cae417f725e2c2d03. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
+runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
+requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
+No sabotage aims at the production audit trail; every firing case writes to a stand-in or a confined store.
+
+RESULTS
+F2-S7    landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — the gate removed from a real production entry point
+         target bin/label-on-face.mjs · named test "R5 ·…" in test/f02-tenant-isolation.test.mjs
+         sha256 before 16067136702d89b1bc4a6a683c462d09f934223eca14acd72d7cfa6e27b343a4 · after 16067136702d89b1bc4a6a683c462d09f934223eca14acd72d7cfa6e27b343a4
+         failing tests: R5 · THE PRODUCTION ENTRY POINT over the real registry: same tenant runs, another tenant and no tenant are refused (exit 3) naming reason codes only — and the trail does not move | C1 · every production entry point decides tenant scope before it reads (tenant-scope census: 0 UNSCOPED, remainder 0)
+         verdict: RED, named test, intended reason
+
+TOTAL 1 · PROVED 1 · NOT PROVED 0
+residue in sabotaged files after restore: 0
+tracked modifications after restore (excluding this evidence file): 11
+
+PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
+  audit-trail/events.jsonl  before b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1  after b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1
+  audit-trail/head.json  before d624c54b24c60777f7e2c1e3d55c446b0401ecec9c93a54f1802d85735f0475d  after d624c54b24c60777f7e2c1e3d55c446b0401ecec9c93a54f1802d85735f0475d
+  untouched: true
+
+EXECUTION ASSERTION: 1 of 1 sabotages executed.

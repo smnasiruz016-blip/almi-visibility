@@ -1,0 +1,27 @@
+F01 PRODUCT DECLARATION AND INTAKE — SABOTAGE EVIDENCE (§12)
+
+Engine tree: 603f3a565a88ed42ff4504b26150cd2f3fe1570a. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
+runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
+requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
+No sabotage aims at the production audit trail; every firing case writes to a stand-in or a confined store.
+
+RESULTS
+S2       landed=true red=true failed=2 namedTestFailed=true reason=true restored=true — one project allowed to cross tenants
+         target src/intake/intake.mjs · named test "P7 ·…" in test/f01-intake.test.mjs
+         sha256 before e4ec809ccdeb78ce0d81645473b71efb378ff769ce883f9cb15c6109ee914cdc · after e4ec809ccdeb78ce0d81645473b71efb378ff769ce883f9cb15c6109ee914cdc
+         failing tests: P7 · one project cannot cross tenants — CONTROL: the same project in its own tenant moves on | P33 · a refusal leaves the accepted store byte-identical — CONTROL: a lawful supersession changes it
+         verdict: BYTES LANDED, DEFECT DID NOT TAKE EFFECT
+
+TOTAL 1 · PROVED 0 · NOT PROVED 1
+residue in sabotaged files after restore: 0
+tracked modifications after restore (excluding this evidence file): 0
+
+PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
+  audit-trail/events.jsonl  before f6944b72d64ccb8491055927dbab97497f5c81ed3d7a750bc3ac238092f77c26  after f6944b72d64ccb8491055927dbab97497f5c81ed3d7a750bc3ac238092f77c26
+  audit-trail/head.json  before 875f8a1e7a92fe4a7812410001dfd4adcc872c35d5a155e140e2c7d2a4bf5f21  after 875f8a1e7a92fe4a7812410001dfd4adcc872c35d5a155e140e2c7d2a4bf5f21
+  untouched: true
+
+PROBE CONTROL (clean tree): 1 of 1 probes report no defect.
+  S2  ran true · bytes landed true · defect took effect false · named RED true · pinned reason true · BYTES LANDED, DEFECT DID NOT TAKE EFFECT · restored true  — one project allowed to cross tenants
+RAN 1 of 1 · LANDED 0 of 1 · COULD-FAIL 1 of 1 · PROVED 0 of 1

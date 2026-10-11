@@ -16,10 +16,10 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const EVIDENCE = join(REPO, "runs", "audit", process.env.F91_EVIDENCE_NAME ?? "f91-connection-sabotage-rr153-2026-10-04.txt");
+const EVIDENCE = join(REPO, "runs", "audit", process.env.F91_EVIDENCE_NAME ?? `f91-connection-sabotage-${new Date().toISOString().slice(0, 16).replace(":", "")}.txt`); // RR-248: a new timestamped file each run (the fixed name could never be written twice)
 if (existsSync(EVIDENCE)) { console.error(`refused: ${EVIDENCE} exists — an earlier run's evidence is never overwritten; name a new file with F91_EVIDENCE_NAME`); process.exit(2); }
 const DC = "src/page/demand-connection.mjs", BD = "bin/demand-connect.mjs", RD = "src/page/page-opportunities-reader.mjs", ES = "src/evidence/evidence-state-adapters.mjs";
-const T = ["test/f91-connection.test.mjs"];
+const T = ["test/f91-connection.test.mjs", "test/rr172-r2-f91-f33.test.mjs"]; // RR-248: + rr172-r2, where RR-172 (efc36be) moved the official-origin pin (T17h)
 const TRAIL = "audit-trail/events.jsonl";
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
@@ -31,25 +31,36 @@ const SABOTAGES = [
   ["Y2", "C9 a keyword idea is refused by name", DC, "  if (r?.record_type === \"keyword_signal\") return REFUSAL.KEYWORD;\n", "", K2],
   ["Y3", "C9 a client's claim is refused by name", DC, "  if (v.kind === \"CLIENT_CLAIM\") return REFUSAL.CLIENT_CLAIM;\n", "", K2],
   ["Y4", "C9 only an OBSERVED question is demand", DC, "  if (v.kind !== \"OBSERVED\") return REFUSAL.INFERRED;\n", "", K2],
-  ["Y5", "C9 a fixture or test record is refused", DC, "  if (r.fixture === true || v.fixture === true || v.dataPurpose === \"TEST_PILOT\") return REFUSAL.FIXTURE;\n", "", K2],
+  /* RR-248: restated — RR-172 (efc36be) names the fixture test `isFixture` and refuses it in both branches; the span is the observed-
+   * question branch's refusal, the one this limb was written for */
+  ["Y5", "C9 a fixture or test record is refused", DC, "  if (v.kind !== \"OBSERVED\") return REFUSAL.INFERRED;\n  if (isFixture(r)) return REFUSAL.FIXTURE;\n", "  if (v.kind !== \"OBSERVED\") return REFUSAL.INFERRED;\n", K2],
   ["Y6", "C9 another product's or tenant's question is refused", DC, "  if (v.subject !== subject) return REFUSAL.OTHER_SUBJECT;\n", "", K2],
   ["Y7", "C9 an author attribute not stated on the original post is refused", DC, "  if (AUTHOR_FIELDS.some(", "  if (false && AUTHOR_FIELDS.some(", K2],
   ["Y8", "C9 an observer label that contradicts its type is refused", DC, "  if (!Object.hasOwn(OBSERVER_LABELS, t) || v.provenance.seenBy !== OBSERVER_LABELS[t]) return REFUSAL.UNSUPPORTED_ATTRIBUTE;\n", "", K2],
   ["Y9", "C9 a duplicate write is refused", DC, "    if (connected.has(r.question_id)) { refuse(d, REFUSAL.DUPLICATE); continue; }\n", "", K2],
   ["Y10", "C9 the page candidate must be one of F91's possible combinations", DC, "if (!candidates || !d?.combination || !candidates.has(candidateKey(d.combination))) {", "if (!d?.combination) {", K2],
   /* C10 — one need */
-  ["Y11", "C10 country never splits one need", DC, "    } else needId = needOfWording.get(normaliseWording(v.original)) ??", "    } else needId = needOfWording.get(`${v.country}|${normaliseWording(v.original)}`) ??", K3],
-  ["Y12", "C10 needs never merge by similarity", DC, "    } else needId = needOfWording.get(normaliseWording(v.original)) ??", "    } else needId = [...needOfWording].find(([w]) => w.slice(0, 12) === normaliseWording(v.original).slice(0, 12))?.[1] ??", K4],
+  /* RR-248: Y11 and Y12 restated — RR-172 (efc36be) reads wording and country through connectionFields (`fields`) */
+  ["Y11", "C10 country never splits one need", DC, "    } else needId = needOfWording.get(normaliseWording(fields.wording)) ??", "    } else needId = needOfWording.get(`${fields.country}|${normaliseWording(fields.wording)}`) ??", K3],
+  /* RR-248: restated — RR-172 (efc36be) reads the wording through connectionFields (`fields.wording`) */
+  ["Y12", "C10 needs never merge by similarity", DC, "    } else needId = needOfWording.get(normaliseWording(fields.wording)) ??", "    } else needId = [...needOfWording].find(([w]) => w.slice(0, 12) === normaliseWording(fields.wording).slice(0, 12))?.[1] ??", K4],
   ["Y13", "C10 a recorded judgement joins a translation to the SAME need", DC, "      needId = target.needId;\n", "      needId = `need:${hash([subject, r.question_id])}`;\n", K3],
   ["Y14", "C10 a country-specific difference is kept as a section", DC, "    for (const s of d.sections ?? []) n.sections.push(s);\n", "", K5],
   ["Y15", "C10 one need has one page candidate", DC, "    if (needCandidate.has(needId) && needCandidate.get(needId) !== ck) { refuse(d, REFUSAL.SPANS_CANDIDATES); continue; }\n", "", K6],
   /* C11 — one sourced answer, no checker */
-  ["Y16", "C11 the answer only from the product's own official site", DC, "  if (!officialSites.includes(originOf(a.sourceRef))) return", "  if (false) return", K7],
+  /* RR-248 · CASE (b) — MOVED: RR-172 (efc36be) moved the official-site rule into src/page/answer-support.mjs (claimSupport, per claim).
+   * Re-pointed to the moved rule, breaking ONLY the official-origin condition (the product-site kind check stays): not an easier limb.
+   * RR-248 (beta-g pre-ruling, option A): efc36be also took the non-official-origin assertion out of K7; it lives in T17h
+   * (test/rr172-r2-f91-f33.test.mjs), so the limb names T17h. rr172 S28 breaks this line the other way (always refused); this limb
+   * proves the rule-REMOVED direction for the first time. */
+  ["Y16", "C11 the answer only from the product's own official site", "src/page/answer-support.mjs", "if (s.kind !== SOURCE_KINDS.PRODUCT_SITE || !officialSites.includes(originOf(s.link))) return", "if (s.kind !== SOURCE_KINDS.PRODUCT_SITE) return", "T17h ·"],
   ["Y17", "C11 two different answers for one need are never chosen between", DC, "const answer = answers.length > 1 ?", "const answer = answers.length > 99 ?", K7],
   ["Y18", "C11 a checker field is refused", DC, "    if (Object.keys(d ?? {}).some((k) => CHECKER_FIELDS.test(k)) || Object.keys(d?.answer ?? {}).some((k) => CHECKER_FIELDS.test(k))) { refuse(d, REFUSAL.CHECKER_FIELD); continue; }\n", "", K8],
   /* C12 — coverage */
-  ["Y19", "C12 an existing page that serves the need is honoured", DC, "const recommendation = cov === \"COVERED\" ?", "const recommendation = cov === \"COVERED_NEVER\" ?", K9],
-  ["Y20", "C12 an UNKNOWN answer is HELD, never recommended", DC, ": answer.state !== \"SOURCED\" ? RECOMMENDATION.HELD_ANSWER :", ": false ? RECOMMENDATION.HELD_ANSWER :", K9],
+  /* RR-248: Y19 and Y20 restated — F91 Amendment 3 (RR-172, efc36be): coverage is FULL / PARTIAL / NONE (GROUPED), and an answer is held
+   * unless its CENTRAL claim is supported (C18) */
+  ["Y19", "C12 an existing page that serves the need is honoured", DC, "const recommendation = cov === GROUPED.FULL ? RECOMMENDATION.COVERED :", "const recommendation = cov === \"COVERED_NEVER\" ? RECOMMENDATION.COVERED :", K9],
+  ["Y20", "C12 an UNKNOWN answer is HELD, never recommended", DC, ": answer.centralSupported !== true ? RECOMMENDATION.HELD_ANSWER :", ": false ? RECOMMENDATION.HELD_ANSWER :", K9],
   /* the planner reads what the writer wrote */
   ["Y21", "the planner's reader takes the need record as neither a limb nor malformed", RD, "} else if (r?.record_type === \"planning_need\" && typeof r.needId === \"string\" && isCombination(r.combination)) {", "} else if (false) {", K10],
   ["Y22", "a connection is INFERRED, never OBSERVED", ES, "  return place(rule, \"INFERRED\", { inputRefs: inputs.map(", "  return place(rule, \"OBSERVED\", { inputRefs: inputs.map(", K12],

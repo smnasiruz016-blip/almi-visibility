@@ -9,6 +9,7 @@
  * is hashed before and after. Evidence: runs/audit/f35-sabotage-2026-09-29.txt.
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { writeEvidenceOnce } from "./evidence-once.mjs"; // RR-248: evidence to a new timestamped file, never over an earlier run's
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -23,13 +24,16 @@ const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
 
 const SABOTAGES = [
-  ["S1", "C3 CREATE needs strong demand", AD, `if (strongDemand(demand)) actions.push(chosen("CREATE",`, `if (true) actions.push(chosen("CREATE",`, "C3 ·"],
-  ["S2", "C3 strong means three agreeing categories", AD, `const strongDemand = (d) => d?.outcome === "STRONG" && Number(d.independentCategories) >= 3 && d.conflict !== true;`, `const strongDemand = (d) => d?.outcome === "STRONG";`, "C3 ·"],
-  ["S3", "C3 CREATE needs an established right", AD, `if (rte?.outcome === "ESTABLISHED" && ex?.mayProduce === true) {`, "if (ex?.mayProduce === true) {", "C3 ·"],
-  ["S4", "C3 the missing demand is named", AD, "else if (demand === null || demand === undefined) missing.push(", "else if (false) missing.push(", "C3 ·"],
-  ["S5", "C4 IMPROVE on a covering page with a defect", AD, `if (ex?.outcome === "IMPROVE") actions.push(`, "if (false) actions.push(", "C4 ·"],
+  /* RR-248 · CASE (b) — S1–S5 RETIRED (owner ruling RR-248 Q1 (A), _handoffs 689eea7). F35 Acceptance Amendment 1 (RR-174,
+   * 47e1769) removed the rules these limbs broke: "no demand outcome … is required, under any name" (S1 strong demand, S2 three
+   * categories, S4 the missing demand named — demand is never a gate, M9); C3 as amended decides a grouped need on rightToExist,
+   * not on an ESTABLISHED right (S3); C4 as amended turns a PARTIAL cover into ADD SECTION, not IMPROVE (S5). Their named tests
+   * "C3 ·" and "C4 ·" no longer exist ("C3 (as amended) ·", "C4 (as amended) ·"). The NEW rule is guarded by rr174 S01–S14
+   * (test/helpers/rr174-sabotage.mjs), each run on 2026-10-10 with --deliberate: RED by assertion, restored by sha256, 14 of 14
+   * PROVED, then its proof files GREEN. No row state changes. */
   ["S6", "C4/C5 KEEP never without recorded quality", AD, "if (e.quality?.satisfiesIntent === true) actions.push(", "if (true) actions.push(", "C5 · the existing-page rules"],
-  ["S7", "C5 REJECT only for a doorway-like reason", AD, `if (rte?.parts?.specific?.state === "FAIL" && rte.parts.specific.kind === "REJECT") {`, `if (rte?.parts?.specific?.state === "FAIL") {`, "C5 · REJECT only"],
+  /* RR-248: restated — F35 Amendment 1 (RR-174, 47e1769) decides a grouped need on `rightToExist`; the REJECT rule is unchanged */
+  ["S7", "C5 REJECT only for a doorway-like reason", AD, `if (rightToExist.parts?.specific?.state === "FAIL" && rightToExist.parts.specific.kind === "REJECT") return decided(`, `if (rightToExist.parts?.specific?.state === "FAIL") return decided(`, "C5 · REJECT only"],
   ["S8", "C5 FIX on a recorded contradiction", AD, `if (e.signals?.state === "CONTRADICTED") fixEvidence.push(`, "if (false) fixEvidence.push(", "C5 · the existing-page rules"],
   ["S9", "C5 FIX on a non-successful served state", AD, `if (e.servedState?.state === "OBSERVED" && !served) fixEvidence.push(`, "if (false) fixEvidence.push(", "C5 · the existing-page rules"],
   ["S10", "RR-89 a properly evidenced MERGE is chosen (suppression control)", AD, "if (successor) actions.push(chosen(\"MERGE\",", "if (false) actions.push(chosen(\"MERGE\",", "RR-89 · REAL, both controls"],
@@ -45,7 +49,8 @@ const SABOTAGES = [
   ["S20", "C1 every action carries its evidence", AD, "evidence: Object.freeze([...new Set(evidence.filter(Boolean))]) });", "evidence: Object.freeze([]) });", "C1/C6 ·"],
   ["S21", "RR-89 a shared need alone is no successor (unreviewed-pair control)", AD, "const successor = reviewed.length > 0;", "const successor = (e.sameNeedPeers ?? []).length > 0;", "RR-89 · FIRING CONTROL"],
   ["S22", "C7 a network call is seen", CP, `{ code: "RAW_NETWORK_CALL", test: (t) => t.split("\\n").some((l) => RAW_EGRESS.test(l)) },`, `{ code: "RAW_NETWORK_CALL", test: () => false },`, "C7 ·"],
-  ["S23", "C6/C7 the entry point declares the shared store it reads", BIN, `RESOURCES.collectionPartition("SITEMAP_COLLECTION", SITEMAP_BATCH_ID), RESOURCES.evidenceStore()] });`, `RESOURCES.collectionPartition("SITEMAP_COLLECTION", SITEMAP_BATCH_ID)] });`, "C6/C7 · THE ENTRY POINT"],
+  /* RR-248: restated — the research batch (RR-174) now stands between the sitemap partition and the evidence store */
+  ["S23", "C6/C7 the entry point declares the shared store it reads", BIN, `...(BATCH ? [RESOURCES.researchBatch(BATCH)] : []), RESOURCES.evidenceStore()] });`, `...(BATCH ? [RESOURCES.researchBatch(BATCH)] : [])] });`, "C6/C7 · THE ENTRY POINT"],
   ["S24", "C5 LINK's input counts the recorded inbound links", SI, "inboundLinks: Array.isArray(p.inbound_edges) ? p.inbound_edges.length : null,", "inboundLinks: Array.isArray(p.inbound_edges) ? 0 : null,", "C5 · LINK's input"],
   ["S25", "C5 an absent inbound list is unknown, never 0", SI, "inboundLinks: Array.isArray(p.inbound_edges) ? p.inbound_edges.length : null,", "inboundLinks: Array.isArray(p.inbound_edges) ? p.inbound_edges.length : 0,", "C5 · LINK's input"],
   ["S26", "RR-89 a review must compare every aspect", AD, "SEMANTIC_ASPECTS.every((a) => review.compared?.includes(a)) && ", "", "RR-89 · what a review must show"],
@@ -96,6 +101,6 @@ const trailAfter = sha(read(TRAIL));
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "f35-sabotage-2026-09-29.txt"), lines.join("\n") + "\n");
+console.log(`evidence written: ${writeEvidenceOnce(REPO, "f35-sabotage", lines.join("\n") + "\n")}`);
 console.log(lines.join("\n"));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

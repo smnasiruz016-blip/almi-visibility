@@ -1,0 +1,27 @@
+F06 CORRECTION — SABOTAGE EVIDENCE (legacy market measurement · OUTCOME_ALIASES · census)
+
+Engine tree: 7cb0a26982f3ee01c3696fb98951655d71717bc9. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
+runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
+requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
+No sabotage aims at the production audit trail; every firing case writes to a stand-in or a confined store.
+
+RESULTS
+X1       landed=true red=true failed=4 namedTestFailed=true reason=true restored=true — the live Row 7 writer regresses to UNKNOWN for a dimension it never measured
+         target src/discovery/market-measurement.mjs · named test "K4 ·…" in test/f06-correction.test.mjs
+         sha256 before ebeafed10bc4e8302e2a8ce0a418eacdc711e40f2b6c80d9e088736a1aa23545 · after ebeafed10bc4e8302e2a8ce0a418eacdc711e40f2b6c80d9e088736a1aa23545
+         failing tests: K3 · the reading is bound to the exact 15 September bytes by full sha256 — other bytes are refused, never read as it | K4 · the live Row 7 writer: NOT performed → NOT_MEASURED; REACHED but not establishable → UNKNOWN, kept | K4b · Row 7's law reads the CANONICAL state: a current result reading UNKNOWN for an unmeasured dimension is refused | K9 · the four zeros hold on the corrected reading, and each FIRES on the pre-correction reading (same counter)
+         verdict: RED, named test, intended reason
+
+TOTAL 1 · PROVED 1 · NOT PROVED 0
+residue in sabotaged files after restore: 0
+tracked modifications after restore (excluding this evidence file): 0
+
+PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
+  audit-trail/events.jsonl  before b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1  after b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1
+  audit-trail/head.json  before d624c54b24c60777f7e2c1e3d55c446b0401ecec9c93a54f1802d85735f0475d  after d624c54b24c60777f7e2c1e3d55c446b0401ecec9c93a54f1802d85735f0475d
+  untouched: true
+
+PROBE CONTROL (clean tree): 1 of 1 probes report no defect.
+  X1  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — the live Row 7 writer regresses to UNKNOWN for a dimension it never measured
+RAN 1 of 1 · LANDED 1 of 1 · PROVED 1 of 1

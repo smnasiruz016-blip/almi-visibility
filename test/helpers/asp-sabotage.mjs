@@ -127,8 +127,9 @@ export const ASP_SABOTAGES = [
     expect: /condition A still reads the NAME/ },
 
   { id: "S15", what: "the production store's location check is not wired to append", file: WIR, test: T, named: "ASP-C1d",
-    from: "    assertLocation: at ? () => {} : () => assertDeclaredAuditLocation(repo),",
-    to: "    assertLocation: () => {},",
+    /* RR-248 Q4: restated — the production check also asks for live harness runs now; the limb still removes ONLY the location check */
+    from: "    assertLocation: at ? () => {} : () => { assertDeclaredAuditLocation(repo); assertNoHarnessRun(repo); },",
+    to: "    assertLocation: at ? () => {} : () => { assertNoHarnessRun(repo); },",
     probe: probe(`const b = fs.mkdtempSync(path.join(os.tmpdir(), "asp-s15-")); try { const r = path.join(b, "r"); fs.mkdirSync(r); const e = path.join(b, "e"); fs.mkdirSync(e); fs.symlinkSync(e, path.join(r, "audit-trail"), "junction"); let msg = ""; try { W.productionAuditStore({ repo: r, forbiddenSubstrings: [] }).append({ eventType: "X" }); } catch (x) { msg = String(x.message); } say(!/AUDIT_STORE_LOCATION_REFUSED/.test(msg)); } finally { fs.rmSync(b, { recursive: true, force: true }); }`),
     expect: /the check is not on the production append path/ },
 ];
@@ -158,7 +159,7 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("\\").join
       + `\nPROBE CONTROL (clean tree): ${cleanProbe.length - bad.length} of ${cleanProbe.length} probes report no defect.\n`
       + run.results.map((r) => `  ${r.id}  ran ${!String(r.verdict).startsWith("NOT RUN")} · bytes landed ${r.landed} · defect took effect ${r.tookEffect} · named RED ${r.namedFailed} · pinned reason ${r.reason} · ${r.verdict} · restored ${r.restoredClean}  — ${r.what}`).join("\n")
       + `\nRAN ${ran} of ${list.length} · LANDED ${landed} of ${list.length} · COULD-FAIL ${couldFail} of ${list.length} · PROVED ${proved} of ${list.length}\n`;
-    writeFileSync(join(REPO, outArg), text);
+    writeFileSync(join(REPO, outArg), text, { flag: "wx" });
     console.log(`evidence written: ${outArg}`);
   }
   process.exit(bad.length === 0 && ran === list.length && landed === list.length && proved === list.length && run.residue.length === 0 && run.productionUntouched ? 0 : 1);

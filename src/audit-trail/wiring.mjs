@@ -20,6 +20,7 @@ import { splitPopulation } from "../discovery/query-population.mjs";
 import { isHeldOut } from "../discovery/intent-clusters.mjs";
 import { createAuditStore } from "./store.mjs";
 import { createWitness, gitDirWitnessLocator } from "./witness.mjs";
+import { assertNoHarnessRun } from "./harness-run.mjs";
 import { createAuditReader } from "./reader.mjs";
 import { makeEvidenceLookup, makeSealedLookup } from "./population.mjs";
 
@@ -73,8 +74,9 @@ export function productionAuditStore({ repo, clock, forbiddenSubstrings = null, 
     forbiddenSubstrings: forbiddenSubstrings ?? derivedForbiddenSubstrings(repo, registry),
     sizeCeilingBytes: AUDIT_STORE.sizeCeilingBytes,
     /* A relocated (`at`) store was confined before it got here (resolveAuditStoreLocation refuses symlinks, traversal
-     * and any root but the scratch root). The PRODUCTION path is checked on every append, where a write would happen. */
-    assertLocation: at ? () => {} : () => assertDeclaredAuditLocation(repo),
+     * and any root but the scratch root). The PRODUCTION path is checked on every append, where a write would happen.
+     * 🔴 RR-248 Q4: and no append at all while a sabotage harness run is alive (harness-run.mjs) — before the witness. */
+    assertLocation: at ? () => {} : () => { assertDeclaredAuditLocation(repo); assertNoHarnessRun(repo); },
     /* 🔴 The production trail's durable second copy, outside the working tree (witness.mjs). A confined store has none. */
     witness: at ? null : createWitness({ locate: gitDirWitnessLocator(repo) }),
   });

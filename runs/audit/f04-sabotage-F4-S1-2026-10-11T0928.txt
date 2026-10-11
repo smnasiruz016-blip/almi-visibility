@@ -1,0 +1,25 @@
+F04 SABOTAGE EVIDENCE — one defect per limb of the frozen acceptance
+
+Engine tree: 7cb0a26982f3ee01c3696fb98951655d71717bc9. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
+runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
+requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
+No sabotage aims at the production audit trail; every firing case writes to a stand-in or a confined store.
+
+RESULTS
+F4-S1    landed=true red=true failed=4 namedTestFailed=true reason=true restored=true — a governed action proceeds with NO actor named — the identity check is dropped
+         target src/governance/authorisation.mjs · named test "C16 ·…" in test/f04-roles-permissions-approvals.test.mjs
+         sha256 before 2fd1dbaef357f1535b9aa53589b2daf4ee88ad98f74fb2eec4d43c63b1a45113 · after 2fd1dbaef357f1535b9aa53589b2daf4ee88ad98f74fb2eec4d43c63b1a45113
+         failing tests: EXPECTED · missing identity, missing role, insufficient scope, missing approval, expired approval, conflicting duty and unsupported action each FAIL CLOSED with their own outcome | EXPECTED · fail closed BEFORE protected data is read — a real scoped entry point without an actor exits 5 and reads nothing; CONTROL: with the actor it reads | C4 · git author, email, chat speaker, environment user, process name and commit metadata are not proof of a person — only an explicitly named declared actor, and naming grants nothing | C16 · a CLI flag, an environment variable or a confirmation switch expresses intent and never grants authority
+         verdict: RED, named test, intended reason
+
+TOTAL 1 · PROVED 1 · NOT PROVED 0
+residue in sabotaged files after restore: 0
+tracked modifications after restore (excluding this evidence file): 0
+
+PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
+  audit-trail/events.jsonl  before b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1  after b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1
+  audit-trail/head.json  before d624c54b24c60777f7e2c1e3d55c446b0401ecec9c93a54f1802d85735f0475d  after d624c54b24c60777f7e2c1e3d55c446b0401ecec9c93a54f1802d85735f0475d
+  untouched: true
+
+EXECUTION ASSERTION: 1 of 1 executed · 1 proved

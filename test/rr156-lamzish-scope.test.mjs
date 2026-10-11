@@ -173,7 +173,7 @@ test("L5 · TWO CLIENTS' BATCHES NEVER MIX — each batch holds only its own sub
     const live = livePlan(W, { planId: "fixture-mix-plan" });
     const x = run(W, green(live, { tag: "mix" }), TWO(post(1, "Building a house in Pakistan?"), post(2, "Interior design for a flat in Pakistan?")));
     assert.equal(x.r.status, 0, x.out);
-    for (const f of ["questions.jsonl", "leads.jsonl", "collection-runs.jsonl"]) {
+    for (const f of ["questions.jsonl", "leads.jsonl", "collection-runs.jsonl", "held-for-judgement.jsonl"]) { // RR-248: since RR-157 the real profile HOLDS its records
       const rows = stored(W, OLD_BATCH, f);
       assert.ok(rows.every((r) => (r.value?.subject ?? r.subject ?? SUBJECT) === SUBJECT), `${f}: another client's record is in this batch`);
     }

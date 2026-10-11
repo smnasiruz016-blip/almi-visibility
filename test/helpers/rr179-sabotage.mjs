@@ -78,7 +78,13 @@ const SABOTAGES = [
   ["S37", "construction · a HOLD or a chosen KEEP counts as F35's CREATE (ruling c)", [[AD, '(d.actions ?? []).some((a) => a.action === "CREATE");', "true;"]], "R4c"],
   ["S38", "construction · a lone page is refused for having no comparison page (D1, S41)", [[CON, "    else if (siblings.length === 0) parts.overlap = { state: PASS,", "    else if (siblings.length === 0) parts.overlap = { state: NOT_TESTED,"]], "🔴 A FAMILY OF ONE"],
   ["S39", "construction · a small family is refused only because no shell is learnable (D1, S41)", [[CON, "    else if (unrenderedSiblings.length) parts.overlap", "    else if (!shell.shell) parts.overlap = { state: NOT_TESTED, reason: \"no shell\" };\n    else if (unrenderedSiblings.length) parts.overlap"]], "🔴 D1 · a two-spec family"],
-  ["S40", "construction · a compiled spec is rendered before F37's acceptance is frozen (ruling d)", [[CON, "html: null, trace: [], tokens: null, renderError: RENDER_WAITS_FOR_F37, compiled: true }));", "html: \"<article><p>compiled</p></article>\", trace: [], tokens: [\"compiled\"], renderError: null, compiled: true }));"]], "R4e"],
+  /* RR-248 · CASE (b) — S40 RETIRED (owner ruling RR-248 Q1 (A), _handoffs 689eea7). Ruling RR-179 (d) held a compiled spec unrendered
+   * only UNTIL F37's acceptance was frozen; RR-180 (67a7e15) froze it and built F37's render, so the RENDER_WAITS_FOR_F37 line this limb
+   * named is gone and the condition of the ruling has ended. What guards rendering now is F37 C1: rr180 S01 (a written material claim
+   * with no supporting source record), S02 (an unsupported claim written as fact, not UNKNOWN), S05 (a draft for a spec F35 did not
+   * choose CREATE), S08 (construction receives a decision F35 did not choose) and S09 (bin/build-page.mjs hands construction something
+   * other than F35's decision), each run on 2026-10-10 with --deliberate: RED by assertion, restored by sha256, 5 of 5 PROVED, then its
+   * proof file GREEN. No row state changes. */
   ["S41", "construction · a compiled spec's existing-page part does not read its coverage record", [[CON, "coverage: me.spec?.basis?.coverage?.outcome ?? null,", "coverage: null,"]], "R4e"],
   /* ── FS-A1 (RTP-1 S39, D2) ── */
   ["S42", "FS-A1 · a tier-4 source is refused for an ordinary claim by its category alone (the registry)", [[VAL, ' && r.life?.status !== "lead" && !isOrdinaryTier4(r)) {', ' && r.life?.status !== "lead") {']], "GREEN (FS-A1):"],
@@ -92,6 +98,9 @@ const SABOTAGES = [
   ["S49", "F41 C1 AS AMENDED · a brief is labelled an approval", [[CB, "    standing: STANDING,\n    recommended:", "    standing: STANDING,\n    approval: \"assumed\",\n    recommended:"]], "T41d"],
   ["S50", "F41 C1 AS AMENDED · a preview that does not pass is put forward", [[CB, "  if (missingParts.length) return Object.freeze({ state: PREVIEW.NOT_PUT_FORWARD,", "  if (false) return Object.freeze({ state: PREVIEW.NOT_PUT_FORWARD,"]], "T41e"],
   ["S51", "F41 C1 AS AMENDED · publication passes without the owner's exact recorded approval", [[CB, '  const exact = approvals.find((a) => recorded(a) && a.kind === "PUBLICATION"', '  const exact = approvals.find((a) => a && a.kind === "PUBLICATION"'], [CB, " && a.contentSha256 === preview.contentSha256);", ");"]], "T41f"],
+  /* RR-248: S51 breaks the ref rule together with the sha match, and T41f's sha control goes red from the sha change alone; this limb
+   * breaks the ref rule ALONE (the covering limb for retired f41 S4) */
+  ["S51R", "F41 C1 AS AMENDED · a publication approval with no ref (not recorded) passes", [[CB, "approvals.find((a) => recorded(a) && ", "approvals.find((a) => "]], "T41f"],
   ["S52", "F41 C1 AS AMENDED · an approval is assumed", [[CB, "  if (!Array.isArray(approvals)) throw new TypeError(", "  if (false) throw new TypeError("]], "T41f"],
   ["S53", "F41 C8 · a research-derived question loses its GENERATED marking (the brief)", [[CB, "marking: q.marking ?? null,", "marking: null,"]], "T41a"],
   ["S54", "F41 C8 · a research-derived question loses its GENERATED marking (the reader)", [[CBE, 'marking: q.tier === TIERS.RESEARCH_DERIVED && q.route === ROUTES.CLIENT_AI ? "GENERATED" : null', "marking: null"]], "T41a"],

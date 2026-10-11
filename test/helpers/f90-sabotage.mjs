@@ -9,6 +9,7 @@
  * hashed before and after. Evidence: runs/audit/f90-sabotage-2026-09-30.txt.
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { writeEvidenceOnce } from "./evidence-once.mjs"; // RR-248: evidence to a new timestamped file, never over an earlier run's
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -48,7 +49,11 @@ const SABOTAGES = [
   ["S15", "C5: the reader can write", R, 'import { readFileSync } from "node:fs";', 'import { readFileSync, writeFileSync } from "node:fs";', C5I],
   ["S16", "C5: the entry point drops its bound", B, "console.log(`  bound            ${c.bound} · ${storesListed} tracked store(s) listed`);", "", C5E],
   /* the held method's declarations */
-  ["S17", "HELD METHOD: a check's declared version drifts from what it stamps", CC, '  id: "thin-content",\n  version: "1",', '  id: "thin-content",\n  version: "2",', REAL],
+  /* RR-248: re-pointed — since RR-195 thin-content holds NO actionable finding (its version-1 FAILs are superseded review signals), so
+   * its version can no longer drift under a held finding; robots-scope (106 real actionable findings) takes its place, as it did in the
+   * REAL control of test/f90-falsifiability.test.mjs (RR-195). The protection — a held method's version is the one its findings stamp —
+   * is the same; the detector it is broken on is one that still holds findings. */
+  ["S17", "HELD METHOD: a check's declared version drifts from what it stamps", "src/audit/checks.mjs", '  id: "robots-scope",\n  version: "1",', '  id: "robots-scope",\n  version: "2",', REAL],
   ["S18", "HELD METHOD: the registry drops the declared version", RC, "boundary: validBoundary(id, boundary), version });", "boundary: validBoundary(id, boundary) });", REAL],
 ];
 
@@ -97,6 +102,6 @@ const trailAfter = sha(read(TRAIL));
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "f90-sabotage-2026-09-30.txt"), lines.join("\n") + "\n");
+console.log(`evidence written: ${writeEvidenceOnce(REPO, "f90-sabotage", lines.join("\n") + "\n")}`);
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore && proved === SABOTAGES.length ? 0 : 1;

@@ -1,0 +1,25 @@
+F02 SABOTAGE EVIDENCE — one defect per tenant-isolation enforcement limb (§8)
+
+Engine tree: 603f3a565a88ed42ff4504b26150cd2f3fe1570a. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
+runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
+requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
+No sabotage aims at the production audit trail; every firing case writes to a stand-in or a confined store.
+
+RESULTS
+F2-S7    landed=true red=true failed=2 namedTestFailed=true reason=false restored=true — the gate removed from a real production entry point
+         target bin/label-on-face.mjs · named test "R5 ·…" in test/f02-tenant-isolation.test.mjs
+         sha256 before 16067136702d89b1bc4a6a683c462d09f934223eca14acd72d7cfa6e27b343a4 · after 16067136702d89b1bc4a6a683c462d09f934223eca14acd72d7cfa6e27b343a4
+         failing tests: R5 · THE PRODUCTION ENTRY POINT over the real registry: same tenant runs, another tenant and no tenant are refused (exit 3) naming reason codes only — and the trail does not move | C1 · every production entry point decides tenant scope before it reads (tenant-scope census: 0 UNSCOPED, remainder 0)
+         verdict: RED ON THE NAMED TEST, FOR THE WRONG REASON
+
+TOTAL 1 · PROVED 0 · NOT PROVED 1
+residue in sabotaged files after restore: 0
+tracked modifications after restore (excluding this evidence file): 0
+
+PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
+  audit-trail/events.jsonl  before f6944b72d64ccb8491055927dbab97497f5c81ed3d7a750bc3ac238092f77c26  after f6944b72d64ccb8491055927dbab97497f5c81ed3d7a750bc3ac238092f77c26
+  audit-trail/head.json  before 875f8a1e7a92fe4a7812410001dfd4adcc872c35d5a155e140e2c7d2a4bf5f21  after 875f8a1e7a92fe4a7812410001dfd4adcc872c35d5a155e140e2c7d2a4bf5f21
+  untouched: true
+
+EXECUTION ASSERTION: 1 of 1 sabotages executed.

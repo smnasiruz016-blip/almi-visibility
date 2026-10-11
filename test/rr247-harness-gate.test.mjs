@@ -5,7 +5,7 @@
  * under test/. Three times that put live sabotages into src. The population here is found by BEHAVIOUR, not by name: a file is in it
  * if, run bare, it tries to write, spawn or reach the network (test/support/bare-run-census-preload.mjs refuses and logs each try).
  *
- *   HG-1  the gated population: every sabotage harness and every census-found writer imports the gate FIRST — 124 files (RR-247)
+ *   HG-1  the gated population: every sabotage harness and every census-found writer imports the gate FIRST — 125 files (RR-247; RR-248 +1)
  *   HG-2  BEHAVIOUR: every other file a bare run discovers, run bare, tries no write, no spawn and no network — except a PRODUCTION
  *         entry point, which is not a helper and is never gated: F02 governs it (test/f02-tenant-isolation.test.mjs L3: no tenant →
  *         exit 3, nothing read, the trail does not move), and run bare it may touch the confined test store and nothing else
@@ -62,13 +62,13 @@ const WRITERS = ["test/helpers/f06-correction-section-a.mjs", "test/helpers/f08-
 const ENTRY_POINTS = new Set(productionEntryPoints());
 const CONFINED = new RegExp(`^CENSUS would-[\\w.:]+ ${TEST_SCRATCH_AUDIT_ROOT.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/run-[\\w-]+/`);
 
-test("HG-1 · every sabotage harness and every census-found writer imports the gate FIRST — 124 files", () => {
+test("HG-1 · every sabotage harness and every census-found writer imports the gate FIRST — 125 files", () => {
   assert.ok(discovered.length >= 400 && outsideSuite.length >= 140, `the discovered population is too small to be the repository (${discovered.length}/${outsideSuite.length})`);
   const harnesses = outsideSuite.filter((f) => /sabotage/.test(f));
   assert.ok(harnesses.length >= 118, `${harnesses.length} sabotage harnesses`);
   assert.deepEqual(harnesses.filter((f) => !isGated(f)), [], "a sabotage harness does not import the gate first");
   assert.deepEqual(WRITERS.filter((f) => !isGated(f)), [], "a census-found writer does not import the gate first");
-  assert.equal(gated.length, 124, "the gated population moved — a new harness or writer must import the gate, and this census is restated by name"); /* RR-247: 118 harnesses (rr247-sabotage.mjs included) + 5 census-found writers + the clone proof */
+  assert.equal(gated.length, 125, "the gated population moved — a new harness or writer must import the gate, and this census is restated by name"); /* RR-247: 118 harnesses (rr247-sabotage.mjs included) + 5 census-found writers + the clone proof; RR-248: + rr248-sabotage.mjs (the freshness check's sabotage harness) = 125 */
 });
 
 test("HG-2 · BEHAVIOUR: every other file a bare `node --test` discovers, run bare, tries no write, no spawn and no network (a production entry point: the confined test store only)", () => {
@@ -85,7 +85,7 @@ test("HG-2 · BEHAVIOUR: every other file a bare `node --test` discovers, run ba
 });
 
 test("HG-3 · every gated file, run bare, stops at the gate: exit 2, the flag named, nothing tried", () => {
-  assert.equal(gated.length, 124);
+  assert.equal(gated.length, 125);
   const wrong = [];
   for (const f of gated) {
     const r = bare(f);
@@ -104,6 +104,8 @@ test("HG-4 · a disposable copy: a bare `node --test` changes no tracked file; t
     mkdirSync(join(dir, "test", "helpers"), { recursive: true });
     mkdirSync(join(dir, "src"));
     writeFileSync(join(dir, GATE), readFileSync(join(REPO, GATE))); // the REAL gate, byte for byte
+    mkdirSync(join(dir, "src", "audit-trail"), { recursive: true }); // RR-248 Q4: and the module it marks a deliberate run with
+    writeFileSync(join(dir, "src", "audit-trail", "harness-run.mjs"), readFileSync(join(REPO, "src/audit-trail/harness-run.mjs")));
     writeFileSync(join(dir, "src", "engine.mjs"), 'export const RULE = "clean";\n');
     writeFileSync(join(dir, "test", "helpers", "canary-sabotage.mjs"), [
       'import "./harness-gate.mjs";',
@@ -131,12 +133,11 @@ test("HG-4 · a disposable copy: a bare `node --test` changes no tracked file; t
 });
 
 test("HG-5 · every place in the repository that tells how to run a gated file says --deliberate", () => {
-  /* runs/ holds evidence records of past runs, and CASE_STUDY_01_RUN_01.md is the dated record of one run (by its old bin/ path);
-   * a record says how a run WAS made and is never rewritten. */
-  const RECORDS = (f) => f.startsWith("runs/") || f === "CASE_STUDY_01_RUN_01.md";
+  /* RR-248: NO exemption. RR-247 exempted runs/ and CASE_STUDY_01_RUN_01.md as records; measured on 10 Oct, neither holds a single
+   * how-to-run line for a gated file, so the exemption forgave nothing — and could only have hidden a future line. */
   const names = new Set(gated.map((f) => f.split("/").pop()));
   const stale = [];
-  for (const f of tracked.filter((x) => /\.(mjs|js|md|json|ya?ml|txt)$/.test(x) && !RECORDS(x))) {
+  for (const f of tracked.filter((x) => /\.(mjs|js|md|json|ya?ml|txt)$/.test(x))) {
     let text;
     try { text = readFileSync(join(REPO, f), "utf8"); } catch { continue; }
     for (const m of text.matchAll(/node (?:--import \S+ )?(?:test\/helpers|subjects\/almi-oet\/tools|bin)\/([\w.-]+\.mjs)(?! --deliberate)/g)) {

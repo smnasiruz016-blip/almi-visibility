@@ -24,7 +24,7 @@ const TRAIL = "audit-trail/events.jsonl";
 const PRACTICE = process.argv.includes("--practice");
 /* --only=<id>: one sabotage added after the full run, with its own evidence file (the full run's file is never overwritten) */
 const ONLY = process.argv.find((a) => a.startsWith("--only="))?.slice(7) ?? null;
-const DAY = new Date().toISOString().slice(0, 10);
+const DAY = new Date().toISOString().slice(0, 16).replace(":", ""); // RR-248: to the minute — a day-only name refused every second run that day
 const EVIDENCE = join(REPO, "runs", "audit", `rr159-sabotage-${PRACTICE ? "practice-" : ""}${ONLY ? `${ONLY}-` : ""}${DAY}.txt`);
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
@@ -37,12 +37,14 @@ const SABOTAGES = [
   ["S05", "C17 · a record for ANOTHER provider accepted", [[AC, "const mine = blocks.filter((b) => b.provider === providerId);", "const mine = blocks.slice(0, 1);"]], "P2"],
   ["S06", "C17 · a record for another ORIGIN accepted", [[AC, 'if (b.origin !== origin) r.push("PROVIDER_ORIGIN_IS_NOT_THE_RECORDS");', ""]], "P2"],
   ["S07", "C17 · the client's credential not required", [[BIN, 'if (aiCredential === null || !Object.hasOwn(process.env, aiCredential)) discoveryChecks.push("AI_CREDENTIAL_ABSENT");', ""]], "P2"],
-  ["S08", "C17 · a live provider with NO adapter reached", [[BIN, 'if (!seams.includes(TEST_PROVIDER) && !Object.hasOwn(AI_PROVIDER_ADAPTERS, ai.providerId)) discoveryChecks.push("PROVIDER_ADAPTER_ABSENT");', ""]], "P2"],
+  /* RR-248: S08 restated — RR-161 (c293dbc) splits the no-adapter case (BUILT_NOT_REGISTERED / ABSENT); the limb drops the ABSENT refusal */
+  ["S08", "C17 · a live provider with NO adapter reached", [[BIN, '      else discoveryChecks.push("PROVIDER_ADAPTER_ABSENT");', "      else void 0;"]], "P2"],
   ["S09", "C18 · a disconnected client's run allowed to start", [[BIN, "if (state !== CONNECTION.CONNECTED) discoveryChecks.push(`AI_CONNECTION_${state}`);", ""]], "P3"],
   ["S10", "C18 · a run in flight ignores the disconnect", [[ALC, 'if (!connected()) { stoppedBy = "DISCONNECTED"; break; }', ""]], "P3"],
   ["S11", "C19 · the provider's prose kept as if it were an address", [[AC, 'if (typeof v === "string") { for (const m of v.match(URL_IN_TEXT) ?? []) add(m.replace(/[.,;:!?]+$/, "")); return; }', 'if (typeof v === "string") { found.push(v); return; }']], "P1"],
   ["S12", "C20 · a hand-written query accepted", [[AC, 'if (planQueries.some((q) => !known.has(q))) r.push("QUERY_NOT_FORMED_BY_THE_SUBJECTS_DECLARATION");', ""]], "P4"],
-  ["S13", "C20 · origin country splits one need into two (F91's join removed)", [[DC, "} else needId = needOfWording.get(normaliseWording(v.original)) ?? `need:${hash([subject, r.question_id])}`;", "} else needId = `need:${hash([subject, r.question_id, v.country])}`;"]], "P4"],
+  /* RR-248: S13 restated — RR-172 (efc36be) reads wording and country through connectionFields (`fields`) */
+  ["S13", "C20 · origin country splits one need into two (F91's join removed)", [[DC, "} else needId = needOfWording.get(normaliseWording(fields.wording)) ?? `need:${hash([subject, r.question_id])}`;", "} else needId = `need:${hash([subject, r.question_id, fields.country])}`;"]], "P4"],
   ["S14", "C21 · a lead counted as demand by F91", [[DC, 'if (r?.record_type === "research_lead") return REFUSAL.LEAD;', ""]], "P5"],
   ["S15", "C22 · a DEAD lead recorded as read", [[ALC, ": !returned.has(id) ? RESOLUTION.DEAD", ": !returned.has(id) ? RESOLUTION.READ"]], "P1"],
   ["S16", "C22 · an address outside the approved source taken as its post", [[SE, 'u && host && u.protocol === "https:" && u.hostname === host ?', 'u && host && u.protocol === "https:" ?']], "P6"],

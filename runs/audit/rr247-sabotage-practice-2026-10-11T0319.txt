@@ -1,0 +1,14 @@
+RR-247 deliberate-invocation gate sabotage PRACTICE run · 2026-10-11T03:19:30.454Z
+population: 5 sabotage(s) — one per protection (the gate's stop, its exit code, the harness census, the behaviour census, the how-to-run lines)
+BASELINE: GREEN (every named test passed, none skipped)
+PRE-FLIGHT (span occurrences in the code now): G01=1 G02=1 G03=1 G04=1 G05=1 · all exactly once: true
+production trail sha256 before: b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1
+
+G01 the gate stops a harness that a bare run starts · test/helpers/harness-gate.mjs: landed true · "HG-4 ·" red true · its failure AssertionError · restored true · PROVED
+G02 a refusal is never a success (exit 2) · test/helpers/harness-gate.mjs: landed true · "HG-3 ·" red true · its failure AssertionError · restored true · PROVED
+G03 every sabotage harness imports the gate first · test/helpers/f01-sabotage.mjs: landed true · "HG-1 ·" red true · its failure AssertionError · restored true · PROVED
+G04 a writer that a bare run discovers is gated (found by behaviour) · test/helpers/f19-census-controls.mjs: landed true · "HG-2 ·" red true · its failure AssertionError · restored true · PROVED
+G05 every how-to-run line says --deliberate · test/helpers/f19-census-controls.mjs: landed true · "HG-5 ·" red true · its failure AssertionError · restored true · PROVED
+
+GREEN after restore: true
+proved 5 of 5 · residue 0 · production trail sha256 after: b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1 · unchanged true

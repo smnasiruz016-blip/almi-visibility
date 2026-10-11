@@ -1,0 +1,27 @@
+F07/F08 SINK REPAIR — SABOTAGE EVIDENCE (§4)
+
+Engine tree: 7cb0a26982f3ee01c3696fb98951655d71717bc9. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
+runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
+requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
+No sabotage aims at the production audit trail; every firing case writes to a stand-in or a confined store.
+
+RESULTS
+K1       landed=true red=true failed=3 namedTestFailed=true reason=true restored=true — diagnostic classification made durable again
+         target src/governance/guard-audit.mjs · named test "(a)(b)(d)…" in test/f07-sink-repair.test.mjs
+         sha256 before 5e3b8a629db09bb9fae2fd82905889de605c0be2a77d9f839825acc7f2c4eb75 · after 5e3b8a629db09bb9fae2fd82905889de605c0be2a77d9f839825acc7f2c4eb75
+         failing tests: (a)(b)(d) · ONE SINK: a clean classification appends 0, a real sealed refusal appends exactly 1, a real violation appends exactly 1 | (a)(f) · the REAL firewall binary, twice, on the real tree, in the SYNTHETIC scope: 0 appended each run — reported by the same sink's own counters | DERIVATION, NOT DECLARATION · the class comes from the decision itself — a caller's flag or name cannot move it
+         verdict: RED, named test, intended reason
+
+TOTAL 1 · PROVED 1 · NOT PROVED 0
+residue in sabotaged files after restore: 0
+tracked modifications after restore (excluding this evidence file): 0
+
+PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
+  audit-trail/events.jsonl  before b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1  after b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1
+  audit-trail/head.json  before d624c54b24c60777f7e2c1e3d55c446b0401ecec9c93a54f1802d85735f0475d  after d624c54b24c60777f7e2c1e3d55c446b0401ecec9c93a54f1802d85735f0475d
+  untouched: true
+
+PROBE CONTROL (clean tree): 1 of 1 probes report no defect.
+  K1  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — diagnostic classification made durable again
+RAN 1 of 1 · LANDED 1 of 1 · PROVED 1 of 1

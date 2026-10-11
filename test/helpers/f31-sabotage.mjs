@@ -9,6 +9,7 @@
  * is hashed before and after. Evidence: runs/audit/f31-sabotage-2026-09-29.txt.
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { writeEvidenceOnce } from "./evidence-once.mjs"; // RR-248: evidence to a new timestamped file, never over an earlier run's
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -28,10 +29,12 @@ const SABOTAGES = [
   ["S2", "C1 an identity not derived from its URL is reported", SI, `if (derived !== p.page_id) conflicts.push({ pageId: p.page_id, code: "IDENTITY_NOT_DERIVED_FROM_URL" });`, "if (false) {}", "C1 ·"],
   ["S3", "C2 fingerprints are verified against stored bytes", SI, "verified: bodies.has(o.observation_id) ? sha(bodies.get(o.observation_id)) === o.content_sha256 : null,", "verified: true,", "C2 ·"],
   ["S4", "C2 no fingerprint is invented", SI, `const fingerprints = obs.filter((o) => typeof o.content_sha256 === "string" && o.content_sha256 !== "").map((o) => ({`, "const fingerprints = obs.map((o) => ({", "C2 ·"],
-  ["S5", "C3 a page never answered with a status is UNKNOWN", SI, "const last = obs.filter(hasServedState).at(-1);", "const last = obs.at(-1);", "C3 ·"],
+  /* RR-248: S5 and S8 restated — F31 Amendment 1 C9 (RR-223, 4ae72cf): the NEWEST observation decides the served state, and the
+   * evidence names each observation's batch. S5 still lets a status-less observation be OBSERVED; S8 still empties the citations. */
+  ["S5", "C3 a page never answered with a status is UNKNOWN", SI, "const last = newest && hasServedState(newest) ? newest : null;", "const last = newest ? newest : null;", "C3 ·"],
   ["S6", "C4 a client's partition holds only its own members", BPART, "const mine = new Set(p.partitions.get(tenantId) ?? []);", "const mine = new Set([...p.partitions.values()].flat());", "C4 · OWNERSHIP"],
   ["S7", "C4 only the client's own links are read", BPART, "    if (!observationIds.has(id)) continue;\n    const e = JSON.parse(line);", "    const e = JSON.parse(line);", "C4 · the links read"],
-  ["S8", "C5 every page cites its observations", SI, "evidence: Object.freeze({ batchId, observationIds: Object.freeze(obs.map((o) => o.observation_id)) }),", "evidence: Object.freeze({ batchId, observationIds: Object.freeze([]) }),", "C5 ·"],
+  ["S8", "C5 every page cites its observations", SI, "evidence: Object.freeze({ batchId, observationIds: Object.freeze(obs.map((o) => o.observation_id)),", "evidence: Object.freeze({ batchId, observationIds: Object.freeze([]),", "C5 ·"],
   ["S9", "C6 listed but unobserved is INCOMPLETE", SC, "const listedUnobserved = [...listed].filter((u) => !served.has(u)).length;", "const listedUnobserved = 0;", "C6 · each gap"],
   ["S10", "C6 linked but unobserved is INCOMPLETE", SC, "const linkedUnobserved = [...linked].filter((u) => !served.has(u)).length;", "const linkedUnobserved = 0;", "C6 · each gap"],
   ["S11", "C6 a sitemap cut short is INCOMPLETE", SC, `return v.coverageState !== "COMPLETE" || (v.childrenSkipped ?? 0) > 0 || (Number.isInteger(v.urlsTotal) && Number.isInteger(v.urlsStored) && v.urlsStored < v.urlsTotal);`, "return false;", "C6 · each gap"],
@@ -88,6 +91,6 @@ const trailAfter = sha(read(TRAIL));
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "f31-sabotage-2026-09-29.txt"), lines.join("\n") + "\n");
+console.log(`evidence written: ${writeEvidenceOnce(REPO, "f31-sabotage", lines.join("\n") + "\n")}`);
 console.log(lines.join("\n"));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

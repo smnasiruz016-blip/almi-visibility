@@ -18,7 +18,7 @@ const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const CORPUS = "config/authority/corpus.mjs", REG = "src/authority/register.mjs", MR = "config/governance/mandatory-reading.mjs";
 const T = ["test/rr154-owner-records.test.mjs"];
 const TRAIL = "audit-trail/events.jsonl";
-const EVIDENCE = join(REPO, "runs", "audit", "rr154-owner-records-sabotage-2026-10-03.txt");
+const EVIDENCE = join(REPO, "runs", "audit", `rr154-owner-records-sabotage-${new Date().toISOString().slice(0, 16).replace(":", "")}.txt`); // RR-248: a new timestamped file each run (the fixed name could never be written twice)
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
 const head = (prop) => `"propositionId": "${prop}",\n    "scope": [\n      "ALMIVISIBILITY"\n    ],\n    "issuer": {\n`;

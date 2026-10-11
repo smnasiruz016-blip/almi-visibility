@@ -22,7 +22,7 @@ const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const C = "src/research/collection.mjs", BIN = "bin/collect-public-questions.mjs", SA = "src/research/source-adapter.mjs", WP = "config/research/withdrawn-plans.mjs";
 const T = ["test/rr156-lamzish-scope.test.mjs", "test/f16-collection.test.mjs"];
 const TRAIL = "audit-trail/events.jsonl";
-const EVIDENCE = join(REPO, "runs", "audit", "rr156-sabotage-2026-10-04.txt");
+const EVIDENCE = join(REPO, "runs", "audit", `rr156-sabotage-${new Date().toISOString().slice(0, 16).replace(":", "")}.txt`); // RR-248: a new timestamped file each run (the fixed name could never be written twice)
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
 
@@ -32,9 +32,15 @@ const SABOTAGES = [
   ["W02", "the withdrawn plan's hash altered in the list", [[WP, 'planSha256: "5e97c4d3235d30eda162f629006628c92d9bd32a13b264ee07187557d50c9954"', 'planSha256: "5e97c4d3235d30eda162f629006628c92d9bd32a13b264ee07187557d50c9955"']], "L2"],
   ["W03", "the entry point stops handing the withdrawn list to the preflight", [[BIN, "planSha, withdrawn: WITHDRAWN_PLANS, records,", "planSha, withdrawn: [], records,"]], "L2"],
   ["W04", "a GREEN for another plan admitted", [[C, 'else if (!mine) r.push("GREEN_NAMES_ANOTHER_PLAN");', "else if (!mine) void 0;"]], "L3"],
-  ["W05", "the relevance profile's excluding rules ignored", [[SA, 'const x = hit(p.excludes); if (x >= 0) return { verdict: "UNRELATED", rule: `excludes[${x}]` };', ""]], "L4"],
-  ["W06", "the relevance gate removed", [[SA, 'if (rel.verdict !== "RELEVANT") { refuse("NOT_ABOUT_THE_DECLARED_SUBJECT"); continue; }', ""]], "L4"],
-  ["W07", "admitted records claim another client", [[SA, "const shared = { subject, origin,", 'const shared = { subject: "fixture-other-client", origin,']], "L5"],
+  /* RR-248 · CASE (b) — W05 RETIRED (beta-g pre-ruling, 10 Oct). RR-157 (b235888, F16 Acceptance Amendment 2) gave lamzish's real
+   * profile mode MEANING_JUDGEMENT: every item is HELD before relevanceOf runs, so L4 can no longer see the excludes rule. The rule
+   * itself stands for pattern profiles and is broken on this same span by f16-relevance-gate R1 (test/f16-relevance-gate.test.mjs),
+   * run on 2026-10-10 with --deliberate: RED by AssertionError, restored by sha256, PROVED (16 of 16). */
+  /* RR-248: restated — since RR-157 (b235888) L4 runs the meaning-hold path and never reaches the gate; f16-collection K4 pins it */
+  ["W06", "the relevance gate removed", [[SA, 'if (rel.verdict !== "RELEVANT") { refuse("NOT_ABOUT_THE_DECLARED_SUBJECT"); continue; }', ""]], "K4"],
+  /* RR-248: restated — since RR-157 (b235888) the real profile HOLDS every item (held-for-judgement.jsonl) and never builds `shared`;
+   * the limb breaks the subject of the HELD record, and L5 now reads the held store too (it read only questions/leads/runs) */
+  ["W07", "held records claim another client", [[SA, "value: Object.freeze({ subject, origin, sourceId: decl.sourceId,", 'value: Object.freeze({ subject: "fixture-other-client", origin, sourceId: decl.sourceId,']], "L5"],
   ["W08", "ALL THREE guards on another client's batch removed (scope gate + membership + the plan's tenant decision)", [
     [BIN, "RESOURCES.researchBatch(BATCH), RESOURCES.connector(SUBJECT, KIND)", "RESOURCES.connector(SUBJECT, KIND)"],
     [BIN, 'if (!members.some((m) => m.resourceKind === "RESEARCH_BATCH" && m.resourceRef === BATCH)) {', "if (false) {"],
@@ -44,7 +50,8 @@ const SABOTAGES = [
   ["W10", "the collector handed the plan's own count", [[C, "cap: Math.min(plan.requests, COLLECTION_REQUEST_CEILING),", "cap: plan.requests,"]], "L6"],
   ["W11", "the ceiling raised to three", [[C, "export const COLLECTION_REQUEST_CEILING = 2;", "export const COLLECTION_REQUEST_CEILING = 3;"]], "L6"],
   ["W12", "leads stored as questions", [[BIN, 'const g = append(intake.leads, "leads.jsonl", "APPEND_RESEARCH_LEADS");', 'const g = append(intake.leads, "questions.jsonl", "APPEND_RESEARCH_LEADS");']], "K5"],
-  ["W13", "zero no longer reported as zero", [[C, "zero: outcome === OUTCOMES.COMPLETED && retrieved !== NOT_MEASURED && questions === 0,", "zero: false,"]], "K5"],
+  /* RR-248: restated — RR-157 (b235888) added held items to zero; the limb still reports no zero */
+  ["W13", "zero no longer reported as zero", [[C, "zero: outcome === OUTCOMES.COMPLETED && retrieved !== NOT_MEASURED && questions === 0 && (intake?.held ?? []).length === 0,", "zero: false,"]], "K5"],
   ["W14", "the credential's value touched (its length measured)", [[BIN, "credentialPresent: credentialName !== null && Object.hasOwn(process.env, credentialName),", "credentialPresent: credentialName !== null && String(process.env[credentialName] ?? \"\").length >= 0 && Object.hasOwn(process.env, credentialName),"]], "K7"],
 ];
 

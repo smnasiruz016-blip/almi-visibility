@@ -9,6 +9,7 @@
  * Evidence: runs/audit/f33-sabotage-2026-09-29.txt.
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { writeEvidenceOnce } from "./evidence-once.mjs"; // RR-248: evidence to a new timestamped file, never over an earlier run's
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -18,6 +19,11 @@ import { fileURLToPath } from "node:url";
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const NCV = "src/page/need-coverage.mjs", EPF = "src/page/existing-page-first.mjs", CON = "src/page/construct.mjs", CP = "tools/need-coverage-call-paths.mjs";
 const T = "test/f33-need-coverage.test.mjs", PC = "test/page-construction.test.mjs", T34 = "test/f34-no-blind-regeneration.test.mjs";
+/* 🔴 RR-248 · BLOCKED (owner answer 11 Oct, item 6 — exactly like f34 S9): a limb whose protection is a DEFECT in product code. It still
+ * runs and is reported, but it is NEVER counted PROVED, and test/rr248-span-freshness.test.mjs SF-7 names it. Lifted only by RR-249. */
+const BLOCKED = new Map([
+  ["S15", "F34 C6 DEFECT — since RR-179 (1d4bc58) / RR-180 (67a7e15) a candidate an existing page stops is stopped inside F35 and NO decision is recorded for it, so no recorded decision carries F33: C6 · END TO END asserts none (its F33 loop never runs) and no test pins the end-to-end half (C5 · pins the format at unit level only). Reopened as RR-249 (F34 REOPEN + fix + re-VERIFY)"],
+]);
 const TRAIL = "audit-trail/events.jsonl";
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
@@ -68,14 +74,16 @@ for (const [id, limb, file, from, to, expect, testFile] of SABOTAGES) {
   }
   const restored = sha(read(file)) === sha(orig);
   const red = failing.some((n) => n.startsWith(expect));
-  const ok = landed && red && restored;
+  const blocked = BLOCKED.get(id) ?? null;
+  const ok = landed && red && restored && blocked === null;
   if (ok) proved += 1;
-  lines.push(`${id} ${limb} ${file}: landed ${landed} · named test "${expect}" red ${red} · failing ${[...new Set(failing)].length} · restored by sha256 ${restored} · ${ok ? "PROVED" : "NOT PROVED"}`);
+  lines.push(`${id} ${limb} ${file}: landed ${landed} · named test "${expect}" red ${red} · failing ${[...new Set(failing)].length} · restored by sha256 ${restored} · ${blocked ? `BLOCKED — NOT PROVED: ${blocked}` : ok ? "PROVED" : "NOT PROVED"}`);
 }
 const trailAfter = sha(read(TRAIL));
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
-lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
+const blockedIds = SABOTAGES.filter(([id]) => BLOCKED.has(id)).map(([id]) => id);
+lines.push("", `proved ${proved} of ${SABOTAGES.length}${blockedIds.length ? ` · BLOCKED ${blockedIds.length} (${blockedIds.join(", ")}) — never PROVED` : ""} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "f33-sabotage-2026-09-29.txt"), lines.join("\n") + "\n");
+console.log(`evidence written: ${writeEvidenceOnce(REPO, "f33-sabotage", lines.join("\n") + "\n")}`);
 console.log(lines.join("\n"));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

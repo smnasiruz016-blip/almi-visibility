@@ -8,6 +8,7 @@
  * pass. Evidence: runs/audit/rr108-sabotage-2026-10-01.txt.
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { writeEvidenceOnce } from "./evidence-once.mjs"; // RR-248: evidence to a new timestamped file, never over an earlier run's
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -25,7 +26,8 @@ const SABOTAGES = [
   ["S01", "BOUNDARY: exactly at the bound is refused", F, "nowMs - lastStart >= intervalMs;", "nowMs - lastStart > intervalMs;", "BOUNDARY"],
   ["S02", "BOUNDARY: one unit short is allowed", F, "nowMs - lastStart >= intervalMs;", "nowMs - lastStart >= intervalMs - 1;", "BOUNDARY"],
   ["S03", "EARLY WAKE: the pacer waits once and never rechecks (the RR-107 defect)", F, "      await sleepImpl(Math.max(1, Math.ceil(intervalMs - (t - lastStart))));\n    }", "      await sleepImpl(Math.max(1, Math.ceil(intervalMs - (t - lastStart))));\n      lastStart = monotonic(); starts.push({ kind, at: lastStart }); return lastStart;\n    }", "EARLY WAKE-UP"],
-  ["S04", "RETRY: a retry is not paced", F, "    await pace(kind);", "    if (kind !== \"retry\") await pace(kind);", "RETRY"],
+  /* RR-248: restated — RR-135 (94e5329) paces every hop of the redirect loop with its kind in `k`; a retry still enters as "retry" */
+  ["S04", "RETRY: a retry is not paced", F, "      await pace(k);", "      if (k !== \"retry\") await pace(k);", "RETRY"],
   ["S05", "ROBOTS: robots.txt is neither paced nor recorded", C, "beforeRequest: () => fetcher.pace(\"robots\")", "beforeRequest: async () => {}", "ROBOTS → FIRST PAGE"],
   ["S06", "RECORD: the run record carries no pacing", C, "      pacing: fetcher.pacing(),", "      pacing: null,", "PRODUCTION APPEND"],
   ["S07", "DETECTION: a 999 ms gap is not counted a breach", F, "const breaches = gaps.filter((g) => g.ms < intervalMs).length;", "const breaches = gaps.filter((g) => g.ms < intervalMs - 1).length;", "DETECTION"],
@@ -80,6 +82,6 @@ const trailAfter = sha(read(TRAIL));
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
-writeFileSync(join(REPO, "runs", "audit", "rr108-sabotage-2026-10-01.txt"), lines.join("\n") + "\n");
+console.log(`evidence written: ${writeEvidenceOnce(REPO, "rr108-sabotage", lines.join("\n") + "\n")}`);
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore && proved === SABOTAGES.length ? 0 : 1;

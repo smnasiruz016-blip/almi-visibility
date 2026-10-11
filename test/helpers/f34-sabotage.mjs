@@ -25,7 +25,7 @@ const HO = "test/f34-f35-handoff.test.mjs"; // RR-248: where S10's protection li
 /* 🔴 RR-248 · BLOCKED (beta-g ruling, 11 Oct): a limb whose protection is a DEFECT in product code. It still runs and is reported, but it
  * is NEVER counted PROVED, and test/rr248-span-freshness.test.mjs SF-7 names every blocked limb. Lifted only by the round that fixes it. */
 const BLOCKED = new Map([
-  ["S9", "F34 C6 DEFECT — since RR-179 (1d4bc58) / RR-180 (67a7e15) a candidate an existing page stops is stopped inside F35 (KEEP/REJECT/HOLD) and NO decision is recorded for it; construction's recordDecision is unreachable, and no test or limb covers the stop. Reopened as RR-249 (F34 REOPEN + fix + re-VERIFY)"],
+  /* none — RR-249 fixed the F34 C6 defect (F35's stop is recorded, bin/build-page.mjs) and lifted S9 */
 ]);
 const TRAIL = "audit-trail/events.jsonl";
 const sha = (b) => createHash("sha256").update(b).digest("hex");
@@ -42,7 +42,8 @@ const SABOTAGES = [
   ["S6", "C4 recorded defect routes to IMPROVE", EPF, "if (defective.length) {", "if (false) {", "C4 ·", T],
   ["S7", "C6 a stopped candidate owes a decision", EPF, "if (!decision || decision.outcome === EXISTING_PAGE_OUTCOMES.NO_EXISTING_PAGE) return null;", "return null;", "C6 · a stopped candidate", T],
   ["S8", "C1/C2 construction needs the check to PASS", CON, "state: existing.mayProduce ? PASS : existing.outcome === EXISTING_PAGE_OUTCOMES.REFUSED ? NOT_TESTED : FAIL,", "state: PASS,", "F34 · C1 · construction", PC],
-  ["S9", "C6 the runner records each stopped candidate", BP, "if (ev) SCOPE.recordDecision(ev);", "if (false) SCOPE.recordDecision(ev);", "C6 · END TO END", T],
+  /* RR-249: the F34 C6 fix — the runner records F35's own F34 decision for a candidate F35 stopped; S9 breaks THAT record (no longer BLOCKED) */
+  ["S9", "C6 the runner records each candidate F35's check stopped (RR-249)", BP, "if (stop) SCOPE.recordDecision(stop);", "if (false) SCOPE.recordDecision(stop);", "C6 · END TO END", T],
   /* RR-248 · CASE (b) — MOVED (beta-g ruling, 11 Oct): since RR-179 (c) (_handoffs a8dc190) and RR-180 (a) (_handoffs 20150be) construction
    * acts only on F35's decision, and F35 judges F34 over the tenant's population before anything reaches construction; the runner's
    * existingPages: ep is read by no path that can change a verdict. The limb breaks F35's population (RR-248's first restatement here,

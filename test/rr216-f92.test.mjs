@@ -272,7 +272,7 @@ const OTHER_ROWS = Object.freeze({
   "src/adapter/sitemap-subject.mjs": "a40673d45c94c5559465bd0aa0396e7d8753628983d26972821e712478b8ec05",
   "src/page/draft-render.mjs": "fa5ebe27a4dbc8499be502bdfc302b8f584b0ca12b436f95f99f962a99c54a3b",
   "src/page/construct.mjs": "24d1fc41da3ada728b5218d33a54d510994df9f9a72a001e9ceafe97dd440b4f",
-  "bin/build-page.mjs": "dd4adb6a99ce4ae648278ed3ca8fda8f9c711ce6295c3d48256dfbd3d3cb3211",
+  "bin/build-page.mjs": "fd7519d21f22a554563fcf88290f463e4f509a3199b4244cdee49942dd369d98", /* RR-249: F34 re-proved under its same acceptance — C6: F35's stop is recorded (existingPageDecisions / the runner's record) — restated, this row unchanged */
   "src/page/answer-first.mjs": "b5f49a4990243970152ddc1af14dbe6e73b0cb692d512b41b10f68a282114a1f",
   "src/page/answer-first-evidence.mjs": "7f5e9748bfa666ad97edd4c758999b1f1eedb3ad52aadc9a0b447e64d0ca8c2d",
   "src/page/quality-judgements.mjs": "f4511418885bfbb3994e842dd6ba42610e49b8e6368401f0791ca79cb482fda2",

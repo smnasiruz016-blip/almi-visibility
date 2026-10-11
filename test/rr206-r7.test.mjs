@@ -343,7 +343,7 @@ const OTHER_ROWS = Object.freeze({
   "src/page/existing-page-population.mjs": "ae81025a364cec5f7573b8eb68912f3bf96fa63c7378286eb72f69a3bdfd4858", /* RR-225: F31 A1 (C9) and F02 A2 (the recorded decision) — restated again, F94 unchanged */
   "src/page/need-coverage.mjs": "75b88c1578530598b848a137ab73b66316d095a0eba5fe1966ff5bb4050e6b30",
   "src/page/action-decision.mjs": "74a70c37571842c4fde1ad7392f5442c0f0bd778ac0cccd1e0d7c4c057c8e2c8",
-  "src/page/action-evidence.mjs": "fa87018736e057e786f78e396e512f41318b3c3dc78095bc389081fcc9eaec67",
+  "src/page/action-evidence.mjs": "024fcbf0b040a81e602eaf96618f92750c23ccf60d4c8e369f3ed842da0bdb52", /* RR-249: F34 re-proved under its same acceptance — C6: F35's stop is recorded (existingPageDecisions / the runner's record) — restated, this row unchanged */
   "src/audit/link-audit.mjs": "ff1361bc9339d7cb811208c24d05fcd3f255567e7e8e20202ac9ada6e91a4206",
   "src/audit/link-audit-reader.mjs": "714a7d9107a490f259219369d9aa0094d159ad3468e9b5fb587e5e81f4c12c75",
 });

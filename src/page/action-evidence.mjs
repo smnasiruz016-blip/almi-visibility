@@ -89,9 +89,13 @@ export function decideGroupedNeeds({ tenantId, product, population, planningRows
   const connected = planningRows ? readConnections(planningRows, { overturned }) : null;
   const coverage = latestCoverageRecords(planningRows ?? []);
   const slugs = Object.keys(product.pageSpecs ?? {});
+  /* 🔴 RR-249 · F34 C6: every existing-page decision F35 takes on a declared spec, kept once per spec and handed back, so the runner can
+   * record it — a candidate an existing page stops inside F35 is never stopped silently (F34 C6: "every decision … recorded … exactly once") */
+  const judged = new Map();
   const rteFor = (slug) => {
     const spec = product.pageSpecs[slug];
     const ex = existingPageFirst({ candidate: { slug, intent: spec.variant, structure: { values } }, tenantId, population });
+    if (!judged.has(slug)) judged.set(slug, ex);
     return rightToExist({ slug, spec, siblings: slugs.filter((x) => x !== slug).map((x) => ({ slug: x, spec: product.pageSpecs[x] })), variants: values, existingPageDecision: ex, rationaleReviews });
   };
   const grouped = connected ? connected.needs.map((n) => ({ ...n, slug: specForCandidate(n.pageCandidate, product) })) : [];
@@ -122,6 +126,7 @@ export function decideGroupedNeeds({ tenantId, product, population, planningRows
   });
   return Object.freeze({
     connected, slugs, grouped, groupedNeeds,
+    existingPageDecisions: Object.freeze([...judged].map(([slug, decision]) => Object.freeze({ slug, decision }))),
     compiled: Object.freeze({ forJudgement: pool.length, forConstruction: Object.freeze(forConstruction), sectionProposals: Object.freeze(sectionProposals), refusals: Object.freeze(refusals) }),
   });
 }
@@ -174,6 +179,7 @@ export function readClientActionEvidence({ tenantId, product, records = [], reso
     pages,
     groupedNeeds: connected ? groupedNeeds : null,
     compiled: connected ? G.compiled : null,
+    existingPageDecisions: connected ? G.existingPageDecisions : null, /* RR-249 · F34 C6: what F35's own F34 check decided, per declared spec */
     groupedNeedsMissing: connected ? null : "no research batch named — F91's planning store was not read, so grouped needs are NOT MEASURED",
     demandMonitoring: demand ? Object.freeze({ recorded: true, outcome: demand.outcome ?? null, independentCategories: demand.independentCategories ?? null, ref: demand.ref ?? null }) : Object.freeze({ recorded: false, note: "NOT MEASURED — no recorded demand outcome; demand strength is never an outcome and never a gate (F35 M9)" }),
     summary: { needs: summarise(needs), pages: summarise(pages), groupedNeeds: connected ? summarise(groupedNeeds) : null },

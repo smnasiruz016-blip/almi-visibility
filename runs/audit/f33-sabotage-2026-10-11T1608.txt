@@ -1,0 +1,24 @@
+F33 sabotage run · 2026-10-11T16:00:19.676Z
+population: 18 sabotages over test/f33-need-coverage.test.mjs, test/f34-no-blind-regeneration.test.mjs, test/page-construction.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 300 s
+production trail sha256 before: b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1
+
+S1 C1 F34's missing-information refusal still fires src/page/existing-page-first.mjs: landed true · named test "C1 ·" red true · failing 1 · restored by sha256 true · PROVED
+S2 C1 F34's foreign-tenant refusal still fires src/page/existing-page-first.mjs: landed true · named test "C1 ·" red true · failing 1 · restored by sha256 true · PROVED
+S3 C2 a headline naming only this need COVERS src/page/need-coverage.mjs: landed true · named test "C2 · COVERED on the REAL structure" red true · failing 3 · restored by sha256 true · PROVED
+S4 C2 different wording is the same need (stems) src/page/need-coverage.mjs: landed true · named test "C2 · the SAME need in DIFFERENT WORDS" red true · failing 2 · restored by sha256 true · PROVED
+S5 C2 different wording is the same need (prefix rule) src/page/need-coverage.mjs: landed true · named test "C2 · the SAME need in DIFFERENT WORDS" red true · failing 1 · restored by sha256 true · PROVED
+S6 C3 a headline naming only other needs is DIFFERENT src/page/need-coverage.mjs: landed true · named test "C3 · NOT COVERED on the REAL structure" red true · failing 2 · restored by sha256 true · PROVED
+S7 C3 NOT COVERED only over a COMPLETE population src/page/need-coverage.mjs: landed true · named test "C3 · NOT COVERED is NEVER given" red true · failing 1 · restored by sha256 true · PROVED
+S8 C3 NOT COVERED lets production go on src/page/existing-page-first.mjs: landed true · named test "C3 · NOT COVERED on the REAL structure" red true · failing 2 · restored by sha256 true · PROVED
+S9 C4 an undecidable page holds the decision src/page/need-coverage.mjs: landed true · named test "C4 · each undecidable world" red true · failing 3 · restored by sha256 true · PROVED
+S10 C4 a page naming no registered need is UNDECIDED src/page/need-coverage.mjs: landed true · named test "C4 · each undecidable world" red true · failing 3 · restored by sha256 true · PROVED
+S11 C4 a shared headline is UNDECIDED src/page/need-coverage.mjs: landed true · named test "C4 · each undecidable world" red true · failing 1 · restored by sha256 true · PROVED
+S12 C4 no registered structure cannot decide src/page/need-coverage.mjs: landed true · named test "C4 · each undecidable world" red true · failing 1 · restored by sha256 true · PROVED
+S13 C5 the recorded reason carries F33's evidence src/page/existing-page-first.mjs: landed true · named test "C5 ·" red true · failing 1 · restored by sha256 true · PROVED
+S14 C5 NOT COVERED is recorded src/page/existing-page-first.mjs: landed true · named test "C5 ·" red true · failing 1 · restored by sha256 true · PROVED
+S15 C5/C6 the runner's recorded decision carries F33 src/page/existing-page-first.mjs: landed true · named test "C6 · END TO END" red false · failing 0 · restored by sha256 true · BLOCKED — NOT PROVED: F34 C6 DEFECT — since RR-179 (1d4bc58) / RR-180 (67a7e15) a candidate an existing page stops is stopped inside F35 and NO decision is recorded for it, so no recorded decision carries F33: C6 · END TO END asserts none (its F33 loop never runs) and no test pins the end-to-end half (C5 · pins the format at unit level only). Reopened as RR-249 (F34 REOPEN + fix + re-VERIFY)
+S16 C6 the one check reaches F33 src/page/existing-page-first.mjs: landed true · named test "C6 · the one check every routed path calls" red true · failing 8 · restored by sha256 true · PROVED
+S17 C6 construction hands F33 the registered structure src/page/construct.mjs: landed true · named test "F34 · C2 · a candidate whose intent" red true · failing 3 · restored by sha256 true · PROVED
+S18 C7 a network call in the decision is seen tools/need-coverage-call-paths.mjs: landed true · named test "C7 ·" red true · failing 1 · restored by sha256 true · PROVED
+
+proved 17 of 18 · BLOCKED 1 (S15) — never PROVED · residue 0 · production trail sha256 after: b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1 · unchanged true
